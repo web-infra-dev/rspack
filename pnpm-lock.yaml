@@ -5,11 +5,9 @@ importers:
   .:
     specifiers: {}
 
-  packages:
-
+  packages/rspack:
     specifiers:
       lodash-es: ^4.17.21
-
     dependencies:
       lodash-es: 4.17.21
 
