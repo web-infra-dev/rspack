@@ -1,0 +1,9 @@
+[workspace]
+members = [
+  "./*",
+]
+
+[profile.release]
+codegen-units = 1
+debug = false
+lto = true
