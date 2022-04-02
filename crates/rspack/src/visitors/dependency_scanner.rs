@@ -1,34 +1,48 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use crossbeam::channel::Sender;
+use linked_hash_map::LinkedHashMap;
 use swc_atoms::JsWord;
-use swc_ecma_ast::{
-    CallExpr, Callee, ExportAll, ExportDecl, ExportDefaultDecl, ExportDefaultExpr, Expr,
-    ImportDecl, Lit, ModuleDecl, NamedExport,
-};
+use swc_ecma_ast::{CallExpr, Callee, ExportAll, Expr, ImportDecl, Lit, NamedExport};
 use swc_ecma_visit::{noop_visit_type, Visit};
 
-use crate::{js_module::JsModule, Msg, PluginDriver};
+use crate::{
+    js_module::{DynImportDesc, JsModule, RelationInfo},
+    Msg,
+};
 
 pub struct DependencyScanner<'a> {
     pub tx: &'a Sender<Msg>,
     pub js_module: &'a JsModule,
-    pub imported: HashSet<JsWord>,
+    pub dependencies: LinkedHashMap<JsWord, ()>,
+    pub dynamic_dependencies: HashSet<DynImportDesc>,
     // pub re_exported: HashSet<JsWord>,
-    pub dyn_imported: HashSet<JsWord>,
-    // pub import_infos: LinkedHashMap<JsWord, RelationInfo>,
+    // pub dyn_imported: HashSet<JsWord>,
+    pub import_infos: HashMap<JsWord, RelationInfo>,
     // pub local_exports: HashMap<JsWord, ExportDesc>,
     // pub re_exports: HashMap<JsWord, ReExportDesc>,
-    // pub re_export_infos: LinkedHashMap<JsWord, RelationInfo>,
+    pub re_export_infos: HashMap<JsWord, RelationInfo>,
     // pub export_all_sources: HashSet<(JsWord, usize)>,
-    // pub dynamic_imports: HashSet<DynImportDesc>,
+}
+
+impl<'a> DependencyScanner<'a> {
+    pub fn new(tx: &'a Sender<Msg>, js_module: &'a JsModule) -> Self {
+        Self {
+            tx,
+            js_module,
+            import_infos: Default::default(),
+            re_export_infos: Default::default(),
+            dynamic_dependencies: Default::default(),
+            dependencies: Default::default(),
+        }
+    }
 }
 
 impl<'a> Visit for DependencyScanner<'a> {
     noop_visit_type!();
     fn visit_import_decl(&mut self, import_decl: &ImportDecl) {
         let imported_path = &import_decl.src.value;
-        self.imported.insert(imported_path.clone());
+        self.dependencies.insert(imported_path.clone(), ());
     }
 
     // fn visit_export_decl(&mut self, n: &ExportDecl) {
@@ -37,7 +51,7 @@ impl<'a> Visit for DependencyScanner<'a> {
 
     fn visit_named_export(&mut self, node: &NamedExport) {
         if let Some(re_exported) = &node.src {
-            self.imported.insert(re_exported.value.clone());
+            self.dependencies.insert(re_exported.value.clone(), ());
         }
     }
 
@@ -46,7 +60,7 @@ impl<'a> Visit for DependencyScanner<'a> {
     // fn visit_export_default_expr(&mut self, n: &ExportDefaultExpr) {  }
 
     fn visit_export_all(&mut self, node: &ExportAll) {
-        self.imported.insert(node.src.value.clone());
+        self.dependencies.insert(node.src.value.clone(), ());
     }
 
     fn visit_call_expr(&mut self, node: &CallExpr) {
@@ -54,7 +68,9 @@ impl<'a> Visit for DependencyScanner<'a> {
             if let Some(dyn_imported) = node.args.get(0) {
                 if dyn_imported.spread.is_none() {
                     if let Expr::Lit(Lit::Str(imported)) = dyn_imported.expr.as_ref() {
-                        self.dyn_imported.insert(imported.value.clone());
+                        self.dynamic_dependencies.insert(DynImportDesc {
+                            argument: imported.value.clone(),
+                        });
                     }
                 }
             }

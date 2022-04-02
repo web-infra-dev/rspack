@@ -1,15 +1,27 @@
-use std::{collections::HashMap, ffi::OsString, sync::Arc};
+use std::{collections::HashSet, fmt::Debug};
 
 use dashmap::DashMap;
 use smol_str::SmolStr;
+use sugar_path::PathSugar;
+use swc_atoms::JsWord;
 
 use crate::{plugin::ResolvedId, PluginDriver};
 
-#[derive(Debug)]
 pub struct JsModule {
     pub id: SmolStr,
     pub source: String,
     pub resolved_ids: DashMap<SmolStr, ResolvedId>,
+}
+
+impl Debug for JsModule {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let cwd = std::env::current_dir().unwrap();
+        f.debug_struct("JsModule")
+            .field("id", &cwd.relative(self.id.as_str()))
+            .field("source", &self.source)
+            .field("resolved_ids", &self.resolved_ids)
+            .finish()
+    }
 }
 
 impl JsModule {
@@ -36,4 +48,27 @@ impl JsModule {
             resolved_id
         }
     }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct RelationInfo {
+    pub source: JsWord,
+    // Empty HashSet represents `import './side-effect'` or `import {} from './foo'`
+    pub names: HashSet<Specifier>,
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct Specifier {
+    /// The original defined name
+    pub original: JsWord,
+    /// The name importer used
+    pub used: JsWord,
+    // pub mark: Mark,
+}
+
+// import('./foo')
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+pub struct DynImportDesc {
+    pub argument: JsWord,
+    // pub id: Option<JsWord>,
 }
