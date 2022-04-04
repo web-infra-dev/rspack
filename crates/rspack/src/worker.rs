@@ -9,8 +9,7 @@ use swc_ecma_visit::{VisitMutWith, VisitWith};
 
 use crate::{
     js_ext_module::JsExtModule, js_module::JsModule, plugin::ResolvedId, utils::parse_file,
-    visitors::DependencyScanner, Msg, PluginDriver, Relation,
-};
+    visitors::DependencyScanner, PluginDriver, graph_container::{Msg, Relation},};
 
 pub(crate) struct Worker {
     pub job_queue: Arc<SegQueue<ResolvedId>>,

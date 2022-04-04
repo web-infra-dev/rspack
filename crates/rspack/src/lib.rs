@@ -16,6 +16,7 @@ pub mod graph_container;
 pub mod js_ext_module;
 pub mod plugin_driver;
 pub mod worker;
+pub mod bundle_options;
 
 pub mod utils;
 
@@ -24,17 +25,5 @@ pub mod js_module;
 pub mod plugin;
 pub mod plugins;
 pub mod visitors;
+pub mod chunk;
 
-#[derive(Debug, Clone, Copy)]
-pub enum Relation {
-    AsyncImport,
-    StaticImport,
-}
-
-type DepGraph = petgraph::Graph<SmolStr, Relation>;
-
-pub enum Msg {
-    DependencyReference(SmolStr, SmolStr, Relation),
-    NewMod(JsModule),
-    NewExtMod(JsExtModule),
-}

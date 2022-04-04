@@ -4,11 +4,11 @@ use crossbeam::channel::Sender;
 use linked_hash_map::LinkedHashMap;
 use swc_atoms::JsWord;
 use swc_ecma_ast::{CallExpr, Callee, ExportAll, Expr, ImportDecl, Lit, NamedExport};
-use swc_ecma_visit::{noop_visit_type, Visit};
+use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
 
 use crate::{
+    graph_container::Msg,
     js_module::{DynImportDesc, JsModule, RelationInfo},
-    Msg,
 };
 
 pub struct DependencyScanner<'a> {
@@ -64,6 +64,7 @@ impl<'a> Visit for DependencyScanner<'a> {
     }
 
     fn visit_call_expr(&mut self, node: &CallExpr) {
+        // println!("import node: {:#?}", node);
         if let Callee::Import(_) = node.callee {
             if let Some(dyn_imported) = node.args.get(0) {
                 if dyn_imported.spread.is_none() {
@@ -74,6 +75,8 @@ impl<'a> Visit for DependencyScanner<'a> {
                     }
                 }
             }
+        } else {
+            node.visit_children_with(self);
         }
     }
 }

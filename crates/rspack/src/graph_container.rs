@@ -1,15 +1,37 @@
-use std::{sync::{Arc, atomic::{AtomicUsize, Ordering}}, collections::HashMap};
+use std::{
+    collections::HashMap,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
+};
 
+use crossbeam::channel::{self};
 use crossbeam::queue::SegQueue;
 use dashmap::DashSet;
 use futures::future::join_all;
-use petgraph::{graph::NodeIndex, dot::Dot};
+use petgraph::{dot::Dot, graph::NodeIndex, visit::{depth_first_search, DfsEvent}};
 use smol_str::SmolStr;
-use crossbeam::channel::{self};
 
+use crate::{
+    chunk::Chunk, js_ext_module::JsExtModule, js_module::JsModule, plugin::ResolvedId,
+    plugin_driver::PluginDriver, worker::Worker,
+};
 
-use crate::{plugin_driver::PluginDriver, plugin::ResolvedId, js_module::JsModule, DepGraph, Msg, worker::Worker};
+#[derive(Debug, Clone, Copy)]
+pub enum Relation {
+    AsyncImport,
+    StaticImport,
+}
 
+type ModuleGraph = petgraph::Graph<SmolStr, Relation>;
+type ChunkGraph = petgraph::Graph<SmolStr, ()>;
+
+pub enum Msg {
+    DependencyReference(SmolStr, SmolStr, Relation),
+    NewMod(JsModule),
+    NewExtMod(JsExtModule),
+}
 
 #[derive(Debug)]
 pub struct InputOptions {
@@ -43,10 +65,10 @@ impl GraphContainer {
         println!("resolved_entries {:?}", self.resolved_entries);
 
         let mut path_to_node_idx: HashMap<SmolStr, NodeIndex> = Default::default();
-        let mut dep_graph = DepGraph::new();
+        let mut module_graph = ModuleGraph::new();
 
         self.resolved_entries.iter().for_each(|resolved_entry_id| {
-            let entry_idx = dep_graph.add_node(resolved_entry_id.id.clone());
+            let entry_idx = module_graph.add_node(resolved_entry_id.id.clone());
             // self.entry_indexs.push(entry_idx);
             path_to_node_idx.insert(resolved_entry_id.id.clone(), entry_idx);
             job_queue.push(resolved_entry_id.clone());
@@ -96,26 +118,49 @@ impl GraphContainer {
                     Msg::DependencyReference(from, to, rel) => {
                         let from_id = *path_to_node_idx
                             .entry(from)
-                            .or_insert_with_key(|key| dep_graph.add_node(key.clone()));
+                            .or_insert_with_key(|key| module_graph.add_node(key.clone()));
                         let to_id = *path_to_node_idx
                             .entry(to)
-                            .or_insert_with_key(|key| dep_graph.add_node(key.clone()));
-                        dep_graph.add_edge(from_id, to_id, rel);
+                            .or_insert_with_key(|key| module_graph.add_node(key.clone()));
+                        module_graph.add_edge(from_id, to_id, rel);
                     }
                     _ => {}
                 }
             }
         }
 
-        // println!("grpah {:?}", Dot::new(&dep_graph))
+        let mut chunks_by_entry_module_id = HashMap::new();
+        let mut module_id_to_its_chunk = HashMap::new();
+        self.resolved_entries.iter().for_each(|resolved_id| {
+            let entrt_module_id = &resolved_id.id;
+            let chunk = Chunk {
+                module_ids: vec![entrt_module_id.clone()],
+            };
+            chunks_by_entry_module_id.insert(entrt_module_id.clone(), chunk);
+            module_id_to_its_chunk.insert(entrt_module_id.clone(), entrt_module_id);
+        });
+        println!("graph: {:?}", Dot::new(&module_graph));
+        let entries_node_idx = self
+            .resolved_entries
+            .iter()
+            .map(|rid| path_to_node_idx[&rid.id])
+            .collect::<Vec<_>>();
+        // let mut chunk_graph = petgraph::Graph::new();
+        // let stacks = vec![];
+        // depth_first_search(&module_graph, entries_node_idx, |evt| {
+        //   match evt {
+        //       DfsEvent::Discover(module_node_idx, _) => {
+        //         // let 
+        //       },
+        //       DfsEvent::TreeEdge(from, to) => {
 
-        // let entries_id = self
-        //     .entry_indexs
-        //     .iter()
-        //     .map(|idx| &self.module_graph[*idx])
-        //     .collect::<HashSet<&SmolStr>>();
-        // self.module_by_id.par_iter_mut().for_each(|(_key, module)| {
-        //     module.is_user_defined_entry_point = entries_id.contains(&module.id);
+        //       }
+        //       _ => {},
+        //   }
         // });
+    }
+
+    pub fn sort_modules(&self) -> Vec<SmolStr> {
+        vec![]
     }
 }

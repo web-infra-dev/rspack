@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sugar_path="*"
+sugar_path="0.0.4"
 anyhow = "1"
 crossbeam = "0.8.1"
 dashmap = "5.0.0"

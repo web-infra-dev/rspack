@@ -1,6 +1,7 @@
 use std::{collections::HashSet, fmt::Debug};
 
 use dashmap::DashMap;
+use linked_hash_map::LinkedHashMap;
 use smol_str::SmolStr;
 use sugar_path::PathSugar;
 use swc_atoms::JsWord;
@@ -11,6 +12,8 @@ pub struct JsModule {
     pub id: SmolStr,
     pub source: String,
     pub resolved_ids: DashMap<SmolStr, ResolvedId>,
+    pub dependencies: LinkedHashMap<JsWord, ()>,
+    pub dynamic_dependencies: HashSet<DynImportDesc>,
 }
 
 impl Debug for JsModule {
@@ -30,6 +33,8 @@ impl JsModule {
             id,
             resolved_ids: Default::default(),
             source: "".to_string(),
+            dependencies: Default::default(),
+            dynamic_dependencies: Default::default(),
         }
     }
     pub(crate) async fn resolve_id(

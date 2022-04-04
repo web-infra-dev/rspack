@@ -22,7 +22,10 @@ async fn main() {
         resolved_entries: Default::default(),
         module_by_id: Default::default(),
         input: InputOptions {
-            entries: vec!["./packages/rspack/node_modules/lodash-es/lodash.default.js".to_string()],
+            entries: vec![
+                "./crates/rspack/fixtures/basic/entry-a.js".to_string(),
+                "./crates/rspack/fixtures/basic/entry-b.js".to_string(),
+            ],
         },
     };
     g.generate_module_graph().await;
