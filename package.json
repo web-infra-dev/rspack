@@ -5,7 +5,8 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "setup": "pnpm install && cargo build"
+    "setup": "pnpm install && cargo build",
+    "build:example": "cargo run --package rspack --example build"
   },
   "repository": {
     "type": "git",
