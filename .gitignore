@@ -147,3 +147,7 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# for jetbrains tmp file
+.idea
+.clion
