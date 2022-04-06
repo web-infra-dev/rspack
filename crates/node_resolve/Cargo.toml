@@ -1,0 +1,10 @@
+[package]
+name = "rspack_node_resolve"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "node resolve algorithm"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
