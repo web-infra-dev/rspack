@@ -1,6 +1,6 @@
 use std::sync::{Mutex};
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct BundleContext {
     pub assets: Mutex<Vec<Asset>>,
 }

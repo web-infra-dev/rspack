@@ -9,6 +9,7 @@ use swc_atoms::JsWord;
 use crate::{plugin::ResolvedId, PluginDriver};
 
 pub struct JsModule {
+    pub exec_order: usize,
     pub id: SmolStr,
     pub source: String,
     pub resolved_ids: DashMap<SmolStr, ResolvedId>,
@@ -35,6 +36,7 @@ impl JsModule {
             source: "".to_string(),
             dependencies: Default::default(),
             dynamic_dependencies: Default::default(),
+            exec_order: Default::default(),
         }
     }
     pub(crate) async fn resolve_id(

@@ -19,7 +19,7 @@ use smol_str::SmolStr;
 
 use crate::{
     chunk::Chunk, js_ext_module::JsExtModule, js_module::JsModule, plugin::ResolvedId,
-    plugin_driver::PluginDriver, worker::Worker,
+    plugin_driver::PluginDriver, worker::Worker, bundle_options::BundleOptions,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -37,19 +37,69 @@ pub enum Msg {
     NewExtMod(JsExtModule),
 }
 
-#[derive(Debug)]
-pub struct InputOptions {
-    pub entries: Vec<String>,
-}
 
 pub struct GraphContainer {
     pub plugin_driver: Arc<PluginDriver>,
     pub resolved_entries: Vec<ResolvedId>,
     pub module_by_id: HashMap<SmolStr, JsModule>,
-    pub input: InputOptions,
+    pub input: BundleOptions,
 }
 
 impl GraphContainer {
+    pub async fn build(&mut self) {
+        self.generate_module_graph().await;
+
+        // Every chunk has a entry module. We use entry module id to represent a chunk.
+        // let mut chunks_by_entry_module_id: HashMap<SmolStr, Chunk> = HashMap::new();
+        // let mut module_id_to_its_chunk: HashMap<SmolStr, SmolStr> = HashMap::new();
+        // self.resolved_entries.iter().for_each(|resolved_id| {
+        //     let entrt_module_id = &resolved_id.id;
+        //     let chunk = Chunk {
+        //         // id: resolved_id.id.clone(),
+        //         module_ids: vec![entrt_module_id.clone()],
+        //     };
+        //     chunks_by_entry_module_id.insert(entrt_module_id.clone(), chunk);
+        //     module_id_to_its_chunk.insert(entrt_module_id.clone(), entrt_module_id.clone());
+        // });
+        // let entries_node_idx = self
+        //     .resolved_entries
+        //     .iter()
+        //     .map(|rid| path_to_node_idx[&rid.id])
+        //     .collect::<Vec<_>>();
+        // type ChunkGraph = petgraph::graph::Graph<SmolStr, Relation>;
+        // let mut chunk_graph = ChunkGraph::new();
+        // let mut stack = vec![];
+        // depth_first_search(&module_graph, entries_node_idx, |evt| match evt {
+        //     DfsEvent::Discover(module_node_idx, _) => {
+        //         let module_id = &module_graph[module_node_idx];
+        //         if let Some(_) = chunks_by_entry_module_id.get(module_id) {
+        //             stack.push(module_id.clone());
+        //         } else {
+        //           let chunk = chunks_by_entry_module_id.get_mut(stack.last().unwrap()).unwrap();
+        //           chunk.module_ids.push(module_id.clone());
+        //         }
+        //     }
+        //     DfsEvent::TreeEdge(from, to) => {
+        //       let importer = &module_graph[from];
+        //       let importee = &module_graph[to];
+        //       let dependency = &module_graph[module_graph.find_edge(from, to).unwrap()];
+        //       if let Relation::AsyncImport = dependency {
+
+        //       }
+
+        //     }
+        //     _ => {}
+        // });
+    }
+
+    pub fn sort_modules(&mut self) {
+
+    }
+
+    pub async fn split_chunks(&mut self) {
+        // We may need to remove this method to other struct.
+    }
+
     // build dependency graph via entry modules.
     pub async fn generate_module_graph(&mut self) {
         let nums_of_thread = num_cpus::get();
@@ -133,51 +183,5 @@ impl GraphContainer {
             }
         }
         println!("graph: {:?}", Dot::new(&module_graph));
-
-        // Every chunk has a entry module. We use entry module id to represent a chunk.
-        let mut chunks_by_entry_module_id: HashMap<SmolStr, Chunk> = HashMap::new();
-        let mut module_id_to_its_chunk: HashMap<SmolStr, SmolStr> = HashMap::new();
-        self.resolved_entries.iter().for_each(|resolved_id| {
-            let entrt_module_id = &resolved_id.id;
-            let chunk = Chunk {
-                // id: resolved_id.id.clone(),
-                module_ids: vec![entrt_module_id.clone()],
-            };
-            chunks_by_entry_module_id.insert(entrt_module_id.clone(), chunk);
-            module_id_to_its_chunk.insert(entrt_module_id.clone(), entrt_module_id.clone());
-        });
-        let entries_node_idx = self
-            .resolved_entries
-            .iter()
-            .map(|rid| path_to_node_idx[&rid.id])
-            .collect::<Vec<_>>();
-        type ChunkGraph = petgraph::graph::Graph<SmolStr, Relation>;
-        let mut chunk_graph = ChunkGraph::new();
-        let mut stack = vec![];
-        depth_first_search(&module_graph, entries_node_idx, |evt| match evt {
-            DfsEvent::Discover(module_node_idx, _) => {
-                let module_id = &module_graph[module_node_idx];
-                if let Some(_) = chunks_by_entry_module_id.get(module_id) {
-                    stack.push(module_id.clone());
-                } else {
-                  let chunk = chunks_by_entry_module_id.get_mut(stack.last().unwrap()).unwrap();
-                  chunk.module_ids.push(module_id.clone());
-                }
-            }
-            DfsEvent::TreeEdge(from, to) => {
-              let importer = &module_graph[from];
-              let importee = &module_graph[to];
-              let dependency = &module_graph[module_graph.find_edge(from, to).unwrap()];
-              if let Relation::AsyncImport = dependency {
-                
-              }
-
-            }
-            _ => {}
-        });
-    }
-
-    pub fn sort_modules(&self) -> Vec<SmolStr> {
-        vec![]
     }
 }
