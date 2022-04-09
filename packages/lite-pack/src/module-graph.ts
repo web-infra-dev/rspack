@@ -1,7 +1,11 @@
 import { ModuleNode } from './module';
 
-export class ModuleGraph {
-  #nodes: Map<string, ModuleNode>;
+type Visitor<T>  = {
+  node?(id:string,node:T): void;
+  edge?(from:string,to:string):void;
+}
+export class Graph<T> {
+  #nodes: Map<string, T>;
   #edges: Map<string, string[]>;
   constructor() {
     this.#nodes = new Map();
@@ -13,8 +17,9 @@ export class ModuleGraph {
   getChildrenById(id: string) {
     return this.#edges.get(id) ?? [];
   }
-  addNode(id: string, node: ModuleNode) {
+  addNode(id: string, node: T) {
     this.#nodes.set(id, node);
+    return id;
   }
   checkNodeExist(id: string) {
     if (!this.#nodes.get(id) && id !== '') {
@@ -41,10 +46,16 @@ export class ModuleGraph {
     console.log('edges', this.#edges.entries());
     console.log('nodes:', this.#nodes.entries());
   }
-  traverse(startId: string, visitor: (module: ModuleNode) => void) {
-    this.#dfs(startId, visitor);
+  traverse(startId: string | string[], visitor: Visitor<T>) {
+    if (Array.isArray(startId)) {
+      for (const id of startId) {
+        this.#dfs(id, visitor);
+      }
+    } else {
+      this.#dfs(startId, visitor);
+    }
   }
-  #dfs(startId: string, visitor: (module: ModuleNode) => void) {
+  #dfs(startId: string, visitor: Visitor<T>) {
     let visited = new Set();
     const walk = (id: string) => {
       if (visited.has(id)) {
@@ -55,11 +66,30 @@ export class ModuleGraph {
       if (!module) {
         throw new Error('module not exist:' + id);
       }
-      visitor(module);
+      visitor.node?.(id,module);
       for (const child of this.getChildrenById(id)) {
         walk(child);
       }
     };
     return walk(startId);
+  }
+}
+
+export class ModuleGraph extends Graph<ModuleNode> {
+  #entries: string[] = [];
+  constructor() {
+    super();
+    this.#entries = [];
+  }
+  getEntries() {
+    return this.#entries;
+  }
+
+  override addNode(id: string, node: ModuleNode): string {
+    super.addNode(id, node);
+    if (node.isEntry) {
+      this.#entries.push(id);
+    }
+    return id;
   }
 }

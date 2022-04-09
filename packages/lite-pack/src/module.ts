@@ -10,8 +10,10 @@ export type NormalModuleOptions = {
   resolveDir:string;
   importer: string;
   compiler: Compiler;
+  isEntry: boolean;
 }
 export class ModuleNode {
+  isEntry: boolean;
   contents!:string;
   path:string;
   importer:string;
@@ -30,6 +32,7 @@ export class ModuleNode {
     this.#loader = new Loader();
     this.#compiler = options.compiler;
     this.#parser = new Parser();
+    this.isEntry = options.isEntry;
   }
   static create(options:NormalModuleOptions){
     return new ModuleNode(options);
@@ -56,7 +59,8 @@ export class ModuleNode {
           importer: this.fullPath,
           resolveDir: path.dirname(this.fullPath),
           path: moduleId,
-          compiler: this.#compiler
+          compiler: this.#compiler,
+          isEntry:false
         })
         this.#compiler.addModule(newModule)
       }

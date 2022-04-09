@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "esno src/cli.ts"
+    "build": "esno src/cli.ts",
+    "check": "tsc --noEmit --watch"
   },
   "keywords": [],
   "author": "",

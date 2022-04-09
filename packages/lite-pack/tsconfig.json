@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "noImplicitOverride": true,
+    "noEmit": true,
     
     /* Visit https://aka.ms/tsconfig.json to read more about this file */
 

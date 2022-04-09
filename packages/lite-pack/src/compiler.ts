@@ -5,7 +5,6 @@ import { AsyncQueue } from './queue';
 import { ModuleNode, NormalModuleOptions } from './module';
 import Module from 'module';
 import { ModuleGraph } from './module-graph';
-import { ChunkGraph } from './chunk-graph';
 function noop(){
 
 }
@@ -18,7 +17,6 @@ export class Compiler{
   resolver: Resolver;
   buildQueue: AsyncQueue<ModuleNode>;
   moduleGraph: ModuleGraph;
-  chunkGraph: ChunkGraph;
   private constructor({entry, root}:{entry:string,root:string}){
     this.entry = entry;
     this.loader = new Loader();
@@ -29,7 +27,6 @@ export class Compiler{
       processor: this._buildModule.bind(this)
     })
     this.moduleGraph = new ModuleGraph();
-    this.chunkGraph = new ChunkGraph();
   }
   static create(options:{
     entry:string,
@@ -47,7 +44,8 @@ export class Compiler{
       path: this.entry,
       resolveDir: this.root,
       importer: '',
-      compiler: this
+      compiler: this,
+      isEntry: true
     }));
   }
   buildModule(module: ModuleNode){
