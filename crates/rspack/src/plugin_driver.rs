@@ -1,11 +1,6 @@
 use std::{path::Path, sync::Arc};
 
-use sugar_path::PathSugar;
-
-use crate::{
-    bundle_context::BundleContext,
-    plugin::{Plugin, ResolvedId},
-};
+use crate::{bundler::BundleContext, plugin::Plugin, types::ResolvedId};
 
 #[derive(Debug)]
 pub struct PluginDriver {
@@ -19,42 +14,23 @@ pub fn is_external_module(source: &str) -> bool {
 }
 
 impl PluginDriver {
-    pub async fn resolve_id(&self, importer: Option<&str>, importee: &str) -> ResolvedId {
-        let mut result = None;
+    pub async fn resolve_id(&self, importee: &str, importer: Option<&str>) -> Option<ResolvedId> {
         for plugin in &self.plugins {
-            let res = plugin.resolve(&self.ctx, importer, importee).await;
+            let res = plugin.resolve(&self.ctx, importee, importer).await;
             if res.is_some() {
-                result = res;
+                return res;
             }
         }
-        result.unwrap_or_else(|| {
-            if importer.is_some() && is_external_module(importee) {
-                ResolvedId::new(importee.to_string(), true)
-            } else {
-                let id = if let Some(importer) = importer {
-                    Path::new(importer)
-                        .parent()
-                        .unwrap()
-                        .join(importee)
-                        .resolve()
-                    // nodejs_path::resolve!(&nodejs_path::dirname(importer), source)
-                } else {
-                    Path::new(importee).resolve()
-                };
-                ResolvedId::new(id.to_string_lossy().to_string(), false)
-            }
-        })
+        None
     }
 
-    pub async fn load(&self, id: &str) -> String {
+    pub async fn load(&self, id: &str) -> Option<String> {
         for plugin in &self.plugins {
             let res = plugin.load(&self.ctx, id).await;
             if res.is_some() {
-                return res.unwrap();
+                return res;
             }
         }
-        tokio::fs::read_to_string(id)
-            .await
-            .expect(&format!("{:?} is not exsit", id))
+        None
     }
 }

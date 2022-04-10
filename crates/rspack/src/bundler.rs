@@ -1,31 +1,121 @@
+use std::path::PathBuf;
 use std::sync::Arc;
 
-use crate::{bundle_context::BundleContext, bundle_options::BundleOptions};
+use std::sync::Mutex;
+
+use sugar_path::PathSugar;
+
+
+use crate::bundle::Bundle;
+use crate::graph::Graph;
+use crate::plugin::Plugin;
+use crate::plugin_driver::PluginDriver;
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum InternalModuleFormat {
+    ES,
+    CJS,
+    AMD,
+    UMD,
+}
+
+impl Default for InternalModuleFormat {
+    fn default() -> Self {
+        InternalModuleFormat::ES
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct BundleContext {
+    pub assets: Mutex<Vec<Asset>>,
+}
+
+impl BundleContext {
+    #[inline]
+    pub fn emit_asset(&self, asset: Asset) {
+        self.emit_assets([asset])
+    }
+
+    pub fn emit_assets(&self, assets_to_be_emited: impl IntoIterator<Item = Asset>) {
+        let mut assets = self.assets.lock().unwrap();
+        assets_to_be_emited.into_iter().for_each(|asset| {
+            assets.push(asset);
+        });
+    }
+}
+
+#[derive(Debug)]
+pub struct Asset {
+    pub source: String,
+    pub filename: String,
+}
+
+#[derive(Debug)]
+pub struct BundleOptions {
+    pub entries: Vec<String>,
+    pub format: InternalModuleFormat,
+    pub minify: bool,
+    pub outdir: Option<String>,
+    pub entry_file_names: String, // | ((chunkInfo: PreRenderedChunk) => string)
+}
+
+impl Default for BundleOptions {
+    fn default() -> Self {
+        Self {
+            entries: Default::default(),
+            format: InternalModuleFormat::ES,
+            outdir: Default::default(),
+            minify: Default::default(),
+            entry_file_names: "[name].js".to_string(),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct Bundler {
-    ctx: Arc<BundleContext>,
+    pub ctx: Arc<BundleContext>,
     options: Arc<BundleOptions>,
+    pub plugin_driver: Arc<PluginDriver>,
 }
 
 impl Bundler {
-    pub fn new(options: BundleOptions) -> Self {
+    pub fn new(options: BundleOptions, plugins: Vec<Box<dyn Plugin>>) -> Self {
+        let ctx: Arc<BundleContext> = Default::default();
         Self {
             options: Arc::new(options),
-            ctx: Default::default(),
+            ctx: ctx.clone(),
+            plugin_driver: Arc::new(PluginDriver {
+                plugins,
+                ctx: ctx.clone(),
+            }),
         }
     }
 
-    pub fn build() {
+    pub async fn generate(&mut self) {
+        let mut graph = Graph::new(self.options.clone(), self.plugin_driver.clone());
+        graph.build().await;
 
+        let mut bundle = Bundle::new(graph, self.options.clone());
+        let output = bundle.generate();
+        output.into_iter().for_each(|(_, chunk)| {
+            self.ctx.assets.lock().unwrap().push(Asset {
+                source: chunk.code,
+                filename: chunk.file_name,
+            })
+        });
     }
 
-    fn write_assets_to_disk(&self) {
-        self.ctx
-            .assets
-            .lock()
-            .unwrap()
-            .iter()
-            .for_each(|asset| std::fs::write(&asset.filename, &asset.source).unwrap());
+    pub fn write_assets_to_disk(&self) {
+        self.ctx.assets.lock().unwrap().iter().for_each(|asset| {
+            let mut path = self
+                .options
+                .outdir
+                .clone()
+                .map(|s| PathBuf::from(s))
+                .unwrap_or_else(|| std::env::current_dir().unwrap());
+            path.push(&asset.filename);
+            std::fs::create_dir_all(path.resolve().parent().unwrap()).unwrap();
+            std::fs::write(path.resolve(), &asset.source).unwrap();
+        });
     }
 }

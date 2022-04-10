@@ -1,22 +1,11 @@
-use std::{fmt::Debug, path::Path};
+use std::fmt::Debug;
 
-use crate::bundle_context::BundleContext;
 use async_trait::async_trait;
-use smol_str::SmolStr;
-#[derive(Debug, Clone)]
-pub struct ResolvedId {
-    pub id: SmolStr,
-    pub external: bool,
-}
 
-impl ResolvedId {
-    pub fn new(id: String, external: bool) -> Self {
-        Self {
-            id: id.into(),
-            external,
-        }
-    }
-}
+use crate::{bundler::BundleContext, types::ResolvedId};
+
+pub type LoadHookOutput = Option<String>;
+pub type ResolveHookOutput = Option<ResolvedId>;
 
 #[async_trait]
 pub trait Plugin: Sync + Send + Debug {
@@ -27,58 +16,29 @@ pub trait Plugin: Sync + Send + Debug {
     async fn resolve(
         &self,
         _ctx: &BundleContext,
+        _importee: &str,
         _importer: Option<&str>,
-        _mportee: &str,
-    ) -> Option<ResolvedId> {
+    ) -> ResolveHookOutput {
         None
     }
 
     #[inline]
-    async fn load(&self, _ctx: &BundleContext, _id: &str) -> Option<String> {
+    async fn load(&self, _ctx: &BundleContext, _id: &str) -> LoadHookOutput {
         None
     }
 }
 
-#[derive(Debug)]
-
-pub struct ResolveExtensionPlugin {
-    pub extensions: Vec<String>,
-}
-
-#[async_trait]
-impl Plugin for ResolveExtensionPlugin {
-    async fn load(&self, _ctx: &BundleContext, id: &str) -> Option<String> {
-        let p = Path::new(id);
-        if p.extension().is_none() {
-            let mut p = p.to_path_buf();
-            for ext in &self.extensions {
-                println!("check {:?}", p);
-                p.set_extension(ext);
-                let source = tokio::fs::read_to_string(&p).await;
-                if let Ok(source) = source {
-                    return Some(source);
-                }
-            }
-            None
-        } else {
-            None
-        }
-    }
-}
-
+// We could use this to dispatch Plugin trait staticly
 #[derive(Debug)]
 pub struct PipedPlugin<A: Plugin, B: Plugin> {
     pub left: A,
     pub right: B,
 }
 
-impl <A: Plugin, B: Plugin> PipedPlugin<A, B> {
-  pub fn new(left: A, right: B) -> Self {
-    Self {
-      left,
-      right,
+impl<A: Plugin, B: Plugin> PipedPlugin<A, B> {
+    pub fn new(left: A, right: B) -> Self {
+        Self { left, right }
     }
-  }
 }
 
 #[async_trait]
@@ -88,15 +48,25 @@ impl<A: Plugin, B: Plugin> Plugin for PipedPlugin<A, B> {
     }
 
     async fn load(&self, ctx: &BundleContext, id: &str) -> Option<String> {
-        self.left.load(ctx, id).await
+        let left_res = self.left.load(ctx, id).await;
+        if left_res.is_some() {
+            left_res
+        } else {
+            self.right.load(ctx, id).await
+        }
     }
 
     async fn resolve(
         &self,
         ctx: &BundleContext,
+        importee: &str,
         importer: Option<&str>,
-        mportee: &str,
     ) -> Option<ResolvedId> {
-        self.left.resolve(ctx, importer, mportee).await
+        let left_res = self.left.resolve(ctx, importee, importer).await;
+        if left_res.is_some() {
+            left_res
+        } else {
+            self.right.resolve(ctx, importee, importer).await
+        }
     }
 }

@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "setup": "pnpm install && cargo build",
-    "build:example": "cargo run --package rspack --example build"
+    "build:bundle": "cargo run --package rspack --example bundle"
   },
   "repository": {
     "type": "git",

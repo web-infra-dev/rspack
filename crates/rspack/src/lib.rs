@@ -1,28 +1,29 @@
-#![feature(async_closure)]
+#![deny(clippy::all)]
 
-use std::{
-    fmt::Debug,
-    sync::atomic::{AtomicUsize, Ordering},
-};
-
-use crossbeam::channel::{self};
-
-use js_ext_module::JsExtModule;
-use js_module::JsModule;
-use plugin_driver::PluginDriver;
-use smol_str::SmolStr;
-pub mod bundle_context;
-pub mod graph_container;
-pub mod js_ext_module;
-pub mod plugin_driver;
-pub mod worker;
-pub mod bundle_options;
-
-pub mod utils;
-
-pub mod bundler;
-pub mod js_module;
-pub mod plugin;
-pub mod plugins;
-pub mod visitors;
+pub mod bundle;
 pub mod chunk;
+pub mod external_module;
+pub mod graph;
+// pub mod linker;
+pub mod module;
+pub mod scanner;
+// pub mod statement;
+pub mod renamer;
+pub mod types;
+pub mod utils;
+pub mod worker;
+
+
+
+pub use swc_ecma_ast as ast;
+
+
+
+// refactor
+pub mod ext;
+pub mod plugin_driver;
+pub mod statement;
+pub mod structs;
+pub mod symbol_box;
+pub mod bundler;
+pub mod plugin;

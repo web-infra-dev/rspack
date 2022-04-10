@@ -1,8 +1,50 @@
-use std::{sync::Arc, path::Path};
-
+pub mod ast_sugar;
+pub mod name_helpers;
+pub mod side_effect;
 use once_cell::sync::Lazy;
-use swc::{Compiler, common::{FilePathMapping, SourceMap, FileName}, config::IsModule};
-use swc_ecma_parser::{Syntax, TsConfig, EsConfig};
+use swc::{config::IsModule, Compiler};
+use std::{path::Path, sync::Arc};
+
+use swc_ecma_ast::{ModuleDecl, ModuleItem};
+
+use swc_common::{
+  FileName, FilePathMapping, SourceMap,
+};
+use swc_ecma_parser::{Syntax};
+use swc_ecma_parser::{EsConfig, TsConfig};
+
+mod hook;
+mod statement;
+pub use hook::*;
+pub use statement::*;
+
+pub mod path {
+  pub fn relative_id(id: String) -> String {
+    if nodejs_path::is_absolute(&id) {
+      nodejs_path::relative(&nodejs_path::resolve!("."), &id)
+    } else {
+      id
+    }
+  }
+}
+
+#[inline]
+pub fn is_external_module(source: &str) -> bool {
+  source.starts_with("node:") || (!nodejs_path::is_absolute(source) && !source.starts_with('.'))
+}
+
+#[inline]
+pub fn is_decl_or_stmt(node: &ModuleItem) -> bool {
+  matches!(
+    node,
+    ModuleItem::ModuleDecl(
+      ModuleDecl::ExportDecl(_)
+        | ModuleDecl::ExportDefaultExpr(_)
+        | ModuleDecl::ExportDefaultDecl(_)
+    ) | ModuleItem::Stmt(_)
+  )
+}
+
 
 static COMPILER: Lazy<Arc<Compiler>> = Lazy::new(|| {
   let cm = Arc::new(SourceMap::new(FilePathMapping::empty()));

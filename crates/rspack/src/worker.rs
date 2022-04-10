@@ -1,17 +1,25 @@
-use std::sync::Arc;
+use std::{
+    sync::{Arc, Mutex},
+};
 
 use crossbeam::{channel::Sender, queue::SegQueue};
-use dashmap::DashSet;
+use dashmap::{ DashSet};
 use smol_str::SmolStr;
-use swc::ecmascript::ast::ModuleItem;
-use swc_ecma_ast::ModuleDecl;
-use swc_ecma_visit::{VisitMutWith, VisitWith};
+use swc_ecma_ast::{ModuleDecl, ModuleItem};
+use swc_ecma_visit::VisitMutWith;
 
 use crate::{
-    js_ext_module::JsExtModule, js_module::JsModule, plugin::ResolvedId, utils::parse_file,
-    visitors::DependencyScanner, PluginDriver, graph_container::{Msg, Relation},};
+    graph::{Msg, Rel},
+    module::Module,
+    plugin_driver::PluginDriver,
+    scanner::{scope::BindType, Scanner},
+    symbol_box::MarkBox,
+    types::ResolvedId,
+    utils::{load, parse_file},
+};
 
-pub(crate) struct Worker {
+pub struct Worker {
+    pub symbol_box: Arc<Mutex<MarkBox>>,
     pub job_queue: Arc<SegQueue<ResolvedId>>,
     pub tx: Sender<Msg>,
     pub processed_id: Arc<DashSet<SmolStr>>,
@@ -29,50 +37,92 @@ impl Worker {
             })
     }
 
-    pub async fn run(&self) {
+    pub async fn run(&mut self) {
         if let Some(resolved_id) = self.fetch_job() {
             if resolved_id.external {
-                let mut js_ext_module = JsExtModule::new(resolved_id.id.clone());
+                // TODO: external module
             } else {
-                let mut js_module = JsModule::new(resolved_id.id.clone());
-                let source = self.plugin_driver.load(&js_module.id).await;
-                js_module.source = source.clone();
-                let mut ast = parse_file(source, &resolved_id.id);
-                self.pre_analyze_imported_module(&js_module, &ast).await;
-                let mut dependenecy_scanner = DependencyScanner::new(&self.tx, &js_module);
-                ast.visit_children_with(&mut dependenecy_scanner);
+                let mut module = Module::new(resolved_id.id.clone());
+                let id: &str = &resolved_id.id;
+                let source = load(id, &self.plugin_driver).await;
+                let mut ast = parse_file(source, &module.id);
+                self.pre_analyze_imported_module(&mut module, &ast).await;
 
-                for imported in dependenecy_scanner.dependencies.keys() {
-                    let resolved_id = js_module.resolve_id(&self.plugin_driver, imported).await;
+                let mut scanner = Scanner::new(self.symbol_box.clone(), self.tx.clone());
+                ast.visit_mut_with(&mut scanner);
+
+                for (imported, info) in &scanner.import_infos {
+                    let resolved_id = module.resolve_id(imported, &self.plugin_driver).await;
                     self.tx
                         .send(Msg::DependencyReference(
-                            js_module.id.clone(),
+                            module.id.clone(),
                             resolved_id.id,
-                            Relation::StaticImport,
+                            info.clone().into(),
                         ))
-                        .unwrap();
+                        .unwrap()
                 }
-                for dyn_imported in &dependenecy_scanner.dynamic_dependencies {
-                    let resolved_id = js_module
-                        .resolve_id(&self.plugin_driver, &dyn_imported.argument)
-                        .await;
+                for (re_exported, info) in &scanner.re_export_infos {
+                    let resolved_id = module.resolve_id(re_exported, &self.plugin_driver).await;
                     self.tx
                         .send(Msg::DependencyReference(
-                            js_module.id.clone(),
+                            module.id.clone(),
                             resolved_id.id,
-                            Relation::AsyncImport,
+                            info.clone().into(),
                         ))
-                        .unwrap();
+                        .unwrap()
                 }
-                println!("js_module {:#?}", js_module);
-                self.tx.send(Msg::NewMod(js_module)).unwrap();
+                for re_exported in &scanner.export_all_sources {
+                    let resolved_id = module.resolve_id(re_exported, &self.plugin_driver).await;
+                    self.tx
+                        .send(Msg::DependencyReference(
+                            module.id.clone(),
+                            resolved_id.id,
+                            Rel::ReExportAll,
+                        ))
+                        .unwrap()
+                }
+                module.dependencies = scanner.dependencies;
+                module.dyn_dependencies = scanner.dyn_dependencies;
+                module.local_exports = scanner.local_exports;
+                module.re_exports = scanner.re_exports;
+                module.re_export_all_sources =
+                    scanner.export_all_sources.into_iter().map(|s| s).collect();
+                {
+                    let root_scope = scanner.stacks.into_iter().next().unwrap();
+                    let declared_symbols = root_scope.declared_symbols;
+                    let mut declared_symbols_kind = root_scope.declared_symbols_kind;
+                    declared_symbols.into_iter().for_each(|(name, mark)| {
+                        let bind_type = declared_symbols_kind.remove(&name).unwrap();
+                        if BindType::Import == bind_type {
+                            module.imported_symbols.insert(name, mark);
+                        } else {
+                            module.declared_symbols.insert(name, mark);
+                        }
+                    });
+                }
+                module.namespace.mark = self
+                    .symbol_box
+                    .lock()
+                    .unwrap()
+                    // .unwrap()
+                    .new_mark();
+
+                module.set_statements(ast);
+
+                module.bind_local_references(&mut self.symbol_box.lock().unwrap());
+
+                module.link_local_exports();
+
+                log::debug!("[worker]: emit module {:#?}", module);
+                self.tx.send(Msg::NewMod(Box::new(module))).unwrap()
             }
         }
     }
+
     // Fast path for analyzing static import and export.
     pub async fn pre_analyze_imported_module(
         &self,
-        js_module: &JsModule,
+        module: &mut Module,
         ast: &swc_ecma_ast::Module,
     ) {
         for module_item in &ast.body {
@@ -93,9 +143,7 @@ impl Worker {
                     _ => {}
                 }
                 if let Some(depended) = depended {
-                    let resolved_id = js_module
-                        .resolve_id(&self.plugin_driver, &depended.to_string())
-                        .await;
+                    let resolved_id = module.resolve_id(depended, &self.plugin_driver).await;
                     self.job_queue.push(resolved_id);
                 }
             }

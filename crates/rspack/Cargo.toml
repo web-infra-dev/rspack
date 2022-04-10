@@ -26,6 +26,7 @@ swc_ecma_ast = "0.73.0"
 swc_ecma_codegen = "0.101.0"
 swc_ecma_parser = "0.98.1"
 swc_ecma_visit = "0.59.0"
+swc_common = "0.17.19"         # Common utilities for the swc project.
 tokio = { version = "1.17.0", features = ["full"] }
 async-trait = "0.1.53"
 futures = "0.3.21"
@@ -35,6 +36,8 @@ tracing-chrome = "0.4.0"
 tracing-futures = "0.2.5"
 tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
 linked-hash-map = "0.5.4"
+nodejs_path = "=0.0.8"
+
 
 [[examples]]
 name="build"

@@ -166,7 +166,7 @@ impl<'a> Visit for DependencyScanner<'a> {
 //         let mark = self
 //           .symbol_box
 //           .lock()
-//           .map_err(|_| RolldownError::Lock)?
+//           .unwrap()
 //           .new_mark();
 //         self.statement_infos[self.cur_stmt_index].export_mark = Some(mark);
 //         self.local_exports.insert(
@@ -187,7 +187,7 @@ impl<'a> Visit for DependencyScanner<'a> {
 //         let mark = self
 //           .symbol_box
 //           .lock()
-//           .map_err(|_| RolldownError::Lock)?
+//           .unwrap()
 //           .new_mark();
 //         self.statement_infos[self.cur_stmt_index].export_mark = Some(mark);
 //         self.local_exports.insert(
@@ -229,7 +229,7 @@ impl<'a> Visit for DependencyScanner<'a> {
 //                 let re_export_mark = self
 //                   .symbol_box
 //                   .lock()
-//                   .map_err(|_| RolldownError::Lock)?
+//                   .unwrap()
 //                   .new_mark();
 //                 re_export_info.names.insert(Specifier {
 //                   original: get_sym_from_module_export(&s.orig),
@@ -287,7 +287,7 @@ impl<'a> Visit for DependencyScanner<'a> {
 //               let re_export_mark = self
 //                 .symbol_box
 //                 .lock()
-//                 .map_err(|_| RolldownError::Lock)?
+//                 .unwrap()
 //                 .new_mark();
 
 //               re_export_info.names.insert(Specifier {
@@ -324,7 +324,7 @@ impl<'a> Visit for DependencyScanner<'a> {
 //             let mark = self
 //               .symbol_box
 //               .lock()
-//               .map_err(|_| RolldownError::Lock)?
+//               .unwrap()
 //               .new_mark();
 //             self.statement_infos[self.cur_stmt_index].export_mark = Some(mark);
 //             self.local_exports.insert(
@@ -342,7 +342,7 @@ impl<'a> Visit for DependencyScanner<'a> {
 //             let mark = self
 //               .symbol_box
 //               .lock()
-//               .map_err(|_| RolldownError::Lock)?
+//               .unwrap()
 //               .new_mark();
 //             self.statement_infos[self.cur_stmt_index].export_mark = Some(mark);
 //             self.local_exports.insert(
@@ -364,7 +364,7 @@ impl<'a> Visit for DependencyScanner<'a> {
 //                   let mark = self
 //                     .symbol_box
 //                     .lock()
-//                     .map_err(|_| RolldownError::Lock)?
+//                     .unwrap()
 //                     .new_mark();
 //                   self.statement_infos[self.cur_stmt_index].export_mark = Some(mark);
 //                   self.local_exports.insert(
