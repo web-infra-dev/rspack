@@ -16,24 +16,32 @@ export class BundleGraph extends Graph<Bundle> {
 
 export class Bundler{
   #bundle_id = 0;
-  bundle(graph:ModuleGraph){
-    const bundle_roots = new Map();
+  graph: ModuleGraph
+  constructor(graph:ModuleGraph){
+    this.graph = graph;
+  }
+  build(){
+    this.generate_chunks();
+  }
+  generate_chunks(){
+    const chunk_roots = new Map();
     const bundle_graph = new BundleGraph();
+    const graph = this.graph;
     const entries = graph.getEntries();
     for(const entry_id of graph.getEntries()){
       const bundle = new Bundle(entry_id, graph.getModuleById(entry_id)!)
-      const bundle_id = bundle_graph.addNode((this.#bundle_id++)+'',bundle)
-      bundle_roots.set(entry_id, [bundle_id,bundle_id])
+      const chunk_id = bundle_graph.addNode((this.#bundle_id++)+'',bundle)
+      chunk_roots.set(entry_id, [chunk_id,chunk_id])
     }
+    console.log('chunk_roots:',chunk_roots)
     graph.traverse(entries,{
       enter:(id,node)=>{
-        console.log('discover:',id);
+        const chunk = chunk_roots.get(id);
+        console.log('ch:',chunk)
       },
       edge(from,to){
-        console.log('edge:',from,to)
       },
       leave:(id,node)=>{
-        console.log('leave:', id)
       }
     })
 

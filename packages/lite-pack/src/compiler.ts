@@ -62,8 +62,8 @@ export class Compiler{
     this.buildModule(module,);
   }
   generate(){
-    const bundler = new Bundler();
-    bundler.bundle(this.moduleGraph);
+    const bundler = new Bundler(this.moduleGraph);
+    bundler.build();
   }
 }
 
