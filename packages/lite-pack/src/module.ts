@@ -69,4 +69,7 @@ export class ModuleNode {
       }
     })
   }
+  generator(){
+    return this.contents;
+  }
 }

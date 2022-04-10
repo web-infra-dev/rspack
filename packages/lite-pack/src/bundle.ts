@@ -19,7 +19,8 @@ export class Bundler{
     for(const entry of this.graph.getEntries()){
       const entryNode = this.graph.getModuleById(entry);
       const chunk = new Chunk({
-        id: entryNode?.entryKey!
+        id: entryNode?.entryKey!,
+        graph: this.graph
       });
       this.chunks.push(chunk);
     }
