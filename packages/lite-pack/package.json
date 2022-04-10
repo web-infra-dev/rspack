@@ -20,6 +20,7 @@
     "@babel/core": "7.17.9",
     "@types/babel__core": "7.1.19",
     "async": "3.2.3",
-    "@types/async": "3.2.12"
+    "@types/async": "3.2.12",
+    "p-defer": "3.0.0"
   }
 }

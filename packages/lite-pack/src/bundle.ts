@@ -1,50 +1,45 @@
 import { ModuleNode } from "./module";
 import { Graph, ModuleGraph } from "./module-graph";
-
-class Bundle {
-  module_ids: string[] = [];
-  size: number =0;
-  source_bundles: string[] = [];
-  
-  constructor(id:string, node: ModuleNode){
-    this.module_ids = [id];
+class Chunk {
+  id:string;
+  modules: string[];
+  constructor(options: {
+    id:string,
+  }){
+    this.modules = [];
+    this.id = options.id;
   }
-}
-export class BundleGraph extends Graph<Bundle> {
-  
+  render():string{
+    return ''
+  }
 }
 
 export class Bundler{
   #bundle_id = 0;
   graph: ModuleGraph
+  chunks: Chunk[] = [];
+  output: Record<string,string>;
   constructor(graph:ModuleGraph){
     this.graph = graph;
+    this.output = {};
   }
   build(){
     this.generate_chunks();
+    return this.render();
   }
   generate_chunks(){
-    const chunk_roots = new Map();
-    const bundle_graph = new BundleGraph();
-    const graph = this.graph;
-    const entries = graph.getEntries();
-    for(const entry_id of graph.getEntries()){
-      const bundle = new Bundle(entry_id, graph.getModuleById(entry_id)!)
-      const chunk_id = bundle_graph.addNode((this.#bundle_id++)+'',bundle)
-      chunk_roots.set(entry_id, [chunk_id,chunk_id])
+    for(const entry of this.graph.getEntries()){
+      const entryNode = this.graph.getModuleById(entry);
+      const chunk = new Chunk({
+        id: entryNode?.entryKey!
+      });
+      this.chunks.push(chunk);
     }
-    console.log('chunk_roots:',chunk_roots)
-    graph.traverse(entries,{
-      enter:(id,node)=>{
-        const chunk = chunk_roots.get(id);
-        console.log('ch:',chunk)
-      },
-      edge(from,to){
-      },
-      leave:(id,node)=>{
-      }
-    })
-
-    console.log('graph:', bundle_graph)
+  }
+  render(){
+    console.log('chunk:',this.chunks)
+    for(const chunk of this.chunks ){
+      this.output[chunk.id] = chunk.render()
+    }
   }
 }

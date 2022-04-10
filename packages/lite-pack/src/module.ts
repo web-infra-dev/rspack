@@ -11,9 +11,11 @@ export type NormalModuleOptions = {
   importer: string;
   compiler: Compiler;
   isEntry: boolean;
+  entryKey?:string;
 }
 export class ModuleNode {
   isEntry: boolean;
+  entryKey?:string;
   contents!:string;
   path:string;
   importer:string;
@@ -33,6 +35,7 @@ export class ModuleNode {
     this.#compiler = options.compiler;
     this.#parser = new Parser();
     this.isEntry = options.isEntry;
+    this.entryKey = options.entryKey;
   }
   static create(options:NormalModuleOptions){
     return new ModuleNode(options);

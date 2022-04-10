@@ -5,9 +5,21 @@ import { ModuleNode, NormalModuleOptions } from './module';
 import Module from 'module';
 import { ModuleGraph } from './module-graph';
 import { Bundler } from './bundle';
-function noop() {}
-type BuildCallback = (module: ModuleNode, err?: Error) => void;
+type Defer = {
+  resolve:any;
+  reject: any;
+  promise: any;
+}
+const Defer = (): Defer => {
+	const deferred = {} as Defer;
 
+	deferred.promise = new Promise((resolve, reject) => {
+		deferred.resolve = resolve;
+		deferred.reject = reject;
+	});
+
+	return deferred;
+};
 export class Compiler {
   entry: Record<string, string>;
   root: string;
@@ -30,12 +42,12 @@ export class Compiler {
     return new Compiler(options);
   }
   _buildModule(mod: ModuleNode, done: Function) {
-    console.log('mod', mod);
     mod.build();
     done();
   }
-  build() {
-    for (const entry of Object.values(this.entry)) {
+  async generate_module_graph() {
+    const p = Defer()
+    for (const [key,entry] of Object.entries(this.entry)) {
       this.addModule(
         ModuleNode.create({
           path: entry,
@@ -43,9 +55,13 @@ export class Compiler {
           importer: '',
           compiler: this,
           isEntry: true,
+          entryKey: key
         })
       );
     }
+    console.log('p:',p)
+    await p.promise;
+    console.log('xxx')
   }
   buildModule(module: ModuleNode) {
     this.buildQueue.add(module, (err?) => {
@@ -62,6 +78,11 @@ export class Compiler {
   generate() {
     const bundler = new Bundler(this.moduleGraph);
     bundler.build();
+    return bundler.output;
+  }
+  async build(){
+    await this.generate_module_graph();
+    return this.generate();
   }
 }
 
@@ -70,6 +91,6 @@ export async function build(entry: Record<string,string>) {
     entry: entry,
     root: '',
   });
-  await compiler.build();
-  await compiler.generate();
+  const result= await compiler.build();
+  console.log('result:',result);
 }

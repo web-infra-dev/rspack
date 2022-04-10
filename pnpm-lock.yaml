@@ -16,6 +16,7 @@ importers:
       esbuild: 0.14.34
       esno: 0.14.1
       neo-async: 2.6.2
+      p-defer: 3.0.0
       typescript: 4.6.3
     devDependencies:
       '@babel/core': 7.17.9
@@ -27,6 +28,7 @@ importers:
       esbuild: 0.14.34
       esno: 0.14.1
       neo-async: 2.6.2
+      p-defer: 3.0.0
       typescript: 4.6.3
 
   packages/rspack:
@@ -682,6 +684,11 @@ packages:
 
   /node-releases/2.0.2:
     resolution: {integrity: sha512-XxYDdcQ6eKqp/YjI+tb2C5WM2LgjnZrfYg4vgQt49EK268b6gYCHsBLrK2qvJo4FmCtqmKezb0WZFK4fkrZNsg==}
+    dev: true
+
+  /p-defer/3.0.0:
+    resolution: {integrity: sha512-ugZxsxmtTln604yeYd29EGrNhazN2lywetzpKhfmQjW/VJmhpDmWbiX+h0zL8V91R0UXkhb3KtPmyq9PZw3aYw==}
+    engines: {node: '>=8'}
     dev: true
 
   /path-key/3.1.1:
