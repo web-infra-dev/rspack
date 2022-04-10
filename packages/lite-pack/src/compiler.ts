@@ -59,9 +59,6 @@ export class Compiler {
         })
       );
     }
-    console.log('p:',p)
-    await p.promise;
-    console.log('xxx')
   }
   buildModule(module: ModuleNode) {
     this.buildQueue.add(module, (err?) => {

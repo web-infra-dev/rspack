@@ -1,18 +1,6 @@
+import { Chunk } from "./chunk";
 import { ModuleNode } from "./module";
-import { Graph, ModuleGraph } from "./module-graph";
-class Chunk {
-  id:string;
-  modules: string[];
-  constructor(options: {
-    id:string,
-  }){
-    this.modules = [];
-    this.id = options.id;
-  }
-  render():string{
-    return ''
-  }
-}
+import { ModuleGraph } from "./module-graph";
 
 export class Bundler{
   #bundle_id = 0;
