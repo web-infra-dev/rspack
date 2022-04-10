@@ -15,20 +15,28 @@ export class BundleGraph extends Graph<Bundle> {
 }
 
 export class Bundler{
-  bundle_id = 0;
+  #bundle_id = 0;
   bundle(graph:ModuleGraph){
     const bundle_roots = new Map();
     const bundle_graph = new BundleGraph();
     const entries = graph.getEntries();
     for(const entry_id of graph.getEntries()){
       const bundle = new Bundle(entry_id, graph.getModuleById(entry_id)!)
-      const bundle_id = bundle_graph.addNode((this.bundle_id++)+'',bundle)
+      const bundle_id = bundle_graph.addNode((this.#bundle_id++)+'',bundle)
       bundle_roots.set(entry_id, [bundle_id,bundle_id])
     }
     graph.traverse(entries,{
-      node:(id,node)=>{
-
+      enter:(id,node)=>{
+        console.log('discover:',id);
+      },
+      edge(from,to){
+        console.log('edge:',from,to)
+      },
+      leave:(id,node)=>{
+        console.log('leave:', id)
       }
     })
+
+    console.log('graph:', bundle_graph)
   }
 }

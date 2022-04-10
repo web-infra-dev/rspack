@@ -5,6 +5,7 @@ import { AsyncQueue } from './queue';
 import { ModuleNode, NormalModuleOptions } from './module';
 import Module from 'module';
 import { ModuleGraph } from './module-graph';
+import { Bundler } from './bundle';
 function noop(){
 
 }
@@ -53,12 +54,16 @@ export class Compiler{
       if(err){
         console.error('build module failed', err)
       }else {
-        console.info('build module success:', module.path)
+        //console.info('build module success:', module.path)
       }
     })
   }
   addModule(module: ModuleNode){
     this.buildModule(module,);
+  }
+  generate(){
+    const bundler = new Bundler();
+    bundler.bundle(this.moduleGraph);
   }
 }
 
@@ -68,6 +73,6 @@ export async function build(entry:string){
     root: ''
   });
   await compiler.build();
-  console.log('graph:', compiler.moduleGraph.toJSON());
+  await compiler.generate();
 }
 

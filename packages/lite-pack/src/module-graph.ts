@@ -1,8 +1,9 @@
 import { ModuleNode } from './module';
 
 type Visitor<T>  = {
-  node?(id:string,node:T): void;
+  enter?(id:string,node:T): void;
   edge?(from:string,to:string):void;
+  leave?(id:string,node:T):void;
 }
 export class Graph<T> {
   #nodes: Map<string, T>;
@@ -34,7 +35,7 @@ export class Graph<T> {
     if (edges) {
       edges.push(to);
     } else {
-      this.#edges.set(from, []);
+      this.#edges.set(from, [to]);
     }
   }
   removeEdge(from: string, to: string) {
@@ -61,15 +62,18 @@ export class Graph<T> {
       if (visited.has(id)) {
         return;
       }
-
       const module = this.getModuleById(id);
       if (!module) {
         throw new Error('module not exist:' + id);
       }
-      visitor.node?.(id,module);
+      visitor.enter?.(id,module);
+      console.log('children:', this.getChildrenById(id))
       for (const child of this.getChildrenById(id)) {
+
+        visitor.edge?.(id, child);
         walk(child);
       }
+      visitor.leave?.(id,module);
     };
     return walk(startId);
   }
