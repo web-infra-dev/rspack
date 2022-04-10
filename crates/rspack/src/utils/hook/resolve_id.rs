@@ -1,5 +1,7 @@
 use std::{ffi::OsString, path::Path};
 
+use sugar_path::PathSugar;
+
 use crate::{
     ext::PathExt, plugin_driver::PluginDriver, types::ResolvedId, utils::is_external_module,
 };
@@ -18,9 +20,15 @@ pub async fn resolve_id(
             ResolvedId::new(source.to_string(), true)
         } else {
             let id = if let Some(importer) = importer {
-                nodejs_path::resolve!(&nodejs_path::dirname(importer), source)
+                Path::new(importer)
+                    .parent()
+                    .unwrap()
+                    .join(source)
+                    .resolve()
+                    .to_string_lossy()
+                    .to_string()
             } else {
-                nodejs_path::resolve!(source)
+                Path::new(source).resolve().to_string_lossy().to_string()
             };
             let id = fast_add_js_extension_if_necessary(id, preserve_symlinks);
             ResolvedId::new(id, false)
@@ -62,8 +70,8 @@ pub fn find_file(file: &Path, preserve_symlinks: bool) -> Option<String> {
         if !preserve_symlinks && metadata.is_symlink() {
             find_file(&std::fs::canonicalize(file).ok()?, preserve_symlinks)
         } else if (preserve_symlinks && metadata.is_symlink()) || metadata.is_file() {
-            let name: OsString = nodejs_path::basename!(&file.as_str()).into();
-            let files = std::fs::read_dir(&nodejs_path::dirname(&file.as_str())).unwrap();
+            let name: OsString = file.file_name().unwrap().to_os_string();
+            let files = std::fs::read_dir(file.parent().unwrap()).unwrap();
 
             files
                 .map(|result| result.unwrap())

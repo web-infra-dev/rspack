@@ -9,7 +9,7 @@ use dashmap::DashMap;
 use linked_hash_map::LinkedHashMap;
 use std::collections::HashMap;
 
-
+use std::path::Path;
 use std::{collections::HashSet, hash::Hash};
 
 use ast::{
@@ -23,12 +23,11 @@ use swc_common::util::take::Take;
 use swc_common::{Mark, Span, SyntaxContext, DUMMY_SP};
 use swc_ecma_ast::Ident;
 
-
 use swc_ecma_codegen::text_writer::WriteJs;
 use swc_ecma_codegen::Emitter;
 use swc_ecma_visit::{noop_visit_mut_type, VisitMut};
 
-use crate::scanner::rel::{ExportDesc, ReExportDesc, DynImportDesc};
+use crate::scanner::rel::{DynImportDesc, ExportDesc, ReExportDesc};
 use crate::types::ResolvedId;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -136,10 +135,11 @@ impl Module {
     pub async fn resolve_id(&self, dep_src: &JsWord, plugin_driver: &PluginDriver) -> ResolvedId {
         let resolved_id;
         if let Some(cached) = self.resolved_ids.get(dep_src) {
-          resolved_id = cached.clone();
+            resolved_id = cached.clone();
         } else {
-          resolved_id = resolve_id(dep_src, Some(&self.id), false, plugin_driver).await;
-          self.resolved_ids.insert(dep_src.clone(), resolved_id.clone());
+            resolved_id = resolve_id(dep_src, Some(&self.id), false, plugin_driver).await;
+            self.resolved_ids
+                .insert(dep_src.clone(), resolved_id.clone());
         }
         resolved_id
     }
@@ -180,7 +180,14 @@ impl Module {
                 .get(&"*".into())
                 .cloned()
                 .unwrap_or_else(|| {
-                    (get_valid_name(nodejs_path::parse(&self.id).name) + "namespace").into()
+                    get_valid_name(
+                        Path::new(self.id.as_str())
+                            .file_stem()
+                            .unwrap()
+                            .to_string_lossy()
+                            .to_string(),
+                    )
+                    .into()
                 });
             // TODO: We should generate a name which has no conflict.
             // TODO: We might need to check if the name already exsits.
@@ -281,7 +288,16 @@ pub fn fold_export_decl_to_decl(
             .suggested_names
             .get(&"default".into())
             .cloned()
-            .unwrap_or_else(|| get_valid_name(nodejs_path::parse(&module.id).name).into());
+            .unwrap_or_else(|| {
+                get_valid_name(
+                    Path::new(module.id.as_str())
+                        .file_stem()
+                        .unwrap()
+                        .to_string_lossy()
+                        .to_string(),
+                )
+                .into()
+            });
 
         assert_ne!(&suggested_default_export_name, "default");
 

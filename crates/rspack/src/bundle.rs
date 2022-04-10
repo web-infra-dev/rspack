@@ -45,11 +45,7 @@ impl Bundle {
         let mut chunks = self.generate_chunks();
 
         chunks.iter_mut().for_each(|chunk| {
-            // if let Some(file) = &self.output_options.file {
-            //   chunk.id = nodejs_path::basename!(file).into();
-            // } else {
             chunk.id = chunk.generate_id(&self.output_options);
-            // }
         });
 
         chunks
