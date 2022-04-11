@@ -19,10 +19,10 @@ export class ChunkGroup {
 }
 export class Chunk {
   id:string;
-  modules: Set<ModuleNode> = new Set();
+  modules: Set<string> = new Set();
   graph: ModuleGraph;
   groups: Set<ChunkGroup>= new Set();
-  entryModule!: ModuleNode;
+  entryModule!: string;
   name!:string;
   constructor(options: {
     id:string,
@@ -40,7 +40,9 @@ export class Chunk {
   }
   render(){
     let finalCode = '';
-    for(const mod of this.modules){
+    console.log('xxx:',this.modules);
+    for(const modId of this.modules){
+      const mod = this.graph.getModuleById(modId)!;
       const code = mod.generator();
       finalCode += code;
     }
@@ -49,10 +51,10 @@ export class Chunk {
   addGroup(group:ChunkGroup){
     this.groups.add(group);
   }
-  addModule(module:ModuleNode){
+  addModule(module:string){
     this.modules.add(module);
   }
-  setEntryModule(mode:ModuleNode){
+  setEntryModule(mode:string){
     this.entryModule = mode
   }
 }

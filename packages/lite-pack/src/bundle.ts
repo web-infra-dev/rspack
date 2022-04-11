@@ -1,4 +1,5 @@
 import { Chunk, ChunkGroup } from "./chunk";
+import { ModuleNode } from "./module";
 import { ModuleGraph } from "./module-graph";
 /**
  * 三者关系
@@ -40,16 +41,29 @@ export class Bundler{
       this.chunkGroups.push(entryPoint);
 
       entryNode.addChunk(chunk);
-      chunk.addModule(entryNode);
-      chunk.setEntryModule(entryNode);
+      chunk.addModule(entry);
+      chunk.setEntryModule(entry);
       chunk.name = entryNode.entryKey!;
     }
     this.#buildChunkGraph();
   }
   #buildChunkGraph(){
-    const chunkGroupInfoMap = new Map();
-    function visitModules(){
-      
+    const  visit = (chunk:Chunk, startId:string)=>{
+      const queue:string[] = []
+      queue.push(startId)
+      while(queue.length >0){
+        const item = queue.shift()!
+        const children = this.graph.getChildrenById(item)
+        for(const child of children){
+          chunk.addModule(child)
+          queue.push(child);
+        }
+      }
+    }
+    for(const chunkGroup of this.chunkGroups){
+      for(const chunk of chunkGroup.chunks){
+        visit(chunk,chunk.entryModule);
+      }
     }
   }
   render(){
