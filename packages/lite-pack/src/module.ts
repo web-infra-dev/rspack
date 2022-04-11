@@ -6,6 +6,7 @@ import { AST, Parser } from './parser';
 import { Compiler } from './compiler';
 import path from 'path';
 import { Chunk } from './chunk';
+import * as esbuild from 'esbuild';
 export type NormalModuleOptions = {
   path: string;
   resolveDir:string;
@@ -22,13 +23,13 @@ export class ModuleNode {
   importer:string;
   resolveDir:string; // we need resolveDir to handle virtual Module resolve
   fullPath!: string;
-  
   ast!: AST;
   #resolver!: Resolver;
   #loader!: Loader;
   #parser!: Parser;
   #compiler!: Compiler
   chunks: Set<Chunk> = new Set();
+  depMap: Map<string,string> = new Map();
   constructor(options:NormalModuleOptions){
     this.path = options.path;
     this.importer = options.importer;
@@ -54,6 +55,8 @@ export class ModuleNode {
     this.ast = ast;
     this.fullPath = fullPath;
     this.#compiler.moduleGraph.addNode(fullPath,this);
+    const importerModule = this.#compiler.moduleGraph.getModuleById(this.importer);
+    importerModule?.depMap.set(this.path, fullPath);
     this.#compiler.moduleGraph.addEdge(this.importer, fullPath);
     this.buildDeps();
   }
@@ -73,7 +76,46 @@ export class ModuleNode {
     })
   }
   generator(){
-    return this.contents;
+    const {types: t} = babel;
+    const self = this;
+    const code = babel.transformSync(this.contents, {
+      plugins:[require('@babel/plugin-transform-modules-commonjs'), function(){
+                return {
+            visitor: {
+              ImportDeclaration(path) {
+                const newIdentifier =
+                    path.scope.generateUidIdentifier('imported');
+
+                for (const specifier of path.get('specifiers')) {
+                  const binding =
+                      specifier.scope.getBinding(specifier.node.local.name);
+                  const importedKey = specifier.isImportDefaultSpecifier() ?
+                      'default' :
+                      specifier.get('imported.name').node;
+
+                  for (const referencePath of binding.referencePaths) {
+                    referencePath.replaceWith(t.memberExpression(
+                        newIdentifier, t.stringLiteral(importedKey), true));
+                  }
+                }
+                const importPath:string = path.get('source.value').node;
+                const importerPath = self.depMap.get(importPath);
+                console.log('importerPath:', self.depMap, importPath, importerPath);
+                path.replaceWith(t.variableDeclaration('const', [
+                  t.variableDeclarator(
+                      newIdentifier,
+                      t.callExpression(
+                          t.identifier('require'),
+                          [
+                            t.stringLiteral(importerPath),
+                          ])),
+                ]));
+              }
+            },
+          } as babel.PluginObj
+      }]
+    })!.code!;
+    return `rs.define(${JSON.stringify(this.fullPath)},function test(require,exports){${code}});`
   }
   addChunk(chunk:Chunk){
     this.chunks.add(chunk);

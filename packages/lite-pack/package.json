@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@babel/plugin-transform-modules-commonjs":"7.17.9",
     "esno": "0.14.1",
     "esbuild": "0.14.34",
     "enhanced-resolve": "5.9.2",
@@ -21,6 +22,8 @@
     "@types/babel__core": "7.1.19",
     "async": "3.2.3",
     "@types/async": "3.2.12",
-    "p-defer": "3.0.0"
+    "p-defer": "3.0.0",
+    "fs-extra": "10.0.1",
+    "@types/fs-extra": "9.0.13"
   }
 }

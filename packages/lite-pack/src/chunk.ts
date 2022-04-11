@@ -1,6 +1,7 @@
 import Module from "module";
 import { ModuleNode } from "./module";
 import { ModuleGraph } from "./module-graph";
+import { Runtime } from "./runtime";
 
 export class ChunkGroup {
   name:string;
@@ -39,14 +40,16 @@ export class Chunk {
 
   }
   render(){
-    let finalCode = '';
-    console.log('xxx:',this.modules);
+    const runtime = new Runtime();
+    let moduleCode =[];
     for(const modId of this.modules){
       const mod = this.graph.getModuleById(modId)!;
       const code = mod.generator();
-      finalCode += code;
+      moduleCode.push(code)
     }
-    return finalCode;
+    const entryMoule = this.graph.getModuleById(this.entryModule)!
+    const bootstrap = `rs.require(${JSON.stringify(entryMoule?.fullPath)})`
+    return [runtime.render(),moduleCode.join(';'),bootstrap].join(';')
   }
   addGroup(group:ChunkGroup){
     this.groups.add(group);

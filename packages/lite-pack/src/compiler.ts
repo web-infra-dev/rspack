@@ -2,7 +2,8 @@ import { Loader } from './loader';
 import { Resolver } from './resolver';
 import { AsyncQueue } from './queue';
 import { ModuleNode, NormalModuleOptions } from './module';
-import Module from 'module';
+import fs from 'fs-extra';
+import path from 'path';
 import { ModuleGraph } from './module-graph';
 import { Bundler } from './bundle';
 type Defer = {
@@ -84,10 +85,16 @@ export class Compiler {
 }
 
 export async function build(entry: Record<string,string>) {
+  const root = path.resolve(__dirname,'..');
   const compiler = Compiler.create({
     entry: entry,
-    root: '',
+    root,
   });
   const result= await compiler.build();
+  for(const [key,value] of Object.entries(result)){
+    const dstPath = path.resolve(root,'dist', `${key}.js`);
+    fs.ensureFileSync(dstPath);
+    fs.writeFileSync(dstPath, value);
+  }
   console.log('result:',result);
 }
