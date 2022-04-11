@@ -5,6 +5,7 @@ import { Loader } from './loader';
 import { AST, Parser } from './parser';
 import { Compiler } from './compiler';
 import path from 'path';
+import { Chunk } from './chunk';
 export type NormalModuleOptions = {
   path: string;
   resolveDir:string;
@@ -21,11 +22,13 @@ export class ModuleNode {
   importer:string;
   resolveDir:string; // we need resolveDir to handle virtual Module resolve
   fullPath!: string;
+  
   ast!: AST;
   #resolver!: Resolver;
   #loader!: Loader;
   #parser!: Parser;
   #compiler!: Compiler
+  chunks: Set<Chunk> = new Set();
   constructor(options:NormalModuleOptions){
     this.path = options.path;
     this.importer = options.importer;
@@ -71,5 +74,8 @@ export class ModuleNode {
   }
   generator(){
     return this.contents;
+  }
+  addChunk(chunk:Chunk){
+    this.chunks.add(chunk);
   }
 }

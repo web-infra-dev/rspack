@@ -1,11 +1,18 @@
-import { Chunk } from "./chunk";
-import { ModuleNode } from "./module";
+import { Chunk, ChunkGroup } from "./chunk";
 import { ModuleGraph } from "./module-graph";
-
+/**
+ * 三者关系
+ * chunk
+ * chunkGroup
+ * entryPoint: entryPoint是一个特殊的chunkGroup
+ * entryPoint chunk: 从属于entryPoint的chunk
+ * entry module: 从属于entryPoint chunk的 module
+ */
 export class Bundler{
   #bundle_id = 0;
   graph: ModuleGraph
   chunks: Chunk[] = [];
+  chunkGroups: ChunkGroup[] = [];
   output: Record<string,string>;
   constructor(graph:ModuleGraph){
     this.graph = graph;
@@ -16,13 +23,33 @@ export class Bundler{
     return this.render();
   }
   generate_chunks(){
+    const chunkGroups = [];
+    /**
+     * step1: create EntryPoint and chunkGroup
+     */
     for(const entry of this.graph.getEntries()){
-      const entryNode = this.graph.getModuleById(entry);
+      const entryNode = this.graph.getModuleById(entry)!;
       const chunk = new Chunk({
         id: entryNode?.entryKey!,
-        graph: this.graph
+        graph: this.graph,
       });
+      const entryPoint = new ChunkGroup(entryNode?.entryKey!);
+      entryPoint.pushChunk(chunk);
+      chunk.addGroup(entryPoint);
       this.chunks.push(chunk);
+      this.chunkGroups.push(entryPoint);
+
+      entryNode.addChunk(chunk);
+      chunk.addModule(entryNode);
+      chunk.setEntryModule(entryNode);
+      chunk.name = entryNode.entryKey!;
+    }
+    this.#buildChunkGraph();
+  }
+  #buildChunkGraph(){
+    const chunkGroupInfoMap = new Map();
+    function visitModules(){
+      
     }
   }
   render(){
