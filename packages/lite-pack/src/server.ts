@@ -4,7 +4,6 @@ import sirv from 'sirv';
 import path from 'path';
 import ws, { WebSocketServer } from 'ws';
 import { Socket } from 'net';
-import Watchpack from 'watchpack';
 interface DevOptions {
   root:string,
   public: string
@@ -64,5 +63,10 @@ export class  DevServer {
         }
       });
     });
+  }
+  broadcast(payload:any){
+    for(const socket of this._webSockets){
+      socket.send(JSON.stringify(payload));
+    }
   }
 }

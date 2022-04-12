@@ -100,7 +100,20 @@ export async function build(entry: Record<string,string>) {
     root,
   });
   const result= await compiler.build();
-  
+  watcher.on('change', (path) => {
+    const module = compiler.moduleGraph.getNodeById(path);
+    if(!module){
+      return;
+    }
+    const content = module.generator();
+    const hmrCode = `invalidate(${JSON.stringify(path)})`;
+    server.broadcast({
+      type: 'js-update',
+      path: path,
+      timestamp: Date.now(),
+      code: [content,hmrCode].join(';')
+    })
+  })
   const htmlPath = path.resolve(__dirname, '../index.html');
   for(const [key,value] of Object.entries(result)){
     const dstPath = path.resolve(root,'dist', `${key}.js`);
