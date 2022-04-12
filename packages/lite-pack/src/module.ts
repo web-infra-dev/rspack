@@ -55,7 +55,7 @@ export class ModuleNode {
     this.ast = ast;
     this.fullPath = fullPath;
     this.#compiler.moduleGraph.addNode(fullPath,this);
-    const importerModule = this.#compiler.moduleGraph.getModuleById(this.importer);
+    const importerModule = this.#compiler.moduleGraph.getNodeById(this.importer);
     importerModule?.depMap.set(this.path, fullPath);
     this.#compiler.moduleGraph.addEdge(this.importer, fullPath);
     this.buildDeps();

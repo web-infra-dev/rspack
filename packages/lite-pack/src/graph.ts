@@ -13,7 +13,7 @@ export class Graph<T> {
   getNodes(){
     return this.#nodes;
   }
-  getModuleById(id: string) {
+  getNodeById(id: string) {
     return this.#nodes.get(id);
   }
   getChildrenById(id: string) {
@@ -63,7 +63,7 @@ export class Graph<T> {
       if (visited.has(id)) {
         return;
       }
-      const module = this.getModuleById(id);
+      const module = this.getNodeById(id);
       if (!module) {
         throw new Error('module not exist:' + id);
       }

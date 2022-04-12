@@ -43,11 +43,11 @@ export class Chunk {
     const runtime = new Runtime();
     let moduleCode =[];
     for(const modId of this.modules){
-      const mod = this.graph.getModuleById(modId)!;
+      const mod = this.graph.getNodeById(modId)!;
       const code = mod.generator();
       moduleCode.push(code)
     }
-    const entryMoule = this.graph.getModuleById(this.entryModule)!
+    const entryMoule = this.graph.getNodeById(this.entryModule)!
     const bootstrap = `rs.require(${JSON.stringify(entryMoule?.fullPath)})`
     return [runtime.render(),moduleCode.join(';'),bootstrap].join(';')
   }

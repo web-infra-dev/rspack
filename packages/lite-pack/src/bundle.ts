@@ -8,7 +8,7 @@ class BundleGraph extends Graph<any> {
 function buildBundleGraph(graph:ModuleGraph){
   const bundleGraph = new BundleGraph();
   for(const node of graph.getNodes()){
-    
+
   }
 
 }
@@ -40,7 +40,7 @@ export class Bundler{
      * step1: create EntryPoint and chunkGroup
      */
     for(const entry of this.graph.getEntries()){
-      const entryNode = this.graph.getModuleById(entry)!;
+      const entryNode = this.graph.getNodeById(entry)!;
       const chunk = new Chunk({
         id: entryNode?.entryKey!,
         graph: this.graph,
