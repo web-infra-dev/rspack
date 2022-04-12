@@ -12,6 +12,7 @@
   "license": "ISC",
   "devDependencies": {
     "@babel/plugin-transform-modules-commonjs":"7.17.9",
+    "lodash": "4.17.21",
     "esno": "0.14.1",
     "esbuild": "0.14.34",
     "enhanced-resolve": "5.9.2",

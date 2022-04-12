@@ -10,6 +10,9 @@ export class Graph<T> {
     this.#nodes = new Map();
     this.#edges = new Map();
   }
+  getNodes(){
+    return this.#nodes;
+  }
   getModuleById(id: string) {
     return this.#nodes.get(id);
   }

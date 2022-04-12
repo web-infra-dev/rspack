@@ -1,6 +1,17 @@
 import { Chunk, ChunkGroup } from "./chunk";
+import { Graph } from "./graph";
 import { ModuleNode } from "./module";
 import { ModuleGraph } from "./module-graph";
+class BundleGraph extends Graph<any> {
+
+}
+function buildBundleGraph(graph:ModuleGraph){
+  const bundleGraph = new BundleGraph();
+  for(const node of graph.getNodes()){
+    
+  }
+
+}
 /**
  * 三者关系
  * chunk
