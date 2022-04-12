@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <script>
+      const socketUrl = `ws://${location.host}/`;
+      const socket = new WebSocket(socketUrl, 'web-server');
+      function reload() {
+        setTimeout(() => {
+          window.location.reload();
+        });
+      }
+      socket.onmessage = function (event) {
+        console.log('event:',event)
+        // reload();
+      };
+    </script>
+    <div id="root"></div>
+  </body>
+</html>

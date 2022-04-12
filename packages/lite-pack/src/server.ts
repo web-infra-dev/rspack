@@ -1,9 +1,10 @@
 import connect from 'connect';
-import http from 'http';
+import http, { IncomingMessage, ServerResponse } from 'http';
 import sirv from 'sirv';
 import path from 'path';
 import ws, { WebSocketServer } from 'ws';
 import { Socket } from 'net';
+import Watchpack from 'watchpack';
 interface DevOptions {
   root:string,
   public: string
@@ -12,10 +13,13 @@ export class  DevServer {
   #app;
   _server!: http.Server;
   _wsServer!: ws.Server;
-  _webSockets: WebSocketServer[] =[];
+  _webSockets: WebSocket[] =[];
   constructor(options: DevOptions){
     const app = this.#app = connect();
-    app.use(sirv(path.resolve(options.root, options.public)))
+    console.log('public:',path.resolve(options.root, options.public) )
+    app.use(sirv(path.resolve(options.root, options.public), {
+      dev:true
+    }))
   }
   static create(options:DevOptions){
     const _server = new DevServer(options);
@@ -40,7 +44,7 @@ export class  DevServer {
 
     server.on('upgrade', (req, socket, head) => {
       // Only handle upgrades to Speedy Dev Server requests, ignore others.
-      if (req.headers['sec-websocket-protocol'] !== 'speedy-dev-server') {
+      if (req.headers['sec-websocket-protocol'] !== 'web-server') {
         return;
       }
       wss.handleUpgrade(req, socket as Socket, head, (client) => {

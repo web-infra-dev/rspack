@@ -7,7 +7,7 @@ import path from 'path';
 import { ModuleGraph } from './module-graph';
 import { Bundler } from './bundle';
 import { DevServer } from './server';
-import { } from 'ws';
+import chokidar from 'chokidar';
 type Defer = {
   resolve:any;
   reject: any;
@@ -88,6 +88,9 @@ export class Compiler {
 
 export async function build(entry: Record<string,string>) {
   const root = path.resolve(__dirname,'..');
+  const dstPath = path.resolve(root, 'dist');
+  fs.ensureDirSync(dstPath);
+  const watcher = chokidar.watch(root)
   const server = new DevServer({
     root,
     public: 'dist'
@@ -97,10 +100,13 @@ export async function build(entry: Record<string,string>) {
     root,
   });
   const result= await compiler.build();
+  
+  const htmlPath = path.resolve(__dirname, '../index.html');
   for(const [key,value] of Object.entries(result)){
     const dstPath = path.resolve(root,'dist', `${key}.js`);
     fs.ensureFileSync(dstPath);
     fs.writeFileSync(dstPath, value);
   }
+  fs.copyFileSync(htmlPath, path.resolve(root, 'dist/index.html'))
   server.start();
 }
