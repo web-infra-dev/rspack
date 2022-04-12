@@ -6,6 +6,8 @@ import fs from 'fs-extra';
 import path from 'path';
 import { ModuleGraph } from './module-graph';
 import { Bundler } from './bundle';
+import { DevServer } from './server';
+import { } from 'ws';
 type Defer = {
   resolve:any;
   reject: any;
@@ -86,6 +88,10 @@ export class Compiler {
 
 export async function build(entry: Record<string,string>) {
   const root = path.resolve(__dirname,'..');
+  const server = new DevServer({
+    root,
+    public: 'dist'
+  })
   const compiler = Compiler.create({
     entry: entry,
     root,
@@ -96,5 +102,5 @@ export async function build(entry: Record<string,string>) {
     fs.ensureFileSync(dstPath);
     fs.writeFileSync(dstPath, value);
   }
-  console.log('result:',result);
+  server.start();
 }
