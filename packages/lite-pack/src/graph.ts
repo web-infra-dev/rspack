@@ -13,6 +13,9 @@ export class Graph<T> {
   getNodes(){
     return this.#nodes;
   }
+  getEdges(){
+    return this.#edges;
+  }
   getNodeById(id: string) {
     return this.#nodes.get(id);
   }

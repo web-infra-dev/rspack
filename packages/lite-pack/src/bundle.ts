@@ -7,10 +7,7 @@ class BundleGraph extends Graph<any> {
 }
 function buildBundleGraph(graph:ModuleGraph){
   const bundleGraph = new BundleGraph();
-  for(const node of graph.getNodes()){
-
-  }
-
+  
 }
 /**
  * 三者关系
