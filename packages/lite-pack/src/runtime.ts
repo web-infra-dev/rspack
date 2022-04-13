@@ -1,6 +1,6 @@
 export class Runtime {
   render() {
-    return /*javascript*/ `
+     return /*javascript*/ `
 (function(){
 let modules = {};  
 class Hot {
@@ -30,6 +30,7 @@ class Hot {
   };
 class Module {
   constructor(options){
+    this.id = options.id
     this.factory = options.factory;
     this.loaded = options.loaded;
     this.exports = options.exports;
@@ -38,15 +39,21 @@ class Module {
   }
 }
 function define(id, factory) {
+  const mod = modules[id];
+  if(!mod){
+    modules[id] = new Module({ factory: factory, loaded: false, exports: {}, id });
+  }else {
+    mod.loaded = false;
+    mod.exports = {};
+    mod.factory =factory;
+  }
   
-  modules[id] = new Module({ factory: factory, loaded: false, exports: {} });
 }
 function require(id) {
   const self = this;
-  let realId = id;
-  let mod = modules[realId];
+  let mod = modules[id];
   if (!mod) {
-    console.error(realId + 'not exists');
+    throw new Error(id+" not exits");
   }
   if (mod.loaded) {
     return mod.exports;

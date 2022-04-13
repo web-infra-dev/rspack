@@ -103,7 +103,6 @@ export class ModuleNode {
                 }
                 const importPath:string = path.get('source.value').node;
                 const importerPath = self.depMap.get(importPath);
-                console.log('importerPath:', self.depMap, importPath, importerPath);
                 path.replaceWith(t.variableDeclaration('const', [
                   t.variableDeclarator(
                       newIdentifier,

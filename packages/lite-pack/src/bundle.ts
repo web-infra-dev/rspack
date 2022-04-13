@@ -75,7 +75,6 @@ export class Bundler{
     }
   }
   render(){
-    console.log('chunk:',this.chunks)
     for(const chunk of this.chunks ){
       this.output[chunk.id] = chunk.render()
     }
