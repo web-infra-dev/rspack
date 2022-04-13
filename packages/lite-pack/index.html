@@ -69,8 +69,8 @@
               /**
                * 断开原有的父子关系
                */
-              m.children.delete(module);
-              module.parents.delete(m);
+              // m.children.delete(module);
+              // module.parents.delete(m);
               const childAccepts = getAccepts(id, m);
               // 如果在父模块accept了子模块，那么停止冒泡
               if (childAccepts.length > 0) {
