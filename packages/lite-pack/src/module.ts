@@ -47,6 +47,9 @@ export class ModuleNode {
   build(){
     this._doBuild();
   }
+  rebuild(){
+    this._doBuild();
+  }
   _doBuild(){
     const fullPath = this.#resolver.resolveRequest(this.path, this.resolveDir);
     const contents = this.#loader.load_and_transform(fullPath);
@@ -115,7 +118,7 @@ export class ModuleNode {
           } as babel.PluginObj
       }]
     })!.code!;
-    return `rs.define(${JSON.stringify(this.fullPath)},function test(require,exports){${code}});`
+    return `rs.define(${JSON.stringify(this.fullPath)},function test(require,exports,module){${code}});`
   }
   addChunk(chunk:Chunk){
     this.chunks.add(chunk);

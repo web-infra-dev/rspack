@@ -8,6 +8,21 @@
   </head>
   <body>
     <script>
+      function invalidate(id){
+        console.log('invalidate:',id,rs.m);
+        const modules = rs.m;
+        rs.require(id);
+        const module = modules[id];
+        if(module.hot?.accept){
+          for(const acceptItem of module.hot.accepts){
+            const updateId = acceptItem.id
+            const updateModule = modules[updateId];
+            acceptItem.accept(updateModule);
+          }
+        }
+      }
+    </script>
+    <script>
       const socketUrl = `ws://${location.host}/`;
       const socket = new WebSocket(socketUrl, 'web-server');
       function reload() {
@@ -18,6 +33,7 @@
       socket.onmessage = function (event) {
         const data = JSON.parse(event.data);
         console.log('data:',data);
+        (0,eval)(data.code);
         // reload();
       };
     </script>

@@ -102,9 +102,15 @@ export async function build(entry: Record<string,string>) {
   const result= await compiler.build();
   watcher.on('change', (path) => {
     const module = compiler.moduleGraph.getNodeById(path);
+    
     if(!module){
       return;
     }
+    /**
+     * @todo update logic
+     * 目前会重新触发自该模块开始的全量编译，webpack也是这么做吗
+     */
+    module.rebuild();
     const content = module.generator();
     const hmrCode = `invalidate(${JSON.stringify(path)})`;
     server.broadcast({

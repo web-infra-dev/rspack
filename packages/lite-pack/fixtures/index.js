@@ -1,12 +1,18 @@
 import { answer } from './answer';
 console.log('answer:',answer);
-
+setTimeout(() => {
+  answer++;
+},1000)
 function render(){
   const container = document.getElementById('root');
-  container.innerHTML = `answer:${answer}`
+  container.innerHTML = `answer88:${answer}`
 }
 render();
-setInterval(() => {
-  answer++;
-  render();
-},1000)
+
+if(module.hot?.accept){
+  module.hot.accept((module) => {
+
+    console.log('xxx:', module);
+    render();
+  })
+}

@@ -1,33 +1,55 @@
 export class Runtime {
   render() {
-    return `
+    return /*javascript*/ `
 (function(){
-let __modules = {};
+let modules = {};
+  class Hot {
+    constructor(id) {
+      this.id = id;
+      this.accepts = [];
+    }
+    accept(ids, callback) {
+      if (typeof ids === "function") {
+        this.accepts.push({
+          id: this.id,
+          accept: ids
+        });
+      } else {
+        this.accepts.push({
+          id,
+          accept: callback
+        });
+      }
+    }
+    dispose(callback) {
+      this.accepts.push({
+        id: this.id,
+        dispose: callback
+      });
+    }
+  };
 function define(id, factory) {
-  if (!__modules[id]) {
-    __modules[id] = { factory: factory, loaded: false, exports: {} };
-  } else {
-    console.error('define' + id + 'twice');
-  }
+  modules[id] = { factory: factory, loaded: false, exports: {} };
 }
 function require(id) {
   let realId = id;
-  let mod = __modules[realId];
+  let mod = modules[realId];
   if (!mod) {
     console.error(realId + 'not exists');
   }
   if (mod.loaded) {
     return mod.exports;
   }
-  mod.factory(require, mod.exports);
+  mod.hot = new Hot(id);
+  mod.factory(require, mod.exports,mod);
   mod.loaded = true;
   return mod.exports;
 }
 globalThis.rs = {
   define:define,
-  require:require
-}
-  })();
+  require:require,
+  m: modules
+}})();
     `;
   }
 }
