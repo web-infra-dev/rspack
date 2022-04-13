@@ -12,6 +12,38 @@
         const modules = rs.m;
         rs.require(id);
         const module = modules[id];
+        const hmrBoundaries = new Set();
+        const hotMetaList = new Set();
+        cllectModules(id);
+        function cllectModules(id){
+          const module = modules[id];
+          /**
+           * 计算自身的accept
+          */
+          const selfAccepts = module.hot.accepts.filter(({ids})=> {
+            if(typeof ids === 'string'){
+              return ids === id;
+            }else {
+              return ids.includes(id);
+            }
+          })
+          // 如果存在自身的accept，执行自身的accept
+          if(selfAccepts.length>0){
+             hmrBoundaries.add(id);
+             for(const accept of selfAccepts){
+                hotMetaList.add(accept);
+             }
+          }else {
+            // 向上冒泡
+             if(module.parent.size>0){
+               for(const parent of module.parent){
+                 
+               }
+             }
+
+          }
+          
+        }
         if(module.hot?.accept){
           for(const acceptItem of module.hot.accepts){
             const updateId = acceptItem.ids

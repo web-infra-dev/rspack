@@ -11,7 +11,7 @@ class Hot {
     accept(ids, callback) {
       if (typeof ids === "function") {
         this.accepts.push({
-          id: this.id,
+          ids: this.id,
           accept: ids
         });
       } else {
@@ -38,6 +38,7 @@ class Module {
   }
 }
 function define(id, factory) {
+  
   modules[id] = new Module({ factory: factory, loaded: false, exports: {} });
 }
 function require(id) {
