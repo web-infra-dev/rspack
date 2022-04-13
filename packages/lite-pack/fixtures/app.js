@@ -12,10 +12,12 @@ export function render(){
 }
 
 if(module.hot?.accept){
-  module.hot.accept('./lib',(module) => {
+  module.hot.accept('/Users/yangjian/github/rspack/packages/lite-pack/fixtures/lib.js',(module) => {
     console.log('lib:',module);
-    secret = module.secret;
-    myanswer = module.myanswer;
+    render();
+  })
+  module.hot.accept('/Users/yangjian/github/rspack/packages/lite-pack/fixtures/answer.js',(module) => {
+    console.log('answer:',module);
     render();
   })
   module.hot.accept((module) => {

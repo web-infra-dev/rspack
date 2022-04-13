@@ -8,19 +8,19 @@
   </head>
   <body>
     <script>
-      function invalidate(id) {
+      function invalidate(dirtyId) {
         const modules = rs.m;
-        rs.require(id);
-        const module = modules[id];
+        rs.require(dirtyId);
+        
+        const module = modules[dirtyId];
         const hmrBoundaries = new Set(); // 所有的hmr boundary,即所有的收到冒泡影响的含有accept的模块
         const hotMetaList = new Set(); // hmrBoundary 模块关联的accept回调
         const removeModules = new Set(); // 在冒泡规则中收到影响的所有模块
 
-        cllectModules(id);
+        cllectModules(dirtyId);
 
-        console.log('hmr:', hmrBoundaries, hotMetaList, removeModules)
+        console.log('hmr:', hmrBoundaries, hotMetaList, removeModules);
 
-        
         /**
          * 卸载所有过时的模块，等待重新触发副作用
          */
@@ -28,24 +28,28 @@
           modules[mod].loaded = false;
         }
         /**
-         * 重新执行所有模块
+         * 重新执行boundary的所有模块
          */
         for (const id of hmrBoundaries.values()) {
           rs.require(id);
         }
         /**
          * 触发meta列表
+         */
+        for (const hot of hotMetaList.values()) {
+          if (typeof hot.ids === 'string') {
+            if (hot.accept) {
+              const mod = modules[hot.ids];
+              hot.accept(mod.exports);
+            }
+          } else {
+            hot.accept(hot.ids.map((id) => modules[id].exports));
+          }
+        }
+        /**
+         * id: 当前模块id
+         * 
         */
-       for(const hot of hotMetaList.values()){
-         if(typeof hot.ids === 'string'){
-           if(hot.accept){
-             const mod = modules[hot.ids];
-             hot.accept(mod.exports);
-           }
-         }else {
-           hot.accept(hot.ids.map(id => modules[id].exports))
-         }
-       }
         function cllectModules(id) {
           removeModules.add(id);
           const module = modules[id];
@@ -64,13 +68,27 @@
             for (const m of module.parents.values()) {
               /**
                * 断开原有的父子关系
-              */
+               */
               m.children.delete(module);
               module.parents.delete(m);
-              cllectModules(m.id);
+              const childAccepts = getAccepts(id, m);
+              // 如果在父模块accept了子模块，那么停止冒泡
+              if (childAccepts.length > 0) {
+                for (const accept of childAccepts) {
+                  // 子模块为boundary
+                  hmrBoundaries.add(module.id);
+                  hotMetaList.add(accept);
+                }
+              } else {
+                cllectModules(m.id);
+              }
             }
           }
         }
+        /**
+         * id: 当前修改的模块id
+         * module: 待检查的module
+         */
         function getAccepts(id, module) {
           return module.hot.accepts.filter(({ ids }) => {
             if (typeof ids === 'string') {
