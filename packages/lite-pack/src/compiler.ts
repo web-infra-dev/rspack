@@ -113,11 +113,12 @@ export async function build(entry: Record<string,string>) {
     module.rebuild();
     const content = module.generator();
     const hmrCode = `invalidate(${JSON.stringify(path)})`;
+    const sourceUrl = `\n//# sourceURL=${path}`;
     server.broadcast({
       type: 'js-update',
       path: path,
       timestamp: Date.now(),
-      code: [content,hmrCode].join(';')
+      code: [content,hmrCode,sourceUrl].join(';') 
     })
   })
   const htmlPath = path.resolve(__dirname, '../index.html');

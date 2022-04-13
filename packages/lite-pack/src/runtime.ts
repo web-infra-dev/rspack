@@ -16,7 +16,7 @@ let modules = {};
         });
       } else {
         this.accepts.push({
-          id,
+          ids,
           accept: callback
         });
       }

@@ -15,7 +15,7 @@
         const module = modules[id];
         if(module.hot?.accept){
           for(const acceptItem of module.hot.accepts){
-            const updateId = acceptItem.id
+            const updateId = acceptItem.ids
             const updateModule = modules[updateId];
             acceptItem.accept(updateModule);
           }
