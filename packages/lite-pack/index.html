@@ -9,7 +9,6 @@
   <body>
     <script>
       function invalidate(id){
-        console.log('invalidate:',id,rs.m);
         const modules = rs.m;
         rs.require(id);
         const module = modules[id];
