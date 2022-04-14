@@ -95,14 +95,15 @@ export async function build(options: {
   const dstPath = path.resolve(root, 'dist');
   fs.ensureDirSync(dstPath);
   const watcher = chokidar.watch(root)
-  const server = new DevServer({
-    root,
-    public: 'dist'
-  })
+
   const compiler = Compiler.create({
     entry: input,
     root,
   });
+  const server = new DevServer({
+    root,
+    public: 'dist'
+  })
   const result= await compiler.build();
   watcher.on('change', (path) => {
     console.log('filechange:',path)

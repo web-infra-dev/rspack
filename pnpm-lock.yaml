@@ -11,6 +11,12 @@ importers:
     devDependencies:
       lite-pack: link:../../packages/lite-pack
 
+  examples/code-splitting:
+    specifiers:
+      lite-pack: workspace:*
+    devDependencies:
+      lite-pack: link:../../packages/lite-pack
+
   packages/lite-pack:
     specifiers:
       '@babel/core': 7.17.9

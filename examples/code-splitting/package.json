@@ -1,0 +1,15 @@
+{
+  "name": "code-splitting",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "lite-pack"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "lite-pack": "workspace:*"
+  }
+}
