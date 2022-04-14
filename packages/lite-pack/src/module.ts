@@ -117,6 +117,7 @@ export class ModuleNode {
           } as babel.PluginObj
       }]
     })!.code!;
+
     return `rs.define(${JSON.stringify(this.fullPath)},function test(require,exports,module){${code}});`
   }
   addChunk(chunk:Chunk){

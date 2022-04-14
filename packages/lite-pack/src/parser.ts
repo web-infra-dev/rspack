@@ -4,7 +4,18 @@ export class Parser {
 
   }
   parse(content:string){
-    const ast = babel.parseSync(content);
+    const ast = babel.parseSync(content, {
+      plugins: [{
+        visitor: {
+          Identifier(path){
+            console.log('path:',path);
+          },
+          ImportDeclaration(node){
+            console.log('node:',node);
+          }
+        }
+      }]
+    });
     return ast!
   }
 }
