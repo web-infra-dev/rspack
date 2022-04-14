@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "bin": {
+    "lite-pack": "./bin/lite-pack.js"
+  },
   "scripts": {
     "build": "esno src/cli.ts",
     "check": "tsc --noEmit --watch"
@@ -31,6 +34,9 @@
     "fs-extra": "10.0.1",
     "@types/fs-extra": "9.0.13",
     "@types/ws": "8.5.3",
-    "chokidar": "3.5.3"
+    "@types/yargs": "17.0.10",
+    "chokidar": "3.5.3",
+    "yargs": "17.4.1",
+    "tsm": "2.2.1"
   }
 }

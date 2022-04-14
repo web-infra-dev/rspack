@@ -86,8 +86,12 @@ export class Compiler {
   }
 }
 
-export async function build(entry: Record<string,string>) {
-  const root = path.resolve(__dirname,'..');
+export async function build(options: {
+  input: Record<string,string>,
+  root: string
+}) {
+  const { root, input } = options;
+
   const dstPath = path.resolve(root, 'dist');
   fs.ensureDirSync(dstPath);
   const watcher = chokidar.watch(root)
@@ -96,11 +100,12 @@ export async function build(entry: Record<string,string>) {
     public: 'dist'
   })
   const compiler = Compiler.create({
-    entry: entry,
+    entry: input,
     root,
   });
   const result= await compiler.build();
   watcher.on('change', (path) => {
+    console.log('filechange:',path)
     const module = compiler.moduleGraph.getNodeById(path);
     
     if(!module){
