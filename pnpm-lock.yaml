@@ -17,6 +17,14 @@ importers:
     devDependencies:
       lite-pack: link:../../packages/lite-pack
 
+  examples/react:
+    specifiers:
+      lite-pack: workspace:*
+      lodash-es: 4.17.21
+    dependencies:
+      lite-pack: link:../../packages/lite-pack
+      lodash-es: 4.17.21
+
   packages/lite-pack:
     specifiers:
       '@babel/core': 7.17.9

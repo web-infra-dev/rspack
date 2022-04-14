@@ -8,6 +8,13 @@
   </head>
   <body>
     <script>
+      process = {
+        env: {
+          NODE_ENV: 'development'
+        }
+      }
+    </script>
+    <script>
       function invalidate(dirtyId) {
         const modules = rs.m;
         rs.require(dirtyId);
