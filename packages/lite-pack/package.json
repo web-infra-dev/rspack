@@ -14,7 +14,9 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@babel/traverse": "7.17.9",
     "@babel/plugin-transform-modules-commonjs":"7.17.9",
+    "@babel/plugin-proposal-dynamic-import": "7.16.7",
     "lodash": "4.17.21",
     "connect": "3.7.0",
     "@types/connect": "3.4.35",
