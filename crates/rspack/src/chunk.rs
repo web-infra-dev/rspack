@@ -115,10 +115,10 @@ impl Chunk {
                 );
                 // text.push_str(&Path::new(module.id.as_str()).relative(&common_prefix).to_string_lossy());
                 comments.add_leading(
-                    module.module_span.lo,
+                    module.module_comment_span.lo,
                     Comment {
                         kind: swc_common::comments::CommentKind::Line,
-                        span: module.module_span,
+                        span: module.module_comment_span,
                         text,
                     },
                 )

@@ -9,7 +9,7 @@ use swc_ecma_ast::{ModuleDecl, ModuleItem};
 use swc_ecma_visit::VisitMutWith;
 
 use crate::{
-    graph::{Msg, Rel},
+    module_graph_container::{Msg, Rel},
     module::Module,
     plugin_driver::PluginDriver,
     scanner::{scope::BindType, Scanner},

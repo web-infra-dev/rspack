@@ -17,7 +17,7 @@ use swc_ecma_visit::{noop_visit_mut_type, VisitMut, VisitMutWith};
 
 use crate::{
   ext::MarkExt,
-  graph::Msg,
+  module_graph_container::Msg,
   symbol_box::MarkBox,
   // worker::RolldownError,
 };

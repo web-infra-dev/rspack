@@ -1,27 +1,40 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
 use dashmap::DashSet;
 
-use crate::{bundler::BundleOptions, chunk::Chunk, graph, structs::OutputChunk};
+use crate::{
+    bundler::BundleOptions, chunk::Chunk, module_graph::ModuleGraph, structs::OutputChunk,
+    symbol_box::MarkBox,
+};
 
 #[non_exhaustive]
 pub struct Bundle {
-    pub graph: graph::Graph,
+    pub graph: ModuleGraph,
     pub output_options: Arc<BundleOptions>,
+    pub mark_box: Arc<Mutex<MarkBox>>,
 }
 
 impl Bundle {
-    pub fn new(graph: graph::Graph, output_options: Arc<BundleOptions>) -> Self {
+    pub fn new(
+        graph: ModuleGraph,
+        output_options: Arc<BundleOptions>,
+        mark_box: Arc<Mutex<MarkBox>>,
+    ) -> Self {
         Self {
             graph,
             output_options,
+            mark_box,
         }
     }
 
     fn generate_chunks(&self) -> Vec<Chunk> {
+        // TODO: code spliting
         let entries = DashSet::new();
-        self.graph.entry_indexs.iter().for_each(|entry| {
-            let entry = self.graph.module_graph[*entry].to_owned();
+        self.graph.node_idx_of_enties().iter().for_each(|entry| {
+            let entry = self.graph.relation_graph[*entry].to_owned();
             entries.insert(entry);
         });
 
@@ -32,9 +45,9 @@ impl Bundle {
                 .ordered_modules
                 .clone()
                 .into_iter()
-                .map(|idx| self.graph.module_graph[idx].clone())
+                .map(|idx| self.graph.relation_graph[idx].clone())
                 .collect(),
-            symbol_box: self.graph.mark_box.clone(),
+            symbol_box: self.mark_box.clone(),
             entries,
         }];
 

@@ -5,11 +5,11 @@ use std::sync::Mutex;
 
 use sugar_path::PathSugar;
 
-
 use crate::bundle::Bundle;
-use crate::graph::Graph;
+use crate::module_graph_container::ModuleGraphContainer;
 use crate::plugin::Plugin;
 use crate::plugin_driver::PluginDriver;
+use crate::symbol_box::MarkBox;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum InternalModuleFormat {
@@ -92,10 +92,15 @@ impl Bundler {
     }
 
     pub async fn generate(&mut self) {
-        let mut graph = Graph::new(self.options.clone(), self.plugin_driver.clone());
-        graph.build().await;
+        let mark_box: Arc<Mutex<MarkBox>> = Default::default();
+        let graph = ModuleGraphContainer::new(
+            self.options.clone(),
+            self.plugin_driver.clone(),
+            mark_box.clone(),
+        );
+        let module_graph = graph.build().await;
 
-        let mut bundle = Bundle::new(graph, self.options.clone());
+        let mut bundle = Bundle::new(module_graph, self.options.clone(), mark_box.clone());
         let output = bundle.generate();
         output.into_iter().for_each(|(_, chunk)| {
             self.ctx.assets.lock().unwrap().push(Asset {

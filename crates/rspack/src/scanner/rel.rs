@@ -6,7 +6,7 @@ use swc_ecma_ast::{
     CallExpr, Callee, Decl, DefaultDecl, ExportSpecifier, Expr, Lit, ModuleDecl, ModuleExportName,
 };
 
-use crate::{ext::SyntaxContextExt, graph::Rel};
+use crate::{ext::SyntaxContextExt, module_graph_container::Rel};
 
 use super::{helper::collect_js_word_of_pat, Scanner};
 

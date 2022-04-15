@@ -21,21 +21,22 @@ use smol_str::SmolStr;
 use crate::{
     bundler::BundleOptions, external_module::ExternalModule, module::Module,
     plugin_driver::PluginDriver, scanner::rel::RelationInfo, symbol_box::MarkBox,
-    types::ResolvedId, utils::resolve_id, worker::Worker,
+    types::ResolvedId, utils::resolve_id, worker::Worker, module_graph::ModuleGraph,
 };
 
 type ModulePetGraph = petgraph::graph::DiGraph<SmolStr, Rel>;
 
-pub struct Graph {
-    pub bundle_options: Arc<BundleOptions>,
-    resolved_entries: Vec<ResolvedId>,
-    pub module_graph: ModulePetGraph,
-    pub entry_indexs: Vec<NodeIndex>,
-    pub ordered_modules: Vec<NodeIndex>,
-    pub mark_box: Arc<Mutex<MarkBox>>,
-    pub module_by_id: HashMap<SmolStr, Box<Module>>,
-    pub plugin_driver: Arc<PluginDriver>,
-    pub path_to_node_idx: HashMap<SmolStr, NodeIndex>,
+pub struct ModuleGraphContainer {
+  resolved_entries: Vec<ResolvedId>,
+  pub path_to_node_idx: HashMap<SmolStr, NodeIndex>,
+  pub relation_graph: ModulePetGraph,
+
+  pub bundle_options: Arc<BundleOptions>,
+  pub entry_indexs: Vec<NodeIndex>,
+  pub ordered_modules: Vec<NodeIndex>,
+  pub mark_box: Arc<Mutex<MarkBox>>,
+  pub module_by_id: HashMap<SmolStr, Box<Module>>,
+  pub plugin_driver: Arc<PluginDriver>,
 }
 
 // Relation between modules
@@ -63,8 +64,8 @@ pub enum Msg {
     NewExtMod(ExternalModule),
 }
 
-impl Graph {
-    pub fn new(bundle_options: Arc<BundleOptions>, plugin_driver: Arc<PluginDriver>) -> Self {
+impl ModuleGraphContainer {
+    pub fn new(bundle_options: Arc<BundleOptions>, plugin_driver: Arc<PluginDriver>, mark_box: Arc<Mutex<MarkBox>>) -> Self {
         Self {
             plugin_driver,
             bundle_options,
@@ -72,14 +73,14 @@ impl Graph {
             entry_indexs: Default::default(),
             ordered_modules: Default::default(),
             module_by_id: Default::default(),
-            module_graph: ModulePetGraph::new(),
-            mark_box: Arc::new(Mutex::new(MarkBox::new())),
+            relation_graph: ModulePetGraph::new(),
+            mark_box,
             path_to_node_idx: Default::default(),
         }
     }
 
     // build dependency graph via entry modules.
-    async fn generate_module_graph(&mut self) {
+    async fn generate(&mut self) {
         let nums_of_thread = num_cpus::get();
         let idle_thread_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(nums_of_thread));
         let job_queue: Arc<SegQueue<ResolvedId>> = Default::default();
@@ -103,7 +104,7 @@ impl Graph {
         let path_to_node_idx = &mut self.path_to_node_idx;
 
         self.resolved_entries.iter().for_each(|resolved_entry_id| {
-            let entry_idx = self.module_graph.add_node(resolved_entry_id.id.clone());
+            let entry_idx = self.relation_graph.add_node(resolved_entry_id.id.clone());
             self.entry_indexs.push(entry_idx);
             path_to_node_idx.insert(resolved_entry_id.id.clone(), entry_idx);
             job_queue.push(resolved_entry_id.clone());
@@ -152,11 +153,11 @@ impl Graph {
                     Msg::DependencyReference(from, to, rel) => {
                         let from_id = *path_to_node_idx
                             .entry(from)
-                            .or_insert_with_key(|key| self.module_graph.add_node(key.clone()));
+                            .or_insert_with_key(|key| self.relation_graph.add_node(key.clone()));
                         let to_id = *path_to_node_idx
                             .entry(to)
-                            .or_insert_with_key(|key| self.module_graph.add_node(key.clone()));
-                        self.module_graph.add_edge(from_id, to_id, rel);
+                            .or_insert_with_key(|key| self.relation_graph.add_node(key.clone()));
+                        self.relation_graph.add_edge(from_id, to_id, rel);
                     }
                     _ => {}
                 }
@@ -166,7 +167,7 @@ impl Graph {
         let entries_id = self
             .entry_indexs
             .iter()
-            .map(|idx| &self.module_graph[*idx])
+            .map(|idx| &self.relation_graph[*idx])
             .collect::<HashSet<&SmolStr>>();
         self.module_by_id.par_iter_mut().for_each(|(_key, module)| {
             module.is_user_defined_entry_point = entries_id.contains(&module.id);
@@ -215,16 +216,26 @@ impl Graph {
             .collect();
     }
 
-    pub async fn build(&mut self) {
-        self.generate_module_graph().await;
+    pub async fn build(mut self) -> ModuleGraph {
+        self.generate().await;
         self.sort_modules();
         self.link_module_exports();
         self.link_module();
+
+        ModuleGraph {
+          resolved_entries: self.resolved_entries,
+          id_to_node_idx: self.path_to_node_idx,
+          relation_graph: self.relation_graph,
+          // entry_indexs: self.entry_indexs,
+          ordered_modules: self.ordered_modules,
+          // mark_box: Arc<Mutex<MarkBox>>,
+          module_by_id: self.module_by_id,
+        }
     }
 
     pub fn link_module_exports(&mut self) {
         self.ordered_modules.iter().for_each(|idx| {
-            let module_id = &self.module_graph[*idx];
+            let module_id = &self.relation_graph[*idx];
             let module = self.module_by_id.get(module_id).unwrap();
             // self.module_by_id.get_mut
             let dep_ids = module
@@ -257,13 +268,13 @@ impl Graph {
     pub fn link_module(&mut self) {
         self.ordered_modules.iter().for_each(|idx| {
             let edges = self
-                .module_graph
+                .relation_graph
                 .edges_directed(*idx, EdgeDirection::Outgoing);
             edges.for_each(|edge| {
                 log::debug!(
                     "[graph]: link module from {:?} to {:?}",
-                    &self.module_graph[*idx],
-                    &self.module_graph[edge.target()]
+                    &self.relation_graph[*idx],
+                    &self.relation_graph[edge.target()]
                 );
                 let rel_info = match edge.weight() {
                     Rel::Import(info) => Some(info),
@@ -274,7 +285,7 @@ impl Graph {
                     rel_info.names.iter().for_each(|specifier| {
                         let dep_module = self
                             .module_by_id
-                            .get_mut(&self.module_graph[edge.target()])
+                            .get_mut(&self.relation_graph[edge.target()])
                             .unwrap();
                         // import _default from './foo'
                         // import * as foo from './foo
