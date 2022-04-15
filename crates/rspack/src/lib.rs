@@ -13,11 +13,7 @@ pub mod types;
 pub mod utils;
 pub mod worker;
 
-
-
 pub use swc_ecma_ast as ast;
-
-
 
 pub mod plugin_driver;
 pub mod statement;
