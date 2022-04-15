@@ -1,6 +1,6 @@
 use std::{path::Path, sync::Arc};
 
-use crate::{bundler::BundleContext, types::ResolvedId, traits::plugin::Plugin};
+use crate::{bundler::BundleContext, structs::ResolvedId, traits::plugin::Plugin};
 
 #[derive(Debug)]
 pub struct PluginDriver {

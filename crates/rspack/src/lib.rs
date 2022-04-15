@@ -7,7 +7,6 @@ pub mod module_graph_container;
 pub mod module;
 pub mod scanner;
 
-pub mod types;
 pub mod utils;
 pub mod worker;
 

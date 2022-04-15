@@ -28,7 +28,7 @@ use swc_ecma_codegen::Emitter;
 use swc_ecma_visit::{noop_visit_mut_type, VisitMut};
 
 use crate::scanner::rel::{DynImportDesc, ExportDesc, ReExportDesc};
-use crate::types::ResolvedId;
+use crate::structs::ResolvedId;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Namespace {

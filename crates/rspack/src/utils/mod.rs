@@ -11,9 +11,9 @@ use swc_common::{FileName, FilePathMapping, SourceMap};
 use swc_ecma_parser::Syntax;
 use swc_ecma_parser::{EsConfig, TsConfig};
 
-mod hook;
+mod plugin_hook;
 mod statement;
-pub use hook::*;
+pub use plugin_hook::*;
 pub use statement::*;
 
 #[inline]

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use petgraph::graph::NodeIndex;
 use smol_str::SmolStr;
 
-use crate::{module::Module, module_graph_container::Rel, types::ResolvedId};
+use crate::{module::Module, module_graph_container::Rel, structs::ResolvedId};
 type ModulePetGraph = petgraph::graph::DiGraph<SmolStr, Rel>;
 
 pub struct ModuleGraph {

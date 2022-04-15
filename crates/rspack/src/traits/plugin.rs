@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use async_trait::async_trait;
 
-use crate::{bundler::BundleContext, types::ResolvedId};
+use crate::{bundler::BundleContext, structs::ResolvedId};
 
 pub type LoadHookOutput = Option<String>;
 pub type ResolveHookOutput = Option<ResolvedId>;

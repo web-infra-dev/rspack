@@ -14,8 +14,8 @@ use crate::{
     plugin_driver::PluginDriver,
     scanner::{scope::BindType, Scanner},
     mark_box::MarkBox,
-    types::ResolvedId,
-    utils::{load, parse_file},
+    structs::ResolvedId,
+    utils::{parse_file, load},
 };
 
 pub struct Worker {
