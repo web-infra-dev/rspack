@@ -6,33 +6,10 @@ use swc_ecma_ast::{
     CallExpr, Callee, Decl, DefaultDecl, ExportSpecifier, Expr, Lit, ModuleDecl, ModuleExportName,
 };
 
-use crate::{module_graph_container::Rel, traits::ext::SyntaxContextExt};
+use crate::{module_graph_container::Rel, traits::ext::SyntaxContextExt, structs::{RelationInfo, DynImportDesc, ExportDesc, Specifier, ReExportDesc}};
 
-use super::{helper::collect_js_word_of_pat, Scanner};
+use super::{Scanner, helper::collect_js_word_of_pat};
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub struct ExportDesc {
-    // export foo; foo is identifier;
-    pub identifier: Option<JsWord>,
-    pub local_name: JsWord,
-    pub mark: Mark,
-}
-
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub struct ReExportDesc {
-    // name in importee
-    pub original: JsWord,
-    // locally defined name
-    pub local_name: JsWord,
-    pub source: JsWord,
-    pub mark: Mark,
-}
-
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub struct DynImportDesc {
-    pub argument: JsWord,
-    // pub id: Option<JsWord>,
-}
 
 impl Scanner {
     pub fn add_import(&mut self, module_decl: &mut ModuleDecl) {
@@ -335,37 +312,6 @@ impl Scanner {
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct Specifier {
-    /// The original defined name
-    pub original: JsWord,
-    /// The name importer used
-    pub used: JsWord,
-    pub mark: Mark,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct RelationInfo {
-    pub source: JsWord,
-    // Empty HashSet represents `import './side-effect'` or `import {} from './foo'`
-    pub names: HashSet<Specifier>,
-}
-
-impl From<RelationInfo> for Rel {
-    fn from(info: RelationInfo) -> Self {
-        Self::Import(info)
-    }
-}
-
-impl RelationInfo {
-    pub fn new(source: JsWord) -> Self {
-        Self {
-            source,
-            names: Default::default(),
-            // namespace: Default::default(),
-        }
-    }
-}
 
 #[inline]
 fn get_sym_from_module_export(module_export_name: &ModuleExportName) -> JsWord {

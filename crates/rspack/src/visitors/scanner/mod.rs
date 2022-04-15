@@ -17,20 +17,19 @@ use swc_ecma_visit::{noop_visit_mut_type, VisitMut, VisitMutWith};
 
 use crate::{
   module_graph_container::Msg,
-  mark_box::MarkBox, traits::ext::MarkExt,
+  mark_box::MarkBox, traits::ext::MarkExt, structs::{DynImportDesc, RelationInfo, ExportDesc, ReExportDesc},
   // worker::RolldownError,
 };
 
+pub mod scope;
+
 use self::{
-  rel::RelationInfo,
   scope::{BindType, Scope, ScopeKind},
 };
 
 pub mod helper;
 pub mod rel;
-pub mod scope;
 mod symbol;
-use rel::{DynImportDesc, ExportDesc, ReExportDesc};
 
 // #[derive(Debug, Default, Clone, PartialEq, Eq)]
 // pub struct ModuleItemInfo {

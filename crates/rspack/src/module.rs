@@ -27,8 +27,7 @@ use swc_ecma_codegen::text_writer::WriteJs;
 use swc_ecma_codegen::Emitter;
 use swc_ecma_visit::{noop_visit_mut_type, VisitMut};
 
-use crate::scanner::rel::{DynImportDesc, ExportDesc, ReExportDesc};
-use crate::structs::ResolvedId;
+use crate::structs::{ResolvedId, DynImportDesc, ExportDesc, ReExportDesc};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Namespace {

@@ -12,10 +12,9 @@ use crate::{
     module_graph_container::{Msg, Rel},
     module::Module,
     plugin_driver::PluginDriver,
-    scanner::{scope::BindType, Scanner},
     mark_box::MarkBox,
     structs::ResolvedId,
-    utils::{parse_file, load},
+    utils::{parse_file, load}, visitors::{Scanner, scanner::scope::BindType},
 };
 
 pub struct Worker {

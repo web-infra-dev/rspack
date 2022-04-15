@@ -20,8 +20,8 @@ use smol_str::SmolStr;
 
 use crate::{
     bundler::BundleOptions, external_module::ExternalModule, module::Module,
-    plugin_driver::PluginDriver, scanner::rel::RelationInfo, mark_box::MarkBox,
-    structs::ResolvedId, utils::resolve_id, worker::Worker, module_graph::ModuleGraph,
+    plugin_driver::PluginDriver, mark_box::MarkBox,
+    structs::{ResolvedId, RelationInfo}, utils::resolve_id, worker::Worker, module_graph::ModuleGraph,
 };
 
 type ModulePetGraph = petgraph::graph::DiGraph<SmolStr, Rel>;

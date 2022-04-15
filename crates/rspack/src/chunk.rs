@@ -1,5 +1,6 @@
 use dashmap::DashSet;
 use smol_str::SmolStr;
+use swc_ecma_visit::VisitMutWith;
 use std::{
     collections::{HashMap, HashSet},
     path::Path,
@@ -19,7 +20,6 @@ use rayon::prelude::*;
 use swc_common::comments::{Comment, Comments, SingleThreadedComments};
 use swc_ecma_ast::EsVersion;
 use swc_ecma_codegen::text_writer::JsWriter;
-use swc_ecma_visit::VisitMutWith;
 
 pub struct Chunk {
     pub id: SmolStr,

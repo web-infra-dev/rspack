@@ -5,7 +5,6 @@ pub mod chunk;
 pub mod external_module;
 pub mod module_graph_container;
 pub mod module;
-pub mod scanner;
 
 pub mod utils;
 pub mod worker;

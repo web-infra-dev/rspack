@@ -1,4 +1,4 @@
-use crate::{external_module::ExternalModule, module::Module};
+use crate::{external_module::ExternalModule, module::Module, module_graph_container::Rel};
 
 #[derive(Debug)]
 pub struct OutputChunk {
@@ -43,9 +43,11 @@ pub enum ModOrExt {
 }
 
 
-use std::hash::Hash;
+use std::{hash::Hash, collections::HashSet};
 
 use smol_str::SmolStr;
+use swc_atoms::JsWord;
+use swc_common::Mark;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct ResolvedId {
@@ -64,3 +66,61 @@ impl ResolvedId {
 }
 
 pub type ResolveIdResult = Option<ResolvedId>;
+
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct Specifier {
+    /// The original defined name
+    pub original: JsWord,
+    /// The name importer used
+    pub used: JsWord,
+    pub mark: Mark,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct RelationInfo {
+    pub source: JsWord,
+    // Empty HashSet represents `import './side-effect'` or `import {} from './foo'`
+    pub names: HashSet<Specifier>,
+}
+
+impl From<RelationInfo> for Rel {
+    fn from(info: RelationInfo) -> Self {
+        Self::Import(info)
+    }
+}
+
+impl RelationInfo {
+    pub fn new(source: JsWord) -> Self {
+        Self {
+            source,
+            names: Default::default(),
+            // namespace: Default::default(),
+        }
+    }
+}
+
+
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+pub struct ExportDesc {
+    // export foo; foo is identifier;
+    pub identifier: Option<JsWord>,
+    pub local_name: JsWord,
+    pub mark: Mark,
+}
+
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+pub struct ReExportDesc {
+    // name in importee
+    pub original: JsWord,
+    // locally defined name
+    pub local_name: JsWord,
+    pub source: JsWord,
+    pub mark: Mark,
+}
+
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+pub struct DynImportDesc {
+    pub argument: JsWord,
+    // pub id: Option<JsWord>,
+}
