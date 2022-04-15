@@ -1,4 +1,4 @@
-use std::{path::Path, sync::Arc};
+use std::{sync::Arc};
 
 use crate::{bundler::BundleContext, structs::ResolvedId, traits::plugin::Plugin};
 

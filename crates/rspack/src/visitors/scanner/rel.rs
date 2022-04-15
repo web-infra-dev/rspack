@@ -1,12 +1,12 @@
-use std::collections::HashSet;
+
 
 use swc_atoms::JsWord;
-use swc_common::Mark;
+
 use swc_ecma_ast::{
     CallExpr, Callee, Decl, DefaultDecl, ExportSpecifier, Expr, Lit, ModuleDecl, ModuleExportName,
 };
 
-use crate::{module_graph_container::Rel, traits::ext::SyntaxContextExt, structs::{RelationInfo, DynImportDesc, ExportDesc, Specifier, ReExportDesc}};
+use crate::{traits::ext::SyntaxContextExt, structs::{RelationInfo, DynImportDesc, ExportDesc, Specifier, ReExportDesc}};
 
 use super::{Scanner, helper::collect_js_word_of_pat};
 
