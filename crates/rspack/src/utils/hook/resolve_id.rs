@@ -2,9 +2,7 @@ use std::{ffi::OsString, path::Path};
 
 use sugar_path::PathSugar;
 
-use crate::{
-    ext::PathExt, plugin_driver::PluginDriver, types::ResolvedId, utils::is_external_module,
-};
+use crate::{plugin_driver::PluginDriver, types::ResolvedId, utils::is_external_module};
 
 #[inline]
 pub async fn resolve_id(

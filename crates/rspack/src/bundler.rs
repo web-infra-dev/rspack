@@ -7,9 +7,9 @@ use sugar_path::PathSugar;
 
 use crate::bundle::Bundle;
 use crate::module_graph_container::ModuleGraphContainer;
-use crate::plugin::Plugin;
 use crate::plugin_driver::PluginDriver;
-use crate::symbol_box::MarkBox;
+use crate::mark_box::MarkBox;
+use crate::traits::plugin::Plugin;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum InternalModuleFormat {

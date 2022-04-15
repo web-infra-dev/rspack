@@ -20,7 +20,7 @@ use smol_str::SmolStr;
 
 use crate::{
     bundler::BundleOptions, external_module::ExternalModule, module::Module,
-    plugin_driver::PluginDriver, scanner::rel::RelationInfo, symbol_box::MarkBox,
+    plugin_driver::PluginDriver, scanner::rel::RelationInfo, mark_box::MarkBox,
     types::ResolvedId, utils::resolve_id, worker::Worker, module_graph::ModuleGraph,
 };
 

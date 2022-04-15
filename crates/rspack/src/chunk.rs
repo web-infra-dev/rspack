@@ -12,7 +12,7 @@ use crate::{
     module::Module,
     renamer::Renamer,
     structs::{OutputChunk, RenderedChunk},
-    symbol_box::MarkBox, utils::get_compiler,
+    mark_box::MarkBox, utils::get_compiler,
 };
 
 use rayon::prelude::*;

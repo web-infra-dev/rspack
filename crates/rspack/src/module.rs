@@ -2,7 +2,7 @@ use crate::ast;
 use crate::plugin_driver::PluginDriver;
 // use crate::scanner::ModuleItemInfo;
 use crate::statement::Statement;
-use crate::symbol_box::MarkBox;
+use crate::mark_box::MarkBox;
 
 use crate::utils::{ast_sugar, resolve_id};
 use dashmap::DashMap;

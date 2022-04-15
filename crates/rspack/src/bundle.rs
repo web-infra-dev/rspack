@@ -7,7 +7,7 @@ use dashmap::DashSet;
 
 use crate::{
     bundler::BundleOptions, chunk::Chunk, module_graph::ModuleGraph, structs::OutputChunk,
-    symbol_box::MarkBox,
+    mark_box::MarkBox,
 };
 
 #[non_exhaustive]

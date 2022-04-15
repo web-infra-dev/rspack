@@ -1,48 +1,22 @@
-use std::fmt::Debug;
-
 use async_trait::async_trait;
 
-use crate::{bundler::BundleContext, types::ResolvedId};
-
-pub type LoadHookOutput = Option<String>;
-pub type ResolveHookOutput = Option<ResolvedId>;
-
-#[async_trait]
-pub trait Plugin: Sync + Send + Debug {
-    #[inline]
-    async fn prepare(&self, _ctx: &BundleContext) {}
-
-    #[inline]
-    async fn resolve(
-        &self,
-        _ctx: &BundleContext,
-        _importee: &str,
-        _importer: Option<&str>,
-    ) -> ResolveHookOutput {
-        None
-    }
-
-    #[inline]
-    async fn load(&self, _ctx: &BundleContext, _id: &str) -> LoadHookOutput {
-        None
-    }
-}
+use crate::{bundler::BundleContext, traits::plugin::Plugin, types::ResolvedId};
 
 // We could use this to dispatch Plugin trait staticly
 #[derive(Debug)]
-pub struct PipedPlugin<A: Plugin, B: Plugin> {
+pub struct CombinedPlugin<A: Plugin, B: Plugin> {
     pub left: A,
     pub right: B,
 }
 
-impl<A: Plugin, B: Plugin> PipedPlugin<A, B> {
+impl<A: Plugin, B: Plugin> CombinedPlugin<A, B> {
     pub fn new(left: A, right: B) -> Self {
         Self { left, right }
     }
 }
 
 #[async_trait]
-impl<A: Plugin, B: Plugin> Plugin for PipedPlugin<A, B> {
+impl<A: Plugin, B: Plugin> Plugin for CombinedPlugin<A, B> {
     async fn prepare(&self, ctx: &BundleContext) {
         tokio::join!(self.left.prepare(ctx), self.right.prepare(ctx));
     }

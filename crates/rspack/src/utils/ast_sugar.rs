@@ -8,7 +8,8 @@ use swc_ecma_ast::{
   VarDeclarator,
 };
 
-use crate::ext::MarkExt;
+use crate::traits::ext::MarkExt;
+
 
 #[inline]
 fn jsword(s: &str) -> JsWord {
@@ -27,7 +28,7 @@ fn ident(s: &str, mark: &Mark) -> Ident {
   Ident {
     sym: jsword(s),
     span: Span {
-      ctxt: mark.as_ctxt(),
+      ctxt: mark.to_ctxt(),
       ..DUMMY_SP
     },
     ..Ident::dummy()
@@ -37,7 +38,7 @@ fn ident(s: &str, mark: &Mark) -> Ident {
 #[inline]
 fn mark_ident(mark: &Mark) -> Ident {
   let mut i = Ident::dummy();
-  i.span.ctxt = mark.as_ctxt();
+  i.span.ctxt = mark.to_ctxt();
   i
 }
 

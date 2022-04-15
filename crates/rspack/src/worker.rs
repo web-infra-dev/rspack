@@ -13,7 +13,7 @@ use crate::{
     module::Module,
     plugin_driver::PluginDriver,
     scanner::{scope::BindType, Scanner},
-    symbol_box::MarkBox,
+    mark_box::MarkBox,
     types::ResolvedId,
     utils::{load, parse_file},
 };

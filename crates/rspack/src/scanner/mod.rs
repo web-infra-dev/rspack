@@ -16,9 +16,8 @@ use swc_ecma_ast::{
 use swc_ecma_visit::{noop_visit_mut_type, VisitMut, VisitMutWith};
 
 use crate::{
-  ext::MarkExt,
   module_graph_container::Msg,
-  symbol_box::MarkBox,
+  mark_box::MarkBox, traits::ext::MarkExt,
   // worker::RolldownError,
 };
 
@@ -126,7 +125,7 @@ impl Scanner {
         .declared_symbols_kind
         .insert(declared_name.clone(), kind);
       scope.declared_symbols.insert(declared_name.clone(), mark);
-      id.span.ctxt = mark.as_ctxt();
+      id.span.ctxt = mark.to_ctxt();
 
       // let module_item_info = &mut self.statement_infos[self.cur_stmt_index];
       // if is_root_scope {
@@ -145,7 +144,7 @@ impl Scanner {
     for (idx, scope) in &mut self.stacks.iter_mut().enumerate().rev() {
       let is_root_scope = idx == 0;
       if let Some(mark) = scope.declared_symbols.get(&ident.sym) {
-        ident.span.ctxt = mark.as_ctxt();
+        ident.span.ctxt = mark.to_ctxt();
         _is_finded = true;
         if is_root_scope {
           // let stmt_info = &mut self.statement_infos[self.cur_stmt_index];

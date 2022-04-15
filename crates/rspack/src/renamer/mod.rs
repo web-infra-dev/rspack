@@ -10,7 +10,7 @@ use swc_ecma_ast::{
 };
 use swc_ecma_visit::{noop_visit_mut_type, VisitMut, VisitMutWith};
 
-use crate::{ext::SyntaxContextExt, symbol_box::MarkBox};
+use crate::{ mark_box::MarkBox, traits::ext::SyntaxContextExt};
 
 #[derive(Debug)]
 pub struct Renamer<'me> {
