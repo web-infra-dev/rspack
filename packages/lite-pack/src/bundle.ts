@@ -2,12 +2,8 @@ import { Chunk, ChunkGroup } from "./chunk";
 import { Graph } from "./graph";
 import { ModuleNode } from "./module";
 import { ModuleGraph } from "./module-graph";
-class BundleGraph extends Graph<any> {
+export class ChunkGraph extends Graph<any> {
 
-}
-function buildBundleGraph(graph:ModuleGraph){
-  const bundleGraph = new BundleGraph();
-  
 }
 /**
  * 三者关系
@@ -28,8 +24,11 @@ export class Bundler{
     this.output = {};
   }
   build(){
-    this.generate_chunks();
+    this.link();
     return this.render();
+  }
+  link(){
+
   }
   generate_chunks(){
     const chunkGroups = [];

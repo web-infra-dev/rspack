@@ -19,3 +19,14 @@ export class ModuleGraph extends Graph<ModuleNode> {
     return id;
   }
 }
+
+export function splitModuleToEntryGroups(graph: ModuleGraph){
+  const module_groups = [];
+  const queue = [];
+  queue.push(...graph.getEntries())
+  while(queue.length >0){
+    const item = queue.shift();
+    
+  }
+
+}

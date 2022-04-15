@@ -8,12 +8,15 @@
   },
   "scripts": {
     "build": "esno src/cli.ts",
-    "check": "tsc --noEmit --watch"
+    "check": "tsc --noEmit --watch",
+    "test": "mocha "
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/mocha": "9.1.0",
+    "mocha": "9.2.2",
     "@babel/traverse": "7.17.9",
     "@babel/plugin-transform-modules-commonjs":"7.17.9",
     "@babel/plugin-proposal-dynamic-import": "7.16.7",

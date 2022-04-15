@@ -40,7 +40,7 @@ export class Chunk {
 
   }
   render(){
-    const runtime = new Runtime();
+  const runtime = new Runtime();
     let moduleCode =[];
     for(const modId of this.modules){
       const mod = this.graph.getNodeById(modId)!;
