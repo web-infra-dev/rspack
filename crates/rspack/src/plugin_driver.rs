@@ -8,11 +8,6 @@ pub struct PluginDriver {
     pub ctx: Arc<BundleContext>,
 }
 
-#[inline]
-pub fn is_external_module(source: &str) -> bool {
-    source.starts_with("node:") || (!Path::new(source).is_absolute() && !source.starts_with('.'))
-}
-
 impl PluginDriver {
     pub async fn resolve_id(&self, importee: &str, importer: Option<&str>) -> Option<ResolvedId> {
         for plugin in &self.plugins {

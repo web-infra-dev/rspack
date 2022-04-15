@@ -10,9 +10,8 @@ use sugar_path::PathSugar;
 use crate::{
     bundler::BundleOptions,
     module::Module,
-    renamer::Renamer,
     structs::{OutputChunk, RenderedChunk},
-    mark_box::MarkBox, utils::get_compiler,
+    mark_box::MarkBox, utils::get_compiler, visitors::Renamer,
 };
 
 use rayon::prelude::*;
