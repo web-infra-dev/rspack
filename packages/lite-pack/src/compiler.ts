@@ -24,24 +24,27 @@ const Defer = (): Defer => {
 	return deferred;
 };
 export class Compiler {
+  options: BundlerOptions;
   entry: Record<string, string>;
   root: string;
   loader: Loader;
   resolver: Resolver;
   buildQueue: AsyncQueue<ModuleNode>;
   moduleGraph: ModuleGraph;
-  private constructor({ entry, root }: { entry: Record<string, string>; root: string }) {
-    this.entry = entry;
+  private constructor(options: BundlerOptions) {
+    this.options = options;
+    this.entry = options.entry;
     this.loader = new Loader();
     this.resolver = new Resolver();
-    this.root = root;
+    this.root = options.root;
+
     this.buildQueue = new AsyncQueue({
       name: 'build',
       processor: this._buildModule.bind(this),
     });
     this.moduleGraph = new ModuleGraph();
   }
-  static create(options: { entry: Record<string, string>; root: string }) {
+  static create(options: BundlerOptions) {
     return new Compiler(options);
   }
   _buildModule(mod: ModuleNode, done: Function) {
@@ -77,7 +80,7 @@ export class Compiler {
     this.buildModule(module);
   }
   generate() {
-    const bundler = new Bundler(this.moduleGraph);
+    const bundler = new Bundler(this.moduleGraph, this.options);
     bundler.build();
     return bundler.output;
   }
@@ -87,20 +90,19 @@ export class Compiler {
   }
 }
 
-export async function build(options: {
-  input: Record<string,string>,
-  root: string
-}) {
-  const { root, input } = options;
+export type BundlerOptions  = {
+  entry: Record<string,string>,
+  root: string,
+  manualChunks: Record<string,string[]>
+}
+export async function build(options: BundlerOptions) {
+  const { root} = options;
 
   const dstPath = path.resolve(root, 'dist');
   fs.ensureDirSync(dstPath);
   const watcher = chokidar.watch(root)
 
-  const compiler = Compiler.create({
-    entry: input,
-    root,
-  });
+  const compiler = Compiler.create(options);
   const server = new DevServer({
     root,
     public: 'dist'
@@ -109,7 +111,6 @@ export async function build(options: {
   watcher.on('change', (path) => {
     console.log('filechange:',path)
     const module = compiler.moduleGraph.getNodeById(path);
-    
     if(!module){
       return;
     }

@@ -7,18 +7,27 @@ export class ChunkGroup {
   name: string;
   chunks: Chunk[];
   runtimeChunk: Chunk | null = null;
+  parents: Set<ChunkGroup> = new Set();
+  children: Set<ChunkGroup> = new Set();
   constructor(name: string) {
     this.name = name;
     this.chunks = [];
   }
+  static create(name: string,chunk: Chunk){
+    const chunkgroup = new ChunkGroup(name);
+    chunkgroup.pushChunk(chunk);
+    return chunkgroup;
+  }
   pushChunk(chunk: Chunk) {
     this.chunks.push(chunk);
+  }
+  setName(name:string){
+    this.name = name;
   }
   setRuntimeChunk(chunk: Chunk) {
     this.runtimeChunk = chunk;
   }
 }
-
 export type Chunktype = 'entry' | 'runtime' | 'vendor' | 'dynamic'
 export class Chunk {
   id: string;

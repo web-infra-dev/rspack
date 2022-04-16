@@ -18,6 +18,7 @@ yargs
   const pakgPath = path.resolve(argv.root, 'package.json');
   const pkg = require(pakgPath);
   let entry = pkg?.rspack?.entry;
+  let manualChunk = pkg?.rspack?.manualChunks;
   if(!entry)  {
     entry = {
       main: path.resolve(argv.root, 'index.js')
@@ -26,9 +27,10 @@ yargs
   for(const [key,value] of Object.entries(entry)){
     entry[key] = path.resolve(argv.root, value as string);
   }
-  console.log('entry:',entry);
+  console.log('entry:',entry, pkg,manualChunk);
   build({
-    input: entry,
-    root: argv.root
+    entry: entry,
+    root: argv.root,
+    manualChunks: manualChunk ?? {},
   })
 }).help().argv;

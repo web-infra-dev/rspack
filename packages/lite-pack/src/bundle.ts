@@ -4,6 +4,7 @@ import { Graph } from './graph';
 import { ModuleNode } from './module';
 import { ModuleGraph } from './module-graph';
 import path from 'path';
+import { BundlerOptions } from './compiler';
 export class ChunkGraph extends Graph<any, any> {}
 /**
  * 三者关系
@@ -19,9 +20,11 @@ export class Bundler {
   chunkGroups: ChunkGroup[] = [];
   output: Record<string, string>;
   chunk_id = 0;
-  constructor(graph: ModuleGraph) {
+  options: BundlerOptions;
+  constructor(graph: ModuleGraph, options: BundlerOptions) {
     this.graph = graph;
     this.output = {};
+    this.options = options;
   }
   build() {
     //this.generate_chunks()
@@ -30,6 +33,7 @@ export class Bundler {
     return this.render();
   }
   link() {
+    console.log('manualChunk:', this.options.manualChunks );
     for (const entry of this.graph.getEntries()) {
       const entryNode = this.graph.getNodeById(entry)!;
       const chunk = new Chunk({
@@ -37,7 +41,9 @@ export class Bundler {
         graph: this.graph,
         chunkType: 'entry'
       });
+      const chunkGroup = ChunkGroup.create(entryNode?.entryKey!,chunk)
       this.chunks.push(chunk);
+      this.chunkGroups.push(chunkGroup);
       chunk.setEntryModule(entry);
       chunk.addModule(entry);
     }
@@ -51,11 +57,15 @@ export class Bundler {
         const children = this.graph.getChildrenById(item);
         for (const child of children) {
           if (child.meta.kind === 'dynamic-import') {
+            const id = path.basename(child.to.replace('.js',''))
             const dynamicChunk = new Chunk({
-              id: path.basename(child.to.replace('.js','')),
+              id,
               graph: this.graph,
               chunkType: 'dynamic'
             });
+            const chunkGroup = ChunkGroup.create(id, dynamicChunk);
+            this.chunkGroups.push(chunkGroup);
+            
             dynamicChunk.addModule(child.to);
             dynamicChunk.setEntryModule(child.to);
             this.chunks.push(dynamicChunk);
