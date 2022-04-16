@@ -17,6 +17,12 @@ importers:
     devDependencies:
       lite-pack: link:../../packages/lite-pack
 
+  examples/multi-entry:
+    specifiers:
+      lite-pack: workspace:*
+    devDependencies:
+      lite-pack: link:../../packages/lite-pack
+
   examples/react:
     specifiers:
       lite-pack: workspace:*

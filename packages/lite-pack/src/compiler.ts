@@ -58,7 +58,8 @@ export class Compiler {
           importer: '',
           compiler: this,
           isEntry: true,
-          entryKey: key
+          entryKey: key,
+          importKind: 'entry-point'
         })
       );
     }

@@ -5,8 +5,9 @@ import { Loader } from './loader';
 import { AST, ImportType, Parser } from './parser';
 import { Compiler } from './compiler';
 import path from 'path';
+import path2 from 'path';
 import { Chunk } from './chunk';
-import * as esbuild from 'esbuild';
+import { ImportKind } from 'esbuild';
 export type NormalModuleOptions = {
   path: string;
   resolveDir: string;
@@ -14,6 +15,7 @@ export type NormalModuleOptions = {
   compiler: Compiler;
   isEntry: boolean;
   entryKey?: string;
+  importKind: ImportKind;
 };
 export class ModuleNode {
   isEntry: boolean;
@@ -29,6 +31,7 @@ export class ModuleNode {
   #parser!: Parser;
   #compiler!: Compiler;
   chunks: Set<Chunk> = new Set();
+  importKind: ImportKind;
   depMap: Map<string, string> = new Map();
   imports: ImportType[] = [];
   constructor(options: NormalModuleOptions) {
@@ -41,6 +44,7 @@ export class ModuleNode {
     this.#parser = new Parser();
     this.isEntry = options.isEntry;
     this.entryKey = options.entryKey;
+    this.importKind = options.importKind;
   }
   static create(options: NormalModuleOptions) {
     return new ModuleNode(options);
@@ -62,7 +66,7 @@ export class ModuleNode {
     this.#compiler.moduleGraph.addNode(fullPath, this);
     const importerModule = this.#compiler.moduleGraph.getNodeById(this.importer);
     importerModule?.depMap.set(this.path, fullPath);
-    this.#compiler.moduleGraph.addEdge(this.importer, fullPath);
+    this.#compiler.moduleGraph.addEdge(this.importer, fullPath, { kind: this.importKind });
     this.buildDeps();
   }
   buildDeps() {
@@ -75,6 +79,7 @@ export class ModuleNode {
         path: moduleId,
         compiler: this.#compiler,
         isEntry: false,
+        importKind: record.kind,
       });
       this.#compiler.addModule(newModule);
     }
@@ -87,14 +92,17 @@ export class ModuleNode {
         function () {
           return {
             visitor: {
-              CallExpression:({node}) => {
-                if(node.callee.type === 'Import'){
+              CallExpression: (path) => {
+                const { node } = path;
+                if (node.callee.type === 'Import') {
                   const argument = node.arguments[0];
-                  if(argument.type === 'StringLiteral'){
+                  if (argument.type === 'StringLiteral') {
                     const id = argument.value;
                     const replaceId = self.depMap.get(id);
-                    console.log('xxxx:', replaceId);
-                    node.arguments[0] = t.stringLiteral(replaceId!);
+                    const expr = t.callExpression(t.identifier('rs.dynamic_require'), [t.stringLiteral(replaceId!),t.stringLiteral(path2.basename(replaceId!))])
+                    path.replaceWith(
+                      expr
+                    );
                   }
                 }
               },
@@ -105,19 +113,19 @@ export class ModuleNode {
                   const binding = specifier.scope.getBinding(specifier.node.local.name);
                   const importedKey = specifier.isImportDefaultSpecifier()
                     ? 'default'
-                    : specifier.get('imported.name').node;
+                    : (specifier.get('imported.name') as any).node;
 
-                  for (const referencePath of binding.referencePaths) {
+                  for (const referencePath of (binding as any).referencePaths) {
                     referencePath.replaceWith(t.memberExpression(newIdentifier, t.stringLiteral(importedKey), true));
                   }
                 }
-                const importPath: string = path.get('source.value').node;
+                const importPath: string = (path.get('source.value') as any).node;
                 const importerPath = self.depMap.get(importPath);
                 path.replaceWith(
                   t.variableDeclaration('const', [
                     t.variableDeclarator(
                       newIdentifier,
-                      t.callExpression(t.identifier('require'), [t.stringLiteral(importerPath)])
+                      t.callExpression(t.identifier('require'), [t.stringLiteral(importerPath!)])
                     ),
                   ])
                 );
@@ -129,7 +137,6 @@ export class ModuleNode {
         require('@babel/plugin-proposal-dynamic-import'),
       ],
     })!.code!;
-    console.log('xxx:', code);
     return `rs.define(${JSON.stringify(this.fullPath)},function test(require,exports,module){${code}});`;
   }
   addChunk(chunk: Chunk) {

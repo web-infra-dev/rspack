@@ -1,10 +1,10 @@
-import { Chunk, ChunkGroup } from "./chunk";
-import { Graph } from "./graph";
-import { ModuleNode } from "./module";
-import { ModuleGraph } from "./module-graph";
-export class ChunkGraph extends Graph<any> {
-
-}
+import { chdir } from 'process';
+import { Chunk, ChunkGroup } from './chunk';
+import { Graph } from './graph';
+import { ModuleNode } from './module';
+import { ModuleGraph } from './module-graph';
+import path from 'path';
+export class ChunkGraph extends Graph<any, any> {}
 /**
  * 三者关系
  * chunk
@@ -13,69 +13,68 @@ export class ChunkGraph extends Graph<any> {
  * entryPoint chunk: 从属于entryPoint的chunk
  * entry module: 从属于entryPoint chunk的 module
  */
-export class Bundler{
-  #bundle_id = 0;
-  graph: ModuleGraph
+export class Bundler {
+  graph: ModuleGraph;
   chunks: Chunk[] = [];
   chunkGroups: ChunkGroup[] = [];
-  output: Record<string,string>;
-  constructor(graph:ModuleGraph){
+  output: Record<string, string>;
+  chunk_id = 0;
+  constructor(graph: ModuleGraph) {
     this.graph = graph;
     this.output = {};
   }
-  build(){
+  build() {
+    //this.generate_chunks()
     this.link();
+    console.log('chunks:', this.chunks);
     return this.render();
   }
-  link(){
-
-  }
-  generate_chunks(){
-    const chunkGroups = [];
-    /**
-     * step1: create EntryPoint and chunkGroup
-     */
-    for(const entry of this.graph.getEntries()){
+  link() {
+    for (const entry of this.graph.getEntries()) {
       const entryNode = this.graph.getNodeById(entry)!;
       const chunk = new Chunk({
         id: entryNode?.entryKey!,
         graph: this.graph,
+        chunkType: 'entry'
       });
-      const entryPoint = new ChunkGroup(entryNode?.entryKey!);
-      entryPoint.pushChunk(chunk);
-      chunk.addGroup(entryPoint);
       this.chunks.push(chunk);
-      this.chunkGroups.push(entryPoint);
-
-      entryNode.addChunk(chunk);
-      chunk.addModule(entry);
       chunk.setEntryModule(entry);
-      chunk.name = entryNode.entryKey!;
+      chunk.addModule(entry);
     }
-    this.#buildChunkGraph();
-  }
-  #buildChunkGraph(){
-    const  visit = (chunk:Chunk, startId:string)=>{
-      const queue:string[] = []
-      queue.push(startId)
-      while(queue.length >0){
-        const item = queue.shift()!
-        const children = this.graph.getChildrenById(item)
-        for(const child of children){
-          chunk.addModule(child)
-          queue.push(child);
+
+    let chunkQueue = [...this.chunks];
+    const visit = (id: string, chunk: Chunk) => {
+      const queue: string[] = [];
+      queue.push(id);
+      while (queue.length > 0) {
+        const item = queue.shift()!;
+        const children = this.graph.getChildrenById(item);
+        for (const child of children) {
+          if (child.meta.kind === 'dynamic-import') {
+            const dynamicChunk = new Chunk({
+              id: path.basename(child.to.replace('.js','')),
+              graph: this.graph,
+              chunkType: 'dynamic'
+            });
+            dynamicChunk.addModule(child.to);
+            dynamicChunk.setEntryModule(child.to);
+            this.chunks.push(dynamicChunk);
+            chunkQueue.push(dynamicChunk)
+          } else {
+            chunk.addModule(child.to);
+            queue.push(child.to);
+          }
         }
       }
-    }
-    for(const chunkGroup of this.chunkGroups){
-      for(const chunk of chunkGroup.chunks){
-        visit(chunk,chunk.entryModule);
-      }
+    };
+    while (chunkQueue.length > 0) {
+      const chunk = chunkQueue.shift()!;
+      visit(chunk?.entryModule!, chunk);
     }
   }
-  render(){
-    for(const chunk of this.chunks ){
-      this.output[chunk.id] = chunk.render()
+  render() {
+    for (const chunk of this.chunks) {
+      this.output[chunk.id] = chunk.render();
     }
   }
 }

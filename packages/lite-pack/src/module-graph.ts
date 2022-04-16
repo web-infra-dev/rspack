@@ -1,7 +1,10 @@
+import { ImportKind } from 'esbuild';
 import { Graph } from './graph';
 import { ModuleNode } from './module';
-
-export class ModuleGraph extends Graph<ModuleNode> {
+type depMeta = {
+  kind: ImportKind
+}
+export class ModuleGraph extends Graph<ModuleNode,depMeta> {
   #entries: string[] = [];
   constructor() {
     super();
