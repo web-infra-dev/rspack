@@ -1,7 +1,8 @@
 import * as babel from '@babel/core';
 import traverse from '@babel/traverse'
+import { ImportKind } from 'esbuild';
 export type ImportType = {
-  kind: 'require' | 'import' | 'dynamic-import',
+  kind: ImportKind
   id: string;
 }
 export class Parser {
@@ -26,7 +27,7 @@ export class Parser {
       ImportDeclaration:({node}) => {
         const id = node.source.value;
         imports.push({
-          kind: 'import',
+          kind: 'import-statement',
           id: id
         })
       }

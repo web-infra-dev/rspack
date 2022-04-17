@@ -10,13 +10,15 @@ function buildNode(path:string, isEntry=false){
     isEntry,
     resolveDir: '',
     importer: '',
+    importKind: 'import-statement',
     compiler: null as any
   })
 }
 function buildChunkNode(id:string){
   return new Chunk({
     id,
-    graph: null as any
+    graph: null as any,
+    chunkType: 'dynamic'
   })
 }
 function setupModuleGraph(){
@@ -25,7 +27,9 @@ function setupModuleGraph(){
   const m2 = buildNode('b');
   moduleGraph.addNode(m1.path, m1);
   moduleGraph.addNode(m2.path, m2);
-  moduleGraph.addEdge(m1.path, m2.path);
+  moduleGraph.addEdge(m1.path, m2.path, {
+    kind: 'import-statement'
+  });
   return moduleGraph;
 }
 function buildChunkGraph(m: ModuleGraph){

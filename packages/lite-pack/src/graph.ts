@@ -1,11 +1,21 @@
-type Visitor<T>  = {
+type Visitor<T,M>  = {
   enter?(id:string,node:T): void;
-  edge?(from:string,to:string):void;
+  edge?(edge:Edge<M>):void;
   leave?(id:string,node:T):void;
 }
-export class Graph<T> {
-  #nodes: Map<string, T>;
-  #edges: Map<string, string[]>;
+class Edge<T> {
+  from:string;
+  to:string;
+  meta: T;
+  constructor(from:string, to:string, meta: T ){
+    this.from = from ;
+    this.to = to;
+    this.meta = meta;
+  }
+}
+export class Graph<Node,Meta> {
+  #nodes: Map<string, Node>;
+  #edges: Map<string, Edge<Meta>[]>;
   constructor() {
     this.#nodes = new Map();
     this.#edges = new Map();
@@ -22,7 +32,7 @@ export class Graph<T> {
   getChildrenById(id: string) {
     return this.#edges.get(id) ?? [];
   }
-  addNode(id: string, node: T) {
+  addNode(id: string, node: Node) {
     this.#nodes.set(id, node);
     return id;
   }
@@ -32,14 +42,15 @@ export class Graph<T> {
       throw new Error(`${id} not exists`);
     }
   }
-  addEdge(from: string, to: string) {
+  addEdge(from: string, to: string, meta:Meta) {
     this.checkNodeExist(from);
     this.checkNodeExist(to);
     const edges = this.#edges.get(from);
     if (edges) {
-      edges.push(to);
+      const e = new Edge(from, to,meta);
+      edges.push(e);
     } else {
-      this.#edges.set(from, [to]);
+      this.#edges.set(from, [new Edge(from,to,meta)]);
     }
   }
   removeEdge(from: string, to: string) {
@@ -51,7 +62,7 @@ export class Graph<T> {
     console.log('edges', this.#edges.entries());
     console.log('nodes:', this.#nodes.entries());
   }
-  traverse(startId: string | string[], visitor: Visitor<T>) {
+  traverse(startId: string | string[], visitor: Visitor<Node,Meta>) {
     if (Array.isArray(startId)) {
       for (const id of startId) {
         this.#dfs(id, visitor);
@@ -60,7 +71,10 @@ export class Graph<T> {
       this.#dfs(startId, visitor);
     }
   }
-  #dfs(startId: string, visitor: Visitor<T>) {
+  getEdge(from:string){
+
+  }
+  #dfs(startId: string, visitor: Visitor<Node,Meta>) {
     let visited = new Set();
     const walk = (id: string) => {
       if (visited.has(id)) {
@@ -73,9 +87,8 @@ export class Graph<T> {
       visitor.enter?.(id,module);
       console.log('children:', this.getChildrenById(id))
       for (const child of this.getChildrenById(id)) {
-
-        visitor.edge?.(id, child);
-        walk(child);
+        visitor.edge?.(child);
+        walk(child.to);
       }
       visitor.leave?.(id,module);
     };

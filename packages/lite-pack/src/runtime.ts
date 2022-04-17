@@ -49,6 +49,11 @@ function define(id, factory) {
   }
   
 }
+async function dynamic_require(id,chunkId){
+  await import("http://localhost:4444/"+chunkId);
+  const result = require(id);
+  return result;
+}
 function require(id) {
   const self = this;
   let mod = modules[id];
@@ -67,9 +72,11 @@ function require(id) {
   mod.loaded = true;
   return mod.exports;
 }
+
 globalThis.rs = {
   define:define,
   require:require,
+  dynamic_require: dynamic_require,
   m: modules
 }})();
     `;
