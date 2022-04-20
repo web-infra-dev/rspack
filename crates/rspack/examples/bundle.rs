@@ -1,5 +1,3 @@
-
-
 use rspack::bundler::{BundleOptions, Bundler};
 
 #[tokio::main]

@@ -5,6 +5,8 @@
   "main": "index.js",
   "private": true,
   "scripts": {
+    "format:rs": "cargo fmt",
+    "lint:rs": "cargo clippy",
     "setup": "pnpm install && cargo build",
     "build:bundle": "cargo run --package rspack --example bundle"
   },

@@ -86,19 +86,18 @@ fn get_sym_from_module_export(module_export_name: &ModuleExportName) -> JsWord {
     }
 }
 
-
-impl VisitMut for DependencyScanner  {
-  fn visit_mut_module_decl(&mut self, node: &mut ModuleDecl) {
-    self.add_import(node);
-    if let Err(e) = self.add_export(node) {
-      eprintln!("{}", e);
+impl VisitMut for DependencyScanner {
+    fn visit_mut_module_decl(&mut self, node: &mut ModuleDecl) {
+        self.add_import(node);
+        if let Err(e) = self.add_export(node) {
+            eprintln!("{}", e);
+        }
+        node.visit_mut_children_with(self);
     }
-    node.visit_mut_children_with(self);
-  }
 
-  fn visit_mut_call_expr(&mut self, node: &mut CallExpr) {
-    self.add_dynamic_import(node);
+    fn visit_mut_call_expr(&mut self, node: &mut CallExpr) {
+        self.add_dynamic_import(node);
 
-    node.visit_mut_children_with(self);
-  }
+        node.visit_mut_children_with(self);
+    }
 }

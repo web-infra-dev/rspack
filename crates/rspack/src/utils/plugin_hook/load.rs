@@ -1,4 +1,4 @@
-use crate::{plugin_driver::PluginDriver};
+use crate::plugin_driver::PluginDriver;
 
 #[inline]
 pub async fn load(id: &str, plugin_dirver: &PluginDriver) -> String {
