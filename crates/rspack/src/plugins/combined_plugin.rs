@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::{bundler::BundleContext, traits::plugin::Plugin, structs::ResolvedId};
+use crate::{bundler::BundleContext, structs::ResolvedId, traits::plugin::Plugin};
 
 // We could use this to dispatch Plugin trait staticly
 #[derive(Debug)]

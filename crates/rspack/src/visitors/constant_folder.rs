@@ -18,5 +18,4 @@ impl Fold for ConstantFolder {
         }
         // self
     }
-
 }

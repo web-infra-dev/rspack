@@ -1,5 +1,5 @@
-mod resolve_id;
 mod load;
+mod resolve_id;
 
-pub use resolve_id::*;
 pub use load::*;
+pub use resolve_id::*;

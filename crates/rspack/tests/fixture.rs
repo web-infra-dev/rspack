@@ -22,5 +22,4 @@ mod testing {
     fn single_entry() {
         compile("single-entry")
     }
-    
 }
