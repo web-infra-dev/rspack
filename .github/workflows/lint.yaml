@@ -26,7 +26,10 @@ jobs:
           profile: minimal
           override: true
           components: rustfmt, clippy
+
       - name: Cargo fmt
         run: cargo fmt -- --check
-      - name: Clippy
-        run: cargo clippy
+
+      # temporarily remove clippy for DX
+      # - name: Clippy
+      # run: cargo clippy
