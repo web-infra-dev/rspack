@@ -53,7 +53,7 @@ pub struct Asset {
 #[derive(Debug)]
 pub struct BundleOptions {
     pub entries: Vec<String>,
-    pub format: InternalModuleFormat,
+    // pub format: InternalModuleFormat,
     pub minify: bool,
     pub outdir: Option<String>,
     pub entry_file_names: String, // | ((chunkInfo: PreRenderedChunk) => string)
@@ -63,7 +63,7 @@ impl Default for BundleOptions {
     fn default() -> Self {
         Self {
             entries: Default::default(),
-            format: InternalModuleFormat::ES,
+            // format: InternalModuleFormat::ES,
             outdir: Default::default(),
             minify: Default::default(),
             entry_file_names: "[name].js".to_string(),

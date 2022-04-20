@@ -45,7 +45,7 @@ impl Worker {
                 let id: &str = &resolved_id.id;
                 let source = load(id, &self.plugin_driver).await;
                 let mut ast = parse_file(source, &module.id);
-                self.pre_analyze_imported_module(&mut module, &ast).await;
+                self.pre_analyze_imported_module(&mut module, &ast.as_module().unwrap()).await;
 
                 let mut scanner = Scanner::new(self.symbol_box.clone(), self.tx.clone());
                 ast.visit_mut_with(&mut scanner);
@@ -106,7 +106,10 @@ impl Worker {
                     // .unwrap()
                     .new_mark();
 
-                module.set_statements(ast);
+                module.ast = ast.clone();
+            
+
+                module.set_statements(ast.clone().expect_module());
 
                 module.bind_local_references(&mut self.symbol_box.lock().unwrap());
 

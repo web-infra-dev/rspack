@@ -43,7 +43,7 @@ pub fn get_compiler() -> Arc<Compiler> {
     COMPILER.clone()
 }
 
-pub fn parse_file(source_code: String, filename: &str) -> swc_ecma_ast::Module {
+pub fn parse_file(source_code: String, filename: &str) -> swc_ecma_ast::Program {
     let p = Path::new(filename);
     let ext = p.extension().and_then(|ext| ext.to_str()).unwrap_or("js");
     let syntax = if ext == "ts" || ext == "tsx" {
@@ -54,7 +54,6 @@ pub fn parse_file(source_code: String, filename: &str) -> swc_ecma_ast::Module {
         })
     } else {
         Syntax::Es(EsConfig {
-            static_blocks: true,
             private_in_object: true,
             import_assertions: true,
             jsx: ext == "jsx",
@@ -80,5 +79,4 @@ pub fn parse_file(source_code: String, filename: &str) -> swc_ecma_ast::Module {
         )
     })
     .unwrap()
-    .expect_module()
 }

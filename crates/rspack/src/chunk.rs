@@ -1,18 +1,22 @@
 use dashmap::DashSet;
 use smol_str::SmolStr;
-use swc_ecma_visit::VisitMutWith;
 use std::{
     collections::{HashMap, HashSet},
     path::Path,
     sync::{Arc, Mutex},
 };
 use sugar_path::PathSugar;
+use swc::config::{Config, ModuleConfig, Options, SourceMapsConfig};
+use swc_ecma_parser::EsConfig;
+use swc_ecma_visit::VisitMutWith;
 
 use crate::{
     bundler::BundleOptions,
+    mark_box::MarkBox,
     module::Module,
     structs::{OutputChunk, RenderedChunk},
-    mark_box::MarkBox, utils::get_compiler, visitors::Renamer,
+    utils::get_compiler,
+    visitors::Renamer,
 };
 
 use rayon::prelude::*;
@@ -89,66 +93,38 @@ impl Chunk {
         options: &BundleOptions,
         modules: &mut HashMap<SmolStr, Box<Module>>,
     ) -> RenderedChunk {
-        assert!(!self.id.is_empty());
-        modules.par_iter_mut().for_each(|(_key, module)| {
-            module.trim_exports();
-            if module.is_user_defined_entry_point {
-                module.generate_exports();
-            }
-        });
-
-        self.de_conflict(modules);
-
-        let common_prefix = std::env::current_dir().unwrap();
-        let mut output = Vec::new();
-        let comments = SingleThreadedComments::default();
-
-        self.order_modules.iter().for_each(|idx| {
-            if let Some(module) = modules.get_mut(idx) {
-                let mut text = String::with_capacity(module.id.len() + 1);
-                text.push(' ');
-                text.push_str(
-                    &common_prefix
-                        .relative(&Path::new(module.id.as_str()))
-                        .to_string_lossy(),
-                );
-                // text.push_str(&Path::new(module.id.as_str()).relative(&common_prefix).to_string_lossy());
-                comments.add_leading(
-                    module.module_comment_span.lo,
-                    Comment {
-                        kind: swc_common::comments::CommentKind::Line,
-                        span: module.module_comment_span,
-                        text,
-                    },
-                )
-            }
-        });
-
         let compiler = get_compiler();
 
-        let mut emitter = swc_ecma_codegen::Emitter {
-            cfg: swc_ecma_codegen::Config {
-                minify: options.minify,
-            },
-            cm: compiler.cm.clone(),
-            comments: Some(&comments),
-            wr: Box::new(JsWriter::with_target(
-                compiler.cm.clone(),
-                "\n",
-                &mut output,
-                None,
-                EsVersion::latest(),
-            )),
-        };
-
+        let mut output_code = String::new();
         self.order_modules.iter().for_each(|idx| {
-            if let Some(module) = modules.get(idx) {
-                module.render(&mut emitter);
-            }
+            let module = modules.get(idx).unwrap();
+            let mut transform_output =
+                swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
+                    Ok(compiler
+                        .process_js(
+                            handler,
+                            module.ast.clone(),
+                            &Options {
+                                config: Config {
+                                    module: Some(ModuleConfig::CommonJs(
+                                        swc_ecma_transforms_module::util::Config {
+                                            ignore_dynamic: true,
+                                            ..Default::default()
+                                        },
+                                    )),
+                                    ..Default::default()
+                                },
+                                ..Default::default()
+                            },
+                        )
+                        .unwrap())
+                })
+                .unwrap();
+            output_code += &mut transform_output.code
         });
 
         RenderedChunk {
-            code: String::from_utf8(output).unwrap(),
+            code: output_code,
             file_name: self.id.clone().into(),
         }
     }
@@ -162,7 +138,10 @@ impl Chunk {
 
     #[inline]
     pub fn get_fallback_chunk_name(&self) -> &str {
-        println!("self.order_modules.last().unwrap() {:?}", self.order_modules.last().unwrap());
+        println!(
+            "self.order_modules.last().unwrap() {:?}",
+            self.order_modules.last().unwrap()
+        );
         get_alias_name(self.order_modules.last().unwrap())
     }
 

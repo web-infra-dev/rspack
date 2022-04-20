@@ -38,6 +38,7 @@ pub struct Namespace {
 #[derive(Clone)]
 pub struct Module {
     pub exec_order: usize,
+    pub ast: swc_ecma_ast::Program,
     // resolved_ids is using for caching.
     pub dependencies: LinkedHashMap<JsWord, ()>,
     pub dyn_dependencies: HashSet<DynImportDesc>,
@@ -61,6 +62,7 @@ pub struct Module {
 impl Module {
     pub fn new(id: SmolStr) -> Self {
         Self {
+            ast: swc_ecma_ast::Program::Module(Take::dummy()),
             exec_order: Default::default(),
             dependencies: Default::default(),
             dyn_dependencies: Default::default(),
