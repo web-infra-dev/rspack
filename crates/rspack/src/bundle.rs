@@ -6,8 +6,8 @@ use std::{
 use dashmap::DashSet;
 
 use crate::{
-    bundler::BundleOptions, chunk::Chunk, module_graph::ModuleGraph, structs::OutputChunk,
-    mark_box::MarkBox,
+    bundler::BundleOptions, chunk::Chunk, mark_box::MarkBox, module_graph::ModuleGraph,
+    structs::OutputChunk,
 };
 
 #[non_exhaustive]
@@ -47,7 +47,6 @@ impl Bundle {
                 .into_iter()
                 .map(|idx| self.graph.relation_graph[idx].clone())
                 .collect(),
-            symbol_box: self.mark_box.clone(),
             entries,
         }];
 
