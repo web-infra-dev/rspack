@@ -10,29 +10,40 @@ use swc_ecma_visit::VisitMutWith;
 
 use crate::{
     bundler::BundleOptions,
+    js_module::JsModule,
     mark_box::MarkBox,
     structs::{OutputChunk, RenderedChunk},
-    utils::get_compiler, js_module::JsModule,
+    utils::get_compiler,
 };
 
 pub struct Chunk {
     pub id: SmolStr,
-    pub order_modules: Vec<SmolStr>,
-    pub entries: DashSet<SmolStr>,
+    // pub order_modules: Vec<SmolStr>,
+    pub entries: SmolStr,
+    pub module_ids: Vec<SmolStr>,
 }
 
 impl Chunk {
     pub fn new(
-        order_modules: Vec<SmolStr>,
+        module_ids: Vec<SmolStr>,
         symbol_box: Arc<Mutex<MarkBox>>,
-        entries: DashSet<SmolStr>,
+        entries: SmolStr,
     ) -> Self {
         Self {
             id: Default::default(),
-            order_modules,
+            module_ids,
             entries,
         }
     }
+
+    pub fn from_js_module(module_id: SmolStr) -> Self {
+        Self {
+            id: Default::default(),
+            module_ids: vec![module_id.clone()],
+            entries: module_id,
+        }
+    }
+
     pub fn render(
         &mut self,
         _options: &BundleOptions,
@@ -41,7 +52,7 @@ impl Chunk {
         let compiler = get_compiler();
 
         let mut output_code = String::new();
-        self.order_modules.iter().for_each(|idx| {
+        self.module_ids.iter().for_each(|idx| {
             let module = modules.get(idx).unwrap();
             let mut transform_output =
                 swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
@@ -83,11 +94,8 @@ impl Chunk {
 
     #[inline]
     pub fn get_fallback_chunk_name(&self) -> &str {
-        println!(
-            "self.order_modules.last().unwrap() {:?}",
-            self.order_modules.last().unwrap()
-        );
-        get_alias_name(self.order_modules.last().unwrap())
+        println!("self.order_modules.last().unwrap() {:?}", self.entries);
+        get_alias_name(&self.entries)
     }
 
     #[inline]
