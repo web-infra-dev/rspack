@@ -27,7 +27,6 @@ jobs:
         with:
           profile: minimal
           override: true
-          components: rustfmt, clippy
 
       - name: Test
         run: cargo test --all --all-features -- --nocapture
