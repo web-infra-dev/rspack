@@ -3,16 +3,16 @@ use std::{
   sync::{Arc, Mutex},
 };
 
+use crate::{
+  bundler::BundleOptions, chunk::Chunk, mark_box::MarkBox, module_graph::ModuleGraph,
+  structs::OutputChunk,
+};
 use dashmap::DashSet;
 use petgraph::{
   dot::Dot,
   graph::NodeIndex,
   visit::{depth_first_search, Control, DfsEvent},
   EdgeDirection,
-};
-use crate::{
-  bundler::BundleOptions, chunk::Chunk, mark_box::MarkBox, module_graph::ModuleGraph,
-  structs::OutputChunk,
 };
 
 #[non_exhaustive]

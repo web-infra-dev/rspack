@@ -1,6 +1,6 @@
 use smol_str::SmolStr;
 use std::{
-  collections::{HashMap},
+  collections::HashMap,
   path::Path,
   sync::{Arc, Mutex},
 };

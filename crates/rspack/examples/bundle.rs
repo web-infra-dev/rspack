@@ -7,7 +7,7 @@ async fn main() {
       entries: vec![
         "./crates/rspack/fixtures/basic/entry-a.js".to_owned(),
         "./crates/rspack/fixtures/basic/entry-b.js".to_owned(),
-        ],
+      ],
       // entries: vec!["./packages/rspack/node_modules/lodash-es/lodash.js".to_owned()],
       outdir: Some("./dist".to_string()),
       ..Default::default()
