@@ -1,49 +1,48 @@
-use crate::{external_module::ExternalModule, module::Module, module_graph_container::Rel};
+use crate::{external_module::ExternalModule, js_module::JsModule};
 
 #[derive(Debug)]
 pub struct OutputChunk {
-  pub code: String,
-  pub file_name: String,
+    pub code: String,
+    pub file_name: String,
 }
 
 #[derive(Debug)]
 pub struct RenderedChunk {
-  pub code: String,
-  pub file_name: String,
+    pub code: String,
+    pub file_name: String,
 }
 
 #[derive(Debug)]
 pub enum RolldownOutput {
-  Chunk(OutputChunk),
-  Asset,
+    Chunk(OutputChunk),
+    Asset,
 }
 
 impl RolldownOutput {
-  #[inline]
-  pub fn get_file_name(&self) -> &str {
-    match self {
-      RolldownOutput::Chunk(c) => c.file_name.as_ref(),
-      RolldownOutput::Asset => panic!(""),
+    #[inline]
+    pub fn get_file_name(&self) -> &str {
+        match self {
+            RolldownOutput::Chunk(c) => c.file_name.as_ref(),
+            RolldownOutput::Asset => panic!(""),
+        }
     }
-  }
 
-  #[inline]
-  pub fn get_content(&self) -> &str {
-    match self {
-      RolldownOutput::Chunk(c) => c.code.as_ref(),
-      RolldownOutput::Asset => panic!(""),
+    #[inline]
+    pub fn get_content(&self) -> &str {
+        match self {
+            RolldownOutput::Chunk(c) => c.code.as_ref(),
+            RolldownOutput::Asset => panic!(""),
+        }
     }
-  }
 }
 
-#[derive(Debug, Hash, Clone)]
+#[derive(Debug)]
 pub enum ModOrExt {
-  Mod(Box<Module>),
-  Ext(ExternalModule),
+    Mod(Box<JsModule>),
+    Ext(ExternalModule),
 }
 
-
-use std::{hash::Hash, collections::HashSet};
+use std::{collections::HashSet, hash::Hash};
 
 use smol_str::SmolStr;
 use swc_atoms::JsWord;
@@ -67,7 +66,6 @@ impl ResolvedId {
 
 pub type ResolveIdResult = Option<ResolvedId>;
 
-
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Specifier {
     /// The original defined name
@@ -84,11 +82,11 @@ pub struct RelationInfo {
     pub names: HashSet<Specifier>,
 }
 
-impl From<RelationInfo> for Rel {
-    fn from(info: RelationInfo) -> Self {
-        Self::Import(info)
-    }
-}
+// impl From<RelationInfo> for Rel {
+//     fn from(info: RelationInfo) -> Self {
+//         Self::Import(info)
+//     }
+// }
 
 impl RelationInfo {
     pub fn new(source: JsWord) -> Self {
@@ -99,7 +97,6 @@ impl RelationInfo {
         }
     }
 }
-
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct ExportDesc {

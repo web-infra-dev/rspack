@@ -33,20 +33,13 @@ impl Bundle {
     fn generate_chunks(&self) -> Vec<Chunk> {
         // TODO: code spliting
         let entries = DashSet::new();
-        self.graph.node_idx_of_enties().iter().for_each(|entry| {
-            let entry = self.graph.relation_graph[*entry].to_owned();
-            entries.insert(entry);
+        self.graph.resolved_entries.iter().for_each(|entry| {
+            entries.insert(entry.id.clone());
         });
 
         let chunks = vec![Chunk {
             id: Default::default(),
-            order_modules: self
-                .graph
-                .ordered_modules
-                .clone()
-                .into_iter()
-                .map(|idx| self.graph.relation_graph[idx].clone())
-                .collect(),
+            order_modules: self.graph.ordered_modules.clone(),
             entries,
         }];
 

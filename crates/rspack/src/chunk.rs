@@ -11,9 +11,8 @@ use swc_ecma_visit::VisitMutWith;
 use crate::{
     bundler::BundleOptions,
     mark_box::MarkBox,
-    module::Module,
     structs::{OutputChunk, RenderedChunk},
-    utils::get_compiler,
+    utils::get_compiler, js_module::JsModule,
 };
 
 pub struct Chunk {
@@ -37,7 +36,7 @@ impl Chunk {
     pub fn render(
         &mut self,
         _options: &BundleOptions,
-        modules: &mut HashMap<SmolStr, Box<Module>>,
+        modules: &mut HashMap<SmolStr, JsModule>,
     ) -> RenderedChunk {
         let compiler = get_compiler();
 

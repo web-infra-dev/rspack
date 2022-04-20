@@ -6,7 +6,8 @@ use std::sync::Mutex;
 use sugar_path::PathSugar;
 
 use crate::bundle::Bundle;
-use crate::module_graph_container::ModuleGraphContainer;
+use crate::module_graph::ModuleGraph;
+// use crate::module_graph_container::ModuleGraphContainer;
 use crate::plugin_driver::PluginDriver;
 use crate::mark_box::MarkBox;
 use crate::traits::plugin::Plugin;
@@ -93,12 +94,12 @@ impl Bundler {
 
     pub async fn generate(&mut self) {
         let mark_box: Arc<Mutex<MarkBox>> = Default::default();
-        let graph = ModuleGraphContainer::new(
-            self.options.clone(),
-            self.plugin_driver.clone(),
-            mark_box.clone(),
-        );
-        let module_graph = graph.build().await;
+        // let graph = ModuleGraphContainer::new(
+        //     self.options.clone(),
+        //     self.plugin_driver.clone(),
+        //     mark_box.clone(),
+        // );
+        let module_graph = ModuleGraph::build_from(self.options.clone(), self.plugin_driver.clone()).await;
 
         let mut bundle = Bundle::new(module_graph, self.options.clone(), mark_box.clone());
         let output = bundle.generate();
