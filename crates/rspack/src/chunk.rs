@@ -16,6 +16,7 @@ use crate::{
   utils::get_compiler,
 };
 
+#[derive(Debug, Default)]
 pub struct Chunk {
   pub id: SmolStr,
   // pub order_modules: Vec<SmolStr>,
