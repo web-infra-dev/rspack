@@ -7,7 +7,7 @@ use dashmap::DashSet;
 use petgraph::{
   dot::Dot,
   graph::NodeIndex,
-  visit::{depth_first_search, Control, DfsEvent},
+  visit::{depth_first_search, Control, DfsEvent, EdgeRef},
   EdgeDirection,
 };
 use smol_str::SmolStr;
@@ -231,10 +231,10 @@ impl Bundle {
         // If the asset is reachable from more than one entry, find or create
         // a chunk for that combination of entries, and add the asset to it.
         // 这段代码依赖了chunk的【入口模块】先于普通模块被遍历到，否则在 chunks 里面取值的时候会取不到 panic
-        let source_chunks = reachable
-          .iter()
-          .map(|a| chunks[&vec![*a]])
-          .collect::<Vec<_>>();
+        // let source_chunks = reachable
+        //   .iter()
+        //   .map(|a| chunks[&vec![*a]])
+        //   .collect::<Vec<_>>();
         // 这里创建了共享模块的 chunk
         let chunk_id = chunks.entry(reachable.clone()).or_insert_with(|| {
           let mut bundle = Chunk::default();
@@ -243,6 +243,9 @@ impl Bundle {
         });
 
         let bundle = &mut chunk_graph[*chunk_id];
+        if bundle.entries.is_empty() {
+          bundle.entries = module_id.to_string().into();
+        }
         bundle.module_ids.push(module_id.to_string().into());
         // bundle.size += module_by_id[module_id].size;
 
@@ -257,13 +260,9 @@ impl Bundle {
     }
 
     println!("chunk_graph in step3: {:#?}", Dot::new(&chunk_graph));
+    let (chunks, _) = chunk_graph.into_nodes_edges();
 
-    let chunks = vec![];
-    // let chunks = vec![Chunk {
-    //     id: Default::default(),
-    //     order_modules: self.graph.ordered_modules.clone(),
-    //     entries,
-    // }];
+    let chunks = chunks.into_iter().map(|node| node.weight).collect();
 
     chunks
   }
