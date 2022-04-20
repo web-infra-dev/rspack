@@ -7,11 +7,9 @@ use dashmap::DashSet;
 use petgraph::{
   dot::Dot,
   graph::NodeIndex,
-  visit::{depth_first_search, Control, DfsEvent, EdgeRef},
+  visit::{depth_first_search, Control, DfsEvent},
   EdgeDirection,
 };
-use smol_str::SmolStr;
-
 use crate::{
   bundler::BundleOptions, chunk::Chunk, mark_box::MarkBox, module_graph::ModuleGraph,
   structs::OutputChunk,
@@ -237,7 +235,7 @@ impl Bundle {
         //   .collect::<Vec<_>>();
         // 这里创建了共享模块的 chunk
         let chunk_id = chunks.entry(reachable.clone()).or_insert_with(|| {
-          let mut bundle = Chunk::default();
+          let bundle = Chunk::default();
           // bundle.source_bundles = source_chunks;
           chunk_graph.add_node(bundle)
         });

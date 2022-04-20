@@ -174,7 +174,7 @@ impl ModuleGraph {
           Msg::NewMod(module) => {
             module_graph.module_by_id.insert(module.id.clone(), module);
           }
-          _ => {}
+          // _ => {}
         }
       }
     }

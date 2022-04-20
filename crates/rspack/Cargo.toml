@@ -40,4 +40,4 @@ linked-hash-map = "0.5.4"
 
 
 [[examples]]
-name="build"
+name="bundle"
