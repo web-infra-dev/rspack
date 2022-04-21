@@ -85,4 +85,10 @@ mod testing {
   fn dynamic_import() {
     compile("dynamic-import", vec![])
   }
+
+  #[test]
+  #[ignore]
+  fn basic_css() {
+    compile("basic-css", vec![])
+  }
 }
