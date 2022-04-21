@@ -53,4 +53,8 @@ mod testing {
   fn multi_entry() {
     compile("multi-entry")
   }
+  #[test]
+  fn cycle_dep(){
+    compile("cycle-dep")
+  }
 }
