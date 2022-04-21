@@ -1,12 +1,10 @@
-use dashmap::DashSet;
 use smol_str::SmolStr;
 use std::{
-  collections::{HashMap, HashSet},
+  collections::HashMap,
   path::Path,
   sync::{Arc, Mutex},
 };
 use swc::config::{Config, ModuleConfig, Options};
-use swc_ecma_visit::VisitMutWith;
 
 use crate::{
   bundler::BundleOptions,
@@ -16,6 +14,7 @@ use crate::{
   utils::get_compiler,
 };
 
+#[derive(Debug, Default)]
 pub struct Chunk {
   pub id: SmolStr,
   // pub order_modules: Vec<SmolStr>,
@@ -24,7 +23,7 @@ pub struct Chunk {
 }
 
 impl Chunk {
-  pub fn new(module_ids: Vec<SmolStr>, symbol_box: Arc<Mutex<MarkBox>>, entries: SmolStr) -> Self {
+  pub fn new(module_ids: Vec<SmolStr>, _symbol_box: Arc<Mutex<MarkBox>>, entries: SmolStr) -> Self {
     Self {
       id: Default::default(),
       module_ids,
@@ -48,6 +47,7 @@ impl Chunk {
     let compiler = get_compiler();
 
     let mut output_code = String::new();
+    self.module_ids.sort_by_key(|id| modules[id].exec_order);
     self.module_ids.iter().for_each(|idx| {
       let module = modules.get(idx).unwrap();
       let mut transform_output =

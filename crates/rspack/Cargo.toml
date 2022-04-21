@@ -41,4 +41,4 @@ serde_json = "1.0.59"
 
 
 [[examples]]
-name="build"
+name="bundle"
