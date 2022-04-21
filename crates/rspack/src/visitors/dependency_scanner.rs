@@ -14,11 +14,7 @@ pub struct DependencyScanner {
 
 impl DependencyScanner {}
 
-use swc_ecma_ast::{
-  CallExpr, Callee, Decl, DefaultDecl, ExportSpecifier, Expr, Lit, ModuleDecl, ModuleExportName,
-};
-
-use crate::structs::{ExportDesc, ReExportDesc, RelationInfo, Specifier};
+use swc_ecma_ast::{CallExpr, Callee, ExportSpecifier, Expr, Lit, ModuleDecl};
 
 impl DependencyScanner {
   pub fn add_import(&mut self, module_decl: &mut ModuleDecl) {
@@ -47,14 +43,14 @@ impl DependencyScanner {
       ModuleDecl::ExportNamed(node) => {
         node.specifiers.iter().for_each(|specifier| {
           match specifier {
-            ExportSpecifier::Named(s) => {
+            ExportSpecifier::Named(_s) => {
               if let Some(source_node) = &node.src {
                 // export { name } from './other'
                 let source = source_node.value.clone();
                 self.dependencies.entry(source.clone()).or_insert(());
               }
             }
-            ExportSpecifier::Namespace(s) => {
+            ExportSpecifier::Namespace(_s) => {
               // export * as name from './other'
               let source = node.src.as_ref().map(|str| str.value.clone()).unwrap();
               self.dependencies.entry(source.clone()).or_insert(());
@@ -76,14 +72,6 @@ impl DependencyScanner {
       _ => {}
     }
     Ok(())
-  }
-}
-
-#[inline]
-fn get_sym_from_module_export(module_export_name: &ModuleExportName) -> JsWord {
-  match module_export_name {
-    ModuleExportName::Ident(i) => i.sym.clone(),
-    _ => panic!(""),
   }
 }
 
