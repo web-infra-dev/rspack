@@ -5,6 +5,7 @@
   "main": "index.js",
   "private": true,
   "scripts": {
+    "prepare": "husky install",
     "format:rs": "cargo fmt",
     "lint:rs": "cargo clippy",
     "setup": "pnpm install && cargo build",
@@ -20,5 +21,12 @@
   "bugs": {
     "url": "https://github.com/speedy-js/rspack/issues"
   },
-  "homepage": "https://github.com/speedy-js/rspack#readme"
+  "homepage": "https://github.com/speedy-js/rspack#readme",
+  "lint-staged": {
+    "*.{rs}": "rustfmt --edition 2021"
+  },
+  "devDependencies": {
+    "husky": "^7.0.4",
+    "lint-staged": "^12.4.0"
+  }
 }
