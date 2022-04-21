@@ -1,12 +1,14 @@
 mod testing {
-  use rspack::bundler::{BundleOptions, Bundler};
+  use async_trait::async_trait;
+  use rspack::bundler::{BundleContext, BundleOptions, Bundler};
+  use rspack::traits::plugin::{Plugin, ResolveHookOutput};
   use serde_json::Value;
   use std::collections::HashMap;
   use std::env;
   use std::fs;
   use std::path::Path;
   #[tokio::main]
-  async fn compile(fixture_path: &str) {
+  async fn compile(fixture_path: &str, plugins: Vec<Box<dyn Plugin>>) {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     let fixtures_dir = dir.join("fixtures").join(fixture_path);
     let pkg_path = fixtures_dir.join("package.json");
@@ -40,21 +42,42 @@ mod testing {
         outdir: Some(dist.to_str().unwrap().to_string()),
         ..Default::default()
       },
-      vec![],
+      plugins,
     );
     bundler.generate().await;
     bundler.write_assets_to_disk();
   }
   #[test]
   fn single_entry() {
-    compile("single-entry")
+    compile("single-entry", vec![])
   }
   #[test]
   fn multi_entry() {
-    compile("multi-entry")
+    compile("multi-entry", vec![])
   }
+
   #[test]
-  fn cycle_dep(){
-    compile("cycle-dep")
+  fn cycle_dep() {
+    compile("cycle-dep", vec![])
+  }
+
+  #[derive(Debug)]
+  struct TestPlugin {}
+  #[async_trait]
+  impl Plugin for TestPlugin {
+    async fn resolve(
+      &self,
+      _ctx: &BundleContext,
+      id: &str,
+      importer: Option<&str>,
+    ) -> ResolveHookOutput {
+      println!("resolve:{:?},{:?}", id, importer);
+      None
+    }
+  }
+
+  #[test]
+  fn plugin_test() {
+    compile("single-entry", vec![Box::new(TestPlugin {})])
   }
 }
