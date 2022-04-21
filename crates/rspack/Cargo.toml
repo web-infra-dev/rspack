@@ -27,7 +27,9 @@ swc_ecma_ast = "0.76.0"
 swc_ecma_codegen = "0.105.2"
 swc_ecma_parser = "0.102.3"
 swc_ecma_visit = "0.62.0"
+swc_ecma_utils = "0.81.0"
 swc_common = "0.17.22"
+swc_ecma_transforms_base = "0.78.0"
 swc_ecma_transforms_module = "0.105.1"
 tokio = { version = "1.17.0", features = ["full"] }
 async-trait = "0.1.53"
@@ -39,6 +41,8 @@ tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
 linked-hash-map = "0.5.4"
 serde_json = "1.0.59"
 
+[dev-dependencies]
+swc_ecma_transforms_testing = "0.80.0"
 
 [[examples]]
 name="bundle"
