@@ -2,7 +2,7 @@
   "name": "@rspack/core",
   "version": "0.0.1",
   "description": "",
-  "main": "index.js",
+  "main": "index.ts",
   "publishConfig": {
     "access": "public"
   },
@@ -13,6 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "lodash-es": "^4.17.21"
+    "lodash-es": "^4.17.21",
+    "@rspack/binding": "workspace:*"
   }
 }

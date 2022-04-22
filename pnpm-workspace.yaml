@@ -3,3 +3,4 @@ packages:
   # all packages in subdirs of packages/
   - 'packages/**'
   - 'examples/**'
+  - 'crates/node_binding'
