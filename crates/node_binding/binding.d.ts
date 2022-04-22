@@ -16,3 +16,4 @@ export interface BundleOptions {
   entryFileNames: string
 }
 export function newRspack(optionJson: string): ExternalObject<Rspack>
+export function build(rspack: ExternalObject<Rspack>): object

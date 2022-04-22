@@ -10,7 +10,7 @@ use crate::module_graph::ModuleGraph;
 // use crate::module_graph_container::ModuleGraphContainer;
 use crate::mark_box::MarkBox;
 use crate::plugin_driver::PluginDriver;
-use crate::structs::BundleMode;
+pub use crate::structs::BundleMode;
 use crate::traits::plugin::Plugin;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
