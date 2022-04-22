@@ -121,3 +121,10 @@ pub struct DynImportDesc {
   pub argument: JsWord,
   // pub id: Option<JsWord>,
 }
+
+#[derive(Debug, Clone)]
+pub enum BundleMode {
+  Dev,
+  Prod,
+  None,
+}

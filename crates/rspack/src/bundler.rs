@@ -10,6 +10,7 @@ use crate::module_graph::ModuleGraph;
 // use crate::module_graph_container::ModuleGraphContainer;
 use crate::mark_box::MarkBox;
 use crate::plugin_driver::PluginDriver;
+use crate::structs::BundleMode;
 use crate::traits::plugin::Plugin;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -53,6 +54,7 @@ pub struct Asset {
 
 #[derive(Debug)]
 pub struct BundleOptions {
+  pub mode: BundleMode,
   pub entries: Vec<String>,
   // pub format: InternalModuleFormat,
   pub minify: bool,
@@ -63,6 +65,7 @@ pub struct BundleOptions {
 impl Default for BundleOptions {
   fn default() -> Self {
     Self {
+      mode: BundleMode::Prod,
       entries: Default::default(),
       // format: InternalModuleFormat::ES,
       outdir: Default::default(),
