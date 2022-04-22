@@ -1,5 +1,5 @@
+use node_resolver::resolve;
 use std::{ffi::OsString, path::Path};
-
 use sugar_path::PathSugar;
 
 use crate::{plugin_driver::PluginDriver, structs::ResolvedId, utils::is_external_module};
@@ -18,17 +18,13 @@ pub async fn resolve_id(
       ResolvedId::new(source.to_string(), true)
     } else {
       let id = if let Some(importer) = importer {
-        Path::new(importer)
-          .parent()
+        resolve(source, Path::new(importer), &vec![])
           .unwrap()
-          .join(source)
-          .resolve()
           .to_string_lossy()
           .to_string()
       } else {
         Path::new(source).resolve().to_string_lossy().to_string()
       };
-      let id = fast_add_js_extension_if_necessary(id, preserve_symlinks);
       ResolvedId::new(id, false)
     }
   })

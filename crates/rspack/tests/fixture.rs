@@ -80,4 +80,15 @@ mod testing {
   fn plugin_test() {
     compile("single-entry", vec![Box::new(TestPlugin {})])
   }
+
+  #[test]
+  fn dynamic_import() {
+    compile("dynamic-import", vec![])
+  }
+
+  #[test]
+  #[ignore]
+  fn basic_css() {
+    compile("basic-css", vec![])
+  }
 }
