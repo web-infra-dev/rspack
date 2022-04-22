@@ -10,6 +10,12 @@ importers:
       husky: 7.0.4
       lint-staged: 12.4.0
 
+  crates/node_binding:
+    specifiers:
+      '@napi-rs/cli': ^2.6.2
+    devDependencies:
+      '@napi-rs/cli': 2.6.2
+
   examples/basic:
     specifiers:
       lite-pack: workspace:*
@@ -106,8 +112,10 @@ importers:
 
   packages/rspack:
     specifiers:
+      '@rspack/binding': workspace:*
       lodash-es: ^4.17.21
     dependencies:
+      '@rspack/binding': link:../../crates/node_binding
       lodash-es: 4.17.21
 
 packages:
@@ -360,6 +368,12 @@ packages:
     dependencies:
       '@jridgewell/resolve-uri': 3.0.5
       '@jridgewell/sourcemap-codec': 1.4.11
+    dev: true
+
+  /@napi-rs/cli/2.6.2:
+    resolution: {integrity: sha512-EmH+DQDEBUIoqMim0cc+X96ImtcIZLFjgW5WWORpzYnA9Ug7zNPO7jCLMhIQRd/p5AdWaXrT4SVXc/aip09rKQ==}
+    engines: {node: '>= 10'}
+    hasBin: true
     dev: true
 
   /@polka/url/1.0.0-next.21:

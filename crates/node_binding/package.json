@@ -1,0 +1,20 @@
+{
+  "name": "@rspack/binding",
+  "version": "0.0.1",
+  "description": "Node binding for rspack",
+  "main": "binding.js",
+  "types": "binding.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "napi build --platform --js false --dts binding.d.ts --config napirs.rc.json",
+    "build:release": "pnpm build -- --release"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@napi-rs/cli": "^2.6.2"
+  }
+}
