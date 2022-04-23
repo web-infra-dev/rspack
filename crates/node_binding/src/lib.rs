@@ -56,6 +56,7 @@ fn build(env: Env, rspack: External<Rspack>) -> Result<JsObject> {
     async move {
       let mut bundler = bundler.lock().await;
       bundler.0.generate().await;
+      bundler.0.write_assets_to_disk();
       Ok(0)
     },
     |env, ret| env.create_int32(ret),
