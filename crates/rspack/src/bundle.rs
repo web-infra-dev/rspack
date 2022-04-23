@@ -14,8 +14,9 @@ use petgraph::{
   visit::{depth_first_search, Control, DfsEvent},
   EdgeDirection,
 };
+use tracing::instrument;
 
-#[non_exhaustive]
+#[derive(Debug)]
 pub struct Bundle {
   pub graph: ModuleGraph,
   pub output_options: Arc<BundleOptions>,
@@ -91,7 +92,6 @@ impl Bundle {
     let mut reachable_chunks = HashSet::new();
     let mut chunk_graph = petgraph::Graph::<Chunk, i32>::new();
 
-    println!("dep graph {:#?}", Dot::new(&dependency_graph));
     let entries = self
       .graph
       .resolved_entries
@@ -249,7 +249,6 @@ impl Bundle {
       }
     }
 
-    println!("chunk_graph in step3: {:#?}", Dot::new(&chunk_graph));
     let (chunks, _) = chunk_graph.into_nodes_edges();
 
     let chunks = chunks.into_iter().map(|node| node.weight).collect();
@@ -257,6 +256,7 @@ impl Bundle {
     chunks
   }
 
+  #[instrument]
   pub fn generate(&mut self) -> HashMap<String, OutputChunk> {
     let mut chunks = self.generate_chunks();
 
