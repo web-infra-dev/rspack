@@ -1,9 +1,11 @@
 use node_resolver::resolve;
 use std::{ffi::OsString, path::Path};
 use sugar_path::PathSugar;
+use tracing::instrument;
 
 use crate::{plugin_driver::PluginDriver, structs::ResolvedId, utils::is_external_module};
 
+#[instrument]
 #[inline]
 pub async fn resolve_id(
   source: &str,
