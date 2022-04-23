@@ -92,7 +92,6 @@ impl Chunk {
 
   #[inline]
   pub fn get_fallback_chunk_name(&self) -> &str {
-    println!("self.order_modules.last().unwrap() {:?}", self.entries);
     get_alias_name(&self.entries)
   }
 

@@ -148,10 +148,6 @@ impl Bundle {
       }
     });
 
-    println!("chunk_roots roots {:#?}", chunk_roots);
-    println!("reachable_chunks {:?}", reachable_chunks);
-    println!("initial chunk graph {:?}", Dot::new(&chunk_graph));
-
     let entries = DashSet::new();
     self.graph.resolved_entries.iter().for_each(|entry| {
       entries.insert(entry.id.clone());
@@ -189,10 +185,6 @@ impl Bundle {
 
     let reachable_module_graph =
       petgraph::graphmap::DiGraphMap::<&'_ str, ()>::from_edges(&reachable_modules);
-    println!(
-      "reachable_module_graph {:?}",
-      Dot::new(&reachable_module_graph)
-    );
 
     // Step 3: Place all modules into chunks. Each module is placed into a single
     // chunk based on the chunk entries it is reachable from. This creates a

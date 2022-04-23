@@ -191,7 +191,6 @@ impl ModuleGraph {
       });
 
     module_graph.sort_modules();
-    println!("module_graph {:#?}", module_graph);
     module_graph
   }
 }
