@@ -29,14 +29,13 @@ struct BundleOptions {
   pub entry_file_names: String, // | ((chunkInfo: PreRenderedChunk) => string)
 }
 
-struct RawRspack(RspackBundler);
-type Rspack = Arc<Mutex<RawRspack>>;
+type Rspack = Arc<Mutex<RspackBundler>>;
 
 #[napi]
 fn new_rspack(option_json: String) -> External<Rspack> {
   let options: BundleOptions = serde_json::from_str(option_json.as_str()).unwrap();
 
-  let raw_rspack = RawRspack(RspackBundler::new(
+  let rspack = RspackBundler::new(
     RspackBundlerOptions {
       entries: options.entries,
       minify: options.minify,
@@ -45,8 +44,8 @@ fn new_rspack(option_json: String) -> External<Rspack> {
       mode: BundleMode::Dev,
     },
     vec![],
-  ));
-  create_external(Arc::new(Mutex::new(raw_rspack)))
+  );
+  create_external(Arc::new(Mutex::new(rspack)))
 }
 
 #[napi]
@@ -55,10 +54,10 @@ fn build(env: Env, rspack: External<Rspack>) -> Result<JsObject> {
   env.execute_tokio_future(
     async move {
       let mut bundler = bundler.lock().await;
-      bundler.0.generate().await;
-      bundler.0.write_assets_to_disk();
-      Ok(0)
+      bundler.generate().await;
+      bundler.write_assets_to_disk();
+      Ok(())
     },
-    |env, ret| env.create_int32(ret),
+    |_env, ret| Ok(ret),
   )
 }
