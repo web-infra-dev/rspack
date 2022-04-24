@@ -4,6 +4,7 @@ pub mod side_effect;
 use once_cell::sync::Lazy;
 use std::{path::Path, sync::Arc};
 use swc::{config::IsModule, Compiler};
+use tracing::instrument;
 
 use swc_ecma_ast::{ModuleDecl, ModuleItem};
 
@@ -15,6 +16,7 @@ mod plugin_hook;
 mod statement;
 pub use plugin_hook::*;
 pub use statement::*;
+pub mod log;
 
 #[inline]
 pub fn is_external_module(source: &str) -> bool {
@@ -43,6 +45,7 @@ pub fn get_compiler() -> Arc<Compiler> {
   COMPILER.clone()
 }
 
+// #[instrument]
 pub fn parse_file(source_code: String, filename: &str) -> swc_ecma_ast::Program {
   let p = Path::new(filename);
   let ext = p.extension().and_then(|ext| ext.to_str()).unwrap_or("js");

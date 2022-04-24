@@ -1,5 +1,8 @@
+use tracing::instrument;
+
 use crate::plugin_driver::PluginDriver;
 
+#[instrument]
 #[inline]
 pub async fn load(id: &str, plugin_dirver: &PluginDriver) -> String {
   let plugin_result = plugin_dirver.load(id).await;

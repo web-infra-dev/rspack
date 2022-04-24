@@ -14,6 +14,7 @@ use dashmap::DashSet;
 use futures::future::join_all;
 use petgraph::graph::NodeIndex;
 use smol_str::SmolStr;
+use tracing::instrument;
 
 use crate::{
   bundler::BundleOptions, js_module::JsModule, plugin_driver::PluginDriver, structs::ResolvedId,
@@ -105,13 +106,14 @@ impl ModuleGraph {
     }
     let mut modules = self.module_by_id.values().collect::<Vec<_>>();
     modules.sort_by_key(|m| m.exec_order);
-    log::debug!(
+    tracing::debug!(
       "ordered {:#?}",
       modules.iter().map(|m| &m.id).collect::<Vec<_>>()
     );
     self.ordered_modules = modules.iter().map(|m| m.id.clone()).collect();
   }
 
+  #[instrument]
   pub async fn build_from(
     bundle_options: Arc<BundleOptions>,
     plugin_driver: Arc<PluginDriver>,
@@ -191,7 +193,6 @@ impl ModuleGraph {
       });
 
     module_graph.sort_modules();
-    println!("module_graph {:#?}", module_graph);
     module_graph
   }
 }

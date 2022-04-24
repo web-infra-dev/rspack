@@ -1,4 +1,7 @@
-use rspack::bundler::{BundleOptions, Bundler};
+use rspack::{
+  bundler::{BundleOptions, Bundler},
+  utils::log::enable_tracing_by_env,
+};
 
 #[tokio::main]
 async fn main() {

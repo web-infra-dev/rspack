@@ -5,6 +5,7 @@ use dashmap::DashSet;
 use smol_str::SmolStr;
 use swc_ecma_ast::{ModuleDecl, ModuleItem};
 use swc_ecma_visit::VisitMutWith;
+use tracing::instrument;
 
 use crate::{
   js_module::{DependencyIdResolver, JsModule},
@@ -15,6 +16,7 @@ use crate::{
   visitors::dependency_scanner::DependencyScanner,
 };
 
+#[derive(Debug)]
 pub struct Worker {
   pub job_queue: Arc<SegQueue<ResolvedId>>,
   pub tx: Sender<Msg>,
@@ -34,6 +36,7 @@ impl Worker {
       })
   }
 
+  #[instrument]
   pub async fn run(&mut self) {
     if let Some(resolved_id) = self.fetch_job() {
       if resolved_id.external {

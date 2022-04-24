@@ -4,6 +4,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use sugar_path::PathSugar;
+use tracing::instrument;
 
 use crate::bundle::Bundle;
 use crate::module_graph::ModuleGraph;
@@ -12,6 +13,7 @@ use crate::mark_box::MarkBox;
 use crate::plugin_driver::PluginDriver;
 pub use crate::structs::BundleMode;
 use crate::traits::plugin::Plugin;
+use crate::utils::log::enable_tracing_by_env;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum InternalModuleFormat {
@@ -84,6 +86,8 @@ pub struct Bundler {
 
 impl Bundler {
   pub fn new(options: BundleOptions, plugins: Vec<Box<dyn Plugin>>) -> Self {
+    enable_tracing_by_env();
+
     let ctx: Arc<BundleContext> = Default::default();
     Self {
       options: Arc::new(options),
@@ -95,6 +99,7 @@ impl Bundler {
     }
   }
 
+  #[instrument]
   pub async fn generate(&mut self) {
     let mark_box: Arc<Mutex<MarkBox>> = Default::default();
     // let graph = ModuleGraphContainer::new(
