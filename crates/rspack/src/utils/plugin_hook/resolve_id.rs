@@ -1,9 +1,8 @@
+use crate::{plugin_driver::PluginDriver, structs::ResolvedId, utils::is_external_module};
 use node_resolver::resolve;
 use std::{ffi::OsString, path::Path};
 use sugar_path::PathSugar;
 use tracing::instrument;
-
-use crate::{plugin_driver::PluginDriver, structs::ResolvedId, utils::is_external_module};
 
 #[instrument]
 #[inline]
@@ -22,6 +21,7 @@ pub async fn resolve_id(
       let id = if let Some(importer) = importer {
         resolve(source, Path::new(importer), &vec![])
           .unwrap()
+          .normalize()
           .to_string_lossy()
           .to_string()
       } else {
