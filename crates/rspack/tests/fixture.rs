@@ -126,4 +126,10 @@ mod testing {
   fn basic_css() {
     compile("basic-css", vec![])
   }
+
+  #[test]
+  #[ignore = "not support npm yet"]
+  fn npm() {
+    compile("npm", vec![])
+  }
 }
