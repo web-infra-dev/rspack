@@ -10,7 +10,8 @@
     "prepare": "husky install",
     "format:rs": "cargo fmt",
     "lint:rs": "cargo clippy",
-    "setup": "pnpm install && cargo build && pnpm --filter @rspack/core... build",
+    "build:core": "cargo build && pnpm --filter @rspack/core... build ",
+    "setup": "pnpm install && pnpm run build:core",
     "build:bundle": "cargo run --package rspack --example bundle"
   },
   "repository": {
