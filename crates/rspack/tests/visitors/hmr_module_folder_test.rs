@@ -30,7 +30,7 @@ test!(
 
     chain!(
       resolver_with_mark(top_level_mark),
-      hmr_module("/a.js".to_string(), top_level_mark, &RESOLVED_IDS)
+      hmr_module("/a.js".to_string(), top_level_mark, &RESOLVED_IDS, false)
     )
   },
   hmr_module_transform_basic,
@@ -54,5 +54,38 @@ test!(
     var _b = _interopRequireDefault(require("/b.js"));
     module.hot.accpet("/b.js", ()=>{});
   });
+  "#
+);
+
+test!(
+  syntax(),
+  |tester| {
+    let top_level_mark = Mark::fresh(Mark::root());
+
+    chain!(
+      resolver_with_mark(top_level_mark),
+      hmr_module("/a.js".to_string(), top_level_mark, &RESOLVED_IDS, true)
+    )
+  },
+  hmr_module_transform_basic_for_entry,
+  r#"
+  import a from './b';
+  export { a };
+  "#,
+  r#"
+  rs.define("/a.js", function(require, module, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", {
+        value: true
+    });
+    Object.defineProperty(exports, "a", {
+        enumerable: true,
+        get: function() {
+            return _b.default;
+        }
+    });
+    var _b = _interopRequireDefault(require("/b.js"));
+  });
+  rs.require("/a.js");
   "#
 );

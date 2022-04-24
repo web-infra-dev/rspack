@@ -75,6 +75,7 @@ impl Chunk {
                     module.id.to_string(),
                     top_level_mark.clone(),
                     module.resolved_ids(),
+                    module.is_user_defined_entry_point,
                   )
                 },
               )
