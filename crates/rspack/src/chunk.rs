@@ -1,18 +1,20 @@
-use smol_str::SmolStr;
-use std::{
-  collections::HashMap,
-  path::Path,
-  sync::{Arc, Mutex},
-};
-use swc::config::{Config, ModuleConfig, Options};
-
 use crate::{
   bundler::BundleOptions,
   js_module::JsModule,
   mark_box::MarkBox,
   structs::{OutputChunk, RenderedChunk},
   utils::get_compiler,
+  visitors::hmr_module_folder::hmr_module,
 };
+use smol_str::SmolStr;
+use std::{
+  collections::HashMap,
+  path::Path,
+  sync::{Arc, Mutex},
+};
+use swc::config::Options;
+use swc_common::{FileName, Mark};
+use swc_ecma_transforms_base::pass::noop;
 
 #[derive(Debug, Default)]
 pub struct Chunk {
@@ -45,6 +47,7 @@ impl Chunk {
     modules: &mut HashMap<SmolStr, JsModule>,
   ) -> RenderedChunk {
     let compiler = get_compiler();
+    let top_level_mark = Mark::from_u32(1);
 
     let mut output_code = String::new();
     self.module_ids.sort_by_key(|id| modules[id].exec_order);
@@ -52,22 +55,27 @@ impl Chunk {
       let module = modules.get(idx).unwrap();
       let mut transform_output =
         swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
+          let fm = compiler.cm.new_source_file(
+            FileName::Custom(module.id.to_string()),
+            module.id.to_string(),
+          );
           Ok(
             compiler
-              .process_js(
+              .process_js_with_custom_pass(
+                fm,
+                Some(module.ast.clone()),
                 handler,
-                module.ast.clone(),
                 &Options {
-                  config: Config {
-                    module: Some(ModuleConfig::CommonJs(
-                      swc_ecma_transforms_module::util::Config {
-                        ignore_dynamic: true,
-                        ..Default::default()
-                      },
-                    )),
-                    ..Default::default()
-                  },
+                  global_mark: Some(top_level_mark),
                   ..Default::default()
+                },
+                |_, _| noop(),
+                |_, _| {
+                  hmr_module(
+                    module.id.to_string(),
+                    top_level_mark.clone(),
+                    module.resolved_ids(),
+                  )
                 },
               )
               .unwrap(),
