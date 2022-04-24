@@ -1,9 +1,12 @@
-use rspack::visitors::hmr_module_folder::HmrModuleFolder;
+use dashmap::DashMap;
+use once_cell::sync::Lazy;
+use rspack::structs::ResolvedId;
+use rspack::visitors::hmr_module_folder::hmr_module;
+use swc_atoms::JsWord;
 use swc_common::{chain, Mark};
 use swc_ecma_parser::{EsConfig, Syntax};
 use swc_ecma_transforms_base::resolver::resolver_with_mark;
-use swc_ecma_transforms_testing::{test, test_fixture, Tester};
-use swc_ecma_visit::Fold;
+use swc_ecma_transforms_testing::test;
 
 fn syntax() -> Syntax {
   Syntax::Es(EsConfig {
@@ -11,23 +14,29 @@ fn syntax() -> Syntax {
   })
 }
 
-fn tr(_tester: &mut Tester<'_>, file_name: String) -> impl Fold {
-  let top_level_mark = Mark::fresh(Mark::root());
-  chain!(
-    resolver_with_mark(top_level_mark),
-    HmrModuleFolder {
-      file_name,
-      top_level_mark
-    }
-  )
-}
+static RESOLVED_IDS: Lazy<DashMap<JsWord, ResolvedId>> = Lazy::new(|| {
+  let resolved_ids: DashMap<JsWord, ResolvedId> = Default::default();
+  resolved_ids.insert(
+    JsWord::from("./b"),
+    ResolvedId::new("/b.js".to_string(), false),
+  );
+  resolved_ids
+});
 
 test!(
   syntax(),
-  |tester| tr(tester, "/a.js".to_string()),
-  basic,
+  |tester| {
+    let top_level_mark = Mark::fresh(Mark::root());
+
+    chain!(
+      resolver_with_mark(top_level_mark),
+      hmr_module("/a.js".to_string(), top_level_mark, &RESOLVED_IDS)
+    )
+  },
+  hmr_module_transform_basic,
   r#"
   import a from './b';
+  module.hot.accpet('./b', () => {});
   export { a };
   "#,
   r#"
@@ -42,7 +51,8 @@ test!(
             return _b.default;
         }
     });
-    var _b = _interopRequireDefault(require("./b"));
+    var _b = _interopRequireDefault(require("/b.js"));
+    module.hot.accpet("/b.js", ()=>{});
   });
   "#
 );
