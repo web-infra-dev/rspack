@@ -3,9 +3,11 @@ use dashmap::DashMap;
 use swc_atoms::JsWord;
 use swc_common::{EqIgnoreSpan, Mark, DUMMY_SP};
 use swc_ecma_ast::*;
+use swc_ecma_transforms_base::helpers::inject_helpers;
 use swc_ecma_transforms_module::common_js;
 use swc_ecma_utils::{member_expr, quote_ident, quote_str, ExprFactory};
 use swc_ecma_visit::{Fold, FoldWith, VisitMut, VisitMutWith};
+
 pub fn hmr_module(
   file_name: String,
   top_level_mark: Mark,
@@ -33,11 +35,13 @@ pub struct HmrModuleFolder<'a> {
 
 impl<'a> Fold for HmrModuleFolder<'a> {
   fn fold_module(&mut self, module: Module) -> Module {
-    let mut cjs_module = module.fold_with(&mut common_js(
-      self.top_level_mark.clone(),
-      Default::default(),
-      None,
-    ));
+    let mut cjs_module = module
+      .fold_with(&mut common_js(
+        self.top_level_mark.clone(),
+        Default::default(),
+        None,
+      ))
+      .fold_with(&mut inject_helpers());
 
     cjs_module.visit_mut_with(&mut HmrModuleIdReWriter {
       resolved_ids: self.resolved_ids,
