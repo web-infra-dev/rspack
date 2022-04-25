@@ -1,8 +1,5 @@
 use std::sync::atomic::AtomicBool;
 
-use once_cell::sync::Lazy;
-use tracing_chrome::FlushGuard;
-
 static IS_TRACING_ENABLED: AtomicBool = AtomicBool::new(false);
 
 pub fn enable_tracing_by_env() {
@@ -10,9 +7,10 @@ pub fn enable_tracing_by_env() {
   if is_enable_tracing {
     if !IS_TRACING_ENABLED.swap(true, std::sync::atomic::Ordering::SeqCst) {
       use tracing_chrome::ChromeLayerBuilder;
-      use tracing_subscriber::{fmt, prelude::*, registry::Registry};
+      use tracing_subscriber::{fmt, prelude::*};
 
       let (chrome_layer, guard) = ChromeLayerBuilder::new().build();
+      // If we don't do this. chrome_layer will collect nothing.
       std::mem::forget(guard);
       tracing_subscriber::registry()
         .with(chrome_layer)
