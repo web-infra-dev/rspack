@@ -81,7 +81,7 @@
             mod.parents.add(this);
           }
           mod.hot = new Hot(id);
-          mod.factory(require.bind(mod), mod.exports, mod);
+          mod.factory(require.bind(mod), mod, mod.exports);
           mod.loaded = true;
           return mod.exports;
         }
