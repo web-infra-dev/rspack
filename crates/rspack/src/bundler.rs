@@ -101,16 +101,10 @@ impl Bundler {
 
   #[instrument]
   pub async fn build(&mut self) {
-    let mark_box: Arc<Mutex<MarkBox>> = Default::default();
-    // let graph = ModuleGraphContainer::new(
-    //     self.options.clone(),
-    //     self.plugin_driver.clone(),
-    //     mark_box.clone(),
-    // );
     let module_graph =
       ModuleGraph::build_from(self.options.clone(), self.plugin_driver.clone()).await;
 
-    let mut bundle = Bundle::new(module_graph, self.options.clone(), mark_box.clone());
+    let mut bundle = Bundle::new(module_graph, self.options.clone());
     let output = bundle.generate();
     output.into_iter().for_each(|(_, chunk)| {
       self.ctx.assets.lock().unwrap().push(Asset {

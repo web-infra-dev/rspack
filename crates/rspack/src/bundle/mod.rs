@@ -1,12 +1,6 @@
-use std::{
-  collections::HashMap,
-  sync::{Arc, Mutex},
-};
+use std::{collections::HashMap, sync::Arc};
 
-use crate::{
-  bundler::BundleOptions, chunk::Chunk, mark_box::MarkBox, module_graph::ModuleGraph,
-  structs::OutputChunk,
-};
+use crate::{bundler::BundleOptions, module_graph::ModuleGraph, structs::OutputChunk};
 use tracing::instrument;
 
 use self::split_chunks::split_chunks;
@@ -16,19 +10,13 @@ pub mod split_chunks;
 pub struct Bundle {
   pub graph: ModuleGraph,
   pub output_options: Arc<BundleOptions>,
-  pub mark_box: Arc<Mutex<MarkBox>>,
 }
 
 impl Bundle {
-  pub fn new(
-    graph: ModuleGraph,
-    output_options: Arc<BundleOptions>,
-    mark_box: Arc<Mutex<MarkBox>>,
-  ) -> Self {
+  pub fn new(graph: ModuleGraph, output_options: Arc<BundleOptions>) -> Self {
     Self {
       graph,
       output_options,
-      mark_box,
     }
   }
 
