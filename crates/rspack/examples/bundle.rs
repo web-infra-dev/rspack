@@ -1,15 +1,12 @@
-use rspack::{
-  bundler::{BundleOptions, Bundler},
-  utils::log::enable_tracing_by_env,
-};
+use rspack::bundler::{BundleOptions, Bundler};
 
 #[tokio::main]
 async fn main() {
   let mut bundler = Bundler::new(
     BundleOptions {
       entries: vec![
-        "./crates/rspack/fixtures/basic/entry-a.js".to_owned(),
-        "./crates/rspack/fixtures/basic/entry-b.js".to_owned(),
+        "./fixtures/basic/entry-a.js".to_owned(),
+        "./fixtures/basic/entry-b.js".to_owned(),
       ],
       // entries: vec!["./packages/rspack/node_modules/lodash-es/lodash.js".to_owned()],
       outdir: Some("./dist".to_string()),
