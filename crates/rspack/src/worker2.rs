@@ -20,7 +20,7 @@ use crate::{
 pub struct Worker {
   pub job_queue: Arc<SegQueue<ResolvedId>>,
   pub tx: Sender<Msg>,
-  pub processed_id: Arc<DashSet<SmolStr>>,
+  pub visited_module_id: Arc<DashSet<SmolStr>>,
   pub plugin_driver: Arc<PluginDriver>,
 }
 
@@ -29,9 +29,9 @@ impl Worker {
     self
       .job_queue
       .pop()
-      .filter(|resolved_id| !self.processed_id.contains(&resolved_id.id))
+      .filter(|resolved_id| !self.visited_module_id.contains(&resolved_id.id))
       .map(|resolved_id| {
-        self.processed_id.insert(resolved_id.id.clone());
+        self.visited_module_id.insert(resolved_id.id.clone());
         resolved_id
       })
   }

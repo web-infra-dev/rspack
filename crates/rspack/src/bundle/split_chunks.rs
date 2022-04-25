@@ -7,13 +7,18 @@ use petgraph::{
   EdgeDirection,
 };
 use smol_str::SmolStr;
+use tracing::instrument;
 
 use crate::{chunk::Chunk, js_module::JsModule, module_graph::ModuleGraph, structs::ResolvedId};
 
-use super::Dependency;
+#[derive(Clone, Debug)]
+struct Dependency {
+  is_async: bool,
+}
 
 type ModulePetGraph<'a> = petgraph::graphmap::DiGraphMap<&'a str, Dependency>;
 
+#[instrument]
 pub fn split_chunks(module_graph: &ModuleGraph) -> Vec<Chunk> {
   let module_by_id: &HashMap<SmolStr, JsModule> = &module_graph.module_by_id;
   let resolved_entries: &Vec<ResolvedId> = &module_graph.resolved_entries;
@@ -80,17 +85,13 @@ pub fn split_chunks(module_graph: &ModuleGraph) -> Vec<Chunk> {
   depth_first_search(&dependency_graph, entries.clone(), |event| {
     match event {
       DfsEvent::Discover(module_idx, _) => {
-        // println!("Discover {:?}", module_idx);
         // Push to the stack when a new chunk is created.
         if let Some((_, chunk_group_id)) = chunk_roots.get(&module_idx) {
-          // stack 的队头表示的 chunk 入口模块的 图索引 和其所属的 chunk 的 id
           stack.push_front((module_idx, *chunk_group_id));
         }
       }
       DfsEvent::TreeEdge(importer_id, importee_id) => {
-        // println!("TreeEdge from {:?} to {:?}", importer_id, importee_id);
-        // Create a new bundle as well as a new bundle group if the dependency is async.
-
+        // Create a new chunk if the dependency is async.
         let dependency = &dependency_graph[(importer_id, importee_id)];
         if dependency.is_async {
           let chunk = Chunk::from_js_module(importee_id.to_string().into());
@@ -105,7 +106,6 @@ pub fn split_chunks(module_graph: &ModuleGraph) -> Vec<Chunk> {
         }
       }
       DfsEvent::Finish(finished_module_id, _) => {
-        // println!("Finish {:?}", finished_module_id);
         // Pop the stack when existing the asset node that created a bundle.
         if let Some((module_id, _)) = stack.front() {
           if *module_id == finished_module_id {
@@ -133,10 +133,6 @@ pub fn split_chunks(module_graph: &ModuleGraph) -> Vec<Chunk> {
           if node_idx_of_visiting_module == root_which_is_node_idx_of_chunks_entry_module {
             return Control::Continue;
           }
-
-          // 注意这里创建的边是摊平的，是【入口模块】直接连接到可达的模块
-          // 对于依赖入口模块 A 假设有 module graph A -> B -> C
-          // 我们能得到 reachable grapg ， A -> B ， A -> C
           reachable_modules.insert((
             *root_which_is_node_idx_of_chunks_entry_module,
             *node_idx_of_visiting_module,
@@ -189,12 +185,10 @@ pub fn split_chunks(module_graph: &ModuleGraph) -> Vec<Chunk> {
     } else if reachable.len() > 0 {
       // If the asset is reachable from more than one entry, find or create
       // a chunk for that combination of entries, and add the asset to it.
-      // 这段代码依赖了chunk的【入口模块】先于普通模块被遍历到，否则在 chunks 里面取值的时候会取不到 panic
       // let source_chunks = reachable
       //   .iter()
       //   .map(|a| chunks[&vec![*a]])
       //   .collect::<Vec<_>>();
-      // 这里创建了共享模块的 chunk
       let chunk_id = chunks.entry(reachable.clone()).or_insert_with(|| {
         let bundle = Chunk::default();
         // bundle.source_bundles = source_chunks;

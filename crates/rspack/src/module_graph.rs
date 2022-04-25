@@ -133,7 +133,7 @@ impl ModuleGraph {
     .into_iter()
     .collect();
 
-    let processed_id: Arc<DashSet<SmolStr>> = Default::default();
+    let visited_module_id: Arc<DashSet<SmolStr>> = Default::default();
 
     module_graph.resolved_entries.iter().for_each(|rd| {
       job_queue.push(rd.clone());
@@ -146,7 +146,7 @@ impl ModuleGraph {
       let mut worker = Worker {
         tx: tx.clone(),
         job_queue: job_queue.clone(),
-        processed_id: processed_id.clone(),
+        visited_module_id: visited_module_id.clone(),
         plugin_driver: plugin_driver.clone(),
       };
       tokio::task::spawn(async move {

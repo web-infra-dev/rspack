@@ -44,7 +44,7 @@ mod testing {
       },
       plugins,
     );
-    bundler.generate().await;
+    bundler.build().await;
     bundler.write_assets_to_disk();
   }
   #[test]
