@@ -19,10 +19,6 @@ pub struct Bundle {
   pub mark_box: Arc<Mutex<MarkBox>>,
 }
 
-#[derive(Clone, Debug)]
-struct Dependency {
-  is_async: bool,
-}
 impl Bundle {
   pub fn new(
     graph: ModuleGraph,
