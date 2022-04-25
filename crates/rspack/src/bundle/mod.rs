@@ -32,15 +32,9 @@ impl Bundle {
     }
   }
 
-  fn generate_chunks(&self) -> Vec<Chunk> {
-    let chunks = split_chunks(&self.graph);
-
-    chunks
-  }
-
   #[instrument]
   pub fn generate(&mut self) -> HashMap<String, OutputChunk> {
-    let mut chunks = self.generate_chunks();
+    let mut chunks = split_chunks(&self.graph);
 
     chunks.iter_mut().for_each(|chunk| {
       chunk.id = chunk.generate_id(&self.output_options);

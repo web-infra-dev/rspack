@@ -100,7 +100,7 @@ impl Bundler {
   }
 
   #[instrument]
-  pub async fn generate(&mut self) {
+  pub async fn build(&mut self) {
     let mark_box: Arc<Mutex<MarkBox>> = Default::default();
     // let graph = ModuleGraphContainer::new(
     //     self.options.clone(),

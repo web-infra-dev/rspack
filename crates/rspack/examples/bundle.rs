@@ -14,7 +14,7 @@ async fn main() {
     },
     vec![],
   );
-  bundler.generate().await;
+  bundler.build().await;
   // println!("assets: {:#?}", bundler.ctx.assets.lock().unwrap());
   bundler.write_assets_to_disk();
 }

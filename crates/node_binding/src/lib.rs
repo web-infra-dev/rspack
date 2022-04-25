@@ -54,7 +54,7 @@ fn build(env: Env, rspack: External<Rspack>) -> Result<JsObject> {
   env.execute_tokio_future(
     async move {
       let mut bundler = bundler.lock().await;
-      bundler.generate().await;
+      bundler.build().await;
       bundler.write_assets_to_disk();
       Ok(())
     },
