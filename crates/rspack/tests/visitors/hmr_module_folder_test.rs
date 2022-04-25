@@ -42,6 +42,11 @@ test!(
   r#"
   rs.define("/a.js", function(require, module, exports) {
     "use strict";
+    function _interopRequireDefault(obj) {
+      return obj && obj.__esModule ? obj : {
+          default: obj
+      };
+    }
     Object.defineProperty(exports, "__esModule", {
         value: true
     });
@@ -75,6 +80,11 @@ test!(
   r#"
   rs.define("/a.js", function(require, module, exports) {
     "use strict";
+    function _interopRequireDefault(obj) {
+      return obj && obj.__esModule ? obj : {
+          default: obj
+      };
+    }
     Object.defineProperty(exports, "__esModule", {
         value: true
     });
