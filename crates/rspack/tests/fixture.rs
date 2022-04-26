@@ -132,4 +132,9 @@ mod testing {
   fn npm() {
     compile("npm", vec![])
   }
+
+  #[test]
+  fn cjs() {
+    compile("cjs", vec![])
+  }
 }

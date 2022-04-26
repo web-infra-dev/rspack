@@ -64,6 +64,10 @@ impl Worker {
 
           self.job_queue.push(resolved_id);
         }
+        for (import, _) in &dependency_scanner.dependencies {
+          let resolved_id = id_resolver.resolve_id(&import).await;
+          self.job_queue.push(resolved_id);
+        }
         let module = JsModule {
           exec_order: Default::default(),
           id: resolved_id.id.clone(),
