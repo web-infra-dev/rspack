@@ -1,6 +1,10 @@
 use std::sync::Arc;
 
-use crate::{bundler::BundleContext, structs::ResolvedId, traits::plugin::Plugin};
+use crate::{
+  bundler::BundleContext,
+  structs::ResolvedId,
+  traits::plugin::{Plugin, TransformHookOutput},
+};
 
 #[derive(Debug)]
 pub struct PluginDriver {
@@ -27,5 +31,11 @@ impl PluginDriver {
       }
     }
     None
+  }
+
+  pub fn transform(&self, ast: TransformHookOutput) -> TransformHookOutput {
+    self.plugins.iter().fold(ast, |transformed_ast, plugin| {
+      plugin.transform(&self.ctx, transformed_ast)
+    })
   }
 }
