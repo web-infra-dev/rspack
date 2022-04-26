@@ -4,7 +4,7 @@ use std::{ffi::OsString, path::Path};
 use sugar_path::PathSugar;
 use tracing::instrument;
 
-#[instrument]
+#[instrument(skip(plugin_driver))]
 #[inline]
 pub async fn resolve_id(
   source: &str,

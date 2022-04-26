@@ -20,7 +20,7 @@ impl Bundle {
     }
   }
 
-  #[instrument]
+  #[instrument(skip(self))]
   pub fn generate(&mut self) -> HashMap<String, OutputChunk> {
     let mut chunks = split_chunks(&self.graph);
 

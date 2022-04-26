@@ -36,7 +36,7 @@ impl Worker {
       })
   }
 
-  #[instrument]
+  #[instrument(skip(self))]
   pub async fn run(&mut self) {
     if let Some(resolved_id) = self.fetch_job() {
       if resolved_id.external {

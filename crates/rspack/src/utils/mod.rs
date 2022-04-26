@@ -45,7 +45,7 @@ pub fn get_compiler() -> Arc<Compiler> {
   COMPILER.clone()
 }
 
-// #[instrument]
+#[instrument(skip(source_code))]
 pub fn parse_file(source_code: String, filename: &str) -> swc_ecma_ast::Program {
   let p = Path::new(filename);
   let ext = p.extension().and_then(|ext| ext.to_str()).unwrap_or("js");
