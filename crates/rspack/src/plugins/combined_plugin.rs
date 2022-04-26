@@ -21,15 +21,6 @@ impl<A: Plugin, B: Plugin> Plugin for CombinedPlugin<A, B> {
     tokio::join!(self.left.prepare(ctx), self.right.prepare(ctx));
   }
 
-  async fn load(&self, ctx: &BundleContext, id: &str) -> Option<String> {
-    let left_res = self.left.load(ctx, id).await;
-    if left_res.is_some() {
-      left_res
-    } else {
-      self.right.load(ctx, id).await
-    }
-  }
-
   async fn resolve(
     &self,
     ctx: &BundleContext,
@@ -42,5 +33,19 @@ impl<A: Plugin, B: Plugin> Plugin for CombinedPlugin<A, B> {
     } else {
       self.right.resolve(ctx, importee, importer).await
     }
+  }
+
+  async fn load(&self, ctx: &BundleContext, id: &str) -> Option<String> {
+    let left_res = self.left.load(ctx, id).await;
+    if left_res.is_some() {
+      left_res
+    } else {
+      self.right.load(ctx, id).await
+    }
+  }
+
+  fn transform(&self, ctx: &BundleContext, ast: swc_ecma_ast::Program) -> swc_ecma_ast::Program {
+    let left_res = self.left.transform(ctx, ast);
+    self.right.transform(ctx, left_res)
   }
 }

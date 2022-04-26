@@ -1,12 +1,14 @@
 mod testing {
   use async_trait::async_trait;
   use rspack::bundler::{BundleContext, BundleOptions, Bundler};
-  use rspack::traits::plugin::{Plugin, ResolveHookOutput};
+  use rspack::traits::plugin::{LoadHookOutput, Plugin, ResolveHookOutput, TransformHookOutput};
   use serde_json::Value;
   use std::collections::HashMap;
   use std::env;
   use std::fs;
   use std::path::Path;
+  use std::sync::atomic::AtomicBool;
+  use std::sync::Arc;
   #[tokio::main]
   async fn compile(fixture_path: &str, plugins: Vec<Box<dyn Plugin>>) {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -62,23 +64,56 @@ mod testing {
   }
 
   #[derive(Debug)]
-  struct TestPlugin {}
+  struct TestPlugin {
+    call_resolve: Arc<AtomicBool>,
+    call_load: Arc<AtomicBool>,
+    call_transform: Arc<AtomicBool>,
+  }
   #[async_trait]
   impl Plugin for TestPlugin {
     async fn resolve(
       &self,
       _ctx: &BundleContext,
-      id: &str,
-      importer: Option<&str>,
+      _id: &str,
+      _importer: Option<&str>,
     ) -> ResolveHookOutput {
-      println!("resolve:{:?},{:?}", id, importer);
+      self
+        .call_resolve
+        .store(true, std::sync::atomic::Ordering::SeqCst);
       None
+    }
+
+    #[inline]
+    async fn load(&self, _ctx: &BundleContext, _id: &str) -> LoadHookOutput {
+      self
+        .call_load
+        .store(true, std::sync::atomic::Ordering::SeqCst);
+      None
+    }
+
+    #[inline]
+    fn transform(&self, _ctx: &BundleContext, ast: swc_ecma_ast::Program) -> TransformHookOutput {
+      self
+        .call_transform
+        .store(true, std::sync::atomic::Ordering::SeqCst);
+      ast
     }
   }
 
   #[test]
   fn plugin_test() {
-    compile("single-entry", vec![Box::new(TestPlugin {})])
+    let call_resolve: Arc<AtomicBool> = Default::default();
+    let call_load: Arc<AtomicBool> = Default::default();
+    let call_transform: Arc<AtomicBool> = Default::default();
+    let test_plugin = Box::new(TestPlugin {
+      call_resolve: call_resolve.clone(),
+      call_load: call_load.clone(),
+      call_transform: call_transform.clone(),
+    });
+    compile("single-entry", vec![test_plugin]);
+    assert!(call_load.load(std::sync::atomic::Ordering::SeqCst));
+    assert!(call_resolve.load(std::sync::atomic::Ordering::SeqCst));
+    assert!(call_transform.load(std::sync::atomic::Ordering::SeqCst));
   }
 
   #[test]
