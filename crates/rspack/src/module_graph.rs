@@ -54,7 +54,10 @@ impl ModuleGraph {
     let mut visited = HashSet::new();
     let mut next_exec_order = 0;
     while let Some(id) = stack.pop() {
-      let module = self.module_by_id.get_mut(&id).unwrap();
+      let module = self
+        .module_by_id
+        .get_mut(&id)
+        .expect(format!("get id: {} failed", &id.as_str()).as_str());
       if !visited.contains(&id) {
         visited.insert(id.clone());
         stack.push(id);

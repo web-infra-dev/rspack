@@ -20,7 +20,7 @@ pub mod log;
 
 #[inline]
 pub fn is_external_module(source: &str) -> bool {
-  source.starts_with("node:") || (!Path::new(source).is_absolute() && !source.starts_with('.'))
+  source.starts_with("node:")
 }
 
 #[inline]
