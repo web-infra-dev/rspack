@@ -20,6 +20,14 @@ importers:
     devDependencies:
       '@napi-rs/cli': 2.6.2
 
+  crates/rspack/fixtures:
+    specifiers:
+      react: 17.0.0
+      react-dom: 17.0.0
+    dependencies:
+      react: 17.0.0
+      react-dom: 17.0.0_react@17.0.0
+
   examples/basic:
     specifiers:
       lite-pack: workspace:*

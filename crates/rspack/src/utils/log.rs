@@ -3,7 +3,7 @@ use std::sync::atomic::AtomicBool;
 static IS_TRACING_ENABLED: AtomicBool = AtomicBool::new(false);
 
 pub fn enable_tracing_by_env() {
-  let is_enable_tracing = std::env::var("TRACE").is_ok();
+  let is_enable_tracing = std::env::var("TRACE").map_or(false, |x| x.eq("1"));
   if is_enable_tracing {
     if !IS_TRACING_ENABLED.swap(true, std::sync::atomic::Ordering::SeqCst) {
       use tracing_chrome::ChromeLayerBuilder;

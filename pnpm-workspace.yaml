@@ -3,4 +3,4 @@ packages:
   - 'packages/**'
   - 'examples/**'
   - 'crates/node_binding'
-  - 'crates/rspack/fixtures/npm'
+  - 'crates/rspack/fixtures'
