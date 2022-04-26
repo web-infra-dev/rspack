@@ -8,6 +8,7 @@ async fn main() {
         "./fixtures/basic/entry-a.js".to_owned(),
         "./fixtures/basic/entry-b.js".to_owned(),
       ],
+      // entries: vec!["./fixtures/single-entry/index.js".to_owned()],
       // entries: vec!["./packages/rspack/node_modules/lodash-es/lodash.js".to_owned()],
       outdir: Some("./dist".to_string()),
       ..Default::default()
