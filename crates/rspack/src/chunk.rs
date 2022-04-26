@@ -57,37 +57,35 @@ impl Chunk {
       .par_iter()
       .map(|idx| {
         let module = modules.get(idx).unwrap();
-        let mut transform_output =
-          swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
-            let fm = compiler.cm.new_source_file(
-              FileName::Custom(module.id.to_string()),
-              module.id.to_string(),
-            );
-            Ok(
-              compiler
-                .process_js_with_custom_pass(
-                  fm,
-                  Some(module.ast.clone()),
-                  handler,
-                  &Options {
-                    global_mark: Some(top_level_mark),
-                    ..Default::default()
-                  },
-                  |_, _| noop(),
-                  |_, _| {
-                    hmr_module(
-                      module.id.to_string(),
-                      top_level_mark.clone(),
-                      module.resolved_ids(),
-                      module.is_user_defined_entry_point,
-                    )
-                  },
-                )
-                .unwrap(),
-            )
-          })
-          .unwrap();
-        transform_output
+        swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
+          let fm = compiler.cm.new_source_file(
+            FileName::Custom(module.id.to_string()),
+            module.id.to_string(),
+          );
+          Ok(
+            compiler
+              .process_js_with_custom_pass(
+                fm,
+                Some(module.ast.clone()),
+                handler,
+                &Options {
+                  global_mark: Some(top_level_mark),
+                  ..Default::default()
+                },
+                |_, _| noop(),
+                |_, _| {
+                  hmr_module(
+                    module.id.to_string(),
+                    top_level_mark,
+                    module.resolved_ids(),
+                    module.is_user_defined_entry_point,
+                  )
+                },
+              )
+              .unwrap(),
+          )
+        })
+        .unwrap()
       })
       .collect::<Vec<_>>()
       .into_iter()

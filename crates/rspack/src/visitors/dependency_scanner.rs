@@ -47,13 +47,13 @@ impl DependencyScanner {
               if let Some(source_node) = &node.src {
                 // export { name } from './other'
                 let source = source_node.value.clone();
-                self.dependencies.entry(source.clone()).or_insert(());
+                self.dependencies.entry(source).or_insert(());
               }
             }
             ExportSpecifier::Namespace(_s) => {
               // export * as name from './other'
               let source = node.src.as_ref().map(|str| str.value.clone()).unwrap();
-              self.dependencies.entry(source.clone()).or_insert(());
+              self.dependencies.entry(source).or_insert(());
             }
             ExportSpecifier::Default(_) => {
               // export v from 'mod';
