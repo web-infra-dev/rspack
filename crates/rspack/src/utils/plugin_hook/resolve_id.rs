@@ -19,7 +19,7 @@ pub async fn resolve_id(
       ResolvedId::new(source.to_string(), true)
     } else {
       let id = if let Some(importer) = importer {
-        resolve(source, Path::new(importer), &vec![])
+        resolve(source, Path::new(importer), &[])
           .unwrap()
           .normalize()
           .to_string_lossy()
@@ -42,7 +42,7 @@ pub async fn resolve_id_via_plugins(
 }
 
 #[inline]
-fn fast_add_js_extension_if_necessary(mut file: String, _preserve_symlinks: bool) -> String {
+pub fn fast_add_js_extension_if_necessary(mut file: String, _preserve_symlinks: bool) -> String {
   if !file.ends_with(".js") {
     file.push_str(".js");
   }

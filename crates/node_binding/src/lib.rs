@@ -14,7 +14,7 @@ use rspack::bundler::{
 #[global_allocator]
 static ALLOC: mimalloc_rust::GlobalMiMalloc = mimalloc_rust::GlobalMiMalloc;
 
-fn create_external<T>(value: T) -> External<T> {
+pub fn create_external<T>(value: T) -> External<T> {
   External::new(value)
 }
 
@@ -29,10 +29,10 @@ struct BundleOptions {
   pub entry_file_names: String, // | ((chunkInfo: PreRenderedChunk) => string)
 }
 
-type Rspack = Arc<Mutex<RspackBundler>>;
+pub type Rspack = Arc<Mutex<RspackBundler>>;
 
 #[napi]
-fn new_rspack(option_json: String) -> External<Rspack> {
+pub fn new_rspack(option_json: String) -> External<Rspack> {
   let options: BundleOptions = serde_json::from_str(option_json.as_str()).unwrap();
 
   let rspack = RspackBundler::new(
@@ -49,7 +49,7 @@ fn new_rspack(option_json: String) -> External<Rspack> {
 }
 
 #[napi]
-fn build(env: Env, rspack: External<Rspack>) -> Result<JsObject> {
+pub fn build(env: Env, rspack: External<Rspack>) -> Result<JsObject> {
   let bundler = (*rspack).clone();
   env.execute_tokio_future(
     async move {

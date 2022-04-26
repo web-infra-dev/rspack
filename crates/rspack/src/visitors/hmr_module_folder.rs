@@ -16,10 +16,10 @@ pub fn hmr_module(
 ) -> HmrModuleFolder {
   HmrModuleFolder {
     file_name,
-    top_level_mark: top_level_mark.clone(),
+    top_level_mark,
     resolved_ids,
-    require_ident: quote_ident!(DUMMY_SP.apply_mark(top_level_mark.clone()), "require"),
-    module_ident: quote_ident!(DUMMY_SP.apply_mark(top_level_mark.clone()), "module"),
+    require_ident: quote_ident!(DUMMY_SP.apply_mark(top_level_mark), "require"),
+    module_ident: quote_ident!(DUMMY_SP.apply_mark(top_level_mark), "module"),
     entry_flag,
   }
 }
@@ -37,7 +37,7 @@ impl<'a> Fold for HmrModuleFolder<'a> {
   fn fold_module(&mut self, module: Module) -> Module {
     let mut cjs_module = module
       .fold_with(&mut common_js(
-        self.top_level_mark.clone(),
+        self.top_level_mark,
         Default::default(),
         None,
       ))
@@ -51,9 +51,8 @@ impl<'a> Fold for HmrModuleFolder<'a> {
     let mut stmts = vec![];
 
     for body in cjs_module.body {
-      match body {
-        ModuleItem::Stmt(stmt) => stmts.push(stmt),
-        _ => {}
+      if let ModuleItem::Stmt(stmt) = body {
+        stmts.push(stmt);
       }
     }
 
@@ -149,12 +148,12 @@ impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
               self.rewriting = true;
               // exclude last elements of `module.hot.accpet`
               let mut i = call_expr.args.len() - 1 - 1;
-              while i >= 0 {
+              while i + 1 > 0 {
                 call_expr.args.get_mut(i).unwrap().visit_mut_with(self);
                 if i == 0 {
                   break;
                 } else {
-                  i = i - 1;
+                  i -= 1;
                 }
               }
               call_expr.visit_mut_children_with(self);

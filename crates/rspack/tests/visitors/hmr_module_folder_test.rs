@@ -25,7 +25,7 @@ static RESOLVED_IDS: Lazy<DashMap<JsWord, ResolvedId>> = Lazy::new(|| {
 
 test!(
   syntax(),
-  |tester| {
+  |_tester| {
     let top_level_mark = Mark::fresh(Mark::root());
 
     chain!(
@@ -64,7 +64,7 @@ test!(
 
 test!(
   syntax(),
-  |tester| {
+  |_tester| {
     let top_level_mark = Mark::fresh(Mark::root());
 
     chain!(

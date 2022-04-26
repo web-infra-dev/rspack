@@ -20,11 +20,13 @@ use crate::{
   bundler::BundleOptions, js_module::JsModule, plugin_driver::PluginDriver, structs::ResolvedId,
   utils::resolve_id, worker2::Worker,
 };
+
 pub enum Msg {
   // DependencyReference(SmolStr, SmolStr, Rel),
   NewMod(JsModule),
   // NewExtMod(ExternalModule),
 }
+
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
   pub resolved_entries: Vec<ResolvedId>,
@@ -57,7 +59,7 @@ impl ModuleGraph {
       let module = self
         .module_by_id
         .get_mut(&id)
-        .expect(format!("get id: {} failed", &id.as_str()).as_str());
+        .unwrap_or_else(|| panic!("get id: {} failed", &id.as_str()));
       if !visited.contains(&id) {
         visited.insert(id.clone());
         stack.push(id);

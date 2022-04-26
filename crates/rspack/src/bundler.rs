@@ -8,8 +8,6 @@ use tracing::instrument;
 
 use crate::bundle::Bundle;
 use crate::module_graph::ModuleGraph;
-// use crate::module_graph_container::ModuleGraphContainer;
-use crate::mark_box::MarkBox;
 use crate::plugin_driver::PluginDriver;
 pub use crate::structs::BundleMode;
 use crate::traits::plugin::Plugin;
@@ -92,10 +90,7 @@ impl Bundler {
     Self {
       options: Arc::new(options),
       ctx: ctx.clone(),
-      plugin_driver: Arc::new(PluginDriver {
-        plugins,
-        ctx: ctx.clone(),
-      }),
+      plugin_driver: Arc::new(PluginDriver { plugins, ctx }),
     }
   }
 
@@ -120,7 +115,7 @@ impl Bundler {
         .options
         .outdir
         .clone()
-        .map(|s| PathBuf::from(s))
+        .map(PathBuf::from)
         .unwrap_or_else(|| std::env::current_dir().unwrap());
       path.push(&asset.filename);
       std::fs::create_dir_all(path.resolve().parent().unwrap()).unwrap();

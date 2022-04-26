@@ -41,7 +41,7 @@ pub fn split_chunks(module_graph: &ModuleGraph) -> Vec<Chunk> {
         let dep_rid = module.resolved_ids().get(dep).unwrap().clone();
         egdes.push((
           module.id.clone(),
-          dep_rid.id.clone(),
+          dep_rid.id,
           Dependency { is_async: false },
         ))
       });
@@ -52,11 +52,7 @@ pub fn split_chunks(module_graph: &ModuleGraph) -> Vec<Chunk> {
       .into_iter()
       .for_each(|dep| {
         let dep_rid = module.resolved_ids().get(&dep.argument).unwrap().clone();
-        egdes.push((
-          module.id.clone(),
-          dep_rid.id.clone(),
-          Dependency { is_async: true },
-        ))
+        egdes.push((module.id.clone(), dep_rid.id, Dependency { is_async: true }))
       });
   });
   egdes.iter().for_each(|(from, to, edge)| {
@@ -124,7 +120,7 @@ pub fn split_chunks(module_graph: &ModuleGraph) -> Vec<Chunk> {
 
   let mut reachable_modules = HashSet::new();
 
-  for (root_which_is_node_idx_of_chunks_entry_module, _) in &chunk_roots {
+  for root_which_is_node_idx_of_chunks_entry_module in chunk_roots.keys() {
     depth_first_search(
       &dependency_graph,
       Some(*root_which_is_node_idx_of_chunks_entry_module),
@@ -168,8 +164,8 @@ pub fn split_chunks(module_graph: &ModuleGraph) -> Vec<Chunk> {
       .iter()
       .cloned()
       .filter(|b| {
-        (&reachable)
-          .into_iter()
+        reachable
+          .iter()
           .all(|a| !reachable_chunks.contains(&(*a, *b)))
       })
       .collect();
@@ -182,7 +178,7 @@ pub fn split_chunks(module_graph: &ModuleGraph) -> Vec<Chunk> {
           chunk_graph.add_edge(chunk_roots[a].1, *chunk_id, 0);
         }
       }
-    } else if reachable.len() > 0 {
+    } else if !reachable.is_empty() {
       // If the asset is reachable from more than one entry, find or create
       // a chunk for that combination of entries, and add the asset to it.
       // let source_chunks = reachable
@@ -214,10 +210,8 @@ pub fn split_chunks(module_graph: &ModuleGraph) -> Vec<Chunk> {
 
   let (chunks, _) = chunk_graph.into_nodes_edges();
 
-  let chunks = chunks
+  chunks
     .into_iter()
     .map(|node| node.weight)
-    .collect::<Vec<_>>();
-
-  chunks
+    .collect::<Vec<_>>()
 }

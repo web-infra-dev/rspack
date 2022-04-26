@@ -52,7 +52,7 @@ impl Worker {
         let source = load(module_id, &self.plugin_driver).await;
         let mut dependency_scanner = DependencyScanner::default();
 
-        let raw_ast = parse_file(source, &module_id);
+        let raw_ast = parse_file(source, module_id);
         let mut ast = transform(raw_ast, &self.plugin_driver);
 
         self.pre_analyze_imported_module(&id_resolver, &ast).await;
