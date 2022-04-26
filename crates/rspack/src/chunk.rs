@@ -91,7 +91,7 @@ impl Chunk {
       })
       .collect::<Vec<_>>()
       .into_iter()
-      .for_each(|mut transform_output| output_code += &mut transform_output.code);
+      .for_each(|transform_output| output_code += &transform_output.code);
 
     RenderedChunk {
       code: output_code,
