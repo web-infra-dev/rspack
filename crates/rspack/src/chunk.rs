@@ -6,6 +6,7 @@ use crate::{
   utils::get_compiler,
   visitors::hmr_module_folder::hmr_module,
 };
+use rayon::prelude::*;
 use smol_str::SmolStr;
 use std::{
   collections::HashMap,
@@ -51,40 +52,46 @@ impl Chunk {
 
     let mut output_code = String::new();
     self.module_ids.sort_by_key(|id| modules[id].exec_order);
-    self.module_ids.iter().for_each(|idx| {
-      let module = modules.get(idx).unwrap();
-      let mut transform_output =
-        swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
-          let fm = compiler.cm.new_source_file(
-            FileName::Custom(module.id.to_string()),
-            module.id.to_string(),
-          );
-          Ok(
-            compiler
-              .process_js_with_custom_pass(
-                fm,
-                Some(module.ast.clone()),
-                handler,
-                &Options {
-                  global_mark: Some(top_level_mark),
-                  ..Default::default()
-                },
-                |_, _| noop(),
-                |_, _| {
-                  hmr_module(
-                    module.id.to_string(),
-                    top_level_mark.clone(),
-                    module.resolved_ids(),
-                    module.is_user_defined_entry_point,
-                  )
-                },
-              )
-              .unwrap(),
-          )
-        })
-        .unwrap();
-      output_code += &mut transform_output.code
-    });
+    self
+      .module_ids
+      .par_iter()
+      .map(|idx| {
+        let module = modules.get(idx).unwrap();
+        let mut transform_output =
+          swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
+            let fm = compiler.cm.new_source_file(
+              FileName::Custom(module.id.to_string()),
+              module.id.to_string(),
+            );
+            Ok(
+              compiler
+                .process_js_with_custom_pass(
+                  fm,
+                  Some(module.ast.clone()),
+                  handler,
+                  &Options {
+                    global_mark: Some(top_level_mark),
+                    ..Default::default()
+                  },
+                  |_, _| noop(),
+                  |_, _| {
+                    hmr_module(
+                      module.id.to_string(),
+                      top_level_mark.clone(),
+                      module.resolved_ids(),
+                      module.is_user_defined_entry_point,
+                    )
+                  },
+                )
+                .unwrap(),
+            )
+          })
+          .unwrap();
+        transform_output
+      })
+      .collect::<Vec<_>>()
+      .into_iter()
+      .for_each(|mut transform_output| output_code += &mut transform_output.code);
 
     RenderedChunk {
       code: output_code,
