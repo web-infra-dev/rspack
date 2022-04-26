@@ -99,7 +99,7 @@ impl Bundler {
     }
   }
 
-  #[instrument]
+  #[instrument(skip(self))]
   pub async fn build(&mut self) {
     let module_graph =
       ModuleGraph::build_from(self.options.clone(), self.plugin_driver.clone()).await;

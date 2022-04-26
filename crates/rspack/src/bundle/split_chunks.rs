@@ -18,7 +18,7 @@ struct Dependency {
 
 type ModulePetGraph<'a> = petgraph::graphmap::DiGraphMap<&'a str, Dependency>;
 
-#[instrument]
+#[instrument(skip(module_graph))]
 pub fn split_chunks(module_graph: &ModuleGraph) -> Vec<Chunk> {
   let module_by_id: &HashMap<SmolStr, JsModule> = &module_graph.module_by_id;
   let resolved_entries: &Vec<ResolvedId> = &module_graph.resolved_entries;

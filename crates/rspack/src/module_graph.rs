@@ -116,7 +116,7 @@ impl ModuleGraph {
     self.ordered_modules = modules.iter().map(|m| m.id.clone()).collect();
   }
 
-  #[instrument]
+  #[instrument(skip(bundle_options, plugin_driver))]
   pub async fn build_from(
     bundle_options: Arc<BundleOptions>,
     plugin_driver: Arc<PluginDriver>,
