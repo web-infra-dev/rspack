@@ -38,7 +38,7 @@ tracing-futures = "0.2.5"
 tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
 linked-hash-map = "0.5.4"
 serde_json = "1.0.59"
-node_resolver = "0.1.1"
+nodejs-resolver = "0.0.2"
 
 [dev-dependencies]
 swc_ecma_transforms_testing = "0.80.0"
