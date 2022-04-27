@@ -161,7 +161,9 @@ impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
             }
           }
         }
-        _ => {}
+        _ => {
+          call_expr.visit_mut_children_with(self);
+        }
       }
     }
   }
@@ -169,6 +171,7 @@ impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
   fn visit_mut_str(&mut self, str: &mut Str) {
     if self.rewriting {
       if let Some(rid) = self.resolved_ids.get(&str.value) {
+        dbg!(&self.resolved_ids, &str.value);
         let id = &rid.value().id;
         str.value = JsWord::from(id.to_string());
         str.raw = Some(JsWord::from(format!("\"{}\"", id.to_string())));
