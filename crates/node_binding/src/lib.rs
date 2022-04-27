@@ -39,7 +39,7 @@ pub fn new_rspack(option_json: String) -> External<Rspack> {
     RspackBundlerOptions {
       entries: options.entries,
       minify: options.minify,
-      outdir: options.outdir,
+      outdir: options.outdir.unwrap(),
       entry_file_names: options.entry_file_names,
       mode: BundleMode::Dev,
     },

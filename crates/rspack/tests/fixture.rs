@@ -41,7 +41,7 @@ mod testing {
     let mut bundler = Bundler::new(
       BundleOptions {
         entries: entry,
-        outdir: Some(dist.to_str().unwrap().to_string()),
+        outdir: dist.to_str().unwrap().to_string(),
         ..Default::default()
       },
       plugins,

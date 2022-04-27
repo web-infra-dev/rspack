@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use crate::{
-  bundler::BundleContext,
+  bundler::{BundleContext, BundleOptions},
+  chunk::Chunk,
   structs::ResolvedId,
   traits::plugin::{Plugin, TransformHookOutput},
 };
@@ -37,5 +38,12 @@ impl PluginDriver {
     self.plugins.iter().fold(ast, |transformed_ast, plugin| {
       plugin.transform(&self.ctx, transformed_ast)
     })
+  }
+
+  pub fn tap_generated_chunk(&self, chunk: &Chunk, bundle_options: &BundleOptions) {
+    self
+      .plugins
+      .iter()
+      .for_each(|plugin| plugin.tap_generated_chunk(&self.ctx, chunk, bundle_options));
   }
 }

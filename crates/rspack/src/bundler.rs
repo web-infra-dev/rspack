@@ -58,7 +58,7 @@ pub struct BundleOptions {
   pub entries: Vec<String>,
   // pub format: InternalModuleFormat,
   pub minify: bool,
-  pub outdir: Option<String>,
+  pub outdir: String,
   pub entry_file_names: String, // | ((chunkInfo: PreRenderedChunk) => string)
 }
 
@@ -68,7 +68,11 @@ impl Default for BundleOptions {
       mode: BundleMode::Prod,
       entries: Default::default(),
       // format: InternalModuleFormat::ES,
-      outdir: Default::default(),
+      outdir: std::env::current_dir()
+        .unwrap()
+        .join("./dist")
+        .to_string_lossy()
+        .to_string(),
       minify: Default::default(),
       entry_file_names: "[name].js".to_string(),
     }
@@ -100,7 +104,7 @@ impl Bundler {
       ModuleGraph::build_from(self.options.clone(), self.plugin_driver.clone()).await;
 
     let mut bundle = Bundle::new(module_graph, self.options.clone());
-    let output = bundle.generate();
+    let output = bundle.generate(&self.plugin_driver);
     output.into_iter().for_each(|(_, chunk)| {
       self.ctx.assets.lock().unwrap().push(Asset {
         source: chunk.code,
@@ -111,12 +115,9 @@ impl Bundler {
 
   pub fn write_assets_to_disk(&self) {
     self.ctx.assets.lock().unwrap().iter().for_each(|asset| {
-      let mut path = self
-        .options
-        .outdir
-        .clone()
-        .map(PathBuf::from)
-        .unwrap_or_else(|| std::env::current_dir().unwrap());
+      let mut path = PathBuf::from(self.options.outdir.clone());
+      // .map(PathBuf::from)
+      // .unwrap_or_else(|| std::env::current_dir().unwrap());
       path.push(&asset.filename);
       std::fs::create_dir_all(path.resolve().parent().unwrap()).unwrap();
       std::fs::write(path.resolve(), &asset.source).unwrap();
