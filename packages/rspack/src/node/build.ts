@@ -44,7 +44,8 @@ export async function run(options: BundlerOptions) {
   const bundler = new Rspack({
     entries: [entry],
     minify: false,
-    entryFileNames: path.resolve(root, 'dist/main.js'),
+    outdir: path.resolve(root, 'dist'),
+    entryFileNames: 'main.js',
   });
   const server = new DevServer({
     root,

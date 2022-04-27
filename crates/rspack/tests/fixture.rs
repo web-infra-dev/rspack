@@ -128,7 +128,6 @@ mod testing {
   }
 
   #[test]
-  #[ignore = "not support npm yet"]
   fn npm() {
     compile("npm", vec![])
   }
