@@ -21,6 +21,7 @@ use crate::{
   utils::resolve_id, worker2::Worker,
 };
 
+#[derive(Debug)]
 pub enum Msg {
   // DependencyReference(SmolStr, SmolStr, Rel),
   NewMod(JsModule),

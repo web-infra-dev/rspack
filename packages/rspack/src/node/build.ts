@@ -37,7 +37,9 @@ export type BundlerOptions = {
 export async function run(options: BundlerOptions) {
   const { root } = options;
   const entry = path.resolve(root, 'index.js');
-  const watcher = chokidar.watch(root);
+  const watcher = chokidar.watch(root, {
+    ignored: path.resolve(root, 'dist'),
+  });
 
   const bundler = new Rspack({
     entries: [entry],
