@@ -1,6 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{bundler::BundleOptions, module_graph::ModuleGraph, structs::OutputChunk};
+use crate::{
+  bundler::BundleOptions, module_graph::ModuleGraph, plugin_driver::PluginDriver,
+  structs::OutputChunk,
+};
 use tracing::instrument;
 
 use self::split_chunks::split_chunks;
@@ -21,12 +24,16 @@ impl Bundle {
   }
 
   #[instrument(skip(self))]
-  pub fn generate(&mut self) -> HashMap<String, OutputChunk> {
+  pub fn generate(&mut self, plugin_dirver: &PluginDriver) -> HashMap<String, OutputChunk> {
     let mut chunks = split_chunks(&self.graph);
 
     chunks.iter_mut().for_each(|chunk| {
       chunk.id = chunk.generate_id(&self.output_options);
     });
+
+    chunks
+      .iter()
+      .for_each(|chunk| plugin_dirver.tap_generated_chunk(chunk, &self.output_options));
 
     chunks
       .iter_mut()

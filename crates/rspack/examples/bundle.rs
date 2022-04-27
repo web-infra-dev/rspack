@@ -10,7 +10,7 @@ async fn main() {
       ],
       // entries: vec!["./fixtures/single-entry/index.js".to_owned()],
       // entries: vec!["./packages/rspack/node_modules/lodash-es/lodash.js".to_owned()],
-      outdir: Some("./dist".to_string()),
+      outdir: "./dist".to_string(),
       ..Default::default()
     },
     vec![],

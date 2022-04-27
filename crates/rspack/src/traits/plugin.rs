@@ -2,7 +2,11 @@ use std::fmt::Debug;
 
 use async_trait::async_trait;
 
-use crate::{bundler::BundleContext, structs::ResolvedId};
+use crate::{
+  bundler::{BundleContext, BundleOptions},
+  chunk::Chunk,
+  structs::ResolvedId,
+};
 
 pub type LoadHookOutput = Option<String>;
 pub type ResolveHookOutput = Option<ResolvedId>;
@@ -31,5 +35,14 @@ pub trait Plugin: Sync + Send + Debug {
   #[inline]
   fn transform(&self, _ctx: &BundleContext, ast: swc_ecma_ast::Program) -> TransformHookOutput {
     ast
+  }
+
+  #[inline]
+  fn tap_generated_chunk(
+    &self,
+    _ctx: &BundleContext,
+    _chunk: &Chunk,
+    _bundle_options: &BundleOptions,
+  ) {
   }
 }

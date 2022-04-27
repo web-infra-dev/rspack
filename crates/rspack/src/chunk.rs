@@ -110,13 +110,13 @@ impl Chunk {
   }
 
   #[inline]
-  pub fn get_chunk_name(&self) -> &str {
+  pub fn name(&self) -> &str {
     self.get_fallback_chunk_name()
   }
 
   pub fn generate_id(&self, options: &BundleOptions) -> SmolStr {
     let pattern = &options.entry_file_names;
-    pattern.replace("[name]", self.get_chunk_name()).into()
+    pattern.replace("[name]", self.name()).into()
   }
 }
 
