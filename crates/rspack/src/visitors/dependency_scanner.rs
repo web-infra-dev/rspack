@@ -1,9 +1,7 @@
 use std::collections::HashSet;
 
 use linked_hash_map::LinkedHashMap;
-use swc_atoms::{js_word, JsWord};
-use swc_common::SyntaxContext;
-use swc_ecma_utils::ExprFactory;
+use swc_atoms::JsWord;
 use swc_ecma_visit::{VisitMut, VisitMutWith};
 
 use crate::structs::DynImportDesc;
