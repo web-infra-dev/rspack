@@ -39,7 +39,13 @@ pub fn new_rspack(option_json: String) -> External<Rspack> {
     RspackBundlerOptions {
       entries: options.entries,
       minify: options.minify,
-      outdir: options.outdir.unwrap(),
+      outdir: options.outdir.unwrap_or_else(|| {
+        std::env::current_dir()
+          .unwrap()
+          .join("./dist")
+          .to_string_lossy()
+          .to_string()
+      }),
       entry_file_names: options.entry_file_names,
       mode: BundleMode::Dev,
     },

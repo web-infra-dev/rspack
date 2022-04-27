@@ -12,7 +12,7 @@ export class ExternalObject<T> {
 export interface BundleOptions {
   entries: Array<string>
   minify: boolean
-  outdir?: string | undefined | null
+  outdir?: string
   entryFileNames: string
 }
 export function newRspack(optionJson: string): ExternalObject<Rspack>
