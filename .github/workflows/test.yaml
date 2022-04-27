@@ -5,8 +5,11 @@ on:
     branches:
       - main
     tags-ignore:
-      - '**'
+      - "**"
   pull_request:
+
+env:
+  TRACE: DEBUG
 
 jobs:
   cargo-test:

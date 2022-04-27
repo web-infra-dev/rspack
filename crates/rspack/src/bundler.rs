@@ -103,6 +103,23 @@ impl Bundler {
     let module_graph =
       ModuleGraph::build_from(self.options.clone(), self.plugin_driver.clone()).await;
 
+    tracing::debug!("module_graph:\n{:#?}", module_graph);
+
+    let mut bundle = Bundle::new(module_graph, self.options.clone());
+    let output = bundle.generate(&self.plugin_driver);
+    output.into_iter().for_each(|(_, chunk)| {
+      self.ctx.assets.lock().unwrap().push(Asset {
+        source: chunk.code,
+        filename: chunk.file_name,
+      })
+    });
+  }
+
+  #[instrument(skip(self))]
+  pub async fn rebuild(&mut self, changed_files: Vec<String>) {
+    let module_graph =
+      ModuleGraph::build_from(self.options.clone(), self.plugin_driver.clone()).await;
+
     let mut bundle = Bundle::new(module_graph, self.options.clone());
     let output = bundle.generate(&self.plugin_driver);
     output.into_iter().for_each(|(_, chunk)| {
