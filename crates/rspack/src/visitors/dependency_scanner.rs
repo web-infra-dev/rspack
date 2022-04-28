@@ -14,7 +14,9 @@ pub struct DependencyScanner {
 
 impl DependencyScanner {}
 
-use swc_ecma_ast::{CallExpr, Callee, ExportSpecifier, Expr, Lit, ModuleDecl};
+use swc_ecma_ast::{
+  CallExpr, Callee, ExportSpecifier, Expr, ExprOrSpread, Ident, ImportDecl, Lit, ModuleDecl,
+};
 
 impl DependencyScanner {
   pub fn add_import(&mut self, module_decl: &mut ModuleDecl) {
@@ -23,7 +25,28 @@ impl DependencyScanner {
       self.dependencies.entry(source.clone()).or_insert(());
     }
   }
-
+  pub fn add_require(&mut self, call_expr: &CallExpr) {
+    if let Callee::Expr(expr) = &call_expr.callee {
+      if let Expr::Ident(ident) = &**expr {
+        if "require".eq(&ident.sym) {
+          {
+            if call_expr.args.len() != 1 {
+              return;
+            }
+            let src = match call_expr.args.first().unwrap() {
+              ExprOrSpread { spread: None, expr } => match &**expr {
+                Expr::Lit(Lit::Str(s)) => s,
+                _ => return,
+              },
+              _ => return,
+            };
+            let source = &src.value;
+            self.dependencies.entry(source.clone()).or_insert(());
+          }
+        }
+      }
+    }
+  }
   pub fn add_dynamic_import(&mut self, node: &CallExpr) {
     if let Callee::Import(_) = node.callee {
       if let Some(dyn_imported) = node.args.get(0) {
@@ -83,10 +106,9 @@ impl VisitMut for DependencyScanner {
     }
     node.visit_mut_children_with(self);
   }
-
   fn visit_mut_call_expr(&mut self, node: &mut CallExpr) {
     self.add_dynamic_import(node);
-
+    self.add_require(node);
     node.visit_mut_children_with(self);
   }
 }
