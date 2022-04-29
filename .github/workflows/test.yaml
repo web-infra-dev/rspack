@@ -32,4 +32,4 @@ jobs:
           override: true
 
       - name: Test
-        run: cargo test --all --all-features -- --nocapture
+        run: cargo test --all --all-features -- --nocapture --test-threads=1
