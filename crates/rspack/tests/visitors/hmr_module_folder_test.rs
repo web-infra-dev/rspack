@@ -99,3 +99,31 @@ test!(
   rs.require("/a.js");
   "#
 );
+
+test!(
+  syntax(),
+  |_tester| {
+    let top_level_mark = Mark::fresh(Mark::root());
+
+    chain!(
+      resolver_with_mark(top_level_mark),
+      hmr_module("/a.js".to_string(), top_level_mark, &RESOLVED_IDS, false)
+    )
+  },
+  hmr_module_transform_require_inside_iife,
+  r#"
+  (function() {
+    const b = require('./b')
+    console.log(b);
+  })()
+  "#,
+  r#"
+  rs.define("/a.js", function(require, module, exports) {
+    "use strict";
+    (function() {
+        const b = require("/b.js");
+        console.log(b);
+    })();
+  });
+  "#
+);

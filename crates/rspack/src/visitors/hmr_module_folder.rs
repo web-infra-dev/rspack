@@ -161,7 +161,7 @@ impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
             }
           }
         }
-        _ => {}
+        _ => call_expr.visit_mut_children_with(self),
       }
     }
   }
