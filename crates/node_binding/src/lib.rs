@@ -67,3 +67,17 @@ pub fn build(env: Env, rspack: External<Rspack>) -> Result<JsObject> {
     |_env, ret| Ok(ret),
   )
 }
+
+#[napi]
+pub fn rebuild(env: Env, rspack: External<Rspack>, chnaged_file: String) -> Result<JsObject> {
+  let bundler = (*rspack).clone();
+  env.execute_tokio_future(
+    async move {
+      let mut bundler = bundler.lock().await;
+      let changed = bundler.rebuild(chnaged_file).await;
+      bundler.write_assets_to_disk();
+      Ok(changed)
+    },
+    |_env, ret| Ok(ret),
+  )
+}
