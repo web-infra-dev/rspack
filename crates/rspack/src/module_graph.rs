@@ -201,4 +201,75 @@ impl ModuleGraph {
     module_graph.sort_modules();
     module_graph
   }
+
+  #[instrument(skip(bundle_options, plugin_driver, module_graph, changed_file))]
+  pub async fn build_from_cache(
+    bundle_options: Arc<BundleOptions>,
+    plugin_driver: Arc<PluginDriver>,
+    mut module_graph: ModuleGraph,
+    changed_file: SmolStr,
+  ) -> Self {
+    let nums_of_thread = num_cpus::get();
+    let idle_thread_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(nums_of_thread));
+    let job_queue: Arc<SegQueue<ResolvedId>> = Default::default();
+    job_queue.push(ResolvedId {
+      id: changed_file.clone(),
+      external: false,
+    });
+
+    let visited_module_id: Arc<DashSet<SmolStr>> = Arc::new(
+      module_graph
+        .module_by_id
+        .keys()
+        .cloned()
+        .collect::<DashSet<_>>(),
+    );
+    visited_module_id.remove(&changed_file);
+
+    let (tx, rx) = channel::unbounded::<Msg>();
+
+    for _ in 0..nums_of_thread {
+      let idle_thread_count = idle_thread_count.clone();
+      let mut worker = Worker {
+        tx: tx.clone(),
+        job_queue: job_queue.clone(),
+        visited_module_id: visited_module_id.clone(),
+        plugin_driver: plugin_driver.clone(),
+      };
+      tokio::task::spawn(async move {
+        'root: loop {
+          idle_thread_count.fetch_sub(1, Ordering::SeqCst);
+          worker.run().await;
+          idle_thread_count.fetch_add(1, Ordering::SeqCst);
+          loop {
+            if !worker.job_queue.is_empty() {
+              break;
+              // need to work again
+            } else if idle_thread_count.load(Ordering::SeqCst) == nums_of_thread {
+              // All threads are idle now. There's no more work to do.
+              break 'root;
+            }
+          }
+        }
+      });
+    }
+
+    while idle_thread_count.load(Ordering::SeqCst) != nums_of_thread
+      || job_queue.len() > 0
+      || !rx.is_empty()
+    {
+      if let Ok(job) = rx.try_recv() {
+        match job {
+          Msg::NewMod(module) => {
+            module_graph.module_by_id.insert(module.id.clone(), module);
+          } // _ => {}
+        }
+      }
+    }
+
+    // TODO: We need to remove nodes without edges.
+
+    module_graph.sort_modules();
+    module_graph
+  }
 }
