@@ -1,48 +1,5 @@
-use std::fmt::Debug;
+pub use rspack_plugin::LoadHookOutput;
+pub use rspack_plugin::ResolveHookOutput;
+pub use rspack_plugin::TransformHookOutput;
 
-use async_trait::async_trait;
-
-use crate::{
-  bundler::{BundleContext, BundleOptions},
-  chunk::Chunk,
-  structs::ResolvedId,
-};
-
-pub type LoadHookOutput = Option<String>;
-pub type ResolveHookOutput = Option<ResolvedId>;
-pub type TransformHookOutput = swc_ecma_ast::Program;
-
-#[async_trait]
-pub trait Plugin: Sync + Send + Debug {
-  #[inline]
-  async fn prepare(&self, _ctx: &BundleContext) {}
-
-  #[inline]
-  async fn resolve(
-    &self,
-    _ctx: &BundleContext,
-    _importee: &str,
-    _importer: Option<&str>,
-  ) -> ResolveHookOutput {
-    None
-  }
-
-  #[inline]
-  async fn load(&self, _ctx: &BundleContext, _id: &str) -> LoadHookOutput {
-    None
-  }
-
-  #[inline]
-  fn transform(&self, _ctx: &BundleContext, ast: swc_ecma_ast::Program) -> TransformHookOutput {
-    ast
-  }
-
-  #[inline]
-  fn tap_generated_chunk(
-    &self,
-    _ctx: &BundleContext,
-    _chunk: &Chunk,
-    _bundle_options: &BundleOptions,
-  ) {
-  }
-}
+pub use rspack_plugin::Plugin;

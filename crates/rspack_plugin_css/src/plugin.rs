@@ -1,8 +1,7 @@
-use crate::bundler::{Asset, BundleContext, BundleOptions};
-use crate::chunk::Chunk;
-use crate::css::handle_with_css::{is_css_source, CssSourceType};
-use crate::traits::plugin::{LoadHookOutput, Plugin};
+use crate::handle_with_css::{is_css_source, CssSourceType};
 use async_trait::async_trait;
+use rspack_plugin::{LoadHookOutput, Plugin};
+use rspack_shared::{Asset, BundleContext, BundleOptions, Chunk};
 use rspack_style::new_less::applicationn::Application;
 use std::collections::HashMap;
 use std::fmt::Debug;

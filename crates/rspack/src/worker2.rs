@@ -1,20 +1,43 @@
 use std::sync::Arc;
 
 use crossbeam::{channel::Sender, queue::SegQueue};
-use dashmap::DashSet;
+use dashmap::{DashMap, DashSet};
+use rspack_shared::JsModule;
 use smol_str::SmolStr;
+use swc_atoms::JsWord;
 use swc_ecma_ast::{ModuleDecl, ModuleItem};
 use swc_ecma_visit::VisitMutWith;
 use tracing::instrument;
 
 use crate::{
-  js_module::{DependencyIdResolver, JsModule},
   module_graph::Msg,
   plugin_driver::PluginDriver,
   structs::ResolvedId,
-  utils::{load, parse_file, transform},
+  utils::{load, parse_file, resolve_id, transform},
   visitors::dependency_scanner::DependencyScanner,
 };
+
+#[derive(Debug)]
+pub struct DependencyIdResolver {
+  pub module_id: SmolStr,
+  pub resolved_ids: DashMap<JsWord, ResolvedId>,
+  pub plugin_driver: Arc<PluginDriver>,
+}
+
+impl DependencyIdResolver {
+  pub async fn resolve_id(&self, dep_src: &JsWord) -> ResolvedId {
+    let resolved_id;
+    if let Some(cached) = self.resolved_ids.get(dep_src) {
+      resolved_id = cached.clone();
+    } else {
+      resolved_id = resolve_id(dep_src, Some(&self.module_id), false, &self.plugin_driver).await;
+      self
+        .resolved_ids
+        .insert(dep_src.clone(), resolved_id.clone());
+    }
+    resolved_id
+  }
+}
 
 #[derive(Debug)]
 pub struct Worker {
@@ -76,7 +99,12 @@ impl Worker {
           dependencies: dependency_scanner.dependencies,
           dyn_dependencies: dependency_scanner.dyn_dependencies,
           is_user_defined_entry_point: Default::default(),
-          dependency_resolver: id_resolver,
+          resolved_ids: id_resolver
+            .resolved_ids
+            .into_iter()
+            .map(|(key, value)| (key, value))
+            .collect(),
+          // dependency_resolver: id_resolver,
         };
 
         self.tx.send(Msg::NewMod(module)).unwrap()

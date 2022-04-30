@@ -13,12 +13,13 @@ use crossbeam::{
 use dashmap::DashSet;
 use futures::future::join_all;
 use petgraph::graph::NodeIndex;
+use rspack_shared::JsModule;
 use smol_str::SmolStr;
 use tracing::instrument;
 
 use crate::{
-  bundler::BundleOptions, js_module::JsModule, plugin_driver::PluginDriver, structs::ResolvedId,
-  utils::resolve_id, worker2::Worker,
+  bundler::BundleOptions, plugin_driver::PluginDriver, structs::ResolvedId, utils::resolve_id,
+  worker2::Worker,
 };
 
 #[derive(Debug)]
@@ -71,7 +72,7 @@ impl ModuleGraph {
           .into_iter()
           .rev()
           .for_each(|dep| {
-            let rid = module.resolved_ids().get(dep).unwrap().clone();
+            let rid = module.resolved_ids.get(dep).unwrap().clone();
             stack.push(rid.id);
           });
         module
@@ -81,7 +82,7 @@ impl ModuleGraph {
           .into_iter()
           .rev()
           .for_each(|dep| {
-            let rid = module.resolved_ids().get(&dep.argument).unwrap().clone();
+            let rid = module.resolved_ids.get(&dep.argument).unwrap().clone();
             dyn_imports.push(rid.id);
           });
       } else {
@@ -102,7 +103,7 @@ impl ModuleGraph {
           .into_iter()
           .rev()
           .for_each(|dep| {
-            let rid = module.resolved_ids().get(dep).unwrap().clone();
+            let rid = module.resolved_ids.get(dep).unwrap().clone();
             stack.push(rid.id);
           });
       } else {

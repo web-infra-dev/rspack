@@ -1,11 +1,4 @@
-use crate::{
-  bundler::BundleOptions,
-  js_module::JsModule,
-  mark_box::MarkBox,
-  structs::{OutputChunk, RenderedChunk},
-  utils::get_compiler,
-  visitors::hmr_module_folder::hmr_module,
-};
+use crate::{hmr::hmr_module, js_module::JsModule, BundleOptions};
 use rayon::prelude::*;
 use smol_str::SmolStr;
 use std::{
@@ -13,7 +6,7 @@ use std::{
   path::Path,
   sync::{Arc, Mutex},
 };
-use swc::config::Options;
+use swc::{config::Options, Compiler};
 use swc_common::{FileName, Mark};
 use swc_ecma_transforms_base::pass::noop;
 
@@ -26,7 +19,7 @@ pub struct Chunk {
 }
 
 impl Chunk {
-  pub fn new(module_ids: Vec<SmolStr>, _symbol_box: Arc<Mutex<MarkBox>>, entries: SmolStr) -> Self {
+  pub fn new(module_ids: Vec<SmolStr>, entries: SmolStr) -> Self {
     Self {
       id: Default::default(),
       module_ids,
@@ -46,8 +39,9 @@ impl Chunk {
     &mut self,
     _options: &BundleOptions,
     modules: &mut HashMap<SmolStr, JsModule>,
+    compiler: Arc<Compiler>,
   ) -> RenderedChunk {
-    let compiler = get_compiler();
+    // let compiler = get_compiler();
     let top_level_mark = Mark::from_u32(1);
 
     let mut output_code = String::new();
@@ -77,7 +71,7 @@ impl Chunk {
                   hmr_module(
                     module.id.to_string(),
                     top_level_mark,
-                    module.resolved_ids(),
+                    &module.resolved_ids,
                     module.is_user_defined_entry_point,
                   )
                 },
@@ -127,4 +121,16 @@ fn get_alias_name(id: &str) -> &str {
   let ext_len = p.extension().map_or(0, |s| s.to_string_lossy().len() + 1);
   let file_name = p.file_name().unwrap().to_str().unwrap();
   &file_name[0..file_name.len() - ext_len]
+}
+
+#[derive(Debug)]
+pub struct OutputChunk {
+  pub code: String,
+  pub file_name: String,
+}
+
+#[derive(Debug)]
+pub struct RenderedChunk {
+  pub code: String,
+  pub file_name: String,
 }

@@ -1,0 +1,23 @@
+[package]
+name = "rspack_shared"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# rspack_hmr = { path = "../rspack_hmr" }
+smol_str = "0.1.21"
+swc = "0.169.0"
+swc_atoms = "0.2.11"
+ast = { package = "swc_ecma_ast" , version = "0.76.0" }
+swc_ecma_codegen = "0.105.2"
+swc_ecma_parser = "0.102.3"
+swc_ecma_visit = "0.62.0"
+swc_common = "0.17.22"
+swc_ecma_transforms_base = "0.78.0"
+swc_ecma_transforms_module = "0.105.1"
+swc_ecma_utils = "0.81.0"
+rayon = "1.5.1"
+dashmap = "5.0.0"
+linked-hash-map = "0.5.4"

@@ -1,13 +1,7 @@
-use crate::{external_module::ExternalModule, js_module::JsModule};
+use crate::external_module::ExternalModule;
 
 #[derive(Debug)]
 pub struct OutputChunk {
-  pub code: String,
-  pub file_name: String,
-}
-
-#[derive(Debug)]
-pub struct RenderedChunk {
   pub code: String,
   pub file_name: String,
 }
@@ -44,26 +38,12 @@ pub enum ModOrExt {
 
 use std::{collections::HashSet, hash::Hash};
 
+use rspack_shared::JsModule;
 use smol_str::SmolStr;
 use swc_atoms::JsWord;
 use swc_common::Mark;
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub struct ResolvedId {
-  pub id: SmolStr,
-  pub external: bool,
-}
-
-impl ResolvedId {
-  pub fn new<T: Into<SmolStr>>(id: T, external: bool) -> Self {
-    Self {
-      id: id.into(),
-      external,
-      // module_side_effects: false,
-    }
-  }
-}
-
+pub use rspack_shared::ResolvedId;
 pub type ResolveIdResult = Option<ResolvedId>;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -116,15 +96,4 @@ pub struct ReExportDesc {
   pub mark: Mark,
 }
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub struct DynImportDesc {
-  pub argument: JsWord,
-  // pub id: Option<JsWord>,
-}
-
-#[derive(Debug, Clone)]
-pub enum BundleMode {
-  Dev,
-  Prod,
-  None,
-}
+pub use rspack_shared::DynImportDesc;

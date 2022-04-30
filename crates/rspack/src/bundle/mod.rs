@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::{
   bundler::BundleOptions, module_graph::ModuleGraph, plugin_driver::PluginDriver,
-  structs::OutputChunk,
+  structs::OutputChunk, utils::get_compiler,
 };
 use tracing::instrument;
 
@@ -34,11 +34,16 @@ impl Bundle {
     chunks
       .iter()
       .for_each(|chunk| plugin_dirver.tap_generated_chunk(chunk, &self.output_options));
+    let compiler = get_compiler();
 
     chunks
       .iter_mut()
       .map(|chunk| {
-        let chunk = chunk.render(&self.output_options, &mut graph.module_by_id);
+        let chunk = chunk.render(
+          &self.output_options,
+          &mut graph.module_by_id,
+          compiler.clone(),
+        );
         (
           chunk.file_name.clone(),
           OutputChunk {

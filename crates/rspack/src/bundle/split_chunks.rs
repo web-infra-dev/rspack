@@ -6,10 +6,11 @@ use petgraph::{
   visit::{depth_first_search, Control, DfsEvent},
   EdgeDirection,
 };
+use rspack_shared::{Chunk, JsModule};
 use smol_str::SmolStr;
 use tracing::instrument;
 
-use crate::{chunk::Chunk, js_module::JsModule, module_graph::ModuleGraph, structs::ResolvedId};
+use crate::{module_graph::ModuleGraph, structs::ResolvedId};
 
 #[derive(Clone, Debug)]
 struct Dependency {
@@ -38,7 +39,7 @@ pub fn split_chunks(module_graph: &ModuleGraph) -> Vec<Chunk> {
       .collect::<Vec<_>>()
       .into_iter()
       .for_each(|dep| {
-        let dep_rid = module.resolved_ids().get(dep).unwrap().clone();
+        let dep_rid = module.resolved_ids.get(dep).unwrap().clone();
         egdes.push((
           module.id.clone(),
           dep_rid.id,
@@ -51,7 +52,7 @@ pub fn split_chunks(module_graph: &ModuleGraph) -> Vec<Chunk> {
       .collect::<Vec<_>>()
       .into_iter()
       .for_each(|dep| {
-        let dep_rid = module.resolved_ids().get(&dep.argument).unwrap().clone();
+        let dep_rid = module.resolved_ids.get(&dep.argument).unwrap().clone();
         egdes.push((module.id.clone(), dep_rid.id, Dependency { is_async: true }))
       });
   });

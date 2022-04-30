@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::{bundler::BundleContext, structs::ResolvedId, traits::plugin::Plugin};
+use crate::{BundleContext, Plugin, ResolvedId};
 
 // We could use this to dispatch Plugin trait staticly
 #[derive(Debug)]
@@ -44,7 +44,7 @@ impl<A: Plugin, B: Plugin> Plugin for CombinedPlugin<A, B> {
     }
   }
 
-  fn transform(&self, ctx: &BundleContext, ast: swc_ecma_ast::Program) -> swc_ecma_ast::Program {
+  fn transform(&self, ctx: &BundleContext, ast: ast::Program) -> ast::Program {
     let left_res = self.left.transform(ctx, ast);
     self.right.transform(ctx, left_res)
   }

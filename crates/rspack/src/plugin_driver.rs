@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
+use rspack_shared::Chunk;
+
 use crate::{
   bundler::{BundleContext, BundleOptions},
-  chunk::Chunk,
   structs::ResolvedId,
   traits::plugin::{Plugin, TransformHookOutput},
 };
