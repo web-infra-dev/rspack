@@ -14,9 +14,7 @@ pub struct DependencyScanner {
 
 impl DependencyScanner {}
 
-use swc_ecma_ast::{
-  CallExpr, Callee, ExportSpecifier, Expr, ExprOrSpread, Ident, ImportDecl, Lit, ModuleDecl,
-};
+use swc_ecma_ast::{CallExpr, Callee, ExportSpecifier, Expr, ExprOrSpread, Lit, ModuleDecl};
 
 impl DependencyScanner {
   pub fn add_import(&mut self, module_decl: &mut ModuleDecl) {

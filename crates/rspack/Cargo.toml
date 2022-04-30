@@ -39,6 +39,7 @@ tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
 linked-hash-map = "0.5.4"
 serde_json = "1.0.59"
 nodejs-resolver = "0.0.2"
+rspack_style = "0.1"
 
 [dev-dependencies]
 swc_ecma_transforms_testing = "0.80.0"

@@ -1,6 +1,7 @@
 mod testing {
   use async_trait::async_trait;
   use rspack::bundler::{BundleContext, BundleOptions, Bundler};
+  use rspack::css::plugin::CssSourcePlugin;
   use rspack::traits::plugin::{LoadHookOutput, Plugin, ResolveHookOutput, TransformHookOutput};
   use serde_json::Value;
   use std::collections::HashMap;
@@ -9,6 +10,7 @@ mod testing {
   use std::path::Path;
   use std::sync::atomic::AtomicBool;
   use std::sync::Arc;
+
   #[tokio::main]
   async fn compile(fixture_path: &str, plugins: Vec<Box<dyn Plugin>>) {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -49,10 +51,12 @@ mod testing {
     bundler.build().await;
     bundler.write_assets_to_disk();
   }
+
   #[test]
   fn single_entry() {
     compile("single-entry", vec![])
   }
+
   #[test]
   fn multi_entry() {
     compile("multi-entry", vec![])
@@ -69,6 +73,7 @@ mod testing {
     call_load: Arc<AtomicBool>,
     call_transform: Arc<AtomicBool>,
   }
+
   #[async_trait]
   impl Plugin for TestPlugin {
     async fn resolve(
@@ -136,5 +141,11 @@ mod testing {
   #[test]
   fn cjs() {
     compile("cjs", vec![])
+  }
+
+  #[test]
+  fn css_bundle_test() {
+    let css_plugin: CssSourcePlugin = std::default::Default::default();
+    compile("css", vec![Box::new(css_plugin)])
   }
 }

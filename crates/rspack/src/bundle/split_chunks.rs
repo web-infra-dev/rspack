@@ -154,10 +154,7 @@ pub fn split_chunks(module_graph: &ModuleGraph) -> Vec<Chunk> {
   // Create a mapping from entry module ids to chunk ids.
   let mut chunks: HashMap<Vec<&str>, NodeIndex> = HashMap::new();
   let mut module_ids = dependency_graph.nodes().collect::<Vec<_>>();
-  module_ids.sort_by_key(|module_id| {
-    let is_chunk_entry_module = chunk_roots.contains_key(*module_id);
-    is_chunk_entry_module
-  });
+  module_ids.sort_by_key(|module_id| chunk_roots.contains_key(*module_id));
   module_ids.reverse();
   for module_id in module_ids {
     // Find chunk entries reachable from the module.
