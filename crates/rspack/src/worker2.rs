@@ -76,7 +76,7 @@ impl Worker {
         let source = load(module_id, &self.plugin_driver).await;
         let mut dependency_scanner = DependencyScanner::default();
 
-        let raw_ast = parse_file(source, module_id);
+        let raw_ast = parse_file(source, module_id).expect_module();
         let mut ast = transform(raw_ast, &self.plugin_driver);
 
         self.pre_analyze_imported_module(&id_resolver, &ast).await;
@@ -116,9 +116,9 @@ impl Worker {
   pub async fn pre_analyze_imported_module(
     &self,
     resolver: &DependencyIdResolver,
-    ast: &swc_ecma_ast::Program,
+    ast: &swc_ecma_ast::Module,
   ) {
-    for module_item in &ast.as_module().unwrap().body {
+    for module_item in &ast.body {
       if let ModuleItem::ModuleDecl(module_decl) = module_item {
         let mut depended = None;
         match module_decl {

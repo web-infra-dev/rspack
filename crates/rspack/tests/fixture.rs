@@ -97,7 +97,7 @@ mod testing {
     }
 
     #[inline]
-    fn transform(&self, _ctx: &BundleContext, ast: swc_ecma_ast::Program) -> TransformHookOutput {
+    fn transform(&self, _ctx: &BundleContext, ast: swc_ecma_ast::Module) -> TransformHookOutput {
       self
         .call_transform
         .store(true, std::sync::atomic::Ordering::SeqCst);

@@ -141,7 +141,7 @@ impl Bundler {
               compiler
                 .process_js_with_custom_pass(
                   fm,
-                  Some(module.ast.clone()),
+                  Some(swc_ecma_ast::Program::Module(module.ast.clone())),
                   handler,
                   &Options {
                     global_mark: Some(top_level_mark),

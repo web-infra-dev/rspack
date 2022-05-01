@@ -16,7 +16,7 @@ pub struct DynImportDesc {
 pub struct JsModule {
   pub exec_order: usize,
   pub id: SmolStr,
-  pub ast: ast::Program,
+  pub ast: ast::Module,
   pub dependencies: LinkedHashMap<JsWord, ()>,
   pub dyn_imports: HashSet<DynImportDesc>,
   pub is_user_defined_entry_point: bool,
@@ -45,7 +45,7 @@ impl JsModule {
     Self {
       exec_order: Default::default(),
       id: Default::default(),
-      ast: ast::Program::Module(Take::dummy()),
+      ast: Take::dummy(),
       dependencies: Default::default(),
       dyn_imports: Default::default(),
       is_user_defined_entry_point: Default::default(),

@@ -60,7 +60,7 @@ impl Chunk {
             compiler
               .process_js_with_custom_pass(
                 fm,
-                Some(module.ast.clone()),
+                Some(ast::Program::Module(module.ast.clone())),
                 handler,
                 &Options {
                   global_mark: Some(top_level_mark),

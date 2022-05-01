@@ -9,7 +9,7 @@ use rspack_shared::{BundleContext, BundleOptions, Chunk, ResolvedId};
 
 pub type LoadHookOutput = Option<String>;
 pub type ResolveHookOutput = Option<ResolvedId>;
-pub type TransformHookOutput = ast::Program;
+pub type TransformHookOutput = ast::Module;
 
 #[async_trait]
 pub trait Plugin: Sync + Send + Debug {
@@ -32,7 +32,7 @@ pub trait Plugin: Sync + Send + Debug {
   }
 
   #[inline]
-  fn transform(&self, _ctx: &BundleContext, ast: ast::Program) -> TransformHookOutput {
+  fn transform(&self, _ctx: &BundleContext, ast: ast::Module) -> TransformHookOutput {
     ast
   }
 
