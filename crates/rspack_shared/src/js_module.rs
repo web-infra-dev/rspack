@@ -1,9 +1,5 @@
-use std::{
-  collections::{HashMap, HashSet},
-  sync::Arc,
-};
+use std::collections::{HashMap, HashSet};
 
-use dashmap::DashMap;
 use linked_hash_map::LinkedHashMap;
 use smol_str::SmolStr;
 use swc_atoms::JsWord;
@@ -17,38 +13,14 @@ pub struct DynImportDesc {
   // pub id: Option<JsWord>,
 }
 
-#[derive(Debug)]
-pub struct DependencyIdResolver {
-  pub module_id: SmolStr,
-  pub resolved_ids: DashMap<JsWord, ResolvedId>,
-  // pub plugin_driver: Arc<PluginDriver>,
-}
-
-impl DependencyIdResolver {
-  pub async fn resolve_id(&self, dep_src: &JsWord) -> ResolvedId {
-    todo!();
-    // let resolved_id;
-    // if let Some(cached) = self.resolved_ids.get(dep_src) {
-    //   resolved_id = cached.clone();
-    // } else {
-    //   resolved_id = resolve_id(dep_src, Some(&self.module_id), false, &self.plugin_driver).await;
-    //   self
-    //     .resolved_ids
-    //     .insert(dep_src.clone(), resolved_id.clone());
-    // }
-    // resolved_id
-  }
-}
-
 pub struct JsModule {
   pub exec_order: usize,
   pub id: SmolStr,
   pub ast: ast::Program,
   pub dependencies: LinkedHashMap<JsWord, ()>,
-  pub dyn_dependencies: HashSet<DynImportDesc>,
+  pub dyn_imports: HashSet<DynImportDesc>,
   pub is_user_defined_entry_point: bool,
   pub resolved_ids: HashMap<JsWord, ResolvedId>,
-  // pub dependency_resolver: DependencyIdResolver,
 }
 
 impl std::fmt::Debug for JsModule {
@@ -58,7 +30,7 @@ impl std::fmt::Debug for JsModule {
       .field("id", &self.id)
       // .field("ast", &self.ast)
       .field("dependencies", &self.dependencies)
-      .field("dyn_dependencies", &self.dyn_dependencies)
+      .field("dyn_dependencies", &self.dyn_imports)
       .field(
         "is_user_defined_entry_point",
         &self.is_user_defined_entry_point,
@@ -69,24 +41,15 @@ impl std::fmt::Debug for JsModule {
 }
 
 impl JsModule {
-  pub fn new(dependency_resolver: DependencyIdResolver) -> Self {
+  pub fn new() -> Self {
     Self {
       exec_order: Default::default(),
       id: Default::default(),
       ast: ast::Program::Module(Take::dummy()),
       dependencies: Default::default(),
-      dyn_dependencies: Default::default(),
+      dyn_imports: Default::default(),
       is_user_defined_entry_point: Default::default(),
       resolved_ids: Default::default(),
-      // dependency_resolver,
     }
   }
-
-  // pub async fn resolve_id(&self, dep_src: &JsWord) -> ResolvedId {
-  //   self.dependency_resolver.resolve_id(dep_src).await
-  // }
-
-  // pub fn resolved_ids(&self) -> &DashMap<JsWord, ResolvedId> {
-  //   &self.dependency_resolver.resolved_ids
-  // }
 }

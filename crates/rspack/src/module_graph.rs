@@ -76,7 +76,7 @@ impl ModuleGraph {
             stack.push(rid.id);
           });
         module
-          .dyn_dependencies
+          .dyn_imports
           .iter()
           .collect::<Vec<_>>()
           .into_iter()
