@@ -1601,8 +1601,11 @@ dependencies = [
 name = "rspack_shared"
 version = "0.1.0"
 dependencies = [
+ "crossbeam",
  "dashmap 5.2.0",
+ "futures",
  "linked-hash-map",
+ "petgraph",
  "rayon",
  "smol_str",
  "swc",
@@ -1615,6 +1618,7 @@ dependencies = [
  "swc_ecma_transforms_module",
  "swc_ecma_utils",
  "swc_ecma_visit",
+ "tracing",
 ]
 
 [[package]]

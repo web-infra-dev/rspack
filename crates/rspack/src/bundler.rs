@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use rspack_shared::ModuleGraph;
 use smol_str::SmolStr;
 use sugar_path::PathSugar;
 use swc::config::Options;
@@ -12,7 +13,7 @@ use swc_ecma_transforms_base::pass::noop;
 use tracing::instrument;
 
 use crate::bundle::Bundle;
-use crate::module_graph::ModuleGraph;
+use crate::module_graph::ModuleGraphFactory;
 use crate::plugin_driver::PluginDriver;
 use crate::traits::plugin::Plugin;
 use crate::utils::get_compiler;
@@ -61,7 +62,7 @@ impl Bundler {
   #[instrument(skip(self))]
   pub async fn build(&mut self) {
     let mut module_graph =
-      ModuleGraph::build_from(self.options.clone(), self.plugin_driver.clone()).await;
+      ModuleGraphFactory::build_from(self.options.clone(), self.plugin_driver.clone()).await;
 
     tracing::debug!("module_graph:\n{:#?}", module_graph);
 
@@ -90,7 +91,7 @@ impl Bundler {
     let changed_file: SmolStr = changed_file.into();
     old_modules_id.remove(&changed_file);
     tracing::debug!("old_modules_id {:?}", old_modules_id);
-    let mut module_graph = ModuleGraph::build_from_cache(
+    let mut module_graph = ModuleGraphFactory::build_from_cache(
       self.options.clone(),
       self.plugin_driver.clone(),
       self.module_graph.take().unwrap(),

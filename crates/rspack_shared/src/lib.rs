@@ -1,11 +1,14 @@
 use smol_str::SmolStr;
+mod bundle;
 mod bundle_context;
 mod chunk;
 pub mod hmr;
 mod js_module;
+mod module_graph;
 pub use bundle_context::*;
 pub use chunk::*;
 pub use js_module::*;
+pub use module_graph::*;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct ResolvedId {

@@ -1,9 +1,10 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-  bundler::BundleOptions, module_graph::ModuleGraph, plugin_driver::PluginDriver,
-  structs::OutputChunk, utils::get_compiler,
+  bundler::BundleOptions, module_graph, plugin_driver::PluginDriver, structs::OutputChunk,
+  utils::get_compiler,
 };
+use rspack_shared::ModuleGraph;
 use tracing::instrument;
 
 use self::split_chunks::split_chunks;
