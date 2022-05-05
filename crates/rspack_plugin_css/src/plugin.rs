@@ -1,7 +1,7 @@
 use crate::handle_with_css::{is_css_source, CssSourceType};
 use async_trait::async_trait;
-use rspack_plugin::{LoadHookOutput, Plugin};
-use rspack_shared::{Asset, BundleContext, BundleOptions, Chunk};
+use rspack_core::{Asset, BundleContext, BundleOptions, Chunk};
+use rspack_core::{Plugin, PluginLoadHookOutput};
 use rspack_style::new_less::applicationn::Application;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -68,8 +68,12 @@ impl CssSourcePlugin {
 
 #[async_trait]
 impl Plugin for CssSourcePlugin {
+  fn name(&self) -> &'static str {
+    "rspack_css"
+  }
+
   #[inline]
-  async fn load(&self, _ctx: &BundleContext, filepath: &str) -> LoadHookOutput {
+  async fn load(&self, _ctx: &BundleContext, filepath: &str) -> PluginLoadHookOutput {
     if let Some(mut css) = is_css_source(filepath) {
       {
         let map = Self::handle_with_css_file(filepath);

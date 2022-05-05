@@ -1540,9 +1540,8 @@ dependencies = [
  "petgraph",
  "rayon",
  "regex",
- "rspack_plugin",
+ "rspack_core",
  "rspack_plugin_css",
- "rspack_shared",
  "rspack_style",
  "serde_json",
  "smol_str",
@@ -1566,6 +1565,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "crossbeam",
+ "dashmap 5.3.3",
+ "futures",
+ "linked-hash-map",
+ "nodejs-resolver",
+ "once_cell",
+ "petgraph",
+ "rayon",
+ "smol_str",
+ "sugar_path",
+ "swc",
+ "swc_atoms",
+ "swc_common",
+ "swc_ecma_ast",
+ "swc_ecma_codegen",
+ "swc_ecma_parser",
+ "swc_ecma_transforms_base",
+ "swc_ecma_transforms_module",
+ "swc_ecma_utils",
+ "swc_ecma_visit",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "rspack_node"
 version = "0.1.0"
 dependencies = [
@@ -1584,44 +1613,13 @@ name = "rspack_node_resolve"
 version = "0.1.0"
 
 [[package]]
-name = "rspack_plugin"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "rspack_shared",
- "swc_ecma_ast",
- "tokio",
-]
-
-[[package]]
 name = "rspack_plugin_css"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "rspack_plugin",
- "rspack_shared",
+ "rspack_core",
  "rspack_style",
  "tokio",
-]
-
-[[package]]
-name = "rspack_shared"
-version = "0.1.0"
-dependencies = [
- "dashmap 5.3.3",
- "linked-hash-map",
- "rayon",
- "smol_str",
- "swc",
- "swc_atoms",
- "swc_common",
- "swc_ecma_ast",
- "swc_ecma_codegen",
- "swc_ecma_parser",
- "swc_ecma_transforms_base",
- "swc_ecma_transforms_module",
- "swc_ecma_utils",
- "swc_ecma_visit",
 ]
 
 [[package]]

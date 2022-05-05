@@ -1,20 +1,21 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-  bundler::BundleOptions, module_graph::ModuleGraph, plugin_driver::PluginDriver,
-  structs::OutputChunk, utils::get_compiler,
+  bundler::BundleOptions, plugin_driver::PluginDriver, structs::OutputChunk,
+  utils::get_swc_compiler,
 };
+use rspack_core::ModuleGraph;
 use tracing::instrument;
 
 use self::split_chunks::split_chunks;
 pub mod split_chunks;
 
 #[derive(Debug)]
-pub struct Bundle {
+pub struct ChunkSpliter {
   pub output_options: Arc<BundleOptions>,
 }
 
-impl Bundle {
+impl ChunkSpliter {
   pub fn new(output_options: Arc<BundleOptions>) -> Self {
     Self { output_options }
   }
@@ -34,7 +35,7 @@ impl Bundle {
     chunks
       .iter()
       .for_each(|chunk| plugin_dirver.tap_generated_chunk(chunk, &self.output_options));
-    let compiler = get_compiler();
+    let compiler = get_swc_compiler();
 
     chunks
       .iter_mut()

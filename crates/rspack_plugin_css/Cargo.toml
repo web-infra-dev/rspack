@@ -6,8 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rspack_plugin = { path = "../rspack_plugin" }
-rspack_shared = { path = "../rspack_shared" }
+rspack_core = { path = "../rspack_core" }
 rspack_style = "0.1"
 tokio = { version = "1.17.0", features = ["full"] }
 async-trait = "0.1.53"

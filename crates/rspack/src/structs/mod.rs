@@ -38,12 +38,12 @@ pub enum ModOrExt {
 
 use std::{collections::HashSet, hash::Hash};
 
-use rspack_shared::JsModule;
+use rspack_core::JsModule;
 use smol_str::SmolStr;
 use swc_atoms::JsWord;
 use swc_common::Mark;
 
-pub use rspack_shared::ResolvedId;
+pub use rspack_core::ResolvedId;
 pub type ResolveIdResult = Option<ResolvedId>;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -96,4 +96,4 @@ pub struct ReExportDesc {
   pub mark: Mark,
 }
 
-pub use rspack_shared::DynImportDesc;
+pub use rspack_core::DynImportDesc;

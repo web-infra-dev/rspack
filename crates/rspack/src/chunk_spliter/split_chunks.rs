@@ -6,11 +6,11 @@ use petgraph::{
   visit::{depth_first_search, Control, DfsEvent},
   EdgeDirection,
 };
-use rspack_shared::{Chunk, JsModule};
+use rspack_core::{Chunk, JsModule, ModuleGraph};
 use smol_str::SmolStr;
 use tracing::instrument;
 
-use crate::{module_graph::ModuleGraph, structs::ResolvedId};
+use crate::structs::ResolvedId;
 
 #[derive(Clone, Debug)]
 struct Dependency {

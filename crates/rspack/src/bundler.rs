@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use rspack_core::ModuleGraph;
 use smol_str::SmolStr;
 use sugar_path::PathSugar;
 use swc::config::Options;
@@ -11,13 +12,12 @@ use swc_common::Mark;
 use swc_ecma_transforms_base::pass::noop;
 use tracing::instrument;
 
-use crate::bundle::Bundle;
-use crate::module_graph::ModuleGraph;
+use crate::chunk_spliter::ChunkSpliter;
 use crate::plugin_driver::PluginDriver;
 use crate::traits::plugin::Plugin;
-use crate::utils::get_compiler;
+use crate::utils::get_swc_compiler;
 use crate::utils::log::enable_tracing_by_env;
-pub use rspack_shared::hmr::hmr_module;
+pub use rspack_core::hmr::hmr_module;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum InternalModuleFormat {
   ES,
@@ -32,10 +32,10 @@ impl Default for InternalModuleFormat {
   }
 }
 
-pub use rspack_shared::Asset;
-pub use rspack_shared::BundleContext;
-pub use rspack_shared::BundleMode;
-pub use rspack_shared::BundleOptions;
+pub use rspack_core::Asset;
+pub use rspack_core::BundleContext;
+pub use rspack_core::BundleMode;
+pub use rspack_core::BundleOptions;
 
 #[derive(Debug)]
 pub struct Bundler {
@@ -60,20 +60,15 @@ impl Bundler {
 
   #[instrument(skip(self))]
   pub async fn build(&mut self) {
-    let mut module_graph =
-      ModuleGraph::build_from(self.options.clone(), self.plugin_driver.clone()).await;
+    let mut bundle = rspack_core::Bundle::new(
+      self.options.clone(),
+      self.plugin_driver.clone(),
+      self.ctx.clone(),
+    );
 
-    tracing::debug!("module_graph:\n{:#?}", module_graph);
+    bundle.build_graph().await;
 
-    let mut bundle = Bundle::new(self.options.clone());
-    let output = bundle.generate(&self.plugin_driver, &mut module_graph);
-    output.into_iter().for_each(|(_, chunk)| {
-      self.ctx.assets.lock().unwrap().push(Asset {
-        source: chunk.code,
-        filename: chunk.file_name,
-      })
-    });
-    self.module_graph = Some(module_graph)
+    self.module_graph = Some(bundle.module_graph.take().unwrap());
   }
 
   #[instrument(skip(self))]
@@ -90,15 +85,18 @@ impl Bundler {
     let changed_file: SmolStr = changed_file.into();
     old_modules_id.remove(&changed_file);
     tracing::debug!("old_modules_id {:?}", old_modules_id);
-    let mut module_graph = ModuleGraph::build_from_cache(
-      self.options.clone(),
-      self.plugin_driver.clone(),
-      self.module_graph.take().unwrap(),
-      changed_file.clone(),
-    )
-    .await;
+    let mut module_graph = {
+      // TODO: We need to reuse some cache. Rebuild is fake now.
+      let mut bundle = rspack_core::Bundle::new(
+        self.options.clone(),
+        self.plugin_driver.clone(),
+        self.ctx.clone(),
+      );
 
-    let mut bundle = Bundle::new(self.options.clone());
+      bundle.build_graph().await;
+      bundle.module_graph.take().unwrap()
+    };
+    let mut bundle = ChunkSpliter::new(self.options.clone());
     let output = bundle.generate(&self.plugin_driver, &mut module_graph);
     output.into_iter().for_each(|(_, chunk)| {
       self.ctx.assets.lock().unwrap().push(Asset {
@@ -128,7 +126,7 @@ impl Bundler {
           .module_by_id
           .get(&module_id)
           .unwrap();
-        let compiler = get_compiler();
+        let compiler = get_swc_compiler();
         let top_level_mark = Mark::from_u32(1);
 
         let transoform_output =
