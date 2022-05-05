@@ -129,7 +129,8 @@ mod testing {
   #[test]
   #[ignore]
   fn basic_css() {
-    compile("basic-css", vec![])
+    let css_plugin: CssSourcePlugin = std::default::Default::default();
+    compile("basic-css", vec![Box::new(css_plugin)]);
   }
 
   #[test]
