@@ -44,7 +44,7 @@ impl<A: Plugin, B: Plugin> Plugin for CombinedPlugin<A, B> {
     }
   }
 
-  fn transform(&self, ctx: &BundleContext, ast: ast::Program) -> ast::Program {
+  fn transform(&self, ctx: &BundleContext, ast: ast::Module) -> ast::Module {
     let left_res = self.left.transform(ctx, ast);
     self.right.transform(ctx, left_res)
   }

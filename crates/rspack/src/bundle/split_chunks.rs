@@ -47,7 +47,7 @@ pub fn split_chunks(module_graph: &ModuleGraph) -> Vec<Chunk> {
         ))
       });
     module
-      .dyn_dependencies
+      .dyn_imports
       .iter()
       .collect::<Vec<_>>()
       .into_iter()
