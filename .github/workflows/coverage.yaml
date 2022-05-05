@@ -12,7 +12,7 @@ env:
   TRACE: DEBUG
 
 jobs:
-  cargo-test:
+  cargo-coverage:
     name: Cargo test
     strategy:
       fail-fast: false
