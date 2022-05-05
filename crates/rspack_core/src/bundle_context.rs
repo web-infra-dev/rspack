@@ -54,6 +54,7 @@ pub struct BundleOptions {
   pub minify: bool,
   pub outdir: String,
   pub entry_file_names: String, // | ((chunkInfo: PreRenderedChunk) => string)
+  pub code_splitting: bool,
 }
 
 impl Default for BundleOptions {
@@ -69,6 +70,7 @@ impl Default for BundleOptions {
         .to_string(),
       minify: Default::default(),
       entry_file_names: "[name].js".to_string(),
+      code_splitting: true,
     }
   }
 }

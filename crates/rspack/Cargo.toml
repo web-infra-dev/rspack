@@ -8,8 +8,7 @@ license = "MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rspack_shared = { path="../rspack_shared" }
-rspack_plugin = { path="../rspack_plugin" }
+rspack_core = { path="../rspack_core" }
 rspack_plugin_css = { path="../rspack_plugin_css" }
 sugar_path="0.0.4"
 anyhow = "1"

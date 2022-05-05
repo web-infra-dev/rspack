@@ -6,7 +6,7 @@ use petgraph::{
   visit::{depth_first_search, Control, DfsEvent},
   EdgeDirection,
 };
-use rspack_shared::{Chunk, JsModule, ModuleGraph};
+use rspack_core::{Chunk, JsModule, ModuleGraph};
 use smol_str::SmolStr;
 use tracing::instrument;
 

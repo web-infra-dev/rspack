@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use rspack::structs::ResolvedId;
@@ -14,8 +16,8 @@ fn syntax() -> Syntax {
   })
 }
 
-static RESOLVED_IDS: Lazy<DashMap<JsWord, ResolvedId>> = Lazy::new(|| {
-  let resolved_ids: DashMap<JsWord, ResolvedId> = Default::default();
+static RESOLVED_IDS: Lazy<HashMap<JsWord, ResolvedId>> = Lazy::new(|| {
+  let mut resolved_ids: HashMap<JsWord, ResolvedId> = Default::default();
   resolved_ids.insert(
     JsWord::from("./b"),
     ResolvedId::new("/b.js".to_string(), false),

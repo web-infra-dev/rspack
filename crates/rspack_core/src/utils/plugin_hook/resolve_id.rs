@@ -1,8 +1,13 @@
-use crate::{plugin_driver::PluginDriver, structs::ResolvedId, utils::is_external_module};
+use crate::{plugin_driver::PluginDriver, ResolvedId};
 use nodejs_resolver::Resolver;
 use std::{ffi::OsString, path::Path};
 use sugar_path::PathSugar;
 use tracing::instrument;
+
+#[inline]
+pub fn is_external_module(source: &str) -> bool {
+  source.starts_with("node:")
+}
 
 #[instrument(skip(plugin_driver))]
 #[inline]

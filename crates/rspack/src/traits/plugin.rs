@@ -1,5 +1,5 @@
-pub use rspack_plugin::LoadHookOutput;
-pub use rspack_plugin::ResolveHookOutput;
-pub use rspack_plugin::TransformHookOutput;
+pub use rspack_core::PluginLoadHookOutput;
+pub use rspack_core::PluginResolveHookOutput;
+pub use rspack_core::PluginTransformHookOutput;
 
-pub use rspack_plugin::Plugin;
+pub use rspack_core::Plugin;

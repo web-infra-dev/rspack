@@ -48,6 +48,7 @@ pub fn new_rspack(option_json: String) -> External<Rspack> {
       }),
       entry_file_names: options.entry_file_names,
       mode: BundleMode::Dev,
+      ..Default::default()
     },
     vec![],
   );

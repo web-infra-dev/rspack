@@ -2,7 +2,9 @@ mod testing {
   use async_trait::async_trait;
   use rspack::bundler::{BundleContext, BundleOptions, Bundler};
   use rspack::css::plugin::CssSourcePlugin;
-  use rspack::traits::plugin::{LoadHookOutput, Plugin, ResolveHookOutput, TransformHookOutput};
+  use rspack::traits::plugin::{
+    Plugin, PluginLoadHookOutput, PluginResolveHookOutput, PluginTransformHookOutput,
+  };
   use serde_json::Value;
   use std::collections::HashMap;
   use std::env;
@@ -76,12 +78,16 @@ mod testing {
 
   #[async_trait]
   impl Plugin for TestPlugin {
+    fn name(&self) -> &'static str {
+      "rspack_test"
+    }
+
     async fn resolve(
       &self,
       _ctx: &BundleContext,
       _id: &str,
       _importer: Option<&str>,
-    ) -> ResolveHookOutput {
+    ) -> PluginResolveHookOutput {
       self
         .call_resolve
         .store(true, std::sync::atomic::Ordering::SeqCst);
@@ -89,7 +95,7 @@ mod testing {
     }
 
     #[inline]
-    async fn load(&self, _ctx: &BundleContext, _id: &str) -> LoadHookOutput {
+    async fn load(&self, _ctx: &BundleContext, _id: &str) -> PluginLoadHookOutput {
       self
         .call_load
         .store(true, std::sync::atomic::Ordering::SeqCst);
@@ -97,7 +103,11 @@ mod testing {
     }
 
     #[inline]
-    fn transform(&self, _ctx: &BundleContext, ast: swc_ecma_ast::Module) -> TransformHookOutput {
+    fn transform(
+      &self,
+      _ctx: &BundleContext,
+      ast: swc_ecma_ast::Module,
+    ) -> PluginTransformHookOutput {
       self
         .call_transform
         .store(true, std::sync::atomic::Ordering::SeqCst);
