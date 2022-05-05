@@ -1,4 +1,5 @@
 mod testing {
+  use anyhow::ensure;
   use async_trait::async_trait;
   use rspack::bundler::{BundleContext, BundleOptions, Bundler};
   use rspack::css::plugin::CssSourcePlugin;
@@ -13,8 +14,24 @@ mod testing {
   use std::sync::atomic::AtomicBool;
   use std::sync::Arc;
 
+  fn compile(fixture_path: &str, plugins: Vec<Box<dyn Plugin>>) -> Bundler {
+    compile_with_options(fixture_path, Default::default(), plugins)
+  }
+
+  fn compile_with_options(
+    fixture_path: &str,
+    options: BundleOptions,
+    plugins: Vec<Box<dyn Plugin>>,
+  ) -> Bundler {
+    compile_with_options_inner(fixture_path, options, plugins)
+  }
+
   #[tokio::main]
-  async fn compile(fixture_path: &str, plugins: Vec<Box<dyn Plugin>>) {
+  async fn compile_with_options_inner(
+    fixture_path: &str,
+    options: BundleOptions,
+    plugins: Vec<Box<dyn Plugin>>,
+  ) -> Bundler {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     let fixtures_dir = dir.join("fixtures").join(fixture_path);
     let pkg_path = fixtures_dir.join("package.json");
@@ -46,27 +63,28 @@ mod testing {
       BundleOptions {
         entries: entry,
         outdir: dist.to_str().unwrap().to_string(),
-        ..Default::default()
+        ..options
       },
       plugins,
     );
     bundler.build().await;
     bundler.write_assets_to_disk();
+    bundler
   }
 
   #[test]
   fn single_entry() {
-    compile("single-entry", vec![])
+    compile("single-entry", vec![]);
   }
 
   #[test]
   fn multi_entry() {
-    compile("multi-entry", vec![])
+    compile("multi-entry", vec![]);
   }
 
   #[test]
   fn cycle_dep() {
-    compile("cycle-dep", vec![])
+    compile("cycle-dep", vec![]);
   }
 
   #[derive(Debug)]
@@ -133,29 +151,57 @@ mod testing {
 
   #[test]
   fn dynamic_import() {
-    compile("dynamic-import", vec![])
+    compile("dynamic-import", vec![]);
   }
 
   #[test]
   #[ignore]
   fn basic_css() {
-    compile("basic-css", vec![])
+    compile("basic-css", vec![]);
   }
 
   #[test]
   #[ignore = "not support npm yet"]
   fn npm() {
-    compile("npm", vec![])
+    compile("npm", vec![]);
   }
 
   #[test]
   fn cjs() {
-    compile("cjs", vec![])
+    compile("cjs", vec![]);
   }
 
   #[test]
   fn css_bundle_test() {
     let css_plugin: CssSourcePlugin = std::default::Default::default();
-    compile("css", vec![Box::new(css_plugin)])
+    compile("css", vec![Box::new(css_plugin)]);
+  }
+
+  #[test]
+  fn disable_code_splitting() {
+    let bundler = compile_with_options(
+      "basic",
+      BundleOptions {
+        code_splitting: false,
+        ..Default::default()
+      },
+      vec![],
+    );
+    let chunk_len = bundler.ctx.assets.lock().unwrap().len();
+    assert_eq!(chunk_len, 2);
+  }
+
+  #[test]
+  fn enable_code_splitting() {
+    let bundler = compile_with_options(
+      "basic",
+      BundleOptions {
+        code_splitting: true,
+        ..Default::default()
+      },
+      vec![],
+    );
+    let chunk_len = bundler.ctx.assets.lock().unwrap().len();
+    assert_eq!(chunk_len, 4);
   }
 }

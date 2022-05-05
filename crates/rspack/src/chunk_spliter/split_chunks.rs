@@ -20,7 +20,7 @@ struct Dependency {
 type ModulePetGraph<'a> = petgraph::graphmap::DiGraphMap<&'a str, Dependency>;
 
 #[instrument(skip(module_graph))]
-pub fn split_chunks(module_graph: &ModuleGraph) -> Vec<Chunk> {
+pub fn split_chunks(module_graph: &ModuleGraph, is_enable_code_spliting: bool) -> Vec<Chunk> {
   let module_by_id: &HashMap<SmolStr, JsModule> = &module_graph.module_by_id;
   let resolved_entries: &Vec<ResolvedId> = &module_graph.resolved_entries;
 
@@ -73,7 +73,8 @@ pub fn split_chunks(module_graph: &ModuleGraph) -> Vec<Chunk> {
     let chunk_id = chunk_graph.add_node(Chunk {
       id: Default::default(),
       module_ids: vec![entry.to_string().into()],
-      entries: entry.to_string().into(),
+      entry: entry.to_string().into(),
+      source_chunks: Default::default(),
     });
     chunk_roots.insert(*entry, (chunk_id, chunk_id));
   }
@@ -90,7 +91,7 @@ pub fn split_chunks(module_graph: &ModuleGraph) -> Vec<Chunk> {
       DfsEvent::TreeEdge(importer_id, importee_id) => {
         // Create a new chunk if the dependency is async.
         let dependency = &dependency_graph[(importer_id, importee_id)];
-        if dependency.is_async {
+        if dependency.is_async && is_enable_code_spliting {
           let chunk = Chunk::from_js_module(importee_id.to_string().into());
           let chunk_id = chunk_graph.add_node(chunk);
           chunk_roots.insert(importee_id, (chunk_id, chunk_id));
@@ -184,19 +185,19 @@ pub fn split_chunks(module_graph: &ModuleGraph) -> Vec<Chunk> {
     } else if !reachable.is_empty() {
       // If the asset is reachable from more than one entry, find or create
       // a chunk for that combination of entries, and add the asset to it.
-      // let source_chunks = reachable
-      //   .iter()
-      //   .map(|a| chunks[&vec![*a]])
-      //   .collect::<Vec<_>>();
+      let source_chunks = reachable
+        .iter()
+        .map(|a| chunks[&vec![*a]])
+        .collect::<Vec<_>>();
       let chunk_id = chunks.entry(reachable.clone()).or_insert_with(|| {
-        let bundle = Chunk::default();
-        // bundle.source_bundles = source_chunks;
-        chunk_graph.add_node(bundle)
+        let mut chunk = Chunk::default();
+        chunk.source_chunks = source_chunks;
+        chunk_graph.add_node(chunk)
       });
 
       let bundle = &mut chunk_graph[*chunk_id];
-      if bundle.entries.is_empty() {
-        bundle.entries = module_id.to_string().into();
+      if bundle.entry.is_empty() {
+        bundle.entry = module_id.to_string().into();
       }
       bundle.module_ids.push(module_id.to_string().into());
       // bundle.size += module_by_id[module_id].size;
@@ -211,10 +212,31 @@ pub fn split_chunks(module_graph: &ModuleGraph) -> Vec<Chunk> {
     }
   }
 
+  for chunk_id in chunk_graph.node_indices() {
+    let chunk = &chunk_graph[chunk_id];
+    if !is_enable_code_spliting && chunk.source_chunks.len() > 0 {
+      remove_chunk(&dependency_graph, &mut chunk_graph, chunk_id);
+    }
+  }
+
   let (chunks, _) = chunk_graph.into_nodes_edges();
 
   chunks
     .into_iter()
     .map(|node| node.weight)
     .collect::<Vec<_>>()
+}
+
+fn remove_chunk(
+  _dep_graph: &ModulePetGraph,
+  chunk_graph: &mut petgraph::graph::Graph<Chunk, i32>,
+  chunk_id: NodeIndex,
+) {
+  let bundle = chunk_graph.remove_node(chunk_id).unwrap();
+  for asset_id in &bundle.module_ids {
+    for source_bundle_id in &bundle.source_chunks {
+      let bundle = &mut chunk_graph[*source_bundle_id];
+      bundle.module_ids.push(asset_id.clone());
+    }
+  }
 }
