@@ -26,7 +26,7 @@ impl ChunkSpliter {
     plugin_dirver: &PluginDriver,
     graph: &mut ModuleGraph,
   ) -> HashMap<String, OutputChunk> {
-    let mut chunks = split_chunks(&graph);
+    let mut chunks = split_chunks(&graph, self.output_options.code_splitting);
 
     chunks.iter_mut().for_each(|chunk| {
       chunk.id = chunk.generate_id(&self.output_options);

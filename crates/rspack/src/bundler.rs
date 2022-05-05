@@ -68,6 +68,15 @@ impl Bundler {
 
     bundle.build_graph().await;
 
+    let mut chunk_spliter = ChunkSpliter::new(self.options.clone());
+    let output = chunk_spliter.generate(&self.plugin_driver, bundle.module_graph.as_mut().unwrap());
+    output.into_iter().for_each(|(_, chunk)| {
+      self.ctx.assets.lock().unwrap().push(Asset {
+        source: chunk.code,
+        filename: chunk.file_name,
+      })
+    });
+
     self.module_graph = Some(bundle.module_graph.take().unwrap());
   }
 

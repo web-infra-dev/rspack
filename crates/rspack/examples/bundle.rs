@@ -11,6 +11,7 @@ async fn main() {
       // entries: vec!["./fixtures/single-entry/index.js".to_owned()],
       // entries: vec!["./packages/rspack/node_modules/lodash-es/lodash.js".to_owned()],
       outdir: "./dist".to_string(),
+      code_splitting: false,
       ..Default::default()
     },
     vec![],

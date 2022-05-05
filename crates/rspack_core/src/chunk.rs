@@ -1,4 +1,5 @@
 use crate::{hmr::hmr_module, js_module::JsModule, BundleOptions};
+use petgraph::graph::NodeIndex;
 use rayon::prelude::*;
 use smol_str::SmolStr;
 use std::{
@@ -14,8 +15,9 @@ use swc_ecma_transforms_base::pass::noop;
 pub struct Chunk {
   pub id: SmolStr,
   // pub order_modules: Vec<SmolStr>,
-  pub entries: SmolStr,
+  pub entry: SmolStr,
   pub module_ids: Vec<SmolStr>,
+  pub source_chunks: Vec<NodeIndex>,
 }
 
 impl Chunk {
@@ -23,7 +25,8 @@ impl Chunk {
     Self {
       id: Default::default(),
       module_ids,
-      entries,
+      entry: entries,
+      source_chunks: Default::default(),
     }
   }
 
@@ -31,7 +34,8 @@ impl Chunk {
     Self {
       id: Default::default(),
       module_ids: vec![module_id.clone()],
-      entries: module_id,
+      entry: module_id,
+      source_chunks: Default::default(),
     }
   }
 
@@ -100,7 +104,7 @@ impl Chunk {
 
   #[inline]
   pub fn get_fallback_chunk_name(&self) -> &str {
-    get_alias_name(&self.entries)
+    get_alias_name(&self.entry)
   }
 
   #[inline]

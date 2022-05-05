@@ -1,0 +1,18 @@
+{
+  "name": "multi-entry",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "rspack": {
+    "entry": {
+      "entry-a": "./entry-a.js",
+      "entry-b": "./entry-b.js"
+    }
+  }
+}
