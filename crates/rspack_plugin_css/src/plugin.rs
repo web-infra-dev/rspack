@@ -118,10 +118,11 @@ impl Plugin for CssSourcePlugin {
     for item in wait_sort_list.iter().rev() {
       css_content += format!("\n{}", item.source).as_str();
     }
-
-    ctx.emit_asset(Asset {
-      source: css_content,
-      filename: bundle_options.outdir.clone() + format!("/{}.css", entry_name).as_str(),
-    })
+    if !css_content.is_empty() {
+      ctx.emit_asset(Asset {
+        source: css_content,
+        filename: bundle_options.outdir.clone() + format!("/{}.css", entry_name).as_str(),
+      })
+    }
   }
 }
