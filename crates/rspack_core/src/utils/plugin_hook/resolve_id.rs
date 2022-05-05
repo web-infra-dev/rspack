@@ -1,5 +1,5 @@
 use crate::{plugin_driver::PluginDriver, ResolvedId};
-use nodejs_resolver::Resolver;
+use nodejs_resolver::{ResolveResult, Resolver};
 use std::{ffi::OsString, path::Path};
 use sugar_path::PathSugar;
 use tracing::instrument;
@@ -26,11 +26,11 @@ pub async fn resolve_id(
       let id = if let Some(importer) = importer {
         dbg!(&importer);
         let base_dir = Path::new(importer).parent().unwrap();
-        let mut resolver = Resolver::default();
-        match resolver.resolve(source) {
+        let resolver = Resolver::default();
+        match resolver.resolve(base_dir, source) {
           Ok(path) => match path {
-            Some(buf) => buf.to_string_lossy().to_string(),
-            None => unreachable!(),
+            ResolveResult::Path(buf) => buf.to_string_lossy().to_string(),
+            ResolveResult::Ignored => unreachable!(),
           },
           Err(_) => unreachable!(),
         }
