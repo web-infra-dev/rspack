@@ -394,13 +394,13 @@ dependencies = [
 
 [[package]]
 name = "dashmap"
-version = "5.2.0"
+version = "5.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c8858831f7781322e539ea39e72449c46b059638250c14344fec8d0aa6e539c"
+checksum = "391b56fbd302e585b7a9494fb70e40949567b1cf9003a8e4a6041a1687c26573"
 dependencies = [
  "cfg-if",
- "num_cpus",
- "parking_lot",
+ "hashbrown 0.12.1",
+ "lock_api",
 ]
 
 [[package]]
@@ -642,6 +642,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "hashbrown"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db0d4cf898abf0081f964436dc980e96670a0f36863e4b83aaacdb65c9d7ccc3"
+
+[[package]]
 name = "heck"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -695,7 +701,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0f647032dfaa1f8b6dc29bd3edb7bbef4861b8b8007ebb118d6db284fd59f6ee"
 dependencies = [
  "autocfg",
- "hashbrown",
+ "hashbrown 0.11.2",
  "serde",
 ]
 
@@ -879,7 +885,7 @@ version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32613e41de4c47ab04970c348ca7ae7382cf116625755af070b008a15516a889"
 dependencies = [
- "hashbrown",
+ "hashbrown 0.11.2",
 ]
 
 [[package]]
@@ -1063,10 +1069,11 @@ checksum = "e4a24736216ec316047a1fc4252e27dabb04218aa4a3f37c6e7ddbf1f9782b54"
 
 [[package]]
 name = "nodejs-resolver"
-version = "0.0.2"
+version = "0.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2a3d1c891022d859afa044686032c5cf46d2bd4104850a4e06f1ffae922bdbf"
+checksum = "2212c7f8cb9bb23c7d14057b32686b32a8362f813a5fbdf2c4b9c7f03580efd2"
 dependencies = [
+ "dashmap 5.3.3",
  "indexmap",
  "serde_json",
 ]
@@ -1338,7 +1345,7 @@ dependencies = [
  "ahash",
  "anyhow",
  "browserslist-rs",
- "dashmap 5.2.0",
+ "dashmap 5.3.3",
  "from_variant",
  "once_cell",
  "semver 1.0.7",
@@ -1523,7 +1530,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "crossbeam",
- "dashmap 5.2.0",
+ "dashmap 5.3.3",
  "ena",
  "futures",
  "linked-hash-map",
@@ -1613,6 +1620,26 @@ dependencies = [
  "rspack_core",
  "rspack_style",
  "tokio",
+]
+
+[[package]]
+name = "rspack_shared"
+version = "0.1.0"
+dependencies = [
+ "dashmap 5.3.3",
+ "linked-hash-map",
+ "rayon",
+ "smol_str",
+ "swc",
+ "swc_atoms",
+ "swc_common",
+ "swc_ecma_ast",
+ "swc_ecma_codegen",
+ "swc_ecma_parser",
+ "swc_ecma_transforms_base",
+ "swc_ecma_transforms_module",
+ "swc_ecma_utils",
+ "swc_ecma_visit",
 ]
 
 [[package]]
@@ -1971,7 +1998,7 @@ dependencies = [
  "ahash",
  "anyhow",
  "base64 0.13.0",
- "dashmap 5.2.0",
+ "dashmap 5.3.3",
  "either",
  "indexmap",
  "json_comments",
@@ -2026,7 +2053,7 @@ checksum = "84fed4a980e12c737171a7b17c5e0a2f4272899266fa0632ea4e31264ebdfdb5"
 dependencies = [
  "ahash",
  "anyhow",
- "dashmap 5.2.0",
+ "dashmap 5.3.3",
  "once_cell",
  "regex",
  "serde",
@@ -2132,7 +2159,7 @@ checksum = "8f9f1a52150bedb00ca116b7cb79c617bd85dc604ad688efea09b8c52392ba84"
 dependencies = [
  "ahash",
  "auto_impl",
- "dashmap 5.2.0",
+ "dashmap 5.3.3",
  "parking_lot",
  "rayon",
  "regex",
@@ -2152,7 +2179,7 @@ checksum = "e719f646201c51964a2c7b2a3dd79fadb563fc6a72454a7bc093d18c4aad44b0"
 dependencies = [
  "ahash",
  "anyhow",
- "dashmap 5.2.0",
+ "dashmap 5.3.3",
  "lru",
  "normpath",
  "once_cell",
@@ -2226,7 +2253,7 @@ checksum = "cfcd7b889693d28421959603c68fc219417897164a0c7da2e68852a4bbde033e"
 dependencies = [
  "ahash",
  "anyhow",
- "dashmap 5.2.0",
+ "dashmap 5.3.3",
  "indexmap",
  "once_cell",
  "preset_env_base",
@@ -2367,7 +2394,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d418cc7e290861a29ebc340b18f23371baa777e656e6363f9d9daf1a05bc022"
 dependencies = [
  "ahash",
- "dashmap 5.2.0",
+ "dashmap 5.3.3",
  "indexmap",
  "once_cell",
  "serde_json",
@@ -2409,7 +2436,7 @@ checksum = "4cd88c2b3e5f278bfe6ffbba985394137da3d711cb482e380d0333ad433679fa"
 dependencies = [
  "ahash",
  "base64 0.13.0",
- "dashmap 5.2.0",
+ "dashmap 5.3.3",
  "indexmap",
  "once_cell",
  "regex",

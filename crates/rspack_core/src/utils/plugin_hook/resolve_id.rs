@@ -26,15 +26,12 @@ pub async fn resolve_id(
       let id = if let Some(importer) = importer {
         dbg!(&importer);
         let base_dir = Path::new(importer).parent().unwrap();
-        let mut resolver = Resolver::default().with_base_dir(base_dir);
+        let mut resolver = Resolver::default();
         match resolver.resolve(source) {
-          Ok(path) => {
-            if let Some(buf) = path {
-              buf.to_string_lossy().to_string()
-            } else {
-              unreachable!()
-            }
-          }
+          Ok(path) => match path {
+            Some(buf) => buf.to_string_lossy().to_string(),
+            None => unreachable!(),
+          },
           Err(_) => unreachable!(),
         }
       } else {
