@@ -45,6 +45,7 @@ rspack_style = "0.1"
 
 [dev-dependencies]
 swc_ecma_transforms_testing = "0.80.0"
+insta="1.14.0"
 
 [[examples]]
 name="bundle"

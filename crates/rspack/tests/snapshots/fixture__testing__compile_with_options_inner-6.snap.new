@@ -1,0 +1,11 @@
+---
+source: crates/rspack/tests/fixture.rs
+assertion_line: 71
+expression: bundler.assets()
+---
+[
+    Asset {
+        source: "rs.define(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/cycle-dep/answer.js\", function(require, module, exports) {\n    \"use strict\";\n    Object.defineProperty(exports, \"__esModule\", {\n        value: true\n    });\n    exports.answer = void 0;\n    var _index = require(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/cycle-dep/index.js\");\n    var answer = 42;\n    exports.answer = answer;\n    console.log(\"lib:\", _index.lib);\n});\nrs.define(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/cycle-dep/index.js\", function(require, module, exports) {\n    \"use strict\";\n    Object.defineProperty(exports, \"__esModule\", {\n        value: true\n    });\n    exports.lib = void 0;\n    var _answer = require(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/cycle-dep/answer.js\");\n    var lib = \"lib\";\n    exports.lib = lib;\n});\nrs.require(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/cycle-dep/index.js\");\n",
+        filename: "index.js",
+    },
+]

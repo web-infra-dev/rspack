@@ -1,0 +1,18 @@
+---
+source: crates/rspack/tests/fixture.rs
+expression: bundler.assets()
+---
+[
+    Asset {
+        source: "rs.define(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/multi-entry/main.js\", function(require, module, exports) {\n    \"use strict\";\n    var _share = require(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/multi-entry/share.js\");\n    console.log(\"main:\", _share.share);\n});\nrs.require(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/multi-entry/main.js\");\n",
+        filename: "main.js",
+    },
+    Asset {
+        source: "rs.define(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/multi-entry/other.js\", function(require, module, exports) {\n    \"use strict\";\n    var _share = require(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/multi-entry/share.js\");\n    console.log(\"other:\", _share.share);\n});\nrs.require(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/multi-entry/other.js\");\n",
+        filename: "other.js",
+    },
+    Asset {
+        source: "rs.define(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/multi-entry/share.js\", function(require, module, exports) {\n    \"use strict\";\n    Object.defineProperty(exports, \"__esModule\", {\n        value: true\n    });\n    exports.share = void 0;\n    var share = \"share\";\n    exports.share = share;\n});\n",
+        filename: "share.js",
+    },
+]

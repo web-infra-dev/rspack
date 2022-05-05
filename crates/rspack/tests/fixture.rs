@@ -68,6 +68,7 @@ mod testing {
       plugins,
     );
     bundler.build().await;
+    insta::assert_debug_snapshot!(bundler.assets());
     bundler.write_assets_to_disk();
     bundler
   }

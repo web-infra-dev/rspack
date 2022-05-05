@@ -1,0 +1,14 @@
+---
+source: crates/rspack/tests/fixture.rs
+expression: bundler.assets()
+---
+[
+    Asset {
+        source: "\n\nh3 {\n  background-color: #000000;\n}\n\n\nbody {\n  font-size: 10px;\n}\n\n\nh2 {\n  background-color: #ffffff;\n}\n\n\n.a {\n  background-color: #ff0783;\n}\n",
+        filename: "/Users/yangjian/github/rspack/crates/rspack/fixtures/css/dist/index.css",
+    },
+    Asset {
+        source: "rs.define(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/css/index.css\", function(require, module, exports) {\n    \"use strict\";\n    Object.defineProperty(exports, \"__esModule\", {\n        value: true\n    });\n});\nrs.define(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/css/lib_2.css\", function(require, module, exports) {\n    \"use strict\";\n    Object.defineProperty(exports, \"__esModule\", {\n        value: true\n    });\n});\nrs.define(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/css/liba.js\", function(require, module, exports) {\n    \"use strict\";\n    require(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/css/lib_2.css\");\n    console.log(\"./lib_2.css\");\n});\nrs.define(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/css/lib_3.css\", function(require, module, exports) {\n    \"use strict\";\n    Object.defineProperty(exports, \"__esModule\", {\n        value: true\n    });\n});\nrs.define(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/css/libc.js\", function(require, module, exports) {\n    \"use strict\";\n    require(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/css/lib_3.css\");\n    console.log(\"./lib_3.css\");\n});\nrs.define(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/css/index.js\", function(require, module, exports) {\n    \"use strict\";\n    require(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/css/index.css\");\n    require(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/css/liba.js\");\n    require(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/css/libc.js\");\n    console.log(\"./index.css\");\n});\nrs.require(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/css/index.js\");\n",
+        filename: "index.js",
+    },
+]

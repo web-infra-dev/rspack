@@ -173,7 +173,9 @@ impl Bundler {
       .collect();
     diff_rendered
   }
-
+  pub fn assets(&self) -> std::sync::MutexGuard<Vec<Asset>> {
+    self.ctx.assets.lock().unwrap()
+  }
   pub fn write_assets_to_disk(&self) {
     self.ctx.assets.lock().unwrap().iter().for_each(|asset| {
       let mut path = PathBuf::from(self.options.outdir.clone());

@@ -1,0 +1,10 @@
+---
+source: crates/rspack/tests/fixture.rs
+expression: bundler.assets()
+---
+[
+    Asset {
+        source: "rs.define(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/single-entry/answer.js\", function(require, module, exports) {\n    \"use strict\";\n    Object.defineProperty(exports, \"__esModule\", {\n        value: true\n    });\n    exports.answer = void 0;\n    var answer = 42;\n    exports.answer = answer;\n});\nrs.define(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/single-entry/index.js\", function(require, module, exports) {\n    \"use strict\";\n    var _answer = require(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/single-entry/answer.js\");\n    console.log(\"answer:\", _answer.answer);\n});\nrs.require(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/single-entry/index.js\");\n",
+        filename: "index.js",
+    },
+]

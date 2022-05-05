@@ -1,0 +1,22 @@
+---
+source: crates/rspack/tests/fixture.rs
+expression: bundler.assets()
+---
+[
+    Asset {
+        source: "rs.define(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/basic/shared.js\", function(require, module, exports) {\n    \"use strict\";\n    Object.defineProperty(exports, \"__esModule\", {\n        value: true\n    });\n    exports.shared = void 0;\n    var shared = 1;\n    exports.shared = shared;\n});\n",
+        filename: "shared.js",
+    },
+    Asset {
+        source: "rs.define(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/basic/a.js\", function(require, module, exports) {\n    \"use strict\";\n    Object.defineProperty(exports, \"__esModule\", {\n        value: true\n    });\n    exports.a = void 0;\n    var a = 1;\n    exports.a = a;\n});\nrs.define(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/basic/entry-a.js\", function(require, module, exports) {\n    \"use strict\";\n    function _interopRequireWildcard(obj) {\n        if (obj && obj.__esModule) {\n            return obj;\n        } else {\n            var newObj = {};\n            if (obj != null) {\n                for(var key in obj){\n                    if (Object.prototype.hasOwnProperty.call(obj, key)) {\n                        var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {};\n                        if (desc.get || desc.set) {\n                            Object.defineProperty(newObj, key, desc);\n                        } else {\n                            newObj[key] = obj[key];\n                        }\n                    }\n                }\n            }\n            newObj.default = obj;\n            return newObj;\n        }\n    }\n    var _a = require(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/basic/a.js\");\n    var _shared = require(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/basic/shared.js\");\n    console.log(_a.a, _shared.shared);\n    Promise.resolve().then(function() {\n        return _interopRequireWildcard(require(\"./asynced\"));\n    }).then(console.log);\n});\nrs.require(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/basic/entry-a.js\");\n",
+        filename: "entry-a.js",
+    },
+    Asset {
+        source: "rs.define(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/basic/asynced.js\", function(require, module, exports) {\n    \"use strict\";\n    Object.defineProperty(exports, \"__esModule\", {\n        value: true\n    });\n    exports.asynced = void 0;\n    var asynced = 1;\n    exports.asynced = asynced;\n});\n",
+        filename: "asynced.js",
+    },
+    Asset {
+        source: "rs.define(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/basic/b.js\", function(require, module, exports) {\n    \"use strict\";\n    Object.defineProperty(exports, \"__esModule\", {\n        value: true\n    });\n    exports.b = void 0;\n    var b = 1;\n    exports.b = b;\n});\nrs.define(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/basic/entry-b.js\", function(require, module, exports) {\n    \"use strict\";\n    var _b = require(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/basic/b.js\");\n    var _shared = require(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/basic/shared.js\");\n    console.log(_b.b, _shared.shared);\n});\nrs.require(\"/Users/yangjian/github/rspack/crates/rspack/fixtures/basic/entry-b.js\");\n",
+        filename: "entry-b.js",
+    },
+]
