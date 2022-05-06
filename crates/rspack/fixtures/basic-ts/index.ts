@@ -1,2 +1,5 @@
 import { answer } from './answer';
-console.log({ answer });
+import { Button } from './button';
+import { Tab } from './tab';
+
+console.log({ answer, Button, Tab });

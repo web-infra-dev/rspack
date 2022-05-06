@@ -25,7 +25,8 @@ pub async fn resolve_id(
     } else {
       let id = if let Some(importer) = importer {
         let base_dir = Path::new(importer).parent().unwrap();
-        let resolver = Resolver::default().with_extensions(vec![".ts", ".js", ".json"]);
+        let resolver =
+          Resolver::default().with_extensions(vec![".tsx", ".jsx", ".ts", ".js", ".json"]);
         match resolver.resolve(base_dir, source) {
           Ok(path) => match path {
             ResolveResult::Path(buf) => buf.to_string_lossy().to_string(),
