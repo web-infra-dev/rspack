@@ -208,4 +208,9 @@ mod testing {
     let chunk_len = bundler.ctx.assets.lock().unwrap().len();
     assert_eq!(chunk_len, 4);
   }
+
+  #[test]
+  fn basic_ts() {
+    compile("basic-ts", vec![]);
+  }
 }
