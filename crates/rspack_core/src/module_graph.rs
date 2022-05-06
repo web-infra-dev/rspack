@@ -35,6 +35,7 @@ impl ModuleGraph {
       .collect()
   }
 
+  #[instrument(skip(self))]
   pub fn sort_modules(&mut self) {
     let mut stack = self
       .resolved_entries

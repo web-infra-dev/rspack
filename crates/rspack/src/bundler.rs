@@ -43,7 +43,8 @@ pub struct Bundler {
   pub ctx: Arc<BundleContext>,
   pub options: Arc<BundleOptions>,
   pub plugin_driver: Arc<PluginDriver>,
-  module_graph: Option<ModuleGraph>,
+  pub module_graph: Option<ModuleGraph>,
+  _noop: (),
 }
 
 impl Bundler {
@@ -59,6 +60,7 @@ impl Bundler {
         ctx,
       }),
       module_graph: None,
+      _noop: (),
     }
   }
 
@@ -86,7 +88,7 @@ impl Bundler {
 
   #[instrument(skip(self))]
   pub async fn rebuild(&mut self, changed_file: String) -> HashMap<String, String> {
-    tracing::trace!("rebuld bacause of {:?}", changed_file);
+    tracing::debug!("rebuld bacause of {:?}", changed_file);
     let mut old_modules_id = self
       .module_graph
       .as_ref()
