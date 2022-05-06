@@ -5,7 +5,7 @@ on:
     branches:
       - main
     tags-ignore:
-      - "**"
+      - '**'
   pull_request:
 
 env:
@@ -15,7 +15,7 @@ jobs:
   cargo-test:
     name: Cargo test
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os:
           #  - windows-latest
