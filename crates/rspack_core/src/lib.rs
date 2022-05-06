@@ -21,14 +21,14 @@ pub use utils::*;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct ResolvedId {
-  pub id: SmolStr,
+  pub path: SmolStr,
   pub external: bool,
 }
 
 impl ResolvedId {
-  pub fn new<T: Into<SmolStr>>(id: T, external: bool) -> Self {
+  pub fn new<T: Into<SmolStr>>(path: T, external: bool) -> Self {
     Self {
-      id: id.into(),
+      path: path.into(),
       external,
       // module_side_effects: false,
     }

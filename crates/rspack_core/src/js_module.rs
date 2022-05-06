@@ -15,7 +15,14 @@ pub struct DynImportDesc {
 
 pub struct JsModule {
   pub exec_order: usize,
+  /**
+   * module id for module render
+   */
   pub id: SmolStr,
+  /**
+   * absolute path for JsModule
+   */
+  pub path: SmolStr,
   pub ast: ast::Module,
   pub dependencies: LinkedHashMap<JsWord, ()>,
   pub dyn_imports: HashSet<DynImportDesc>,
@@ -27,6 +34,7 @@ impl std::fmt::Debug for JsModule {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("JsModule")
       .field("exec_order", &self.exec_order)
+      .field("path", &self.path)
       .field("id", &self.id)
       // .field("ast", &self.ast)
       .field("dependencies", &self.dependencies)
@@ -44,8 +52,9 @@ impl JsModule {
   pub fn new() -> Self {
     Self {
       exec_order: Default::default(),
-      id: Default::default(),
+      path: Default::default(),
       ast: Take::dummy(),
+      id: Default::default(),
       dependencies: Default::default(),
       dyn_imports: Default::default(),
       is_user_defined_entry_point: Default::default(),

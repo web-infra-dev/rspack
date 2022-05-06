@@ -57,8 +57,8 @@ impl Chunk {
         let module = modules.get(idx).unwrap();
         swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
           let fm = compiler.cm.new_source_file(
-            FileName::Custom(module.id.to_string()),
-            module.id.to_string(),
+            FileName::Custom(module.path.to_string()),
+            module.path.to_string(),
           );
           Ok(
             compiler
@@ -77,6 +77,7 @@ impl Chunk {
                     top_level_mark,
                     &module.resolved_ids,
                     module.is_user_defined_entry_point,
+                    modules,
                   )
                 },
               )

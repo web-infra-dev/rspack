@@ -31,7 +31,7 @@ impl ModuleGraph {
     self
       .resolved_entries
       .iter()
-      .map(|rid| *self.id_to_node_idx.get(&rid.id).unwrap())
+      .map(|rid| *self.id_to_node_idx.get(&rid.path).unwrap())
       .collect()
   }
 
@@ -39,7 +39,7 @@ impl ModuleGraph {
     let mut stack = self
       .resolved_entries
       .iter()
-      .map(|rid| rid.id.clone())
+      .map(|rid| rid.path.clone())
       .rev()
       .collect::<Vec<_>>();
     let mut dyn_imports = vec![];
@@ -61,7 +61,7 @@ impl ModuleGraph {
           .rev()
           .for_each(|dep| {
             let rid = module.resolved_ids.get(dep).unwrap().clone();
-            stack.push(rid.id);
+            stack.push(rid.path);
           });
         module
           .dyn_imports
@@ -71,7 +71,7 @@ impl ModuleGraph {
           .rev()
           .for_each(|dep| {
             let rid = module.resolved_ids.get(&dep.argument).unwrap().clone();
-            dyn_imports.push(rid.id);
+            dyn_imports.push(rid.path);
           });
       } else {
         module.exec_order = next_exec_order;
@@ -92,7 +92,7 @@ impl ModuleGraph {
           .rev()
           .for_each(|dep| {
             let rid = module.resolved_ids.get(dep).unwrap().clone();
-            stack.push(rid.id);
+            stack.push(rid.path);
           });
       } else {
         module.exec_order = next_exec_order;
@@ -103,8 +103,8 @@ impl ModuleGraph {
     modules.sort_by_key(|m| m.exec_order);
     tracing::trace!(
       "ordered {:#?}",
-      modules.iter().map(|m| &m.id).collect::<Vec<_>>()
+      modules.iter().map(|m| &m.path).collect::<Vec<_>>()
     );
-    self.ordered_modules = modules.iter().map(|m| m.id.clone()).collect();
+    self.ordered_modules = modules.iter().map(|m| m.path.clone()).collect();
   }
 }

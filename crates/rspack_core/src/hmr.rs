@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
-use crate::ResolvedId;
+use crate::{JsModule, ResolvedId};
 use ast::*;
+use smol_str::SmolStr;
 use swc_atoms::JsWord;
 use swc_common::{EqIgnoreSpan, Mark, DUMMY_SP};
 use swc_ecma_transforms_base::helpers::inject_helpers;
@@ -9,12 +10,13 @@ use swc_ecma_transforms_module::common_js;
 use swc_ecma_utils::{member_expr, quote_ident, quote_str, ExprFactory};
 use swc_ecma_visit::{Fold, FoldWith, VisitMut, VisitMutWith};
 
-pub fn hmr_module(
+pub fn hmr_module<'a>(
   file_name: String,
   top_level_mark: Mark,
-  resolved_ids: &HashMap<JsWord, ResolvedId>,
+  resolved_ids: &'a HashMap<JsWord, ResolvedId>,
   entry_flag: bool,
-) -> HmrModuleFolder {
+  modules: &'a HashMap<SmolStr, JsModule>,
+) -> HmrModuleFolder<'a> {
   HmrModuleFolder {
     file_name,
     top_level_mark,
@@ -22,10 +24,12 @@ pub fn hmr_module(
     require_ident: quote_ident!(DUMMY_SP.apply_mark(top_level_mark), "require"),
     module_ident: quote_ident!(DUMMY_SP.apply_mark(top_level_mark), "module"),
     entry_flag,
+    modules,
   }
 }
 
 pub struct HmrModuleFolder<'a> {
+  pub modules: &'a HashMap<SmolStr, JsModule>,
   pub file_name: String,
   pub top_level_mark: Mark,
   pub resolved_ids: &'a HashMap<JsWord, ResolvedId>,
@@ -47,6 +51,7 @@ impl<'a> Fold for HmrModuleFolder<'a> {
     cjs_module.visit_mut_with(&mut HmrModuleIdReWriter {
       resolved_ids: self.resolved_ids,
       rewriting: false,
+      modules: self.modules,
     });
 
     let mut stmts = vec![];
@@ -126,6 +131,7 @@ impl<'a> Fold for HmrModuleFolder<'a> {
 pub struct HmrModuleIdReWriter<'a> {
   pub resolved_ids: &'a HashMap<JsWord, ResolvedId>,
   pub rewriting: bool,
+  pub modules: &'a HashMap<SmolStr, JsModule>,
 }
 
 impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
@@ -166,13 +172,13 @@ impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
       }
     }
   }
-
   fn visit_mut_str(&mut self, str: &mut Str) {
     if self.rewriting {
       if let Some(rid) = self.resolved_ids.get(&str.value) {
-        let id = &rid.id;
-        str.value = JsWord::from(id.to_string());
-        str.raw = Some(JsWord::from(format!("\"{}\"", id.to_string())));
+        let id = &rid.path;
+        let js_module = self.modules.get(id).unwrap();
+        str.value = JsWord::from(js_module.id.as_str());
+        str.raw = Some(JsWord::from(format!("\"{}\"", js_module.id.to_string())));
       }
     }
   }

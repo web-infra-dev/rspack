@@ -9,6 +9,7 @@ use swc_common::{FileName, FilePathMapping, SourceMap};
 use swc_ecma_parser::Syntax;
 use swc_ecma_parser::{EsConfig, TsConfig};
 
+pub mod path;
 pub mod plugin_hook;
 
 static COMPILER: Lazy<Arc<Compiler>> = Lazy::new(|| {
