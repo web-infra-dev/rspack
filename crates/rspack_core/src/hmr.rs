@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use crate::{JsModule, ResolvedId};
 use ast::*;
-use smol_str::SmolStr;
 use swc_atoms::JsWord;
 use swc_common::{EqIgnoreSpan, Mark, DUMMY_SP};
 use swc_ecma_transforms_base::helpers::inject_helpers;
@@ -15,7 +14,7 @@ pub fn hmr_module<'a>(
   top_level_mark: Mark,
   resolved_ids: &'a HashMap<JsWord, ResolvedId>,
   entry_flag: bool,
-  modules: &'a HashMap<SmolStr, JsModule>,
+  modules: &'a HashMap<String, JsModule>,
 ) -> HmrModuleFolder<'a> {
   HmrModuleFolder {
     file_name,
@@ -29,7 +28,7 @@ pub fn hmr_module<'a>(
 }
 
 pub struct HmrModuleFolder<'a> {
-  pub modules: &'a HashMap<SmolStr, JsModule>,
+  pub modules: &'a HashMap<String, JsModule>,
   pub file_name: String,
   pub top_level_mark: Mark,
   pub resolved_ids: &'a HashMap<JsWord, ResolvedId>,
@@ -131,7 +130,7 @@ impl<'a> Fold for HmrModuleFolder<'a> {
 pub struct HmrModuleIdReWriter<'a> {
   pub resolved_ids: &'a HashMap<JsWord, ResolvedId>,
   pub rewriting: bool,
-  pub modules: &'a HashMap<SmolStr, JsModule>,
+  pub modules: &'a HashMap<String, JsModule>,
 }
 
 impl<'a> VisitMut for HmrModuleIdReWriter<'a> {

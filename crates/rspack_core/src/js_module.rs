@@ -1,7 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
 use linked_hash_map::LinkedHashMap;
-use smol_str::SmolStr;
 use swc_atoms::JsWord;
 use swc_common::util::take::Take;
 
@@ -18,11 +17,11 @@ pub struct JsModule {
   /**
    * module id for module render
    */
-  pub id: SmolStr,
+  pub id: String,
   /**
    * absolute path for JsModule
    */
-  pub path: SmolStr,
+  pub path: String,
   pub ast: ast::Module,
   pub dependencies: LinkedHashMap<JsWord, ()>,
   pub dyn_imports: HashSet<DynImportDesc>,

@@ -14,16 +14,15 @@ use crossbeam::{
 use dashmap::DashSet;
 use futures::future::join_all;
 use petgraph::graph::NodeIndex;
-use smol_str::SmolStr;
 use tracing::instrument;
 
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
   pub resolved_entries: Vec<ResolvedId>,
-  pub id_to_node_idx: HashMap<SmolStr, NodeIndex>,
+  pub id_to_node_idx: HashMap<String, NodeIndex>,
   // pub relation_graph: ModulePetGraph,
-  pub ordered_modules: Vec<SmolStr>,
-  pub module_by_id: HashMap<SmolStr, JsModule>,
+  pub ordered_modules: Vec<String>,
+  pub module_by_id: HashMap<String, JsModule>,
 }
 
 impl ModuleGraph {
