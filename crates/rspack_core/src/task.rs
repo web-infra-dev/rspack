@@ -3,11 +3,11 @@ use std::sync::{
   Arc,
 };
 
-use crossbeam::channel::Sender;
 use dashmap::{DashMap, DashSet};
 use smol_str::SmolStr;
 use swc_atoms::JsWord;
 use swc_ecma_visit::VisitMutWith;
+use tokio::sync::mpsc::UnboundedSender;
 use tracing::instrument;
 
 use crate::{
@@ -42,7 +42,7 @@ impl DependencyIdResolver {
 pub struct Task {
   pub resolved_id: ResolvedId,
   pub active_task_count: Arc<AtomicUsize>,
-  pub tx: Sender<Msg>,
+  pub tx: UnboundedSender<Msg>,
   pub visited_module_id: Arc<DashSet<SmolStr>>,
   pub plugin_driver: Arc<PluginDriver>,
 }
