@@ -2,7 +2,6 @@ mod testing {
   use anyhow::ensure;
   use async_trait::async_trait;
   use rspack::bundler::{BundleContext, BundleOptions, Bundler};
-  use rspack::css::plugin::CssSourcePlugin;
   use rspack::traits::plugin::{
     Plugin, PluginLoadHookOutput, PluginResolveHookOutput, PluginTransformHookOutput,
   };
@@ -157,7 +156,13 @@ mod testing {
   #[test]
   #[ignore]
   fn basic_css() {
-    compile("basic-css", vec![]);
+    let bundler = compile("basic-css", vec![]);
+    assert!(bundler
+      .plugin_driver
+      .plugins
+      .iter()
+      .find(|plugin| plugin.name() == rspack_plugin_css::plugin::RSPACK_CSS_PLUGIN_NSME)
+      .is_some())
   }
 
   #[test]
@@ -173,8 +178,7 @@ mod testing {
 
   #[test]
   fn css_bundle_test() {
-    let css_plugin: CssSourcePlugin = std::default::Default::default();
-    compile("css", vec![Box::new(css_plugin)]);
+    compile("css", vec![]);
   }
 
   #[test]
