@@ -14,6 +14,8 @@ pub struct CssSourcePlugin {
   pub css_source_collect: Mutex<Vec<CssSourceType>>,
 }
 
+pub static RSPACK_CSS_PLUGIN_NSME: &'static str = "rspack_css_plugin";
+
 #[derive(Debug)]
 pub struct CssReferenceInfo {
   pub source: String,
@@ -69,7 +71,7 @@ impl CssSourcePlugin {
 #[async_trait]
 impl Plugin for CssSourcePlugin {
   fn name(&self) -> &'static str {
-    "rspack_css"
+    RSPACK_CSS_PLUGIN_NSME
   }
 
   #[inline]
@@ -116,10 +118,11 @@ impl Plugin for CssSourcePlugin {
     for item in wait_sort_list.iter().rev() {
       css_content += format!("\n{}", item.source).as_str();
     }
-
-    ctx.emit_asset(Asset {
-      source: css_content,
-      filename: bundle_options.outdir.clone() + format!("/{}.css", entry_name).as_str(),
-    })
+    if !css_content.is_empty() {
+      ctx.emit_asset(Asset {
+        source: css_content,
+        filename: bundle_options.outdir.clone() + format!("/{}.css", entry_name).as_str(),
+      })
+    }
   }
 }

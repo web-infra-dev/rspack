@@ -13,6 +13,7 @@ use swc_ecma_transforms_base::pass::noop;
 use tracing::instrument;
 
 use crate::chunk_spliter::ChunkSpliter;
+use crate::utils::inject_built_in_plugins;
 use crate::utils::log::enable_tracing_by_env;
 use rspack_core::get_swc_compiler;
 pub use rspack_core::hmr::hmr_module;
@@ -40,7 +41,7 @@ pub use rspack_core::BundleOptions;
 #[derive(Debug)]
 pub struct Bundler {
   pub ctx: Arc<BundleContext>,
-  options: Arc<BundleOptions>,
+  pub options: Arc<BundleOptions>,
   pub plugin_driver: Arc<PluginDriver>,
   module_graph: Option<ModuleGraph>,
 }
@@ -48,12 +49,15 @@ pub struct Bundler {
 impl Bundler {
   pub fn new(options: BundleOptions, plugins: Vec<Box<dyn Plugin>>) -> Self {
     enable_tracing_by_env();
-
+    let injected_plugins = inject_built_in_plugins(plugins);
     let ctx: Arc<BundleContext> = Default::default();
     Self {
       options: Arc::new(options),
       ctx: ctx.clone(),
-      plugin_driver: Arc::new(PluginDriver { plugins, ctx }),
+      plugin_driver: Arc::new(PluginDriver {
+        plugins: injected_plugins,
+        ctx,
+      }),
       module_graph: None,
     }
   }
