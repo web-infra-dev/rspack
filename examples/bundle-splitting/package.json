@@ -4,17 +4,20 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "lite-pack "
+    "dev": "rspack"
   },
   "devDependencies": {
-    "lite-pack": "workspace:*"
+    "@rspack/core": "workspace:*"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "rspack": {
     "manualChunks": {
-      "vendor": ["manual", "common"]
+      "vendor": [
+        "manual",
+        "common"
+      ]
     }
   }
 }

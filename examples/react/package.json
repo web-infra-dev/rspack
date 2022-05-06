@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "lite-pack"
+    "dev": "rspack"
   },
   "keywords": [],
   "author": "",
@@ -12,6 +12,6 @@
   "dependencies": {
     "react": "17.0.0",
     "react-dom": "17.0.0",
-    "lite-pack": "workspace:*"
+    "@rspack/core": "workspace:*"
   }
 }
