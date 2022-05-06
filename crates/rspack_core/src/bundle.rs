@@ -73,9 +73,10 @@ impl Bundle {
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
 
     while let Some(job) = job_queue.pop() {
-      visited_module_id.insert(job.id.clone());
+      visited_module_id.insert(job.path.clone());
       active_task_count.fetch_add(1, Ordering::SeqCst);
       let mut task = Task {
+        root: self.options.root.clone(),
         resolved_id: job,
         active_task_count: active_task_count.clone(),
         visited_module_id: visited_module_id.clone(),
@@ -90,18 +91,20 @@ impl Bundle {
     let entries_id = module_graph
       .resolved_entries
       .iter()
-      .map(|rid| rid.id.clone())
+      .map(|rid| rid.path.clone())
       .collect::<HashSet<SmolStr>>();
 
     while active_task_count.load(Ordering::SeqCst) != 0 {
       match rx.recv().await {
         Some(job) => match job {
           Msg::TaskFinished(mut module) => {
-            module.is_user_defined_entry_point = entries_id.contains(&module.id);
+            module.is_user_defined_entry_point = entries_id.contains(&module.path);
             if module.is_user_defined_entry_point {
               tracing::trace!("detect user entry module {:?}", module);
             }
-            module_graph.module_by_id.insert(module.id.clone(), module);
+            module_graph
+              .module_by_id
+              .insert(module.path.clone(), module);
             active_task_count.fetch_sub(1, Ordering::SeqCst);
           }
           _ => {}

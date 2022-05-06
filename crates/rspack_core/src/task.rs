@@ -3,17 +3,17 @@ use std::sync::{
   Arc,
 };
 
+use crate::path::normalize_path;
+use crate::{
+  bundle::Msg, dependency_scanner::DependencyScanner, plugin_hook, utils::parse_file, JsModule,
+  PluginDriver, ResolvedId,
+};
 use dashmap::{DashMap, DashSet};
 use smol_str::SmolStr;
 use swc_atoms::JsWord;
 use swc_ecma_visit::VisitMutWith;
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::instrument;
-
-use crate::{
-  bundle::Msg, dependency_scanner::DependencyScanner, plugin_hook, utils::parse_file, JsModule,
-  PluginDriver, ResolvedId,
-};
 
 #[derive(Debug)]
 pub struct DependencyIdResolver {
@@ -40,6 +40,7 @@ impl DependencyIdResolver {
 
 #[derive(Debug)]
 pub struct Task {
+  pub root: String,
   pub resolved_id: ResolvedId,
   pub active_task_count: Arc<AtomicUsize>,
   pub tx: UnboundedSender<Msg>,
@@ -56,12 +57,12 @@ impl Task {
     } else {
       tracing::trace!("start process {:?}", resolved_id);
       let id_resolver = DependencyIdResolver {
-        module_id: resolved_id.id.clone(),
+        module_id: resolved_id.path.clone(),
         resolved_ids: Default::default(),
         plugin_driver: self.plugin_driver.clone(),
       };
 
-      let module_id: &str = &resolved_id.id;
+      let module_id: &str = &resolved_id.path;
       let source = plugin_hook::load(module_id, &self.plugin_driver).await;
       let mut dependency_scanner = DependencyScanner::default();
 
@@ -83,7 +84,12 @@ impl Task {
       }
       let module = JsModule {
         exec_order: Default::default(),
-        id: resolved_id.id.clone(),
+        path: resolved_id.path.clone(),
+        id: normalize_path(
+          resolved_id.path.clone().as_str(),
+          self.root.clone().as_str(),
+        )
+        .into(),
         ast,
         dependencies: dependency_scanner.dependencies,
         dyn_imports: dependency_scanner.dyn_dependencies,
@@ -94,16 +100,16 @@ impl Task {
           .map(|(key, value)| (key, value))
           .collect(),
       };
-
       self.tx.send(Msg::TaskFinished(module)).unwrap()
     }
   }
 
   pub fn spawn_new_task(&self, id: ResolvedId) {
-    if !self.visited_module_id.contains(&id.id) {
-      self.visited_module_id.insert(id.id.clone());
+    if !self.visited_module_id.contains(&id.path) {
+      self.visited_module_id.insert(id.path.clone());
       self.active_task_count.fetch_add(1, Ordering::SeqCst);
       let mut task = Task {
+        root: self.root.clone(),
         resolved_id: id,
         active_task_count: self.active_task_count.clone(),
         visited_module_id: self.visited_module_id.clone(),

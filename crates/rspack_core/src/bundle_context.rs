@@ -55,11 +55,18 @@ pub struct BundleOptions {
   pub outdir: String,
   pub entry_file_names: String, // | ((chunkInfo: PreRenderedChunk) => string)
   pub code_splitting: bool,
+  pub root: String,
 }
 
 impl Default for BundleOptions {
   fn default() -> Self {
     Self {
+      root: std::env::current_dir()
+        .unwrap()
+        .as_os_str()
+        .to_str()
+        .unwrap()
+        .to_string(),
       mode: BundleMode::Prod,
       entries: Default::default(),
       // format: InternalModuleFormat::ES,

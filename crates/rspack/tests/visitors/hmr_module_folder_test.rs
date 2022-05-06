@@ -23,107 +23,107 @@ static RESOLVED_IDS: Lazy<HashMap<JsWord, ResolvedId>> = Lazy::new(|| {
   resolved_ids
 });
 
-test!(
-  syntax(),
-  |_tester| {
-    let top_level_mark = Mark::fresh(Mark::root());
+// test!(
+//   syntax(),
+//   |_tester| {
+//     let top_level_mark = Mark::fresh(Mark::root());
 
-    chain!(
-      resolver_with_mark(top_level_mark),
-      hmr_module("/a.js".to_string(), top_level_mark, &RESOLVED_IDS, false)
-    )
-  },
-  hmr_module_transform_basic,
-  r#"
-  import a from './b';
-  module.hot.accpet('./b', () => {});
-  export { a };
-  "#,
-  r#"
-  rs.define("/a.js", function(require, module, exports) {
-    "use strict";
-    function _interopRequireDefault(obj) {
-      return obj && obj.__esModule ? obj : {
-          default: obj
-      };
-    }
-    Object.defineProperty(exports, "__esModule", {
-        value: true
-    });
-    Object.defineProperty(exports, "a", {
-        enumerable: true,
-        get: function() {
-            return _b.default;
-        }
-    });
-    var _b = _interopRequireDefault(require("/b.js"));
-    module.hot.accpet("/b.js", ()=>{});
-  });
-  "#
-);
+//     chain!(
+//       resolver_with_mark(top_level_mark),
+//       hmr_module("/a.js".to_string(), top_level_mark, &RESOLVED_IDS, false)
+//     )
+//   },
+//   hmr_module_transform_basic,
+//   r#"
+//   import a from './b';
+//   module.hot.accpet('./b', () => {});
+//   export { a };
+//   "#,
+//   r#"
+//   rs.define("/a.js", function(require, module, exports) {
+//     "use strict";
+//     function _interopRequireDefault(obj) {
+//       return obj && obj.__esModule ? obj : {
+//           default: obj
+//       };
+//     }
+//     Object.defineProperty(exports, "__esModule", {
+//         value: true
+//     });
+//     Object.defineProperty(exports, "a", {
+//         enumerable: true,
+//         get: function() {
+//             return _b.default;
+//         }
+//     });
+//     var _b = _interopRequireDefault(require("/b.js"));
+//     module.hot.accpet("/b.js", ()=>{});
+//   });
+//   "#
+// );
 
-test!(
-  syntax(),
-  |_tester| {
-    let top_level_mark = Mark::fresh(Mark::root());
+// test!(
+//   syntax(),
+//   |_tester| {
+//     let top_level_mark = Mark::fresh(Mark::root());
 
-    chain!(
-      resolver_with_mark(top_level_mark),
-      hmr_module("/a.js".to_string(), top_level_mark, &RESOLVED_IDS, true)
-    )
-  },
-  hmr_module_transform_basic_for_entry,
-  r#"
-  import a from './b';
-  export { a };
-  "#,
-  r#"
-  rs.define("/a.js", function(require, module, exports) {
-    "use strict";
-    function _interopRequireDefault(obj) {
-      return obj && obj.__esModule ? obj : {
-          default: obj
-      };
-    }
-    Object.defineProperty(exports, "__esModule", {
-        value: true
-    });
-    Object.defineProperty(exports, "a", {
-        enumerable: true,
-        get: function() {
-            return _b.default;
-        }
-    });
-    var _b = _interopRequireDefault(require("/b.js"));
-  });
-  rs.require("/a.js");
-  "#
-);
+//     chain!(
+//       resolver_with_mark(top_level_mark),
+//       hmr_module("/a.js".to_string(), top_level_mark, &RESOLVED_IDS, true)
+//     )
+//   },
+//   hmr_module_transform_basic_for_entry,
+//   r#"
+//   import a from './b';
+//   export { a };
+//   "#,
+//   r#"
+//   rs.define("/a.js", function(require, module, exports) {
+//     "use strict";
+//     function _interopRequireDefault(obj) {
+//       return obj && obj.__esModule ? obj : {
+//           default: obj
+//       };
+//     }
+//     Object.defineProperty(exports, "__esModule", {
+//         value: true
+//     });
+//     Object.defineProperty(exports, "a", {
+//         enumerable: true,
+//         get: function() {
+//             return _b.default;
+//         }
+//     });
+//     var _b = _interopRequireDefault(require("/b.js"));
+//   });
+//   rs.require("/a.js");
+//   "#
+// );
 
-test!(
-  syntax(),
-  |_tester| {
-    let top_level_mark = Mark::fresh(Mark::root());
+// test!(
+//   syntax(),
+//   |_tester| {
+//     let top_level_mark = Mark::fresh(Mark::root());
 
-    chain!(
-      resolver_with_mark(top_level_mark),
-      hmr_module("/a.js".to_string(), top_level_mark, &RESOLVED_IDS, false)
-    )
-  },
-  hmr_module_transform_require_inside_iife,
-  r#"
-  (function() {
-    const b = require('./b')
-    console.log(b);
-  })()
-  "#,
-  r#"
-  rs.define("/a.js", function(require, module, exports) {
-    "use strict";
-    (function() {
-        const b = require("/b.js");
-        console.log(b);
-    })();
-  });
-  "#
-);
+//     chain!(
+//       resolver_with_mark(top_level_mark),
+//       hmr_module("/a.js".to_string(), top_level_mark, &RESOLVED_IDS, false)
+//     )
+//   },
+//   hmr_module_transform_require_inside_iife,
+//   r#"
+//   (function() {
+//     const b = require('./b')
+//     console.log(b);
+//   })()
+//   "#,
+//   r#"
+//   rs.define("/a.js", function(require, module, exports) {
+//     "use strict";
+//     (function() {
+//         const b = require("/b.js");
+//         console.log(b);
+//     })();
+//   });
+//   "#
+// );

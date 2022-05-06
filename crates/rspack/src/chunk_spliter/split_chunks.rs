@@ -39,8 +39,8 @@ pub fn split_chunks(module_graph: &ModuleGraph, is_enable_code_spliting: bool) -
       .for_each(|dep| {
         let dep_rid = module.resolved_ids.get(dep).unwrap().clone();
         egdes.push((
-          module.id.clone(),
-          dep_rid.id,
+          module.path.clone(),
+          dep_rid.path,
           Dependency { is_async: false },
         ))
       });
@@ -51,7 +51,11 @@ pub fn split_chunks(module_graph: &ModuleGraph, is_enable_code_spliting: bool) -
       .into_iter()
       .for_each(|dep| {
         let dep_rid = module.resolved_ids.get(&dep.argument).unwrap().clone();
-        egdes.push((module.id.clone(), dep_rid.id, Dependency { is_async: true }))
+        egdes.push((
+          module.path.clone(),
+          dep_rid.path,
+          Dependency { is_async: true },
+        ))
       });
   });
   egdes.iter().for_each(|(from, to, edge)| {
@@ -64,7 +68,7 @@ pub fn split_chunks(module_graph: &ModuleGraph, is_enable_code_spliting: bool) -
 
   let entries = resolved_entries
     .iter()
-    .map(|rid| rid.id.as_str())
+    .map(|rid| rid.path.as_str())
     .collect::<Vec<_>>();
 
   for entry in &entries {
@@ -115,7 +119,7 @@ pub fn split_chunks(module_graph: &ModuleGraph, is_enable_code_spliting: bool) -
 
   let entries = DashSet::new();
   resolved_entries.iter().for_each(|entry| {
-    entries.insert(entry.id.clone());
+    entries.insert(entry.path.clone());
   });
 
   let mut reachable_modules = HashSet::new();
