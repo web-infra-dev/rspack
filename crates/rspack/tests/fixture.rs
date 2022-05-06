@@ -1,10 +1,10 @@
 mod testing {
-  use anyhow::ensure;
   use async_trait::async_trait;
   use rspack::bundler::{BundleContext, BundleOptions, Bundler};
-  use rspack::traits::plugin::{
+  use rspack_core::{
     Plugin, PluginLoadHookOutput, PluginResolveHookOutput, PluginTransformHookOutput,
   };
+
   use serde_json::Value;
   use std::collections::HashMap;
   use std::env;

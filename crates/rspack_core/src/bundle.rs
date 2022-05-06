@@ -99,7 +99,7 @@ impl Bundle {
           Msg::TaskFinished(mut module) => {
             module.is_user_defined_entry_point = entries_id.contains(&module.id);
             if module.is_user_defined_entry_point {
-              tracing::debug!("detect user entry module {:?}", module);
+              tracing::trace!("detect user entry module {:?}", module);
             }
             module_graph.module_by_id.insert(module.id.clone(), module);
             active_task_count.fetch_sub(1, Ordering::SeqCst);
@@ -107,7 +107,7 @@ impl Bundle {
           _ => {}
         },
         None => {
-          tracing::debug!("All sender is dropped");
+          tracing::trace!("All sender is dropped");
         }
       }
     }

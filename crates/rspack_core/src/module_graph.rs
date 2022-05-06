@@ -101,7 +101,7 @@ impl ModuleGraph {
     }
     let mut modules = self.module_by_id.values().collect::<Vec<_>>();
     modules.sort_by_key(|m| m.exec_order);
-    tracing::debug!(
+    tracing::trace!(
       "ordered {:#?}",
       modules.iter().map(|m| &m.id).collect::<Vec<_>>()
     );

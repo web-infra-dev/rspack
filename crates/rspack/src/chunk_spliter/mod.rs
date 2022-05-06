@@ -1,14 +1,19 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{
-  bundler::BundleOptions, plugin_driver::PluginDriver, structs::OutputChunk,
-  utils::get_swc_compiler,
-};
+use crate::bundler::BundleOptions;
+use rspack_core::get_swc_compiler;
 use rspack_core::ModuleGraph;
+use rspack_core::PluginDriver;
 use tracing::instrument;
 
 use self::split_chunks::split_chunks;
 pub mod split_chunks;
+
+#[derive(Debug)]
+pub struct OutputChunk {
+  pub code: String,
+  pub file_name: String,
+}
 
 #[derive(Debug)]
 pub struct ChunkSpliter {

@@ -54,7 +54,7 @@ impl Task {
     if resolved_id.external {
       // TODO: external module
     } else {
-      tracing::debug!("start process {:?}", resolved_id);
+      tracing::trace!("start process {:?}", resolved_id);
       let id_resolver = DependencyIdResolver {
         module_id: resolved_id.id.clone(),
         resolved_ids: Default::default(),

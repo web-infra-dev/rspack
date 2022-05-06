@@ -13,12 +13,12 @@ use swc_ecma_transforms_base::pass::noop;
 use tracing::instrument;
 
 use crate::chunk_spliter::ChunkSpliter;
-use crate::plugin_driver::PluginDriver;
-use crate::traits::plugin::Plugin;
-use crate::utils::get_swc_compiler;
 use crate::utils::inject_built_in_plugins;
 use crate::utils::log::enable_tracing_by_env;
+use rspack_core::get_swc_compiler;
 pub use rspack_core::hmr::hmr_module;
+use rspack_core::Plugin;
+use rspack_core::PluginDriver;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum InternalModuleFormat {
   ES,
@@ -86,7 +86,7 @@ impl Bundler {
 
   #[instrument(skip(self))]
   pub async fn rebuild(&mut self, changed_file: String) -> HashMap<String, String> {
-    tracing::debug!("rebuld bacause of {:?}", changed_file);
+    tracing::trace!("rebuld bacause of {:?}", changed_file);
     let mut old_modules_id = self
       .module_graph
       .as_ref()
@@ -97,7 +97,7 @@ impl Bundler {
       .collect::<HashSet<_>>();
     let changed_file: SmolStr = changed_file.into();
     old_modules_id.remove(&changed_file);
-    tracing::debug!("old_modules_id {:?}", old_modules_id);
+    tracing::trace!("old_modules_id {:?}", old_modules_id);
     let mut module_graph = {
       // TODO: We need to reuse some cache. Rebuild is fake now.
       let mut bundle = rspack_core::Bundle::new(
@@ -131,7 +131,7 @@ impl Bundler {
       .into_iter()
       .filter(|module_id| !old_modules_id.contains(module_id))
       .map(|module_id| {
-        tracing::debug!("render new added module {:?}", module_id);
+        tracing::trace!("render new added module {:?}", module_id);
         let module = self
           .module_graph
           .as_ref()

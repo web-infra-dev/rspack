@@ -1,5 +1,7 @@
 use std::sync::atomic::AtomicBool;
 
+use tracing::Level;
+
 static IS_TRACING_ENABLED: AtomicBool = AtomicBool::new(false);
 
 pub fn enable_tracing_by_env() {
@@ -16,6 +18,8 @@ pub fn enable_tracing_by_env() {
     tracing_subscriber::registry()
       .with(chrome_layer)
       .with(fmt::layer().pretty().with_file(false))
+      .with(tracing_subscriber::filter::Targets::new().with_target("rspack_core", Level::TRACE))
+      .with(tracing_subscriber::filter::Targets::new().with_target("rspack", Level::TRACE))
       // Using TRACE=[TRACE|DEBUG|INFO|WARN|ERROR] to set max trace level.
       .with(EnvFilter::from_env("TRACE"))
       .init();
