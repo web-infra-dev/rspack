@@ -4,14 +4,20 @@
   "description": "Maybe the next generation bundler",
   "main": "index.js",
   "private": true,
+  "workspaces": [
+    "packages/**",
+    "examples/**",
+    "crates/node_binding",
+    "crates/rspack/fixtures"
+  ],
   "scripts": {
     "test:js": "mocha",
     "test:rust": "cargo test",
     "prepare": "husky install",
     "format:rs": "cargo fmt",
     "lint:rs": "cargo clippy",
-    "build:core": "cargo build && pnpm --filter @rspack/core... build ",
-    "setup": "pnpm install && pnpm run build:core",
+    "build:core": "cargo build && yarn workspace @rspack/binding run build ",
+    "setup": "yarn install && yarn build:core",
     "build:bundle": "cargo run --package rspack --example bundle"
   },
   "repository": {
@@ -33,5 +39,6 @@
     "lint-staged": "^12.4.0",
     "mocha": "9.2.2",
     "tsm": "2.2.1"
-  }
+  },
+  "packageManager": "yarn@3.2.0"
 }

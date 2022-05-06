@@ -1,5 +1,5 @@
 {
-  "name": "code-splitting",
+  "name": "multi-entry",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",

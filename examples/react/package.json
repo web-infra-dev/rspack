@@ -10,8 +10,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@rspack/core": "workspace:*",
     "react": "17.0.0",
-    "react-dom": "17.0.0",
-    "@rspack/core": "workspace:*"
+    "react-dom": "17.0.0"
   }
 }

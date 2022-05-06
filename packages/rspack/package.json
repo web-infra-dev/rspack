@@ -17,14 +17,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "lodash-es": "^4.17.21",
     "@rspack/binding": "workspace:*",
-    "connect": "3.7.0",
-    "sirv": "2.0.2",
     "chokidar": "3.5.3",
-    "yargs": "17.4.1",
+    "connect": "3.7.0",
+    "fs-extra": "10.1.0",
+    "lodash-es": "^4.17.21",
+    "sirv": "2.0.2",
     "tsm": "2.2.1",
     "ws": "8.5.0",
-    "fs-extra": "10.1.0"
+    "yargs": "17.4.1"
   }
 }
