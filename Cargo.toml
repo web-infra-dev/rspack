@@ -3,8 +3,12 @@ members = [
   "./crates/*",
 ]
 
+[profile.dev]
+incremental = true
+
 [profile.release]
 codegen-units = 1
 debug = false
 lto = true
 opt-level = 3
+incremental = true
