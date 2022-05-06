@@ -25,13 +25,16 @@ pub async fn resolve_id(
     } else {
       let id = if let Some(importer) = importer {
         let base_dir = Path::new(importer).parent().unwrap();
-        let resolver = Resolver::default();
+        let resolver = Resolver::default().with_extensions(vec![".ts", ".js", ".json"]);
         match resolver.resolve(base_dir, source) {
           Ok(path) => match path {
             ResolveResult::Path(buf) => buf.to_string_lossy().to_string(),
             ResolveResult::Ignored => unreachable!(),
           },
-          Err(_) => unreachable!(),
+          Err(reason) => panic!(
+            "failed to load {} from {} due to  {}",
+            &source, &importer, reason
+          ),
         }
       } else {
         Path::new(source).resolve().to_string_lossy().to_string()
