@@ -1,4 +1,4 @@
-use crate::{hmr::hmr_module, js_module::JsModule, BundleOptions};
+use crate::{hmr::hmr_module, js_module::JsModule, syntax, BundleOptions};
 use petgraph::graph::NodeIndex;
 use rayon::prelude::*;
 use smol_str::SmolStr;
@@ -7,7 +7,10 @@ use std::{
   path::Path,
   sync::{Arc, Mutex},
 };
-use swc::{config::Options, Compiler};
+use swc::{
+  config::{Config, JscConfig, Options},
+  Compiler,
+};
 use swc_common::{FileName, Mark};
 use swc_ecma_transforms_base::pass::noop;
 
@@ -67,6 +70,13 @@ impl Chunk {
                 Some(ast::Program::Module(module.ast.clone())),
                 handler,
                 &Options {
+                  config: Config {
+                    jsc: JscConfig {
+                      syntax: Some(syntax(module.path.as_str())),
+                      ..Default::default()
+                    },
+                    ..Default::default()
+                  },
                   global_mark: Some(top_level_mark),
                   ..Default::default()
                 },

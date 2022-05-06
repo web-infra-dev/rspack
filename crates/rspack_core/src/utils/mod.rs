@@ -24,26 +24,7 @@ pub fn get_swc_compiler() -> Arc<Compiler> {
 
 #[instrument(skip(source_code))]
 pub fn parse_file(source_code: String, filename: &str) -> ast::Program {
-  let p = Path::new(filename);
-  let ext = p.extension().and_then(|ext| ext.to_str()).unwrap_or("js");
-  let syntax = if ext == "ts" || ext == "tsx" {
-    Syntax::Typescript(TsConfig {
-      decorators: false,
-      tsx: ext == "tsx",
-      ..Default::default()
-    })
-  } else {
-    Syntax::Es(EsConfig {
-      private_in_object: true,
-      import_assertions: true,
-      jsx: ext == "jsx",
-      export_default_from: true,
-      decorators_before_export: true,
-      decorators: true,
-      fn_bind: true,
-      allow_super_outside_method: true,
-    })
-  };
+  let syntax = syntax(filename);
   let compiler = get_swc_compiler();
   let fm = compiler
     .cm
@@ -59,4 +40,26 @@ pub fn parse_file(source_code: String, filename: &str) -> ast::Program {
     )
   })
   .unwrap()
+}
+
+pub fn syntax(filename: &str) -> Syntax {
+  let p = Path::new(filename);
+  let ext = p.extension().and_then(|ext| ext.to_str()).unwrap_or("js");
+  match ext == "ts" || ext == "tsx" {
+    true => Syntax::Typescript(TsConfig {
+      decorators: false,
+      tsx: ext == "tsx",
+      ..Default::default()
+    }),
+    false => Syntax::Es(EsConfig {
+      private_in_object: true,
+      import_assertions: true,
+      jsx: ext == "jsx",
+      export_default_from: true,
+      decorators_before_export: true,
+      decorators: true,
+      fn_bind: true,
+      allow_super_outside_method: true,
+    }),
+  }
 }
