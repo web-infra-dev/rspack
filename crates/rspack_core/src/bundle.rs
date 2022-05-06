@@ -6,11 +6,11 @@ use crate::task::Task;
 use crate::{
   plugin_hook, BundleContext, BundleOptions, JsModule, ModuleGraph, PluginDriver, ResolvedId,
 };
-use crossbeam::channel::{self};
 use crossbeam::queue::SegQueue;
 use dashmap::DashSet;
 use futures::future::join_all;
 use smol_str::SmolStr;
+use tracing::instrument;
 
 #[derive(Debug)]
 pub struct Bundle {
@@ -47,6 +47,7 @@ impl Bundle {
     self.entries.push(entry);
   }
 
+  #[instrument(skip(self))]
   pub async fn build_graph(&mut self) {
     let mut module_graph = ModuleGraph::default();
     let active_task_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
@@ -68,7 +69,8 @@ impl Bundle {
       job_queue.push(rd.clone());
     });
 
-    let (tx, rx) = channel::unbounded::<Msg>();
+    // let (tx, rx) = channel::unbounded::<Msg>();
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
 
     while let Some(job) = job_queue.pop() {
       visited_module_id.insert(job.id.clone());
@@ -80,22 +82,9 @@ impl Bundle {
         tx: tx.clone(),
         plugin_driver: self.plugin_driver.clone(),
       };
-
       tokio::task::spawn(async move {
         task.run().await;
       });
-    }
-
-    while active_task_count.load(Ordering::SeqCst) != 0 || !rx.is_empty() {
-      if let Ok(job) = rx.recv() {
-        match job {
-          Msg::TaskFinished(module) => {
-            module_graph.module_by_id.insert(module.id.clone(), module);
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
-          }
-          _ => {}
-        }
-      }
     }
 
     let entries_id = module_graph
@@ -103,12 +92,25 @@ impl Bundle {
       .iter()
       .map(|rid| rid.id.clone())
       .collect::<HashSet<SmolStr>>();
-    module_graph
-      .module_by_id
-      .iter_mut()
-      .for_each(|(_key, module)| {
-        module.is_user_defined_entry_point = entries_id.contains(&module.id);
-      });
+
+    while active_task_count.load(Ordering::SeqCst) != 0 {
+      match rx.recv().await {
+        Some(job) => match job {
+          Msg::TaskFinished(mut module) => {
+            module.is_user_defined_entry_point = entries_id.contains(&module.id);
+            if module.is_user_defined_entry_point {
+              tracing::debug!("detect user entry module {:?}", module);
+            }
+            module_graph.module_by_id.insert(module.id.clone(), module);
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
+          }
+          _ => {}
+        },
+        None => {
+          tracing::debug!("All sender is dropped");
+        }
+      }
+    }
 
     module_graph.sort_modules();
     self.module_graph = Some(module_graph);
