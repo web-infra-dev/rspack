@@ -1,9 +1,7 @@
 use std::collections::HashMap;
 
-use dashmap::DashMap;
 use once_cell::sync::Lazy;
-use rspack::structs::ResolvedId;
-use rspack::visitors::hmr_module_folder::hmr_module;
+use rspack_core::{hmr::hmr_module, ResolvedId};
 use swc_atoms::JsWord;
 use swc_common::{chain, Mark};
 use swc_ecma_parser::{EsConfig, Syntax};

@@ -24,7 +24,6 @@ pub async fn resolve_id(
       ResolvedId::new(source.to_string(), true)
     } else {
       let id = if let Some(importer) = importer {
-        dbg!(&importer);
         let base_dir = Path::new(importer).parent().unwrap();
         let resolver = Resolver::default();
         match resolver.resolve(base_dir, source) {
@@ -37,8 +36,6 @@ pub async fn resolve_id(
       } else {
         Path::new(source).resolve().to_string_lossy().to_string()
       };
-      dbg!(&id);
-
       ResolvedId::new(id, false)
     }
   })
