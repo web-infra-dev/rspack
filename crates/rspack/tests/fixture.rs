@@ -1,6 +1,7 @@
 mod testing {
   use async_trait::async_trait;
   use rspack::bundler::{BundleContext, BundleOptions, Bundler};
+  use rspack_core::Loader;
   use rspack_core::{
     Plugin, PluginLoadHookOutput, PluginResolveHookOutput, PluginTransformHookOutput,
   };
@@ -227,5 +228,21 @@ mod testing {
   #[test]
   fn splitting() {
     compile("code-splitting", vec![]);
+  }
+
+  #[test]
+  fn loader() {
+    compile_with_options(
+      "loader",
+      BundleOptions {
+        loader: Some(
+          vec![("svg".to_string(), Loader::DataURI)]
+            .into_iter()
+            .collect(),
+        ),
+        ..Default::default()
+      },
+      vec![],
+    );
   }
 }
