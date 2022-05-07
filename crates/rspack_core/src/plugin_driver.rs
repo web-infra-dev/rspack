@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 use crate::{BundleContext, BundleOptions, Chunk, Plugin, PluginTransformHookOutput, ResolvedId};
 
@@ -29,9 +29,13 @@ impl PluginDriver {
     None
   }
 
-  pub fn transform(&self, ast: PluginTransformHookOutput) -> PluginTransformHookOutput {
+  pub fn transform(
+    &self,
+    path: &Path,
+    ast: PluginTransformHookOutput,
+  ) -> PluginTransformHookOutput {
     self.plugins.iter().fold(ast, |transformed_ast, plugin| {
-      plugin.transform(&self.ctx, transformed_ast)
+      plugin.transform(&self.ctx, path, transformed_ast)
     })
   }
 

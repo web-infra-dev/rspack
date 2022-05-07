@@ -123,6 +123,7 @@ mod testing {
     fn transform(
       &self,
       _ctx: &BundleContext,
+      _path: &Path,
       ast: swc_ecma_ast::Module,
     ) -> PluginTransformHookOutput {
       self

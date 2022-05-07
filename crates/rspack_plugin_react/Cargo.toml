@@ -1,0 +1,12 @@
+[package]
+name = "rspack_plugin_react"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rspack_core = { path = "../rspack_core" }
+swc_ecma_transforms_react = "0.107.0"
+swc_ecma_visit = "0.62.0"
+swc_common = "0.17.22"

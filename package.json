@@ -16,7 +16,7 @@
     "prepare": "husky install",
     "format:rs": "cargo fmt",
     "lint:rs": "cargo clippy",
-    "build:core": "cargo build && yarn workspace @rspack/binding run build ",
+    "build:core": "yarn workspace @rspack/binding run build ",
     "setup": "yarn install && yarn build:core",
     "build:bundle": "cargo run --package rspack --example bundle"
   },
