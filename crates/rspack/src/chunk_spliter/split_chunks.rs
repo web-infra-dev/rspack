@@ -7,7 +7,6 @@ use petgraph::{
   EdgeDirection,
 };
 use rspack_core::{Chunk, JsModule, ModuleGraph, ResolvedId};
-use smol_str::SmolStr;
 use tracing::instrument;
 
 #[derive(Clone, Debug)]
@@ -19,7 +18,7 @@ type ModulePetGraph<'a> = petgraph::graphmap::DiGraphMap<&'a str, Dependency>;
 
 #[instrument(skip(module_graph))]
 pub fn split_chunks(module_graph: &ModuleGraph, is_enable_code_spliting: bool) -> Vec<Chunk> {
-  let module_by_id: &HashMap<SmolStr, JsModule> = &module_graph.module_by_id;
+  let module_by_id: &HashMap<String, JsModule> = &module_graph.module_by_id;
   let resolved_entries: &Vec<ResolvedId> = &module_graph.resolved_entries;
 
   let mut dependency_graph = ModulePetGraph::new();
@@ -27,7 +26,7 @@ pub fn split_chunks(module_graph: &ModuleGraph, is_enable_code_spliting: bool) -
     dependency_graph.add_node(module_id);
   });
 
-  let mut egdes: Vec<(SmolStr, SmolStr, Dependency)> = vec![];
+  let mut egdes: Vec<(String, String, Dependency)> = vec![];
   module_by_id.values().for_each(|module| {
     // let module = &self.graph.module_by_id[module_id];
 

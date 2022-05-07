@@ -22,6 +22,21 @@
                 "node_modules/mocha/bin/mocha"
             ],
             "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "sourceLanguages": [
+                "rust"
+            ],
+            "name": "debug-example-react",
+            "program": "node",
+            "args": [
+                "--inspect",
+                "node_modules/.bin/rspack",
+                "examples/react"
+            ],
+            "cwd": "${workspaceFolder}"
         }
     ],
     "compounds": [

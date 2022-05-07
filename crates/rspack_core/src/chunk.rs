@@ -1,7 +1,6 @@
 use crate::{hmr::hmr_module, js_module::JsModule, syntax, BundleOptions};
 use petgraph::graph::NodeIndex;
 use rayon::prelude::*;
-use smol_str::SmolStr;
 use std::{
   collections::HashMap,
   path::Path,
@@ -13,18 +12,17 @@ use swc::{
 };
 use swc_common::{FileName, Mark};
 use swc_ecma_transforms_base::pass::noop;
-
 #[derive(Debug, Default)]
 pub struct Chunk {
-  pub id: SmolStr,
-  // pub order_modules: Vec<SmolStr>,
-  pub entry: SmolStr,
-  pub module_ids: Vec<SmolStr>,
+  pub id: String,
+  // pub order_modules: Vec<String>,
+  pub entry: String,
+  pub module_ids: Vec<String>,
   pub source_chunks: Vec<NodeIndex>,
 }
 
 impl Chunk {
-  pub fn new(module_ids: Vec<SmolStr>, entries: SmolStr) -> Self {
+  pub fn new(module_ids: Vec<String>, entries: String) -> Self {
     Self {
       id: Default::default(),
       module_ids,
@@ -33,7 +31,7 @@ impl Chunk {
     }
   }
 
-  pub fn from_js_module(module_id: SmolStr) -> Self {
+  pub fn from_js_module(module_id: String) -> Self {
     Self {
       id: Default::default(),
       module_ids: vec![module_id.clone()],
@@ -45,7 +43,7 @@ impl Chunk {
   pub fn render(
     &mut self,
     _options: &BundleOptions,
-    modules: &mut HashMap<SmolStr, JsModule>,
+    modules: &mut HashMap<String, JsModule>,
     compiler: Arc<Compiler>,
   ) -> RenderedChunk {
     // let compiler = get_compiler();
@@ -123,7 +121,7 @@ impl Chunk {
     self.get_fallback_chunk_name()
   }
 
-  pub fn generate_id(&self, options: &BundleOptions) -> SmolStr {
+  pub fn generate_id(&self, options: &BundleOptions) -> String {
     let pattern = &options.entry_file_names;
     pattern.replace("[name]", self.name()).into()
   }

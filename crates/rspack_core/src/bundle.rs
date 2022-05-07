@@ -9,7 +9,6 @@ use crate::{
 use crossbeam::queue::SegQueue;
 use dashmap::DashSet;
 use futures::future::join_all;
-use smol_str::SmolStr;
 use tracing::instrument;
 
 #[derive(Debug)]
@@ -23,7 +22,7 @@ pub struct Bundle {
 
 #[derive(Debug)]
 pub enum Msg {
-  // DependencyReference(SmolStr, SmolStr, Rel),
+  // DependencyReference(String, String, Rel),
   TaskFinished(JsModule),
   // NewExtMod(ExternalModule),
 }
@@ -63,7 +62,7 @@ impl Bundle {
     .into_iter()
     .collect();
 
-    let visited_module_id: Arc<DashSet<SmolStr>> = Default::default();
+    let visited_module_id: Arc<DashSet<String>> = Default::default();
 
     module_graph.resolved_entries.iter().for_each(|rd| {
       job_queue.push(rd.clone());
@@ -92,7 +91,7 @@ impl Bundle {
       .resolved_entries
       .iter()
       .map(|rid| rid.path.clone())
-      .collect::<HashSet<SmolStr>>();
+      .collect::<HashSet<String>>();
 
     while active_task_count.load(Ordering::SeqCst) != 0 {
       match rx.recv().await {

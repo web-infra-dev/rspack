@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use rspack_core::ModuleGraph;
-use smol_str::SmolStr;
 use sugar_path::PathSugar;
 use swc::config::Options;
 use swc_common::FileName;
@@ -97,7 +96,7 @@ impl Bundler {
       .keys()
       .cloned()
       .collect::<HashSet<_>>();
-    let changed_file: SmolStr = changed_file.into();
+    let changed_file: String = changed_file.into();
     old_modules_id.remove(&changed_file);
     tracing::trace!("old_modules_id {:?}", old_modules_id);
     let mut module_graph = {

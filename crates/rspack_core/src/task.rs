@@ -9,7 +9,7 @@ use crate::{
   PluginDriver, ResolvedId,
 };
 use dashmap::{DashMap, DashSet};
-use smol_str::SmolStr;
+
 use swc_atoms::JsWord;
 use swc_ecma_visit::VisitMutWith;
 use tokio::sync::mpsc::UnboundedSender;
@@ -17,7 +17,7 @@ use tracing::instrument;
 
 #[derive(Debug)]
 pub struct DependencyIdResolver {
-  pub module_id: SmolStr,
+  pub module_id: String,
   pub resolved_ids: DashMap<JsWord, ResolvedId>,
   pub plugin_driver: Arc<PluginDriver>,
 }
@@ -44,7 +44,7 @@ pub struct Task {
   pub resolved_id: ResolvedId,
   pub active_task_count: Arc<AtomicUsize>,
   pub tx: UnboundedSender<Msg>,
-  pub visited_module_id: Arc<DashSet<SmolStr>>,
+  pub visited_module_id: Arc<DashSet<String>>,
   pub plugin_driver: Arc<PluginDriver>,
 }
 
