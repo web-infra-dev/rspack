@@ -149,3 +149,6 @@ dist
 # for jetbrains tmp file
 .idea
 .clion
+
+# os
+.DS_Store
