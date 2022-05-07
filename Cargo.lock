@@ -1542,6 +1542,7 @@ dependencies = [
  "regex",
  "rspack_core",
  "rspack_plugin_css",
+ "rspack_plugin_loader",
  "rspack_plugin_react",
  "rspack_style",
  "serde_json",
@@ -1622,6 +1623,15 @@ dependencies = [
  "rspack_core",
  "rspack_style",
  "tokio",
+]
+
+[[package]]
+name = "rspack_plugin_loader"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "base64 0.13.0",
+ "rspack_core",
 ]
 
 [[package]]

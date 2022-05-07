@@ -47,14 +47,14 @@ pub struct Bundler {
 }
 
 impl Bundler {
-  pub fn new(options: BundleOptions, plugins: Vec<Box<dyn Plugin>>) -> Self {
+  pub fn new(mut options: BundleOptions, plugins: Vec<Box<dyn Plugin>>) -> Self {
     enable_tracing_by_env();
     tracing::debug!(
       "create bundler with options:\n {:#?} \nplugins:\n {:#?}\n",
       options,
       plugins
     );
-    let injected_plugins = inject_built_in_plugins(plugins, &options);
+    let injected_plugins = inject_built_in_plugins(plugins, &mut options);
     let ctx: Arc<BundleContext> = Arc::new(BundleContext::new(get_swc_compiler()));
     Self {
       options: Arc::new(options),

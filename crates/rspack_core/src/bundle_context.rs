@@ -5,6 +5,8 @@ use std::{
 
 use swc::Compiler;
 
+use crate::LoaderOptions;
+
 #[derive(Debug, Clone)]
 pub enum BundleMode {
   Dev,
@@ -85,6 +87,7 @@ impl Default for BundleReactOptions {
 #[derive(Debug)]
 pub struct BundleOptions {
   pub react: BundleReactOptions,
+  pub loader: Option<LoaderOptions>,
   pub mode: BundleMode,
   pub entries: Vec<String>,
   // pub format: InternalModuleFormat,
@@ -116,6 +119,7 @@ impl Default for BundleOptions {
       minify: Default::default(),
       entry_file_names: "[name].js".to_string(),
       code_splitting: true,
+      loader: None,
     }
   }
 }
