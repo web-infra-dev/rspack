@@ -9,6 +9,7 @@ mod plugin;
 mod plugin_driver;
 mod task;
 mod utils;
+pub use ast;
 pub use bundle::*;
 pub use bundle_context::*;
 pub use chunk::*;

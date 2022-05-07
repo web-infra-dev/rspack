@@ -1,10 +1,12 @@
 use std::collections::{HashMap, HashSet};
 
 use linked_hash_map::LinkedHashMap;
+use swc::{Compiler, TransformOutput};
 use swc_atoms::JsWord;
-use swc_common::util::take::Take;
+use swc_common::{errors::Handler, util::take::Take, FileName, Mark};
+use swc_ecma_transforms_base::pass::noop;
 
-use crate::ResolvedId;
+use crate::{hmr::hmr_module, syntax, ResolvedId};
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct DynImportDesc {
@@ -59,5 +61,52 @@ impl JsModule {
       is_user_defined_entry_point: Default::default(),
       resolved_ids: Default::default(),
     }
+  }
+
+  pub fn render(
+    &self,
+    compiler: &Compiler,
+    handler: &Handler,
+    top_level_mark: Mark,
+    modules: &HashMap<String, JsModule>,
+  ) -> anyhow::Result<TransformOutput> {
+    use swc::config as swc_config;
+    let fm = compiler.cm.new_source_file(
+      FileName::Custom(self.path.to_string()),
+      self.path.to_string(),
+    );
+    compiler.process_js_with_custom_pass(
+      fm,
+      Some(ast::Program::Module(self.ast.clone())),
+      handler,
+      &swc_config::Options {
+        config: swc_config::Config {
+          jsc: swc_config::JscConfig {
+            syntax: Some(syntax(self.path.as_str())),
+            transform: Some(swc_config::TransformConfig {
+              react: swc_ecma_transforms_react::Options {
+                runtime: Some(swc_ecma_transforms_react::Runtime::Automatic),
+                ..Default::default()
+              },
+              ..Default::default()
+            }),
+            ..Default::default()
+          },
+          ..Default::default()
+        },
+        global_mark: Some(top_level_mark),
+        ..Default::default()
+      },
+      |_, _| noop(),
+      |_, _| {
+        hmr_module(
+          self.id.to_string(),
+          top_level_mark,
+          &self.resolved_ids,
+          self.is_user_defined_entry_point,
+          modules,
+        )
+      },
+    )
   }
 }

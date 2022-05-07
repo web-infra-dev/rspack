@@ -7,7 +7,7 @@ use std::{
   sync::{Arc, Mutex},
 };
 use swc::{
-  config::{Config, JscConfig, Options},
+  config::{Config, JscConfig, Options, TransformConfig},
   Compiler,
 };
 use swc_common::{FileName, Mark};
@@ -57,40 +57,7 @@ impl Chunk {
       .map(|idx| {
         let module = modules.get(idx).unwrap();
         swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
-          let fm = compiler.cm.new_source_file(
-            FileName::Custom(module.path.to_string()),
-            module.path.to_string(),
-          );
-          Ok(
-            compiler
-              .process_js_with_custom_pass(
-                fm,
-                Some(ast::Program::Module(module.ast.clone())),
-                handler,
-                &Options {
-                  config: Config {
-                    jsc: JscConfig {
-                      syntax: Some(syntax(module.path.as_str())),
-                      ..Default::default()
-                    },
-                    ..Default::default()
-                  },
-                  global_mark: Some(top_level_mark),
-                  ..Default::default()
-                },
-                |_, _| noop(),
-                |_, _| {
-                  hmr_module(
-                    module.id.to_string(),
-                    top_level_mark,
-                    &module.resolved_ids,
-                    module.is_user_defined_entry_point,
-                    modules,
-                  )
-                },
-              )
-              .unwrap(),
-          )
+          module.render(&compiler, handler, top_level_mark, modules)
         })
         .unwrap()
       })

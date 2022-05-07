@@ -18,6 +18,7 @@ pub fn enable_tracing_by_env() {
       // Using TRACE=[TRACE|DEBUG|INFO|WARN|ERROR] to set max trace level.
       .with(EnvFilter::from_env("TRACE"))
       .init();
+    tracing::trace!("enable_tracing_by_env");
   }
 }
 

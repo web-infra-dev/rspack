@@ -1,4 +1,4 @@
-use std::{fmt::Debug, sync::Arc};
+use std::{fmt::Debug, path::Path, sync::Arc};
 
 use crate::{bundle::Bundle, BundleContext, BundleOptions, Chunk, ResolvedId};
 use async_trait::async_trait;
@@ -30,7 +30,12 @@ pub trait Plugin: Sync + Send + Debug {
   }
 
   #[inline]
-  fn transform(&self, _ctx: &BundleContext, ast: ast::Module) -> PluginTransformHookOutput {
+  fn transform(
+    &self,
+    _ctx: &BundleContext,
+    path: &Path,
+    ast: ast::Module,
+  ) -> PluginTransformHookOutput {
     ast
   }
 

@@ -1,6 +1,9 @@
-use std::sync::{
-  atomic::{AtomicUsize, Ordering},
-  Arc,
+use std::{
+  path::Path,
+  sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
+  },
 };
 
 use crate::path::normalize_path;
@@ -65,9 +68,8 @@ impl Task {
       let module_id: &str = &resolved_id.path;
       let source = plugin_hook::load(module_id, &self.plugin_driver).await;
       let mut dependency_scanner = DependencyScanner::default();
-
       let raw_ast = parse_file(source, module_id).expect_module();
-      let mut ast = plugin_hook::transform(raw_ast, &self.plugin_driver);
+      let mut ast = plugin_hook::transform(Path::new(module_id), raw_ast, &self.plugin_driver);
 
       self.pre_analyze_imported_module(&id_resolver, &ast).await;
 

@@ -26,5 +26,8 @@
     "tsm": "2.2.1",
     "ws": "8.5.0",
     "yargs": "17.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.31"
   }
 }

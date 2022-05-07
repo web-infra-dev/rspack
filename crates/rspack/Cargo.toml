@@ -10,6 +10,7 @@ license = "MIT"
 [dependencies]
 rspack_core = { path="../rspack_core" }
 rspack_plugin_css = { path="../rspack_plugin_css" }
+rspack_plugin_react = { path="../rspack_plugin_react" }
 sugar_path="0.0.4"
 anyhow = "1"
 crossbeam = "0.8.1"

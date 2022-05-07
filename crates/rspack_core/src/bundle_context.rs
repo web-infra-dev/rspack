@@ -1,4 +1,9 @@
-use std::sync::Mutex;
+use std::{
+  fmt::Debug,
+  sync::{Arc, Mutex},
+};
+
+use swc::Compiler;
 
 #[derive(Debug, Clone)]
 pub enum BundleMode {
@@ -21,12 +26,30 @@ impl Default for InternalModuleFormat {
   }
 }
 
-#[derive(Debug, Default)]
 pub struct BundleContext {
   pub assets: Mutex<Vec<Asset>>,
+  pub compiler: Arc<Compiler>,
+  _noop: (),
+}
+
+impl Debug for BundleContext {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("BundleContext")
+      .field("assets", &self.assets)
+      .field("compiler", &"{..}")
+      .finish()
+  }
 }
 
 impl BundleContext {
+  pub fn new(compiler: Arc<Compiler>) -> Self {
+    Self {
+      assets: Default::default(),
+      compiler,
+      _noop: (),
+    }
+  }
+
   #[inline]
   pub fn emit_asset(&self, asset: Asset) {
     self.emit_assets([asset])
@@ -47,7 +70,21 @@ pub struct Asset {
 }
 
 #[derive(Debug)]
+pub struct BundleReactOptions {
+  pub runtime: swc_ecma_transforms_react::Runtime,
+}
+
+impl Default for BundleReactOptions {
+  fn default() -> Self {
+    Self {
+      runtime: swc_ecma_transforms_react::Runtime::Automatic,
+    }
+  }
+}
+
+#[derive(Debug)]
 pub struct BundleOptions {
+  pub react: BundleReactOptions,
   pub mode: BundleMode,
   pub entries: Vec<String>,
   // pub format: InternalModuleFormat,
@@ -61,6 +98,7 @@ pub struct BundleOptions {
 impl Default for BundleOptions {
   fn default() -> Self {
     Self {
+      react: Default::default(),
       root: std::env::current_dir()
         .unwrap()
         .as_os_str()

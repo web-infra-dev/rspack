@@ -49,8 +49,13 @@ pub struct Bundler {
 impl Bundler {
   pub fn new(options: BundleOptions, plugins: Vec<Box<dyn Plugin>>) -> Self {
     enable_tracing_by_env();
-    let injected_plugins = inject_built_in_plugins(plugins);
-    let ctx: Arc<BundleContext> = Default::default();
+    tracing::debug!(
+      "create bundler with options:\n {:#?} \nplugins:\n {:#?}\n",
+      options,
+      plugins
+    );
+    let injected_plugins = inject_built_in_plugins(plugins, &options);
+    let ctx: Arc<BundleContext> = Arc::new(BundleContext::new(get_swc_compiler()));
     Self {
       options: Arc::new(options),
       ctx: ctx.clone(),
@@ -65,6 +70,7 @@ impl Bundler {
 
   #[instrument(skip(self))]
   pub async fn build(&mut self) {
+    tracing::trace!("start build");
     let mut bundle = rspack_core::Bundle::new(
       self.options.clone(),
       self.plugin_driver.clone(),
@@ -145,32 +151,11 @@ impl Bundler {
 
         let transoform_output =
           swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
-            let fm = compiler.cm.new_source_file(
-              FileName::Custom(module.path.to_string()),
-              module.path.to_string(),
-            );
-            Ok(
-              compiler
-                .process_js_with_custom_pass(
-                  fm,
-                  Some(swc_ecma_ast::Program::Module(module.ast.clone())),
-                  handler,
-                  &Options {
-                    global_mark: Some(top_level_mark),
-                    ..Default::default()
-                  },
-                  |_, _| noop(),
-                  |_, _| {
-                    hmr_module(
-                      module.path.to_string(),
-                      top_level_mark,
-                      &module.resolved_ids,
-                      module.is_user_defined_entry_point,
-                      &self.module_graph.as_ref().unwrap().module_by_id,
-                    )
-                  },
-                )
-                .unwrap(),
+            module.render(
+              &compiler,
+              handler,
+              top_level_mark,
+              &self.module_graph.as_ref().unwrap().module_by_id,
             )
           })
           .unwrap();
