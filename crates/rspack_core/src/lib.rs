@@ -1,4 +1,3 @@
-use smol_str::SmolStr;
 mod bundle;
 mod bundle_context;
 mod chunk;
@@ -21,12 +20,12 @@ pub use utils::*;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct ResolvedId {
-  pub path: SmolStr,
+  pub path: String,
   pub external: bool,
 }
 
 impl ResolvedId {
-  pub fn new<T: Into<SmolStr>>(path: T, external: bool) -> Self {
+  pub fn new<T: Into<String>>(path: T, external: bool) -> Self {
     Self {
       path: path.into(),
       external,
