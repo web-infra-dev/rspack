@@ -213,4 +213,8 @@ mod testing {
   fn basic_ts() {
     compile("basic-ts", vec![]);
   }
+  #[test]
+  fn splitting() {
+    compile("code-splitting", vec![]);
+  }
 }

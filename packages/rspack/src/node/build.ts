@@ -33,7 +33,7 @@ export async function run(options: BundlerOptions) {
   const bundler = new Rspack({
     entries: [entry],
     minify: false,
-    entryFileNames: 'main.js',
+    entryFileNames: '[name].js',
     outdir: path.resolve(root, 'dist'),
   });
   const server = new DevServer({
