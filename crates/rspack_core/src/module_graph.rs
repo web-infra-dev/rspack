@@ -73,7 +73,6 @@ impl ModuleGraph {
             let rid = module.resolved_ids.get(&dep.argument).unwrap().clone();
             dyn_imports.push(rid.path);
           });
-      } else {
         module.exec_order = next_exec_order;
         next_exec_order += 1;
       }
@@ -94,7 +93,6 @@ impl ModuleGraph {
             let rid = module.resolved_ids.get(dep).unwrap().clone();
             stack.push(rid.path);
           });
-      } else {
         module.exec_order = next_exec_order;
         next_exec_order += 1;
       }
