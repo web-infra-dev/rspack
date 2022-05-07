@@ -12,8 +12,18 @@ mod testing {
   use std::path::Path;
   use std::sync::atomic::AtomicBool;
   use std::sync::Arc;
+  use std::sync::Once;
+
+  static INIT: Once = Once::new();
 
   fn compile(fixture_path: &str, plugins: Vec<Box<dyn Plugin>>) -> Bundler {
+    INIT.call_once(|| {
+      let default_panic = std::panic::take_hook();
+      std::panic::set_hook(Box::new(move |info| {
+        default_panic(info);
+        std::process::exit(1);
+      }));
+    });
     compile_with_options(fixture_path, Default::default(), plugins)
   }
 
@@ -212,5 +222,9 @@ mod testing {
   #[test]
   fn basic_ts() {
     compile("basic-ts", vec![]);
+  }
+  #[test]
+  fn splitting() {
+    compile("code-splitting", vec![]);
   }
 }
