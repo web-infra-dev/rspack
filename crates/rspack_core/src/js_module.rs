@@ -15,7 +15,7 @@ pub struct DynImportDesc {
 }
 
 pub struct JsModule {
-  pub exec_order: usize,
+  pub exec_order: i32,
   /**
    * module id for module render
    */

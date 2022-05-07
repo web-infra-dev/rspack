@@ -50,7 +50,7 @@ impl Chunk {
     let top_level_mark = Mark::from_u32(1);
 
     let mut output_code = String::new();
-    self.module_ids.sort_by_key(|id| modules[id].exec_order);
+    self.module_ids.sort_by_key(|id| 0 - modules[id].exec_order);
     self
       .module_ids
       .par_iter()
