@@ -3,6 +3,7 @@ use std::collections::HashMap;
 #[derive(Debug)]
 pub enum Loader {
   DataURI,
+  Json,
 }
 
 pub type LoaderOptions = HashMap<String, Loader>;
