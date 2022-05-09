@@ -1,6 +1,8 @@
+mod data_uri;
 use std::{collections::HashMap, path::Path};
 
 use async_trait::async_trait;
+use data_uri::guess_mime_types_ext;
 use rspack_core::{BundleContext, Loader, Plugin, PluginLoadHookOutput};
 
 #[derive(Debug)]
@@ -44,17 +46,5 @@ impl Plugin for LoaderPlugin {
     } else {
       None
     }
-  }
-}
-
-pub fn guess_mime_types_ext(ext: &str) -> &'static str {
-  match ext {
-    "jpg" => "image/jpeg",
-    "jpeg" => "image/jpeg",
-    "png" => "image/png",
-    "gif" => "image/gif",
-    "svg" => "image/svg+xml",
-    "webp" => "image/web",
-    _ => "unknown/unknown",
   }
 }

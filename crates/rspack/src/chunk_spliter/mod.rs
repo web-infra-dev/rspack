@@ -3,6 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use crate::bundler::BundleOptions;
 use rspack_core::get_swc_compiler;
 use rspack_core::ModuleGraph;
+use rspack_core::NormalizedBundleOptions;
 use rspack_core::PluginDriver;
 use tracing::instrument;
 
@@ -17,11 +18,11 @@ pub struct OutputChunk {
 
 #[derive(Debug)]
 pub struct ChunkSpliter {
-  pub output_options: Arc<BundleOptions>,
+  pub output_options: Arc<NormalizedBundleOptions>,
 }
 
 impl ChunkSpliter {
-  pub fn new(output_options: Arc<BundleOptions>) -> Self {
+  pub fn new(output_options: Arc<NormalizedBundleOptions>) -> Self {
     Self { output_options }
   }
 

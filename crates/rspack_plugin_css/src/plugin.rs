@@ -1,6 +1,6 @@
 use crate::handle_with_css::{is_css_source, CssSourceType};
 use async_trait::async_trait;
-use rspack_core::{Asset, BundleContext, BundleOptions, Chunk};
+use rspack_core::{Asset, BundleContext, BundleOptions, Chunk, NormalizedBundleOptions};
 use rspack_core::{Plugin, PluginLoadHookOutput};
 use rspack_style::new_less::applicationn::Application;
 use std::collections::HashMap;
@@ -93,7 +93,7 @@ impl Plugin for CssSourcePlugin {
     &self,
     ctx: &BundleContext,
     chunk: &Chunk,
-    bundle_options: &BundleOptions,
+    bundle_options: &NormalizedBundleOptions,
   ) {
     let mut css_content = "".to_string();
     let mut css_source_list = self.css_source_collect.try_lock().unwrap();
