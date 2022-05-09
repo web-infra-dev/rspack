@@ -236,9 +236,12 @@ mod testing {
       "loader",
       BundleOptions {
         loader: Some(
-          vec![("svg".to_string(), Loader::DataURI)]
-            .into_iter()
-            .collect(),
+          vec![
+            ("svg".to_string(), Loader::DataURI),
+            ("json".to_string(), Loader::Json),
+          ]
+          .into_iter()
+          .collect(),
         ),
         ..Default::default()
       },

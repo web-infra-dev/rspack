@@ -22,7 +22,7 @@ export type BundlerOptions = {
   entry: Record<string, string>;
   root: string;
   manualChunks: Record<string, string[]>;
-  loader?: Record<string, "dataURI">;
+  loader?: Record<string, "dataURI" | "json">;
   inlineStyle?: boolean;
 };
 export async function run(options: BundlerOptions) {

@@ -94,6 +94,7 @@ fn parse_loader(user_input: HashMap<String, String>) -> rspack_core::LoaderOptio
     .filter_map(|(ext, loader)| {
       let loader = match loader.as_str() {
         "dataURI" => Some(rspack_core::Loader::DataURI),
+        "json" => Some(rspack_core::Loader::Json),
         _ => None,
       }?;
       Some((ext, loader))

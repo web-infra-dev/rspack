@@ -1,4 +1,5 @@
 mod data_uri;
+mod json;
 use std::{collections::HashMap, path::Path};
 
 use async_trait::async_trait;
@@ -27,7 +28,7 @@ impl Plugin for LoaderPlugin {
         Loader::DataURI => {
           let mime_type = guess_mime_types_ext(ext);
           let format = "base64";
-          let data = std::fs::read(id).unwrap();
+          let data = std::fs::read(id).ok()?;
           let data_uri = format!("data:{};{},{}", mime_type, format, base64::encode(&data));
           Some(
             format!(
@@ -40,6 +41,15 @@ impl Plugin for LoaderPlugin {
             .trim()
             .to_string(),
           )
+        }
+        Loader::Json => {
+          let data = std::fs::read_to_string(id).ok()?;
+          Some(format!(
+            "
+          export default {}
+          ",
+            data
+          ))
         }
         _ => None,
       }
