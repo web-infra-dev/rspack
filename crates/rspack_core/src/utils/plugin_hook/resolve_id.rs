@@ -1,5 +1,6 @@
 use crate::{plugin_driver::PluginDriver, ResolvedId};
 use nodejs_resolver::{ResolveResult, Resolver};
+use std::ops::Deref;
 use std::{ffi::OsString, path::Path};
 use sugar_path::PathSugar;
 use tracing::instrument;
@@ -25,8 +26,11 @@ pub async fn resolve_id(
     } else {
       let id = if let Some(importer) = importer {
         let base_dir = Path::new(importer).parent().unwrap();
-        let resolver =
-          Resolver::default().with_extensions(vec![".tsx", ".jsx", ".ts", ".js", ".json"]);
+        let resolver_option = &plugin_driver.ctx.as_ref().options.as_ref().resolve;
+        let resolver = Resolver::default()
+          .with_extensions(resolver_option.extensions.clone())
+          .with_alias(resolver_option.alias.clone());
+        // Resolver::default().with_extensions(vec![".tsx", ".jsx", ".ts", ".js", ".json"]);
         match resolver.resolve(base_dir, source) {
           Ok(path) => match path {
             ResolveResult::Path(buf) => buf.to_string_lossy().to_string(),

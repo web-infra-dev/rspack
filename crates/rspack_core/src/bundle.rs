@@ -4,8 +4,8 @@ use std::sync::{atomic::AtomicUsize, Arc};
 
 use crate::task::Task;
 use crate::{
-  plugin_hook, BundleContext, BundleOptions, JsModule, ModuleGraph, NormalizedBundleOptions,
-  PluginDriver, ResolvedId,
+  plugin_hook, BundleContext, JsModule, ModuleGraph, NormalizedBundleOptions, PluginDriver,
+  ResolvedId,
 };
 use crossbeam::queue::SegQueue;
 use dashmap::DashSet;

@@ -68,6 +68,7 @@ pub fn syntax(filename: &str) -> Syntax {
 
 pub fn normalize_bundle_options(options: BundleOptions) -> NormalizedBundleOptions {
   NormalizedBundleOptions {
+    resolve: options.resolve,
     react: options.react,
     loader: options.loader,
     mode: options.mode,
