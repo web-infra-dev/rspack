@@ -14,6 +14,8 @@ export interface BundleOptions {
   minify: boolean
   outdir?: string
   entryFileNames: string
+  loader?: Record<string, string>
+  inlineStyle?: boolean
 }
 export function newRspack(optionJson: string): ExternalObject<Rspack>
 export function build(rspack: ExternalObject<Rspack>): object

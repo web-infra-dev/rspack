@@ -32,11 +32,13 @@ yargs
       for (const [key, value] of Object.entries(entry)) {
         entry[key] = path.resolve(root, value as string);
       }
-      console.log("entry:", entry);
+      console.log("pkg?.rspack:", pkg?.rspack);
       run({
         entry: entry,
         root: root,
         manualChunks: manualChunk ?? {},
+        loader: pkg?.rspack?.loader,
+        inlineStyle: pkg?.rspack?.inlineStyle,
       });
     }
   )

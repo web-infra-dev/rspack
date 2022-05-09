@@ -22,9 +22,11 @@ export type BundlerOptions = {
   entry: Record<string, string>;
   root: string;
   manualChunks: Record<string, string[]>;
+  loader?: Record<string, "dataURI">;
+  inlineStyle?: boolean;
 };
 export async function run(options: BundlerOptions) {
-  const { root, entry } = options;
+  const { root, entry, loader, inlineStyle } = options;
   // const entry = path.resolve(root, 'index.js');
   const watcher = chokidar.watch(root, {
     ignored: path.resolve(root, "dist"),
@@ -35,6 +37,8 @@ export async function run(options: BundlerOptions) {
     minify: false,
     entryFileNames: "[name].js",
     outdir: path.resolve(root, "dist"),
+    loader,
+    inlineStyle,
   });
   const server = new DevServer({
     root,

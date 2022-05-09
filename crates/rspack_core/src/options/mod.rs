@@ -38,6 +38,7 @@ pub struct BundleOptions {
   pub entry_file_names: String, // | ((chunkInfo: PreRenderedChunk) => string)
   pub code_splitting: bool,
   pub root: String,
+  pub inline_style: bool,
 }
 
 impl Default for BundleOptions {
@@ -62,6 +63,7 @@ impl Default for BundleOptions {
       entry_file_names: "[name].js".to_string(),
       code_splitting: true,
       loader: None,
+      inline_style: Default::default(),
     }
   }
 }
