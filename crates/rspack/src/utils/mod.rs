@@ -18,7 +18,11 @@ pub fn inject_built_in_plugins(
     }));
   }
   plugins.append(&mut user_plugins);
-  let css_plugin: Box<CssSourcePlugin> = std::default::Default::default();
-  plugins.push(css_plugin);
+  if options.inline_style {
+    plugins.push(Box::new(rspack_plugin_style::StyleLoaderPlugin {}));
+  } else {
+    let css_plugin: Box<CssSourcePlugin> = std::default::Default::default();
+    plugins.push(css_plugin);
+  }
   plugins
 }

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use futures::lock::Mutex;
@@ -18,7 +19,7 @@ pub fn create_external<T>(value: T) -> External<T> {
   External::new(value)
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 struct BundleOptions {
@@ -27,6 +28,8 @@ struct BundleOptions {
   pub minify: bool,
   pub outdir: Option<String>,
   pub entry_file_names: String, // | ((chunkInfo: PreRenderedChunk) => string)
+  pub loader: Option<HashMap<String, String>>,
+  pub inline_style: Option<bool>,
 }
 
 pub type Rspack = Arc<Mutex<RspackBundler>>;
@@ -34,7 +37,7 @@ pub type Rspack = Arc<Mutex<RspackBundler>>;
 #[napi]
 pub fn new_rspack(option_json: String) -> External<Rspack> {
   let options: BundleOptions = serde_json::from_str(option_json.as_str()).unwrap();
-
+  let loader = options.loader.map(|loader| parse_loader(loader));
   let rspack = RspackBundler::new(
     RspackBundlerOptions {
       entries: options.entries,
@@ -48,6 +51,8 @@ pub fn new_rspack(option_json: String) -> External<Rspack> {
       }),
       entry_file_names: options.entry_file_names,
       mode: BundleMode::Dev,
+      loader,
+      inline_style: options.inline_style.unwrap_or_default(),
       ..Default::default()
     },
     vec![],
@@ -81,4 +86,17 @@ pub fn rebuild(env: Env, rspack: External<Rspack>, chnaged_file: String) -> Resu
     },
     |_env, ret| Ok(ret),
   )
+}
+
+fn parse_loader(user_input: HashMap<String, String>) -> rspack_core::LoaderOptions {
+  user_input
+    .into_iter()
+    .filter_map(|(ext, loader)| {
+      let loader = match loader.as_str() {
+        "dataURI" => Some(rspack_core::Loader::DataURI),
+        _ => None,
+      }?;
+      Some((ext, loader))
+    })
+    .collect()
 }
