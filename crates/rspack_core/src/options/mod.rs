@@ -28,6 +28,21 @@ pub enum BundleMode {
   None,
 }
 
+#[derive(Debug, Clone)]
+pub struct ResolveOption {
+  pub extensions: Vec<&'static str>,
+  pub alias: Vec<(&'static str, Option<&'static str>)>,
+}
+
+impl Default for ResolveOption {
+  fn default() -> Self {
+    Self {
+      extensions: vec![".tsx", ".jsx", ".ts", ".js", ".json"],
+      alias: vec![],
+    }
+  }
+}
+
 #[derive(Debug)]
 pub struct BundleOptions {
   pub react: BundleReactOptions,
@@ -40,11 +55,13 @@ pub struct BundleOptions {
   pub code_splitting: bool,
   pub root: String,
   pub inline_style: bool,
+  pub resolve: ResolveOption,
 }
 
 impl Default for BundleOptions {
   fn default() -> Self {
     Self {
+      resolve: Default::default(),
       react: Default::default(),
       root: std::env::current_dir()
         .unwrap()
@@ -91,4 +108,5 @@ pub struct NormalizedBundleOptions {
   pub entry_file_names: String, // | ((chunkInfo: PreRenderedChunk) => string)
   pub code_splitting: bool,
   pub root: String,
+  pub resolve: ResolveOption,
 }

@@ -1,7 +1,7 @@
 mod testing {
   use async_trait::async_trait;
   use rspack::bundler::{BundleContext, BundleOptions, Bundler};
-  use rspack_core::Loader;
+  use rspack_core::{Loader, ResolveOption};
   use rspack_core::{
     Plugin, PluginLoadHookOutput, PluginResolveHookOutput, PluginTransformHookOutput,
   };
@@ -247,5 +247,25 @@ mod testing {
       },
       vec![],
     );
+  }
+
+  #[test]
+  fn alias() {
+    let bundler = compile_with_options(
+      "alias",
+      BundleOptions {
+        resolve: ResolveOption {
+          alias: vec![("./wrong", Some("./ok"))],
+          ..Default::default()
+        },
+        ..Default::default()
+      },
+      vec![],
+    );
+    let assets = bundler.ctx.assets.lock().unwrap();
+    let dist = assets.get(0).unwrap();
+    let source = &dist.source;
+    assert!(!source.contains("wrong.js"));
+    assert!(source.contains("ok.js"));
   }
 }
