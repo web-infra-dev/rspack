@@ -5,32 +5,12 @@ use std::{
 
 use swc::Compiler;
 
-use crate::LoaderOptions;
-
-#[derive(Debug, Clone)]
-pub enum BundleMode {
-  Dev,
-  Prod,
-  None,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum InternalModuleFormat {
-  ES,
-  CJS,
-  AMD,
-  UMD,
-}
-
-impl Default for InternalModuleFormat {
-  fn default() -> Self {
-    InternalModuleFormat::ES
-  }
-}
+use crate::NormalizedBundleOptions;
 
 pub struct BundleContext {
   pub assets: Mutex<Vec<Asset>>,
   pub compiler: Arc<Compiler>,
+  pub options: Arc<NormalizedBundleOptions>,
   _noop: (),
 }
 
@@ -44,10 +24,11 @@ impl Debug for BundleContext {
 }
 
 impl BundleContext {
-  pub fn new(compiler: Arc<Compiler>) -> Self {
+  pub fn new(compiler: Arc<Compiler>, options: Arc<NormalizedBundleOptions>) -> Self {
     Self {
       assets: Default::default(),
       compiler,
+      options,
       _noop: (),
     }
   }
@@ -69,57 +50,4 @@ impl BundleContext {
 pub struct Asset {
   pub source: String,
   pub filename: String,
-}
-
-#[derive(Debug)]
-pub struct BundleReactOptions {
-  pub runtime: swc_ecma_transforms_react::Runtime,
-}
-
-impl Default for BundleReactOptions {
-  fn default() -> Self {
-    Self {
-      runtime: swc_ecma_transforms_react::Runtime::Automatic,
-    }
-  }
-}
-
-#[derive(Debug)]
-pub struct BundleOptions {
-  pub react: BundleReactOptions,
-  pub loader: Option<LoaderOptions>,
-  pub mode: BundleMode,
-  pub entries: Vec<String>,
-  // pub format: InternalModuleFormat,
-  pub minify: bool,
-  pub outdir: String,
-  pub entry_file_names: String, // | ((chunkInfo: PreRenderedChunk) => string)
-  pub code_splitting: bool,
-  pub root: String,
-}
-
-impl Default for BundleOptions {
-  fn default() -> Self {
-    Self {
-      react: Default::default(),
-      root: std::env::current_dir()
-        .unwrap()
-        .as_os_str()
-        .to_str()
-        .unwrap()
-        .to_string(),
-      mode: BundleMode::Prod,
-      entries: Default::default(),
-      // format: InternalModuleFormat::ES,
-      outdir: std::env::current_dir()
-        .unwrap()
-        .join("./dist")
-        .to_string_lossy()
-        .to_string(),
-      minify: Default::default(),
-      entry_file_names: "[name].js".to_string(),
-      code_splitting: true,
-      loader: None,
-    }
-  }
 }

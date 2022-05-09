@@ -3,7 +3,9 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use rspack_core::normalize_bundle_options;
 use rspack_core::ModuleGraph;
+use rspack_core::NormalizedBundleOptions;
 use sugar_path::PathSugar;
 use swc::config::Options;
 use swc_common::FileName;
@@ -40,7 +42,7 @@ pub use rspack_core::BundleOptions;
 #[derive(Debug)]
 pub struct Bundler {
   pub ctx: Arc<BundleContext>,
-  pub options: Arc<BundleOptions>,
+  pub options: Arc<NormalizedBundleOptions>,
   pub plugin_driver: Arc<PluginDriver>,
   pub module_graph: Option<ModuleGraph>,
   _noop: (),
@@ -55,9 +57,13 @@ impl Bundler {
       plugins
     );
     let injected_plugins = inject_built_in_plugins(plugins, &mut options);
-    let ctx: Arc<BundleContext> = Arc::new(BundleContext::new(get_swc_compiler()));
+    let normalized_options = Arc::new(normalize_bundle_options(options));
+    let ctx: Arc<BundleContext> = Arc::new(BundleContext::new(
+      get_swc_compiler(),
+      normalized_options.clone(),
+    ));
     Self {
-      options: Arc::new(options),
+      options: normalized_options,
       ctx: ctx.clone(),
       plugin_driver: Arc::new(PluginDriver {
         plugins: injected_plugins,

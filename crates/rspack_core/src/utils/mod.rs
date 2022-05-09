@@ -9,6 +9,8 @@ use swc_common::{FileName, FilePathMapping, SourceMap};
 use swc_ecma_parser::Syntax;
 use swc_ecma_parser::{EsConfig, TsConfig};
 
+use crate::{BundleOptions, NormalizedBundleOptions};
+
 pub mod path;
 pub mod plugin_hook;
 
@@ -61,5 +63,19 @@ pub fn syntax(filename: &str) -> Syntax {
       fn_bind: true,
       allow_super_outside_method: true,
     }),
+  }
+}
+
+pub fn normalize_bundle_options(options: BundleOptions) -> NormalizedBundleOptions {
+  NormalizedBundleOptions {
+    react: options.react,
+    loader: options.loader,
+    mode: options.mode,
+    entries: options.entries,
+    minify: options.minify,
+    outdir: options.outdir,
+    entry_file_names: options.entry_file_names,
+    code_splitting: options.code_splitting,
+    root: options.root,
   }
 }

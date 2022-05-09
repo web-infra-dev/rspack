@@ -1,4 +1,4 @@
-use crate::{hmr::hmr_module, js_module::JsModule, syntax, BundleOptions};
+use crate::{hmr::hmr_module, js_module::JsModule, syntax, BundleOptions, NormalizedBundleOptions};
 use petgraph::graph::NodeIndex;
 use rayon::prelude::*;
 use std::{
@@ -42,7 +42,7 @@ impl Chunk {
 
   pub fn render(
     &mut self,
-    _options: &BundleOptions,
+    _options: &NormalizedBundleOptions,
     modules: &mut HashMap<String, JsModule>,
     compiler: Arc<Compiler>,
   ) -> RenderedChunk {
@@ -88,7 +88,7 @@ impl Chunk {
     self.get_fallback_chunk_name()
   }
 
-  pub fn generate_id(&self, options: &BundleOptions) -> String {
+  pub fn generate_id(&self, options: &NormalizedBundleOptions) -> String {
     let pattern = &options.entry_file_names;
     pattern.replace("[name]", self.name()).into()
   }

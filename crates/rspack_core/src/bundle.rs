@@ -4,7 +4,8 @@ use std::sync::{atomic::AtomicUsize, Arc};
 
 use crate::task::Task;
 use crate::{
-  plugin_hook, BundleContext, BundleOptions, JsModule, ModuleGraph, PluginDriver, ResolvedId,
+  plugin_hook, BundleContext, BundleOptions, JsModule, ModuleGraph, NormalizedBundleOptions,
+  PluginDriver, ResolvedId,
 };
 use crossbeam::queue::SegQueue;
 use dashmap::DashSet;
@@ -14,7 +15,7 @@ use tracing::instrument;
 #[derive(Debug)]
 pub struct Bundle {
   entries: Vec<String>,
-  pub options: Arc<BundleOptions>,
+  pub options: Arc<NormalizedBundleOptions>,
   pub context: Arc<BundleContext>,
   pub plugin_driver: Arc<PluginDriver>,
   pub module_graph: Option<ModuleGraph>,
@@ -29,7 +30,7 @@ pub enum Msg {
 
 impl Bundle {
   pub fn new(
-    options: Arc<BundleOptions>,
+    options: Arc<NormalizedBundleOptions>,
     plugin_driver: Arc<PluginDriver>,
     context: Arc<BundleContext>,
   ) -> Self {

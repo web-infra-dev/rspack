@@ -1,6 +1,9 @@
 use std::{path::Path, sync::Arc};
 
-use crate::{BundleContext, BundleOptions, Chunk, Plugin, PluginTransformHookOutput, ResolvedId};
+use crate::{
+  BundleContext, BundleOptions, Chunk, NormalizedBundleOptions, Plugin, PluginTransformHookOutput,
+  ResolvedId,
+};
 
 #[derive(Debug)]
 pub struct PluginDriver {
@@ -39,7 +42,7 @@ impl PluginDriver {
     })
   }
 
-  pub fn tap_generated_chunk(&self, chunk: &Chunk, bundle_options: &BundleOptions) {
+  pub fn tap_generated_chunk(&self, chunk: &Chunk, bundle_options: &NormalizedBundleOptions) {
     self
       .plugins
       .iter()

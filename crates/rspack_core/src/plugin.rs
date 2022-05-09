@@ -1,6 +1,8 @@
 use std::{fmt::Debug, path::Path, sync::Arc};
 
-use crate::{bundle::Bundle, BundleContext, BundleOptions, Chunk, ResolvedId};
+use crate::{
+  bundle::Bundle, BundleContext, BundleOptions, Chunk, NormalizedBundleOptions, ResolvedId,
+};
 use async_trait::async_trait;
 
 pub type PluginLoadHookOutput = Option<String>;
@@ -44,7 +46,7 @@ pub trait Plugin: Sync + Send + Debug {
     &self,
     _ctx: &BundleContext,
     _chunk: &Chunk,
-    _bundle_options: &BundleOptions,
+    _bundle_options: &NormalizedBundleOptions,
   ) {
   }
 }
