@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
-use crate::{JsModule, ResolvedId};
+use crate::{swc_builder::dynamic_import_with_literal, JsModule, ResolvedId};
 use ast::*;
 use swc_atoms::JsWord;
 use swc_common::{EqIgnoreSpan, Mark, DUMMY_SP};
 use swc_ecma_transforms_base::helpers::inject_helpers;
 use swc_ecma_transforms_module::common_js;
+use swc_ecma_transforms_module::common_js::Config;
 use swc_ecma_utils::{member_expr, quote_ident, quote_str, ExprFactory};
 use swc_ecma_visit::{Fold, FoldWith, VisitMut, VisitMutWith};
 
@@ -42,7 +43,10 @@ impl<'a> Fold for HmrModuleFolder<'a> {
     let mut cjs_module = module
       .fold_with(&mut common_js(
         self.top_level_mark,
-        Default::default(),
+        Config {
+          ignore_dynamic: true,
+          ..Default::default()
+        },
         None,
       ))
       .fold_with(&mut inject_helpers());
@@ -133,8 +137,27 @@ pub struct HmrModuleIdReWriter<'a> {
   pub modules: &'a HashMap<String, JsModule>,
 }
 
+pub const RS_DYNAMIC_REQUIRE: &str = "rs.dynamic_require";
+pub const RS_REQUIRE: &str = "require";
+
 impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
   fn visit_mut_call_expr(&mut self, call_expr: &mut CallExpr) {
+    if let Some(str) = dynamic_import_with_literal(call_expr) {
+      let callee = Ident::new(RS_DYNAMIC_REQUIRE.into(), DUMMY_SP).as_callee();
+      let id = JsWord::from(String::from(str.clone()));
+      let rid = self.resolved_ids.get(&id).unwrap();
+      let js_module_id = self
+        .modules
+        .get(&rid.path)
+        .expect(&format!("not found:{}", str))
+        .id
+        .as_str();
+      let arg = Lit::Str(js_module_id.into()).as_arg();
+      call_expr.callee = callee;
+      call_expr.args = vec![arg];
+      return;
+    }
+
     if let Callee::Expr(expr) = &call_expr.callee {
       match &**expr {
         Expr::Ident(ident) => {
@@ -164,11 +187,17 @@ impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
               }
               call_expr.visit_mut_children_with(self);
               self.rewriting = false;
+            } else {
+              call_expr.visit_mut_children_with(self);
             }
+          } else {
+            call_expr.visit_mut_children_with(self);
           }
         }
         _ => call_expr.visit_mut_children_with(self),
       }
+    } else {
+      call_expr.visit_mut_children_with(self)
     }
   }
   fn visit_mut_str(&mut self, str: &mut Str) {

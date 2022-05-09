@@ -3,8 +3,6 @@ use std::{path::Path, sync::Arc};
 use swc::{config::IsModule, Compiler};
 use tracing::instrument;
 
-use ast::{ModuleDecl, ModuleItem};
-
 use swc_common::{FileName, FilePathMapping, SourceMap};
 use swc_ecma_parser::Syntax;
 use swc_ecma_parser::{EsConfig, TsConfig};
@@ -13,6 +11,8 @@ use crate::{BundleOptions, NormalizedBundleOptions};
 
 pub mod path;
 pub mod plugin_hook;
+pub mod swc_builder;
+pub mod test_runner;
 
 static COMPILER: Lazy<Arc<Compiler>> = Lazy::new(|| {
   let cm = Arc::new(SourceMap::new(FilePathMapping::empty()));
