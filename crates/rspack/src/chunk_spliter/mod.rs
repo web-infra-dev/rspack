@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::{collections::HashMap, sync::Arc};
 
 use crate::bundler::BundleOptions;
@@ -36,6 +37,8 @@ impl ChunkSpliter {
 
     chunks.iter_mut().for_each(|chunk| {
       chunk.id = chunk.generate_id(&self.output_options);
+      let entry_module = graph.module_by_id.get_mut(&chunk.entry).unwrap();
+      entry_module.add_chunk(chunk.id.clone());
     });
 
     chunks

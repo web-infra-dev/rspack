@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::{swc_builder::dynamic_import_with_literal, JsModule, ResolvedId};
 use ast::*;
@@ -16,6 +16,7 @@ pub fn hmr_module<'a>(
   resolved_ids: &'a HashMap<JsWord, ResolvedId>,
   entry_flag: bool,
   modules: &'a HashMap<String, JsModule>,
+  code_splitting: bool,
 ) -> HmrModuleFolder<'a> {
   HmrModuleFolder {
     file_name,
@@ -25,6 +26,7 @@ pub fn hmr_module<'a>(
     module_ident: quote_ident!(DUMMY_SP.apply_mark(top_level_mark), "module"),
     entry_flag,
     modules,
+    code_splitting,
   }
 }
 
@@ -36,6 +38,7 @@ pub struct HmrModuleFolder<'a> {
   pub require_ident: Ident,
   pub module_ident: Ident,
   pub entry_flag: bool,
+  pub code_splitting: bool,
 }
 
 impl<'a> Fold for HmrModuleFolder<'a> {
@@ -55,6 +58,7 @@ impl<'a> Fold for HmrModuleFolder<'a> {
       resolved_ids: self.resolved_ids,
       rewriting: false,
       modules: self.modules,
+      code_splitting: self.code_splitting,
     });
 
     let mut stmts = vec![];
@@ -135,6 +139,7 @@ pub struct HmrModuleIdReWriter<'a> {
   pub resolved_ids: &'a HashMap<JsWord, ResolvedId>,
   pub rewriting: bool,
   pub modules: &'a HashMap<String, JsModule>,
+  pub code_splitting: bool,
 }
 
 pub const RS_DYNAMIC_REQUIRE: &str = "rs.dynamic_require";
@@ -143,18 +148,26 @@ pub const RS_REQUIRE: &str = "require";
 impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
   fn visit_mut_call_expr(&mut self, call_expr: &mut CallExpr) {
     if let Some(str) = dynamic_import_with_literal(call_expr) {
-      let callee = Ident::new(RS_DYNAMIC_REQUIRE.into(), DUMMY_SP).as_callee();
       let id = JsWord::from(String::from(str.clone()));
       let rid = self.resolved_ids.get(&id).unwrap();
-      let js_module_id = self
+      let js_module = self
         .modules
         .get(&rid.path)
-        .expect(&format!("not found:{}", str))
-        .id
-        .as_str();
-      let arg = Lit::Str(js_module_id.into()).as_arg();
-      call_expr.callee = callee;
-      call_expr.args = vec![arg];
+        .expect(&format!("not found:{}", str));
+      let js_module_id = js_module.id.as_str();
+      if self.code_splitting {
+        let callee = Ident::new(RS_DYNAMIC_REQUIRE.into(), DUMMY_SP).as_callee();
+        let chunk_id = Vec::from_iter(&js_module.chunkd_ids)[0];
+        let arg = Lit::Str(js_module_id.into()).as_arg();
+        let arg2 = Lit::Str(chunk_id.as_str().into()).as_arg();
+        call_expr.callee = callee;
+        call_expr.args = vec![arg, arg2];
+      } else {
+        let arg = Lit::Str(js_module_id.into()).as_arg();
+        let callee = Ident::new(RS_REQUIRE.into(), DUMMY_SP).as_callee();
+        call_expr.callee = callee;
+        call_expr.args = vec![arg];
+      }
       return;
     }
 
