@@ -2,11 +2,7 @@ use ast::{CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit};
 use swc_atoms::js_word;
 
 pub fn is_dynamic_import(e: &mut CallExpr) -> bool {
-  if let Callee::Import(_) = e.callee {
-    true
-  } else {
-    false
-  }
+  matches!(e.callee, Callee::Import(_))
 }
 pub fn dynamic_import_with_literal(e: &mut CallExpr) -> Option<String> {
   if is_dynamic_import(e) {
@@ -21,15 +17,13 @@ pub fn dynamic_import_with_literal(e: &mut CallExpr) -> Option<String> {
   return None;
 }
 pub fn is_require(e: &mut CallExpr) -> bool {
-  if let Callee::Expr(box Expr::Ident(Ident {
-    sym: js_word!("require"),
-    ..
-  })) = &e.callee
-  {
-    true
-  } else {
-    false
-  }
+  matches!(
+    e.callee,
+    Callee::Expr(box Expr::Ident(Ident {
+      sym: js_word!("require"),
+      ..
+    }))
+  )
 }
 
 #[cfg(test)]
@@ -78,7 +72,7 @@ mod swc_builder_test {
         if is_require(node) {
           self.require_called += 1;
         }
-        if let Some(str) = dynamic_import_with_literal(node) {
+        if let Some(_) = dynamic_import_with_literal(node) {
           self.string_literal_called += 1;
         }
       }

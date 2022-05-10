@@ -1,7 +1,7 @@
-use std::{collections::HashMap, path::Path};
+use std::path::Path;
 
 use async_trait::async_trait;
-use rspack_core::{BundleContext, Loader, Plugin, PluginLoadHookOutput};
+use rspack_core::{BundleContext, Plugin, PluginLoadHookOutput};
 
 #[derive(Debug)]
 pub struct StyleLoaderPlugin {}

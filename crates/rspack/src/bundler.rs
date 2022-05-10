@@ -7,10 +7,7 @@ use rspack_core::normalize_bundle_options;
 use rspack_core::ModuleGraph;
 use rspack_core::NormalizedBundleOptions;
 use sugar_path::PathSugar;
-use swc::config::Options;
-use swc_common::FileName;
 use swc_common::Mark;
-use swc_ecma_transforms_base::pass::noop;
 use tracing::instrument;
 
 use crate::chunk_spliter::ChunkSpliter;

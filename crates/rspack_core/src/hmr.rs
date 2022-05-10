@@ -144,7 +144,7 @@ impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
   fn visit_mut_call_expr(&mut self, call_expr: &mut CallExpr) {
     if let Some(str) = dynamic_import_with_literal(call_expr) {
       let callee = Ident::new(RS_DYNAMIC_REQUIRE.into(), DUMMY_SP).as_callee();
-      let id = JsWord::from(String::from(str.clone()));
+      let id = JsWord::from(str.clone());
       let rid = self.resolved_ids.get(&id).unwrap();
       let js_module_id = self
         .modules
@@ -175,16 +175,13 @@ impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
           if let Expr::Member(expr) = *member_expr!(DUMMY_SP, module.hot.accpet) {
             if expr.eq_ignore_span(member_expr) {
               self.rewriting = true;
+
+              let call_expr_len = call_expr.args.len();
               // exclude last elements of `module.hot.accpet`
-              let mut i = call_expr.args.len() - 1 - 1;
-              while i + 1 > 0 {
-                call_expr.args.get_mut(i).unwrap().visit_mut_with(self);
-                if i == 0 {
-                  break;
-                } else {
-                  i -= 1;
-                }
+              for expr_or_spread in call_expr.args.iter_mut().take(call_expr_len - 1).rev() {
+                expr_or_spread.visit_mut_with(self);
               }
+
               call_expr.visit_mut_children_with(self);
               self.rewriting = false;
             } else {

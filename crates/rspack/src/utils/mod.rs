@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use rspack_core::{BundleOptions, Plugin};
 use rspack_plugin_css::plugin::CssSourcePlugin;
 

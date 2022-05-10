@@ -1,6 +1,6 @@
 use crate::handle_with_css::{is_css_source, CssSourceType};
 use async_trait::async_trait;
-use rspack_core::{Asset, BundleContext, BundleOptions, Chunk, NormalizedBundleOptions};
+use rspack_core::{Asset, BundleContext, Chunk, NormalizedBundleOptions};
 use rspack_core::{Plugin, PluginLoadHookOutput};
 use rspack_style::new_less::applicationn::Application;
 use std::collections::HashMap;

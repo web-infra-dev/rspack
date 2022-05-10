@@ -1,8 +1,7 @@
 use std::{path::Path, sync::Arc};
 
 use crate::{
-  BundleContext, BundleOptions, Chunk, NormalizedBundleOptions, Plugin, PluginTransformHookOutput,
-  ResolvedId,
+  BundleContext, Chunk, NormalizedBundleOptions, Plugin, PluginTransformHookOutput, ResolvedId,
 };
 
 #[derive(Debug)]

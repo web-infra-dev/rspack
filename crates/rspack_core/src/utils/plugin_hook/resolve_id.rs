@@ -1,6 +1,5 @@
 use crate::{plugin_driver::PluginDriver, ResolvedId};
 use nodejs_resolver::{ResolveResult, Resolver};
-use std::ops::Deref;
 use std::{ffi::OsString, path::Path};
 use sugar_path::PathSugar;
 use tracing::instrument;
