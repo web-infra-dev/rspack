@@ -96,6 +96,7 @@ impl Task {
         dependencies: dependency_scanner.dependencies,
         dyn_imports: dependency_scanner.dyn_dependencies,
         is_user_defined_entry_point: Default::default(),
+        chunkd_ids: Default::default(),
         resolved_ids: id_resolver
           .resolved_ids
           .into_iter()

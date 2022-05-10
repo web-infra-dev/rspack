@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::{swc_builder::dynamic_import_with_literal, JsModule, ResolvedId};
 use ast::*;
@@ -146,15 +146,16 @@ impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
       let callee = Ident::new(RS_DYNAMIC_REQUIRE.into(), DUMMY_SP).as_callee();
       let id = JsWord::from(String::from(str.clone()));
       let rid = self.resolved_ids.get(&id).unwrap();
-      let js_module_id = self
+      let js_module = self
         .modules
         .get(&rid.path)
-        .expect(&format!("not found:{}", str))
-        .id
-        .as_str();
+        .expect(&format!("not found:{}", str));
+      let js_module_id = js_module.id.as_str();
+      let chunk_id = Vec::from_iter(&js_module.chunkd_ids)[0];
       let arg = Lit::Str(js_module_id.into()).as_arg();
+      let arg2 = Lit::Str(chunk_id.as_str().into()).as_arg();
       call_expr.callee = callee;
-      call_expr.args = vec![arg];
+      call_expr.args = vec![arg, arg2];
       return;
     }
 

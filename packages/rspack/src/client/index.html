@@ -63,12 +63,12 @@
             mod.factory = factory;
           }
         }
-        async function dynamic_require(id) {
+        async function dynamic_require(module_id, chunk_id) {
           /**
            * todo  get chunkd_id from module_id
            */
-          await import('http://127.0.01:4444/' + id.replace(/\..*$/, '.js'));
-          const result = require(id);
+          await import('http://127.0.01:4444/' + chunk_id);
+          const result = require(module_id);
           return result;
         }
         function require(id) {
