@@ -51,10 +51,9 @@ pub struct Bundler {
 impl Bundler {
   pub fn new(mut options: BundleOptions, plugins: Vec<Box<dyn Plugin>>) -> Self {
     enable_tracing_by_env();
-    tracing::debug!(
+    println!(
       "create bundler with options:\n {:#?} \nplugins:\n {:#?}\n",
-      options,
-      plugins
+      options, plugins
     );
     let injected_plugins = inject_built_in_plugins(plugins, &mut options);
     let normalized_options = Arc::new(normalize_bundle_options(options));

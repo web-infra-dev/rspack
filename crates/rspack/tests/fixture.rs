@@ -255,7 +255,10 @@ mod testing {
       "alias",
       BundleOptions {
         resolve: ResolveOption {
-          alias: vec![("./wrong", Some("./ok"))],
+          alias: vec![
+            ("./wrong".to_string(), Some("./ok".to_string())),
+            ("@/".to_string(), Some("./src/at".to_string())),
+          ],
           ..Default::default()
         },
         ..Default::default()
@@ -265,7 +268,10 @@ mod testing {
     let assets = bundler.ctx.assets.lock().unwrap();
     let dist = assets.get(0).unwrap();
     let source = &dist.source;
+    println!("assets {:#?}", assets);
     assert!(!source.contains("wrong.js"));
+    assert!(!source.contains("@"));
     assert!(source.contains("ok.js"));
+    assert!(source.contains("at.js"));
   }
 }

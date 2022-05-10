@@ -30,14 +30,17 @@ pub enum BundleMode {
 
 #[derive(Debug, Clone)]
 pub struct ResolveOption {
-  pub extensions: Vec<&'static str>,
-  pub alias: Vec<(&'static str, Option<&'static str>)>,
+  pub extensions: Vec<String>,
+  pub alias: Vec<(String, Option<String>)>,
 }
 
 impl Default for ResolveOption {
   fn default() -> Self {
     Self {
-      extensions: vec![".tsx", ".jsx", ".ts", ".js", ".json"],
+      extensions: vec![".tsx", ".jsx", ".ts", ".js", ".json"]
+        .into_iter()
+        .map(|s| s.to_string())
+        .collect(),
       alias: vec![],
     }
   }

@@ -1,3 +1,4 @@
 import a from "./wrong";
+import at from "@/at";
 
-console.log(a);
+console.log(a, at);

@@ -39,6 +39,7 @@ yargs
         manualChunks: manualChunk ?? {},
         loader: pkg?.rspack?.loader,
         inlineStyle: pkg?.rspack?.inlineStyle,
+        alias: pkg?.rspack?.alias,
       });
     }
   )
