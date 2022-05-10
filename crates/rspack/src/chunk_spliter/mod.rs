@@ -1,6 +1,5 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::bundler::BundleOptions;
 use rspack_core::get_swc_compiler;
 use rspack_core::ModuleGraph;
 use rspack_core::NormalizedBundleOptions;

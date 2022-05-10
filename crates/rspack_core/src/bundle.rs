@@ -107,7 +107,6 @@ impl Bundle {
               .insert(module.path.clone(), module);
             active_task_count.fetch_sub(1, Ordering::SeqCst);
           }
-          _ => {}
         },
         None => {
           tracing::trace!("All sender is dropped");

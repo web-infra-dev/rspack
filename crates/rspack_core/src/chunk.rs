@@ -1,17 +1,9 @@
-use crate::{hmr::hmr_module, js_module::JsModule, syntax, BundleOptions, NormalizedBundleOptions};
+use crate::{js_module::JsModule, NormalizedBundleOptions};
 use petgraph::graph::NodeIndex;
 use rayon::prelude::*;
-use std::{
-  collections::HashMap,
-  path::Path,
-  sync::{Arc, Mutex},
-};
-use swc::{
-  config::{Config, JscConfig, Options, TransformConfig},
-  Compiler,
-};
-use swc_common::{FileName, Mark};
-use swc_ecma_transforms_base::pass::noop;
+use std::{collections::HashMap, path::Path, sync::Arc};
+use swc::Compiler;
+use swc_common::Mark;
 #[derive(Debug, Default)]
 pub struct Chunk {
   pub id: String,

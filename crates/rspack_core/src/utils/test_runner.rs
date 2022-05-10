@@ -1,4 +1,4 @@
-use ast::{CallExpr, Module};
+use ast::Module;
 use swc::{Compiler, TransformOutput};
 use swc_common::{self, sync::Lrc, FileName, SourceMap};
 use swc_ecma_parser::{lexer::Lexer, Parser, StringInput, Syntax};

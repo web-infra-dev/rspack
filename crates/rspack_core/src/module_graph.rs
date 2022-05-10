@@ -1,18 +1,6 @@
-use std::{
-  collections::{HashMap, HashSet},
-  sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
-  },
-};
+use std::collections::{HashMap, HashSet};
 
-use crate::{BundleOptions, JsModule, ResolvedId};
-use crossbeam::{
-  channel::{self},
-  queue::SegQueue,
-};
-use dashmap::DashSet;
-use futures::future::join_all;
+use crate::{JsModule, ResolvedId};
 use petgraph::graph::NodeIndex;
 use tracing::instrument;
 

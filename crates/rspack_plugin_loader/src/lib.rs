@@ -51,7 +51,6 @@ impl Plugin for LoaderPlugin {
             data
           ))
         }
-        _ => None,
       }
     } else {
       None
