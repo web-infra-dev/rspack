@@ -33,13 +33,20 @@ yargs
         entry[key] = path.resolve(root, value as string);
       }
       console.log("pkg?.rspack:", pkg?.rspack);
+      let alias = pkg?.rspack?.alias ?? {};
+      alias = Object.fromEntries(
+        Object.entries(alias).map(([key, value]) => [
+          key,
+          (value as string).replace("<ROOT>", process.cwd),
+        ])
+      );
       run({
         entry: entry,
         root: root,
         manualChunks: manualChunk ?? {},
         loader: pkg?.rspack?.loader,
         inlineStyle: pkg?.rspack?.inlineStyle,
-        alias: pkg?.rspack?.alias,
+        alias: alias,
       });
     }
   )

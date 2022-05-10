@@ -257,7 +257,7 @@ mod testing {
         resolve: ResolveOption {
           alias: vec![
             ("./wrong".to_string(), Some("./ok".to_string())),
-            ("@/".to_string(), Some("./src/at".to_string())),
+            ("@/".to_string(), Some("./src/".to_string())),
           ],
           ..Default::default()
         },
