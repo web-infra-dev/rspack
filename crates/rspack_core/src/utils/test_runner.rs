@@ -5,6 +5,7 @@ use ast::Module;
 use swc::{config::IsModule, try_with_handler, Compiler, HandlerOpts, TransformOutput};
 use swc_common::{sync::Lrc, FileName, SourceMap};
 use swc_ecma_parser::{lexer::Lexer, Parser, StringInput, Syntax, TsConfig};
+
 pub fn compile(code: String, mut ast: Option<Module>) -> (Module, TransformOutput, Compiler) {
   let filename = "a.js";
   let cm: Lrc<SourceMap> = Default::default();

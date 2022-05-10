@@ -18,6 +18,7 @@ rspack_swc = { path = "../rspack_swc" }
 rspack_plugin_progress = {path = "../rspack_plugin_progress"}
 rspack_plugin_svgr = {path = "../rspack_plugin_svgr"}
 rspack_plugin_mock_buitins = {path = "../rspack_plugin_mock_buitins"}
+rspack_plugin_define = { path="../rspack_plugin_define" }
 sugar_path="0.0.4"
 anyhow = "1"
 crossbeam = "0.8.1"
@@ -38,11 +39,13 @@ tracing-futures = "0.2.5"
 tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
 linked-hash-map = "0.5.4"
 serde_json = "1.0.59"
-insta = "1.14.0"
 nodejs-resolver="0.0.11"
+rspack_style = "0.1"
 
 [dev-dependencies]
 swc_ecma_transforms_testing = "0.80.0"
+sourcemap = "6.0.2"
+base64 = "0.13.0"
 
 [[examples]]
 name="bundle"
