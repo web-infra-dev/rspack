@@ -1659,6 +1659,7 @@ dependencies = [
  "rspack_core",
  "rspack_style",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -1691,9 +1692,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_style"
-version = "0.1.0"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62f4f17405049f9f53684cefea2e024a9502868a251875c1d5c7dd2cda3e3f6b"
+checksum = "92b0eeed53fb5766152f149b67b374af0bb6c0239a3cc81485de3fa91574ce66"
 dependencies = [
  "fasteval",
  "regex",

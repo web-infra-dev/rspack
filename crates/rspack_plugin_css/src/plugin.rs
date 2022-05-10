@@ -12,6 +12,7 @@ use tokio::sync::Mutex;
 #[derive(Debug)]
 pub struct CssSourcePlugin {
   pub css_source_collect: Mutex<Vec<CssSourceType>>,
+  pub app: Application,
 }
 
 pub static RSPACK_CSS_PLUGIN_NSME: &'static str = "rspack_css_plugin";
@@ -27,16 +28,17 @@ impl Default for CssSourcePlugin {
   fn default() -> Self {
     CssSourcePlugin {
       css_source_collect: Mutex::new(vec![]),
+      app: Application::default(),
     }
   }
 }
 
 impl CssSourcePlugin {
-  pub fn handle_with_css_file(filepath: &str) -> HashMap<String, String> {
-    let app = Application::default();
-    let map = match app.render_into_hashmap(filepath.to_string()) {
+  pub fn handle_with_css_file(&self, filepath: &str) -> HashMap<String, String> {
+    let map = match self.app.render_into_hashmap(filepath) {
       Ok(map) => map,
-      Err(_) => {
+      Err(msg) => {
+        println!("{}", msg);
         panic!("parse css has failed")
       }
     };
@@ -78,7 +80,7 @@ impl Plugin for CssSourcePlugin {
   async fn load(&self, _ctx: &BundleContext, filepath: &str) -> PluginLoadHookOutput {
     if let Some(mut css) = is_css_source(filepath) {
       {
-        let map = Self::handle_with_css_file(filepath);
+        let map = self.handle_with_css_file(filepath);
         css.source_content_map = Some(map);
       }
       let mut list = self.css_source_collect.lock().await;
@@ -100,7 +102,10 @@ impl Plugin for CssSourcePlugin {
     let entry_name = Self::get_entry_name(chunk.id.as_str());
 
     let mut wait_sort_list: Vec<CssReferenceInfo> = vec![];
-    for css_source in css_source_list.iter_mut() {
+    for css_source in css_source_list
+      .iter_mut()
+      .filter(|x| chunk.module_ids.contains(&x.file_path))
+    {
       for (filepath, source) in css_source.source_content_map.as_ref().unwrap() {
         if let Some(item) = wait_sort_list.iter_mut().find(|x| x.filepath == *filepath) {
           item.ref_count += 1;
@@ -116,8 +121,9 @@ impl Plugin for CssSourcePlugin {
     wait_sort_list.sort_by(|x1, x2| x1.ref_count.cmp(&x2.ref_count));
 
     for item in wait_sort_list.iter().rev() {
-      css_content += format!("\n{}", item.source).as_str();
+      css_content += format!("{}", item.source).as_str();
     }
+
     if !css_content.is_empty() {
       ctx.emit_asset(Asset {
         source: css_content,
