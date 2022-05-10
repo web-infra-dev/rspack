@@ -5,6 +5,7 @@ use futures::lock::Mutex;
 use napi::bindgen_prelude::*;
 use napi::{Env, JsObject, Result};
 use napi_derive::napi;
+use rspack_core::ResolveOption;
 use serde::Deserialize;
 
 use rspack::bundler::{
@@ -30,6 +31,7 @@ struct BundleOptions {
   pub entry_file_names: String, // | ((chunkInfo: PreRenderedChunk) => string)
   pub loader: Option<HashMap<String, String>>,
   pub inline_style: Option<bool>,
+  pub alias: Option<HashMap<String, String>>,
 }
 
 pub type Rspack = Arc<Mutex<RspackBundler>>;
@@ -53,6 +55,15 @@ pub fn new_rspack(option_json: String) -> External<Rspack> {
       mode: BundleMode::Dev,
       loader,
       inline_style: options.inline_style.unwrap_or_default(),
+      resolve: ResolveOption {
+        alias: options
+          .alias
+          .unwrap_or_default()
+          .into_iter()
+          .map(|(s1, s2)| (s1, Some(s2)))
+          .collect::<Vec<_>>(),
+        ..Default::default()
+      },
       ..Default::default()
     },
     vec![],

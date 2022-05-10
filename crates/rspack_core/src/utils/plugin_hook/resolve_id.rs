@@ -28,8 +28,20 @@ pub async fn resolve_id(
         let base_dir = Path::new(importer).parent().unwrap();
         let resolver_option = &plugin_driver.ctx.as_ref().options.as_ref().resolve;
         let resolver = Resolver::default()
-          .with_extensions(resolver_option.extensions.clone())
-          .with_alias(resolver_option.alias.clone());
+          .with_extensions(
+            resolver_option
+              .extensions
+              .iter()
+              .map(|s| s.as_str())
+              .collect(),
+          )
+          .with_alias(
+            resolver_option
+              .alias
+              .iter()
+              .map(|(s1, s2)| (s1.as_str(), s2.as_ref().map(|s| s.as_str())))
+              .collect(),
+          );
         // Resolver::default().with_extensions(vec![".tsx", ".jsx", ".ts", ".js", ".json"]);
         match resolver.resolve(base_dir, source) {
           Ok(path) => match path {

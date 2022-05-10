@@ -24,9 +24,10 @@ export type BundlerOptions = {
   manualChunks: Record<string, string[]>;
   loader?: Record<string, "dataURI" | "json">;
   inlineStyle?: boolean;
+  alias?: Record<string, string>;
 };
 export async function run(options: BundlerOptions) {
-  const { root, entry, loader, inlineStyle } = options;
+  const { root, entry, loader, inlineStyle, alias } = options;
   // const entry = path.resolve(root, 'index.js');
   const watcher = chokidar.watch(root, {
     ignored: path.resolve(root, "dist"),
@@ -39,6 +40,7 @@ export async function run(options: BundlerOptions) {
     outdir: path.resolve(root, "dist"),
     loader,
     inlineStyle,
+    alias,
   });
   const server = new DevServer({
     root,
