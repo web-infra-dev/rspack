@@ -18,6 +18,7 @@ use std::{
 use swc::Compiler;
 use swc_common::Mark;
 use tracing::instrument;
+
 #[derive(Debug, Default)]
 pub struct Chunk {
   pub id: String,
