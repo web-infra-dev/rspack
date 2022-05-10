@@ -1,3 +1,5 @@
+#![feature(box_patterns)]
+
 mod bundle;
 mod bundle_context;
 mod chunk;
