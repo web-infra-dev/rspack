@@ -158,6 +158,7 @@ impl Bundler {
               handler,
               top_level_mark,
               &self.module_graph.as_ref().unwrap().module_by_id,
+              &self.options,
             )
           })
           .unwrap();

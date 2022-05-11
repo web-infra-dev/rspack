@@ -62,6 +62,7 @@ pub struct BundleOptions {
   pub root: String,
   pub inline_style: bool,
   pub resolve: ResolveOption,
+  pub source_map: bool,
 }
 
 impl Default for BundleOptions {
@@ -89,6 +90,7 @@ impl Default for BundleOptions {
       code_splitting: true,
       loader: None,
       inline_style: Default::default(),
+      source_map: Default::default(),
     }
   }
 }
@@ -117,4 +119,5 @@ pub struct NormalizedBundleOptions {
   pub code_splitting: bool,
   pub root: String,
   pub resolve: ResolveOption,
+  pub source_map: bool,
 }

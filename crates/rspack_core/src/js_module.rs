@@ -5,8 +5,9 @@ use swc::{Compiler, TransformOutput};
 use swc_atoms::JsWord;
 use swc_common::{errors::Handler, util::take::Take, FileName, Mark};
 use swc_ecma_transforms_base::pass::noop;
+use tracing::instrument;
 
-use crate::{hmr::hmr_module, syntax, ResolvedId};
+use crate::{hmr::hmr_module, syntax, NormalizedBundleOptions, ResolvedId};
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct DynImportDesc {
@@ -68,12 +69,15 @@ impl JsModule {
   pub fn add_chunk(&mut self, chunk_id: String) {
     self.chunkd_ids.insert(chunk_id);
   }
+
+  #[instrument(skip_all)]
   pub fn render(
     &self,
     compiler: &Compiler,
     handler: &Handler,
     top_level_mark: Mark,
     modules: &HashMap<String, JsModule>,
+    options: &NormalizedBundleOptions,
   ) -> anyhow::Result<TransformOutput> {
     use swc::config::{self as swc_config, SourceMapsConfig};
     let fm = compiler.cm.new_source_file(
@@ -98,7 +102,7 @@ impl JsModule {
             ..Default::default()
           },
           inline_sources_content: true,
-          source_maps: Some(SourceMapsConfig::Bool(true)),
+          source_maps: Some(SourceMapsConfig::Bool(options.source_map)),
           ..Default::default()
         },
         global_mark: Some(top_level_mark),
