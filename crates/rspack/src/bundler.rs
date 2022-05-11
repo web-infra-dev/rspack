@@ -151,7 +151,7 @@ impl Bundler {
         let compiler = get_swc_compiler();
         let top_level_mark = Mark::from_u32(1);
 
-        let transoform_output =
+        let transform_output =
           swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
             module.render(
               &compiler,
@@ -161,7 +161,7 @@ impl Bundler {
             )
           })
           .unwrap();
-        (module_id.to_string(), transoform_output.code)
+        (module_id.to_string(), transform_output.code)
       })
       .collect();
     diff_rendered
