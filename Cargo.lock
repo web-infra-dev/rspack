@@ -1671,6 +1671,7 @@ dependencies = [
  "async-trait",
  "base64 0.13.0",
  "rspack_core",
+ "serde_json",
 ]
 
 [[package]]

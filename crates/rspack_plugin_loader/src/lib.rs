@@ -18,42 +18,56 @@ impl Plugin for LoaderPlugin {
   }
 
   async fn load(&self, _ctx: &BundleContext, id: &str) -> PluginLoadHookOutput {
-    let loader_and_ext = Path::new(id).extension().and_then(|ext| {
-      ext
-        .to_str()
-        .and_then(|ext| (self.options.get(ext).map(|loader| (loader, ext))))
-    });
-    if let Some((loader, ext)) = loader_and_ext {
-      match loader {
-        Loader::DataURI => {
-          let mime_type = guess_mime_types_ext(ext);
-          let format = "base64";
-          let data = std::fs::read(id).ok()?;
-          let data_uri = format!("data:{};{},{}", mime_type, format, base64::encode(&data));
-          Some(
-            format!(
-              "
+    let ext = Path::new(id)
+      .extension()
+      .and_then(|ext| ext.to_str())
+      .and_then(|ext| {
+        // skip js files
+        if matches!(ext, "js" | "jsx" | "ts" | "tsx" | "cjs" | "mjs") {
+          None
+        } else {
+          Some(ext)
+        }
+      })?;
+    let loader = self.options.get(ext).unwrap_or(&Loader::Text);
+
+    match loader {
+      Loader::DataURI => {
+        let mime_type = guess_mime_types_ext(ext);
+        let format = "base64";
+        let data = std::fs::read(id).ok()?;
+        let data_uri = format!("data:{};{},{}", mime_type, format, base64::encode(&data));
+        Some(
+          format!(
+            "
           var img = \"{}\";
           export default img;
           ",
-              data_uri
-            )
-            .trim()
-            .to_string(),
+            data_uri
           )
-        }
-        Loader::Json => {
-          let data = std::fs::read_to_string(id).ok()?;
-          Some(format!(
-            "
+          .trim()
+          .to_string(),
+        )
+      }
+      Loader::Json => {
+        let data = std::fs::read_to_string(id).ok()?;
+        Some(format!(
+          "
           export default {}
           ",
-            data
-          ))
-        }
+          data
+        ))
       }
-    } else {
-      None
+      Loader::Text => {
+        let data = std::fs::read_to_string(id).ok()?;
+        let data = serde_json::to_string(&data).ok()?;
+        Some(format!(
+          "
+          export default {}
+          ",
+          data
+        ))
+      }
     }
   }
 }

@@ -7,7 +7,7 @@ use swc_common::{FileName, FilePathMapping, SourceMap};
 use swc_ecma_parser::Syntax;
 use swc_ecma_parser::{EsConfig, TsConfig};
 
-use crate::{BundleOptions, NormalizedBundleOptions};
+use crate::{BundleOptions, Loader, NormalizedBundleOptions};
 
 pub mod path;
 pub mod plugin_hook;
@@ -67,10 +67,15 @@ pub fn syntax(filename: &str) -> Syntax {
 }
 
 pub fn normalize_bundle_options(options: BundleOptions) -> NormalizedBundleOptions {
+  let loader = {
+    let mut loader = options.loader.unwrap_or_default();
+    loader.entry("json".to_string()).or_insert(Loader::Json);
+    loader
+  };
   NormalizedBundleOptions {
     resolve: options.resolve,
     react: options.react,
-    loader: options.loader,
+    loader: Some(loader),
     mode: options.mode,
     entries: options.entries,
     minify: options.minify,

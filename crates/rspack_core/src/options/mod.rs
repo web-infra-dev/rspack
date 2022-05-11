@@ -4,6 +4,7 @@ use std::collections::HashMap;
 pub enum Loader {
   DataURI,
   Json,
+  Text,
 }
 
 pub type LoaderOptions = HashMap<String, Loader>;
