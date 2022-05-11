@@ -1,0 +1,69 @@
+{
+  "name": "arco-design-pro",
+  "version": "1.0.0",
+  "description": "Arco Design Pro",
+  "scripts": {
+    "dev": "rspack",
+    "speedy:dev": "speedy dev",
+    "speedy:start": "speedy start",
+    "speeedy:build": "speedy build"
+  },
+  "dependencies": {
+    "@antv/data-set": "^0.11.8",
+    "@arco-design/color": "^0.4.0",
+    "@arco-design/web-react": "^2.29.1",
+    "@arco-themes/react-arco-pro": "^0.0.7",
+    "@loadable/component": "^5.15.2",
+    "@turf/turf": "^6.5.0",
+    "arco-design-pro": "^2.3.0",
+    "axios": "^0.24.0",
+    "bizcharts": "^4.1.15",
+    "classnames": "^2.3.1",
+    "copy-to-clipboard": "^3.3.1",
+    "dayjs": "^1.10.7",
+    "lodash": "^4.17.21",
+    "mockjs": "^1.1.0",
+    "nprogress": "^0.2.0",
+    "query-string": "^6.14.1",
+    "react": "^17.0.2",
+    "react-color": "^2.19.3",
+    "react-dom": "^17.0.2",
+    "react-redux": "^7.2.6",
+    "react-router": "^5.2.1",
+    "react-router-dom": "^5.3.0",
+    "redux": "^4.1.2"
+  },
+  "devDependencies": {
+    "@rspack/core": "workspace:*",
+    "typescript": "^4.5.5"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "rspack": {
+    "entry": {
+      "index": "./src/index.tsx"
+    },
+    "loader": {
+      "json": "json",
+      "svg": "dataURI"
+    },
+    "alias": {
+      "@/": "<ROOT>/src/"
+    }
+  }
+}
