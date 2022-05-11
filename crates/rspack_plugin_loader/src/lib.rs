@@ -18,18 +18,8 @@ impl Plugin for LoaderPlugin {
   }
 
   async fn load(&self, _ctx: &BundleContext, id: &str) -> PluginLoadHookOutput {
-    let ext = Path::new(id)
-      .extension()
-      .and_then(|ext| ext.to_str())
-      .and_then(|ext| {
-        // skip js files
-        if matches!(ext, "js" | "jsx" | "ts" | "tsx" | "cjs" | "mjs") {
-          None
-        } else {
-          Some(ext)
-        }
-      })?;
-    let loader = self.options.get(ext).unwrap_or(&Loader::Text);
+    let ext = Path::new(id).extension().and_then(|ext| ext.to_str())?;
+    let loader = self.options.get(ext)?;
 
     match loader {
       Loader::DataURI => {
