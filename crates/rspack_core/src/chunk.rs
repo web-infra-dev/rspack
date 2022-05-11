@@ -1,6 +1,9 @@
 use crate::{js_module::JsModule, Bundle, BundleContext, NormalizedBundleOptions};
 use petgraph::graph::NodeIndex;
 use rayon::prelude::*;
+use rspack_sources::{
+  ConcatSource, GenMapOption, RawSource, Source, SourceMapSource, SourceMapSourceOptions,
+};
 use std::{
   collections::{hash_map::DefaultHasher, HashMap},
   hash::{Hash, Hasher},
@@ -52,7 +55,8 @@ impl Chunk {
     // let compiler = get_compiler();
     let top_level_mark = Mark::from_u32(1);
 
-    let mut output_code = String::new();
+    let mut concat_source = ConcatSource::new(vec![]);
+    let mut concattables: Vec<Box<dyn Source>> = vec![];
     self.module_ids.sort_by_key(|id| 0 - modules[id].exec_order);
     self
       .module_ids
@@ -66,7 +70,39 @@ impl Chunk {
       })
       .collect::<Vec<_>>()
       .into_iter()
-      .for_each(|transform_output| output_code += &transform_output.code);
+      .for_each(|transform_output| {
+        if let Some(map_string) = &transform_output.map.as_ref() {
+          let source_map = sourcemap::SourceMap::from_slice(map_string.as_bytes()).unwrap();
+          concattables.push(Box::new(SourceMapSource::new(SourceMapSourceOptions {
+            source_code: transform_output.code.clone(),
+            name: self.id.clone().into(),
+            source_map,
+            original_source: None,
+            inner_source_map: None,
+            remove_original_source: false,
+          })));
+        } else {
+          concattables.push(Box::new(RawSource::new(transform_output.code.clone())));
+        }
+      });
+
+    concattables.iter_mut().for_each(|concattable| {
+      concat_source.add(concattable.as_mut());
+    });
+
+    let mut output_code = String::new();
+    if let Some(source_map_url) = concat_source
+      .generate_url(&GenMapOption {
+        columns: true,
+        include_source_contents: true,
+        file: self.id.clone().into(),
+      })
+      .unwrap()
+    {
+      output_code = concat_source.source() + "\n//# sourceMappingURL=" + &source_map_url;
+    } else {
+      output_code = concat_source.source()
+    }
 
     RenderedChunk {
       code: output_code,

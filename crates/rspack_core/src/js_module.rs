@@ -75,7 +75,7 @@ impl JsModule {
     top_level_mark: Mark,
     modules: &HashMap<String, JsModule>,
   ) -> anyhow::Result<TransformOutput> {
-    use swc::config as swc_config;
+    use swc::config::{self as swc_config, SourceMapsConfig};
     let fm = compiler.cm.new_source_file(
       FileName::Custom(self.path.to_string()),
       self.path.to_string(),
@@ -97,6 +97,8 @@ impl JsModule {
             }),
             ..Default::default()
           },
+          inline_sources_content: true,
+          source_maps: Some(SourceMapsConfig::Bool(true)),
           ..Default::default()
         },
         global_mark: Some(top_level_mark),
