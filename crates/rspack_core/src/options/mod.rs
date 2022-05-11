@@ -55,6 +55,7 @@ pub struct BundleOptions {
   pub minify: bool,
   pub outdir: String,
   pub entry_file_names: String, // | ((chunkInfo: PreRenderedChunk) => string)
+  pub chunk_filename: Option<String>,
   pub code_splitting: bool,
   pub root: String,
   pub inline_style: bool,
@@ -82,6 +83,7 @@ impl Default for BundleOptions {
         .to_string(),
       minify: Default::default(),
       entry_file_names: "[name].js".to_string(),
+      chunk_filename: None,
       code_splitting: true,
       loader: None,
       inline_style: Default::default(),
@@ -108,7 +110,8 @@ pub struct NormalizedBundleOptions {
   pub entries: Vec<String>,
   pub minify: bool,
   pub outdir: String,
-  pub entry_file_names: String, // | ((chunkInfo: PreRenderedChunk) => string)
+  pub entry_filename: String, // | ((chunkInfo: PreRenderedChunk) => string)
+  pub chunk_filename: String,
   pub code_splitting: bool,
   pub root: String,
   pub resolve: ResolveOption,

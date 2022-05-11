@@ -75,7 +75,10 @@ pub fn normalize_bundle_options(options: BundleOptions) -> NormalizedBundleOptio
     entries: options.entries,
     minify: options.minify,
     outdir: options.outdir,
-    entry_file_names: options.entry_file_names,
+    entry_filename: options.entry_file_names,
+    chunk_filename: options
+      .chunk_filename
+      .unwrap_or("chunk-[contenthash].js".to_string()),
     code_splitting: options.code_splitting,
     root: options.root,
   }

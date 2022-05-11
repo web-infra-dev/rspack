@@ -71,12 +71,8 @@ pub fn split_chunks(module_graph: &ModuleGraph, is_enable_code_spliting: bool) -
     .collect::<Vec<_>>();
 
   for entry in &entries {
-    let chunk_id = chunk_graph.add_node(Chunk {
-      id: Default::default(),
-      module_ids: vec![entry.to_string().into()],
-      entry: entry.to_string().into(),
-      source_chunks: Default::default(),
-    });
+    let chunk = Chunk::new(vec![entry.to_string().into()], entry.to_string(), true);
+    let chunk_id = chunk_graph.add_node(chunk);
     chunk_roots.insert(*entry, (chunk_id, chunk_id));
   }
 
@@ -93,7 +89,7 @@ pub fn split_chunks(module_graph: &ModuleGraph, is_enable_code_spliting: bool) -
         // Create a new chunk if the dependency is async.
         let dependency = &dependency_graph[(importer_id, importee_id)];
         if dependency.is_async && is_enable_code_spliting {
-          let chunk = Chunk::from_js_module(importee_id.to_string().into());
+          let chunk = Chunk::from_js_module(importee_id.to_string().into(), false);
           let chunk_id = chunk_graph.add_node(chunk);
           chunk_roots.insert(importee_id, (chunk_id, chunk_id));
 
