@@ -81,5 +81,6 @@ pub fn normalize_bundle_options(options: BundleOptions) -> NormalizedBundleOptio
       .unwrap_or("chunk-[contenthash].js".to_string()),
     code_splitting: options.code_splitting,
     root: options.root,
+    source_map: options.source_map,
   }
 }
