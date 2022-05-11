@@ -37,6 +37,21 @@
                 "examples/react"
             ],
             "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "sourceLanguages": [
+                "rust"
+            ],
+            "name": "debug-arco-pro",
+            "program": "node",
+            "args": [
+                "--inspect",
+                "node_modules/.bin/rspack",
+                "examples/arco-pro"
+            ],
+            "cwd": "${workspaceFolder}"
         }
     ],
     "compounds": [

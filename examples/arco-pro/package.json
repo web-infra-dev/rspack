@@ -60,7 +60,8 @@
     },
     "loader": {
       "json": "json",
-      "svg": "dataURI"
+      "svg": "dataURI",
+      "less": "text"
     },
     "alias": {
       "@/": "<ROOT>/src/"
