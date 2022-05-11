@@ -6,14 +6,16 @@ use std::{
   },
 };
 
-use crate::path::normalize_path;
 use crate::{
   bundle::Msg, dependency_scanner::DependencyScanner, plugin_hook, utils::parse_file, JsModule,
   PluginDriver, ResolvedId,
 };
+use crate::{path::normalize_path, SWC_GLOBALS};
 use dashmap::{DashMap, DashSet};
 
 use swc_atoms::JsWord;
+use swc_common::GLOBALS;
+use swc_ecma_transforms_base::resolver::resolver_with_mark;
 use swc_ecma_visit::VisitMutWith;
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::instrument;
@@ -69,7 +71,16 @@ impl Task {
       let module_id: &str = &resolved_id.path;
       let source = plugin_hook::load(module_id, &self.plugin_driver).await;
       let mut dependency_scanner = DependencyScanner::default();
-      let raw_ast = parse_file(source, module_id).expect_module();
+      let mut raw_ast = parse_file(source, module_id).expect_module();
+      {
+        // The Resolver is not send. We need this block to tell compiler that
+        // the Resolver won't be sent over the threads
+        GLOBALS.set(&SWC_GLOBALS, || {
+          let mut syntax_context_resolver =
+            resolver_with_mark(self.plugin_driver.ctx.top_level_mark.clone());
+          raw_ast.visit_mut_with(&mut syntax_context_resolver);
+        });
+      }
       let mut ast = plugin_hook::transform(Path::new(module_id), raw_ast, &self.plugin_driver);
 
       self.pre_analyze_imported_module(&id_resolver, &ast).await;

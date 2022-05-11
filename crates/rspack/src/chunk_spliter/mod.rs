@@ -42,8 +42,6 @@ impl ChunkSpliter {
       entry_module.add_chunk(chunk.id.clone());
     });
 
-    let graph = bundle.module_graph.as_mut().unwrap();
-
     chunks
       .iter()
       .for_each(|chunk| plugin_dirver.tap_generated_chunk(chunk, &self.output_options));
@@ -52,11 +50,7 @@ impl ChunkSpliter {
     chunks
       .iter_mut()
       .map(|chunk| {
-        let chunk = chunk.render(
-          &self.output_options,
-          &mut graph.module_by_id,
-          compiler.clone(),
-        );
+        let chunk = chunk.render(&self.output_options, compiler.clone(), bundle);
         (
           chunk.file_name.clone(),
           OutputChunk {

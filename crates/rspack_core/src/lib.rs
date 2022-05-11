@@ -18,9 +18,11 @@ pub use bundle_context::*;
 pub use chunk::*;
 pub use js_module::*;
 pub use module_graph::*;
+use once_cell::sync::Lazy;
 pub use options::*;
 pub use plugin::*;
 pub use plugin_driver::*;
+use swc_common::Globals;
 pub use utils::*;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -38,3 +40,5 @@ impl ResolvedId {
     }
   }
 }
+
+pub static SWC_GLOBALS: Lazy<Globals> = Lazy::new(|| Globals::new());

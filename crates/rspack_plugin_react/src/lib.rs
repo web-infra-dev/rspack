@@ -1,8 +1,7 @@
 use std::path::Path;
 
-use rspack_core::{ast, Bundle, BundleMode, Plugin};
-use swc_common::{chain, comments::SingleThreadedComments, Globals, Mark, GLOBALS};
-use swc_ecma_transforms_base::resolver::resolver_with_mark;
+use rspack_core::{ast, BundleMode, Plugin, SWC_GLOBALS};
+use swc_common::{comments::SingleThreadedComments, GLOBALS};
 use swc_ecma_transforms_react as swc_react;
 use swc_ecma_visit::FoldWith;
 use swc_react::RefreshOptions;
@@ -25,10 +24,7 @@ impl Plugin for ReactPlugin {
   ) -> rspack_core::PluginTransformHookOutput {
     let is_maybe_has_jsx = path.extension().map_or(true, |ext| ext != "ts");
     if is_maybe_has_jsx {
-      let globals = Globals::new();
-
-      GLOBALS.set(&globals, || {
-        let top_level_mark = Mark::fresh(Mark::root());
+      GLOBALS.set(&SWC_GLOBALS, || {
         let mut react_folder = swc_react::react::<SingleThreadedComments>(
           ctx.compiler.cm.clone(),
           None,
@@ -44,9 +40,9 @@ impl Plugin for ReactPlugin {
             },
             ..Default::default()
           },
-          Mark::from_u32(1),
+          ctx.top_level_mark.clone(),
         );
-        let mut folds = chain!(resolver_with_mark(top_level_mark), &mut react_folder);
+        let mut folds = &mut react_folder;
         ast.fold_with(&mut folds)
       })
     } else {

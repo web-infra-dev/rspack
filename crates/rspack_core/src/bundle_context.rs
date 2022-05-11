@@ -4,6 +4,7 @@ use std::{
 };
 
 use swc::Compiler;
+use swc_common::Mark;
 
 use crate::NormalizedBundleOptions;
 
@@ -11,6 +12,7 @@ pub struct BundleContext {
   pub assets: Mutex<Vec<Asset>>,
   pub compiler: Arc<Compiler>,
   pub options: Arc<NormalizedBundleOptions>,
+  pub top_level_mark: Mark,
   _noop: (),
 }
 
@@ -24,11 +26,16 @@ impl Debug for BundleContext {
 }
 
 impl BundleContext {
-  pub fn new(compiler: Arc<Compiler>, options: Arc<NormalizedBundleOptions>) -> Self {
+  pub fn new(
+    compiler: Arc<Compiler>,
+    options: Arc<NormalizedBundleOptions>,
+    top_level_mark: Mark,
+  ) -> Self {
     Self {
       assets: Default::default(),
       compiler,
       options,
+      top_level_mark,
       _noop: (),
     }
   }

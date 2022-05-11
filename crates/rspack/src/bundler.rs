@@ -6,8 +6,11 @@ use std::sync::Arc;
 use rspack_core::normalize_bundle_options;
 use rspack_core::ModuleGraph;
 use rspack_core::NormalizedBundleOptions;
+use rspack_core::SWC_GLOBALS;
 use sugar_path::PathSugar;
+use swc_common::Globals;
 use swc_common::Mark;
+use swc_common::GLOBALS;
 use tracing::instrument;
 
 use crate::chunk_spliter::ChunkSpliter;
@@ -54,9 +57,11 @@ impl Bundler {
     );
     let injected_plugins = inject_built_in_plugins(plugins, &mut options);
     let normalized_options = Arc::new(normalize_bundle_options(options));
+    let top_level_mark = GLOBALS.set(&SWC_GLOBALS, || Mark::fresh(Mark::root()));
     let ctx: Arc<BundleContext> = Arc::new(BundleContext::new(
       get_swc_compiler(),
       normalized_options.clone(),
+      top_level_mark,
     ));
     Self {
       options: normalized_options,
@@ -149,16 +154,15 @@ impl Bundler {
           .get(&module_id)
           .unwrap();
         let compiler = get_swc_compiler();
-        let top_level_mark = Mark::from_u32(1);
 
         let transform_output =
           swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
             module.render(
               &compiler,
               handler,
-              top_level_mark,
               &self.module_graph.as_ref().unwrap().module_by_id,
               &self.options,
+              &bundle.context,
             )
           })
           .unwrap();

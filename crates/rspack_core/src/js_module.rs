@@ -7,7 +7,7 @@ use swc_common::{errors::Handler, util::take::Take, FileName, Mark};
 use swc_ecma_transforms_base::pass::noop;
 use tracing::instrument;
 
-use crate::{hmr::hmr_module, syntax, NormalizedBundleOptions, ResolvedId};
+use crate::{hmr::hmr_module, syntax, Bundle, BundleContext, NormalizedBundleOptions, ResolvedId};
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct DynImportDesc {
@@ -75,9 +75,9 @@ impl JsModule {
     &self,
     compiler: &Compiler,
     handler: &Handler,
-    top_level_mark: Mark,
     modules: &HashMap<String, JsModule>,
     options: &NormalizedBundleOptions,
+    bundle: &BundleContext,
   ) -> anyhow::Result<TransformOutput> {
     use swc::config::{self as swc_config, SourceMapsConfig};
     let fm = compiler.cm.new_source_file(
@@ -105,14 +105,14 @@ impl JsModule {
           source_maps: Some(SourceMapsConfig::Bool(options.source_map)),
           ..Default::default()
         },
-        global_mark: Some(top_level_mark),
+        global_mark: Some(bundle.top_level_mark),
         ..Default::default()
       },
       |_, _| noop(),
       |_, _| {
         hmr_module(
           self.id.to_string(),
-          top_level_mark,
+          bundle.top_level_mark,
           &self.resolved_ids,
           self.is_user_defined_entry_point,
           modules,
