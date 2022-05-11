@@ -29,8 +29,9 @@ pub struct JsModule {
   pub dyn_imports: HashSet<DynImportDesc>,
   pub is_user_defined_entry_point: bool,
   pub resolved_ids: HashMap<JsWord, ResolvedId>,
+  pub chunkd_ids: HashSet<String>,
+  pub code_splitting: bool,
 }
-
 impl std::fmt::Debug for JsModule {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("JsModule")
@@ -60,9 +61,13 @@ impl JsModule {
       dyn_imports: Default::default(),
       is_user_defined_entry_point: Default::default(),
       resolved_ids: Default::default(),
+      chunkd_ids: Default::default(),
+      code_splitting: Default::default(),
     }
   }
-
+  pub fn add_chunk(&mut self, chunk_id: String) {
+    self.chunkd_ids.insert(chunk_id);
+  }
   pub fn render(
     &self,
     compiler: &Compiler,
@@ -105,6 +110,7 @@ impl JsModule {
           &self.resolved_ids,
           self.is_user_defined_entry_point,
           modules,
+          self.code_splitting,
         )
       },
     )
