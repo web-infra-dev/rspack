@@ -1,7 +1,12 @@
-use crate::{js_module::JsModule, NormalizedBundleOptions};
+use crate::{js_module::JsModule, Bundle, BundleContext, NormalizedBundleOptions};
 use petgraph::graph::NodeIndex;
 use rayon::prelude::*;
-use std::{collections::HashMap, path::Path, sync::Arc};
+use std::{
+  collections::{hash_map::DefaultHasher, HashMap},
+  hash::{Hash, Hasher},
+  path::Path,
+  sync::Arc,
+};
 use swc::Compiler;
 use swc_common::Mark;
 #[derive(Debug, Default)]
@@ -11,24 +16,30 @@ pub struct Chunk {
   pub entry: String,
   pub module_ids: Vec<String>,
   pub source_chunks: Vec<NodeIndex>,
+  pub is_entry_chunk: bool,
+  _noop: (),
 }
 
 impl Chunk {
-  pub fn new(module_ids: Vec<String>, entries: String) -> Self {
+  pub fn new(module_ids: Vec<String>, entries: String, is_entry_chunk: bool) -> Self {
     Self {
       id: Default::default(),
       module_ids,
       entry: entries,
       source_chunks: Default::default(),
+      is_entry_chunk,
+      _noop: (),
     }
   }
 
-  pub fn from_js_module(module_id: String) -> Self {
+  pub fn from_js_module(module_id: String, is_entry_chunk: bool) -> Self {
     Self {
       id: Default::default(),
       module_ids: vec![module_id.clone()],
       entry: module_id,
       source_chunks: Default::default(),
+      is_entry_chunk,
+      _noop: (),
     }
   }
 
@@ -80,9 +91,24 @@ impl Chunk {
     self.get_fallback_chunk_name()
   }
 
-  pub fn generate_id(&self, options: &NormalizedBundleOptions) -> String {
-    let pattern = &options.entry_file_names;
-    pattern.replace("[name]", self.name()).into()
+  pub fn generate_id(&self, options: &NormalizedBundleOptions, bundle: &Bundle) -> String {
+    let pattern = if self.is_entry_chunk {
+      &options.entry_filename
+    } else {
+      &options.chunk_filename
+    };
+    let content_hash = {
+      let mut hasher = DefaultHasher::new();
+      self.module_ids.iter().for_each(|moudle_id| {
+        let module = &bundle.module_graph.as_ref().unwrap().module_by_id[moudle_id];
+        module.ast.hash(&mut hasher);
+      });
+      hasher.finish()
+    };
+    pattern
+      .replace("[name]", self.name())
+      .replace("[contenthash]", &format!("{:x}", content_hash))
+      .into()
   }
 }
 

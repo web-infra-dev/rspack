@@ -82,7 +82,7 @@ impl Bundler {
     bundle.build_graph().await;
 
     let mut chunk_spliter = ChunkSpliter::new(self.options.clone());
-    let output = chunk_spliter.generate(&self.plugin_driver, bundle.module_graph.as_mut().unwrap());
+    let output = chunk_spliter.generate(&self.plugin_driver, &mut bundle);
     output.into_iter().for_each(|(_, chunk)| {
       self.ctx.assets.lock().unwrap().push(Asset {
         source: chunk.code,
@@ -107,7 +107,7 @@ impl Bundler {
     let changed_file: String = changed_file.into();
     old_modules_id.remove(&changed_file);
     tracing::trace!("old_modules_id {:?}", old_modules_id);
-    let mut module_graph = {
+    let mut bundle = {
       // TODO: We need to reuse some cache. Rebuild is fake now.
       let mut bundle = rspack_core::Bundle::new(
         self.options.clone(),
@@ -116,17 +116,17 @@ impl Bundler {
       );
 
       bundle.build_graph().await;
-      bundle.module_graph.take().unwrap()
+      bundle
     };
-    let mut bundle = ChunkSpliter::new(self.options.clone());
-    let output = bundle.generate(&self.plugin_driver, &mut module_graph);
+    let mut chunk_spliter = ChunkSpliter::new(self.options.clone());
+    let output = chunk_spliter.generate(&self.plugin_driver, &mut bundle);
     output.into_iter().for_each(|(_, chunk)| {
       self.ctx.assets.lock().unwrap().push(Asset {
         source: chunk.code,
         filename: chunk.file_name,
       })
     });
-    self.module_graph = Some(module_graph);
+    self.module_graph = Some(bundle.module_graph.take().unwrap());
 
     let new_modules_id = self
       .module_graph

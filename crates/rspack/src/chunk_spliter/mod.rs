@@ -1,10 +1,8 @@
-use std::collections::HashSet;
 use std::{collections::HashMap, sync::Arc};
 
-use rspack_core::get_swc_compiler;
-use rspack_core::ModuleGraph;
 use rspack_core::NormalizedBundleOptions;
 use rspack_core::PluginDriver;
+use rspack_core::{get_swc_compiler, Bundle};
 use tracing::instrument;
 
 use self::split_chunks::split_chunks;
@@ -26,19 +24,25 @@ impl ChunkSpliter {
     Self { output_options }
   }
 
-  #[instrument(skip(self, plugin_dirver, graph))]
+  #[instrument(skip(self, plugin_dirver, bundle))]
   pub fn generate(
     &mut self,
     plugin_dirver: &PluginDriver,
-    graph: &mut ModuleGraph,
+    bundle: &mut Bundle,
   ) -> HashMap<String, OutputChunk> {
-    let mut chunks = split_chunks(&graph, self.output_options.code_splitting);
+    let mut chunks = split_chunks(
+      bundle.module_graph.as_mut().unwrap(),
+      self.output_options.code_splitting,
+    );
 
     chunks.iter_mut().for_each(|chunk| {
-      chunk.id = chunk.generate_id(&self.output_options);
+      chunk.id = chunk.generate_id(&self.output_options, bundle);
+      let graph = bundle.module_graph.as_mut().unwrap();
       let entry_module = graph.module_by_id.get_mut(&chunk.entry).unwrap();
       entry_module.add_chunk(chunk.id.clone());
     });
+
+    let graph = bundle.module_graph.as_mut().unwrap();
 
     chunks
       .iter()
