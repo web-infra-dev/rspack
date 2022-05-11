@@ -8,12 +8,12 @@ license = "MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rspack_core = { path="../rspack_core" }
-rspack_plugin_css = { path="../rspack_plugin_css" }
-rspack_plugin_react = { path="../rspack_plugin_react" }
-rspack_plugin_loader = { path="../rspack_plugin_loader" }
-rspack_plugin_style = { path="../rspack_plugin_style" }
-sugar_path="0.0.4"
+rspack_core = { path = "../rspack_core" }
+rspack_css_plugin = { path = "../rspack_css_plugin" }
+rspack_react_plugin = { path = "../rspack_react_plugin" }
+rspack_loader_plugin = { path = "../rspack_loader_plugin" }
+rspack_style_plugin = { path = "../rspack_style_plugin" }
+sugar_path = "0.0.4"
 anyhow = "1"
 crossbeam = "0.8.1"
 dashmap = "5.0.0"
@@ -50,4 +50,4 @@ insta = "1.14.0"
 swc_ecma_transforms_testing = "0.80.0"
 
 [[examples]]
-name="bundle"
+name = "bundle"

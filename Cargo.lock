@@ -1574,11 +1574,11 @@ dependencies = [
  "rayon",
  "regex",
  "rspack_core",
- "rspack_plugin_css",
- "rspack_plugin_loader",
- "rspack_plugin_react",
- "rspack_plugin_style",
+ "rspack_css_plugin",
+ "rspack_loader_plugin",
+ "rspack_react_plugin",
  "rspack_style",
+ "rspack_style_plugin",
  "serde_json",
  "smol_str",
  "sugar_path",
@@ -1635,6 +1635,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_css_plugin"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "rspack_core",
+ "rspack_style",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "rspack_loader_plugin"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "base64 0.13.0",
+ "rspack_core",
+ "serde_json",
+]
+
+[[package]]
 name = "rspack_node"
 version = "0.1.0"
 dependencies = [
@@ -1654,28 +1675,7 @@ name = "rspack_node_resolve"
 version = "0.1.0"
 
 [[package]]
-name = "rspack_plugin_css"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "rspack_core",
- "rspack_style",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "rspack_plugin_loader"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "base64 0.13.0",
- "rspack_core",
- "serde_json",
-]
-
-[[package]]
-name = "rspack_plugin_react"
+name = "rspack_react_plugin"
 version = "0.1.0"
 dependencies = [
  "rspack_core",
@@ -1683,14 +1683,6 @@ dependencies = [
  "swc_ecma_transforms_base",
  "swc_ecma_transforms_react",
  "swc_ecma_visit",
-]
-
-[[package]]
-name = "rspack_plugin_style"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "rspack_core",
 ]
 
 [[package]]
@@ -1716,6 +1708,14 @@ dependencies = [
  "serde_json",
  "strum",
  "uuid",
+]
+
+[[package]]
+name = "rspack_style_plugin"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "rspack_core",
 ]
 
 [[package]]

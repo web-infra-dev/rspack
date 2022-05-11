@@ -1,4 +1,4 @@
-use crate::{js_module::JsModule, Bundle, BundleContext, NormalizedBundleOptions};
+use crate::{js_module::JsModule, Bundle, NormalizedBundleOptions};
 use petgraph::graph::NodeIndex;
 use rayon::prelude::*;
 use rspack_sources::{

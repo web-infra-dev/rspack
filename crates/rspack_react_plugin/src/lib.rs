@@ -12,9 +12,11 @@ pub struct ReactPlugin {
   pub runtime: swc_react::Runtime,
 }
 
+pub static PLUGIN_NAME: &'static str = "rspack_react_plugin";
+
 impl Plugin for ReactPlugin {
   fn name(&self) -> &'static str {
-    "rspack_plugin_react"
+    PLUGIN_NAME
   }
 
   fn transform(

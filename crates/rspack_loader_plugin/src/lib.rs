@@ -11,10 +11,12 @@ pub struct LoaderPlugin {
   pub options: HashMap<String, Loader>,
 }
 
+pub static PLUGIN_NAME: &'static str = "rspack_loader_plugin";
+
 #[async_trait]
 impl Plugin for LoaderPlugin {
   fn name(&self) -> &'static str {
-    "rspack_loader_plugin"
+    PLUGIN_NAME
   }
 
   async fn load(&self, _ctx: &BundleContext, id: &str) -> PluginLoadHookOutput {

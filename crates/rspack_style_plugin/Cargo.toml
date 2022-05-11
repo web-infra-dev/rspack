@@ -1,5 +1,5 @@
 [package]
-name = "rspack_plugin_react"
+name = "rspack_style_plugin"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,7 +7,4 @@ edition = "2021"
 
 [dependencies]
 rspack_core = { path = "../rspack_core" }
-swc_ecma_transforms_react = "0.107.0"
-swc_ecma_visit = "0.62.0"
-swc_common = "0.17.22"
-swc_ecma_transforms_base = "0.78.0"
+async-trait = "0.1.53"

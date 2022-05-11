@@ -6,10 +6,12 @@ use rspack_core::{BundleContext, Plugin, PluginLoadHookOutput};
 #[derive(Debug)]
 pub struct StyleLoaderPlugin {}
 
+pub static PLUGIN_NAME: &'static str = "rspack_style_plugin";
+
 #[async_trait]
 impl Plugin for StyleLoaderPlugin {
   fn name(&self) -> &'static str {
-    "rspack_loader_plugin"
+    PLUGIN_NAME
   }
 
   async fn load(&self, _ctx: &BundleContext, id: &str) -> PluginLoadHookOutput {
