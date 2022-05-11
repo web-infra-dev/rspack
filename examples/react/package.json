@@ -13,5 +13,10 @@
     "@rspack/core": "workspace:*",
     "react": "17.0.0",
     "react-dom": "17.0.0"
+  },
+  "rspack": {
+    "entry": {
+      "index": "src/index.js"
+    }
   }
 }

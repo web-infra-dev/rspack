@@ -49,6 +49,7 @@ pub struct Task {
   pub tx: UnboundedSender<Msg>,
   pub visited_module_id: Arc<DashSet<String>>,
   pub plugin_driver: Arc<PluginDriver>,
+  pub code_splitting: bool,
 }
 
 impl Task {
@@ -96,11 +97,13 @@ impl Task {
         dependencies: dependency_scanner.dependencies,
         dyn_imports: dependency_scanner.dyn_dependencies,
         is_user_defined_entry_point: Default::default(),
+        chunkd_ids: Default::default(),
         resolved_ids: id_resolver
           .resolved_ids
           .into_iter()
           .map(|(key, value)| (key, value))
           .collect(),
+        code_splitting: self.code_splitting,
       };
       self.tx.send(Msg::TaskFinished(module)).unwrap()
     }
@@ -117,6 +120,7 @@ impl Task {
         visited_module_id: self.visited_module_id.clone(),
         tx: self.tx.clone(),
         plugin_driver: self.plugin_driver.clone(),
+        code_splitting: self.code_splitting,
       };
       tokio::task::spawn(async move {
         task.run().await;

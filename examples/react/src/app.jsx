@@ -1,7 +1,7 @@
 import './base.css';
 import React from 'react';
 import ReactDOM from 'react-dom';
-const Button = React.lazy(() => import('./button'));
+const Button = React.lazy(() => import('../src/button'));
 const App = () => {
   return (
     <React.Suspense fallback={<div>loading...</div>}>
