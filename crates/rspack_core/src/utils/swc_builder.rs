@@ -28,19 +28,55 @@ pub fn is_require(e: &mut CallExpr) -> bool {
 
 #[cfg(test)]
 mod swc_builder_test {
-  use ast::{CallExpr, Ident, Lit};
-  use swc_common::DUMMY_SP;
-  use swc_ecma_utils::ExprFactory;
-  use swc_ecma_visit::{VisitMut, VisitMutWith};
-
   use crate::{
     swc_builder::{dynamic_import_with_literal, is_dynamic_import, is_require},
     test_runner::compile,
   };
+  use ast::{CallExpr, Ident, Lit};
+  use swc_common::{chain, comments::SingleThreadedComments, Globals, Mark, DUMMY_SP};
+  use swc_ecma_transforms_base::resolver::resolver_with_mark;
+  use swc_ecma_transforms_react as swc_react;
+  use swc_ecma_utils::ExprFactory;
+  use swc_ecma_visit::{FoldWith, VisitMut, VisitMutWith};
+  use swc_react::{RefreshOptions, Runtime};
+  #[test]
+  fn react_fresh() {
+    let globals = Globals::new();
+    swc_common::GLOBALS.set(&globals, || {
+      let (mut ast, code, compiler) = compile(
+        r#"
+      import React from 'react';
+      export const App = () => {
+        return <div>app</div>
+      }
+    "#
+        .into(),
+        None,
+      );
+      let top_level_mark = Mark::fresh(Mark::root());
+      let mut react_folder = swc_react::react::<SingleThreadedComments>(
+        compiler.cm.clone(),
+        None,
+        swc_react::Options {
+          runtime: Some(Runtime::Automatic),
+          refresh: Some(RefreshOptions {
+            ..Default::default()
+          }),
+          development: true,
+          ..Default::default()
+        },
+        top_level_mark,
+      );
+      let mut folds = chain!(resolver_with_mark(top_level_mark), &mut react_folder);
+      let ast = ast.fold_with(&mut folds);
+      let (_, code, _) = compile(Default::default(), Some(ast));
+      dbg!(code);
+    });
+  }
 
   #[test]
   fn dynamic_require() {
-    let (mut ast, _) = compile(
+    let (mut ast, ..) = compile(
       r#"
       const x = import('./a');
       const y = require('./b');
@@ -102,7 +138,7 @@ mod swc_builder_test {
     assert_eq!(check_visitor.require_called, 1);
     assert_eq!(check_visitor.string_literal_called, 1);
     ast.visit_mut_with(&mut transform_visitor);
-    let (_, code) = compile(Default::default(), Some(ast));
+    let (_, code, _) = compile(Default::default(), Some(ast));
     assert_eq!(
       code.code,
       "const x = require(\"./a\");\nconst y = require('./b');\n"

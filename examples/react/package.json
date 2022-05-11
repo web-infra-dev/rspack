@@ -17,6 +17,7 @@
   "rspack": {
     "entry": {
       "index": "src/index.js"
-    }
+    },
+    "react": {}
   }
 }

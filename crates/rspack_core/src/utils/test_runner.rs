@@ -1,27 +1,31 @@
-use ast::Module;
-use swc::{Compiler, TransformOutput};
-use swc_common::{self, sync::Lrc, FileName, SourceMap};
-use swc_ecma_parser::{lexer::Lexer, Parser, StringInput, Syntax};
+use std::io::stderr;
 
-pub fn compile(code: String, mut ast: Option<Module>) -> (Module, TransformOutput) {
+use ast::Module;
+use swc::{config::IsModule, try_with_handler, Compiler, HandlerOpts, TransformOutput};
+use swc_common::{self, sync::Lrc, FileName, SourceMap};
+use swc_ecma_parser::{lexer::Lexer, Parser, StringInput, Syntax, TsConfig};
+pub fn compile(code: String, mut ast: Option<Module>) -> (Module, TransformOutput, Compiler) {
   let filename = "a.js";
   let cm: Lrc<SourceMap> = Default::default();
   let compiler = Compiler::new(cm.clone());
   if ast.is_none() {
     let fm = cm.new_source_file(FileName::Custom(filename.into()), code.into());
-    let lexer = Lexer::new(
-      Syntax::Typescript(Default::default()),
-      Default::default(),
-      StringInput::from(&*fm),
-      None,
-    );
-    let mut parser = Parser::new_from(lexer);
-
-    for e in parser.take_errors() {
-      println!("parse failed, {}", e.kind().msg());
-    }
-
-    ast = parser.parse_module().ok();
+    let syntax = Syntax::Typescript(TsConfig {
+      tsx: true,
+      ..Default::default()
+    });
+    let program = swc::try_with_handler(cm, Default::default(), |handler| {
+      compiler.parse_js(
+        fm,
+        handler,
+        ast::EsVersion::Es2022,
+        syntax,
+        IsModule::Bool(true),
+        None,
+      )
+    })
+    .unwrap();
+    ast = program.module();
   }
   let ast = ast.unwrap();
   let code = compiler
@@ -38,5 +42,5 @@ pub fn compile(code: String, mut ast: Option<Module>) -> (Module, TransformOutpu
       None,
     )
     .unwrap();
-  return (ast, code);
+  return (ast, code, compiler);
 }

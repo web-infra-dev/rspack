@@ -5,7 +5,7 @@ use futures::lock::Mutex;
 use napi::bindgen_prelude::*;
 use napi::{Env, JsObject, Result};
 use napi_derive::napi;
-use rspack_core::ResolveOption;
+use rspack_core::{BundleReactOptions, ResolveOption};
 use serde::Deserialize;
 
 use rspack::bundler::{
@@ -32,6 +32,7 @@ struct BundleOptions {
   pub loader: Option<HashMap<String, String>>,
   pub inline_style: Option<bool>,
   pub alias: Option<HashMap<String, String>>,
+  pub refresh: Option<bool>,
 }
 
 pub type Rspack = Arc<Mutex<RspackBundler>>;
@@ -55,6 +56,10 @@ pub fn new_rspack(option_json: String) -> External<Rspack> {
       mode: BundleMode::Dev,
       loader,
       inline_style: options.inline_style.unwrap_or_default(),
+      react: BundleReactOptions {
+        refresh: options.refresh.unwrap_or_default(),
+        ..Default::default()
+      },
       resolve: ResolveOption {
         alias: options
           .alias

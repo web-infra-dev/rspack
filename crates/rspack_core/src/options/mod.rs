@@ -11,12 +11,14 @@ pub type LoaderOptions = HashMap<String, Loader>;
 #[derive(Debug)]
 pub struct BundleReactOptions {
   pub runtime: swc_ecma_transforms_react::Runtime,
+  pub refresh: bool,
 }
 
 impl Default for BundleReactOptions {
   fn default() -> Self {
     Self {
       runtime: swc_ecma_transforms_react::Runtime::Automatic,
+      refresh: false,
     }
   }
 }

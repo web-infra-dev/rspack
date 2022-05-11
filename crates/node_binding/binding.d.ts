@@ -17,6 +17,7 @@ export interface BundleOptions {
   loader?: Record<string, string>
   inlineStyle?: boolean
   alias?: Record<string, string>
+  refresh?: boolean
 }
 export function newRspack(optionJson: string): ExternalObject<Rspack>
 export function build(rspack: ExternalObject<Rspack>): object
