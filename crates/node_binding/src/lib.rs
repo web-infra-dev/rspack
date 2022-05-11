@@ -111,6 +111,7 @@ fn parse_loader(user_input: HashMap<String, String>) -> rspack_core::LoaderOptio
       let loader = match loader.as_str() {
         "dataURI" => Some(rspack_core::Loader::DataURI),
         "json" => Some(rspack_core::Loader::Json),
+        "text" => Some(rspack_core::Loader::Text),
         _ => None,
       }?;
       Some((ext, loader))
