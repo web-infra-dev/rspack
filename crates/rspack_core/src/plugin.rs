@@ -11,8 +11,8 @@ pub type PluginTransformHookOutput = ast::Module;
 pub trait Plugin: Sync + Send + Debug {
   fn name(&self) -> &'static str;
 
-  // #[inline]
-  // async fn before_build(&self, _ctx: &BundleContext, bundle: &mut Bundle) {}
+  #[inline]
+  async fn build_start(&self, _ctx: &BundleContext) {}
 
   #[inline]
   async fn resolve(

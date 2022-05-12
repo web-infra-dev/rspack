@@ -52,11 +52,8 @@ impl Chunk {
     &mut self,
     options: &NormalizedBundleOptions,
     compiler: Arc<Compiler>,
-    bundle: &mut Bundle,
+    bundle: &Bundle,
   ) -> RenderedChunk {
-    // let compiler = get_compiler();
-    let top_level_mark = Mark::from_u32(1);
-
     let mut concat_source = ConcatSource::new(vec![]);
     let mut concattables: Vec<Box<dyn Source>> = vec![];
     let modules = &bundle

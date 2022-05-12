@@ -79,6 +79,7 @@ impl Bundler {
 
   #[instrument(skip(self))]
   pub async fn build(&mut self) {
+    self.plugin_driver.build_start().await;
     tracing::trace!("start build");
     let mut bundle = rspack_core::Bundle::new(
       self.options.clone(),
