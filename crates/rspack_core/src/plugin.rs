@@ -12,7 +12,7 @@ pub trait Plugin: Sync + Send + Debug {
   fn name(&self) -> &'static str;
 
   #[inline]
-  async fn prepare(&self, _ctx: &BundleContext) {}
+  async fn build_start(&self, _ctx: &BundleContext) {}
 
   #[inline]
   async fn resolve(

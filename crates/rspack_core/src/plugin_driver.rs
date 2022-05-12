@@ -13,8 +13,14 @@ pub struct PluginDriver {
 }
 
 impl PluginDriver {
-  pub async fn prepare(&self) {
-    join_all(self.plugins.iter().map(|plugin| plugin.prepare(&self.ctx))).await;
+  pub async fn build_start(&self) {
+    join_all(
+      self
+        .plugins
+        .iter()
+        .map(|plugin| plugin.build_start(&self.ctx)),
+    )
+    .await;
   }
 
   pub async fn resolve_id(&self, importee: &str, importer: Option<&str>) -> Option<ResolvedId> {
