@@ -91,7 +91,7 @@ impl Default for BundleOptions {
       code_splitting: true,
       loader: None,
       inline_style: Default::default(),
-      source_map: Default::default(),
+      source_map: true,
     }
   }
 }

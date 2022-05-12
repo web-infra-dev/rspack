@@ -84,6 +84,13 @@ impl JsModule {
       FileName::Custom(self.path.to_string()),
       self.path.to_string(),
     );
+
+    let source_map = if self.id.contains("node_modules") {
+      false
+    } else {
+      options.source_map
+    };
+
     compiler.process_js_with_custom_pass(
       fm,
       Some(ast::Program::Module(self.ast.clone())),
@@ -102,7 +109,7 @@ impl JsModule {
             ..Default::default()
           },
           inline_sources_content: true,
-          source_maps: Some(SourceMapsConfig::Bool(options.source_map)),
+          source_maps: Some(SourceMapsConfig::Bool(source_map)),
           ..Default::default()
         },
         global_mark: Some(bundle.top_level_mark),
