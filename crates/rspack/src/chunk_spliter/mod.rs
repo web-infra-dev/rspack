@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
+use rayon::prelude::*;
 use rspack_core::NormalizedBundleOptions;
 use rspack_core::PluginDriver;
 use rspack_core::{get_swc_compiler, Bundle};
@@ -46,9 +47,8 @@ impl ChunkSpliter {
       .iter()
       .for_each(|chunk| plugin_dirver.tap_generated_chunk(chunk, &self.output_options));
     let compiler = get_swc_compiler();
-
     chunks
-      .iter_mut()
+      .par_iter_mut()
       .map(|chunk| {
         let chunk = chunk.render(&self.output_options, compiler.clone(), bundle);
         (
