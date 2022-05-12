@@ -51,14 +51,19 @@ impl Chunk {
   pub fn render(
     &mut self,
     options: &NormalizedBundleOptions,
-    modules: &mut HashMap<String, JsModule>,
     compiler: Arc<Compiler>,
+    bundle: &mut Bundle,
   ) -> RenderedChunk {
     // let compiler = get_compiler();
     let top_level_mark = Mark::from_u32(1);
 
     let mut concat_source = ConcatSource::new(vec![]);
     let mut concattables: Vec<Box<dyn Source>> = vec![];
+    let modules = &bundle
+      .module_graph
+      .as_ref()
+      .expect("empty module graph")
+      .module_by_id;
     self.module_ids.sort_by_key(|id| 0 - modules[id].exec_order);
 
     let rendered_modules = self
@@ -67,7 +72,7 @@ impl Chunk {
       .map(|idx| {
         let module = modules.get(idx).unwrap();
         swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
-          module.render(&compiler, handler, top_level_mark, modules, options)
+          module.render(&compiler, handler, modules, options, &bundle.context)
         })
         .unwrap()
       })

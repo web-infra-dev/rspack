@@ -1,4 +1,5 @@
 use rspack::bundler::{BundleOptions, Bundler};
+use rspack_core::{BundleMode, BundleReactOptions};
 use tracing::instrument;
 
 #[instrument]
@@ -15,6 +16,11 @@ async fn main() {
       // entries: vec!["../../packages/rspack/node_modules/lodash-es/lodash.js".to_owned()],
       outdir: "./dist".to_string(),
       code_splitting: true,
+      mode: BundleMode::Dev,
+      react: BundleReactOptions {
+        refresh: true,
+        ..Default::default()
+      },
       ..Default::default()
     },
     vec![],
