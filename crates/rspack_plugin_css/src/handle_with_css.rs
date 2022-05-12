@@ -37,11 +37,10 @@ pub fn is_css_source(filepath: &str) -> Option<CssSourceType> {
   if let Some(filename) = file.file_name() {
     css_source.file_path = filepath.to_string();
     css_source.ext = file
-      .extension()
-      .unwrap()
+      .extension()?
       .to_os_string()
       .into_string()
-      .unwrap();
+      .expect(&format!("get extension failed: {}", filepath));
     return if &css_source.ext == "css"
       || &css_source.ext == "less"
       || &css_source.ext == "scss"
