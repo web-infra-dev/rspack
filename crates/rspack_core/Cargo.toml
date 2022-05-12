@@ -31,7 +31,7 @@ sugar_path="0.0.4"
 nodejs-resolver = "0.0.4"
 once_cell = "1"
 anyhow = "1"
-rspack_sources = "0.0.1"
+rspack_sources = "0.0.2"
 sourcemap = "6.0.2"
 
 [dev-dependencies]

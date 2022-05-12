@@ -54,7 +54,6 @@ impl Chunk {
     compiler: Arc<Compiler>,
     bundle: &Bundle,
   ) -> RenderedChunk {
-    let mut concat_source = ConcatSource::new(vec![]);
     let mut concattables: Vec<Box<dyn Source>> = vec![];
     let modules = &bundle
       .module_graph
@@ -87,10 +86,11 @@ impl Chunk {
           remove_original_source: false,
         })));
       } else {
-        concattables.push(Box::new(RawSource::new(transform_output.code.clone())));
+        concattables.push(Box::new(RawSource::new(&transform_output.code)));
       }
     });
 
+    let mut concat_source = ConcatSource::new(vec![]);
     concattables.iter_mut().for_each(|concattable| {
       concat_source.add(concattable.as_mut());
     });
@@ -106,9 +106,10 @@ impl Chunk {
         })
         .unwrap()
       {
-        output_code = concat_source.source() + "\n//# sourceMappingURL=" + &source_map_url;
+        output_code =
+          concat_source.source().to_string() + "\n//# sourceMappingURL=" + &source_map_url;
       } else {
-        output_code = concat_source.source()
+        output_code = concat_source.source().to_string()
       }
 
       RenderedChunk {
