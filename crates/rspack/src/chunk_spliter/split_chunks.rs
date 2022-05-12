@@ -6,7 +6,7 @@ use petgraph::{
   visit::{depth_first_search, Control, DfsEvent},
   EdgeDirection,
 };
-use rspack_core::{Chunk, JsModule, ModuleGraph, ResolvedId};
+use rspack_core::{Chunk, JsModule, ModuleGraph, ResolvedURI};
 use tracing::instrument;
 
 #[derive(Clone, Debug)]
@@ -19,7 +19,7 @@ type ModulePetGraph<'a> = petgraph::graphmap::DiGraphMap<&'a str, Dependency>;
 #[instrument(skip(module_graph))]
 pub fn split_chunks(module_graph: &ModuleGraph, is_enable_code_spliting: bool) -> Vec<Chunk> {
   let module_by_id: &HashMap<String, JsModule> = &module_graph.module_by_id;
-  let resolved_entries: &Vec<ResolvedId> = &module_graph.resolved_entries;
+  let resolved_entries: &Vec<ResolvedURI> = &module_graph.resolved_entries;
 
   let mut dependency_graph = ModulePetGraph::new();
   module_by_id.keys().for_each(|module_id| {
@@ -36,10 +36,10 @@ pub fn split_chunks(module_graph: &ModuleGraph, is_enable_code_spliting: bool) -
       .collect::<Vec<_>>()
       .into_iter()
       .for_each(|dep| {
-        let dep_rid = module.resolved_ids.get(dep).unwrap().clone();
+        let dep_uri = module.resolved_uris.get(dep).unwrap().clone();
         egdes.push((
-          module.path.clone(),
-          dep_rid.path,
+          module.uri.clone(),
+          dep_uri.uri,
           Dependency { is_async: false },
         ))
       });
@@ -49,10 +49,10 @@ pub fn split_chunks(module_graph: &ModuleGraph, is_enable_code_spliting: bool) -
       .collect::<Vec<_>>()
       .into_iter()
       .for_each(|dep| {
-        let dep_rid = module.resolved_ids.get(&dep.argument).unwrap().clone();
+        let dep_rid = module.resolved_uris.get(&dep.argument).unwrap().clone();
         egdes.push((
-          module.path.clone(),
-          dep_rid.path,
+          module.uri.clone(),
+          dep_rid.uri,
           Dependency { is_async: true },
         ))
       });
@@ -67,7 +67,7 @@ pub fn split_chunks(module_graph: &ModuleGraph, is_enable_code_spliting: bool) -
 
   let entries = resolved_entries
     .iter()
-    .map(|rid| rid.path.as_str())
+    .map(|rid| rid.uri.as_str())
     .collect::<Vec<_>>();
 
   for entry in &entries {
@@ -114,7 +114,7 @@ pub fn split_chunks(module_graph: &ModuleGraph, is_enable_code_spliting: bool) -
 
   let entries = DashSet::new();
   resolved_entries.iter().for_each(|entry| {
-    entries.insert(entry.path.clone());
+    entries.insert(entry.uri.clone());
   });
 
   let mut reachable_modules = HashSet::new();

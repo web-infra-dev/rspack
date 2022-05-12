@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::{swc_builder::dynamic_import_with_literal, JsModule, ResolvedId};
+use crate::{swc_builder::dynamic_import_with_literal, JsModule, ResolvedURI};
 use ast::*;
 use swc_atoms::JsWord;
 use swc_common::{EqIgnoreSpan, Mark, DUMMY_SP};
@@ -13,7 +13,7 @@ use swc_ecma_visit::{Fold, FoldWith, VisitMut, VisitMutWith};
 pub fn hmr_module<'a>(
   file_name: String,
   top_level_mark: Mark,
-  resolved_ids: &'a HashMap<JsWord, ResolvedId>,
+  resolved_ids: &'a HashMap<JsWord, ResolvedURI>,
   entry_flag: bool,
   modules: &'a HashMap<String, JsModule>,
   code_splitting: bool,
@@ -34,7 +34,7 @@ pub struct HmrModuleFolder<'a> {
   pub modules: &'a HashMap<String, JsModule>,
   pub file_name: String,
   pub top_level_mark: Mark,
-  pub resolved_ids: &'a HashMap<JsWord, ResolvedId>,
+  pub resolved_ids: &'a HashMap<JsWord, ResolvedURI>,
   pub require_ident: Ident,
   pub module_ident: Ident,
   pub entry_flag: bool,
@@ -136,7 +136,7 @@ impl<'a> Fold for HmrModuleFolder<'a> {
 }
 
 pub struct HmrModuleIdReWriter<'a> {
-  pub resolved_ids: &'a HashMap<JsWord, ResolvedId>,
+  pub resolved_ids: &'a HashMap<JsWord, ResolvedURI>,
   pub rewriting: bool,
   pub modules: &'a HashMap<String, JsModule>,
   pub code_splitting: bool,
@@ -153,7 +153,7 @@ impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
       let rid = self.resolved_ids.get(&id).unwrap();
       let js_module = self
         .modules
-        .get(&rid.path)
+        .get(&rid.uri)
         .expect(&format!("not found:{}", str));
       let js_module_id = js_module.id.as_str();
       if self.code_splitting {
@@ -214,7 +214,7 @@ impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
   fn visit_mut_str(&mut self, str: &mut Str) {
     if self.rewriting {
       if let Some(rid) = self.resolved_ids.get(&str.value) {
-        let id = &rid.path;
+        let id = &rid.uri;
         let js_module = self.modules.get(id).unwrap();
         str.value = JsWord::from(js_module.id.as_str());
         str.raw = Some(JsWord::from(format!("\"{}\"", js_module.id.to_string())));

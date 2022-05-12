@@ -1,4 +1,4 @@
-use crate::{plugin_driver::PluginDriver, BundleOptions, NormalizedBundleOptions, ResolvedId};
+use crate::{plugin_driver::PluginDriver, BundleOptions, NormalizedBundleOptions, ResolvedURI};
 use nodejs_resolver::{ResolveResult, Resolver};
 use std::{ffi::OsString, path::Path, sync::Arc};
 use sugar_path::PathSugar;
@@ -36,12 +36,12 @@ pub async fn resolve_id(
   importer: Option<&str>,
   preserve_symlinks: bool,
   plugin_driver: &PluginDriver,
-) -> ResolvedId {
+) -> ResolvedURI {
   let plugin_result = resolve_id_via_plugins(source, importer, plugin_driver).await;
 
   plugin_result.unwrap_or_else(|| {
     if importer.is_some() && is_external_module(source) {
-      ResolvedId::new(source.to_string(), true)
+      ResolvedURI::new(source.to_string(), true)
     } else {
       let id = if let Some(importer) = importer {
         let base_dir = Path::new(importer).parent().unwrap();
@@ -61,7 +61,7 @@ pub async fn resolve_id(
       } else {
         Path::new(source).resolve().to_string_lossy().to_string()
       };
-      ResolvedId::new(id, false)
+      ResolvedURI::new(id, false)
     }
   })
 }
@@ -71,7 +71,7 @@ pub async fn resolve_id_via_plugins(
   source: &str,
   importer: Option<&str>,
   plugin_driver: &PluginDriver,
-) -> Option<ResolvedId> {
+) -> Option<ResolvedURI> {
   plugin_driver.resolve_id(source, importer).await
 }
 

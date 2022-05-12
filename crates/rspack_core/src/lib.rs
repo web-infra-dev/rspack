@@ -26,15 +26,15 @@ use swc_common::Globals;
 pub use utils::*;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub struct ResolvedId {
-  pub path: String,
+pub struct ResolvedURI {
+  pub uri: String,
   pub external: bool,
 }
 
-impl ResolvedId {
+impl ResolvedURI {
   pub fn new<T: Into<String>>(path: T, external: bool) -> Self {
     Self {
-      path: path.into(),
+      uri: path.into(),
       external,
       // module_side_effects: false,
     }

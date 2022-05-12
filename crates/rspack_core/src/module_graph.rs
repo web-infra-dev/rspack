@@ -1,12 +1,12 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::{JsModule, ResolvedId};
+use crate::{JsModule, ResolvedURI};
 use petgraph::graph::NodeIndex;
 use tracing::instrument;
 
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
-  pub resolved_entries: Vec<ResolvedId>,
+  pub resolved_entries: Vec<ResolvedURI>,
   pub id_to_node_idx: HashMap<String, NodeIndex>,
   // pub relation_graph: ModulePetGraph,
   pub ordered_modules: Vec<String>,
@@ -18,7 +18,7 @@ impl ModuleGraph {
     self
       .resolved_entries
       .iter()
-      .map(|rid| *self.id_to_node_idx.get(&rid.path).unwrap())
+      .map(|rid| *self.id_to_node_idx.get(&rid.uri).unwrap())
       .collect()
   }
 
@@ -27,7 +27,7 @@ impl ModuleGraph {
     let mut stack = self
       .resolved_entries
       .iter()
-      .map(|rid| rid.path.clone())
+      .map(|rid| rid.uri.clone())
       .rev()
       .collect::<Vec<_>>();
     let mut dyn_imports = vec![];
@@ -48,8 +48,8 @@ impl ModuleGraph {
           .into_iter()
           .rev()
           .for_each(|dep| {
-            let rid = module.resolved_ids.get(dep).unwrap().clone();
-            stack.push(rid.path);
+            let rid = module.resolved_uris.get(dep).unwrap().clone();
+            stack.push(rid.uri);
           });
         module
           .dyn_imports
@@ -58,8 +58,8 @@ impl ModuleGraph {
           .into_iter()
           .rev()
           .for_each(|dep| {
-            let rid = module.resolved_ids.get(&dep.argument).unwrap().clone();
-            dyn_imports.push(rid.path);
+            let rid = module.resolved_uris.get(&dep.argument).unwrap().clone();
+            dyn_imports.push(rid.uri);
           });
         module.exec_order = next_exec_order;
         next_exec_order += 1;
@@ -78,8 +78,8 @@ impl ModuleGraph {
           .into_iter()
           .rev()
           .for_each(|dep| {
-            let rid = module.resolved_ids.get(dep).unwrap().clone();
-            stack.push(rid.path);
+            let rid = module.resolved_uris.get(dep).unwrap().clone();
+            stack.push(rid.uri);
           });
         module.exec_order = next_exec_order;
         next_exec_order += 1;
@@ -89,8 +89,8 @@ impl ModuleGraph {
     modules.sort_by_key(|m| m.exec_order);
     tracing::trace!(
       "ordered {:#?}",
-      modules.iter().map(|m| &m.path).collect::<Vec<_>>()
+      modules.iter().map(|m| &m.uri).collect::<Vec<_>>()
     );
-    self.ordered_modules = modules.iter().map(|m| m.path.clone()).collect();
+    self.ordered_modules = modules.iter().map(|m| m.uri.clone()).collect();
   }
 }

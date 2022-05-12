@@ -1,10 +1,10 @@
 use std::{fmt::Debug, path::Path};
 
-use crate::{BundleContext, Chunk, NormalizedBundleOptions, ResolvedId};
+use crate::{BundleContext, Chunk, NormalizedBundleOptions, ResolvedURI};
 use async_trait::async_trait;
 
 pub type PluginLoadHookOutput = Option<String>;
-pub type PluginResolveHookOutput = Option<ResolvedId>;
+pub type PluginResolveHookOutput = Option<ResolvedURI>;
 pub type PluginTransformHookOutput = ast::Module;
 
 #[async_trait]
