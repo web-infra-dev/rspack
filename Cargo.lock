@@ -1696,9 +1696,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.0.1"
+version = "0.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d6d6dae23f341510ab25580e28c85bfc668ef59c3ed9946c7fb97a7c5f3b075"
+checksum = "2b90afb957c2aad5dde1904aa56d0a82297cc22748f66a118437628cb464b720"
 dependencies = [
  "base64 0.13.0",
  "smol_str",

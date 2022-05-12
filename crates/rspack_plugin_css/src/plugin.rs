@@ -15,7 +15,7 @@ pub struct CssSourcePlugin {
   pub app: Application,
 }
 
-pub static RSPACK_CSS_PLUGIN_NSME: &'static str = "rspack_css_plugin";
+pub static PLUGIN_NAME: &'static str = "rspack_css_plugin";
 
 #[derive(Debug)]
 pub struct CssReferenceInfo {
@@ -73,7 +73,7 @@ impl CssSourcePlugin {
 #[async_trait]
 impl Plugin for CssSourcePlugin {
   fn name(&self) -> &'static str {
-    RSPACK_CSS_PLUGIN_NSME
+    PLUGIN_NAME
   }
 
   #[inline]

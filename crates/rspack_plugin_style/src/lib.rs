@@ -3,13 +3,15 @@ use std::path::Path;
 use async_trait::async_trait;
 use rspack_core::{BundleContext, Plugin, PluginLoadHookOutput};
 
+pub static PLUGIN_NAME: &'static str = "rspack_loader_plugin";
+
 #[derive(Debug)]
 pub struct StyleLoaderPlugin {}
 
 #[async_trait]
 impl Plugin for StyleLoaderPlugin {
   fn name(&self) -> &'static str {
-    "rspack_loader_plugin"
+    PLUGIN_NAME
   }
 
   async fn load(&self, _ctx: &BundleContext, id: &str) -> PluginLoadHookOutput {
