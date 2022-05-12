@@ -6,6 +6,8 @@ use swc_ecma_transforms_react as swc_react;
 use swc_ecma_visit::FoldWith;
 use swc_react::RefreshOptions;
 
+pub static PLUGIN_NAME: &'static str = "rspack_plugin_react";
+
 #[derive(Debug)]
 pub struct ReactPlugin {
   pub runtime: swc_react::Runtime,
@@ -13,7 +15,7 @@ pub struct ReactPlugin {
 
 impl Plugin for ReactPlugin {
   fn name(&self) -> &'static str {
-    "rspack_plugin_react"
+    PLUGIN_NAME
   }
 
   fn transform(
