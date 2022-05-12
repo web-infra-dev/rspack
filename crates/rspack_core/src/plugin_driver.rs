@@ -3,7 +3,7 @@ use std::{path::Path, sync::Arc};
 use futures::future::join_all;
 
 use crate::{
-  BundleContext, Chunk, NormalizedBundleOptions, Plugin, PluginTransformHookOutput, ResolvedId,
+  BundleContext, Chunk, NormalizedBundleOptions, Plugin, PluginTransformHookOutput, ResolvedURI,
 };
 
 #[derive(Debug)]
@@ -23,7 +23,7 @@ impl PluginDriver {
     .await;
   }
 
-  pub async fn resolve_id(&self, importee: &str, importer: Option<&str>) -> Option<ResolvedId> {
+  pub async fn resolve_id(&self, importee: &str, importer: Option<&str>) -> Option<ResolvedURI> {
     for plugin in &self.plugins {
       let res = plugin.resolve(&self.ctx, importee, importer).await;
       if res.is_some() {

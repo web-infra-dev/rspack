@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use once_cell::sync::Lazy;
-use rspack_core::{hmr::hmr_module, ResolvedId};
+use rspack_core::{hmr::hmr_module, ResolvedURI};
 use swc_atoms::JsWord;
 use swc_common::{chain, Mark};
 use swc_ecma_parser::{EsConfig, Syntax};
@@ -14,11 +14,11 @@ fn syntax() -> Syntax {
   })
 }
 
-static RESOLVED_IDS: Lazy<HashMap<JsWord, ResolvedId>> = Lazy::new(|| {
-  let mut resolved_ids: HashMap<JsWord, ResolvedId> = Default::default();
+static RESOLVED_IDS: Lazy<HashMap<JsWord, ResolvedURI>> = Lazy::new(|| {
+  let mut resolved_ids: HashMap<JsWord, ResolvedURI> = Default::default();
   resolved_ids.insert(
     JsWord::from("./b"),
-    ResolvedId::new("/b.js".to_string(), false),
+    ResolvedURI::new("/b.js".to_string(), false),
   );
   resolved_ids
 });

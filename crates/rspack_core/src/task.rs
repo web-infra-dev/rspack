@@ -8,7 +8,7 @@ use std::{
 
 use crate::{
   bundle::Msg, dependency_scanner::DependencyScanner, plugin_hook, utils::parse_file, JsModule,
-  PluginDriver, ResolvedId,
+  PluginDriver, ResolvedURI,
 };
 use crate::{path::normalize_path, SWC_GLOBALS};
 use dashmap::{DashMap, DashSet};
@@ -23,12 +23,12 @@ use tracing::instrument;
 #[derive(Debug)]
 pub struct DependencyIdResolver {
   pub module_id: String,
-  pub resolved_ids: DashMap<JsWord, ResolvedId>,
+  pub resolved_ids: DashMap<JsWord, ResolvedURI>,
   pub plugin_driver: Arc<PluginDriver>,
 }
 
 impl DependencyIdResolver {
-  pub async fn resolve_id(&self, dep_src: &JsWord) -> ResolvedId {
+  pub async fn resolve(&self, dep_src: &JsWord) -> ResolvedURI {
     let resolved_id;
     if let Some(cached) = self.resolved_ids.get(dep_src) {
       resolved_id = cached.clone();
@@ -46,10 +46,10 @@ impl DependencyIdResolver {
 #[derive(Debug)]
 pub struct Task {
   pub root: String,
-  pub resolved_id: ResolvedId,
+  pub resolved_uri: ResolvedURI,
   pub active_task_count: Arc<AtomicUsize>,
   pub tx: UnboundedSender<Msg>,
-  pub visited_module_id: Arc<DashSet<String>>,
+  pub visited_module_uri: Arc<DashSet<String>>,
   pub plugin_driver: Arc<PluginDriver>,
   pub code_splitting: bool,
 }
@@ -57,18 +57,18 @@ pub struct Task {
 impl Task {
   #[instrument(skip(self))]
   pub async fn run(&mut self) {
-    let resolved_id = self.resolved_id.clone();
-    if resolved_id.external {
+    let resolved_uri = self.resolved_uri.clone();
+    if resolved_uri.external {
       // TODO: external module
     } else {
-      tracing::trace!("start process {:?}", resolved_id);
+      tracing::trace!("start process {:?}", resolved_uri);
       let id_resolver = DependencyIdResolver {
-        module_id: resolved_id.path.clone(),
+        module_id: resolved_uri.uri.clone(),
         resolved_ids: Default::default(),
         plugin_driver: self.plugin_driver.clone(),
       };
 
-      let module_id: &str = &resolved_id.path;
+      let module_id: &str = &resolved_uri.uri;
       let source = plugin_hook::load(module_id, &self.plugin_driver).await;
       let mut dependency_scanner = DependencyScanner::default();
       let mut raw_ast = parse_file(source, module_id).expect_module();
@@ -88,19 +88,19 @@ impl Task {
       ast.visit_mut_with(&mut dependency_scanner);
 
       for dyn_import in &dependency_scanner.dyn_dependencies {
-        let resolved_id = id_resolver.resolve_id(&dyn_import.argument).await;
+        let resolved_id = id_resolver.resolve(&dyn_import.argument).await;
 
         self.spawn_new_task(resolved_id);
       }
       for (import, _) in &dependency_scanner.dependencies {
-        let resolved_id = id_resolver.resolve_id(import).await;
+        let resolved_id = id_resolver.resolve(import).await;
         self.spawn_new_task(resolved_id);
       }
       let module = JsModule {
         exec_order: Default::default(),
-        path: resolved_id.path.clone(),
+        uri: resolved_uri.uri.clone(),
         id: normalize_path(
-          resolved_id.path.clone().as_str(),
+          resolved_uri.uri.clone().as_str(),
           self.root.clone().as_str(),
         )
         .into(),
@@ -120,15 +120,15 @@ impl Task {
     }
   }
 
-  pub fn spawn_new_task(&self, id: ResolvedId) {
-    if !self.visited_module_id.contains(&id.path) {
-      self.visited_module_id.insert(id.path.clone());
+  pub fn spawn_new_task(&self, resolved_uri: ResolvedURI) {
+    if !self.visited_module_uri.contains(&resolved_uri.uri) {
+      self.visited_module_uri.insert(resolved_uri.uri.clone());
       self.active_task_count.fetch_add(1, Ordering::SeqCst);
       let mut task = Task {
         root: self.root.clone(),
-        resolved_id: id,
+        resolved_uri,
         active_task_count: self.active_task_count.clone(),
-        visited_module_id: self.visited_module_id.clone(),
+        visited_module_uri: self.visited_module_uri.clone(),
         tx: self.tx.clone(),
         plugin_driver: self.plugin_driver.clone(),
         code_splitting: self.code_splitting,
@@ -163,8 +163,8 @@ impl Task {
           _ => {}
         }
         if let Some(depended) = depended {
-          let resolved_id = resolver.resolve_id(depended).await;
-          self.spawn_new_task(resolved_id);
+          let uri = resolver.resolve(depended).await;
+          self.spawn_new_task(uri);
         }
       }
     }
