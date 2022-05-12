@@ -173,7 +173,7 @@ mod testing {
       .plugin_driver
       .plugins
       .iter()
-      .find(|plugin| plugin.name() == rspack_plugin_css::plugin::RSPACK_CSS_PLUGIN_NSME)
+      .find(|plugin| plugin.name() == rspack_plugin_css::plugin::PLUGIN_NAME)
       .is_some())
   }
 

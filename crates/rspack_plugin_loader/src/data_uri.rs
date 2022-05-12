@@ -5,7 +5,7 @@ pub fn guess_mime_types_ext(ext: &str) -> &'static str {
     "png" => "image/png",
     "gif" => "image/gif",
     "svg" => "image/svg+xml",
-    "webp" => "image/web",
+    "webp" => "image/webp",
     _ => "unknown/unknown",
   }
 }
