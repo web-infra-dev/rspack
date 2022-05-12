@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use rspack_core::normalize_bundle_options;
+use rspack_core::plugin_hook::get_resolver;
 use rspack_core::ModuleGraph;
 use rspack_core::NormalizedBundleOptions;
 use rspack_core::SWC_GLOBALS;
@@ -97,7 +99,16 @@ impl Bundler {
 
     self.module_graph = Some(bundle.module_graph.take().unwrap());
   }
-
+  pub fn resolve(
+    &mut self,
+    id: String,
+    dir: String,
+  ) -> Result<nodejs_resolver::ResolveResult, std::string::String> {
+    let resolver = get_resolver(self.options.as_ref());
+    let base = Path::new(&dir);
+    let res = resolver.resolve(base, &id);
+    res
+  }
   #[instrument(skip(self))]
   pub async fn rebuild(&mut self, changed_file: String) -> HashMap<String, String> {
     tracing::debug!("rebuld bacause of {:?}", changed_file);
