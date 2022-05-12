@@ -1,5 +1,7 @@
 use std::{path::Path, sync::Arc};
 
+use futures::future::join_all;
+
 use crate::{
   BundleContext, Chunk, NormalizedBundleOptions, Plugin, PluginTransformHookOutput, ResolvedId,
 };
@@ -11,6 +13,10 @@ pub struct PluginDriver {
 }
 
 impl PluginDriver {
+  pub async fn prepare(&self) {
+    join_all(self.plugins.iter().map(|plugin| plugin.prepare(&self.ctx))).await;
+  }
+
   pub async fn resolve_id(&self, importee: &str, importer: Option<&str>) -> Option<ResolvedId> {
     for plugin in &self.plugins {
       let res = plugin.resolve(&self.ctx, importee, importer).await;
