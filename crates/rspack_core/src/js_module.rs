@@ -29,7 +29,7 @@ pub struct JsModule {
   pub dependencies: LinkedHashMap<JsWord, ()>,
   pub dyn_imports: HashSet<DynImportDesc>,
   pub is_user_defined_entry_point: bool,
-  pub resolved_ids: HashMap<JsWord, ResolvedURI>,
+  pub resolved_uris: HashMap<JsWord, ResolvedURI>,
   pub chunkd_ids: HashSet<String>,
   pub code_splitting: bool,
 }
@@ -61,7 +61,7 @@ impl JsModule {
       dependencies: Default::default(),
       dyn_imports: Default::default(),
       is_user_defined_entry_point: Default::default(),
-      resolved_ids: Default::default(),
+      resolved_uris: Default::default(),
       chunkd_ids: Default::default(),
       code_splitting: Default::default(),
     }
@@ -119,7 +119,7 @@ impl JsModule {
         hmr_module(
           self.id.to_string(),
           bundle.top_level_mark,
-          &self.resolved_ids,
+          &self.resolved_uris,
           self.is_user_defined_entry_point,
           modules,
           self.code_splitting,

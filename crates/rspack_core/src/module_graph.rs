@@ -48,7 +48,7 @@ impl ModuleGraph {
           .into_iter()
           .rev()
           .for_each(|dep| {
-            let rid = module.resolved_ids.get(dep).unwrap().clone();
+            let rid = module.resolved_uris.get(dep).unwrap().clone();
             stack.push(rid.uri);
           });
         module
@@ -58,7 +58,7 @@ impl ModuleGraph {
           .into_iter()
           .rev()
           .for_each(|dep| {
-            let rid = module.resolved_ids.get(&dep.argument).unwrap().clone();
+            let rid = module.resolved_uris.get(&dep.argument).unwrap().clone();
             dyn_imports.push(rid.uri);
           });
         module.exec_order = next_exec_order;
@@ -78,7 +78,7 @@ impl ModuleGraph {
           .into_iter()
           .rev()
           .for_each(|dep| {
-            let rid = module.resolved_ids.get(dep).unwrap().clone();
+            let rid = module.resolved_uris.get(dep).unwrap().clone();
             stack.push(rid.uri);
           });
         module.exec_order = next_exec_order;

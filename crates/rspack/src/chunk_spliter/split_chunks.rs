@@ -36,10 +36,10 @@ pub fn split_chunks(module_graph: &ModuleGraph, is_enable_code_spliting: bool) -
       .collect::<Vec<_>>()
       .into_iter()
       .for_each(|dep| {
-        let dep_rid = module.resolved_ids.get(dep).unwrap().clone();
+        let dep_uri = module.resolved_uris.get(dep).unwrap().clone();
         egdes.push((
           module.uri.clone(),
-          dep_rid.uri,
+          dep_uri.uri,
           Dependency { is_async: false },
         ))
       });
@@ -49,7 +49,7 @@ pub fn split_chunks(module_graph: &ModuleGraph, is_enable_code_spliting: bool) -
       .collect::<Vec<_>>()
       .into_iter()
       .for_each(|dep| {
-        let dep_rid = module.resolved_ids.get(&dep.argument).unwrap().clone();
+        let dep_rid = module.resolved_uris.get(&dep.argument).unwrap().clone();
         egdes.push((
           module.uri.clone(),
           dep_rid.uri,

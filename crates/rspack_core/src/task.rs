@@ -62,7 +62,7 @@ impl Task {
       // TODO: external module
     } else {
       tracing::trace!("start process {:?}", resolved_uri);
-      let id_resolver = DependencyIdResolver {
+      let uri_resolver = DependencyIdResolver {
         module_id: resolved_uri.uri.clone(),
         resolved_ids: Default::default(),
         plugin_driver: self.plugin_driver.clone(),
@@ -83,17 +83,17 @@ impl Task {
       }
       let mut ast = plugin_hook::transform(Path::new(module_id), raw_ast, &self.plugin_driver);
 
-      self.pre_analyze_imported_module(&id_resolver, &ast).await;
+      self.pre_analyze_imported_module(&uri_resolver, &ast).await;
 
       ast.visit_mut_with(&mut dependency_scanner);
 
       for dyn_import in &dependency_scanner.dyn_dependencies {
-        let resolved_id = id_resolver.resolve(&dyn_import.argument).await;
+        let resolved_id = uri_resolver.resolve(&dyn_import.argument).await;
 
         self.spawn_new_task(resolved_id);
       }
       for (import, _) in &dependency_scanner.dependencies {
-        let resolved_id = id_resolver.resolve(import).await;
+        let resolved_id = uri_resolver.resolve(import).await;
         self.spawn_new_task(resolved_id);
       }
       let module = JsModule {
@@ -109,7 +109,7 @@ impl Task {
         dyn_imports: dependency_scanner.dyn_dependencies,
         is_user_defined_entry_point: Default::default(),
         chunkd_ids: Default::default(),
-        resolved_ids: id_resolver
+        resolved_uris: uri_resolver
           .resolved_ids
           .into_iter()
           .map(|(key, value)| (key, value))
