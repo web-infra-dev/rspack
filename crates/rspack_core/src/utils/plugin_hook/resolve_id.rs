@@ -1,8 +1,28 @@
-use crate::{plugin_driver::PluginDriver, ResolvedId};
+use crate::{plugin_driver::PluginDriver, BundleOptions, NormalizedBundleOptions, ResolvedId};
 use nodejs_resolver::{ResolveResult, Resolver};
-use std::{ffi::OsString, path::Path};
+use std::{ffi::OsString, path::Path, sync::Arc};
 use sugar_path::PathSugar;
 use tracing::instrument;
+
+pub fn get_resolver(options: &NormalizedBundleOptions) -> Resolver {
+  let resolver_option = &options.resolve;
+  let resolver = Resolver::default()
+    .with_extensions(
+      resolver_option
+        .extensions
+        .iter()
+        .map(|s| s.as_str())
+        .collect(),
+    )
+    .with_alias(
+      resolver_option
+        .alias
+        .iter()
+        .map(|(s1, s2)| (s1.as_str(), s2.as_ref().map(|s| s.as_str())))
+        .collect(),
+    );
+  resolver
+}
 
 #[inline]
 pub fn is_external_module(source: &str) -> bool {
@@ -25,22 +45,8 @@ pub async fn resolve_id(
     } else {
       let id = if let Some(importer) = importer {
         let base_dir = Path::new(importer).parent().unwrap();
-        let resolver_option = &plugin_driver.ctx.as_ref().options.as_ref().resolve;
-        let resolver = Resolver::default()
-          .with_extensions(
-            resolver_option
-              .extensions
-              .iter()
-              .map(|s| s.as_str())
-              .collect(),
-          )
-          .with_alias(
-            resolver_option
-              .alias
-              .iter()
-              .map(|(s1, s2)| (s1.as_str(), s2.as_ref().map(|s| s.as_str())))
-              .collect(),
-          );
+        let options = plugin_driver.ctx.as_ref().options.as_ref();
+        let resolver = get_resolver(options);
         // Resolver::default().with_extensions(vec![".tsx", ".jsx", ".ts", ".js", ".json"]);
         match resolver.resolve(base_dir, source) {
           Ok(path) => match path {

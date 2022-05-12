@@ -5,6 +5,7 @@ use futures::lock::Mutex;
 use napi::bindgen_prelude::*;
 use napi::{Env, JsObject, Result};
 use napi_derive::napi;
+use nodejs_resolver::ResolveResult;
 use rspack_core::{BundleReactOptions, ResolveOption};
 use serde::Deserialize;
 
@@ -99,6 +100,38 @@ pub fn rebuild(env: Env, rspack: External<Rspack>, chnaged_file: String) -> Resu
       let changed = bundler.rebuild(chnaged_file).await;
       bundler.write_assets_to_disk();
       Ok(changed)
+    },
+    |_env, ret| Ok(ret),
+  )
+}
+#[napi(object)]
+struct ResolveRet {
+  pub status: bool,
+  pub result: Option<String>,
+}
+#[napi]
+pub fn resolve(env: Env, rspack: External<Rspack>, id: String, dir: String) -> Result<JsObject> {
+  let bundler = (*rspack).clone();
+  env.execute_tokio_future(
+    async move {
+      let mut bundler = bundler.lock().await;
+      let res = bundler.resolve(id, dir);
+      match res {
+        Ok(val) => {
+          if let nodejs_resolver::ResolveResult::Path(xx) = val {
+            Ok(ResolveRet {
+              status: true,
+              result: Some(xx.to_string_lossy().to_string()),
+            })
+          } else {
+            Ok(ResolveRet {
+              status: false,
+              result: None,
+            })
+          }
+        }
+        Err(err) => Err(Error::new(Status::Unknown, err.to_string())),
+      }
     },
     |_env, ret| Ok(ret),
   )
