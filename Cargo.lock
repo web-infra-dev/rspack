@@ -1627,15 +1627,10 @@ dependencies = [
  "napi-build",
  "napi-derive",
  "nodejs-resolver",
- "once_cell",
  "rspack",
  "rspack_core",
  "serde",
  "serde_json",
- "tracing",
- "tracing-chrome",
- "tracing-futures",
- "tracing-subscriber",
 ]
 
 [[package]]
