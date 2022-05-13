@@ -1,13 +1,13 @@
-import type { BundleOptions, ExternalObject } from '@rspack/binding';
-import * as binding from '@rspack/binding';
+import type { RawOptions, ExternalObject } from "@rspack/binding";
+import * as binding from "@rspack/binding";
 
-export type { BundleOptions };
+export type { RawOptions };
 
 class Rspack {
   private _instance: ExternalObject<any>;
 
-  constructor(rawOptions: BundleOptions) {
-    const options: BundleOptions = {
+  constructor(rawOptions: RawOptions) {
+    const options: RawOptions = {
       minify: false,
       ...rawOptions,
     };

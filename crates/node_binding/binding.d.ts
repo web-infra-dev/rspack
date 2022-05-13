@@ -9,7 +9,7 @@ export class ExternalObject<T> {
     [K: symbol]: T
   }
 }
-export interface BundleOptions {
+export interface RawOptions {
   entries: Array<string>
   minify: boolean
   outdir?: string

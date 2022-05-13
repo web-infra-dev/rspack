@@ -24,7 +24,7 @@ pub fn create_external<T>(value: T) -> External<T> {
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
-struct BundleOptions {
+struct RawOptions {
   pub entries: Vec<String>,
   // pub format: InternalModuleFormat,
   pub minify: bool,
@@ -44,7 +44,7 @@ struct RspackInternal {}
 
 #[napi(ts_return_type = "ExternalObject<RspackInternal>")]
 pub fn new_rspack(option_json: String) -> External<Rspack> {
-  let options: BundleOptions = serde_json::from_str(option_json.as_str()).unwrap();
+  let options: RawOptions = serde_json::from_str(option_json.as_str()).unwrap();
   let loader = options.loader.map(|loader| parse_loader(loader));
   let rspack = RspackBundler::new(
     RspackBundlerOptions {
