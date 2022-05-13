@@ -10,8 +10,8 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-napi = { version = "2.3.1", default-features = false, features = ["async", "tokio_rt", "serde-json"] }
-napi-derive = "2.3.0"
+napi = { version = "2.3.1", path = "/Users/bytedance/Projects/napi-rs/crates/napi", default-features = false, features = ["async", "tokio_rt", "serde-json"] }
+napi-derive = { version= "2.3.0", path = "/Users/bytedance/Projects/napi-rs/crates/macro" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rspack = { path = "../rspack" }

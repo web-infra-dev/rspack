@@ -42,10 +42,6 @@ struct RawOptions {
 
 pub type Rspack = Arc<Mutex<RspackBundler>>;
 
-// for dts generation only
-#[napi(object)]
-struct RspackInternal {}
-
 #[napi(ts_return_type = "ExternalObject<RspackInternal>")]
 pub fn new_rspack(option_json: String) -> External<Rspack> {
   let options: RawOptions = serde_json::from_str(option_json.as_str()).unwrap();
@@ -167,3 +163,7 @@ fn parse_loader(user_input: HashMap<String, String>) -> rspack_core::LoaderOptio
     })
     .collect()
 }
+
+// for dts generation only
+#[napi(object)]
+struct RspackInternal {}
