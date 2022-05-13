@@ -9,6 +9,7 @@ export class ExternalObject<T> {
     [K: symbol]: T
   }
 }
+export function initCustomTraceSubscriber(): void
 export interface RawOptions {
   entries: Array<string>
   minify: boolean

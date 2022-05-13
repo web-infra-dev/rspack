@@ -12,6 +12,7 @@ use serde::Deserialize;
 use rspack::bundler::{
   BundleMode, BundleOptions as RspackBundlerOptions, Bundler as RspackBundler,
 };
+pub mod utils;
 
 #[cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))]
 #[global_allocator]

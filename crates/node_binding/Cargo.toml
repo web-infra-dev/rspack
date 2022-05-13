@@ -18,6 +18,8 @@ rspack = { path = "../rspack" }
 rspack_core = { path = "../rspack_core" }
 futures = "0.3"
 nodejs-resolver = "0.0.4"
+once_cell = "1"
+
 
 
 [target.'cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))'.dependencies]
