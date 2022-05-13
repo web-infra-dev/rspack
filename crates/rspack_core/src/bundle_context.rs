@@ -13,6 +13,7 @@ pub struct BundleContext {
   pub compiler: Arc<Compiler>,
   pub options: Arc<NormalizedBundleOptions>,
   pub top_level_mark: Mark,
+  pub unresolved_mark: Mark,
   _noop: (),
 }
 
@@ -30,12 +31,14 @@ impl BundleContext {
     compiler: Arc<Compiler>,
     options: Arc<NormalizedBundleOptions>,
     top_level_mark: Mark,
+    unresolved_mark: Mark,
   ) -> Self {
     Self {
       assets: Default::default(),
       compiler,
       options,
       top_level_mark,
+      unresolved_mark,
       _noop: (),
     }
   }

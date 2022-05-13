@@ -41,6 +41,7 @@ pub fn compile(code: String, mut ast: Option<Module>) -> (Module, TransformOutpu
       None,
       false,
       None,
+      false,
     )
     .unwrap();
   return (ast, code, compiler);
