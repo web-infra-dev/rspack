@@ -18,13 +18,14 @@ export interface RawOptions {
   inlineStyle?: boolean
   alias?: Record<string, string>
   refresh?: boolean
+  sourceMap?: boolean
 }
 export interface RspackInternal {
   
 }
 export function newRspack(optionJson: string): ExternalObject<RspackInternal>
 export function build(rspack: ExternalObject<RspackInternal>): object
-export function rebuild(rspack: ExternalObject<RspackInternal>, changed_file: string): object
+export function rebuild(rspack: ExternalObject<RspackInternal>, changedFile: string): object
 export interface ResolveRet {
   status: boolean
   result?: string

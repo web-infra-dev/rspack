@@ -11,6 +11,7 @@ class Rspack {
       minify: false,
       ...rawOptions,
     };
+    console.log('rawOpts', rawOptions);
     this._instance = binding.newRspack(JSON.stringify(options));
   }
 

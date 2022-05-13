@@ -47,6 +47,7 @@ yargs
         react: {
           refresh: pkg?.rspack?.react?.refresh,
         },
+        sourceMap: pkg?.rspack?.sourcemap ?? true,
       });
     }
   )
