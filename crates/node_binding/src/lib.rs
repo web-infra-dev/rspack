@@ -38,7 +38,11 @@ struct BundleOptions {
 
 pub type Rspack = Arc<Mutex<RspackBundler>>;
 
-#[napi]
+// for dts generation only
+#[napi(object)]
+struct RspackInternal {}
+
+#[napi(ts_return_type = "ExternalObject<RspackInternal>")]
 pub fn new_rspack(option_json: String) -> External<Rspack> {
   let options: BundleOptions = serde_json::from_str(option_json.as_str()).unwrap();
   let loader = options.loader.map(|loader| parse_loader(loader));
@@ -77,7 +81,7 @@ pub fn new_rspack(option_json: String) -> External<Rspack> {
   create_external(Arc::new(Mutex::new(rspack)))
 }
 
-#[napi]
+#[napi(ts_args_type = "rspack: ExternalObject<RspackInternal>")]
 pub fn build(env: Env, rspack: External<Rspack>) -> Result<JsObject> {
   let bundler = (*rspack).clone();
   env.execute_tokio_future(
@@ -91,7 +95,7 @@ pub fn build(env: Env, rspack: External<Rspack>) -> Result<JsObject> {
   )
 }
 
-#[napi]
+#[napi(ts_args_type = "rspack: ExternalObject<RspackInternal>, changedFile: string")]
 pub fn rebuild(env: Env, rspack: External<Rspack>, chnaged_file: String) -> Result<JsObject> {
   let bundler = (*rspack).clone();
   env.execute_tokio_future(
@@ -109,7 +113,7 @@ struct ResolveRet {
   pub status: bool,
   pub result: Option<String>,
 }
-#[napi]
+#[napi(ts_args_type = "rspack: ExternalObject<RspackInternal>, id: string, dir: string")]
 pub fn resolve(env: Env, rspack: External<Rspack>, id: String, dir: String) -> Result<JsObject> {
   let bundler = (*rspack).clone();
   env.execute_tokio_future(
