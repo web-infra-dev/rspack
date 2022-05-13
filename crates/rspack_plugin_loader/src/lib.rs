@@ -13,6 +13,12 @@ pub struct LoaderPlugin {
 
 pub static PLUGIN_NAME: &'static str = "rspack_loader_plugin";
 
+fn is_builtin_module(id: &str) -> bool {
+  let builtin_modules = vec![
+    "http", "https", "url", "zlib", "stream", "assert", "tty", "util",
+  ];
+  return builtin_modules.contains(&id);
+}
 #[async_trait]
 impl Plugin for LoaderPlugin {
   fn name(&self) -> &'static str {
@@ -20,12 +26,17 @@ impl Plugin for LoaderPlugin {
   }
 
   async fn load(&self, _ctx: &BundleContext, id: &str) -> PluginLoadHookOutput {
-    let ext = Path::new(id).extension().and_then(|ext| ext.to_str())?;
-    let loader = self.options.get(ext)?;
-
+    let (loader, ext) = if is_builtin_module(id) {
+      (Some(Loader::Empty), None)
+    } else {
+      let ext = Path::new(id).extension().and_then(|ext| ext.to_str())?;
+      let loader = self.options.get(ext)?;
+      (Some(*loader), Some(ext))
+    };
+    let loader = loader?;
     match loader {
       Loader::DataURI => {
-        let mime_type = guess_mime_types_ext(ext);
+        let mime_type = guess_mime_types_ext(ext.unwrap());
         let format = "base64";
         let data = std::fs::read(id).ok()?;
         let data_uri = format!("data:{};{},{}", mime_type, format, base64::encode(&data));
@@ -60,6 +71,12 @@ impl Plugin for LoaderPlugin {
           data
         ))
       }
+      Loader::Empty => Some(
+        r#"
+        export default {}
+        "#
+        .to_string(),
+      ),
     }
   }
 }
