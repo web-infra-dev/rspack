@@ -1627,6 +1627,7 @@ dependencies = [
  "napi-build",
  "napi-derive",
  "nodejs-resolver",
+ "once_cell",
  "rspack",
  "rspack_core",
  "serde",
