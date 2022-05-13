@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use rspack_core::{ast, BundleMode, Plugin, SWC_GLOBALS};
+use rspack_swc::{swc_common, swc_ecma_transforms_react as swc_react, swc_ecma_visit};
 use swc_common::{comments::SingleThreadedComments, GLOBALS};
-use swc_ecma_transforms_react as swc_react;
 use swc_ecma_visit::FoldWith;
 use swc_react::RefreshOptions;
 

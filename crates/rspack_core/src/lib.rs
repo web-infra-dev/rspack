@@ -12,7 +12,6 @@ mod plugin;
 mod plugin_driver;
 mod task;
 mod utils;
-pub use ast;
 pub use bundle::*;
 pub use bundle_context::*;
 pub use chunk::*;
@@ -22,6 +21,8 @@ use once_cell::sync::Lazy;
 pub use options::*;
 pub use plugin::*;
 pub use plugin_driver::*;
+use rspack_swc::swc_common;
+pub use rspack_swc::swc_ecma_ast as ast;
 use swc_common::Globals;
 pub use utils::*;
 

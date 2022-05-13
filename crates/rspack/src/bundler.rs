@@ -9,6 +9,7 @@ use rspack_core::plugin_hook::get_resolver;
 use rspack_core::ModuleGraph;
 use rspack_core::NormalizedBundleOptions;
 use rspack_core::SWC_GLOBALS;
+use rspack_swc::{swc, swc_common};
 use sugar_path::PathSugar;
 use swc_common::Globals;
 use swc_common::Mark;

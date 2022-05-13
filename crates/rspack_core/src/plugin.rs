@@ -2,6 +2,7 @@ use std::{fmt::Debug, path::Path};
 
 use crate::{BundleContext, Chunk, NormalizedBundleOptions, ResolvedURI};
 use async_trait::async_trait;
+use rspack_swc::swc_ecma_ast as ast;
 
 pub type PluginLoadHookOutput = Option<String>;
 pub type PluginResolveHookOutput = Option<ResolvedURI>;

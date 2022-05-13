@@ -6,6 +6,7 @@ mod testing {
     Plugin, PluginLoadHookOutput, PluginResolveHookOutput, PluginTransformHookOutput,
   };
 
+  use rspack_swc::swc_ecma_ast;
   use serde_json::Value;
   use std::collections::HashMap;
   use std::env;

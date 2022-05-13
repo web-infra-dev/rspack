@@ -1,8 +1,8 @@
+use rspack_swc::{swc, swc_common};
 use std::{
   fmt::Debug,
   sync::{Arc, Mutex},
 };
-
 use swc::Compiler;
 use swc_common::Mark;
 

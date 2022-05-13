@@ -1,6 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
 use linked_hash_map::LinkedHashMap;
+use rspack_swc::{
+  swc, swc_atoms, swc_common, swc_ecma_ast as ast, swc_ecma_transforms_base,
+  swc_ecma_transforms_react,
+};
 use swc::{Compiler, TransformOutput};
 use swc_atoms::JsWord;
 use swc_common::{errors::Handler, util::take::Take, FileName, Mark};
