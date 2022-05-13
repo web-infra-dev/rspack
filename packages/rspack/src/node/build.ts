@@ -26,6 +26,7 @@ export type BundlerOptions = {
   inlineStyle?: boolean;
   alias?: Record<string, string>;
   react: Record<string, any>;
+  sourceMap: boolean;
 };
 export async function run(options: BundlerOptions) {
   const { root, entry, loader, inlineStyle, alias, react } = options;
@@ -43,6 +44,7 @@ export async function run(options: BundlerOptions) {
     inlineStyle,
     alias,
     refresh: options.react.refresh,
+    sourceMap: options.sourceMap,
   });
   const server = new DevServer({
     root,

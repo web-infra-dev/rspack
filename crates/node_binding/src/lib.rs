@@ -34,6 +34,7 @@ struct RawOptions {
   pub inline_style: Option<bool>,
   pub alias: Option<HashMap<String, String>>,
   pub refresh: Option<bool>,
+  pub source_map: Option<bool>,
 }
 
 pub type Rspack = Arc<Mutex<RspackBundler>>;
@@ -57,6 +58,7 @@ pub fn new_rspack(option_json: String) -> External<Rspack> {
           .to_string_lossy()
           .to_string()
       }),
+      source_map: options.source_map.unwrap_or_default(),
       entry_file_names: options.entry_file_names,
       mode: BundleMode::Dev,
       loader,
