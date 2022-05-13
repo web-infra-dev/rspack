@@ -19,11 +19,14 @@ export interface BundleOptions {
   alias?: Record<string, string>
   refresh?: boolean
 }
-export function newRspack(optionJson: string): ExternalObject<Rspack>
-export function build(rspack: ExternalObject<Rspack>): object
-export function rebuild(rspack: ExternalObject<Rspack>, chnagedFile: string): object
+export interface RspackInternal {
+  
+}
+export function newRspack(optionJson: string): ExternalObject<RspackInternal>
+export function build(rspack: ExternalObject<RspackInternal>): object
+export function rebuild(rspack: ExternalObject<RspackInternal>, changed_file: string): object
 export interface ResolveRet {
   status: boolean
   result?: string
 }
-export function resolve(rspack: ExternalObject<Rspack>, id: string, dir: string): object
+export function resolve(rspack: ExternalObject<RspackInternal>, id: string, dir: string): object
