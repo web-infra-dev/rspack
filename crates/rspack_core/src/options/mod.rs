@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Loader {
   DataURI,
   Json,
   Text,
+  Empty,
 }
 
 pub type LoaderOptions = HashMap<String, Loader>;
