@@ -1,5 +1,5 @@
 {
-  "name": "react-refresh",
+  "name": "rspack-react-refresh",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -20,6 +20,7 @@
   "dependencies": {
     "@rspack/core": "workspace:*",
     "react": "18.0.0",
-    "react-dom": "18.0.0"
+    "react-dom": "18.0.0",
+    "react-refresh": "0.13.0"
   }
 }

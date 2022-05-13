@@ -24,7 +24,12 @@
             this.accepts = [];
           }
           accept(ids, callback) {
-            if (typeof ids === 'function') {
+            if(ids === undefined) {
+              this.accepts.push({
+                ids: this.id,
+                accept: undefined,
+              });
+            } else if (typeof ids === 'function') {
               this.accepts.push({
                 ids: this.id,
                 accept: ids,
@@ -188,13 +193,6 @@
               return ids.includes(id);
             }
           });
-        }
-        if (module.hot?.accept) {
-          for (const acceptItem of module.hot.accepts) {
-            const updateId = acceptItem.ids;
-            const updateModule = modules[updateId];
-            acceptItem.accept(updateModule);
-          }
         }
       }
     </script>
