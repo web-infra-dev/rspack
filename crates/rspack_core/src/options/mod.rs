@@ -1,3 +1,4 @@
+use rspack_swc::swc_ecma_transforms_react;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy)]

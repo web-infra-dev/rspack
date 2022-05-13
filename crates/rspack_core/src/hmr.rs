@@ -2,6 +2,10 @@ use std::collections::{HashMap, HashSet};
 
 use crate::{swc_builder::dynamic_import_with_literal, JsModule, ResolvedURI};
 use ast::*;
+use rspack_swc::{
+  swc_atoms, swc_common, swc_ecma_ast as ast, swc_ecma_transforms_base, swc_ecma_transforms_module,
+  swc_ecma_utils, swc_ecma_visit,
+};
 use swc_atoms::JsWord;
 use swc_common::{EqIgnoreSpan, Mark, DUMMY_SP};
 use swc_ecma_transforms_base::helpers::inject_helpers;

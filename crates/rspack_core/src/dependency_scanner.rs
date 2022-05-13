@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use linked_hash_map::LinkedHashMap;
+use rspack_swc::{swc_atoms, swc_ecma_ast as ast, swc_ecma_visit};
 use swc_atoms::JsWord;
 use swc_ecma_visit::{VisitMut, VisitMutWith};
 

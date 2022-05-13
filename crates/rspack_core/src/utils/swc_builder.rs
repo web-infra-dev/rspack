@@ -1,4 +1,5 @@
 use ast::{CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit};
+use rspack_swc::{swc_atoms, swc_ecma_ast as ast};
 use swc_atoms::js_word;
 
 pub fn is_dynamic_import(e: &mut CallExpr) -> bool {
@@ -33,6 +34,10 @@ mod swc_builder_test {
     test_runner::compile,
   };
   use ast::{CallExpr, Ident, Lit};
+  use rspack_swc::{
+    swc_common, swc_ecma_ast as ast, swc_ecma_transforms_base, swc_ecma_transforms_react,
+    swc_ecma_utils, swc_ecma_visit,
+  };
   use swc_common::{chain, comments::SingleThreadedComments, Globals, Mark, DUMMY_SP};
   use swc_ecma_transforms_base::resolver::resolver_with_mark;
   use swc_ecma_transforms_react as swc_react;

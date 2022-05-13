@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use once_cell::sync::Lazy;
 use rspack_core::{hmr::hmr_module, ResolvedURI};
+use rspack_swc::{swc_atoms, swc_common, swc_ecma_parser, swc_ecma_transforms_base};
 use swc_atoms::JsWord;
 use swc_common::{chain, Mark};
 use swc_ecma_parser::{EsConfig, Syntax};

@@ -1580,20 +1580,11 @@ dependencies = [
  "rspack_plugin_react",
  "rspack_plugin_style",
  "rspack_style",
+ "rspack_swc",
  "serde_json",
  "smol_str",
  "sugar_path",
- "swc",
- "swc_atoms",
- "swc_common",
- "swc_ecma_ast",
- "swc_ecma_codegen",
- "swc_ecma_parser",
- "swc_ecma_transforms_base",
- "swc_ecma_transforms_module",
  "swc_ecma_transforms_testing",
- "swc_ecma_utils",
- "swc_ecma_visit",
  "tokio",
  "tracing",
  "tracing-chrome",
@@ -1616,21 +1607,12 @@ dependencies = [
  "petgraph",
  "rayon",
  "rspack_sources",
+ "rspack_swc",
  "serde_json",
  "smol_str",
  "sourcemap",
  "sugar_path",
- "swc",
- "swc_atoms",
  "swc_common",
- "swc_ecma_ast",
- "swc_ecma_codegen",
- "swc_ecma_parser",
- "swc_ecma_transforms_base",
- "swc_ecma_transforms_module",
- "swc_ecma_transforms_react",
- "swc_ecma_utils",
- "swc_ecma_visit",
  "tokio",
  "tracing",
 ]
@@ -1681,9 +1663,7 @@ name = "rspack_plugin_react"
 version = "0.1.0"
 dependencies = [
  "rspack_core",
- "swc_common",
- "swc_ecma_transforms_react",
- "swc_ecma_visit",
+ "rspack_swc",
 ]
 
 [[package]]
@@ -1717,6 +1697,23 @@ dependencies = [
  "serde_json",
  "strum",
  "uuid",
+]
+
+[[package]]
+name = "rspack_swc"
+version = "0.1.0"
+dependencies = [
+ "swc",
+ "swc_atoms",
+ "swc_common",
+ "swc_ecma_ast",
+ "swc_ecma_codegen",
+ "swc_ecma_parser",
+ "swc_ecma_transforms_base",
+ "swc_ecma_transforms_module",
+ "swc_ecma_transforms_react",
+ "swc_ecma_utils",
+ "swc_ecma_visit",
 ]
 
 [[package]]

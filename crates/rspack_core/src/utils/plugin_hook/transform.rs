@@ -1,5 +1,5 @@
+pub use rspack_swc::swc_ecma_ast as ast;
 use std::path::Path;
-
 use tracing::instrument;
 
 use crate::{plugin::PluginTransformHookOutput, plugin_driver::PluginDriver};

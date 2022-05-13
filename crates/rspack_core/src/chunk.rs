@@ -4,6 +4,7 @@ use rayon::prelude::*;
 use rspack_sources::{
   ConcatSource, GenMapOption, RawSource, Source, SourceMapSource, SourceMapSourceOptions,
 };
+use rspack_swc::{swc, swc_common};
 use std::{
   collections::{hash_map::DefaultHasher, HashMap},
   hash::{Hash, Hasher},

@@ -1,4 +1,5 @@
 use once_cell::sync::Lazy;
+use rspack_swc::{swc, swc_common, swc_ecma_ast as ast, swc_ecma_parser};
 use std::{path::Path, sync::Arc};
 use swc::{config::IsModule, Compiler};
 use tracing::instrument;

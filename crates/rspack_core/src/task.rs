@@ -12,7 +12,9 @@ use crate::{
 };
 use crate::{path::normalize_path, SWC_GLOBALS};
 use dashmap::{DashMap, DashSet};
-
+use rspack_swc::{
+  swc_atoms, swc_common, swc_ecma_ast as ast, swc_ecma_transforms_base, swc_ecma_visit,
+};
 use swc_atoms::JsWord;
 use swc_common::GLOBALS;
 use swc_ecma_transforms_base::resolver::resolver_with_mark;
