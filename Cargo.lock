@@ -1576,7 +1576,7 @@ dependencies = [
  "regex",
  "rspack_core",
  "rspack_plugin_css",
- "rspack_plugin_loader",
+ "rspack_plugin_mock_builtins",
  "rspack_plugin_react",
  "rspack_plugin_style",
  "rspack_style",
@@ -1598,6 +1598,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "base64 0.13.0",
  "crossbeam",
  "dashmap 5.3.3",
  "futures",
@@ -1650,13 +1651,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack_plugin_loader"
+name = "rspack_plugin_mock_builtins"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "base64 0.13.0",
  "rspack_core",
- "serde_json",
 ]
 
 [[package]]

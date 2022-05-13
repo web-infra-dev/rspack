@@ -101,7 +101,7 @@ impl JsModule {
       &swc_config::Options {
         config: swc_config::Config {
           jsc: swc_config::JscConfig {
-            syntax: Some(syntax(self.uri.as_str())),
+            syntax: Default::default(),
             transform: Some(swc_config::TransformConfig {
               react: swc_ecma_transforms_react::Options {
                 runtime: Some(swc_ecma_transforms_react::Runtime::Automatic),

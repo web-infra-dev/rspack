@@ -8,12 +8,16 @@ use swc_common::{FileName, FilePathMapping, SourceMap};
 use swc_ecma_parser::Syntax;
 use swc_ecma_parser::{EsConfig, TsConfig};
 
-use crate::{BundleOptions, Loader, NormalizedBundleOptions};
+use crate::{BundleOptions, Loader, NormalizedBundleOptions, ResolvedLoadedFile};
 
+mod loader;
+mod options;
 pub mod path;
 pub mod plugin_hook;
 pub mod swc_builder;
 pub mod test_runner;
+pub use loader::*;
+pub use options::*;
 
 static COMPILER: Lazy<Arc<Compiler>> = Lazy::new(|| {
   let cm = Arc::new(SourceMap::new(FilePathMapping::empty()));
@@ -25,13 +29,15 @@ pub fn get_swc_compiler() -> Arc<Compiler> {
   COMPILER.clone()
 }
 
-#[instrument(skip(source_code))]
-pub fn parse_file(source_code: String, filename: &str) -> ast::Program {
-  let syntax = syntax(filename);
+#[instrument(skip_all)]
+pub fn parse_file(loaded_file: ResolvedLoadedFile, filename: &str) -> ast::Program {
+  let loaded_js_file = interpret_loaded_file_to_js(loaded_file, filename);
+  let syntax = syntax(&loaded_js_file.loader);
   let compiler = get_swc_compiler();
-  let fm = compiler
-    .cm
-    .new_source_file(FileName::Custom(filename.to_string()), source_code);
+  let fm = compiler.cm.new_source_file(
+    FileName::Custom(filename.to_string()),
+    loaded_js_file.content,
+  );
   swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
     compiler.parse_js(
       fm,
@@ -45,48 +51,23 @@ pub fn parse_file(source_code: String, filename: &str) -> ast::Program {
   .unwrap()
 }
 
-pub fn syntax(filename: &str) -> Syntax {
-  let p = Path::new(filename);
-  let ext = p.extension().and_then(|ext| ext.to_str()).unwrap_or("js");
-  match ext == "ts" || ext == "tsx" {
-    true => Syntax::Typescript(TsConfig {
-      decorators: false,
-      tsx: ext == "tsx",
-      ..Default::default()
-    }),
-    false => Syntax::Es(EsConfig {
+pub fn syntax(loader: &Loader) -> Syntax {
+  match loader {
+    Loader::Js | Loader::Jsx => Syntax::Es(EsConfig {
       private_in_object: true,
       import_assertions: true,
-      jsx: ext == "jsx",
+      jsx: matches!(loader, Loader::Jsx),
       export_default_from: true,
       decorators_before_export: true,
       decorators: true,
       fn_bind: true,
       allow_super_outside_method: true,
     }),
-  }
-}
-
-pub fn normalize_bundle_options(options: BundleOptions) -> NormalizedBundleOptions {
-  let loader = {
-    let mut loader = options.loader.unwrap_or_default();
-    loader.entry("json".to_string()).or_insert(Loader::Json);
-    loader
-  };
-  NormalizedBundleOptions {
-    resolve: options.resolve,
-    react: options.react,
-    loader: Some(loader),
-    mode: options.mode,
-    entries: options.entries,
-    minify: options.minify,
-    outdir: options.outdir,
-    entry_filename: options.entry_file_names,
-    chunk_filename: options
-      .chunk_filename
-      .unwrap_or("chunk-[contenthash].js".to_string()),
-    code_splitting: options.code_splitting,
-    root: options.root,
-    source_map: options.source_map,
+    Loader::Ts | Loader::Tsx => Syntax::Typescript(TsConfig {
+      decorators: false,
+      tsx: matches!(loader, Loader::Tsx),
+      ..Default::default()
+    }),
+    _ => unreachable!(),
   }
 }

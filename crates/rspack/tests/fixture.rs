@@ -239,7 +239,8 @@ mod testing {
         loader: Some(
           vec![
             ("svg".to_string(), Loader::DataURI),
-            ("json".to_string(), Loader::Json),
+            // json is supported by default now
+            // ("json".to_string(), Loader::Json),
             ("txt".to_string(), Loader::Text),
           ]
           .into_iter()

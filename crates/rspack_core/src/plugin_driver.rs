@@ -3,7 +3,8 @@ use std::{path::Path, sync::Arc};
 use futures::future::join_all;
 
 use crate::{
-  BundleContext, Chunk, NormalizedBundleOptions, Plugin, PluginTransformHookOutput, ResolvedURI,
+  BundleContext, Chunk, LoadedFile, NormalizedBundleOptions, Plugin, PluginTransformHookOutput,
+  ResolvedURI,
 };
 
 #[derive(Debug)]
@@ -33,7 +34,7 @@ impl PluginDriver {
     None
   }
 
-  pub async fn load(&self, id: &str) -> Option<String> {
+  pub async fn load(&self, id: &str) -> Option<LoadedFile> {
     for plugin in &self.plugins {
       let res = plugin.load(&self.ctx, id).await;
       if res.is_some() {

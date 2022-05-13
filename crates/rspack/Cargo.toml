@@ -11,8 +11,8 @@ license = "MIT"
 rspack_core = { path="../rspack_core" }
 rspack_plugin_css = { path="../rspack_plugin_css" }
 rspack_plugin_react = { path="../rspack_plugin_react" }
-rspack_plugin_loader = { path="../rspack_plugin_loader" }
 rspack_plugin_style = { path="../rspack_plugin_style" }
+rspack_plugin_mock_builtins = { path="../rspack_plugin_mock_builtins" }
 rspack_swc = { path = "../rspack_swc" }
 sugar_path="0.0.4"
 anyhow = "1"

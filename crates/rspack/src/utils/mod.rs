@@ -10,11 +10,7 @@ pub fn inject_built_in_plugins(
   let mut plugins: Vec<Box<dyn Plugin>> = vec![Box::new(rspack_plugin_react::ReactPlugin {
     runtime: options.react.runtime,
   })];
-  if let Some(loader_options) = options.loader.take() {
-    plugins.push(Box::new(rspack_plugin_loader::LoaderPlugin {
-      options: loader_options,
-    }));
-  }
+  plugins.push(Box::new(rspack_plugin_mock_builtins::MockBuiltinsPlugin {}));
   plugins.append(&mut user_plugins);
   if options.inline_style {
     plugins.push(Box::new(rspack_plugin_style::StyleLoaderPlugin {}));

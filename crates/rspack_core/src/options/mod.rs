@@ -1,15 +1,6 @@
 use rspack_swc::swc_ecma_transforms_react;
-use std::collections::HashMap;
-
-#[derive(Debug, Clone, Copy)]
-pub enum Loader {
-  DataURI,
-  Json,
-  Text,
-  Empty,
-}
-
-pub type LoaderOptions = HashMap<String, Loader>;
+mod loader;
+pub use loader::*;
 
 #[derive(Debug)]
 pub struct BundleReactOptions {
@@ -112,7 +103,7 @@ impl Default for DevServerOptions {
 #[derive(Debug)]
 pub struct NormalizedBundleOptions {
   pub react: BundleReactOptions,
-  pub loader: Option<LoaderOptions>,
+  pub loader: LoaderOptions,
   pub mode: BundleMode,
   pub entries: Vec<String>,
   pub minify: bool,

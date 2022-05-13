@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use async_trait::async_trait;
-use rspack_core::{BundleContext, Plugin, PluginLoadHookOutput};
+use rspack_core::{BundleContext, LoadedFile, Plugin, PluginLoadHookOutput};
 
 pub static PLUGIN_NAME: &'static str = "rspack_loader_plugin";
 
@@ -20,7 +20,7 @@ impl Plugin for StyleLoaderPlugin {
     match ext {
       "css" => {
         let content = std::fs::read_to_string(path).ok()?;
-        Some(format!(
+        Some(LoadedFile::new(format!(
           "
           if (typeof document !== 'undefined') {{
             var style = document.createElement('style');
@@ -30,7 +30,7 @@ impl Plugin for StyleLoaderPlugin {
           }}
         ",
           content
-        ))
+        )))
       }
       _ => None,
     }

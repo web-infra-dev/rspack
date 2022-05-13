@@ -1,10 +1,10 @@
 use std::{fmt::Debug, path::Path};
 
-use crate::{BundleContext, Chunk, NormalizedBundleOptions, ResolvedURI};
+use crate::{BundleContext, Chunk, LoadedFile, NormalizedBundleOptions, ResolvedURI};
 use async_trait::async_trait;
 use rspack_swc::swc_ecma_ast as ast;
 
-pub type PluginLoadHookOutput = Option<String>;
+pub type PluginLoadHookOutput = Option<LoadedFile>;
 pub type PluginResolveHookOutput = Option<ResolvedURI>;
 pub type PluginTransformHookOutput = ast::Module;
 

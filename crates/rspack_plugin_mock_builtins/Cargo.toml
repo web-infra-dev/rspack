@@ -1,5 +1,5 @@
 [package]
-name = "rspack_plugin_loader"
+name = "rspack_plugin_mock_builtins"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,5 +8,3 @@ edition = "2021"
 [dependencies]
 rspack_core = { path = "../rspack_core" }
 async-trait = "0.1.53"
-base64 = "0.13.0"
-serde_json = "1.0.81"
