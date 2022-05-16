@@ -1,27 +1,37 @@
 use crate::{plugin_driver::PluginDriver, BundleOptions, NormalizedBundleOptions, ResolvedURI};
 use nodejs_resolver::{ResolveResult, Resolver};
-use std::{ffi::OsString, path::Path, sync::Arc};
+use once_cell::sync::OnceCell;
+use std::{
+  ffi::OsString,
+  path::Path,
+  sync::Arc,
+  time::{Duration, Instant},
+};
 use sugar_path::PathSugar;
 use tracing::instrument;
 
-pub fn get_resolver(options: &NormalizedBundleOptions) -> Resolver {
-  let resolver_option = &options.resolve;
-  let resolver = Resolver::default()
-    .with_extensions(
-      resolver_option
-        .extensions
-        .iter()
-        .map(|s| s.as_str())
-        .collect(),
-    )
-    .with_alias(
-      resolver_option
-        .alias
-        .iter()
-        .map(|(s1, s2)| (s1.as_str(), s2.as_ref().map(|s| s.as_str())))
-        .collect(),
-    );
-  resolver
+pub fn get_resolver(options: &NormalizedBundleOptions) -> &Resolver {
+  // FIXME: This should not be global.
+  static INSTANCE: OnceCell<Arc<Resolver>> = OnceCell::new();
+  &INSTANCE.get_or_init(|| {
+    let resolver_option = &options.resolve;
+    let resolver = Resolver::default()
+      .with_extensions(
+        resolver_option
+          .extensions
+          .iter()
+          .map(|s| s.as_str())
+          .collect(),
+      )
+      .with_alias(
+        resolver_option
+          .alias
+          .iter()
+          .map(|(s1, s2)| (s1.as_str(), s2.as_ref().map(|s| s.as_str())))
+          .collect(),
+      );
+    Arc::new(resolver)
+  })
 }
 
 #[inline]
@@ -47,8 +57,8 @@ pub async fn resolve_id(
         let base_dir = Path::new(importer).parent().unwrap();
         let options = plugin_driver.ctx.as_ref().options.as_ref();
         let resolver = get_resolver(options);
-        // Resolver::default().with_extensions(vec![".tsx", ".jsx", ".ts", ".js", ".json"]);
-        match resolver.resolve(base_dir, source) {
+        let before_resolve = Instant::now();
+        let res = match resolver.resolve(base_dir, source) {
           Ok(path) => match path {
             ResolveResult::Path(buf) => buf.to_string_lossy().to_string(),
             ResolveResult::Ignored => unreachable!(),
@@ -57,7 +67,18 @@ pub async fn resolve_id(
             "failed to load {} from {} due to  {}",
             &source, &importer, reason
           ),
+        };
+        let after_resolve = Instant::now();
+        let diff = after_resolve.duration_since(before_resolve);
+        if diff.as_millis() >= 100 {
+          tracing::debug!(
+            "resolve is slow({:?}ms) for base_dir: {:?}, source: {:?}",
+            diff.as_millis(),
+            base_dir,
+            source
+          );
         }
+        res
       } else {
         Path::new(source).resolve().to_string_lossy().to_string()
       };

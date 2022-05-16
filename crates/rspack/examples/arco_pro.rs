@@ -3,7 +3,7 @@ use std::{collections::HashMap, path::Path};
 use rspack::bundler::{BundleOptions, Bundler};
 use rspack_core::{BundleMode, BundleReactOptions, Loader, ResolveOption};
 use sugar_path::PathSugar;
-use tracing::instrument;
+use tracing::{instrument, Instrument};
 
 #[instrument]
 #[tokio::main]
@@ -33,7 +33,6 @@ async fn main() {
         ..Default::default()
       },
       loader: Some(HashMap::from_iter([
-        ("json".to_string(), Loader::Json),
         ("less".to_string(), Loader::Text),
         ("svg".to_string(), Loader::DataURI),
       ])),
@@ -53,9 +52,12 @@ async fn main() {
       source_map: false,
       ..Default::default()
     },
-    vec![],
+    vec![Box::new(rspack_plugin_mock_buitins::MockBuitinsPlugin)],
   );
-  bundler.build().await;
+  let build_future = async {
+    bundler.build().await;
+  };
+  build_future.instrument(tracing::info_span!("build")).await;
   // println!("assets: {:#?}", bundler.ctx.assets.lock().unwrap());
   bundler.write_assets_to_disk();
   // guard.lock().unwrap().as_mut().unwrap().flush();
