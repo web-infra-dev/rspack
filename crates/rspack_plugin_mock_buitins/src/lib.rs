@@ -4,9 +4,7 @@ use async_trait::async_trait;
 use rspack_core::{BundleContext, LoadedSource, Loader, Plugin, PluginLoadHookOutput};
 
 #[derive(Debug)]
-pub struct MockBuitinsPlugin {
-  pub options: HashMap<String, Loader>,
-}
+pub struct MockBuitinsPlugin;
 
 pub static PLUGIN_NAME: &'static str = "rspack_mock_buitins_plugin";
 
@@ -18,9 +16,7 @@ fn is_builtin_module(id: &str) -> bool {
 }
 impl MockBuitinsPlugin {
   pub fn new() -> MockBuitinsPlugin {
-    MockBuitinsPlugin {
-      options: HashMap::new(),
-    }
+    Self
   }
 }
 #[async_trait]
