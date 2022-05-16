@@ -12,11 +12,11 @@ pub fn inject_built_in_plugins(
   })];
   plugins.push(Box::new(rspack_plugin_loader::LoaderInterpreterPlugin));
   // injected user plugins
+  plugins.push(Box::new(rspack_plugin_progress::ProgressPlugin::new()));
   plugins.append(&mut user_plugins);
   plugins.push(Box::new(rspack_plugin_loader::LoaderDispatcherPlugin {
     options: options.loader.clone(),
   }));
-
   if options.inline_style {
     plugins.push(Box::new(rspack_plugin_style::StyleLoaderPlugin {}));
   } else {
@@ -26,7 +26,5 @@ pub fn inject_built_in_plugins(
   plugins.push(Box::new(
     rspack_plugin_mock_buitins::MockBuitinsPlugin::new(),
   ));
-  plugins.push(Box::new(rspack_plugin_progress::ProgressPlugin::new()));
-
   plugins
 }
