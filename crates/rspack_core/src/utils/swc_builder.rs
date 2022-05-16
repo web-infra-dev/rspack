@@ -39,7 +39,7 @@ mod swc_builder_test {
     swc_ecma_utils, swc_ecma_visit,
   };
   use swc_common::{chain, comments::SingleThreadedComments, Globals, Mark, DUMMY_SP};
-  use swc_ecma_transforms_base::resolver::resolver_with_mark;
+  use swc_ecma_transforms_base::resolver;
   use swc_ecma_transforms_react as swc_react;
   use swc_ecma_utils::ExprFactory;
   use swc_ecma_visit::{FoldWith, VisitMut, VisitMutWith};
@@ -59,6 +59,7 @@ mod swc_builder_test {
         None,
       );
       let top_level_mark = Mark::fresh(Mark::root());
+      let unresolved_mark = Mark::fresh(Mark::root());
       let mut react_folder = swc_react::react::<SingleThreadedComments>(
         compiler.cm.clone(),
         None,
@@ -67,12 +68,15 @@ mod swc_builder_test {
           refresh: Some(RefreshOptions {
             ..Default::default()
           }),
-          development: true,
+          development: true.into(),
           ..Default::default()
         },
         top_level_mark,
       );
-      let mut folds = chain!(resolver_with_mark(top_level_mark), &mut react_folder);
+      let mut folds = chain!(
+        resolver(unresolved_mark, top_level_mark, false),
+        &mut react_folder
+      );
       let ast = ast.fold_with(&mut folds);
       let (_, code, _) = compile(Default::default(), Some(ast));
       dbg!(code);

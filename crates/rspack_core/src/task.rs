@@ -17,7 +17,7 @@ use rspack_swc::{
 };
 use swc_atoms::JsWord;
 use swc_common::GLOBALS;
-use swc_ecma_transforms_base::resolver::resolver_with_mark;
+use swc_ecma_transforms_base::resolver;
 use swc_ecma_visit::VisitMutWith;
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::instrument;
@@ -81,8 +81,11 @@ impl Task {
         // The Resolver is not send. We need this block to tell compiler that
         // the Resolver won't be sent over the threads
         GLOBALS.set(&SWC_GLOBALS, || {
-          let mut syntax_context_resolver =
-            resolver_with_mark(self.plugin_driver.ctx.top_level_mark.clone());
+          let mut syntax_context_resolver = resolver(
+            self.plugin_driver.ctx.unresolved_mark.clone(),
+            self.plugin_driver.ctx.top_level_mark.clone(),
+            false,
+          );
           raw_ast.visit_mut_with(&mut syntax_context_resolver);
         });
       }

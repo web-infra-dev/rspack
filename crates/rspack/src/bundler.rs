@@ -61,10 +61,12 @@ impl Bundler {
     let normalized_options = Arc::new(normalize_bundle_options(options));
     let injected_plugins = inject_built_in_plugins(plugins, &normalized_options);
     let top_level_mark = GLOBALS.set(&SWC_GLOBALS, || Mark::fresh(Mark::root()));
+    let unresolved_mark = GLOBALS.set(&SWC_GLOBALS, || Mark::fresh(Mark::root()));
     let ctx: Arc<BundleContext> = Arc::new(BundleContext::new(
       get_swc_compiler(),
       normalized_options.clone(),
       top_level_mark,
+      unresolved_mark,
     ));
     Self {
       options: normalized_options,

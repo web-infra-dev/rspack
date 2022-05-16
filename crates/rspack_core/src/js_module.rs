@@ -11,7 +11,9 @@ use swc_common::{errors::Handler, util::take::Take, FileName, Mark};
 use swc_ecma_transforms_base::pass::noop;
 use tracing::instrument;
 
-use crate::{hmr::hmr_module, syntax, Bundle, BundleContext, NormalizedBundleOptions, ResolvedURI};
+use crate::{
+  hmr::hmr_module, syntax, Bundle, BundleContext, BundleMode, NormalizedBundleOptions, ResolvedURI,
+};
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct DynImportDesc {
@@ -108,14 +110,16 @@ impl JsModule {
                 ..Default::default()
               },
               ..Default::default()
-            }),
+            })
+            .into(),
             ..Default::default()
           },
-          inline_sources_content: true,
+          inline_sources_content: true.into(),
+          emit_source_map_columns: (!matches!(options.mode, BundleMode::Dev)).into(),
           source_maps: Some(SourceMapsConfig::Bool(source_map)),
           ..Default::default()
         },
-        global_mark: Some(bundle.top_level_mark),
+        top_level_mark: Some(bundle.top_level_mark),
         ..Default::default()
       },
       |_, _| noop(),

@@ -82,7 +82,7 @@ impl Plugin for ReactPlugin {
           ctx.compiler.cm.clone(),
           None,
           Options {
-            development: matches!(ctx.options.mode, BundleMode::Dev),
+            development: matches!(ctx.options.mode, BundleMode::Dev).into(),
             runtime: Some(self.runtime),
             refresh: if ctx.options.react.refresh && !is_node_module {
               Some(RefreshOptions {

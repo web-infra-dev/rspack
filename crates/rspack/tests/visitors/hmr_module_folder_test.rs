@@ -6,7 +6,7 @@ use rspack_swc::{swc_atoms, swc_common, swc_ecma_parser, swc_ecma_transforms_bas
 use swc_atoms::JsWord;
 use swc_common::{chain, Mark};
 use swc_ecma_parser::{EsConfig, Syntax};
-use swc_ecma_transforms_base::resolver::resolver_with_mark;
+use swc_ecma_transforms_base::resolver;
 use swc_ecma_transforms_testing::test;
 
 fn syntax() -> Syntax {
