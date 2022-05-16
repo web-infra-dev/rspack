@@ -4882,6 +4882,7 @@ __metadata:
     lint-staged: ^12.4.0
     mocha: 9.2.2
     tsm: 2.2.1
+    yarn: ^1.22.18
   languageName: unknown
   linkType: soft
 
@@ -6737,6 +6738,16 @@ __metadata:
     decamelize: ^1.0.0
     window-size: 0.1.0
   checksum: 73fd1978a311c853ae4c2c2da12642878912a33e4a8e9e8fec00900dc3b5db31a334c337cff04a542ebba7a32f64a9330419ba45249002f45f349a5d41010cab
+  languageName: node
+  linkType: hard
+
+"yarn@npm:^1.22.18":
+  version: 1.22.18
+  resolution: "yarn@npm:1.22.18"
+  bin:
+    yarn: bin/yarn.js
+    yarnpkg: bin/yarn.js
+  checksum: ffd9a4872caa5fce83e914592dd6a40bb978bf992d3dca839bc3853b9e6de951d7596f7e8c4a88bec3af3a049e46097f9139a51740d9074582fd923af8762f7a
   languageName: node
   linkType: hard
 
