@@ -1693,6 +1693,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_plugin_mock_buitins"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "rspack_core",
+]
+
+[[package]]
 name = "rspack_plugin_progress"
 version = "0.1.0"
 dependencies = [

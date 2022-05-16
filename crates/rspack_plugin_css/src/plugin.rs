@@ -1,13 +1,16 @@
 use crate::handle_with_css::{is_css_source, CssSourceType};
 use async_trait::async_trait;
-use rspack_core::{Asset, BundleContext, Chunk, NormalizedBundleOptions};
+use rspack_core::{
+  Asset, BundleContext, Chunk, LoadedSource, Loader, NormalizedBundleOptions,
+  PluginTransformRawHookOutput,
+};
 use rspack_core::{Plugin, PluginLoadHookOutput};
 use rspack_style::new_less::applicationn::Application;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::path::Path;
+use std::sync::Mutex;
 use tokio::runtime::{Handle, Runtime};
-use tokio::sync::Mutex;
 
 #[derive(Debug)]
 pub struct CssSourcePlugin {
@@ -76,18 +79,27 @@ impl Plugin for CssSourcePlugin {
     PLUGIN_NAME
   }
 
-  #[inline]
-  async fn load(&self, _ctx: &BundleContext, filepath: &str) -> PluginLoadHookOutput {
-    if let Some(mut css) = is_css_source(filepath) {
-      {
-        let map = self.handle_with_css_file(filepath);
-        css.source_content_map = Some(map);
+  fn transform_raw(
+    &self,
+    _ctx: &BundleContext,
+    uri: &str,
+    loader: &mut Loader,
+    raw: String,
+  ) -> PluginTransformRawHookOutput {
+    if let Loader::Css = loader {
+      if let Some(mut css) = is_css_source(uri) {
+        {
+          let map = self.handle_with_css_file(uri);
+          css.source_content_map = Some(map);
+        }
+        let mut list = self.css_source_collect.lock().unwrap();
+        list.push(css.clone());
+        format!("//{}\n", uri) + r#"export {}"#
+      } else {
+        raw
       }
-      let mut list = self.css_source_collect.lock().await;
-      list.push(css.clone());
-      Some(format!("//{}\n", filepath) + r#"export {}"#)
     } else {
-      None
+      raw
     }
   }
 

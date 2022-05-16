@@ -1,7 +1,9 @@
 use std::path::Path;
 
 use async_trait::async_trait;
-use rspack_core::{BundleContext, Plugin, PluginLoadHookOutput};
+use rspack_core::{
+  BundleContext, LoadedSource, Loader, Plugin, PluginLoadHookOutput, PluginTransformRawHookOutput,
+};
 
 pub static PLUGIN_NAME: &'static str = "rspack_loader_plugin";
 
@@ -14,25 +16,27 @@ impl Plugin for StyleLoaderPlugin {
     PLUGIN_NAME
   }
 
-  async fn load(&self, _ctx: &BundleContext, id: &str) -> PluginLoadHookOutput {
-    let path = Path::new(id);
-    let ext = path.extension().and_then(|ext| ext.to_str())?;
-    match ext {
-      "css" => {
-        let content = std::fs::read_to_string(path).ok()?;
-        Some(format!(
-          "
-          if (typeof document !== 'undefined') {{
-            var style = document.createElement('style');
-            var node = document.createTextNode(`{}`);
-            style.appendChild(node);
-            document.head.appendChild(style);
-          }}
-        ",
-          content
-        ))
-      }
-      _ => None,
+  fn transform_raw(
+    &self,
+    _ctx: &BundleContext,
+    _uri: &str,
+    loader: &mut Loader,
+    raw: String,
+  ) -> PluginTransformRawHookOutput {
+    if let Loader::Css = loader {
+      format!(
+        "
+        if (typeof document !== 'undefined') {{
+          var style = document.createElement('style');
+          var node = document.createTextNode(`{}`);
+          style.appendChild(node);
+          document.head.appendChild(style);
+        }}
+      ",
+        raw
+      )
+    } else {
+      raw
     }
   }
 }

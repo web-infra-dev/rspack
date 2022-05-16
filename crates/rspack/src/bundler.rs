@@ -52,14 +52,14 @@ pub struct Bundler {
 }
 
 impl Bundler {
-  pub fn new(mut options: BundleOptions, plugins: Vec<Box<dyn Plugin>>) -> Self {
+  pub fn new(options: BundleOptions, plugins: Vec<Box<dyn Plugin>>) -> Self {
     enable_tracing_by_env();
     println!(
       "create bundler with options:\n {:#?} \nplugins:\n {:#?}\n",
       options, plugins
     );
-    let injected_plugins = inject_built_in_plugins(plugins, &mut options);
     let normalized_options = Arc::new(normalize_bundle_options(options));
+    let injected_plugins = inject_built_in_plugins(plugins, &normalized_options);
     let top_level_mark = GLOBALS.set(&SWC_GLOBALS, || Mark::fresh(Mark::root()));
     let ctx: Arc<BundleContext> = Arc::new(BundleContext::new(
       get_swc_compiler(),
