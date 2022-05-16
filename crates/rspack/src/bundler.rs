@@ -100,6 +100,7 @@ impl Bundler {
     });
 
     self.module_graph = Some(bundle.module_graph.take().unwrap());
+    self.plugin_driver.build_end().await;
   }
   pub fn resolve(
     &mut self,

@@ -1,0 +1,12 @@
+[package]
+name = "rspack_plugin_progress"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+indicatif = "0.17.0-rc.10"
+rspack_core = { path = "../rspack_core" }
+rspack_swc = { path = "../rspack_swc" }
+async-trait = "0.1.53"
