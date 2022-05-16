@@ -36,6 +36,7 @@ export async function run(options: BundlerOptions) {
   });
 
   const bundler = new Rspack({
+    root,
     entries: Object.values(entry),
     minify: false,
     entryFileNames: '[name].js',
@@ -51,19 +52,20 @@ export async function run(options: BundlerOptions) {
     public: 'dist',
   });
   await bundler.build();
-  watcher.on('change', async (path) => {
-    console.log('change:', path);
+  watcher.on('change', async (id) => {
+    const url = path.relative(root, id);
+    console.log('change:', url);
     /**
      * @todo update logic
      * 目前会重新触发自该模块开始的全量编译，webpack也是这么做吗
      */
-    const update = await bundler.rebuild(path);
+    const update = await bundler.rebuild(id);
     const sourceUrl = `\n//# sourceURL=${path}`;
     server.broadcast({
       type: 'js-update',
-      path: path,
+      path: url,
       timestamp: Date.now(),
-      code: Object.values(update).join(';\n') + `invalidate(${JSON.stringify(path)})` + sourceUrl,
+      code: Object.values(update).join(';\n') + `invalidate(${JSON.stringify(url)})` + sourceUrl,
     });
   });
   const htmlPath = path.resolve(__dirname, '../client/index.html');
