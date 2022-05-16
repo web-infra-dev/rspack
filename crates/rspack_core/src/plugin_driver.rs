@@ -40,7 +40,6 @@ impl PluginDriver {
     for plugin in &self.plugins {
       let res = plugin.resolve(&self.ctx, importee, importer).await;
       if res.is_some() {
-        println!("got load result of plugin {:?}", plugin.name());
         return res;
       }
     }
