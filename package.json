@@ -11,6 +11,7 @@
     "crates/rspack/fixtures"
   ],
   "scripts": {
+    "init": "yarn install",
     "test:js": "mocha",
     "test:rust": "cargo test",
     "prepare": "husky install",
@@ -38,7 +39,8 @@
     "husky": "^7.0.4",
     "lint-staged": "^12.4.0",
     "mocha": "9.2.2",
-    "tsm": "2.2.1"
+    "tsm": "2.2.1",
+    "yarn": "^1.22.18"
   },
   "packageManager": "yarn@3.2.0"
 }
