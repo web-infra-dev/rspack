@@ -1608,6 +1608,7 @@ dependencies = [
  "rspack_core",
  "rspack_plugin_css",
  "rspack_plugin_loader",
+ "rspack_plugin_mock_buitins",
  "rspack_plugin_progress",
  "rspack_plugin_react",
  "rspack_plugin_style",

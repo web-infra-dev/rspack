@@ -23,6 +23,10 @@ pub fn inject_built_in_plugins(
     let css_plugin: Box<CssSourcePlugin> = std::default::Default::default();
     plugins.push(css_plugin);
   }
+  plugins.push(Box::new(
+    rspack_plugin_mock_buitins::MockBuitinsPlugin::new(),
+  ));
   plugins.push(Box::new(rspack_plugin_progress::ProgressPlugin::new()));
+
   plugins
 }

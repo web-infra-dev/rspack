@@ -16,6 +16,13 @@ fn is_builtin_module(id: &str) -> bool {
   ];
   return builtin_modules.contains(&id);
 }
+impl MockBuitinsPlugin {
+  pub fn new() -> MockBuitinsPlugin {
+    MockBuitinsPlugin {
+      options: HashMap::new(),
+    }
+  }
+}
 #[async_trait]
 impl Plugin for MockBuitinsPlugin {
   fn name(&self) -> &'static str {
