@@ -6,7 +6,12 @@ pub enum Loader {
   DataURI,
   Json,
   Text,
-  Empty,
+  Css,
+  Js,
+  Jsx,
+  Ts,
+  Tsx,
+  Null,
 }
 
 pub type LoaderOptions = HashMap<String, Loader>;
@@ -112,7 +117,7 @@ impl Default for DevServerOptions {
 #[derive(Debug)]
 pub struct NormalizedBundleOptions {
   pub react: BundleReactOptions,
-  pub loader: Option<LoaderOptions>,
+  pub loader: LoaderOptions,
   pub mode: BundleMode,
   pub entries: Vec<String>,
   pub minify: bool,
@@ -123,4 +128,5 @@ pub struct NormalizedBundleOptions {
   pub root: String,
   pub resolve: ResolveOption,
   pub source_map: bool,
+  pub inline_style: bool,
 }

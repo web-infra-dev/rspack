@@ -1,12 +1,13 @@
 use std::{fmt::Debug, path::Path};
 
-use crate::{BundleContext, Chunk, NormalizedBundleOptions, ResolvedURI};
+use crate::{BundleContext, Chunk, Loader, NormalizedBundleOptions, ResolvedURI};
 use async_trait::async_trait;
 use rspack_swc::swc_ecma_ast as ast;
 
-pub type PluginLoadHookOutput = Option<String>;
+pub type PluginLoadHookOutput = Option<LoadedSource>;
 pub type PluginResolveHookOutput = Option<ResolvedURI>;
 pub type PluginTransformHookOutput = ast::Module;
+pub type PluginTransformRawHookOutput = String;
 
 #[async_trait]
 pub trait Plugin: Sync + Send + Debug {
@@ -33,6 +34,17 @@ pub trait Plugin: Sync + Send + Debug {
   }
 
   #[inline]
+  fn transform_raw(
+    &self,
+    _ctx: &BundleContext,
+    _uri: &str,
+    _loader: &mut Loader,
+    raw: String,
+  ) -> PluginTransformRawHookOutput {
+    raw
+  }
+
+  #[inline]
   fn transform(
     &self,
     _ctx: &BundleContext,
@@ -49,5 +61,26 @@ pub trait Plugin: Sync + Send + Debug {
     _chunk: &Chunk,
     _bundle_options: &NormalizedBundleOptions,
   ) {
+  }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct LoadedSource {
+  pub content: Option<String>,
+  pub loader: Option<Loader>,
+}
+
+impl LoadedSource {
+  pub fn new(content: String) -> Self {
+    Self {
+      content: Some(content),
+      ..Default::default()
+    }
+  }
+  pub fn with_loader(content: String, loader: Loader) -> Self {
+    Self {
+      content: Some(content),
+      loader: Some(loader),
+    }
   }
 }

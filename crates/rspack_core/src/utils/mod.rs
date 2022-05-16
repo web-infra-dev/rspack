@@ -26,7 +26,7 @@ pub fn get_swc_compiler() -> Arc<Compiler> {
 }
 
 #[instrument(skip(source_code))]
-pub fn parse_file(source_code: String, filename: &str) -> ast::Program {
+pub fn parse_file(source_code: String, filename: &str, loader: &Loader) -> ast::Program {
   let syntax = syntax(filename);
   let compiler = get_swc_compiler();
   let fm = compiler
@@ -67,16 +67,66 @@ pub fn syntax(filename: &str) -> Syntax {
   }
 }
 
+pub fn syntax_by_loader(filename: &str, loader: &Loader) -> Syntax {
+  match loader {
+    Loader::Js | Loader::Jsx => Syntax::Es(EsConfig {
+      private_in_object: true,
+      import_assertions: true,
+      jsx: matches!(loader, Loader::Jsx),
+      export_default_from: true,
+      decorators_before_export: true,
+      decorators: true,
+      fn_bind: true,
+      allow_super_outside_method: true,
+    }),
+    Loader::Ts | Loader::Tsx => Syntax::Es(EsConfig {
+      private_in_object: true,
+      import_assertions: true,
+      jsx: matches!(loader, Loader::Tsx),
+      export_default_from: true,
+      decorators_before_export: true,
+      decorators: true,
+      fn_bind: true,
+      allow_super_outside_method: true,
+    }),
+    _ => unreachable!(),
+  };
+  let p = Path::new(filename);
+  let ext = p.extension().and_then(|ext| ext.to_str()).unwrap_or("js");
+  match ext == "ts" || ext == "tsx" {
+    true => Syntax::Typescript(TsConfig {
+      decorators: false,
+      tsx: ext == "tsx",
+      ..Default::default()
+    }),
+    false => Syntax::Es(EsConfig {
+      private_in_object: true,
+      import_assertions: true,
+      jsx: ext == "jsx",
+      export_default_from: true,
+      decorators_before_export: true,
+      decorators: true,
+      fn_bind: true,
+      allow_super_outside_method: true,
+    }),
+  }
+}
+
 pub fn normalize_bundle_options(options: BundleOptions) -> NormalizedBundleOptions {
   let loader = {
     let mut loader = options.loader.unwrap_or_default();
     loader.entry("json".to_string()).or_insert(Loader::Json);
+    loader.entry("js".to_string()).or_insert(Loader::Js);
+    loader.entry("jsx".to_string()).or_insert(Loader::Jsx);
+    loader.entry("ts".to_string()).or_insert(Loader::Ts);
+    loader.entry("tsx".to_string()).or_insert(Loader::Tsx);
+    loader.entry("css".to_string()).or_insert(Loader::Css);
     loader
   };
   NormalizedBundleOptions {
     resolve: options.resolve,
     react: options.react,
-    loader: Some(loader),
+    loader,
     mode: options.mode,
     entries: options.entries,
     minify: options.minify,
@@ -88,5 +138,6 @@ pub fn normalize_bundle_options(options: BundleOptions) -> NormalizedBundleOptio
     code_splitting: options.code_splitting,
     root: options.root,
     source_map: options.source_map,
+    inline_style: options.inline_style,
   }
 }
