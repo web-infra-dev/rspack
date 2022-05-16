@@ -246,7 +246,9 @@ dependencies = [
  "encode_unicode",
  "libc",
  "once_cell",
+ "regex",
  "terminal_size",
+ "unicode-width",
  "winapi",
 ]
 
@@ -725,6 +727,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "indicatif"
+version = "0.16.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2d207dc617c7a380ab07ff572a6e52fa202a2a8f355860ac9c38e23f8196be1b"
+dependencies = [
+ "console",
+ "lazy_static",
+ "number_prefix",
+ "regex",
+]
+
+[[package]]
+name = "indicatif"
+version = "0.17.0-rc.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "088977cb4de4e09ea0232bd51c844490475ad94344fb0c60784f1fb380059b6d"
+dependencies = [
+ "console",
+ "number_prefix",
+ "unicode-width",
+]
+
+[[package]]
 name = "insta"
 version = "1.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1181,6 +1206,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "number_prefix"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "830b246a0e5f20af87141b25c173cd1b609bd7779a4617d6ec582abaf90870f3"
+
+[[package]]
 name = "object"
 version = "0.28.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1577,6 +1608,7 @@ dependencies = [
  "rspack_core",
  "rspack_plugin_css",
  "rspack_plugin_loader",
+ "rspack_plugin_progress",
  "rspack_plugin_react",
  "rspack_plugin_style",
  "rspack_style",
@@ -1601,6 +1633,7 @@ dependencies = [
  "crossbeam",
  "dashmap 5.3.3",
  "futures",
+ "indicatif 0.16.2",
  "linked-hash-map",
  "nodejs-resolver",
  "once_cell",
@@ -1657,6 +1690,16 @@ dependencies = [
  "base64 0.13.0",
  "rspack_core",
  "serde_json",
+]
+
+[[package]]
+name = "rspack_plugin_progress"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "indicatif 0.17.0-rc.10",
+ "rspack_core",
+ "rspack_swc",
 ]
 
 [[package]]

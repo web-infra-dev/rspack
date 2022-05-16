@@ -14,6 +14,7 @@ rspack_plugin_react = { path="../rspack_plugin_react" }
 rspack_plugin_loader = { path="../rspack_plugin_loader" }
 rspack_plugin_style = { path="../rspack_plugin_style" }
 rspack_swc = { path = "../rspack_swc" }
+rspack_plugin_progress = {path = "../rspack_plugin_progress"}
 sugar_path="0.0.4"
 anyhow = "1"
 crossbeam = "0.8.1"

@@ -22,6 +22,15 @@ impl PluginDriver {
     )
     .await;
   }
+  pub async fn build_end(&self) {
+    join_all(
+      self
+        .plugins
+        .iter()
+        .map(|plugin| plugin.build_end(&self.ctx)),
+    )
+    .await;
+  }
 
   pub async fn resolve_id(&self, importee: &str, importer: Option<&str>) -> Option<ResolvedURI> {
     for plugin in &self.plugins {

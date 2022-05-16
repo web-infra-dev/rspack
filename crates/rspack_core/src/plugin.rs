@@ -14,6 +14,8 @@ pub trait Plugin: Sync + Send + Debug {
 
   #[inline]
   async fn build_start(&self, _ctx: &BundleContext) {}
+  #[inline]
+  async fn build_end(&self, _ctx: &BundleContext) {}
 
   #[inline]
   async fn resolve(
