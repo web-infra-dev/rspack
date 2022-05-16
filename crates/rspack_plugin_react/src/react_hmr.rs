@@ -113,17 +113,19 @@ impl Fold for ReactHmrFolder {
 
 pub fn load_hmr_runtime_path(root: &String) -> String {
   let resolver = Resolver::default();
-  print!("===  {}\n", root);
-  /// TODO resolver bug can't resolve
-  match resolver.resolve(
-    Path::new(&root),
-    "react-refresh/cjs/react-refresh-runtime.development.js",
-  ) {
+  match resolver.resolve(Path::new(&root), "react-refresh/package.json") {
     Ok(ResolveResult::Path(path)) => {
-      print!("=== {} \n", path.to_str().unwrap());
       format!(
         "{}\n{}",
-        fs::read_to_string(path).unwrap(),
+        fs::read_to_string(
+          path
+            .parent()
+            .unwrap()
+            .join("cjs/react-refresh-runtime.development.js")
+            .to_str()
+            .unwrap()
+        )
+        .unwrap(),
         r#"function debounce(fn, delay) {
           var handle
           return () => {
@@ -140,21 +142,4 @@ pub fn load_hmr_runtime_path(root: &String) -> String {
       panic!("Not found react-refresh, please install it.");
     }
   }
-  // format!(
-  //   "{}\n{}",
-  //   fs::read_to_string(Path::new(
-  //     "/Users/bytedance/bytedance/rspack/node_modules/react-refresh/cjs/react-refresh-runtime.development.js"
-  //   ))
-  //   .unwrap(),
-  //   r#"function debounce(fn, delay) {
-  //     var handle
-  //     return () => {
-  //       clearTimeout(handle)
-  //       handle = setTimeout(fn, delay)
-  //     }
-  //   }
-  //   exports.performReactRefresh = debounce(exports.performReactRefresh, 16)
-  //   export default exports
-  //   "#
-  // )
 }

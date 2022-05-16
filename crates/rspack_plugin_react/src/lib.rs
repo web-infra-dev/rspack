@@ -5,7 +5,7 @@ use react_hmr::{
   InjectReactRefreshEntryFloder, ReactHmrFolder,
 };
 use rspack_core::{
-  ast, BundleContext, BundleMode, LoadedSource, Plugin, PluginLoadHookOutput,
+  ast, BundleContext, BundleMode, LoadedSource, Loader, Plugin, PluginLoadHookOutput,
   PluginResolveHookOutput, ResolvedURI, SWC_GLOBALS,
 };
 use rspack_swc::swc_common::{comments::SingleThreadedComments, GLOBALS};
@@ -44,11 +44,12 @@ impl Plugin for ReactPlugin {
 
   async fn load(&self, _ctx: &BundleContext, id: &str) -> PluginLoadHookOutput {
     if id == hmr_runtime_path {
-      return Some(LoadedSource::new(load_hmr_runtime_path(
-        &_ctx.options.as_ref().root,
-      )));
+      return Some(LoadedSource::with_loader(
+        load_hmr_runtime_path(&_ctx.options.as_ref().root),
+        Loader::Js,
+      ));
     } else if id == hmr_entry_path {
-      return Some(LoadedSource::new(hmr_entry.to_string()));
+      return Some(LoadedSource::with_loader(hmr_entry.to_string(), Loader::Js));
     } else {
       return None;
     }
