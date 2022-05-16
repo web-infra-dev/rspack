@@ -13,6 +13,7 @@ export function initCustomTraceSubscriber(): void
 export interface RawOptions {
   entries: Array<string>
   minify: boolean
+  root?: string
   outdir?: string
   entryFileNames: string
   loader?: Record<string, string>

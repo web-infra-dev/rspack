@@ -1,3 +1,13 @@
+import { useState, useEffect } from "react";
+
 export function FunctionNamed() {
-  return <h1>Named Export Function</h1>;
+  const [ data, setData ] = useState(0);
+
+  useEffect(() => {
+    setInterval(() => {
+      setData((i) => i+1)
+    }, 100);
+  }, [])
+
+  return <h1>1Named Export Function {data}</h1>;
 }

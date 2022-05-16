@@ -29,6 +29,7 @@ struct RawOptions {
   pub entries: Vec<String>,
   // pub format: InternalModuleFormat,
   pub minify: bool,
+  pub root: Option<String>,
   pub outdir: Option<String>,
   pub entry_file_names: String, // | ((chunkInfo: PreRenderedChunk) => string)
   pub loader: Option<HashMap<String, String>>,
@@ -77,6 +78,12 @@ pub fn new_rspack(option_json: String) -> External<Rspack> {
           .collect::<Vec<_>>(),
         ..Default::default()
       },
+      root: options.root.unwrap_or_else(|| {
+        std::env::current_dir()
+          .unwrap()
+          .to_string_lossy()
+          .to_string()
+      }),
       ..Default::default()
     },
     vec![],
