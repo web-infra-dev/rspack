@@ -10,3 +10,4 @@ indicatif = "0.17.0-rc.10"
 rspack_core = { path = "../rspack_core" }
 rspack_swc = { path = "../rspack_swc" }
 async-trait = "0.1.53"
+console = { version = "0.15", default-features = false, features = ["ansi-parsing"] }

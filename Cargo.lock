@@ -1717,6 +1717,7 @@ name = "rspack_plugin_progress"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "console",
  "indicatif 0.17.0-rc.10",
  "rspack_core",
  "rspack_swc",
