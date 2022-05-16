@@ -13,11 +13,15 @@ use crate::{
 use crate::{path::normalize_path, SWC_GLOBALS};
 use dashmap::{DashMap, DashSet};
 use rspack_swc::{
-  swc_atoms, swc_common, swc_ecma_ast as ast, swc_ecma_transforms_base, swc_ecma_visit,
+  swc_atoms, swc_common,
+  swc_ecma_ast::{self as ast, Ident},
+  swc_ecma_transforms_base,
+  swc_ecma_visit::{self, VisitMut},
 };
 use swc_atoms::JsWord;
-use swc_common::GLOBALS;
+use swc_common::{SyntaxContext, GLOBALS};
 use swc_ecma_transforms_base::resolver;
+use swc_ecma_visit::noop_visit_mut_type;
 use swc_ecma_visit::VisitMutWith;
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::instrument;
@@ -90,6 +94,11 @@ impl Task {
         });
       }
       let mut ast = plugin_hook::transform(Path::new(module_id), raw_ast, &self.plugin_driver);
+
+      {
+        // FIXME: This will slow the performance. A non-clean ast will panic in codegen. Maybe it's an bug of swc.
+        ast.visit_mut_with(&mut ClearMark);
+      }
 
       self.pre_analyze_imported_module(&uri_resolver, &ast).await;
 
@@ -176,5 +185,15 @@ impl Task {
         }
       }
     }
+  }
+}
+
+#[derive(Clone, Copy)]
+struct ClearMark;
+impl VisitMut for ClearMark {
+  noop_visit_mut_type!();
+
+  fn visit_mut_ident(&mut self, ident: &mut Ident) {
+    ident.span.ctxt = SyntaxContext::empty();
   }
 }

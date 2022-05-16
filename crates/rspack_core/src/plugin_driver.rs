@@ -1,6 +1,7 @@
 use std::{path::Path, sync::Arc};
 
 use futures::future::join_all;
+use tracing::instrument;
 
 use crate::{
   BundleContext, Chunk, LoadedSource, Loader, NormalizedBundleOptions, Plugin,
@@ -14,6 +15,7 @@ pub struct PluginDriver {
 }
 
 impl PluginDriver {
+  #[instrument(skip_all)]
   pub async fn build_start(&self) {
     join_all(
       self
@@ -23,6 +25,7 @@ impl PluginDriver {
     )
     .await;
   }
+  #[instrument(skip_all)]
   pub async fn build_end(&self) {
     join_all(
       self
@@ -32,7 +35,7 @@ impl PluginDriver {
     )
     .await;
   }
-
+  #[instrument(skip_all)]
   pub async fn resolve_id(&self, importee: &str, importer: Option<&str>) -> Option<ResolvedURI> {
     for plugin in &self.plugins {
       let res = plugin.resolve(&self.ctx, importee, importer).await;
@@ -43,7 +46,7 @@ impl PluginDriver {
     }
     None
   }
-
+  #[instrument(skip_all)]
   pub async fn load(&self, id: &str) -> Option<LoadedSource> {
     for plugin in &self.plugins {
       let res = plugin.load(&self.ctx, id).await;
@@ -53,7 +56,7 @@ impl PluginDriver {
     }
     None
   }
-
+  #[instrument(skip_all)]
   pub fn transform_raw(
     &self,
     uri: &str,
@@ -64,7 +67,7 @@ impl PluginDriver {
       plugin.transform_raw(&self.ctx, uri, loader, transformed_raw)
     })
   }
-
+  #[instrument(skip_all)]
   pub fn transform(
     &self,
     path: &Path,
@@ -74,7 +77,7 @@ impl PluginDriver {
       plugin.transform(&self.ctx, path, transformed_ast)
     })
   }
-
+  #[instrument(skip_all)]
   pub fn tap_generated_chunk(&self, chunk: &Chunk, bundle_options: &NormalizedBundleOptions) {
     self
       .plugins
