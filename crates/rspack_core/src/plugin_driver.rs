@@ -3,7 +3,8 @@ use std::{path::Path, sync::Arc};
 use futures::future::join_all;
 
 use crate::{
-  BundleContext, Chunk, NormalizedBundleOptions, Plugin, PluginTransformHookOutput, ResolvedURI,
+  BundleContext, Chunk, LoadedSource, Loader, NormalizedBundleOptions, Plugin,
+  PluginTransformHookOutput, PluginTransformRawHookOutput, ResolvedURI,
 };
 
 #[derive(Debug)]
@@ -36,13 +37,14 @@ impl PluginDriver {
     for plugin in &self.plugins {
       let res = plugin.resolve(&self.ctx, importee, importer).await;
       if res.is_some() {
+        println!("got load result of plugin {:?}", plugin.name());
         return res;
       }
     }
     None
   }
 
-  pub async fn load(&self, id: &str) -> Option<String> {
+  pub async fn load(&self, id: &str) -> Option<LoadedSource> {
     for plugin in &self.plugins {
       let res = plugin.load(&self.ctx, id).await;
       if res.is_some() {
@@ -50,6 +52,17 @@ impl PluginDriver {
       }
     }
     None
+  }
+
+  pub fn transform_raw(
+    &self,
+    uri: &str,
+    loader: &mut Loader,
+    raw: String,
+  ) -> PluginTransformRawHookOutput {
+    self.plugins.iter().fold(raw, |transformed_raw, plugin| {
+      plugin.transform_raw(&self.ctx, uri, loader, transformed_raw)
+    })
   }
 
   pub fn transform(

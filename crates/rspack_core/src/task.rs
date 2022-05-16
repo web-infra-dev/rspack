@@ -71,9 +71,12 @@ impl Task {
       };
 
       let module_id: &str = &resolved_uri.uri;
-      let source = plugin_hook::load(module_id, &self.plugin_driver).await;
+      let (source, mut loader) = plugin_hook::load(module_id, &self.plugin_driver).await;
+      let transformed_source = self
+        .plugin_driver
+        .transform_raw(module_id, &mut loader, source);
       let mut dependency_scanner = DependencyScanner::default();
-      let mut raw_ast = parse_file(source, module_id).expect_module();
+      let mut raw_ast = parse_file(transformed_source, module_id, &loader).expect_module();
       {
         // The Resolver is not send. We need this block to tell compiler that
         // the Resolver won't be sent over the threads

@@ -4,79 +4,100 @@ use std::{collections::HashMap, path::Path};
 
 use async_trait::async_trait;
 use data_uri::guess_mime_types_ext;
-use rspack_core::{BundleContext, Loader, Plugin, PluginLoadHookOutput};
+use rspack_core::{
+  BundleContext, LoadedSource, Loader, Plugin, PluginLoadHookOutput, PluginTransformRawHookOutput,
+};
 
 #[derive(Debug)]
-pub struct LoaderPlugin {
-  pub options: HashMap<String, Loader>,
-}
+pub struct LoaderInterpreterPlugin;
 
 pub static PLUGIN_NAME: &'static str = "rspack_loader_plugin";
 
-fn is_builtin_module(id: &str) -> bool {
-  let builtin_modules = vec![
-    "http", "https", "url", "zlib", "stream", "assert", "tty", "util",
-  ];
-  return builtin_modules.contains(&id);
-}
 #[async_trait]
-impl Plugin for LoaderPlugin {
+impl Plugin for LoaderInterpreterPlugin {
   fn name(&self) -> &'static str {
     PLUGIN_NAME
   }
 
-  async fn load(&self, _ctx: &BundleContext, id: &str) -> PluginLoadHookOutput {
-    let (loader, ext) = if is_builtin_module(id) {
-      (Some(Loader::Empty), None)
-    } else {
-      let ext = Path::new(id).extension().and_then(|ext| ext.to_str())?;
-      let loader = self.options.get(ext)?;
-      (Some(*loader), Some(ext))
-    };
-    let loader = loader?;
+  fn transform_raw(
+    &self,
+    _ctx: &BundleContext,
+    uri: &str,
+    loader: &mut Loader,
+    raw: String,
+  ) -> PluginTransformRawHookOutput {
     match loader {
       Loader::DataURI => {
-        let mime_type = guess_mime_types_ext(ext.unwrap());
+        *loader = Loader::Js;
+        let mime_type = guess_mime_types_ext(
+          Path::new(uri)
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .unwrap(),
+        );
         let format = "base64";
-        let data = std::fs::read(id).ok()?;
-        let data_uri = format!("data:{};{},{}", mime_type, format, base64::encode(&data));
-        Some(
-          format!(
-            "
+        let data_uri = format!("data:{};{},{}", mime_type, format, base64::encode(&raw));
+        format!(
+          "
           var img = \"{}\";
           export default img;
           ",
-            data_uri
-          )
-          .trim()
-          .to_string(),
+          data_uri
         )
+        .trim()
+        .to_string()
       }
       Loader::Json => {
-        let data = std::fs::read_to_string(id).ok()?;
-        Some(format!(
+        *loader = Loader::Js;
+        format!(
           "
           export default {}
           ",
-          data
-        ))
+          raw
+        )
       }
       Loader::Text => {
-        let data = std::fs::read_to_string(id).ok()?;
-        let data = serde_json::to_string(&data).ok()?;
-        Some(format!(
+        *loader = Loader::Js;
+        let data = serde_json::to_string(&raw).unwrap();
+        format!(
           "
           export default {}
           ",
           data
-        ))
+        )
       }
-      Loader::Empty => Some(
+      Loader::Null => {
+        *loader = Loader::Js;
         r#"
         export default {}
         "#
-        .to_string(),
-      ),
+        .to_string()
+      }
+      _ => raw,
     }
+  }
+}
+
+#[derive(Debug)]
+pub struct LoaderDispatcherPlugin {
+  pub options: HashMap<String, Loader>,
+}
+
+#[async_trait]
+impl Plugin for LoaderDispatcherPlugin {
+  fn name(&self) -> &'static str {
+    "rspack_loader_dispatcher"
+  }
+
+  async fn load(&self, _ctx: &BundleContext, id: &str) -> PluginLoadHookOutput {
+    let loader = *Path::new(id)
+      .extension()
+      .and_then(|ext| ext.to_str())
+      .and_then(|ext| self.options.get(ext))?;
+
+    Some(LoadedSource {
+      loader: Some(loader),
+      ..Default::default()
+    })
   }
 }

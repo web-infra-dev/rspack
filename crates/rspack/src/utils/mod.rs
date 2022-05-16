@@ -1,21 +1,22 @@
-use rspack_core::{BundleOptions, Plugin};
+use rspack_core::{BundleOptions, NormalizedBundleOptions, Plugin};
 use rspack_plugin_css::plugin::CssSourcePlugin;
 
 pub mod log;
 
 pub fn inject_built_in_plugins(
   mut user_plugins: Vec<Box<dyn Plugin>>,
-  options: &mut BundleOptions,
+  options: &NormalizedBundleOptions,
 ) -> Vec<Box<dyn Plugin>> {
   let mut plugins: Vec<Box<dyn Plugin>> = vec![Box::new(rspack_plugin_react::ReactPlugin {
     runtime: options.react.runtime,
   })];
-  if let Some(loader_options) = options.loader.take() {
-    plugins.push(Box::new(rspack_plugin_loader::LoaderPlugin {
-      options: loader_options,
-    }));
-  }
+  plugins.push(Box::new(rspack_plugin_loader::LoaderInterpreterPlugin));
+  // injected user plugins
   plugins.append(&mut user_plugins);
+  plugins.push(Box::new(rspack_plugin_loader::LoaderDispatcherPlugin {
+    options: options.loader.clone(),
+  }));
+
   if options.inline_style {
     plugins.push(Box::new(rspack_plugin_style::StyleLoaderPlugin {}));
   } else {
