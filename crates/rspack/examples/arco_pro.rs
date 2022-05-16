@@ -17,9 +17,14 @@ async fn main() {
   //     + "/"
   // );
   let guard = rspack::utils::log::enable_tracing_by_env_with_chrome_layer();
+  let dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+  let example = dir
+    .join("../../examples/arco-pro/src/index.tsx")
+    .to_string_lossy()
+    .to_string();
   let mut bundler = Bundler::new(
     BundleOptions {
-      entries: vec!["./examples/arco-pro/src/index.tsx".to_string()],
+      entries: vec![example.to_string()],
       outdir: "./dist".to_string(),
       code_splitting: true,
       mode: BundleMode::Dev,
