@@ -1,12 +1,7 @@
 use crate::{plugin_driver::PluginDriver, BundleOptions, NormalizedBundleOptions, ResolvedURI};
-use nodejs_resolver::{ResolveResult, Resolver};
+use nodejs_resolver::{ResolveResult, Resolver, ResolverOptions};
 use once_cell::sync::OnceCell;
-use std::{
-  ffi::OsString,
-  path::Path,
-  sync::Arc,
-  time::{Duration, Instant},
-};
+use std::{collections::HashMap, ffi::OsString, path::Path, sync::Arc, time::Instant};
 use sugar_path::PathSugar;
 use tracing::instrument;
 
@@ -15,21 +10,11 @@ pub fn get_resolver(options: &NormalizedBundleOptions) -> &Resolver {
   static INSTANCE: OnceCell<Arc<Resolver>> = OnceCell::new();
   &INSTANCE.get_or_init(|| {
     let resolver_option = &options.resolve;
-    let resolver = Resolver::default()
-      .with_extensions(
-        resolver_option
-          .extensions
-          .iter()
-          .map(|s| s.as_str())
-          .collect(),
-      )
-      .with_alias(
-        resolver_option
-          .alias
-          .iter()
-          .map(|(s1, s2)| (s1.as_str(), s2.as_ref().map(|s| s.as_str())))
-          .collect(),
-      );
+    let resolver = Resolver::new(ResolverOptions {
+      extensions: resolver_option.extensions.clone(),
+      alias: HashMap::from_iter(resolver_option.alias.clone().into_iter()),
+      ..Default::default()
+    });
     Arc::new(resolver)
   })
 }

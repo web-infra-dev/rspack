@@ -38,7 +38,7 @@ linked-hash-map = "0.5.4"
 serde_json = "1.0.59"
 rspack_style = "0.1"
 insta = "1.14.0"
-nodejs-resolver="0.0.4"
+nodejs-resolver="0.0.10"
 
 [dev-dependencies]
 swc_ecma_transforms_testing = "0.80.0"
