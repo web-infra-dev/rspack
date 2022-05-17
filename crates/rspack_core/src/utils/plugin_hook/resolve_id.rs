@@ -64,7 +64,7 @@ pub async fn resolve_id(
             ResolveResult::Ignored => unreachable!(),
           },
           Err(reason) => panic!(
-            "failed to load {} from {} due to  {}",
+            "failed to resolve {} from {} due to  {}",
             &source, &importer, reason
           ),
         };
