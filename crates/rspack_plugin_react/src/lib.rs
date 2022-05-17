@@ -6,7 +6,7 @@ use react_hmr::{
 };
 use rspack_core::{
   ast, BundleContext, BundleMode, LoadedSource, Loader, Plugin, PluginLoadHookOutput,
-  PluginResolveHookOutput, ResolvedURI, SWC_GLOBALS,
+  PluginResolveHookOutput, ResolvedURI,
 };
 use rspack_swc::swc_common::{comments::SingleThreadedComments, GLOBALS};
 use rspack_swc::swc_ecma_transforms_react::{react, Options, RefreshOptions, Runtime};
@@ -78,7 +78,7 @@ impl Plugin for ReactPlugin {
     let is_node_module = id.find("node_modules").is_some();
     let is_maybe_has_jsx = path.extension().map_or(true, |ext| ext != "ts");
     if is_maybe_has_jsx {
-      GLOBALS.set(&SWC_GLOBALS, || {
+      ctx.compiler.run(|| {
         let mut react_folder = react::<SingleThreadedComments>(
           ctx.compiler.cm.clone(),
           None,

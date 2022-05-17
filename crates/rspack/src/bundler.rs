@@ -8,12 +8,9 @@ use rspack_core::normalize_bundle_options;
 use rspack_core::plugin_hook::get_resolver;
 use rspack_core::ModuleGraph;
 use rspack_core::NormalizedBundleOptions;
-use rspack_core::SWC_GLOBALS;
 use rspack_swc::{swc, swc_common};
 use sugar_path::PathSugar;
-use swc_common::Globals;
 use swc_common::Mark;
-use swc_common::GLOBALS;
 use tracing::instrument;
 
 use crate::chunk_spliter::ChunkSpliter;
@@ -60,8 +57,9 @@ impl Bundler {
     );
     let normalized_options = Arc::new(normalize_bundle_options(options));
     let injected_plugins = inject_built_in_plugins(plugins, &normalized_options);
-    let top_level_mark = GLOBALS.set(&SWC_GLOBALS, || Mark::fresh(Mark::root()));
-    let unresolved_mark = GLOBALS.set(&SWC_GLOBALS, || Mark::fresh(Mark::root()));
+    let (top_level_mark, unresolved_mark) =
+      get_swc_compiler().run(|| (Mark::fresh(Mark::root()), Mark::fresh(Mark::root())));
+
     let ctx: Arc<BundleContext> = Arc::new(BundleContext::new(
       get_swc_compiler(),
       normalized_options.clone(),
