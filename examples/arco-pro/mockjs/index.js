@@ -3,4 +3,9 @@ export default {
   mock() {
     return {};
   },
+  XHR: {
+    prototype: {
+      withCredentials: true,
+    },
+  },
 };

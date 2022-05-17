@@ -2585,9 +2585,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"canvas@file:../canvas::locator=mockjs%40file%3A.%2Fmockjs%23.%2Fmockjs%3A%3Ahash%3D6d204a%26locator%3Darco-design-pro%2540workspace%253Aexamples%252Farco-pro":
+"canvas@file:../canvas::locator=mockjs%40file%3A.%2Fmockjs%23.%2Fmockjs%3A%3Ahash%3D04e8d2%26locator%3Darco-design-pro%2540workspace%253Aexamples%252Farco-pro":
   version: 0.0.0
-  resolution: "canvas@file:../canvas#../canvas::hash=e7d988&locator=mockjs%40file%3A.%2Fmockjs%23.%2Fmockjs%3A%3Ahash%3D6d204a%26locator%3Darco-design-pro%2540workspace%253Aexamples%252Farco-pro"
+  resolution: "canvas@file:../canvas#../canvas::hash=e7d988&locator=mockjs%40file%3A.%2Fmockjs%23.%2Fmockjs%3A%3Ahash%3D04e8d2%26locator%3Darco-design-pro%2540workspace%253Aexamples%252Farco-pro"
   checksum: a52f18aacd79090c7f53febdd5bbea50704e32290c189713ac1f89be25b5f627387b08e699387db670d838e1ffd5312cd9c523a2b180ddcaea6a58088cd35bb4
   languageName: node
   linkType: hard
@@ -4879,10 +4879,10 @@ __metadata:
 
 "mockjs@file:./mockjs::locator=arco-design-pro%40workspace%3Aexamples%2Farco-pro":
   version: 0.0.0
-  resolution: "mockjs@file:./mockjs#./mockjs::hash=6d204a&locator=arco-design-pro%40workspace%3Aexamples%2Farco-pro"
+  resolution: "mockjs@file:./mockjs#./mockjs::hash=04e8d2&locator=arco-design-pro%40workspace%3Aexamples%2Farco-pro"
   dependencies:
     canvas: ../canvas
-  checksum: 31cfcf0cb64cf96925514b0b8a7c1cf3c3f45468db22ea0fa1b3047d0cfd95e27a4e595f5376a9d340621b3dbc54b19008b684e4ec4676f1266dd7da0f0af0cc
+  checksum: cacce30cbe344f48fc42213733be1bb3e10f31f4c570f5f5daba6d7fb4952641b0fa491bacf04d415a9ad1ceb8e425f2d5124b191ad4387685ce4df4c6673a86
   languageName: node
   linkType: hard
 
