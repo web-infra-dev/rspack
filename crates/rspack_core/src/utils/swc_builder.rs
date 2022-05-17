@@ -1,7 +1,6 @@
 use ast::{CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit};
 use rspack_swc::{swc_atoms, swc_ecma_ast as ast};
 use swc_atoms::js_word;
-
 pub fn is_dynamic_import(e: &mut CallExpr) -> bool {
   matches!(e.callee, Callee::Import(_))
 }
@@ -34,6 +33,8 @@ mod swc_builder_test {
     test_runner::compile,
   };
   use ast::{CallExpr, Ident, Lit};
+  use rspack_swc::swc_ecma_transforms_module::common_js;
+  use rspack_swc::swc_ecma_transforms_module::common_js::Config;
   use rspack_swc::{
     swc_common, swc_ecma_ast as ast, swc_ecma_transforms_base, swc_ecma_transforms_react,
     swc_ecma_utils, swc_ecma_visit,
@@ -44,6 +45,35 @@ mod swc_builder_test {
   use swc_ecma_utils::ExprFactory;
   use swc_ecma_visit::{FoldWith, VisitMut, VisitMutWith};
   use swc_react::{RefreshOptions, Runtime};
+
+  #[test]
+  fn void_0() {
+    let globals = Globals::new();
+
+    swc_common::GLOBALS.set(&globals, || {
+      let top_level_mark = Mark::fresh(Mark::root());
+      let (ast, code, compiler) = compile(
+        r#"
+      var __assign = this.__assign;
+    "#
+        .into(),
+        None,
+      );
+      let ast = ast
+        .fold_with(&mut common_js(
+          top_level_mark,
+          Config {
+            ignore_dynamic: true,
+            ..Default::default()
+          },
+          None,
+        ))
+        .fold_with(&mut swc_ecma_transforms_base::fixer::fixer(None));
+      let (_, code, _) = compile("".into(), Some(ast));
+      dbg!(code);
+    });
+  }
+
   #[test]
   fn react_fresh() {
     let globals = Globals::new();

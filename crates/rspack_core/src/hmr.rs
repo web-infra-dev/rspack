@@ -56,6 +56,7 @@ impl<'a> Fold for HmrModuleFolder<'a> {
         },
         None,
       ))
+      .fold_with(&mut swc_ecma_transforms_base::fixer::fixer(None))
       .fold_with(&mut inject_helpers());
 
     cjs_module.visit_mut_with(&mut HmrModuleIdReWriter {
