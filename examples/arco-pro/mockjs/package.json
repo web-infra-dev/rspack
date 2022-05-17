@@ -1,0 +1,7 @@
+{
+  "name": "mockjs",
+  "main": "index.js",
+  "dependencies": {
+    "canvas": "../canvas"
+  }
+}
