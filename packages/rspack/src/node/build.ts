@@ -56,7 +56,7 @@ export async function run(options: BundlerOptions) {
   await bundler.build();
   watcher.on('change', async (id) => {
     const url = path.relative(root, id);
-    console.log('change:', url);
+    console.log('hmr:start', url);
     /**
      * @todo update logic
      * 目前会重新触发自该模块开始的全量编译，webpack也是这么做吗
@@ -69,6 +69,7 @@ export async function run(options: BundlerOptions) {
       timestamp: Date.now(),
       code: Object.values(update).join(';\n') + `invalidate(${JSON.stringify(url)})` + sourceUrl,
     });
+    console.log('hmr:end', url);
   });
   const htmlPath = path.resolve(__dirname, '../client/index.html');
   fs.ensureDirSync(path.resolve(root, 'dist'));
