@@ -67,7 +67,7 @@ window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;"#;
 
 static hmr_footer: &str = r#"window.$RefreshReg$ = prevRefreshReg;
 window.$RefreshSig$ = prevRefreshSig;
-__ACCEPT__
+module.hot.accept();
 if (!window.__vite_plugin_react_timeout) {
   window.__vite_plugin_react_timeout = setTimeout(() => {
     window.__vite_plugin_react_timeout = 0;
@@ -88,13 +88,7 @@ impl Fold for ReactHmrFolder {
       "",
       &rspack_core::Loader::Js,
     );
-    let hmr_footer_ast = parse_file(
-      hmr_footer
-        .replace("__ACCEPT__", "module.hot.accept();")
-        .to_string(),
-      "",
-      &rspack_core::Loader::Js,
-    );
+    let hmr_footer_ast = parse_file(hmr_footer.to_string(), "", &rspack_core::Loader::Js);
 
     let mut body = vec![];
     body.append(&mut match hmr_header_ast {

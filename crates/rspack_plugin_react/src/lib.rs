@@ -4,6 +4,7 @@ use react_hmr::{
   hmr_entry, hmr_entry_path, hmr_runtime_path, load_hmr_runtime_path, FoundReactRefreshVisitor,
   InjectReactRefreshEntryFloder, ReactHmrFolder,
 };
+use rspack_core::path::normalize_path;
 use rspack_core::{
   ast, BundleContext, BundleMode, LoadedSource, Loader, Plugin, PluginLoadHookOutput,
   PluginResolveHookOutput, ResolvedURI,
@@ -111,7 +112,9 @@ impl Plugin for ReactPlugin {
             };
             ast.visit_with(&mut f);
             match f.is_refresh_boundary {
-              true => ast.fold_with(&mut ReactHmrFolder { id }),
+              true => ast.fold_with(&mut ReactHmrFolder {
+                id: normalize_path(id.as_str(), ctx.options.as_ref().root.as_str()),
+              }),
               false => ast,
             }
           }
