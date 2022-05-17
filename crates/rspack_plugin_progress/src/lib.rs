@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicU32, AtomicU64, AtomicU8, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard, Weak};
 extern crate console;
 use console::{style, Color, Term};
-use rspack_core::{ast, BundleMode, SWC_GLOBALS};
+use rspack_core::{ast, BundleMode};
 use std::cell::RefCell;
 use std::io;
 use std::path::Path;
