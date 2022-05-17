@@ -1,15 +1,5 @@
 import React, { useContext, useEffect } from 'react';
-import {
-  Tooltip,
-  Input,
-  Avatar,
-  Select,
-  Dropdown,
-  Menu,
-  Divider,
-  Message,
-  Button,
-} from '@arco-design/web-react';
+import { Tooltip, Input, Avatar, Select, Dropdown, Menu, Divider, Message, Button } from '@arco-design/web-react';
 import {
   IconLanguage,
   IconNotification,
@@ -74,11 +64,7 @@ function Navbar({ show }: { show: boolean }) {
   if (!show) {
     return (
       <div className={styles['fixed-settings']}>
-        <Settings
-          trigger={
-            <Button icon={<IconSettings />} type="primary" size="large" />
-          }
-        />
+        <Settings trigger={<Button icon={<IconSettings />} type="primary" size="large" />} />
       </div>
     );
   }
@@ -96,9 +82,7 @@ function Navbar({ show }: { show: boolean }) {
           <>
             <IconUser className={styles['dropdown-icon']} />
             <span className={styles['user-role']}>
-              {role === 'admin'
-                ? t['menu.user.role.admin']
-                : t['menu.user.role.user']}
+              {role === 'admin' ? t['menu.user.role.admin'] : t['menu.user.role.user']}
             </span>
           </>
         }
@@ -143,16 +127,14 @@ function Navbar({ show }: { show: boolean }) {
     <div className={styles.navbar}>
       <div className={styles.left}>
         <div className={styles.logo}>
-          <Logo />
+          {/* <Logo /> todo svgr implementation */}
+          <img src={Logo as any as string} />
           <div className={styles['logo-name']}>Arco Pro</div>
         </div>
       </div>
       <ul className={styles.right}>
         <li>
-          <Input.Search
-            className={styles.round}
-            placeholder={t['navbar.search.placeholder']}
-          />
+          <Input.Search className={styles.round} placeholder={t['navbar.search.placeholder']} />
         </li>
         <li>
           <Select
@@ -181,13 +163,7 @@ function Navbar({ show }: { show: boolean }) {
           </MessageBox>
         </li>
         <li>
-          <Tooltip
-            content={
-              theme === 'light'
-                ? t['settings.navbar.theme.toDark']
-                : t['settings.navbar.theme.toLight']
-            }
-          >
+          <Tooltip content={theme === 'light' ? t['settings.navbar.theme.toDark'] : t['settings.navbar.theme.toLight']}>
             <IconButton
               icon={theme !== 'dark' ? <IconMoonFill /> : <IconSunFill />}
               onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}

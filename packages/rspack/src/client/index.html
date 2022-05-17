@@ -24,7 +24,7 @@
             this.accepts = [];
           }
           accept(ids, callback) {
-            if(ids === undefined) {
+            if (ids === undefined) {
               this.accepts.push({
                 ids: this.id,
                 accept: undefined,
@@ -90,8 +90,8 @@
             mod.parents.add(this);
           }
           mod.hot = new Hot(id);
-          mod.factory(require.bind(mod), mod, mod.exports);
           mod.loaded = true;
+          mod.factory(require.bind(mod), mod, mod.exports);
           return mod.exports;
         }
 

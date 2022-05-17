@@ -4,6 +4,7 @@ import sirv from 'sirv';
 import path from 'path';
 import ws, { WebSocketServer } from 'ws';
 import { Socket } from 'net';
+import history from 'connect-history-api-fallback';
 interface DevOptions {
   root: string;
   public: string;
@@ -21,6 +22,7 @@ export class DevServer {
         dev: true,
       })
     );
+    app.use(history());
   }
   static create(options: DevOptions) {
     const _server = new DevServer(options);

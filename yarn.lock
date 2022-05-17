@@ -689,6 +689,7 @@ __metadata:
     "@types/node": ^17.0.31
     chokidar: 3.5.3
     connect: 3.7.0
+    connect-history-api-fallback: 1.6.0
     fs-extra: 10.1.0
     lodash-es: ^4.17.21
     sirv: 2.0.2
@@ -2309,7 +2310,7 @@ __metadata:
     copy-to-clipboard: ^3.3.1
     dayjs: ^1.10.7
     lodash: ^4.17.21
-    mockjs: ^1.1.0
+    mockjs: "workspace:*"
     nprogress: ^0.2.0
     query-string: ^6.14.1
     react: ^17.0.2
@@ -2319,6 +2320,7 @@ __metadata:
     react-router: ^5.2.1
     react-router-dom: ^5.3.0
     redux: ^4.1.2
+    regenerator-runtime: 0.13.9
     typescript: ^4.5.5
   languageName: unknown
   linkType: soft
@@ -2795,13 +2797,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"commander@npm:*":
-  version: 9.2.0
-  resolution: "commander@npm:9.2.0"
-  checksum: 7c82e4cd969712aa6d7c055b8351807a7230f9f31ef7ec7881e11a1147511de85adf5d6ccfd200240a118eecf693b220caf6865b8efbcea558a70d35aa9ed711
-  languageName: node
-  linkType: hard
-
 "commander@npm:2":
   version: 2.20.3
   resolution: "commander@npm:2.20.3"
@@ -2846,6 +2841,13 @@ __metadata:
     robust-predicates: ^2.0.4
     tinyqueue: ^2.0.3
   checksum: 170d18573dc2ea5992912f2c537d332abbd0fea0e9faef3e71d08d9e085be98ad73fd5e583f4f2f2901974815dbd07dbf70211beb087705a54ae9d8d35aa8c43
+  languageName: node
+  linkType: hard
+
+"connect-history-api-fallback@npm:1.6.0":
+  version: 1.6.0
+  resolution: "connect-history-api-fallback@npm:1.6.0"
+  checksum: 804ca2be28c999032ecd37a9f71405e5d7b7a4b3defcebbe41077bb8c5a0a150d7b59f51dcc33b2de30bc7e217a31d10f8cfad27e8e74c2fc7655eeba82d6e7e
   languageName: node
   linkType: hard
 
@@ -4863,16 +4865,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mockjs@npm:^1.1.0":
-  version: 1.1.0
-  resolution: "mockjs@npm:1.1.0"
-  dependencies:
-    commander: "*"
-  bin:
-    random: bin/random
-  checksum: 11c16eda7fee1fa38c645813169c5a8f4301788819e237633a314d406551a90a61f3865e8aa4a8902eefc4db991605fa74349336e6690e7a154b5b4826e3e253
-  languageName: node
-  linkType: hard
+"mockjs@workspace:*, mockjs@workspace:patches/mockjs":
+  version: 0.0.0-use.local
+  resolution: "mockjs@workspace:patches/mockjs"
+  languageName: unknown
+  linkType: soft
 
 "monorepo@workspace:.":
   version: 0.0.0-use.local
@@ -5586,7 +5583,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"regenerator-runtime@npm:^0.13.4":
+"regenerator-runtime@npm:0.13.9, regenerator-runtime@npm:^0.13.4":
   version: 0.13.9
   resolution: "regenerator-runtime@npm:0.13.9"
   checksum: 65ed455fe5afd799e2897baf691ca21c2772e1a969d19bb0c4695757c2d96249eb74ee3553ea34a91062b2a676beedf630b4c1551cc6299afb937be1426ec55e
