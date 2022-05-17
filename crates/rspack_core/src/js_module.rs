@@ -2,8 +2,10 @@ use std::collections::{HashMap, HashSet};
 
 use linked_hash_map::LinkedHashMap;
 use rspack_swc::{
-  swc, swc_atoms, swc_common, swc_ecma_ast as ast, swc_ecma_transforms_base,
-  swc_ecma_transforms_react,
+  swc::{self, config::ModuleConfig},
+  swc_atoms, swc_common,
+  swc_ecma_ast::{self as ast, EsVersion},
+  swc_ecma_transforms_base, swc_ecma_transforms_react,
 };
 use swc::{Compiler, TransformOutput};
 use swc_atoms::JsWord;
@@ -103,6 +105,7 @@ impl JsModule {
       &swc_config::Options {
         config: swc_config::Config {
           jsc: swc_config::JscConfig {
+            target: Some(EsVersion::Es2022),
             syntax: Some(syntax(self.uri.as_str())),
             transform: Some(swc_config::TransformConfig {
               react: swc_ecma_transforms_react::Options {
