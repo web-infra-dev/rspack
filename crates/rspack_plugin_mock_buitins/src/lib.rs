@@ -26,7 +26,7 @@ impl Plugin for MockBuitinsPlugin {
   }
 
   async fn load(&self, _ctx: &BundleContext, id: &str) -> PluginLoadHookOutput {
-    if is_builtin_module(id) || id.contains("mockjs") {
+    if is_builtin_module(id) {
       Some(LoadedSource {
         loader: Some(Loader::Null),
         content: Some(String::new()),
