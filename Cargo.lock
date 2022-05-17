@@ -1654,6 +1654,8 @@ dependencies = [
 name = "rspack_node"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
+ "dashmap",
  "futures",
  "mimalloc-rust",
  "napi",
@@ -1665,6 +1667,7 @@ dependencies = [
  "rspack_core",
  "serde",
  "serde_json",
+ "tokio",
 ]
 
 [[package]]

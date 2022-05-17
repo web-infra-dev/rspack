@@ -11,8 +11,13 @@ class Rspack {
       minify: false,
       ...rawOptions,
     };
-    console.log('rawOpts', rawOptions);
-    this._instance = binding.newRspack(JSON.stringify(options));
+    console.log("rawOpts", rawOptions);
+    const onLoad = async (err, value) => {
+      console.log("[from rust]", value);
+      
+      return value
+    }
+    this._instance = binding.newRspack(JSON.stringify(options), onLoad);
   }
 
   async build() {
