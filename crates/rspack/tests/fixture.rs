@@ -279,7 +279,6 @@ mod testing {
   }
 
   #[test]
-  #[ignore = "fatal runtime error: stack overflow"]
 
   fn stack_overflow_mockjs() {
     compile("stack_overflow_mockjs", vec![]);
