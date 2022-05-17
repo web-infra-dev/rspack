@@ -1,34 +1,27 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
-use async_trait::async_trait;
-use dashmap::DashMap;
 use futures::lock::Mutex;
-use napi::{bindgen_prelude::*, JsString};
+use napi::bindgen_prelude::*;
 use napi::{
-  threadsafe_function::{
-    ErrorStrategy, ThreadSafeResultContext, ThreadsafeFunction, ThreadsafeFunctionCallMode,
-  },
+  threadsafe_function::{ErrorStrategy, ThreadSafeResultContext, ThreadsafeFunction},
   Env, JsObject, Result,
 };
 use napi_derive::napi;
-use once_cell::sync::Lazy;
-use rspack_core::{BundleContext, BundleReactOptions, Plugin, PluginLoadHookOutput, ResolveOption};
-use serde::{Deserialize, Serialize};
-use tokio::sync::oneshot::{self, Sender};
+use rspack_core::{BundleReactOptions, ResolveOption};
+use serde::Deserialize;
+
+pub mod adapter;
+pub mod utils;
 
 use rspack::bundler::{
   BundleMode, BundleOptions as RspackBundlerOptions, Bundler as RspackBundler,
 };
-pub mod utils;
 
 #[cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))]
 #[global_allocator]
 static ALLOC: mimalloc_rust::GlobalMiMalloc = mimalloc_rust::GlobalMiMalloc;
-
-static CALL_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(1));
 
 pub fn create_external<T>(value: T) -> External<T> {
   External::new(value)
@@ -54,74 +47,6 @@ struct RawOptions {
 
 pub type Rspack = Arc<Mutex<RspackBundler>>;
 
-static RESULT_LIST: Lazy<Arc<DashMap<usize, Sender<OnLoadContext>>>> =
-  Lazy::new(|| Default::default());
-
-struct RspackPluginNodeAdapter {
-  onload_tsfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct RspackThreadsafeContext<T: Debug> {
-  call_id: usize,
-  payload: T,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct OnLoadContext {
-  id: String,
-}
-
-impl RspackPluginNodeAdapter {}
-
-impl Debug for RspackPluginNodeAdapter {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("RspackPluginNodeAdapter").finish()
-  }
-}
-
-fn wrap_rspack_tsfn_context<T: Debug>(payload: T) -> RspackThreadsafeContext<T> {
-  let current_call_id = CALL_ID.fetch_add(1, Ordering::SeqCst);
-
-  RspackThreadsafeContext {
-    call_id: current_call_id,
-    payload,
-  }
-}
-
-#[async_trait]
-impl Plugin for RspackPluginNodeAdapter {
-  fn name(&self) -> &'static str {
-    "rspack_plugin_node_adapter"
-  }
-
-  async fn load(&self, _ctx: &BundleContext, id: &str) -> PluginLoadHookOutput {
-    let load_ctxt = wrap_rspack_tsfn_context(OnLoadContext { id: id.to_owned() });
-
-    let (tx, rx) = oneshot::channel::<OnLoadContext>();
-
-    match RESULT_LIST.entry(load_ctxt.call_id) {
-      dashmap::mapref::entry::Entry::Occupied(_) => {}
-      dashmap::mapref::entry::Entry::Vacant(v) => {
-        v.insert(tx);
-      }
-    }
-
-    let serialized_load_ctxt = serde_json::to_string(&load_ctxt).unwrap();
-
-    self.onload_tsfn.call(
-      Ok(serialized_load_ctxt),
-      ThreadsafeFunctionCallMode::NonBlocking,
-    );
-
-    let load_result = rx.await;
-
-    println!("load result from node {:#?}", load_result);
-
-    None
-  }
-}
-
 #[napi(ts_return_type = "ExternalObject<RspackInternal>")]
 pub fn new_rspack(option_json: String, onload_callback: JsFunction) -> External<Rspack> {
   let options: RawOptions = serde_json::from_str(option_json.as_str()).unwrap();
@@ -140,15 +65,17 @@ pub fn new_rspack(option_json: String, onload_callback: JsFunction) -> External<
             async move {
               let result = return_value.await?;
 
-              let load_context: RspackThreadsafeContext<OnLoadContext> =
-                serde_json::from_str(result.as_str()).unwrap();
+              let load_result: adapter::RspackThreadsafeResult<Option<adapter::OnLoadResult>> =
+                serde_json::from_str(&result).unwrap();
 
-              let sender = RESULT_LIST.remove(&load_context.call_id);
+              tracing::debug!("onload result {:?}", load_result);
 
-              if let Some(sender) = sender {
-                sender.1.send(load_context.payload).unwrap();
+              let sender = adapter::REGISTERED_ON_LOAD_SENDERS.remove(&load_result.get_call_id());
+
+              if let Some((_, sender)) = sender {
+                sender.send(load_result.into_inner()).unwrap();
               } else {
-                print!("unable to send");
+                panic!("unable to send");
               }
 
               Ok(())
@@ -198,7 +125,7 @@ pub fn new_rspack(option_json: String, onload_callback: JsFunction) -> External<
       }),
       ..Default::default()
     },
-    vec![Box::new(RspackPluginNodeAdapter {
+    vec![Box::new(adapter::RspackPluginNodeAdapter {
       onload_tsfn: onload_tsfn.clone(),
     })],
   );

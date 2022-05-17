@@ -9,6 +9,13 @@ export class ExternalObject<T> {
     [K: symbol]: T
   }
 }
+export interface OnLoadContext {
+  id: string
+}
+export interface OnLoadResult {
+  content?: string
+  loader?: string
+}
 export function initCustomTraceSubscriber(): void
 export interface RawOptions {
   entries: Array<string>
