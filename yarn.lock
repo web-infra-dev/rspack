@@ -2328,7 +2328,7 @@ __metadata:
     copy-to-clipboard: ^3.3.1
     dayjs: ^1.10.7
     lodash: ^4.17.21
-    mockjs: "workspace:*"
+    mockjs: ^1.1.0
     nprogress: ^0.2.0
     query-string: ^6.14.1
     react: ^17.0.2
@@ -2812,6 +2812,13 @@ __metadata:
   version: 2.0.16
   resolution: "colorette@npm:2.0.16"
   checksum: cd55596a3a2d1071c1a28eee7fd8a5387593ff1bd10a3e8d0a6221499311fe34a9f2b9272d77c391e0e003dcdc8934fb2f8d106e7ef1f7516f8060c901d41a27
+  languageName: node
+  linkType: hard
+
+"commander@npm:*":
+  version: 9.2.0
+  resolution: "commander@npm:9.2.0"
+  checksum: 7c82e4cd969712aa6d7c055b8351807a7230f9f31ef7ec7881e11a1147511de85adf5d6ccfd200240a118eecf693b220caf6865b8efbcea558a70d35aa9ed711
   languageName: node
   linkType: hard
 
@@ -4883,11 +4890,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mockjs@workspace:*, mockjs@workspace:patches/mockjs":
-  version: 0.0.0-use.local
-  resolution: "mockjs@workspace:patches/mockjs"
-  languageName: unknown
-  linkType: soft
+"mockjs@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "mockjs@npm:1.1.0"
+  dependencies:
+    commander: "*"
+  bin:
+    random: bin/random
+  checksum: 11c16eda7fee1fa38c645813169c5a8f4301788819e237633a314d406551a90a61f3865e8aa4a8902eefc4db991605fa74349336e6690e7a154b5b4826e3e253
+  languageName: node
+  linkType: hard
 
 "monorepo@workspace:.":
   version: 0.0.0-use.local
