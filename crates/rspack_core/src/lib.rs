@@ -41,5 +41,3 @@ impl ResolvedURI {
     }
   }
 }
-
-pub static SWC_GLOBALS: Lazy<Globals> = Lazy::new(|| Globals::new());

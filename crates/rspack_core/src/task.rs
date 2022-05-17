@@ -10,18 +10,16 @@ use crate::{
   bundle::Msg, dependency_scanner::DependencyScanner, plugin_hook, utils::parse_file, JsModule,
   PluginDriver, ResolvedURI,
 };
-use crate::{path::normalize_path, SWC_GLOBALS};
+use crate::{get_swc_compiler, path::normalize_path};
 use dashmap::{DashMap, DashSet};
 use rspack_swc::{
-  swc_atoms, swc_common,
-  swc_ecma_ast::{self as ast, Ident},
+  swc_atoms,
+  swc_ecma_ast::{self as ast},
   swc_ecma_transforms_base,
-  swc_ecma_visit::{self, VisitMut},
+  swc_ecma_visit::{self},
 };
 use swc_atoms::JsWord;
-use swc_common::{SyntaxContext, GLOBALS};
 use swc_ecma_transforms_base::resolver;
-use swc_ecma_visit::noop_visit_mut_type;
 use swc_ecma_visit::VisitMutWith;
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::instrument;
@@ -84,21 +82,16 @@ impl Task {
       {
         // The Resolver is not send. We need this block to tell compiler that
         // the Resolver won't be sent over the threads
-        GLOBALS.set(&SWC_GLOBALS, || {
+        get_swc_compiler().run(|| {
           let mut syntax_context_resolver = resolver(
             self.plugin_driver.ctx.unresolved_mark.clone(),
             self.plugin_driver.ctx.top_level_mark.clone(),
             false,
           );
           raw_ast.visit_mut_with(&mut syntax_context_resolver);
-        });
+        })
       }
       let mut ast = plugin_hook::transform(Path::new(module_id), raw_ast, &self.plugin_driver);
-
-      {
-        // FIXME: This will slow the performance. A non-clean ast will panic in codegen. Maybe it's an bug of swc.
-        ast.visit_mut_with(&mut ClearMark);
-      }
 
       self.pre_analyze_imported_module(&uri_resolver, &ast).await;
 
@@ -185,15 +178,5 @@ impl Task {
         }
       }
     }
-  }
-}
-
-#[derive(Clone, Copy)]
-struct ClearMark;
-impl VisitMut for ClearMark {
-  noop_visit_mut_type!();
-
-  fn visit_mut_ident(&mut self, ident: &mut Ident) {
-    ident.span.ctxt = SyntaxContext::empty();
   }
 }
