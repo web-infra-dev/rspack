@@ -21,6 +21,7 @@
     "@rspack/binding": "workspace:*",
     "chokidar": "3.5.3",
     "connect": "3.7.0",
+    "connect-history-api-fallback": "1.6.0",
     "fs-extra": "10.1.0",
     "lodash-es": "^4.17.21",
     "sirv": "2.0.2",

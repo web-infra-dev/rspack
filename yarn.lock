@@ -689,6 +689,7 @@ __metadata:
     "@types/node": ^17.0.31
     chokidar: 3.5.3
     connect: 3.7.0
+    connect-history-api-fallback: 1.6.0
     fs-extra: 10.1.0
     lodash-es: ^4.17.21
     sirv: 2.0.2
@@ -2860,6 +2861,13 @@ __metadata:
     robust-predicates: ^2.0.4
     tinyqueue: ^2.0.3
   checksum: 170d18573dc2ea5992912f2c537d332abbd0fea0e9faef3e71d08d9e085be98ad73fd5e583f4f2f2901974815dbd07dbf70211beb087705a54ae9d8d35aa8c43
+  languageName: node
+  linkType: hard
+
+"connect-history-api-fallback@npm:1.6.0":
+  version: 1.6.0
+  resolution: "connect-history-api-fallback@npm:1.6.0"
+  checksum: 804ca2be28c999032ecd37a9f71405e5d7b7a4b3defcebbe41077bb8c5a0a150d7b59f51dcc33b2de30bc7e217a31d10f8cfad27e8e74c2fc7655eeba82d6e7e
   languageName: node
   linkType: hard
 
