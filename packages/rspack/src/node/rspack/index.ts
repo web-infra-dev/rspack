@@ -1,6 +1,6 @@
 import createDebug from "debug";
 
-import type { RawOptions, ExternalObject, OnLoadContext, OnLoadResult } from "@rspack/binding";
+import type { RawOptions, ExternalObject, OnLoadContext, OnResolveContext } from "@rspack/binding";
 import * as binding from "@rspack/binding";
 
 import type { RspackPlugin } from "./plugin"
@@ -47,24 +47,44 @@ class Rspack {
     const plugins = (innerOptions.plugins || []);
 
     const onLoad = async (err, value: string): Promise<string> => {
-      const onLoadContext: RspackThreadsafeContext<OnLoadContext> = JSON.parse(value)
-      debugNapi("onLoadContext", onLoadContext);
+      const context: RspackThreadsafeContext<OnLoadContext> = JSON.parse(value)
+      debugNapi("onLoadcontext", context);
 
       for (const plugin of plugins) {
-        const result = await plugin.onLoad(onLoadContext.inner);
+        const result = await plugin.onLoad(context.inner);
         debugNapi("onLoadResult", result);
 
         return JSON.stringify({
-          callId: onLoadContext.callId,
+          callId: context.callId,
           inner: result,
         });
       }
 
       debugNapi("onLoadResult", null);
 
-      return createDummyResult(onLoadContext.callId);
+      return createDummyResult(context.callId);
     }
-    this.#instance = binding.newRspack(JSON.stringify(options), onLoad);
+
+    const onResolve = async (err, value: string): Promise<string> => {
+      const context: RspackThreadsafeContext<OnResolveContext> = JSON.parse(value)
+      debugNapi("onResolveContext", context);
+
+      for (const plugin of plugins) {
+        const result = await plugin.onResolve(context.inner);
+        debugNapi("onResolveResult", result);
+
+        return JSON.stringify({
+          callId: context.callId,
+          inner: result,
+        });
+      }
+
+      debugNapi("onResolveResult", null);
+
+      return createDummyResult(context.callId);
+    }
+
+    this.#instance = binding.newRspack(JSON.stringify(options), onLoad, onResolve);
   }
 
   async build() {

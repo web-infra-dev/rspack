@@ -48,7 +48,12 @@ struct RawOptions {
 pub type Rspack = Arc<Mutex<RspackBundler>>;
 
 #[napi(ts_return_type = "ExternalObject<RspackInternal>")]
-pub fn new_rspack(option_json: String, onload_callback: JsFunction) -> External<Rspack> {
+#[allow(clippy::too_many_arguments)]
+pub fn new_rspack(
+  option_json: String,
+  onload_callback: JsFunction,
+  onresolve_callback: JsFunction,
+) -> External<Rspack> {
   let options: RawOptions = serde_json::from_str(option_json.as_str()).unwrap();
   let loader = options.loader.map(|loader| parse_loader(loader));
 
@@ -66,7 +71,7 @@ pub fn new_rspack(option_json: String, onload_callback: JsFunction) -> External<
               let result = return_value.await?;
 
               let load_result: adapter::RspackThreadsafeResult<Option<adapter::OnLoadResult>> =
-                serde_json::from_str(&result).unwrap();
+                serde_json::from_str(&result).expect("failed to evaluate onload result");
 
               tracing::debug!("onload result {:?}", load_result);
 
@@ -74,6 +79,43 @@ pub fn new_rspack(option_json: String, onload_callback: JsFunction) -> External<
 
               if let Some((_, sender)) = sender {
                 sender.send(load_result.into_inner()).unwrap();
+              } else {
+                panic!("unable to send");
+              }
+
+              Ok(())
+            },
+            |_, ret| Ok(ret),
+          )
+          .expect("failed to execute tokio future");
+      },
+    )
+    .unwrap();
+
+  let onresolve_tsfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled> = onresolve_callback
+    .create_threadsafe_function(
+      0,
+      |ctx| ctx.env.create_string_from_std(ctx.value).map(|v| vec![v]),
+      |ctx: ThreadSafeResultContext<Promise<String>>| {
+        let return_value = ctx.return_value;
+
+        ctx
+          .env
+          .execute_tokio_future(
+            async move {
+              let result = return_value.await?;
+
+              let resolve_result: adapter::RspackThreadsafeResult<
+                Option<adapter::OnResolveResult>,
+              > = serde_json::from_str(&result).expect("failed to evaluate onresolve result");
+
+              tracing::debug!("[rspack:binding] onresolve result {:?}", resolve_result);
+
+              let sender =
+                adapter::REGISTERED_ON_RESOLVE_SENDERS.remove(&resolve_result.get_call_id());
+
+              if let Some((_, sender)) = sender {
+                sender.send(resolve_result.into_inner()).unwrap();
               } else {
                 panic!("unable to send");
               }
@@ -126,7 +168,8 @@ pub fn new_rspack(option_json: String, onload_callback: JsFunction) -> External<
       ..Default::default()
     },
     vec![Box::new(adapter::RspackPluginNodeAdapter {
-      onload_tsfn: onload_tsfn.clone(),
+      onload_tsfn,
+      onresolve_tsfn,
     })],
   );
   create_external(Arc::new(Mutex::new(rspack)))

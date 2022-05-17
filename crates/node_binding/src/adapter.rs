@@ -4,11 +4,10 @@ use std::sync::{
   Arc,
 };
 
-use rspack_core::{BundleContext, Plugin, PluginLoadHookOutput};
+use rspack_core::{BundleContext, Plugin, PluginLoadHookOutput, PluginResolveHookOutput};
 
 use async_trait::async_trait;
 use dashmap::DashMap;
-use napi::bindgen_prelude::*;
 use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi_derive::napi;
 use once_cell::sync::Lazy;
@@ -16,11 +15,17 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::oneshot::{self, Sender};
 
 pub static CALL_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(1));
+
 pub static REGISTERED_ON_LOAD_SENDERS: Lazy<Arc<DashMap<usize, Sender<Option<OnLoadResult>>>>> =
   Lazy::new(|| Default::default());
 
+pub static REGISTERED_ON_RESOLVE_SENDERS: Lazy<
+  Arc<DashMap<usize, Sender<Option<OnResolveResult>>>>,
+> = Lazy::new(|| Default::default());
+
 pub struct RspackPluginNodeAdapter {
   pub onload_tsfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled>,
+  pub onresolve_tsfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -80,6 +85,21 @@ pub struct OnLoadResult {
   pub loader: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+#[napi(object)]
+pub struct OnResolveContext {
+  pub importer: Option<String>,
+  pub importee: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct OnResolveResult {
+  pub uri: String,
+  pub external: bool,
+}
+
 impl Debug for RspackPluginNodeAdapter {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("RspackPluginNodeAdapter").finish()
@@ -92,13 +112,19 @@ impl Plugin for RspackPluginNodeAdapter {
     "rspack_plugin_node_adapter"
   }
 
+  #[tracing::instrument(skip_all)]
   async fn load(&self, _ctx: &BundleContext, id: &str) -> PluginLoadHookOutput {
     let load_context = RspackThreadsafeContext::new(OnLoadContext { id: id.to_owned() });
 
     let (tx, rx) = oneshot::channel::<Option<OnLoadResult>>();
 
     match REGISTERED_ON_LOAD_SENDERS.entry(load_context.call_id) {
-      dashmap::mapref::entry::Entry::Occupied(_) => {}
+      dashmap::mapref::entry::Entry::Occupied(_) => {
+        panic!(
+          "duplicated call id encountered {}, please file an issue.",
+          load_context.call_id
+        );
+      }
       dashmap::mapref::entry::Entry::Vacant(v) => {
         v.insert(tx);
       }
@@ -113,7 +139,7 @@ impl Plugin for RspackPluginNodeAdapter {
 
     let load_result = rx.await.expect("failed to receive onload result");
 
-    println!("load result from node {:#?}", load_result);
+    tracing::debug!("[rspack:binding] load result {:#?}", load_result);
 
     load_result.map(|result| rspack_core::LoadedSource {
       loader: result.loader.map(|loader| {
@@ -133,6 +159,49 @@ impl Plugin for RspackPluginNodeAdapter {
         }
       }),
       content: result.content,
+    })
+  }
+
+  #[tracing::instrument(skip_all)]
+  async fn resolve(
+    &self,
+    _ctx: &BundleContext,
+    importee: &str,
+    importer: Option<&str>,
+  ) -> PluginResolveHookOutput {
+    let resolve_context = RspackThreadsafeContext::new(OnResolveContext {
+      importer: importer.map(|s| s.to_owned()),
+      importee: importee.to_owned(),
+    });
+
+    let (tx, rx) = oneshot::channel::<Option<OnResolveResult>>();
+
+    match REGISTERED_ON_RESOLVE_SENDERS.entry(resolve_context.call_id) {
+      dashmap::mapref::entry::Entry::Occupied(_) => {
+        panic!(
+          "duplicated call id encountered {}, please file an issue.",
+          resolve_context.call_id
+        );
+      }
+      dashmap::mapref::entry::Entry::Vacant(v) => {
+        v.insert(tx);
+      }
+    }
+
+    let serialized_resolve_context = serde_json::to_string(&resolve_context).unwrap();
+
+    self.onresolve_tsfn.call(
+      Ok(serialized_resolve_context),
+      ThreadsafeFunctionCallMode::Blocking,
+    );
+
+    let resolve_result = rx.await.expect("failed to receive onresolve result");
+
+    tracing::debug!("[rspack:binding] resolve result {:#?}", resolve_result);
+
+    resolve_result.map(|result| rspack_core::ResolvedURI {
+      uri: result.uri,
+      external: result.external,
     })
   }
 }

@@ -16,6 +16,14 @@ export interface OnLoadResult {
   content?: string
   loader?: string
 }
+export interface OnResolveContext {
+  importer?: string
+  importee: string
+}
+export interface OnResolveResult {
+  uri: string
+  external: boolean
+}
 export function initCustomTraceSubscriber(): void
 export interface RawOptions {
   entries: Array<string>
@@ -30,7 +38,7 @@ export interface RawOptions {
   sourceMap?: boolean
   codeSplitting?: boolean
 }
-export function newRspack(optionJson: string, onloadCallback: (...args: any[]) => any): ExternalObject<RspackInternal>
+export function newRspack(optionJson: string, onloadCallback: (...args: any[]) => any, onresolveCallback: (...args: any[]) => any): ExternalObject<RspackInternal>
 export function build(rspack: ExternalObject<RspackInternal>): object
 export function rebuild(rspack: ExternalObject<RspackInternal>, changedFile: string): object
 export interface ResolveRet {
