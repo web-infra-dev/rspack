@@ -67,6 +67,7 @@
     "alias": {
       "@/": "<ROOT>/src/"
     },
-    "sourcemap": false
+    "sourcemap": false,
+    "code_splitting": false
   }
 }
