@@ -1,16 +1,16 @@
 import createDebug from "debug";
 
-import type { RawOptions, ExternalObject, OnLoadContext, OnResolveContext } from "@rspack/binding";
+import type { RawOptions, ExternalObject, OnLoadContext, OnResolveContext, OnLoadResult, OnResolveResult } from "@rspack/binding";
 import * as binding from "@rspack/binding";
 
-import type { RspackPlugin } from "./plugin"
+import type { RspackPlugin } from "./plugin";
 
 const debugRspack = createDebug("rspack");
 const debugNapi = createDebug("napi");
 
 binding.initCustomTraceSubscriber();
 
-export type { RawOptions };
+export type { RawOptions, OnLoadContext, OnResolveResult, OnLoadResult, OnResolveContext };
 
 interface RspackOptions extends RawOptions {
   plugins?: RspackPlugin[]
