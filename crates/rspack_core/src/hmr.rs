@@ -161,16 +161,16 @@ impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
         .get(&rid.uri)
         .expect(&format!("not found:{}", str));
       let js_module_id = js_module.id.as_str();
-      if self.code_splitting {
-        let callee = Ident::new(RS_DYNAMIC_REQUIRE.into(), DUMMY_SP).as_callee();
-        let chunk_id = Vec::from_iter(&js_module.chunkd_ids)[0];
+
+      let callee = Ident::new(RS_DYNAMIC_REQUIRE.into(), DUMMY_SP).as_callee();
+      if let Some(chunk_id) = Vec::from_iter(&js_module.chunkd_ids).get(0) {
         let arg = Lit::Str(js_module_id.into()).as_arg();
         let arg2 = Lit::Str(chunk_id.as_str().into()).as_arg();
         call_expr.callee = callee;
         call_expr.args = vec![arg, arg2];
       } else {
         let arg = Lit::Str(js_module_id.into()).as_arg();
-        let callee = Ident::new(RS_REQUIRE.into(), DUMMY_SP).as_callee();
+        let callee = Ident::new(RS_DYNAMIC_REQUIRE.into(), DUMMY_SP).as_callee();
         call_expr.callee = callee;
         call_expr.args = vec![arg];
       }
