@@ -16,6 +16,7 @@ use tracing::instrument;
 use crate::chunk_spliter::ChunkSpliter;
 use crate::utils::inject_built_in_plugins;
 use crate::utils::log::enable_tracing_by_env;
+use crate::utils::rayon::init_rayon_thread_poll;
 use rspack_core::get_swc_compiler;
 pub use rspack_core::hmr::hmr_module;
 use rspack_core::Plugin;
@@ -51,6 +52,7 @@ pub struct Bundler {
 impl Bundler {
   pub fn new(options: BundleOptions, plugins: Vec<Box<dyn Plugin>>) -> Self {
     enable_tracing_by_env();
+    init_rayon_thread_poll();
     println!(
       "create bundler with options:\n {:#?} \nplugins:\n {:#?}\n",
       options, plugins

@@ -2,6 +2,7 @@ use rspack_core::{BundleOptions, NormalizedBundleOptions, Plugin};
 use rspack_plugin_css::plugin::CssSourcePlugin;
 
 pub mod log;
+pub mod rayon;
 
 pub fn inject_built_in_plugins(
   mut user_plugins: Vec<Box<dyn Plugin>>,

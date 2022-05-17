@@ -277,4 +277,10 @@ mod testing {
     assert!(source.contains("ok.js"));
     assert!(source.contains("at.js"));
   }
+
+  #[test]
+
+  fn stack_overflow_mockjs() {
+    compile("stack_overflow_mockjs", vec![]);
+  }
 }
