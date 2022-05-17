@@ -3,8 +3,6 @@ use core::fmt::Debug;
 use rspack_core::{BundleContext, Plugin, PluginLoadHookOutput};
 use rspack_swc::swc_common::private::serde::de;
 use std::ops::MulAssign;
-pub static PLUGIN_NAME: &'static str = "rspack_progress";
-// use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
 use std::sync::atomic::{AtomicU32, AtomicU64, AtomicU8, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard, Weak};
 extern crate console;
@@ -17,6 +15,7 @@ use std::thread;
 use std::time::Duration;
 use std::{env, fs};
 
+pub static PLUGIN_NAME: &'static str = "rspack_progress";
 fn get_bar(w: u16, current: u16, fe_color: u8, bg_color: u8) -> String {
   let fe = format!("{}", style(" ").bg(Color::Color256(fe_color)).to_string());
   let bg = format!("{}", style(" ").bg(Color::Color256(bg_color)).to_string());
@@ -78,13 +77,16 @@ impl ProgressBar {
 
   pub fn update(&self, key: &str, filename: &str, delta: u32, clear: bool) -> io::Result<()> {
     let term = self.term.lock().unwrap();
+    let mut out = stdout().into_raw_mode().unwrap();
+    let mut pos = (0, 2);
+
     if clear {
       term.clear_screen()?;
-      // term.clear_last_lines(1)?;
     } else {
-      term.clear_screen()?;
-      // term.clear_screen()?;
+      pos = out.cursor_pos().unwrap_or((0, 2));
     }
+    term.move_cursor_to(0, 1)?;
+    term.clear_line()?;
     let mut x = self.current.lock().unwrap();
     *x = *x + delta;
     let t = *self.total.lock().unwrap();
@@ -108,6 +110,7 @@ impl ProgressBar {
     s += &style(&truncate(filename, 25)).dim().to_string();
     s += "\n";
     term.write_str(&s)?;
+    term.move_cursor_to(0, (pos.1 - 1) as usize)?;
     Ok(())
   }
 
@@ -115,7 +118,9 @@ impl ProgressBar {
     Ok(())
   }
 }
-
+use std::io::stdout;
+use termion::cursor::DetectCursorPos;
+use termion::raw::IntoRawMode;
 #[derive(Debug)]
 pub struct ProgressPlugin {
   progress: ProgressBar,
@@ -123,7 +128,7 @@ pub struct ProgressPlugin {
 impl ProgressPlugin {
   pub fn new() -> ProgressPlugin {
     let progress = ProgressBar::new(25);
-    progress.update("RsPack", "", 0, false).unwrap();
+    progress.update("RsPack", "", 0, true).unwrap();
     ProgressPlugin { progress }
   }
 }
@@ -157,7 +162,7 @@ impl Plugin for ProgressPlugin {
     // if matches!(_ctx.options.mode, BundleMode::Dev) {
     //   return None;
     // }
-    self.progress.update("RsPack", id, 1, true).unwrap();
+    self.progress.update("RsPack", id, 1, false).unwrap();
     None
   }
   async fn build_end(&self, _ctx: &BundleContext) {
