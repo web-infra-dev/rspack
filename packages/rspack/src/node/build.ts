@@ -29,6 +29,7 @@ export type BundlerOptions = Partial<RawOptions> & {
   react: Record<string, any>;
   sourceMap: boolean;
 };
+
 export async function run(options: BundlerOptions) {
   const { root, entry, loader, inlineStyle, alias, react } = options;
   // const entry = path.resolve(root, 'index.js');

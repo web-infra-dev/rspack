@@ -9,6 +9,21 @@ export class ExternalObject<T> {
     [K: symbol]: T
   }
 }
+export interface OnLoadContext {
+  id: string
+}
+export interface OnLoadResult {
+  content?: string
+  loader?: string
+}
+export interface OnResolveContext {
+  importer?: string
+  importee: string
+}
+export interface OnResolveResult {
+  uri: string
+  external: boolean
+}
 export function initCustomTraceSubscriber(): void
 export interface RawOptions {
   entries: Array<string>
@@ -23,10 +38,7 @@ export interface RawOptions {
   sourceMap?: boolean
   codeSplitting?: boolean
 }
-export interface RspackInternal {
-  
-}
-export function newRspack(optionJson: string): ExternalObject<RspackInternal>
+export function newRspack(optionJson: string, onloadCallback: (...args: any[]) => any, onresolveCallback: (...args: any[]) => any): ExternalObject<RspackInternal>
 export function build(rspack: ExternalObject<RspackInternal>): object
 export function rebuild(rspack: ExternalObject<RspackInternal>, changedFile: string): object
 export interface ResolveRet {
@@ -34,3 +46,6 @@ export interface ResolveRet {
   result?: string
 }
 export function resolve(rspack: ExternalObject<RspackInternal>, id: string, dir: string): object
+export interface RspackInternal {
+  
+}

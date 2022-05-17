@@ -10,8 +10,8 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-napi = { version = "2.3.1", default-features = false, features = ["async", "tokio_rt", "serde-json"] }
-napi-derive = "2.3.0"
+napi = { git = "https://github.com/speedy-js/napi-rs", branch = "speedy", default-features = false, features = ["async", "tokio_rt", "serde-json"] }
+napi-derive = { git = "https://github.com/speedy-js/napi-rs", branch = "speedy" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rspack = { path = "../rspack" }
@@ -19,8 +19,10 @@ rspack_core = { path = "../rspack_core" }
 futures = "0.3"
 nodejs-resolver = "0.0.10"
 once_cell = "1"
-
-
+async-trait = "0.1.53"
+dashmap = "5.0.0"
+tokio = { version = "1.17.0", features = ["full"] }
+tracing = "0.1.34"
 
 [target.'cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))'.dependencies]
 mimalloc-rust = { version = "0.1" }
