@@ -1678,6 +1678,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_plugin_import_rewriter"
+version = "0.1.0"
+dependencies = [
+ "rspack_core",
+ "rspack_swc",
+]
+
+[[package]]
 name = "rspack_plugin_loader"
 version = "0.1.0"
 dependencies = [
