@@ -34,6 +34,10 @@ const createDummyResult = (callId: number): string => {
   return JSON.stringify(result);
 }
 
+const isNil = (value: unknown): value is null | undefined => {
+  return value === null || value === undefined
+}
+
 class Rspack {
   #instance: ExternalObject<any>;
 
@@ -47,12 +51,16 @@ class Rspack {
     const plugins = (innerOptions.plugins || []);
 
     const onLoad = async (err, value: string): Promise<string> => {
-      const context: RspackThreadsafeContext<OnLoadContext> = JSON.parse(value)
+      const context: RspackThreadsafeContext<OnLoadContext> = JSON.parse(value);
       debugNapi("onLoadcontext", context);
 
       for (const plugin of plugins) {
         const result = await plugin.onLoad(context.inner);
         debugNapi("onLoadResult", result);
+
+        if(isNil(result)) {
+          continue;
+        }
 
         return JSON.stringify({
           callId: context.callId,
@@ -66,12 +74,16 @@ class Rspack {
     }
 
     const onResolve = async (err, value: string): Promise<string> => {
-      const context: RspackThreadsafeContext<OnResolveContext> = JSON.parse(value)
+      const context: RspackThreadsafeContext<OnResolveContext> = JSON.parse(value);
       debugNapi("onResolveContext", context);
 
       for (const plugin of plugins) {
         const result = await plugin.onResolve(context.inner);
         debugNapi("onResolveResult", result);
+
+        if(isNil(result)) {
+          continue;
+        }
 
         return JSON.stringify({
           callId: context.callId,
