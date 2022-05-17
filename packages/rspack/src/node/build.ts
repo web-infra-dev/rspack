@@ -3,6 +3,7 @@ import path from 'path';
 import { DevServer } from './server';
 import chokidar from 'chokidar';
 import { Rspack } from './rspack';
+import { RawOptions } from '@rspack/binding';
 type Defer = {
   resolve: any;
   reject: any;
@@ -18,7 +19,7 @@ const Defer = (): Defer => {
 
   return deferred;
 };
-export type BundlerOptions = {
+export type BundlerOptions = Partial<RawOptions> & {
   entry: Record<string, string>;
   root: string;
   manualChunks: Record<string, string[]>;
@@ -46,6 +47,7 @@ export async function run(options: BundlerOptions) {
     alias,
     refresh: options.react.refresh,
     sourceMap: options.sourceMap,
+    codeSplitting: options.codeSplitting,
   });
   const server = new DevServer({
     root,

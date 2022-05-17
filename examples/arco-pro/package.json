@@ -68,6 +68,6 @@
       "@/": "<ROOT>/src/"
     },
     "sourcemap": false,
-    "code_splitting": false
+    "splitting": false
   }
 }

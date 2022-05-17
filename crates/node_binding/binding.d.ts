@@ -21,6 +21,7 @@ export interface RawOptions {
   alias?: Record<string, string>
   refresh?: boolean
   sourceMap?: boolean
+  codeSplitting?: boolean
 }
 export interface RspackInternal {
   

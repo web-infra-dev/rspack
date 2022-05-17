@@ -32,11 +32,11 @@ yargs
       for (const [key, value] of Object.entries(entry)) {
         entry[key] = path.resolve(root, value as string);
       }
-      console.log('pkg?.rspack:', pkg?.rspack);
       let alias = pkg?.rspack?.alias ?? {};
       alias = Object.fromEntries(
         Object.entries(alias).map(([key, value]) => [key, (value as string).replace('<ROOT>', process.cwd)])
       );
+      console.log('pkg:', pkg?.rspack);
       run({
         entry: entry,
         root: root,
@@ -48,6 +48,7 @@ yargs
           refresh: pkg?.rspack?.react?.refresh,
         },
         sourceMap: pkg?.rspack?.sourcemap ?? true,
+        codeSplitting: pkg?.rspack.splitting ?? true,
       });
     }
   )

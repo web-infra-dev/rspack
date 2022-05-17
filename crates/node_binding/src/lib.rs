@@ -37,6 +37,7 @@ struct RawOptions {
   pub alias: Option<HashMap<String, String>>,
   pub refresh: Option<bool>,
   pub source_map: Option<bool>,
+  pub code_splitting: Option<bool>,
 }
 
 pub type Rspack = Arc<Mutex<RspackBundler>>;
@@ -53,7 +54,7 @@ pub fn new_rspack(option_json: String) -> External<Rspack> {
     RspackBundlerOptions {
       entries: options.entries,
       minify: options.minify,
-      code_splitting: false,
+      code_splitting: options.code_splitting.unwrap_or_default(),
       outdir: options.outdir.unwrap_or_else(|| {
         std::env::current_dir()
           .unwrap()

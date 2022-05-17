@@ -1,5 +1,5 @@
-import type { RawOptions, ExternalObject } from "@rspack/binding";
-import * as binding from "@rspack/binding";
+import type { RawOptions, ExternalObject } from '@rspack/binding';
+import * as binding from '@rspack/binding';
 binding.initCustomTraceSubscriber();
 
 export type { RawOptions };
@@ -11,7 +11,7 @@ class Rspack {
       minify: false,
       ...rawOptions,
     };
-    console.log("rawOpts", rawOptions);
+    console.log('rawOpts', rawOptions);
     this._instance = binding.newRspack(JSON.stringify(options));
   }
 
