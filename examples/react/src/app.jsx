@@ -13,9 +13,8 @@ const App = () => {
       <div>hello world</div>
       <Button></Button>
 
-      <img src={LogoUrl} alt="logo" />
-      <Logo />
-      <Logo width={"20em"} height={"20em"} />
+      <img style={{ width: "40px", height: "40px" }} src={LogoUrl} alt="logo" />
+      <Logo width={"40px"} height={"40px"} />
     </React.Suspense>
   );
 };

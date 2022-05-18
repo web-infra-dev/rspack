@@ -13,7 +13,11 @@ pub fn inject_built_in_plugins(
   })];
   // start --- injected user plugins
   plugins.push(Box::new(rspack_plugin_progress::ProgressPlugin::new()));
-  if matches!(options.loader.get("svg"), Some(Loader::Svgr)) {
+  let use_svgr = match options.loader.get("svg") {
+    Some(x) => matches!(x, &Loader::Svgr),
+    _ => false,
+  };
+  if use_svgr {
     plugins.push(Box::new(rspack_plugin_svgr::SvgrPlugin {}))
   }
   plugins.append(&mut user_plugins);
