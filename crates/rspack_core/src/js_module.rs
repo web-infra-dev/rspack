@@ -14,7 +14,7 @@ use swc_ecma_transforms_base::pass::noop;
 use tracing::instrument;
 
 use crate::{
-  hmr::hmr_module, syntax, Bundle, BundleContext, BundleMode, NormalizedBundleOptions, ResolvedURI,
+  hmr::hmr_module, syntax, BundleContext, BundleMode, NormalizedBundleOptions, ResolvedURI,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -82,60 +82,61 @@ impl JsModule {
   pub fn render(
     &self,
     compiler: &Compiler,
-    handler: &Handler,
     modules: &HashMap<String, JsModule>,
     options: &NormalizedBundleOptions,
     bundle: &BundleContext,
-  ) -> anyhow::Result<TransformOutput> {
+  ) -> TransformOutput {
     use swc::config::{self as swc_config, SourceMapsConfig};
-    let fm = compiler
-      .cm
-      .new_source_file(FileName::Custom(self.uri.to_string()), self.uri.to_string());
 
-    let source_map = if self.id.contains("node_modules") {
-      false
-    } else {
-      options.source_map
-    };
-
-    compiler.process_js_with_custom_pass(
-      fm,
-      Some(ast::Program::Module(self.ast.clone())),
-      handler,
-      &swc_config::Options {
-        config: swc_config::Config {
-          jsc: swc_config::JscConfig {
-            target: Some(EsVersion::Es2022),
-            syntax: Some(syntax(self.uri.as_str())),
-            transform: Some(swc_config::TransformConfig {
-              react: swc_ecma_transforms_react::Options {
-                runtime: Some(swc_ecma_transforms_react::Runtime::Automatic),
+    swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
+      let fm = compiler
+        .cm
+        .new_source_file(FileName::Custom(self.uri.to_string()), self.uri.to_string());
+      let source_map = if self.id.contains("node_modules") {
+        false
+      } else {
+        options.source_map
+      };
+      compiler.process_js_with_custom_pass(
+        fm,
+        Some(ast::Program::Module(self.ast.clone())),
+        handler,
+        &swc_config::Options {
+          config: swc_config::Config {
+            jsc: swc_config::JscConfig {
+              target: Some(EsVersion::Es2022),
+              syntax: Some(syntax(self.uri.as_str())),
+              transform: Some(swc_config::TransformConfig {
+                react: swc_ecma_transforms_react::Options {
+                  runtime: Some(swc_ecma_transforms_react::Runtime::Automatic),
+                  ..Default::default()
+                },
                 ..Default::default()
-              },
+              })
+              .into(),
               ..Default::default()
-            })
-            .into(),
+            },
+            inline_sources_content: true.into(),
+            emit_source_map_columns: (!matches!(options.mode, BundleMode::Dev)).into(),
+            source_maps: Some(SourceMapsConfig::Bool(source_map)),
             ..Default::default()
           },
-          inline_sources_content: true.into(),
-          emit_source_map_columns: (!matches!(options.mode, BundleMode::Dev)).into(),
-          source_maps: Some(SourceMapsConfig::Bool(source_map)),
+          top_level_mark: Some(bundle.top_level_mark),
           ..Default::default()
         },
-        top_level_mark: Some(bundle.top_level_mark),
-        ..Default::default()
-      },
-      |_, _| noop(),
-      |_, _| {
-        hmr_module(
-          self.id.to_string(),
-          bundle.top_level_mark,
-          &self.resolved_uris,
-          self.is_user_defined_entry_point,
-          modules,
-          self.code_splitting,
-        )
-      },
-    )
+        |_, _| noop(),
+        |_, _| {
+          hmr_module(
+            self.id.to_string(),
+            bundle.top_level_mark,
+            &self.resolved_uris,
+            self.is_user_defined_entry_point,
+            modules,
+            self.code_splitting,
+          )
+        },
+      )
+    })
+    .unwrap()
   }
 }

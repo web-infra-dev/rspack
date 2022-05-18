@@ -1,9 +1,11 @@
 use std::{collections::HashMap, sync::Arc};
 
+use dashmap::DashMap;
 use rayon::prelude::*;
 use rspack_core::NormalizedBundleOptions;
 use rspack_core::PluginDriver;
 use rspack_core::{get_swc_compiler, Bundle};
+use rspack_swc::swc::TransformOutput;
 use tracing::instrument;
 
 use self::split_chunks::split_chunks;
@@ -18,11 +20,15 @@ pub struct OutputChunk {
 #[derive(Debug)]
 pub struct ChunkSpliter {
   pub output_options: Arc<NormalizedBundleOptions>,
+  pub output_modules: DashMap<String, Arc<TransformOutput>>,
 }
 
 impl ChunkSpliter {
   pub fn new(output_options: Arc<NormalizedBundleOptions>) -> Self {
-    Self { output_options }
+    Self {
+      output_options,
+      output_modules: DashMap::default(),
+    }
   }
 
   #[instrument(skip(self, plugin_dirver, bundle))]
@@ -50,7 +56,12 @@ impl ChunkSpliter {
     chunks
       .par_iter_mut()
       .map(|chunk| {
-        let chunk = chunk.render(&self.output_options, compiler.clone(), bundle);
+        let chunk = chunk.render(
+          &self.output_options,
+          compiler.clone(),
+          bundle,
+          &self.output_modules,
+        );
         (
           chunk.file_name.clone(),
           OutputChunk {

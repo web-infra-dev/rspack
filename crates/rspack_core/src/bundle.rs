@@ -55,10 +55,6 @@ impl Bundle {
     let job_queue: Arc<SegQueue<ResolvedURI>> = Default::default();
 
     if let Some(files) = changed_files {
-      files.iter().for_each(|rd| {
-        self.module_graph.module_by_id.remove(rd);
-        self.visited_module_id.remove(rd);
-      });
       files.into_iter().for_each(|rd| {
         job_queue.push(ResolvedURI {
           uri: rd,
