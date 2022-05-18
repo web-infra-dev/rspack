@@ -36,7 +36,7 @@ impl Fold for InjectReactRefreshEntryFloder {
     body.push(ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
       span: DUMMY_SP,
       specifiers: vec![],
-      src: quote_str!(hmr_entry_path.to_string()),
+      src: quote_str!(HMR_ENTRY_PATH.to_string()),
       type_only: false,
       asserts: None,
     })));
@@ -46,16 +46,16 @@ impl Fold for InjectReactRefreshEntryFloder {
   }
 }
 
-pub static hmr_runtime_path: &str = "/@react-refresh.js";
+pub static HMR_RUNTIME_PATH: &str = "/@react-refresh.js";
 
-pub static hmr_entry_path: &str = "/react-hmr-entry.js";
+pub static HMR_ENTRY_PATH: &str = "/react-hmr-entry.js";
 
-pub static hmr_entry: &str = r#"import RefreshRuntime from "/@react-refresh.js";
+pub static HMR_ENTRY: &str = r#"import RefreshRuntime from "/@react-refresh.js";
 RefreshRuntime.injectIntoGlobalHook(window);
 window.$RefreshReg$ = () => {};
 window.$RefreshSig$ = () => (type) => type;"#;
 
-static hmr_header: &str = r#"import RefreshRuntime from "/@react-refresh.js";
+static HMR_HEADER: &str = r#"import RefreshRuntime from "/@react-refresh.js";
 var prevRefreshReg;
 var prevRefreshSig;
 prevRefreshReg = window.$RefreshReg$;
@@ -65,15 +65,11 @@ window.$RefreshReg$ = (type, id) => {
 };
 window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;"#;
 
-static hmr_footer: &str = r#"window.$RefreshReg$ = prevRefreshReg;
+static HMR_FOOTER: &str = r#"window.$RefreshReg$ = prevRefreshReg;
 window.$RefreshSig$ = prevRefreshSig;
 module.hot.accept();
-if (!window.__vite_plugin_react_timeout) {
-  window.__vite_plugin_react_timeout = setTimeout(() => {
-    window.__vite_plugin_react_timeout = 0;
-    RefreshRuntime.performReactRefresh();
-  }, 30);
-}"#;
+RefreshRuntime.queueUpdate();
+"#;
 
 pub struct ReactHmrFolder {
   pub id: String,
@@ -82,13 +78,13 @@ pub struct ReactHmrFolder {
 impl Fold for ReactHmrFolder {
   fn fold_module(&mut self, mut module: Module) -> Module {
     let hmr_header_ast = parse_file(
-      hmr_header
+      HMR_HEADER
         .replace("__SOURCE__", self.id.as_str())
         .to_string(),
       "",
       &rspack_core::Loader::Js,
     );
-    let hmr_footer_ast = parse_file(hmr_footer.to_string(), "", &rspack_core::Loader::Js);
+    let hmr_footer_ast = parse_file(HMR_FOOTER.to_string(), "", &rspack_core::Loader::Js);
 
     let mut body = vec![];
     body.append(&mut match hmr_header_ast {
@@ -127,7 +123,7 @@ pub fn load_hmr_runtime_path(root: &String) -> String {
             handle = setTimeout(fn, delay)
           }
         }
-        exports.performReactRefresh = debounce(exports.performReactRefresh, 16)
+        exports.queueUpdate = debounce(exports.performReactRefresh, 16)
         export default exports
         "#
       )

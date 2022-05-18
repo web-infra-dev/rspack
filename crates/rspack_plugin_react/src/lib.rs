@@ -1,8 +1,8 @@
 mod react_hmr;
 use async_trait::async_trait;
 use react_hmr::{
-  hmr_entry, hmr_entry_path, hmr_runtime_path, load_hmr_runtime_path, FoundReactRefreshVisitor,
-  InjectReactRefreshEntryFloder, ReactHmrFolder,
+  load_hmr_runtime_path, FoundReactRefreshVisitor, InjectReactRefreshEntryFloder, ReactHmrFolder,
+  HMR_ENTRY, HMR_ENTRY_PATH, HMR_RUNTIME_PATH,
 };
 use rspack_core::path::normalize_path;
 use rspack_core::{
@@ -33,7 +33,7 @@ impl Plugin for ReactPlugin {
     id: &str,
     _importer: Option<&str>,
   ) -> PluginResolveHookOutput {
-    if id == hmr_runtime_path || id == hmr_entry_path {
+    if id == HMR_RUNTIME_PATH || id == HMR_ENTRY_PATH {
       Some(ResolvedURI {
         uri: id.to_string(),
         external: false,
@@ -44,13 +44,13 @@ impl Plugin for ReactPlugin {
   }
 
   async fn load(&self, _ctx: &BundleContext, id: &str) -> PluginLoadHookOutput {
-    if id == hmr_runtime_path {
+    if id == HMR_RUNTIME_PATH {
       return Some(LoadedSource::with_loader(
         load_hmr_runtime_path(&_ctx.options.as_ref().root),
         Loader::Js,
       ));
-    } else if id == hmr_entry_path {
-      return Some(LoadedSource::with_loader(hmr_entry.to_string(), Loader::Js));
+    } else if id == HMR_ENTRY_PATH {
+      return Some(LoadedSource::with_loader(HMR_ENTRY.to_string(), Loader::Js));
     } else {
       return None;
     }

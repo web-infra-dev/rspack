@@ -115,20 +115,26 @@ impl Bundler {
   #[instrument(skip(self))]
   pub async fn rebuild(&mut self, changed_file: String) -> HashMap<String, String> {
     tracing::debug!("rebuld bacause of {:?}", changed_file);
-    let mut old_modules_id = self
+    let changed_files = vec![changed_file];
+    let old_modules_id = self
       .bundle
       .module_graph
       .module_by_id
       .keys()
       .cloned()
+      .filter(|id| !changed_files.contains(id))
       .collect::<HashSet<_>>();
-    let changed_file: String = changed_file.into();
-    old_modules_id.remove(&changed_file);
+
     tracing::trace!("old_modules_id {:?}", old_modules_id);
 
     self.bundle.context.assets.lock().unwrap().clear();
+    changed_files.iter().for_each(|rd| {
+      self.bundle.module_graph.module_by_id.remove(rd);
+      self.bundle.visited_module_id.remove(rd);
+      self.chunk_spliter.output_modules.remove(rd);
+    });
 
-    self.build(Some(vec![changed_file])).await;
+    self.build(Some(changed_files)).await;
 
     let new_modules_id = self
       .bundle
@@ -142,26 +148,16 @@ impl Bundler {
       .filter(|module_id| !old_modules_id.contains(module_id))
       .map(|module_id| {
         tracing::trace!("render new added module {:?}", module_id);
-        let module = self
-          .bundle
-          .module_graph
-          .module_by_id
-          .get(&module_id)
-          .unwrap();
-        let compiler = get_swc_compiler();
-
-        let transform_output =
-          swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
-            module.render(
-              &compiler,
-              handler,
-              &self.bundle.module_graph.module_by_id,
-              &self.options,
-              &self.bundle.context,
-            )
-          })
-          .unwrap();
-        (module_id.to_string(), transform_output.code)
+        (
+          module_id.to_string(),
+          self
+            .chunk_spliter
+            .output_modules
+            .get(&module_id)
+            .unwrap()
+            .code
+            .clone(),
+        )
       })
       .collect();
     diff_rendered

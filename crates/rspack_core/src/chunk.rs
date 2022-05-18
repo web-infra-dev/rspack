@@ -1,10 +1,14 @@
-use crate::{js_module::JsModule, Bundle, BundleContext, NormalizedBundleOptions};
+use crate::{Bundle, NormalizedBundleOptions};
+use dashmap::DashMap;
 use petgraph::graph::NodeIndex;
 use rayon::prelude::*;
 use rspack_sources::{
   ConcatSource, GenMapOption, RawSource, Source, SourceMapSource, SourceMapSourceOptions,
 };
-use rspack_swc::{swc, swc_common};
+use rspack_swc::{
+  swc::{self, TransformOutput},
+  swc_common,
+};
 use std::{
   collections::{hash_map::DefaultHasher, HashMap},
   hash::{Hash, Hasher},
@@ -54,24 +58,36 @@ impl Chunk {
     options: &NormalizedBundleOptions,
     compiler: Arc<Compiler>,
     bundle: &Bundle,
+    output_modules: &DashMap<String, Arc<TransformOutput>>,
   ) -> RenderedChunk {
     let mut concattables: Vec<Box<dyn Source>> = vec![];
     let modules = &bundle.module_graph.module_by_id;
     self.module_ids.sort_by_key(|id| 0 - modules[id].exec_order);
 
-    let rendered_modules = self
-      .module_ids
+    let mut not_transformed_module_ids: Vec<String> = vec![];
+    for id in self.module_ids.iter() {
+      if output_modules.get(id).is_none() {
+        not_transformed_module_ids.push(id.clone());
+      }
+    }
+
+    let rendered_modules = not_transformed_module_ids
       .par_iter()
-      .map(|idx| {
-        let module = modules.get(idx).unwrap();
-        swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
-          module.render(&compiler, handler, modules, options, &bundle.context)
-        })
-        .unwrap()
+      .map(|id| {
+        let module = modules.get(id).unwrap();
+        module.render(&compiler, &modules, options, &bundle.context)
       })
       .collect::<Vec<_>>();
 
-    rendered_modules.into_iter().for_each(|transform_output| {
+    for (id, output) in not_transformed_module_ids
+      .iter()
+      .zip(rendered_modules.into_iter())
+    {
+      output_modules.insert(id.to_string(), Arc::new(output));
+    }
+
+    self.module_ids.iter().for_each(|id| {
+      let transform_output = output_modules.get(id).unwrap();
       if let Some(map_string) = &transform_output.map.as_ref() {
         let source_map = sourcemap::SourceMap::from_slice(map_string.as_bytes()).unwrap();
         concattables.push(Box::new(SourceMapSource::new(SourceMapSourceOptions {

@@ -9,5 +9,5 @@ export function FunctionNamed() {
     }, 100);
   }, [])
 
-  return <h1>1Named Export Function {data}</h1>;
+  return <h1>Named Export Function {data}</h1>;
 }
