@@ -66,6 +66,12 @@ pub fn syntax_by_ext(ext: &str) -> Syntax {
 }
 
 pub fn syntax_by_loader(filename: &str, loader: &Loader) -> Syntax {
+  println!(
+    "finename: {} {:?} {}",
+    filename,
+    loader,
+    matches!(loader, Loader::Jsx)
+  );
   match loader {
     Loader::Js | Loader::Jsx => Syntax::Es(EsConfig {
       private_in_object: true,
