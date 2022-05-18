@@ -49,6 +49,7 @@ class Rspack {
     debugRspack("rspack options", innerOptions);
 
     const plugins = (innerOptions.plugins || []);
+    const isPluginExist = !!plugins.length;
 
     const onLoad = async (err, value: string): Promise<string> => {
       const context: RspackThreadsafeContext<OnLoadContext> = JSON.parse(value);
@@ -96,7 +97,7 @@ class Rspack {
       return createDummyResult(context.callId);
     }
 
-    this.#instance = binding.newRspack(JSON.stringify(options), onLoad, onResolve);
+    this.#instance = binding.newRspack(JSON.stringify(options), isPluginExist ? onLoad : null, isPluginExist ? onResolve : null);
   }
 
   async build() {
