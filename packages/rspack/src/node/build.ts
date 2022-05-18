@@ -36,7 +36,7 @@ export async function run(options: BundlerOptions) {
   const watcher = chokidar.watch(root, {
     ignored: path.resolve(root, 'dist'),
   });
-
+  console.time('build');
   const bundler = new Rspack({
     root,
     entries: Object.values(entry),
@@ -55,9 +55,10 @@ export async function run(options: BundlerOptions) {
     public: 'dist',
   });
   await bundler.build();
+  console.timeEnd('build');
   watcher.on('change', async (id) => {
     const url = path.relative(root, id);
-    console.log('hmr:start', url);
+    console.time(`hmr:${url}`);
     /**
      * @todo update logic
      * 目前会重新触发自该模块开始的全量编译，webpack也是这么做吗
@@ -70,7 +71,7 @@ export async function run(options: BundlerOptions) {
       timestamp: Date.now(),
       code: Object.values(update).join(';\n') + `invalidate(${JSON.stringify(url)})` + sourceUrl,
     });
-    console.log('hmr:end', url);
+    console.timeEnd(`hmr:${url}`);
   });
   const htmlPath = path.resolve(__dirname, '../client/index.html');
   fs.ensureDirSync(path.resolve(root, 'dist'));
