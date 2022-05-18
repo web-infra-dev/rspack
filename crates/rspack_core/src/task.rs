@@ -117,6 +117,7 @@ impl Task {
         )
         .into(),
         ast,
+        loader,
         dependencies: dependency_scanner.dependencies,
         dyn_imports: dependency_scanner.dyn_dependencies,
         is_user_defined_entry_point: Default::default(),

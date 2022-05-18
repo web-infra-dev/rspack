@@ -30,7 +30,6 @@ impl Default for Loader {
     Loader::Null
   }
 }
-
 pub type LoaderOptions = HashMap<String, Loader>;
 
 #[derive(Debug)]
