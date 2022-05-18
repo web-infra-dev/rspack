@@ -7,9 +7,9 @@
     "access": "public"
   },
   "scripts": {
-    "dev": "node bin/rspack.js ../../examples/basic",
-    "dev:react": "node bin/rspack.js ../../examples/react",
-    "dev:react-refresh": "node bin/rspack.js ../../examples/react-refresh"
+    "dev": "DEBUG=* node bin/rspack.js ../../examples/basic",
+    "dev:react": "DEBUG=* node bin/rspack.js ../../examples/react",
+    "dev:react-refresh": "DEBUG=* node bin/rspack.js ../../examples/react-refresh"
   },
   "bin": {
     "rspack": "./bin/rspack.js"

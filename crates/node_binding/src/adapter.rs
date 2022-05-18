@@ -4,6 +4,7 @@ use std::sync::{
   Arc,
 };
 
+use napi::Error;
 use rspack_core::{BundleContext, Plugin, PluginLoadHookOutput, PluginResolveHookOutput};
 
 use async_trait::async_trait;
@@ -119,22 +120,34 @@ impl Plugin for RspackPluginNodeAdapter {
     let (tx, rx) = oneshot::channel::<Option<OnLoadResult>>();
 
     match REGISTERED_ON_LOAD_SENDERS.entry(load_context.call_id) {
-      dashmap::mapref::entry::Entry::Occupied(_) => {
-        panic!(
-          "duplicated call id encountered {}, please file an issue.",
-          load_context.call_id
-        );
-      }
       dashmap::mapref::entry::Entry::Vacant(v) => {
         v.insert(tx);
       }
+      dashmap::mapref::entry::Entry::Occupied(_) => {
+        self.onload_tsfn.call(
+          Err(Error::new(
+            napi::Status::Unknown,
+            format!(
+              "duplicated call id encountered {}, please file an issue.",
+              load_context.call_id,
+            ),
+          )),
+          ThreadsafeFunctionCallMode::Blocking,
+        );
+        return None;
+      }
     }
 
-    let serialized_load_context = serde_json::to_string(&load_context).unwrap();
-    self.onload_tsfn.call(
-      Ok(serialized_load_context),
-      ThreadsafeFunctionCallMode::Blocking,
-    );
+    let value = serde_json::to_string(&load_context).map_err(|_| {
+      Error::new(
+        napi::Status::Unknown,
+        "unable to convert context".to_owned(),
+      )
+    });
+
+    self
+      .onload_tsfn
+      .call(value, ThreadsafeFunctionCallMode::Blocking);
 
     let load_result = rx.await.expect("failed to receive onload result");
 
@@ -177,19 +190,31 @@ impl Plugin for RspackPluginNodeAdapter {
 
     match REGISTERED_ON_RESOLVE_SENDERS.entry(resolve_context.call_id) {
       dashmap::mapref::entry::Entry::Occupied(_) => {
-        panic!(
-          "duplicated call id encountered {}, please file an issue.",
-          resolve_context.call_id
+        self.onload_tsfn.call(
+          Err(Error::new(
+            napi::Status::Unknown,
+            format!(
+              "duplicated call id encountered {}, please file an issue.",
+              resolve_context.call_id,
+            ),
+          )),
+          ThreadsafeFunctionCallMode::Blocking,
         );
+        return None;
       }
       dashmap::mapref::entry::Entry::Vacant(v) => {
         v.insert(tx);
       }
     }
 
-    let serialized_resolve_context = serde_json::to_string(&resolve_context).unwrap();
+    let serialized_resolve_context = serde_json::to_string(&resolve_context).map_err(|_| {
+      Error::new(
+        napi::Status::Unknown,
+        "unable to convert context".to_owned(),
+      )
+    });
     self.onresolve_tsfn.call(
-      Ok(serialized_resolve_context),
+      serialized_resolve_context,
       ThreadsafeFunctionCallMode::Blocking,
     );
 

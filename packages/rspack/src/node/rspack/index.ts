@@ -51,7 +51,11 @@ class Rspack {
     const plugins = (innerOptions.plugins || []);
     const isPluginExist = !!plugins.length;
 
-    const onLoad = async (err, value: string): Promise<string> => {
+    const onLoad = async (err: Error, value: string): Promise<string> => {
+      if (err) {
+        throw err
+      }
+
       const context: RspackThreadsafeContext<OnLoadContext> = JSON.parse(value);
       debugNapi("onLoadcontext", context);
 
@@ -74,7 +78,11 @@ class Rspack {
       return createDummyResult(context.callId);
     }
 
-    const onResolve = async (err, value: string): Promise<string> => {
+    const onResolve = async (err: Error, value: string): Promise<string> => {
+      if (err) {
+        throw err
+      }
+
       const context: RspackThreadsafeContext<OnResolveContext> = JSON.parse(value);
       debugNapi("onResolveContext", context);
 
