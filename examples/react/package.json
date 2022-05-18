@@ -18,6 +18,9 @@
     "entry": {
       "index": "src/index.js"
     },
-    "react": {}
+    "react": {},
+    "loader": {
+      "svg": "svgr"
+    }
   }
 }
