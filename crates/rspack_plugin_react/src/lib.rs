@@ -56,7 +56,7 @@ impl Plugin for ReactPlugin {
     }
   }
 
-  fn transform(
+  fn transform_ast(
     &self,
     ctx: &rspack_core::BundleContext,
     path: &Path,

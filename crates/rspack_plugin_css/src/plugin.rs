@@ -79,7 +79,7 @@ impl Plugin for CssSourcePlugin {
     PLUGIN_NAME
   }
 
-  fn transform_raw(
+  fn transform(
     &self,
     _ctx: &BundleContext,
     uri: &str,

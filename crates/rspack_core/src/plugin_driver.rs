@@ -57,24 +57,24 @@ impl PluginDriver {
     None
   }
   #[instrument(skip_all)]
-  pub fn transform_raw(
+  pub fn transform(
     &self,
     uri: &str,
     loader: &mut Loader,
     raw: String,
   ) -> PluginTransformRawHookOutput {
     self.plugins.iter().fold(raw, |transformed_raw, plugin| {
-      plugin.transform_raw(&self.ctx, uri, loader, transformed_raw)
+      plugin.transform(&self.ctx, uri, loader, transformed_raw)
     })
   }
   #[instrument(skip_all)]
-  pub fn transform(
+  pub fn transform_ast(
     &self,
     path: &Path,
     ast: PluginTransformHookOutput,
   ) -> PluginTransformHookOutput {
     self.plugins.iter().fold(ast, |transformed_ast, plugin| {
-      plugin.transform(&self.ctx, path, transformed_ast)
+      plugin.transform_ast(&self.ctx, path, transformed_ast)
     })
   }
   #[instrument(skip_all)]

@@ -17,7 +17,7 @@ impl Plugin for LoaderInterpreterPlugin {
     PLUGIN_NAME
   }
 
-  fn transform_raw(
+  fn transform(
     &self,
     _ctx: &BundleContext,
     uri: &str,

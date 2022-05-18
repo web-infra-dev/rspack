@@ -74,9 +74,7 @@ impl Task {
 
       let module_id: &str = &resolved_uri.uri;
       let (source, mut loader) = plugin_hook::load(module_id, &self.plugin_driver).await;
-      let transformed_source = self
-        .plugin_driver
-        .transform_raw(module_id, &mut loader, source);
+      let transformed_source = self.plugin_driver.transform(module_id, &mut loader, source);
       let mut dependency_scanner = DependencyScanner::default();
       let mut raw_ast = parse_file(transformed_source, module_id, &loader).expect_module();
       {
@@ -91,7 +89,7 @@ impl Task {
           raw_ast.visit_mut_with(&mut syntax_context_resolver);
         })
       }
-      let mut ast = plugin_hook::transform(Path::new(module_id), raw_ast, &self.plugin_driver);
+      let mut ast = plugin_hook::transform_ast(Path::new(module_id), raw_ast, &self.plugin_driver);
 
       self.pre_analyze_imported_module(&uri_resolver, &ast).await;
 
