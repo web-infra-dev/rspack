@@ -19,7 +19,7 @@ static TERM: Lazy<Term> = Lazy::new(|| {
   term
 });
 
-static MAX_BAR_WIDTH: u32 = 25;
+static MAX_BAR_WIDTH: usize = 25;
 static MAX_TEXT_WIDTH: usize = 30;
 static FRAMES: &'static [&str; 10] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
@@ -40,16 +40,14 @@ fn get_bar_str(
       .to_string();
     s += " ";
   } else {
-    let left = (((current as f32) / (total as f32) * MAX_BAR_WIDTH as f32).round() as u32)
+    let left = (((current as f32) / (total as f32) * MAX_BAR_WIDTH as f32).round() as usize)
       .clamp(0, MAX_BAR_WIDTH);
-    let fe = style(" ").bg(Color::Color256(fe_color)).to_string();
-    let bg = style(" ").bg(Color::Color256(bg_color)).to_string();
-    for _ in 0..left {
-      s += &fe;
-    }
-    for _ in 0..MAX_BAR_WIDTH - left {
-      s += &bg;
-    }
+    s += &style(" ".repeat(left))
+      .bg(Color::Color256(fe_color))
+      .to_string();
+    s += &style(" ".repeat((MAX_BAR_WIDTH - left)))
+      .bg(Color::Color256(bg_color))
+      .to_string();
   }
 
   let percent = ((current as f32 / total as f32 * 100.0) as u32).clamp(0, 100);
@@ -66,7 +64,7 @@ fn get_bar_str(
 fn truncate(s: &str, max_chars: usize) -> String {
   let prefix = String::from("...");
   if max_chars >= s.len() + prefix.len() {
-    return String::from(s);
+    return format!("{:>width$}", s, width = max_chars);
   }
   match s
     .char_indices()
@@ -85,9 +83,9 @@ pub struct ProgressBar {
 }
 
 impl ProgressBar {
-  pub fn new(total: u32) -> ProgressBar {
+  pub fn new() -> ProgressBar {
     let current = Arc::new(Mutex::new(0));
-    let total = Arc::new(Mutex::new(total));
+    let total = Arc::new(Mutex::new(0));
     let done = Arc::new(Mutex::new(false));
 
     ProgressBar {
@@ -124,7 +122,7 @@ pub struct ProgressPlugin {
 }
 impl ProgressPlugin {
   pub fn new() -> ProgressPlugin {
-    let progress = ProgressBar::new(25);
+    let progress = ProgressBar::new();
     ProgressPlugin { progress }
   }
 }
