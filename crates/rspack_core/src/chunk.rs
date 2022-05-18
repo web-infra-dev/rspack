@@ -149,24 +149,28 @@ impl Chunk {
     self.get_fallback_chunk_name()
   }
 
+  #[instrument()]
   pub fn generate_id(&self, options: &NormalizedBundleOptions, bundle: &Bundle) -> String {
     let pattern = if self.is_entry_chunk {
       &options.entry_filename
     } else {
       &options.chunk_filename
     };
-    let content_hash = {
-      let mut hasher = DefaultHasher::new();
-      self.module_ids.iter().for_each(|moudle_id| {
-        let module = &bundle.module_graph.module_by_id[moudle_id];
-        module.ast.hash(&mut hasher);
-      });
-      hasher.finish()
-    };
-    pattern
-      .replace("[name]", self.name())
-      .replace("[contenthash]", &format!("{:x}", content_hash))
-      .into()
+    let name = pattern.replace("[name]", self.name());
+    match pattern.contains("contenthash") {
+      true => {
+        let content_hash = {
+          let mut hasher = DefaultHasher::new();
+          self.module_ids.iter().for_each(|moudle_id| {
+            let module = &bundle.module_graph.module_by_id[moudle_id];
+            module.ast.hash(&mut hasher);
+          });
+          hasher.finish()
+        };
+        name.replace("[contenthash]", &format!("{:x}", content_hash))
+      }
+      false => name,
+    }
   }
 }
 

@@ -102,7 +102,7 @@ impl Default for BundleOptions {
         .to_string(),
       minify: Default::default(),
       entry_file_names: "[name].js".to_string(),
-      chunk_filename: None,
+      chunk_filename: Some("chunk-[name].js".to_string()),
       code_splitting: true,
       loader: None,
       inline_style: Default::default(),
