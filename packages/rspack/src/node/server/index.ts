@@ -17,12 +17,12 @@ export class DevServer {
   constructor(options: DevOptions) {
     const app = (this.#app = connect());
     console.log('public:', path.resolve(options.root, options.public));
+    app.use(history());
     app.use(
       sirv(path.resolve(options.root, options.public), {
         dev: true,
       })
     );
-    app.use(history());
   }
   static create(options: DevOptions) {
     const _server = new DevServer(options);
