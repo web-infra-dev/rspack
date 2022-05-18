@@ -29,7 +29,6 @@ impl Plugin for SvgrPlugin {
 
     if ext == "svg" {
       let use_svgr = id[n..].contains("svgr");
-      println!("svgr:{} {} {} {}", id, ext, n, use_svgr);
       let format = "base64";
       let data_uri = format!(
         "data:{};{},{}",

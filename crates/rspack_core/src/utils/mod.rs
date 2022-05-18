@@ -27,7 +27,7 @@ pub fn get_swc_compiler() -> Arc<Compiler> {
 
 #[instrument(skip(source_code))]
 pub fn parse_file(source_code: String, filename: &str, loader: &Loader) -> ast::Program {
-  let syntax = syntax_by_loader(filename, loader);
+  let syntax = syntax(filename);
   let compiler = get_swc_compiler();
   let fm = compiler
     .cm
@@ -55,7 +55,7 @@ pub fn syntax_by_ext(ext: &str) -> Syntax {
     false => Syntax::Es(EsConfig {
       private_in_object: true,
       import_assertions: true,
-      jsx: ext == "jsx" || filename.contains("svgr"),
+      jsx: ext == "jsx",
       export_default_from: true,
       decorators_before_export: true,
       decorators: true,
@@ -66,12 +66,6 @@ pub fn syntax_by_ext(ext: &str) -> Syntax {
 }
 
 pub fn syntax_by_loader(filename: &str, loader: &Loader) -> Syntax {
-  println!(
-    "finename: {} {:?} {}",
-    filename,
-    loader,
-    matches!(loader, Loader::Jsx)
-  );
   match loader {
     Loader::Js | Loader::Jsx => Syntax::Es(EsConfig {
       private_in_object: true,
