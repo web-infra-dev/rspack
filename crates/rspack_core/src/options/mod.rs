@@ -1,7 +1,9 @@
 use rspack_swc::swc_ecma_transforms_react;
 use std::collections::HashMap;
+use strum::IntoEnumIterator;
+use strum_macros::EnumIter; // 0.17.1
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, EnumIter)]
 pub enum Loader {
   DataURI,
   Json,
@@ -12,6 +14,12 @@ pub enum Loader {
   Ts,
   Tsx,
   Null,
+}
+
+impl Loader {
+  pub fn values() -> Vec<Loader> {
+    Self::iter().into_iter().collect()
+  }
 }
 
 pub type LoaderOptions = HashMap<String, Loader>;

@@ -9,7 +9,7 @@ use napi::{
   Env, JsObject, Result,
 };
 use napi_derive::napi;
-use rspack_core::{BundleReactOptions, ResolveOption};
+use rspack_core::{BundleReactOptions, Loader, ResolveOption};
 use serde::Deserialize;
 
 pub mod adapter;
@@ -239,15 +239,24 @@ pub fn resolve(env: Env, rspack: External<Rspack>, id: String, dir: String) -> R
 }
 
 fn parse_loader(user_input: HashMap<String, String>) -> rspack_core::LoaderOptions {
+  let loaders = Loader::values()
+    .into_iter()
+    .map(|loader| match loader {
+      Loader::Css => ("css", loader),
+      Loader::DataURI => ("dataURI", loader),
+      Loader::Js => ("js", loader),
+      Loader::Jsx => ("jsx", loader),
+      Loader::Ts => ("ts", loader),
+      Loader::Tsx => ("tsx", loader),
+      Loader::Null => ("null", loader),
+      Loader::Json => ("json", loader),
+      Loader::Text => ("text", loader),
+    })
+    .collect::<HashMap<_, _>>();
   user_input
     .into_iter()
-    .filter_map(|(ext, loader)| {
-      let loader = match loader.as_str() {
-        "dataURI" => Some(rspack_core::Loader::DataURI),
-        "json" => Some(rspack_core::Loader::Json),
-        "text" => Some(rspack_core::Loader::Text),
-        _ => None,
-      }?;
+    .filter_map(|(ext, loader_str)| {
+      let loader = *loaders.get(loader_str.as_str())?;
       Some((ext, loader))
     })
     .collect()
