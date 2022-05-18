@@ -55,7 +55,7 @@ pub fn syntax_by_ext(ext: &str) -> Syntax {
     false => Syntax::Es(EsConfig {
       private_in_object: true,
       import_assertions: true,
-      jsx: ext == "jsx",
+      jsx: ext == "jsx" || filename.contains("svgr"),
       export_default_from: true,
       decorators_before_export: true,
       decorators: true,

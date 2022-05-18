@@ -13,6 +13,7 @@ pub fn inject_built_in_plugins(
   })];
   // start --- injected user plugins
   plugins.push(Box::new(rspack_plugin_progress::ProgressPlugin::new()));
+  plugins.push(Box::new(rspack_plugin_svgr::SvgrPlugin {}));
   plugins.append(&mut user_plugins);
   // end --- injected user plugins
   plugins.push(Box::new(rspack_plugin_loader::LoaderInterpreterPlugin));

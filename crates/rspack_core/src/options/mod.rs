@@ -16,6 +16,7 @@ pub enum Loader {
   Ts,
   Tsx,
   Null,
+  Svgr,
 }
 
 impl Loader {
