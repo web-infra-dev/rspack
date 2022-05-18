@@ -38,7 +38,11 @@ export interface RawOptions {
   sourceMap?: boolean
   codeSplitting?: boolean
 }
-export function newRspack(optionJson: string, onloadCallback?: (...args: any[]) => any | undefined | null, onresolveCallback?: (...args: any[]) => any | undefined | null): ExternalObject<RspackInternal>
+export interface PluginCallbacks {
+  onloadCallback: (...args: any[]) => any
+  onresolveCallback: (...args: any[]) => any
+}
+export function newRspack(optionJson: string, pluginCallbacks?: PluginCallbacks | undefined | null): ExternalObject<RspackInternal>
 export function build(rspack: ExternalObject<RspackInternal>): object
 export function rebuild(rspack: ExternalObject<RspackInternal>, changedFile: string): object
 export interface ResolveRet {

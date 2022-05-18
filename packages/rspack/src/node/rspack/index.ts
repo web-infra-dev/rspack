@@ -97,7 +97,10 @@ class Rspack {
       return createDummyResult(context.callId);
     }
 
-    this.#instance = binding.newRspack(JSON.stringify(options), isPluginExist ? onLoad : null, isPluginExist ? onResolve : null);
+    this.#instance = binding.newRspack(JSON.stringify(options), isPluginExist ? {
+      onloadCallback: onLoad,
+      onresolveCallback: onResolve
+    } : null );
   }
 
   async build() {

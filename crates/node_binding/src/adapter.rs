@@ -24,8 +24,8 @@ pub static REGISTERED_ON_RESOLVE_SENDERS: Lazy<
 > = Lazy::new(|| Default::default());
 
 pub struct RspackPluginNodeAdapter {
-  pub onload_tsfn: Option<ThreadsafeFunction<String, ErrorStrategy::CalleeHandled>>,
-  pub onresolve_tsfn: Option<ThreadsafeFunction<String, ErrorStrategy::CalleeHandled>>,
+  pub onload_tsfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled>,
+  pub onresolve_tsfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -131,12 +131,10 @@ impl Plugin for RspackPluginNodeAdapter {
     }
 
     let serialized_load_context = serde_json::to_string(&load_context).unwrap();
-    if let Some(onload_tsfn) = &self.onload_tsfn {
-      onload_tsfn.call(
-        Ok(serialized_load_context),
-        ThreadsafeFunctionCallMode::Blocking,
-      );
-    }
+    self.onload_tsfn.call(
+      Ok(serialized_load_context),
+      ThreadsafeFunctionCallMode::Blocking,
+    );
 
     let load_result = rx.await.expect("failed to receive onload result");
 
@@ -190,12 +188,10 @@ impl Plugin for RspackPluginNodeAdapter {
     }
 
     let serialized_resolve_context = serde_json::to_string(&resolve_context).unwrap();
-    if let Some(onresolve_tsfn) = &self.onresolve_tsfn {
-      onresolve_tsfn.call(
-        Ok(serialized_resolve_context),
-        ThreadsafeFunctionCallMode::Blocking,
-      );
-    }
+    self.onresolve_tsfn.call(
+      Ok(serialized_resolve_context),
+      ThreadsafeFunctionCallMode::Blocking,
+    );
 
     let resolve_result = rx.await.expect("failed to receive onresolve result");
 
