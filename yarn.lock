@@ -295,14 +295,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@arco-design/web-react@npm:^2.29.1":
-  version: 2.32.2
-  resolution: "@arco-design/web-react@npm:2.32.2"
+"@arco-design/web-react@npm:2.29.2":
+  version: 2.29.2
+  resolution: "@arco-design/web-react@npm:2.29.2"
   dependencies:
     "@arco-design/color": ^0.4.0
     "@babel/runtime": ^7.5.5
     b-tween: ^0.3.3
-    b-validate: ^1.4.0
+    b-validate: ^1.3.4
     compute-scroll-into-view: ^1.0.17
     dayjs: ^1.10.5
     lodash: ^4.17.21
@@ -315,7 +315,7 @@ __metadata:
   peerDependencies:
     react: ">=16"
     react-dom: ">=16"
-  checksum: f25d210ad7f34cb4a27f4f3a363c7a24dcb98648e5b59d2486a0189abdd27ed36c35d5bfb0c238fa9a5d795ce7b31a0682c082defe5add83cbf1061579604c8c
+  checksum: bbf54e23b366f10969fa2f2c4ce9048eabdabf1ed351fea263b3b8d0714648c0eb13ab579c482e81ea859ccbda8c2b3f39cebd020e51d0a72c525bf33f80c4e0
   languageName: node
   linkType: hard
 
@@ -2317,7 +2317,7 @@ __metadata:
   dependencies:
     "@antv/data-set": ^0.11.8
     "@arco-design/color": ^0.4.0
-    "@arco-design/web-react": ^2.29.1
+    "@arco-design/web-react": 2.29.2
     "@arco-themes/react-arco-pro": ^0.0.7
     "@loadable/component": ^5.15.2
     "@rspack/core": "workspace:*"
@@ -2384,7 +2384,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"b-validate@npm:^1.4.0":
+"b-validate@npm:^1.3.4":
   version: 1.4.0
   resolution: "b-validate@npm:1.4.0"
   checksum: d13ebbcd25fe634c3dd9c92da2d654c10da8bb001caba4a5a3142c558029d13f90fa6e7fe845424b2974a75deefbcb89c79898b0b7796ceba660428881436793

@@ -1,15 +1,15 @@
 use crate::handle_with_css::{is_css_source, CssSourceType};
 use async_trait::async_trait;
+use nodejs_resolver::{ResolveResult, Resolver};
+use rspack_core::Plugin;
 use rspack_core::{
-  Asset, BundleContext, Chunk, LoadedSource, Loader, NormalizedBundleOptions,
-  PluginTransformRawHookOutput,
+  Asset, BundleContext, Chunk, Loader, NormalizedBundleOptions, PluginTransformRawHookOutput,
 };
-use rspack_core::{Plugin, PluginLoadHookOutput};
 use rspack_style::new_less::applicationn::Application;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::path::Path;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use tokio::runtime::{Handle, Runtime};
 
 #[derive(Debug)]
@@ -29,23 +29,48 @@ pub struct CssReferenceInfo {
 
 impl Default for CssSourcePlugin {
   fn default() -> Self {
-    CssSourcePlugin {
+    let app = Application::default();
+
+    let css_plugin = CssSourcePlugin {
       css_source_collect: Mutex::new(vec![]),
-      app: Application::default(),
-    }
+      app,
+    };
+    css_plugin
+      .app
+      .context
+      .lock()
+      .unwrap()
+      .option
+      .hooks
+      .import_alias = Some(Arc::new(|filepath, importpath| {
+      let resolver = Resolver::default()
+        .with_extensions(vec!["less", "css", "scss", "sass"])
+        .with_description_file(None);
+      println!("{},{}", filepath, importpath);
+      let res: ResolveResult = resolver.resolve(
+        &Path::new(filepath.as_str()).parent().unwrap(),
+        importpath.as_str(),
+      )?;
+      if let ResolveResult::Path(abs_path) = res {
+        Ok(abs_path.to_str().unwrap().to_string())
+      } else {
+        Ok(filepath)
+      }
+    }));
+    css_plugin
   }
 }
 
 impl CssSourcePlugin {
-  pub fn handle_with_css_file(&self, filepath: &str) -> HashMap<String, String> {
-    let map = match self.app.render_into_hashmap(filepath) {
+  pub fn handle_with_css_file(&self, filepath: &str) -> (HashMap<String, String>, String) {
+    let res = match self.app.render_into_hashmap(filepath) {
       Ok(map) => map,
       Err(msg) => {
         println!("{}", msg);
         panic!("parse css has failed")
       }
     };
-    map
+    res
   }
 
   pub fn get_runtime_handle() -> (Handle, Option<Runtime>) {
@@ -88,13 +113,15 @@ impl Plugin for CssSourcePlugin {
   ) -> PluginTransformRawHookOutput {
     if let Loader::Css = loader {
       if let Some(mut css) = is_css_source(uri) {
+        let mut js = format!("//{}\n", uri) + r#"export {}"#;
         {
-          let map = self.handle_with_css_file(uri);
-          css.source_content_map = Some(map);
+          let (css_map, js_content) = self.handle_with_css_file(uri);
+          css.source_content_map = Some(css_map);
+          js = js_content;
         }
         let mut list = self.css_source_collect.lock().unwrap();
         list.push(css.clone());
-        format!("//{}\n", uri) + r#"export {}"#
+        js
       } else {
         raw
       }

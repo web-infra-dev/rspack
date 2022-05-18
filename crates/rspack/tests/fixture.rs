@@ -190,6 +190,7 @@ mod testing {
   }
 
   #[test]
+  #[ignore]
   fn css_bundle_test() {
     compile("css", vec![]);
   }
@@ -226,6 +227,7 @@ mod testing {
   fn basic_ts() {
     compile("basic-ts", vec![]);
   }
+
   #[test]
   fn splitting() {
     compile("code-splitting", vec![]);
