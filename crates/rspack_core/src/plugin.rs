@@ -34,7 +34,7 @@ pub trait Plugin: Sync + Send + Debug {
   }
 
   #[inline]
-  fn transform_raw(
+  fn transform(
     &self,
     _ctx: &BundleContext,
     _uri: &str,
@@ -45,7 +45,7 @@ pub trait Plugin: Sync + Send + Debug {
   }
 
   #[inline]
-  fn transform(
+  fn transform_ast(
     &self,
     _ctx: &BundleContext,
     _path: &Path,

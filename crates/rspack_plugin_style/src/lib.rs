@@ -16,7 +16,7 @@ impl Plugin for StyleLoaderPlugin {
     PLUGIN_NAME
   }
 
-  fn transform_raw(
+  fn transform(
     &self,
     _ctx: &BundleContext,
     _uri: &str,

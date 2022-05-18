@@ -132,7 +132,7 @@ mod testing {
     }
 
     #[inline]
-    fn transform(
+    fn transform_ast(
       &self,
       _ctx: &BundleContext,
       _path: &Path,
