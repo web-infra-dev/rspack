@@ -5,6 +5,13 @@ use rspack_core::{
   BundleContext, LoadedSource, Loader, Plugin, PluginLoadHookOutput, PluginTransformRawHookOutput,
 };
 use std::{path::Path, sync::Arc};
+// #[macro_use]
+// extern crate lazy_static;
+use regex::Captures;
+use regex::Regex;
+use std::fs;
+extern crate lazy_static;
+use lazy_static::*;
 
 #[derive(Debug)]
 pub struct SvgrPlugin {}
@@ -51,6 +58,14 @@ impl Plugin for SvgrPlugin {
       }
 
       *loader = Loader::Jsx;
+
+      lazy_static! {
+        static ref RE: Regex = Regex::new(r"<svg (.*?)>").unwrap();
+      }
+      let result = RE.replace(&raw, |caps: &Captures| {
+        format!("<svg {} {{...props}}>", &caps[1])
+      });
+
       return format!(
         r#"
         import * as React from "react";
@@ -59,7 +74,7 @@ impl Plugin for SvgrPlugin {
         );
         export default SvgComponent;
         "#,
-        raw
+        result
       )
       .trim()
       .to_string();

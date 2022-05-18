@@ -10,3 +10,5 @@ rspack_core = { path = "../rspack_core" }
 rspack_swc = { path = "../rspack_swc" }
 async-trait = "0.1.53"
 base64 = "0.13.0"
+regex = "1.5.5"
+lazy_static = "1.4.0"
