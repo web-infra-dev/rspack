@@ -35,7 +35,7 @@ impl Plugin for SvgrPlugin {
     let ext = p.extension().and_then(|ext| ext.to_str()).unwrap_or("js");
 
     if ext == "svg" {
-      let use_svgr = id[n..].contains("svgr");
+      let use_raw = id[n..].contains("raw");
       let format = "base64";
       let data_uri = format!(
         "data:{};{},{}",
@@ -44,7 +44,7 @@ impl Plugin for SvgrPlugin {
         base64::encode(&raw)
       );
 
-      if !use_svgr {
+      if use_raw {
         *loader = Loader::Js;
         return format!(
           "
