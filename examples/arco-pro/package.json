@@ -11,7 +11,7 @@
   "dependencies": {
     "@antv/data-set": "^0.11.8",
     "@arco-design/color": "^0.4.0",
-    "@arco-design/web-react": "^2.29.1",
+    "@arco-design/web-react": "2.29.2",
     "@arco-themes/react-arco-pro": "^0.0.7",
     "@loadable/component": "^5.15.2",
     "@turf/turf": "^6.5.0",
@@ -62,7 +62,7 @@
     "loader": {
       "json": "json",
       "svg": "dataURI",
-      "less": "text"
+      "less": "css"
     },
     "alias": {
       "@/": "<ROOT>/src/"
