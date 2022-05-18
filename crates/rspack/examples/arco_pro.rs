@@ -63,7 +63,7 @@ async fn main() {
     vec![Box::new(rspack_plugin_mock_buitins::MockBuitinsPlugin)],
   );
   let build_future = async {
-    bundler.build().await;
+    bundler.build(None).await;
   };
   build_future.instrument(tracing::info_span!("build")).await;
   // println!("assets: {:#?}", bundler.ctx.assets.lock().unwrap());

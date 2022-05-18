@@ -56,11 +56,7 @@ impl Chunk {
     bundle: &Bundle,
   ) -> RenderedChunk {
     let mut concattables: Vec<Box<dyn Source>> = vec![];
-    let modules = &bundle
-      .module_graph
-      .as_ref()
-      .expect("empty module graph")
-      .module_by_id;
+    let modules = &bundle.module_graph.module_by_id;
     self.module_ids.sort_by_key(|id| 0 - modules[id].exec_order);
 
     let rendered_modules = self
@@ -146,7 +142,7 @@ impl Chunk {
     let content_hash = {
       let mut hasher = DefaultHasher::new();
       self.module_ids.iter().for_each(|moudle_id| {
-        let module = &bundle.module_graph.as_ref().unwrap().module_by_id[moudle_id];
+        let module = &bundle.module_graph.module_by_id[moudle_id];
         module.ast.hash(&mut hasher);
       });
       hasher.finish()

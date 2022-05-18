@@ -26,7 +26,7 @@ import('./asynced').then(console.log)
   ",
   )
   .unwrap();
-  bundler.build().await;
+  bundler.build(None).await;
   std::fs::write(
     &entry_a_js,
     "
