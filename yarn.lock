@@ -678,6 +678,7 @@ __metadata:
   resolution: "@rspack/binding@workspace:crates/node_binding"
   dependencies:
     "@napi-rs/cli": ^2.6.2
+    why-is-node-running: 2.2.1
   languageName: unknown
   linkType: soft
 
@@ -686,10 +687,12 @@ __metadata:
   resolution: "@rspack/core@workspace:packages/rspack"
   dependencies:
     "@rspack/binding": "workspace:*"
+    "@types/debug": ^4.1.7
     "@types/node": ^17.0.31
     chokidar: 3.5.3
     connect: 3.7.0
     connect-history-api-fallback: 1.6.0
+    debug: ^4.3.4
     fs-extra: 10.1.0
     lodash-es: ^4.17.21
     sirv: 2.0.2
@@ -2066,6 +2069,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/debug@npm:^4.1.7":
+  version: 4.1.7
+  resolution: "@types/debug@npm:4.1.7"
+  dependencies:
+    "@types/ms": "*"
+  checksum: 0a7b89d8ed72526858f0b61c6fd81f477853e8c4415bb97f48b1b5545248d2ae389931680b94b393b993a7cfe893537a200647d93defe6d87159b96812305adc
+  languageName: node
+  linkType: hard
+
 "@types/geojson@npm:7946.0.8":
   version: 7946.0.8
   resolution: "@types/geojson@npm:7946.0.8"
@@ -2080,6 +2092,13 @@ __metadata:
     "@types/react": "*"
     hoist-non-react-statics: ^3.3.0
   checksum: 2c0778570d9a01d05afabc781b32163f28409bb98f7245c38d5eaf082416fdb73034003f5825eb5e21313044e8d2d9e1f3fe2831e345d3d1b1d20bcd12270719
+  languageName: node
+  linkType: hard
+
+"@types/ms@npm:*":
+  version: 0.7.31
+  resolution: "@types/ms@npm:0.7.31"
+  checksum: daadd354aedde024cce6f5aa873fefe7b71b22cd0e28632a69e8b677aeb48ae8caa1c60e5919bb781df040d116b01cb4316335167a3fc0ef6a63fa3614c0f6da
   languageName: node
   linkType: hard
 
@@ -2310,7 +2329,7 @@ __metadata:
     copy-to-clipboard: ^3.3.1
     dayjs: ^1.10.7
     lodash: ^4.17.21
-    mockjs: "workspace:*"
+    mockjs: ^1.1.0
     nprogress: ^0.2.0
     query-string: ^6.14.1
     react: ^17.0.2
@@ -2797,6 +2816,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"commander@npm:*":
+  version: 9.2.0
+  resolution: "commander@npm:9.2.0"
+  checksum: 7c82e4cd969712aa6d7c055b8351807a7230f9f31ef7ec7881e11a1147511de85adf5d6ccfd200240a118eecf693b220caf6865b8efbcea558a70d35aa9ed711
+  languageName: node
+  linkType: hard
+
 "commander@npm:2":
   version: 2.20.3
   resolution: "commander@npm:2.20.3"
@@ -3154,7 +3180,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"debug@npm:4, debug@npm:^4.1.0, debug@npm:^4.1.1, debug@npm:^4.3.3":
+"debug@npm:4, debug@npm:^4.1.0, debug@npm:^4.1.1, debug@npm:^4.3.3, debug@npm:^4.3.4":
   version: 4.3.4
   resolution: "debug@npm:4.3.4"
   dependencies:
@@ -4865,11 +4891,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mockjs@workspace:*, mockjs@workspace:patches/mockjs":
-  version: 0.0.0-use.local
-  resolution: "mockjs@workspace:patches/mockjs"
-  languageName: unknown
-  linkType: soft
+"mockjs@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "mockjs@npm:1.1.0"
+  dependencies:
+    commander: "*"
+  bin:
+    random: bin/random
+  checksum: 11c16eda7fee1fa38c645813169c5a8f4301788819e237633a314d406551a90a61f3865e8aa4a8902eefc4db991605fa74349336e6690e7a154b5b4826e3e253
+  languageName: node
+  linkType: hard
 
 "monorepo@workspace:.":
   version: 0.0.0-use.local
@@ -5893,6 +5924,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"siginfo@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "siginfo@npm:2.0.0"
+  checksum: 8aa5a98640ca09fe00d74416eca97551b3e42991614a3d1b824b115fc1401543650914f651ab1311518177e4d297e80b953f4cd4cd7ea1eabe824e8f2091de01
+  languageName: node
+  linkType: hard
+
 "signal-exit@npm:^3.0.2, signal-exit@npm:^3.0.3, signal-exit@npm:^3.0.7":
   version: 3.0.7
   resolution: "signal-exit@npm:3.0.7"
@@ -6053,6 +6091,13 @@ __metadata:
   dependencies:
     minipass: ^3.1.1
   checksum: bf33174232d07cc64e77ab1c51b55d28352273380c503d35642a19627e88a2c5f160039bb0a28608a353485075dda084dbf0390c7070f9f284559eb71d01b84b
+  languageName: node
+  linkType: hard
+
+"stackback@npm:0.0.2":
+  version: 0.0.2
+  resolution: "stackback@npm:0.0.2"
+  checksum: 2d4dc4e64e2db796de4a3c856d5943daccdfa3dd092e452a1ce059c81e9a9c29e0b9badba91b43ef0d5ff5c04ee62feb3bcc559a804e16faf447bac2d883aa99
   languageName: node
   linkType: hard
 
@@ -6566,6 +6611,18 @@ __metadata:
   bin:
     node-which: ./bin/node-which
   checksum: 1a5c563d3c1b52d5f893c8b61afe11abc3bab4afac492e8da5bde69d550de701cf9806235f20a47b5c8fa8a1d6a9135841de2596535e998027a54589000e66d1
+  languageName: node
+  linkType: hard
+
+"why-is-node-running@npm:2.2.1":
+  version: 2.2.1
+  resolution: "why-is-node-running@npm:2.2.1"
+  dependencies:
+    siginfo: ^2.0.0
+    stackback: 0.0.2
+  bin:
+    why-is-node-running: cli.js
+  checksum: 43e15b1020f02e77b1eb2072c1f462e53470bc28d6b7dbedd786e9c4c451bd47890d69d936657a2a531be03f96db0f4bd458648fdaa968fd4e61280d1f123ffa
   languageName: node
   linkType: hard
 

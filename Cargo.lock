@@ -363,6 +363,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b365fabc795046672053e29c954733ec3b05e4be654ab130fe8f1f94d7051f35"
 
 [[package]]
+name = "daachorse"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96cc885f4286070f147ac1359bcd6d21eabe792074cfea05886744e57c81a82f"
+
+[[package]]
 name = "darling"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1057,8 +1063,7 @@ dependencies = [
 [[package]]
 name = "napi"
 version = "2.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eba1b04555247b935187ea1dddac523ebc470c45806501d7203ed1bec7fa26b2"
+source = "git+https://github.com/speedy-js/napi-rs?branch=speedy#628b2c500476cd9f70100158236fbdde6c256f7c"
 dependencies = [
  "ctor",
  "lazy_static",
@@ -1078,8 +1083,7 @@ checksum = "ebd4419172727423cf30351406c54f6cc1b354a2cfb4f1dba3e6cd07f6d5522b"
 [[package]]
 name = "napi-derive"
 version = "2.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bffed314331505d8a4ce6831dfb5fff9bad37113344ff55824bd398eb3157a1d"
+source = "git+https://github.com/speedy-js/napi-rs?branch=speedy#628b2c500476cd9f70100158236fbdde6c256f7c"
 dependencies = [
  "convert_case",
  "napi-derive-backend",
@@ -1091,8 +1095,7 @@ dependencies = [
 [[package]]
 name = "napi-derive-backend"
 version = "1.0.32"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5cab83da14f4202c1f3858dde5b68e1d8c5bb7ee804c5955911cbbe00b835b8"
+source = "git+https://github.com/speedy-js/napi-rs?branch=speedy#628b2c500476cd9f70100158236fbdde6c256f7c"
 dependencies = [
  "convert_case",
  "once_cell",
@@ -1105,8 +1108,7 @@ dependencies = [
 [[package]]
 name = "napi-sys"
 version = "2.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "529671ebfae679f2ce9630b62dd53c72c56b3eb8b2c852e7e2fa91704ff93d67"
+source = "git+https://github.com/speedy-js/napi-rs?branch=speedy#628b2c500476cd9f70100158236fbdde6c256f7c"
 dependencies = [
  "libloading",
 ]
@@ -1119,9 +1121,9 @@ checksum = "e4a24736216ec316047a1fc4252e27dabb04218aa4a3f37c6e7ddbf1f9782b54"
 
 [[package]]
 name = "nodejs-resolver"
-version = "0.0.4"
+version = "0.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "299df16a9e6e0fc61a4347514c4f64f90a049ab760c382810ca74b4ef56da12c"
+checksum = "71f14166d7fa839a5b7926e217903241ce94ed481b8a1befeab4e4e314de3690"
 dependencies = [
  "dashmap",
  "indexmap",
@@ -1130,12 +1132,15 @@ dependencies = [
 
 [[package]]
 name = "nodejs-resolver"
-version = "0.0.7"
+version = "0.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71f14166d7fa839a5b7926e217903241ce94ed481b8a1befeab4e4e314de3690"
+checksum = "1aaae8a6a0deac4ef7b766a4364d375c44467ddb8dbcb9d5958c1bdbfd15595d"
 dependencies = [
+ "daachorse",
  "dashmap",
  "indexmap",
+ "once_cell",
+ "phf",
  "serde_json",
 ]
 
@@ -1593,7 +1598,7 @@ dependencies = [
  "futures",
  "insta",
  "linked-hash-map",
- "nodejs-resolver 0.0.4",
+ "nodejs-resolver 0.0.10",
  "num_cpus",
  "once_cell",
  "petgraph",
@@ -1630,7 +1635,7 @@ dependencies = [
  "futures",
  "indicatif 0.16.2",
  "linked-hash-map",
- "nodejs-resolver 0.0.4",
+ "nodejs-resolver 0.0.10",
  "once_cell",
  "petgraph",
  "rayon",
@@ -1649,17 +1654,21 @@ dependencies = [
 name = "rspack_node"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
+ "dashmap",
  "futures",
  "mimalloc-rust",
  "napi",
  "napi-build",
  "napi-derive",
- "nodejs-resolver 0.0.4",
+ "nodejs-resolver 0.0.10",
  "once_cell",
  "rspack",
  "rspack_core",
  "serde",
  "serde_json",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

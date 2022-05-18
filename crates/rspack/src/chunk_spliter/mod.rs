@@ -31,15 +31,15 @@ impl ChunkSpliter {
     plugin_dirver: &PluginDriver,
     bundle: &mut Bundle,
   ) -> HashMap<String, OutputChunk> {
-    let mut chunks = split_chunks(
-      bundle.module_graph.as_mut().unwrap(),
-      self.output_options.code_splitting,
-    );
+    let mut chunks = split_chunks(&bundle.module_graph, self.output_options.code_splitting);
 
     chunks.iter_mut().for_each(|chunk| {
       chunk.id = chunk.generate_id(&self.output_options, bundle);
-      let graph = bundle.module_graph.as_mut().unwrap();
-      let entry_module = graph.module_by_id.get_mut(&chunk.entry).unwrap();
+      let entry_module = bundle
+        .module_graph
+        .module_by_id
+        .get_mut(&chunk.entry)
+        .unwrap();
       entry_module.add_chunk(chunk.id.clone());
     });
 

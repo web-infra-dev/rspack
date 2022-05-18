@@ -72,7 +72,9 @@
           /**
            * todo  get chunkd_id from module_id
            */
-          await import('http://127.0.01:4444/' + chunk_id);
+          if (chunk_id) {
+            await import('http://127.0.01:4444/' + chunk_id);
+          }
           const result = require(module_id);
           return result;
         }

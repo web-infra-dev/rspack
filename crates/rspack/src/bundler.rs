@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use rspack_core::normalize_bundle_options;
 use rspack_core::plugin_hook::get_resolver;
-use rspack_core::ModuleGraph;
+use rspack_core::Bundle;
 use rspack_core::NormalizedBundleOptions;
 use rspack_swc::{swc, swc_common};
 use sugar_path::PathSugar;
@@ -16,6 +16,7 @@ use tracing::instrument;
 use crate::chunk_spliter::ChunkSpliter;
 use crate::utils::inject_built_in_plugins;
 use crate::utils::log::enable_tracing_by_env;
+use crate::utils::rayon::init_rayon_thread_poll;
 use rspack_core::get_swc_compiler;
 pub use rspack_core::hmr::hmr_module;
 use rspack_core::Plugin;
@@ -41,16 +42,17 @@ pub use rspack_core::BundleOptions;
 
 #[derive(Debug)]
 pub struct Bundler {
-  pub ctx: Arc<BundleContext>,
   pub options: Arc<NormalizedBundleOptions>,
   pub plugin_driver: Arc<PluginDriver>,
-  pub module_graph: Option<ModuleGraph>,
+  pub bundle: Bundle,
+  pub chunk_spliter: ChunkSpliter,
   _noop: (),
 }
 
 impl Bundler {
   pub fn new(options: BundleOptions, plugins: Vec<Box<dyn Plugin>>) -> Self {
     enable_tracing_by_env();
+    init_rayon_thread_poll();
     println!(
       "create bundler with options:\n {:#?} \nplugins:\n {:#?}\n",
       options, plugins
@@ -66,42 +68,39 @@ impl Bundler {
       top_level_mark,
       unresolved_mark,
     ));
-    Self {
-      options: normalized_options,
+    let plugin_driver = Arc::new(PluginDriver {
+      plugins: injected_plugins,
       ctx: ctx.clone(),
-      plugin_driver: Arc::new(PluginDriver {
-        plugins: injected_plugins,
-        ctx,
-      }),
-      module_graph: None,
+    });
+    Self {
+      options: normalized_options.clone(),
+      plugin_driver: plugin_driver.clone(),
+      bundle: Bundle::new(normalized_options.clone(), plugin_driver, ctx),
+      chunk_spliter: ChunkSpliter::new(normalized_options.clone()),
       _noop: (),
     }
   }
 
   #[instrument(skip(self))]
-  pub async fn build(&mut self) {
+  pub async fn build(&mut self, changed_files: Option<Vec<String>>) {
     self.plugin_driver.build_start().await;
     tracing::trace!("start build");
-    let mut bundle = rspack_core::Bundle::new(
-      self.options.clone(),
-      self.plugin_driver.clone(),
-      self.ctx.clone(),
-    );
 
-    bundle.build_graph().await;
+    self.bundle.build_graph(changed_files).await;
 
-    let mut chunk_spliter = ChunkSpliter::new(self.options.clone());
-    let output = chunk_spliter.generate(&self.plugin_driver, &mut bundle);
+    let output = self
+      .chunk_spliter
+      .generate(&self.plugin_driver, &mut self.bundle);
     output.into_iter().for_each(|(_, chunk)| {
-      self.ctx.assets.lock().unwrap().push(Asset {
+      self.bundle.context.assets.lock().unwrap().push(Asset {
         source: chunk.code,
         filename: chunk.file_name,
       })
     });
 
-    self.module_graph = Some(bundle.module_graph.take().unwrap());
     self.plugin_driver.build_end().await;
   }
+
   pub fn resolve(
     &mut self,
     id: String,
@@ -112,13 +111,13 @@ impl Bundler {
     let res = resolver.resolve(base, &id);
     res
   }
+
   #[instrument(skip(self))]
   pub async fn rebuild(&mut self, changed_file: String) -> HashMap<String, String> {
     tracing::debug!("rebuld bacause of {:?}", changed_file);
     let mut old_modules_id = self
+      .bundle
       .module_graph
-      .as_ref()
-      .unwrap()
       .module_by_id
       .keys()
       .cloned()
@@ -126,31 +125,14 @@ impl Bundler {
     let changed_file: String = changed_file.into();
     old_modules_id.remove(&changed_file);
     tracing::trace!("old_modules_id {:?}", old_modules_id);
-    let mut bundle = {
-      // TODO: We need to reuse some cache. Rebuild is fake now.
-      let mut bundle = rspack_core::Bundle::new(
-        self.options.clone(),
-        self.plugin_driver.clone(),
-        self.ctx.clone(),
-      );
 
-      bundle.build_graph().await;
-      bundle
-    };
-    let mut chunk_spliter = ChunkSpliter::new(self.options.clone());
-    let output = chunk_spliter.generate(&self.plugin_driver, &mut bundle);
-    output.into_iter().for_each(|(_, chunk)| {
-      self.ctx.assets.lock().unwrap().push(Asset {
-        source: chunk.code,
-        filename: chunk.file_name,
-      })
-    });
-    self.module_graph = Some(bundle.module_graph.take().unwrap());
+    self.bundle.context.assets.lock().unwrap().clear();
+
+    self.build(Some(vec![changed_file])).await;
 
     let new_modules_id = self
+      .bundle
       .module_graph
-      .as_ref()
-      .unwrap()
       .module_by_id
       .keys()
       .cloned()
@@ -161,9 +143,8 @@ impl Bundler {
       .map(|module_id| {
         tracing::trace!("render new added module {:?}", module_id);
         let module = self
+          .bundle
           .module_graph
-          .as_ref()
-          .unwrap()
           .module_by_id
           .get(&module_id)
           .unwrap();
@@ -174,9 +155,9 @@ impl Bundler {
             module.render(
               &compiler,
               handler,
-              &self.module_graph.as_ref().unwrap().module_by_id,
+              &self.bundle.module_graph.module_by_id,
               &self.options,
-              &bundle.context,
+              &self.bundle.context,
             )
           })
           .unwrap();
@@ -187,13 +168,20 @@ impl Bundler {
   }
 
   pub fn write_assets_to_disk(&self) {
-    self.ctx.assets.lock().unwrap().iter().for_each(|asset| {
-      let mut path = PathBuf::from(self.options.outdir.clone());
-      // .map(PathBuf::from)
-      // .unwrap_or_else(|| std::env::current_dir().unwrap());
-      path.push(&asset.filename);
-      std::fs::create_dir_all(path.resolve().parent().unwrap()).unwrap();
-      std::fs::write(path.resolve(), &asset.source).unwrap();
-    });
+    self
+      .bundle
+      .context
+      .assets
+      .lock()
+      .unwrap()
+      .iter()
+      .for_each(|asset| {
+        let mut path = PathBuf::from(self.options.outdir.clone());
+        // .map(PathBuf::from)
+        // .unwrap_or_else(|| std::env::current_dir().unwrap());
+        path.push(&asset.filename);
+        std::fs::create_dir_all(path.resolve().parent().unwrap()).unwrap();
+        std::fs::write(path.resolve(), &asset.source).unwrap();
+      });
   }
 }

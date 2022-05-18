@@ -18,7 +18,8 @@ pub struct Bundle {
   pub options: Arc<NormalizedBundleOptions>,
   pub context: Arc<BundleContext>,
   pub plugin_driver: Arc<PluginDriver>,
-  pub module_graph: Option<ModuleGraph>,
+  pub module_graph: ModuleGraph,
+  pub visited_module_id: Arc<DashSet<String>>,
 }
 
 #[derive(Debug)]
@@ -40,6 +41,7 @@ impl Bundle {
       context,
       options,
       module_graph: Default::default(),
+      visited_module_id: Default::default(),
     }
   }
 
@@ -48,12 +50,24 @@ impl Bundle {
   }
 
   #[instrument(skip(self))]
-  pub async fn build_graph(&mut self) {
-    let mut module_graph = ModuleGraph::default();
+  pub async fn build_graph(&mut self, changed_files: Option<Vec<String>>) {
     let active_task_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
     let job_queue: Arc<SegQueue<ResolvedURI>> = Default::default();
 
-    module_graph.resolved_entries = join_all(
+    if let Some(files) = changed_files {
+      files.iter().for_each(|rd| {
+        self.module_graph.module_by_id.remove(rd);
+        self.visited_module_id.remove(rd);
+      });
+      files.into_iter().for_each(|rd| {
+        job_queue.push(ResolvedURI {
+          uri: rd,
+          external: false,
+        });
+      });
+    }
+
+    self.module_graph.resolved_entries = join_all(
       self
         .entries
         .iter()
@@ -63,9 +77,7 @@ impl Bundle {
     .into_iter()
     .collect();
 
-    let visited_module_id: Arc<DashSet<String>> = Default::default();
-
-    module_graph.resolved_entries.iter().for_each(|rd| {
+    self.module_graph.resolved_entries.iter().for_each(|rd| {
       job_queue.push(rd.clone());
     });
 
@@ -73,13 +85,13 @@ impl Bundle {
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
 
     while let Some(job) = job_queue.pop() {
-      visited_module_id.insert(job.uri.clone());
+      self.visited_module_id.insert(job.uri.clone());
       active_task_count.fetch_add(1, Ordering::SeqCst);
       let mut task = Task {
         root: self.options.root.clone(),
         resolved_uri: job,
         active_task_count: active_task_count.clone(),
-        visited_module_uri: visited_module_id.clone(),
+        visited_module_uri: self.visited_module_id.clone(),
         tx: tx.clone(),
         plugin_driver: self.plugin_driver.clone(),
         code_splitting: self.options.code_splitting,
@@ -89,7 +101,8 @@ impl Bundle {
       });
     }
 
-    let entries_uri = module_graph
+    let entries_uri = self
+      .module_graph
       .resolved_entries
       .iter()
       .map(|rid| rid.uri.clone())
@@ -103,7 +116,10 @@ impl Bundle {
             if module.is_user_defined_entry_point {
               tracing::trace!("detect user entry module {:?}", module);
             }
-            module_graph.module_by_id.insert(module.uri.clone(), module);
+            self
+              .module_graph
+              .module_by_id
+              .insert(module.uri.clone(), module);
             active_task_count.fetch_sub(1, Ordering::SeqCst);
           }
         },
@@ -113,7 +129,6 @@ impl Bundle {
       }
     }
 
-    module_graph.sort_modules();
-    self.module_graph = Some(module_graph);
+    self.module_graph.sort_modules();
   }
 }

@@ -78,7 +78,7 @@ mod testing {
       },
       plugins,
     );
-    bundler.build().await;
+    bundler.build(None).await;
     bundler.write_assets_to_disk();
     bundler
   }
@@ -204,7 +204,7 @@ mod testing {
       },
       vec![],
     );
-    let chunk_len = bundler.ctx.assets.lock().unwrap().len();
+    let chunk_len = bundler.bundle.context.assets.lock().unwrap().len();
     assert_eq!(chunk_len, 2);
   }
 
@@ -218,7 +218,7 @@ mod testing {
       },
       vec![],
     );
-    let chunk_len = bundler.ctx.assets.lock().unwrap().len();
+    let chunk_len = bundler.bundle.context.assets.lock().unwrap().len();
     assert_eq!(chunk_len, 4);
   }
 
@@ -268,7 +268,7 @@ mod testing {
       },
       vec![],
     );
-    let assets = bundler.ctx.assets.lock().unwrap();
+    let assets = bundler.bundle.context.assets.lock().unwrap();
     let dist = assets.get(0).unwrap();
     let source = &dist.source;
     println!("assets {:#?}", assets);
@@ -276,5 +276,11 @@ mod testing {
     assert!(!source.contains("@"));
     assert!(source.contains("ok.js"));
     assert!(source.contains("at.js"));
+  }
+
+  #[test]
+
+  fn stack_overflow_mockjs() {
+    compile("stack_overflow_mockjs", vec![]);
   }
 }

@@ -1,12 +1,10 @@
 mod data_uri;
 mod json;
-use std::{collections::HashMap, path::Path};
+use std::path::Path;
 
 use async_trait::async_trait;
 use data_uri::guess_mime_types_ext;
-use rspack_core::{
-  BundleContext, LoadedSource, Loader, Plugin, PluginLoadHookOutput, PluginTransformRawHookOutput,
-};
+use rspack_core::{BundleContext, Loader, Plugin, PluginTransformRawHookOutput};
 
 #[derive(Debug)]
 pub struct LoaderInterpreterPlugin;
@@ -75,29 +73,5 @@ impl Plugin for LoaderInterpreterPlugin {
       }
       _ => raw,
     }
-  }
-}
-
-#[derive(Debug)]
-pub struct LoaderDispatcherPlugin {
-  pub options: HashMap<String, Loader>,
-}
-
-#[async_trait]
-impl Plugin for LoaderDispatcherPlugin {
-  fn name(&self) -> &'static str {
-    "rspack_loader_dispatcher"
-  }
-
-  async fn load(&self, _ctx: &BundleContext, id: &str) -> PluginLoadHookOutput {
-    let loader = *Path::new(id)
-      .extension()
-      .and_then(|ext| ext.to_str())
-      .and_then(|ext| self.options.get(ext))?;
-
-    Some(LoadedSource {
-      loader: Some(loader),
-      ..Default::default()
-    })
   }
 }

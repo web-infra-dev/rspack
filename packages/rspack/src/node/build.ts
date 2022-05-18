@@ -3,6 +3,7 @@ import path from 'path';
 import { DevServer } from './server';
 import chokidar from 'chokidar';
 import { Rspack } from './rspack';
+import { RawOptions } from '@rspack/binding';
 type Defer = {
   resolve: any;
   reject: any;
@@ -18,7 +19,7 @@ const Defer = (): Defer => {
 
   return deferred;
 };
-export type BundlerOptions = {
+export type BundlerOptions = Partial<RawOptions> & {
   entry: Record<string, string>;
   root: string;
   manualChunks: Record<string, string[]>;
@@ -28,6 +29,7 @@ export type BundlerOptions = {
   react: Record<string, any>;
   sourceMap: boolean;
 };
+
 export async function run(options: BundlerOptions) {
   const { root, entry, loader, inlineStyle, alias, react } = options;
   // const entry = path.resolve(root, 'index.js');
@@ -46,6 +48,7 @@ export async function run(options: BundlerOptions) {
     alias,
     refresh: options.react.refresh,
     sourceMap: options.sourceMap,
+    codeSplitting: options.codeSplitting,
   });
   const server = new DevServer({
     root,
@@ -54,7 +57,7 @@ export async function run(options: BundlerOptions) {
   await bundler.build();
   watcher.on('change', async (id) => {
     const url = path.relative(root, id);
-    console.log('change:', url);
+    console.log('hmr:start', url);
     /**
      * @todo update logic
      * 目前会重新触发自该模块开始的全量编译，webpack也是这么做吗
@@ -67,6 +70,7 @@ export async function run(options: BundlerOptions) {
       timestamp: Date.now(),
       code: Object.values(update).join(';\n') + `invalidate(${JSON.stringify(url)})` + sourceUrl,
     });
+    console.log('hmr:end', url);
   });
   const htmlPath = path.resolve(__dirname, '../client/index.html');
   fs.ensureDirSync(path.resolve(root, 'dist'));
