@@ -35,6 +35,12 @@ impl Plugin for SvgrPlugin {
     let ext = p.extension().and_then(|ext| ext.to_str()).unwrap_or("js");
 
     if ext == "svg" {
+      let config_loader = _ctx.options.loader.get("svg").unwrap_or(&Loader::Svgr);
+
+      if !matches!(config_loader, Loader::Svgr) {
+        return raw;
+      }
+
       let use_raw = id[n..].contains("raw");
       let format = "base64";
       let data_uri = format!(
