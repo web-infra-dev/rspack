@@ -4,8 +4,11 @@ use rspack_core::{BundleContext, Plugin, PluginLoadHookOutput};
 use std::sync::{Arc, Mutex};
 extern crate console;
 use console::{style, Color, Term};
+use md5;
 use once_cell::sync::Lazy;
+use std::fs::File;
 use std::io;
+use std::io::Write;
 use std::{env, fs};
 
 pub static PLUGIN_NAME: &'static str = "rspack_progress";
@@ -126,9 +129,7 @@ impl ProgressPlugin {
     ProgressPlugin { progress }
   }
 }
-use md5;
-use std::fs::File;
-use std::io::Write;
+
 #[async_trait]
 impl Plugin for ProgressPlugin {
   fn name(&self) -> &'static str {
