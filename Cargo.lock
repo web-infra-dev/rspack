@@ -1688,6 +1688,7 @@ name = "rspack_plugin_css"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "nodejs-resolver 0.0.7",
  "rspack_core",
  "rspack_style",
  "tokio",
@@ -1754,9 +1755,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_style"
-version = "0.1.2"
+version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92b0eeed53fb5766152f149b67b374af0bb6c0239a3cc81485de3fa91574ce66"
+checksum = "55756da2cfb6680bf3e6560261f917c5bfaf92b107b3983e3df37b84798772e2"
 dependencies = [
  "fasteval",
  "regex",
