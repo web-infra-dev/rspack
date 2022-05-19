@@ -45,7 +45,7 @@ pub fn parse_file(source_code: String, filename: &str, loader: &Loader) -> ast::
   .unwrap()
 }
 
-pub fn syntax(ext: &str) -> Syntax {
+pub fn syntax_by_ext(ext: &str) -> Syntax {
   match ext == "ts" || ext == "tsx" {
     true => Syntax::Typescript(TsConfig {
       decorators: false,
@@ -87,7 +87,7 @@ pub fn syntax_by_loader(filename: &str, loader: &Loader) -> Syntax {
         .extension()
         .and_then(|ext| ext.to_str())
         .unwrap_or("js");
-      syntax(ext)
+      syntax_by_ext(ext)
     }
   }
 }
