@@ -114,7 +114,7 @@ impl Bundler {
 
   #[instrument(skip(self))]
   pub async fn rebuild(&mut self, changed_file: String) -> HashMap<String, String> {
-    tracing::debug!("rebuld bacause of {:?}", changed_file);
+    tracing::debug!("rebuild because of {:?}", changed_file);
     let changed_files = vec![changed_file];
     let old_modules_id = self
       .bundle
