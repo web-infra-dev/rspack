@@ -49,6 +49,7 @@ export async function run(options: BundlerOptions) {
     refresh: options.react.refresh,
     sourceMap: options.sourceMap,
     codeSplitting: options.codeSplitting,
+    svgr: options.svgr,
   });
   const server = new DevServer({
     root,
@@ -69,7 +70,10 @@ export async function run(options: BundlerOptions) {
       type: 'js-update',
       path: url,
       timestamp: Date.now(),
-      code: Object.values(update).join(';\n') + `invalidate(${JSON.stringify(url)})` + sourceUrl,
+      code:
+        Object.values(update).join(';\n') +
+        `invalidate(${JSON.stringify(url)})` +
+        sourceUrl,
     });
     console.timeEnd(`hmr:${url}`);
   });

@@ -69,6 +69,7 @@ mod testing {
         vec![default_entry]
       }
     };
+    let svgr = pkg["rspack"].clone()["svgr"].as_bool().unwrap_or(false);
     let dist = fixtures_dir.join("dist");
     println!("entry: {:?}", entry);
     println!("options: \n {:?}", options);
@@ -76,6 +77,7 @@ mod testing {
       BundleOptions {
         entries: entry,
         outdir: dist.to_str().unwrap().to_string(),
+        svgr,
         ..options
       },
       plugins,
@@ -264,6 +266,11 @@ mod testing {
   #[test]
   fn basic_ts() {
     compile("basic-ts", vec![]);
+  }
+
+  #[test]
+  fn svgr() {
+    compile("svgr", vec![]);
   }
 
   #[test]

@@ -19,8 +19,6 @@
       "index": "src/index.js"
     },
     "react": {},
-    "loader": {
-      "svg": "svgr"
-    }
+    "svgr": true
   }
 }

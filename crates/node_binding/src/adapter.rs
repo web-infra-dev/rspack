@@ -170,7 +170,6 @@ impl Plugin for RspackPluginNodeAdapter {
           "ts" => Loader::Ts,
           "tsx" => Loader::Tsx,
           "null" => Loader::Null,
-          "svgr" => Loader::Svgr,
           _ => panic!("unexpected loader option `{}`", loader),
         }
       }),

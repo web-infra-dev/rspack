@@ -1,8 +1,9 @@
 use async_trait::async_trait;
 use core::fmt::Debug;
+use rspack_core::PluginTransformHookOutput;
 pub static PLUGIN_NAME: &'static str = "rspack_svgr";
 use rspack_core::{
-  BundleContext, LoadedSource, Loader, Plugin, PluginLoadHookOutput, PluginTransformRawHookOutput,
+  BundleContext, LoadedSource, Loader, Plugin, PluginLoadHookOutput, PluginTransformAstHookOutput,
 };
 use std::{path::Path, sync::Arc};
 // #[macro_use]
@@ -22,14 +23,30 @@ impl Plugin for SvgrPlugin {
   fn name(&self) -> &'static str {
     PLUGIN_NAME
   }
+  #[inline]
+  async fn load(&self, _ctx: &BundleContext, id: &str) -> PluginLoadHookOutput {
+    let query_start = id.find(|c: char| c == '?').or(Some(id.len())).unwrap();
+    let file_path = Path::new(&id[..query_start]);
+    let ext = file_path
+      .extension()
+      .and_then(|ext| ext.to_str())
+      .unwrap_or("js");
 
+    if ext == "svg" {
+      let loader = Some(Loader::Js);
+      let content = None;
+      Some(LoadedSource { loader, content })
+    } else {
+      None
+    }
+  }
   fn transform(
     &self,
     _ctx: &BundleContext,
     id: &str,
-    loader: &mut Loader,
+    loader: &mut Option<Loader>,
     raw: String,
-  ) -> PluginTransformRawHookOutput {
+  ) -> PluginTransformHookOutput {
     let query_start = id.find(|c: char| c == '?').or(Some(id.len())).unwrap();
     let file_path = Path::new(&id[..query_start]);
     let ext = file_path
@@ -52,7 +69,7 @@ impl Plugin for SvgrPlugin {
       );
 
       if use_raw {
-        *loader = Loader::Js;
+        *loader = Some(Loader::Js);
         return format!(
           "
           var img = \"{}\";
@@ -64,7 +81,7 @@ impl Plugin for SvgrPlugin {
         .to_string();
       }
 
-      *loader = Loader::Jsx;
+      *loader = Some(Loader::Jsx);
 
       lazy_static! {
         static ref RE: Regex = Regex::new(r"<svg (.*?)>").unwrap();

@@ -43,6 +43,7 @@ struct RawOptions {
   pub refresh: Option<bool>,
   pub source_map: Option<bool>,
   pub code_splitting: Option<bool>,
+  pub svgr: Option<bool>,
 }
 
 pub type Rspack = Arc<Mutex<RspackBundler>>;
@@ -171,6 +172,7 @@ pub fn new_rspack(
       mode: BundleMode::Dev,
       loader,
       inline_style: options.inline_style.unwrap_or_default(),
+      svgr: options.svgr.unwrap_or_default(),
       react: BundleReactOptions {
         refresh: options.refresh.unwrap_or_default(),
         ..Default::default()
@@ -272,7 +274,6 @@ fn parse_loader(user_input: HashMap<String, String>) -> rspack_core::LoaderOptio
       Loader::Null => ("null", loader),
       Loader::Json => ("json", loader),
       Loader::Text => ("text", loader),
-      Loader::Svgr => ("svgr", loader),
     })
     .collect::<HashMap<_, _>>();
   user_input
