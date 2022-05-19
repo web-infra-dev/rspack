@@ -1,6 +1,5 @@
 use std::collections::{HashMap, HashSet, LinkedList};
 
-use dashmap::DashSet;
 use petgraph::{
   graph::NodeIndex,
   visit::{depth_first_search, Control, DfsEvent},
@@ -20,13 +19,12 @@ type ModulePetGraph<'a> = petgraph::graphmap::DiGraphMap<&'a str, Dependency>;
 pub fn split_chunks(module_graph: &ModuleGraph, is_enable_code_spliting: bool) -> Vec<Chunk> {
   let module_by_id: &HashMap<String, JsModule> = &module_graph.module_by_id;
   let resolved_entries: &Vec<ResolvedURI> = &module_graph.resolved_entries;
-
   let mut dependency_graph = ModulePetGraph::new();
   module_by_id.keys().for_each(|module_id| {
     dependency_graph.add_node(module_id);
   });
 
-  let mut egdes: Vec<(String, String, Dependency)> = vec![];
+  let mut edges: Vec<(String, String, Dependency)> = vec![];
   module_by_id.values().for_each(|module| {
     // let module = &self.graph.module_by_id[module_id];
 
@@ -37,7 +35,7 @@ pub fn split_chunks(module_graph: &ModuleGraph, is_enable_code_spliting: bool) -
       .into_iter()
       .for_each(|dep| {
         let dep_uri = module.resolved_uris.get(dep).unwrap().clone();
-        egdes.push((
+        edges.push((
           module.uri.clone(),
           dep_uri.uri,
           Dependency { is_async: false },
@@ -50,14 +48,14 @@ pub fn split_chunks(module_graph: &ModuleGraph, is_enable_code_spliting: bool) -
       .into_iter()
       .for_each(|dep| {
         let dep_rid = module.resolved_uris.get(&dep.argument).unwrap().clone();
-        egdes.push((
+        edges.push((
           module.uri.clone(),
           dep_rid.uri,
           Dependency { is_async: true },
         ))
       });
   });
-  egdes.iter().for_each(|(from, to, edge)| {
+  edges.iter().for_each(|(from, to, edge)| {
     dependency_graph.add_edge(from, to, edge.clone());
   });
 
@@ -112,7 +110,7 @@ pub fn split_chunks(module_graph: &ModuleGraph, is_enable_code_spliting: bool) -
     }
   });
 
-  let entries = DashSet::new();
+  let mut entries = HashSet::new();
   resolved_entries.iter().for_each(|entry| {
     entries.insert(entry.uri.clone());
   });

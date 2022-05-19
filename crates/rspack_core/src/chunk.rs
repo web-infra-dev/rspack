@@ -161,8 +161,8 @@ impl Chunk {
       true => {
         let content_hash = {
           let mut hasher = DefaultHasher::new();
-          self.module_ids.iter().for_each(|moudle_id| {
-            let module = &bundle.module_graph.module_by_id[moudle_id];
+          self.module_ids.iter().for_each(|module_id| {
+            let module = &bundle.module_graph.module_by_id[module_id];
             module.ast.hash(&mut hasher);
           });
           hasher.finish()
@@ -179,7 +179,7 @@ fn get_alias_name(id: &str) -> &str {
   let p = Path::new(id);
   // +1 to include `.`
   let ext_len = p.extension().map_or(0, |s| s.to_string_lossy().len() + 1);
-  let file_name = p.file_name().unwrap().to_str().unwrap();
+  let file_name = p.file_name().and_then(|name| name.to_str()).unwrap();
   &file_name[0..file_name.len() - ext_len]
 }
 

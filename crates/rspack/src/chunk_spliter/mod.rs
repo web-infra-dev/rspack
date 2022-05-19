@@ -31,10 +31,10 @@ impl ChunkSpliter {
     }
   }
 
-  #[instrument(skip(self, plugin_dirver, bundle))]
+  #[instrument(skip(self, plugin_driver, bundle))]
   pub fn generate(
     &mut self,
-    plugin_dirver: &PluginDriver,
+    plugin_driver: &PluginDriver,
     bundle: &mut Bundle,
   ) -> HashMap<String, OutputChunk> {
     let mut chunks = split_chunks(&bundle.module_graph, self.output_options.code_splitting);
@@ -51,7 +51,7 @@ impl ChunkSpliter {
 
     chunks
       .iter()
-      .for_each(|chunk| plugin_dirver.tap_generated_chunk(chunk, &self.output_options));
+      .for_each(|chunk| plugin_driver.tap_generated_chunk(chunk, &self.output_options));
     let compiler = get_swc_compiler();
     chunks
       .par_iter_mut()
