@@ -3,7 +3,7 @@ mod testing {
   use rspack::bundler::{BundleContext, BundleOptions, Bundler};
   use rspack_core::{Loader, ResolveOption};
   use rspack_core::{
-    Plugin, PluginLoadHookOutput, PluginResolveHookOutput, PluginTransformHookOutput,
+    Plugin, PluginLoadHookOutput, PluginResolveHookOutput, PluginTransformAstHookOutput,
   };
 
   use rspack_swc::swc_ecma_ast;
@@ -137,7 +137,7 @@ mod testing {
       _ctx: &BundleContext,
       _path: &Path,
       ast: swc_ecma_ast::Module,
-    ) -> PluginTransformHookOutput {
+    ) -> PluginTransformAstHookOutput {
       self
         .call_transform
         .store(true, std::sync::atomic::Ordering::SeqCst);

@@ -4,7 +4,7 @@ use std::path::Path;
 
 use async_trait::async_trait;
 use data_uri::guess_mime_types_ext;
-use rspack_core::{BundleContext, Loader, Plugin, PluginTransformRawHookOutput};
+use rspack_core::{BundleContext, Loader, Plugin, PluginTransformHookOutput};
 
 #[derive(Debug)]
 pub struct LoaderInterpreterPlugin;
@@ -23,7 +23,7 @@ impl Plugin for LoaderInterpreterPlugin {
     uri: &str,
     loader: &mut Option<Loader>,
     raw: String,
-  ) -> PluginTransformRawHookOutput {
+  ) -> PluginTransformHookOutput {
     if let Some(loader) = loader {
       match loader {
         Loader::DataURI => {

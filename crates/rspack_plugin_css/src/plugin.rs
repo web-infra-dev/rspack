@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use nodejs_resolver::{ResolveResult, Resolver};
 use rspack_core::Plugin;
 use rspack_core::{
-  Asset, BundleContext, Chunk, Loader, NormalizedBundleOptions, PluginTransformRawHookOutput,
+  Asset, BundleContext, Chunk, Loader, NormalizedBundleOptions, PluginTransformHookOutput,
 };
 use rspack_style::new_less::applicationn::Application;
 use std::collections::HashMap;
@@ -110,7 +110,7 @@ impl Plugin for CssSourcePlugin {
     uri: &str,
     loader: &mut Option<Loader>,
     raw: String,
-  ) -> PluginTransformRawHookOutput {
+  ) -> PluginTransformHookOutput {
     if let Some(Loader::Css) = loader {
       if let Some(mut css) = is_css_source(uri) {
         let mut js = format!("//{}\n", uri) + r#"export {}"#;

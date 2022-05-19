@@ -3,8 +3,8 @@ use std::path::Path;
 use tracing::instrument;
 
 use crate::{
-  plugin::PluginTransformHookOutput, plugin_driver::PluginDriver, Loader,
-  PluginTransformRawHookOutput,
+  plugin::PluginTransformAstHookOutput, plugin_driver::PluginDriver, Loader,
+  PluginTransformHookOutput,
 };
 
 #[instrument(skip(ast, plugin_driver))]
@@ -13,7 +13,7 @@ pub fn transform_ast(
   path: &Path,
   ast: ast::Module,
   plugin_driver: &PluginDriver,
-) -> PluginTransformHookOutput {
+) -> PluginTransformAstHookOutput {
   plugin_driver.transform_ast(path, ast)
 }
 
@@ -24,6 +24,6 @@ pub fn transform(
   loader: &mut Option<Loader>,
   source: String,
   plugin_driver: &PluginDriver,
-) -> PluginTransformRawHookOutput {
+) -> PluginTransformHookOutput {
   plugin_driver.transform(uri, loader, source)
 }
