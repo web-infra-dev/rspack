@@ -40,4 +40,8 @@ jobs:
       - name: Build
         run: cargo build
       - name: Test
-        run: cargo test --all --all-features -- --nocapture --test-threads=1
+        run: |
+          cargo test --all --all-features -- --nocapture --test-threads=1
+          yarn test:example
+          yarn build:core
+          yarn test:js
