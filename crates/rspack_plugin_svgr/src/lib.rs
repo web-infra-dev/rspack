@@ -30,18 +30,19 @@ impl Plugin for SvgrPlugin {
     loader: &mut Loader,
     raw: String,
   ) -> PluginTransformRawHookOutput {
-    let n = id.find(|c: char| c == '?').or(Some(id.len())).unwrap();
-    let p = Path::new(&id[..n]);
-    let ext = p.extension().and_then(|ext| ext.to_str()).unwrap_or("js");
+    let query_start = id.find(|c: char| c == '?').or(Some(id.len())).unwrap();
+    let file_path = Path::new(&id[..query_start]);
+    let ext = file_path
+      .extension()
+      .and_then(|ext| ext.to_str())
+      .unwrap_or("js");
 
     if ext == "svg" {
-      let config_loader = _ctx.options.loader.get("svg").unwrap_or(&Loader::Svgr);
-
-      if !matches!(config_loader, Loader::Svgr) {
+      if !_ctx.options.svgr {
         return raw;
       }
 
-      let use_raw = id[n..].contains("raw");
+      let use_raw = id[query_start..].contains("raw");
       let format = "base64";
       let data_uri = format!(
         "data:{};{},{}",

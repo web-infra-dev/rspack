@@ -120,5 +120,6 @@ pub fn normalize_bundle_options(options: BundleOptions) -> NormalizedBundleOptio
     root: options.root,
     source_map: options.source_map,
     inline_style: options.inline_style,
+    svgr: options.svgr,
   }
 }
