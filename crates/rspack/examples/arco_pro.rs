@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::Path};
+use std::{collections::HashMap, path::Path, time::Duration};
 
 use rspack::bundler::{BundleOptions, Bundler};
 use rspack_core::{BundleMode, BundleReactOptions, Loader, ResolveOption};
@@ -64,6 +64,16 @@ async fn main() {
   );
   let build_future = async {
     bundler.build(None).await;
+    tokio::time::sleep(Duration::from_millis(3000)).await;
+    bundler
+      .rebuild(
+        dir
+          .join("../../examples/arco-pro/src/components/NavBar/index.tsx")
+          .normalize()
+          .to_string_lossy()
+          .to_string(),
+      )
+      .await;
   };
   build_future.instrument(tracing::info_span!("build")).await;
   // println!("assets: {:#?}", bundler.ctx.assets.lock().unwrap());
