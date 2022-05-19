@@ -151,6 +151,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 
 [[package]]
+name = "base64-simd"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2459ea4122531dd1b7624796899ab5f0646475013a18464e4dc6db68186d2cd7"
+dependencies = [
+ "simd-abstraction",
+]
+
+[[package]]
 name = "better_scoped_tls"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1740,13 +1749,18 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.0.2"
+version = "0.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b90afb957c2aad5dde1904aa56d0a82297cc22748f66a118437628cb464b720"
+checksum = "639a682dbce7710ca01eed67d5cb5799d3db0e3e18b78a0a6ef802800eb30331"
 dependencies = [
- "base64 0.13.0",
+ "base64-simd",
+ "once_cell",
  "smol_str",
  "sourcemap",
+ "tracing",
+ "tracing-chrome",
+ "tracing-futures",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -1933,6 +1947,12 @@ checksum = "e51e73328dc4ac0c7ccbda3a494dfa03df1de2f46018127f60c693f2648455b0"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "simd-abstraction"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df70fadc9b3167d59d7301bffe0eee7f0a353024d338e7d25d822c28450ae893"
 
 [[package]]
 name = "similar"
