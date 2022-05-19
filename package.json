@@ -9,11 +9,13 @@
     "examples/**",
     "patches/**",
     "crates/node_binding",
-    "crates/rspack/fixtures"
+    "crates/rspack/fixtures",
+    "tools/**"
   ],
   "scripts": {
     "init": "yarn install",
     "test:js": "mocha",
+    "snapshot:js": "mocha --update",
     "test:rust": "cargo test",
     "test:example": "cargo run --example arco_pro",
     "prepare": "husky install",

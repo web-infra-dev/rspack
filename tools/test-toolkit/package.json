@@ -1,0 +1,17 @@
+{
+  "name": "@rspack/test-toolkit",
+  "version": "0.0.1",
+  "description": "",
+  "main": "src/index.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/chai": "^4.3.1",
+    "chai": "^4.3.6",
+    "mocha-chai-jest-snapshot": "^1.1.3"
+  }
+}

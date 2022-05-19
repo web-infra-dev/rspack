@@ -1,0 +1,18 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`rspack should work with plugins 1`] = `
+"rs.define(\\"packages/rspack/tests/fixtures/rspack-binding/foo.js\\", function(require, module, exports) {
+    \\"use strict\\";
+    console.log('foo');
+    console.log(\\"fooo\\");
+});
+
+rs.define(\\"packages/rspack/tests/fixtures/rspack-binding/index.js\\", function(require, module, exports) {
+    \\"use strict\\";
+    require(\\"packages/rspack/tests/fixtures/rspack-binding/foo.js\\");
+    console.log('rspack-binding');
+});
+rs.require(\\"packages/rspack/tests/fixtures/rspack-binding/index.js\\");
+
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiaW5kZXguanMiLCJzb3VyY2VzIjpbIjwvVXNlcnMvYnl0ZWRhbmNlL1Byb2plY3RzL3JzcGFjay9wYWNrYWdlcy9yc3BhY2svdGVzdHMvZml4dHVyZXMvcnNwYWNrLWJpbmRpbmcvZm9vLmpzPiIsIjwvVXNlcnMvYnl0ZWRhbmNlL1Byb2plY3RzL3JzcGFjay9wYWNrYWdlcy9yc3BhY2svdGVzdHMvZml4dHVyZXMvcnNwYWNrLWJpbmRpbmcvaW5kZXguanM+Il0sInNvdXJjZXNDb250ZW50IjpbImNvbnNvbGUubG9nKCdmb28nKTtcbmNvbnNvbGUubG9nKFwiZm9vb1wiKTsiLCJpbXBvcnQgJ2Zvbyc7XG5jb25zb2xlLmxvZygncnNwYWNrLWJpbmRpbmcnKTtcbiJdLCJuYW1lcyI6WyJjb25zb2xlIl0sIm1hcHBpbmdzIjoiOztJQUFBQTtJQUNBQTs7Ozs7WUNETztJQUNQQSJ9"
+`;
