@@ -24,7 +24,6 @@ pub struct Chunk {
   // pub order_modules: Vec<String>,
   pub entry: String,
   pub module_ids: Vec<String>,
-  pub source_chunks: Vec<NodeIndex>,
   pub is_entry_chunk: bool,
   _noop: (),
 }
@@ -35,7 +34,7 @@ impl Chunk {
       id: Default::default(),
       module_ids,
       entry: entries,
-      source_chunks: Default::default(),
+      // source_chunks: Default::default(),
       is_entry_chunk,
       _noop: (),
     }
@@ -46,7 +45,7 @@ impl Chunk {
       id: Default::default(),
       module_ids: vec![module_id.clone()],
       entry: module_id,
-      source_chunks: Default::default(),
+      // source_chunks: Default::default(),
       is_entry_chunk,
       _noop: (),
     }

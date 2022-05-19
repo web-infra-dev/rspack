@@ -68,7 +68,7 @@
       "@/": "<ROOT>/src/"
     },
     "sourcemap": false,
-    "splitting": false,
+    "splitting": true,
     "react": {
       "refresh": true
     }
