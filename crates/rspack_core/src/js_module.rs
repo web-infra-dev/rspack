@@ -14,7 +14,8 @@ use swc_ecma_transforms_base::pass::noop;
 use tracing::instrument;
 
 use crate::{
-  hmr::hmr_module, syntax, BundleContext, BundleMode, NormalizedBundleOptions, ResolvedURI,
+  hmr::hmr_module, syntax_by_loader, BundleContext, BundleMode, Loader, NormalizedBundleOptions,
+  ResolvedURI,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -40,6 +41,7 @@ pub struct JsModule {
   pub resolved_uris: HashMap<JsWord, ResolvedURI>,
   pub chunkd_ids: HashSet<String>,
   pub code_splitting: bool,
+  pub loader: Loader,
 }
 impl std::fmt::Debug for JsModule {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -72,6 +74,7 @@ impl JsModule {
       resolved_uris: Default::default(),
       chunkd_ids: Default::default(),
       code_splitting: Default::default(),
+      loader: Default::default(),
     }
   }
   pub fn add_chunk(&mut self, chunk_id: String) {
@@ -105,7 +108,7 @@ impl JsModule {
           config: swc_config::Config {
             jsc: swc_config::JscConfig {
               target: Some(EsVersion::Es2022),
-              syntax: Some(syntax(self.uri.as_str())),
+              syntax: Some(syntax_by_loader(self.uri.as_str(), &self.loader)),
               transform: Some(swc_config::TransformConfig {
                 react: swc_ecma_transforms_react::Options {
                   runtime: Some(swc_ecma_transforms_react::Runtime::Automatic),

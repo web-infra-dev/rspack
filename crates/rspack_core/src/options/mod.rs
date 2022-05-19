@@ -22,6 +22,12 @@ impl Loader {
   }
 }
 
+impl Default for Loader {
+  fn default() -> Self {
+    Loader::Null
+  }
+}
+
 pub type LoaderOptions = HashMap<String, Loader>;
 
 #[derive(Debug)]
