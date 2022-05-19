@@ -18,6 +18,30 @@ use lazy_static::*;
 pub struct SvgrPlugin {}
 impl SvgrPlugin {}
 
+fn clean_svgr(text: &str) -> String {
+  lazy_static! {
+    // todo: use ast map attrs
+    static ref RE_REMOVE: Vec<(Regex, &'static str)> = {
+      let v = vec![
+        (Regex::new(r"(?s)<svg (.*?)>").unwrap(), "<svg $1 {...props}>"),
+        (Regex::new(r"(?s)<\?xml (.*?)\?>").unwrap(), ""),
+        (Regex::new(r"(?s)<!--(.*?)-->").unwrap(), ""),
+        (Regex::new(r"(?s)<!DOCTYPE(.*?)>").unwrap(), ""),
+        (Regex::new(r"(?s)<style(.*?)style>").unwrap(), ""),
+        (Regex::new(r"xmlns:xlink").unwrap(), "xmlnsXlink"),
+        (Regex::new(r"xml:space").unwrap(), "xmlSpace"),
+      ];
+      v
+    };
+  }
+
+  let result = RE_REMOVE.iter().fold(text.to_string(), |text, re| {
+    re.0.replace(&text, re.1).to_string()
+  });
+
+  result
+}
+
 #[async_trait]
 impl Plugin for SvgrPlugin {
   fn name(&self) -> &'static str {
@@ -82,13 +106,7 @@ impl Plugin for SvgrPlugin {
       }
 
       *loader = Some(Loader::Jsx);
-
-      lazy_static! {
-        static ref RE: Regex = Regex::new(r"<svg (.*?)>").unwrap();
-      }
-      let result = RE.replace(&raw, |caps: &Captures| {
-        format!("<svg {} {{...props}}>", &caps[1])
-      });
+      let result = clean_svgr(&raw);
 
       return format!(
         r#"
