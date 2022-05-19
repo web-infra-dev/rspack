@@ -1,0 +1,30 @@
+---
+source: crates/testground/tests/fixtures/plugin_globals.rs
+expression: string
+---
+rs.define("./../../globals:react", function(require, module, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", {
+        value: true
+    });
+    exports.default = void 0;
+    var global = typeof globalThis !== 'undefined' ? globalThis : global || self;
+    var imported = global.React;
+    var _default = imported;
+    exports.default = _default;
+});
+
+rs.define("./src/index.js", function(require, module, exports) {
+    "use strict";
+    function _interopRequireDefault(obj) {
+        return obj && obj.__esModule ? obj : {
+            default: obj
+        };
+    }
+    var _react = _interopRequireDefault(require("./../../globals:react"));
+    _react.default.createElement("div", null, {
+        children: "Hello, world!"
+    });
+});
+rs.require("./src/index.js");
+

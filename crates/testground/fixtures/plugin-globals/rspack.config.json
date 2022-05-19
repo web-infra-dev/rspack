@@ -1,0 +1,15 @@
+{
+  "mode": "development",
+  "entries": {
+    "main": "./src/index.js"
+  },
+  "output": {
+    "outdir": "./dist",
+    "sourceMap": false
+  },
+  "enhanced": {
+    "globals": {
+      "react": "React"
+    }
+  }
+}

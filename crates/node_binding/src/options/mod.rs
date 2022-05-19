@@ -92,6 +92,7 @@ pub fn normalize_bundle_options(options: RawOptions) -> BundleOptions {
     svgr: enhanced.svgr.unwrap_or(false),
     lazy_compilation: enhanced.lazy_compilation.unwrap_or(false),
     progress: enhanced.progress.unwrap_or(true),
+    globals: enhanced.globals.unwrap_or_default(),
     ..Default::default()
   }
 }

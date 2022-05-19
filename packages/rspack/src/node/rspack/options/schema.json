@@ -93,6 +93,15 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "globals": {
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            ".*": {
+              "type": "string"
+            }
+          }
+        },
         "svgr": {
           "type": "boolean"
         },
