@@ -12,6 +12,7 @@
   "rspack": {
     "entry": {
       "index": "./index.ts"
-    }
+    },
+    "svgr": true
   }
 }
