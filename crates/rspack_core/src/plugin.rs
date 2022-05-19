@@ -38,7 +38,7 @@ pub trait Plugin: Sync + Send + Debug {
     &self,
     _ctx: &BundleContext,
     _uri: &str,
-    _loader: &mut Loader,
+    _loader: &mut Option<Loader>,
     raw: String,
   ) -> PluginTransformRawHookOutput {
     raw

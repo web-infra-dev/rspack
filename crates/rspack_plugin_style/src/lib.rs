@@ -20,10 +20,11 @@ impl Plugin for StyleLoaderPlugin {
     &self,
     _ctx: &BundleContext,
     _uri: &str,
-    loader: &mut Loader,
+    loader: &mut Option<Loader>,
     raw: String,
   ) -> PluginTransformRawHookOutput {
-    if let Loader::Css = loader {
+    if let Some(Loader::Css) = loader {
+      *loader = Some(Loader::Js);
       format!(
         "
         if (typeof document !== 'undefined') {{

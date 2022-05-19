@@ -60,7 +60,7 @@ impl PluginDriver {
   pub fn transform(
     &self,
     uri: &str,
-    loader: &mut Loader,
+    loader: &mut Option<Loader>,
     raw: String,
   ) -> PluginTransformRawHookOutput {
     self.plugins.iter().fold(raw, |transformed_raw, plugin| {

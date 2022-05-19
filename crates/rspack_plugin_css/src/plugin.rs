@@ -83,10 +83,10 @@ impl Plugin for CssSourcePlugin {
     &self,
     _ctx: &BundleContext,
     uri: &str,
-    loader: &mut Loader,
+    loader: &mut Option<Loader>,
     raw: String,
   ) -> PluginTransformRawHookOutput {
-    if let Loader::Css = loader {
+    if let Some(Loader::Css) = loader {
       if let Some(mut css) = is_css_source(uri) {
         {
           let map = self.handle_with_css_file(uri);
