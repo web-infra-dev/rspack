@@ -62,7 +62,8 @@
     "loader": {
       "json": "json",
       "svg": "dataURI",
-      "less": "css"
+      "less": "less",
+      "css": "css"
     },
     "alias": {
       "@/": "<ROOT>/src/"

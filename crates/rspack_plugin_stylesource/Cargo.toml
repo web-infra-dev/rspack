@@ -1,5 +1,5 @@
 [package]
-name = "rspack_plugin_css"
+name = "rspack_plugin_stylesource"
 version = "0.1.0"
 edition = "2021"
 

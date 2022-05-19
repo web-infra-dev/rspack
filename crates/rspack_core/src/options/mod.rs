@@ -9,6 +9,8 @@ pub enum Loader {
   Json,
   Text,
   Css,
+  Less,
+  Sass,
   Js,
   Jsx,
   Ts,

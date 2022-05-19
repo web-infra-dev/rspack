@@ -9,7 +9,7 @@ license = "MIT"
 
 [dependencies]
 rspack_core = { path="../rspack_core" }
-rspack_plugin_css = { path="../rspack_plugin_css" }
+rspack_plugin_stylesource = { path="../rspack_plugin_stylesource" }
 rspack_plugin_react = { path="../rspack_plugin_react" }
 rspack_plugin_loader = { path="../rspack_plugin_loader" }
 rspack_plugin_style = { path="../rspack_plugin_style" }

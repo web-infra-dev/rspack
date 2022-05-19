@@ -1,4 +1,4 @@
-use crate::handle_with_css::{is_css_source, CssSourceType};
+use crate::handle_with_css::{is_style_source, StyleSourceType};
 use async_trait::async_trait;
 use nodejs_resolver::{ResolveResult, Resolver};
 use rspack_core::Plugin;
@@ -10,32 +10,38 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
-use tokio::runtime::{Handle, Runtime};
 
+///
+/// 样式插件
+/// 处理 rspack 中 scss | sass | less | css
+/// 设计原因: (需要拿到 在 js中 引用 css | less |sass  中 import 所有分页信息)
+/// 并且在 tap_generated_chunk 聚合中  进行 tree-shaking
+/// 如果 单独 处理 上述样式 的插件上下文 则 样式聚会 tree-shaking 可能会有问题!
+///
 #[derive(Debug)]
-pub struct CssSourcePlugin {
-  pub css_source_collect: Mutex<Vec<CssSourceType>>,
+pub struct StyleSourcePlugin {
+  pub style_source_collect: Mutex<Vec<StyleSourceType>>,
   pub app: Application,
 }
 
-pub static PLUGIN_NAME: &'static str = "rspack_css_plugin";
+pub static PLUGIN_NAME: &'static str = "rspack_style_source_plugin";
 
 #[derive(Debug)]
-pub struct CssReferenceInfo {
+pub struct SytleReferenceInfo {
   pub source: String,
   pub ref_count: usize,
   pub filepath: String,
 }
 
-impl Default for CssSourcePlugin {
+impl Default for StyleSourcePlugin {
   fn default() -> Self {
     let app = Application::default();
 
-    let css_plugin = CssSourcePlugin {
-      css_source_collect: Mutex::new(vec![]),
+    let style_plugin = Self {
+      style_source_collect: Mutex::new(vec![]),
       app,
     };
-    css_plugin
+    style_plugin
       .app
       .context
       .lock()
@@ -57,11 +63,15 @@ impl Default for CssSourcePlugin {
         Ok(filepath)
       }
     }));
-    css_plugin
+    style_plugin
   }
 }
 
-impl CssSourcePlugin {
+impl StyleSourcePlugin {
+  ///
+  /// 处理 css 文件
+  /// 目前 在 ipc 保留的时候 同样的处理方式
+  ///
   pub fn handle_with_css_file(&self, filepath: &str) -> (HashMap<String, String>, String) {
     let res = match self.app.render_into_hashmap(filepath) {
       Ok(map) => map,
@@ -73,14 +83,19 @@ impl CssSourcePlugin {
     res
   }
 
-  pub fn get_runtime_handle() -> (Handle, Option<Runtime>) {
-    match Handle::try_current() {
-      Ok(h) => (h, None),
-      Err(_) => {
-        let rt = Runtime::new().unwrap();
-        (rt.handle().clone(), Some(rt))
+  ///
+  /// 处理 less 文件
+  /// 目前 在 ipc 保留的时候 同样的处理方式
+  ///
+  pub fn handle_with_less_file(&self, filepath: &str) -> (HashMap<String, String>, String) {
+    let res = match self.app.render_into_hashmap(filepath) {
+      Ok(map) => map,
+      Err(msg) => {
+        println!("{}", msg);
+        panic!("parse css has failed")
       }
-    }
+    };
+    res
   }
 
   pub fn get_entry_name(entry_file_path: &str) -> String {
@@ -99,7 +114,7 @@ impl CssSourcePlugin {
 }
 
 #[async_trait]
-impl Plugin for CssSourcePlugin {
+impl Plugin for StyleSourcePlugin {
   fn name(&self) -> &'static str {
     PLUGIN_NAME
   }
@@ -111,25 +126,51 @@ impl Plugin for CssSourcePlugin {
     loader: &mut Option<Loader>,
     raw: String,
   ) -> PluginTransformHookOutput {
-    if let Some(Loader::Css) = loader {
-      if let Some(mut css) = is_css_source(uri) {
-        let mut js = format!("//{}\n", uri) + r#"export {}"#;
+    if let Some(Loader::Less) = loader {
+      if let Some(mut style) = is_style_source(uri) {
+        let js;
         {
-          let (css_map, js_content) = self.handle_with_css_file(uri);
-          css.source_content_map = Some(css_map);
+          let (css_map, js_content) = self.handle_with_less_file(uri);
+          style.source_content_map = Some(css_map);
           js = js_content;
         }
-        let mut list = self.css_source_collect.lock().unwrap();
-        list.push(css.clone());
+        let mut list = self.style_source_collect.lock().unwrap();
+        list.push(style.clone());
+        js
+      } else {
+        // todo fix 这里应该报错 is_style_source 会检查文件的 绝对路径资源是否 符合 style 如果没有进来
+        // todo 默认是 *.ts *.wasm 这种给了 Loader::less 而不是返回该内容 但 PluginTransformHookOutput 非 Result
+        raw
+      }
+    } else if let Some(Loader::Css) = loader {
+      if let Some(mut style) = is_style_source(uri) {
+        let js;
+        {
+          let (css_map, js_content) = self.handle_with_css_file(uri);
+          style.source_content_map = Some(css_map);
+          js = js_content;
+        }
+        let mut list = self.style_source_collect.lock().unwrap();
+        list.push(style.clone());
         js
       } else {
         raw
       }
+    } else if let Some(Loader::Sass) = loader {
+      panic!("parse sass file has not be supported")
     } else {
       raw
     }
   }
 
+  ///
+  /// 针对 css | sass | scss | less
+  /// 统一 在上下文中 style_source_collect
+  /// 注意 该内容 格式基本 为 css 文件名不同
+  /// 所有的 tree-shaking 是基于文件名(绝对路径) 来进行处理
+  /// example -> index.module.less index.module.css 必须视为两个文件!
+  /// 上述 -> 也可以同时 指定 Loader:Css 处理 在 js-plguin 中完成降级
+  ///
   fn tap_generated_chunk(
     &self,
     ctx: &BundleContext,
@@ -137,10 +178,10 @@ impl Plugin for CssSourcePlugin {
     bundle_options: &NormalizedBundleOptions,
   ) {
     let mut css_content = "".to_string();
-    let mut css_source_list = self.css_source_collect.try_lock().unwrap();
+    let mut css_source_list = self.style_source_collect.try_lock().unwrap();
     let entry_name = Self::get_entry_name(chunk.id.as_str());
 
-    let mut wait_sort_list: Vec<CssReferenceInfo> = vec![];
+    let mut wait_sort_list: Vec<SytleReferenceInfo> = vec![];
     for css_source in css_source_list
       .iter_mut()
       .filter(|x| chunk.module_ids.contains(&x.file_path))
@@ -149,7 +190,7 @@ impl Plugin for CssSourcePlugin {
         if let Some(item) = wait_sort_list.iter_mut().find(|x| x.filepath == *filepath) {
           item.ref_count += 1;
         } else {
-          wait_sort_list.push(CssReferenceInfo {
+          wait_sort_list.push(SytleReferenceInfo {
             source: source.to_string(),
             ref_count: 0,
             filepath: filepath.to_string(),

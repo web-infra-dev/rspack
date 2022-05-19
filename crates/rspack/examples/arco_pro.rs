@@ -41,7 +41,10 @@ async fn main() {
         ..Default::default()
       },
       loader: Some(HashMap::from_iter([
-        ("less".to_string(), Loader::Css),
+        ("css".to_string(), Loader::Css),
+        ("less".to_string(), Loader::Less),
+        ("sass".to_string(), Loader::Sass),
+        ("scss".to_string(), Loader::Sass),
         ("svg".to_string(), Loader::DataURI),
       ])),
       resolve: ResolveOption {

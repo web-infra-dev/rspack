@@ -1,9 +1,5 @@
-use std::path::Path;
-
 use async_trait::async_trait;
-use rspack_core::{
-  BundleContext, LoadedSource, Loader, Plugin, PluginLoadHookOutput, PluginTransformHookOutput,
-};
+use rspack_core::{BundleContext, Loader, Plugin, PluginTransformHookOutput};
 
 pub static PLUGIN_NAME: &'static str = "rspack_loader_plugin";
 

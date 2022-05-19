@@ -262,6 +262,8 @@ fn parse_loader(user_input: HashMap<String, String>) -> rspack_core::LoaderOptio
     .into_iter()
     .map(|loader| match loader {
       Loader::Css => ("css", loader),
+      Loader::Less => ("less", loader),
+      Loader::Sass => ("sass", loader),
       Loader::DataURI => ("dataURI", loader),
       Loader::Js => ("js", loader),
       Loader::Jsx => ("jsx", loader),
