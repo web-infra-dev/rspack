@@ -2,7 +2,7 @@ use std::path::Path;
 
 use async_trait::async_trait;
 use rspack_core::{
-  BundleContext, LoadedSource, Loader, Plugin, PluginLoadHookOutput, PluginTransformRawHookOutput,
+  BundleContext, LoadedSource, Loader, Plugin, PluginLoadHookOutput, PluginTransformHookOutput,
 };
 
 pub static PLUGIN_NAME: &'static str = "rspack_loader_plugin";
@@ -20,10 +20,11 @@ impl Plugin for StyleLoaderPlugin {
     &self,
     _ctx: &BundleContext,
     _uri: &str,
-    loader: &mut Loader,
+    loader: &mut Option<Loader>,
     raw: String,
-  ) -> PluginTransformRawHookOutput {
-    if let Loader::Css = loader {
+  ) -> PluginTransformHookOutput {
+    if let Some(Loader::Css) = loader {
+      *loader = Some(Loader::Js);
       format!(
         "
         if (typeof document !== 'undefined') {{

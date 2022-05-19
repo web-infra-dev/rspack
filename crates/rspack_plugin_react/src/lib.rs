@@ -61,7 +61,7 @@ impl Plugin for ReactPlugin {
     ctx: &rspack_core::BundleContext,
     path: &Path,
     mut ast: ast::Module,
-  ) -> rspack_core::PluginTransformHookOutput {
+  ) -> rspack_core::PluginTransformAstHookOutput {
     let id = path.to_str().unwrap_or("").to_string();
     if ctx.options.react.refresh {
       let is_entry = ctx

@@ -6,8 +6,8 @@ use rspack_swc::swc_ecma_ast as ast;
 
 pub type PluginLoadHookOutput = Option<LoadedSource>;
 pub type PluginResolveHookOutput = Option<ResolvedURI>;
-pub type PluginTransformHookOutput = ast::Module;
-pub type PluginTransformRawHookOutput = String;
+pub type PluginTransformAstHookOutput = ast::Module;
+pub type PluginTransformHookOutput = String;
 
 #[async_trait]
 pub trait Plugin: Sync + Send + Debug {
@@ -38,9 +38,9 @@ pub trait Plugin: Sync + Send + Debug {
     &self,
     _ctx: &BundleContext,
     _uri: &str,
-    _loader: &mut Loader,
+    _loader: &mut Option<Loader>,
     raw: String,
-  ) -> PluginTransformRawHookOutput {
+  ) -> PluginTransformHookOutput {
     raw
   }
 
@@ -50,7 +50,7 @@ pub trait Plugin: Sync + Send + Debug {
     _ctx: &BundleContext,
     _path: &Path,
     ast: ast::Module,
-  ) -> PluginTransformHookOutput {
+  ) -> PluginTransformAstHookOutput {
     ast
   }
 

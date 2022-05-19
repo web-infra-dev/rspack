@@ -5,7 +5,7 @@ use tracing::instrument;
 
 use crate::{
   BundleContext, Chunk, LoadedSource, Loader, NormalizedBundleOptions, Plugin,
-  PluginTransformHookOutput, PluginTransformRawHookOutput, ResolvedURI,
+  PluginTransformAstHookOutput, PluginTransformHookOutput, ResolvedURI,
 };
 
 #[derive(Debug)]
@@ -60,9 +60,9 @@ impl PluginDriver {
   pub fn transform(
     &self,
     uri: &str,
-    loader: &mut Loader,
+    loader: &mut Option<Loader>,
     raw: String,
-  ) -> PluginTransformRawHookOutput {
+  ) -> PluginTransformHookOutput {
     self.plugins.iter().fold(raw, |transformed_raw, plugin| {
       plugin.transform(&self.ctx, uri, loader, transformed_raw)
     })
@@ -71,8 +71,8 @@ impl PluginDriver {
   pub fn transform_ast(
     &self,
     path: &Path,
-    ast: PluginTransformHookOutput,
-  ) -> PluginTransformHookOutput {
+    ast: PluginTransformAstHookOutput,
+  ) -> PluginTransformAstHookOutput {
     self.plugins.iter().fold(ast, |transformed_ast, plugin| {
       plugin.transform_ast(&self.ctx, path, transformed_ast)
     })
