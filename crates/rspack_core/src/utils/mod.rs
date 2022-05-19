@@ -27,7 +27,7 @@ pub fn get_swc_compiler() -> Arc<Compiler> {
 
 #[instrument(skip(source_code))]
 pub fn parse_file(source_code: String, filename: &str, loader: &Loader) -> ast::Program {
-  let syntax = syntax(filename);
+  let syntax = syntax_by_loader(filename, loader);
   let compiler = get_swc_compiler();
   let fm = compiler
     .cm
@@ -45,9 +45,7 @@ pub fn parse_file(source_code: String, filename: &str, loader: &Loader) -> ast::
   .unwrap()
 }
 
-pub fn syntax(filename: &str) -> Syntax {
-  let p = Path::new(filename);
-  let ext = p.extension().and_then(|ext| ext.to_str()).unwrap_or("js");
+pub fn syntax(ext: &str) -> Syntax {
   match ext == "ts" || ext == "tsx" {
     true => Syntax::Typescript(TsConfig {
       decorators: false,
@@ -79,36 +77,18 @@ pub fn syntax_by_loader(filename: &str, loader: &Loader) -> Syntax {
       fn_bind: true,
       allow_super_outside_method: true,
     }),
-    Loader::Ts | Loader::Tsx => Syntax::Es(EsConfig {
-      private_in_object: true,
-      import_assertions: true,
-      jsx: matches!(loader, Loader::Tsx),
-      export_default_from: true,
-      decorators_before_export: true,
-      decorators: true,
-      fn_bind: true,
-      allow_super_outside_method: true,
-    }),
-    _ => unreachable!(),
-  };
-  let p = Path::new(filename);
-  let ext = p.extension().and_then(|ext| ext.to_str()).unwrap_or("js");
-  match ext == "ts" || ext == "tsx" {
-    true => Syntax::Typescript(TsConfig {
+    Loader::Ts | Loader::Tsx => Syntax::Typescript(TsConfig {
       decorators: false,
-      tsx: ext == "tsx",
+      tsx: matches!(loader, Loader::Tsx),
       ..Default::default()
     }),
-    false => Syntax::Es(EsConfig {
-      private_in_object: true,
-      import_assertions: true,
-      jsx: ext == "jsx",
-      export_default_from: true,
-      decorators_before_export: true,
-      decorators: true,
-      fn_bind: true,
-      allow_super_outside_method: true,
-    }),
+    _ => {
+      let ext = Path::new(filename)
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("js");
+      syntax(ext)
+    }
   }
 }
 

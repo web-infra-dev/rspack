@@ -131,6 +131,7 @@ impl Task {
           .map(|(key, value)| (key, value))
           .collect(),
         code_splitting: self.code_splitting,
+        loader,
       };
       self.tx.send(Msg::TaskFinished(module)).unwrap()
     }
