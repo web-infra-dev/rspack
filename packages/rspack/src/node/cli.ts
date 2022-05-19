@@ -48,7 +48,7 @@ yargs
           refresh: pkg?.rspack?.react?.refresh,
         },
         sourceMap: pkg?.rspack?.sourcemap ?? true,
-        codeSplitting: pkg?.rspack.splitting ?? true,
+        codeSplitting: pkg?.rspack?.splitting ?? true,
       });
     }
   )
