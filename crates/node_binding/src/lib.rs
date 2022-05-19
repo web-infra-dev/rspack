@@ -272,6 +272,7 @@ fn parse_loader(user_input: HashMap<String, String>) -> rspack_core::LoaderOptio
       Loader::Null => ("null", loader),
       Loader::Json => ("json", loader),
       Loader::Text => ("text", loader),
+      Loader::Svgr => ("svgr", loader),
     })
     .collect::<HashMap<_, _>>();
   user_input

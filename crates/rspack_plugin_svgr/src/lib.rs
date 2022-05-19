@@ -23,7 +23,7 @@ impl Plugin for SvgrPlugin {
     PLUGIN_NAME
   }
 
-  fn transform_raw(
+  fn transform(
     &self,
     _ctx: &BundleContext,
     id: &str,
