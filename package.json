@@ -15,6 +15,7 @@
     "init": "yarn install",
     "test:js": "mocha",
     "test:rust": "cargo test",
+    "test:example": "cargo run --example arco_pro",
     "prepare": "husky install",
     "format:rs": "cargo fmt",
     "lint:rs": "cargo clippy",
