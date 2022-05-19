@@ -110,15 +110,17 @@ impl Chunk {
 
     tracing::debug_span!("conncat_modules").in_scope(|| {
       let output_code;
-      if let Some(source_map_url) = concat_source
-        // FIXME: generate_url is slow now
-        .generate_url(&GenMapOption {
-          columns: true,
-          include_source_contents: true,
-          file: self.id.clone().into(),
-        })
-        .unwrap()
-      {
+      if options.source_map {
+        let source_map_url = concat_source
+          // FIXME: generate_url is slow now
+          .generate_url(&GenMapOption {
+            columns: true,
+            include_source_contents: true,
+            file: self.id.clone().into(),
+          })
+          .unwrap()
+          .unwrap();
+
         output_code =
           concat_source.source().to_string() + "\n//# sourceMappingURL=" + &source_map_url;
       } else {

@@ -10,7 +10,7 @@ const debugNapi = createDebug("napi");
 
 binding.initCustomTraceSubscriber();
 
-export type { RawOptions, OnLoadContext, OnResolveResult, OnLoadResult, OnResolveContext };
+export type { RawOptions, OnLoadContext, OnResolveResult, OnLoadResult, OnResolveContext, RspackPlugin };
 
 interface RspackOptions extends RawOptions {
   plugins?: RspackPlugin[]

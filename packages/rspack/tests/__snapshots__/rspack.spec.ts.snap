@@ -1,0 +1,17 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`rspack should work with plugins 1`] = `
+"rs.define(\\"packages/rspack/tests/fixtures/plugin/foo.js\\", function(require, module, exports) {
+    \\"use strict\\";
+    console.log('foo');
+    console.log(\\"fooo\\");
+});
+
+rs.define(\\"packages/rspack/tests/fixtures/plugin/index.js\\", function(require, module, exports) {
+    \\"use strict\\";
+    require(\\"packages/rspack/tests/fixtures/plugin/foo.js\\");
+    console.log('rspack-binding');
+});
+rs.require(\\"packages/rspack/tests/fixtures/plugin/index.js\\");
+"
+`;
