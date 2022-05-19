@@ -152,3 +152,7 @@ dist
 
 # os
 .DS_Store
+
+
+## ignore rspack-style temp fold
+.rspack-style

@@ -1,16 +1,16 @@
 import createDebug from "debug";
 
-import type { RawOptions, ExternalObject, OnLoadContext, OnResolveContext } from "@rspack/binding";
+import type { RawOptions, ExternalObject, OnLoadContext, OnResolveContext, OnLoadResult, OnResolveResult } from "@rspack/binding";
 import * as binding from "@rspack/binding";
 
-import type { RspackPlugin } from "./plugin"
+import type { RspackPlugin } from "./plugin";
 
 const debugRspack = createDebug("rspack");
 const debugNapi = createDebug("napi");
 
 binding.initCustomTraceSubscriber();
 
-export type { RawOptions };
+export type { RawOptions, OnLoadContext, OnResolveResult, OnLoadResult, OnResolveContext };
 
 interface RspackOptions extends RawOptions {
   plugins?: RspackPlugin[]
@@ -34,6 +34,10 @@ const createDummyResult = (callId: number): string => {
   return JSON.stringify(result);
 }
 
+const isNil = (value: unknown): value is null | undefined => {
+  return value === null || value === undefined
+}
+
 class Rspack {
   #instance: ExternalObject<any>;
 
@@ -45,14 +49,23 @@ class Rspack {
     debugRspack("rspack options", innerOptions);
 
     const plugins = (innerOptions.plugins || []);
+    const isPluginExist = !!plugins.length;
 
-    const onLoad = async (err, value: string): Promise<string> => {
-      const context: RspackThreadsafeContext<OnLoadContext> = JSON.parse(value)
+    const onLoad = async (err: Error, value: string): Promise<string> => {
+      if (err) {
+        throw err
+      }
+
+      const context: RspackThreadsafeContext<OnLoadContext> = JSON.parse(value);
       debugNapi("onLoadcontext", context);
 
       for (const plugin of plugins) {
         const result = await plugin.onLoad(context.inner);
         debugNapi("onLoadResult", result);
+
+        if(isNil(result)) {
+          continue;
+        }
 
         return JSON.stringify({
           callId: context.callId,
@@ -65,13 +78,21 @@ class Rspack {
       return createDummyResult(context.callId);
     }
 
-    const onResolve = async (err, value: string): Promise<string> => {
-      const context: RspackThreadsafeContext<OnResolveContext> = JSON.parse(value)
+    const onResolve = async (err: Error, value: string): Promise<string> => {
+      if (err) {
+        throw err
+      }
+
+      const context: RspackThreadsafeContext<OnResolveContext> = JSON.parse(value);
       debugNapi("onResolveContext", context);
 
       for (const plugin of plugins) {
         const result = await plugin.onResolve(context.inner);
         debugNapi("onResolveResult", result);
+
+        if(isNil(result)) {
+          continue;
+        }
 
         return JSON.stringify({
           callId: context.callId,
@@ -84,7 +105,10 @@ class Rspack {
       return createDummyResult(context.callId);
     }
 
-    this.#instance = binding.newRspack(JSON.stringify(options), onLoad, onResolve);
+    this.#instance = binding.newRspack(JSON.stringify(options), isPluginExist ? {
+      onloadCallback: onLoad,
+      onresolveCallback: onResolve
+    } : null );
   }
 
   async build() {
