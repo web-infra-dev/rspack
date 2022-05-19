@@ -220,7 +220,7 @@ mod testing {
       vec![],
     );
     let chunk_len = bundler.bundle.context.assets.lock().unwrap().len();
-    assert_eq!(chunk_len, 4);
+    assert_eq!(chunk_len, 3);
   }
 
   #[test]
