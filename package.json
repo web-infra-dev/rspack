@@ -22,6 +22,7 @@
     "format:rs": "cargo fmt",
     "lint:rs": "cargo clippy",
     "build:core": "yarn workspace @rspack/binding run build ",
+    "release:core": "yarn workspace @rspack/binding run build:release ",
     "setup": "yarn install && yarn build:core",
     "build:bundle": "cargo run --package rspack --example bundle"
   },
