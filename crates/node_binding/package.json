@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "napi build --platform --js false --dts binding.d.ts --config napirs.rc.json",
-    "build:release": "yarn build -- --release"
+    "build:release": "napi build --release --platform --js false --dts binding.d.ts --config napirs.rc.json"
   },
   "keywords": [],
   "author": "",
