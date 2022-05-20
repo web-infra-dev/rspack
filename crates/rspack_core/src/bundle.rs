@@ -10,6 +10,7 @@ use crate::{
 use crossbeam::queue::SegQueue;
 use dashmap::DashSet;
 use futures::future::join_all;
+use nodejs_resolver::Resolver;
 use tracing::instrument;
 
 #[derive(Debug)]
@@ -20,6 +21,7 @@ pub struct Bundle {
   pub plugin_driver: Arc<PluginDriver>,
   pub module_graph: ModuleGraph,
   pub visited_module_id: Arc<DashSet<String>>,
+  pub resolver: Arc<Resolver>,
 }
 
 #[derive(Debug)]
@@ -34,6 +36,7 @@ impl Bundle {
     options: Arc<NormalizedBundleOptions>,
     plugin_driver: Arc<PluginDriver>,
     context: Arc<BundleContext>,
+    resolver: Arc<Resolver>,
   ) -> Self {
     Self {
       entries: options.entries.clone(),
@@ -42,6 +45,7 @@ impl Bundle {
       options,
       module_graph: Default::default(),
       visited_module_id: Default::default(),
+      resolver,
     }
   }
 
@@ -63,12 +67,9 @@ impl Bundle {
       });
     }
 
-    self.module_graph.resolved_entries = join_all(
-      self
-        .entries
-        .iter()
-        .map(|entry| plugin_hook::resolve_id(entry, None, false, &self.plugin_driver)),
-    )
+    self.module_graph.resolved_entries = join_all(self.entries.iter().map(|entry| {
+      plugin_hook::resolve_id(entry, None, false, &self.plugin_driver, &self.resolver)
+    }))
     .await
     .into_iter()
     .collect();
@@ -91,6 +92,7 @@ impl Bundle {
         tx: tx.clone(),
         plugin_driver: self.plugin_driver.clone(),
         code_splitting: self.options.code_splitting,
+        resolver: self.resolver.clone(),
       };
       tokio::task::spawn(async move {
         task.run().await;

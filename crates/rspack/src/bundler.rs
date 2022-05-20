@@ -4,8 +4,8 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use nodejs_resolver::{Resolver, ResolverOptions};
 use rspack_core::normalize_bundle_options;
-use rspack_core::plugin_hook::get_resolver;
 use rspack_core::Bundle;
 use rspack_core::NormalizedBundleOptions;
 use rspack_swc::{swc, swc_common};
@@ -46,6 +46,7 @@ pub struct Bundler {
   pub plugin_driver: Arc<PluginDriver>,
   pub bundle: Bundle,
   pub chunk_spliter: ChunkSpliter,
+  pub resolver: Arc<Resolver>,
   _noop: (),
 }
 
@@ -72,10 +73,18 @@ impl Bundler {
       plugins: injected_plugins,
       ctx: ctx.clone(),
     });
+
+    let resolver = Arc::new(Resolver::new(ResolverOptions {
+      extensions: normalized_options.resolve.extensions.clone(),
+      alias: HashMap::from_iter(normalized_options.resolve.alias.clone().into_iter()),
+      ..Default::default()
+    }));
+
     Self {
       options: normalized_options.clone(),
       plugin_driver: plugin_driver.clone(),
-      bundle: Bundle::new(normalized_options.clone(), plugin_driver, ctx),
+      resolver: resolver.clone(),
+      bundle: Bundle::new(normalized_options.clone(), plugin_driver, ctx, resolver),
       chunk_spliter: ChunkSpliter::new(normalized_options.clone()),
       _noop: (),
     }
@@ -106,10 +115,8 @@ impl Bundler {
     id: String,
     dir: String,
   ) -> Result<nodejs_resolver::ResolveResult, std::string::String> {
-    let resolver = get_resolver(self.options.as_ref());
     let base = Path::new(&dir);
-    let res = resolver.resolve(base, &id);
-    res
+    self.resolver.resolve(base, &id)
   }
 
   #[instrument(skip(self))]
