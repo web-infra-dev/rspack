@@ -1614,12 +1614,12 @@ dependencies = [
  "rayon",
  "regex",
  "rspack_core",
- "rspack_plugin_css",
  "rspack_plugin_loader",
  "rspack_plugin_mock_buitins",
  "rspack_plugin_progress",
  "rspack_plugin_react",
  "rspack_plugin_style",
+ "rspack_plugin_stylesource",
  "rspack_style",
  "rspack_swc",
  "serde_json",
@@ -1687,18 +1687,6 @@ name = "rspack_node_resolve"
 version = "0.1.0"
 
 [[package]]
-name = "rspack_plugin_css"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "nodejs-resolver 0.0.7",
- "rspack_core",
- "rspack_style",
- "tokio",
- "tracing",
-]
-
-[[package]]
 name = "rspack_plugin_loader"
 version = "0.1.0"
 dependencies = [
@@ -1745,6 +1733,18 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "rspack_core",
+]
+
+[[package]]
+name = "rspack_plugin_stylesource"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "nodejs-resolver 0.0.7",
+ "rspack_core",
+ "rspack_style",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

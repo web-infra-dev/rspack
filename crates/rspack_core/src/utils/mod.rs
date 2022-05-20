@@ -101,6 +101,9 @@ pub fn normalize_bundle_options(options: BundleOptions) -> NormalizedBundleOptio
     loader.entry("ts".to_string()).or_insert(Loader::Ts);
     loader.entry("tsx".to_string()).or_insert(Loader::Tsx);
     loader.entry("css".to_string()).or_insert(Loader::Css);
+    loader.entry("less".to_string()).or_insert(Loader::Less);
+    loader.entry("sass".to_string()).or_insert(Loader::Sass);
+    loader.entry("scss".to_string()).or_insert(Loader::Sass);
     loader
   };
   NormalizedBundleOptions {

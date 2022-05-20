@@ -3,7 +3,7 @@ use std::default::Default;
 use std::path::Path;
 
 #[derive(Clone, PartialEq, Debug)]
-pub struct CssSourceType {
+pub struct StyleSourceType {
   pub is_async: bool,
   pub ext: String,
   pub is_module: bool,
@@ -12,9 +12,9 @@ pub struct CssSourceType {
   pub source_content_map: Option<HashMap<String, String>>,
 }
 
-impl Default for CssSourceType {
+impl Default for StyleSourceType {
   fn default() -> Self {
-    CssSourceType {
+    Self {
       is_async: false,
       ext: "".to_string(),
       is_module: false,
@@ -28,33 +28,33 @@ impl Default for CssSourceType {
 ///
 /// 判断是否是 css 资源
 ///
-pub fn is_css_source(filepath: &str) -> Option<CssSourceType> {
+pub fn is_style_source(filepath: &str) -> Option<StyleSourceType> {
   let file = Path::new(filepath);
-  let mut css_source: CssSourceType = Default::default();
+  let mut style_source: StyleSourceType = Default::default();
   if file.is_dir() {
     return None;
   }
   if let Some(filename) = file.file_name() {
-    css_source.file_path = filepath.to_string();
-    css_source.ext = file
+    style_source.file_path = filepath.to_string();
+    style_source.ext = file
       .extension()?
       .to_os_string()
       .into_string()
       .expect(&format!("get extension failed: {}", filepath));
-    return if &css_source.ext == "css"
-      || &css_source.ext == "less"
-      || &css_source.ext == "scss"
-      || &css_source.ext == "sass"
+    return if &style_source.ext == "css"
+      || &style_source.ext == "less"
+      || &style_source.ext == "scss"
+      || &style_source.ext == "sass"
     {
-      css_source.file_name = filename.to_os_string().into_string().unwrap();
-      if css_source.file_name.contains(".module.css")
-        || css_source.file_name.contains(".module.less")
-        || css_source.file_name.contains(".module.scss")
-        || css_source.file_name.contains(".module.sass")
+      style_source.file_name = filename.to_os_string().into_string().unwrap();
+      if style_source.file_name.contains(".module.css")
+        || style_source.file_name.contains(".module.less")
+        || style_source.file_name.contains(".module.scss")
+        || style_source.file_name.contains(".module.sass")
       {
-        css_source.is_module = true
+        style_source.is_module = true
       }
-      Some(css_source)
+      Some(style_source)
     } else {
       None
     };

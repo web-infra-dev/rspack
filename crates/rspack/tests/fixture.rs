@@ -10,6 +10,7 @@ mod testing {
   use serde_json::Value;
   use std::collections::HashMap;
   use std::env;
+  use std::ffi::OsString;
   use std::fs;
   use std::path::Path;
   use std::sync::atomic::AtomicBool;
@@ -70,6 +71,7 @@ mod testing {
     };
     let dist = fixtures_dir.join("dist");
     println!("entry: {:?}", entry);
+    println!("options: \n {:?}", options);
     let mut bundler = Bundler::new(
       BundleOptions {
         entries: entry,
@@ -167,14 +169,22 @@ mod testing {
   }
 
   #[test]
-  #[ignore]
   fn basic_css() {
     let bundler = compile("basic-css", vec![]);
+    println!(
+      "plugin_name -> \n {:#?}",
+      bundler
+        .plugin_driver
+        .plugins
+        .iter()
+        .map(|x| x.name().to_string())
+        .collect::<Vec<String>>()
+    );
     assert!(bundler
       .plugin_driver
       .plugins
       .iter()
-      .find(|plugin| plugin.name() == rspack_plugin_css::plugin::PLUGIN_NAME)
+      .find(|plugin| plugin.name() == rspack_plugin_stylesource::plugin::PLUGIN_NAME)
       .is_some())
   }
 
@@ -190,9 +200,37 @@ mod testing {
   }
 
   #[test]
-  #[ignore]
   fn css_bundle_test() {
-    compile("css", vec![]);
+    compile_with_options(
+      "css",
+      BundleOptions {
+        loader: Some(HashMap::from_iter([
+          ("css".to_string(), Loader::Css),
+          ("less".to_string(), Loader::Less),
+          ("sass".to_string(), Loader::Sass),
+          ("scss".to_string(), Loader::Sass),
+          ("svg".to_string(), Loader::DataURI),
+        ])),
+        ..Default::default()
+      },
+      vec![],
+    );
+
+    pub fn path_resolve(path: &str) -> String {
+      let work_cwd = env!("CARGO_MANIFEST_DIR");
+      let os_work_cwd = OsString::from(work_cwd);
+      Path::new(&os_work_cwd)
+        .join(path)
+        .into_os_string()
+        .into_string()
+        .unwrap()
+    }
+
+    let dist_css_file1 = path_resolve("fixtures/css/dist/index.css");
+    let dist_css_file2 = path_resolve("fixtures/css/dist/liba.css");
+
+    assert_eq!(Path::new(dist_css_file1.as_str()).exists(), true);
+    assert_eq!(Path::new(dist_css_file2.as_str()).exists(), true);
   }
 
   #[test]
@@ -281,7 +319,6 @@ mod testing {
   }
 
   #[test]
-
   fn stack_overflow_mockjs() {
     compile("stack_overflow_mockjs", vec![]);
   }
