@@ -1,6 +1,10 @@
-use crate::{plugin_driver::PluginDriver, ResolvedURI};
-use nodejs_resolver::{ResolveResult, Resolver};
-use std::{ffi::OsString, path::Path, time::Instant};
+use crate::{
+  plugin_driver::PluginDriver, BundleOptions, NormalizedBundleOptions, OnResolveResult,
+  ResolveArgs, ResolvedURI,
+};
+use nodejs_resolver::{ResolveResult, Resolver, ResolverOptions};
+use once_cell::sync::OnceCell;
+use std::{collections::HashMap, ffi::OsString, path::Path, sync::Arc, time::Instant};
 use sugar_path::PathSugar;
 use tracing::instrument;
 
@@ -12,30 +16,29 @@ pub fn is_external_module(source: &str) -> bool {
 #[instrument(skip(plugin_driver))]
 #[inline]
 pub async fn resolve_id(
-  source: &str,
-  importer: Option<&str>,
+  args: ResolveArgs,
   preserve_symlinks: bool,
   plugin_driver: &PluginDriver,
   resolver: &Resolver,
 ) -> ResolvedURI {
-  let plugin_result = resolve_id_via_plugins(source, importer, plugin_driver).await;
-
-  plugin_result.unwrap_or_else(|| {
-    if importer.is_some() && is_external_module(source) {
-      ResolvedURI::new(source.to_string(), true)
+  if let Some(plugin_result) = resolve_id_via_plugins(&args, plugin_driver).await {
+    ResolvedURI::new(plugin_result.uri, plugin_result.external, args.kind.clone())
+  } else {
+    if args.importer.is_some() && is_external_module(&args.id) {
+      ResolvedURI::new(args.id.to_string(), true, args.kind.clone())
     } else {
-      let id = if let Some(importer) = importer {
-        let base_dir = Path::new(importer).parent().unwrap();
+      let id = if let Some(importer) = &args.importer {
+        let base_dir = Path::new(&importer).parent().unwrap();
         let options = plugin_driver.ctx.as_ref().options.as_ref();
         let before_resolve = Instant::now();
-        let res = match resolver.resolve(base_dir, source) {
+        let res = match resolver.resolve(base_dir, &args.id) {
           Ok(path) => match path {
             ResolveResult::Path(buf) => buf.to_string_lossy().to_string(),
             ResolveResult::Ignored => unreachable!(),
           },
           Err(reason) => panic!(
             "failed to resolve {} from {} due to  {}",
-            &source, &importer, reason
+            &args.id, &importer, reason
           ),
         };
         let after_resolve = Instant::now();
@@ -45,25 +48,24 @@ pub async fn resolve_id(
             "resolve is slow({:?}ms) for base_dir: {:?}, source: {:?}",
             diff.as_millis(),
             base_dir,
-            source
+            args.id
           );
         }
         res
       } else {
-        Path::new(source).resolve().to_string_lossy().to_string()
+        Path::new(&args.id).resolve().to_string_lossy().to_string()
       };
-      ResolvedURI::new(id, false)
+      ResolvedURI::new(id, false, args.kind.clone())
     }
-  })
+  }
 }
 
 #[inline]
 pub async fn resolve_id_via_plugins(
-  source: &str,
-  importer: Option<&str>,
+  args: &ResolveArgs,
   plugin_driver: &PluginDriver,
-) -> Option<ResolvedURI> {
-  plugin_driver.resolve_id(source, importer).await
+) -> Option<OnResolveResult> {
+  plugin_driver.resolve_id(args).await
 }
 
 #[inline]

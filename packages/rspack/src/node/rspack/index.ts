@@ -1,5 +1,4 @@
 import createDebug from "debug";
-
 import type { RawOptions, ExternalObject, OnLoadContext, OnResolveContext, OnLoadResult, OnResolveResult } from "@rspack/binding";
 import * as binding from "@rspack/binding";
 
@@ -40,8 +39,8 @@ const isNil = (value: unknown): value is null | undefined => {
 
 class Rspack {
   #instance: ExternalObject<any>;
-
-  constructor(options: RspackOptions) {
+  lazyCompilerMap: Record<string, string>
+  constructor(public options: RspackOptions) {
     const innerOptions: RspackOptions = {
       ...options,
     };
@@ -112,11 +111,36 @@ class Rspack {
   }
 
   async build() {
-    return binding.build(this.#instance);
+    const map = await binding.build(this.#instance) as unknown as Record<string, string>;
+    this.setLazyCompilerMap(map);
+    return map;
   }
 
   async rebuild(changefile: string) {
-    return binding.rebuild(this.#instance, changefile);
+    const [diff, map] = await binding.rebuild(this.#instance, changefile) as unknown as Record<string, string>[];
+    this.setLazyCompilerMap(map);
+    return diff
+  }
+
+  setLazyCompilerMap(map) {
+    for(const key in map) {
+      const value = map[key]
+      if(this.options.entries.indexOf(value) > -1) {
+        delete map[key]
+      }
+    }
+    this.lazyCompilerMap = map;
+  }
+
+  lazyCompileredSet = new Set<string>()
+
+  async lazyBuild(chunkName: string) {
+    const filename = this.lazyCompilerMap[chunkName];
+    if(filename && !this.lazyCompileredSet.has(filename)) {
+      console.log('lazy compiler ', filename)
+      this.lazyCompileredSet.add(filename);
+      await this.rebuild(filename);
+    } 
   }
 }
 

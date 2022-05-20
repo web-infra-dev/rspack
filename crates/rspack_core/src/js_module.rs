@@ -39,7 +39,7 @@ pub struct JsModule {
   pub dyn_imports: HashSet<DynImportDesc>,
   pub is_user_defined_entry_point: bool,
   pub resolved_uris: HashMap<JsWord, ResolvedURI>,
-  pub chunkd_ids: HashSet<String>,
+  pub chunk_ids: HashSet<String>,
   pub code_splitting: bool,
   pub loader: Loader,
 }
@@ -72,13 +72,13 @@ impl JsModule {
       dyn_imports: Default::default(),
       is_user_defined_entry_point: Default::default(),
       resolved_uris: Default::default(),
-      chunkd_ids: Default::default(),
+      chunk_ids: Default::default(),
       code_splitting: Default::default(),
       loader: Default::default(),
     }
   }
   pub fn add_chunk(&mut self, chunk_id: String) {
-    self.chunkd_ids.insert(chunk_id);
+    self.chunk_ids.insert(chunk_id);
   }
 
   #[instrument(skip_all)]

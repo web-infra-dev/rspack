@@ -2,12 +2,15 @@ import connect from 'connect';
 import http, { IncomingMessage, ServerResponse } from 'http';
 import sirv from 'sirv';
 import path from 'path';
+import fs from 'fs';
 import ws, { WebSocketServer } from 'ws';
 import { Socket } from 'net';
 import history from 'connect-history-api-fallback';
+import Rspack from '../rspack';
 interface DevOptions {
   root: string;
   public: string;
+  bundler: Rspack
 }
 export class DevServer {
   #app;
@@ -16,10 +19,19 @@ export class DevServer {
   _webSockets: WebSocket[] = [];
   constructor(options: DevOptions) {
     const app = (this.#app = connect());
-    console.log('public:', path.resolve(options.root, options.public));
+    const outdir = path.resolve(options.root, options.public);
+    console.log('public:', outdir);
     app.use(history());
+    if(options.bundler.options.lazyCompiler) {
+      app.use(async (req, res, next) => {
+        if(fs.existsSync(path.join(outdir, req.url))) {
+          await options.bundler.lazyBuild(req.url.slice(1));
+        }
+        next();
+      })
+    }
     app.use(
-      sirv(path.resolve(options.root, options.public), {
+      sirv(outdir, {
         dev: true,
       })
     );

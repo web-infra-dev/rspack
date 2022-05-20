@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use core::fmt::Debug;
-use rspack_core::{BundleContext, Plugin, PluginLoadHookOutput};
+use rspack_core::{BundleContext, LoadArgs, Plugin, PluginLoadHookOutput};
 use std::sync::{Arc, Mutex};
 extern crate console;
 use console::{style, Color, Term};
@@ -153,7 +153,7 @@ impl Plugin for ProgressPlugin {
     *self.progress.total.lock().unwrap() = total;
   }
 
-  async fn load(&self, _ctx: &BundleContext, id: &str) -> PluginLoadHookOutput {
+  async fn load(&self, _ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
     let done = self.progress.done.lock().unwrap();
     if *done {
       return None;
@@ -161,7 +161,7 @@ impl Plugin for ProgressPlugin {
     // if matches!(_ctx.options.mode, BundleMode::Dev) {
     //   return None;
     // }
-    self.progress.update("RsPack", id, 1).unwrap();
+    self.progress.update("RsPack", &args.id, 1).unwrap();
     None
   }
   async fn build_end(&self, _ctx: &BundleContext) {

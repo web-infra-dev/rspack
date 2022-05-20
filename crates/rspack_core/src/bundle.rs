@@ -4,8 +4,8 @@ use std::sync::{atomic::AtomicUsize, Arc};
 
 use crate::task::Task;
 use crate::{
-  plugin_hook, BundleContext, JsModule, ModuleGraph, NormalizedBundleOptions, PluginDriver,
-  ResolvedURI,
+  plugin_hook, BundleContext, ImportKind, JsModule, ModuleGraph, NormalizedBundleOptions,
+  PluginDriver, ResolvedURI,
 };
 use crossbeam::queue::SegQueue;
 use dashmap::DashSet;
@@ -62,13 +62,23 @@ impl Bundle {
       files.into_iter().for_each(|rd| {
         job_queue.push(ResolvedURI {
           uri: rd,
+          kind: ImportKind::Import,
           external: false,
         });
       });
     }
 
     self.module_graph.resolved_entries = join_all(self.entries.iter().map(|entry| {
-      plugin_hook::resolve_id(entry, None, false, &self.plugin_driver, &self.resolver)
+      plugin_hook::resolve_id(
+        crate::ResolveArgs {
+          id: entry.clone(),
+          importer: None,
+          kind: ImportKind::Import,
+        },
+        false,
+        &self.plugin_driver,
+        &self.resolver,
+      )
     }))
     .await
     .into_iter()

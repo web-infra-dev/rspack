@@ -4,8 +4,34 @@ use crate::{BundleContext, Chunk, Loader, NormalizedBundleOptions, ResolvedURI};
 use async_trait::async_trait;
 use rspack_swc::swc_ecma_ast as ast;
 
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+pub enum ImportKind {
+  Require,
+  Import,
+  DynamicImport,
+}
+
+#[derive(Debug, Clone)]
+pub struct ResolveArgs {
+  pub id: String,
+  pub importer: Option<String>,
+  pub kind: ImportKind,
+}
+
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+pub struct OnResolveResult {
+  pub uri: String,
+  pub external: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct LoadArgs {
+  pub id: String,
+  pub kind: ImportKind,
+}
+
 pub type PluginLoadHookOutput = Option<LoadedSource>;
-pub type PluginResolveHookOutput = Option<ResolvedURI>;
+pub type PluginResolveHookOutput = Option<OnResolveResult>;
 pub type PluginTransformAstHookOutput = ast::Module;
 pub type PluginTransformHookOutput = String;
 
@@ -19,17 +45,12 @@ pub trait Plugin: Sync + Send + Debug {
   async fn build_end(&self, _ctx: &BundleContext) {}
 
   #[inline]
-  async fn resolve(
-    &self,
-    _ctx: &BundleContext,
-    _importee: &str,
-    _importer: Option<&str>,
-  ) -> PluginResolveHookOutput {
+  async fn resolve(&self, _ctx: &BundleContext, args: &ResolveArgs) -> PluginResolveHookOutput {
     None
   }
 
   #[inline]
-  async fn load(&self, _ctx: &BundleContext, _id: &str) -> PluginLoadHookOutput {
+  async fn load(&self, _ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
     None
   }
 

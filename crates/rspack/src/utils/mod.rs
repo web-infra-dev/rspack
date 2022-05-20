@@ -31,5 +31,10 @@ pub fn inject_built_in_plugins(
   plugins.push(Box::new(
     rspack_plugin_mock_buitins::MockBuitinsPlugin::new(),
   ));
+  if options.lazy_compilation {
+    plugins.push(Box::new(
+      rspack_plugin_lazy_compilation::LazyCompilationPlugin::new(),
+    ));
+  }
   plugins
 }

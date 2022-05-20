@@ -38,6 +38,7 @@ export interface RawOptions {
   sourceMap?: boolean
   codeSplitting?: boolean
   svgr?: boolean
+  lazyCompilation?: boolean
 }
 export interface PluginCallbacks {
   onloadCallback: (...args: any[]) => any

@@ -1,7 +1,7 @@
 mod testing {
   use async_trait::async_trait;
   use rspack::bundler::{BundleContext, BundleOptions, Bundler};
-  use rspack_core::{Loader, ResolveOption};
+  use rspack_core::{LoadArgs, Loader, ResolveArgs, ResolveOption};
   use rspack_core::{
     Plugin, PluginLoadHookOutput, PluginResolveHookOutput, PluginTransformAstHookOutput,
   };
@@ -115,12 +115,7 @@ mod testing {
       "rspack_test"
     }
 
-    async fn resolve(
-      &self,
-      _ctx: &BundleContext,
-      _id: &str,
-      _importer: Option<&str>,
-    ) -> PluginResolveHookOutput {
+    async fn resolve(&self, _ctx: &BundleContext, args: &ResolveArgs) -> PluginResolveHookOutput {
       self
         .call_resolve
         .store(true, std::sync::atomic::Ordering::SeqCst);
@@ -128,7 +123,7 @@ mod testing {
     }
 
     #[inline]
-    async fn load(&self, _ctx: &BundleContext, _id: &str) -> PluginLoadHookOutput {
+    async fn load(&self, _ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
       self
         .call_load
         .store(true, std::sync::atomic::Ordering::SeqCst);

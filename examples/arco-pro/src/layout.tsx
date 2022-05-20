@@ -32,27 +32,6 @@ const SubMenu = Menu.SubMenu;
 const Sider = Layout.Sider;
 const Content = Layout.Content;
 
-// TODO: We are not support code splitting now......
-import Monitor from './pages/dashboard/monitor';
-import Workpalce from './pages/dashboard/workplace';
-import Exception403 from './pages/exception/403';
-import Exception404 from './pages/exception/404';
-import Exception500 from './pages/exception/500';
-import Group from './pages/form/group';
-import Step from './pages/form/step';
-import Card from './pages/list/card';
-import SearchTable from './pages/list/search-table';
-import Login from './pages/login';
-import Profile from './pages/profile/basic';
-import Error from './pages/result/error';
-import Success from './pages/result/success';
-import Info from './pages/user/info';
-import Setting from './pages/user/setting';
-import DataAnalysis from './pages/visualization/data-analysis';
-import MutilDimensionDataAnalysis from './pages/visualization/multi-dimension-data-analysis';
-import Welcome from './pages/welcome';
-
-
 function getIconFromKey(key) {
   switch (key) {
     case 'dashboard':
@@ -95,41 +74,41 @@ function getFlattenRoutes(routes) {
     _routes.forEach((route) => {
       if (route.key && !route.children) {
         if (route.key.includes('dashboard/monitor')) {
-          route.component = Monitor;
+          route.component = lazyload(() => import(`./pages/dashboard/monitor`));
         } else if (route.key.includes('dashboard/workplace')) {
-          route.component = Workpalce;
+          route.component = lazyload(() => import(`./pages/dashboard/workplace`));
         } else if (route.key.includes('exception/403')) {
-          route.component = Exception403;
+          route.component = lazyload(() => import(`./pages/exception/403`));
         } else if (route.key.includes('exception/404')) {
-          route.component = Exception404;
+          route.component = lazyload(() => import(`./pages/exception/404`));
         } else if (route.key.includes('exception/500')) {
-          route.component = Exception500;
+          route.component = lazyload(() => import(`./pages/exception/500`));
         } else if (route.key.includes('form/group')) {
-          route.component = Group;
+          route.component = lazyload(() => import(`./pages/form/group`));
         } else if (route.key.includes('form/step')) {
-          route.component = Step;
+          route.component = lazyload(() => import(`./pages/form/step`));
         } else if (route.key.includes('list/card')) {
-          route.component = Card;
+          route.component = lazyload(() => import(`./pages/list/card`));
         } else if (route.key.includes('list/search-table')) {
-          route.component = SearchTable;
+          route.component = lazyload(() => import(`./pages/list/search-table`));
         } else if (route.key.includes('profile/basic')) {
-          route.component = Profile;
+          route.component = lazyload(() => import(`./pages/profile/basic`));
         } else if (route.key.includes('result/error')) {
-          route.component = Error;
+          route.component = lazyload(() => import(`./pages/result/error`));
         } else if (route.key.includes('result/success')) {
-          route.component = Success;
+          route.component = lazyload(() => import(`./pages/result/success`));
         } else if (route.key.includes('user/info')) {
-          route.component = Info;
+          route.component = lazyload(() => import(`./pages/user/info`));
         } else if (route.key.includes('user/setting')) {
-          route.component = Setting;
+          route.component = lazyload(() => import(`./pages/user/setting`));
         } else if (route.key.includes('visualization/data-analysis')) {
-          route.component = DataAnalysis;
+          route.component = lazyload(() => import(`./pages/visualization/data-analysis`));
         } else if (route.key.includes('visualization/multi-dimension-data-analysis')) {
-          route.component = MutilDimensionDataAnalysis;
+          route.component = lazyload(() => import(`./pages/visualization/multi-dimension-data-analysis`));
         } else if (route.key.includes('welcome')) {
-          route.component = Welcome;
+          route.component = lazyload(() => import(`./pages/welcome`));
         } else if (route.key.includes('login')) {
-          route.component = Login;
+          route.component = lazyload(() => import(`./pages/login`));
         }
         res.push(route);
       } else if (isArray(route.children) && route.children.length) {
