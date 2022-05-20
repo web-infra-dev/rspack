@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::path::Path;
 use std::sync::Arc;
 
 use futures::lock::Mutex;
@@ -9,6 +10,7 @@ use napi::{
   Env, JsObject, Result,
 };
 use napi_derive::napi;
+use nodejs_resolver::{ResolveResult, Resolver, ResolverOptions};
 use rspack_core::{BundleReactOptions, Loader, ResolveOption};
 use serde::Deserialize;
 
@@ -257,6 +259,27 @@ pub fn resolve(env: Env, rspack: External<Rspack>, id: String, dir: String) -> R
     },
     |_env, ret| Ok(ret),
   )
+}
+
+#[napi]
+pub fn resolve_file(base_dir: String, import_path: String) -> Result<String> {
+  let resolver = Resolver::new(ResolverOptions {
+    extensions: vec!["less", "css", "scss", "sass", "js"]
+      .into_iter()
+      .map(|s| s.to_owned())
+      .collect(),
+    ..Default::default()
+  });
+  match resolver.resolve(&Path::new(&base_dir), &import_path) {
+    Ok(res) => {
+      if let ResolveResult::Path(abs_path) = res {
+        Ok(abs_path.to_str().unwrap().to_string())
+      } else {
+        Ok(import_path)
+      }
+    }
+    Err(msg) => Err(Error::new(Status::Unknown, msg.to_string())),
+  }
 }
 
 fn parse_loader(user_input: HashMap<String, String>) -> rspack_core::LoaderOptions {

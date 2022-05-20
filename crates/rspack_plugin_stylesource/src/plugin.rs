@@ -48,6 +48,14 @@ impl Default for StyleSourcePlugin {
       .unwrap()
       .option
       .hooks
+      .content_interceptor = None;
+    style_plugin
+      .app
+      .context
+      .lock()
+      .unwrap()
+      .option
+      .hooks
       .import_alias = Some(Arc::new(|filepath, importpath| {
       let resolver = Resolver::default()
         .with_extensions(vec!["less", "css", "scss", "sass"])
@@ -68,27 +76,42 @@ impl Default for StyleSourcePlugin {
 }
 
 impl StyleSourcePlugin {
-  ///
-  /// 处理 css 文件
-  /// 目前 在 ipc 保留的时候 同样的处理方式
-  ///
-  pub fn handle_with_css_file(&self, filepath: &str) -> (HashMap<String, String>, String) {
-    let res = match self.app.render_into_hashmap(filepath) {
-      Ok(map) => map,
-      Err(msg) => {
-        println!("{}", msg);
-        panic!("parse css has failed")
-      }
-    };
-    res
-  }
+  // ///
+  // /// 处理 css 文件
+  // /// 目前 在 ipc 保留的时候 同样的处理方式
+  // ///
+  // pub fn handle_with_css_file(&self, filepath: &str) -> (HashMap<String, String>, String) {
+  //   let res = match self.app.render_into_hashmap(filepath) {
+  //     Ok(map) => map,
+  //     Err(msg) => {
+  //       println!("{}", msg);
+  //       panic!("parse css has failed")
+  //     }
+  //   };
+  //   res
+  // }
 
-  ///
-  /// 处理 less 文件
-  /// 目前 在 ipc 保留的时候 同样的处理方式
-  ///
-  pub fn handle_with_less_file(&self, filepath: &str) -> (HashMap<String, String>, String) {
-    let res = match self.app.render_into_hashmap(filepath) {
+  // ///
+  // /// 处理 less 文件
+  // /// 目前 在 ipc 保留的时候 同样的处理方式
+  // ///
+  // pub fn handle_with_less_file(&self, filepath: &str) -> (HashMap<String, String>, String) {
+  //   let res = match self.app.render_into_hashmap(filepath) {
+  //     Ok(map) => map,
+  //     Err(msg) => {
+  //       println!("{}", msg);
+  //       panic!("parse css has failed")
+  //     }
+  //   };
+  //   res
+  // }
+
+  pub fn handle_with_content(
+    &self,
+    content: &str,
+    filepath: &str,
+  ) -> (HashMap<String, String>, String) {
+    let res = match self.app.render_txt_into_hashmap(content, filepath) {
       Ok(map) => map,
       Err(msg) => {
         println!("{}", msg);
@@ -126,41 +149,57 @@ impl Plugin for StyleSourcePlugin {
     loader: &mut Option<Loader>,
     raw: String,
   ) -> PluginTransformHookOutput {
-    if let Some(Loader::Less) = loader {
-      if let Some(mut style) = is_style_source(uri) {
-        let js;
-        {
-          let (css_map, js_content) = self.handle_with_less_file(uri);
-          style.source_content_map = Some(css_map);
-          js = js_content;
+    match &*loader {
+      &Some(Loader::Less | Loader::Css) => {
+        if let Some(style) = is_style_source(uri) {
+          let (_, js_content) = self.handle_with_content(&raw, uri);
+          let mut list = self.style_source_collect.lock().unwrap();
+          list.push(style.clone());
+          js_content
+        } else {
+          raw
         }
-        let mut list = self.style_source_collect.lock().unwrap();
-        list.push(style.clone());
-        js
-      } else {
-        // todo fix 这里应该报错 is_style_source 会检查文件的 绝对路径资源是否 符合 style 如果没有进来
-        // todo 默认是 *.ts *.wasm 这种给了 Loader::less 而不是返回该内容 但 PluginTransformHookOutput 非 Result
-        raw
       }
-    } else if let Some(Loader::Css) = loader {
-      if let Some(mut style) = is_style_source(uri) {
-        let js;
-        {
-          let (css_map, js_content) = self.handle_with_css_file(uri);
-          style.source_content_map = Some(css_map);
-          js = js_content;
-        }
-        let mut list = self.style_source_collect.lock().unwrap();
-        list.push(style.clone());
-        js
-      } else {
-        raw
+      &Some(Loader::Sass) => {
+        unimplemented!()
       }
-    } else if let Some(Loader::Sass) = loader {
-      panic!("parse sass file has not be supported")
-    } else {
-      raw
+      _ => raw,
     }
+    // if let Some(Loader::Less) = loader {
+    //   if let Some(mut style) = is_style_source(uri) {
+    //     let js;
+    //     {
+    //       let (css_map, js_content) = self.handle_with_less_file(uri);
+    //       style.source_content_map = Some(css_map);
+    //       js = js_content;
+    //     }
+    //     let mut list = self.style_source_collect.lock().unwrap();
+    //     list.push(style.clone());
+    //     js
+    //   } else {
+    //     // todo fix 这里应该报错 is_style_source 会检查文件的 绝对路径资源是否 符合 style 如果没有进来
+    //     // todo 默认是 *.ts *.wasm 这种给了 Loader::less 而不是返回该内容 但 PluginTransformHookOutput 非 Result
+    //     raw
+    //   }
+    // } else if let Some(Loader::Css) = loader {
+    //   if let Some(mut style) = is_style_source(uri) {
+    //     let js;
+    //     {
+    //       let (css_map, js_content) = self.handle_with_css_file(uri);
+    //       style.source_content_map = Some(css_map);
+    //       js = js_content;
+    //     }
+    //     let mut list = self.style_source_collect.lock().unwrap();
+    //     list.push(style.clone());
+    //     js
+    //   } else {
+    //     raw
+    //   }
+    // } else if let Some(Loader::Sass) = loader {
+    //   unimplemented!()
+    // } else {
+    //   raw
+    // }
   }
 
   ///
