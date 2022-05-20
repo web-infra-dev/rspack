@@ -4,8 +4,8 @@ use futures::future::join_all;
 use tracing::instrument;
 
 use crate::{
-  BundleContext, Chunk, LoadedSource, Loader, NormalizedBundleOptions, Plugin,
-  PluginTransformAstHookOutput, PluginTransformHookOutput, ResolvedURI,
+  BundleContext, Chunk, LoadArgs, LoadedSource, Loader, NormalizedBundleOptions, OnResolveResult,
+  Plugin, PluginTransformAstHookOutput, PluginTransformHookOutput, ResolveArgs, ResolvedURI,
 };
 
 #[derive(Debug)]
@@ -36,9 +36,9 @@ impl PluginDriver {
     .await;
   }
   #[instrument(skip_all)]
-  pub async fn resolve_id(&self, importee: &str, importer: Option<&str>) -> Option<ResolvedURI> {
+  pub async fn resolve_id(&self, args: &ResolveArgs) -> Option<OnResolveResult> {
     for plugin in &self.plugins {
-      let res = plugin.resolve(&self.ctx, importee, importer).await;
+      let res = plugin.resolve(&self.ctx, args).await;
       if res.is_some() {
         tracing::trace!("got load result of plugin {:?}", plugin.name());
         return res;
@@ -47,9 +47,9 @@ impl PluginDriver {
     None
   }
   #[instrument(skip_all)]
-  pub async fn load(&self, id: &str) -> Option<LoadedSource> {
+  pub async fn load(&self, args: &LoadArgs) -> Option<LoadedSource> {
     for plugin in &self.plugins {
-      let res = plugin.load(&self.ctx, id).await;
+      let res = plugin.load(&self.ctx, args).await;
       if res.is_some() {
         return res;
       }

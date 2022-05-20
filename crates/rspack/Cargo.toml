@@ -13,6 +13,7 @@ rspack_plugin_stylesource = { path="../rspack_plugin_stylesource" }
 rspack_plugin_react = { path="../rspack_plugin_react" }
 rspack_plugin_loader = { path="../rspack_plugin_loader" }
 rspack_plugin_style = { path="../rspack_plugin_style" }
+rspack_plugin_lazy_compilation = { path="../rspack_plugin_lazy_compilation" }
 rspack_swc = { path = "../rspack_swc" }
 rspack_plugin_progress = {path = "../rspack_plugin_progress"}
 rspack_plugin_svgr = {path = "../rspack_plugin_svgr"}

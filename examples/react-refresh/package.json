@@ -15,7 +15,8 @@
     },
     "react": {
       "refresh": true
-    }
+    },
+    "lazyCompilation": true
   },
   "dependencies": {
     "@rspack/core": "workspace:*",

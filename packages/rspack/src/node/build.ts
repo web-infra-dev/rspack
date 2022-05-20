@@ -37,12 +37,13 @@ export async function run(options: BundlerOptions) {
     ignored: path.resolve(root, 'dist'),
   });
   console.time('build');
+  const outdir =  path.resolve(root, 'dist')
   const bundler = new Rspack({
     root,
     entries: Object.values(entry),
     minify: false,
     entryFileNames: '[name].js',
-    outdir: path.resolve(root, 'dist'),
+    outdir,
     loader,
     inlineStyle,
     alias,
@@ -50,10 +51,12 @@ export async function run(options: BundlerOptions) {
     sourceMap: options.sourceMap,
     codeSplitting: options.codeSplitting,
     svgr: options.svgr,
+    lazyCompiler: options.lazyCompiler
   });
   const server = new DevServer({
     root,
     public: 'dist',
+    bundler
   });
   await bundler.build();
   console.timeEnd('build');

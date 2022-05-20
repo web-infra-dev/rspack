@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use rspack_core::{BundleContext, LoadedSource, Loader, Plugin, PluginLoadHookOutput};
+use rspack_core::{BundleContext, LoadArgs, LoadedSource, Loader, Plugin, PluginLoadHookOutput};
 
 #[derive(Debug)]
 pub struct MockBuitinsPlugin;
@@ -25,8 +25,8 @@ impl Plugin for MockBuitinsPlugin {
     PLUGIN_NAME
   }
 
-  async fn load(&self, _ctx: &BundleContext, id: &str) -> PluginLoadHookOutput {
-    if is_builtin_module(id) {
+  async fn load(&self, _ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
+    if is_builtin_module(&args.id) {
       Some(LoadedSource {
         loader: Some(Loader::Null),
         content: Some(String::new()),

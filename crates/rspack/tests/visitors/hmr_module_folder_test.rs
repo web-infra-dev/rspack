@@ -15,14 +15,14 @@ fn syntax() -> Syntax {
   })
 }
 
-static RESOLVED_IDS: Lazy<HashMap<JsWord, ResolvedURI>> = Lazy::new(|| {
-  let mut resolved_ids: HashMap<JsWord, ResolvedURI> = Default::default();
-  resolved_ids.insert(
-    JsWord::from("./b"),
-    ResolvedURI::new("/b.js".to_string(), false),
-  );
-  resolved_ids
-});
+// static RESOLVED_IDS: Lazy<HashMap<JsWord, ResolvedURI>> = Lazy::new(|| {
+//   let mut resolved_ids: HashMap<JsWord, ResolvedURI> = Default::default();
+//   resolved_ids.insert(
+//     JsWord::from("./b"),
+//     ResolvedURI::new("/b.js".to_string(), false),
+//   );
+//   resolved_ids
+// });
 
 // test!(
 //   syntax(),

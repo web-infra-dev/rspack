@@ -7,8 +7,8 @@ use std::{
 };
 
 use crate::{
-  bundle::Msg, dependency_scanner::DependencyScanner, plugin_hook, utils::parse_file, JsModule,
-  PluginDriver, ResolvedURI,
+  bundle::Msg, dependency_scanner::DependencyScanner, plugin_hook, utils::parse_file, ImportKind,
+  JsModule, LoadArgs, PluginDriver, ResolveArgs, ResolvedURI,
 };
 use crate::{get_swc_compiler, path::normalize_path};
 use dashmap::{DashMap, DashSet};
@@ -34,14 +34,17 @@ pub struct DependencyIdResolver {
 }
 
 impl DependencyIdResolver {
-  pub async fn resolve(&self, dep_src: &JsWord) -> ResolvedURI {
+  pub async fn resolve(&self, dep_src: &JsWord, kind: ImportKind) -> ResolvedURI {
     let resolved_id;
     if let Some(cached) = self.resolved_ids.get(dep_src) {
       resolved_id = cached.clone();
     } else {
       resolved_id = plugin_hook::resolve_id(
-        dep_src,
-        Some(&self.module_id),
+        ResolveArgs {
+          id: dep_src.to_string(),
+          importer: Some(self.module_id.clone()),
+          kind,
+        },
         false,
         &self.plugin_driver,
         &self.resolver,
@@ -83,7 +86,14 @@ impl Task {
       };
 
       let module_id: &str = &resolved_uri.uri;
-      let (source, mut loader) = plugin_hook::load(module_id, &self.plugin_driver).await;
+      let (source, mut loader) = plugin_hook::load(
+        LoadArgs {
+          kind: resolved_uri.kind,
+          id: resolved_uri.uri.to_string(),
+        },
+        &self.plugin_driver,
+      )
+      .await;
       let transformed_source =
         plugin_hook::transform(module_id, &mut loader, source, &self.plugin_driver);
       let loader = loader
@@ -109,15 +119,18 @@ impl Task {
 
       ast.visit_mut_with(&mut dependency_scanner);
 
-      for dyn_import in &dependency_scanner.dyn_dependencies {
-        let resolved_id = uri_resolver.resolve(&dyn_import.argument).await;
-
-        self.spawn_new_task(resolved_id);
-      }
       for (import, _) in &dependency_scanner.dependencies {
-        let resolved_id = uri_resolver.resolve(import).await;
+        let resolved_id = uri_resolver.resolve(import, ImportKind::Import).await;
         self.spawn_new_task(resolved_id);
       }
+
+      for dyn_import in &dependency_scanner.dyn_dependencies {
+        let resolved_id = uri_resolver
+          .resolve(&dyn_import.argument, ImportKind::DynamicImport)
+          .await;
+        self.spawn_new_task(resolved_id);
+      }
+
       let module = JsModule {
         exec_order: Default::default(),
         uri: resolved_uri.uri.clone(),
@@ -130,7 +143,7 @@ impl Task {
         dependencies: dependency_scanner.dependencies,
         dyn_imports: dependency_scanner.dyn_dependencies,
         is_user_defined_entry_point: Default::default(),
-        chunkd_ids: Default::default(),
+        chunk_ids: Default::default(),
         resolved_uris: uri_resolver
           .resolved_ids
           .into_iter()
@@ -187,7 +200,7 @@ impl Task {
           _ => {}
         }
         if let Some(depended) = depended {
-          let uri = resolver.resolve(depended).await;
+          let uri = resolver.resolve(depended, ImportKind::Import).await;
           self.spawn_new_task(uri);
         }
       }

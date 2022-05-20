@@ -1,10 +1,13 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::{swc_builder::dynamic_import_with_literal, JsModule, ResolvedURI};
+use crate::{
+  path::normalize_path, swc_builder::dynamic_import_with_literal, JsModule, ResolvedURI,
+};
 use ast::*;
 use rspack_swc::{
   swc_atoms, swc_common, swc_ecma_ast as ast, swc_ecma_transforms_base, swc_ecma_transforms_module,
-  swc_ecma_utils, swc_ecma_visit,
+  swc_ecma_utils::{self, private_ident},
+  swc_ecma_visit,
 };
 use swc_atoms::JsWord;
 use swc_common::{EqIgnoreSpan, Mark, DUMMY_SP};
@@ -153,27 +156,23 @@ pub const RS_REQUIRE: &str = "require";
 impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
   fn visit_mut_call_expr(&mut self, call_expr: &mut CallExpr) {
     if let Some(str) = dynamic_import_with_literal(call_expr) {
-      let callee = Ident::new(RS_DYNAMIC_REQUIRE.into(), DUMMY_SP).as_callee();
       let id = JsWord::from(str.clone());
       let rid = self.resolved_ids.get(&id).unwrap();
-      let js_module = self
-        .modules
-        .get(&rid.uri)
-        .expect(&format!("not found:{}", str));
-      let js_module_id = js_module.id.as_str();
 
-      let callee = Ident::new(RS_DYNAMIC_REQUIRE.into(), DUMMY_SP).as_callee();
-      if let Some(chunk_id) = Vec::from_iter(&js_module.chunkd_ids).get(0) {
-        let arg = Lit::Str(js_module_id.into()).as_arg();
-        let arg2 = Lit::Str(chunk_id.as_str().into()).as_arg();
-        call_expr.callee = callee;
-        call_expr.args = vec![arg, arg2];
-      } else {
-        let arg = Lit::Str(js_module_id.into()).as_arg();
-        let callee = Ident::new(RS_DYNAMIC_REQUIRE.into(), DUMMY_SP).as_callee();
-        call_expr.callee = callee;
-        call_expr.args = vec![arg];
+      let mut args = vec![];
+      if let Some(js_module) = self.modules.get(&rid.uri) {
+        let js_module_id = js_module.id.as_str();
+        if let Some(chunk_id) = js_module.chunk_ids.iter().next() {
+          args.push(Lit::Str(js_module_id.into()).as_arg());
+          args.push(Lit::Str(chunk_id.as_str().into()).as_arg());
+        } else {
+          args.push(Lit::Str(js_module_id.into()).as_arg());
+        }
       }
+
+      call_expr.callee = private_ident!(RS_DYNAMIC_REQUIRE).as_callee();
+      call_expr.args = args;
+
       return;
     }
 
