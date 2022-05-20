@@ -10,7 +10,7 @@ use std::{path::Path, sync::Arc};
 // extern crate lazy_static;
 use regex::Captures;
 use regex::Regex;
-use std::fs;
+use std::fs::read_to_string;
 extern crate lazy_static;
 use lazy_static::*;
 
@@ -58,7 +58,7 @@ impl Plugin for SvgrPlugin {
 
     if ext == "svg" {
       let loader = Some(Loader::Js);
-      let content = None;
+      let content = Some(read_to_string(file_path).expect(&format!("file not exits {:?}", id)));
       Some(LoadedSource { loader, content })
     } else {
       None
