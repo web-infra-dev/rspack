@@ -12,6 +12,7 @@ use crate::{
 };
 use crate::{get_swc_compiler, path::normalize_path};
 use dashmap::{DashMap, DashSet};
+use nodejs_resolver::Resolver;
 use rspack_swc::{
   swc_atoms,
   swc_ecma_ast::{self as ast},
@@ -29,6 +30,7 @@ pub struct DependencyIdResolver {
   pub module_id: String,
   pub resolved_ids: DashMap<JsWord, ResolvedURI>,
   pub plugin_driver: Arc<PluginDriver>,
+  pub resolver: Arc<Resolver>,
 }
 
 impl DependencyIdResolver {
@@ -37,8 +39,14 @@ impl DependencyIdResolver {
     if let Some(cached) = self.resolved_ids.get(dep_src) {
       resolved_id = cached.clone();
     } else {
-      resolved_id =
-        plugin_hook::resolve_id(dep_src, Some(&self.module_id), false, &self.plugin_driver).await;
+      resolved_id = plugin_hook::resolve_id(
+        dep_src,
+        Some(&self.module_id),
+        false,
+        &self.plugin_driver,
+        &self.resolver,
+      )
+      .await;
       self
         .resolved_ids
         .insert(dep_src.clone(), resolved_id.clone());
@@ -55,6 +63,7 @@ pub struct Task {
   pub tx: UnboundedSender<Msg>,
   pub visited_module_uri: Arc<DashSet<String>>,
   pub plugin_driver: Arc<PluginDriver>,
+  pub resolver: Arc<Resolver>,
   pub code_splitting: bool,
 }
 
@@ -70,6 +79,7 @@ impl Task {
         module_id: resolved_uri.uri.clone(),
         resolved_ids: Default::default(),
         plugin_driver: self.plugin_driver.clone(),
+        resolver: self.resolver.clone(),
       };
 
       let module_id: &str = &resolved_uri.uri;
@@ -145,6 +155,7 @@ impl Task {
         tx: self.tx.clone(),
         plugin_driver: self.plugin_driver.clone(),
         code_splitting: self.code_splitting,
+        resolver: self.resolver.clone(),
       };
       tokio::task::spawn(async move {
         task.run().await;
