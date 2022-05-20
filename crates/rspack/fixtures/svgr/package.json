@@ -1,24 +1,18 @@
 {
-  "name": "react",
+  "name": "basic-ts",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "rspack"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "@rspack/core": "workspace:*",
-    "react": "17.0.0",
-    "react-dom": "17.0.0"
-  },
   "rspack": {
     "entry": {
-      "index": "src/index.js"
+      "index": "./index.ts"
     },
-    "react": {},
     "svgr": true
   }
 }

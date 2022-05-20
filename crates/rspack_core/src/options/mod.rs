@@ -29,7 +29,6 @@ impl Default for Loader {
     Loader::Null
   }
 }
-
 pub type LoaderOptions = HashMap<String, Loader>;
 
 #[derive(Debug)]
@@ -87,6 +86,7 @@ pub struct BundleOptions {
   pub inline_style: bool,
   pub resolve: ResolveOption,
   pub source_map: bool,
+  pub svgr: bool,
 }
 
 impl Default for BundleOptions {
@@ -115,6 +115,7 @@ impl Default for BundleOptions {
       loader: None,
       inline_style: Default::default(),
       source_map: true,
+      svgr: false,
     }
   }
 }
@@ -145,4 +146,5 @@ pub struct NormalizedBundleOptions {
   pub resolve: ResolveOption,
   pub source_map: bool,
   pub inline_style: bool,
+  pub svgr: bool,
 }

@@ -1620,6 +1620,7 @@ dependencies = [
  "rspack_plugin_react",
  "rspack_plugin_style",
  "rspack_plugin_stylesource",
+ "rspack_plugin_svgr",
  "rspack_style",
  "rspack_swc",
  "serde_json",
@@ -1745,6 +1746,18 @@ dependencies = [
  "rspack_style",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_svgr"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "base64 0.13.0",
+ "lazy_static",
+ "regex",
+ "rspack_core",
+ "rspack_swc",
 ]
 
 [[package]]

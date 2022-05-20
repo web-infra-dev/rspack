@@ -1,0 +1,14 @@
+[package]
+name = "rspack_plugin_svgr"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rspack_core = { path = "../rspack_core" }
+rspack_swc = { path = "../rspack_swc" }
+async-trait = "0.1.53"
+base64 = "0.13.0"
+regex = "1.5.5"
+lazy_static = "1.4.0"

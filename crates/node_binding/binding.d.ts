@@ -37,6 +37,7 @@ export interface RawOptions {
   refresh?: boolean
   sourceMap?: boolean
   codeSplitting?: boolean
+  svgr?: boolean
 }
 export interface PluginCallbacks {
   onloadCallback: (...args: any[]) => any
