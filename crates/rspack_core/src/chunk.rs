@@ -10,7 +10,7 @@ use rspack_swc::{
   swc_common,
 };
 use std::{
-  collections::{hash_map::DefaultHasher, HashMap},
+  collections::{hash_map::DefaultHasher, HashMap, HashSet},
   hash::{Hash, Hasher},
   path::{Component, Path},
   sync::Arc,
@@ -23,13 +23,13 @@ pub struct Chunk {
   pub id: String,
   // pub order_modules: Vec<String>,
   pub entry_uri: String,
-  pub module_ids: Vec<String>,
+  pub module_ids: HashSet<String>,
   pub is_entry_chunk: bool,
   _noop: (),
 }
 
 impl Chunk {
-  pub fn new(module_ids: Vec<String>, entries: String, is_entry_chunk: bool) -> Self {
+  pub fn new(module_ids: HashSet<String>, entries: String, is_entry_chunk: bool) -> Self {
     Self {
       id: Default::default(),
       module_ids,
@@ -43,7 +43,7 @@ impl Chunk {
   pub fn from_js_module(module_id: String, is_entry_chunk: bool) -> Self {
     Self {
       id: Default::default(),
-      module_ids: vec![module_id.clone()],
+      module_ids: vec![].into_iter().collect(),
       entry_uri: module_id,
       // source_chunks: Default::default(),
       is_entry_chunk,
@@ -61,10 +61,11 @@ impl Chunk {
   ) -> OutputChunk {
     let mut concattables: Vec<Box<dyn Source>> = vec![];
     let modules = &bundle.module_graph.module_by_id;
-    self.module_ids.sort_by_key(|id| 0 - modules[id].exec_order);
+    let mut module_ids = self.module_ids.iter().collect::<Vec<_>>();
+    module_ids.sort_by_key(|id| 0 - modules[*id].exec_order);
 
     let mut not_transformed_module_ids: Vec<String> = vec![];
-    for id in self.module_ids.iter() {
+    for id in module_ids.iter().cloned() {
       if output_modules.get(id).is_none() && modules.get(id).is_some() {
         not_transformed_module_ids.push(id.clone());
       }
@@ -85,7 +86,7 @@ impl Chunk {
       output_modules.insert(id.to_string(), Arc::new(output));
     }
 
-    self.module_ids.iter().for_each(|id| {
+    module_ids.iter().cloned().for_each(|id| {
       if let Some(transform_output) = output_modules.get(id) {
         if let Some(map_string) = &transform_output.map.as_ref() {
           let source_map = sourcemap::SourceMap::from_slice(map_string.as_bytes()).unwrap();
@@ -169,6 +170,7 @@ impl Chunk {
       true => {
         let content_hash = {
           let mut hasher = DefaultHasher::new();
+          // FIXME: contenthash is not stable now.
           self.module_ids.iter().for_each(|module_id| {
             let module = &bundle.module_graph.module_by_id[module_id];
             module.ast.hash(&mut hasher);
