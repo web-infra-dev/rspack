@@ -45,7 +45,7 @@ impl ChunkSpliter {
       let entry_module = bundle
         .module_graph
         .module_by_id
-        .get_mut(&chunk.entry)
+        .get_mut(&chunk.entry_uri)
         .unwrap();
       entry_module.add_chunk(chunk.id.clone());
     });
