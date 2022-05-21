@@ -1777,7 +1777,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_style"
-version = "0.1.11"
+version = "0.1.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "095b68283c3278ca8816c523818d28d3b826f6c095b41bb2c7f0272684fd1297"
 dependencies = [
  "fasteval",
  "regex",

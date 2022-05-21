@@ -36,7 +36,7 @@ pub struct SytleReferenceInfo {
 impl Default for StyleSourcePlugin {
   fn default() -> Self {
     let app = Application::default();
-
+    
     let style_plugin = Self {
       style_source_collect: Mutex::new(vec![]),
       app,
@@ -76,42 +76,12 @@ impl Default for StyleSourcePlugin {
 }
 
 impl StyleSourcePlugin {
-  // ///
-  // /// 处理 css 文件
-  // /// 目前 在 ipc 保留的时候 同样的处理方式
-  // ///
-  // pub fn handle_with_css_file(&self, filepath: &str) -> (HashMap<String, String>, String) {
-  //   let res = match self.app.render_into_hashmap(filepath) {
-  //     Ok(map) => map,
-  //     Err(msg) => {
-  //       println!("{}", msg);
-  //       panic!("parse css has failed")
-  //     }
-  //   };
-  //   res
-  // }
-
-  // ///
-  // /// 处理 less 文件
-  // /// 目前 在 ipc 保留的时候 同样的处理方式
-  // ///
-  // pub fn handle_with_less_file(&self, filepath: &str) -> (HashMap<String, String>, String) {
-  //   let res = match self.app.render_into_hashmap(filepath) {
-  //     Ok(map) => map,
-  //     Err(msg) => {
-  //       println!("{}", msg);
-  //       panic!("parse css has failed")
-  //     }
-  //   };
-  //   res
-  // }
-
-  pub fn handle_with_content(
-    &self,
-    content: &str,
-    filepath: &str,
-  ) -> (HashMap<String, String>, String) {
-    let res = match self.app.render_txt_into_hashmap(content, filepath) {
+  ///
+  /// 处理 css 文件
+  /// 目前 在 ipc 保留的时候 同样的处理方式
+  ///
+  pub fn handle_with_css_file(&self, content: &str, filepath: &str) -> (HashMap<String, String>, String) {
+    let res = match self.app.render_content_into_hashmap(content, filepath) {
       Ok(map) => map,
       Err(msg) => {
         println!("{}", msg);
@@ -120,7 +90,22 @@ impl StyleSourcePlugin {
     };
     res
   }
-
+  
+  ///
+  /// 处理 less 文件
+  /// 目前 在 ipc 保留的时候 同样的处理方式
+  ///
+  pub fn handle_with_less_file(&self, filepath: &str) -> (HashMap<String, String>, String) {
+    let res = match self.app.render_into_hashmap(filepath) {
+      Ok(map) => map,
+      Err(msg) => {
+        println!("{}", msg);
+        panic!("parse css has failed")
+      }
+    };
+    res
+  }
+  
   pub fn get_entry_name(entry_file_path: &str) -> String {
     let path = Path::new(entry_file_path);
     let entry_dir = path.parent().unwrap().to_str().unwrap().to_string();
@@ -141,7 +126,7 @@ impl Plugin for StyleSourcePlugin {
   fn name(&self) -> &'static str {
     PLUGIN_NAME
   }
-
+  
   fn transform(
     &self,
     _ctx: &BundleContext,
@@ -149,59 +134,43 @@ impl Plugin for StyleSourcePlugin {
     loader: &mut Option<Loader>,
     raw: String,
   ) -> PluginTransformHookOutput {
-    match &*loader {
-      &Some(Loader::Less | Loader::Css) => {
-        if let Some(style) = is_style_source(uri) {
-          let (_, js_content) = self.handle_with_content(&raw, uri);
-          let mut list = self.style_source_collect.lock().unwrap();
-          list.push(style.clone());
-          js_content
-        } else {
-          raw
+    if let Some(Loader::Less) = loader {
+      if let Some(mut style) = is_style_source(uri) {
+        let js;
+        {
+          let (css_map, js_content) = self.handle_with_less_file(uri);
+          style.source_content_map = Some(css_map);
+          js = js_content;
         }
+        let mut list = self.style_source_collect.lock().unwrap();
+        list.push(style.clone());
+        js
+      } else {
+        // todo fix 这里应该报错 is_style_source 会检查文件的 绝对路径资源是否 符合 style 如果没有进来
+        // todo 默认是 *.ts *.wasm 这种给了 Loader::less 而不是返回该内容 但 PluginTransformHookOutput 非 Result
+        raw
       }
-      &Some(Loader::Sass) => {
-        unimplemented!()
+    } else if let Some(Loader::Css) = loader {
+      if let Some(mut style) = is_style_source(uri) {
+        let js;
+        {
+          let (css_map, js_content) = self.handle_with_css_file(raw.as_str(), uri);
+          style.source_content_map = Some(css_map);
+          js = js_content;
+        }
+        let mut list = self.style_source_collect.lock().unwrap();
+        list.push(style.clone());
+        js
+      } else {
+        raw
       }
-      _ => raw,
+    } else if let Some(Loader::Sass) = loader {
+      unimplemented!()
+    } else {
+      raw
     }
-    // if let Some(Loader::Less) = loader {
-    //   if let Some(mut style) = is_style_source(uri) {
-    //     let js;
-    //     {
-    //       let (css_map, js_content) = self.handle_with_less_file(uri);
-    //       style.source_content_map = Some(css_map);
-    //       js = js_content;
-    //     }
-    //     let mut list = self.style_source_collect.lock().unwrap();
-    //     list.push(style.clone());
-    //     js
-    //   } else {
-    //     // todo fix 这里应该报错 is_style_source 会检查文件的 绝对路径资源是否 符合 style 如果没有进来
-    //     // todo 默认是 *.ts *.wasm 这种给了 Loader::less 而不是返回该内容 但 PluginTransformHookOutput 非 Result
-    //     raw
-    //   }
-    // } else if let Some(Loader::Css) = loader {
-    //   if let Some(mut style) = is_style_source(uri) {
-    //     let js;
-    //     {
-    //       let (css_map, js_content) = self.handle_with_css_file(uri);
-    //       style.source_content_map = Some(css_map);
-    //       js = js_content;
-    //     }
-    //     let mut list = self.style_source_collect.lock().unwrap();
-    //     list.push(style.clone());
-    //     js
-    //   } else {
-    //     raw
-    //   }
-    // } else if let Some(Loader::Sass) = loader {
-    //   unimplemented!()
-    // } else {
-    //   raw
-    // }
   }
-
+  
   ///
   /// 针对 css | sass | scss | less
   /// 统一 在上下文中 style_source_collect
@@ -219,7 +188,7 @@ impl Plugin for StyleSourcePlugin {
     let mut css_content = "".to_string();
     let mut css_source_list = self.style_source_collect.try_lock().unwrap();
     let entry_name = Self::get_entry_name(chunk.id.as_str());
-
+    
     let mut wait_sort_list: Vec<SytleReferenceInfo> = vec![];
     for css_source in css_source_list
       .iter_mut()
@@ -238,11 +207,11 @@ impl Plugin for StyleSourcePlugin {
       }
     }
     wait_sort_list.sort_by(|x1, x2| x1.ref_count.cmp(&x2.ref_count));
-
+    
     for item in wait_sort_list.iter().rev() {
       css_content += format!("{}", item.source).as_str();
     }
-
+    
     if !css_content.is_empty() {
       ctx.emit_asset(Asset {
         source: css_content,
