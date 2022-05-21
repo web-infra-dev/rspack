@@ -12,7 +12,7 @@ use rspack_swc::{
 use std::{
   collections::{hash_map::DefaultHasher, HashMap},
   hash::{Hash, Hasher},
-  path::Path,
+  path::{Component, Path},
   sync::Arc,
 };
 use swc::Compiler;
@@ -22,7 +22,7 @@ use tracing::instrument;
 pub struct Chunk {
   pub id: String,
   // pub order_modules: Vec<String>,
-  pub entry: String,
+  pub entry_uri: String,
   pub module_ids: Vec<String>,
   pub is_entry_chunk: bool,
   _noop: (),
@@ -33,7 +33,7 @@ impl Chunk {
     Self {
       id: Default::default(),
       module_ids,
-      entry: entries,
+      entry_uri: entries,
       // source_chunks: Default::default(),
       is_entry_chunk,
       _noop: (),
@@ -44,7 +44,7 @@ impl Chunk {
     Self {
       id: Default::default(),
       module_ids: vec![module_id.clone()],
-      entry: module_id,
+      entry_uri: module_id,
       // source_chunks: Default::default(),
       is_entry_chunk,
       _noop: (),
@@ -130,7 +130,7 @@ impl Chunk {
       OutputChunk {
         code: output_code,
         file_name: self.id.clone().into(),
-        entry: self.entry.clone(),
+        entry: self.entry_uri.clone(),
       }
     })
   }
@@ -139,18 +139,22 @@ impl Chunk {
     OutputChunk {
       code: "".to_string(),
       file_name: self.id.clone().into(),
-      entry: self.entry.clone(),
+      entry: self.entry_uri.clone(),
     }
   }
 
   #[inline]
   pub fn get_fallback_chunk_name(&self) -> &str {
-    get_alias_name(&self.entry)
+    get_alias_name(&self.entry_uri)
   }
 
   #[inline]
-  pub fn name(&self) -> &str {
-    self.get_fallback_chunk_name()
+  pub fn name(&self) -> String {
+    if self.is_entry_chunk {
+      self.get_fallback_chunk_name().to_string()
+    } else {
+      self.id.to_string()
+    }
   }
 
   #[instrument()]
@@ -160,7 +164,7 @@ impl Chunk {
     } else {
       &options.chunk_filename
     };
-    let name = pattern.replace("[name]", self.name());
+    let name = pattern.replace("[name]", &self.name());
     match pattern.contains("contenthash") {
       true => {
         let content_hash = {

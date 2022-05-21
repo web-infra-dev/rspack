@@ -68,9 +68,10 @@
               id,
             });
           } else {
-            mod.loaded = false;
-            mod.exports = {};
-            mod.factory = factory;
+            console.debug('repeated define for', id);
+            // mod.loaded = false;
+            // mod.exports = {};
+            // mod.factory = factory;
           }
         }
         async function dynamic_require(module_id, chunk_id) {

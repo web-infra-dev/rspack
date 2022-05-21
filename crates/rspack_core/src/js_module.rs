@@ -142,4 +142,29 @@ impl JsModule {
     })
     .unwrap()
   }
+
+  pub fn dependency_modules<'a>(
+    &self,
+    module_by_uri: &'a HashMap<String, JsModule>,
+  ) -> Vec<&'a JsModule> {
+    self
+      .dependencies
+      .keys()
+      .map(|dep| &self.resolved_uris[dep].uri)
+      .filter_map(|uri| module_by_uri.get(uri))
+      .collect()
+  }
+
+  pub fn dynamic_dependency_modules<'a>(
+    &self,
+    module_by_uri: &'a HashMap<String, JsModule>,
+  ) -> Vec<&'a JsModule> {
+    self
+      .dyn_imports
+      .iter()
+      .map(|dyn_imp| &dyn_imp.argument)
+      .map(|dep| &self.resolved_uris[dep].uri)
+      .filter_map(|uri| module_by_uri.get(uri))
+      .collect()
+  }
 }
