@@ -2,18 +2,20 @@ use std::path::Path;
 
 use tracing::instrument;
 
-use crate::{plugin_driver::PluginDriver, Loader, LoaderOptions};
+use crate::{plugin_driver::PluginDriver, LoadArgs, Loader, LoaderOptions};
 
 #[instrument(skip_all)]
 #[inline]
-pub async fn load(id: &str, plugin_driver: &PluginDriver) -> (String, Option<Loader>) {
-  let plugin_result = plugin_driver.load(id).await;
+pub async fn load(args: LoadArgs, plugin_driver: &PluginDriver) -> (String, Option<Loader>) {
+  let plugin_result = plugin_driver.load(&args).await;
   let content = plugin_result
     .clone()
     .and_then(|load_output| load_output.content)
-    .unwrap_or_else(|| std::fs::read_to_string(id).expect(&format!("load failed for {:?}", id)));
+    .unwrap_or_else(|| {
+      std::fs::read_to_string(args.id.as_str()).expect(&format!("load failed for {:?}", args.id))
+    });
   let loader = plugin_result.map_or_else(
-    || guess_loader_by_id(id, &plugin_driver.ctx.options.loader),
+    || guess_loader_by_id(args.id.as_str(), &plugin_driver.ctx.options.loader),
     |load_output| load_output.loader,
   );
   (content, loader)

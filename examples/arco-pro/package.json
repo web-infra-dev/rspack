@@ -62,7 +62,7 @@
     "loader": {
       "json": "json",
       "svg": "dataURI",
-      "less": "less",
+      "less": "text",
       "css": "css"
     },
     "alias": {

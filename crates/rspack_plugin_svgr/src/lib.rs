@@ -3,7 +3,8 @@ use core::fmt::Debug;
 use rspack_core::PluginTransformHookOutput;
 pub static PLUGIN_NAME: &'static str = "rspack_svgr";
 use rspack_core::{
-  BundleContext, LoadedSource, Loader, Plugin, PluginLoadHookOutput, PluginTransformAstHookOutput,
+  BundleContext, LoadArgs, LoadedSource, Loader, Plugin, PluginLoadHookOutput,
+  PluginTransformAstHookOutput,
 };
 use std::{path::Path, sync::Arc};
 // #[macro_use]
@@ -48,9 +49,13 @@ impl Plugin for SvgrPlugin {
     PLUGIN_NAME
   }
   #[inline]
-  async fn load(&self, _ctx: &BundleContext, id: &str) -> PluginLoadHookOutput {
-    let query_start = id.find(|c: char| c == '?').or(Some(id.len())).unwrap();
-    let file_path = Path::new(&id[..query_start]);
+  async fn load(&self, _ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
+    let query_start = args
+      .id
+      .find(|c: char| c == '?')
+      .or(Some(args.id.len()))
+      .unwrap();
+    let file_path = Path::new(&args.id[..query_start]);
     let ext = file_path
       .extension()
       .and_then(|ext| ext.to_str())
@@ -58,7 +63,8 @@ impl Plugin for SvgrPlugin {
 
     if ext == "svg" {
       let loader = Some(Loader::Js);
-      let content = Some(read_to_string(file_path).expect(&format!("file not exits {:?}", id)));
+      let content =
+        Some(read_to_string(file_path).expect(&format!("file not exits {:?}", args.id)));
       Some(LoadedSource { loader, content })
     } else {
       None

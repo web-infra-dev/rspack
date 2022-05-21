@@ -11,10 +11,11 @@ use tracing::instrument;
 use self::split_chunks::split_chunks;
 pub mod split_chunks;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct OutputChunk {
   pub code: String,
   pub file_name: String,
+  pub entry: String,
 }
 
 #[derive(Debug)]
@@ -44,7 +45,7 @@ impl ChunkSpliter {
       let entry_module = bundle
         .module_graph
         .module_by_id
-        .get_mut(&chunk.entry)
+        .get_mut(&chunk.entry_uri)
         .unwrap();
       entry_module.add_chunk(chunk.id.clone());
     });
@@ -67,6 +68,7 @@ impl ChunkSpliter {
           OutputChunk {
             code: chunk.code,
             file_name: chunk.file_name,
+            entry: chunk.entry,
           },
         )
       })

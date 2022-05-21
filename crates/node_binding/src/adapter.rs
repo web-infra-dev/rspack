@@ -5,7 +5,9 @@ use std::sync::{
 };
 
 use napi::Error;
-use rspack_core::{BundleContext, Plugin, PluginLoadHookOutput, PluginResolveHookOutput};
+use rspack_core::{
+  BundleContext, LoadArgs, Plugin, PluginLoadHookOutput, PluginResolveHookOutput, ResolveArgs,
+};
 
 use async_trait::async_trait;
 use dashmap::DashMap;
@@ -114,8 +116,10 @@ impl Plugin for RspackPluginNodeAdapter {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn load(&self, _ctx: &BundleContext, id: &str) -> PluginLoadHookOutput {
-    let load_context = RspackThreadsafeContext::new(OnLoadContext { id: id.to_owned() });
+  async fn load(&self, _ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
+    let load_context = RspackThreadsafeContext::new(OnLoadContext {
+      id: args.id.to_owned(),
+    });
 
     let (tx, rx) = oneshot::channel::<Option<OnLoadResult>>();
 
@@ -178,15 +182,10 @@ impl Plugin for RspackPluginNodeAdapter {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn resolve(
-    &self,
-    _ctx: &BundleContext,
-    importee: &str,
-    importer: Option<&str>,
-  ) -> PluginResolveHookOutput {
+  async fn resolve(&self, _ctx: &BundleContext, args: &ResolveArgs) -> PluginResolveHookOutput {
     let resolve_context = RspackThreadsafeContext::new(OnResolveContext {
-      importer: importer.map(|s| s.to_owned()),
-      importee: importee.to_owned(),
+      importer: args.importer.clone(),
+      importee: args.id.to_owned(),
     });
 
     let (tx, rx) = oneshot::channel::<Option<OnResolveResult>>();
@@ -225,7 +224,7 @@ impl Plugin for RspackPluginNodeAdapter {
 
     tracing::debug!("[rspack:binding] resolve result {:#?}", resolve_result);
 
-    resolve_result.map(|result| rspack_core::ResolvedURI {
+    resolve_result.map(|result| rspack_core::OnResolveResult {
       uri: result.uri,
       external: result.external,
     })

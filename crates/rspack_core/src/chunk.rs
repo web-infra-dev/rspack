@@ -12,7 +12,7 @@ use rspack_swc::{
 use std::{
   collections::{hash_map::DefaultHasher, HashMap},
   hash::{Hash, Hasher},
-  path::Path,
+  path::{Component, Path},
   sync::Arc,
 };
 use swc::Compiler;
@@ -22,7 +22,7 @@ use tracing::instrument;
 pub struct Chunk {
   pub id: String,
   // pub order_modules: Vec<String>,
-  pub entry: String,
+  pub entry_uri: String,
   pub module_ids: Vec<String>,
   pub is_entry_chunk: bool,
   _noop: (),
@@ -33,7 +33,7 @@ impl Chunk {
     Self {
       id: Default::default(),
       module_ids,
-      entry: entries,
+      entry_uri: entries,
       // source_chunks: Default::default(),
       is_entry_chunk,
       _noop: (),
@@ -44,7 +44,7 @@ impl Chunk {
     Self {
       id: Default::default(),
       module_ids: vec![module_id.clone()],
-      entry: module_id,
+      entry_uri: module_id,
       // source_chunks: Default::default(),
       is_entry_chunk,
       _noop: (),
@@ -58,14 +58,14 @@ impl Chunk {
     compiler: Arc<Compiler>,
     bundle: &Bundle,
     output_modules: &DashMap<String, Arc<TransformOutput>>,
-  ) -> RenderedChunk {
+  ) -> OutputChunk {
     let mut concattables: Vec<Box<dyn Source>> = vec![];
     let modules = &bundle.module_graph.module_by_id;
     self.module_ids.sort_by_key(|id| 0 - modules[id].exec_order);
 
     let mut not_transformed_module_ids: Vec<String> = vec![];
     for id in self.module_ids.iter() {
-      if output_modules.get(id).is_none() {
+      if output_modules.get(id).is_none() && modules.get(id).is_some() {
         not_transformed_module_ids.push(id.clone());
       }
     }
@@ -86,19 +86,20 @@ impl Chunk {
     }
 
     self.module_ids.iter().for_each(|id| {
-      let transform_output = output_modules.get(id).unwrap();
-      if let Some(map_string) = &transform_output.map.as_ref() {
-        let source_map = sourcemap::SourceMap::from_slice(map_string.as_bytes()).unwrap();
-        concattables.push(Box::new(SourceMapSource::new(SourceMapSourceOptions {
-          source_code: transform_output.code.clone(),
-          name: self.id.clone().into(),
-          source_map,
-          original_source: None,
-          inner_source_map: None,
-          remove_original_source: false,
-        })));
-      } else {
-        concattables.push(Box::new(RawSource::new(&transform_output.code)));
+      if let Some(transform_output) = output_modules.get(id) {
+        if let Some(map_string) = &transform_output.map.as_ref() {
+          let source_map = sourcemap::SourceMap::from_slice(map_string.as_bytes()).unwrap();
+          concattables.push(Box::new(SourceMapSource::new(SourceMapSourceOptions {
+            source_code: transform_output.code.clone(),
+            name: self.id.clone().into(),
+            source_map,
+            original_source: None,
+            inner_source_map: None,
+            remove_original_source: false,
+          })));
+        } else {
+          concattables.push(Box::new(RawSource::new(&transform_output.code)));
+        }
       }
     });
 
@@ -126,9 +127,10 @@ impl Chunk {
         output_code = concat_source.source().to_string()
       }
 
-      RenderedChunk {
+      OutputChunk {
         code: output_code,
         file_name: self.id.clone().into(),
+        entry: self.entry_uri.clone(),
       }
     })
   }
@@ -137,17 +139,22 @@ impl Chunk {
     OutputChunk {
       code: "".to_string(),
       file_name: self.id.clone().into(),
+      entry: self.entry_uri.clone(),
     }
   }
 
   #[inline]
   pub fn get_fallback_chunk_name(&self) -> &str {
-    get_alias_name(&self.entry)
+    get_alias_name(&self.entry_uri)
   }
 
   #[inline]
-  pub fn name(&self) -> &str {
-    self.get_fallback_chunk_name()
+  pub fn name(&self) -> String {
+    if self.is_entry_chunk {
+      self.get_fallback_chunk_name().to_string()
+    } else {
+      self.id.to_string()
+    }
   }
 
   #[instrument()]
@@ -157,7 +164,7 @@ impl Chunk {
     } else {
       &options.chunk_filename
     };
-    let name = pattern.replace("[name]", self.name());
+    let name = pattern.replace("[name]", &self.name());
     match pattern.contains("contenthash") {
       true => {
         let content_hash = {
@@ -188,10 +195,5 @@ fn get_alias_name(id: &str) -> &str {
 pub struct OutputChunk {
   pub code: String,
   pub file_name: String,
-}
-
-#[derive(Debug)]
-pub struct RenderedChunk {
-  pub code: String,
-  pub file_name: String,
+  pub entry: String,
 }

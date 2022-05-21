@@ -82,6 +82,7 @@ pub struct BundleOptions {
   pub entry_file_names: String, // | ((chunkInfo: PreRenderedChunk) => string)
   pub chunk_filename: Option<String>,
   pub code_splitting: bool,
+  pub lazy_compilation: bool,
   pub root: String,
   pub inline_style: bool,
   pub resolve: ResolveOption,
@@ -112,6 +113,7 @@ impl Default for BundleOptions {
       entry_file_names: "[name].js".to_string(),
       chunk_filename: Some("chunk-[name].js".to_string()),
       code_splitting: true,
+      lazy_compilation: false,
       loader: None,
       inline_style: Default::default(),
       source_map: true,
@@ -142,6 +144,7 @@ pub struct NormalizedBundleOptions {
   pub entry_filename: String, // | ((chunkInfo: PreRenderedChunk) => string)
   pub chunk_filename: String,
   pub code_splitting: bool,
+  pub lazy_compilation: bool,
   pub root: String,
   pub resolve: ResolveOption,
   pub source_map: bool,

@@ -67,22 +67,23 @@ impl ModuleGraph {
     }
     stack = dyn_imports.into_iter().rev().collect();
     while let Some(id) = stack.pop() {
-      let module = self.module_by_id.get_mut(&id).unwrap();
-      if !visited.contains(&id) {
-        visited.insert(id.clone());
-        stack.push(id);
-        module
-          .dependencies
-          .keys()
-          .collect::<Vec<_>>()
-          .into_iter()
-          .rev()
-          .for_each(|dep| {
-            let rid = module.resolved_uris.get(dep).unwrap().clone();
-            stack.push(rid.uri);
-          });
-        module.exec_order = next_exec_order;
-        next_exec_order += 1;
+      if let Some(module) = self.module_by_id.get_mut(&id) {
+        if !visited.contains(&id) {
+          visited.insert(id.clone());
+          stack.push(id);
+          module
+            .dependencies
+            .keys()
+            .collect::<Vec<_>>()
+            .into_iter()
+            .rev()
+            .for_each(|dep| {
+              let rid = module.resolved_uris.get(dep).unwrap().clone();
+              stack.push(rid.uri);
+            });
+          module.exec_order = next_exec_order;
+          next_exec_order += 1;
+        }
       }
     }
     let mut modules = self.module_by_id.values().collect::<Vec<_>>();

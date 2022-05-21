@@ -91,7 +91,7 @@ impl Bundler {
   }
 
   #[instrument(skip(self))]
-  pub async fn build(&mut self, changed_files: Option<Vec<String>>) {
+  pub async fn build(&mut self, changed_files: Option<Vec<String>>) -> HashMap<String, String> {
     self.plugin_driver.build_start().await;
     tracing::trace!("start build");
 
@@ -100,14 +100,20 @@ impl Bundler {
     let output = self
       .chunk_spliter
       .generate(&self.plugin_driver, &mut self.bundle);
+
+    let mut map = HashMap::default();
+
     output.into_iter().for_each(|(_, chunk)| {
+      map.insert(chunk.file_name.clone(), chunk.entry.clone());
       self.bundle.context.assets.lock().unwrap().push(Asset {
         source: chunk.code,
         filename: chunk.file_name,
-      })
+      });
     });
 
     self.plugin_driver.build_end().await;
+
+    map
   }
 
   pub fn resolve(
@@ -120,7 +126,7 @@ impl Bundler {
   }
 
   #[instrument(skip(self))]
-  pub async fn rebuild(&mut self, changed_file: String) -> HashMap<String, String> {
+  pub async fn rebuild(&mut self, changed_file: String) -> Vec<HashMap<String, String>> {
     tracing::debug!("rebuild because of {:?}", changed_file);
     let changed_files = vec![changed_file];
     let old_modules_id = self
@@ -141,7 +147,7 @@ impl Bundler {
       self.chunk_spliter.output_modules.remove(rd);
     });
 
-    self.build(Some(changed_files)).await;
+    let map = self.build(Some(changed_files)).await;
 
     let new_modules_id = self
       .bundle
@@ -167,7 +173,7 @@ impl Bundler {
         )
       })
       .collect();
-    diff_rendered
+    vec![diff_rendered, map]
   }
 
   pub fn write_assets_to_disk(&self) {

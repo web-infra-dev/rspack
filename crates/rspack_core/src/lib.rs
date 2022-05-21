@@ -29,15 +29,16 @@ pub use utils::*;
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct ResolvedURI {
   pub uri: String,
+  pub kind: ImportKind,
   pub external: bool,
 }
 
 impl ResolvedURI {
-  pub fn new<T: Into<String>>(path: T, external: bool) -> Self {
+  pub fn new<T: Into<String>>(path: T, external: bool, kind: ImportKind) -> Self {
     Self {
       uri: path.into(),
       external,
-      // module_side_effects: false,
+      kind, // module_side_effects: false,
     }
   }
 }

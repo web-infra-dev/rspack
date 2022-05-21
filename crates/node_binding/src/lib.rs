@@ -46,6 +46,7 @@ struct RawOptions {
   pub source_map: Option<bool>,
   pub code_splitting: Option<bool>,
   pub svgr: Option<bool>,
+  pub lazy_compilation: Option<bool>,
 }
 
 pub type Rspack = Arc<Mutex<RspackBundler>>;
@@ -162,6 +163,7 @@ pub fn new_rspack(
       entries: options.entries,
       minify: options.minify,
       code_splitting: options.code_splitting.unwrap_or_default(),
+      lazy_compilation: options.lazy_compilation.unwrap_or_default(),
       outdir: options.outdir.unwrap_or_else(|| {
         std::env::current_dir()
           .unwrap()
@@ -207,9 +209,9 @@ pub fn build(env: Env, rspack: External<Rspack>) -> Result<JsObject> {
   env.execute_tokio_future(
     async move {
       let mut bundler = bundler.lock().await;
-      bundler.build(None).await;
+      let map = bundler.build(None).await;
       bundler.write_assets_to_disk();
-      Ok(())
+      Ok(map)
     },
     |_env, ret| Ok(ret),
   )
