@@ -58,7 +58,13 @@ pub fn normalize_bundle_options(options: RawOptions) -> BundleOptions {
       .unwrap_or_else(|| default_options.source_map),
     code_splitting: options
       .code_splitting
-      .unwrap_or_else(|| default_options.code_splitting),
+      .map_or(Some(Default::default()), |flag| {
+        if flag {
+          Some(Default::default())
+        } else {
+          None
+        }
+      }),
     svgr: options.svgr.unwrap_or_else(|| default_options.svgr),
     lazy_compilation: options
       .lazy_compilation

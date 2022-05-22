@@ -101,7 +101,6 @@ impl Bundle {
         visited_module_uri: self.visited_module_id.clone(),
         tx: tx.clone(),
         plugin_driver: self.plugin_driver.clone(),
-        code_splitting: self.options.code_splitting,
         resolver: self.resolver.clone(),
       };
       tokio::task::spawn(async move {

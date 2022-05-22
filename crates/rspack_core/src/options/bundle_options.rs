@@ -1,4 +1,4 @@
-use crate::LoaderOptions;
+use crate::{CodeSplittingOptions, LoaderOptions};
 use rspack_swc::swc_ecma_transforms_react;
 
 #[derive(Debug)]
@@ -51,7 +51,7 @@ pub struct BundleOptions {
   pub outdir: String,
   pub entry_filename: String, // | ((chunkInfo: PreRenderedChunk) => string)
   pub chunk_filename: String,
-  pub code_splitting: bool,
+  pub code_splitting: Option<CodeSplittingOptions>,
   pub lazy_compilation: bool,
   pub root: String,
   pub inline_style: bool,
@@ -82,7 +82,7 @@ impl Default for BundleOptions {
       minify: Default::default(),
       entry_filename: "[name].js".to_string(),
       chunk_filename: "chunk-[name].js".to_string(),
-      code_splitting: true,
+      code_splitting: Some(Default::default()),
       lazy_compilation: false,
       loader: Default::default(),
       inline_style: Default::default(),

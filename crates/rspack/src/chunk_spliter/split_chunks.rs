@@ -1,11 +1,15 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use petgraph::{dot::Dot, graph::NodeIndex};
-use rspack_core::{Chunk, JsModule, ModuleGraph};
+use rspack_core::{Chunk, CodeSplittingOptions, JsModule, ModuleGraph};
 use tracing::instrument;
 
 #[instrument]
-pub fn code_splitting2(module_graph: &ModuleGraph, is_enable_code_spliting: bool) -> Vec<Chunk> {
+pub fn code_splitting2(
+  module_graph: &ModuleGraph,
+  is_enable_code_spliting: bool,
+  is_reuse_exsting_chunk: bool,
+) -> Vec<Chunk> {
   let mut id_count = 0;
 
   let module_by_uri: &HashMap<String, JsModule> = &module_graph.module_by_id;
@@ -138,25 +142,15 @@ pub fn code_splitting2(module_graph: &ModuleGraph, is_enable_code_spliting: bool
         belong_to_chunks
           .iter()
           .filter(|id_of_chunk_to_place_module| {
-            // We only want to have chunks the hash no superiors.
-            let has_superior = belong_to_chunks.iter().any(|maybe_superior_chunk| {
-              chunk_graph.contains_edge(*maybe_superior_chunk, **id_of_chunk_to_place_module)
-            });
-            // if has_superior {
-            //   println!(
-            //     "[module {:?}]: chunk {:?} has_superior {:?}",
-            //     module_uri,
-            //     chunk_graph[**id_of_chunk_to_place_module].entry_uri,
-            //     belong_to_chunks
-            //       .iter()
-            //       .filter(|maybe_superior_chunk| {
-            //         chunk_graph.contains_edge(**maybe_superior_chunk, **id_of_chunk_to_place_module)
-            //       })
-            //       .map(|id| &chunk_graph[*id].entry_uri)
-            //       .collect::<Vec<_>>(),
-            //   );
-            // }
-            !has_superior
+            if is_reuse_exsting_chunk {
+              // We only want to have chunks the hash no superiors.
+              let has_superior = belong_to_chunks.iter().any(|maybe_superior_chunk| {
+                chunk_graph.contains_edge(*maybe_superior_chunk, **id_of_chunk_to_place_module)
+              });
+              !has_superior
+            } else {
+              true
+            }
           })
           .collect::<Vec<_>>()
           .into_iter()
@@ -191,6 +185,22 @@ pub fn code_splitting2(module_graph: &ModuleGraph, is_enable_code_spliting: bool
 }
 
 #[instrument(skip(module_graph))]
-pub fn split_chunks(module_graph: &ModuleGraph, is_enable_code_spliting: bool) -> Vec<Chunk> {
-  code_splitting2(module_graph, is_enable_code_spliting)
+pub fn split_chunks(
+  module_graph: &ModuleGraph,
+  code_splitting_options: &Option<CodeSplittingOptions>,
+) -> Vec<Chunk> {
+  let is_enable_code_spliting;
+  let is_reuse_exsting_chunk;
+  if let Some(option) = code_splitting_options {
+    is_enable_code_spliting = true;
+    is_reuse_exsting_chunk = option.reuse_existing_chunk;
+  } else {
+    is_enable_code_spliting = false;
+    is_reuse_exsting_chunk = false;
+  }
+  code_splitting2(
+    module_graph,
+    is_enable_code_spliting,
+    is_reuse_exsting_chunk,
+  )
 }
