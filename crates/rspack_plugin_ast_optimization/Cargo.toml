@@ -1,0 +1,12 @@
+[package]
+name = "rspack_plugin_ast_optimization"
+version = "0.0.1"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rspack_core = { path = "../rspack_core" }
+rspack_swc = { path = "../rspack_swc" }
+async-trait = "0.1.53"
+serde_json = "1"

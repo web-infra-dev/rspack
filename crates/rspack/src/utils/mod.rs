@@ -53,5 +53,9 @@ pub fn inject_built_in_plugins(
   if !options.define.is_empty() {
     plugins.push(Box::new(rspack_plugin_define::DefinePlugin {}));
   }
+
+  plugins.push(Box::new(
+    rspack_plugin_ast_optimization::OptimizationPlugin::new(),
+  ));
   plugins
 }

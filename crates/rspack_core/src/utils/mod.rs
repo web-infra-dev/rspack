@@ -93,6 +93,24 @@ pub fn syntax_by_loader(filename: &str, loader: &Loader) -> Syntax {
 }
 
 pub fn inject_options(mut options: BundleOptions) -> NormalizedBundleOptions {
+  use crate::BundleMode;
+
+  match options.mode {
+    BundleMode::Dev => {
+      options.define.insert(
+        "process.env.NODE_ENV".to_owned(),
+        "\"development\"".to_owned(),
+      );
+    }
+    BundleMode::Prod => {
+      options.define.insert(
+        "process.env.NODE_ENV".to_owned(),
+        "\"production\"".to_owned(),
+      );
+    }
+    BundleMode::None => (),
+  };
+
   let loader = &mut options.loader;
   loader.entry("json".to_string()).or_insert(Loader::Json);
   loader.entry("js".to_string()).or_insert(Loader::Js);

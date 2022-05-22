@@ -133,6 +133,7 @@ class Rspack {
       debugNapi('onResolveResult', null, 'context', context);
       return createDummyResult(context.id);
     };
+    console.log('raw options', options);
 
     this.#instance = binding.newRspack(
       JSON.stringify(options),
@@ -148,13 +149,13 @@ class Rspack {
   }
 
   async build() {
-    const map = (await binding.build(this.#instance)) as unknown as Record<string, string>;
+    const map = await binding.build(this.#instance);
     this.setLazyCompilerMap(map);
     return map;
   }
 
-  async rebuild(changefile: string[]) {
-    const [diff, map] = (await binding.rebuild(this.#instance, changefile)) as unknown as Record<string, string>[];
+  async rebuild(changedFile: string[]) {
+    const [diff, map] = await binding.rebuild(this.#instance, changedFile);
     this.setLazyCompilerMap(map);
     return diff;
   }
@@ -176,7 +177,7 @@ class Rspack {
     if (filename && !this.lazyCompileredSet.has(filename)) {
       console.log('lazy compiler ', filename);
       this.lazyCompileredSet.add(filename);
-      await this.rebuild(filename);
+      await this.rebuild([filename]);
     }
   }
 }

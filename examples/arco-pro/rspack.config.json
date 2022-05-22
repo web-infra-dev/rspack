@@ -15,7 +15,7 @@
     }
   },
   "output": {
-    "sourceMap": false
+    "sourceMap": true
   },
   "enhanced": {
     "react": {

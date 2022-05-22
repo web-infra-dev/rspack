@@ -43,8 +43,9 @@ pub fn new_rspack(
   env: Env,
   option_json: String,
   plugin_callbacks: Option<PluginCallbacks>,
-) -> External<Rspack> {
+) -> Result<External<Rspack>> {
   let options: RawOptions = serde_json::from_str(option_json.as_str()).unwrap();
+  println!("rust raw options {:#?}", options);
 
   let node_adapter = create_node_adapter_from_plugin_callbacks(&env, plugin_callbacks);
 
@@ -54,11 +55,14 @@ pub fn new_rspack(
     plugins.push(Box::new(node_adapter) as Box<dyn rspack_core::Plugin>);
   }
 
-  let rspack = RspackBundler::new(normalize_bundle_options(options), plugins);
-  create_external(Arc::new(Mutex::new(rspack)))
+  let rspack = RspackBundler::new(normalize_bundle_options(options)?, plugins);
+  Ok(create_external(Arc::new(Mutex::new(rspack))))
 }
 
-#[napi(ts_args_type = "rspack: ExternalObject<RspackInternal>")]
+#[napi(
+  ts_args_type = "rspack: ExternalObject<RspackInternal>",
+  ts_return_type = "Promise<Record<string, string>>"
+)]
 pub fn build(env: Env, rspack: External<Rspack>) -> Result<JsObject> {
   let bundler = (*rspack).clone();
   env.execute_tokio_future(
@@ -72,13 +76,16 @@ pub fn build(env: Env, rspack: External<Rspack>) -> Result<JsObject> {
   )
 }
 
-#[napi(ts_args_type = "rspack: ExternalObject<RspackInternal>, changedFile: string")]
-pub fn rebuild(env: Env, rspack: External<Rspack>, chnaged_file: Vec<String>) -> Result<JsObject> {
+#[napi(
+  ts_args_type = "rspack: ExternalObject<RspackInternal>, changedFile: string[]",
+  ts_return_type = "Promise<[diff: Record<string, string>, map: Record<string, string>]>"
+)]
+pub fn rebuild(env: Env, rspack: External<Rspack>, changed_file: Vec<String>) -> Result<JsObject> {
   let bundler = (*rspack).clone();
   env.execute_tokio_future(
     async move {
       let mut bundler = bundler.lock().await;
-      let changed = bundler.rebuild(chnaged_file).await;
+      let changed = bundler.rebuild(changed_file).await;
       bundler.write_assets_to_disk();
       Ok(changed)
     },
@@ -92,7 +99,10 @@ pub struct ResolveRet {
 }
 
 #[cfg(not(feature = "test"))]
-#[napi(ts_args_type = "rspack: ExternalObject<RspackInternal>, id: string, dir: string")]
+#[napi(
+  ts_args_type = "rspack: ExternalObject<RspackInternal>, id: string, dir: string",
+  ts_return_type = "Promise<ResolveRet>"
+)]
 pub fn resolve(env: Env, rspack: External<Rspack>, id: String, dir: String) -> Result<JsObject> {
   let bundler = (*rspack).clone();
   env.execute_tokio_future(
