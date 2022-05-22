@@ -1,5 +1,5 @@
 [package]
-name = "rspack_plugin_mock_buitins"
+name = "rspack_plugin_node_emulation"
 version = "0.1.0"
 edition = "2021"
 

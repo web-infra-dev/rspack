@@ -4,9 +4,9 @@ use async_trait::async_trait;
 use rspack_core::{BundleContext, LoadArgs, LoadedSource, Loader, Plugin, PluginLoadHookOutput};
 
 #[derive(Debug)]
-pub struct MockBuitinsPlugin;
+pub struct NodeEmulationPlugin;
 
-pub static PLUGIN_NAME: &'static str = "rspack_mock_buitins_plugin";
+pub static PLUGIN_NAME: &'static str = "rspack_node_emulation_plugin";
 
 fn is_builtin_module(id: &str) -> bool {
   let builtin_modules = vec![
@@ -14,13 +14,13 @@ fn is_builtin_module(id: &str) -> bool {
   ];
   return builtin_modules.contains(&id);
 }
-impl MockBuitinsPlugin {
-  pub fn new() -> MockBuitinsPlugin {
+impl NodeEmulationPlugin {
+  pub fn new() -> Self {
     Self
   }
 }
 #[async_trait]
-impl Plugin for MockBuitinsPlugin {
+impl Plugin for NodeEmulationPlugin {
   fn name(&self) -> &'static str {
     PLUGIN_NAME
   }
