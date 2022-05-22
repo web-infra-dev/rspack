@@ -74,6 +74,7 @@ impl JsModule {
       resolved_uris: Default::default(),
       chunk_ids: Default::default(),
       code_splitting: Default::default(),
+      // TODO: We should not initialize loader using default value, it’s easy to forget and buggy.
       loader: Default::default(),
     }
   }

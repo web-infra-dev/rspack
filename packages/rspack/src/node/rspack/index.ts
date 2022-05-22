@@ -58,7 +58,7 @@ class Rspack {
       const context: RspackThreadsafeContext<OnLoadContext> = JSON.parse(value);
 
       for (const plugin of plugins) {
-        const result = await plugin.onLoad(context.inner, this.#instance);
+        const result = await plugin.onLoad(context.inner);
         debugNapi("onLoadResult", result, "context", context);
 
         if(isNil(result)) {
@@ -84,7 +84,7 @@ class Rspack {
       const context: RspackThreadsafeContext<OnResolveContext> = JSON.parse(value);
 
       for (const plugin of plugins) {
-        const result = await plugin.onResolve(context.inner, this.#instance);
+        const result = await plugin.onResolve(context.inner);
         debugNapi("onResolveResult", result, "context", context);
 
         if(isNil(result)) {
