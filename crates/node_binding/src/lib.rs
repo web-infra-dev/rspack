@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::sync::Arc;
 
 use futures::lock::Mutex;
@@ -7,6 +8,7 @@ use napi::{
   Env, JsObject, Result,
 };
 use napi_derive::napi;
+use nodejs_resolver::{ResolveResult, Resolver, ResolverOptions};
 
 pub mod adapter;
 mod options;

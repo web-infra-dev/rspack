@@ -24,13 +24,12 @@ export interface OnResolveResult {
   uri: string
   external: boolean
 }
-export function initCustomTraceSubscriber(): void
 export interface RawOptions {
   entries: Array<string>
-  minify: boolean
+  minify?: boolean
   root?: string
   outdir?: string
-  entryFileNames: string
+  entryFilename?: string
   loader?: Record<string, string>
   inlineStyle?: boolean
   alias?: Record<string, string>
@@ -40,6 +39,7 @@ export interface RawOptions {
   svgr?: boolean
   lazyCompilation?: boolean
 }
+export function initCustomTraceSubscriber(): void
 export interface PluginCallbacks {
   onloadCallback: (...args: any[]) => any
   onresolveCallback: (...args: any[]) => any
