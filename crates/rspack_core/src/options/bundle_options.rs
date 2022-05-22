@@ -44,13 +44,13 @@ impl Default for ResolveOption {
 #[derive(Debug)]
 pub struct BundleOptions {
   pub react: BundleReactOptions,
-  pub loader: Option<LoaderOptions>,
+  pub loader: LoaderOptions,
   pub mode: BundleMode,
   pub entries: Vec<String>,
   pub minify: bool,
   pub outdir: String,
-  pub entry_file_names: String, // | ((chunkInfo: PreRenderedChunk) => string)
-  pub chunk_filename: Option<String>,
+  pub entry_filename: String, // | ((chunkInfo: PreRenderedChunk) => string)
+  pub chunk_filename: String,
   pub code_splitting: bool,
   pub lazy_compilation: bool,
   pub root: String,
@@ -80,11 +80,11 @@ impl Default for BundleOptions {
         .to_string_lossy()
         .to_string(),
       minify: Default::default(),
-      entry_file_names: "[name].js".to_string(),
-      chunk_filename: Some("chunk-[name].js".to_string()),
+      entry_filename: "[name].js".to_string(),
+      chunk_filename: "chunk-[name].js".to_string(),
       code_splitting: true,
       lazy_compilation: false,
-      loader: None,
+      loader: Default::default(),
       inline_style: Default::default(),
       source_map: true,
       svgr: false,
@@ -92,21 +92,4 @@ impl Default for BundleOptions {
   }
 }
 
-#[derive(Debug)]
-pub struct NormalizedBundleOptions {
-  pub react: BundleReactOptions,
-  pub loader: LoaderOptions,
-  pub mode: BundleMode,
-  pub entries: Vec<String>,
-  pub minify: bool,
-  pub outdir: String,
-  pub entry_filename: String, // | ((chunkInfo: PreRenderedChunk) => string)
-  pub chunk_filename: String,
-  pub code_splitting: bool,
-  pub lazy_compilation: bool,
-  pub root: String,
-  pub resolve: ResolveOption,
-  pub source_map: bool,
-  pub inline_style: bool,
-  pub svgr: bool,
-}
+pub type NormalizedBundleOptions = BundleOptions;
