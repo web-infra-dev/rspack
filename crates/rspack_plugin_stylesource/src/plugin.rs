@@ -48,6 +48,14 @@ impl Default for StyleSourcePlugin {
       .unwrap()
       .option
       .hooks
+      .content_interceptor = None;
+    style_plugin
+      .app
+      .context
+      .lock()
+      .unwrap()
+      .option
+      .hooks
       .import_alias = Some(Arc::new(|filepath, importpath| {
       let resolver = Resolver::default()
         .with_extensions(vec!["less", "css", "scss", "sass"])
@@ -72,8 +80,12 @@ impl StyleSourcePlugin {
   /// 处理 css 文件
   /// 目前 在 ipc 保留的时候 同样的处理方式
   ///
-  pub fn handle_with_css_file(&self, filepath: &str) -> (HashMap<String, String>, String) {
-    let res = match self.app.render_into_hashmap(filepath) {
+  pub fn handle_with_css_file(
+    &self,
+    content: &str,
+    filepath: &str,
+  ) -> (HashMap<String, String>, String) {
+    let res = match self.app.render_content_into_hashmap(content, filepath) {
       Ok(map) => map,
       Err(msg) => {
         println!("{}", msg);
@@ -146,7 +158,7 @@ impl Plugin for StyleSourcePlugin {
       if let Some(mut style) = is_style_source(uri) {
         let js;
         {
-          let (css_map, js_content) = self.handle_with_css_file(uri);
+          let (css_map, js_content) = self.handle_with_css_file(raw.as_str(), uri);
           style.source_content_map = Some(css_map);
           js = js_content;
         }
@@ -157,7 +169,7 @@ impl Plugin for StyleSourcePlugin {
         raw
       }
     } else if let Some(Loader::Sass) = loader {
-      panic!("parse sass file has not be supported")
+      unimplemented!()
     } else {
       raw
     }

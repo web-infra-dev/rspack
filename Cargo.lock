@@ -1622,7 +1622,6 @@ dependencies = [
  "rspack_plugin_style",
  "rspack_plugin_stylesource",
  "rspack_plugin_svgr",
- "rspack_style",
  "rspack_swc",
  "serde_json",
  "smol_str",
@@ -1787,9 +1786,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_style"
-version = "0.1.11"
+version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab2e686e80f7d655060c605d650f81f08b07c75a53b682899f636b39a3100afa"
+checksum = "095b68283c3278ca8816c523818d28d3b826f6c095b41bb2c7f0272684fd1297"
 dependencies = [
  "fasteval",
  "regex",

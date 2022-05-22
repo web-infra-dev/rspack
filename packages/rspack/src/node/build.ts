@@ -2,8 +2,10 @@ import fs from 'fs-extra';
 import path from 'path';
 import { DevServer } from './server';
 import chokidar from 'chokidar';
-import { Rspack } from './rspack';
 import { RawOptions } from '@rspack/binding';
+import { Rspack } from './rspack';
+import { LessPlugin } from "./rspack/plugins/less";
+
 type Defer = {
   resolve: any;
   reject: any;
@@ -51,6 +53,9 @@ export async function run(options: BundlerOptions) {
     sourceMap: options.sourceMap,
     codeSplitting: options.codeSplitting,
     svgr: options.svgr,
+    plugins: [LessPlugin({
+      root,
+    })],
     lazyCompiler: options.lazyCompiler
   });
   const server = new DevServer({

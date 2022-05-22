@@ -2,7 +2,7 @@ import createDebug from "debug";
 import type { RawOptions, ExternalObject, OnLoadContext, OnResolveContext, OnLoadResult, OnResolveResult } from "@rspack/binding";
 import * as binding from "@rspack/binding";
 
-import type { RspackPlugin } from "./plugin";
+import type { RspackPlugin } from "./plugins";
 
 const debugRspack = createDebug("rspack");
 const debugNapi = createDebug("napi");
@@ -56,11 +56,10 @@ class Rspack {
       }
 
       const context: RspackThreadsafeContext<OnLoadContext> = JSON.parse(value);
-      debugNapi("onLoadcontext", context);
 
       for (const plugin of plugins) {
         const result = await plugin.onLoad(context.inner);
-        debugNapi("onLoadResult", result);
+        debugNapi("onLoadResult", result, "context", context);
 
         if(isNil(result)) {
           continue;
@@ -72,7 +71,7 @@ class Rspack {
         });
       }
 
-      debugNapi("onLoadResult", null);
+      debugNapi("onLoadResult", null, "context", context);
 
       return createDummyResult(context.callId);
     }
@@ -83,11 +82,10 @@ class Rspack {
       }
 
       const context: RspackThreadsafeContext<OnResolveContext> = JSON.parse(value);
-      debugNapi("onResolveContext", context);
 
       for (const plugin of plugins) {
         const result = await plugin.onResolve(context.inner);
-        debugNapi("onResolveResult", result);
+        debugNapi("onResolveResult", result, "context", context);
 
         if(isNil(result)) {
           continue;
@@ -99,7 +97,7 @@ class Rspack {
         });
       }
 
-      debugNapi("onResolveResult", null);
+      debugNapi("onResolveResult", null, "context", context);
 
       return createDummyResult(context.callId);
     }

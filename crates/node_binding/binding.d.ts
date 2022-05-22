@@ -52,6 +52,7 @@ export interface ResolveRet {
   result?: string
 }
 export function resolve(rspack: ExternalObject<RspackInternal>, id: string, dir: string): object
+export function resolveFile(baseDir: string, importPath: string): string
 export interface RspackInternal {
   
 }

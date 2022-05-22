@@ -24,6 +24,7 @@
     "connect-history-api-fallback": "1.6.0",
     "debug": "^4.3.4",
     "fs-extra": "10.1.0",
+    "less": "^4.1.2",
     "lodash-es": "^4.17.21",
     "sirv": "2.0.2",
     "tsm": "2.2.1",
@@ -33,6 +34,7 @@
   "devDependencies": {
     "@rspack/test-toolkit": "workspace:*",
     "@types/debug": "^4.1.7",
+    "@types/less": "^3.0.3",
     "@types/node": "^17.0.31"
   }
 }
