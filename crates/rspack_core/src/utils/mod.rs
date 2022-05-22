@@ -92,35 +92,16 @@ pub fn syntax_by_loader(filename: &str, loader: &Loader) -> Syntax {
   }
 }
 
-pub fn normalize_bundle_options(options: BundleOptions) -> NormalizedBundleOptions {
-  let loader = {
-    let mut loader = options.loader.unwrap_or_default();
-    loader.entry("json".to_string()).or_insert(Loader::Json);
-    loader.entry("js".to_string()).or_insert(Loader::Js);
-    loader.entry("jsx".to_string()).or_insert(Loader::Jsx);
-    loader.entry("ts".to_string()).or_insert(Loader::Ts);
-    loader.entry("tsx".to_string()).or_insert(Loader::Tsx);
-    loader.entry("css".to_string()).or_insert(Loader::Css);
-    loader.entry("less".to_string()).or_insert(Loader::Less);
-    loader.entry("sass".to_string()).or_insert(Loader::Sass);
-    loader.entry("scss".to_string()).or_insert(Loader::Sass);
-    loader
-  };
-  NormalizedBundleOptions {
-    resolve: options.resolve,
-    react: options.react,
-    loader,
-    mode: options.mode,
-    entries: options.entries,
-    minify: options.minify,
-    outdir: options.outdir,
-    entry_filename: options.entry_file_names,
-    chunk_filename: options.chunk_filename.unwrap(),
-    code_splitting: options.lazy_compilation || options.code_splitting,
-    lazy_compilation: options.lazy_compilation,
-    root: options.root,
-    source_map: options.source_map,
-    inline_style: options.inline_style,
-    svgr: options.svgr,
-  }
+pub fn inject_options(mut options: BundleOptions) -> NormalizedBundleOptions {
+  let loader = &mut options.loader;
+  loader.entry("json".to_string()).or_insert(Loader::Json);
+  loader.entry("js".to_string()).or_insert(Loader::Js);
+  loader.entry("jsx".to_string()).or_insert(Loader::Jsx);
+  loader.entry("ts".to_string()).or_insert(Loader::Ts);
+  loader.entry("tsx".to_string()).or_insert(Loader::Tsx);
+  loader.entry("css".to_string()).or_insert(Loader::Css);
+  loader.entry("less".to_string()).or_insert(Loader::Less);
+  loader.entry("sass".to_string()).or_insert(Loader::Sass);
+  loader.entry("scss".to_string()).or_insert(Loader::Sass);
+  options
 }

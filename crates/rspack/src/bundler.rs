@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use nodejs_resolver::{Resolver, ResolverOptions};
-use rspack_core::normalize_bundle_options;
+use rspack_core::inject_options;
 use rspack_core::Bundle;
 use rspack_core::NormalizedBundleOptions;
 use rspack_swc::{swc, swc_common};
@@ -58,7 +58,7 @@ impl Bundler {
       "create bundler with options:\n {:#?} \nplugins:\n {:#?}\n",
       options, plugins
     );
-    let normalized_options = Arc::new(normalize_bundle_options(options));
+    let normalized_options = Arc::new(inject_options(options));
     let injected_plugins = inject_built_in_plugins(plugins, &normalized_options);
     let (top_level_mark, unresolved_mark) =
       get_swc_compiler().run(|| (Mark::fresh(Mark::root()), Mark::fresh(Mark::root())));

@@ -201,13 +201,13 @@ mod testing {
     compile_with_options(
       "css",
       BundleOptions {
-        loader: Some(HashMap::from_iter([
+        loader: HashMap::from_iter([
           ("css".to_string(), Loader::Css),
           ("less".to_string(), Loader::Less),
           ("sass".to_string(), Loader::Sass),
           ("scss".to_string(), Loader::Sass),
           ("svg".to_string(), Loader::DataURI),
-        ])),
+        ]),
         ..Default::default()
       },
       vec![],
@@ -278,16 +278,14 @@ mod testing {
     compile_with_options(
       "loader",
       BundleOptions {
-        loader: Some(
-          vec![
-            ("svg".to_string(), Loader::DataURI),
-            // Json is supported by default
-            // ("json".to_string(), Loader::Json),
-            ("txt".to_string(), Loader::Text),
-          ]
-          .into_iter()
-          .collect(),
-        ),
+        loader: vec![
+          ("svg".to_string(), Loader::DataURI),
+          // Json is supported by default
+          // ("json".to_string(), Loader::Json),
+          ("txt".to_string(), Loader::Text),
+        ]
+        .into_iter()
+        .collect(),
         ..Default::default()
       },
       vec![],

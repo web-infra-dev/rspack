@@ -1,6 +1,3 @@
-use std::collections::HashMap;
-use std::fmt::Debug;
-use std::path::Path;
 use std::sync::Arc;
 
 use futures::lock::Mutex;
@@ -10,16 +7,13 @@ use napi::{
   Env, JsObject, Result,
 };
 use napi_derive::napi;
-use nodejs_resolver::{ResolveResult, Resolver, ResolverOptions};
-use rspack_core::{BundleReactOptions, Loader, ResolveOption};
-use serde::Deserialize;
 
 pub mod adapter;
+mod options;
 pub mod utils;
+pub use options::*;
 
-use rspack::bundler::{
-  BundleMode, BundleOptions as RspackBundlerOptions, Bundler as RspackBundler,
-};
+use rspack::bundler::Bundler as RspackBundler;
 
 #[cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))]
 #[global_allocator]
@@ -27,26 +21,6 @@ static ALLOC: mimalloc_rust::GlobalMiMalloc = mimalloc_rust::GlobalMiMalloc;
 
 pub fn create_external<T>(value: T) -> External<T> {
   External::new(value)
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-struct RawOptions {
-  pub entries: Vec<String>,
-  // pub format: InternalModuleFormat,
-  pub minify: bool,
-  pub root: Option<String>,
-  pub outdir: Option<String>,
-  pub entry_file_names: String, // | ((chunkInfo: PreRenderedChunk) => string)
-  pub loader: Option<HashMap<String, String>>,
-  pub inline_style: Option<bool>,
-  pub alias: Option<HashMap<String, String>>,
-  pub refresh: Option<bool>,
-  pub source_map: Option<bool>,
-  pub code_splitting: Option<bool>,
-  pub svgr: Option<bool>,
-  pub lazy_compilation: Option<bool>,
 }
 
 pub type Rspack = Arc<Mutex<RspackBundler>>;
@@ -64,7 +38,6 @@ pub fn new_rspack(
   plugin_callbacks: Option<PluginCallbacks>,
 ) -> External<Rspack> {
   let options: RawOptions = serde_json::from_str(option_json.as_str()).unwrap();
-  let loader = options.loader.map(|loader| parse_loader(loader));
 
   let node_adapter = plugin_callbacks.map(
     |PluginCallbacks {
@@ -158,48 +131,7 @@ pub fn new_rspack(
     plugins.push(Box::new(node_adapter) as Box<dyn rspack_core::Plugin>);
   }
 
-  let rspack = RspackBundler::new(
-    RspackBundlerOptions {
-      entries: options.entries,
-      minify: options.minify,
-      code_splitting: options.code_splitting.unwrap_or_default(),
-      lazy_compilation: options.lazy_compilation.unwrap_or_default(),
-      outdir: options.outdir.unwrap_or_else(|| {
-        std::env::current_dir()
-          .unwrap()
-          .join("./dist")
-          .to_string_lossy()
-          .to_string()
-      }),
-      source_map: options.source_map.unwrap_or_default(),
-      entry_file_names: options.entry_file_names,
-      mode: BundleMode::Dev,
-      loader,
-      inline_style: options.inline_style.unwrap_or_default(),
-      svgr: options.svgr.unwrap_or_default(),
-      react: BundleReactOptions {
-        refresh: options.refresh.unwrap_or_default(),
-        ..Default::default()
-      },
-      resolve: ResolveOption {
-        alias: options
-          .alias
-          .unwrap_or_default()
-          .into_iter()
-          .map(|(s1, s2)| (s1, Some(s2)))
-          .collect::<Vec<_>>(),
-        ..Default::default()
-      },
-      root: options.root.unwrap_or_else(|| {
-        std::env::current_dir()
-          .unwrap()
-          .to_string_lossy()
-          .to_string()
-      }),
-      ..Default::default()
-    },
-    plugins,
-  );
+  let rspack = RspackBundler::new(normalize_bundle_options(options), plugins);
   create_external(Arc::new(Mutex::new(rspack)))
 }
 
@@ -282,32 +214,6 @@ pub fn resolve_file(base_dir: String, import_path: String) -> Result<String> {
     }
     Err(msg) => Err(Error::new(Status::Unknown, msg.to_string())),
   }
-}
-
-fn parse_loader(user_input: HashMap<String, String>) -> rspack_core::LoaderOptions {
-  let loaders = Loader::values()
-    .into_iter()
-    .map(|loader| match loader {
-      Loader::Css => ("css", loader),
-      Loader::Less => ("less", loader),
-      Loader::Sass => ("sass", loader),
-      Loader::DataURI => ("dataURI", loader),
-      Loader::Js => ("js", loader),
-      Loader::Jsx => ("jsx", loader),
-      Loader::Ts => ("ts", loader),
-      Loader::Tsx => ("tsx", loader),
-      Loader::Null => ("null", loader),
-      Loader::Json => ("json", loader),
-      Loader::Text => ("text", loader),
-    })
-    .collect::<HashMap<_, _>>();
-  user_input
-    .into_iter()
-    .filter_map(|(ext, loader_str)| {
-      let loader = *loaders.get(loader_str.as_str())?;
-      Some((ext, loader))
-    })
-    .collect()
 }
 
 // for dts generation only

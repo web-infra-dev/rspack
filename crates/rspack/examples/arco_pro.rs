@@ -40,13 +40,13 @@ async fn main() {
         refresh: false,
         ..Default::default()
       },
-      loader: Some(HashMap::from_iter([
+      loader: HashMap::from_iter([
         ("css".to_string(), Loader::Css),
         ("less".to_string(), Loader::Less),
         ("sass".to_string(), Loader::Sass),
         ("scss".to_string(), Loader::Sass),
         ("svg".to_string(), Loader::DataURI),
-      ])),
+      ]),
       resolve: ResolveOption {
         alias: vec![(
           "@/".to_string(),
