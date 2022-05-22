@@ -43,7 +43,7 @@ impl Chunk {
   pub fn from_js_module(module_id: String, is_entry_chunk: bool) -> Self {
     Self {
       id: Default::default(),
-      module_ids: vec![].into_iter().collect(),
+      module_ids: Default::default(),
       entry_uri: module_id,
       // source_chunks: Default::default(),
       is_entry_chunk,
