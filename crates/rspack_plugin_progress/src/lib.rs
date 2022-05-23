@@ -193,7 +193,7 @@ impl Plugin for ProgressPlugin {
       + "/";
     let outdir = style(outdir).fg(GREY).to_string();
     let mut max_name_len = 0;
-    let mut asset_list: Vec<(String, usize)> = vec![];
+    let mut asset_list: Vec<(String, usize)> = vec![]; // (name, size)
     for i in assets.iter() {
       let name: String = if i.filename.chars().nth(0).unwrap() == '/' {
         i.filename.replace(&_ctx.options.outdir, "")[1..].to_string()
@@ -204,6 +204,8 @@ impl Plugin for ProgressPlugin {
       let size = i.source.len();
       asset_list.push((name, size));
     }
+
+    asset_list.sort_by(|a, b| a.1.cmp(&b.1));
 
     let space = "    ";
     for (name, size) in asset_list.iter() {
