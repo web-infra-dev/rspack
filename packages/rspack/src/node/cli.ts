@@ -11,11 +11,10 @@ yargs
     '$0 [root]',
     'start dev server',
     (yargs) => {
-      yargs.positional('root', {
-        type: 'string',
-        default: process.cwd(),
-        describe: 'project root',
-      });
+      yargs.positional(
+        'root',
+        { type: 'string', default: process.cwd(), describe: 'project root' },
+      );
     },
     (argv: any) => {
       const root = path.resolve(process.cwd(), argv.root);
@@ -25,17 +24,18 @@ yargs
       let entry = pkg?.rspack?.entry;
       let manualChunk = pkg?.rspack?.manualChunks;
       if (!entry) {
-        entry = {
-          main: path.resolve(root, 'index.js'),
-        };
+        entry = { main: path.resolve(root, 'index.js') };
       }
       for (const [key, value] of Object.entries(entry)) {
         entry[key] = path.resolve(root, value as string);
       }
       let alias = pkg?.rspack?.alias ?? {};
-      alias = Object.fromEntries(
-        Object.entries(alias).map(([key, value]) => [key, (value as string).replace('<ROOT>', root)])
-      );
+      alias =
+        Object.fromEntries(
+          Object.entries(alias).map(
+            ([key, value]) => [key, (value as string).replace('<ROOT>', root)],
+          ),
+        );
       console.log('pkg:', pkg?.rspack);
       run({
         entry: entry,
@@ -44,14 +44,12 @@ yargs
         loader: pkg?.rspack?.loader,
         inlineStyle: pkg?.rspack?.inlineStyle,
         alias: alias,
-        react: {
-          refresh: pkg?.rspack?.react?.refresh,
-        },
+        react: { refresh: pkg?.rspack?.react?.refresh },
         sourceMap: pkg?.rspack?.sourcemap ?? true,
         codeSplitting: pkg?.rspack?.splitting ?? true,
         svgr: pkg?.rspack?.svgr ?? true,
         lazyCompilation: pkg?.rspack.lazyCompilation ?? false,
       });
-    }
+    },
   )
   .help().argv;

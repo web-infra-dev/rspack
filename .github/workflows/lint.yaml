@@ -26,9 +26,12 @@ jobs:
           profile: minimal
           override: true
           components: rustfmt, clippy
-
+      - name: npm setup
+        run: npm run init
       - name: Cargo fmt
-        run: cargo fmt -- --check
+        run: |
+          cargo fmt -- --check
+          yarn format:js_ci
 
       # temporarily remove clippy for DX
       # - name: Clippy

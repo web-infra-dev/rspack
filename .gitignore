@@ -156,3 +156,6 @@ dist
 
 ## ignore rspack-style temp fold
 .rspack-style
+
+## repoter
+mocha-report.json

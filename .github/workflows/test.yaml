@@ -46,3 +46,9 @@ jobs:
           # yarn test:example
           yarn build:core
           yarn test:js
+      - uses: dorny/test-reporter@v1
+        if: success() || failure() # run this step even if previous step failed
+        with:
+          name: mocha test # Name of the check run which will be created
+          path: mocha-report.json # Path to test results (inside artifact .zip)
+          reporter: mocha-json

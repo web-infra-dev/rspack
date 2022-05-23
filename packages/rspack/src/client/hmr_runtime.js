@@ -80,13 +80,15 @@ function invalidate(dirtyId) {
    * module: 待检查的module
    */
   function getAccepts(id, module) {
-    return module.hot.accepts.filter(({ ids }) => {
-      if (typeof ids === 'string') {
-        return ids === id;
-      } else {
-        return ids.includes(id);
-      }
-    });
+    return module.hot.accepts.filter(
+      ({ ids }) => {
+        if (typeof ids === 'string') {
+          return ids === id;
+        } else {
+          return ids.includes(id);
+        }
+      },
+    );
   }
   if (module.hot?.accept) {
     for (const acceptItem of module.hot.accepts) {
@@ -104,8 +106,9 @@ function reload() {
     window.location.reload();
   });
 }
-socket.onmessage = function (event) {
-  const data = JSON.parse(event.data);
-  (0, eval)(data.code);
-  // reload();
-};
+socket.onmessage =
+  function (event) {
+    const data = JSON.parse(event.data);
+    (0, eval)(data.code);
+    // reload();
+  };

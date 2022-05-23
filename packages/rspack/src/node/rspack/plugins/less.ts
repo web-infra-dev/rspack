@@ -1,11 +1,11 @@
-import { promises as fs } from "fs"
-import path from "path"
+import { promises as fs } from 'fs';
+import path from 'path';
 
-import less from "less"
+import less from 'less';
 
-import { ExternalObject, resolveFile } from "@rspack/binding"
+import { ExternalObject, resolveFile } from '@rspack/binding';
 
-import type { RspackPlugin } from "../index"
+import type { RspackPlugin } from '../index';
 
 function resolve(baseDir: string, importPath: string) {
   let haserr = false;
@@ -29,19 +29,22 @@ function resolve(baseDir: string, importPath: string) {
   return res;
 }
 
-
 export default class LessAliasesPlugin {
   public currentDir: string;
   public callbackError: Function;
-  public rspack: ExternalObject<any>
+  public rspack: ExternalObject<any>;
 
-  constructor(currentDir: string, callbackError: Function, rspack: ExternalObject<any>) {
+  constructor(
+    currentDir: string,
+    callbackError: Function,
+    rspack: ExternalObject<any>,
+  ) {
     this.callbackError = callbackError;
     this.currentDir = currentDir;
     this.rspack = rspack;
   }
 
-  install(less: typeof import("less"), pluginManager: any) {
+  install(less: typeof import('less'), pluginManager: any) {
     let { currentDir, callbackError, rspack } = this;
 
     class AliasPlugin extends less.FileManager {
@@ -49,13 +52,13 @@ export default class LessAliasesPlugin {
         filename: string,
         currentDirectory: string,
         options: Record<string, unknown>,
-        environment: Less.Environment
+        environment: Less.Environment,
       ) {
         let resolved = undefined;
         try {
-          let baseFile: string = currentDirectory
-            ? currentDirectory
-            : path.dirname(currentDir);
+          let baseFile: string = currentDirectory ? currentDirectory : path.dirname(
+            currentDir,
+          );
           resolved = resolve(baseFile, filename);
         } catch (err: any) {
           callbackError(err);
@@ -65,7 +68,7 @@ export default class LessAliasesPlugin {
           resolved ?? filename,
           currentDirectory,
           options,
-          environment
+          environment,
         );
       }
     }
@@ -73,36 +76,33 @@ export default class LessAliasesPlugin {
   }
 }
 
-interface LessPluginOptions {
-  paths?: string[]
-  root?: string
-}
+interface LessPluginOptions { paths?: string[]; root?: string }
 
 export const LessPlugin = (options: LessPluginOptions): RspackPlugin => {
   return {
-    async onLoad ({ id }, rspack) {
+    async onLoad({ id }, rspack) {
       const callbackError = (err: Error) => {
         console.log(err);
-      }
-      
-      if (id.endsWith(".less")) {
-        const content = await fs.readFile(id, "utf8")
-        const renderResult = await less.render(content, {
-          paths: [
-            ...(options?.paths || ['node_modules']),
-            ...(options?.root ? [options.root] : []),
-          ],
-          plugins: [new LessAliasesPlugin(id, callbackError, rspack)]
-        })
+      };
 
-        return {
-          content: renderResult.css,
-          loader: "css"
-        }
+      if (id.endsWith('.less')) {
+        const content = await fs.readFile(id, 'utf8');
+        const renderResult = await less.render(
+          content,
+          {
+            paths: [
+              ...(options?.paths || ['node_modules']),
+              ...(options?.root ? [options.root] : []),
+            ],
+            plugins: [new LessAliasesPlugin(id, callbackError, rspack)],
+          },
+        );
+
+        return { content: renderResult.css, loader: 'css' };
       }
 
-      return null
+      return null;
     },
-    async onResolve(context) {}
-  }
-}
+    async onResolve(context) {},
+  };
+};
