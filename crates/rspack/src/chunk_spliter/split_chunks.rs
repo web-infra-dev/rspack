@@ -37,7 +37,7 @@ pub fn code_splitting2(
       if let JsModuleKind::UserEntry { name } = &js_mod.kind {
         name.to_string()
       } else {
-        format!("path {:?}", gen_numeric_chunk_id())
+        format!("chunk-{}", gen_numeric_chunk_id())
       }
     };
     let chunk_id = {
@@ -74,7 +74,7 @@ pub fn code_splitting2(
                 if let JsModuleKind::UserEntry { name } = &js_mod.kind {
                   name.to_string()
                 } else {
-                  format!("path {:?}", gen_numeric_chunk_id())
+                  format!("chunk-{}", gen_numeric_chunk_id())
                 }
               };
               let chunk_id = {
