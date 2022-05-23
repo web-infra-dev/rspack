@@ -8,7 +8,7 @@ async fn main() {
   let entry_a_js = Path::new("./fixtures/basic/entry-a.js").resolve();
   let mut bundler = Bundler::new(
     BundleOptions {
-      entries: vec!["./fixtures/basic/entry-a.js".to_owned()],
+      entries: vec!["./fixtures/basic/entry-a.js".to_owned().into()],
       outdir: "./dist".to_string(),
       ..Default::default()
     },

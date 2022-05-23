@@ -76,7 +76,7 @@ mod testing {
     println!("options: \n {:?}", options);
     let mut bundler = Bundler::new(
       BundleOptions {
-        entries: entry,
+        entries: entry.into_iter().map(From::from).collect(),
         outdir: dist.to_str().unwrap().to_string(),
         svgr,
         ..options

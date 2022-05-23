@@ -19,7 +19,7 @@ async fn main() {
       //   "./fixtures/basic/entry-a.js".to_owned(),
       //   "./fixtures/basic/entry-b.js".to_owned(),
       // ],
-      entries: vec![example],
+      entries: vec![example.into()],
       // entries: vec!["../../packages/rspack/node_modules/lodash-es/lodash.js".to_owned()],
       outdir: "./dist".to_string(),
       code_splitting: Some(Default::default()),

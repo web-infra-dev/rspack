@@ -59,7 +59,7 @@ impl Plugin for ReactPlugin {
   ) -> rspack_core::PluginTransformAstHookOutput {
     let id = path.to_str().unwrap_or("").to_string();
     if ctx.options.react.refresh {
-      let is_entry = ctx.options.entries.iter().any(|e| e.as_str() == id);
+      let is_entry = ctx.options.entries.iter().any(|e| e.src.as_str() == id);
 
       if is_entry {
         ast = ast.fold_with(&mut InjectReactRefreshEntryFloder {});

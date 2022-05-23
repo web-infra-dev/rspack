@@ -32,7 +32,7 @@ async fn main() {
   let mut bundler = Bundler::new(
     BundleOptions {
       root,
-      entries: vec![example.to_string()],
+      entries: vec![example.to_string().into()],
       outdir: "./dist".to_string(),
       code_splitting: Some(Default::default()),
       mode: BundleMode::Dev,

@@ -27,7 +27,7 @@ pub fn normalize_bundle_options(options: RawOptions) -> BundleOptions {
   let default_options = BundleOptions::default();
 
   BundleOptions {
-    entries: options.entries,
+    entries: options.entries.into_iter().map(From::from).collect(),
     minify: options.minify.unwrap_or(default_options.minify),
     root: options.root.unwrap_or(default_options.root),
     outdir: options.outdir.unwrap_or(default_options.outdir),
