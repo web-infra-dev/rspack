@@ -109,8 +109,6 @@ pub fn process(program: Program, _metadata: TransformPluginProgramMetadata) -> P
 pub fn format_css(css: String) -> String {
   let item = css
     .split(";")
-    .collect::<Vec<&str>>()
-    .iter()
     .map(|s| {
       let v = s.split(":").collect::<Vec<&str>>();
       if v.len() != 2 {
