@@ -4,6 +4,7 @@
   "description": "Arco Design Pro",
   "scripts": {
     "dev": "rspack",
+    "build": "rspack build",
     "speedy:dev": "speedy dev",
     "speedy:start": "speedy start",
     "speeedy:build": "speedy build"
