@@ -34,7 +34,7 @@ async fn main() {
       root: root,
       entries: vec![example.to_string()],
       outdir: "./dist".to_string(),
-      code_splitting: true,
+      code_splitting: Some(Default::default()),
       mode: BundleMode::Dev,
       react: BundleReactOptions {
         refresh: false,

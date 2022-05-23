@@ -67,7 +67,6 @@ pub struct Task {
   pub visited_module_uri: Arc<DashSet<String>>,
   pub plugin_driver: Arc<PluginDriver>,
   pub resolver: Arc<Resolver>,
-  pub code_splitting: bool,
 }
 
 impl Task {
@@ -149,7 +148,6 @@ impl Task {
           .into_iter()
           .map(|(key, value)| (key, value))
           .collect(),
-        code_splitting: self.code_splitting,
         loader: *loader,
       };
       self.tx.send(Msg::TaskFinished(module)).unwrap()
@@ -167,7 +165,6 @@ impl Task {
         visited_module_uri: self.visited_module_uri.clone(),
         tx: self.tx.clone(),
         plugin_driver: self.plugin_driver.clone(),
-        code_splitting: self.code_splitting,
         resolver: self.resolver.clone(),
       };
       tokio::task::spawn(async move {

@@ -40,7 +40,6 @@ pub struct JsModule {
   pub is_user_defined_entry_point: bool,
   pub resolved_uris: HashMap<JsWord, ResolvedURI>,
   pub chunk_ids: HashSet<String>,
-  pub code_splitting: bool,
   pub loader: Loader,
 }
 impl std::fmt::Debug for JsModule {
@@ -73,7 +72,6 @@ impl JsModule {
       is_user_defined_entry_point: Default::default(),
       resolved_uris: Default::default(),
       chunk_ids: Default::default(),
-      code_splitting: Default::default(),
       // TODO: We should not initialize loader using default value, it’s easy to forget and buggy.
       loader: Default::default(),
     }
@@ -136,7 +134,7 @@ impl JsModule {
             &self.resolved_uris,
             self.is_user_defined_entry_point,
             modules,
-            self.code_splitting,
+            options.code_splitting.is_some(),
           )
         },
       )
