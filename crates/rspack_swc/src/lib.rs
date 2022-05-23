@@ -9,3 +9,4 @@ pub use swc_ecma_transforms_module;
 pub use swc_ecma_transforms_react;
 pub use swc_ecma_utils;
 pub use swc_ecma_visit;
+pub use swc_plugin;
