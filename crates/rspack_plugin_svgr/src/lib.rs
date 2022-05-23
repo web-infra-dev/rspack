@@ -4,19 +4,15 @@ mod transform;
 use async_trait::async_trait;
 use clean::clean;
 use core::fmt::Debug;
-use rspack_core::PluginTransformHookOutput;
+use rspack_core::{ast, PluginTransformAstHookOutput, PluginTransformHookOutput};
+use rspack_swc::swc_ecma_visit::VisitMutWith;
 pub static PLUGIN_NAME: &str = "rspack_svgr";
 use rspack_core::{BundleContext, LoadArgs, LoadedSource, Loader, Plugin, PluginLoadHookOutput};
-use std::path::Path;
-// #[macro_use]
-// extern crate lazy_static;
-use regex::Regex;
 use std::fs::read_to_string;
 use std::path::Path;
 
 use transform::SvgrReplacer;
 
-pub static PLUGIN_NAME: &'static str = "rspack_svgr";
 #[derive(Debug)]
 pub struct SvgrPlugin {}
 impl SvgrPlugin {}
