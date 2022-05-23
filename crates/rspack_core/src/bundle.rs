@@ -1,11 +1,11 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::atomic::Ordering;
 use std::sync::{atomic::AtomicUsize, Arc};
 
 use crate::task::Task;
 use crate::{
-  plugin_hook, BundleContext, BundleEntries, EntryItem, ImportKind, JsModule, ModuleGraph,
-  NormalizedBundleOptions, PluginDriver, ResolvedURI,
+  plugin_hook, BundleContext, BundleEntries, EntryItem, ImportKind, JsModule, JsModuleKind,
+  ModuleGraph, NormalizedBundleOptions, PluginDriver, ResolvedURI,
 };
 use crossbeam::queue::SegQueue;
 use dashmap::DashSet;
@@ -68,25 +68,33 @@ impl Bundle {
       });
     }
 
-    self.module_graph.resolved_entries = join_all(self.entries.iter().map(|entry| {
-      plugin_hook::resolve_id(
-        crate::ResolveArgs {
-          id: entry.0.clone(),
-          importer: None,
-          kind: ImportKind::Import,
-        },
-        false,
-        &self.plugin_driver,
-        &self.resolver,
+    self.module_graph.resolved_entries = join_all(self.entries.iter().map(|(name, entry)| async {
+      (
+        name.clone(),
+        plugin_hook::resolve_id(
+          crate::ResolveArgs {
+            id: entry.src.clone(),
+            importer: None,
+            kind: ImportKind::Import,
+          },
+          false,
+          &self.plugin_driver,
+          &self.resolver,
+        )
+        .await,
       )
     }))
     .await
     .into_iter()
     .collect();
 
-    self.module_graph.resolved_entries.iter().for_each(|rd| {
-      job_queue.push(rd.clone());
-    });
+    self
+      .module_graph
+      .resolved_entries
+      .iter()
+      .for_each(|(_, rd)| {
+        job_queue.push(rd.clone());
+      });
 
     // let (tx, rx) = channel::unbounded::<Msg>();
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
@@ -112,17 +120,18 @@ impl Bundle {
       .module_graph
       .resolved_entries
       .iter()
-      .map(|rid| rid.uri.clone())
-      .collect::<HashSet<String>>();
+      .map(|(name, rid)| (rid.uri.clone(), name.clone()))
+      .collect::<HashMap<_, _>>();
 
     while active_task_count.load(Ordering::SeqCst) != 0 {
       match rx.recv().await {
         Some(job) => match job {
           Msg::TaskFinished(mut module) => {
-            module.is_user_defined_entry_point = entries_uri.contains(&module.uri);
-            if module.is_user_defined_entry_point {
-              tracing::trace!("detect user entry module {:?}", module);
-            }
+            module.kind = entries_uri
+              .get(&module.uri)
+              .map_or(JsModuleKind::Normal, |name| JsModuleKind::UserEntry {
+                name: name.clone(),
+              });
             self
               .module_graph
               .module_by_id

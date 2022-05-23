@@ -9,3 +9,5 @@ pub use loader::*;
 
 mod entry;
 pub use entry::*;
+mod optimization;
+pub use optimization::*;

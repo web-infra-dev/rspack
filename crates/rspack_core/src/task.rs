@@ -8,7 +8,7 @@ use std::{
 
 use crate::{
   bundle::Msg, dependency_scanner::DependencyScanner, plugin_hook, utils::parse_file, ImportKind,
-  JsModule, LoadArgs, PluginDriver, ResolveArgs, ResolvedURI,
+  JsModule, JsModuleKind, LoadArgs, PluginDriver, ResolveArgs, ResolvedURI,
 };
 use crate::{get_swc_compiler, path::normalize_path};
 use dashmap::{DashMap, DashSet};
@@ -131,6 +131,7 @@ impl Task {
       }
 
       let module = JsModule {
+        kind: JsModuleKind::Normal,
         exec_order: Default::default(),
         uri: resolved_uri.uri.clone(),
         id: normalize_path(
@@ -140,7 +141,6 @@ impl Task {
         ast,
         dependencies: dependency_scanner.dependencies,
         dyn_imports: dependency_scanner.dyn_dependencies,
-        is_user_defined_entry_point: Default::default(),
         chunk_ids: Default::default(),
         resolved_uris: uri_resolver
           .resolved_ids

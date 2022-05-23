@@ -38,16 +38,17 @@ impl ChunkSpliter {
     plugin_driver: &PluginDriver,
     bundle: &mut Bundle,
   ) -> HashMap<String, OutputChunk> {
-    let mut chunks = split_chunks(&bundle.module_graph, &self.output_options.code_splitting);
+    let mut chunks = split_chunks(&bundle.module_graph, &self.output_options);
 
     chunks.iter_mut().for_each(|chunk| {
-      chunk.id = chunk.generate_id(&self.output_options, bundle);
+      let filename = chunk.generate_filename(&self.output_options, bundle);
       let entry_module = bundle
         .module_graph
         .module_by_id
         .get_mut(&chunk.entry_uri)
         .unwrap();
-      entry_module.add_chunk(chunk.id.clone());
+      chunk.filename = Some(filename.clone());
+      entry_module.add_chunk(filename);
     });
 
     chunks

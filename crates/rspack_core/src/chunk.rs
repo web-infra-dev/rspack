@@ -14,35 +14,38 @@ use std::{
 use swc::Compiler;
 use tracing::instrument;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Chunk {
   pub id: String,
+  pub kind: ChunkKind,
+  pub filename: Option<String>,
   // pub order_modules: Vec<String>,
   pub entry_uri: String,
   pub module_ids: HashSet<String>,
-  pub is_entry_chunk: bool,
   _noop: (),
 }
 
 impl Chunk {
-  pub fn new(module_ids: HashSet<String>, entries: String, is_entry_chunk: bool) -> Self {
+  pub fn new(id: String, module_ids: HashSet<String>, entries: String, kind: ChunkKind) -> Self {
     Self {
-      id: Default::default(),
+      id,
+      filename: Default::default(),
       module_ids,
       entry_uri: entries,
       // source_chunks: Default::default(),
-      is_entry_chunk,
+      kind,
       _noop: (),
     }
   }
 
-  pub fn from_js_module(module_id: String, is_entry_chunk: bool) -> Self {
+  pub fn from_js_module(id: String, module_id: String, kind: ChunkKind) -> Self {
     Self {
-      id: Default::default(),
+      id,
+      filename: Default::default(),
       module_ids: Default::default(),
       entry_uri: module_id,
       // source_chunks: Default::default(),
-      is_entry_chunk,
+      kind,
       _noop: (),
     }
   }
@@ -88,7 +91,7 @@ impl Chunk {
           let source_map = sourcemap::SourceMap::from_slice(map_string.as_bytes()).unwrap();
           concattables.push(Box::new(SourceMapSource::new(SourceMapSourceOptions {
             source_code: transform_output.code.clone(),
-            name: self.id.clone(),
+            name: self.filename.as_ref().unwrap().clone(),
             source_map,
             original_source: None,
             inner_source_map: None,
@@ -112,7 +115,7 @@ impl Chunk {
           .generate_url(&GenMapOption {
             columns: true,
             include_source_contents: true,
-            file: self.id.clone().into(),
+            file: self.filename.clone().into(),
           })
           .unwrap()
           .unwrap();
@@ -124,7 +127,7 @@ impl Chunk {
 
       OutputChunk {
         code: output_code,
-        file_name: self.id.clone(),
+        file_name: self.filename.as_ref().unwrap().clone(),
         entry: self.entry_uri.clone(),
       }
     })
@@ -133,7 +136,7 @@ impl Chunk {
   pub fn get_chunk_info_with_file_names(&self) -> OutputChunk {
     OutputChunk {
       code: "".to_string(),
-      file_name: self.id.clone(),
+      file_name: self.filename.as_ref().unwrap().clone(),
       entry: self.entry_uri.clone(),
     }
   }
@@ -144,23 +147,27 @@ impl Chunk {
   }
 
   #[inline]
-  pub fn name(&self) -> String {
-    if self.is_entry_chunk {
-      self.get_fallback_chunk_name().to_string()
+  pub fn name(&self) -> &str {
+    if let ChunkKind::Entry { name } = &self.kind {
+      name.as_str()
     } else {
-      self.id.to_string()
+      "chunk"
     }
   }
 
   #[instrument()]
-  pub fn generate_id(&self, options: &NormalizedBundleOptions, bundle: &Bundle) -> String {
-    let pattern = if self.is_entry_chunk {
-      &options.entry_filename
+  pub fn generate_filename(&self, options: &NormalizedBundleOptions, bundle: &Bundle) -> String {
+    let pendding_name = if self.kind.is_entry() {
+      let pattern = &options.entry_filename;
+      pattern
+        .replace("[name]", self.name())
+        .replace("[id]", &self.id)
     } else {
-      &options.chunk_filename
+      let pattern = &options.chunk_filename;
+      pattern.replace("[id]", &self.id)
     };
-    let name = pattern.replace("[name]", &self.name());
-    match pattern.contains("contenthash") {
+
+    match pendding_name.contains("contenthash") {
       true => {
         let content_hash = {
           let mut hasher = DefaultHasher::new();
@@ -171,9 +178,9 @@ impl Chunk {
           });
           hasher.finish()
         };
-        name.replace("[contenthash]", &format!("{:x}", content_hash))
+        pendding_name.replace("[contenthash]", &format!("{:x}", content_hash))
       }
-      false => name,
+      false => pendding_name,
     }
   }
 }
@@ -192,4 +199,21 @@ pub struct OutputChunk {
   pub code: String,
   pub file_name: String,
   pub entry: String,
+}
+
+#[derive(Debug)]
+pub enum ChunkKind {
+  Entry { name: String },
+  Normal,
+  // TODO: support it.
+  // Initial,
+}
+
+impl ChunkKind {
+  pub fn is_entry(&self) -> bool {
+    matches!(self, ChunkKind::Entry { .. })
+  }
+  pub fn is_normal(&self) -> bool {
+    matches!(self, ChunkKind::Normal)
+  }
 }

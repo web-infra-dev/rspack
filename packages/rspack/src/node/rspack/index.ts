@@ -123,7 +123,7 @@ class Rspack {
   setLazyCompilerMap(map) {
     for(const key in map) {
       const value = map[key]
-      if(this.options.entries.indexOf(value) > -1) {
+      if(Object.values(this.options.entries).indexOf(value) > -1) {
         delete map[key]
       }
     }

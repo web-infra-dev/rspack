@@ -191,7 +191,7 @@ impl Plugin for StyleSourcePlugin {
   ) {
     let mut css_content = "".to_string();
     let mut css_source_list = self.style_source_collect.try_lock().unwrap();
-    let entry_name = Self::get_entry_name(chunk.id.as_str());
+    let entry_name = Self::get_entry_name(chunk.filename.as_ref().unwrap().as_str());
 
     let mut wait_sort_list: Vec<SytleReferenceInfo> = vec![];
     for css_source in css_source_list

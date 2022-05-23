@@ -1,4 +1,4 @@
-use crate::{BundleEntries, CodeSplittingOptions, LoaderOptions};
+use crate::{BundleEntries, CodeSplittingOptions, LoaderOptions, OptimizationOptions};
 use std::collections::HashMap;
 
 use rspack_swc::swc_ecma_transforms_react;
@@ -61,6 +61,7 @@ pub struct BundleOptions {
   pub source_map: bool,
   pub svgr: bool,
   pub define: HashMap<String, String>,
+  pub optimization: OptimizationOptions,
 }
 
 impl Default for BundleOptions {
@@ -84,7 +85,7 @@ impl Default for BundleOptions {
         .to_string(),
       minify: Default::default(),
       entry_filename: "[name].js".to_string(),
-      chunk_filename: "chunk-[name].js".to_string(),
+      chunk_filename: "[id].js".to_string(),
       code_splitting: Some(Default::default()),
       lazy_compilation: false,
       loader: Default::default(),
@@ -92,6 +93,7 @@ impl Default for BundleOptions {
       source_map: true,
       svgr: false,
       define: Default::default(),
+      optimization: Default::default(),
     }
   }
 }
