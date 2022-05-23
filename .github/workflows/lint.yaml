@@ -31,7 +31,7 @@ jobs:
       - name: Cargo fmt
         run: |
           cargo fmt -- --check
-          yarn format:js
+          yarn format:js_ci
 
       # temporarily remove clippy for DX
       # - name: Clippy

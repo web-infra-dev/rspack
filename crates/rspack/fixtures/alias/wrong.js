@@ -1,1 +1,1 @@
-export const a = "wrong.js";
+export const a = 'wrong.js';

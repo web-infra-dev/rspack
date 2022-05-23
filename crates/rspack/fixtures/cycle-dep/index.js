@@ -1,2 +1,2 @@
-import { answer } from "./answer";
-export const lib = "lib";
+import { answer } from './answer';
+export const lib = 'lib';

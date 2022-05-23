@@ -1,2 +1,2 @@
-console.log("source-map");
-/***/ console.log("indented");
+console.log('source-map');
+/***/ console.log('indented');
