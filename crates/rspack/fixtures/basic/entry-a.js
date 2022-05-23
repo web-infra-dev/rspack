@@ -1,6 +1,8 @@
-import { a } from "./a";
-import { shared } from "./shared";
 
-console.log(a, shared);
+import { a } from './a'
+import { shared } from './shared'
 
-import("./asynced").then(console.log);
+console.log(a, shared)
+
+import('./asynced').then(console.log)
+  

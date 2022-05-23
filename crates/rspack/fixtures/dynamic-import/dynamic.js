@@ -1,1 +1,1 @@
-export const dynamic = "dynamic";
+export const dynamic = 'dynamic';
