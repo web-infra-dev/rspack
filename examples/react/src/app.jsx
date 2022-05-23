@@ -1,14 +1,14 @@
-import './base.css'
-import React from 'react'
-import ReactDOM from 'react-dom'
-import LogoUrl from './logo.svg?raw'
-import Logo from './logo.svg'
-import Light from './light.svg'
-import Dark from './dark.svg'
-const Button = React.lazy(() => import('../src/button'))
+import './base.css';
+import React from 'react';
+import ReactDOM from 'react-dom';
+import LogoUrl from './logo.svg?raw';
+import Logo from './logo.svg';
+import Light from './light.svg';
+import Dark from './dark.svg';
+const Button = React.lazy(() => import('../src/button'));
 
-console.log('LogoUrl', LogoUrl)
-console.log('Logo', Logo)
+console.log('LogoUrl', LogoUrl);
+console.log('Logo', Logo);
 const App = () => {
   return (
     <React.Suspense fallback={<div>loading...</div>}>
@@ -20,6 +20,6 @@ const App = () => {
       <Light width={'40px'} height={'40px'} />
       <Dark width={'40px'} height={'40px'} />
     </React.Suspense>
-  )
-}
-ReactDOM.render(<App />, document.getElementById('root'))
+  );
+};
+ReactDOM.render(<App />, document.getElementById('root'));
