@@ -1,2 +1,2 @@
-import 'foo';
-console.log('rspack-binding');
+import "foo";
+console.log("rspack-binding");

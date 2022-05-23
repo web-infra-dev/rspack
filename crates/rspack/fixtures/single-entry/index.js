@@ -1,2 +1,2 @@
-import { answer } from './answer';
-console.log('answer:',answer);
+import { answer } from "./answer";
+console.log("answer:", answer);

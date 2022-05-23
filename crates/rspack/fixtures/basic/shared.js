@@ -1,1 +1,1 @@
-export const shared = 1
+export const shared = 1;

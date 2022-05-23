@@ -1,4 +1,4 @@
-import { b } from './b'
-import { shared } from './shared'
+import { b } from "./b";
+import { shared } from "./shared";
 
-console.log(b, shared)
+console.log(b, shared);
