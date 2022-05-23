@@ -41,14 +41,14 @@ impl Default for StyleSourcePlugin {
       style_source_collect: Mutex::new(vec![]),
       app,
     };
-    style_plugin
-      .app
-      .context
-      .lock()
-      .unwrap()
-      .option
-      .hooks
-      .content_interceptor = None;
+    // style_plugin
+    //   .app
+    //   .context
+    //   .lock()
+    //   .unwrap()
+    //   .option
+    //   .hooks
+    //   .content_interceptor = None;
     style_plugin
       .app
       .context

@@ -5,14 +5,14 @@ import log from 'why-is-node-running';
 import { RawOptions } from '../binding.d';
 
 describe('binding', () => {
-  it('work', () => {
+  it('work', async () => {
     const options: RawOptions = {
       entries: [path.resolve(__dirname, './index.js')],
       minify: false,
       entryFileNames: path.resolve(__dirname, 'dist/main.js'),
     };
     const instance = binding.newRspack(JSON.stringify(options));
-    binding.build(instance);
+    await binding.build(instance);
     // setTimeout(() => {
     //   log();
     // }, 5000);

@@ -68,7 +68,9 @@ pub fn new_rspack(
                     adapter::REGISTERED_ON_LOAD_SENDERS.remove(&load_result.get_call_id());
 
                   if let Some((_, sender)) = sender {
-                    sender.send(load_result.into_inner()).unwrap();
+                    sender
+                      .send(load_result.into_inner())
+                      .expect("unable to send");
                   } else {
                     panic!("unable to send");
                   }
@@ -106,7 +108,9 @@ pub fn new_rspack(
                       adapter::REGISTERED_ON_RESOLVE_SENDERS.remove(&resolve_result.get_call_id());
 
                     if let Some((_, sender)) = sender {
-                      sender.send(resolve_result.into_inner()).unwrap();
+                      sender
+                        .send(resolve_result.into_inner())
+                        .expect("unable to send");
                     } else {
                       panic!("unable to send");
                     }

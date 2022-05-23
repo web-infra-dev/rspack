@@ -58,14 +58,9 @@ export async function run(options: BundlerOptions) {
 	});
 	await bundler.build();
 	/**
-	 * comment out to diagnotics node not exit problem
+	 * comment out to diagnostics node not exit problem
 	 */
-	// setTimeout(
-	// 	() => {
-	// 		log();
-	// 	},
-	// 	1000,
-	// );
+  log();
 	if (options.command === 'dev') {
 		// const entry = path.resolve(root, 'index.js');
 		const watcher = chokidar.watch(

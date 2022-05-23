@@ -1,4 +1,4 @@
-import { promises as fs } from "fs"
+import fs from "fs"
 import path from "path"
 
 import less from "less"
@@ -33,16 +33,14 @@ function resolve(baseDir: string, importPath: string) {
 export default class LessAliasesPlugin {
   public currentDir: string;
   public callbackError: Function;
-  public rspack: ExternalObject<any>
 
-  constructor(currentDir: string, callbackError: Function, rspack: ExternalObject<any>) {
+  constructor(currentDir: string, callbackError: Function) {
     this.callbackError = callbackError;
     this.currentDir = currentDir;
-    this.rspack = rspack;
   }
 
   install(less: typeof import("less"), pluginManager: any) {
-    let { currentDir, callbackError, rspack } = this;
+    let { currentDir, callbackError } = this;
 
     class AliasPlugin extends less.FileManager {
       loadFile(
@@ -80,19 +78,23 @@ interface LessPluginOptions {
 
 export const LessPlugin = (options: LessPluginOptions): RspackPlugin => {
   return {
-    async onLoad ({ id }, rspack) {
+    async onLoad ({ id }) {
       const callbackError = (err: Error) => {
         console.log(err);
       }
       
       if (id.endsWith(".less")) {
-        const content = await fs.readFile(id, "utf8")
+        console.log("id encountered",id);
+        
+        const content = fs.readFileSync(id, "utf8")
+        console.log(content);
+        
         const renderResult = await less.render(content, {
           paths: [
             ...(options?.paths || ['node_modules']),
             ...(options?.root ? [options.root] : []),
           ],
-          plugins: [new LessAliasesPlugin(id, callbackError, rspack)]
+          plugins: [new LessAliasesPlugin(id, callbackError)]
         })
 
         return {
