@@ -36,6 +36,7 @@ pub struct PluginCallbacks {
 #[napi(ts_return_type = "ExternalObject<RspackInternal>")]
 #[allow(clippy::too_many_arguments)]
 pub fn new_rspack(
+  env: Env,
   option_json: String,
   plugin_callbacks: Option<PluginCallbacks>,
 ) -> External<Rspack> {
@@ -46,43 +47,47 @@ pub fn new_rspack(
        onload_callback,
        onresolve_callback,
      }| {
-      let onload_tsfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled> = onload_callback
-        .create_threadsafe_function(
-          0,
-          |ctx| ctx.env.create_string_from_std(ctx.value).map(|v| vec![v]),
-          |ctx: ThreadSafeResultContext<Promise<String>>| {
-            let return_value = ctx.return_value;
+      let mut onload_tsfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled> =
+        onload_callback
+          .create_threadsafe_function(
+            0,
+            |ctx| ctx.env.create_string_from_std(ctx.value).map(|v| vec![v]),
+            |ctx: ThreadSafeResultContext<Promise<String>>| {
+              let return_value = ctx.return_value;
 
-            ctx
-              .env
-              .execute_tokio_future(
-                async move {
-                  let result = return_value.await?;
+              ctx
+                .env
+                .execute_tokio_future(
+                  async move {
+                    let result = return_value.await?;
 
-                  let load_result: adapter::RspackThreadsafeResult<Option<adapter::OnLoadResult>> =
-                    serde_json::from_str(&result).expect("failed to evaluate onload result");
+                    let load_result: adapter::RspackThreadsafeResult<
+                      Option<adapter::OnLoadResult>,
+                    > = serde_json::from_str(&result).expect("failed to evaluate onload result");
 
-                  tracing::debug!("onload result {:?}", load_result);
+                    tracing::debug!("onload result {:?}", load_result);
 
-                  let sender =
-                    adapter::REGISTERED_ON_LOAD_SENDERS.remove(&load_result.get_call_id());
+                    let sender =
+                      adapter::REGISTERED_ON_LOAD_SENDERS.remove(&load_result.get_call_id());
 
-                  if let Some((_, sender)) = sender {
-                    sender.send(load_result.into_inner()).unwrap();
-                  } else {
-                    panic!("unable to send");
-                  }
+                    if let Some((_, sender)) = sender {
+                      sender
+                        .send(load_result.into_inner())
+                        .expect("unable to send");
+                    } else {
+                      panic!("unable to send");
+                    }
 
-                  Ok(())
-                },
-                |_, ret| Ok(ret),
-              )
-              .expect("failed to execute tokio future");
-          },
-        )
-        .unwrap();
+                    Ok(())
+                  },
+                  |_, ret| Ok(ret),
+                )
+                .expect("failed to execute tokio future");
+            },
+          )
+          .unwrap();
 
-      let onresolve_tsfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled> =
+      let mut onresolve_tsfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled> =
         onresolve_callback
           .create_threadsafe_function(
             0,
@@ -106,7 +111,9 @@ pub fn new_rspack(
                       adapter::REGISTERED_ON_RESOLVE_SENDERS.remove(&resolve_result.get_call_id());
 
                     if let Some((_, sender)) = sender {
-                      sender.send(resolve_result.into_inner()).unwrap();
+                      sender
+                        .send(resolve_result.into_inner())
+                        .expect("unable to send");
                     } else {
                       panic!("unable to send");
                     }
@@ -119,6 +126,9 @@ pub fn new_rspack(
             },
           )
           .unwrap();
+
+      onload_tsfn.unref(&env).unwrap();
+      onresolve_tsfn.unref(&env).unwrap();
 
       adapter::RspackPluginNodeAdapter {
         onload_tsfn,
