@@ -5,7 +5,7 @@ use tracing::instrument;
 
 use crate::{
   BundleContext, Chunk, LoadArgs, LoadedSource, Loader, NormalizedBundleOptions, OnResolveResult,
-  Plugin, PluginTransformAstHookOutput, PluginTransformHookOutput, ResolveArgs, ResolvedURI,
+  Plugin, PluginTransformAstHookOutput, PluginTransformHookOutput, ResolveArgs,
 };
 
 #[derive(Debug)]

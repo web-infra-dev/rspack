@@ -1,22 +1,17 @@
 use crate::{Bundle, NormalizedBundleOptions};
 use dashmap::DashMap;
-use petgraph::graph::NodeIndex;
 use rayon::prelude::*;
 use rspack_sources::{
   ConcatSource, GenMapOption, RawSource, Source, SourceMapSource, SourceMapSourceOptions,
 };
-use rspack_swc::{
-  swc::{self, TransformOutput},
-  swc_common,
-};
+use rspack_swc::swc::{self, TransformOutput};
 use std::{
-  collections::{hash_map::DefaultHasher, HashMap, HashSet},
+  collections::{hash_map::DefaultHasher, HashSet},
   hash::{Hash, Hasher},
-  path::{Component, Path},
+  path::Path,
   sync::Arc,
 };
 use swc::Compiler;
-use swc_common::Mark;
 use tracing::instrument;
 
 #[derive(Debug, Default)]
@@ -76,7 +71,7 @@ impl Chunk {
       .par_iter()
       .map(|id| {
         let module = modules.get(id).unwrap();
-        module.render(&compiler, &modules, options, &bundle.context)
+        module.render(&compiler, modules, options, &bundle.context)
       })
       .collect::<Vec<_>>();
 
@@ -93,7 +88,7 @@ impl Chunk {
           let source_map = sourcemap::SourceMap::from_slice(map_string.as_bytes()).unwrap();
           concattables.push(Box::new(SourceMapSource::new(SourceMapSourceOptions {
             source_code: transform_output.code.clone(),
-            name: self.id.clone().into(),
+            name: self.id.clone(),
             source_map,
             original_source: None,
             inner_source_map: None,
@@ -111,8 +106,7 @@ impl Chunk {
     });
 
     tracing::debug_span!("conncat_modules").in_scope(|| {
-      let output_code;
-      if options.source_map {
+      let output_code = if options.source_map {
         let source_map_url = concat_source
           // FIXME: generate_url is slow now
           .generate_url(&GenMapOption {
@@ -123,15 +117,14 @@ impl Chunk {
           .unwrap()
           .unwrap();
 
-        output_code =
-          concat_source.source().to_string() + "\n//# sourceMappingURL=" + &source_map_url;
+        concat_source.source().to_string() + "\n//# sourceMappingURL=" + &source_map_url
       } else {
-        output_code = concat_source.source().to_string()
-      }
+        concat_source.source().to_string()
+      };
 
       OutputChunk {
         code: output_code,
-        file_name: self.id.clone().into(),
+        file_name: self.id.clone(),
         entry: self.entry_uri.clone(),
       }
     })
@@ -140,7 +133,7 @@ impl Chunk {
   pub fn get_chunk_info_with_file_names(&self) -> OutputChunk {
     OutputChunk {
       code: "".to_string(),
-      file_name: self.id.clone().into(),
+      file_name: self.id.clone(),
       entry: self.entry_uri.clone(),
     }
   }

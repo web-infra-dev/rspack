@@ -1,4 +1,4 @@
-use rspack_core::{BundleOptions, NormalizedBundleOptions, Plugin};
+use rspack_core::{NormalizedBundleOptions, Plugin};
 use rspack_plugin_stylesource::plugin::StyleSourcePlugin;
 
 pub mod log;

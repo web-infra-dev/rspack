@@ -105,8 +105,8 @@ impl Task {
         // the Resolver won't be sent over the threads
         get_swc_compiler().run(|| {
           let mut syntax_context_resolver = resolver(
-            self.plugin_driver.ctx.unresolved_mark.clone(),
-            self.plugin_driver.ctx.top_level_mark.clone(),
+            self.plugin_driver.ctx.unresolved_mark,
+            self.plugin_driver.ctx.top_level_mark,
             false,
           );
           raw_ast.visit_mut_with(&mut syntax_context_resolver);
@@ -136,8 +136,7 @@ impl Task {
         id: normalize_path(
           resolved_uri.uri.clone().as_str(),
           self.root.clone().as_str(),
-        )
-        .into(),
+        ),
         ast,
         dependencies: dependency_scanner.dependencies,
         dyn_imports: dependency_scanner.dyn_dependencies,

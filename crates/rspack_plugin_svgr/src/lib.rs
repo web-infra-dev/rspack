@@ -1,15 +1,11 @@
 use async_trait::async_trait;
 use core::fmt::Debug;
 use rspack_core::PluginTransformHookOutput;
-pub static PLUGIN_NAME: &'static str = "rspack_svgr";
-use rspack_core::{
-  BundleContext, LoadArgs, LoadedSource, Loader, Plugin, PluginLoadHookOutput,
-  PluginTransformAstHookOutput,
-};
-use std::{path::Path, sync::Arc};
+pub static PLUGIN_NAME: &str = "rspack_svgr";
+use rspack_core::{BundleContext, LoadArgs, LoadedSource, Loader, Plugin, PluginLoadHookOutput};
+use std::path::Path;
 // #[macro_use]
 // extern crate lazy_static;
-use regex::Captures;
 use regex::Regex;
 use std::fs::read_to_string;
 extern crate lazy_static;
@@ -64,7 +60,7 @@ impl Plugin for SvgrPlugin {
     if ext == "svg" {
       let loader = Some(Loader::Js);
       let content =
-        Some(read_to_string(file_path).expect(&format!("file not exits {:?}", args.id)));
+        Some(read_to_string(file_path).unwrap_or_else(|_| panic!("file not exits {:?}", args.id)));
       Some(LoadedSource { loader, content })
     } else {
       None

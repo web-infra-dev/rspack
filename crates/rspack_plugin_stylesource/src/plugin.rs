@@ -24,7 +24,7 @@ pub struct StyleSourcePlugin {
   pub app: Application,
 }
 
-pub static PLUGIN_NAME: &'static str = "rspack_style_source_plugin";
+pub static PLUGIN_NAME: &str = "rspack_style_source_plugin";
 
 #[derive(Debug)]
 pub struct SytleReferenceInfo {
@@ -62,7 +62,7 @@ impl Default for StyleSourcePlugin {
         .with_description_file(None);
       println!("{},{}", filepath, importpath);
       let res: ResolveResult = resolver.resolve(
-        &Path::new(filepath.as_str()).parent().unwrap(),
+        Path::new(filepath.as_str()).parent().unwrap(),
         importpath.as_str(),
       )?;
       if let ResolveResult::Path(abs_path) = res {
@@ -147,7 +147,7 @@ impl Plugin for StyleSourcePlugin {
           js = js_content;
         }
         let mut list = self.style_source_collect.lock().unwrap();
-        list.push(style.clone());
+        list.push(style);
         js
       } else {
         // todo fix 这里应该报错 is_style_source 会检查文件的 绝对路径资源是否 符合 style 如果没有进来
@@ -163,7 +163,7 @@ impl Plugin for StyleSourcePlugin {
           js = js_content;
         }
         let mut list = self.style_source_collect.lock().unwrap();
-        list.push(style.clone());
+        list.push(style);
         js
       } else {
         raw
@@ -213,7 +213,7 @@ impl Plugin for StyleSourcePlugin {
     wait_sort_list.sort_by(|x1, x2| x1.ref_count.cmp(&x2.ref_count));
 
     for item in wait_sort_list.iter().rev() {
-      css_content += format!("{}", item.source).as_str();
+      css_content += item.source.to_string().as_str();
     }
 
     if !css_content.is_empty() {

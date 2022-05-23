@@ -8,7 +8,7 @@ use nodejs_resolver::{Resolver, ResolverOptions};
 use rspack_core::inject_options;
 use rspack_core::Bundle;
 use rspack_core::NormalizedBundleOptions;
-use rspack_swc::{swc, swc_common};
+use rspack_swc::swc_common;
 use sugar_path::PathSugar;
 use swc_common::Mark;
 use tracing::instrument;

@@ -1,18 +1,18 @@
-use std::collections::HashMap;
+// use std::collections::HashMap;
 
-use once_cell::sync::Lazy;
-use rspack_core::{hmr::hmr_module, ResolvedURI};
-use rspack_swc::{swc_atoms, swc_common, swc_ecma_parser, swc_ecma_transforms_base};
-use swc_atoms::JsWord;
-use swc_ecma_parser::{EsConfig, Syntax};
-use swc_ecma_transforms_base::resolver;
-use swc_ecma_transforms_testing::test;
+// use once_cell::sync::Lazy;
+// use rspack_core::{hmr::hmr_module, ResolvedURI};
+// use rspack_swc::{swc_atoms, swc_common, swc_ecma_parser, swc_ecma_transforms_base};
+// use swc_atoms::JsWord;
+// use swc_ecma_parser::{EsConfig, Syntax};
+// use swc_ecma_transforms_base::resolver;
+// use swc_ecma_transforms_testing::test;
 
-fn syntax() -> Syntax {
-  Syntax::Es(EsConfig {
-    ..Default::default()
-  })
-}
+// fn syntax() -> Syntax {
+//   Syntax::Es(EsConfig {
+//     ..Default::default()
+//   })
+// }
 
 // static RESOLVED_IDS: Lazy<HashMap<JsWord, ResolvedURI>> = Lazy::new(|| {
 //   let mut resolved_ids: HashMap<JsWord, ResolvedURI> = Default::default();

@@ -2,7 +2,6 @@ use std::{collections::HashMap, sync::Arc};
 
 use dashmap::DashMap;
 use rayon::prelude::*;
-use rspack_core::ModuleGraph;
 use rspack_core::NormalizedBundleOptions;
 use rspack_core::PluginDriver;
 use rspack_core::{get_swc_compiler, Bundle};

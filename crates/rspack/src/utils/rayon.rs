@@ -1,6 +1,6 @@
 use once_cell::sync::OnceCell;
 
-pub fn init_rayon_thread_poll() -> () {
+pub fn init_rayon_thread_poll() {
   static INSTANCE: OnceCell<()> = OnceCell::new();
   INSTANCE.get_or_init(|| {
     rayon::ThreadPoolBuilder::new()
