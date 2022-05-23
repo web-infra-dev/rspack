@@ -25,7 +25,7 @@ export interface OnResolveResult {
   external: boolean
 }
 export interface RawOptions {
-  entries: Array<string>
+  entries: Record<string, string>
   minify?: boolean
   root?: string
   outdir?: string
