@@ -1842,6 +1842,7 @@ dependencies = [
  "base64 0.13.0",
  "heck 0.4.0",
  "once_cell",
+ "phf",
  "regex",
  "rspack_core",
  "rspack_swc",
