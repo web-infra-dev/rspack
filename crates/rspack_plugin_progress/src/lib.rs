@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use core::fmt::Debug;
-use rspack_core::{BundleContext, LoadArgs, Plugin, PluginLoadHookOutput};
+use rspack_core::{BundleContext, Loader, Plugin, PluginTransformHookOutput};
 use std::sync::{Arc, Mutex};
 extern crate console;
 use console::{style, Color, Term};
@@ -13,8 +13,13 @@ use std::{env, fs};
 
 pub static PLUGIN_NAME: &str = "rspack_progress";
 // color256 https://www.ditig.com/256-colors-cheat-sheet
-static GREEN: u8 = 2;
-static GREY: u8 = 8;
+static CYAN: Color = Color::Color256(51);
+static GREEN: Color = Color::Color256(2);
+static GREY: Color = Color::Color256(8);
+static YELLOW: Color = Color::Color256(178);
+static RED: Color = Color::Color256(9);
+static MAGENTA: Color = Color::Color256(201);
+static BLUE: Color = Color::Color256(12);
 
 static TERM: Lazy<Term> = Lazy::new(|| Term::buffered_stdout());
 
@@ -27,33 +32,27 @@ fn get_bar_str(
   total: u32,
   current: u32,
   text: &str,
-  fe_color: u8,
-  bg_color: u8,
+  fe_color: Color,
+  bg_color: Color,
 ) -> String {
-  let mut s = style(format!(" {} ◯ ", key))
-    .fg(Color::Color256(fe_color))
-    .to_string();
+  let mut s = style(format!(" {} ◯ ", key)).fg(fe_color).to_string();
   if total == 0 {
     s += &style(FRAMES[(current % FRAMES.len() as u32) as usize])
-      .fg(Color::Color256(fe_color))
+      .fg(fe_color)
       .to_string();
     s += " ";
   } else {
     let left = (((current as f32) / (total as f32) * MAX_BAR_WIDTH as f32).round() as usize)
       .clamp(0, MAX_BAR_WIDTH);
-    s += &style(" ".repeat(left))
-      .bg(Color::Color256(fe_color))
-      .to_string();
+    s += &style(" ".repeat(left)).bg(fe_color).to_string();
     s += &style(" ".repeat(MAX_BAR_WIDTH - left))
-      .bg(Color::Color256(bg_color))
+      .bg(bg_color)
       .to_string();
   }
 
   let percent = ((current as f32 / total as f32 * 100.0) as u32).clamp(0, 100);
-  s += &style(&format!(" {:3}% ", percent))
-    .fg(Color::Color256(fe_color))
-    .to_string();
-  s += &style(&truncate(text, MAX_TEXT_WIDTH)).dim().to_string();
+  s += &style(&format!(" {:3}% ", percent)).fg(fe_color).to_string();
+  s += &style(&truncate(&text, MAX_TEXT_WIDTH)).dim().to_string();
   let term_width = TERM.size().1 as usize;
   let line_width = console::measure_text_width(&s);
   s += &" ".repeat(term_width.saturating_sub(line_width));
@@ -148,17 +147,22 @@ impl Plugin for ProgressPlugin {
     }
     *self.progress.total.lock().unwrap() = total;
   }
-
-  async fn load(&self, _ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
+  fn transform(
+    &self,
+    _ctx: &BundleContext,
+    _uri: &str,
+    _loader: &mut Option<Loader>,
+    raw: String,
+  ) -> PluginTransformHookOutput {
     let done = self.progress.done.lock().unwrap();
     if *done {
-      return None;
+      return raw;
     }
     // if matches!(_ctx.options.mode, BundleMode::Dev) {
     //   return None;
     // }
-    self.progress.update("RsPack", &args.id, 1).unwrap();
-    None
+    self.progress.update("RsPack", &_uri, 1).unwrap();
+    raw
   }
   async fn build_end(&self, _ctx: &BundleContext) {
     let mut done = self.progress.done.lock().unwrap();
@@ -176,5 +180,76 @@ impl Plugin for ProgressPlugin {
     let total = *self.progress.current.lock().unwrap();
     let s = total.to_string();
     file.write_all(s.as_bytes()).unwrap();
+
+    let assets = _ctx.assets.lock().unwrap();
+
+    let outdir = _ctx
+      .options
+      .outdir
+      .split("/")
+      .last()
+      .unwrap_or("dist")
+      .to_string()
+      + "/";
+    let outdir = style(outdir).fg(GREY).to_string();
+    let mut max_name_len = 0;
+    let mut asset_list: Vec<(String, usize)> = vec![];
+    for i in assets.iter() {
+      let name: String = if i.filename.chars().nth(0).unwrap() == '/' {
+        i.filename.replace(&_ctx.options.outdir, "")[1..].to_string()
+      } else {
+        i.filename.clone()
+      };
+      max_name_len = max_name_len.max(name.len());
+      let size = i.source.len();
+      asset_list.push((name, size));
+    }
+
+    let space = "    ";
+    for (name, size) in asset_list.iter() {
+      let ext = name.split(".").last().unwrap_or("");
+      let size = size_with_color(*size);
+      let color = guess_color_by_ext(ext);
+      let name = style(format!("{:width$}", name, width = max_name_len))
+        .fg(color)
+        .to_string();
+      println!("{}{}{}{}", outdir, name, space, size);
+    }
   }
+}
+
+fn guess_color_by_ext(ext: &str) -> Color {
+  match ext {
+    "js" => CYAN,
+    "css" => MAGENTA,
+    "asset" => GREEN,
+    "html" => BLUE,
+    "map" => GREY,
+    _ => GREY,
+  }
+}
+fn size_with_color(n: usize) -> String {
+  let kb = 1_000;
+  let mb = 1_000_000;
+  let gb = 1_000_000_000;
+  let warn_limit = 200.0;
+  let danger_limit = 500.0;
+
+  if n < kb {
+    return style(format!("{n:6.2} B")).fg(GREY).to_string();
+  } else if n < mb {
+    let n = (n as f64) / (kb) as f64;
+    let color = if n < warn_limit {
+      GREY
+    } else if n < danger_limit {
+      YELLOW
+    } else {
+      RED
+    };
+    return style(format!("{n:6.2} K")).fg(color).to_string();
+  } else if n < gb {
+    let n = (n as f64) / (mb) as f64;
+    return style(format!("{n:6.2} M")).fg(RED).to_string();
+  }
+  style(format!("{n:6.2} B")).fg(GREY).to_string()
 }
