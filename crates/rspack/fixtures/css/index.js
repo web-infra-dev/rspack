@@ -1,5 +1,5 @@
-import "./index.css";
-import "./liba";
-import "./libc";
+import "./index.css"
+import "./liba"
+import "./libc"
 
 console.log("./index.css");

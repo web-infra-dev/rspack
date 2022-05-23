@@ -20,7 +20,6 @@
     "test:example": "cargo run --example arco_pro",
     "prepare": "husky install",
     "format:rs": "cargo fmt",
-    "format:js": "rome format packages crates --write",
     "lint:rs": "cargo clippy",
     "build:core": "yarn workspace @rspack/binding run build ",
     "release:core": "yarn workspace @rspack/binding run build:release ",
@@ -45,7 +44,6 @@
     "husky": "^7.0.4",
     "lint-staged": "^12.4.0",
     "mocha": "9.2.2",
-    "rome": "next",
     "tsm": "2.2.1",
     "yarn": "^1.22.18"
   },

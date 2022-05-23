@@ -1,1 +1,1 @@
-export const asynced = 1;
+export const asynced = 1
