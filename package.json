@@ -14,7 +14,7 @@
   ],
   "scripts": {
     "init": "yarn install",
-    "test:js": "mocha",
+    "test:js": "mocha && yarn workspace arco-design-pro run build",
     "snapshot:js": "mocha --update",
     "test:rust": "cargo test",
     "test:example": "cargo run --example arco_pro",

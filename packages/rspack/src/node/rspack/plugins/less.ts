@@ -1,4 +1,4 @@
-import fs from "fs"
+import { promises as fs } from "fs"
 import path from "path"
 
 import less from "less"
@@ -84,10 +84,7 @@ export const LessPlugin = (options: LessPluginOptions): RspackPlugin => {
       }
       
       if (id.endsWith(".less")) {
-        console.log("id encountered",id);
-        
-        const content = fs.readFileSync(id, "utf8")
-        console.log(content);
+        const content = await fs.readFile(id, "utf8");
         
         const renderResult = await less.render(content, {
           paths: [

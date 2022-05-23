@@ -54,13 +54,13 @@ export async function run(options: BundlerOptions) {
 		codeSplitting: options.codeSplitting,
 		svgr: options.svgr,
 		plugins: [LessPlugin({ root })],
-		lazyCompiler: options.lazyCompiler,
+		lazyCompilation: options.lazyCompilation,
 	});
 	await bundler.build();
 	/**
 	 * comment out to diagnostics node not exit problem
 	 */
-  log();
+  // log();
 	if (options.command === 'dev') {
 		// const entry = path.resolve(root, 'index.js');
 		const watcher = chokidar.watch(
