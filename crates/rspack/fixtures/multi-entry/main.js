@@ -1,2 +1,2 @@
-import { share } from './share'
-console.log('main:',share)
+import { share } from "./share";
+console.log("main:", share);
