@@ -1,4 +1,4 @@
-use rspack_core::{BundleOptions, NormalizedBundleOptions, Plugin};
+use rspack_core::{NormalizedBundleOptions, Plugin};
 use rspack_plugin_stylesource::plugin::StyleSourcePlugin;
 
 pub mod log;
@@ -35,6 +35,10 @@ pub fn inject_built_in_plugins(
     plugins.push(Box::new(
       rspack_plugin_lazy_compilation::LazyCompilationPlugin::new(),
     ));
+  }
+
+  if !options.define.is_empty() {
+    plugins.push(Box::new(rspack_plugin_define::DefinePlugin {}));
   }
   plugins
 }

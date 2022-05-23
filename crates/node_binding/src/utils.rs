@@ -11,14 +11,14 @@ pub fn init_custom_trace_subscriber(
 ) -> napi::Result<()> {
   CUSTOM_TRACE_SUBSCRIBER.get_or_init(|| {
     let guard = rspack::utils::log::enable_tracing_by_env_with_chrome_layer();
-    guard.map(|guard| {
+    if let Some(guard) = guard {
       env
         .add_env_cleanup_hook(guard, |flush_guard| {
           flush_guard.flush();
           drop(flush_guard);
         })
         .expect("Should able to initialize cleanup for custom trace subscriber");
-    });
+    }
     true
   });
 

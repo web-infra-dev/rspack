@@ -1,4 +1,6 @@
 use crate::{CodeSplittingOptions, LoaderOptions};
+use std::collections::HashMap;
+
 use rspack_swc::swc_ecma_transforms_react;
 
 #[derive(Debug)]
@@ -58,6 +60,7 @@ pub struct BundleOptions {
   pub resolve: ResolveOption,
   pub source_map: bool,
   pub svgr: bool,
+  pub define: HashMap<String, String>,
 }
 
 impl Default for BundleOptions {
@@ -88,6 +91,7 @@ impl Default for BundleOptions {
       inline_style: Default::default(),
       source_map: true,
       svgr: false,
+      define: Default::default(),
     }
   }
 }

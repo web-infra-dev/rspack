@@ -40,7 +40,7 @@ pub fn is_style_source(filepath: &str) -> Option<StyleSourceType> {
       .extension()?
       .to_os_string()
       .into_string()
-      .expect(&format!("get extension failed: {}", filepath));
+      .unwrap_or_else(|_| panic!("get extension failed: {}", filepath));
     return if &style_source.ext == "css"
       || &style_source.ext == "less"
       || &style_source.ext == "scss"

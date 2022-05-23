@@ -25,20 +25,17 @@ pub struct RawOptions {
 
 pub fn normalize_bundle_options(options: RawOptions) -> BundleOptions {
   let default_options = BundleOptions::default();
-  let bundler_options = BundleOptions {
+
+  BundleOptions {
     entries: options.entries,
-    minify: options.minify.unwrap_or_else(|| default_options.minify),
-    root: options.root.unwrap_or_else(|| default_options.root),
-    outdir: options.outdir.unwrap_or_else(|| default_options.outdir),
+    minify: options.minify.unwrap_or(default_options.minify),
+    root: options.root.unwrap_or(default_options.root),
+    outdir: options.outdir.unwrap_or(default_options.outdir),
     entry_filename: options
       .entry_filename
-      .unwrap_or_else(|| default_options.entry_filename),
-    loader: options
-      .loader
-      .map_or(Default::default(), |raw_loader| parse_loader(raw_loader)),
-    inline_style: options
-      .inline_style
-      .unwrap_or_else(|| default_options.inline_style),
+      .unwrap_or(default_options.entry_filename),
+    loader: options.loader.map_or(Default::default(), parse_loader),
+    inline_style: options.inline_style.unwrap_or(default_options.inline_style),
     resolve: ResolveOption {
       alias: options.alias.map_or(default_options.resolve.alias, |op| {
         op.into_iter()
@@ -48,14 +45,10 @@ pub fn normalize_bundle_options(options: RawOptions) -> BundleOptions {
       ..Default::default()
     },
     react: BundleReactOptions {
-      refresh: options
-        .refresh
-        .unwrap_or_else(|| default_options.react.refresh),
+      refresh: options.refresh.unwrap_or(default_options.react.refresh),
       ..Default::default()
     },
-    source_map: options
-      .source_map
-      .unwrap_or_else(|| default_options.source_map),
+    source_map: options.source_map.unwrap_or(default_options.source_map),
     code_splitting: options
       .code_splitting
       .map_or(Some(Default::default()), |flag| {
@@ -65,14 +58,12 @@ pub fn normalize_bundle_options(options: RawOptions) -> BundleOptions {
           None
         }
       }),
-    svgr: options.svgr.unwrap_or_else(|| default_options.svgr),
+    svgr: options.svgr.unwrap_or(default_options.svgr),
     lazy_compilation: options
       .lazy_compilation
-      .unwrap_or_else(|| BundleOptions::default().lazy_compilation),
+      .unwrap_or(BundleOptions::default().lazy_compilation),
     ..Default::default()
-  };
-
-  bundler_options
+  }
 }
 
 fn parse_loader(user_input: HashMap<String, String>) -> rspack_core::LoaderOptions {

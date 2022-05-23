@@ -749,20 +749,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "insta"
-version = "1.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "689960f187c43c01650c805fb6bc6f55ab944499d86d4ffe9474ad78991d8e94"
-dependencies = [
- "console",
- "once_cell",
- "serde",
- "serde_json",
- "serde_yaml",
- "similar",
-]
-
-[[package]]
 name = "instant"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1602,11 +1588,11 @@ version = "0.0.1"
 dependencies = [
  "anyhow",
  "async-trait",
+ "base64 0.13.0",
  "crossbeam",
  "dashmap",
  "ena",
  "futures",
- "insta",
  "linked-hash-map",
  "nodejs-resolver 0.0.11",
  "num_cpus",
@@ -1615,6 +1601,7 @@ dependencies = [
  "rayon",
  "regex",
  "rspack_core",
+ "rspack_plugin_define",
  "rspack_plugin_lazy_compilation",
  "rspack_plugin_loader",
  "rspack_plugin_mock_buitins",
@@ -1623,9 +1610,11 @@ dependencies = [
  "rspack_plugin_style",
  "rspack_plugin_stylesource",
  "rspack_plugin_svgr",
+ "rspack_style",
  "rspack_swc",
  "serde_json",
  "smol_str",
+ "sourcemap",
  "sugar_path",
  "swc_ecma_transforms_testing",
  "tokio",
@@ -1687,6 +1676,16 @@ dependencies = [
 [[package]]
 name = "rspack_node_resolve"
 version = "0.1.0"
+
+[[package]]
+name = "rspack_plugin_define"
+version = "0.1.0"
+dependencies = [
+ "rspack_core",
+ "rspack_swc",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "rspack_plugin_lazy_compilation"
@@ -1931,18 +1930,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde_yaml"
-version = "0.8.24"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "707d15895415db6628332b737c838b88c598522e4dc70647e59b72312924aebc"
-dependencies = [
- "indexmap",
- "ryu",
- "serde",
- "yaml-rust",
-]
-
-[[package]]
 name = "sha-1"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1976,12 +1963,6 @@ name = "simd-abstraction"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df70fadc9b3167d59d7301bffe0eee7f0a353024d338e7d25d822c28450ae893"
-
-[[package]]
-name = "similar"
-version = "2.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e24979f63a11545f5f2c60141afe249d4f19f84581ea2138065e400941d83d3"
 
 [[package]]
 name = "siphasher"
@@ -3513,12 +3494,3 @@ name = "windows_x86_64_msvc"
 version = "0.36.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c811ca4a8c853ef420abd8592ba53ddbbac90410fab6903b3e79972a631f7680"
-
-[[package]]
-name = "yaml-rust"
-version = "0.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56c1936c4cc7a1c9ab21a1ebb602eb942ba868cbd44a99cb7cdc5892335e1c85"
-dependencies = [
- "linked-hash-map",
-]

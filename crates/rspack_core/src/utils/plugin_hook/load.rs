@@ -12,7 +12,8 @@ pub async fn load(args: LoadArgs, plugin_driver: &PluginDriver) -> (String, Opti
     .clone()
     .and_then(|load_output| load_output.content)
     .unwrap_or_else(|| {
-      std::fs::read_to_string(args.id.as_str()).expect(&format!("load failed for {:?}", args.id))
+      std::fs::read_to_string(args.id.as_str())
+        .unwrap_or_else(|_| panic!("load failed for {:?}", args.id))
     });
   let loader = plugin_result.map_or_else(
     || guess_loader_by_id(args.id.as_str(), &plugin_driver.ctx.options.loader),

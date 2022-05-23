@@ -190,7 +190,7 @@ pub fn resolve(env: Env, rspack: External<Rspack>, id: String, dir: String) -> R
             })
           }
         }
-        Err(err) => Err(Error::new(Status::Unknown, err.to_string())),
+        Err(err) => Err(Error::new(Status::Unknown, err)),
       }
     },
     |_env, ret| Ok(ret),
@@ -206,7 +206,7 @@ pub fn resolve_file(base_dir: String, import_path: String) -> Result<String> {
       .collect(),
     ..Default::default()
   });
-  match resolver.resolve(&Path::new(&base_dir), &import_path) {
+  match resolver.resolve(Path::new(&base_dir), &import_path) {
     Ok(res) => {
       if let ResolveResult::Path(abs_path) = res {
         Ok(abs_path.to_str().unwrap().to_string())
@@ -214,7 +214,7 @@ pub fn resolve_file(base_dir: String, import_path: String) -> Result<String> {
         Ok(import_path)
       }
     }
-    Err(msg) => Err(Error::new(Status::Unknown, msg.to_string())),
+    Err(msg) => Err(Error::new(Status::Unknown, msg)),
   }
 }
 

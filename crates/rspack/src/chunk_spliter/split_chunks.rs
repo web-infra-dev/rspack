@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use petgraph::{dot::Dot, graph::NodeIndex};
+use petgraph::graph::NodeIndex;
 use rspack_core::{Chunk, CodeSplittingOptions, JsModule, ModuleGraph};
 use tracing::instrument;
 
@@ -45,13 +45,13 @@ pub fn code_splitting2(
             .entry(dyn_dep_module.uri.as_str())
             .or_insert_with_key(|id| {
               chunk_entries.push(*id);
-              let mut chunk = Chunk::from_js_module(dyn_dep_module.uri.to_string().into(), false);
+              let mut chunk = Chunk::from_js_module(dyn_dep_module.uri.to_string(), false);
               chunk.id = {
                 id_count += 1;
                 format!("{:?}", id_count)
               };
-              let chunk_id = chunk_graph.add_node(chunk);
-              chunk_id
+
+              chunk_graph.add_node(chunk)
             });
         });
     });

@@ -31,7 +31,7 @@ async fn main() {
 
   let mut bundler = Bundler::new(
     BundleOptions {
-      root: root,
+      root,
       entries: vec![example.to_string()],
       outdir: "./dist".to_string(),
       code_splitting: Some(Default::default()),
@@ -82,5 +82,7 @@ async fn main() {
   // println!("assets: {:#?}", bundler.ctx.assets.lock().unwrap());
   bundler.write_assets_to_disk();
   // guard.lock().unwrap().as_mut().unwrap().flush();
-  guard.map(|g| g.flush());
+  if let Some(g) = guard {
+    g.flush()
+  }
 }
