@@ -8,7 +8,7 @@ use serde::Deserialize;
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawOptions {
-  pub entries: Vec<String>,
+  pub entries: HashMap<String, String>,
   pub minify: Option<bool>,
   pub root: Option<String>,
   pub outdir: Option<String>,
@@ -27,7 +27,11 @@ pub fn normalize_bundle_options(options: RawOptions) -> BundleOptions {
   let default_options = BundleOptions::default();
 
   BundleOptions {
-    entries: options.entries.into_iter().map(From::from).collect(),
+    entries: options
+      .entries
+      .into_iter()
+      .map(|(name, src)| (name, src.into()))
+      .collect(),
     minify: options.minify.unwrap_or(default_options.minify),
     root: options.root.unwrap_or(default_options.root),
     outdir: options.outdir.unwrap_or(default_options.outdir),

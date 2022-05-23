@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
 use rspack::bundler::{BundleOptions, Bundler};
 use rspack_core::{BundleMode, BundleReactOptions};
@@ -19,7 +19,7 @@ async fn main() {
       //   "./fixtures/basic/entry-a.js".to_owned(),
       //   "./fixtures/basic/entry-b.js".to_owned(),
       // ],
-      entries: vec![example.into()],
+      entries: HashMap::from([("main".to_string(), example.into())]),
       // entries: vec!["../../packages/rspack/node_modules/lodash-es/lodash.js".to_owned()],
       outdir: "./dist".to_string(),
       code_splitting: Some(Default::default()),

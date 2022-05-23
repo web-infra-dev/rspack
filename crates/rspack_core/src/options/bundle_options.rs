@@ -1,4 +1,4 @@
-use crate::{CodeSplittingOptions, Entry, LoaderOptions};
+use crate::{BundleEntries, CodeSplittingOptions, LoaderOptions};
 use std::collections::HashMap;
 
 use rspack_swc::swc_ecma_transforms_react;
@@ -48,7 +48,7 @@ pub struct BundleOptions {
   pub react: BundleReactOptions,
   pub loader: LoaderOptions,
   pub mode: BundleMode,
-  pub entries: Vec<Entry>,
+  pub entries: BundleEntries,
   pub minify: bool,
   pub outdir: String,
   pub entry_filename: String, // | ((chunkInfo: PreRenderedChunk) => string)

@@ -2,7 +2,7 @@ mod testing {
   use async_trait::async_trait;
   use rspack::bundler::{BundleContext, BundleOptions, Bundler};
 
-  use rspack_core::{LoadArgs, Loader, ResolveArgs, ResolveOption};
+  use rspack_core::{EntryItem, LoadArgs, Loader, ResolveArgs, ResolveOption};
   use rspack_core::{
     Plugin, PluginLoadHookOutput, PluginResolveHookOutput, PluginTransformAstHookOutput,
   };
@@ -55,19 +55,19 @@ mod testing {
     }
     // use pkg.rspack.entry if set otherwise use index.js as entry
     let pkg_entry = pkg["rspack"].clone()["entry"].clone();
-    let entry = {
+    let entry: HashMap<String, EntryItem> = {
       if pkg_entry.is_object() {
         let obj: HashMap<String, String> = serde_json::from_value(pkg_entry).unwrap();
         obj
           .into_iter()
-          .map(|(_id, value)| {
+          .map(|(id, value)| {
             let resolve_path = fixtures_dir.join(value).display().to_string();
-            resolve_path
+            (id, resolve_path.into())
           })
           .collect()
       } else {
         let default_entry = fixtures_dir.join("index.js").to_str().unwrap().to_string();
-        vec![default_entry]
+        HashMap::from([("main".to_string(), default_entry.into())])
       }
     };
     let svgr = pkg["rspack"].clone()["svgr"].as_bool().unwrap_or(false);

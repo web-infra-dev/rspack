@@ -4,8 +4,8 @@ use std::sync::{atomic::AtomicUsize, Arc};
 
 use crate::task::Task;
 use crate::{
-  plugin_hook, BundleContext, Entry, ImportKind, JsModule, ModuleGraph, NormalizedBundleOptions,
-  PluginDriver, ResolvedURI,
+  plugin_hook, BundleContext, BundleEntries, EntryItem, ImportKind, JsModule, ModuleGraph,
+  NormalizedBundleOptions, PluginDriver, ResolvedURI,
 };
 use crossbeam::queue::SegQueue;
 use dashmap::DashSet;
@@ -15,7 +15,7 @@ use tracing::instrument;
 
 #[derive(Debug)]
 pub struct Bundle {
-  entries: Vec<Entry>,
+  entries: BundleEntries,
   pub options: Arc<NormalizedBundleOptions>,
   pub context: Arc<BundleContext>,
   pub plugin_driver: Arc<PluginDriver>,
@@ -49,8 +49,8 @@ impl Bundle {
     }
   }
 
-  pub fn add_entry(&mut self, entry: Entry) {
-    self.entries.push(entry);
+  pub fn add_entry(&mut self, entry: (String, EntryItem)) {
+    self.entries.insert(entry.0, entry.1);
   }
 
   #[instrument(skip(self))]
@@ -71,7 +71,7 @@ impl Bundle {
     self.module_graph.resolved_entries = join_all(self.entries.iter().map(|entry| {
       plugin_hook::resolve_id(
         crate::ResolveArgs {
-          id: entry.src.clone(),
+          id: entry.0.clone(),
           importer: None,
           kind: ImportKind::Import,
         },
