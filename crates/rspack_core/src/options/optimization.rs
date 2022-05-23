@@ -6,7 +6,7 @@ pub struct OptimizationOptions {
 impl Default for OptimizationOptions {
   fn default() -> Self {
     Self {
-      chunk_id_algo: ChunkIdAlgo::Numeric,
+      chunk_id_algo: ChunkIdAlgo::Named,
     }
   }
 }

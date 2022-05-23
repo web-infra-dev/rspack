@@ -2,7 +2,8 @@ use std::collections::{HashMap, HashSet, VecDeque};
 
 use petgraph::graph::NodeIndex;
 use rspack_core::{
-  BundleOptions, Chunk, ChunkIdAlgo, ChunkKind, JsModule, JsModuleKind, ModuleGraph,
+  path::uri_to_chunk_name, BundleOptions, Chunk, ChunkIdAlgo, ChunkKind, JsModule, JsModuleKind,
+  ModuleGraph,
 };
 use tracing::instrument;
 
@@ -37,7 +38,7 @@ pub fn code_splitting2(
       if let JsModuleKind::UserEntry { name } = &js_mod.kind {
         name.to_string()
       } else {
-        format!("chunk-{}", gen_numeric_chunk_id())
+        uri_to_chunk_name(&js_mod.uri)
       }
     };
     let chunk_id = {
@@ -74,7 +75,7 @@ pub fn code_splitting2(
                 if let JsModuleKind::UserEntry { name } = &js_mod.kind {
                   name.to_string()
                 } else {
-                  format!("chunk-{}", gen_numeric_chunk_id())
+                  uri_to_chunk_name(&js_mod.uri)
                 }
               };
               let chunk_id = {

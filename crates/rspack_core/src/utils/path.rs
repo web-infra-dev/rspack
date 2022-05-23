@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Component, Path};
 use sugar_path::{self, PathSugar};
 pub fn normalize_path(path: &str, root: &str) -> String {
   let res = Path::new(&root)
@@ -7,4 +7,27 @@ pub fn normalize_path(path: &str, root: &str) -> String {
     .to_string();
 
   res
+}
+
+pub fn uri_to_chunk_name(uri: &str) -> String {
+  let path = Path::new(uri);
+  let mut relatived = std::env::current_dir().unwrap().relative(path);
+  let ext = relatived
+    .extension()
+    .and_then(|ext| ext.to_str())
+    .unwrap_or("")
+    .to_string();
+  relatived.set_extension("");
+  let mut name = relatived
+    .components()
+    .filter(|com| matches!(com, Component::Normal(_)))
+    .filter_map(|seg| seg.as_os_str().to_str())
+    .intersperse("_")
+    .fold(String::new(), |mut acc, seg| {
+      acc.push_str(seg);
+      acc
+    });
+  name.push('_');
+  name.push_str(&ext);
+  name
 }
