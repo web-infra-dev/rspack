@@ -1141,9 +1141,9 @@ dependencies = [
 
 [[package]]
 name = "nodejs-resolver"
-version = "0.0.10"
+version = "0.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1aaae8a6a0deac4ef7b766a4364d375c44467ddb8dbcb9d5958c1bdbfd15595d"
+checksum = "69503316831c3d1d51f019faa68724282be054e8b0d6d48a5741599b2b812bcc"
 dependencies = [
  "daachorse",
  "dashmap",
@@ -1151,6 +1151,7 @@ dependencies = [
  "once_cell",
  "phf",
  "serde_json",
+ "smol_str",
 ]
 
 [[package]]
@@ -1607,7 +1608,7 @@ dependencies = [
  "futures",
  "insta",
  "linked-hash-map",
- "nodejs-resolver 0.0.10",
+ "nodejs-resolver 0.0.11",
  "num_cpus",
  "once_cell",
  "petgraph",
@@ -1645,7 +1646,7 @@ dependencies = [
  "futures",
  "indicatif",
  "linked-hash-map",
- "nodejs-resolver 0.0.10",
+ "nodejs-resolver 0.0.11",
  "once_cell",
  "petgraph",
  "rayon",
@@ -1673,7 +1674,7 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
- "nodejs-resolver 0.0.10",
+ "nodejs-resolver 0.0.11",
  "once_cell",
  "rspack",
  "rspack_core",
