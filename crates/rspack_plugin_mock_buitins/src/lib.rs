@@ -8,7 +8,7 @@ pub static PLUGIN_NAME: &str = "rspack_mock_buitins_plugin";
 
 fn is_builtin_module(id: &str) -> bool {
   let builtin_modules = vec![
-    "http", "https", "url", "zlib", "stream", "assert", "tty", "util",
+    "http", "https", "url", "zlib", "stream", "assert", "tty", "util", "os",
   ];
   builtin_modules.contains(&id)
 }
