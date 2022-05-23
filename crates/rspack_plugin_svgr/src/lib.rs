@@ -13,7 +13,8 @@ use std::path::Path;
 use regex::Regex;
 use std::fs::read_to_string;
 use std::path::Path;
-use transform::transform;
+
+use transform::SvgrReplacer;
 
 pub static PLUGIN_NAME: &'static str = "rspack_svgr";
 #[derive(Debug)]
@@ -46,6 +47,29 @@ impl Plugin for SvgrPlugin {
       None
     }
   }
+
+  fn transform_ast(
+    &self,
+    _ctx: &BundleContext,
+    _path: &Path,
+    ast: ast::Module,
+  ) -> PluginTransformAstHookOutput {
+    let id = _path.to_str().unwrap_or("");
+    let query_start = id.find(|c: char| c == '?').or(Some(id.len())).unwrap();
+    let file_path = Path::new(&id[..query_start]);
+    let ext = file_path
+      .extension()
+      .and_then(|ext| ext.to_str())
+      .unwrap_or("js");
+    let use_raw = id[query_start..].contains("raw");
+    if ext == "svg" && !use_raw {
+      let mut ast = ast.clone();
+      ast.visit_mut_with(&mut SvgrReplacer {});
+      return ast;
+    }
+    ast
+  }
+
   fn transform(
     &self,
     _ctx: &BundleContext,
@@ -89,8 +113,7 @@ impl Plugin for SvgrPlugin {
 
       *loader = Some(Loader::Jsx);
       let result = clean(&raw);
-      let result = transform(result);
-      return format!(
+      let result = format!(
         r#"
         import * as React from "react";
         const SvgComponent = (props) => {{
@@ -98,10 +121,12 @@ impl Plugin for SvgrPlugin {
         }};
         export default SvgComponent;
         "#,
-        result
+        result.trim()
       )
       .trim()
       .to_string();
+      // println!("result:\n{}", result);
+      return result;
     }
     raw
   }

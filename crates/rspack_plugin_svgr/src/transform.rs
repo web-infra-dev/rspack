@@ -1,65 +1,24 @@
 use crate::mapping::NAME_MAPPING;
-use rspack_core::ast::{
-  Expr, Ident, JSXAttrOrSpread, JSXAttrValue, JSXElement, JSXText, Lit, Program,
-};
-use rspack_swc::swc_ecma_visit::FoldWith;
-use rspack_swc::{swc, swc_common, swc_ecma_ast, swc_ecma_visit, swc_plugin};
-
 use heck::ToLowerCamelCase;
-use rspack_core::{get_swc_compiler, syntax_by_ext};
-use swc::config::SourceMapsConfig;
-use swc::ecmascript::ast::EsVersion;
-
-use swc::config::IsModule;
-use swc_common::{FileName, DUMMY_SP};
+use rspack_core::ast::{
+  Expr, Ident, JSXAttrOrSpread, JSXAttrValue, JSXElement, JSXText, Lit, Module, Program,
+};
+use rspack_swc::{
+  swc_common, swc_ecma_ast,
+  swc_ecma_visit::{self, FoldWith},
+  swc_plugin,
+};
+use swc_common::DUMMY_SP;
 use swc_ecma_ast::JSXAttrName;
 use swc_ecma_visit::{as_folder, VisitMut, VisitMutWith};
 use swc_plugin::{plugin_transform, TransformPluginProgramMetadata};
-pub fn transform(source_code: String) -> String {
-  let compiler = get_swc_compiler();
-  let syntax = syntax_by_ext("jsx");
-  let fm = compiler
-    .cm
-    .new_source_file(FileName::Custom("svg.jsx".to_string()), source_code);
-  let program = swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
-    compiler.parse_js(
-      fm,
-      handler,
-      EsVersion::Es2022,
-      syntax,
-      IsModule::Bool(true),
-      None,
-    )
-  })
-  .unwrap();
-  let metadata = swc_plugin::TransformPluginProgramMetadata {
-    comments: None,
-    source_map: swc_plugin::source_map::PluginSourceMapProxy,
-    plugin_config: "".to_string(),
-    transform_context: "".to_string(),
-  };
-  let program = process(program, metadata);
-  compiler
-    .print(
-      &program,
-      None,
-      None,
-      false,
-      EsVersion::Es2020,
-      SourceMapsConfig::Bool(false),
-      &Default::default(),
-      None,
-      false,
-      None,
-      false,
-      false,
-    )
-    .unwrap()
-    .code
-}
 
-struct SvgrReplacer;
+pub struct SvgrReplacer;
 impl VisitMut for SvgrReplacer {
+  fn visit_mut_module(&mut self, module: &mut Module) {
+    module.visit_mut_children_with(self);
+  }
+
   fn visit_mut_jsx_element(&mut self, elem: &mut JSXElement) {
     elem.visit_mut_children_with(self);
     for attr in elem.opening.attrs.iter_mut() {
@@ -120,5 +79,5 @@ pub fn format_css(css: String) -> String {
     })
     .collect::<Vec<String>>()
     .join(",");
-  return "{{".to_string() + &item + "}}";
+  return "{".to_string() + &item + "}";
 }
