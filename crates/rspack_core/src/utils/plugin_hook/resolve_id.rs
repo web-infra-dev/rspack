@@ -1,10 +1,6 @@
-use crate::{
-  plugin_driver::PluginDriver, BundleOptions, NormalizedBundleOptions, OnResolveResult,
-  ResolveArgs, ResolvedURI,
-};
-use nodejs_resolver::{ResolveResult, Resolver, ResolverOptions};
-use once_cell::sync::OnceCell;
-use std::{collections::HashMap, ffi::OsString, path::Path, sync::Arc, time::Instant};
+use crate::{plugin_driver::PluginDriver, OnResolveResult, ResolveArgs, ResolvedURI};
+use nodejs_resolver::{ResolveResult, Resolver};
+use std::{ffi::OsString, path::Path, time::Instant};
 use sugar_path::PathSugar;
 use tracing::instrument;
 
@@ -23,40 +19,38 @@ pub async fn resolve_id(
 ) -> ResolvedURI {
   if let Some(plugin_result) = resolve_id_via_plugins(&args, plugin_driver).await {
     ResolvedURI::new(plugin_result.uri, plugin_result.external, args.kind.clone())
+  } else if args.importer.is_some() && is_external_module(&args.id) {
+    ResolvedURI::new(args.id.to_string(), true, args.kind.clone())
   } else {
-    if args.importer.is_some() && is_external_module(&args.id) {
-      ResolvedURI::new(args.id.to_string(), true, args.kind.clone())
-    } else {
-      let id = if let Some(importer) = &args.importer {
-        let base_dir = Path::new(&importer).parent().unwrap();
-        let options = plugin_driver.ctx.as_ref().options.as_ref();
-        let before_resolve = Instant::now();
-        let res = match resolver.resolve(base_dir, &args.id) {
-          Ok(path) => match path {
-            ResolveResult::Path(buf) => buf.to_string_lossy().to_string(),
-            ResolveResult::Ignored => unreachable!(),
-          },
-          Err(reason) => panic!(
-            "failed to resolve {} from {} due to  {}",
-            &args.id, &importer, reason
-          ),
-        };
-        let after_resolve = Instant::now();
-        let diff = after_resolve.duration_since(before_resolve);
-        if diff.as_millis() >= 100 {
-          tracing::debug!(
-            "resolve is slow({:?}ms) for base_dir: {:?}, source: {:?}",
-            diff.as_millis(),
-            base_dir,
-            args.id
-          );
-        }
-        res
-      } else {
-        Path::new(&args.id).resolve().to_string_lossy().to_string()
+    let id = if let Some(importer) = &args.importer {
+      let base_dir = Path::new(&importer).parent().unwrap();
+      let _options = plugin_driver.ctx.as_ref().options.as_ref();
+      let before_resolve = Instant::now();
+      let res = match resolver.resolve(base_dir, &args.id) {
+        Ok(path) => match path {
+          ResolveResult::Path(buf) => buf.to_string_lossy().to_string(),
+          ResolveResult::Ignored => unreachable!(),
+        },
+        Err(reason) => panic!(
+          "failed to resolve {} from {} due to  {}",
+          &args.id, &importer, reason
+        ),
       };
-      ResolvedURI::new(id, false, args.kind.clone())
-    }
+      let after_resolve = Instant::now();
+      let diff = after_resolve.duration_since(before_resolve);
+      if diff.as_millis() >= 100 {
+        tracing::debug!(
+          "resolve is slow({:?}ms) for base_dir: {:?}, source: {:?}",
+          diff.as_millis(),
+          base_dir,
+          args.id
+        );
+      }
+      res
+    } else {
+      Path::new(&args.id).resolve().to_string_lossy().to_string()
+    };
+    ResolvedURI::new(id, false, args.kind.clone())
   }
 }
 

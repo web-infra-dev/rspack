@@ -4,27 +4,23 @@ use rspack_core::{BundleContext, LoadArgs, Plugin, PluginLoadHookOutput};
 use std::sync::{Arc, Mutex};
 extern crate console;
 use console::{style, Color, Term};
-use md5;
+
 use once_cell::sync::Lazy;
 use std::fs::File;
 use std::io;
 use std::io::Write;
 use std::{env, fs};
 
-pub static PLUGIN_NAME: &'static str = "rspack_progress";
+pub static PLUGIN_NAME: &str = "rspack_progress";
 // color256 https://www.ditig.com/256-colors-cheat-sheet
-static CYAN: u8 = 51;
 static GREEN: u8 = 2;
 static GREY: u8 = 8;
 
-static TERM: Lazy<Term> = Lazy::new(|| {
-  let term = Term::buffered_stdout();
-  term
-});
+static TERM: Lazy<Term> = Lazy::new(|| Term::buffered_stdout());
 
 static MAX_BAR_WIDTH: usize = 25;
 static MAX_TEXT_WIDTH: usize = 30;
-static FRAMES: &'static [&str; 10] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+static FRAMES: &[&str; 10] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 fn get_bar_str(
   key: &str,
@@ -48,7 +44,7 @@ fn get_bar_str(
     s += &style(" ".repeat(left))
       .bg(Color::Color256(fe_color))
       .to_string();
-    s += &style(" ".repeat((MAX_BAR_WIDTH - left)))
+    s += &style(" ".repeat(MAX_BAR_WIDTH - left))
       .bg(Color::Color256(bg_color))
       .to_string();
   }
@@ -57,7 +53,7 @@ fn get_bar_str(
   s += &style(&format!(" {:3}% ", percent))
     .fg(Color::Color256(fe_color))
     .to_string();
-  s += &style(&truncate(&text, MAX_TEXT_WIDTH)).dim().to_string();
+  s += &style(&truncate(text, MAX_TEXT_WIDTH)).dim().to_string();
   let term_width = TERM.size().1 as usize;
   let line_width = console::measure_text_width(&s);
   s += &" ".repeat(term_width.saturating_sub(line_width));
@@ -100,7 +96,7 @@ impl ProgressBar {
 
   pub fn update(&self, key: &str, filename: &str, delta: u32) -> io::Result<()> {
     let mut current = self.current.lock().unwrap();
-    *current = *current + delta;
+    *current += delta;
     let total = *self.total.lock().unwrap();
     TERM.clear_line()?;
     let s = get_bar_str(key, total, *current, filename, GREEN, GREY);

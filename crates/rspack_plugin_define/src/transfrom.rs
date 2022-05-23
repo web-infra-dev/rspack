@@ -380,11 +380,10 @@ impl DefineTransform {
       let sym = ident.sym.to_string();
       let expected_some = list
         .last()
-        .and_then(|last| Some(last.1))
+        .map(|last| last.1)
         .and_then(|node| node.children.get(&sym))
-        .and_then(|n| {
+        .map(|n| {
           list.push((sym, n));
-          Some(())
         });
       if expected_some.is_none() {
         return MemberStats::ObjBothIdent(list);
@@ -413,12 +412,12 @@ impl DefineTransform {
       MemberStats::BothIdent(list) => list
         .last()
         .and_then(|(_, node)| node.value.clone())
-        .and_then(|renamed| {
-          Some(ast::Expr::Ident(ast::Ident {
+        .map(|renamed| {
+          ast::Expr::Ident(ast::Ident {
             sym: Self::to_code(renamed).into(),
             optional: false,
             span: member.span,
-          }))
+          })
         })
         .unwrap_or_else(|| ast::Expr::Member(member)),
       MemberStats::ObjBothIdent(list) => {

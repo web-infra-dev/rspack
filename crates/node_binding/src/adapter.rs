@@ -20,11 +20,11 @@ use tokio::sync::oneshot::{self, Sender};
 pub static CALL_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(1));
 
 pub static REGISTERED_ON_LOAD_SENDERS: Lazy<Arc<DashMap<usize, Sender<Option<OnLoadResult>>>>> =
-  Lazy::new(|| Default::default());
+  Lazy::new(Default::default);
 
 pub static REGISTERED_ON_RESOLVE_SENDERS: Lazy<
   Arc<DashMap<usize, Sender<Option<OnResolveResult>>>>,
-> = Lazy::new(|| Default::default());
+> = Lazy::new(Default::default);
 
 pub struct RspackPluginNodeAdapter {
   pub onload_tsfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled>,

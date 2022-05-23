@@ -62,7 +62,7 @@ mod testing {
           .into_iter()
           .map(|(_id, value)| {
             let resolve_path = fixtures_dir.join(value).display().to_string();
-            return resolve_path;
+            resolve_path
           })
           .collect()
       } else {
@@ -142,7 +142,7 @@ mod testing {
       "rspack_test"
     }
 
-    async fn resolve(&self, _ctx: &BundleContext, args: &ResolveArgs) -> PluginResolveHookOutput {
+    async fn resolve(&self, _ctx: &BundleContext, _args: &ResolveArgs) -> PluginResolveHookOutput {
       self
         .call_resolve
         .store(true, std::sync::atomic::Ordering::SeqCst);
@@ -150,7 +150,7 @@ mod testing {
     }
 
     #[inline]
-    async fn load(&self, _ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
+    async fn load(&self, _ctx: &BundleContext, _args: &LoadArgs) -> PluginLoadHookOutput {
       self
         .call_load
         .store(true, std::sync::atomic::Ordering::SeqCst);
@@ -340,7 +340,7 @@ mod testing {
     let source = &dist.source;
     println!("assets {:#?}", assets);
     assert!(!source.contains("wrong.js"));
-    assert!(!source.contains("@"));
+    assert!(!source.contains('@'));
     assert!(source.contains("ok.js"));
     assert!(source.contains("at.js"));
   }
@@ -428,7 +428,7 @@ mod testing {
     assert!(!source.contains("NUMBER"));
     assert!(source.contains("100.05"));
     assert!(!source.contains("ZERO; // tags")); // `;` and `// tags` in arg is for positioning.
-    assert!(source.contains("0"));
+    assert!(source.contains('0'));
     assert!(!source.contains("({ZERO:0}.ZERO);"));
     assert!(!source.contains("({ZERO:0}).ZERO;"));
     assert!(!source.contains("({ZERO:0})[ZERO];"));
@@ -513,11 +513,11 @@ mod testing {
     assert!(source.contains("{}.DO_NOT_CONVERTED5"));
 
     // identifier
-    assert_inline_sourcemap_in_pos(&source, 74, 4, "TRUE");
+    assert_inline_sourcemap_in_pos(source, 74, 4, "TRUE");
     // member// 2
-    assert_inline_sourcemap_in_pos(&source, 107, 4, "ARRAY");
-    assert_inline_sourcemap_in_pos(&source, 129, 4, "P1.P2.P4");
+    assert_inline_sourcemap_in_pos(source, 107, 4, "ARRAY");
+    assert_inline_sourcemap_in_pos(source, 129, 4, "P1.P2.P4");
     // assign
-    assert_inline_sourcemap_in_pos(&source, 164, 4, "SHOULD_CONVERTED");
+    assert_inline_sourcemap_in_pos(source, 164, 4, "SHOULD_CONVERTED");
   }
 }

@@ -12,7 +12,7 @@ impl LazyCompilationPlugin {
   }
 }
 
-pub static PLUGIN_NAME: &'static str = "rspack_lazy_compilation_plugin";
+pub static PLUGIN_NAME: &str = "rspack_lazy_compilation_plugin";
 
 #[async_trait]
 impl Plugin for LazyCompilationPlugin {

@@ -1,8 +1,6 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
-use crate::{
-  path::normalize_path, swc_builder::dynamic_import_with_literal, JsModule, ResolvedURI,
-};
+use crate::{swc_builder::dynamic_import_with_literal, JsModule, ResolvedURI};
 use ast::*;
 use rspack_swc::{
   swc_atoms, swc_common, swc_ecma_ast as ast, swc_ecma_transforms_base, swc_ecma_transforms_module,
@@ -156,7 +154,7 @@ pub const RS_REQUIRE: &str = "require";
 impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
   fn visit_mut_call_expr(&mut self, call_expr: &mut CallExpr) {
     if let Some(str) = dynamic_import_with_literal(call_expr) {
-      let id = JsWord::from(str.clone());
+      let id = JsWord::from(str);
       let rid = self.resolved_ids.get(&id).unwrap();
 
       let mut args = vec![];
@@ -221,7 +219,7 @@ impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
         let id = &rid.uri;
         let js_module = self.modules.get(id).unwrap();
         str.value = JsWord::from(js_module.id.as_str());
-        str.raw = Some(JsWord::from(format!("\"{}\"", js_module.id.to_string())));
+        str.raw = Some(JsWord::from(format!("\"{}\"", js_module.id)));
       }
     }
   }

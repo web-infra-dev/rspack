@@ -9,12 +9,12 @@ use rspack_core::{
   ast, BundleContext, BundleMode, LoadArgs, LoadedSource, Loader, OnResolveResult, Plugin,
   PluginLoadHookOutput, PluginResolveHookOutput, ResolveArgs,
 };
-use rspack_swc::swc_common::{comments::SingleThreadedComments, GLOBALS};
+use rspack_swc::swc_common::comments::SingleThreadedComments;
 use rspack_swc::swc_ecma_transforms_react::{react, Options, RefreshOptions, Runtime};
 use rspack_swc::swc_ecma_visit::{FoldWith, VisitWith};
 use std::path::Path;
 
-pub static PLUGIN_NAME: &'static str = "rspack_plugin_react";
+pub static PLUGIN_NAME: &str = "rspack_plugin_react";
 
 #[derive(Debug)]
 pub struct ReactPlugin {
@@ -59,19 +59,14 @@ impl Plugin for ReactPlugin {
   ) -> rspack_core::PluginTransformAstHookOutput {
     let id = path.to_str().unwrap_or("").to_string();
     if ctx.options.react.refresh {
-      let is_entry = ctx
-        .options
-        .entries
-        .iter()
-        .find(|e| e.as_str() == id)
-        .is_some();
+      let is_entry = ctx.options.entries.iter().any(|e| e.as_str() == id);
 
       if is_entry {
         ast = ast.fold_with(&mut InjectReactRefreshEntryFloder {});
       }
     }
 
-    let is_node_module = id.find("node_modules").is_some();
+    let is_node_module = id.contains("node_modules");
     let is_maybe_has_jsx = path.extension().map_or(true, |ext| ext != "ts");
     if is_maybe_has_jsx {
       ctx.compiler.run(|| {
@@ -90,7 +85,7 @@ impl Plugin for ReactPlugin {
             },
             ..Default::default()
           },
-          ctx.top_level_mark.clone(),
+          ctx.top_level_mark,
         );
 
         ast = ast.fold_with(&mut react_folder);

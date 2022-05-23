@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use rspack_core::{BundleContext, Loader, Plugin, PluginTransformHookOutput};
 
-pub static PLUGIN_NAME: &'static str = "rspack_loader_plugin";
+pub static PLUGIN_NAME: &str = "rspack_loader_plugin";
 
 #[derive(Debug)]
 pub struct StyleLoaderPlugin {}

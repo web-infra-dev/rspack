@@ -1,6 +1,6 @@
 use std::{fmt::Debug, path::Path};
 
-use crate::{BundleContext, Chunk, Loader, NormalizedBundleOptions, ResolvedURI};
+use crate::{BundleContext, Chunk, Loader, NormalizedBundleOptions};
 use async_trait::async_trait;
 use rspack_swc::swc_ecma_ast as ast;
 
@@ -45,12 +45,12 @@ pub trait Plugin: Sync + Send + Debug {
   async fn build_end(&self, _ctx: &BundleContext) {}
 
   #[inline]
-  async fn resolve(&self, _ctx: &BundleContext, args: &ResolveArgs) -> PluginResolveHookOutput {
+  async fn resolve(&self, _ctx: &BundleContext, _args: &ResolveArgs) -> PluginResolveHookOutput {
     None
   }
 
   #[inline]
-  async fn load(&self, _ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
+  async fn load(&self, _ctx: &BundleContext, _args: &LoadArgs) -> PluginLoadHookOutput {
     None
   }
 
