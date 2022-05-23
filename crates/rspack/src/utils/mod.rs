@@ -8,14 +8,20 @@ pub fn inject_built_in_plugins(
   mut user_plugins: Vec<Box<dyn Plugin>>,
   options: &NormalizedBundleOptions,
 ) -> Vec<Box<dyn Plugin>> {
-  let mut plugins: Vec<Box<dyn Plugin>> = vec![Box::new(rspack_plugin_react::ReactPlugin {
-    runtime: options.react.runtime,
-  })];
-  // start --- injected user plugins
-  plugins.push(Box::new(rspack_plugin_progress::ProgressPlugin::new()));
+  let mut plugins: Vec<Box<dyn Plugin>> = vec![];
+
+  // svgr have to place before react
+  // because need to remove invalid attr and tags
   if options.svgr {
     plugins.push(Box::new(rspack_plugin_svgr::SvgrPlugin {}))
   }
+
+  plugins.push(Box::new(rspack_plugin_react::ReactPlugin {
+    runtime: options.react.runtime,
+  }));
+
+  // start --- injected user plugins
+  plugins.push(Box::new(rspack_plugin_progress::ProgressPlugin::new()));
   plugins.append(&mut user_plugins);
   // end --- injected user plugins
   plugins.push(Box::new(rspack_plugin_loader::LoaderInterpreterPlugin));
