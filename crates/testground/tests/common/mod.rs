@@ -55,7 +55,7 @@ impl RawOptionsTestExt for RawOptions {
     };
     assert!(
       options.root.is_none(),
-      "You should not specify `root` in config."
+      "You should not specify `root` in config. It would probably resolve to a wrong path"
     );
     options.root = Some(fixtures_dir.to_str().unwrap().to_string());
     options
