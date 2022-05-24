@@ -62,6 +62,7 @@ impl DefineTreeNode {
     if key.contains('.') {
       let splitted: Vec<&str> = key.split('.').collect();
       let len = splitted.len();
+      #[allow(clippy::needless_range_loop)]
       for index in 0..len {
         let part = splitted[index];
         if index != len - 1 {

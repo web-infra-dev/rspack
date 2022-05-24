@@ -1,3 +1,5 @@
+#![deny(clippy::all)]
+
 use async_trait::async_trait;
 use rspack_core::{BundleContext, LoadArgs, LoadedSource, Loader, Plugin, PluginLoadHookOutput};
 
@@ -17,6 +19,13 @@ impl MockBuitinsPlugin {
     Self
   }
 }
+
+impl Default for MockBuitinsPlugin {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 #[async_trait]
 impl Plugin for MockBuitinsPlugin {
   fn name(&self) -> &'static str {

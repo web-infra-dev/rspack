@@ -1,3 +1,4 @@
+#![deny(clippy::all)]
 #![feature(box_patterns)]
 #![feature(iter_intersperse)]
 

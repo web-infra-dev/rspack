@@ -41,6 +41,7 @@ pub use rspack_core::BundleMode;
 pub use rspack_core::BundleOptions;
 
 #[derive(Debug)]
+#[allow(clippy::manual_non_exhaustive)]
 pub struct Bundler {
   pub options: Arc<NormalizedBundleOptions>,
   pub plugin_driver: Arc<PluginDriver>,

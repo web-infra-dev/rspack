@@ -1,3 +1,5 @@
+#![deny(clippy::all)]
+
 use async_trait::async_trait;
 use rspack_core::{
   BundleContext, ImportKind, LoadArgs, LoadedSource, Loader, Plugin, PluginLoadHookOutput,
@@ -7,8 +9,14 @@ use rspack_core::{
 pub struct LazyCompilationPlugin {}
 
 impl LazyCompilationPlugin {
-  pub fn new() -> LazyCompilationPlugin {
+  pub fn new() -> Self {
     Self {}
+  }
+}
+
+impl Default for LazyCompilationPlugin {
+  fn default() -> Self {
+    Self::new()
   }
 }
 
