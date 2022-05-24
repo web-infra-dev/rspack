@@ -32,87 +32,9 @@ fn cycle_dep() {
   compile("cycle-dep", vec![]);
 }
 
-#[derive(Debug)]
-struct TestPlugin {
-  call_resolve: Arc<AtomicBool>,
-  call_load: Arc<AtomicBool>,
-  call_transform: Arc<AtomicBool>,
-}
-
-#[async_trait]
-impl Plugin for TestPlugin {
-  fn name(&self) -> &'static str {
-    "rspack_test"
-  }
-
-  async fn resolve(&self, _ctx: &BundleContext, _args: &ResolveArgs) -> PluginResolveHookOutput {
-    self
-      .call_resolve
-      .store(true, std::sync::atomic::Ordering::SeqCst);
-    None
-  }
-
-  #[inline]
-  async fn load(&self, _ctx: &BundleContext, _args: &LoadArgs) -> PluginLoadHookOutput {
-    self
-      .call_load
-      .store(true, std::sync::atomic::Ordering::SeqCst);
-    None
-  }
-
-  #[inline]
-  fn transform_ast(
-    &self,
-    _ctx: &BundleContext,
-    _path: &Path,
-    ast: swc_ecma_ast::Module,
-  ) -> PluginTransformAstHookOutput {
-    self
-      .call_transform
-      .store(true, std::sync::atomic::Ordering::SeqCst);
-    ast
-  }
-}
-
-#[test]
-fn plugin_test() {
-  let call_resolve: Arc<AtomicBool> = Default::default();
-  let call_load: Arc<AtomicBool> = Default::default();
-  let call_transform: Arc<AtomicBool> = Default::default();
-  let test_plugin = Box::new(TestPlugin {
-    call_resolve: call_resolve.clone(),
-    call_load: call_load.clone(),
-    call_transform: call_transform.clone(),
-  });
-  compile("single-entry", vec![test_plugin]);
-  assert!(call_load.load(std::sync::atomic::Ordering::SeqCst));
-  assert!(call_resolve.load(std::sync::atomic::Ordering::SeqCst));
-  assert!(call_transform.load(std::sync::atomic::Ordering::SeqCst));
-}
-
 #[test]
 fn dynamic_import() {
   compile("dynamic-import", vec![]);
-}
-
-#[test]
-fn basic_css() {
-  let bundler = compile("basic-css", vec![]);
-  println!(
-    "plugin_name -> \n {:#?}",
-    bundler
-      .plugin_driver
-      .plugins
-      .iter()
-      .map(|x| x.name().to_string())
-      .collect::<Vec<String>>()
-  );
-  assert!(bundler
-    .plugin_driver
-    .plugins
-    .iter()
-    .find(|plugin| plugin.name() == rspack_plugin_stylesource::plugin::PLUGIN_NAME)
-    .is_some())
 }
 
 #[test]

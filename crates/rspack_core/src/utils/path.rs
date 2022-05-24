@@ -9,9 +9,10 @@ pub fn normalize_path(path: &str, root: &str) -> String {
   res
 }
 
-pub fn uri_to_chunk_name(uri: &str) -> String {
+pub fn uri_to_chunk_name(root: &str, uri: &str) -> String {
+  println!("root {:?}", root);
   let path = Path::new(uri);
-  let mut relatived = std::env::current_dir().unwrap().relative(path);
+  let mut relatived = Path::new(root).relative(path);
   let ext = relatived
     .extension()
     .and_then(|ext| ext.to_str())
