@@ -79,6 +79,5 @@ pub fn format_css(css: String) -> String {
     })
     .collect::<Vec<String>>()
     .join(",");
-
   "{".to_string() + &item + "}"
 }

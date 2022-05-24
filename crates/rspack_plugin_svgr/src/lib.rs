@@ -15,7 +15,7 @@ use std::path::Path;
 
 use transform::SvgrReplacer;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SvgrPlugin {}
 impl SvgrPlugin {}
 #[async_trait]

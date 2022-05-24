@@ -75,7 +75,7 @@ fn truncate(s: &str, max_chars: usize) -> String {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ProgressBar {
   current: Arc<Mutex<u32>>,
   total: Arc<Mutex<u32>>,
@@ -122,7 +122,7 @@ impl ProgressBar {
     Ok(())
   }
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ProgressPlugin {
   progress: ProgressBar,
 }
