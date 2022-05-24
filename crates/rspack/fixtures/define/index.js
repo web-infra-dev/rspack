@@ -78,8 +78,12 @@ let USELESS = {
 
   const B = ZERO;
   assert.equal(B, 0);
+
+  let IN_BLOCK = 2;
+  assert.equal(IN_BLOCK, 2);
 }
 
+console.log(IN_BLOCK);
 assert.deepStrictEqual(USELESS, { ZERO: 0 });
 assert.equal({}.DO_NOT_CONVERTED5, undefined);
 assert.equal(M1.M2.M3.DO_NOT_CONVERTED6, undefined);

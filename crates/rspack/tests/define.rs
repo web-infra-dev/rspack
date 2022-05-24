@@ -51,6 +51,7 @@ fn define() {
       ("DO_NOT_CONVERTED7", "DO_NOT_CONVERTED_TAG"),
       ("DO_NOT_CONVERTED8", "DO_NOT_CONVERTED_TAG"),
       ("DO_NOT_CONVERTED9", "DO_NOT_CONVERTED_TAG"),
+      ("IN_BLOCK", "SHOULD_BE_CONVERTED_IN_UNDEFINED_BLOCK"),
       ("M1.M2.M3", "{}"),
       ("SHOULD_CONVERTED", "205"),
     ]
@@ -165,6 +166,8 @@ fn define() {
   assert!(source.contains("M1, undefined"));
   assert!(source.contains("({}).DO_NOT_CONVERTED6"));
   assert!(source.contains("{}.DO_NOT_CONVERTED5"));
+  assert!(source.contains("equal(IN_BLOCK, 2)"));
+  assert!(source.contains("SHOULD_BE_CONVERTED_IN_UNDEFINED_BLOCK"));
 
   // identifier
   assert_inline_sourcemap_in_pos(source, 74, 4, "TRUE");
@@ -172,5 +175,5 @@ fn define() {
   assert_inline_sourcemap_in_pos(source, 107, 4, "ARRAY");
   assert_inline_sourcemap_in_pos(source, 129, 4, "P1.P2.P4");
   // assign
-  assert_inline_sourcemap_in_pos(source, 164, 4, "SHOULD_CONVERTED");
+  assert_inline_sourcemap_in_pos(source, 167, 4, "SHOULD_CONVERTED");
 }

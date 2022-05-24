@@ -1,4 +1,4 @@
-use crate::prefix::DefinePrefix;
+use crate::prefix::{DefinePrefix, PatMetaInfo};
 use rspack_core::ast::{self, Ident};
 use rspack_swc::swc_ecma_visit::{Fold, FoldWith};
 use std::collections::{HashMap, HashSet};
@@ -321,7 +321,7 @@ fn test_define_tree() {
 #[derive(Debug, Clone)]
 pub struct DefineTransform {
   defintions: DefineTreeNode,
-  can_not_rename: HashSet<String>,
+  can_not_rename: HashSet<PatMetaInfo>,
 }
 
 enum MemberStats<'a> {
@@ -342,11 +342,13 @@ impl DefineTransform {
   /// Check `Ident` could be renamed.
   /// If could, then return the renamed String, else return `None`.
   fn ident_can_rename(&self, ident: &Ident) -> Option<String> {
-    let sym = ident.sym.to_string();
-    if self.can_not_rename.contains(&sym) {
+    let name = ident.sym.to_string();
+    let ctxt = ident.span.ctxt;
+    let info = PatMetaInfo { name, ctxt };
+    if self.can_not_rename.contains(&info) {
       None
     } else {
-      Some(sym)
+      Some(info.name)
     }
   }
 
