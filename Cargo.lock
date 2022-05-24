@@ -3060,9 +3060,9 @@ dependencies = [
 
 [[package]]
 name = "swc_plugin_proxy"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0dd13c8e1a546e057cbaca1d1e8631669ef8eaebf86f81f920eff685a18ca67"
+checksum = "3cd24464348602a54f2078e68697c1b10cc0ccda2c6368060941aa850c7793d7"
 dependencies = [
  "better_scoped_tls",
  "rkyv",
