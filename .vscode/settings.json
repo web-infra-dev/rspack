@@ -20,9 +20,18 @@
   "cSpell.allowCompoundWords": true,
   "cSpell.caseSensitive": true,
   "rust-analyzer.checkOnSave.command": "clippy",
-  "rust-analyzer.checkOnSave.extraArgs": ["--all-features"]
+  "rust-analyzer.checkOnSave.extraArgs": ["--all-features"],
   // "rust-analyzer.checkOnSave.features": [
   //   // We use this to make IDE faster
   //   "rust-analyzer"
   // ]
+  "json.schemas": [
+    {
+      "fileMatch": [
+        "rspack.config.json"
+      ],
+      // Point to the options schema of rspack.
+      "url": "./packages/rspack/src/node/rspack/options/schema.json"
+    }
+  ]
 }
