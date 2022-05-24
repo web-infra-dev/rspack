@@ -81,6 +81,14 @@ let USELESS = {
 
   let IN_BLOCK = 2;
   assert.equal(IN_BLOCK, 2);
+
+  {
+    {
+      {
+        assert.equal(SHOULD_CONVERTED, 205);
+      }
+    }
+  }
 }
 
 console.log(IN_BLOCK);

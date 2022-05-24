@@ -175,5 +175,5 @@ fn define() {
   assert_inline_sourcemap_in_pos(source, 107, 4, "ARRAY");
   assert_inline_sourcemap_in_pos(source, 129, 4, "P1.P2.P4");
   // assign
-  assert_inline_sourcemap_in_pos(source, 167, 4, "SHOULD_CONVERTED");
+  assert_inline_sourcemap_in_pos(source, 174, 4, "SHOULD_CONVERTED");
 }
