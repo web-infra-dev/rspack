@@ -38,6 +38,7 @@ export interface RawOptions {
   codeSplitting?: boolean
   svgr?: boolean
   lazyCompilation?: boolean
+  progress?: boolean
 }
 export function initCustomTraceSubscriber(): void
 export interface PluginCallbacks {

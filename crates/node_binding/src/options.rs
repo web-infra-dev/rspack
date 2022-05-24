@@ -21,6 +21,7 @@ pub struct RawOptions {
   pub code_splitting: Option<bool>,
   pub svgr: Option<bool>,
   pub lazy_compilation: Option<bool>,
+  pub progress: Option<bool>,
 }
 
 pub fn normalize_bundle_options(options: RawOptions) -> BundleOptions {
@@ -66,6 +67,7 @@ pub fn normalize_bundle_options(options: RawOptions) -> BundleOptions {
     lazy_compilation: options
       .lazy_compilation
       .unwrap_or(BundleOptions::default().lazy_compilation),
+    progress: options.progress.unwrap_or(default_options.svgr),
     ..Default::default()
   }
 }
