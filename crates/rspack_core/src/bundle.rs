@@ -137,7 +137,7 @@ impl Bundle {
             module.id = match self.context.options.optimization.module_id_algo {
               ModuleIdAlgo::Numeric => {
                 module_id_count += 1;
-                format!("{:?}", module_id_count)
+                module_id_count.to_string()
               }
               ModuleIdAlgo::Named => gen_module_id(&self.context.options.root, &module.uri),
             };
