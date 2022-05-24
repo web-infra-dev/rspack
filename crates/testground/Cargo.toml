@@ -18,3 +18,5 @@ sugar_path = "0.0.4"
 dashmap = "5.0.0"
 async-trait = "0.1.53"
 rspack_swc = { path = "../rspack_swc" }
+anyhow = "1"
+

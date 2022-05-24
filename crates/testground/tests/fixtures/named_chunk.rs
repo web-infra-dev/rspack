@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
+use anyhow::ensure;
 use dashmap::DashSet;
-use rspack_core::Plugin;
 
-use crate::common::{compile, compile_fixture_with_plugins, prelude::*};
+use crate::common::{compile_fixture_with_plugins, prelude::*};
 
 #[derive(Debug)]
 struct NamedChunkTester {
@@ -26,7 +26,7 @@ impl Plugin for NamedChunkTester {
 }
 
 #[tokio::test]
-async fn named_chunk() {
+async fn named_chunk() -> anyhow::Result<()> {
   let chunk_ids: Arc<DashSet<String>> = Default::default();
   compile_fixture_with_plugins(
     "named-chunk",
@@ -35,8 +35,8 @@ async fn named_chunk() {
     })],
   )
   .await;
-  assert!(chunk_ids.contains("main"));
-  // FIXME: should not contains 'fixtures_named-chunk'
-  assert!(chunk_ids.contains("fixtures_named-chunk_src_bar_json"));
-  assert!(chunk_ids.contains("fixtures_named-chunk_src_foo_js"));
+  ensure!(chunk_ids.contains("main"));
+  ensure!(chunk_ids.contains("src_bar_json"));
+  assert!(chunk_ids.contains("src_foo_js"));
+  Ok(())
 }

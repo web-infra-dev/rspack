@@ -11,3 +11,6 @@ mod entry;
 pub use entry::*;
 mod optimization;
 pub use optimization::*;
+
+mod mode;
+pub use mode::*;
