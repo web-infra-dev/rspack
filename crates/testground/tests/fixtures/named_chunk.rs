@@ -37,6 +37,6 @@ async fn named_chunk() -> anyhow::Result<()> {
   .await;
   ensure!(chunk_ids.contains("main"));
   ensure!(chunk_ids.contains("src_bar_json"));
-  assert!(chunk_ids.contains("src_foo_js"));
+  ensure!(chunk_ids.contains("src_foo_js"));
   Ok(())
 }

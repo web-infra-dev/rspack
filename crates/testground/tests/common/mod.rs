@@ -64,5 +64,6 @@ impl RawOptionsTestExt for RawOptions {
 
 pub mod prelude {
   pub use super::RawOptionsTestExt;
+  use anyhow::ensure;
   pub use rspack_core::Plugin;
 }
