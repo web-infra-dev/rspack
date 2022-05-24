@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::common::{compile_fixture_with_plugins, preclude::*};
+use crate::common::{compile_fixture_with_plugins, prelude::*};
 use rspack_core::{
   BundleContext, Chunk, LoadArgs, Loader, NormalizedBundleOptions, PluginLoadHookOutput,
   PluginResolveHookOutput, PluginTransformAstHookOutput, PluginTransformHookOutput, ResolveArgs,

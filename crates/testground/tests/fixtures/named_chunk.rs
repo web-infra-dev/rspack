@@ -3,7 +3,7 @@ use std::sync::Arc;
 use dashmap::DashSet;
 use rspack_core::Plugin;
 
-use crate::common::{compile, compile_fixture_with_plugins, preclude::*};
+use crate::common::{compile, compile_fixture_with_plugins, prelude::*};
 
 #[derive(Debug)]
 struct NamedChunkTester {

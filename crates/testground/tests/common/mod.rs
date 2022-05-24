@@ -75,7 +75,7 @@ impl RawOptionsTestExt for RawOptions {
   }
 }
 
-pub mod preclude {
+pub mod prelude {
   pub use super::RawOptionsTestExt;
   pub use rspack_core::Plugin;
 }
