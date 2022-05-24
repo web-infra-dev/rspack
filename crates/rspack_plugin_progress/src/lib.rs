@@ -1,3 +1,5 @@
+#![deny(clippy::all)]
+
 use async_trait::async_trait;
 use core::fmt::Debug;
 use rspack_core::{BundleContext, Loader, Plugin, PluginTransformHookOutput};
@@ -21,7 +23,7 @@ static RED: Color = Color::Color256(9);
 static MAGENTA: Color = Color::Color256(201);
 static BLUE: Color = Color::Color256(12);
 
-static TERM: Lazy<Term> = Lazy::new(|| Term::buffered_stdout());
+static TERM: Lazy<Term> = Lazy::new(Term::buffered_stdout);
 
 static MAX_BAR_WIDTH: usize = 25;
 static MAX_TEXT_WIDTH: usize = 30;
@@ -52,7 +54,7 @@ fn get_bar_str(
 
   let percent = ((current as f32 / total as f32 * 100.0) as u32).clamp(0, 100);
   s += &style(&format!(" {:3}% ", percent)).fg(fe_color).to_string();
-  s += &style(&truncate(&text, MAX_TEXT_WIDTH)).dim().to_string();
+  s += &style(&truncate(text, MAX_TEXT_WIDTH)).dim().to_string();
   let term_width = TERM.size().1 as usize;
   let line_width = console::measure_text_width(&s);
   s += &" ".repeat(term_width.saturating_sub(line_width));
@@ -78,6 +80,12 @@ pub struct ProgressBar {
   current: Arc<Mutex<u32>>,
   total: Arc<Mutex<u32>>,
   done: Arc<Mutex<bool>>,
+}
+
+impl Default for ProgressBar {
+  fn default() -> Self {
+    Self::new()
+  }
 }
 
 impl ProgressBar {
@@ -125,6 +133,12 @@ impl ProgressPlugin {
   }
 }
 
+impl Default for ProgressPlugin {
+  fn default() -> ProgressPlugin {
+    Self::new()
+  }
+}
+
 #[async_trait]
 impl Plugin for ProgressPlugin {
   fn name(&self) -> &'static str {
@@ -161,7 +175,7 @@ impl Plugin for ProgressPlugin {
     // if matches!(_ctx.options.mode, BundleMode::Dev) {
     //   return None;
     // }
-    self.progress.update("RsPack", &_uri, 1).unwrap();
+    self.progress.update("RsPack", _uri, 1).unwrap();
     raw
   }
   async fn build_end(&self, _ctx: &BundleContext) {
@@ -186,7 +200,7 @@ impl Plugin for ProgressPlugin {
     let outdir = _ctx
       .options
       .outdir
-      .split("/")
+      .split('/')
       .last()
       .unwrap_or("dist")
       .to_string()
@@ -195,7 +209,8 @@ impl Plugin for ProgressPlugin {
     let mut max_name_len = 0;
     let mut asset_list: Vec<(String, usize)> = vec![]; // (name, size)
     for i in assets.iter() {
-      let name: String = if i.filename.chars().nth(0).unwrap() == '/' {
+      #[allow(clippy::chars_next_cmp)]
+      let name: String = if i.filename.chars().next().unwrap() == '/' {
         i.filename.replace(&_ctx.options.outdir, "")[1..].to_string()
       } else {
         i.filename.clone()
@@ -209,7 +224,7 @@ impl Plugin for ProgressPlugin {
 
     let space = "    ";
     for (name, size) in asset_list.iter() {
-      let ext = name.split(".").last().unwrap_or("");
+      let ext = name.split('.').last().unwrap_or("");
       let size = size_with_color(*size);
       let color = guess_color_by_ext(ext);
       let name = style(format!("{:width$}", name, width = max_name_len))

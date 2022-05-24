@@ -1,3 +1,5 @@
+#![deny(clippy::all)]
+
 mod clean;
 mod mapping;
 mod transform;
@@ -48,7 +50,7 @@ impl Plugin for SvgrPlugin {
     &self,
     _ctx: &BundleContext,
     _path: &Path,
-    ast: ast::Module,
+    mut ast: ast::Module,
   ) -> PluginTransformAstHookOutput {
     let id = _path.to_str().unwrap_or("");
     let query_start = id.find(|c: char| c == '?').or(Some(id.len())).unwrap();
@@ -59,7 +61,6 @@ impl Plugin for SvgrPlugin {
       .unwrap_or("js");
     let use_raw = id[query_start..].contains("raw");
     if ext == "svg" && !use_raw {
-      let mut ast = ast.clone();
       ast.visit_mut_with(&mut SvgrReplacer {});
       return ast;
     }

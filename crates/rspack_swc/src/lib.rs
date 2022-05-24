@@ -1,3 +1,5 @@
+#![deny(clippy::all)]
+
 pub use swc;
 pub use swc_atoms;
 pub use swc_common;

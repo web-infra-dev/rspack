@@ -57,6 +57,12 @@ impl std::fmt::Debug for JsModule {
   }
 }
 
+impl Default for JsModule {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 impl JsModule {
   pub fn new() -> Self {
     Self {

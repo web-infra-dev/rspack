@@ -15,6 +15,7 @@ use swc::Compiler;
 use tracing::instrument;
 
 #[derive(Debug)]
+#[allow(clippy::manual_non_exhaustive)]
 pub struct Chunk {
   pub id: String,
   pub kind: ChunkKind,
@@ -115,7 +116,7 @@ impl Chunk {
           .generate_url(&GenMapOption {
             columns: true,
             include_source_contents: true,
-            file: self.filename.clone().into(),
+            file: self.filename.clone(),
           })
           .unwrap()
           .unwrap();

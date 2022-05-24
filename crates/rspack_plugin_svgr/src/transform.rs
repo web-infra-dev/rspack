@@ -67,17 +67,18 @@ pub fn process(program: Program, _metadata: TransformPluginProgramMetadata) -> P
 
 pub fn format_css(css: String) -> String {
   let item = css
-    .split(";")
+    .split(';')
     .map(|s| {
-      let v = s.split(":").collect::<Vec<&str>>();
+      let v = s.split(':').collect::<Vec<&str>>();
       if v.len() != 2 {
         return (*s).to_string();
       }
       let prefix = ToLowerCamelCase::to_lower_camel_case(v[0]);
       let postfix = v[1];
-      return prefix.to_string() + ": `" + postfix + "`";
+      prefix + ": `" + postfix + "`"
     })
     .collect::<Vec<String>>()
     .join(",");
-  return "{".to_string() + &item + "}";
+
+  "{".to_string() + &item + "}"
 }
