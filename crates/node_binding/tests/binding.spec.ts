@@ -9,7 +9,7 @@ describe('binding', () => {
     const options: RawOptions = {
       entries: { main: path.resolve(__dirname, './index.js') },
       minify: false,
-      entryFilename: path.resolve(__dirname, 'dist/main.js'),
+      // entryFilename: path.resolve(__dirname, 'dist/main.js'),
     };
     const instance = binding.newRspack(JSON.stringify(options));
     await binding.build(instance);
