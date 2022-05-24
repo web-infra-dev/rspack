@@ -3158,6 +3158,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "testground"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "dashmap",
+ "rspack",
+ "rspack_core",
+ "rspack_node",
+ "rspack_swc",
+ "serde",
+ "serde_json",
+ "sugar_path",
+ "tokio",
+]
+
+[[package]]
 name = "testing"
 version = "0.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -179,6 +179,8 @@ struct ResolveRet {
   pub status: bool,
   pub result: Option<String>,
 }
+
+#[cfg(not(feature = "test"))]
 #[napi(ts_args_type = "rspack: ExternalObject<RspackInternal>, id: string, dir: string")]
 pub fn resolve(env: Env, rspack: External<Rspack>, id: String, dir: String) -> Result<JsObject> {
   let bundler = (*rspack).clone();

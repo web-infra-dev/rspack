@@ -4,7 +4,7 @@ use napi_derive::napi;
 use rspack_core::{BundleOptions, BundleReactOptions, Loader, ResolveOption};
 use serde::Deserialize;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawOptions {
