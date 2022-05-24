@@ -38,7 +38,7 @@ describe('rspack', () => {
     };
 
     const rspack = new Rspack({
-      entries: { main: path.join(fixture, 'index.js') },
+      entries: { index: path.join(fixture, 'index.js') },
       minify: false,
       outdir: path.join(fixture, 'dist'),
       plugins: [plugin],
@@ -55,7 +55,7 @@ describe('rspack', () => {
     const fixture = path.join(fixtureRoot, 'source-map');
 
     const rspack = new Rspack({
-      entries: { main: path.join(fixture, 'index.js') },
+      entries: { index: path.join(fixture, 'index.js') },
       minify: false,
       outdir: path.join(fixture, 'dist'),
       sourceMap: true,
