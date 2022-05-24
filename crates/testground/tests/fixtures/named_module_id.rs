@@ -35,6 +35,7 @@ async fn named_module_id() -> anyhow::Result<()> {
     })],
   )
   .await;
+  // Be careful. Remember to consider differences between OS.
   ensure!(module_ids.contains("main"));
   ensure!(module_ids.contains("src_bar_json"));
   ensure!(module_ids.contains("src_foo_js"));

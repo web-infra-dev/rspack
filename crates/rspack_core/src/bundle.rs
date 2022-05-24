@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::atomic::Ordering;
 use std::sync::{atomic::AtomicUsize, Arc};
 
-use crate::path::uri_to_chunk_name;
+use crate::path::gen_module_id;
 use crate::task::Task;
 use crate::{
   plugin_hook, BundleContext, BundleEntries, EntryItem, ImportKind, JsModule, JsModuleKind,
@@ -139,7 +139,7 @@ impl Bundle {
                 module_id_count += 1;
                 format!("{:?}", module_id_count)
               }
-              ModuleIdAlgo::Named => uri_to_chunk_name(&self.context.options.root, &module.uri),
+              ModuleIdAlgo::Named => gen_module_id(&self.context.options.root, &module.uri),
             };
             self
               .module_graph
