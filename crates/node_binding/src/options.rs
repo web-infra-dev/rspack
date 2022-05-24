@@ -67,7 +67,7 @@ pub fn normalize_bundle_options(options: RawOptions) -> BundleOptions {
     lazy_compilation: options
       .lazy_compilation
       .unwrap_or(BundleOptions::default().lazy_compilation),
-    progress: options.progress.unwrap_or(default_options.svgr),
+    progress: options.progress.unwrap_or(default_options.progress),
     ..Default::default()
   }
 }
