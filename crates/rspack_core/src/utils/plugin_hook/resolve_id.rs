@@ -48,7 +48,11 @@ pub async fn resolve_id(
       }
       res
     } else {
-      Path::new(&args.id).resolve().to_string_lossy().to_string()
+      Path::new(&plugin_driver.ctx.options.root)
+        .join(&args.id)
+        .resolve()
+        .to_string_lossy()
+        .to_string()
     };
     ResolvedURI::new(id, false, args.kind.clone())
   }
