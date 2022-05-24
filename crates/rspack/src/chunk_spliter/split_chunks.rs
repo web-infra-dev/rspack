@@ -1,7 +1,10 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use petgraph::graph::NodeIndex;
-use rspack_core::{Chunk, CodeSplittingOptions, JsModule, ModuleGraph};
+use rspack_core::{
+  path::uri_to_chunk_name, BundleOptions, Chunk, ChunkIdAlgo, ChunkKind, JsModule, JsModuleKind,
+  ModuleGraph,
+};
 use tracing::instrument;
 
 #[instrument]
@@ -9,12 +12,15 @@ pub fn code_splitting2(
   module_graph: &ModuleGraph,
   is_enable_code_spliting: bool,
   is_reuse_exsting_chunk: bool,
+  chunk_id_algo: &ChunkIdAlgo,
 ) -> Vec<Chunk> {
   let mut id_count = 0;
+  let mut gen_numeric_chunk_id = || {
+    id_count += 1;
+    format!("{:?}", id_count)
+  };
 
   let module_by_uri: &HashMap<String, JsModule> = &module_graph.module_by_id;
-  // let dependency_graph_container = DependencyGraph::from_modules(module_by_id);
-  // let dependency_graph = dependency_graph_container.graph();
 
   let mut chunk_id_by_entry_module_uri = HashMap::new();
   let mut chunk_graph = petgraph::Graph::<Chunk, ()>::new();
@@ -22,18 +28,37 @@ pub fn code_splitting2(
   let mut chunk_entries = module_graph
     .resolved_entries
     .iter()
-    .map(|rid| rid.uri.as_str())
+    .map(|(_name, rid)| rid.uri.as_str())
     .collect::<Vec<_>>();
 
   // First we need to create entry chunk.
   for entry in &chunk_entries {
-    let mut chunk = Chunk::new(vec![].into_iter().collect(), entry.to_string(), true);
-    chunk.id = {
-      id_count += 1;
-      format!("{:?}", id_count)
+    let name = {
+      let js_mod = module_by_uri.get(*entry).unwrap();
+      if let JsModuleKind::UserEntry { name } = &js_mod.kind {
+        name.to_string()
+      } else {
+        uri_to_chunk_name(&js_mod.uri)
+      }
     };
-    let chunk_id = chunk_graph.add_node(chunk);
-    chunk_id_by_entry_module_uri.insert(*entry, chunk_id);
+    let chunk_id = {
+      match chunk_id_algo {
+        ChunkIdAlgo::Named => name,
+        ChunkIdAlgo::Numeric => gen_numeric_chunk_id(),
+      }
+    };
+    let entry_module_name = module_by_uri.get(*entry).unwrap().kind.name().unwrap();
+    let mut chunk = Chunk::new(
+      chunk_id,
+      Default::default(),
+      entry.to_string(),
+      ChunkKind::Entry {
+        name: entry_module_name.to_string(),
+      },
+    );
+
+    let chunk_grpah_id = chunk_graph.add_node(chunk);
+    chunk_id_by_entry_module_uri.insert(*entry, chunk_grpah_id);
   }
   if is_enable_code_spliting {
     module_by_uri.values().for_each(|module| {
@@ -43,13 +68,24 @@ pub fn code_splitting2(
         .for_each(|dyn_dep_module| {
           chunk_id_by_entry_module_uri
             .entry(dyn_dep_module.uri.as_str())
-            .or_insert_with_key(|id| {
-              chunk_entries.push(*id);
-              let mut chunk = Chunk::from_js_module(dyn_dep_module.uri.to_string(), false);
-              chunk.id = {
-                id_count += 1;
-                format!("{:?}", id_count)
+            .or_insert_with_key(|mod_uri| {
+              chunk_entries.push(*mod_uri);
+              let name = {
+                let js_mod = module_by_uri.get(*mod_uri).unwrap();
+                if let JsModuleKind::UserEntry { name } = &js_mod.kind {
+                  name.to_string()
+                } else {
+                  uri_to_chunk_name(&js_mod.uri)
+                }
               };
+              let chunk_id = {
+                match chunk_id_algo {
+                  ChunkIdAlgo::Named => name,
+                  ChunkIdAlgo::Numeric => gen_numeric_chunk_id(),
+                }
+              };
+              let mut chunk =
+                Chunk::from_js_module(chunk_id, dyn_dep_module.uri.to_string(), ChunkKind::Normal);
 
               chunk_graph.add_node(chunk)
             });
@@ -185,10 +221,8 @@ pub fn code_splitting2(
 }
 
 #[instrument(skip(module_graph))]
-pub fn split_chunks(
-  module_graph: &ModuleGraph,
-  code_splitting_options: &Option<CodeSplittingOptions>,
-) -> Vec<Chunk> {
+pub fn split_chunks(module_graph: &ModuleGraph, bundle_options: &BundleOptions) -> Vec<Chunk> {
+  let code_splitting_options = &bundle_options.code_splitting;
   let is_enable_code_spliting;
   let is_reuse_exsting_chunk;
   if let Some(option) = code_splitting_options {
@@ -202,5 +236,6 @@ pub fn split_chunks(
     module_graph,
     is_enable_code_spliting,
     is_reuse_exsting_chunk,
+    &bundle_options.optimization.chunk_id_algo,
   )
 }

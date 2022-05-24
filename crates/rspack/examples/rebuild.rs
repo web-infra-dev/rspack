@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
 use rspack::bundler::{BundleOptions, Bundler};
 use sugar_path::PathSugar;
@@ -8,7 +8,10 @@ async fn main() {
   let entry_a_js = Path::new("./fixtures/basic/entry-a.js").resolve();
   let mut bundler = Bundler::new(
     BundleOptions {
-      entries: vec!["./fixtures/basic/entry-a.js".to_owned()],
+      entries: HashMap::from([(
+        "main".to_string(),
+        "./fixtures/basic/entry-a.js".to_string().into(),
+      )]),
       outdir: "./dist".to_string(),
       ..Default::default()
     },

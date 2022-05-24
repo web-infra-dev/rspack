@@ -25,6 +25,7 @@ pub struct DynImportDesc {
 }
 
 pub struct JsModule {
+  pub kind: JsModuleKind,
   pub exec_order: i32,
   /**
    * module id for module render
@@ -37,7 +38,6 @@ pub struct JsModule {
   pub ast: ast::Module,
   pub dependencies: LinkedHashMap<JsWord, ()>,
   pub dyn_imports: HashSet<DynImportDesc>,
-  pub is_user_defined_entry_point: bool,
   pub resolved_uris: HashMap<JsWord, ResolvedURI>,
   pub chunk_ids: HashSet<String>,
   pub loader: Loader,
@@ -45,16 +45,13 @@ pub struct JsModule {
 impl std::fmt::Debug for JsModule {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("JsModule")
+      .field("kind", &self.kind)
       .field("exec_order", &self.exec_order)
       .field("uri", &self.uri)
       .field("id", &self.id)
       // .field("ast", &self.ast)
       .field("dependencies", &self.dependencies)
       .field("dyn_dependencies", &self.dyn_imports)
-      .field(
-        "is_user_defined_entry_point",
-        &self.is_user_defined_entry_point,
-      )
       // .field("dependency_resolver", &self.dependency_resolver)
       .finish()
   }
@@ -63,13 +60,13 @@ impl std::fmt::Debug for JsModule {
 impl JsModule {
   pub fn new() -> Self {
     Self {
+      kind: JsModuleKind::Normal,
       exec_order: Default::default(),
       uri: Default::default(),
       ast: Take::dummy(),
       id: Default::default(),
       dependencies: Default::default(),
       dyn_imports: Default::default(),
-      is_user_defined_entry_point: Default::default(),
       resolved_uris: Default::default(),
       chunk_ids: Default::default(),
       // TODO: We should not initialize loader using default value, it’s easy to forget and buggy.
@@ -132,7 +129,7 @@ impl JsModule {
             self.id.to_string(),
             bundle.top_level_mark,
             &self.resolved_uris,
-            self.is_user_defined_entry_point,
+            self.kind.is_user_entry(),
             modules,
             options.code_splitting.is_some(),
           )
@@ -165,5 +162,28 @@ impl JsModule {
       .map(|dep| &self.resolved_uris[dep].uri)
       .filter_map(|uri| module_by_uri.get(uri))
       .collect()
+  }
+}
+
+#[derive(Debug)]
+pub enum JsModuleKind {
+  UserEntry { name: String },
+  Normal,
+}
+
+impl JsModuleKind {
+  pub fn is_user_entry(&self) -> bool {
+    matches!(self, JsModuleKind::UserEntry { .. })
+  }
+
+  pub fn is_normal(&self) -> bool {
+    matches!(self, JsModuleKind::Normal)
+  }
+
+  pub fn name(&self) -> Option<&str> {
+    match self {
+      Self::UserEntry { name } => Some(name.as_str()),
+      _ => None,
+    }
   }
 }

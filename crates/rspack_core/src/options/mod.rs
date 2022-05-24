@@ -6,3 +6,8 @@ pub use bundle_options::*;
 pub use code_splitting::*;
 pub use dev_server::*;
 pub use loader::*;
+
+mod entry;
+pub use entry::*;
+mod optimization;
+pub use optimization::*;

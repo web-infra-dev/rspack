@@ -42,9 +42,9 @@ export async function run(options: BundlerOptions) {
 	const outdir = path.resolve(root, 'dist');
 	const bundler = new Rspack({
 		root,
-		entries: Object.values(entry),
+		entries: entry,
 		minify: false,
-		entryFileNames: '[name].js',
+		entryFilename: '[name].js',
 		outdir,
 		loader,
 		inlineStyle,
