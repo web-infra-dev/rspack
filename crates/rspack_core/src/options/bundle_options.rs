@@ -1,4 +1,4 @@
-use crate::{BundleEntries, CodeSplittingOptions, LoaderOptions, OptimizationOptions};
+use crate::{BundleEntries, BundleMode, CodeSplittingOptions, LoaderOptions, OptimizationOptions};
 use std::collections::HashMap;
 
 use rspack_swc::swc_ecma_transforms_react;
@@ -16,13 +16,6 @@ impl Default for BundleReactOptions {
       refresh: false,
     }
   }
-}
-
-#[derive(Debug, Clone)]
-pub enum BundleMode {
-  Dev,
-  Prod,
-  None,
 }
 
 #[derive(Debug, Clone)]
