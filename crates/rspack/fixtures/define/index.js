@@ -1,7 +1,8 @@
 import assert from "assert";
-import DO_NOT_CONVERTED8, { DO_NOT_CONVERTED7 } from "./lib";
-const { DO_NOT_CONVERTED9 } = require("./lib");
 const lib = require("./lib");
+
+const { DO_NOT_CONVERTED9 } = require("./lib");
+import DO_NOT_CONVERTED8, { DO_NOT_CONVERTED7 } from "./lib";
 
 TRUE;
 FALSE;
@@ -106,6 +107,7 @@ SHOULD_CONVERTED = SHOULD_CONVERTED = 205;
 aa = SHOULD_CONVERTED;
 SHOULD_CONVERTED == 206;
 207 == SHOULD_CONVERTED;
+CONVERTED_TO_MEMBER;
 
 // just make sure `MemberExpr` fold success.
 

@@ -1759,6 +1759,7 @@ version = "0.1.0"
 name = "rspack_plugin_define"
 version = "0.1.0"
 dependencies = [
+ "once_cell",
  "rspack_core",
  "rspack_swc",
  "serde",
