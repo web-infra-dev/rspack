@@ -19,13 +19,11 @@ pub fn code_splitting2(module_graph: &ModuleGraph, bundle_options: &BundleOption
     is_enable_code_spliting = false;
     is_reuse_exsting_chunk = false;
   }
-  let chunk_id_algo = &bundle_options.optimization.chunk_id_algo;
-  let workspace_root = &bundle_options.root;
 
-  let mut id_count = 0;
-  let mut gen_numeric_chunk_id = || {
-    id_count += 1;
-    format!("{:?}", id_count)
+  let mut id_generator = ChunkIdGenerator {
+    id_count: 0,
+    module_graph,
+    bundle_options,
   };
 
   let module_by_uri: &HashMap<String, JsModule> = &module_graph.module_by_id;
@@ -41,20 +39,7 @@ pub fn code_splitting2(module_graph: &ModuleGraph, bundle_options: &BundleOption
 
   // First we need to create entry chunk.
   for entry in &chunk_entries {
-    let name = {
-      let js_mod = module_by_uri.get(*entry).unwrap();
-      if let JsModuleKind::UserEntry { name } = &js_mod.kind {
-        name.to_string()
-      } else {
-        uri_to_chunk_name(workspace_root, &js_mod.uri)
-      }
-    };
-    let chunk_id = {
-      match chunk_id_algo {
-        ChunkIdAlgo::Named => name,
-        ChunkIdAlgo::Numeric => gen_numeric_chunk_id(),
-      }
-    };
+    let chunk_id = id_generator.gen_id(*entry);
     let entry_module_name = module_by_uri.get(*entry).unwrap().kind.name().unwrap();
     let chunk = Chunk::new(
       chunk_id,
@@ -78,20 +63,8 @@ pub fn code_splitting2(module_graph: &ModuleGraph, bundle_options: &BundleOption
             .entry(dyn_dep_module.uri.as_str())
             .or_insert_with_key(|mod_uri| {
               chunk_entries.push(*mod_uri);
-              let name = {
-                let js_mod = module_by_uri.get(*mod_uri).unwrap();
-                if let JsModuleKind::UserEntry { name } = &js_mod.kind {
-                  name.to_string()
-                } else {
-                  uri_to_chunk_name(workspace_root, &js_mod.uri)
-                }
-              };
-              let chunk_id = {
-                match chunk_id_algo {
-                  ChunkIdAlgo::Named => name,
-                  ChunkIdAlgo::Numeric => gen_numeric_chunk_id(),
-                }
-              };
+
+              let chunk_id = id_generator.gen_id(*mod_uri);
               let chunk =
                 Chunk::from_js_module(chunk_id, dyn_dep_module.uri.to_string(), ChunkKind::Normal);
 
@@ -231,4 +204,30 @@ pub fn code_splitting2(module_graph: &ModuleGraph, bundle_options: &BundleOption
 #[instrument(skip_all)]
 pub fn split_chunks(module_graph: &ModuleGraph, bundle_options: &BundleOptions) -> Vec<Chunk> {
   code_splitting2(module_graph, bundle_options)
+}
+
+struct ChunkIdGenerator<'me> {
+  id_count: usize,
+  bundle_options: &'me BundleOptions,
+  module_graph: &'me ModuleGraph,
+}
+
+impl<'me> ChunkIdGenerator<'me> {
+  pub fn gen_id(&mut self, module_id: &str) -> String {
+    match self.bundle_options.optimization.chunk_id_algo {
+      ChunkIdAlgo::Numeric => {
+        let id = self.id_count.to_string();
+        self.id_count += 1;
+        id
+      }
+      ChunkIdAlgo::Named => {
+        let js_mod = self.module_graph.module_by_id.get(module_id).unwrap();
+        if let JsModuleKind::UserEntry { name } = &js_mod.kind {
+          name.to_string()
+        } else {
+          uri_to_chunk_name(&self.bundle_options.root, &js_mod.uri)
+        }
+      }
+    }
+  }
 }
