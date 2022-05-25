@@ -1,3 +1,5 @@
+#![deny(clippy::all)]
+
 mod prefix;
 mod transfrom;
 use prefix::DefinePrefix;

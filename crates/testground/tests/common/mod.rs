@@ -3,7 +3,6 @@ use std::{collections::HashMap, path::Path};
 use node_binding::{normalize_bundle_options, RawOptions};
 use rspack::bundler::Bundler;
 use rspack_core::{BundleOptions, Plugin};
-use sugar_path::PathSugar;
 
 pub async fn compile(options: BundleOptions, plugins: Vec<Box<dyn Plugin>>) -> Bundler {
   let mut bundler = Bundler::new(options, plugins);
@@ -39,26 +38,10 @@ impl RawOptionsTestExt for RawOptions {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     let fixtures_dir = dir.join("fixtures").join(fixture_path);
     let pkg_path = fixtures_dir.join("rspack.config.json");
-    let options = {
+    let mut options = {
       if pkg_path.exists() {
         let pkg_content = std::fs::read_to_string(pkg_path).unwrap();
-        let mut options: RawOptions = serde_json::from_str(&pkg_content).unwrap();
-        options.entries = options
-          .entries
-          .into_iter()
-          .map(|(name, src)| {
-            (
-              name,
-              fixtures_dir
-                // FIXME: We sould not manually do it.
-                .join(Path::new(&src))
-                .resolve()
-                .to_str()
-                .unwrap()
-                .to_string(),
-            )
-          })
-          .collect();
+        let options: RawOptions = serde_json::from_str(&pkg_content).unwrap();
         options
       } else {
         RawOptions {
@@ -66,16 +49,21 @@ impl RawOptionsTestExt for RawOptions {
             "main".to_string(),
             fixtures_dir.join("index.js").to_str().unwrap().to_string(),
           )]),
-          root: Some(fixtures_dir.to_str().unwrap().to_string()),
           ..Default::default()
         }
       }
     };
+    assert!(
+      options.root.is_none(),
+      "You should not specify `root` in config. It would probably resolve to a wrong path"
+    );
+    options.root = Some(fixtures_dir.to_str().unwrap().to_string());
     options
   }
 }
 
 pub mod prelude {
   pub use super::RawOptionsTestExt;
+  use anyhow::ensure;
   pub use rspack_core::Plugin;
 }

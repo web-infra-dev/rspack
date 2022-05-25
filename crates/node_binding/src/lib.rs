@@ -1,3 +1,5 @@
+#![deny(clippy::all)]
+
 use std::path::Path;
 use std::sync::Arc;
 
@@ -175,7 +177,7 @@ pub fn rebuild(env: Env, rspack: External<Rspack>, chnaged_file: String) -> Resu
   )
 }
 #[napi(object)]
-struct ResolveRet {
+pub struct ResolveRet {
   pub status: bool,
   pub result: Option<String>,
 }
@@ -232,4 +234,4 @@ pub fn resolve_file(base_dir: String, import_path: String) -> Result<String> {
 
 // for dts generation only
 #[napi(object)]
-struct RspackInternal {}
+pub struct RspackInternal {}

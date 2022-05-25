@@ -8,6 +8,7 @@ use swc_common::Mark;
 
 use crate::NormalizedBundleOptions;
 
+#[allow(clippy::manual_non_exhaustive)]
 pub struct BundleContext {
   pub assets: Mutex<Vec<Asset>>,
   pub compiler: Arc<Compiler>,

@@ -1,3 +1,5 @@
+#![deny(clippy::all)]
+
 mod data_uri;
 mod json;
 use std::path::Path;

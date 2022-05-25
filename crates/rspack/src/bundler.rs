@@ -41,6 +41,7 @@ pub use rspack_core::BundleMode;
 pub use rspack_core::BundleOptions;
 
 #[derive(Debug)]
+#[allow(clippy::manual_non_exhaustive)]
 pub struct Bundler {
   pub options: Arc<NormalizedBundleOptions>,
   pub plugin_driver: Arc<PluginDriver>,
@@ -186,8 +187,6 @@ impl Bundler {
       .iter()
       .for_each(|asset| {
         let mut path = PathBuf::from(self.options.outdir.clone());
-        // .map(PathBuf::from)
-        // .unwrap_or_else(|| std::env::current_dir().unwrap());
         path.push(&asset.filename);
         std::fs::create_dir_all(path.resolve().parent().unwrap()).unwrap();
         std::fs::write(path.resolve(), &asset.source).unwrap();

@@ -1,3 +1,5 @@
+#![deny(clippy::all)]
+
 mod react_hmr;
 use async_trait::async_trait;
 use react_hmr::{

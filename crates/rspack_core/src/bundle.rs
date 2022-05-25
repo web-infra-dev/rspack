@@ -2,10 +2,11 @@ use std::collections::HashMap;
 use std::sync::atomic::Ordering;
 use std::sync::{atomic::AtomicUsize, Arc};
 
+use crate::path::gen_module_id;
 use crate::task::Task;
 use crate::{
   plugin_hook, BundleContext, BundleEntries, EntryItem, ImportKind, JsModule, JsModuleKind,
-  ModuleGraph, NormalizedBundleOptions, PluginDriver, ResolvedURI,
+  ModuleGraph, ModuleIdAlgo, NormalizedBundleOptions, PluginDriver, ResolvedURI,
 };
 use crossbeam::queue::SegQueue;
 use dashmap::DashSet;
@@ -123,6 +124,7 @@ impl Bundle {
       .map(|(name, rid)| (rid.uri.clone(), name.clone()))
       .collect::<HashMap<_, _>>();
 
+    let mut module_id_count = 0;
     while active_task_count.load(Ordering::SeqCst) != 0 {
       match rx.recv().await {
         Some(job) => match job {
@@ -132,6 +134,13 @@ impl Bundle {
               .map_or(JsModuleKind::Normal, |name| JsModuleKind::UserEntry {
                 name: name.clone(),
               });
+            module.id = match self.context.options.optimization.module_id_algo {
+              ModuleIdAlgo::Numeric => {
+                module_id_count += 1;
+                module_id_count.to_string()
+              }
+              ModuleIdAlgo::Named => gen_module_id(&self.context.options.root, &module.uri),
+            };
             self
               .module_graph
               .module_by_id
