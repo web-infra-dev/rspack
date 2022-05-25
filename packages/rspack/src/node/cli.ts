@@ -1,6 +1,6 @@
 import path from 'path';
 const yargs: typeof import('yargs') = require('yargs');
-import { run } from './build';
+import { run } from './core';
 
 // build({ main: path.resolve(__dirname, '../fixtures/index.js') });
 
