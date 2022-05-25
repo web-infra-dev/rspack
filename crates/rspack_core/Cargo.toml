@@ -27,6 +27,7 @@ sourcemap = "6.0.2"
 indicatif = "0.16.2"
 strum = "0.24.0"
 strum_macros = "0.24"
+hashbrown = "0.12.1"
 
 [dev-dependencies]
 serde_json = "1.0.81"

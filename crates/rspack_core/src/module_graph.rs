@@ -97,3 +97,51 @@ impl ModuleGraph {
     self.ordered_modules = modules.iter().map(|m| m.uri.clone()).collect();
   }
 }
+
+#[derive(Debug, Default)]
+pub struct ModGraph {
+  uri_to_module: hashbrown::HashMap<String, JsModule>,
+  id_to_uri: hashbrown::HashMap<String, String>,
+}
+
+impl ModGraph {
+  pub fn add_module(&mut self, module: JsModule) {
+    let uri = module.uri.clone();
+    let id = module.id.clone();
+    self.uri_to_module.insert(uri.clone(), module);
+    self.id_to_uri.insert(id, uri);
+  }
+
+  pub fn remove_by_uri(&mut self, uri: &str) -> Option<JsModule> {
+    let js_mod = self.uri_to_module.remove(uri)?;
+    self.id_to_uri.remove(&js_mod.id);
+    Some(js_mod)
+  }
+
+  pub fn remove_by_id(&mut self, id: &str) -> Option<JsModule> {
+    let uri = self.id_to_uri.get(id)?;
+    let js_mod = self.uri_to_module.remove(uri)?;
+    self.id_to_uri.remove(id);
+    Some(js_mod)
+  }
+
+  #[inline]
+  pub fn module_by_uri(&self, uri: &str) -> Option<&JsModule> {
+    self.uri_to_module.get(uri)
+  }
+
+  #[inline]
+  pub fn module_by_uri_mut(&mut self, uri: &str) -> Option<&mut JsModule> {
+    self.uri_to_module.get_mut(uri)
+  }
+
+  #[inline]
+  pub fn module_by_id(&self, id: &str) -> Option<&JsModule> {
+    self.uri_to_module.get(&self.id_to_uri[id])
+  }
+
+  #[inline]
+  pub fn module_by_id_mut(&mut self, id: &str) -> Option<&mut JsModule> {
+    self.uri_to_module.get_mut(&self.id_to_uri[id])
+  }
+}
