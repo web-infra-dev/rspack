@@ -2,7 +2,8 @@
   "name": "@rspack/core",
   "version": "0.0.1",
   "description": "",
-  "main": "index.ts",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "publishConfig": {
     "access": "public"
   },

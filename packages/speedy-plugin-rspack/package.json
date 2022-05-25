@@ -1,0 +1,17 @@
+{
+  "name": "speedy-plugin-rspack",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "speedy dev tests "
+  },
+  "devDependencies": {
+    "@rspack/core": "workspace:*",
+    "@speedy-js/speedy-core": "0.13.0",
+    "@speedy-js/speedy-types": "0.13.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
