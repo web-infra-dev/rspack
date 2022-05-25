@@ -1,73 +1,97 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
 use napi_derive::napi;
-use rspack_core::{BundleOptions, BundleReactOptions, Loader, ResolveOption};
+use rspack_core::{
+  BundleMode, BundleOptions, BundleReactOptions, CodeSplittingOptions, EntryItem, Loader,
+  ResolveOption,
+};
 use serde::Deserialize;
+
+mod enhanced;
+mod optimization;
+mod output;
+mod react;
+mod resolve;
+mod split_chunks;
+pub use enhanced::*;
+pub use optimization::*;
+pub use output::*;
+pub use react::*;
+pub use resolve::*;
+pub use split_chunks::*;
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawOptions {
+  pub mode: Option<String>,
   pub entries: HashMap<String, String>,
-  pub minify: Option<bool>,
   pub root: Option<String>,
-  pub outdir: Option<String>,
-  pub entry_filename: Option<String>,
   pub loader: Option<HashMap<String, String>>,
-  pub inline_style: Option<bool>,
-  pub alias: Option<HashMap<String, String>>,
-  pub refresh: Option<bool>,
-  pub source_map: Option<bool>,
-  pub code_splitting: Option<bool>,
-  pub svgr: Option<bool>,
-  pub lazy_compilation: Option<bool>,
-  pub progress: Option<bool>,
+  pub enhanced: Option<RawEnhancedOptions>,
+  pub optimization: Option<RawOptimizationOptions>,
+  pub output: Option<RawOutputOptions>,
+  pub resolve: Option<RawResolveOptions>,
 }
 
 pub fn normalize_bundle_options(options: RawOptions) -> BundleOptions {
-  let default_options = BundleOptions::default();
+  let mode: BundleMode = options.mode.map_or_else(
+    || {
+      // We might need to read NODE_ENV to try to resolve a BundleMode.
+      BundleMode::None
+    },
+    |mode_str| BundleMode::from_str(mode_str.as_str()).expect("unexpected bundle mode"),
+  );
 
+  let entries = options.entries;
+  let root = options
+    .root
+    .unwrap_or_else(|| BundleOptions::default().root);
+  let loader = options.loader.unwrap_or_default();
+  let enhanced = options.enhanced.unwrap_or_else(|| mode.into());
+  let optimization = options.optimization.unwrap_or_else(|| mode.into());
+  let outout = options.output.unwrap_or_else(|| mode.into());
+  let resolve = options.resolve.unwrap_or_else(|| mode.into());
+  let react = enhanced.react.unwrap_or_else(|| mode.into());
+  let split_chunks = optimization.split_chunks.unwrap_or_else(|| mode.into());
   BundleOptions {
-    entries: options
-      .entries
-      .into_iter()
-      .map(|(name, src)| (name, src.into()))
-      .collect(),
-    minify: options.minify.unwrap_or(default_options.minify),
-    root: options.root.unwrap_or(default_options.root),
-    outdir: options.outdir.unwrap_or(default_options.outdir),
-    entry_filename: options
+    entries: parse_entries(entries),
+    root,
+    minify: optimization.minify.unwrap_or_else(|| mode.is_prod()),
+    outdir: outout
+      .outdir
+      .unwrap_or_else(|| BundleOptions::default().outdir),
+    entry_filename: outout
       .entry_filename
-      .unwrap_or(default_options.entry_filename),
-    loader: options.loader.map_or(Default::default(), parse_loader),
-    inline_style: options.inline_style.unwrap_or(default_options.inline_style),
+      .unwrap_or_else(|| BundleOptions::default().entry_filename),
+    loader: parse_loader(loader),
+    inline_style: enhanced.inline_style.unwrap_or(false),
     resolve: ResolveOption {
-      alias: options.alias.map_or(default_options.resolve.alias, |op| {
-        op.into_iter()
-          .map(|(s1, s2)| (s1, Some(s2)))
-          .collect::<Vec<_>>()
-      }),
+      alias: resolve.alias.map_or(Default::default(), parse_raw_alias),
       ..Default::default()
     },
     react: BundleReactOptions {
-      refresh: options.refresh.unwrap_or(default_options.react.refresh),
+      refresh: react.fast_fresh.unwrap_or_else(|| mode.is_dev()),
       ..Default::default()
     },
-    source_map: options.source_map.unwrap_or(default_options.source_map),
-    code_splitting: options
+    source_map: outout.source_map.unwrap_or(true),
+    code_splitting: split_chunks
       .code_splitting
-      .map_or(Some(Default::default()), |flag| {
-        if flag {
-          Some(Default::default())
+      .map(|is_enable| {
+        if is_enable {
+          Some(CodeSplittingOptions {
+            reuse_existing_chunk: split_chunks
+              .reuse_exsting_chunk
+              .unwrap_or_else(|| !mode.is_none()),
+          })
         } else {
           None
         }
-      }),
-    svgr: options.svgr.unwrap_or(default_options.svgr),
-    lazy_compilation: options
-      .lazy_compilation
-      .unwrap_or(BundleOptions::default().lazy_compilation),
-    progress: options.progress.unwrap_or(default_options.progress),
+      })
+      .unwrap_or_default(),
+    svgr: enhanced.svgr.unwrap_or(false),
+    lazy_compilation: enhanced.lazy_compilation.unwrap_or(false),
+    progress: enhanced.progress.unwrap_or(true),
     ..Default::default()
   }
 }
@@ -96,4 +120,18 @@ fn parse_loader(user_input: HashMap<String, String>) -> rspack_core::LoaderOptio
       Some((ext, loader))
     })
     .collect()
+}
+
+pub fn parse_entries(raw_entry: HashMap<String, String>) -> HashMap<String, EntryItem> {
+  raw_entry
+    .into_iter()
+    .map(|(name, src)| (name, src.into()))
+    .collect()
+}
+
+pub fn parse_raw_alias(alias: HashMap<String, String>) -> Vec<(String, Option<String>)> {
+  alias
+    .into_iter()
+    .map(|(s1, s2)| (s1, Some(s2)))
+    .collect::<Vec<_>>()
 }
