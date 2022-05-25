@@ -14,6 +14,7 @@ use swc_common::Mark;
 use tracing::instrument;
 
 use crate::chunk_spliter::ChunkSpliter;
+use crate::stats::Stats;
 use crate::utils::inject_built_in_plugins;
 use crate::utils::log::enable_tracing_by_env;
 use crate::utils::rayon::init_rayon_thread_poll;
@@ -92,7 +93,8 @@ impl Bundler {
   }
 
   #[instrument(skip(self))]
-  pub async fn build(&mut self, changed_files: Option<Vec<String>>) -> HashMap<String, String> {
+  pub async fn build(&mut self, changed_files: Option<Vec<String>>) -> Stats {
+    let start_time = std::time::Instant::now();
     self.plugin_driver.build_start().await;
     tracing::trace!("start build");
 
@@ -113,8 +115,13 @@ impl Bundler {
     });
 
     self.plugin_driver.build_end().await;
+    let end_time = std::time::Instant::now();
 
-    map
+    Stats {
+      map,
+      start_time,
+      end_time,
+    }
   }
 
   pub fn resolve(
@@ -148,7 +155,7 @@ impl Bundler {
       self.chunk_spliter.output_modules.remove(rd);
     });
 
-    let map = self.build(Some(changed_files)).await;
+    let Stats { map, .. } = self.build(Some(changed_files)).await;
 
     let new_modules_id = self
       .bundle

@@ -1,5 +1,6 @@
 use rspack::bundler::{BundleOptions, Bundler};
 
+use rspack::stats::Stats;
 use rspack_core::EntryItem;
 use rspack_core::Plugin;
 
@@ -28,11 +29,20 @@ pub fn compile_with_options(
   options: BundleOptions,
   plugins: Vec<Box<dyn Plugin>>,
 ) -> Bundler {
-  compile_with_options_inner(fixture_path, options, plugins)
+  let bundler = new_bundler(fixture_path, options, plugins);
+  compile_with_options_inner(bundler)
 }
 
-#[tokio::main]
-async fn compile_with_options_inner(
+pub fn compile_to_get_stats(
+  fixture_path: &str,
+  options: BundleOptions,
+  plugins: Vec<Box<dyn Plugin>>,
+) -> Stats {
+  let bundler = new_bundler(fixture_path, options, plugins);
+  compiler_to_get_stats_inner(bundler)
+}
+
+fn new_bundler(
   fixture_path: &str,
   options: BundleOptions,
   plugins: Vec<Box<dyn Plugin>>,
@@ -40,11 +50,11 @@ async fn compile_with_options_inner(
   let dir = Path::new(env!("CARGO_MANIFEST_DIR"));
   let fixtures_dir = dir.join("fixtures").join(fixture_path);
   let pkg_path = fixtures_dir.join("package.json");
-  let pkg_content = fs::read_to_string(pkg_path);
-  let mut pkg: Value = Value::default();
-  if pkg_content.is_ok() {
-    pkg = serde_json::from_str(&pkg_content.unwrap()).unwrap();
-  }
+  let pkg: Value = if let Ok(pkg) = fs::read_to_string(pkg_path) {
+    serde_json::from_str(&pkg).unwrap()
+  } else {
+    Default::default()
+  };
   // use pkg.rspack.entry if set otherwise use index.js as entry
   let pkg_entry = pkg["rspack"].clone()["entry"].clone();
   let entry: HashMap<String, EntryItem> = {
@@ -66,7 +76,7 @@ async fn compile_with_options_inner(
   let dist = fixtures_dir.join("dist");
   println!("entry: {:?}", entry);
   println!("options: \n {:?}", options);
-  let mut bundler = Bundler::new(
+  Bundler::new(
     BundleOptions {
       entries: entry.into_iter().map(From::from).collect(),
       outdir: dist.to_str().unwrap().to_string(),
@@ -74,10 +84,19 @@ async fn compile_with_options_inner(
       ..options
     },
     plugins,
-  );
+  )
+}
+
+#[tokio::main]
+async fn compile_with_options_inner(mut bundler: Bundler) -> Bundler {
   bundler.build(None).await;
   bundler.write_assets_to_disk();
   bundler
+}
+
+#[tokio::main]
+async fn compiler_to_get_stats_inner(mut bundler: Bundler) -> Stats {
+  bundler.build(None).await
 }
 
 pub fn assert_inline_sourcemap_in_pos(
