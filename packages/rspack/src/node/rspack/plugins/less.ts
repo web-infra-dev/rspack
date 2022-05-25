@@ -67,7 +67,7 @@ interface LessPluginOptions {
 export const LessPlugin = (options: LessPluginOptions): RspackPlugin => {
   return {
     name: 'rspack:less',
-    async onLoad({ id }) {
+    async load(id) {
       const callbackError = (err: Error) => {
         console.log(err);
       };
@@ -85,6 +85,5 @@ export const LessPlugin = (options: LessPluginOptions): RspackPlugin => {
 
       return null;
     },
-    async onResolve(context) {},
   };
 };

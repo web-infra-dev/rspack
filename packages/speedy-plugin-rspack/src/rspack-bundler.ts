@@ -4,10 +4,10 @@ import { Rspack, RspackPlugin } from '@rspack/core';
 function adapterPlugin(compiler: ISpeedyBundler): RspackPlugin {
   return {
     name: 'adapterPlugin',
-    onLoad: async (args) => {
+    load: async (...args) => {
       console.log('load args:', args);
     },
-    onResolve: async (args) => {
+    resolve: async (...args) => {
       console.log('resolve args:', args);
     },
   };

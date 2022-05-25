@@ -64,10 +64,7 @@ export async function run(options: RawOptions, command: 'dev' | 'build') {
         type: 'js-update',
         path: url,
         timestamp: Date.now(),
-        code:
-          Object.values(update).join(';\n') +
-          `invalidate(${JSON.stringify(url)})` +
-          sourceUrl,
+        code: Object.values(update).join(';\n') + `invalidate(${JSON.stringify(url)})` + sourceUrl,
       });
       console.timeEnd(`hmr:${url}`);
     });

@@ -1,7 +1,9 @@
-import type { OnLoadContext, OnLoadResult, OnResolveContext, OnResolveResult, ExternalObject } from '@rspack/binding';
+import type { OnLoadResult, OnResolveResult } from '@rspack/binding';
 
 export interface RspackPlugin {
   name: string;
-  onLoad(context: OnLoadContext): Promise<OnLoadResult | void>;
-  onResolve(context: OnResolveContext): Promise<OnResolveResult | void>;
+  buildStart?(): Promise<void>;
+  load?(id: string): Promise<OnLoadResult | void>;
+  resolve?(source: string, importer: string | undefined): Promise<OnResolveResult | void>;
+  buildEnd?(): Promise<void>;
 }

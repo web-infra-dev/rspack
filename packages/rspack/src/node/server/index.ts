@@ -10,7 +10,7 @@ import Rspack from '../rspack';
 interface DevOptions {
   root: string;
   public: string;
-  bundler: Rspack
+  bundler: Rspack;
 }
 export class DevServer {
   #app;
@@ -22,13 +22,13 @@ export class DevServer {
     const outdir = path.resolve(options.root, options.public);
     console.log('public:', outdir);
     app.use(history());
-    if(options.bundler.options.lazyCompiler) {
+    if (options.bundler.options.lazyCompiler) {
       app.use(async (req, res, next) => {
-        if(fs.existsSync(path.join(outdir, req.url))) {
+        if (fs.existsSync(path.join(outdir, req.url))) {
           await options.bundler.lazyBuild(req.url.slice(1));
         }
         next();
-      })
+      });
     }
     app.use(
       sirv(outdir, {
