@@ -30,44 +30,21 @@ export type BundlerOptions = Partial<RawOptions> & {
   command: 'dev' | 'build';
 };
 
-export async function run(options: BundlerOptions) {
-  const { root, entry, loader, inlineStyle, alias, react } = options;
-
+export async function run(options: RawOptions, command: 'dev' | 'build') {
   console.time('build');
-  const outdir = path.resolve(root, 'dist');
+  const root = options.root;
+  const outdir = path.resolve(options.root, 'dist');
   const bundler = new Rspack({
-    root,
-    entries: entry,
-    output: {
-      outdir,
-      sourceMap: options.sourceMap,
-    },
-    enhanced: {
-      inlineStyle,
-      react: {
-        fastFresh: options.react.refresh,
-      },
-      svgr: options.svgr,
-      lazyCompilation: options.lazyCompilation,
-    },
-    resolve: {
-      alias,
-    },
-    loader,
-    optimization: {
-      splitChunks: {
-        codeSplitting: options.codeSplitting,
-      },
-    },
+    ...options,
 
-    plugins: [LessPlugin({ root })],
+    plugins: [LessPlugin({ root: options.root })],
   });
   await bundler.build();
   /**
    * comment out to diagnostics node not exit problem
    */
   // log();
-  if (options.command === 'dev') {
+  if (command === 'dev') {
     // const entry = path.resolve(root, 'index.js');
     const watcher = chokidar.watch(root, {
       ignored: path.resolve(root, 'dist'),

@@ -1,6 +1,7 @@
 {
   "$schema": "http://json-schema.org/schema",
   "type": "object",
+  "additionalProperties": false,
   "properties": {
     "mode": {
       "type": "string",
@@ -8,11 +9,115 @@
     },
     "entries": {
       "type": "object",
+      "additionalProperties": false,
       "patternProperties": {
         ".*": {
           "type": "string"
         }
       }
+    },
+    "loader": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        ".*": {
+          "type": "string",
+          "enum": [
+            "css",
+            "less",
+            "sass",
+            "dataURI",
+            "js",
+            "jsx",
+            "ts",
+            "tsx",
+            "null",
+            "json",
+            "text"
+          ]
+        }
+      }
+    },
+    "resolve": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "alias": {
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            ".*": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "outdir": {
+          "type": "string"
+        },
+        "entryFilename": {
+          "type": "string"
+        },
+        "sourceMap": {
+          "type": "boolean"
+        }
+      }
+    },
+    "optimization": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "minify": {
+          "type": "boolean"
+        },
+        "splitChunks": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "codeSplitting": {
+              "type": "boolean"
+            },
+            "reuseExstingChunk": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "enhanced": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "svgr": {
+          "type": "boolean"
+        },
+        "progress": {
+          "type": "boolean"
+        },
+        "lazyCompilation": {
+          "type": "boolean"
+        },
+        "inlineStyle": {
+          "type": "boolean"
+        },
+        "react": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "fastRefresh": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "root": {
+      "type": "string"
     }
   },
   "required": ["entries"]
