@@ -39,10 +39,10 @@ describe('rspack', () => {
 
     const rspack = new Rspack({
       entries: { index: path.join(fixture, 'index.js') },
-      minify: false,
-      outdir: path.join(fixture, 'dist'),
       plugins: [plugin],
-      sourceMap: false,
+      output: {
+        sourceMap: false,
+      },
     });
 
     await rspack.build();
@@ -56,9 +56,10 @@ describe('rspack', () => {
 
     const rspack = new Rspack({
       entries: { index: path.join(fixture, 'index.js') },
-      minify: false,
-      outdir: path.join(fixture, 'dist'),
-      sourceMap: true,
+      output: {
+        outdir: path.join(fixture, 'dist'),
+        sourceMap: true,
+      },
     });
 
     await rspack.build();
