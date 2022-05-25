@@ -41,6 +41,7 @@ describe('rspack', () => {
       entries: { index: path.join(fixture, 'index.js') },
       plugins: [plugin],
       output: {
+        outdir: path.join(fixture, 'dist'),
         sourceMap: false,
       },
     });
