@@ -35,6 +35,7 @@ async fn named_chunk() -> anyhow::Result<()> {
     })],
   )
   .await;
+  println!("chunk_ids {:?}", chunk_ids);
   ensure!(chunk_ids.contains("main"));
   ensure!(chunk_ids.contains("src_bar_json"));
   ensure!(chunk_ids.contains("src_foo_js"));

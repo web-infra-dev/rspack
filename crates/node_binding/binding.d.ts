@@ -24,21 +24,41 @@ export interface OnResolveResult {
   uri: string
   external: boolean
 }
-export interface RawOptions {
-  entries: Record<string, string>
+export interface RawEnhancedOptions {
+  svgr?: boolean
+  progress?: boolean
+  lazyCompilation?: boolean
+  react?: RawReactOptions
+  inlineStyle?: boolean
+}
+export interface RawOptimizationOptions {
+  splitChunks?: RawSplitChunksOptions
   minify?: boolean
-  root?: string
+}
+export interface RawOutputOptions {
   outdir?: string
   entryFilename?: string
-  loader?: Record<string, string>
-  inlineStyle?: boolean
-  alias?: Record<string, string>
-  refresh?: boolean
   sourceMap?: boolean
+}
+export interface RawReactOptions {
+  fastFresh?: boolean
+}
+export interface RawResolveOptions {
+  alias?: Record<string, string>
+}
+export interface RawSplitChunksOptions {
   codeSplitting?: boolean
-  svgr?: boolean
-  lazyCompilation?: boolean
-  progress?: boolean
+  reuseExstingChunk?: boolean
+}
+export interface RawOptions {
+  mode?: string
+  entries: Record<string, string>
+  root?: string
+  loader?: Record<string, string>
+  enhanced?: RawEnhancedOptions
+  optimization?: RawOptimizationOptions
+  output?: RawOutputOptions
+  resolve?: RawResolveOptions
 }
 export function initCustomTraceSubscriber(): void
 export interface PluginCallbacks {
