@@ -67,6 +67,7 @@ function compile(argv: any) {
 		sourceMap: pkg?.rspack?.sourcemap ?? true,
 		codeSplitting: pkg?.rspack?.splitting ?? true,
 		svgr: pkg?.rspack?.svgr ?? true,
+		progress: pkg?.rspack?.progress ?? true,
 		lazyCompilation: pkg?.rspack.lazyCompilation ?? false,
 		command: argv.command,
 	});

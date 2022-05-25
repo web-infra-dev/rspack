@@ -1,3 +1,5 @@
+use std::env;
+
 use rspack_core::{NormalizedBundleOptions, Plugin};
 use rspack_plugin_stylesource::plugin::StyleSourcePlugin;
 
@@ -21,7 +23,9 @@ pub fn inject_built_in_plugins(
   }));
 
   // start --- injected user plugins
-  plugins.push(Box::new(rspack_plugin_progress::ProgressPlugin::new()));
+  if options.progress && env::var("CI").is_err() {
+    plugins.push(Box::new(rspack_plugin_progress::ProgressPlugin::new()));
+  }
   plugins.append(&mut user_plugins);
   // end --- injected user plugins
   plugins.push(Box::new(rspack_plugin_loader::LoaderInterpreterPlugin));
