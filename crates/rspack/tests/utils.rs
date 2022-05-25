@@ -81,7 +81,7 @@ async fn compile_with_options_inner(
 }
 
 pub fn assert_inline_sourcemap_in_pos(
-  dist_code: &String,
+  dist_code: &str,
   line_in_dist: u32,
   column_in_dist: u32,
   expected_in_source: &str,

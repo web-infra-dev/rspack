@@ -54,6 +54,7 @@ fn define() {
       ("IN_BLOCK", "SHOULD_BE_CONVERTED_IN_UNDEFINED_BLOCK"),
       ("M1.M2.M3", "{}"),
       ("SHOULD_CONVERTED", "205"),
+      ("CONVERTED_TO_MEMBER", "A1.A2.A3"),
     ]
     .map(|(k, v)| (k.to_string(), v.to_string())),
   );
@@ -111,34 +112,32 @@ fn define() {
   assert!(source.contains("\"\""));
   assert!(!source.contains("REGEXP; // tags"));
   assert!(!source.contains("ZERO.REGEXP"));
-  assert!(source.contains("0.ABC"));
+  assert!(source.contains("0..ABC"));
   assert!(source.contains("MEMBER_PROPS_SHOULD_DO_NOT_CONVERTED.ZERO"));
   assert!(source.contains("MEMBER_PROPS_SHOULD_DO_NOT_CONVERTED.REGEXP.REGEXP"));
   assert!(source.contains("/abc/i"));
   assert!(!source.contains("ARRAY;")); // ';` is just for positioning.
-  assert!(source.contains(&format!("[300, [{}]]", "\"six\"")));
+  let array = "    [\n        300,\n        [\n            \"six\"\n        ]\n    ]";
+  assert!(source.contains(&array));
   assert!(!source.contains("ARRAY[0]"));
-  assert!(source.contains(&format!("[300, [{}]][0]", "\"six\""))); // TODO: maybe could continue optimized.
+  assert!(source.contains(&format!("{}[0]", array))); // TODO: maybe could continue optimized.
   assert!(!source.contains("ARRAY[0][1]"));
-  assert!(source.contains(&format!("[300, [{}]][0][1]", "\"six\"")));
+  assert!(source.contains(&format!("{}[0][1]", array))); // TODO: maybe could continue optimized.
   assert!(!source.contains("ARRAY[1]"));
-  assert!(source.contains(&format!("[300, [{}]][1]", "\"six\"")));
+  assert!(source.contains(&format!("{}[1]", array))); // TODO: maybe could continue optimized.
   assert!(!source.contains("ARRAY[1][0]"));
-  assert!(source.contains(&format!("[300, [{}]][1][0]", "\"six\"")));
+  assert!(source.contains(&format!("{}[1][0]", array))); // TODO: maybe could continue optimized.
   assert!(!source.contains("ARRAY[1][0][0]"));
-  assert!(source.contains(&format!("[300, [{}]][1][0][0]", "\"six\"")));
+  assert!(source.contains(&format!("{}[1][0][0]", array))); // TODO: maybe could continue optimized.
   assert!(!source.contains("ARRAY[ARRAY]"));
-  assert!(source.contains(&format!("[300, [{}]][[300, [{}]]]", "\"six\"", "\"six\"")));
+  assert!(source.contains(&format!("{}[{}]", array, &array[4..])));
   assert!(!source.contains("OBJECT; // tags"));
   assert!(!source.contains("OBJECT.OBJ;"));
   assert!(!source.contains("OBJECT.OBJ.NUM;"));
   assert!(!source.contains("OBJECT.UNDEFINED;"));
   assert!(!source.contains("OBJECT.REGEXP;"));
   assert!(!source.contains("OBJECT.STR;"));
-  let obj = format!(
-    "({{UNDEFINED: undefined, REGEXP: /def/i, STR: {}, OBJ: {{ NUM: 1}}}})",
-    "\"string\""
-  );
+  let obj = "    ({\n        UNDEFINED: undefined,\n        REGEXP: /def/i,\n        STR: \"string\",\n        OBJ: {\n            NUM: 1\n        }\n    })";
   assert!(source.contains(&format!("{}.OBJ", obj)));
   assert!(source.contains(&format!("{}.OBJ.NUM", obj)));
   assert!(source.contains(&format!("{}.UNDEFINED", obj)));
@@ -149,7 +148,7 @@ fn define() {
   assert!(source.contains(&format!("{}, {}", "\"302\"", "\"302\"")));
   assert!(source.contains("303, 303"));
   assert!(source.contains("304, 304"));
-  assert!(source.contains("303.P4"));
+  assert!(source.contains("303..P4"));
   assert!(source.contains("P4.P1"));
   assert!(source.contains(&format!("{}.P1.P2", "\"302\"")));
   assert!(source.contains(&format!("{}.P3", "\"302\"")));
@@ -164,16 +163,18 @@ fn define() {
   assert!(source.contains("207 == 205"));
   assert!(!source.contains("M1.M2.M3.DO_NOT_CONVERTED6"));
   assert!(source.contains("M1, undefined"));
-  assert!(source.contains("({}).DO_NOT_CONVERTED6"));
   assert!(source.contains("{}.DO_NOT_CONVERTED5"));
+  assert!(source.contains("{}.DO_NOT_CONVERTED6"));
   assert!(source.contains("equal(IN_BLOCK, 2)"));
   assert!(source.contains("SHOULD_BE_CONVERTED_IN_UNDEFINED_BLOCK"));
+  assert!(!source.contains("CONVERTED_TO_MEMBER"));
+  assert!(source.contains("A1.A2.A3"));
 
   // identifier
   assert_inline_sourcemap_in_pos(source, 74, 4, "TRUE");
   // member// 2
   assert_inline_sourcemap_in_pos(source, 107, 4, "ARRAY");
-  assert_inline_sourcemap_in_pos(source, 129, 4, "P1.P2.P4");
+  assert_inline_sourcemap_in_pos(source, 223, 4, "P1.P2.P4");
   // assign
-  assert_inline_sourcemap_in_pos(source, 174, 4, "SHOULD_CONVERTED");
+  assert_inline_sourcemap_in_pos(source, 269, 4, "SHOULD_CONVERTED");
 }

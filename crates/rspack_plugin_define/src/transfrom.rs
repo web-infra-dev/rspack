@@ -1,5 +1,7 @@
 use crate::prefix::{DefinePrefix, PatMetaInfo};
-use rspack_core::ast::{self, Ident};
+use rspack_core::ast;
+use rspack_swc::swc_common::{sync::Lrc, FileName, SourceFile, Span};
+use rspack_swc::swc_ecma_parser::{lexer::Lexer, Parser, StringInput};
 use rspack_swc::swc_ecma_visit::{Fold, FoldWith};
 use std::collections::{HashMap, HashSet};
 
@@ -14,20 +16,28 @@ struct DefineTreeNode {
 }
 
 impl DefineTreeNode {
-  // fn parse_value(cm: &Lrc<SourceMap>, value: &str) -> ast::Expr {
-  //   let fm = cm.new_source_file(FileName::Anon, value.to_string());
-  //   let lexer = Lexer::new(
-  //     Default::default(),
-  //     Default::default(),
-  //     StringInput::from(&*fm),
-  //     None,
-  //   );
+  /// `span` is used to generated sourcemap.
+  fn parse_value(value: &str, span: &Span) -> ast::Expr {
+    let source_file = SourceFile::new(
+      FileName::Anon,
+      false,
+      FileName::Anon,
+      value.to_string(),
+      span.lo,
+    );
+    let fm = Lrc::new(source_file);
+    let lexer = Lexer::new(
+      Default::default(),
+      Default::default(),
+      StringInput::from(&*fm),
+      None,
+    );
 
-  //   match Parser::new_from(lexer).parse_expr() {
-  //     Ok(expr) => *expr,
-  //     Err(_) => panic!("{} had something wrong.", value),
-  //   }
-  // }
+    match Parser::new_from(lexer).parse_expr() {
+      Ok(expr) => *expr,
+      Err(_) => panic!("{} had something wrong.", value),
+    }
+  }
 
   // fn to_value(cm: &Lrc<SourceMap>, expr: &ast::Expr) -> String {
   //   let mut buf = vec![];
@@ -44,7 +54,7 @@ impl DefineTreeNode {
   //   String::from_utf8(buf).unwrap()
   // }
 
-  fn insert_to_may_exist_node(&mut self, key: String, value: String) {
+  fn insert_to_may_exist_node(&mut self, key: String, value: DefineValue) {
     let map = &mut self.children;
     match map.get_mut(&key) {
       Some(node) => {
@@ -58,7 +68,7 @@ impl DefineTreeNode {
     }
   }
 
-  fn walk(mut node: &mut DefineTreeNode, mut key: &str, value: String) {
+  fn walk(mut node: &mut DefineTreeNode, mut key: &str, value: DefineValue) {
     if key.contains('.') {
       let splitted: Vec<&str> = key.split('.').collect();
       let len = splitted.len();
@@ -341,7 +351,7 @@ impl DefineTransform {
 
   /// Check `Ident` could be renamed.
   /// If could, then return the renamed String, else return `None`.
-  fn ident_can_rename(&self, ident: &Ident) -> Option<String> {
+  fn ident_can_rename(&self, ident: &ast::Ident) -> Option<String> {
     let name = ident.sym.to_string();
     let ctxt = ident.span.ctxt;
     let info = PatMetaInfo { name, ctxt };
@@ -415,13 +425,7 @@ impl DefineTransform {
       MemberStats::BothIdent(list) => list
         .last()
         .and_then(|(_, node)| node.value.clone())
-        .map(|renamed| {
-          ast::Expr::Ident(ast::Ident {
-            sym: Self::to_code(renamed).into(),
-            optional: false,
-            span: member.span,
-          })
-        })
+        .map(|renamed| DefineTreeNode::parse_value(&renamed, &member.span))
         .unwrap_or_else(|| ast::Expr::Member(member)),
       MemberStats::ObjBothIdent(list) => {
         // We can continue to optimize in the following way:
@@ -430,11 +434,8 @@ impl DefineTransform {
         // 2. `a[1 + 1]` to `a[2]`, (I noticed that `webpack` had only dealled whithin `Ident`)
         let renamed = list.last().and_then(|(_, node)| node.value.clone());
         let obj = if let Some(renamed) = renamed {
-          Box::new(ast::Expr::Ident(ast::Ident {
-            sym: Self::to_code(renamed).into(),
-            optional: false,
-            span: member.span,
-          }))
+          let node = DefineTreeNode::parse_value(&renamed, &member.span);
+          Box::new(node)
         } else {
           member.obj
         };
@@ -459,24 +460,16 @@ impl DefineTransform {
     }
   }
 
-  fn to_code(sym: String) -> String {
-    if sym.starts_with('{') && sym.ends_with('}') {
-      format!("({})", sym)
-    } else {
-      sym
-    }
-  }
-
-  fn deal_with_ident(&self, ident: ast::Ident) -> ast::Ident {
+  fn deal_with_ident(&self, ident: ast::Ident) -> ast::Expr {
     let sym = self
       .ident_can_rename(&ident)
       .and_then(|sym| self.defintions.children.get(&sym))
-      .and_then(|node| node.value.clone())
-      .unwrap_or_else(|| ident.sym.to_string());
+      .and_then(|node| node.value.clone());
 
-    ast::Ident {
-      sym: Self::to_code(sym).into(),
-      ..ident
+    if let Some(renamed) = sym {
+      DefineTreeNode::parse_value(&renamed, &ident.span)
+    } else {
+      ast::Expr::Ident(ident)
     }
   }
 }
@@ -484,16 +477,15 @@ impl DefineTransform {
 impl Fold for DefineTransform {
   fn fold_expr(&mut self, expr: ast::Expr) -> ast::Expr {
     match expr {
-      ast::Expr::Ident(ident) => ast::Expr::Ident(self.deal_with_ident(ident)),
+      ast::Expr::Ident(ident) => self.deal_with_ident(ident),
       ast::Expr::Member(member) => self.deal_with_member(member),
       ast::Expr::Assign(assign) => {
         let left = match assign.left {
           ast::PatOrExpr::Expr(expr) => ast::PatOrExpr::Expr(expr.fold_with(self)),
           ast::PatOrExpr::Pat(pat) => ast::PatOrExpr::Pat(match *pat {
-            ast::Pat::Ident(binding) => Box::new(ast::Pat::Ident(ast::BindingIdent {
-              id: self.deal_with_ident(binding.id),
-              ..binding
-            })),
+            ast::Pat::Ident(binding) => {
+              Box::new(ast::Pat::Expr(Box::new(self.deal_with_ident(binding.id))))
+            }
             _ => pat.fold_with(self),
           }),
         };
