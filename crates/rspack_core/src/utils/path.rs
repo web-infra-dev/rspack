@@ -32,3 +32,11 @@ pub fn uri_to_chunk_name(root: &str, uri: &str) -> String {
   name.push_str(&ext);
   name
 }
+
+pub fn gen_module_id(root: &str, uri: &str) -> String {
+  Path::new("./")
+    .join(Path::new(root).relative(uri))
+    .to_str()
+    .unwrap()
+    .to_string()
+}
