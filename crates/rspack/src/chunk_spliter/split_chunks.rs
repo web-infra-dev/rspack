@@ -3,12 +3,15 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use petgraph::graph::NodeIndex;
 use rspack_core::{
   path::uri_to_chunk_name, BundleOptions, Chunk, ChunkIdAlgo, ChunkKind, JsModule, JsModuleKind,
-  ModuleGraph,
+  ModuleGraphContainer,
 };
 use tracing::instrument;
 
 #[instrument(skip_all)]
-pub fn code_splitting2(module_graph: &ModuleGraph, bundle_options: &BundleOptions) -> Vec<Chunk> {
+pub fn code_splitting2(
+  module_graph: &ModuleGraphContainer,
+  bundle_options: &BundleOptions,
+) -> Vec<Chunk> {
   let code_splitting_options = &bundle_options.code_splitting;
   let is_enable_code_spliting;
   let is_reuse_exsting_chunk;
@@ -202,14 +205,17 @@ pub fn code_splitting2(module_graph: &ModuleGraph, bundle_options: &BundleOption
 }
 
 #[instrument(skip_all)]
-pub fn split_chunks(module_graph: &ModuleGraph, bundle_options: &BundleOptions) -> Vec<Chunk> {
+pub fn split_chunks(
+  module_graph: &ModuleGraphContainer,
+  bundle_options: &BundleOptions,
+) -> Vec<Chunk> {
   code_splitting2(module_graph, bundle_options)
 }
 
 struct ChunkIdGenerator<'me> {
   id_count: usize,
   bundle_options: &'me BundleOptions,
-  module_graph: &'me ModuleGraph,
+  module_graph: &'me ModuleGraphContainer,
 }
 
 impl<'me> ChunkIdGenerator<'me> {

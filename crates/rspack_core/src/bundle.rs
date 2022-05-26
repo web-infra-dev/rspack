@@ -6,7 +6,7 @@ use crate::path::gen_module_id;
 use crate::task::Task;
 use crate::{
   plugin_hook, BundleContext, BundleEntries, EntryItem, ImportKind, JsModule, JsModuleKind,
-  ModuleGraph, ModuleIdAlgo, NormalizedBundleOptions, PluginDriver, ResolvedURI,
+  ModuleGraphContainer, ModuleIdAlgo, NormalizedBundleOptions, PluginDriver, ResolvedURI,
 };
 use crossbeam::queue::SegQueue;
 use dashmap::DashSet;
@@ -20,7 +20,7 @@ pub struct Bundle {
   pub options: Arc<NormalizedBundleOptions>,
   pub context: Arc<BundleContext>,
   pub plugin_driver: Arc<PluginDriver>,
-  pub module_graph: ModuleGraph,
+  pub module_graph: ModuleGraphContainer,
   pub visited_module_id: Arc<DashSet<String>>,
   pub resolver: Arc<Resolver>,
 }

@@ -5,13 +5,13 @@ use petgraph::graph::NodeIndex;
 use tracing::instrument;
 
 #[derive(Debug, Default)]
-pub struct ModuleGraph {
+pub struct ModuleGraphContainer {
   pub resolved_entries: HashMap<String, ResolvedURI>,
   pub ordered_modules: Vec<String>,
   pub module_by_id: HashMap<String, JsModule>,
 }
 
-impl ModuleGraph {
+impl ModuleGraphContainer {
   #[instrument(skip(self))]
   pub fn sort_modules(&mut self) {
     let mut stack = self
