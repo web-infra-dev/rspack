@@ -165,7 +165,7 @@ pub fn build(env: Env, rspack: External<Rspack>) -> Result<JsObject> {
 }
 
 #[napi(ts_args_type = "rspack: ExternalObject<RspackInternal>, changedFile: string")]
-pub fn rebuild(env: Env, rspack: External<Rspack>, chnaged_file: String) -> Result<JsObject> {
+pub fn rebuild(env: Env, rspack: External<Rspack>, chnaged_file: Vec<String>) -> Result<JsObject> {
   let bundler = (*rspack).clone();
   env.execute_tokio_future(
     async move {

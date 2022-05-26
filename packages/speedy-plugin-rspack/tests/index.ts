@@ -1,1 +1,2 @@
-export const answer = 42;
+import { answer } from './answer';
+console.log({ answer });

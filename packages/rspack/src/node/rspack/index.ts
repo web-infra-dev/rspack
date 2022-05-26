@@ -17,14 +17,7 @@ const debugNapi = createDebug('napi');
 
 binding.initCustomTraceSubscriber();
 
-export type {
-  RawOptions,
-  OnLoadContext,
-  OnResolveResult,
-  OnLoadResult,
-  OnResolveContext,
-  RspackPlugin,
-};
+export type { RawOptions, OnLoadContext, OnResolveResult, OnLoadResult, OnResolveContext, RspackPlugin };
 
 interface RspackOptions extends RawOptions {
   plugins?: RspackPlugin[];
@@ -41,10 +34,7 @@ interface RspackThreadsafeResult<T> {
 }
 
 const createDummyResult = (callId: number): string => {
-  const result: RspackThreadsafeResult<null> = {
-    callId,
-    inner: null,
-  };
+  const result: RspackThreadsafeResult<null> = { callId, inner: null };
   return JSON.stringify(result);
 };
 
@@ -77,24 +67,20 @@ class Rspack {
           continue;
         }
 
-        return JSON.stringify({
-          callId: context.callId,
-          inner: result,
-        });
+        return JSON.stringify({ callId: context.callId, inner: result });
       }
 
       debugNapi('onLoadResult', null, 'context', context);
 
       return createDummyResult(context.callId);
     };
-
+    console.log('plugins:', plugins);
     const onResolve = async (err: Error, value: string): Promise<string> => {
       if (err) {
         throw err;
       }
 
-      const context: RspackThreadsafeContext<OnResolveContext> =
-        JSON.parse(value);
+      const context: RspackThreadsafeContext<OnResolveContext> = JSON.parse(value);
 
       for (const plugin of plugins) {
         const result = await plugin.onResolve(context.inner);
@@ -104,10 +90,7 @@ class Rspack {
           continue;
         }
 
-        return JSON.stringify({
-          callId: context.callId,
-          inner: result,
-        });
+        return JSON.stringify({ callId: context.callId, inner: result });
       }
 
       debugNapi('onResolveResult', null, 'context', context);
@@ -117,29 +100,18 @@ class Rspack {
 
     this.#instance = binding.newRspack(
       JSON.stringify(options),
-      isPluginExist
-        ? {
-            onloadCallback: onLoad,
-            onresolveCallback: onResolve,
-          }
-        : null
+      isPluginExist ? { onloadCallback: onLoad, onresolveCallback: onResolve } : null
     );
   }
 
   async build() {
-    const map = (await binding.build(this.#instance)) as unknown as Record<
-      string,
-      string
-    >;
+    const map = (await binding.build(this.#instance)) as unknown as Record<string, string>;
     this.setLazyCompilerMap(map);
     return map;
   }
 
-  async rebuild(changefile: string) {
-    const [diff, map] = (await binding.rebuild(
-      this.#instance,
-      changefile
-    )) as unknown as Record<string, string>[];
+  async rebuild(changefile: string[]) {
+    const [diff, map] = (await binding.rebuild(this.#instance, changefile)) as unknown as Record<string, string>[];
     this.setLazyCompilerMap(map);
     return diff;
   }

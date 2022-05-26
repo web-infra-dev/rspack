@@ -6621,6 +6621,7 @@ __metadata:
     husky: ^7.0.4
     lint-staged: ^12.4.0
     mocha: 9.2.2
+    prettier: 2.6.2
     tsm: 2.2.1
     why-is-node-running: 2.2.1
     yarn: ^1.22.18
@@ -7041,6 +7042,15 @@ __metadata:
   dependencies:
     splaytree: ^3.1.0
   checksum: ccf88044299f944a775b3a10605254134c6b06536527ed51b757944f7464b957764ab0db1852ed2de5f388d1a90e5eba7f2b0f13fa0ae651bc907f18eac81ddc
+  languageName: node
+  linkType: hard
+
+"prettier@npm:2.6.2":
+  version: 2.6.2
+  resolution: "prettier@npm:2.6.2"
+  bin:
+    prettier: bin-prettier.js
+  checksum: 48d08dde8e9fb1f5bccdd205baa7f192e9fc8bc98f86e1b97d919de804e28c806b0e6cc685e4a88211aa7987fa9668f30baae19580d87ced3ed0f2ec6572106f
   languageName: node
   linkType: hard
 
