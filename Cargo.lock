@@ -1711,6 +1711,7 @@ dependencies = [
  "crossbeam",
  "dashmap",
  "futures",
+ "hashbrown 0.12.1",
  "indicatif",
  "linked-hash-map",
  "nodejs-resolver 0.0.11",

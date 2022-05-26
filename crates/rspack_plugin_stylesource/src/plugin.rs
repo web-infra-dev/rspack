@@ -196,7 +196,7 @@ impl Plugin for StyleSourcePlugin {
     let mut wait_sort_list: Vec<SytleReferenceInfo> = vec![];
     for css_source in css_source_list
       .iter_mut()
-      .filter(|x| chunk.module_ids.contains(&x.file_path))
+      .filter(|x| chunk.module_uris.contains(&x.file_path))
     {
       for (filepath, source) in css_source.source_content_map.as_ref().unwrap() {
         if let Some(item) = wait_sort_list.iter_mut().find(|x| x.filepath == *filepath) {

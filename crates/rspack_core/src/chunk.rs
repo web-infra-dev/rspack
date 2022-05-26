@@ -22,16 +22,16 @@ pub struct Chunk {
   pub filename: Option<String>,
   // pub order_modules: Vec<String>,
   pub entry_uri: String,
-  pub module_ids: HashSet<String>,
+  pub module_uris: HashSet<String>,
   _noop: (),
 }
 
 impl Chunk {
-  pub fn new(id: String, module_ids: HashSet<String>, entries: String, kind: ChunkKind) -> Self {
+  pub fn new(id: String, module_uris: HashSet<String>, entries: String, kind: ChunkKind) -> Self {
     Self {
       id,
       filename: Default::default(),
-      module_ids,
+      module_uris,
       entry_uri: entries,
       // source_chunks: Default::default(),
       kind,
@@ -39,12 +39,12 @@ impl Chunk {
     }
   }
 
-  pub fn from_js_module(id: String, module_id: String, kind: ChunkKind) -> Self {
+  pub fn from_js_module(id: String, module_uri: String, kind: ChunkKind) -> Self {
     Self {
       id,
       filename: Default::default(),
-      module_ids: Default::default(),
-      entry_uri: module_id,
+      module_uris: Default::default(),
+      entry_uri: module_uri,
       // source_chunks: Default::default(),
       kind,
       _noop: (),
@@ -60,21 +60,21 @@ impl Chunk {
     output_modules: &DashMap<String, Arc<TransformOutput>>,
   ) -> OutputChunk {
     let mut concattables: Vec<Box<dyn Source>> = vec![];
-    let modules = &bundle.module_graph.module_by_id;
-    let mut module_ids = self.module_ids.iter().collect::<Vec<_>>();
-    module_ids.sort_by_key(|id| 0 - modules[*id].exec_order);
+    let modules = &bundle.module_graph.module_graph;
+    let mut module_uris = self.module_uris.iter().collect::<Vec<_>>();
+    module_uris.sort_by_key(|id| 0 - modules.module_by_uri(*id).unwrap().exec_order);
 
     let mut not_transformed_module_ids: Vec<String> = vec![];
-    for id in module_ids.iter().cloned() {
-      if output_modules.get(id).is_none() && modules.get(id).is_some() {
-        not_transformed_module_ids.push(id.clone());
+    for uri in module_uris.iter().cloned() {
+      if output_modules.get(uri).is_none() && modules.module_by_uri(uri).is_some() {
+        not_transformed_module_ids.push(uri.clone());
       }
     }
 
     let rendered_modules = not_transformed_module_ids
       .par_iter()
-      .map(|id| {
-        let module = modules.get(id).unwrap();
+      .map(|uri| {
+        let module = modules.module_by_uri(uri).unwrap();
         module.render(&compiler, modules, options, &bundle.context)
       })
       .collect::<Vec<_>>();
@@ -86,7 +86,7 @@ impl Chunk {
       output_modules.insert(id.to_string(), Arc::new(output));
     }
 
-    module_ids.iter().cloned().for_each(|id| {
+    module_uris.iter().cloned().for_each(|id| {
       if let Some(transform_output) = output_modules.get(id) {
         if let Some(map_string) = &transform_output.map.as_ref() {
           let source_map = sourcemap::SourceMap::from_slice(map_string.as_bytes()).unwrap();
@@ -173,8 +173,12 @@ impl Chunk {
         let content_hash = {
           let mut hasher = DefaultHasher::new();
           // FIXME: contenthash is not stable now.
-          self.module_ids.iter().for_each(|module_id| {
-            let module = &bundle.module_graph.module_by_id[module_id];
+          self.module_uris.iter().for_each(|module_uri| {
+            let module = &bundle
+              .module_graph
+              .module_graph
+              .module_by_uri(module_uri)
+              .unwrap();
             module.ast.hash(&mut hasher);
           });
           hasher.finish()

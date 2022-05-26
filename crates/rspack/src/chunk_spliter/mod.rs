@@ -44,8 +44,8 @@ impl ChunkSpliter {
       let filename = chunk.generate_filename(&self.output_options, bundle);
       let entry_module = bundle
         .module_graph
-        .module_by_id
-        .get_mut(&chunk.entry_uri)
+        .module_graph
+        .module_by_uri_mut(&chunk.entry_uri)
         .unwrap();
       chunk.filename = Some(filename.clone());
       entry_module.add_chunk(filename);

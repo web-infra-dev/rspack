@@ -14,8 +14,8 @@ use swc_ecma_transforms_base::pass::noop;
 use tracing::instrument;
 
 use crate::{
-  hmr::hmr_module, syntax_by_loader, BundleContext, BundleMode, Loader, NormalizedBundleOptions,
-  ResolvedURI,
+  hmr::hmr_module, syntax_by_loader, BundleContext, BundleMode, Loader, ModuleGraph,
+  NormalizedBundleOptions, ResolvedURI,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -87,7 +87,7 @@ impl JsModule {
   pub fn render(
     &self,
     compiler: &Compiler,
-    modules: &HashMap<String, JsModule>,
+    modules: &ModuleGraph,
     options: &NormalizedBundleOptions,
     bundle: &BundleContext,
   ) -> TransformOutput {
@@ -145,28 +145,22 @@ impl JsModule {
     .unwrap()
   }
 
-  pub fn dependency_modules<'a>(
-    &self,
-    module_by_uri: &'a HashMap<String, JsModule>,
-  ) -> Vec<&'a JsModule> {
+  pub fn dependency_modules<'a>(&self, module_graph: &'a ModuleGraph) -> Vec<&'a JsModule> {
     self
       .dependencies
       .keys()
       .map(|dep| &self.resolved_uris[dep].uri)
-      .filter_map(|uri| module_by_uri.get(uri))
+      .filter_map(|uri| module_graph.module_by_uri(uri))
       .collect()
   }
 
-  pub fn dynamic_dependency_modules<'a>(
-    &self,
-    module_by_uri: &'a HashMap<String, JsModule>,
-  ) -> Vec<&'a JsModule> {
+  pub fn dynamic_dependency_modules<'a>(&self, module_graph: &'a ModuleGraph) -> Vec<&'a JsModule> {
     self
       .dyn_imports
       .iter()
       .map(|dyn_imp| &dyn_imp.argument)
       .map(|dep| &self.resolved_uris[dep].uri)
-      .filter_map(|uri| module_by_uri.get(uri))
+      .filter_map(|uri| module_graph.module_by_uri(uri))
       .collect()
   }
 }
