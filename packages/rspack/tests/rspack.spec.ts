@@ -44,7 +44,7 @@ describe('rspack', () => {
     expect(await fs.readFile(path.join(fixture, 'dist', 'index.js'), 'utf-8')).toMatchSnapshot();
   });
 
-  it('should generate correct source map', async () => {
+  it.skip('should generate correct source map', async () => {
     const fixture = path.join(fixtureRoot, 'source-map');
 
     const rspack = new Rspack({
