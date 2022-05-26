@@ -18,6 +18,7 @@ pub mod utils;
 pub use options::*;
 
 use rspack::bundler::Bundler as RspackBundler;
+use rspack::stats::Stats;
 
 #[cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))]
 #[global_allocator]
@@ -155,7 +156,7 @@ pub fn build(env: Env, rspack: External<Rspack>) -> Result<JsObject> {
   env.execute_tokio_future(
     async move {
       let mut bundler = bundler.lock().await;
-      let map = bundler.build(None).await;
+      let Stats { map, .. } = bundler.build(None).await;
       bundler.write_assets_to_disk();
       Ok(map)
     },
