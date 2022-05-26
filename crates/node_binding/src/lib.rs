@@ -5,16 +5,15 @@ use std::sync::Arc;
 
 use futures::lock::Mutex;
 use napi::bindgen_prelude::*;
-use napi::{
-  threadsafe_function::{ErrorStrategy, ThreadSafeResultContext, ThreadsafeFunction},
-  Env, JsObject, Result,
-};
+use napi::{Env, JsObject, Result};
 use napi_derive::napi;
 use nodejs_resolver::{ResolveResult, Resolver, ResolverOptions};
 
 pub mod adapter;
 mod options;
 pub mod utils;
+
+use adapter::utils::create_node_adapter_from_plugin_callbacks;
 pub use options::*;
 
 use rspack::bundler::Bundler as RspackBundler;
@@ -32,8 +31,10 @@ pub type Rspack = Arc<Mutex<RspackBundler>>;
 
 #[napi(object)]
 pub struct PluginCallbacks {
-  pub onload_callback: JsFunction,
-  pub onresolve_callback: JsFunction,
+  pub build_start_callback: JsFunction,
+  pub load_callback: JsFunction,
+  pub resolve_callback: JsFunction,
+  pub build_end_callback: JsFunction,
 }
 
 #[napi(ts_return_type = "ExternalObject<RspackInternal>")]
@@ -45,100 +46,7 @@ pub fn new_rspack(
 ) -> External<Rspack> {
   let options: RawOptions = serde_json::from_str(option_json.as_str()).unwrap();
 
-  let node_adapter = plugin_callbacks.map(
-    |PluginCallbacks {
-       onload_callback,
-       onresolve_callback,
-     }| {
-      let mut onload_tsfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled> =
-        onload_callback
-          .create_threadsafe_function(
-            0,
-            |ctx| ctx.env.create_string_from_std(ctx.value).map(|v| vec![v]),
-            |ctx: ThreadSafeResultContext<Promise<String>>| {
-              let return_value = ctx.return_value;
-
-              ctx
-                .env
-                .execute_tokio_future(
-                  async move {
-                    let result = return_value.await?;
-
-                    let load_result: adapter::RspackThreadsafeResult<
-                      Option<adapter::OnLoadResult>,
-                    > = serde_json::from_str(&result).expect("failed to evaluate onload result");
-
-                    tracing::debug!("onload result {:?}", load_result);
-
-                    let sender =
-                      adapter::REGISTERED_ON_LOAD_SENDERS.remove(&load_result.get_call_id());
-
-                    if let Some((_, sender)) = sender {
-                      sender
-                        .send(load_result.into_inner())
-                        .expect("unable to send");
-                    } else {
-                      panic!("unable to send");
-                    }
-
-                    Ok(())
-                  },
-                  |_, ret| Ok(ret),
-                )
-                .expect("failed to execute tokio future");
-            },
-          )
-          .unwrap();
-
-      let mut onresolve_tsfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled> =
-        onresolve_callback
-          .create_threadsafe_function(
-            0,
-            |ctx| ctx.env.create_string_from_std(ctx.value).map(|v| vec![v]),
-            |ctx: ThreadSafeResultContext<Promise<String>>| {
-              let return_value = ctx.return_value;
-
-              ctx
-                .env
-                .execute_tokio_future(
-                  async move {
-                    let result = return_value.await?;
-
-                    let resolve_result: adapter::RspackThreadsafeResult<
-                      Option<adapter::OnResolveResult>,
-                    > = serde_json::from_str(&result).expect("failed to evaluate onresolve result");
-
-                    tracing::debug!("[rspack:binding] onresolve result {:?}", resolve_result);
-
-                    let sender =
-                      adapter::REGISTERED_ON_RESOLVE_SENDERS.remove(&resolve_result.get_call_id());
-
-                    if let Some((_, sender)) = sender {
-                      sender
-                        .send(resolve_result.into_inner())
-                        .expect("unable to send");
-                    } else {
-                      panic!("unable to send");
-                    }
-
-                    Ok(())
-                  },
-                  |_, ret| Ok(ret),
-                )
-                .expect("failed to execute tokio future");
-            },
-          )
-          .unwrap();
-
-      onload_tsfn.unref(&env).unwrap();
-      onresolve_tsfn.unref(&env).unwrap();
-
-      adapter::RspackPluginNodeAdapter {
-        onload_tsfn,
-        onresolve_tsfn,
-      }
-    },
-  );
+  let node_adapter = create_node_adapter_from_plugin_callbacks(&env, plugin_callbacks);
 
   let mut plugins = vec![];
 

@@ -62,8 +62,10 @@ export interface RawOptions {
 }
 export function initCustomTraceSubscriber(): void
 export interface PluginCallbacks {
-  onloadCallback: (...args: any[]) => any
-  onresolveCallback: (...args: any[]) => any
+  buildStartCallback: (...args: any[]) => any
+  loadCallback: (...args: any[]) => any
+  resolveCallback: (...args: any[]) => any
+  buildEndCallback: (...args: any[]) => any
 }
 export function newRspack(optionJson: string, pluginCallbacks?: PluginCallbacks | undefined | null): ExternalObject<RspackInternal>
 export function build(rspack: ExternalObject<RspackInternal>): object

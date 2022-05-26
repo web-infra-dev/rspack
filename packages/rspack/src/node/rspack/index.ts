@@ -24,17 +24,20 @@ interface RspackOptions extends RawOptions {
 }
 
 interface RspackThreadsafeContext<T> {
-  readonly callId: number;
+  readonly id: number;
   readonly inner: T;
 }
 
 interface RspackThreadsafeResult<T> {
-  readonly callId: number;
+  readonly id: number;
   readonly inner: T;
 }
 
-const createDummyResult = (callId: number): string => {
-  const result: RspackThreadsafeResult<null> = { callId, inner: null };
+const createDummyResult = (id: number): string => {
+  const result: RspackThreadsafeResult<null> = {
+    id,
+    inner: null,
+  };
   return JSON.stringify(result);
 };
 
@@ -52,7 +55,31 @@ class Rspack {
 
     const isPluginExist = !!plugins.length;
 
-    const onLoad = async (err: Error, value: string): Promise<string> => {
+    const buildStart = async (err: Error, value: string): Promise<string> => {
+      if (err) {
+        throw err;
+      }
+
+      const context: RspackThreadsafeContext<void> = JSON.parse(value);
+
+      await Promise.all(plugins.map((plugin) => plugin.buildStart?.()));
+
+      return createDummyResult(context.id);
+    };
+
+    const buildEnd = async (err: Error, value: string): Promise<string> => {
+      if (err) {
+        throw err;
+      }
+
+      const context: RspackThreadsafeContext<void> = JSON.parse(value);
+
+      await Promise.all(plugins.map((plugin) => plugin.buildEnd?.()));
+
+      return createDummyResult(context.id);
+    };
+
+    const load = async (err: Error, value: string): Promise<string> => {
       if (err) {
         throw err;
       }
@@ -60,22 +87,28 @@ class Rspack {
       const context: RspackThreadsafeContext<OnLoadContext> = JSON.parse(value);
 
       for (const plugin of plugins) {
-        const result = await plugin.onLoad(context.inner);
+        const { id } = context.inner;
+        const result = await plugin.load?.(id);
         debugNapi('onLoadResult', result, 'context', context);
 
         if (isNil(result)) {
           continue;
         }
 
-        return JSON.stringify({ callId: context.callId, inner: result });
+        return JSON.stringify({
+          id: context.id,
+          inner: result,
+        });
       }
 
       debugNapi('onLoadResult', null, 'context', context);
 
-      return createDummyResult(context.callId);
+      return createDummyResult(context.id);
     };
+
     console.log('plugins:', plugins);
-    const onResolve = async (err: Error, value: string): Promise<string> => {
+
+    const resolve = async (err: Error, value: string): Promise<string> => {
       if (err) {
         throw err;
       }
@@ -83,24 +116,34 @@ class Rspack {
       const context: RspackThreadsafeContext<OnResolveContext> = JSON.parse(value);
 
       for (const plugin of plugins) {
-        const result = await plugin.onResolve(context.inner);
+        const { importer, importee } = context.inner;
+        const result = await plugin.resolve?.(importee, importer);
         debugNapi('onResolveResult', result, 'context', context);
 
         if (isNil(result)) {
           continue;
         }
 
-        return JSON.stringify({ callId: context.callId, inner: result });
+        return JSON.stringify({
+          id: context.id,
+          inner: result,
+        });
       }
 
       debugNapi('onResolveResult', null, 'context', context);
-
-      return createDummyResult(context.callId);
+      return createDummyResult(context.id);
     };
 
     this.#instance = binding.newRspack(
       JSON.stringify(options),
-      isPluginExist ? { onloadCallback: onLoad, onresolveCallback: onResolve } : null
+      isPluginExist
+        ? {
+            loadCallback: load,
+            resolveCallback: resolve,
+            buildStartCallback: buildStart,
+            buildEndCallback: buildEnd,
+          }
+        : null
     );
   }
 

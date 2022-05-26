@@ -54,10 +54,7 @@ function compile(argv: any) {
   rspackConfig.resolve ??= {};
   rspackConfig.resolve.alias ??= {};
   rspackConfig.resolve.alias = Object.fromEntries(
-    Object.entries(rspackConfig.resolve.alias).map(([key, value]) => [
-      key,
-      (value as string).replace('<ROOT>', root),
-    ])
+    Object.entries(rspackConfig.resolve.alias).map(([key, value]) => [key, (value as string).replace('<ROOT>', root)])
   );
 
   run(rspackConfig, argv.command);
