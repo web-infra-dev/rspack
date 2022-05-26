@@ -5,15 +5,18 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use nodejs_resolver::{Resolver, ResolverOptions};
+use rayon::prelude::*;
 use rspack_core::inject_options;
 use rspack_core::Bundle;
+use rspack_core::Chunk;
 use rspack_core::NormalizedBundleOptions;
 use rspack_swc::swc_common;
 use sugar_path::PathSugar;
 use swc_common::Mark;
 use tracing::instrument;
 
-use crate::chunk_spliter::ChunkSpliter;
+use crate::chunk_spliter::split_chunks::split_chunks;
+use crate::chunk_spliter::OutputChunk;
 use crate::stats::Stats;
 use crate::utils::inject_built_in_plugins;
 use crate::utils::log::enable_tracing_by_env;
@@ -47,7 +50,6 @@ pub struct Bundler {
   pub options: Arc<NormalizedBundleOptions>,
   pub plugin_driver: Arc<PluginDriver>,
   pub bundle: Bundle,
-  pub chunk_spliter: ChunkSpliter,
   pub resolver: Arc<Resolver>,
   _noop: (),
 }
@@ -87,7 +89,6 @@ impl Bundler {
       plugin_driver: plugin_driver.clone(),
       resolver: resolver.clone(),
       bundle: Bundle::new(normalized_options.clone(), plugin_driver, ctx, resolver),
-      chunk_spliter: ChunkSpliter::new(normalized_options.clone()),
       _noop: (),
     }
   }
@@ -100,9 +101,10 @@ impl Bundler {
 
     self.bundle.build_graph(changed_files).await;
 
-    let output = self
-      .chunk_spliter
-      .generate(&self.plugin_driver, &mut self.bundle);
+    let output = {
+      let chunks = split_chunks(&self.bundle.module_graph, &self.options);
+      self.render_chunks(chunks)
+    };
 
     let mut map = HashMap::default();
 
@@ -152,7 +154,6 @@ impl Bundler {
     changed_files.iter().for_each(|rd| {
       self.bundle.module_graph.module_graph.remove_by_uri(rd);
       self.bundle.visited_module_id.remove(rd);
-      self.chunk_spliter.output_modules.remove(rd);
     });
 
     let Stats { map, .. } = self.build(Some(changed_files)).await;
@@ -172,9 +173,15 @@ impl Bundler {
         (
           module_id.to_string(),
           self
-            .chunk_spliter
-            .output_modules
-            .get(&module_id)
+            .bundle
+            .module_graph
+            .module_graph
+            .module_by_uri(&module_id)
+            .unwrap()
+            .cached_output
+            .lock()
+            .unwrap()
+            .as_ref()
             .unwrap()
             .code
             .clone(),
@@ -198,5 +205,23 @@ impl Bundler {
         std::fs::create_dir_all(path.resolve().parent().unwrap()).unwrap();
         std::fs::write(path.resolve(), &asset.source).unwrap();
       });
+  }
+
+  pub fn render_chunks(&self, mut chunks: Vec<Chunk>) -> HashMap<String, OutputChunk> {
+    let compiler = get_swc_compiler();
+    chunks
+      .par_iter_mut()
+      .map(|chunk| {
+        let chunk = chunk.render(&self.options, compiler.clone(), &self.bundle);
+        (
+          chunk.file_name.clone(),
+          OutputChunk {
+            code: chunk.code,
+            file_name: chunk.file_name,
+            entry: chunk.entry,
+          },
+        )
+      })
+      .collect()
   }
 }

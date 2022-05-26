@@ -1,10 +1,9 @@
 use crate::{Bundle, NormalizedBundleOptions};
-use dashmap::DashMap;
 use rayon::prelude::*;
 use rspack_sources::{
   ConcatSource, GenMapOption, RawSource, Source, SourceMapSource, SourceMapSourceOptions,
 };
-use rspack_swc::swc::{self, TransformOutput};
+use rspack_swc::swc::{self};
 use std::{
   collections::{hash_map::DefaultHasher, HashSet},
   hash::{Hash, Hasher},
@@ -57,50 +56,33 @@ impl Chunk {
     options: &NormalizedBundleOptions,
     compiler: Arc<Compiler>,
     bundle: &Bundle,
-    output_modules: &DashMap<String, Arc<TransformOutput>>,
   ) -> OutputChunk {
     let mut concattables: Vec<Box<dyn Source>> = vec![];
     let modules = &bundle.module_graph.module_graph;
     let mut module_uris = self.module_uris.iter().collect::<Vec<_>>();
     module_uris.sort_by_key(|id| 0 - modules.module_by_uri(*id).unwrap().exec_order);
 
-    let mut not_transformed_module_ids: Vec<String> = vec![];
-    for uri in module_uris.iter().cloned() {
-      if output_modules.get(uri).is_none() && modules.module_by_uri(uri).is_some() {
-        not_transformed_module_ids.push(uri.clone());
-      }
-    }
-
-    let rendered_modules = not_transformed_module_ids
+    let rendered_modules = module_uris
       .par_iter()
       .map(|uri| {
         let module = modules.module_by_uri(uri).unwrap();
-        module.render(&compiler, modules, options, &bundle.context)
+        module.render(&compiler, modules, &bundle.context)
       })
       .collect::<Vec<_>>();
 
-    for (id, output) in not_transformed_module_ids
-      .iter()
-      .zip(rendered_modules.into_iter())
-    {
-      output_modules.insert(id.to_string(), Arc::new(output));
-    }
-
-    module_uris.iter().cloned().for_each(|id| {
-      if let Some(transform_output) = output_modules.get(id) {
-        if let Some(map_string) = &transform_output.map.as_ref() {
-          let source_map = sourcemap::SourceMap::from_slice(map_string.as_bytes()).unwrap();
-          concattables.push(Box::new(SourceMapSource::new(SourceMapSourceOptions {
-            source_code: transform_output.code.clone(),
-            name: self.filename.as_ref().unwrap().clone(),
-            source_map,
-            original_source: None,
-            inner_source_map: None,
-            remove_original_source: false,
-          })));
-        } else {
-          concattables.push(Box::new(RawSource::new(&transform_output.code)));
-        }
+    rendered_modules.iter().for_each(|transform_output| {
+      if let Some(map_string) = &transform_output.map.as_ref() {
+        let source_map = sourcemap::SourceMap::from_slice(map_string.as_bytes()).unwrap();
+        concattables.push(Box::new(SourceMapSource::new(SourceMapSourceOptions {
+          source_code: transform_output.code.clone(),
+          name: self.filename.as_ref().unwrap().clone(),
+          source_map,
+          original_source: None,
+          inner_source_map: None,
+          remove_original_source: false,
+        })));
+      } else {
+        concattables.push(Box::new(RawSource::new(&transform_output.code)));
       }
     });
 

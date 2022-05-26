@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+  collections::{HashMap, HashSet},
+  sync::{Arc, Mutex},
+};
 
 use linked_hash_map::LinkedHashMap;
 use rspack_swc::{
@@ -14,8 +17,7 @@ use swc_ecma_transforms_base::pass::noop;
 use tracing::instrument;
 
 use crate::{
-  hmr::hmr_module, syntax_by_loader, BundleContext, BundleMode, Loader, ModuleGraph,
-  NormalizedBundleOptions, ResolvedURI,
+  hmr::hmr_module, syntax_by_loader, BundleContext, BundleMode, Loader, ModuleGraph, ResolvedURI,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -41,6 +43,7 @@ pub struct JsModule {
   pub resolved_uris: HashMap<JsWord, ResolvedURI>,
   pub chunk_ids: HashSet<String>,
   pub loader: Loader,
+  pub cached_output: Mutex<Option<Arc<TransformOutput>>>,
 }
 impl std::fmt::Debug for JsModule {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -77,6 +80,7 @@ impl JsModule {
       chunk_ids: Default::default(),
       // TODO: We should not initialize loader using default value, it’s easy to forget and buggy.
       loader: Default::default(),
+      cached_output: Default::default(),
     }
   }
   pub fn add_chunk(&mut self, chunk_id: String) {
@@ -88,61 +92,68 @@ impl JsModule {
     &self,
     compiler: &Compiler,
     modules: &ModuleGraph,
-    options: &NormalizedBundleOptions,
     bundle: &BundleContext,
-  ) -> TransformOutput {
+  ) -> Arc<TransformOutput> {
     use swc::config::{self as swc_config, SourceMapsConfig};
-
-    swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
-      let fm = compiler
-        .cm
-        .new_source_file(FileName::Custom(self.uri.to_string()), self.uri.to_string());
-      let source_map = if self.id.contains("node_modules") {
-        false
-      } else {
-        options.source_map
-      };
-      compiler.process_js_with_custom_pass(
-        fm,
-        Some(ast::Program::Module(self.ast.clone())),
-        handler,
-        &swc_config::Options {
-          config: swc_config::Config {
-            jsc: swc_config::JscConfig {
-              target: Some(EsVersion::Es2022),
-              syntax: Some(syntax_by_loader(self.uri.as_str(), &self.loader)),
-              transform: Some(swc_config::TransformConfig {
-                react: swc_ecma_transforms_react::Options {
-                  runtime: Some(swc_ecma_transforms_react::Runtime::Automatic),
+    let options = &bundle.options;
+    let mut cached_output = self.cached_output.lock().unwrap();
+    if let Some(cache) = cached_output.clone() {
+      cache
+    } else {
+      let output = swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
+        let fm = compiler
+          .cm
+          .new_source_file(FileName::Custom(self.uri.to_string()), self.uri.to_string());
+        let source_map = if self.id.contains("node_modules") {
+          false
+        } else {
+          options.source_map
+        };
+        compiler.process_js_with_custom_pass(
+          fm,
+          Some(ast::Program::Module(self.ast.clone())),
+          handler,
+          &swc_config::Options {
+            config: swc_config::Config {
+              jsc: swc_config::JscConfig {
+                target: Some(EsVersion::Es2022),
+                syntax: Some(syntax_by_loader(self.uri.as_str(), &self.loader)),
+                transform: Some(swc_config::TransformConfig {
+                  react: swc_ecma_transforms_react::Options {
+                    runtime: Some(swc_ecma_transforms_react::Runtime::Automatic),
+                    ..Default::default()
+                  },
                   ..Default::default()
-                },
+                })
+                .into(),
                 ..Default::default()
-              })
-              .into(),
+              },
+              inline_sources_content: true.into(),
+              emit_source_map_columns: (!matches!(options.mode, BundleMode::Dev)).into(),
+              source_maps: Some(SourceMapsConfig::Bool(source_map)),
               ..Default::default()
             },
-            inline_sources_content: true.into(),
-            emit_source_map_columns: (!matches!(options.mode, BundleMode::Dev)).into(),
-            source_maps: Some(SourceMapsConfig::Bool(source_map)),
+            top_level_mark: Some(bundle.top_level_mark),
             ..Default::default()
           },
-          top_level_mark: Some(bundle.top_level_mark),
-          ..Default::default()
-        },
-        |_, _| noop(),
-        |_, _| {
-          hmr_module(
-            self.id.to_string(),
-            bundle.top_level_mark,
-            &self.resolved_uris,
-            self.kind.is_user_entry(),
-            modules,
-            options.code_splitting.is_some(),
-          )
-        },
-      )
-    })
-    .unwrap()
+          |_, _| noop(),
+          |_, _| {
+            hmr_module(
+              self.id.to_string(),
+              bundle.top_level_mark,
+              &self.resolved_uris,
+              self.kind.is_user_entry(),
+              modules,
+              options.code_splitting.is_some(),
+            )
+          },
+        )
+      })
+      .unwrap();
+      let output = Arc::new(output);
+      *cached_output = Some(output.clone());
+      output
+    }
   }
 
   pub fn dependency_modules<'a>(&self, module_graph: &'a ModuleGraph) -> Vec<&'a JsModule> {

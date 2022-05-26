@@ -148,6 +148,7 @@ impl Task {
           .map(|(key, value)| (key, value))
           .collect(),
         loader: *loader,
+        cached_output: Default::default(),
       };
       self.tx.send(Msg::TaskFinished(module)).unwrap()
     }
