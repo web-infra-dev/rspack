@@ -182,7 +182,7 @@ pub fn code_splitting2(
           .for_each(|id_of_chunk_to_place_module| {
             let chunk_to_place_module = &mut chunk_graph[*id_of_chunk_to_place_module];
             chunk_to_place_module
-              .module_ids
+              .module_uris
               .insert(module_uri.to_string());
           });
 

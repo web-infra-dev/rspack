@@ -22,16 +22,16 @@ pub struct Chunk {
   pub filename: Option<String>,
   // pub order_modules: Vec<String>,
   pub entry_uri: String,
-  pub module_ids: HashSet<String>,
+  pub module_uris: HashSet<String>,
   _noop: (),
 }
 
 impl Chunk {
-  pub fn new(id: String, module_ids: HashSet<String>, entries: String, kind: ChunkKind) -> Self {
+  pub fn new(id: String, module_uris: HashSet<String>, entries: String, kind: ChunkKind) -> Self {
     Self {
       id,
       filename: Default::default(),
-      module_ids,
+      module_uris,
       entry_uri: entries,
       // source_chunks: Default::default(),
       kind,
@@ -39,12 +39,12 @@ impl Chunk {
     }
   }
 
-  pub fn from_js_module(id: String, module_id: String, kind: ChunkKind) -> Self {
+  pub fn from_js_module(id: String, module_uri: String, kind: ChunkKind) -> Self {
     Self {
       id,
       filename: Default::default(),
-      module_ids: Default::default(),
-      entry_uri: module_id,
+      module_uris: Default::default(),
+      entry_uri: module_uri,
       // source_chunks: Default::default(),
       kind,
       _noop: (),
@@ -61,7 +61,7 @@ impl Chunk {
   ) -> OutputChunk {
     let mut concattables: Vec<Box<dyn Source>> = vec![];
     let modules = &bundle.module_graph.module_graph;
-    let mut module_uris = self.module_ids.iter().collect::<Vec<_>>();
+    let mut module_uris = self.module_uris.iter().collect::<Vec<_>>();
     module_uris.sort_by_key(|id| 0 - modules.module_by_uri(*id).unwrap().exec_order);
 
     let mut not_transformed_module_ids: Vec<String> = vec![];
@@ -173,7 +173,7 @@ impl Chunk {
         let content_hash = {
           let mut hasher = DefaultHasher::new();
           // FIXME: contenthash is not stable now.
-          self.module_ids.iter().for_each(|module_uri| {
+          self.module_uris.iter().for_each(|module_uri| {
             let module = &bundle
               .module_graph
               .module_graph
