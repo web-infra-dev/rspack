@@ -35,8 +35,11 @@ impl Plugin for MockBuitinsPlugin {
   async fn load(&self, _ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
     if is_builtin_module(&args.id) {
       Some(LoadedSource {
-        loader: Some(Loader::Null),
-        content: Some(String::new()),
+        loader: Some(Loader::Js),
+        content: Some(
+          r#"var p=new Proxy(function(){},{get(){return p},set(){return!0},apply(){return p},constructor(){return p},defineProperty(){return!0},deleteProperty(){return!0},getOwnPropertyDescriptor(){return{value:p,writable:!0,enumerable:!0,configurable:!0,get(){return p},set(){return!0},}},getPrototypeOf(){return p},setPrototypeOf(){return!0},has(){return!0},isExtensible(){return!0},ownKeys(){return[]},preventExtensions(){return!0},});
+export default p;"#.to_owned(),
+        ),
       })
     } else {
       None
