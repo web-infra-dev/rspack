@@ -8,7 +8,7 @@ use tracing::instrument;
 pub struct ModuleGraphContainer {
   pub resolved_entries: HashMap<String, ResolvedURI>,
   pub ordered_modules: Vec<String>,
-  pub module_by_id: ModuleGraph,
+  pub module_graph: ModuleGraph,
 }
 
 impl ModuleGraphContainer {
@@ -26,7 +26,7 @@ impl ModuleGraphContainer {
     let mut visited = HashSet::new();
     let mut next_exec_order = 0;
     while let Some(uri) = stack.pop() {
-      let module = self.module_by_id.module_by_uri_mut(&uri).unwrap();
+      let module = self.module_graph.module_by_uri_mut(&uri).unwrap();
       if !visited.contains(&uri) {
         visited.insert(uri.clone());
         stack.push(uri);
@@ -56,7 +56,7 @@ impl ModuleGraphContainer {
     }
     stack = dyn_imports.into_iter().rev().collect();
     while let Some(uri) = stack.pop() {
-      let module = self.module_by_id.module_by_uri_mut(&uri).unwrap();
+      let module = self.module_graph.module_by_uri_mut(&uri).unwrap();
       if !visited.contains(&uri) {
         visited.insert(uri.clone());
         stack.push(uri);
@@ -74,7 +74,7 @@ impl ModuleGraphContainer {
         next_exec_order += 1;
       }
     }
-    let mut modules = self.module_by_id.modules().collect::<Vec<_>>();
+    let mut modules = self.module_graph.modules().collect::<Vec<_>>();
     modules.sort_by_key(|m| m.exec_order);
     tracing::trace!(
       "ordered {:#?}",

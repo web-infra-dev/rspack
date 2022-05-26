@@ -60,7 +60,7 @@ impl Chunk {
     output_modules: &DashMap<String, Arc<TransformOutput>>,
   ) -> OutputChunk {
     let mut concattables: Vec<Box<dyn Source>> = vec![];
-    let modules = &bundle.module_graph.module_by_id;
+    let modules = &bundle.module_graph.module_graph;
     let mut module_uris = self.module_ids.iter().collect::<Vec<_>>();
     module_uris.sort_by_key(|id| 0 - modules.module_by_uri(*id).unwrap().exec_order);
 
@@ -176,7 +176,7 @@ impl Chunk {
           self.module_ids.iter().for_each(|module_uri| {
             let module = &bundle
               .module_graph
-              .module_by_id
+              .module_graph
               .module_by_uri(module_uri)
               .unwrap();
             module.ast.hash(&mut hasher);

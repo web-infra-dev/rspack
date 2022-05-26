@@ -140,7 +140,7 @@ impl Bundler {
     let old_modules_uri = self
       .bundle
       .module_graph
-      .module_by_id
+      .module_graph
       .uris()
       .cloned()
       .filter(|id| !changed_files.contains(id))
@@ -150,7 +150,7 @@ impl Bundler {
 
     self.bundle.context.assets.lock().unwrap().clear();
     changed_files.iter().for_each(|rd| {
-      self.bundle.module_graph.module_by_id.remove_by_uri(rd);
+      self.bundle.module_graph.module_graph.remove_by_uri(rd);
       self.bundle.visited_module_id.remove(rd);
       self.chunk_spliter.output_modules.remove(rd);
     });
@@ -160,7 +160,7 @@ impl Bundler {
     let new_modules_id = self
       .bundle
       .module_graph
-      .module_by_id
+      .module_graph
       .uris()
       .cloned()
       .collect::<HashSet<_>>();

@@ -29,7 +29,7 @@ pub fn code_splitting2(
     bundle_options,
   };
 
-  let module_graph = &module_graph_container.module_by_id;
+  let module_graph = &module_graph_container.module_graph;
 
   let mut chunk_id_by_entry_module_uri = HashMap::new();
   let mut chunk_graph = petgraph::Graph::<Chunk, ()>::new();
@@ -234,7 +234,7 @@ impl<'me> ChunkIdGenerator<'me> {
       ChunkIdAlgo::Named => {
         let js_mod = self
           .module_graph
-          .module_by_id
+          .module_graph
           .module_by_uri(module_uri)
           .unwrap();
         if let JsModuleKind::UserEntry { name } = &js_mod.kind {

@@ -141,7 +141,7 @@ impl Bundle {
               }
               ModuleIdAlgo::Named => gen_module_id(&self.context.options.root, &module.uri),
             };
-            self.module_graph.module_by_id.add_module(module);
+            self.module_graph.module_graph.add_module(module);
             active_task_count.fetch_sub(1, Ordering::SeqCst);
           }
         },
