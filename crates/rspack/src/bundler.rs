@@ -137,20 +137,20 @@ impl Bundler {
   pub async fn rebuild(&mut self, changed_file: String) -> Vec<HashMap<String, String>> {
     tracing::debug!("rebuild because of {:?}", changed_file);
     let changed_files = vec![changed_file];
-    let old_modules_id = self
+    let old_modules_uri = self
       .bundle
       .module_graph
       .module_by_id
-      .keys()
+      .uris()
       .cloned()
       .filter(|id| !changed_files.contains(id))
       .collect::<HashSet<_>>();
 
-    tracing::trace!("old_modules_id {:?}", old_modules_id);
+    tracing::trace!("old_modules_id {:?}", old_modules_uri);
 
     self.bundle.context.assets.lock().unwrap().clear();
     changed_files.iter().for_each(|rd| {
-      self.bundle.module_graph.module_by_id.remove(rd);
+      self.bundle.module_graph.module_by_id.remove_by_uri(rd);
       self.bundle.visited_module_id.remove(rd);
       self.chunk_spliter.output_modules.remove(rd);
     });
@@ -161,12 +161,12 @@ impl Bundler {
       .bundle
       .module_graph
       .module_by_id
-      .keys()
+      .uris()
       .cloned()
       .collect::<HashSet<_>>();
     let diff_rendered = new_modules_id
       .into_iter()
-      .filter(|module_id| !old_modules_id.contains(module_id))
+      .filter(|module_id| !old_modules_uri.contains(module_id))
       .map(|module_id| {
         tracing::trace!("render new added module {:?}", module_id);
         (

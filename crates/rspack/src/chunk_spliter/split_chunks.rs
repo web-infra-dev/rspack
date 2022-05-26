@@ -9,7 +9,7 @@ use tracing::instrument;
 
 #[instrument(skip_all)]
 pub fn code_splitting2(
-  module_graph: &ModuleGraphContainer,
+  module_graph_container: &ModuleGraphContainer,
   bundle_options: &BundleOptions,
 ) -> Vec<Chunk> {
   let code_splitting_options = &bundle_options.code_splitting;
@@ -25,16 +25,16 @@ pub fn code_splitting2(
 
   let mut id_generator = ChunkIdGenerator {
     id_count: 0,
-    module_graph,
+    module_graph: module_graph_container,
     bundle_options,
   };
 
-  let module_by_uri: &HashMap<String, JsModule> = &module_graph.module_by_id;
+  let module_graph = &module_graph_container.module_by_id;
 
   let mut chunk_id_by_entry_module_uri = HashMap::new();
   let mut chunk_graph = petgraph::Graph::<Chunk, ()>::new();
 
-  let mut chunk_entries = module_graph
+  let mut chunk_entries = module_graph_container
     .resolved_entries
     .iter()
     .map(|(_name, rid)| rid.uri.as_str())
@@ -43,7 +43,12 @@ pub fn code_splitting2(
   // First we need to create entry chunk.
   for entry in &chunk_entries {
     let chunk_id = id_generator.gen_id(*entry);
-    let entry_module_name = module_by_uri.get(*entry).unwrap().kind.name().unwrap();
+    let entry_module_name = module_graph
+      .module_by_uri(*entry)
+      .unwrap()
+      .kind
+      .name()
+      .unwrap();
     let chunk = Chunk::new(
       chunk_id,
       Default::default(),
@@ -57,9 +62,9 @@ pub fn code_splitting2(
     chunk_id_by_entry_module_uri.insert(*entry, chunk_grpah_id);
   }
   if is_enable_code_spliting {
-    module_by_uri.values().for_each(|module| {
+    module_graph.modules().for_each(|module| {
       module
-        .dynamic_dependency_modules(module_by_uri)
+        .dynamic_dependency_modules(module_graph)
         .into_iter()
         .for_each(|dyn_dep_module| {
           chunk_id_by_entry_module_uri
@@ -85,8 +90,8 @@ pub fn code_splitting2(
     let mut queue = [*entry].into_iter().collect::<VecDeque<_>>();
     let mut visited = HashSet::new();
     while let Some(module_uri) = queue.pop_front() {
-      let module = module_by_uri
-        .get(module_uri)
+      let module = module_graph
+        .module_by_uri(module_uri)
         .unwrap_or_else(|| panic!("no entry found for key {:?}", module_uri));
       if !visited.contains(module_uri) {
         visited.insert(module_uri);
@@ -98,12 +103,12 @@ pub fn code_splitting2(
         // let chunk = &mut chunk_graph[chunk_id];
         // chunk.module_ids.push(module_uri.to_string());
         module
-          .dependency_modules(module_by_uri)
+          .dependency_modules(module_graph)
           .into_iter()
           .for_each(|dep_module| queue.push_back(&dep_module.uri));
         if !is_enable_code_spliting {
           module
-            .dynamic_dependency_modules(module_by_uri)
+            .dynamic_dependency_modules(module_graph)
             .into_iter()
             .for_each(|module| queue.push_back(&module.uri));
         }
@@ -113,9 +118,9 @@ pub fn code_splitting2(
     }
   }
 
-  module_by_uri.values().for_each(|each_mod| {
+  module_graph.modules().for_each(|each_mod| {
     each_mod
-      .dependency_modules(module_by_uri)
+      .dependency_modules(module_graph)
       .into_iter()
       .for_each(|dep_mod| {
         if let Some(dep_mod_chunk) = chunk_id_by_entry_module_uri.get(dep_mod.uri.as_str()) {
@@ -128,7 +133,7 @@ pub fn code_splitting2(
         }
       });
     each_mod
-      .dynamic_dependency_modules(module_by_uri)
+      .dynamic_dependency_modules(module_graph)
       .into_iter()
       .for_each(|dep_mod| {
         if let Some(chunk_id) = chunk_id_by_entry_module_uri.get(dep_mod.uri.as_str()) {
@@ -148,8 +153,8 @@ pub fn code_splitting2(
     let mut queue = [*entry].into_iter().collect::<VecDeque<_>>();
     let mut visited = HashSet::new();
     while let Some(module_uri) = queue.pop_front() {
-      let module = module_by_uri
-        .get(module_uri)
+      let module = module_graph
+        .module_by_uri(module_uri)
         .unwrap_or_else(|| panic!("no entry found for key {:?}", module_uri));
       if !visited.contains(module_uri) {
         visited.insert(module_uri);
@@ -182,12 +187,12 @@ pub fn code_splitting2(
           });
 
         module
-          .dependency_modules(module_by_uri)
+          .dependency_modules(module_graph)
           .into_iter()
           .for_each(|dep_module| queue.push_back(&dep_module.uri));
         if !is_enable_code_spliting {
           module
-            .dynamic_dependency_modules(module_by_uri)
+            .dynamic_dependency_modules(module_graph)
             .into_iter()
             .for_each(|module| queue.push_back(&module.uri));
         }
@@ -219,7 +224,7 @@ struct ChunkIdGenerator<'me> {
 }
 
 impl<'me> ChunkIdGenerator<'me> {
-  pub fn gen_id(&mut self, module_id: &str) -> String {
+  pub fn gen_id(&mut self, module_uri: &str) -> String {
     match self.bundle_options.optimization.chunk_id_algo {
       ChunkIdAlgo::Numeric => {
         let id = self.id_count.to_string();
@@ -227,7 +232,11 @@ impl<'me> ChunkIdGenerator<'me> {
         id
       }
       ChunkIdAlgo::Named => {
-        let js_mod = self.module_graph.module_by_id.get(module_id).unwrap();
+        let js_mod = self
+          .module_graph
+          .module_by_id
+          .module_by_uri(module_uri)
+          .unwrap();
         if let JsModuleKind::UserEntry { name } = &js_mod.kind {
           name.to_string()
         } else {

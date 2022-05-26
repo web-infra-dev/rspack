@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{swc_builder::dynamic_import_with_literal, JsModule, ResolvedURI};
+use crate::{swc_builder::dynamic_import_with_literal, JsModule, ModuleGraph, ResolvedURI};
 use ast::*;
 use rspack_swc::{
   swc_atoms, swc_common, swc_ecma_ast as ast, swc_ecma_transforms_base, swc_ecma_transforms_module,
@@ -20,7 +20,7 @@ pub fn hmr_module<'a>(
   top_level_mark: Mark,
   resolved_ids: &'a HashMap<JsWord, ResolvedURI>,
   entry_flag: bool,
-  modules: &'a HashMap<String, JsModule>,
+  modules: &'a ModuleGraph,
   code_splitting: bool,
 ) -> HmrModuleFolder<'a> {
   HmrModuleFolder {
@@ -36,7 +36,7 @@ pub fn hmr_module<'a>(
 }
 
 pub struct HmrModuleFolder<'a> {
-  pub modules: &'a HashMap<String, JsModule>,
+  pub modules: &'a ModuleGraph,
   pub file_name: String,
   pub top_level_mark: Mark,
   pub resolved_ids: &'a HashMap<JsWord, ResolvedURI>,
@@ -144,7 +144,7 @@ impl<'a> Fold for HmrModuleFolder<'a> {
 pub struct HmrModuleIdReWriter<'a> {
   pub resolved_ids: &'a HashMap<JsWord, ResolvedURI>,
   pub rewriting: bool,
-  pub modules: &'a HashMap<String, JsModule>,
+  pub modules: &'a ModuleGraph,
   pub code_splitting: bool,
 }
 
@@ -158,7 +158,7 @@ impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
       let rid = self.resolved_ids.get(&id).unwrap();
 
       let mut args = vec![];
-      if let Some(js_module) = self.modules.get(&rid.uri) {
+      if let Some(js_module) = self.modules.module_by_uri(&rid.uri) {
         let js_module_id = js_module.id.as_str();
         if let Some(chunk_id) = js_module.chunk_ids.iter().next() {
           args.push(Lit::Str(js_module_id.into()).as_arg());
@@ -216,8 +216,8 @@ impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
   fn visit_mut_str(&mut self, str: &mut Str) {
     if self.rewriting {
       if let Some(rid) = self.resolved_ids.get(&str.value) {
-        let id = &rid.uri;
-        let js_module = self.modules.get(id).unwrap();
+        let uri = &rid.uri;
+        let js_module = self.modules.module_by_uri(uri).unwrap();
         str.value = JsWord::from(js_module.id.as_str());
         str.raw = Some(JsWord::from(format!("\"{}\"", js_module.id)));
       }
