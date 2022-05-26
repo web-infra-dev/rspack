@@ -134,9 +134,9 @@ impl Bundler {
   }
 
   #[instrument(skip(self))]
-  pub async fn rebuild(&mut self, changed_file: String) -> Vec<HashMap<String, String>> {
+  pub async fn rebuild(&mut self, changed_file: Vec<String>) -> Vec<HashMap<String, String>> {
     tracing::debug!("rebuild because of {:?}", changed_file);
-    let changed_files = vec![changed_file];
+    let changed_files = changed_file;
     let old_modules_uri = self
       .bundle
       .module_graph

@@ -69,13 +69,11 @@ async fn main() {
     bundler.build(None).await;
     tokio::time::sleep(Duration::from_millis(3000)).await;
     bundler
-      .rebuild(
-        dir
-          .join("../../examples/arco-pro/src/components/NavBar/index.tsx")
-          .normalize()
-          .to_string_lossy()
-          .to_string(),
-      )
+      .rebuild(vec![dir
+        .join("../../examples/arco-pro/src/components/NavBar/index.tsx")
+        .normalize()
+        .to_string_lossy()
+        .to_string()])
       .await;
   };
   build_future.instrument(tracing::info_span!("build")).await;

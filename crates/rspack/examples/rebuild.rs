@@ -43,7 +43,7 @@ import('./asynced').then(console.log)
   )
   .unwrap();
   let rebuild_outout = bundler
-    .rebuild(entry_a_js.to_string_lossy().to_string())
+    .rebuild(vec![entry_a_js.to_string_lossy().to_string()])
     .await;
   println!("rebuild_outout: {:#?}", rebuild_outout);
   bundler.write_assets_to_disk();
