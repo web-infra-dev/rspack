@@ -56,23 +56,5 @@
       "pre-commit": "lint-staged"
     }
   },
-  "rspack": {
-    "entry": {
-      "index": "./src/index.tsx"
-    },
-    "loader": {
-      "json": "json",
-      "svg": "dataURI",
-      "less": "text",
-      "css": "css"
-    },
-    "alias": {
-      "@/": "<ROOT>/src/"
-    },
-    "sourcemap": false,
-    "splitting": true,
-    "react": {
-      "refresh": true
-    }
-  }
+  "rspack": {}
 }
