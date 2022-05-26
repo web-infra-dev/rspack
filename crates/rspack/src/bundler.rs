@@ -207,7 +207,23 @@ impl Bundler {
       });
   }
 
-  pub fn render_chunks(&self, mut chunks: Vec<Chunk>) -> HashMap<String, OutputChunk> {
+  pub fn render_chunks(&mut self, mut chunks: Vec<Chunk>) -> HashMap<String, OutputChunk> {
+    chunks.iter_mut().for_each(|chunk| {
+      let filename = chunk.generate_filename(&self.options, &self.bundle);
+      let entry_module = self
+        .bundle
+        .module_graph
+        .module_graph
+        .module_by_uri_mut(&chunk.entry_uri)
+        .unwrap();
+      chunk.filename = Some(filename.clone());
+      entry_module.add_chunk(filename);
+    });
+
+    chunks
+      .iter()
+      .for_each(|chunk| self.plugin_driver.tap_generated_chunk(chunk, &self.options));
+
     let compiler = get_swc_compiler();
     chunks
       .par_iter_mut()
