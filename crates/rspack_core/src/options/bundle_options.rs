@@ -56,6 +56,7 @@ pub struct BundleOptions {
   pub define: HashMap<String, String>,
   pub optimization: OptimizationOptions,
   pub progress: bool,
+  pub globals: HashMap<String, String>,
 }
 
 impl Default for BundleOptions {
@@ -89,6 +90,7 @@ impl Default for BundleOptions {
       define: Default::default(),
       optimization: Default::default(),
       progress: true,
+      globals: Default::default(),
     }
   }
 }

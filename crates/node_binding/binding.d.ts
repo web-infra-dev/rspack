@@ -30,6 +30,7 @@ export interface RawEnhancedOptions {
   lazyCompilation?: boolean
   react?: RawReactOptions
   inlineStyle?: boolean
+  globals?: Record<string, string>
 }
 export interface RawOptimizationOptions {
   splitChunks?: RawSplitChunksOptions

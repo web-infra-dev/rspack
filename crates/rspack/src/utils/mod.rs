@@ -38,6 +38,9 @@ pub fn inject_built_in_plugins(
     let stylesource_plugin: Box<StyleSourcePlugin> = std::default::Default::default();
     plugins.push(stylesource_plugin);
   }
+  if !options.globals.is_empty() {
+    plugins.push(Box::new(rspack_plugin_globals::GlobalsPlugin));
+  }
   plugins.push(Box::new(
     rspack_plugin_mock_buitins::MockBuitinsPlugin::new(),
   ));
