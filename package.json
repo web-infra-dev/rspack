@@ -39,7 +39,8 @@
   },
   "homepage": "https://github.com/speedy-js/rspack#readme",
   "lint-staged": {
-    "*.{rs}": "rustfmt --edition 2021"
+    "*.rs": "rustfmt --edition 2021",
+    "*.{ts,js}": "prettier --write"
   },
   "devDependencies": {
     "husky": "^7.0.4",
