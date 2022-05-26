@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use napi_derive::napi;
 use rspack_core::BundleMode;
 use serde::Deserialize;
@@ -13,6 +15,7 @@ pub struct RawEnhancedOptions {
   pub lazy_compilation: Option<bool>,
   pub react: Option<RawReactOptions>,
   pub inline_style: Option<bool>,
+  pub globals: Option<HashMap<String, String>>,
 }
 
 impl From<BundleMode> for RawEnhancedOptions {
@@ -23,6 +26,7 @@ impl From<BundleMode> for RawEnhancedOptions {
       lazy_compilation: Some(false),
       react: Some(mode.into()),
       inline_style: Some(false),
+      globals: Some(Default::default()),
     }
   }
 }
