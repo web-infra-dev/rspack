@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use async_trait::async_trait;
 use rspack_core::{
   BundleContext, LoadArgs, LoadedSource, Loader, OnResolveResult, Plugin, PluginLoadHookOutput,
