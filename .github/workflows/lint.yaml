@@ -11,7 +11,7 @@ on:
 jobs:
   lint:
     name: Lint
-    runs-on: [rspack]
+    runs-on: [ubuntu-latest]
     steps:
       - uses: actions/checkout@v2
 
