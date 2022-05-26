@@ -7,21 +7,11 @@ use tracing::instrument;
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
   pub resolved_entries: HashMap<String, ResolvedURI>,
-  pub id_to_node_idx: HashMap<String, NodeIndex>,
-  // pub relation_graph: ModulePetGraph,
   pub ordered_modules: Vec<String>,
   pub module_by_id: HashMap<String, JsModule>,
 }
 
 impl ModuleGraph {
-  pub fn node_idx_of_enties(&self) -> Vec<NodeIndex> {
-    self
-      .resolved_entries
-      .values()
-      .map(|rid| *self.id_to_node_idx.get(&rid.uri).unwrap())
-      .collect()
-  }
-
   #[instrument(skip(self))]
   pub fn sort_modules(&mut self) {
     let mut stack = self
