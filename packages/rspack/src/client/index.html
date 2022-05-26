@@ -80,6 +80,8 @@
            */
           if (chunk_id) {
             await import('http://127.0.01:4444/' + chunk_id);
+          } else {
+            await Promise.resolve();
           }
           const result = require(module_id);
           return result;
