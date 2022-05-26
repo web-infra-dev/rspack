@@ -25,11 +25,7 @@ impl Plugin for SvgrPlugin {
   }
   #[inline]
   async fn load(&self, _ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
-    let query_start = args
-      .id
-      .find(|c: char| c == '?')
-      .or(Some(args.id.len()))
-      .unwrap();
+    let query_start = args.id.find(|c: char| c == '?').unwrap_or(args.id.len());
     let file_path = Path::new(&args.id[..query_start]);
     let ext = file_path
       .extension()
@@ -53,7 +49,7 @@ impl Plugin for SvgrPlugin {
     mut ast: ast::Module,
   ) -> PluginTransformAstHookOutput {
     let id = _path.to_str().unwrap_or("");
-    let query_start = id.find(|c: char| c == '?').or(Some(id.len())).unwrap();
+    let query_start = id.find(|c: char| c == '?').unwrap_or(id.len());
     let file_path = Path::new(&id[..query_start]);
     let ext = file_path
       .extension()
@@ -74,7 +70,7 @@ impl Plugin for SvgrPlugin {
     loader: &mut Option<Loader>,
     raw: String,
   ) -> PluginTransformHookOutput {
-    let query_start = id.find(|c: char| c == '?').or(Some(id.len())).unwrap();
+    let query_start = id.find(|c: char| c == '?').unwrap_or(id.len());
     let file_path = Path::new(&id[..query_start]);
     let ext = file_path
       .extension()
