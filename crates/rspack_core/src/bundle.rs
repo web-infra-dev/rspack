@@ -20,7 +20,7 @@ pub struct Bundle {
   pub options: Arc<NormalizedBundleOptions>,
   pub context: Arc<BundleContext>,
   pub plugin_driver: Arc<PluginDriver>,
-  pub module_graph: ModuleGraphContainer,
+  pub module_graph_container: ModuleGraphContainer,
   pub visited_module_id: Arc<DashSet<String>>,
   pub resolver: Arc<Resolver>,
 }
@@ -44,7 +44,7 @@ impl Bundle {
       plugin_driver,
       context,
       options,
-      module_graph: Default::default(),
+      module_graph_container: Default::default(),
       visited_module_id: Default::default(),
       resolver,
     }
@@ -69,28 +69,29 @@ impl Bundle {
       });
     }
 
-    self.module_graph.resolved_entries = join_all(self.entries.iter().map(|(name, entry)| async {
-      (
-        name.clone(),
-        plugin_hook::resolve_id(
-          crate::ResolveArgs {
-            id: entry.src.clone(),
-            importer: None,
-            kind: ImportKind::Import,
-          },
-          false,
-          &self.plugin_driver,
-          &self.resolver,
+    self.module_graph_container.resolved_entries =
+      join_all(self.entries.iter().map(|(name, entry)| async {
+        (
+          name.clone(),
+          plugin_hook::resolve_id(
+            crate::ResolveArgs {
+              id: entry.src.clone(),
+              importer: None,
+              kind: ImportKind::Import,
+            },
+            false,
+            &self.plugin_driver,
+            &self.resolver,
+          )
+          .await,
         )
-        .await,
-      )
-    }))
-    .await
-    .into_iter()
-    .collect();
+      }))
+      .await
+      .into_iter()
+      .collect();
 
     self
-      .module_graph
+      .module_graph_container
       .resolved_entries
       .iter()
       .for_each(|(_, rd)| {
@@ -118,7 +119,7 @@ impl Bundle {
     }
 
     let entries_uri = self
-      .module_graph
+      .module_graph_container
       .resolved_entries
       .iter()
       .map(|(name, rid)| (rid.uri.clone(), name.clone()))
@@ -141,7 +142,7 @@ impl Bundle {
               }
               ModuleIdAlgo::Named => gen_module_id(&self.context.options.root, &module.uri),
             };
-            self.module_graph.module_graph.add_module(module);
+            self.module_graph_container.module_graph.add_module(module);
             active_task_count.fetch_sub(1, Ordering::SeqCst);
           }
         },
@@ -151,6 +152,6 @@ impl Bundle {
       }
     }
 
-    self.module_graph.sort_modules();
+    self.module_graph_container.sort_modules();
   }
 }
