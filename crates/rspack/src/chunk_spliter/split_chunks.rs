@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 
 use petgraph::graph::NodeIndex;
 use rspack_core::{
-  path::uri_to_chunk_name, BundleOptions, Chunk, ChunkIdAlgo, ChunkKind, JsModule, JsModuleKind,
+  path::uri_to_chunk_name, BundleOptions, Chunk, ChunkIdAlgo, ChunkKind, JsModuleKind,
   ModuleGraphContainer,
 };
 use tracing::instrument;

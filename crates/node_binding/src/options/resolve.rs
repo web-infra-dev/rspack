@@ -12,7 +12,7 @@ pub struct RawResolveOptions {
 }
 
 impl From<BundleMode> for RawResolveOptions {
-  fn from(mode: BundleMode) -> Self {
+  fn from(_mode: BundleMode) -> Self {
     Self {
       alias: Some(Default::default()),
     }

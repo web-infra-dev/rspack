@@ -1,21 +1,14 @@
 mod utils;
 
-use async_trait::async_trait;
-use rspack::bundler::{BundleContext, BundleOptions};
+use rspack::bundler::BundleOptions;
 use utils::{compile, compile_with_options};
 
-use rspack_core::{LoadArgs, Loader, ResolveArgs};
-use rspack_core::{
-  Plugin, PluginLoadHookOutput, PluginResolveHookOutput, PluginTransformAstHookOutput,
-};
+use rspack_core::Loader;
 
-use rspack_swc::swc_ecma_ast;
 use std::collections::HashMap;
 use std::env;
 use std::ffi::OsString;
 use std::path::Path;
-use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
 
 #[test]
 fn single_entry() {

@@ -12,7 +12,7 @@ pub struct RawOutputOptions {
 }
 
 impl From<BundleMode> for RawOutputOptions {
-  fn from(mode: BundleMode) -> Self {
+  fn from(_mode: BundleMode) -> Self {
     Self {
       outdir: Some(BundleOptions::default().outdir),
       entry_filename: Some(BundleOptions::default().entry_filename),
