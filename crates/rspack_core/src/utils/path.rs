@@ -10,7 +10,6 @@ pub fn normalize_path(path: &str, root: &str) -> String {
 }
 
 pub fn uri_to_chunk_name(root: &str, uri: &str) -> String {
-  println!("root {:?}", root);
   let path = Path::new(uri);
   let mut relatived = Path::new(root).relative(path);
   let ext = relatived

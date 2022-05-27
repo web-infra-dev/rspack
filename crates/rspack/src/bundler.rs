@@ -103,10 +103,10 @@ impl Bundler {
 
     self.bundle.build_graph(changed_files).await;
 
-    let output = {
-      let chunks = generate_chunks(&mut self.bundle);
-      self.render_chunks(chunks)
-    };
+    let chunks = generate_chunks(&mut self.bundle);
+    self.bundle.chunk_graph = chunks;
+
+    let output = self.render_chunks();
 
     let mut map = HashMap::default();
 
@@ -213,10 +213,12 @@ impl Bundler {
       });
   }
 
-  pub fn render_chunks(&self, mut chunks: ChunkGraph) -> HashMap<String, OutputChunk> {
-    chunks
-      .id_to_chunk_mut()
-      .par_iter_mut()
+  pub fn render_chunks(&self) -> HashMap<String, OutputChunk> {
+    self
+      .bundle
+      .chunk_graph
+      .id_to_chunk()
+      .par_iter()
       .map(|(_chunk_id, chunk)| {
         let chunk = chunk.render(&self.bundle);
         (
