@@ -3,7 +3,7 @@ use rspack_core::{
   get_swc_compiler,
 };
 use rspack_swc::{
-  swc_common::FileName,
+  swc_common::{FileName, Span},
   swc_ecma_parser::{Parser, StringInput, Syntax},
   swc_ecma_utils::DropSpan,
   swc_ecma_visit::{as_folder, FoldWith, VisitMut, VisitMutWith},
@@ -49,4 +49,66 @@ pub fn parse_expr(src: &str) -> Expr {
   };
 
   v
+}
+
+pub fn replace_span_for_stmt(mut stmt: Stmt, span: Span) -> Stmt {
+  match &mut stmt {
+    Stmt::Block(s) => {
+      s.span = span;
+    }
+    Stmt::Empty(s) => {
+      s.span = span;
+    }
+    Stmt::Debugger(s) => {
+      s.span = span;
+    }
+    Stmt::With(s) => {
+      s.span = span;
+    }
+    Stmt::Return(s) => {
+      s.span = span;
+    }
+    Stmt::Labeled(s) => {
+      s.span = span;
+    }
+    Stmt::Break(s) => {
+      s.span = span;
+    }
+    Stmt::Continue(s) => {
+      s.span = span;
+    }
+    Stmt::If(s) => {
+      s.span = span;
+    }
+    Stmt::Switch(s) => {
+      s.span = span;
+    }
+    Stmt::Throw(s) => {
+      s.span = span;
+    }
+    Stmt::Try(s) => {
+      s.span = span;
+    }
+    Stmt::While(s) => {
+      s.span = span;
+    }
+    Stmt::DoWhile(s) => {
+      s.span = span;
+    }
+    Stmt::For(s) => {
+      s.span = span;
+    }
+    Stmt::ForIn(s) => {
+      s.span = span;
+    }
+    Stmt::ForOf(s) => {
+      s.span = span;
+    }
+    Stmt::Decl(s) => (),
+    Stmt::Expr(s) => {
+      s.span = span;
+    }
+  }
+
+  stmt
 }

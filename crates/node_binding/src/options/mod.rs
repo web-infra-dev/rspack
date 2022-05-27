@@ -34,7 +34,6 @@ pub struct RawOptions {
   pub optimization: Option<RawOptimizationOptions>,
   pub output: Option<RawOutputOptions>,
   pub resolve: Option<RawResolveOptions>,
-  pub define: Option<HashMap<String, String>>,
 }
 
 pub fn normalize_bundle_options(options: RawOptions) -> Result<BundleOptions> {
@@ -59,8 +58,6 @@ pub fn normalize_bundle_options(options: RawOptions) -> Result<BundleOptions> {
   if let Some(e) = err {
     return Err(e);
   }
-
-  println!("mode {:#?}", mode);
 
   let entries = options.entries;
   let root = options
@@ -113,7 +110,7 @@ pub fn normalize_bundle_options(options: RawOptions) -> Result<BundleOptions> {
     lazy_compilation: enhanced.lazy_compilation.unwrap_or(false),
     progress: enhanced.progress.unwrap_or(true),
     globals: enhanced.globals.unwrap_or_default(),
-    define: options
+    define: enhanced
       .define
       .unwrap_or_else(|| BundleOptions::default().define),
     ..Default::default()

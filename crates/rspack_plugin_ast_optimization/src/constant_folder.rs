@@ -1,12 +1,12 @@
 use rspack_swc::{
   swc_common::Mark,
-  swc_ecma_ast::{op, Bool, Expr, Lit},
-  swc_ecma_transforms_optimization::simplify::dead_branch_remover,
+  swc_ecma_ast::{op, Bool, Expr, Lit, Stmt},
+  // swc_ecma_transforms_optimization::simplify::dead_branch_remover,
   swc_ecma_visit::{as_folder, noop_visit_mut_type, Fold, VisitMut, VisitMutWith},
-  swc_plugin::chain,
+  swc_plugin::{chain, utils::take::Take},
 };
 
-// use crate::utils::parse_expr;
+use crate::utils::replace_span_for_stmt;
 
 struct BinarySimplifier;
 
@@ -52,9 +52,31 @@ impl VisitMut for BinarySimplifier {
   }
 }
 
-pub fn constant_folder(unresolved_mark: Mark) -> impl Fold + 'static {
+struct DeadBranchRemover;
+
+impl VisitMut for DeadBranchRemover {
+  noop_visit_mut_type!();
+
+  fn visit_mut_stmt(&mut self, n: &mut Stmt) {
+    if let Stmt::If(if_stmt) = n {
+      let if_span = if_stmt.span;
+      if let Expr::Lit(Lit::Bool(literal)) = &*if_stmt.test {
+        if literal.value {
+          *n = replace_span_for_stmt(*if_stmt.cons.take(), if_span);
+        } else if let Some(s) = if_stmt.alt.take().map(|x| *x) {
+          *n = replace_span_for_stmt(s, if_span);
+        }
+      }
+    }
+
+    n.visit_mut_children_with(self);
+  }
+}
+
+// TODO: distinguish prod and dev
+pub fn constant_folder(_unresolved_mark: Mark) -> impl Fold + 'static {
   chain!(
     as_folder(BinarySimplifier),
-    dead_branch_remover(unresolved_mark)
+    as_folder(DeadBranchRemover) // dead_branch_remover(unresolved_mark)
   )
 }

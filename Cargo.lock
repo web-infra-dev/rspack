@@ -3262,6 +3262,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "base64 0.13.0",
  "dashmap",
  "insta",
  "rspack",
@@ -3270,6 +3271,7 @@ dependencies = [
  "rspack_swc",
  "serde",
  "serde_json",
+ "sourcemap",
  "sugar_path",
  "tokio",
 ]

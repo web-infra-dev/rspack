@@ -31,6 +31,7 @@ export interface RawEnhancedOptions {
   react?: RawReactOptions;
   inlineStyle?: boolean;
   globals?: Record<string, string>;
+  define?: Record<string, string>;
 }
 export interface RawOptimizationOptions {
   splitChunks?: RawSplitChunksOptions;
@@ -60,7 +61,6 @@ export interface RawOptions {
   optimization?: RawOptimizationOptions;
   output?: RawOutputOptions;
   resolve?: RawResolveOptions;
-  define?: Record<string, string>;
 }
 export function initCustomTraceSubscriber(): void;
 export interface PluginCallbacks {

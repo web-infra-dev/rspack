@@ -16,6 +16,7 @@ pub struct RawEnhancedOptions {
   pub react: Option<RawReactOptions>,
   pub inline_style: Option<bool>,
   pub globals: Option<HashMap<String, String>>,
+  pub define: Option<HashMap<String, String>>,
 }
 
 impl From<BundleMode> for RawEnhancedOptions {
@@ -27,6 +28,7 @@ impl From<BundleMode> for RawEnhancedOptions {
       react: Some(mode.into()),
       inline_style: Some(false),
       globals: Some(Default::default()),
+      define: Some(Default::default()),
     }
   }
 }
