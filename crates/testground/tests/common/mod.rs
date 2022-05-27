@@ -2,7 +2,12 @@ use std::{collections::HashMap, path::Path};
 
 use node_binding::{normalize_bundle_options, RawOptions};
 use rspack::bundler::Bundler;
-use rspack_core::{BundleOptions, Plugin};
+use rspack_core::{BundleOptions, Plugin, RuntimeOptions};
+
+#[derive(Default)]
+pub struct HandyOverrideBundleOptions {
+  pub runtime_options: RuntimeOptions,
+}
 
 pub async fn compile(options: BundleOptions, plugins: Vec<Box<dyn Plugin>>) -> Bundler {
   let mut bundler = Bundler::new(options, plugins);
@@ -11,9 +16,19 @@ pub async fn compile(options: BundleOptions, plugins: Vec<Box<dyn Plugin>>) -> B
   bundler
 }
 
-pub async fn compile_fixture(fixture_dir_name: &str) -> Bundler {
-  let options = normalize_bundle_options(RawOptions::from_fixture(fixture_dir_name))
+/// [HandyOverrideBundleOptions]is used for override some bundle option, which make snapshot test result more readable,
+/// for example, sometimes, we don't need that runtime code when testing  production code
+pub async fn compile_fixture(
+  fixture_dir_name: &str,
+  handy_options: Option<HandyOverrideBundleOptions>,
+) -> Bundler {
+  let mut options = normalize_bundle_options(RawOptions::from_fixture(fixture_dir_name))
     .expect("failed to normalize");
+
+  if let Some(handy_options) = handy_options {
+    options.runtime = handy_options.runtime_options;
+  }
+
   let mut bundler = Bundler::new(options, Default::default());
   bundler.build(None).await;
   bundler.write_assets_to_disk();

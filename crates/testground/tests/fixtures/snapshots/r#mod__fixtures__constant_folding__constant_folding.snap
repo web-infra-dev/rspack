@@ -1,0 +1,17 @@
+---
+source: crates/testground/tests/fixtures/constant_folding.rs
+assertion_line: 28
+expression: code
+---
+rs.define("./src/index.js", function(require, module, exports) {
+    "use strict";
+    {
+        222;
+    }
+    {
+        444;
+    }
+});
+rs.require("./src/index.js");
+
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoibWFpbi5qcyIsInNvdXJjZXMiOlsiPC9ob21lL2h4ai9Eb2N1bWVudHMvcnVzdC9naXRodWIvcnNwYWNrL2NyYXRlcy90ZXN0Z3JvdW5kL2ZpeHR1cmVzL2NvbnN0YW50LWZvbGRpbmcvc3JjL2luZGV4LmpzPiJdLCJzb3VyY2VzQ29udGVudCI6WyJpZiAocHJvY2Vzcy5lbnYuTk9ERV9FTlYgPT09IFwicHJvZHVjdGlvblwiKSB7XG4gIDExMTtcbn0gZWxzZSB7XG4gIDIyMjtcbn1cblxuaWYgKHByb2Nlc3MuZW52Lk5PREVfRU5WICE9IFwiZGV2ZWxvcG1lbnRcIikge1xuICAzMzM7XG59IGVsc2Uge1xuICA0NDQ7IFxufSJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOztJQUFBO0FBR0U7S0FDRDtJQUVEO0FBR0U7S0FDRCJ9
