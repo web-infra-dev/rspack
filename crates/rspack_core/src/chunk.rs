@@ -147,8 +147,6 @@ impl Chunk {
 
   #[instrument()]
   pub fn generate_filename(&self, options: &NormalizedBundleOptions, bundle: &Bundle) -> String {
-    use md4::{Digest, Md4};
-
     let pendding_name = if self.kind.is_entry() {
       let pattern = &options.entry_filename;
       pattern
