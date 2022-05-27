@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{swc_builder::dynamic_import_with_literal, JsModule, ModuleGraph, ResolvedURI};
+use crate::{swc_builder::dynamic_import_with_literal, ModuleGraph, ResolvedURI};
 use ast::*;
 use rspack_swc::{
   swc_atoms, swc_common, swc_ecma_ast as ast, swc_ecma_transforms_base, swc_ecma_transforms_module,

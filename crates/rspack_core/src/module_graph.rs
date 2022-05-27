@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::{JsModule, ResolvedURI};
-use petgraph::graph::NodeIndex;
+
 use tracing::instrument;
 
 #[derive(Debug, Default)]

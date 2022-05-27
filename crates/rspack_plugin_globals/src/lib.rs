@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use async_trait::async_trait;
 use rspack_core::{
   BundleContext, LoadArgs, LoadedSource, Loader, OnResolveResult, Plugin, PluginLoadHookOutput,
@@ -9,7 +7,7 @@ use rspack_core::{
 #[derive(Debug)]
 pub struct GlobalsPlugin;
 
-pub static PLUGIN_NAME: &'static str = "rspack_loader_globals";
+pub static PLUGIN_NAME: &str = "rspack_loader_globals";
 
 #[async_trait]
 impl Plugin for GlobalsPlugin {

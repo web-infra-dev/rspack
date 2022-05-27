@@ -1,14 +1,9 @@
-use std::{collections::HashMap, sync::Arc};
-
-use dashmap::DashMap;
 use rayon::prelude::*;
 use rspack_core::BundleOptions;
 use rspack_core::Chunk;
-use rspack_core::NormalizedBundleOptions;
+
+use rspack_core::Bundle;
 use rspack_core::PluginDriver;
-use rspack_core::{get_swc_compiler, Bundle};
-use rspack_swc::swc::TransformOutput;
-use tracing::instrument;
 
 use self::split_chunks::split_chunks;
 pub mod split_chunks;
