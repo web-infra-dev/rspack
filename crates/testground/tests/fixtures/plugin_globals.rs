@@ -1,8 +1,20 @@
-use crate::common::compile_fixture;
+use rspack_core::RuntimeOptions;
+
+use crate::common::{compile_fixture, HandyOverrideBundleOptions};
 
 #[tokio::test]
 async fn plugin_globals() {
-  let bundler = compile_fixture("plugin-globals", None).await;
+  let bundler = compile_fixture(
+    "plugin-globals",
+    Some(HandyOverrideBundleOptions {
+      runtime_options: RuntimeOptions {
+        hmr: false,
+        polyfill: false,
+        module: false,
+      },
+    }),
+  )
+  .await;
   insta::assert_snapshot!(
     &bundler
       .bundle
