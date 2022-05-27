@@ -6,7 +6,7 @@ mod bundle;
 mod bundle_context;
 mod chunk;
 mod dependency_scanner;
-pub mod hmr;
+pub mod finalize;
 mod js_module;
 mod module_graph;
 mod options;

@@ -21,8 +21,8 @@ use crate::stats::Stats;
 use crate::utils::inject_built_in_plugins;
 use crate::utils::log::enable_tracing_by_env;
 use crate::utils::rayon::init_rayon_thread_poll;
+pub use rspack_core::finalize::hmr_module;
 use rspack_core::get_swc_compiler;
-pub use rspack_core::hmr::hmr_module;
 use rspack_core::Plugin;
 use rspack_core::PluginDriver;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

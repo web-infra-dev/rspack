@@ -17,7 +17,8 @@ use swc_ecma_transforms_base::pass::noop;
 use tracing::instrument;
 
 use crate::{
-  hmr::hmr_module, syntax_by_loader, BundleContext, BundleMode, Loader, ModuleGraph, ResolvedURI,
+  finalize::hmr_module, syntax_by_loader, BundleContext, BundleMode, Loader, ModuleGraph,
+  ResolvedURI,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
