@@ -102,7 +102,7 @@ impl Bundler {
     self.bundle.build_graph(changed_files).await;
 
     let output = {
-      let chunks = split_chunks(&self.bundle.module_graph, &self.options);
+      let chunks = split_chunks(&self.bundle.module_graph_container, &self.options);
       self.render_chunks(chunks)
     };
 
@@ -141,7 +141,7 @@ impl Bundler {
     let changed_files = changed_file;
     let old_modules_uri = self
       .bundle
-      .module_graph
+      .module_graph_container
       .module_graph
       .uris()
       .cloned()
@@ -152,7 +152,11 @@ impl Bundler {
 
     self.bundle.context.assets.lock().unwrap().clear();
     changed_files.iter().for_each(|rd| {
-      self.bundle.module_graph.module_graph.remove_by_uri(rd);
+      self
+        .bundle
+        .module_graph_container
+        .module_graph
+        .remove_by_uri(rd);
       self.bundle.visited_module_id.remove(rd);
     });
 
@@ -160,7 +164,7 @@ impl Bundler {
 
     let new_modules_id = self
       .bundle
-      .module_graph
+      .module_graph_container
       .module_graph
       .uris()
       .cloned()
@@ -174,7 +178,7 @@ impl Bundler {
           module_id.to_string(),
           self
             .bundle
-            .module_graph
+            .module_graph_container
             .module_graph
             .module_by_uri(&module_id)
             .unwrap()
@@ -212,7 +216,7 @@ impl Bundler {
       let filename = chunk.generate_filename(&self.options, &self.bundle);
       let entry_module = self
         .bundle
-        .module_graph
+        .module_graph_container
         .module_graph
         .module_by_uri_mut(&chunk.entry_uri)
         .unwrap();
