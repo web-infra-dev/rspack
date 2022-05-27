@@ -115,8 +115,11 @@ impl ProgressBar {
   pub fn finish_and_clear(&self) -> io::Result<()> {
     TERM.clear_line()?;
     let total = *self.current.lock().unwrap();
-    let mut s = style("finished ✔ ").green().to_string();
-    s += &format!("{} files transformed. \n", total);
+    let s = format!(
+      "{}{} files transformed. \n",
+      style("finished ✔ ").green(),
+      total
+    );
     TERM.write_str(&s)?;
     TERM.flush()?;
     Ok(())

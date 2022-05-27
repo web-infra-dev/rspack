@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::default::Default;
 use std::path::Path;
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct StyleSourceType {
   pub is_async: bool,
   pub ext: String,
