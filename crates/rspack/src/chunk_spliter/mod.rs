@@ -1,8 +1,5 @@
-use rspack_core::BundleOptions;
-use rspack_core::Chunk;
-
 use rspack_core::Bundle;
-use rspack_core::PluginDriver;
+use rspack_core::ChunkGraph;
 
 use self::split_chunks::split_chunks;
 pub mod split_chunks;
@@ -14,15 +11,11 @@ pub struct OutputChunk {
   pub entry: String,
 }
 
-pub fn generate_chunks(
-  output_options: &BundleOptions,
-  plugin_driver: &PluginDriver,
-  bundle: &mut Bundle,
-) -> Vec<Chunk> {
-  let mut chunks = split_chunks(&bundle.module_graph_container, output_options);
+pub fn generate_chunks(bundle: &mut Bundle) -> ChunkGraph {
+  let mut chunk_graph = split_chunks(&bundle.module_graph_container, &bundle.context.options);
 
-  chunks.iter_mut().for_each(|chunk| {
-    let filename = chunk.generate_filename(output_options, bundle);
+  chunk_graph.chunks_mut().for_each(|chunk| {
+    let filename = chunk.generate_filename(&bundle.context.options, bundle);
     let entry_module = bundle
       .module_graph_container
       .module_graph
@@ -34,8 +27,11 @@ pub fn generate_chunks(
 
   // TODO: we could do bundle splitting here
 
-  chunks
-    .iter()
-    .for_each(|chunk| plugin_driver.tap_generated_chunk(chunk, output_options));
-  chunks
+  chunk_graph.chunks().for_each(|chunk| {
+    bundle
+      .plugin_driver
+      .tap_generated_chunk(chunk, &bundle.context.options);
+  });
+
+  chunk_graph
 }

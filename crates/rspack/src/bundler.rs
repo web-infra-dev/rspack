@@ -9,12 +9,14 @@ use rayon::prelude::*;
 use rspack_core::inject_options;
 use rspack_core::Bundle;
 use rspack_core::Chunk;
+use rspack_core::ChunkGraph;
 use rspack_core::NormalizedBundleOptions;
 use rspack_swc::swc_common;
 use sugar_path::PathSugar;
 use swc_common::Mark;
 use tracing::instrument;
 
+use crate::chunk_spliter::generate_chunks;
 use crate::chunk_spliter::split_chunks::split_chunks;
 use crate::chunk_spliter::OutputChunk;
 use crate::stats::Stats;
@@ -102,7 +104,7 @@ impl Bundler {
     self.bundle.build_graph(changed_files).await;
 
     let output = {
-      let chunks = split_chunks(&self.bundle.module_graph_container, &self.options);
+      let chunks = generate_chunks(&mut self.bundle);
       self.render_chunks(chunks)
     };
 
@@ -211,28 +213,12 @@ impl Bundler {
       });
   }
 
-  pub fn render_chunks(&mut self, mut chunks: Vec<Chunk>) -> HashMap<String, OutputChunk> {
-    chunks.iter_mut().for_each(|chunk| {
-      let filename = chunk.generate_filename(&self.options, &self.bundle);
-      let entry_module = self
-        .bundle
-        .module_graph_container
-        .module_graph
-        .module_by_uri_mut(&chunk.entry_uri)
-        .unwrap();
-      chunk.filename = Some(filename.clone());
-      entry_module.add_chunk(filename);
-    });
-
+  pub fn render_chunks(&self, mut chunks: ChunkGraph) -> HashMap<String, OutputChunk> {
     chunks
-      .iter()
-      .for_each(|chunk| self.plugin_driver.tap_generated_chunk(chunk, &self.options));
-
-    let compiler = get_swc_compiler();
-    chunks
+      .id_to_chunk_mut()
       .par_iter_mut()
-      .map(|chunk| {
-        let chunk = chunk.render(&self.options, compiler.clone(), &self.bundle);
+      .map(|(_chunk_id, chunk)| {
+        let chunk = chunk.render(&self.bundle);
         (
           chunk.file_name.clone(),
           OutputChunk {

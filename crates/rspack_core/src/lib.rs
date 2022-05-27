@@ -29,6 +29,9 @@ pub use rspack_swc::swc_ecma_ast as ast;
 
 pub use utils::*;
 
+mod chunk_graph;
+pub use chunk_graph::*;
+
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct ResolvedURI {
   pub uri: String,

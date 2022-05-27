@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 
 use petgraph::graph::NodeIndex;
 use rspack_core::{
-  path::uri_to_chunk_name, BundleOptions, Chunk, ChunkIdAlgo, ChunkKind, JsModuleKind,
+  path::uri_to_chunk_name, BundleOptions, Chunk, ChunkGraph, ChunkIdAlgo, ChunkKind, JsModuleKind,
   ModuleGraphContainer,
 };
 use tracing::instrument;
@@ -11,7 +11,7 @@ use tracing::instrument;
 pub fn code_splitting2(
   module_graph_container: &ModuleGraphContainer,
   bundle_options: &BundleOptions,
-) -> Vec<Chunk> {
+) -> ChunkGraph {
   let code_splitting_options = &bundle_options.code_splitting;
   let is_enable_code_spliting;
   let is_reuse_exsting_chunk;
@@ -23,16 +23,18 @@ pub fn code_splitting2(
     is_reuse_exsting_chunk = false;
   }
 
+  let mut chunk_graph = ChunkGraph::default();
+
   let mut id_generator = ChunkIdGenerator {
     id_count: 0,
-    module_graph: module_graph_container,
+    module_graph_container,
     bundle_options,
   };
 
   let module_graph = &module_graph_container.module_graph;
 
   let mut chunk_id_by_entry_module_uri = HashMap::new();
-  let mut chunk_graph = petgraph::Graph::<Chunk, ()>::new();
+  let mut chunk_relation_graph2 = petgraph::graphmap::DiGraphMap::<&str, ()>::new();
 
   let mut chunk_entries = module_graph_container
     .resolved_entries
@@ -58,9 +60,10 @@ pub fn code_splitting2(
       },
     );
 
-    let chunk_grpah_id = chunk_graph.add_node(chunk);
-    chunk_id_by_entry_module_uri.insert(*entry, chunk_grpah_id);
+    chunk_id_by_entry_module_uri.insert(*entry, chunk.id.clone());
+    chunk_graph.add_chunk(chunk);
   }
+
   if is_enable_code_spliting {
     module_graph.modules().for_each(|module| {
       module
@@ -74,9 +77,9 @@ pub fn code_splitting2(
 
               let chunk_id = id_generator.gen_id(*mod_uri);
               let chunk =
-                Chunk::from_js_module(chunk_id, dyn_dep_module.uri.to_string(), ChunkKind::Normal);
-
-              chunk_graph.add_node(chunk)
+                Chunk::from_js_module(chunk_id.clone(), mod_uri.to_string(), ChunkKind::Normal);
+              chunk_graph.add_chunk(chunk);
+              chunk_id
             });
         });
     });
@@ -84,7 +87,7 @@ pub fn code_splitting2(
 
   // Now, we have all chunks and need place right modules into chunks.
 
-  let mut mod_to_chunks: HashMap<&str, HashSet<NodeIndex>> = Default::default();
+  let mut mod_to_chunk_id: HashMap<&str, HashSet<&str>> = Default::default();
 
   for entry in &chunk_entries {
     let mut queue = [*entry].into_iter().collect::<VecDeque<_>>();
@@ -95,11 +98,11 @@ pub fn code_splitting2(
         .unwrap_or_else(|| panic!("no entry found for key {:?}", module_uri));
       if !visited.contains(module_uri) {
         visited.insert(module_uri);
-        let chunk_id = chunk_id_by_entry_module_uri[*entry];
-        mod_to_chunks
+        let chunk_id = &chunk_id_by_entry_module_uri[*entry];
+        mod_to_chunk_id
           .entry(module_uri)
           .or_default()
-          .insert(chunk_id);
+          .insert(chunk_id.as_str());
         // let chunk = &mut chunk_graph[chunk_id];
         // chunk.module_ids.push(module_uri.to_string());
         module
@@ -124,11 +127,11 @@ pub fn code_splitting2(
       .into_iter()
       .for_each(|dep_mod| {
         if let Some(dep_mod_chunk) = chunk_id_by_entry_module_uri.get(dep_mod.uri.as_str()) {
-          mod_to_chunks[each_mod.uri.as_str()]
+          mod_to_chunk_id[each_mod.uri.as_str()]
             .iter()
             .filter(|each_chunk_id| *each_chunk_id != dep_mod_chunk)
             .for_each(|each_chunk_id| {
-              chunk_graph.add_edge(*each_chunk_id, *dep_mod_chunk, ());
+              chunk_relation_graph2.add_edge(*each_chunk_id, dep_mod_chunk.as_str(), ());
             });
         }
       });
@@ -137,11 +140,11 @@ pub fn code_splitting2(
       .into_iter()
       .for_each(|dep_mod| {
         if let Some(chunk_id) = chunk_id_by_entry_module_uri.get(dep_mod.uri.as_str()) {
-          mod_to_chunks[each_mod.uri.as_str()]
+          mod_to_chunk_id[each_mod.uri.as_str()]
             .iter()
             .filter(|each_chunk_id| *each_chunk_id != chunk_id)
             .for_each(|each_chunk_id| {
-              chunk_graph.add_edge(*each_chunk_id, *chunk_id, ());
+              chunk_relation_graph2.add_edge(*each_chunk_id, chunk_id.as_str(), ());
             });
         }
       });
@@ -159,7 +162,7 @@ pub fn code_splitting2(
       if !visited.contains(module_uri) {
         visited.insert(module_uri);
 
-        let belong_to_chunks = &mod_to_chunks[module_uri];
+        let belong_to_chunks = &mod_to_chunk_id[module_uri];
         // println!(
         //   "[module {:?}]: belong to chunks {:?}",
         //   module_uri, belong_to_chunks
@@ -170,7 +173,8 @@ pub fn code_splitting2(
             if is_reuse_exsting_chunk {
               // We only want to have chunks the hash no superiors.
               let has_superior = belong_to_chunks.iter().any(|maybe_superior_chunk| {
-                chunk_graph.contains_edge(*maybe_superior_chunk, **id_of_chunk_to_place_module)
+                chunk_relation_graph2
+                  .contains_edge(*maybe_superior_chunk, **id_of_chunk_to_place_module)
               });
               !has_superior
             } else {
@@ -180,7 +184,9 @@ pub fn code_splitting2(
           .collect::<Vec<_>>()
           .into_iter()
           .for_each(|id_of_chunk_to_place_module| {
-            let chunk_to_place_module = &mut chunk_graph[*id_of_chunk_to_place_module];
+            let chunk_to_place_module = chunk_graph
+              .chunk_by_id_mut(id_of_chunk_to_place_module)
+              .unwrap();
             chunk_to_place_module
               .module_uris
               .insert(module_uri.to_string());
@@ -202,25 +208,21 @@ pub fn code_splitting2(
     }
   }
 
-  let (chunks, _) = chunk_graph.into_nodes_edges();
-  chunks
-    .into_iter()
-    .map(|node| node.weight)
-    .collect::<Vec<_>>()
+  chunk_graph
 }
 
 #[instrument(skip_all)]
 pub fn split_chunks(
   module_graph: &ModuleGraphContainer,
   bundle_options: &BundleOptions,
-) -> Vec<Chunk> {
+) -> ChunkGraph {
   code_splitting2(module_graph, bundle_options)
 }
 
 struct ChunkIdGenerator<'me> {
   id_count: usize,
   bundle_options: &'me BundleOptions,
-  module_graph: &'me ModuleGraphContainer,
+  module_graph_container: &'me ModuleGraphContainer,
 }
 
 impl<'me> ChunkIdGenerator<'me> {
@@ -233,7 +235,7 @@ impl<'me> ChunkIdGenerator<'me> {
       }
       ChunkIdAlgo::Named => {
         let js_mod = self
-          .module_graph
+          .module_graph_container
           .module_graph
           .module_by_uri(module_uri)
           .unwrap();
