@@ -24,6 +24,7 @@ impl VisitMut for Normalizer {
   }
 }
 
+#[allow(dead_code)]
 pub fn parse_expr(src: &str) -> Expr {
   let compiler = get_swc_compiler();
   let fm = compiler
@@ -43,12 +44,10 @@ pub fn parse_expr(src: &str) -> Expr {
 
   assert_eq!(module.body.len(), 1);
 
-  let v = match module.body.pop().unwrap() {
+  match module.body.pop().unwrap() {
     ModuleItem::Stmt(Stmt::Expr(ExprStmt { expr, .. })) => *expr,
     _ => unreachable!(),
-  };
-
-  v
+  }
 }
 
 pub fn replace_span_for_stmt(mut stmt: Stmt, span: Span) -> Stmt {
@@ -104,7 +103,7 @@ pub fn replace_span_for_stmt(mut stmt: Stmt, span: Span) -> Stmt {
     Stmt::ForOf(s) => {
       s.span = span;
     }
-    Stmt::Decl(s) => (),
+    Stmt::Decl(_s) => (),
     Stmt::Expr(s) => {
       s.span = span;
     }
