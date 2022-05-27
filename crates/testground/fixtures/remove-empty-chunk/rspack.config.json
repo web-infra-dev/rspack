@@ -1,0 +1,10 @@
+{
+  "mode": "development",
+  "entries": {
+    "main": "./src/index.js"
+  },
+  "optimization": {
+    "chunk_id_algo": "named",
+    "removeEmptyChunks": true
+  }
+}

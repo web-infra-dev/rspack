@@ -207,6 +207,18 @@ pub fn code_splitting2(
     }
   }
 
+  if bundle_options.optimization.remove_empty_chunks {
+    let empty_chunk_id_to_be_removed = chunk_graph
+      .chunks()
+      .filter(|chunk| chunk.module_uris.is_empty())
+      .map(|chunk| chunk.id.clone())
+      .collect::<Vec<_>>();
+
+    empty_chunk_id_to_be_removed.iter().for_each(|chunk_id| {
+      chunk_graph.remove_by_id(chunk_id);
+    });
+  }
+
   chunk_graph
 }
 

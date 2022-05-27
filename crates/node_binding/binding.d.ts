@@ -36,6 +36,9 @@ export interface RawEnhancedOptions {
 export interface RawOptimizationOptions {
   splitChunks?: RawSplitChunksOptions
   minify?: boolean
+  removeEmptyChunks?: boolean
+  chunkIdAlgo?: string
+  moduleIdAlgo?: string
 }
 export interface RawOutputOptions {
   outdir?: string
