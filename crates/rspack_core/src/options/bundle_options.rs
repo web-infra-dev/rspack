@@ -1,4 +1,7 @@
-use crate::{BundleEntries, BundleMode, CodeSplittingOptions, LoaderOptions, OptimizationOptions};
+use crate::{
+  runtime::RuntimeOptions, BundleEntries, BundleMode, CodeSplittingOptions, LoaderOptions,
+  OptimizationOptions,
+};
 use std::collections::HashMap;
 
 use rspack_swc::swc_ecma_transforms_react;
@@ -57,6 +60,7 @@ pub struct BundleOptions {
   pub optimization: OptimizationOptions,
   pub progress: bool,
   pub globals: HashMap<String, String>,
+  pub runtime: RuntimeOptions,
 }
 
 impl Default for BundleOptions {
@@ -91,6 +95,7 @@ impl Default for BundleOptions {
       optimization: Default::default(),
       progress: true,
       globals: Default::default(),
+      runtime: RuntimeOptions::default(),
     }
   }
 }

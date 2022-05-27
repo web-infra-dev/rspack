@@ -12,6 +12,7 @@ mod module_graph;
 mod options;
 mod plugin;
 mod plugin_driver;
+mod runtime;
 mod task;
 mod utils;
 pub use bundle::*;
@@ -19,10 +20,10 @@ pub use bundle_context::*;
 pub use chunk::*;
 pub use js_module::*;
 pub use module_graph::*;
-
 pub use options::*;
 pub use plugin::*;
 pub use plugin_driver::*;
+pub use runtime::*;
 
 pub use rspack_swc::swc_ecma_ast as ast;
 

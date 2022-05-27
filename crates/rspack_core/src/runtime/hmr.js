@@ -88,13 +88,6 @@ function invalidate(dirtyId) {
       }
     });
   }
-  if (module.hot?.accept) {
-    for (const acceptItem of module.hot.accepts) {
-      const updateId = acceptItem.ids;
-      const updateModule = modules[updateId];
-      acceptItem.accept(updateModule);
-    }
-  }
 }
 
 const socketUrl = `ws://${location.host}/`;

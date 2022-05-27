@@ -1,11 +1,16 @@
 mod utils;
-
 use rspack::bundler::BundleOptions;
+use rspack_core::RuntimeOptions;
 use std::collections::HashMap;
 use utils::{assert_inline_sourcemap_in_pos, compile_with_options};
 
 #[test]
 fn define() {
+  let runtime = RuntimeOptions {
+    hmr: false,
+    module: false,
+    polyfill: false,
+  };
   let define = HashMap::from_iter(
     [
       ("TRUE", "true"),
@@ -62,6 +67,7 @@ fn define() {
     "define",
     BundleOptions {
       define,
+      runtime,
       ..Default::default()
     },
     vec![],
