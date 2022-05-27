@@ -1,5 +1,7 @@
 use std::{collections::HashMap, str::FromStr};
 
+use napi::bindgen_prelude::*;
+use napi::Error;
 use napi_derive::napi;
 use rspack_core::{
   BundleMode, BundleOptions, BundleReactOptions, CodeSplittingOptions, EntryItem, Loader,
@@ -24,8 +26,8 @@ pub use split_chunks::*;
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawOptions {
-  pub mode: Option<String>,
   pub entries: HashMap<String, String>,
+  pub mode: Option<String>,
   pub root: Option<String>,
   pub loader: Option<HashMap<String, String>>,
   pub enhanced: Option<RawEnhancedOptions>,
@@ -34,14 +36,28 @@ pub struct RawOptions {
   pub resolve: Option<RawResolveOptions>,
 }
 
-pub fn normalize_bundle_options(options: RawOptions) -> BundleOptions {
-  let mode: BundleMode = options.mode.map_or_else(
-    || {
-      // We might need to read NODE_ENV to try to resolve a BundleMode.
-      BundleMode::None
-    },
-    |mode_str| BundleMode::from_str(mode_str.as_str()).expect("unexpected bundle mode"),
-  );
+pub fn normalize_bundle_options(options: RawOptions) -> Result<BundleOptions> {
+  let mut err = None;
+
+  let mode = options
+    .mode
+    .map(|mode| match mode.as_str() {
+      "development" => BundleMode::Dev,
+      "production" => BundleMode::Prod,
+      "none" => BundleMode::None,
+      _ => {
+        err = Some(Error::new(
+          napi::Status::InvalidArg,
+          "invalid mode, expected mode 'development' | 'production' | 'none'".to_owned(),
+        ));
+        BundleMode::None
+      }
+    })
+    .unwrap_or_else(|| BundleOptions::default().mode);
+
+  if let Some(e) = err {
+    return Err(e);
+  }
 
   let entries = options.entries;
   let root = options
@@ -54,9 +70,10 @@ pub fn normalize_bundle_options(options: RawOptions) -> BundleOptions {
   let resolve = options.resolve.unwrap_or_else(|| mode.into());
   let react = enhanced.react.unwrap_or_else(|| mode.into());
   let split_chunks = optimization.split_chunks.unwrap_or_else(|| mode.into());
-  BundleOptions {
+  Ok(BundleOptions {
     entries: parse_entries(entries),
     root,
+    mode,
     minify: optimization.minify.unwrap_or_else(|| mode.is_prod()),
     outdir: outout
       .outdir
@@ -93,8 +110,11 @@ pub fn normalize_bundle_options(options: RawOptions) -> BundleOptions {
     lazy_compilation: enhanced.lazy_compilation.unwrap_or(false),
     progress: enhanced.progress.unwrap_or(true),
     globals: enhanced.globals.unwrap_or_default(),
+    define: enhanced
+      .define
+      .unwrap_or_else(|| BundleOptions::default().define),
     ..Default::default()
-  }
+  })
 }
 
 fn parse_loader(user_input: HashMap<String, String>) -> rspack_core::LoaderOptions {

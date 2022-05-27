@@ -34,6 +34,7 @@ export async function run(options: RawOptions, command: 'dev' | 'build') {
   console.time('build');
   const root = options.root;
   const outdir = path.resolve(options.root, 'dist');
+
   const bundler = new Rspack({
     ...options,
 
@@ -58,7 +59,7 @@ export async function run(options: RawOptions, command: 'dev' | 'build') {
        * @todo update logic
        * 目前会重新触发自该模块开始的全量编译，webpack也是这么做吗
        */
-      const update = await bundler.rebuild(id);
+      const update = await bundler.rebuild([id]);
       const sourceUrl = `\n//# sourceURL=${path}`;
       server.broadcast({
         type: 'js-update',

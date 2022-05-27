@@ -1693,6 +1693,7 @@ dependencies = [
  "rayon",
  "regex",
  "rspack_core",
+ "rspack_plugin_ast_optimization",
  "rspack_plugin_define",
  "rspack_plugin_globals",
  "rspack_plugin_lazy_compilation",
@@ -1770,6 +1771,16 @@ dependencies = [
 [[package]]
 name = "rspack_node_resolve"
 version = "0.1.0"
+
+[[package]]
+name = "rspack_plugin_ast_optimization"
+version = "0.0.1"
+dependencies = [
+ "async-trait",
+ "rspack_core",
+ "rspack_swc",
+ "serde_json",
+]
 
 [[package]]
 name = "rspack_plugin_define"
@@ -1917,6 +1928,7 @@ dependencies = [
  "swc_ecma_parser 0.104.0",
  "swc_ecma_transforms_base 0.85.0",
  "swc_ecma_transforms_module",
+ "swc_ecma_transforms_optimization 0.123.1",
  "swc_ecma_transforms_react",
  "swc_ecma_utils 0.85.0",
  "swc_ecma_visit 0.64.0",
@@ -2342,7 +2354,7 @@ dependencies = [
  "swc_ecma_transforms",
  "swc_ecma_transforms_base 0.85.0",
  "swc_ecma_transforms_compat",
- "swc_ecma_transforms_optimization",
+ "swc_ecma_transforms_optimization 0.124.0",
  "swc_ecma_utils 0.85.0",
  "swc_ecma_visit 0.64.0",
  "swc_ecmascript",
@@ -2627,7 +2639,7 @@ dependencies = [
  "swc_ecma_codegen 0.108.1",
  "swc_ecma_parser 0.104.0",
  "swc_ecma_transforms_base 0.85.0",
- "swc_ecma_transforms_optimization",
+ "swc_ecma_transforms_optimization 0.124.0",
  "swc_ecma_utils 0.85.0",
  "swc_ecma_visit 0.64.0",
  "swc_timer",
@@ -2712,7 +2724,7 @@ dependencies = [
  "swc_ecma_transforms_base 0.85.0",
  "swc_ecma_transforms_compat",
  "swc_ecma_transforms_module",
- "swc_ecma_transforms_optimization",
+ "swc_ecma_transforms_optimization 0.124.0",
  "swc_ecma_transforms_proposal",
  "swc_ecma_transforms_react",
  "swc_ecma_transforms_typescript",
@@ -2737,6 +2749,27 @@ dependencies = [
  "swc_ecma_parser 0.102.13",
  "swc_ecma_utils 0.81.0",
  "swc_ecma_visit 0.62.0",
+ "tracing",
+]
+
+[[package]]
+name = "swc_ecma_transforms_base"
+version = "0.84.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6be33c0ca26095f5d8e83f9df14f5798233e29f09125d3afaf925b70920da8a1"
+dependencies = [
+ "better_scoped_tls",
+ "once_cell",
+ "phf",
+ "rustc-hash",
+ "serde",
+ "smallvec",
+ "swc_atoms",
+ "swc_common 0.18.3",
+ "swc_ecma_ast 0.78.0",
+ "swc_ecma_parser 0.104.0",
+ "swc_ecma_utils 0.85.0",
+ "swc_ecma_visit 0.64.0",
  "tracing",
 ]
 
@@ -2834,6 +2867,29 @@ dependencies = [
  "swc_ecma_loader",
  "swc_ecma_parser 0.104.0",
  "swc_ecma_transforms_base 0.85.0",
+ "swc_ecma_utils 0.85.0",
+ "swc_ecma_visit 0.64.0",
+ "tracing",
+]
+
+[[package]]
+name = "swc_ecma_transforms_optimization"
+version = "0.123.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd5c7efdde630a05a3f6ff453dd54946011f4cdc92fe94fbb081f87dcd72b403"
+dependencies = [
+ "ahash",
+ "dashmap",
+ "indexmap",
+ "once_cell",
+ "rustc-hash",
+ "serde_json",
+ "swc_atoms",
+ "swc_common 0.18.3",
+ "swc_ecma_ast 0.78.0",
+ "swc_ecma_parser 0.104.0",
+ "swc_ecma_transforms_base 0.84.1",
+ "swc_ecma_transforms_macros",
  "swc_ecma_utils 0.85.0",
  "swc_ecma_visit 0.64.0",
  "tracing",
@@ -3206,6 +3262,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "base64 0.13.0",
  "dashmap",
  "insta",
  "rspack",
@@ -3214,6 +3271,7 @@ dependencies = [
  "rspack_swc",
  "serde",
  "serde_json",
+ "sourcemap",
  "sugar_path",
  "tokio",
 ]

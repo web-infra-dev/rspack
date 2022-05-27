@@ -12,7 +12,8 @@ pub async fn compile(options: BundleOptions, plugins: Vec<Box<dyn Plugin>>) -> B
 }
 
 pub async fn compile_fixture(fixture_dir_name: &str) -> Bundler {
-  let options = normalize_bundle_options(RawOptions::from_fixture(fixture_dir_name));
+  let options = normalize_bundle_options(RawOptions::from_fixture(fixture_dir_name))
+    .expect("failed to normalize");
   let mut bundler = Bundler::new(options, Default::default());
   bundler.build(None).await;
   bundler.write_assets_to_disk();
@@ -23,7 +24,8 @@ pub async fn compile_fixture_with_plugins(
   fixture_dir_name: &str,
   plugins: Vec<Box<dyn Plugin>>,
 ) -> Bundler {
-  let options = normalize_bundle_options(RawOptions::from_fixture(fixture_dir_name));
+  let options = normalize_bundle_options(RawOptions::from_fixture(fixture_dir_name))
+    .expect("failed to normalize");
   let mut bundler = Bundler::new(options, plugins);
   bundler.build(None).await;
   bundler.write_assets_to_disk();

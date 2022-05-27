@@ -6,6 +6,9 @@ publish = false
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+sourcemap = "6.0.2"
+base64 = "0.13.0"
 
 [dev_dependencies]
 node_binding = { path = "../node_binding", package = "rspack_node", features = ["test"] }

@@ -30,7 +30,7 @@ export class RspackBundler implements IBundlerBase {
     this.instance.build();
   }
   async reBuild(paths: string[]): Promise<void> {
-    this.instance.rebuild(paths);
+    await this.instance.rebuild(paths);
   }
   close(callack?: Callback): void {
     console.log('not implmented');
