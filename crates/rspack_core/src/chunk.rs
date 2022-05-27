@@ -160,8 +160,7 @@ impl Chunk {
     match pendding_name.contains("contenthash") {
       true => {
         let content_hash = {
-          let mut hasher = Md4::new();
-          // let mut hasher = DefaultHasher::new();
+          let mut hasher = DefaultHasher::new();
           // FIXME: contenthash is not stable now.
           self.module_uris.iter().for_each(|module_uri| {
             let module = &bundle

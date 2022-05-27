@@ -1,4 +1,3 @@
-use rayon::prelude::*;
 use rspack_core::BundleOptions;
 use rspack_core::Chunk;
 
