@@ -6,6 +6,7 @@ use rspack_core::{BundleOptions, Plugin, RuntimeOptions};
 
 #[derive(Default)]
 pub struct HandyOverrideBundleOptions {
+  pub sourcemap: bool,
   pub runtime_options: RuntimeOptions,
 }
 
@@ -27,6 +28,7 @@ pub async fn compile_fixture(
 
   if let Some(handy_options) = handy_options {
     options.runtime = handy_options.runtime_options;
+    options.source_map = handy_options.sourcemap;
   }
 
   let mut bundler = Bundler::new(options, Default::default());

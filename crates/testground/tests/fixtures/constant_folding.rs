@@ -12,6 +12,7 @@ async fn constant_folding() {
         polyfill: false,
         module: false,
       },
+      sourcemap: false,
     }),
   )
   .await;

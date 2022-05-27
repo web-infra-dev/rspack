@@ -12,6 +12,7 @@ async fn plugin_globals() {
         polyfill: false,
         module: false,
       },
+      ..Default::default()
     }),
   )
   .await;
