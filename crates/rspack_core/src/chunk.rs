@@ -59,7 +59,7 @@ impl Chunk {
     bundle: &Bundle,
   ) -> OutputChunk {
     let mut concattables: Vec<Box<dyn Source>> = vec![];
-    let modules = &bundle.module_graph.module_graph;
+    let modules = &bundle.module_graph_container.module_graph;
     let mut module_uris = self.module_uris.iter().collect::<Vec<_>>();
     module_uris.sort_by_key(|id| 0 - modules.module_by_uri(*id).unwrap().exec_order);
 
@@ -164,7 +164,7 @@ impl Chunk {
           // FIXME: contenthash is not stable now.
           self.module_uris.iter().for_each(|module_uri| {
             let module = &bundle
-              .module_graph
+              .module_graph_container
               .module_graph
               .module_by_uri(module_uri)
               .unwrap();

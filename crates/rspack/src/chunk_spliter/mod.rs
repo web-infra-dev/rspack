@@ -1,4 +1,3 @@
-use rayon::prelude::*;
 use rspack_core::BundleOptions;
 use rspack_core::Chunk;
 
@@ -20,12 +19,12 @@ pub fn generate_chunks(
   plugin_driver: &PluginDriver,
   bundle: &mut Bundle,
 ) -> Vec<Chunk> {
-  let mut chunks = split_chunks(&bundle.module_graph, output_options);
+  let mut chunks = split_chunks(&bundle.module_graph_container, output_options);
 
   chunks.iter_mut().for_each(|chunk| {
     let filename = chunk.generate_filename(output_options, bundle);
     let entry_module = bundle
-      .module_graph
+      .module_graph_container
       .module_graph
       .module_by_uri_mut(&chunk.entry_uri)
       .unwrap();
