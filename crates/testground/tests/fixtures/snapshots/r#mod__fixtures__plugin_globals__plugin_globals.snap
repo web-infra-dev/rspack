@@ -2,11 +2,6 @@
 source: crates/testground/tests/fixtures/plugin_globals.rs
 expression: "&bundler.bundle.context.assets.lock().unwrap().get(0).expect(\"failed to generate bundle\").source"
 ---
-process = {
-  env: {
-    NODE_ENV: 'development',
-  },
-};
 (function () {
   let modules = {};
   class Hot {
