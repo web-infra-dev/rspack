@@ -1,0 +1,10 @@
+{
+  "mode": "development",
+  "entries": {
+    "main": "./src/index.js"
+  },
+  "output": {
+    "sourceMap": true
+  },
+  "chunkFilename": "[contenthash].js"
+}
