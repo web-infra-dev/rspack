@@ -143,8 +143,9 @@ impl Chunk {
   }
 
   #[instrument()]
+  /// Currently we defer calc `[contenthash]` until render output chunk
   pub fn generate_filename(&self, options: &NormalizedBundleOptions, bundle: &Bundle) -> String {
-    let pendding_name = if self.kind.is_entry() {
+    let pending_name = if self.kind.is_entry() {
       let pattern = &options.entry_filename;
       pattern
         .replace("[name]", self.name())
@@ -153,26 +154,7 @@ impl Chunk {
       let pattern = &options.chunk_filename;
       pattern.replace("[id]", &self.id)
     };
-
-    match pendding_name.contains("contenthash") {
-      true => {
-        let content_hash = {
-          let mut hasher = DefaultHasher::new();
-          // FIXME: contenthash is not stable now.
-          self.module_uris.iter().for_each(|module_uri| {
-            let module = &bundle
-              .module_graph_container
-              .module_graph
-              .module_by_uri(module_uri)
-              .unwrap();
-            module.ast.hash(&mut hasher);
-          });
-          hasher.finish()
-        };
-        pendding_name.replace("[contenthash]", &format!("{:x}", content_hash))
-      }
-      false => pendding_name,
-    }
+    pending_name
   }
 }
 

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::hash::Hash;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -23,10 +24,12 @@ use crate::stats::Stats;
 use crate::utils::inject_built_in_plugins;
 use crate::utils::log::enable_tracing_by_env;
 use crate::utils::rayon::init_rayon_thread_poll;
+use md4::{Digest, Md4};
 pub use rspack_core::finalize::hmr_module;
 use rspack_core::get_swc_compiler;
 use rspack_core::Plugin;
 use rspack_core::PluginDriver;
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum InternalModuleFormat {
   ES,
@@ -220,7 +223,16 @@ impl Bundler {
       .id_to_chunk()
       .par_iter()
       .map(|(_chunk_id, chunk)| {
-        let chunk = chunk.render(&self.bundle);
+        let mut chunk = chunk.render(&self.bundle);
+        if chunk.file_name.contains("[contenthash]") {
+          let mut hasher = Md4::new();
+          hasher.update(&chunk.code);
+          let content_hash = hasher.finalize();
+          chunk.file_name = chunk
+            .file_name
+            .replace("[contenthash]", &format!("{:x}", content_hash));
+        }
+
         (
           chunk.file_name.clone(),
           OutputChunk {

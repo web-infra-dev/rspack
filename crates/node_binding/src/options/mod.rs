@@ -37,6 +37,7 @@ pub struct RawOptions {
   pub optimization: Option<RawOptimizationOptions>,
   pub output: Option<RawOutputOptions>,
   pub resolve: Option<RawResolveOptions>,
+  pub chunk_filename: Option<String>,
 }
 
 pub fn normalize_bundle_options(options: RawOptions) -> Result<BundleOptions> {
@@ -73,6 +74,7 @@ pub fn normalize_bundle_options(options: RawOptions) -> Result<BundleOptions> {
   let resolve = options.resolve.unwrap_or_else(|| mode.into());
   let react = enhanced.react.unwrap_or_else(|| mode.into());
   let split_chunks = optimization.split_chunks.unwrap_or_else(|| mode.into());
+
   Ok(BundleOptions {
     entries: parse_entries(entries),
     root,
@@ -129,6 +131,9 @@ pub fn normalize_bundle_options(options: RawOptions) -> Result<BundleOptions> {
           ModuleIdAlgo::from_str(algo_str.as_str()).unwrap()
         }),
     },
+    chunk_filename: options
+      .chunk_filename
+      .unwrap_or_else(|| BundleOptions::default().chunk_filename),
     ..Default::default()
   })
 }

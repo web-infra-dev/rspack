@@ -3,9 +3,16 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "chunkFilename": {
+      "type": "string"
+    },
     "mode": {
       "type": "string",
-      "enum": ["production", "development", "none"]
+      "enum": [
+        "production",
+        "development",
+        "none"
+      ]
     },
     "entries": {
       "type": "object",
@@ -92,11 +99,15 @@
         },
         "chunk_id_algo": {
           "type": "string",
-          "enum": ["named"]
+          "enum": [
+            "named"
+          ]
         },
         "module_id_algo": {
           "type": "string",
-          "enum": ["named"]
+          "enum": [
+            "named"
+          ]
         }
       }
     },
@@ -140,5 +151,7 @@
       "type": "string"
     }
   },
-  "required": ["entries"]
+  "required": [
+    "entries"
+  ]
 }
