@@ -4,7 +4,7 @@
     "main": "./src/index.js"
   },
   "output": {
-    "sourceMap": true
+    "sourceMap": "inline"
   },
   "chunkFilename": "[contenthash].js"
 }

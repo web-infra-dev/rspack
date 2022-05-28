@@ -40,6 +40,7 @@ pub struct RawOptions {
   pub optimization: Option<RawOptimizationOptions>,
   pub output: Option<RawOutputOptions>,
   pub resolve: Option<RawResolveOptions>,
+  pub chunk_filename: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Default)]

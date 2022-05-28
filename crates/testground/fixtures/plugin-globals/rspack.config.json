@@ -5,7 +5,7 @@
   },
   "output": {
     "outdir": "./dist",
-    "sourceMap": false
+    "sourceMap": "none"
   },
   "enhanced": {
     "globals": {
