@@ -172,7 +172,7 @@ impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
           .chunk_by_split_point_module_uri(&js_module.uri)
         {
           args.push(Lit::Str(js_module_id.into()).as_arg());
-          args.push(Lit::Str(chunk.filename.as_ref().unwrap().as_str().into()).as_arg());
+          args.push(Lit::Str(chunk.id.as_str().into()).as_arg());
         } else {
           args.push(Lit::Str(js_module_id.into()).as_arg());
         }
