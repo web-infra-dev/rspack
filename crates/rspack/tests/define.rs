@@ -9,7 +9,6 @@ fn define() {
   let runtime = RuntimeOptions {
     hmr: false,
     module: false,
-    polyfill: false,
   };
   let define = HashMap::from_iter(
     [
