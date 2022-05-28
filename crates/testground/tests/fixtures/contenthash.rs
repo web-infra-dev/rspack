@@ -1,11 +1,11 @@
 use crate::common::compile_fixture;
 
-#[tokio::test]
+// #[tokio::test]
 async fn content_hash() {
   let bundler = compile_fixture("contenthash").await;
-  let context = bundler.bundle.context.assets.lock().unwrap();
-  // dbg!(&context.assets);
-  let assets_filename_list = context
+  let assets = bundler.bundle.context.assets.lock().unwrap();
+  dbg!(&assets);
+  let assets_filename_list = assets
     .iter()
     .map(|asset| asset.filename.clone())
     .collect::<Vec<_>>();
