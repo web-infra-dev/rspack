@@ -1,19 +1,16 @@
 #![deny(clippy::all)]
 
 use async_trait::async_trait;
-use rspack_core::{BundleContext, LoadArgs, LoadedSource, Loader, Plugin, PluginLoadHookOutput};
+use nodejs_resolver::Resolver;
+use rspack_core::{
+  BundleContext, LoadArgs, LoadedSource, Loader, Plugin, PluginLoadHookOutput, Target,
+};
 
 #[derive(Debug)]
 pub struct MockBuitinsPlugin;
 
 pub static PLUGIN_NAME: &str = "rspack_mock_buitins_plugin";
 
-fn is_builtin_module(id: &str) -> bool {
-  let builtin_modules = vec![
-    "http", "https", "url", "zlib", "stream", "assert", "tty", "util", "os",
-  ];
-  builtin_modules.contains(&id)
-}
 impl MockBuitinsPlugin {
   pub fn new() -> MockBuitinsPlugin {
     Self

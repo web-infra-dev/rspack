@@ -44,6 +44,7 @@ pub struct JsModule {
   pub loader: Loader,
   pub cached_output: Mutex<Option<Arc<TransformOutput>>>,
 }
+
 impl std::fmt::Debug for JsModule {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("JsModule")
@@ -96,6 +97,7 @@ impl JsModule {
         let fm = compiler
           .cm
           .new_source_file(FileName::Custom(self.uri.to_string()), self.uri.to_string());
+
         let source_map = if self.id.contains("node_modules") {
           false
         } else {
@@ -143,6 +145,7 @@ impl JsModule {
         )
       })
       .unwrap();
+
       let output = Arc::new(output);
       *cached_output = Some(output.clone());
       output
@@ -173,6 +176,7 @@ impl JsModule {
 pub enum JsModuleKind {
   UserEntry { name: String },
   Normal,
+  External,
 }
 
 impl JsModuleKind {
@@ -182,6 +186,10 @@ impl JsModuleKind {
 
   pub fn is_normal(&self) -> bool {
     matches!(self, JsModuleKind::Normal)
+  }
+
+  pub fn is_external(&self) -> bool {
+    matches!(self, JsModuleKind::External)
   }
 
   pub fn name(&self) -> Option<&str> {

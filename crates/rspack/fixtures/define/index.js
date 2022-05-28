@@ -1,120 +1,194 @@
-// import assert from "assert";
-const lib = require("./lib");
-
-const { DO_NOT_CONVERTED9 } = require("./lib");
+import assert from "assert";
+import { equal } from 'assert'
 import DO_NOT_CONVERTED8, { DO_NOT_CONVERTED7 } from "./lib";
 
-TRUE;
-FALSE;
-NUMBER_ADD;
-NULL;
-UNDEFINED; // tags
+const lib = require("./lib");
+const { DO_NOT_CONVERTED9 } = require("./lib");
+
+equal(TRUE, true);
+require('assert').deepStrictEqual(FALSE, false);
+assert.deepStrictEqual(NUMBER_ADD, 5);
+assert.deepStrictEqual(NULL, null);
+assert.deepStrictEqual(UNDEFINED, undefined);
 // assert.equal(FUNCTION(5), 6);
 // assert.equal(typeof FUNCTION, "function");
-NUMBER;
-ZERO; // tags
+assert.deepStrictEqual(NUMBER, 100.05);
+assert.deepStrictEqual(ZERO, 0);
+let ZERO_OBJ = { ZERO: 0 };
+assert.deepStrictEqual(ZERO_OBJ.ZERO, 0);
+assert.deepStrictEqual(ZERO_OBJ[ZERO], undefined);
+assert.deepStrictEqual(ZERO_OBJ[0], undefined);
+assert.deepStrictEqual(ZERO_OBJ["ZERO"], 0);
+assert.deepStrictEqual(BIGINT, 10000n);
+assert.deepStrictEqual(BIGINT2, 100000000000n);
+assert.deepStrictEqual(POSITIVE_ZERO, 0);
+assert.deepStrictEqual(NEGATIVE_ZERO, -0);
+assert.deepStrictEqual(POSITIVE_NUMBER, 100.25);
+assert.deepStrictEqual(NEGATIVE_NUMBER, -100.25);
+assert.deepStrictEqual(EMPTY_STRING, "");
+assert.deepStrictEqual(REGEXP, /abc/i);
+assert.deepStrictEqual(ZERO.ABC, undefined);
 
-({ ZERO: 0 }.ZERO);
-({ ZERO: 0 }.ZERO);
-({ ZERO: 0 }[ZERO]); // undefined
-({ ZERO: 0 }[0]); // undefined
-({ ZERO: 0 }["ZERO"]); // 0
-BIGINT;
-BIGINT2;
-POSITIVE_ZERO;
-NEGATIVE_ZERO;
-POSITIVE_NUMBER;
-NEGATIVE_NUMBER;
-EMPTY_STRING;
-REGEXP; // tags
+let error_count = 0;
+try {
+  error_count += 1;
+  MEMBER_PROPS_SHOULD_DO_NOT_CONVERTED.ZERO;
+  error_count += 1;
+} catch (err) {
+}
+assert.deepStrictEqual(error_count, 1);
 
-ZERO.ABC; //should converted to `0.REGEXP`
-MEMBER_PROPS_SHOULD_DO_NOT_CONVERTED.ZERO;
-MEMBER_PROPS_SHOULD_DO_NOT_CONVERTED.REGEXP.REGEXP;
+try {
+  error_count += 1;
+  MEMBER_PROPS_SHOULD_DO_NOT_CONVERTED.REGEXP.REGEXP;
+  error_count += 1;
+} catch (err) {
+}
+assert.deepStrictEqual(error_count, 2);
 
-ARRAY;
-ARRAY[0];
-ARRAY[0][1];
-ARRAY[1];
-ARRAY[1][0];
-ARRAY[1][0][0];
-ARRAY[ONE];
-ARRAY[ARRAY];
+assert.deepStrictEqual(ARRAY, [300, ["six"]]);
+assert.deepStrictEqual(ARRAY[0], 300);
+assert.deepStrictEqual(ARRAY[0][1], undefined);
+assert.deepStrictEqual(ARRAY[1], ["six"]);
+assert.deepStrictEqual(ARRAY[1][0], 'six');
+assert.deepStrictEqual(ARRAY[1][0][0], 's');
+assert.deepStrictEqual(ARRAY[ONE], ["six"]);
+assert.deepStrictEqual(ARRAY[ARRAY], undefined);
 
-OBJECT; // tags
-OBJECT.OBJ;
-OBJECT.OBJ.NUM;
-OBJECT.UNDEFINED;
-OBJECT.REGEXP;
-OBJECT.STR;
-OBJECT.AAA.BBB;
+assert.deepStrictEqual(OBJECT, {
+  UNDEFINED: undefined,
+  REGEXP: /def/i,
+  STR: "string",
+  OBJ: { NUM: 1}
+});
+assert.deepStrictEqual(OBJECT.OBJ, { NUM: 1});
+assert.deepStrictEqual(OBJECT.OBJ.NUM, 1);
+assert.deepStrictEqual(OBJECT.UNDEFINED, undefined);
+assert.deepStrictEqual(OBJECT.REGEXP, /def/i);
+assert.deepStrictEqual(OBJECT.STR, "string");
+assert.deepStrictEqual(OBJECT.AAA, undefined);
 
-assert.equal(P1.P2.P3, 301);
-assert.equal(P1.P2.P4, "302");
-assert.equal(P1, 303);
-assert.equal(P1.P2, 304);
-P1.P4; // "303.P4"
-P4.P1; // do not change
-P1.P2.P4.P1.P2; // "302".P1.P2
-P1.P2.P4.P3; // "302".P3
-P1.P2.P4.P4; // "302".P4
+assert.deepStrictEqual(P1.P2.P3, 301);
+assert.deepStrictEqual(P1.P2.P4, "302");
+assert.deepStrictEqual(P1, 303);
+assert.deepStrictEqual(P1.P2, 304);
+
+assert.deepStrictEqual(P1.P4, undefined); // "303.P4"
+
+try {
+  error_count += 1;
+  P4.P1;
+  error_count += 1;
+} catch (err) {
+}
+assert.deepStrictEqual(error_count, 3);
+
+assert.deepStrictEqual(P1.P2.P4.P1, undefined); 
+assert.deepStrictEqual(P1.P2.P4.P3, undefined); 
+assert.deepStrictEqual(P1.P2.P4.P4, undefined); 
 
 const DO_NOT_CONVERTED = 201;
-assert.equal(DO_NOT_CONVERTED, 201);
+assert.deepStrictEqual(DO_NOT_CONVERTED, 201);
 let { DO_NOT_CONVERTED2 } = { DO_NOT_CONVERTED2: 202 };
-assert.equal(DO_NOT_CONVERTED2, 202);
+assert.deepStrictEqual(DO_NOT_CONVERTED2, 202);
 const { c: DO_NOT_CONVERTED3 } = { c: 203 };
-assert.equal(DO_NOT_CONVERTED3, 203);
-assert.equal(DO_NOT_CONVERTED4, 204);
+assert.deepStrictEqual(DO_NOT_CONVERTED3, 203);
+try {
+  error_count += 1;
+  DO_NOT_CONVERTED4;
+  error_count += 1;
+} catch (err) {
+}
+assert.deepStrictEqual(error_count, 4);
 let DO_NOT_CONVERTED4 = 204;
-let USELESS = {
+
+const USELESS = {
   ZERO: 0,
 };
 {
   const A = DO_NOT_CONVERTED4;
-  assert.equal(A, 204);
+  assert.deepStrictEqual(A, 204);
 
   const DO_NOT_CONVERTED3 = 205;
-  assert.equal(DO_NOT_CONVERTED3, 205);
+  assert.deepStrictEqual(DO_NOT_CONVERTED3, 205);
 
   const B = ZERO;
-  assert.equal(B, 0);
+  assert.deepStrictEqual(B, 0);
 
   let IN_BLOCK = 2;
-  assert.equal(IN_BLOCK, 2);
+  assert.deepStrictEqual(IN_BLOCK, 2);
 
   {
     {
       {
-        assert.equal(SHOULD_CONVERTED, 205);
+        assert.deepStrictEqual(SHOULD_CONVERTED, 205);
       }
     }
   }
 }
 
-console.log(IN_BLOCK);
-assert.deepStrictEqual(USELESS, { ZERO: 0 });
-assert.equal({}.DO_NOT_CONVERTED5, undefined);
-assert.equal(M1.M2.M3.DO_NOT_CONVERTED6, undefined);
-assert.equal(M1, undefined);
-assert.equal(DO_NOT_CONVERTED7, 402);
-assert.equal(DO_NOT_CONVERTED8, 401);
-assert.equal(DO_NOT_CONVERTED9, 403);
-assert.equal(lib.DO_NOT_CONVERTED9, 403);
+try {
+  error_count += 1;
+  IN_BLOCK;
+  error_count += 1;
+} catch (err) {
+}
+assert.deepStrictEqual(error_count, 5);
 
-SHOULD_CONVERTED = 205;
-SHOULD_CONVERTED = SHOULD_CONVERTED = 205;
-aa = SHOULD_CONVERTED;
-SHOULD_CONVERTED == 206;
-207 == SHOULD_CONVERTED;
-CONVERTED_TO_MEMBER;
+assert.deepStrictEqual(USELESS, { ZERO: 0 });
+assert.deepStrictEqual({}.DO_NOT_CONVERTED5, undefined);
+assert.deepStrictEqual(M1.M2.M3.DO_NOT_CONVERTED6, undefined);
+assert.deepStrictEqual(DO_NOT_CONVERTED7, 402);
+assert.deepStrictEqual(DO_NOT_CONVERTED8, 401);
+assert.deepStrictEqual(DO_NOT_CONVERTED9, 403);
+assert.deepStrictEqual(lib.DO_NOT_CONVERTED9, 403);
+
+try {
+  error_count += 1;
+  M1;
+  error_count += 1;
+} catch (err) {
+}
+assert.deepStrictEqual(error_count, 6);
+
+// try {
+//   error_count += 1;
+//   SHOULD_CONVERTED = 205; // syntax error
+//   error_count += 1;
+// } catch (err) {
+// }
+// deepStrictEqual(error_count, 6);
+
+// try {
+//   error_count += 1;
+//   SHOULD_CONVERTED = SHOULD_CONVERTED = 205; // syntax error
+//   error_count += 1;
+// } catch (err) {
+// }
+// deepStrictEqual(error_count, 7);
+try {
+  error_count += 1;
+  aa = SHOULD_CONVERTED;
+  error_count += 1;
+} catch (err) {
+}
+assert.deepStrictEqual(error_count, 7);
+
+assert.deepStrictEqual(SHOULD_CONVERTED == 205, true);
+assert.deepStrictEqual(207 == SHOULD_CONVERTED, false);
+
+try {
+  error_count += 1;
+  CONVERTED_TO_MEMBER;
+  error_count += 1;
+} catch (err) {
+}
+assert.deepStrictEqual(error_count, 8);
+
 
 // just make sure `MemberExpr` fold success.
-
 console.log(console.log(console.log));
-a[b].c[d].e[f].g;
 
-// recursive
-// TODO: only
-assert.equal(wurst, unde);
-assert.equal(suppe, wurst);
+// TODO: recursive
+// assert.equal(wurst, unde);
+// assert.equal(suppe, wurst);

@@ -9,7 +9,6 @@ use std::{
   collections::{hash_map::DefaultHasher, HashSet},
   hash::{Hash, Hasher},
   path::Path,
-  sync::Arc,
 };
 use swc::Compiler;
 use tracing::instrument;
@@ -60,6 +59,12 @@ impl Chunk {
     let mut module_uris = self.module_uris.iter().collect::<Vec<_>>();
     module_uris.sort_by_key(|id| 0 - modules.module_by_uri(*id).unwrap().exec_order);
 
+    let external_modules = module_uris
+      .par_iter()
+      .filter(|uri| modules.is_external(uri))
+      .map(|uri| uri.to_string())
+      .collect::<Vec<_>>();
+
     let rendered_modules = module_uris
       .par_iter()
       .map(|uri| {
@@ -67,13 +72,20 @@ impl Chunk {
         module.render(bundle)
       })
       .collect::<Vec<_>>();
+
     if let ChunkKind::Entry { .. } = &self.kind {
-      let code = rspack_runtime(&options.runtime);
+      let code = rspack_runtime(
+        &options.runtime,
+        crate::RuntimeInfo {
+          external: external_modules,
+        },
+      );
       if code.trim() != "" {
         let runtime = Box::new(RawSource::new(&code));
         concattables.push(runtime);
       }
     }
+
     rendered_modules.iter().for_each(|transform_output| {
       if let Some(map_string) = &transform_output.map.as_ref() {
         let source_map = sourcemap::SourceMap::from_slice(map_string.as_bytes()).unwrap();

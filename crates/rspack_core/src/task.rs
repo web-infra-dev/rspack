@@ -8,7 +8,7 @@ use std::{
 
 use crate::{
   bundle::Msg, dependency_scanner::DependencyScanner, plugin_hook, utils::parse_file, ImportKind,
-  JsModule, JsModuleKind, LoadArgs, PluginDriver, ResolveArgs, ResolvedURI,
+  JsModule, JsModuleKind, LoadArgs, Loader, PluginDriver, ResolveArgs, ResolvedURI,
 };
 use crate::{get_swc_compiler, path::normalize_path};
 use dashmap::{DashMap, DashSet};
@@ -73,8 +73,30 @@ impl Task {
   #[instrument(skip(self))]
   pub async fn run(&mut self) {
     let resolved_uri = self.resolved_uri.clone();
-    if resolved_uri.external {
-      // TODO: external module
+    let module = if resolved_uri.external {
+      let uri = resolved_uri.uri;
+      let loader = Loader::Js; // TODO: more loaders.
+      let content = format!(
+        r#"
+      const {uri} = require("{uri}");
+      export default {uri};
+      export * from "{uri}";
+      "#
+      );
+      let ast = parse_file(content, &uri, &loader).expect_module();
+      // TODO: should split `JsModule` into `External` and `Normal`.
+      JsModule {
+        id: uri.clone(),
+        uri,
+        kind: JsModuleKind::External,
+        exec_order: Default::default(),
+        ast,
+        dependencies: Default::default(),
+        dyn_imports: Default::default(),
+        resolved_uris: Default::default(),
+        cached_output: Default::default(),
+        loader,
+      }
     } else {
       tracing::trace!("start process {:?}", resolved_uri);
       let uri_resolver = DependencyIdResolver {
@@ -130,7 +152,7 @@ impl Task {
         self.spawn_new_task(resolved_id);
       }
 
-      let module = JsModule {
+      JsModule {
         kind: JsModuleKind::Normal,
         exec_order: Default::default(),
         uri: resolved_uri.uri.clone(),
@@ -148,9 +170,9 @@ impl Task {
           .collect(),
         loader: *loader,
         cached_output: Default::default(),
-      };
-      self.tx.send(Msg::TaskFinished(module)).unwrap()
-    }
+      }
+    };
+    self.tx.send(Msg::TaskFinished(module)).unwrap()
   }
 
   pub fn spawn_new_task(&self, resolved_uri: ResolvedURI) {

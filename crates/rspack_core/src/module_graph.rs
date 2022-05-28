@@ -124,6 +124,14 @@ impl ModuleGraph {
   }
 
   #[inline]
+  pub fn is_external(&self, uri: &str) -> bool {
+    match self.uri_to_module.get(uri) {
+      Some(js_module) => js_module.kind.is_external(),
+      None => false,
+    }
+  }
+
+  #[inline]
   pub fn module_by_id_mut(&mut self, id: &str) -> Option<&mut JsModule> {
     self.uri_to_module.get_mut(&self.id_to_uri[id])
     // .unwrap_or_else(|| panic!("fail to find module by id: {:?}", id))

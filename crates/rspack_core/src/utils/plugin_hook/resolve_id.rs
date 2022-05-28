@@ -1,4 +1,4 @@
-use crate::{plugin_driver::PluginDriver, OnResolveResult, ResolveArgs, ResolvedURI};
+use crate::{plugin_driver::PluginDriver, OnResolveResult, ResolveArgs, ResolvedURI, Target};
 use nodejs_resolver::{ResolveResult, Resolver};
 use std::{ffi::OsString, path::Path, time::Instant};
 use sugar_path::PathSugar;
@@ -7,6 +7,11 @@ use tracing::instrument;
 #[inline]
 pub fn is_external_module(source: &str) -> bool {
   source.starts_with("node:")
+}
+
+#[inline]
+pub fn is_node_build_in_module(target: &str) -> bool {
+  Resolver::is_build_in_module(target)
 }
 
 #[instrument(skip(plugin_driver))]
@@ -18,7 +23,9 @@ pub async fn resolve_id(
   resolver: &Resolver,
 ) -> ResolvedURI {
   if let Some(plugin_result) = resolve_id_via_plugins(&args, plugin_driver).await {
-    ResolvedURI::new(plugin_result.uri, plugin_result.external, args.kind.clone())
+    let uri = plugin_result.uri;
+    let external = plugin_result.external;
+    ResolvedURI::new(uri, external, args.kind.clone())
   } else if args.importer.is_some() && is_external_module(&args.id) {
     ResolvedURI::new(args.id.to_string(), true, args.kind.clone())
   } else {
@@ -54,7 +61,9 @@ pub async fn resolve_id(
         .to_string_lossy()
         .to_string()
     };
-    ResolvedURI::new(id, false, args.kind.clone())
+    let external =
+      plugin_driver.ctx.options.target.eq(&Target::Node) && is_node_build_in_module(&id);
+    ResolvedURI::new(id, external, args.kind.clone())
   }
 }
 
