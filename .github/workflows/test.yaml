@@ -43,7 +43,7 @@ jobs:
         run: cargo build
       - name: Test
         run: |
-          cargo test --all --all-features -- --nocapture --test-threads=1
+          cargo test --all --all-features -- --nocapture
           # temporarily disable next line for rspack-style not fully support less for now.
           # yarn test:example
           yarn build:core
