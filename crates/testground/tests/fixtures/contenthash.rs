@@ -1,6 +1,6 @@
 use crate::common::compile_fixture;
 
-// #[tokio::test]
+#[tokio::test]
 async fn content_hash() {
   let bundler = compile_fixture("contenthash").await;
   let assets = bundler.bundle.context.assets.lock().unwrap();
