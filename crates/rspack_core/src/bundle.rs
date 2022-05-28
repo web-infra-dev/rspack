@@ -5,8 +5,9 @@ use std::sync::{atomic::AtomicUsize, Arc};
 use crate::path::gen_module_id;
 use crate::task::Task;
 use crate::{
-  plugin_hook, BundleContext, BundleEntries, EntryItem, ImportKind, JsModule, JsModuleKind,
-  ModuleGraphContainer, ModuleIdAlgo, NormalizedBundleOptions, PluginDriver, ResolvedURI,
+  plugin_hook, BundleContext, BundleEntries, ChunkGraph, EntryItem, ImportKind, JsModule,
+  JsModuleKind, ModuleGraphContainer, ModuleIdAlgo, NormalizedBundleOptions, PluginDriver,
+  ResolvedURI,
 };
 use crossbeam::queue::SegQueue;
 use dashmap::DashSet;
@@ -21,6 +22,7 @@ pub struct Bundle {
   pub context: Arc<BundleContext>,
   pub plugin_driver: Arc<PluginDriver>,
   pub module_graph_container: ModuleGraphContainer,
+  pub chunk_graph: ChunkGraph,
   pub visited_module_id: Arc<DashSet<String>>,
   pub resolver: Arc<Resolver>,
 }
@@ -44,6 +46,7 @@ impl Bundle {
       plugin_driver,
       context,
       options,
+      chunk_graph: Default::default(),
       module_graph_container: Default::default(),
       visited_module_id: Default::default(),
       resolver,

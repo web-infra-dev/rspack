@@ -86,6 +86,17 @@
               "type": "boolean"
             }
           }
+        },
+        "removeEmptyChunks": {
+          "type": "boolean"
+        },
+        "chunk_id_algo": {
+          "type": "string",
+          "enum": ["named"]
+        },
+        "module_id_algo": {
+          "type": "string",
+          "enum": ["named"]
         }
       }
     },

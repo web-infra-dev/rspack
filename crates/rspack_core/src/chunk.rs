@@ -54,7 +54,6 @@ impl Chunk {
   #[instrument(skip_all)]
   pub fn render(&self, bundle: &Bundle) -> OutputChunk {
     let options = &bundle.context.options;
-    let compiler = &bundle.context.compiler;
 
     let mut concattables: Vec<Box<dyn Source>> = vec![];
     let modules = &bundle.module_graph_container.module_graph;
@@ -65,7 +64,7 @@ impl Chunk {
       .par_iter()
       .map(|uri| {
         let module = modules.module_by_uri(uri).unwrap();
-        module.render(compiler, modules, &bundle.context)
+        module.render(bundle)
       })
       .collect::<Vec<_>>();
     if let ChunkKind::Entry { .. } = &self.kind {

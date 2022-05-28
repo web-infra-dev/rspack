@@ -1,7 +1,12 @@
+use std::str::FromStr;
+
+use anyhow::Ok;
+
 #[derive(Debug, Clone)]
 pub struct OptimizationOptions {
   pub chunk_id_algo: ChunkIdAlgo,
   pub module_id_algo: ModuleIdAlgo,
+  pub remove_empty_chunks: bool,
 }
 
 impl Default for OptimizationOptions {
@@ -9,6 +14,7 @@ impl Default for OptimizationOptions {
     Self {
       chunk_id_algo: ChunkIdAlgo::Named,
       module_id_algo: ModuleIdAlgo::Named,
+      remove_empty_chunks: true,
     }
   }
 }
@@ -46,5 +52,27 @@ impl ModuleIdAlgo {
 
   pub fn is_numeric(&self) -> bool {
     matches!(self, Self::Numeric)
+  }
+}
+
+impl FromStr for ChunkIdAlgo {
+  type Err = ();
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    match s {
+      "named" => Result::Ok(Self::Named),
+      _ => Err(()),
+    }
+  }
+}
+
+impl FromStr for ModuleIdAlgo {
+  type Err = ();
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    match s {
+      "named" => Result::Ok(Self::Named),
+      _ => Err(()),
+    }
   }
 }

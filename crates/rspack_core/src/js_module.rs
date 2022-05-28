@@ -10,15 +10,14 @@ use rspack_swc::{
   swc_ecma_ast::{self as ast, EsVersion},
   swc_ecma_transforms_base, swc_ecma_transforms_react,
 };
-use swc::{Compiler, TransformOutput};
+use swc::TransformOutput;
 use swc_atoms::JsWord;
 use swc_common::{util::take::Take, FileName};
 use swc_ecma_transforms_base::pass::noop;
 use tracing::instrument;
 
 use crate::{
-  finalize::hmr_module, syntax_by_loader, BundleContext, BundleMode, Loader, ModuleGraph,
-  ResolvedURI,
+  finalize::hmr_module, syntax_by_loader, Bundle, BundleMode, Loader, ModuleGraph, ResolvedURI,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -42,7 +41,6 @@ pub struct JsModule {
   pub dependencies: LinkedHashMap<JsWord, ()>,
   pub dyn_imports: HashSet<DynImportDesc>,
   pub resolved_uris: HashMap<JsWord, ResolvedURI>,
-  pub chunk_ids: HashSet<String>,
   pub loader: Loader,
   pub cached_output: Mutex<Option<Arc<TransformOutput>>>,
 }
@@ -78,25 +76,18 @@ impl JsModule {
       dependencies: Default::default(),
       dyn_imports: Default::default(),
       resolved_uris: Default::default(),
-      chunk_ids: Default::default(),
       // TODO: We should not initialize loader using default value, it’s easy to forget and buggy.
       loader: Default::default(),
       cached_output: Default::default(),
     }
   }
-  pub fn add_chunk(&mut self, chunk_id: String) {
-    self.chunk_ids.insert(chunk_id);
-  }
 
   #[instrument(skip_all)]
-  pub fn render(
-    &self,
-    compiler: &Compiler,
-    modules: &ModuleGraph,
-    bundle: &BundleContext,
-  ) -> Arc<TransformOutput> {
+  pub fn render(&self, bundle: &Bundle) -> Arc<TransformOutput> {
     use swc::config::{self as swc_config, SourceMapsConfig};
-    let options = &bundle.options;
+    let bundle_ctx = &bundle.context;
+    let options = &bundle_ctx.options;
+    let compiler = &bundle_ctx.compiler;
     let mut cached_output = self.cached_output.lock().unwrap();
     if let Some(cache) = cached_output.clone() {
       cache
@@ -134,18 +125,19 @@ impl JsModule {
               source_maps: Some(SourceMapsConfig::Bool(source_map)),
               ..Default::default()
             },
-            top_level_mark: Some(bundle.top_level_mark),
+            top_level_mark: Some(bundle_ctx.top_level_mark),
             ..Default::default()
           },
           |_, _| noop(),
           |_, _| {
             hmr_module(
               self.id.to_string(),
-              bundle.top_level_mark,
+              bundle_ctx.top_level_mark,
               &self.resolved_uris,
               self.kind.is_user_entry(),
-              modules,
+              &bundle.module_graph_container.module_graph,
               options.code_splitting.is_some(),
+              bundle,
             )
           },
         )

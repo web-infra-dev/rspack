@@ -16,13 +16,7 @@ pub fn generate_chunks(bundle: &mut Bundle) -> ChunkGraph {
 
   chunk_graph.chunks_mut().for_each(|chunk| {
     let filename = chunk.generate_filename(&bundle.context.options, bundle);
-    let entry_module = bundle
-      .module_graph_container
-      .module_graph
-      .module_by_uri_mut(&chunk.entry_uri)
-      .unwrap();
-    chunk.filename = Some(filename.clone());
-    entry_module.add_chunk(filename);
+    chunk.filename = Some(filename);
   });
 
   // TODO: we could do bundle splitting here

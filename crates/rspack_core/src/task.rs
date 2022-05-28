@@ -141,7 +141,6 @@ impl Task {
         ast,
         dependencies: dependency_scanner.dependencies,
         dyn_imports: dependency_scanner.dyn_dependencies,
-        chunk_ids: Default::default(),
         resolved_uris: uri_resolver
           .resolved_ids
           .into_iter()

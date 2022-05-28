@@ -3,6 +3,9 @@ use std::{collections::HashMap, str::FromStr};
 use napi::bindgen_prelude::*;
 use napi::Error;
 use napi_derive::napi;
+use rspack_core::ChunkIdAlgo;
+use rspack_core::ModuleIdAlgo;
+use rspack_core::OptimizationOptions;
 use rspack_core::{
   BundleMode, BundleOptions, BundleReactOptions, CodeSplittingOptions, EntryItem, Loader,
   ResolveOption,
@@ -113,6 +116,19 @@ pub fn normalize_bundle_options(options: RawOptions) -> Result<BundleOptions> {
     define: enhanced
       .define
       .unwrap_or_else(|| BundleOptions::default().define),
+    optimization: OptimizationOptions {
+      remove_empty_chunks: optimization.remove_empty_chunks.unwrap_or(!mode.is_none()),
+      chunk_id_algo: optimization
+        .chunk_id_algo
+        .map_or(ChunkIdAlgo::Named, |algo_str| {
+          ChunkIdAlgo::from_str(algo_str.as_str()).unwrap()
+        }),
+      module_id_algo: optimization
+        .module_id_algo
+        .map_or(ModuleIdAlgo::Named, |algo_str| {
+          ModuleIdAlgo::from_str(algo_str.as_str()).unwrap()
+        }),
+    },
     ..Default::default()
   })
 }
