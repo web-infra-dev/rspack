@@ -4,13 +4,6 @@ use rspack_core::ChunkGraph;
 use self::split_chunks::split_chunks;
 pub mod split_chunks;
 
-#[derive(Debug, Clone)]
-pub struct OutputChunk {
-  pub code: String,
-  pub file_name: String,
-  pub entry: String,
-}
-
 pub fn generate_chunks(bundle: &mut Bundle) -> ChunkGraph {
   let mut chunk_graph = split_chunks(&bundle.module_graph_container, &bundle.context.options);
 

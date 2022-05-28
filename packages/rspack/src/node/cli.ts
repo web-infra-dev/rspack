@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 const yargs: typeof import('yargs') = require('yargs');
 import { run } from './core';
-import { RawOptions } from '@rspack/binding';
+import { RawOptions, RawOutputOptions } from '@rspack/binding';
 
 // build({ main: path.resolve(__dirname, '../fixtures/index.js') });
 
@@ -39,10 +39,24 @@ yargs
   )
   .help().argv;
 
+type UnionOmit<T, U> = Omit<T, keyof U> & U;
+
+export type UserRspackConfig = UnionOmit<
+  RawOptions,
+  {
+    output?: UnionOmit<
+      RawOutputOptions,
+      {
+        sourceMap?: 'linked' | 'external' | 'inline' | boolean;
+      }
+    >;
+  }
+>;
+
 function compile(argv: any) {
   const root = path.resolve(process.cwd(), argv.root);
   const rspackConfigPath = path.resolve(root, 'rspack.config.json');
-  let rspackConfig: RawOptions;
+  let rspackConfig: UserRspackConfig;
   if (fs.existsSync(rspackConfigPath)) {
     rspackConfig = JSON.parse(fs.readFileSync(rspackConfigPath).toString());
   } else {

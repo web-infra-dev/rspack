@@ -60,7 +60,7 @@ async fn main() {
         )],
         ..Default::default()
       },
-      source_map: false,
+      source_map: false.into(),
       ..Default::default()
     },
     vec![Box::new(rspack_plugin_mock_buitins::MockBuitinsPlugin)],

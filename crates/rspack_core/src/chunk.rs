@@ -1,5 +1,5 @@
 use crate::runtime::{rspack_runtime, RuntimeOptions};
-use crate::{Bundle, NormalizedBundleOptions};
+use crate::{Bundle, NormalizedBundleOptions, SourceMapOptions};
 use rayon::prelude::*;
 use rspack_sources::{
   ConcatSource, GenMapOption, RawSource, Source, SourceMapSource, SourceMapSourceOptions,
@@ -96,26 +96,38 @@ impl Chunk {
     });
 
     tracing::debug_span!("conncat_modules").in_scope(|| {
-      let output_code = if options.source_map {
-        let source_map_url = concat_source
-          // FIXME: generate_url is slow now
-          .generate_url(&GenMapOption {
-            columns: true,
-            include_source_contents: true,
-            file: self.filename.clone(),
-          })
-          .unwrap()
-          .unwrap();
-
-        concat_source.source().to_string() + "\n//# sourceMappingURL=" + &source_map_url
-      } else {
-        concat_source.source().to_string()
+      let gen_map_option = &GenMapOption {
+        columns: true,
+        include_source_contents: true,
+        file: self.filename.clone(),
+      };
+      let output_chunk = match options.source_map {
+        SourceMapOptions::Inline => {
+          let map = concat_source.generate_url(gen_map_option).unwrap().unwrap();
+          (concat_source.source(), OutputChunkSourceMap::Inline(map))
+        }
+        SourceMapOptions::External => {
+          let map = concat_source
+            .generate_string(gen_map_option)
+            .unwrap()
+            .unwrap();
+          (concat_source.source(), OutputChunkSourceMap::External(map))
+        }
+        SourceMapOptions::Linked => {
+          let map = concat_source
+            .generate_string(gen_map_option)
+            .unwrap()
+            .unwrap();
+          (concat_source.source(), OutputChunkSourceMap::Linked(map))
+        }
+        SourceMapOptions::None => (concat_source.source(), OutputChunkSourceMap::None),
       };
 
       OutputChunk {
-        code: output_code,
+        code: output_chunk.0.into(),
         file_name: self.filename.as_ref().unwrap().clone(),
         entry: self.entry_uri.clone(),
+        map: output_chunk.1,
       }
     })
   }
@@ -125,6 +137,7 @@ impl Chunk {
       code: "".to_string(),
       file_name: self.filename.as_ref().unwrap().clone(),
       entry: self.entry_uri.clone(),
+      map: OutputChunkSourceMap::None,
     }
   }
 
@@ -167,11 +180,26 @@ fn get_alias_name(id: &str) -> &str {
   &file_name[0..file_name.len() - ext_len]
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+pub enum OutputChunkSourceMap {
+  Inline(String),
+  External(String),
+  Linked(String),
+  None,
+}
+
+impl OutputChunkSourceMap {
+  pub fn is_exist(&self) -> bool {
+    !matches!(self, OutputChunkSourceMap::None)
+  }
+}
+
+#[derive(Debug, Clone)]
 pub struct OutputChunk {
   pub code: String,
   pub file_name: String,
   pub entry: String,
+  pub map: OutputChunkSourceMap,
 }
 
 #[derive(Debug)]

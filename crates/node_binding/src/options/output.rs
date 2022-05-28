@@ -5,10 +5,21 @@ use serde::Deserialize;
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
+#[cfg(not(feature = "test"))]
 pub struct RawOutputOptions {
   pub outdir: Option<String>,
   pub entry_filename: Option<String>,
-  pub source_map: Option<bool>,
+  #[napi(ts_type = "\"linked\" | \"external\" | \"inline\" | \"none\"")]
+  pub source_map: Option<String>,
+}
+
+#[derive(Deserialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+#[cfg(feature = "test")]
+pub struct RawOutputOptions {
+  pub outdir: Option<String>,
+  pub entry_filename: Option<String>,
+  pub source_map: Option<String>,
 }
 
 impl From<BundleMode> for RawOutputOptions {
@@ -16,7 +27,11 @@ impl From<BundleMode> for RawOutputOptions {
     Self {
       outdir: Some(BundleOptions::default().outdir),
       entry_filename: Some(BundleOptions::default().entry_filename),
-      source_map: Some(BundleOptions::default().source_map),
+      source_map: Some(if BundleOptions::default().source_map.is_enabled() {
+        "inline".to_string()
+      } else {
+        "none".to_string()
+      }),
     }
   }
 }
