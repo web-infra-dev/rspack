@@ -6,6 +6,7 @@ import { RawOptions } from '@rspack/binding';
 import { Rspack } from './rspack';
 import { LessPlugin } from './rspack/plugins/less';
 import log from 'why-is-node-running';
+import type { UserRspackConfig } from './cli';
 
 type Defer = { resolve: any; reject: any; promise: any };
 const Defer = (): Defer => {
@@ -30,13 +31,29 @@ export type BundlerOptions = Partial<RawOptions> & {
   command: 'dev' | 'build';
 };
 
-export async function run(options: RawOptions, command: 'dev' | 'build') {
+export async function run(options: UserRspackConfig, command: 'dev' | 'build') {
   console.time('build');
   const root = options.root;
   const outdir = path.resolve(options.root, 'dist');
 
+  const sourceMap: RawOptions['output']['sourceMap'] = (() => {
+    if (typeof options.output?.sourceMap === 'boolean') {
+      if (options.output.sourceMap) {
+        return 'inline';
+      }
+      return 'none';
+    }
+    return options.output?.sourceMap;
+  })();
+
+  const outputConfig = {
+    ...options.output,
+    sourceMap,
+  };
+
   const bundler = new Rspack({
     ...options,
+    output: outputConfig,
 
     plugins: [LessPlugin({ root: options.root })],
   });

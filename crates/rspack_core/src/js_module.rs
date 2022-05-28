@@ -99,7 +99,7 @@ impl JsModule {
         let source_map = if self.id.contains("node_modules") {
           false
         } else {
-          options.source_map
+          options.source_map.is_enabled()
         };
         compiler.process_js_with_custom_pass(
           fm,

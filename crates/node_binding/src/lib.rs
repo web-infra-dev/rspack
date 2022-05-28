@@ -45,7 +45,6 @@ pub fn new_rspack(
   plugin_callbacks: Option<PluginCallbacks>,
 ) -> Result<External<Rspack>> {
   let options: RawOptions = serde_json::from_str(option_json.as_str()).unwrap();
-  println!("rust raw options {:#?}", options);
 
   let node_adapter = create_node_adapter_from_plugin_callbacks(&env, plugin_callbacks);
 
@@ -96,38 +95,6 @@ pub fn rebuild(env: Env, rspack: External<Rspack>, changed_file: Vec<String>) ->
 pub struct ResolveRet {
   pub status: bool,
   pub result: Option<String>,
-}
-
-#[cfg(not(feature = "test"))]
-#[napi(
-  ts_args_type = "rspack: ExternalObject<RspackInternal>, id: string, dir: string",
-  ts_return_type = "Promise<ResolveRet>"
-)]
-pub fn resolve(env: Env, rspack: External<Rspack>, id: String, dir: String) -> Result<JsObject> {
-  let bundler = (*rspack).clone();
-  env.execute_tokio_future(
-    async move {
-      let mut bundler = bundler.lock().await;
-      let res = bundler.resolve(id, dir);
-      match res {
-        Ok(val) => {
-          if let nodejs_resolver::ResolveResult::Path(xx) = val {
-            Ok(ResolveRet {
-              status: true,
-              result: Some(xx.to_string_lossy().to_string()),
-            })
-          } else {
-            Ok(ResolveRet {
-              status: false,
-              result: None,
-            })
-          }
-        }
-        Err(err) => Err(Error::new(Status::Unknown, err)),
-      }
-    },
-    |_env, ret| Ok(ret),
-  )
 }
 
 #[napi]

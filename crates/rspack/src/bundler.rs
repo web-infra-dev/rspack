@@ -9,9 +9,9 @@ use nodejs_resolver::{Resolver, ResolverOptions};
 use rayon::prelude::*;
 use rspack_core::inject_options;
 use rspack_core::Bundle;
-use rspack_core::Chunk;
 use rspack_core::ChunkGraph;
 use rspack_core::NormalizedBundleOptions;
+use rspack_core::{Chunk, OutputChunk, OutputChunkSourceMap};
 use rspack_swc::swc_common;
 use sugar_path::PathSugar;
 use swc_common::Mark;
@@ -19,7 +19,6 @@ use tracing::instrument;
 
 use crate::chunk_spliter::generate_chunks;
 use crate::chunk_spliter::split_chunks::split_chunks;
-use crate::chunk_spliter::OutputChunk;
 use crate::stats::Stats;
 use crate::utils::inject_built_in_plugins;
 use crate::utils::log::enable_tracing_by_env;
@@ -115,8 +114,34 @@ impl Bundler {
 
     output.into_iter().for_each(|(_, chunk)| {
       map.insert(chunk.file_name.clone(), chunk.entry.clone());
+      let mut code = chunk.code;
+
+      match chunk.map {
+        OutputChunkSourceMap::Inline(encoded_map) => {
+          let comment = "\n//# sourceMappingURL=".to_owned() + &encoded_map;
+          code += &comment;
+        }
+        OutputChunkSourceMap::External(map) => {
+          let map_filename = chunk.file_name.clone() + ".map";
+          self.bundle.context.assets.lock().unwrap().push(Asset {
+            source: map,
+            filename: map_filename,
+          });
+        }
+        OutputChunkSourceMap::Linked(map) => {
+          let map_filename = chunk.file_name.clone() + ".map";
+          self.bundle.context.assets.lock().unwrap().push(Asset {
+            source: map,
+            filename: map_filename.clone(),
+          });
+          let comment = "\n//# sourceMappingURL=".to_owned() + &map_filename;
+          code += &comment;
+        }
+        OutputChunkSourceMap::None => (),
+      };
+
       self.bundle.context.assets.lock().unwrap().push(Asset {
-        source: chunk.code,
+        source: code,
         filename: chunk.file_name,
       });
     });
@@ -233,14 +258,7 @@ impl Bundler {
             .replace("[contenthash]", &format!("{:x}", content_hash));
         }
 
-        (
-          chunk.file_name.clone(),
-          OutputChunk {
-            code: chunk.code,
-            file_name: chunk.file_name,
-            entry: chunk.entry,
-          },
-        )
+        (chunk.file_name.clone(), chunk)
       })
       .collect()
   }

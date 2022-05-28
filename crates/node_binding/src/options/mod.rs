@@ -6,6 +6,7 @@ use napi_derive::napi;
 use rspack_core::ChunkIdAlgo;
 use rspack_core::ModuleIdAlgo;
 use rspack_core::OptimizationOptions;
+use rspack_core::SourceMapOptions;
 use rspack_core::{
   BundleMode, BundleOptions, BundleReactOptions, CodeSplittingOptions, EntryItem, Loader,
   ResolveOption,
@@ -25,9 +26,25 @@ pub use react::*;
 pub use resolve::*;
 pub use split_chunks::*;
 
+#[cfg(not(feature = "test"))]
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
+pub struct RawOptions {
+  pub entries: HashMap<String, String>,
+  #[napi(ts_type = "\"development\" | \"production\" | \"none\"")]
+  pub mode: Option<String>,
+  pub root: Option<String>,
+  pub loader: Option<HashMap<String, String>>,
+  pub enhanced: Option<RawEnhancedOptions>,
+  pub optimization: Option<RawOptimizationOptions>,
+  pub output: Option<RawOutputOptions>,
+  pub resolve: Option<RawResolveOptions>,
+}
+
+#[derive(Deserialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+#[cfg(feature = "test")]
 pub struct RawOptions {
   pub entries: HashMap<String, String>,
   pub mode: Option<String>,
@@ -59,10 +76,6 @@ pub fn normalize_bundle_options(options: RawOptions) -> Result<BundleOptions> {
     })
     .unwrap_or_else(|| BundleOptions::default().mode);
 
-  if let Some(e) = err {
-    return Err(e);
-  }
-
   let entries = options.entries;
   let root = options
     .root
@@ -70,20 +83,42 @@ pub fn normalize_bundle_options(options: RawOptions) -> Result<BundleOptions> {
   let loader = options.loader.unwrap_or_default();
   let enhanced = options.enhanced.unwrap_or_else(|| mode.into());
   let optimization = options.optimization.unwrap_or_else(|| mode.into());
-  let outout = options.output.unwrap_or_else(|| mode.into());
+  let output = options.output.unwrap_or_else(|| mode.into());
   let resolve = options.resolve.unwrap_or_else(|| mode.into());
   let react = enhanced.react.unwrap_or_else(|| mode.into());
   let split_chunks = optimization.split_chunks.unwrap_or_else(|| mode.into());
+
+  let source_map = output
+    .source_map
+    .map(|source_map| match source_map.as_str() {
+      "none" => SourceMapOptions::None,
+      "inline" => SourceMapOptions::Inline,
+      "external" => SourceMapOptions::External,
+      "linked" => SourceMapOptions::Linked,
+      _ => {
+        err = Some(Error::new(
+          napi::Status::InvalidArg,
+          "invalid option `source_map`, expected options 'inline' | 'external' | 'linked' | 'none'"
+            .to_owned(),
+        ));
+        SourceMapOptions::None
+      }
+    })
+    .unwrap_or_else(|| true.into());
+
+  if let Some(e) = err {
+    return Err(e);
+  }
 
   Ok(BundleOptions {
     entries: parse_entries(entries),
     root,
     mode,
     minify: optimization.minify.unwrap_or_else(|| mode.is_prod()),
-    outdir: outout
+    outdir: output
       .outdir
       .unwrap_or_else(|| BundleOptions::default().outdir),
-    entry_filename: outout
+    entry_filename: output
       .entry_filename
       .unwrap_or_else(|| BundleOptions::default().entry_filename),
     loader: parse_loader(loader),
@@ -96,7 +131,7 @@ pub fn normalize_bundle_options(options: RawOptions) -> Result<BundleOptions> {
       refresh: react.fast_fresh.unwrap_or_else(|| mode.is_dev()),
       ..Default::default()
     },
-    source_map: outout.source_map.unwrap_or(true),
+    source_map,
     code_splitting: split_chunks
       .code_splitting
       .map(|is_enable| {

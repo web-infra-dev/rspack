@@ -71,7 +71,14 @@
           "type": "string"
         },
         "sourceMap": {
-          "type": "boolean"
+          "oneOf": [
+            { 
+              "enum": ["inline", "external", "linked"] 
+            },
+            { 
+              "type": "boolean" 
+            }
+          ]
         }
       }
     },

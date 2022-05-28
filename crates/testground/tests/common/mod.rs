@@ -2,7 +2,7 @@ use std::{collections::HashMap, path::Path};
 
 use node_binding::{normalize_bundle_options, RawOptions};
 use rspack::bundler::Bundler;
-use rspack_core::{BundleOptions, Plugin};
+use rspack_core::{BundleOptions, Plugin, SourceMapOptions};
 
 pub async fn compile(options: BundleOptions, plugins: Vec<Box<dyn Plugin>>) -> Bundler {
   let mut bundler = Bundler::new(options, plugins);

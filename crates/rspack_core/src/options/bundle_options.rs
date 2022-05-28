@@ -40,6 +40,30 @@ impl Default for ResolveOption {
 }
 
 #[derive(Debug)]
+pub enum SourceMapOptions {
+  None,
+  Inline,
+  External,
+  Linked,
+}
+
+impl From<bool> for SourceMapOptions {
+  fn from(option: bool) -> Self {
+    if option {
+      Self::Inline
+    } else {
+      Self::None
+    }
+  }
+}
+
+impl SourceMapOptions {
+  pub fn is_enabled(&self) -> bool {
+    !matches!(self, Self::None)
+  }
+}
+
+#[derive(Debug)]
 pub struct BundleOptions {
   pub react: BundleReactOptions,
   pub loader: LoaderOptions,
@@ -54,7 +78,7 @@ pub struct BundleOptions {
   pub root: String,
   pub inline_style: bool,
   pub resolve: ResolveOption,
-  pub source_map: bool,
+  pub source_map: SourceMapOptions,
   pub svgr: bool,
   pub define: HashMap<String, String>,
   pub optimization: OptimizationOptions,
@@ -89,7 +113,7 @@ impl Default for BundleOptions {
       lazy_compilation: false,
       loader: Default::default(),
       inline_style: Default::default(),
-      source_map: true,
+      source_map: true.into(),
       svgr: false,
       define: Default::default(),
       optimization: Default::default(),
