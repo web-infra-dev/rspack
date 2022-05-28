@@ -14,7 +14,7 @@ export interface OnLoadContext {
 }
 export interface OnLoadResult {
   content?: string;
-  loader?: string;
+  loader?: 'dataURI' | 'json' | 'text' | 'css' | 'less' | 'scss' | 'sass' | 'js' | 'jsx' | 'ts' | 'tsx' | 'null';
 }
 export interface OnResolveContext {
   importer?: string;
@@ -64,6 +64,7 @@ export interface RawOptions {
   optimization?: RawOptimizationOptions;
   output?: RawOutputOptions;
   resolve?: RawResolveOptions;
+  chunkFilename?: string;
 }
 export function initCustomTraceSubscriber(): void;
 export interface PluginCallbacks {

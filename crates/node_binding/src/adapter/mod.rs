@@ -80,9 +80,21 @@ pub struct OnLoadContext {
   pub id: String,
 }
 
+#[cfg(not(feature = "test"))]
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
+pub struct OnLoadResult {
+  pub content: Option<String>,
+  #[napi(
+    ts_type = r#""dataURI" | "json" | "text" | "css" | "less" | "scss" | "sass" | "js" | "jsx" | "ts" | "tsx" | "null""#
+  )]
+  pub loader: Option<String>,
+}
+
+#[cfg(feature = "test")]
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct OnLoadResult {
   pub content: Option<String>,
   pub loader: Option<String>,
@@ -291,7 +303,7 @@ impl Plugin for RspackPluginNodeAdapter {
         use rspack_core::Loader;
 
         match loader.as_str() {
-          "data_uri" => Loader::DataURI,
+          "dataURI" => Loader::DataURI,
           "json" => Loader::Json,
           "text" => Loader::Text,
           "css" => Loader::Css,
