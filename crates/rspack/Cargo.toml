@@ -21,7 +21,7 @@ rspack_plugin_mock_buitins = {path = "../rspack_plugin_mock_buitins"}
 rspack_plugin_define = { path="../rspack_plugin_define" }
 rspack_plugin_globals = { path = "../rspack_plugin_globals" }
 rspack_plugin_ast_optimization = { path="../rspack_plugin_ast_optimization" }
-sugar_path="0.0.4"
+sugar_path = "0.0.5"
 anyhow = "1"
 crossbeam = "0.8.1"
 dashmap = "5.0.0"

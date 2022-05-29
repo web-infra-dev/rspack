@@ -1,8 +1,8 @@
 use std::path::{Component, Path};
 use sugar_path::{self, PathSugar};
 pub fn normalize_path(path: &str, root: &str) -> String {
-  let res = Path::new(&root)
-    .relative(Path::new(&path))
+  let res = Path::new(&path)
+    .relative(&root)
     .to_string_lossy()
     .to_string();
 
@@ -11,7 +11,7 @@ pub fn normalize_path(path: &str, root: &str) -> String {
 
 pub fn uri_to_chunk_name(root: &str, uri: &str) -> String {
   let path = Path::new(uri);
-  let mut relatived = Path::new(root).relative(path);
+  let mut relatived = Path::new(path).relative(root);
   let ext = relatived
     .extension()
     .and_then(|ext| ext.to_str())
@@ -34,7 +34,7 @@ pub fn uri_to_chunk_name(root: &str, uri: &str) -> String {
 
 pub fn gen_module_id(root: &str, uri: &str) -> String {
   Path::new("./")
-    .join(Path::new(root).relative(uri))
+    .join(Path::new(uri).relative(root))
     .to_str()
     .unwrap()
     .to_string()
