@@ -32,14 +32,14 @@ impl Plugin for MockBuitinsPlugin {
     PLUGIN_NAME
   }
 
-  async fn load(&self, _ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
-    if is_builtin_module(&args.id) {
-      Some(LoadedSource {
-        loader: Some(Loader::Null),
-        content: Some(String::new()),
-      })
-    } else {
-      None
-    }
-  }
+  // async fn load(&self, _ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
+  //   if is_builtin_module(&args.id) {
+  //     Some(LoadedSource {
+  //       loader: Some(Loader::Null),
+  //       content: Some(String::new()),
+  //     })
+  //   } else {
+  //     None
+  //   }
+  // }
 }

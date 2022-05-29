@@ -57,6 +57,15 @@
               "type": "string"
             }
           }
+        },
+        "conditionNames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "aliasField": {
+          "type": "string"
         }
       }
     },
@@ -72,11 +81,15 @@
         },
         "sourceMap": {
           "oneOf": [
-            { 
-              "enum": ["inline", "external", "linked"] 
+            {
+              "enum": [
+                "inline",
+                "external",
+                "linked"
+              ]
             },
-            { 
-              "type": "boolean" 
+            {
+              "type": "boolean"
             }
           ]
         }

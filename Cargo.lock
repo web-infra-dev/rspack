@@ -1189,6 +1189,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "nodejs-resolver"
+version = "0.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ee96654396109ae794f3e5a9ff6baa9d31d166727445b9fef8328e1c656c61a"
+dependencies = [
+ "daachorse",
+ "dashmap",
+ "indexmap",
+ "once_cell",
+ "phf",
+ "serde_json",
+ "smol_str",
+]
+
+[[package]]
 name = "nom"
 version = "7.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1697,7 +1712,7 @@ dependencies = [
  "futures",
  "linked-hash-map",
  "md4",
- "nodejs-resolver 0.0.11",
+ "nodejs-resolver 0.0.12",
  "num_cpus",
  "once_cell",
  "petgraph",
@@ -1741,7 +1756,7 @@ dependencies = [
  "hashbrown 0.12.1",
  "indicatif",
  "linked-hash-map",
- "nodejs-resolver 0.0.11",
+ "nodejs-resolver 0.0.12",
  "once_cell",
  "petgraph",
  "rayon",
