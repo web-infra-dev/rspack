@@ -12,14 +12,14 @@ pub fn code_splitting2(
   bundle_options: &BundleOptions,
 ) -> ChunkGraph {
   let code_splitting_options = &bundle_options.code_splitting;
-  let is_enable_code_spliting;
-  let is_reuse_exsting_chunk;
+  let is_enable_code_splitting;
+  let is_reuse_existing_chunk;
   if let Some(option) = code_splitting_options {
-    is_enable_code_spliting = true;
-    is_reuse_exsting_chunk = option.reuse_existing_chunk;
+    is_enable_code_splitting = true;
+    is_reuse_existing_chunk = option.reuse_existing_chunk;
   } else {
-    is_enable_code_spliting = false;
-    is_reuse_exsting_chunk = false;
+    is_enable_code_splitting = false;
+    is_reuse_existing_chunk = false;
   }
 
   let mut chunk_graph = ChunkGraph::default();
@@ -63,7 +63,7 @@ pub fn code_splitting2(
     chunk_graph.add_chunk(chunk);
   }
 
-  if is_enable_code_spliting {
+  if is_enable_code_splitting {
     module_graph.modules().for_each(|module| {
       module
         .dynamic_dependency_modules(module_graph)
@@ -85,10 +85,20 @@ pub fn code_splitting2(
   }
 
   // Now, we have all chunks and need place right modules into chunks.
+  // We iterate through all chunks, and place modules that depended(directed or non-directed) by the chunk to the map below.
+  // Without bundle splitting, a module can be placed into multiple chunks based on its usage:
+
+  // E.g. (Code Splitting enabled)
+  // a.js(entrypoint) -(dyn import)-> b.js -> c.js
+  //      \
+  //       > c.js
+  // In this case, two chunks will be generated, chunk entires are `a.js` (Chunk A) and `b.js` (Chunk B),
+  // and module `c.js` will be placed into both of them.
 
   let mut mod_to_chunk_id: HashMap<&str, HashSet<&str>> = Default::default();
 
   for entry in &chunk_entries {
+    let chunk_id = &chunk_id_by_entry_module_uri[*entry];
     let mut queue = [*entry].into_iter().collect::<VecDeque<_>>();
     let mut visited = HashSet::new();
     while let Some(module_uri) = queue.pop_front() {
@@ -97,7 +107,6 @@ pub fn code_splitting2(
         .unwrap_or_else(|| panic!("no entry found for key {:?}", module_uri));
       if !visited.contains(module_uri) {
         visited.insert(module_uri);
-        let chunk_id = &chunk_id_by_entry_module_uri[*entry];
         mod_to_chunk_id
           .entry(module_uri)
           .or_default()
@@ -108,7 +117,7 @@ pub fn code_splitting2(
           .dependency_modules(module_graph)
           .into_iter()
           .for_each(|dep_module| queue.push_back(&dep_module.uri));
-        if !is_enable_code_spliting {
+        if !is_enable_code_splitting {
           module
             .dynamic_dependency_modules(module_graph)
             .into_iter()
@@ -119,6 +128,12 @@ pub fn code_splitting2(
       }
     }
   }
+
+  // Now, we have the relationship between modules and chunks.
+  // We create directed graph from starting chunk to another.
+
+  // For the example above, we have the following graph:
+  // Chunk A(entrypoint: a.js) -> Chunk B(entrypoint: b.js)
 
   module_graph.modules().for_each(|each_mod| {
     each_mod
@@ -169,8 +184,9 @@ pub fn code_splitting2(
         belong_to_chunks
           .iter()
           .filter(|id_of_chunk_to_place_module| {
-            if is_reuse_exsting_chunk {
-              // We only want to have chunks the hash no superiors.
+            if is_reuse_existing_chunk {
+              // We only want to have chunks that have no superiors.
+              // If both chunk A and B have the same module, we only want to place module into the uppermost chunk based on the relationship between A and B.
               let has_superior = belong_to_chunks.iter().any(|maybe_superior_chunk| {
                 chunk_relation_graph2
                   .contains_edge(*maybe_superior_chunk, **id_of_chunk_to_place_module)
@@ -180,8 +196,6 @@ pub fn code_splitting2(
               true
             }
           })
-          .collect::<Vec<_>>()
-          .into_iter()
           .for_each(|id_of_chunk_to_place_module| {
             let chunk_to_place_module = chunk_graph
               .chunk_by_id_mut(id_of_chunk_to_place_module)
@@ -195,7 +209,7 @@ pub fn code_splitting2(
           .dependency_modules(module_graph)
           .into_iter()
           .for_each(|dep_module| queue.push_back(&dep_module.uri));
-        if !is_enable_code_spliting {
+        if !is_enable_code_splitting {
           module
             .dynamic_dependency_modules(module_graph)
             .into_iter()
