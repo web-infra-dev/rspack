@@ -22,12 +22,8 @@ describe('rspack:node-plugin', () => {
         }
       },
       async resolve(source, importer) {
-        console.log('resolveing');
-
         if (source === 'foo') {
-          const nativeResult = this.resolve('./foo', {
-            resolveDir: path.dirname(importer),
-          });
+          const nativeResult = this.resolve('./foo', importer);
           console.log('nativeResult', nativeResult);
 
           return {
