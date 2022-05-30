@@ -1,4 +1,7 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{
+  collections::{HashMap, HashSet},
+  str::FromStr,
+};
 
 use napi::bindgen_prelude::*;
 use napi::Error;
@@ -126,6 +129,10 @@ pub fn normalize_bundle_options(options: RawOptions) -> Result<BundleOptions> {
     inline_style: enhanced.inline_style.unwrap_or(false),
     resolve: ResolveOption {
       alias: resolve.alias.map_or(Default::default(), parse_raw_alias),
+      condition_names: resolve
+        .condition_names
+        .map_or(Default::default(), parse_raw_condition_names),
+      alias_field: resolve.alias_field.unwrap_or_else(|| "browser".to_owned()),
       ..Default::default()
     },
     react: BundleReactOptions {
@@ -212,4 +219,8 @@ pub fn parse_raw_alias(alias: HashMap<String, String>) -> Vec<(String, Option<St
     .into_iter()
     .map(|(s1, s2)| (s1, Some(s2)))
     .collect::<Vec<_>>()
+}
+
+pub fn parse_raw_condition_names(condition_names: Vec<String>) -> HashSet<String> {
+  HashSet::from_iter(condition_names.into_iter())
 }

@@ -85,6 +85,8 @@ impl Bundler {
     let resolver = Arc::new(Resolver::new(ResolverOptions {
       extensions: normalized_options.resolve.extensions.clone(),
       alias: HashMap::from_iter(normalized_options.resolve.alias.clone().into_iter()),
+      condition_names: normalized_options.resolve.condition_names.clone(),
+      alias_fields: vec![normalized_options.resolve.alias_field.clone()],
       ..Default::default()
     }));
 

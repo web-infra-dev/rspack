@@ -2,7 +2,7 @@ use crate::{
   runtime::RuntimeOptions, BundleEntries, BundleMode, CodeSplittingOptions, LoaderOptions,
   OptimizationOptions,
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use rspack_swc::swc_ecma_transforms_react;
 
@@ -25,6 +25,9 @@ impl Default for BundleReactOptions {
 pub struct ResolveOption {
   pub extensions: Vec<String>,
   pub alias: Vec<(String, Option<String>)>,
+  pub condition_names: HashSet<String>,
+  pub symlinks: bool,
+  pub alias_field: String,
 }
 
 impl Default for ResolveOption {
@@ -35,6 +38,9 @@ impl Default for ResolveOption {
         .map(|s| s.to_string())
         .collect(),
       alias: vec![],
+      condition_names: Default::default(),
+      symlinks: true,
+      alias_field: String::from("browser"),
     }
   }
 }
