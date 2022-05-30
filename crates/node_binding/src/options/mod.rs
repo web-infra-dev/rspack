@@ -3,9 +3,11 @@ use std::{
   str::FromStr,
 };
 
+#[cfg(not(feature = "test"))]
+use napi_derive::napi;
+
 use napi::bindgen_prelude::*;
 use napi::Error;
-use napi_derive::napi;
 use rspack_core::ChunkIdAlgo;
 use rspack_core::ModuleIdAlgo;
 use rspack_core::OptimizationOptions;

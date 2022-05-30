@@ -1,6 +1,8 @@
-use napi_derive::napi;
 use rspack_core::{BundleMode, BundleOptions};
 use serde::Deserialize;
+
+#[cfg(not(feature = "test"))]
+use napi_derive::napi;
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
