@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use napi_derive::napi;
-use rspack_core::BundleMode;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Default)]
