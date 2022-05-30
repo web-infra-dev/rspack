@@ -160,7 +160,7 @@ impl Plugin for ProgressPlugin {
         .unwrap()
         .trim()
         .parse()
-        .unwrap();
+        .unwrap_or(0);
     }
     *self.progress.total.lock().unwrap() = total;
   }

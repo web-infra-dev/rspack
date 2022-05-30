@@ -49,9 +49,9 @@ export interface RawReactOptions {
   fastFresh?: boolean;
 }
 export interface RawResolveOptions {
-  alias?: Record<string, string>;
-  conditionNames?: Array<string>;
-  aliasField?: string;
+  alias?: Record<string, string>
+  conditionNames?: Array<string>
+  aliasField?: string
 }
 export interface RawSplitChunksOptions {
   codeSplitting?: boolean;
@@ -97,4 +97,4 @@ export interface ResolveResult {
   path?: string;
 }
 export function resolveFile(baseDir: string, importPath: string): string;
-export interface RspackInternal {}
+export interface RspackInternal { }

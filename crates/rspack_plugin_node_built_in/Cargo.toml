@@ -1,5 +1,5 @@
 [package]
-name = "rspack_plugin_mock_buitins"
+name = "rspack_plugin_node_built_in"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,4 +7,5 @@ edition = "2021"
 
 [dependencies]
 rspack_core = { path = "../rspack_core" }
+nodejs-resolver="0.0.12"
 async-trait = "0.1.53"

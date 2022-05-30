@@ -74,7 +74,6 @@ impl Task {
   pub async fn run(&mut self) {
     let resolved_uri = self.resolved_uri.clone();
     if resolved_uri.external {
-      // TODO: external module
     } else {
       tracing::trace!("start process {:?}", resolved_uri);
       let uri_resolver = DependencyIdResolver {
@@ -150,7 +149,7 @@ impl Task {
         cached_output: Default::default(),
       };
       self.tx.send(Msg::TaskFinished(module)).unwrap()
-    }
+    };
   }
 
   pub fn spawn_new_task(&self, resolved_uri: ResolvedURI) {

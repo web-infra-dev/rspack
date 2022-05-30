@@ -1,8 +1,8 @@
 use rspack::bundler::{BundleOptions, Bundler};
 
 use rspack::stats::Stats;
-use rspack_core::EntryItem;
 use rspack_core::Plugin;
+use rspack_core::{Asset, EntryItem};
 
 use serde_json::Value;
 use std::collections::HashMap;
@@ -123,4 +123,24 @@ pub fn assert_inline_sourcemap_in_pos(
     )
     .unwrap();
   assert_eq!(actual, expected_in_source);
+}
+
+pub fn run_js_asset_in_node(js_asset: &Asset) {
+  let filename = &js_asset.filename;
+  let source = &js_asset.source;
+  // TODO: should optimized
+  match std::process::Command::new("node")
+    .args(["-e", source])
+    .output()
+  {
+    Ok(result) => {
+      if !result.stderr.is_empty() {
+        panic!(
+          "run {filename} failed.\n Error message: {}",
+          std::str::from_utf8(&result.stderr).unwrap()
+        )
+      }
+    }
+    Err(err) => panic!("run {filename} failed.\n Error message {err}"),
+  }
 }
