@@ -30,16 +30,10 @@ impl ModuleGraphContainer {
       if !visited.contains(&uri) {
         visited.insert(uri.clone());
         stack.push(uri);
-        module
-          .dependencies
-          .keys()
-          .collect::<Vec<_>>()
-          .into_iter()
-          .rev()
-          .for_each(|dep| {
-            let rid = module.resolved_uris.get(dep).unwrap().clone();
-            stack.push(rid.uri);
-          });
+        module.dependencies.keys().rev().for_each(|dep| {
+          let rid = module.resolved_uris.get(dep).unwrap().clone();
+          stack.push(rid.uri);
+        });
         module
           .dyn_imports
           .iter()
