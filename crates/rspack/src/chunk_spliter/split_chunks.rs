@@ -87,7 +87,7 @@ pub fn code_splitting2(
 
   // E.g. (Code Splitting enabled)
   //                  (dynamic import)
-  // a.js(entrypoint)-------------->b.js------->c.js
+  // a.js(entrypoint)------------------>b.js------->c.js
   //        |
   //        |
   //        +------>c.js
