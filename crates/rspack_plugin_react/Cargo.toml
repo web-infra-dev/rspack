@@ -11,3 +11,4 @@ rspack_swc = { path = "../rspack_swc" }
 swc_common = "=0.18.3"
 nodejs-resolver = "0.0.14"
 async-trait = "0.1.53"
+anyhow = "1"

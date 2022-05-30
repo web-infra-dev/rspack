@@ -6,11 +6,7 @@ use std::{
   },
 };
 
-use crate::{
-  bundle::Msg, dependency_scanner::DependencyScanner, plugin_hook, utils::parse_file, ImportKind,
-  JsModule, JsModuleKind, LoadArgs, PluginDriver, ResolveArgs, ResolvedURI,
-};
-use crate::{get_swc_compiler, path::normalize_path};
+use anyhow::Result;
 use dashmap::{DashMap, DashSet};
 
 use rspack_swc::{
@@ -25,6 +21,12 @@ use swc_ecma_visit::VisitMutWith;
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::instrument;
 
+use crate::{
+  bundle::Msg, dependency_scanner::DependencyScanner, plugin_hook, utils::parse_file, ImportKind,
+  JsModule, JsModuleKind, LoadArgs, PluginDriver, ResolveArgs, ResolvedURI,
+};
+use crate::{get_swc_compiler, path::normalize_path};
+
 #[derive(Debug)]
 pub struct DependencyIdResolver {
   pub module_id: String,
@@ -33,7 +35,7 @@ pub struct DependencyIdResolver {
 }
 
 impl DependencyIdResolver {
-  pub async fn resolve(&self, dep_src: &JsWord, kind: ImportKind) -> ResolvedURI {
+  pub async fn resolve(&self, dep_src: &JsWord, kind: ImportKind) -> Result<ResolvedURI> {
     let resolved_id;
     if let Some(cached) = self.resolved_ids.get(dep_src) {
       resolved_id = cached.clone();
@@ -47,12 +49,12 @@ impl DependencyIdResolver {
         false,
         &self.plugin_driver,
       )
-      .await;
+      .await?;
       self
         .resolved_ids
         .insert(dep_src.clone(), resolved_id.clone());
     }
-    resolved_id
+    Ok(resolved_id)
   }
 }
 
@@ -68,7 +70,7 @@ pub struct Task {
 
 impl Task {
   #[instrument(skip(self))]
-  pub async fn run(&mut self) {
+  pub async fn run(&mut self) -> Result<()> {
     let resolved_uri = self.resolved_uri.clone();
     if resolved_uri.external {
     } else {
@@ -87,9 +89,9 @@ impl Task {
         },
         &self.plugin_driver,
       )
-      .await;
+      .await?;
       let transformed_source =
-        plugin_hook::transform(module_id, &mut loader, source, &self.plugin_driver);
+        plugin_hook::transform(module_id, &mut loader, source, &self.plugin_driver)?;
       let loader = loader
         .as_ref()
         .unwrap_or_else(|| panic!("No loader to deal with file: {:?}", module_id));
@@ -107,21 +109,21 @@ impl Task {
           raw_ast.visit_mut_with(&mut syntax_context_resolver);
         })
       }
-      let mut ast = plugin_hook::transform_ast(Path::new(module_id), raw_ast, &self.plugin_driver);
+      let mut ast = plugin_hook::transform_ast(Path::new(module_id), raw_ast, &self.plugin_driver)?;
 
       self.pre_analyze_imported_module(&uri_resolver, &ast).await;
 
       ast.visit_mut_with(&mut dependency_scanner);
 
       for (import, _) in &dependency_scanner.dependencies {
-        let resolved_id = uri_resolver.resolve(import, ImportKind::Import).await;
+        let resolved_id = uri_resolver.resolve(import, ImportKind::Import).await?;
         self.spawn_new_task(resolved_id);
       }
 
       for dyn_import in &dependency_scanner.dyn_dependencies {
         let resolved_id = uri_resolver
           .resolve(&dyn_import.argument, ImportKind::DynamicImport)
-          .await;
+          .await?;
         self.spawn_new_task(resolved_id);
       }
 
@@ -144,8 +146,10 @@ impl Task {
         loader: *loader,
         cached_output: Default::default(),
       };
-      self.tx.send(Msg::TaskFinished(module)).unwrap()
-    };
+      self.tx.send(Msg::TaskFinished(module))?
+    }
+
+    Ok(())
   }
 
   pub fn spawn_new_task(&self, resolved_uri: ResolvedURI) {
@@ -171,7 +175,7 @@ impl Task {
     &self,
     resolver: &DependencyIdResolver,
     ast: &ast::Module,
-  ) {
+  ) -> Result<()> {
     for module_item in &ast.body {
       if let ast::ModuleItem::ModuleDecl(module_decl) = module_item {
         let mut depended = None;
@@ -190,10 +194,11 @@ impl Task {
           _ => {}
         }
         if let Some(depended) = depended {
-          let uri = resolver.resolve(depended, ImportKind::Import).await;
+          let uri = resolver.resolve(depended, ImportKind::Import).await?;
           self.spawn_new_task(uri);
         }
       }
     }
+    Ok(())
   }
 }

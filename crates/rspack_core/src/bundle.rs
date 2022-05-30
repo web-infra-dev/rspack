@@ -2,6 +2,13 @@ use std::collections::HashMap;
 use std::sync::atomic::Ordering;
 use std::sync::{atomic::AtomicUsize, Arc};
 
+use anyhow::{Error, Result};
+use crossbeam::queue::SegQueue;
+use dashmap::DashSet;
+use futures::future::{join_all, try_join_all};
+use nodejs_resolver::Resolver;
+use tracing::instrument;
+
 use crate::path::gen_module_id;
 use crate::task::Task;
 use crate::{
@@ -9,11 +16,6 @@ use crate::{
   JsModuleKind, ModuleGraphContainer, ModuleIdAlgo, NormalizedBundleOptions, PluginDriver,
   ResolvedURI,
 };
-use crossbeam::queue::SegQueue;
-use dashmap::DashSet;
-use futures::future::join_all;
-use nodejs_resolver::Resolver;
-use tracing::instrument;
 
 #[derive(Debug)]
 pub struct Bundle {
@@ -58,7 +60,7 @@ impl Bundle {
   }
 
   #[instrument(skip(self))]
-  pub async fn build_graph(&mut self, changed_files: Option<Vec<String>>) {
+  pub async fn build_graph(&mut self, changed_files: Option<Vec<String>>) -> Result<()> {
     let active_task_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
     let job_queue: Arc<SegQueue<ResolvedURI>> = Default::default();
 
@@ -73,8 +75,8 @@ impl Bundle {
     }
 
     self.module_graph_container.resolved_entries =
-      join_all(self.entries.iter().map(|(name, entry)| async {
-        (
+      try_join_all(self.entries.iter().map(|(name, entry)| async {
+        Ok::<_, Error>((
           name.clone(),
           plugin_hook::resolve_id(
             crate::ResolveArgs {
@@ -85,10 +87,10 @@ impl Bundle {
             false,
             &self.plugin_driver,
           )
-          .await,
-        )
+          .await?,
+        ))
       }))
-      .await
+      .await?
       .into_iter()
       .collect();
 
@@ -155,5 +157,7 @@ impl Bundle {
     }
 
     self.module_graph_container.sort_modules();
+
+    Ok(())
   }
 }

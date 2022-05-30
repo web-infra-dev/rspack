@@ -1,11 +1,14 @@
 #![deny(clippy::all)]
 
+use anyhow::Result;
 use async_trait::async_trait;
-use core::fmt::Debug;
-use rspack_core::{BundleContext, Loader, Plugin, PluginTransformHookOutput};
-use std::sync::{Arc, Mutex};
-extern crate console;
 use console::{style, Color, Term};
+use core::fmt::Debug;
+use rspack_core::{
+  BundleContext, Loader, Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput,
+  PluginTransformHookOutput,
+};
+use std::sync::{Arc, Mutex};
 
 use once_cell::sync::Lazy;
 use std::fs::File;
@@ -148,7 +151,7 @@ impl Plugin for ProgressPlugin {
     PLUGIN_NAME
   }
 
-  async fn build_start(&self, _ctx: &BundleContext) {
+  async fn build_start(&self, _ctx: &BundleContext) -> PluginBuildStartHookOutput {
     // if matches!(_ctx.options.mode, BundleMode::Dev) {
     //   return;
     // }
@@ -163,6 +166,8 @@ impl Plugin for ProgressPlugin {
         .unwrap_or(0);
     }
     *self.progress.total.lock().unwrap() = total;
+
+    Ok(())
   }
   fn transform(
     &self,
@@ -173,18 +178,18 @@ impl Plugin for ProgressPlugin {
   ) -> PluginTransformHookOutput {
     let done = self.progress.done.lock().unwrap();
     if *done {
-      return raw;
+      return Ok(raw);
     }
     // if matches!(_ctx.options.mode, BundleMode::Dev) {
     //   return None;
     // }
     self.progress.update("RsPack", _uri, 1).unwrap();
-    raw
+    Ok(raw)
   }
-  async fn build_end(&self, _ctx: &BundleContext) {
+  async fn build_end(&self, _ctx: &BundleContext) -> PluginBuildEndHookOutput {
     let mut done = self.progress.done.lock().unwrap();
     if *done {
-      return;
+      return Ok(());
     }
     *done = true;
     // if matches!(_ctx.options.mode, BundleMode::Dev) {
@@ -235,6 +240,8 @@ impl Plugin for ProgressPlugin {
         .to_string();
       println!("{}{}{}{}", outdir, name, space, size);
     }
+
+    Ok(())
   }
 }
 

@@ -69,7 +69,7 @@ export const LessPlugin = (options: LessPluginOptions): RspackPlugin => {
     name: 'rspack:less',
     async load(id) {
       const callbackError = (err: Error) => {
-        console.log(err);
+        throw err;
       };
 
       if (id.endsWith('.less')) {

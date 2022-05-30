@@ -78,7 +78,10 @@ pub fn build(env: Env, binding_context: External<RspackBindingContext>) -> Resul
   env.execute_tokio_future(
     async move {
       let mut bundler = bundler.lock().await;
-      let Stats { map, .. } = bundler.build(None).await;
+      let Stats { map, .. } = bundler
+        .build(None)
+        .await
+        .map_err(|e| Error::new(napi::Status::Unknown, e.to_string()))?;
       bundler.write_assets_to_disk();
       Ok(map)
     },
@@ -99,7 +102,10 @@ pub fn rebuild(
   env.execute_tokio_future(
     async move {
       let mut bundler = bundler.lock().await;
-      let changed = bundler.rebuild(changed_file).await;
+      let changed = bundler
+        .rebuild(changed_file)
+        .await
+        .map_err(|e| Error::new(napi::Status::Unknown, e.to_string()))?;
       bundler.write_assets_to_disk();
       Ok(changed)
     },

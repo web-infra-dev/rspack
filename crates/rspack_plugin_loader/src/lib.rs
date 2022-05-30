@@ -4,6 +4,7 @@ mod data_uri;
 mod json;
 use std::path::Path;
 
+use anyhow::Result;
 use async_trait::async_trait;
 use data_uri::guess_mime_types_ext;
 use rspack_core::{BundleContext, Loader, Plugin, PluginTransformHookOutput};
@@ -27,7 +28,7 @@ impl Plugin for LoaderInterpreterPlugin {
     raw: String,
   ) -> PluginTransformHookOutput {
     if let Some(loader) = loader {
-      match loader {
+      let result = match loader {
         Loader::DataURI => {
           *loader = Loader::Js;
           let mime_type = guess_mime_types_ext(
@@ -59,9 +60,10 @@ export default img;",
           r#"export default {};"#.to_string()
         }
         _ => raw,
-      }
+      };
+      Ok(result)
     } else {
-      raw
+      Ok(raw)
     }
   }
 }

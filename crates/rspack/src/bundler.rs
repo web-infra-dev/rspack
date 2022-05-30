@@ -4,6 +4,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use anyhow::Result;
 use nodejs_resolver::{Resolver, ResolverOptions};
 use rayon::prelude::*;
 use rspack_core::inject_options;
@@ -99,14 +100,14 @@ impl Bundler {
   }
 
   #[instrument(skip(self))]
-  pub async fn build(&mut self, changed_files: Option<Vec<String>>) -> Stats {
+  pub async fn build(&mut self, changed_files: Option<Vec<String>>) -> Result<Stats> {
     let start_time = std::time::Instant::now();
-    self.plugin_driver.build_start().await;
+    self.plugin_driver.build_start().await?;
     tracing::trace!("start build");
 
-    self.bundle.build_graph(changed_files).await;
+    self.bundle.build_graph(changed_files).await?;
 
-    let chunks = generate_chunks(&mut self.bundle);
+    let chunks = generate_chunks(&mut self.bundle)?;
     self.bundle.chunk_graph = chunks;
 
     let output = self.render_chunks();
@@ -147,14 +148,14 @@ impl Bundler {
       });
     });
 
-    self.plugin_driver.build_end().await;
+    self.plugin_driver.build_end().await?;
     let end_time = std::time::Instant::now();
 
-    Stats {
+    Ok(Stats {
       map,
       start_time,
       end_time,
-    }
+    })
   }
 
   pub fn resolve(
@@ -167,7 +168,10 @@ impl Bundler {
   }
 
   #[instrument(skip(self))]
-  pub async fn rebuild(&mut self, changed_file: Vec<String>) -> Vec<HashMap<String, String>> {
+  pub async fn rebuild(
+    &mut self,
+    changed_file: Vec<String>,
+  ) -> Result<Vec<HashMap<String, String>>> {
     tracing::debug!("rebuild because of {:?}", changed_file);
     let changed_files = changed_file;
     let old_modules_uri = self
@@ -191,7 +195,7 @@ impl Bundler {
       self.bundle.visited_module_id.remove(rd);
     });
 
-    let Stats { map, .. } = self.build(Some(changed_files)).await;
+    let Stats { map, .. } = self.build(Some(changed_files)).await?;
 
     let new_modules_id = self
       .bundle
@@ -223,7 +227,7 @@ impl Bundler {
         )
       })
       .collect();
-    vec![diff_rendered, map]
+    Ok(vec![diff_rendered, map])
   }
 
   pub fn write_assets_to_disk(&self) {

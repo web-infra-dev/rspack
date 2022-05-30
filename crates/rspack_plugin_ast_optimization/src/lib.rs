@@ -2,6 +2,7 @@
 
 use std::path::Path;
 
+use anyhow::Result;
 use async_trait::async_trait;
 
 use rspack_core::{ast, BundleContext, Plugin, PluginTransformAstHookOutput};
@@ -42,8 +43,10 @@ impl Plugin for OptimizationPlugin {
     _path: &Path,
     ast: ast::Module,
   ) -> PluginTransformAstHookOutput {
-    ctx
-      .compiler
-      .run(|| ast.fold_with(&mut constant_folder(ctx.unresolved_mark)))
+    Ok(
+      ctx
+        .compiler
+        .run(|| ast.fold_with(&mut constant_folder(ctx.unresolved_mark))),
+    )
   }
 }

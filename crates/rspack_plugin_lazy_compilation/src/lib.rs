@@ -1,5 +1,6 @@
 #![deny(clippy::all)]
 
+use anyhow::Result;
 use async_trait::async_trait;
 use rspack_core::{
   BundleContext, ImportKind, LoadArgs, LoadedSource, Loader, Plugin, PluginLoadHookOutput,
@@ -30,11 +31,11 @@ impl Plugin for LazyCompilationPlugin {
 
   async fn load(&self, _ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
     if args.kind == ImportKind::DynamicImport {
-      return Some(LoadedSource {
+      return Ok(Some(LoadedSource {
         content: Some("".to_string()),
         loader: Some(Loader::Js),
-      });
+      }));
     }
-    None
+    Ok(None)
   }
 }

@@ -1754,6 +1754,7 @@ dependencies = [
  "strum_macros 0.24.0",
  "sugar_path",
  "swc_common 0.18.3",
+ "thiserror",
  "tokio",
  "tracing",
 ]
@@ -1762,6 +1763,7 @@ dependencies = [
 name = "rspack_node"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "dashmap",
  "futures",
@@ -1787,6 +1789,7 @@ version = "0.1.0"
 name = "rspack_plugin_ast_optimization"
 version = "0.0.1"
 dependencies = [
+ "anyhow",
  "async-trait",
  "rspack_core",
  "rspack_swc",
@@ -1797,6 +1800,7 @@ dependencies = [
 name = "rspack_plugin_define"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "once_cell",
  "rspack_core",
  "rspack_swc",
@@ -1808,6 +1812,7 @@ dependencies = [
 name = "rspack_plugin_globals"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "rspack_core",
 ]
@@ -1816,6 +1821,7 @@ dependencies = [
 name = "rspack_plugin_lazy_compilation"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "rspack_core",
 ]
@@ -1824,6 +1830,7 @@ dependencies = [
 name = "rspack_plugin_loader"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "base64 0.13.0",
  "rspack_core",
@@ -1834,6 +1841,7 @@ dependencies = [
 name = "rspack_plugin_node_built_in"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "nodejs-resolver 0.0.14",
  "rspack_core",
@@ -1843,6 +1851,7 @@ dependencies = [
 name = "rspack_plugin_progress"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "console",
  "md5",
@@ -1855,6 +1864,7 @@ dependencies = [
 name = "rspack_plugin_react"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "nodejs-resolver 0.0.14",
  "rspack_core",
@@ -1874,6 +1884,7 @@ dependencies = [
 name = "rspack_plugin_stylesource"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "nodejs-resolver 0.0.7",
  "rspack_core",
