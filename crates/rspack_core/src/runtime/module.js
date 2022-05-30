@@ -57,7 +57,7 @@
     }
   }
   async function dynamic_require(module_id, chunk_id) {
-    await ensure(chunk_id)
+    await ensure(chunk_id);
     const result = require(module_id);
     return result;
   }
@@ -80,17 +80,17 @@
     return mod.exports;
   }
 
-  function loadStyles(url){
+  function loadStyles(url) {
     return new Promise((rsl, rej) => {
-      var link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.type = "text/css";
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
       link.href = url;
-      link.onload = rsl
-      var head = document.getElementsByTagName("head")[0];
+      link.onload = rsl;
+      link.onerror = rej;
+      var head = document.getElementsByTagName('head')[0];
       head.appendChild(link);
-    })
-    
+    });
   }
 
   const ensurers = {
@@ -99,20 +99,20 @@
     },
     async css(chunk_id) {
       try {
-        await loadStyles('http://127.0.01:4444/' + chunk_id + '.css')
+        await loadStyles('http://127.0.01:4444/' + chunk_id + '.css');
       } catch (err) {
-        console.log('css load fail', err)
+        console.log('css load fail', err);
       }
-      
-    }
-  }
+    },
+  };
 
   function ensure(chunkId) {
-    return Promise.all(Object.keys(ensurers).map((ensurerName) => {
-      return ensurers[ensurerName](chunkId)
-    }));
+    return Promise.all(
+      Object.keys(ensurers).map((ensurerName) => {
+        return ensurers[ensurerName](chunkId);
+      })
+    );
   }
-
 
   globalThis.rs = {
     define: define,
