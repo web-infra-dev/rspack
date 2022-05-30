@@ -34,7 +34,7 @@ export type RspackRawOptions = UnionOmit<
   }
 >;
 
-interface RspackOptions extends RawOptions {
+export interface RspackOptions extends RawOptions {
   plugins?: RspackPlugin[];
 }
 
@@ -49,7 +49,7 @@ class Rspack {
 
     console.log('raw options', options);
 
-    const pluginFactory = new RspackPluginFactory(plugins);
+    const pluginFactory = new RspackPluginFactory(plugins, options);
 
     this.#instance = binding.newRspack(
       JSON.stringify(options),

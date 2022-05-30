@@ -39,40 +39,24 @@ impl Plugin for LoaderInterpreterPlugin {
           let format = "base64";
           let data_uri = format!("data:{};{},{}", mime_type, format, base64::encode(&raw));
           format!(
-            "
-            var img = \"{}\";
-            export default img;
-            ",
-            data_uri
+            "var img = \"{data_uri}\";
+export default img;",
           )
           .trim()
           .to_string()
         }
         Loader::Json => {
           *loader = Loader::Js;
-          format!(
-            "
-            export default {}
-            ",
-            raw
-          )
+          format!("export default {raw};")
         }
         Loader::Text => {
           *loader = Loader::Js;
           let data = serde_json::to_string(&raw).unwrap();
-          format!(
-            "
-            export default {}
-            ",
-            data
-          )
+          format!("export default {data};")
         }
         Loader::Null => {
           *loader = Loader::Js;
-          r#"
-          export default {}
-          "#
-          .to_string()
+          r#"export default {};"#.to_string()
         }
         _ => raw,
       }
