@@ -1,3 +1,4 @@
+import path from 'path';
 import type {
   ExternalObject,
   OnLoadContext,
@@ -10,6 +11,7 @@ import type {
 } from '@rspack/binding';
 import * as binding from '@rspack/binding';
 
+import type { RspackOptions } from '..';
 import { debugNapi } from '..';
 
 export interface RspackPlugin {
@@ -45,9 +47,11 @@ const isNil = (value: unknown): value is null | undefined => {
 class RspackPluginContext {
   constructor(private factory: RspackPluginFactory) {}
 
-  resolve(source: string, resolveOptions: ResolveOptions): ResolveResult {
-    console.log(source, resolveOptions);
-    return binding.resolve(this.factory._rspack, source, resolveOptions);
+  resolve(source: string, importer: string | undefined, resolveOptions?: ResolveOptions): ResolveResult {
+    return binding.resolve(this.factory._rspack, source, {
+      ...resolveOptions,
+      resolveDir: importer ? path.dirname(importer) : this.factory.options.root,
+    });
   }
 }
 
@@ -56,7 +60,7 @@ export class RspackPluginFactory {
 
   private pluginContext: RspackPluginContext;
 
-  constructor(public plugins: RspackPlugin[]) {
+  constructor(public plugins: RspackPlugin[], public options: RspackOptions) {
     this.pluginContext = new RspackPluginContext(this);
 
     this.buildStart = this.buildStart.bind(this);
