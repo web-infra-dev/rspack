@@ -1,7 +1,5 @@
 use std::str::FromStr;
 
-use anyhow::Ok;
-
 #[derive(Debug, Clone)]
 pub struct OptimizationOptions {
   pub chunk_id_algo: ChunkIdAlgo,
