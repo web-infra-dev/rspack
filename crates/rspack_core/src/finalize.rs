@@ -28,7 +28,7 @@ pub fn hmr_module<'a>(
     file_name,
     top_level_mark,
     resolved_ids,
-    require_ident: quote_ident!(DUMMY_SP.apply_mark(top_level_mark), "require"),
+    require_ident: quote_ident!(DUMMY_SP.apply_mark(top_level_mark), "__rspack_require__"),
     module_ident: quote_ident!(DUMMY_SP.apply_mark(top_level_mark), "module"),
     entry_flag,
     modules,
@@ -150,7 +150,7 @@ pub struct HmrModuleIdReWriter<'a> {
 }
 
 pub const RS_DYNAMIC_REQUIRE: &str = "rs.dynamic_require";
-pub const RS_REQUIRE: &str = "require";
+pub const RS_REQUIRE: &str = "__rspack_require__";
 
 impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
   fn visit_mut_call_expr(&mut self, call_expr: &mut CallExpr) {
@@ -184,12 +184,13 @@ impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
       return;
     }
 
-    if let Callee::Expr(expr) = &call_expr.callee {
-      match &**expr {
+    if let Callee::Expr(expr) = &mut call_expr.callee {
+      match &mut **expr {
         Expr::Ident(ident) => {
           if "require".eq(&ident.sym) {
             // require(xxx)
             self.rewriting = true;
+            ident.sym = RS_REQUIRE.into();
             call_expr.visit_mut_children_with(self);
             self.rewriting = false;
           } else {

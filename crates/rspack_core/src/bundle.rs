@@ -133,11 +133,12 @@ impl Bundle {
       match rx.recv().await {
         Some(job) => match job {
           Msg::TaskFinished(mut module) => {
-            module.kind = entries_uri
-              .get(&module.uri)
-              .map_or(JsModuleKind::Normal, |name| JsModuleKind::UserEntry {
-                name: name.clone(),
-              });
+            module.kind =
+              entries_uri
+                .get(&module.uri)
+                .map_or(module.kind, |name| JsModuleKind::UserEntry {
+                  name: name.clone(),
+                });
             module.id = match self.context.options.optimization.module_id_algo {
               ModuleIdAlgo::Numeric => {
                 module_id_count += 1;

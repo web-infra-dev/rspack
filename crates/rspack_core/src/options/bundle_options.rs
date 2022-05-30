@@ -45,6 +45,18 @@ impl Default for ResolveOption {
   }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum Platform {
+  Browser,
+  Node,
+}
+
+impl Default for Platform {
+  fn default() -> Self {
+    Self::Browser
+  }
+}
+
 #[derive(Debug)]
 pub enum SourceMapOptions {
   None,
@@ -71,6 +83,7 @@ impl SourceMapOptions {
 
 #[derive(Debug)]
 pub struct BundleOptions {
+  pub platform: Platform,
   pub react: BundleReactOptions,
   pub loader: LoaderOptions,
   pub mode: BundleMode,
@@ -126,6 +139,7 @@ impl Default for BundleOptions {
       progress: true,
       globals: Default::default(),
       runtime: RuntimeOptions::default(),
+      platform: Default::default(),
     }
   }
 }
