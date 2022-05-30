@@ -12,15 +12,13 @@ pub fn is_external_module(source: &str) -> bool {
 #[instrument(skip(plugin_driver))]
 #[inline]
 pub async fn resolve_id(
-  args: ResolveArgs,
+  args: &ResolveArgs,
   preserve_symlinks: bool,
   plugin_driver: &PluginDriver,
   resolver: &Resolver,
-) -> ResolvedURI {
+) -> OnResolveResult {
   if let Some(plugin_result) = resolve_id_via_plugins(&args, plugin_driver).await {
-    ResolvedURI::new(plugin_result.uri, plugin_result.external, args.kind.clone())
-  } else if args.importer.is_some() && is_external_module(&args.id) {
-    ResolvedURI::new(args.id.to_string(), true, args.kind.clone())
+    plugin_result
   } else {
     let id = if let Some(importer) = &args.importer {
       let base_dir = Path::new(&importer).parent().unwrap();
@@ -54,7 +52,11 @@ pub async fn resolve_id(
         .to_string_lossy()
         .to_string()
     };
-    ResolvedURI::new(id, false, args.kind.clone())
+    OnResolveResult {
+      uri: id,
+      external: false,
+      ..Default::default()
+    }
   }
 }
 

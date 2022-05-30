@@ -11,23 +11,23 @@ pub enum ImportKind {
   DynamicImport,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ResolveArgs {
   pub id: String,
   pub importer: Option<String>,
   pub kind: ImportKind,
 }
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct OnResolveResult {
   pub uri: String,
   pub external: bool,
+  pub source: Option<LoadedSource>,
 }
 
 #[derive(Debug, Clone)]
 pub struct LoadArgs {
   pub id: String,
-  pub kind: ImportKind,
 }
 
 pub type PluginLoadHookOutput = Option<LoadedSource>;
@@ -87,20 +87,20 @@ pub trait Plugin: Sync + Send + Debug {
 
 #[derive(Debug, Default, Clone)]
 pub struct LoadedSource {
-  pub content: Option<String>,
+  pub content: String,
   pub loader: Option<Loader>,
 }
 
 impl LoadedSource {
   pub fn new(content: String) -> Self {
     Self {
-      content: Some(content),
+      content,
       ..Default::default()
     }
   }
   pub fn with_loader(content: String, loader: Loader) -> Self {
     Self {
-      content: Some(content),
+      content,
       loader: Some(loader),
     }
   }

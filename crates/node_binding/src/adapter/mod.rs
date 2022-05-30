@@ -2,6 +2,7 @@ use std::fmt::Debug;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use napi::Error;
+use rspack::ast::Str;
 use rspack_core::{
   BundleContext, LoadArgs, Plugin, PluginLoadHookOutput, PluginResolveHookOutput, ResolveArgs,
 };
@@ -85,7 +86,7 @@ pub struct OnLoadContext {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct OnLoadResult {
-  pub content: Option<String>,
+  pub content: String,
   #[napi(
     ts_type = r#""dataURI" | "json" | "text" | "css" | "less" | "scss" | "sass" | "js" | "jsx" | "ts" | "tsx" | "null""#
   )]
@@ -96,7 +97,7 @@ pub struct OnLoadResult {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct OnLoadResult {
-  pub content: Option<String>,
+  pub content: String,
   pub loader: Option<String>,
 }
 
@@ -113,6 +114,15 @@ pub struct OnResolveContext {
 pub struct OnResolveResult {
   pub uri: String,
   pub external: bool,
+  pub source: Option<LoadedSource>,
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct LoadedSource {
+  pub content: String,
+  pub loader: Option<String>,
 }
 
 impl Debug for RspackPluginNodeAdapter {
@@ -253,6 +263,28 @@ impl Plugin for RspackPluginNodeAdapter {
     resolve_result.map(|result| rspack_core::OnResolveResult {
       uri: result.uri,
       external: result.external,
+      source: result.source.map(|source| rspack_core::LoadedSource {
+        content: source.content,
+        loader: source.loader.map(|loader| {
+          use rspack_core::Loader;
+
+          match loader.as_str() {
+            "dataURI" => Loader::DataURI,
+            "json" => Loader::Json,
+            "text" => Loader::Text,
+            "css" => Loader::Css,
+            "less" => Loader::Less,
+            "scss" => Loader::Sass,
+            "sass" => Loader::Sass,
+            "js" => Loader::Js,
+            "jsx" => Loader::Jsx,
+            "ts" => Loader::Ts,
+            "tsx" => Loader::Tsx,
+            "null" => Loader::Null,
+            _ => panic!("unexpected loader option `{}`", loader),
+          }
+        }),
+      }),
     })
   }
 

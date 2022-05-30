@@ -13,7 +13,7 @@ export interface OnLoadContext {
   id: string;
 }
 export interface OnLoadResult {
-  content?: string;
+  content: string;
   loader?: 'dataURI' | 'json' | 'text' | 'css' | 'less' | 'scss' | 'sass' | 'js' | 'jsx' | 'ts' | 'tsx' | 'null';
 }
 export interface OnResolveContext {
@@ -23,6 +23,11 @@ export interface OnResolveContext {
 export interface OnResolveResult {
   uri: string;
   external: boolean;
+  source?: LoadedSource;
+}
+export interface LoadedSource {
+  content: string;
+  loader?: string;
 }
 export interface RawEnhancedOptions {
   svgr?: boolean;

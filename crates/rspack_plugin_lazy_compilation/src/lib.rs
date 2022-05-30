@@ -2,7 +2,8 @@
 
 use async_trait::async_trait;
 use rspack_core::{
-  BundleContext, ImportKind, LoadArgs, LoadedSource, Loader, Plugin, PluginLoadHookOutput,
+  BundleContext, ImportKind, LoadArgs, LoadedSource, Loader, OnResolveResult, Plugin,
+  PluginLoadHookOutput, PluginResolveHookOutput, ResolveArgs,
 };
 
 #[derive(Debug)]
@@ -28,11 +29,15 @@ impl Plugin for LazyCompilationPlugin {
     PLUGIN_NAME
   }
 
-  async fn load(&self, _ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
+  async fn resolve(&self, _ctx: &BundleContext, args: &ResolveArgs) -> PluginResolveHookOutput {
     if args.kind == ImportKind::DynamicImport {
-      return Some(LoadedSource {
-        content: Some("".to_string()),
-        loader: Some(Loader::Js),
+      return Some(OnResolveResult {
+        source: Some(LoadedSource {
+          content: "".to_string(),
+          loader: Some(Loader::Js),
+        }),
+        uri: args.id.clone(),
+        ..Default::default()
       });
     }
     None

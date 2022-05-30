@@ -35,7 +35,7 @@ impl Plugin for SvgrPlugin {
     if ext == "svg" {
       let loader = Some(Loader::Js);
       let content =
-        Some(read_to_string(file_path).unwrap_or_else(|_| panic!("file not exits {:?}", args.id)));
+        read_to_string(file_path).unwrap_or_else(|_| panic!("file not exits {:?}", args.id));
       Some(LoadedSource { loader, content })
     } else {
       None

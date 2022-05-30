@@ -34,6 +34,7 @@ impl Plugin for ReactPlugin {
       Some(OnResolveResult {
         uri: args.id.to_string(),
         external: false,
+        ..Default::default()
       })
     } else {
       None

@@ -20,6 +20,7 @@ impl Plugin for GlobalsPlugin {
       return Some(OnResolveResult {
         uri: format!("globals:{}", args.id),
         external: false,
+        source: None,
       });
     }
 
@@ -38,7 +39,7 @@ export default imported;
         );
 
         return Some(LoadedSource {
-          content: Some(content),
+          content: content,
           loader: Some(Loader::Js),
         });
       } else {
