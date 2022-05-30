@@ -7,7 +7,7 @@ use futures::lock::Mutex;
 use napi::bindgen_prelude::*;
 use napi::{Env, JsObject, Result};
 use napi_derive::napi;
-use nodejs_resolver::{ResolveResult, Resolver, ResolverOptions};
+use nodejs_resolver::Resolver;
 
 pub mod adapter;
 mod options;
@@ -37,13 +37,18 @@ pub struct PluginCallbacks {
   pub build_end_callback: JsFunction,
 }
 
+pub struct RspackBindingContext {
+  pub rspack: Rspack,
+  pub resolver: Arc<Resolver>,
+}
+
 #[napi(ts_return_type = "ExternalObject<RspackInternal>")]
 #[allow(clippy::too_many_arguments)]
 pub fn new_rspack(
   env: Env,
   option_json: String,
   plugin_callbacks: Option<PluginCallbacks>,
-) -> Result<External<Rspack>> {
+) -> Result<External<RspackBindingContext>> {
   let options: RawOptions = serde_json::from_str(option_json.as_str()).unwrap();
 
   let node_adapter = create_node_adapter_from_plugin_callbacks(&env, plugin_callbacks);
@@ -55,15 +60,21 @@ pub fn new_rspack(
   }
 
   let rspack = RspackBundler::new(normalize_bundle_options(options)?, plugins);
-  Ok(create_external(Arc::new(Mutex::new(rspack))))
+
+  let resolver = rspack.resolver.clone();
+
+  Ok(create_external(RspackBindingContext {
+    rspack: Arc::new(Mutex::new(rspack)),
+    resolver,
+  }))
 }
 
 #[napi(
   ts_args_type = "rspack: ExternalObject<RspackInternal>",
   ts_return_type = "Promise<Record<string, string>>"
 )]
-pub fn build(env: Env, rspack: External<Rspack>) -> Result<JsObject> {
-  let bundler = (*rspack).clone();
+pub fn build(env: Env, binding_context: External<RspackBindingContext>) -> Result<JsObject> {
+  let bundler = (*binding_context).rspack.clone();
   env.execute_tokio_future(
     async move {
       let mut bundler = bundler.lock().await;
@@ -79,8 +90,12 @@ pub fn build(env: Env, rspack: External<Rspack>) -> Result<JsObject> {
   ts_args_type = "rspack: ExternalObject<RspackInternal>, changedFile: string[]",
   ts_return_type = "Promise<[diff: Record<string, string>, map: Record<string, string>]>"
 )]
-pub fn rebuild(env: Env, rspack: External<Rspack>, changed_file: Vec<String>) -> Result<JsObject> {
-  let bundler = (*rspack).clone();
+pub fn rebuild(
+  env: Env,
+  binding_context: External<RspackBindingContext>,
+  changed_file: Vec<String>,
+) -> Result<JsObject> {
+  let bundler = (*binding_context).rspack.clone();
   env.execute_tokio_future(
     async move {
       let mut bundler = bundler.lock().await;
@@ -91,15 +106,52 @@ pub fn rebuild(env: Env, rspack: External<Rspack>, changed_file: Vec<String>) ->
     |_env, ret| Ok(ret),
   )
 }
+
+#[napi(
+  ts_args_type = "rspack: ExternalObject<RspackInternal>, source: string, resolveOptions: ResolveOptions",
+  ts_return_type = "ResolveResult"
+)]
+pub fn resolve(
+  binding_context: External<RspackBindingContext>,
+  source: String,
+  resolve_options: ResolveOptions,
+) -> Result<ResolveResult> {
+  let resolver = (*binding_context).resolver.clone();
+  println!("[rust] resolve: {}", source);
+  let res = resolver.resolve(Path::new(&resolve_options.resolve_dir), &source);
+  println!("[rust] resolve result {:#?}", res);
+  match res {
+    Ok(val) => {
+      if let nodejs_resolver::ResolveResult::Path(p) = val {
+        Ok(ResolveResult {
+          status: true,
+          path: Some(p.to_string_lossy().to_string()),
+        })
+      } else {
+        Ok(ResolveResult {
+          status: false,
+          path: None,
+        })
+      }
+    }
+    Err(err) => Err(Error::new(Status::Unknown, err)),
+  }
+}
+
 #[napi(object)]
-pub struct ResolveRet {
+pub struct ResolveOptions {
+  pub resolve_dir: String,
+}
+
+#[napi(object)]
+pub struct ResolveResult {
   pub status: bool,
-  pub result: Option<String>,
+  pub path: Option<String>,
 }
 
 #[napi]
 pub fn resolve_file(base_dir: String, import_path: String) -> Result<String> {
-  let resolver = Resolver::new(ResolverOptions {
+  let resolver = Resolver::new(nodejs_resolver::ResolverOptions {
     extensions: vec!["less", "css", "scss", "sass", "js"]
       .into_iter()
       .map(|s| s.to_owned())
@@ -108,7 +160,7 @@ pub fn resolve_file(base_dir: String, import_path: String) -> Result<String> {
   });
   match resolver.resolve(Path::new(&base_dir), &import_path) {
     Ok(res) => {
-      if let ResolveResult::Path(abs_path) = res {
+      if let nodejs_resolver::ResolveResult::Path(abs_path) = res {
         Ok(abs_path.to_str().unwrap().to_string())
       } else {
         Ok(import_path)

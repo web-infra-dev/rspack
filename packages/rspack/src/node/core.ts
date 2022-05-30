@@ -3,10 +3,9 @@ import path from 'path';
 import { DevServer } from './server';
 import chokidar from 'chokidar';
 import { RawOptions } from '@rspack/binding';
-import { Rspack } from './rspack';
+import { Rspack, RspackRawOptions } from './rspack';
 import { LessPlugin } from './rspack/plugins/less';
 import log from 'why-is-node-running';
-import type { UserRspackConfig } from './cli';
 
 type Defer = { resolve: any; reject: any; promise: any };
 const Defer = (): Defer => {
@@ -31,7 +30,7 @@ export type BundlerOptions = Partial<RawOptions> & {
   command: 'dev' | 'build';
 };
 
-export async function run(options: UserRspackConfig, command: 'dev' | 'build') {
+export async function run(options: RspackRawOptions, command: 'dev' | 'build') {
   console.time('build');
   const root = options.root;
   const outdir = path.resolve(options.root, 'dist');

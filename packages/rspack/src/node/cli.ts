@@ -2,7 +2,8 @@ import path from 'path';
 import fs from 'fs';
 const yargs: typeof import('yargs') = require('yargs');
 import { run } from './core';
-import { RawOptions, RawOutputOptions } from '@rspack/binding';
+import { RspackRawOptions } from './rspack';
+import { validateRawOptions } from './rspack/options';
 
 // build({ main: path.resolve(__dirname, '../fixtures/index.js') });
 
@@ -39,24 +40,10 @@ yargs
   )
   .help().argv;
 
-type UnionOmit<T, U> = Omit<T, keyof U> & U;
-
-export type UserRspackConfig = UnionOmit<
-  RawOptions,
-  {
-    output?: UnionOmit<
-      RawOutputOptions,
-      {
-        sourceMap?: 'linked' | 'external' | 'inline' | boolean;
-      }
-    >;
-  }
->;
-
 function compile(argv: any) {
   const root = path.resolve(process.cwd(), argv.root);
   const rspackConfigPath = path.resolve(root, 'rspack.config.json');
-  let rspackConfig: UserRspackConfig;
+  let rspackConfig: RspackRawOptions;
   if (fs.existsSync(rspackConfigPath)) {
     rspackConfig = JSON.parse(fs.readFileSync(rspackConfigPath).toString());
   } else {
@@ -70,6 +57,8 @@ function compile(argv: any) {
   rspackConfig.resolve.alias = Object.fromEntries(
     Object.entries(rspackConfig.resolve.alias).map(([key, value]) => [key, (value as string).replace('<ROOT>', root)])
   );
+
+  validateRawOptions(rspackConfig);
 
   run(rspackConfig, argv.command);
 }

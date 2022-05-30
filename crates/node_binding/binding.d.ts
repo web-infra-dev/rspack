@@ -5,84 +5,96 @@
 
 export class ExternalObject<T> {
   readonly '': {
-    readonly '': unique symbol
-    [K: symbol]: T
-  }
+    readonly '': unique symbol;
+    [K: symbol]: T;
+  };
 }
 export interface OnLoadContext {
-  id: string
+  id: string;
 }
 export interface OnLoadResult {
-  content?: string
-  loader?: "dataURI" | "json" | "text" | "css" | "less" | "scss" | "sass" | "js" | "jsx" | "ts" | "tsx" | "null"
+  content?: string;
+  loader?: 'dataURI' | 'json' | 'text' | 'css' | 'less' | 'scss' | 'sass' | 'js' | 'jsx' | 'ts' | 'tsx' | 'null';
 }
 export interface OnResolveContext {
-  importer?: string
-  importee: string
+  importer?: string;
+  importee: string;
 }
 export interface OnResolveResult {
-  uri: string
-  external: boolean
+  uri: string;
+  external: boolean;
 }
 export interface RawEnhancedOptions {
-  svgr?: boolean
-  progress?: boolean
-  lazyCompilation?: boolean
-  react?: RawReactOptions
-  inlineStyle?: boolean
-  globals?: Record<string, string>
-  define?: Record<string, string>
+  svgr?: boolean;
+  progress?: boolean;
+  lazyCompilation?: boolean;
+  react?: RawReactOptions;
+  inlineStyle?: boolean;
+  globals?: Record<string, string>;
+  define?: Record<string, string>;
 }
 export interface RawOptimizationOptions {
-  splitChunks?: RawSplitChunksOptions
-  minify?: boolean
-  removeEmptyChunks?: boolean
-  chunkIdAlgo?: string
-  moduleIdAlgo?: string
+  splitChunks?: RawSplitChunksOptions;
+  minify?: boolean;
+  removeEmptyChunks?: boolean;
+  chunkIdAlgo?: string;
+  moduleIdAlgo?: string;
 }
 export interface RawOutputOptions {
-  outdir?: string
-  entryFilename?: string
-  sourceMap?: "linked" | "external" | "inline" | "none"
+  outdir?: string;
+  entryFilename?: string;
+  sourceMap?: 'linked' | 'external' | 'inline' | 'none';
 }
 export interface RawReactOptions {
-  fastFresh?: boolean
+  fastFresh?: boolean;
 }
 export interface RawResolveOptions {
-  alias?: Record<string, string>
-  conditionNames?: Array<string>
-  aliasFields?: string
+  alias?: Record<string, string>;
+  conditionNames?: Array<string>;
+  aliasField?: string;
 }
 export interface RawSplitChunksOptions {
-  codeSplitting?: boolean
-  reuseExstingChunk?: boolean
+  codeSplitting?: boolean;
+  reuseExstingChunk?: boolean;
 }
 export interface RawOptions {
-  entries: Record<string, string>
-  mode?: "development" | "production" | "none"
-  root?: string
-  loader?: Record<string, string>
-  enhanced?: RawEnhancedOptions
-  optimization?: RawOptimizationOptions
-  output?: RawOutputOptions
-  resolve?: RawResolveOptions
-  chunkFilename?: string
+  entries: Record<string, string>;
+  mode?: 'development' | 'production' | 'none';
+  root?: string;
+  loader?: Record<string, string>;
+  enhanced?: RawEnhancedOptions;
+  optimization?: RawOptimizationOptions;
+  output?: RawOutputOptions;
+  resolve?: RawResolveOptions;
+  chunkFilename?: string;
 }
-export function initCustomTraceSubscriber(): void
+export function initCustomTraceSubscriber(): void;
 export interface PluginCallbacks {
-  buildStartCallback: (...args: any[]) => any
-  loadCallback: (...args: any[]) => any
-  resolveCallback: (...args: any[]) => any
-  buildEndCallback: (...args: any[]) => any
+  buildStartCallback: (...args: any[]) => any;
+  loadCallback: (...args: any[]) => any;
+  resolveCallback: (...args: any[]) => any;
+  buildEndCallback: (...args: any[]) => any;
 }
-export function newRspack(optionJson: string, pluginCallbacks?: PluginCallbacks | undefined | null): ExternalObject<RspackInternal>
-export function build(rspack: ExternalObject<RspackInternal>): Promise<Record<string, string>>
-export function rebuild(rspack: ExternalObject<RspackInternal>, changedFile: string[]): Promise<[diff: Record<string, string>, map: Record<string, string>]>
-export interface ResolveRet {
-  status: boolean
-  result?: string
+export function newRspack(
+  optionJson: string,
+  pluginCallbacks?: PluginCallbacks | undefined | null
+): ExternalObject<RspackInternal>;
+export function build(rspack: ExternalObject<RspackInternal>): Promise<Record<string, string>>;
+export function rebuild(
+  rspack: ExternalObject<RspackInternal>,
+  changedFile: string[]
+): Promise<[diff: Record<string, string>, map: Record<string, string>]>;
+export function resolve(
+  rspack: ExternalObject<RspackInternal>,
+  source: string,
+  resolveOptions: ResolveOptions
+): ResolveResult;
+export interface ResolveOptions {
+  resolveDir: string;
 }
-export function resolveFile(baseDir: string, importPath: string): string
-export interface RspackInternal {
-  
+export interface ResolveResult {
+  status: boolean;
+  path?: string;
 }
+export function resolveFile(baseDir: string, importPath: string): string;
+export interface RspackInternal {}
