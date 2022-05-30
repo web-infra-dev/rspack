@@ -132,6 +132,7 @@ impl Default for BundleOptions {
 impl From<BundleMode> for BundleOptions {
   fn from(mode: BundleMode) -> Self {
     Self {
+      platform: Platform::default(),
       mode,
       minify: mode.is_prod(),
       root: Self::default().root,
