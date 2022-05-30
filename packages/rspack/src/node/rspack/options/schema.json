@@ -21,7 +21,8 @@
         ".*": {
           "type": "string"
         }
-      }
+      },
+      "minProperties": 1
     },
     "loader": {
       "type": "object",
@@ -117,13 +118,13 @@
         "removeEmptyChunks": {
           "type": "boolean"
         },
-        "chunk_id_algo": {
+        "chunkIdAlgo": {
           "type": "string",
           "enum": [
             "named"
           ]
         },
-        "module_id_algo": {
+        "moduleIdAlgo": {
           "type": "string",
           "enum": [
             "named"
