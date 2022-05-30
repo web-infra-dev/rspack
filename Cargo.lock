@@ -1915,14 +1915,15 @@ dependencies = [
 
 [[package]]
 name = "rspack_style"
-version = "0.1.13"
+version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3646946b2e24211189e4fec097d08a87847e4f9bc81bec21399dc1cd1a6e1aee"
+checksum = "ef159169379eafcfb91cfb365f8b60bd3d8eaa2b28c38b43c1847a222e658527"
 dependencies = [
  "fasteval",
  "regex",
  "serde",
  "serde_json",
+ "smol_str",
  "strum 0.23.0",
  "tempfile",
  "uuid",
@@ -3586,11 +3587,12 @@ dependencies = [
 
 [[package]]
 name = "uuid"
-version = "0.8.2"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
+checksum = "93bbc61e655a4833cf400d0d15bf3649313422fa7572886ad6dab16d79886365"
 dependencies = [
  "getrandom",
+ "rand",
  "serde",
 ]
 
