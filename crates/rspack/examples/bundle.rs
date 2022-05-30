@@ -22,7 +22,6 @@ async fn main() {
       entries: HashMap::from([("main".to_string(), example.into())]),
       // entries: vec!["../../packages/rspack/node_modules/lodash-es/lodash.js".to_owned()],
       outdir: "./dist".to_string(),
-      code_splitting: Some(Default::default()),
       mode: BundleMode::Dev,
       react: BundleReactOptions {
         refresh: true,

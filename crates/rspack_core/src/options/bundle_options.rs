@@ -1,8 +1,8 @@
 use crate::{
   runtime::RuntimeOptions, BundleEntries, BundleMode, CodeSplittingOptions, LoaderOptions,
-  OptimizationOptions,
+  OptimizationOptions, ResolveOption,
 };
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use rspack_swc::swc_ecma_transforms_react;
 
@@ -21,26 +21,11 @@ impl Default for BundleReactOptions {
   }
 }
 
-#[derive(Debug, Clone)]
-pub struct ResolveOption {
-  pub extensions: Vec<String>,
-  pub alias: Vec<(String, Option<String>)>,
-  pub condition_names: HashSet<String>,
-  pub symlinks: bool,
-  pub alias_field: String,
-}
-
-impl Default for ResolveOption {
-  fn default() -> Self {
+impl From<BundleMode> for BundleReactOptions {
+  fn from(mode: BundleMode) -> Self {
     Self {
-      extensions: vec![".tsx", ".jsx", ".ts", ".js", ".json"]
-        .into_iter()
-        .map(|s| s.to_string())
-        .collect(),
-      alias: vec![],
-      condition_names: Default::default(),
-      symlinks: true,
-      alias_field: String::from("browser"),
+      runtime: Self::default().runtime,
+      refresh: mode.is_dev(),
     }
   }
 }
@@ -92,7 +77,7 @@ pub struct BundleOptions {
   pub outdir: String,
   pub entry_filename: String, // | ((chunkInfo: PreRenderedChunk) => string)
   pub chunk_filename: String,
-  pub code_splitting: Option<CodeSplittingOptions>,
+  pub code_splitting: CodeSplittingOptions,
   pub lazy_compilation: bool,
   pub root: String,
   pub inline_style: bool,
@@ -118,7 +103,7 @@ impl Default for BundleOptions {
         .unwrap()
         .to_string(),
       mode: BundleMode::Prod,
-      entries: Default::default(),
+      entries: HashMap::from([("main".to_string(), "./src/index".to_string().into())]),
       // format: InternalModuleFormat::ES,
       outdir: std::env::current_dir()
         .unwrap()
@@ -128,7 +113,7 @@ impl Default for BundleOptions {
       minify: Default::default(),
       entry_filename: "[name].js".to_string(),
       chunk_filename: "[id].js".to_string(),
-      code_splitting: Some(Default::default()),
+      code_splitting: Default::default(),
       lazy_compilation: false,
       loader: Default::default(),
       inline_style: Default::default(),
@@ -140,6 +125,35 @@ impl Default for BundleOptions {
       globals: Default::default(),
       runtime: RuntimeOptions::default(),
       platform: Default::default(),
+    }
+  }
+}
+
+impl From<BundleMode> for BundleOptions {
+  fn from(mode: BundleMode) -> Self {
+    Self {
+      platform: Platform::default(),
+      mode,
+      minify: mode.is_prod(),
+      root: Self::default().root,
+      entry_filename: Self::default().entry_filename,
+      chunk_filename: Self::default().chunk_filename,
+      progress: !mode.is_none(),
+      resolve: mode.into(),
+      react: mode.into(),
+      loader: Self::default().loader,
+      entries: Self::default().entries,
+      code_splitting: mode.into(),
+      outdir: Self::default().outdir,
+      lazy_compilation: false,
+      inline_style: Self::default().inline_style,
+      // TODO: what's the right default value for different bundle mode
+      source_map: Self::default().source_map,
+      svgr: Self::default().svgr,
+      define: Self::default().define,
+      globals: Self::default().globals,
+      runtime: Default::default(),
+      optimization: mode.into(),
     }
   }
 }

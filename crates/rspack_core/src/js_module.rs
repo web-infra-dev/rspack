@@ -138,7 +138,7 @@ impl JsModule {
               &self.resolved_uris,
               self.kind.is_user_entry(),
               &bundle.module_graph_container.module_graph,
-              options.code_splitting.is_some(),
+              options.code_splitting.enable,
               bundle,
             )
           },

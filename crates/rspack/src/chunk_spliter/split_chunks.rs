@@ -12,12 +12,8 @@ pub fn code_splitting2(
   bundle_options: &BundleOptions,
 ) -> ChunkGraph {
   let code_splitting_options = &bundle_options.code_splitting;
-  let (is_enable_code_splitting, is_reuse_existing_chunk) =
-    if let Some(option) = code_splitting_options {
-      (true, option.reuse_existing_chunk)
-    } else {
-      (false, false)
-    };
+  let is_enable_code_splitting = code_splitting_options.enable;
+  let is_reuse_existing_chunk = code_splitting_options.reuse_existing_chunk;
 
   let mut chunk_graph = ChunkGraph::default();
 

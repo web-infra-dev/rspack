@@ -76,34 +76,6 @@ fn css_bundle_test() {
 }
 
 #[test]
-fn disable_code_splitting() {
-  let bundler = compile_with_options(
-    "basic",
-    BundleOptions {
-      code_splitting: None,
-      ..Default::default()
-    },
-    vec![],
-  );
-  let chunk_len = bundler.bundle.context.assets.lock().unwrap().len();
-  assert_eq!(chunk_len, 2);
-}
-
-#[test]
-fn enable_code_splitting() {
-  let bundler = compile_with_options(
-    "basic",
-    BundleOptions {
-      code_splitting: Some(Default::default()),
-      ..Default::default()
-    },
-    vec![],
-  );
-  let chunk_len = bundler.bundle.context.assets.lock().unwrap().len();
-  assert_eq!(chunk_len, 3);
-}
-
-#[test]
 fn basic_ts() {
   compile("basic-ts", vec![]);
 }
