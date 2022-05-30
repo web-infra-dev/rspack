@@ -5,7 +5,7 @@ on:
     branches:
       - main
     tags-ignore:
-      - "**"
+      - '**'
   pull_request:
 
 jobs:
@@ -32,8 +32,4 @@ jobs:
       - uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features
-
-      # temporarily remove clippy for DX
-      # - name: Clippy
-      # run: cargo clippy
+          args: --all-features -- --deny warnings

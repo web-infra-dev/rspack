@@ -1,17 +1,10 @@
-use crate::runtime::{rspack_runtime, RuntimeOptions};
+use crate::runtime::rspack_runtime;
 use crate::{Bundle, NormalizedBundleOptions, SourceMapOptions};
 use rayon::prelude::*;
 use rspack_sources::{
   ConcatSource, GenMapOption, RawSource, Source, SourceMapSource, SourceMapSourceOptions,
 };
-use rspack_swc::swc::{self};
-use std::{
-  collections::{hash_map::DefaultHasher, HashSet},
-  hash::{Hash, Hasher},
-  path::Path,
-  sync::Arc,
-};
-use swc::Compiler;
+use std::{collections::HashSet, path::Path};
 use tracing::instrument;
 
 #[derive(Debug)]

@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::hash::Hash;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -9,16 +8,14 @@ use nodejs_resolver::{Resolver, ResolverOptions};
 use rayon::prelude::*;
 use rspack_core::inject_options;
 use rspack_core::Bundle;
-use rspack_core::ChunkGraph;
 use rspack_core::NormalizedBundleOptions;
-use rspack_core::{Chunk, OutputChunk, OutputChunkSourceMap};
+use rspack_core::{OutputChunk, OutputChunkSourceMap};
 use rspack_swc::swc_common;
 use sugar_path::PathSugar;
 use swc_common::Mark;
 use tracing::instrument;
 
 use crate::chunk_spliter::generate_chunks;
-use crate::chunk_spliter::split_chunks::split_chunks;
 use crate::stats::Stats;
 use crate::utils::inject_built_in_plugins;
 use crate::utils::log::enable_tracing_by_env;

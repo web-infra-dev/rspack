@@ -4,7 +4,7 @@ use std::path::Path;
 
 use async_trait::async_trait;
 
-use rspack_core::{ast, BundleContext, BundleMode, Plugin, PluginTransformAstHookOutput};
+use rspack_core::{ast, BundleContext, Plugin, PluginTransformAstHookOutput};
 use rspack_swc::swc_ecma_visit::FoldWith;
 
 mod constant_folder;
