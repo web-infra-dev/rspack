@@ -5,5 +5,5 @@ use serde::Deserialize;
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawReactOptions {
-  pub fast_fresh: Option<bool>,
+  pub fast_refresh: Option<bool>,
 }

@@ -167,7 +167,7 @@ pub fn normalize_bundle_options(mut options: RawOptions) -> Result<BundleOptions
         .enhanced
         .as_mut()
         .and_then(|opts| opts.react.as_mut())
-        .and_then(|opts| opts.fast_fresh.take())
+        .and_then(|opts| opts.fast_refresh.take())
         .unwrap_or(defaults.react.refresh),
       ..Default::default()
     },

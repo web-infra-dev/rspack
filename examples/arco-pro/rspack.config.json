@@ -15,11 +15,11 @@
     }
   },
   "output": {
-    "sourceMap": true
+    "sourceMap": false
   },
   "enhanced": {
     "react": {
-      "fastRefresh": true
+      "fastRefresh": false
     },
     "svgr": true
   }
