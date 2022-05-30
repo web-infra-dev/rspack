@@ -2,5 +2,8 @@
   "mode": "development",
   "entries": {
     "main": "./src/index.js"
+  },
+  "optimization": {
+    "chunkIdAlgo": "named"
   }
 }

@@ -34,7 +34,6 @@ async fn main() {
       root,
       entries: HashMap::from([("main".to_string(), example.to_string().into())]),
       outdir: "./dist".to_string(),
-      code_splitting: Some(Default::default()),
       mode: BundleMode::Dev,
       react: BundleReactOptions {
         refresh: false,

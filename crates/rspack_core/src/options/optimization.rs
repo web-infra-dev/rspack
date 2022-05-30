@@ -1,5 +1,7 @@
 use std::str::FromStr;
 
+use crate::BundleMode;
+
 #[derive(Debug, Clone)]
 pub struct OptimizationOptions {
   pub chunk_id_algo: ChunkIdAlgo,
@@ -71,6 +73,28 @@ impl FromStr for ModuleIdAlgo {
     match s {
       "named" => Result::Ok(Self::Named),
       _ => Err(()),
+    }
+  }
+}
+
+impl From<BundleMode> for OptimizationOptions {
+  fn from(mode: BundleMode) -> Self {
+    Self {
+      chunk_id_algo: {
+        if mode.is_prod() {
+          ChunkIdAlgo::Numeric
+        } else {
+          ChunkIdAlgo::Named
+        }
+      },
+      module_id_algo: {
+        if mode.is_prod() {
+          ModuleIdAlgo::Numeric
+        } else {
+          ModuleIdAlgo::Named
+        }
+      },
+      remove_empty_chunks: !mode.is_none(),
     }
   }
 }

@@ -63,7 +63,7 @@ pub struct RawOptions {
   pub chunk_filename: Option<String>,
 }
 
-pub fn normalize_bundle_options(options: RawOptions) -> Result<BundleOptions> {
+pub fn normalize_bundle_options(mut options: RawOptions) -> Result<BundleOptions> {
   let mut err = None;
 
   let mode = options
@@ -83,19 +83,21 @@ pub fn normalize_bundle_options(options: RawOptions) -> Result<BundleOptions> {
     .unwrap_or_else(|| BundleOptions::default().mode);
 
   let entries = options.entries;
-  let root = options
-    .root
-    .unwrap_or_else(|| BundleOptions::default().root);
+  // let root = options
+  //   .root
+  //   .unwrap_or_else(|| BundleOptions::default().root);
   let loader = options.loader.unwrap_or_default();
-  let enhanced = options.enhanced.unwrap_or_else(|| mode.into());
-  let optimization = options.optimization.unwrap_or_else(|| mode.into());
-  let output = options.output.unwrap_or_else(|| mode.into());
-  let resolve = options.resolve.unwrap_or_else(|| mode.into());
-  let react = enhanced.react.unwrap_or_else(|| mode.into());
-  let split_chunks = optimization.split_chunks.unwrap_or_else(|| mode.into());
+  // let enhanced = options.enhanced.unwrap_or_else(|| mode.into());
+  // let optimization = options.optimization.unwrap_or_else(|| mode.into());
+  // let output = options.output.unwrap_or_else(|| mode.into());
+  // let resolve = options.resolve.unwrap_or_else(|| mode.into());
+  // let react = enhanced.react.unwrap_or_else(|| mode.into());
+  // let split_chunks = optimization.split_chunks.unwrap_or_else(|| mode.into());
 
-  let source_map = output
-    .source_map
+  let source_map = options
+    .output
+    .as_mut()
+    .and_then(|opts| opts.source_map.take())
     .map(|source_map| match source_map.as_str() {
       "none" => SourceMapOptions::None,
       "inline" => SourceMapOptions::Inline,
@@ -116,65 +118,117 @@ pub fn normalize_bundle_options(options: RawOptions) -> Result<BundleOptions> {
     return Err(e);
   }
 
+  let defaults: BundleOptions = mode.into();
+
   Ok(BundleOptions {
     entries: parse_entries(entries),
-    root,
+    root: options.root.unwrap_or(defaults.root),
     mode,
-    minify: optimization.minify.unwrap_or_else(|| mode.is_prod()),
-    outdir: output
-      .outdir
-      .unwrap_or_else(|| BundleOptions::default().outdir),
-    entry_filename: output
-      .entry_filename
-      .unwrap_or_else(|| BundleOptions::default().entry_filename),
+    minify: options
+      .optimization
+      .as_mut()
+      .and_then(|opts| opts.minify.take())
+      .unwrap_or(defaults.minify),
+    outdir: options
+      .output
+      .as_mut()
+      .and_then(|opts| opts.outdir.take())
+      .unwrap_or(defaults.outdir),
+    entry_filename: options
+      .output
+      .and_then(|opts| opts.outdir)
+      .unwrap_or(defaults.entry_filename),
     loader: parse_loader(loader),
-    inline_style: enhanced.inline_style.unwrap_or(false),
+    inline_style: options
+      .enhanced
+      .as_mut()
+      .and_then(|opts| opts.inline_style.take())
+      .unwrap_or(defaults.inline_style),
     resolve: ResolveOption {
-      alias: resolve.alias.map_or(Default::default(), parse_raw_alias),
-      condition_names: resolve
-        .condition_names
-        .map_or(Default::default(), parse_raw_condition_names),
-      alias_field: resolve.alias_field.unwrap_or_else(|| "browser".to_owned()),
+      alias: options
+        .resolve
+        .as_mut()
+        .and_then(|opts| opts.alias.take())
+        .map_or(defaults.resolve.alias, parse_raw_alias),
+
+      condition_names: options
+        .resolve
+        .as_mut()
+        .and_then(|opts| opts.condition_names.take())
+        .map_or(defaults.resolve.condition_names, parse_raw_condition_names),
+      alias_field: options
+        .resolve
+        .and_then(|opts| opts.alias_field)
+        .unwrap_or(defaults.resolve.alias_field),
       ..Default::default()
     },
     react: BundleReactOptions {
-      refresh: react.fast_fresh.unwrap_or_else(|| mode.is_dev()),
+      refresh: options
+        .enhanced
+        .as_mut()
+        .and_then(|opts| opts.react.as_mut())
+        .and_then(|opts| opts.fast_fresh.take())
+        .unwrap_or(defaults.react.refresh),
       ..Default::default()
     },
     source_map,
-    code_splitting: split_chunks
-      .code_splitting
-      .map(|is_enable| {
-        if is_enable {
-          Some(CodeSplittingOptions {
-            reuse_existing_chunk: split_chunks
-              .reuse_exsting_chunk
-              .unwrap_or_else(|| !mode.is_none()),
-          })
-        } else {
-          None
-        }
-      })
-      .unwrap_or_default(),
-    svgr: enhanced.svgr.unwrap_or(false),
-    lazy_compilation: enhanced.lazy_compilation.unwrap_or(false),
-    progress: enhanced.progress.unwrap_or(true),
-    globals: enhanced.globals.unwrap_or_default(),
-    define: enhanced
-      .define
-      .unwrap_or_else(|| BundleOptions::default().define),
+    code_splitting: CodeSplittingOptions {
+      enable: options
+        .optimization
+        .as_mut()
+        .and_then(|opts| opts.split_chunks.as_mut())
+        .and_then(|opts| opts.code_splitting)
+        .unwrap_or(defaults.code_splitting.enable),
+      reuse_existing_chunk: options
+        .optimization
+        .as_mut()
+        .and_then(|opts| opts.split_chunks.as_mut())
+        .and_then(|opts| opts.reuse_exsting_chunk)
+        .unwrap_or(defaults.code_splitting.reuse_existing_chunk),
+    },
+    svgr: options
+      .enhanced
+      .as_mut()
+      .and_then(|opts| opts.svgr.take())
+      .unwrap_or(defaults.svgr),
+    lazy_compilation: options
+      .enhanced
+      .as_mut()
+      .and_then(|opts| opts.lazy_compilation.take())
+      .unwrap_or(defaults.lazy_compilation),
+    progress: options
+      .enhanced
+      .as_mut()
+      .and_then(|opts| opts.progress.take())
+      .unwrap_or(defaults.progress),
+    globals: options
+      .enhanced
+      .as_mut()
+      .and_then(|opts| opts.globals.take())
+      .unwrap_or(defaults.globals),
+    define: options
+      .enhanced
+      .as_mut()
+      .and_then(|opts| opts.define.take())
+      .unwrap_or(defaults.define),
     optimization: OptimizationOptions {
-      remove_empty_chunks: optimization.remove_empty_chunks.unwrap_or(!mode.is_none()),
-      chunk_id_algo: optimization
-        .chunk_id_algo
-        .map_or(ChunkIdAlgo::Named, |algo_str| {
-          ChunkIdAlgo::from_str(algo_str.as_str()).unwrap()
-        }),
-      module_id_algo: optimization
-        .module_id_algo
-        .map_or(ModuleIdAlgo::Named, |algo_str| {
-          ModuleIdAlgo::from_str(algo_str.as_str()).unwrap()
-        }),
+      remove_empty_chunks: options
+        .optimization
+        .as_mut()
+        .and_then(|opts| opts.remove_empty_chunks.take())
+        .unwrap_or(defaults.optimization.remove_empty_chunks),
+      chunk_id_algo: options
+        .optimization
+        .as_mut()
+        .and_then(|opts| opts.chunk_id_algo.take())
+        .and_then(|opts| ChunkIdAlgo::from_str(opts.as_str()).ok())
+        .unwrap_or(defaults.optimization.chunk_id_algo),
+      module_id_algo: options
+        .optimization
+        .as_mut()
+        .and_then(|opts| opts.module_id_algo.take())
+        .and_then(|opts| ModuleIdAlgo::from_str(opts.as_str()).ok())
+        .unwrap_or(defaults.optimization.module_id_algo),
     },
     chunk_filename: options
       .chunk_filename
