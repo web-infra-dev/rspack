@@ -9,5 +9,5 @@ edition = "2021"
 rspack_core = { path = "../rspack_core" }
 rspack_swc = { path = "../rspack_swc" }
 swc_common = "=0.18.3"
-nodejs-resolver = "0.0.7"
+nodejs-resolver = "0.0.12"
 async-trait = "0.1.53"

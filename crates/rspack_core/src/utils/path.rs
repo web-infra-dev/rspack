@@ -1,12 +1,11 @@
 use std::path::{Component, Path};
 use sugar_path::{self, PathSugar};
-pub fn normalize_path(path: &str, root: &str) -> String {
-  let res = Path::new(&path)
-    .relative(&root)
-    .to_string_lossy()
-    .to_string();
 
-  res
+pub fn normalize_path(path: &str, root: &str) -> String {
+  Path::new(&root)
+    .relative(Path::new(&path))
+    .to_string_lossy()
+    .to_string()
 }
 
 pub fn uri_to_chunk_name(root: &str, uri: &str) -> String {

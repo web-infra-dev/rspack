@@ -90,3 +90,6 @@ export function resolveFile(baseDir: string, importPath: string): string
 export interface RspackInternal {
   
 }
+
+export function resolveFile(baseDir: string, importPath: string): string;
+export interface RspackInternal { }
