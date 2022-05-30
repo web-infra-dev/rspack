@@ -12,15 +12,12 @@ pub fn code_splitting2(
   bundle_options: &BundleOptions,
 ) -> ChunkGraph {
   let code_splitting_options = &bundle_options.code_splitting;
-  let is_enable_code_splitting;
-  let is_reuse_existing_chunk;
-  if let Some(option) = code_splitting_options {
-    is_enable_code_splitting = true;
-    is_reuse_existing_chunk = option.reuse_existing_chunk;
-  } else {
-    is_enable_code_splitting = false;
-    is_reuse_existing_chunk = false;
-  }
+  let (is_enable_code_splitting, is_reuse_existing_chunk) =
+    if let Some(option) = code_splitting_options {
+      (true, option.reuse_existing_chunk)
+    } else {
+      (false, false)
+    };
 
   let mut chunk_graph = ChunkGraph::default();
 
@@ -89,9 +86,11 @@ pub fn code_splitting2(
   // Without bundle splitting, a module can be placed into multiple chunks based on its usage:
 
   // E.g. (Code Splitting enabled)
-  // a.js(entrypoint) -(dyn import)-> b.js -> c.js
-  //      \
-  //       > c.js
+  //                  (dynamic import)
+  // a.js(entrypoint)------------------>b.js------->c.js
+  //        |
+  //        |
+  //        +------>c.js
   // In this case, two chunks will be generated, chunk entires are `a.js` (Chunk A) and `b.js` (Chunk B),
   // and module `c.js` will be placed into both of them.
 
