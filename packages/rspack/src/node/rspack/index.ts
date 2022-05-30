@@ -6,146 +6,67 @@ import type {
   OnResolveContext,
   OnLoadResult,
   OnResolveResult,
+  RawOutputOptions,
 } from '@rspack/binding';
 import * as binding from '@rspack/binding';
 
 import type { RspackPlugin } from './plugins';
-import { validateRawOptions } from './options';
+import { RspackPluginFactory } from './plugins';
 
-const debugRspack = createDebug('rspack');
-const debugNapi = createDebug('napi');
+export const debugRspack = createDebug('rspack');
+export const debugNapi = createDebug('napi');
 
 binding.initCustomTraceSubscriber();
 
 export type { RawOptions, OnLoadContext, OnResolveResult, OnLoadResult, OnResolveContext, RspackPlugin };
 
+type UnionOmit<T, U> = Omit<T, keyof U> & U;
+
+export type RspackRawOptions = UnionOmit<
+  RawOptions,
+  {
+    output?: UnionOmit<
+      RawOutputOptions,
+      {
+        sourceMap?: 'linked' | 'external' | 'inline' | boolean;
+      }
+    >;
+  }
+>;
+
 interface RspackOptions extends RawOptions {
   plugins?: RspackPlugin[];
 }
-
-interface RspackThreadsafeContext<T> {
-  readonly id: number;
-  readonly inner: T;
-}
-
-interface RspackThreadsafeResult<T> {
-  readonly id: number;
-  readonly inner: T;
-}
-
-const createDummyResult = (id: number): string => {
-  const result: RspackThreadsafeResult<null> = {
-    id,
-    inner: null,
-  };
-  return JSON.stringify(result);
-};
-
-const isNil = (value: unknown): value is null | undefined => {
-  return value === null || value === undefined;
-};
 
 class Rspack {
   #instance: ExternalObject<any>;
   lazyCompilerMap: Record<string, string>;
   constructor(public options: RspackOptions) {
     const { plugins = [], ...innerOptions } = options;
-    validateRawOptions(innerOptions);
     debugRspack('rspack options', innerOptions);
 
     const isPluginExist = !!plugins.length;
 
-    const buildStart = async (err: Error, value: string): Promise<string> => {
-      if (err) {
-        throw err;
-      }
-
-      const context: RspackThreadsafeContext<void> = JSON.parse(value);
-
-      await Promise.all(plugins.map((plugin) => plugin.buildStart?.()));
-
-      return createDummyResult(context.id);
-    };
-
-    const buildEnd = async (err: Error, value: string): Promise<string> => {
-      if (err) {
-        throw err;
-      }
-
-      const context: RspackThreadsafeContext<void> = JSON.parse(value);
-
-      await Promise.all(plugins.map((plugin) => plugin.buildEnd?.()));
-
-      return createDummyResult(context.id);
-    };
-
-    const load = async (err: Error, value: string): Promise<string> => {
-      if (err) {
-        throw err;
-      }
-
-      const context: RspackThreadsafeContext<OnLoadContext> = JSON.parse(value);
-
-      for (const plugin of plugins) {
-        const { id } = context.inner;
-        const result = await plugin.load?.(id);
-        debugNapi('onLoadResult', result, 'context', context);
-
-        if (isNil(result)) {
-          continue;
-        }
-
-        return JSON.stringify({
-          id: context.id,
-          inner: result,
-        });
-      }
-
-      debugNapi('onLoadResult', null, 'context', context);
-
-      return createDummyResult(context.id);
-    };
-
-    console.log('plugins:', plugins);
-
-    const resolve = async (err: Error, value: string): Promise<string> => {
-      if (err) {
-        throw err;
-      }
-
-      const context: RspackThreadsafeContext<OnResolveContext> = JSON.parse(value);
-
-      for (const plugin of plugins) {
-        const { importer, importee } = context.inner;
-        const result = await plugin.resolve?.(importee, importer);
-        debugNapi('onResolveResult', result, 'context', context);
-
-        if (isNil(result)) {
-          continue;
-        }
-
-        return JSON.stringify({
-          id: context.id,
-          inner: result,
-        });
-      }
-
-      debugNapi('onResolveResult', null, 'context', context);
-      return createDummyResult(context.id);
-    };
     console.log('raw options', options);
+
+    const pluginFactory = new RspackPluginFactory(plugins);
 
     this.#instance = binding.newRspack(
       JSON.stringify(options),
-      isPluginExist
-        ? {
-            loadCallback: load,
-            resolveCallback: resolve,
-            buildStartCallback: buildStart,
-            buildEndCallback: buildEnd,
-          }
-        : null
+      (() => {
+        if (isPluginExist) {
+          return {
+            loadCallback: pluginFactory.load,
+            resolveCallback: pluginFactory.resolve,
+            buildStartCallback: pluginFactory.buildStart,
+            buildEndCallback: pluginFactory.buildEnd,
+          };
+        }
+        return null;
+      })()
     );
+
+    pluginFactory.setRspackInstance(this.#instance);
   }
 
   async build() {
