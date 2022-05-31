@@ -106,7 +106,7 @@ export class RspackPluginFactory {
 
     for (const plugin of this.plugins) {
       const { id } = context.inner;
-      const result = await plugin.load?.(id);
+      const result = await plugin.load?.bind(this.pluginContext)?.(id);
       debugNapi('onLoadResult', result, 'context', context);
 
       if (isNil(result)) {
