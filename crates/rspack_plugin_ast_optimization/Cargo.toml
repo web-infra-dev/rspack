@@ -10,3 +10,4 @@ rspack_core = { path = "../rspack_core" }
 rspack_swc = { path = "../rspack_swc" }
 async-trait = "0.1.53"
 serde_json = "1"
+anyhow = "1"

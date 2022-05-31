@@ -15,7 +15,7 @@ pub async fn compile_fixture(fixture_dir_name: &str) -> Bundler {
   let options = normalize_bundle_options(RawOptions::from_fixture(fixture_dir_name))
     .expect("failed to normalize");
   let mut bundler = Bundler::new(options, Default::default());
-  bundler.build(None).await;
+  bundler.build(None).await.expect("failed to build");
   bundler.write_assets_to_disk();
   bundler
 }
@@ -27,7 +27,7 @@ pub async fn compile_fixture_with_plugins(
   let options = normalize_bundle_options(RawOptions::from_fixture(fixture_dir_name))
     .expect("failed to normalize");
   let mut bundler = Bundler::new(options, plugins);
-  bundler.build(None).await;
+  bundler.build(None).await.expect("failed to build");
   bundler.write_assets_to_disk();
   bundler
 }

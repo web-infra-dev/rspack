@@ -49,7 +49,7 @@ pub fn new_rspack(
   option_json: String,
   plugin_callbacks: Option<PluginCallbacks>,
 ) -> Result<External<RspackBindingContext>> {
-  let options: RawOptions = serde_json::from_str(option_json.as_str()).unwrap();
+  let options: RawOptions = serde_json::from_str(option_json.as_str())?;
 
   let node_adapter = create_node_adapter_from_plugin_callbacks(&env, plugin_callbacks);
 
@@ -78,7 +78,10 @@ pub fn build(env: Env, binding_context: External<RspackBindingContext>) -> Resul
   env.execute_tokio_future(
     async move {
       let mut bundler = bundler.lock().await;
-      let Stats { map, .. } = bundler.build(None).await;
+      let Stats { map, .. } = bundler
+        .build(None)
+        .await
+        .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
       bundler.write_assets_to_disk();
       Ok(map)
     },
@@ -99,7 +102,10 @@ pub fn rebuild(
   env.execute_tokio_future(
     async move {
       let mut bundler = bundler.lock().await;
-      let changed = bundler.rebuild(changed_file).await;
+      let changed = bundler
+        .rebuild(changed_file)
+        .await
+        .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
       bundler.write_assets_to_disk();
       Ok(changed)
     },
@@ -117,9 +123,7 @@ pub fn resolve(
   resolve_options: ResolveOptions,
 ) -> Result<ResolveResult> {
   let resolver = (*binding_context).resolver.clone();
-  println!("[rust] resolve: {}", source);
   let res = resolver.resolve(Path::new(&resolve_options.resolve_dir), &source);
-  println!("[rust] resolve result {:#?}", res);
   match res {
     Ok(val) => {
       if let nodejs_resolver::ResolveResult::Path(p) = val {
@@ -134,7 +138,7 @@ pub fn resolve(
         })
       }
     }
-    Err(err) => Err(Error::new(Status::Unknown, err)),
+    Err(err) => Err(Error::new(Status::GenericFailure, err)),
   }
 }
 

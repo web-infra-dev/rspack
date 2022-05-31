@@ -22,7 +22,7 @@ rspack_plugin_define = { path="../rspack_plugin_define" }
 rspack_plugin_globals = { path = "../rspack_plugin_globals" }
 rspack_plugin_ast_optimization = { path="../rspack_plugin_ast_optimization" }
 sugar_path = "0.0.5"
-anyhow = "1"
+anyhow = { version = "1", features = ["backtrace"] }
 crossbeam = "0.8.1"
 dashmap = "5.0.0"
 ena = "0.14.0"

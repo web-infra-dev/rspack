@@ -4,6 +4,7 @@ use std::{
 };
 
 use anyhow::ensure;
+use rspack_core::PluginTapGeneratedChunkHookOutput;
 
 use crate::common::{compile_fixture_with_plugins, prelude::*};
 
@@ -35,11 +36,12 @@ impl Plugin for Tester {
     _ctx: &rspack_core::BundleContext,
     chunk: &rspack_core::Chunk,
     _bundle_options: &rspack_core::NormalizedBundleOptions,
-  ) {
+  ) -> PluginTapGeneratedChunkHookOutput {
     let mut record = self.record.lock().unwrap();
     record
       .id_to_filename
       .insert(chunk.id.clone(), chunk.filename.clone().unwrap());
+    Ok(())
   }
 }
 

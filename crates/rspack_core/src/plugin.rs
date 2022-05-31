@@ -1,3 +1,4 @@
+use anyhow::Result;
 use std::{fmt::Debug, path::Path};
 
 use crate::{BundleContext, Chunk, Loader, NormalizedBundleOptions};
@@ -30,28 +31,35 @@ pub struct LoadArgs {
   pub kind: ImportKind,
 }
 
-pub type PluginLoadHookOutput = Option<LoadedSource>;
-pub type PluginResolveHookOutput = Option<OnResolveResult>;
-pub type PluginTransformAstHookOutput = ast::Module;
-pub type PluginTransformHookOutput = String;
+pub type PluginBuildStartHookOutput = Result<()>;
+pub type PluginBuildEndHookOutput = Result<()>;
+pub type PluginLoadHookOutput = Result<Option<LoadedSource>>;
+pub type PluginResolveHookOutput = Result<Option<OnResolveResult>>;
+pub type PluginTransformAstHookOutput = Result<ast::Module>;
+pub type PluginTransformHookOutput = Result<String>;
+pub type PluginTapGeneratedChunkHookOutput = Result<()>;
 
 #[async_trait]
 pub trait Plugin: Sync + Send + Debug {
   fn name(&self) -> &'static str;
 
   #[inline]
-  async fn build_start(&self, _ctx: &BundleContext) {}
+  async fn build_start(&self, _ctx: &BundleContext) -> PluginBuildStartHookOutput {
+    Ok(())
+  }
   #[inline]
-  async fn build_end(&self, _ctx: &BundleContext) {}
+  async fn build_end(&self, _ctx: &BundleContext) -> PluginBuildEndHookOutput {
+    Ok(())
+  }
 
   #[inline]
   async fn resolve(&self, _ctx: &BundleContext, _args: &ResolveArgs) -> PluginResolveHookOutput {
-    None
+    Ok(None)
   }
 
   #[inline]
   async fn load(&self, _ctx: &BundleContext, _args: &LoadArgs) -> PluginLoadHookOutput {
-    None
+    Ok(None)
   }
 
   #[inline]
@@ -62,7 +70,7 @@ pub trait Plugin: Sync + Send + Debug {
     _loader: &mut Option<Loader>,
     raw: String,
   ) -> PluginTransformHookOutput {
-    raw
+    Ok(raw)
   }
 
   #[inline]
@@ -72,7 +80,7 @@ pub trait Plugin: Sync + Send + Debug {
     _path: &Path,
     ast: ast::Module,
   ) -> PluginTransformAstHookOutput {
-    ast
+    Ok(ast)
   }
 
   #[inline]
@@ -81,7 +89,8 @@ pub trait Plugin: Sync + Send + Debug {
     _ctx: &BundleContext,
     _chunk: &Chunk,
     _bundle_options: &NormalizedBundleOptions,
-  ) {
+  ) -> PluginTapGeneratedChunkHookOutput {
+    Ok(())
   }
 }
 

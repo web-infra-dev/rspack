@@ -1,3 +1,5 @@
+#![deny(clippy::all)]
+
 use async_trait::async_trait;
 use rspack_core::{
   BundleContext, LoadArgs, LoadedSource, Loader, OnResolveResult, Plugin, PluginLoadHookOutput,
@@ -17,13 +19,13 @@ impl Plugin for GlobalsPlugin {
 
   async fn resolve(&self, ctx: &BundleContext, args: &ResolveArgs) -> PluginResolveHookOutput {
     if ctx.options.globals.get(&args.id).is_some() {
-      return Some(OnResolveResult {
+      return Ok(Some(OnResolveResult {
         uri: format!("globals:{}", args.id),
         external: false,
-      });
+      }));
     }
 
-    None
+    Ok(None)
   }
 
   async fn load(&self, ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
@@ -37,15 +39,15 @@ export default imported;
           expr_string
         );
 
-        return Some(LoadedSource {
+        return Ok(Some(LoadedSource {
           content: Some(content),
           loader: Some(Loader::Js),
-        });
+        }));
       } else {
-        return None;
+        return Ok(None);
       }
     }
 
-    return None;
+    Ok(None)
   }
 }

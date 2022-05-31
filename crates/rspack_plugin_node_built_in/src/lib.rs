@@ -17,31 +17,35 @@ impl Plugin for NodeBuiltInPlugin {
 
   async fn load(&self, ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
     let id = &args.id;
-    if ctx.options.platform.eq(&rspack_core::Platform::Node) && Resolver::is_build_in_module(id) {
+    let result = if ctx.options.platform.eq(&rspack_core::Platform::Node)
+      && Resolver::is_build_in_module(id)
+    {
       let content = format!(
-        r#"
-        var {id} = eval("require('{id}')");
+        r#"var {id} = eval("require('{id}')");
 
-        Object.keys({id}).forEach(function(key) {{
-          if (key === "default" || key === "__esModule") return;
-          if (key in exports && exports[key] === {id}[key]) return;
-          Object.defineProperty(exports, key, {{
-              enumerable: true,
-              get: function() {{
-                  return {id}[key];
-              }}
-          }});
-        }});
+Object.keys({id}).forEach(function(key) {{
+  if (key === "default" || key === "__esModule") return;
+  if (key in exports && exports[key] === {id}[key]) return;
+  Object.defineProperty(exports, key, {{
+      enumerable: true,
+      get: function() {{
+          return {id}[key];
+      }}
+  }});
+}});
 
-        export default {id};
+export default {id};
       "#
       );
-      return Some(LoadedSource {
+
+      Some(LoadedSource {
         content: Some(content),
         loader: Some(Loader::Js),
-      });
+      })
     } else {
       None
-    }
+    };
+
+    Ok(result)
   }
 }
