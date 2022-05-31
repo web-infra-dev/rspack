@@ -85,7 +85,6 @@ impl Bundle {
               importer: None,
               kind: ImportKind::Import,
             },
-            false,
             &self.plugin_driver,
           )
           .await?,

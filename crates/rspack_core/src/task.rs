@@ -46,7 +46,6 @@ impl DependencyIdResolver {
           importer: Some(self.module_id.clone()),
           kind,
         },
-        false,
         &self.plugin_driver,
       )
       .await?;
