@@ -20,7 +20,7 @@
     "test:example": "cargo run --example arco_pro",
     "prepare": "husky install",
     "format:rs": "cargo fmt",
-    "format:js": "prettier --write \"{packages,crates/node_binding}/**/*.{ts,js}\"",
+    "format:js": "prettier --write \"packages/**/*.{ts,js}\"",
     "lint:rs": "cargo clippy",
     "build:core": "yarn workspace @rspack/binding run build ",
     "release:core": "yarn workspace @rspack/binding run build:release ",

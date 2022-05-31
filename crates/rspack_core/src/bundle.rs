@@ -32,7 +32,7 @@ pub struct Bundle {
 #[derive(Debug)]
 pub enum Msg {
   // DependencyReference(String, String, Rel),
-  TaskFinished(JsModule),
+  TaskFinished(Box<JsModule>),
   TaskErrorEncountered(Error),
   // NewExtMod(ExternalModule),
 }
@@ -152,7 +152,7 @@ impl Bundle {
               }
               ModuleIdAlgo::Named => gen_module_id(&self.context.options.root, &module.uri),
             };
-            self.module_graph_container.module_graph.add_module(module);
+            self.module_graph_container.module_graph.add_module(*module);
             active_task_count.fetch_sub(1, Ordering::SeqCst);
           }
           Msg::TaskErrorEncountered(err) => {

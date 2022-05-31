@@ -148,7 +148,7 @@ impl Task {
         loader: *loader,
         cached_output: Default::default(),
       };
-      self.tx.send(Msg::TaskFinished(module))?
+      self.tx.send(Msg::TaskFinished(Box::new(module)))?
     }
 
     Ok(())
