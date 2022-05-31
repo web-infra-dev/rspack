@@ -16,11 +16,7 @@ pub fn is_external_module(source: &str) -> bool {
 
 #[instrument(skip(plugin_driver))]
 #[inline]
-pub async fn resolve_id(
-  args: ResolveArgs,
-  preserve_symlinks: bool,
-  plugin_driver: &PluginDriver,
-) -> Result<ResolvedURI> {
+pub async fn resolve_id(args: ResolveArgs, plugin_driver: &PluginDriver) -> Result<ResolvedURI> {
   if let Some(plugin_result) = resolve_id_via_plugins(&args, plugin_driver).await? {
     Ok(ResolvedURI::new(
       plugin_result.uri,
