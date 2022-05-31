@@ -37,6 +37,7 @@ pub type PluginLoadHookOutput = Result<Option<LoadedSource>>;
 pub type PluginResolveHookOutput = Result<Option<OnResolveResult>>;
 pub type PluginTransformAstHookOutput = Result<ast::Module>;
 pub type PluginTransformHookOutput = Result<String>;
+pub type PluginTapGeneratedChunkHookOutput = Result<()>;
 
 #[async_trait]
 pub trait Plugin: Sync + Send + Debug {
@@ -88,7 +89,7 @@ pub trait Plugin: Sync + Send + Debug {
     _ctx: &BundleContext,
     _chunk: &Chunk,
     _bundle_options: &NormalizedBundleOptions,
-  ) -> Result<()> {
+  ) -> PluginTapGeneratedChunkHookOutput {
     Ok(())
   }
 }

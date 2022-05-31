@@ -1,11 +1,10 @@
 use crate::handle_with_css::{is_style_source, StyleSourceType};
-use anyhow::Result;
 use async_trait::async_trait;
 use nodejs_resolver::{ResolveResult, Resolver};
 use rspack_core::{
   Asset, BundleContext, Chunk, Loader, NormalizedBundleOptions, PluginTransformHookOutput,
 };
-use rspack_core::{Plugin, PluginBuildStartHookOutput};
+use rspack_core::{Plugin, PluginBuildStartHookOutput, PluginTapGeneratedChunkHookOutput};
 use rspack_style::style_core::applicationn::Application;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -201,7 +200,7 @@ impl Plugin for StyleSourcePlugin {
     ctx: &BundleContext,
     chunk: &Chunk,
     bundle_options: &NormalizedBundleOptions,
-  ) -> Result<()> {
+  ) -> PluginTapGeneratedChunkHookOutput {
     let mut css_content = "".to_string();
     let mut css_source_list = self.style_source_collect.try_lock().unwrap();
     let entry_name = Self::get_entry_name(chunk.filename.as_ref().unwrap().as_str());

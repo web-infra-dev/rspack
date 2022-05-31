@@ -3,7 +3,8 @@ use async_trait::async_trait;
 use crate::common::{compile_fixture_with_plugins, prelude::*};
 use rspack_core::{
   BundleContext, Chunk, LoadArgs, Loader, NormalizedBundleOptions, PluginLoadHookOutput,
-  PluginResolveHookOutput, PluginTransformAstHookOutput, PluginTransformHookOutput, ResolveArgs,
+  PluginResolveHookOutput, PluginTapGeneratedChunkHookOutput, PluginTransformAstHookOutput,
+  PluginTransformHookOutput, ResolveArgs,
 };
 use rspack_swc::swc_ecma_ast;
 use std::{
@@ -36,7 +37,7 @@ impl Plugin for PluginHookTester {
       .record
       .call_resolve
       .store(true, std::sync::atomic::Ordering::SeqCst);
-    None
+    Ok(None)
   }
 
   async fn load(&self, _ctx: &BundleContext, _args: &LoadArgs) -> PluginLoadHookOutput {
@@ -44,7 +45,7 @@ impl Plugin for PluginHookTester {
       .record
       .call_load
       .store(true, std::sync::atomic::Ordering::SeqCst);
-    None
+    Ok(None)
   }
 
   fn transform_ast(
@@ -57,7 +58,7 @@ impl Plugin for PluginHookTester {
       .record
       .call_transform_ast
       .store(true, std::sync::atomic::Ordering::SeqCst);
-    ast
+    Ok(ast)
   }
 
   #[inline]
@@ -72,7 +73,7 @@ impl Plugin for PluginHookTester {
       .record
       .call_transform
       .store(true, std::sync::atomic::Ordering::SeqCst);
-    raw
+    Ok(raw)
   }
 
   #[inline]
@@ -81,11 +82,12 @@ impl Plugin for PluginHookTester {
     _ctx: &BundleContext,
     _chunk: &Chunk,
     _bundle_options: &NormalizedBundleOptions,
-  ) {
+  ) -> PluginTapGeneratedChunkHookOutput {
     self
       .record
       .call_tap_generated_chunk
       .store(true, std::sync::atomic::Ordering::SeqCst);
+    Ok(())
   }
 }
 

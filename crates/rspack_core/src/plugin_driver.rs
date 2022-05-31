@@ -8,8 +8,8 @@ use tracing::instrument;
 
 use crate::{
   BundleContext, Chunk, LoadArgs, LoadedSource, Loader, NormalizedBundleOptions, OnResolveResult,
-  Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput, PluginTransformAstHookOutput,
-  PluginTransformHookOutput, ResolveArgs,
+  Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput, PluginTapGeneratedChunkHookOutput,
+  PluginTransformAstHookOutput, PluginTransformHookOutput, ResolveArgs,
 };
 
 #[derive(Debug)]
@@ -91,7 +91,7 @@ impl PluginDriver {
     &self,
     chunk: &Chunk,
     bundle_options: &NormalizedBundleOptions,
-  ) -> Result<()> {
+  ) -> PluginTapGeneratedChunkHookOutput {
     self.plugins.iter().try_for_each(|plugin| -> Result<()> {
       plugin.tap_generated_chunk(&self.ctx, chunk, bundle_options)
     })
