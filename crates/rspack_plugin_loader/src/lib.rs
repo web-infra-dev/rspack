@@ -4,7 +4,6 @@ mod data_uri;
 mod json;
 use std::path::Path;
 
-use anyhow::Result;
 use async_trait::async_trait;
 use data_uri::guess_mime_types_ext;
 use rspack_core::{BundleContext, Loader, Plugin, PluginTransformHookOutput};

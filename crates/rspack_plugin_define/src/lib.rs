@@ -2,7 +2,6 @@
 
 use std::path::Path;
 
-use anyhow::Result;
 use rspack_core::{ast, BundleContext, Plugin, PluginTransformAstHookOutput};
 use rspack_swc::swc_ecma_visit::{FoldWith, VisitWith};
 

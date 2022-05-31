@@ -1,6 +1,5 @@
 use std::path::Path;
 
-use anyhow::Result;
 pub use rspack_swc::swc_ecma_ast as ast;
 
 use tracing::instrument;

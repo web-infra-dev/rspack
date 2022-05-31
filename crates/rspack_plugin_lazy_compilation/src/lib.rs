@@ -1,6 +1,5 @@
 #![deny(clippy::all)]
 
-use anyhow::Result;
 use async_trait::async_trait;
 use rspack_core::{
   BundleContext, ImportKind, LoadArgs, LoadedSource, Loader, Plugin, PluginLoadHookOutput,

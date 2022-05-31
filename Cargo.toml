@@ -5,6 +5,7 @@ members = [
 
 [profile.dev]
 incremental = true
+debug = 1
 
 [profile.release]
 codegen-units = 1

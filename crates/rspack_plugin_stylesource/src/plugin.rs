@@ -2,10 +2,10 @@ use crate::handle_with_css::{is_style_source, StyleSourceType};
 use anyhow::Result;
 use async_trait::async_trait;
 use nodejs_resolver::{ResolveResult, Resolver};
-use rspack_core::Plugin;
 use rspack_core::{
   Asset, BundleContext, Chunk, Loader, NormalizedBundleOptions, PluginTransformHookOutput,
 };
+use rspack_core::{Plugin, PluginBuildStartHookOutput};
 use rspack_style::style_core::applicationn::Application;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -138,9 +138,10 @@ impl Plugin for StyleSourcePlugin {
   ///
   /// 初始化参数
   ///
-  async fn build_start(&self, ctx: &BundleContext) {
+  async fn build_start(&self, ctx: &BundleContext) -> PluginBuildStartHookOutput {
     let minify = ctx.options.minify;
     self.app.set_minify(minify);
+    Ok(())
   }
 
   fn transform(

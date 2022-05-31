@@ -1,8 +1,8 @@
 use std::{path::Path, sync::Arc};
 
-use nodejs_resolver::Resolver;
 use anyhow::Result;
-use futures::future::{join_all, try_join_all};
+use futures::future::try_join_all;
+use nodejs_resolver::Resolver;
 use rspack_swc::swc_ecma_ast as ast;
 use tracing::instrument;
 

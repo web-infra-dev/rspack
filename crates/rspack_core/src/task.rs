@@ -111,7 +111,9 @@ impl Task {
       }
       let mut ast = plugin_hook::transform_ast(Path::new(module_id), raw_ast, &self.plugin_driver)?;
 
-      self.pre_analyze_imported_module(&uri_resolver, &ast).await;
+      self
+        .pre_analyze_imported_module(&uri_resolver, &ast)
+        .await?;
 
       ast.visit_mut_with(&mut dependency_scanner);
 
@@ -164,8 +166,12 @@ impl Task {
         tx: self.tx.clone(),
         plugin_driver: self.plugin_driver.clone(),
       };
+      let tx = self.tx.clone();
       tokio::task::spawn(async move {
-        task.run().await;
+        if let Err(err) = task.run().await {
+          tx.send(Msg::TaskErrorEncountered(err))
+            .expect("failed to send task error");
+        }
       });
     }
   }

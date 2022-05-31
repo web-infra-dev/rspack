@@ -5,7 +5,7 @@ use std::sync::{atomic::AtomicUsize, Arc};
 use anyhow::{Error, Result};
 use crossbeam::queue::SegQueue;
 use dashmap::DashSet;
-use futures::future::{join_all, try_join_all};
+use futures::future::try_join_all;
 use nodejs_resolver::Resolver;
 use tracing::instrument;
 
@@ -33,6 +33,7 @@ pub struct Bundle {
 pub enum Msg {
   // DependencyReference(String, String, Rel),
   TaskFinished(JsModule),
+  TaskErrorEncountered(Error),
   // NewExtMod(ExternalModule),
 }
 
@@ -116,8 +117,13 @@ impl Bundle {
         tx: tx.clone(),
         plugin_driver: self.plugin_driver.clone(),
       };
+
+      let tx = tx.clone();
       tokio::task::spawn(async move {
-        task.run().await;
+        if let Err(err) = task.run().await {
+          tx.send(Msg::TaskErrorEncountered(err))
+            .expect("failed to send task error");
+        }
       });
     }
 
@@ -148,6 +154,10 @@ impl Bundle {
             };
             self.module_graph_container.module_graph.add_module(module);
             active_task_count.fetch_sub(1, Ordering::SeqCst);
+          }
+          Msg::TaskErrorEncountered(err) => {
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
+            return Err(err);
           }
         },
         None => {

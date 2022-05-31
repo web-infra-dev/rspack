@@ -1,7 +1,7 @@
 use std::{ffi::OsString, path::Path, time::Instant};
 
 use anyhow::Result;
-use nodejs_resolver::{ResolveResult, Resolver};
+use nodejs_resolver::ResolveResult;
 use sugar_path::PathSugar;
 use tracing::instrument;
 
@@ -20,7 +20,6 @@ pub async fn resolve_id(
   args: ResolveArgs,
   preserve_symlinks: bool,
   plugin_driver: &PluginDriver,
-  resolver: &Resolver,
 ) -> Result<ResolvedURI> {
   if let Some(plugin_result) = resolve_id_via_plugins(&args, plugin_driver).await? {
     Ok(ResolvedURI::new(
@@ -39,7 +38,8 @@ pub async fn resolve_id(
       let base_dir = Path::new(&importer).parent().unwrap();
       let _options = plugin_driver.ctx.as_ref().options.as_ref();
       let before_resolve = Instant::now();
-      let res = match resolver
+      let res = match plugin_driver
+        .resolver
         .resolve(base_dir, &args.id)
         .map_err(|e| RspackCoreError::ResolveFailed(args.id.to_owned(), importer.to_owned(), e))?
       {
