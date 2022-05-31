@@ -47,6 +47,7 @@ export async function run(options: RspackRawOptions, command: 'dev' | 'build') {
 
   const outputConfig = {
     ...options.output,
+    outdir,
     sourceMap,
   };
 
