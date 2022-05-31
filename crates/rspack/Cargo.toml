@@ -8,24 +8,23 @@ license = "MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rspack_core = { path="../rspack_core" }
-rspack_plugin_stylesource = { path="../rspack_plugin_stylesource" }
-rspack_plugin_react = { path="../rspack_plugin_react" }
-rspack_plugin_loader = { path="../rspack_plugin_loader" }
-rspack_plugin_style = { path="../rspack_plugin_style" }
-rspack_plugin_lazy_compilation = { path="../rspack_plugin_lazy_compilation" }
+rspack_core = { path = "../rspack_core" }
+rspack_plugin_stylesource = { path = "../rspack_plugin_stylesource" }
+rspack_plugin_react = { path = "../rspack_plugin_react" }
+rspack_plugin_loader = { path = "../rspack_plugin_loader" }
+rspack_plugin_style = { path = "../rspack_plugin_style" }
+rspack_plugin_lazy_compilation = { path = "../rspack_plugin_lazy_compilation" }
 rspack_swc = { path = "../rspack_swc" }
-rspack_plugin_progress = {path = "../rspack_plugin_progress"}
-rspack_plugin_svgr = {path = "../rspack_plugin_svgr"}
-rspack_plugin_node_built_in = {path = "../rspack_plugin_node_built_in"}
-rspack_plugin_define = { path="../rspack_plugin_define" }
+rspack_plugin_progress = { path = "../rspack_plugin_progress" }
+rspack_plugin_svgr = { path = "../rspack_plugin_svgr" }
+rspack_plugin_node_built_in = { path = "../rspack_plugin_node_built_in" }
+rspack_plugin_define = { path = "../rspack_plugin_define" }
 rspack_plugin_globals = { path = "../rspack_plugin_globals" }
-rspack_plugin_ast_optimization = { path="../rspack_plugin_ast_optimization" }
+rspack_plugin_ast_optimization = { path = "../rspack_plugin_ast_optimization" }
 sugar_path = "0.0.5"
 anyhow = { version = "1", features = ["backtrace"] }
 crossbeam = "0.8.1"
 dashmap = "5.0.0"
-ena = "0.14.0"
 num_cpus = "1.13.1"
 once_cell = "1"
 petgraph = "0.6.0"
@@ -37,18 +36,18 @@ async-trait = "0.1.53"
 futures = "0.3.21"
 tracing = "0.1.34"
 tracing-chrome = "0.6.0"
-tracing-futures = "0.2.5"
+# tracing-futures = "0.2.5"
 tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
 linked-hash-map = "0.5.4"
 serde_json = "1.0.59"
 nodejs-resolver = "0.0.14"
 rspack_style = "0.1"
 md4 = "0.10.1"
-
+chunk_spliter = { path = "../chunk_spliter" }
 [dev-dependencies]
 swc_ecma_transforms_testing = "0.80.0"
 sourcemap = "6.0.2"
 base64 = "0.13.0"
 
 [[examples]]
-name="bundle"
+name = "bundle"

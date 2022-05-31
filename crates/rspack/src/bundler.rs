@@ -16,11 +16,11 @@ use sugar_path::PathSugar;
 use swc_common::Mark;
 use tracing::instrument;
 
-use crate::chunk_spliter::generate_chunks;
 use crate::stats::Stats;
 use crate::utils::inject_built_in_plugins;
 use crate::utils::log::enable_tracing_by_env;
 use crate::utils::rayon::init_rayon_thread_poll;
+use chunk_spliter::generate_chunks;
 use md4::{Digest, Md4};
 pub use rspack_core::finalize::hmr_module;
 use rspack_core::get_swc_compiler;
