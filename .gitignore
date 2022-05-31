@@ -156,3 +156,5 @@ dist
 
 ## ignore rspack-style temp fold
 .rspack-style
+
+crates/node_binding/binding.d.ts
