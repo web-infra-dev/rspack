@@ -28,7 +28,7 @@ pub struct DynImportDesc {
 
 pub struct JsModule {
   pub kind: JsModuleKind,
-  pub exec_order: i32,
+  pub exec_order: usize,
   /**
    * module id for module render
    */
@@ -70,7 +70,7 @@ impl JsModule {
   pub fn new() -> Self {
     Self {
       kind: JsModuleKind::Normal,
-      exec_order: Default::default(),
+      exec_order: usize::MAX,
       uri: Default::default(),
       ast: Take::dummy(),
       id: Default::default(),

@@ -227,7 +227,9 @@ pub fn code_splitting2(
       chunk_graph.remove_by_id(chunk_id);
     });
   }
-
+  chunk_graph.chunks_mut().for_each(|chunk| {
+    chunk.sort_modules(module_graph);
+  });
   chunk_graph
 }
 

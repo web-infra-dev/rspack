@@ -1,5 +1,5 @@
 use crate::runtime::rspack_runtime;
-use crate::{Bundle, NormalizedBundleOptions, SourceMapOptions};
+use crate::{Bundle, ModuleGraph, NormalizedBundleOptions, SourceMapOptions};
 use rayon::prelude::*;
 use rspack_sources::{
   ConcatSource, GenMapOption, RawSource, Source, SourceMapSource, SourceMapSourceOptions,
@@ -16,6 +16,7 @@ pub struct Chunk {
   // pub order_modules: Vec<String>,
   pub entry_uri: String,
   pub module_uris: HashSet<String>,
+  pub ordered_module_uris: Vec<String>,
   _noop: (),
 }
 
@@ -28,6 +29,7 @@ impl Chunk {
       entry_uri: entries,
       // source_chunks: Default::default(),
       kind,
+      ordered_module_uris: vec![],
       _noop: (),
     }
   }
@@ -41,7 +43,14 @@ impl Chunk {
       // source_chunks: Default::default(),
       kind,
       _noop: (),
+      ordered_module_uris: vec![],
     }
+  }
+
+  pub fn sort_modules(&mut self, module_graph: &ModuleGraph) {
+    let mut module_uris = self.module_uris.iter().cloned().collect::<Vec<_>>();
+    module_uris.sort_by_key(|id| module_graph.module_by_uri(id).unwrap().exec_order);
+    self.ordered_module_uris = module_uris;
   }
 
   #[instrument(skip_all)]
@@ -150,7 +159,7 @@ impl Chunk {
     }
   }
 
-  #[instrument()]
+  #[instrument(skip_all)]
   /// Currently we defer calc `[contenthash]` until render output chunk
   pub fn generate_filename(&self, options: &NormalizedBundleOptions, bundle: &Bundle) -> String {
     let pending_name = if self.kind.is_entry() {

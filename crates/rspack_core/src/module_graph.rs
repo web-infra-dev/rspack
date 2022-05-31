@@ -36,11 +36,12 @@ impl ModuleGraphContainer {
       while let Some(mod_uri) = stack.pop() {
         // depth first
         if !visited.contains(&mod_uri) {
-          visited.insert(mod_uri.clone());
           if stack_visited.contains(&mod_uri) {
             let js_mod = self.module_graph.module_by_uri_mut(&mod_uri).unwrap();
             js_mod.exec_order = next_exec_order;
+
             next_exec_order += 1;
+            visited.insert(mod_uri.clone());
           } else {
             stack_visited.insert(mod_uri.clone());
             let js_mod = self.module_graph.module_by_uri(&mod_uri).unwrap();
@@ -57,60 +58,6 @@ impl ModuleGraphContainer {
       }
     }
 
-    let mut stack = self
-      .resolved_entries
-      .values()
-      .map(|rid| rid.uri.clone())
-      .collect::<Vec<_>>()
-      .into_iter()
-      .rev()
-      .collect::<Vec<_>>();
-    let mut dyn_imports = vec![];
-    let mut visited = HashSet::new();
-    let mut next_exec_order = 0;
-    while let Some(uri) = stack.pop() {
-      let module = self.module_graph.module_by_uri_mut(&uri).unwrap();
-      if !visited.contains(&uri) {
-        visited.insert(uri.clone());
-        stack.push(uri);
-        module.dependencies.keys().rev().for_each(|dep| {
-          let rid = module.resolved_uris.get(dep).unwrap().clone();
-          stack.push(rid.uri);
-        });
-        module
-          .dyn_imports
-          .iter()
-          .collect::<Vec<_>>()
-          .into_iter()
-          .rev()
-          .for_each(|dep| {
-            let rid = module.resolved_uris.get(&dep.argument).unwrap().clone();
-            dyn_imports.push(rid.uri);
-          });
-        module.exec_order = next_exec_order;
-        next_exec_order += 1;
-      }
-    }
-    stack = dyn_imports.into_iter().rev().collect();
-    while let Some(uri) = stack.pop() {
-      let module = self.module_graph.module_by_uri_mut(&uri).unwrap();
-      if !visited.contains(&uri) {
-        visited.insert(uri.clone());
-        stack.push(uri);
-        module
-          .dependencies
-          .keys()
-          .collect::<Vec<_>>()
-          .into_iter()
-          .rev()
-          .for_each(|dep| {
-            let rid = module.resolved_uris.get(dep).unwrap().clone();
-            stack.push(rid.uri);
-          });
-        module.exec_order = next_exec_order;
-        next_exec_order += 1;
-      }
-    }
     let mut modules = self.module_graph.modules().collect::<Vec<_>>();
     modules.sort_by_key(|m| m.exec_order);
     tracing::trace!(
