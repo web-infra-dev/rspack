@@ -12,7 +12,7 @@ use crate::{
 };
 use crate::{get_swc_compiler, path::normalize_path};
 use dashmap::{DashMap, DashSet};
-use nodejs_resolver::Resolver;
+
 use rspack_swc::{
   swc_atoms,
   swc_ecma_ast::{self as ast},
