@@ -8,8 +8,8 @@ use rspack_core::{
 
 use anyhow::Context;
 use async_trait::async_trait;
-use napi::threadsafe_function::ThreadsafeFunctionCallMode;
 use napi::Error;
+use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi_derive::napi;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -28,7 +28,10 @@ pub static CALL_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(1));
 
 pub struct RspackPluginNodeAdapter {
   pub build_start_tsfn: ThreadsafeRspackCallback,
-  pub load_tsfn: ThreadsafeRspackCallback,
+  pub load_tsfn: ThreadsafeFunction<
+    (String, oneshot::Sender<Option<OnLoadResult>>),
+    ErrorStrategy::CalleeHandled,
+  >,
   pub resolve_tsfn: ThreadsafeRspackCallback,
   pub build_end_tsfn: ThreadsafeRspackCallback,
 }
@@ -263,24 +266,24 @@ impl Plugin for RspackPluginNodeAdapter {
 
     let (tx, rx) = oneshot::channel::<Option<OnLoadResult>>();
 
-    match REGISTERED_LOAD_SENDERS.entry(load_context.get_call_id()) {
-      dashmap::mapref::entry::Entry::Vacant(v) => {
-        v.insert(tx);
-      }
-      dashmap::mapref::entry::Entry::Occupied(_) => {
-        let err = Error::new(
-          napi::Status::Unknown,
-          format!(
-            "duplicated call id encountered {}, please file an issue.",
-            load_context.get_call_id(),
-          ),
-        );
-        self
-          .load_tsfn
-          .call(Err(err.clone()), ThreadsafeFunctionCallMode::Blocking);
-        return Err(err.into());
-      }
-    }
+    // match REGISTERED_LOAD_SENDERS.entry(load_context.get_call_id()) {
+    //   dashmap::mapref::entry::Entry::Vacant(v) => {
+    //     v.insert(tx);
+    //   }
+    //   dashmap::mapref::entry::Entry::Occupied(_) => {
+    //     self.load_tsfn.call(
+    //       Err(Error::new(
+    //         napi::Status::Unknown,
+    //         format!(
+    //           "duplicated call id encountered {}, please file an issue.",
+    //           load_context.get_call_id(),
+    //         ),
+    //       )),
+    //       ThreadsafeFunctionCallMode::Blocking,
+    //     );
+    //     return None;
+    //   }
+    // }
 
     let value = serde_json::to_string(&load_context).map_err(|_| {
       Error::new(
@@ -291,7 +294,7 @@ impl Plugin for RspackPluginNodeAdapter {
 
     self
       .load_tsfn
-      .call(value, ThreadsafeFunctionCallMode::Blocking);
+      .call(value.map(|v| (v, tx)), ThreadsafeFunctionCallMode::Blocking);
 
     let load_result = rx.await.expect("failed to receive onload result");
 

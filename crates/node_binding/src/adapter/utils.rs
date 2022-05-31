@@ -1,13 +1,15 @@
 use napi::bindgen_prelude::*;
+use napi::threadsafe_function::ThreadSafeCallContext;
 use napi::{
   threadsafe_function::{ErrorStrategy, ThreadSafeResultContext, ThreadsafeFunction},
-  Env,
+  Env, JsExternal, JsString, JsUnknown, NapiRaw,
 };
 
 use super::common::{
   REGISTERED_BUILD_END_SENDERS, REGISTERED_BUILD_START_SENDERS, REGISTERED_LOAD_SENDERS,
   REGISTERED_RESOLVE_SENDERS,
 };
+use super::OnLoadResult;
 use crate::PluginCallbacks;
 
 pub fn create_node_adapter_from_plugin_callbacks(
@@ -57,32 +59,62 @@ pub fn create_node_adapter_from_plugin_callbacks(
           )
           .unwrap();
 
-      let mut load_tsfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled> = load_callback
+      let mut load_tsfn: ThreadsafeFunction<
+        (String, tokio::sync::oneshot::Sender<Option<OnLoadResult>>),
+        ErrorStrategy::CalleeHandled,
+      > = load_callback
         .create_threadsafe_function(
           0,
-          |ctx| ctx.env.create_string_from_std(ctx.value).map(|v| vec![v]),
-          |ctx: ThreadSafeResultContext<Promise<String>>| {
-            let return_value = ctx.return_value;
+          |ctx: ThreadSafeCallContext<(
+            String,
+            tokio::sync::oneshot::Sender<Option<OnLoadResult>>,
+          )>| {
+            let value = ctx.value.0;
+            let sender = ctx.value.1;
+            Ok(vec![
+              ctx.env.create_string_from_std(value)?.into_unknown(),
+              ctx.env.create_external(Some(sender), None)?.into_unknown(),
+            ])
+          },
+          |ctx: ThreadSafeResultContext<Vec<JsUnknown>>| {
+            let mut return_value = ctx.return_value;
+
+            let sender = unsafe { return_value.remove(1).cast::<JsExternal>() };
+            let sender = ctx
+              .env
+              .get_value_external::<Option<tokio::sync::oneshot::Sender<Option<OnLoadResult>>>>(
+                &sender,
+              )
+              .expect("failed to get external value")
+              .take();
+
+            let raw_promise = return_value.remove(0);
+
+            let load_promise = unsafe {
+              Promise::from_napi_value(ctx.env.raw(), raw_promise.raw())
+                .expect("expect return value to be a promise") as Promise<String>
+            };
 
             ctx
               .env
               .execute_tokio_future(
                 async move {
-                  let result = return_value.await?;
+                  let load_result = load_promise.await?;
 
                   let load_result: super::RspackThreadsafeResult<Option<super::OnLoadResult>> =
-                    serde_json::from_str(&result).expect("failed to evaluate onload result");
+                    serde_json::from_str(&load_result).expect("failed to evaluate onload result");
 
-                  tracing::debug!("onload result {:?}", load_result);
+                  // tracing::debug!("onload result {:?}", load_result);
 
-                  let sender = REGISTERED_LOAD_SENDERS.remove(&load_result.get_call_id());
+                  // // let sender = REGISTERED_LOAD_SENDERS.remove(&load_result.get_call_id());
 
-                  if let Some((_, sender)) = sender {
-                    sender
-                      .send(load_result.into_inner())
-                      .expect("unable to send");
-                  } else {
-                    panic!("unable to send");
+                  if let Some(sender) = sender {
+                    sender.send(load_result.into_inner()).map_err(|e| {
+                      Error::new(
+                        napi::Status::GenericFailure,
+                        format!("unable to send result {:#?}", e),
+                      )
+                    })?;
                   }
 
                   Ok(())

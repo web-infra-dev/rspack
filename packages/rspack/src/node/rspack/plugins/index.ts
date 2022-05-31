@@ -97,31 +97,37 @@ export class RspackPluginFactory {
     return createDummyResult(context.id);
   }
 
-  async load(err: Error, value: string): Promise<string> {
+  load(err: Error, value: string, sender: ExternalObject<any>): [Promise<string>, ExternalObject<any>] {
     if (err) {
       throw err;
     }
 
     const context: RspackThreadsafeContext<OnLoadContext> = JSON.parse(value);
 
-    for (const plugin of this.plugins) {
-      const { id } = context.inner;
-      const result = await plugin.load?.bind(this.pluginContext)?.(id);
-      debugNapi('onLoadResult', result, 'context', context);
+    const evaluate = async () => {
+      for (const plugin of this.plugins) {
+        const { id } = context.inner;
+        const result = await plugin.load?.bind(this.pluginContext)?.(id);
+        debugNapi('onLoadResult', result, 'context', context);
 
-      if (isNil(result)) {
-        continue;
+        if (isNil(result)) {
+          continue;
+        }
+
+        return JSON.stringify({
+          id: context.id,
+          inner: result,
+        });
       }
 
-      return JSON.stringify({
-        id: context.id,
-        inner: result,
-      });
-    }
+      return createDummyResult(context.id);
+    };
+
+    return [evaluate(), sender];
 
     debugNapi('onLoadResult', null, 'context', context);
 
-    return createDummyResult(context.id);
+    // return [createDummyResult(context.id), sender];
   }
 
   async resolve(err: Error, value: string): Promise<string> {
