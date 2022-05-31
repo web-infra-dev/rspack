@@ -39,7 +39,11 @@ impl ModuleGraphContainer {
           if stack_visited.contains(&mod_uri) {
             let js_mod = self.module_graph.module_by_uri_mut(&mod_uri).unwrap();
             js_mod.exec_order = next_exec_order;
-
+            tracing::trace!(
+              "js_mod: {:?}, exec_order: {:?}",
+              js_mod.uri,
+              js_mod.exec_order
+            );
             next_exec_order += 1;
             visited.insert(mod_uri.clone());
           } else {
@@ -51,6 +55,7 @@ impl ModuleGraphContainer {
                 .dependency_modules(&self.module_graph)
                 .iter()
                 .map(|js_mod| js_mod.uri.to_string())
+                .rev()
                 .collect(),
             )
           }
