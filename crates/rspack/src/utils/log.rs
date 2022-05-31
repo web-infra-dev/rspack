@@ -13,8 +13,13 @@ pub fn enable_tracing_by_env() {
     use tracing_subscriber::{fmt, prelude::*, EnvFilter};
     tracing_subscriber::registry()
       .with(fmt::layer().pretty().with_file(false))
-      .with(tracing_subscriber::filter::Targets::new().with_target("rspack_core", Level::TRACE))
-      .with(tracing_subscriber::filter::Targets::new().with_target("rspack", Level::TRACE))
+      .with(
+        tracing_subscriber::filter::Targets::new().with_targets(vec![
+          ("rspack_core", Level::TRACE),
+          ("rspack", Level::TRACE),
+          ("rspack_node", Level::TRACE),
+        ]),
+      )
       // Using TRACE=[TRACE|DEBUG|INFO|WARN|ERROR] to set max trace level.
       .with(EnvFilter::from_env("TRACE"))
       .init();
@@ -36,8 +41,13 @@ pub fn enable_tracing_by_env_with_chrome_layer() -> Option<FlushGuard> {
     tracing_subscriber::registry()
       .with(chrome_layer)
       .with(fmt::layer().pretty().with_file(false))
-      .with(tracing_subscriber::filter::Targets::new().with_target("rspack_core", Level::TRACE))
-      .with(tracing_subscriber::filter::Targets::new().with_target("rspack", Level::TRACE))
+      .with(
+        tracing_subscriber::filter::Targets::new().with_targets(vec![
+          ("rspack_core", Level::TRACE),
+          ("rspack", Level::TRACE),
+          ("rspack_node", Level::TRACE),
+        ]),
+      )
       // Using TRACE=[TRACE|DEBUG|INFO|WARN|ERROR] to set max trace level.
       .with(EnvFilter::from_env("TRACE"))
       .init();
