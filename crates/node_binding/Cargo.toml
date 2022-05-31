@@ -14,10 +14,8 @@ default = []
 test = ["napi-derive/noop"]
 
 [dependencies]
-# napi = { git = "https://github.com/speedy-js/napi-rs", branch = "speedy", default-features = false, features = ["async", "tokio_rt", "serde-json"] }
-# napi-derive = { git = "https://github.com/speedy-js/napi-rs", branch = "speedy" }
-napi = { path = "/Users/bytedance/Projects/napi-rs/crates/napi", default-features = false, features = ["async", "tokio_rt", "serde-json"] }
-napi-derive = { path = "/Users/bytedance/Projects/napi-rs/crates/macro" }
+napi = { git = "https://github.com/speedy-js/napi-rs", branch = "speedy", default-features = false, features = ["async", "tokio_rt", "serde-json"] }
+napi-derive = { git = "https://github.com/speedy-js/napi-rs", branch = "speedy" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rspack = { path = "../rspack" }
