@@ -8,7 +8,7 @@ version = "0.1.0"
 [dependencies]
 rspack_core = { path = "../rspack_core" }
 tracing = "0.1.34"
-rspack_style = "0.1.13"
+rspack_style = "0.1.14"
 #rspack_style = {path = "/Users/zhushijie/Desktop/github/rspack-style/crates/style"}
 
 async-trait = "0.1.53"

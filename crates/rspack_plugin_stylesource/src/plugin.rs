@@ -5,7 +5,7 @@ use rspack_core::Plugin;
 use rspack_core::{
   Asset, BundleContext, Chunk, Loader, NormalizedBundleOptions, PluginTransformHookOutput,
 };
-use rspack_style::new_less::applicationn::Application;
+use rspack_style::style_core::applicationn::Application;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::path::Path;
@@ -85,7 +85,10 @@ impl StyleSourcePlugin {
     content: &str,
     filepath: &str,
   ) -> (HashMap<String, String>, String) {
-    let res = match self.app.render_content_into_hashmap(content, filepath) {
+    let res = match self
+      .app
+      .render_content_into_hashmap_with_css(content, filepath)
+    {
       Ok(map) => map,
       Err(msg) => {
         println!("{}", msg);
@@ -129,6 +132,14 @@ impl StyleSourcePlugin {
 impl Plugin for StyleSourcePlugin {
   fn name(&self) -> &'static str {
     PLUGIN_NAME
+  }
+
+  ///
+  /// 初始化参数
+  ///
+  async fn build_start(&self, ctx: &BundleContext) {
+    let minify = ctx.options.minify;
+    self.app.set_minify(minify);
   }
 
   fn transform(
