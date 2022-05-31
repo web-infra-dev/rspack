@@ -9,13 +9,16 @@
   },
   "scripts": {
     "build": "napi build --platform --js false --dts binding.d.ts --config napirs.rc.json",
-    "build:release": "napi build --release --platform --js false --dts binding.d.ts --config napirs.rc.json"
+    "build:schema": "typescript-json-schema 'binding.d.ts' 'RawOptions' -o '../../packages/rspack/src/node/rspack/options/schema.json' --required=true  --strictNullChecks",
+    "build:release": "napi build --release --platform --js false --dts binding.d.ts --config napirs.rc.json && npm run build:schema"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@napi-rs/cli": "^2.6.2",
+    "tslib": "^2.4.0",
+    "typescript-json-schema": "^0.53.1",
     "why-is-node-running": "2.2.1"
   }
 }

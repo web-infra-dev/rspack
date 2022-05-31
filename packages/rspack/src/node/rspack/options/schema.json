@@ -1,178 +1,149 @@
 {
-  "$schema": "http://json-schema.org/schema",
-  "type": "object",
-  "additionalProperties": false,
-  "properties": {
-    "chunkFilename": {
-      "type": "string"
-    },
-    "mode": {
-      "type": "string",
-      "enum": [
-        "production",
-        "development",
-        "none"
-      ]
-    },
-    "entries": {
-      "type": "object",
-      "additionalProperties": false,
-      "patternProperties": {
-        ".*": {
-          "type": "string"
-        }
-      },
-      "minProperties": 1
-    },
-    "loader": {
-      "type": "object",
-      "additionalProperties": false,
-      "patternProperties": {
-        ".*": {
-          "type": "string",
-          "enum": [
-            "css",
-            "less",
-            "sass",
-            "dataURI",
-            "js",
-            "jsx",
-            "ts",
-            "tsx",
-            "null",
-            "json",
-            "text"
-          ]
-        }
-      }
-    },
-    "resolve": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "alias": {
-          "type": "object",
-          "additionalProperties": false,
-          "patternProperties": {
-            ".*": {
-              "type": "string"
-            }
-          }
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+        "RawEnhancedOptions": {
+            "properties": {
+                "define": {
+                    "$ref": "#/definitions/Record<string,string>"
+                },
+                "globals": {
+                    "$ref": "#/definitions/Record<string,string>"
+                },
+                "inlineStyle": {
+                    "type": "boolean"
+                },
+                "lazyCompilation": {
+                    "type": "boolean"
+                },
+                "progress": {
+                    "type": "boolean"
+                },
+                "react": {
+                    "$ref": "#/definitions/RawReactOptions"
+                },
+                "svgr": {
+                    "type": "boolean"
+                }
+            },
+            "type": "object"
         },
-        "conditionNames": {
-          "type": "array",
-          "items": {
+        "RawOptimizationOptions": {
+            "properties": {
+                "chunkIdAlgo": {
+                    "type": "string"
+                },
+                "minify": {
+                    "type": "boolean"
+                },
+                "moduleIdAlgo": {
+                    "type": "string"
+                },
+                "removeEmptyChunks": {
+                    "type": "boolean"
+                },
+                "splitChunks": {
+                    "$ref": "#/definitions/RawSplitChunksOptions"
+                }
+            },
+            "type": "object"
+        },
+        "RawOutputOptions": {
+            "properties": {
+                "entryFilename": {
+                    "type": "string"
+                },
+                "outdir": {
+                    "type": "string"
+                },
+                "sourceMap": {
+                    "enum": [
+                        "external",
+                        "inline",
+                        "linked",
+                        "none"
+                    ],
+                    "type": "string"
+                }
+            },
+            "type": "object"
+        },
+        "RawReactOptions": {
+            "properties": {
+                "fastRefresh": {
+                    "type": "boolean"
+                }
+            },
+            "type": "object"
+        },
+        "RawResolveOptions": {
+            "properties": {
+                "alias": {
+                    "$ref": "#/definitions/Record<string,string>"
+                },
+                "aliasField": {
+                    "type": "string"
+                },
+                "conditionNames": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                }
+            },
+            "type": "object"
+        },
+        "RawSplitChunksOptions": {
+            "properties": {
+                "codeSplitting": {
+                    "type": "boolean"
+                },
+                "reuseExstingChunk": {
+                    "type": "boolean"
+                }
+            },
+            "type": "object"
+        },
+        "Record<string,string>": {
+            "type": "object"
+        }
+    },
+    "properties": {
+        "chunkFilename": {
             "type": "string"
-          }
         },
-        "aliasFields": {
-          "type": "string"
+        "enhanced": {
+            "$ref": "#/definitions/RawEnhancedOptions"
+        },
+        "entries": {
+            "$ref": "#/definitions/Record<string,string>"
+        },
+        "loader": {
+            "$ref": "#/definitions/Record<string,string>"
+        },
+        "mode": {
+            "enum": [
+                "development",
+                "none",
+                "production"
+            ],
+            "type": "string"
+        },
+        "optimization": {
+            "$ref": "#/definitions/RawOptimizationOptions"
+        },
+        "output": {
+            "$ref": "#/definitions/RawOutputOptions"
+        },
+        "resolve": {
+            "$ref": "#/definitions/RawResolveOptions"
+        },
+        "root": {
+            "type": "string"
         }
-      }
     },
-    "output": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "outdir": {
-          "type": "string"
-        },
-        "entryFilename": {
-          "type": "string"
-        },
-        "sourceMap": {
-          "oneOf": [
-            {
-              "enum": [
-                "inline",
-                "external",
-                "linked"
-              ]
-            },
-            {
-              "type": "boolean"
-            }
-          ]
-        }
-      }
-    },
-    "optimization": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "minify": {
-          "type": "boolean"
-        },
-        "splitChunks": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "codeSplitting": {
-              "type": "boolean"
-            },
-            "reuseExstingChunk": {
-              "type": "boolean"
-            }
-          }
-        },
-        "removeEmptyChunks": {
-          "type": "boolean"
-        },
-        "chunkIdAlgo": {
-          "type": "string",
-          "enum": [
-            "named"
-          ]
-        },
-        "moduleIdAlgo": {
-          "type": "string",
-          "enum": [
-            "named"
-          ]
-        }
-      }
-    },
-    "enhanced": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "globals": {
-          "type": "object",
-          "additionalProperties": false,
-          "patternProperties": {
-            ".*": {
-              "type": "string"
-            }
-          }
-        },
-        "svgr": {
-          "type": "boolean"
-        },
-        "progress": {
-          "type": "boolean"
-        },
-        "lazyCompilation": {
-          "type": "boolean"
-        },
-        "inlineStyle": {
-          "type": "boolean"
-        },
-        "react": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "fastRefresh": {
-              "type": "boolean"
-            }
-          }
-        }
-      }
-    },
-    "root": {
-      "type": "string"
-    }
-  },
-  "required": [
-    "entries"
-  ]
+    "required": [
+        "entries"
+    ],
+    "type": "object"
 }
+

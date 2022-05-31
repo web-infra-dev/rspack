@@ -23,6 +23,7 @@
     "format:js": "prettier --write \"{packages,crates/node_binding}/**/*.{ts,js}\"",
     "lint:rs": "cargo clippy",
     "build:core": "yarn workspace @rspack/binding run build ",
+    "build:schema": "yarn workspace @rspack/binding run build:schema ",
     "release:core": "yarn workspace @rspack/binding run build:release ",
     "setup": "yarn install && yarn build:core",
     "build:bundle": "cargo run --package rspack --example bundle"
