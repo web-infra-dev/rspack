@@ -7,5 +7,5 @@ edition = "2021"
 
 [dependencies]
 rspack_core = { path = "../rspack_core" }
-nodejs-resolver = "0.0.13"
+nodejs-resolver = "0.0.14"
 async-trait = "0.1.53"

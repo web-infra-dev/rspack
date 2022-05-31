@@ -7,7 +7,7 @@ pub struct RuntimeOptions {
 impl RuntimeOptions {
   pub fn default() -> RuntimeOptions {
     RuntimeOptions {
-      hmr: true,
+      hmr: false,
       module: true,
     }
   }

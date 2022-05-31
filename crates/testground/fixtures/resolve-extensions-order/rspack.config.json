@@ -1,0 +1,14 @@
+{
+  "mode": "development",
+  "entries": {
+    "main": "./index.js"
+  },
+  "platform": "node",
+  "resolve": {
+    "extensions": [
+      ".js",
+      "",
+      ".json"
+    ]
+  }
+}

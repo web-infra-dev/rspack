@@ -7,6 +7,7 @@ use serde::Deserialize;
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawResolveOptions {
+  pub extensions: Option<Vec<String>>,
   pub alias: Option<HashMap<String, String>>,
   pub condition_names: Option<Vec<String>>,
   pub alias_field: Option<String>,

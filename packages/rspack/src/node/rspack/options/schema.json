@@ -67,8 +67,24 @@
         },
         "aliasFields": {
           "type": "string"
+        },
+        "extensions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
+    },
+    "platform": {
+      "oneOf": [
+        {
+          "enum": [
+            "browser",
+            "node"
+          ]
+        }
+      ]
     },
     "output": {
       "type": "object",
