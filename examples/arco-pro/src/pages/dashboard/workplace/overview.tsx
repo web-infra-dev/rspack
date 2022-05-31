@@ -82,7 +82,7 @@ function Overview() {
       <Row>
         <Col flex={1}>
           <StatisticItem
-            icon={<img src={IconCalendar} />}
+            icon={<IconCalendar />}
             title={t['workplace.totalOnlyData']}
             count={data.allContents}
             loading={loading}
@@ -92,7 +92,7 @@ function Overview() {
         <Divider type="vertical" className={styles.divider} />
         <Col flex={1}>
           <StatisticItem
-            icon={<img src={IconContent} />}
+            icon={<IconContent />}
             title={t['workplace.contentInMarket']}
             count={data.liveContents}
             loading={loading}
@@ -102,7 +102,7 @@ function Overview() {
         <Divider type="vertical" className={styles.divider} />
         <Col flex={1}>
           <StatisticItem
-            icon={<img src={IconComments} />}
+            icon={<IconComments />}
             title={t['workplace.comments']}
             count={data.increaseComments}
             loading={loading}
@@ -112,7 +112,7 @@ function Overview() {
         <Divider type="vertical" className={styles.divider} />
         <Col flex={1}>
           <StatisticItem
-            icon={<img src={IconIncrease} />}
+            icon={<IconIncrease />}
             title={t['workplace.growth']}
             count={
               <span>
