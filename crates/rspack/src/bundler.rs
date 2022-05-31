@@ -89,6 +89,8 @@ impl Bundler {
       resolver: resolver.clone(),
     });
 
+    ctx.init(plugin_driver.clone());
+
     Self {
       options: normalized_options.clone(),
       plugin_driver: plugin_driver.clone(),

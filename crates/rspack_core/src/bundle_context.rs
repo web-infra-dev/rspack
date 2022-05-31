@@ -6,7 +6,10 @@ use std::{
 use swc::Compiler;
 use swc_common::Mark;
 
-use crate::NormalizedBundleOptions;
+use crate::{
+  plugin_hook::{self},
+  ImportKind, NormalizedBundleOptions, PluginDriver, ResolveArgs, ResolvedURI,
+};
 
 #[allow(clippy::manual_non_exhaustive)]
 pub struct BundleContext {
@@ -15,6 +18,7 @@ pub struct BundleContext {
   pub options: Arc<NormalizedBundleOptions>,
   pub top_level_mark: Mark,
   pub unresolved_mark: Mark,
+  plugin_driver: Mutex<Option<Arc<PluginDriver>>>,
   _noop: (),
 }
 
@@ -40,8 +44,28 @@ impl BundleContext {
       options,
       top_level_mark,
       unresolved_mark,
+      plugin_driver: Default::default(),
       _noop: (),
     }
+  }
+
+  pub async fn resolve(&self, importer: &str, importee: &str, kind: ImportKind) -> ResolvedURI {
+    // We might need to supports skiping plugin
+    let plugin_driver = self.plugin_driver.lock().unwrap().as_ref().unwrap().clone();
+    plugin_hook::resolve_id(
+      ResolveArgs {
+        id: importee.to_string(),
+        importer: Some(importer.to_string()),
+        kind,
+      },
+      false,
+      &plugin_driver,
+    )
+    .await
+  }
+
+  pub fn init(&self, plugin_driver: Arc<PluginDriver>) {
+    self.plugin_driver.lock().unwrap().replace(plugin_driver);
   }
 
   #[inline]
