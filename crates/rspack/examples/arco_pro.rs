@@ -34,7 +34,6 @@ async fn main() {
       root,
       entries: HashMap::from([("main".to_string(), example.to_string().into())]),
       outdir: "./dist".to_string(),
-      code_splitting: Some(Default::default()),
       mode: BundleMode::Dev,
       react: BundleReactOptions {
         refresh: false,
@@ -63,7 +62,7 @@ async fn main() {
       source_map: false.into(),
       ..Default::default()
     },
-    vec![Box::new(rspack_plugin_mock_buitins::MockBuitinsPlugin)],
+    vec![],
   );
   let build_future = async {
     bundler.build(None).await;

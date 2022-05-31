@@ -1,6 +1,6 @@
 use std::env;
 
-use rspack_core::{NormalizedBundleOptions, Plugin};
+use rspack_core::{NormalizedBundleOptions, Platform, Plugin};
 use rspack_plugin_stylesource::plugin::StyleSourcePlugin;
 
 pub mod log;
@@ -41,9 +41,11 @@ pub fn inject_built_in_plugins(
   if !options.globals.is_empty() {
     plugins.push(Box::new(rspack_plugin_globals::GlobalsPlugin));
   }
-  plugins.push(Box::new(
-    rspack_plugin_mock_buitins::MockBuitinsPlugin::new(),
-  ));
+
+  if options.platform.eq(&Platform::Node) {
+    plugins.push(Box::new(rspack_plugin_node_built_in::NodeBuiltInPlugin));
+  }
+
   if options.lazy_compilation {
     plugins.push(Box::new(
       rspack_plugin_lazy_compilation::LazyCompilationPlugin::new(),

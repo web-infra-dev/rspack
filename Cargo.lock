@@ -1175,9 +1175,9 @@ dependencies = [
 
 [[package]]
 name = "nodejs-resolver"
-version = "0.0.12"
+version = "0.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ee96654396109ae794f3e5a9ff6baa9d31d166727445b9fef8328e1c656c61a"
+checksum = "23bebe52943eeef14a23e1f41d7774bebf427fa41fe9f5fe73a3222f81607ba0"
 dependencies = [
  "daachorse",
  "dashmap",
@@ -1697,7 +1697,7 @@ dependencies = [
  "futures",
  "linked-hash-map",
  "md4",
- "nodejs-resolver 0.0.12",
+ "nodejs-resolver 0.0.13",
  "num_cpus",
  "once_cell",
  "petgraph",
@@ -1709,7 +1709,7 @@ dependencies = [
  "rspack_plugin_globals",
  "rspack_plugin_lazy_compilation",
  "rspack_plugin_loader",
- "rspack_plugin_mock_buitins",
+ "rspack_plugin_node_built_in",
  "rspack_plugin_progress",
  "rspack_plugin_react",
  "rspack_plugin_style",
@@ -1741,7 +1741,7 @@ dependencies = [
  "hashbrown 0.12.1",
  "indicatif",
  "linked-hash-map",
- "nodejs-resolver 0.0.12",
+ "nodejs-resolver 0.0.13",
  "once_cell",
  "petgraph",
  "rayon",
@@ -1769,7 +1769,7 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
- "nodejs-resolver 0.0.12",
+ "nodejs-resolver 0.0.13",
  "once_cell",
  "rspack",
  "rspack_core",
@@ -1831,10 +1831,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack_plugin_mock_buitins"
+name = "rspack_plugin_node_built_in"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "nodejs-resolver 0.0.13",
  "rspack_core",
 ]
 
@@ -1855,7 +1856,7 @@ name = "rspack_plugin_react"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "nodejs-resolver 0.0.7",
+ "nodejs-resolver 0.0.13",
  "rspack_core",
  "rspack_swc",
  "swc_common 0.18.3",

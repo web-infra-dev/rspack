@@ -2,13 +2,13 @@ mod utils;
 use rspack::bundler::BundleOptions;
 use rspack_core::RuntimeOptions;
 use std::collections::HashMap;
-use utils::{assert_inline_sourcemap_in_pos, compile_with_options};
+use utils::{assert_inline_sourcemap_in_pos, compile_with_options, run_js_asset_in_node};
 
 #[test]
 fn define() {
   let runtime = RuntimeOptions {
     hmr: false,
-    module: false,
+    module: true,
   };
   let define = HashMap::from_iter(
     [
@@ -67,114 +67,32 @@ fn define() {
     BundleOptions {
       define,
       runtime,
+      platform: rspack_core::Platform::Node,
       ..Default::default()
     },
     vec![],
   );
 
   let assets = bundler.bundle.context.assets.lock().unwrap();
-  let dist = assets.get(0).unwrap();
-  let source = &dist.source;
+  let js_assets = assets.get(0).unwrap();
 
-  assert!(!source.contains("TRUE"));
-  assert!(source.contains("true"));
-  assert!(!source.contains("FALSE"));
-  assert!(source.contains("false"));
-  assert!(!source.contains("NUMBER_ADD"));
-  assert!(source.contains("3 + 2")); // TODO: optimized it to `5`
-  assert!(!source.contains("NULL"));
-  assert!(source.contains("null"));
-  assert!(!source.contains("UNDEFINED; // tags"));
-  assert!(source.contains("undefined"));
-  assert!(!source.contains("NUMBER"));
-  assert!(source.contains("100.05"));
-  assert!(!source.contains("ZERO; // tags")); // `;` and `// tags` in arg is for positioning.
-  assert!(source.contains('0'));
-  assert!(!source.contains("({ZERO:0}.ZERO);"));
-  assert!(!source.contains("({ZERO:0}).ZERO;"));
-  assert!(!source.contains("({ZERO:0})[ZERO];"));
-  assert!(!source.contains("({ZERO:0})[0];"));
-  assert!(!source.contains("({ZERO:0})['ZERO'];"));
-  // TODO: should optimized test case structure.
-  assert!(source.contains("ZERO: 0"));
-  assert!(source.contains("}).ZERO;"));
-  assert!(source.contains("})[0];"));
-  assert!(source.contains(&format!("}})[{}];", "\"ZERO\"")));
-  // ...
-  assert!(!source.contains("BIGINT"));
-  assert!(source.contains("BigInt(10000)")); // TODO: `BigInt` could be changed to it suffix with `n`.
-  assert!(!source.contains("BIGINT2"));
-  assert!(source.contains("100000000000n"));
-  assert!(!source.contains("POSITIVE_ZERO"));
-  assert!(source.contains("+0")); // TODO unary could be optimized
-  assert!(!source.contains("NEGATIVE_ZERO"));
-  assert!(source.contains("-0"));
-  assert!(!source.contains("POSITIVE_NUMBER"));
-  assert!(source.contains("+100.25"));
-  assert!(!source.contains("NEGATIVE_NUMBER"));
-  assert!(source.contains("-100.25"));
-  assert!(!source.contains("EMPTY_STRING"));
-  assert!(source.contains("\"\""));
-  assert!(!source.contains("REGEXP; // tags"));
-  assert!(!source.contains("ZERO.REGEXP"));
-  assert!(source.contains("0..ABC"));
+  run_js_asset_in_node(js_assets);
+  let source = &js_assets.source;
   assert!(source.contains("MEMBER_PROPS_SHOULD_DO_NOT_CONVERTED.ZERO"));
   assert!(source.contains("MEMBER_PROPS_SHOULD_DO_NOT_CONVERTED.REGEXP.REGEXP"));
-  assert!(source.contains("/abc/i"));
-  assert!(!source.contains("ARRAY;")); // ';` is just for positioning.
-  let array = "    [\n        300,\n        [\n            \"six\"\n        ]\n    ]";
-  assert!(source.contains(&array));
-  assert!(!source.contains("ARRAY[0]"));
-  assert!(source.contains(&format!("{}[0]", array))); // TODO: maybe could continue optimized.
-  assert!(!source.contains("ARRAY[0][1]"));
-  assert!(source.contains(&format!("{}[0][1]", array))); // TODO: maybe could continue optimized.
-  assert!(!source.contains("ARRAY[1]"));
-  assert!(source.contains(&format!("{}[1]", array))); // TODO: maybe could continue optimized.
-  assert!(!source.contains("ARRAY[1][0]"));
-  assert!(source.contains(&format!("{}[1][0]", array))); // TODO: maybe could continue optimized.
-  assert!(!source.contains("ARRAY[1][0][0]"));
-  assert!(source.contains(&format!("{}[1][0][0]", array))); // TODO: maybe could continue optimized.
-  assert!(!source.contains("ARRAY[ARRAY]"));
-  assert!(source.contains(&format!("{}[{}]", array, &array[4..])));
-  assert!(!source.contains("OBJECT; // tags"));
-  assert!(!source.contains("OBJECT.OBJ;"));
-  assert!(!source.contains("OBJECT.OBJ.NUM;"));
-  assert!(!source.contains("OBJECT.UNDEFINED;"));
-  assert!(!source.contains("OBJECT.REGEXP;"));
-  assert!(!source.contains("OBJECT.STR;"));
-  let obj = "    ({\n        UNDEFINED: undefined,\n        REGEXP: /def/i,\n        STR: \"string\",\n        OBJ: {\n            NUM: 1\n        }\n    })";
-  assert!(source.contains(&format!("{}.OBJ", obj)));
-  assert!(source.contains(&format!("{}.OBJ.NUM", obj)));
-  assert!(source.contains(&format!("{}.UNDEFINED", obj)));
-  assert!(source.contains(&format!("{}.REGEXP", obj)));
-  assert!(source.contains(&format!("{}.AAA.BBB", obj)));
-
-  assert!(source.contains("301, 301"));
-  assert!(source.contains(&format!("{}, {}", "\"302\"", "\"302\"")));
-  assert!(source.contains("303, 303"));
-  assert!(source.contains("304, 304"));
-  assert!(source.contains("303..P4"));
   assert!(source.contains("P4.P1"));
-  assert!(source.contains(&format!("{}.P1.P2", "\"302\"")));
+  assert!(source.contains(&format!("{}.P1", "\"302\"")));
   assert!(source.contains(&format!("{}.P3", "\"302\"")));
   assert!(source.contains(&format!("{}.P4", "\"302\"")));
-
+  assert!(source.contains("SHOULD_BE_CONVERTED_IN_UNDEFINED_BLOCK"));
+  assert!(source.contains("M1"));
+  assert!(source.contains("aa = 205"));
+  assert!(source.contains("DO_NOT_CONVERTED4"));
   assert!(!source.contains("DO_NOT_CONVERTED_TAG"));
   assert!(!source.contains("SHOULD_CONVERTED"));
-  assert!(source.contains("205 = 205"));
-  assert!(source.contains("205 = 205 = 205"));
-  assert!(source.contains("aa = 205"));
-  assert!(source.contains("205 == 206"));
-  assert!(source.contains("207 == 205"));
-  assert!(!source.contains("M1.M2.M3.DO_NOT_CONVERTED6"));
-  assert!(source.contains("M1, undefined"));
-  assert!(source.contains("{}.DO_NOT_CONVERTED5"));
-  assert!(source.contains("{}.DO_NOT_CONVERTED6"));
-  assert!(source.contains("equal(IN_BLOCK, 2)"));
-  assert!(source.contains("SHOULD_BE_CONVERTED_IN_UNDEFINED_BLOCK"));
   assert!(!source.contains("CONVERTED_TO_MEMBER"));
-  assert!(source.contains("A1.A2.A3"));
 
+  // comment temporary
   // identifier
   // assert_inline_sourcemap_in_pos(source, 74, 4, "TRUE");
   // member// 2

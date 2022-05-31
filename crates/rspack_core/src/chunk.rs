@@ -60,6 +60,7 @@ impl Chunk {
         module.render(bundle)
       })
       .collect::<Vec<_>>();
+
     if let ChunkKind::Entry { .. } = &self.kind {
       let code = rspack_runtime(&options.runtime);
       if code.trim() != "" {
@@ -67,6 +68,7 @@ impl Chunk {
         concattables.push(runtime);
       }
     }
+
     rendered_modules.iter().for_each(|transform_output| {
       if let Some(map_string) = &transform_output.map.as_ref() {
         let source_map = sourcemap::SourceMap::from_slice(map_string.as_bytes()).unwrap();

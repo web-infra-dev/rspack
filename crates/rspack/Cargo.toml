@@ -17,7 +17,7 @@ rspack_plugin_lazy_compilation = { path="../rspack_plugin_lazy_compilation" }
 rspack_swc = { path = "../rspack_swc" }
 rspack_plugin_progress = {path = "../rspack_plugin_progress"}
 rspack_plugin_svgr = {path = "../rspack_plugin_svgr"}
-rspack_plugin_mock_buitins = {path = "../rspack_plugin_mock_buitins"}
+rspack_plugin_node_built_in = {path = "../rspack_plugin_node_built_in"}
 rspack_plugin_define = { path="../rspack_plugin_define" }
 rspack_plugin_globals = { path = "../rspack_plugin_globals" }
 rspack_plugin_ast_optimization = { path="../rspack_plugin_ast_optimization" }
@@ -41,7 +41,7 @@ tracing-futures = "0.2.5"
 tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
 linked-hash-map = "0.5.4"
 serde_json = "1.0.59"
-nodejs-resolver="0.0.12"
+nodejs-resolver = "0.0.13"
 rspack_style = "0.1"
 md4 = "0.10.1"
 

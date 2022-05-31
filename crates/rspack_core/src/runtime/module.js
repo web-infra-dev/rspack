@@ -1,5 +1,5 @@
 (function () {
-  let modules = {};
+  let __rspack_modules__ = {};
   class Hot {
     constructor(id) {
       this.id = id;
@@ -40,10 +40,10 @@
       this.parents = new Set(); //  parent module
     }
   }
-  function define(id, factory) {
-    const mod = modules[id];
+  function __rspack_define__(id, factory) {
+    const mod = __rspack_modules__[id];
     if (!mod) {
-      modules[id] = new Module({
+      __rspack_modules__[id] = new Module({
         factory: factory,
         loaded: false,
         exports: {},
@@ -56,14 +56,14 @@
       // mod.factory = factory;
     }
   }
-  async function dynamic_require(module_id, chunk_id) {
-    await ensure(chunk_id)
-    const result = require(module_id);
+  async function __rspack_dynamic_require__(module_id, chunk_id) {
+    await ensure(chunk_id);
+    const result = __rspack_require__(module_id);
     return result;
   }
-  function require(id) {
+  function __rspack_require__(id) {
     const self = this;
-    let mod = modules[id];
+    let mod = __rspack_modules__[id];
     if (!mod) {
       throw new Error(id + ' not exits');
     }
@@ -76,48 +76,44 @@
     }
     mod.hot = new Hot(id);
     mod.loaded = true;
-    mod.factory(require.bind(mod), mod, mod.exports);
+    mod.factory(__rspack_require__.bind(mod), mod, mod.exports);
     return mod.exports;
   }
-
   function loadStyles(url){
     return new Promise((rsl, rej) => {
-      var link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.type = "text/css";
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
       link.href = url;
-      link.onload = rsl
-      var head = document.getElementsByTagName("head")[0];
+      link.onload = rsl;
+      link.onerror = rej;
+      var head = document.getElementsByTagName('head')[0];
       head.appendChild(link);
     })
-    
   }
-
   const ensurers = {
     async js(chunk_id) {
       await import('http://127.0.01:4444/' + chunk_id + '.js');
     },
     async css(chunk_id) {
       try {
-        await loadStyles('http://127.0.01:4444/' + chunk_id + '.css')
+        await loadStyles('http://127.0.01:4444/' + chunk_id + '.css');
       } catch (err) {
-        console.log('css load fail', err)
+        console.log('css load fail', err);
       }
-      
     }
   }
-
   function ensure(chunkId) {
-    return Promise.all(Object.keys(ensurers).map((ensurerName) => {
-      return ensurers[ensurerName](chunkId)
-    }));
+    return Promise.all(
+      Object.keys(ensurers).map((ensurerName) => {
+        return ensurers[ensurerName](chunkId);
+      })
+    );
   }
-
-
   globalThis.rs = {
-    define: define,
-    require: require,
-    dynamic_require: dynamic_require,
-    m: modules,
+    define: __rspack_define__,
+    require: __rspack_require__,
+    dynamic_require: __rspack_dynamic_require__,
+    m: __rspack_modules__,
   };
 })();
