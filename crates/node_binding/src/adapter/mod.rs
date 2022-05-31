@@ -129,6 +129,7 @@ impl Plugin for RspackPluginNodeAdapter {
     "rspack_plugin_node_adapter"
   }
 
+  #[tracing::instrument(skip_all)]
   async fn build_start(&self, _ctx: &BundleContext) -> PluginBuildStartHookOutput {
     let context = RspackThreadsafeContext::new(());
 
@@ -167,6 +168,7 @@ impl Plugin for RspackPluginNodeAdapter {
     rx.await.context("failed to receive build_start result")
   }
 
+  #[tracing::instrument(skip_all)]
   async fn build_end(&self, _ctx: &BundleContext) -> PluginBuildEndHookOutput {
     let context = RspackThreadsafeContext::new(());
 
