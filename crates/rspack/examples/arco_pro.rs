@@ -41,7 +41,7 @@ async fn main() {
       },
       loader: HashMap::from_iter([
         ("css".to_string(), Loader::Css),
-        ("less".to_string(), Loader::Less),
+        ("less".to_string(), Loader::Text),
         ("sass".to_string(), Loader::Sass),
         ("scss".to_string(), Loader::Sass),
         ("svg".to_string(), Loader::DataURI),
