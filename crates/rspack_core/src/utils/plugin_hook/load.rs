@@ -23,10 +23,10 @@ pub async fn load(args: LoadArgs, plugin_driver: &PluginDriver) -> (String, Opti
 }
 
 fn guess_loader_by_id(id: &str, options: &LoaderOptions) -> Option<Loader> {
-  let loader = *Path::new(id)
-    .extension()
-    .and_then(|ext| ext.to_str())
-    .and_then(|ext| options.get(ext))?;
-
-  Some(loader)
+  let ext = if let Some(ext) = Path::new(id).extension() {
+    ext.to_str()?
+  } else {
+    "js"
+  };
+  Some(*options.get(ext)?)
 }

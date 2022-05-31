@@ -2,7 +2,7 @@ use std::{collections::HashMap, path::Path};
 
 use node_binding::{normalize_bundle_options, RawOptions};
 use rspack::bundler::Bundler;
-use rspack_core::{BundleOptions, Plugin, SourceMapOptions};
+use rspack_core::{Asset, BundleOptions, Plugin};
 
 pub async fn compile(options: BundleOptions, plugins: Vec<Box<dyn Plugin>>) -> Bundler {
   let mut bundler = Bundler::new(options, plugins);
@@ -68,4 +68,24 @@ pub mod prelude {
   pub use super::RawOptionsTestExt;
 
   pub use rspack_core::Plugin;
+}
+
+pub fn run_js_asset_in_node(js_asset: &Asset) {
+  let filename = &js_asset.filename;
+  let source = &js_asset.source;
+  // TODO: should optimized
+  match std::process::Command::new("node")
+    .args(["-e", source])
+    .output()
+  {
+    Ok(result) => {
+      if !result.stderr.is_empty() {
+        panic!(
+          "run {filename} failed.\n Error message: {}",
+          std::str::from_utf8(&result.stderr).unwrap()
+        )
+      }
+    }
+    Err(err) => panic!("run {filename} failed.\n Error message {err}"),
+  }
 }

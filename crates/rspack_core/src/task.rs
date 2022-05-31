@@ -83,7 +83,7 @@ impl Task {
       let (source, mut loader) = plugin_hook::load(
         LoadArgs {
           kind: resolved_uri.kind,
-          id: resolved_uri.uri.to_string(),
+          id: module_id.to_string(),
         },
         &self.plugin_driver,
       )
