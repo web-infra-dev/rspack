@@ -1,6 +1,7 @@
 use std::{path::Path, sync::Arc};
 
 use futures::future::join_all;
+use nodejs_resolver::Resolver;
 use tracing::instrument;
 
 use crate::{
@@ -12,6 +13,7 @@ use crate::{
 pub struct PluginDriver {
   pub plugins: Vec<Box<dyn Plugin>>,
   pub ctx: Arc<BundleContext>,
+  pub resolver: Arc<Resolver>,
 }
 
 impl PluginDriver {

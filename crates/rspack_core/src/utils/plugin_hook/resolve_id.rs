@@ -1,5 +1,5 @@
 use crate::{plugin_driver::PluginDriver, OnResolveResult, ResolveArgs, ResolvedURI};
-use nodejs_resolver::{ResolveResult, Resolver};
+use nodejs_resolver::ResolveResult;
 use std::{ffi::OsString, path::Path, time::Instant};
 use sugar_path::PathSugar;
 use tracing::instrument;
@@ -15,7 +15,6 @@ pub async fn resolve_id(
   args: ResolveArgs,
   preserve_symlinks: bool,
   plugin_driver: &PluginDriver,
-  resolver: &Resolver,
 ) -> ResolvedURI {
   if let Some(plugin_result) = resolve_id_via_plugins(&args, plugin_driver).await {
     ResolvedURI::new(plugin_result.uri, plugin_result.external, args.kind.clone())
@@ -26,7 +25,7 @@ pub async fn resolve_id(
       let base_dir = Path::new(&importer).parent().unwrap();
       let _options = plugin_driver.ctx.as_ref().options.as_ref();
       let before_resolve = Instant::now();
-      let res = match resolver.resolve(base_dir, &args.id) {
+      let res = match plugin_driver.resolver.resolve(base_dir, &args.id) {
         Ok(path) => match path {
           ResolveResult::Path(buf) => buf.to_string_lossy().to_string(),
           ResolveResult::Ignored => unreachable!(),

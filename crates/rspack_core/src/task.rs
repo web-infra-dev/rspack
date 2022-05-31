@@ -12,7 +12,7 @@ use crate::{
 };
 use crate::{get_swc_compiler, path::normalize_path};
 use dashmap::{DashMap, DashSet};
-use nodejs_resolver::Resolver;
+
 use rspack_swc::{
   swc_atoms,
   swc_ecma_ast::{self as ast},
@@ -30,7 +30,6 @@ pub struct DependencyIdResolver {
   pub module_id: String,
   pub resolved_ids: DashMap<JsWord, ResolvedURI>,
   pub plugin_driver: Arc<PluginDriver>,
-  pub resolver: Arc<Resolver>,
 }
 
 impl DependencyIdResolver {
@@ -47,7 +46,6 @@ impl DependencyIdResolver {
         },
         false,
         &self.plugin_driver,
-        &self.resolver,
       )
       .await;
       self
@@ -66,7 +64,6 @@ pub struct Task {
   pub tx: UnboundedSender<Msg>,
   pub visited_module_uri: Arc<DashSet<String>>,
   pub plugin_driver: Arc<PluginDriver>,
-  pub resolver: Arc<Resolver>,
 }
 
 impl Task {
@@ -80,7 +77,6 @@ impl Task {
         module_id: resolved_uri.uri.clone(),
         resolved_ids: Default::default(),
         plugin_driver: self.plugin_driver.clone(),
-        resolver: self.resolver.clone(),
       };
 
       let module_id: &str = &resolved_uri.uri;
@@ -163,7 +159,6 @@ impl Task {
         visited_module_uri: self.visited_module_uri.clone(),
         tx: self.tx.clone(),
         plugin_driver: self.plugin_driver.clone(),
-        resolver: self.resolver.clone(),
       };
       tokio::task::spawn(async move {
         task.run().await;
