@@ -74,10 +74,6 @@ impl Bundler {
       top_level_mark,
       unresolved_mark,
     ));
-    let plugin_driver = Arc::new(PluginDriver {
-      plugins: injected_plugins,
-      ctx: ctx.clone(),
-    });
 
     let resolver = Arc::new(Resolver::new(ResolverOptions {
       extensions: normalized_options.resolve.extensions.clone(),
@@ -86,6 +82,13 @@ impl Bundler {
       alias_fields: vec![normalized_options.resolve.alias_field.clone()],
       ..Default::default()
     }));
+
+    let plugin_driver = Arc::new(PluginDriver {
+      plugins: injected_plugins,
+      ctx: ctx.clone(),
+      resolver: resolver.clone(),
+    });
+    ctx.init(plugin_driver.clone());
 
     Self {
       options: normalized_options.clone(),

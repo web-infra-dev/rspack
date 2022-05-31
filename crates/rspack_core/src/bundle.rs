@@ -84,7 +84,6 @@ impl Bundle {
             },
             false,
             &self.plugin_driver,
-            &self.resolver,
           )
           .await,
         )
@@ -114,7 +113,6 @@ impl Bundle {
         visited_module_uri: self.visited_module_id.clone(),
         tx: tx.clone(),
         plugin_driver: self.plugin_driver.clone(),
-        resolver: self.resolver.clone(),
       };
       tokio::task::spawn(async move {
         task.run().await;
