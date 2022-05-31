@@ -51,7 +51,7 @@ impl Chunk {
     let mut concattables: Vec<Box<dyn Source>> = vec![];
     let modules = &bundle.module_graph_container.module_graph;
     let mut module_uris = self.module_uris.iter().collect::<Vec<_>>();
-    module_uris.sort_by_key(|id| 0 - modules.module_by_uri(*id).unwrap().exec_order);
+    module_uris.sort_by_key(|id| modules.module_by_uri(*id).unwrap().exec_order);
 
     let rendered_modules = module_uris
       .par_iter()

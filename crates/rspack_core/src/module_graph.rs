@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::{JsModule, ResolvedURI};
 
@@ -14,6 +14,49 @@ pub struct ModuleGraphContainer {
 impl ModuleGraphContainer {
   #[instrument(skip(self))]
   pub fn sort_modules(&mut self) {
+    let mut entries = self
+      .resolved_entries
+      .values()
+      .map(|rid| rid.uri.clone())
+      .collect::<Vec<_>>();
+    self
+      .module_graph
+      .modules()
+      .flat_map(|js_mod| js_mod.dependency_modules(&self.module_graph))
+      .map(|js_mod| &js_mod.uri)
+      .collect::<HashSet<_>>()
+      .into_iter()
+      .for_each(|dyn_mod_uri| entries.push(dyn_mod_uri.to_string()));
+
+    let mut next_exec_order = 0;
+    let mut visited = HashSet::new();
+    for entry in entries {
+      let mut stack = vec![entry.to_string()];
+      let mut stack_visited = HashSet::new();
+      while let Some(mod_uri) = stack.pop() {
+        // depth first
+        if !visited.contains(&mod_uri) {
+          visited.insert(mod_uri.clone());
+          if stack_visited.contains(&mod_uri) {
+            let js_mod = self.module_graph.module_by_uri_mut(&mod_uri).unwrap();
+            js_mod.exec_order = next_exec_order;
+            next_exec_order += 1;
+          } else {
+            stack_visited.insert(mod_uri.clone());
+            let js_mod = self.module_graph.module_by_uri(&mod_uri).unwrap();
+            stack.push(mod_uri);
+            stack.append(
+              &mut js_mod
+                .dependency_modules(&self.module_graph)
+                .iter()
+                .map(|js_mod| js_mod.uri.to_string())
+                .collect(),
+            )
+          }
+        }
+      }
+    }
+
     let mut stack = self
       .resolved_entries
       .values()
