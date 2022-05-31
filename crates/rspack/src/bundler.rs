@@ -88,7 +88,6 @@ impl Bundler {
       ctx: ctx.clone(),
       resolver: resolver.clone(),
     });
-    ctx.init(plugin_driver.clone());
 
     Self {
       options: normalized_options.clone(),
