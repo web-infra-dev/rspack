@@ -1,0 +1,9 @@
+{
+  "mode": "development",
+  "entries": {
+    "main": "./index.js"
+  },
+  "output": {
+    "sourceMap": "external"
+  }
+}
