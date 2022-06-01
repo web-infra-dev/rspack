@@ -158,7 +158,10 @@ impl Plugin for StyleSourcePlugin {
           style.source_content_map = Some(css_map);
           js = js_content;
         }
-        let mut list = self.style_source_collect.lock().unwrap();
+        let mut list = self
+          .style_source_collect
+          .lock()
+          .map_err(|_| anyhow::anyhow!("failed to lock style_source_collect"))?;
         list.push(style);
         Ok(js)
       } else {
@@ -174,7 +177,10 @@ impl Plugin for StyleSourcePlugin {
           style.source_content_map = Some(css_map);
           js = js_content;
         }
-        let mut list = self.style_source_collect.lock().unwrap();
+        let mut list = self
+          .style_source_collect
+          .lock()
+          .map_err(|_| anyhow::anyhow!("failed to lock style_source_collect"))?;
         list.push(style);
         Ok(js)
       } else {
@@ -202,15 +208,30 @@ impl Plugin for StyleSourcePlugin {
     bundle_options: &NormalizedBundleOptions,
   ) -> PluginTapGeneratedChunkHookOutput {
     let mut css_content = "".to_string();
-    let mut css_source_list = self.style_source_collect.try_lock().unwrap();
-    let entry_name = Self::get_entry_name(chunk.filename.as_ref().unwrap().as_str());
+    let mut css_source_list = self
+      .style_source_collect
+      .try_lock()
+      .map_err(|_| anyhow::anyhow!("failed to lock style_source_collect"))?;
+
+    let file_name = match chunk.filename.as_deref() {
+      Some(filename) => filename,
+      None => {
+        anyhow::bail!("failed to get entry name")
+      }
+    };
+
+    let entry_name = Self::get_entry_name(file_name);
 
     let mut wait_sort_list: Vec<SytleReferenceInfo> = vec![];
     for css_source in css_source_list
       .iter_mut()
       .filter(|x| chunk.module_uris.contains(&x.file_path))
     {
-      for (filepath, source) in css_source.source_content_map.as_ref().unwrap() {
+      for (filepath, source) in css_source
+        .source_content_map
+        .as_ref()
+        .ok_or_else(|| anyhow::anyhow!("failed to get source_content_map"))?
+      {
         if let Some(item) = wait_sort_list.iter_mut().find(|x| x.filepath == *filepath) {
           item.ref_count += 1;
         } else {

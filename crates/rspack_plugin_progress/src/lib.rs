@@ -1,5 +1,6 @@
 #![deny(clippy::all)]
 
+use anyhow::Result;
 use async_trait::async_trait;
 use console::{style, Color, Term};
 use core::fmt::Debug;
@@ -11,7 +12,6 @@ use std::sync::{Arc, Mutex};
 
 use once_cell::sync::Lazy;
 use std::fs::File;
-use std::io;
 use std::io::Write;
 use std::{env, fs};
 
@@ -103,20 +103,29 @@ impl ProgressBar {
     }
   }
 
-  pub fn update(&self, key: &str, filename: &str, delta: u32) -> io::Result<()> {
-    let mut current = self.current.lock().unwrap();
+  pub fn update(&self, key: &str, filename: &str, delta: u32) -> Result<()> {
+    let mut current = self
+      .current
+      .lock()
+      .map_err(|_| anyhow::anyhow!("failed to acquire lock of current"))?;
     *current += delta;
-    let total = *self.total.lock().unwrap();
+    let total = self
+      .total
+      .lock()
+      .map_err(|_| anyhow::anyhow!("failed to acquire lock of total"))?;
     TERM.clear_line()?;
-    let s = get_bar_str(key, total, *current, filename, GREEN, GREY);
+    let s = get_bar_str(key, *total, *current, filename, GREEN, GREY);
     TERM.write_str(&s)?;
     TERM.flush()?;
     Ok(())
   }
 
-  pub fn finish_and_clear(&self) -> io::Result<()> {
+  pub fn finish_and_clear(&self) -> Result<()> {
     TERM.clear_line()?;
-    let total = *self.current.lock().unwrap();
+    let total = *self
+      .current
+      .lock()
+      .map_err(|_| anyhow::anyhow!("failed to acquire lock of current"))?;
     let s = format!(
       "{}{} files transformed. \n",
       style("finished ✔ ").green(),
@@ -175,14 +184,18 @@ impl Plugin for ProgressPlugin {
     _loader: &mut Option<Loader>,
     raw: String,
   ) -> PluginTransformHookOutput {
-    let done = self.progress.done.lock().unwrap();
+    let done = self
+      .progress
+      .done
+      .lock()
+      .map_err(|_| anyhow::anyhow!("failed to acquire lock of done"))?;
     if *done {
       return Ok(raw);
     }
     // if matches!(_ctx.options.mode, BundleMode::Dev) {
     //   return None;
     // }
-    self.progress.update("RsPack", _uri, 1).unwrap();
+    self.progress.update("RsPack", _uri, 1)?;
     Ok(raw)
   }
   async fn build_end(&self, _ctx: &BundleContext) -> PluginBuildEndHookOutput {
