@@ -47,6 +47,7 @@ impl Plugin for DefinePlugin {
   fn need_tap_generated_chunk(&self) -> bool {
     false
   }
+
   fn transform_ast(
     &self,
     ctx: &BundleContext,

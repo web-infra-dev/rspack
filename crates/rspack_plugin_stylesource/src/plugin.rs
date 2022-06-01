@@ -134,6 +134,26 @@ impl Plugin for StyleSourcePlugin {
     PLUGIN_NAME
   }
 
+  #[inline]
+  fn need_build_end(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_resolve(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_load(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_transform_ast(&self) -> bool {
+    false
+  }
+
   ///
   /// 初始化参数
   ///

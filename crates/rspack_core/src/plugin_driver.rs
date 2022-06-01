@@ -131,7 +131,7 @@ impl PluginDriver {
     raw: String,
   ) -> PluginTransformHookOutput {
     self
-      .tap_generated_chunk_hints
+      .transform_hints
       .iter()
       .fold(Ok(raw), |transformed_raw, i| {
         self.plugins[*i].transform(&self.ctx, uri, loader, transformed_raw?)

@@ -150,6 +150,25 @@ impl Plugin for ProgressPlugin {
     PLUGIN_NAME
   }
 
+  #[inline]
+  fn need_resolve(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_load(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_transform_ast(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_tap_generated_chunk(&self) -> bool {
+    false
+  }
   async fn build_start(&self, _ctx: &BundleContext) -> PluginBuildStartHookOutput {
     // if matches!(_ctx.options.mode, BundleMode::Dev) {
     //   return;
@@ -168,6 +187,7 @@ impl Plugin for ProgressPlugin {
 
     Ok(())
   }
+
   fn transform(
     &self,
     _ctx: &BundleContext,
