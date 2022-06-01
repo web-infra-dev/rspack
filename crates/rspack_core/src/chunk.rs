@@ -161,7 +161,7 @@ impl Chunk {
 
   #[instrument(skip_all)]
   /// Currently we defer calc `[contenthash]` until render output chunk
-  pub fn generate_filename(&self, options: &NormalizedBundleOptions, bundle: &Bundle) -> String {
+  pub fn generate_filename(&self, options: &NormalizedBundleOptions, _bundle: &Bundle) -> String {
     let pending_name = if self.kind.is_entry() {
       let pattern = &options.entry_filename;
       pattern
