@@ -14,7 +14,7 @@ pub fn create_node_adapter_from_plugin_callbacks(
   env: &Env,
   plugin_callbacks: Option<PluginCallbacks>,
 ) -> Result<Option<super::RspackPluginNodeAdapter>> {
-  let result = plugin_callbacks
+  plugin_callbacks
     .map(
       |PluginCallbacks {
          build_start_callback,
@@ -204,7 +204,5 @@ pub fn create_node_adapter_from_plugin_callbacks(
         })
       },
     )
-    .transpose();
-
-  result
+    .transpose()
 }
