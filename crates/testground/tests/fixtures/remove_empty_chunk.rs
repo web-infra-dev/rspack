@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use anyhow::ensure;
 use dashmap::DashSet;
+use rspack_core::PluginTapGeneratedChunkHookOutput;
 
 use crate::common::{compile_fixture_with_plugins, prelude::*};
 
@@ -20,8 +21,9 @@ impl Plugin for Tester {
     _ctx: &rspack_core::BundleContext,
     chunk: &rspack_core::Chunk,
     _bundle_options: &rspack_core::NormalizedBundleOptions,
-  ) {
+  ) -> PluginTapGeneratedChunkHookOutput {
     self.chunk_ids.insert(chunk.id.clone());
+    Ok(())
   }
 }
 

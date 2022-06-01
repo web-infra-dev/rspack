@@ -1,13 +1,15 @@
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use napi::Error;
 use rspack_core::{
-  BundleContext, LoadArgs, Plugin, PluginLoadHookOutput, PluginResolveHookOutput, ResolveArgs,
+  BundleContext, LoadArgs, Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput,
+  PluginLoadHookOutput, PluginResolveHookOutput, ResolveArgs,
 };
 
+use anyhow::Context;
 use async_trait::async_trait;
 use napi::threadsafe_function::ThreadsafeFunctionCallMode;
+use napi::Error;
 use napi_derive::napi;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -127,7 +129,8 @@ impl Plugin for RspackPluginNodeAdapter {
     "rspack_plugin_node_adapter"
   }
 
-  async fn build_start(&self, _ctx: &BundleContext) -> () {
+  #[tracing::instrument(skip_all)]
+  async fn build_start(&self, _ctx: &BundleContext) -> PluginBuildStartHookOutput {
     let context = RspackThreadsafeContext::new(());
 
     let (tx, rx) = oneshot::channel::<()>();
@@ -137,17 +140,17 @@ impl Plugin for RspackPluginNodeAdapter {
         v.insert(tx);
       }
       dashmap::mapref::entry::Entry::Occupied(_) => {
-        self.build_start_tsfn.call(
-          Err(Error::new(
-            napi::Status::Unknown,
-            format!(
-              "duplicated call id encountered {}, please file an issue.",
-              context.get_call_id(),
-            ),
-          )),
-          ThreadsafeFunctionCallMode::Blocking,
+        let err = Error::new(
+          napi::Status::Unknown,
+          format!(
+            "duplicated call id encountered {}, please file an issue.",
+            context.get_call_id(),
+          ),
         );
-        return;
+        self
+          .build_start_tsfn
+          .call(Err(err.clone()), ThreadsafeFunctionCallMode::Blocking);
+        return Err(err.into());
       }
     }
 
@@ -162,12 +165,11 @@ impl Plugin for RspackPluginNodeAdapter {
       .build_start_tsfn
       .call(value, ThreadsafeFunctionCallMode::Blocking);
 
-    let result = rx.await.expect("failed to receive build_start result");
-
-    result
+    rx.await.context("failed to receive build_start result")
   }
 
-  async fn build_end(&self, _ctx: &BundleContext) -> () {
+  #[tracing::instrument(skip_all)]
+  async fn build_end(&self, _ctx: &BundleContext) -> PluginBuildEndHookOutput {
     let context = RspackThreadsafeContext::new(());
 
     let (tx, rx) = oneshot::channel::<()>();
@@ -177,17 +179,17 @@ impl Plugin for RspackPluginNodeAdapter {
         v.insert(tx);
       }
       dashmap::mapref::entry::Entry::Occupied(_) => {
-        self.build_end_tsfn.call(
-          Err(Error::new(
-            napi::Status::Unknown,
-            format!(
-              "duplicated call id encountered {}, please file an issue.",
-              context.get_call_id(),
-            ),
-          )),
-          ThreadsafeFunctionCallMode::Blocking,
+        let err = Error::new(
+          napi::Status::Unknown,
+          format!(
+            "duplicated call id encountered {}, please file an issue.",
+            context.get_call_id(),
+          ),
         );
-        return;
+        self
+          .build_end_tsfn
+          .call(Err(err.clone()), ThreadsafeFunctionCallMode::Blocking);
+        return Err(err.into());
       }
     }
 
@@ -202,9 +204,7 @@ impl Plugin for RspackPluginNodeAdapter {
       .build_end_tsfn
       .call(value, ThreadsafeFunctionCallMode::Blocking);
 
-    let result = rx.await.expect("failed to receive build_end result");
-
-    result
+    rx.await.context("failed to receive build_end result")
   }
 
   #[tracing::instrument(skip_all)]
@@ -218,17 +218,18 @@ impl Plugin for RspackPluginNodeAdapter {
 
     match REGISTERED_RESOLVE_SENDERS.entry(resolve_context.get_call_id()) {
       dashmap::mapref::entry::Entry::Occupied(_) => {
-        self.load_tsfn.call(
-          Err(Error::new(
-            napi::Status::Unknown,
-            format!(
-              "duplicated call id encountered {}, please file an issue.",
-              resolve_context.get_call_id(),
-            ),
-          )),
-          ThreadsafeFunctionCallMode::Blocking,
+        let err = Error::new(
+          napi::Status::Unknown,
+          format!(
+            "duplicated call id encountered {}, please file an issue.",
+            resolve_context.get_call_id(),
+          ),
         );
-        return None;
+        self
+          .load_tsfn
+          .call(Err(err.clone()), ThreadsafeFunctionCallMode::Blocking);
+
+        return Err(err.into());
       }
       dashmap::mapref::entry::Entry::Vacant(v) => {
         v.insert(tx);
@@ -246,14 +247,14 @@ impl Plugin for RspackPluginNodeAdapter {
       ThreadsafeFunctionCallMode::Blocking,
     );
 
-    let resolve_result = rx.await.expect("failed to receive onresolve result");
+    let resolve_result = rx.await.context("failed to receive resolve result")?;
 
     tracing::debug!("[rspack:binding] resolve result {:#?}", resolve_result);
 
-    resolve_result.map(|result| rspack_core::OnResolveResult {
+    Ok(resolve_result.map(|result| rspack_core::OnResolveResult {
       uri: result.uri,
       external: result.external,
-    })
+    }))
   }
 
   #[tracing::instrument(skip_all)]
@@ -269,17 +270,17 @@ impl Plugin for RspackPluginNodeAdapter {
         v.insert(tx);
       }
       dashmap::mapref::entry::Entry::Occupied(_) => {
-        self.load_tsfn.call(
-          Err(Error::new(
-            napi::Status::Unknown,
-            format!(
-              "duplicated call id encountered {}, please file an issue.",
-              load_context.get_call_id(),
-            ),
-          )),
-          ThreadsafeFunctionCallMode::Blocking,
+        let err = Error::new(
+          napi::Status::Unknown,
+          format!(
+            "duplicated call id encountered {}, please file an issue.",
+            load_context.get_call_id(),
+          ),
         );
-        return None;
+        self
+          .load_tsfn
+          .call(Err(err.clone()), ThreadsafeFunctionCallMode::Blocking);
+        return Err(err.into());
       }
     }
 
@@ -294,31 +295,48 @@ impl Plugin for RspackPluginNodeAdapter {
       .load_tsfn
       .call(value, ThreadsafeFunctionCallMode::Blocking);
 
-    let load_result = rx.await.expect("failed to receive onload result");
+    let load_result = rx.await.context("failed to receive load result")?;
 
     tracing::debug!("[rspack:binding] load result {:#?}", load_result);
 
-    load_result.map(|result| rspack_core::LoadedSource {
-      loader: result.loader.map(|loader| {
-        use rspack_core::Loader;
+    let load_result = load_result
+      .map(|result| {
+        let loader = result
+          .loader
+          .map(|loader| {
+            use rspack_core::Loader;
 
-        match loader.as_str() {
-          "dataURI" => Loader::DataURI,
-          "json" => Loader::Json,
-          "text" => Loader::Text,
-          "css" => Loader::Css,
-          "less" => Loader::Less,
-          "scss" => Loader::Sass,
-          "sass" => Loader::Sass,
-          "js" => Loader::Js,
-          "jsx" => Loader::Jsx,
-          "ts" => Loader::Ts,
-          "tsx" => Loader::Tsx,
-          "null" => Loader::Null,
-          _ => panic!("unexpected loader option `{}`", loader),
-        }
-      }),
-      content: result.content,
-    })
+            match loader.as_str() {
+              "dataURI" => Ok(Loader::DataURI),
+              "json" => Ok(Loader::Json),
+              "text" => Ok(Loader::Text),
+              "css" => Ok(Loader::Css),
+              "less" => Ok(Loader::Less),
+              "scss" => Ok(Loader::Sass),
+              "sass" => Ok(Loader::Sass),
+              "js" => Ok(Loader::Js),
+              "jsx" => Ok(Loader::Jsx),
+              "ts" => Ok(Loader::Ts),
+              "tsx" => Ok(Loader::Tsx),
+              "null" => Ok(Loader::Null),
+              _ => Err::<_, anyhow::Error>(
+                Error::new(
+                  napi::Status::InvalidArg,
+                  format!("unknown loader type {}", loader),
+                )
+                .into(),
+              ),
+            }
+          })
+          .transpose()?;
+
+        Ok::<_, anyhow::Error>(rspack_core::LoadedSource {
+          loader,
+          content: result.content,
+        })
+      })
+      .transpose()?;
+
+    Ok(load_result)
   }
 }

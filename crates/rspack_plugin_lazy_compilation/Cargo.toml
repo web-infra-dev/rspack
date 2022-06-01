@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 rspack_core = { path = "../rspack_core" }
 async-trait = "0.1.53"
+anyhow = "1"

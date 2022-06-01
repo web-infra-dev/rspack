@@ -57,9 +57,8 @@
     }
   }
   async function __rspack_dynamic_require__(module_id, chunk_id) {
-    await ensure(chunk_id);
-    const result = __rspack_require__(module_id);
-    return result;
+    await ensure(`./${chunk_id}`);
+    return __rspack_require__(module_id);
   }
   function __rspack_require__(id) {
     const self = this;
@@ -79,30 +78,12 @@
     mod.factory(__rspack_require__.bind(mod), mod, mod.exports);
     return mod.exports;
   }
-  function loadStyles(url){
-    return new Promise((rsl, rej) => {
-      var link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.type = 'text/css';
-      link.href = url;
-      link.onload = rsl;
-      link.onerror = rej;
-      var head = document.getElementsByTagName('head')[0];
-      head.appendChild(link);
-    })
-  }
   const ensurers = {
     async js(chunk_id) {
-      await import('http://127.0.01:4444/' + chunk_id + '.js');
+      require(chunk_id);
     },
-    async css(chunk_id) {
-      try {
-        await loadStyles('http://127.0.01:4444/' + chunk_id + '.css');
-      } catch (err) {
-        console.log('css load fail', err);
-      }
-    }
-  }
+  };
+
   function ensure(chunkId) {
     return Promise.all(
       Object.keys(ensurers).map((ensurerName) => {

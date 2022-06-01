@@ -89,14 +89,14 @@ fn new_bundler(
 
 #[tokio::main]
 async fn compile_with_options_inner(mut bundler: Bundler) -> Bundler {
-  bundler.build(None).await;
+  bundler.build(None).await.expect("failed to build");
   bundler.write_assets_to_disk();
   bundler
 }
 
 #[tokio::main]
 async fn compiler_to_get_stats_inner(mut bundler: Bundler) -> Stats {
-  bundler.build(None).await
+  bundler.build(None).await.expect("failed to build")
 }
 
 pub fn assert_inline_sourcemap_in_pos(

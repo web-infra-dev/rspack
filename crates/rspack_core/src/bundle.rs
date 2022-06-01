@@ -2,6 +2,13 @@ use std::collections::HashMap;
 use std::sync::atomic::Ordering;
 use std::sync::{atomic::AtomicUsize, Arc};
 
+use anyhow::{Error, Result};
+use crossbeam::queue::SegQueue;
+use dashmap::DashSet;
+use futures::future::try_join_all;
+use nodejs_resolver::Resolver;
+use tracing::instrument;
+
 use crate::path::gen_module_id;
 use crate::task::Task;
 use crate::{
@@ -9,11 +16,6 @@ use crate::{
   JsModuleKind, ModuleGraphContainer, ModuleIdAlgo, NormalizedBundleOptions, PluginDriver,
   ResolvedURI,
 };
-use crossbeam::queue::SegQueue;
-use dashmap::DashSet;
-use futures::future::join_all;
-use nodejs_resolver::Resolver;
-use tracing::instrument;
 
 #[derive(Debug)]
 pub struct Bundle {
@@ -30,7 +32,8 @@ pub struct Bundle {
 #[derive(Debug)]
 pub enum Msg {
   // DependencyReference(String, String, Rel),
-  TaskFinished(JsModule),
+  TaskFinished(Box<JsModule>),
+  TaskErrorEncountered(Error),
   // NewExtMod(ExternalModule),
 }
 
@@ -58,7 +61,7 @@ impl Bundle {
   }
 
   #[instrument(skip(self))]
-  pub async fn build_graph(&mut self, changed_files: Option<Vec<String>>) {
+  pub async fn build_graph(&mut self, changed_files: Option<Vec<String>>) -> Result<()> {
     let active_task_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
     let job_queue: Arc<SegQueue<ResolvedURI>> = Default::default();
 
@@ -73,8 +76,8 @@ impl Bundle {
     }
 
     self.module_graph_container.resolved_entries =
-      join_all(self.entries.iter().map(|(name, entry)| async {
-        (
+      try_join_all(self.entries.iter().map(|(name, entry)| async {
+        Ok::<_, Error>((
           name.clone(),
           plugin_hook::resolve_id(
             crate::ResolveArgs {
@@ -82,14 +85,12 @@ impl Bundle {
               importer: None,
               kind: ImportKind::Import,
             },
-            false,
             &self.plugin_driver,
-            &self.resolver,
           )
-          .await,
-        )
+          .await?,
+        ))
       }))
-      .await
+      .await?
       .into_iter()
       .collect();
 
@@ -114,10 +115,14 @@ impl Bundle {
         visited_module_uri: self.visited_module_id.clone(),
         tx: tx.clone(),
         plugin_driver: self.plugin_driver.clone(),
-        resolver: self.resolver.clone(),
       };
+
+      let tx = tx.clone();
       tokio::task::spawn(async move {
-        task.run().await;
+        if let Err(err) = task.run().await {
+          tx.send(Msg::TaskErrorEncountered(err))
+            .expect("failed to send task error");
+        }
       });
     }
 
@@ -146,8 +151,12 @@ impl Bundle {
               }
               ModuleIdAlgo::Named => gen_module_id(&self.context.options.root, &module.uri),
             };
-            self.module_graph_container.module_graph.add_module(module);
+            self.module_graph_container.module_graph.add_module(*module);
             active_task_count.fetch_sub(1, Ordering::SeqCst);
+          }
+          Msg::TaskErrorEncountered(err) => {
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
+            return Err(err);
           }
         },
         None => {
@@ -157,5 +166,7 @@ impl Bundle {
     }
 
     self.module_graph_container.sort_modules();
+
+    Ok(())
   }
 }

@@ -1,11 +1,13 @@
 #![deny(clippy::all)]
 
+use std::path::Path;
+
+use rspack_core::{ast, BundleContext, Plugin, PluginTransformAstHookOutput};
+use rspack_swc::swc_ecma_visit::{FoldWith, VisitWith};
+
 mod prefix;
 mod transfrom;
 use prefix::DefinePrefix;
-use rspack_core::{ast, BundleContext, Plugin, PluginTransformAstHookOutput};
-use rspack_swc::swc_ecma_visit::{FoldWith, VisitWith};
-use std::path::Path;
 use transfrom::DefineTransform;
 
 #[derive(Debug)]
@@ -55,6 +57,6 @@ impl Plugin for DefinePlugin {
     let mut prefix = DefinePrefix::new(defintions);
     ast.visit_with(&mut prefix);
     let mut define_transform = DefineTransform::new(defintions, prefix);
-    ast.fold_with(&mut define_transform)
+    Ok(ast.fold_with(&mut define_transform))
   }
 }

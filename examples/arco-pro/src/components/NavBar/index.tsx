@@ -25,7 +25,6 @@ import styles from './style/index.module.less';
 import defaultLocale from '@/locale';
 import useStorage from '@/utils/useStorage';
 import { generatePermission } from '@/routes';
-
 function Navbar({ show }: { show: boolean }) {
   const t = useLocale();
   const userInfo = useSelector((state: GlobalState) => state.userInfo);
@@ -127,8 +126,9 @@ function Navbar({ show }: { show: boolean }) {
     <div className={styles.navbar}>
       <div className={styles.left}>
         <div className={styles.logo}>
+          <Logo />
           {/* <Logo /> todo svgr implementation */}
-          <img src={Logo as any as string} />
+          {/* <img src={Logo as any as string} /> */}
           <div className={styles['logo-name']}>Arco Pro</div>
         </div>
       </div>

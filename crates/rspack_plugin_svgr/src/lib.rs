@@ -57,9 +57,9 @@ impl Plugin for SvgrPlugin {
       let loader = Some(Loader::Js);
       let content =
         Some(read_to_string(file_path).unwrap_or_else(|_| panic!("file not exits {:?}", args.id)));
-      Some(LoadedSource { loader, content })
+      Ok(Some(LoadedSource { loader, content }))
     } else {
-      None
+      Ok(None)
     }
   }
 
@@ -79,9 +79,9 @@ impl Plugin for SvgrPlugin {
     let use_raw = id[query_start..].contains("raw");
     if ext == "svg" && !use_raw {
       ast.visit_mut_with(&mut SvgrReplacer {});
-      return ast;
+      return Ok(ast);
     }
-    ast
+    Ok(ast)
   }
 
   fn transform(
@@ -100,7 +100,7 @@ impl Plugin for SvgrPlugin {
 
     if ext == "svg" {
       if !_ctx.options.svgr {
-        return raw;
+        return Ok(raw);
       }
 
       let use_raw = id[query_start..].contains("raw");
@@ -114,34 +114,32 @@ impl Plugin for SvgrPlugin {
 
       if use_raw {
         *loader = Some(Loader::Js);
-        return format!(
-          "
-          var img = \"{}\";
-          export default img;
-          ",
-          data_uri
-        )
-        .trim()
-        .to_string();
+        return Ok(
+          format!(
+            "var img = \"{}\";
+export default img;",
+            data_uri
+          )
+          .trim()
+          .to_string(),
+        );
       }
 
       *loader = Some(Loader::Jsx);
       let result = clean(&raw);
       let result = format!(
-        r#"
-        import * as React from "react";
-        const SvgComponent = (props) => {{
-           return {};
-        }};
-        export default SvgComponent;
-        "#,
+        r#"import * as React from "react";
+const SvgComponent = (props) => {{
+  return {};
+}};
+export default SvgComponent;"#,
         result.trim()
       )
       .trim()
       .to_string();
       // println!("result:\n{}", result);
-      return result;
+      return Ok(result);
     }
-    raw
+    Ok(raw)
   }
 }

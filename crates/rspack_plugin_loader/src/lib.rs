@@ -56,7 +56,7 @@ impl Plugin for LoaderInterpreterPlugin {
     raw: String,
   ) -> PluginTransformHookOutput {
     if let Some(loader) = loader {
-      match loader {
+      let result = match loader {
         Loader::DataURI => {
           *loader = Loader::Js;
           let mime_type = guess_mime_types_ext(
@@ -88,9 +88,10 @@ export default img;",
           r#"export default {};"#.to_string()
         }
         _ => raw,
-      }
+      };
+      Ok(result)
     } else {
-      raw
+      Ok(raw)
     }
   }
 }

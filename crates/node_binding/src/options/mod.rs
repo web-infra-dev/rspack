@@ -8,7 +8,6 @@ use napi_derive::napi;
 
 use napi::bindgen_prelude::*;
 use napi::Error;
-use rspack_core::ChunkIdAlgo;
 use rspack_core::ModuleIdAlgo;
 use rspack_core::OptimizationOptions;
 use rspack_core::SourceMapOptions;
@@ -16,6 +15,7 @@ use rspack_core::{
   BundleMode, BundleOptions, BundleReactOptions, CodeSplittingOptions, EntryItem, Loader,
   ResolveOption,
 };
+use rspack_core::{ChunkIdAlgo, Platform};
 use serde::Deserialize;
 
 mod enhanced;
@@ -39,6 +39,8 @@ pub struct RawOptions {
   pub entries: HashMap<String, String>,
   #[napi(ts_type = "\"development\" | \"production\" | \"none\"")]
   pub mode: Option<String>,
+  #[napi(ts_type = "\"browser\" | \"node\"")]
+  pub platform: Option<String>,
   pub root: Option<String>,
   pub loader: Option<HashMap<String, String>>,
   pub enhanced: Option<RawEnhancedOptions>,
@@ -54,6 +56,7 @@ pub struct RawOptions {
 pub struct RawOptions {
   pub entries: HashMap<String, String>,
   pub mode: Option<String>,
+  pub platform: Option<String>,
   pub root: Option<String>,
   pub loader: Option<HashMap<String, String>>,
   pub enhanced: Option<RawEnhancedOptions>,
@@ -65,6 +68,23 @@ pub struct RawOptions {
 
 pub fn normalize_bundle_options(mut options: RawOptions) -> Result<BundleOptions> {
   let mut err = None;
+
+  let bundle_default_options = BundleOptions::default();
+
+  let platform = options
+    .platform
+    .map(|platform| match platform.as_str() {
+      "browser" => Platform::Browser,
+      "node" => Platform::Node,
+      _ => {
+        err = Some(Error::new(
+          napi::Status::InvalidArg,
+          "invalid mode, expected mode 'node' | 'browser'".to_owned(),
+        ));
+        Platform::Browser
+      }
+    })
+    .unwrap_or_else(|| bundle_default_options.platform);
 
   let mode = options
     .mode
@@ -80,7 +100,7 @@ pub fn normalize_bundle_options(mut options: RawOptions) -> Result<BundleOptions
         BundleMode::None
       }
     })
-    .unwrap_or_else(|| BundleOptions::default().mode);
+    .unwrap_or_else(|| bundle_default_options.mode);
 
   let entries = options.entries;
   // let root = options
@@ -124,6 +144,7 @@ pub fn normalize_bundle_options(mut options: RawOptions) -> Result<BundleOptions
     entries: parse_entries(entries),
     root: options.root.unwrap_or(defaults.root),
     mode,
+    platform,
     minify: options
       .optimization
       .as_mut()
@@ -150,7 +171,6 @@ pub fn normalize_bundle_options(mut options: RawOptions) -> Result<BundleOptions
         .as_mut()
         .and_then(|opts| opts.alias.take())
         .map_or(defaults.resolve.alias, parse_raw_alias),
-
       condition_names: options
         .resolve
         .as_mut()
@@ -158,8 +178,13 @@ pub fn normalize_bundle_options(mut options: RawOptions) -> Result<BundleOptions
         .map_or(defaults.resolve.condition_names, parse_raw_condition_names),
       alias_field: options
         .resolve
-        .and_then(|opts| opts.alias_field)
+        .as_mut()
+        .and_then(|opts| opts.alias_field.take())
         .unwrap_or(defaults.resolve.alias_field),
+      extensions: options
+        .resolve
+        .and_then(|opts| opts.extensions)
+        .unwrap_or(defaults.resolve.extensions),
       ..Default::default()
     },
     react: BundleReactOptions {

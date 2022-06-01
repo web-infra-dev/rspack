@@ -1,11 +1,11 @@
 use crate::handle_with_css::{is_style_source, StyleSourceType};
 use async_trait::async_trait;
 use nodejs_resolver::{ResolveResult, Resolver};
-use rspack_core::Plugin;
 use rspack_core::{
   Asset, BundleContext, Chunk, Loader, NormalizedBundleOptions, PluginTransformHookOutput,
 };
-use rspack_style::new_less::applicationn::Application;
+use rspack_core::{Plugin, PluginBuildStartHookOutput, PluginTapGeneratedChunkHookOutput};
+use rspack_style::style_core::applicationn::Application;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::path::Path;
@@ -85,7 +85,10 @@ impl StyleSourcePlugin {
     content: &str,
     filepath: &str,
   ) -> (HashMap<String, String>, String) {
-    let res = match self.app.render_content_into_hashmap(content, filepath) {
+    let res = match self
+      .app
+      .render_content_into_hashmap_with_css(content, filepath)
+    {
       Ok(map) => map,
       Err(msg) => {
         println!("{}", msg);
@@ -131,29 +134,13 @@ impl Plugin for StyleSourcePlugin {
     PLUGIN_NAME
   }
 
-  #[inline]
-  fn need_build_start(&self) -> bool {
-    false
-  }
-
-  #[inline]
-  fn need_build_end(&self) -> bool {
-    false
-  }
-
-  #[inline]
-  fn need_resolve(&self) -> bool {
-    false
-  }
-
-  #[inline]
-  fn need_load(&self) -> bool {
-    false
-  }
-
-  #[inline]
-  fn need_transform_ast(&self) -> bool {
-    false
+  ///
+  /// 初始化参数
+  ///
+  async fn build_start(&self, ctx: &BundleContext) -> PluginBuildStartHookOutput {
+    let minify = ctx.options.minify;
+    self.app.set_minify(minify);
+    Ok(())
   }
 
   fn transform(
@@ -173,11 +160,11 @@ impl Plugin for StyleSourcePlugin {
         }
         let mut list = self.style_source_collect.lock().unwrap();
         list.push(style);
-        js
+        Ok(js)
       } else {
         // todo fix 这里应该报错 is_style_source 会检查文件的 绝对路径资源是否 符合 style 如果没有进来
         // todo 默认是 *.ts *.wasm 这种给了 Loader::less 而不是返回该内容 但 PluginTransformHookOutput 非 Result
-        raw
+        Ok(raw)
       }
     } else if let Some(Loader::Css) = loader {
       if let Some(mut style) = is_style_source(uri) {
@@ -189,14 +176,14 @@ impl Plugin for StyleSourcePlugin {
         }
         let mut list = self.style_source_collect.lock().unwrap();
         list.push(style);
-        js
+        Ok(js)
       } else {
-        raw
+        Ok(raw)
       }
     } else if let Some(Loader::Sass) = loader {
       unimplemented!()
     } else {
-      raw
+      Ok(raw)
     }
   }
 
@@ -213,7 +200,7 @@ impl Plugin for StyleSourcePlugin {
     ctx: &BundleContext,
     chunk: &Chunk,
     bundle_options: &NormalizedBundleOptions,
-  ) {
+  ) -> PluginTapGeneratedChunkHookOutput {
     let mut css_content = "".to_string();
     let mut css_source_list = self.style_source_collect.try_lock().unwrap();
     let entry_name = Self::get_entry_name(chunk.filename.as_ref().unwrap().as_str());
@@ -247,5 +234,7 @@ impl Plugin for StyleSourcePlugin {
         filename: bundle_options.outdir.clone() + format!("/{}.css", entry_name).as_str(),
       })
     }
+
+    Ok(())
   }
 }

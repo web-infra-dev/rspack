@@ -1,25 +1,22 @@
 use std::{path::Path, sync::Arc};
 
-use futures::future::join_all;
+use anyhow::Result;
+use futures::future::try_join_all;
+use nodejs_resolver::Resolver;
+use rspack_swc::swc_ecma_ast as ast;
 use tracing::instrument;
 
 use crate::{
   BundleContext, Chunk, LoadArgs, LoadedSource, Loader, NormalizedBundleOptions, OnResolveResult,
-  Plugin, PluginTransformAstHookOutput, PluginTransformHookOutput, ResolveArgs,
+  Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput, PluginTapGeneratedChunkHookOutput,
+  PluginTransformAstHookOutput, PluginTransformHookOutput, ResolveArgs,
 };
 
 #[derive(Debug)]
 pub struct PluginDriver {
   pub plugins: Vec<Box<dyn Plugin>>,
   pub ctx: Arc<BundleContext>,
-  /// index of plugin those need to execute build_start hook
-  build_start_hints: Vec<usize>,
-  build_end_hints: Vec<usize>,
-  resolve_id_hints: Vec<usize>,
-  load_hints: Vec<usize>,
-  transform_hints: Vec<usize>,
-  transform_ast_hints: Vec<usize>,
-  tap_generated_chunk_hints: Vec<usize>,
+  pub resolver: Arc<Resolver>,
 }
 
 impl PluginDriver {
@@ -70,46 +67,47 @@ impl PluginDriver {
   }
 
   #[instrument(skip_all)]
-  pub async fn build_start(&self) {
-    join_all(
+  pub async fn build_start(&self) -> PluginBuildStartHookOutput {
+    try_join_all(
       self
         .build_start_hints
         .iter()
         .map(|i| self.plugins[*i].build_start(&self.ctx)),
     )
-    .await;
+    .await?;
+    Ok(())
   }
   #[instrument(skip_all)]
-  pub async fn build_end(&self) {
-    join_all(
+  pub async fn build_end(&self) -> PluginBuildEndHookOutput {
+    try_join_all(
       self
         .build_end_hints
         .iter()
         .map(|i| self.plugins[*i].build_end(&self.ctx)),
     )
-    .await;
+    .await?;
+    Ok(())
   }
   #[instrument(skip_all)]
-  pub async fn resolve_id(&self, args: &ResolveArgs) -> Option<OnResolveResult> {
-    for i in self.resolve_id_hints.iter() {
-      let plugin = &self.plugins[*i];
-      let res = plugin.resolve(&self.ctx, args).await;
+  pub async fn resolve_id(&self, args: &ResolveArgs) -> Result<Option<OnResolveResult>> {
+    for plugin in &self.plugins {
+      let res = plugin.resolve(&self.ctx, args).await?;
       if res.is_some() {
         tracing::trace!("got load result of plugin {:?}", plugin.name());
-        return res;
+        return Ok(res);
       }
     }
-    None
+    Ok(None)
   }
   #[instrument(skip_all)]
-  pub async fn load(&self, args: &LoadArgs) -> Option<LoadedSource> {
-    for i in self.load_hints.iter() {
-      let res = self.plugins[*i].load(&self.ctx, args).await;
+  pub async fn load(&self, args: &LoadArgs) -> Result<Option<LoadedSource>> {
+    for plugin in &self.plugins {
+      let res = plugin.load(&self.ctx, args).await?;
       if res.is_some() {
-        return res;
+        return Ok(res);
       }
     }
-    None
+    Ok(None)
   }
   #[instrument(skip_all)]
   pub fn transform(
@@ -118,28 +116,30 @@ impl PluginDriver {
     loader: &mut Option<Loader>,
     raw: String,
   ) -> PluginTransformHookOutput {
-    self.transform_hints.iter().fold(raw, |transformed_raw, i| {
-      self.plugins[*i].transform(&self.ctx, uri, loader, transformed_raw)
-    })
-  }
-  #[instrument(skip_all)]
-  pub fn transform_ast(
-    &self,
-    path: &Path,
-    ast: PluginTransformAstHookOutput,
-  ) -> PluginTransformAstHookOutput {
-    self
-      .transform_ast_hints
-      .iter()
-      .fold(ast, |transformed_ast, i| {
-        self.plugins[*i].transform_ast(&self.ctx, path, transformed_ast)
-      })
-  }
-  #[instrument(skip_all)]
-  pub fn tap_generated_chunk(&self, chunk: &Chunk, bundle_options: &NormalizedBundleOptions) {
     self
       .tap_generated_chunk_hints
       .iter()
-      .for_each(|i| self.plugins[*i].tap_generated_chunk(&self.ctx, chunk, bundle_options));
+      .fold(Ok(raw), |transformed_raw, plugin| {
+        plugin.transform(&self.ctx, uri, loader, transformed_raw?)
+      })
+  }
+  #[instrument(skip_all)]
+  pub fn transform_ast(&self, path: &Path, ast: ast::Module) -> PluginTransformAstHookOutput {
+    self
+      .plugins
+      .iter()
+      .fold(Ok(ast), |transformed_ast, plugin| {
+        plugin.transform_ast(&self.ctx, path, transformed_ast?)
+      })
+  }
+  #[instrument(skip_all)]
+  pub fn tap_generated_chunk(
+    &self,
+    chunk: &Chunk,
+    bundle_options: &NormalizedBundleOptions,
+  ) -> PluginTapGeneratedChunkHookOutput {
+    self.plugins.iter().try_for_each(|plugin| -> Result<()> {
+      plugin.tap_generated_chunk(&self.ctx, chunk, bundle_options)
+    })
   }
 }

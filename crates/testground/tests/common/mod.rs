@@ -2,7 +2,7 @@ use std::{collections::HashMap, path::Path};
 
 use node_binding::{normalize_bundle_options, RawOptions};
 use rspack::bundler::Bundler;
-use rspack_core::{BundleOptions, Plugin, SourceMapOptions};
+use rspack_core::{Asset, BundleOptions, Plugin};
 
 pub async fn compile(options: BundleOptions, plugins: Vec<Box<dyn Plugin>>) -> Bundler {
   let mut bundler = Bundler::new(options, plugins);
@@ -15,7 +15,7 @@ pub async fn compile_fixture(fixture_dir_name: &str) -> Bundler {
   let options = normalize_bundle_options(RawOptions::from_fixture(fixture_dir_name))
     .expect("failed to normalize");
   let mut bundler = Bundler::new(options, Default::default());
-  bundler.build(None).await;
+  bundler.build(None).await.expect("failed to build");
   bundler.write_assets_to_disk();
   bundler
 }
@@ -27,7 +27,7 @@ pub async fn compile_fixture_with_plugins(
   let options = normalize_bundle_options(RawOptions::from_fixture(fixture_dir_name))
     .expect("failed to normalize");
   let mut bundler = Bundler::new(options, plugins);
-  bundler.build(None).await;
+  bundler.build(None).await.expect("failed to build");
   bundler.write_assets_to_disk();
   bundler
 }
@@ -68,4 +68,42 @@ pub mod prelude {
   pub use super::RawOptionsTestExt;
 
   pub use rspack_core::Plugin;
+}
+
+pub fn run_js_asset_in_node(js_asset: &Asset) {
+  let filename = &js_asset.filename;
+  let source = &js_asset.source;
+  // TODO: should optimized
+  // WARNING: `node eval` do not had module context.
+  let command_result = std::process::Command::new("node")
+    .args(["-e", source])
+    .output();
+  deal_node_command_output(&command_result, filename);
+}
+
+pub fn run_js_output_in_node(js_asset: &Asset, options: &BundleOptions) {
+  let filename = &js_asset.filename;
+  let output_file = Path::new(&options.outdir)
+    .join(filename)
+    .display()
+    .to_string();
+  // TODO: should optimized
+  let command_result = std::process::Command::new("node")
+    .args([output_file])
+    .output();
+  deal_node_command_output(&command_result, filename);
+}
+
+fn deal_node_command_output(output: &std::io::Result<std::process::Output>, filename: &str) {
+  match output {
+    Ok(result) => {
+      if !result.stderr.is_empty() {
+        panic!(
+          "run {filename} failed.\n Error message: {}",
+          std::str::from_utf8(&result.stderr).unwrap()
+        )
+      }
+    }
+    Err(err) => panic!("run {filename} failed.\n Error message {err}"),
+  }
 }

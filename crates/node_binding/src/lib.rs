@@ -49,9 +49,9 @@ pub fn new_rspack(
   option_json: String,
   plugin_callbacks: Option<PluginCallbacks>,
 ) -> Result<External<RspackBindingContext>> {
-  let options: RawOptions = serde_json::from_str(option_json.as_str()).unwrap();
+  let options: RawOptions = serde_json::from_str(option_json.as_str())?;
 
-  let node_adapter = create_node_adapter_from_plugin_callbacks(&env, plugin_callbacks);
+  let node_adapter = create_node_adapter_from_plugin_callbacks(&env, plugin_callbacks)?;
 
   let mut plugins = vec![];
 
@@ -78,7 +78,10 @@ pub fn build(env: Env, binding_context: External<RspackBindingContext>) -> Resul
   env.execute_tokio_future(
     async move {
       let mut bundler = bundler.lock().await;
-      let Stats { map, .. } = bundler.build(None).await;
+      let Stats { map, .. } = bundler
+        .build(None)
+        .await
+        .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
       bundler.write_assets_to_disk();
       Ok(map)
     },
@@ -99,7 +102,10 @@ pub fn rebuild(
   env.execute_tokio_future(
     async move {
       let mut bundler = bundler.lock().await;
-      let changed = bundler.rebuild(changed_file).await;
+      let changed = bundler
+        .rebuild(changed_file)
+        .await
+        .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
       bundler.write_assets_to_disk();
       Ok(changed)
     },
@@ -117,9 +123,7 @@ pub fn resolve(
   resolve_options: ResolveOptions,
 ) -> Result<ResolveResult> {
   let resolver = (*binding_context).resolver.clone();
-  println!("[rust] resolve: {}", source);
   let res = resolver.resolve(Path::new(&resolve_options.resolve_dir), &source);
-  println!("[rust] resolve result {:#?}", res);
   match res {
     Ok(val) => {
       if let nodejs_resolver::ResolveResult::Path(p) = val {
@@ -134,7 +138,7 @@ pub fn resolve(
         })
       }
     }
-    Err(err) => Err(Error::new(Status::Unknown, err)),
+    Err(err) => Err(Error::new(Status::GenericFailure, err)),
   }
 }
 
@@ -161,12 +165,18 @@ pub fn resolve_file(base_dir: String, import_path: String) -> Result<String> {
   match resolver.resolve(Path::new(&base_dir), &import_path) {
     Ok(res) => {
       if let nodejs_resolver::ResolveResult::Path(abs_path) = res {
-        Ok(abs_path.to_str().unwrap().to_string())
+        match abs_path.to_str() {
+          Some(s) => Ok(s.to_owned()),
+          None => Err(Error::new(
+            napi::Status::GenericFailure,
+            "unable to create string from path".to_owned(),
+          )),
+        }
       } else {
         Ok(import_path)
       }
     }
-    Err(msg) => Err(Error::new(Status::Unknown, msg)),
+    Err(msg) => Err(Error::new(Status::GenericFailure, msg)),
   }
 }
 

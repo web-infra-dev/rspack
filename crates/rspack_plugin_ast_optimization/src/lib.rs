@@ -70,8 +70,10 @@ impl Plugin for OptimizationPlugin {
     _path: &Path,
     ast: ast::Module,
   ) -> PluginTransformAstHookOutput {
-    ctx
-      .compiler
-      .run(|| ast.fold_with(&mut constant_folder(ctx.unresolved_mark)))
+    Ok(
+      ctx
+        .compiler
+        .run(|| ast.fold_with(&mut constant_folder(ctx.unresolved_mark))),
+    )
   }
 }

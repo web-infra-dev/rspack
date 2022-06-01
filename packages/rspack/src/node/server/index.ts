@@ -22,7 +22,7 @@ export class DevServer {
     const outdir = path.resolve(options.root, options.public);
     console.log('public:', outdir);
     app.use(history());
-    if (options.bundler.options.lazyCompiler) {
+    if (options.bundler.options.enhanced.lazyCompilation) {
       app.use(async (req, res, next) => {
         if (fs.existsSync(path.join(outdir, req.url))) {
           await options.bundler.lazyBuild(req.url.slice(1));

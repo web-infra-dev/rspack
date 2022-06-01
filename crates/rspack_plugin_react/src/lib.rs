@@ -50,25 +50,28 @@ impl Plugin for ReactPlugin {
   }
   async fn resolve(&self, _ctx: &BundleContext, args: &ResolveArgs) -> PluginResolveHookOutput {
     if args.id == HMR_RUNTIME_PATH || args.id == HMR_ENTRY_PATH {
-      Some(OnResolveResult {
+      Ok(Some(OnResolveResult {
         uri: args.id.to_string(),
         external: false,
-      })
+      }))
     } else {
-      None
+      Ok(None)
     }
   }
 
   async fn load(&self, _ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
     if args.id == HMR_RUNTIME_PATH {
-      return Some(LoadedSource::with_loader(
+      return Ok(Some(LoadedSource::with_loader(
         load_hmr_runtime_path(&_ctx.options.as_ref().root),
         Loader::Js,
-      ));
+      )));
     } else if args.id == HMR_ENTRY_PATH {
-      return Some(LoadedSource::with_loader(HMR_ENTRY.to_string(), Loader::Js));
+      return Ok(Some(LoadedSource::with_loader(
+        HMR_ENTRY.to_string(),
+        Loader::Js,
+      )));
     } else {
-      return None;
+      return Ok(None);
     }
   }
 
@@ -112,10 +115,10 @@ impl Plugin for ReactPlugin {
         ast = ast.fold_with(&mut react_folder);
 
         if !ctx.options.react.refresh {
-          return ast;
+          return Ok(ast);
         }
 
-        match is_node_module {
+        let result = match is_node_module {
           true => ast,
           false => {
             let mut f = FoundReactRefreshVisitor {
@@ -129,10 +132,12 @@ impl Plugin for ReactPlugin {
               false => ast,
             }
           }
-        }
+        };
+
+        Ok(result)
       })
     } else {
-      ast
+      Ok(ast)
     }
   }
 }

@@ -52,7 +52,7 @@ impl Plugin for StyleLoaderPlugin {
   ) -> PluginTransformHookOutput {
     if let Some(Loader::Css) = loader {
       *loader = Some(Loader::Js);
-      format!(
+      Ok(format!(
         "
         if (typeof document !== 'undefined') {{
           var style = document.createElement('style');
@@ -62,9 +62,9 @@ impl Plugin for StyleLoaderPlugin {
         }}
       ",
         raw
-      )
+      ))
     } else {
-      raw
+      Ok(raw)
     }
   }
 }

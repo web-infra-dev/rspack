@@ -12,6 +12,7 @@ mod module_graph;
 mod options;
 mod plugin;
 mod plugin_driver;
+mod result;
 mod runtime;
 mod task;
 mod utils;
@@ -23,6 +24,7 @@ pub use module_graph::*;
 pub use options::*;
 pub use plugin::*;
 pub use plugin_driver::*;
+pub use result::*;
 pub use runtime::*;
 
 pub use rspack_swc::swc_ecma_ast as ast;
