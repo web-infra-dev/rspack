@@ -59,12 +59,10 @@ impl Plugin for LoaderInterpreterPlugin {
       let result = match loader {
         Loader::DataURI => {
           *loader = Loader::Js;
-          let mime_type = guess_mime_types_ext(
-            Path::new(uri)
-              .extension()
-              .and_then(|ext| ext.to_str())
-              .unwrap(),
-          );
+          let mime_type = match Path::new(uri).extension().and_then(|ext| ext.to_str()) {
+            Some(ext) => guess_mime_types_ext(ext),
+            None => return Err(anyhow::anyhow!("invalid extension")),
+          };
           let format = "base64";
           let data_uri = format!("data:{};{},{}", mime_type, format, base64::encode(&raw));
           format!(
@@ -80,7 +78,7 @@ export default img;",
         }
         Loader::Text => {
           *loader = Loader::Js;
-          let data = serde_json::to_string(&raw).unwrap();
+          let data = serde_json::to_string(&raw)?;
           format!("export default {data};")
         }
         Loader::Null => {
