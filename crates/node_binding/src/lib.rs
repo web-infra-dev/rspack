@@ -51,7 +51,7 @@ pub fn new_rspack(
 ) -> Result<External<RspackBindingContext>> {
   let options: RawOptions = serde_json::from_str(option_json.as_str())?;
 
-  let node_adapter = create_node_adapter_from_plugin_callbacks(&env, plugin_callbacks);
+  let node_adapter = create_node_adapter_from_plugin_callbacks(&env, plugin_callbacks)?;
 
   let mut plugins = vec![];
 
@@ -165,12 +165,18 @@ pub fn resolve_file(base_dir: String, import_path: String) -> Result<String> {
   match resolver.resolve(Path::new(&base_dir), &import_path) {
     Ok(res) => {
       if let nodejs_resolver::ResolveResult::Path(abs_path) = res {
-        Ok(abs_path.to_str().unwrap().to_string())
+        match abs_path.to_str() {
+          Some(s) => Ok(s.to_owned()),
+          None => Err(Error::new(
+            napi::Status::GenericFailure,
+            "unable to create string from path".to_owned(),
+          )),
+        }
       } else {
         Ok(import_path)
       }
     }
-    Err(msg) => Err(Error::new(Status::Unknown, msg)),
+    Err(msg) => Err(Error::new(Status::GenericFailure, msg)),
   }
 }
 
