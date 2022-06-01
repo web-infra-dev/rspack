@@ -8,3 +8,4 @@ mod plugin_globals;
 mod plugin_hook;
 mod remove_empty_chunk;
 mod resolve;
+mod source_map;
