@@ -17,11 +17,22 @@ pub struct PluginDriver {
   pub plugins: Vec<Box<dyn Plugin>>,
   pub ctx: Arc<BundleContext>,
   pub resolver: Arc<Resolver>,
+  build_start_hints: Vec<usize>,
+  build_end_hints: Vec<usize>,
+  resolve_id_hints: Vec<usize>,
+  load_hints: Vec<usize>,
+  transform_hints: Vec<usize>,
+  transform_ast_hints: Vec<usize>,
+  tap_generated_chunk_hints: Vec<usize>,
 }
 
 impl PluginDriver {
   /// TODO: Maybe we need to add some tracing here? It should not take too much time to init.
-  pub fn new(plugins: Vec<Box<dyn Plugin>>, ctx: Arc<BundleContext>) -> Self {
+  pub fn new(
+    plugins: Vec<Box<dyn Plugin>>,
+    ctx: Arc<BundleContext>,
+    resolver: Arc<Resolver>,
+  ) -> Self {
     let mut build_start_hints: Vec<usize> = Vec::with_capacity(plugins.len());
     let mut build_end_hints = Vec::with_capacity(plugins.len());
     let mut resolve_id_hints = Vec::with_capacity(plugins.len());
@@ -56,6 +67,7 @@ impl PluginDriver {
     Self {
       plugins,
       ctx,
+      resolver,
       build_start_hints,
       build_end_hints,
       resolve_id_hints,
@@ -90,7 +102,8 @@ impl PluginDriver {
   }
   #[instrument(skip_all)]
   pub async fn resolve_id(&self, args: &ResolveArgs) -> Result<Option<OnResolveResult>> {
-    for plugin in &self.plugins {
+    for i in self.resolve_id_hints.iter() {
+      let plugin = &self.plugins[*i];
       let res = plugin.resolve(&self.ctx, args).await?;
       if res.is_some() {
         tracing::trace!("got load result of plugin {:?}", plugin.name());
@@ -101,7 +114,8 @@ impl PluginDriver {
   }
   #[instrument(skip_all)]
   pub async fn load(&self, args: &LoadArgs) -> Result<Option<LoadedSource>> {
-    for plugin in &self.plugins {
+    for i in self.load_hints.iter() {
+      let plugin = &self.plugins[*i];
       let res = plugin.load(&self.ctx, args).await?;
       if res.is_some() {
         return Ok(res);
@@ -119,17 +133,17 @@ impl PluginDriver {
     self
       .tap_generated_chunk_hints
       .iter()
-      .fold(Ok(raw), |transformed_raw, plugin| {
-        plugin.transform(&self.ctx, uri, loader, transformed_raw?)
+      .fold(Ok(raw), |transformed_raw, i| {
+        self.plugins[*i].transform(&self.ctx, uri, loader, transformed_raw?)
       })
   }
   #[instrument(skip_all)]
   pub fn transform_ast(&self, path: &Path, ast: ast::Module) -> PluginTransformAstHookOutput {
     self
-      .plugins
+      .transform_ast_hints
       .iter()
-      .fold(Ok(ast), |transformed_ast, plugin| {
-        plugin.transform_ast(&self.ctx, path, transformed_ast?)
+      .fold(Ok(ast), |transformed_ast, i| {
+        self.plugins[*i].transform_ast(&self.ctx, path, transformed_ast?)
       })
   }
   #[instrument(skip_all)]
@@ -138,8 +152,11 @@ impl PluginDriver {
     chunk: &Chunk,
     bundle_options: &NormalizedBundleOptions,
   ) -> PluginTapGeneratedChunkHookOutput {
-    self.plugins.iter().try_for_each(|plugin| -> Result<()> {
-      plugin.tap_generated_chunk(&self.ctx, chunk, bundle_options)
-    })
+    self
+      .tap_generated_chunk_hints
+      .iter()
+      .try_for_each(|i| -> Result<()> {
+        self.plugins[*i].tap_generated_chunk(&self.ctx, chunk, bundle_options)
+      })
   }
 }
