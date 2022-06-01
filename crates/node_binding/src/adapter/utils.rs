@@ -13,17 +13,17 @@ use crate::PluginCallbacks;
 pub fn create_node_adapter_from_plugin_callbacks(
   env: &Env,
   plugin_callbacks: Option<PluginCallbacks>,
-) -> Option<super::RspackPluginNodeAdapter> {
-  plugin_callbacks.map(
-    |PluginCallbacks {
-       build_start_callback,
-       load_callback,
-       resolve_callback,
-       build_end_callback,
-     }| {
-      let mut build_start_tsfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled> =
-        build_start_callback
-          .create_threadsafe_function(
+) -> Result<Option<super::RspackPluginNodeAdapter>> {
+  plugin_callbacks
+    .map(
+      |PluginCallbacks {
+         build_start_callback,
+         load_callback,
+         resolve_callback,
+         build_end_callback,
+       }| {
+        let mut build_start_tsfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled> =
+          build_start_callback.create_threadsafe_function(
             0,
             |ctx| ctx.env.create_string_from_std(ctx.value).map(|v| vec![v]),
             |ctx: ThreadSafeResultContext<Promise<String>>| {
@@ -43,9 +43,17 @@ pub fn create_node_adapter_from_plugin_callbacks(
                     let sender = REGISTERED_BUILD_START_SENDERS.remove(&result.get_call_id());
 
                     if let Some((_, sender)) = sender {
-                      sender.send(()).expect("unable to send");
+                      sender.send(()).map_err(|m| {
+                        Error::new(
+                          napi::Status::GenericFailure,
+                          format!("failed to send result {:#?}", m),
+                        )
+                      })?;
                     } else {
-                      panic!("unable to send");
+                      return Err(Error::new(
+                        napi::Status::GenericFailure,
+                        "failed to get sender for plugin".to_owned(),
+                      ));
                     }
 
                     Ok(())
@@ -54,49 +62,52 @@ pub fn create_node_adapter_from_plugin_callbacks(
                 )
                 .expect("failed to execute tokio future");
             },
-          )
-          .unwrap();
+          )?;
 
-      let mut load_tsfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled> = load_callback
-        .create_threadsafe_function(
-          0,
-          |ctx| ctx.env.create_string_from_std(ctx.value).map(|v| vec![v]),
-          |ctx: ThreadSafeResultContext<Promise<String>>| {
-            let return_value = ctx.return_value;
-
-            ctx
-              .env
-              .execute_tokio_future(
-                async move {
-                  let result = return_value.await?;
-
-                  let load_result: super::RspackThreadsafeResult<Option<super::OnLoadResult>> =
-                    serde_json::from_str(&result).expect("failed to evaluate onload result");
-
-                  tracing::debug!("onload result {:?}", load_result);
-
-                  let sender = REGISTERED_LOAD_SENDERS.remove(&load_result.get_call_id());
-
-                  if let Some((_, sender)) = sender {
-                    sender
-                      .send(load_result.into_inner())
-                      .expect("unable to send");
-                  } else {
-                    panic!("unable to send");
-                  }
-
-                  Ok(())
-                },
-                |_, ret| Ok(ret),
-              )
-              .expect("failed to execute tokio future");
-          },
-        )
-        .unwrap();
-
-      let mut resolve_tsfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled> =
-        resolve_callback
+        let mut load_tsfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled> = load_callback
           .create_threadsafe_function(
+            0,
+            |ctx| ctx.env.create_string_from_std(ctx.value).map(|v| vec![v]),
+            |ctx: ThreadSafeResultContext<Promise<String>>| {
+              let return_value = ctx.return_value;
+
+              ctx
+                .env
+                .execute_tokio_future(
+                  async move {
+                    let result = return_value.await?;
+
+                    let load_result: super::RspackThreadsafeResult<Option<super::OnLoadResult>> =
+                      serde_json::from_str(&result).expect("failed to evaluate onload result");
+
+                    tracing::debug!("onload result {:?}", load_result);
+
+                    let sender = REGISTERED_LOAD_SENDERS.remove(&load_result.get_call_id());
+
+                    if let Some((_, sender)) = sender {
+                      sender.send(load_result.into_inner()).map_err(|m| {
+                        Error::new(
+                          napi::Status::GenericFailure,
+                          format!("failed to send result {:#?}", m),
+                        )
+                      })?;
+                    } else {
+                      return Err(Error::new(
+                        napi::Status::GenericFailure,
+                        "failed to get sender for plugin".to_owned(),
+                      ));
+                    }
+
+                    Ok(())
+                  },
+                  |_, ret| Ok(ret),
+                )
+                .expect("failed to execute tokio future");
+            },
+          )?;
+
+        let mut resolve_tsfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled> =
+          resolve_callback.create_threadsafe_function(
             0,
             |ctx| ctx.env.create_string_from_std(ctx.value).map(|v| vec![v]),
             |ctx: ThreadSafeResultContext<Promise<String>>| {
@@ -117,11 +128,17 @@ pub fn create_node_adapter_from_plugin_callbacks(
                     let sender = REGISTERED_RESOLVE_SENDERS.remove(&resolve_result.get_call_id());
 
                     if let Some((_, sender)) = sender {
-                      sender
-                        .send(resolve_result.into_inner())
-                        .expect("unable to send");
+                      sender.send(resolve_result.into_inner()).map_err(|m| {
+                        Error::new(
+                          napi::Status::GenericFailure,
+                          format!("failed to send result {:#?}", m),
+                        )
+                      })?;
                     } else {
-                      panic!("unable to send");
+                      return Err(Error::new(
+                        napi::Status::GenericFailure,
+                        "failed to get sender for plugin".to_owned(),
+                      ));
                     }
 
                     Ok(())
@@ -130,12 +147,10 @@ pub fn create_node_adapter_from_plugin_callbacks(
                 )
                 .expect("failed to execute tokio future");
             },
-          )
-          .unwrap();
+          )?;
 
-      let mut build_end_tsfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled> =
-        build_end_callback
-          .create_threadsafe_function(
+        let mut build_end_tsfn: ThreadsafeFunction<String, ErrorStrategy::CalleeHandled> =
+          build_end_callback.create_threadsafe_function(
             0,
             |ctx| ctx.env.create_string_from_std(ctx.value).map(|v| vec![v]),
             |ctx: ThreadSafeResultContext<Promise<String>>| {
@@ -155,9 +170,17 @@ pub fn create_node_adapter_from_plugin_callbacks(
                     let sender = REGISTERED_BUILD_END_SENDERS.remove(&result.get_call_id());
 
                     if let Some((_, sender)) = sender {
-                      sender.send(()).expect("unable to send");
+                      sender.send(()).map_err(|m| {
+                        Error::new(
+                          napi::Status::GenericFailure,
+                          format!("failed to send result {:#?}", m),
+                        )
+                      })?;
                     } else {
-                      panic!("unable to send");
+                      return Err(Error::new(
+                        napi::Status::GenericFailure,
+                        "failed to get sender for plugin".to_owned(),
+                      ));
                     }
 
                     Ok(())
@@ -166,20 +189,20 @@ pub fn create_node_adapter_from_plugin_callbacks(
                 )
                 .expect("failed to execute tokio future");
             },
-          )
-          .unwrap();
+          )?;
 
-      build_start_tsfn.unref(env).unwrap();
-      load_tsfn.unref(env).unwrap();
-      resolve_tsfn.unref(env).unwrap();
-      build_end_tsfn.unref(env).unwrap();
+        build_start_tsfn.unref(env)?;
+        load_tsfn.unref(env)?;
+        resolve_tsfn.unref(env)?;
+        build_end_tsfn.unref(env)?;
 
-      super::RspackPluginNodeAdapter {
-        build_start_tsfn,
-        load_tsfn,
-        resolve_tsfn,
-        build_end_tsfn,
-      }
-    },
-  )
+        Ok(super::RspackPluginNodeAdapter {
+          build_start_tsfn,
+          load_tsfn,
+          resolve_tsfn,
+          build_end_tsfn,
+        })
+      },
+    )
+    .transpose()
 }

@@ -247,7 +247,7 @@ impl Plugin for RspackPluginNodeAdapter {
       ThreadsafeFunctionCallMode::Blocking,
     );
 
-    let resolve_result = rx.await.expect("failed to receive onresolve result");
+    let resolve_result = rx.await.context("failed to receive resolve result")?;
 
     tracing::debug!("[rspack:binding] resolve result {:#?}", resolve_result);
 
@@ -295,7 +295,7 @@ impl Plugin for RspackPluginNodeAdapter {
       .load_tsfn
       .call(value, ThreadsafeFunctionCallMode::Blocking);
 
-    let load_result = rx.await.expect("failed to receive onload result");
+    let load_result = rx.await.context("failed to receive load result")?;
 
     tracing::debug!("[rspack:binding] load result {:#?}", load_result);
 
