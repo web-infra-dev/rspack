@@ -62,7 +62,7 @@ impl Chunk {
       .collect::<Vec<_>>();
 
     if let ChunkKind::Entry { .. } = &self.kind {
-      let code = rspack_runtime(&options.runtime);
+      let code = rspack_runtime(&options.runtime, options);
       if code.trim() != "" {
         let runtime = Box::new(RawSource::new(&code));
         concattables.push(runtime);
