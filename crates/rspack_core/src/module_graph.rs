@@ -22,7 +22,7 @@ impl ModuleGraphContainer {
     self
       .module_graph
       .modules()
-      .flat_map(|js_mod| js_mod.dependency_modules(&self.module_graph))
+      .flat_map(|js_mod| js_mod.dynamic_dependency_modules(&self.module_graph))
       .map(|js_mod| &js_mod.uri)
       .collect::<HashSet<_>>()
       .into_iter()
@@ -35,11 +35,12 @@ impl ModuleGraphContainer {
       let mut stack_visited = HashSet::new();
       while let Some(mod_uri) = stack.pop() {
         // depth first
+        tracing::debug!("enter: {:?}", mod_uri);
         if !visited.contains(&mod_uri) {
           if stack_visited.contains(&mod_uri) {
             let js_mod = self.module_graph.module_by_uri_mut(&mod_uri).unwrap();
             js_mod.exec_order = next_exec_order;
-            tracing::trace!(
+            tracing::debug!(
               "js_mod: {:?}, exec_order: {:?}",
               js_mod.uri,
               js_mod.exec_order
@@ -65,7 +66,7 @@ impl ModuleGraphContainer {
 
     let mut modules = self.module_graph.modules().collect::<Vec<_>>();
     modules.sort_by_key(|m| m.exec_order);
-    tracing::trace!(
+    tracing::debug!(
       "ordered {:#?}",
       modules.iter().map(|m| &m.uri).collect::<Vec<_>>()
     );
