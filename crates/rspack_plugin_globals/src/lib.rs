@@ -15,6 +15,30 @@ impl Plugin for GlobalsPlugin {
     PLUGIN_NAME
   }
 
+  #[inline]
+  fn need_build_start(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_build_end(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_transform(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_transform_ast(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_tap_generated_chunk(&self) -> bool {
+    false
+  }
   async fn resolve(&self, ctx: &BundleContext, args: &ResolveArgs) -> PluginResolveHookOutput {
     if ctx.options.globals.get(&args.id).is_some() {
       return Some(OnResolveResult {

@@ -40,6 +40,41 @@ pub trait Plugin: Sync + Send + Debug {
   fn name(&self) -> &'static str;
 
   #[inline]
+  fn need_build_start(&self) -> bool {
+    true
+  }
+
+  #[inline]
+  fn need_build_end(&self) -> bool {
+    true
+  }
+
+  #[inline]
+  fn need_resolve(&self) -> bool {
+    true
+  }
+
+  #[inline]
+  fn need_load(&self) -> bool {
+    true
+  }
+
+  #[inline]
+  fn need_transform(&self) -> bool {
+    true
+  }
+
+  #[inline]
+  fn need_transform_ast(&self) -> bool {
+    true
+  }
+
+  #[inline]
+  fn need_tap_generated_chunk(&self) -> bool {
+    true
+  }
+
+  #[inline]
   async fn build_start(&self, _ctx: &BundleContext) {}
   #[inline]
   async fn build_end(&self, _ctx: &BundleContext) {}

@@ -74,10 +74,7 @@ impl Bundler {
       top_level_mark,
       unresolved_mark,
     ));
-    let plugin_driver = Arc::new(PluginDriver {
-      plugins: injected_plugins,
-      ctx: ctx.clone(),
-    });
+    let plugin_driver = Arc::new(PluginDriver::new(injected_plugins, ctx.clone()));
 
     let resolver = Arc::new(Resolver::new(ResolverOptions {
       extensions: normalized_options.resolve.extensions.clone(),

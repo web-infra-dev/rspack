@@ -15,6 +15,36 @@ impl Plugin for NodeBuiltInPlugin {
     PLUGIN_NAME
   }
 
+  #[inline]
+  fn need_build_start(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_build_end(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_resolve(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_transform(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_transform_ast(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_tap_generated_chunk(&self) -> bool {
+    false
+  }
+
   async fn load(&self, ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
     let id = &args.id;
     if ctx.options.platform.eq(&rspack_core::Platform::Node) && Resolver::is_build_in_module(id) {

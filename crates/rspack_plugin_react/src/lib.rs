@@ -29,6 +29,25 @@ impl Plugin for ReactPlugin {
     PLUGIN_NAME
   }
 
+  #[inline]
+  fn need_build_start(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_build_end(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_transform(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_tap_generated_chunk(&self) -> bool {
+    false
+  }
   async fn resolve(&self, _ctx: &BundleContext, args: &ResolveArgs) -> PluginResolveHookOutput {
     if args.id == HMR_RUNTIME_PATH || args.id == HMR_ENTRY_PATH {
       Some(OnResolveResult {
