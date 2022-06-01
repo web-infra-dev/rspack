@@ -295,11 +295,27 @@ pub fn parse_entries(raw_entry: HashMap<String, String>) -> HashMap<String, Entr
     .collect()
 }
 
-pub fn parse_raw_alias(alias: HashMap<String, String>) -> Vec<(String, Option<String>)> {
-  alias
-    .into_iter()
-    .map(|(s1, s2)| (s1, Some(s2)))
-    .collect::<Vec<_>>()
+pub fn parse_raw_alias(
+  alias: HashMap<String, ResolveAliasValue>,
+) -> HashMap<String, Option<String>> {
+  HashMap::from_iter(
+    alias
+      .into_iter()
+      .map(|(key, value)| {
+        let value = match value {
+          ResolveAliasValue::False(b) => {
+            if b {
+              panic!("alias should not be true");
+            } else {
+              None
+            }
+          }
+          ResolveAliasValue::Target(s) => Some(s),
+        };
+        (key, value)
+      })
+      .collect::<Vec<_>>(),
+  )
 }
 
 pub fn parse_raw_condition_names(condition_names: Vec<String>) -> HashSet<String> {

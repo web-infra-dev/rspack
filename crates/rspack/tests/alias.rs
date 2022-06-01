@@ -1,5 +1,7 @@
 mod utils;
 
+use std::collections::HashMap;
+
 use rspack::bundler::BundleOptions;
 use rspack_core::ResolveOption;
 use utils::compile_with_options;
@@ -10,10 +12,10 @@ fn alias() {
     "alias",
     BundleOptions {
       resolve: ResolveOption {
-        alias: vec![
+        alias: HashMap::from_iter([
           ("./wrong".to_string(), Some("./ok".to_string())),
           ("@/".to_string(), Some("./src/".to_string())),
-        ],
+        ]),
         ..Default::default()
       },
       ..Default::default()

@@ -81,14 +81,21 @@ impl Task {
       };
 
       let module_id: &str = &resolved_uri.uri;
-      let (source, mut loader) = plugin_hook::load(
-        LoadArgs {
-          kind: resolved_uri.kind,
-          id: module_id.to_string(),
-        },
-        &self.plugin_driver,
-      )
-      .await?;
+      let (source, mut loader, kind) = if resolved_uri.ignored {
+        let source = String::from("export default {}");
+        let loader = Some(crate::Loader::Js);
+        (source, loader, JsModuleKind::Ignored)
+      } else {
+        let (source, loader) = plugin_hook::load(
+          LoadArgs {
+            kind: resolved_uri.kind,
+            id: module_id.to_string(),
+          },
+          &self.plugin_driver,
+        )
+        .await?;
+        (source, loader, JsModuleKind::Normal)
+      };
       let transformed_source =
         plugin_hook::transform(module_id, &mut loader, source, &self.plugin_driver)?;
       let loader = loader
@@ -129,7 +136,7 @@ impl Task {
       }
 
       let module = JsModule {
-        kind: JsModuleKind::Normal,
+        kind,
         exec_order: Default::default(),
         uri: resolved_uri.uri.clone(),
         id: normalize_path(
