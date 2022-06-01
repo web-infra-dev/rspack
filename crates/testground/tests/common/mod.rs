@@ -74,10 +74,28 @@ pub fn run_js_asset_in_node(js_asset: &Asset) {
   let filename = &js_asset.filename;
   let source = &js_asset.source;
   // TODO: should optimized
-  match std::process::Command::new("node")
+  // WARNING: `node eval` do not had module context.
+  let command_result = std::process::Command::new("node")
     .args(["-e", source])
-    .output()
-  {
+    .output();
+  deal_node_command_output(&command_result, filename);
+}
+
+pub fn run_js_output_in_node(js_asset: &Asset, options: &BundleOptions) {
+  let filename = &js_asset.filename;
+  let output_file = Path::new(&options.outdir)
+    .join(filename)
+    .display()
+    .to_string();
+  // TODO: should optimized
+  let command_result = std::process::Command::new("node")
+    .args([output_file])
+    .output();
+  deal_node_command_output(&command_result, filename);
+}
+
+fn deal_node_command_output(output: &std::io::Result<std::process::Output>, filename: &str) {
+  match output {
     Ok(result) => {
       if !result.stderr.is_empty() {
         panic!(

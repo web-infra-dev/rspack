@@ -1,3 +1,4 @@
+mod assets;
 mod code_splitting;
 mod constant_folding;
 mod contenthash;
