@@ -1,15 +1,6 @@
-use rspack_swc::{
-  swc_ecma_ast::Ident,
-  swc_ecma_visit::{noop_visit_mut_type, VisitMut},
-};
-use swc_common::SyntaxContext;
-
-#[derive(Clone, Copy)]
-pub struct ClearMark;
-impl VisitMut for ClearMark {
-  noop_visit_mut_type!();
-
-  fn visit_mut_ident(&mut self, ident: &mut Ident) {
-    ident.span.ctxt = SyntaxContext::empty();
-  }
-}
+pub mod clear_mark;
+pub use clear_mark::ClearMark;
+pub mod finalizer;
+pub use finalizer::{RspackModuleFinalizer, RspackModuleFormatTransformer};
+pub mod hmr;
+pub use hmr::HmrModuleIdReWriter;
