@@ -12,20 +12,19 @@ use dashmap::{DashMap, DashSet};
 use rspack_swc::{
   swc_atoms,
   swc_ecma_ast::{self as ast},
-  swc_ecma_transforms_base,
   swc_ecma_visit::{self},
 };
 use swc_atoms::JsWord;
-use swc_ecma_transforms_base::resolver;
+
 use swc_ecma_visit::VisitMutWith;
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::instrument;
 
+use crate::path::normalize_path;
 use crate::{
   bundle::Msg, dependency_scanner::DependencyScanner, plugin_hook, utils::parse_file, ImportKind,
   JsModule, JsModuleKind, LoadArgs, PluginDriver, ResolveArgs, ResolvedURI,
 };
-use crate::{get_swc_compiler, path::normalize_path};
 
 #[derive(Debug)]
 pub struct DependencyIdResolver {
