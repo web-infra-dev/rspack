@@ -102,19 +102,8 @@ impl Task {
         .as_ref()
         .unwrap_or_else(|| panic!("No loader to deal with file: {:?}", module_id));
       let mut dependency_scanner = DependencyScanner::default();
-      let mut raw_ast = parse_file(transformed_source, module_id, loader).expect_module();
-      {
-        // The Resolver is not send. We need this block to tell compiler that
-        // the Resolver won't be sent over the threads
-        get_swc_compiler().run(|| {
-          let mut syntax_context_resolver = resolver(
-            self.plugin_driver.ctx.unresolved_mark,
-            self.plugin_driver.ctx.top_level_mark,
-            false,
-          );
-          raw_ast.visit_mut_with(&mut syntax_context_resolver);
-        })
-      }
+      let raw_ast = parse_file(transformed_source, module_id, loader).expect_module();
+
       let mut ast = plugin_hook::transform_ast(Path::new(module_id), raw_ast, &self.plugin_driver)?;
 
       self
