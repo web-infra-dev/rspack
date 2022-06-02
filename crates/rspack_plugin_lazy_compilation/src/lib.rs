@@ -28,6 +28,35 @@ impl Plugin for LazyCompilationPlugin {
     PLUGIN_NAME
   }
 
+  #[inline]
+  fn need_build_start(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_build_end(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_resolve(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_transform(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_transform_ast(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_tap_generated_chunk(&self) -> bool {
+    false
+  }
   async fn load(&self, _ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
     if args.kind == ImportKind::DynamicImport {
       return Ok(Some(LoadedSource {
