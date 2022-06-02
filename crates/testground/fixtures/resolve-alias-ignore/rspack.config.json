@@ -1,0 +1,12 @@
+{
+  "mode": "development",
+  "entries": {
+    "main": "./index.js"
+  },
+  "platform": "node",
+  "resolve": {
+    "alias": {
+      "ignore-module": false
+    }
+  }
+}

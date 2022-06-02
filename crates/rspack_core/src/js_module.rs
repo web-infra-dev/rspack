@@ -176,6 +176,7 @@ pub enum JsModuleKind {
   UserEntry { name: String },
   Normal,
   External,
+  Ignored,
 }
 
 impl JsModuleKind {

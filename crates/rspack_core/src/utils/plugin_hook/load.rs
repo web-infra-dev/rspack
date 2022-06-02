@@ -30,10 +30,10 @@ pub async fn load(
 }
 
 fn guess_loader_by_id(id: &str, options: &LoaderOptions) -> Option<Loader> {
-  let ext = if let Some(ext) = Path::new(id).extension() {
-    ext.to_str()?
+  let loader = if let Some(ext) = Path::new(id).extension() {
+    *options.get(ext.to_str()?)?
   } else {
-    "js"
+    Loader::Js
   };
-  Some(*options.get(ext)?)
+  Some(loader)
 }

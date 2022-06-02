@@ -39,14 +39,16 @@ pub struct ResolvedURI {
   pub uri: String,
   pub kind: ImportKind,
   pub external: bool,
+  pub ignored: bool,
 }
 
 impl ResolvedURI {
-  pub fn new<T: Into<String>>(path: T, external: bool, kind: ImportKind) -> Self {
+  pub fn new<T: Into<String>>(path: T, external: bool, kind: ImportKind, ignored: bool) -> Self {
     Self {
       uri: path.into(),
       external,
       kind, // module_side_effects: false,
+      ignored,
     }
   }
 }

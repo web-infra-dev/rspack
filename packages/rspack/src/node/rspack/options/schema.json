@@ -55,7 +55,16 @@
           "additionalProperties": false,
           "patternProperties": {
             ".*": {
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    false
+                  ]
+                }
+              ]
             }
           }
         },

@@ -1,11 +1,10 @@
-use std::collections::HashSet;
-
 use crate::BundleMode;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone)]
 pub struct ResolveOption {
   pub extensions: Vec<String>,
-  pub alias: Vec<(String, Option<String>)>,
+  pub alias: HashMap<String, Option<String>>,
   pub condition_names: HashSet<String>,
   pub symlinks: bool,
   pub alias_field: String,
@@ -18,7 +17,7 @@ impl Default for ResolveOption {
         .into_iter()
         .map(|s| s.to_string())
         .collect(),
-      alias: vec![],
+      alias: Default::default(),
       condition_names: Default::default(),
       symlinks: true,
       alias_field: String::from("browser"),
