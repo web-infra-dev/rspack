@@ -1,5 +1,3 @@
-use testground::utils::get_inline_source_map;
-
 use crate::common::compile_fixture;
 
 #[tokio::test]

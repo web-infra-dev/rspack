@@ -2,7 +2,7 @@ mod utils;
 use rspack::bundler::BundleOptions;
 use rspack_core::RuntimeOptions;
 use std::collections::HashMap;
-use utils::{assert_inline_sourcemap_in_pos, compile_with_options, run_js_asset_in_node};
+use utils::{compile_with_options, run_js_asset_in_node};
 
 #[test]
 fn define() {

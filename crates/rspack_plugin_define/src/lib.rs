@@ -1,8 +1,6 @@
 #![deny(clippy::all)]
 
-use std::path::Path;
-
-use rspack_core::{ast, BundleContext, Plugin, PluginContext, PluginTransformAstHookOutput};
+use rspack_core::{ast, Plugin, PluginContext, PluginTransformAstHookOutput};
 use rspack_swc::swc_ecma_visit::{FoldWith, VisitWith};
 
 mod prefix;

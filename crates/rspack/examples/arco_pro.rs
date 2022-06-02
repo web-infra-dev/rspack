@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::Path, time::Duration};
+use std::{collections::HashMap, path::Path};
 
 use rspack::bundler::{BundleOptions, Bundler};
 use rspack_core::{BundleMode, BundleReactOptions, Loader, ResolveOption};
@@ -23,7 +23,7 @@ async fn main() {
     .normalize()
     .to_string_lossy()
     .to_string();
-  let example = dir
+  let _example = dir
     .join("../../examples/arco-pro/src/index.tsx")
     .normalize()
     .to_string_lossy()

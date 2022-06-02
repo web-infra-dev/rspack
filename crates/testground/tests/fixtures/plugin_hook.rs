@@ -7,10 +7,7 @@ use rspack_core::{
   PluginTransformAstHookOutput, PluginTransformHookOutput, ResolveArgs,
 };
 use rspack_swc::swc_ecma_ast;
-use std::{
-  path::Path,
-  sync::{atomic::AtomicBool, Arc},
-};
+use std::sync::{atomic::AtomicBool, Arc};
 
 #[derive(Debug, Default)]
 struct Record {
