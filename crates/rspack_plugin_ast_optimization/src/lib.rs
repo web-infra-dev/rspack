@@ -35,7 +35,35 @@ impl Plugin for OptimizationPlugin {
   fn name(&self) -> &'static str {
     "rspack_plugin_ast_optimization"
   }
+  #[inline]
+  fn need_build_start(&self) -> bool {
+    false
+  }
 
+  #[inline]
+  fn need_build_end(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_resolve(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_load(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_transform(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_tap_generated_chunk(&self) -> bool {
+    false
+  }
   fn transform_ast(
     &self,
     ctx: &BundleContext,

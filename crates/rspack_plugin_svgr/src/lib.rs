@@ -23,6 +23,27 @@ impl Plugin for SvgrPlugin {
   fn name(&self) -> &'static str {
     PLUGIN_NAME
   }
+
+  #[inline]
+  fn need_build_start(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_build_end(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_resolve(&self) -> bool {
+    false
+  }
+
+  #[inline]
+  fn need_tap_generated_chunk(&self) -> bool {
+    false
+  }
+
   #[inline]
   async fn load(&self, _ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
     let query_start = args.id.find(|c: char| c == '?').unwrap_or(args.id.len());

@@ -84,11 +84,11 @@ impl Bundler {
       ..Default::default()
     }));
 
-    let plugin_driver = Arc::new(PluginDriver {
-      plugins: injected_plugins,
-      ctx: ctx.clone(),
-      resolver: resolver.clone(),
-    });
+    let plugin_driver = Arc::new(PluginDriver::new(
+      injected_plugins,
+      ctx.clone(),
+      resolver.clone(),
+    ));
 
     Self {
       options: normalized_options.clone(),
