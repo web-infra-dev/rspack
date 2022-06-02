@@ -176,15 +176,21 @@ pub fn normalize_bundle_options(mut options: RawOptions) -> Result<BundleOptions
         .as_mut()
         .and_then(|opts| opts.condition_names.take())
         .map_or(defaults.resolve.condition_names, parse_raw_condition_names),
-      alias_field: options
+      alias_fields: options
         .resolve
         .as_mut()
-        .and_then(|opts| opts.alias_field.take())
-        .unwrap_or(defaults.resolve.alias_field),
+        .and_then(|opts| opts.alias_fields.take())
+        .unwrap_or(defaults.resolve.alias_fields),
       extensions: options
         .resolve
-        .and_then(|opts| opts.extensions)
+        .as_mut()
+        .and_then(|opts| opts.extensions.take())
         .unwrap_or(defaults.resolve.extensions),
+      modules: options
+        .resolve
+        .as_mut()
+        .and_then(|opts| opts.modules.take())
+        .unwrap_or(defaults.resolve.modules),
       ..Default::default()
     },
     react: BundleReactOptions {

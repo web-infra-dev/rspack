@@ -63,7 +63,8 @@ pub struct RawResolveOptions {
   #[napi(ts_type = "{ [key: string]: false | string }")]
   pub alias: Option<HashMap<String, ResolveAliasValue>>,
   pub condition_names: Option<Vec<String>>,
-  pub alias_field: Option<String>,
+  pub alias_fields: Option<Vec<String>>,
+  pub modules: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -73,5 +74,6 @@ pub struct RawResolveOptions {
   pub extensions: Option<Vec<String>>,
   pub alias: Option<HashMap<String, ResolveAliasValue>>,
   pub condition_names: Option<Vec<String>>,
-  pub alias_field: Option<String>,
+  pub alias_fields: Option<Vec<String>>,
+  pub modules: Option<Vec<String>>,
 }
