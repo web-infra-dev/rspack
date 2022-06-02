@@ -261,7 +261,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
         .module_graph_container
         .module_graph
         .module_by_uri(&r_uri.uri)?;
-      let mut args;
+      let args;
       let js_module_id = js_module.id.as_str();
       if let Some(chunk) = self
         .bundle
@@ -272,8 +272,6 @@ impl<'a> RspackModuleFormatTransformer<'a> {
           Lit::Str(js_module_id.into()).as_arg(),
           Lit::Str(chunk.id.as_str().into()).as_arg(),
         ];
-        args.push(Lit::Str(js_module_id.into()).as_arg());
-        args.push(Lit::Str(chunk.id.as_str().into()).as_arg());
       } else {
         args = vec![Lit::Str(js_module_id.into()).as_arg()];
       }
