@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::fmt::Debug;
 
-use crate::{BundleContext, Chunk, Loader, NormalizedBundleOptions};
+use crate::{BundleContext, Chunk, Loader, NormalizedBundleOptions, PluginContext};
 use async_trait::async_trait;
 use rspack_swc::swc_ecma_ast as ast;
 
