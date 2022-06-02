@@ -34,6 +34,8 @@ pub use utils::*;
 mod chunk_graph;
 pub use chunk_graph::*;
 
+mod visitors;
+
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct ResolvedURI {
   pub uri: String,

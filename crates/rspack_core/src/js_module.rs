@@ -17,7 +17,7 @@ use swc_ecma_transforms_base::pass::noop;
 use tracing::instrument;
 
 use crate::{
-  finalize::hmr_module, syntax_by_loader, Bundle, BundleMode, Loader, ModuleGraph, ResolvedURI,
+  finalize::finalize, syntax_by_loader, Bundle, BundleMode, Loader, ModuleGraph, ResolvedURI,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -132,13 +132,11 @@ impl JsModule {
           },
           |_, _| noop(),
           |_, _| {
-            hmr_module(
+            finalize(
               self.id.to_string(),
-              bundle_ctx.top_level_mark,
               &self.resolved_uris,
               self.kind.is_user_entry(),
               &bundle.module_graph_container.module_graph,
-              options.code_splitting.enable,
               bundle,
             )
           },
