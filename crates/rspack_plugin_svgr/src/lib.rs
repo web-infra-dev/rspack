@@ -6,7 +6,7 @@ mod transform;
 use async_trait::async_trait;
 use clean::clean;
 use core::fmt::Debug;
-use rspack_core::{ast, PluginTransformAstHookOutput, PluginTransformHookOutput};
+use rspack_core::{ast, PluginContext, PluginTransformAstHookOutput, PluginTransformHookOutput};
 use rspack_swc::swc_ecma_visit::VisitMutWith;
 pub static PLUGIN_NAME: &str = "rspack_svgr";
 use rspack_core::{BundleContext, LoadArgs, LoadedSource, Loader, Plugin, PluginLoadHookOutput};
@@ -65,11 +65,11 @@ impl Plugin for SvgrPlugin {
 
   fn transform_ast(
     &self,
-    _ctx: &BundleContext,
-    _path: &Path,
+    _ctx: &PluginContext,
+    path: &str,
     mut ast: ast::Module,
   ) -> PluginTransformAstHookOutput {
-    let id = _path.to_str().unwrap_or("");
+    let id = path;
     let query_start = id.find(|c: char| c == '?').unwrap_or(id.len());
     let file_path = Path::new(&id[..query_start]);
     let ext = file_path

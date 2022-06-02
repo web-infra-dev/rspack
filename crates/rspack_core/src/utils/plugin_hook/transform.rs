@@ -12,7 +12,7 @@ use crate::{
 #[instrument(skip(ast, plugin_driver))]
 #[inline]
 pub fn transform_ast(
-  path: &Path,
+  path: &str,
   ast: ast::Module,
   plugin_driver: &PluginDriver,
 ) -> PluginTransformAstHookOutput {

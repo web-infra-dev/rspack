@@ -82,21 +82,25 @@ impl Plugin for ReactPlugin {
 
   fn transform_ast(
     &self,
-    ctx: &rspack_core::BundleContext,
-    path: &Path,
+    ctx: &rspack_core::PluginContext,
+    uri: &str,
     mut ast: ast::Module,
   ) -> rspack_core::PluginTransformAstHookOutput {
-    let id = path.to_str().unwrap_or("").to_string();
-    if ctx.options.react.refresh {
-      let is_entry = ctx.options.entries.iter().any(|e| e.1.src.as_str() == id);
+    let id = uri;
 
+    if ctx.options.react.refresh {
+      let is_entry = ctx.is_entry_uri(uri);
+      println!(
+        "path: {:?}, ctx.options.entries: {:?}, is_entry {:?}",
+        uri, ctx.options.entries, is_entry
+      );
       if is_entry {
         ast = ast.fold_with(&mut InjectReactRefreshEntryFloder {});
       }
     }
 
     let is_node_module = id.contains("node_modules");
-    let is_maybe_has_jsx = path.extension().map_or(true, |ext| ext != "ts");
+    let is_maybe_has_jsx = Path::new(uri).extension().map_or(true, |ext| ext != "ts");
     if is_maybe_has_jsx {
       ctx.compiler.run(|| {
         if !is_node_module {
@@ -142,7 +146,7 @@ impl Plugin for ReactPlugin {
             ast.visit_with(&mut f);
             match f.is_refresh_boundary {
               true => ast.fold_with(&mut ReactHmrFolder {
-                id: normalize_path(id.as_str(), ctx.options.as_ref().root.as_str()),
+                id: normalize_path(id, ctx.options.as_ref().root.as_str()),
               }),
               false => ast,
             }

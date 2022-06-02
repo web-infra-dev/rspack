@@ -95,6 +95,15 @@ impl Bundle {
       .into_iter()
       .collect();
 
+    *self.plugin_driver.resolved_entries.write().unwrap() = Arc::new(
+      self
+        .module_graph_container
+        .resolved_entries
+        .values()
+        .map(|uri| uri.uri.clone())
+        .collect(),
+    );
+
     self
       .module_graph_container
       .resolved_entries

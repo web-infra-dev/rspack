@@ -32,11 +32,14 @@ async fn main() {
   let mut bundler = Bundler::new(
     BundleOptions {
       root,
-      entries: HashMap::from([("main".to_string(), example.to_string().into())]),
+      entries: HashMap::from([(
+        "main".to_string(),
+        "./examples/arco-pro/src/index".to_string().into(),
+      )]),
       outdir: "./dist".to_string(),
       mode: BundleMode::Dev,
       react: BundleReactOptions {
-        refresh: false,
+        refresh: true,
         ..Default::default()
       },
       loader: HashMap::from_iter([
@@ -66,14 +69,14 @@ async fn main() {
   );
   let build_future = async {
     bundler.build(None).await;
-    tokio::time::sleep(Duration::from_millis(3000)).await;
-    bundler
-      .rebuild(vec![dir
-        .join("../../examples/arco-pro/src/components/NavBar/index.tsx")
-        .normalize()
-        .to_string_lossy()
-        .to_string()])
-      .await;
+    // tokio::time::sleep(Duration::from_millis(3000)).await;
+    // bundler
+    //   .rebuild(vec![dir
+    //     .join("../../examples/arco-pro/src/components/NavBar/index.tsx")
+    //     .normalize()
+    //     .to_string_lossy()
+    //     .to_string()])
+    //   .await;
   };
   build_future.instrument(tracing::info_span!("build")).await;
   // println!("assets: {:#?}", bundler.ctx.assets.lock().unwrap());

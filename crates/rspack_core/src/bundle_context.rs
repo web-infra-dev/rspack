@@ -1,5 +1,6 @@
 use rspack_swc::{swc, swc_common};
 use std::{
+  collections::HashSet,
   fmt::Debug,
   sync::{Arc, Mutex},
 };
@@ -61,4 +62,49 @@ impl BundleContext {
 pub struct Asset {
   pub source: String,
   pub filename: String,
+}
+
+pub struct PluginContext<'me> {
+  assets: &'me Mutex<Vec<Asset>>,
+  pub compiler: Arc<Compiler>,
+  pub options: Arc<NormalizedBundleOptions>,
+  pub resolved_entries: Arc<HashSet<String>>,
+  pub top_level_mark: Mark,
+  pub unresolved_mark: Mark,
+}
+
+impl<'me> PluginContext<'me> {
+  pub fn new(
+    assets: &'me Mutex<Vec<Asset>>,
+    compiler: Arc<Compiler>,
+    options: Arc<NormalizedBundleOptions>,
+    resolved_entries: Arc<HashSet<String>>,
+    top_level_mark: Mark,
+    unresolved_mark: Mark,
+  ) -> Self {
+    Self {
+      assets,
+      compiler,
+      options,
+      resolved_entries,
+      top_level_mark,
+      unresolved_mark,
+    }
+  }
+
+  pub fn is_entry_uri(&self, uri: &str) -> bool {
+    self.resolved_entries.contains(uri)
+  }
+
+  #[inline]
+  pub fn emit_asset(&self, asset: Asset) {
+    self.emit_assets([asset])
+  }
+
+  pub fn emit_assets(&self, assets_to_be_emited: impl IntoIterator<Item = Asset>) {
+    let mut assets = self.assets.lock().unwrap();
+    assets_to_be_emited.into_iter().for_each(|asset| {
+      assets.push(asset);
+    });
+  }
 }

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::{fmt::Debug, path::Path};
 
-use crate::{BundleContext, Chunk, Loader, NormalizedBundleOptions};
+use crate::{BundleContext, Chunk, Loader, NormalizedBundleOptions, PluginContext};
 use async_trait::async_trait;
 use rspack_swc::swc_ecma_ast as ast;
 
@@ -110,8 +110,8 @@ pub trait Plugin: Sync + Send + Debug {
   #[inline]
   fn transform_ast(
     &self,
-    _ctx: &BundleContext,
-    _path: &Path,
+    _ctx: &PluginContext,
+    _uri: &str,
     ast: ast::Module,
   ) -> PluginTransformAstHookOutput {
     Ok(ast)
