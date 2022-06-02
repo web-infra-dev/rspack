@@ -1,15 +1,15 @@
 use std::collections::HashMap;
 
-use crate::{visitors::ClearMark, Bundle, ModuleGraph, ResolvedURI};
+use crate::{Bundle, ModuleGraph, ResolvedURI};
 use ast::*;
 use rspack_swc::{
   swc_atoms, swc_common, swc_ecma_ast as ast, swc_ecma_transforms_base, swc_ecma_transforms_module,
   swc_ecma_utils::{self, private_ident},
-  swc_ecma_visit::{self, as_folder},
+  swc_ecma_visit::{self},
 };
 use swc_atoms::JsWord;
-use swc_common::{chain, EqIgnoreSpan, Mark, DUMMY_SP};
-use swc_ecma_transforms_base::{helpers::inject_helpers, resolver};
+use swc_common::{Mark, DUMMY_SP};
+use swc_ecma_transforms_base::helpers::inject_helpers;
 use swc_ecma_transforms_module::common_js;
 use swc_ecma_transforms_module::common_js::Config;
 use swc_ecma_utils::{member_expr, quote_ident, quote_str, ExprFactory};
