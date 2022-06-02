@@ -19,7 +19,7 @@ use rspack_swc::swc_ecma_visit::{
   noop_visit_mut_type, FoldWith, VisitMut, VisitMutWith, VisitWith,
 };
 use std::path::Path;
-use swc_common::SyntaxContext;
+use swc_common::{Mark, SyntaxContext};
 
 pub static PLUGIN_NAME: &str = "rspack_plugin_react";
 
@@ -103,15 +103,12 @@ impl Plugin for ReactPlugin {
     let is_maybe_has_jsx = Path::new(uri).extension().map_or(true, |ext| ext != "ts");
     if is_maybe_has_jsx {
       ctx.compiler.run(|| {
+        let (unresolved_mark, top_level_mark) = (Mark::new(), Mark::new());
         if !is_node_module {
           // The Resolver is not send. We need this block to tell compiler that
           // the Resolver won't be sent over the threads
           ast.visit_mut_with(&mut ClearMark);
-          ast.visit_mut_with(&mut resolver(
-            ctx.unresolved_mark,
-            ctx.top_level_mark,
-            false,
-          ));
+          ast.visit_mut_with(&mut resolver(unresolved_mark, top_level_mark, false));
         }
         let mut react_folder = react::<SingleThreadedComments>(
           ctx.compiler.cm.clone(),
@@ -128,7 +125,7 @@ impl Plugin for ReactPlugin {
             },
             ..Default::default()
           },
-          ctx.top_level_mark,
+          top_level_mark,
         );
 
         ast = ast.fold_with(&mut react_folder);

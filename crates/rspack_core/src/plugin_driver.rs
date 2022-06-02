@@ -172,8 +172,6 @@ impl PluginDriver {
       self.ctx.compiler.clone(),
       self.ctx.options.clone(),
       self.resolved_entries.read().unwrap().clone(),
-      self.ctx.top_level_mark,
-      self.ctx.unresolved_mark,
     )
   }
 }
