@@ -6,15 +6,20 @@ use react_hmr::{
   load_hmr_runtime_path, FoundReactRefreshVisitor, InjectReactRefreshEntryFloder, ReactHmrFolder,
   HMR_ENTRY, HMR_ENTRY_PATH, HMR_RUNTIME_PATH,
 };
+use rspack_core::ast::Ident;
 use rspack_core::path::normalize_path;
 use rspack_core::{
   ast, BundleContext, BundleMode, LoadArgs, LoadedSource, Loader, OnResolveResult, Plugin,
   PluginLoadHookOutput, PluginResolveHookOutput, ResolveArgs,
 };
 use rspack_swc::swc_common::comments::SingleThreadedComments;
+use rspack_swc::swc_ecma_transforms_base::resolver;
 use rspack_swc::swc_ecma_transforms_react::{react, Options, RefreshOptions, Runtime};
-use rspack_swc::swc_ecma_visit::{FoldWith, VisitWith};
+use rspack_swc::swc_ecma_visit::{
+  noop_visit_mut_type, FoldWith, VisitMut, VisitMutWith, VisitWith,
+};
 use std::path::Path;
+use swc_common::SyntaxContext;
 
 pub static PLUGIN_NAME: &str = "rspack_plugin_react";
 
@@ -75,6 +80,16 @@ impl Plugin for ReactPlugin {
     let is_maybe_has_jsx = path.extension().map_or(true, |ext| ext != "ts");
     if is_maybe_has_jsx {
       ctx.compiler.run(|| {
+        if !is_node_module {
+          // The Resolver is not send. We need this block to tell compiler that
+          // the Resolver won't be sent over the threads
+          ast.visit_mut_with(&mut ClearMark);
+          ast.visit_mut_with(&mut resolver(
+            ctx.unresolved_mark,
+            ctx.top_level_mark,
+            false,
+          ));
+        }
         let mut react_folder = react::<SingleThreadedComments>(
           ctx.compiler.cm.clone(),
           None,
@@ -120,5 +135,15 @@ impl Plugin for ReactPlugin {
     } else {
       Ok(ast)
     }
+  }
+}
+
+#[derive(Clone, Copy)]
+struct ClearMark;
+impl VisitMut for ClearMark {
+  noop_visit_mut_type!();
+
+  fn visit_mut_ident(&mut self, ident: &mut Ident) {
+    ident.span.ctxt = SyntaxContext::empty();
   }
 }
