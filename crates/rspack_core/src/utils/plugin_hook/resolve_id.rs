@@ -22,15 +22,17 @@ pub async fn resolve_id(args: ResolveArgs, plugin_driver: &PluginDriver) -> Resu
       plugin_result.uri,
       plugin_result.external,
       args.kind.clone(),
+      false,
     ))
   } else if args.importer.is_some() && is_external_module(&args.id) {
     Ok(ResolvedURI::new(
       args.id.to_string(),
       true,
       args.kind.clone(),
+      false,
     ))
   } else {
-    let id = if let Some(importer) = &args.importer {
+    let (id, ignored) = if let Some(importer) = &args.importer {
       let base_dir = Path::new(&importer).parent().unwrap();
       let _options = plugin_driver.ctx.as_ref().options.as_ref();
       let before_resolve = Instant::now();
@@ -39,8 +41,9 @@ pub async fn resolve_id(args: ResolveArgs, plugin_driver: &PluginDriver) -> Resu
         .resolve(base_dir, &args.id)
         .map_err(|e| RspackCoreError::ResolveFailed(args.id.to_owned(), importer.to_owned(), e))?
       {
-        ResolveResult::Path(buf) => buf.to_string_lossy().to_string(),
-        ResolveResult::Ignored => unimplemented!(),
+        ResolveResult::Path(buf) => (buf.to_string_lossy().to_string(), false),
+        // id should be a hash when resolve result ignored.
+        ResolveResult::Ignored => (args.id.to_owned(), true),
       };
 
       let after_resolve = Instant::now();
@@ -55,14 +58,17 @@ pub async fn resolve_id(args: ResolveArgs, plugin_driver: &PluginDriver) -> Resu
       }
       res
     } else {
-      Path::new(&plugin_driver.ctx.options.root)
-        .join(&args.id)
-        .resolve()
-        .to_string_lossy()
-        .to_string()
+      (
+        Path::new(&plugin_driver.ctx.options.root)
+          .join(&args.id)
+          .resolve()
+          .to_string_lossy()
+          .to_string(),
+        false,
+      )
     };
 
-    Ok(ResolvedURI::new(id, false, args.kind.clone()))
+    Ok(ResolvedURI::new(id, false, args.kind.clone(), ignored))
   }
 }
 

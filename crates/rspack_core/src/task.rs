@@ -12,20 +12,19 @@ use dashmap::{DashMap, DashSet};
 use rspack_swc::{
   swc_atoms,
   swc_ecma_ast::{self as ast},
-  swc_ecma_transforms_base,
   swc_ecma_visit::{self},
 };
 use swc_atoms::JsWord;
-use swc_ecma_transforms_base::resolver;
+
 use swc_ecma_visit::VisitMutWith;
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::instrument;
 
+use crate::path::normalize_path;
 use crate::{
   bundle::Msg, dependency_scanner::DependencyScanner, plugin_hook, utils::parse_file, ImportKind,
   JsModule, JsModuleKind, LoadArgs, PluginDriver, ResolveArgs, ResolvedURI,
 };
-use crate::{get_swc_compiler, path::normalize_path};
 
 #[derive(Debug)]
 pub struct DependencyIdResolver {
@@ -81,33 +80,29 @@ impl Task {
       };
 
       let module_id: &str = &resolved_uri.uri;
-      let (source, mut loader) = plugin_hook::load(
-        LoadArgs {
-          kind: resolved_uri.kind,
-          id: module_id.to_string(),
-        },
-        &self.plugin_driver,
-      )
-      .await?;
+      let (source, mut loader, kind) = if resolved_uri.ignored {
+        let source = String::from("export default {}");
+        let loader = Some(crate::Loader::Js);
+        (source, loader, JsModuleKind::Ignored)
+      } else {
+        let (source, loader) = plugin_hook::load(
+          LoadArgs {
+            kind: resolved_uri.kind,
+            id: module_id.to_string(),
+          },
+          &self.plugin_driver,
+        )
+        .await?;
+        (source, loader, JsModuleKind::Normal)
+      };
       let transformed_source =
         plugin_hook::transform(module_id, &mut loader, source, &self.plugin_driver)?;
       let loader = loader
         .as_ref()
         .unwrap_or_else(|| panic!("No loader to deal with file: {:?}", module_id));
       let mut dependency_scanner = DependencyScanner::default();
-      let mut raw_ast = parse_file(transformed_source, module_id, loader).expect_module();
-      {
-        // The Resolver is not send. We need this block to tell compiler that
-        // the Resolver won't be sent over the threads
-        get_swc_compiler().run(|| {
-          let mut syntax_context_resolver = resolver(
-            self.plugin_driver.ctx.unresolved_mark,
-            self.plugin_driver.ctx.top_level_mark,
-            false,
-          );
-          raw_ast.visit_mut_with(&mut syntax_context_resolver);
-        })
-      }
+      let raw_ast = parse_file(transformed_source, module_id, loader).expect_module();
+
       let mut ast = plugin_hook::transform_ast(Path::new(module_id), raw_ast, &self.plugin_driver)?;
 
       self
@@ -129,7 +124,7 @@ impl Task {
       }
 
       let module = JsModule {
-        kind: JsModuleKind::Normal,
+        kind,
         exec_order: Default::default(),
         uri: resolved_uri.uri.clone(),
         id: normalize_path(

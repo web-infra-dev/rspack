@@ -47,7 +47,7 @@ async fn main() {
         ("svg".to_string(), Loader::DataURI),
       ]),
       resolve: ResolveOption {
-        alias: vec![(
+        alias: HashMap::from_iter([(
           "@/".to_string(),
           Some(
             Path::new("./examples/arco-pro/src/")
@@ -56,7 +56,7 @@ async fn main() {
               .to_string()
               + "/",
           ),
-        )],
+        )]),
         ..Default::default()
       },
       source_map: false.into(),

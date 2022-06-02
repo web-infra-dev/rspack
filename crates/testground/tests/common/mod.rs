@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::Path};
 
-use node_binding::{normalize_bundle_options, RawOptions};
+use node_binding::{normalize_bundle_options, RawOptions, RawOutputOptions};
 use rspack::bundler::Bundler;
 use rspack_core::{Asset, BundleOptions, Plugin};
 
@@ -40,10 +40,17 @@ impl RawOptionsTestExt for RawOptions {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     let fixtures_dir = dir.join("fixtures").join(fixture_path);
     let pkg_path = fixtures_dir.join("rspack.config.json");
+    let outdir = fixtures_dir.join("dist").to_str().unwrap().to_string();
     let mut options = {
       if pkg_path.exists() {
         let pkg_content = std::fs::read_to_string(pkg_path).unwrap();
-        let options: RawOptions = serde_json::from_str(&pkg_content).unwrap();
+        let mut options: RawOptions = serde_json::from_str(&pkg_content).unwrap();
+        if options.output.is_none() {
+          options.output = Some(RawOutputOptions {
+            outdir: Some(outdir),
+            ..Default::default()
+          });
+        }
         options
       } else {
         RawOptions {
@@ -51,6 +58,10 @@ impl RawOptionsTestExt for RawOptions {
             "main".to_string(),
             fixtures_dir.join("index.js").to_str().unwrap().to_string(),
           )]),
+          output: Some(RawOutputOptions {
+            outdir: Some(outdir),
+            ..Default::default()
+          }),
           ..Default::default()
         }
       }

@@ -71,6 +71,7 @@ impl Bundle {
           uri: rd,
           kind: ImportKind::Import,
           external: false,
+          ignored: false,
         });
       });
     }
