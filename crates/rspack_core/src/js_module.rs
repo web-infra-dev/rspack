@@ -134,7 +134,6 @@ impl JsModule {
           |_, _| {
             hmr_module(
               self.id.to_string(),
-              bundle_ctx.top_level_mark,
               &self.resolved_uris,
               self.kind.is_user_entry(),
               &bundle.module_graph_container.module_graph,
