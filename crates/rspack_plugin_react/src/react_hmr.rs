@@ -51,22 +51,22 @@ pub static HMR_RUNTIME_PATH: &str = "/@react-refresh.js";
 pub static HMR_ENTRY_PATH: &str = "/react-hmr-entry.js";
 
 pub static HMR_ENTRY: &str = r#"import RefreshRuntime from "/@react-refresh.js";
-RefreshRuntime.injectIntoGlobalHook(window);
-window.$RefreshReg$ = () => {};
-window.$RefreshSig$ = () => (type) => type;"#;
+RefreshRuntime.injectIntoGlobalHook(globalThis);
+globalThis.$RefreshReg$ = () => {};
+globalThis.$RefreshSig$ = () => (type) => type;"#;
 
 static HMR_HEADER: &str = r#"import RefreshRuntime from "/@react-refresh.js";
 var prevRefreshReg;
 var prevRefreshSig;
-prevRefreshReg = window.$RefreshReg$;
-prevRefreshSig = window.$RefreshSig$;
-window.$RefreshReg$ = (type, id) => {
+prevRefreshReg = globalThis.$RefreshReg$;
+prevRefreshSig = globalThis.$RefreshSig$;
+globalThis.$RefreshReg$ = (type, id) => {
   RefreshRuntime.register(type, "__SOURCE__" + "" + id);
 };
-window.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;"#;
+globalThis.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;"#;
 
-static HMR_FOOTER: &str = r#"window.$RefreshReg$ = prevRefreshReg;
-window.$RefreshSig$ = prevRefreshSig;
+static HMR_FOOTER: &str = r#"globalThis.$RefreshReg$ = prevRefreshReg;
+globalThis.$RefreshSig$ = prevRefreshSig;
 module.hot.accept();
 RefreshRuntime.queueUpdate();
 "#;
