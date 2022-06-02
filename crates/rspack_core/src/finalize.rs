@@ -1,58 +1,69 @@
 use std::collections::HashMap;
 
-use crate::{swc_builder::dynamic_import_with_literal, Bundle, ModuleGraph, ResolvedURI};
+use crate::{visitors::ClearMark, Bundle, ModuleGraph, ResolvedURI};
 use ast::*;
 use rspack_swc::{
   swc_atoms, swc_common, swc_ecma_ast as ast, swc_ecma_transforms_base, swc_ecma_transforms_module,
   swc_ecma_utils::{self, private_ident},
-  swc_ecma_visit,
+  swc_ecma_visit::{self, as_folder},
 };
 use swc_atoms::JsWord;
-use swc_common::{EqIgnoreSpan, Mark, DUMMY_SP};
-use swc_ecma_transforms_base::helpers::inject_helpers;
+use swc_common::{chain, EqIgnoreSpan, Mark, DUMMY_SP};
+use swc_ecma_transforms_base::{helpers::inject_helpers, resolver};
 use swc_ecma_transforms_module::common_js;
 use swc_ecma_transforms_module::common_js::Config;
 use swc_ecma_utils::{member_expr, quote_ident, quote_str, ExprFactory};
 use swc_ecma_visit::{Fold, FoldWith, VisitMut, VisitMutWith};
 
-pub fn hmr_module<'a>(
+pub fn finalize<'a>(
   file_name: String,
   resolved_ids: &'a HashMap<JsWord, ResolvedURI>,
   entry_flag: bool,
   modules: &'a ModuleGraph,
-  code_splitting: bool,
   bundle: &'a Bundle,
-) -> HmrModuleFolder<'a> {
-  HmrModuleFolder {
-    file_name,
-    resolved_ids,
-    require_ident: quote_ident!(
-      DUMMY_SP.apply_mark(bundle.context.unresolved_mark),
-      "__rspack_require__"
+) -> impl Fold + 'a {
+  let finalize_pass = chain!(
+    as_folder(ClearMark),
+    resolver(
+      bundle.context.unresolved_mark,
+      bundle.context.top_level_mark,
+      false,
     ),
-    module_ident: quote_ident!(
-      DUMMY_SP.apply_mark(bundle.context.unresolved_mark),
-      "module"
-    ),
-    entry_flag,
-    modules,
-    code_splitting,
-    bundle,
-  }
+    RspackModuleFinalizer {
+      file_name,
+      resolved_ids,
+      require_ident: quote_ident!(
+        DUMMY_SP.apply_mark(bundle.context.unresolved_mark),
+        "__rspack_require__"
+      ),
+      module_ident: quote_ident!(
+        DUMMY_SP.apply_mark(bundle.context.unresolved_mark),
+        "module"
+      ),
+      entry_flag,
+      modules,
+      bundle,
+    },
+    as_folder(HmrModuleIdReWriter {
+      resolved_ids,
+      rewriting: false,
+      bundle,
+    })
+  );
+  finalize_pass
 }
 
-pub struct HmrModuleFolder<'a> {
+pub struct RspackModuleFinalizer<'a> {
   pub modules: &'a ModuleGraph,
   pub file_name: String,
   pub resolved_ids: &'a HashMap<JsWord, ResolvedURI>,
   pub require_ident: Ident,
   pub module_ident: Ident,
   pub entry_flag: bool,
-  pub code_splitting: bool,
   pub bundle: &'a Bundle,
 }
 
-impl<'a> Fold for HmrModuleFolder<'a> {
+impl<'a> Fold for RspackModuleFinalizer<'a> {
   fn fold_module(&mut self, module: Module) -> Module {
     let mut cjs_module = module
       .fold_with(&mut common_js(
@@ -72,24 +83,11 @@ impl<'a> Fold for HmrModuleFolder<'a> {
       self.bundle,
     ));
 
-    cjs_module.visit_mut_with(&mut HmrModuleIdReWriter {
-      resolved_ids: self.resolved_ids,
-      rewriting: false,
-      bundle: self.bundle,
-      require_id: quote_ident!(
-        DUMMY_SP.apply_mark(self.bundle.context.unresolved_mark),
-        "require"
-      )
-      .to_id(),
-    });
-
-    let mut stmts = vec![];
-
-    for body in cjs_module.body {
-      if let ModuleItem::Stmt(stmt) = body {
-        stmts.push(stmt);
-      }
-    }
+    let stmts = cjs_module
+      .body
+      .into_iter()
+      .filter_map(|stmt| stmt.stmt())
+      .collect();
 
     let mut module_body = vec![CallExpr {
       span: DUMMY_SP,
@@ -161,7 +159,6 @@ pub struct HmrModuleIdReWriter<'a> {
   pub resolved_ids: &'a HashMap<JsWord, ResolvedURI>,
   pub rewriting: bool,
   pub bundle: &'a Bundle,
-  pub require_id: Id,
 }
 
 pub const RS_DYNAMIC_REQUIRE: &str = "rs.dynamic_require";
@@ -300,6 +297,8 @@ impl<'a> VisitMut for RspackModuleFormatTransformer<'a> {
   fn visit_mut_ident(&mut self, n: &mut Ident) {
     if n.to_id() == self.require_id {
       n.sym = RS_REQUIRE.into();
+    } else {
+      // println!("n.to_id() {:?}", n.to_id());
     }
   }
 }
