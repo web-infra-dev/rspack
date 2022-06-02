@@ -6,7 +6,7 @@ use rspack_swc::{swc_atoms, swc_common, swc_ecma_ast as ast, swc_ecma_utils, swc
 use swc_atoms::JsWord;
 use swc_common::{EqIgnoreSpan, DUMMY_SP};
 use swc_ecma_utils::member_expr;
-use swc_ecma_visit::{VisitMut, VisitMutWith};
+use swc_ecma_visit::{noop_visit_mut_type, VisitMut, VisitMutWith};
 
 pub struct HmrModuleIdReWriter<'a> {
   pub resolved_ids: &'a HashMap<JsWord, ResolvedURI>,
@@ -15,6 +15,7 @@ pub struct HmrModuleIdReWriter<'a> {
 }
 
 impl<'a> VisitMut for HmrModuleIdReWriter<'a> {
+  noop_visit_mut_type!();
   fn visit_mut_call_expr(&mut self, call_expr: &mut CallExpr) {
     if let Callee::Expr(expr) = &mut call_expr.callee {
       match &mut **expr {

@@ -5,7 +5,7 @@ use ast::*;
 use rspack_swc::{
   swc_atoms, swc_common, swc_ecma_ast as ast, swc_ecma_transforms_base, swc_ecma_transforms_module,
   swc_ecma_utils::{self, private_ident},
-  swc_ecma_visit::{self},
+  swc_ecma_visit::{self, noop_visit_mut_type},
 };
 use swc_atoms::JsWord;
 use swc_common::{Mark, DUMMY_SP};
@@ -191,6 +191,8 @@ impl<'a> RspackModuleFormatTransformer<'a> {
 }
 
 impl<'a> VisitMut for RspackModuleFormatTransformer<'a> {
+  noop_visit_mut_type!();
+
   fn visit_mut_call_expr(&mut self, n: &mut CallExpr) {
     if n.callee.is_import() {
       self.rewrite_dyn_import(n);
