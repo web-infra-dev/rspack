@@ -77,6 +77,12 @@
         "aliasFields": {
           "type": "string"
         },
+        "modules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "extensions": {
           "type": "array",
           "items": {
