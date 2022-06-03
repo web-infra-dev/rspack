@@ -90,10 +90,6 @@ impl Plugin for ReactPlugin {
 
     if ctx.options.react.refresh {
       let is_entry = ctx.is_entry_uri(uri);
-      println!(
-        "path: {:?}, ctx.options.entries: {:?}, is_entry {:?}",
-        uri, ctx.options.entries, is_entry
-      );
       if is_entry {
         ast = ast.fold_with(&mut InjectReactRefreshEntryFloder {});
       }
