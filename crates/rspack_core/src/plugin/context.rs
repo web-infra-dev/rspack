@@ -11,7 +11,7 @@ pub struct PluginContext<'me> {
   assets: &'me Mutex<Vec<Asset>>,
   pub compiler: Arc<Compiler>,
   pub options: Arc<NormalizedBundleOptions>,
-  pub resolved_entries: Arc<HashSet<String>>,
+  pub(crate) resolved_entries: Arc<HashSet<String>>,
 }
 
 impl<'me> PluginContext<'me> {
