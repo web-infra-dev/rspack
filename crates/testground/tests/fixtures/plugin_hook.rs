@@ -2,9 +2,9 @@ use async_trait::async_trait;
 
 use crate::common::{compile_fixture_with_plugins, prelude::*};
 use rspack_core::{
-  BundleContext, Chunk, LoadArgs, Loader, NormalizedBundleOptions, PluginContext,
-  PluginLoadHookOutput, PluginResolveHookOutput, PluginTapGeneratedChunkHookOutput,
-  PluginTransformAstHookOutput, PluginTransformHookOutput, ResolveArgs,
+  Chunk, LoadArgs, Loader, NormalizedBundleOptions, PluginContext, PluginLoadHookOutput,
+  PluginResolveHookOutput, PluginTapGeneratedChunkHookOutput, PluginTransformAstHookOutput,
+  PluginTransformHookOutput, ResolveArgs,
 };
 use rspack_swc::swc_ecma_ast;
 use std::sync::{atomic::AtomicBool, Arc};
@@ -29,7 +29,7 @@ impl Plugin for PluginHookTester {
     "rspack_test"
   }
 
-  async fn resolve(&self, _ctx: &BundleContext, _args: &ResolveArgs) -> PluginResolveHookOutput {
+  async fn resolve(&self, _ctx: &PluginContext, _args: &ResolveArgs) -> PluginResolveHookOutput {
     self
       .record
       .call_resolve
@@ -37,7 +37,7 @@ impl Plugin for PluginHookTester {
     Ok(None)
   }
 
-  async fn load(&self, _ctx: &BundleContext, _args: &LoadArgs) -> PluginLoadHookOutput {
+  async fn load(&self, _ctx: &PluginContext, _args: &LoadArgs) -> PluginLoadHookOutput {
     self
       .record
       .call_load
@@ -61,7 +61,7 @@ impl Plugin for PluginHookTester {
   #[inline]
   fn transform(
     &self,
-    _ctx: &BundleContext,
+    _ctx: &PluginContext,
     _uri: &str,
     _loader: &mut Option<Loader>,
     raw: String,
@@ -76,7 +76,7 @@ impl Plugin for PluginHookTester {
   #[inline]
   fn tap_generated_chunk(
     &self,
-    _ctx: &BundleContext,
+    _ctx: &PluginContext,
     _chunk: &Chunk,
     _bundle_options: &NormalizedBundleOptions,
   ) -> PluginTapGeneratedChunkHookOutput {

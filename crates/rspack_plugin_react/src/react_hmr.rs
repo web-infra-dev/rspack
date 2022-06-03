@@ -27,9 +27,9 @@ impl Visit for FoundReactRefreshVisitor {
   }
 }
 
-pub struct InjectReactRefreshEntryFloder {}
+pub struct ReactRefreshEntryRuntimeInjector;
 
-impl Fold for InjectReactRefreshEntryFloder {
+impl Fold for ReactRefreshEntryRuntimeInjector {
   fn fold_module(&mut self, mut module: Module) -> Module {
     let mut body = vec![];
 

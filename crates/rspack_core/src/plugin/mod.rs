@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::fmt::Debug;
 
-use crate::{BundleContext, Chunk, Loader, NormalizedBundleOptions};
+use crate::{Chunk, Loader, NormalizedBundleOptions};
 use async_trait::async_trait;
 use rspack_swc::swc_ecma_ast as ast;
 
@@ -81,28 +81,28 @@ pub trait Plugin: Sync + Send + Debug {
     true
   }
   #[inline]
-  async fn build_start(&self, _ctx: &BundleContext) -> PluginBuildStartHookOutput {
+  async fn build_start(&self, _ctx: &PluginContext) -> PluginBuildStartHookOutput {
     Ok(())
   }
   #[inline]
-  async fn build_end(&self, _ctx: &BundleContext) -> PluginBuildEndHookOutput {
+  async fn build_end(&self, _ctx: &PluginContext) -> PluginBuildEndHookOutput {
     Ok(())
   }
 
   #[inline]
-  async fn resolve(&self, _ctx: &BundleContext, _args: &ResolveArgs) -> PluginResolveHookOutput {
+  async fn resolve(&self, _ctx: &PluginContext, _args: &ResolveArgs) -> PluginResolveHookOutput {
     Ok(None)
   }
 
   #[inline]
-  async fn load(&self, _ctx: &BundleContext, _args: &LoadArgs) -> PluginLoadHookOutput {
+  async fn load(&self, _ctx: &PluginContext, _args: &LoadArgs) -> PluginLoadHookOutput {
     Ok(None)
   }
 
   #[inline]
   fn transform(
     &self,
-    _ctx: &BundleContext,
+    _ctx: &PluginContext,
     _uri: &str,
     _loader: &mut Option<Loader>,
     raw: String,
@@ -123,7 +123,7 @@ pub trait Plugin: Sync + Send + Debug {
   #[inline]
   fn tap_generated_chunk(
     &self,
-    _ctx: &BundleContext,
+    _ctx: &PluginContext,
     _chunk: &Chunk,
     _bundle_options: &NormalizedBundleOptions,
   ) -> PluginTapGeneratedChunkHookOutput {

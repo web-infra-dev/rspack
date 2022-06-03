@@ -6,7 +6,7 @@ use std::path::Path;
 
 use async_trait::async_trait;
 use data_uri::guess_mime_types_ext;
-use rspack_core::{BundleContext, Loader, Plugin, PluginTransformHookOutput};
+use rspack_core::{Loader, Plugin, PluginContext, PluginTransformHookOutput};
 
 #[derive(Debug)]
 pub struct LoaderInterpreterPlugin;
@@ -50,7 +50,7 @@ impl Plugin for LoaderInterpreterPlugin {
   }
   fn transform(
     &self,
-    _ctx: &BundleContext,
+    _ctx: &PluginContext,
     uri: &str,
     loader: &mut Option<Loader>,
     raw: String,

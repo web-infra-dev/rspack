@@ -3,13 +3,13 @@
 mod react_hmr;
 use async_trait::async_trait;
 use react_hmr::{
-  load_hmr_runtime_path, FoundReactRefreshVisitor, InjectReactRefreshEntryFloder, ReactHmrFolder,
-  HMR_ENTRY, HMR_ENTRY_PATH, HMR_RUNTIME_PATH,
+  load_hmr_runtime_path, FoundReactRefreshVisitor, ReactHmrFolder,
+  ReactRefreshEntryRuntimeInjector, HMR_ENTRY, HMR_ENTRY_PATH, HMR_RUNTIME_PATH,
 };
 use rspack_core::ast::Ident;
 use rspack_core::path::normalize_path;
 use rspack_core::{
-  ast, BundleContext, BundleMode, LoadArgs, LoadedSource, Loader, OnResolveResult, Plugin,
+  ast, BundleMode, LoadArgs, LoadedSource, Loader, OnResolveResult, Plugin, PluginContext,
   PluginLoadHookOutput, PluginResolveHookOutput, ResolveArgs,
 };
 use rspack_swc::swc_common::comments::SingleThreadedComments;
@@ -53,7 +53,7 @@ impl Plugin for ReactPlugin {
   fn need_tap_generated_chunk(&self) -> bool {
     false
   }
-  async fn resolve(&self, _ctx: &BundleContext, args: &ResolveArgs) -> PluginResolveHookOutput {
+  async fn resolve(&self, _ctx: &PluginContext, args: &ResolveArgs) -> PluginResolveHookOutput {
     if args.id == HMR_RUNTIME_PATH || args.id == HMR_ENTRY_PATH {
       Ok(Some(OnResolveResult {
         uri: args.id.to_string(),
@@ -64,7 +64,7 @@ impl Plugin for ReactPlugin {
     }
   }
 
-  async fn load(&self, _ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
+  async fn load(&self, _ctx: &PluginContext, args: &LoadArgs) -> PluginLoadHookOutput {
     if args.id == HMR_RUNTIME_PATH {
       return Ok(Some(LoadedSource::with_loader(
         load_hmr_runtime_path(&_ctx.options.as_ref().root),
@@ -86,16 +86,11 @@ impl Plugin for ReactPlugin {
     uri: &str,
     mut ast: ast::Module,
   ) -> rspack_core::PluginTransformAstHookOutput {
-    let id = uri;
-
-    if ctx.options.react.refresh {
-      let is_entry = ctx.is_entry_uri(uri);
-      if is_entry {
-        ast = ast.fold_with(&mut InjectReactRefreshEntryFloder {});
-      }
+    if ctx.options.react.refresh && ctx.is_entry_uri(uri) {
+      ast = ast.fold_with(&mut ReactRefreshEntryRuntimeInjector {});
     }
 
-    let is_node_module = id.contains("node_modules");
+    let is_node_module = uri.contains("node_modules");
     let is_maybe_has_jsx = Path::new(uri).extension().map_or(true, |ext| ext != "ts");
     if is_maybe_has_jsx {
       ctx.compiler.run(|| {
@@ -139,7 +134,7 @@ impl Plugin for ReactPlugin {
             ast.visit_with(&mut f);
             match f.is_refresh_boundary {
               true => ast.fold_with(&mut ReactHmrFolder {
-                id: normalize_path(id, ctx.options.as_ref().root.as_str()),
+                id: normalize_path(uri, ctx.options.as_ref().root.as_str()),
               }),
               false => ast,
             }

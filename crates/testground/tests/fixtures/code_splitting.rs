@@ -33,7 +33,7 @@ impl Plugin for Tester {
 
   fn tap_generated_chunk(
     &self,
-    _ctx: &rspack_core::BundleContext,
+    _ctx: &rspack_core::PluginContext,
     chunk: &rspack_core::Chunk,
     _bundle_options: &rspack_core::NormalizedBundleOptions,
   ) -> PluginTapGeneratedChunkHookOutput {

@@ -2,7 +2,7 @@ use crate::handle_with_css::{is_style_source, StyleSourceType};
 use async_trait::async_trait;
 use nodejs_resolver::{ResolveResult, Resolver};
 use rspack_core::{
-  Asset, BundleContext, Chunk, Loader, NormalizedBundleOptions, PluginTransformHookOutput,
+  Asset, Chunk, Loader, NormalizedBundleOptions, PluginContext, PluginTransformHookOutput,
 };
 use rspack_core::{Plugin, PluginBuildStartHookOutput, PluginTapGeneratedChunkHookOutput};
 use rspack_style::style_core::applicationn::Application;
@@ -157,7 +157,7 @@ impl Plugin for StyleSourcePlugin {
   ///
   /// 初始化参数
   ///
-  async fn build_start(&self, ctx: &BundleContext) -> PluginBuildStartHookOutput {
+  async fn build_start(&self, ctx: &PluginContext) -> PluginBuildStartHookOutput {
     let minify = ctx.options.minify;
     self.app.set_minify(minify);
     Ok(())
@@ -165,7 +165,7 @@ impl Plugin for StyleSourcePlugin {
 
   fn transform(
     &self,
-    _ctx: &BundleContext,
+    _ctx: &PluginContext,
     uri: &str,
     loader: &mut Option<Loader>,
     raw: String,
@@ -223,7 +223,7 @@ impl Plugin for StyleSourcePlugin {
   ///
   fn tap_generated_chunk(
     &self,
-    ctx: &BundleContext,
+    ctx: &PluginContext,
     chunk: &Chunk,
     bundle_options: &NormalizedBundleOptions,
   ) -> PluginTapGeneratedChunkHookOutput {
