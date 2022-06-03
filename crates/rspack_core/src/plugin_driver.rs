@@ -1,4 +1,7 @@
-use std::{path::Path, sync::Arc};
+use std::{
+  collections::HashSet,
+  sync::{Arc, RwLock},
+};
 
 use anyhow::Result;
 use futures::future::try_join_all;
@@ -8,8 +11,9 @@ use tracing::instrument;
 
 use crate::{
   BundleContext, Chunk, LoadArgs, LoadedSource, Loader, NormalizedBundleOptions, OnResolveResult,
-  Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput, PluginTapGeneratedChunkHookOutput,
-  PluginTransformAstHookOutput, PluginTransformHookOutput, ResolveArgs,
+  Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput, PluginContext,
+  PluginTapGeneratedChunkHookOutput, PluginTransformAstHookOutput, PluginTransformHookOutput,
+  ResolveArgs,
 };
 
 #[derive(Debug)]
@@ -24,6 +28,7 @@ pub struct PluginDriver {
   transform_hints: Vec<usize>,
   transform_ast_hints: Vec<usize>,
   tap_generated_chunk_hints: Vec<usize>,
+  pub resolved_entries: RwLock<Arc<HashSet<String>>>,
 }
 
 impl PluginDriver {
@@ -75,6 +80,7 @@ impl PluginDriver {
       transform_hints,
       transform_ast_hints,
       tap_generated_chunk_hints,
+      resolved_entries: Default::default(),
     }
   }
 
@@ -138,12 +144,12 @@ impl PluginDriver {
       })
   }
   #[instrument(skip_all)]
-  pub fn transform_ast(&self, path: &Path, ast: ast::Module) -> PluginTransformAstHookOutput {
+  pub fn transform_ast(&self, path: &str, ast: ast::Module) -> PluginTransformAstHookOutput {
     self
       .transform_ast_hints
       .iter()
       .fold(Ok(ast), |transformed_ast, i| {
-        self.plugins[*i].transform_ast(&self.ctx, path, transformed_ast?)
+        self.plugins[*i].transform_ast(&self.plugin_context(), path, transformed_ast?)
       })
   }
   #[instrument(skip_all)]
@@ -158,5 +164,14 @@ impl PluginDriver {
       .try_for_each(|i| -> Result<()> {
         self.plugins[*i].tap_generated_chunk(&self.ctx, chunk, bundle_options)
       })
+  }
+
+  fn plugin_context<'me>(&'me self) -> PluginContext<'me> {
+    PluginContext::<'me>::new(
+      &self.ctx.assets,
+      self.ctx.compiler.clone(),
+      self.ctx.options.clone(),
+      self.resolved_entries.read().unwrap().clone(),
+    )
   }
 }

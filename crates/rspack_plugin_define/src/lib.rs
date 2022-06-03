@@ -1,8 +1,6 @@
 #![deny(clippy::all)]
 
-use std::path::Path;
-
-use rspack_core::{ast, BundleContext, Plugin, PluginTransformAstHookOutput};
+use rspack_core::{ast, Plugin, PluginContext, PluginTransformAstHookOutput};
 use rspack_swc::swc_ecma_visit::{FoldWith, VisitWith};
 
 mod prefix;
@@ -50,8 +48,8 @@ impl Plugin for DefinePlugin {
 
   fn transform_ast(
     &self,
-    ctx: &BundleContext,
-    _path: &Path,
+    ctx: &PluginContext,
+    _path: &str,
     ast: ast::Module,
   ) -> PluginTransformAstHookOutput {
     let defintions = &ctx.options.define;

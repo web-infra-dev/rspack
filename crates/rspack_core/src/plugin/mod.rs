@@ -1,9 +1,12 @@
 use anyhow::Result;
-use std::{fmt::Debug, path::Path};
+use std::fmt::Debug;
 
 use crate::{BundleContext, Chunk, Loader, NormalizedBundleOptions};
 use async_trait::async_trait;
 use rspack_swc::swc_ecma_ast as ast;
+
+mod context;
+pub use context::*;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub enum ImportKind {
@@ -110,8 +113,8 @@ pub trait Plugin: Sync + Send + Debug {
   #[inline]
   fn transform_ast(
     &self,
-    _ctx: &BundleContext,
-    _path: &Path,
+    _ctx: &PluginContext,
+    _uri: &str,
     ast: ast::Module,
   ) -> PluginTransformAstHookOutput {
     Ok(ast)

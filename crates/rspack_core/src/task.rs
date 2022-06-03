@@ -1,9 +1,6 @@
-use std::{
-  path::Path,
-  sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
-  },
+use std::sync::{
+  atomic::{AtomicUsize, Ordering},
+  Arc,
 };
 
 use anyhow::Result;
@@ -103,7 +100,7 @@ impl Task {
       let mut dependency_scanner = DependencyScanner::default();
       let raw_ast = parse_file(transformed_source, module_id, loader).expect_module();
 
-      let mut ast = plugin_hook::transform_ast(Path::new(module_id), raw_ast, &self.plugin_driver)?;
+      let mut ast = plugin_hook::transform_ast(module_id, raw_ast, &self.plugin_driver)?;
 
       self
         .pre_analyze_imported_module(&uri_resolver, &ast)

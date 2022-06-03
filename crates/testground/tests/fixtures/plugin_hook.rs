@@ -2,15 +2,12 @@ use async_trait::async_trait;
 
 use crate::common::{compile_fixture_with_plugins, prelude::*};
 use rspack_core::{
-  BundleContext, Chunk, LoadArgs, Loader, NormalizedBundleOptions, PluginLoadHookOutput,
-  PluginResolveHookOutput, PluginTapGeneratedChunkHookOutput, PluginTransformAstHookOutput,
-  PluginTransformHookOutput, ResolveArgs,
+  BundleContext, Chunk, LoadArgs, Loader, NormalizedBundleOptions, PluginContext,
+  PluginLoadHookOutput, PluginResolveHookOutput, PluginTapGeneratedChunkHookOutput,
+  PluginTransformAstHookOutput, PluginTransformHookOutput, ResolveArgs,
 };
 use rspack_swc::swc_ecma_ast;
-use std::{
-  path::Path,
-  sync::{atomic::AtomicBool, Arc},
-};
+use std::sync::{atomic::AtomicBool, Arc};
 
 #[derive(Debug, Default)]
 struct Record {
@@ -50,8 +47,8 @@ impl Plugin for PluginHookTester {
 
   fn transform_ast(
     &self,
-    _ctx: &BundleContext,
-    _path: &Path,
+    _ctx: &PluginContext,
+    _path: &str,
     ast: swc_ecma_ast::Module,
   ) -> PluginTransformAstHookOutput {
     self

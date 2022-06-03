@@ -1,5 +1,3 @@
-use std::path::Path;
-
 pub use rspack_swc::swc_ecma_ast as ast;
 
 use tracing::instrument;
@@ -12,7 +10,7 @@ use crate::{
 #[instrument(skip(ast, plugin_driver))]
 #[inline]
 pub fn transform_ast(
-  path: &Path,
+  path: &str,
   ast: ast::Module,
   plugin_driver: &PluginDriver,
 ) -> PluginTransformAstHookOutput {

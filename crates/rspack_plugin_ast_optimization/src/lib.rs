@@ -1,11 +1,9 @@
 #![deny(clippy::all)]
 
-use std::path::Path;
-
 use async_trait::async_trait;
 
-use rspack_core::{ast, BundleContext, Plugin, PluginTransformAstHookOutput};
-use rspack_swc::swc_ecma_visit::FoldWith;
+use rspack_core::{ast, Plugin, PluginContext, PluginTransformAstHookOutput};
+use rspack_swc::{swc_common::Mark, swc_ecma_visit::FoldWith};
 
 mod constant_folder;
 mod utils;
@@ -66,14 +64,14 @@ impl Plugin for OptimizationPlugin {
   }
   fn transform_ast(
     &self,
-    ctx: &BundleContext,
-    _path: &Path,
+    ctx: &PluginContext,
+    _path: &str,
     ast: ast::Module,
   ) -> PluginTransformAstHookOutput {
     Ok(
       ctx
         .compiler
-        .run(|| ast.fold_with(&mut constant_folder(ctx.unresolved_mark))),
+        .run(|| ast.fold_with(&mut constant_folder(Mark::new()))),
     )
   }
 }
