@@ -2,7 +2,7 @@
 
 use async_trait::async_trait;
 use rspack_core::{
-  BundleContext, LoadArgs, LoadedSource, Loader, OnResolveResult, Plugin, PluginLoadHookOutput,
+  LoadArgs, LoadedSource, Loader, OnResolveResult, Plugin, PluginContext, PluginLoadHookOutput,
   PluginResolveHookOutput, ResolveArgs,
 };
 
@@ -41,7 +41,7 @@ impl Plugin for GlobalsPlugin {
   fn need_tap_generated_chunk(&self) -> bool {
     false
   }
-  async fn resolve(&self, ctx: &BundleContext, args: &ResolveArgs) -> PluginResolveHookOutput {
+  async fn resolve(&self, ctx: &PluginContext, args: &ResolveArgs) -> PluginResolveHookOutput {
     if ctx.options.globals.get(&args.id).is_some() {
       return Ok(Some(OnResolveResult {
         uri: format!("globals:{}", args.id),
@@ -52,7 +52,7 @@ impl Plugin for GlobalsPlugin {
     Ok(None)
   }
 
-  async fn load(&self, ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
+  async fn load(&self, ctx: &PluginContext, args: &LoadArgs) -> PluginLoadHookOutput {
     if &args.id[0..8] == "globals:" {
       if let Some(expr_string) = ctx.options.globals.get(&args.id[8..]) {
         let content = format!(

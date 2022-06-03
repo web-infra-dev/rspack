@@ -1,7 +1,7 @@
 #![deny(clippy::all)]
 
 use async_trait::async_trait;
-use rspack_core::{BundleContext, Loader, Plugin, PluginTransformHookOutput};
+use rspack_core::{Loader, Plugin, PluginContext, PluginTransformHookOutput};
 
 pub static PLUGIN_NAME: &str = "rspack_loader_plugin";
 
@@ -45,7 +45,7 @@ impl Plugin for StyleLoaderPlugin {
   }
   fn transform(
     &self,
-    _ctx: &BundleContext,
+    _ctx: &PluginContext,
     _uri: &str,
     loader: &mut Option<Loader>,
     raw: String,

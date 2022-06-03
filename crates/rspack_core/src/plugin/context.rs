@@ -44,4 +44,8 @@ impl<'me> PluginContext<'me> {
       assets.push(asset);
     });
   }
+
+  pub fn assets(&self) -> &'me Mutex<Vec<Asset>> {
+    self.assets
+  }
 }

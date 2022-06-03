@@ -9,7 +9,7 @@ use core::fmt::Debug;
 use rspack_core::{ast, PluginContext, PluginTransformAstHookOutput, PluginTransformHookOutput};
 use rspack_swc::swc_ecma_visit::VisitMutWith;
 pub static PLUGIN_NAME: &str = "rspack_svgr";
-use rspack_core::{BundleContext, LoadArgs, LoadedSource, Loader, Plugin, PluginLoadHookOutput};
+use rspack_core::{LoadArgs, LoadedSource, Loader, Plugin, PluginLoadHookOutput};
 use std::fs::read_to_string;
 use std::path::Path;
 
@@ -45,7 +45,7 @@ impl Plugin for SvgrPlugin {
   }
 
   #[inline]
-  async fn load(&self, _ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
+  async fn load(&self, _ctx: &PluginContext, args: &LoadArgs) -> PluginLoadHookOutput {
     let query_start = args.id.find(|c: char| c == '?').unwrap_or(args.id.len());
     let file_path = Path::new(&args.id[..query_start]);
     let ext = file_path
@@ -86,7 +86,7 @@ impl Plugin for SvgrPlugin {
 
   fn transform(
     &self,
-    _ctx: &BundleContext,
+    _ctx: &PluginContext,
     id: &str,
     loader: &mut Option<Loader>,
     raw: String,

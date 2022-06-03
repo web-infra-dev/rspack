@@ -9,7 +9,7 @@ use react_hmr::{
 use rspack_core::ast::Ident;
 use rspack_core::path::normalize_path;
 use rspack_core::{
-  ast, BundleContext, BundleMode, LoadArgs, LoadedSource, Loader, OnResolveResult, Plugin,
+  ast, BundleMode, LoadArgs, LoadedSource, Loader, OnResolveResult, Plugin, PluginContext,
   PluginLoadHookOutput, PluginResolveHookOutput, ResolveArgs,
 };
 use rspack_swc::swc_common::comments::SingleThreadedComments;
@@ -53,7 +53,7 @@ impl Plugin for ReactPlugin {
   fn need_tap_generated_chunk(&self) -> bool {
     false
   }
-  async fn resolve(&self, _ctx: &BundleContext, args: &ResolveArgs) -> PluginResolveHookOutput {
+  async fn resolve(&self, _ctx: &PluginContext, args: &ResolveArgs) -> PluginResolveHookOutput {
     if args.id == HMR_RUNTIME_PATH || args.id == HMR_ENTRY_PATH {
       Ok(Some(OnResolveResult {
         uri: args.id.to_string(),
@@ -64,7 +64,7 @@ impl Plugin for ReactPlugin {
     }
   }
 
-  async fn load(&self, _ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
+  async fn load(&self, _ctx: &PluginContext, args: &LoadArgs) -> PluginLoadHookOutput {
     if args.id == HMR_RUNTIME_PATH {
       return Ok(Some(LoadedSource::with_loader(
         load_hmr_runtime_path(&_ctx.options.as_ref().root),

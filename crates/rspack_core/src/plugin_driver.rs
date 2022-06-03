@@ -86,22 +86,24 @@ impl PluginDriver {
 
   #[instrument(skip_all)]
   pub async fn build_start(&self) -> PluginBuildStartHookOutput {
+    let ctx = self.plugin_context();
     try_join_all(
       self
         .build_start_hints
         .iter()
-        .map(|i| self.plugins[*i].build_start(&self.ctx)),
+        .map(|i| self.plugins[*i].build_start(&ctx)),
     )
     .await?;
     Ok(())
   }
   #[instrument(skip_all)]
   pub async fn build_end(&self) -> PluginBuildEndHookOutput {
+    let ctx = self.plugin_context();
     try_join_all(
       self
         .build_end_hints
         .iter()
-        .map(|i| self.plugins[*i].build_end(&self.ctx)),
+        .map(|i| self.plugins[*i].build_end(&ctx)),
     )
     .await?;
     Ok(())
@@ -110,7 +112,7 @@ impl PluginDriver {
   pub async fn resolve_id(&self, args: &ResolveArgs) -> Result<Option<OnResolveResult>> {
     for i in self.resolve_id_hints.iter() {
       let plugin = &self.plugins[*i];
-      let res = plugin.resolve(&self.ctx, args).await?;
+      let res = plugin.resolve(&self.plugin_context(), args).await?;
       if res.is_some() {
         tracing::trace!("got load result of plugin {:?}", plugin.name());
         return Ok(res);
@@ -122,7 +124,7 @@ impl PluginDriver {
   pub async fn load(&self, args: &LoadArgs) -> Result<Option<LoadedSource>> {
     for i in self.load_hints.iter() {
       let plugin = &self.plugins[*i];
-      let res = plugin.load(&self.ctx, args).await?;
+      let res = plugin.load(&self.plugin_context(), args).await?;
       if res.is_some() {
         return Ok(res);
       }
@@ -140,7 +142,7 @@ impl PluginDriver {
       .transform_hints
       .iter()
       .fold(Ok(raw), |transformed_raw, i| {
-        self.plugins[*i].transform(&self.ctx, uri, loader, transformed_raw?)
+        self.plugins[*i].transform(&self.plugin_context(), uri, loader, transformed_raw?)
       })
   }
   #[instrument(skip_all)]
@@ -162,7 +164,7 @@ impl PluginDriver {
       .tap_generated_chunk_hints
       .iter()
       .try_for_each(|i| -> Result<()> {
-        self.plugins[*i].tap_generated_chunk(&self.ctx, chunk, bundle_options)
+        self.plugins[*i].tap_generated_chunk(&self.plugin_context(), chunk, bundle_options)
       })
   }
 

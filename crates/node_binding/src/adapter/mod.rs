@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use rspack_core::{
-  BundleContext, LoadArgs, Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput,
+  LoadArgs, Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput, PluginContext,
   PluginLoadHookOutput, PluginResolveHookOutput, ResolveArgs,
 };
 
@@ -130,7 +130,7 @@ impl Plugin for RspackPluginNodeAdapter {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn build_start(&self, _ctx: &BundleContext) -> PluginBuildStartHookOutput {
+  async fn build_start(&self, _ctx: &PluginContext) -> PluginBuildStartHookOutput {
     let context = RspackThreadsafeContext::new(());
 
     let (tx, rx) = oneshot::channel::<()>();
@@ -169,7 +169,7 @@ impl Plugin for RspackPluginNodeAdapter {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn build_end(&self, _ctx: &BundleContext) -> PluginBuildEndHookOutput {
+  async fn build_end(&self, _ctx: &PluginContext) -> PluginBuildEndHookOutput {
     let context = RspackThreadsafeContext::new(());
 
     let (tx, rx) = oneshot::channel::<()>();
@@ -208,7 +208,7 @@ impl Plugin for RspackPluginNodeAdapter {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn resolve(&self, _ctx: &BundleContext, args: &ResolveArgs) -> PluginResolveHookOutput {
+  async fn resolve(&self, _ctx: &PluginContext, args: &ResolveArgs) -> PluginResolveHookOutput {
     let resolve_context = RspackThreadsafeContext::new(OnResolveContext {
       importer: args.importer.clone(),
       importee: args.id.to_owned(),
@@ -258,7 +258,7 @@ impl Plugin for RspackPluginNodeAdapter {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn load(&self, _ctx: &BundleContext, args: &LoadArgs) -> PluginLoadHookOutput {
+  async fn load(&self, _ctx: &PluginContext, args: &LoadArgs) -> PluginLoadHookOutput {
     let load_context = RspackThreadsafeContext::new(OnLoadContext {
       id: args.id.to_owned(),
     });

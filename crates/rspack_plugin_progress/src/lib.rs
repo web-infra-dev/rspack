@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use console::{style, Color, Term};
 use core::fmt::Debug;
 use rspack_core::{
-  BundleContext, Loader, Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput,
+  Loader, Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput, PluginContext,
   PluginTransformHookOutput,
 };
 use std::sync::{Arc, Mutex};
@@ -178,7 +178,7 @@ impl Plugin for ProgressPlugin {
   fn need_tap_generated_chunk(&self) -> bool {
     false
   }
-  async fn build_start(&self, _ctx: &BundleContext) -> PluginBuildStartHookOutput {
+  async fn build_start(&self, _ctx: &PluginContext) -> PluginBuildStartHookOutput {
     // if matches!(_ctx.options.mode, BundleMode::Dev) {
     //   return;
     // }
@@ -199,7 +199,7 @@ impl Plugin for ProgressPlugin {
 
   fn transform(
     &self,
-    _ctx: &BundleContext,
+    _ctx: &PluginContext,
     _uri: &str,
     _loader: &mut Option<Loader>,
     raw: String,
@@ -218,7 +218,7 @@ impl Plugin for ProgressPlugin {
     self.progress.update("RsPack", _uri, 1)?;
     Ok(raw)
   }
-  async fn build_end(&self, _ctx: &BundleContext) -> PluginBuildEndHookOutput {
+  async fn build_end(&self, _ctx: &PluginContext) -> PluginBuildEndHookOutput {
     let mut done = self.progress.done.lock().unwrap();
     if *done {
       return Ok(());
@@ -235,7 +235,7 @@ impl Plugin for ProgressPlugin {
     let s = total.to_string();
     file.write_all(s.as_bytes()).unwrap();
 
-    let assets = _ctx.assets.lock().unwrap();
+    let assets = _ctx.assets().lock().unwrap();
 
     let outdir = _ctx
       .options
