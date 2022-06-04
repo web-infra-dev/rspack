@@ -67,86 +67,84 @@ impl Task {
   #[instrument(skip(self))]
   pub async fn run(&mut self) -> Result<()> {
     let resolved_uri = self.resolved_uri.clone();
-    if resolved_uri.external {
+
+    let mut task_context = TaskContext {
+      module_kind: JsModuleKind::Normal,
+    };
+
+    tracing::trace!("start process {:?}", resolved_uri);
+    let uri_resolver = DependencyIdResolver {
+      module_id: resolved_uri.uri.clone(),
+      resolved_ids: Default::default(),
+      plugin_driver: self.plugin_driver.clone(),
+    };
+
+    let module_id: &str = &resolved_uri.uri;
+    let (source, mut loader) = if resolved_uri.ignored {
+      let source = String::from("export default {}");
+      let loader = Some(crate::Loader::Js);
+      task_context.set_module_kind(JsModuleKind::Ignored);
+      (source, loader)
     } else {
-      let mut task_context = TaskContext {
-        module_kind: JsModuleKind::Normal,
-      };
+      let (source, loader) = plugin_hook::load(
+        LoadArgs {
+          kind: resolved_uri.kind,
+          id: module_id.to_string(),
+        },
+        &self.plugin_driver,
+      )
+      .await?;
+      task_context.set_module_kind(JsModuleKind::Normal);
+      (source, loader)
+    };
+    let transformed_source =
+      plugin_hook::transform(module_id, &mut loader, source, &self.plugin_driver)?;
+    let loader = loader
+      .as_ref()
+      .unwrap_or_else(|| panic!("No loader to deal with file: {:?}", module_id));
+    let mut dependency_scanner = DependencyScanner::default();
+    let raw_ast = parse_file(transformed_source, module_id, loader).expect_module();
 
-      tracing::trace!("start process {:?}", resolved_uri);
-      let uri_resolver = DependencyIdResolver {
-        module_id: resolved_uri.uri.clone(),
-        resolved_ids: Default::default(),
-        plugin_driver: self.plugin_driver.clone(),
-      };
+    let mut ast = plugin_hook::transform_ast(module_id, raw_ast, &self.plugin_driver)?;
 
-      let module_id: &str = &resolved_uri.uri;
-      let (source, mut loader) = if resolved_uri.ignored {
-        let source = String::from("export default {}");
-        let loader = Some(crate::Loader::Js);
-        task_context.set_module_kind(JsModuleKind::Ignored);
-        (source, loader)
-      } else {
-        let (source, loader) = plugin_hook::load(
-          LoadArgs {
-            kind: resolved_uri.kind,
-            id: module_id.to_string(),
-          },
-          &self.plugin_driver,
-        )
-        .await?;
-        task_context.set_module_kind(JsModuleKind::Normal);
-        (source, loader)
-      };
-      let transformed_source =
-        plugin_hook::transform(module_id, &mut loader, source, &self.plugin_driver)?;
-      let loader = loader
-        .as_ref()
-        .unwrap_or_else(|| panic!("No loader to deal with file: {:?}", module_id));
-      let mut dependency_scanner = DependencyScanner::default();
-      let raw_ast = parse_file(transformed_source, module_id, loader).expect_module();
+    self
+      .pre_analyze_imported_module(&uri_resolver, &ast)
+      .await?;
 
-      let mut ast = plugin_hook::transform_ast(module_id, raw_ast, &self.plugin_driver)?;
+    ast.visit_mut_with(&mut dependency_scanner);
 
-      self
-        .pre_analyze_imported_module(&uri_resolver, &ast)
-        .await?;
-
-      ast.visit_mut_with(&mut dependency_scanner);
-
-      for (import, _) in &dependency_scanner.dependencies {
-        let resolved_id = uri_resolver.resolve(import, ImportKind::Import).await?;
-        self.spawn_new_task(resolved_id);
-      }
-
-      for dyn_import in &dependency_scanner.dyn_dependencies {
-        let resolved_id = uri_resolver
-          .resolve(&dyn_import.argument, ImportKind::DynamicImport)
-          .await?;
-        self.spawn_new_task(resolved_id);
-      }
-
-      let module = JsModule {
-        kind: task_context.module_kind,
-        exec_order: Default::default(),
-        uri: resolved_uri.uri.clone(),
-        id: normalize_path(
-          resolved_uri.uri.clone().as_str(),
-          self.root.clone().as_str(),
-        ),
-        ast,
-        dependencies: dependency_scanner.dependencies,
-        dyn_imports: dependency_scanner.dyn_dependencies,
-        resolved_uris: uri_resolver
-          .resolved_ids
-          .into_iter()
-          .map(|(key, value)| (key, value))
-          .collect(),
-        loader: *loader,
-        cached_output: Default::default(),
-      };
-      self.tx.send(Msg::TaskFinished(Box::new(module)))?
+    for (import, _) in &dependency_scanner.dependencies {
+      let resolved_id = uri_resolver.resolve(import, ImportKind::Import).await?;
+      self.spawn_new_task(resolved_id);
     }
+
+    for dyn_import in &dependency_scanner.dyn_dependencies {
+      let resolved_id = uri_resolver
+        .resolve(&dyn_import.argument, ImportKind::DynamicImport)
+        .await?;
+      self.spawn_new_task(resolved_id);
+    }
+
+    let module = JsModule {
+      kind: task_context.module_kind,
+      exec_order: Default::default(),
+      uri: resolved_uri.uri.clone(),
+      id: normalize_path(
+        resolved_uri.uri.clone().as_str(),
+        self.root.clone().as_str(),
+      ),
+      ast,
+      dependencies: dependency_scanner.dependencies,
+      dyn_imports: dependency_scanner.dyn_dependencies,
+      resolved_uris: uri_resolver
+        .resolved_ids
+        .into_iter()
+        .map(|(key, value)| (key, value))
+        .collect(),
+      loader: *loader,
+      cached_output: Default::default(),
+    };
+    self.tx.send(Msg::TaskFinished(Box::new(module)))?;
 
     Ok(())
   }

@@ -70,7 +70,6 @@ impl Bundle {
         job_queue.push(ResolvedURI {
           uri: rd,
           kind: ImportKind::Import,
-          external: false,
           ignored: false,
         });
       });
