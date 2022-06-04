@@ -168,8 +168,8 @@ impl PluginDriver {
       })
   }
 
-  fn plugin_context<'me>(&'me self) -> PluginContext<'me> {
-    PluginContext::<'me>::new(
+  fn plugin_context(&self) -> PluginContext {
+    PluginContext::new(
       &self.ctx.assets,
       self.ctx.compiler.clone(),
       self.ctx.options.clone(),
