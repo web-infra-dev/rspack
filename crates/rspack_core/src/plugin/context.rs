@@ -7,25 +7,28 @@ use rspack_swc::swc::Compiler;
 
 use crate::{Asset, NormalizedBundleOptions};
 
-pub struct PluginContext<'me> {
+pub struct PluginContext<'me, Context: 'me = ()> {
   assets: &'me Mutex<Vec<Asset>>,
   pub compiler: Arc<Compiler>,
   pub options: Arc<NormalizedBundleOptions>,
   pub(crate) resolved_entries: Arc<HashSet<String>>,
+  pub context: Context,
 }
 
-impl<'me> PluginContext<'me> {
-  pub fn new(
+impl<'me, T> PluginContext<'me, T> {
+  pub fn with_context(
     assets: &'me Mutex<Vec<Asset>>,
     compiler: Arc<Compiler>,
     options: Arc<NormalizedBundleOptions>,
     resolved_entries: Arc<HashSet<String>>,
+    context: T,
   ) -> Self {
     Self {
       assets,
       compiler,
       options,
       resolved_entries,
+      context,
     }
   }
 
@@ -49,3 +52,22 @@ impl<'me> PluginContext<'me> {
     self.assets
   }
 }
+
+impl<'me> PluginContext<'me> {
+  pub fn new(
+    assets: &'me Mutex<Vec<Asset>>,
+    compiler: Arc<Compiler>,
+    options: Arc<NormalizedBundleOptions>,
+    resolved_entries: Arc<HashSet<String>>,
+  ) -> Self {
+    Self {
+      assets,
+      compiler,
+      options,
+      resolved_entries,
+      context: (),
+    }
+  }
+}
+
+// type PluginContextWithTaskContextSequential<'a> = PluginContext<'a, &mut TaskContext>;
