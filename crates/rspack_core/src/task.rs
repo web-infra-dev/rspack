@@ -69,6 +69,10 @@ impl Task {
     let resolved_uri = self.resolved_uri.clone();
     if resolved_uri.external {
     } else {
+      let mut task_context = TaskContext {
+        module_kind: JsModuleKind::Normal,
+      };
+
       tracing::trace!("start process {:?}", resolved_uri);
       let uri_resolver = DependencyIdResolver {
         module_id: resolved_uri.uri.clone(),
@@ -77,10 +81,11 @@ impl Task {
       };
 
       let module_id: &str = &resolved_uri.uri;
-      let (source, mut loader, kind) = if resolved_uri.ignored {
+      let (source, mut loader) = if resolved_uri.ignored {
         let source = String::from("export default {}");
         let loader = Some(crate::Loader::Js);
-        (source, loader, JsModuleKind::Ignored)
+        task_context.set_module_kind(JsModuleKind::Ignored);
+        (source, loader)
       } else {
         let (source, loader) = plugin_hook::load(
           LoadArgs {
@@ -90,7 +95,8 @@ impl Task {
           &self.plugin_driver,
         )
         .await?;
-        (source, loader, JsModuleKind::Normal)
+        task_context.set_module_kind(JsModuleKind::Normal);
+        (source, loader)
       };
       let transformed_source =
         plugin_hook::transform(module_id, &mut loader, source, &self.plugin_driver)?;
@@ -121,7 +127,7 @@ impl Task {
       }
 
       let module = JsModule {
-        kind,
+        kind: task_context.module_kind,
         exec_order: Default::default(),
         uri: resolved_uri.uri.clone(),
         id: normalize_path(
@@ -197,5 +203,15 @@ impl Task {
       }
     }
     Ok(())
+  }
+}
+
+pub struct TaskContext {
+  pub(crate) module_kind: JsModuleKind,
+}
+
+impl TaskContext {
+  pub fn set_module_kind(&mut self, kind: JsModuleKind) {
+    self.module_kind = kind;
   }
 }
