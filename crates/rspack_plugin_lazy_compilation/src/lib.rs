@@ -3,6 +3,7 @@
 use async_trait::async_trait;
 use rspack_core::{
   ImportKind, LoadArgs, LoadedSource, Loader, Plugin, PluginContext, PluginLoadHookOutput,
+  TaskContext,
 };
 
 #[derive(Debug)]
@@ -57,7 +58,11 @@ impl Plugin for LazyCompilationPlugin {
   fn need_tap_generated_chunk(&self) -> bool {
     false
   }
-  async fn load(&self, _ctx: &PluginContext, args: &LoadArgs) -> PluginLoadHookOutput {
+  async fn load(
+    &self,
+    _ctx: &PluginContext<&mut TaskContext>,
+    args: &LoadArgs,
+  ) -> PluginLoadHookOutput {
     if args.kind == ImportKind::DynamicImport {
       return Ok(Some(LoadedSource {
         content: Some("".to_string()),

@@ -3,7 +3,7 @@
 use async_trait::async_trait;
 use rspack_core::{
   LoadArgs, LoadedSource, Loader, OnResolveResult, Plugin, PluginContext, PluginLoadHookOutput,
-  PluginResolveHookOutput, ResolveArgs,
+  PluginResolveHookOutput, ResolveArgs, TaskContext,
 };
 
 #[derive(Debug)]
@@ -52,7 +52,11 @@ impl Plugin for GlobalsPlugin {
     Ok(None)
   }
 
-  async fn load(&self, ctx: &PluginContext, args: &LoadArgs) -> PluginLoadHookOutput {
+  async fn load(
+    &self,
+    ctx: &PluginContext<&mut TaskContext>,
+    args: &LoadArgs,
+  ) -> PluginLoadHookOutput {
     if &args.id[0..8] == "globals:" {
       if let Some(expr_string) = ctx.options.globals.get(&args.id[8..]) {
         let content = format!(

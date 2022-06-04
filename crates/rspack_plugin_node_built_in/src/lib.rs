@@ -2,7 +2,9 @@
 
 use async_trait::async_trait;
 use nodejs_resolver::Resolver;
-use rspack_core::{LoadArgs, LoadedSource, Loader, Plugin, PluginContext, PluginLoadHookOutput};
+use rspack_core::{
+  LoadArgs, LoadedSource, Loader, Plugin, PluginContext, PluginLoadHookOutput, TaskContext,
+};
 
 #[derive(Debug)]
 pub struct NodeBuiltInPlugin;
@@ -45,7 +47,11 @@ impl Plugin for NodeBuiltInPlugin {
     false
   }
 
-  async fn load(&self, ctx: &PluginContext, args: &LoadArgs) -> PluginLoadHookOutput {
+  async fn load(
+    &self,
+    ctx: &PluginContext<&mut TaskContext>,
+    args: &LoadArgs,
+  ) -> PluginLoadHookOutput {
     let id = &args.id;
     let result = if ctx.options.platform.eq(&rspack_core::Platform::Node)
       && Resolver::is_build_in_module(id)

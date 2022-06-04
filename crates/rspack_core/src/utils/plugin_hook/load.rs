@@ -3,15 +3,16 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use tracing::instrument;
 
-use crate::{plugin_driver::PluginDriver, LoadArgs, Loader, LoaderOptions};
+use crate::{plugin_driver::PluginDriver, task::TaskContext, LoadArgs, Loader, LoaderOptions};
 
 #[instrument(skip_all)]
 #[inline]
 pub async fn load(
   args: LoadArgs,
   plugin_driver: &PluginDriver,
+  task_context: &mut TaskContext,
 ) -> Result<(String, Option<Loader>)> {
-  let plugin_result = plugin_driver.load(&args).await?;
+  let plugin_result = plugin_driver.load(&args, task_context).await?;
   let content = plugin_result
     .clone()
     .and_then(|load_output| load_output.content);

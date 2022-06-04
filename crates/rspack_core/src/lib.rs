@@ -26,6 +26,7 @@ pub use plugin::*;
 pub use plugin_driver::*;
 pub use result::*;
 pub use runtime::*;
+pub use task::*;
 
 pub use rspack_swc::swc_ecma_ast as ast;
 

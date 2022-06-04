@@ -10,7 +10,7 @@ use rspack_core::ast::Ident;
 use rspack_core::path::normalize_path;
 use rspack_core::{
   ast, BundleMode, LoadArgs, LoadedSource, Loader, OnResolveResult, Plugin, PluginContext,
-  PluginLoadHookOutput, PluginResolveHookOutput, ResolveArgs,
+  PluginLoadHookOutput, PluginResolveHookOutput, ResolveArgs, TaskContext,
 };
 use rspack_swc::swc_common::comments::SingleThreadedComments;
 use rspack_swc::swc_ecma_transforms_base::resolver;
@@ -64,7 +64,11 @@ impl Plugin for ReactPlugin {
     }
   }
 
-  async fn load(&self, _ctx: &PluginContext, args: &LoadArgs) -> PluginLoadHookOutput {
+  async fn load(
+    &self,
+    _ctx: &PluginContext<&mut TaskContext>,
+    args: &LoadArgs,
+  ) -> PluginLoadHookOutput {
     if args.id == HMR_RUNTIME_PATH {
       return Ok(Some(LoadedSource::with_loader(
         load_hmr_runtime_path(&_ctx.options.as_ref().root),

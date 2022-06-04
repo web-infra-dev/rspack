@@ -92,6 +92,7 @@ impl Task {
           id: module_id.to_string(),
         },
         &self.plugin_driver,
+        &mut task_context,
       )
       .await?;
       task_context.set_module_kind(JsModuleKind::Normal);

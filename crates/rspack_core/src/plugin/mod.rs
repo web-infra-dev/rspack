@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::fmt::Debug;
 
-use crate::{Chunk, Loader, NormalizedBundleOptions};
+use crate::{task::TaskContext, Chunk, Loader, NormalizedBundleOptions};
 use async_trait::async_trait;
 use rspack_swc::swc_ecma_ast as ast;
 
@@ -95,7 +95,11 @@ pub trait Plugin: Sync + Send + Debug {
   }
 
   #[inline]
-  async fn load(&self, _ctx: &PluginContext, _args: &LoadArgs) -> PluginLoadHookOutput {
+  async fn load(
+    &self,
+    _ctx: &PluginContext<&mut TaskContext>,
+    _args: &LoadArgs,
+  ) -> PluginLoadHookOutput {
     Ok(None)
   }
 

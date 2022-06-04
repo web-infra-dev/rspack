@@ -6,7 +6,9 @@ mod transform;
 use async_trait::async_trait;
 use clean::clean;
 use core::fmt::Debug;
-use rspack_core::{ast, PluginContext, PluginTransformAstHookOutput, PluginTransformHookOutput};
+use rspack_core::{
+  ast, PluginContext, PluginTransformAstHookOutput, PluginTransformHookOutput, TaskContext,
+};
 use rspack_swc::swc_ecma_visit::VisitMutWith;
 pub static PLUGIN_NAME: &str = "rspack_svgr";
 use rspack_core::{LoadArgs, LoadedSource, Loader, Plugin, PluginLoadHookOutput};
@@ -45,7 +47,11 @@ impl Plugin for SvgrPlugin {
   }
 
   #[inline]
-  async fn load(&self, _ctx: &PluginContext, args: &LoadArgs) -> PluginLoadHookOutput {
+  async fn load(
+    &self,
+    _ctx: &PluginContext<&mut TaskContext>,
+    args: &LoadArgs,
+  ) -> PluginLoadHookOutput {
     let query_start = args.id.find(|c: char| c == '?').unwrap_or(args.id.len());
     let file_path = Path::new(&args.id[..query_start]);
     let ext = file_path

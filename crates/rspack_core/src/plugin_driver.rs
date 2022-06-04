@@ -10,8 +10,8 @@ use rspack_swc::swc_ecma_ast as ast;
 use tracing::instrument;
 
 use crate::{
-  BundleContext, Chunk, LoadArgs, LoadedSource, Loader, NormalizedBundleOptions, OnResolveResult,
-  Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput, PluginContext,
+  task::TaskContext, BundleContext, Chunk, LoadArgs, LoadedSource, Loader, NormalizedBundleOptions,
+  OnResolveResult, Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput, PluginContext,
   PluginTapGeneratedChunkHookOutput, PluginTransformAstHookOutput, PluginTransformHookOutput,
   ResolveArgs,
 };
@@ -121,10 +121,19 @@ impl PluginDriver {
     Ok(None)
   }
   #[instrument(skip_all)]
-  pub async fn load(&self, args: &LoadArgs) -> Result<Option<LoadedSource>> {
+  pub async fn load(
+    &self,
+    args: &LoadArgs,
+    task_context: &mut TaskContext,
+  ) -> Result<Option<LoadedSource>> {
     for i in self.load_hints.iter() {
       let plugin = &self.plugins[*i];
-      let res = plugin.load(&self.plugin_context(), args).await?;
+      let res = plugin
+        .load(
+          &self.plugin_context_with_mut_task_context(task_context),
+          args,
+        )
+        .await?;
       if res.is_some() {
         return Ok(res);
       }
@@ -174,6 +183,19 @@ impl PluginDriver {
       self.ctx.compiler.clone(),
       self.ctx.options.clone(),
       self.resolved_entries.read().unwrap().clone(),
+    )
+  }
+
+  fn plugin_context_with_mut_task_context<'a>(
+    &'a self,
+    task_context: &'a mut TaskContext,
+  ) -> PluginContext<'a, &mut TaskContext> {
+    PluginContext::with_context(
+      &self.ctx.assets,
+      self.ctx.compiler.clone(),
+      self.ctx.options.clone(),
+      self.resolved_entries.read().unwrap().clone(),
+      task_context,
     )
   }
 }
