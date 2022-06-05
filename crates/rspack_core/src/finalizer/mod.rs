@@ -1,3 +1,4 @@
+pub mod finalize;
 pub mod hmr;
 
-pub use hmr::*;
+pub use finalize::*;

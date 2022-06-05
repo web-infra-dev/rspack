@@ -1,3 +1,36 @@
+class Hot {
+  constructor(id) {
+    this.id = id;
+    this.accepts = [];
+  }
+  accept(ids, callback) {
+    if (ids === undefined) {
+      this.accepts.push({
+        ids: this.id,
+        accept: undefined,
+      });
+    } else if (typeof ids === 'function') {
+      this.accepts.push({
+        ids: this.id,
+        accept: ids,
+      });
+    } else {
+      this.accepts.push({
+        ids,
+        accept: callback,
+      });
+    }
+  }
+  dispose(callback) {
+    this.accepts.push({
+      id: this.id,
+      dispose: callback,
+    });
+  }
+}
+
+globalThis.rs.Hot = globalThis.rs.Hot || Hot;
+
 function invalidate(dirtyId) {
   const modules = rs.m;
   rs.require(dirtyId);

@@ -47,12 +47,11 @@ impl Plugin for NodeBuiltInPlugin {
 
   async fn load(&self, ctx: &PluginContext, args: &LoadArgs) -> PluginLoadHookOutput {
     let id = &args.id;
-    let result = if ctx.options.platform.eq(&rspack_core::Platform::Node)
-      && Resolver::is_build_in_module(id)
-    {
-      let content = format!(
-        r#"var {id} = eval("require('{id}')");
-
+    if Resolver::is_build_in_module(id) {
+      if ctx.options.platform.eq(&rspack_core::Platform::Node) {
+        let content = format!(
+          r#"var {id} = eval("require('{id}')");
+  
 Object.keys({id}).forEach(function(key) {{
   if (key === "default" || key === "__esModule") return;
   if (key in exports && exports[key] === {id}[key]) return;
@@ -64,18 +63,23 @@ Object.keys({id}).forEach(function(key) {{
   }});
 }});
 
-export default {id};
-      "#
-      );
+export default {id};"#
+        );
 
-      Some(LoadedSource {
-        content: Some(content),
-        loader: Some(Loader::Js),
-      })
+        Ok(Some(LoadedSource {
+          content: Some(content),
+          loader: Some(Loader::Js),
+        }))
+      } else {
+        anyhow::bail!(format!(
+          "The package \"{}\" wasn't found on the file system
+        but is built into node. Are you trying to bundle for
+        node? You can set the platform to Node to do that, which will remove this error.",
+          id
+        ))
+      }
     } else {
-      None
-    };
-
-    Ok(result)
+      Ok(None)
+    }
   }
 }

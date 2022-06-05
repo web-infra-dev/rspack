@@ -1,5 +1,5 @@
-use crate::runtime::rspack_runtime;
-use crate::{Bundle, NormalizedBundleOptions, SourceMapOptions};
+// use crate::runtime::rspack_runtime;
+use crate::{Bundle, NormalizedBundleOptions, Platform, RuntimeInjector, SourceMapOptions};
 use rayon::prelude::*;
 use rspack_sources::{
   ConcatSource, GenMapOption, RawSource, Source, SourceMapSource, SourceMapSourceOptions,
@@ -62,7 +62,16 @@ impl Chunk {
       .collect::<Vec<_>>();
 
     if let ChunkKind::Entry { .. } = &self.kind {
-      let code = rspack_runtime(&options.runtime, options);
+      // this should be globalized
+      let injector = RuntimeInjector {
+        cjs_runtime_hmr: options.runtime.hmr.into(),
+        cjs_runtime_browser: matches!(options.platform, Platform::Browser).into(),
+        cjs_runtime_node: matches!(options.platform, Platform::Node).into(),
+        ..Default::default()
+      };
+
+      let code = injector.as_code(bundle).unwrap();
+
       if code.trim() != "" {
         let runtime = Box::new(RawSource::new(&code));
         concattables.push(runtime);

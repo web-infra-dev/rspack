@@ -17,7 +17,7 @@ use swc_ecma_transforms_base::pass::noop;
 use tracing::instrument;
 
 use crate::{
-  finalize::finalize, syntax_by_loader, Bundle, BundleMode, Loader, ModuleGraph, ResolvedURI,
+  finalizer::finalize, syntax_by_loader, Bundle, BundleMode, Loader, ModuleGraph, ResolvedURI,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
