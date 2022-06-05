@@ -4,7 +4,7 @@ use crate::common::{compile_fixture_with_plugins, prelude::*};
 use rspack_core::{
   Chunk, LoadArgs, Loader, NormalizedBundleOptions, PluginContext, PluginLoadHookOutput,
   PluginResolveHookOutput, PluginTapGeneratedChunkHookOutput, PluginTransformAstHookOutput,
-  PluginTransformHookOutput, ResolveArgs,
+  PluginTransformHookOutput, ResolveArgs, TaskContext,
 };
 use rspack_swc::swc_ecma_ast;
 use std::sync::{atomic::AtomicBool, Arc};
@@ -37,7 +37,11 @@ impl Plugin for PluginHookTester {
     Ok(None)
   }
 
-  async fn load(&self, _ctx: &PluginContext, _args: &LoadArgs) -> PluginLoadHookOutput {
+  async fn load(
+    &self,
+    _ctx: &PluginContext<&mut TaskContext>,
+    _args: &LoadArgs,
+  ) -> PluginLoadHookOutput {
     self
       .record
       .call_load
