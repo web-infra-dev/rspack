@@ -7,6 +7,8 @@ use rspack_swc::swc_ecma_ast as ast;
 
 mod context;
 pub use context::*;
+mod plugin_driver;
+pub use plugin_driver::*;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub enum ImportKind {

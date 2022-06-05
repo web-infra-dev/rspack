@@ -5,9 +5,7 @@ use nodejs_resolver::ResolveResult;
 use sugar_path::PathSugar;
 use tracing::instrument;
 
-use crate::{
-  plugin_driver::PluginDriver, OnResolveResult, ResolveArgs, ResolvedURI, RspackCoreError,
-};
+use crate::{OnResolveResult, PluginDriver, ResolveArgs, ResolvedURI, RspackCoreError};
 
 #[inline]
 pub fn is_external_module(source: &str) -> bool {

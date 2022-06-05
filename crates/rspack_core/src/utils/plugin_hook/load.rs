@@ -3,7 +3,7 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use tracing::instrument;
 
-use crate::{plugin_driver::PluginDriver, task::TaskContext, LoadArgs, Loader, LoaderOptions};
+use crate::{task::TaskContext, LoadArgs, Loader, LoaderOptions, PluginDriver};
 
 #[instrument(skip_all)]
 #[inline]

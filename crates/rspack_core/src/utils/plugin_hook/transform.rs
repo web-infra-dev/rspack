@@ -3,8 +3,7 @@ pub use rspack_swc::swc_ecma_ast as ast;
 use tracing::instrument;
 
 use crate::{
-  plugin::PluginTransformAstHookOutput, plugin_driver::PluginDriver, Loader,
-  PluginTransformHookOutput,
+  plugin::PluginTransformAstHookOutput, Loader, PluginDriver, PluginTransformHookOutput,
 };
 
 #[instrument(skip(ast, plugin_driver))]
