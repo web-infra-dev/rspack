@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use rspack_core::{
   LoadArgs, Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput, PluginContext,
-  PluginLoadHookOutput, PluginResolveHookOutput, ResolveArgs,
+  PluginLoadHookOutput, PluginResolveHookOutput, ResolveArgs, TaskContext,
 };
 
 use anyhow::Context;
@@ -258,7 +258,11 @@ impl Plugin for RspackPluginNodeAdapter {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn load(&self, _ctx: &PluginContext, args: &LoadArgs) -> PluginLoadHookOutput {
+  async fn load(
+    &self,
+    _ctx: &PluginContext<&mut TaskContext>,
+    args: &LoadArgs,
+  ) -> PluginLoadHookOutput {
     let load_context = RspackThreadsafeContext::new(OnLoadContext {
       id: args.id.to_owned(),
     });
