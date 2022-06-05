@@ -67,6 +67,17 @@ impl SourceMapOptions {
 }
 
 #[derive(Debug)]
+pub enum BundleTarget {
+  CommonJS,
+}
+
+impl Default for BundleTarget {
+  fn default() -> Self {
+    Self::CommonJS
+  }
+}
+
+#[derive(Debug)]
 pub struct BundleOptions {
   pub platform: Platform,
   pub react: BundleReactOptions,
@@ -89,6 +100,7 @@ pub struct BundleOptions {
   pub progress: bool,
   pub globals: HashMap<String, String>,
   pub runtime: RuntimeOptions,
+  pub target: BundleTarget,
 }
 
 impl Default for BundleOptions {
@@ -124,6 +136,7 @@ impl Default for BundleOptions {
       progress: true,
       globals: Default::default(),
       runtime: RuntimeOptions::default(),
+      target: Default::default(),
       platform: Default::default(),
     }
   }
@@ -153,6 +166,7 @@ impl From<BundleMode> for BundleOptions {
       define: Self::default().define,
       globals: Self::default().globals,
       runtime: Default::default(),
+      target: Default::default(),
       optimization: mode.into(),
     }
   }
