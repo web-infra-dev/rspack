@@ -1,7 +1,6 @@
 #![deny(clippy::all)]
 #![feature(box_patterns)]
 #![feature(iter_intersperse)]
-
 mod bundle;
 mod bundle_context;
 mod chunk;
