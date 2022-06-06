@@ -54,6 +54,7 @@ pub struct RuntimeInjector {
   pub cjs_runtime_browser: AtomicBool,
   pub cjs_runtime_node: AtomicBool,
   pub cjs_runtime_hmr: AtomicBool,
+  pub cjs_runtime_jsonp_browser: AtomicBool,
 }
 
 trait IntoIIFE {
@@ -135,18 +136,11 @@ impl_runtime_injector!(cjs_runtime_hmr);
 impl_runtime_injector!(cjs_runtime_require);
 impl_runtime_injector!(cjs_runtime_require_hot);
 impl_runtime_injector!(cjs_runtime_mark_as_esm);
+impl_runtime_injector!(cjs_runtime_jsonp_browser);
 
 impl RuntimeInjector {
   pub fn new() -> Self {
-    Self {
-      cjs_runtime_mark_as_esm: false.into(),
-      // define_export: false.into(),
-      // get_default_export: false.into(),
-      // has_own_property: false.into(),
-      cjs_runtime_browser: false.into(),
-      cjs_runtime_node: false.into(),
-      cjs_runtime_hmr: false.into(),
-    }
+    Self::default()
   }
 
   pub fn as_code(&self, bundle: &Bundle) -> Result<String> {
@@ -190,7 +184,11 @@ impl RuntimeInjector {
     }
 
     if self.cjs_runtime_browser.load(SeqCst) {
-      Self::add_cjs_runtime_dynamic_browser(&mut helpers);
+      if self.cjs_runtime_jsonp_browser.load(SeqCst) {
+        Self::add_cjs_runtime_jsonp_browser(&mut helpers);
+      } else {
+        Self::add_cjs_runtime_dynamic_browser(&mut helpers);
+      }
     }
 
     if self.cjs_runtime_node.load(SeqCst) {

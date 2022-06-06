@@ -67,6 +67,7 @@ impl Chunk {
         cjs_runtime_hmr: options.runtime.hmr.into(),
         cjs_runtime_browser: matches!(options.platform, Platform::Browser).into(),
         cjs_runtime_node: matches!(options.platform, Platform::Node).into(),
+        cjs_runtime_jsonp_browser: true.into(), // force jsonp
         ..Default::default()
       };
 
@@ -76,6 +77,13 @@ impl Chunk {
         let runtime = Box::new(RawSource::new(&code));
         concattables.push(runtime);
       }
+    }
+
+    if !rendered_modules.is_empty() {
+      concattables.push(Box::new(RawSource::new(&format!(
+        r#"rs.define_chunk("{}", () => {{"#,
+        self.id
+      ))));
     }
 
     rendered_modules.iter().for_each(|transform_output| {
@@ -93,6 +101,10 @@ impl Chunk {
         concattables.push(Box::new(RawSource::new(&transform_output.code)));
       }
     });
+
+    if !rendered_modules.is_empty() {
+      concattables.push(Box::new(RawSource::new("});")));
+    }
 
     let mut concat_source = ConcatSource::new(vec![]);
     concattables.iter_mut().for_each(|concattable| {

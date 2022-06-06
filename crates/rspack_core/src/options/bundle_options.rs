@@ -78,6 +78,12 @@ impl Default for BundleTarget {
 }
 
 #[derive(Debug)]
+pub enum ChunkLoadingOptions {
+  DynamicImport,
+  JSONP,
+}
+
+#[derive(Debug)]
 pub struct BundleOptions {
   pub platform: Platform,
   pub react: BundleReactOptions,
@@ -88,6 +94,7 @@ pub struct BundleOptions {
   pub outdir: String,
   pub entry_filename: String, // | ((chunkInfo: PreRenderedChunk) => string)
   pub chunk_filename: String,
+  pub chunk_loading: ChunkLoadingOptions,
   pub code_splitting: CodeSplittingOptions,
   pub lazy_compilation: bool,
   pub root: String,
@@ -125,6 +132,7 @@ impl Default for BundleOptions {
       minify: Default::default(),
       entry_filename: "[name].js".to_string(),
       chunk_filename: "[id].js".to_string(),
+      chunk_loading: ChunkLoadingOptions::DynamicImport,
       code_splitting: Default::default(),
       lazy_compilation: false,
       loader: Default::default(),
@@ -151,6 +159,7 @@ impl From<BundleMode> for BundleOptions {
       root: Self::default().root,
       entry_filename: Self::default().entry_filename,
       chunk_filename: Self::default().chunk_filename,
+      chunk_loading: Self::default().chunk_loading,
       progress: !mode.is_none(),
       resolve: mode.into(),
       react: mode.into(),
