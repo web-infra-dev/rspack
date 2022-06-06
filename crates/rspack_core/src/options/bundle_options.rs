@@ -94,7 +94,7 @@ pub struct BundleOptions {
 impl Default for BundleOptions {
   fn default() -> Self {
     Self {
-      resolve: Default::default(),
+      resolve: BundleMode::None.into(),
       react: Default::default(),
       root: std::env::current_dir()
         .unwrap()
