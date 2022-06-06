@@ -7,7 +7,7 @@ function __rspack_require_hot__(id) {
   if (mod.loaded) {
     return mod.exports;
   }
-  if (self instanceof Module) {
+  if (self instanceof globalThis.rs.Module) {
     this.children.add(mod);
     mod.parents.add(this);
   }

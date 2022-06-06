@@ -21,6 +21,7 @@ function __rspack_jsonp_dynamic_require__(module_id, chunk_id) {
   if (__rspack_chunks__[chunk_id]) return __rspack_chunks__[chunk_id][2].then(() => globalThis.rs.require(module_id));
 
   // initiate chunk loading
+  console.log('[rspack_jsonp] Loading chunk ' + chunk_id);
   var script = document.createElement('script');
   script.setAttribute('type', 'text/javascript');
   script.setAttribute('charset', 'utf-8');
@@ -50,7 +51,7 @@ function __rspack_jsonp_define_chunk__(chunk_id, load_modules) {
   var installedChunkData = __rspack_chunks__[chunk_id];
 
   if (!installedChunkData) {
-    // dummy chunk for entry chunks
+    // dummy chunk data for entry chunks
     installedChunkData = __rspack_chunks__[chunk_id] = [() => Promise.resolve(), null, () => Promise.resolve()];
   }
 

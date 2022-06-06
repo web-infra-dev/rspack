@@ -6,10 +6,7 @@ use utils::{compile_with_options, run_js_asset_in_node};
 
 #[test]
 fn define() {
-  let runtime = RuntimeOptions {
-    hmr: false,
-    module: true,
-  };
+  let runtime = RuntimeOptions { hmr: false };
   let define = HashMap::from_iter(
     [
       ("TRUE", "true"),

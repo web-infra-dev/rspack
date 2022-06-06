@@ -31,7 +31,7 @@ class Hot {
 
 globalThis.rs.Hot = globalThis.rs.Hot || Hot;
 
-function invalidate(dirtyId) {
+function __invalidate__(dirtyId) {
   const modules = rs.m;
   rs.require(dirtyId);
 
@@ -135,3 +135,5 @@ socket.onmessage = function (event) {
   (0, eval)(data.code);
   // reload();
 };
+
+globalThis.rs.invalidate = globalThis.rs.invalidate || __invalidate__;

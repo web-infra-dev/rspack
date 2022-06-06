@@ -79,8 +79,34 @@ impl Default for BundleTarget {
 
 #[derive(Debug)]
 pub enum ChunkLoadingOptions {
-  DynamicImport,
+  Import,
   JSONP,
+}
+
+impl Default for ChunkLoadingOptions {
+  fn default() -> Self {
+    Self::Import
+  }
+}
+
+impl ChunkLoadingOptions {
+  pub fn is_jsonp(&self) -> bool {
+    matches!(self, ChunkLoadingOptions::JSONP)
+  }
+
+  pub fn is_import(&self) -> bool {
+    matches!(self, ChunkLoadingOptions::Import)
+  }
+}
+
+impl From<BundleMode> for ChunkLoadingOptions {
+  fn from(mode: BundleMode) -> Self {
+    if mode.is_prod() {
+      Self::JSONP
+    } else {
+      Self::Import
+    }
+  }
 }
 
 #[derive(Debug)]
@@ -110,6 +136,12 @@ pub struct BundleOptions {
   pub target: BundleTarget,
 }
 
+impl BundleOptions {
+  pub fn is_hmr_enabled(&self) -> bool {
+    (self.runtime.hmr || self.react.refresh) && self.mode.is_dev()
+  }
+}
+
 impl Default for BundleOptions {
   fn default() -> Self {
     Self {
@@ -132,7 +164,7 @@ impl Default for BundleOptions {
       minify: Default::default(),
       entry_filename: "[name].js".to_string(),
       chunk_filename: "[id].js".to_string(),
-      chunk_loading: ChunkLoadingOptions::DynamicImport,
+      chunk_loading: Default::default(),
       code_splitting: Default::default(),
       lazy_compilation: false,
       loader: Default::default(),
@@ -152,28 +184,42 @@ impl Default for BundleOptions {
 
 impl From<BundleMode> for BundleOptions {
   fn from(mode: BundleMode) -> Self {
+    let BundleOptions {
+      root,
+      entry_filename,
+      chunk_filename,
+      loader,
+      entries,
+      outdir,
+      inline_style,
+      source_map,
+      svgr,
+      define,
+      globals,
+      ..
+    } = Self::default();
     Self {
       platform: Platform::default(),
       mode,
       minify: mode.is_prod(),
-      root: Self::default().root,
-      entry_filename: Self::default().entry_filename,
-      chunk_filename: Self::default().chunk_filename,
-      chunk_loading: Self::default().chunk_loading,
+      root,
+      entry_filename,
+      chunk_filename,
+      chunk_loading: mode.into(),
       progress: !mode.is_none(),
       resolve: mode.into(),
       react: mode.into(),
-      loader: Self::default().loader,
-      entries: Self::default().entries,
+      loader,
+      entries,
       code_splitting: mode.into(),
-      outdir: Self::default().outdir,
+      outdir,
       lazy_compilation: false,
-      inline_style: Self::default().inline_style,
+      inline_style,
       // TODO: what's the right default value for different bundle mode
-      source_map: Self::default().source_map,
-      svgr: Self::default().svgr,
-      define: Self::default().define,
-      globals: Self::default().globals,
+      source_map,
+      svgr,
+      define,
+      globals,
       runtime: Default::default(),
       target: Default::default(),
       optimization: mode.into(),

@@ -1,5 +1,7 @@
 // use crate::runtime::rspack_runtime;
-use crate::{Bundle, NormalizedBundleOptions, Platform, RuntimeInjector, SourceMapOptions};
+use crate::{
+  Bundle, ChunkLoadingOptions, NormalizedBundleOptions, Platform, RuntimeInjector, SourceMapOptions,
+};
 use rayon::prelude::*;
 use rspack_sources::{
   ConcatSource, GenMapOption, RawSource, Source, SourceMapSource, SourceMapSourceOptions,
@@ -64,10 +66,11 @@ impl Chunk {
     if let ChunkKind::Entry { .. } = &self.kind {
       // this should be globalized
       let injector = RuntimeInjector {
-        cjs_runtime_hmr: options.runtime.hmr.into(),
+        cjs_runtime_hmr: options.is_hmr_enabled().into(),
         cjs_runtime_browser: matches!(options.platform, Platform::Browser).into(),
         cjs_runtime_node: matches!(options.platform, Platform::Node).into(),
-        cjs_runtime_jsonp_browser: true.into(), // force jsonp
+        cjs_runtime_jsonp_browser: matches!(options.chunk_loading, ChunkLoadingOptions::JSONP)
+          .into(),
         ..Default::default()
       };
 
@@ -79,9 +82,9 @@ impl Chunk {
       }
     }
 
-    if !rendered_modules.is_empty() {
+    if options.chunk_loading.is_jsonp() && !rendered_modules.is_empty() {
       concattables.push(Box::new(RawSource::new(&format!(
-        r#"rs.define_chunk("{}", () => {{"#,
+        r#"rs.define_chunk("{}", function loadModules() {{"#,
         self.id
       ))));
     }
@@ -102,7 +105,7 @@ impl Chunk {
       }
     });
 
-    if !rendered_modules.is_empty() {
+    if options.chunk_loading.is_jsonp() && !rendered_modules.is_empty() {
       concattables.push(Box::new(RawSource::new("});")));
     }
 
