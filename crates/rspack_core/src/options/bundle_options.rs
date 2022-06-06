@@ -30,7 +30,16 @@ impl From<BundleMode> for BundleReactOptions {
   }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+impl From<(BundleMode, Platform)> for BundleReactOptions {
+  fn from((mode, platform): (BundleMode, Platform)) -> Self {
+    Self {
+      runtime: Self::default().runtime,
+      refresh: mode.is_dev() && platform.is_browser(),
+    }
+  }
+}
+
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum Platform {
   Browser,
   Node,
@@ -39,6 +48,16 @@ pub enum Platform {
 impl Default for Platform {
   fn default() -> Self {
     Self::Browser
+  }
+}
+
+impl Platform {
+  pub fn is_browser(&self) -> bool {
+    matches!(self, Platform::Browser)
+  }
+
+  pub fn is_node(&self) -> bool {
+    matches!(self, Platform::Node)
   }
 }
 
@@ -138,7 +157,9 @@ pub struct BundleOptions {
 
 impl BundleOptions {
   pub fn is_hmr_enabled(&self) -> bool {
-    (self.runtime.hmr || self.react.refresh) && self.mode.is_dev()
+    (self.runtime.hmr || self.react.refresh)
+      && self.mode.is_dev()
+      && self.platform == Platform::Browser
   }
 }
 
@@ -208,7 +229,7 @@ impl From<BundleMode> for BundleOptions {
       chunk_loading: mode.into(),
       progress: !mode.is_none(),
       resolve: mode.into(),
-      react: mode.into(),
+      react: (mode, Platform::default()).into(),
       loader,
       entries,
       code_splitting: mode.into(),
@@ -223,6 +244,15 @@ impl From<BundleMode> for BundleOptions {
       runtime: Default::default(),
       target: Default::default(),
       optimization: mode.into(),
+    }
+  }
+}
+
+impl From<(BundleMode, Platform)> for BundleOptions {
+  fn from((mode, platform): (BundleMode, Platform)) -> Self {
+    Self {
+      react: (mode, platform).into(),
+      ..mode.into()
     }
   }
 }

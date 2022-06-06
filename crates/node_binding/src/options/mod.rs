@@ -138,7 +138,7 @@ pub fn normalize_bundle_options(mut options: RawOptions) -> Result<BundleOptions
     return Err(e);
   }
 
-  let defaults: BundleOptions = mode.into();
+  let defaults: BundleOptions = (mode, platform).into();
 
   Ok(BundleOptions {
     entries: parse_entries(entries),
