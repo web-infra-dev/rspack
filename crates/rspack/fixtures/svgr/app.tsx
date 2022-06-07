@@ -1,5 +1,5 @@
 import * as React from 'react';
-import LogoUrl from './logo.svg?raw';
+import LogoUrl from './logo.svg';
 import Logo from './logo.svg';
 
 console.log('LogoUrl', LogoUrl);

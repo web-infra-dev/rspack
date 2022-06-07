@@ -45,7 +45,10 @@ pub type PluginTapGeneratedChunkHookOutput = Result<()>;
 #[async_trait]
 pub trait Plugin: Sync + Send + Debug {
   fn name(&self) -> &'static str;
-
+  #[inline]
+  fn transform_include(&self, _: &str) -> bool {
+    true
+  }
   #[inline]
   fn need_build_start(&self) -> bool {
     true

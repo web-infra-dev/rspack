@@ -1,7 +1,7 @@
 import './base.css';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import LogoUrl from './logo.svg?raw';
+import LogoUrl from './logo.svg';
 import Logo from './logo.svg';
 import Light from './light.svg';
 import Dark from './dark.svg';

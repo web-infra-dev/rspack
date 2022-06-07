@@ -43,7 +43,6 @@ impl Plugin for SvgrPlugin {
   fn need_tap_generated_chunk(&self) -> bool {
     false
   }
-
   #[inline]
   async fn load(&self, _ctx: &PluginContext, args: &LoadArgs) -> PluginLoadHookOutput {
     let query_start = args.id.find(|c: char| c == '?').unwrap_or(args.id.len());
@@ -62,84 +61,49 @@ impl Plugin for SvgrPlugin {
       Ok(None)
     }
   }
-
-  fn transform_ast(
-    &self,
-    _ctx: &PluginContext,
-    path: &str,
-    mut ast: ast::Module,
-  ) -> PluginTransformAstHookOutput {
-    let id = path;
-    let query_start = id.find(|c: char| c == '?').unwrap_or(id.len());
-    let file_path = Path::new(&id[..query_start]);
+  #[inline]
+  fn transform_include(&self, id: &str) -> bool {
+    let file_path = Path::new(&id);
     let ext = file_path
       .extension()
       .and_then(|ext| ext.to_str())
       .unwrap_or("js");
-    let use_raw = id[query_start..].contains("raw");
-    if ext == "svg" && !use_raw {
-      ast.visit_mut_with(&mut SvgrReplacer {});
-      return Ok(ast);
-    }
+    ext == "svg"
+  }
+  fn transform_ast(
+    &self,
+    _ctx: &PluginContext,
+    _path: &str,
+    mut ast: ast::Module,
+  ) -> PluginTransformAstHookOutput {
+    ast.visit_mut_with(&mut SvgrReplacer {});
     Ok(ast)
   }
 
   fn transform(
     &self,
     _ctx: &PluginContext,
-    id: &str,
+    _id: &str,
     loader: &mut Option<Loader>,
     raw: String,
   ) -> PluginTransformHookOutput {
-    let query_start = id.find(|c: char| c == '?').unwrap_or(id.len());
-    let file_path = Path::new(&id[..query_start]);
-    let ext = file_path
-      .extension()
-      .and_then(|ext| ext.to_str())
-      .unwrap_or("js");
+    if !_ctx.options.svgr {
+      return Ok(raw);
+    }
 
-    if ext == "svg" {
-      if !_ctx.options.svgr {
-        return Ok(raw);
-      }
-
-      let use_raw = id[query_start..].contains("raw");
-      let format = "base64";
-      let data_uri = format!(
-        "data:{};{},{}",
-        "image/svg+xml",
-        format,
-        base64::encode(&raw)
-      );
-
-      if use_raw {
-        *loader = Some(Loader::Js);
-        return Ok(
-          format!(
-            "var img = \"{}\";
-export default img;",
-            data_uri
-          )
-          .trim()
-          .to_string(),
-        );
-      }
-
-      *loader = Some(Loader::Jsx);
-      let result = clean(&raw);
-      let result = format!(
-        r#"import * as React from "react";
+    *loader = Some(Loader::Jsx);
+    let result = clean(&raw);
+    let result = format!(
+      r#"import * as React from "react";
 const SvgComponent = (props) => {{
   return {};
 }};
 export default SvgComponent;"#,
-        result.trim()
-      )
-      .trim()
-      .to_string();
-      // println!("result:\n{}", result);
-      return Ok(result);
-    }
-    Ok(raw)
+      result.trim()
+    )
+    .trim()
+    .to_string();
+    // println!("result:\n{}", result);
+    Ok(result)
   }
 }

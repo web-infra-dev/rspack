@@ -142,7 +142,11 @@ impl PluginDriver {
       .transform_hints
       .iter()
       .fold(Ok(raw), |transformed_raw, i| {
-        self.plugins[*i].transform(&self.plugin_context(), uri, loader, transformed_raw?)
+        if self.plugins[*i].transform_include(uri) {
+          self.plugins[*i].transform(&self.plugin_context(), uri, loader, transformed_raw?)
+        } else {
+          transformed_raw
+        }
       })
   }
   #[instrument(skip_all)]
@@ -151,7 +155,11 @@ impl PluginDriver {
       .transform_ast_hints
       .iter()
       .fold(Ok(ast), |transformed_ast, i| {
-        self.plugins[*i].transform_ast(&self.plugin_context(), path, transformed_ast?)
+        if self.plugins[*i].transform_include(path) {
+          self.plugins[*i].transform_ast(&self.plugin_context(), path, transformed_ast?)
+        } else {
+          transformed_ast
+        }
       })
   }
   #[instrument(skip_all)]
