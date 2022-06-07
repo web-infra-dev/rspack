@@ -118,8 +118,12 @@ impl ChunkLoadingOptions {
   }
 }
 
-impl From<BundleMode> for ChunkLoadingOptions {
-  fn from(mode: BundleMode) -> Self {
+impl From<(BundleMode, Platform)> for ChunkLoadingOptions {
+  fn from((mode, platform): (BundleMode, Platform)) -> Self {
+    if platform.is_node() {
+      return Self::Import;
+    }
+
     if mode.is_prod() {
       Self::JSONP
     } else {
@@ -165,6 +169,8 @@ impl BundleOptions {
 
 impl Default for BundleOptions {
   fn default() -> Self {
+    let default_mode = BundleMode::Prod;
+    let default_platform = Platform::default();
     Self {
       resolve: BundleMode::None.into(),
       react: Default::default(),
@@ -185,7 +191,7 @@ impl Default for BundleOptions {
       minify: Default::default(),
       entry_filename: "[name].js".to_string(),
       chunk_filename: "[id].js".to_string(),
-      chunk_loading: Default::default(),
+      chunk_loading: (default_mode, default_platform).into(),
       code_splitting: Default::default(),
       lazy_compilation: false,
       loader: Default::default(),
@@ -198,7 +204,7 @@ impl Default for BundleOptions {
       globals: Default::default(),
       runtime: RuntimeOptions::default(),
       target: Default::default(),
-      platform: Default::default(),
+      platform: default_platform,
     }
   }
 }
@@ -217,19 +223,20 @@ impl From<BundleMode> for BundleOptions {
       svgr,
       define,
       globals,
+      platform,
       ..
     } = Self::default();
     Self {
-      platform: Platform::default(),
+      platform,
       mode,
       minify: mode.is_prod(),
       root,
       entry_filename,
       chunk_filename,
-      chunk_loading: mode.into(),
+      chunk_loading: (mode, platform).into(),
       progress: !mode.is_none(),
       resolve: mode.into(),
-      react: (mode, Platform::default()).into(),
+      react: (mode, platform).into(),
       loader,
       entries,
       code_splitting: mode.into(),
@@ -252,6 +259,7 @@ impl From<(BundleMode, Platform)> for BundleOptions {
   fn from((mode, platform): (BundleMode, Platform)) -> Self {
     Self {
       react: (mode, platform).into(),
+      chunk_loading: (mode, platform).into(),
       ..mode.into()
     }
   }

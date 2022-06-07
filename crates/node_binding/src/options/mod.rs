@@ -264,7 +264,7 @@ pub fn normalize_bundle_options(mut options: RawOptions) -> Result<BundleOptions
     chunk_filename: options
       .chunk_filename
       .unwrap_or_else(|| BundleOptions::default().chunk_filename),
-    ..Default::default()
+    ..defaults
   })
 }
 
