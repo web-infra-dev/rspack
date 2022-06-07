@@ -13,7 +13,7 @@ use crate::{
   BundleContext, Chunk, LoadArgs, LoadedSource, Loader, NormalizedBundleOptions, OnResolveResult,
   Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput, PluginContext,
   PluginTapGeneratedChunkHookOutput, PluginTransformAstHookOutput, PluginTransformHookOutput,
-  ResolveArgs,
+  ResolveArgs, TransformArgs, TransformResult,
 };
 
 #[derive(Debug)]
@@ -136,18 +136,25 @@ impl PluginDriver {
     &self,
     uri: &str,
     loader: &mut Option<Loader>,
-    raw: String,
+    code: String,
   ) -> PluginTransformHookOutput {
-    self
-      .transform_hints
-      .iter()
-      .fold(Ok(raw), |transformed_raw, i| {
+    self.transform_hints.iter().fold(
+      Ok(TransformResult { code, ast: None }),
+      |transformed_result, i| {
         if self.plugins[*i].transform_include(uri) {
-          self.plugins[*i].transform(&self.plugin_context(), uri, loader, transformed_raw?)
+          let x = transformed_result?;
+          let args = TransformArgs {
+            uri: uri.to_string(),
+            ast: x.ast,
+            code: x.code,
+            loader,
+          };
+          self.plugins[*i].transform(&self.plugin_context(), args)
         } else {
-          transformed_raw
+          transformed_result
         }
-      })
+      },
+    )
   }
   #[instrument(skip_all)]
   pub fn transform_ast(&self, path: &str, ast: ast::Module) -> PluginTransformAstHookOutput {

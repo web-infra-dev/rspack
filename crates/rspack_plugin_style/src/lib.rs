@@ -1,7 +1,7 @@
 #![deny(clippy::all)]
 
 use async_trait::async_trait;
-use rspack_core::{Loader, Plugin, PluginContext, PluginTransformHookOutput};
+use rspack_core::{Loader, Plugin, PluginContext, PluginTransformHookOutput, TransformArgs};
 
 pub static PLUGIN_NAME: &str = "rspack_loader_plugin";
 
@@ -43,17 +43,15 @@ impl Plugin for StyleLoaderPlugin {
   fn need_tap_generated_chunk(&self) -> bool {
     false
   }
-  fn transform(
-    &self,
-    _ctx: &PluginContext,
-    _uri: &str,
-    loader: &mut Option<Loader>,
-    raw: String,
-  ) -> PluginTransformHookOutput {
+  fn transform(&self, _ctx: &PluginContext, args: TransformArgs) -> PluginTransformHookOutput {
+    let TransformArgs {
+      code: raw, loader, ..
+    } = args;
     if let Some(Loader::Css) = loader {
       *loader = Some(Loader::Js);
-      Ok(format!(
-        "
+      Ok(
+        format!(
+          "
         if (typeof document !== 'undefined') {{
           var style = document.createElement('style');
           var node = document.createTextNode(`{}`);
@@ -61,10 +59,12 @@ impl Plugin for StyleLoaderPlugin {
           document.head.appendChild(style);
         }}
       ",
-        raw
-      ))
+          raw
+        )
+        .into(),
+      )
     } else {
-      Ok(raw)
+      Ok(raw.into())
     }
   }
 }

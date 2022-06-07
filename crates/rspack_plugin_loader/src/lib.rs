@@ -6,7 +6,7 @@ use std::path::Path;
 
 use async_trait::async_trait;
 use data_uri::guess_mime_types_ext;
-use rspack_core::{Loader, Plugin, PluginContext, PluginTransformHookOutput};
+use rspack_core::{Loader, Plugin, PluginContext, PluginTransformHookOutput, TransformArgs};
 
 #[derive(Debug)]
 pub struct LoaderInterpreterPlugin;
@@ -48,18 +48,18 @@ impl Plugin for LoaderInterpreterPlugin {
   fn need_tap_generated_chunk(&self) -> bool {
     false
   }
-  fn transform(
-    &self,
-    _ctx: &PluginContext,
-    uri: &str,
-    loader: &mut Option<Loader>,
-    raw: String,
-  ) -> PluginTransformHookOutput {
+  fn transform(&self, _ctx: &PluginContext, args: TransformArgs) -> PluginTransformHookOutput {
+    let TransformArgs {
+      uri,
+      code: raw,
+      loader,
+      ..
+    } = args;
     if let Some(loader) = loader {
       let result = match loader {
         Loader::DataURI => {
           *loader = Loader::Js;
-          let mime_type = match Path::new(uri).extension().and_then(|ext| ext.to_str()) {
+          let mime_type = match Path::new(&uri).extension().and_then(|ext| ext.to_str()) {
             Some(ext) => guess_mime_types_ext(ext),
             None => return Err(anyhow::anyhow!("invalid extension")),
           };
@@ -87,9 +87,9 @@ export default img;",
         }
         _ => raw,
       };
-      Ok(result)
+      Ok(result.into())
     } else {
-      Ok(raw)
+      Ok(raw.into())
     }
   }
 }
