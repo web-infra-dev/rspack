@@ -52,7 +52,7 @@ function __rspack_jsonp_define_chunk__(chunk_id, load_modules) {
 
   if (!installedChunkData) {
     // dummy chunk data for entry chunks
-    installedChunkData = __rspack_chunks__[chunk_id] = [() => Promise.resolve(), null, () => Promise.resolve()];
+    installedChunkData = __rspack_chunks__[chunk_id] = [() => Promise.resolve(), null, Promise.resolve()];
   }
 
   // if load_module failed, the chunk will be failed to load too

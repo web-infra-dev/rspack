@@ -190,7 +190,9 @@ impl<'a> RspackModuleFormatTransformer<'a> {
         args = vec![Lit::Str(js_module_id.into()).as_arg()];
       }
 
-      n.callee = if self.bundle.options.platform == Platform::Node {
+      n.callee = if self.bundle.options.chunk_loading.is_jsonp() {
+        cjs_runtime_helper!(jsonp, rs.dynamic_require)
+      } else if self.bundle.options.platform == Platform::Node {
         cjs_runtime_helper!(dynamic_node, rs.dynamic_require)
       } else {
         cjs_runtime_helper!(dynamic_browser, rs.dynamic_require)

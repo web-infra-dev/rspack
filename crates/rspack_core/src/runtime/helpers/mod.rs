@@ -61,8 +61,13 @@ impl Helpers {
   }
 }
 
+better_scoped_tls::scoped_tls! {
+  // Runtime Helpers
+  pub static HELPERS: Helpers
+}
+
 // temporarily use global helpers, but it should be moved to a per-bundler scope
-pub(crate) static HELPERS: Lazy<Helpers> = Lazy::new(|| Helpers::new(false));
+// pub(crate) static HELPERS: Lazy<Helpers> = Lazy::new(|| Helpers::new(false));
 
 macro_rules! add_to {
   ($buf:expr, $name:ident, $enabled: expr) => {{
@@ -120,7 +125,7 @@ macro_rules! define_helpers {
             $(
               self.$dep();
             )*
-         }
+          }
         }
       )*
     }
@@ -129,19 +134,25 @@ macro_rules! define_helpers {
       fn is_helper_used(&self) -> bool {
         let mut used = false;
 
-        $(
-          used |= HELPERS.inner.$name.load(Ordering::Relaxed);
-        )*
+        HELPERS.with(|helpers| {
+          $(
+              used |= helpers.inner.$name.load(Ordering::Relaxed);
+          )*
+        });
 
         used
       }
 
+      #[allow(unused)]
       fn build_helpers(&self) -> Vec<Stmt> {
         let mut buf = vec![];
 
-        $(
-          add_to!(&mut buf, $name, HELPERS.inner.$name);
-        )*
+        HELPERS.with(|helpers| {
+          $(
+            add_to!(&mut buf, $name, helpers.inner.$name);
+          )*
+        });
+
 
         buf
       }
@@ -150,16 +161,18 @@ macro_rules! define_helpers {
         use rspack_swc::swc_ecma_ast::{ExprStmt, Stmt};
         let mut buf: Vec<Stmt> = vec![];
 
-        $(
-          let mut b = vec![];
-          add_to!(&mut b, $name, HELPERS.inner.$name);
-          if !b.is_empty() {
-            buf.push(Stmt::Expr(ExprStmt {
-              span: DUMMY_SP,
-              expr: Box::new(Expr::Call(b.into_iife())),
-            }));
-          }
-        )*
+        HELPERS.with(|helpers| {
+          $(
+            let mut b = vec![];
+            add_to!(&mut b, $name, helpers.inner.$name);
+            if !b.is_empty() {
+              buf.push(Stmt::Expr(ExprStmt {
+                span: DUMMY_SP,
+                expr: Box::new(Expr::Call(b.into_iife())),
+              }));
+            }
+          )*
+        });
 
         buf
       }
@@ -184,22 +197,26 @@ define_helpers!(Helpers {
 macro_rules! helper_expr {
   ($name:ident, $first_ident:ident . $($other: tt)+) => {{
     // enable helper
-    $crate::runtime::HELPERS.$name();
 
-    let mark = $crate::runtime::HELPERS.mark();
-    let span = DUMMY_SP.apply_mark(mark);
+    $crate::HELPERS.with(|helpers| {
+      helpers.$name();
+      let mark = helpers.mark();
 
-    member_expr!(span, $first_ident.$($other)+)
+      let span = DUMMY_SP.apply_mark(mark);
+      member_expr!(span, $first_ident.$($other)+)
+    })
   }};
 
   ($name:ident, $token:tt) => {{
     // enable helper
-    $crate::runtime::HELPERS.$name();
 
-    let mark = $crate::runtime::HELPERS.mark();
-    let span = DUMMY_SP.apply_mark(mark);
+    $crate::HELPERS.with(|helpers| {
+      helpers.$name();
+      let mark = helpers.mark();
 
-    quote_ident!(span, i)
+      let span = DUMMY_SP.apply_mark(mark);
+      quote_ident!(span, i)
+    })
   }};
 }
 

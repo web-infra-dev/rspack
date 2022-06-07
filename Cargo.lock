@@ -1320,12 +1320,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "paste"
-version = "1.0.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c520e05135d6e763148b6426a837e239041653ba7becd2e538c076c738025fc"
-
-[[package]]
 name = "path-clean"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1743,6 +1737,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "better_scoped_tls",
  "crossbeam",
  "dashmap",
  "futures",
@@ -1751,7 +1746,6 @@ dependencies = [
  "linked-hash-map",
  "nodejs-resolver 0.0.14",
  "once_cell",
- "paste",
  "petgraph",
  "rayon",
  "rspack_sources",

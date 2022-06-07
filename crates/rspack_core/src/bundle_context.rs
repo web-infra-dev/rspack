@@ -6,12 +6,13 @@ use std::{
 use swc::Compiler;
 use swc_common::Mark;
 
-use crate::NormalizedBundleOptions;
+use crate::{Helpers, NormalizedBundleOptions};
 
 #[allow(clippy::manual_non_exhaustive)]
 pub struct BundleContext {
   pub assets: Mutex<Vec<Asset>>,
   pub compiler: Arc<Compiler>,
+  pub helpers: Helpers,
   pub options: Arc<NormalizedBundleOptions>,
   pub top_level_mark: Mark,
   pub unresolved_mark: Mark,
@@ -34,9 +35,15 @@ impl BundleContext {
     top_level_mark: Mark,
     unresolved_mark: Mark,
   ) -> Self {
+    let helpers = compiler.run(|| {
+      // use false as default, since `output.runtimeChunk` option is not supported.
+      Helpers::new(false)
+    });
+
     Self {
       assets: Default::default(),
       compiler,
+      helpers,
       options,
       top_level_mark,
       unresolved_mark,

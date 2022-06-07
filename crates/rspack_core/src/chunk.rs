@@ -62,44 +62,52 @@ impl Chunk {
       })
       .collect::<Vec<_>>();
 
-    if let ChunkKind::Entry { .. } = &self.kind {
-      if options.chunk_loading.is_jsonp() {
-        HELPERS.jsonp();
+    HELPERS.set(&bundle.context.helpers, || {
+      if let ChunkKind::Entry { .. } = &self.kind {
+        if options.chunk_loading.is_jsonp() {
+          HELPERS.with(|helpers| {
+            helpers.jsonp();
+          })
+        }
+        // this should be globalized
+        let runtime_helpers = InjectHelpers.make_helpers_for_module();
+
+        let code = compiler
+          .run(|| {
+            compiler.print(
+              &Module {
+                body: runtime_helpers,
+                span: DUMMY_SP,
+                shebang: None,
+              },
+              None,
+              None,
+              false,
+              Default::default(),
+              Default::default(),
+              &Default::default(),
+              None,
+              false,
+              None,
+              false,
+              false,
+            )
+          })
+          .unwrap()
+          .code;
+
+        HELPERS.set(&bundle.context.helpers, || {
+          HELPERS.with(|helpers| {
+            println!("{:#?}", helpers);
+          })
+        });
+
+        if code.trim() != "" {
+          let runtime = Box::new(RawSource::new(&code));
+          concattables.push(runtime);
+        }
       }
-      // this should be globalized
-      let runtime_helpers = InjectHelpers.make_helpers_for_module();
-
-      let code = compiler
-        .run(|| {
-          compiler.print(
-            &Module {
-              body: runtime_helpers,
-              span: DUMMY_SP,
-              shebang: None,
-            },
-            None,
-            None,
-            false,
-            Default::default(),
-            Default::default(),
-            &Default::default(),
-            None,
-            false,
-            None,
-            false,
-            false,
-          )
-        })
-        .unwrap()
-        .code;
-
-      println!("{:#?}", HELPERS);
-
-      if code.trim() != "" {
-        let runtime = Box::new(RawSource::new(&code));
-        concattables.push(runtime);
-      }
-    }
+    });
 
     if options.chunk_loading.is_jsonp() && !rendered_modules.is_empty() {
       concattables.push(Box::new(RawSource::new(&format!(
