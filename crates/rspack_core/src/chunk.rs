@@ -1,11 +1,9 @@
-// use crate::runtime::rspack_runtime;
-use crate::{
-  Bundle, ChunkLoadingOptions, NormalizedBundleOptions, Platform, RuntimeInjector, SourceMapOptions,
-};
+use crate::{Bundle, InjectHelpers, NormalizedBundleOptions, SourceMapOptions, HELPERS};
 use rayon::prelude::*;
 use rspack_sources::{
   ConcatSource, GenMapOption, RawSource, Source, SourceMapSource, SourceMapSourceOptions,
 };
+use rspack_swc::{swc_common::DUMMY_SP, swc_ecma_ast::Module};
 use std::{collections::HashSet, path::Path};
 use tracing::instrument;
 
@@ -48,6 +46,7 @@ impl Chunk {
 
   #[instrument(skip_all)]
   pub fn render(&self, bundle: &Bundle) -> OutputChunk {
+    let compiler = bundle.context.compiler.clone();
     let options = &bundle.context.options;
 
     let mut concattables: Vec<Box<dyn Source>> = vec![];
@@ -64,17 +63,37 @@ impl Chunk {
       .collect::<Vec<_>>();
 
     if let ChunkKind::Entry { .. } = &self.kind {
+      if options.chunk_loading.is_jsonp() {
+        HELPERS.jsonp();
+      }
       // this should be globalized
-      let injector = RuntimeInjector {
-        cjs_runtime_hmr: options.is_hmr_enabled().into(),
-        cjs_runtime_browser: matches!(options.platform, Platform::Browser).into(),
-        cjs_runtime_node: matches!(options.platform, Platform::Node).into(),
-        cjs_runtime_jsonp_browser: matches!(options.chunk_loading, ChunkLoadingOptions::JSONP)
-          .into(),
-        ..Default::default()
-      };
+      let runtime_helpers = InjectHelpers.make_helpers_for_module();
 
-      let code = injector.as_code(bundle).unwrap();
+      let code = compiler
+        .run(|| {
+          compiler.print(
+            &Module {
+              body: runtime_helpers,
+              span: DUMMY_SP,
+              shebang: None,
+            },
+            None,
+            None,
+            false,
+            Default::default(),
+            Default::default(),
+            &Default::default(),
+            None,
+            false,
+            None,
+            false,
+            false,
+          )
+        })
+        .unwrap()
+        .code;
+
+      println!("{:#?}", HELPERS);
 
       if code.trim() != "" {
         let runtime = Box::new(RawSource::new(&code));

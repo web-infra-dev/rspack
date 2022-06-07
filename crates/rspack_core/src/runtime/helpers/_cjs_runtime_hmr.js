@@ -40,7 +40,7 @@ function __invalidate__(dirtyId) {
   const hotMetaList = new Set(); // hmrBoundary 模块关联的accept回调
   const removeModules = new Set(); // 在冒泡规则中收到影响的所有模块
 
-  cllectModules(dirtyId);
+  collectModules(dirtyId);
 
   console.log('hmr:', hmrBoundaries, hotMetaList, removeModules);
 
@@ -73,7 +73,7 @@ function __invalidate__(dirtyId) {
    * id: 当前模块id
    *
    */
-  function cllectModules(id) {
+  function collectModules(id) {
     removeModules.add(id);
     const module = modules[id];
     /**

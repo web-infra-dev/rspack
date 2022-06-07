@@ -1,80 +1,224 @@
-use std::sync::atomic::{AtomicBool, Ordering::SeqCst};
+use std::sync::atomic::{AtomicBool, Ordering};
 
-use anyhow::Result;
 use once_cell::sync::Lazy;
 
 use rspack_swc::{
-  swc_common::{FileName, FilePathMapping, SourceMap, DUMMY_SP},
-  swc_ecma_ast::{
-    BlockStmt, CallExpr, Expr, ExprStmt, FnExpr, Function, Module, ModuleItem, ParenExpr, Stmt,
-  },
-  swc_ecma_parser::parse_file_as_module,
-  swc_ecma_utils::{drop_span, prepend_stmts, ExprFactory},
+  swc_common::{FileName, FilePathMapping, Mark, SourceMap},
+  swc_ecma_ast::{BlockStmt, CallExpr, Expr, FnExpr, Function, ModuleItem, ParenExpr, Stmt},
+  swc_ecma_parser::parse_file_as_script,
+  swc_ecma_utils::{drop_span, ExprFactory},
 };
+use swc_common::DUMMY_SP;
 
-use crate::Bundle;
-
-fn parse(code: &str, name: &str) -> Vec<ModuleItem> {
+fn parse(code: &str, name: &str) -> Vec<Stmt> {
   let cm = SourceMap::new(FilePathMapping::empty());
   let fm = cm.new_source_file(FileName::Custom(name.into()), code.into());
-  parse_file_as_module(
+  parse_file_as_script(
     &fm,
     Default::default(),
     Default::default(),
     None,
     &mut vec![],
   )
-  .map(|script| drop_span(script.body))
-  .map_err(|_| {})
+  .map(drop_span)
+  .map(|module| module.body)
+  .map_err(|e| unreachable!("Error occurred while parsing module: {:?}", e))
   .unwrap()
 }
 
-macro_rules! define {
-  (
-     $($name:ident, $func:ident)*
-  ) => {
-    $(
-        pub fn $func(to: &mut Vec<ModuleItem>){
-            static STMTS: Lazy<Vec<ModuleItem>> = Lazy::new(|| {
-                parse(include_str!(concat!("_rs_", stringify!($name), ".js")), stringify!($name))
-            });
+#[derive(Debug)]
+struct HelperMark(Mark);
 
-            to.extend((*STMTS).clone())
+impl Default for HelperMark {
+  fn default() -> Self {
+    HelperMark(Mark::fresh(Mark::root()))
+  }
+}
+
+#[derive(Debug, Default)]
+pub struct Helpers {
+  external: bool, // TODO: add external runtime, i.e. support `output.runtimeChunk === "single"` option
+  mark: HelperMark,
+  inner: Inner,
+}
+
+impl Helpers {
+  pub fn new(external: bool) -> Self {
+    Helpers {
+      external,
+      mark: Default::default(),
+      inner: Default::default(),
+    }
+  }
+
+  // you may identify a helper with this mark
+  pub const fn mark(&self) -> Mark {
+    self.mark.0
+  }
+
+  pub const fn external(&self) -> bool {
+    self.external
+  }
+}
+
+// temporarily use global helpers, but it should be moved to a per-bundler scope
+pub(crate) static HELPERS: Lazy<Helpers> = Lazy::new(|| Helpers::new(false));
+
+macro_rules! add_to {
+  ($buf:expr, $name:ident, $enabled: expr) => {{
+    static STMTS: Lazy<Vec<Stmt>> = Lazy::new(|| {
+      parse(
+        include_str!(concat!("_cjs_runtime_", stringify!($name), ".js")),
+        stringify!($name),
+      )
+    });
+
+    if $enabled.load(Ordering::Relaxed) {
+      $buf.extend((*STMTS).clone())
+    }
+  }};
+}
+
+pub(crate) struct InjectHelpers;
+
+impl InjectHelpers {
+  pub fn make_helpers_for_module(&self) -> Vec<ModuleItem> {
+    // TODO: external helpers
+    // let external = HELPERS.external();
+
+    if self.is_helper_used() {
+      self
+        .build_helpers_iife()
+        .into_iter()
+        .map(ModuleItem::Stmt)
+        .collect()
+    } else {
+      vec![]
+    }
+  }
+}
+
+#[macro_export]
+macro_rules! define_helpers {
+  (
+      Helpers {
+          $( $name:ident : ( $( $dep:ident ),* ), )*
+      }
+  ) => {
+    #[derive(Default, Debug)]
+    struct Inner {
+      $( $name: AtomicBool, )*
+    }
+
+    impl Helpers {
+      // mark helper as used
+      $(
+        pub fn $name(&self) {
+          self.inner.$name.store(true, Ordering::Relaxed);
+
+          if !self.external {
+            $(
+              self.$dep();
+            )*
+         }
         }
-    )*
+      )*
+    }
+
+    impl InjectHelpers {
+      fn is_helper_used(&self) -> bool {
+        let mut used = false;
+
+        $(
+          used |= HELPERS.inner.$name.load(Ordering::Relaxed);
+        )*
+
+        used
+      }
+
+      fn build_helpers(&self) -> Vec<Stmt> {
+        let mut buf = vec![];
+
+        $(
+          add_to!(&mut buf, $name, HELPERS.inner.$name);
+        )*
+
+        buf
+      }
+
+      fn build_helpers_iife(&self) -> Vec<Stmt> {
+        use rspack_swc::swc_ecma_ast::{ExprStmt, Stmt};
+        let mut buf: Vec<Stmt> = vec![];
+
+        $(
+          let mut b = vec![];
+          add_to!(&mut b, $name, HELPERS.inner.$name);
+          if !b.is_empty() {
+            buf.push(Stmt::Expr(ExprStmt {
+              span: DUMMY_SP,
+              expr: Box::new(Expr::Call(b.into_iife())),
+            }));
+          }
+        )*
+
+        buf
+      }
+
+    }
+
   };
 }
 
-#[derive(Default)]
-pub struct RuntimeInjector {
-  pub cjs_runtime_mark_as_esm: AtomicBool,
-  // define_export: AtomicBool,
-  // get_default_export: AtomicBool,
-  // has_own_property: AtomicBool,
-  pub cjs_runtime_browser: AtomicBool,
-  pub cjs_runtime_node: AtomicBool,
-  pub cjs_runtime_hmr: AtomicBool,
-  pub cjs_runtime_jsonp_browser: AtomicBool,
+// The order of this is quite important, since rustc expands macros in the order of appearance, which is the order of `build_helpers`
+define_helpers!(Helpers {
+  define: (),
+  dynamic_browser: (define),
+  dynamic_node: (define),
+  hmr: (define),
+  require_hot: (define, hmr),
+  require: (define),
+  jsonp: (define),
+});
+
+#[macro_export]
+macro_rules! helper_expr {
+  ($name:ident, $first_ident:ident . $($other: tt)+) => {{
+    // enable helper
+    $crate::runtime::HELPERS.$name();
+
+    let mark = $crate::runtime::HELPERS.mark();
+    let span = DUMMY_SP.apply_mark(mark);
+
+    member_expr!(span, $first_ident.$($other)+)
+  }};
+
+  ($name:ident, $token:tt) => {{
+    // enable helper
+    $crate::runtime::HELPERS.$name();
+
+    let mark = $crate::runtime::HELPERS.mark();
+    let span = DUMMY_SP.apply_mark(mark);
+
+    quote_ident!(span, i)
+  }};
+}
+
+#[macro_export]
+macro_rules! cjs_runtime_helper {
+  ($name: ident, $first_ident: ident . $other: tt) => {{
+    $crate::helper_expr!($name, $first_ident.$other).as_callee()
+  }};
+
+  ($name: ident, $token: tt) => {{
+    $crate::helper_expr!($name, $token).as_callee()
+  }};
 }
 
 trait IntoIIFE {
   fn into_iife(self) -> CallExpr;
 }
 
-trait IntoStmts {
-  fn into_stmts(self) -> Vec<Stmt>;
-}
-
-impl IntoStmts for Vec<ModuleItem> {
-  fn into_stmts(self) -> Vec<Stmt> {
-    self
-      .into_iter()
-      .filter_map(|stmt| stmt.stmt())
-      .collect::<Vec<_>>()
-  }
-}
-
-impl IntoIIFE for Vec<ModuleItem> {
+impl IntoIIFE for Vec<Stmt> {
   fn into_iife(self) -> CallExpr {
     let paren_expr = ParenExpr {
       span: DUMMY_SP,
@@ -86,7 +230,7 @@ impl IntoIIFE for Vec<ModuleItem> {
           span: DUMMY_SP,
           body: Some(BlockStmt {
             span: DUMMY_SP,
-            stmts: self.into_stmts(),
+            stmts: self,
           }),
           is_generator: false,
           is_async: false,
@@ -98,107 +242,5 @@ impl IntoIIFE for Vec<ModuleItem> {
     };
 
     paren_expr.as_iife()
-  }
-}
-
-macro_rules! impl_runtime_injector {
-  (
-     $($name:ident)*
-  ) => {
-
-    $(
-        define!($name, $name);
-
-        impl RuntimeInjector {
-          paste::item! {
-            pub fn [<add_ $name>] (to: &mut Vec<ModuleItem>) {
-              let mut buf = vec![];
-              $name(&mut buf);
-              let call_expr = buf.into_iife();
-              let module_item = ModuleItem::Stmt(Stmt::Expr(ExprStmt {
-                span: DUMMY_SP,
-                expr: Box::new(Expr::Call(call_expr)),
-              }));
-
-              to.push(module_item);
-            }
-        }
-      }
-    )*
-
-  };
-}
-
-impl_runtime_injector!(cjs_runtime_bootstrap);
-impl_runtime_injector!(cjs_runtime_dynamic_browser);
-impl_runtime_injector!(cjs_runtime_dynamic_node);
-impl_runtime_injector!(cjs_runtime_hmr);
-impl_runtime_injector!(cjs_runtime_require);
-impl_runtime_injector!(cjs_runtime_require_hot);
-impl_runtime_injector!(cjs_runtime_mark_as_esm);
-impl_runtime_injector!(cjs_runtime_jsonp_browser);
-
-impl RuntimeInjector {
-  pub fn new() -> Self {
-    Self::default()
-  }
-
-  pub fn as_code(&self, bundle: &Bundle) -> Result<String> {
-    let mut iifes = vec![];
-    self.add_to(&mut iifes);
-
-    let result = bundle.context.compiler.run(|| {
-      bundle.context.compiler.print(
-        &Module {
-          body: iifes,
-          span: DUMMY_SP,
-          shebang: None,
-        },
-        None,
-        None,
-        false,
-        Default::default(),
-        Default::default(),
-        &Default::default(),
-        None,
-        false,
-        None,
-        false,
-        false,
-      )
-    })?;
-
-    Ok(result.code)
-  }
-
-  pub fn add_to(&self, to: &mut Vec<ModuleItem>) {
-    let mut helpers = vec![];
-
-    Self::add_cjs_runtime_bootstrap(&mut helpers);
-
-    if self.cjs_runtime_hmr.load(SeqCst) {
-      Self::add_cjs_runtime_hmr(&mut helpers);
-      Self::add_cjs_runtime_require_hot(&mut helpers);
-    } else {
-      Self::add_cjs_runtime_require(&mut helpers);
-    }
-
-    if self.cjs_runtime_browser.load(SeqCst) {
-      if self.cjs_runtime_jsonp_browser.load(SeqCst) {
-        Self::add_cjs_runtime_jsonp_browser(&mut helpers);
-      } else {
-        Self::add_cjs_runtime_dynamic_browser(&mut helpers);
-      }
-    }
-
-    if self.cjs_runtime_node.load(SeqCst) {
-      Self::add_cjs_runtime_dynamic_node(&mut helpers);
-    }
-
-    if self.cjs_runtime_mark_as_esm.load(SeqCst) {
-      Self::add_cjs_runtime_mark_as_esm(&mut helpers);
-    }
-
-    prepend_stmts(to, helpers.into_iter())
   }
 }
