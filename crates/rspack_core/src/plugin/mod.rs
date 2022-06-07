@@ -21,6 +21,38 @@ pub struct ResolveArgs {
   pub importer: Option<String>,
   pub kind: ImportKind,
 }
+#[derive(Debug, Clone)]
+pub enum RspackAST {
+  JavaScript(ast::Module),
+  Css(ast::Module), // I'm not sure what the final ast is, so just take placehold
+}
+
+#[derive(Debug)]
+pub struct TransformArgs<'a> {
+  pub uri: String,
+  pub ast: Option<RspackAST>,
+  pub code: String,
+  pub loader: &'a mut Option<Loader>,
+}
+#[derive(Clone, Default)]
+pub struct TransformResult {
+  pub code: String,
+  pub ast: Option<RspackAST>,
+}
+
+impl<'a> From<TransformArgs<'a>> for TransformResult {
+  fn from(args: TransformArgs) -> TransformResult {
+    TransformResult {
+      code: args.code,
+      ast: args.ast,
+    }
+  }
+}
+impl From<String> for TransformResult {
+  fn from(code: String) -> TransformResult {
+    TransformResult { code, ast: None }
+  }
+}
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct OnResolveResult {
@@ -39,7 +71,7 @@ pub type PluginBuildEndHookOutput = Result<()>;
 pub type PluginLoadHookOutput = Result<Option<LoadedSource>>;
 pub type PluginResolveHookOutput = Result<Option<OnResolveResult>>;
 pub type PluginTransformAstHookOutput = Result<ast::Module>;
-pub type PluginTransformHookOutput = Result<String>;
+pub type PluginTransformHookOutput = Result<TransformResult>;
 pub type PluginTapGeneratedChunkHookOutput = Result<()>;
 
 #[async_trait]
@@ -103,14 +135,11 @@ pub trait Plugin: Sync + Send + Debug {
   }
 
   #[inline]
-  fn transform(
-    &self,
-    _ctx: &PluginContext,
-    _uri: &str,
-    _loader: &mut Option<Loader>,
-    raw: String,
-  ) -> PluginTransformHookOutput {
-    Ok(raw)
+  fn transform(&self, _ctx: &PluginContext, args: TransformArgs) -> PluginTransformHookOutput {
+    Ok(TransformResult {
+      code: args.code,
+      ast: args.ast,
+    })
   }
 
   #[inline]

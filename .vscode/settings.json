@@ -6,7 +6,8 @@
     "**/CVS": true,
     "**/.DS_Store": true,
     "**/*.bk": true,
-    "**/target": true
+    "**/target": true,
+    "**/.yarn": true
   },
   "[rust]": {
     "editor.formatOnSave": true
@@ -20,7 +21,9 @@
   "cSpell.allowCompoundWords": true,
   "cSpell.caseSensitive": true,
   "rust-analyzer.checkOnSave.command": "clippy",
-  "rust-analyzer.checkOnSave.extraArgs": ["--all-features"],
+  "rust-analyzer.checkOnSave.extraArgs": [
+    "--all-features"
+  ],
   // "rust-analyzer.checkOnSave.features": [
   //   // We use this to make IDE faster
   //   "rust-analyzer"

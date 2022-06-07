@@ -6,7 +6,9 @@ mod transform;
 use async_trait::async_trait;
 use clean::clean;
 use core::fmt::Debug;
-use rspack_core::{ast, PluginContext, PluginTransformAstHookOutput, PluginTransformHookOutput};
+use rspack_core::{
+  ast, PluginContext, PluginTransformAstHookOutput, PluginTransformHookOutput, TransformArgs,
+};
 use rspack_swc::swc_ecma_visit::VisitMutWith;
 pub static PLUGIN_NAME: &str = "rspack_svgr";
 use rspack_core::{LoadArgs, LoadedSource, Loader, Plugin, PluginLoadHookOutput};
@@ -80,19 +82,13 @@ impl Plugin for SvgrPlugin {
     Ok(ast)
   }
 
-  fn transform(
-    &self,
-    _ctx: &PluginContext,
-    _id: &str,
-    loader: &mut Option<Loader>,
-    raw: String,
-  ) -> PluginTransformHookOutput {
+  fn transform(&self, _ctx: &PluginContext, args: TransformArgs) -> PluginTransformHookOutput {
     if !_ctx.options.svgr {
-      return Ok(raw);
+      return Ok(args.into());
     }
 
-    *loader = Some(Loader::Jsx);
-    let result = clean(&raw);
+    *args.loader = Some(Loader::Jsx);
+    let result = clean(&args.code);
     let result = format!(
       r#"import * as React from "react";
 const SvgComponent = (props) => {{
@@ -104,6 +100,6 @@ export default SvgComponent;"#,
     .trim()
     .to_string();
     // println!("result:\n{}", result);
-    Ok(result)
+    Ok(result.into())
   }
 }

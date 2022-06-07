@@ -97,13 +97,13 @@ impl Task {
       task_context.set_module_kind(JsModuleKind::Normal);
       (source, loader)
     };
-    let transformed_source =
+    let transformed_result =
       plugin_hook::transform(module_id, &mut loader, source, &self.plugin_driver)?;
     let loader = loader
       .as_ref()
       .unwrap_or_else(|| panic!("No loader to deal with file: {:?}", module_id));
     let mut dependency_scanner = DependencyScanner::default();
-    let raw_ast = parse_file(transformed_source, module_id, loader).expect_module();
+    let raw_ast = parse_file(transformed_result.code, module_id, loader).expect_module();
 
     let mut ast = plugin_hook::transform_ast(module_id, raw_ast, &self.plugin_driver)?;
 

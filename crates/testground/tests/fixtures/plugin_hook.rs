@@ -4,7 +4,7 @@ use crate::common::{compile_fixture_with_plugins, prelude::*};
 use rspack_core::{
   Chunk, LoadArgs, Loader, NormalizedBundleOptions, PluginContext, PluginLoadHookOutput,
   PluginResolveHookOutput, PluginTapGeneratedChunkHookOutput, PluginTransformAstHookOutput,
-  PluginTransformHookOutput, ResolveArgs,
+  PluginTransformHookOutput, ResolveArgs, TransformArgs,
 };
 use rspack_swc::swc_ecma_ast;
 use std::sync::{atomic::AtomicBool, Arc};
@@ -59,18 +59,12 @@ impl Plugin for PluginHookTester {
   }
 
   #[inline]
-  fn transform(
-    &self,
-    _ctx: &PluginContext,
-    _uri: &str,
-    _loader: &mut Option<Loader>,
-    raw: String,
-  ) -> PluginTransformHookOutput {
+  fn transform(&self, _ctx: &PluginContext, args: TransformArgs) -> PluginTransformHookOutput {
     self
       .record
       .call_transform
       .store(true, std::sync::atomic::Ordering::SeqCst);
-    Ok(raw)
+    Ok(args.into())
   }
 
   #[inline]

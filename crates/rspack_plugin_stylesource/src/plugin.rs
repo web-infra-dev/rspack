@@ -3,6 +3,7 @@ use async_trait::async_trait;
 use nodejs_resolver::{ResolveResult, Resolver};
 use rspack_core::{
   Asset, Chunk, Loader, NormalizedBundleOptions, PluginContext, PluginTransformHookOutput,
+  TransformArgs,
 };
 use rspack_core::{Plugin, PluginBuildStartHookOutput, PluginTapGeneratedChunkHookOutput};
 use rspack_style::style_core::applicationn::Application;
@@ -163,13 +164,14 @@ impl Plugin for StyleSourcePlugin {
     Ok(())
   }
 
-  fn transform(
-    &self,
-    _ctx: &PluginContext,
-    uri: &str,
-    loader: &mut Option<Loader>,
-    raw: String,
-  ) -> PluginTransformHookOutput {
+  fn transform(&self, _ctx: &PluginContext, args: TransformArgs) -> PluginTransformHookOutput {
+    let TransformArgs {
+      code: raw,
+      uri,
+      loader,
+      ..
+    } = args;
+    let uri = &uri;
     if let Some(Loader::Less) = loader {
       if let Some(mut style) = is_style_source(uri) {
         let js;
@@ -183,11 +185,11 @@ impl Plugin for StyleSourcePlugin {
           .lock()
           .map_err(|_| anyhow::anyhow!("failed to lock style_source_collect"))?;
         list.push(style);
-        Ok(js)
+        Ok(js.into())
       } else {
         // todo fix 这里应该报错 is_style_source 会检查文件的 绝对路径资源是否 符合 style 如果没有进来
         // todo 默认是 *.ts *.wasm 这种给了 Loader::less 而不是返回该内容 但 PluginTransformHookOutput 非 Result
-        Ok(raw)
+        Ok(raw.into())
       }
     } else if let Some(Loader::Css) = loader {
       if let Some(mut style) = is_style_source(uri) {
@@ -202,14 +204,14 @@ impl Plugin for StyleSourcePlugin {
           .lock()
           .map_err(|_| anyhow::anyhow!("failed to lock style_source_collect"))?;
         list.push(style);
-        Ok(js)
+        Ok(js.into())
       } else {
-        Ok(raw)
+        Ok(raw.into())
       }
     } else if let Some(Loader::Sass) = loader {
       unimplemented!()
     } else {
-      Ok(raw)
+      Ok(raw.into())
     }
   }
 
