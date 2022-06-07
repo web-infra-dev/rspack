@@ -1,0 +1,32 @@
+name: pr-check
+
+on:
+  push:
+    branches:
+      - main
+    tags-ignore:
+      - '**'
+  pull_request:
+
+jobs:
+  deploy:
+    environment: Automation test
+    runs-on: windows-latest
+    steps:
+      - name: Checkout from PR branch
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+
+        #Using 12.x version as an example
+      - name: Set Node.js 12.x for GitHub Action
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12.x
+
+      - name: installing node_modules
+        run: npm install
+
+      - name: Build GitHub Action
+        run: npm run build
