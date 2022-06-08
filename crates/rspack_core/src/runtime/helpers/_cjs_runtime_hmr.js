@@ -1,4 +1,37 @@
-function invalidate(dirtyId) {
+class Hot {
+  constructor(id) {
+    this.id = id;
+    this.accepts = [];
+  }
+  accept(ids, callback) {
+    if (ids === undefined) {
+      this.accepts.push({
+        ids: this.id,
+        accept: undefined,
+      });
+    } else if (typeof ids === 'function') {
+      this.accepts.push({
+        ids: this.id,
+        accept: ids,
+      });
+    } else {
+      this.accepts.push({
+        ids,
+        accept: callback,
+      });
+    }
+  }
+  dispose(callback) {
+    this.accepts.push({
+      id: this.id,
+      dispose: callback,
+    });
+  }
+}
+
+globalThis.rs.Hot = globalThis.rs.Hot || Hot;
+
+function __invalidate__(dirtyId) {
   const modules = rs.m;
   rs.require(dirtyId);
 
@@ -7,7 +40,7 @@ function invalidate(dirtyId) {
   const hotMetaList = new Set(); // hmrBoundary 模块关联的accept回调
   const removeModules = new Set(); // 在冒泡规则中收到影响的所有模块
 
-  cllectModules(dirtyId);
+  collectModules(dirtyId);
 
   console.log('hmr:', hmrBoundaries, hotMetaList, removeModules);
 
@@ -40,7 +73,7 @@ function invalidate(dirtyId) {
    * id: 当前模块id
    *
    */
-  function cllectModules(id) {
+  function collectModules(id) {
     removeModules.add(id);
     const module = modules[id];
     /**
@@ -102,3 +135,5 @@ socket.onmessage = function (event) {
   (0, eval)(data.code);
   // reload();
 };
+
+globalThis.rs.invalidate = globalThis.rs.invalidate || __invalidate__;

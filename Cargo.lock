@@ -1737,6 +1737,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "better_scoped_tls",
  "crossbeam",
  "dashmap",
  "futures",

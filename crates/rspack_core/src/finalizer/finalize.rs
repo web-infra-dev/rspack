@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
+use super::hmr::HmrModuleIdReWriter;
 use crate::{
-  visitors::{ClearMark, HmrModuleIdReWriter, RspackModuleFinalizer},
+  visitors::{ClearMark, RspackModuleFinalizer},
   Bundle, ModuleGraph, ResolvedURI,
 };
 use rspack_swc::{

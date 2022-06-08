@@ -70,7 +70,11 @@ export async function run(options: RspackRawOptions, command: 'dev' | 'build') {
     const server = new DevServer({ root, public: 'dist', bundler });
     console.timeEnd('build');
     watcher.on('change', async (id) => {
-      const url = path.relative(root, id);
+      let url = path.relative(root, id);
+      if (url.startsWith('./') || url.startsWith('../')) {
+      } else {
+        url = './' + url;
+      }
       console.time(`hmr:${url}`);
       /**
        * @todo update logic
@@ -82,7 +86,7 @@ export async function run(options: RspackRawOptions, command: 'dev' | 'build') {
         type: 'js-update',
         path: url,
         timestamp: Date.now(),
-        code: Object.values(update).join(';\n') + `invalidate(${JSON.stringify(url)})` + sourceUrl,
+        code: Object.values(update).join(';\n') + `rs.invalidate(${JSON.stringify(url)})` + sourceUrl,
       });
       console.timeEnd(`hmr:${url}`);
     });

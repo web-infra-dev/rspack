@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use crate::{Bundle, ModuleGraph, ResolvedURI};
+use crate::{cjs_runtime_helper, Bundle, ModuleGraph, Platform, ResolvedURI};
 use ast::*;
 use rspack_swc::{
   swc_atoms, swc_common, swc_ecma_ast as ast, swc_ecma_transforms_base, swc_ecma_transforms_module,
-  swc_ecma_utils::{self, private_ident},
+  swc_ecma_utils::{self},
   swc_ecma_visit::{self, noop_visit_mut_type},
 };
 use swc_atoms::JsWord;
@@ -15,7 +15,6 @@ use swc_ecma_transforms_module::common_js::Config;
 use swc_ecma_utils::{member_expr, quote_ident, quote_str, ExprFactory};
 use swc_ecma_visit::{Fold, FoldWith, VisitMut, VisitMutWith};
 
-pub const RS_DYNAMIC_REQUIRE: &str = "rs.dynamic_require";
 pub const RS_REQUIRE: &str = "__rspack_require__";
 pub struct RspackModuleFinalizer<'a> {
   pub modules: &'a ModuleGraph,
@@ -55,7 +54,7 @@ impl<'a> Fold for RspackModuleFinalizer<'a> {
 
     let mut module_body = vec![CallExpr {
       span: DUMMY_SP,
-      callee: member_expr!(DUMMY_SP, rs.define).as_callee(),
+      callee: cjs_runtime_helper!(define, rs.define),
       args: vec![
         Expr::Lit(Lit::Str(quote_str!(self.file_name.clone()))).as_arg(),
         FnExpr {
@@ -99,10 +98,17 @@ impl<'a> Fold for RspackModuleFinalizer<'a> {
     .into()];
 
     if self.entry_flag {
+      let is_hmr_enabled = self.bundle.options.is_hmr_enabled();
+      let callee = if is_hmr_enabled {
+        cjs_runtime_helper!(require_hot, rs.require)
+      } else {
+        cjs_runtime_helper!(require, rs.require)
+      };
+
       module_body.push(
         CallExpr {
           span: DUMMY_SP,
-          callee: member_expr!(DUMMY_SP, rs.require).as_callee(),
+          callee,
           args: vec![Expr::Lit(Lit::Str(quote_str!(self.file_name.clone()))).as_arg()],
           type_args: Default::default(),
         }
@@ -183,7 +189,14 @@ impl<'a> RspackModuleFormatTransformer<'a> {
       } else {
         args = vec![Lit::Str(js_module_id.into()).as_arg()];
       }
-      n.callee = private_ident!(RS_DYNAMIC_REQUIRE).as_callee();
+
+      n.callee = if self.bundle.options.chunk_loading.is_jsonp() {
+        cjs_runtime_helper!(jsonp, rs.dynamic_require)
+      } else if self.bundle.options.platform == Platform::Node {
+        cjs_runtime_helper!(dynamic_node, rs.dynamic_require)
+      } else {
+        cjs_runtime_helper!(dynamic_browser, rs.dynamic_require)
+      };
       n.args = args;
     };
     Some(())

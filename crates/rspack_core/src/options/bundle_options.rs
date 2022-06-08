@@ -30,7 +30,16 @@ impl From<BundleMode> for BundleReactOptions {
   }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+impl From<(BundleMode, Platform)> for BundleReactOptions {
+  fn from((mode, platform): (BundleMode, Platform)) -> Self {
+    Self {
+      runtime: Self::default().runtime,
+      refresh: mode.is_dev() && platform.is_browser(),
+    }
+  }
+}
+
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum Platform {
   Browser,
   Node,
@@ -39,6 +48,16 @@ pub enum Platform {
 impl Default for Platform {
   fn default() -> Self {
     Self::Browser
+  }
+}
+
+impl Platform {
+  pub fn is_browser(&self) -> bool {
+    matches!(self, Platform::Browser)
+  }
+
+  pub fn is_node(&self) -> bool {
+    matches!(self, Platform::Node)
   }
 }
 
@@ -67,6 +86,53 @@ impl SourceMapOptions {
 }
 
 #[derive(Debug)]
+pub enum BundleTarget {
+  CommonJS,
+}
+
+impl Default for BundleTarget {
+  fn default() -> Self {
+    Self::CommonJS
+  }
+}
+
+#[derive(Debug)]
+pub enum ChunkLoadingOptions {
+  Import,
+  JSONP,
+}
+
+impl Default for ChunkLoadingOptions {
+  fn default() -> Self {
+    Self::Import
+  }
+}
+
+impl ChunkLoadingOptions {
+  pub fn is_jsonp(&self) -> bool {
+    matches!(self, ChunkLoadingOptions::JSONP)
+  }
+
+  pub fn is_import(&self) -> bool {
+    matches!(self, ChunkLoadingOptions::Import)
+  }
+}
+
+impl From<(BundleMode, Platform)> for ChunkLoadingOptions {
+  fn from((mode, platform): (BundleMode, Platform)) -> Self {
+    if platform.is_node() {
+      return Self::Import;
+    }
+
+    if mode.is_prod() {
+      Self::JSONP
+    } else {
+      Self::Import
+    }
+  }
+}
+
+#[derive(Debug)]
 pub struct BundleOptions {
   pub platform: Platform,
   pub react: BundleReactOptions,
@@ -77,6 +143,7 @@ pub struct BundleOptions {
   pub outdir: String,
   pub entry_filename: String, // | ((chunkInfo: PreRenderedChunk) => string)
   pub chunk_filename: String,
+  pub chunk_loading: ChunkLoadingOptions,
   pub code_splitting: CodeSplittingOptions,
   pub lazy_compilation: bool,
   pub root: String,
@@ -89,10 +156,21 @@ pub struct BundleOptions {
   pub progress: bool,
   pub globals: HashMap<String, String>,
   pub runtime: RuntimeOptions,
+  pub target: BundleTarget,
+}
+
+impl BundleOptions {
+  pub fn is_hmr_enabled(&self) -> bool {
+    (self.runtime.hmr || self.react.refresh)
+      && self.mode.is_dev()
+      && self.platform == Platform::Browser
+  }
 }
 
 impl Default for BundleOptions {
   fn default() -> Self {
+    let default_mode = BundleMode::Prod;
+    let default_platform = Platform::default();
     Self {
       resolve: BundleMode::None.into(),
       react: Default::default(),
@@ -113,6 +191,7 @@ impl Default for BundleOptions {
       minify: Default::default(),
       entry_filename: "[name].js".to_string(),
       chunk_filename: "[id].js".to_string(),
+      chunk_loading: (default_mode, default_platform).into(),
       code_splitting: Default::default(),
       lazy_compilation: false,
       loader: Default::default(),
@@ -124,36 +203,64 @@ impl Default for BundleOptions {
       progress: true,
       globals: Default::default(),
       runtime: RuntimeOptions::default(),
-      platform: Default::default(),
+      target: Default::default(),
+      platform: default_platform,
     }
   }
 }
 
 impl From<BundleMode> for BundleOptions {
   fn from(mode: BundleMode) -> Self {
+    let BundleOptions {
+      root,
+      entry_filename,
+      chunk_filename,
+      loader,
+      entries,
+      outdir,
+      inline_style,
+      source_map,
+      svgr,
+      define,
+      globals,
+      platform,
+      ..
+    } = Self::default();
     Self {
-      platform: Platform::default(),
+      platform,
       mode,
       minify: mode.is_prod(),
-      root: Self::default().root,
-      entry_filename: Self::default().entry_filename,
-      chunk_filename: Self::default().chunk_filename,
+      root,
+      entry_filename,
+      chunk_filename,
+      chunk_loading: (mode, platform).into(),
       progress: !mode.is_none(),
       resolve: mode.into(),
-      react: mode.into(),
-      loader: Self::default().loader,
-      entries: Self::default().entries,
+      react: (mode, platform).into(),
+      loader,
+      entries,
       code_splitting: mode.into(),
-      outdir: Self::default().outdir,
+      outdir,
       lazy_compilation: false,
-      inline_style: Self::default().inline_style,
+      inline_style,
       // TODO: what's the right default value for different bundle mode
-      source_map: Self::default().source_map,
-      svgr: Self::default().svgr,
-      define: Self::default().define,
-      globals: Self::default().globals,
+      source_map,
+      svgr,
+      define,
+      globals,
       runtime: Default::default(),
+      target: Default::default(),
       optimization: mode.into(),
+    }
+  }
+}
+
+impl From<(BundleMode, Platform)> for BundleOptions {
+  fn from((mode, platform): (BundleMode, Platform)) -> Self {
+    Self {
+      react: (mode, platform).into(),
+      chunk_loading: (mode, platform).into(),
+      ..mode.into()
     }
   }
 }

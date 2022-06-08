@@ -17,7 +17,8 @@ use swc_ecma_transforms_base::pass::noop;
 use tracing::instrument;
 
 use crate::{
-  finalize::finalize, syntax_by_loader, Bundle, BundleMode, Loader, ModuleGraph, ResolvedURI,
+  finalizer::finalize, syntax_by_loader, Bundle, BundleMode, Loader, ModuleGraph, ResolvedURI,
+  HELPERS,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -103,44 +104,46 @@ impl JsModule {
         } else {
           options.source_map.is_enabled()
         };
-        compiler.process_js_with_custom_pass(
-          fm,
-          Some(ast::Program::Module(self.ast.clone())),
-          handler,
-          &swc_config::Options {
-            config: swc_config::Config {
-              jsc: swc_config::JscConfig {
-                target: Some(EsVersion::Es2022),
-                syntax: Some(syntax_by_loader(self.uri.as_str(), &self.loader)),
-                transform: Some(swc_config::TransformConfig {
-                  react: swc_ecma_transforms_react::Options {
-                    runtime: Some(swc_ecma_transforms_react::Runtime::Automatic),
+        HELPERS.set(&bundle.context.helpers, || {
+          compiler.process_js_with_custom_pass(
+            fm,
+            Some(ast::Program::Module(self.ast.clone())),
+            handler,
+            &swc_config::Options {
+              config: swc_config::Config {
+                jsc: swc_config::JscConfig {
+                  target: Some(EsVersion::Es2022),
+                  syntax: Some(syntax_by_loader(self.uri.as_str(), &self.loader)),
+                  transform: Some(swc_config::TransformConfig {
+                    react: swc_ecma_transforms_react::Options {
+                      runtime: Some(swc_ecma_transforms_react::Runtime::Automatic),
+                      ..Default::default()
+                    },
                     ..Default::default()
-                  },
+                  })
+                  .into(),
                   ..Default::default()
-                })
-                .into(),
+                },
+                inline_sources_content: true.into(),
+                emit_source_map_columns: (!matches!(options.mode, BundleMode::Dev)).into(),
+                source_maps: Some(SourceMapsConfig::Bool(source_map)),
                 ..Default::default()
               },
-              inline_sources_content: true.into(),
-              emit_source_map_columns: (!matches!(options.mode, BundleMode::Dev)).into(),
-              source_maps: Some(SourceMapsConfig::Bool(source_map)),
+              top_level_mark: Some(bundle_ctx.top_level_mark),
               ..Default::default()
             },
-            top_level_mark: Some(bundle_ctx.top_level_mark),
-            ..Default::default()
-          },
-          |_, _| noop(),
-          |_, _| {
-            finalize(
-              self.id.to_string(),
-              &self.resolved_uris,
-              self.kind.is_user_entry(),
-              &bundle.module_graph_container.module_graph,
-              bundle,
-            )
-          },
-        )
+            |_, _| noop(),
+            |_, _| {
+              finalize(
+                self.id.to_string(),
+                &self.resolved_uris,
+                self.kind.is_user_entry(),
+                &bundle.module_graph_container.module_graph,
+                bundle,
+              )
+            },
+          )
+        })
       })
       .unwrap();
       let output = Arc::new(output);

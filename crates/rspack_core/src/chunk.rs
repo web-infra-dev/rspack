@@ -1,9 +1,9 @@
-use crate::runtime::rspack_runtime;
-use crate::{Bundle, NormalizedBundleOptions, SourceMapOptions};
+use crate::{Bundle, InjectHelpers, NormalizedBundleOptions, SourceMapOptions, HELPERS};
 use rayon::prelude::*;
 use rspack_sources::{
   ConcatSource, GenMapOption, RawSource, Source, SourceMapSource, SourceMapSourceOptions,
 };
+use rspack_swc::{swc_common::DUMMY_SP, swc_ecma_ast::Module};
 use std::{collections::HashSet, path::Path};
 use tracing::instrument;
 
@@ -46,6 +46,7 @@ impl Chunk {
 
   #[instrument(skip_all)]
   pub fn render(&self, bundle: &Bundle) -> OutputChunk {
+    let compiler = bundle.context.compiler.clone();
     let options = &bundle.context.options;
 
     let mut concattables: Vec<Box<dyn Source>> = vec![];
@@ -61,12 +62,58 @@ impl Chunk {
       })
       .collect::<Vec<_>>();
 
-    if let ChunkKind::Entry { .. } = &self.kind {
-      let code = rspack_runtime(&options.runtime, options);
-      if code.trim() != "" {
-        let runtime = Box::new(RawSource::new(&code));
-        concattables.push(runtime);
+    HELPERS.set(&bundle.context.helpers, || {
+      if let ChunkKind::Entry { .. } = &self.kind {
+        if options.chunk_loading.is_jsonp() {
+          HELPERS.with(|helpers| {
+            helpers.jsonp();
+          })
+        }
+        // this should be globalized
+        let runtime_helpers = InjectHelpers.make_helpers_for_module();
+
+        let code = compiler
+          .run(|| {
+            compiler.print(
+              &Module {
+                body: runtime_helpers,
+                span: DUMMY_SP,
+                shebang: None,
+              },
+              None,
+              None,
+              false,
+              Default::default(),
+              Default::default(),
+              &Default::default(),
+              None,
+              false,
+              None,
+              false,
+              false,
+            )
+          })
+          .unwrap()
+          .code;
+
+        HELPERS.set(&bundle.context.helpers, || {
+          HELPERS.with(|helpers| {
+            println!("{:#?}", helpers);
+          })
+        });
+
+        if code.trim() != "" {
+          let runtime = Box::new(RawSource::new(&code));
+          concattables.push(runtime);
+        }
       }
+    });
+
+    if options.chunk_loading.is_jsonp() && !rendered_modules.is_empty() {
+      concattables.push(Box::new(RawSource::new(&format!(
+        r#"rs.define_chunk("{}", function loadModules() {{"#,
+        self.id
+      ))));
     }
 
     rendered_modules.iter().for_each(|transform_output| {
@@ -84,6 +131,10 @@ impl Chunk {
         concattables.push(Box::new(RawSource::new(&transform_output.code)));
       }
     });
+
+    if options.chunk_loading.is_jsonp() && !rendered_modules.is_empty() {
+      concattables.push(Box::new(RawSource::new("});")));
+    }
 
     let mut concat_source = ConcatSource::new(vec![]);
     concattables.iter_mut().for_each(|concattable| {

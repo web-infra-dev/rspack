@@ -22,7 +22,6 @@ use crate::utils::inject_built_in_plugins;
 use crate::utils::log::enable_tracing_by_env;
 use crate::utils::rayon::init_rayon_thread_poll;
 use md4::{Digest, Md4};
-pub use rspack_core::finalize::finalize;
 use rspack_core::get_swc_compiler;
 use rspack_core::Plugin;
 use rspack_core::PluginDriver;

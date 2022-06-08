@@ -19,7 +19,7 @@
   },
   "enhanced": {
     "react": {
-      "fastRefresh": false
+      "fastRefresh": true
     },
     "svgr": true
   }
