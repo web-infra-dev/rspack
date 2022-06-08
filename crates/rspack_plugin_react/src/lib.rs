@@ -9,8 +9,8 @@ use react_hmr::{
 use rspack_core::ast::Ident;
 use rspack_core::path::normalize_path;
 use rspack_core::{
-  ast, BundleMode, LoadArgs, LoadedSource, Loader, OnResolveResult, Plugin, PluginContext,
-  PluginLoadHookOutput, PluginResolveHookOutput, ResolveArgs,
+  BundleMode, LoadArgs, LoadedSource, Loader, OnResolveResult, Plugin, PluginContext,
+  PluginLoadHookOutput, PluginResolveHookOutput, ResolveArgs, RspackAst, TransformArgs,
 };
 use rspack_swc::swc_common::comments::SingleThreadedComments;
 use rspack_swc::swc_ecma_transforms_base::resolver;
@@ -79,21 +79,30 @@ impl Plugin for ReactPlugin {
       return Ok(None);
     }
   }
-
-  fn transform_ast(
+  fn transform_include(&self, _uri: &str, loader: &Option<Loader>) -> bool {
+    matches!(loader, Some(l) if l.is_js_family())
+  }
+  fn transform(
     &self,
     ctx: &rspack_core::PluginContext,
-    uri: &str,
-    mut ast: ast::Module,
-  ) -> rspack_core::PluginTransformAstHookOutput {
+    args: TransformArgs,
+  ) -> rspack_core::PluginTransformHookOutput {
+    let TransformArgs { ref uri, ast, .. } = args;
+
+    let mut ast = if let Some(RspackAst::JavaScript(_ast)) = ast {
+      _ast
+    } else {
+      anyhow::bail!("only support javascript ast");
+    };
+
     if ctx.options.react.refresh && ctx.is_entry_uri(uri) {
       ast = ast.fold_with(&mut ReactRefreshEntryRuntimeInjector {});
     }
 
     let is_node_module = uri.contains("node_modules");
-    let is_maybe_has_jsx = Path::new(uri).extension().map_or(true, |ext| ext != "ts");
+    let is_maybe_has_jsx = Path::new(&uri).extension().map_or(true, |ext| ext != "ts");
     if is_maybe_has_jsx {
-      ctx.compiler.run(|| {
+      let module = ctx.compiler.run(|| {
         let (unresolved_mark, top_level_mark) = (Mark::new(), Mark::new());
         if !is_node_module {
           // The Resolver is not send. We need this block to tell compiler that
@@ -122,7 +131,7 @@ impl Plugin for ReactPlugin {
         ast = ast.fold_with(&mut react_folder);
 
         if !ctx.options.react.refresh {
-          return Ok(ast);
+          return ast;
         }
 
         let result = match is_node_module {
@@ -140,11 +149,11 @@ impl Plugin for ReactPlugin {
             }
           }
         };
-
-        Ok(result)
-      })
+        result
+      });
+      Ok(module.into())
     } else {
-      Ok(ast)
+      Ok(ast.into())
     }
   }
 }

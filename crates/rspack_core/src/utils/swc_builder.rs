@@ -70,7 +70,6 @@ mod swc_builder_test {
         ))
         .fold_with(&mut swc_ecma_transforms_base::fixer::fixer(None));
       let (_, code, _) = compile("".into(), Some(ast));
-      dbg!(code);
     });
   }
 
@@ -109,7 +108,6 @@ mod swc_builder_test {
       );
       let ast = ast.fold_with(&mut folds);
       let (_, code, _) = compile(Default::default(), Some(ast));
-      dbg!(code);
     });
   }
 

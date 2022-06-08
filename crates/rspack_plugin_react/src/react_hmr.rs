@@ -78,11 +78,11 @@ pub struct ReactHmrFolder {
 impl Fold for ReactHmrFolder {
   fn fold_module(&mut self, mut module: Module) -> Module {
     let hmr_header_ast = parse_file(
-      HMR_HEADER.replace("__SOURCE__", self.id.as_str()),
+      &HMR_HEADER.replace("__SOURCE__", self.id.as_str()),
       "",
       &rspack_core::Loader::Js,
     );
-    let hmr_footer_ast = parse_file(HMR_FOOTER.to_string(), "", &rspack_core::Loader::Js);
+    let hmr_footer_ast = parse_file(HMR_FOOTER, "", &rspack_core::Loader::Js);
 
     let mut body = vec![];
     body.append(&mut match hmr_header_ast {

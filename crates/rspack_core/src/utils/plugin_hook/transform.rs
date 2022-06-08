@@ -12,9 +12,10 @@ use crate::{
 pub fn transform_ast(
   path: &str,
   ast: ast::Module,
+  loader: &Loader,
   plugin_driver: &PluginDriver,
 ) -> PluginTransformAstHookOutput {
-  plugin_driver.transform_ast(path, ast)
+  plugin_driver.transform_ast(path, ast, loader)
 }
 
 #[instrument(skip_all)]

@@ -16,6 +16,14 @@ pub enum Loader {
   Tsx,
   Null,
 }
+impl Loader {
+  pub fn is_js_family(self) -> bool {
+    matches!(self, Loader::Js | Loader::Jsx | Loader::Ts | Loader::Tsx)
+  }
+  pub fn is_css_family(self) -> bool {
+    matches!(self, Loader::Css | Loader::Less | Loader::Sass)
+  }
+}
 
 impl Loader {
   pub fn values() -> Vec<Loader> {

@@ -107,9 +107,6 @@ async fn plugin_test() {
     .call_resolve
     .load(std::sync::atomic::Ordering::SeqCst));
   assert!(record
-    .call_transform
-    .load(std::sync::atomic::Ordering::SeqCst));
-  assert!(record
     .call_transform_ast
     .load(std::sync::atomic::Ordering::SeqCst));
   assert!(record

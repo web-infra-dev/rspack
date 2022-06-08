@@ -4,7 +4,6 @@ use crate::common::compile_fixture;
 async fn content_hash() {
   let bundler = compile_fixture("contenthash").await;
   let assets = bundler.bundle.context.assets.lock().unwrap();
-  // dbg!(&assets);
   let assets_filename_list = assets
     .iter()
     .map(|asset| asset.filename.clone())

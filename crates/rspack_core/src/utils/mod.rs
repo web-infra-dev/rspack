@@ -26,12 +26,13 @@ pub fn get_swc_compiler() -> Arc<Compiler> {
 }
 
 #[instrument(skip(source_code))]
-pub fn parse_file(source_code: String, filename: &str, loader: &Loader) -> ast::Program {
+pub fn parse_file(source_code: &str, filename: &str, loader: &Loader) -> ast::Program {
   let syntax = syntax_by_loader(filename, loader);
   let compiler = get_swc_compiler();
-  let fm = compiler
-    .cm
-    .new_source_file(FileName::Custom(filename.to_string()), source_code);
+  let fm = compiler.cm.new_source_file(
+    FileName::Custom(filename.to_string()),
+    source_code.to_string(),
+  );
   swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
     compiler.parse_js(
       fm,

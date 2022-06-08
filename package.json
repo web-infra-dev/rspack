@@ -16,7 +16,7 @@
     "init": "yarn install",
     "test:js": "mocha && yarn workspace arco-design-pro run build",
     "snapshot:js": "mocha --update",
-    "test:rust": "cargo test",
+    "test:rust": "cargo test --all --all-features -- --nocapture",
     "test:example": "cargo run --example arco_pro",
     "prepare": "husky install",
     "format:rs": "cargo fmt",
