@@ -180,6 +180,18 @@ pub fn resolve_file(base_dir: String, import_path: String) -> Result<String> {
   }
 }
 
+#[napi::module_init]
+fn init() {
+  use backtrace::Backtrace;
+  use std::panic::set_hook;
+
+  set_hook(Box::new(|panic_info| {
+    let backtrace = Backtrace::new();
+    println!("Panic: {:?}\nBacktrace: {:?}", panic_info, backtrace);
+    std::process::exit(1)
+  }));
+}
+
 // for dts generation only
 #[napi(object)]
 pub struct RspackInternal {}
