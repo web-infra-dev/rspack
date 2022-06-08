@@ -11,9 +11,9 @@ use tracing::instrument;
 
 use crate::{
   BundleContext, Chunk, LoadArgs, LoadedSource, Loader, NormalizedBundleOptions, OnResolveResult,
-  Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput, PluginContext,
-  PluginTapGeneratedChunkHookOutput, PluginTransformAstHookOutput, PluginTransformHookOutput,
-  ResolveArgs, TransformArgs, TransformResult,
+  OutputChunk, Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput, PluginContext,
+  PluginRenderChunkHookOutput, PluginTapGeneratedChunkHookOutput, PluginTransformAstHookOutput,
+  PluginTransformHookOutput, RenderChunkArgs, ResolveArgs, TransformArgs, TransformResult,
 };
 
 #[derive(Debug)]
@@ -28,6 +28,7 @@ pub struct PluginDriver {
   transform_hints: Vec<usize>,
   transform_ast_hints: Vec<usize>,
   tap_generated_chunk_hints: Vec<usize>,
+  render_chunk_hints: Vec<usize>,
   pub resolved_entries: RwLock<Arc<HashSet<String>>>,
 }
 
@@ -45,6 +46,7 @@ impl PluginDriver {
     let mut transform_hints = Vec::with_capacity(plugins.len());
     let mut transform_ast_hints = Vec::with_capacity(plugins.len());
     let mut tap_generated_chunk_hints = Vec::with_capacity(plugins.len());
+    let mut render_chunk_hints = Vec::with_capacity(plugins.len());
 
     plugins.iter().enumerate().for_each(|(i, p)| {
       if p.need_build_start() {
@@ -68,6 +70,9 @@ impl PluginDriver {
       if p.need_tap_generated_chunk() {
         tap_generated_chunk_hints.push(i);
       }
+      if p.need_render_chunk() {
+        render_chunk_hints.push(i);
+      }
     });
     Self {
       plugins,
@@ -80,6 +85,7 @@ impl PluginDriver {
       transform_hints,
       transform_ast_hints,
       tap_generated_chunk_hints,
+      render_chunk_hints,
       resolved_entries: Default::default(),
     }
   }
@@ -169,6 +175,31 @@ impl PluginDriver {
         }
       })
   }
+
+  #[instrument(skip_all)]
+  pub fn render_chunk(
+    &self,
+    output_chunk: OutputChunk,
+    chunk: &Chunk,
+  ) -> PluginRenderChunkHookOutput {
+    self
+      .render_chunk_hints
+      .iter()
+      .fold(Ok(output_chunk), |rendered_chunk, i| {
+        let rendered_chunk = rendered_chunk?;
+        self.plugins[*i].render_chunk(
+          &self.plugin_context(),
+          RenderChunkArgs {
+            code: rendered_chunk.code,
+            map: rendered_chunk.map,
+            file_name: rendered_chunk.file_name,
+            entry: rendered_chunk.entry,
+            chunk,
+          },
+        )
+      })
+  }
+
   #[instrument(skip_all)]
   pub fn tap_generated_chunk(
     &self,

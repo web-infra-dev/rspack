@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::fmt::Debug;
 
-use crate::{Chunk, Loader, NormalizedBundleOptions};
+use crate::{Chunk, Loader, NormalizedBundleOptions, OutputChunk, OutputChunkSourceMap};
 use async_trait::async_trait;
 use rspack_swc::swc_ecma_ast as ast;
 
@@ -66,6 +66,14 @@ pub struct LoadArgs {
   pub kind: ImportKind,
 }
 
+pub struct RenderChunkArgs<'a> {
+  pub chunk: &'a Chunk,
+  pub file_name: String,
+  pub entry: String,
+  pub code: String,
+  pub map: OutputChunkSourceMap,
+}
+
 pub type PluginBuildStartHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;
 pub type PluginLoadHookOutput = Result<Option<LoadedSource>>;
@@ -73,6 +81,7 @@ pub type PluginResolveHookOutput = Result<Option<OnResolveResult>>;
 pub type PluginTransformAstHookOutput = Result<ast::Module>;
 pub type PluginTransformHookOutput = Result<TransformResult>;
 pub type PluginTapGeneratedChunkHookOutput = Result<()>;
+pub type PluginRenderChunkHookOutput = Result<OutputChunk>;
 
 #[async_trait]
 pub trait Plugin: Sync + Send + Debug {
@@ -115,6 +124,12 @@ pub trait Plugin: Sync + Send + Debug {
   fn need_tap_generated_chunk(&self) -> bool {
     true
   }
+
+  #[inline]
+  fn need_render_chunk(&self) -> bool {
+    true
+  }
+
   #[inline]
   async fn build_start(&self, _ctx: &PluginContext) -> PluginBuildStartHookOutput {
     Ok(())
@@ -150,6 +165,19 @@ pub trait Plugin: Sync + Send + Debug {
     ast: ast::Module,
   ) -> PluginTransformAstHookOutput {
     Ok(ast)
+  }
+
+  fn render_chunk<'a>(
+    &self,
+    _ctx: &PluginContext,
+    args: RenderChunkArgs<'a>,
+  ) -> PluginRenderChunkHookOutput {
+    Ok(OutputChunk {
+      code: args.code,
+      map: args.map,
+      file_name: args.file_name,
+      entry: args.entry,
+    })
   }
 
   #[inline]

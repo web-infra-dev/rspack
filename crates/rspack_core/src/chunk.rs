@@ -1,11 +1,16 @@
-use crate::{Bundle, InjectHelpers, NormalizedBundleOptions, SourceMapOptions, HELPERS};
+use std::{collections::HashSet, path::Path};
+
+use anyhow::Result;
 use rayon::prelude::*;
 use rspack_sources::{
   ConcatSource, GenMapOption, RawSource, Source, SourceMapSource, SourceMapSourceOptions,
 };
 use rspack_swc::{swc_common::DUMMY_SP, swc_ecma_ast::Module};
-use std::{collections::HashSet, path::Path};
 use tracing::instrument;
+
+use crate::{
+  plugin_hook, Bundle, InjectHelpers, NormalizedBundleOptions, SourceMapOptions, HELPERS,
+};
 
 #[derive(Debug)]
 #[allow(clippy::manual_non_exhaustive)]
@@ -45,7 +50,7 @@ impl Chunk {
   }
 
   #[instrument(skip_all)]
-  pub fn render(&self, bundle: &Bundle) -> OutputChunk {
+  pub fn render(&self, bundle: &Bundle) -> Result<OutputChunk> {
     let compiler = bundle.context.compiler.clone();
     let options = &bundle.context.options;
 
@@ -169,12 +174,14 @@ impl Chunk {
         SourceMapOptions::None => (concat_source.source(), OutputChunkSourceMap::None),
       };
 
-      OutputChunk {
+      let output_chunk = OutputChunk {
         code: output_chunk.0.into(),
         file_name: self.filename.as_ref().unwrap().clone(),
         entry: self.entry_uri.clone(),
         map: output_chunk.1,
-      }
+      };
+
+      plugin_hook::render_chunk(output_chunk, self, bundle.plugin_driver.as_ref())
     })
   }
 

@@ -103,7 +103,7 @@ impl Bundler {
     let chunks = generate_chunks(&mut self.bundle)?;
     self.bundle.chunk_graph = chunks;
 
-    let output = self.render_chunks();
+    let output = self.render_chunks()?;
 
     let mut map = HashMap::default();
 
@@ -239,14 +239,14 @@ impl Bundler {
       });
   }
 
-  pub fn render_chunks(&self) -> HashMap<String, OutputChunk> {
+  pub fn render_chunks(&self) -> Result<HashMap<String, OutputChunk>> {
     self
       .bundle
       .chunk_graph
       .id_to_chunk()
       .par_iter()
-      .map(|(_chunk_id, chunk)| {
-        let mut chunk = chunk.render(&self.bundle);
+      .map(|(_chunk_id, chunk)| -> Result<(String, OutputChunk)> {
+        let mut chunk = chunk.render(&self.bundle)?;
         if chunk.file_name.contains("[contenthash]") {
           let mut hasher = Md4::new();
           hasher.update(&chunk.code);
@@ -256,7 +256,7 @@ impl Bundler {
             .replace("[contenthash]", &format!("{:x}", content_hash));
         }
 
-        (chunk.file_name.clone(), chunk)
+        Ok((chunk.file_name.clone(), chunk))
       })
       .collect()
   }
