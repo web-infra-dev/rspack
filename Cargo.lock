@@ -1715,7 +1715,6 @@ dependencies = [
  "rspack_plugin_node_built_in",
  "rspack_plugin_progress",
  "rspack_plugin_react",
- "rspack_plugin_style",
  "rspack_plugin_stylesource",
  "rspack_plugin_svgr",
  "rspack_style",
@@ -1783,10 +1782,6 @@ dependencies = [
  "tokio",
  "tracing",
 ]
-
-[[package]]
-name = "rspack_node_resolve"
-version = "0.1.0"
 
 [[package]]
 name = "rspack_plugin_ast_optimization"
@@ -1873,14 +1868,6 @@ dependencies = [
  "rspack_core",
  "rspack_swc",
  "swc_common 0.18.3",
-]
-
-[[package]]
-name = "rspack_plugin_style"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "rspack_core",
 ]
 
 [[package]]

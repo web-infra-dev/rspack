@@ -29,15 +29,9 @@ pub fn inject_built_in_plugins(
   plugins.append(&mut user_plugins);
   // end --- injected user plugins
   plugins.push(Box::new(rspack_plugin_loader::LoaderInterpreterPlugin));
-  if options.inline_style {
-    // todo fix 后续是否 集成 进 style_source
-    // 方便我在 hmr 的时候 切割节点
-    plugins.push(Box::new(rspack_plugin_style::StyleLoaderPlugin {}));
-  } else {
-    // 处理所有样式
-    let stylesource_plugin: Box<StyleSourcePlugin> = std::default::Default::default();
-    plugins.push(stylesource_plugin);
-  }
+
+  let stylesource_plugin: Box<StyleSourcePlugin> = std::default::Default::default();
+  plugins.push(stylesource_plugin);
   if !options.globals.is_empty() {
     plugins.push(Box::new(rspack_plugin_globals::GlobalsPlugin));
   }
