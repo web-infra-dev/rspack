@@ -1,9 +1,10 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::atomic::AtomicUsize};
 
-use crate::{Dependency, ModuleDependency, ModuleGraph, ResolveKind, SourceType};
+use crate::{Dependency, ModuleDependency, ModuleGraph, ModuleIdAlgo, ResolveKind, SourceType};
 
 #[derive(Debug)]
 pub struct ModuleGraphModule {
+  pub id: String,
   pub exec_order: usize,
   pub uri: String,
   pub module: BoxModule,
@@ -13,12 +14,14 @@ pub struct ModuleGraphModule {
 
 impl ModuleGraphModule {
   pub fn new(
+    id: String,
     uri: String,
     module: BoxModule,
     dependecies: Vec<Dependency>,
     source_type: SourceType,
   ) -> Self {
     Self {
+      id,
       exec_order: usize::MAX,
       uri,
       module,
@@ -65,6 +68,16 @@ pub trait Module: Debug + Send + Sync {
 
 pub type BoxModule = Box<dyn Module>;
 
-// impl <T: ModuleLike> T: ModuleLike {
+pub struct ModuleIdGenerator {
+  id_count: AtomicUsize,
+  module_id_algo: ModuleIdAlgo,
+}
 
-// }
+impl ModuleIdGenerator {
+  pub fn new(module_id_algo: ModuleIdAlgo) -> Self {
+    Self {
+      id_count: Default::default(),
+      module_id_algo,
+    }
+  }
+}

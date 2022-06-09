@@ -3,6 +3,9 @@ use std::path::{Component, Path};
 
 use sugar_path::PathSugar;
 
+mod hooks;
+pub use hooks::*;
+
 pub fn uri_to_chunk_name(root: &str, uri: &str) -> String {
   let path = Path::new(uri);
   let mut relatived = Path::new(path).relative(root);

@@ -7,13 +7,12 @@ use std::{
 };
 
 use dashmap::DashSet;
-use nodejs_resolver::ResolveResult;
 use sugar_path::PathSugar;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
-  LoadArgs, ModuleGraphModule, Msg, ParseModuleArgs, PluginDriver, ResolveArgs, SourceType,
-  TransformArgs,
+  load, resolve, LoadArgs, ModuleGraphModule, Msg, ParseModuleArgs, PluginDriver, ResolveArgs,
+  SourceType,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -90,7 +89,7 @@ impl ResolvingModuleJob {
       tracing::trace!(
         "load ({:?}) source {:?}",
         self.context.source_type,
-        &source[0..usize::max(source.len(), 20)]
+        &source[0..usize::min(source.len(), 20)]
       );
 
       // TODO: transform
@@ -132,6 +131,10 @@ impl ResolvingModuleJob {
       self
         .tx
         .send(Msg::TaskFinished(Box::new(ModuleGraphModule::new(
+          Path::new("./")
+            .join(Path::new(uri.as_str()).relative(self.plugin_driver.options.root.as_str()))
+            .to_string_lossy()
+            .to_string(),
           uri,
           module,
           deps,
@@ -154,54 +157,11 @@ impl ResolvingModuleJob {
   }
 }
 
-pub fn resolve(args: ResolveArgs, plugin_driver: &PluginDriver) -> String {
-  // TODO: plugins
-
-  // plugin_driver.resolver
-
-  if let Some(importer) = args.importer {
-    let base_dir = Path::new(importer).parent().unwrap();
-    tracing::trace!(
-      "resolved importer:{:?},specifier:{:?}",
-      importer,
-      args.specifier
-    );
-    match plugin_driver
-      .resolver
-      .resolve(base_dir, args.specifier)
-      .unwrap_or_else(|_| {
-        panic!(
-          "fail to resolved importer:{:?},specifier:{:?}",
-          importer, args.specifier
-        )
-      }) {
-      ResolveResult::Path(buf) => buf.to_string_lossy().to_string(),
-      _ => unreachable!(),
-    }
-  } else {
-    Path::new(plugin_driver.options.root.as_str())
-      .join(&args.specifier)
-      .resolve()
-      .to_string_lossy()
-      .to_string()
-  }
-}
-
 pub fn resolve_source_type_by_uri<T: AsRef<Path>>(uri: T) -> Option<SourceType> {
   let uri = uri.as_ref();
   let ext = uri.extension()?.to_str()?;
   let source_type: Option<SourceType> = ext.try_into().ok();
   source_type
-}
-
-pub async fn load(args: LoadArgs<'_>) -> String {
-  tokio::fs::read_to_string(args.uri)
-    .await
-    .unwrap_or_else(|_| panic!("unable to read from {:?}", args.uri))
-}
-
-pub fn transform(_args: TransformArgs) -> String {
-  todo!()
 }
 
 #[derive(Debug, Clone)]
