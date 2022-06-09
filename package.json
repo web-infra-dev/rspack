@@ -39,10 +39,10 @@
     "*.{ts,tsx,js,jsx,cjs,mjs}": "dprint fmt"
   },
   "devDependencies": {
+    "dprint": "^0.29.1",
     "husky": "^7.0.4",
     "lint-staged": "^12.4.0",
     "mocha": "9.2.2",
-    "prettier": "2.6.2",
     "tsm": "2.2.1",
     "why-is-node-running": "2.2.1",
     "yarn": "^1.22.18"
