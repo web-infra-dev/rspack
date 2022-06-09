@@ -97,6 +97,8 @@ impl ResolvingModuleJob {
 
       // parse source to module
 
+      assert!(self.context.source_type.is_some());
+
       let mut module = self
         .plugin_driver
         .parse_module(
