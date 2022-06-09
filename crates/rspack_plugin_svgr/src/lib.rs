@@ -7,12 +7,12 @@ use async_trait::async_trait;
 use clean::clean;
 use core::fmt::Debug;
 use rspack_core::{
-  ast, PluginContext, PluginTransformAstHookOutput, PluginTransformHookOutput, TransformArgs,
+  parse_file, PluginContext, PluginTransformHookOutput, RspackAst, TransformArgs, TransformResult,
 };
 use rspack_swc::swc_ecma_visit::VisitMutWith;
 pub static PLUGIN_NAME: &str = "rspack_svgr";
-use rspack_core::{LoadArgs, LoadedSource, Loader, Plugin, PluginLoadHookOutput};
-use std::fs::read_to_string;
+use rspack_core::{Loader, Plugin};
+
 use std::path::Path;
 
 use transform::SvgrReplacer;
@@ -40,31 +40,16 @@ impl Plugin for SvgrPlugin {
   fn need_resolve(&self) -> bool {
     false
   }
-
+  #[inline]
+  fn reuse_ast(&self) -> bool {
+    false
+  }
   #[inline]
   fn need_tap_generated_chunk(&self) -> bool {
     false
   }
   #[inline]
-  async fn load(&self, _ctx: &PluginContext, args: &LoadArgs) -> PluginLoadHookOutput {
-    let query_start = args.id.find(|c: char| c == '?').unwrap_or(args.id.len());
-    let file_path = Path::new(&args.id[..query_start]);
-    let ext = file_path
-      .extension()
-      .and_then(|ext| ext.to_str())
-      .unwrap_or("js");
-
-    if ext == "svg" {
-      let loader = Some(Loader::Js);
-      let content =
-        Some(read_to_string(file_path).unwrap_or_else(|_| panic!("file not exits {:?}", args.id)));
-      Ok(Some(LoadedSource { loader, content }))
-    } else {
-      Ok(None)
-    }
-  }
-  #[inline]
-  fn transform_include(&self, id: &str) -> bool {
+  fn transform_include(&self, id: &str, _: &Option<Loader>) -> bool {
     let file_path = Path::new(&id);
     let ext = file_path
       .extension()
@@ -72,16 +57,6 @@ impl Plugin for SvgrPlugin {
       .unwrap_or("js");
     ext == "svg"
   }
-  fn transform_ast(
-    &self,
-    _ctx: &PluginContext,
-    _path: &str,
-    mut ast: ast::Module,
-  ) -> PluginTransformAstHookOutput {
-    ast.visit_mut_with(&mut SvgrReplacer {});
-    Ok(ast)
-  }
-
   fn transform(&self, _ctx: &PluginContext, args: TransformArgs) -> PluginTransformHookOutput {
     if !_ctx.options.svgr {
       return Ok(args.into());
@@ -99,7 +74,12 @@ export default SvgComponent;"#,
     )
     .trim()
     .to_string();
+    let mut ast = parse_file(&result, &args.uri, &Loader::Jsx).expect_module();
+    ast.visit_mut_with(&mut SvgrReplacer {});
     // println!("result:\n{}", result);
-    Ok(result.into())
+    Ok(TransformResult {
+      code: result,
+      ast: Some(RspackAst::JavaScript(ast)),
+    })
   }
 }

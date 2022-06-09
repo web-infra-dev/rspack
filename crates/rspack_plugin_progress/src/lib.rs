@@ -4,10 +4,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use console::{style, Color, Term};
 use core::fmt::Debug;
-use rspack_core::{
-  Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput, PluginContext,
-  PluginTransformHookOutput, TransformArgs,
-};
+use rspack_core::{Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput, PluginContext};
 use std::sync::{Arc, Mutex};
 
 use once_cell::sync::Lazy;
@@ -196,27 +193,22 @@ impl Plugin for ProgressPlugin {
 
     Ok(())
   }
-
-  fn transform(&self, _ctx: &PluginContext, args: TransformArgs) -> PluginTransformHookOutput {
-    let TransformArgs {
-      uri: _uri,
-      code: raw,
-      ..
-    } = args;
-    let done = self
-      .progress
-      .done
-      .lock()
-      .map_err(|_| anyhow::anyhow!("failed to acquire lock of done"))?;
-    if *done {
-      return Ok(raw.into());
-    }
-    // if matches!(_ctx.options.mode, BundleMode::Dev) {
-    //   return None;
-    // }
-    self.progress.update("RsPack", &_uri, 1)?;
-    Ok(raw.into())
-  }
+  // take down progress temporary
+  // fn transform(&self, _ctx: &PluginContext, args: TransformArgs) -> PluginTransformHookOutput {
+  //   let done = self
+  //     .progress
+  //     .done
+  //     .lock()
+  //     .map_err(|_| anyhow::anyhow!("failed to acquire lock of done"))?;
+  //   if *done {
+  //     return Ok(args.into());
+  //   }
+  //   // if matches!(_ctx.options.mode, BundleMode::Dev) {
+  //   //   return None;
+  //   // }
+  //   self.progress.update("RsPack", &args.uri, 1)?;
+  //   Ok(args.into())
+  // }
   async fn build_end(&self, _ctx: &PluginContext) -> PluginBuildEndHookOutput {
     let mut done = self.progress.done.lock().unwrap();
     if *done {

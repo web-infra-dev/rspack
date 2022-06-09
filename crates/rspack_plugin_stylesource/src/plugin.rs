@@ -154,6 +154,14 @@ impl Plugin for StyleSourcePlugin {
   fn need_transform_ast(&self) -> bool {
     false
   }
+  #[inline]
+  fn transform_include(
+    &self,
+    _id: &str,
+    loader: &std::option::Option<rspack_core::Loader>,
+  ) -> bool {
+    return matches!(loader, Some(Loader::Sass | Loader::Less | Loader::Css));
+  }
 
   ///
   /// 初始化参数
@@ -163,12 +171,15 @@ impl Plugin for StyleSourcePlugin {
     self.app.set_minify(minify);
     Ok(())
   }
+  fn reuse_ast(&self) -> bool {
+    false
+  }
 
   fn transform(&self, _ctx: &PluginContext, args: TransformArgs) -> PluginTransformHookOutput {
     let TransformArgs {
-      code: raw,
-      uri,
-      loader,
+      code: ref raw,
+      ref uri,
+      ref loader,
       ..
     } = args;
     let uri = &uri;
@@ -189,7 +200,7 @@ impl Plugin for StyleSourcePlugin {
       } else {
         // todo fix 这里应该报错 is_style_source 会检查文件的 绝对路径资源是否 符合 style 如果没有进来
         // todo 默认是 *.ts *.wasm 这种给了 Loader::less 而不是返回该内容 但 PluginTransformHookOutput 非 Result
-        Ok(raw.into())
+        Ok(args.into())
       }
     } else if let Some(Loader::Css) = loader {
       if let Some(mut style) = is_style_source(uri) {
@@ -206,12 +217,12 @@ impl Plugin for StyleSourcePlugin {
         list.push(style);
         Ok(js.into())
       } else {
-        Ok(raw.into())
+        Ok(args.into())
       }
     } else if let Some(Loader::Sass) = loader {
       unimplemented!()
     } else {
-      Ok(raw.into())
+      anyhow::bail!("not supported other type in css loaer");
     }
   }
 

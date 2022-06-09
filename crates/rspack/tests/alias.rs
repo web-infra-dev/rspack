@@ -25,7 +25,6 @@ fn alias() {
   let assets = bundler.bundle.context.assets.lock().unwrap();
   let dist = assets.get(0).unwrap();
   let source = &dist.source;
-  println!("assets {:#?}", assets);
   assert!(!source.contains("wrong.js"));
   assert!(!source.contains('@'));
   assert!(source.contains("ok.js"));

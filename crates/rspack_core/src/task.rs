@@ -17,11 +17,11 @@ use swc_ecma_visit::VisitMutWith;
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::instrument;
 
-use crate::path::normalize_path;
 use crate::{
   bundle::Msg, dependency_scanner::DependencyScanner, plugin_hook, utils::parse_file, ImportKind,
   JsModule, JsModuleKind, LoadArgs, PluginDriver, ResolveArgs, ResolvedURI,
 };
+use crate::{path::normalize_path, RspackAst};
 
 #[derive(Debug)]
 pub struct DependencyIdResolver {
@@ -103,9 +103,13 @@ impl Task {
       .as_ref()
       .unwrap_or_else(|| panic!("No loader to deal with file: {:?}", module_id));
     let mut dependency_scanner = DependencyScanner::default();
-    let raw_ast = parse_file(transformed_result.code, module_id, loader).expect_module();
+    let raw_ast = if let Some(RspackAst::JavaScript(_ast)) = transformed_result.ast {
+      _ast
+    } else {
+      parse_file(&transformed_result.code, module_id, loader).expect_module()
+    };
 
-    let mut ast = plugin_hook::transform_ast(module_id, raw_ast, &self.plugin_driver)?;
+    let mut ast = plugin_hook::transform_ast(module_id, raw_ast, loader, &self.plugin_driver)?;
 
     self
       .pre_analyze_imported_module(&uri_resolver, &ast)

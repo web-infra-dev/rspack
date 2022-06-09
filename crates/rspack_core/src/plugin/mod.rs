@@ -1,7 +1,9 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::fmt::Debug;
 
-use crate::{Chunk, Loader, NormalizedBundleOptions, OutputChunk, OutputChunkSourceMap};
+use crate::{
+  parse_file, Chunk, Loader, NormalizedBundleOptions, OutputChunk, OutputChunkSourceMap,
+};
 use async_trait::async_trait;
 use rspack_swc::swc_ecma_ast as ast;
 
@@ -22,22 +24,21 @@ pub struct ResolveArgs {
   pub kind: ImportKind,
 }
 #[derive(Debug, Clone)]
-pub enum RspackAST {
+pub enum RspackAst {
   JavaScript(ast::Module),
   Css(ast::Module), // I'm not sure what the final ast is, so just take placehold
 }
-
 #[derive(Debug)]
 pub struct TransformArgs<'a> {
   pub uri: String,
-  pub ast: Option<RspackAST>,
+  pub ast: Option<RspackAst>,
   pub code: String,
   pub loader: &'a mut Option<Loader>,
 }
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct TransformResult {
   pub code: String,
-  pub ast: Option<RspackAST>,
+  pub ast: Option<RspackAst>,
 }
 
 impl<'a> From<TransformArgs<'a>> for TransformResult {
@@ -51,6 +52,14 @@ impl<'a> From<TransformArgs<'a>> for TransformResult {
 impl From<String> for TransformResult {
   fn from(code: String) -> TransformResult {
     TransformResult { code, ast: None }
+  }
+}
+impl From<ast::Module> for TransformResult {
+  fn from(ast: ast::Module) -> TransformResult {
+    TransformResult {
+      code: "".to_string(), // no need code, since we have ast
+      ast: Some(RspackAst::JavaScript(ast)),
+    }
   }
 }
 
@@ -79,6 +88,8 @@ pub type PluginBuildEndHookOutput = Result<()>;
 pub type PluginLoadHookOutput = Result<Option<LoadedSource>>;
 pub type PluginResolveHookOutput = Result<Option<OnResolveResult>>;
 pub type PluginTransformAstHookOutput = Result<ast::Module>;
+pub type PluginParseOutput = Result<RspackAst>;
+pub type PluginGenerateOutput = Result<String>;
 pub type PluginTransformHookOutput = Result<TransformResult>;
 pub type PluginTapGeneratedChunkHookOutput = Result<()>;
 pub type PluginRenderChunkHookOutput = Result<OutputChunk>;
@@ -87,8 +98,8 @@ pub type PluginRenderChunkHookOutput = Result<OutputChunk>;
 pub trait Plugin: Sync + Send + Debug {
   fn name(&self) -> &'static str;
   #[inline]
-  fn transform_include(&self, _: &str) -> bool {
-    true
+  fn transform_include(&self, _: &str, _loader: &Option<Loader>) -> bool {
+    false
   }
   #[inline]
   fn need_build_start(&self) -> bool {
@@ -119,6 +130,10 @@ pub trait Plugin: Sync + Send + Debug {
   fn need_transform_ast(&self) -> bool {
     true
   }
+  #[inline]
+  fn reuse_ast(&self) -> bool {
+    true
+  }
 
   #[inline]
   fn need_tap_generated_chunk(&self) -> bool {
@@ -130,6 +145,22 @@ pub trait Plugin: Sync + Send + Debug {
     true
   }
 
+  fn generate(&self, ast: &Option<RspackAst>) -> PluginGenerateOutput {
+    let ast = ast.as_ref().context("call generate when ast is empty")?;
+    match ast {
+      RspackAst::JavaScript(_ast) => Err(anyhow::anyhow!("js ast codegen not supported yet")),
+      RspackAst::Css(_ast) => Err(anyhow::anyhow!("css ast codegen not supported yet ")),
+    }
+  }
+  fn parse(&self, uri: &str, code: &str, loader: &Option<Loader>) -> PluginParseOutput {
+    match loader {
+      Some(l) if l.is_js_family() => {
+        let module = parse_file(code, uri, l).expect_module();
+        Ok(RspackAst::JavaScript(module))
+      }
+      _ => Err(anyhow::anyhow!("parse for {:?} not supported yet", uri)),
+    }
+  }
   #[inline]
   async fn build_start(&self, _ctx: &PluginContext) -> PluginBuildStartHookOutput {
     Ok(())

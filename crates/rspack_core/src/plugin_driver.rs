@@ -61,12 +61,9 @@ impl PluginDriver {
       if p.need_resolve() {
         resolve_id_hints.push(i);
       }
-      if p.need_transform() {
-        transform_hints.push(i);
-      }
-      if p.need_transform_ast() {
-        transform_ast_hints.push(i);
-      }
+      // disable transform_ast transform hint temporary
+      transform_hints.push(i);
+      transform_ast_hints.push(i);
       if p.need_tap_generated_chunk() {
         tap_generated_chunk_hints.push(i);
       }
@@ -147,15 +144,29 @@ impl PluginDriver {
     self.transform_hints.iter().fold(
       Ok(TransformResult { code, ast: None }),
       |transformed_result, i| {
-        if self.plugins[*i].transform_include(uri) {
+        let plugin = &self.plugins[*i];
+        if plugin.transform_include(uri, loader) {
           let x = transformed_result?;
+          let mut code = x.code;
+          let mut ast = x.ast;
+          // ast take precedence over code
+          // if prev loader set ast and current loader can't reuse_ast then we have to codegen code for current loader
+          if !plugin.reuse_ast() && ast.is_some() {
+            code = plugin.generate(&ast)?;
+          }
+          // if previous not set ast and current loader want to use ast, so we must parse it for loader
+          if ast.is_none() && plugin.reuse_ast() {
+            let y = plugin.parse(uri, &code, loader)?;
+            ast = Some(y)
+          }
           let args = TransformArgs {
             uri: uri.to_string(),
-            ast: x.ast,
-            code: x.code,
+            ast,
+            code,
             loader,
           };
-          self.plugins[*i].transform(&self.plugin_context(), args)
+          let res = self.plugins[*i].transform(&self.plugin_context(), args);
+          res
         } else {
           transformed_result
         }
@@ -163,16 +174,17 @@ impl PluginDriver {
     )
   }
   #[instrument(skip_all)]
-  pub fn transform_ast(&self, path: &str, ast: ast::Module) -> PluginTransformAstHookOutput {
+  pub fn transform_ast(
+    &self,
+    path: &str,
+    ast: ast::Module,
+    _loader: &Loader,
+  ) -> PluginTransformAstHookOutput {
     self
       .transform_ast_hints
       .iter()
       .fold(Ok(ast), |transformed_ast, i| {
-        if self.plugins[*i].transform_include(path) {
-          self.plugins[*i].transform_ast(&self.plugin_context(), path, transformed_ast?)
-        } else {
-          transformed_ast
-        }
+        self.plugins[*i].transform_ast(&self.plugin_context(), path, transformed_ast?)
       })
   }
 
