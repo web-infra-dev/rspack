@@ -1,0 +1,96 @@
+@line-card-bg: linear-gradient(180deg, rgb(242 249 254) 0%, #e6f4fe 100%);
+
+@interval-card-bg: linear-gradient(
+  180deg,
+  rgb(245 254 242) 0%,
+  rgb(230 254 238) 100%
+);
+
+@pie-card-bg: linear-gradient(
+  180deg,
+  rgb(247 247 255) 0%,
+  rgb(236 236 255) 100%
+);
+
+@line-card-dark-bg: linear-gradient(180deg, #284991 0%, #122b62 100%);
+@interval-card-dark-bg: linear-gradient(180deg, #3d492e 0%, #263827 100%);
+@pie-card-dark-bg: linear-gradient(180deg, #312565 0%, #201936 100%);
+
+.card {
+  display: flex;
+  padding: 20px;
+  padding-top: 16px;
+  border-radius: 4px;
+  min-height: 100px;
+
+  &-line {
+    background: @line-card-bg;
+  }
+
+  &-interval {
+    background: @interval-card-bg;
+  }
+
+  &-pie {
+    background: @pie-card-bg;
+  }
+
+  .statistic {
+    white-space: nowrap;
+  }
+
+  .chart {
+    flex: auto;
+    display: flex;
+    flex-direction: column-reverse;
+    margin-left: 16px;
+  }
+
+  .title {
+    margin: 0;
+  }
+
+  :global(.arco-statistic-content) {
+    margin-top: 24px;
+    margin-bottom: 4px;
+
+    :global(.arco-statistic-value) {
+      font-size: 24px;
+      line-height: 28px;
+    }
+  }
+
+  .compare-yesterday {
+    &-text {
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--color-text-2);
+    }
+  }
+
+  .diff {
+    margin-left: 8px;
+    line-height: 20px;
+    color: rgb(var(--red-6));
+  }
+
+  .diff-increment {
+    color: rgb(var(--green-6));
+  }
+}
+
+body[arco-theme='dark'] {
+  .card {
+    &-line {
+      background: @line-card-dark-bg;
+    }
+
+    &-pie {
+      background: @pie-card-dark-bg;
+    }
+
+    &-interval {
+      background: @interval-card-dark-bg;
+    }
+  }
+}

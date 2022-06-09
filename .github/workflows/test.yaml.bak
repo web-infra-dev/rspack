@@ -1,0 +1,50 @@
+name: Rust test
+
+on:
+  push:
+    branches:
+      - main
+    tags-ignore:
+      - "**"
+  pull_request:
+
+env:
+  TRACE: DEBUG
+
+jobs:
+  cargo-test:
+    name: Cargo test
+    strategy:
+      fail-fast: true
+    runs-on: [rspack]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install yarn
+        run: npm install -g yarn
+      - name: yarn install --no-immutable
+        run: npm run init
+      - name: Install
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          override: true
+      # - name: Configure cache
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: |
+      #       ~/.cargo/bin/
+      #       ~/.cargo/registry/index/
+      #       ~/.cargo/registry/cache/
+      #       ~/.cargo/git/db/
+      #       target/
+      #     key: test-${{ runner.os }}-cargo-gcc-${{ matrix.gcc }}-clang-${{ matrix.clang }}-${{ hashFiles('**/Cargo.lock') }}
+      - name: Build
+        run: cargo build
+      - name: Test
+        run: |
+          cargo test --all --all-features -- --nocapture
+          # temporarily disable next line for rspack-style not fully support less for now.
+          # yarn test:example
+          yarn build:core
+          yarn test:js

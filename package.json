@@ -1,0 +1,51 @@
+{
+  "name": "monorepo",
+  "version": "1.0.0",
+  "description": "Maybe the next generation bundler",
+  "main": "index.js",
+  "private": true,
+  "workspaces": [
+    "packages/**",
+    "examples/**"
+  ],
+  "scripts": {
+    "init": "yarn install",
+    "test:js": "mocha && yarn workspace arco-design-pro run build",
+    "snapshot:js": "mocha --update",
+    "test:rust": "cargo test --all --all-features -- --nocapture",
+    "test:example": "cargo run --example arco_pro",
+    "prepare": "husky install",
+    "format:rs": "cargo fmt",
+    "format:js": "prettier --write \"packages/**/*.{ts,js}\"",
+    "lint:rs": "cargo clippy --all-features -- --deny warnings",
+    "build:core": "yarn workspace @rspack/binding run build ",
+    "release:core": "yarn workspace @rspack/binding run build:release ",
+    "setup": "yarn install && yarn build:core",
+    "build:bundle": "cargo run --package rspack --example bundle"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/speedy-js/rspack.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/speedy-js/rspack/issues"
+  },
+  "homepage": "https://github.com/speedy-js/rspack#readme",
+  "lint-staged": {
+    "*.rs": "rustfmt --edition 2021",
+    "*.{ts,tsx,js,jsx,cjs,mjs}": "dprint fmt"
+  },
+  "devDependencies": {
+    "husky": "^7.0.4",
+    "lint-staged": "^12.4.0",
+    "mocha": "9.2.2",
+    "prettier": "2.6.2",
+    "tsm": "2.2.1",
+    "why-is-node-running": "2.2.1",
+    "yarn": "^1.22.18"
+  },
+  "packageManager": "yarn@3.2.0"
+}
