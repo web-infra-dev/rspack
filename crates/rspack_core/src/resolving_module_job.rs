@@ -56,8 +56,19 @@ impl ResolvingModuleJob {
     }
   }
   pub async fn run(mut self) {
-    // reoslve to get id
+    match self.resolve_module().await {
+      Ok(maybe_module) => {
+        if let Some(module) = maybe_module {
+          self.tx.send(Msg::TaskFinished(Box::new(module))).unwrap();
+        } else {
+          self.tx.send(Msg::TaskCanceled).unwrap();
+        }
+      }
+      Err(err) => self.tx.send(Msg::TaskErrorEncountered(err)).unwrap(),
+    }
+  }
 
+  pub async fn resolve_module(&mut self) -> anyhow::Result<Option<ModuleGraphModule>> {
     // TODO: caching in resolve
     let uri = resolve(
       ResolveArgs {
@@ -66,7 +77,8 @@ impl ResolvingModuleJob {
         kind: self.dependency.kind,
       },
       &self.plugin_driver,
-    );
+      &mut self.context,
+    )?;
     tracing::trace!("resolved uri {:?}", uri);
 
     self.context.source_type = resolve_source_type_by_uri(uri.as_str());
@@ -79,72 +91,71 @@ impl ResolvingModuleJob {
       ))
       .unwrap();
 
-    // load source by id
-
     if self.context.visited_module_uri.contains(&uri) {
-      self.tx.send(Msg::TaskErrorEncountered(())).unwrap();
-    } else {
-      self.context.visited_module_uri.insert(uri.clone());
-      let source = load(LoadArgs { uri: uri.as_str() }).await;
-      tracing::trace!(
-        "load ({:?}) source {:?}",
-        self.context.source_type,
-        &source[0..usize::min(source.len(), 20)]
-      );
-
-      // TODO: transform
-
-      // parse source to module
-
-      assert!(self.context.source_type.is_some());
-
-      let mut module = self
-        .plugin_driver
-        .parse_module(
-          ParseModuleArgs {
-            uri: uri.as_str(),
-            source,
-          },
-          &mut self.context,
-        )
-        .unwrap();
-
-      tracing::trace!("parsed module {:?}", module);
-
-      // scan deps
-
-      let deps = module
-        .dependencies()
-        .into_iter()
-        .map(|dep| Dependency {
-          importer: Some(uri.clone()),
-          specifier: dep.specifier,
-          kind: dep.kind,
-        })
-        .collect::<Vec<_>>();
-
-      tracing::trace!("get deps {:?}", deps);
-      deps.iter().for_each(|dep| {
-        self.fork(dep.clone());
-      });
-
-      self
-        .tx
-        .send(Msg::TaskFinished(Box::new(ModuleGraphModule::new(
-          Path::new("./")
-            .join(Path::new(uri.as_str()).relative(self.plugin_driver.options.root.as_str()))
-            .to_string_lossy()
-            .to_string(),
-          uri,
-          module,
-          deps,
-          self.context.source_type.unwrap(),
-        ))))
-        .unwrap();
-
-      // make module
-      // Ok(())
+      return Ok(None);
     }
+
+    self.context.visited_module_uri.insert(uri.clone());
+    let source = load(LoadArgs { uri: uri.as_str() }).await?;
+    tracing::trace!(
+      "load ({:?}) source {:?}",
+      self.context.source_type,
+      &source[0..usize::min(source.len(), 20)]
+    );
+
+    // TODO: transform
+
+    // parse source to module
+
+    self.context.source_type.ok_or_else(|| {
+      anyhow::format_err!(
+        "source type: {:?} should not be None for process: {:?}",
+        self.context.source_type,
+        uri
+      )
+    })?;
+
+    let mut module = self
+      .plugin_driver
+      .parse_module(
+        ParseModuleArgs {
+          uri: uri.as_str(),
+          source,
+        },
+        &mut self.context,
+      )
+      .unwrap();
+
+    tracing::trace!("parsed module {:?}", module);
+
+    // scan deps
+
+    let deps = module
+      .dependencies()
+      .into_iter()
+      .map(|dep| Dependency {
+        importer: Some(uri.clone()),
+        specifier: dep.specifier,
+        kind: dep.kind,
+      })
+      .collect::<Vec<_>>();
+
+    tracing::trace!("get deps {:?}", deps);
+    deps.iter().for_each(|dep| {
+      self.fork(dep.clone());
+    });
+
+    let resolved_module = ModuleGraphModule::new(
+      Path::new("./")
+        .join(Path::new(uri.as_str()).relative(self.plugin_driver.options.root.as_str()))
+        .to_string_lossy()
+        .to_string(),
+      uri,
+      module,
+      deps,
+      self.context.source_type.unwrap(),
+    );
+    Ok(Some(resolved_module))
   }
 
   fn fork(&self, dep: Dependency) {

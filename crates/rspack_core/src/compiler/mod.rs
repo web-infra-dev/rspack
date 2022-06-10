@@ -43,7 +43,7 @@ impl Compiler {
     }
   }
 
-  pub async fn compile(&mut self) {
+  pub async fn compile(&mut self) -> anyhow::Result<()> {
     // TODO: supports rebuild
     self.compilation = Compilation::new(
       // TODO: use Arc<T> instead
@@ -85,15 +85,18 @@ impl Compiler {
             active_task_count.fetch_sub(1, Ordering::SeqCst);
             self.compilation.module_graph.add_module(*module);
           }
+          Msg::TaskCanceled => {
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
+          }
           Msg::DependencyReference(dep, resolved_uri) => {
             self
               .compilation
               .module_graph
               .add_dependency(dep, resolved_uri);
           }
-          Msg::TaskErrorEncountered(_err) => {
+          Msg::TaskErrorEncountered(err) => {
             active_task_count.fetch_sub(1, Ordering::SeqCst);
-            // Err(err);
+            return Err(err);
           }
         },
         None => {
@@ -124,10 +127,11 @@ impl Compiler {
       .collect::<Vec<_>>();
 
     tracing::trace!("assets {:#?}", assets);
+    Ok(())
   }
 
-  pub async fn run(&mut self) {
-    self.compile().await;
+  pub async fn run(&mut self) -> anyhow::Result<()> {
+    self.compile().await
   }
 }
 
@@ -135,5 +139,6 @@ impl Compiler {
 pub enum Msg {
   DependencyReference(Dependency, String),
   TaskFinished(Box<ModuleGraphModule>),
-  TaskErrorEncountered(()),
+  TaskCanceled,
+  TaskErrorEncountered(anyhow::Error),
 }

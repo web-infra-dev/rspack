@@ -20,5 +20,5 @@ async fn main() {
     ],
   );
 
-  compiler.run().await;
+  compiler.run().await.unwrap();
 }

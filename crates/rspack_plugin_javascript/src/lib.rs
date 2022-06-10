@@ -5,7 +5,7 @@ use std::fmt::Debug;
 
 use rspack_core::{
   Asset, AssetFilename, BoxModule, JobContext, Module, ParseModuleArgs, Plugin, PluginContext,
-  SourceType,
+  PluginRenderManifestHookOutput, SourceType,
 };
 use swc_common::{util::take::Take, FileName};
 use swc_ecma_ast::EsVersion;
@@ -124,10 +124,14 @@ impl Plugin for JsPlugin {
     &self,
     _ctx: PluginContext,
     args: rspack_core::RenderManifestArgs,
-  ) -> Vec<rspack_core::Asset> {
+  ) -> PluginRenderManifestHookOutput {
     let compilation = args.compilation;
     let module_graph = &compilation.module_graph;
-    let chunk = compilation.chunk_graph.chunk_by_id(args.chunk_id).unwrap();
+    let chunk = compilation
+      .chunk_graph
+      .chunk_by_id(args.chunk_id)
+      .ok_or_else(|| anyhow::format_err!("Not found chunk {:?}", args.chunk_id))?;
+
     let ordered_js_modules = chunk
       .ordered_modules(module_graph)
       .into_iter()
@@ -144,10 +148,10 @@ impl Plugin for JsPlugin {
         output += &cur;
         output
       });
-    vec![Asset {
+    Ok(vec![Asset {
       rendered: code,
       filename: AssetFilename::Static(format!("{}.js", args.chunk_id)),
-    }]
+    }])
   }
 }
 

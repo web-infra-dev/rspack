@@ -1,7 +1,7 @@
 mod plugin_driver;
 pub use plugin_driver::*;
-mod traits;
-pub use traits::*;
+mod api;
+pub use api::*;
 mod context;
 pub use context::*;
 mod args;

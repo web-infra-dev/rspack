@@ -67,7 +67,11 @@ impl PluginDriver {
     self
       .plugins
       .iter()
-      .flat_map(|plugin| plugin.render_manifest(PluginContext::new(), args.clone()))
+      .flat_map(|plugin| {
+        plugin
+          .render_manifest(PluginContext::new(), args.clone())
+          .unwrap()
+      })
       .collect()
   }
 }
