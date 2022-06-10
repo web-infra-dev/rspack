@@ -132,10 +132,9 @@ impl PluginDriver {
     loader: &mut Option<Loader>,
     code: String,
   ) -> PluginTransformHookOutput {
-    self.plugins.iter().enumerate().fold(
+    self.plugins.iter().fold(
       Ok(TransformResult { code, ast: None }),
-      |transformed_result, (ref i, _)| {
-        let plugin = &self.plugins[*i];
+      |transformed_result, plugin| {
         if plugin.transform_include(uri, loader) {
           let x = transformed_result?;
           let mut code = x.code;
@@ -156,7 +155,7 @@ impl PluginDriver {
             code,
             loader,
           };
-          let res = self.plugins[*i].transform(&self.plugin_context(), args);
+          let res = plugin.transform(&self.plugin_context(), args);
           res
         } else {
           transformed_result
@@ -174,9 +173,8 @@ impl PluginDriver {
     self
       .plugins
       .iter()
-      .enumerate()
-      .fold(Ok(ast), |transformed_ast, (ref i, _)| {
-        self.plugins[*i].optimize_ast(&self.plugin_context(), path, transformed_ast?)
+      .fold(Ok(ast), |transformed_ast, plugin| {
+        plugin.optimize_ast(&self.plugin_context(), path, transformed_ast?)
       })
   }
 
@@ -217,7 +215,12 @@ impl PluginDriver {
         self.plugins[*i].tap_generated_chunk(&self.plugin_context(), chunk, bundle_options)
       })
   }
-
+  pub fn module_parsed(&self, uri: &str) -> Result<()> {
+    for ele in &self.plugins {
+      ele.module_parsed(&self.plugin_context(), uri)?
+    }
+    Ok(())
+  }
   fn plugin_context<'me>(&'me self) -> PluginContext<'me> {
     PluginContext::<'me>::new(
       &self.ctx.assets,
