@@ -102,6 +102,10 @@ pub trait Plugin: Sync + Send + Debug {
     false
   }
   #[inline]
+  fn module_parsed(&self, _ctx: &PluginContext, _uri: &str) -> Result<()> {
+    Ok(())
+  }
+  #[inline]
   fn need_build_start(&self) -> bool {
     true
   }

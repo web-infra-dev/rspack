@@ -188,22 +188,21 @@ impl Plugin for ProgressPlugin {
 
     Ok(())
   }
-  // take down progress temporary
-  // fn transform(&self, _ctx: &PluginContext, args: TransformArgs) -> PluginTransformHookOutput {
-  //   let done = self
-  //     .progress
-  //     .done
-  //     .lock()
-  //     .map_err(|_| anyhow::anyhow!("failed to acquire lock of done"))?;
-  //   if *done {
-  //     return Ok(args.into());
-  //   }
-  //   // if matches!(_ctx.options.mode, BundleMode::Dev) {
-  //   //   return None;
-  //   // }
-  //   self.progress.update("RsPack", &args.uri, 1)?;
-  //   Ok(args.into())
-  // }
+  fn module_parsed(&self, _ctx: &PluginContext, uri: &str) -> Result<()> {
+    let done = self
+      .progress
+      .done
+      .lock()
+      .map_err(|_| anyhow::anyhow!("failed to acquire lock of done"))?;
+    if *done {
+      return Ok(());
+    }
+    // if matches!(_ctx.options.mode, BundleMode::Dev) {
+    //   return None;
+    // }
+    self.progress.update("RsPack", uri, 1)?;
+    Ok(())
+  }
   async fn build_end(&self, _ctx: &PluginContext) -> PluginBuildEndHookOutput {
     let mut done = self.progress.done.lock().unwrap();
     if *done {

@@ -110,7 +110,7 @@ impl Task {
     };
 
     let mut ast = plugin_hook::optimize_ast(module_id, raw_ast, loader, &self.plugin_driver)?;
-
+    self.plugin_driver.module_parsed(module_id)?;
     self
       .pre_analyze_imported_module(&uri_resolver, &ast)
       .await?;
