@@ -1,11 +1,15 @@
+#![feature(box_patterns)]
+
+mod runtime;
 pub mod utils;
 pub mod visitors;
+pub use runtime::*;
 
 use std::fmt::Debug;
 
 use rspack_core::{
-  Asset, AssetFilename, BoxModule, JobContext, Module, ParseModuleArgs, Plugin, PluginContext,
-  PluginRenderManifestHookOutput, SourceType,
+  Asset, AssetFilename, BoxModule, Compilation, JobContext, Module, ParseModuleArgs, Plugin,
+  PluginContext, PluginRenderManifestHookOutput, SourceType,
 };
 use swc_common::{util::take::Take, FileName};
 use swc_ecma_ast::EsVersion;
@@ -14,7 +18,10 @@ use swc_ecma_visit::VisitMutWith;
 use utils::parse_file;
 use visitors::DependencyScanner;
 
-use crate::utils::{get_swc_compiler, syntax_by_source_type};
+use crate::{
+  utils::{get_swc_compiler, syntax_by_source_type},
+  visitors::finalize,
+};
 
 #[derive(Debug)]
 pub struct JsPlugin {}
@@ -36,7 +43,7 @@ impl Debug for JsModule {
 }
 
 impl Module for JsModule {
-  fn render(&self) -> String {
+  fn render(&self, compilation: &Compilation) -> String {
     use swc::config::{self as swc_config, SourceMapsConfig};
     let compiler = get_swc_compiler();
     let output = swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
@@ -75,14 +82,8 @@ impl Module for JsModule {
         },
         |_, _| noop(),
         |_, _| {
-          noop()
-          // finalize(
-          //     self.id.to_string(),
-          //     &self.resolved_uris,
-          //     self.kind.is_user_entry(),
-          //     &bundle.module_graph_container.module_graph,
-          //     bundle,
-          // )
+          // noop()
+          finalize(self, compilation, false)
         },
       )
     })

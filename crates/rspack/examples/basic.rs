@@ -13,6 +13,7 @@ async fn main() {
         .resolve()
         .to_string_lossy()
         .to_string(),
+      ..Default::default()
     },
     vec![
       Box::new(rspack_plugin_javascript::JsPlugin {}),

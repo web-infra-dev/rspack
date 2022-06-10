@@ -37,12 +37,6 @@ pub fn code_splitting2(compilation: &mut Compilation) {
   // First we need to create entry chunk.
   for entry in &chunk_entries {
     let chunk_id = id_generator.gen_id(*entry);
-    // let entry_module_name = module_graph
-    //     .module_by_uri(*entry)
-    //     .unwrap()
-    //     .kind
-    //     .name()
-    //     .unwrap();
     let chunk = Chunk::new(
       chunk_id.clone(),
       entry.to_string(),

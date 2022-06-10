@@ -56,6 +56,11 @@ impl Compilation {
       .collect()
   }
 
+  pub fn entry_modules(&self) {
+    // self.
+    todo!()
+  }
+
   pub fn calc_exec_order(&mut self) {
     // let mut entries = self.entry_dependencies();
     let mut entries = self

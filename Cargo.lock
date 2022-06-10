@@ -1381,6 +1381,7 @@ name = "rspack_plugin_javascript"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "better_scoped_tls",
  "linked_hash_set",
  "once_cell",
  "rspack_core",
@@ -1390,6 +1391,7 @@ dependencies = [
  "swc_ecma_ast",
  "swc_ecma_parser",
  "swc_ecma_transforms",
+ "swc_ecma_utils",
  "swc_ecma_visit",
  "tracing",
  "typemap",
