@@ -4,6 +4,8 @@ use crate::{Dependency, ModuleDependency, ModuleGraph, ModuleIdAlgo, ResolveKind
 
 #[derive(Debug)]
 pub struct ModuleGraphModule {
+  // Only user defined entry module has name for now.
+  pub name: Option<String>,
   pub id: String,
   pub exec_order: usize,
   pub uri: String,
@@ -14,6 +16,7 @@ pub struct ModuleGraphModule {
 
 impl ModuleGraphModule {
   pub fn new(
+    name: Option<String>,
     id: String,
     uri: String,
     module: BoxModule,
@@ -21,6 +24,7 @@ impl ModuleGraphModule {
     source_type: SourceType,
   ) -> Self {
     Self {
+      name,
       id,
       exec_order: usize::MAX,
       uri,

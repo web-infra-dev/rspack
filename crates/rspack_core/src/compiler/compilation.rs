@@ -39,14 +39,19 @@ impl Compilation {
     self.entries.insert(name, detail);
   }
 
-  pub fn entry_dependencies(&self) -> Vec<Dependency> {
+  pub fn entry_dependencies(&self) -> HashMap<String, Dependency> {
     self
       .entries
       .iter()
-      .map(|(_name, detail)| Dependency {
-        importer: None,
-        specifier: detail.path.clone(),
-        kind: ResolveKind::Import,
+      .map(|(name, detail)| {
+        (
+          name.clone(),
+          Dependency {
+            importer: None,
+            specifier: detail.path.clone(),
+            kind: ResolveKind::Import,
+          },
+        )
       })
       .collect()
   }
@@ -55,7 +60,7 @@ impl Compilation {
     // let mut entries = self.entry_dependencies();
     let mut entries = self
       .entry_dependencies()
-      .iter()
+      .values()
       .filter_map(|dep| self.module_graph.module_by_dependency(dep))
       .map(|module| module.uri.clone())
       .collect::<Vec<_>>();

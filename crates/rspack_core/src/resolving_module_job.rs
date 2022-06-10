@@ -146,6 +146,7 @@ impl ResolvingModuleJob {
     });
 
     let resolved_module = ModuleGraphModule::new(
+      self.context.module_name.clone(),
       Path::new("./")
         .join(Path::new(uri.as_str()).relative(self.plugin_driver.options.root.as_str()))
         .to_string_lossy()
@@ -159,8 +160,16 @@ impl ResolvingModuleJob {
   }
 
   fn fork(&self, dep: Dependency) {
-    let context = self.context.clone();
-    let task = ResolvingModuleJob::new(context, dep, self.tx.clone(), self.plugin_driver.clone());
+    let task = ResolvingModuleJob::new(
+      JobContext {
+        module_name: None,
+        source_type: None,
+        ..self.context.clone()
+      },
+      dep,
+      self.tx.clone(),
+      self.plugin_driver.clone(),
+    );
 
     tokio::task::spawn(async move {
       task.run().await;
@@ -177,7 +186,7 @@ pub fn resolve_source_type_by_uri<T: AsRef<Path>>(uri: T) -> Option<SourceType> 
 
 #[derive(Debug, Clone)]
 pub struct JobContext {
-  pub importer: Option<String>,
+  pub module_name: Option<String>,
   pub(crate) active_task_count: Arc<AtomicUsize>,
   pub(crate) visited_module_uri: Arc<DashSet<String>>,
   pub source_type: Option<SourceType>,

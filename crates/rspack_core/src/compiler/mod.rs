@@ -62,10 +62,10 @@ impl Compiler {
       .compilation
       .entry_dependencies()
       .into_iter()
-      .for_each(|dep| {
+      .for_each(|(name, dep)| {
         let task = ResolvingModuleJob::new(
           JobContext {
-            importer: None,
+            module_name: Some(name),
             active_task_count: active_task_count.clone(),
             visited_module_uri: self.compilation.visited_module_id.clone(),
             source_type: None,

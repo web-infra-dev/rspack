@@ -27,7 +27,7 @@ pub fn code_splitting2(compilation: &mut Compilation) {
 
   let mut chunk_entries = compilation
     .entry_dependencies()
-    .iter()
+    .values()
     .filter_map(|dep| module_graph.module_by_dependency(dep))
     .map(|module| module.uri.as_str())
     .collect::<Vec<_>>();
@@ -243,7 +243,10 @@ impl<'me> ChunkIdGenerator<'me> {
       }
       ChunkIdAlgo::Named => {
         let js_mod = self.module_graph.module_by_uri(module_uri).unwrap();
-        uri_to_chunk_name(self.root, &js_mod.uri)
+        js_mod
+          .name
+          .clone()
+          .unwrap_or_else(|| uri_to_chunk_name(self.root, &js_mod.uri))
       }
     }
   }
