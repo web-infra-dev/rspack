@@ -157,8 +157,14 @@ pub fn normalize_bundle_options(mut options: RawOptions) -> Result<BundleOptions
       .unwrap_or(defaults.outdir),
     entry_filename: options
       .output
-      .and_then(|opts| opts.outdir)
+      .as_mut()
+      .and_then(|opts| opts.outdir.take())
       .unwrap_or(defaults.entry_filename),
+    public_url: options
+      .output
+      .as_mut()
+      .and_then(|opts| opts.public_url.take())
+      .unwrap_or_else(|| "sss".to_string()),
     loader: parse_loader(loader),
     inline_style: options
       .enhanced

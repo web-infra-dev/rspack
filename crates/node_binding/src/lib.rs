@@ -50,7 +50,7 @@ pub fn new_rspack(
   plugin_callbacks: Option<PluginCallbacks>,
 ) -> Result<External<RspackBindingContext>> {
   let options: RawOptions = serde_json::from_str(option_json.as_str())?;
-
+  dbg!("myoptions:", &options);
   let node_adapter = create_node_adapter_from_plugin_callbacks(&env, plugin_callbacks)?;
 
   let mut plugins = vec![];

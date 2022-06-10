@@ -111,6 +111,9 @@
         "entryFilename": {
           "type": "string"
         },
+        "publicUrl": {
+          "type": "string"
+        },
         "sourceMap": {
           "oneOf": [
             {

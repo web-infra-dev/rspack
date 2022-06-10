@@ -12,6 +12,7 @@ pub struct RawOutputOptions {
   pub entry_filename: Option<String>,
   #[napi(ts_type = "\"linked\" | \"external\" | \"inline\" | \"none\"")]
   pub source_map: Option<String>,
+  pub public_url: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -21,4 +22,5 @@ pub struct RawOutputOptions {
   pub outdir: Option<String>,
   pub entry_filename: Option<String>,
   pub source_map: Option<String>,
+  pub public_url: Option<String>,
 }

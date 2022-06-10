@@ -3,6 +3,9 @@
   "entries": {
     "index": "./src/index.js"
   },
+  "output": {
+    "publicUrl": "http://localhost:5555"
+  },
   "enhanced": {
     "react": {
       "fastRefresh": false

@@ -157,6 +157,7 @@ pub struct BundleOptions {
   pub globals: HashMap<String, String>,
   pub runtime: RuntimeOptions,
   pub target: BundleTarget,
+  pub public_url: String,
 }
 
 impl BundleOptions {
@@ -205,6 +206,7 @@ impl Default for BundleOptions {
       runtime: RuntimeOptions::default(),
       target: Default::default(),
       platform: default_platform,
+      public_url: Default::default(),
     }
   }
 }
@@ -251,6 +253,7 @@ impl From<BundleMode> for BundleOptions {
       runtime: Default::default(),
       target: Default::default(),
       optimization: mode.into(),
+      public_url: Default::default(),
     }
   }
 }
