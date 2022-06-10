@@ -26,17 +26,6 @@ impl Plugin for GlobalsPlugin {
   fn need_build_end(&self) -> bool {
     false
   }
-
-  #[inline]
-  fn need_transform(&self) -> bool {
-    false
-  }
-
-  #[inline]
-  fn need_transform_ast(&self) -> bool {
-    false
-  }
-
   #[inline]
   fn need_tap_generated_chunk(&self) -> bool {
     false

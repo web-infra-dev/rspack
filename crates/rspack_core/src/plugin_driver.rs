@@ -25,8 +25,6 @@ pub struct PluginDriver {
   build_end_hints: Vec<usize>,
   resolve_id_hints: Vec<usize>,
   load_hints: Vec<usize>,
-  transform_hints: Vec<usize>,
-  transform_ast_hints: Vec<usize>,
   tap_generated_chunk_hints: Vec<usize>,
   render_chunk_hints: Vec<usize>,
   pub resolved_entries: RwLock<Arc<HashSet<String>>>,
@@ -43,8 +41,6 @@ impl PluginDriver {
     let mut build_end_hints = Vec::with_capacity(plugins.len());
     let mut resolve_id_hints = Vec::with_capacity(plugins.len());
     let mut load_hints = Vec::with_capacity(plugins.len());
-    let mut transform_hints = Vec::with_capacity(plugins.len());
-    let mut transform_ast_hints = Vec::with_capacity(plugins.len());
     let mut tap_generated_chunk_hints = Vec::with_capacity(plugins.len());
     let mut render_chunk_hints = Vec::with_capacity(plugins.len());
 
@@ -61,9 +57,6 @@ impl PluginDriver {
       if p.need_resolve() {
         resolve_id_hints.push(i);
       }
-      // disable transform_ast transform hint temporary
-      transform_hints.push(i);
-      transform_ast_hints.push(i);
       if p.need_tap_generated_chunk() {
         tap_generated_chunk_hints.push(i);
       }
@@ -79,8 +72,6 @@ impl PluginDriver {
       build_end_hints,
       resolve_id_hints,
       load_hints,
-      transform_hints,
-      transform_ast_hints,
       tap_generated_chunk_hints,
       render_chunk_hints,
       resolved_entries: Default::default(),
@@ -141,9 +132,9 @@ impl PluginDriver {
     loader: &mut Option<Loader>,
     code: String,
   ) -> PluginTransformHookOutput {
-    self.transform_hints.iter().fold(
+    self.plugins.iter().enumerate().fold(
       Ok(TransformResult { code, ast: None }),
-      |transformed_result, i| {
+      |transformed_result, (ref i, _)| {
         let plugin = &self.plugins[*i];
         if plugin.transform_include(uri, loader) {
           let x = transformed_result?;
@@ -174,17 +165,18 @@ impl PluginDriver {
     )
   }
   #[instrument(skip_all)]
-  pub fn transform_ast(
+  pub fn optimize_ast(
     &self,
     path: &str,
     ast: ast::Module,
     _loader: &Loader,
   ) -> PluginTransformAstHookOutput {
     self
-      .transform_ast_hints
+      .plugins
       .iter()
-      .fold(Ok(ast), |transformed_ast, i| {
-        self.plugins[*i].transform_ast(&self.plugin_context(), path, transformed_ast?)
+      .enumerate()
+      .fold(Ok(ast), |transformed_ast, (ref i, _)| {
+        self.plugins[*i].optimize_ast(&self.plugin_context(), path, transformed_ast?)
       })
   }
 

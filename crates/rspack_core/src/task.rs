@@ -109,7 +109,7 @@ impl Task {
       parse_file(&transformed_result.code, module_id, loader).expect_module()
     };
 
-    let mut ast = plugin_hook::transform_ast(module_id, raw_ast, loader, &self.plugin_driver)?;
+    let mut ast = plugin_hook::optimize_ast(module_id, raw_ast, loader, &self.plugin_driver)?;
 
     self
       .pre_analyze_imported_module(&uri_resolver, &ast)

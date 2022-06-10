@@ -14,7 +14,7 @@ struct Record {
   call_resolve: Arc<AtomicBool>,
   call_load: Arc<AtomicBool>,
   call_transform: Arc<AtomicBool>,
-  call_transform_ast: Arc<AtomicBool>,
+  call_optimize_ast: Arc<AtomicBool>,
   call_tap_generated_chunk: Arc<AtomicBool>,
 }
 
@@ -45,7 +45,7 @@ impl Plugin for PluginHookTester {
     Ok(None)
   }
 
-  fn transform_ast(
+  fn optimize_ast(
     &self,
     _ctx: &PluginContext,
     _path: &str,
@@ -53,7 +53,7 @@ impl Plugin for PluginHookTester {
   ) -> PluginTransformAstHookOutput {
     self
       .record
-      .call_transform_ast
+      .call_optimize_ast
       .store(true, std::sync::atomic::Ordering::SeqCst);
     Ok(ast)
   }
@@ -93,7 +93,7 @@ async fn plugin_test() {
     .call_transform
     .load(std::sync::atomic::Ordering::SeqCst));
   assert!(!record
-    .call_transform_ast
+    .call_optimize_ast
     .load(std::sync::atomic::Ordering::SeqCst));
   assert!(!record
     .call_tap_generated_chunk
@@ -107,7 +107,7 @@ async fn plugin_test() {
     .call_resolve
     .load(std::sync::atomic::Ordering::SeqCst));
   assert!(record
-    .call_transform_ast
+    .call_optimize_ast
     .load(std::sync::atomic::Ordering::SeqCst));
   assert!(record
     .call_tap_generated_chunk

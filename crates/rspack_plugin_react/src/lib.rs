@@ -45,11 +45,6 @@ impl Plugin for ReactPlugin {
   }
 
   #[inline]
-  fn need_transform(&self) -> bool {
-    false
-  }
-
-  #[inline]
   fn need_tap_generated_chunk(&self) -> bool {
     false
   }

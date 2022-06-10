@@ -120,16 +120,6 @@ pub trait Plugin: Sync + Send + Debug {
   fn need_load(&self) -> bool {
     true
   }
-
-  #[inline]
-  fn need_transform(&self) -> bool {
-    true
-  }
-
-  #[inline]
-  fn need_transform_ast(&self) -> bool {
-    true
-  }
   #[inline]
   fn reuse_ast(&self) -> bool {
     true
@@ -189,7 +179,7 @@ pub trait Plugin: Sync + Send + Debug {
   }
 
   #[inline]
-  fn transform_ast(
+  fn optimize_ast(
     &self,
     _ctx: &PluginContext,
     _uri: &str,
