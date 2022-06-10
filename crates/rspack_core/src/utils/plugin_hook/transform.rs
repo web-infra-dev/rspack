@@ -9,13 +9,13 @@ use crate::{
 
 #[instrument(skip(ast, plugin_driver))]
 #[inline]
-pub fn transform_ast(
+pub fn optimize_ast(
   path: &str,
   ast: ast::Module,
   loader: &Loader,
   plugin_driver: &PluginDriver,
 ) -> PluginTransformAstHookOutput {
-  plugin_driver.transform_ast(path, ast, loader)
+  plugin_driver.optimize_ast(path, ast, loader)
 }
 
 #[instrument(skip_all)]

@@ -37,16 +37,11 @@ impl Plugin for DefinePlugin {
   }
 
   #[inline]
-  fn need_transform(&self) -> bool {
-    false
-  }
-
-  #[inline]
   fn need_tap_generated_chunk(&self) -> bool {
     false
   }
 
-  fn transform_ast(
+  fn optimize_ast(
     &self,
     ctx: &PluginContext,
     _path: &str,

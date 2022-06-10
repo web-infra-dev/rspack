@@ -149,11 +149,6 @@ impl Plugin for StyleSourcePlugin {
   fn need_load(&self) -> bool {
     false
   }
-
-  #[inline]
-  fn need_transform_ast(&self) -> bool {
-    false
-  }
   #[inline]
   fn transform_include(
     &self,

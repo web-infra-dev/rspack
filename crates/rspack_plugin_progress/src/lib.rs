@@ -167,11 +167,6 @@ impl Plugin for ProgressPlugin {
   }
 
   #[inline]
-  fn need_transform_ast(&self) -> bool {
-    false
-  }
-
-  #[inline]
   fn need_tap_generated_chunk(&self) -> bool {
     false
   }
