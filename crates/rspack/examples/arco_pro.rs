@@ -32,10 +32,7 @@ async fn main() {
   let mut bundler = Bundler::new(
     BundleOptions {
       root,
-      entries: HashMap::from([(
-        "main".to_string(),
-        "./examples/arco-pro/src/index".to_string().into(),
-      )]),
+      entries: HashMap::from([("main".to_string(), _example.to_string().into())]),
       outdir: "./dist".to_string(),
       mode: BundleMode::Dev,
       react: BundleReactOptions {
@@ -68,7 +65,7 @@ async fn main() {
     vec![],
   );
   let build_future = async {
-    bundler.build(None).await;
+    bundler.build(None).await.expect("build failed");
     // tokio::time::sleep(Duration::from_millis(3000)).await;
     // bundler
     //   .rebuild(vec![dir
