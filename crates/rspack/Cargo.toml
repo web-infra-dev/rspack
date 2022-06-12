@@ -49,5 +49,3 @@ swc_ecma_transforms_testing = "0.80.0"
 sourcemap = "6.0.2"
 base64 = "0.13.0"
 
-[[examples]]
-name="bundle"
