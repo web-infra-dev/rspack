@@ -154,6 +154,10 @@ impl Task {
   }
 
   pub fn spawn_new_task(&self, resolved_uri: ResolvedURI) {
+    if self.tx.is_closed() {
+      return;
+    };
+
     if !self.visited_module_uri.contains(&resolved_uri.uri) {
       self.visited_module_uri.insert(resolved_uri.uri.clone());
       self.active_task_count.fetch_add(1, Ordering::SeqCst);
@@ -168,8 +172,9 @@ impl Task {
       let tx = self.tx.clone();
       tokio::task::spawn(async move {
         if let Err(err) = task.run().await {
-          tx.send(Msg::TaskErrorEncountered(err))
-            .expect("failed to send task error");
+          if let Err(err) = tx.send(Msg::TaskErrorEncountered(err)) {
+            tracing::error!("{:?}", err);
+          }
         }
       });
     }

@@ -129,8 +129,9 @@ impl Bundle {
       let tx = tx.clone();
       tokio::task::spawn(async move {
         if let Err(err) = task.run().await {
-          tx.send(Msg::TaskErrorEncountered(err))
-            .expect("failed to send task error");
+          if let Err(err) = tx.send(Msg::TaskErrorEncountered(err)) {
+            tracing::error!("{:?}", err);
+          }
         }
       });
     }
