@@ -2,7 +2,6 @@ use std::{ffi::OsString, path::Path, time::Instant};
 
 use anyhow::Result;
 use nodejs_resolver::ResolveResult;
-use sugar_path::PathSugar;
 use tracing::instrument;
 
 use crate::{
@@ -32,15 +31,27 @@ pub async fn resolve_id(args: ResolveArgs, plugin_driver: &PluginDriver) -> Resu
       false,
     ))
   } else {
-    let (id, ignored) = if let Some(importer) = &args.importer {
-      let base_dir = Path::new(&importer).parent().unwrap();
+    let (id, ignored) = {
+      let base_dir = if let Some(ref importer) = args.importer {
+        Path::new(importer).parent().unwrap()
+      } else {
+        Path::new(&plugin_driver.ctx.options.root)
+      };
       let _options = plugin_driver.ctx.as_ref().options.as_ref();
       let before_resolve = Instant::now();
       let res = match plugin_driver
         .resolver
         .resolve(base_dir, &args.id)
-        .map_err(|e| RspackCoreError::ResolveFailed(args.id.to_owned(), importer.to_owned(), e))?
-      {
+        .map_err(|ref e| {
+          RspackCoreError::ResolveFailed(
+            args.id.to_owned(),
+            args
+              .importer
+              .clone()
+              .unwrap_or_else(|| plugin_driver.ctx.options.root.clone()),
+            e.to_string(),
+          )
+        })? {
         ResolveResult::Path(buf) => (buf.to_string_lossy().to_string(), false),
         // id should be a hash when resolve result ignored.
         ResolveResult::Ignored => (args.id.to_owned(), true),
@@ -57,17 +68,7 @@ pub async fn resolve_id(args: ResolveArgs, plugin_driver: &PluginDriver) -> Resu
         );
       }
       res
-    } else {
-      (
-        Path::new(&plugin_driver.ctx.options.root)
-          .join(&args.id)
-          .resolve()
-          .to_string_lossy()
-          .to_string(),
-        false,
-      )
     };
-
     Ok(ResolvedURI::new(id, false, args.kind.clone(), ignored))
   }
 }
