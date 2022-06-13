@@ -58,12 +58,6 @@ impl ModuleGraphModule {
   }
 }
 
-impl ModuleGraphModule {
-  pub fn id(&self) -> &str {
-    self.uri.as_str()
-  }
-}
-
 pub trait Module: Debug + Send + Sync {
   fn render(&self, module: &ModuleGraphModule, compilation: &Compilation) -> String;
 
@@ -73,17 +67,3 @@ pub trait Module: Debug + Send + Sync {
 }
 
 pub type BoxModule = Box<dyn Module>;
-
-pub struct ModuleIdGenerator {
-  id_count: AtomicUsize,
-  module_id_algo: ModuleIdAlgo,
-}
-
-impl ModuleIdGenerator {
-  pub fn new(module_id_algo: ModuleIdAlgo) -> Self {
-    Self {
-      id_count: Default::default(),
-      module_id_algo,
-    }
-  }
-}

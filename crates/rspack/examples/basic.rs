@@ -1,11 +1,11 @@
 use std::{collections::HashMap, path::Path};
 
-use rspack_core::{log::enable_tracing_by_env, Compiler, CompilerOptions};
+use rspack_core::{log, Compiler, CompilerOptions};
 use sugar_path::PathSugar;
 
 #[tokio::main]
 async fn main() {
-  enable_tracing_by_env();
+  let guard = log::enable_tracing_by_env_with_chrome_layer();
   let mut compiler = Compiler::new(
     CompilerOptions {
       entries: HashMap::from([("main".to_string(), "./src/index.js".to_string().into())]),
@@ -22,4 +22,8 @@ async fn main() {
   );
 
   compiler.run().await.unwrap();
+
+  if let Some(g) = guard {
+    g.flush()
+  }
 }

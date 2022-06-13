@@ -1,4 +1,5 @@
 use hashbrown::HashSet;
+use tracing::instrument;
 
 use crate::{ModuleGraph, ModuleGraphModule};
 
@@ -7,7 +8,7 @@ pub struct Chunk {
   pub id: String,
   pub(crate) module_uris: HashSet<String>,
   pub(crate) entry_uri: String,
-  kind: ChunkKind,
+  pub kind: ChunkKind,
 }
 
 impl Chunk {
@@ -20,6 +21,7 @@ impl Chunk {
     }
   }
 
+  #[instrument]
   pub fn ordered_modules<'a>(&self, module_graph: &'a ModuleGraph) -> Vec<&'a ModuleGraphModule> {
     let mut ordered = self
       .module_uris

@@ -1362,10 +1362,12 @@ dependencies = [
  "nodejs-resolver",
  "once_cell",
  "petgraph",
+ "rayon",
  "rspack_sources",
  "sugar_path",
  "tokio",
  "tracing",
+ "tracing-chrome",
  "tracing-subscriber",
 ]
 
@@ -1384,6 +1386,7 @@ dependencies = [
  "better_scoped_tls",
  "linked_hash_set",
  "once_cell",
+ "rayon",
  "rspack_core",
  "swc",
  "swc_atoms",

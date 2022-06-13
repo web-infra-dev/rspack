@@ -59,12 +59,18 @@ impl ResolvingModuleJob {
     match self.resolve_module().await {
       Ok(maybe_module) => {
         if let Some(module) = maybe_module {
-          self.tx.send(Msg::TaskFinished(Box::new(module))).unwrap();
+          self.send(Msg::TaskFinished(Box::new(module)));
         } else {
-          self.tx.send(Msg::TaskCanceled).unwrap();
+          self.send(Msg::TaskCanceled);
         }
       }
-      Err(err) => self.tx.send(Msg::TaskErrorEncountered(err)).unwrap(),
+      Err(err) => self.send(Msg::TaskErrorEncountered(err)),
+    }
+  }
+
+  pub fn send(&self, msg: Msg) {
+    if let Err(err) = self.tx.send(msg) {
+      tracing::trace!("fail to send msg {:?}", err)
     }
   }
 

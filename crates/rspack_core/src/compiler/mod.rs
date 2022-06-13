@@ -6,7 +6,10 @@ use std::{
   },
 };
 
+use futures::Stream;
 use nodejs_resolver::Resolver;
+use rayon::prelude::*;
+use tracing::instrument;
 
 use crate::{
   CompilerOptions, Dependency, JobContext, ModuleGraphModule, Plugin, PluginDriver,
@@ -23,6 +26,7 @@ pub struct Compiler {
 }
 
 impl Compiler {
+  #[instrument(skip_all)]
   pub fn new(options: CompilerOptions, plugins: Vec<Box<dyn Plugin>>) -> Self {
     let options = Arc::new(options);
     let plugin_driver = PluginDriver::new(
@@ -46,6 +50,7 @@ impl Compiler {
     }
   }
 
+  #[instrument(skip_all)]
   pub async fn compile(&mut self) -> anyhow::Result<()> {
     // TODO: supports rebuild
     self.compilation = Compilation::new(
@@ -115,12 +120,12 @@ impl Compiler {
     self.compilation.seal();
 
     tracing::debug!("chunk graph {:#?}", self.compilation.chunk_graph);
-
+    // Stream::
     let assets = self
       .compilation
       .chunk_graph
       .id_to_chunk()
-      .keys()
+      .par_keys()
       .flat_map(|chunk_id| {
         self.plugin_driver.render_manifest(RenderManifestArgs {
           chunk_id,
@@ -143,6 +148,7 @@ impl Compiler {
     Ok(())
   }
 
+  #[instrument(skip_all)]
   pub async fn run(&mut self) -> anyhow::Result<()> {
     self.compile().await
   }

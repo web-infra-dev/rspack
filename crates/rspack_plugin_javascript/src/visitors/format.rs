@@ -8,6 +8,7 @@ use swc_ecma_transforms::modules::common_js::Config as CommonJsConfig;
 use swc_ecma_transforms::{fixer, helpers::inject_helpers};
 use swc_ecma_utils::{member_expr, quote_ident, quote_str, ExprFactory};
 use swc_ecma_visit::{Fold, FoldWith, VisitMut, VisitMutWith};
+use tracing::instrument;
 
 use crate::cjs_runtime_helper;
 use {
@@ -55,7 +56,7 @@ impl<'a> Fold for RspackModuleFinalizer<'a> {
       .filter_map(|stmt| stmt.stmt())
       .collect();
 
-    let mut module_body = vec![CallExpr {
+    let module_body = vec![CallExpr {
       span: DUMMY_SP,
       callee: cjs_runtime_helper!(define, rs.define),
       args: vec![
@@ -147,6 +148,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
     }
   }
 
+  #[instrument(skip_all)]
   fn rewrite_static_import(&mut self, n: &mut CallExpr) -> Option<()> {
     if let Callee::Expr(box Expr::Ident(ident)) = &mut n.callee {
       if self.require_id == ident.to_id() {
@@ -169,6 +171,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
     Some(())
   }
 
+  #[instrument(skip_all)]
   fn rewrite_dyn_import(&mut self, n: &mut CallExpr) -> Option<()> {
     if let Lit::Str(Str { value: literal, .. }) = n.args.first()?.expr.as_lit()? {
       // If the import module is not exsit in module graph, we need to leave it as it is

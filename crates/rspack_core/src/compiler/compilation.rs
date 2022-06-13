@@ -4,6 +4,7 @@ use std::{
 };
 
 use dashmap::DashSet;
+use tracing::instrument;
 
 use crate::{
   split_chunks::code_splitting2, ChunkGraph, CompilerOptions, Dependency, EntryItem, ModuleGraph,
@@ -61,6 +62,7 @@ impl Compilation {
     todo!()
   }
 
+  #[instrument(skip_all)]
   pub fn calc_exec_order(&mut self) {
     // let mut entries = self.entry_dependencies();
     let mut entries = self
@@ -127,6 +129,7 @@ impl Compilation {
     );
   }
 
+  #[instrument(skip_all)]
   pub fn seal(&mut self) {
     code_splitting2(self);
 

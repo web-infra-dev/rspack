@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use nodejs_resolver::Resolver;
+use tracing::instrument;
 
 use crate::{
   Asset, BoxModule, CompilerOptions, JobContext, ParseModuleArgs, Plugin, PluginContext,
@@ -44,6 +45,7 @@ impl PluginDriver {
     }
   }
 
+  #[instrument(skip_all)]
   pub fn parse_module(
     &self,
     args: ParseModuleArgs,
@@ -63,6 +65,7 @@ impl PluginDriver {
     Ok(module)
   }
 
+  #[instrument(skip_all)]
   pub fn render_manifest(&self, args: RenderManifestArgs) -> Vec<Asset> {
     self
       .plugins
