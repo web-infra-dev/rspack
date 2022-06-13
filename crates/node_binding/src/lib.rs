@@ -82,7 +82,6 @@ pub fn build(env: Env, binding_context: External<RspackBindingContext>) -> Resul
         .build(None)
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
-      bundler.write_assets_to_disk();
       Ok(map)
     },
     |_env, ret| Ok(ret),
@@ -106,7 +105,6 @@ pub fn rebuild(
         .rebuild(changed_file)
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
-      bundler.write_assets_to_disk();
       Ok(changed)
     },
     |_env, ret| Ok(ret),

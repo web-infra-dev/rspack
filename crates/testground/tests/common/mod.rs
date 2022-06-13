@@ -7,7 +7,6 @@ use rspack_core::{Asset, BundleOptions, Plugin};
 pub async fn compile(options: BundleOptions, plugins: Vec<Box<dyn Plugin>>) -> Bundler {
   let mut bundler = Bundler::new(options, plugins);
   bundler.build(None).await;
-  bundler.write_assets_to_disk();
   bundler
 }
 
@@ -16,7 +15,6 @@ pub async fn compile_fixture(fixture_dir_name: &str) -> Bundler {
     .expect("failed to normalize");
   let mut bundler = Bundler::new(options, Default::default());
   bundler.build(None).await.expect("failed to build");
-  bundler.write_assets_to_disk();
   bundler
 }
 
@@ -28,7 +26,6 @@ pub async fn compile_fixture_with_plugins(
     .expect("failed to normalize");
   let mut bundler = Bundler::new(options, plugins);
   bundler.build(None).await.expect("failed to build");
-  bundler.write_assets_to_disk();
   bundler
 }
 pub trait RawOptionsTestExt {
