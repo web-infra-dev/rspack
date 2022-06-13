@@ -157,6 +157,7 @@ pub struct BundleOptions {
   pub globals: HashMap<String, String>,
   pub runtime: RuntimeOptions,
   pub target: BundleTarget,
+  pub write: bool,
 }
 
 impl BundleOptions {
@@ -205,6 +206,7 @@ impl Default for BundleOptions {
       runtime: RuntimeOptions::default(),
       target: Default::default(),
       platform: default_platform,
+      write: true,
     }
   }
 }
@@ -224,6 +226,7 @@ impl From<BundleMode> for BundleOptions {
       define,
       globals,
       platform,
+      write,
       ..
     } = Self::default();
     Self {
@@ -251,6 +254,7 @@ impl From<BundleMode> for BundleOptions {
       runtime: Default::default(),
       target: Default::default(),
       optimization: mode.into(),
+      write,
     }
   }
 }

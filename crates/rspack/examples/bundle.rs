@@ -33,7 +33,6 @@ async fn main() {
   );
   bundler.build(None).await;
   // println!("assets: {:#?}", bundler.ctx.assets.lock().unwrap());
-  bundler.write_assets_to_disk();
   // guard.lock().unwrap().as_mut().unwrap().flush();
   if let Some(g) = guard {
     g.flush()

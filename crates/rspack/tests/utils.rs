@@ -90,7 +90,6 @@ fn new_bundler(
 #[tokio::main]
 async fn compile_with_options_inner(mut bundler: Bundler) -> Bundler {
   bundler.build(None).await.expect("failed to build");
-  bundler.write_assets_to_disk();
   bundler
 }
 
