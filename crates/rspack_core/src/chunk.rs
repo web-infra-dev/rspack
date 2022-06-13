@@ -103,7 +103,7 @@ impl Chunk {
 
         HELPERS.set(&bundle.context.helpers, || {
           HELPERS.with(|helpers| {
-            println!("{:#?}", helpers);
+            log::debug!("{:#?}", helpers);
           })
         });
 

@@ -1,30 +1,31 @@
+use crate::chunk_spliter::generate_chunks;
+use crate::stats::Stats;
+use crate::utils::inject_built_in_plugins;
+use crate::utils::log::enable_tracing_by_env;
+use crate::utils::rayon::init_rayon_thread_poll;
+use anyhow::Result;
+use log;
+use md4::{Digest, Md4};
+use nodejs_resolver::Resolver;
+use once_cell::sync::OnceCell;
+use rayon::prelude::*;
+use rspack_core::get_swc_compiler;
+use rspack_core::inject_options;
+use rspack_core::Bundle;
+use rspack_core::NormalizedBundleOptions;
+use rspack_core::Plugin;
+use rspack_core::PluginDriver;
+use rspack_core::{OutputChunk, OutputChunkSourceMap};
+use rspack_swc::swc_common;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use anyhow::Result;
-use nodejs_resolver::Resolver;
-use rayon::prelude::*;
-use rspack_core::inject_options;
-use rspack_core::Bundle;
-use rspack_core::NormalizedBundleOptions;
-use rspack_core::{OutputChunk, OutputChunkSourceMap};
-use rspack_swc::swc_common;
 use sugar_path::PathSugar;
 use swc_common::Mark;
 use tracing::instrument;
-
-use crate::chunk_spliter::generate_chunks;
-use crate::stats::Stats;
-use crate::utils::inject_built_in_plugins;
-use crate::utils::log::enable_tracing_by_env;
-use crate::utils::rayon::init_rayon_thread_poll;
-use md4::{Digest, Md4};
-use rspack_core::get_swc_compiler;
-use rspack_core::Plugin;
-use rspack_core::PluginDriver;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum InternalModuleFormat {
@@ -54,14 +55,18 @@ pub struct Bundler {
   pub resolver: Arc<Resolver>,
   _noop: (),
 }
+static INIT: OnceCell<()> = OnceCell::new();
 
 impl Bundler {
   pub fn new(options: BundleOptions, plugins: Vec<Box<dyn Plugin>>) -> Self {
     enable_tracing_by_env();
     init_rayon_thread_poll();
-    println!(
+    INIT.get_or_init(env_logger::init);
+
+    log::debug!(
       "create bundler with options:\n {:#?} \nplugins:\n {:#?}\n",
-      options, plugins
+      options,
+      plugins
     );
     let normalized_options = Arc::new(inject_options(options));
     let injected_plugins = inject_built_in_plugins(plugins, &normalized_options);
