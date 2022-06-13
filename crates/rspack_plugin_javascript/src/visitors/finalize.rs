@@ -15,7 +15,7 @@ use {
 pub fn finalize<'a>(
   module: &'a ModuleGraphModule,
   compilation: &'a Compilation,
-  entry_flag: bool,
+  // entry_flag: bool,
 ) -> impl Fold + 'a {
   let (unresolved_mark, top_level_mark) = (Mark::new(), Mark::new());
   let finalize_pass = chain!(
@@ -25,7 +25,7 @@ pub fn finalize<'a>(
       module,
       require_ident: quote_ident!(DUMMY_SP.apply_mark(unresolved_mark), "__rspack_require__"),
       module_ident: quote_ident!(DUMMY_SP.apply_mark(unresolved_mark), "module"),
-      entry_flag,
+      // entry_flag,
       compilation,
     },
     // as_folder(HmrModuleIdReWriter {

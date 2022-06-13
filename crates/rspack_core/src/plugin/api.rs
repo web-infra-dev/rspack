@@ -59,3 +59,12 @@ pub struct Asset {
   // hash?: string;
   // auxiliary?: boolean;
 }
+
+impl Asset {
+  pub fn final_filename(&self) -> String {
+    match &self.filename {
+      AssetFilename::Static(name) => name.clone(),
+      AssetFilename::Templace(_) => todo!("Templace"),
+    }
+  }
+}

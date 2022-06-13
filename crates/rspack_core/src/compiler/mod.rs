@@ -1,6 +1,9 @@
-use std::sync::{
-  atomic::{AtomicUsize, Ordering},
-  Arc,
+use std::{
+  path::Path,
+  sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
+  },
 };
 
 use nodejs_resolver::Resolver;
@@ -127,6 +130,16 @@ impl Compiler {
       .collect::<Vec<_>>();
 
     tracing::trace!("assets {:#?}", assets);
+
+    let final_out_dir = {
+      let root = Path::new(self.compilation.options.root.as_str());
+      let out_dir = Path::new("./dist");
+      root.join(out_dir)
+    };
+    std::fs::create_dir_all(&final_out_dir).unwrap();
+    assets.iter().for_each(|asset| {
+      std::fs::write(final_out_dir.join(asset.final_filename()), &asset.rendered).unwrap();
+    });
     Ok(())
   }
 

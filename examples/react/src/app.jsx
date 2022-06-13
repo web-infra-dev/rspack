@@ -1,10 +1,10 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import './base.css'
-import Dark from './dark.svg'
-import Light from './light.svg'
-import LogoUrl from './logo.svg'
-import Logo from './logo.svg'
+// import Dark from './dark.svg'
+// import Light from './light.svg'
+// import LogoUrl from './logo.svg'
+// import Logo from './logo.svg'
 const Button = React.lazy(() => import('../src/button'))
 
 console.log('LogoUrl', LogoUrl)

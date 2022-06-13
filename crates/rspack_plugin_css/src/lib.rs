@@ -14,7 +14,11 @@ struct CssModule {
 }
 
 impl Module for CssModule {
-  fn render(&self) -> String {
+  fn render(
+    &self,
+    module: &rspack_core::ModuleGraphModule,
+    compilation: &rspack_core::Compilation,
+  ) -> String {
     format!("export default JSON.parse(`{}`)", self.source)
   }
 

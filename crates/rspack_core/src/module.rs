@@ -1,6 +1,8 @@
 use std::{fmt::Debug, sync::atomic::AtomicUsize};
 
-use crate::{Dependency, ModuleDependency, ModuleGraph, ModuleIdAlgo, ResolveKind, SourceType};
+use crate::{
+  Compilation, Dependency, ModuleDependency, ModuleGraph, ModuleIdAlgo, ResolveKind, SourceType,
+};
 
 #[derive(Debug)]
 pub struct ModuleGraphModule {
@@ -63,7 +65,7 @@ impl ModuleGraphModule {
 }
 
 pub trait Module: Debug + Send + Sync {
-  fn render(&self) -> String;
+  fn render(&self, module: &ModuleGraphModule, compilation: &Compilation) -> String;
 
   fn dependencies(&mut self) -> Vec<ModuleDependency> {
     vec![]

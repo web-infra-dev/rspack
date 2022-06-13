@@ -24,7 +24,7 @@ pub struct RspackModuleFinalizer<'a> {
   // pub resolved_ids: &'a HashMap<JsWord, ResolvedURI>,
   pub require_ident: Ident,
   pub module_ident: Ident,
-  pub entry_flag: bool,
+  // pub entry_flag: bool,
   pub compilation: &'a Compilation,
 }
 
@@ -100,25 +100,25 @@ impl<'a> Fold for RspackModuleFinalizer<'a> {
     .into_stmt()
     .into()];
 
-    if self.entry_flag {
-      let is_hmr_enabled = self.compilation.options.dev_server.hmr;
-      let callee = if is_hmr_enabled {
-        cjs_runtime_helper!(require_hot, rs.require)
-      } else {
-        cjs_runtime_helper!(require, rs.require)
-      };
+    // if self.entry_flag {
+    //   let is_hmr_enabled = self.compilation.options.dev_server.hmr;
+    //   let callee = if is_hmr_enabled {
+    //     cjs_runtime_helper!(require_hot, rs.require)
+    //   } else {
+    //     cjs_runtime_helper!(require, rs.require)
+    //   };
 
-      module_body.push(
-        CallExpr {
-          span: DUMMY_SP,
-          callee,
-          args: vec![Expr::Lit(Lit::Str(quote_str!(self.module.id.clone()))).as_arg()],
-          type_args: Default::default(),
-        }
-        .into_stmt()
-        .into(),
-      );
-    }
+    //   module_body.push(
+    //     CallExpr {
+    //       span: DUMMY_SP,
+    //       callee,
+    //       args: vec![Expr::Lit(Lit::Str(quote_str!(self.module.id.clone()))).as_arg()],
+    //       type_args: Default::default(),
+    //     }
+    //     .into_stmt()
+    //     .into(),
+    //   );
+    // }
 
     Module {
       span: Default::default(),
