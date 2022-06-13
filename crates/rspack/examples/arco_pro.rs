@@ -57,7 +57,7 @@ async fn main() {
               + "/",
           ),
         )]),
-        ..Default::default()
+        ..ResolveOption::from(BundleMode::Dev)
       },
       source_map: false.into(),
       ..Default::default()
