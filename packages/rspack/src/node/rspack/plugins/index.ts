@@ -16,10 +16,14 @@ import { debugNapi } from '..';
 
 export interface RspackPlugin {
   name: string;
-  buildStart?(this: RspackPluginContext): Promise<void>;
+  buildStart?(this: RspackPluginContext): Promise<void | undefined | null>;
   load?(this: RspackPluginContext, id: string): Promise<OnLoadResult | void | undefined | null>;
-  resolve?(this: RspackPluginContext, source: string, importer: string | undefined): Promise<OnResolveResult | void>;
-  buildEnd?(this: RspackPluginContext): Promise<void>;
+  resolve?(
+    this: RspackPluginContext,
+    source: string,
+    importer: string | undefined
+  ): Promise<OnResolveResult | void | undefined | null>;
+  buildEnd?(this: RspackPluginContext, asset: any): Promise<void | undefined | null>;
 }
 
 interface RspackThreadsafeContext<T> {

@@ -29,8 +29,8 @@ function adapterPlugin(compiler: ISpeedyBundler): RspackPlugin {
       console.log('start:', args);
       await compiler.hooks.startCompilation.promise();
     },
-    buildEnd: async (...args) => {
-      console.log('build end', args);
+    buildEnd: async (assets) => {
+      console.log(assets);
       await compiler.hooks.endCompilation.promise();
     },
   };
