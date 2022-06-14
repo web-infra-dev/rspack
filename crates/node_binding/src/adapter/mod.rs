@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use rspack_core::Asset as RspackAsset;
 use rspack_core::{
   LoadArgs, Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput, PluginContext,
   PluginLoadHookOutput, PluginResolveHookOutput, ResolveArgs,
@@ -94,6 +95,11 @@ pub struct OnLoadResult {
   pub loader: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Asset {
+  pub source: String,
+  pub filename: String,
+}
 #[cfg(feature = "test")]
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -169,8 +175,21 @@ impl Plugin for RspackPluginNodeAdapter {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn build_end(&self, _ctx: &PluginContext) -> PluginBuildEndHookOutput {
-    let context = RspackThreadsafeContext::new(());
+  async fn build_end(
+    &self,
+    _ctx: &PluginContext,
+    asset: &[RspackAsset],
+  ) -> PluginBuildEndHookOutput {
+    let context = RspackThreadsafeContext::new(
+      (*asset)
+        .iter()
+        .cloned()
+        .map(|x| Asset {
+          source: x.source,
+          filename: x.filename,
+        })
+        .collect::<Vec<Asset>>(),
+    );
 
     let (tx, rx) = oneshot::channel::<()>();
 

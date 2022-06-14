@@ -8,7 +8,7 @@ use rspack_swc::swc::Compiler;
 use crate::{Asset, NormalizedBundleOptions};
 
 pub struct PluginContext<'me> {
-  assets: &'me Mutex<Vec<Asset>>,
+  assets: &'me Arc<Mutex<Vec<Asset>>>,
   pub compiler: Arc<Compiler>,
   pub options: Arc<NormalizedBundleOptions>,
   pub(crate) resolved_entries: Arc<HashSet<String>>,
@@ -16,7 +16,7 @@ pub struct PluginContext<'me> {
 
 impl<'me> PluginContext<'me> {
   pub fn new(
-    assets: &'me Mutex<Vec<Asset>>,
+    assets: &'me Arc<Mutex<Vec<Asset>>>,
     compiler: Arc<Compiler>,
     options: Arc<NormalizedBundleOptions>,
     resolved_entries: Arc<HashSet<String>>,

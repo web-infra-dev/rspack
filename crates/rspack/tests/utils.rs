@@ -74,8 +74,6 @@ fn new_bundler(
   };
   let svgr = pkg["rspack"].clone()["svgr"].as_bool().unwrap_or(false);
   let dist = fixtures_dir.join("dist");
-  println!("entry: {:?}", entry);
-  println!("options: \n {:?}", options);
   Bundler::new(
     BundleOptions {
       entries: entry.into_iter().map(From::from).collect(),

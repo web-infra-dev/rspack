@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use std::fmt::Debug;
 
 use crate::{
-  parse_file, Chunk, Loader, NormalizedBundleOptions, OutputChunk, OutputChunkSourceMap,
+  parse_file, Asset, Chunk, Loader, NormalizedBundleOptions, OutputChunk, OutputChunkSourceMap,
 };
 use async_trait::async_trait;
 use rspack_swc::swc_ecma_ast as ast;
@@ -160,7 +160,7 @@ pub trait Plugin: Sync + Send + Debug {
     Ok(())
   }
   #[inline]
-  async fn build_end(&self, _ctx: &PluginContext) -> PluginBuildEndHookOutput {
+  async fn build_end(&self, _ctx: &PluginContext, _asset: &[Asset]) -> PluginBuildEndHookOutput {
     Ok(())
   }
 

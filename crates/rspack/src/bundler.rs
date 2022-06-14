@@ -144,7 +144,6 @@ impl Bundler {
     if self.options.write {
       self.write_assets_to_disk();
     }
-
     self.plugin_driver.build_end().await?;
     let end_time = std::time::Instant::now();
 

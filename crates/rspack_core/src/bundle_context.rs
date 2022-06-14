@@ -10,7 +10,7 @@ use crate::{Helpers, NormalizedBundleOptions};
 
 #[allow(clippy::manual_non_exhaustive)]
 pub struct BundleContext {
-  pub assets: Mutex<Vec<Asset>>,
+  pub assets: Arc<Mutex<Vec<Asset>>>,
   pub compiler: Arc<Compiler>,
   pub helpers: Helpers,
   pub options: Arc<NormalizedBundleOptions>,
@@ -64,7 +64,7 @@ impl BundleContext {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Asset {
   pub source: String,
   pub filename: String,

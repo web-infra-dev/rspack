@@ -1,12 +1,12 @@
-use std::{collections::HashMap, path::Path};
-
+use anyhow::Result;
 use rspack::bundler::{BundleOptions, Bundler};
 use rspack_core::{BundleMode, BundleReactOptions};
+use std::{collections::HashMap, path::Path};
 use tracing::instrument;
 
 #[instrument]
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
   let guard = rspack::utils::log::enable_tracing_by_env_with_chrome_layer();
   let dir = Path::new(env!("CARGO_MANIFEST_DIR"));
   let example = dir
@@ -31,10 +31,11 @@ async fn main() {
     },
     vec![],
   );
-  bundler.build(None).await;
+  bundler.build(None).await?;
   // println!("assets: {:#?}", bundler.ctx.assets.lock().unwrap());
   // guard.lock().unwrap().as_mut().unwrap().flush();
   if let Some(g) = guard {
     g.flush()
   }
+  Ok(())
 }

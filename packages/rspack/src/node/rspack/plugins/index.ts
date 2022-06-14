@@ -16,10 +16,14 @@ import { debugNapi } from '..';
 
 export interface RspackPlugin {
   name: string;
-  buildStart?(this: RspackPluginContext): Promise<void>;
-  load?(this: RspackPluginContext, id: string): Promise<OnLoadResult | void>;
-  resolve?(this: RspackPluginContext, source: string, importer: string | undefined): Promise<OnResolveResult | void>;
-  buildEnd?(this: RspackPluginContext): Promise<void>;
+  buildStart?(this: RspackPluginContext): Promise<void | undefined | null>;
+  load?(this: RspackPluginContext, id: string): Promise<OnLoadResult | void | undefined | null>;
+  resolve?(
+    this: RspackPluginContext,
+    source: string,
+    importer: string | undefined
+  ): Promise<OnResolveResult | void | undefined | null>;
+  buildEnd?(this: RspackPluginContext, asset: any): Promise<void | undefined | null>;
 }
 
 interface RspackThreadsafeContext<T> {
@@ -92,7 +96,7 @@ export class RspackPluginFactory {
 
     const context: RspackThreadsafeContext<void> = JSON.parse(value);
 
-    await Promise.all(this.plugins.map((plugin) => plugin.buildEnd?.bind(this.pluginContext)?.()));
+    await Promise.all(this.plugins.map((plugin) => plugin.buildEnd?.bind(this.pluginContext, context.inner)?.()));
 
     return createDummyResult(context.id);
   }
