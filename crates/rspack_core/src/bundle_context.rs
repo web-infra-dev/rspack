@@ -64,7 +64,7 @@ impl BundleContext {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Asset {
   pub source: String,
   pub filename: String,

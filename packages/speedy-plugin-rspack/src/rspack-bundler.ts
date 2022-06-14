@@ -1,14 +1,37 @@
 import { Callback, IBundlerBase, ISpeedyBundler, WebpackStats } from '@speedy-js/speedy-types';
 import { Rspack, RspackPlugin } from '@rspack/core';
-
+import path from 'path';
 function adapterPlugin(compiler: ISpeedyBundler): RspackPlugin {
   return {
     name: 'adapterPlugin',
-    load: async (...args) => {
-      console.log('load args:', args);
+    load: async (args) => {
+      let result = await compiler.hooks.load.promise({
+        path: args,
+      });
+      console.log('load args:', args, result);
+      if (result) {
+        return {
+          loader: result.loader as any,
+        };
+      } else {
+        return undefined;
+      }
     },
-    resolve: async (...args) => {
-      console.log('resolve args:', args);
+    resolve: async (id, importer) => {
+      let result = await compiler.hooks.resolve.promise({
+        importer: importer!,
+        path: id,
+        resolveDir: importer ? path.dirname(importer!) : compiler.config.root,
+        kind: 'require-call',
+      });
+    },
+    buildStart: async (...args) => {
+      console.log('start:', args);
+      await compiler.hooks.startCompilation.promise();
+    },
+    buildEnd: async (...args) => {
+      console.log('build end', args);
+      await compiler.hooks.endCompilation.promise();
     },
   };
 }
@@ -27,7 +50,9 @@ export class RspackBundler implements IBundlerBase {
       output: { outdir: output.path },
       plugins: [adapterPlugin(this.compiler)],
     });
-    this.instance.build();
+    console.log('start build');
+    await this.instance.build();
+    console.log('finish build');
   }
   async reBuild(paths: string[]): Promise<void> {
     await this.instance.rebuild(paths);

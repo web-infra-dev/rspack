@@ -93,11 +93,12 @@ impl PluginDriver {
   #[instrument(skip_all)]
   pub async fn build_end(&self) -> PluginBuildEndHookOutput {
     let ctx = self.plugin_context();
+    let assets = &*ctx.assets().lock().unwrap().clone(); // can't solve the lifetime problem, so I have to clone
     try_join_all(
       self
         .build_end_hints
         .iter()
-        .map(|i| self.plugins[*i].build_end(&ctx)),
+        .map(|i| self.plugins[*i].build_end(&ctx, assets)),
     )
     .await?;
     Ok(())

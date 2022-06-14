@@ -4,7 +4,9 @@ use anyhow::Result;
 use async_trait::async_trait;
 use console::{style, Color, Term};
 use core::fmt::Debug;
-use rspack_core::{Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput, PluginContext};
+use rspack_core::{
+  Asset, Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput, PluginContext,
+};
 use std::sync::{Arc, Mutex};
 
 use once_cell::sync::Lazy;
@@ -203,7 +205,7 @@ impl Plugin for ProgressPlugin {
     self.progress.update("RsPack", uri, 1)?;
     Ok(())
   }
-  async fn build_end(&self, _ctx: &PluginContext) -> PluginBuildEndHookOutput {
+  async fn build_end(&self, _ctx: &PluginContext, _asset: &[Asset]) -> PluginBuildEndHookOutput {
     let mut done = self.progress.done.lock().unwrap();
     if *done {
       return Ok(());
