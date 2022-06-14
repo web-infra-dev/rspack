@@ -22,3 +22,4 @@ tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
 petgraph = "0.6.0"
 tracing-chrome = "0.6.0"
 rayon = "1.5.3"
+url = "2.2.2"

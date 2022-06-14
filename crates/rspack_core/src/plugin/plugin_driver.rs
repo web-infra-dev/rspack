@@ -61,7 +61,7 @@ impl PluginDriver {
       )
       .unwrap_or_else(|| panic!("No parser for source type {:?}", &job_ctx.source_type));
     let module =
-      self.plugins[*parser_index].parse_module(PluginContext::with_context(job_ctx), args);
+      self.plugins[*parser_index].parse_module(PluginContext::with_context(job_ctx), args)?;
     Ok(module)
   }
 

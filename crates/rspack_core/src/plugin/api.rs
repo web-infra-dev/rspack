@@ -30,7 +30,7 @@ pub trait Plugin: Debug + Send + Sync {
     &self,
     _ctx: PluginContext<&mut JobContext>,
     _args: ParseModuleArgs,
-  ) -> BoxModule {
+  ) -> PluginParseModuleHookOutput {
     unreachable!()
   }
 

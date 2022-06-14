@@ -87,7 +87,9 @@ impl ResolvingModuleJob {
     )?;
     tracing::trace!("resolved uri {:?}", uri);
 
-    self.context.source_type = resolve_source_type_by_uri(uri.as_str());
+    if self.context.source_type.is_none() {
+      self.context.source_type = resolve_source_type_by_uri(uri.as_str());
+    }
 
     self
       .tx
@@ -113,24 +115,21 @@ impl ResolvingModuleJob {
 
     // parse source to module
 
-    self.context.source_type.ok_or_else(|| {
-      anyhow::format_err!(
-        "source type: {:?} should not be None for process: {:?}",
-        self.context.source_type,
-        uri
-      )
-    })?;
+    // self.context.source_type.ok_or_else(|| {
+    //   anyhow::format_err!(
+    //     "source type: {:?} should not be None for process: {:?}",
+    //     self.context.source_type,
+    //     uri
+    //   )
+    // })?;
 
-    let mut module = self
-      .plugin_driver
-      .parse_module(
-        ParseModuleArgs {
-          uri: uri.as_str(),
-          source,
-        },
-        &mut self.context,
-      )
-      .unwrap();
+    let mut module = self.plugin_driver.parse_module(
+      ParseModuleArgs {
+        uri: uri.as_str(),
+        source,
+      },
+      &mut self.context,
+    )?;
 
     tracing::trace!("parsed module {:?}", module);
 
@@ -160,7 +159,10 @@ impl ResolvingModuleJob {
       uri,
       module,
       deps,
-      self.context.source_type.unwrap(),
+      self
+        .context
+        .source_type
+        .ok_or_else(|| anyhow::format_err!("source type is empty"))?,
     );
     Ok(Some(resolved_module))
   }

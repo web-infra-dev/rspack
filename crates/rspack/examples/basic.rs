@@ -17,7 +17,7 @@ async fn main() {
     },
     vec![
       Box::new(rspack_plugin_javascript::JsPlugin {}),
-      Box::new(rspack_plugin_css::CssPlugin {}),
+      Box::new(rspack_plugin_css::CssPlugin::default()),
     ],
   );
 
