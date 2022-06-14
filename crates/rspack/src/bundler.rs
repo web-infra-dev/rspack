@@ -59,9 +59,10 @@ impl Bundler {
   pub fn new(options: BundleOptions, plugins: Vec<Box<dyn Plugin>>) -> Self {
     enable_tracing_by_env();
     init_rayon_thread_poll();
-    println!(
+    tracing::debug!(
       "create bundler with options:\n {:#?} \nplugins:\n {:#?}\n",
-      options, plugins
+      options,
+      plugins
     );
     let normalized_options = Arc::new(inject_options(options));
     let injected_plugins = inject_built_in_plugins(plugins, &normalized_options);
