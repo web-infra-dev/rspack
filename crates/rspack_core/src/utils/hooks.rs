@@ -19,15 +19,17 @@ pub fn resolve(
   // TODO: plugins
 
   // plugin_driver.resolver
-
-  let resolved = if let Some(importer) = args.importer {
-    let base_dir = Path::new(importer)
+  let base_dir = if let Some(importer) = args.importer {
+    Path::new(importer)
       .parent()
-      .ok_or_else(|| anyhow::format_err!("parent() failed for {:?}", importer))?;
-
+      .ok_or_else(|| anyhow::format_err!("parent() failed for {:?}", importer))?
+  } else {
+    Path::new(plugin_driver.options.root.as_str())
+  };
+  Ok({
     tracing::trace!(
       "resolved importer:{:?},specifier:{:?}",
-      importer,
+      args.importer,
       args.specifier
     );
     match plugin_driver
@@ -36,19 +38,12 @@ pub fn resolve(
       .map_err(|_| {
         anyhow::format_err!(
           "fail to resolved importer:{:?},specifier:{:?}",
-          importer,
+          args.importer,
           args.specifier
         )
       })? {
       ResolveResult::Path(buf) => buf.to_string_lossy().to_string(),
       _ => unreachable!(),
     }
-  } else {
-    Path::new(plugin_driver.options.root.as_str())
-      .join(&args.specifier)
-      .resolve()
-      .to_string_lossy()
-      .to_string()
-  };
-  Ok(resolved)
+  })
 }
