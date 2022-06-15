@@ -28,3 +28,11 @@ pub fn uri_to_chunk_name(root: &str, uri: &str) -> String {
   name.push_str(&ext);
   name
 }
+
+pub fn parse_to_url(uri: &str) -> url::Url {
+  if !uri.contains(':') {
+    url::Url::parse(&format!("specifier:{}", uri)).unwrap()
+  } else {
+    url::Url::parse(uri).unwrap()
+  }
+}

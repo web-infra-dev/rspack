@@ -1,10 +1,12 @@
-use crate::{JobContext, LoadArgs, PluginDriver, ResolveArgs, TransformArgs};
+use crate::{parse_to_url, JobContext, LoadArgs, PluginDriver, ResolveArgs, TransformArgs};
 use nodejs_resolver::ResolveResult;
 use std::path::Path;
 use sugar_path::PathSugar;
 
 pub async fn load(args: LoadArgs<'_>) -> anyhow::Result<String> {
-  Ok(tokio::fs::read_to_string(args.uri).await?)
+  let url = parse_to_url(args.uri);
+  assert_eq!(url.scheme(), "specifier");
+  Ok(tokio::fs::read_to_string(url.path()).await?)
 }
 
 pub fn transform(_args: TransformArgs) -> String {

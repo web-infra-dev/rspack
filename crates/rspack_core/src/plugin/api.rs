@@ -1,7 +1,8 @@
 use std::fmt::Debug;
 
 use crate::{
-  BoxModule, JobContext, LoadArgs, ParseModuleArgs, PluginContext, RenderManifestArgs, SourceType,
+  BoxModule, JobContext, LoadArgs, ParseModuleArgs, PluginContext, RenderManifestArgs, ResolveArgs,
+  SourceType,
 };
 
 use anyhow::Result;
@@ -10,6 +11,7 @@ use anyhow::Result;
 pub type PluginLoadHookOutput = Result<Option<String>>;
 pub type PluginRenderManifestHookOutput = Result<Vec<Asset>>;
 pub type PluginParseModuleHookOutput = Result<BoxModule>;
+pub type PluginResolveHookOutput = Result<Option<String>>;
 // pub type PluginTransformAstHookOutput = Result<ast::Module>;
 // pub type PluginParseOutput = Result<RspackAst>;
 // pub type PluginGenerateOutput = Result<String>;
@@ -20,6 +22,14 @@ pub type PluginParseModuleHookOutput = Result<BoxModule>;
 pub trait Plugin: Debug + Send + Sync {
   fn register_parse_module(&self, _ctx: PluginContext) -> Option<Vec<SourceType>> {
     None
+  }
+
+  fn resolve(
+    &self,
+    _ctx: PluginContext<&mut JobContext>,
+    _agrs: ResolveArgs,
+  ) -> PluginResolveHookOutput {
+    Ok(None)
   }
 
   fn load(&self, _ctx: PluginContext<&mut JobContext>, _args: LoadArgs) -> PluginLoadHookOutput {

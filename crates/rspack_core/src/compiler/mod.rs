@@ -134,7 +134,7 @@ impl Compiler {
       })
       .collect::<Vec<_>>();
 
-    tracing::trace!("assets {:#?}", assets);
+    // tracing::trace!("assets {:#?}", assets);
 
     let final_out_dir = {
       let root = Path::new(self.compilation.options.root.as_str());

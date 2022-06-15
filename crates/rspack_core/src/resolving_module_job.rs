@@ -11,8 +11,8 @@ use sugar_path::PathSugar;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
-  load, resolve, LoadArgs, ModuleGraphModule, Msg, ParseModuleArgs, PluginDriver, ResolveArgs,
-  SourceType,
+  load, parse_to_url, resolve, LoadArgs, ModuleGraphModule, Msg, ParseModuleArgs, PluginDriver,
+  ResolveArgs, SourceType,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -76,6 +76,8 @@ impl ResolvingModuleJob {
 
   pub async fn resolve_module(&mut self) -> anyhow::Result<Option<ModuleGraphModule>> {
     // TODO: caching in resolve
+    // let mut url = parse_to_url(self.dependency.specifier.as_str());
+    // url.cannot_be_a_base()
     let uri = resolve(
       ResolveArgs {
         importer: self.dependency.importer.as_deref(),
@@ -85,10 +87,14 @@ impl ResolvingModuleJob {
       &self.plugin_driver,
       &mut self.context,
     )?;
+    // url.set_path(&uri);
     tracing::trace!("resolved uri {:?}", uri);
+    // tracing::trace!("resolved url {:?}", url.path());
 
     if self.context.source_type.is_none() {
-      self.context.source_type = resolve_source_type_by_uri(uri.as_str());
+      let url = parse_to_url(&uri);
+      assert_eq!(url.scheme(), "specifier");
+      self.context.source_type = resolve_source_type_by_uri(url.path());
     }
 
     self

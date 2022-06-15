@@ -35,7 +35,8 @@ pub fn parse_file(
       handler,
       swc_ecma_ast::EsVersion::Es2022,
       syntax,
-      IsModule::Unknown,
+      // TODO: Is this correct to think the code is module by default?
+      IsModule::Bool(true),
       None,
     )
   })

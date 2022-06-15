@@ -57,7 +57,7 @@ impl PluginDriver {
         job_ctx
           .source_type
           .as_ref()
-          .ok_or_else(|| anyhow::format_err!("s"))?,
+          .ok_or_else(|| anyhow::format_err!("source type is empty for {:?}", args.uri))?,
       )
       .unwrap_or_else(|| panic!("No parser for source type {:?}", &job_ctx.source_type));
     let module =
