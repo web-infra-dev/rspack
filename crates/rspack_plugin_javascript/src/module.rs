@@ -1,12 +1,9 @@
 use tracing::instrument;
 
 use crate::visitors::DependencyScanner;
-use rspack_core::{
-  Asset, AssetFilename, BoxModule, Compilation, JobContext, Module, ModuleGraphModule,
-  ParseModuleArgs, Plugin, PluginContext, PluginRenderManifestHookOutput, SourceType,
-};
+use rspack_core::{Compilation, Module, ModuleGraphModule, SourceType};
 use std::fmt::Debug;
-use swc_common::{util::take::Take, FileName};
+use swc_common::FileName;
 use swc_ecma_ast::EsVersion;
 use swc_ecma_transforms::{pass::noop, react};
 use swc_ecma_visit::VisitMutWith;

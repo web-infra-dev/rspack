@@ -6,7 +6,6 @@ use std::{
   },
 };
 
-use futures::Stream;
 use nodejs_resolver::Resolver;
 use rayon::prelude::*;
 use tracing::instrument;

@@ -1,7 +1,7 @@
 use std::{collections::HashMap, path::Path};
 
 use rspack::rspack;
-use rspack_core::{log, Compiler, CompilerOptions};
+use rspack_core::{log, CompilerOptions};
 use sugar_path::PathSugar;
 
 #[tokio::main]

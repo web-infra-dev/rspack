@@ -2,7 +2,7 @@ use crate::module::JsModule;
 use crate::utils::parse_file;
 use rayon::prelude::*;
 use rspack_core::{
-  Asset, AssetFilename, BoxModule, JobContext, ParseModuleArgs, Plugin, PluginContext,
+  Asset, AssetFilename, JobContext, ParseModuleArgs, Plugin, PluginContext,
   PluginParseModuleHookOutput, PluginRenderManifestHookOutput, SourceType,
 };
 

@@ -3,9 +3,7 @@
 
 use std::fmt::Debug;
 
-use rspack_core::{
-  BoxModule, JobContext, Module, ParseModuleArgs, Plugin, ResolveKind, SourceType,
-};
+use rspack_core::Module;
 use swc_css::{ast::Stylesheet, visit::VisitMutWith};
 
 use crate::{visitors::DependencyScanner, SWC_COMPILER};
@@ -23,8 +21,8 @@ impl Debug for CssModule {
 impl Module for CssModule {
   fn render(
     &self,
-    module: &rspack_core::ModuleGraphModule,
-    compilation: &rspack_core::Compilation,
+    _module: &rspack_core::ModuleGraphModule,
+    _compilation: &rspack_core::Compilation,
   ) -> String {
     SWC_COMPILER.codegen(&self.ast)
   }

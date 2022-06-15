@@ -1,6 +1,6 @@
 // use crate::{cjs_runtime_helper, Bundle, ModuleGraph, Platform, ResolvedURI};
 use ast::*;
-use rspack_core::{Compilation, Dependency, ModuleGraph, ModuleGraphModule, ResolveKind};
+use rspack_core::{Compilation, Dependency, ModuleGraphModule, ResolveKind};
 use swc_atoms::JsWord;
 use swc_common::{Mark, DUMMY_SP};
 use swc_ecma_transforms::modules::common_js;

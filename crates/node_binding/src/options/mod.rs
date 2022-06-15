@@ -1,14 +1,11 @@
-use std::{
-  collections::{HashMap, HashSet},
-  str::FromStr,
-};
+use std::collections::HashMap;
 
 #[cfg(not(feature = "test"))]
 use napi_derive::napi;
 
 use napi::bindgen_prelude::*;
-use napi::Error;
-use rspack_core::{CompilerOptions, DevServerOptions, EntryItem, ModuleIdAlgo};
+
+use rspack_core::{CompilerOptions, DevServerOptions, EntryItem};
 // use rspack_core::OptimizationOptions;
 // use rspack_core::SourceMapOptions;
 // use rspack_core::{
@@ -67,7 +64,7 @@ pub struct RawOptions {
 }
 
 pub fn normalize_bundle_options(mut options: RawOptions) -> Result<CompilerOptions> {
-  let bundle_default_options = CompilerOptions::default();
+  let _bundle_default_options = CompilerOptions::default();
 
   let root = options.root.take().unwrap_or_else(|| {
     std::env::current_dir()

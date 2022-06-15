@@ -1,8 +1,6 @@
-use std::{fmt::Debug, sync::atomic::AtomicUsize};
+use std::fmt::Debug;
 
-use crate::{
-  Compilation, Dependency, ModuleDependency, ModuleGraph, ModuleIdAlgo, ResolveKind, SourceType,
-};
+use crate::{Compilation, Dependency, ModuleDependency, ModuleGraph, ResolveKind, SourceType};
 
 #[derive(Debug)]
 pub struct ModuleGraphModule {

@@ -4,25 +4,14 @@ pub mod module;
 pub mod plugin;
 pub mod visitors;
 
-use std::path::Path;
-
 use once_cell::sync::Lazy;
-use rspack_core::{
-  BoxModule, JobContext, Module, ModuleDependency, ParseModuleArgs, Plugin, ResolveKind, SourceType,
-};
 
-use swc_common::{
-  collections::AHashMap,
-  errors::{Diagnostic, Handler},
-  input::SourceFileInput,
-  sync::Lrc,
-  FileName, FilePathMapping, SourceMap,
-};
+use swc_common::{input::SourceFileInput, sync::Lrc, FileName, FilePathMapping, SourceMap};
 
 use std::sync::Arc;
 
 use swc_css::codegen::{
-  writer::basic::{BasicCssWriter, BasicCssWriterConfig, IndentType, LineFeed},
+  writer::basic::{BasicCssWriter, BasicCssWriterConfig},
   CodeGenerator, CodegenConfig, Emit,
 };
 use swc_css::parser::{lexer::Lexer, parser::ParserConfig};
@@ -53,12 +42,12 @@ impl SwcCompiler {
     let lexer = Lexer::new(SourceFileInput::from(&*fm), config);
     let mut parser = Parser::new(lexer, config);
     let stylesheet = parser.parse_all();
-    let errors = parser.take_errors();
+    let _errors = parser.take_errors();
     stylesheet.ok().ok_or_else(|| anyhow::format_err!("failed"))
   }
 
   pub fn codegen(&self, ast: &Stylesheet) -> String {
-    let config: CodegenConfig = CodegenConfig { minify: false };
+    let _config: CodegenConfig = CodegenConfig { minify: false };
     let mut output = String::new();
     let wr = BasicCssWriter::new(
       &mut output,

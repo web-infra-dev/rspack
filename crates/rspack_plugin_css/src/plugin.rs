@@ -4,18 +4,13 @@
 use crate::{module::CssModule, SWC_COMPILER};
 use once_cell::sync::Lazy;
 use rspack_core::{
-  Asset, AssetFilename, BoxModule, JobContext, Module, ParseModuleArgs, Plugin,
-  PluginParseModuleHookOutput, ResolveKind, SourceType,
+  Asset, AssetFilename, JobContext, Module, ParseModuleArgs, Plugin, PluginParseModuleHookOutput,
+  SourceType,
 };
 
 use rayon::prelude::*;
 
-use swc_common::{
-  collections::AHashMap,
-  errors::{Diagnostic, Handler},
-  sync::Lrc,
-  FilePathMapping, Globals, Mark, SourceMap, GLOBALS,
-};
+use swc_common::{Globals, Mark, GLOBALS};
 
 #[derive(Debug)]
 pub struct CssPlugin {
