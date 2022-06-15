@@ -40,8 +40,6 @@ jobs:
       #       ~/.cargo/git/db/
       #       target/
       #     key: test-${{ runner.os }}-cargo-gcc-${{ matrix.gcc }}-clang-${{ matrix.clang }}-${{ hashFiles('**/Cargo.lock') }}
-      - name: Build
-        run: cargo build
       - name: Test
         run: |
           cargo test --all --all-features -- --nocapture
