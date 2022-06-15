@@ -59,7 +59,7 @@ impl Plugin for CssPlugin {
       .filter(|module| matches!(module.source_type, SourceType::Css))
       .map(|module| module.module.render(module, compilation))
       .fold(String::new, |mut output, cur| {
-        output += "\n";
+        output += "\n\n";
         output += cur.trim();
         output
       })
