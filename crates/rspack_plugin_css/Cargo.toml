@@ -9,6 +9,8 @@ edition = "2021"
 node_binding = { path = "../node_binding", package = "rspack_node", features = ["test"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+rspack = { path = "../rspack"}
+glob = "0.3.0"
 
 [dependencies]
 rspack_core = { path = "../rspack_core"}
@@ -20,6 +22,8 @@ anyhow = "1"
 typemap = "0.3.3"
 better_scoped_tls = "0.1.0"
 rayon = "1.5.3"
+tokio = { version = "1.17.0", features = ["full"] }
+
 # swc_atoms = "0.2.11"
 # swc_ecma_ast = "0.78.0"
 # swc_ecma_codegen = "0.108.1"

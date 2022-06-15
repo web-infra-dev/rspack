@@ -1,1 +1,2 @@
 mod common;
+mod fixtures;

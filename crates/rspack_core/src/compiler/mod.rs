@@ -143,7 +143,7 @@ impl Compiler {
     };
     std::fs::create_dir_all(&final_out_dir).unwrap();
     assets.iter().for_each(|asset| {
-      std::fs::write(final_out_dir.join(asset.final_filename()), &asset.rendered).unwrap();
+      std::fs::write(final_out_dir.join(asset.final_filename()), asset.source()).unwrap();
     });
 
     Ok(Stats::new(assets))

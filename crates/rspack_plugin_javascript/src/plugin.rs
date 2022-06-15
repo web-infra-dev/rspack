@@ -81,9 +81,9 @@ impl Plugin for JsPlugin {
         output
       })
       .collect();
-    Ok(vec![Asset {
-      rendered: code,
-      filename: AssetFilename::Static(format!("{}.js", args.chunk_id)),
-    }])
+    Ok(vec![Asset::new(
+      code,
+      AssetFilename::Static(format!("{}.js", args.chunk_id)),
+    )])
   }
 }

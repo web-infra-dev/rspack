@@ -72,10 +72,10 @@ impl Plugin for CssPlugin {
     if code.is_empty() {
       Ok(vec![])
     } else {
-      Ok(vec![Asset {
-        rendered: code,
-        filename: AssetFilename::Static(format!("{}.css", args.chunk_id)),
-      }])
+      Ok(vec![Asset::new(
+        code,
+        AssetFilename::Static(format!("{}.css", args.chunk_id)),
+      )])
     }
   }
 }

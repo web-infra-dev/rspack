@@ -74,13 +74,23 @@ pub enum AssetFilename {
 
 #[derive(Debug)]
 pub struct Asset {
-  pub rendered: String,
-  pub filename: AssetFilename,
+  rendered: String,
+  filename: AssetFilename,
   // pathOptions÷: PathData;
   // info?: AssetInfo;
   // pub identifier: String,
   // hash?: string;
   // auxiliary?: boolean;
+}
+
+impl Asset {
+  pub fn new(rendered: String, filename: AssetFilename) -> Self {
+    Self { rendered, filename }
+  }
+
+  pub fn source(&self) -> &str {
+    self.rendered.as_str()
+  }
 }
 
 impl Asset {

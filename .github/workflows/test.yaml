@@ -44,7 +44,7 @@ jobs:
       - name: Test
         run: |
           cargo test --all --all-features -- --nocapture
-          # temporarily disable next line for rspack-style not fully support less for now.
-          # yarn test:example
-          yarn build:core
-          yarn test:js
+          # # temporarily disable next line for rspack-style not fully support less for now.
+          # # yarn test:example
+          # yarn build:core
+          # yarn test:js
