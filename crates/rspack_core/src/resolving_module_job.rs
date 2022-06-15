@@ -76,8 +76,7 @@ impl ResolvingModuleJob {
 
   pub async fn resolve_module(&mut self) -> anyhow::Result<Option<ModuleGraphModule>> {
     // TODO: caching in resolve
-    // let mut url = parse_to_url(self.dependency.specifier.as_str());
-    // url.cannot_be_a_base()
+
     let uri = resolve(
       ResolveArgs {
         importer: self.dependency.importer.as_deref(),
@@ -86,10 +85,9 @@ impl ResolvingModuleJob {
       },
       &self.plugin_driver,
       &mut self.context,
-    )?;
-    // url.set_path(&uri);
+    )
+    .await?;
     tracing::trace!("resolved uri {:?}", uri);
-    // tracing::trace!("resolved url {:?}", url.path());
 
     if self.context.source_type.is_none() {
       let url = parse_to_url(&uri);
@@ -110,7 +108,13 @@ impl ResolvingModuleJob {
     }
 
     self.context.visited_module_uri.insert(uri.clone());
-    let source = load(LoadArgs { uri: uri.as_str() }).await?;
+
+    let source = load(
+      &self.plugin_driver,
+      LoadArgs { uri: uri.as_str() },
+      &mut self.context,
+    )
+    .await?;
     tracing::trace!(
       "load ({:?}) source {:?}",
       self.context.source_type,
@@ -118,16 +122,6 @@ impl ResolvingModuleJob {
     );
 
     // TODO: transform
-
-    // parse source to module
-
-    // self.context.source_type.ok_or_else(|| {
-    //   anyhow::format_err!(
-    //     "source type: {:?} should not be None for process: {:?}",
-    //     self.context.source_type,
-    //     uri
-    //   )
-    // })?;
 
     let mut module = self.plugin_driver.parse_module(
       ParseModuleArgs {

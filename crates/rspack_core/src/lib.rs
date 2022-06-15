@@ -20,6 +20,8 @@ mod chunk_graph;
 pub use chunk_graph::*;
 mod chunk_spliter;
 pub use chunk_spliter::*;
+mod stats;
+pub use stats::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SourceType {

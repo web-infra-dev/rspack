@@ -5,6 +5,11 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[dev_dependencies]
+node_binding = { path = "../node_binding", package = "rspack_node", features = ["test"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
 [dependencies]
 rspack_core = { path = "../rspack_core"}
 swc_css = "0.106.0"

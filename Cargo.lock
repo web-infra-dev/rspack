@@ -62,6 +62,9 @@ name = "anyhow"
 version = "1.0.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08f9b8508dccb7687a1d6c4ce66b2b0ecef467c94667de27d8d7fe1f8d2a9cdc"
+dependencies = [
+ "backtrace",
+]
 
 [[package]]
 name = "arrayvec"
@@ -247,6 +250,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "convert_case"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb4a24b1aaf0fd0ce8b45161144d6f42cd91677fd5940fd431183eb023b3a2b8"
+
+[[package]]
 name = "cpufeatures"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -333,6 +342,22 @@ dependencies = [
  "generic-array",
  "typenum",
 ]
+
+[[package]]
+name = "ctor"
+version = "0.1.22"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f877be4f7c9f246b183111634f75baa039715e3f46ce860677d3b19a69fb229c"
+dependencies = [
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "cty"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b365fabc795046672053e29c954733ec3b05e4be654ab130fe8f1f94d7051f35"
 
 [[package]]
 name = "daachorse"
@@ -776,6 +801,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5916d2ae698f6de9bfb891ad7a8d65c09d232dc58cc4ac433c7da3b2fd84bc2b"
 
 [[package]]
+name = "libloading"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "efbc0f03f9a775e9f6aed295c6a1ba2253c5757a9e03d55c6caa46a681abcddd"
+dependencies = [
+ "cfg-if",
+ "winapi",
+]
+
+[[package]]
 name = "linked-hash-map"
 version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -880,6 +915,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "mimalloc-rust"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bcc30df9dfdb5bb6cb2470de65ca604c3eaa3e5dc2ad02a9a98f567df5844472"
+dependencies = [
+ "cty",
+ "mimalloc-rust-sys",
+]
+
+[[package]]
+name = "mimalloc-rust-sys"
+version = "1.7.3-source"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3adc8731262b982f4e0860770dba118305cafe1b2e7ebe95b29b2c2f46a70666"
+dependencies = [
+ "cc",
+ "cty",
+]
+
+[[package]]
 name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -904,6 +959,59 @@ dependencies = [
  "log",
  "wasi 0.11.0+wasi-snapshot-preview1",
  "windows-sys",
+]
+
+[[package]]
+name = "napi"
+version = "2.4.3"
+source = "git+https://github.com/speedy-js/napi-rs?branch=speedy#628b2c500476cd9f70100158236fbdde6c256f7c"
+dependencies = [
+ "ctor",
+ "lazy_static",
+ "napi-sys",
+ "serde",
+ "serde_json",
+ "thread_local",
+ "tokio",
+]
+
+[[package]]
+name = "napi-build"
+version = "1.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ebd4419172727423cf30351406c54f6cc1b354a2cfb4f1dba3e6cd07f6d5522b"
+
+[[package]]
+name = "napi-derive"
+version = "2.4.1"
+source = "git+https://github.com/speedy-js/napi-rs?branch=speedy#628b2c500476cd9f70100158236fbdde6c256f7c"
+dependencies = [
+ "convert_case",
+ "napi-derive-backend",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "napi-derive-backend"
+version = "1.0.32"
+source = "git+https://github.com/speedy-js/napi-rs?branch=speedy#628b2c500476cd9f70100158236fbdde6c256f7c"
+dependencies = [
+ "convert_case",
+ "once_cell",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "syn",
+]
+
+[[package]]
+name = "napi-sys"
+version = "2.2.2"
+source = "git+https://github.com/speedy-js/napi-rs?branch=speedy#628b2c500476cd9f70100158236fbdde6c256f7c"
+dependencies = [
+ "libloading",
 ]
 
 [[package]]
@@ -1373,6 +1481,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_node"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "backtrace",
+ "dashmap",
+ "futures",
+ "mimalloc-rust",
+ "napi",
+ "napi-build",
+ "napi-derive",
+ "nodejs-resolver",
+ "once_cell",
+ "rspack",
+ "rspack_core",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "rspack_plugin_css"
 version = "0.1.0"
 dependencies = [
@@ -1382,6 +1513,9 @@ dependencies = [
  "once_cell",
  "rayon",
  "rspack_core",
+ "rspack_node",
+ "serde",
+ "serde_json",
  "swc_common",
  "swc_css",
  "tracing",

@@ -6,8 +6,8 @@ use crate::{
 };
 
 use anyhow::Result;
-// pub type PluginBuildStartHookOutput = Result<()>;
-// pub type PluginBuildEndHookOutput = Result<()>;
+pub type PluginBuildStartHookOutput = Result<()>;
+pub type PluginBuildEndHookOutput = Result<()>;
 pub type PluginLoadHookOutput = Result<Option<String>>;
 pub type PluginRenderManifestHookOutput = Result<Vec<Asset>>;
 pub type PluginParseModuleHookOutput = Result<BoxModule>;
@@ -19,21 +19,34 @@ pub type PluginResolveHookOutput = Result<Option<String>>;
 // pub type PluginTapGeneratedChunkHookOutput = Result<()>;
 // pub type PluginRenderChunkHookOutput = Result<OutputChunk>;
 
+#[async_trait::async_trait]
 pub trait Plugin: Debug + Send + Sync {
+  fn build_start(&self) -> PluginBuildStartHookOutput {
+    Ok(())
+  }
+
+  fn build_end(&self) -> PluginBuildEndHookOutput {
+    Ok(())
+  }
+
   fn register_parse_module(&self, _ctx: PluginContext) -> Option<Vec<SourceType>> {
     None
   }
 
-  fn resolve(
+  async fn resolve(
     &self,
     _ctx: PluginContext<&mut JobContext>,
-    _agrs: ResolveArgs,
+    _agrs: ResolveArgs<'_>,
   ) -> PluginResolveHookOutput {
     Ok(None)
   }
 
-  fn load(&self, _ctx: PluginContext<&mut JobContext>, _args: LoadArgs) -> PluginLoadHookOutput {
-    unreachable!()
+  async fn load(
+    &self,
+    _ctx: PluginContext<&mut JobContext>,
+    _args: LoadArgs<'_>,
+  ) -> PluginLoadHookOutput {
+    Ok(None)
   }
 
   fn parse_module(

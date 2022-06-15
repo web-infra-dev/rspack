@@ -12,12 +12,14 @@ pub struct RenderManifestArgs<'me> {
   pub compilation: &'me Compilation,
 }
 
+#[derive(Debug, Clone)]
 pub struct ResolveArgs<'a> {
   pub importer: Option<&'a str>,
   pub specifier: &'a str,
   pub kind: ResolveKind,
 }
 
+#[derive(Debug, Clone)]
 pub struct LoadArgs<'a> {
   pub uri: &'a str,
 }

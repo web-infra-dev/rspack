@@ -4,8 +4,8 @@ use nodejs_resolver::Resolver;
 use tracing::instrument;
 
 use crate::{
-  Asset, BoxModule, CompilerOptions, JobContext, ParseModuleArgs, Plugin, PluginContext,
-  RenderManifestArgs, SourceType,
+  Asset, BoxModule, CompilerOptions, JobContext, LoadArgs, ParseModuleArgs, Plugin, PluginContext,
+  PluginResolveHookOutput, RenderManifestArgs, ResolveArgs, SourceType,
 };
 
 #[derive(Debug)]
@@ -43,6 +43,38 @@ impl PluginDriver {
       resolver,
       module_parser,
     }
+  }
+
+  pub async fn resolve(
+    &self,
+    args: ResolveArgs<'_>,
+    job_ctx: &mut JobContext,
+  ) -> PluginResolveHookOutput {
+    for plugin in &self.plugins {
+      let output = plugin
+        .resolve(PluginContext::with_context(job_ctx), args.clone())
+        .await?;
+      if output.is_some() {
+        return Ok(output);
+      }
+    }
+    Ok(None)
+  }
+
+  pub async fn load(
+    &self,
+    args: LoadArgs<'_>,
+    job_ctx: &mut JobContext,
+  ) -> PluginResolveHookOutput {
+    for plugin in &self.plugins {
+      let output = plugin
+        .load(PluginContext::with_context(job_ctx), args.clone())
+        .await?;
+      if output.is_some() {
+        return Ok(output);
+      }
+    }
+    Ok(None)
   }
 
   #[instrument(skip_all)]

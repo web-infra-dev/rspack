@@ -13,7 +13,7 @@ use tracing::instrument;
 
 use crate::{
   CompilerOptions, Dependency, JobContext, ModuleGraphModule, Plugin, PluginDriver,
-  RenderManifestArgs, ResolvingModuleJob,
+  RenderManifestArgs, ResolvingModuleJob, Stats,
 };
 
 mod compilation;
@@ -51,7 +51,7 @@ impl Compiler {
   }
 
   #[instrument(skip_all)]
-  pub async fn compile(&mut self) -> anyhow::Result<()> {
+  pub async fn compile(&mut self) -> anyhow::Result<Stats> {
     // TODO: supports rebuild
     self.compilation = Compilation::new(
       // TODO: use Arc<T> instead
@@ -145,11 +145,12 @@ impl Compiler {
     assets.iter().for_each(|asset| {
       std::fs::write(final_out_dir.join(asset.final_filename()), &asset.rendered).unwrap();
     });
-    Ok(())
+
+    Ok(Stats::new(assets))
   }
 
   #[instrument(skip_all)]
-  pub async fn run(&mut self) -> anyhow::Result<()> {
+  pub async fn run(&mut self) -> anyhow::Result<Stats> {
     self.compile().await
   }
 }
