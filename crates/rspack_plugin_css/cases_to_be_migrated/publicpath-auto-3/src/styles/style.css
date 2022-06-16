@@ -1,0 +1,23 @@
+.a {
+  background-image: url(img1.svg);
+}
+
+.b {
+  background-image: url(../../img2.svg);
+}
+
+.c {
+  background-image: url(../../img3.svg);
+}
+
+.d {
+  background-image: url(img/img4.svg);
+}
+
+.e {
+  background-image: url(../../images/react.svg);
+}
+
+.f {
+  background-image: url(../../outer.svg);
+}

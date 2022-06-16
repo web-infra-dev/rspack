@@ -1,0 +1,16 @@
+@supports (display: flex) {
+@supports (display: grid) {.bottom {
+  background: blue;
+}
+}
+}
+@supports (display: flex) {
+.middle {
+  background: green;
+}
+
+}
+.top {
+  background: red;
+}
+

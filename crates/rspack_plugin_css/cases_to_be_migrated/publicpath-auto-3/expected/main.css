@@ -1,0 +1,24 @@
+.a {
+  background-image: url(img1.svg);
+}
+
+.b {
+  background-image: url(assets/img2.svg);
+}
+
+.c {
+  background-image: url(assets/nested/img3.svg);
+}
+
+.d {
+  background-image: url(img4.svg);
+}
+
+.e {
+  background-image: url(assets/img/react.svg);
+}
+
+.f {
+  background-image: url(../outer.svg);
+}
+

@@ -1,0 +1,14 @@
+.shared {
+  color: green;
+  background-color: green;
+  border: 1px solid green;
+}
+
+.shared {
+  color: red;
+}
+
+.shared {
+  background-color: red;
+}
+

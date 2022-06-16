@@ -1,0 +1,48 @@
+@layer framework {
+@layer base {.bottom {
+  background: blue;
+}
+}
+}
+@layer framework {
+@layer base {
+  .middle {
+    background: green;
+  }
+}
+
+}
+@layer {
+.color {
+  color: red;
+}
+
+}
+@supports (display: flex) {
+@media (prefers-color-scheme: dark) {
+@layer default {
+@supports (display: grid) {@media screen and (min-width: 900px) {@layer base {.foo {
+  color: red;
+}
+}}}
+}
+}
+}
+@supports (display: flex) {
+@media (prefers-color-scheme: dark) {
+@layer default {
+/* prettier-ignore */
+
+.bar {
+  color: blue;
+}
+
+}
+}
+}
+/* prettier-ignore */
+
+.top {
+  background: red;
+}
+
