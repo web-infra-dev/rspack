@@ -77,20 +77,18 @@ impl Bundle {
 
     self.module_graph_container.resolved_entries =
       try_join_all(self.entries.iter().map(|(name, entry)| async {
-        Ok::<_, Error>(
-          (
-            name.clone(),
-            plugin_hook::resolve_id(
-              crate::ResolveArgs {
-                id: entry.src.clone(),
-                importer: None,
-                kind: ImportKind::Import,
-              },
-              &self.plugin_driver,
-            )
-            .await?,
-          ),
-        )
+        Ok::<_, Error>((
+          name.clone(),
+          plugin_hook::resolve_id(
+            crate::ResolveArgs {
+              id: entry.src.clone(),
+              importer: None,
+              kind: ImportKind::Import,
+            },
+            &self.plugin_driver,
+          )
+          .await?,
+        ))
       }))
       .await?
       .into_iter()
