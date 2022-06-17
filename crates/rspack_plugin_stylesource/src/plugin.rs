@@ -86,7 +86,7 @@ impl StyleSourcePlugin {
     content: &str,
     filepath: &str,
   ) -> (HashMap<String, String>, String) {
-    let res = match self
+    match self
       .app
       .render_content_into_hashmap_with_css(content, filepath)
     {
@@ -95,8 +95,7 @@ impl StyleSourcePlugin {
         println!("{}", msg);
         panic!("parse css has failed")
       }
-    };
-    res
+    }
   }
 
   ///
@@ -104,14 +103,13 @@ impl StyleSourcePlugin {
   /// 目前 在 ipc 保留的时候 同样的处理方式
   ///
   pub fn handle_with_less_file(&self, filepath: &str) -> (HashMap<String, String>, String) {
-    let res = match self.app.render_into_hashmap(filepath) {
+    match self.app.render_into_hashmap(filepath) {
       Ok(map) => map,
       Err(msg) => {
         println!("{}", msg);
         panic!("parse css has failed")
       }
-    };
-    res
+    }
   }
 
   pub fn get_entry_name(entry_file_path: &str) -> String {
@@ -155,7 +153,7 @@ impl Plugin for StyleSourcePlugin {
     _id: &str,
     loader: &std::option::Option<rspack_core::Loader>,
   ) -> bool {
-    return matches!(loader, Some(Loader::Sass | Loader::Less | Loader::Css));
+    matches!(loader, Some(Loader::Sass | Loader::Less | Loader::Css))
   }
 
   ///
@@ -251,10 +249,10 @@ impl Plugin for StyleSourcePlugin {
     let entry_name = Self::get_entry_name(file_name);
 
     let mut wait_sort_list: Vec<SytleReferenceInfo> = vec![];
-    for css_source in css_source_list
+    let list = css_source_list
       .iter_mut()
-      .filter(|x| chunk.module_uris.contains(&x.file_path))
-    {
+      .filter(|x| chunk.module_uris.contains(&x.file_path));
+    for css_source in list {
       for (filepath, source) in css_source
         .source_content_map
         .as_ref()
