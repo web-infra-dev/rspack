@@ -235,7 +235,7 @@ impl Plugin for ProgressPlugin {
     let outdir = style(outdir).fg(GREY).to_string();
     let mut max_name_len = 0;
     let mut asset_list: Vec<(String, usize)> = vec![]; // (name, size)
-    for i in assets.iter() {
+    assets.iter().into_iter().for_each(|i| {
       #[allow(clippy::chars_next_cmp)]
       let name: String = if i.filename.chars().next().unwrap() == '/' {
         i.filename.replace(&_ctx.options.outdir, "")[1..].to_string()
@@ -245,7 +245,7 @@ impl Plugin for ProgressPlugin {
       max_name_len = max_name_len.max(name.len());
       let size = i.source.len();
       asset_list.push((name, size));
-    }
+    });
 
     asset_list.sort_by(|a, b| a.1.cmp(&b.1));
 
