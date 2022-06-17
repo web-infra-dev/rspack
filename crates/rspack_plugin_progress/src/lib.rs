@@ -2,7 +2,7 @@
 
 use anyhow::Result;
 use async_trait::async_trait;
-use console::{style, Color, Term};
+use console::{style, Color, StyledObject, Term};
 use core::fmt::Debug;
 use rspack_core::{
   Asset, Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput, PluginContext,
@@ -235,29 +235,26 @@ impl Plugin for ProgressPlugin {
     let outdir = style(outdir).fg(GREY).to_string();
     let mut max_name_len = 0;
     let mut asset_list: Vec<(String, usize)> = vec![]; // (name, size)
-    for i in assets.iter() {
-      #[allow(clippy::chars_next_cmp)]
-      let name: String = if i.filename.chars().next().unwrap() == '/' {
-        i.filename.replace(&_ctx.options.outdir, "")[1..].to_string()
+    assets.iter().for_each(|asset| {
+      let name: String = if asset.filename.starts_with('/') {
+        (&asset.filename[1..]).replace(&_ctx.options.outdir, "")
       } else {
-        i.filename.clone()
+        asset.filename.clone()
       };
       max_name_len = max_name_len.max(name.len());
-      let size = i.source.len();
+      let size = asset.source.len();
       asset_list.push((name, size));
-    }
+    });
 
-    asset_list.sort_by(|a, b| a.1.cmp(&b.1));
+    asset_list.sort_unstable_by(|a, b| a.1.cmp(&b.1));
 
-    let space = "    ";
     for (name, size) in asset_list.iter() {
       let ext = name.split('.').last().unwrap_or("");
       let size = size_with_color(*size);
       let color = guess_color_by_ext(ext);
-      let name = style(format!("{:width$}", name, width = max_name_len))
-        .fg(color)
-        .to_string();
-      println!("{}{}{}{}", outdir, name, space, size);
+      let name = style(format!("{:width$}", name, width = max_name_len)).fg(color);
+
+      println!("{}{}    {}", outdir, name, size);
     }
 
     Ok(())
@@ -274,7 +271,7 @@ fn guess_color_by_ext(ext: &str) -> Color {
     _ => GREY,
   }
 }
-fn size_with_color(n: usize) -> String {
+fn size_with_color(n: usize) -> StyledObject<String> {
   let kb = 1_000;
   let mb = 1_000_000;
   let gb = 1_000_000_000;
@@ -282,7 +279,7 @@ fn size_with_color(n: usize) -> String {
   let danger_limit = 500.0;
 
   if n < kb {
-    return style(format!("{n:6.2} B")).fg(GREY).to_string();
+    style(format!("{n:6.2} B")).fg(GREY);
   } else if n < mb {
     let n = (n as f64) / (kb) as f64;
     let color = if n < warn_limit {
@@ -292,10 +289,10 @@ fn size_with_color(n: usize) -> String {
     } else {
       RED
     };
-    return style(format!("{n:6.2} K")).fg(color).to_string();
+    style(format!("{n:6.2} K")).fg(color);
   } else if n < gb {
     let n = (n as f64) / (mb) as f64;
-    return style(format!("{n:6.2} M")).fg(RED).to_string();
+    style(format!("{n:6.2} M")).fg(RED);
   }
-  style(format!("{n:6.2} B")).fg(GREY).to_string()
+  style(format!("{n:6.2} B")).fg(GREY)
 }
