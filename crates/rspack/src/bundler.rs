@@ -8,6 +8,7 @@ use anyhow::Result;
 use nodejs_resolver::Resolver;
 use rayon::prelude::*;
 use rspack_core::inject_options;
+use rspack_core::AssetType;
 use rspack_core::Bundle;
 use rspack_core::NormalizedBundleOptions;
 use rspack_core::{OutputChunk, OutputChunkSourceMap};
@@ -120,6 +121,7 @@ impl Bundler {
         OutputChunkSourceMap::External(map) => {
           let map_filename = chunk.file_name.clone() + ".map";
           self.bundle.context.assets.lock().unwrap().push(Asset {
+            asset_type: AssetType::JavaScript,
             source: map,
             filename: map_filename,
           });
@@ -127,6 +129,7 @@ impl Bundler {
         OutputChunkSourceMap::Linked(map) => {
           let map_filename = chunk.file_name.clone() + ".map";
           self.bundle.context.assets.lock().unwrap().push(Asset {
+            asset_type: AssetType::JavaScript,
             source: map,
             filename: map_filename.clone(),
           });
@@ -136,11 +139,13 @@ impl Bundler {
         OutputChunkSourceMap::None => (),
       };
 
-      self.bundle.context.assets.lock().unwrap().push(Asset {
+      self.bundle.context.emit_asset(Asset {
+        asset_type: AssetType::JavaScript,
         source: code,
         filename: chunk.file_name,
-      });
+      })
     });
+
     if self.options.write {
       self.write_assets_to_disk();
     }

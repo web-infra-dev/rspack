@@ -2,8 +2,8 @@ use crate::handle_with_css::{is_style_source, StyleSourceType};
 use async_trait::async_trait;
 use nodejs_resolver::{ResolveResult, Resolver};
 use rspack_core::{
-  Asset, Chunk, Loader, NormalizedBundleOptions, PluginContext, PluginTransformHookOutput,
-  TransformArgs,
+  Asset, AssetType, Chunk, Loader, NormalizedBundleOptions, PluginContext,
+  PluginTransformHookOutput, TransformArgs,
 };
 use rspack_core::{Plugin, PluginBuildStartHookOutput, PluginTapGeneratedChunkHookOutput};
 use rspack_style::style_core::applicationn::Application;
@@ -278,6 +278,7 @@ impl Plugin for StyleSourcePlugin {
     if !css_content.is_empty() {
       ctx.emit_asset(Asset {
         source: css_content,
+        asset_type: AssetType::CSS,
         filename: bundle_options.outdir.clone() + format!("/{}.css", entry_name).as_str(),
       })
     }

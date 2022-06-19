@@ -1,4 +1,5 @@
 use rspack_swc::{swc, swc_common};
+use serde::{Deserialize, Serialize};
 use std::{
   fmt::Debug,
   sync::{Arc, Mutex},
@@ -63,9 +64,15 @@ impl BundleContext {
     });
   }
 }
-
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub enum AssetType {
+  JavaScript,
+  CSS,
+  Asset,
+}
 #[derive(Debug, Clone)]
 pub struct Asset {
   pub source: String,
   pub filename: String,
+  pub asset_type: AssetType,
 }

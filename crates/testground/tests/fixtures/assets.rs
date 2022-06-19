@@ -13,6 +13,7 @@ async fn asset_emitted() {
         rspack_core::Asset {
           filename: asset.filename.to_string(),
           source: asset.source.to_string(),
+          asset_type: rspack_core::AssetType::JavaScript,
         },
       )
     })

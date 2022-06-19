@@ -1750,6 +1750,7 @@ dependencies = [
  "rayon",
  "rspack_sources",
  "rspack_swc",
+ "serde",
  "serde_json",
  "smol_str",
  "sourcemap",
