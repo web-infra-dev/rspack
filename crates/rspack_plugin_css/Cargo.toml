@@ -23,6 +23,7 @@ typemap = "0.3.3"
 better_scoped_tls = "0.1.0"
 rayon = "1.5.3"
 tokio = { version = "1.17.0", features = ["full"] }
+dashmap = "5.0.0"
 
 # swc_atoms = "0.2.11"
 # swc_ecma_ast = "0.78.0"

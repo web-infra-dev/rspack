@@ -17,6 +17,7 @@ pub fn finalize<'a>(
     resolver(unresolved_mark, top_level_mark, false,),
     RspackModuleFinalizer {
       module,
+      unresolved_mark,
       require_ident: quote_ident!(DUMMY_SP.apply_mark(unresolved_mark), "__rspack_require__"),
       module_ident: quote_ident!(DUMMY_SP.apply_mark(unresolved_mark), "module"),
       // entry_flag,

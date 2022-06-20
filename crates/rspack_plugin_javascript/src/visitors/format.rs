@@ -22,6 +22,7 @@ use {
 pub const RS_REQUIRE: &str = "__rspack_require__";
 pub struct RspackModuleFinalizer<'a> {
   pub module: &'a ModuleGraphModule,
+  pub unresolved_mark: Mark,
   // pub resolved_ids: &'a HashMap<JsWord, ResolvedURI>,
   pub require_ident: Ident,
   pub module_ident: Ident,
@@ -31,10 +32,9 @@ pub struct RspackModuleFinalizer<'a> {
 
 impl<'a> Fold for RspackModuleFinalizer<'a> {
   fn fold_module(&mut self, module: Module) -> Module {
-    let unresolved_mark = Mark::new();
     let mut cjs_module = module
       .fold_with(&mut common_js(
-        Mark::new(),
+        self.unresolved_mark,
         CommonJsConfig {
           ignore_dynamic: true,
           ..Default::default()
@@ -45,7 +45,7 @@ impl<'a> Fold for RspackModuleFinalizer<'a> {
       .fold_with(&mut inject_helpers());
 
     cjs_module.visit_mut_with(&mut RspackModuleFormatTransformer::new(
-      unresolved_mark,
+      self.unresolved_mark,
       self.module,
       self.compilation,
     ));
@@ -157,14 +157,31 @@ impl<'a> RspackModuleFormatTransformer<'a> {
           expr: box Expr::Lit(Lit::Str(str)),
         } = n.args.first_mut()?
         {
-          let dep = Dependency {
+          let require_dep = Dependency {
             importer: Some(self.module.uri.clone()),
             specifier: str.value.to_string(),
             kind: ResolveKind::Require,
           };
-          let js_module = self.compilation.module_graph.module_by_dependency(&dep)?;
-          str.value = JsWord::from(js_module.id.as_str());
-          str.raw = Some(JsWord::from(format!("\"{}\"", js_module.id)));
+          // FIXME: No need to say this is a ugly workaround
+          let import_dep = Dependency {
+            importer: Some(self.module.uri.clone()),
+            specifier: str.value.to_string(),
+            kind: ResolveKind::Import,
+          };
+          let mut js_module = self
+            .compilation
+            .module_graph
+            .module_by_dependency(&require_dep);
+
+          if js_module.is_none() {
+            js_module = self
+              .compilation
+              .module_graph
+              .module_by_dependency(&import_dep)
+          }
+
+          str.value = JsWord::from(js_module?.id.as_str());
+          str.raw = Some(JsWord::from(format!("\"{}\"", js_module?.id)));
         };
       }
     }

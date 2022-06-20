@@ -19,6 +19,7 @@ pub fn enable_tracing_by_env() {
           ("rspack_core", Level::TRACE),
           ("rspack", Level::TRACE),
           ("rspack_node", Level::TRACE),
+          ("rspack_plugin_javascript", Level::TRACE),
         ]),
       )
       // Using TRACE=[TRACE|DEBUG|INFO|WARN|ERROR] to set max trace level.
@@ -48,6 +49,7 @@ pub fn enable_tracing_by_env_with_chrome_layer() -> Option<FlushGuard> {
           ("rspack", Level::TRACE),
           ("rspack_node", Level::TRACE),
           ("rspack_plugin_javascript", Level::TRACE),
+          ("warp", Level::TRACE),
         ]),
       )
       // Using TRACE=[TRACE|DEBUG|INFO|WARN|ERROR] to set max trace level.

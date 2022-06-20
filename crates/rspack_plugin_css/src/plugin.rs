@@ -2,19 +2,20 @@
 // pub use js_module::*;
 
 use crate::{module::CssModule, SWC_COMPILER};
+use dashmap::DashSet;
 use once_cell::sync::Lazy;
+use rayon::prelude::*;
 use rspack_core::{
   Asset, AssetFilename, JobContext, Module, ParseModuleArgs, Plugin, PluginParseModuleHookOutput,
   SourceType,
 };
-
-use rayon::prelude::*;
 
 use swc_common::{Globals, Mark, GLOBALS};
 
 #[derive(Debug)]
 pub struct CssPlugin {
   bundled_import_mark: Mark,
+  css_module_uris: DashSet<String>,
 }
 
 static CSS_GLOBALS: Lazy<Globals> = Lazy::new(Globals::new);
@@ -23,6 +24,7 @@ impl Default for CssPlugin {
   fn default() -> Self {
     Self {
       bundled_import_mark: GLOBALS.set(&CSS_GLOBALS, Mark::new),
+      css_module_uris: DashSet::default(),
     }
   }
 }
@@ -34,11 +36,11 @@ impl Plugin for CssPlugin {
 
   fn parse_module(
     &self,
-    _ctx: rspack_core::PluginContext<&mut JobContext>,
+    ctx: rspack_core::PluginContext<&mut JobContext>,
     args: ParseModuleArgs,
   ) -> PluginParseModuleHookOutput {
     let stylesheet = SWC_COMPILER.parse_file(args.uri, args.source)?;
-
+    // ctx.context.source_type = Some(SourceType::Js);
     Ok(Box::new(CssModule { ast: stylesheet }))
   }
 

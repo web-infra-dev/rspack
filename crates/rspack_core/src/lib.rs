@@ -33,6 +33,12 @@ pub enum SourceType {
   Ts,
 }
 
+impl SourceType {
+  pub fn is_css(&self) -> bool {
+    matches!(self, Self::Css)
+  }
+}
+
 impl TryFrom<&str> for SourceType {
   type Error = ();
 
