@@ -1,3 +1,3 @@
-import './a.css'
-import './b.css'
-import './component'
+import "./a.css";
+import "./component";
+import "./b.css";
