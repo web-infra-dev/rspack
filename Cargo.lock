@@ -1765,6 +1765,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_plugin_split_chunks"
+version = "0.1.0"
+dependencies = [
+ "rspack_core",
+]
+
+[[package]]
 name = "rspack_sources"
 version = "0.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
