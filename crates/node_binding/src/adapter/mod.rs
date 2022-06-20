@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use rspack_core::Asset as RspackAsset;
+use rspack_core::{Asset as RspackAsset, AssetType};
 use rspack_core::{
   LoadArgs, Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput, PluginContext,
   PluginLoadHookOutput, PluginResolveHookOutput, ResolveArgs,
@@ -94,11 +94,20 @@ pub struct OnLoadResult {
   )]
   pub loader: Option<String>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Asset {
   pub source: String,
   pub filename: String,
+  pub asset_type: AssetType,
+}
+impl Asset {
+  fn from(asset: rspack_core::Asset) -> Asset {
+    Asset {
+      source: asset.source,
+      filename: asset.filename,
+      asset_type: asset.asset_type,
+    }
+  }
 }
 #[cfg(feature = "test")]
 #[derive(Serialize, Deserialize, Debug)]
@@ -184,10 +193,7 @@ impl Plugin for RspackPluginNodeAdapter {
       (*asset)
         .iter()
         .cloned()
-        .map(|x| Asset {
-          source: x.source,
-          filename: x.filename,
-        })
+        .map(Asset::from)
         .collect::<Vec<Asset>>(),
     );
 
