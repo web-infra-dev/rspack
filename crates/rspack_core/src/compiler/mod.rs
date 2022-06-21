@@ -114,9 +114,12 @@ impl Compiler {
 
     tracing::debug!("module graph {:#?}", self.compilation.module_graph);
 
-    self.compilation.calc_exec_order();
+    // self.compilation.calc_exec_order();
 
     self.compilation.seal();
+    self.compilation.chunk_graph.chunks_mut().for_each(|chunk| {
+      chunk.calc_exec_order(&self.compilation.module_graph);
+    });
 
     tracing::debug!("chunk graph {:#?}", self.compilation.chunk_graph);
     // Stream::
