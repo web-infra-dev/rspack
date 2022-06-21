@@ -7,7 +7,7 @@ pub struct ModuleGraphModule {
   // Only user defined entry module has name for now.
   pub name: Option<String>,
   pub id: String,
-  pub exec_order: usize,
+  // pub exec_order: usize,
   pub uri: String,
   pub module: BoxModule,
   pub source_type: SourceType,
@@ -26,7 +26,7 @@ impl ModuleGraphModule {
     Self {
       name,
       id,
-      exec_order: usize::MAX,
+      // exec_order: usize::MAX,
       uri,
       module,
       all_dependecies: dependecies,

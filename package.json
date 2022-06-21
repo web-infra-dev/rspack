@@ -35,8 +35,7 @@
   },
   "homepage": "https://github.com/speedy-js/rspack#readme",
   "lint-staged": {
-    "*.rs": "rustfmt --edition 2021",
-    "*.{ts,tsx,js,jsx,cjs,mjs}": "dprint fmt"
+    "*.rs": "rustfmt --edition 2021"
   },
   "devDependencies": {
     "dprint": "^0.29.1",
