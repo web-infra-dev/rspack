@@ -11,7 +11,7 @@ pub struct ModuleGraphModule {
   pub uri: String,
   pub module: BoxModule,
   pub source_type: SourceType,
-  all_dependecies: Vec<Dependency>,
+  all_dependencies: Vec<Dependency>,
 }
 
 impl ModuleGraphModule {
@@ -20,7 +20,7 @@ impl ModuleGraphModule {
     id: String,
     uri: String,
     module: BoxModule,
-    dependecies: Vec<Dependency>,
+    dependencies: Vec<Dependency>,
     source_type: SourceType,
   ) -> Self {
     Self {
@@ -29,14 +29,14 @@ impl ModuleGraphModule {
       // exec_order: usize::MAX,
       uri,
       module,
-      all_dependecies: dependecies,
+      all_dependencies: dependencies,
       source_type,
     }
   }
 
   pub fn depended_modules<'a>(&self, module_graph: &'a ModuleGraph) -> Vec<&'a ModuleGraphModule> {
     self
-      .all_dependecies
+      .all_dependencies
       .iter()
       .filter(|dep| !matches!(dep.kind, ResolveKind::DynamicImport))
       .filter_map(|dep| module_graph.module_by_dependency(dep))
@@ -48,7 +48,7 @@ impl ModuleGraphModule {
     module_graph: &'a ModuleGraph,
   ) -> Vec<&'a ModuleGraphModule> {
     self
-      .all_dependecies
+      .all_dependencies
       .iter()
       .filter(|dep| matches!(dep.kind, ResolveKind::DynamicImport))
       .filter_map(|dep| module_graph.module_by_dependency(dep))
