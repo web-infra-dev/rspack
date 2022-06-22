@@ -38,7 +38,7 @@ impl ModuleGraphModule {
     self
       .all_dependencies
       .iter()
-      .filter(|dep| !matches!(dep.kind, ResolveKind::DynamicImport))
+      .filter(|dep| !matches!(dep.detail.kind, ResolveKind::DynamicImport))
       .filter_map(|dep| module_graph.module_by_dependency(dep))
       .collect()
   }
@@ -50,7 +50,7 @@ impl ModuleGraphModule {
     self
       .all_dependencies
       .iter()
-      .filter(|dep| matches!(dep.kind, ResolveKind::DynamicImport))
+      .filter(|dep| matches!(dep.detail.kind, ResolveKind::DynamicImport))
       .filter_map(|dep| module_graph.module_by_dependency(dep))
       .collect()
   }

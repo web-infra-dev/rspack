@@ -12,17 +12,25 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
   load, parse_to_url, resolve, LoadArgs, ModuleGraphModule, Msg, ParseModuleArgs, PluginDriver,
-  ResolveArgs, SourceType,
+  ResolveArgs, SourceType, VisitedModuleIdentity,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct Dependency {
   /// Uri of importer module
   pub importer: Option<String>,
-  /// `./a.js` in `import './a.js'` is specifier
-  pub specifier: String,
-  pub kind: ResolveKind,
+  pub detail: ModuleDependency,
 }
+
+// impl Dependency {
+//   pub fn new(importer: Option<String>, specifier: String, kind: ResolveKind) -> Self {
+//     Self {
+//       importer,
+//       specifier,
+//       kind,
+//     }
+//   }
+// }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 pub enum ResolveKind {
@@ -30,6 +38,7 @@ pub enum ResolveKind {
   Require,
   DynamicImport,
   AtImport,
+  AtImportUrl,
 }
 
 pub struct ResolvingModuleJob {
@@ -80,8 +89,8 @@ impl ResolvingModuleJob {
     let uri = resolve(
       ResolveArgs {
         importer: self.dependency.importer.as_deref(),
-        specifier: self.dependency.specifier.as_str(),
-        kind: self.dependency.kind,
+        specifier: self.dependency.detail.specifier.as_str(),
+        kind: self.dependency.detail.kind,
       },
       &self.plugin_driver,
       &mut self.context,
@@ -103,11 +112,18 @@ impl ResolvingModuleJob {
       ))
       .unwrap();
 
-    if self.context.visited_module_uri.contains(&uri) {
+    if self
+      .context
+      .visited_module_identity
+      .contains(&(uri.clone(), self.dependency.detail.clone()))
+    {
       return Ok(None);
     }
 
-    self.context.visited_module_uri.insert(uri.clone());
+    self
+      .context
+      .visited_module_identity
+      .insert((uri.clone(), self.dependency.detail.clone()));
 
     let source = load(
       &self.plugin_driver,
@@ -140,8 +156,7 @@ impl ResolvingModuleJob {
       .into_iter()
       .map(|dep| Dependency {
         importer: Some(uri.clone()),
-        specifier: dep.specifier,
-        kind: dep.kind,
+        detail: dep,
       })
       .collect::<Vec<_>>();
 
@@ -196,12 +211,13 @@ pub fn resolve_source_type_by_uri<T: AsRef<Path>>(uri: T) -> Option<SourceType> 
 pub struct JobContext {
   pub module_name: Option<String>,
   pub(crate) active_task_count: Arc<AtomicUsize>,
-  pub(crate) visited_module_uri: Arc<DashSet<String>>,
+  pub(crate) visited_module_identity: VisitedModuleIdentity,
   pub source_type: Option<SourceType>,
 }
 
-#[derive(Debug, Hash, PartialEq, Eq)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct ModuleDependency {
   pub specifier: String,
+  /// `./a.js` in `import './a.js'` is specifier
   pub kind: ResolveKind,
 }

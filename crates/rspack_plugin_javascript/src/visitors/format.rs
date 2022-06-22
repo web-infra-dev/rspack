@@ -1,6 +1,6 @@
 // use crate::{cjs_runtime_helper, Bundle, ModuleGraph, Platform, ResolvedURI};
 use ast::*;
-use rspack_core::{Compilation, Dependency, ModuleGraphModule, ResolveKind};
+use rspack_core::{Compilation, Dependency, ModuleDependency, ModuleGraphModule, ResolveKind};
 use swc_atoms::JsWord;
 use swc_common::{Mark, DUMMY_SP};
 use swc_ecma_transforms::modules::common_js;
@@ -159,14 +159,18 @@ impl<'a> RspackModuleFormatTransformer<'a> {
         {
           let require_dep = Dependency {
             importer: Some(self.module.uri.clone()),
-            specifier: str.value.to_string(),
-            kind: ResolveKind::Require,
+            detail: ModuleDependency {
+              specifier: str.value.to_string(),
+              kind: ResolveKind::Require,
+            },
           };
           // FIXME: No need to say this is a ugly workaround
           let import_dep = Dependency {
             importer: Some(self.module.uri.clone()),
-            specifier: str.value.to_string(),
-            kind: ResolveKind::Import,
+            detail: ModuleDependency {
+              specifier: str.value.to_string(),
+              kind: ResolveKind::Import,
+            },
           };
           let mut js_module = self
             .compilation
@@ -194,8 +198,10 @@ impl<'a> RspackModuleFormatTransformer<'a> {
       // If the import module is not exsit in module graph, we need to leave it as it is
       let dep = Dependency {
         importer: Some(self.module.uri.clone()),
-        specifier: literal.to_string(),
-        kind: ResolveKind::Require,
+        detail: ModuleDependency {
+          specifier: literal.to_string(),
+          kind: ResolveKind::Require,
+        },
       };
       let js_module = self.compilation.module_graph.module_by_dependency(&dep)?;
       let args;

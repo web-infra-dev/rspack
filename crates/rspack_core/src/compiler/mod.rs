@@ -74,7 +74,7 @@ impl Compiler {
           JobContext {
             module_name: Some(name),
             active_task_count: active_task_count.clone(),
-            visited_module_uri: self.compilation.visited_module_id.clone(),
+            visited_module_identity: self.compilation.visited_module_id.clone(),
             source_type: None,
           },
           dep,

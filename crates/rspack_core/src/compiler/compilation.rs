@@ -4,15 +4,15 @@ use dashmap::DashSet;
 use tracing::instrument;
 
 use crate::{
-  split_chunks::code_splitting2, ChunkGraph, CompilerOptions, Dependency, EntryItem, ModuleGraph,
-  ResolveKind,
+  split_chunks::code_splitting2, ChunkGraph, CompilerOptions, Dependency, EntryItem,
+  ModuleDependency, ModuleGraph, ResolveKind, VisitedModuleIdentity,
 };
 
 #[derive(Debug, Default)]
 pub struct Compilation {
   pub options: Arc<CompilerOptions>,
   entries: HashMap<String, EntryItem>,
-  pub(crate) visited_module_id: Arc<DashSet<String>>,
+  pub(crate) visited_module_id: VisitedModuleIdentity,
   pub module_graph: ModuleGraph,
   pub chunk_graph: ChunkGraph,
 }
@@ -21,7 +21,7 @@ impl Compilation {
   pub fn new(
     options: Arc<CompilerOptions>,
     entries: HashMap<String, EntryItem>,
-    visited_module_id: Arc<DashSet<String>>,
+    visited_module_id: VisitedModuleIdentity,
     module_graph: ModuleGraph,
   ) -> Self {
     Self {
@@ -46,8 +46,10 @@ impl Compilation {
           name.clone(),
           Dependency {
             importer: None,
-            specifier: detail.path.clone(),
-            kind: ResolveKind::Import,
+            detail: ModuleDependency {
+              specifier: detail.path.clone(),
+              kind: ResolveKind::Import,
+            },
           },
         )
       })

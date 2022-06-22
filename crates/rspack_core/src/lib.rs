@@ -1,6 +1,9 @@
 #![feature(iter_intersperse)]
 
 mod module;
+use std::sync::Arc;
+
+use dashmap::DashSet;
 pub use module::*;
 mod plugin;
 pub use plugin::*;
@@ -54,3 +57,5 @@ impl TryFrom<&str> for SourceType {
     }
   }
 }
+
+pub(crate) type VisitedModuleIdentity = Arc<DashSet<(String, ModuleDependency)>>;

@@ -14,7 +14,7 @@ async fn css() {
     .into_iter()
     .filter_map(|path| path.ok())
     .filter_map(|path| path.file_name().map(|s| s.to_string_lossy().to_string()))
-    .filter(|path| !path.contains("[conflict]"))
+    .filter(|path| !path.starts_with('_'))
     .collect::<Vec<_>>();
 
   for fixture in &fixture_dir_names {
