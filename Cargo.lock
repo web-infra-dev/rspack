@@ -1720,6 +1720,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_plugin_asset"
+version = "0.1.0"
+dependencies = [
+ "rspack_core",
+]
+
+[[package]]
 name = "rspack_plugin_css"
 version = "0.1.0"
 dependencies = [
