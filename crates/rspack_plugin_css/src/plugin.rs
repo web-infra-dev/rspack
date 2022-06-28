@@ -12,22 +12,16 @@ use rspack_core::{
 
 use swc_common::{Globals, Mark, GLOBALS};
 
-#[derive(Debug)]
-pub struct CssPlugin {
-  bundled_import_mark: Mark,
-  css_module_uris: DashSet<String>,
-}
+#[derive(Debug, Default)]
+pub struct CssPlugin {}
 
 static CSS_GLOBALS: Lazy<Globals> = Lazy::new(Globals::new);
 
-impl Default for CssPlugin {
-  fn default() -> Self {
-    Self {
-      bundled_import_mark: GLOBALS.set(&CSS_GLOBALS, Mark::new),
-      css_module_uris: DashSet::default(),
-    }
-  }
-}
+// impl Default for CssPlugin {
+//   fn default() -> Self {
+//     Self {}
+//   }
+// }
 
 impl Plugin for CssPlugin {
   fn register_parse_module(&self, _ctx: rspack_core::PluginContext) -> Option<Vec<SourceType>> {
