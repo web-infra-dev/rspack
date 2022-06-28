@@ -1,11 +1,14 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{fmt::Debug, path::PathBuf, sync::Arc};
 
-use dashmap::DashSet;
+use dashmap::{DashMap, DashSet};
+use hashbrown::HashMap;
+use rayon::prelude::*;
 use tracing::instrument;
 
 use crate::{
-  split_chunks::code_splitting2, ChunkGraph, CompilerOptions, Dependency, EntryItem,
-  ModuleDependency, ModuleGraph, ResolveKind, VisitedModuleIdentity,
+  split_chunks::code_splitting2, Asset, ChunkGraph, CompilerOptions, Dependency, EntryItem,
+  Filename, ModuleDependency, ModuleGraph, OutputFilename, PluginDriver, RenderManifestArgs,
+  ResolveKind, VisitedModuleIdentity,
 };
 
 #[derive(Debug, Default)]
@@ -15,21 +18,24 @@ pub struct Compilation {
   pub(crate) visited_module_id: VisitedModuleIdentity,
   pub module_graph: ModuleGraph,
   pub chunk_graph: ChunkGraph,
+  pub final_out_dir: PathBuf,
 }
 
 impl Compilation {
   pub fn new(
     options: Arc<CompilerOptions>,
-    entries: HashMap<String, EntryItem>,
+    entries: std::collections::HashMap<String, EntryItem>,
     visited_module_id: VisitedModuleIdentity,
     module_graph: ModuleGraph,
+    final_out_dir: PathBuf,
   ) -> Self {
     Self {
       options,
       visited_module_id,
       module_graph,
-      entries,
+      entries: HashMap::from_iter(entries),
       chunk_graph: Default::default(),
+      final_out_dir,
     }
   }
 
@@ -54,6 +60,24 @@ impl Compilation {
         )
       })
       .collect()
+  }
+
+  pub fn assets(&self, plugin_driver: Arc<PluginDriver>) -> Vec<Asset> {
+    self
+      .chunk_graph
+      .id_to_chunk()
+      .par_keys()
+      .flat_map(|chunk_id| {
+        if let Ok(item) = plugin_driver.render_manifest(RenderManifestArgs {
+          chunk_id,
+          compilation: self,
+        }) {
+          item
+        } else {
+          vec![]
+        }
+      })
+      .collect::<Vec<Asset>>()
   }
 
   pub fn entry_modules(&self) {

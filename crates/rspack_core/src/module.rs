@@ -1,6 +1,11 @@
+use anyhow::Result;
+use hashbrown::HashSet;
+use once_cell::sync::Lazy;
 use std::fmt::Debug;
 
-use crate::{Compilation, Dependency, ModuleDependency, ModuleGraph, ModuleType, ResolveKind};
+use crate::{
+  Compilation, Dependency, ModuleDependency, ModuleGraph, ModuleType, ResolveKind, SourceType,
+};
 
 #[derive(Debug)]
 pub struct ModuleGraphModule {
@@ -10,6 +15,7 @@ pub struct ModuleGraphModule {
   // pub exec_order: usize,
   pub uri: String,
   pub module: BoxModule,
+  // TODO remove this since its included in module
   pub module_type: ModuleType,
   all_dependencies: Vec<Dependency>,
 }
@@ -56,10 +62,30 @@ impl ModuleGraphModule {
   }
 }
 
+// TODO replace with rspack-sources
+pub enum ModuleRenderResult {
+  JavaScript(String),
+  Css(String),
+  Asset(Vec<u8>),
+}
+
 pub trait Module: Debug + Send + Sync {
   fn module_type(&self) -> ModuleType;
 
-  fn render(&self, module: &ModuleGraphModule, compilation: &Compilation) -> String;
+  fn source_types(
+    &self,
+    _module: &ModuleGraphModule,
+    _compilation: &Compilation,
+  ) -> HashSet<SourceType> {
+    HashSet::default()
+  }
+
+  fn render(
+    &self,
+    requested_source_type: SourceType,
+    module: &ModuleGraphModule,
+    compilation: &Compilation,
+  ) -> Result<Option<ModuleRenderResult>>;
 
   fn dependencies(&mut self) -> Vec<ModuleDependency> {
     vec![]

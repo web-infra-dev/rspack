@@ -1,12 +1,13 @@
 use crate::utils::parse_file;
 use crate::visitors::ClearMark;
 use crate::{module::JsModule, utils::get_swc_compiler};
-use anyhow::{Ok, Result};
 use rayon::prelude::*;
 use rspack_core::{
-  Asset, AssetFilename, ModuleType, NormalModuleFactoryContext, ParseModuleArgs, Parser, Plugin,
-  PluginContext, PluginParseModuleHookOutput, PluginRenderManifestHookOutput, RspackAst,
+  Asset, AssetContent, Filename, ModuleRenderResult, ModuleType, OutputFilename, ParseModuleArgs,
+  Parser, Plugin, PluginContext, PluginRenderManifestHookOutput, RspackAst, SourceType,
 };
+use rspack_sources::{RawSource, Source};
+
 use swc_common::comments::SingleThreadedComments;
 use swc_common::Mark;
 use swc_ecma_transforms::react::{react, Options as ReactOptions};
@@ -51,28 +52,25 @@ impl Plugin for JsPlugin {
       .chunk_by_id(args.chunk_id)
       .ok_or_else(|| anyhow::format_err!("Not found chunk {:?}", args.chunk_id))?;
     let ordered_modules = chunk.ordered_modules(module_graph);
+
     let code = ordered_modules
       .par_iter()
       .filter(|module| {
-        matches!(
-          module.module_type,
-          ModuleType::Js | ModuleType::Ts | ModuleType::Tsx | ModuleType::Jsx | ModuleType::Css
-        )
+        module
+          .module
+          .source_types(module, compilation)
+          .contains(&SourceType::JavaScript)
       })
       .map(|module| {
-        if module.module_type.is_css() {
-          // FIXME: Ugly workaround
-          format!(
-            r#"
-          rs.define("{}", function(__rspack_require__, module, exports) {{
-            "use strict";
-        }});
-          "#,
-            module.id
-          )
-        } else {
-          module.module.render(module, compilation)
+        let sources = module
+          .module
+          .render(SourceType::JavaScript, module, compilation);
+
+        if let Ok(Some(ModuleRenderResult::JavaScript(source))) = sources {
+          return source;
         }
+
+        String::new()
       })
       .chain([{
         if chunk.kind.is_entry() {
@@ -92,10 +90,12 @@ impl Plugin for JsPlugin {
         output += &cur;
         output
       })
-      .collect();
+      .collect::<String>();
+
     Ok(vec![Asset::new(
-      code,
-      AssetFilename::Static(format!("{}.js", args.chunk_id)),
+      AssetContent::String(code),
+      OutputFilename::new("[name][ext]".to_owned())
+        .filename(args.chunk_id.to_owned(), ".js".to_owned()),
     )])
   }
 }
@@ -109,10 +109,7 @@ impl Parser for JsParser {
     module_type: ModuleType,
     args: ParseModuleArgs,
   ) -> anyhow::Result<rspack_core::BoxModule> {
-    if !matches!(
-      module_type,
-      ModuleType::Js | ModuleType::Ts | ModuleType::Tsx | ModuleType::Jsx
-    ) {
+    if !module_type.is_js_like() {
       anyhow::bail!(
         "`module_type` {:?} not supported for `JsParser`",
         module_type
@@ -120,7 +117,7 @@ impl Parser for JsParser {
     }
     let ast = {
       match args.ast {
-        Some(RspackAst::JavaScript(_ast)) => Ok(_ast),
+        Some(RspackAst::JavaScript(_ast)) => Ok::<_, anyhow::Error>(_ast),
         None => {
           if let Some(source) = args.source {
             Ok(parse_file(source, args.uri, &module_type))

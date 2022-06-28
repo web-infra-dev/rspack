@@ -27,6 +27,13 @@ mod stats;
 pub use stats::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SourceType {
+  JavaScript,
+  Css,
+  Asset,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ModuleType {
   Json,
   Css,
@@ -34,11 +41,28 @@ pub enum ModuleType {
   Jsx,
   Tsx,
   Ts,
+  AssetInline,
+  AssetResource,
+  Asset,
 }
 
 impl ModuleType {
   pub fn is_css(&self) -> bool {
     matches!(self, Self::Css)
+  }
+
+  pub fn is_js_like(&self) -> bool {
+    matches!(
+      self,
+      ModuleType::Js | ModuleType::Ts | ModuleType::Tsx | ModuleType::Jsx
+    )
+  }
+
+  pub fn is_asset_like(&self) -> bool {
+    matches!(
+      self,
+      ModuleType::Asset | ModuleType::AssetInline | ModuleType::AssetResource
+    )
   }
 }
 
@@ -53,6 +77,12 @@ impl TryFrom<&str> for ModuleType {
       "jsx" => Ok(Self::Jsx),
       "tsx" => Ok(Self::Tsx),
       "ts" => Ok(Self::Ts),
+
+      // default
+      "png" => Ok(Self::Asset),
+      "jpeg" => Ok(Self::Asset),
+      "jpg" => Ok(Self::Asset),
+      "svg" => Ok(Self::Asset),
       _ => Err(()),
     }
   }

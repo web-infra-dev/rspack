@@ -1,15 +1,15 @@
-import Self from "../../../src";
+import Self from '../../../src';
 
 /**
  * @type {import('webpack').Configuration}
  */
 module.exports = {
-  mode: "production",
+  mode: 'production',
   devtool: false,
   entry: {
     index: {
-      import: "./index.js",
-      baseUri: "my-scheme://uri",
+      import: './index.js',
+      baseUri: 'my-scheme://uri',
     },
   },
   optimization: {
@@ -17,9 +17,9 @@ module.exports = {
   },
   output: {
     module: true,
-    assetModuleFilename: "asset/[name][ext]",
-    chunkFormat: "module",
-    chunkLoading: "import",
+    OutputAssetModuleFilename: 'asset/[name][ext]',
+    chunkFormat: 'module',
+    chunkLoading: 'import',
   },
   experiments: {
     outputModule: true,
@@ -32,14 +32,14 @@ module.exports = {
           {
             loader: Self.loader,
           },
-          "css-loader",
+          'css-loader',
         ],
       },
       {
         test: /\.ttf$/i,
-        type: "asset/resource",
+        type: 'asset/resource',
         generator: {
-          publicPath: "/assets/",
+          publicPath: '/assets/',
         },
       },
     ],

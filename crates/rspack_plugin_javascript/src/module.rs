@@ -1,7 +1,12 @@
+use anyhow::Result;
+use hashbrown::{HashMap, HashSet};
 use tracing::instrument;
 
 use crate::visitors::DependencyScanner;
-use rspack_core::{Compilation, Module, ModuleGraphModule, ModuleType};
+use rspack_core::{
+  Compilation, Module, ModuleGraphModule, ModuleRenderResult, ModuleType, SourceType,
+};
+use rspack_sources::RawSource;
 use std::fmt::Debug;
 use swc_common::FileName;
 use swc_ecma_ast::EsVersion;
@@ -31,13 +36,33 @@ impl Debug for JsModule {
 }
 
 impl Module for JsModule {
+  #[inline(always)]
   fn module_type(&self) -> ModuleType {
     self.module_type
   }
 
+  #[inline(always)]
+  fn source_types(
+    &self,
+    _module: &rspack_core::ModuleGraphModule,
+    _compilation: &rspack_core::Compilation,
+  ) -> HashSet<SourceType> {
+    HashSet::from_iter(vec![SourceType::JavaScript])
+  }
+
   #[instrument]
-  fn render(&self, module: &ModuleGraphModule, compilation: &Compilation) -> String {
+  fn render(
+    &self,
+    requested_source_type: SourceType,
+    module: &ModuleGraphModule,
+    compilation: &Compilation,
+  ) -> Result<Option<ModuleRenderResult>> {
     use swc::config::{self as swc_config, SourceMapsConfig};
+
+    if requested_source_type != SourceType::JavaScript {
+      return Ok(None);
+    }
+
     let compiler = get_swc_compiler();
     let output = compiler.run(|| {
       HELPERS.set(&JS_HELPERS, || {
@@ -85,7 +110,7 @@ impl Module for JsModule {
         .unwrap()
       })
     });
-    output.code
+    Ok(Some(ModuleRenderResult::JavaScript(output.code)))
   }
 
   fn dependencies(&mut self) -> Vec<rspack_core::ModuleDependency> {
