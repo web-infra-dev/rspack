@@ -39,19 +39,6 @@ impl ModuleGraph {
     self.uri_to_module.values()
   }
 
-  // pub fn remove_by_uri(&mut self, uri: &str) -> Option<ModuleGraphModule> {
-  //   let js_mod = self.uri_to_module.remove(uri)?;
-  //   // self.id_to_uri.remove(&js_mod.id);
-  //   Some(js_mod)
-  // }
-
-  // pub fn remove_by_id(&mut self, id: &str) -> Option<Module> {
-  //   let uri = self.id_to_uri.get(id)?;
-  //   let js_mod = self.uri_to_module.remove(uri)?;
-  //   self.id_to_uri.remove(id);
-  //   Some(js_mod)
-  // }
-
   #[inline]
   pub fn module_by_uri(&self, uri: &str) -> Option<&ModuleGraphModule> {
     self.uri_to_module.get(uri)
@@ -62,28 +49,4 @@ impl ModuleGraph {
   pub fn module_by_uri_mut(&mut self, uri: &str) -> Option<&mut ModuleGraphModule> {
     self.uri_to_module.get_mut(uri)
   }
-
-  // #[inline]
-  // pub fn module_by_id(&self, id: &str) -> Option<&Module> {
-  //   self.uri_to_module.get(&self.id_to_uri[id])
-  //   // .unwrap_or_else(|| panic!("fail to find module by id: {:?}", id))
-  // }
-
-  // #[inline]
-  // pub fn module_by_id_mut(&mut self, id: &str) -> Option<&mut Module> {
-  //   self.uri_to_module.get_mut(&self.id_to_uri[id])
-  //   // .unwrap_or_else(|| panic!("fail to find module by id: {:?}", id))
-  // }
-
-  // pub fn modules(&self) -> impl Iterator<Item = &Module> {
-  //   self.uri_to_module.values()
-  // }
-
-  // pub fn ids(&self) -> impl Iterator<Item = &String> {
-  //   self.id_to_uri.keys()
-  // }
-
-  // pub fn uris(&self) -> impl Iterator<Item = &String> {
-  //   self.uri_to_module.keys()
-  // }
 }

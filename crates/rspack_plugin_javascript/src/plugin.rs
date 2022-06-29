@@ -3,7 +3,7 @@ use crate::visitors::ClearMark;
 use crate::{module::JsModule, utils::get_swc_compiler};
 use rayon::prelude::*;
 use rspack_core::{
-  Asset, AssetFilename, JobContext, ParseModuleArgs, Plugin, PluginContext,
+  Asset, AssetFilename, NormalModuleFactoryContext, ParseModuleArgs, Plugin, PluginContext,
   PluginParseModuleHookOutput, PluginRenderManifestHookOutput, SourceType,
 };
 
@@ -30,7 +30,7 @@ impl Plugin for JsPlugin {
   #[instrument(skip_all)]
   fn parse_module(
     &self,
-    ctx: PluginContext<&mut JobContext>,
+    ctx: PluginContext<&mut NormalModuleFactoryContext>,
     args: ParseModuleArgs,
   ) -> PluginParseModuleHookOutput {
     let source_type = *ctx

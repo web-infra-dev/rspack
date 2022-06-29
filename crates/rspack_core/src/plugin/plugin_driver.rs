@@ -4,8 +4,8 @@ use nodejs_resolver::Resolver;
 use tracing::instrument;
 
 use crate::{
-  Asset, BoxModule, CompilerOptions, JobContext, LoadArgs, ParseModuleArgs, Plugin, PluginContext,
-  PluginResolveHookOutput, RenderManifestArgs, ResolveArgs, SourceType,
+  Asset, BoxModule, CompilerOptions, LoadArgs, NormalModuleFactoryContext, ParseModuleArgs, Plugin,
+  PluginContext, PluginResolveHookOutput, RenderManifestArgs, ResolveArgs, SourceType,
 };
 
 #[derive(Debug)]
@@ -48,7 +48,7 @@ impl PluginDriver {
   pub async fn resolve(
     &self,
     args: ResolveArgs<'_>,
-    job_ctx: &mut JobContext,
+    job_ctx: &mut NormalModuleFactoryContext,
   ) -> PluginResolveHookOutput {
     for plugin in &self.plugins {
       let output = plugin
@@ -64,7 +64,7 @@ impl PluginDriver {
   pub async fn load(
     &self,
     args: LoadArgs<'_>,
-    job_ctx: &mut JobContext,
+    job_ctx: &mut NormalModuleFactoryContext,
   ) -> PluginResolveHookOutput {
     for plugin in &self.plugins {
       let output = plugin
@@ -81,7 +81,7 @@ impl PluginDriver {
   pub fn parse_module(
     &self,
     args: ParseModuleArgs,
-    job_ctx: &mut JobContext,
+    job_ctx: &mut NormalModuleFactoryContext,
   ) -> anyhow::Result<BoxModule> {
     let parser_index = self
       .module_parser

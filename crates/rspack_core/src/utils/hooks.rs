@@ -1,11 +1,13 @@
-use crate::{parse_to_url, JobContext, LoadArgs, PluginDriver, ResolveArgs, TransformArgs};
+use crate::{
+  parse_to_url, LoadArgs, NormalModuleFactoryContext, PluginDriver, ResolveArgs, TransformArgs,
+};
 use nodejs_resolver::ResolveResult;
 use std::path::Path;
 
 pub async fn load(
   plugin_driver: &PluginDriver,
   args: LoadArgs<'_>,
-  job_ctx: &mut JobContext,
+  job_ctx: &mut NormalModuleFactoryContext,
 ) -> anyhow::Result<String> {
   let plugin_output = plugin_driver.load(args.clone(), job_ctx).await?;
 
@@ -25,7 +27,7 @@ pub fn transform(_args: TransformArgs) -> String {
 pub async fn resolve(
   args: ResolveArgs<'_>,
   plugin_driver: &PluginDriver,
-  job_context: &mut JobContext,
+  job_context: &mut NormalModuleFactoryContext,
 ) -> anyhow::Result<String> {
   // TODO: plugins
 

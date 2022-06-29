@@ -6,8 +6,8 @@ use dashmap::DashSet;
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use rspack_core::{
-  Asset, AssetFilename, JobContext, Module, ParseModuleArgs, Plugin, PluginParseModuleHookOutput,
-  SourceType,
+  Asset, AssetFilename, Module, NormalModuleFactoryContext, ParseModuleArgs, Plugin,
+  PluginParseModuleHookOutput, SourceType,
 };
 
 use swc_common::{Globals, Mark, GLOBALS};
@@ -30,7 +30,7 @@ impl Plugin for CssPlugin {
 
   fn parse_module(
     &self,
-    ctx: rspack_core::PluginContext<&mut JobContext>,
+    ctx: rspack_core::PluginContext<&mut NormalModuleFactoryContext>,
     args: ParseModuleArgs,
   ) -> PluginParseModuleHookOutput {
     let stylesheet = SWC_COMPILER.parse_file(args.uri, args.source)?;

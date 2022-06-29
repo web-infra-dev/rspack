@@ -11,8 +11,8 @@ use rayon::prelude::*;
 use tracing::instrument;
 
 use crate::{
-  CompilerOptions, Dependency, JobContext, ModuleGraphModule, Plugin, PluginDriver,
-  RenderManifestArgs, ResolvingModuleJob, Stats,
+  CompilerOptions, Dependency, ModuleGraphModule, NormalModuleFactory, NormalModuleFactoryContext,
+  Plugin, PluginDriver, RenderManifestArgs, Stats,
 };
 
 mod compilation;
@@ -70,12 +70,13 @@ impl Compiler {
       .entry_dependencies()
       .into_iter()
       .for_each(|(name, dep)| {
-        let task = ResolvingModuleJob::new(
-          JobContext {
+        let task = NormalModuleFactory::new(
+          NormalModuleFactoryContext {
             module_name: Some(name),
             active_task_count: active_task_count.clone(),
             visited_module_identity: self.compilation.visited_module_id.clone(),
             source_type: None,
+            side_effects: None,
           },
           dep,
           tx.clone(),

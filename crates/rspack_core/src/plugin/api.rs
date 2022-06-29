@@ -1,8 +1,8 @@
 use std::fmt::Debug;
 
 use crate::{
-  BoxModule, JobContext, LoadArgs, ParseModuleArgs, PluginContext, RenderManifestArgs, ResolveArgs,
-  SourceType,
+  BoxModule, LoadArgs, NormalModuleFactoryContext, ParseModuleArgs, PluginContext,
+  RenderManifestArgs, ResolveArgs, SourceType,
 };
 
 use anyhow::Result;
@@ -35,7 +35,7 @@ pub trait Plugin: Debug + Send + Sync {
 
   async fn resolve(
     &self,
-    _ctx: PluginContext<&mut JobContext>,
+    _ctx: PluginContext<&mut NormalModuleFactoryContext>,
     _agrs: ResolveArgs<'_>,
   ) -> PluginResolveHookOutput {
     Ok(None)
@@ -43,7 +43,7 @@ pub trait Plugin: Debug + Send + Sync {
 
   async fn load(
     &self,
-    _ctx: PluginContext<&mut JobContext>,
+    _ctx: PluginContext<&mut NormalModuleFactoryContext>,
     _args: LoadArgs<'_>,
   ) -> PluginLoadHookOutput {
     Ok(None)
@@ -51,7 +51,7 @@ pub trait Plugin: Debug + Send + Sync {
 
   fn parse_module(
     &self,
-    _ctx: PluginContext<&mut JobContext>,
+    _ctx: PluginContext<&mut NormalModuleFactoryContext>,
     _args: ParseModuleArgs,
   ) -> PluginParseModuleHookOutput {
     unreachable!()

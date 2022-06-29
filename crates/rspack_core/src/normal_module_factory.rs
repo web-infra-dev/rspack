@@ -41,16 +41,16 @@ pub enum ResolveKind {
   AtImportUrl,
 }
 
-pub struct ResolvingModuleJob {
-  context: JobContext,
+pub struct NormalModuleFactory {
+  context: NormalModuleFactoryContext,
   dependency: Dependency,
   tx: UnboundedSender<Msg>,
   plugin_driver: Arc<PluginDriver>,
 }
 
-impl ResolvingModuleJob {
+impl NormalModuleFactory {
   pub fn new(
-    context: JobContext,
+    context: NormalModuleFactoryContext,
     dependency: Dependency,
     tx: UnboundedSender<Msg>,
     plugin_driver: Arc<PluginDriver>,
@@ -183,8 +183,8 @@ impl ResolvingModuleJob {
   }
 
   fn fork(&self, dep: Dependency) {
-    let task = ResolvingModuleJob::new(
-      JobContext {
+    let task = NormalModuleFactory::new(
+      NormalModuleFactoryContext {
         module_name: None,
         source_type: None,
         ..self.context.clone()
@@ -208,11 +208,12 @@ pub fn resolve_source_type_by_uri<T: AsRef<Path>>(uri: T) -> Option<SourceType> 
 }
 
 #[derive(Debug, Clone)]
-pub struct JobContext {
+pub struct NormalModuleFactoryContext {
   pub module_name: Option<String>,
   pub(crate) active_task_count: Arc<AtomicUsize>,
   pub(crate) visited_module_identity: VisitedModuleIdentity,
   pub source_type: Option<SourceType>,
+  pub side_effects: Option<bool>,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
