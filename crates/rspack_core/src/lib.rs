@@ -27,7 +27,7 @@ mod stats;
 pub use stats::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum SourceType {
+pub enum ModuleType {
   Json,
   Css,
   Js,
@@ -36,13 +36,13 @@ pub enum SourceType {
   Ts,
 }
 
-impl SourceType {
+impl ModuleType {
   pub fn is_css(&self) -> bool {
     matches!(self, Self::Css)
   }
 }
 
-impl TryFrom<&str> for SourceType {
+impl TryFrom<&str> for ModuleType {
   type Error = ();
 
   fn try_from(value: &str) -> Result<Self, Self::Error> {

@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use rspack_core::SourceType;
+use rspack_core::ModuleType;
 use std::path::Path;
 use std::sync::Arc;
 use swc::{config::IsModule, Compiler as SwcCompiler};
@@ -22,7 +22,7 @@ pub fn get_swc_compiler() -> Arc<SwcCompiler> {
 pub fn parse_file(
   source_code: String,
   filename: &str,
-  source_type: &SourceType,
+  source_type: &ModuleType,
 ) -> swc_ecma_ast::Program {
   let syntax = syntax_by_source_type(filename, source_type);
   let compiler = get_swc_compiler();
@@ -63,21 +63,21 @@ pub fn syntax_by_ext(ext: &str) -> Syntax {
   }
 }
 
-pub fn syntax_by_source_type(filename: &str, source_type: &SourceType) -> Syntax {
+pub fn syntax_by_source_type(filename: &str, source_type: &ModuleType) -> Syntax {
   match source_type {
-    SourceType::Js | SourceType::Jsx => Syntax::Es(EsConfig {
+    ModuleType::Js | ModuleType::Jsx => Syntax::Es(EsConfig {
       private_in_object: true,
       import_assertions: true,
-      jsx: matches!(source_type, SourceType::Jsx),
+      jsx: matches!(source_type, ModuleType::Jsx),
       export_default_from: true,
       decorators_before_export: true,
       decorators: true,
       fn_bind: true,
       allow_super_outside_method: true,
     }),
-    SourceType::Ts | SourceType::Tsx => Syntax::Typescript(TsConfig {
+    ModuleType::Ts | ModuleType::Tsx => Syntax::Typescript(TsConfig {
       decorators: false,
-      tsx: matches!(source_type, SourceType::Tsx),
+      tsx: matches!(source_type, ModuleType::Tsx),
       ..Default::default()
     }),
     _ => {

@@ -3,8 +3,8 @@ use crate::visitors::ClearMark;
 use crate::{module::JsModule, utils::get_swc_compiler};
 use rayon::prelude::*;
 use rspack_core::{
-  Asset, AssetFilename, NormalModuleFactoryContext, ParseModuleArgs, Parser, Plugin, PluginContext,
-  PluginParseModuleHookOutput, PluginRenderManifestHookOutput, SourceType,
+  Asset, AssetFilename, ModuleType, NormalModuleFactoryContext, ParseModuleArgs, Parser, Plugin,
+  PluginContext, PluginParseModuleHookOutput, PluginRenderManifestHookOutput,
 };
 
 use swc_common::comments::SingleThreadedComments;
@@ -21,16 +21,16 @@ impl Plugin for JsPlugin {
   fn apply(&mut self, ctx: PluginContext<&mut rspack_core::ApplyContext>) -> anyhow::Result<()> {
     ctx
       .context
-      .register_parser(SourceType::Js, Box::new(JsParser {}));
+      .register_parser(ModuleType::Js, Box::new(JsParser {}));
     ctx
       .context
-      .register_parser(SourceType::Ts, Box::new(JsParser {}));
+      .register_parser(ModuleType::Ts, Box::new(JsParser {}));
     ctx
       .context
-      .register_parser(SourceType::Tsx, Box::new(JsParser {}));
+      .register_parser(ModuleType::Tsx, Box::new(JsParser {}));
     ctx
       .context
-      .register_parser(SourceType::Jsx, Box::new(JsParser {}));
+      .register_parser(ModuleType::Jsx, Box::new(JsParser {}));
 
     Ok(())
   }
@@ -52,12 +52,12 @@ impl Plugin for JsPlugin {
       .par_iter()
       .filter(|module| {
         matches!(
-          module.source_type,
-          SourceType::Js | SourceType::Ts | SourceType::Tsx | SourceType::Jsx | SourceType::Css
+          module.module_type,
+          ModuleType::Js | ModuleType::Ts | ModuleType::Tsx | ModuleType::Jsx | ModuleType::Css
         )
       })
       .map(|module| {
-        if module.source_type.is_css() {
+        if module.module_type.is_css() {
           // FIXME: Ugly workaround
           format!(
             r#"
@@ -102,8 +102,8 @@ struct JsParser {}
 
 impl Parser for JsParser {
   fn parse(&self, args: ParseModuleArgs) -> anyhow::Result<rspack_core::BoxModule> {
-    // TODO: we should add some guard to make sure the source type is SourceType::Js;
-    let source_type = SourceType::Js;
+    // TODO: we should add some guard to make sure the source type is ModuleType::Js;
+    let source_type = ModuleType::Js;
     let ast = parse_file(args.source, args.uri, &source_type);
 
     let ast = get_swc_compiler().run(|| {

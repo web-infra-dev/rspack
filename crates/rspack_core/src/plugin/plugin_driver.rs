@@ -4,9 +4,9 @@ use nodejs_resolver::Resolver;
 use tracing::instrument;
 
 use crate::{
-  ApplyContext, Asset, BoxModule, BoxedParser, CompilerOptions, LoadArgs,
+  ApplyContext, Asset, BoxModule, BoxedParser, CompilerOptions, LoadArgs, ModuleType,
   NormalModuleFactoryContext, ParseModuleArgs, Plugin, PluginContext, PluginResolveHookOutput,
-  RenderManifestArgs, ResolveArgs, SourceType,
+  RenderManifestArgs, ResolveArgs,
 };
 
 use rayon::prelude::*;
@@ -16,7 +16,7 @@ pub struct PluginDriver {
   pub(crate) options: Arc<CompilerOptions>,
   pub plugins: Vec<Box<dyn Plugin>>,
   pub resolver: Arc<Resolver>,
-  pub registered_parser: HashMap<SourceType, BoxedParser>,
+  pub registered_parser: HashMap<ModuleType, BoxedParser>,
 }
 
 impl PluginDriver {
@@ -40,7 +40,7 @@ impl PluginDriver {
           .into_iter()
           .collect::<Vec<_>>()
       })
-      .collect::<HashMap<SourceType, BoxedParser>>();
+      .collect::<HashMap<ModuleType, BoxedParser>>();
 
     Self {
       options,
@@ -92,7 +92,7 @@ impl PluginDriver {
       .registered_parser
       .get(
         job_ctx
-          .source_type
+          .module_type
           .as_ref()
           .ok_or_else(|| anyhow::format_err!("source_type is not set"))?,
       )

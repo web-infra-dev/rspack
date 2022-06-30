@@ -1,8 +1,8 @@
 use std::fmt::Debug;
 
 use crate::{
-  BoxModule, LoadArgs, NormalModuleFactoryContext, ParseModuleArgs, PluginContext,
-  RenderManifestArgs, ResolveArgs, SourceType,
+  BoxModule, LoadArgs, ModuleType, NormalModuleFactoryContext, ParseModuleArgs, PluginContext,
+  RenderManifestArgs, ResolveArgs,
 };
 
 use anyhow::Result;
@@ -103,11 +103,11 @@ pub type BoxedParser = Box<dyn Parser>;
 
 #[derive(Debug, Default)]
 pub struct ApplyContext {
-  pub(crate) registered_parser: HashMap<SourceType, BoxedParser>,
+  pub(crate) registered_parser: HashMap<ModuleType, BoxedParser>,
 }
 
 impl ApplyContext {
-  pub fn register_parser(&mut self, source_type: SourceType, parser: BoxedParser) {
+  pub fn register_parser(&mut self, source_type: ModuleType, parser: BoxedParser) {
     self.registered_parser.insert(source_type, parser);
   }
 }

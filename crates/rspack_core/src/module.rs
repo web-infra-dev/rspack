@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::{Compilation, Dependency, ModuleDependency, ModuleGraph, ResolveKind, SourceType};
+use crate::{Compilation, Dependency, ModuleDependency, ModuleGraph, ModuleType, ResolveKind};
 
 #[derive(Debug)]
 pub struct ModuleGraphModule {
@@ -10,7 +10,7 @@ pub struct ModuleGraphModule {
   // pub exec_order: usize,
   pub uri: String,
   pub module: BoxModule,
-  pub source_type: SourceType,
+  pub module_type: ModuleType,
   all_dependencies: Vec<Dependency>,
 }
 
@@ -21,7 +21,7 @@ impl ModuleGraphModule {
     uri: String,
     module: BoxModule,
     dependencies: Vec<Dependency>,
-    source_type: SourceType,
+    source_type: ModuleType,
   ) -> Self {
     Self {
       name,
@@ -30,7 +30,7 @@ impl ModuleGraphModule {
       uri,
       module,
       all_dependencies: dependencies,
-      source_type,
+      module_type: source_type,
     }
   }
 

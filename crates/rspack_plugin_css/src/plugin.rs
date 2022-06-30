@@ -6,8 +6,8 @@ use dashmap::DashSet;
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use rspack_core::{
-  Asset, AssetFilename, Module, NormalModuleFactoryContext, ParseModuleArgs, Parser, Plugin,
-  PluginParseModuleHookOutput, SourceType,
+  Asset, AssetFilename, Module, ModuleType, NormalModuleFactoryContext, ParseModuleArgs, Parser,
+  Plugin, PluginParseModuleHookOutput,
 };
 
 use swc_common::{Globals, Mark, GLOBALS};
@@ -30,7 +30,7 @@ impl Plugin for CssPlugin {
   ) -> anyhow::Result<()> {
     ctx
       .context
-      .register_parser(SourceType::Css, Box::new(CssParser {}));
+      .register_parser(ModuleType::Css, Box::new(CssParser {}));
     Ok(())
   }
 
@@ -48,7 +48,7 @@ impl Plugin for CssPlugin {
     let ordered_modules = chunk.ordered_modules(module_graph);
     let code: String = ordered_modules
       .par_iter()
-      .filter(|module| matches!(module.source_type, SourceType::Css))
+      .filter(|module| matches!(module.module_type, ModuleType::Css))
       .map(|module| module.module.render(module, compilation))
       .fold(String::new, |mut output, cur| {
         output += "\n\n";

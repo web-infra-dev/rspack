@@ -1,7 +1,7 @@
 use tracing::instrument;
 
 use crate::visitors::DependencyScanner;
-use rspack_core::{Compilation, Module, ModuleGraphModule, SourceType};
+use rspack_core::{Compilation, Module, ModuleGraphModule, ModuleType};
 use std::fmt::Debug;
 use swc_common::FileName;
 use swc_ecma_ast::EsVersion;
@@ -16,7 +16,7 @@ use crate::{
 
 pub struct JsModule {
   pub uri: String,
-  pub source_type: SourceType,
+  pub source_type: ModuleType,
   pub ast: swc_ecma_ast::Program,
 }
 

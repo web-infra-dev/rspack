@@ -11,8 +11,8 @@ use sugar_path::PathSugar;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
-  load, parse_to_url, resolve, LoadArgs, ModuleGraphModule, Msg, ParseModuleArgs, PluginDriver,
-  ResolveArgs, SourceType, VisitedModuleIdentity,
+  load, parse_to_url, resolve, LoadArgs, ModuleGraphModule, ModuleType, Msg, ParseModuleArgs,
+  PluginDriver, ResolveArgs, VisitedModuleIdentity,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -98,10 +98,10 @@ impl NormalModuleFactory {
     .await?;
     tracing::trace!("resolved uri {:?}", uri);
 
-    if self.context.source_type.is_none() {
+    if self.context.module_type.is_none() {
       let url = parse_to_url(&uri);
       assert_eq!(url.scheme(), "specifier");
-      self.context.source_type = resolve_source_type_by_uri(url.path());
+      self.context.module_type = resolve_source_type_by_uri(url.path());
     }
 
     self
@@ -133,7 +133,7 @@ impl NormalModuleFactory {
     .await?;
     tracing::trace!(
       "load ({:?}) source {:?}",
-      self.context.source_type,
+      self.context.module_type,
       &source[0..usize::min(source.len(), 20)]
     );
 
@@ -176,7 +176,7 @@ impl NormalModuleFactory {
       deps,
       self
         .context
-        .source_type
+        .module_type
         .ok_or_else(|| anyhow::format_err!("source type is empty"))?,
     );
     Ok(Some(resolved_module))
@@ -186,7 +186,7 @@ impl NormalModuleFactory {
     let task = NormalModuleFactory::new(
       NormalModuleFactoryContext {
         module_name: None,
-        source_type: None,
+        module_type: None,
         ..self.context.clone()
       },
       dep,
@@ -200,10 +200,10 @@ impl NormalModuleFactory {
   }
 }
 
-pub fn resolve_source_type_by_uri<T: AsRef<Path>>(uri: T) -> Option<SourceType> {
+pub fn resolve_source_type_by_uri<T: AsRef<Path>>(uri: T) -> Option<ModuleType> {
   let uri = uri.as_ref();
   let ext = uri.extension()?.to_str()?;
-  let source_type: Option<SourceType> = ext.try_into().ok();
+  let source_type: Option<ModuleType> = ext.try_into().ok();
   source_type
 }
 
@@ -212,7 +212,7 @@ pub struct NormalModuleFactoryContext {
   pub module_name: Option<String>,
   pub(crate) active_task_count: Arc<AtomicUsize>,
   pub(crate) visited_module_identity: VisitedModuleIdentity,
-  pub source_type: Option<SourceType>,
+  pub module_type: Option<ModuleType>,
   pub side_effects: Option<bool>,
 }
 
