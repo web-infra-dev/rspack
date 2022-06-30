@@ -101,7 +101,7 @@ impl NormalModuleFactory {
     if self.context.module_type.is_none() {
       let url = parse_to_url(&uri);
       assert_eq!(url.scheme(), "specifier");
-      self.context.module_type = resolve_source_type_by_uri(url.path());
+      self.context.module_type = resolve_module_type_by_uri(url.path());
     }
 
     self
@@ -200,11 +200,11 @@ impl NormalModuleFactory {
   }
 }
 
-pub fn resolve_source_type_by_uri<T: AsRef<Path>>(uri: T) -> Option<ModuleType> {
+pub fn resolve_module_type_by_uri<T: AsRef<Path>>(uri: T) -> Option<ModuleType> {
   let uri = uri.as_ref();
   let ext = uri.extension()?.to_str()?;
-  let source_type: Option<ModuleType> = ext.try_into().ok();
-  source_type
+  let module_type: Option<ModuleType> = ext.try_into().ok();
+  module_type
 }
 
 #[derive(Debug, Clone)]

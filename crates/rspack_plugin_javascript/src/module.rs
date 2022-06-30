@@ -9,14 +9,14 @@ use swc_ecma_transforms::{pass::noop, react};
 use swc_ecma_visit::VisitMutWith;
 
 use crate::{
-  utils::{get_swc_compiler, syntax_by_source_type},
+  utils::{get_swc_compiler, syntax_by_module_type},
   visitors::finalize,
   HELPERS, JS_HELPERS,
 };
 
 pub struct JsModule {
   pub uri: String,
-  pub source_type: ModuleType,
+  pub module_type: ModuleType,
   pub ast: swc_ecma_ast::Program,
 }
 
@@ -24,7 +24,7 @@ impl Debug for JsModule {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("JsModule")
       .field("uri", &self.uri)
-      .field("source_type", &self.source_type)
+      .field("module_type", &self.module_type)
       .field("ast", &"{..}")
       .finish()
   }
@@ -52,7 +52,7 @@ impl Module for JsModule {
               config: swc_config::Config {
                 jsc: swc_config::JscConfig {
                   target: Some(EsVersion::Es2022),
-                  syntax: Some(syntax_by_source_type(self.uri.as_str(), &self.source_type)),
+                  syntax: Some(syntax_by_module_type(self.uri.as_str(), &self.module_type)),
                   transform: Some(swc_config::TransformConfig {
                     react: react::Options {
                       runtime: Some(react::Runtime::Automatic),

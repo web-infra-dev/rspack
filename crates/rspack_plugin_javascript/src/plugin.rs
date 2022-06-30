@@ -103,8 +103,8 @@ struct JsParser {}
 impl Parser for JsParser {
   fn parse(&self, args: ParseModuleArgs) -> anyhow::Result<rspack_core::BoxModule> {
     // TODO: we should add some guard to make sure the source type is ModuleType::Js;
-    let source_type = ModuleType::Js;
-    let ast = parse_file(args.source, args.uri, &source_type);
+    let module_type = ModuleType::Js;
+    let ast = parse_file(args.source, args.uri, &module_type);
 
     let ast = get_swc_compiler().run(|| {
       let top_level_mark = Mark::new();
@@ -127,7 +127,7 @@ impl Parser for JsParser {
     Ok(Box::new(JsModule {
       ast,
       uri: args.uri.to_string(),
-      source_type,
+      module_type,
     }))
   }
 }

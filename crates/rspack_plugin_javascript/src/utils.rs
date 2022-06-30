@@ -22,9 +22,9 @@ pub fn get_swc_compiler() -> Arc<SwcCompiler> {
 pub fn parse_file(
   source_code: String,
   filename: &str,
-  source_type: &ModuleType,
+  module_type: &ModuleType,
 ) -> swc_ecma_ast::Program {
-  let syntax = syntax_by_source_type(filename, source_type);
+  let syntax = syntax_by_module_type(filename, module_type);
   let compiler = get_swc_compiler();
   let fm = compiler
     .cm
@@ -63,12 +63,12 @@ pub fn syntax_by_ext(ext: &str) -> Syntax {
   }
 }
 
-pub fn syntax_by_source_type(filename: &str, source_type: &ModuleType) -> Syntax {
-  match source_type {
+pub fn syntax_by_module_type(filename: &str, module_type: &ModuleType) -> Syntax {
+  match module_type {
     ModuleType::Js | ModuleType::Jsx => Syntax::Es(EsConfig {
       private_in_object: true,
       import_assertions: true,
-      jsx: matches!(source_type, ModuleType::Jsx),
+      jsx: matches!(module_type, ModuleType::Jsx),
       export_default_from: true,
       decorators_before_export: true,
       decorators: true,
@@ -77,7 +77,7 @@ pub fn syntax_by_source_type(filename: &str, source_type: &ModuleType) -> Syntax
     }),
     ModuleType::Ts | ModuleType::Tsx => Syntax::Typescript(TsConfig {
       decorators: false,
-      tsx: matches!(source_type, ModuleType::Tsx),
+      tsx: matches!(module_type, ModuleType::Tsx),
       ..Default::default()
     }),
     _ => {

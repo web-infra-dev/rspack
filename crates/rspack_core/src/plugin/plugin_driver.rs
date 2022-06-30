@@ -94,7 +94,7 @@ impl PluginDriver {
         job_ctx
           .module_type
           .as_ref()
-          .ok_or_else(|| anyhow::format_err!("source_type is not set"))?,
+          .ok_or_else(|| anyhow::format_err!("module_type is not set"))?,
       )
       .ok_or_else(|| anyhow::format_err!("parser is not registered"))?;
     let module = parser.parse(args)?;

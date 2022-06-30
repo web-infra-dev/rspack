@@ -21,7 +21,7 @@ impl ModuleGraphModule {
     uri: String,
     module: BoxModule,
     dependencies: Vec<Dependency>,
-    source_type: ModuleType,
+    module_type: ModuleType,
   ) -> Self {
     Self {
       name,
@@ -30,7 +30,7 @@ impl ModuleGraphModule {
       uri,
       module,
       all_dependencies: dependencies,
-      module_type: source_type,
+      module_type,
     }
   }
 

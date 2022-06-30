@@ -107,7 +107,7 @@ pub struct ApplyContext {
 }
 
 impl ApplyContext {
-  pub fn register_parser(&mut self, source_type: ModuleType, parser: BoxedParser) {
-    self.registered_parser.insert(source_type, parser);
+  pub fn register_parser(&mut self, module_type: ModuleType, parser: BoxedParser) {
+    self.registered_parser.insert(module_type, parser);
   }
 }
