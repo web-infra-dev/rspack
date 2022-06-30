@@ -1,3 +1,5 @@
+pub mod css_assets;
+
 use rspack_core::{ModuleDependency, ResolveKind};
 use swc_css::{
   ast::{AtRulePrelude, Rule, Stylesheet},
