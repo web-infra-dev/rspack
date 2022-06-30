@@ -1,6 +1,10 @@
+use std::ffi::OsStr;
+use std::path::Path;
+
 use crate::utils::parse_file;
 use crate::visitors::ClearMark;
 use crate::{module::JsModule, utils::get_swc_compiler};
+use anyhow::Context;
 use rayon::prelude::*;
 use rspack_core::{
   Asset, AssetFilename, ModuleType, NormalModuleFactoryContext, ParseModuleArgs, Parser, Plugin,
@@ -102,8 +106,12 @@ struct JsParser {}
 
 impl Parser for JsParser {
   fn parse(&self, args: ParseModuleArgs) -> anyhow::Result<rspack_core::BoxModule> {
-    // TODO: we should add some guard to make sure the source type is ModuleType::Js;
-    let module_type = ModuleType::Js;
+    // TODO: we should add some guard to make sure the source type is SourceType::Js;
+    let extension = Path::new(args.uri)
+      .extension()
+      .and_then(OsStr::to_str)
+      .with_context(|| format!("file without extension {}", args.uri))?;
+    let module_type = ModuleType::from(extension);
     let ast = parse_file(args.source, args.uri, &module_type);
 
     let ast = get_swc_compiler().run(|| {

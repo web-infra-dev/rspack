@@ -1,3 +1,4 @@
+use anyhow::Context;
 use once_cell::sync::Lazy;
 use rspack_core::ModuleType;
 use std::path::Path;
@@ -40,7 +41,7 @@ pub fn parse_file(
       None,
     )
   })
-  .unwrap()
+  .unwrap_or_else(|_| panic!("compile {} failed ", &filename))
 }
 
 pub fn syntax_by_ext(ext: &str) -> Syntax {

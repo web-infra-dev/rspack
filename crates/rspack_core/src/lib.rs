@@ -1,7 +1,7 @@
 #![feature(iter_intersperse)]
 
 mod module;
-use std::sync::Arc;
+use std::{ffi::OsStr, path::Path, sync::Arc};
 
 use dashmap::DashSet;
 pub use module::*;
@@ -34,6 +34,7 @@ pub enum ModuleType {
   Jsx,
   Tsx,
   Ts,
+  Unknown,
 }
 
 impl ModuleType {
@@ -42,18 +43,16 @@ impl ModuleType {
   }
 }
 
-impl TryFrom<&str> for ModuleType {
-  type Error = ();
-
-  fn try_from(value: &str) -> Result<Self, Self::Error> {
+impl From<&str> for ModuleType {
+  fn from(value: &str) -> ModuleType {
     match value {
-      "json" => Ok(Self::Json),
-      "css" => Ok(Self::Css),
-      "js" => Ok(Self::Js),
-      "jsx" => Ok(Self::Jsx),
-      "tsx" => Ok(Self::Tsx),
-      "ts" => Ok(Self::Ts),
-      _ => Err(()),
+      "json" => Self::Json,
+      "css" => Self::Css,
+      "js" => Self::Js,
+      "jsx" => Self::Jsx,
+      "tsx" => Self::Tsx,
+      "ts" => Self::Ts,
+      _ => Self::Unknown,
     }
   }
 }
