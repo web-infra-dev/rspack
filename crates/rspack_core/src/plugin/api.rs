@@ -96,7 +96,7 @@ impl Asset {
 }
 
 pub trait Parser: Debug + Sync + Send {
-  fn parse(&self, args: ParseModuleArgs) -> Result<BoxModule>;
+  fn parse(&self, module_type: ModuleType, args: ParseModuleArgs) -> Result<BoxModule>;
 }
 
 pub type BoxedParser = Box<dyn Parser>;

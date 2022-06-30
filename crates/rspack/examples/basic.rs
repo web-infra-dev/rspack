@@ -19,7 +19,7 @@ async fn main() {
     vec![],
   );
 
-  compiler.run().await.unwrap();
+  compiler.compile().await.unwrap();
 
   if let Some(g) = guard {
     g.flush()

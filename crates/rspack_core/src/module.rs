@@ -57,6 +57,8 @@ impl ModuleGraphModule {
 }
 
 pub trait Module: Debug + Send + Sync {
+  fn module_type(&self) -> ModuleType;
+
   fn render(&self, module: &ModuleGraphModule, compilation: &Compilation) -> String;
 
   fn dependencies(&mut self) -> Vec<ModuleDependency> {

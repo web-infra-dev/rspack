@@ -88,16 +88,16 @@ impl PluginDriver {
     args: ParseModuleArgs,
     job_ctx: &mut NormalModuleFactoryContext,
   ) -> anyhow::Result<BoxModule> {
+    let module_type = job_ctx
+      .module_type
+      .ok_or_else(|| anyhow::format_err!("module_type is not set"))?;
+
     let parser = self
       .registered_parser
-      .get(
-        job_ctx
-          .module_type
-          .as_ref()
-          .ok_or_else(|| anyhow::format_err!("module_type is not set"))?,
-      )
+      .get(&module_type)
       .ok_or_else(|| anyhow::format_err!("parser is not registered"))?;
-    let module = parser.parse(args)?;
+
+    let module = parser.parse(module_type, args)?;
     Ok(module)
   }
 

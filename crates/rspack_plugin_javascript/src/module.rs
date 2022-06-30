@@ -31,6 +31,10 @@ impl Debug for JsModule {
 }
 
 impl Module for JsModule {
+  fn module_type(&self) -> ModuleType {
+    self.module_type
+  }
+
   #[instrument]
   fn render(&self, module: &ModuleGraphModule, compilation: &Compilation) -> String {
     use swc::config::{self as swc_config, SourceMapsConfig};

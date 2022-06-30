@@ -71,7 +71,11 @@ impl Plugin for CssPlugin {
 struct CssParser {}
 
 impl Parser for CssParser {
-  fn parse(&self, args: ParseModuleArgs) -> anyhow::Result<rspack_core::BoxModule> {
+  fn parse(
+    &self,
+    _module_type: ModuleType,
+    args: ParseModuleArgs,
+  ) -> anyhow::Result<rspack_core::BoxModule> {
     let stylesheet = SWC_COMPILER.parse_file(args.uri, args.source)?;
     Ok(Box::new(CssModule { ast: stylesheet }))
   }

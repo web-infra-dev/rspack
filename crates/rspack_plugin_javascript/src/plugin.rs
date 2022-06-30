@@ -101,9 +101,21 @@ impl Plugin for JsPlugin {
 struct JsParser {}
 
 impl Parser for JsParser {
-  fn parse(&self, args: ParseModuleArgs) -> anyhow::Result<rspack_core::BoxModule> {
-    // TODO: we should add some guard to make sure the source type is ModuleType::Js;
-    let module_type = ModuleType::Js;
+  fn parse(
+    &self,
+    module_type: ModuleType,
+    args: ParseModuleArgs,
+  ) -> anyhow::Result<rspack_core::BoxModule> {
+    if !matches!(
+      module_type,
+      ModuleType::Js | ModuleType::Ts | ModuleType::Tsx | ModuleType::Jsx
+    ) {
+      anyhow::bail!(
+        "`module_type` {:?} not supported for `JsParser`",
+        module_type
+      );
+    }
+
     let ast = parse_file(args.source, args.uri, &module_type);
 
     let ast = get_swc_compiler().run(|| {

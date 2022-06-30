@@ -3,7 +3,7 @@
 
 use std::fmt::Debug;
 
-use rspack_core::Module;
+use rspack_core::{Module, ModuleType};
 use swc_css::{ast::Stylesheet, visit::VisitMutWith};
 
 use crate::{visitors::DependencyScanner, SWC_COMPILER};
@@ -19,6 +19,10 @@ impl Debug for CssModule {
 }
 
 impl Module for CssModule {
+  fn module_type(&self) -> ModuleType {
+    ModuleType::Css
+  }
+
   fn render(
     &self,
     _module: &rspack_core::ModuleGraphModule,
