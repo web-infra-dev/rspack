@@ -1,3 +1,5 @@
+use crate::ApplyContext;
+
 #[derive(Debug, Default)]
 pub struct PluginContext<T = ()> {
   pub context: T,
@@ -12,5 +14,9 @@ impl PluginContext {
 impl<T> PluginContext<T> {
   pub fn with_context(context: T) -> Self {
     Self { context }
+  }
+
+  pub fn into_context(self) -> T {
+    self.context
   }
 }

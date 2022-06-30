@@ -4,44 +4,49 @@ use nodejs_resolver::Resolver;
 use tracing::instrument;
 
 use crate::{
-  Asset, BoxModule, CompilerOptions, LoadArgs, NormalModuleFactoryContext, ParseModuleArgs, Plugin,
-  PluginContext, PluginResolveHookOutput, RenderManifestArgs, ResolveArgs, SourceType,
+  ApplyContext, Asset, BoxModule, BoxedParser, CompilerOptions, LoadArgs,
+  NormalModuleFactoryContext, ParseModuleArgs, Plugin, PluginContext, PluginResolveHookOutput,
+  RenderManifestArgs, ResolveArgs, SourceType,
 };
+
+use rayon::prelude::*;
 
 #[derive(Debug)]
 pub struct PluginDriver {
   pub(crate) options: Arc<CompilerOptions>,
   pub plugins: Vec<Box<dyn Plugin>>,
   pub resolver: Arc<Resolver>,
-  pub module_parser: HashMap<SourceType, usize>,
+  pub registered_parser: HashMap<SourceType, BoxedParser>,
 }
 
 impl PluginDriver {
   pub fn new(
     options: Arc<CompilerOptions>,
-    plugins: Vec<Box<dyn Plugin>>,
+    mut plugins: Vec<Box<dyn Plugin>>,
     resolver: Arc<Resolver>,
   ) -> Self {
-    let module_parser: HashMap<SourceType, usize> = plugins
-      .iter()
-      .enumerate()
-      .filter_map(|(index, plugin)| {
-        let registered = plugin.register_parse_module(PluginContext::new())?;
-        Some(
-          registered
-            .into_iter()
-            .map(|source_type| (source_type, index))
-            .collect::<Vec<_>>(),
-        )
-        // Some((plugin.register_parse_module(PluginContext::new())?, index))
+    let registered_parser = plugins
+      .par_iter_mut()
+      .map(|plugin| {
+        let mut apply_context = ApplyContext::default();
+        plugin
+          .apply(PluginContext::with_context(&mut apply_context))
+          .unwrap();
+        apply_context
       })
-      .flatten()
-      .collect();
+      .flat_map(|apply_context| {
+        apply_context
+          .registered_parser
+          .into_iter()
+          .collect::<Vec<_>>()
+      })
+      .collect::<HashMap<SourceType, BoxedParser>>();
+
     Self {
       options,
       plugins,
       resolver,
-      module_parser,
+      registered_parser,
     }
   }
 
@@ -77,23 +82,22 @@ impl PluginDriver {
     Ok(None)
   }
 
-  #[instrument(skip_all)]
-  pub fn parse_module(
+  // #[instrument(skip_all)]
+  pub fn parse(
     &self,
     args: ParseModuleArgs,
     job_ctx: &mut NormalModuleFactoryContext,
   ) -> anyhow::Result<BoxModule> {
-    let parser_index = self
-      .module_parser
+    let parser = self
+      .registered_parser
       .get(
         job_ctx
           .source_type
           .as_ref()
-          .ok_or_else(|| anyhow::format_err!("source type is empty for {:?}", args.uri))?,
+          .ok_or_else(|| anyhow::format_err!("source_type is not set"))?,
       )
-      .unwrap_or_else(|| panic!("No parser for source type {:?}", &job_ctx.source_type));
-    let module =
-      self.plugins[*parser_index].parse_module(PluginContext::with_context(job_ctx), args)?;
+      .ok_or_else(|| anyhow::format_err!("parser is not registered"))?;
+    let module = parser.parse(args)?;
     Ok(module)
   }
 

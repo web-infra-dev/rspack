@@ -6,6 +6,7 @@ use crate::{
 };
 
 use anyhow::Result;
+use hashbrown::HashMap;
 pub type PluginBuildStartHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;
 pub type PluginLoadHookOutput = Result<Option<String>>;
@@ -21,16 +22,16 @@ pub type PluginResolveHookOutput = Result<Option<String>>;
 
 #[async_trait::async_trait]
 pub trait Plugin: Debug + Send + Sync {
+  fn apply(&mut self, _ctx: PluginContext<&mut ApplyContext>) -> Result<()> {
+    Ok(())
+  }
+
   fn build_start(&self) -> PluginBuildStartHookOutput {
     Ok(())
   }
 
   fn build_end(&self) -> PluginBuildEndHookOutput {
     Ok(())
-  }
-
-  fn register_parse_module(&self, _ctx: PluginContext) -> Option<Vec<SourceType>> {
-    None
   }
 
   async fn resolve(
@@ -47,14 +48,6 @@ pub trait Plugin: Debug + Send + Sync {
     _args: LoadArgs<'_>,
   ) -> PluginLoadHookOutput {
     Ok(None)
-  }
-
-  fn parse_module(
-    &self,
-    _ctx: PluginContext<&mut NormalModuleFactoryContext>,
-    _args: ParseModuleArgs,
-  ) -> PluginParseModuleHookOutput {
-    unreachable!()
   }
 
   fn render_manifest(
@@ -99,5 +92,22 @@ impl Asset {
       AssetFilename::Static(name) => name.clone(),
       AssetFilename::Templace(_) => todo!("Templace"),
     }
+  }
+}
+
+pub trait Parser: Debug + Sync + Send {
+  fn parse(&self, args: ParseModuleArgs) -> Result<BoxModule>;
+}
+
+pub type BoxedParser = Box<dyn Parser>;
+
+#[derive(Debug, Default)]
+pub struct ApplyContext {
+  pub(crate) registered_parser: HashMap<SourceType, BoxedParser>,
+}
+
+impl ApplyContext {
+  pub fn register_parser(&mut self, source_type: SourceType, parser: BoxedParser) {
+    self.registered_parser.insert(source_type, parser);
   }
 }

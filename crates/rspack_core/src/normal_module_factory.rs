@@ -139,7 +139,7 @@ impl NormalModuleFactory {
 
     // TODO: transform
 
-    let mut module = self.plugin_driver.parse_module(
+    let mut module = self.plugin_driver.parse(
       ParseModuleArgs {
         uri: uri.as_str(),
         source,

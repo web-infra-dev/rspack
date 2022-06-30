@@ -3,7 +3,7 @@ use crate::visitors::ClearMark;
 use crate::{module::JsModule, utils::get_swc_compiler};
 use rayon::prelude::*;
 use rspack_core::{
-  Asset, AssetFilename, NormalModuleFactoryContext, ParseModuleArgs, Plugin, PluginContext,
+  Asset, AssetFilename, NormalModuleFactoryContext, ParseModuleArgs, Parser, Plugin, PluginContext,
   PluginParseModuleHookOutput, PluginRenderManifestHookOutput, SourceType,
 };
 
@@ -18,51 +18,21 @@ use tracing::instrument;
 pub struct JsPlugin {}
 
 impl Plugin for JsPlugin {
-  fn register_parse_module(&self, _ctx: PluginContext) -> Option<Vec<rspack_core::SourceType>> {
-    Some(vec![
-      SourceType::Js,
-      SourceType::Jsx,
-      SourceType::Ts,
-      SourceType::Tsx,
-    ])
-  }
-
-  #[instrument(skip_all)]
-  fn parse_module(
-    &self,
-    ctx: PluginContext<&mut NormalModuleFactoryContext>,
-    args: ParseModuleArgs,
-  ) -> PluginParseModuleHookOutput {
-    let source_type = *ctx
+  fn apply(&mut self, ctx: PluginContext<&mut rspack_core::ApplyContext>) -> anyhow::Result<()> {
+    ctx
       .context
-      .source_type
-      .as_ref()
-      .ok_or_else(|| anyhow::format_err!("TODO"))?;
-    let ast = parse_file(args.source, args.uri, &source_type);
+      .register_parser(SourceType::Js, Box::new(JsParser {}));
+    ctx
+      .context
+      .register_parser(SourceType::Ts, Box::new(JsParser {}));
+    ctx
+      .context
+      .register_parser(SourceType::Tsx, Box::new(JsParser {}));
+    ctx
+      .context
+      .register_parser(SourceType::Jsx, Box::new(JsParser {}));
 
-    let ast = get_swc_compiler().run(|| {
-      let top_level_mark = Mark::new();
-      let mut react_folder = react::<SingleThreadedComments>(
-        get_swc_compiler().cm.clone(),
-        None,
-        ReactOptions {
-          development: Some(false),
-          runtime: Some(swc_react::Runtime::Automatic),
-          refresh: None,
-          ..Default::default()
-        },
-        Mark::new(),
-      );
-
-      let ast = ast.fold_with(&mut resolver(Mark::new(), top_level_mark, false));
-      let ast = ast.fold_with(&mut react_folder);
-      ast.fold_with(&mut as_folder(ClearMark))
-    });
-    Ok(Box::new(JsModule {
-      ast,
-      uri: args.uri.to_string(),
-      source_type,
-    }))
+    Ok(())
   }
 
   #[instrument(skip_all)]
@@ -124,5 +94,40 @@ impl Plugin for JsPlugin {
       code,
       AssetFilename::Static(format!("{}.js", args.chunk_id)),
     )])
+  }
+}
+
+#[derive(Debug)]
+struct JsParser {}
+
+impl Parser for JsParser {
+  fn parse(&self, args: ParseModuleArgs) -> anyhow::Result<rspack_core::BoxModule> {
+    // TODO: we should add some guard to make sure the source type is SourceType::Js;
+    let source_type = SourceType::Js;
+    let ast = parse_file(args.source, args.uri, &source_type);
+
+    let ast = get_swc_compiler().run(|| {
+      let top_level_mark = Mark::new();
+      let mut react_folder = react::<SingleThreadedComments>(
+        get_swc_compiler().cm.clone(),
+        None,
+        ReactOptions {
+          development: Some(false),
+          runtime: Some(swc_react::Runtime::Automatic),
+          refresh: None,
+          ..Default::default()
+        },
+        Mark::new(),
+      );
+
+      let ast = ast.fold_with(&mut resolver(Mark::new(), top_level_mark, false));
+      let ast = ast.fold_with(&mut react_folder);
+      ast.fold_with(&mut as_folder(ClearMark))
+    });
+    Ok(Box::new(JsModule {
+      ast,
+      uri: args.uri.to_string(),
+      source_type,
+    }))
   }
 }

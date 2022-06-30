@@ -6,7 +6,7 @@ use dashmap::DashSet;
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use rspack_core::{
-  Asset, AssetFilename, Module, NormalModuleFactoryContext, ParseModuleArgs, Plugin,
+  Asset, AssetFilename, Module, NormalModuleFactoryContext, ParseModuleArgs, Parser, Plugin,
   PluginParseModuleHookOutput, SourceType,
 };
 
@@ -24,18 +24,14 @@ static CSS_GLOBALS: Lazy<Globals> = Lazy::new(Globals::new);
 // }
 
 impl Plugin for CssPlugin {
-  fn register_parse_module(&self, _ctx: rspack_core::PluginContext) -> Option<Vec<SourceType>> {
-    Some(vec![SourceType::Css])
-  }
-
-  fn parse_module(
-    &self,
-    ctx: rspack_core::PluginContext<&mut NormalModuleFactoryContext>,
-    args: ParseModuleArgs,
-  ) -> PluginParseModuleHookOutput {
-    let stylesheet = SWC_COMPILER.parse_file(args.uri, args.source)?;
-    // ctx.context.source_type = Some(SourceType::Js);
-    Ok(Box::new(CssModule { ast: stylesheet }))
+  fn apply(
+    &mut self,
+    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
+  ) -> anyhow::Result<()> {
+    ctx
+      .context
+      .register_parser(SourceType::Css, Box::new(CssParser {}));
+    Ok(())
   }
 
   fn render_manifest(
@@ -68,5 +64,15 @@ impl Plugin for CssPlugin {
         AssetFilename::Static(format!("{}.css", args.chunk_id)),
       )])
     }
+  }
+}
+
+#[derive(Debug)]
+struct CssParser {}
+
+impl Parser for CssParser {
+  fn parse(&self, args: ParseModuleArgs) -> anyhow::Result<rspack_core::BoxModule> {
+    let stylesheet = SWC_COMPILER.parse_file(args.uri, args.source)?;
+    Ok(Box::new(CssModule { ast: stylesheet }))
   }
 }
