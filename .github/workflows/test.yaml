@@ -6,7 +6,7 @@ on:
       - main
       - next
     tags-ignore:
-      - "**"
+      - '**'
   pull_request:
 
 env:

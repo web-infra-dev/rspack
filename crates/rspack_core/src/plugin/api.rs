@@ -53,14 +53,6 @@ pub trait Plugin: Debug + Send + Sync {
   ) -> PluginLoadHookOutput {
     Ok(None)
   }
-
-  fn parse_module(
-    &self,
-    _ctx: PluginContext<&mut NormalModuleFactoryContext>,
-    _args: ParseModuleArgs,
-  ) -> PluginParseModuleHookOutput {
-    unreachable!()
-  }
   fn reuse_ast(&self) -> bool {
     false
   }
