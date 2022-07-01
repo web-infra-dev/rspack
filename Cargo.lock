@@ -1689,6 +1689,7 @@ dependencies = [
  "rayon",
  "rspack_sources",
  "sugar_path",
+ "swc_ecma_ast",
  "tokio",
  "tracing",
  "tracing-chrome",

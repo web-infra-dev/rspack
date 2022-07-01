@@ -1,12 +1,12 @@
 use crate::utils::parse_file;
 use crate::visitors::ClearMark;
 use crate::{module::JsModule, utils::get_swc_compiler};
+use anyhow::{Ok, Result};
 use rayon::prelude::*;
 use rspack_core::{
   Asset, AssetFilename, ModuleType, NormalModuleFactoryContext, ParseModuleArgs, Parser, Plugin,
-  PluginContext, PluginParseModuleHookOutput, PluginRenderManifestHookOutput,
+  PluginContext, PluginParseModuleHookOutput, PluginRenderManifestHookOutput, RspackAst,
 };
-
 use swc_common::comments::SingleThreadedComments;
 use swc_common::Mark;
 use swc_ecma_transforms::react::{react, Options as ReactOptions};
@@ -115,8 +115,19 @@ impl Parser for JsParser {
         module_type
       );
     }
-
-    let ast = parse_file(args.source, args.uri, &module_type);
+    let ast = {
+      match args.ast {
+        Some(RspackAst::JavaScript(_ast)) => Ok(_ast),
+        None => {
+          if let Some(source) = args.source {
+            Ok(parse_file(source, args.uri, &module_type))
+          } else {
+            anyhow::bail!("ast and source is both empty for {}", args.uri)
+          }
+        }
+        _ => anyhow::bail!("not supported ast {:?} for js parser", args.ast),
+      }
+    }?;
 
     let ast = get_swc_compiler().run(|| {
       let top_level_mark = Mark::new();
