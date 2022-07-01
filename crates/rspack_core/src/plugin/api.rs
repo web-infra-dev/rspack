@@ -1,21 +1,25 @@
 use std::fmt::Debug;
 
+use crate::TransformArgs;
 use crate::{
   BoxModule, LoadArgs, ModuleType, NormalModuleFactoryContext, ParseModuleArgs, PluginContext,
-  RenderManifestArgs, ResolveArgs,
+  RenderManifestArgs, ResolveArgs, RspackAst, TransformResult,
 };
 
+use anyhow::Context;
 use anyhow::Result;
 use hashbrown::HashMap;
 pub type PluginBuildStartHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;
 pub type PluginLoadHookOutput = Result<Option<String>>;
+pub type PluginTransformOutput = Result<TransformResult>;
 pub type PluginRenderManifestHookOutput = Result<Vec<Asset>>;
 pub type PluginParseModuleHookOutput = Result<BoxModule>;
 pub type PluginResolveHookOutput = Result<Option<String>>;
+pub type PluginParseOutput = Result<RspackAst>;
+pub type PluginGenerateOutput = Result<String>;
 // pub type PluginTransformAstHookOutput = Result<ast::Module>;
-// pub type PluginParseOutput = Result<RspackAst>;
-// pub type PluginGenerateOutput = Result<String>;
+
 // pub type PluginTransformHookOutput = Result<TransformResult>;
 // pub type PluginTapGeneratedChunkHookOutput = Result<()>;
 // pub type PluginRenderChunkHookOutput = Result<OutputChunk>;
@@ -50,6 +54,40 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(None)
   }
 
+  fn parse_module(
+    &self,
+    _ctx: PluginContext<&mut NormalModuleFactoryContext>,
+    _args: ParseModuleArgs,
+  ) -> PluginParseModuleHookOutput {
+    unreachable!()
+  }
+  fn reuse_ast(&self) -> bool {
+    false
+  }
+  fn generate(&self, ast: &Option<RspackAst>) -> PluginGenerateOutput {
+    let ast = ast.as_ref().context("call generate when ast is empty")?;
+    match ast {
+      RspackAst::JavaScript(_ast) => Err(anyhow::anyhow!("js ast codegen not supported yet")),
+      RspackAst::Css(_ast) => Err(anyhow::anyhow!("css ast codegen not supported yet ")),
+    }
+  }
+  fn parse(&self, uri: &str, code: &str) -> PluginParseOutput {
+    !unreachable!()
+  }
+  fn transform(
+    &self,
+    _ctx: PluginContext<&mut NormalModuleFactoryContext>,
+    args: TransformArgs,
+  ) -> PluginTransformOutput {
+    let result = TransformResult {
+      code: args.code,
+      ast: args.ast,
+    };
+    Ok(result)
+  }
+  fn transform_include(&self, uri: &str) -> bool {
+    false
+  }
   fn render_manifest(
     &self,
     _ctx: PluginContext,

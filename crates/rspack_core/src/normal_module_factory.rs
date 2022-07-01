@@ -12,7 +12,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
   load, parse_to_url, resolve, LoadArgs, ModuleGraphModule, ModuleType, Msg, ParseModuleArgs,
-  PluginDriver, ResolveArgs, VisitedModuleIdentity,
+  PluginDriver, ResolveArgs, TransformArgs, TransformResult, VisitedModuleIdentity,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -138,11 +138,20 @@ impl NormalModuleFactory {
     );
 
     // TODO: transform
+    let transform_result = self.plugin_driver.transform(
+      TransformArgs {
+        uri: &uri,
+        code: Some(source),
+        ast: None,
+      },
+      &mut self.context,
+    )?;
 
     let mut module = self.plugin_driver.parse(
       ParseModuleArgs {
         uri: uri.as_str(),
-        source,
+        source: transform_result.code,
+        ast: transform_result.ast,
       },
       &mut self.context,
     )?;

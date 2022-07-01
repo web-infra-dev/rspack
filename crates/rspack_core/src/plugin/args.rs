@@ -1,9 +1,11 @@
 use crate::{Compilation, ResolveKind};
+use swc_ecma_ast as ast;
 
 #[derive(Debug)]
 pub struct ParseModuleArgs<'a> {
   pub uri: &'a str,
-  pub source: String,
+  pub source: Option<String>,
+  pub ast: Option<RspackAst>,
 }
 
 #[derive(Debug, Clone)]
@@ -23,7 +25,21 @@ pub struct ResolveArgs<'a> {
 pub struct LoadArgs<'a> {
   pub uri: &'a str,
 }
+#[derive(Debug, Clone)]
+pub enum RspackAst {
+  JavaScript(ast::Program),
+  Css(ast::Program), // I'm not sure what the final ast is, so just take placehold
+}
 
-pub struct TransformArgs {
-  pub source: String,
+#[derive(Clone, Default, Debug)]
+pub struct TransformArgs<'a> {
+  pub uri: &'a str,
+  pub code: Option<String>,
+  pub ast: Option<RspackAst>,
+}
+
+#[derive(Clone, Default, Debug)]
+pub struct TransformResult {
+  pub code: Option<String>,
+  pub ast: Option<RspackAst>,
 }

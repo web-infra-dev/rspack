@@ -6,9 +6,9 @@ use tracing::instrument;
 use crate::{
   ApplyContext, Asset, BoxModule, BoxedParser, CompilerOptions, LoadArgs, ModuleType,
   NormalModuleFactoryContext, ParseModuleArgs, Plugin, PluginContext, PluginResolveHookOutput,
-  RenderManifestArgs, ResolveArgs,
+  PluginTransformOutput, RenderManifestArgs, ResolveArgs, TransformArgs, TransformResult,
 };
-
+use anyhow::Context;
 use rayon::prelude::*;
 
 #[derive(Debug)]
@@ -81,7 +81,47 @@ impl PluginDriver {
     }
     Ok(None)
   }
-
+  #[instrument(skip_all)]
+  pub fn transform(
+    &self,
+    args: TransformArgs,
+    job_ctx: &mut NormalModuleFactoryContext,
+  ) -> PluginTransformOutput {
+    let mut transformed_result = TransformResult {
+      code: args.code,
+      ast: args.ast,
+    };
+    for plugin in &self.plugins {
+      if plugin.transform_include(args.uri) {
+        let x = transformed_result;
+        let mut code = x.code;
+        let mut ast = x.ast;
+        // ast take precedence over code
+        // if prev loader set ast and current loader can't reuse_ast then we have to codegen code for current loader
+        if !plugin.reuse_ast() && ast.is_some() {
+          code = Some(plugin.generate(&ast)?);
+        }
+        // if previous not set ast and current loader want to use ast, so we must parse it for loader
+        if ast.is_none() && plugin.reuse_ast() {
+          let y = plugin.parse(
+            args.uri,
+            code
+              .as_ref()
+              .with_context(|| format!("ast and code is both none for {}", &args.uri))?,
+          )?;
+          ast = Some(y)
+        }
+        let args = TransformArgs {
+          uri: args.uri,
+          ast,
+          code,
+        };
+        let res = plugin.transform(PluginContext::with_context(job_ctx), args)?;
+        transformed_result = res;
+      }
+    }
+    Ok(transformed_result)
+  }
   // #[instrument(skip_all)]
   pub fn parse(
     &self,

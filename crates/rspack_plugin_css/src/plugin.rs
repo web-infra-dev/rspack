@@ -2,6 +2,7 @@
 // pub use js_module::*;
 
 use crate::{module::CssModule, SWC_COMPILER};
+use anyhow::Context;
 use dashmap::DashSet;
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
@@ -76,7 +77,12 @@ impl Parser for CssParser {
     _module_type: ModuleType,
     args: ParseModuleArgs,
   ) -> anyhow::Result<rspack_core::BoxModule> {
-    let stylesheet = SWC_COMPILER.parse_file(args.uri, args.source)?;
+    let stylesheet = SWC_COMPILER.parse_file(
+      args.uri,
+      args
+        .source
+        .with_context(|| format!("source is empty for {}", args.uri))?,
+    )?;
     Ok(Box::new(CssModule { ast: stylesheet }))
   }
 }
