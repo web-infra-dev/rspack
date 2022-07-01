@@ -1,5 +1,6 @@
 [target.'cfg(all())']
 rustflags = [
+    "-Zmacro-backtrace",
     "-Dclippy::all",
     "-Dclippy::unwrap_in_result", # https://rust-lang.github.io/rust-clippy/master/index.html#unwrap_in_result
 ]

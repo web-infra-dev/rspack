@@ -8,11 +8,17 @@ use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use rspack_core::{
   Asset, AssetFilename, Module, ModuleType, NormalModuleFactoryContext, ParseModuleArgs, Parser,
-  Plugin, PluginParseModuleHookOutput,
+  Plugin, PluginParseModuleHookOutput, RspackAst, TransformResult,
 };
-
+use std::path::Path;
 use swc_common::{Globals, Mark, GLOBALS};
 
+use swc_css::codegen::{
+  writer::basic::{BasicCssWriter, BasicCssWriterConfig},
+  CodegenConfig, Emit,
+};
+use swc_css::visit::VisitMutWith;
+use swc_css_prefixer::prefixer;
 #[derive(Debug, Default)]
 pub struct CssPlugin {}
 
@@ -25,6 +31,9 @@ static CSS_GLOBALS: Lazy<Globals> = Lazy::new(Globals::new);
 // }
 
 impl Plugin for CssPlugin {
+  fn name(&self) -> &'static str {
+    "css"
+  }
   fn apply(
     &mut self,
     ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
@@ -34,7 +43,39 @@ impl Plugin for CssPlugin {
       .register_parser(ModuleType::Css, Box::new(CssParser {}));
     Ok(())
   }
-
+  fn reuse_ast(&self) -> bool {
+    true
+  }
+  fn transform_include(&self, uri: &str) -> bool {
+    let extension = Path::new(uri).extension().unwrap().to_string_lossy();
+    extension == "css"
+  }
+  fn transform(
+    &self,
+    _ctx: rspack_core::PluginContext<&mut NormalModuleFactoryContext>,
+    args: rspack_core::TransformArgs,
+  ) -> rspack_core::PluginTransformOutput {
+    if let Some(RspackAst::Css(mut ast)) = args.ast {
+      ast.visit_mut_with(&mut prefixer());
+      Ok({
+        TransformResult {
+          code: None,
+          ast: Some(RspackAst::Css(ast)),
+        }
+      })
+    } else {
+      Ok({
+        TransformResult {
+          code: None,
+          ast: args.ast,
+        }
+      })
+    }
+  }
+  fn parse(&self, uri: &str, code: &str) -> rspack_core::PluginParseOutput {
+    let stylesheet = SWC_COMPILER.parse_file(uri, code)?;
+    Ok(RspackAst::Css(stylesheet))
+  }
   fn render_manifest(
     &self,
     _ctx: rspack_core::PluginContext,
@@ -77,12 +118,16 @@ impl Parser for CssParser {
     _module_type: ModuleType,
     args: ParseModuleArgs,
   ) -> anyhow::Result<rspack_core::BoxModule> {
-    let stylesheet = SWC_COMPILER.parse_file(
-      args.uri,
-      args
-        .source
-        .with_context(|| format!("source is empty for {}", args.uri))?,
-    )?;
-    Ok(Box::new(CssModule { ast: stylesheet }))
+    if let Some(RspackAst::Css(_ast)) = args.ast {
+      Ok(Box::new(CssModule { ast: _ast }))
+    } else {
+      let stylesheet = SWC_COMPILER.parse_file(
+        args.uri,
+        &args
+          .source
+          .with_context(|| format!("source is empty for {}", args.uri))?,
+      )?;
+      Ok(Box::new(CssModule { ast: stylesheet }))
+    }
   }
 }

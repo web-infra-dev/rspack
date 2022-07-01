@@ -26,6 +26,9 @@ pub type PluginGenerateOutput = Result<String>;
 
 #[async_trait::async_trait]
 pub trait Plugin: Debug + Send + Sync {
+  fn name(&self) -> &'static str {
+    "unknown"
+  }
   fn apply(&mut self, _ctx: PluginContext<&mut ApplyContext>) -> Result<()> {
     Ok(())
   }
