@@ -18,6 +18,9 @@ use tracing::instrument;
 pub struct JsPlugin {}
 
 impl Plugin for JsPlugin {
+  fn name(&self) -> &'static str {
+    "javascript"
+  }
   fn apply(&mut self, ctx: PluginContext<&mut rspack_core::ApplyContext>) -> anyhow::Result<()> {
     ctx
       .context

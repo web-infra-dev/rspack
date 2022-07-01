@@ -93,6 +93,7 @@ impl PluginDriver {
     };
     for plugin in &self.plugins {
       if plugin.transform_include(args.uri) {
+        tracing::debug!("running transform:{}", plugin.name());
         let x = transformed_result;
         let mut code = x.code;
         let mut ast = x.ast;

@@ -1,4 +1,5 @@
 use crate::{Compilation, ResolveKind};
+use swc_css::ast::Stylesheet;
 use swc_ecma_ast as ast;
 
 #[derive(Debug)]
@@ -28,7 +29,7 @@ pub struct LoadArgs<'a> {
 #[derive(Debug, Clone)]
 pub enum RspackAst {
   JavaScript(ast::Program),
-  Css(ast::Program), // I'm not sure what the final ast is, so just take placehold
+  Css(Stylesheet), // I'm not sure what the final ast is, so just take placehold
 }
 
 #[derive(Clone, Default, Debug)]

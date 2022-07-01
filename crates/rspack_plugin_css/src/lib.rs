@@ -31,14 +31,14 @@ impl SwcCompiler {
     Self {}
   }
 
-  pub fn parse_file(&self, path: &str, source: String) -> anyhow::Result<Stylesheet> {
+  pub fn parse_file(&self, path: &str, source: &str) -> anyhow::Result<Stylesheet> {
     let config: ParserConfig = Default::default();
     let cm = CM.clone();
     // let (handler, errors) = self::string_errors::new_handler(cm.clone(), treat_err_as_bug);
     // let result = swc_common::GLOBALS.set(&swc_common::Globals::new(), || op(cm, handler));
 
     // let fm = cm.load_file(Path::new(path))?;
-    let fm = cm.new_source_file(FileName::Custom(path.to_string()), source);
+    let fm = cm.new_source_file(FileName::Custom(path.to_string()), source.to_string());
     let lexer = Lexer::new(SourceFileInput::from(&*fm), config);
     let mut parser = Parser::new(lexer, config);
     let stylesheet = parser.parse_all();
