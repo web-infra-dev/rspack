@@ -1,4 +1,3 @@
-# The default profile includes rustc, rust-std, cargo, rust-docs, rustfmt and clippy.
-# https://rust-lang.github.io/rustup/concepts/profiles.html
+[toolchain]
 profile = "default"
 channel = "1.62.0"
