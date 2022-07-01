@@ -3,20 +3,16 @@
 
 use crate::{module::CssModule, SWC_COMPILER};
 use anyhow::Context;
-use dashmap::DashSet;
+
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use rspack_core::{
-  Asset, AssetFilename, Module, ModuleType, NormalModuleFactoryContext, ParseModuleArgs, Parser,
-  Plugin, PluginParseModuleHookOutput, RspackAst, TransformResult,
+  Asset, AssetFilename, ModuleType, NormalModuleFactoryContext, ParseModuleArgs, Parser, Plugin,
+  RspackAst, TransformResult,
 };
 use std::path::Path;
-use swc_common::{Globals, Mark, GLOBALS};
+use swc_common::Globals;
 
-use swc_css::codegen::{
-  writer::basic::{BasicCssWriter, BasicCssWriterConfig},
-  CodegenConfig, Emit,
-};
 use swc_css::visit::VisitMutWith;
 use swc_css_prefixer::prefixer;
 #[derive(Debug, Default)]

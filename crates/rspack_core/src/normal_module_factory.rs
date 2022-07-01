@@ -6,13 +6,12 @@ use std::{
   },
 };
 
-use dashmap::DashSet;
 use sugar_path::PathSugar;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
   load, parse_to_url, resolve, LoadArgs, ModuleGraphModule, ModuleType, Msg, ParseModuleArgs,
-  PluginDriver, ResolveArgs, TransformArgs, TransformResult, VisitedModuleIdentity,
+  PluginDriver, ResolveArgs, TransformArgs, VisitedModuleIdentity,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]

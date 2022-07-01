@@ -66,8 +66,8 @@ pub trait Plugin: Debug + Send + Sync {
       RspackAst::Css(_ast) => Err(anyhow::anyhow!("css ast codegen not supported yet ")),
     }
   }
-  fn parse(&self, uri: &str, code: &str) -> PluginParseOutput {
-    !unreachable!()
+  fn parse(&self, _uri: &str, _code: &str) -> PluginParseOutput {
+    anyhow::bail!("not implemented")
   }
   fn transform(
     &self,
@@ -80,7 +80,7 @@ pub trait Plugin: Debug + Send + Sync {
     };
     Ok(result)
   }
-  fn transform_include(&self, uri: &str) -> bool {
+  fn transform_include(&self, _uri: &str) -> bool {
     false
   }
   fn render_manifest(

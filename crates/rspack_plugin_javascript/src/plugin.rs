@@ -1,11 +1,11 @@
 use crate::utils::parse_file;
 use crate::visitors::ClearMark;
 use crate::{module::JsModule, utils::get_swc_compiler};
-use anyhow::{Ok, Result};
+use anyhow::Ok;
 use rayon::prelude::*;
 use rspack_core::{
-  Asset, AssetFilename, ModuleType, NormalModuleFactoryContext, ParseModuleArgs, Parser, Plugin,
-  PluginContext, PluginParseModuleHookOutput, PluginRenderManifestHookOutput, RspackAst,
+  Asset, AssetFilename, ModuleType, ParseModuleArgs, Parser, Plugin, PluginContext,
+  PluginRenderManifestHookOutput, RspackAst,
 };
 use swc_common::comments::SingleThreadedComments;
 use swc_common::Mark;

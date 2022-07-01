@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::Path};
 
-use rspack::{dev_server, rspack};
+use rspack::dev_server;
 use rspack_core::{log, CompilerOptions};
 use sugar_path::PathSugar;
 

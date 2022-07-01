@@ -1,5 +1,3 @@
-use crate::ApplyContext;
-
 #[derive(Debug, Default)]
 pub struct PluginContext<T = ()> {
   pub context: T,
