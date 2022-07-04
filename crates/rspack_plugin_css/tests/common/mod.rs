@@ -2,7 +2,7 @@ use std::{collections::HashMap, path::Path};
 
 use node_binding::{normalize_bundle_options, RawOptions};
 // use rspack::Compiler;
-use rspack_core::Compiler;
+use rspack_core::{AssetContent, Compiler};
 
 // pub async fn compile(options: CompilerOptions, plugins: Vec<Box<dyn Plugin>>) -> Compiler {
 //   let mut bundler = Compiler::new(options, plugins);
@@ -31,7 +31,7 @@ pub async fn test_fixture_css(fixture_dir_name: &str) -> Compiler {
     .unwrap()
     .flat_map(|entry| entry.ok())
     .filter_map(|entry| {
-      let content = std::fs::read_to_string(entry.path()).ok()?;
+      let content = std::fs::read(entry.path()).ok()?;
       Some((entry.file_name().to_string_lossy().to_string(), content))
     })
     .collect::<HashMap<_, _>>();
@@ -45,14 +45,26 @@ pub async fn test_fixture_css(fixture_dir_name: &str) -> Compiler {
       .collect::<Vec<_>>()
       .into_iter()
       .for_each(|filename| {
-        if asset.final_filename().ends_with(&filename) {
-          assert_eq!(
-            asset.source().trim(),
-            expected.remove(&filename).unwrap().trim(),
-            "CSS test failed in fixture:{}, the filename is {:?}",
-            fixture_dir_name,
-            filename
-          )
+        if asset.filename().ends_with(&filename) {
+          if let AssetContent::String(content) = &asset.content() {
+            let expected = String::from_utf8(expected.remove(&filename).unwrap())
+              .expect("failed to convert file to utf8");
+            assert_eq!(
+              content.trim(),
+              expected.trim(),
+              "CSS test failed in fixture:{}, the filename is {:?}",
+              fixture_dir_name,
+              filename
+            )
+          } else if let AssetContent::Buffer(buf) = &asset.content() {
+            assert_eq!(
+              buf,
+              &expected.remove(&filename).unwrap(),
+              "CSS test failed in fixture:{}, the filename is {:?}",
+              fixture_dir_name,
+              filename
+            )
+          }
         };
       });
   });

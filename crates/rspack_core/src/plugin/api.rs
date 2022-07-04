@@ -67,7 +67,7 @@ pub trait Plugin: Debug + Send + Sync {
     }
   }
   fn parse(&self, uri: &str, code: &str) -> PluginParseOutput {
-    !unreachable!()
+    unreachable!()
   }
   fn transform(
     &self,
@@ -92,16 +92,63 @@ pub trait Plugin: Debug + Send + Sync {
   }
 }
 
+pub trait Filename: Debug + Sync + Send {
+  // TODO more params, e.g. hash, name, etc.
+  fn filename(&self, filename: String, ext: String) -> String;
+}
+
 #[derive(Debug)]
-pub enum AssetFilename {
-  Static(String),
-  Templace(String),
+pub struct OutputFilename {
+  template: String,
+}
+
+impl OutputFilename {
+  pub fn new(template: String) -> Self {
+    Self { template }
+  }
+}
+
+impl Filename for OutputFilename {
+  fn filename(&self, filename: String, ext: String) -> String {
+    // TODO add more
+    self
+      .template
+      .replace("[name]", &filename)
+      .replace("[ext]", &ext)
+  }
+}
+
+#[derive(Debug)]
+pub struct OutputAssetModuleFilename {
+  template: String,
+}
+
+impl OutputAssetModuleFilename {
+  pub fn new(template: String) -> Self {
+    Self { template }
+  }
+}
+
+impl Filename for OutputAssetModuleFilename {
+  // TODO add more
+  fn filename(&self, filename: String, ext: String) -> String {
+    self
+      .template
+      .replace("[name]", &filename)
+      .replace("[ext]", &ext)
+  }
+}
+
+#[derive(Debug)]
+pub enum AssetContent {
+  Buffer(Vec<u8>),
+  String(String),
 }
 
 #[derive(Debug)]
 pub struct Asset {
-  rendered: String,
-  filename: AssetFilename,
+  content: AssetContent,
+  filename: String,
   // pathOptions÷: PathData;
   // info?: AssetInfo;
   // pub identifier: String,
@@ -110,21 +157,16 @@ pub struct Asset {
 }
 
 impl Asset {
-  pub fn new(rendered: String, filename: AssetFilename) -> Self {
-    Self { rendered, filename }
+  pub fn new(content: AssetContent, filename: String) -> Self {
+    Self { content, filename }
   }
 
-  pub fn source(&self) -> &str {
-    self.rendered.as_str()
+  pub fn content(&self) -> &AssetContent {
+    &self.content
   }
-}
 
-impl Asset {
-  pub fn final_filename(&self) -> String {
-    match &self.filename {
-      AssetFilename::Static(name) => name.clone(),
-      AssetFilename::Templace(_) => todo!("Templace"),
-    }
+  pub fn filename(&self) -> &String {
+    &self.filename
   }
 }
 

@@ -1712,6 +1712,7 @@ dependencies = [
  "nodejs-resolver",
  "once_cell",
  "rspack_core",
+ "rspack_plugin_asset",
  "rspack_plugin_css",
  "rspack_plugin_javascript",
  "rspack_sources",
@@ -1774,7 +1775,16 @@ dependencies = [
 name = "rspack_plugin_asset"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64 0.13.0",
+ "hashbrown 0.12.1",
+ "mime_guess",
+ "once_cell",
+ "rayon",
  "rspack_core",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -1785,12 +1795,14 @@ dependencies = [
  "better_scoped_tls",
  "dashmap",
  "glob",
+ "hashbrown 0.12.1",
  "linked_hash_set",
  "once_cell",
  "rayon",
  "rspack",
  "rspack_core",
  "rspack_node",
+ "rspack_sources",
  "serde",
  "serde_json",
  "sugar_path",
@@ -1809,10 +1821,12 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "better_scoped_tls",
+ "hashbrown 0.12.1",
  "linked_hash_set",
  "once_cell",
  "rayon",
  "rspack_core",
+ "rspack_sources",
  "swc",
  "swc_atoms",
  "swc_common 0.18.8",

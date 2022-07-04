@@ -1,9 +1,12 @@
 // mod js_module;
 // pub use js_module::*;
 
+use anyhow::Result;
+use hashbrown::{HashMap, HashSet};
 use std::fmt::Debug;
 
-use rspack_core::{Module, ModuleType};
+use rspack_core::{Module, ModuleRenderResult, ModuleType, SourceType};
+use rspack_sources::RawSource;
 use swc_css::{ast::Stylesheet, visit::VisitMutWith};
 
 use crate::{visitors::DependencyScanner, SWC_COMPILER};
@@ -19,16 +22,38 @@ impl Debug for CssModule {
 }
 
 impl Module for CssModule {
+  #[inline(always)]
   fn module_type(&self) -> ModuleType {
     ModuleType::Css
   }
 
-  fn render(
+  #[inline(always)]
+  fn source_types(
     &self,
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
-  ) -> String {
-    SWC_COMPILER.codegen(&self.ast)
+  ) -> HashSet<SourceType> {
+    HashSet::from_iter(vec![SourceType::Css, SourceType::JavaScript])
+  }
+
+  fn render(
+    &self,
+    requested_source_type: SourceType,
+    module: &rspack_core::ModuleGraphModule,
+    _compilation: &rspack_core::Compilation,
+  ) -> Result<Option<ModuleRenderResult>> {
+    let result = match requested_source_type {
+      SourceType::Css => Some(ModuleRenderResult::Css(SWC_COMPILER.codegen(&self.ast))),
+      SourceType::JavaScript => Some(ModuleRenderResult::JavaScript(format!(
+        r#"rs.define("{}", function(__rspack_require__, module, exports) {{
+  "use strict";
+}});
+"#,
+        module.id
+      ))),
+      _ => None,
+    };
+    Ok(result)
   }
 
   fn dependencies(&mut self) -> Vec<rspack_core::ModuleDependency> {

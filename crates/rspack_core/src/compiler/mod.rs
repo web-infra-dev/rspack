@@ -6,13 +6,14 @@ use std::{
   },
 };
 
+use anyhow::Context;
 use nodejs_resolver::Resolver;
 use rayon::prelude::*;
 use tracing::instrument;
 
 use crate::{
-  CompilerOptions, Dependency, ModuleGraphModule, NormalModuleFactory, NormalModuleFactoryContext,
-  Plugin, PluginDriver, RenderManifestArgs, Stats,
+  Asset, AssetContent, CompilerOptions, Dependency, ModuleGraphModule, NormalModuleFactory,
+  NormalModuleFactoryContext, Plugin, PluginDriver, RenderManifestArgs, SourceType, Stats,
 };
 
 mod compilation;
@@ -51,6 +52,12 @@ impl Compiler {
 
   #[instrument(skip_all)]
   pub async fn compile(&mut self) -> anyhow::Result<Stats> {
+    let final_out_dir = {
+      let root = Path::new(self.options.root.as_str());
+      let out_dir = Path::new("./dist");
+      root.join(out_dir)
+    };
+
     // TODO: supports rebuild
     self.compilation = Compilation::new(
       // TODO: use Arc<T> instead
@@ -58,6 +65,7 @@ impl Compiler {
       self.options.entries.clone(),
       Default::default(),
       Default::default(),
+      final_out_dir.clone(),
     );
 
     // self.compilation.
@@ -124,30 +132,29 @@ impl Compiler {
 
     tracing::debug!("chunk graph {:#?}", self.compilation.chunk_graph);
     // Stream::
-    let assets = self
-      .compilation
-      .chunk_graph
-      .id_to_chunk()
-      .par_keys()
-      .flat_map(|chunk_id| {
-        self.plugin_driver.render_manifest(RenderManifestArgs {
-          chunk_id,
-          compilation: &self.compilation,
-        })
-      })
-      .collect::<Vec<_>>();
+    let assets = self.compilation.assets(self.plugin_driver.clone());
 
     // tracing::trace!("assets {:#?}", assets);
 
-    let final_out_dir = {
-      let root = Path::new(self.compilation.options.root.as_str());
-      let out_dir = Path::new("./dist");
-      root.join(out_dir)
-    };
     std::fs::create_dir_all(&final_out_dir).unwrap();
-    assets.iter().for_each(|asset| {
-      std::fs::write(final_out_dir.join(asset.final_filename()), asset.source()).unwrap();
-    });
+
+    assets
+      .par_iter()
+      .try_for_each(|asset| -> anyhow::Result<()> {
+        use std::fs;
+        let filename = asset.filename();
+
+        std::fs::create_dir_all(final_out_dir.join(filename).parent().unwrap())?;
+
+        match &asset.content() {
+          AssetContent::Buffer(buf) => {
+            fs::write(final_out_dir.join(filename), buf).context("failed to write asset")
+          }
+          AssetContent::String(str) => {
+            fs::write(final_out_dir.join(filename), str).context("failed to write asset")
+          }
+        }
+      })?;
 
     Ok(Stats::new(assets))
   }

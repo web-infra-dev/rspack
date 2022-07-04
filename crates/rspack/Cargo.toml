@@ -9,6 +9,7 @@ edition = "2021"
 rspack_core = { path = "../rspack_core" }
 rspack_plugin_css = { path = "../rspack_plugin_css" }
 rspack_plugin_javascript = { path = "../rspack_plugin_javascript" }
+rspack_plugin_asset = { path = "../rspack_plugin_asset" }
 dashmap = "5.0.0"
 crossbeam = "0.8.1"
 futures = "0.3.21"

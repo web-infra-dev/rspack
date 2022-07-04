@@ -1,12 +1,14 @@
 use std::{collections::HashMap, sync::Arc};
 
+use dashmap::DashMap;
 use nodejs_resolver::Resolver;
 use tracing::instrument;
 
 use crate::{
   ApplyContext, Asset, BoxModule, BoxedParser, CompilerOptions, LoadArgs, ModuleType,
-  NormalModuleFactoryContext, ParseModuleArgs, Plugin, PluginContext, PluginResolveHookOutput,
-  PluginTransformOutput, RenderManifestArgs, ResolveArgs, TransformArgs, TransformResult,
+  NormalModuleFactoryContext, ParseModuleArgs, Plugin, PluginContext,
+  PluginRenderManifestHookOutput, PluginResolveHookOutput, PluginTransformOutput,
+  RenderManifestArgs, ResolveArgs, TransformArgs, TransformResult,
 };
 use anyhow::Context;
 use rayon::prelude::*;
@@ -133,25 +135,25 @@ impl PluginDriver {
       .module_type
       .ok_or_else(|| anyhow::format_err!("module_type is not set"))?;
 
-    let parser = self
-      .registered_parser
-      .get(&module_type)
-      .ok_or_else(|| anyhow::format_err!("parser is not registered"))?;
+    let parser = self.registered_parser.get(&module_type).ok_or_else(|| {
+      anyhow::format_err!("parser for module type {:?} is not registered", module_type)
+    })?;
 
     let module = parser.parse(module_type, args)?;
     Ok(module)
   }
 
   #[instrument(skip_all)]
-  pub fn render_manifest(&self, args: RenderManifestArgs) -> Vec<Asset> {
+  pub fn render_manifest(&self, args: RenderManifestArgs) -> PluginRenderManifestHookOutput {
+    let mut assets = vec![];
     self
       .plugins
       .iter()
-      .flat_map(|plugin| {
-        plugin
-          .render_manifest(PluginContext::new(), args.clone())
-          .unwrap()
-      })
-      .collect()
+      .try_for_each(|plugin| -> anyhow::Result<()> {
+        let res = plugin.render_manifest(PluginContext::new(), args.clone())?;
+        assets.extend(res);
+        Ok(())
+      })?;
+    Ok(assets)
   }
 }
