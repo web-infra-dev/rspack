@@ -1,7 +1,10 @@
-import React from 'react'
-import ReactDOM from 'react-dom'
-import './base.css'
-// import Dark from './dark.svg'
+import React from 'react';
+import ReactDOM from 'react-dom';
+import './base.css';
+import LogoJPG from './file.jpg';
+import LogoPNG from './file.png';
+import LogoSVG from './file.svg';
+// import Dark from './dark.svg';
 // import Light from './light.svg'
 // import LogoUrl from './logo.svg'
 // import Logo from './logo.svg'
@@ -15,13 +18,25 @@ const App = () => {
       <div>hello world</div>
       {/* <Button></Button> */}
 
-      {/* <img style={{ width: '40px', height: '40px' }} src={LogoUrl} alt="logo" /> */}
-      {
-        /* <Logo width={'40px'} height={'40px'} />
+      <img
+        style={{ width: '40px', height: '40px' }}
+        src={LogoJPG}
+        alt="logo jpg"
+      />
+      <img
+        style={{ width: '40px', height: '40px' }}
+        src={LogoPNG}
+        alt="logo png"
+      />
+      <img
+        style={{ width: '40px', height: '40px' }}
+        src={LogoSVG}
+        alt="logo svg"
+      />
+      {/* <Logo width={'40px'} height={'40px'} />
       <Light width={'40px'} height={'40px'} />
-      <Dark width={'40px'} height={'40px'} /> */
-      }
+      <Dark width={'40px'} height={'40px'} /> */}
     </React.Suspense>
-  )
-}
-ReactDOM.render(<App />, document.getElementById('root'))
+  );
+};
+ReactDOM.render(<App />, document.getElementById('root'));

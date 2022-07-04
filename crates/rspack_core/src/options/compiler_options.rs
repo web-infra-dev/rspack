@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
-use crate::{DevServerOptions, EntryItem};
+use crate::{DevServerOptions, EntryItem, OutputOptions};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct CompilerOptions {
   pub entries: HashMap<String, EntryItem>,
   pub root: String,
   pub dev_server: DevServerOptions,
+  pub output: OutputOptions,
 }

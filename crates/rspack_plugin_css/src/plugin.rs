@@ -4,13 +4,17 @@
 use crate::{module::CssModule, SWC_COMPILER};
 use anyhow::Context;
 use dashmap::DashSet;
+use hashbrown::HashMap;
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use rspack_core::{
-  Asset, AssetFilename, Module, ModuleType, NormalModuleFactoryContext, ParseModuleArgs, Parser,
-  Plugin, PluginParseModuleHookOutput, RspackAst, TransformResult,
+  Asset, AssetContent, Filename, Module, ModuleRenderResult, ModuleType,
+  NormalModuleFactoryContext, OutputFilename, ParseModuleArgs, Parser, Plugin,
+  PluginParseModuleHookOutput, RspackAst, SourceType, TransformResult,
 };
 use std::path::Path;
+
+use rspack_sources::{ConcatSource, RawSource, Source};
 use swc_common::{Globals, Mark, GLOBALS};
 
 use swc_css::codegen::{
@@ -90,20 +94,28 @@ impl Plugin for CssPlugin {
     let ordered_modules = chunk.ordered_modules(module_graph);
     let code: String = ordered_modules
       .par_iter()
-      .filter(|module| matches!(module.module_type, ModuleType::Css))
-      .map(|module| module.module.render(module, compilation))
+      .filter(|module| {
+        module
+          .module
+          .source_types(module, compilation)
+          .contains(&SourceType::Css)
+      })
+      .map(|module| module.module.render(SourceType::Css, module, compilation))
       .fold(String::new, |mut output, cur| {
-        output += "\n\n";
-        output += cur.trim();
+        if let Ok(Some(ModuleRenderResult::Css(source))) = cur {
+          output += "\n\n";
+          output += &source;
+        }
         output
       })
       .collect();
     if code.is_empty() {
-      Ok(vec![])
+      Ok(Default::default())
     } else {
       Ok(vec![Asset::new(
-        code,
-        AssetFilename::Static(format!("{}.css", args.chunk_id)),
+        AssetContent::String(code),
+        OutputFilename::new("[name][ext]".to_owned())
+          .filename(args.chunk_id.to_owned(), ".css".to_owned()),
       )])
     }
   }
