@@ -1,0 +1,30 @@
+use std::{collections::HashMap, path::Path};
+
+use rspack::rspack;
+use rspack_core::{log, CompilerOptions, DevServerOptions, OutputOptions};
+use rspack_node::{normalize_bundle_options, RawOptions};
+
+#[tokio::main]
+async fn main() {
+  let guard = log::enable_tracing_by_env_with_chrome_layer();
+  let mut compiler = rspack(
+    normalize_bundle_options(RawOptions {
+      entries: HashMap::from([("main".to_string(), "./src/index.js".to_string())]),
+      root: Some(
+        Path::new("./examples/react")
+          // .resolve()
+          .to_string_lossy()
+          .to_string(),
+      ),
+      ..Default::default()
+    })
+    .unwrap(),
+    vec![],
+  );
+
+  compiler.compile().await.unwrap();
+
+  if let Some(g) = guard {
+    g.flush()
+  }
+}

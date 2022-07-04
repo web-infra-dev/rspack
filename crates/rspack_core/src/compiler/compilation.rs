@@ -11,14 +11,13 @@ use crate::{
   ResolveKind, VisitedModuleIdentity,
 };
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Compilation {
   pub options: Arc<CompilerOptions>,
   entries: HashMap<String, EntryItem>,
   pub(crate) visited_module_id: VisitedModuleIdentity,
   pub module_graph: ModuleGraph,
   pub chunk_graph: ChunkGraph,
-  pub final_out_dir: PathBuf,
 }
 
 impl Compilation {
@@ -27,7 +26,6 @@ impl Compilation {
     entries: std::collections::HashMap<String, EntryItem>,
     visited_module_id: VisitedModuleIdentity,
     module_graph: ModuleGraph,
-    final_out_dir: PathBuf,
   ) -> Self {
     Self {
       options,
@@ -35,7 +33,6 @@ impl Compilation {
       module_graph,
       entries: HashMap::from_iter(entries),
       chunk_graph: Default::default(),
-      final_out_dir,
     }
   }
 
@@ -62,7 +59,7 @@ impl Compilation {
       .collect()
   }
 
-  pub fn assets(&self, plugin_driver: Arc<PluginDriver>) -> Vec<Asset> {
+  pub fn render_manifest(&self, plugin_driver: Arc<PluginDriver>) -> Vec<Asset> {
     self
       .chunk_graph
       .id_to_chunk()
