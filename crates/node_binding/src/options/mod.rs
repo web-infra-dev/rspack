@@ -5,7 +5,7 @@ use napi_derive::napi;
 
 use napi::bindgen_prelude::*;
 
-use rspack_core::{CompilerOptions, DevServerOptions, EntryItem};
+use rspack_core::{CompilerOptions, DevServerOptions, EntryItem, OutputOptions};
 // use rspack_core::OptimizationOptions;
 // use rspack_core::SourceMapOptions;
 // use rspack_core::{
@@ -14,6 +14,7 @@ use rspack_core::{CompilerOptions, DevServerOptions, EntryItem};
 // };
 // use rspack_core::{ChunkIdAlgo, Platform};
 use serde::Deserialize;
+use std::path::Path;
 
 // mod enhanced;
 // mod optimization;
@@ -64,19 +65,24 @@ pub struct RawOptions {
 }
 
 pub fn normalize_bundle_options(mut options: RawOptions) -> Result<CompilerOptions> {
-  let _bundle_default_options = CompilerOptions::default();
+  let cwd = std::env::current_dir().unwrap();
 
-  let root = options.root.take().unwrap_or_else(|| {
-    std::env::current_dir()
-      .unwrap()
-      .to_string_lossy()
-      .to_string()
-  });
+  let root = options
+    .root
+    .take()
+    .unwrap_or_else(|| cwd.to_string_lossy().to_string());
+
+  let output_path = options
+    .output
+    .as_mut()
+    .and_then(|opt| opt.path.take())
+    .unwrap_or_else(|| Path::new(&root).join("dist").to_string_lossy().to_string());
 
   Ok(CompilerOptions {
     entries: parse_entries(options.entries),
     root,
     dev_server: DevServerOptions { hmr: false },
+    output: OutputOptions { path: output_path },
   })
 }
 

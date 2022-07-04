@@ -44,20 +44,19 @@ impl Compiler {
     );
 
     Self {
-      options,
-      compilation: Default::default(),
+      options: options.clone(),
+      compilation: Compilation::new(
+        options,
+        Default::default(),
+        Default::default(),
+        Default::default(),
+      ),
       plugin_driver: Arc::new(plugin_driver),
     }
   }
 
   #[instrument(skip_all)]
   pub async fn compile(&mut self) -> anyhow::Result<Stats> {
-    let final_out_dir = {
-      let root = Path::new(self.options.root.as_str());
-      let out_dir = Path::new("./dist");
-      root.join(out_dir)
-    };
-
     // TODO: supports rebuild
     self.compilation = Compilation::new(
       // TODO: use Arc<T> instead
@@ -65,7 +64,6 @@ impl Compiler {
       self.options.entries.clone(),
       Default::default(),
       Default::default(),
-      final_out_dir.clone(),
     );
 
     // self.compilation.
@@ -132,11 +130,11 @@ impl Compiler {
 
     tracing::debug!("chunk graph {:#?}", self.compilation.chunk_graph);
     // Stream::
-    let assets = self.compilation.assets(self.plugin_driver.clone());
+    let assets = self.compilation.render_manifest(self.plugin_driver.clone());
 
     // tracing::trace!("assets {:#?}", assets);
 
-    std::fs::create_dir_all(&final_out_dir).unwrap();
+    std::fs::create_dir_all(&self.options.output.path).unwrap();
 
     assets
       .par_iter()
@@ -144,14 +142,21 @@ impl Compiler {
         use std::fs;
         let filename = asset.filename();
 
-        std::fs::create_dir_all(final_out_dir.join(filename).parent().unwrap())?;
+        std::fs::create_dir_all(
+          Path::new(&self.options.output.path)
+            .join(filename)
+            .parent()
+            .unwrap(),
+        )?;
 
         match &asset.content() {
           AssetContent::Buffer(buf) => {
-            fs::write(final_out_dir.join(filename), buf).context("failed to write asset")
+            fs::write(Path::new(&self.options.output.path).join(filename), buf)
+              .context("failed to write asset")
           }
           AssetContent::String(str) => {
-            fs::write(final_out_dir.join(filename), str).context("failed to write asset")
+            fs::write(Path::new(&self.options.output.path).join(filename), str)
+              .context("failed to write asset")
           }
         }
       })?;
