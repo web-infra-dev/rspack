@@ -39,6 +39,7 @@ pub enum ResolveKind {
   DynamicImport,
   AtImport,
   AtImportUrl,
+  UrlToken,
 }
 
 pub struct NormalModuleFactory {
