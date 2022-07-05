@@ -17,7 +17,7 @@ module.exports = {
   },
   output: {
     module: true,
-    OutputAssetModuleFilename: 'asset/[name][ext]',
+    assetModuleFilename: 'asset/[name][ext]',
     chunkFormat: 'module',
     chunkLoading: 'import',
   },
