@@ -8,7 +8,7 @@ use hashbrown::HashMap;
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use rspack_core::{
-  Asset, AssetContent, Filename, Module, ModuleRenderResult, ModuleType,
+  Asset, AssetContent, Content, Filename, Module, ModuleRenderResult, ModuleType,
   NormalModuleFactoryContext, OutputFilename, ParseModuleArgs, Parser, Plugin,
   PluginParseModuleHookOutput, RspackAst, SourceType, TransformResult,
 };
@@ -63,22 +63,26 @@ impl Plugin for CssPlugin {
       ast.visit_mut_with(&mut prefixer());
       Ok({
         TransformResult {
-          code: None,
+          content: None,
           ast: Some(RspackAst::Css(ast)),
         }
       })
     } else {
       Ok({
         TransformResult {
-          code: None,
+          content: None,
           ast: args.ast,
         }
       })
     }
   }
-  fn parse(&self, uri: &str, code: &str) -> rspack_core::PluginParseOutput {
-    let stylesheet = SWC_COMPILER.parse_file(uri, code)?;
-    Ok(RspackAst::Css(stylesheet))
+  fn parse(&self, uri: &str, content: &Content) -> rspack_core::PluginParseOutput {
+    if let Content::String(content) = content {
+      let stylesheet = SWC_COMPILER.parse_file(uri, content)?;
+      Ok(RspackAst::Css(stylesheet))
+    } else {
+      Err(anyhow::format_err!("failed to parse css {}", uri))
+    }
   }
   fn render_manifest(
     &self,
@@ -132,14 +136,15 @@ impl Parser for CssParser {
   ) -> anyhow::Result<rspack_core::BoxModule> {
     if let Some(RspackAst::Css(_ast)) = args.ast {
       Ok(Box::new(CssModule { ast: _ast }))
-    } else {
-      let stylesheet = SWC_COMPILER.parse_file(
-        args.uri,
-        &args
-          .source
-          .with_context(|| format!("source is empty for {}", args.uri))?,
-      )?;
+    } else if let Some(Content::String(source)) = args.source {
+      let stylesheet = SWC_COMPILER.parse_file(args.uri, &source)?;
       Ok(Box::new(CssModule { ast: stylesheet }))
+    } else {
+      Err(anyhow::format_err!(
+        "source is empty or unmatched content type returned for {}, content type {:?}",
+        args.uri,
+        args.source
+      ))
     }
   }
 }

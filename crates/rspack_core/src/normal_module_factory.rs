@@ -11,8 +11,9 @@ use sugar_path::PathSugar;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
-  load, parse_to_url, resolve, LoadArgs, ModuleGraphModule, ModuleType, Msg, ParseModuleArgs,
-  PluginDriver, ResolveArgs, TransformArgs, TransformResult, VisitedModuleIdentity,
+  load, parse_to_url, resolve, Content, LoadArgs, ModuleGraphModule, ModuleType, Msg,
+  ParseModuleArgs, PluginDriver, ResolveArgs, TransformArgs, TransformResult,
+  VisitedModuleIdentity,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -131,17 +132,13 @@ impl NormalModuleFactory {
       &mut self.context,
     )
     .await?;
-    tracing::trace!(
-      "load ({:?}) source {:?}",
-      self.context.module_type,
-      &source[0..usize::min(source.len(), 20)]
-    );
+    tracing::trace!("load ({:?}) source {:?}", self.context.module_type, source);
 
     // TODO: transform
     let transform_result = self.plugin_driver.transform(
       TransformArgs {
         uri: &uri,
-        code: Some(source),
+        content: Some(source),
         ast: None,
       },
       &mut self.context,
@@ -150,7 +147,7 @@ impl NormalModuleFactory {
     let mut module = self.plugin_driver.parse(
       ParseModuleArgs {
         uri: uri.as_str(),
-        source: transform_result.code,
+        source: transform_result.content,
         ast: transform_result.ast,
       },
       &mut self.context,
