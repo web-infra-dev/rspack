@@ -7,8 +7,8 @@ use mime_guess::MimeGuess;
 use rayon::prelude::*;
 
 use rspack_core::{
-  Asset, AssetContent, BoxModule, Filename, LoadArgs, Module, ModuleRenderResult, ModuleType,
-  NormalModuleFactoryContext, OutputAssetModuleFilename, Parser, Plugin, PluginContext,
+  Asset, AssetContent, BoxModule, Content, Filename, LoadArgs, Module, ModuleRenderResult,
+  ModuleType, NormalModuleFactoryContext, OutputAssetModuleFilename, Parser, Plugin, PluginContext,
   PluginLoadHookOutput, PluginRenderManifestHookOutput, RenderManifestArgs, SourceType,
 };
 
@@ -17,6 +17,10 @@ pub struct AssetPlugin {}
 
 #[async_trait]
 impl Plugin for AssetPlugin {
+  fn name(&self) -> &'static str {
+    "asset"
+  }
+
   fn apply(
     &mut self,
     ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
@@ -46,7 +50,7 @@ impl Plugin for AssetPlugin {
       ctx.context.module_type,
       Some(ModuleType::Asset) | Some(ModuleType::AssetInline) | Some(ModuleType::AssetResource)
     ) {
-      Ok(Some("".to_owned()))
+      Ok(Some(Content::String("".to_owned())))
     } else {
       Ok(None)
     }

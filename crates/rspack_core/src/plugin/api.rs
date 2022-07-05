@@ -1,23 +1,23 @@
 use std::fmt::Debug;
 
-use crate::TransformArgs;
 use crate::{
   BoxModule, LoadArgs, ModuleType, NormalModuleFactoryContext, ParseModuleArgs, PluginContext,
   RenderManifestArgs, ResolveArgs, RspackAst, TransformResult,
 };
+use crate::{Content, TransformArgs};
 
 use anyhow::Context;
 use anyhow::Result;
 use hashbrown::HashMap;
 pub type PluginBuildStartHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;
-pub type PluginLoadHookOutput = Result<Option<String>>;
+pub type PluginLoadHookOutput = Result<Option<Content>>;
 pub type PluginTransformOutput = Result<TransformResult>;
 pub type PluginRenderManifestHookOutput = Result<Vec<Asset>>;
 pub type PluginParseModuleHookOutput = Result<BoxModule>;
 pub type PluginResolveHookOutput = Result<Option<String>>;
 pub type PluginParseOutput = Result<RspackAst>;
-pub type PluginGenerateOutput = Result<String>;
+pub type PluginGenerateOutput = Result<Content>;
 // pub type PluginTransformAstHookOutput = Result<ast::Module>;
 
 // pub type PluginTransformHookOutput = Result<TransformResult>;
@@ -66,7 +66,7 @@ pub trait Plugin: Debug + Send + Sync {
       RspackAst::Css(_ast) => Err(anyhow::anyhow!("css ast codegen not supported yet ")),
     }
   }
-  fn parse(&self, uri: &str, code: &str) -> PluginParseOutput {
+  fn parse(&self, uri: &str, content: &Content) -> PluginParseOutput {
     unreachable!()
   }
   fn transform(
@@ -75,7 +75,7 @@ pub trait Plugin: Debug + Send + Sync {
     args: TransformArgs,
   ) -> PluginTransformOutput {
     let result = TransformResult {
-      code: args.code,
+      content: args.content,
       ast: args.ast,
     };
     Ok(result)

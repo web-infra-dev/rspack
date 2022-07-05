@@ -1,11 +1,12 @@
 use crate::{Compilation, ResolveKind};
+use std::fmt::Debug;
 use swc_css::ast::Stylesheet;
 use swc_ecma_ast as ast;
 
 #[derive(Debug)]
 pub struct ParseModuleArgs<'a> {
   pub uri: &'a str,
-  pub source: Option<String>,
+  pub source: Option<Content>,
   pub ast: Option<RspackAst>,
 }
 
@@ -32,15 +33,34 @@ pub enum RspackAst {
   Css(Stylesheet), // I'm not sure what the final ast is, so just take placehold
 }
 
+#[derive(Clone)]
+pub enum Content {
+  String(String),
+  Buffer(Vec<u8>),
+}
+
+impl Debug for Content {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let mut content = f.debug_struct("Content");
+
+    match self {
+      Self::String(s) => content
+        .field("String", &s[0..usize::min(s.len(), 20)].to_owned())
+        .finish(),
+      Self::Buffer(_) => content.field("Buffer", &{ .. }).finish(),
+    }
+  }
+}
+
 #[derive(Clone, Default, Debug)]
 pub struct TransformArgs<'a> {
   pub uri: &'a str,
-  pub code: Option<String>,
+  pub content: Option<Content>,
   pub ast: Option<RspackAst>,
 }
 
 #[derive(Clone, Default, Debug)]
 pub struct TransformResult {
-  pub code: Option<String>,
+  pub content: Option<Content>,
   pub ast: Option<RspackAst>,
 }
