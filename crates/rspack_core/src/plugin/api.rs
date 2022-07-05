@@ -80,7 +80,7 @@ pub trait Plugin: Debug + Send + Sync {
     };
     Ok(result)
   }
-  fn transform_include(&self, uri: &str) -> bool {
+  fn transform_include(&self, _uri: &str) -> bool {
     false
   }
   fn render_manifest(

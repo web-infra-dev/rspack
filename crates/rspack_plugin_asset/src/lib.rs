@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use hashbrown::HashSet;
 use mime_guess::MimeGuess;
 use rayon::prelude::*;
+use tokio::fs;
 
 use rspack_core::{
   Asset, AssetContent, BoxModule, Content, Filename, LoadArgs, Module, ModuleRenderResult,
@@ -44,13 +45,13 @@ impl Plugin for AssetPlugin {
   async fn load(
     &self,
     ctx: PluginContext<&mut NormalModuleFactoryContext>,
-    _args: LoadArgs<'_>,
+    args: LoadArgs<'_>,
   ) -> PluginLoadHookOutput {
     if matches!(
       ctx.context.module_type,
       Some(ModuleType::Asset) | Some(ModuleType::AssetInline) | Some(ModuleType::AssetResource)
     ) {
-      Ok(Some(Content::String("".to_owned())))
+      Ok(Some(Content::Buffer(fs::read(&args.uri).await?)))
     } else {
       Ok(None)
     }
@@ -137,23 +138,30 @@ impl Parser for AssetParser {
     module_type: ModuleType,
     args: rspack_core::ParseModuleArgs,
   ) -> Result<BoxModule> {
-    let buf = std::fs::read(&args.uri)?;
-    let size = buf.len() as u32;
+    let buf = args.source.map(|content| match content {
+      Content::Buffer(buf) => buf,
+      Content::String(str) => str.as_bytes().to_vec(),
+    });
 
-    let mut is_inline = size <= DEFAULT_MAX_SIZE;
+    if let Some(buf) = buf {
+      let size = buf.len() as u32;
 
-    if let Some(inline) = self.data_url {
-      is_inline = inline;
+      let is_inline = self.data_url.unwrap_or(size <= DEFAULT_MAX_SIZE);
+
+      tracing::trace!(
+        "asset {:?} with size {}, is inlined {}",
+        args.uri,
+        size,
+        is_inline
+      );
+
+      Ok(Box::new(AssetModule::new(module_type, is_inline, buf)))
+    } else {
+      Err(anyhow::format_err!(
+        "Asset source is empty for uri {}",
+        args.uri
+      ))
     }
-
-    tracing::trace!(
-      "asset {:?} with size {}, is inlined {}",
-      args.uri,
-      size,
-      is_inline
-    );
-
-    Ok(Box::new(AssetModule::new(module_type, is_inline, buf)))
   }
 }
 
