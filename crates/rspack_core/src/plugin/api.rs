@@ -123,6 +123,12 @@ pub struct OutputAssetModuleFilename {
   template: String,
 }
 
+impl Default for OutputAssetModuleFilename {
+  fn default() -> Self {
+    Self::new("assets/[name][ext]".to_owned())
+  }
+}
+
 impl OutputAssetModuleFilename {
   pub fn new(template: String) -> Self {
     Self { template }

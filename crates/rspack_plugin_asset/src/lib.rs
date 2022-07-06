@@ -86,15 +86,19 @@ impl Plugin for AssetPlugin {
           let path = Path::new(&module.id);
           Some(Asset::new(
             AssetContent::Buffer(asset),
-            // TODO pass in
-            OutputAssetModuleFilename::new("assets/[name][ext]".to_owned()).filename(
-              path.file_stem().and_then(OsStr::to_str).unwrap().to_owned(),
-              path
-                .extension()
-                .and_then(OsStr::to_str)
-                .map(|str| format!("{}{}", ".", str))
-                .unwrap(),
-            ),
+            args
+              .compilation
+              .options
+              .output
+              .asset_module_filename
+              .filename(
+                path.file_stem().and_then(OsStr::to_str).unwrap().to_owned(),
+                path
+                  .extension()
+                  .and_then(OsStr::to_str)
+                  .map(|str| format!("{}{}", ".", str))
+                  .unwrap(),
+              ),
           ))
         } else {
           None
@@ -201,7 +205,7 @@ impl Module for AssetModule {
     &self,
     requested_source_type: SourceType,
     module: &rspack_core::ModuleGraphModule,
-    _compilation: &rspack_core::Compilation,
+    compilation: &rspack_core::Compilation,
   ) -> Result<Option<ModuleRenderResult>> {
     let result = match requested_source_type {
       SourceType::JavaScript => Some(ModuleRenderResult::JavaScript(format!(
@@ -224,8 +228,7 @@ impl Module for AssetModule {
           format!(
             "{}{}",
             "/",
-            // TODO pass in
-            OutputAssetModuleFilename::new("assets/[name][ext]".to_owned()).filename(
+            compilation.options.output.asset_module_filename.filename(
               path
                 .file_stem()
                 .and_then(OsStr::to_str)
