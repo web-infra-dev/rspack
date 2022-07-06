@@ -5,7 +5,9 @@ use napi_derive::napi;
 
 use napi::bindgen_prelude::*;
 
-use rspack_core::{CompilerOptions, DevServerOptions, EntryItem, OutputOptions};
+use rspack_core::{
+  CompilerOptions, DevServerOptions, EntryItem, OutputAssetModuleFilename, OutputOptions,
+};
 // use rspack_core::OptimizationOptions;
 // use rspack_core::SourceMapOptions;
 // use rspack_core::{
@@ -78,11 +80,20 @@ pub fn normalize_bundle_options(mut options: RawOptions) -> Result<CompilerOptio
     .and_then(|opt| opt.path.take())
     .unwrap_or_else(|| Path::new(&root).join("dist").to_string_lossy().to_string());
 
+  let output_asset_module_filename = options
+    .output
+    .as_mut()
+    .and_then(|opt| opt.asset_module_filename.take())
+    .map(OutputAssetModuleFilename::new);
+
   Ok(CompilerOptions {
     entries: parse_entries(options.entries),
     root,
     dev_server: DevServerOptions { hmr: false },
-    output: OutputOptions { path: output_path },
+    output: OutputOptions {
+      path: output_path,
+      asset_module_filename: output_asset_module_filename.unwrap_or_default(),
+    },
   })
 }
 
