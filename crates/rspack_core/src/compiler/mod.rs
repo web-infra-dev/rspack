@@ -12,8 +12,8 @@ use rayon::prelude::*;
 use tracing::instrument;
 
 use crate::{
-  Asset, AssetContent, CompilerOptions, Dependency, ModuleGraphModule, NormalModuleFactory,
-  NormalModuleFactoryContext, Plugin, PluginDriver, RenderManifestArgs, SourceType, Stats,
+  AssetContent, CompilerOptions, Dependency, ModuleGraphModule, NormalModuleFactory,
+  NormalModuleFactoryContext, Plugin, PluginDriver, Stats,
 };
 
 mod compilation;

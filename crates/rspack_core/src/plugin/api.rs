@@ -66,7 +66,7 @@ pub trait Plugin: Debug + Send + Sync {
       RspackAst::Css(_ast) => Err(anyhow::anyhow!("css ast codegen not supported yet ")),
     }
   }
-  fn parse(&self, uri: &str, content: &Content) -> PluginParseOutput {
+  fn parse(&self, _uri: &str, _content: &Content) -> PluginParseOutput {
     unreachable!()
   }
   fn transform(

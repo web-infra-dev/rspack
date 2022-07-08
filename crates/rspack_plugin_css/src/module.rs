@@ -2,11 +2,11 @@
 // pub use js_module::*;
 
 use anyhow::Result;
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashSet;
 use std::fmt::Debug;
 
 use rspack_core::{Module, ModuleRenderResult, ModuleType, SourceType};
-use rspack_sources::RawSource;
+
 use swc_css::{ast::Stylesheet, visit::VisitMutWith};
 
 use crate::{visitors::DependencyScanner, SWC_COMPILER};

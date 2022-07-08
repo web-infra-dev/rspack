@@ -9,8 +9,8 @@ use tokio::fs;
 
 use rspack_core::{
   Asset, AssetContent, BoxModule, Content, Filename, LoadArgs, Module, ModuleRenderResult,
-  ModuleType, NormalModuleFactoryContext, OutputAssetModuleFilename, Parser, Plugin, PluginContext,
-  PluginLoadHookOutput, PluginRenderManifestHookOutput, RenderManifestArgs, SourceType,
+  ModuleType, NormalModuleFactoryContext, Parser, Plugin, PluginContext, PluginLoadHookOutput,
+  PluginRenderManifestHookOutput, RenderManifestArgs, SourceType,
 };
 
 #[derive(Debug)]

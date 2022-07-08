@@ -1,7 +1,5 @@
-use futures::{FutureExt, StreamExt};
 pub use rspack_core::Compiler;
 use std::path::Path;
-use warp::Filter;
 
 use rspack_core::{CompilerOptions, Plugin};
 pub fn rspack(options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -> Compiler {
@@ -11,7 +9,7 @@ pub fn rspack(options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -> Co
   Compiler::new(options, plugins)
 }
 
-pub fn dev_server(options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -> DevServer {
+pub fn dev_server(options: CompilerOptions, plugins: Vec<Box<dyn Plugin>>) -> DevServer {
   DevServer {
     compiler: rspack(options, plugins),
   }

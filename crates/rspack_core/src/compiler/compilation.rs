@@ -1,14 +1,13 @@
-use std::{fmt::Debug, path::PathBuf, sync::Arc};
+use std::{fmt::Debug, sync::Arc};
 
-use dashmap::{DashMap, DashSet};
 use hashbrown::HashMap;
 use rayon::prelude::*;
 use tracing::instrument;
 
 use crate::{
   split_chunks::code_splitting2, Asset, ChunkGraph, CompilerOptions, Dependency, EntryItem,
-  Filename, ModuleDependency, ModuleGraph, OutputFilename, PluginDriver, RenderManifestArgs,
-  ResolveKind, VisitedModuleIdentity,
+  ModuleDependency, ModuleGraph, PluginDriver, RenderManifestArgs, ResolveKind,
+  VisitedModuleIdentity,
 };
 
 #[derive(Debug)]

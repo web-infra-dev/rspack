@@ -15,7 +15,7 @@
     "test:rust": "cargo test --all --all-features -- --nocapture",
     "test:example": "cargo run --example arco_pro",
     "prepare": "husky install",
-    "format:rs": "cargo fmt",
+    "format:rs": "cargo fmt --all --verbose",
     "format:js": "prettier --write \"packages/**/*.{ts,js}\"",
     "lint:rs": "cargo clippy --all-features -- --deny warnings",
     "build:core": "yarn workspace @rspack/binding run build ",
