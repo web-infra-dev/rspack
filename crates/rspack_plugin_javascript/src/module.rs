@@ -1,12 +1,12 @@
 use anyhow::Result;
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashSet;
 use tracing::instrument;
 
 use crate::visitors::DependencyScanner;
 use rspack_core::{
   Compilation, Module, ModuleGraphModule, ModuleRenderResult, ModuleType, SourceType,
 };
-use rspack_sources::RawSource;
+
 use std::fmt::Debug;
 use swc_common::FileName;
 use swc_ecma_ast::EsVersion;

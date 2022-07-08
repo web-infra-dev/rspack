@@ -1,7 +1,7 @@
 use std::{collections::HashMap, path::Path};
 
 use rspack::rspack;
-use rspack_core::{log, CompilerOptions, DevServerOptions, OutputOptions};
+use rspack_core::log;
 use rspack_node::{normalize_bundle_options, RawOptions};
 
 #[tokio::main]

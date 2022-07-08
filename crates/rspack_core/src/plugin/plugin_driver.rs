@@ -1,11 +1,10 @@
 use std::{collections::HashMap, sync::Arc};
 
-use dashmap::DashMap;
 use nodejs_resolver::Resolver;
 use tracing::instrument;
 
 use crate::{
-  ApplyContext, Asset, BoxModule, BoxedParser, CompilerOptions, Content, LoadArgs, ModuleType,
+  ApplyContext, BoxModule, BoxedParser, CompilerOptions, LoadArgs, ModuleType,
   NormalModuleFactoryContext, ParseModuleArgs, Plugin, PluginContext, PluginLoadHookOutput,
   PluginRenderManifestHookOutput, PluginResolveHookOutput, PluginTransformOutput,
   RenderManifestArgs, ResolveArgs, TransformArgs, TransformResult,

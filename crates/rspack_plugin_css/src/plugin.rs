@@ -2,31 +2,19 @@
 // pub use js_module::*;
 
 use crate::{module::CssModule, SWC_COMPILER};
-use anyhow::Context;
-use dashmap::DashSet;
-use hashbrown::HashMap;
-use once_cell::sync::Lazy;
+
 use rayon::prelude::*;
 use rspack_core::{
-  Asset, AssetContent, Content, Filename, Module, ModuleRenderResult, ModuleType,
-  NormalModuleFactoryContext, OutputFilename, ParseModuleArgs, Parser, Plugin,
-  PluginParseModuleHookOutput, RspackAst, SourceType, TransformResult,
+  Asset, AssetContent, Content, Filename, ModuleRenderResult, ModuleType,
+  NormalModuleFactoryContext, OutputFilename, ParseModuleArgs, Parser, Plugin, RspackAst,
+  SourceType, TransformResult,
 };
 use std::path::Path;
 
-use rspack_sources::{ConcatSource, RawSource, Source};
-use swc_common::{Globals, Mark, GLOBALS};
-
-use swc_css::codegen::{
-  writer::basic::{BasicCssWriter, BasicCssWriterConfig},
-  CodegenConfig, Emit,
-};
 use swc_css::visit::VisitMutWith;
 use swc_css_prefixer::prefixer;
 #[derive(Debug, Default)]
 pub struct CssPlugin {}
-
-static CSS_GLOBALS: Lazy<Globals> = Lazy::new(Globals::new);
 
 // impl Default for CssPlugin {
 //   fn default() -> Self {

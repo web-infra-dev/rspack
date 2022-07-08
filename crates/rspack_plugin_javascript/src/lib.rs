@@ -1,4 +1,5 @@
 #![feature(box_patterns)]
+#![allow(dead_code)]
 
 mod runtime;
 pub mod utils;

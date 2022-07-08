@@ -7,7 +7,6 @@ use rspack_core::{
   ParseModuleArgs, Parser, Plugin, PluginContext, PluginRenderManifestHookOutput, RspackAst,
   SourceType,
 };
-use rspack_sources::{RawSource, Source};
 
 use swc_common::comments::SingleThreadedComments;
 use swc_common::Mark;

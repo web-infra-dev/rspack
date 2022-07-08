@@ -1,0 +1,89 @@
+name: check
+
+on:
+  push:
+    branches:
+      - main
+      - next
+    tags-ignore:
+      - '**'
+  pull_request:
+
+env:
+  TRACE: DEBUG
+
+jobs:
+  format:
+    name: Format Rust Files
+    runs-on: [self-hosted, common]
+    steps:
+      - name: Checkout PR Branch
+        uses: actions/checkout@v3
+        with:
+          submodules: false
+      - name: Support longpaths
+        run: git config core.longpaths true
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install toolchain
+        run: rustup show
+      - name: Cache
+        uses: Swatinem/rust-cache@v1
+      - name: Run rustfmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all --verbose -- --check
+
+  lint:
+    name: Lint Rust Files
+    runs-on: [self-hosted, common]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install toolchain
+        run: rustup show
+      - name: Cache
+        uses: Swatinem/rust-cache@v1
+      - name: Run cargo check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --workspace --all-targets --release
+      - name: Run clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --workspace --all-targets --verbose -- --deny warnings
+
+  test:
+    name: Cargo test
+    strategy:
+      fail-fast: true
+    runs-on: [self-hosted, common]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install toolchain
+        run: rustup show
+      # - name: Install yarn
+      #   run: npm install -g yarn
+      # - name: yarn install --no-immutable
+      #   run: npm run init
+      # - name: Configure cache
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: |
+      #       ~/.cargo/bin/
+      #       ~/.cargo/registry/index/
+      #       ~/.cargo/registry/cache/
+      #       ~/.cargo/git/db/
+      #       target/
+      #     key: test-${{ runner.os }}-cargo-gcc-${{ matrix.gcc }}-clang-${{ matrix.clang }}-${{ hashFiles('**/Cargo.lock') }}
+      - name: Test
+        run: |
+          cargo test --all --all-features -- --nocapture
+          # # temporarily disable next line for rspack-style not fully support less for now.
+          # # yarn test:example
+          # yarn build:core
+          # yarn test:js
