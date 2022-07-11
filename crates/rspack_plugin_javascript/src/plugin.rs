@@ -3,8 +3,8 @@ use crate::visitors::ClearMark;
 use crate::{module::JsModule, utils::get_swc_compiler};
 use rayon::prelude::*;
 use rspack_core::{
-  Asset, AssetContent, Content, Filename, ModuleRenderResult, ModuleType, OutputFilename,
-  ParseModuleArgs, Parser, Plugin, PluginContext, PluginRenderManifestHookOutput, RspackAst,
+  Asset, AssetContent, Content, Filename, ModuleAst, ModuleRenderResult, ModuleType,
+  OutputFilename, ParseModuleArgs, Parser, Plugin, PluginContext, PluginRenderManifestHookOutput,
   SourceType,
 };
 
@@ -117,7 +117,7 @@ impl Parser for JsParser {
     }
     let ast = {
       match args.ast {
-        Some(RspackAst::JavaScript(_ast)) => Ok::<_, anyhow::Error>(_ast),
+        Some(ModuleAst::JavaScript(_ast)) => Ok::<_, anyhow::Error>(_ast),
         None => {
           if let Some(Content::String(source)) = args.source {
             Ok(parse_file(source, args.uri, &module_type))
