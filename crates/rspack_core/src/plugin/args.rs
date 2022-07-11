@@ -7,7 +7,7 @@ use swc_ecma_ast as ast;
 pub struct ParseModuleArgs<'a> {
   pub uri: &'a str,
   pub source: Option<Content>,
-  pub ast: Option<RspackAst>,
+  pub ast: Option<ModuleAst>,
 }
 
 #[derive(Debug, Clone)]
@@ -27,12 +27,32 @@ pub struct ResolveArgs<'a> {
 pub struct LoadArgs<'a> {
   pub uri: &'a str,
 }
+/**
+ * ast resused in transform hook
+ */
 #[derive(Debug, Clone)]
-pub enum RspackAst {
+pub enum TransformAst {
   JavaScript(ast::Program),
-  Css(Stylesheet), // I'm not sure what the final ast is, so just take placehold
+  Css(Stylesheet),
 }
 
+/**
+ *  AST used in first class Module
+ */
+#[derive(Debug, Clone)]
+pub enum ModuleAst {
+  JavaScript(ast::Program),
+  Css(Stylesheet),
+}
+
+impl From<TransformAst> for ModuleAst {
+  fn from(ast: TransformAst) -> ModuleAst {
+    match ast {
+      TransformAst::Css(_ast) => ModuleAst::Css(_ast),
+      TransformAst::JavaScript(_ast) => ModuleAst::JavaScript(_ast),
+    }
+  }
+}
 #[derive(Clone)]
 pub enum Content {
   String(String),
@@ -56,11 +76,11 @@ impl Debug for Content {
 pub struct TransformArgs<'a> {
   pub uri: &'a str,
   pub content: Option<Content>,
-  pub ast: Option<RspackAst>,
+  pub ast: Option<TransformAst>,
 }
 
 #[derive(Clone, Default, Debug)]
 pub struct TransformResult {
   pub content: Option<Content>,
-  pub ast: Option<RspackAst>,
+  pub ast: Option<TransformAst>,
 }

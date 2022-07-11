@@ -147,7 +147,7 @@ impl NormalModuleFactory {
       ParseModuleArgs {
         uri: uri.as_str(),
         source: transform_result.content,
-        ast: transform_result.ast,
+        ast: transform_result.ast.map(|x| x.into()),
       },
       &mut self.context,
     )?;

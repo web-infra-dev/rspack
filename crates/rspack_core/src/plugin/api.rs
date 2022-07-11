@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use crate::{
   BoxModule, LoadArgs, ModuleType, NormalModuleFactoryContext, ParseModuleArgs, PluginContext,
-  RenderManifestArgs, ResolveArgs, RspackAst, TransformResult,
+  RenderManifestArgs, ResolveArgs, TransformAst, TransformResult,
 };
 use crate::{Content, TransformArgs};
 
@@ -16,7 +16,7 @@ pub type PluginTransformOutput = Result<TransformResult>;
 pub type PluginRenderManifestHookOutput = Result<Vec<Asset>>;
 pub type PluginParseModuleHookOutput = Result<BoxModule>;
 pub type PluginResolveHookOutput = Result<Option<String>>;
-pub type PluginParseOutput = Result<RspackAst>;
+pub type PluginParseOutput = Result<TransformAst>;
 pub type PluginGenerateOutput = Result<Content>;
 // pub type PluginTransformAstHookOutput = Result<ast::Module>;
 
@@ -59,11 +59,11 @@ pub trait Plugin: Debug + Send + Sync {
   fn reuse_ast(&self) -> bool {
     false
   }
-  fn generate(&self, ast: &Option<RspackAst>) -> PluginGenerateOutput {
+  fn generate(&self, ast: &Option<TransformAst>) -> PluginGenerateOutput {
     let ast = ast.as_ref().context("call generate when ast is empty")?;
     match ast {
-      RspackAst::JavaScript(_ast) => Err(anyhow::anyhow!("js ast codegen not supported yet")),
-      RspackAst::Css(_ast) => Err(anyhow::anyhow!("css ast codegen not supported yet ")),
+      TransformAst::JavaScript(_ast) => Err(anyhow::anyhow!("js ast codegen not supported yet")),
+      TransformAst::Css(_ast) => Err(anyhow::anyhow!("css ast codegen not supported yet ")),
     }
   }
   fn parse(&self, _uri: &str, _content: &Content) -> PluginParseOutput {

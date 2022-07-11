@@ -5,9 +5,9 @@ use crate::{module::CssModule, SWC_COMPILER};
 
 use rayon::prelude::*;
 use rspack_core::{
-  Asset, AssetContent, Content, Filename, ModuleRenderResult, ModuleType,
-  NormalModuleFactoryContext, OutputFilename, ParseModuleArgs, Parser, Plugin, RspackAst,
-  SourceType, TransformResult,
+  Asset, AssetContent, Content, Filename, ModuleAst, ModuleRenderResult, ModuleType,
+  NormalModuleFactoryContext, OutputFilename, ParseModuleArgs, Parser, Plugin, SourceType,
+  TransformAst, TransformResult,
 };
 use std::path::Path;
 
@@ -47,12 +47,12 @@ impl Plugin for CssPlugin {
     _ctx: rspack_core::PluginContext<&mut NormalModuleFactoryContext>,
     args: rspack_core::TransformArgs,
   ) -> rspack_core::PluginTransformOutput {
-    if let Some(RspackAst::Css(mut ast)) = args.ast {
+    if let Some(TransformAst::Css(mut ast)) = args.ast {
       ast.visit_mut_with(&mut prefixer());
       Ok({
         TransformResult {
           content: None,
-          ast: Some(RspackAst::Css(ast)),
+          ast: Some(TransformAst::Css(ast)),
         }
       })
     } else {
@@ -67,7 +67,7 @@ impl Plugin for CssPlugin {
   fn parse(&self, uri: &str, content: &Content) -> rspack_core::PluginParseOutput {
     if let Content::String(content) = content {
       let stylesheet = SWC_COMPILER.parse_file(uri, content)?;
-      Ok(RspackAst::Css(stylesheet))
+      Ok(TransformAst::Css(stylesheet))
     } else {
       Err(anyhow::format_err!("failed to parse css {}", uri))
     }
@@ -122,7 +122,7 @@ impl Parser for CssParser {
     _module_type: ModuleType,
     args: ParseModuleArgs,
   ) -> anyhow::Result<rspack_core::BoxModule> {
-    if let Some(RspackAst::Css(_ast)) = args.ast {
+    if let Some(ModuleAst::Css(_ast)) = args.ast {
       Ok(Box::new(CssModule { ast: _ast }))
     } else if let Some(Content::String(source)) = args.source {
       let stylesheet = SWC_COMPILER.parse_file(args.uri, &source)?;
