@@ -1,5 +1,2 @@
-[target.'cfg(all())']
-rustflags = [
-    "-Dclippy::all",
-    "-Dclippy::unwrap_in_result", # https://rust-lang.github.io/rust-clippy/master/index.html#unwrap_in_result
-]
+[alias]
+lint = "clippy --workspace --all-targets --verbose -- --deny warnings"

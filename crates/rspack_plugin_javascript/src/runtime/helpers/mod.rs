@@ -37,7 +37,7 @@ impl Default for HelperMark {
 
 #[derive(Debug, Default)]
 pub struct Helpers {
-  external: bool, // TODO: add external runtime, i.e. support `output.runtimeChunk === "single"` option
+  external: bool, /* TODO: add external runtime, i.e. support `output.runtimeChunk === "single"` option */
   mark: HelperMark,
   inner: Inner,
 }
