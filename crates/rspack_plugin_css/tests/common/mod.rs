@@ -18,14 +18,14 @@ use rspack_core::{AssetContent, Compiler};
 //   bundler
 // }
 
-pub async fn test_fixture_css(fixture_dir_name: &str) -> Compiler {
-  let options = normalize_bundle_options(RawOptions::from_fixture(fixture_dir_name))
-    .unwrap_or_else(|_| panic!("failed to normalize in fixtrue {}", fixture_dir_name));
+pub async fn test_fixture_css(fixture_path: &Path) -> Compiler {
+  let options = normalize_bundle_options(RawOptions::from_fixture(fixture_path))
+    .unwrap_or_else(|_| panic!("failed to normalize in fixtrue {:?}", fixture_path));
 
   let mut compiler = rspack::rspack(options, Default::default());
 
   let dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-  let expected_dir_path = dir.join("fixtures").join(fixture_dir_name).join("expected");
+  let expected_dir_path = dir.join("fixtures").join(fixture_path).join("expected");
 
   let mut expected = std::fs::read_dir(expected_dir_path)
     .unwrap()
@@ -52,16 +52,16 @@ pub async fn test_fixture_css(fixture_dir_name: &str) -> Compiler {
             assert_eq!(
               content.trim(),
               expected.trim(),
-              "CSS test failed in fixture:{}, the filename is {:?}",
-              fixture_dir_name,
+              "CSS test failed in fixture:{:?}, the filename is {:?}",
+              fixture_path,
               filename
             )
           } else if let AssetContent::Buffer(buf) = &asset.content() {
             assert_eq!(
               buf,
               &expected.remove(&filename).unwrap(),
-              "CSS test failed in fixture:{}, the filename is {:?}",
-              fixture_dir_name,
+              "CSS test failed in fixture:{:?}, the filename is {:?}",
+              fixture_path,
               filename
             )
           }
@@ -77,14 +77,13 @@ pub async fn test_fixture_css(fixture_dir_name: &str) -> Compiler {
 }
 
 pub trait RawOptionsTestExt {
-  fn from_fixture(fixture: &str) -> Self;
+  fn from_fixture(fixture_path: &Path) -> Self;
 }
 
 impl RawOptionsTestExt for RawOptions {
-  fn from_fixture(fixture_path: &str) -> Self {
+  fn from_fixture(fixture_path: &Path) -> Self {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let fixtures_dir = dir.join("fixtures").join(fixture_path);
-    let pkg_path = fixtures_dir.join("rspack.config.json");
+    let pkg_path = fixture_path.join("rspack.config.json");
     let mut options = {
       if pkg_path.exists() {
         let pkg_content = std::fs::read_to_string(pkg_path).unwrap();
@@ -94,7 +93,7 @@ impl RawOptionsTestExt for RawOptions {
         RawOptions {
           entries: HashMap::from([(
             "main".to_string(),
-            fixtures_dir.join("index.js").to_str().unwrap().to_string(),
+            fixture_path.join("index.js").to_str().unwrap().to_string(),
           )]),
           ..Default::default()
         }
@@ -104,7 +103,7 @@ impl RawOptionsTestExt for RawOptions {
       options.root.is_none(),
       "You should not specify `root` in config. It would probably resolve to a wrong path"
     );
-    options.root = Some(fixtures_dir.to_str().unwrap().to_string());
+    options.root = Some(fixture_path.to_str().unwrap().to_string());
     options
   }
 }
