@@ -82,7 +82,6 @@ pub trait RawOptionsTestExt {
 
 impl RawOptionsTestExt for RawOptions {
   fn from_fixture(fixture_path: &Path) -> Self {
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     let pkg_path = fixture_path.join("rspack.config.json");
     let mut options = {
       if pkg_path.exists() {
@@ -107,9 +106,3 @@ impl RawOptionsTestExt for RawOptions {
     options
   }
 }
-
-// pub mod prelude {
-//   pub use super::RawOptionsTestExt;
-
-//   pub use rspack_core::Plugin;
-// }
