@@ -1,9 +1,17 @@
 name: Benchmark
 
-on:
-  issue_comment:
-    types: [ created ]
+# on:
+#   issue_comment:
+#     types: [ created ]
 
+on:
+  push:
+    branches:
+      - main
+      - next
+    tags-ignore:
+      - '**'
+  pull_request:
 jobs:
   benchmarks:
     name: Benchmarks
