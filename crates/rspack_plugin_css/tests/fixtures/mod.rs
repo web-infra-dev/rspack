@@ -1,23 +1,10 @@
 use crate::common::test_fixture_css;
-use std::path::Path;
+use std::path::PathBuf;
+use testing_macros::fixture;
 
-// TODO: we should split these tests in multiple functions to enable concurrency.
-// See https://github.com/swc-project/swc/blob/dc78cb48b928d33197de48dbea0181f8c78d78cd/crates/swc_ecma_transforms_base/tests/fixture.rs#L68
-#[tokio::test]
-async fn css() {
-  let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
-    .join("fixtures")
-    .join("*");
-
-  let fixture_dir_names = glob::glob(&manifest_dir.to_string_lossy())
+#[fixture("fixtures/*")]
+fn css(fixture_path: PathBuf) {
+  tokio::runtime::Runtime::new()
     .unwrap()
-    .into_iter()
-    .filter_map(|path| path.ok())
-    .filter_map(|path| path.file_name().map(|s| s.to_string_lossy().to_string()))
-    .filter(|path| !path.starts_with('_'))
-    .collect::<Vec<_>>();
-
-  for fixture in &fixture_dir_names {
-    test_fixture_css(fixture).await;
-  }
+    .block_on(test_fixture_css(&fixture_path));
 }
