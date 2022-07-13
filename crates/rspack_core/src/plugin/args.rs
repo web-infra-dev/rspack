@@ -1,4 +1,5 @@
 use crate::{Compilation, ResolveKind};
+use anyhow::Result;
 use std::fmt::Debug;
 use swc_css::ast::Stylesheet;
 use swc_ecma_ast as ast;
@@ -57,6 +58,30 @@ impl From<TransformAst> for ModuleAst {
 pub enum Content {
   String(String),
   Buffer(Vec<u8>),
+}
+
+impl Content {
+  pub fn as_string(&self) -> Result<String> {
+    match self {
+      Content::String(s) => Ok(s.to_owned()),
+      Content::Buffer(b) => String::from_utf8(b.clone()).map_err(anyhow::Error::from),
+    }
+  }
+
+  pub fn as_string_unchecked(&self) -> String {
+    self.as_string().unwrap()
+  }
+
+  pub fn as_bytes(&self) -> Result<Vec<u8>> {
+    match self {
+      Content::String(s) => Ok(s.as_bytes().to_vec()),
+      Content::Buffer(b) => Ok(b.clone()),
+    }
+  }
+
+  pub fn as_bytes_unchecked(&self) -> Vec<u8> {
+    self.as_bytes().unwrap()
+  }
 }
 
 impl Debug for Content {
