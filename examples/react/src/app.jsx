@@ -4,6 +4,7 @@ import './base.css';
 import LogoJPG from './file.jpg';
 import LogoPNG from './file.png';
 import LogoSVG from './file.svg';
+import Json from './data.json';
 // import Dark from './dark.svg';
 // import Light from './light.svg'
 // import LogoUrl from './logo.svg'
@@ -12,6 +13,7 @@ import LogoSVG from './file.svg';
 
 // console.log('LogoUrl', LogoUrl)
 // console.log('Logo', Logo)
+
 const App = () => {
   return (
     <React.Suspense fallback={<div>loading...</div>}>

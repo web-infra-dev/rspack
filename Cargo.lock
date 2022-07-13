@@ -1721,6 +1721,7 @@ dependencies = [
  "rspack_plugin_asset",
  "rspack_plugin_css",
  "rspack_plugin_javascript",
+ "rspack_plugin_json",
  "rspack_sources",
  "sugar_path",
  "tokio",
@@ -1844,6 +1845,17 @@ dependencies = [
  "swc_ecma_visit",
  "tracing",
  "typemap",
+]
+
+[[package]]
+name = "rspack_plugin_json"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "hashbrown 0.12.1",
+ "json",
+ "rspack_core",
+ "tracing",
 ]
 
 [[package]]
