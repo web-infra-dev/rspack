@@ -5,13 +5,15 @@ name: Benchmark
 #     types: [ created ]
 
 on:
-  push:
-    branches:
-      - main
-      - next
-    tags-ignore:
-      - '**'
-  pull_request:
+  # push:
+  #   branches:
+  #     - main
+  #     - next
+  #   tags-ignore:
+  #     - '**'
+  # pull_request:
+  issue_comment:
+    types: [ created ]
 jobs:
   benchmarks:
     name: Benchmarks
@@ -23,6 +25,8 @@ jobs:
         uses: styfle/cancel-workflow-action@0.9.1
         with:
           access_token: ${{ github.token }}
+      # - name: Cache
+      #   uses: speedy-js/rust-cache-self-hosted@v1
       - name: PR Benchmarks
         uses: speedy-js/rspack-benchmark-action@main
         env:
