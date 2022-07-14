@@ -33,7 +33,7 @@ impl Module for CssModule {
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
   ) -> HashSet<SourceType> {
-    HashSet::from_iter(vec![SourceType::Css, SourceType::JavaScript])
+    HashSet::from_iter([SourceType::JavaScript, SourceType::Css])
   }
 
   fn render(
@@ -59,6 +59,6 @@ impl Module for CssModule {
   fn dependencies(&mut self) -> Vec<rspack_core::ModuleDependency> {
     let mut scanner = DependencyScanner::default();
     self.ast.visit_mut_with(&mut scanner);
-    scanner.dependecies
+    scanner.dependencies
   }
 }

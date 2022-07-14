@@ -198,7 +198,7 @@ impl Module for AssetModule {
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
   ) -> HashSet<SourceType> {
-    HashSet::from_iter(vec![SourceType::Asset, SourceType::JavaScript])
+    HashSet::from_iter([SourceType::Asset, SourceType::JavaScript])
   }
 
   fn render(
