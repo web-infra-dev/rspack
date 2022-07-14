@@ -3,6 +3,8 @@ use hashbrown::HashSet;
 
 use rspack_core::{BoxModule, Module, ModuleRenderResult, ModuleType, Parser, Plugin, SourceType};
 
+mod utils;
+
 #[derive(Debug)]
 pub struct JsonPlugin {}
 
@@ -96,10 +98,7 @@ impl Module for JsonModule {
   }});
   "#,
         module.id,
-        self
-          .json_str
-          .replace('\u{2028}', r#"\\u2028"#)
-          .replace('\u{2029}', r#"\\u2029"#)
+        utils::escape_json(&self.json_str)
       ))),
       _ => None,
     };
