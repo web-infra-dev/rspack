@@ -33,9 +33,7 @@ impl Module for CssModule {
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
   ) -> HashSet<SourceType> {
-    HashSet::from_iter(
-      std::iter::once(SourceType::Css).chain(std::iter::once(SourceType::JavaScript)),
-    )
+    HashSet::from_iter([SourceType::JavaScript, SourceType::Css])
   }
 
   fn render(

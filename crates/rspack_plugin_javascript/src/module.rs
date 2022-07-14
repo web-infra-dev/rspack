@@ -47,7 +47,7 @@ impl Module for JsModule {
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
   ) -> HashSet<SourceType> {
-    HashSet::from_iter(std::iter::once(SourceType::JavaScript))
+    HashSet::from_iter([SourceType::JavaScript])
   }
 
   #[instrument]
