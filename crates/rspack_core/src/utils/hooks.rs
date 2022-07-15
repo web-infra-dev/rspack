@@ -17,9 +17,7 @@ pub async fn load(
   } else {
     let url = parse_to_url(args.uri);
     debug_assert_eq!(url.scheme(), "specifier");
-    Ok(Content::String(
-      tokio::fs::read_to_string(url.path()).await?,
-    ))
+    Ok(Content::Buffer(tokio::fs::read(url.path()).await?))
   }
 }
 

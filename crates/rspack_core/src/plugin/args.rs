@@ -61,26 +61,100 @@ pub enum Content {
 }
 
 impl Content {
-  pub fn as_string(&self) -> Result<String> {
+  pub fn try_to_string(&self) -> Result<String> {
+    self.try_into()
+  }
+
+  pub fn to_string_unchecked(&self) -> String {
+    self.try_into().unwrap()
+  }
+
+  pub fn try_into_string(self) -> Result<String> {
     match self {
+      Content::String(s) => Ok(s),
+      Content::Buffer(b) => String::from_utf8(b).map_err(anyhow::Error::from),
+    }
+  }
+
+  pub fn into_string_unchecked(self) -> String {
+    self.try_into_string().unwrap()
+  }
+
+  pub fn as_bytes(&self) -> &[u8] {
+    match self {
+      Content::String(s) => s.as_bytes(),
+      Content::Buffer(b) => b,
+    }
+  }
+
+  /// Converts a the content to a mutable byte slice,
+  pub fn as_bytes_mut(&mut self) -> &mut [u8] {
+    match self {
+      Content::String(s) => unsafe { s.as_bytes_mut() },
+      Content::Buffer(b) => b,
+    }
+  }
+
+  pub fn into_bytes(self) -> Vec<u8> {
+    match self {
+      Content::String(s) => s.into_bytes(),
+      Content::Buffer(b) => b,
+    }
+  }
+}
+
+impl TryFrom<Content> for String {
+  type Error = anyhow::Error;
+
+  fn try_from(content: Content) -> Result<Self, Self::Error> {
+    content.try_into_string()
+  }
+}
+
+impl TryFrom<&Content> for String {
+  type Error = anyhow::Error;
+
+  fn try_from(content: &Content) -> Result<Self, Self::Error> {
+    match content {
       Content::String(s) => Ok(s.to_owned()),
-      Content::Buffer(b) => String::from_utf8(b.clone()).map_err(anyhow::Error::from),
+      Content::Buffer(buf) => String::from_utf8(buf.clone()).map_err(anyhow::Error::from),
     }
   }
+}
 
-  pub fn as_string_unchecked(&self) -> String {
-    self.as_string().unwrap()
+impl From<Content> for Vec<u8> {
+  fn from(content: Content) -> Self {
+    content.into_bytes()
   }
+}
 
-  pub fn as_bytes(&self) -> Result<Vec<u8>> {
-    match self {
-      Content::String(s) => Ok(s.as_bytes().to_vec()),
-      Content::Buffer(b) => Ok(b.clone()),
-    }
+impl From<&Content> for Vec<u8> {
+  fn from(content: &Content) -> Self {
+    content.as_bytes().to_vec()
   }
+}
 
-  pub fn as_bytes_unchecked(&self) -> Vec<u8> {
-    self.as_bytes().unwrap()
+impl From<&str> for Content {
+  fn from(s: &str) -> Self {
+    Self::String(s.to_owned())
+  }
+}
+
+impl From<String> for Content {
+  fn from(s: String) -> Self {
+    Self::String(s)
+  }
+}
+
+impl From<&[u8]> for Content {
+  fn from(buf: &[u8]) -> Self {
+    Self::Buffer(buf.to_vec())
+  }
+}
+
+impl From<Vec<u8>> for Content {
+  fn from(buf: Vec<u8>) -> Self {
+    Self::Buffer(buf)
   }
 }
 

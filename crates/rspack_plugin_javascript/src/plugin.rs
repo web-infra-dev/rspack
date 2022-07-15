@@ -1,11 +1,11 @@
 use crate::utils::parse_file;
 use crate::visitors::ClearMark;
 use crate::{module::JsModule, utils::get_swc_compiler};
+use anyhow::Context;
 use rayon::prelude::*;
 use rspack_core::{
-  Asset, AssetContent, Content, Filename, ModuleAst, ModuleRenderResult, ModuleType,
-  OutputFilename, ParseModuleArgs, Parser, Plugin, PluginContext, PluginRenderManifestHookOutput,
-  SourceType,
+  Asset, AssetContent, Filename, ModuleAst, ModuleRenderResult, ModuleType, OutputFilename,
+  ParseModuleArgs, Parser, Plugin, PluginContext, PluginRenderManifestHookOutput, SourceType,
 };
 
 use swc_common::comments::SingleThreadedComments;
@@ -119,8 +119,14 @@ impl Parser for JsParser {
       match args.ast {
         Some(ModuleAst::JavaScript(_ast)) => Ok::<_, anyhow::Error>(_ast),
         None => {
-          if let Some(Content::String(source)) = args.source {
-            Ok(parse_file(source, args.uri, &module_type))
+          if let Some(content) = args.source {
+            Ok(parse_file(
+              content
+                .try_into_string()
+                .context("Unable to serialize content as string which is required by plugin css")?,
+              args.uri,
+              &module_type,
+            ))
           } else {
             anyhow::bail!(
               "ast and source is both empty for {}, or content type does not match {:?}",

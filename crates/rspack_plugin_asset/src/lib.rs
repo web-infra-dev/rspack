@@ -142,10 +142,7 @@ impl Parser for AssetParser {
     module_type: ModuleType,
     args: rspack_core::ParseModuleArgs,
   ) -> Result<BoxModule> {
-    let buf = args.source.map(|content| match content {
-      Content::Buffer(buf) => buf,
-      Content::String(str) => str.as_bytes().to_vec(),
-    });
+    let buf = args.source.map(|content| content.into_bytes());
 
     if let Some(buf) = buf {
       let size = buf.len() as u32;

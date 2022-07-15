@@ -42,8 +42,7 @@ impl Parser for JsonParser {
   ) -> Result<BoxModule> {
     let json_str = args
       .source
-      .as_ref()
-      .map(|content| content.as_string())
+      .map(|content| content.try_into_string())
       .transpose()?
       .map(|s| json::parse(&s).map(|_| s))
       .transpose()?

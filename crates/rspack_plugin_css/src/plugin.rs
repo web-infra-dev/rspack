@@ -3,6 +3,7 @@
 
 use crate::{module::CssModule, SWC_COMPILER};
 
+use anyhow::Context;
 use rayon::prelude::*;
 use rspack_core::{
   Asset, AssetContent, Content, Filename, ModuleAst, ModuleRenderResult, ModuleType,
@@ -65,12 +66,11 @@ impl Plugin for CssPlugin {
     }
   }
   fn parse(&self, uri: &str, content: &Content) -> rspack_core::PluginParseOutput {
-    if let Content::String(content) = content {
-      let stylesheet = SWC_COMPILER.parse_file(uri, content)?;
-      Ok(TransformAst::Css(stylesheet))
-    } else {
-      Err(anyhow::format_err!("failed to parse css {}", uri))
-    }
+    let content = content
+      .try_to_string()
+      .context("Unable to serialize content as string which is required by plugin css")?;
+    let stylesheet = SWC_COMPILER.parse_file(uri, content)?;
+    Ok(TransformAst::Css(stylesheet))
   }
   fn render_manifest(
     &self,
@@ -124,8 +124,11 @@ impl Parser for CssParser {
   ) -> anyhow::Result<rspack_core::BoxModule> {
     if let Some(ModuleAst::Css(_ast)) = args.ast {
       Ok(Box::new(CssModule { ast: _ast }))
-    } else if let Some(Content::String(source)) = args.source {
-      let stylesheet = SWC_COMPILER.parse_file(args.uri, &source)?;
+    } else if let Some(content) = args.source {
+      let content = content
+        .try_into_string()
+        .context("Unable to serialize content as string which is required by plugin css")?;
+      let stylesheet = SWC_COMPILER.parse_file(args.uri, content)?;
       Ok(Box::new(CssModule { ast: stylesheet }))
     } else {
       Err(anyhow::format_err!(
