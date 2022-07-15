@@ -1,3 +1,5 @@
 {
-  "name": "rspack"
+  "escaped": "\\u2028",
+  "LS": " ",
+  "PS": " "
 }

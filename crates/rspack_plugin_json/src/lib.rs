@@ -1,9 +1,9 @@
 use anyhow::Result;
 use hashbrown::HashSet;
 
-use rspack_core::{
-  BoxModule, Content, Module, ModuleRenderResult, ModuleType, Parser, Plugin, SourceType,
-};
+use rspack_core::{BoxModule, Module, ModuleRenderResult, ModuleType, Parser, Plugin, SourceType};
+
+mod utils;
 
 #[derive(Debug)]
 pub struct JsonPlugin {}
@@ -40,22 +40,30 @@ impl Parser for JsonParser {
     _module_type: ModuleType,
     args: rspack_core::ParseModuleArgs,
   ) -> Result<BoxModule> {
-    let source = args.source;
-    Ok(Box::new(JsonModule::new(source)))
+    let json_str = args
+      .source
+      .as_ref()
+      .map(|content| content.as_string())
+      .transpose()?
+      .map(|s| json::parse(&s).map(|_| s))
+      .transpose()?
+      .unwrap_or_else(|| "{}".to_owned());
+
+    Ok(Box::new(JsonModule::new(json_str)))
   }
 }
 
 #[derive(Debug)]
 struct JsonModule {
   module_type: ModuleType,
-  source: Option<Content>,
+  json_str: String,
 }
 
 impl JsonModule {
-  fn new(source: Option<Content>) -> Self {
+  fn new(json_str: String) -> Self {
     Self {
       module_type: ModuleType::Json,
-      source,
+      json_str,
     }
   }
 }
@@ -83,24 +91,15 @@ impl Module for JsonModule {
     _compilation: &rspack_core::Compilation,
   ) -> Result<Option<ModuleRenderResult>> {
     let result = match requested_source_type {
-      SourceType::JavaScript => {
-        let json_str = self
-          .source
-          .as_ref()
-          .map(|content| content.as_string())
-          .transpose()?
-          .unwrap_or_else(|| "{}".to_owned());
-
-        Some(ModuleRenderResult::JavaScript(format!(
-          r#"rs.define("{}", function(__rspack_require__, module, exports) {{
+      SourceType::JavaScript => Some(ModuleRenderResult::JavaScript(format!(
+        r#"rs.define("{}", function(__rspack_require__, module, exports) {{
     "use strict";
     module.exports = {};
   }});
   "#,
-          module.id,
-          json::stringify(json::parse(&json_str)?)
-        )))
-      }
+        module.id,
+        utils::escape_json(&self.json_str)
+      ))),
       _ => None,
     };
 
