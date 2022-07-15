@@ -62,11 +62,23 @@ pub enum Content {
 
 impl Content {
   pub fn try_to_string(&self) -> Result<String> {
-    self.try_into()
+    match self {
+      Content::String(s) => Ok(s.to_owned()),
+      Content::Buffer(b) => String::from_utf8(b.to_owned()).map_err(anyhow::Error::from),
+    }
   }
 
-  pub fn to_string_unchecked(&self) -> String {
-    self.try_into().unwrap()
+  /// # Safety
+  ///
+  /// This function is unsafe because it does not check that the bytes passed
+  /// to it are valid UTF-8. If this constraint is violated, it may cause
+  /// memory unsafety issues with future users of the `String`, as the rest of
+  /// the standard library assumes that `String`s are valid UTF-8.
+  pub unsafe fn to_string_unchecked(&self) -> String {
+    match self {
+      Content::String(s) => s.to_owned(),
+      Content::Buffer(b) => String::from_utf8_unchecked(b.to_owned()),
+    }
   }
 
   pub fn try_into_string(self) -> Result<String> {
@@ -76,8 +88,17 @@ impl Content {
     }
   }
 
-  pub fn into_string_unchecked(self) -> String {
-    self.try_into_string().unwrap()
+  /// # Safety
+  ///
+  /// This function is unsafe because it does not check that the bytes passed
+  /// to it are valid UTF-8. If this constraint is violated, it may cause
+  /// memory unsafety issues with future users of the `String`, as the rest of
+  /// the standard library assumes that `String`s are valid UTF-8.
+  pub unsafe fn into_string_unchecked(self) -> String {
+    match self {
+      Content::String(s) => s,
+      Content::Buffer(b) => String::from_utf8_unchecked(b),
+    }
   }
 
   pub fn as_bytes(&self) -> &[u8] {
@@ -87,10 +108,17 @@ impl Content {
     }
   }
 
-  /// Converts a the content to a mutable byte slice,
-  pub fn as_bytes_mut(&mut self) -> &mut [u8] {
+  /// Converts the content to a mutable byte slice
+  ///
+  /// # Safety
+  ///
+  /// The caller must ensure that the content of the slice is valid UTF-8
+  /// before the borrow ends and the underlying `str` is used.
+  ///
+  /// Use of a `str` whose contents are not valid UTF-8 is undefined behavior.
+  pub unsafe fn as_bytes_mut(&mut self) -> &mut [u8] {
     match self {
-      Content::String(s) => unsafe { s.as_bytes_mut() },
+      Content::String(s) => s.as_bytes_mut(),
       Content::Buffer(b) => b,
     }
   }
@@ -115,10 +143,7 @@ impl TryFrom<&Content> for String {
   type Error = anyhow::Error;
 
   fn try_from(content: &Content) -> Result<Self, Self::Error> {
-    match content {
-      Content::String(s) => Ok(s.to_owned()),
-      Content::Buffer(buf) => String::from_utf8(buf.clone()).map_err(anyhow::Error::from),
-    }
+    content.try_to_string()
   }
 }
 
