@@ -6,4 +6,4 @@
 
 ## ModuleGraphModule
 
-`ModuleGraphModule` is wrapper `Module`. It holds the `Module` object and store some extra informations that bundler care about.
+`ModuleGraphModule` is wrapper of `Module`. It holds the `Module` object and store some extra informations that bundler care about.
