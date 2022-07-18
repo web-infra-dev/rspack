@@ -2,5 +2,5 @@
 
 Maybe the next generation bundler
 
-- [contributing](./docs/contributing.md)
+- [contributing](./CONTRIBUTING.md)
 - [glossary](./docs/glossary.md)
