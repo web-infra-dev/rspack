@@ -4,19 +4,23 @@ use std::{
   error::Error,
   ffi::OsString,
   fmt::Display,
-  fs::{self},
-  io,
-  path::{Path, PathBuf},
+  fs,
+  path::{self, Path, PathBuf},
+  sync::{Arc, Mutex},
 };
 
 use colored::Colorize;
 
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use bincode;
+use serde_json;
 use similar::ChangeTag;
 
-use crate::helper::{clear_console, is_mute, user_prompt};
+use crate::{
+  helper::{is_detail, is_mute, make_relative_from, no_write},
+  record::{self, FailedCase, Record},
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Mode {
@@ -31,23 +35,31 @@ impl Default for Mode {
 }
 
 #[derive(Debug, Default)]
-pub struct TestError(pub Vec<TestErrorKind>);
+pub struct TestError {
+  fixture: String,
+  verbose: bool,
+  errors: Vec<TestErrorKind>,
+}
 
 impl TestError {
-  pub fn new() -> Self {
-    Self(vec![])
+  pub fn new(fixture: String, verbose: bool) -> Self {
+    Self {
+      fixture,
+      verbose,
+      errors: vec![],
+    }
   }
 
   pub fn push(&mut self, e: TestErrorKind) {
-    self.0.push(e);
+    self.errors.push(e);
   }
 
   pub fn extend(&mut self, e: TestError) {
-    self.0.extend(e.0);
+    self.errors.extend(e.errors);
   }
 
   pub fn has_err(&self) -> bool {
-    !self.0.is_empty()
+    !self.errors.is_empty()
   }
 }
 
@@ -57,34 +69,73 @@ pub enum TestErrorKind {
   MissingActualFile(PathBuf),
   MissingExpectedDir(PathBuf),
   MissingExpectedFile(PathBuf),
-  Difference(PathBuf, PathBuf),
+  Difference(FileDiff),
+}
+
+#[derive(Debug)]
+pub struct FileDiff {
+  path: PathBuf,
+
+  /// (expected_index, change_type, line content)
+  diff: Vec<(usize, ChangeTag, String)>,
 }
 
 impl Display for TestError {
   #[allow(clippy::unwrap_in_result)]
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    for kind in self.0.iter() {
+    f.write_str(
+      &format!(
+        "{}",
+        format!("Fixture: {}\n{} error\n\n", self.fixture, self.errors.len()).red()
+      )
+      .red(),
+    )
+    .unwrap();
+
+    for kind in self.errors.iter() {
+      let mut output = |prefix: &str, msg: &str| {
+        f.write_str(&format!(
+          "{}",
+          format!("- {}: {}\n", prefix.white().on_red(), msg).red()
+        ))
+      };
+
+      fn color(f: &mut std::fmt::Formatter<'_>, tag: &ChangeTag, s: &str) {
+        f.write_str(&format!(
+          "{}",
+          match tag {
+            ChangeTag::Delete => s.red(),
+            ChangeTag::Insert => s.green(),
+            _ => s.black(),
+          }
+        ))
+        .unwrap();
+      }
+
       if let Err(e) = match &kind {
-        TestErrorKind::Difference(file, _) => f.write_str(&format!(
-          "File is different from expecting: {}",
-          file.as_path().to_str().unwrap()
-        )),
-        TestErrorKind::MissingExpectedDir(dir) => f.write_str(&format!(
-          "Can not find 'expected' directory:\nExpected: {}",
-          dir.as_path().to_str().unwrap()
-        )),
-        TestErrorKind::MissingActualDir(dir) => f.write_str(&format!(
-          "Can not find 'actual' directory:\nActual: {}",
-          dir.as_path().to_str().unwrap()
-        )),
-        TestErrorKind::MissingActualFile(file) => f.write_str(&format!(
-          "There is a file missing: {}",
-          file.as_path().to_str().unwrap()
-        )),
-        TestErrorKind::MissingExpectedFile(file) => f.write_str(&format!(
-          "There is a expected file missing: {}",
-          file.as_path().to_str().unwrap()
-        )),
+        TestErrorKind::Difference(diff) => {
+          output("File difference", diff.path.as_path().to_str().unwrap()).unwrap();
+          if self.verbose {
+            for (idx, tag, content) in &diff.diff {
+              color(f, tag, &format!("   {} {}| {}\n", tag, idx, content));
+            }
+          }
+          Ok(())
+        }
+        TestErrorKind::MissingExpectedDir(dir) => output(
+          "'Expected' directory missing",
+          dir.as_path().to_str().unwrap(),
+        ),
+        TestErrorKind::MissingActualDir(dir) => output(
+          "'Actual' directory missing",
+          dir.as_path().to_str().unwrap(),
+        ),
+        TestErrorKind::MissingActualFile(file) => {
+          output("'Actual' file missing: ", file.as_path().to_str().unwrap())
+        }
+        TestErrorKind::MissingExpectedFile(file) => {
+          output("'Expected' file missing", file.as_path().to_str().unwrap())
+        }
       } {
         return Err(e);
       }
@@ -98,10 +149,10 @@ impl Error for TestError {}
 #[derive(Builder, Debug, Serialize, Deserialize, Clone)]
 #[builder(default)]
 pub struct Rst {
-  fixture: PathBuf,
-  actual: String,
-  expected: String,
-  mode: Mode,
+  pub fixture: PathBuf,
+  pub actual: String,
+  pub expected: String,
+  pub mode: Mode,
 }
 
 impl Default for Rst {
@@ -112,12 +163,6 @@ impl Default for Rst {
       expected: String::from("expected"),
       mode: Mode::Partial,
     }
-  }
-}
-
-impl From<Vec<u8>> for Rst {
-  fn from(v: Vec<u8>) -> Self {
-    bincode::deserialize(&v[..]).unwrap()
   }
 }
 
@@ -140,6 +185,11 @@ macro_rules! prtln {
 }
 
 impl Rst {
+  /// Generate Rst using **relative** path.
+  pub fn from_path(path: &Path) -> Self {
+    record::Record::from(path).into()
+  }
+
   #[inline(always)]
   fn get_expected_path(&self) -> PathBuf {
     let mut base = self.fixture.clone();
@@ -158,9 +208,19 @@ impl Rst {
 
   #[inline(always)]
   fn get_record_path(&self) -> PathBuf {
-    let mut path_buf = env::current_dir().expect("No permission to access current working dir");
-    path_buf.push(".rst_records/records");
-    path_buf.push(&self.fixture.as_path().to_str().unwrap().replace('/', "_"));
+    let root = env::current_dir().expect("No permission to access current working dir");
+    let mut path_buf = root.clone();
+    path_buf.push(".temp");
+
+    let json_path = self.fixture.to_str().unwrap().to_string() + ".json";
+    let json_path = Path::new(&json_path);
+
+    path_buf.push(
+      make_relative_from(json_path, &root)
+        .to_str()
+        .unwrap()
+        .replace(path::MAIN_SEPARATOR, "&"),
+    );
 
     path_buf
   }
@@ -168,76 +228,80 @@ impl Rst {
   #[inline(always)]
   fn get_record_dir() -> PathBuf {
     let mut path_buf = env::current_dir().expect("No permission to access current working dir");
-    path_buf.push(".rst_records");
+    path_buf.push(".temp");
     path_buf
   }
 
-  #[inline(always)]
-  fn get_failed_path(&self) -> PathBuf {
-    let mut path_buf = env::current_dir().expect("No permission to access current working dir");
-    path_buf.push(".rst_records/failed");
-    path_buf.push(&self.fixture.as_path().to_str().unwrap().replace('/', "_"));
-
-    path_buf
-  }
-
-  // If is called using CLI, need_read_disk is true
-  fn init(&mut self, need_read_disk: bool) {
+  fn validate(&mut self) {
     if self.fixture.to_str().unwrap() == "" {
       panic!("Fixture path must be specified, maybe you forget to call RstBuilder::default().fixture(\"...\")");
-    } else if need_read_disk {
-      let record_path = self.get_record_path();
-      if record_path.exists() {
-        let rst = fs::read(record_path.as_path()).unwrap();
-        let rst = bincode::deserialize::<Rst>(rst.as_slice()).unwrap();
-        self.expected = rst.expected;
-        self.actual = rst.actual;
-        self.mode = rst.mode;
-      }
     }
   }
 
   fn finalize(&self, res: &Result<(), TestError>) {
-    if let Err(e) = res {
-      if !is_mute() {
-        self.prt_err(e);
-      }
-      let failed_path = self.get_failed_path();
-      if !failed_path.exists() {
-        fs::create_dir_all(failed_path.parent().unwrap()).unwrap();
-      }
-      fs::write(failed_path, bincode::serialize(self).unwrap()).unwrap();
+    let record_dir = Self::get_record_dir();
+    if !record_dir.exists() {
+      fs::create_dir_all(record_dir.as_path()).unwrap();
     }
 
     let record_path = self.get_record_path();
-    if !record_path.exists() {
-      fs::create_dir_all(record_path.parent().unwrap()).unwrap();
+
+    if let Err(err) = res {
+      // Test failed, we should save the failed record.
+      if !no_write() {
+        if !record_path.exists() {
+          fs::create_dir_all(record_path.parent().unwrap()).unwrap();
+        }
+
+        let record = record::Record::new(
+          self,
+          err
+            .errors
+            .iter()
+            .map(|err| match err {
+              TestErrorKind::MissingActualDir(p) => FailedCase::MissingActualDir(p.clone()),
+              TestErrorKind::MissingActualFile(p) => FailedCase::MissingActualFile(p.clone()),
+              TestErrorKind::MissingExpectedDir(p) => FailedCase::MissingExpectedDir(p.clone()),
+              TestErrorKind::MissingExpectedFile(p) => FailedCase::MissingExpectedFile(p.clone()),
+              TestErrorKind::Difference(diff) => {
+                let mut added = vec![];
+                let mut removed = vec![];
+
+                for (line, change, _) in &diff.diff {
+                  match change {
+                    ChangeTag::Delete => removed.push(*line),
+                    ChangeTag::Insert => added.push(*line),
+                    _ => {}
+                  }
+                }
+
+                FailedCase::Difference {
+                  file: diff.path.clone(),
+                  added,
+                  removed,
+                }
+              }
+            })
+            .collect(),
+        );
+
+        record.save_to_disk();
+      }
     }
-    let rst = bincode::serialize::<Rst>(self).unwrap();
-    fs::write(record_path.as_path(), rst).unwrap();
   }
 
-  // Convenient for unit test
-  pub fn assert(&mut self) {
-    let msg = format!(
-      "{}{}",
-      "Test failed: ".red(),
-      self.fixture.to_str().unwrap().red()
-    );
-    self.test().expect(&msg);
-  }
-
+  /// Main test method
+  /// This will write failed records in the disk
+  #[allow(clippy::unwrap_in_result)]
   pub fn test(&mut self) -> Result<(), TestError> {
-    self.test_internal(false)
-  }
-
-  fn test_internal(&mut self, need_read_disk: bool) -> Result<(), TestError> {
-    self.init(need_read_disk);
+    self.validate();
 
     let res = Self::compare(
+      self.fixture.to_str().unwrap().into(),
       &self.mode,
       &self.get_actual_path(),
       &self.get_expected_path(),
+      is_detail(),
     );
 
     self.finalize(&res);
@@ -245,30 +309,29 @@ impl Rst {
     res
   }
 
-  fn prt_err(&self, err: &TestError) {
-    prtln!(
-      "{}",
-      format!("{} error:\n\n{}", err.0.len(), err)
-        .white()
-        .on_red()
-    );
-  }
-
   #[allow(clippy::unwrap_in_result)]
-  fn compare(mode: &Mode, actual: &Path, expected: &Path) -> Result<(), TestError> {
-    let mut err = TestError::new();
+  fn compare(
+    fixture: String,
+    mode: &Mode,
+    actual_base: &Path,
+    expected_base: &Path,
+    verbose: bool,
+  ) -> Result<(), TestError> {
+    let mut err = TestError::new(fixture.clone(), verbose);
 
-    if !actual.exists() || !actual.is_dir() {
-      err.push(TestErrorKind::MissingActualDir(PathBuf::from(actual)));
+    if !actual_base.exists() || !actual_base.is_dir() {
+      err.push(TestErrorKind::MissingActualDir(PathBuf::from(actual_base)));
       return Err(err);
     }
 
-    if !expected.exists() || !expected.is_dir() {
-      err.push(TestErrorKind::MissingExpectedDir(PathBuf::from(expected)));
+    if !expected_base.exists() || !expected_base.is_dir() {
+      err.push(TestErrorKind::MissingExpectedDir(PathBuf::from(
+        expected_base,
+      )));
       return Err(err);
     }
 
-    let actual_dirs: Vec<OsString> = actual
+    let actual_dirs: Vec<OsString> = actual_base
       .read_dir()
       .unwrap()
       .map(|p| p.unwrap().file_name())
@@ -276,7 +339,7 @@ impl Rst {
 
     let actual_dirs: HashSet<OsString> = HashSet::from_iter(actual_dirs);
 
-    let expected_dirs: Vec<OsString> = expected
+    let expected_dirs: Vec<OsString> = expected_base
       .read_dir()
       .unwrap()
       .map(|p| p.unwrap().file_name())
@@ -284,11 +347,11 @@ impl Rst {
     let expected_dirs: HashSet<OsString> = HashSet::from_iter(expected_dirs);
 
     for actual_dir_str in actual_dirs.iter() {
-      let mut actual_dir = PathBuf::from(actual);
+      let mut actual_dir = PathBuf::from(actual_base);
       actual_dir.push(actual_dir_str);
 
       if let Some(expected_dir_str) = expected_dirs.get(actual_dir_str) {
-        let mut expected_dir = PathBuf::from(expected);
+        let mut expected_dir = PathBuf::from(expected_base);
         expected_dir.push(expected_dir_str);
 
         let is_expect_file = expected_dir.is_file();
@@ -297,34 +360,95 @@ impl Rst {
         if is_expect_file && is_actual_file {
           // file diff
           let expected_buf = fs::read(expected_dir.as_path()).unwrap();
-          let actual_buf = fs::read(actual_dir.as_path()).unwrap();
+          let expected_str = String::from_utf8(expected_buf.clone());
 
-          if expected_buf != actual_buf {
-            err.push(TestErrorKind::Difference(
-              actual_dir.clone(),
-              expected_dir.clone(),
-            ));
-          }
+          let actual_buf = fs::read(actual_dir.as_path()).unwrap();
+          let actual_str = String::from_utf8(actual_buf.clone());
+
+          let mut diff = FileDiff {
+            path: expected_dir.clone(),
+            diff: vec![],
+          };
+
+          match (expected_str, actual_str) {
+            // all can be stringify
+            (Ok(expected_str), Ok(actual_str)) => {
+              for change in
+                similar::TextDiff::from_lines(expected_str.as_str(), actual_str.as_str())
+                  .iter_all_changes()
+              {
+                if matches!(change.tag(), ChangeTag::Equal) {
+                  continue;
+                }
+
+                let old_index = change.old_index();
+                diff.diff.push((
+                  old_index.unwrap_or_else(|| change.new_index().unwrap()),
+                  change.tag(),
+                  match old_index {
+                    Some(idx) => expected_str
+                      .split('\n')
+                      .collect::<Vec<&str>>()
+                      .get(idx)
+                      .copied()
+                      .unwrap_or("")
+                      .into(),
+                    None => {
+                      let new_idx = change.new_index().unwrap();
+                      actual_str
+                        .split('\n')
+                        .collect::<Vec<&str>>()
+                        .get(new_idx)
+                        .copied()
+                        .unwrap_or("")
+                        .into()
+                    }
+                  },
+                ))
+              }
+
+              if !diff.diff.is_empty() {
+                err.push(TestErrorKind::Difference(diff));
+              }
+            }
+            _ => {
+              // binary file diff
+              if expected_buf != actual_buf {
+                err.push(TestErrorKind::Difference(diff))
+              }
+            }
+          };
         } else if !is_expect_file && !is_actual_file {
           // directory diff
-          if let Err(e) = Self::compare(mode, actual_dir.as_path(), expected_dir.as_path()) {
+          if let Err(e) = Self::compare(
+            fixture.clone(),
+            mode,
+            actual_dir.as_path(),
+            expected_dir.as_path(),
+            verbose,
+          ) {
             err.extend(e);
           }
-        } else if is_actual_file {
-          // actual is file, but expect is dir
-          err.push(TestErrorKind::MissingActualFile(actual_dir.clone()));
-        } else {
-          // actual is dir, but expect is file
+        } else if actual_dir.is_dir() {
+          // actual is dir, but expected is file
           err.push(TestErrorKind::MissingActualDir(actual_dir.clone()));
+        } else {
+          // actual is file, but expected is dir
+          err.push(TestErrorKind::MissingActualFile(actual_dir.clone()));
         }
       } else if matches!(mode, Mode::Strict) {
-        err.push(TestErrorKind::MissingActualFile(actual_dir.clone()));
+        // strict check, expected must exist
+        if actual_dir.is_dir() {
+          err.push(TestErrorKind::MissingActualDir(actual_dir.clone()));
+        } else {
+          err.push(TestErrorKind::MissingActualFile(actual_dir.clone()));
+        }
       }
     }
 
     for expected_dir_str in expected_dirs.iter() {
       if !actual_dirs.contains(expected_dir_str) {
-        let mut expected_dir = PathBuf::from(expected);
+        let mut expected_dir = PathBuf::from(expected_base);
         expected_dir.push(expected_dir_str);
 
         if expected_dir.is_file() {
@@ -346,6 +470,10 @@ impl Rst {
   pub fn update_fixture(&self) {
     let actual_dir = self.get_actual_path();
     let expected_dir = self.get_expected_path();
+
+    if !actual_dir.exists() {
+      fs::create_dir_all(actual_dir.as_path()).unwrap();
+    }
 
     // remove old expected directory
     if expected_dir.exists() {
@@ -377,148 +505,95 @@ impl Rst {
     cp(&actual_dir, &expected_dir);
 
     // update record
-    let failed_path = self.get_failed_path();
+    let failed_path = self.get_record_path();
     if failed_path.exists() {
-      fs::remove_file(failed_path).unwrap();
+      fs::remove_file(failed_path.as_path()).unwrap();
+      // Remove when fix all records
+      let record_dir = Self::get_record_dir();
+
+      let failed_count = fs::read_dir(record_dir.as_path()).unwrap().count();
+      if failed_count == 0 {
+        match fs::remove_dir(record_dir.as_path()) {
+          Ok(_) => {}
+          Err(e) => {
+            println!("{}", e);
+            panic!("Unable to delete record dir (.temp)");
+          }
+        }
+      }
     }
   }
 
   /// Update all the failed records in the current working directory.
-  pub fn update_all_cases(mute: bool) {
+  pub fn update_all_cases() {
     let dir = Self::get_record_dir();
-    let mut updates: Vec<Rst> = vec![];
+    let updates: Arc<Mutex<Vec<PathBuf>>> = Default::default();
 
     if !dir.exists() {
+      prtln!("No records found, nothing updated");
       return;
     }
 
-    let failed_files = fs::read_dir(dir).unwrap().map(|dir| dir.unwrap().path());
-    for failed_path in failed_files {
-      let rst = bincode::deserialize::<Rst>(&fs::read(&failed_path).unwrap()).unwrap();
+    let failed_files = fs::read_dir(dir)
+      .unwrap()
+      .map(|dir| dir.unwrap().path())
+      .collect::<Vec<_>>();
 
+    failed_files.par_iter().for_each(|failed_path| {
+      let record = serde_json::from_slice::<Record>(&fs::read(&failed_path).unwrap()).unwrap();
+      let rst = record.config;
       rst.update_fixture();
 
-      updates.push(rst);
-    }
+      updates.clone().lock().unwrap().push(rst.fixture);
+    });
 
-    if !mute {
-      prtln!(
-        "Updates {} fixture{}:\n{}",
-        updates.len(),
-        if updates.len() > 1 { "s" } else { "" },
-        updates.iter().fold(String::new(), |str, update| {
-          format!("{}\n{}", str, update.get_expected_path().display())
-        })
-      );
-    }
+    let updates = updates.lock().unwrap();
+    let count = updates.len();
+
+    prtln!(
+      "Updated {} fixture{}:\n{}",
+      count.to_string().green(),
+      if count > 1 { "s" } else { "" },
+      updates.iter().fold(String::new(), |str, update| {
+        format!("{}\n{}", str, update.display())
+      })
+    );
   }
+}
 
-  // CLI only
-  // @deprecated
-  // pub fn review() {
-  //   let failed_dir = Self::get_failed_dir();
-  //   let failed_dirs = fs::read_dir(failed_dir).unwrap().map(|d| d.unwrap().path());
-
-  //   for failed_case in failed_dirs {
-  //     let mut rst: Rst = fs::read(failed_case).unwrap().into();
-  //     if let Err(err) = rst.test() {
-  //       let err = err.0;
-
-  //       for e in err {
-  //         match e {
-  //           TestErrorKind::Difference(actual_dir, expected_dir) => {
-  //             if let Some(
-  //               "js" | "ts" | "jsx" | "tsx" | "html" | "vue" | "txt" | "json" | "yml" | "yaml"
-  //               | "toml" | "css" | "less" | "sass" | "scss" | "md" | "markdown" | "mdx" | "xml",
-  //             ) = actual_dir.extension().as_ref().map(|e| e.to_str().unwrap())
-  //             {
-  //               // Text File diff
-
-  //               let expected = String::from_utf8(fs::read(&expected_dir).unwrap()).unwrap();
-  //               let actual = String::from_utf8(fs::read(&actual_dir).unwrap()).unwrap();
-
-  //               let diff = similar::TextDiff::from_lines(expected.as_str(), actual.as_str());
-
-  //               prtln!(
-  //                 "> {}\n{}",
-  //                 expected_dir.display(),
-  //                 "'+' means file in the actual directory has this line but expected file does not"
-  //                   .white()
-  //                   .on_green()
-  //               );
-
-  //               prtln!("------------------------------------------------------");
-
-  //               for change in diff.iter_all_changes() {
-  //                 let line = match change.tag() {
-  //                   ChangeTag::Delete => format!("+{}", &change).green(),
-  //                   ChangeTag::Insert => format!("-{}", &change).red(),
-  //                   _ => format!(" {}", &change).bright_black(),
-  //                 };
-  //                 prt!("{}", line);
-  //               }
-
-  //               prt!("------------------------------------------------------\n");
-
-  //               if user_prompt("Update expected file?") {
-  //                 rst.update_fixture();
-  //               }
-  //             }
-  //           }
-  //           TestErrorKind::MissingActualFile(actual_file) => {
-  //             prtln!(
-  //               "{}",
-  //               format!(
-  //                 "Missing {}\nDo you want to add that file?",
-  //                 actual_file.display()
-  //               )
-  //               .green()
-  //             );
-  //             prtln!(
-  //               "{}",
-  //               "Type 'a' to add that file\nType 'c' to continue reviewing".green()
-  //             );
-
-  //             if user_prompt("Create the missing file?") {}
-  //           }
-  //           TestErrorKind::MissingActualDir(path) => {}
-  //           TestErrorKind::MissingExpectedFile(path) => {}
-  //           TestErrorKind::MissingExpectedDir(path) => {}
-  //         };
-  //         clear_console();
-  //       }
-  //     }
-  //   }
-  // }
+pub fn test(p: PathBuf) -> Result<(), TestError> {
+  let mut rst = RstBuilder::default().fixture(p).build().unwrap();
+  rst.test()
 }
 
 pub fn assert(p: PathBuf) {
   let mut rst = RstBuilder::default().fixture(p).build().unwrap();
-  rst.assert();
+  let res = rst.test();
+
+  if let Err(e) = res {
+    prtln!("{}", e);
+    panic!("Fixture test failed");
+  }
 }
 
 #[cfg(test)]
 mod test {
+  use crate::{
+    for_each_dir,
+    rst::{self, Mode, RstBuilder, TestErrorKind},
+  };
   use std::{env, fs, path::PathBuf};
-
-  use crate::rst::{RstBuilder, TestErrorKind};
   use testing_macros::fixture;
-
-  use super::Rst;
 
   #[fixture("fixtures/same/*")]
   fn same(p: PathBuf) {
-    assert!(RstBuilder::default()
-      .fixture(p)
-      .build()
-      .unwrap()
-      .test()
-      .is_ok());
+    rst::assert(p);
   }
 
   #[test]
   fn different() {
-    env::set_var("MUTE", "true");
+    env::set_var("RST_MUTE", "1");
+
     let cwd = env::current_dir().unwrap();
 
     /*
@@ -534,7 +609,7 @@ mod test {
       .test();
 
     assert!(test_res.is_err());
-    let err = test_res.unwrap_err().0;
+    let err = test_res.unwrap_err().errors;
     assert!(err.len() == 1);
 
     p.push("expected/a");
@@ -542,7 +617,10 @@ mod test {
       TestErrorKind::MissingExpectedDir(expect) => {
         assert_eq!(expect.as_path(), &p);
       }
-      _ => panic!("Test Fail"),
+      _ => {
+        println!("{:?}", err[0]);
+        panic!("Expected error is missing expected dir");
+      }
     };
 
     /*
@@ -557,12 +635,12 @@ mod test {
       .test();
     assert!(test_res.is_err());
 
-    let err = test_res.unwrap_err().0;
+    let err = test_res.unwrap_err().errors;
     assert!(err.len() == 1);
     match &err[0] {
-      TestErrorKind::Difference(actual, _) => {
-        p.push("actual/a.js");
-        assert_eq!(actual, &p);
+      TestErrorKind::Difference(diff) => {
+        p.push("expected/a.js");
+        assert_eq!(diff.path.as_path(), &p);
       }
       _ => panic!("Test Fail"),
     };
@@ -579,7 +657,7 @@ mod test {
       .test();
     assert!(test_res.is_err());
 
-    let err = test_res.unwrap_err().0;
+    let err = test_res.unwrap_err().errors;
     assert!(err.len() == 1);
     match &err[0] {
       TestErrorKind::MissingExpectedFile(missing) => {
@@ -590,10 +668,24 @@ mod test {
     };
   }
 
+  /*
+   * disable update test in CI, because update will remove
+   * record file, which is forbidden in CI env.
+   * We can check env var in the runtime but it is an invasion to
+   * the library.
+   */
+  fn is_in_ci() -> bool {
+    env::var("CI").is_ok()
+  }
+
   #[test]
   fn update() {
+    if is_in_ci() {
+      return;
+    }
+
     let cwd = env::current_dir().unwrap();
-    let mut p = cwd;
+    let mut p = cwd.clone();
     p.push("fixtures/update/a");
     let mut rst = RstBuilder::default().fixture(p.clone()).build().unwrap();
 
@@ -603,7 +695,20 @@ mod test {
     rst.update_fixture();
     assert!(rst.test().is_ok());
 
-    // recover for next time test call
+    // recover for next time testing
     fs::remove_dir_all(p.as_path().join("expected")).unwrap();
+
+    let mut p = cwd;
+    p.push("fixtures/update/update_all");
+
+    for_each_dir(p.as_path(), |dir| {
+      let mut rst = RstBuilder::default()
+        .fixture(PathBuf::from(dir))
+        .mode(Mode::Strict)
+        .build()
+        .unwrap();
+
+      assert!(rst.test().is_err());
+    });
   }
 }
