@@ -61,26 +61,79 @@ pub enum Content {
 }
 
 impl Content {
-  pub fn as_string(&self) -> Result<String> {
+  pub fn try_into_string(self) -> Result<String> {
     match self {
-      Content::String(s) => Ok(s.to_owned()),
-      Content::Buffer(b) => String::from_utf8(b.clone()).map_err(anyhow::Error::from),
+      Content::String(s) => Ok(s),
+      Content::Buffer(b) => String::from_utf8(b).map_err(anyhow::Error::from),
     }
   }
 
-  pub fn as_string_unchecked(&self) -> String {
-    self.as_string().unwrap()
-  }
-
-  pub fn as_bytes(&self) -> Result<Vec<u8>> {
+  /// # Safety
+  ///
+  /// This function is unsafe because it does not check that the bytes passed
+  /// to it are valid UTF-8. If this constraint is violated, it may cause
+  /// memory unsafety issues with future users of the `String`, as the rest of
+  /// the standard library assumes that `String`s are valid UTF-8.
+  pub unsafe fn into_string_unchecked(self) -> String {
     match self {
-      Content::String(s) => Ok(s.as_bytes().to_vec()),
-      Content::Buffer(b) => Ok(b.clone()),
+      Content::String(s) => s,
+      Content::Buffer(b) => String::from_utf8_unchecked(b),
     }
   }
 
-  pub fn as_bytes_unchecked(&self) -> Vec<u8> {
-    self.as_bytes().unwrap()
+  pub fn as_bytes(&self) -> &[u8] {
+    match self {
+      Content::String(s) => s.as_bytes(),
+      Content::Buffer(b) => b,
+    }
+  }
+
+  /// Converts the content to a mutable byte slice
+  ///
+  /// # Safety
+  ///
+  /// The caller must ensure that the content of the slice is valid UTF-8
+  /// before the borrow ends and the underlying `str` is used.
+  ///
+  /// Use of a `str` whose contents are not valid UTF-8 is undefined behavior.
+  pub unsafe fn as_bytes_mut(&mut self) -> &mut [u8] {
+    match self {
+      Content::String(s) => s.as_bytes_mut(),
+      Content::Buffer(b) => b,
+    }
+  }
+
+  pub fn into_bytes(self) -> Vec<u8> {
+    match self {
+      Content::String(s) => s.into_bytes(),
+      Content::Buffer(b) => b,
+    }
+  }
+}
+
+impl TryFrom<Content> for String {
+  type Error = anyhow::Error;
+
+  fn try_from(content: Content) -> Result<Self, Self::Error> {
+    content.try_into_string()
+  }
+}
+
+impl From<Content> for Vec<u8> {
+  fn from(content: Content) -> Self {
+    content.into_bytes()
+  }
+}
+
+impl From<String> for Content {
+  fn from(s: String) -> Self {
+    Self::String(s)
+  }
+}
+
+impl From<Vec<u8>> for Content {
+  fn from(buf: Vec<u8>) -> Self {
+    Self::Buffer(buf)
   }
 }
 
