@@ -1,36 +1,48 @@
-use crate::prt;
-use colored::Colorize;
-use std::{env, fmt::Display, rc::Rc};
+use std::{
+  env, fs,
+  path::{Path, PathBuf},
+};
 
-pub fn clear_console() {
-  // clear terminal
-  print!("\x1B[2J");
-}
+pub fn for_each_dir<F>(p: &Path, f: F)
+where
+  F: Fn(&Path),
+{
+  for dir in fs::read_dir(p).unwrap() {
+    let dir = dir.unwrap();
+    let mut p = PathBuf::from(p);
+    p.push(dir.path());
 
-pub fn is_mute() -> bool {
-  env::var("MUTE").is_ok()
-}
-
-pub enum Feedback {
-  Accept,
-  Cancel,
-}
-
-pub fn user_prompt<T: Display>(msg: T) -> bool {
-  prt!("{}", format!("{}\nYou can\n", msg).green());
-  prt!("{}", "Type 'a' to accept\nType 'c' to cancel\n".green());
-
-  loop {
-    prt!(">");
-    let mut input = String::new();
-    std::io::stdin().read_line(&mut input).unwrap();
-    let input = input.trim();
-    if input == "a" {
-      break true;
-    } else if input == "c" {
-      break false;
-    } else {
-      prt!("Invalid input, please type 'a' or 'c'\n");
-    }
+    f(p.as_path())
   }
+}
+
+#[inline(always)]
+pub fn is_mute() -> bool {
+  env::var("RST_MUTE").is_ok()
+}
+
+pub fn is_detail() -> bool {
+  env::var("RST_DETAIL").is_ok()
+}
+
+pub fn no_write() -> bool {
+  env::var("RST_NO_WRITE").is_ok()
+}
+
+pub fn make_relative_from(path: &Path, base: &Path) -> PathBuf {
+  let mut path_iter = path.iter();
+
+  for curr_base in base.iter() {
+    match path_iter.next() {
+      Some(curr_path) => {
+        if curr_path != curr_base {
+          panic!("Second path is not the root path of the first one");
+        }
+        continue;
+      }
+      None => break,
+    };
+  }
+
+  path_iter.collect::<PathBuf>()
 }
