@@ -67,7 +67,8 @@ impl Plugin for CssPlugin {
   }
   fn parse(&self, uri: &str, content: &Content) -> rspack_core::PluginParseOutput {
     let content = content
-      .try_to_string()
+      .to_owned()
+      .try_into_string()
       .context("Unable to serialize content as string which is required by plugin css")?;
     let stylesheet = SWC_COMPILER.parse_file(uri, content)?;
     Ok(TransformAst::Css(stylesheet))

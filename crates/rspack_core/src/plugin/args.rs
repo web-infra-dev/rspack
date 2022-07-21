@@ -61,26 +61,6 @@ pub enum Content {
 }
 
 impl Content {
-  pub fn try_to_string(&self) -> Result<String> {
-    match self {
-      Content::String(s) => Ok(s.to_owned()),
-      Content::Buffer(b) => String::from_utf8(b.to_owned()).map_err(anyhow::Error::from),
-    }
-  }
-
-  /// # Safety
-  ///
-  /// This function is unsafe because it does not check that the bytes passed
-  /// to it are valid UTF-8. If this constraint is violated, it may cause
-  /// memory unsafety issues with future users of the `String`, as the rest of
-  /// the standard library assumes that `String`s are valid UTF-8.
-  pub unsafe fn to_string_unchecked(&self) -> String {
-    match self {
-      Content::String(s) => s.to_owned(),
-      Content::Buffer(b) => String::from_utf8_unchecked(b.to_owned()),
-    }
-  }
-
   pub fn try_into_string(self) -> Result<String> {
     match self {
       Content::String(s) => Ok(s),
@@ -139,41 +119,15 @@ impl TryFrom<Content> for String {
   }
 }
 
-impl TryFrom<&Content> for String {
-  type Error = anyhow::Error;
-
-  fn try_from(content: &Content) -> Result<Self, Self::Error> {
-    content.try_to_string()
-  }
-}
-
 impl From<Content> for Vec<u8> {
   fn from(content: Content) -> Self {
     content.into_bytes()
   }
 }
 
-impl From<&Content> for Vec<u8> {
-  fn from(content: &Content) -> Self {
-    content.as_bytes().to_vec()
-  }
-}
-
-impl From<&str> for Content {
-  fn from(s: &str) -> Self {
-    Self::String(s.to_owned())
-  }
-}
-
 impl From<String> for Content {
   fn from(s: String) -> Self {
     Self::String(s)
-  }
-}
-
-impl From<&[u8]> for Content {
-  fn from(buf: &[u8]) -> Self {
-    Self::Buffer(buf.to_vec())
   }
 }
 
