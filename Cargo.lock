@@ -225,6 +225,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bstr"
+version = "0.2.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba3569f383e8f1598449f1a423e72e99569137b47740b1da11ef19af3d5c3223"
+dependencies = [
+ "lazy_static",
+ "memchr",
+ "regex-automata",
+]
+
+[[package]]
 name = "buf_redux"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -276,6 +287,19 @@ dependencies = [
  "num-traits",
  "time",
  "wasm-bindgen",
+ "winapi",
+]
+
+[[package]]
+name = "console"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a28b32d32ca44b70c3e4acd7db1babf555fa026e385fb95f18028f88848b3c31"
+dependencies = [
+ "encode_unicode",
+ "libc",
+ "once_cell",
+ "terminal_size",
  "winapi",
 ]
 
@@ -503,6 +527,12 @@ name = "either"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
+
+[[package]]
+name = "encode_unicode"
+version = "0.3.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a357d28ed41a50f9c765dbfe56cbc04a64e53e5fc58ba79fbc34c10ef3df831f"
 
 [[package]]
 name = "enum_kind"
@@ -1640,6 +1670,8 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_plugin_json",
  "sugar_path",
+ "temp_test_utils",
+ "testing_macros",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -1717,16 +1749,13 @@ dependencies = [
  "linked_hash_set",
  "once_cell",
  "rayon",
- "rspack",
  "rspack_core",
- "rspack_node",
- "serde",
- "serde_json",
  "sugar_path",
  "swc_atoms",
  "swc_common 0.20.1",
  "swc_css",
  "swc_css_prefixer",
+ "temp_test_utils",
  "testing_macros",
  "tokio",
  "tracing",
@@ -1751,6 +1780,8 @@ dependencies = [
  "swc_ecma_transforms",
  "swc_ecma_utils",
  "swc_ecma_visit",
+ "temp_test_utils",
+ "testing_macros",
  "tracing",
 ]
 
@@ -1762,6 +1793,8 @@ dependencies = [
  "hashbrown 0.12.1",
  "json",
  "rspack_core",
+ "temp_test_utils",
+ "testing_macros",
  "tracing",
 ]
 
@@ -1937,6 +1970,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e51e73328dc4ac0c7ccbda3a494dfa03df1de2f46018127f60c693f2648455b0"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "similar"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e24979f63a11545f5f2c60141afe249d4f19f84581ea2138065e400941d83d3"
+dependencies = [
+ "bstr",
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "similar-asserts"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "64c9f531a2375031d51c23c415ca12d0f0271b976211e2f727b7a0eac06a099d"
+dependencies = [
+ "console",
+ "similar",
 ]
 
 [[package]]
@@ -2907,6 +2960,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "temp_test_utils"
+version = "0.1.0"
+dependencies = [
+ "rspack",
+ "rspack_core",
+ "rspack_node",
+ "serde",
+ "serde_json",
+ "similar-asserts",
+ "testing_macros",
+ "tokio",
+]
+
+[[package]]
 name = "tempfile"
 version = "3.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3259,6 +3326,12 @@ checksum = "d54590932941a9e9266f0832deed84ebe1bf2e4c9e4a3554d393d18f5e854bf9"
 dependencies = [
  "tinyvec",
 ]
+
+[[package]]
+name = "unicode-segmentation"
+version = "1.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7e8820f5d777f6224dc4be3632222971ac30164d4a258d595640799554ebfd99"
 
 [[package]]
 name = "unicode-width"
