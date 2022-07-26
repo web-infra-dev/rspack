@@ -12,6 +12,11 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler {
 
   let expected_dir_path = fixture_path.join("expected");
 
+  let stats = compiler
+    .run()
+    .await
+    .unwrap_or_else(|_| panic!("failed to compile in fixtrue {:?}", fixture_path));
+
   let mut expected_files = std::fs::read_dir(expected_dir_path)
     .unwrap()
     .flat_map(|entry| entry.ok())
@@ -20,11 +25,6 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler {
       Some((entry.file_name().to_string_lossy().to_string(), content))
     })
     .collect::<HashMap<_, _>>();
-
-  let stats = compiler
-    .run()
-    .await
-    .unwrap_or_else(|_| panic!("failed to compile in fixtrue {:?}", fixture_path));
 
   stats.assets().iter().for_each(|asset| {
     expected_files
