@@ -55,10 +55,10 @@ impl Module for AssetSourceModule {
           } else {
             Some(ModuleRenderResult::JavaScript(format!(
               r#"rs.define("{}", function(__rspack_require__, module, exports) {{
-              "use strict";
-              module.exports = {:?};
-            }});
-            "#,
+  "use strict";
+  module.exports = {:?};
+}});
+"#,
               module.id,
               // Align to Node's `toString("utf-8")`: If encoding is 'utf8' and a byte sequence in the input is not valid UTF-8, then each invalid byte is replaced with the replacement character U+FFFD.
               String::from_utf8_lossy(buf)

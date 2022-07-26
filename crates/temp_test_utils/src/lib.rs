@@ -18,7 +18,7 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler {
     .unwrap_or_else(|_| panic!("failed to compile in fixtrue {:?}", fixture_path));
 
   let mut expected_files = std::fs::read_dir(expected_dir_path)
-    .unwrap()
+    .expect("failed to read `expected` dir")
     .flat_map(|entry| entry.ok())
     .filter_map(|entry| {
       let content = std::fs::read(entry.path()).ok()?;
