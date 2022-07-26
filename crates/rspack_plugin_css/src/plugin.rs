@@ -17,12 +17,6 @@ use swc_css_prefixer::prefixer;
 #[derive(Debug, Default)]
 pub struct CssPlugin {}
 
-// impl Default for CssPlugin {
-//   fn default() -> Self {
-//     Self {}
-//   }
-// }
-
 impl Plugin for CssPlugin {
   fn name(&self) -> &'static str {
     "css"
@@ -36,13 +30,16 @@ impl Plugin for CssPlugin {
       .register_parser(ModuleType::Css, Box::new(CssParser {}));
     Ok(())
   }
+
   fn reuse_ast(&self) -> bool {
     true
   }
+
   fn transform_include(&self, uri: &str) -> bool {
     let extension = Path::new(uri).extension().unwrap().to_string_lossy();
     extension == "css"
   }
+
   fn transform(
     &self,
     _ctx: rspack_core::PluginContext<&mut NormalModuleFactoryContext>,
@@ -65,6 +62,7 @@ impl Plugin for CssPlugin {
       })
     }
   }
+
   fn parse(&self, uri: &str, content: &Content) -> rspack_core::PluginParseOutput {
     let content = content
       .to_owned()
@@ -73,6 +71,7 @@ impl Plugin for CssPlugin {
     let stylesheet = SWC_COMPILER.parse_file(uri, content)?;
     Ok(TransformAst::Css(stylesheet))
   }
+
   fn render_manifest(
     &self,
     _ctx: rspack_core::PluginContext,

@@ -37,7 +37,7 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler {
           if let AssetContent::String(content) = &asset.content() {
             let expected = String::from_utf8(expected_files.remove(&filename).unwrap())
               .expect("failed to convert file to utf8");
-            similar_asserts::assert_eq!(
+            similar_asserts::assert_str_eq!(
               content.trim(),
               expected.trim(),
               "Test failed in fixture:{:?}, the filename is {:?}",
@@ -65,7 +65,7 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler {
   compiler
 }
 
-trait RawOptionsTestExt {
+pub trait RawOptionsTestExt {
   fn from_fixture(fixture_path: &Path) -> Self;
 }
 
