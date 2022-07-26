@@ -1,8 +1,5 @@
-use hashbrown::HashMap;
-use rspack::Compiler;
-use rspack_node::{normalize_bundle_options, RawOptions};
-use std::path::{Path, PathBuf};
-use rspack_test::fixture;
+use rspack_test::{fixture, test_fixture};
+use std::path::PathBuf;
 
 #[fixture("tests/fixtures/webpack/*")]
 fn webpack_css(fixture_path: PathBuf) {

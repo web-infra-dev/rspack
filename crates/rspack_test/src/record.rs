@@ -40,8 +40,7 @@ impl Record {
     p.push(".temp");
 
     let relative = make_relative_from(self.config.fixture.as_path(), cwd.as_path());
-    let record_path =
-      { relative.to_str().unwrap().to_string() + ".json" }.replace(path::MAIN_SEPARATOR, "&");
+    let record_path = { relative + ".json" }.replace(path::MAIN_SEPARATOR, "&");
 
     p.push(record_path);
 

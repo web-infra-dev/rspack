@@ -2046,13 +2046,12 @@ dependencies = [
  "rspack",
  "rspack_core",
  "rspack_node",
+ "rspack_test",
  "sugar_path",
  "swc_atoms",
  "swc_common 0.20.2",
  "swc_css",
  "swc_css_prefixer",
- "temp_test_utils",
- "testing_macros",
  "tokio",
  "tracing",
 ]
@@ -2117,10 +2116,14 @@ dependencies = [
  "colored",
  "derive_builder",
  "rayon",
+ "rspack",
+ "rspack_core",
+ "rspack_node",
  "serde",
  "serde_json",
  "similar",
  "testing_macros",
+ "tokio",
 ]
 
 [[package]]

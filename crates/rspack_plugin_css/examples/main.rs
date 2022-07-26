@@ -1,5 +1,5 @@
 use node_binding::{normalize_bundle_options, RawOptions};
-use temp_test_utils::RawOptionsTestExt;
+use rspack_test::rspack_only::RawOptionsTestExt;
 #[tokio::main]
 async fn main() {
   let mut cur_dir = std::env::current_dir().unwrap();
