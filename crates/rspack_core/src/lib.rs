@@ -43,6 +43,7 @@ pub enum ModuleType {
   Ts,
   AssetInline,
   AssetResource,
+  AssetSource,
   Asset,
 }
 
