@@ -1,34 +1,29 @@
 [package]
+edition = "2021"
 name = "rspack_plugin_css"
 version = "0.1.0"
-edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dev_dependencies]
-rspack = { path = "../rspack" }
+rspack_test = {path = "../rspack_test"}
 
-temp_test_utils = { path = "../temp_test_utils" }
-testing_macros = { version = "0.2.5" }
-node_binding = { path = "../node_binding", package = "rspack_node", features = [
-  "test",
-] }
 [dependencies]
-rspack_core = { path = "../rspack_core" }
-swc_css = "0.108.0"
-swc_atoms = "0.2.11"
-tracing = "0.1.34"
-once_cell = "1"
-linked_hash_set = "0.1.4"
 anyhow = "1"
+linked_hash_set = "0.1.4"
+once_cell = "1"
+rspack_core = {path = "../rspack_core"}
+swc_atoms = "0.2.11"
+swc_css = "0.108.0"
+tracing = "0.1.34"
 # typemap = "0.3.3"
-better_scoped_tls = "0.1.0"
-rayon = "1.5.3"
-tokio = { version = "1.17.0", features = ["full"] }
-dashmap = "5.0.0"
-sugar_path = "0.0.5"
-swc_css_prefixer = "0.104.0"                             # Port of stylis
-hashbrown = { version = "0.12.1", features = ["rayon"] }
+better_scoped_tls = "0.1.0" 
+dashmap = "5.0.0" 
+hashbrown = {version = "0.12.1", features = ["rayon"]} 
+rayon = "1.5.3" 
+sugar_path = "0.0.5" 
+swc_css_prefixer = "0.104.0" # Port of stylis
+tokio = {version = "1.17.0", features = ["full"]} 
 # rspack_sources = "0.0.3"
 
 # swc_atoms = "0.2.11"
@@ -36,7 +31,7 @@ hashbrown = { version = "0.12.1", features = ["rayon"] }
 # swc_ecma_codegen = "0.108.1"
 # swc_ecma_parser = "0.104.0"
 # swc_ecma_visit = "0.64.0"
-swc_common = { version = "0.20.1", features = ["concurrent"] }
+swc_common = {version = "0.20.1", features = ["concurrent"]}
 # swc_ecma_transforms_base = "0.85.0"
 # swc_ecma_transforms_module = "0.112.1"
 # swc_ecma_utils = "0.85.0"
