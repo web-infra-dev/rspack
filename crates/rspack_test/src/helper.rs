@@ -29,7 +29,7 @@ pub fn no_write() -> bool {
   env::var("RST_NO_WRITE").is_ok()
 }
 
-pub fn make_relative_from(path: &Path, base: &Path) -> PathBuf {
+pub fn make_relative_from(path: &Path, base: &Path) -> String {
   let mut path_iter = path.iter();
 
   for curr_base in base.iter() {
@@ -44,5 +44,5 @@ pub fn make_relative_from(path: &Path, base: &Path) -> PathBuf {
     };
   }
 
-  path_iter.collect::<PathBuf>()
+  path_iter.collect::<PathBuf>().to_str().unwrap().into()
 }

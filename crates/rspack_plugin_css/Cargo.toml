@@ -6,6 +6,10 @@ version = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dev_dependencies]
+node_binding = {path = "../node_binding", package = "rspack_node", features = [
+  "test",
+]}
+rspack = {path = "../rspack"}
 rspack_test = {path = "../rspack_test"}
 
 [dependencies]

@@ -215,12 +215,7 @@ impl Rst {
     let json_path = self.fixture.to_str().unwrap().to_string() + ".json";
     let json_path = Path::new(&json_path);
 
-    path_buf.push(
-      make_relative_from(json_path, &root)
-        .to_str()
-        .unwrap()
-        .replace(path::MAIN_SEPARATOR, "&"),
-    );
+    path_buf.push(make_relative_from(json_path, &root).replace(path::MAIN_SEPARATOR, "&"));
 
     path_buf
   }
@@ -232,7 +227,7 @@ impl Rst {
     path_buf
   }
 
-  fn validate(&mut self) {
+  fn validate(&self) {
     if self.fixture.to_str().unwrap() == "" {
       panic!("Fixture path must be specified, maybe you forget to call RstBuilder::default().fixture(\"...\")");
     }
@@ -293,7 +288,7 @@ impl Rst {
   /// Main test method
   /// This will write failed records in the disk
   #[allow(clippy::unwrap_in_result)]
-  pub fn test(&mut self) -> Result<(), TestError> {
+  pub fn test(&self) -> Result<(), TestError> {
     self.validate();
 
     let res = Self::compare(
@@ -307,6 +302,14 @@ impl Rst {
     self.finalize(&res);
 
     res
+  }
+
+  pub fn assert(&self) {
+    let res = self.test();
+    if let Err(e) = res {
+      prtln!("{}", e);
+      panic!("Fixture test failed");
+    }
   }
 
   #[allow(clippy::unwrap_in_result)]
@@ -373,9 +376,11 @@ impl Rst {
           match (expected_str, actual_str) {
             // all can be stringify
             (Ok(expected_str), Ok(actual_str)) => {
-              for change in
-                similar::TextDiff::from_lines(expected_str.as_str(), actual_str.as_str())
-                  .iter_all_changes()
+              for change in similar::TextDiff::from_lines(
+                expected_str.as_str().trim(),
+                actual_str.as_str().trim(),
+              )
+              .iter_all_changes()
               {
                 if matches!(change.tag(), ChangeTag::Equal) {
                   continue;
@@ -562,12 +567,12 @@ impl Rst {
 }
 
 pub fn test(p: PathBuf) -> Result<(), TestError> {
-  let mut rst = RstBuilder::default().fixture(p).build().unwrap();
+  let rst = RstBuilder::default().fixture(p).build().unwrap();
   rst.test()
 }
 
 pub fn assert(p: PathBuf) {
-  let mut rst = RstBuilder::default().fixture(p).build().unwrap();
+  let rst = RstBuilder::default().fixture(p).build().unwrap();
   let res = rst.test();
 
   if let Err(e) = res {
@@ -687,7 +692,7 @@ mod test {
     let cwd = env::current_dir().unwrap();
     let mut p = cwd.clone();
     p.push("fixtures/update/a");
-    let mut rst = RstBuilder::default().fixture(p.clone()).build().unwrap();
+    let rst = RstBuilder::default().fixture(p.clone()).build().unwrap();
 
     // fail because the expected dir is missing
     assert!(rst.test().is_err());
@@ -702,7 +707,7 @@ mod test {
     p.push("fixtures/update/update_all");
 
     for_each_dir(p.as_path(), |dir| {
-      let mut rst = RstBuilder::default()
+      let rst = RstBuilder::default()
         .fixture(PathBuf::from(dir))
         .mode(Mode::Strict)
         .build()
