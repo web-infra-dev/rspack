@@ -40,16 +40,17 @@ impl Module for CssModule {
     &self,
     requested_source_type: SourceType,
     module: &rspack_core::ModuleGraphModule,
-    _compilation: &rspack_core::Compilation,
+    compilation: &rspack_core::Compilation,
   ) -> Result<Option<ModuleRenderResult>> {
+    let namespace = &compilation.options.output.namespace;
     let result = match requested_source_type {
       SourceType::Css => Some(ModuleRenderResult::Css(SWC_COMPILER.codegen(&self.ast))),
       SourceType::JavaScript => Some(ModuleRenderResult::JavaScript(format!(
-        r#"rs.define("{}", function(__rspack_require__, module, exports) {{
+        r#"self["{}"].__rspack_register__(["{}"], {{"{}": function(module, exports, __rspack_require__, __rspack_dynamic_require__) {{
   "use strict";
-}});
+}}}});
 "#,
-        module.id
+        namespace, module.id, module.id
       ))),
       _ => None,
     };

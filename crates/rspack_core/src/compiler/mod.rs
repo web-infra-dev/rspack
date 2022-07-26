@@ -129,6 +129,9 @@ impl Compiler {
     });
 
     tracing::debug!("chunk graph {:#?}", self.compilation.chunk_graph);
+
+    // generate runtime
+    self.compilation.runtime = self.compilation.render_runtime(self.plugin_driver.clone());
     // Stream::
     let assets = self
       .compilation

@@ -1,3 +1,4 @@
+use crate::generate_rspack_execute;
 use crate::utils::parse_file;
 use crate::visitors::ClearMark;
 use crate::{module::JsModule, utils::get_swc_compiler};
@@ -47,6 +48,7 @@ impl Plugin for JsPlugin {
   ) -> PluginRenderManifestHookOutput {
     let compilation = args.compilation;
     let module_graph = &compilation.module_graph;
+    let namespace = &compilation.options.output.namespace;
     let chunk = compilation
       .chunk_graph
       .chunk_by_id(args.chunk_id)
@@ -78,13 +80,13 @@ impl Plugin for JsPlugin {
       .flatten()
       .chain([{
         if chunk.kind.is_entry() {
-          format!(
-            "rs.require(\"{}\")",
+          generate_rspack_execute(
+            namespace,
             ordered_modules
               .last()
               .ok_or_else(|| anyhow::format_err!("TODO:"))?
               .id
-              .as_str()
+              .as_str(),
           )
         } else {
           String::new()

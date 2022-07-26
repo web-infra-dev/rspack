@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{DevServerOptions, EntryItem, OutputOptions};
+use crate::{DevServerOptions, EntryItem, OutputOptions, Target};
 
 #[derive(Debug)]
 pub struct CompilerOptions {
@@ -8,4 +8,5 @@ pub struct CompilerOptions {
   pub root: String,
   pub dev_server: DevServerOptions,
   pub output: OutputOptions,
+  pub target: Target,
 }

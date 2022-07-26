@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use once_cell::sync::Lazy;
 
 use swc_common::DUMMY_SP;
+use swc_ecma_ast::{Callee, Ident};
 use {
   swc_common::{FileName, FilePathMapping, Mark, SourceMap},
   swc_ecma_ast::{BlockStmt, CallExpr, Expr, FnExpr, Function, ModuleItem, ParenExpr, Stmt},
@@ -24,6 +25,22 @@ fn parse(code: &str, name: &str) -> Vec<Stmt> {
   .map(|module| module.body)
   .map_err(|e| unreachable!("Error occurred while parsing module: {:?}", e))
   .unwrap()
+}
+
+pub const RSPACK_REQUIRE: &str = "__rspack_require__";
+pub const RSPACK_DYNAMIC_IMPORT: &str = "__rspack_dynamic_require__";
+pub const RSPACK_REGISTER: &str = "__rspack_register__";
+
+pub fn generate_rspack_register(namespace: &str) -> String {
+  format!(r#"self["{}"].{}"#, namespace, RSPACK_REGISTER)
+}
+
+pub fn get_rspack_register_callee(namespace: &str) -> Callee {
+  Ident::new(generate_rspack_register(namespace).into(), DUMMY_SP).as_callee()
+}
+
+pub fn generate_rspack_execute(namespace: &str, id: &str) -> String {
+  format!(r#"self["{}"].{}("{}");"#, namespace, RSPACK_REQUIRE, id)
 }
 
 #[derive(Debug)]

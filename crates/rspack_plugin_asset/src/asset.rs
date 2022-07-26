@@ -104,13 +104,16 @@ impl Module for AssetModule {
     module: &rspack_core::ModuleGraphModule,
     compilation: &rspack_core::Compilation,
   ) -> Result<Option<ModuleRenderResult>> {
+    let namespace = &compilation.options.output.namespace;
     let result = match requested_source_type {
       SourceType::JavaScript => Some(ModuleRenderResult::JavaScript(format!(
-        r#"rs.define("{}", function(__rspack_require__, module, exports) {{
+        r#"self["{}"].__rspack_register__(["{}"], {{"{}": function (module, exports, __rspack_require__, __rspack_dynamic_require__) {{
   "use strict";
   module.exports = "{}";
-}});
+}}}});
 "#,
+        namespace,
+        module.id,
         module.id,
         if self.inline {
           format!(

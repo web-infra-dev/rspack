@@ -2,7 +2,8 @@ use std::fmt::Debug;
 
 use crate::{
   BoxModule, LoadArgs, ModuleType, NormalModuleFactoryContext, ParseModuleArgs, PluginContext,
-  RenderManifestArgs, ResolveArgs, TransformAst, TransformResult,
+  RenderManifestArgs, RenderRuntimeArgs, ResolveArgs, RuntimeSourceNode, TransformAst,
+  TransformResult,
 };
 use crate::{Content, TransformArgs};
 
@@ -14,6 +15,7 @@ pub type PluginBuildEndHookOutput = Result<()>;
 pub type PluginLoadHookOutput = Result<Option<Content>>;
 pub type PluginTransformOutput = Result<TransformResult>;
 pub type PluginRenderManifestHookOutput = Result<Vec<Asset>>;
+pub type PluginRenderRuntimeHookOutput = Result<Vec<RuntimeSourceNode>>;
 pub type PluginParseModuleHookOutput = Result<BoxModule>;
 pub type PluginResolveHookOutput = Result<Option<String>>;
 pub type PluginParseOutput = Result<TransformAst>;
@@ -88,6 +90,13 @@ pub trait Plugin: Debug + Send + Sync {
     _ctx: PluginContext,
     _args: RenderManifestArgs,
   ) -> PluginRenderManifestHookOutput {
+    Ok(vec![])
+  }
+  fn render_runtime(
+    &self,
+    _ctx: PluginContext,
+    _args: RenderRuntimeArgs,
+  ) -> PluginRenderRuntimeHookOutput {
     Ok(vec![])
   }
 }

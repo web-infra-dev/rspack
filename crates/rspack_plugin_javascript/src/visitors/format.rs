@@ -10,7 +10,9 @@ use swc_ecma_utils::{member_expr, quote_ident, quote_str, ExprFactory};
 use swc_ecma_visit::{Fold, FoldWith, VisitMut, VisitMutWith};
 use tracing::instrument;
 
-use crate::cjs_runtime_helper;
+use crate::{
+  cjs_runtime_helper, get_rspack_register_callee, RSPACK_DYNAMIC_IMPORT, RSPACK_REQUIRE,
+};
 use {
   swc_atoms,
   swc_common,
@@ -56,44 +58,67 @@ impl<'a> Fold for RspackModuleFinalizer<'a> {
       .filter_map(|stmt| stmt.stmt())
       .collect();
 
+    let namespace = &self.compilation.options.output.namespace;
+
     let module_body = vec![CallExpr {
       span: DUMMY_SP,
-      callee: cjs_runtime_helper!(define, rs.define),
+      callee: get_rspack_register_callee(namespace),
       args: vec![
-        Expr::Lit(Lit::Str(quote_str!(self.module.id.clone()))).as_arg(),
-        FnExpr {
-          ident: None,
-          function: Function {
-            params: vec![
-              Param {
-                span: DUMMY_SP,
-                decorators: Default::default(),
-                // keep require mark same as swc common_js used
-                pat: self.require_ident.clone().into(),
-              },
-              Param {
-                span: DUMMY_SP,
-                decorators: Default::default(),
-                pat: self.module_ident.clone().into(),
-              },
-              Param {
-                span: DUMMY_SP,
-                decorators: Default::default(),
-                pat: quote_ident!("exports").into(),
-              },
-            ],
-            decorators: Default::default(),
-            span: DUMMY_SP,
-            body: Some(BlockStmt {
-              span: DUMMY_SP,
-              stmts,
-            }),
-            is_generator: false,
-            is_async: false,
-            type_params: Default::default(),
-            return_type: Default::default(),
-          },
-        }
+        Expr::Array(ArrayLit {
+          span: DUMMY_SP,
+          elems: vec![Some(ExprOrSpread {
+            spread: None,
+            expr: Box::new(Expr::Lit(Lit::Str(quote_str!(self.module.id.clone())))),
+          })],
+        })
+        .as_arg(),
+        Expr::Object(ObjectLit {
+          span: DUMMY_SP,
+          props: vec![swc_ecma_ast::PropOrSpread::Prop(Box::new(Prop::KeyValue(
+            KeyValueProp {
+              key: PropName::Str(quote_str!(self.module.id.clone())),
+              value: Box::new(Expr::Fn(FnExpr {
+                ident: None,
+                function: Function {
+                  params: vec![
+                    Param {
+                      span: DUMMY_SP,
+                      decorators: Default::default(),
+                      pat: quote_ident!("module").into(),
+                    },
+                    Param {
+                      span: DUMMY_SP,
+                      decorators: Default::default(),
+                      pat: quote_ident!("exports").into(),
+                    },
+                    Param {
+                      span: DUMMY_SP,
+                      decorators: Default::default(),
+                      // keep require mark same as swc common_js used
+                      pat: quote_ident!(RSPACK_REQUIRE).into(),
+                    },
+                    Param {
+                      span: DUMMY_SP,
+                      decorators: Default::default(),
+                      // keep require mark same as swc common_js used
+                      pat: quote_ident!(RSPACK_DYNAMIC_IMPORT).into(),
+                    },
+                  ],
+                  decorators: Default::default(),
+                  span: DUMMY_SP,
+                  body: Some(BlockStmt {
+                    span: DUMMY_SP,
+                    stmts,
+                  }),
+                  is_generator: false,
+                  is_async: false,
+                  type_params: Default::default(),
+                  return_type: Default::default(),
+                },
+              })),
+            },
+          )))],
+        })
         .as_arg(),
       ],
       type_args: Default::default(),
