@@ -36,7 +36,7 @@ pub fn code_splitting2(compilation: &mut Compilation) {
 
   // First we need to create entry chunk.
   for entry in &chunk_entries {
-    let chunk_id = id_generator.gen_id(*entry);
+    let chunk_id = id_generator.gen_id(entry);
     let chunk = Chunk::new(
       chunk_id.clone(),
       entry.to_string(),
@@ -58,7 +58,7 @@ pub fn code_splitting2(compilation: &mut Compilation) {
             .or_insert_with_key(|mod_uri| {
               chunk_entries.push(*mod_uri);
 
-              let chunk_id = id_generator.gen_id(*mod_uri);
+              let chunk_id = id_generator.gen_id(mod_uri);
               let chunk = Chunk::new(chunk_id.clone(), mod_uri.to_string(), ChunkKind::Normal);
               chunk_graph.add_chunk(chunk);
               chunk_id

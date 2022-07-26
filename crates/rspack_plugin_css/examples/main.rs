@@ -1,7 +1,4 @@
-use std::{collections::HashMap, os::linux::raw::stat, path::Path};
-
 use node_binding::{normalize_bundle_options, RawOptions};
-use rspack_core::{AssetContent, Compiler};
 use temp_test_utils::RawOptionsTestExt;
 #[tokio::main]
 async fn main() {
