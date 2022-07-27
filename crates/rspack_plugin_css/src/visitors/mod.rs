@@ -33,8 +33,19 @@ impl VisitMut for DependencyScanner {
       .filter(|rule| match rule {
         Rule::AtRule(at_rule) => {
           if let Some(AtRulePrelude::ImportPrelude(prelude)) = &at_rule.prelude {
+            let href_string = match &prelude.href {
+              swc_css::ast::ImportPreludeHref::Url(url) => url
+                .value
+                .as_ref()
+                .map(|value| match value {
+                  UrlValue::Str(str) => str.value.to_string(),
+                  UrlValue::Raw(raw) => raw.value.to_string(),
+                })
+                .unwrap_or_default(),
+              swc_css::ast::ImportPreludeHref::Str(str) => str.value.to_string(),
+            };
             self.dependencies.push(ModuleDependency {
-              specifier: prelude.href.as_str().unwrap().value.to_string(),
+              specifier: href_string,
               kind: ResolveKind::AtImport,
             });
             false
