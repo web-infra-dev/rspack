@@ -1,7 +1,7 @@
 use crate::utils::parse_file;
 use crate::visitors::ClearMark;
 use crate::{module::JsModule, utils::get_swc_compiler};
-use anyhow::Context;
+use anyhow::{Context, Result};
 use rayon::prelude::*;
 use rspack_core::{
   Asset, AssetContent, Filename, ModuleAst, ModuleRenderResult, ModuleType, OutputFilename,
@@ -62,16 +62,20 @@ impl Plugin for JsPlugin {
           .contains(&SourceType::JavaScript)
       })
       .map(|module| {
-        let sources = module
+        module
           .module
-          .render(SourceType::JavaScript, module, compilation);
-
-        if let Ok(Some(ModuleRenderResult::JavaScript(source))) = sources {
-          return source;
-        }
-
-        String::new()
+          .render(SourceType::JavaScript, module, compilation)
+          .map(|source| {
+            if let Some(ModuleRenderResult::JavaScript(source)) = source {
+              Some(source)
+            } else {
+              None
+            }
+          })
       })
+      .collect::<Result<Vec<Option<String>>>>()?
+      .into_iter()
+      .flatten()
       .chain([{
         if chunk.kind.is_entry() {
           format!(
@@ -86,11 +90,10 @@ impl Plugin for JsPlugin {
           String::new()
         }
       }])
-      .fold(String::new, |mut output, cur| {
+      .fold(String::new(), |mut output, cur| {
         output += &cur;
         output
-      })
-      .collect::<String>();
+      });
 
     Ok(vec![Asset::new(
       AssetContent::String(code),

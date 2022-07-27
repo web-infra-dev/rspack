@@ -87,31 +87,42 @@ impl Plugin for AssetPlugin {
           .source_types(module, compilation)
           .contains(&SourceType::Asset)
       })
-      .filter_map(|module| {
-        if let Ok(Some(ModuleRenderResult::Asset(asset))) =
-          module.module.render(SourceType::Asset, module, compilation)
-        {
-          let path = Path::new(&module.id);
-          Some(Asset::new(
-            AssetContent::Buffer(asset),
-            args
-              .compilation
-              .options
-              .output
-              .asset_module_filename
-              .filename(
-                path.file_stem().and_then(OsStr::to_str).unwrap().to_owned(),
-                path
-                  .extension()
-                  .and_then(OsStr::to_str)
-                  .map(|str| format!("{}{}", ".", str))
-                  .unwrap(),
-              ),
-          ))
-        } else {
-          None
-        }
+      .map(|module| {
+        module
+          .module
+          .render(SourceType::Asset, module, compilation)
+          .map(|result| {
+            if let Some(result) = result {
+              match result {
+                ModuleRenderResult::Asset(asset) => {
+                  let path = Path::new(&module.id);
+                  Some(Asset::new(
+                    AssetContent::Buffer(asset),
+                    args
+                      .compilation
+                      .options
+                      .output
+                      .asset_module_filename
+                      .filename(
+                        path.file_stem().and_then(OsStr::to_str).unwrap().to_owned(),
+                        path
+                          .extension()
+                          .and_then(OsStr::to_str)
+                          .map(|str| format!("{}{}", ".", str))
+                          .unwrap(),
+                      ),
+                  ))
+                }
+                _ => None,
+              }
+            } else {
+              None
+            }
+          })
       })
+      .collect::<Result<Vec<Option<Asset>>>>()?
+      .into_iter()
+      .flatten()
       .collect::<Vec<Asset>>();
 
     Ok(assets)

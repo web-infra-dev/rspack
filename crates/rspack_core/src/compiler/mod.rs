@@ -130,11 +130,14 @@ impl Compiler {
 
     tracing::debug!("chunk graph {:#?}", self.compilation.chunk_graph);
     // Stream::
-    let assets = self.compilation.render_manifest(self.plugin_driver.clone());
+    let assets = self
+      .compilation
+      .render_manifest(self.plugin_driver.clone())?;
 
     // tracing::trace!("assets {:#?}", assets);
 
-    std::fs::create_dir_all(&self.options.output.path).unwrap();
+    std::fs::create_dir_all(&self.options.output.path)
+      .context("failed to create output directory")?;
 
     assets
       .par_iter()
