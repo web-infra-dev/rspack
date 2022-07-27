@@ -1734,6 +1734,8 @@ dependencies = [
  "once_cell",
  "rayon",
  "rspack_core",
+ "temp_test_utils",
+ "testing_macros",
  "tokio",
  "tracing",
 ]

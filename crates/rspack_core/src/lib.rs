@@ -43,6 +43,7 @@ pub enum ModuleType {
   Ts,
   AssetInline,
   AssetResource,
+  AssetSource,
   Asset,
 }
 
@@ -83,6 +84,7 @@ impl TryFrom<&str> for ModuleType {
       "jpeg" => Ok(Self::Asset),
       "jpg" => Ok(Self::Asset),
       "svg" => Ok(Self::Asset),
+      "txt" => Ok(Self::AssetSource),
       _ => Err(()),
     }
   }
