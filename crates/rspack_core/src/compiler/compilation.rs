@@ -69,7 +69,7 @@ impl Compilation {
           chunk_id,
           compilation: self,
         }) {
-          Ok(assets) => assets.into_iter().map(Ok).collect(),
+          Ok(assets) => assets.into_par_iter().map(Ok).collect(),
           Err(err) => vec![Err(err)],
         }
       })

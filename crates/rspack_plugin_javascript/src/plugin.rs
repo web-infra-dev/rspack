@@ -74,7 +74,7 @@ impl Plugin for JsPlugin {
           })
       })
       .collect::<Result<Vec<Option<String>>>>()?
-      .into_iter()
+      .into_par_iter()
       .flatten()
       .chain([{
         if chunk.kind.is_entry() {
@@ -90,10 +90,11 @@ impl Plugin for JsPlugin {
           String::new()
         }
       }])
-      .fold(String::new(), |mut output, cur| {
+      .fold(String::new, |mut output, cur| {
         output += &cur;
         output
-      });
+      })
+      .collect::<String>();
 
     Ok(vec![Asset::new(
       AssetContent::String(code),

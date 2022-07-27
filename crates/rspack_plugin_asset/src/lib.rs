@@ -92,36 +92,31 @@ impl Plugin for AssetPlugin {
           .module
           .render(SourceType::Asset, module, compilation)
           .map(|result| {
-            if let Some(result) = result {
-              match result {
-                ModuleRenderResult::Asset(asset) => {
-                  let path = Path::new(&module.id);
-                  Some(Asset::new(
-                    AssetContent::Buffer(asset),
-                    args
-                      .compilation
-                      .options
-                      .output
-                      .asset_module_filename
-                      .filename(
-                        path.file_stem().and_then(OsStr::to_str).unwrap().to_owned(),
-                        path
-                          .extension()
-                          .and_then(OsStr::to_str)
-                          .map(|str| format!("{}{}", ".", str))
-                          .unwrap(),
-                      ),
-                  ))
-                }
-                _ => None,
-              }
+            if let Some(ModuleRenderResult::Asset(asset)) = result {
+              let path = Path::new(&module.id);
+              Some(Asset::new(
+                AssetContent::Buffer(asset),
+                args
+                  .compilation
+                  .options
+                  .output
+                  .asset_module_filename
+                  .filename(
+                    path.file_stem().and_then(OsStr::to_str).unwrap().to_owned(),
+                    path
+                      .extension()
+                      .and_then(OsStr::to_str)
+                      .map(|str| format!("{}{}", ".", str))
+                      .unwrap(),
+                  ),
+              ))
             } else {
               None
             }
           })
       })
       .collect::<Result<Vec<Option<Asset>>>>()?
-      .into_iter()
+      .into_par_iter()
       .flatten()
       .collect::<Vec<Asset>>();
 

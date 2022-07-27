@@ -94,14 +94,15 @@ impl Plugin for CssPlugin {
       })
       .map(|module| module.module.render(SourceType::Css, module, compilation))
       .collect::<Result<Vec<_>>>()?
-      .into_iter()
-      .fold(String::new(), |mut output, cur| {
+      .into_par_iter()
+      .fold(String::new, |mut output, cur| {
         if let Some(ModuleRenderResult::Css(source)) = cur {
           output += "\n\n";
           output += &source;
         }
         output
-      });
+      })
+      .collect::<String>();
 
     if code.is_empty() {
       Ok(Default::default())
