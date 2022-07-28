@@ -1,0 +1,7 @@
+{
+  "mode": "development",
+  "entries": {
+    "index": "./src/index.js"
+  },
+  "enhanced": {}
+}
