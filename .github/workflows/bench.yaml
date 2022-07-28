@@ -54,8 +54,8 @@ jobs:
       - name: Install toolchain
         run: rustup show
 
-      # - name: Cache
-      #   uses: Swatinem/rust-cache@v1
+      - name: Cache
+        uses: speedy-js/rust-cache-self-hosted@v1
 
       - name: Install critcmp
         run: cargo install critcmp
