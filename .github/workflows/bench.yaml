@@ -54,8 +54,8 @@ jobs:
       - name: Install toolchain
         run: rustup show
 
-      # - name: Cache
-      #   uses: Swatinem/rust-cache@v1
+      - name: Cache
+        uses: speedy-js/rust-cache-self-hosted@v1
 
       - name: Install critcmp
         run: cargo install critcmp
@@ -63,22 +63,22 @@ jobs:
       - name: Run Bench on PR Branch
         run: cargo bench --bench main -- --save-baseline pr
 
-      - name: Checkout Main Branch
+      - name: Checkout Next Branch
         uses: actions/checkout@v3
         with:
           clean: false
-          ref: main
+          ref: next
 
-      - name: Run Bench on Main Branch
-        run: cargo bench --bench main -- --save-baseline main
+      - name: Run Bench on Next Branch
+        run: cargo bench --bench main -- --save-baseline next
 
       - name: Compare Bench Results
         id: bench_comparison
         shell: bash
         run: |
-          echo "### Analyzer Benchmark Results" > output
+          echo "### Benchmark Results" > output
           echo "\`\`\`"  >> output
-          critcmp main pr >> output
+          critcmp next pr >> output
           echo "\`\`\`" >> output
           cat output
           comment="$(cat output)"
