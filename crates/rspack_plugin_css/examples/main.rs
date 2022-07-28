@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use node_binding::{normalize_bundle_options, RawOptions};
 use temp_test_utils::RawOptionsTestExt;
 #[tokio::main]
