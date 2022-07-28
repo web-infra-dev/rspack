@@ -13,17 +13,6 @@ pub struct DependencyScanner {
 }
 
 impl VisitMut for DependencyScanner {
-  fn visit_mut_url(&mut self, n: &mut Url) {
-    let ident = &n.name.value;
-    if ident == "url" {
-      if let Some(UrlValue::Str(str)) = &mut n.value {
-        self.dependencies.push(ModuleDependency {
-          specifier: str.value.to_string(),
-          kind: ResolveKind::UrlToken,
-        })
-      }
-    }
-  }
   fn visit_mut_stylesheet(&mut self, n: &mut Stylesheet) {
     n.visit_mut_children_with(self);
     n.rules = n
@@ -44,6 +33,12 @@ impl VisitMut for DependencyScanner {
                 .unwrap_or_default(),
               swc_css::ast::ImportPreludeHref::Str(str) => str.value.to_string(),
             };
+            // TODO: This just naive checking for http:// and https://, but it's not enough.
+            // Because any scheme is valid in `ImportPreludeHref::Url`, like `url(chrome://xxxx)`
+            // We need to find a better way to handle this.
+            if href_string.starts_with("http://") || href_string.starts_with("https://") {
+              return true;
+            }
             self.dependencies.push(ModuleDependency {
               specifier: href_string,
               kind: ResolveKind::AtImport,
