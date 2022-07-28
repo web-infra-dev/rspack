@@ -61,7 +61,7 @@ jobs:
         run: cargo install critcmp
 
       - name: Run Bench on PR Branch
-        run: cargo bench -- --save-baseline pr
+        run: cargo bench --bench main -- --save-baseline pr
 
       - name: Checkout Main Branch
         uses: actions/checkout@v3
@@ -70,7 +70,7 @@ jobs:
           ref: main
 
       - name: Run Bench on Main Branch
-        run: cargo bench -- --save-baseline main
+        run: cargo bench --bench main -- --save-baseline main
 
       - name: Compare Bench Results
         id: bench_comparison
