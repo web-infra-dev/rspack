@@ -18,5 +18,4 @@ async fn main() {
     .run()
     .await
     .unwrap_or_else(|_| panic!("failed to compile in fixtrue {:?}", cur_dir));
-  // println!("{:?}", stats);
 }
