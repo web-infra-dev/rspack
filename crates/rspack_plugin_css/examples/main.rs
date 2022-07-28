@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use node_binding::{normalize_bundle_options, RawOptions};
 use temp_test_utils::RawOptionsTestExt;
@@ -14,7 +14,7 @@ async fn main() {
   println!("{:?}", options);
   let mut compiler = rspack::rspack(options, Default::default());
 
-  let stats = compiler
+  let _stats = compiler
     .run()
     .await
     .unwrap_or_else(|_| panic!("failed to compile in fixtrue {:?}", cur_dir));
