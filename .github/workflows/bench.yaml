@@ -1,39 +1,104 @@
 name: Benchmark
 
-# on:
-#   issue_comment:
-#     types: [ created ]
-
 on:
-  # push:
-  #   branches:
-  #     - main
-  #     - next
-  #   tags-ignore:
-  #     - '**'
-  # pull_request:
   issue_comment:
-    types: [ created ]
+    types: [created]
+# jobs:
+#   benchmarks:
+#     name: Benchmarks
+#     if: github.event.issue.pull_request && contains(github.event.comment.body, '!bench')
+#     runs-on: [self-hosted, rspack-bench]
+#     timeout-minutes: 30
+#     steps:
+#       - name: Cancel Previous Runs
+#         uses: styfle/cancel-workflow-action@0.9.1
+#         with:
+#           access_token: ${{ github.token }}
+#       # - name: Cache
+#       #   uses: speedy-js/rust-cache-self-hosted@v1
+#       - name: PR Benchmarks
+#         uses: speedy-js/rspack-benchmark-action@main
+#         env:
+#           PR_STATS_COMMENT_TOKEN: ${{ secrets.PR_STATS_COMMENT_TOKEN }}
+#       - name: Clean working directory
+#         shell: bash
+#         run: |
+#           cd $RUNNER_WORKSPACE
+#           cd ..
+#           rm -r *
+env:
+  RUST_LOG: info
+
 jobs:
-  benchmarks:
-    name: Benchmarks
+  bench:
+    name: Bench
     if: github.event.issue.pull_request && contains(github.event.comment.body, '!bench')
     runs-on: [self-hosted, rspack-bench]
     timeout-minutes: 30
+
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.9.1
+      - name: Get PR SHA
+        id: sha
+        uses: actions/github-script@v6
         with:
-          access_token: ${{ github.token }}
+          result-encoding: string
+          script: |
+            const response = await github.request(context.payload.issue.pull_request.url);
+            return response.data.head.sha;
+      - name: Checkout PR Branch
+        uses: actions/checkout@v3
+        with:
+          submodules: false
+          ref: ${{ steps.sha.outputs.result }}
+
+      - name: Install toolchain
+        run: rustup show
+
       # - name: Cache
-      #   uses: speedy-js/rust-cache-self-hosted@v1
-      - name: PR Benchmarks
-        uses: speedy-js/rspack-benchmark-action@main
-        env:
-          PR_STATS_COMMENT_TOKEN: ${{ secrets.PR_STATS_COMMENT_TOKEN }}
-      - name: Clean working directory
+      #   uses: Swatinem/rust-cache@v1
+
+      - name: Install critcmp
+        run: cargo install critcmp
+
+      - name: Run Bench on PR Branch
+        run: cargo bench --bench main -- --save-baseline pr
+
+      - name: Checkout Main Branch
+        uses: actions/checkout@v3
+        with:
+          clean: false
+          ref: main
+
+      - name: Run Bench on Main Branch
+        run: cargo bench --bench main -- --save-baseline main
+
+      - name: Compare Bench Results
+        id: bench_comparison
         shell: bash
         run: |
-          cd $RUNNER_WORKSPACE
-          cd ..
-          rm -r *
+          echo "### Analyzer Benchmark Results" > output
+          echo "\`\`\`"  >> output
+          critcmp main pr >> output
+          echo "\`\`\`" >> output
+          cat output
+          comment="$(cat output)"
+          comment="${comment//'%'/'%25'}"
+          comment="${comment//$'\n'/'%0A'}"
+          comment="${comment//$'\r'/'%0D'}"
+          echo "::set-output name=comment::$comment"
+      - name: Write a new comment
+        uses: peter-evans/create-or-update-comment@v1.4.5
+        continue-on-error: true
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            ${{ steps.bench_comparison.outputs.comment }}
+      - name: Remove Criterion Artifact
+        run: rm -rf ./target/criterion
+
+      # - name: Clean working directory
+      #   shell: bash
+      #   run: |
+      #     cd $RUNNER_WORKSPACE
+      #     cd ..
+      #     rm -r *
