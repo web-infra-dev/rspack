@@ -5,6 +5,10 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[dev_dependencies]
+temp_test_utils = {path="../temp_test_utils" }
+testing_macros = "0.2.5"
+
 [dependencies]
 rspack_core = { path = "../rspack_core"}
 anyhow = "1"
