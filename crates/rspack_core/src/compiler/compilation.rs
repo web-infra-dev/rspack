@@ -1,5 +1,6 @@
 use std::{fmt::Debug, sync::Arc};
 
+use anyhow::Result;
 use hashbrown::HashMap;
 use rayon::prelude::*;
 use tracing::instrument;
@@ -58,22 +59,21 @@ impl Compilation {
       .collect()
   }
 
-  pub fn render_manifest(&self, plugin_driver: Arc<PluginDriver>) -> Vec<Asset> {
+  pub fn render_manifest(&self, plugin_driver: Arc<PluginDriver>) -> Result<Vec<Asset>> {
     self
       .chunk_graph
       .id_to_chunk()
       .par_keys()
       .flat_map(|chunk_id| {
-        if let Ok(item) = plugin_driver.render_manifest(RenderManifestArgs {
+        match plugin_driver.render_manifest(RenderManifestArgs {
           chunk_id,
           compilation: self,
         }) {
-          item
-        } else {
-          vec![]
+          Ok(assets) => assets.into_par_iter().map(Ok).collect(),
+          Err(err) => vec![Err(err)],
         }
       })
-      .collect::<Vec<Asset>>()
+      .collect::<Result<Vec<Asset>>>()
   }
 
   pub fn entry_modules(&self) {

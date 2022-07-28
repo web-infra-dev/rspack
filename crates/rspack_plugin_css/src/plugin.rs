@@ -3,7 +3,7 @@
 
 use crate::{module::CssModule, SWC_COMPILER};
 
-use anyhow::Context;
+use anyhow::{Context, Result};
 use rayon::prelude::*;
 use rspack_core::{
   Asset, AssetContent, Content, Filename, ModuleAst, ModuleRenderResult, ModuleType,
@@ -84,7 +84,7 @@ impl Plugin for CssPlugin {
       .chunk_by_id(args.chunk_id)
       .ok_or_else(|| anyhow::format_err!("Not found chunk {:?}", args.chunk_id))?;
     let ordered_modules = chunk.ordered_modules(module_graph);
-    let code: String = ordered_modules
+    let code = ordered_modules
       .par_iter()
       .filter(|module| {
         module
@@ -93,14 +93,17 @@ impl Plugin for CssPlugin {
           .contains(&SourceType::Css)
       })
       .map(|module| module.module.render(SourceType::Css, module, compilation))
+      .collect::<Result<Vec<_>>>()?
+      .into_par_iter()
       .fold(String::new, |mut output, cur| {
-        if let Ok(Some(ModuleRenderResult::Css(source))) = cur {
+        if let Some(ModuleRenderResult::Css(source)) = cur {
           output += "\n\n";
           output += &source;
         }
         output
       })
-      .collect();
+      .collect::<String>();
+
     if code.is_empty() {
       Ok(Default::default())
     } else {
