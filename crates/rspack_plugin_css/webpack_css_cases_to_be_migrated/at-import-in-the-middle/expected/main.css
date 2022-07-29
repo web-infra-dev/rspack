@@ -1,5 +1,5 @@
-@import url(https://some/other/external/css);
-@import url(https://some/external/css);
+
+
 body {
   background: red;
 }
@@ -7,7 +7,7 @@ body {
 .c {
   background: red;
 }
-
+@import url("https://some/other/external/css");
 .c {
   color: yellow;
 }
@@ -15,10 +15,8 @@ body {
 .b {
   background: red;
 }
-
+@import url("https://some/external/css");
 .b {
   color: yellow;
 }
-
-
 
