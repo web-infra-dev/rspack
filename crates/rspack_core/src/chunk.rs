@@ -4,7 +4,11 @@ use hashbrown::HashSet;
 use tracing::instrument;
 
 use crate::{ModuleGraph, ModuleGraphModule};
-
+#[derive(Debug)]
+pub enum ExecOrder {
+  Enter(String),
+  Leave(String),
+}
 #[derive(Debug)]
 pub struct Chunk {
   pub id: String,
@@ -12,6 +16,7 @@ pub struct Chunk {
   pub(crate) entry_uri: String,
   pub kind: ChunkKind,
   pub module_index: HashMap<String, usize>,
+  pub exec_events: Vec<ExecOrder>,
 }
 
 impl Chunk {
@@ -22,10 +27,12 @@ impl Chunk {
       entry_uri,
       kind,
       module_index: Default::default(),
+      exec_events: vec![],
     }
   }
 
   pub fn calc_exec_order(&mut self, module_graph: &ModuleGraph) {
+    // module_graph.
     let entries = [self.entry_uri.clone()];
     let mut visited = HashSet::new();
 
@@ -36,6 +43,7 @@ impl Chunk {
       while let Some(module_uri) = stack.pop() {
         if !visited.contains(&module_uri) {
           if stack_visited.contains(module_uri.as_str()) {
+            self.exec_events.push(ExecOrder::Leave(module_uri.clone()));
             self
               .module_index
               .insert(module_uri.clone(), next_exec_order);
@@ -47,6 +55,7 @@ impl Chunk {
             next_exec_order += 1;
             visited.insert(module_uri);
           } else {
+            self.exec_events.push(ExecOrder::Enter(module_uri.clone()));
             stack.push(module_uri.to_string());
             stack_visited.insert(module_uri.to_string());
             stack.append(
@@ -64,6 +73,7 @@ impl Chunk {
         }
       }
     }
+    println!("{:#?}", self.exec_events);
   }
 
   #[instrument]
