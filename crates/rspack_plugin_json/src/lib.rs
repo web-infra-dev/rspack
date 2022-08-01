@@ -55,7 +55,7 @@ impl Parser for JsonParser {
 struct JsonModule {
   module_type: ModuleType,
   json_str: String,
-  source_type_vec: Box<[SourceType; 1]>,
+  source_type_vec: &'static [SourceType; 1],
 }
 
 impl JsonModule {
@@ -63,7 +63,7 @@ impl JsonModule {
     Self {
       module_type: ModuleType::Json,
       json_str,
-      source_type_vec: Box::new([SourceType::JavaScript]),
+      source_type_vec: &[SourceType::JavaScript],
     }
   }
 }

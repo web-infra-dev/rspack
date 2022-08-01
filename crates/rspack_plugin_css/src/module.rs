@@ -12,7 +12,7 @@ use crate::{visitors::DependencyScanner, SWC_COMPILER};
 
 pub struct CssModule {
   pub ast: Stylesheet,
-  pub source_type_vec: Box<[SourceType; 2]>,
+  pub source_type_vec: &'static [SourceType; 2],
 }
 
 impl Debug for CssModule {

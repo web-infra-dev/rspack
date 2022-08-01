@@ -128,7 +128,7 @@ impl Parser for CssParser {
     if let Some(ModuleAst::Css(_ast)) = args.ast {
       Ok(Box::new(CssModule {
         ast: _ast,
-        source_type_vec: Box::new([SourceType::JavaScript, SourceType::Css]),
+        source_type_vec: &[SourceType::JavaScript, SourceType::Css],
       }))
     } else if let Some(content) = args.source {
       let content = content
@@ -137,7 +137,7 @@ impl Parser for CssParser {
       let stylesheet = SWC_COMPILER.parse_file(args.uri, content)?;
       Ok(Box::new(CssModule {
         ast: stylesheet,
-        source_type_vec: Box::new([SourceType::JavaScript, SourceType::Css]),
+        source_type_vec: &[SourceType::JavaScript, SourceType::Css],
       }))
     } else {
       Err(anyhow::format_err!(

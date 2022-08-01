@@ -167,7 +167,7 @@ impl Parser for JsParser {
       ast,
       uri: args.uri.to_string(),
       module_type,
-      source_type_vec: Box::new([SourceType::JavaScript]),
+      source_type_vec: &[SourceType::JavaScript],
     }))
   }
 }

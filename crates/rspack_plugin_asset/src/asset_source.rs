@@ -19,14 +19,14 @@ impl Parser for AssetSourceParser {
 #[derive(Debug)]
 struct AssetSourceModule {
   buf: Option<Vec<u8>>,
-  source_type_vec: Box<[SourceType; 1]>,
+  source_type_vec: &'static [SourceType; 1],
 }
 
 impl AssetSourceModule {
   fn new(buf: Option<Vec<u8>>) -> Self {
     Self {
       buf,
-      source_type_vec: Box::new([SourceType::JavaScript]),
+      source_type_vec: &[SourceType::JavaScript],
     }
   }
 }
