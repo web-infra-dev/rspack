@@ -1,4 +1,5 @@
 use std::{
+  hash::Hash,
   path::Path,
   sync::{
     atomic::{AtomicUsize, Ordering},
@@ -31,14 +32,14 @@ pub struct Dependency {
 //   }
 // }
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum ResolveKind {
   Import,
   Require,
   DynamicImport,
   AtImport,
   AtImportUrl,
-  UrlToken,
+  UrlToken(),
 }
 
 pub struct NormalModuleFactory {
@@ -221,9 +222,21 @@ pub struct NormalModuleFactoryContext {
   pub side_effects: Option<bool>,
 }
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+#[derive(Debug, Eq, Clone)]
 pub struct ModuleDependency {
   pub specifier: String,
   /// `./a.js` in `import './a.js'` is specifier
   pub kind: ResolveKind,
+}
+
+impl PartialEq for ModuleDependency {
+  fn eq(&self, other: &Self) -> bool {
+    self.specifier == other.specifier && self.kind == other.kind
+  }
+}
+
+impl Hash for ModuleDependency {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.specifier.hash(state);
+  }
 }
