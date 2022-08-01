@@ -4,7 +4,6 @@ use anyhow::Result;
 use rspack_core::{
   BoxModule, Filename, Module, ModuleRenderResult, ModuleType, Parser, SourceType,
 };
-use smallvec::{smallvec, SmallVec};
 
 #[derive(Debug)]
 pub struct AssetParser {
@@ -67,8 +66,8 @@ struct AssetModule {
   module_type: ModuleType,
   inline: bool, // if the module is not inlined, then it will be regarded as a resource
   buf: Vec<u8>,
-  inline_source_type_container: SmallVec<[SourceType; 1]>,
-  un_inline_source_type_container: SmallVec<[SourceType; 2]>,
+  inline_source_type_container: Box<[SourceType; 1]>,
+  un_inline_source_type_container: Box<[SourceType; 2]>,
 }
 
 impl AssetModule {
@@ -77,8 +76,8 @@ impl AssetModule {
       module_type,
       inline,
       buf,
-      inline_source_type_container: smallvec![SourceType::JavaScript],
-      un_inline_source_type_container: smallvec![SourceType::Asset, SourceType::JavaScript],
+      inline_source_type_container: Box::new([SourceType::JavaScript]),
+      un_inline_source_type_container: Box::new([SourceType::Asset, SourceType::JavaScript]),
     }
   }
 }
@@ -96,9 +95,9 @@ impl Module for AssetModule {
     _compilation: &rspack_core::Compilation,
   ) -> &[SourceType] {
     if self.inline {
-      &self.inline_source_type_container
+      self.inline_source_type_container.as_ref()
     } else {
-      &self.un_inline_source_type_container
+      self.un_inline_source_type_container.as_ref()
     }
   }
 

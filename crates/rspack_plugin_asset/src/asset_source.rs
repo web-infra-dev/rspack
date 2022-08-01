@@ -1,6 +1,5 @@
 use anyhow::Result;
 use rspack_core::{BoxModule, Module, ModuleRenderResult, ModuleType, Parser, SourceType};
-use smallvec::{smallvec, SmallVec};
 
 #[derive(Debug, Default)]
 pub struct AssetSourceParser {}
@@ -20,14 +19,14 @@ impl Parser for AssetSourceParser {
 #[derive(Debug)]
 struct AssetSourceModule {
   buf: Option<Vec<u8>>,
-  source_type_vec: SmallVec<[SourceType; 1]>,
+  source_type_vec: Box<[SourceType; 1]>,
 }
 
 impl AssetSourceModule {
   fn new(buf: Option<Vec<u8>>) -> Self {
     Self {
       buf,
-      source_type_vec: smallvec![SourceType::JavaScript],
+      source_type_vec: Box::new([SourceType::JavaScript]),
     }
   }
 }
@@ -42,7 +41,7 @@ impl Module for AssetSourceModule {
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
   ) -> &[SourceType] {
-    &self.source_type_vec
+    self.source_type_vec.as_ref()
   }
 
   fn render(

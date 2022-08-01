@@ -2,7 +2,6 @@
 // pub use js_module::*;
 
 use anyhow::Result;
-use smallvec::SmallVec;
 use std::fmt::Debug;
 
 use rspack_core::{Module, ModuleRenderResult, ModuleType, SourceType};
@@ -13,7 +12,7 @@ use crate::{visitors::DependencyScanner, SWC_COMPILER};
 
 pub struct CssModule {
   pub ast: Stylesheet,
-  pub source_type_vec: SmallVec<[SourceType; 2]>,
+  pub source_type_vec: Box<[SourceType; 2]>,
 }
 
 impl Debug for CssModule {
@@ -34,7 +33,7 @@ impl Module for CssModule {
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
   ) -> &[SourceType] {
-    &self.source_type_vec
+    self.source_type_vec.as_ref()
   }
 
   fn render(

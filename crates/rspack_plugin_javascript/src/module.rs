@@ -1,5 +1,4 @@
 use anyhow::Result;
-use smallvec::SmallVec;
 use tracing::instrument;
 
 use crate::visitors::DependencyScanner;
@@ -23,7 +22,7 @@ pub struct JsModule {
   pub uri: String,
   pub module_type: ModuleType,
   pub ast: swc_ecma_ast::Program,
-  pub source_type_vec: SmallVec<[SourceType; 1]>,
+  pub source_type_vec: Box<[SourceType; 1]>,
 }
 
 impl Debug for JsModule {
@@ -48,7 +47,7 @@ impl Module for JsModule {
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
   ) -> &[SourceType] {
-    &self.source_type_vec
+    self.source_type_vec.as_ref()
   }
 
   #[instrument]

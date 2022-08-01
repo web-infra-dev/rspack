@@ -1,7 +1,6 @@
 use anyhow::Result;
 
 use rspack_core::{BoxModule, Module, ModuleRenderResult, ModuleType, Parser, Plugin, SourceType};
-use smallvec::{smallvec, SmallVec};
 
 mod utils;
 
@@ -56,7 +55,7 @@ impl Parser for JsonParser {
 struct JsonModule {
   module_type: ModuleType,
   json_str: String,
-  source_type_vec: SmallVec<[SourceType; 1]>,
+  source_type_vec: Box<[SourceType; 1]>,
 }
 
 impl JsonModule {
@@ -64,7 +63,7 @@ impl JsonModule {
     Self {
       module_type: ModuleType::Json,
       json_str,
-      source_type_vec: smallvec![SourceType::JavaScript],
+      source_type_vec: Box::new([SourceType::JavaScript]),
     }
   }
 }
@@ -81,7 +80,7 @@ impl Module for JsonModule {
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
   ) -> &[SourceType] {
-    &self.source_type_vec
+    self.source_type_vec.as_ref()
   }
 
   #[tracing::instrument(skip_all)]

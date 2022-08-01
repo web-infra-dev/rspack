@@ -9,7 +9,6 @@ use rspack_core::{
   ParseModuleArgs, Parser, Plugin, PluginContext, PluginRenderManifestHookOutput, SourceType,
 };
 
-use smallvec::smallvec;
 use swc_common::comments::SingleThreadedComments;
 use swc_common::Mark;
 use swc_ecma_transforms::react::{react, Options as ReactOptions};
@@ -168,7 +167,7 @@ impl Parser for JsParser {
       ast,
       uri: args.uri.to_string(),
       module_type,
-      source_type_vec: smallvec![SourceType::JavaScript],
+      source_type_vec: Box::new([SourceType::JavaScript]),
     }))
   }
 }

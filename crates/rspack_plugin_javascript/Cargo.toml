@@ -27,7 +27,6 @@ anyhow = "1"
 better_scoped_tls = "0.1.0"
 rayon = "1.5.3"
 # rspack_sources = "0.0.3"
-smallvec = "1.9.0"
 
 # rspack_swc = { path = "../rspack_swc"}
 # swc_atoms = "0.2.11"
