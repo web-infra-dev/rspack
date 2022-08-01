@@ -51,11 +51,12 @@ impl Parser for JsonParser {
   }
 }
 
+static JSON_SOURCE_TYPE: &'static [SourceType; 1] = &[SourceType::JavaScript];
+
 #[derive(Debug)]
 struct JsonModule {
   module_type: ModuleType,
   json_str: String,
-  source_type_vec: &'static [SourceType; 1],
 }
 
 impl JsonModule {
@@ -63,7 +64,6 @@ impl JsonModule {
     Self {
       module_type: ModuleType::Json,
       json_str,
-      source_type_vec: &[SourceType::JavaScript],
     }
   }
 }
@@ -80,7 +80,7 @@ impl Module for JsonModule {
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
   ) -> &[SourceType] {
-    self.source_type_vec.as_ref()
+    JSON_SOURCE_TYPE
   }
 
   #[tracing::instrument(skip_all)]

@@ -126,19 +126,13 @@ impl Parser for CssParser {
     args: ParseModuleArgs,
   ) -> anyhow::Result<rspack_core::BoxModule> {
     if let Some(ModuleAst::Css(_ast)) = args.ast {
-      Ok(Box::new(CssModule {
-        ast: _ast,
-        source_type_vec: &[SourceType::JavaScript, SourceType::Css],
-      }))
+      Ok(Box::new(CssModule { ast: _ast }))
     } else if let Some(content) = args.source {
       let content = content
         .try_into_string()
         .context("Unable to serialize content as string which is required by plugin css")?;
       let stylesheet = SWC_COMPILER.parse_file(args.uri, content)?;
-      Ok(Box::new(CssModule {
-        ast: stylesheet,
-        source_type_vec: &[SourceType::JavaScript, SourceType::Css],
-      }))
+      Ok(Box::new(CssModule { ast: stylesheet }))
     } else {
       Err(anyhow::format_err!(
         "source is empty or unmatched content type returned for {}, content type {:?}",
