@@ -45,6 +45,7 @@ impl Module for CssModule {
     let namespace = &compilation.options.output.namespace;
     let result = match requested_source_type {
       SourceType::Css => Some(ModuleRenderResult::Css(SWC_COMPILER.codegen(&self.ast))),
+      // SourceType::Css => Some(ModuleRenderResult::Css("1".to_string())),
       SourceType::JavaScript => Some(ModuleRenderResult::JavaScript(format!(
         r#"self["{}"].__rspack_register__(["{}"], {{"{}": function(module, exports, __rspack_require__, __rspack_dynamic_require__) {{
   "use strict";

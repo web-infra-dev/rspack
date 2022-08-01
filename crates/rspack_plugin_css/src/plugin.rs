@@ -10,7 +10,7 @@ use rspack_core::{
   NormalModuleFactoryContext, OutputFilename, ParseModuleArgs, Parser, Plugin, SourceType,
   TransformAst, TransformResult,
 };
-use std::path::Path;
+use std::{fmt::format, path::Path};
 
 use swc_css::visit::VisitMutWith;
 use swc_css_prefixer::prefixer;
@@ -92,17 +92,25 @@ impl Plugin for CssPlugin {
           .source_types(module, compilation)
           .contains(&SourceType::Css)
       })
-      .map(|module| module.module.render(SourceType::Css, module, compilation))
-      .collect::<Result<Vec<_>>>()?
-      .into_par_iter()
-      .fold(String::new, |mut output, cur| {
-        if let Some(ModuleRenderResult::Css(source)) = cur {
-          output += "\n\n";
+      .map(|module| {
+        (
+          module,
+          module.module.render(SourceType::Css, module, compilation),
+        )
+      })
+      .collect::<Vec<_>>()
+      .into_iter()
+      // .into_par_iter()
+      .enumerate()
+      .fold(String::new(), |mut output, (i, cur)| {
+        if let Ok(Some(ModuleRenderResult::Css(source))) = cur.1 {
+          output += &format!("/* {} */\n", cur.0.id);
           output += &source;
+          output += "\n\n";
         }
         output
-      })
-      .collect::<String>();
+      });
+      // .collect::<String>();
 
     if code.is_empty() {
       Ok(Default::default())
