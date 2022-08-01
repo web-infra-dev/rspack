@@ -7,8 +7,8 @@ use tracing::instrument;
 
 use crate::{
   split_chunks::code_splitting2, Asset, ChunkGraph, CompilerOptions, Dependency, EntryItem,
-  ModuleDependency, ModuleGraph, PluginDriver, RenderManifestArgs, ResolveKind,
-  VisitedModuleIdentity,
+  ModuleDependency, ModuleGraph, PluginDriver, RenderManifestArgs, RenderRuntimeArgs, ResolveKind,
+  Runtime, VisitedModuleIdentity,
 };
 
 #[derive(Debug)]
@@ -18,6 +18,7 @@ pub struct Compilation {
   pub(crate) visited_module_id: VisitedModuleIdentity,
   pub module_graph: ModuleGraph,
   pub chunk_graph: ChunkGraph,
+  pub runtime: Runtime,
 }
 
 impl Compilation {
@@ -33,6 +34,7 @@ impl Compilation {
       module_graph,
       entries: HashMap::from_iter(entries),
       chunk_graph: Default::default(),
+      runtime: Default::default(),
     }
   }
 
@@ -74,6 +76,17 @@ impl Compilation {
         }
       })
       .collect::<Result<Vec<Asset>>>()
+  }
+
+  pub fn render_runtime(&self, plugin_driver: Arc<PluginDriver>) -> Runtime {
+    if let Ok(sources) = plugin_driver.render_runtime(RenderRuntimeArgs {
+      sources: &vec![],
+      compilation: self,
+    }) {
+      Runtime { sources }
+    } else {
+      Runtime { sources: vec![] }
+    }
   }
 
   pub fn entry_modules(&self) {

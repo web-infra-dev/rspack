@@ -6,7 +6,7 @@ use napi_derive::napi;
 use napi::bindgen_prelude::*;
 
 use rspack_core::{
-  CompilerOptions, DevServerOptions, EntryItem, OutputAssetModuleFilename, OutputOptions,
+  CompilerOptions, DevServerOptions, EntryItem, OutputAssetModuleFilename, OutputOptions, Target,
 };
 // use rspack_core::OptimizationOptions;
 // use rspack_core::SourceMapOptions;
@@ -86,13 +86,21 @@ pub fn normalize_bundle_options(mut options: RawOptions) -> Result<CompilerOptio
     .and_then(|opt| opt.asset_module_filename.take())
     .map(OutputAssetModuleFilename::new);
 
+  //Todo the following options is testing, we need inject real options in the user config file
+  let public_path = String::from("/");
+  let namespace = String::from("__rspack_runtime__");
+  let target = Target::String(String::from("web"));
+
   Ok(CompilerOptions {
     entries: parse_entries(options.entries),
     root,
+    target,
     dev_server: DevServerOptions { hmr: false },
     output: OutputOptions {
       path: output_path,
+      public_path,
       asset_module_filename: output_asset_module_filename.unwrap_or_default(),
+      namespace,
     },
   })
 }

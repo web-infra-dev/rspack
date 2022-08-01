@@ -1823,6 +1823,7 @@ dependencies = [
  "rspack_plugin_css",
  "rspack_plugin_javascript",
  "rspack_plugin_json",
+ "rspack_plugin_runtime",
  "sugar_path",
  "temp_test_utils",
  "testing_macros",
@@ -1954,6 +1955,15 @@ dependencies = [
  "temp_test_utils",
  "testing_macros",
  "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_runtime"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "rspack_core",
 ]
 
 [[package]]

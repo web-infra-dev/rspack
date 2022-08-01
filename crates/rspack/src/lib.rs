@@ -7,6 +7,7 @@ pub fn rspack(options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -> Co
   plugins.push(Box::new(rspack_plugin_css::CssPlugin::default()));
   plugins.push(Box::new(rspack_plugin_asset::AssetPlugin {}));
   plugins.push(Box::new(rspack_plugin_json::JsonPlugin {}));
+  plugins.push(Box::new(rspack_plugin_runtime::RuntimePlugin {}));
   Compiler::new(options, plugins)
 }
 
