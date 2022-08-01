@@ -2,7 +2,7 @@
 // pub use js_module::*;
 
 use anyhow::Result;
-use hashbrown::HashSet;
+use smallvec::SmallVec;
 use std::fmt::Debug;
 
 use rspack_core::{Module, ModuleRenderResult, ModuleType, SourceType};
@@ -13,6 +13,7 @@ use crate::{visitors::DependencyScanner, SWC_COMPILER};
 
 pub struct CssModule {
   pub ast: Stylesheet,
+  pub source_type_vec: SmallVec<[SourceType; 2]>,
 }
 
 impl Debug for CssModule {
@@ -32,8 +33,8 @@ impl Module for CssModule {
     &self,
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
-  ) -> HashSet<SourceType> {
-    HashSet::from_iter([SourceType::JavaScript, SourceType::Css])
+  ) -> &[SourceType] {
+    &self.source_type_vec
   }
 
   fn render(

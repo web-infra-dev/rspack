@@ -8,4 +8,5 @@ version = "0.1.0"
 [dependencies]
 anyhow = "1"
 async-trait = "0.1.53"
-rspack_core = {path = "../rspack_core"}
+rspack_core = { path = "../rspack_core" }
+smallvec = "1.9.0"

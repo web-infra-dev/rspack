@@ -1,6 +1,6 @@
 use anyhow::Result;
-use hashbrown::HashSet;
 use rspack_core::{BoxModule, Module, ModuleRenderResult, ModuleType, Parser, SourceType};
+use smallvec::{smallvec, SmallVec};
 
 #[derive(Debug, Default)]
 pub struct AssetSourceParser {}
@@ -20,11 +20,15 @@ impl Parser for AssetSourceParser {
 #[derive(Debug)]
 struct AssetSourceModule {
   buf: Option<Vec<u8>>,
+  source_type_vec: SmallVec<[SourceType; 1]>,
 }
 
 impl AssetSourceModule {
   fn new(buf: Option<Vec<u8>>) -> Self {
-    Self { buf }
+    Self {
+      buf,
+      source_type_vec: smallvec![SourceType::JavaScript],
+    }
   }
 }
 
@@ -37,8 +41,8 @@ impl Module for AssetSourceModule {
     &self,
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
-  ) -> HashSet<SourceType> {
-    HashSet::from_iter([SourceType::JavaScript])
+  ) -> &[SourceType] {
+    &self.source_type_vec
   }
 
   fn render(

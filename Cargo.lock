@@ -1846,6 +1846,7 @@ dependencies = [
  "once_cell",
  "petgraph",
  "rayon",
+ "smallvec",
  "sugar_path",
  "swc_css",
  "swc_ecma_ast",
@@ -1889,6 +1890,7 @@ dependencies = [
  "once_cell",
  "rayon",
  "rspack_core",
+ "smallvec",
  "temp_test_utils",
  "testing_macros",
  "tokio",
@@ -1909,6 +1911,7 @@ dependencies = [
  "rspack",
  "rspack_core",
  "rspack_node",
+ "smallvec",
  "sugar_path",
  "swc_atoms",
  "swc_common 0.20.2",
@@ -1931,6 +1934,7 @@ dependencies = [
  "once_cell",
  "rayon",
  "rspack_core",
+ "smallvec",
  "swc",
  "swc_atoms",
  "swc_common 0.18.9",
@@ -1952,6 +1956,7 @@ dependencies = [
  "hashbrown",
  "json",
  "rspack_core",
+ "smallvec",
  "temp_test_utils",
  "testing_macros",
  "tracing",
@@ -1964,6 +1969,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "rspack_core",
+ "smallvec",
 ]
 
 [[package]]

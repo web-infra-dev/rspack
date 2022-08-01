@@ -1,7 +1,7 @@
 use anyhow::Result;
-use hashbrown::HashSet;
 
 use rspack_core::{BoxModule, Module, ModuleRenderResult, ModuleType, Parser, Plugin, SourceType};
+use smallvec::{smallvec, SmallVec};
 
 mod utils;
 
@@ -56,6 +56,7 @@ impl Parser for JsonParser {
 struct JsonModule {
   module_type: ModuleType,
   json_str: String,
+  source_type_vec: SmallVec<[SourceType; 1]>,
 }
 
 impl JsonModule {
@@ -63,6 +64,7 @@ impl JsonModule {
     Self {
       module_type: ModuleType::Json,
       json_str,
+      source_type_vec: smallvec![SourceType::JavaScript],
     }
   }
 }
@@ -78,8 +80,8 @@ impl Module for JsonModule {
     &self,
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
-  ) -> HashSet<SourceType> {
-    HashSet::from_iter([SourceType::JavaScript])
+  ) -> &[SourceType] {
+    &self.source_type_vec
   }
 
   #[tracing::instrument(skip_all)]

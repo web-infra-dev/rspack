@@ -1,5 +1,5 @@
 use anyhow::Result;
-use hashbrown::HashSet;
+use smallvec::SmallVec;
 use tracing::instrument;
 
 use crate::visitors::DependencyScanner;
@@ -23,6 +23,7 @@ pub struct JsModule {
   pub uri: String,
   pub module_type: ModuleType,
   pub ast: swc_ecma_ast::Program,
+  pub source_type_vec: SmallVec<[SourceType; 1]>,
 }
 
 impl Debug for JsModule {
@@ -46,8 +47,8 @@ impl Module for JsModule {
     &self,
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
-  ) -> HashSet<SourceType> {
-    HashSet::from_iter([SourceType::JavaScript])
+  ) -> &[SourceType] {
+    &self.source_type_vec
   }
 
   #[instrument]

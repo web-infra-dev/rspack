@@ -10,6 +10,7 @@ use rspack_core::{
   NormalModuleFactoryContext, OutputFilename, ParseModuleArgs, Parser, Plugin, SourceType,
   TransformAst, TransformResult,
 };
+use smallvec::smallvec;
 use std::path::Path;
 
 use swc_css::visit::VisitMutWith;
@@ -126,13 +127,19 @@ impl Parser for CssParser {
     args: ParseModuleArgs,
   ) -> anyhow::Result<rspack_core::BoxModule> {
     if let Some(ModuleAst::Css(_ast)) = args.ast {
-      Ok(Box::new(CssModule { ast: _ast }))
+      Ok(Box::new(CssModule {
+        ast: _ast,
+        source_type_vec: smallvec![SourceType::JavaScript, SourceType::Css],
+      }))
     } else if let Some(content) = args.source {
       let content = content
         .try_into_string()
         .context("Unable to serialize content as string which is required by plugin css")?;
       let stylesheet = SWC_COMPILER.parse_file(args.uri, content)?;
-      Ok(Box::new(CssModule { ast: stylesheet }))
+      Ok(Box::new(CssModule {
+        ast: stylesheet,
+        source_type_vec: smallvec![SourceType::JavaScript, SourceType::Css],
+      }))
     } else {
       Err(anyhow::format_err!(
         "source is empty or unmatched content type returned for {}, content type {:?}",

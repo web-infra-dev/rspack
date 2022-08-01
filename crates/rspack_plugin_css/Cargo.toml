@@ -29,6 +29,7 @@ dashmap = "5.0.0"
 sugar_path = "0.0.5"
 swc_css_prefixer = "0.104.0"                             # Port of stylis
 hashbrown = { version = "0.12.1", features = ["rayon"] }
+smallvec = "1.9.0"
 # rspack_sources = "0.0.3"
 
 # swc_atoms = "0.2.11"

@@ -1,10 +1,10 @@
 use std::{ffi::OsStr, path::Path};
 
 use anyhow::Result;
-use hashbrown::HashSet;
 use rspack_core::{
   BoxModule, Filename, Module, ModuleRenderResult, ModuleType, Parser, SourceType,
 };
+use smallvec::{smallvec, SmallVec};
 
 #[derive(Debug)]
 pub struct AssetParser {
@@ -67,6 +67,8 @@ struct AssetModule {
   module_type: ModuleType,
   inline: bool, // if the module is not inlined, then it will be regarded as a resource
   buf: Vec<u8>,
+  inline_source_type_container: SmallVec<[SourceType; 1]>,
+  un_inline_source_type_container: SmallVec<[SourceType; 2]>,
 }
 
 impl AssetModule {
@@ -75,6 +77,8 @@ impl AssetModule {
       module_type,
       inline,
       buf,
+      inline_source_type_container: smallvec![SourceType::JavaScript],
+      un_inline_source_type_container: smallvec![SourceType::Asset, SourceType::JavaScript],
     }
   }
 }
@@ -90,11 +94,11 @@ impl Module for AssetModule {
     &self,
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
-  ) -> HashSet<SourceType> {
+  ) -> &[SourceType] {
     if self.inline {
-      HashSet::from_iter([SourceType::JavaScript])
+      &self.inline_source_type_container
     } else {
-      HashSet::from_iter([SourceType::Asset, SourceType::JavaScript])
+      &self.un_inline_source_type_container
     }
   }
 
