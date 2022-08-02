@@ -2492,13 +2492,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"buffer-crc32@npm:~0.2.3":
-  version: 0.2.13
-  resolution: "buffer-crc32@npm:0.2.13"
-  checksum: 06252347ae6daca3453b94e4b2f1d3754a3b146a111d81c68924c22d91889a40623264e95e67955b1cb4a68cbedf317abeabb5140a9766ed248973096db5ce1c
-  languageName: node
-  linkType: hard
-
 "bundle-splitting@workspace:examples/bundle-splitting":
   version: 0.0.0-use.local
   resolution: "bundle-splitting@workspace:examples/bundle-splitting"
@@ -3243,17 +3236,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dprint@npm:^0.29.1":
-  version: 0.29.1
-  resolution: "dprint@npm:0.29.1"
-  dependencies:
-    yauzl: =2.10.0
-  bin:
-    dprint: bin.js
-  checksum: 1ad480dce38c7612b93ff046f585a4d5010eb3f459c32e77f3b3913443b8108f5e1d53c34048578b732d06a32672b0475fa7c5639084a6d4df422faa7467a814
-  languageName: node
-  linkType: hard
-
 "earcut@npm:^2.0.0":
   version: 2.2.3
   resolution: "earcut@npm:2.2.3"
@@ -3600,15 +3582,6 @@ __metadata:
     signal-exit: ^3.0.3
     strip-final-newline: ^2.0.0
   checksum: fba9022c8c8c15ed862847e94c252b3d946036d7547af310e344a527e59021fd8b6bb0723883ea87044dc4f0201f949046993124a42ccb0855cae5bf8c786343
-  languageName: node
-  linkType: hard
-
-"fd-slicer@npm:~1.1.0":
-  version: 1.1.0
-  resolution: "fd-slicer@npm:1.1.0"
-  dependencies:
-    pend: ~1.2.0
-  checksum: c8585fd5713f4476eb8261150900d2cb7f6ff2d87f8feb306ccc8a1122efd152f1783bdb2b8dc891395744583436bfd8081d8e63ece0ec8687eeefea394d4ff2
   languageName: node
   linkType: hard
 
@@ -4510,12 +4483,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash-es@npm:^4.17.15":
-  version: 4.17.21
-  resolution: "lodash-es@npm:4.17.21"
-  checksum: 05cbffad6e2adbb331a4e16fbd826e7faee403a1a04873b82b42c0f22090f280839f85b95393f487c1303c8a3d2a010048bf06151a6cbe03eee4d388fb0a12d2
-  languageName: node
-  linkType: hard
+"lodash-es@^4.17.15, lodash-es@workspace:examples/bench/lodash":
+  version: 0.0.0-use.local
+  resolution: "lodash-es@workspace:examples/bench/lodash"
+  languageName: unknown
+  linkType: soft
 
 "lodash.debounce@npm:^4.0.8":
   version: 4.0.8
@@ -4818,7 +4790,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "monorepo@workspace:."
   dependencies:
-    dprint: ^0.29.1
     husky: ^7.0.4
     lint-staged: ^12.4.0
     mocha: 9.2.2
@@ -5082,13 +5053,6 @@ __metadata:
   version: 0.2.0
   resolution: "pdfast@npm:0.2.0"
   checksum: d2b9bf388d89aa7c4affe05b370447b09b8c8556e9a07d6fdf503bf1cadb94e621fa64ab48aa0790f69fddc4cb49fb125e7f8ad0ed9e2cdf78216fbf907cd257
-  languageName: node
-  linkType: hard
-
-"pend@npm:~1.2.0":
-  version: 1.2.0
-  resolution: "pend@npm:1.2.0"
-  checksum: 6c72f5243303d9c60bd98e6446ba7d30ae29e3d56fdb6fae8767e8ba6386f33ee284c97efe3230a0d0217e2b1723b8ab490b1bbf34fcbb2180dbc8a9de47850d
   languageName: node
   linkType: hard
 
@@ -6625,16 +6589,6 @@ __metadata:
     yarn: bin/yarn.js
     yarnpkg: bin/yarn.js
   checksum: b43d2cc5fee7e933beb12a8aee7dfceca9e9ef2dd17c5d04d15a12ab7bec5f5744ea34a07b86e013da7f291a18c4e1ad8f70e150f5ed2f4666e6723c7f0a8452
-  languageName: node
-  linkType: hard
-
-"yauzl@npm:=2.10.0":
-  version: 2.10.0
-  resolution: "yauzl@npm:2.10.0"
-  dependencies:
-    buffer-crc32: ~0.2.3
-    fd-slicer: ~1.1.0
-  checksum: 7f21fe0bbad6e2cb130044a5d1d0d5a0e5bf3d8d4f8c4e6ee12163ce798fee3de7388d22a7a0907f563ac5f9d40f8699a223d3d5c1718da90b0156da6904022b
   languageName: node
   linkType: hard
 
