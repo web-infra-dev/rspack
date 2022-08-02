@@ -167,7 +167,7 @@ impl Compiler {
         }
       })?;
 
-    Ok(Stats::new(assets))
+    Ok(Stats::new(assets.into_boxed_slice()))
   }
 
   #[instrument(skip_all)]

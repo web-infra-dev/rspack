@@ -2,11 +2,11 @@ use crate::Asset;
 
 #[derive(Debug)]
 pub struct Stats {
-  assets: Vec<Asset>,
+  assets: Box<[Asset]>,
 }
 
 impl Stats {
-  pub fn new(assets: Vec<Asset>) -> Self {
+  pub fn new(assets: Box<[Asset]>) -> Self {
     Self { assets }
   }
 }
