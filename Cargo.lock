@@ -2029,9 +2029,8 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_plugin_json",
  "rspack_plugin_runtime",
+ "rspack_test",
  "sugar_path",
- "temp_test_utils",
- "testing_macros",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -2094,8 +2093,7 @@ dependencies = [
  "once_cell",
  "rayon",
  "rspack_core",
- "temp_test_utils",
- "testing_macros",
+ "rspack_test",
  "tokio",
  "tracing",
 ]
@@ -2135,6 +2133,7 @@ dependencies = [
  "once_cell",
  "rayon",
  "rspack_core",
+ "rspack_test",
  "swc",
  "swc_atoms",
  "swc_common 0.18.9",
@@ -2143,8 +2142,6 @@ dependencies = [
  "swc_ecma_transforms",
  "swc_ecma_utils",
  "swc_ecma_visit",
- "temp_test_utils",
- "testing_macros",
  "tracing",
 ]
 
@@ -2156,8 +2153,7 @@ dependencies = [
  "hashbrown",
  "json",
  "rspack_core",
- "temp_test_utils",
- "testing_macros",
+ "rspack_test",
  "tracing",
 ]
 

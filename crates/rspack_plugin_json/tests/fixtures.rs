@@ -1,6 +1,5 @@
+use rspack_test::{fixture, test_fixture};
 use std::path::PathBuf;
-use temp_test_utils::test_fixture;
-use testing_macros::fixture;
 
 #[fixture("tests/fixtures/*")]
 fn json(fixture_path: PathBuf) {
