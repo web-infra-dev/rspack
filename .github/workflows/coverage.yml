@@ -1,0 +1,54 @@
+name: coverage
+
+on:
+  push:
+    branches:
+      - main
+      - next
+    tags-ignore:
+      - "**"
+  pull_request:
+
+jobs:
+  coverage:
+    runs-on: [self-hosted]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install minimal nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          components: llvm-tools-preview
+          override: true
+      - name: Install grcov
+        run: cargo install grcov
+      - name: Cache
+        uses: speedy-js/rust-cache-self-hosted@v1
+
+      - name: Build
+        env:
+          RUSTFLAGS: -Cinstrument-coverage
+        run: cargo build
+      - name: Test
+        env:
+          RUSTFLAGS: -Cinstrument-coverage
+          LLVM_PROFILE_FILE: coverage-%p-%m.profraw
+        run: cargo test
+      - name: Generate coverage
+        id: coverage
+        run: |
+          grcov $(find . -name "coverage-*.profraw" -print) \
+            --branch \
+            --ignore-not-existing \
+            --binary-path ./target/debug/ \
+            -s . \
+            -t lcov \
+            --ignore "/*" \
+            -o lcov.info
+      - name: Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./lcov.info
+          fail_ci_if_error: false
