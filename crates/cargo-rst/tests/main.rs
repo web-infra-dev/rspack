@@ -37,7 +37,7 @@ fn main() {
     assert!(rspack_test::test(PathBuf::from(dir)).is_err());
   });
 
-  // We update on fixture
+  // update one fixture
   let mut file_fixture = cwd;
   file_fixture.push("tests/fixtures/files");
 
@@ -51,7 +51,7 @@ fn main() {
 
   assert!(rspack_test::test(file_fixture.clone()).is_ok());
 
-  // Then we update all fixtures
+  // update all fixtures
   let cmd: Vec<OsString> = vec!["rst".into(), "update".into()];
   setup(&cmd);
 

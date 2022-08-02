@@ -24,7 +24,7 @@ enum Commands {
 #[derive(Args, Debug)]
 struct TestCmd {
   /// Whether output file diff details.
-  #[clap(short, long, action, default_value_t = true)]
+  #[clap(short, long, action, default_value_t = false)]
   detail: bool,
 
   /// If fail, no output, default to false.

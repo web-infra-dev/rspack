@@ -37,15 +37,13 @@ impl Default for Mode {
 #[derive(Debug, Default)]
 pub struct TestError {
   fixture: String,
-  verbose: bool,
   errors: Vec<TestErrorKind>,
 }
 
 impl TestError {
-  pub fn new(fixture: String, verbose: bool) -> Self {
+  pub fn new(fixture: String) -> Self {
     Self {
       fixture,
-      verbose,
       errors: vec![],
     }
   }
@@ -116,7 +114,7 @@ impl Display for TestError {
       if let Err(e) = match &kind {
         TestErrorKind::Difference(diff) => {
           output("File difference", diff.path.as_path().to_str().unwrap()).unwrap();
-          if self.verbose {
+          if is_detail() {
             for (idx, tag, content) in &diff.diff {
               color(f, tag, &format!("   {} {}| {}\n", tag, idx, content));
             }
@@ -332,7 +330,7 @@ impl Rst {
     expected_base: &Path,
     verbose: bool,
   ) -> Result<(), TestError> {
-    let mut err = TestError::new(fixture.clone(), verbose);
+    let mut err = TestError::new(fixture.clone());
 
     if !actual_base.exists() || !actual_base.is_dir() {
       err.push(TestErrorKind::MissingActualDir(PathBuf::from(actual_base)));
@@ -513,15 +511,18 @@ impl Rst {
               expected_file_path, ..
             } => {
               let actual_content = fs::read(self.expected_2_actual(expected_file_path)).unwrap();
-              fs::write(expected_file_path, actual_content).expect(&format!(
-                "Copy file from actual into expected file failed\n{}\n",
-                self.expected_2_actual(expected_file_path).display()
-              ));
+              fs::write(expected_file_path, actual_content).unwrap_or_else(|_| {
+                panic!(
+                  "Copy file from actual into expected file failed\n{}\n",
+                  self.expected_2_actual(expected_file_path).display()
+                )
+              });
             }
           }
         }
       }
       _ => {
+        println!("Not here");
         // Fully update, just copy actual dir to expected dir
         // Remove old expected directory
         if expected_dir.exists() {
@@ -578,7 +579,7 @@ impl Rst {
 
     failed_files.par_iter().for_each(|failed_path| {
       let record = serde_json::from_slice::<Record>(&fs::read(&failed_path).unwrap()).unwrap();
-      let rst = record.config;
+      let rst: Rst = record.into();
       rst.update_fixture();
 
       updates.clone().lock().unwrap().push(rst.fixture);
