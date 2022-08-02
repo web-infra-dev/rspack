@@ -10,7 +10,7 @@ publish = false
 crate-type = ["lib", "cdylib"]
 
 [features]
-default = ["napi-derive/default"]
+default = []
 test = ["napi-derive/noop"]
 
 [dependencies]
