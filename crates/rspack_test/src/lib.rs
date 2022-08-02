@@ -6,7 +6,7 @@ pub use testing_macros;
 pub use testing_macros::fixture;
 
 mod helper;
-mod record;
+pub mod record;
 pub mod rspack_only;
 pub use rspack_only::test_fixture;
 

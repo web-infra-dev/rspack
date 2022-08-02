@@ -13,14 +13,14 @@ pub struct Record {
   pub causes: Vec<FailedCase>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum FailedCase {
   MissingActualDir(PathBuf),
   MissingActualFile(PathBuf),
   MissingExpectedDir(PathBuf),
   MissingExpectedFile(PathBuf),
   Difference {
-    file: PathBuf,
+    expected_file_path: PathBuf,
     added: Vec<usize>,
     removed: Vec<usize>,
   },
@@ -77,6 +77,10 @@ where
 
 impl From<Record> for Rst {
   fn from(record: Record) -> Self {
-    record.config
+    let mut rst = record.config;
+
+    rst.errors = Some(record.causes);
+
+    rst
   }
 }

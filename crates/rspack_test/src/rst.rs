@@ -18,7 +18,7 @@ use serde_json;
 use similar::ChangeTag;
 
 use crate::{
-  helper::{is_detail, is_mute, make_relative_from, no_write},
+  helper::{cp, is_detail, is_mute, make_relative_from, no_write},
   record::{self, FailedCase, Record},
 };
 
@@ -74,6 +74,7 @@ pub enum TestErrorKind {
 
 #[derive(Debug)]
 pub struct FileDiff {
+  /// expected file path
   path: PathBuf,
 
   /// (expected_index, change_type, line content)
@@ -153,6 +154,7 @@ pub struct Rst {
   pub actual: String,
   pub expected: String,
   pub mode: Mode,
+  pub errors: Option<Vec<FailedCase>>,
 }
 
 impl Default for Rst {
@@ -162,6 +164,7 @@ impl Default for Rst {
       actual: String::from("actual"),
       expected: String::from("expected"),
       mode: Mode::Partial,
+      errors: None,
     }
   }
 }
@@ -227,6 +230,15 @@ impl Rst {
     path_buf
   }
 
+  /// /fixture/expected/a.js -> /fixture/actual/a.js
+  fn expected_2_actual(&self, expected: &Path) -> PathBuf {
+    expected
+      .to_str()
+      .unwrap()
+      .replace(&self.expected, &self.actual)
+      .into()
+  }
+
   fn validate(&self) {
     if self.fixture.to_str().unwrap() == "" {
       panic!("Fixture path must be specified, maybe you forget to call RstBuilder::default().fixture(\"...\")");
@@ -271,7 +283,7 @@ impl Rst {
                 }
 
                 FailedCase::Difference {
-                  file: diff.path.clone(),
+                  expected_file_path: diff.path.clone(),
                   added,
                   removed,
                 }
@@ -374,7 +386,7 @@ impl Rst {
           };
 
           match (expected_str, actual_str) {
-            // all can be stringify
+            // make text diff
             (Ok(expected_str), Ok(actual_str)) => {
               for change in similar::TextDiff::from_lines(
                 expected_str.as_str().trim(),
@@ -472,6 +484,8 @@ impl Rst {
   }
 
   /// Remove origin expected directory, copy the actual directory to expected directory.
+  /// If mode is Partial, only update files in expected directory, and should pass errors
+  /// argument, so it can only update failed cases.
   pub fn update_fixture(&self) {
     let actual_dir = self.get_actual_path();
     let expected_dir = self.get_expected_path();
@@ -480,53 +494,71 @@ impl Rst {
       fs::create_dir_all(actual_dir.as_path()).unwrap();
     }
 
-    // remove old expected directory
-    if expected_dir.exists() {
-      for dir in fs::read_dir(&expected_dir)
-        .unwrap()
-        .map(|d| d.unwrap().path())
-      {
-        if dir.is_dir() {
-          fs::remove_dir_all(dir).unwrap();
-        } else {
-          fs::remove_file(dir).unwrap();
-        }
-      }
-    }
-
-    // write into new expected directory
-    fn cp(orig: &Path, target: &Path) {
-      if orig.is_dir() {
-        fs::create_dir_all(target).unwrap();
-        for dir in fs::read_dir(orig).unwrap() {
-          let dir = dir.unwrap().path();
-          cp(&dir, &target.join(dir.file_name().unwrap()));
-        }
-      } else {
-        fs::copy(orig, target).unwrap();
-      }
-    }
-
-    cp(&actual_dir, &expected_dir);
-
-    // update record
-    let failed_path = self.get_record_path();
-    if failed_path.exists() {
-      fs::remove_file(failed_path.as_path()).unwrap();
-      // Remove when fix all records
-      let record_dir = Self::get_record_dir();
-
-      let failed_count = fs::read_dir(record_dir.as_path()).unwrap().count();
-      if failed_count == 0 {
-        match fs::remove_dir(record_dir.as_path()) {
-          Ok(_) => {}
-          Err(e) => {
-            println!("{}", e);
-            panic!("Unable to delete record dir (.temp)");
+    match (&self.errors, &self.mode) {
+      (Some(errors), &Mode::Partial) => {
+        for err in errors {
+          match err {
+            // If mode is Partial, those 2 errors are impossible to occur.
+            FailedCase::MissingActualDir(_) => unreachable!(),
+            FailedCase::MissingActualFile(_) => unreachable!(),
+            FailedCase::MissingExpectedDir(dir) => {
+              // Expected dir should not exist
+              fs::remove_dir_all(&dir).expect("Remove dir failed");
+            }
+            FailedCase::MissingExpectedFile(file) => {
+              // Expected file should not exist
+              fs::remove_file(&file).expect("Remove file failed");
+            }
+            FailedCase::Difference {
+              expected_file_path, ..
+            } => {
+              let actual_content = fs::read(self.expected_2_actual(expected_file_path)).unwrap();
+              fs::write(expected_file_path, actual_content).expect(&format!(
+                "Copy file from actual into expected file failed\n{}\n",
+                self.expected_2_actual(expected_file_path).display()
+              ));
+            }
           }
         }
       }
-    }
+      _ => {
+        // Fully update, just copy actual dir to expected dir
+        // Remove old expected directory
+        if expected_dir.exists() {
+          for dir in fs::read_dir(&expected_dir)
+            .unwrap()
+            .map(|d| d.unwrap().path())
+          {
+            if dir.is_dir() {
+              fs::remove_dir_all(dir).unwrap();
+            } else {
+              fs::remove_file(dir).unwrap();
+            }
+          }
+        }
+
+        cp(&actual_dir, &expected_dir);
+
+        // update record
+        let failed_path = self.get_record_path();
+        if failed_path.exists() {
+          fs::remove_file(failed_path.as_path()).unwrap();
+          // Remove when fix all records
+          let record_dir = Self::get_record_dir();
+
+          let failed_count = fs::read_dir(record_dir.as_path()).unwrap().count();
+          if failed_count == 0 {
+            match fs::remove_dir(record_dir.as_path()) {
+              Ok(_) => {}
+              Err(e) => {
+                println!("{}", e);
+                panic!("Unable to delete record dir (.temp)");
+              }
+            }
+          }
+        }
+      }
+    };
   }
 
   /// Update all the failed records in the current working directory.

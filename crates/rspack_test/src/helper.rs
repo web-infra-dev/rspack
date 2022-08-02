@@ -46,3 +46,16 @@ pub fn make_relative_from(path: &Path, base: &Path) -> String {
 
   path_iter.collect::<PathBuf>().to_str().unwrap().into()
 }
+
+// Recursively copy orig dir to target dir
+pub fn cp(orig: &Path, target: &Path) {
+  if orig.is_dir() {
+    fs::create_dir_all(target).unwrap();
+    for dir in fs::read_dir(orig).unwrap() {
+      let dir = dir.unwrap().path();
+      cp(&dir, &target.join(dir.file_name().unwrap()));
+    }
+  } else {
+    fs::copy(orig, target).unwrap();
+  }
+}
