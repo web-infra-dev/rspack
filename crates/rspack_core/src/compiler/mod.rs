@@ -7,7 +7,6 @@ use std::{
 };
 
 use anyhow::Context;
-use nodejs_resolver::Resolver;
 use rayon::prelude::*;
 use tracing::instrument;
 
@@ -17,7 +16,10 @@ use crate::{
 };
 
 mod compilation;
+mod resolver;
+
 pub use compilation::*;
+pub use resolver::*;
 
 pub struct Compiler {
   pub options: Arc<CompilerOptions>,
@@ -29,19 +31,17 @@ impl Compiler {
   #[instrument(skip_all)]
   pub fn new(options: CompilerOptions, plugins: Vec<Box<dyn Plugin>>) -> Self {
     let options = Arc::new(options);
-    let plugin_driver = PluginDriver::new(
-      options.clone(),
-      plugins,
-      Arc::new(Resolver::new(nodejs_resolver::ResolverOptions {
-        // prefer_relative: false,
-        extensions: vec![".tsx", ".jsx", ".ts", ".js", ".json"]
-          .into_iter()
-          .map(|s| s.to_string())
-          .collect(),
-        alias_fields: vec![String::from("browser")],
-        ..Default::default()
-      })),
-    );
+
+    let resolver_factory = ResolverFactory::new();
+    let resolver = resolver_factory.get(ResolverOptions {
+      extensions: vec![".tsx", ".jsx", ".ts", ".js", ".json"]
+        .into_iter()
+        .map(|s| s.to_string())
+        .collect(),
+      browser_field: true,
+      ..Default::default()
+    });
+    let plugin_driver = PluginDriver::new(options.clone(), plugins, Arc::new(resolver));
 
     Self {
       options: options.clone(),

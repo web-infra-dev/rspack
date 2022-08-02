@@ -1010,6 +1010,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "41ee439ee368ba4a77ac70d04f14015415af8600d6c894dc1f11bd79758c57d5"
 
 [[package]]
+name = "jsonc-parser"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ccff81ff106af12c93c06935c50ee0723325095e8cbb8c0b41ed276b9469c4cb"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1338,9 +1347,26 @@ dependencies = [
  "dashmap",
  "indexmap",
  "once_cell",
- "phf",
+ "phf 0.10.1",
  "serde_json",
  "smol_str",
+]
+
+[[package]]
+name = "nodejs-resolver"
+version = "0.0.34"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9cd2c337f70a69897fcf4ae45f82dad3028f3b64020bb7bdaa00c0a1b2ad6980"
+dependencies = [
+ "daachorse",
+ "dashmap",
+ "indexmap",
+ "jsonc-parser",
+ "once_cell",
+ "phf 0.11.0",
+ "serde_json",
+ "smol_str",
+ "tracing",
 ]
 
 [[package]]
@@ -1502,9 +1528,19 @@ version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fabbf1ead8a5bcbc20f5f8b939ee3f5b0f6f281b6ad3468b84656b658b455259"
 dependencies = [
- "phf_macros",
- "phf_shared",
+ "phf_macros 0.10.0",
+ "phf_shared 0.10.0",
  "proc-macro-hack",
+]
+
+[[package]]
+name = "phf"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4724fa946c8d1e7cd881bd3dbee63ce32fc1e9e191e35786b3dc1320a3f68131"
+dependencies = [
+ "phf_macros 0.11.0",
+ "phf_shared 0.11.0",
 ]
 
 [[package]]
@@ -1513,7 +1549,17 @@ version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d5285893bb5eb82e6aaf5d59ee909a06a16737a8970984dd7746ba9283498d6"
 dependencies = [
- "phf_shared",
+ "phf_shared 0.10.0",
+ "rand",
+]
+
+[[package]]
+name = "phf_generator"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5b450720b6f75cfbfabc195814bd3765f337a4f9a83186f8537297cac12f6705"
+dependencies = [
+ "phf_shared 0.11.0",
  "rand",
 ]
 
@@ -1523,9 +1569,22 @@ version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "58fdf3184dd560f160dd73922bea2d5cd6e8f064bf4b13110abd81b03697b4e0"
 dependencies = [
- "phf_generator",
- "phf_shared",
+ "phf_generator 0.10.0",
+ "phf_shared 0.10.0",
  "proc-macro-hack",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "phf_macros"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd94351ac44e70e56b59883e15029a5135f902a8a3020f9c18d580a420e526aa"
+dependencies = [
+ "phf_generator 0.11.0",
+ "phf_shared 0.11.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -1536,6 +1595,15 @@ name = "phf_shared"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6796ad771acdc0123d2a88dc428b5e38ef24456743ddb1744ed628f9815c096"
+dependencies = [
+ "siphasher",
+]
+
+[[package]]
+name = "phf_shared"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9dd5609d4b2df87167f908a32e1b146ce309c16cf35df76bc11f440b756048e4"
 dependencies = [
  "siphasher",
 ]
@@ -1815,7 +1883,7 @@ dependencies = [
  "crossbeam",
  "dashmap",
  "hashbrown",
- "nodejs-resolver",
+ "nodejs-resolver 0.0.14",
  "once_cell",
  "rspack_core",
  "rspack_node",
@@ -1842,7 +1910,7 @@ dependencies = [
  "crossbeam",
  "dashmap",
  "hashbrown",
- "nodejs-resolver",
+ "nodejs-resolver 0.0.34",
  "once_cell",
  "petgraph",
  "rayon",
@@ -1867,7 +1935,7 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
- "nodejs-resolver",
+ "nodejs-resolver 0.0.14",
  "once_cell",
  "rspack",
  "rspack_core",
@@ -2277,7 +2345,7 @@ dependencies = [
  "new_debug_unreachable",
  "once_cell",
  "parking_lot",
- "phf_shared",
+ "phf_shared 0.10.0",
  "precomputed-hash",
  "serde",
 ]
@@ -2288,8 +2356,8 @@ version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6bb30289b722be4ff74a408c3cc27edeaad656e06cb1fe8fa9231fa59c728988"
 dependencies = [
- "phf_generator",
- "phf_shared",
+ "phf_generator 0.10.0",
+ "phf_shared 0.10.0",
  "proc-macro2",
  "quote",
 ]
@@ -2674,7 +2742,7 @@ version = "0.72.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aaeac28dc8c9c1a626b40b50ffe80583aab398615aacc2234dc0d88627e88826"
 dependencies = [
- "phf",
+ "phf 0.10.1",
  "swc_atoms",
  "swc_common 0.18.9",
  "swc_ecma_ast",
@@ -2830,7 +2898,7 @@ checksum = "2d4c2de9eb84fd9f259938a03736b96f76f2e410285fca364780922a19fca426"
 dependencies = [
  "better_scoped_tls",
  "once_cell",
- "phf",
+ "phf 0.10.1",
  "rustc-hash",
  "serde",
  "smallvec",

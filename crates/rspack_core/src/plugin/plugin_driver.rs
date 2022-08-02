@@ -1,14 +1,13 @@
 use std::{collections::HashMap, sync::Arc};
 
-use nodejs_resolver::Resolver;
 use tracing::instrument;
 
 use crate::{
   ApplyContext, BoxModule, BoxedParser, CompilerOptions, LoadArgs, ModuleType,
   NormalModuleFactoryContext, ParseModuleArgs, Plugin, PluginContext, PluginLoadHookOutput,
   PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, PluginResolveHookOutput,
-  PluginTransformOutput, RenderManifestArgs, RenderRuntimeArgs, ResolveArgs, TransformArgs,
-  TransformResult,
+  PluginTransformOutput, RenderManifestArgs, RenderRuntimeArgs, ResolveArgs, Resolver,
+  TransformArgs, TransformResult,
 };
 use anyhow::Context;
 use rayon::prelude::*;
