@@ -2,13 +2,12 @@ use std::fmt::Debug;
 
 use crate::{
   BoxModule, LoadArgs, ModuleType, NormalModuleFactoryContext, ParseModuleArgs, PluginContext,
-  RenderManifestArgs, RenderRuntimeArgs, ResolveArgs, RuntimeSourceNode, TransformAst,
-  TransformResult,
+  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, ResolveArgs, RuntimeSourceNode,
+  TransformAst, TransformResult,
 };
 use crate::{Content, TransformArgs};
 
-use anyhow::Context;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use hashbrown::HashMap;
 pub type PluginBuildStartHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;
@@ -20,6 +19,7 @@ pub type PluginParseModuleHookOutput = Result<BoxModule>;
 pub type PluginResolveHookOutput = Result<Option<String>>;
 pub type PluginParseOutput = Result<TransformAst>;
 pub type PluginGenerateOutput = Result<Content>;
+pub type PluginProcessAssetsOutput = Result<()>;
 // pub type PluginTransformAstHookOutput = Result<ast::Module>;
 
 // pub type PluginTransformHookOutput = Result<TransformResult>;
@@ -98,6 +98,13 @@ pub trait Plugin: Debug + Send + Sync {
     _args: RenderRuntimeArgs,
   ) -> PluginRenderRuntimeHookOutput {
     Ok(vec![])
+  }
+  fn process_assets(
+    &self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
   }
 }
 
