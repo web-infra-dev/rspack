@@ -6,7 +6,8 @@ use napi_derive::napi;
 use napi::bindgen_prelude::*;
 
 use rspack_core::{
-  CompilerOptions, DevServerOptions, EntryItem, OutputAssetModuleFilename, OutputOptions, Target,
+  CompilerOptions, DevServerOptions, EntryItem, OutputAssetModuleFilename, OutputOptions, Resolve,
+  Target,
 };
 // use rspack_core::OptimizationOptions;
 // use rspack_core::SourceMapOptions;
@@ -90,7 +91,7 @@ pub fn normalize_bundle_options(mut options: RawOptions) -> Result<CompilerOptio
   let public_path = String::from("/");
   let namespace = String::from("__rspack_runtime__");
   let target = Target::String(String::from("web"));
-
+  let resolve = Resolve::default();
   Ok(CompilerOptions {
     entries: parse_entries(options.entries),
     root,
@@ -102,6 +103,7 @@ pub fn normalize_bundle_options(mut options: RawOptions) -> Result<CompilerOptio
       asset_module_filename: output_asset_module_filename.unwrap_or_default(),
       namespace,
     },
+    resolve,
   })
 }
 

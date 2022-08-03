@@ -1,8 +1,7 @@
 use crate::{
   parse_to_url, Content, LoadArgs, NormalModuleFactoryContext, PluginDriver, ResolveArgs,
-  TransformArgs,
+  ResolveResult, TransformArgs,
 };
-use nodejs_resolver::ResolveResult;
 use std::path::Path;
 
 pub async fn load(
@@ -62,7 +61,7 @@ pub async fn resolve(
           args.specifier
         )
       })? {
-      ResolveResult::Path(buf) => buf.to_string_lossy().to_string(),
+      ResolveResult::Info(info) => info.path.to_string_lossy().to_string(),
       _ => unreachable!(),
     }
   })
