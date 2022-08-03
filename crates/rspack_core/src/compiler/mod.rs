@@ -33,14 +33,7 @@ impl Compiler {
     let options = Arc::new(options);
 
     let resolver_factory = ResolverFactory::new();
-    let resolver = resolver_factory.get(ResolverOptions {
-      extensions: vec![".tsx", ".jsx", ".ts", ".js", ".json"]
-        .into_iter()
-        .map(|s| s.to_string())
-        .collect(),
-      browser_field: true,
-      ..Default::default()
-    });
+    let resolver = resolver_factory.get(options.resolve.clone());
     let plugin_driver = PluginDriver::new(options.clone(), plugins, Arc::new(resolver));
 
     Self {
