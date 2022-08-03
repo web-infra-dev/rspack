@@ -37,12 +37,12 @@ pub use output::*;
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawOptions {
-  pub entries: HashMap<String, String>,
+  pub entry: HashMap<String, String>,
   // #[napi(ts_type = "\"development\" | \"production\" | \"none\"")]
   // pub mode: Option<String>,
   // #[napi(ts_type = "\"browser\" | \"node\"")]
   // pub platform: Option<String>,
-  pub root: Option<String>,
+  pub context: Option<String>,
   // pub loader: Option<HashMap<String, String>>,
   // pub enhanced: Option<RawEnhancedOptions>,
   // pub optimization: Option<RawOptimizationOptions>,
@@ -55,10 +55,10 @@ pub struct RawOptions {
 #[serde(rename_all = "camelCase")]
 #[cfg(feature = "test")]
 pub struct RawOptions {
-  pub entries: HashMap<String, String>,
+  pub entry: HashMap<String, String>,
   // pub mode: Option<String>,
   // pub platform: Option<String>,
-  pub root: Option<String>,
+  pub context: Option<String>,
   // pub loader: Option<HashMap<String, String>>,
   // pub enhanced: Option<RawEnhancedOptions>,
   // pub optimization: Option<RawOptimizationOptions>,
@@ -70,8 +70,8 @@ pub struct RawOptions {
 pub fn normalize_bundle_options(mut options: RawOptions) -> Result<CompilerOptions> {
   let cwd = std::env::current_dir().unwrap();
 
-  let root = options
-    .root
+  let context = options
+    .context
     .take()
     .unwrap_or_else(|| cwd.to_string_lossy().to_string());
 
@@ -79,7 +79,12 @@ pub fn normalize_bundle_options(mut options: RawOptions) -> Result<CompilerOptio
     .output
     .as_mut()
     .and_then(|opt| opt.path.take())
-    .unwrap_or_else(|| Path::new(&root).join("dist").to_string_lossy().to_string());
+    .unwrap_or_else(|| {
+      Path::new(&context)
+        .join("dist")
+        .to_string_lossy()
+        .to_string()
+    });
 
   let output_asset_module_filename = options
     .output
@@ -93,8 +98,8 @@ pub fn normalize_bundle_options(mut options: RawOptions) -> Result<CompilerOptio
   let target = Target::String(String::from("web"));
   let resolve = Resolve::default();
   Ok(CompilerOptions {
-    entries: parse_entries(options.entries),
-    root,
+    entry: parse_entries(options.entry),
+    context,
     target,
     dev_server: DevServerOptions { hmr: false },
     output: OutputOptions {
