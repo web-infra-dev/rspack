@@ -1354,9 +1354,9 @@ dependencies = [
 
 [[package]]
 name = "nodejs-resolver"
-version = "0.0.34"
+version = "0.0.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9cd2c337f70a69897fcf4ae45f82dad3028f3b64020bb7bdaa00c0a1b2ad6980"
+checksum = "25e092bc34b850d6ca2f60eeab430d8edd9e313a03594ed541d99708406e1380"
 dependencies = [
  "daachorse",
  "dashmap",
@@ -1910,7 +1910,7 @@ dependencies = [
  "crossbeam",
  "dashmap",
  "hashbrown",
- "nodejs-resolver 0.0.34",
+ "nodejs-resolver 0.0.35",
  "once_cell",
  "petgraph",
  "rayon",
@@ -3448,9 +3448,9 @@ checksum = "b6bc1c9ce2b5135ac7f93c72918fc37feb872bdc6a5533a8b85eb4b86bfdae52"
 
 [[package]]
 name = "tracing"
-version = "0.1.35"
+version = "0.1.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a400e31aa60b9d44a52a8ee0343b5b18566b03a8321e0d321f695cf56e940160"
+checksum = "2fce9567bd60a67d08a16488756721ba392f24f29006402881e43b19aac64307"
 dependencies = [
  "cfg-if",
  "log",
@@ -3484,9 +3484,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-core"
-version = "0.1.28"
+version = "0.1.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b7358be39f2f274f322d2aaed611acc57f382e8eb1e5b48cb9ae30933495ce7"
+checksum = "5aeea4303076558a00714b823f9ad67d58a3bbda1df83d8827d21193156e22f7"
 dependencies = [
  "once_cell",
  "valuable",
