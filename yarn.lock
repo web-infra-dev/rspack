@@ -653,6 +653,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@napi-rs/cli@npm:^2.6.2":
+  version: 2.10.3
+  resolution: "@napi-rs/cli@npm:2.10.3"
+  bin:
+    napi: scripts/index.js
+  checksum: 3542e22a2125459220eab3de15d61cd2bb2176306314d07577a5e23547318293160af5994d1a0b33760aeaa5ba57789eb9ad1874e2bdd5cfcb05276623d313c6
+  languageName: node
+  linkType: hard
+
 "@npmcli/fs@npm:^2.1.0":
   version: 2.1.0
   resolution: "@npmcli/fs@npm:2.1.0"
@@ -673,9 +682,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@rspack/binding@workspace:crates/node_binding":
+  version: 0.0.0-use.local
+  resolution: "@rspack/binding@workspace:crates/node_binding"
+  dependencies:
+    "@napi-rs/cli": ^2.6.2
+    why-is-node-running: 2.2.1
+  languageName: unknown
+  linkType: soft
+
 "@rspack/core@workspace:*, @rspack/core@workspace:packages/rspack":
   version: 0.0.0-use.local
   resolution: "@rspack/core@workspace:packages/rspack"
+  dependencies:
+    "@types/node": ^18.6.3
+    tsm: ^2.2.2
+    typescript: ^4.7.4
   languageName: unknown
   linkType: soft
 
@@ -2058,6 +2080,13 @@ __metadata:
     "@types/react": "*"
     hoist-non-react-statics: ^3.3.0
   checksum: 2c0778570d9a01d05afabc781b32163f28409bb98f7245c38d5eaf082416fdb73034003f5825eb5e21313044e8d2d9e1f3fe2831e345d3d1b1d20bcd12270719
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:^18.6.3":
+  version: 18.6.3
+  resolution: "@types/node@npm:18.6.3"
+  checksum: 38495b8fd27200d2b7ab9ccd8c1e2475d2411fba15330f2cba869a85ef79dd42382a2658c8dd298ace8c21ed3bfafcdea408faecd74928b144377d07d00e7c8c
   languageName: node
   linkType: hard
 
@@ -6258,6 +6287,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"tsm@npm:^2.2.2":
+  version: 2.2.2
+  resolution: "tsm@npm:2.2.2"
+  dependencies:
+    esbuild: ^0.14.0
+  bin:
+    tsm: bin.js
+  checksum: 5908f7e5167c0552b180e04f950430a5f890d95b9ac4b7f2016cbe566df2515f4b7c4f3519fa6f6edc2bf47f4b8fe38b301407d613f8b3c491b51339c098573b
+  languageName: node
+  linkType: hard
+
 "turf-jsts@npm:*":
   version: 1.2.3
   resolution: "turf-jsts@npm:1.2.3"
@@ -6282,6 +6322,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"typescript@npm:^4.7.4":
+  version: 4.7.4
+  resolution: "typescript@npm:4.7.4"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 5750181b1cd7e6482c4195825547e70f944114fb47e58e4aa7553e62f11b3f3173766aef9c281783edfd881f7b8299cf35e3ca8caebe73d8464528c907a164df
+  languageName: node
+  linkType: hard
+
 "typescript@patch:typescript@^4.5.5#~builtin<compat/typescript>":
   version: 4.7.3
   resolution: "typescript@patch:typescript@npm%3A4.7.3#~builtin<compat/typescript>::version=4.7.3&hash=bda367"
@@ -6289,6 +6339,16 @@ __metadata:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 8257ce7ecbbf9416da60045a76a99d473698ca9e973fa0ddab7137cacb1587255431176cbbcc801a650938c4dc8109ab88355774829a714fabe56a53a2fe4524
+  languageName: node
+  linkType: hard
+
+"typescript@patch:typescript@^4.7.4#~builtin<compat/typescript>":
+  version: 4.7.4
+  resolution: "typescript@patch:typescript@npm%3A4.7.4#~builtin<compat/typescript>::version=4.7.4&hash=bda367"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 96d3030cb01143570567cb4f3a616b10df65f658f0e74e853e77a089a6a954e35c800be7db8b9bfe9a1ae05d9c2897e281359f65e4caa1caf266368e1c4febd3
   languageName: node
   linkType: hard
 

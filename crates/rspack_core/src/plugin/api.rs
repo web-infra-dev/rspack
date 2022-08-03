@@ -180,7 +180,7 @@ impl Asset {
     &self.content
   }
 
-  pub fn filename(&self) -> &String {
+  pub fn filename(&self) -> &str {
     &self.filename
   }
 }
