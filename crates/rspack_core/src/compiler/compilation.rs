@@ -105,9 +105,9 @@ impl Compilation {
     let compilation = Rc::new(RefCell::new(self));
     plugin_driver
       .process_assets(ProcessAssetsArgs { compilation })
-      .or_else(|e| {
+      .map_err(|e| {
         eprintln!("process_assets is not ok, err {:#?}", e);
-        Err(e)
+        e
       })
       .ok();
   }
@@ -157,7 +157,7 @@ impl Compilation {
       self.entrypoints.insert(name.clone(), entrypoint);
     });
 
-    self.process_assets(plugin_driver.clone());
+    self.process_assets(plugin_driver);
   }
 }
 

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{DevServerOptions, EntryItem, OutputOptions, Resolve, Target};
+use crate::{DevServerOptions, EntryItem, OutputOptions, Plugin, Resolve, Target};
 
 #[derive(Debug)]
 pub struct CompilerOptions {
@@ -10,4 +10,5 @@ pub struct CompilerOptions {
   pub output: OutputOptions,
   pub target: Target,
   pub resolve: Resolve,
+  pub plugins: Vec<Box<dyn Plugin>>,
 }
