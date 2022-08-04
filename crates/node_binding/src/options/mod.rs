@@ -21,6 +21,7 @@ use std::path::Path;
 
 // mod enhanced;
 // mod optimization;
+mod css;
 mod output;
 // mod react;
 // mod resolve;
@@ -28,6 +29,8 @@ mod output;
 // pub use enhanced::*;
 // pub use optimization::*;
 pub use output::*;
+
+use self::css::RawCssOptions;
 // pub use react::*;
 // pub use resolve::*;
 // pub use split_chunks::*;
@@ -47,6 +50,7 @@ pub struct RawOptions {
   // pub enhanced: Option<RawEnhancedOptions>,
   // pub optimization: Option<RawOptimizationOptions>,
   pub output: Option<RawOutputOptions>,
+  pub css: Option<RawCssOptions>,
   // pub resolve: Option<RawResolveOptions>,
   // pub chunk_filename: Option<String>,
 }
@@ -66,23 +70,6 @@ pub struct RawOptions {
   pub css: Option<RawCssOptions>,
   // pub resolve: Option<RawResolveOptions>,
   // pub chunk_filename: Option<String>,
-}
-
-#[derive(Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase", default = "Default::default")]
-#[cfg(feature = "test")]
-pub struct RawCssOptions {
-  /// ## Example
-  /// ```rs
-  /// RawCssOptions {
-  ///   preset_env: vec![
-  ///
-  ///          "Firefox > 10".into(),
-  ///    "chrome >=20".into(),
-  /// ]
-  /// }
-  /// ```
-  pub preset_env: Vec<String>,
 }
 
 pub fn normalize_bundle_options(mut options: RawOptions) -> Result<CompilerOptions> {

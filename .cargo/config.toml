@@ -1,5 +1,6 @@
 [alias]
 lint = "clippy --workspace --all-targets --verbose -- --deny warnings"
+test_all = "test --all --all-features -- --nocapture"
 
 [target.'cfg(all())']
 rustflags = [
