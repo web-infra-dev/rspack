@@ -1,0 +1,11 @@
+{
+  "entries": {
+    "main": "./index.js"
+  },
+  "css": {
+    "presetEnv": [
+      "chrome >= 40",
+      "firefox > 10"
+    ]
+  }
+}

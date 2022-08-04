@@ -6,3 +6,9 @@ use testing_macros::fixture;
 fn webpack_css(fixture_path: PathBuf) {
   test_fixture(&fixture_path);
 }
+
+#[fixture("tests/fixtures/postcss/*")]
+fn postcss(fixture_path: PathBuf) {
+  // println!("{:?}", fixture_path);
+  test_fixture(&fixture_path);
+}

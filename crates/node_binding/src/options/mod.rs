@@ -6,8 +6,8 @@ use napi_derive::napi;
 use napi::bindgen_prelude::*;
 
 use rspack_core::{
-  CompilerOptions, DevServerOptions, EntryItem, OutputAssetModuleFilename, OutputOptions, Resolve,
-  Target,
+  CompilerOptions, CssOptions, DevServerOptions, EntryItem, OutputAssetModuleFilename,
+  OutputOptions, Resolve, Target,
 };
 // use rspack_core::OptimizationOptions;
 // use rspack_core::SourceMapOptions;
@@ -63,8 +63,26 @@ pub struct RawOptions {
   // pub enhanced: Option<RawEnhancedOptions>,
   // pub optimization: Option<RawOptimizationOptions>,
   pub output: Option<RawOutputOptions>,
+  pub css: Option<RawCssOptions>,
   // pub resolve: Option<RawResolveOptions>,
   // pub chunk_filename: Option<String>,
+}
+
+#[derive(Deserialize, Debug, Default)]
+#[serde(rename_all = "camelCase", default = "Default::default")]
+#[cfg(feature = "test")]
+pub struct RawCssOptions {
+  /// ## Example
+  /// ```rs
+  /// RawCssOptions {
+  ///   preset_env: vec![
+  ///
+  ///          "Firefox > 10".into(),
+  ///    "chrome >=20".into(),
+  /// ]
+  /// }
+  /// ```
+  pub preset_env: Vec<String>,
 }
 
 pub fn normalize_bundle_options(mut options: RawOptions) -> Result<CompilerOptions> {
@@ -92,6 +110,15 @@ pub fn normalize_bundle_options(mut options: RawOptions) -> Result<CompilerOptio
   let namespace = String::from("__rspack_runtime__");
   let target = Target::String(String::from("web"));
   let resolve = Resolve::default();
+  let css_options = {
+    let mut css = CssOptions::default();
+    css.preset_env = options
+      .css
+      .as_mut()
+      .map(|opt| std::mem::take(&mut opt.preset_env))
+      .unwrap_or_default();
+    css
+  };
   Ok(CompilerOptions {
     entries: parse_entries(options.entries),
     root,
@@ -104,6 +131,7 @@ pub fn normalize_bundle_options(mut options: RawOptions) -> Result<CompilerOptio
       namespace,
     },
     resolve,
+    css: css_options,
   })
 }
 

@@ -6,16 +6,40 @@ use crate::{module::CssModule, SWC_COMPILER};
 use anyhow::{Context, Result};
 use rayon::prelude::*;
 use rspack_core::{
-  Asset, AssetContent, Content, Filename, ModuleAst, ModuleRenderResult, ModuleType,
+  Asset, AssetContent, Content, CssOptions, Filename, ModuleAst, ModuleRenderResult, ModuleType,
   NormalModuleFactoryContext, OutputFilename, ParseModuleArgs, Parser, Plugin, SourceType,
   TransformAst, TransformResult,
 };
 use std::path::Path;
 
+use preset_env_base::query::Query;
 use swc_css::visit::VisitMutWith;
-use swc_css_prefixer::prefixer;
+use swc_css_prefixer::{
+  options::{Options, Targets},
+  prefixer,
+};
+
 #[derive(Debug, Default)]
-pub struct CssPlugin {}
+pub struct CssPlugin {
+  css: CssOptions,
+}
+
+impl CssPlugin {
+  pub fn new(css: CssOptions) -> Self {
+    Self { css }
+  }
+
+  pub fn get_query(&self) -> Query {
+    // TODO: figure out if the prefixer visitMut is stateless
+    // I need to clone the preset_env every time, due to I don't know if it is stateless
+    // If it is true, I reduce this clone
+    if !self.css.preset_env.is_empty() {
+      Query::Multiple(self.css.preset_env.clone())
+    } else {
+      Query::Single("".into())
+    }
+  }
+}
 
 impl Plugin for CssPlugin {
   fn name(&self) -> &'static str {
@@ -46,7 +70,15 @@ impl Plugin for CssPlugin {
     args: rspack_core::TransformArgs,
   ) -> rspack_core::PluginTransformOutput {
     if let Some(TransformAst::Css(mut ast)) = args.ast {
-      ast.visit_mut_with(&mut prefixer());
+      // ast.visit_mut_with(&mut prefixer(Options {
+      //   env: Some(Targets::Query(Query::Multiple(vec![
+      //     "Firefox > 10".into(),
+      //     "chrome >=20".into(), // "firefox <= 11".into(),
+      //   ]))),
+      // }));
+      ast.visit_mut_with(&mut prefixer(Options {
+        env: Some(Targets::Query(self.get_query())),
+      }));
       Ok({
         TransformResult {
           content: None,
