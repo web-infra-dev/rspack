@@ -26,13 +26,9 @@ pub struct RawCssOptions {
 #[cfg(feature = "test")]
 pub struct RawCssOptions {
   /// ## Example
-  /// ```rs
+  /// ```rust
   /// RawCssOptions {
-  ///   preset_env: vec![
-  ///
-  ///          "Firefox > 10".into(),
-  ///    "chrome >=20".into(),
-  /// ]
+  ///   preset_env: vec!["Firefox > 10".into(), "chrome >=20".into()],
   /// }
   /// ```
   pub preset_env: Vec<String>,
