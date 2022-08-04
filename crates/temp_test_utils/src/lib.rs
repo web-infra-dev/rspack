@@ -1,4 +1,8 @@
-use std::{collections::HashMap, path::Path};
+use std::{
+  collections::HashMap,
+  env::{current_dir, set_current_dir},
+  path::Path,
+};
 
 use node_binding::{normalize_bundle_options, RawOptions};
 use rspack_core::{AssetContent, Compiler};
@@ -8,14 +12,20 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler {
   let options = normalize_bundle_options(RawOptions::from_fixture(fixture_path))
     .unwrap_or_else(|_| panic!("failed to normalize in fixtrue {:?}", fixture_path));
 
+  let prev_cwd = current_dir();
+  set_current_dir(fixture_path).ok();
   let mut compiler = rspack::rspack(options, Default::default());
 
   let expected_dir_path = fixture_path.join("expected");
 
-  let stats = compiler
-    .run()
-    .await
-    .unwrap_or_else(|_| panic!("failed to compile in fixtrue {:?}", fixture_path));
+  let stats = compiler.run().await.unwrap_or_else(|e| {
+    eprintln!("The panic is caused by:\n{:?}", e);
+    panic!("failed to compile in fixtrue {:?}", fixture_path)
+  });
+
+  if let Ok(prev_cwd) = prev_cwd {
+    set_current_dir(prev_cwd).ok();
+  }
 
   let mut expected_files = std::fs::read_dir(expected_dir_path)
     .expect("failed to read `expected` dir")
