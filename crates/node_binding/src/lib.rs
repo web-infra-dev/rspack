@@ -43,7 +43,7 @@ pub struct Stats {
 }
 
 impl<'a> From<rspack_core::Stats<'a>> for Stats {
-  fn from(rspack_stats: rspack_core::Stats) -> Self {
+  fn from(_rspack_stats: rspack_core::Stats) -> Self {
     Self {}
   }
 }

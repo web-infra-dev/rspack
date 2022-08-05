@@ -1,14 +1,13 @@
 use std::{fmt::Debug, sync::Arc};
 
-use anyhow::Result;
 use hashbrown::HashMap;
 use rayon::prelude::*;
 use tracing::instrument;
 
 use crate::{
   split_chunks::code_splitting2, AssetContent, ChunkGraph, CompilerOptions, Dependency, EntryItem,
-  Entrypoint, ModuleDependency, ModuleGraph, PluginDriver, RenderManifestArgs, RenderManifestEntry,
-  RenderRuntimeArgs, ResolveKind, Runtime, VisitedModuleIdentity,
+  Entrypoint, ModuleDependency, ModuleGraph, PluginDriver, RenderManifestArgs, RenderRuntimeArgs,
+  ResolveKind, Runtime, VisitedModuleIdentity,
 };
 
 #[derive(Debug)]

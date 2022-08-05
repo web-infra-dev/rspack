@@ -1,6 +1,4 @@
-use hashbrown::HashMap;
-
-use crate::{Compilation, CompilationAssets, RenderManifestEntry};
+use crate::{Compilation, CompilationAssets};
 
 #[derive(Debug)]
 pub struct Stats<'compilation> {
