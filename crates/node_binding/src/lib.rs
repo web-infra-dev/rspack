@@ -14,7 +14,6 @@ mod utils;
 // use adapter::utils::create_node_adapter_from_plugin_callbacks;
 pub use options::*;
 
-// #[cfg(not(target_os = "linux"))]
 #[cfg(all(not(any(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))]
 #[global_allocator]
 static ALLOC: mimalloc_rust::GlobalMiMalloc = mimalloc_rust::GlobalMiMalloc;
