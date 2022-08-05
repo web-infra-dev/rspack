@@ -24,6 +24,17 @@ async fn main() {
 
   compiler.compile().await.unwrap();
 
+  println!(
+    "entrypoints {:#?}",
+    compiler
+      .compilation
+      .entrypoints
+      .values()
+      .next()
+      .unwrap()
+      .get_files(&compiler.compilation.chunk_graph)
+  );
+
   if let Some(g) = guard {
     g.flush()
   }

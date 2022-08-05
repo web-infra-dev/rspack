@@ -14,7 +14,7 @@ pub type PluginBuildStartHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;
 pub type PluginLoadHookOutput = Result<Option<Content>>;
 pub type PluginTransformOutput = Result<TransformResult>;
-pub type PluginRenderManifestHookOutput = Result<Vec<Asset>>;
+pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
 pub type PluginRenderRuntimeHookOutput = Result<Vec<RuntimeSourceNode>>;
 pub type PluginParseModuleHookOutput = Result<BoxModule>;
 pub type PluginResolveHookOutput = Result<Option<String>>;
@@ -161,8 +161,8 @@ pub enum AssetContent {
 }
 
 #[derive(Debug)]
-pub struct Asset {
-  content: AssetContent,
+pub struct RenderManifestEntry {
+  pub(crate) content: AssetContent,
   filename: String,
   // pathOptions÷: PathData;
   // info?: AssetInfo;
@@ -171,7 +171,7 @@ pub struct Asset {
   // auxiliary?: boolean;
 }
 
-impl Asset {
+impl RenderManifestEntry {
   pub fn new(content: AssetContent, filename: String) -> Self {
     Self { content, filename }
   }

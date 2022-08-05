@@ -6,9 +6,9 @@ use rayon::prelude::*;
 use tokio::fs;
 
 use rspack_core::{
-  Asset, AssetContent, Content, Filename, LoadArgs, ModuleRenderResult, ModuleType,
+  AssetContent, Content, Filename, LoadArgs, ModuleRenderResult, ModuleType,
   NormalModuleFactoryContext, Plugin, PluginContext, PluginLoadHookOutput,
-  PluginRenderManifestHookOutput, RenderManifestArgs, SourceType,
+  PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, SourceType,
 };
 
 mod asset;
@@ -94,7 +94,7 @@ impl Plugin for AssetPlugin {
           .map(|result| {
             if let Some(ModuleRenderResult::Asset(asset)) = result {
               let path = Path::new(&module.id);
-              Some(Asset::new(
+              Some(RenderManifestEntry::new(
                 AssetContent::Buffer(asset),
                 args
                   .compilation
@@ -115,10 +115,10 @@ impl Plugin for AssetPlugin {
             }
           })
       })
-      .collect::<Result<Vec<Option<Asset>>>>()?
+      .collect::<Result<Vec<Option<RenderManifestEntry>>>>()?
       .into_par_iter()
       .flatten()
-      .collect::<Vec<Asset>>();
+      .collect::<Vec<RenderManifestEntry>>();
 
     Ok(assets)
   }

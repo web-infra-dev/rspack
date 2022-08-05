@@ -2,8 +2,9 @@ use anyhow::Result;
 use async_trait::async_trait;
 
 use rspack_core::{
-  Asset, AssetContent, Plugin, PluginContext, PluginRenderManifestHookOutput,
-  PluginRenderRuntimeHookOutput, RenderManifestArgs, RenderRuntimeArgs, RuntimeSourceNode,
+  AssetContent, Plugin, PluginContext, PluginRenderManifestHookOutput,
+  PluginRenderRuntimeHookOutput, RenderManifestArgs, RenderManifestEntry, RenderRuntimeArgs,
+  RuntimeSourceNode,
 };
 
 mod common;
@@ -69,7 +70,7 @@ impl Plugin for RuntimePlugin {
     let compilation = args.compilation;
     let runtime = &compilation.runtime;
 
-    Ok(vec![Asset::new(
+    Ok(vec![RenderManifestEntry::new(
       AssetContent::String(runtime.generate()),
       String::from("runtime.js"),
     )])

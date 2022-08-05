@@ -6,9 +6,9 @@ use crate::{module::CssModule, SWC_COMPILER};
 use anyhow::{Context, Result};
 use rayon::prelude::*;
 use rspack_core::{
-  Asset, AssetContent, Content, Filename, ModuleAst, ModuleRenderResult, ModuleType,
-  NormalModuleFactoryContext, OutputFilename, ParseModuleArgs, Parser, Plugin, SourceType,
-  TransformAst, TransformResult,
+  AssetContent, Content, Filename, ModuleAst, ModuleRenderResult, ModuleType,
+  NormalModuleFactoryContext, OutputFilename, ParseModuleArgs, Parser, Plugin, RenderManifestEntry,
+  SourceType, TransformAst, TransformResult,
 };
 use std::path::Path;
 
@@ -107,7 +107,7 @@ impl Plugin for CssPlugin {
     if code.is_empty() {
       Ok(Default::default())
     } else {
-      Ok(vec![Asset::new(
+      Ok(vec![RenderManifestEntry::new(
         AssetContent::String(code),
         OutputFilename::new("[name][ext]".to_owned())
           .filename(args.chunk_id.to_owned(), ".css".to_owned()),
