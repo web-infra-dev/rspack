@@ -9,7 +9,7 @@ use napi_derive::napi;
 #[napi(object)]
 pub struct RawCssOptions {
   /// ## Example
-  /// ```rs
+  /// ```rust,ignore
   /// RawCssOptions {
   ///   preset_env: vec![
   ///
@@ -26,7 +26,7 @@ pub struct RawCssOptions {
 #[cfg(feature = "test")]
 pub struct RawCssOptions {
   /// ## Example
-  /// ```rust
+  /// ```rust,ignore
   /// RawCssOptions {
   ///   preset_env: vec!["Firefox > 10".into(), "chrome >=20".into()],
   /// }
