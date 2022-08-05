@@ -29,14 +29,14 @@ impl CssPlugin {
     Self { css }
   }
 
-  pub fn get_query(&self) -> Query {
+  pub fn get_query(&self) -> Option<Query> {
     // TODO: figure out if the prefixer visitMut is stateless
     // I need to clone the preset_env every time, due to I don't know if it is stateless
     // If it is true, I reduce this clone
     if !self.css.preset_env.is_empty() {
-      Query::Multiple(self.css.preset_env.clone())
+      Some(Query::Multiple(self.css.preset_env.clone()))
     } else {
-      Query::Single("".into())
+      None
     }
   }
 }
@@ -70,27 +70,19 @@ impl Plugin for CssPlugin {
     args: rspack_core::TransformArgs,
   ) -> rspack_core::PluginTransformOutput {
     if let Some(TransformAst::Css(mut ast)) = args.ast {
-      // ast.visit_mut_with(&mut prefixer(Options {
-      //   env: Some(Targets::Query(Query::Multiple(vec![
-      //     "Firefox > 10".into(),
-      //     "chrome >=20".into(), // "firefox <= 11".into(),
-      //   ]))),
-      // }));
-      ast.visit_mut_with(&mut prefixer(Options {
-        env: Some(Targets::Query(self.get_query())),
-      }));
-      Ok({
-        TransformResult {
-          content: None,
-          ast: Some(TransformAst::Css(ast)),
-        }
+      if let Some(query) = self.get_query() {
+        ast.visit_mut_with(&mut prefixer(Options {
+          env: Some(Targets::Query(query)),
+        }));
+      }
+      Ok(TransformResult {
+        content: None,
+        ast: Some(TransformAst::Css(ast)),
       })
     } else {
-      Ok({
-        TransformResult {
-          content: None,
-          ast: args.ast,
-        }
+      Ok(TransformResult {
+        content: None,
+        ast: args.ast,
       })
     }
   }
