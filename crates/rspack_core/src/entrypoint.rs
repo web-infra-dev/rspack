@@ -1,6 +1,6 @@
 use crate::ChunkGraph;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Entrypoint {
   // pub(crate) files: Vec<String>,
   pub(crate) chunk_ids: Vec<String>,
