@@ -4,6 +4,7 @@
 
 pub mod config;
 pub mod parser;
+pub mod sri;
 pub mod visitors;
 
 mod plugin;

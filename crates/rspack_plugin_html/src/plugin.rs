@@ -1,4 +1,5 @@
 use anyhow::Context;
+use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
 use rspack_core::{parse_to_url, AssetContent, Plugin};
 use serde::Deserialize;
 use std::{fs, path::Path};
@@ -7,6 +8,7 @@ use swc_html::visit::VisitMutWith;
 use crate::{
   config::HtmlPluginConfig,
   parser::HtmlCompiler,
+  sri::{add_sri, create_digest_from_asset, HtmlSriHashFunction},
   utils::resolve_from_context,
   visitors::asset::{AssetWriter, HTMLPluginTag},
 };
@@ -73,23 +75,24 @@ impl Plugin for HtmlPlugin {
     included_assets.sort_by(|(a, _), (b, _)| a.cmp(b));
 
     let mut tags = vec![];
-    for (asset_name, _asset) in included_assets {
+    for (asset_name, asset) in included_assets {
       if let Some(extension) = Path::new(&asset_name).extension() {
         let mut asset_uri = asset_name.to_string();
         if let Some(public_path) = &config.public_path {
           asset_uri = format!("{}{}", public_path, asset_uri);
         }
+        let mut tag: Option<HTMLPluginTag> = None;
         if extension.eq_ignore_ascii_case("css") {
-          tags.push(HTMLPluginTag::create_style(
+          tag = Some(HTMLPluginTag::create_style(
             &asset_uri,
             Some(if let Some(inject) = &config.inject {
               inject.clone()
             } else {
               "head".to_string()
             }),
-          ))
+          ));
         } else if extension.eq_ignore_ascii_case("js") || extension.eq_ignore_ascii_case("mjs") {
-          tags.push(HTMLPluginTag::create_script(
+          tag = Some(HTMLPluginTag::create_script(
             &asset_uri,
             Some(if let Some(inject) = &config.inject {
               inject.clone()
@@ -99,9 +102,31 @@ impl Plugin for HtmlPlugin {
             &config.script_loading,
           ))
         }
+
+        if let Some(tag) = tag {
+          tags.push((tag, asset));
+        }
       }
     }
 
+    // if some plugin changes assets in the same stage after this plugin
+    // both the name and the integrity may be inaccurate
+    if let Some(hash_func) = &config.sri {
+      tags.par_iter_mut().for_each(|(tag, asset)| {
+        let sri_value = match hash_func.as_str() {
+          "sha384" => create_digest_from_asset(&HtmlSriHashFunction::Sha384, asset),
+          "sha256" => create_digest_from_asset(&HtmlSriHashFunction::Sha256, asset),
+          "sha512" => create_digest_from_asset(&HtmlSriHashFunction::Sha512, asset),
+          _ => {
+            eprintln!("sri hash function is invalid, got `{}`", hash_func);
+            String::from("INVALID")
+          }
+        };
+        add_sri(tag, &sri_value);
+      });
+    }
+
+    let tags = tags.into_iter().map(|(tag, _)| tag).collect::<Vec<_>>();
     let mut visitor = AssetWriter::new(config, &tags);
     current_ast.visit_mut_with(&mut visitor);
 

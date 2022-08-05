@@ -21,6 +21,8 @@ pub struct HtmlPluginConfig {
   pub chunks: Option<Vec<String>>,
   pub excluded_chunks: Option<Vec<String>>,
 
+  pub sri: Option<String>,
+
   // future
   pub minify: Option<bool>,
 }
@@ -47,6 +49,7 @@ impl Default for HtmlPluginConfig {
       script_loading: default_script_loading(),
       chunks: None,
       excluded_chunks: None,
+      sri: None,
       minify: None,
     }
   }
