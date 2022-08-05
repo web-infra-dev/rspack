@@ -9,6 +9,5 @@ fn webpack_css(fixture_path: PathBuf) {
 
 #[fixture("tests/fixtures/postcss/*")]
 fn postcss(fixture_path: PathBuf) {
-  // println!("{:?}", fixture_path);
   test_fixture(&fixture_path);
 }
