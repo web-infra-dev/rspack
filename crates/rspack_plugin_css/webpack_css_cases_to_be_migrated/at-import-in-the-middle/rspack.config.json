@@ -1,6 +1,6 @@
 {
   "mode": "development",
-  "entries": {
+  "entry": {
     "main": "./index.css"
   }
 }

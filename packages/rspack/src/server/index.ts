@@ -1,13 +1,15 @@
 import * as binding from '@rspack/binding';
-import type { ExternalObject, RawOptions, RspackInternal } from "@rspack/binding"
+import * as Config from '../config';
+import type { ExternalObject, RspackInternal } from "@rspack/binding"
+import type { RspackOptions } from '../config';
 
 class Rspack {
   #instance: ExternalObject<RspackInternal>;
 
-  constructor(public options: RawOptions) {
+  constructor(public options: RspackOptions) {
     this.#instance = binding.newRspack(
-      JSON.stringify(options),
-    );
+      JSON.stringify(Config.User2Native(options))
+    )
   }
 
   async build() {

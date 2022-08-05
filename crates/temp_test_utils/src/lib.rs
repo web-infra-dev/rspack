@@ -79,7 +79,7 @@ impl RawOptionsTestExt for RawOptions {
         options
       } else {
         RawOptions {
-          entries: HashMap::from([(
+          entry: HashMap::from([(
             "main".to_string(),
             fixture_path.join("index.js").to_str().unwrap().to_string(),
           )]),
@@ -88,10 +88,10 @@ impl RawOptionsTestExt for RawOptions {
       }
     };
     assert!(
-      options.root.is_none(),
+      options.context.is_none(),
       "You should not specify `root` in config. It would probably resolve to a wrong path"
     );
-    options.root = Some(fixture_path.to_str().unwrap().to_string());
+    options.context = Some(fixture_path.to_str().unwrap().to_string());
     options
   }
 }

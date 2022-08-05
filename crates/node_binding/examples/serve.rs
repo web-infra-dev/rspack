@@ -10,8 +10,8 @@ async fn main() {
   log::enable_tracing_by_env();
   let mut dev_server = dev_server(
     normalize_bundle_options(RawOptions {
-      entries: HashMap::from([("main".to_string(), "./src/index.js".to_string())]),
-      root: Some(
+      entry: HashMap::from([("main".to_string(), "./src/index.js".to_string())]),
+      context: Some(
         Path::new("./examples/react")
           // .resolve()
           .to_string_lossy()
