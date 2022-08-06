@@ -32,31 +32,14 @@ pub use output::*;
 // pub use resolve::*;
 // pub use split_chunks::*;
 
-#[cfg(not(feature = "test"))]
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
-#[napi(object)]
+#[cfg_attr(not(feature = "test"), napi(object))]
 pub struct RawOptions {
   pub entry: HashMap<String, String>,
   // #[napi(ts_type = "\"development\" | \"production\" | \"none\"")]
   // pub mode: Option<String>,
   // #[napi(ts_type = "\"browser\" | \"node\"")]
-  // pub platform: Option<String>,
-  pub context: Option<String>,
-  // pub loader: Option<HashMap<String, String>>,
-  // pub enhanced: Option<RawEnhancedOptions>,
-  // pub optimization: Option<RawOptimizationOptions>,
-  pub output: Option<RawOutputOptions>,
-  // pub resolve: Option<RawResolveOptions>,
-  // pub chunk_filename: Option<String>,
-}
-
-#[derive(Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase")]
-#[cfg(feature = "test")]
-pub struct RawOptions {
-  pub entry: HashMap<String, String>,
-  // pub mode: Option<String>,
   // pub platform: Option<String>,
   pub context: Option<String>,
   // pub loader: Option<HashMap<String, String>>,
