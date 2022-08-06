@@ -29,5 +29,6 @@
       "url": "./packages/rspack/src/node/rspack/options/schema.json"
     }
   ],
-  "rust-analyzer.procMacro.enable": true
+  "rust-analyzer.procMacro.enable": true,
+  "rust-analyzer.procMacro.attributes.enable": true
 }
