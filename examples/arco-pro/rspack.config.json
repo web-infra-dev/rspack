@@ -1,6 +1,6 @@
 {
   "mode": "development",
-  "entries": {
+  "entry": {
     "index": "./src/index.tsx"
   },
   "loader": {

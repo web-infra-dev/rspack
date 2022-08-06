@@ -1,17 +1,17 @@
 import path from "path"
 import { Rspack } from ".."
-
+import assert from 'assert';
 
 const rspack = new Rspack({
-  entries: {
+  entry: {
     main: path.resolve(__dirname, "../../../examples/react/src/index.js"),
   },
-  root: path.resolve(__dirname, "../../../examples/react")
+  context: path.resolve(__dirname, "../../../examples/react")
 })
 
 async function main() {
   const stats = await rspack.build()
-  console.log(stats);
+  assert(stats.assets.length > 0)
 }
 
 main()

@@ -28,8 +28,8 @@ impl DevServer {
   pub async fn serve(&mut self) {
     self.compiler.compile().await.unwrap();
 
-    warp::fs::dir(Path::new(self.compiler.options.root.as_str()).join("dist"));
-    let filter = warp::fs::dir(Path::new(self.compiler.options.root.as_str()).join("dist"));
+    warp::fs::dir(Path::new(self.compiler.options.context.as_str()).join("dist"));
+    let filter = warp::fs::dir(Path::new(self.compiler.options.context.as_str()).join("dist"));
 
     // let routes = warp::ws().map(|ws: warp::ws::Ws| {
     //   // And then our closure will be called when it completes...

@@ -9,8 +9,8 @@ async fn main() {
   let guard = log::enable_tracing_by_env_with_chrome_layer();
   let mut compiler = rspack(
     normalize_bundle_options(RawOptions {
-      entries: HashMap::from([("main".to_string(), "./src/index.js".to_string())]),
-      root: Some(
+      entry: HashMap::from([("main".to_string(), "./src/index.js".to_string())]),
+      context: Some(
         Path::new("./examples/react")
           // .resolve()
           .to_string_lossy()
