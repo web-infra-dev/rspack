@@ -1,8 +1,8 @@
-use std::{collections::HashMap, path::Path};
+use std::collections::HashMap;
 
 use rspack::rspack;
 use rspack_core::log;
-use rspack_node::{normalize_bundle_options, RawOptions};
+use rspack_node::{normalize_bundle_options, RawOptions, RawOutputOptions};
 
 #[tokio::main]
 async fn main() {
@@ -11,11 +11,17 @@ async fn main() {
     normalize_bundle_options(RawOptions {
       entry: HashMap::from([("main".to_string(), "./src/index.js".to_string())]),
       context: Some(
-        Path::new("./examples/react")
+        std::env::current_dir()
+          .unwrap()
+          .join("examples/react")
           // .resolve()
           .to_string_lossy()
           .to_string(),
       ),
+      output: Some(RawOutputOptions {
+        public_path: Some(String::from("http://localhost:3000/")),
+        ..RawOutputOptions::default()
+      }),
       ..Default::default()
     })
     .unwrap(),
