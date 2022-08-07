@@ -1,7 +1,10 @@
 // mod js_module;
 // pub use js_module::*;
 
-use crate::{module::CssModule, SWC_COMPILER};
+use crate::{
+  module::{CssModule, CSS_MODULE_SOURCE_TYPE_LIST},
+  SWC_COMPILER,
+};
 
 use anyhow::{Context, Result};
 use rayon::prelude::*;
@@ -128,7 +131,7 @@ impl Parser for CssParser {
     if let Some(ModuleAst::Css(_ast)) = args.ast {
       Ok(Box::new(CssModule {
         ast: _ast,
-        source_type_vec: &[SourceType::JavaScript, SourceType::Css],
+        source_type_list: CSS_MODULE_SOURCE_TYPE_LIST,
       }))
     } else if let Some(content) = args.source {
       let content = content
@@ -137,7 +140,7 @@ impl Parser for CssParser {
       let stylesheet = SWC_COMPILER.parse_file(args.uri, content)?;
       Ok(Box::new(CssModule {
         ast: stylesheet,
-        source_type_vec: &[SourceType::JavaScript, SourceType::Css],
+        source_type_list: CSS_MODULE_SOURCE_TYPE_LIST,
       }))
     } else {
       Err(anyhow::format_err!(

@@ -18,11 +18,12 @@ use crate::{
   HELPERS, JS_HELPERS,
 };
 
+pub(crate) static JS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 1] = &[SourceType::JavaScript];
 pub struct JsModule {
   pub uri: String,
   pub module_type: ModuleType,
   pub ast: swc_ecma_ast::Program,
-  pub source_type_vec: &'static [SourceType; 1],
+  pub source_type_list: &'static [SourceType; 1],
 }
 
 impl Debug for JsModule {
@@ -47,7 +48,7 @@ impl Module for JsModule {
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
   ) -> &[SourceType] {
-    self.source_type_vec.as_ref()
+    self.source_type_list.as_ref()
   }
 
   #[instrument]

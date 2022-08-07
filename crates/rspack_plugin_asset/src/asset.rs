@@ -60,14 +60,15 @@ impl Parser for AssetParser {
     }
   }
 }
+static ASSET_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
+  &[SourceType::Asset, SourceType::JavaScript];
 
 #[derive(Debug)]
 struct AssetModule {
   module_type: ModuleType,
   inline: bool, // if the module is not inlined, then it will be regarded as a resource
   buf: Vec<u8>,
-  inline_source_type_container: &'static [SourceType; 1],
-  un_inline_source_type_container: &'static [SourceType; 2],
+  source_type_list: &'static [SourceType; 2],
 }
 
 impl AssetModule {
@@ -76,8 +77,7 @@ impl AssetModule {
       module_type,
       inline,
       buf,
-      inline_source_type_container: &[SourceType::JavaScript],
-      un_inline_source_type_container: &[SourceType::Asset, SourceType::JavaScript],
+      source_type_list: &ASSET_MODULE_SOURCE_TYPE_LIST,
     }
   }
 }
@@ -95,9 +95,9 @@ impl Module for AssetModule {
     _compilation: &rspack_core::Compilation,
   ) -> &[SourceType] {
     if self.inline {
-      self.inline_source_type_container
+      &self.source_type_list[1..]
     } else {
-      self.un_inline_source_type_container
+      self.source_type_list.as_ref()
     }
   }
 

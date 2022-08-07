@@ -15,18 +15,18 @@ impl Parser for AssetSourceParser {
     )))
   }
 }
-
+static ASSET_SOURCE_MODULE_SOURCE_TYPE_LIST: &[SourceType; 1] = &[SourceType::JavaScript];
 #[derive(Debug)]
 struct AssetSourceModule {
   buf: Option<Vec<u8>>,
-  source_type_vec: &'static [SourceType; 1],
+  source_type_list: &'static [SourceType; 1],
 }
 
 impl AssetSourceModule {
   fn new(buf: Option<Vec<u8>>) -> Self {
     Self {
       buf,
-      source_type_vec: &[SourceType::JavaScript],
+      source_type_list: &ASSET_SOURCE_MODULE_SOURCE_TYPE_LIST,
     }
   }
 }
@@ -41,7 +41,7 @@ impl Module for AssetSourceModule {
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
   ) -> &[SourceType] {
-    self.source_type_vec.as_ref()
+    self.source_type_list.as_ref()
   }
 
   fn render(

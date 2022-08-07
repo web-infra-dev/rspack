@@ -10,9 +10,12 @@ use swc_css::{ast::Stylesheet, visit::VisitMutWith};
 
 use crate::{visitors::DependencyScanner, SWC_COMPILER};
 
+pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
+  &[SourceType::JavaScript, SourceType::Css];
+
 pub struct CssModule {
   pub ast: Stylesheet,
-  pub source_type_vec: &'static [SourceType; 2],
+  pub source_type_list: &'static [SourceType; 2],
 }
 
 impl Debug for CssModule {
@@ -33,7 +36,7 @@ impl Module for CssModule {
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
   ) -> &[SourceType] {
-    self.source_type_vec.as_ref()
+    self.source_type_list.as_ref()
   }
 
   fn render(
