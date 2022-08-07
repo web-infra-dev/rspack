@@ -18,7 +18,7 @@ pub fn code_splitting2(compilation: &mut Compilation) {
   let mut id_generator = ChunkIdGenerator {
     id_count: 0,
     module_graph,
-    root: compilation.options.root.as_str(),
+    root: compilation.options.context.as_str(),
     chunk_id_algo: ChunkIdAlgo::Named,
   };
 

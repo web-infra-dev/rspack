@@ -54,7 +54,7 @@ impl Compiler {
     self.compilation = Compilation::new(
       // TODO: use Arc<T> instead
       self.options.clone(),
-      self.options.entries.clone(),
+      self.options.entry.clone(),
       Default::default(),
       Default::default(),
     );

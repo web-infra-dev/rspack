@@ -37,6 +37,4 @@ tracing-subscriber = {version = "0.3.9", features = ["env-filter"]}
 
 [[bench]]
 harness = false
-hashbrown = {version = "0.12.1", features = ["rayon"]}
 name = "main"
-tracing-subscriber = {version = "0.3.9", features = ["env-filter"]}

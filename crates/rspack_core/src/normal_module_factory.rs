@@ -173,7 +173,7 @@ impl NormalModuleFactory {
     let resolved_module = ModuleGraphModule::new(
       self.context.module_name.clone(),
       Path::new("./")
-        .join(Path::new(uri.as_str()).relative(self.plugin_driver.options.root.as_str()))
+        .join(Path::new(uri.as_str()).relative(self.plugin_driver.options.context.as_str()))
         .to_string_lossy()
         .to_string(),
       uri,
