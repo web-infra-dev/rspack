@@ -77,7 +77,7 @@ impl AssetModule {
       module_type,
       inline,
       buf,
-      source_type_list: &ASSET_MODULE_SOURCE_TYPE_LIST,
+      source_type_list: ASSET_MODULE_SOURCE_TYPE_LIST,
     }
   }
 }

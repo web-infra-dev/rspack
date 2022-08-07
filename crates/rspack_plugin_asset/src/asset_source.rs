@@ -26,7 +26,7 @@ impl AssetSourceModule {
   fn new(buf: Option<Vec<u8>>) -> Self {
     Self {
       buf,
-      source_type_list: &ASSET_SOURCE_MODULE_SOURCE_TYPE_LIST,
+      source_type_list: ASSET_SOURCE_MODULE_SOURCE_TYPE_LIST,
     }
   }
 }
