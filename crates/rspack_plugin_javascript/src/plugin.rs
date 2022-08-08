@@ -1,4 +1,5 @@
 use crate::generate_rspack_execute;
+use crate::module::JS_MODULE_SOURCE_TYPE_LIST;
 use crate::utils::parse_file;
 use crate::visitors::ClearMark;
 use crate::{module::JsModule, utils::get_swc_compiler};
@@ -168,6 +169,7 @@ impl Parser for JsParser {
       ast,
       uri: args.uri.to_string(),
       module_type,
+      source_type_list: JS_MODULE_SOURCE_TYPE_LIST,
     }))
   }
 }

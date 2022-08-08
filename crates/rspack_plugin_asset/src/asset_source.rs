@@ -1,5 +1,4 @@
 use anyhow::Result;
-use hashbrown::HashSet;
 use rspack_core::{BoxModule, Module, ModuleRenderResult, ModuleType, Parser, SourceType};
 
 #[derive(Debug, Default)]
@@ -16,15 +15,19 @@ impl Parser for AssetSourceParser {
     )))
   }
 }
-
+static ASSET_SOURCE_MODULE_SOURCE_TYPE_LIST: &[SourceType; 1] = &[SourceType::JavaScript];
 #[derive(Debug)]
 struct AssetSourceModule {
   buf: Option<Vec<u8>>,
+  source_type_list: &'static [SourceType; 1],
 }
 
 impl AssetSourceModule {
   fn new(buf: Option<Vec<u8>>) -> Self {
-    Self { buf }
+    Self {
+      buf,
+      source_type_list: ASSET_SOURCE_MODULE_SOURCE_TYPE_LIST,
+    }
   }
 }
 
@@ -37,8 +40,8 @@ impl Module for AssetSourceModule {
     &self,
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
-  ) -> HashSet<SourceType> {
-    HashSet::from_iter([SourceType::JavaScript])
+  ) -> &[SourceType] {
+    self.source_type_list.as_ref()
   }
 
   fn render(

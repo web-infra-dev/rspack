@@ -1,5 +1,4 @@
 use anyhow::Result;
-use hashbrown::HashSet;
 
 use rspack_core::{BoxModule, Module, ModuleRenderResult, ModuleType, Parser, Plugin, SourceType};
 
@@ -52,10 +51,12 @@ impl Parser for JsonParser {
   }
 }
 
+static JSON_MODULE_SOURCE_TYPE_LIST: &[SourceType; 1] = &[SourceType::JavaScript];
 #[derive(Debug)]
 struct JsonModule {
   module_type: ModuleType,
   json_str: String,
+  source_type_list: &'static [SourceType; 1],
 }
 
 impl JsonModule {
@@ -63,6 +64,7 @@ impl JsonModule {
     Self {
       module_type: ModuleType::Json,
       json_str,
+      source_type_list: JSON_MODULE_SOURCE_TYPE_LIST,
     }
   }
 }
@@ -78,8 +80,8 @@ impl Module for JsonModule {
     &self,
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
-  ) -> HashSet<SourceType> {
-    HashSet::from_iter([SourceType::JavaScript])
+  ) -> &[SourceType] {
+    self.source_type_list.as_ref()
   }
 
   #[tracing::instrument(skip_all)]
