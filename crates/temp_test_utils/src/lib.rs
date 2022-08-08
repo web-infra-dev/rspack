@@ -26,36 +26,39 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler {
     })
     .collect::<HashMap<_, _>>();
 
-  stats.assets().iter().for_each(|asset| {
-    expected_files
-      .keys()
-      .cloned()
-      .collect::<Vec<_>>()
-      .into_iter()
-      .for_each(|filename| {
-        if asset.filename().ends_with(&filename) {
-          if let AssetContent::String(content) = &asset.content() {
-            let expected = String::from_utf8(expected_files.remove(&filename).unwrap())
-              .expect("failed to convert file to utf8");
-            similar_asserts::assert_str_eq!(
-              content.trim(),
-              expected.trim(),
-              "Test failed in fixture:{:?}, the filename is {:?}",
-              fixture_path,
-              filename
-            )
-          } else if let AssetContent::Buffer(buf) = &asset.content() {
-            similar_asserts::assert_eq!(
-              buf,
-              &expected_files.remove(&filename).unwrap(),
-              "Test failed in fixture:{:?}, the filename is {:?}",
-              fixture_path,
-              filename
-            )
-          }
-        };
-      });
-  });
+  stats
+    .__should_only_used_in_tests_assets()
+    .iter()
+    .for_each(|(asset_filename, asset)| {
+      expected_files
+        .keys()
+        .cloned()
+        .collect::<Vec<_>>()
+        .into_iter()
+        .for_each(|filename| {
+          if asset_filename.ends_with(&filename) {
+            if let AssetContent::String(content) = &asset.source() {
+              let expected = String::from_utf8(expected_files.remove(&filename).unwrap())
+                .expect("failed to convert file to utf8");
+              similar_asserts::assert_str_eq!(
+                content.trim(),
+                expected.trim(),
+                "Test failed in fixture:{:?}, the filename is {:?}",
+                fixture_path,
+                filename
+              )
+            } else if let AssetContent::Buffer(buf) = &asset.source() {
+              similar_asserts::assert_eq!(
+                buf,
+                &expected_files.remove(&filename).unwrap(),
+                "Test failed in fixture:{:?}, the filename is {:?}",
+                fixture_path,
+                filename
+              )
+            }
+          };
+        });
+    });
   assert!(
     expected_files.is_empty(),
     "files {:?} are not visited in {:?}",

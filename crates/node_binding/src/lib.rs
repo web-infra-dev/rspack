@@ -39,18 +39,12 @@ pub struct RspackBindingContext {
 
 #[napi(object)]
 pub struct Stats {
-  pub assets: Vec<String>,
+  // pub assets: Vec<String>,
 }
 
-impl From<rspack_core::Stats> for Stats {
-  fn from(rspack_stats: rspack_core::Stats) -> Self {
-    Self {
-      assets: rspack_stats
-        .assets()
-        .iter()
-        .map(|asset| asset.filename().to_owned())
-        .collect(),
-    }
+impl<'a> From<rspack_core::Stats<'a>> for Stats {
+  fn from(_rspack_stats: rspack_core::Stats) -> Self {
+    Self {}
   }
 }
 

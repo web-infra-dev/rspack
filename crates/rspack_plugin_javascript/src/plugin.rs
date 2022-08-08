@@ -5,8 +5,9 @@ use crate::{module::JsModule, utils::get_swc_compiler};
 use anyhow::{Context, Result};
 use rayon::prelude::*;
 use rspack_core::{
-  Asset, AssetContent, Filename, ModuleAst, ModuleRenderResult, ModuleType, OutputFilename,
-  ParseModuleArgs, Parser, Plugin, PluginContext, PluginRenderManifestHookOutput, SourceType,
+  AssetContent, Filename, ModuleAst, ModuleRenderResult, ModuleType, OutputFilename,
+  ParseModuleArgs, Parser, Plugin, PluginContext, PluginRenderManifestHookOutput,
+  RenderManifestEntry, SourceType,
 };
 
 use swc_common::comments::SingleThreadedComments;
@@ -98,7 +99,7 @@ impl Plugin for JsPlugin {
       })
       .collect::<String>();
 
-    Ok(vec![Asset::new(
+    Ok(vec![RenderManifestEntry::new(
       AssetContent::String(code),
       OutputFilename::new("[name][ext]".to_owned())
         .filename(args.chunk_id.to_owned(), ".js".to_owned()),
