@@ -1,0 +1,17 @@
+{
+  "entry": {
+    "index": "./index.js"
+  },
+  "plugins": [
+    [
+      "html",
+      {
+        "filename": "output.html",
+        "template": "input.html",
+        "inject": "head",
+        "script_loading": "blocking",
+        "sri": "sha512"
+      }
+    ]
+  ]
+}
