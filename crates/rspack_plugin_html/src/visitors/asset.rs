@@ -112,7 +112,7 @@ impl VisitMut for AssetWriter<'_> {
     let head_tags = &self.head_tags;
     let body_tags = &self.body_tags;
 
-    match n.tag_name.to_string().as_str() {
+    match &*n.tag_name {
       "head" => {
         for tag in head_tags.iter() {
           let new_element = create_element(tag);

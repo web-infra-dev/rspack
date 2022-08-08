@@ -36,7 +36,8 @@ pub use output::*;
 pub type RawPluginOptions = serde_json::value::Value;
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
-#[cfg_attr(not(feature = "test"), napi(object))]
+#[cfg(not(feature = "test"))]
+#[napi(object)]
 pub struct RawOptions {
   pub entry: HashMap<String, String>,
   // #[napi(ts_type = "\"development\" | \"production\" | \"none\"")]
@@ -50,7 +51,19 @@ pub struct RawOptions {
   pub output: Option<RawOutputOptions>,
   // pub resolve: Option<RawResolveOptions>,
   // pub chunk_filename: Option<String>,
-  #[cfg_attr(not(feature = "test"), napi(ts_type = "any[]"))]
+  #[napi(ts_type = "any[]")]
+  pub plugins: Option<RawPluginOptions>,
+}
+
+// This is a clone of structure above, and for feature=test only
+// the reason remains unclear
+#[derive(Deserialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+#[cfg(feature = "test")]
+pub struct RawOptions {
+  pub entry: HashMap<String, String>,
+  pub context: Option<String>,
+  pub output: Option<RawOutputOptions>,
   pub plugins: Option<RawPluginOptions>,
 }
 
@@ -62,21 +75,21 @@ pub fn create_plugins(options: &RawOptions) -> Result<Vec<Box<dyn Plugin>>> {
   }
   if let Some(plugins) = plugins.unwrap().as_array() {
     for (i, plugin) in plugins.iter().enumerate() {
-      let target: Option<String>;
-      let config: Option<&serde_json::Value>;
-      if let Some(name) = plugin.as_str() {
-        target = Some(name.to_ascii_lowercase());
-        config = None;
+      let (target, config) = if let Some(name) = plugin.as_str() {
+        (Some(name.to_ascii_lowercase()), None)
       } else if let Some(name_with_config) = plugin.as_array() {
-        target = name_with_config
-          .get(0)
-          .and_then(|f| f.as_str().map(|f| f.to_ascii_lowercase()));
-        config = name_with_config.get(1);
+        (
+          name_with_config
+            .get(0)
+            .and_then(|f| f.as_str())
+            .map(|f| f.to_ascii_lowercase()),
+          name_with_config.get(1),
+        )
       } else {
         return Err(napi::Error::from_reason(format!(
           "`config.plugins[{i}]`: structure is not recognized."
         )));
-      }
+      };
 
       match target.as_deref() {
         Some("html") => {

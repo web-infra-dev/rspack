@@ -45,9 +45,9 @@ impl Plugin for HtmlPlugin {
     let url = parse_to_url(&config.template);
     let resolved_template = resolve_from_context(&compilation.options.context, url.path());
     let content = fs::read_to_string(resolved_template).context(format!(
-      "while reading {} from {:?}",
+      "failed to read `{}` from `{}`",
       url.path(),
-      std::env::current_dir().unwrap_or_default()
+      &compilation.options.context
     ))?;
 
     let mut current_ast = parser.parse_file(url.path(), content)?;
@@ -130,14 +130,13 @@ impl Plugin for HtmlPlugin {
     let mut visitor = AssetWriter::new(config, &tags);
     current_ast.visit_mut_with(&mut visitor);
 
-    if let Ok(source) = parser.codegen(&current_ast) {
-      compilation.emit_asset(
-        config.filename.clone(),
-        rspack_core::CompilationAsset {
-          source: AssetContent::String(source),
-        },
-      );
-    }
+    let source = parser.codegen(&current_ast)?;
+    compilation.emit_asset(
+      config.filename.clone(),
+      rspack_core::CompilationAsset {
+        source: AssetContent::String(source),
+      },
+    );
 
     Ok(())
   }

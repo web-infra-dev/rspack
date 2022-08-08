@@ -30,10 +30,6 @@ impl HtmlCompiler {
     )
     .map_err(|e| anyhow::format_err!(e.message()))?;
 
-    // for err in errors {
-    //   eprintln!("{:?}", err);
-    // }
-
     Ok(document)
   }
 
