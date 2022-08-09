@@ -1,4 +1,4 @@
-use std::{cell::RefCell, fmt::Debug, rc::Rc, sync::Arc};
+use std::{fmt::Debug, sync::Arc};
 
 use hashbrown::HashMap;
 use rayon::prelude::*;
@@ -102,9 +102,8 @@ impl Compilation {
   }
 
   fn process_assets(&mut self, plugin_driver: Arc<PluginDriver>) {
-    let compilation = Rc::new(RefCell::new(self));
     plugin_driver
-      .process_assets(ProcessAssetsArgs { compilation })
+      .process_assets(ProcessAssetsArgs { compilation: self })
       .map_err(|e| {
         eprintln!("process_assets is not ok, err {:#?}", e);
         e

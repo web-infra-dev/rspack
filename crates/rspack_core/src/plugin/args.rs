@@ -1,6 +1,6 @@
 use crate::{Compilation, ResolveKind, RuntimeSourceNode};
 use anyhow::Result;
-use std::{cell::RefCell, fmt::Debug, rc::Rc};
+use std::fmt::Debug;
 use swc_css::ast::Stylesheet;
 use swc_ecma_ast as ast;
 
@@ -11,9 +11,9 @@ pub struct ParseModuleArgs<'a> {
   pub ast: Option<ModuleAst>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ProcessAssetsArgs<'me> {
-  pub compilation: Rc<RefCell<&'me mut Compilation>>,
+  pub compilation: &'me mut Compilation,
 }
 
 #[derive(Debug, Clone)]

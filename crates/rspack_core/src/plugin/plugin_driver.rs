@@ -176,7 +176,12 @@ impl PluginDriver {
       .plugins
       .iter()
       .try_for_each(|plugin| -> anyhow::Result<()> {
-        plugin.process_assets(PluginContext::new(), args.clone())?;
+        plugin.process_assets(
+          PluginContext::new(),
+          ProcessAssetsArgs {
+            compilation: args.compilation,
+          },
+        )?;
         Ok(())
       })?;
     Ok(())

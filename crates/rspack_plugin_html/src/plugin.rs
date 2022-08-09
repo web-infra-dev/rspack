@@ -35,7 +35,7 @@ impl Plugin for HtmlPlugin {
     args: rspack_core::ProcessAssetsArgs,
   ) -> rspack_core::PluginProcessAssetsOutput {
     let config = &self.config;
-    let mut compilation = args.compilation.borrow_mut();
+    let compilation = args.compilation;
     let assets = &compilation.assets;
 
     let chunk_graph = &compilation.chunk_graph;
