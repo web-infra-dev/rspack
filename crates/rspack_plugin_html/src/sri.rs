@@ -1,8 +1,11 @@
 use rspack_core::CompilationAsset;
+use serde::Deserialize;
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
 use crate::visitors::asset::{HTMLPluginTag, HtmlPluginAttribute};
 
+#[derive(Deserialize, Debug, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
 pub enum HtmlSriHashFunction {
   Sha256,
   Sha384,

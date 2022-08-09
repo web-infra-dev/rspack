@@ -6,9 +6,9 @@ use std::{fs, path::Path};
 use swc_html::visit::VisitMutWith;
 
 use crate::{
-  config::HtmlPluginConfig,
+  config::{HtmlPluginConfig, HtmlPluginConfigInject},
   parser::HtmlCompiler,
-  sri::{add_sri, create_digest_from_asset, HtmlSriHashFunction},
+  sri::{add_sri, create_digest_from_asset},
   utils::resolve_from_context,
   visitors::asset::{AssetWriter, HTMLPluginTag},
 };
@@ -86,18 +86,18 @@ impl Plugin for HtmlPlugin {
           tag = Some(HTMLPluginTag::create_style(
             &asset_uri,
             Some(if let Some(inject) = &config.inject {
-              inject.clone()
+              *inject
             } else {
-              "head".to_string()
+              HtmlPluginConfigInject::Head
             }),
           ));
         } else if extension.eq_ignore_ascii_case("js") || extension.eq_ignore_ascii_case("mjs") {
           tag = Some(HTMLPluginTag::create_script(
             &asset_uri,
             Some(if let Some(inject) = &config.inject {
-              inject.clone()
+              *inject
             } else {
-              "body".to_string()
+              HtmlPluginConfigInject::Body
             }),
             &config.script_loading,
           ))
@@ -113,15 +113,7 @@ impl Plugin for HtmlPlugin {
     // both the name and the integrity may be inaccurate
     if let Some(hash_func) = &config.sri {
       tags.par_iter_mut().for_each(|(tag, asset)| {
-        let sri_value = match hash_func.as_str() {
-          "sha384" => create_digest_from_asset(&HtmlSriHashFunction::Sha384, asset),
-          "sha256" => create_digest_from_asset(&HtmlSriHashFunction::Sha256, asset),
-          "sha512" => create_digest_from_asset(&HtmlSriHashFunction::Sha512, asset),
-          _ => {
-            eprintln!("sri hash function is invalid, got `{}`", hash_func);
-            String::from("INVALID")
-          }
-        };
+        let sri_value = create_digest_from_asset(hash_func, asset);
         add_sri(tag, &sri_value);
       });
     }

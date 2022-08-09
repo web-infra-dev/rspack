@@ -1,7 +1,7 @@
 use swc_html::ast::{Child, Element};
 use swc_html::visit::{VisitMut, VisitMutWith};
 
-use crate::config::HtmlPluginConfig;
+use crate::config::{HtmlPluginConfig, HtmlPluginConfigInject, HtmlPluginConfigScriptLoading};
 
 use super::utils::create_element;
 
@@ -12,16 +12,16 @@ pub struct HTMLPluginTag {
   pub attributes: Vec<HtmlPluginAttribute>,
   pub void_tag: bool,
   // `head` or `body`
-  pub append_to: String,
+  pub append_to: HtmlPluginConfigInject,
   // future
   pub meta: (),
 }
 
 impl HTMLPluginTag {
-  pub fn create_style(href: &str, append_to: Option<String>) -> HTMLPluginTag {
+  pub fn create_style(href: &str, append_to: Option<HtmlPluginConfigInject>) -> HTMLPluginTag {
     HTMLPluginTag {
       tag_name: "link".to_string(),
-      append_to: append_to.unwrap_or_else(|| "head".to_string()),
+      append_to: append_to.unwrap_or(HtmlPluginConfigInject::Head),
       attributes: vec![
         HtmlPluginAttribute {
           attr_name: "href".to_string(),
@@ -39,21 +39,21 @@ impl HTMLPluginTag {
 
   pub fn create_script(
     src: &str,
-    append_to: Option<String>,
-    script_loading: &str,
+    append_to: Option<HtmlPluginConfigInject>,
+    script_loading: &HtmlPluginConfigScriptLoading,
   ) -> HTMLPluginTag {
     let mut attributes = vec![HtmlPluginAttribute {
       attr_name: "src".to_string(),
       attr_value: Some(src.to_string()),
     }];
     match script_loading {
-      "defer" => {
+      HtmlPluginConfigScriptLoading::Defer => {
         attributes.push(HtmlPluginAttribute {
           attr_name: "defer".to_string(),
           attr_value: None,
         });
       }
-      "module" => {
+      HtmlPluginConfigScriptLoading::Module => {
         attributes.push(HtmlPluginAttribute {
           attr_name: "type".to_string(),
           attr_value: Some("module".to_string()),
@@ -64,7 +64,7 @@ impl HTMLPluginTag {
 
     HTMLPluginTag {
       tag_name: "script".to_string(),
-      append_to: append_to.unwrap_or_else(|| "body".to_string()),
+      append_to: append_to.unwrap_or(HtmlPluginConfigInject::Body),
       attributes,
       meta: (),
       void_tag: false,
@@ -93,10 +93,13 @@ impl<'a> AssetWriter<'a> {
     let mut head_tags: Vec<&HTMLPluginTag> = vec![];
     let mut body_tags: Vec<&HTMLPluginTag> = vec![];
     for ele in tags.iter() {
-      if ele.append_to.eq("head") {
-        head_tags.push(ele);
-      } else {
-        body_tags.push(ele);
+      match ele.append_to {
+        HtmlPluginConfigInject::Head => {
+          head_tags.push(ele);
+        }
+        HtmlPluginConfigInject::Body => {
+          body_tags.push(ele);
+        }
       }
     }
     AssetWriter {

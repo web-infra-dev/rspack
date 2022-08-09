@@ -1,5 +1,22 @@
 use serde::Deserialize;
 
+use crate::sri::HtmlSriHashFunction;
+
+#[derive(Deserialize, Debug, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum HtmlPluginConfigInject {
+  Head,
+  Body,
+}
+
+#[derive(Deserialize, Debug, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum HtmlPluginConfigScriptLoading {
+  Blocking,
+  Defer,
+  Module,
+}
+
 #[derive(Deserialize, Debug)]
 pub struct HtmlPluginConfig {
   /// emitted file name in output path
@@ -8,13 +25,13 @@ pub struct HtmlPluginConfig {
   /// template html file
   #[serde(default = "default_template")]
   pub template: String,
-  /// `auto`, `head`, `body` or None
-  pub inject: Option<String>,
+  /// `head`, `body` or None
+  pub inject: Option<HtmlPluginConfigInject>,
   /// path or `auto`
   pub public_path: Option<String>,
   /// `blocking`, `defer`, or `module`
   #[serde(default = "default_script_loading")]
-  pub script_loading: String,
+  pub script_loading: HtmlPluginConfigScriptLoading,
 
   /// entry_chunk_name (only entry chunks are supported)
   pub chunks: Option<Vec<String>>,
@@ -22,10 +39,7 @@ pub struct HtmlPluginConfig {
 
   /// hash func that used in subsource integrity
   /// sha384, sha256 or sha512
-  pub sri: Option<String>,
-
-  /// future
-  pub minify: Option<bool>,
+  pub sri: Option<HtmlSriHashFunction>,
 }
 
 fn default_filename() -> String {
@@ -36,8 +50,8 @@ fn default_template() -> String {
   String::from("index.html")
 }
 
-fn default_script_loading() -> String {
-  String::from("defer")
+fn default_script_loading() -> HtmlPluginConfigScriptLoading {
+  HtmlPluginConfigScriptLoading::Defer
 }
 
 impl Default for HtmlPluginConfig {
@@ -51,7 +65,6 @@ impl Default for HtmlPluginConfig {
       chunks: None,
       excluded_chunks: None,
       sri: None,
-      minify: None,
     }
   }
 }
