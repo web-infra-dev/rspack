@@ -57,11 +57,9 @@ pub fn init_trace_subscriber(env: Env) -> Result<()> {
 #[allow(clippy::too_many_arguments)]
 pub fn new_rspack(
   _env: Env,
-  option_json: String,
+  options: RawOptions,
   // plugin_callbacks: Option<PluginCallbacks>,
 ) -> Result<External<RspackBindingContext>> {
-  let options: RawOptions = serde_json::from_str(option_json.as_str())?;
-
   // let node_adapter = create_node_adapter_from_plugin_callbacks(&env, plugin_callbacks)?;
 
   // let mut plugins = vec![];
@@ -73,7 +71,6 @@ pub fn new_rspack(
   let rspack = rspack::rspack(normalize_bundle_options(options)?, vec![]);
 
   // let resolver = rspack.resolver.clone();
-
   Ok(create_external(RspackBindingContext {
     rspack: Arc::new(Mutex::new(rspack)),
     // resolver,
@@ -84,19 +81,20 @@ pub fn new_rspack(
   ts_args_type = "rspack: ExternalObject<RspackInternal>",
   ts_return_type = "Promise<Record<string, string>>"
 )]
-#[cfg(not(feature = "test"))]
 pub fn build(env: Env, binding_context: External<RspackBindingContext>) -> Result<napi::JsObject> {
-  let compiler = (*binding_context).rspack.clone();
+  let compiler = binding_context.rspack.clone();
   env.execute_tokio_future(
     async move {
       let mut compiler = compiler.lock().await;
-      let rspack_stats = compiler
+      let _rspack_stats = compiler
         .compile()
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
 
-      let stats: Stats = rspack_stats.into();
-      Ok(stats)
+      // let stats: Stats = rspack_stats.into();
+      println!("build success");
+      // Ok(stats)
+      Ok(())
     },
     |_env, ret| Ok(ret),
   )
@@ -108,23 +106,24 @@ pub fn build(env: Env, binding_context: External<RspackBindingContext>) -> Resul
   // ts_return_type = "Promise<[diff: Record<string, string>, map: Record<string, string>]>"
   ts_return_type = "Promise<Record<string, string>>"
 )]
-#[cfg(not(feature = "test"))]
 pub fn rebuild(
   env: Env,
   binding_context: External<RspackBindingContext>,
   // changed_file: Vec<String>,
 ) -> Result<napi::JsObject> {
-  let compiler = (*binding_context).rspack.clone();
+  let compiler = binding_context.rspack.clone();
   env.execute_tokio_future(
     async move {
       let mut compiler = compiler.lock().await;
-      let rspack_stats = compiler
+      let _rspack_stats = compiler
         .compile()
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
 
-      let stats: Stats = rspack_stats.into();
-      Ok(stats)
+      // let stats: Stats = rspack_stats.into();
+      println!("rebuild success");
+      // Ok(stats)
+      Ok(())
     },
     |_env, ret| Ok(ret),
   )

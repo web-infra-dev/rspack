@@ -1976,7 +1976,6 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
- "nodejs-resolver 0.0.14",
  "once_cell",
  "rspack",
  "rspack_core",
