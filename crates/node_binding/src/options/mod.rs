@@ -1,14 +1,11 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
-#[cfg(not(feature = "test"))]
+#[cfg(feature = "test")]
 use napi_derive::napi;
 
 use napi::bindgen_prelude::*;
 
-use rspack_core::{
-  CompilerOptions, DevServerOptions, EntryItem, OutputAssetModuleFilename, OutputOptions, Plugin,
-  Resolve, Target,
-};
+use rspack_core::{CompilerOptions, DevServerOptions, EntryItem, Mode, Plugin, Resolve, Target};
 use rspack_plugin_html::config::HtmlPluginConfig;
 // use rspack_core::OptimizationOptions;
 // use rspack_core::SourceMapOptions;
@@ -18,7 +15,6 @@ use rspack_plugin_html::config::HtmlPluginConfig;
 // };
 // use rspack_core::{ChunkIdAlgo, Platform};
 use serde::Deserialize;
-use std::path::Path;
 
 // mod enhanced;
 // mod optimization;
@@ -34,14 +30,15 @@ pub use output::*;
 // pub use split_chunks::*;
 
 pub type RawPluginOptions = serde_json::value::Value;
+
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
-#[cfg(not(feature = "test"))]
+#[cfg(feature = "test")]
 #[napi(object)]
 pub struct RawOptions {
   pub entry: HashMap<String, String>,
-  // #[napi(ts_type = "\"development\" | \"production\" | \"none\"")]
-  // pub mode: Option<String>,
+  pub mode: Option<String>,
+  pub target: Option<String>,
   // #[napi(ts_type = "\"browser\" | \"node\"")]
   // pub platform: Option<String>,
   pub context: Option<String>,
@@ -51,25 +48,12 @@ pub struct RawOptions {
   pub output: Option<RawOutputOptions>,
   // pub resolve: Option<RawResolveOptions>,
   // pub chunk_filename: Option<String>,
-  #[napi(ts_type = "any[]")]
   pub plugins: Option<RawPluginOptions>,
 }
 
-// This is a clone of structure above, and for feature=test only
-// the reason remains unclear
-#[derive(Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase")]
-#[cfg(feature = "test")]
-pub struct RawOptions {
-  pub entry: HashMap<String, String>,
-  pub context: Option<String>,
-  pub output: Option<RawOutputOptions>,
-  pub plugins: Option<RawPluginOptions>,
-}
-
-pub fn create_plugins(options: &RawOptions) -> Result<Vec<Box<dyn Plugin>>> {
+pub fn create_plugins(plugins: &Option<RawPluginOptions>) -> Result<Vec<Box<dyn Plugin>>> {
   let mut result: Vec<Box<dyn Plugin>> = vec![];
-  let plugins = options.plugins.as_ref();
+  let plugins = plugins.as_ref();
   if plugins.is_none() {
     return Ok(result);
   }
@@ -117,46 +101,27 @@ pub fn create_plugins(options: &RawOptions) -> Result<Vec<Box<dyn Plugin>>> {
 
 pub fn normalize_bundle_options(mut options: RawOptions) -> Result<CompilerOptions> {
   let cwd = std::env::current_dir().unwrap();
+  // .find(|(key, _)| key.eq("NODE_ENV")).unwrap_or()
 
   let context = options
     .context
     .take()
     .unwrap_or_else(|| cwd.to_string_lossy().to_string());
-
-  let output_path = options
+  let mode = Mode::from_str(&options.mode.unwrap_or_default()).unwrap();
+  let output = options
     .output
-    .as_mut()
-    .and_then(|opt| opt.path.take())
-    .unwrap_or_else(|| {
-      Path::new(&context)
-        .join("dist")
-        .to_string_lossy()
-        .to_string()
-    });
+    .unwrap_or_default()
+    .normalize(&mode, &context);
 
-  let output_asset_module_filename = options
-    .output
-    .as_mut()
-    .and_then(|opt| opt.asset_module_filename.take())
-    .map(OutputAssetModuleFilename::new);
-
-  //Todo the following options is testing, we need inject real options in the user config file
-  let public_path = String::from("/");
-  let namespace = String::from("__rspack_runtime__");
-  let target = Target::String(String::from("web"));
+  let target = Target::from_str(&options.target.unwrap_or_else(|| String::from("web"))).unwrap();
   let resolve = Resolve::default();
-  let plugins = create_plugins(&options)?;
+  let plugins = create_plugins(&options.plugins)?;
   Ok(CompilerOptions {
     entry: parse_entries(options.entry),
     context,
     target,
     dev_server: DevServerOptions { hmr: false },
-    output: OutputOptions {
-      path: output_path,
-      public_path,
-      asset_module_filename: output_asset_module_filename.unwrap_or_default(),
-      namespace,
-    },
+    output,
     resolve,
     plugins,
   })

@@ -58,7 +58,7 @@ impl<'a> Fold for RspackModuleFinalizer<'a> {
       .filter_map(|stmt| stmt.stmt())
       .collect();
 
-    let namespace = &self.compilation.options.output.namespace;
+    let namespace = &self.compilation.options.output.unique_name;
 
     let module_body = vec![CallExpr {
       span: DUMMY_SP,

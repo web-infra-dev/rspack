@@ -108,59 +108,6 @@ pub trait Plugin: Debug + Send + Sync {
   }
 }
 
-pub trait Filename: Debug + Sync + Send {
-  // TODO more params, e.g. hash, name, etc.
-  fn filename(&self, filename: String, ext: String) -> String;
-}
-
-#[derive(Debug)]
-pub struct OutputFilename {
-  template: String,
-}
-
-impl OutputFilename {
-  pub fn new(template: String) -> Self {
-    Self { template }
-  }
-}
-
-impl Filename for OutputFilename {
-  fn filename(&self, filename: String, ext: String) -> String {
-    // TODO add more
-    self
-      .template
-      .replace("[name]", &filename)
-      .replace("[ext]", &ext)
-  }
-}
-
-#[derive(Debug)]
-pub struct OutputAssetModuleFilename {
-  template: String,
-}
-
-impl Default for OutputAssetModuleFilename {
-  fn default() -> Self {
-    Self::new("assets/[name][ext]".to_owned())
-  }
-}
-
-impl OutputAssetModuleFilename {
-  pub fn new(template: String) -> Self {
-    Self { template }
-  }
-}
-
-impl Filename for OutputAssetModuleFilename {
-  // TODO add more
-  fn filename(&self, filename: String, ext: String) -> String {
-    self
-      .template
-      .replace("[name]", &filename)
-      .replace("[ext]", &ext)
-  }
-}
-
 #[derive(Debug)]
 pub enum AssetContent {
   Buffer(Vec<u8>),

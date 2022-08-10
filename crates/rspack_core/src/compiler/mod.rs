@@ -120,6 +120,9 @@ impl Compiler {
 
     // tracing::trace!("assets {:#?}", assets);
 
+    std::fs::create_dir_all(Path::new(&self.options.context).join(&self.options.output.path))
+      .context("failed to create output directory")?;
+
     std::fs::create_dir_all(&self.options.output.path)
       .context("failed to create output directory")?;
 

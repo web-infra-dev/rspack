@@ -10,10 +10,12 @@ pub struct Runtime {
 
 impl Runtime {
   pub fn generate(&self) -> String {
-    let runtime_content = self
+    self
       .sources
       .iter()
-      .fold(String::new(), |prev, cur| prev + &cur.content);
-    format!(r#"(function () {{ {} }})();"#, runtime_content)
+      .fold(String::from("(function () { "), |prev, cur| {
+        prev + &cur.content
+      })
+      + " })();"
   }
 }
