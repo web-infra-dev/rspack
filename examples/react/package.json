@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "rspack"
+    "build": "rspack build rspack.config.json",
+    "dev": "rspack dev rspack.config.json"
   },
   "keywords": [],
   "author": "",

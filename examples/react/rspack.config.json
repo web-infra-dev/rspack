@@ -8,5 +8,11 @@
       "fastRefresh": false
     },
     "svgr": true
+  },
+  "dev": {
+    "static": {
+      "directory": "dist"
+    },
+    "port": 8081
   }
 }
