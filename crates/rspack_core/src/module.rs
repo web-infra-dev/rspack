@@ -62,6 +62,7 @@ impl ModuleGraphModule {
 }
 
 // TODO replace with rspack-sources
+#[derive(Debug)]
 pub enum ModuleRenderResult {
   JavaScript(String),
   Css(String),

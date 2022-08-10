@@ -6,8 +6,8 @@ use tracing::instrument;
 
 use crate::{
   split_chunks::code_splitting2, AssetContent, ChunkGraph, CompilerOptions, Dependency, EntryItem,
-  Entrypoint, ModuleDependency, ModuleGraph, PluginDriver, RenderManifestArgs, RenderRuntimeArgs,
-  ResolveKind, Runtime, VisitedModuleIdentity,
+  Entrypoint, ModuleDependency, ModuleGraph, PluginDriver, ProcessAssetsArgs, RenderManifestArgs,
+  RenderRuntimeArgs, ResolveKind, Runtime, VisitedModuleIdentity,
 };
 
 #[derive(Debug)]
@@ -45,7 +45,7 @@ impl Compilation {
     self.entries.insert(name, detail);
   }
 
-  pub(crate) fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
+  pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
     self.assets.insert(filename, asset);
   }
 
@@ -101,6 +101,16 @@ impl Compilation {
       })
   }
 
+  fn process_assets(&mut self, plugin_driver: Arc<PluginDriver>) {
+    plugin_driver
+      .process_assets(ProcessAssetsArgs { compilation: self })
+      .map_err(|e| {
+        eprintln!("process_assets is not ok, err {:#?}", e);
+        e
+      })
+      .ok();
+  }
+
   pub fn render_runtime(&self, plugin_driver: Arc<PluginDriver>) -> Runtime {
     if let Ok(sources) = plugin_driver.render_runtime(RenderRuntimeArgs {
       sources: &vec![],
@@ -131,7 +141,7 @@ impl Compilation {
     // generate runtime
     self.runtime = self.render_runtime(plugin_driver.clone());
 
-    self.create_chunk_assets(plugin_driver);
+    self.create_chunk_assets(plugin_driver.clone());
 
     self.entries.iter().for_each(|(name, _entry)| {
       let mut entrypoint = Entrypoint::new();
@@ -145,6 +155,8 @@ impl Compilation {
         });
       self.entrypoints.insert(name.clone(), entrypoint);
     });
+
+    self.process_assets(plugin_driver);
   }
 }
 
@@ -153,7 +165,7 @@ impl Compilation {
 // See https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L159
 #[derive(Debug)]
 pub struct CompilationAsset {
-  pub(crate) source: AssetContent,
+  pub source: AssetContent,
 }
 
 impl CompilationAsset {

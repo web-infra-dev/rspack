@@ -1,0 +1,21 @@
+{
+  "entry": {
+    "chunk1": "./chunk1.js",
+    "chunk2": "./chunk2.js",
+    "chunk3": "./chunk3.js"
+  },
+  "plugins": [
+    [
+      "html",
+      {
+        "chunks": [
+          "chunk1",
+          "chunk2"
+        ],
+        "excluded_chunks": [
+          "chunk2"
+        ]
+      }
+    ]
+  ]
+}

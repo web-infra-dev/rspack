@@ -6,7 +6,8 @@ const rspack = new Rspack({
   entry: {
     main: path.resolve(__dirname, "../../../examples/react/src/index.js"),
   },
-  context: path.resolve(__dirname, "../../../examples/react")
+  context: path.resolve(__dirname, "../../../examples/react"),
+  plugins: ['html'],
 })
 
 async function main() {

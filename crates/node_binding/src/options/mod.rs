@@ -6,9 +6,10 @@ use napi_derive::napi;
 use napi::bindgen_prelude::*;
 
 use rspack_core::{
-  CompilerOptions, DevServerOptions, EntryItem, OutputAssetModuleFilename, OutputOptions, Resolve,
-  Target,
+  CompilerOptions, DevServerOptions, EntryItem, OutputAssetModuleFilename, OutputOptions, Plugin,
+  Resolve, Target,
 };
+use rspack_plugin_html::config::HtmlPluginConfig;
 // use rspack_core::OptimizationOptions;
 // use rspack_core::SourceMapOptions;
 // use rspack_core::{
@@ -32,9 +33,11 @@ pub use output::*;
 // pub use resolve::*;
 // pub use split_chunks::*;
 
+pub type RawPluginOptions = serde_json::value::Value;
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
-#[cfg_attr(not(feature = "test"), napi(object))]
+#[cfg(not(feature = "test"))]
+#[napi(object)]
 pub struct RawOptions {
   pub entry: HashMap<String, String>,
   // #[napi(ts_type = "\"development\" | \"production\" | \"none\"")]
@@ -48,6 +51,68 @@ pub struct RawOptions {
   pub output: Option<RawOutputOptions>,
   // pub resolve: Option<RawResolveOptions>,
   // pub chunk_filename: Option<String>,
+  #[napi(ts_type = "any[]")]
+  pub plugins: Option<RawPluginOptions>,
+}
+
+// This is a clone of structure above, and for feature=test only
+// the reason remains unclear
+#[derive(Deserialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+#[cfg(feature = "test")]
+pub struct RawOptions {
+  pub entry: HashMap<String, String>,
+  pub context: Option<String>,
+  pub output: Option<RawOutputOptions>,
+  pub plugins: Option<RawPluginOptions>,
+}
+
+pub fn create_plugins(options: &RawOptions) -> Result<Vec<Box<dyn Plugin>>> {
+  let mut result: Vec<Box<dyn Plugin>> = vec![];
+  let plugins = options.plugins.as_ref();
+  if plugins.is_none() {
+    return Ok(result);
+  }
+  if let Some(plugins) = plugins.unwrap().as_array() {
+    for (i, plugin) in plugins.iter().enumerate() {
+      let (target, config) = if let Some(name) = plugin.as_str() {
+        (Some(name.to_ascii_lowercase()), None)
+      } else if let Some(name_with_config) = plugin.as_array() {
+        (
+          name_with_config
+            .get(0)
+            .and_then(|f| f.as_str())
+            .map(|f| f.to_ascii_lowercase()),
+          name_with_config.get(1),
+        )
+      } else {
+        return Err(napi::Error::from_reason(format!(
+          "`config.plugins[{i}]`: structure is not recognized."
+        )));
+      };
+
+      match target.as_deref() {
+        Some("html") => {
+          let config: HtmlPluginConfig = match config {
+            Some(config) => serde_json::from_value::<HtmlPluginConfig>(config.clone())?,
+            None => Default::default(),
+          };
+          result.push(Box::new(rspack_plugin_html::HtmlPlugin::new(config)));
+        }
+        _ => {
+          return Err(napi::Error::from_reason(format!(
+            "`config.plugins[{i}]`: plugin is not found."
+          )));
+        }
+      };
+    }
+  } else {
+    return Err(napi::Error::from_reason(format!(
+      "`config.plugins`: structure is not recognized. Found `{:?}`",
+      plugins
+    )));
+  }
+  Ok(result)
 }
 
 pub fn normalize_bundle_options(mut options: RawOptions) -> Result<CompilerOptions> {
@@ -80,6 +145,7 @@ pub fn normalize_bundle_options(mut options: RawOptions) -> Result<CompilerOptio
   let namespace = String::from("__rspack_runtime__");
   let target = Target::String(String::from("web"));
   let resolve = Resolve::default();
+  let plugins = create_plugins(&options)?;
   Ok(CompilerOptions {
     entry: parse_entries(options.entry),
     context,
@@ -92,6 +158,7 @@ pub fn normalize_bundle_options(mut options: RawOptions) -> Result<CompilerOptio
       namespace,
     },
     resolve,
+    plugins,
   })
 }
 
