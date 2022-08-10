@@ -1,0 +1,8 @@
+{
+  "entry": {
+    "index": "./index.js"
+  },
+  "plugins": [
+    "html"
+  ]
+}

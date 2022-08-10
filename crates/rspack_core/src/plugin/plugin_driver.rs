@@ -5,9 +5,9 @@ use tracing::instrument;
 use crate::{
   ApplyContext, BoxModule, BoxedParser, CompilerOptions, LoadArgs, ModuleType,
   NormalModuleFactoryContext, ParseModuleArgs, Plugin, PluginContext, PluginLoadHookOutput,
-  PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, PluginResolveHookOutput,
-  PluginTransformOutput, RenderManifestArgs, RenderRuntimeArgs, ResolveArgs, Resolver,
-  TransformArgs, TransformResult,
+  PluginProcessAssetsOutput, PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput,
+  PluginResolveHookOutput, PluginTransformOutput, ProcessAssetsArgs, RenderManifestArgs,
+  RenderRuntimeArgs, ResolveArgs, Resolver, TransformArgs, TransformResult,
 };
 use anyhow::Context;
 use rayon::prelude::*;
@@ -169,5 +169,21 @@ impl PluginDriver {
       sources = res;
     }
     Ok(sources)
+  }
+  #[instrument(skip_all)]
+  pub fn process_assets(&self, args: ProcessAssetsArgs) -> PluginProcessAssetsOutput {
+    self
+      .plugins
+      .iter()
+      .try_for_each(|plugin| -> anyhow::Result<()> {
+        plugin.process_assets(
+          PluginContext::new(),
+          ProcessAssetsArgs {
+            compilation: args.compilation,
+          },
+        )?;
+        Ok(())
+      })?;
+    Ok(())
   }
 }
