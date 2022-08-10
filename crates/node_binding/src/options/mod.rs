@@ -1,6 +1,5 @@
 use std::{collections::HashMap, str::FromStr};
 
-#[cfg(feature = "test")]
 use napi_derive::napi;
 
 use napi::bindgen_prelude::*;
@@ -48,6 +47,27 @@ pub struct RawOptions {
   pub output: Option<RawOutputOptions>,
   // pub resolve: Option<RawResolveOptions>,
   // pub chunk_filename: Option<String>,
+  pub plugins: Option<RawPluginOptions>,
+}
+
+#[derive(Deserialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+#[cfg(not(feature = "test"))]
+#[napi(object)]
+pub struct RawOptions {
+  pub entry: HashMap<String, String>,
+  pub mode: Option<String>,
+  pub target: Option<String>,
+  // #[napi(ts_type = "\"browser\" | \"node\"")]
+  // pub platform: Option<String>,
+  pub context: Option<String>,
+  // pub loader: Option<HashMap<String, String>>,
+  // pub enhanced: Option<RawEnhancedOptions>,
+  // pub optimization: Option<RawOptimizationOptions>,
+  pub output: Option<RawOutputOptions>,
+  // pub resolve: Option<RawResolveOptions>,
+  // pub chunk_filename: Option<String>,
+  #[napi(ts_type = "any[]")]
   pub plugins: Option<RawPluginOptions>,
 }
 
@@ -116,8 +136,10 @@ pub fn normalize_bundle_options(mut options: RawOptions) -> Result<CompilerOptio
   let target = Target::from_str(&options.target.unwrap_or_else(|| String::from("web"))).unwrap();
   let resolve = Resolve::default();
   let plugins = create_plugins(&options.plugins)?;
+  let entry = parse_entries(options.entry);
+
   Ok(CompilerOptions {
-    entry: parse_entries(options.entry),
+    entry,
     context,
     target,
     dev_server: DevServerOptions { hmr: false },

@@ -1,6 +1,5 @@
 import path from "path"
 import { Rspack } from ".."
-import assert from 'assert';
 
 const rspack = new Rspack({
   entry: {
@@ -12,7 +11,8 @@ const rspack = new Rspack({
 
 async function main() {
   const stats = await rspack.build()
-  assert(stats.assets.length > 0)
+  console.log(stats)
+  // assert(stats.assets.length > 0)
 }
 
 main()

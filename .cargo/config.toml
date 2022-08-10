@@ -5,19 +5,3 @@ lint = "clippy --workspace --all-targets --verbose -- --deny warnings"
 rustflags = [
   "-Dclippy::unwrap_in_result", # https://rust-lang.github.io/rust-clippy/master/index.html#unwrap_in_result
 ]
-
-[target.x86_64-apple-darwin]
-rustflags = [
-  "-C",
-  "link-arg=-undefined",
-  "-C",
-  "link-arg=dynamic_lookup",
-]
-
-[target.aarch64-apple-darwin]
-rustflags = [
-  "-C",
-  "link-arg=-undefined",
-  "-C",
-  "link-arg=dynamic_lookup",
-]

@@ -1,7 +1,5 @@
 import type { RawOptions } from "@rspack/binding"
 
-export type Entry = Record<string, string>;
-
 export type Plugin = string | [string] | [string, unknown];
 
 export interface RspackOptions {

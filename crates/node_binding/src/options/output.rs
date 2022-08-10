@@ -5,12 +5,11 @@ use rspack_core::{
 };
 use serde::Deserialize;
 
-#[cfg(not(feature = "test"))]
 use napi_derive::napi;
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
-#[cfg_attr(not(feature = "test"), napi(object))]
+#[napi(object)]
 pub struct RawOutputOptions {
   pub path: Option<String>,
   pub public_path: Option<String>,
