@@ -13,6 +13,15 @@ crate-type = ["lib", "cdylib"]
 default = []
 test = ["napi-derive/noop"]
 
+[[example]]
+name = "basic"
+required-features = ["test"]
+
+[[example]]
+name = "serve"
+required-features = ["test"]
+
+
 [dependencies]
 anyhow = {version = "1", features = ["backtrace"]}
 async-trait = "0.1.53"
