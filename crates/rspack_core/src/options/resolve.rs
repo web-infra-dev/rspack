@@ -40,7 +40,7 @@ pub struct Resolve {
 impl Default for Resolve {
   fn default() -> Self {
     Self {
-      extensions: vec![".tsx", ".jsx", ".ts", ".js", ".json"]
+      extensions: vec![".tsx", ".jsx", ".ts", ".js", ".json", ".d.ts"]
         .into_iter()
         .map(|s| s.to_string())
         .collect(),

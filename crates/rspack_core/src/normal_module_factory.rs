@@ -10,8 +10,8 @@ use sugar_path::PathSugar;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
-  load, parse_to_url, resolve, LoadArgs, ModuleGraphModule, ModuleType, Msg, ParseModuleArgs,
-  PluginDriver, ResolveArgs, TransformArgs, VisitedModuleIdentity,
+  load, parse_to_url, resolve, Content, LoadArgs, ModuleGraphModule, ModuleType, Msg,
+  ParseModuleArgs, PluginDriver, ResolveArgs, TransformArgs, VisitedModuleIdentity,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -99,7 +99,12 @@ impl NormalModuleFactory {
     tracing::trace!("resolved uri {:?}", uri);
 
     if self.context.module_type.is_none() {
-      let url = parse_to_url(&uri);
+      // todo currently unreachable module types are temporarily unified with their importers
+      let url = parse_to_url(if uri.starts_with("UnReachable:") {
+        self.dependency.importer.as_deref().unwrap()
+      } else {
+        &uri
+      });
       assert_eq!(url.scheme(), "specifier");
       self.context.module_type = resolve_module_type_by_uri(url.path());
     }
@@ -125,12 +130,16 @@ impl NormalModuleFactory {
       .visited_module_identity
       .insert((uri.clone(), self.dependency.detail.clone()));
 
-    let source = load(
-      &self.plugin_driver,
-      LoadArgs { uri: uri.as_str() },
-      &mut self.context,
-    )
-    .await?;
+    let source = if uri.starts_with("UnReachable:") {
+      Content::Buffer("module.exports = {}".to_string().as_bytes().to_vec())
+    } else {
+      load(
+        &self.plugin_driver,
+        LoadArgs { uri: uri.as_str() },
+        &mut self.context,
+      )
+      .await?
+    };
     tracing::trace!("load ({:?}) source {:?}", self.context.module_type, source);
 
     // TODO: transform
