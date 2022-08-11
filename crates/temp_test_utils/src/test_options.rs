@@ -18,30 +18,16 @@ impl From<TestOptions> for CompilerOptions {
     let resolve = Resolve::default();
 
     let output = {
-      // let is_prod = matches!(mode, Mode::Production);
-      let filename = format!(
-        "{}{}{}",
-        "[name]",
-        // todo need add hash
-        // if is_prod {
-        //   CONTENT_PLACEHOLDER
-        // } else {
-        //   HASH_PLACEHOLDER
-        // },
-        "",
-        "[ext]"
-      );
+      let filename = format!("{}{}{}", "[name]", "", "[ext]");
 
       let chunk_filename = filename.replace("[name]", "[id]");
       let path = Path::new(&op.context.clone().unwrap())
         .join("dist")
         .to_string_lossy()
         .to_string();
-      // todo unique name needs to be determined by package.name
       let unique_name = String::from("__rspack_runtime__");
       let public_path = String::from("/");
       let asset_module_filename = format!("assets/{}", filename);
-      // let public_path =
       OutputOptions {
         path,
         asset_module_filename: Filename::from_str(&asset_module_filename).unwrap(),
@@ -71,19 +57,17 @@ impl From<TestOptions> for CompilerOptions {
 impl TestOptions {
   pub fn from_fixture(fixture_path: &Path) -> Self {
     let pkg_path = fixture_path.join("test.config.json");
-    let mut options = {
-      if pkg_path.exists() {
-        let pkg_content = std::fs::read_to_string(pkg_path).unwrap();
-        let options: TestOptions = serde_json::from_str(&pkg_content).unwrap();
-        options
-      } else {
-        TestOptions {
-          entry: HashMap::from([(
-            "main".to_string(),
-            fixture_path.join("index.js").to_str().unwrap().to_string(),
-          )]),
-          ..Default::default()
-        }
+    let mut options = if pkg_path.exists() {
+      let pkg_content = std::fs::read_to_string(pkg_path).unwrap();
+      let options: TestOptions = serde_json::from_str(&pkg_content).unwrap();
+      options
+    } else {
+      TestOptions {
+        entry: HashMap::from([(
+          "main".to_string(),
+          fixture_path.join("index.js").to_str().unwrap().to_string(),
+        )]),
+        ..Default::default()
       }
     };
     assert!(
