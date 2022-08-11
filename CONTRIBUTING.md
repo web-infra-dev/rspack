@@ -1,7 +1,19 @@
 # Set up development environment
 
-1. Install rust using [rustup](https://rustup.rs/)
-2. Install [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer) for VSCode
-3. Install js dependencies using `yarn install`
-4. open rspack project
-5. run `cargo build` to see that is everthing ok.
+## Setup rust
+
+- Install rust using [rustup](https://rustup.rs/)
+- Install [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer) for VSCode
+
+## Setup node
+
+- Install js dependencies using `yarn install`
+
+## Final
+
+- open rspack project
+- run `cargo build` to see that is everthing ok.
+
+# Testing
+
+Run `cargo run temp_test_utils` to update the schema of `test.config.json`, if you change the `TestOptions` in `temp_test_utils`

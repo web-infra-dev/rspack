@@ -11,12 +11,11 @@ edition = "2021"
 [dependencies]
 tokio = { version = "1.17.0", features = ["full"] }
 rspack_core = { path = "../rspack_core" }
-node_binding = { path = "../node_binding", package = "rspack_node", features = [
-  "test",
-] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rspack = { path = "../rspack" }
 # glob = "0.3.0"
 testing_macros = "0.2.5"
 similar-asserts = "1.2.0"
+schemars = "0.8.10"
+rspack_plugin_html = {path = "../rspack_plugin_html"}
