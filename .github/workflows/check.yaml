@@ -91,5 +91,6 @@ jobs:
           cargo test --all --all-features -- --nocapture
           yarn install
           yarn workspace @rspack/binding run build
+          yarn workspace rspack-dev-server run build
           yarn workspace @rspack/core run build
           yarn workspace @rspack/core run example
