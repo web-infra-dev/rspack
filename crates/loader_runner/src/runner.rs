@@ -82,16 +82,8 @@ impl LoaderRunner {
       source: content,
       resource: &self.resource_data.resource,
       resource_path: &self.resource_data.resource_path,
-      resource_query: self
-        .resource_data
-        .resource_query
-        .as_ref()
-        .map(|s| s.as_str()),
-      resource_fragment: self
-        .resource_data
-        .resource_fragment
-        .as_ref()
-        .map(|s| s.as_str()),
+      resource_query: self.resource_data.resource_query.as_deref(),
+      resource_fragment: self.resource_data.resource_fragment.as_deref(),
     };
 
     Ok(loader_context)
