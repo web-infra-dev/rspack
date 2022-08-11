@@ -1,5 +1,4 @@
 {
-  "mode": "development",
   "entry": {
     "main": "./index.css"
   }
