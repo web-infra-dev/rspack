@@ -191,12 +191,7 @@ console.log(3);"#
   fn should_work_with_binary_formatted_files() {
     use rspack_loader_runner::*;
 
-    use std::path::PathBuf;
-
-    let mut cur_dir = PathBuf::from(&std::env::var("CARGO_MANIFEST_DIR").unwrap());
-    cur_dir = cur_dir.join("./tests/fixtures/file.png");
-
-    let expected = Content::from(std::fs::read(&cur_dir.canonicalize().unwrap()).unwrap());
+    let expected = Content::from(std::fs::read(&fixtures!("file.png")).unwrap());
 
     run_loader!(
       @raw,
