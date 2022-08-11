@@ -1,6 +1,9 @@
 {
   "name": "@rspack/core",
   "main": "./dist/index.js",
+  "bin": {
+    "rspack": "./dist/bin/index.js"
+  },
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "rm -rf dist/ && tsc -p tsconfig.json",
@@ -14,5 +17,9 @@
     "tsm": "^2.2.2",
     "typescript": "^4.7.4"
   },
-  "packageManager": "yarn@3.2.0"
+  "packageManager": "yarn@3.2.0",
+  "dependencies": {
+    "commander": "^9.4.0",
+    "rspack-dev-server": "workspace:^"
+  }
 }
