@@ -16,9 +16,21 @@ pub struct ResourceData {
 #[derive(Debug)]
 pub struct LoaderContext<'a> {
   pub source: Source,
+  /// The resource part of the request, including query and fragment.
+  ///
+  /// E.g. /abc/resource.js?query=1#some-fragment
   pub resource: &'a str,
+  /// The resource part of the request.
+  ///
+  /// E.g. /abc/resource.js
   pub resource_path: &'a str,
+  /// The query of the request
+  ///
+  /// E.g. query=1
   pub resource_query: Option<&'a str>,
+  /// The fragment of the request
+  ///
+  /// E.g. some-fragment
   pub resource_fragment: Option<&'a str>,
 }
 
@@ -45,7 +57,7 @@ pub trait Loader: Sync + Send {
   /// Each loader should expose a `run` fn, which will be called by the loader runner.
   ///
   /// 1. If a loader returns an error, the loader runner will stop loading the resource.
-  /// 2. If a loader returns an `None`, the result of the loader will be the same as the previous one.
+  /// 2. If a loader returns a `None`, the result of the loader will be the same as the previous one.
   async fn run<'a>(&self, loader_context: &LoaderContext<'a>) -> Result<Option<LoaderResult>>;
 }
 
