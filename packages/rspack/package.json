@@ -19,6 +19,7 @@
   },
   "packageManager": "yarn@3.2.0",
   "dependencies": {
-    "commander": "^9.4.0"
+    "commander": "^9.4.0",
+    "rspack-dev-server": "workspace:^"
   }
 }
