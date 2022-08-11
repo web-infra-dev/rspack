@@ -16,4 +16,4 @@
 
 # Testing
 
-Run `cargo run temp_test_utils` to update the schema of `test.config.json`, if you change the `TestOptions` in `temp_test_utils`
+Run `cargo run gen_test_config_schema` to update the schema of `test.config.json`, if you change the `TestOptions` in `temp_test_utils`
