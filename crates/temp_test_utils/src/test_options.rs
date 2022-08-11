@@ -1,5 +1,5 @@
 use rspack_core::{CompilerOptions, Filename, OutputOptions, Plugin, PublicPath, Resolve, Target};
-use rspack_plugin_html::{config::HtmlPluginConfig, HtmlPlugin};
+use rspack_plugin_html::config::HtmlPluginConfig;
 use schemars::JsonSchema;
 use serde::Deserialize;
 use std::{collections::HashMap, path::Path, str::FromStr};
@@ -110,7 +110,7 @@ pub fn create_plugins(plugins: Vec<serde_json::Value>) -> Vec<Box<dyn Plugin>> {
       (match name.as_str() {
         "html" => {
           let config: HtmlPluginConfig = match options {
-            Some(config) => serde_json::from_value::<HtmlPluginConfig>(config.clone()).unwrap(),
+            Some(config) => serde_json::from_value::<HtmlPluginConfig>(config).unwrap(),
             None => Default::default(),
           };
           Box::new(rspack_plugin_html::HtmlPlugin::new(config))
