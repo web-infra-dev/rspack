@@ -1,12 +1,16 @@
-macro_rules! run_loader {
-  ($loader:expr, $resource:tt, $expected:tt) => {
-    use rspack_loader_runner::*;
+macro_rules! fixtures {
+  () => {{
     use std::path::PathBuf;
 
     let mut cur_dir = PathBuf::from(&std::env::var("CARGO_MANIFEST_DIR").unwrap());
     cur_dir = cur_dir.join("./tests/fixtures");
     cur_dir = cur_dir.canonicalize().unwrap();
-    println!("{:#?}", cur_dir);
+
+    cur_dir
+  }};
+
+  ($resource:tt) => {{
+    let cur_dir = fixtures!();
 
     let resource = cur_dir
       .join($resource)
@@ -17,10 +21,18 @@ macro_rules! run_loader {
       .unwrap()
       .to_owned();
 
-    let resource = "file://".to_owned() + &resource;
+    resource
+  }};
+}
+
+macro_rules! run_loader {
+  (@base, $loader:expr, $resource:tt, $expected:expr) => {{
+    use rspack_loader_runner::*;
+
+    let resource = "file://".to_owned() + &fixtures!($resource);
 
     let url = url::Url::parse(&resource).unwrap();
-    let mut runner = LoaderRunner::new(
+    LoaderRunner::new(
       ResourceData {
         resource: resource.to_owned(),
         resource_path: url.path().to_owned(),
@@ -28,7 +40,27 @@ macro_rules! run_loader {
         resource_fragment: url.fragment().map(|f| f.to_owned()),
       },
       $loader,
-    );
+    )
+  }};
+
+  (@raw, $loader:expr, $resource:tt, $expected:expr) => {
+    let mut runner = run_loader!(@base, $loader, $resource, $expected);
+
+    tokio::runtime::Builder::new_multi_thread()
+    .enable_all()
+    .build()
+    .unwrap()
+    .block_on(async {
+      let runner_result = runner.run().await.unwrap();
+      similar_asserts::assert_eq!(
+        runner_result.content,
+        $expected
+      );
+    });
+  };
+
+  ($loader:expr, $resource:tt, $expected:tt) => {
+    let mut runner = run_loader!(@base, $loader, $resource, $expected);
 
     tokio::runtime::Builder::new_multi_thread()
       .enable_all()
@@ -48,10 +80,24 @@ mod fixtures {
   use anyhow::Result;
   use rspack_loader_runner::*;
 
-  pub struct SimpleLoader {}
+  pub struct DirectPassLoader {}
 
   #[async_trait::async_trait]
-  impl Loader for SimpleLoader {
+  impl Loader for DirectPassLoader {
+    fn name(&self) -> &'static str {
+      "direct-pass-loader"
+    }
+
+    async fn run<'a>(&self, loader_context: &LoaderContext<'a>) -> Result<Option<LoaderResult>> {
+      let source = loader_context.source.to_owned();
+      Ok(Some(LoaderResult { content: source }))
+    }
+  }
+
+  pub struct SimpleCssLoader {}
+
+  #[async_trait::async_trait]
+  impl Loader for SimpleCssLoader {
     fn name(&self) -> &'static str {
       "basic-loader"
     }
@@ -116,7 +162,7 @@ mod tests {
   #[test]
   fn should_run_single_loader() {
     run_loader!(
-      vec![Box::new(super::fixtures::SimpleLoader {})],
+      vec![Box::new(super::fixtures::SimpleCssLoader {})],
       "simple.css",
       r#"body {
   background-color: #fff;
@@ -138,6 +184,25 @@ html {
       r#"console.log(1);
 console.log(2);
 console.log(3);"#
+    );
+  }
+
+  #[test]
+  fn should_work_with_binary_formatted_files() {
+    use rspack_loader_runner::*;
+
+    use std::path::PathBuf;
+
+    let mut cur_dir = PathBuf::from(&std::env::var("CARGO_MANIFEST_DIR").unwrap());
+    cur_dir = cur_dir.join("./tests/fixtures/file.png");
+
+    let expected = Content::from(std::fs::read(&cur_dir.canonicalize().unwrap()).unwrap());
+
+    run_loader!(
+      @raw,
+      vec![Box::new(super::fixtures::DirectPassLoader {})],
+      "file.png",
+      expected
     );
   }
 }
