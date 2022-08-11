@@ -50,7 +50,7 @@ impl Module for AssetSourceModule {
     module: &rspack_core::ModuleGraphModule,
     compilation: &rspack_core::Compilation,
   ) -> Result<Option<ModuleRenderResult>> {
-    let namespace = &compilation.options.output.namespace;
+    let namespace = &compilation.options.output.unique_name;
     let result = match requested_source_type {
       SourceType::JavaScript => {
         if let Some(buf) = &self.buf {
