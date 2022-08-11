@@ -1,5 +1,4 @@
 use anyhow::Result;
-use hashbrown::HashSet;
 
 use rspack_core::{BoxModule, Module, ModuleRenderResult, ModuleType, Parser, Plugin, SourceType};
 
@@ -52,10 +51,12 @@ impl Parser for JsonParser {
   }
 }
 
+static JSON_MODULE_SOURCE_TYPE_LIST: &[SourceType; 1] = &[SourceType::JavaScript];
 #[derive(Debug)]
 struct JsonModule {
   module_type: ModuleType,
   json_str: String,
+  source_type_list: &'static [SourceType; 1],
 }
 
 impl JsonModule {
@@ -63,6 +64,7 @@ impl JsonModule {
     Self {
       module_type: ModuleType::Json,
       json_str,
+      source_type_list: JSON_MODULE_SOURCE_TYPE_LIST,
     }
   }
 }
@@ -78,8 +80,8 @@ impl Module for JsonModule {
     &self,
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
-  ) -> HashSet<SourceType> {
-    HashSet::from_iter([SourceType::JavaScript])
+  ) -> &[SourceType] {
+    self.source_type_list.as_ref()
   }
 
   #[tracing::instrument(skip_all)]
@@ -87,15 +89,18 @@ impl Module for JsonModule {
     &self,
     requested_source_type: SourceType,
     module: &rspack_core::ModuleGraphModule,
-    _compilation: &rspack_core::Compilation,
+    compilation: &rspack_core::Compilation,
   ) -> Result<Option<ModuleRenderResult>> {
+    let namespace = &compilation.options.output.namespace;
     let result = match requested_source_type {
       SourceType::JavaScript => Some(ModuleRenderResult::JavaScript(format!(
-        r#"rs.define("{}", function(__rspack_require__, module, exports) {{
+        r#"self["{}"].__rspack_register__(["{}"], {{"{}": function (module, exports, __rspack_require__, __rspack_dynamic_require__) {{
     "use strict";
     module.exports = {};
-  }});
+  }}}});
   "#,
+        namespace,
+        module.id,
         module.id,
         utils::escape_json(&self.json_str)
       ))),

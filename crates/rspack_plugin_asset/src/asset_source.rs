@@ -1,5 +1,4 @@
 use anyhow::Result;
-use hashbrown::HashSet;
 use rspack_core::{BoxModule, Module, ModuleRenderResult, ModuleType, Parser, SourceType};
 
 #[derive(Debug, Default)]
@@ -16,15 +15,19 @@ impl Parser for AssetSourceParser {
     )))
   }
 }
-
+static ASSET_SOURCE_MODULE_SOURCE_TYPE_LIST: &[SourceType; 1] = &[SourceType::JavaScript];
 #[derive(Debug)]
 struct AssetSourceModule {
   buf: Option<Vec<u8>>,
+  source_type_list: &'static [SourceType; 1],
 }
 
 impl AssetSourceModule {
   fn new(buf: Option<Vec<u8>>) -> Self {
-    Self { buf }
+    Self {
+      buf,
+      source_type_list: ASSET_SOURCE_MODULE_SOURCE_TYPE_LIST,
+    }
   }
 }
 
@@ -37,16 +40,17 @@ impl Module for AssetSourceModule {
     &self,
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
-  ) -> HashSet<SourceType> {
-    HashSet::from_iter([SourceType::JavaScript])
+  ) -> &[SourceType] {
+    self.source_type_list.as_ref()
   }
 
   fn render(
     &self,
     requested_source_type: SourceType,
     module: &rspack_core::ModuleGraphModule,
-    _compilation: &rspack_core::Compilation,
+    compilation: &rspack_core::Compilation,
   ) -> Result<Option<ModuleRenderResult>> {
+    let namespace = &compilation.options.output.namespace;
     let result = match requested_source_type {
       SourceType::JavaScript => {
         if let Some(buf) = &self.buf {
@@ -54,11 +58,13 @@ impl Module for AssetSourceModule {
             None
           } else {
             Some(ModuleRenderResult::JavaScript(format!(
-              r#"rs.define("{}", function(__rspack_require__, module, exports) {{
+              r#"self["{}"].__rspack_register__(["{}"], {{"{}": function (module, exports, __rspack_require__, __rspack_dynamic_require__) {{
   "use strict";
   module.exports = {:?};
-}});
+}}}});
 "#,
+              namespace,
+              module.id,
               module.id,
               // Align to Node's `Buffer.prototype.toString("utf-8")`: If encoding is 'utf8' and a byte sequence in the input is not valid UTF-8, then each invalid byte is replaced with the replacement character U+FFFD.
               String::from_utf8_lossy(buf)

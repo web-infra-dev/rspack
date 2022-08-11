@@ -6,7 +6,8 @@
   "private": true,
   "workspaces": [
     "packages/**",
-    "examples/**"
+    "examples/**",
+    "crates/node_binding"
   ],
   "scripts": {
     "init": "yarn install",

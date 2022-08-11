@@ -653,6 +653,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@napi-rs/cli@npm:^2.6.2":
+  version: 2.10.3
+  resolution: "@napi-rs/cli@npm:2.10.3"
+  bin:
+    napi: scripts/index.js
+  checksum: 3542e22a2125459220eab3de15d61cd2bb2176306314d07577a5e23547318293160af5994d1a0b33760aeaa5ba57789eb9ad1874e2bdd5cfcb05276623d313c6
+  languageName: node
+  linkType: hard
+
 "@npmcli/fs@npm:^2.1.0":
   version: 2.1.0
   resolution: "@npmcli/fs@npm:2.1.0"
@@ -673,9 +682,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@rspack/binding@workspace:crates/node_binding":
+  version: 0.0.0-use.local
+  resolution: "@rspack/binding@workspace:crates/node_binding"
+  dependencies:
+    "@napi-rs/cli": ^2.6.2
+    why-is-node-running: 2.2.1
+  languageName: unknown
+  linkType: soft
+
 "@rspack/core@workspace:*, @rspack/core@workspace:packages/rspack":
   version: 0.0.0-use.local
   resolution: "@rspack/core@workspace:packages/rspack"
+  dependencies:
+    "@types/node": ^18.6.3
+    tsm: ^2.2.2
+    typescript: ^4.7.4
   languageName: unknown
   linkType: soft
 
@@ -2061,6 +2083,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/node@npm:^18.6.3":
+  version: 18.6.3
+  resolution: "@types/node@npm:18.6.3"
+  checksum: 38495b8fd27200d2b7ab9ccd8c1e2475d2411fba15330f2cba869a85ef79dd42382a2658c8dd298ace8c21ed3bfafcdea408faecd74928b144377d07d00e7c8c
+  languageName: node
+  linkType: hard
+
 "@types/prop-types@npm:*":
   version: 15.7.5
   resolution: "@types/prop-types@npm:15.7.5"
@@ -2489,13 +2518,6 @@ __metadata:
   bin:
     browserslist: cli.js
   checksum: 0e56c42da765524e5c31bc9a1f08afaa8d5dba085071137cf21e56dc78d0cf0283764143df4c7d1c0cd18c3187fc9494e1d93fa0255004f0be493251a28635f9
-  languageName: node
-  linkType: hard
-
-"buffer-crc32@npm:~0.2.3":
-  version: 0.2.13
-  resolution: "buffer-crc32@npm:0.2.13"
-  checksum: 06252347ae6daca3453b94e4b2f1d3754a3b146a111d81c68924c22d91889a40623264e95e67955b1cb4a68cbedf317abeabb5140a9766ed248973096db5ce1c
   languageName: node
   linkType: hard
 
@@ -3243,17 +3265,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dprint@npm:^0.29.1":
-  version: 0.29.1
-  resolution: "dprint@npm:0.29.1"
-  dependencies:
-    yauzl: =2.10.0
-  bin:
-    dprint: bin.js
-  checksum: 1ad480dce38c7612b93ff046f585a4d5010eb3f459c32e77f3b3913443b8108f5e1d53c34048578b732d06a32672b0475fa7c5639084a6d4df422faa7467a814
-  languageName: node
-  linkType: hard
-
 "earcut@npm:^2.0.0":
   version: 2.2.3
   resolution: "earcut@npm:2.2.3"
@@ -3600,15 +3611,6 @@ __metadata:
     signal-exit: ^3.0.3
     strip-final-newline: ^2.0.0
   checksum: fba9022c8c8c15ed862847e94c252b3d946036d7547af310e344a527e59021fd8b6bb0723883ea87044dc4f0201f949046993124a42ccb0855cae5bf8c786343
-  languageName: node
-  linkType: hard
-
-"fd-slicer@npm:~1.1.0":
-  version: 1.1.0
-  resolution: "fd-slicer@npm:1.1.0"
-  dependencies:
-    pend: ~1.2.0
-  checksum: c8585fd5713f4476eb8261150900d2cb7f6ff2d87f8feb306ccc8a1122efd152f1783bdb2b8dc891395744583436bfd8081d8e63ece0ec8687eeefea394d4ff2
   languageName: node
   linkType: hard
 
@@ -4510,12 +4512,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash-es@npm:^4.17.15":
-  version: 4.17.21
-  resolution: "lodash-es@npm:4.17.21"
-  checksum: 05cbffad6e2adbb331a4e16fbd826e7faee403a1a04873b82b42c0f22090f280839f85b95393f487c1303c8a3d2a010048bf06151a6cbe03eee4d388fb0a12d2
-  languageName: node
-  linkType: hard
+"lodash-es@^4.17.15, lodash-es@workspace:examples/bench/lodash":
+  version: 0.0.0-use.local
+  resolution: "lodash-es@workspace:examples/bench/lodash"
+  languageName: unknown
+  linkType: soft
 
 "lodash.debounce@npm:^4.0.8":
   version: 4.0.8
@@ -4818,7 +4819,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "monorepo@workspace:."
   dependencies:
-    dprint: ^0.29.1
     husky: ^7.0.4
     lint-staged: ^12.4.0
     mocha: 9.2.2
@@ -5082,13 +5082,6 @@ __metadata:
   version: 0.2.0
   resolution: "pdfast@npm:0.2.0"
   checksum: d2b9bf388d89aa7c4affe05b370447b09b8c8556e9a07d6fdf503bf1cadb94e621fa64ab48aa0790f69fddc4cb49fb125e7f8ad0ed9e2cdf78216fbf907cd257
-  languageName: node
-  linkType: hard
-
-"pend@npm:~1.2.0":
-  version: 1.2.0
-  resolution: "pend@npm:1.2.0"
-  checksum: 6c72f5243303d9c60bd98e6446ba7d30ae29e3d56fdb6fae8767e8ba6386f33ee284c97efe3230a0d0217e2b1723b8ab490b1bbf34fcbb2180dbc8a9de47850d
   languageName: node
   linkType: hard
 
@@ -6294,6 +6287,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"tsm@npm:^2.2.2":
+  version: 2.2.2
+  resolution: "tsm@npm:2.2.2"
+  dependencies:
+    esbuild: ^0.14.0
+  bin:
+    tsm: bin.js
+  checksum: 5908f7e5167c0552b180e04f950430a5f890d95b9ac4b7f2016cbe566df2515f4b7c4f3519fa6f6edc2bf47f4b8fe38b301407d613f8b3c491b51339c098573b
+  languageName: node
+  linkType: hard
+
 "turf-jsts@npm:*":
   version: 1.2.3
   resolution: "turf-jsts@npm:1.2.3"
@@ -6318,6 +6322,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"typescript@npm:^4.7.4":
+  version: 4.7.4
+  resolution: "typescript@npm:4.7.4"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 5750181b1cd7e6482c4195825547e70f944114fb47e58e4aa7553e62f11b3f3173766aef9c281783edfd881f7b8299cf35e3ca8caebe73d8464528c907a164df
+  languageName: node
+  linkType: hard
+
 "typescript@patch:typescript@^4.5.5#~builtin<compat/typescript>":
   version: 4.7.3
   resolution: "typescript@patch:typescript@npm%3A4.7.3#~builtin<compat/typescript>::version=4.7.3&hash=bda367"
@@ -6325,6 +6339,16 @@ __metadata:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 8257ce7ecbbf9416da60045a76a99d473698ca9e973fa0ddab7137cacb1587255431176cbbcc801a650938c4dc8109ab88355774829a714fabe56a53a2fe4524
+  languageName: node
+  linkType: hard
+
+"typescript@patch:typescript@^4.7.4#~builtin<compat/typescript>":
+  version: 4.7.4
+  resolution: "typescript@patch:typescript@npm%3A4.7.4#~builtin<compat/typescript>::version=4.7.4&hash=bda367"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 96d3030cb01143570567cb4f3a616b10df65f658f0e74e853e77a089a6a954e35c800be7db8b9bfe9a1ae05d9c2897e281359f65e4caa1caf266368e1c4febd3
   languageName: node
   linkType: hard
 
@@ -6625,16 +6649,6 @@ __metadata:
     yarn: bin/yarn.js
     yarnpkg: bin/yarn.js
   checksum: b43d2cc5fee7e933beb12a8aee7dfceca9e9ef2dd17c5d04d15a12ab7bec5f5744ea34a07b86e013da7f291a18c4e1ad8f70e150f5ed2f4666e6723c7f0a8452
-  languageName: node
-  linkType: hard
-
-"yauzl@npm:=2.10.0":
-  version: 2.10.0
-  resolution: "yauzl@npm:2.10.0"
-  dependencies:
-    buffer-crc32: ~0.2.3
-    fd-slicer: ~1.1.0
-  checksum: 7f21fe0bbad6e2cb130044a5d1d0d5a0e5bf3d8d4f8c4e6ee12163ce798fee3de7388d22a7a0907f563ac5f9d40f8699a223d3d5c1718da90b0156da6904022b
   languageName: node
   linkType: hard
 

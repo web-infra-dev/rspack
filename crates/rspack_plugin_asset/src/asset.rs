@@ -1,7 +1,6 @@
 use std::{ffi::OsStr, path::Path};
 
 use anyhow::Result;
-use hashbrown::HashSet;
 use rspack_core::{
   BoxModule, Filename, Module, ModuleRenderResult, ModuleType, Parser, SourceType,
 };
@@ -61,12 +60,15 @@ impl Parser for AssetParser {
     }
   }
 }
+static ASSET_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
+  &[SourceType::Asset, SourceType::JavaScript];
 
 #[derive(Debug)]
 struct AssetModule {
   module_type: ModuleType,
   inline: bool, // if the module is not inlined, then it will be regarded as a resource
   buf: Vec<u8>,
+  source_type_list: &'static [SourceType; 2],
 }
 
 impl AssetModule {
@@ -75,6 +77,7 @@ impl AssetModule {
       module_type,
       inline,
       buf,
+      source_type_list: ASSET_MODULE_SOURCE_TYPE_LIST,
     }
   }
 }
@@ -90,11 +93,11 @@ impl Module for AssetModule {
     &self,
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
-  ) -> HashSet<SourceType> {
+  ) -> &[SourceType] {
     if self.inline {
-      HashSet::from_iter([SourceType::JavaScript])
+      &self.source_type_list[1..]
     } else {
-      HashSet::from_iter([SourceType::Asset, SourceType::JavaScript])
+      self.source_type_list.as_ref()
     }
   }
 
@@ -104,13 +107,16 @@ impl Module for AssetModule {
     module: &rspack_core::ModuleGraphModule,
     compilation: &rspack_core::Compilation,
   ) -> Result<Option<ModuleRenderResult>> {
+    let namespace = &compilation.options.output.namespace;
     let result = match requested_source_type {
       SourceType::JavaScript => Some(ModuleRenderResult::JavaScript(format!(
-        r#"rs.define("{}", function(__rspack_require__, module, exports) {{
+        r#"self["{}"].__rspack_register__(["{}"], {{"{}": function (module, exports, __rspack_require__, __rspack_dynamic_require__) {{
   "use strict";
   module.exports = "{}";
-}});
+}}}});
 "#,
+        namespace,
+        module.id,
         module.id,
         if self.inline {
           format!(

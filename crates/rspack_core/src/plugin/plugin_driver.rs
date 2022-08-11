@@ -1,13 +1,13 @@
 use std::{collections::HashMap, sync::Arc};
 
-use nodejs_resolver::Resolver;
 use tracing::instrument;
 
 use crate::{
   ApplyContext, BoxModule, BoxedParser, CompilerOptions, LoadArgs, ModuleType,
   NormalModuleFactoryContext, ParseModuleArgs, Plugin, PluginContext, PluginLoadHookOutput,
-  PluginRenderManifestHookOutput, PluginResolveHookOutput, PluginTransformOutput,
-  RenderManifestArgs, ResolveArgs, TransformArgs, TransformResult,
+  PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, PluginResolveHookOutput,
+  PluginTransformOutput, RenderManifestArgs, RenderRuntimeArgs, ResolveArgs, Resolver,
+  TransformArgs, TransformResult,
 };
 use anyhow::Context;
 use rayon::prelude::*;
@@ -154,5 +154,20 @@ impl PluginDriver {
         Ok(())
       })?;
     Ok(assets)
+  }
+
+  pub fn render_runtime(&self, args: RenderRuntimeArgs) -> PluginRenderRuntimeHookOutput {
+    let mut sources = vec![];
+    for plugin in &self.plugins {
+      tracing::debug!("running render runtime:{}", plugin.name());
+      let x = sources;
+      let args = RenderRuntimeArgs {
+        compilation: args.compilation,
+        sources: &x,
+      };
+      let res = plugin.render_runtime(PluginContext::new(), args)?;
+      sources = res;
+    }
+    Ok(sources)
   }
 }

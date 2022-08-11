@@ -1,11 +1,14 @@
+use crate::generate_rspack_execute;
+use crate::module::JS_MODULE_SOURCE_TYPE_LIST;
 use crate::utils::parse_file;
 use crate::visitors::ClearMark;
 use crate::{module::JsModule, utils::get_swc_compiler};
 use anyhow::{Context, Result};
 use rayon::prelude::*;
 use rspack_core::{
-  Asset, AssetContent, Filename, ModuleAst, ModuleRenderResult, ModuleType, OutputFilename,
-  ParseModuleArgs, Parser, Plugin, PluginContext, PluginRenderManifestHookOutput, SourceType,
+  AssetContent, Filename, ModuleAst, ModuleRenderResult, ModuleType, OutputFilename,
+  ParseModuleArgs, Parser, Plugin, PluginContext, PluginRenderManifestHookOutput,
+  RenderManifestEntry, SourceType,
 };
 
 use swc_common::comments::SingleThreadedComments;
@@ -47,6 +50,7 @@ impl Plugin for JsPlugin {
   ) -> PluginRenderManifestHookOutput {
     let compilation = args.compilation;
     let module_graph = &compilation.module_graph;
+    let namespace = &compilation.options.output.namespace;
     let chunk = compilation
       .chunk_graph
       .chunk_by_id(args.chunk_id)
@@ -78,13 +82,13 @@ impl Plugin for JsPlugin {
       .flatten()
       .chain([{
         if chunk.kind.is_entry() {
-          format!(
-            "rs.require(\"{}\")",
+          generate_rspack_execute(
+            namespace,
             ordered_modules
               .last()
               .ok_or_else(|| anyhow::format_err!("TODO:"))?
               .id
-              .as_str()
+              .as_str(),
           )
         } else {
           String::new()
@@ -96,7 +100,7 @@ impl Plugin for JsPlugin {
       })
       .collect::<String>();
 
-    Ok(vec![Asset::new(
+    Ok(vec![RenderManifestEntry::new(
       AssetContent::String(code),
       OutputFilename::new("[name][ext]".to_owned())
         .filename(args.chunk_id.to_owned(), ".js".to_owned()),
@@ -165,6 +169,7 @@ impl Parser for JsParser {
       ast,
       uri: args.uri.to_string(),
       module_type,
+      source_type_list: JS_MODULE_SOURCE_TYPE_LIST,
     }))
   }
 }

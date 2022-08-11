@@ -2,7 +2,8 @@ use std::fmt::Debug;
 
 use crate::{
   BoxModule, LoadArgs, ModuleType, NormalModuleFactoryContext, ParseModuleArgs, PluginContext,
-  RenderManifestArgs, ResolveArgs, TransformAst, TransformResult,
+  RenderManifestArgs, RenderRuntimeArgs, ResolveArgs, RuntimeSourceNode, TransformAst,
+  TransformResult,
 };
 use crate::{Content, TransformArgs};
 
@@ -13,7 +14,8 @@ pub type PluginBuildStartHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;
 pub type PluginLoadHookOutput = Result<Option<Content>>;
 pub type PluginTransformOutput = Result<TransformResult>;
-pub type PluginRenderManifestHookOutput = Result<Vec<Asset>>;
+pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
+pub type PluginRenderRuntimeHookOutput = Result<Vec<RuntimeSourceNode>>;
 pub type PluginParseModuleHookOutput = Result<BoxModule>;
 pub type PluginResolveHookOutput = Result<Option<String>>;
 pub type PluginParseOutput = Result<TransformAst>;
@@ -90,6 +92,13 @@ pub trait Plugin: Debug + Send + Sync {
   ) -> PluginRenderManifestHookOutput {
     Ok(vec![])
   }
+  fn render_runtime(
+    &self,
+    _ctx: PluginContext,
+    _args: RenderRuntimeArgs,
+  ) -> PluginRenderRuntimeHookOutput {
+    Ok(vec![])
+  }
 }
 
 pub trait Filename: Debug + Sync + Send {
@@ -152,8 +161,8 @@ pub enum AssetContent {
 }
 
 #[derive(Debug)]
-pub struct Asset {
-  content: AssetContent,
+pub struct RenderManifestEntry {
+  pub(crate) content: AssetContent,
   filename: String,
   // pathOptions÷: PathData;
   // info?: AssetInfo;
@@ -162,7 +171,7 @@ pub struct Asset {
   // auxiliary?: boolean;
 }
 
-impl Asset {
+impl RenderManifestEntry {
   pub fn new(content: AssetContent, filename: String) -> Self {
     Self { content, filename }
   }
@@ -171,7 +180,7 @@ impl Asset {
     &self.content
   }
 
-  pub fn filename(&self) -> &String {
+  pub fn filename(&self) -> &str {
     &self.filename
   }
 }

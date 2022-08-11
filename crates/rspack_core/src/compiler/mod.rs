@@ -7,7 +7,6 @@ use std::{
 };
 
 use anyhow::Context;
-use nodejs_resolver::Resolver;
 use rayon::prelude::*;
 use tracing::instrument;
 
@@ -17,7 +16,10 @@ use crate::{
 };
 
 mod compilation;
+mod resolver;
+
 pub use compilation::*;
+pub use resolver::*;
 
 pub struct Compiler {
   pub options: Arc<CompilerOptions>,
@@ -29,19 +31,10 @@ impl Compiler {
   #[instrument(skip_all)]
   pub fn new(options: CompilerOptions, plugins: Vec<Box<dyn Plugin>>) -> Self {
     let options = Arc::new(options);
-    let plugin_driver = PluginDriver::new(
-      options.clone(),
-      plugins,
-      Arc::new(Resolver::new(nodejs_resolver::ResolverOptions {
-        // prefer_relative: false,
-        extensions: vec![".tsx", ".jsx", ".ts", ".js", ".json"]
-          .into_iter()
-          .map(|s| s.to_string())
-          .collect(),
-        alias_fields: vec![String::from("browser")],
-        ..Default::default()
-      })),
-    );
+
+    let resolver_factory = ResolverFactory::new();
+    let resolver = resolver_factory.get(options.resolve.clone());
+    let plugin_driver = PluginDriver::new(options.clone(), plugins, Arc::new(resolver));
 
     Self {
       options: options.clone(),
@@ -61,7 +54,7 @@ impl Compiler {
     self.compilation = Compilation::new(
       // TODO: use Arc<T> instead
       self.options.clone(),
-      self.options.entries.clone(),
+      self.options.entry.clone(),
       Default::default(),
       Default::default(),
     );
@@ -123,27 +116,19 @@ impl Compiler {
 
     // self.compilation.calc_exec_order();
 
-    self.compilation.seal();
-    self.compilation.chunk_graph.chunks_mut().for_each(|chunk| {
-      chunk.calc_exec_order(&self.compilation.module_graph);
-    });
-
-    tracing::debug!("chunk graph {:#?}", self.compilation.chunk_graph);
-    // Stream::
-    let assets = self
-      .compilation
-      .render_manifest(self.plugin_driver.clone())?;
+    self.compilation.seal(self.plugin_driver.clone());
 
     // tracing::trace!("assets {:#?}", assets);
 
     std::fs::create_dir_all(&self.options.output.path)
       .context("failed to create output directory")?;
 
-    assets
+    self
+      .compilation
+      .assets
       .par_iter()
-      .try_for_each(|asset| -> anyhow::Result<()> {
+      .try_for_each(|(filename, asset)| -> anyhow::Result<()> {
         use std::fs;
-        let filename = asset.filename();
 
         std::fs::create_dir_all(
           Path::new(&self.options.output.path)
@@ -152,7 +137,7 @@ impl Compiler {
             .unwrap(),
         )?;
 
-        match &asset.content() {
+        match asset.source() {
           AssetContent::Buffer(buf) => {
             fs::write(Path::new(&self.options.output.path).join(filename), buf)
               .context("failed to write asset")
@@ -164,7 +149,7 @@ impl Compiler {
         }
       })?;
 
-    Ok(Stats::new(assets))
+    Ok(Stats::new(&self.compilation))
   }
 
   #[instrument(skip_all)]

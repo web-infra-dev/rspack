@@ -1,4 +1,4 @@
-use crate::{Compilation, ResolveKind};
+use crate::{Compilation, ResolveKind, RuntimeSourceNode};
 use anyhow::Result;
 use std::fmt::Debug;
 use swc_css::ast::Stylesheet;
@@ -14,6 +14,12 @@ pub struct ParseModuleArgs<'a> {
 #[derive(Debug, Clone)]
 pub struct RenderManifestArgs<'me> {
   pub chunk_id: &'me str,
+  pub compilation: &'me Compilation,
+}
+
+#[derive(Debug, Clone)]
+pub struct RenderRuntimeArgs<'me> {
+  pub sources: &'me Vec<RuntimeSourceNode>,
   pub compilation: &'me Compilation,
 }
 
