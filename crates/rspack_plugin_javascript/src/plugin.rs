@@ -6,9 +6,8 @@ use crate::{module::JsModule, utils::get_swc_compiler};
 use anyhow::{Context, Result};
 use rayon::prelude::*;
 use rspack_core::{
-  AssetContent, Filename, ModuleAst, ModuleRenderResult, ModuleType, OutputFilename,
-  ParseModuleArgs, Parser, Plugin, PluginContext, PluginRenderManifestHookOutput,
-  RenderManifestEntry, SourceType,
+  AssetContent, FilenameRenderOptions, ModuleAst, ModuleRenderResult, ModuleType, ParseModuleArgs,
+  Parser, Plugin, PluginContext, PluginRenderManifestHookOutput, RenderManifestEntry, SourceType,
 };
 
 use swc_common::comments::SingleThreadedComments;
@@ -50,7 +49,7 @@ impl Plugin for JsPlugin {
   ) -> PluginRenderManifestHookOutput {
     let compilation = args.compilation;
     let module_graph = &compilation.module_graph;
-    let namespace = &compilation.options.output.namespace;
+    let namespace = &compilation.options.output.unique_name;
     let chunk = compilation
       .chunk_graph
       .chunk_by_id(args.chunk_id)
@@ -102,8 +101,15 @@ impl Plugin for JsPlugin {
 
     Ok(vec![RenderManifestEntry::new(
       AssetContent::String(code),
-      OutputFilename::new("[name][ext]".to_owned())
-        .filename(args.chunk_id.to_owned(), ".js".to_owned()),
+      compilation
+        .options
+        .output
+        .filename
+        .render(FilenameRenderOptions {
+          filename: Some(args.chunk_id.to_owned()),
+          extension: Some(".js".to_owned()),
+          id: None,
+        }),
     )])
   }
 }

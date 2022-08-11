@@ -9,9 +9,9 @@ use crate::{
 use anyhow::{Context, Result};
 use rayon::prelude::*;
 use rspack_core::{
-  AssetContent, Content, Filename, ModuleAst, ModuleRenderResult, ModuleType,
-  NormalModuleFactoryContext, OutputFilename, ParseModuleArgs, Parser, Plugin, RenderManifestEntry,
-  SourceType, TransformAst, TransformResult,
+  AssetContent, Content, FilenameRenderOptions, ModuleAst, ModuleRenderResult, ModuleType,
+  NormalModuleFactoryContext, ParseModuleArgs, Parser, Plugin, RenderManifestEntry, SourceType,
+  TransformAst, TransformResult,
 };
 use std::path::Path;
 
@@ -112,8 +112,15 @@ impl Plugin for CssPlugin {
     } else {
       Ok(vec![RenderManifestEntry::new(
         AssetContent::String(code),
-        OutputFilename::new("[name][ext]".to_owned())
-          .filename(args.chunk_id.to_owned(), ".css".to_owned()),
+        compilation
+          .options
+          .output
+          .filename
+          .render(FilenameRenderOptions {
+            filename: Some(args.chunk_id.to_owned()),
+            extension: Some(".css".to_owned()),
+            id: None,
+          }),
       )])
     }
   }

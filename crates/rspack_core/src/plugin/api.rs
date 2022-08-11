@@ -2,13 +2,12 @@ use std::fmt::Debug;
 
 use crate::{
   BoxModule, LoadArgs, ModuleType, NormalModuleFactoryContext, ParseModuleArgs, PluginContext,
-  RenderManifestArgs, RenderRuntimeArgs, ResolveArgs, RuntimeSourceNode, TransformAst,
-  TransformResult,
+  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, ResolveArgs, RuntimeSourceNode,
+  TransformAst, TransformResult,
 };
 use crate::{Content, TransformArgs};
 
-use anyhow::Context;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use hashbrown::HashMap;
 pub type PluginBuildStartHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;
@@ -20,6 +19,7 @@ pub type PluginParseModuleHookOutput = Result<BoxModule>;
 pub type PluginResolveHookOutput = Result<Option<String>>;
 pub type PluginParseOutput = Result<TransformAst>;
 pub type PluginGenerateOutput = Result<Content>;
+pub type PluginProcessAssetsOutput = Result<()>;
 // pub type PluginTransformAstHookOutput = Result<ast::Module>;
 
 // pub type PluginTransformHookOutput = Result<TransformResult>;
@@ -99,58 +99,12 @@ pub trait Plugin: Debug + Send + Sync {
   ) -> PluginRenderRuntimeHookOutput {
     Ok(vec![])
   }
-}
-
-pub trait Filename: Debug + Sync + Send {
-  // TODO more params, e.g. hash, name, etc.
-  fn filename(&self, filename: String, ext: String) -> String;
-}
-
-#[derive(Debug)]
-pub struct OutputFilename {
-  template: String,
-}
-
-impl OutputFilename {
-  pub fn new(template: String) -> Self {
-    Self { template }
-  }
-}
-
-impl Filename for OutputFilename {
-  fn filename(&self, filename: String, ext: String) -> String {
-    // TODO add more
-    self
-      .template
-      .replace("[name]", &filename)
-      .replace("[ext]", &ext)
-  }
-}
-
-#[derive(Debug)]
-pub struct OutputAssetModuleFilename {
-  template: String,
-}
-
-impl Default for OutputAssetModuleFilename {
-  fn default() -> Self {
-    Self::new("assets/[name][ext]".to_owned())
-  }
-}
-
-impl OutputAssetModuleFilename {
-  pub fn new(template: String) -> Self {
-    Self { template }
-  }
-}
-
-impl Filename for OutputAssetModuleFilename {
-  // TODO add more
-  fn filename(&self, filename: String, ext: String) -> String {
-    self
-      .template
-      .replace("[name]", &filename)
-      .replace("[ext]", &ext)
+  fn process_assets(
+    &self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
   }
 }
 
