@@ -23,6 +23,7 @@ use crate::{
   ResolveArgs,
   VisitedModuleIdentity,
 };
+use rspack_error::Result;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct Dependency {
@@ -96,7 +97,7 @@ impl NormalModuleFactory {
     }
   }
 
-  pub async fn resolve_module(&mut self) -> anyhow::Result<Option<ModuleGraphModule>> {
+  pub async fn resolve_module(&mut self) -> Result<Option<ModuleGraphModule>> {
     // TODO: caching in resolve
     let uri = resolve(
       ResolveArgs {

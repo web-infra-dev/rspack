@@ -6,14 +6,14 @@ use std::{
   },
 };
 
-use anyhow::Context;
-use rayon::prelude::*;
-use tracing::instrument;
-
 use crate::{
   AssetContent, CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule,
   NormalModuleFactory, NormalModuleFactoryContext, Plugin, PluginDriver, Stats,
 };
+use anyhow::Context;
+use rayon::prelude::*;
+use rspack_error::{Error, Result};
+use tracing::instrument;
 
 mod compilation;
 mod resolver;
@@ -52,7 +52,7 @@ impl Compiler {
   }
 
   #[instrument(skip_all)]
-  pub async fn compile(&mut self) -> anyhow::Result<Stats> {
+  pub async fn compile(&mut self) -> Result<Stats> {
     // TODO: supports rebuild
     self.compilation = Compilation::new(
       // TODO: use Arc<T> instead
@@ -155,13 +155,14 @@ impl Compiler {
               .context("failed to write asset")
           }
         }
-      })?;
+      })
+      .unwrap();
 
     Ok(Stats::new(&self.compilation))
   }
 
   #[instrument(skip_all)]
-  pub async fn run(&mut self) -> anyhow::Result<Stats> {
+  pub async fn run(&mut self) -> Result<Stats> {
     self.compile().await
   }
 }
@@ -171,5 +172,5 @@ pub enum Msg {
   DependencyReference(Dependency, String),
   TaskFinished(Box<ModuleGraphModule>),
   TaskCanceled,
-  TaskErrorEncountered(anyhow::Error),
+  TaskErrorEncountered(Error),
 }
