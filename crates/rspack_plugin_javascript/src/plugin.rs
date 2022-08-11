@@ -18,25 +18,39 @@ use swc_ecma_visit::{as_folder, FoldWith};
 use tracing::instrument;
 
 #[derive(Debug)]
-pub struct JsPlugin {}
+pub struct JsPlugin {
+  unresolved_mark: Mark,
+}
+
+impl JsPlugin {
+  pub fn new() -> Self {
+    Self {
+      unresolved_mark: get_swc_compiler().run(|| Mark::new()),
+    }
+  }
+}
 
 impl Plugin for JsPlugin {
   fn name(&self) -> &'static str {
     "javascript"
   }
   fn apply(&mut self, ctx: PluginContext<&mut rspack_core::ApplyContext>) -> anyhow::Result<()> {
-    ctx
-      .context
-      .register_parser(ModuleType::Js, Box::new(JsParser {}));
-    ctx
-      .context
-      .register_parser(ModuleType::Ts, Box::new(JsParser {}));
-    ctx
-      .context
-      .register_parser(ModuleType::Tsx, Box::new(JsParser {}));
-    ctx
-      .context
-      .register_parser(ModuleType::Jsx, Box::new(JsParser {}));
+    ctx.context.register_parser(
+      ModuleType::Js,
+      Box::new(JsParser::new(self.unresolved_mark)),
+    );
+    ctx.context.register_parser(
+      ModuleType::Ts,
+      Box::new(JsParser::new(self.unresolved_mark)),
+    );
+    ctx.context.register_parser(
+      ModuleType::Tsx,
+      Box::new(JsParser::new(self.unresolved_mark)),
+    );
+    ctx.context.register_parser(
+      ModuleType::Jsx,
+      Box::new(JsParser::new(self.unresolved_mark)),
+    );
 
     Ok(())
   }
@@ -115,7 +129,15 @@ impl Plugin for JsPlugin {
 }
 
 #[derive(Debug)]
-struct JsParser {}
+struct JsParser {
+  unresolved_mark: Mark,
+}
+
+impl JsParser {
+  fn new(unresolved_mark: Mark) -> Self {
+    Self { unresolved_mark }
+  }
+}
 
 impl Parser for JsParser {
   fn parse(
@@ -176,6 +198,7 @@ impl Parser for JsParser {
       uri: args.uri.to_string(),
       module_type,
       source_type_list: JS_MODULE_SOURCE_TYPE_LIST,
+      unresolved_mark: self.unresolved_mark,
     }))
   }
 }

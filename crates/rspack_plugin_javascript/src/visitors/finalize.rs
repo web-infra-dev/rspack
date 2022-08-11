@@ -8,9 +8,9 @@ use {swc_common, swc_ecma_utils::quote_ident, swc_ecma_visit::Fold};
 pub fn finalize<'a>(
   module: &'a ModuleGraphModule,
   compilation: &'a Compilation,
-  // entry_flag: bool,
+  unresolved_mark: Mark,
 ) -> impl Fold + 'a {
-  let (unresolved_mark, top_level_mark) = (Mark::new(), Mark::new());
+  let top_level_mark = Mark::new();
   let finalize_pass = chain!(
     // We assume the AST is cleaned by default
     // as_folder(ClearMark),
