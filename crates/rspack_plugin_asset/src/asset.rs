@@ -2,7 +2,7 @@ use std::{ffi::OsStr, path::Path};
 
 use anyhow::Result;
 use rspack_core::{
-  BoxModule, Filename, Module, ModuleRenderResult, ModuleType, Parser, SourceType,
+  BoxModule, FilenameRenderOptions, Module, ModuleRenderResult, ModuleType, Parser, SourceType,
 };
 
 #[derive(Debug)]
@@ -107,7 +107,7 @@ impl Module for AssetModule {
     module: &rspack_core::ModuleGraphModule,
     compilation: &rspack_core::Compilation,
   ) -> Result<Option<ModuleRenderResult>> {
-    let namespace = &compilation.options.output.namespace;
+    let namespace = &compilation.options.output.unique_name;
     let result = match requested_source_type {
       SourceType::JavaScript => Some(ModuleRenderResult::JavaScript(format!(
         r#"self["{}"].__rspack_register__(["{}"], {{"{}": function (module, exports, __rspack_require__, __rspack_dynamic_require__) {{
@@ -128,22 +128,31 @@ impl Module for AssetModule {
           )
         } else {
           let path = Path::new(&module.id);
-          format!(
-            "{}{}",
-            "/",
-            compilation.options.output.asset_module_filename.filename(
-              path
-                .file_stem()
-                .and_then(OsStr::to_str)
-                .ok_or_else(|| anyhow::anyhow!("failed"))?
-                .to_owned(),
-              path
-                .extension()
-                .and_then(OsStr::to_str)
-                .map(|str| format!("{}{}", ".", str))
-                .ok_or_else(|| anyhow::anyhow!("failed"))?
-            ),
-          )
+
+          let file_name =
+            compilation
+              .options
+              .output
+              .asset_module_filename
+              .render(FilenameRenderOptions {
+                filename: Some(
+                  path
+                    .file_stem()
+                    .and_then(OsStr::to_str)
+                    .ok_or_else(|| anyhow::anyhow!("failed"))?
+                    .to_owned(),
+                ),
+                extension: Some(
+                  path
+                    .extension()
+                    .and_then(OsStr::to_str)
+                    .map(|str| format!("{}{}", ".", str))
+                    .ok_or_else(|| anyhow::anyhow!("failed"))?,
+                ),
+                id: None,
+              });
+          let public_path = compilation.options.output.public_path.public_path();
+          format!("{}{}", public_path, file_name)
         }
       ))),
       SourceType::Asset => {

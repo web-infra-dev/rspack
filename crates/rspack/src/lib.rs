@@ -3,12 +3,14 @@ use std::path::Path;
 pub use rspack_core::Compiler;
 use rspack_core::{CompilerOptions, Plugin};
 
-pub fn rspack(options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -> Compiler {
+pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -> Compiler {
   plugins.push(Box::new(rspack_plugin_javascript::JsPlugin {}));
   plugins.push(Box::new(rspack_plugin_css::CssPlugin::default()));
   plugins.push(Box::new(rspack_plugin_asset::AssetPlugin {}));
   plugins.push(Box::new(rspack_plugin_json::JsonPlugin {}));
   plugins.push(Box::new(rspack_plugin_runtime::RuntimePlugin {}));
+
+  plugins.append(&mut options.plugins);
   Compiler::new(options, plugins)
 }
 

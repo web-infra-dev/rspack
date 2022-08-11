@@ -8,7 +8,7 @@ class Rspack {
 
   constructor(public options: RspackOptions) {
     this.#instance = binding.newRspack(
-      JSON.stringify(Config.User2Native(options))
+      Config.User2Native(options)
     )
   }
 

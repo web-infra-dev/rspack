@@ -6,7 +6,7 @@ use rayon::prelude::*;
 use tokio::fs;
 
 use rspack_core::{
-  AssetContent, Content, Filename, LoadArgs, ModuleRenderResult, ModuleType,
+  AssetContent, Content, FilenameRenderOptions, LoadArgs, ModuleRenderResult, ModuleType,
   NormalModuleFactoryContext, Plugin, PluginContext, PluginLoadHookOutput,
   PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, SourceType,
 };
@@ -101,14 +101,17 @@ impl Plugin for AssetPlugin {
                   .options
                   .output
                   .asset_module_filename
-                  .filename(
-                    path.file_stem().and_then(OsStr::to_str).unwrap().to_owned(),
-                    path
-                      .extension()
-                      .and_then(OsStr::to_str)
-                      .map(|str| format!("{}{}", ".", str))
-                      .unwrap(),
-                  ),
+                  .render(FilenameRenderOptions {
+                    filename: Some(path.file_stem().and_then(OsStr::to_str).unwrap().to_owned()),
+                    extension: Some(
+                      path
+                        .extension()
+                        .and_then(OsStr::to_str)
+                        .map(|str| format!("{}{}", ".", str))
+                        .unwrap(),
+                    ),
+                    id: None,
+                  }),
               ))
             } else {
               None
