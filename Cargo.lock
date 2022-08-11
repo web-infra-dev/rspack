@@ -1969,11 +1969,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "hashbrown",
- "once_cell",
  "rspack_core",
  "similar-asserts",
- "sugar_path",
  "tokio",
  "tracing",
  "tracing-subscriber",

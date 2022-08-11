@@ -5,6 +5,7 @@ use crate::Content;
 
 type Source = Content;
 
+#[derive(Debug)]
 pub struct ResourceData {
   pub resource: String,
   pub resource_path: String,
@@ -12,6 +13,7 @@ pub struct ResourceData {
   pub resource_fragment: Option<String>,
 }
 
+#[derive(Debug)]
 pub struct LoaderContext<'a> {
   pub source: Source,
   pub resource: &'a str,
@@ -20,6 +22,7 @@ pub struct LoaderContext<'a> {
   pub resource_fragment: Option<&'a str>,
 }
 
+#[derive(Debug)]
 pub struct LoaderResult {
   pub content: Content,
 }
