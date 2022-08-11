@@ -1,11 +1,11 @@
-use std::{path::Path, str::FromStr};
-
+use crate::RawOption;
+use napi_derive::napi;
 use rspack_core::{
-  Filename, Mode, OutputOptions, PublicPath, EXT_PLACEHOLDER, ID_PLACEHOLDER, NAME_PLACEHOLDER,
+  CompilerOptionsBuilder, Filename, OutputOptions, PublicPath, EXT_PLACEHOLDER, ID_PLACEHOLDER,
+  NAME_PLACEHOLDER,
 };
 use serde::Deserialize;
-
-use napi_derive::napi;
+use std::{path::Path, str::FromStr};
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
@@ -22,8 +22,8 @@ pub struct RawOutputOptions {
    * pub source_map: Option<String>, */
 }
 
-impl RawOutputOptions {
-  pub fn normalize(self, _mode: &Mode, context: &str) -> OutputOptions {
+impl RawOption<OutputOptions> for RawOutputOptions {
+  fn to_compiler_option(self, options: &CompilerOptionsBuilder) -> OutputOptions {
     // let is_prod = matches!(mode, Mode::Production);
     let filename = self.filename.unwrap_or(format!(
       "{}{}{}",
@@ -42,7 +42,7 @@ impl RawOutputOptions {
       .chunk_filename
       .unwrap_or_else(|| filename.replace(NAME_PLACEHOLDER, ID_PLACEHOLDER));
     let path = self.path.unwrap_or_else(|| {
-      Path::new(context)
+      Path::new(options.context.as_ref().unwrap())
         .join("dist")
         .to_string_lossy()
         .to_string()
@@ -55,7 +55,6 @@ impl RawOutputOptions {
     let asset_module_filename = self
       .asset_module_filename
       .unwrap_or_else(|| format!("assets/{}", filename));
-    // let public_path =
     OutputOptions {
       path,
       asset_module_filename: Filename::from_str(&asset_module_filename).unwrap(),
@@ -64,5 +63,9 @@ impl RawOutputOptions {
       unique_name,
       public_path: PublicPath::from_str(&public_path).unwrap(),
     }
+  }
+
+  fn fallback_value(_: &CompilerOptionsBuilder) -> Self {
+    Default::default()
   }
 }
