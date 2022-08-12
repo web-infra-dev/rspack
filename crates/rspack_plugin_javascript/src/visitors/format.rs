@@ -1,7 +1,8 @@
 // use crate::{cjs_runtime_helper, Bundle, ModuleGraph, Platform, ResolvedURI};
 use ast::*;
 use rspack_core::{Compilation, Dependency, ModuleDependency, ModuleGraphModule, ResolveKind};
-use swc_atoms::JsWord;
+use swc_atoms::{Atom, JsWord};
+use swc_common::comments::SingleThreadedComments;
 use swc_common::{Mark, DUMMY_SP};
 use swc_ecma_transforms::modules::common_js;
 use swc_ecma_transforms::modules::common_js::Config as CommonJsConfig;
@@ -35,12 +36,13 @@ pub struct RspackModuleFinalizer<'a> {
 impl<'a> Fold for RspackModuleFinalizer<'a> {
   fn fold_module(&mut self, module: Module) -> Module {
     let mut cjs_module = module
-      .fold_with(&mut common_js(
+      .fold_with(&mut common_js::<SingleThreadedComments>(
         self.unresolved_mark,
         CommonJsConfig {
           ignore_dynamic: true,
           ..Default::default()
         },
+        Default::default(),
         None,
       ))
       .fold_with(&mut fixer::fixer(None))
@@ -210,7 +212,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
           }
 
           str.value = JsWord::from(js_module?.id.as_str());
-          str.raw = Some(JsWord::from(format!("\"{}\"", js_module?.id)));
+          str.raw = Some(Atom::from(format!("\"{}\"", js_module?.id)));
         };
       }
     }

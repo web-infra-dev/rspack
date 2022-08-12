@@ -1,4 +1,4 @@
-use swc_atoms::JsWord;
+use swc_atoms::{Atom, JsWord};
 use swc_css::ast::{Url, UrlValue};
 use swc_css::visit::VisitMut;
 
@@ -14,7 +14,7 @@ impl VisitMut for CssAssetsComponent {
         let transform_hook = &self.transform_hook;
         let res: String = transform_hook(str.value.to_string());
         str.value = JsWord::from(res.clone());
-        str.raw = JsWord::from(res);
+        str.raw = Some(JsWord::from(res));
       }
     }
   }

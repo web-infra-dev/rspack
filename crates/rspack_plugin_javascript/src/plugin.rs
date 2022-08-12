@@ -131,7 +131,7 @@ impl Parser for JsParser {
     }
     let ast = {
       match args.ast {
-        Some(ModuleAst::JavaScript(_ast)) => Ok::<_, anyhow::Error>(_ast),
+        Some(ModuleAst::JavaScript(_ast)) => Ok::<swc_ecma_ast::Program, anyhow::Error>(_ast),
         None => {
           if let Some(content) = args.source {
             Ok(parse_file(

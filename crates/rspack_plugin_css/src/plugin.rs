@@ -49,7 +49,7 @@ impl Plugin for CssPlugin {
     args: rspack_core::TransformArgs,
   ) -> rspack_core::PluginTransformOutput {
     if let Some(TransformAst::Css(mut ast)) = args.ast {
-      ast.visit_mut_with(&mut prefixer());
+      ast.visit_mut_with(&mut prefixer(Default::default()));
       Ok({
         TransformResult {
           content: None,
