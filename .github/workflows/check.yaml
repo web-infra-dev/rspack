@@ -6,7 +6,7 @@ on:
       - main
       - next
     tags-ignore:
-      - '**'
+      - "**"
   pull_request:
 
 env:
@@ -15,7 +15,7 @@ env:
 jobs:
   format:
     name: Format Rust Files
-    runs-on: [self-hosted, common]
+    runs-on: [self-hosted, rspack-common]
     steps:
       - name: Cleanup workspace
         uses: TooMuch4U/actions-clean@v2.1
@@ -30,8 +30,8 @@ jobs:
         uses: actions/checkout@v3
       - name: Install toolchain
         run: rustup show
-      - name: Cache
-        uses: speedy-js/rust-cache-self-hosted@v1
+      #- name: Cache
+        #uses: speedy-js/rust-cache-self-hosted@v1
       - name: Run rustfmt
         uses: actions-rs/cargo@v1
         with:
@@ -40,7 +40,7 @@ jobs:
 
   lint:
     name: Lint Rust Files
-    runs-on: [self-hosted, common]
+    runs-on: [self-hosted, rspack-common]
     steps:
       - name: Cleanup workspace
         uses: TooMuch4U/actions-clean@v2.1
@@ -49,8 +49,8 @@ jobs:
         uses: actions/checkout@v3
       - name: Install toolchain
         run: rustup show
-      - name: Cache
-        uses: speedy-js/rust-cache-self-hosted@v1
+      #- name: Cache
+       # uses: speedy-js/rust-cache-self-hosted@v1
       - name: Run clippy
         uses: actions-rs/cargo@v1
         with:
@@ -61,7 +61,7 @@ jobs:
     name: Cargo test
     strategy:
       fail-fast: true
-    runs-on: [self-hosted, common]
+    runs-on: [self-hosted, rspack-common]
     timeout-minutes: 30
     steps:
       - name: Cleanup workspace
@@ -70,8 +70,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Install toolchain
         run: rustup show
-      - name: Cache
-        uses: speedy-js/rust-cache-self-hosted@v1
+      #- name: Cache
+        #uses: speedy-js/rust-cache-self-hosted@v1
       # - name: Install yarn
       #   run: npm install -g yarn
       # - name: yarn install --no-immutable

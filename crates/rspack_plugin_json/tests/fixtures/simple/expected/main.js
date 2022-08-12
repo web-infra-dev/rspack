@@ -15,6 +15,9 @@ self["__rspack_runtime__"].__rspack_register__(["./json.json"], {"./json.json": 
                 default: obj
             };
         }
+        Object.defineProperty(exports, "__esModule", {
+            value: true
+        });
         var _jsonJson = _interopRequireDefault(__rspack_require__("./json.json"));
         console.log(_jsonJson.default);
     }
