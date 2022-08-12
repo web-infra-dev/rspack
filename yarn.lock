@@ -5887,6 +5887,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "react@workspace:examples/react"
   dependencies:
+    "@rspack/core": "workspace:*"
     react: 17.0.0
     react-dom: 17.0.0
   languageName: unknown
