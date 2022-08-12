@@ -1969,6 +1969,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_loader_runner"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "rspack_core",
+ "similar-asserts",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+]
+
+[[package]]
 name = "rspack_node"
 version = "0.1.0"
 dependencies = [
