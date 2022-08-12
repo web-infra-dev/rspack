@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TestOptions",
+  "type": "object",
+  "required": [
+    "entry"
+  ],
+  "properties": {
+    "context": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "plugins": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": true
+    }
+  },
+  "additionalProperties": false
+}

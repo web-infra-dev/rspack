@@ -7,9 +7,6 @@ version = "0.1.0"
 
 [dev_dependencies]
 criterion = {version = "0.3.6", features = ["async_tokio", "async_futures"]}
-node_binding = {path = "../node_binding", package = "rspack_node", features = [
-  "test",
-]}
 temp_test_utils = {path = "../temp_test_utils"}
 testing_macros = "0.2.5"
 

@@ -10,9 +10,7 @@ rspack = { path = "../rspack" }
 
 temp_test_utils = { path = "../temp_test_utils" }
 testing_macros = { version = "0.2.5" }
-node_binding = { path = "../node_binding", package = "rspack_node", features = [
-  "test",
-] }
+
 [dependencies]
 rspack_core = { path = "../rspack_core" }
 swc_css = "0.108.0"
