@@ -6,7 +6,7 @@ on:
       - main
       - next
     tags-ignore:
-      - '**'
+      - "**"
   pull_request:
 
 env:
@@ -15,7 +15,7 @@ env:
 jobs:
   format:
     name: Format Rust Files
-    runs-on: [self-hosted, common]
+    runs-on: [self-hosted, rspack-common]
     steps:
       - name: Cleanup workspace
         uses: TooMuch4U/actions-clean@v2.1
