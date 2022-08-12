@@ -691,7 +691,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rspack/core@workspace:*, @rspack/core@workspace:^, @rspack/core@workspace:packages/rspack":
+"@rspack/core@workspace:*, @rspack/core@workspace:packages/rspack":
   version: 0.0.0-use.local
   resolution: "@rspack/core@workspace:packages/rspack"
   dependencies:
@@ -5879,7 +5879,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "react@workspace:examples/react"
   dependencies:
-    "@rspack/core": "workspace:*"
     react: 17.0.0
     react-dom: 17.0.0
   languageName: unknown
@@ -6079,7 +6078,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "rspack-dev-server@workspace:packages/rspack-dev-server"
   dependencies:
-    "@rspack/core": "workspace:^"
     "@types/express": ^4.17.13
     "@types/node": ^18.6.3
     chalk: ^5.0.1

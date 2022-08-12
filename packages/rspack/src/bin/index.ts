@@ -18,13 +18,16 @@ program.command('dev')
   .description('Rspack build cli')
   .argument('<config-json>', 'rspack config json file path')
   .action(async (configFilePath) => {
-    const options = JSON.parse(fs.readFileSync(configFilePath).toString());
-    const { dev: {
-      port = '8080'
-    } = {}} =  options || {}
-  
-    const server = await createServer(options);
+    const rspack = new Rspack(JSON.parse(fs.readFileSync(configFilePath).toString()));
+    const {
+      options: {
+        dev: {
+          port = 8080
+        } = {}
+      } = {}
+    } = rspack;
 
+    const server = await createServer(rspack.options);
     server.listen(port, () => console.log(`Server listening on port: ${port}`));
   });
 
