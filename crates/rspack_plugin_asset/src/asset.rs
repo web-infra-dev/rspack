@@ -46,37 +46,23 @@ impl Parser for AssetParser {
     module_type: ModuleType,
     args: rspack_core::ParseModuleArgs,
   ) -> Result<BoxModule> {
-    let buf = args.source.map(|content| content.into_bytes());
+    let buf = args.source.into_bytes();
 
-    if let Some(buf) = buf {
-      let size = buf.len() as u32;
+    let size = buf.len() as u32;
 
-      let is_inline = match &self.data_url {
-        DataUrlOption::True => true,
-        DataUrlOption::False => false,
-        DataUrlOption::Option(option) => {
-          let limit_size = option
-            .as_ref()
-            .and_then(|x| x.max_size)
-            .unwrap_or(DEFAULT_MAX_SIZE);
-          size <= limit_size
-        }
-      };
+    let is_inline = match &self.data_url {
+      DataUrlOption::True => true,
+      DataUrlOption::False => false,
+      DataUrlOption::Option(option) => {
+        let limit_size = option
+          .as_ref()
+          .and_then(|x| x.max_size)
+          .unwrap_or(DEFAULT_MAX_SIZE);
+        size <= limit_size
+      }
+    };
 
-      tracing::trace!(
-        "asset {:?} with size {}, is inlined {}",
-        args.uri,
-        size,
-        is_inline
-      );
-
-      Ok(Box::new(AssetModule::new(module_type, is_inline, buf)))
-    } else {
-      Err(anyhow::format_err!(
-        "Asset source is empty for uri {}",
-        args.uri
-      ))
-    }
+    Ok(Box::new(AssetModule::new(module_type, is_inline, buf)))
   }
 }
 static ASSET_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =

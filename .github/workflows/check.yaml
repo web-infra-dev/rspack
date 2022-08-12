@@ -89,7 +89,7 @@ jobs:
       - name: Test
         run: |
           yarn install --no-immutable
-          cargo test --all --all-features -- --nocapture
+          cargo test --all -- --nocapture
           yarn workspace @rspack/binding run build
           yarn workspace rspack-dev-server run build
           yarn workspace @rspack/core run build

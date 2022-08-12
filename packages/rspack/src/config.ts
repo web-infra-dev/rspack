@@ -1,4 +1,7 @@
-import type { RawOptions } from "@rspack/binding"
+import type { RawOptions } from '@rspack/binding';
+
+import type { LoaderRunnerContext, ModuleRule } from './server';
+import { createRspackModuleRuleAdapter } from './server';
 
 export type Plugin = string | [string] | [string, unknown];
 
@@ -8,30 +11,37 @@ export interface RspackOptions {
    */
   entry?: RawOptions['entry'];
   /**
-   * An **absolute** path pointed the 
+   * An **absolute** path pointed the
    */
-  context?: RawOptions['context'],
+  context?: RawOptions['context'];
   /**
    * An array of plugins
    */
-  plugins?: Plugin[],
+  plugins?: Plugin[];
   /**
    * dev server
    */
   dev?: {
-    port?: Number,
+    port?: Number;
     static?: {
-      directory?: string
-    }
-  }
+      directory?: string;
+    };
+  };
+  /**
+   * Module configuration.
+   */
+  module?: {
+    rules?: ModuleRule[];
+    parser?: RawOptions['module']['parser'];
+  };
 }
 
 export function normalizePlugins(plugins: Plugin[]) {
-  return plugins.map(plugin => {
+  return plugins.map((plugin) => {
     if (typeof plugin === 'string') {
-      return [plugin]
+      return [plugin];
     }
-  })
+  });
 }
 
 export function User2Native(config: RspackOptions): RawOptions {
@@ -39,5 +49,18 @@ export function User2Native(config: RspackOptions): RawOptions {
     entry: config.entry ?? {},
     context: config.context,
     plugins: normalizePlugins(config.plugins),
-  }
+    module: {
+      // TODO: support mutliple rules to support `Module Type`
+      rules: (config.module.rules || []).map((rule) => {
+        return {
+          ...rule,
+          uses: [
+            createRspackModuleRuleAdapter({
+              loaders: rule.uses,
+            }),
+          ],
+        };
+      }),
+    },
+  };
 }

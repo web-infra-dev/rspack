@@ -12,7 +12,7 @@ use tokio::sync::Mutex;
 mod utils;
 
 // use adapter::utils::create_node_adapter_from_plugin_callbacks;
-pub use rspack_binding_options::{normalize_bundle_options, RawOptions};
+pub use rspack_binding_options::{normalize_bundle_options, NodeLoaderAdapter, RawOptions};
 
 #[cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))]
 #[global_allocator]
@@ -56,7 +56,7 @@ pub fn init_trace_subscriber(env: Env) -> Result<()> {
 #[napi(ts_return_type = "ExternalObject<RspackInternal>")]
 #[allow(clippy::too_many_arguments)]
 pub fn new_rspack(
-  _env: Env,
+  env: Env,
   options: RawOptions,
   // plugin_callbacks: Option<PluginCallbacks>,
 ) -> Result<External<RspackBindingContext>> {
@@ -68,10 +68,29 @@ pub fn new_rspack(
   //   plugins.push(Box::new(node_adapter) as Box<dyn rspack_core::Plugin>);
   // }
 
-  let rspack = rspack::rspack(
-    normalize_bundle_options(options).map_err(|e| Error::from_reason(format!("{:?}", e)))?,
-    vec![],
-  );
+  let mut compiler_options =
+    normalize_bundle_options(options).map_err(|e| Error::from_reason(format!("{:?}", e)))?;
+
+  // TODO: this way or passing env as context to `normalize_bundle_option`?
+  compiler_options
+    .module
+    .rules
+    .iter_mut()
+    .try_for_each(|rule| {
+      rule.uses.iter_mut().try_for_each(|loader| {
+        let casted = loader.as_any_mut();
+        if let Some(adapter) = casted.downcast_mut::<NodeLoaderAdapter>() {
+          adapter.unref(&env)
+        } else {
+          Ok(())
+        }
+      })
+    })
+    .map_err(|e| Error::from_reason(format!("failed to unref tsfn {:?}", e)))?;
+
+  dbg!(&compiler_options);
+
+  let rspack = rspack::rspack(compiler_options, vec![]);
 
   // let resolver = rspack.resolver.clone();
   Ok(create_external(RspackBindingContext {

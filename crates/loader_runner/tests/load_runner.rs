@@ -39,19 +39,18 @@ macro_rules! run_loader {
         resource_query: url.query().map(|q| q.to_owned()),
         resource_fragment: url.fragment().map(|f| f.to_owned()),
       },
-      $loader,
     )
   }};
 
   (@raw, $loader:expr, $resource:tt, $expected:expr) => {
-    let mut runner = run_loader!(@base, $loader, $resource, $expected);
+    let runner = run_loader!(@base, $loader, $resource, $expected);
 
     tokio::runtime::Builder::new_multi_thread()
     .enable_all()
     .build()
     .unwrap()
     .block_on(async {
-      let runner_result = runner.run().await.unwrap();
+      let runner_result = runner.run($loader).await.unwrap();
       similar_asserts::assert_eq!(
         runner_result.content,
         $expected
@@ -60,14 +59,14 @@ macro_rules! run_loader {
   };
 
   ($loader:expr, $resource:tt, $expected:tt) => {
-    let mut runner = run_loader!(@base, $loader, $resource, $expected);
+    let runner = run_loader!(@base, $loader, $resource, $expected);
 
     tokio::runtime::Builder::new_multi_thread()
       .enable_all()
       .build()
       .unwrap()
       .block_on(async {
-        let runner_result = runner.run().await.unwrap();
+        let runner_result = runner.run($loader).await.unwrap();
         similar_asserts::assert_eq!(
           runner_result.content.try_into_string().unwrap(),
           $expected.to_owned()
@@ -80,6 +79,7 @@ mod fixtures {
   use anyhow::Result;
   use rspack_loader_runner::*;
 
+  #[derive(Debug)]
   pub struct DirectPassLoader {}
 
   #[async_trait::async_trait]
@@ -88,12 +88,21 @@ mod fixtures {
       "direct-pass-loader"
     }
 
-    async fn run<'a>(&self, loader_context: &LoaderContext<'a>) -> Result<Option<LoaderResult>> {
+    async fn run(&self, loader_context: &LoaderContext<'_>) -> Result<Option<LoaderResult>> {
       let source = loader_context.source.to_owned();
       Ok(Some(LoaderResult { content: source }))
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+      self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+      self
+    }
   }
 
+  #[derive(Debug)]
   pub struct SimpleCssLoader {}
 
   #[async_trait::async_trait]
@@ -102,7 +111,7 @@ mod fixtures {
       "basic-loader"
     }
 
-    async fn run<'a>(&self, loader_context: &LoaderContext<'a>) -> Result<Option<LoaderResult>> {
+    async fn run(&self, loader_context: &LoaderContext<'_>) -> Result<Option<LoaderResult>> {
       let source = loader_context.source.to_owned().try_into_string()?;
       Ok(Some(LoaderResult {
         content: Content::String(format!(
@@ -114,17 +123,26 @@ html {{
         )),
       }))
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+      self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+      self
+    }
   }
 
+  #[derive(Debug)]
   pub struct LoaderChain1 {}
 
   #[async_trait::async_trait]
   impl Loader for LoaderChain1 {
     fn name(&self) -> &'static str {
-      "chain1-loader"
+      "chain-loader"
     }
 
-    async fn run<'a>(&self, loader_context: &LoaderContext<'a>) -> Result<Option<LoaderResult>> {
+    async fn run(&self, loader_context: &LoaderContext<'_>) -> Result<Option<LoaderResult>> {
       let source = loader_context.source.to_owned().try_into_string()?;
       Ok(Some(LoaderResult {
         content: Content::String(format!(
@@ -134,17 +152,26 @@ console.log(2);"#,
         )),
       }))
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+      self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+      self
+    }
   }
 
+  #[derive(Debug)]
   pub struct LoaderChain2 {}
 
   #[async_trait::async_trait]
   impl Loader for LoaderChain2 {
     fn name(&self) -> &'static str {
-      "chain1-loader"
+      "chain-loader"
     }
 
-    async fn run<'a>(&self, loader_context: &LoaderContext<'a>) -> Result<Option<LoaderResult>> {
+    async fn run(&self, loader_context: &LoaderContext<'_>) -> Result<Option<LoaderResult>> {
       let source = loader_context.source.to_owned().try_into_string()?;
       Ok(Some(LoaderResult {
         content: Content::String(format!(
@@ -154,6 +181,14 @@ console.log(3);"#,
         )),
       }))
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+      self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+      self
+    }
   }
 }
 
@@ -161,8 +196,12 @@ console.log(3);"#,
 mod tests {
   #[test]
   fn should_run_single_loader() {
+    use rspack_loader_runner::*;
+
+    let loaders = vec![Box::new(super::fixtures::SimpleCssLoader {}) as BoxedLoader];
+
     run_loader!(
-      vec![Box::new(super::fixtures::SimpleCssLoader {})],
+      loaders.iter().map(Box::as_ref).collect::<Vec<_>>(),
       "simple.css",
       r#"body {
   background-color: #fff;
@@ -175,11 +214,15 @@ html {
 
   #[test]
   fn should_run_loader_chain_from_right_to_left() {
+    use rspack_loader_runner::*;
+
+    let loaders: Vec<BoxedLoader> = vec![
+      Box::new(super::fixtures::LoaderChain2 {}),
+      Box::new(super::fixtures::LoaderChain1 {}),
+    ];
+
     run_loader!(
-      vec![
-        Box::new(super::fixtures::LoaderChain2 {}),
-        Box::new(super::fixtures::LoaderChain1 {})
-      ],
+      loaders.iter().map(Box::as_ref).collect::<Vec<_>>(),
       "simple.js",
       r#"console.log(1);
 console.log(2);
@@ -192,10 +235,11 @@ console.log(3);"#
     use rspack_loader_runner::*;
 
     let expected = Content::from(std::fs::read(&fixtures!("file.png")).unwrap());
+    let loaders = vec![Box::new(super::fixtures::DirectPassLoader {}) as BoxedLoader];
 
     run_loader!(
       @raw,
-      vec![Box::new(super::fixtures::DirectPassLoader {})],
+      loaders.iter().map(Box::as_ref).collect::<Vec<_>>(),
       "file.png",
       expected
     );

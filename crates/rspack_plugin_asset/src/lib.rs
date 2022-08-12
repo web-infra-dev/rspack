@@ -3,12 +3,11 @@ use std::{ffi::OsStr, path::Path};
 use anyhow::Result;
 use async_trait::async_trait;
 use rayon::prelude::*;
-use tokio::fs;
 
 use rspack_core::{
-  AssetContent, AssetParserOptions, Content, FilenameRenderOptions, LoadArgs, ModuleRenderResult,
-  ModuleType, NormalModuleFactoryContext, Plugin, PluginContext, PluginLoadHookOutput,
-  PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, SourceType,
+  AssetContent, AssetParserOptions, FilenameRenderOptions, ModuleRenderResult, Plugin,
+  PluginContext, PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry,
+  SourceType,
 };
 
 mod asset;
@@ -65,21 +64,6 @@ impl Plugin for AssetPlugin {
     );
 
     Ok(())
-  }
-
-  async fn load(
-    &self,
-    ctx: PluginContext<&mut NormalModuleFactoryContext>,
-    args: LoadArgs<'_>,
-  ) -> PluginLoadHookOutput {
-    if matches!(
-      ctx.context.module_type,
-      Some(ModuleType::Asset) | Some(ModuleType::AssetInline) | Some(ModuleType::AssetResource)
-    ) {
-      Ok(Some(Content::Buffer(fs::read(&args.uri).await?)))
-    } else {
-      Ok(None)
-    }
   }
 
   fn render_manifest(

@@ -29,6 +29,8 @@ mod runtime;
 pub use runtime::*;
 mod entrypoint;
 pub use entrypoint::*;
+mod loader;
+pub use loader::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SourceType {
