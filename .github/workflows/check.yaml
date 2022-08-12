@@ -30,8 +30,8 @@ jobs:
         uses: actions/checkout@v3
       - name: Install toolchain
         run: rustup show
-      - name: Cache
-        uses: speedy-js/rust-cache-self-hosted@v1
+      #- name: Cache
+        #uses: speedy-js/rust-cache-self-hosted@v1
       - name: Run rustfmt
         uses: actions-rs/cargo@v1
         with:
@@ -49,8 +49,8 @@ jobs:
         uses: actions/checkout@v3
       - name: Install toolchain
         run: rustup show
-      - name: Cache
-        uses: speedy-js/rust-cache-self-hosted@v1
+      #- name: Cache
+       # uses: speedy-js/rust-cache-self-hosted@v1
       - name: Run clippy
         uses: actions-rs/cargo@v1
         with:
@@ -70,8 +70,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Install toolchain
         run: rustup show
-      - name: Cache
-        uses: speedy-js/rust-cache-self-hosted@v1
+      #- name: Cache
+        #uses: speedy-js/rust-cache-self-hosted@v1
       # - name: Install yarn
       #   run: npm install -g yarn
       # - name: yarn install --no-immutable
