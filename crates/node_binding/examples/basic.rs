@@ -9,7 +9,10 @@ async fn main() {
   let guard = log::enable_tracing_by_env_with_chrome_layer();
   let mut compiler = rspack(
     normalize_bundle_options(RawOptions {
-      entry: HashMap::from([("main".to_string(), "./src/index.js".to_string())]),
+      entry: Some(HashMap::from([(
+        "main".to_string(),
+        "./src/index.js".to_string(),
+      )])),
       context: Some(
         std::env::current_dir()
           .unwrap()

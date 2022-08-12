@@ -1,4 +1,5 @@
-use std::{fmt::Debug, str::FromStr, string::ParseError};
+use std::{str::FromStr, string::ParseError};
+
 #[derive(Debug)]
 pub struct OutputOptions {
   pub path: String,

@@ -1,53 +1,57 @@
-use std::{collections::HashMap, str::FromStr};
-
 use napi_derive::napi;
 
 use napi::bindgen_prelude::*;
 
-use rspack_core::{CompilerOptions, DevServerOptions, EntryItem, Mode, Plugin, Resolve, Target};
-use rspack_plugin_html::config::HtmlPluginConfig;
-// use rspack_core::OptimizationOptions;
-// use rspack_core::SourceMapOptions;
-// use rspack_core::{
-//   BundleMode, BundleOptions, BundleReactOptions, CodeSplittingOptions, EntryItem, Loader,
-//   ResolveOption,
-// };
-// use rspack_core::{ChunkIdAlgo, Platform};
+use rspack_core::{CompilerOptions, CompilerOptionsBuilder, DevServerOptions};
+
 use serde::Deserialize;
 
-// mod enhanced;
-// mod optimization;
-mod output;
-// mod react;
-// mod resolve;
-// mod split_chunks;
-// pub use enhanced::*;
-// pub use optimization::*;
-pub use output::*;
-// pub use react::*;
-// pub use resolve::*;
-// pub use split_chunks::*;
+mod raw_context;
+mod raw_entry;
+mod raw_mode;
+mod raw_output;
+mod raw_plugins;
+mod raw_resolve;
+mod raw_target;
 
-pub type RawPluginOptions = serde_json::value::Value;
+pub use raw_context::*;
+pub use raw_entry::*;
+pub use raw_mode::*;
+pub use raw_output::*;
+pub use raw_plugins::*;
+pub use raw_resolve::*;
+pub use raw_target::*;
 
+pub trait RawOption<T> {
+  fn to_compiler_option(self, options: &CompilerOptionsBuilder) -> T;
+  /// use to create default value when input is `None`.
+  fn fallback_value(options: &CompilerOptionsBuilder) -> Self;
+}
+fn to_compiler_option<T: RawOption<U>, U>(value: Option<T>, options: &CompilerOptionsBuilder) -> U {
+  (match value {
+    Some(value) => value,
+    None => T::fallback_value(options),
+  })
+  .to_compiler_option(options)
+}
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 #[cfg(feature = "test")]
 #[napi(object)]
 pub struct RawOptions {
-  pub entry: HashMap<String, String>,
-  pub mode: Option<String>,
-  pub target: Option<String>,
+  pub entry: Option<RawEntry>,
+  pub mode: Option<RawMode>,
+  pub target: Option<RawTarget>,
   // #[napi(ts_type = "\"browser\" | \"node\"")]
   // pub platform: Option<String>,
-  pub context: Option<String>,
+  pub context: Option<RawContext>,
   // pub loader: Option<HashMap<String, String>>,
   // pub enhanced: Option<RawEnhancedOptions>,
   // pub optimization: Option<RawOptimizationOptions>,
   pub output: Option<RawOutputOptions>,
-  // pub resolve: Option<RawResolveOptions>,
+  pub resolve: Option<RawResolveOptions>,
   // pub chunk_filename: Option<String>,
-  pub plugins: Option<RawPluginOptions>,
+  pub plugins: Option<RawPlugins>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -55,105 +59,73 @@ pub struct RawOptions {
 #[cfg(not(feature = "test"))]
 #[napi(object)]
 pub struct RawOptions {
-  pub entry: HashMap<String, String>,
-  pub mode: Option<String>,
-  pub target: Option<String>,
+  #[napi(ts_type = "Record<string, string>")]
+  pub entry: Option<RawEntry>,
+  #[napi(ts_type = "string")]
+  pub mode: Option<RawMode>,
+  #[napi(ts_type = "string")]
+  pub target: Option<RawTarget>,
   // #[napi(ts_type = "\"browser\" | \"node\"")]
   // pub platform: Option<String>,
-  pub context: Option<String>,
+  #[napi(ts_type = "string")]
+  pub context: Option<RawContext>,
   // pub loader: Option<HashMap<String, String>>,
   // pub enhanced: Option<RawEnhancedOptions>,
   // pub optimization: Option<RawOptimizationOptions>,
   pub output: Option<RawOutputOptions>,
-  // pub resolve: Option<RawResolveOptions>,
+  pub resolve: Option<RawResolveOptions>,
   // pub chunk_filename: Option<String>,
   #[napi(ts_type = "any[]")]
-  pub plugins: Option<RawPluginOptions>,
+  pub plugins: Option<RawPlugins>,
 }
 
-pub fn create_plugins(plugins: &Option<RawPluginOptions>) -> Result<Vec<Box<dyn Plugin>>> {
-  let mut result: Vec<Box<dyn Plugin>> = vec![];
-  let plugins = plugins.as_ref();
-  if plugins.is_none() {
-    return Ok(result);
-  }
-  if let Some(plugins) = plugins.unwrap().as_array() {
-    for (i, plugin) in plugins.iter().enumerate() {
-      let (target, config) = if let Some(name) = plugin.as_str() {
-        (Some(name.to_ascii_lowercase()), None)
-      } else if let Some(name_with_config) = plugin.as_array() {
-        (
-          name_with_config
-            .get(0)
-            .and_then(|f| f.as_str())
-            .map(|f| f.to_ascii_lowercase()),
-          name_with_config.get(1),
-        )
-      } else {
-        return Err(napi::Error::from_reason(format!(
-          "`config.plugins[{i}]`: structure is not recognized."
-        )));
-      };
+pub fn normalize_bundle_options(raw_options: RawOptions) -> Result<CompilerOptions> {
+  // normalize_options should ensuring orderliness.
+  let compier_options = CompilerOptionsBuilder::default()
+    .then(|mut options| {
+      let context = to_compiler_option(raw_options.context, &options);
+      options.context = Some(context);
+      options
+    })
+    .then(|mut options| {
+      let mode = to_compiler_option(raw_options.mode, &options);
+      options.mode = Some(mode);
+      options
+    })
+    .then(|mut options| {
+      let entry = to_compiler_option(raw_options.entry, &options);
+      options.entry = Some(entry);
+      options
+    })
+    .then(|mut options| {
+      let output = to_compiler_option(raw_options.output, &options);
+      options.output = Some(output);
+      options
+    })
+    .then(|mut options| {
+      let target = to_compiler_option(raw_options.target, &options);
+      options.target = Some(target);
+      options
+    })
+    .then(|mut options| {
+      let resolve = to_compiler_option(raw_options.resolve, &options);
+      options.resolve = Some(resolve);
+      options
+    })
+    .then(|mut options| {
+      let plugins = to_compiler_option(raw_options.plugins, &options).unwrap();
+      options.plugins = Some(plugins);
+      options
+    })
+    .then(|mut options| {
+      // TODO: remove or keep.
+      let dev_server = DevServerOptions { hmr: false };
+      options.dev_server = Some(dev_server);
+      options
+    })
+    .unwrap();
 
-      match target.as_deref() {
-        Some("html") => {
-          let config: HtmlPluginConfig = match config {
-            Some(config) => serde_json::from_value::<HtmlPluginConfig>(config.clone())?,
-            None => Default::default(),
-          };
-          result.push(Box::new(rspack_plugin_html::HtmlPlugin::new(config)));
-        }
-        _ => {
-          return Err(napi::Error::from_reason(format!(
-            "`config.plugins[{i}]`: plugin is not found."
-          )));
-        }
-      };
-    }
-  } else {
-    return Err(napi::Error::from_reason(format!(
-      "`config.plugins`: structure is not recognized. Found `{:?}`",
-      plugins
-    )));
-  }
-  Ok(result)
-}
-
-pub fn normalize_bundle_options(mut options: RawOptions) -> Result<CompilerOptions> {
-  let cwd = std::env::current_dir().unwrap();
-  // .find(|(key, _)| key.eq("NODE_ENV")).unwrap_or()
-
-  let context = options
-    .context
-    .take()
-    .unwrap_or_else(|| cwd.to_string_lossy().to_string());
-  let mode = Mode::from_str(&options.mode.unwrap_or_default()).unwrap();
-  let output = options
-    .output
-    .unwrap_or_default()
-    .normalize(&mode, &context);
-
-  let target = Target::from_str(&options.target.unwrap_or_else(|| String::from("web"))).unwrap();
-  let resolve = Resolve::default();
-  let plugins = create_plugins(&options.plugins)?;
-  let entry = parse_entries(options.entry);
-
-  Ok(CompilerOptions {
-    entry,
-    context,
-    target,
-    dev_server: DevServerOptions { hmr: false },
-    output,
-    resolve,
-    plugins,
-  })
-}
-
-pub fn parse_entries(raw_entry: HashMap<String, String>) -> HashMap<String, EntryItem> {
-  raw_entry
-    .into_iter()
-    .map(|(name, src)| (name, src.into()))
-    .collect()
+  Ok(compier_options)
 }
 
 // pub fn parse_raw_alias(
@@ -182,3 +154,15 @@ pub fn parse_entries(raw_entry: HashMap<String, String>) -> HashMap<String, Entr
 // pub fn parse_raw_condition_names(condition_names: Vec<String>) -> HashSet<String> {
 //   HashSet::from_iter(condition_names.into_iter())
 // }
+
+#[cfg(test)]
+mod test {
+  use crate::normalize_bundle_options;
+
+  #[test]
+  fn empty_test() {
+    let raw = serde_json::from_str("{}").unwrap();
+    let options = normalize_bundle_options(raw).unwrap();
+    assert!(&options.output.path.contains("node_binding/dist"));
+  }
+}
