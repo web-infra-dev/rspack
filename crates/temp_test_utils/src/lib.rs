@@ -40,7 +40,7 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler {
             if let AssetContent::String(content) = &asset.source() {
               let expected = String::from_utf8(expected_files.remove(&filename).unwrap())
                 .expect("failed to convert file to utf8");
-              similar_asserts::assert_str_eq!(
+              similar_asserts::assert_eq!(
                 content.trim(),
                 expected.trim(),
                 "Test failed in fixture:{:?}, the filename is {:?}",
