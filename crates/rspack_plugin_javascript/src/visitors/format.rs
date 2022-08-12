@@ -4,6 +4,7 @@ use rspack_core::{Compilation, Dependency, ModuleDependency, ModuleGraphModule, 
 use swc_atoms::{Atom, JsWord};
 use swc_common::comments::SingleThreadedComments;
 use swc_common::{Mark, DUMMY_SP};
+use swc_ecma_transforms::hygiene;
 use swc_ecma_transforms::modules::common_js;
 use swc_ecma_transforms::modules::common_js::Config as CommonJsConfig;
 use swc_ecma_transforms::{fixer, helpers::inject_helpers};
@@ -46,115 +47,114 @@ impl<'a> Fold for RspackModuleFinalizer<'a> {
         None,
       ))
       .fold_with(&mut fixer::fixer(None))
-      .fold_with(&mut inject_helpers());
+      .fold_with(&mut inject_helpers())
+      .fold_with(&mut hygiene());
 
-    // cjs_module.visit_mut_with(&mut RspackModuleFormatTransformer::new(
-    //   self.unresolved_mark,
-    //   self.module,
-    //   self.compilation,
-    // ));
+    cjs_module.visit_mut_with(&mut RspackModuleFormatTransformer::new(
+      self.unresolved_mark,
+      self.module,
+      self.compilation,
+    ));
 
-    // let stmts = cjs_module
-    //   .body
-    //   .into_iter()
-    //   .filter_map(|stmt| stmt.stmt())
-    //   .collect();
+    let stmts = cjs_module
+      .body
+      .into_iter()
+      .filter_map(|stmt| stmt.stmt())
+      .collect();
 
-    cjs_module
+    let namespace = &self.compilation.options.output.unique_name;
 
-    // let namespace = &self.compilation.options.output.unique_name;
+    let module_body = vec![CallExpr {
+      span: DUMMY_SP,
+      callee: get_rspack_register_callee(namespace),
+      args: vec![
+        Expr::Array(ArrayLit {
+          span: DUMMY_SP,
+          elems: vec![Some(ExprOrSpread {
+            spread: None,
+            expr: Box::new(Expr::Lit(Lit::Str(quote_str!(self.module.id.clone())))),
+          })],
+        })
+        .as_arg(),
+        Expr::Object(ObjectLit {
+          span: DUMMY_SP,
+          props: vec![swc_ecma_ast::PropOrSpread::Prop(Box::new(Prop::KeyValue(
+            KeyValueProp {
+              key: PropName::Str(quote_str!(self.module.id.clone())),
+              value: Box::new(Expr::Fn(FnExpr {
+                ident: None,
+                function: Function {
+                  params: vec![
+                    Param {
+                      span: DUMMY_SP,
+                      decorators: Default::default(),
+                      pat: quote_ident!("module").into(),
+                    },
+                    Param {
+                      span: DUMMY_SP,
+                      decorators: Default::default(),
+                      pat: quote_ident!("exports").into(),
+                    },
+                    Param {
+                      span: DUMMY_SP,
+                      decorators: Default::default(),
+                      // keep require mark same as swc common_js used
+                      pat: quote_ident!(RSPACK_REQUIRE).into(),
+                    },
+                    Param {
+                      span: DUMMY_SP,
+                      decorators: Default::default(),
+                      // keep require mark same as swc common_js used
+                      pat: quote_ident!(RSPACK_DYNAMIC_IMPORT).into(),
+                    },
+                  ],
+                  decorators: Default::default(),
+                  span: DUMMY_SP,
+                  body: Some(BlockStmt {
+                    span: DUMMY_SP,
+                    stmts,
+                  }),
+                  is_generator: false,
+                  is_async: false,
+                  type_params: Default::default(),
+                  return_type: Default::default(),
+                },
+              })),
+            },
+          )))],
+        })
+        .as_arg(),
+      ],
+      type_args: Default::default(),
+    }
+    .into_stmt()
+    .into()];
 
-    // let module_body = vec![CallExpr {
-    //   span: DUMMY_SP,
-    //   callee: get_rspack_register_callee(namespace),
-    //   args: vec![
-    //     Expr::Array(ArrayLit {
+    // if self.entry_flag {
+    //   let is_hmr_enabled = self.compilation.options.dev_server.hmr;
+    //   let callee = if is_hmr_enabled {
+    //     cjs_runtime_helper!(require_hot, rs.require)
+    //   } else {
+    //     cjs_runtime_helper!(require, rs.require)
+    //   };
+
+    //   module_body.push(
+    //     CallExpr {
     //       span: DUMMY_SP,
-    //       elems: vec![Some(ExprOrSpread {
-    //         spread: None,
-    //         expr: Box::new(Expr::Lit(Lit::Str(quote_str!(self.module.id.clone())))),
-    //       })],
-    //     })
-    //     .as_arg(),
-    //     Expr::Object(ObjectLit {
-    //       span: DUMMY_SP,
-    //       props: vec![swc_ecma_ast::PropOrSpread::Prop(Box::new(Prop::KeyValue(
-    //         KeyValueProp {
-    //           key: PropName::Str(quote_str!(self.module.id.clone())),
-    //           value: Box::new(Expr::Fn(FnExpr {
-    //             ident: None,
-    //             function: Function {
-    //               params: vec![
-    //                 Param {
-    //                   span: DUMMY_SP,
-    //                   decorators: Default::default(),
-    //                   pat: quote_ident!("module").into(),
-    //                 },
-    //                 Param {
-    //                   span: DUMMY_SP,
-    //                   decorators: Default::default(),
-    //                   pat: quote_ident!("exports").into(),
-    //                 },
-    //                 Param {
-    //                   span: DUMMY_SP,
-    //                   decorators: Default::default(),
-    //                   // keep require mark same as swc common_js used
-    //                   pat: quote_ident!(RSPACK_REQUIRE).into(),
-    //                 },
-    //                 Param {
-    //                   span: DUMMY_SP,
-    //                   decorators: Default::default(),
-    //                   // keep require mark same as swc common_js used
-    //                   pat: quote_ident!(RSPACK_DYNAMIC_IMPORT).into(),
-    //                 },
-    //               ],
-    //               decorators: Default::default(),
-    //               span: DUMMY_SP,
-    //               body: Some(BlockStmt {
-    //                 span: DUMMY_SP,
-    //                 stmts,
-    //               }),
-    //               is_generator: false,
-    //               is_async: false,
-    //               type_params: Default::default(),
-    //               return_type: Default::default(),
-    //             },
-    //           })),
-    //         },
-    //       )))],
-    //     })
-    //     .as_arg(),
-    //   ],
-    //   type_args: Default::default(),
+    //       callee,
+    //       args: vec![Expr::Lit(Lit::Str(quote_str!(self.module.id.clone()))).as_arg()],
+    //       type_args: Default::default(),
+    //     }
+    //     .into_stmt()
+    //     .into(),
+    //   );
     // }
-    // .into_stmt()
-    // .into()];
 
-    // // if self.entry_flag {
-    // //   let is_hmr_enabled = self.compilation.options.dev_server.hmr;
-    // //   let callee = if is_hmr_enabled {
-    // //     cjs_runtime_helper!(require_hot, rs.require)
-    // //   } else {
-    // //     cjs_runtime_helper!(require, rs.require)
-    // //   };
-
-    // //   module_body.push(
-    // //     CallExpr {
-    // //       span: DUMMY_SP,
-    // //       callee,
-    // //       args: vec![Expr::Lit(Lit::Str(quote_str!(self.module.id.clone()))).as_arg()],
-    // //       type_args: Default::default(),
-    // //     }
-    // //     .into_stmt()
-    // //     .into(),
-    // //   );
-    // // }
-
-    // Module {
-    //   span: Default::default(),
-    //   body: module_body,
-    //   shebang: None,
-    // }
+    Module {
+      span: Default::default(),
+      body: module_body,
+      shebang: None,
+    }
   }
 }
 
