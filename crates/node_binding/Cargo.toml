@@ -11,6 +11,7 @@ crate-type = ["lib", "cdylib"]
 
 [features]
 default = []
+test = ["napi-derive/noop"]
 
 [[example]]
 name = "basic"
