@@ -12,6 +12,9 @@ self["__rspack_runtime__"].__rspack_register__([
                 default: obj
             };
         }
+        Object.defineProperty(exports, "__esModule", {
+            value: true
+        });
         var _dataTxt = _interopRequireDefault(__rspack_require__("./data.txt"));
         console.log(_dataTxt.default);
     }

@@ -1,0 +1,12 @@
+{
+  "mode": "development",
+  "entry": {
+    "index": "./src/index.js"
+  },
+  "enhanced": {
+    "react": {
+      "fastRefresh": false
+    },
+    "svgr": true
+  }
+}

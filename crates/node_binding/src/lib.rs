@@ -1,33 +1,28 @@
-#![deny(clippy::all)]
-
 // use std::path::Path;
-// use std::sync::Arc;
+use std::sync::Arc;
 
-// use futures::lock::Mutex;
-// use napi::bindgen_prelude::*;
-// use napi::{Env, JsObject, Result};
-// use napi_derive::napi;
+use napi::bindgen_prelude::*;
+use napi::{Env, Result};
+use napi_derive::napi;
 // use nodejs_resolver::Resolver;
+use tokio::sync::Mutex;
 
 // pub mod adapter;
 mod options;
-// pub mod utils;
+mod utils;
 
 // use adapter::utils::create_node_adapter_from_plugin_callbacks;
 pub use options::*;
 
-// // use rspack::stats::Stats;
-// use rspack::Compiler as RspackBundler;
+#[cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))]
+#[global_allocator]
+static ALLOC: mimalloc_rust::GlobalMiMalloc = mimalloc_rust::GlobalMiMalloc;
 
-// #[cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))]
-// #[global_allocator]
-// static ALLOC: mimalloc_rust::GlobalMiMalloc = mimalloc_rust::GlobalMiMalloc;
+pub fn create_external<T>(value: T) -> External<T> {
+  External::new(value)
+}
 
-// pub fn create_external<T>(value: T) -> External<T> {
-//   External::new(value)
-// }
-
-// pub type Rspack = Arc<Mutex<RspackBundler>>;
+pub type Rspack = Arc<Mutex<rspack::Compiler>>;
 
 // #[napi(object)]
 // pub struct PluginCallbacks {
@@ -37,81 +32,102 @@ pub use options::*;
 //   pub build_end_callback: JsFunction,
 // }
 
-// pub struct RspackBindingContext {
-//   pub rspack: Rspack,
-//   pub resolver: Arc<Resolver>,
-// }
+pub struct RspackBindingContext {
+  pub rspack: Rspack,
+  // pub resolver: Arc<Resolver>,
+}
 
-// #[napi(ts_return_type = "ExternalObject<RspackInternal>")]
-// #[allow(clippy::too_many_arguments)]
-// pub fn new_rspack(
-//   env: Env,
-//   option_json: String,
-//   plugin_callbacks: Option<PluginCallbacks>,
-// ) -> Result<External<RspackBindingContext>> {
-//   let options: RawOptions = serde_json::from_str(option_json.as_str())?;
+#[napi(object)]
+pub struct Stats {
+  // pub assets: Vec<String>,
+}
 
-//   let node_adapter = create_node_adapter_from_plugin_callbacks(&env, plugin_callbacks)?;
+impl<'a> From<rspack_core::Stats<'a>> for Stats {
+  fn from(_rspack_stats: rspack_core::Stats) -> Self {
+    Self {}
+  }
+}
 
-//   let mut plugins = vec![];
+#[napi]
+pub fn init_trace_subscriber(env: Env) -> Result<()> {
+  utils::init_custom_trace_subscriber(env)
+}
 
-//   if let Some(node_adapter) = node_adapter {
-//     plugins.push(Box::new(node_adapter) as Box<dyn rspack_core::Plugin>);
-//   }
+#[napi(ts_return_type = "ExternalObject<RspackInternal>")]
+#[allow(clippy::too_many_arguments)]
+pub fn new_rspack(
+  _env: Env,
+  options: RawOptions,
+  // plugin_callbacks: Option<PluginCallbacks>,
+) -> Result<External<RspackBindingContext>> {
+  // let node_adapter = create_node_adapter_from_plugin_callbacks(&env, plugin_callbacks)?;
 
-//   let rspack = RspackBundler::new(normalize_bundle_options(options)?, plugins);
+  // let mut plugins = vec![];
 
-//   let resolver = rspack.resolver.clone();
+  // if let Some(node_adapter) = node_adapter {
+  //   plugins.push(Box::new(node_adapter) as Box<dyn rspack_core::Plugin>);
+  // }
 
-//   Ok(create_external(RspackBindingContext {
-//     rspack: Arc::new(Mutex::new(rspack)),
-//     resolver,
-//   }))
-// }
+  let rspack = rspack::rspack(normalize_bundle_options(options)?, vec![]);
 
-// #[napi(
-//   ts_args_type = "rspack: ExternalObject<RspackInternal>",
-//   ts_return_type = "Promise<Record<string, string>>"
-// )]
-// pub fn build(env: Env, binding_context: External<RspackBindingContext>) -> Result<JsObject> {
-//   let bundler = (*binding_context).rspack.clone();
-//   env.execute_tokio_future(
-//     async move {
-//       let mut bundler = bundler.lock().await;
-//       let Stats { map, .. } = bundler
-//         .build(None)
-//         .await
-//         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
-//       bundler.write_assets_to_disk();
-//       Ok(map)
-//     },
-//     |_env, ret| Ok(ret),
-//   )
-// }
+  // let resolver = rspack.resolver.clone();
+  Ok(create_external(RspackBindingContext {
+    rspack: Arc::new(Mutex::new(rspack)),
+    // resolver,
+  }))
+}
 
-// #[napi(
-//   ts_args_type = "rspack: ExternalObject<RspackInternal>, changedFile: string[]",
-//   ts_return_type = "Promise<[diff: Record<string, string>, map: Record<string, string>]>"
-// )]
-// pub fn rebuild(
-//   env: Env,
-//   binding_context: External<RspackBindingContext>,
-//   changed_file: Vec<String>,
-// ) -> Result<JsObject> {
-//   let bundler = (*binding_context).rspack.clone();
-//   env.execute_tokio_future(
-//     async move {
-//       let mut bundler = bundler.lock().await;
-//       let changed = bundler
-//         .rebuild(changed_file)
-//         .await
-//         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
-//       bundler.write_assets_to_disk();
-//       Ok(changed)
-//     },
-//     |_env, ret| Ok(ret),
-//   )
-// }
+#[napi(
+  ts_args_type = "rspack: ExternalObject<RspackInternal>",
+  ts_return_type = "Promise<Record<string, string>>"
+)]
+pub fn build(env: Env, binding_context: External<RspackBindingContext>) -> Result<napi::JsObject> {
+  let compiler = binding_context.rspack.clone();
+  env.execute_tokio_future(
+    async move {
+      let mut compiler = compiler.lock().await;
+      let _rspack_stats = compiler
+        .compile()
+        .await
+        .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
+
+      // let stats: Stats = rspack_stats.into();
+      println!("build success");
+      // Ok(stats)
+      Ok(())
+    },
+    |_env, ret| Ok(ret),
+  )
+}
+
+#[napi(
+  // ts_args_type = "rspack: ExternalObject<RspackInternal>, changedFile: string[]",
+  ts_args_type = "rspack: ExternalObject<RspackInternal>",
+  // ts_return_type = "Promise<[diff: Record<string, string>, map: Record<string, string>]>"
+  ts_return_type = "Promise<Record<string, string>>"
+)]
+pub fn rebuild(
+  env: Env,
+  binding_context: External<RspackBindingContext>,
+  // changed_file: Vec<String>,
+) -> Result<napi::JsObject> {
+  let compiler = binding_context.rspack.clone();
+  env.execute_tokio_future(
+    async move {
+      let mut compiler = compiler.lock().await;
+      let _rspack_stats = compiler
+        .compile()
+        .await
+        .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
+
+      // let stats: Stats = rspack_stats.into();
+      println!("rebuild success");
+      // Ok(stats)
+      Ok(())
+    },
+    |_env, ret| Ok(ret),
+  )
+}
 
 // #[napi(
 //   ts_args_type = "rspack: ExternalObject<RspackInternal>, source: string, resolveOptions: ResolveOptions",
@@ -180,18 +196,18 @@ pub use options::*;
 //   }
 // }
 
-// #[napi::module_init]
-// fn init() {
-//   use backtrace::Backtrace;
-//   use std::panic::set_hook;
+#[napi::module_init]
+fn init() {
+  use backtrace::Backtrace;
+  use std::panic::set_hook;
 
-//   set_hook(Box::new(|panic_info| {
-//     let backtrace = Backtrace::new();
-//     println!("Panic: {:?}\nBacktrace: {:?}", panic_info, backtrace);
-//     std::process::exit(1)
-//   }));
-// }
+  set_hook(Box::new(|panic_info| {
+    let backtrace = Backtrace::new();
+    println!("Panic: {:?}\nBacktrace: {:?}", panic_info, backtrace);
+    std::process::exit(1)
+  }));
+}
 
-// // for dts generation only
-// #[napi(object)]
-// pub struct RspackInternal {}
+// for dts generation only
+#[napi(object)]
+pub struct RspackInternal {}

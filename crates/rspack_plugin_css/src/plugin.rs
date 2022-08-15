@@ -1,13 +1,16 @@
 // mod js_module;
 // pub use js_module::*;
 
-use crate::{module::CssModule, SWC_COMPILER};
+use crate::{
+  module::{CssModule, CSS_MODULE_SOURCE_TYPE_LIST},
+  SWC_COMPILER,
+};
 
 use anyhow::{Context, Result};
 use rayon::prelude::*;
 use rspack_core::{
-  Asset, AssetContent, Content, Filename, ModuleAst, ModuleRenderResult, ModuleType,
-  NormalModuleFactoryContext, OutputFilename, ParseModuleArgs, Parser, Plugin, SourceType,
+  AssetContent, Content, FilenameRenderOptions, ModuleAst, ModuleRenderResult, ModuleType,
+  NormalModuleFactoryContext, ParseModuleArgs, Parser, Plugin, RenderManifestEntry, SourceType,
   TransformAst, TransformResult,
 };
 use std::path::Path;
@@ -46,7 +49,7 @@ impl Plugin for CssPlugin {
     args: rspack_core::TransformArgs,
   ) -> rspack_core::PluginTransformOutput {
     if let Some(TransformAst::Css(mut ast)) = args.ast {
-      ast.visit_mut_with(&mut prefixer());
+      ast.visit_mut_with(&mut prefixer(Default::default()));
       Ok({
         TransformResult {
           content: None,
@@ -107,10 +110,17 @@ impl Plugin for CssPlugin {
     if code.is_empty() {
       Ok(Default::default())
     } else {
-      Ok(vec![Asset::new(
+      Ok(vec![RenderManifestEntry::new(
         AssetContent::String(code),
-        OutputFilename::new("[name][ext]".to_owned())
-          .filename(args.chunk_id.to_owned(), ".css".to_owned()),
+        compilation
+          .options
+          .output
+          .filename
+          .render(FilenameRenderOptions {
+            filename: Some(args.chunk_id.to_owned()),
+            extension: Some(".css".to_owned()),
+            id: None,
+          }),
       )])
     }
   }
@@ -126,13 +136,19 @@ impl Parser for CssParser {
     args: ParseModuleArgs,
   ) -> anyhow::Result<rspack_core::BoxModule> {
     if let Some(ModuleAst::Css(_ast)) = args.ast {
-      Ok(Box::new(CssModule { ast: _ast }))
+      Ok(Box::new(CssModule {
+        ast: _ast,
+        source_type_list: CSS_MODULE_SOURCE_TYPE_LIST,
+      }))
     } else if let Some(content) = args.source {
       let content = content
         .try_into_string()
         .context("Unable to serialize content as string which is required by plugin css")?;
       let stylesheet = SWC_COMPILER.parse_file(args.uri, content)?;
-      Ok(Box::new(CssModule { ast: stylesheet }))
+      Ok(Box::new(CssModule {
+        ast: stylesheet,
+        source_type_list: CSS_MODULE_SOURCE_TYPE_LIST,
+      }))
     } else {
       Err(anyhow::format_err!(
         "source is empty or unmatched content type returned for {}, content type {:?}",

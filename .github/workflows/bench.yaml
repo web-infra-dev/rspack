@@ -37,6 +37,9 @@ jobs:
     timeout-minutes: 30
 
     steps:
+      - name: Cleanup workspace
+        uses: TooMuch4U/actions-clean@v2.1
+        if: ${{ always() }}
       - name: Get PR SHA
         id: sha
         uses: actions/github-script@v6
@@ -95,10 +98,3 @@ jobs:
             ${{ steps.bench_comparison.outputs.comment }}
       - name: Remove Criterion Artifact
         run: rm -rf ./target/criterion
-
-      # - name: Clean working directory
-      #   shell: bash
-      #   run: |
-      #     cd $RUNNER_WORKSPACE
-      #     cd ..
-      #     rm -r *

@@ -1,18 +1,20 @@
 use anyhow::Result;
-use async_trait::async_trait;
 
+use common::*;
 use rspack_core::{
-  Asset, AssetContent, Plugin, PluginContext, PluginRenderManifestHookOutput,
-  PluginRenderRuntimeHookOutput, RenderManifestArgs, RenderRuntimeArgs, RuntimeSourceNode,
+  AssetContent, Plugin, PluginContext, PluginRenderManifestHookOutput,
+  PluginRenderRuntimeHookOutput, RenderManifestArgs, RenderManifestEntry, RenderRuntimeArgs,
+  TargetOptions,
 };
+use web::*;
 
 mod common;
 mod web;
 
+pub const RUNTIME_FILE_NAME: &str = "runtime";
 #[derive(Debug)]
 pub struct RuntimePlugin {}
 
-#[async_trait]
 impl Plugin for RuntimePlugin {
   fn name(&self) -> &'static str {
     "runtime"
@@ -31,30 +33,33 @@ impl Plugin for RuntimePlugin {
     args: RenderRuntimeArgs,
   ) -> PluginRenderRuntimeHookOutput {
     let compilation = args.compilation;
-    let public_path = &compilation.options.output.public_path;
+    let public_path = compilation.options.output.public_path.public_path();
 
     let has_dynamic_chunk = true;
     // if the complition has dynamic chunk
     //Todo we need a dynamic chunk tag to judge it
 
     // common runtime
-    let mut sources: Vec<RuntimeSourceNode> = vec![];
-    sources.push(generate_common_init_runtime!());
-    sources.push(generate_common_module_and_chunk_data!());
-    sources.push(generate_common_check_by_id!());
-    sources.push(generate_common_public_path!(public_path));
+    let mut sources = args.sources.to_vec();
+    sources.push(generate_common_init_runtime());
+    sources.push(generate_common_module_and_chunk_data());
+    sources.push(generate_common_check_by_id());
+    sources.push(generate_common_public_path(public_path));
 
-    if let rspack_core::Target::String(target) = &compilation.options.target {
-      if target.eq("web") {
-        sources.push(generate_web_rspack_require!());
-        sources.push(generate_web_rspack_register!());
-        if has_dynamic_chunk {
-          sources.push(generate_common_dynamic_data!());
-          sources.push(generate_web_dynamic_get_chunk_url!());
-          sources.push(generate_web_dynamic_require!());
-          sources.push(generate_web_dynamic_load_script!());
-          sources.push(generate_web_dynamic_load_style!());
+    if let rspack_core::Target::Target(target) = &compilation.options.target {
+      match target {
+        TargetOptions::Web => {
+          sources.push(generate_web_rspack_require());
+          sources.push(generate_web_rspack_register());
+          if has_dynamic_chunk {
+            sources.push(generate_common_dynamic_data());
+            sources.push(generate_web_dynamic_get_chunk_url());
+            sources.push(generate_web_dynamic_require());
+            sources.push(generate_web_dynamic_load_script());
+            sources.push(generate_web_dynamic_load_style());
+          }
         }
+        TargetOptions::Node(_) => {}
       }
     }
 
@@ -69,9 +74,9 @@ impl Plugin for RuntimePlugin {
     let compilation = args.compilation;
     let runtime = &compilation.runtime;
 
-    Ok(vec![Asset::new(
+    Ok(vec![RenderManifestEntry::new(
       AssetContent::String(runtime.generate()),
-      String::from("runtime.js"),
+      RUNTIME_FILE_NAME.to_string() + ".js",
     )])
   }
 }

@@ -1,5 +1,4 @@
 use anyhow::Result;
-use hashbrown::HashSet;
 
 use std::fmt::Debug;
 
@@ -63,6 +62,7 @@ impl ModuleGraphModule {
 }
 
 // TODO replace with rspack-sources
+#[derive(Debug)]
 pub enum ModuleRenderResult {
   JavaScript(String),
   Css(String),
@@ -72,13 +72,7 @@ pub enum ModuleRenderResult {
 pub trait Module: Debug + Send + Sync {
   fn module_type(&self) -> ModuleType;
 
-  fn source_types(
-    &self,
-    _module: &ModuleGraphModule,
-    _compilation: &Compilation,
-  ) -> HashSet<SourceType> {
-    HashSet::default()
-  }
+  fn source_types(&self, _module: &ModuleGraphModule, _compilation: &Compilation) -> &[SourceType];
 
   fn render(
     &self,

@@ -1,5 +1,4 @@
 use anyhow::Result;
-use hashbrown::HashSet;
 use tracing::instrument;
 
 use crate::visitors::DependencyScanner;
@@ -19,10 +18,12 @@ use crate::{
   HELPERS, JS_HELPERS,
 };
 
+pub(crate) static JS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 1] = &[SourceType::JavaScript];
 pub struct JsModule {
   pub uri: String,
   pub module_type: ModuleType,
   pub ast: swc_ecma_ast::Program,
+  pub source_type_list: &'static [SourceType; 1],
 }
 
 impl Debug for JsModule {
@@ -46,8 +47,8 @@ impl Module for JsModule {
     &self,
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
-  ) -> HashSet<SourceType> {
-    HashSet::from_iter([SourceType::JavaScript])
+  ) -> &[SourceType] {
+    self.source_type_list.as_ref()
   }
 
   #[instrument]

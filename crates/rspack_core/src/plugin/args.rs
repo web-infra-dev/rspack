@@ -11,6 +11,11 @@ pub struct ParseModuleArgs<'a> {
   pub ast: Option<ModuleAst>,
 }
 
+#[derive(Debug)]
+pub struct ProcessAssetsArgs<'me> {
+  pub compilation: &'me mut Compilation,
+}
+
 #[derive(Debug, Clone)]
 pub struct RenderManifestArgs<'me> {
   pub chunk_id: &'me str,

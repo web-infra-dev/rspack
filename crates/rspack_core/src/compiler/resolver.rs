@@ -1,7 +1,9 @@
 use nodejs_resolver::ResolverCache;
 use std::path::Path;
+use std::path::PathBuf;
 use std::sync::Arc;
-use std::{collections::HashSet, path::PathBuf};
+
+use crate::Resolve;
 
 #[derive(Debug)]
 pub enum ResolveResult {
@@ -22,40 +24,6 @@ impl ResolveInfo {
   }
 }
 
-pub type AliasMap = nodejs_resolver::AliasMap;
-
-#[derive(Debug)]
-pub struct ResolverOptions {
-  pub extensions: Vec<String>,
-  pub enforce_extension: Option<bool>,
-  pub alias: Vec<(String, AliasMap)>,
-  pub prefer_relative: bool,
-  pub symlinks: bool,
-  pub description_file: Option<String>,
-  pub main_files: Vec<String>,
-  pub main_fields: Vec<String>,
-  pub browser_field: bool,
-  pub condition_names: HashSet<String>,
-}
-
-impl Default for ResolverOptions {
-  fn default() -> Self {
-    let inner = nodejs_resolver::ResolverOptions::default();
-    Self {
-      extensions: inner.extensions,
-      enforce_extension: inner.enforce_extension,
-      alias: inner.alias,
-      prefer_relative: inner.prefer_relative,
-      symlinks: inner.symlinks,
-      description_file: inner.description_file,
-      main_files: inner.main_files,
-      main_fields: inner.main_fields,
-      browser_field: true,
-      condition_names: inner.condition_names,
-    }
-  }
-}
-
 pub struct ResolverFactory {
   cache: Arc<ResolverCache>,
 }
@@ -73,20 +41,20 @@ impl ResolverFactory {
     }
   }
 
-  pub fn get(&self, options: ResolverOptions) -> Resolver {
+  pub fn get(&self, options: Resolve) -> Resolver {
     Resolver(nodejs_resolver::Resolver::new(
       nodejs_resolver::ResolverOptions {
         extensions: options.extensions,
-        enforce_extension: options.enforce_extension,
         alias: options.alias,
         prefer_relative: options.prefer_relative,
-        external_cache: Some(self.cache.clone()),
         symlinks: options.symlinks,
-        description_file: options.description_file,
         main_files: options.main_files,
         main_fields: options.main_fields,
         browser_field: options.browser_field,
         condition_names: options.condition_names,
+        enforce_extension: None,
+        external_cache: Some(self.cache.clone()),
+        description_file: Some(String::from("package.json")),
         tsconfig: None,
       },
     ))

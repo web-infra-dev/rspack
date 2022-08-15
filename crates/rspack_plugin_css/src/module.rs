@@ -2,7 +2,6 @@
 // pub use js_module::*;
 
 use anyhow::Result;
-use hashbrown::HashSet;
 use std::fmt::Debug;
 
 use rspack_core::{Module, ModuleRenderResult, ModuleType, SourceType};
@@ -11,8 +10,12 @@ use swc_css::{ast::Stylesheet, visit::VisitMutWith};
 
 use crate::{visitors::DependencyScanner, SWC_COMPILER};
 
+pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
+  &[SourceType::JavaScript, SourceType::Css];
+
 pub struct CssModule {
   pub ast: Stylesheet,
+  pub source_type_list: &'static [SourceType; 2],
 }
 
 impl Debug for CssModule {
@@ -32,8 +35,8 @@ impl Module for CssModule {
     &self,
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
-  ) -> HashSet<SourceType> {
-    HashSet::from_iter([SourceType::JavaScript, SourceType::Css])
+  ) -> &[SourceType] {
+    self.source_type_list.as_ref()
   }
 
   fn render(
@@ -42,7 +45,7 @@ impl Module for CssModule {
     module: &rspack_core::ModuleGraphModule,
     compilation: &rspack_core::Compilation,
   ) -> Result<Option<ModuleRenderResult>> {
-    let namespace = &compilation.options.output.namespace;
+    let namespace = &compilation.options.output.unique_name;
     let result = match requested_source_type {
       SourceType::Css => Some(ModuleRenderResult::Css(SWC_COMPILER.codegen(&self.ast))),
       SourceType::JavaScript => Some(ModuleRenderResult::JavaScript(format!(

@@ -22,12 +22,11 @@
   "cSpell.caseSensitive": true,
   "json.schemas": [
     {
-      "fileMatch": [
-        "rspack.config.json"
-      ],
+      "fileMatch": ["test.config.json"],
       // Point to the options schema of rspack.
-      "url": "./packages/rspack/src/node/rspack/options/schema.json"
+      "url": "./crates/temp_test_utils/test.config.scheme.json"
     }
   ],
-  "rust-analyzer.procMacro.enable": true
+  "rust-analyzer.procMacro.enable": true,
+  "rust-analyzer.procMacro.attributes.enable": true
 }

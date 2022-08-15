@@ -1,12 +1,13 @@
 use crate::generate_rspack_execute;
+use crate::module::JS_MODULE_SOURCE_TYPE_LIST;
 use crate::utils::parse_file;
 use crate::visitors::ClearMark;
 use crate::{module::JsModule, utils::get_swc_compiler};
 use anyhow::{Context, Result};
 use rayon::prelude::*;
 use rspack_core::{
-  Asset, AssetContent, Filename, ModuleAst, ModuleRenderResult, ModuleType, OutputFilename,
-  ParseModuleArgs, Parser, Plugin, PluginContext, PluginRenderManifestHookOutput, SourceType,
+  AssetContent, FilenameRenderOptions, ModuleAst, ModuleRenderResult, ModuleType, ParseModuleArgs,
+  Parser, Plugin, PluginContext, PluginRenderManifestHookOutput, RenderManifestEntry, SourceType,
 };
 
 use swc_common::comments::SingleThreadedComments;
@@ -48,7 +49,7 @@ impl Plugin for JsPlugin {
   ) -> PluginRenderManifestHookOutput {
     let compilation = args.compilation;
     let module_graph = &compilation.module_graph;
-    let namespace = &compilation.options.output.namespace;
+    let namespace = &compilation.options.output.unique_name;
     let chunk = compilation
       .chunk_graph
       .chunk_by_id(args.chunk_id)
@@ -98,10 +99,17 @@ impl Plugin for JsPlugin {
       })
       .collect::<String>();
 
-    Ok(vec![Asset::new(
+    Ok(vec![RenderManifestEntry::new(
       AssetContent::String(code),
-      OutputFilename::new("[name][ext]".to_owned())
-        .filename(args.chunk_id.to_owned(), ".js".to_owned()),
+      compilation
+        .options
+        .output
+        .filename
+        .render(FilenameRenderOptions {
+          filename: Some(args.chunk_id.to_owned()),
+          extension: Some(".js".to_owned()),
+          id: None,
+        }),
     )])
   }
 }
@@ -123,7 +131,7 @@ impl Parser for JsParser {
     }
     let ast = {
       match args.ast {
-        Some(ModuleAst::JavaScript(_ast)) => Ok::<_, anyhow::Error>(_ast),
+        Some(ModuleAst::JavaScript(_ast)) => Ok::<swc_ecma_ast::Program, anyhow::Error>(_ast),
         None => {
           if let Some(content) = args.source {
             Ok(parse_file(
@@ -167,6 +175,7 @@ impl Parser for JsParser {
       ast,
       uri: args.uri.to_string(),
       module_type,
+      source_type_list: JS_MODULE_SOURCE_TYPE_LIST,
     }))
   }
 }

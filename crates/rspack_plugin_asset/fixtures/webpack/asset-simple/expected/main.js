@@ -20,6 +20,9 @@ self["__rspack_runtime__"].__rspack_register__([
                 default: obj
             };
         }
+        Object.defineProperty(exports, "__esModule", {
+            value: true
+        });
         var _filePng = _interopRequireDefault(__rspack_require__("./images/file.png"));
         var _fileJpg = _interopRequireDefault(__rspack_require__("./images/file.jpg"));
         var _fileSvg = _interopRequireDefault(__rspack_require__("./images/file.svg"));

@@ -59,6 +59,7 @@ pub fn syntax_by_ext(ext: &str) -> Syntax {
       decorators: true,
       fn_bind: true,
       allow_super_outside_method: true,
+      ..Default::default()
     }),
   }
 }
@@ -74,6 +75,7 @@ pub fn syntax_by_module_type(filename: &str, module_type: &ModuleType) -> Syntax
       decorators: true,
       fn_bind: true,
       allow_super_outside_method: true,
+      ..Default::default()
     }),
     ModuleType::Ts | ModuleType::Tsx => Syntax::Typescript(TsConfig {
       decorators: false,

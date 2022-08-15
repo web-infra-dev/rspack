@@ -1,115 +1,131 @@
-use std::collections::HashMap;
-
-#[cfg(not(feature = "test"))]
 use napi_derive::napi;
 
 use napi::bindgen_prelude::*;
 
-use rspack_core::{
-  CompilerOptions, DevServerOptions, EntryItem, OutputAssetModuleFilename, OutputOptions, Target,
-};
-// use rspack_core::OptimizationOptions;
-// use rspack_core::SourceMapOptions;
-// use rspack_core::{
-//   BundleMode, BundleOptions, BundleReactOptions, CodeSplittingOptions, EntryItem, Loader,
-//   ResolveOption,
-// };
-// use rspack_core::{ChunkIdAlgo, Platform};
+use rspack_core::{CompilerOptions, CompilerOptionsBuilder, DevServerOptions};
+
 use serde::Deserialize;
-use std::path::Path;
 
-// mod enhanced;
-// mod optimization;
-mod output;
-// mod react;
-// mod resolve;
-// mod split_chunks;
-// pub use enhanced::*;
-// pub use optimization::*;
-pub use output::*;
-// pub use react::*;
-// pub use resolve::*;
-// pub use split_chunks::*;
+mod raw_context;
+mod raw_entry;
+mod raw_mode;
+mod raw_output;
+mod raw_plugins;
+mod raw_resolve;
+mod raw_target;
 
-#[cfg(not(feature = "test"))]
-#[derive(Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawOptions {
-  pub entries: HashMap<String, String>,
-  // #[napi(ts_type = "\"development\" | \"production\" | \"none\"")]
-  // pub mode: Option<String>,
-  // #[napi(ts_type = "\"browser\" | \"node\"")]
-  // pub platform: Option<String>,
-  pub root: Option<String>,
-  // pub loader: Option<HashMap<String, String>>,
-  // pub enhanced: Option<RawEnhancedOptions>,
-  // pub optimization: Option<RawOptimizationOptions>,
-  pub output: Option<RawOutputOptions>,
-  // pub resolve: Option<RawResolveOptions>,
-  // pub chunk_filename: Option<String>,
+pub use raw_context::*;
+pub use raw_entry::*;
+pub use raw_mode::*;
+pub use raw_output::*;
+pub use raw_plugins::*;
+pub use raw_resolve::*;
+pub use raw_target::*;
+
+pub trait RawOption<T> {
+  fn to_compiler_option(self, options: &CompilerOptionsBuilder) -> T;
+  /// use to create default value when input is `None`.
+  fn fallback_value(options: &CompilerOptionsBuilder) -> Self;
 }
-
+fn to_compiler_option<T: RawOption<U>, U>(value: Option<T>, options: &CompilerOptionsBuilder) -> U {
+  (match value {
+    Some(value) => value,
+    None => T::fallback_value(options),
+  })
+  .to_compiler_option(options)
+}
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 #[cfg(feature = "test")]
+#[napi(object)]
 pub struct RawOptions {
-  pub entries: HashMap<String, String>,
-  // pub mode: Option<String>,
+  pub entry: Option<RawEntry>,
+  pub mode: Option<RawMode>,
+  pub target: Option<RawTarget>,
+  // #[napi(ts_type = "\"browser\" | \"node\"")]
   // pub platform: Option<String>,
-  pub root: Option<String>,
+  pub context: Option<RawContext>,
   // pub loader: Option<HashMap<String, String>>,
   // pub enhanced: Option<RawEnhancedOptions>,
   // pub optimization: Option<RawOptimizationOptions>,
   pub output: Option<RawOutputOptions>,
-  // pub resolve: Option<RawResolveOptions>,
+  pub resolve: Option<RawResolveOptions>,
   // pub chunk_filename: Option<String>,
+  pub plugins: Option<RawPlugins>,
 }
 
-pub fn normalize_bundle_options(mut options: RawOptions) -> Result<CompilerOptions> {
-  let cwd = std::env::current_dir().unwrap();
-
-  let root = options
-    .root
-    .take()
-    .unwrap_or_else(|| cwd.to_string_lossy().to_string());
-
-  let output_path = options
-    .output
-    .as_mut()
-    .and_then(|opt| opt.path.take())
-    .unwrap_or_else(|| Path::new(&root).join("dist").to_string_lossy().to_string());
-
-  let output_asset_module_filename = options
-    .output
-    .as_mut()
-    .and_then(|opt| opt.asset_module_filename.take())
-    .map(OutputAssetModuleFilename::new);
-
-  //Todo the following options is testing, we need inject real options in the user config file
-  let public_path = String::from("/");
-  let namespace = String::from("__rspack_runtime__");
-  let target = Target::String(String::from("web"));
-
-  Ok(CompilerOptions {
-    entries: parse_entries(options.entries),
-    root,
-    target,
-    dev_server: DevServerOptions { hmr: false },
-    output: OutputOptions {
-      path: output_path,
-      public_path,
-      asset_module_filename: output_asset_module_filename.unwrap_or_default(),
-      namespace,
-    },
-  })
+#[derive(Deserialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+#[cfg(not(feature = "test"))]
+#[napi(object)]
+pub struct RawOptions {
+  #[napi(ts_type = "Record<string, string>")]
+  pub entry: Option<RawEntry>,
+  #[napi(ts_type = "string")]
+  pub mode: Option<RawMode>,
+  #[napi(ts_type = "string")]
+  pub target: Option<RawTarget>,
+  // #[napi(ts_type = "\"browser\" | \"node\"")]
+  // pub platform: Option<String>,
+  #[napi(ts_type = "string")]
+  pub context: Option<RawContext>,
+  // pub loader: Option<HashMap<String, String>>,
+  // pub enhanced: Option<RawEnhancedOptions>,
+  // pub optimization: Option<RawOptimizationOptions>,
+  pub output: Option<RawOutputOptions>,
+  pub resolve: Option<RawResolveOptions>,
+  // pub chunk_filename: Option<String>,
+  #[napi(ts_type = "any[]")]
+  pub plugins: Option<RawPlugins>,
 }
 
-pub fn parse_entries(raw_entry: HashMap<String, String>) -> HashMap<String, EntryItem> {
-  raw_entry
-    .into_iter()
-    .map(|(name, src)| (name, src.into()))
-    .collect()
+pub fn normalize_bundle_options(raw_options: RawOptions) -> Result<CompilerOptions> {
+  // normalize_options should ensuring orderliness.
+  let compier_options = CompilerOptionsBuilder::default()
+    .then(|mut options| {
+      let context = to_compiler_option(raw_options.context, &options);
+      options.context = Some(context);
+      options
+    })
+    .then(|mut options| {
+      let mode = to_compiler_option(raw_options.mode, &options);
+      options.mode = Some(mode);
+      options
+    })
+    .then(|mut options| {
+      let entry = to_compiler_option(raw_options.entry, &options);
+      options.entry = Some(entry);
+      options
+    })
+    .then(|mut options| {
+      let output = to_compiler_option(raw_options.output, &options);
+      options.output = Some(output);
+      options
+    })
+    .then(|mut options| {
+      let target = to_compiler_option(raw_options.target, &options);
+      options.target = Some(target);
+      options
+    })
+    .then(|mut options| {
+      let resolve = to_compiler_option(raw_options.resolve, &options);
+      options.resolve = Some(resolve);
+      options
+    })
+    .then(|mut options| {
+      let plugins = to_compiler_option(raw_options.plugins, &options).unwrap();
+      options.plugins = Some(plugins);
+      options
+    })
+    .then(|mut options| {
+      // TODO: remove or keep.
+      let dev_server = DevServerOptions { hmr: false };
+      options.dev_server = Some(dev_server);
+      options
+    })
+    .unwrap();
+
+  Ok(compier_options)
 }
 
 // pub fn parse_raw_alias(
@@ -138,3 +154,15 @@ pub fn parse_entries(raw_entry: HashMap<String, String>) -> HashMap<String, Entr
 // pub fn parse_raw_condition_names(condition_names: Vec<String>) -> HashSet<String> {
 //   HashSet::from_iter(condition_names.into_iter())
 // }
+
+#[cfg(test)]
+mod test {
+  use crate::normalize_bundle_options;
+
+  #[test]
+  fn empty_test() {
+    let raw = serde_json::from_str("{}").unwrap();
+    let options = normalize_bundle_options(raw).unwrap();
+    assert!(&options.output.path.contains("node_binding/dist"));
+  }
+}

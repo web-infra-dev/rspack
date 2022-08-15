@@ -33,14 +33,7 @@ impl Compiler {
     let options = Arc::new(options);
 
     let resolver_factory = ResolverFactory::new();
-    let resolver = resolver_factory.get(ResolverOptions {
-      extensions: vec![".tsx", ".jsx", ".ts", ".js", ".json"]
-        .into_iter()
-        .map(|s| s.to_string())
-        .collect(),
-      browser_field: true,
-      ..Default::default()
-    });
+    let resolver = resolver_factory.get(options.resolve.clone());
     let plugin_driver = PluginDriver::new(options.clone(), plugins, Arc::new(resolver));
 
     Self {
@@ -61,7 +54,7 @@ impl Compiler {
     self.compilation = Compilation::new(
       // TODO: use Arc<T> instead
       self.options.clone(),
-      self.options.entries.clone(),
+      self.options.entry.clone(),
       Default::default(),
       Default::default(),
     );
@@ -123,30 +116,22 @@ impl Compiler {
 
     // self.compilation.calc_exec_order();
 
-    self.compilation.seal();
-    self.compilation.chunk_graph.chunks_mut().for_each(|chunk| {
-      chunk.calc_exec_order(&self.compilation.module_graph);
-    });
-
-    tracing::debug!("chunk graph {:#?}", self.compilation.chunk_graph);
-
-    // generate runtime
-    self.compilation.runtime = self.compilation.render_runtime(self.plugin_driver.clone());
-    // Stream::
-    let assets = self
-      .compilation
-      .render_manifest(self.plugin_driver.clone())?;
+    self.compilation.seal(self.plugin_driver.clone());
 
     // tracing::trace!("assets {:#?}", assets);
+
+    std::fs::create_dir_all(Path::new(&self.options.context).join(&self.options.output.path))
+      .context("failed to create output directory")?;
 
     std::fs::create_dir_all(&self.options.output.path)
       .context("failed to create output directory")?;
 
-    assets
+    self
+      .compilation
+      .assets
       .par_iter()
-      .try_for_each(|asset| -> anyhow::Result<()> {
+      .try_for_each(|(filename, asset)| -> anyhow::Result<()> {
         use std::fs;
-        let filename = asset.filename();
 
         std::fs::create_dir_all(
           Path::new(&self.options.output.path)
@@ -155,7 +140,7 @@ impl Compiler {
             .unwrap(),
         )?;
 
-        match &asset.content() {
+        match asset.source() {
           AssetContent::Buffer(buf) => {
             fs::write(Path::new(&self.options.output.path).join(filename), buf)
               .context("failed to write asset")
@@ -167,7 +152,7 @@ impl Compiler {
         }
       })?;
 
-    Ok(Stats::new(assets.into_boxed_slice()))
+    Ok(Stats::new(&self.compilation))
   }
 
   #[instrument(skip_all)]

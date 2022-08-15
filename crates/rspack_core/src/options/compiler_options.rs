@@ -1,12 +1,12 @@
-use std::collections::HashMap;
-
-use crate::{DevServerOptions, EntryItem, OutputOptions, Target};
+use crate::{BundleEntries, Context, DevServerOptions, OutputOptions, Plugins, Resolve, Target};
 
 #[derive(Debug)]
 pub struct CompilerOptions {
-  pub entries: HashMap<String, EntryItem>,
-  pub root: String,
+  pub entry: BundleEntries,
+  pub context: Context,
   pub dev_server: DevServerOptions,
   pub output: OutputOptions,
   pub target: Target,
+  pub resolve: Resolve,
+  pub plugins: Plugins,
 }
