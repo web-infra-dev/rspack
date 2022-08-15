@@ -111,7 +111,7 @@ impl Display for TestError {
         .unwrap();
       }
 
-      if let Err(e) = match &kind {
+      match &kind {
         TestErrorKind::Difference(diff) => {
           output("File difference", diff.path.as_path().to_str().unwrap()).unwrap();
           if is_detail() {
@@ -135,9 +135,7 @@ impl Display for TestError {
         TestErrorKind::MissingExpectedFile(file) => {
           output("'Expected' file missing", file.as_path().to_str().unwrap())
         }
-      } {
-        return Err(e);
-      }
+      }?;
     }
     Ok(())
   }

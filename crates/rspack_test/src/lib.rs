@@ -8,7 +8,7 @@ pub use testing_macros::fixture;
 mod helper;
 pub mod record;
 pub mod rspack_only;
-pub use rspack_only::{test_fixture, RawOptionsTestExt};
+pub use rspack_only::test_fixture;
 
 #[macro_use]
 extern crate derive_builder;
