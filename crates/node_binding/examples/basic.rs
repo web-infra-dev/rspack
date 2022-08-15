@@ -12,16 +12,18 @@ async fn main() {
   let guard = log::enable_tracing_by_env_with_chrome_layer();
   let mut compiler = rspack(
     normalize_bundle_options(RawOptions {
-      entry: HashMap::from([("main".to_string(), "./src/index.js".to_string())]),
-      context: std::env::current_dir()
-        .map(|dir| {
-          dir
-            .join("examples/react")
-            // .resolve()
-            .to_string_lossy()
-            .to_string()
-        })
-        .ok(),
+      entry: Some(HashMap::from([(
+        "main".to_string(),
+        "./src/index.js".to_string(),
+      )])),
+      context: Some(
+        std::env::current_dir()
+          .unwrap()
+          .join("examples/react")
+          // .resolve()
+          .to_string_lossy()
+          .to_string(),
+      ),
       output: Some(RawOutputOptions {
         public_path: Some(String::from("http://localhost:3000/")),
         ..RawOutputOptions::default()
@@ -37,7 +39,7 @@ async fn main() {
       plugins: Some(json!(["html"])),
       ..Default::default()
     })
-    .expect("Failed to normalized options"),
+    .unwrap(),
     vec![],
   );
 
