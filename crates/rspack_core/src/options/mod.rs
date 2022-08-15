@@ -18,6 +18,8 @@ mod context;
 pub use context::*;
 mod plugins;
 pub use plugins::*;
+mod module;
+pub use module::*;
 
 #[derive(Debug, Default)]
 pub struct CompilerOptionsBuilder {

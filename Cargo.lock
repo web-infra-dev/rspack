@@ -2074,6 +2074,7 @@ dependencies = [
  "once_cell",
  "petgraph",
  "rayon",
+ "regex",
  "sugar_path",
  "swc_css",
  "swc_ecma_ast 0.90.7",
