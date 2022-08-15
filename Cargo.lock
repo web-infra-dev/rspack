@@ -2245,7 +2245,6 @@ dependencies = [
  "rayon",
  "rspack",
  "rspack_core",
- "rspack_node",
  "serde",
  "serde_json",
  "similar",

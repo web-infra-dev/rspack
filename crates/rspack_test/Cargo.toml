@@ -8,9 +8,7 @@ version = "0.1.0"
 [dependencies]
 colored = "2.0.0"
 derive_builder = "0.11.2"
-node_binding = { path = "../node_binding", package = "rspack_node", features = [
-  "test",
-] }
+
 rayon = "1.5.3"
 rspack = { path = "../rspack" }
 rspack_core = { path = "../rspack_core" }
