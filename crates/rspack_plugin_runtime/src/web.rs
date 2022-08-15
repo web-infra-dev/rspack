@@ -18,9 +18,18 @@ pub fn generate_web_dynamic_require() -> RuntimeSourceNode {
   }
 }
 
-pub fn generate_web_dynamic_get_chunk_url() -> RuntimeSourceNode {
+pub fn generate_web_dynamic_get_chunk_url(has_hash: bool) -> RuntimeSourceNode {
   RuntimeSourceNode {
-    content: include_str!("runtime/web/_dynamic_get_chunk_url.js").to_string(),
+    content: include_str!("runtime/web/_dynamic_get_chunk_url.js")
+      .to_string()
+      .replace(
+        "__GET_DYNAMIC_URL_HASH_PLACEHOLDER__",
+        if has_hash {
+          r#"'.' + this.chunkHashData[type][chunkId]"#
+        } else {
+          r#""""#
+        },
+      ),
   }
 }
 

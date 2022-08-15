@@ -40,7 +40,7 @@ pub struct Resolve {
 impl Default for Resolve {
   fn default() -> Self {
     Self {
-      extensions: vec![".tsx", ".jsx", ".ts", ".js", ".json"]
+      extensions: vec![".tsx", ".jsx", ".ts", ".js", ".json", ".d.ts"]
         .into_iter()
         .map(|s| s.to_string())
         .collect(),
@@ -48,9 +48,9 @@ impl Default for Resolve {
       prefer_relative: false,
       symlinks: true,
       main_files: vec![String::from("index")],
-      main_fields: vec![String::from("main")],
+      main_fields: vec![String::from("module"), String::from("main")],
       browser_field: true,
-      condition_names: HashSet::new(),
+      condition_names: HashSet::from_iter(["import".to_string()]),
     }
   }
 }

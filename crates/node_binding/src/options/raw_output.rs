@@ -40,7 +40,7 @@ impl RawOption<OutputOptions> for RawOutputOptions {
 
     let chunk_filename = self
       .chunk_filename
-      .unwrap_or_else(|| filename.replace(NAME_PLACEHOLDER, ID_PLACEHOLDER));
+      .unwrap_or_else(|| filename.replace(NAME_PLACEHOLDER, &format!("{}.chunk", ID_PLACEHOLDER)));
     let path = self.path.unwrap_or_else(|| {
       Path::new(options.context.as_ref().unwrap())
         .join("dist")

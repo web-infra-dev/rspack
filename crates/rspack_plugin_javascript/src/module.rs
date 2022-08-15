@@ -7,7 +7,7 @@ use rspack_core::{
 };
 
 use std::fmt::Debug;
-use swc_common::FileName;
+use swc_common::{FileName, Mark};
 use swc_ecma_ast::EsVersion;
 use swc_ecma_transforms::{pass::noop, react};
 use swc_ecma_visit::VisitMutWith;
@@ -24,6 +24,7 @@ pub struct JsModule {
   pub module_type: ModuleType,
   pub ast: swc_ecma_ast::Program,
   pub source_type_list: &'static [SourceType; 1],
+  pub unresolved_mark: Mark,
 }
 
 impl Debug for JsModule {
@@ -104,7 +105,7 @@ impl Module for JsModule {
             |_, _| noop(),
             |_, _| {
               // noop()
-              finalize(module, compilation)
+              finalize(module, compilation, self.unresolved_mark)
             },
           )
         })

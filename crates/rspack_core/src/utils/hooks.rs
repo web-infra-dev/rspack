@@ -62,7 +62,7 @@ pub async fn resolve(
         )
       })? {
       ResolveResult::Info(info) => info.path.to_string_lossy().to_string(),
-      _ => unreachable!(),
+      ResolveResult::Ignored => format!("UnReachable:{}", args.specifier),
     }
   })
 }
