@@ -9,7 +9,6 @@ pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -
   plugins.push(Box::new(rspack_plugin_asset::AssetPlugin {}));
   plugins.push(Box::new(rspack_plugin_json::JsonPlugin {}));
   plugins.push(Box::new(rspack_plugin_runtime::RuntimePlugin {}));
-
   plugins.append(&mut options.plugins);
   Compiler::new(options, plugins)
 }

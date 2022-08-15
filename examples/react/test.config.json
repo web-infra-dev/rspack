@@ -8,5 +8,8 @@
       "fastRefresh": false
     },
     "svgr": true
-  }
+  },
+  "plugins": [
+    "html"
+  ]
 }
