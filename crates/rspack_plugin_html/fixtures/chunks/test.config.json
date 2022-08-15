@@ -8,6 +8,7 @@
     [
       "html",
       {
+        "template": "index.html",
         "chunks": [
           "chunk1",
           "chunk2"

@@ -23,8 +23,7 @@ pub struct HtmlPluginConfig {
   #[serde(default = "default_filename")]
   pub filename: String,
   /// template html file
-  #[serde(default = "default_template")]
-  pub template: String,
+  pub template: Option<String>,
   /// `head`, `body` or None
   pub inject: Option<HtmlPluginConfigInject>,
   /// path or `auto`
@@ -58,7 +57,7 @@ impl Default for HtmlPluginConfig {
   fn default() -> HtmlPluginConfig {
     HtmlPluginConfig {
       filename: default_filename(),
-      template: default_template(),
+      template: None,
       inject: None,
       public_path: None,
       script_loading: default_script_loading(),
