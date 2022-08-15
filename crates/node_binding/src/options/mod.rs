@@ -1,7 +1,5 @@
 use napi_derive::napi;
 
-use napi::bindgen_prelude::*;
-
 use rspack_core::{CompilerOptions, CompilerOptionsBuilder, DevServerOptions};
 
 use serde::Deserialize;
@@ -23,17 +21,24 @@ pub use raw_resolve::*;
 pub use raw_target::*;
 
 pub trait RawOption<T> {
-  fn to_compiler_option(self, options: &CompilerOptionsBuilder) -> T;
+  fn to_compiler_option(self, options: &CompilerOptionsBuilder) -> anyhow::Result<T>;
   /// use to create default value when input is `None`.
   fn fallback_value(options: &CompilerOptionsBuilder) -> Self;
+  fn raw_to_compiler_option(
+    raw: Option<Self>,
+    options: &CompilerOptionsBuilder,
+  ) -> anyhow::Result<T>
+  where
+    Self: Sized,
+  {
+    match raw {
+      Some(value) => value,
+      None => Self::fallback_value(options),
+    }
+    .to_compiler_option(options)
+  }
 }
-fn to_compiler_option<T: RawOption<U>, U>(value: Option<T>, options: &CompilerOptionsBuilder) -> U {
-  (match value {
-    Some(value) => value,
-    None => T::fallback_value(options),
-  })
-  .to_compiler_option(options)
-}
+
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 #[cfg(feature = "test")]
@@ -79,50 +84,50 @@ pub struct RawOptions {
   pub plugins: Option<RawPlugins>,
 }
 
-pub fn normalize_bundle_options(raw_options: RawOptions) -> Result<CompilerOptions> {
+pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<CompilerOptions> {
   // normalize_options should ensuring orderliness.
   let compier_options = CompilerOptionsBuilder::default()
     .then(|mut options| {
-      let context = to_compiler_option(raw_options.context, &options);
+      let context = RawOption::raw_to_compiler_option(raw_options.context, &options)?;
       options.context = Some(context);
-      options
-    })
+      Ok(options)
+    })?
     .then(|mut options| {
-      let mode = to_compiler_option(raw_options.mode, &options);
+      let mode = RawOption::raw_to_compiler_option(raw_options.mode, &options)?;
       options.mode = Some(mode);
-      options
-    })
+      Ok(options)
+    })?
     .then(|mut options| {
-      let entry = to_compiler_option(raw_options.entry, &options);
+      let entry = RawOption::raw_to_compiler_option(raw_options.entry, &options)?;
       options.entry = Some(entry);
-      options
-    })
+      Ok(options)
+    })?
     .then(|mut options| {
-      let output = to_compiler_option(raw_options.output, &options);
+      let output = RawOption::raw_to_compiler_option(raw_options.output, &options)?;
       options.output = Some(output);
-      options
-    })
+      Ok(options)
+    })?
     .then(|mut options| {
-      let target = to_compiler_option(raw_options.target, &options);
+      let target = RawOption::raw_to_compiler_option(raw_options.target, &options)?;
       options.target = Some(target);
-      options
-    })
+      Ok(options)
+    })?
     .then(|mut options| {
-      let resolve = to_compiler_option(raw_options.resolve, &options);
+      let resolve = RawOption::raw_to_compiler_option(raw_options.resolve, &options)?;
       options.resolve = Some(resolve);
-      options
-    })
+      Ok(options)
+    })?
     .then(|mut options| {
-      let plugins = to_compiler_option(raw_options.plugins, &options).unwrap();
+      let plugins = RawOption::raw_to_compiler_option(raw_options.plugins, &options)?;
       options.plugins = Some(plugins);
-      options
-    })
+      Ok(options)
+    })?
     .then(|mut options| {
       // TODO: remove or keep.
       let dev_server = DevServerOptions { hmr: false };
       options.dev_server = Some(dev_server);
-      options
-    })
+      Ok(options)
+    })?
     .unwrap();
 
   Ok(compier_options)

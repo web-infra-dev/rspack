@@ -68,7 +68,10 @@ pub fn new_rspack(
   //   plugins.push(Box::new(node_adapter) as Box<dyn rspack_core::Plugin>);
   // }
 
-  let rspack = rspack::rspack(normalize_bundle_options(options)?, vec![]);
+  let rspack = rspack::rspack(
+    normalize_bundle_options(options).map_err(|e| Error::from_reason(format!("{:?}", e)))?,
+    vec![],
+  );
 
   // let resolver = rspack.resolver.clone();
   Ok(create_external(RspackBindingContext {

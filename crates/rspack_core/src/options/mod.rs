@@ -44,7 +44,7 @@ impl CompilerOptionsBuilder {
     }
   }
 
-  pub fn then<F: FnOnce(Self) -> Self>(self, f: F) -> Self {
+  pub fn then<F: FnOnce(Self) -> anyhow::Result<Self>>(self, f: F) -> anyhow::Result<Self> {
     f(self)
   }
 }

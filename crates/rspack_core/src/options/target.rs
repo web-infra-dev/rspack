@@ -1,4 +1,4 @@
-use std::{str::FromStr, string::ParseError};
+use std::str::FromStr;
 
 #[derive(Debug)]
 pub enum TargetOptions {
@@ -15,9 +15,9 @@ pub enum Target {
 }
 
 impl FromStr for Target {
-  type Err = ParseError;
+  type Err = anyhow::Error;
 
-  fn from_str(s: &str) -> std::result::Result<Target, Self::Err> {
+  fn from_str(s: &str) -> anyhow::Result<Target> {
     if s.eq("web") {
       Ok(Target::Target(TargetOptions::Web))
     } else if s.starts_with("node") {

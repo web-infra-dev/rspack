@@ -1,12 +1,11 @@
 use crate::RawOption;
-use napi::Result;
 use rspack_core::{CompilerOptionsBuilder, Plugins};
 use rspack_plugin_html::config::HtmlPluginConfig;
 
 pub type RawPlugins = serde_json::value::Value;
 
-impl RawOption<Result<Plugins>> for RawPlugins {
-  fn to_compiler_option(self, _options: &CompilerOptionsBuilder) -> Result<Plugins> {
+impl RawOption<Plugins> for RawPlugins {
+  fn to_compiler_option(self, _options: &CompilerOptionsBuilder) -> anyhow::Result<Plugins> {
     let mut result: Plugins = vec![];
     if self.is_null() {
       return Ok(result);
@@ -26,9 +25,9 @@ impl RawOption<Result<Plugins>> for RawPlugins {
             name_with_config.get(1),
           )
         } else {
-          return Err(napi::Error::from_reason(format!(
+          return Err(anyhow::format_err!(
             "`config.plugins[{i}]`: structure is not recognized."
-          )));
+          ));
         };
         match target.as_deref() {
           Some("html") => {
@@ -39,17 +38,17 @@ impl RawOption<Result<Plugins>> for RawPlugins {
             result.push(Box::new(rspack_plugin_html::HtmlPlugin::new(config)));
           }
           _ => {
-            return Err(napi::Error::from_reason(format!(
+            return Err(anyhow::format_err!(
               "`config.plugins[{i}]`: plugin is not found."
-            )));
+            ));
           }
         };
       }
     } else {
-      return Err(napi::Error::from_reason(format!(
+      return Err(anyhow::format_err!(
         "`config.plugins`: structure is not recognized. Found `{:?}`",
         plugins
-      )));
+      ));
     }
     Ok(result)
   }
