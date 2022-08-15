@@ -6,7 +6,7 @@ on:
       - main
       - next
     tags-ignore:
-      - "**"
+      - '**'
   pull_request:
 
 env:
@@ -31,7 +31,7 @@ jobs:
       - name: Install toolchain
         run: rustup show
       #- name: Cache
-        #uses: speedy-js/rust-cache-self-hosted@v1
+      #uses: speedy-js/rust-cache-self-hosted@v1
       - name: Run rustfmt
         uses: actions-rs/cargo@v1
         with:
@@ -50,7 +50,7 @@ jobs:
       - name: Install toolchain
         run: rustup show
       #- name: Cache
-       # uses: speedy-js/rust-cache-self-hosted@v1
+      # uses: speedy-js/rust-cache-self-hosted@v1
       - name: Run clippy
         uses: actions-rs/cargo@v1
         with:
@@ -71,7 +71,7 @@ jobs:
       - name: Install toolchain
         run: rustup show
       #- name: Cache
-        #uses: speedy-js/rust-cache-self-hosted@v1
+      #uses: speedy-js/rust-cache-self-hosted@v1
       # - name: Install yarn
       #   run: npm install -g yarn
       # - name: yarn install --no-immutable
@@ -89,6 +89,7 @@ jobs:
       - name: Test
         run: |
           cargo test --all --all-features -- --nocapture
+          cargo run --example basic --features="test" -- --nocapture
           yarn install
           yarn workspace @rspack/binding run build
           yarn workspace @rspack/core run build
