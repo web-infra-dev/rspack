@@ -7,6 +7,7 @@ use serde::Deserialize;
 mod raw_context;
 mod raw_entry;
 mod raw_mode;
+mod raw_module;
 mod raw_output;
 mod raw_plugins;
 mod raw_resolve;
@@ -15,6 +16,7 @@ mod raw_target;
 pub use raw_context::*;
 pub use raw_entry::*;
 pub use raw_mode::*;
+pub use raw_module::*;
 pub use raw_output::*;
 pub use raw_plugins::*;
 pub use raw_resolve::*;
@@ -82,6 +84,7 @@ pub struct RawOptions {
   // pub chunk_filename: Option<String>,
   #[napi(ts_type = "any[]")]
   pub plugins: Option<RawPlugins>,
+  pub module: Option<RawModuleOptions>,
 }
 
 pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<CompilerOptions> {
