@@ -4,19 +4,30 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub struct TraceableError {
-  pub path: String,
+  pub path: Option<String>,
   pub start: usize,
   pub end: usize,
   pub error_message: String,
+  pub source: Option<String>,
 }
 
 impl TraceableError {
-  pub fn new(path: String, start: usize, end: usize, error_message: String) -> Self {
+  pub fn from_path(path: String, start: usize, end: usize, error_message: String) -> Self {
     Self {
-      path,
+      path: Some(path),
       start,
       end,
       error_message,
+      source: None,
+    }
+  }
+  pub fn from_source(source: String, start: usize, end: usize, error_message: String) -> Self {
+    Self {
+      path: None,
+      start,
+      end,
+      error_message,
+      source: Some(source),
     }
   }
 }
