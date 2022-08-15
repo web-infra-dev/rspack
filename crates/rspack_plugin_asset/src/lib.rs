@@ -103,14 +103,14 @@ impl Plugin for AssetPlugin {
                   .output
                   .asset_module_filename
                   .render(FilenameRenderOptions {
-                    filename: Some(path.file_stem().and_then(OsStr::to_str).unwrap().to_owned()),
-                    extension: Some(
-                      path
-                        .extension()
-                        .and_then(OsStr::to_str)
-                        .map(|str| format!("{}{}", ".", str))
-                        .unwrap(),
-                    ),
+                    filename: path
+                      .file_stem()
+                      .and_then(OsStr::to_str)
+                      .map(|s| s.to_owned()),
+                    extension: path
+                      .extension()
+                      .and_then(OsStr::to_str)
+                      .map(|str| format!("{}{}", ".", str)),
                     id: None,
                   }),
               ))

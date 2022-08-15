@@ -184,7 +184,7 @@ pub fn code_splitting2(compilation: &mut Compilation) {
           .for_each(|id_of_chunk_to_place_module| {
             let chunk_to_place_module = chunk_graph
               .chunk_by_id_mut(id_of_chunk_to_place_module)
-              .unwrap();
+              .expect("Failed to get chunk by id");
             chunk_to_place_module
               .module_uris
               .insert(module_uri.to_string());
@@ -236,7 +236,7 @@ impl<'me> ChunkIdGenerator<'me> {
         id
       }
       ChunkIdAlgo::Named => {
-        let js_mod = self.module_graph.module_by_uri(module_uri).unwrap();
+        let js_mod = self.module_graph.module_by_uri(module_uri).expect("Failed to get module by uri");
         js_mod
           .name
           .clone()

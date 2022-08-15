@@ -12,7 +12,7 @@ use crate::{
 };
 use anyhow::Context;
 use rayon::prelude::*;
-use rspack_error::{Error, Result};
+use rspack_error::{Diagnostic, Error, Result};
 use tracing::instrument;
 
 mod compilation;
@@ -61,6 +61,7 @@ impl Compiler {
       Default::default(),
       Default::default(),
     );
+    let mut errors: Vec<Diagnostic> = vec![];
 
     // self.compilation.
     let active_task_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
@@ -121,7 +122,7 @@ impl Compiler {
 
     // self.compilation.calc_exec_order();
 
-    self.compilation.seal(self.plugin_driver.clone());
+    self.compilation.seal(self.plugin_driver.clone())?;
 
     // tracing::trace!("assets {:#?}", assets);
 

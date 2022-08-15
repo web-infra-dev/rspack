@@ -7,6 +7,7 @@ use std::{
 };
 
 use crate::{CompilerOptions, LoaderResult, LoaderRunnerRunner, ResourceData};
+use rspack_error::{Diagnostic, Error};
 use sugar_path::PathSugar;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -58,6 +59,7 @@ pub struct NormalModuleFactory {
   tx: UnboundedSender<Msg>,
   plugin_driver: Arc<PluginDriver>,
   loader_runner_runner: Arc<LoaderRunnerRunner>,
+  diagnostic: Vec<Diagnostic>,
 }
 
 impl NormalModuleFactory {
@@ -76,8 +78,10 @@ impl NormalModuleFactory {
       tx,
       plugin_driver,
       loader_runner_runner,
+      diagnostic: vec![],
     }
   }
+
   pub async fn run(mut self) {
     match self.resolve_module().await {
       Ok(maybe_module) => {
@@ -89,6 +93,10 @@ impl NormalModuleFactory {
       }
       Err(err) => self.send(Msg::TaskErrorEncountered(err)),
     }
+  }
+
+  pub fn add_diagnostic<T: Into<Diagnostic>>(&mut self, diagnostic: T) {
+    self.diagnostic.push(diagnostic.into());
   }
 
   pub fn send(&self, msg: Msg) {
@@ -131,7 +139,12 @@ impl NormalModuleFactory {
         self.dependency.clone(),
         uri.clone(),
       ))
-      .unwrap();
+      .map_err(|_| {
+        Error::InternalError(format!(
+          "Failed to resovle dependency {:?}",
+          self.dependency
+        ))
+      })?;
 
     if self
       .context
