@@ -1,20 +1,9 @@
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD:crates/rspack_plugin_css/tests/fixtures/webpack/.import/expected/main.css
-@import url(https://some/other/external/css);
-@import url(https://some/external/css);
-=======
->>>>>>> Fix/import statement wrong order (#485)
 
 
 body {
   background: red;
 }
 
-<<<<<<< HEAD
-=======
->>>>>>> Fix/import statement wrong order (#485):crates/rspack_plugin_css/tests/fixtures/webpack/at-import-in-the-middle/expected/main.css
->>>>>>> Fix/import statement wrong order (#485)
 .c {
   background: red;
 }
@@ -23,13 +12,6 @@ body {
   color: yellow;
 }
 
-<<<<<<< HEAD
-=======
-body {
-  background: red;
-}
-
->>>>>>> Fix/import statement wrong order (#485)
 .b {
   background: red;
 }

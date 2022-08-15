@@ -48,9 +48,9 @@ impl Default for Resolve {
       prefer_relative: false,
       symlinks: true,
       main_files: vec![String::from("index")],
-      main_fields: vec![String::from("main")],
+      main_fields: vec![String::from("module"), String::from("main")],
       browser_field: true,
-      condition_names: HashSet::new(),
+      condition_names: HashSet::from_iter(vec!["import".to_string()].into_iter()),
     }
   }
 }

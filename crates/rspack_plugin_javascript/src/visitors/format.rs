@@ -8,13 +8,12 @@ use swc_ecma_transforms::hygiene;
 use swc_ecma_transforms::modules::common_js;
 use swc_ecma_transforms::modules::common_js::Config as CommonJsConfig;
 use swc_ecma_transforms::{fixer, helpers::inject_helpers};
-use swc_ecma_utils::{member_expr, quote_ident, quote_str, ExprFactory};
+use swc_ecma_utils::{quote_ident, ExprFactory};
 use swc_ecma_visit::{Fold, FoldWith, VisitMut, VisitMutWith};
 use tracing::instrument;
 
-use crate::{
-  cjs_runtime_helper, get_rspack_register_callee, RSPACK_DYNAMIC_IMPORT, RSPACK_REQUIRE,
-};
+use crate::utils::{is_dynamic_import_literal_expr, is_require_literal_expr};
+use crate::{RSPACK_DYNAMIC_IMPORT, RSPACK_REQUIRE};
 use {
   swc_atoms,
   swc_common,
@@ -23,7 +22,6 @@ use {
   swc_ecma_visit::{self, noop_visit_mut_type},
 };
 
-pub const RS_REQUIRE: &str = "__rspack_require__";
 pub struct RspackModuleFinalizer<'a> {
   pub module: &'a ModuleGraphModule,
   pub unresolved_mark: Mark,
@@ -62,71 +60,45 @@ impl<'a> Fold for RspackModuleFinalizer<'a> {
       .filter_map(|stmt| stmt.stmt())
       .collect();
 
-    let namespace = &self.compilation.options.output.unique_name;
-
-    let module_body = vec![CallExpr {
-      span: DUMMY_SP,
-      callee: get_rspack_register_callee(namespace),
-      args: vec![
-        Expr::Array(ArrayLit {
+    let module_body = vec![Expr::Fn(FnExpr {
+      ident: None,
+      function: Function {
+        params: vec![
+          Param {
+            span: DUMMY_SP,
+            decorators: Default::default(),
+            pat: quote_ident!("module").into(),
+          },
+          Param {
+            span: DUMMY_SP,
+            decorators: Default::default(),
+            pat: quote_ident!("exports").into(),
+          },
+          Param {
+            span: DUMMY_SP,
+            decorators: Default::default(),
+            // keep require mark same as swc common_js used
+            pat: quote_ident!(RSPACK_REQUIRE).into(),
+          },
+          Param {
+            span: DUMMY_SP,
+            decorators: Default::default(),
+            // keep require mark same as swc common_js used
+            pat: quote_ident!(RSPACK_DYNAMIC_IMPORT).into(),
+          },
+        ],
+        decorators: Default::default(),
+        span: DUMMY_SP,
+        body: Some(BlockStmt {
           span: DUMMY_SP,
-          elems: vec![Some(ExprOrSpread {
-            spread: None,
-            expr: Box::new(Expr::Lit(Lit::Str(quote_str!(self.module.id.clone())))),
-          })],
-        })
-        .as_arg(),
-        Expr::Object(ObjectLit {
-          span: DUMMY_SP,
-          props: vec![swc_ecma_ast::PropOrSpread::Prop(Box::new(Prop::KeyValue(
-            KeyValueProp {
-              key: PropName::Str(quote_str!(self.module.id.clone())),
-              value: Box::new(Expr::Fn(FnExpr {
-                ident: None,
-                function: Function {
-                  params: vec![
-                    Param {
-                      span: DUMMY_SP,
-                      decorators: Default::default(),
-                      pat: quote_ident!("module").into(),
-                    },
-                    Param {
-                      span: DUMMY_SP,
-                      decorators: Default::default(),
-                      pat: quote_ident!("exports").into(),
-                    },
-                    Param {
-                      span: DUMMY_SP,
-                      decorators: Default::default(),
-                      // keep require mark same as swc common_js used
-                      pat: quote_ident!(RSPACK_REQUIRE).into(),
-                    },
-                    Param {
-                      span: DUMMY_SP,
-                      decorators: Default::default(),
-                      // keep require mark same as swc common_js used
-                      pat: quote_ident!(RSPACK_DYNAMIC_IMPORT).into(),
-                    },
-                  ],
-                  decorators: Default::default(),
-                  span: DUMMY_SP,
-                  body: Some(BlockStmt {
-                    span: DUMMY_SP,
-                    stmts,
-                  }),
-                  is_generator: false,
-                  is_async: false,
-                  type_params: Default::default(),
-                  return_type: Default::default(),
-                },
-              })),
-            },
-          )))],
-        })
-        .as_arg(),
-      ],
-      type_args: Default::default(),
-    }
+          stmts,
+        }),
+        is_generator: false,
+        is_async: false,
+        type_params: Default::default(),
+        return_type: Default::default(),
+      },
+    })
     .into_stmt()
     .into()];
 
@@ -160,6 +132,7 @@ impl<'a> Fold for RspackModuleFinalizer<'a> {
 
 pub struct RspackModuleFormatTransformer<'a> {
   require_id: Id,
+  unresolved_mark: Mark,
   compilation: &'a Compilation,
   module: &'a ModuleGraphModule,
   // resolved_ids: &'a HashMap<JsWord, ResolvedURI>,
@@ -172,15 +145,34 @@ impl<'a> RspackModuleFormatTransformer<'a> {
   ) -> Self {
     Self {
       require_id: quote_ident!(DUMMY_SP.apply_mark(unresolved_mark), "require").to_id(),
+      unresolved_mark,
       module,
       compilation: bundle,
     }
   }
 
+  fn get_rspack_import_callee(&self) -> Callee {
+    Ident::new(RSPACK_REQUIRE.into(), DUMMY_SP).as_callee()
+  }
+
+  fn get_rspack_dynamic_import_callee(&self, chunk_id: &str) -> Callee {
+    MemberExpr {
+      span: DUMMY_SP,
+      obj: Box::new(swc_ecma_ast::Expr::Call(CallExpr {
+        span: DUMMY_SP,
+        callee: Ident::new(RSPACK_DYNAMIC_IMPORT.into(), DUMMY_SP).as_callee(),
+        args: vec![Lit::Str(chunk_id.into()).as_arg()],
+        type_args: None,
+      })),
+      prop: MemberProp::Ident(Ident::new("then".into(), DUMMY_SP)),
+    }
+    .as_callee()
+  }
+
   #[instrument(skip_all)]
   fn rewrite_static_import(&mut self, n: &mut CallExpr) -> Option<()> {
-    if let Callee::Expr(box Expr::Ident(ident)) = &mut n.callee {
-      if self.require_id == ident.to_id() {
+    if is_require_literal_expr(n, self.unresolved_mark, &self.require_id) {
+      if let Callee::Expr(box Expr::Ident(_ident)) = &mut n.callee {
         if let ExprOrSpread {
           spread: None,
           expr: box Expr::Lit(Lit::Str(str)),
@@ -214,8 +206,9 @@ impl<'a> RspackModuleFormatTransformer<'a> {
           }
 
           str.value = JsWord::from(js_module?.id.as_str());
-          str.raw = Some(Atom::from(format!("\"{}\"", js_module?.id)));
+          str.raw = Some(Atom::from(format!("\"{}\"", js_module?.id.as_str())));
         };
+        n.callee = self.get_rspack_import_callee();
       }
     }
     Some(())
@@ -223,42 +216,60 @@ impl<'a> RspackModuleFormatTransformer<'a> {
 
   #[instrument(skip_all)]
   fn rewrite_dyn_import(&mut self, n: &mut CallExpr) -> Option<()> {
-    if let Lit::Str(Str { value: literal, .. }) = n.args.first()?.expr.as_lit()? {
-      // If the import module is not exsit in module graph, we need to leave it as it is
-      let dep = Dependency {
-        importer: Some(self.module.uri.clone()),
-        detail: ModuleDependency {
-          specifier: literal.to_string(),
-          kind: ResolveKind::Require,
-        },
-      };
-      let js_module = self.compilation.module_graph.module_by_dependency(&dep)?;
-      let args;
-      let js_module_id = js_module.id.as_str();
-      if let Some(chunk) = self
-        .compilation
-        .chunk_graph
-        .chunk_by_split_point_module_uri(&js_module.uri)
-      {
-        args = vec![
-          Lit::Str(js_module_id.into()).as_arg(),
-          Lit::Str(chunk.id.as_str().into()).as_arg(),
-        ];
-      } else {
-        args = vec![Lit::Str(js_module_id.into()).as_arg()];
-      }
+    if is_dynamic_import_literal_expr(n) {
+      if let Lit::Str(Str { value: literal, .. }) = n.args.first()?.expr.as_lit()? {
+        // If the import module is not exsit in module graph, we need to leave it as it is
+        let dep = Dependency {
+          importer: Some(self.module.uri.clone()),
+          detail: ModuleDependency {
+            specifier: literal.to_string(),
+            kind: ResolveKind::DynamicImport,
+          },
+        };
 
-      // n.callee = if self.compilation.options.chunk_loading.is_jsonp() {
-      n.callee = if true {
-        cjs_runtime_helper!(jsonp, rs.dynamic_require)
-      } else if false {
-        // } else if self.compilation.options.platform == Platform::Node {
-        cjs_runtime_helper!(dynamic_node, rs.dynamic_require)
-      } else {
-        cjs_runtime_helper!(dynamic_browser, rs.dynamic_require)
+        let js_module = self.compilation.module_graph.module_by_dependency(&dep)?;
+        let js_module_id = js_module.id.as_str();
+        let args = vec![Expr::Call(CallExpr {
+          span: DUMMY_SP,
+          callee: MemberExpr {
+            span: DUMMY_SP,
+            obj: Box::new(Expr::Ident(Ident::new(RSPACK_REQUIRE.into(), DUMMY_SP))),
+            prop: MemberProp::Ident(Ident::new("bind".into(), DUMMY_SP)),
+          }
+          .as_callee(),
+          args: vec![
+            Ident::new(RSPACK_REQUIRE.into(), DUMMY_SP).as_arg(),
+            // Ident::new(RSPACK_REQUIRE.into(), DUMMY_SP),
+            Lit::Str(js_module_id.into()).as_arg(),
+          ],
+          type_args: None,
+        })
+        .as_arg()];
+
+        let chunk_id = if let Some(chunk) = self
+          .compilation
+          .chunk_graph
+          .chunk_by_split_point_module_uri(&js_module.uri)
+        {
+          chunk.id.as_str()
+        } else {
+          js_module_id
+        };
+
+        // todo
+        n.callee = self.get_rspack_dynamic_import_callee(chunk_id);
+        // n.callee = if self.compilation.options.chunk_loading.is_jsonp() {
+        // n.callee = if true {
+        //   cjs_runtime_helper!(jsonp, rs.dynamic_require)
+        // } else if false {
+        //   // } else if self.compilation.options.platform == Platform::Node {
+        //   cjs_runtime_helper!(dynamic_node, rs.dynamic_require)
+        // } else {
+        //   cjs_runtime_helper!(dynamic_browser, rs.dynamic_require)
+        // };
+        n.args = args;
       };
-      n.args = args;
-    };
+    }
     Some(())
   }
 }
@@ -273,13 +284,5 @@ impl<'a> VisitMut for RspackModuleFormatTransformer<'a> {
       self.rewrite_static_import(n);
     }
     n.visit_mut_children_with(self);
-  }
-
-  fn visit_mut_ident(&mut self, n: &mut Ident) {
-    if n.to_id() == self.require_id {
-      n.sym = RS_REQUIRE.into();
-    } else {
-      // println!("n.to_id() {:?}", n.to_id());
-    }
   }
 }

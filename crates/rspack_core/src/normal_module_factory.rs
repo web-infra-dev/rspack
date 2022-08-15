@@ -100,11 +100,13 @@ impl NormalModuleFactory {
 
     if self.context.module_type.is_none() {
       // todo currently unreachable module types are temporarily unified with their importers
-      let url = parse_to_url(if uri.starts_with("UnReachable:") {
-        self.dependency.importer.as_deref().unwrap()
-      } else {
-        &uri
-      });
+      let url = parse_to_url(
+        if uri.starts_with("UnReachable:") || uri.contains(".scss") {
+          self.dependency.importer.as_deref().unwrap()
+        } else {
+          &uri
+        },
+      );
       assert_eq!(url.scheme(), "specifier");
       self.context.module_type = resolve_module_type_by_uri(url.path());
     }
@@ -130,7 +132,7 @@ impl NormalModuleFactory {
       .visited_module_identity
       .insert((uri.clone(), self.dependency.detail.clone()));
 
-    let source = if uri.starts_with("UnReachable:") {
+    let source = if uri.starts_with("UnReachable:") || uri.contains(".scss") {
       Content::Buffer("module.exports = {}".to_string().as_bytes().to_vec())
     } else {
       load(
