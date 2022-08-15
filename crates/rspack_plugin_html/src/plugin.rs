@@ -23,7 +23,17 @@ impl HtmlPlugin {
     HtmlPlugin { config }
   }
 }
-
+fn default_template() -> &'static str {
+  r#"<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>rspack</title>
+  </head>
+  <body>
+  </body>
+</html>"#
+}
 impl Plugin for HtmlPlugin {
   fn name(&self) -> &'static str {
     "html"
@@ -41,14 +51,19 @@ impl Plugin for HtmlPlugin {
     let chunk_graph = &compilation.chunk_graph;
 
     let parser = HtmlCompiler::new();
-
-    let url = parse_to_url(&config.template);
-    let resolved_template = resolve_from_context(&compilation.options.context, url.path());
-    let content = fs::read_to_string(resolved_template).context(format!(
-      "failed to read `{}` from `{}`",
-      url.path(),
-      &compilation.options.context
-    ))?;
+    let (content, url) = match &config.template {
+      Some(_template) => {
+        let url = parse_to_url(_template);
+        let resolved_template = resolve_from_context(&compilation.options.context, url.path());
+        let content = fs::read_to_string(resolved_template).context(format!(
+          "failed to read `{}` from `{}`",
+          url.path(),
+          &compilation.options.context
+        ))?;
+        (content, url)
+      }
+      None => (default_template().to_owned(), parse_to_url("default.html")),
+    };
 
     let mut current_ast = parser.parse_file(url.path(), content)?;
 

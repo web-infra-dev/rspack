@@ -3,6 +3,11 @@
     "index": "./index.js"
   },
   "plugins": [
-    "html"
+    [
+      "html",
+      {
+        "template": "index.html"
+      }
+    ]
   ]
 }

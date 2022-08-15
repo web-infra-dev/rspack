@@ -30,7 +30,6 @@ impl RawOption<Result<Plugins>> for RawPlugins {
             "`config.plugins[{i}]`: structure is not recognized."
           )));
         };
-
         match target.as_deref() {
           Some("html") => {
             let config: HtmlPluginConfig = match config {
