@@ -27,7 +27,6 @@ pub trait RawOption<T> {
   /// use to create default value when input is `None`.
   fn fallback_value(options: &CompilerOptionsBuilder) -> Self;
 }
-
 fn to_compiler_option<T: RawOption<U>, U>(value: Option<T>, options: &CompilerOptionsBuilder) -> U {
   (match value {
     Some(value) => value,
@@ -35,9 +34,29 @@ fn to_compiler_option<T: RawOption<U>, U>(value: Option<T>, options: &CompilerOp
   })
   .to_compiler_option(options)
 }
+#[derive(Deserialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+#[cfg(feature = "test")]
+#[napi(object)]
+pub struct RawOptions {
+  pub entry: Option<RawEntry>,
+  pub mode: Option<RawMode>,
+  pub target: Option<RawTarget>,
+  // #[napi(ts_type = "\"browser\" | \"node\"")]
+  // pub platform: Option<String>,
+  pub context: Option<RawContext>,
+  // pub loader: Option<HashMap<String, String>>,
+  // pub enhanced: Option<RawEnhancedOptions>,
+  // pub optimization: Option<RawOptimizationOptions>,
+  pub output: Option<RawOutputOptions>,
+  pub resolve: Option<RawResolveOptions>,
+  // pub chunk_filename: Option<String>,
+  pub plugins: Option<RawPlugins>,
+}
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
+#[cfg(not(feature = "test"))]
 #[napi(object)]
 pub struct RawOptions {
   #[napi(ts_type = "Record<string, string>")]
