@@ -1,7 +1,7 @@
 [package]
-edition = "2021"
 name = "rspack_plugin_javascript"
 version = "0.1.0"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dev_dependencies]
@@ -10,7 +10,7 @@ testing_macros = "0.2.5"
 
 [dependencies]
 rspack_core = { path = "../rspack_core" }
-swc = "0.213.2"                                          # Speedy web compiler
+swc = "0.213.2"                      # Speedy web compiler
 swc_ecma_ast = "0.90.3"
 swc_ecma_visit = "0.76.1"
 swc_common = "0.27.2"
