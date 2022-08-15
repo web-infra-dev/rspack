@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use napi_derive::napi;
 
 use rspack_core::{CompilerOptions, CompilerOptionsBuilder, DevServerOptions};
@@ -31,7 +33,7 @@ pub trait RawOption<T> {
     options: &CompilerOptionsBuilder,
   ) -> anyhow::Result<T>
   where
-    Self: Sized,
+    Self: Sized + Debug,
   {
     match raw {
       Some(value) => value,
@@ -59,6 +61,7 @@ pub struct RawOptions {
   pub resolve: Option<RawResolveOptions>,
   // pub chunk_filename: Option<String>,
   pub plugins: Option<RawPlugins>,
+  pub module: Option<RawModuleOptions>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -129,6 +132,12 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
       // TODO: remove or keep.
       let dev_server = DevServerOptions { hmr: false };
       options.dev_server = Some(dev_server);
+      Ok(options)
+    })?
+    .then(|mut options| {
+      let module_options = RawOption::raw_to_compiler_option(raw_options.module, &options)?;
+
+      options.module = module_options;
       Ok(options)
     })?
     .unwrap();

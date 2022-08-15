@@ -1,6 +1,9 @@
 use rspack::rspack;
-use rspack_core::log;
-use rspack_node::{normalize_bundle_options, RawOptions, RawOutputOptions};
+use rspack_core::{log, ParserOptions};
+use rspack_node::{
+  normalize_bundle_options, RawAssetParserDataUrlOption, RawAssetParserOptions, RawModuleOptions,
+  RawOptions, RawOutputOptions, RawParserOptions,
+};
 use serde_json::json;
 use std::collections::HashMap;
 
@@ -24,6 +27,14 @@ async fn main() {
       output: Some(RawOutputOptions {
         public_path: Some(String::from("http://localhost:3000/")),
         ..RawOutputOptions::default()
+      }),
+      module: Some(RawModuleOptions {
+        rules: vec![],
+        parser: Some(RawParserOptions {
+          asset: Some(RawAssetParserOptions {
+            data_url_condition: Some(RawAssetParserDataUrlOption { max_size: Some(1) }),
+          }),
+        }),
       }),
       plugins: Some(json!(["html"])),
       ..Default::default()

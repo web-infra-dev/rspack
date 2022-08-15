@@ -2,28 +2,37 @@ use std::{ffi::OsStr, path::Path};
 
 use anyhow::Result;
 use rspack_core::{
-  BoxModule, FilenameRenderOptions, Module, ModuleRenderResult, ModuleType, Parser, SourceType,
+  AssetParserDataUrlOption, BoxModule, FilenameRenderOptions, Module, ModuleRenderResult,
+  ModuleType, Parser, SourceType,
 };
+#[derive(Debug)]
+enum DataUrlOption {
+  True,
+  False,
+  Option(Option<AssetParserDataUrlOption>),
+}
 
 #[derive(Debug)]
 pub struct AssetParser {
-  data_url: Option<bool>,
+  data_url: DataUrlOption,
 }
 
 impl AssetParser {
-  pub fn with_auto() -> Self {
-    Self { data_url: None }
+  pub fn with_auto(option: Option<AssetParserDataUrlOption>) -> Self {
+    Self {
+      data_url: DataUrlOption::Option(option),
+    }
   }
 
   pub fn with_inline() -> Self {
     Self {
-      data_url: Some(true),
+      data_url: DataUrlOption::True,
     }
   }
 
   pub fn with_resource() -> Self {
     Self {
-      data_url: Some(false),
+      data_url: DataUrlOption::False,
     }
   }
 }
@@ -42,7 +51,17 @@ impl Parser for AssetParser {
     if let Some(buf) = buf {
       let size = buf.len() as u32;
 
-      let is_inline = self.data_url.unwrap_or(size <= DEFAULT_MAX_SIZE);
+      let is_inline = match &self.data_url {
+        DataUrlOption::True => true,
+        DataUrlOption::False => false,
+        DataUrlOption::Option(option) => {
+          let limit_size = option
+            .as_ref()
+            .and_then(|x| x.max_size)
+            .unwrap_or(DEFAULT_MAX_SIZE);
+          size <= limit_size
+        }
+      };
 
       tracing::trace!(
         "asset {:?} with size {}, is inlined {}",

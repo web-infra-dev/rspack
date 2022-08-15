@@ -50,6 +50,7 @@ impl From<TestOptions> for CompilerOptions {
       target,
       dev_server: Default::default(),
       output,
+      module: Default::default(),
     }
   }
 }
