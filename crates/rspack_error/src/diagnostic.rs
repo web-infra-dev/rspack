@@ -6,12 +6,12 @@ pub enum Severity {
 }
 
 pub struct Diagnostic {
-  severity: Severity,
-  message: String,
+  pub severity: Severity,
+  pub message: String,
   /// Source code of current Diagnostic
-  source: Option<String>,
-  start: usize,
-  end: usize,
+  pub source: Option<String>,
+  pub start: usize,
+  pub end: usize,
 }
 
 impl Diagnostic {

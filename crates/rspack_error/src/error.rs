@@ -37,23 +37,22 @@ pub enum Error {
 
   #[error("")]
   TraceableError(TraceableError),
-
-//   #[error("invalid data store response")]
-//   NestedArray(Vec<Self>),
+  //   #[error("invalid data store response")]
+  //   NestedArray(Vec<Self>),
 }
 
 impl Error {
-//   pub fn flatten(self) -> Vec<Error> {
-//     match self {
-//       Error::NestedArray(error_list) => error_list
-//         .into_iter()
-//         .flat_map(|error| error.flatten())
-//         .collect(),
-//       _ => {
-//         vec![self]
-//       }
-//     }
-//   }
+  //   pub fn flatten(self) -> Vec<Error> {
+  //     match self {
+  //       Error::NestedArray(error_list) => error_list
+  //         .into_iter()
+  //         .flat_map(|error| error.flatten())
+  //         .collect(),
+  //       _ => {
+  //         vec![self]
+  //       }
+  //     }
+  //   }
 }
 
 impl From<anyhow::Error> for Error {

@@ -2,6 +2,7 @@ use std::{fmt::Debug, sync::Arc};
 
 use hashbrown::HashMap;
 use rayon::prelude::*;
+use rspack_error::{Error, Result};
 use tracing::instrument;
 
 use crate::{
@@ -128,13 +129,13 @@ impl Compilation {
   }
 
   #[instrument(skip_all)]
-  pub fn seal(&mut self, plugin_driver: Arc<PluginDriver>) {
+  pub fn seal(&mut self, plugin_driver: Arc<PluginDriver>) -> Result<()> {
     code_splitting2(self);
     // TODO: optmize chunks
 
-    self.chunk_graph.chunks_mut().for_each(|chunk| {
-      chunk.calc_exec_order(&self.module_graph);
-    });
+    for chunk in self.chunk_graph.chunks_mut() {
+      chunk.calc_exec_order(&self.module_graph)?;
+    }
 
     tracing::debug!("chunk graph {:#?}", self.chunk_graph);
 
@@ -157,6 +158,7 @@ impl Compilation {
     });
 
     self.process_assets(plugin_driver);
+    Ok(())
   }
 }
 
