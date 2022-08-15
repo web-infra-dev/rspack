@@ -35,6 +35,9 @@ impl Plugin for RuntimePlugin {
     let compilation = args.compilation;
     let public_path = compilation.options.output.public_path.public_path();
 
+    //Todo we are not implement hash now，it will be replaced by real value later
+    let has_hash = false;
+
     let has_dynamic_chunk = true;
     // if the complition has dynamic chunk
     //Todo we need a dynamic chunk tag to judge it
@@ -53,7 +56,7 @@ impl Plugin for RuntimePlugin {
           sources.push(generate_web_rspack_register());
           if has_dynamic_chunk {
             sources.push(generate_common_dynamic_data());
-            sources.push(generate_web_dynamic_get_chunk_url());
+            sources.push(generate_web_dynamic_get_chunk_url(has_hash));
             sources.push(generate_web_dynamic_require());
             sources.push(generate_web_dynamic_load_script());
             sources.push(generate_web_dynamic_load_style());

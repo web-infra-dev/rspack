@@ -1,13 +1,14 @@
-use crate::generate_rspack_execute;
 use crate::module::JS_MODULE_SOURCE_TYPE_LIST;
-use crate::utils::parse_file;
+use crate::utils::{get_wrap_chunk_after, get_wrap_chunk_before, parse_file, wrap_module_function};
 use crate::visitors::ClearMark;
+use crate::{generate_rspack_execute, RSPACK_REGISTER};
 use crate::{module::JsModule, utils::get_swc_compiler};
 use anyhow::{Context, Result};
 use rayon::prelude::*;
 use rspack_core::{
-  AssetContent, FilenameRenderOptions, ModuleAst, ModuleRenderResult, ModuleType, ParseModuleArgs,
-  Parser, Plugin, PluginContext, PluginRenderManifestHookOutput, RenderManifestEntry, SourceType,
+  AssetContent, ChunkKind, FilenameRenderOptions, ModuleAst, ModuleRenderResult, ModuleType,
+  ParseModuleArgs, Parser, Plugin, PluginContext, PluginRenderManifestHookOutput,
+  RenderManifestEntry, SourceType,
 };
 
 use swc_common::comments::SingleThreadedComments;
@@ -15,33 +16,51 @@ use swc_common::Mark;
 use swc_ecma_transforms::react::{react, Options as ReactOptions};
 use swc_ecma_transforms::{react as swc_react, resolver};
 use swc_ecma_visit::{as_folder, FoldWith};
-use tracing::instrument;
 
 #[derive(Debug)]
-pub struct JsPlugin {}
+pub struct JsPlugin {
+  unresolved_mark: Mark,
+}
+
+impl JsPlugin {
+  pub fn new() -> Self {
+    Self {
+      unresolved_mark: get_swc_compiler().run(Mark::new),
+    }
+  }
+}
+
+impl Default for JsPlugin {
+  fn default() -> Self {
+    Self::new()
+  }
+}
 
 impl Plugin for JsPlugin {
   fn name(&self) -> &'static str {
     "javascript"
   }
   fn apply(&mut self, ctx: PluginContext<&mut rspack_core::ApplyContext>) -> anyhow::Result<()> {
-    ctx
-      .context
-      .register_parser(ModuleType::Js, Box::new(JsParser {}));
-    ctx
-      .context
-      .register_parser(ModuleType::Ts, Box::new(JsParser {}));
-    ctx
-      .context
-      .register_parser(ModuleType::Tsx, Box::new(JsParser {}));
-    ctx
-      .context
-      .register_parser(ModuleType::Jsx, Box::new(JsParser {}));
+    ctx.context.register_parser(
+      ModuleType::Js,
+      Box::new(JsParser::new(self.unresolved_mark)),
+    );
+    ctx.context.register_parser(
+      ModuleType::Ts,
+      Box::new(JsParser::new(self.unresolved_mark)),
+    );
+    ctx.context.register_parser(
+      ModuleType::Tsx,
+      Box::new(JsParser::new(self.unresolved_mark)),
+    );
+    ctx.context.register_parser(
+      ModuleType::Jsx,
+      Box::new(JsParser::new(self.unresolved_mark)),
+    );
 
     Ok(())
   }
 
-  #[instrument(skip_all)]
   fn render_manifest(
     &self,
     _ctx: PluginContext,
@@ -56,7 +75,7 @@ impl Plugin for JsPlugin {
       .ok_or_else(|| anyhow::format_err!("Not found chunk {:?}", args.chunk_id))?;
     let ordered_modules = chunk.ordered_modules(module_graph);
 
-    let code = ordered_modules
+    let mut module_code_array = ordered_modules
       .par_iter()
       .filter(|module| {
         module
@@ -70,13 +89,26 @@ impl Plugin for JsPlugin {
           .render(SourceType::JavaScript, module, compilation)
           .map(|source| {
             if let Some(ModuleRenderResult::JavaScript(source)) = source {
-              Some(source)
+              Some(wrap_module_function(source, &module.id))
             } else {
               None
             }
           })
       })
-      .collect::<Result<Vec<Option<String>>>>()?
+      .collect::<Result<Vec<Option<String>>>>()?;
+
+    // insert chunk wrapper
+    module_code_array.insert(
+      0,
+      Some(get_wrap_chunk_before(
+        namespace,
+        RSPACK_REGISTER,
+        args.chunk_id,
+      )),
+    );
+    module_code_array.push(Some(get_wrap_chunk_after()));
+
+    let code = module_code_array
       .into_par_iter()
       .flatten()
       .chain([{
@@ -99,23 +131,48 @@ impl Plugin for JsPlugin {
       })
       .collect::<String>();
 
+    let output_path = match chunk.kind {
+      ChunkKind::Entry { .. } => {
+        compilation
+          .options
+          .output
+          .filename
+          .render(FilenameRenderOptions {
+            filename: Some(args.chunk_id.to_owned()),
+            extension: Some(".js".to_owned()),
+            id: None,
+          })
+      }
+      ChunkKind::Normal => {
+        compilation
+          .options
+          .output
+          .chunk_filename
+          .render(FilenameRenderOptions {
+            filename: None,
+            extension: Some(".js".to_owned()),
+            id: Some(format!("static/js/{}", args.chunk_id.to_owned())),
+          })
+      }
+    };
+
     Ok(vec![RenderManifestEntry::new(
       AssetContent::String(code),
-      compilation
-        .options
-        .output
-        .filename
-        .render(FilenameRenderOptions {
-          filename: Some(args.chunk_id.to_owned()),
-          extension: Some(".js".to_owned()),
-          id: None,
-        }),
+      output_path,
     )])
   }
 }
 
 #[derive(Debug)]
-struct JsParser {}
+struct JsParser {
+  unresolved_mark: Mark,
+}
+
+impl JsParser {
+  fn new(unresolved_mark: Mark) -> Self {
+    Self { unresolved_mark }
+  }
+}
 
 impl Parser for JsParser {
   fn parse(
@@ -160,7 +217,7 @@ impl Parser for JsParser {
         None,
         ReactOptions {
           development: Some(false),
-          runtime: Some(swc_react::Runtime::Automatic),
+          runtime: Some(swc_react::Runtime::Classic),
           refresh: None,
           ..Default::default()
         },
@@ -176,6 +233,7 @@ impl Parser for JsParser {
       uri: args.uri.to_string(),
       module_type,
       source_type_list: JS_MODULE_SOURCE_TYPE_LIST,
+      unresolved_mark: self.unresolved_mark,
     }))
   }
 }

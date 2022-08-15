@@ -100,9 +100,10 @@ function __rspack_register__(chunkIds, modules, callback) {
 
 (function () {
   runtime.__rspack_get_dynamic_chunk_url__ = function (chunkId, type) {
-    return 'static/' + type + '/' + chunkId + '.' + this.chunkHashData[type][chunkId] + '.chunk.' + type;
+    return 'static/' + type + '/' + chunkId + "" + '.chunk.' + type;
   };
-})();function __rspack_dynamic_require__(chunkId) {
+})();
+function __rspack_dynamic_require__(chunkId) {
   return Promise.all(
     Object.keys(this)
       .filter(function (key) {

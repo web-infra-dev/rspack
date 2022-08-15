@@ -3,7 +3,9 @@ use rspack_core::ModuleType;
 use std::path::Path;
 use std::sync::Arc;
 use swc::{config::IsModule, Compiler as SwcCompiler};
-use swc_common::{FileName, FilePathMapping, SourceMap};
+use swc_atoms::js_word;
+use swc_common::{FileName, FilePathMapping, Mark, SourceMap, Span, DUMMY_SP};
+use swc_ecma_ast::{CallExpr, Callee, Expr, ExprOrSpread, Id, Ident, Lit, Str};
 use swc_ecma_parser::Syntax;
 use swc_ecma_parser::{EsConfig, TsConfig};
 use tracing::instrument;
@@ -90,4 +92,87 @@ pub fn syntax_by_module_type(filename: &str, module_type: &ModuleType) -> Syntax
       syntax_by_ext(ext)
     }
   }
+}
+
+pub fn set_require_literal_args(e: &mut CallExpr, arg_value: &str) {
+  match e.args.first().expect("this should never happen") {
+    ExprOrSpread { spread: None, expr } => match &**expr {
+      Expr::Lit(Lit::Str(str)) => str.clone(),
+      _ => panic!("should never be here"),
+    },
+    _ => panic!("should never be here"),
+  };
+
+  e.args = vec![ExprOrSpread {
+    spread: None,
+    expr: Box::new(Expr::Lit(Lit::Str(Str {
+      span: DUMMY_SP,
+      value: arg_value.into(),
+      raw: None,
+    }))),
+  }];
+}
+
+pub fn get_callexpr_literal_args(e: &CallExpr) -> String {
+  match e.args.first().expect("this should never happen") {
+    ExprOrSpread { spread: None, expr } => match &**expr {
+      Expr::Lit(Lit::Str(str)) => str.value.to_string(),
+      _ => String::new(),
+    },
+    _ => String::new(),
+  }
+}
+
+pub fn is_require_literal_expr(e: &CallExpr, _unresolved_mark: Mark, _require_id: &Id) -> bool {
+  if e.args.len() == 1 {
+    let res = !get_callexpr_literal_args(e).is_empty();
+
+    res
+      && match &e.callee {
+        Callee::Expr(callee) => {
+          matches!(
+            &**callee,
+            Expr::Ident(Ident {
+              sym: js_word!("require"),
+              span: Span { .. },
+              ..
+            })
+          )
+        }
+        _ => false,
+      }
+  } else {
+    false
+  }
+}
+
+pub fn is_dynamic_import_literal_expr(e: &CallExpr) -> bool {
+  if e.args.len() == 1 {
+    let res = !get_callexpr_literal_args(e).is_empty();
+
+    res && matches!(&e.callee, Callee::Import(_))
+  } else {
+    false
+  }
+}
+
+pub fn wrap_module_function(source: String, module_id: &str) -> String {
+  format!(
+    r#""{}":{},"#,
+    module_id,
+    source.trim_end().trim_end_matches(';')
+  )
+}
+
+pub fn get_wrap_chunk_before(namespace: &str, register: &str, chunk_id: &str) -> String {
+  format!(
+    r#"self["{}"].{}([
+    "{}"
+  ], {{"#,
+    namespace, register, chunk_id
+  )
+}
+
+pub fn get_wrap_chunk_after() -> String {
+  String::from("});")
 }
