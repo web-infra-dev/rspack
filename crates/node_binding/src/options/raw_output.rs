@@ -23,7 +23,7 @@ pub struct RawOutputOptions {
 }
 
 impl RawOption<OutputOptions> for RawOutputOptions {
-  fn to_compiler_option(self, options: &CompilerOptionsBuilder) -> OutputOptions {
+  fn to_compiler_option(self, options: &CompilerOptionsBuilder) -> anyhow::Result<OutputOptions> {
     // let is_prod = matches!(mode, Mode::Production);
     let filename = self.filename.unwrap_or(format!(
       "{}{}{}",
@@ -55,14 +55,14 @@ impl RawOption<OutputOptions> for RawOutputOptions {
     let asset_module_filename = self
       .asset_module_filename
       .unwrap_or_else(|| format!("assets/{}", filename));
-    OutputOptions {
+    Ok(OutputOptions {
       path,
-      asset_module_filename: Filename::from_str(&asset_module_filename).unwrap(),
-      filename: Filename::from_str(&filename).unwrap(),
-      chunk_filename: Filename::from_str(&chunk_filename).unwrap(),
+      asset_module_filename: Filename::from_str(&asset_module_filename)?,
+      filename: Filename::from_str(&filename)?,
+      chunk_filename: Filename::from_str(&chunk_filename)?,
       unique_name,
-      public_path: PublicPath::from_str(&public_path).unwrap(),
-    }
+      public_path: PublicPath::from_str(&public_path)?,
+    })
   }
 
   fn fallback_value(_: &CompilerOptionsBuilder) -> Self {

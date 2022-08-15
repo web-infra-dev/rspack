@@ -1,4 +1,4 @@
-use std::{env, str::FromStr, string::ParseError};
+use std::{env, str::FromStr};
 
 #[derive(Clone, Copy, Debug)]
 pub enum Mode {
@@ -7,9 +7,9 @@ pub enum Mode {
 }
 
 impl FromStr for Mode {
-  type Err = ParseError;
+  type Err = anyhow::Error;
 
-  fn from_str(s: &str) -> Result<Mode, self::ParseError> {
+  fn from_str(s: &str) -> anyhow::Result<Mode> {
     let mode_string = if s.is_empty() {
       match env::var("NODE_ENV") {
         Ok(value) => value,

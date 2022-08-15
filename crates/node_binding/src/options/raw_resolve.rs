@@ -9,9 +9,9 @@ use serde::Deserialize;
 pub struct RawResolveOptions {}
 
 impl RawOption<Resolve> for RawResolveOptions {
-  fn to_compiler_option(self, _options: &CompilerOptionsBuilder) -> Resolve {
+  fn to_compiler_option(self, _options: &CompilerOptionsBuilder) -> anyhow::Result<Resolve> {
     // TODO: read resolve
-    Default::default()
+    Ok(Default::default())
   }
 
   fn fallback_value(_options: &CompilerOptionsBuilder) -> Self {

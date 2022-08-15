@@ -4,8 +4,8 @@ use rspack_core::{CompilerOptionsBuilder, Context};
 pub type RawContext = String;
 
 impl RawOption<Context> for RawContext {
-  fn to_compiler_option(self, _options: &CompilerOptionsBuilder) -> Context {
-    self
+  fn to_compiler_option(self, _options: &CompilerOptionsBuilder) -> anyhow::Result<Context> {
+    Ok(self)
   }
 
   fn fallback_value(_options: &CompilerOptionsBuilder) -> Self {
