@@ -1,12 +1,12 @@
 self["__rspack_runtime__"].__rspack_register__([
     "main"
-  ], {"./json.json":self["__rspack_runtime__"].__rspack_register__(["./json.json"], {"./json.json": function (module, exports, __rspack_require__, __rspack_dynamic_require__) {
+  ], {"./json.json":function (module, exports, __rspack_require__, __rspack_dynamic_require__) {
     "use strict";
     module.exports = {
   "hello": "world"
 }
 ;
-  }}),"./index.js":function(module, exports, __rspack_require__, __rspack_dynamic_require__) {
+  },"./index.js":function(module, exports, __rspack_require__, __rspack_dynamic_require__) {
     "use strict";
     function _interopRequireDefault(obj) {
         return obj && obj.__esModule ? obj : {

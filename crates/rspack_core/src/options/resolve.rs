@@ -50,7 +50,7 @@ impl Default for Resolve {
       main_files: vec![String::from("index")],
       main_fields: vec![String::from("module"), String::from("main")],
       browser_field: true,
-      condition_names: HashSet::from_iter(["import".to_string()]),
+      condition_names: HashSet::from_iter(["module".to_string(), "import".to_string()]),
     }
   }
 }
