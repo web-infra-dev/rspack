@@ -7,7 +7,7 @@ pub struct Stats<'compilation> {
   compilation: &'compilation Compilation,
   // TODO: Remove this suppresion
   #[allow(unused)]
-  diagnostics: Vec<Diagnostic>,
+  pub diagnostics: Vec<Diagnostic>,
 }
 
 impl<'compilation> Stats<'compilation> {
