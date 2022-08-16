@@ -236,7 +236,10 @@ impl<'me> ChunkIdGenerator<'me> {
         id
       }
       ChunkIdAlgo::Named => {
-        let js_mod = self.module_graph.module_by_uri(module_uri).expect("Failed to get module by uri");
+        let js_mod = self
+          .module_graph
+          .module_by_uri(module_uri)
+          .expect("Failed to get module by uri");
         js_mod
           .name
           .clone()
