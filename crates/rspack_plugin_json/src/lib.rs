@@ -88,20 +88,16 @@ impl Module for JsonModule {
   fn render(
     &self,
     requested_source_type: SourceType,
-    module: &rspack_core::ModuleGraphModule,
-    compilation: &rspack_core::Compilation,
+    _module: &rspack_core::ModuleGraphModule,
+    _compilation: &rspack_core::Compilation,
   ) -> Result<Option<ModuleRenderResult>> {
-    let namespace = &compilation.options.output.unique_name;
     let result = match requested_source_type {
       SourceType::JavaScript => Some(ModuleRenderResult::JavaScript(format!(
-        r#"self["{}"].__rspack_register__(["{}"], {{"{}": function (module, exports, __rspack_require__, __rspack_dynamic_require__) {{
+        r#"function (module, exports, __rspack_require__, __rspack_dynamic_require__) {{
     "use strict";
     module.exports = {};
-  }}}});
+  }};
   "#,
-        namespace,
-        module.id,
-        module.id,
         utils::escape_json(&self.json_str)
       ))),
       _ => None,
