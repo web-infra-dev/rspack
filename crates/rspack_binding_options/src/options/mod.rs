@@ -8,6 +8,7 @@ use serde::Deserialize;
 
 mod raw_builtins;
 mod raw_context;
+mod raw_define;
 mod raw_entry;
 mod raw_mode;
 mod raw_module;
@@ -18,6 +19,7 @@ mod raw_target;
 
 pub use raw_builtins::*;
 pub use raw_context::*;
+pub use raw_define::*;
 pub use raw_entry::*;
 pub use raw_mode::*;
 pub use raw_module::*;
@@ -44,6 +46,7 @@ pub trait RawOption<T> {
     .to_compiler_option(options)
   }
 }
+
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
@@ -68,6 +71,8 @@ pub struct RawOptions {
   pub plugins: Option<RawPlugins>,
   pub module: Option<RawModuleOptions>,
   pub builtins: Option<RawBuiltins>,
+  #[napi(ts_type = "Record<string, string>")]
+  pub define: Option<RawDefine>,
 }
 
 pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<CompilerOptions> {
@@ -137,6 +142,11 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
     .then(|mut options| {
       let module_options = RawOption::raw_to_compiler_option(raw_options.module, &options)?;
       options.module = module_options;
+      Ok(options)
+    })?
+    .then(|mut options| {
+      let define = RawOption::raw_to_compiler_option(raw_options.define, &options)?;
+      options.define = Some(define);
       Ok(options)
     })?
     .finish();

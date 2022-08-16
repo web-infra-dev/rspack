@@ -20,6 +20,8 @@ mod plugins;
 pub use plugins::*;
 mod module;
 pub use module::*;
+mod define;
+pub use define::*;
 
 #[derive(Debug, Default)]
 pub struct CompilerOptionsBuilder {
@@ -32,6 +34,7 @@ pub struct CompilerOptionsBuilder {
   pub resolve: Option<Resolve>,
   pub plugins: Option<Plugins>,
   pub module: Option<ModuleOptions>,
+  pub define: Option<Define>,
 }
 
 impl CompilerOptionsBuilder {
@@ -48,6 +51,7 @@ impl CompilerOptionsBuilder {
       resolve: self.resolve.unwrap(),
       plugins: self.plugins.unwrap(),
       module: self.module.unwrap(),
+      define: self.define.unwrap(),
     }
   }
 
