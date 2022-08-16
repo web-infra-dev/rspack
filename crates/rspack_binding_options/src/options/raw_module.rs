@@ -14,22 +14,27 @@ pub struct RawModuleRule {}
 
 #[derive(Debug, Clone, Deserialize)]
 #[napi(object)]
+#[serde(rename_all = "camelCase")]
 pub struct RawAssetParserDataUrlOption {
   pub max_size: Option<u32>,
 }
 #[derive(Debug, Clone, Deserialize)]
 #[napi(object)]
+#[serde(rename_all = "camelCase")]
 pub struct RawAssetParserOptions {
   pub data_url_condition: Option<RawAssetParserDataUrlOption>,
 }
+
 #[derive(Debug, Clone, Deserialize)]
 #[napi(object)]
+#[serde(rename_all = "camelCase")]
 pub struct RawParserOptions {
   pub asset: Option<RawAssetParserOptions>,
 }
 
 #[derive(Default, Debug, Deserialize)]
 #[napi(object)]
+#[serde(rename_all = "camelCase")]
 pub struct RawModuleOptions {
   pub rules: Vec<RawModuleRule>,
   pub parser: Option<RawParserOptions>,
