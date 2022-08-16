@@ -92,7 +92,7 @@ pub struct RawOptions {
 
 pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<CompilerOptions> {
   // normalize_options should ensuring orderliness.
-  let compier_options = CompilerOptionsBuilder::default()
+  let compiler_options = CompilerOptionsBuilder::default()
     .then(|mut options| {
       let context = RawOption::raw_to_compiler_option(raw_options.context, &options)?;
       options.context = Some(context);
@@ -140,9 +140,9 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
       options.module = module_options;
       Ok(options)
     })?
-    .unwrap();
+    .finish();
 
-  Ok(compier_options)
+  Ok(compiler_options)
 }
 
 // pub fn parse_raw_alias(
