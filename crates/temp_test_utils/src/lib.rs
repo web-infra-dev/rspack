@@ -1,12 +1,17 @@
-use std::{collections::HashMap, path::Path};
-
+use rspack_binding_options::RawOptions;
 use rspack_core::{AssetContent, Compiler, CompilerOptions};
+use std::{collections::HashMap, path::Path};
 mod test_options;
-pub use test_options::TestOptions;
+use test_options::RawOptionsExt;
+
+pub fn read_test_config_and_normalize(fixture_path: &Path) -> CompilerOptions {
+  let options = RawOptions::from_fixture(fixture_path);
+  options.to_compiler_options()
+}
 
 #[tokio::main]
 pub async fn test_fixture(fixture_path: &Path) -> Compiler {
-  let options: CompilerOptions = TestOptions::from_fixture(fixture_path).into();
+  let options: CompilerOptions = RawOptions::from_fixture(fixture_path).to_compiler_options();
 
   let mut compiler = rspack::rspack(options, Default::default());
 

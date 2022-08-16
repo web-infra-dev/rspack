@@ -2,11 +2,11 @@ use criterion::{criterion_group, criterion_main, Criterion};
 
 use std::path::PathBuf;
 
-use temp_test_utils::TestOptions;
+use temp_test_utils::read_test_config_and_normalize;
 
 async fn bench(cur_dir: &PathBuf) {
   // cur_dir = cur_dir.join("webpack_css_cases_to_be_migrated/bootstrap");
-  let options = TestOptions::from_fixture(cur_dir).into();
+  let options = read_test_config_and_normalize(cur_dir);
   println!("{:?}", options);
   let mut compiler = rspack::rspack(options, Default::default());
 

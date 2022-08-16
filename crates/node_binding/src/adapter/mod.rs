@@ -82,7 +82,6 @@ pub struct OnLoadContext {
   pub id: String,
 }
 
-#[cfg(not(feature = "test"))]
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
@@ -94,7 +93,6 @@ pub struct OnLoadResult {
   pub loader: Option<String>,
 }
 
-#[cfg(feature = "test")]
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct OnLoadResult {
