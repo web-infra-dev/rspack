@@ -2,7 +2,7 @@ use std::{fmt::Debug, sync::Arc};
 
 use hashbrown::HashMap;
 use rayon::prelude::*;
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use tracing::instrument;
 
 use crate::{
@@ -21,6 +21,7 @@ pub struct Compilation {
   pub runtime: Runtime,
   pub entrypoints: HashMap<String, Entrypoint>,
   pub assets: CompilationAssets,
+  pub diagnostic: Vec<Diagnostic>,
 }
 
 impl Compilation {
@@ -39,6 +40,7 @@ impl Compilation {
       runtime: Default::default(),
       entrypoints: Default::default(),
       assets: Default::default(),
+      diagnostic: vec![],
     }
   }
 
@@ -48,6 +50,10 @@ impl Compilation {
 
   pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
     self.assets.insert(filename, asset);
+  }
+
+  pub fn push_diagnostic(&mut self, diagnostic: Diagnostic) {
+    self.diagnostic.push(diagnostic);
   }
 
   pub fn entry_dependencies(&self) -> HashMap<String, Dependency> {

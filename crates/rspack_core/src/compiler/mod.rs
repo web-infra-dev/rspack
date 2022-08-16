@@ -62,7 +62,6 @@ impl Compiler {
       Default::default(),
       Default::default(),
     );
-    let mut diagnostics: Vec<Diagnostic> = vec![];
 
     // self.compilation.
     let active_task_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
@@ -101,7 +100,10 @@ impl Compiler {
               .compilation
               .module_graph
               .add_module(*module_with_diagnostic.inner);
-            diagnostics.append(&mut module_with_diagnostic.diagnostic);
+            self
+              .compilation
+              .diagnostic
+              .append(&mut module_with_diagnostic.diagnostic);
           }
           Msg::TaskCanceled => {
             active_task_count.fetch_sub(1, Ordering::SeqCst);
@@ -114,7 +116,7 @@ impl Compiler {
           }
           Msg::TaskErrorEncountered(err) => {
             active_task_count.fetch_sub(1, Ordering::SeqCst);
-            diagnostics.push(err.into());
+            self.compilation.push_diagnostic(err.into());
           }
         },
         None => {
@@ -164,7 +166,7 @@ impl Compiler {
       })
       .unwrap();
 
-    Ok(Stats::new(&self.compilation, diagnostics))
+    Ok(Stats::new(&self.compilation))
   }
 
   #[instrument(skip_all)]
