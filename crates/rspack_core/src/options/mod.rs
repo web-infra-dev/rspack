@@ -35,7 +35,10 @@ pub struct CompilerOptionsBuilder {
 }
 
 impl CompilerOptionsBuilder {
-  pub fn unwrap(self) -> CompilerOptions {
+  /// ## Warning
+  /// Caller should ensure that all fields of [CompilerOptionsBuilder] are not `None`.
+  /// Otherwise, this function will panic during the runtime
+  pub fn finish(self) -> CompilerOptions {
     CompilerOptions {
       entry: self.entry.unwrap(),
       context: self.context.unwrap(),
