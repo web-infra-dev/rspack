@@ -43,6 +43,18 @@ pub struct Dependency {
 //   }
 // }
 
+#[derive(Debug)]
+pub struct TWithDiagnosticArray<T: std::fmt::Debug> {
+  pub inner: T,
+  pub diagnostic: Vec<Diagnostic>,
+}
+
+impl<T: std::fmt::Debug> TWithDiagnosticArray<T> {
+  pub fn new(inner: T, diagnostic: Vec<Diagnostic>) -> Self {
+    Self { inner, diagnostic }
+  }
+}
+
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 pub enum ResolveKind {
   Import,
@@ -86,7 +98,11 @@ impl NormalModuleFactory {
     match self.resolve_module().await {
       Ok(maybe_module) => {
         if let Some(module) = maybe_module {
-          self.send(Msg::TaskFinished(Box::new(module)));
+          let diagnostic = std::mem::take(&mut self.diagnostic);
+          self.send(Msg::TaskFinished(TWithDiagnosticArray::new(
+            Box::new(module),
+            diagnostic,
+          )));
         } else {
           self.send(Msg::TaskCanceled);
         }
@@ -141,7 +157,7 @@ impl NormalModuleFactory {
       ))
       .map_err(|_| {
         Error::InternalError(format!(
-          "Failed to resovle dependency {:?}",
+          "Failed to resolve dependency {:?}",
           self.dependency
         ))
       })?;

@@ -9,6 +9,7 @@ use std::{
 use crate::{
   AssetContent, CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule,
   NormalModuleFactory, NormalModuleFactoryContext, Plugin, PluginDriver, Stats,
+  TWithDiagnosticArray,
 };
 use anyhow::Context;
 use rayon::prelude::*;
@@ -61,7 +62,7 @@ impl Compiler {
       Default::default(),
       Default::default(),
     );
-    let mut errors: Vec<Diagnostic> = vec![];
+    let mut diagnostics: Vec<Diagnostic> = vec![];
 
     // self.compilation.
     let active_task_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
@@ -94,9 +95,13 @@ impl Compiler {
     while active_task_count.load(Ordering::SeqCst) != 0 {
       match rx.recv().await {
         Some(job) => match job {
-          Msg::TaskFinished(module) => {
+          Msg::TaskFinished(mut module_with_diagnostic) => {
             active_task_count.fetch_sub(1, Ordering::SeqCst);
-            self.compilation.module_graph.add_module(*module);
+            self
+              .compilation
+              .module_graph
+              .add_module(*module_with_diagnostic.inner);
+            diagnostics.append(&mut module_with_diagnostic.diagnostic);
           }
           Msg::TaskCanceled => {
             active_task_count.fetch_sub(1, Ordering::SeqCst);
@@ -109,7 +114,7 @@ impl Compiler {
           }
           Msg::TaskErrorEncountered(err) => {
             active_task_count.fetch_sub(1, Ordering::SeqCst);
-            return Err(err);
+            diagnostics.push(err.into());
           }
         },
         None => {
@@ -159,7 +164,7 @@ impl Compiler {
       })
       .unwrap();
 
-    Ok(Stats::new(&self.compilation))
+    Ok(Stats::new(&self.compilation, diagnostics))
   }
 
   #[instrument(skip_all)]
@@ -171,7 +176,7 @@ impl Compiler {
 #[derive(Debug)]
 pub enum Msg {
   DependencyReference(Dependency, String),
-  TaskFinished(Box<ModuleGraphModule>),
+  TaskFinished(TWithDiagnosticArray<Box<ModuleGraphModule>>),
   TaskCanceled,
   TaskErrorEncountered(Error),
 }

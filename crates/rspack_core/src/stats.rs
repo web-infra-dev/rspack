@@ -1,13 +1,21 @@
+use rspack_error::Diagnostic;
+
 use crate::{Compilation, CompilationAssets};
 
 #[derive(Debug)]
 pub struct Stats<'compilation> {
   compilation: &'compilation Compilation,
+  // TODO: Remove this suppresion
+  #[allow(unused)]
+  diagnostics: Vec<Diagnostic>,
 }
 
 impl<'compilation> Stats<'compilation> {
-  pub fn new(compilation: &'compilation Compilation) -> Self {
-    Self { compilation }
+  pub fn new(compilation: &'compilation Compilation, diagnostics: Vec<Diagnostic>) -> Self {
+    Self {
+      compilation,
+      diagnostics,
+    }
   }
 }
 

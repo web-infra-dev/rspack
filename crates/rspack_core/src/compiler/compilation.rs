@@ -2,7 +2,7 @@ use std::{fmt::Debug, sync::Arc};
 
 use hashbrown::HashMap;
 use rayon::prelude::*;
-use rspack_error::{Error, Result};
+use rspack_error::Result;
 use tracing::instrument;
 
 use crate::{

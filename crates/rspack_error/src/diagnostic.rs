@@ -1,10 +1,12 @@
 use crate::Error;
 
+#[derive(Debug)]
 pub enum Severity {
   Error,
   Warn,
 }
 
+#[derive(Debug)]
 pub struct Diagnostic {
   pub severity: Severity,
   pub message: String,
