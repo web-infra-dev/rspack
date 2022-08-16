@@ -1,9 +1,7 @@
 use rspack_binding_options::{normalize_bundle_options, RawOptions};
-use rspack_core::{CompilerOptions, Filename, OutputOptions, Plugin, PublicPath, Resolve, Target};
-use rspack_plugin_html::config::HtmlPluginConfig;
-use schemars::JsonSchema;
-use serde::Deserialize;
-use std::{collections::HashMap, path::Path, str::FromStr};
+use rspack_core::CompilerOptions;
+
+use std::{collections::HashMap, path::Path};
 
 pub trait RawOptionsExt {
   fn from_fixture(fixture_path: &Path) -> Self;
