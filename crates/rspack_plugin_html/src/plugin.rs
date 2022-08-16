@@ -111,6 +111,8 @@ impl Plugin for HtmlPlugin {
             &asset_uri,
             Some(if let Some(inject) = &config.inject {
               *inject
+            } else if asset_uri.ends_with("runtime.js") {
+              HtmlPluginConfigInject::Head
             } else {
               HtmlPluginConfigInject::Body
             }),

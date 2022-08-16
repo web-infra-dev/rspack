@@ -95,9 +95,9 @@ pub trait Plugin: Debug + Send + Sync {
   fn render_runtime(
     &self,
     _ctx: PluginContext,
-    _args: RenderRuntimeArgs,
+    args: RenderRuntimeArgs,
   ) -> PluginRenderRuntimeHookOutput {
-    Ok(vec![])
+    Ok(args.sources.to_vec())
   }
   fn process_assets(
     &self,
