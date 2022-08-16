@@ -1,43 +1,22 @@
 use rspack::rspack;
-use rspack_core::{log, ParserOptions};
-use rspack_node::{
-  normalize_bundle_options, RawAssetParserDataUrlOption, RawAssetParserOptions, RawModuleOptions,
-  RawOptions, RawOutputOptions, RawParserOptions,
-};
-use serde_json::json;
-use std::collections::HashMap;
+use rspack_core::log;
+use rspack_node::{normalize_bundle_options, RawOptions};
 
 #[tokio::main]
 async fn main() {
   let guard = log::enable_tracing_by_env_with_chrome_layer();
+
+  let context = std::env::current_dir().unwrap().join("examples/react/");
+  let config_path = context
+    .join("test.config.json")
+    .to_string_lossy()
+    .to_string();
+  let config = std::fs::read_to_string(config_path).unwrap();
+  let options: RawOptions = serde_json::from_str(&config).unwrap();
   let mut compiler = rspack(
     normalize_bundle_options(RawOptions {
-      entry: Some(HashMap::from([(
-        "main".to_string(),
-        "./src/index.js".to_string(),
-      )])),
-      context: Some(
-        std::env::current_dir()
-          .unwrap()
-          .join("examples/react")
-          // .resolve()
-          .to_string_lossy()
-          .to_string(),
-      ),
-      output: Some(RawOutputOptions {
-        public_path: Some(String::from("http://localhost:3000/")),
-        ..RawOutputOptions::default()
-      }),
-      module: Some(RawModuleOptions {
-        rules: vec![],
-        parser: Some(RawParserOptions {
-          asset: Some(RawAssetParserOptions {
-            data_url_condition: Some(RawAssetParserDataUrlOption { max_size: Some(1) }),
-          }),
-        }),
-      }),
-      plugins: Some(json!(["html"])),
-      ..Default::default()
+      context: Some(context.to_string_lossy().to_string()),
+      ..options
     })
     .unwrap(),
     vec![],
