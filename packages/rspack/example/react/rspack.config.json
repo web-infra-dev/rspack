@@ -1,0 +1,14 @@
+{
+  "mode": "development",
+  "entry": {
+    "index": "./src/index.js"
+  },
+  "context": "./",
+  "dev": {
+    "port": 8081,
+    "static": {
+      "directory": "dist"
+    }
+  },
+  "plugins": ["html"]
+}
