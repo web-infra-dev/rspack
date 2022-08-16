@@ -5718,6 +5718,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"react-example@workspace:packages/rspack/example/react":
+  version: 0.0.0-use.local
+  resolution: "react-example@workspace:packages/rspack/example/react"
+  dependencies:
+    "@rspack/core": "workspace:*"
+    react: 17.0.0
+    react-dom: 17.0.0
+  languageName: unknown
+  linkType: soft
+
 "react-focus-lock@npm:^2.2.1":
   version: 2.9.1
   resolution: "react-focus-lock@npm:2.9.1"
