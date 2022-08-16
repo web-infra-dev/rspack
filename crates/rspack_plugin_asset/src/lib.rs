@@ -6,8 +6,8 @@ use rayon::prelude::*;
 use tokio::fs;
 
 use rspack_core::{
-  AssetContent, Content, FilenameRenderOptions, LoadArgs, ModuleRenderResult, ModuleType,
-  NormalModuleFactoryContext, Plugin, PluginContext, PluginLoadHookOutput,
+  AssetContent, AssetParserOptions, Content, FilenameRenderOptions, LoadArgs, ModuleRenderResult,
+  ModuleType, NormalModuleFactoryContext, Plugin, PluginContext, PluginLoadHookOutput,
   PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, SourceType,
 };
 
@@ -18,7 +18,18 @@ use asset::AssetParser;
 use asset_source::AssetSourceParser;
 
 #[derive(Debug)]
-pub struct AssetPlugin {}
+pub struct AssetConfig {
+  pub parse_options: Option<AssetParserOptions>,
+}
+#[derive(Debug)]
+pub struct AssetPlugin {
+  config: AssetConfig,
+}
+impl AssetPlugin {
+  pub fn new(config: AssetConfig) -> AssetPlugin {
+    AssetPlugin { config }
+  }
+}
 
 #[async_trait]
 impl Plugin for AssetPlugin {
@@ -32,7 +43,13 @@ impl Plugin for AssetPlugin {
   ) -> Result<()> {
     ctx.context.register_parser(
       rspack_core::ModuleType::Asset,
-      Box::new(AssetParser::with_auto()),
+      Box::new(AssetParser::with_auto(
+        self
+          .config
+          .parse_options
+          .as_ref()
+          .and_then(|x| x.data_url_condition.clone()),
+      )),
     );
     ctx.context.register_parser(
       rspack_core::ModuleType::AssetInline,

@@ -31,6 +31,7 @@ pub struct CompilerOptionsBuilder {
   pub target: Option<Target>,
   pub resolve: Option<Resolve>,
   pub plugins: Option<Plugins>,
+  pub module: Option<ModuleOptions>,
 }
 
 impl CompilerOptionsBuilder {
@@ -43,6 +44,7 @@ impl CompilerOptionsBuilder {
       target: self.target.unwrap(),
       resolve: self.resolve.unwrap(),
       plugins: self.plugins.unwrap(),
+      module: self.module.unwrap(),
     }
   }
 
