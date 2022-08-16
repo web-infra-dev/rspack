@@ -2062,6 +2062,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_binding_options"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "napi",
+ "napi-derive",
+ "rspack_core",
+ "rspack_plugin_html",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "rspack_core"
 version = "0.1.0"
 dependencies = [
@@ -2114,6 +2127,7 @@ dependencies = [
  "napi-derive",
  "once_cell",
  "rspack",
+ "rspack_binding_options",
  "rspack_core",
  "rspack_plugin_html",
  "serde",
@@ -3888,6 +3902,7 @@ name = "temp_test_utils"
 version = "0.1.0"
 dependencies = [
  "rspack",
+ "rspack_binding_options",
  "rspack_core",
  "rspack_plugin_html",
  "schemars",

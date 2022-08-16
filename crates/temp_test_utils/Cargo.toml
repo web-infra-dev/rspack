@@ -24,3 +24,4 @@ testing_macros = "0.2.5"
 similar-asserts = "1.2.0"
 schemars = "0.8.10"
 rspack_plugin_html = {path = "../rspack_plugin_html"}
+rspack_binding_options = { path="../rspack_binding_options" }

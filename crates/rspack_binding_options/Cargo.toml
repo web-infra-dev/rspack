@@ -1,0 +1,19 @@
+[package]
+name = "rspack_binding_options"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rspack_core = {path = "../rspack_core"}
+napi = {git = "https://github.com/speedy-js/napi-rs", branch = "speedy", default-features = false, features = [
+  "async",
+  "tokio_rt",
+  "serde-json",
+]}
+napi-derive = {git = "https://github.com/speedy-js/napi-rs", branch = "speedy"}
+anyhow = {version = "1", features = ["backtrace"]}
+serde = {version = "1", features = ["derive"]}
+serde_json = "1"
+rspack_plugin_html = {path = "../rspack_plugin_html"}

@@ -8,11 +8,11 @@ use napi_derive::napi;
 use tokio::sync::Mutex;
 
 // pub mod adapter;
-mod options;
+// mod options;
 mod utils;
 
 // use adapter::utils::create_node_adapter_from_plugin_callbacks;
-pub use options::*;
+pub use rspack_binding_options::{normalize_bundle_options, RawOptions};
 
 #[cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))]
 #[global_allocator]
