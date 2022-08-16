@@ -90,7 +90,6 @@ jobs:
         run: |
           yarn install
           cargo test --all --all-features -- --nocapture
-          cargo run --package rspack_node --example basic --features test -- --nocapture
           yarn workspace @rspack/binding run build
           yarn workspace @rspack/core run build
           yarn workspace @rspack/core run example
