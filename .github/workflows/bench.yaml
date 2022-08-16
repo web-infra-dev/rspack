@@ -48,6 +48,11 @@ jobs:
           script: |
             const response = await github.request(context.payload.issue.pull_request.url);
             return response.data.head.sha;
+      - name: Install protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Checkout PR Branch
         uses: actions/checkout@v3
         with:

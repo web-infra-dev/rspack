@@ -91,6 +91,8 @@ impl TryFrom<&str> for ModuleType {
       "jpg" => Ok(Self::Asset),
       "svg" => Ok(Self::Asset),
       "txt" => Ok(Self::AssetSource),
+      // TODO: get module_type from module
+      "scss" | "sass" => Ok(Self::Css),
       _ => Err(()),
     }
   }

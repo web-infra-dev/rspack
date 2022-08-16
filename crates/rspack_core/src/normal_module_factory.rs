@@ -172,7 +172,7 @@ impl NormalModuleFactory {
       resource_fragment: url.fragment().map(|f| f.to_owned()),
     };
 
-    let runner_result = if uri.starts_with("UnReachable:") || uri.contains(".scss") {
+    let runner_result = if uri.starts_with("UnReachable:") {
       LoaderResult {
         content: Content::Buffer("module.exports = {}".to_string().as_bytes().to_vec()),
       }

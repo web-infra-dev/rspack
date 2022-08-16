@@ -18,5 +18,14 @@
     "@rspack/binding": "workspace:*",
     "commander": "^9.4.0",
     "rspack-dev-server": "workspace:^"
+  },
+  "optionalDependencies": {
+    "@tmp-sass-embedded/darwin-arm64": "1.54.4",
+    "@tmp-sass-embedded/darwin-x64": "1.54.4",
+    "@tmp-sass-embedded/linux-arm64": "1.54.4",
+    "@tmp-sass-embedded/linux-ia32": "1.54.4",
+    "@tmp-sass-embedded/linux-x64": "1.54.4",
+    "@tmp-sass-embedded/win32-ia32": "1.54.4",
+    "@tmp-sass-embedded/win32-x64": "1.54.4"
   }
 }
