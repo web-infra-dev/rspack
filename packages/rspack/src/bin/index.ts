@@ -27,6 +27,7 @@ program.command('dev')
       } = {}
     } = rspack;
 
+    await rspack.build();
     const server = await createServer(rspack.options);
     server.listen(port, () => console.log(`Server listening on port: ${port}`));
   });
