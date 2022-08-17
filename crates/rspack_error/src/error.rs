@@ -1,8 +1,12 @@
 use thiserror::Error;
 
 #[derive(Debug)]
+/// # Warning
+/// For a TraceableError, the path is required.
+/// Because if the source code is missing, we could read it from file system later
+/// when conert it into [crate::Diagnostic], the reverse it not true
 pub struct TraceableError {
-  pub path: Option<String>,
+  pub path: String,
   pub start: usize,
   pub end: usize,
   pub error_message: String,
@@ -12,21 +16,16 @@ pub struct TraceableError {
 impl TraceableError {
   pub fn from_path(path: String, start: usize, end: usize, error_message: String) -> Self {
     Self {
-      path: Some(path),
+      path,
       start,
       end,
       error_message,
       source: None,
     }
   }
-  pub fn from_source(source: String, start: usize, end: usize, error_message: String) -> Self {
-    Self {
-      path: None,
-      start,
-      end,
-      error_message,
-      source: Some(source),
-    }
+  pub fn with_source(mut self, source: String) -> Self {
+    self.source = Some(source);
+    self
   }
 }
 

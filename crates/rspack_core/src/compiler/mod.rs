@@ -13,7 +13,7 @@ use crate::{
 };
 use anyhow::Context;
 use rayon::prelude::*;
-use rspack_error::{Diagnostic, Error, Result};
+use rspack_error::{emitter::emit_batch_diagnostic, Diagnostic, Error, Result};
 use tracing::instrument;
 
 mod compilation;
@@ -53,7 +53,7 @@ impl Compiler {
   }
 
   #[instrument(skip_all)]
-  pub async fn compile(&mut self) -> Result<Stats> {
+  pub async fn compile(&mut self) -> Result<()> {
     // TODO: supports rebuild
     self.compilation = Compilation::new(
       // TODO: use Arc<T> instead
@@ -166,12 +166,14 @@ impl Compiler {
       })
       .unwrap();
 
-    Ok(Stats::new(&self.compilation))
+    Ok(())
   }
 
   #[instrument(skip_all)]
   pub async fn run(&mut self) -> Result<Stats> {
-    self.compile().await
+    self.compile().await?;
+    emit_batch_diagnostic(&self.compilation.diagnostic);
+    Ok(Stats::new(&self.compilation))
   }
 }
 

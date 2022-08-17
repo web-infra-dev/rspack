@@ -1,17 +1,21 @@
-use crate::Error;
+use crate::{Error, TraceableError};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Severity {
   Error,
   Warn,
 }
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+pub struct DiagnosticSourceInfo {
+  pub(crate) path: String,
+  pub(crate) source: String,
+}
+#[derive(Debug, Clone)]
 pub struct Diagnostic {
   pub severity: Severity,
   pub message: String,
-  /// Source code of current Diagnostic
-  pub source: Option<String>,
+  /// Source code and path of current Diagnostic
+  pub source_info: Option<DiagnosticSourceInfo>,
   pub start: usize,
   pub end: usize,
 }
@@ -21,7 +25,7 @@ impl Diagnostic {
     Self {
       severity: Severity::Warn,
       message,
-      source: None,
+      source_info: None,
       start,
       end,
     }
@@ -31,14 +35,14 @@ impl Diagnostic {
     Self {
       severity: Severity::Error,
       message,
-      source: None,
+      source_info: None,
       start,
       end,
     }
   }
 
-  pub fn with_source(mut self, source: String) -> Self {
-    self.source = Some(source);
+  pub fn with_source_info(mut self, source: DiagnosticSourceInfo) -> Self {
+    self.source_info = Some(source);
     self
   }
 }
@@ -49,17 +53,31 @@ impl From<Error> for Diagnostic {
       Error::InternalError(message) => Self {
         severity: Severity::Error,
         message,
-        source: None,
+        source_info: None,
         start: 0,
         end: 0,
       },
-      Error::TraceableError(traceable_error) => Self {
-        severity: Severity::Error,
-        message: traceable_error.error_message,
-        source: traceable_error.source,
-        start: traceable_error.start,
-        end: traceable_error.end,
-      },
+      Error::TraceableError(TraceableError {
+        path,
+        start,
+        end,
+        error_message,
+        source,
+      }) => {
+        let source = if let Some(source) = source {
+          source
+        } else {
+          let source = std::fs::read_to_string(&path).unwrap();
+          source
+        };
+        Self {
+          severity: Severity::Error,
+          message: error_message,
+          source_info: Some(DiagnosticSourceInfo { source, path }),
+          start,
+          end,
+        }
+      }
     }
   }
 }
