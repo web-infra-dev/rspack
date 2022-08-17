@@ -2213,6 +2213,8 @@ dependencies = [
  "rayon",
  "rspack_core",
  "rspack_test",
+ "serde",
+ "serde_json",
  "swc",
  "swc_atoms 0.4.5",
  "swc_common 0.27.8",
