@@ -2,9 +2,8 @@
   "entry": {
     "index": "./index.js"
   },
-  "plugins": [
-    [
-      "html",
+  "builtins": {
+    "html": [
       {
         "filename": "output.html",
         "template": "input.html",
@@ -13,5 +12,5 @@
         "sri": "sha512"
       }
     ]
-  ]
+  }
 }

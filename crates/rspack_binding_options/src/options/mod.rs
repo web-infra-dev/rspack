@@ -6,6 +6,7 @@ use rspack_core::{CompilerOptions, CompilerOptionsBuilder, DevServerOptions};
 
 use serde::Deserialize;
 
+mod raw_builtins;
 mod raw_context;
 mod raw_entry;
 mod raw_mode;
@@ -15,6 +16,7 @@ mod raw_plugins;
 mod raw_resolve;
 mod raw_target;
 
+pub use raw_builtins::*;
 pub use raw_context::*;
 pub use raw_entry::*;
 pub use raw_mode::*;
@@ -65,6 +67,7 @@ pub struct RawOptions {
   #[napi(ts_type = "any[]")]
   pub plugins: Option<RawPlugins>,
   pub module: Option<RawModuleOptions>,
+  pub builtins: Option<RawBuiltins>,
 }
 
 pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<CompilerOptions> {
@@ -101,7 +104,27 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
       Ok(options)
     })?
     .then(|mut options| {
-      let plugins = RawOption::raw_to_compiler_option(raw_options.plugins, &options)?;
+      let mut plugins = RawOption::raw_to_compiler_option(raw_options.plugins, &options)?;
+      raw_options
+        .builtins
+        .as_ref()
+        .map(|builtins| -> anyhow::Result<()> {
+          builtins
+            .html
+            .as_ref()
+            .map(|config| -> anyhow::Result<()> {
+              let str = serde_json::to_string(&config)?;
+              let configs: Vec<rspack_plugin_html::config::HtmlPluginConfig> =
+                serde_json::from_str(&str)?;
+              for config in configs {
+                plugins.push(Box::new(rspack_plugin_html::HtmlPlugin::new(config)));
+              }
+              Ok(())
+            })
+            .transpose()?;
+          Ok(())
+        })
+        .transpose()?;
       options.plugins = Some(plugins);
       Ok(options)
     })?
@@ -113,7 +136,6 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
     })?
     .then(|mut options| {
       let module_options = RawOption::raw_to_compiler_option(raw_options.module, &options)?;
-
       options.module = module_options;
       Ok(options)
     })?

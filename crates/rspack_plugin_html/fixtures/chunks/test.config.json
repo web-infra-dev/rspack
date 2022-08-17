@@ -4,9 +4,8 @@
     "chunk2": "./chunk2.js",
     "chunk3": "./chunk3.js"
   },
-  "plugins": [
-    [
-      "html",
+  "builtins": {
+    "html": [
       {
         "template": "index.html",
         "chunks": [
@@ -18,5 +17,5 @@
         ]
       }
     ]
-  ]
+  }
 }

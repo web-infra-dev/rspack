@@ -4,9 +4,8 @@
     "chunk2": "./chunk2.js",
     "chunk3": "./chunk3.js"
   },
-  "plugins": [
-    [
-      "html",
+  "builtins": {
+    "html": [
       {
         "template": "index.html",
         "sri": "sha384",
@@ -14,10 +13,7 @@
         "chunks": [
           "chunk1"
         ]
-      }
-    ],
-    [
-      "html",
+      },
       {
         "template": "index.html",
         "sri": "sha256",
@@ -25,10 +21,7 @@
         "chunks": [
           "chunk2"
         ]
-      }
-    ],
-    [
-      "html",
+      },
       {
         "template": "index.html",
         "sri": "sha512",
@@ -38,5 +31,5 @@
         ]
       }
     ]
-  ]
+  }
 }

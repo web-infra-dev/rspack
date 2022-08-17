@@ -12,7 +12,7 @@ async fn run(context: PathBuf) {
     .to_string_lossy()
     .to_string();
   let config = fs::read_to_string(config_path).unwrap();
-  let options: RawOptions = serde_json::from_str(&config).unwrap();
+  let options: RawOptions = serde_json::from_str(&config).expect("load config failed");
   let mut compiler = rspack(
     normalize_bundle_options(RawOptions {
       context: Some(context.to_string_lossy().to_string()),
