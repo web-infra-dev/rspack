@@ -10,6 +10,7 @@ rspack = { path = "../rspack" }
 
 temp_test_utils = { path = "../temp_test_utils" }
 testing_macros = { version = "0.2.5" }
+rspack_test = { path = "../rspack_test" }
 
 [dependencies]
 rspack_core = { path = "../rspack_core" }
@@ -28,4 +29,3 @@ tokio = { version = "1.17.0", features = ["full"] }
 dashmap = "5.0.0"
 sugar_path = "0.0.5"
 hashbrown = { version = "0.12.1", features = ["rayon"] }
-
