@@ -23,5 +23,11 @@
     "html": [
       {}
     ]
+  },
+  "dev": {
+    "port": 8081,
+    "static": {
+      "directory": "dist"
+    }
   }
 }

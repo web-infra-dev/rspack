@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "rspack"
+    "dev": "rspack dev test.config.json"
   },
   "keywords": [],
   "author": "",
