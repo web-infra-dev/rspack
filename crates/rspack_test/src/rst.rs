@@ -5,7 +5,6 @@ use std::{
   ffi::OsString,
   fmt::Display,
   fs,
-  ops::ControlFlow,
   path::{self, Path, PathBuf},
   sync::{Arc, Mutex},
 };

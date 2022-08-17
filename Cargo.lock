@@ -2150,6 +2150,7 @@ dependencies = [
  "once_cell",
  "rayon",
  "rspack_core",
+ "rspack_test",
  "temp_test_utils",
  "testing_macros",
  "tokio",
@@ -2176,7 +2177,6 @@ dependencies = [
  "swc_css",
  "swc_css_prefixer",
  "temp_test_utils",
- "testing_macros",
  "tokio",
  "tracing",
 ]
@@ -2191,6 +2191,7 @@ dependencies = [
  "once_cell",
  "rayon",
  "rspack_core",
+ "rspack_test",
  "serde",
  "serde_json",
  "sha2",
@@ -2198,8 +2199,6 @@ dependencies = [
  "swc_common 0.24.3",
  "swc_html",
  "swc_html_minifier",
- "temp_test_utils",
- "testing_macros",
 ]
 
 [[package]]
@@ -2213,8 +2212,7 @@ dependencies = [
  "once_cell",
  "rayon",
  "rspack_core",
- "serde",
- "serde_json",
+ "rspack_test",
  "swc",
  "swc_atoms 0.4.5",
  "swc_common 0.27.8",
@@ -2223,8 +2221,6 @@ dependencies = [
  "swc_ecma_transforms",
  "swc_ecma_utils 0.99.4",
  "swc_ecma_visit 0.76.5",
- "temp_test_utils",
- "testing_macros",
  "tracing",
 ]
 
@@ -2236,8 +2232,7 @@ dependencies = [
  "hashbrown",
  "json",
  "rspack_core",
- "temp_test_utils",
- "testing_macros",
+ "rspack_test",
  "tracing",
 ]
 
