@@ -6,9 +6,10 @@ use rspack_error::{Diagnostic, Result};
 use tracing::instrument;
 
 use crate::{
-  split_chunks::code_splitting2, AssetContent, ChunkGraph, CompilerOptions, Dependency, EntryItem,
-  Entrypoint, ModuleDependency, ModuleGraph, PluginDriver, ProcessAssetsArgs, RenderManifestArgs,
-  RenderRuntimeArgs, ResolveKind, Runtime, VisitedModuleIdentity,
+  split_chunks::code_splitting2, AssetContent, Chunk, ChunkGraph, ChunkRid, CompilerOptions,
+  Dependency, EntryItem, Entrypoint, ModuleDependency, ModuleGraph, PluginDriver,
+  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime,
+  VisitedModuleIdentity,
 };
 
 #[derive(Debug)]
@@ -18,6 +19,7 @@ pub struct Compilation {
   pub(crate) visited_module_id: VisitedModuleIdentity,
   pub module_graph: ModuleGraph,
   pub chunk_graph: ChunkGraph,
+  pub chunk_by_rid: HashMap<ChunkRid, Chunk>,
   pub runtime: Runtime,
   pub entrypoints: HashMap<String, Entrypoint>,
   pub assets: CompilationAssets,
@@ -35,6 +37,7 @@ impl Compilation {
       options,
       visited_module_id,
       module_graph,
+      chunk_by_rid: Default::default(),
       entries: HashMap::from_iter(entries),
       chunk_graph: Default::default(),
       runtime: Default::default(),
@@ -76,24 +79,23 @@ impl Compilation {
   }
 
   fn create_chunk_assets(&mut self, plugin_driver: Arc<PluginDriver>) {
-    let chunk_id_and_manifest = self
-      .chunk_graph
-      .id_to_chunk()
-      .par_keys()
-      .map(|chunk_id| {
+    let chunk_ref_and_manifest = self
+      .chunk_by_rid
+      .par_values()
+      .map(|chunk| {
         let manifest = plugin_driver.render_manifest(RenderManifestArgs {
-          chunk_id,
+          chunk_rid: chunk.rid,
           compilation: self,
         });
-        (chunk_id.to_string(), manifest)
+        (chunk.rid, manifest)
       })
       .collect::<Vec<_>>();
 
-    chunk_id_and_manifest
+    chunk_ref_and_manifest
       .into_iter()
-      .for_each(|(chunk_id, manifest)| {
+      .for_each(|(chunk_ref, manifest)| {
         manifest.unwrap().into_iter().for_each(|file_manifest| {
-          let current_chunk = self.chunk_graph.chunk_by_id_mut(&chunk_id).unwrap();
+          let current_chunk = self.chunk_by_rid.get_mut(&chunk_ref).unwrap();
           current_chunk
             .files
             .insert(file_manifest.filename().to_string());
@@ -156,7 +158,7 @@ impl Compilation {
     code_splitting2(self);
     // TODO: optmize chunks
 
-    for chunk in self.chunk_graph.chunks_mut() {
+    for chunk in self.chunk_by_rid.values_mut() {
       chunk.calc_exec_order(&self.module_graph)?;
     }
 
@@ -170,12 +172,12 @@ impl Compilation {
     self.entries.iter().for_each(|(name, _entry)| {
       let mut entrypoint = Entrypoint::new();
       self
-        .chunk_graph
-        .chunks()
+        .chunk_by_rid
+        .values()
         .filter(|chunk| &chunk.id == name)
-        .map(|chunk| chunk.id.clone())
-        .for_each(|chunk_id| {
-          entrypoint.chunk_ids.push(chunk_id);
+        .map(|chunk| chunk.rid)
+        .for_each(|chunk_ref| {
+          entrypoint.chunks.push(chunk_ref);
         });
       self.entrypoints.insert(name.clone(), entrypoint);
     });

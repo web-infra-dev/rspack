@@ -1,5 +1,6 @@
 use crate::{
-  Compilation, CompilerOptions, Dependency, ErrorSpan, PluginDriver, ResolveKind, RuntimeSourceNode,
+  ChunkRid, Compilation, CompilerOptions, Dependency, ErrorSpan, PluginDriver, ResolveKind,
+  RuntimeSourceNode,
 };
 use rspack_loader_runner::Content;
 use std::{fmt::Debug, sync::Arc};
@@ -21,7 +22,7 @@ pub struct ProcessAssetsArgs<'me> {
 
 #[derive(Debug, Clone)]
 pub struct RenderManifestArgs<'me> {
-  pub chunk_id: &'me str,
+  pub chunk_rid: ChunkRid,
   pub compilation: &'me Compilation,
 }
 

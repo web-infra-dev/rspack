@@ -71,9 +71,9 @@ impl Plugin for JsPlugin {
     let module_graph = &compilation.module_graph;
     let namespace = &compilation.options.output.unique_name;
     let chunk = compilation
-      .chunk_graph
-      .chunk_by_id(args.chunk_id)
-      .ok_or_else(|| anyhow::format_err!("Not found chunk {:?}", args.chunk_id))?;
+      .chunk_by_rid
+      .get(&args.chunk_rid)
+      .ok_or_else(|| anyhow::format_err!("Not found chunk {:?}", args.chunk_rid))?;
     let ordered_modules = chunk.ordered_modules(module_graph);
 
     let has_inline_runtime = matches!(
@@ -110,7 +110,13 @@ impl Plugin for JsPlugin {
         Some(get_wrap_chunk_before(
           namespace,
           RSPACK_REGISTER,
-          args.chunk_id,
+          &args
+            .compilation
+            .chunk_by_rid
+            .get(&args.chunk_rid)
+            .unwrap()
+            .id
+            .to_owned(),
         )),
       );
       module_code_array.push(Some(get_wrap_chunk_after()));
@@ -150,7 +156,15 @@ impl Plugin for JsPlugin {
           .output
           .filename
           .render(FilenameRenderOptions {
-            filename: Some(args.chunk_id.to_owned()),
+            filename: Some(
+              args
+                .compilation
+                .chunk_by_rid
+                .get(&args.chunk_rid)
+                .unwrap()
+                .id
+                .to_owned(),
+            ),
             extension: Some(".js".to_owned()),
             id: None,
           })
@@ -163,7 +177,16 @@ impl Plugin for JsPlugin {
           .render(FilenameRenderOptions {
             filename: None,
             extension: Some(".js".to_owned()),
-            id: Some(format!("static/js/{}", args.chunk_id.to_owned())),
+            id: Some(format!(
+              "static/js/{}",
+              args
+                .compilation
+                .chunk_by_rid
+                .get(&args.chunk_rid)
+                .unwrap()
+                .id
+                .to_owned()
+            )),
           })
       }
     };

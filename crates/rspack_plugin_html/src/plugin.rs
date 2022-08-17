@@ -49,6 +49,7 @@ impl Plugin for HtmlPlugin {
     let assets = &compilation.assets;
 
     let chunk_graph = &compilation.chunk_graph;
+    let chunk_by_rid = &compilation.chunk_by_rid;
 
     let parser = HtmlCompiler::new();
     let (content, url) = match &config.template {
@@ -82,7 +83,7 @@ impl Plugin for HtmlPlugin {
         included
       })
       .map(|entry_name| compilation.entrypoints.get(entry_name).unwrap())
-      .flat_map(|entry| entry.get_files(chunk_graph))
+      .flat_map(|entry| entry.get_files(chunk_by_rid))
       .map(|asset_name| (asset_name.clone(), assets.get(&asset_name).unwrap()))
       .collect::<Vec<_>>();
 

@@ -126,9 +126,9 @@ impl Plugin for CssPlugin {
     let compilation = args.compilation;
     let module_graph = &compilation.module_graph;
     let chunk = compilation
-      .chunk_graph
-      .chunk_by_id(args.chunk_id)
-      .ok_or_else(|| anyhow::format_err!("Not found chunk {:?}", args.chunk_id))?;
+      .chunk_by_rid
+      .get(&args.chunk_rid)
+      .ok_or_else(|| anyhow::format_err!("Not found chunk {:?}", args.chunk_rid))?;
     let ordered_modules = chunk.ordered_modules(module_graph);
     let code = ordered_modules
       .par_iter()
@@ -160,7 +160,15 @@ impl Plugin for CssPlugin {
           .output
           .filename
           .render(FilenameRenderOptions {
-            filename: Some(args.chunk_id.to_owned()),
+            filename: Some(
+              args
+                .compilation
+                .chunk_by_rid
+                .get(&args.chunk_rid)
+                .unwrap()
+                .id
+                .to_owned(),
+            ),
             extension: Some(".css".to_owned()),
             id: None,
           }),

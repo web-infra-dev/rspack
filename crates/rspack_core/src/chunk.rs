@@ -4,10 +4,11 @@ use hashbrown::HashSet;
 use rspack_error::{Error, Result};
 use tracing::instrument;
 
-use crate::{ModuleGraph, ModuleGraphModule};
+use crate::{ChunkRid, ModuleGraph, ModuleGraphModule};
 
 #[derive(Debug)]
 pub struct Chunk {
+  pub rid: ChunkRid,
   pub id: String,
   pub(crate) module_uris: HashSet<String>,
   pub(crate) entry_uri: String,
@@ -17,8 +18,9 @@ pub struct Chunk {
 }
 
 impl Chunk {
-  pub fn new(id: String, entry_uri: String, kind: ChunkKind) -> Self {
+  pub fn new(rid: ChunkRid, id: String, entry_uri: String, kind: ChunkKind) -> Self {
     Self {
+      rid,
       id,
       module_uris: Default::default(),
       entry_uri,
