@@ -67,8 +67,7 @@ impl From<Error> for Diagnostic {
         let source = if let Some(source) = source {
           source
         } else {
-          let source = std::fs::read_to_string(&path).unwrap();
-          source
+          std::fs::read_to_string(&path).unwrap()
         };
         Self {
           severity: Severity::Error,

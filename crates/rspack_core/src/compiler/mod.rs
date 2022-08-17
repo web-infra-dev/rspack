@@ -13,7 +13,7 @@ use crate::{
 };
 use anyhow::Context;
 use rayon::prelude::*;
-use rspack_error::{emitter::emit_batch_diagnostic, Diagnostic, Error, Result};
+use rspack_error::{emitter::emit_batch_diagnostic, Error, Result};
 use tracing::instrument;
 
 mod compilation;

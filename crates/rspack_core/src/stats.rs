@@ -1,4 +1,4 @@
-use rspack_error::{emitter::emit_batch_diagnostic, Diagnostic};
+use rspack_error::emitter::emit_batch_diagnostic;
 
 use crate::{Compilation, CompilationAssets};
 
