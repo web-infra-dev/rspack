@@ -571,14 +571,18 @@ impl Rst {
       glob(&format!("{}crates/*/.temp", workspace_dir)).expect("Failed to read glob pattern")
     {
       match entry {
-        Ok(entry) => update_single_case(entry),
+        Ok(entry) => {
+          update_single_case(&entry);
+          // remove temp dir that store diff info
+          std::fs::remove_dir_all(entry).unwrap();
+        }
         Err(e) => println!("{:?}", e),
       }
     }
   }
 }
 
-fn update_single_case(dir: PathBuf) {
+fn update_single_case(dir: &PathBuf) {
   let updates: Arc<Mutex<Vec<PathBuf>>> = Default::default();
   if !dir.exists() {
     prtln!("No records found, nothing updated");
