@@ -1,5 +1,4 @@
 use crate::{helper::make_relative_from, rst::RstBuilder};
-// use node_binding::{normalize_bundle_options, RawOptions};
 use rspack_binding_options::RawOptions;
 use rspack_core::CompilerOptions;
 use std::path::{Path, PathBuf};
