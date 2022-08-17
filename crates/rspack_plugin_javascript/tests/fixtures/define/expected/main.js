@@ -91,6 +91,7 @@ self["__rspack_runtime__"].__rspack_register__([
     assert.deepStrictEqual(-0, -0);
     assert.deepStrictEqual(+100.25, 100.25);
     assert.deepStrictEqual(-100.25, -100.25);
+    assert.deepStrictEqual("string", "string");
     assert.deepStrictEqual("", "");
     assert.deepStrictEqual(/abc/i, /abc/i);
     assert.deepStrictEqual(0..ABC, undefined);

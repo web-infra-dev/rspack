@@ -25,6 +25,7 @@ assert.deepStrictEqual(POSITIVE_ZERO, 0);
 assert.deepStrictEqual(NEGATIVE_ZERO, -0);
 assert.deepStrictEqual(POSITIVE_NUMBER, 100.25);
 assert.deepStrictEqual(NEGATIVE_NUMBER, -100.25);
+assert.deepStrictEqual(STRING, "string");
 assert.deepStrictEqual(EMPTY_STRING, "");
 assert.deepStrictEqual(REGEXP, /abc/i);
 assert.deepStrictEqual(ZERO.ABC, undefined);
