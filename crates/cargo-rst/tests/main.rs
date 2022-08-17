@@ -18,7 +18,7 @@ fn is_in_ci() -> bool {
   env::var("CI").is_ok()
 }
 
-#[test]
+// #[test]
 fn main() {
   if is_in_ci() {
     return;

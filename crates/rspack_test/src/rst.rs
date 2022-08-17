@@ -311,7 +311,6 @@ impl Rst {
     );
 
     self.finalize(&res);
-    println!("testijjifoeaiof");
     res
   }
 
@@ -565,8 +564,6 @@ impl Rst {
 
   /// Update all the failed records in the current working directory.
   pub fn update_all_cases() {
-    let dir = Self::get_record_dir();
-    // dbg!(&dir);
     let workspace_dir =
       std::env::var("CARGO_WORKSPACE_DIR").expect("Can't get CARGO_WORKSPACE_DIR");
     // dbg!(&minifest);
