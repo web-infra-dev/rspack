@@ -2211,6 +2211,8 @@ dependencies = [
  "once_cell",
  "rayon",
  "rspack_core",
+ "serde",
+ "serde_json",
  "swc",
  "swc_atoms 0.4.5",
  "swc_common 0.27.8",

@@ -1,6 +1,6 @@
-use crate::{Compilation, ResolveKind, RuntimeSourceNode};
+use crate::{Compilation, CompilerOptions, ResolveKind, RuntimeSourceNode};
 use anyhow::Result;
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 use swc_css::ast::Stylesheet;
 use swc_ecma_ast as ast;
 
@@ -9,6 +9,7 @@ pub struct ParseModuleArgs<'a> {
   pub uri: &'a str,
   pub source: Option<Content>,
   pub ast: Option<ModuleAst>,
+  pub options: Arc<CompilerOptions>,
 }
 
 #[derive(Debug)]

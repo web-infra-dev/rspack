@@ -1,6 +1,6 @@
 use crate::module::JS_MODULE_SOURCE_TYPE_LIST;
 use crate::utils::{get_wrap_chunk_after, get_wrap_chunk_before, parse_file, wrap_module_function};
-use crate::visitors::ClearMark;
+use crate::visitors::{ClearMark, DefineScanner, DefineTransform};
 use crate::{generate_rspack_execute, RSPACK_REGISTER};
 use crate::{module::JsModule, utils::get_swc_compiler};
 use anyhow::{Context, Result};
@@ -15,7 +15,7 @@ use swc_common::comments::SingleThreadedComments;
 use swc_common::Mark;
 use swc_ecma_transforms::react::{react, Options as ReactOptions};
 use swc_ecma_transforms::{react as swc_react, resolver};
-use swc_ecma_visit::{as_folder, FoldWith};
+use swc_ecma_visit::{as_folder, FoldWith, VisitWith};
 
 #[derive(Debug)]
 pub struct JsPlugin {
@@ -211,6 +211,12 @@ impl Parser for JsParser {
     }?;
 
     let ast = get_swc_compiler().run(|| {
+      let defintions = &args.options.define;
+      let mut define_scanner = DefineScanner::new(defintions);
+      // TODO: find more suitable position.
+      ast.visit_with(&mut define_scanner);
+      let mut define_transform = DefineTransform::new(defintions, define_scanner);
+
       let top_level_mark = Mark::new();
       let mut react_folder = react::<SingleThreadedComments>(
         get_swc_compiler().cm.clone(),
@@ -224,6 +230,8 @@ impl Parser for JsParser {
         Mark::new(),
       );
 
+      // TODO: the order
+      let ast = ast.fold_with(&mut define_transform);
       let ast = ast.fold_with(&mut resolver(Mark::new(), top_level_mark, false));
       let ast = ast.fold_with(&mut react_folder);
       ast.fold_with(&mut as_folder(ClearMark))

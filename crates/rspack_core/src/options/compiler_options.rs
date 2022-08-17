@@ -1,5 +1,6 @@
 use crate::{
-  BundleEntries, Context, DevServerOptions, ModuleOptions, OutputOptions, Plugins, Resolve, Target,
+  BundleEntries, Context, Define, DevServerOptions, ModuleOptions, OutputOptions, Plugins, Resolve,
+  Target,
 };
 
 #[derive(Debug)]
@@ -12,4 +13,5 @@ pub struct CompilerOptions {
   pub resolve: Resolve,
   pub plugins: Plugins,
   pub module: ModuleOptions,
+  pub define: Define,
 }

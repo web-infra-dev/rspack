@@ -10,8 +10,8 @@ use sugar_path::PathSugar;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
-  load, parse_to_url, resolve, Content, LoadArgs, ModuleGraphModule, ModuleType, Msg,
-  ParseModuleArgs, PluginDriver, ResolveArgs, TransformArgs, VisitedModuleIdentity,
+  load, parse_to_url, resolve, CompilerOptions, Content, LoadArgs, ModuleGraphModule, ModuleType,
+  Msg, ParseModuleArgs, PluginDriver, ResolveArgs, TransformArgs, VisitedModuleIdentity,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -85,7 +85,6 @@ impl NormalModuleFactory {
 
   pub async fn resolve_module(&mut self) -> anyhow::Result<Option<ModuleGraphModule>> {
     // TODO: caching in resolve
-
     let uri = resolve(
       ResolveArgs {
         importer: self.dependency.importer.as_deref(),
@@ -159,6 +158,7 @@ impl NormalModuleFactory {
         uri: uri.as_str(),
         source: transform_result.content,
         ast: transform_result.ast.map(|x| x.into()),
+        options: self.context.options.clone(),
       },
       &mut self.context,
     )?;
@@ -230,6 +230,7 @@ pub struct NormalModuleFactoryContext {
   pub(crate) visited_module_identity: VisitedModuleIdentity,
   pub module_type: Option<ModuleType>,
   pub side_effects: Option<bool>,
+  pub options: Arc<CompilerOptions>,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]

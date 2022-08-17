@@ -76,6 +76,7 @@ impl Compiler {
             visited_module_identity: self.compilation.visited_module_id.clone(),
             module_type: None,
             side_effects: None,
+            options: self.options.clone(),
           },
           dep,
           tx.clone(),
