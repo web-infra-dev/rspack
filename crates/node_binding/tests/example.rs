@@ -28,3 +28,17 @@ async fn run(context: PathBuf) {
 fn react(fixture_path: PathBuf) {
   run(fixture_path);
 }
+#[fixture("../../examples/multi-entry")]
+fn mpa(fixture_path: PathBuf) {
+  run(fixture_path);
+}
+
+#[fixture("../../examples/code-splitting")]
+fn code_splitting(fixture_path: PathBuf) {
+  run(fixture_path);
+}
+
+#[fixture("../../examples/basic")]
+fn basic(fixture_path: PathBuf) {
+  run(fixture_path);
+}

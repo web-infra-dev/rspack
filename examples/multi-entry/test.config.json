@@ -1,0 +1,12 @@
+{
+  "mode": "development",
+  "entry": {
+    "index": "./index.js",
+    "other": "./second.js"
+  },
+  "builtins": {
+    "html": [
+      {}
+    ]
+  }
+}

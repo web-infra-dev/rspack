@@ -1,0 +1,13 @@
+{
+  "mode": "development",
+  "entry": {
+    "index": "./index.js"
+  },
+  "builtins": {
+    "html": [
+      {
+        "template": "index.html"
+      }
+    ]
+  }
+}
