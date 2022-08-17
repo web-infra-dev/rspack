@@ -6,7 +6,7 @@ on:
       - main
       - next
     tags-ignore:
-      - "**"
+      - '**'
   pull_request:
 
 env:
@@ -88,7 +88,7 @@ jobs:
       #     key: test-${{ runner.os }}-cargo-gcc-${{ matrix.gcc }}-clang-${{ matrix.clang }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Test
         run: |
-          yarn install
+          yarn install --no-immutable
           cargo test --all --all-features -- --nocapture
           yarn workspace @rspack/binding run build
           yarn workspace @rspack/core run build

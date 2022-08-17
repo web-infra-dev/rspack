@@ -16,7 +16,9 @@
       }
     }
   },
-  "plugins": [
-    "html"
-  ]
+  "builtins": {
+    "html": [
+      {}
+    ]
+  }
 }
