@@ -15,6 +15,15 @@ export interface RspackOptions {
    * An array of plugins
    */
   plugins?: Plugin[],
+  /**
+   * dev server
+   */
+  dev?: {
+    port?: Number,
+    static?: {
+      directory?: string
+    }
+  }
 }
 
 export function normalizePlugins(plugins: Plugin[]) {
