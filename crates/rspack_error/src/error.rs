@@ -12,11 +12,18 @@ pub struct TraceableError {
   pub start: usize,
   pub end: usize,
   pub error_message: String,
+  pub title: String,
   pub source: Option<String>,
 }
 
 impl TraceableError {
-  pub fn from_path(path: String, start: usize, end: usize, error_message: String) -> Self {
+  pub fn from_path(
+    path: String,
+    start: usize,
+    end: usize,
+    title: String,
+    error_message: String,
+  ) -> Self {
     // dbg!(&path, &start, &end, &error_message);
     Self {
       path,
@@ -24,6 +31,7 @@ impl TraceableError {
       end,
       error_message,
       source: None,
+      title,
     }
   }
   pub fn with_source(mut self, source: String) -> Self {

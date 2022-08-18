@@ -15,6 +15,7 @@ pub struct DiagnosticSourceInfo {
 pub struct Diagnostic {
   pub severity: Severity,
   pub message: String,
+  pub title: String,
   /// Source code and path of current Diagnostic
   pub source_info: Option<DiagnosticSourceInfo>,
   pub start: usize,
@@ -22,9 +23,10 @@ pub struct Diagnostic {
 }
 
 impl Diagnostic {
-  pub fn warn(message: String, start: usize, end: usize) -> Self {
+  pub fn warn(title: String, message: String, start: usize, end: usize) -> Self {
     Self {
       severity: Severity::Warn,
+      title,
       message,
       source_info: None,
       start,
@@ -32,13 +34,14 @@ impl Diagnostic {
     }
   }
 
-  pub fn error(message: String, start: usize, end: usize) -> Self {
+  pub fn error(title: String, message: String, start: usize, end: usize) -> Self {
     Self {
       severity: Severity::Error,
       message,
       source_info: None,
       start,
       end,
+      title,
     }
   }
 
@@ -64,6 +67,7 @@ impl From<Error> for Diagnostic {
         end,
         error_message,
         source,
+        title,
       }) => {
         let source = if let Some(source) = source {
           source
@@ -75,6 +79,7 @@ impl From<Error> for Diagnostic {
           source_info: Some(DiagnosticSourceInfo { source, path }),
           start,
           end,
+          title,
           ..Default::default()
         }
       }

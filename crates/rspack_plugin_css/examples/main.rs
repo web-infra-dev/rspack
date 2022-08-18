@@ -6,7 +6,7 @@ async fn main() {
   println!("{:?}", cur_dir);
   let options = read_test_config_and_normalize(&cur_dir);
 
-  println!("{:?}", options);
+  // println!("{:?}", options);
   let mut compiler = rspack::rspack(options, Default::default());
 
   let _stats = compiler
