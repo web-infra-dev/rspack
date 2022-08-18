@@ -134,10 +134,10 @@ impl Compiler {
     // tracing::trace!("assets {:#?}", assets);
 
     std::fs::create_dir_all(Path::new(&self.options.context).join(&self.options.output.path))
-      .context("failed to create output directory")?;
+      .map_err(|_| Error::InternalError("failed to create output directory".into()))?;
 
     std::fs::create_dir_all(&self.options.output.path)
-      .context("failed to create output directory")?;
+      .map_err(|_| Error::InternalError("failed to create output directory".into()))?;
 
     self
       .compilation
@@ -172,7 +172,7 @@ impl Compiler {
   #[instrument(skip_all)]
   pub async fn run(&mut self) -> Result<Stats> {
     self.compile().await?;
-    emit_batch_diagnostic(&self.compilation.diagnostic);
+    emit_batch_diagnostic(&self.compilation.diagnostic)?;
     Ok(Stats::new(&self.compilation))
   }
 }

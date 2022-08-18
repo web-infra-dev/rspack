@@ -2078,6 +2078,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "codespan-reporting",
+ "json",
+ "termcolor",
  "thiserror",
 ]
 
@@ -2087,6 +2089,11 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+<<<<<<< HEAD
+=======
+ "rspack_core",
+ "rspack_error",
+>>>>>>> 7f9d605 (chore: 🤖 increase error handling)
  "similar-asserts",
  "tokio",
  "tracing",
@@ -2106,6 +2113,7 @@ dependencies = [
  "once_cell",
  "rayon",
  "rspack_core",
+ "rspack_error",
  "rspack_test",
  "temp_test_utils",
  "testing_macros",
@@ -2127,6 +2135,7 @@ dependencies = [
  "rayon",
  "rspack",
  "rspack_core",
+ "rspack_error",
  "rspack_test",
  "sugar_path",
  "swc_atoms 0.4.8",
@@ -2169,6 +2178,7 @@ dependencies = [
  "once_cell",
  "rayon",
  "rspack_core",
+ "rspack_error",
  "rspack_test",
  "serde",
  "serde_json",
@@ -2191,6 +2201,7 @@ dependencies = [
  "hashbrown",
  "json",
  "rspack_core",
+ "rspack_error",
  "rspack_test",
  "tracing",
 ]
@@ -2201,6 +2212,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "rspack_core",
+ "rspack_error",
 ]
 
 [[package]]

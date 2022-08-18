@@ -1,3 +1,5 @@
+use std::io;
+
 use thiserror::Error;
 
 #[derive(Debug)]
@@ -15,6 +17,7 @@ pub struct TraceableError {
 
 impl TraceableError {
   pub fn from_path(path: String, start: usize, end: usize, error_message: String) -> Self {
+    // dbg!(&path, &start, &end, &error_message);
     Self {
       path,
       start,
@@ -36,26 +39,21 @@ pub enum Error {
 
   #[error("")]
   TraceableError(TraceableError),
-  //   #[error("invalid data store response")]
-  //   NestedArray(Vec<Self>),
-}
 
-impl Error {
-  //   pub fn flatten(self) -> Vec<Error> {
-  //     match self {
-  //       Error::NestedArray(error_list) => error_list
-  //         .into_iter()
-  //         .flat_map(|error| error.flatten())
-  //         .collect(),
-  //       _ => {
-  //         vec![self]
-  //       }
-  //     }
-  //   }
-}
-
-impl From<anyhow::Error> for Error {
-  fn from(error: anyhow::Error) -> Self {
-    Self::InternalError(error.to_string())
-  }
+  #[error("")]
+  Io {
+    #[from]
+    source: io::Error,
+  }, /*   #[error("invalid data store response")]
+      *   NestedArray(Vec<Self>), */
+  #[error("")]
+  Anyhow {
+    #[from]
+    source: anyhow::Error,
+  },
+  #[error("")]
+  Json {
+    #[from]
+    source: json::Error,
+  },
 }

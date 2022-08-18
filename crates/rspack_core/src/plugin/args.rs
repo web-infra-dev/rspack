@@ -1,4 +1,5 @@
-use rspack_loader_runner::Content;
+use crate::{Compilation, CompilerOptions, ResolveKind, RuntimeSourceNode};
+use rspack_error::Result;
 use std::{fmt::Debug, sync::Arc};
 use swc_css::ast::Stylesheet;
 use swc_ecma_ast as ast;

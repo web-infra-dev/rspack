@@ -254,7 +254,7 @@ impl NormalModuleFactory {
       self
         .context
         .module_type
-        .ok_or_else(|| anyhow::format_err!("source type is empty"))?,
+        .ok_or_else(|| Error::InternalError("source type is empty".to_string()))?,
     );
     Ok(Some(resolved_module))
   }

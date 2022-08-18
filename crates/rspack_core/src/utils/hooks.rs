@@ -2,21 +2,46 @@ use crate::{
   parse_to_url, Content, LoadArgs, NormalModuleFactoryContext, PluginDriver, ResolveArgs,
   ResolveResult, TransformArgs,
 };
-use rspack_error::{Error, TraceableError};
+use rspack_error::{Error, Result, TraceableError};
 use std::path::Path;
+pub async fn load(
+  plugin_driver: &PluginDriver,
+  args: LoadArgs<'_>,
+  job_ctx: &mut NormalModuleFactoryContext,
+) -> Result<Content> {
+  let plugin_output = plugin_driver.load(args.clone(), job_ctx).await?;
 
-use crate::{NormalModuleFactoryContext, PluginDriver, ResolveArgs, ResolveResult};
+  if let Some(output) = plugin_output {
+    Ok(output)
+  } else {
+    let url = parse_to_url(args.uri);
+    debug_assert_eq!(url.scheme(), "specifier");
+    Ok(Content::Buffer(tokio::fs::read(url.path()).await?))
+  }
+}
+
+pub fn transform(_args: TransformArgs) -> String {
+  todo!()
+}
 
 pub async fn resolve(
   args: ResolveArgs<'_>,
   plugin_driver: &PluginDriver,
-  _job_context: &mut NormalModuleFactoryContext,
-) -> anyhow::Result<String> {
+  job_context: &mut NormalModuleFactoryContext,
+) -> rspack_error::Result<String> {
+  // TODO: plugins
+
+  let plugin_output = plugin_driver.resolve(args.clone(), job_context).await?;
+
+  if let Some(output) = plugin_output {
+    return Ok(output);
+  }
+
   // plugin_driver.resolver
   let base_dir = if let Some(importer) = args.importer {
     Path::new(importer)
       .parent()
-      .ok_or_else(|| anyhow::format_err!("parent() failed for {:?}", importer))?
+      .ok_or_else(|| Error::InternalError(format!("parent() failed for {:?}", importer)))?
   } else {
     Path::new(plugin_driver.options.context.as_str())
   };
@@ -38,12 +63,10 @@ pub async fn resolve(
             format!("Failed to resolve {}", args.specifier),
           ))
         } else {
-          anyhow::format_err!(
+          Error::InternalError(format!(
             "fail to resolved importer:{:?},specifier:{:?}",
-            args.importer,
-            args.specifier
-          )
-          .into()
+            args.importer, args.specifier
+          ))
         }
       })? {
       ResolveResult::Info(info) => info.path.to_string_lossy().to_string(),

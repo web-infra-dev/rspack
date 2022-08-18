@@ -21,3 +21,4 @@ mime_guess = "2.0.4"
 hashbrown = { version = "0.12.1", features = ["rayon"] }
 once_cell = "1"
 tracing = "0.1.34"
+rspack_error = { path = "../rspack_error" }

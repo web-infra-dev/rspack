@@ -3,13 +3,14 @@ use crate::utils::{get_wrap_chunk_after, get_wrap_chunk_before, parse_file, wrap
 use crate::visitors::{ClearMark, DefineScanner, DefineTransform};
 use crate::{generate_rspack_execute, RSPACK_REGISTER};
 use crate::{module::JsModule, utils::get_swc_compiler};
-use anyhow::{Context, Result};
+// use anyhow::{Context, Result};
 use rayon::prelude::*;
 use rspack_core::{
   AssetContent, ChunkKind, FilenameRenderOptions, ModuleRenderResult, ModuleType, ParseModuleArgs,
   Parser, Plugin, PluginContext, PluginRenderManifestHookOutput, RenderManifestEntry, SourceType,
 };
 
+use rspack_error::{Error, Result};
 use swc_common::comments::SingleThreadedComments;
 use swc_common::Mark;
 use swc_ecma_transforms::react::{react, Options as ReactOptions};
@@ -39,7 +40,7 @@ impl Plugin for JsPlugin {
   fn name(&self) -> &'static str {
     "javascript"
   }
-  fn apply(&mut self, ctx: PluginContext<&mut rspack_core::ApplyContext>) -> anyhow::Result<()> {
+  fn apply(&mut self, ctx: PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
     ctx.context.register_parser(
       ModuleType::Js,
       Box::new(JsParser::new(self.unresolved_mark)),
@@ -178,12 +179,12 @@ impl Parser for JsParser {
     &self,
     module_type: ModuleType,
     args: ParseModuleArgs,
-  ) -> anyhow::Result<rspack_core::BoxModule> {
+  ) -> Result<rspack_core::BoxModule> {
     if !module_type.is_js_like() {
-      anyhow::bail!(
+      return Err(Error::InternalError(format!(
         "`module_type` {:?} not supported for `JsParser`",
         module_type
-      );
+      )));
     }
 
     // let ast = {

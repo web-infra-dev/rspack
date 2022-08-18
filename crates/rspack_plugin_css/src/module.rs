@@ -1,7 +1,7 @@
 // mod js_module;
 // pub use js_module::*;
 
-use anyhow::Result;
+use rspack_error::Result;
 use std::fmt::Debug;
 
 use rspack_core::{Module, ModuleRenderResult, ModuleType, SourceType};

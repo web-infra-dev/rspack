@@ -6,13 +6,15 @@ use crate::{
   SWC_COMPILER,
 };
 
-use anyhow::{Context, Result};
+// use anyhow::{Context, Result};
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
 use rspack_core::{
   AssetContent, FilenameRenderOptions, ModuleRenderResult, ModuleType, ParseModuleArgs, Parser,
   Plugin, RenderManifestEntry, SourceType,
 };
+use rspack_error::{Error, Result};
+use std::path::Path;
 
 use swc_css::visit::VisitMutWith;
 

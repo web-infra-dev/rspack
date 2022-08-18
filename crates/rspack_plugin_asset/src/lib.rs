@@ -1,8 +1,9 @@
 use std::{ffi::OsStr, path::Path};
 
-use anyhow::Result;
 use async_trait::async_trait;
 use rayon::prelude::*;
+use rspack_error::Result;
+use tokio::fs;
 
 use rspack_core::{
   AssetContent, AssetParserOptions, FilenameRenderOptions, ModuleRenderResult, Plugin,

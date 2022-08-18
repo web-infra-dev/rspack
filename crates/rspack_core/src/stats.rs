@@ -1,4 +1,4 @@
-use rspack_error::emitter::emit_batch_diagnostic;
+use rspack_error::{emitter::emit_batch_diagnostic, Result};
 
 use crate::{Compilation, CompilationAssets};
 
@@ -12,8 +12,8 @@ impl<'compilation> Stats<'compilation> {
     Self { compilation }
   }
 
-  pub fn emit_error(&self) {
-    emit_batch_diagnostic(&self.compilation.diagnostic);
+  pub fn emit_error(&self) -> Result<()> {
+    emit_batch_diagnostic(&self.compilation.diagnostic)
   }
 }
 
