@@ -8,6 +8,6 @@
 
 ## Related issue (if exists)
 
-## Future reading
+## Further reading
 
 <!-- Reference that may help understand this pull request -->
