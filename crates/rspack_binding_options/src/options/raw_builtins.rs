@@ -69,6 +69,7 @@ pub struct RawHtmlPluginConfig {
 
 #[derive(Deserialize, Debug, Serialize, Default, Clone)]
 #[napi(object)]
+#[serde(rename_all = "camelCase")]
 pub struct RawCssPluginConfig {
   /// ## Example
   /// ```rust,ignore
