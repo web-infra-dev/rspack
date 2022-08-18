@@ -7,6 +7,7 @@ use crate::{
 };
 
 use anyhow::{Context, Result};
+use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
 use rspack_core::{
   AssetContent, Content, FilenameRenderOptions, ModuleAst, ModuleRenderResult, ModuleType,
@@ -16,14 +17,38 @@ use rspack_core::{
 use std::path::Path;
 
 use swc_css::visit::VisitMutWith;
-use swc_css_prefixer::prefixer;
-#[derive(Debug, Default)]
-pub struct CssPlugin {}
 
+use swc_css_prefixer::{options::Options, prefixer};
+#[derive(Debug, Default)]
+pub struct CssPlugin {
+  config: CssConfig,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct CssConfig {
+  pub preset_env: Vec<String>,
+}
+
+impl CssPlugin {
+  pub fn new(config: CssConfig) -> Self {
+    Self { config }
+  }
+  pub fn get_query(&self) -> Option<Query> {
+    // TODO: figure out if the prefixer visitMut is stateless
+    // I need to clone the preset_env every time, due to I don't know if it is stateless
+    // If it is true, I reduce this clone
+    if !self.config.preset_env.is_empty() {
+      Some(Query::Multiple(self.config.preset_env.clone()))
+    } else {
+      None
+    }
+  }
+}
 impl Plugin for CssPlugin {
   fn name(&self) -> &'static str {
     "css"
   }
+
   fn apply(
     &mut self,
     ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
@@ -49,7 +74,11 @@ impl Plugin for CssPlugin {
     args: rspack_core::TransformArgs,
   ) -> rspack_core::PluginTransformOutput {
     if let Some(TransformAst::Css(mut ast)) = args.ast {
-      ast.visit_mut_with(&mut prefixer(Default::default()));
+      if let Some(query) = self.get_query() {
+        ast.visit_mut_with(&mut prefixer(Options {
+          env: Some(Targets::Query(query)),
+        }));
+      }
       Ok({
         TransformResult {
           content: None,
