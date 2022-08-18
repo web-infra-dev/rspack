@@ -67,7 +67,7 @@ pub struct RawHtmlPluginConfig {
   pub sri: Option<HtmlSriHashFunction>,
 }
 
-#[derive(Deserialize, Debug, Serialize, Default)]
+#[derive(Deserialize, Debug, Serialize, Default, Clone)]
 #[napi(object)]
 pub struct RawCssPluginConfig {
   /// ## Example

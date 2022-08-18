@@ -2,7 +2,7 @@ use temp_test_utils::read_test_config_and_normalize;
 #[tokio::main]
 async fn main() {
   let mut cur_dir = std::env::current_dir().unwrap();
-  cur_dir = cur_dir.join("webpack_css_cases_to_be_migrated/at-import-in-the-middle");
+  cur_dir = cur_dir.join("webpack_css_cases_to_be_migrated/at-import-in");
   println!("{:?}", cur_dir);
   let options = read_test_config_and_normalize(&cur_dir);
 

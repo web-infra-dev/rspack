@@ -2,8 +2,9 @@ use std::fmt::Debug;
 
 use napi_derive::napi;
 
-use rspack_core::{CompilerOptions, CompilerOptionsBuilder, DevServerOptions};
+use rspack_core::{CompilerOptions, CompilerOptionsBuilder, DevServerOptions, Plugin};
 
+use rspack_plugin_css::plugin::CssConfig;
 use serde::Deserialize;
 
 mod raw_builtins;
@@ -114,22 +115,7 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
         .builtins
         .as_ref()
         .map(|builtins| -> anyhow::Result<()> {
-          // Normalized html plugin
-          builtins
-            .html
-            .as_ref()
-            .map(|config| -> anyhow::Result<()> {
-              let str = serde_json::to_string(&config)?;
-              let configs: Vec<rspack_plugin_html::config::HtmlPluginConfig> =
-                serde_json::from_str(&str)?;
-              for config in configs {
-                plugins.push(Box::new(rspack_plugin_html::HtmlPlugin::new(config)));
-              }
-              Ok(())
-            })
-            .transpose()?;
-          // Normalize css plugin
-          // builtins.css.as_ref().unwrap_or_default();
+          normalize_builtin(builtins, &mut plugins)?;
           Ok(())
         })
         .transpose()?;
@@ -156,6 +142,29 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
     .finish();
 
   Ok(compiler_options)
+}
+
+fn normalize_builtin(
+  builtins: &RawBuiltins,
+  plugins: &mut Vec<Box<dyn Plugin>>,
+) -> Result<(), anyhow::Error> {
+  builtins
+    .html
+    .as_ref()
+    .map(|config| -> anyhow::Result<()> {
+      let str = serde_json::to_string(&config)?;
+      let configs: Vec<rspack_plugin_html::config::HtmlPluginConfig> = serde_json::from_str(&str)?;
+      for config in configs {
+        plugins.push(Box::new(rspack_plugin_html::HtmlPlugin::new(config)));
+      }
+      Ok(())
+    })
+    .transpose()?;
+  let css_config = builtins.css.clone().unwrap_or_default();
+  plugins.push(Box::new(rspack_plugin_css::CssPlugin::new(CssConfig {
+    preset_env: vec![],
+  })));
+  Ok(())
 }
 
 // pub fn parse_raw_alias(
