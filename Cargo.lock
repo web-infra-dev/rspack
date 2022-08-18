@@ -2057,11 +2057,8 @@ dependencies = [
  "petgraph",
  "rayon",
  "regex",
-<<<<<<< HEAD
- "rspack_loader_runner",
-=======
  "rspack_error",
->>>>>>> 53e4ba8 (feat: 🎸 init)
+ "rspack_loader_runner",
  "sugar_path",
  "swc_css",
  "swc_ecma_ast 0.90.10",
@@ -2089,11 +2086,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
-<<<<<<< HEAD
-=======
- "rspack_core",
  "rspack_error",
->>>>>>> 7f9d605 (chore: 🤖 increase error handling)
  "similar-asserts",
  "tokio",
  "tracing",

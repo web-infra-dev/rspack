@@ -6,8 +6,7 @@ use crate::{
   BoxModule, ModuleType, ParseModuleArgs, PluginContext, ProcessAssetsArgs, RenderManifestArgs,
   RenderRuntimeArgs, RuntimeSourceNode, TransformAst, TransformResult,
 };
-use crate::{Content, TransformArgs};
-use rspack_error::{Error, Result};
+use rspack_error::Result;
 
 // use anyhow::{Context, Result};
 use hashbrown::HashMap;

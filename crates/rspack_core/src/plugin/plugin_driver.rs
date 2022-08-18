@@ -9,7 +9,6 @@ use crate::{
   PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, ProcessAssetsArgs,
   RenderManifestArgs, RenderRuntimeArgs, Resolver,
 };
-use rayon::prelude::*;
 use rspack_error::{Error, Result};
 
 #[derive(Debug)]
