@@ -114,6 +114,7 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
         .builtins
         .as_ref()
         .map(|builtins| -> anyhow::Result<()> {
+          // Normalized html plugin
           builtins
             .html
             .as_ref()
@@ -127,9 +128,12 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
               Ok(())
             })
             .transpose()?;
+          // Normalize css plugin
+          // builtins.css.as_ref().unwrap_or_default();
           Ok(())
         })
         .transpose()?;
+
       options.plugins = Some(plugins);
       Ok(options)
     })?
