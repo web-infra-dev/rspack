@@ -13,6 +13,8 @@ use napi::{
   },
   JsFunction,
 };
+#[cfg(feature = "node-api")]
+use rspack_error::Result;
 
 use rspack_core::{
   AssetParserDataUrlOption, AssetParserOptions, CompilerOptionsBuilder, ModuleOptions, ModuleRule,
@@ -171,7 +173,7 @@ impl rspack_core::Loader for NodeLoaderAdapter {
   async fn run(
     &self,
     loader_context: &rspack_core::LoaderContext<'_>,
-  ) -> anyhow::Result<Option<rspack_core::LoaderResult>> {
+  ) -> Result<Option<rspack_core::LoaderResult>> {
     use std::sync::atomic::Ordering;
 
     let loader_context = LoaderContext {
@@ -210,7 +212,7 @@ impl rspack_core::Loader for NodeLoaderAdapter {
         self
           .loader
           .call(Err(err.clone()), ThreadsafeFunctionCallMode::Blocking);
-        return Err(err.into());
+        return Err(anyhow::Error::from(err).into());
       }
     }
 
@@ -220,7 +222,7 @@ impl rspack_core::Loader for NodeLoaderAdapter {
 
     debug_assert_eq!(status, napi::Status::Ok);
 
-    let loader_result = rx.await?;
+    let loader_result = rx.await.map_err(|err| anyhow::Error::from(err))?;
 
     Ok(
       loader_result.map(|loader_result| rspack_core::LoaderResult {
