@@ -81,7 +81,7 @@ pub struct RawCssPluginConfig {
   pub preset_env: Vec<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 #[napi(object)]
 pub struct RawBuiltins {
   pub html: Option<Vec<RawHtmlPluginConfig>>,
