@@ -11,6 +11,8 @@ use std::{
 
 use colored::Colorize;
 
+use glob::glob;
+
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -308,7 +310,6 @@ impl Rst {
     );
 
     self.finalize(&res);
-
     res
   }
 
@@ -562,39 +563,50 @@ impl Rst {
 
   /// Update all the failed records in the current working directory.
   pub fn update_all_cases() {
-    let dir = Self::get_record_dir();
-    let updates: Arc<Mutex<Vec<PathBuf>>> = Default::default();
-
-    if !dir.exists() {
-      prtln!("No records found, nothing updated");
-      return;
+    let workspace_dir =
+      std::env::var("CARGO_WORKSPACE_DIR").expect("Can't get CARGO_WORKSPACE_DIR");
+    // dbg!(&minifest);
+    for entry in
+      glob(&format!("{}crates/*/.temp", workspace_dir)).expect("Failed to read glob pattern")
+    {
+      match entry {
+        Ok(entry) => {
+          update_single_case(&entry);
+          // remove temp dir that store diff info
+          std::fs::remove_dir_all(entry).unwrap();
+        }
+        Err(e) => println!("{:?}", e),
+      }
     }
-
-    let failed_files = fs::read_dir(dir)
-      .unwrap()
-      .map(|dir| dir.unwrap().path())
-      .collect::<Vec<_>>();
-
-    failed_files.par_iter().for_each(|failed_path| {
-      let record = serde_json::from_slice::<Record>(&fs::read(&failed_path).unwrap()).unwrap();
-      let rst: Rst = record.into();
-      rst.update_fixture();
-
-      updates.clone().lock().unwrap().push(rst.fixture);
-    });
-
-    let updates = updates.lock().unwrap();
-    let count = updates.len();
-
-    prtln!(
-      "Updated {} fixture{}:\n{}",
-      count.to_string().green(),
-      if count > 1 { "s" } else { "" },
-      updates.iter().fold(String::new(), |str, update| {
-        format!("{}\n{}", str, update.display())
-      })
-    );
   }
+}
+
+fn update_single_case(dir: &PathBuf) {
+  let updates: Arc<Mutex<Vec<PathBuf>>> = Default::default();
+  if !dir.exists() {
+    prtln!("No records found, nothing updated");
+  }
+  let failed_files = fs::read_dir(dir)
+    .unwrap()
+    .map(|dir| dir.unwrap().path())
+    .collect::<Vec<_>>();
+  failed_files.par_iter().for_each(|failed_path| {
+    let record = serde_json::from_slice::<Record>(&fs::read(&failed_path).unwrap()).unwrap();
+    let rst: Rst = record.into();
+    rst.update_fixture();
+
+    updates.clone().lock().unwrap().push(rst.fixture);
+  });
+  let updates = updates.lock().unwrap();
+  let count = updates.len();
+  prtln!(
+    "Updated {} fixture{}:\n{}",
+    count.to_string().green(),
+    if count > 1 { "s" } else { "" },
+    updates.iter().fold(String::new(), |str, update| {
+      format!("{}\n{}", str, update.display())
+    })
+  );
 }
 
 pub fn test(p: PathBuf) -> Result<(), TestError> {

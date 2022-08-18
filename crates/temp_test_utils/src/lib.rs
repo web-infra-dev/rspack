@@ -1,7 +1,7 @@
 use rspack_binding_options::RawOptions;
 use rspack_core::{AssetContent, Compiler, CompilerOptions};
 use std::{collections::HashMap, path::Path};
-mod test_options;
+pub mod test_options;
 use test_options::RawOptionsExt;
 
 pub fn read_test_config_and_normalize(fixture_path: &Path) -> CompilerOptions {
