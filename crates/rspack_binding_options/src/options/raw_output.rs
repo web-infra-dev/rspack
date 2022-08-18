@@ -1,15 +1,36 @@
-use crate::RawOption;
+use std::{path::Path, str::FromStr};
+
+use serde::Deserialize;
+
+#[cfg(feature = "node-api")]
 use napi_derive::napi;
+
 use rspack_core::{
   CompilerOptionsBuilder, Filename, OutputOptions, PublicPath, EXT_PLACEHOLDER, ID_PLACEHOLDER,
   NAME_PLACEHOLDER,
 };
-use serde::Deserialize;
-use std::{path::Path, str::FromStr};
+
+use crate::RawOption;
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
+#[cfg(feature = "node-api")]
 #[napi(object)]
+pub struct RawOutputOptions {
+  pub path: Option<String>,
+  pub public_path: Option<String>,
+  pub asset_module_filename: Option<String>,
+  // todo support for function
+  pub filename: Option<String>,
+  pub chunk_filename: Option<String>,
+  pub unique_name: Option<String>,
+  /* pub entry_filename: Option<String>,
+   * pub source_map: Option<String>, */
+}
+
+#[derive(Deserialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+#[cfg(not(feature = "node-api"))]
 pub struct RawOutputOptions {
   pub path: Option<String>,
   pub public_path: Option<String>,

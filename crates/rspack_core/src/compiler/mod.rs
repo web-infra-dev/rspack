@@ -11,8 +11,8 @@ use rayon::prelude::*;
 use tracing::instrument;
 
 use crate::{
-  AssetContent, CompilerOptions, Dependency, ModuleGraphModule, NormalModuleFactory,
-  NormalModuleFactoryContext, Plugin, PluginDriver, Stats,
+  AssetContent, CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule,
+  NormalModuleFactory, NormalModuleFactoryContext, Plugin, PluginDriver, Stats,
 };
 
 mod compilation;
@@ -25,6 +25,7 @@ pub struct Compiler {
   pub options: Arc<CompilerOptions>,
   pub compilation: Compilation,
   pub plugin_driver: Arc<PluginDriver>,
+  pub loader_runner_runner: Arc<LoaderRunnerRunner>,
 }
 
 impl Compiler {
@@ -35,6 +36,7 @@ impl Compiler {
     let resolver_factory = ResolverFactory::new();
     let resolver = resolver_factory.get(options.resolve.clone());
     let plugin_driver = PluginDriver::new(options.clone(), plugins, Arc::new(resolver));
+    let loader_runner_runner = LoaderRunnerRunner::new(options.clone());
 
     Self {
       options: options.clone(),
@@ -45,6 +47,7 @@ impl Compiler {
         Default::default(),
       ),
       plugin_driver: Arc::new(plugin_driver),
+      loader_runner_runner: Arc::new(loader_runner_runner),
     }
   }
 
@@ -81,6 +84,7 @@ impl Compiler {
           dep,
           tx.clone(),
           self.plugin_driver.clone(),
+          self.loader_runner_runner.clone(),
         );
 
         tokio::task::spawn(async move { task.run().await });

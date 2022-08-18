@@ -1,11 +1,13 @@
 use anyhow::Result;
 
+use std::fmt::Debug;
+
 use crate::Content;
 // use crate::LoaderRunnerPlugin;
 
 type Source = Content;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ResourceData {
   pub resource: String,
   pub resource_path: String,
@@ -48,7 +50,7 @@ impl From<LoaderContext<'_>> for LoaderResult {
 }
 
 #[async_trait::async_trait]
-pub trait Loader: Sync + Send {
+pub trait Loader: Sync + Send + Debug {
   /// Loader name for debugging
   fn name(&self) -> &'static str {
     "unknown-loader"
@@ -58,16 +60,19 @@ pub trait Loader: Sync + Send {
   ///
   /// 1. If a loader returns an error, the loader runner will stop loading the resource.
   /// 2. If a loader returns a `None`, the result of the loader will be the same as the previous one.
-  async fn run<'a>(&self, loader_context: &LoaderContext<'a>) -> Result<Option<LoaderResult>>;
+  async fn run(&self, loader_context: &LoaderContext<'_>) -> Result<Option<LoaderResult>>;
+
+  fn as_any(&self) -> &dyn std::any::Any;
+
+  fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
 }
 
-type BoxedLoader = Box<dyn Loader>;
+pub type BoxedLoader = Box<dyn Loader>;
 // type BoxedRunnerPlugin = Box<dyn LoaderRunnerPlugin>;
 
 pub type LoaderRunnerResult = Result<LoaderResult>;
 
 pub struct LoaderRunner {
-  loaders: Vec<BoxedLoader>,
   // plugins: Vec<BoxedRunnerPlugin>,
   resource_data: ResourceData,
 }
@@ -75,11 +80,9 @@ pub struct LoaderRunner {
 impl LoaderRunner {
   pub fn new(
     resource_data: ResourceData,
-    loaders: Vec<BoxedLoader>,
     // plugins: Vec<BoxedRunnerPlugin>,
   ) -> Self {
     Self {
-      loaders,
       // plugins,
       resource_data,
     }
@@ -104,12 +107,12 @@ impl LoaderRunner {
     Ok(loader_context)
   }
 
-  pub async fn run(&mut self) -> LoaderRunnerResult {
+  pub async fn run(&self, loaders: impl AsRef<[&dyn Loader]>) -> LoaderRunnerResult {
     let mut loader_context = self.get_loader_context().await?;
 
     tracing::debug!("Running loaders for resource: {}", loader_context.resource);
 
-    for loader in self.loaders.iter().rev() {
+    for loader in loaders.as_ref().iter().rev() {
       tracing::debug!("Running loader: {}", loader.name());
 
       if let Some(loader_result) = loader.run(&loader_context).await? {

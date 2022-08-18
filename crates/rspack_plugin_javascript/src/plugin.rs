@@ -6,9 +6,8 @@ use crate::{module::JsModule, utils::get_swc_compiler};
 use anyhow::{Context, Result};
 use rayon::prelude::*;
 use rspack_core::{
-  AssetContent, ChunkKind, FilenameRenderOptions, ModuleAst, ModuleRenderResult, ModuleType,
-  ParseModuleArgs, Parser, Plugin, PluginContext, PluginRenderManifestHookOutput,
-  RenderManifestEntry, SourceType,
+  AssetContent, ChunkKind, FilenameRenderOptions, ModuleRenderResult, ModuleType, ParseModuleArgs,
+  Parser, Plugin, PluginContext, PluginRenderManifestHookOutput, RenderManifestEntry, SourceType,
 };
 
 use swc_common::comments::SingleThreadedComments;
@@ -186,29 +185,39 @@ impl Parser for JsParser {
         module_type
       );
     }
-    let ast = {
-      match args.ast {
-        Some(ModuleAst::JavaScript(_ast)) => Ok::<swc_ecma_ast::Program, anyhow::Error>(_ast),
-        None => {
-          if let Some(content) = args.source {
-            Ok(parse_file(
-              content
-                .try_into_string()
-                .context("Unable to serialize content as string which is required by plugin css")?,
-              args.uri,
-              &module_type,
-            ))
-          } else {
-            anyhow::bail!(
-              "ast and source is both empty for {}, or content type does not match {:?}",
-              args.uri,
-              args.source
-            )
-          }
-        }
-        _ => anyhow::bail!("not supported ast {:?} for js parser", args.ast),
-      }
-    }?;
+
+    // let ast = {
+    //   match args.ast {
+    //     Some(ModuleAst::JavaScript(_ast)) => Ok::<_, anyhow::Error>(_ast),
+    //     None => {
+    //       if let Some(content) = args.source {
+    //         Ok(parse_file(
+    //           content
+    //             .try_into_string()
+    //             .context("Unable to serialize content as string which is required by plugin css")?,
+    //           args.uri,
+    //           &module_type,
+    //         ))
+    //       } else {
+    //         anyhow::bail!(
+    //           "ast and source is both empty for {}, or content type does not match {:?}",
+    //           args.uri,
+    //           args.source
+    //         )
+    //       }
+    //     }
+    //     _ => anyhow::bail!("not supported ast {:?} for js parser", args.ast),
+    //   }
+    // }?;
+
+    let ast = parse_file(
+      args
+        .source
+        .try_into_string()
+        .context("Unable to serialize content as string")?,
+      args.uri,
+      &module_type,
+    );
 
     let ast = get_swc_compiler().run(|| {
       let defintions = &args.options.define;

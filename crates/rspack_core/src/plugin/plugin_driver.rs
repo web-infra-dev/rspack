@@ -1,16 +1,14 @@
 use std::{collections::HashMap, sync::Arc};
 
+use rayon::prelude::*;
 use tracing::instrument;
 
 use crate::{
-  ApplyContext, BoxModule, BoxedParser, CompilerOptions, LoadArgs, ModuleType,
-  NormalModuleFactoryContext, ParseModuleArgs, Plugin, PluginContext, PluginLoadHookOutput,
-  PluginProcessAssetsOutput, PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput,
-  PluginResolveHookOutput, PluginTransformOutput, ProcessAssetsArgs, RenderManifestArgs,
-  RenderRuntimeArgs, ResolveArgs, Resolver, TransformArgs, TransformResult,
+  ApplyContext, BoxModule, BoxedParser, CompilerOptions, ModuleType, NormalModuleFactoryContext,
+  ParseModuleArgs, Plugin, PluginContext, PluginProcessAssetsOutput,
+  PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, ProcessAssetsArgs,
+  RenderManifestArgs, RenderRuntimeArgs, Resolver,
 };
-use anyhow::Context;
-use rayon::prelude::*;
 
 #[derive(Debug)]
 pub struct PluginDriver {
@@ -51,80 +49,7 @@ impl PluginDriver {
     }
   }
 
-  pub async fn resolve(
-    &self,
-    args: ResolveArgs<'_>,
-    job_ctx: &mut NormalModuleFactoryContext,
-  ) -> PluginResolveHookOutput {
-    for plugin in &self.plugins {
-      let output = plugin
-        .resolve(PluginContext::with_context(job_ctx), args.clone())
-        .await?;
-      if output.is_some() {
-        return Ok(output);
-      }
-    }
-    Ok(None)
-  }
-
-  pub async fn load(
-    &self,
-    args: LoadArgs<'_>,
-    job_ctx: &mut NormalModuleFactoryContext,
-  ) -> PluginLoadHookOutput {
-    for plugin in &self.plugins {
-      let content = plugin
-        .load(PluginContext::with_context(job_ctx), args.clone())
-        .await?;
-      if content.is_some() {
-        return Ok(content);
-      }
-    }
-    Ok(None)
-  }
   #[instrument(skip_all)]
-  pub fn transform(
-    &self,
-    args: TransformArgs,
-    job_ctx: &mut NormalModuleFactoryContext,
-  ) -> PluginTransformOutput {
-    let mut transformed_result = TransformResult {
-      content: args.content,
-      ast: args.ast,
-    };
-    for plugin in &self.plugins {
-      if plugin.transform_include(args.uri) {
-        tracing::debug!("running transform:{}", plugin.name());
-        let x = transformed_result;
-        let mut content = x.content;
-        let mut ast = x.ast;
-        // ast take precedence over code
-        // if prev loader set ast and current loader can't reuse_ast then we have to codegen code for current loader
-        if !plugin.reuse_ast() && ast.is_some() {
-          content = Some(plugin.generate(&ast)?);
-        }
-        // if previous not set ast and current loader want to use ast, so we must parse it for loader
-        if ast.is_none() && plugin.reuse_ast() {
-          let y = plugin.parse(
-            args.uri,
-            content
-              .as_ref()
-              .with_context(|| format!("ast and code is both none for {}", &args.uri))?,
-          )?;
-          ast = Some(y)
-        }
-        let args = TransformArgs {
-          uri: args.uri,
-          ast,
-          content,
-        };
-        let res = plugin.transform(PluginContext::with_context(job_ctx), args)?;
-        transformed_result = res;
-      }
-    }
-    Ok(transformed_result)
-  }
-  // #[instrument(skip_all)]
   pub fn parse(
     &self,
     args: ParseModuleArgs,

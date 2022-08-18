@@ -6,12 +6,22 @@ use std::{
   },
 };
 
+use crate::{CompilerOptions, LoaderResult, LoaderRunnerRunner, ResourceData};
 use sugar_path::PathSugar;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
-  load, parse_to_url, resolve, CompilerOptions, Content, LoadArgs, ModuleGraphModule, ModuleType,
-  Msg, ParseModuleArgs, PluginDriver, ResolveArgs, TransformArgs, VisitedModuleIdentity,
+  // load,
+  parse_to_url,
+  resolve,
+  Content,
+  ModuleGraphModule,
+  ModuleType,
+  Msg,
+  ParseModuleArgs,
+  PluginDriver,
+  ResolveArgs,
+  VisitedModuleIdentity,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -46,6 +56,7 @@ pub struct NormalModuleFactory {
   dependency: Dependency,
   tx: UnboundedSender<Msg>,
   plugin_driver: Arc<PluginDriver>,
+  loader_runner_runner: Arc<LoaderRunnerRunner>,
 }
 
 impl NormalModuleFactory {
@@ -54,6 +65,7 @@ impl NormalModuleFactory {
     dependency: Dependency,
     tx: UnboundedSender<Msg>,
     plugin_driver: Arc<PluginDriver>,
+    loader_runner_runner: Arc<LoaderRunnerRunner>,
   ) -> Self {
     context.active_task_count.fetch_add(1, Ordering::SeqCst);
 
@@ -62,6 +74,7 @@ impl NormalModuleFactory {
       dependency,
       tx,
       plugin_driver,
+      loader_runner_runner,
     }
   }
   pub async fn run(mut self) {
@@ -97,6 +110,7 @@ impl NormalModuleFactory {
     .await?;
     tracing::trace!("resolved uri {:?}", uri);
 
+    let url = parse_to_url(&uri);
     if self.context.module_type.is_none() {
       // todo currently unreachable module types are temporarily unified with their importers
       let url = parse_to_url(
@@ -106,7 +120,7 @@ impl NormalModuleFactory {
           &uri
         },
       );
-      assert_eq!(url.scheme(), "specifier");
+      debug_assert_eq!(url.scheme(), "specifier");
       self.context.module_type = resolve_module_type_by_uri(url.path());
     }
 
@@ -131,34 +145,51 @@ impl NormalModuleFactory {
       .visited_module_identity
       .insert((uri.clone(), self.dependency.detail.clone()));
 
-    let source = if uri.starts_with("UnReachable:") || uri.contains(".scss") {
-      Content::Buffer("module.exports = {}".to_string().as_bytes().to_vec())
-    } else {
-      load(
-        &self.plugin_driver,
-        LoadArgs { uri: uri.as_str() },
-        &mut self.context,
-      )
-      .await?
+    let resource_data = ResourceData {
+      resource: uri.clone(),
+      resource_path: url.path().to_owned(),
+      resource_query: url.query().map(|q| q.to_owned()),
+      resource_fragment: url.fragment().map(|f| f.to_owned()),
     };
-    tracing::trace!("load ({:?}) source {:?}", self.context.module_type, source);
+
+    let runner_result = if uri.starts_with("UnReachable:") || uri.contains(".scss") {
+      LoaderResult {
+        content: Content::Buffer("module.exports = {}".to_string().as_bytes().to_vec()),
+      }
+    } else {
+      self.loader_runner_runner.run(resource_data).await?
+    };
+    tracing::trace!(
+      "load ({:?}) source {:?}",
+      self.context.module_type,
+      runner_result
+    );
+
+    // let source = load(
+    //   &self.plugin_driver,
+    //   LoadArgs { uri: uri.as_str() },
+    //   &mut self.context,
+    // )
+    // .await?;
+    // tracing::trace!("load ({:?}) source {:?}", self.context.module_type, source);
 
     // TODO: transform
-    let transform_result = self.plugin_driver.transform(
-      TransformArgs {
-        uri: &uri,
-        content: Some(source),
-        ast: None,
-      },
-      &mut self.context,
-    )?;
+    // let transform_result = self.plugin_driver.transform(
+    //   TransformArgs {
+    //     uri: &uri,
+    //     content: Some(source),
+    //     ast: None,
+    //   },
+    //   &mut self.context,
+    // )?;
 
     let mut module = self.plugin_driver.parse(
       ParseModuleArgs {
         uri: uri.as_str(),
-        source: transform_result.content,
-        ast: transform_result.ast.map(|x| x.into()),
+        // source: transform_result.content,
         options: self.context.options.clone(),
+        source: runner_result.content,
+        // ast: transform_result.ast.map(|x| x.into()),
       },
       &mut self.context,
     )?;
@@ -208,6 +239,7 @@ impl NormalModuleFactory {
       dep,
       self.tx.clone(),
       self.plugin_driver.clone(),
+      self.loader_runner_runner.clone(),
     );
 
     tokio::task::spawn(async move {

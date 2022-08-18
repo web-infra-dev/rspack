@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 
+#[cfg(feature = "node-api")]
 use napi_derive::napi;
 
 use rspack_core::{CompilerOptions, CompilerOptionsBuilder, DevServerOptions, Plugin};
@@ -48,8 +49,10 @@ pub trait RawOption<T> {
   }
 }
 
+// Temporary workaround with feature-based cfg, replaced with a bug fix to napi-derive/noop next.
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
+#[cfg(feature = "node-api")]
 #[napi(object)]
 pub struct RawOptions {
   #[napi(ts_type = "Record<string, string>")]
@@ -73,6 +76,27 @@ pub struct RawOptions {
   pub module: Option<RawModuleOptions>,
   pub builtins: Option<RawBuiltins>,
   #[napi(ts_type = "Record<string, string>")]
+  pub define: Option<RawDefine>,
+}
+
+#[derive(Deserialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+#[cfg(not(feature = "node-api"))]
+pub struct RawOptions {
+  pub entry: Option<RawEntry>,
+  pub mode: Option<RawMode>,
+  pub target: Option<RawTarget>,
+  // pub platform: Option<String>,
+  pub context: Option<RawContext>,
+  // pub loader: Option<HashMap<String, String>>,
+  // pub enhanced: Option<RawEnhancedOptions>,
+  // pub optimization: Option<RawOptimizationOptions>,
+  pub output: Option<RawOutputOptions>,
+  pub resolve: Option<RawResolveOptions>,
+  // pub chunk_filename: Option<String>,
+  pub plugins: Option<RawPlugins>,
+  pub module: Option<RawModuleOptions>,
+  pub builtins: Option<RawBuiltins>,
   pub define: Option<RawDefine>,
 }
 

@@ -1,6 +1,9 @@
+#[cfg(feature = "node-api")]
 use napi_derive::napi;
+
 use serde::Deserialize;
 use serde::Serialize;
+
 pub type HtmlPluginConfigScriptLoading = String;
 pub type HtmlPluginConfigInject = String;
 pub type HtmlSriHashFunction = String;
@@ -43,6 +46,7 @@ fn default_script_loading() -> HtmlPluginConfigScriptLoading {
 // }
 
 #[derive(Deserialize, Debug, Serialize)]
+#[cfg(feature = "node-api")]
 #[napi(object)]
 pub struct RawHtmlPluginConfig {
   /// emitted file name in output path
@@ -67,7 +71,30 @@ pub struct RawHtmlPluginConfig {
   pub sri: Option<HtmlSriHashFunction>,
 }
 
+#[derive(Deserialize, Debug, Serialize)]
+#[cfg(not(feature = "node-api"))]
+pub struct RawHtmlPluginConfig {
+  /// emitted file name in output path
+  #[serde(default = "default_filename")]
+  pub filename: String,
+  /// template html file
+  pub template: Option<String>,
+  /// `head`, `body` or None
+  pub inject: Option<HtmlPluginConfigInject>,
+  /// path or `auto`
+  pub public_path: Option<String>,
+  /// `blocking`, `defer`, or `module`
+  #[serde(default = "default_script_loading")]
+  pub script_loading: HtmlPluginConfigScriptLoading,
+
+  /// entry_chunk_name (only entry chunks are supported)
+  pub chunks: Option<Vec<String>>,
+  pub excluded_chunks: Option<Vec<String>>,
+  pub sri: Option<HtmlSriHashFunction>,
+}
+
 #[derive(Deserialize, Debug, Serialize, Default, Clone)]
+#[cfg(feature = "node-api")]
 #[napi(object)]
 #[serde(rename_all = "camelCase")]
 pub struct RawCssPluginConfig {
@@ -82,8 +109,31 @@ pub struct RawCssPluginConfig {
   pub preset_env: Vec<String>,
 }
 
+#[derive(Deserialize, Debug, Serialize, Default, Clone)]
+#[cfg(not(feature = "node-api"))]
+#[serde(rename_all = "camelCase")]
+pub struct RawCssPluginConfig {
+  /// ## Example
+  /// ```rust,ignore
+  /// RawCssOptions {
+  ///   preset_env: vec!["Firefox > 10".into(), "chrome >=20".into()],
+  /// }
+  /// ```
+  /// The preset_env will finally pass into [`browserslist::resolve`](https://docs.rs/browserslist-rs/latest/browserslist/fn.resolve.html).
+  /// For detailed configuration, see https://docs.rs/browserslist-rs/latest/browserslist/
+  pub preset_env: Vec<String>,
+}
+
 #[derive(Debug, Deserialize, Default)]
+#[cfg(feature = "node-api")]
 #[napi(object)]
+pub struct RawBuiltins {
+  pub html: Option<Vec<RawHtmlPluginConfig>>,
+  pub css: Option<RawCssPluginConfig>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[cfg(not(feature = "node-api"))]
 pub struct RawBuiltins {
   pub html: Option<Vec<RawHtmlPluginConfig>>,
   pub css: Option<RawCssPluginConfig>,
