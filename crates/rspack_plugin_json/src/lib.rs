@@ -39,14 +39,10 @@ impl Parser for JsonParser {
     _module_type: ModuleType,
     args: rspack_core::ParseModuleArgs,
   ) -> Result<BoxModule> {
-    let json_str = args
-      .source
-      .map(|content| content.try_into_string())
-      .transpose()?
-      .map(|s| json::parse(&s).map(|_| s))
-      // TODO: error handling dont use unwrap
-      .transpose()?
-      .unwrap_or_else(|| "{}".to_owned());
+    let source = args.source.try_into_string()?;
+
+    // JSON Validation
+    json::parse(&source)?;
 
     Ok(Box::new(JsonModule::new(source)))
   }

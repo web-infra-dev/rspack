@@ -215,7 +215,7 @@ impl Parser for JsParser {
       args
         .source
         .try_into_string()
-        .context("Unable to serialize content as string")?,
+        .map_err(|_| Error::InternalError("Unable to serialize content as string".into()))?,
       args.uri,
       &module_type,
     );
