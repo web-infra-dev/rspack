@@ -2,7 +2,7 @@
 var runtime = new Object();
 self['__rspack_runtime__'] = runtime;// mount Modules
 (function () {
-  runtime.installedModules = {};
+  runtime.installedModules = {/* __INSTALLED_MODULES__*/};
 })();
 
 // mount Chunks

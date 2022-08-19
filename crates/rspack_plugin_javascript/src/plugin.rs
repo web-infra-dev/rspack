@@ -1,13 +1,14 @@
 use crate::module::JS_MODULE_SOURCE_TYPE_LIST;
 use crate::utils::{get_wrap_chunk_after, get_wrap_chunk_before, parse_file, wrap_module_function};
 use crate::visitors::{ClearMark, DefineScanner, DefineTransform};
-use crate::{generate_rspack_execute, RSPACK_REGISTER};
 use crate::{module::JsModule, utils::get_swc_compiler};
 // use anyhow::{Context, Result};
+use crate::{RSPACK_REGISTER, RSPACK_REQUIRE};
 use rayon::prelude::*;
 use rspack_core::{
   AssetContent, ChunkKind, FilenameRenderOptions, ModuleRenderResult, ModuleType, ParseModuleArgs,
   Parser, Plugin, PluginContext, PluginRenderManifestHookOutput, RenderManifestEntry, SourceType,
+  Target, TargetOptions,
 };
 
 use rspack_error::{Error, Result};
@@ -75,6 +76,11 @@ impl Plugin for JsPlugin {
       .ok_or_else(|| anyhow::format_err!("Not found chunk {:?}", args.chunk_id))?;
     let ordered_modules = chunk.ordered_modules(module_graph);
 
+    let has_inline_runtime = matches!(
+      &compilation.options.target,
+      Target::Target(TargetOptions::WebWorker),
+    ) && matches!(chunk.kind, ChunkKind::Entry { .. });
+
     let mut module_code_array = ordered_modules
       .par_iter()
       .filter(|module| {
@@ -97,30 +103,36 @@ impl Plugin for JsPlugin {
       })
       .collect::<Result<Vec<Option<String>>>>()?;
 
-    // insert chunk wrapper
-    module_code_array.insert(
-      0,
-      Some(get_wrap_chunk_before(
-        namespace,
-        RSPACK_REGISTER,
-        args.chunk_id,
-      )),
-    );
-    module_code_array.push(Some(get_wrap_chunk_after()));
+    if !has_inline_runtime {
+      // insert chunk wrapper
+      module_code_array.insert(
+        0,
+        Some(get_wrap_chunk_before(
+          namespace,
+          RSPACK_REGISTER,
+          args.chunk_id,
+        )),
+      );
+      module_code_array.push(Some(get_wrap_chunk_after()));
+    }
 
-    let code = module_code_array
+    let entry_module_id = ordered_modules
+      .last()
+      .ok_or_else(|| anyhow::format_err!("TODO:"))?
+      .id
+      .as_str();
+
+    let execute_code =
+      compilation
+        .runtime
+        .generate_rspack_execute(namespace, RSPACK_REQUIRE, entry_module_id);
+
+    let mut code = module_code_array
       .into_par_iter()
       .flatten()
       .chain([{
-        if chunk.kind.is_entry() {
-          generate_rspack_execute(
-            namespace,
-            ordered_modules
-              .last()
-              .ok_or_else(|| anyhow::format_err!("TODO:"))?
-              .id
-              .as_str(),
-          )
+        if chunk.kind.is_entry() && !has_inline_runtime {
+          execute_code.clone()
         } else {
           String::new()
         }
@@ -155,6 +167,12 @@ impl Plugin for JsPlugin {
           })
       }
     };
+
+    if has_inline_runtime {
+      code = compilation
+        .runtime
+        .generate_with_inline_modules(&code, &execute_code);
+    }
 
     Ok(vec![RenderManifestEntry::new(
       AssetContent::String(code),

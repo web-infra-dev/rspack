@@ -1,6 +1,6 @@
 // mount Modules
 (function () {
-  runtime.installedModules = {};
+  runtime.installedModules = __INSTALLED_MODULES__;
 })();
 
 // mount Chunks

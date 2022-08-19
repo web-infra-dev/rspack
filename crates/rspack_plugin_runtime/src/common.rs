@@ -1,4 +1,4 @@
-use rspack_core::RuntimeSourceNode;
+use rspack_core::{RuntimeSourceNode, RUNTIME_PLACEHOLDER_INSTALLED_MODULES};
 
 pub fn generate_common_init_runtime() -> RuntimeSourceNode {
   RuntimeSourceNode {
@@ -8,7 +8,12 @@ pub fn generate_common_init_runtime() -> RuntimeSourceNode {
 
 pub fn generate_common_module_and_chunk_data() -> RuntimeSourceNode {
   RuntimeSourceNode {
-    content: include_str!("runtime/common/_module_and_chunk_data.js").to_string(),
+    content: include_str!("runtime/common/_module_and_chunk_data.js")
+      .to_string()
+      .replace(
+        "__INSTALLED_MODULES__",
+        RUNTIME_PLACEHOLDER_INSTALLED_MODULES,
+      ),
   }
 }
 

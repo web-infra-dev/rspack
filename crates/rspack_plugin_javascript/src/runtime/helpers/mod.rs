@@ -39,10 +39,6 @@ pub fn get_rspack_register_callee(namespace: &str) -> Callee {
   Ident::new(generate_rspack_register(namespace).into(), DUMMY_SP).as_callee()
 }
 
-pub fn generate_rspack_execute(namespace: &str, id: &str) -> String {
-  format!(r#"self["{}"].{}("{}");"#, namespace, RSPACK_REQUIRE, id)
-}
-
 #[derive(Debug)]
 struct HelperMark(Mark);
 
