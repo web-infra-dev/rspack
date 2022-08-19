@@ -1,4 +1,4 @@
-use crate::{Compilation, CompilerOptions, ResolveKind, RuntimeSourceNode, RSpan};
+use crate::{Compilation, CompilerOptions, RSpan, ResolveKind, RuntimeSourceNode};
 use rspack_loader_runner::Content;
 use std::{fmt::Debug, sync::Arc};
 use swc_css::ast::Stylesheet;
@@ -34,7 +34,7 @@ pub struct ResolveArgs<'a> {
   pub importer: Option<&'a str>,
   pub specifier: &'a str,
   pub kind: ResolveKind,
-  pub span: Option<RSpan>
+  pub span: Option<RSpan>,
 }
 
 #[derive(Debug, Clone)]
