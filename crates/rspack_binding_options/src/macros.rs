@@ -10,7 +10,7 @@ macro_rules! define_napi_object {
         $(#[serde($($serde_attr:meta),*)])*
         $(#[napi($($napi_attr:meta),*)])*
         $_vis_field:vis $field:ident : $type:ty
-      ),*
+      ), *
     }
  ) => {
     #[cfg(feature = "node-api")]
@@ -24,7 +24,7 @@ macro_rules! define_napi_object {
         $(#[serde($($serde_attr),*)])*
         $(#[napi($($napi_attr),*)])*
         pub $field: $type
-      ),*
+      ), *
     }
 
     #[cfg(not(feature = "node-api"))]
@@ -36,7 +36,7 @@ macro_rules! define_napi_object {
         $(#[doc=$($doc)*])*
         $(#[serde($($serde_attr),*)])*
         pub $field: $type
-      ),*
+      ), *
     }
   };
 
