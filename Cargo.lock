@@ -2061,6 +2061,7 @@ dependencies = [
  "rspack_error",
  "rspack_loader_runner",
  "sugar_path",
+ "swc_common 0.27.11",
  "swc_css",
  "swc_ecma_ast 0.90.10",
  "tokio",

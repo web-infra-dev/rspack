@@ -55,6 +55,7 @@ impl VisitMut for DependencyScanner {
             self.dependencies.push(ModuleDependency {
               specifier: href_string.to_string(),
               kind,
+              span: Some(prelude.span.into()),
             });
             false
           } else {

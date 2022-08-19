@@ -1,6 +1,7 @@
 use linked_hash_set::LinkedHashSet;
 use rspack_core::{ModuleDependency, ResolveKind};
 use swc_atoms::JsWord;
+use swc_common::Span;
 use swc_ecma_ast::{CallExpr, Callee, ExportSpecifier, Expr, ExprOrSpread, Lit, ModuleDecl};
 use swc_ecma_visit::{noop_visit_mut_type, VisitMut, VisitMutWith};
 
@@ -11,17 +12,18 @@ pub struct DependencyScanner {
 }
 
 impl DependencyScanner {
-  fn add_dependency(&mut self, specifier: JsWord, kind: ResolveKind) {
+  fn add_dependency(&mut self, specifier: JsWord, kind: ResolveKind, span: Span) {
     self.dependencies.insert_if_absent(ModuleDependency {
       specifier: specifier.to_string(),
       kind,
+      span: Some(span.into()),
     });
   }
 
   fn add_import(&mut self, module_decl: &mut ModuleDecl) {
     if let ModuleDecl::Import(import_decl) = module_decl {
       let source = import_decl.src.value.clone();
-      self.add_dependency(source, ResolveKind::Import);
+      self.add_dependency(source, ResolveKind::Import, import_decl.span);
     }
   }
   fn add_require(&mut self, call_expr: &CallExpr) {
@@ -42,7 +44,7 @@ impl DependencyScanner {
               _ => return,
             };
             let source = &src.value;
-            self.add_dependency(source.clone(), ResolveKind::Require);
+            self.add_dependency(source.clone(), ResolveKind::Require, call_expr.span);
           }
         }
       }
@@ -53,7 +55,11 @@ impl DependencyScanner {
       if let Some(dyn_imported) = node.args.get(0) {
         if dyn_imported.spread.is_none() {
           if let Expr::Lit(Lit::Str(imported)) = dyn_imported.expr.as_ref() {
-            self.add_dependency(imported.value.clone(), ResolveKind::DynamicImport);
+            self.add_dependency(
+              imported.value.clone(),
+              ResolveKind::DynamicImport,
+              node.span,
+            );
           }
         }
       }
@@ -69,13 +75,13 @@ impl DependencyScanner {
               if let Some(source_node) = &node.src {
                 // export { name } from './other'
                 let source = source_node.value.clone();
-                self.add_dependency(source, ResolveKind::Import);
+                self.add_dependency(source, ResolveKind::Import, node.span);
               }
             }
             ExportSpecifier::Namespace(_s) => {
               // export * as name from './other'
               let source = node.src.as_ref().map(|str| str.value.clone()).unwrap();
-              self.add_dependency(source, ResolveKind::Import);
+              self.add_dependency(source, ResolveKind::Import, node.span);
             }
             ExportSpecifier::Default(_) => {
               // export v from 'mod';
@@ -86,7 +92,7 @@ impl DependencyScanner {
       }
       ModuleDecl::ExportAll(node) => {
         // export * from './other'
-        self.add_dependency(node.src.value.clone(), ResolveKind::Import);
+        self.add_dependency(node.src.value.clone(), ResolveKind::Import, node.span);
       }
       _ => {}
     }

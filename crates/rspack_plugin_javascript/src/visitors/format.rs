@@ -189,6 +189,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
             detail: ModuleDependency {
               specifier: str.value.to_string(),
               kind: ResolveKind::Require,
+              span: Some(n.span.into()),
             },
           };
           // FIXME: No need to say this is a ugly workaround
@@ -197,6 +198,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
             detail: ModuleDependency {
               specifier: str.value.to_string(),
               kind: ResolveKind::Import,
+              span: Some(n.span.into()),
             },
           };
           let mut js_module = self
@@ -230,6 +232,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
           detail: ModuleDependency {
             specifier: literal.to_string(),
             kind: ResolveKind::DynamicImport,
+            span: Some(n.span.into()),
           },
         };
 
