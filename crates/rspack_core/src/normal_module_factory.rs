@@ -9,6 +9,7 @@ use std::{
 use crate::{CompilerOptions, LoaderResult, LoaderRunnerRunner, ResourceData};
 use rspack_error::{Diagnostic, Error};
 use sugar_path::PathSugar;
+use swc_common::Span;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
@@ -128,6 +129,7 @@ impl NormalModuleFactory {
         importer: self.dependency.importer.as_deref(),
         specifier: self.dependency.detail.specifier.as_str(),
         kind: self.dependency.detail.kind,
+        span: self.dependency.detail.span,
       },
       &self.plugin_driver,
       &mut self.context,
@@ -300,4 +302,31 @@ pub struct ModuleDependency {
   pub specifier: String,
   /// `./a.js` in `import './a.js'` is specifier
   pub kind: ResolveKind,
+  pub span: Option<RSpan>,
+}
+
+/// Using `u32` instead of `usize` to reduce memory usage,
+/// `u32` is 4 bytes on 64bit machine, comare to `usize` which is 8 bytes.
+/// Rspan aka `Rspack span`, just avoiding conflict with span in other crate
+/// ## Warning
+/// RSpan is zero based, `Span` of `swc` is 1 based. see https://swc-css.netlify.app/?code=eJzLzC3ILypRSFRIK8rPVVAvSS0u0csqVgcAZaoIKg
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, Default)]
+pub struct RSpan {
+  pub start: u32,
+  pub end: u32,
+}
+
+impl RSpan {
+  pub fn new(start: u32, end: u32) -> Self {
+    Self { start, end }
+  }
+}
+
+impl From<Span> for RSpan {
+  fn from(span: Span) -> Self {
+    Self {
+      start: (span.lo.0 as u32).saturating_sub(1),
+      end: (span.hi.0 as u32).saturating_sub(1),
+    }
+  }
 }

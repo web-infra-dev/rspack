@@ -68,6 +68,7 @@ impl Compilation {
             detail: ModuleDependency {
               specifier: detail.path.clone(),
               kind: ResolveKind::Import,
+              span: None,
             },
           },
         )
