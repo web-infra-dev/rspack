@@ -21,7 +21,7 @@ use rspack_core::{
   ParserOptions,
 };
 
-use crate::RawOption;
+use crate::{define_napi_object, RawOption};
 
 #[cfg(feature = "node-api")]
 type JsLoader = ThreadsafeFunction<Vec<u8>, ErrorStrategy::CalleeHandled>;
@@ -68,67 +68,38 @@ impl Debug for RawModuleRule {
   }
 }
 
-#[derive(Debug, Clone, Deserialize)]
-#[cfg(not(feature = "node-api"))]
-#[serde(rename_all = "camelCase")]
-pub struct RawAssetParserDataUrlOption {
-  pub max_size: Option<u32>,
-}
+define_napi_object!(
+  #[derive(Debug, Clone, Deserialize)]
+  #[serde(rename_all = "camelCase")]
+  pub struct RawAssetParserDataUrlOption {
+    pub max_size: Option<u32>,
+  }
+);
 
-#[derive(Debug, Clone, Deserialize)]
-#[cfg(feature = "node-api")]
-#[napi(object)]
-#[serde(rename_all = "camelCase")]
-pub struct RawAssetParserDataUrlOption {
-  pub max_size: Option<u32>,
-}
+define_napi_object!(
+  #[derive(Debug, Clone, Deserialize)]
+  #[serde(rename_all = "camelCase")]
+  pub struct RawAssetParserOptions {
+    pub data_url_condition: Option<RawAssetParserDataUrlOption>,
+  }
+);
 
-#[derive(Debug, Clone, Deserialize)]
-#[cfg(feature = "node-api")]
-#[napi(object)]
-#[serde(rename_all = "camelCase")]
-pub struct RawAssetParserOptions {
-  pub data_url_condition: Option<RawAssetParserDataUrlOption>,
-}
+define_napi_object!(
+  #[derive(Debug, Clone, Deserialize)]
+  #[serde(rename_all = "camelCase")]
+  pub struct RawParserOptions {
+    pub asset: Option<RawAssetParserOptions>,
+  }
+);
 
-#[derive(Debug, Clone, Deserialize)]
-#[cfg(not(feature = "node-api"))]
-#[serde(rename_all = "camelCase")]
-pub struct RawAssetParserOptions {
-  pub data_url_condition: Option<RawAssetParserDataUrlOption>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[cfg(feature = "node-api")]
-#[napi(object)]
-#[serde(rename_all = "camelCase")]
-pub struct RawParserOptions {
-  pub asset: Option<RawAssetParserOptions>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[cfg(not(feature = "node-api"))]
-#[serde(rename_all = "camelCase")]
-pub struct RawParserOptions {
-  pub asset: Option<RawAssetParserOptions>,
-}
-
-#[derive(Default, Debug, Deserialize)]
-#[cfg(not(feature = "node-api"))]
-#[serde(rename_all = "camelCase")]
-pub struct RawModuleOptions {
-  pub rules: Vec<RawModuleRule>,
-  pub parser: Option<RawParserOptions>,
-}
-
-#[derive(Default, Debug, Deserialize)]
-#[cfg(feature = "node-api")]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawModuleOptions {
-  pub rules: Vec<RawModuleRule>,
-  pub parser: Option<RawParserOptions>,
-}
+define_napi_object!(
+  #[derive(Debug, Deserialize)]
+  #[serde(rename_all = "camelCase")]
+  pub struct RawModuleOptions {
+    pub rules: Vec<RawModuleRule>,
+    pub parser: Option<RawParserOptions>,
+  }
+);
 
 #[cfg(feature = "node-api")]
 pub struct NodeLoaderAdapter {

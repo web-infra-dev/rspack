@@ -4,12 +4,12 @@ macro_rules! define_napi_object {
     $(#[derive($($derive:meta),*)])*
     $(#[serde($($serde:meta),*)])*
     $(#[doc=$($s_doc:tt)*])*
-    $_vis_struct:vis $name: ident {
+    $_vis_struct:vis struct $name: ident {
       $(
         $(#[doc=$($doc:tt)*])*
         $(#[serde($($serde_attr:meta),*)])*
         $(#[napi($($napi_attr:meta),*)])*
-        $_vis_field:vis $field:ident : $type:ty
+        $_vis_field:vis $field:ident : $type:ty $(,)?
       ), *
     }
  ) => {

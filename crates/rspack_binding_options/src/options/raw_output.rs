@@ -10,38 +10,23 @@ use rspack_core::{
   NAME_PLACEHOLDER,
 };
 
-use crate::RawOption;
+use crate::{define_napi_object, RawOption};
 
-#[derive(Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase")]
-#[cfg(feature = "node-api")]
-#[napi(object)]
-pub struct RawOutputOptions {
-  pub path: Option<String>,
-  pub public_path: Option<String>,
-  pub asset_module_filename: Option<String>,
-  // todo support for function
-  pub filename: Option<String>,
-  pub chunk_filename: Option<String>,
-  pub unique_name: Option<String>,
-  /* pub entry_filename: Option<String>,
-   * pub source_map: Option<String>, */
-}
-
-#[derive(Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase")]
-#[cfg(not(feature = "node-api"))]
-pub struct RawOutputOptions {
-  pub path: Option<String>,
-  pub public_path: Option<String>,
-  pub asset_module_filename: Option<String>,
-  // todo support for function
-  pub filename: Option<String>,
-  pub chunk_filename: Option<String>,
-  pub unique_name: Option<String>,
-  /* pub entry_filename: Option<String>,
-   * pub source_map: Option<String>, */
-}
+define_napi_object!(
+  #[derive(Deserialize, Debug, Default)]
+  #[serde(rename_all = "camelCase")]
+  pub struct RawOutputOptions {
+    pub path: Option<String>,
+    pub public_path: Option<String>,
+    pub asset_module_filename: Option<String>,
+    // todo support for function
+    pub filename: Option<String>,
+    pub chunk_filename: Option<String>,
+    pub unique_name: Option<String>,
+    /* pub entry_filename: Option<String>,
+     * pub source_map: Option<String>, */
+  }
+);
 
 impl RawOption<OutputOptions> for RawOutputOptions {
   fn to_compiler_option(self, options: &CompilerOptionsBuilder) -> anyhow::Result<OutputOptions> {

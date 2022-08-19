@@ -1,12 +1,14 @@
 use std::fmt::Debug;
 
+use serde::Deserialize;
+
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
 
 use rspack_core::{CompilerOptions, CompilerOptionsBuilder, DevServerOptions, Plugin};
-
 use rspack_plugin_css::plugin::CssConfig;
-use serde::Deserialize;
+
+use crate::define_napi_object;
 
 mod raw_builtins;
 mod raw_context;
@@ -50,55 +52,34 @@ pub trait RawOption<T> {
 }
 
 // Temporary workaround with feature-based cfg, replaced with a bug fix to napi-derive/noop next.
-#[derive(Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase")]
-#[cfg(feature = "node-api")]
-#[napi(object)]
-pub struct RawOptions {
-  #[napi(ts_type = "Record<string, string>")]
-  pub entry: Option<RawEntry>,
-  #[napi(ts_type = "string")]
-  pub mode: Option<RawMode>,
-  #[napi(ts_type = "string")]
-  pub target: Option<RawTarget>,
-  // #[napi(ts_type = "\"browser\" | \"node\"")]
-  // pub platform: Option<String>,
-  #[napi(ts_type = "string")]
-  pub context: Option<RawContext>,
-  // pub loader: Option<HashMap<String, String>>,
-  // pub enhanced: Option<RawEnhancedOptions>,
-  // pub optimization: Option<RawOptimizationOptions>,
-  pub output: Option<RawOutputOptions>,
-  pub resolve: Option<RawResolveOptions>,
-  // pub chunk_filename: Option<String>,
-  #[napi(ts_type = "any[]")]
-  pub plugins: Option<RawPlugins>,
-  pub module: Option<RawModuleOptions>,
-  pub builtins: Option<RawBuiltins>,
-  #[napi(ts_type = "Record<string, string>")]
-  pub define: Option<RawDefine>,
-}
-
-#[derive(Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase")]
-#[cfg(not(feature = "node-api"))]
-pub struct RawOptions {
-  pub entry: Option<RawEntry>,
-  pub mode: Option<RawMode>,
-  pub target: Option<RawTarget>,
-  // pub platform: Option<String>,
-  pub context: Option<RawContext>,
-  // pub loader: Option<HashMap<String, String>>,
-  // pub enhanced: Option<RawEnhancedOptions>,
-  // pub optimization: Option<RawOptimizationOptions>,
-  pub output: Option<RawOutputOptions>,
-  pub resolve: Option<RawResolveOptions>,
-  // pub chunk_filename: Option<String>,
-  pub plugins: Option<RawPlugins>,
-  pub module: Option<RawModuleOptions>,
-  pub builtins: Option<RawBuiltins>,
-  pub define: Option<RawDefine>,
-}
+define_napi_object!(
+  #[derive(Deserialize, Debug, Default)]
+  #[serde(rename_all = "camelCase")]
+  pub struct RawOptions {
+    #[napi(ts_type = "Record<string, string>")]
+    pub entry: Option<RawEntry>,
+    #[napi(ts_type = "string")]
+    pub mode: Option<RawMode>,
+    #[napi(ts_type = "string")]
+    pub target: Option<RawTarget>,
+    // #[napi(ts_type = "\"browser\" | \"node\"")]
+    // pub platform: Option<String>,
+    #[napi(ts_type = "string")]
+    pub context: Option<RawContext>,
+    // pub loader: Option<HashMap<String, String>>,
+    // pub enhanced: Option<RawEnhancedOptions>,
+    // pub optimization: Option<RawOptimizationOptions>,
+    pub output: Option<RawOutputOptions>,
+    pub resolve: Option<RawResolveOptions>,
+    // pub chunk_filename: Option<String>,
+    #[napi(ts_type = "any[]")]
+    pub plugins: Option<RawPlugins>,
+    pub module: Option<RawModuleOptions>,
+    pub builtins: Option<RawBuiltins>,
+    #[napi(ts_type = "Record<string, string>")]
+    pub define: Option<RawDefine>,
+  }
+);
 
 pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<CompilerOptions> {
   // normalize_options should ensuring orderliness.
