@@ -88,7 +88,7 @@ impl From<Error> for Diagnostic {
         ..Default::default()
       },
       Error::Anyhow { source } => Self {
-        message: source.to_string(),
+        message: format!("{}\nbacktrace: {}", source, source.backtrace()),
         ..Default::default()
       },
       Error::Json { source } => Self {
