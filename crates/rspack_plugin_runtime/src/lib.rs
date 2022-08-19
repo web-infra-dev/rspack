@@ -1,4 +1,4 @@
-use anyhow::Result;
+use rspack_error::Result;
 
 use common::*;
 use rspack_core::{

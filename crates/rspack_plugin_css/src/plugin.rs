@@ -6,13 +6,14 @@ use crate::{
   SWC_COMPILER,
 };
 
-use anyhow::{Context, Result};
+// use anyhow::{Context, Result};
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
 use rspack_core::{
   AssetContent, FilenameRenderOptions, ModuleRenderResult, ModuleType, ParseModuleArgs, Parser,
   Plugin, RenderManifestEntry, SourceType,
 };
+use rspack_error::{Error, Result};
 
 use swc_css::visit::VisitMutWith;
 
@@ -40,7 +41,7 @@ impl Plugin for CssPlugin {
   fn apply(
     &mut self,
     ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-  ) -> anyhow::Result<()> {
+  ) -> Result<()> {
     ctx.context.register_parser(
       ModuleType::Css,
       Box::new(CssParser {
@@ -191,11 +192,12 @@ impl Parser for CssParser {
     &self,
     _module_type: ModuleType,
     args: ParseModuleArgs,
-  ) -> anyhow::Result<rspack_core::BoxModule> {
-    let content = args
-      .source
-      .try_into_string()
-      .context("Unable to serialize content as string which is required by plugin css")?;
+  ) -> Result<rspack_core::BoxModule> {
+    let content = args.source.try_into_string().map_err(|_| {
+      Error::InternalError(
+        "Unable to serialize content as string which is required by plugin css".into(),
+      )
+    })?;
     let mut stylesheet = SWC_COMPILER.parse_file(args.uri, content)?;
 
     if let Some(query) = self.get_query() {

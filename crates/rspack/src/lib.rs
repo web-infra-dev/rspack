@@ -2,6 +2,7 @@ use std::path::Path;
 
 pub use rspack_core::Compiler;
 use rspack_core::{CompilerOptions, Plugin};
+use rspack_error::Result;
 use rspack_plugin_asset::AssetConfig;
 
 pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -> Compiler {
@@ -29,8 +30,8 @@ pub struct DevServer {
 }
 
 impl DevServer {
-  pub async fn serve(&mut self) {
-    self.compiler.compile().await.unwrap();
+  pub async fn serve(&mut self) -> Result<()> {
+    self.compiler.compile().await?;
 
     warp::fs::dir(Path::new(self.compiler.options.context.as_str()).join("dist"));
     let filter = warp::fs::dir(Path::new(self.compiler.options.context.as_str()).join("dist"));
@@ -49,5 +50,6 @@ impl DevServer {
     // });
 
     warp::serve(filter).run(([127, 0, 0, 1], 3031)).await;
+    Ok(())
   }
 }

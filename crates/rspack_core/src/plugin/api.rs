@@ -6,8 +6,9 @@ use crate::{
   BoxModule, ModuleType, ParseModuleArgs, PluginContext, ProcessAssetsArgs, RenderManifestArgs,
   RenderRuntimeArgs, RuntimeSourceNode, TransformAst, TransformResult,
 };
+use rspack_error::Result;
 
-use anyhow::Result;
+// use anyhow::{Context, Result};
 use hashbrown::HashMap;
 pub type PluginBuildStartHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;

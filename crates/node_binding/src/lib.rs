@@ -109,7 +109,7 @@ pub fn build(env: Env, binding_context: External<RspackBindingContext>) -> Resul
     async move {
       let mut compiler = compiler.lock().await;
       let _rspack_stats = compiler
-        .compile()
+        .run()
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
 
@@ -138,7 +138,7 @@ pub fn rebuild(
     async move {
       let mut compiler = compiler.lock().await;
       let _rspack_stats = compiler
-        .compile()
+        .run()
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
 

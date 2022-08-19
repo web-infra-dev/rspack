@@ -7,6 +7,7 @@ use std::{
 };
 
 use crate::{CompilerOptions, LoaderResult, LoaderRunnerRunner, ResourceData};
+use rspack_error::{Diagnostic, Error};
 use sugar_path::PathSugar;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -23,6 +24,7 @@ use crate::{
   ResolveArgs,
   VisitedModuleIdentity,
 };
+use rspack_error::Result;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct Dependency {
@@ -41,6 +43,18 @@ pub struct Dependency {
 //   }
 // }
 
+#[derive(Debug)]
+pub struct TWithDiagnosticArray<T: std::fmt::Debug> {
+  pub inner: T,
+  pub diagnostic: Vec<Diagnostic>,
+}
+
+impl<T: std::fmt::Debug> TWithDiagnosticArray<T> {
+  pub fn new(inner: T, diagnostic: Vec<Diagnostic>) -> Self {
+    Self { inner, diagnostic }
+  }
+}
+
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 pub enum ResolveKind {
   Import,
@@ -57,6 +71,7 @@ pub struct NormalModuleFactory {
   tx: UnboundedSender<Msg>,
   plugin_driver: Arc<PluginDriver>,
   loader_runner_runner: Arc<LoaderRunnerRunner>,
+  diagnostic: Vec<Diagnostic>,
 }
 
 impl NormalModuleFactory {
@@ -75,13 +90,19 @@ impl NormalModuleFactory {
       tx,
       plugin_driver,
       loader_runner_runner,
+      diagnostic: vec![],
     }
   }
+
   pub async fn run(mut self) {
     match self.resolve_module().await {
       Ok(maybe_module) => {
         if let Some(module) = maybe_module {
-          self.send(Msg::TaskFinished(Box::new(module)));
+          let diagnostic = std::mem::take(&mut self.diagnostic);
+          self.send(Msg::TaskFinished(TWithDiagnosticArray::new(
+            Box::new(module),
+            diagnostic,
+          )));
         } else {
           self.send(Msg::TaskCanceled);
         }
@@ -90,13 +111,17 @@ impl NormalModuleFactory {
     }
   }
 
+  pub fn add_diagnostic<T: Into<Diagnostic>>(&mut self, diagnostic: T) {
+    self.diagnostic.push(diagnostic.into());
+  }
+
   pub fn send(&self, msg: Msg) {
     if let Err(err) = self.tx.send(msg) {
       tracing::trace!("fail to send msg {:?}", err)
     }
   }
 
-  pub async fn resolve_module(&mut self) -> anyhow::Result<Option<ModuleGraphModule>> {
+  pub async fn resolve_module(&mut self) -> Result<Option<ModuleGraphModule>> {
     // TODO: caching in resolve
     let uri = resolve(
       ResolveArgs {
@@ -130,7 +155,12 @@ impl NormalModuleFactory {
         self.dependency.clone(),
         uri.clone(),
       ))
-      .unwrap();
+      .map_err(|_| {
+        Error::InternalError(format!(
+          "Failed to resolve dependency {:?}",
+          self.dependency
+        ))
+      })?;
 
     if self
       .context
@@ -224,7 +254,7 @@ impl NormalModuleFactory {
       self
         .context
         .module_type
-        .ok_or_else(|| anyhow::format_err!("source type is empty"))?,
+        .ok_or_else(|| Error::InternalError("source type is empty".to_string()))?,
     );
     Ok(Some(resolved_module))
   }

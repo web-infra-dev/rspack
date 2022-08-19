@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use hashbrown::HashSet;
+use rspack_error::{Error, Result};
 use tracing::instrument;
 
 use crate::{ModuleGraph, ModuleGraphModule};
@@ -27,7 +28,7 @@ impl Chunk {
     }
   }
 
-  pub fn calc_exec_order(&mut self, module_graph: &ModuleGraph) {
+  pub fn calc_exec_order(&mut self, module_graph: &ModuleGraph) -> Result<()> {
     let entries = [self.entry_uri.clone()];
     let mut visited = HashSet::new();
 
@@ -54,7 +55,9 @@ impl Chunk {
             stack.append(
               &mut module_graph
                 .module_by_uri(&module_uri)
-                .unwrap()
+                .ok_or_else(|| {
+                  Error::InternalError(format!("Failed to retrive module by uri: {}", module_uri))
+                })?
                 .depended_modules(module_graph)
                 .into_iter()
                 .rev()
@@ -66,6 +69,7 @@ impl Chunk {
         }
       }
     }
+    Ok(())
   }
 
   #[instrument]

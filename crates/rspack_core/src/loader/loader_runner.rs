@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::Result;
+use rspack_error::Result;
 
 pub use rspack_loader_runner::*;
 
@@ -32,7 +32,7 @@ impl LoaderRunnerRunner {
               return None
             },
             Err(e) => {
-              return Some(Err(e))
+              return Some(Err(e.into()))
             }
           }
         }

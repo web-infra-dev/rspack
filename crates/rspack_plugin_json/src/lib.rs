@@ -1,4 +1,4 @@
-use anyhow::Result;
+use rspack_error::Result;
 
 use rspack_core::{BoxModule, Module, ModuleRenderResult, ModuleType, Parser, Plugin, SourceType};
 

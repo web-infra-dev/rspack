@@ -6,14 +6,15 @@ use std::{
   },
 };
 
-use anyhow::Context;
-use rayon::prelude::*;
-use tracing::instrument;
-
 use crate::{
   AssetContent, CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule,
   NormalModuleFactory, NormalModuleFactoryContext, Plugin, PluginDriver, Stats,
+  TWithDiagnosticArray,
 };
+use anyhow::Context;
+use rayon::prelude::*;
+use rspack_error::{emitter::emit_batch_diagnostic, Error, Result};
+use tracing::instrument;
 
 mod compilation;
 mod resolver;
@@ -52,7 +53,7 @@ impl Compiler {
   }
 
   #[instrument(skip_all)]
-  pub async fn compile(&mut self) -> anyhow::Result<Stats> {
+  pub async fn compile(&mut self) -> Result<()> {
     // TODO: supports rebuild
     self.compilation = Compilation::new(
       // TODO: use Arc<T> instead
@@ -93,9 +94,16 @@ impl Compiler {
     while active_task_count.load(Ordering::SeqCst) != 0 {
       match rx.recv().await {
         Some(job) => match job {
-          Msg::TaskFinished(module) => {
+          Msg::TaskFinished(mut module_with_diagnostic) => {
             active_task_count.fetch_sub(1, Ordering::SeqCst);
-            self.compilation.module_graph.add_module(*module);
+            self
+              .compilation
+              .module_graph
+              .add_module(*module_with_diagnostic.inner);
+            self
+              .compilation
+              .diagnostic
+              .append(&mut module_with_diagnostic.diagnostic);
           }
           Msg::TaskCanceled => {
             active_task_count.fetch_sub(1, Ordering::SeqCst);
@@ -108,7 +116,7 @@ impl Compiler {
           }
           Msg::TaskErrorEncountered(err) => {
             active_task_count.fetch_sub(1, Ordering::SeqCst);
-            return Err(err);
+            self.compilation.push_diagnostic(err.into());
           }
         },
         None => {
@@ -121,15 +129,15 @@ impl Compiler {
 
     // self.compilation.calc_exec_order();
 
-    self.compilation.seal(self.plugin_driver.clone());
+    self.compilation.seal(self.plugin_driver.clone())?;
 
     // tracing::trace!("assets {:#?}", assets);
 
     std::fs::create_dir_all(Path::new(&self.options.context).join(&self.options.output.path))
-      .context("failed to create output directory")?;
+      .map_err(|_| Error::InternalError("failed to create output directory".into()))?;
 
     std::fs::create_dir_all(&self.options.output.path)
-      .context("failed to create output directory")?;
+      .map_err(|_| Error::InternalError("failed to create output directory".into()))?;
 
     self
       .compilation
@@ -155,21 +163,24 @@ impl Compiler {
               .context("failed to write asset")
           }
         }
-      })?;
+      })
+      .unwrap();
 
-    Ok(Stats::new(&self.compilation))
+    Ok(())
   }
 
   #[instrument(skip_all)]
-  pub async fn run(&mut self) -> anyhow::Result<Stats> {
-    self.compile().await
+  pub async fn run(&mut self) -> Result<Stats> {
+    self.compile().await?;
+    emit_batch_diagnostic(&self.compilation.diagnostic)?;
+    Ok(Stats::new(&self.compilation))
   }
 }
 
 #[derive(Debug)]
 pub enum Msg {
   DependencyReference(Dependency, String),
-  TaskFinished(Box<ModuleGraphModule>),
+  TaskFinished(TWithDiagnosticArray<Box<ModuleGraphModule>>),
   TaskCanceled,
-  TaskErrorEncountered(anyhow::Error),
+  TaskErrorEncountered(Error),
 }

@@ -347,6 +347,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "codespan-reporting"
+version = "0.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3538270d33cc669650c4b093848450d380def10c331d38c768e34cac80576e6e"
+dependencies = [
+ "termcolor",
+ "unicode-width",
+]
+
+[[package]]
 name = "colored"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1997,6 +2007,7 @@ dependencies = [
  "nodejs-resolver 0.0.14",
  "once_cell",
  "rspack_core",
+ "rspack_error",
  "rspack_plugin_asset",
  "rspack_plugin_css",
  "rspack_plugin_html",
@@ -2025,6 +2036,7 @@ dependencies = [
  "once_cell",
  "regex",
  "rspack_core",
+ "rspack_error",
  "rspack_plugin_css",
  "rspack_plugin_html",
  "serde",
@@ -2046,6 +2058,7 @@ dependencies = [
  "petgraph",
  "rayon",
  "regex",
+ "rspack_error",
  "rspack_loader_runner",
  "sugar_path",
  "swc_css",
@@ -2058,11 +2071,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_error"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "codespan-reporting",
+ "json",
+ "termcolor",
+ "thiserror",
+]
+
+[[package]]
 name = "rspack_loader_runner"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "rspack_error",
  "similar-asserts",
  "tokio",
  "tracing",
@@ -2082,6 +2107,7 @@ dependencies = [
  "once_cell",
  "rayon",
  "rspack_core",
+ "rspack_error",
  "rspack_test",
  "temp_test_utils",
  "testing_macros",
@@ -2103,6 +2129,7 @@ dependencies = [
  "rayon",
  "rspack",
  "rspack_core",
+ "rspack_error",
  "rspack_test",
  "sugar_path",
  "swc_atoms 0.4.8",
@@ -2145,6 +2172,7 @@ dependencies = [
  "once_cell",
  "rayon",
  "rspack_core",
+ "rspack_error",
  "rspack_test",
  "serde",
  "serde_json",
@@ -2167,6 +2195,7 @@ dependencies = [
  "hashbrown",
  "json",
  "rspack_core",
+ "rspack_error",
  "rspack_test",
  "tracing",
 ]
@@ -2177,6 +2206,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "rspack_core",
+ "rspack_error",
 ]
 
 [[package]]

@@ -1,5 +1,6 @@
-use anyhow::Result;
+// use rspack_error::Result;
 use rspack_core::{BoxModule, Module, ModuleRenderResult, ModuleType, Parser, SourceType};
+use rspack_error::Result;
 
 #[derive(Debug, Default)]
 pub struct AssetSourceParser {}

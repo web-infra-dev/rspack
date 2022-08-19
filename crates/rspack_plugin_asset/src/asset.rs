@@ -1,10 +1,10 @@
 use std::{ffi::OsStr, path::Path};
 
-use anyhow::Result;
 use rspack_core::{
   AssetParserDataUrlOption, BoxModule, FilenameRenderOptions, Module, ModuleRenderResult,
   ModuleType, Parser, SourceType,
 };
+use rspack_error::Result;
 #[derive(Debug)]
 enum DataUrlOption {
   True,

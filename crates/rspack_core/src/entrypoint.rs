@@ -23,7 +23,7 @@ impl Entrypoint {
       .flat_map(|chunk_id| {
         chunk_graph
           .chunk_by_id(chunk_id)
-          .unwrap()
+          .expect("Failed to get chunk by id")
           .files
           .iter()
           .map(|file| file.to_string())

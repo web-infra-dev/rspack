@@ -76,7 +76,7 @@ macro_rules! run_loader {
 }
 
 mod fixtures {
-  use anyhow::Result;
+  use rspack_error::Result;
   use rspack_loader_runner::*;
 
   #[derive(Debug)]

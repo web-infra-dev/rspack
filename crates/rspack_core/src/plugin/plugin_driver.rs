@@ -9,6 +9,7 @@ use crate::{
   PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, ProcessAssetsArgs,
   RenderManifestArgs, RenderRuntimeArgs, Resolver,
 };
+use rspack_error::{Error, Result};
 
 #[derive(Debug)]
 pub struct PluginDriver {
@@ -54,13 +55,16 @@ impl PluginDriver {
     &self,
     args: ParseModuleArgs,
     job_ctx: &mut NormalModuleFactoryContext,
-  ) -> anyhow::Result<BoxModule> {
+  ) -> Result<BoxModule> {
     let module_type = job_ctx
       .module_type
-      .ok_or_else(|| anyhow::format_err!("module_type is not set"))?;
+      .ok_or_else(|| Error::InternalError("module_type is not set".to_string()))?;
 
     let parser = self.registered_parser.get(&module_type).ok_or_else(|| {
-      anyhow::format_err!("parser for module type {:?} is not registered", module_type)
+      Error::InternalError(format!(
+        "parser for module type {:?} is not registered",
+        module_type
+      ))
     })?;
 
     let module = parser.parse(module_type, args)?;
@@ -70,14 +74,11 @@ impl PluginDriver {
   #[instrument(skip_all)]
   pub fn render_manifest(&self, args: RenderManifestArgs) -> PluginRenderManifestHookOutput {
     let mut assets = vec![];
-    self
-      .plugins
-      .iter()
-      .try_for_each(|plugin| -> anyhow::Result<()> {
-        let res = plugin.render_manifest(PluginContext::new(), args.clone())?;
-        assets.extend(res);
-        Ok(())
-      })?;
+    self.plugins.iter().try_for_each(|plugin| -> Result<()> {
+      let res = plugin.render_manifest(PluginContext::new(), args.clone())?;
+      assets.extend(res);
+      Ok(())
+    })?;
     Ok(assets)
   }
 
@@ -97,18 +98,15 @@ impl PluginDriver {
   }
   #[instrument(skip_all)]
   pub fn process_assets(&self, args: ProcessAssetsArgs) -> PluginProcessAssetsOutput {
-    self
-      .plugins
-      .iter()
-      .try_for_each(|plugin| -> anyhow::Result<()> {
-        plugin.process_assets(
-          PluginContext::new(),
-          ProcessAssetsArgs {
-            compilation: args.compilation,
-          },
-        )?;
-        Ok(())
-      })?;
+    self.plugins.iter().try_for_each(|plugin| -> Result<()> {
+      plugin.process_assets(
+        PluginContext::new(),
+        ProcessAssetsArgs {
+          compilation: args.compilation,
+        },
+      )?;
+      Ok(())
+    })?;
     Ok(())
   }
 }
