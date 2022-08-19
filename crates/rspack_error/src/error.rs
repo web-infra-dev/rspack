@@ -3,10 +3,10 @@ use std::io;
 use thiserror::Error;
 
 #[derive(Debug)]
-/// # Warning
-/// For a TraceableError, the path is required.
-/// Because if the source code is missing, we could read it from file system later
-/// when conert it into [crate::Diagnostic], the reverse it not true
+/// ## Warning
+/// For a [TraceableError], the path is required.
+/// Because if the source code is missing when you construct a [TraceableError], we could read it from file system later
+/// when convert it into [crate::Diagnostic], but the reverse will not working.
 pub struct TraceableError {
   pub path: String,
   pub start: usize,
@@ -24,7 +24,6 @@ impl TraceableError {
     title: String,
     error_message: String,
   ) -> Self {
-    // dbg!(&path, &start, &end, &error_message);
     Self {
       path,
       start,
@@ -52,8 +51,7 @@ pub enum Error {
   Io {
     #[from]
     source: io::Error,
-  }, /*   #[error("invalid data store response")]
-      *   NestedArray(Vec<Self>), */
+  },
   #[error("")]
   Anyhow {
     #[from]

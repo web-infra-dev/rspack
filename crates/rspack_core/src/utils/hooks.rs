@@ -26,10 +26,11 @@ pub async fn resolve(
       .resolve(base_dir, args.specifier)
       .map_err(|_| {
         if let Some(importer) = args.importer {
+          let span = args.span.unwrap_or_default();
           Error::TraceableError(TraceableError::from_path(
             importer.to_string(),
-            0,
-            0,
+            span.start as usize,
+            span.end as usize,
             "Resolve error".to_string(),
             format!("Failed to resolve {}", args.specifier),
           ))
