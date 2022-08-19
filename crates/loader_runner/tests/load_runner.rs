@@ -198,10 +198,10 @@ mod tests {
   fn should_run_single_loader() {
     use rspack_loader_runner::*;
 
-    let loaders = vec![Box::new(super::fixtures::SimpleCssLoader {}) as BoxedLoader];
+    let loaders: Vec<&dyn Loader> = vec![&super::fixtures::SimpleCssLoader {}];
 
     run_loader!(
-      loaders.iter().map(Box::as_ref).collect::<Vec<_>>(),
+      loaders,
       "simple.css",
       r#"body {
   background-color: #fff;
@@ -216,13 +216,13 @@ html {
   fn should_run_loader_chain_from_right_to_left() {
     use rspack_loader_runner::*;
 
-    let loaders: Vec<BoxedLoader> = vec![
-      Box::new(super::fixtures::LoaderChain2 {}),
-      Box::new(super::fixtures::LoaderChain1 {}),
+    let loaders: Vec<&dyn Loader> = vec![
+      &super::fixtures::LoaderChain2 {},
+      &super::fixtures::LoaderChain1 {},
     ];
 
     run_loader!(
-      loaders.iter().map(Box::as_ref).collect::<Vec<_>>(),
+      loaders,
       "simple.js",
       r#"console.log(1);
 console.log(2);
@@ -235,11 +235,11 @@ console.log(3);"#
     use rspack_loader_runner::*;
 
     let expected = Content::from(std::fs::read(&fixtures!("file.png")).unwrap());
-    let loaders = vec![Box::new(super::fixtures::DirectPassLoader {}) as BoxedLoader];
+    let loaders: Vec<&dyn Loader> = vec![&super::fixtures::DirectPassLoader {}];
 
     run_loader!(
       @raw,
-      loaders.iter().map(Box::as_ref).collect::<Vec<_>>(),
+      loaders,
       "file.png",
       expected
     );
