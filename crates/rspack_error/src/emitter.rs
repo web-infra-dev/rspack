@@ -1,4 +1,4 @@
-use codespan_reporting::diagnostic::{Diagnostic, Label};
+use codespan_reporting::diagnostic::{Diagnostic, Label, Severity};
 use codespan_reporting::files::SimpleFiles;
 use codespan_reporting::term;
 use codespan_reporting::term::termcolor::{ColorChoice, StandardStream};
@@ -14,7 +14,7 @@ pub fn emit_batch_diagnostic(diagnostics: &Vec<RspackDiagnostic>) -> crate::Resu
       let start = diagnostic.start;
       let end = diagnostic.end;
       let file_id = files.add(info.path.clone(), info.source.clone());
-      let diagnostic = Diagnostic::error()
+      let diagnostic = Diagnostic::new(diagnostic.severity.into())
         .with_message(&diagnostic.title)
         .with_labels(vec![
           Label::primary(file_id, start..end).with_message(&diagnostic.message)
@@ -34,4 +34,13 @@ pub fn emit_batch_diagnostic(diagnostics: &Vec<RspackDiagnostic>) -> crate::Resu
     }
   }
   Ok(())
+}
+
+impl From<crate::Severity> for Severity {
+  fn from(severity: crate::Severity) -> Self {
+    match severity {
+      crate::Severity::Error => Self::Error,
+      crate::Severity::Warn => Self::Warning,
+    }
+  }
 }

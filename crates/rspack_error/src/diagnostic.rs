@@ -1,6 +1,6 @@
 use crate::{Error, TraceableError};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Copy)]
 pub enum Severity {
   #[default]
   Error,
