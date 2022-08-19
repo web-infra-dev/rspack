@@ -302,7 +302,7 @@ pub struct ModuleDependency {
   pub specifier: String,
   /// `./a.js` in `import './a.js'` is specifier
   pub kind: ResolveKind,
-  pub span: Option<RSpan>,
+  pub span: Option<ErrorSpan>,
 }
 
 /// # WARNING
@@ -329,18 +329,18 @@ impl PartialEq for ModuleDependency {
 /// ## Warning
 /// RSpan is zero based, `Span` of `swc` is 1 based. see https://swc-css.netlify.app/?code=eJzLzC3ILypRSFRIK8rPVVAvSS0u0csqVgcAZaoIKg
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, Default)]
-pub struct RSpan {
+pub struct ErrorSpan {
   pub start: u32,
   pub end: u32,
 }
 
-impl RSpan {
+impl ErrorSpan {
   pub fn new(start: u32, end: u32) -> Self {
     Self { start, end }
   }
 }
 
-impl From<Span> for RSpan {
+impl From<Span> for ErrorSpan {
   fn from(span: Span) -> Self {
     Self {
       start: (span.lo.0 as u32).saturating_sub(1),

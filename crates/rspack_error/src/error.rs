@@ -6,7 +6,7 @@ use thiserror::Error;
 /// ## Warning
 /// For a [TraceableError], the path is required.
 /// Because if the source code is missing when you construct a [TraceableError], we could read it from file system later
-/// when conert it into [crate::Diagnostic], but the reverse will not working.
+/// when convert it into [crate::Diagnostic], but the reverse will not working.
 pub struct TraceableError {
   pub path: String,
   pub start: usize,
