@@ -297,12 +297,30 @@ pub struct NormalModuleFactoryContext {
   pub options: Arc<CompilerOptions>,
 }
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+#[derive(Debug, Clone, Eq)]
 pub struct ModuleDependency {
   pub specifier: String,
   /// `./a.js` in `import './a.js'` is specifier
   pub kind: ResolveKind,
   pub span: Option<RSpan>,
+}
+
+/// # WARNING
+/// Don't update the manual implementation of `Hash` of [ModuleDependency]
+/// Current implementation strong rely on the field of `specifier` and `kind`
+impl std::hash::Hash for ModuleDependency {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.specifier.hash(state);
+    self.kind.hash(state);
+  }
+}
+/// # WARNING
+/// Don't update the manual implementation of `PartialEq` of [ModuleDependency]
+/// Current implementation strong rely on the field of `specifier` and `kind`
+impl PartialEq for ModuleDependency {
+  fn eq(&self, other: &Self) -> bool {
+    self.specifier == other.specifier && self.kind == other.kind
+  }
 }
 
 /// Using `u32` instead of `usize` to reduce memory usage,
