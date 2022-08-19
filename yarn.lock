@@ -695,7 +695,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@rspack/binding@workspace:crates/node_binding":
+"@rspack/binding@workspace:*, @rspack/binding@workspace:crates/node_binding":
   version: 0.0.0-use.local
   resolution: "@rspack/binding@workspace:crates/node_binding"
   dependencies:
@@ -708,6 +708,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rspack/core@workspace:packages/rspack"
   dependencies:
+    "@rspack/binding": "workspace:*"
     "@types/node": ^18.6.3
     commander: ^9.4.0
     rspack-dev-server: "workspace:^"
