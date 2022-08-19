@@ -9,7 +9,7 @@ macro_rules! define_napi_object {
         $(#[doc=$($doc:tt)*])*
         $(#[serde($($serde_attr:meta),*)])*
         $(#[napi($($napi_attr:meta),*)])*
-        $_vis_field:vis $field: ident: $type: ty
+        $_vis_field:vis $field:ident : $type:ty
       ),*
     }
  ) => {
