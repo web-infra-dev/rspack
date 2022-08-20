@@ -1,7 +1,7 @@
 {
   "mode": "development",
   "entry": {
-    "index": "./src/index.tsx"
+    "index": "./src/empty.tsx"
   },
   "loader": {
     "json": "json",
