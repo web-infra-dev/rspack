@@ -1,42 +1,32 @@
+import type * as Config from './config/index';
 import type { RawOptions } from '@rspack/binding';
 
-import type { LoaderRunnerContext, ModuleRule } from './server';
 import { createRspackModuleRuleAdapter } from './server';
-
-export type Plugin = string | [string] | [string, unknown];
 
 export interface RspackOptions {
   /**
    * Entry points of compilation.
    */
-  entry?: RawOptions['entry'];
+  entry?: Config.Entry;
   /**
-   * An **absolute** path pointed the
+   * An **absolute** path pointed the root directory.
    */
-  context?: RawOptions['context'];
+  context?: Config.Context;
   /**
    * An array of plugins
    */
-  plugins?: Plugin[];
+  plugins?: Config.Plugins;
   /**
    * dev server
    */
-  dev?: {
-    port?: Number;
-    static?: {
-      directory?: string;
-    };
-  };
+  dev?: Config.Dev;
   /**
    * Module configuration.
    */
-  module?: {
-    rules?: ModuleRule[];
-    parser?: RawOptions['module']['parser'];
-  };
+  module?: Config.Module;
 }
 
-export function normalizePlugins(plugins: Plugin[]) {
+export function normalizePlugins(plugins: Config.Plugins) {
   return plugins.map((plugin) => {
     if (typeof plugin === 'string') {
       return [plugin];

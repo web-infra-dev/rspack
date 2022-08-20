@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RsPackOptions",
+  "type": "object",
+  "properties": {
+    "entry": {
+      "type": "object"
+    },
+    "context": {
+      "type": "string"
+    },
+    "dev": {
+      "type": "object"
+    },
+    "module": {
+      "type": "object"
+    },
+    "plugin": {
+      "type": "object"
+    }
+  }
+}
