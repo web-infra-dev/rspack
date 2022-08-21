@@ -29,7 +29,7 @@ async fn run(context: PathBuf) {
   compiler.compile().await.unwrap();
 }
 
-#[fixture("../../examples/react")]
-fn react(fixture_path: PathBuf) {
+#[fixture("../../examples/*")]
+fn example(fixture_path: PathBuf) {
   run(fixture_path);
 }
