@@ -90,6 +90,7 @@ jobs:
         if: ${{ always() }}
       - name: Run test
         run: |
+          pwd
           yarn install --no-immutable
           yarn workspace @rspack/binding run build
           yarn workspace rspack-dev-server run build
