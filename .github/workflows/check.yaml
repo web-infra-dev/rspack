@@ -83,6 +83,15 @@ jobs:
         run: cargo test --all -- --nocapture
   test-js:
     name: Node binding test
+    runs-on: [self-hosted, rspack-common]
+    steps: 
+      - name: Run test
+        run: |
+          yarn install --no-immutable
+          yarn workspace @rspack/binding run build
+          yarn workspace rspack-dev-server run build
+          yarn workspace @rspack/core run build
+          yarn workspace @rspack/core run example
       #- name: Cache
       #uses: speedy-js/rust-cache-self-hosted@v1
       # - name: Install yarn
