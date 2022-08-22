@@ -10,8 +10,8 @@
     "crates/node_binding"
   ],
   "scripts": {
-    "init": "yarn install",
-    "test:js": "mocha && yarn workspace arco-design-pro run build",
+    "init": "pnpm install",
+    "test:js": "mocha && pnpm --filter arco-design-pro run build",
     "snapshot:js": "mocha --update",
     "test:rust": "cargo test --all -- --nocapture",
     "test:example": "cargo run --example arco_pro",
@@ -19,9 +19,9 @@
     "format:rs": "cargo fmt --all --verbose",
     "format:js": "prettier --write \"packages/**/*.{ts,js}\"",
     "lint:rs": "cargo clippy --all -- --deny warnings",
-    "build:core": "yarn workspace @rspack/binding run build ",
-    "release:core": "yarn workspace @rspack/binding run build:release ",
-    "setup": "yarn install && yarn build:core",
+    "build:core": "pnpm --filter @rspack/binding run build ",
+    "release:core": "pnpm --filter @rspack/binding run build:release ",
+    "setup": "pnpm install && pnpm build:core",
     "build:bundle": "cargo run --package rspack --example bundle"
   },
   "repository": {
@@ -43,8 +43,7 @@
     "lint-staged": "^12.4.0",
     "mocha": "9.2.2",
     "tsm": "2.2.1",
-    "why-is-node-running": "2.2.1",
-    "yarn": "^1.22.18"
+    "why-is-node-running": "2.2.1"
   },
-  "packageManager": "yarn@3.2.0"
+  "packageManager": "pnpm@7.3.0"
 }
