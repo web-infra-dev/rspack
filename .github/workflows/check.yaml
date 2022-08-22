@@ -88,9 +88,9 @@ jobs:
       #     key: test-${{ runner.os }}-cargo-gcc-${{ matrix.gcc }}-clang-${{ matrix.clang }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Test
         run: |
-          yarn install --no-immutable
+          pnpm install
           cargo test --all -- --nocapture
-          yarn workspace @rspack/binding run build
-          yarn workspace rspack-dev-server run build
-          yarn workspace @rspack/core run build
-          yarn workspace @rspack/core run example
+          pnpm --filter @rspack/binding run build 
+          pnpm --filter rspack-dev-server run build 
+          pnpm --filter @rspack/core run build 
+          pnpm --filter @rspack/core run example

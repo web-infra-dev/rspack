@@ -1,6 +1,5 @@
 {
   "name": "rspack-dev-server",
-  "packageManager": "yarn@3.2.0",
   "description": "",
   "version": "1.0.0",
   "main": "./dist/index.js",

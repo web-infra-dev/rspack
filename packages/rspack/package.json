@@ -14,7 +14,6 @@
     "tsm": "^2.2.2",
     "typescript": "4.7.3"
   },
-  "packageManager": "yarn@3.2.0",
   "dependencies": {
     "@rspack/binding": "workspace:*",
     "commander": "^9.4.0",
