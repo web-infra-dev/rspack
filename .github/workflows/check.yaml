@@ -6,7 +6,7 @@ on:
       - main
       - next
     tags-ignore:
-      - '**'
+      - "**"
   pull_request:
 
 env:
@@ -61,7 +61,7 @@ jobs:
           command: clippy
           args: --workspace --all-targets --verbose -- --deny warnings
 
-  test-rs: 
+  test-rs:
     name: Rust test
     strategy:
       fail-fast: true
@@ -84,7 +84,10 @@ jobs:
   test-js:
     name: Node binding test
     runs-on: [self-hosted, rspack-common]
-    steps: 
+    steps:
+      - name: Cleanup workspace
+        uses: TooMuch4U/actions-clean@v2.1
+        if: ${{ always() }}
       - name: Run test
         run: |
           yarn install --no-immutable
