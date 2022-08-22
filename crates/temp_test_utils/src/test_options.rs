@@ -5,16 +5,21 @@ use std::{collections::HashMap, path::Path};
 
 pub trait RawOptionsExt {
   fn from_fixture(fixture_path: &Path) -> Self;
-
   fn to_compiler_options(self) -> CompilerOptions;
 }
 
 impl RawOptionsExt for RawOptions {
   fn from_fixture(fixture_path: &Path) -> Self {
-    let pkg_path = fixture_path.join("test.config.json");
+    let pkg_path = fixture_path.join("test.config.js");
     let mut options = if pkg_path.exists() {
       let pkg_content = std::fs::read_to_string(pkg_path).unwrap();
-      let options: RawOptions = serde_json::from_str(&pkg_content).unwrap();
+      const HEAD: &str = "var module = {exports: {}};";
+      const TAIL: &str = "JSON.stringify(module.exports)";
+      let qjs_context = quick_js::Context::new().unwrap();
+      let value = qjs_context
+        .eval(&format!("{HEAD}\n{pkg_content}\n{TAIL}"))
+        .unwrap();
+      let options: RawOptions = serde_json::from_str(&value.into_string().unwrap()).unwrap();
       options
     } else {
       RawOptions {
