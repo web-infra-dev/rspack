@@ -6,6 +6,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "rm -rf dist/ && tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json -w",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

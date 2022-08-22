@@ -2,3 +2,4 @@ packages:
   - 'packages/*'
   - 'crates/node_binding'
   - 'examples/*'
+  - 'webpack-examples'
