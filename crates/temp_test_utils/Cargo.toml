@@ -1,27 +1,27 @@
 [package]
+edition = "2021"
 name = "temp_test_utils"
 version = "0.1.0"
-edition = "2021"
 
 [[bin]]
+bench = false
 name = "gen_test_config_schema"
 test = false
-bench = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dev_dependencies]
 
-
 [dependencies]
-tokio = { version = "1.17.0", features = ["full"] }
-rspack_core = { path = "../rspack_core" }
-serde = { version = "1", features = ["derive"] }
+rspack = {path = "../rspack"}
+rspack_core = {path = "../rspack_core"}
+serde = {version = "1", features = ["derive"]}
 serde_json = "1"
-rspack = { path = "../rspack" }
+tokio = {version = "1.17.0", features = ["full"]}
 # glob = "0.3.0"
-testing_macros = "0.2.5"
-similar-asserts = "1.2.0"
-schemars = "0.8.10"
+quick-js = "0.4.1"
+rspack_binding_options = {path = "../rspack_binding_options"}
 rspack_plugin_html = {path = "../rspack_plugin_html"}
-rspack_binding_options = { path="../rspack_binding_options" }
+schemars = "0.8.10"
+similar-asserts = "1.2.0"
+testing_macros = "0.2.5"
