@@ -124,19 +124,21 @@ impl Display for TestError {
           Ok(())
         }
         TestErrorKind::MissingExpectedDir(dir) => output(
-          "'Expected' directory missing",
+          "Directory exists in 'expected' directory, but not found in 'actual' directory: ",
           dir.as_path().to_str().unwrap(),
         ),
         TestErrorKind::MissingActualDir(dir) => output(
-          "'Actual' directory missing",
+          "Directory exists in 'actual' directory, but not found in 'expected' directory: ",
           dir.as_path().to_str().unwrap(),
         ),
-        TestErrorKind::MissingActualFile(file) => {
-          output("'Actual' file missing: ", file.as_path().to_str().unwrap())
-        }
-        TestErrorKind::MissingExpectedFile(file) => {
-          output("'Expected' file missing", file.as_path().to_str().unwrap())
-        }
+        TestErrorKind::MissingActualFile(file) => output(
+          "File exists in 'actual' directory, but not found in 'expected' directory: ",
+          file.as_path().to_str().unwrap(),
+        ),
+        TestErrorKind::MissingExpectedFile(file) => output(
+          "File exists in 'expected' directory, but not found in 'actual' directory: ",
+          file.as_path().to_str().unwrap(),
+        ),
       }?;
     }
     Ok(())
@@ -445,10 +447,10 @@ impl Rst {
           }
         } else if actual_dir.is_dir() {
           // actual is dir, but expected is file
-          err.push(TestErrorKind::MissingActualDir(actual_dir.clone()));
+          err.push(TestErrorKind::MissingExpectedFile(expected_dir.clone()));
         } else {
           // actual is file, but expected is dir
-          err.push(TestErrorKind::MissingActualFile(actual_dir.clone()));
+          err.push(TestErrorKind::MissingExpectedDir(expected_dir.clone()));
         }
       } else if matches!(mode, Mode::Strict) {
         // strict check, expected must exist
