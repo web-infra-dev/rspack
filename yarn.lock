@@ -712,6 +712,7 @@ __metadata:
     "@types/node": ^18.6.3
     commander: ^9.4.0
     rspack-dev-server: "workspace:^"
+    rspack-plugin-postcss: "workspace:*"
     tsm: ^2.2.2
     typescript: 4.7.3
   bin:
@@ -5225,6 +5226,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"nanoid@npm:^3.3.4":
+  version: 3.3.4
+  resolution: "nanoid@npm:3.3.4"
+  bin:
+    nanoid: bin/nanoid.cjs
+  checksum: 2fddd6dee994b7676f008d3ffa4ab16035a754f4bb586c61df5a22cf8c8c94017aadd360368f47d653829e0569a92b129979152ff97af23a558331e47e37cd9c
+  languageName: node
+  linkType: hard
+
 "negotiator@npm:0.6.3, negotiator@npm:^0.6.3":
   version: 0.6.3
   resolution: "negotiator@npm:0.6.3"
@@ -5521,6 +5531,26 @@ __metadata:
   dependencies:
     splaytree: ^3.1.0
   checksum: ccf88044299f944a775b3a10605254134c6b06536527ed51b757944f7464b957764ab0db1852ed2de5f388d1a90e5eba7f2b0f13fa0ae651bc907f18eac81ddc
+  languageName: node
+  linkType: hard
+
+"postcss-pxtorem@npm:^6.0.0":
+  version: 6.0.0
+  resolution: "postcss-pxtorem@npm:6.0.0"
+  peerDependencies:
+    postcss: ^8.0.0
+  checksum: b798ec6c82aaa57067b983bd61f640f7319bd1f02bd698be84558982da64d1d6574359b7f6ea197058f09e894768d282dc8d8cf1a1d833c6e1a86a577065a3ad
+  languageName: node
+  linkType: hard
+
+"postcss@npm:^8.4.16":
+  version: 8.4.16
+  resolution: "postcss@npm:8.4.16"
+  dependencies:
+    nanoid: ^3.3.4
+    picocolors: ^1.0.0
+    source-map-js: ^1.0.2
+  checksum: 10eee25efd77868036403858577da0cefaf2e0905feeaba5770d5438ccdddba3d01cba8063e96b8aac4c6daa0ed413dd5ae0554a433a3c4db38df1d134cffc1f
   languageName: node
   linkType: hard
 
@@ -6100,6 +6130,18 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"rspack-plugin-postcss@workspace:*, rspack-plugin-postcss@workspace:packages/rspack-plugin-postcss":
+  version: 0.0.0-use.local
+  resolution: "rspack-plugin-postcss@workspace:packages/rspack-plugin-postcss"
+  dependencies:
+    "@rspack/binding": "workspace:*"
+    postcss: ^8.4.16
+    postcss-pxtorem: ^6.0.0
+  peerDependencies:
+    postcss: ^7.0.0 || ^8.0.1
+  languageName: unknown
+  linkType: soft
+
 "rspack-react-refresh@workspace:examples/react-refresh":
   version: 0.0.0-use.local
   resolution: "rspack-react-refresh@workspace:examples/react-refresh"
@@ -6406,6 +6448,13 @@ __metadata:
     ip: ^2.0.0
     smart-buffer: ^4.2.0
   checksum: 0b5d94e2b3c11e7937b40fc5dac1e80d8b92a330e68c51f1d271ce6980c70adca42a3f8cd47c4a5769956bada074823b53374f2dc5f2ea5c2121b222dec6eadf
+  languageName: node
+  linkType: hard
+
+"source-map-js@npm:^1.0.2":
+  version: 1.0.2
+  resolution: "source-map-js@npm:1.0.2"
+  checksum: c049a7fc4deb9a7e9b481ae3d424cc793cb4845daa690bc5a05d428bf41bf231ced49b4cf0c9e77f9d42fdb3d20d6187619fc586605f5eabe995a316da8d377c
   languageName: node
   linkType: hard
 

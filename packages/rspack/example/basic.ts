@@ -1,23 +1,18 @@
-import path from 'path';
-import { Rspack } from '../src';
+import path from "path";
+import postcssLoader from "rspack-plugin-postcss";
+import { Rspack } from "../src";
 
 const rspack = new Rspack({
   entry: {
-    main: path.resolve(__dirname, '../../../examples/react/src/index.js'),
+    main: path.resolve(__dirname, "../../../examples/react/src/index.js"),
   },
-  context: path.resolve(__dirname, '../../../examples/react'),
-  plugins: ['html'],
+  context: path.resolve(__dirname, "../../../examples/react"),
+  plugins: ["html"],
   module: {
     rules: [
       {
-        test: '.*',
-        uses: [
-          function (loaderContext) {
-            return {
-              content: loaderContext.source.getBuffer(),
-            };
-          },
-        ],
+        test: ".css",
+        uses: [postcssLoader],
       },
     ],
   },

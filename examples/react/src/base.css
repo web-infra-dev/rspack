@@ -1,8 +1,14 @@
-@import './foo.css';
+@import "./foo.css";
+h1 {
+  margin: 0 0 20px;
+  font-size: 32px;
+  line-height: 1.2;
+  letter-spacing: 1px;
+}
 
 body {
   background: gray;
-  background-image: url('./logo.svg');
+  background-image: url("./logo.svg");
 }
 .class {
   box-shadow: 10px 5px 5px red;

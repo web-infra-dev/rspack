@@ -18,6 +18,7 @@
   "dependencies": {
     "@rspack/binding": "workspace:*",
     "commander": "^9.4.0",
-    "rspack-dev-server": "workspace:^"
+    "rspack-dev-server": "workspace:^",
+    "rspack-plugin-postcss": "workspace:*"
   }
 }
