@@ -16,7 +16,7 @@ pub struct ResourceData {
 }
 
 #[derive(Debug)]
-pub struct LoaderContext<'a, T, U> {
+pub struct LoaderContext<'a, 'context, T, U> {
   pub source: Source,
   /// The resource part of the request, including query and fragment.
   ///
@@ -35,9 +35,9 @@ pub struct LoaderContext<'a, T, U> {
   /// E.g. some-fragment
   pub resource_fragment: Option<&'a str>,
 
-  pub compiler_context: &'a T,
+  pub compiler_context: &'context T,
 
-  pub compilation_context: &'a U,
+  pub compilation_context: &'context U,
 }
 
 #[derive(Debug)]
@@ -45,8 +45,8 @@ pub struct LoaderResult {
   pub content: Content,
 }
 
-impl<T, U> From<LoaderContext<'_, T, U>> for LoaderResult {
-  fn from(loader_context: LoaderContext<'_, T, U>) -> Self {
+impl<T, U> From<LoaderContext<'_, '_, T, U>> for LoaderResult {
+  fn from(loader_context: LoaderContext<'_, '_, T, U>) -> Self {
     Self {
       content: loader_context.source,
     }
@@ -69,7 +69,7 @@ pub trait Loader: Sync + Send + Debug {
   /// 2. If a loader returns a `None`, the result of the loader will be the same as the previous one.
   async fn run(
     &self,
-    loader_context: &LoaderContext<'_, Self::CompilerContext, Self::CompilationContext>,
+    loader_context: &LoaderContext<'_, '_, Self::CompilerContext, Self::CompilationContext>,
   ) -> Result<Option<LoaderResult>>;
 
   fn as_any(&self) -> &dyn std::any::Any;
@@ -109,10 +109,10 @@ impl LoaderRunner {
     Ok(Content::from(result))
   }
 
-  async fn get_loader_context<'c, 'a: 'c, T, U>(
+  async fn get_loader_context<'a, 'context, T, U>(
     &'a self,
-    context: &'c LoaderRunnerAdditionContext<T, U>,
-  ) -> Result<LoaderContext<'c, T, U>> {
+    context: &'context LoaderRunnerAdditionContext<T, U>,
+  ) -> Result<LoaderContext<'a, 'context, T, U>> {
     let content = self.process_resource().await?;
 
     let loader_context = LoaderContext {

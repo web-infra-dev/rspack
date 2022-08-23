@@ -99,7 +99,7 @@ mod fixtures {
 
     async fn run(
       &self,
-      loader_context: &LoaderContext<'_, Self::CompilerContext, Self::CompilationContext>,
+      loader_context: &LoaderContext<'_, '_, Self::CompilerContext, Self::CompilationContext>,
     ) -> Result<Option<LoaderResult>> {
       let source = loader_context.source.to_owned();
       Ok(Some(LoaderResult { content: source }))
@@ -128,7 +128,7 @@ mod fixtures {
 
     async fn run(
       &self,
-      loader_context: &LoaderContext<'_, Self::CompilerContext, Self::CompilationContext>,
+      loader_context: &LoaderContext<'_, '_, Self::CompilerContext, Self::CompilationContext>,
     ) -> Result<Option<LoaderResult>> {
       let source = loader_context.source.to_owned().try_into_string()?;
       Ok(Some(LoaderResult {
@@ -165,7 +165,7 @@ html {{
 
     async fn run(
       &self,
-      loader_context: &LoaderContext<'_, Self::CompilerContext, Self::CompilationContext>,
+      loader_context: &LoaderContext<'_, '_, Self::CompilerContext, Self::CompilationContext>,
     ) -> Result<Option<LoaderResult>> {
       let source = loader_context.source.to_owned().try_into_string()?;
       Ok(Some(LoaderResult {
@@ -200,7 +200,7 @@ console.log(2);"#,
 
     async fn run(
       &self,
-      loader_context: &LoaderContext<'_, Self::CompilerContext, Self::CompilationContext>,
+      loader_context: &LoaderContext<'_, '_, Self::CompilerContext, Self::CompilationContext>,
     ) -> Result<Option<LoaderResult>> {
       let source = loader_context.source.to_owned().try_into_string()?;
       Ok(Some(LoaderResult {
