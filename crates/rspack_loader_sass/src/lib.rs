@@ -291,9 +291,9 @@ impl SassLoader {
     }
   }
 
-  fn get_sass_options<'a>(
+  fn get_sass_options(
     &self,
-    loader_context: &LoaderContext<'a>,
+    loader_context: &LoaderContext<'_, '_, (), ()>,
     content: String,
     source_map: bool,
   ) -> LegacyOptions {
@@ -369,12 +369,15 @@ impl SassLoader {
 }
 
 #[async_trait::async_trait]
-impl Loader for SassLoader {
+impl Loader<(), ()> for SassLoader {
   fn name(&self) -> &'static str {
     "sass-loader"
   }
 
-  async fn run(&self, loader_context: &LoaderContext<'_>) -> Result<Option<LoaderResult>> {
+  async fn run(
+    &self,
+    loader_context: &LoaderContext<'_, '_, (), ()>,
+  ) -> Result<Option<LoaderResult>> {
     let source = loader_context.source.to_owned();
     let source_map = self.options.source_map.unwrap_or({
       // TODO: change to loader_context.options.source_map
