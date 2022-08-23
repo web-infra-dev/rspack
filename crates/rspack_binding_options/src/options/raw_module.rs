@@ -168,7 +168,9 @@ static REGISTERED_LOADER_SENDERS: once_cell::sync::Lazy<
 
 #[cfg(feature = "node-api")]
 #[async_trait::async_trait]
-impl rspack_core::Loader<CompilerContext, CompilationContext> for NodeLoaderAdapter {
+impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationContext>
+  for NodeLoaderAdapter
+{
   fn name(&self) -> &'static str {
     "node-loader-adapter"
   }
