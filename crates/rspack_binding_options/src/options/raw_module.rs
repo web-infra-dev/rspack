@@ -17,8 +17,8 @@ use napi::{
 use rspack_error::Result;
 
 use rspack_core::{
-  AssetParserDataUrlOption, AssetParserOptions, CompilerOptionsBuilder, ModuleOptions, ModuleRule,
-  ParserOptions,
+  AssetParserDataUrlOption, AssetParserOptions, BoxedLoader, CompilerOptionsBuilder, ModuleOptions,
+  ModuleRule, ParserOptions,
 };
 
 use crate::RawOption;
@@ -403,16 +403,28 @@ impl RawOption<Option<ModuleOptions>> for RawModuleOptions {
     options: &CompilerOptionsBuilder,
   ) -> anyhow::Result<Option<ModuleOptions>> {
     // FIXME: temporary implementation
+    let mut rules = self
+      .rules
+      .into_iter()
+      .map(|rule| {
+        rule
+          .to_compiler_option(options)
+          .map_err(|err| anyhow::format_err!("failed to convert rule: {}", err))
+      })
+      .collect::<anyhow::Result<Vec<ModuleRule>>>()?;
+    rules.push(ModuleRule {
+      test: Some(regex::Regex::new(r"\.s[ac]ss$")?),
+      resource: None,
+      resource_query: None,
+      module_type: Some(rspack_core::ModuleType::Css),
+      func__: None,
+      uses: vec![Box::new(rspack_loader_sass::SassLoader::new(
+        None,
+        rspack_loader_sass::SassLoaderOptions::default(),
+      )) as BoxedLoader],
+    });
     Ok(Some(ModuleOptions {
-      rules: self
-        .rules
-        .into_iter()
-        .map(|rule| {
-          rule
-            .to_compiler_option(options)
-            .map_err(|err| anyhow::format_err!("failed to convert rule: {}", err))
-        })
-        .collect::<anyhow::Result<Vec<ModuleRule>>>()?,
+      rules,
       parser: self.parser.map(|x| ParserOptions {
         asset: x.asset.map(|y| AssetParserOptions {
           data_url_condition: y.data_url_condition.map(|a| AssetParserDataUrlOption {
