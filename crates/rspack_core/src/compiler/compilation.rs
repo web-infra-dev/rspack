@@ -120,13 +120,26 @@ impl Compilation {
   }
 
   pub fn render_runtime(&self, plugin_driver: Arc<PluginDriver>) -> Runtime {
+    let context_indent = match &self.options.target {
+      crate::Target::Target(target) => match target {
+        crate::TargetOptions::Web => String::from("self"),
+        _ => String::from("this"),
+      },
+      crate::Target::None => String::from("self"),
+    };
     if let Ok(sources) = plugin_driver.render_runtime(RenderRuntimeArgs {
       sources: &vec![],
       compilation: self,
     }) {
-      Runtime { sources }
+      Runtime {
+        context_indent,
+        sources,
+      }
     } else {
-      Runtime { sources: vec![] }
+      Runtime {
+        context_indent,
+        sources: vec![],
+      }
     }
   }
 

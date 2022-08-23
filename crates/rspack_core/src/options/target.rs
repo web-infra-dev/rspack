@@ -3,6 +3,7 @@ use std::str::FromStr;
 #[derive(Debug)]
 pub enum TargetOptions {
   Web,
+  WebWorker,
   Node(String),
 }
 
@@ -22,6 +23,8 @@ impl FromStr for Target {
       Ok(Target::Target(TargetOptions::Web))
     } else if s.starts_with("node") {
       Ok(Target::Target(TargetOptions::Node(s.replace("node", ""))))
+    } else if s.eq("webworker") {
+      Ok(Target::Target(TargetOptions::WebWorker))
     } else {
       Ok(Target::None)
     }
