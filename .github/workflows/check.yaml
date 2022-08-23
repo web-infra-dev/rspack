@@ -88,9 +88,6 @@ jobs:
     name: Node binding test
     runs-on: [self-hosted, rspack-common]
     steps:
-      - name: Cleanup workspace
-        uses: TooMuch4U/actions-clean@v2.1
-        if: ${{ always() }}
       - name: Install dependencies and run test
         run: |
           pnpm install
