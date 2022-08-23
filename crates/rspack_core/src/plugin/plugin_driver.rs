@@ -56,9 +56,12 @@ impl PluginDriver {
     args: ParseModuleArgs,
     job_ctx: &mut NormalModuleFactoryContext,
   ) -> Result<BoxModule> {
-    let module_type = job_ctx
-      .module_type
-      .ok_or_else(|| Error::InternalError("module_type is not set".to_string()))?;
+    let module_type = job_ctx.module_type.ok_or_else(|| {
+      Error::InternalError(format!(
+        "Failed to parse {} as module_type is not set",
+        args.uri
+      ))
+    })?;
 
     let parser = self.registered_parser.get(&module_type).ok_or_else(|| {
       Error::InternalError(format!(

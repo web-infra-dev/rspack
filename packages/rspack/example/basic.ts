@@ -10,7 +10,7 @@ const rspack = new Rspack({
   module: {
     rules: [
       {
-        test: '.*',
+        test: '.less$',
         uses: [
           function (loaderContext) {
             return {
@@ -18,6 +18,7 @@ const rspack = new Rspack({
             };
           },
         ],
+        type: 'css',
       },
     ],
   },

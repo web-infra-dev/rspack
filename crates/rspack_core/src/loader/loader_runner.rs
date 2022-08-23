@@ -23,10 +23,10 @@ impl LoaderRunnerRunner {
   ) -> Result<(LoaderResult, ResolvedModuleType)> {
     // Progressive module type resolution:
     // Stage 1: maintain the resolution logic via file extension
-    // TODO: Stage 2: remove all extension based module type resolution, and let `module.rules[number].type` to handle this(everything is based on its config)
-
-    // set default module type to `Js`, currently it equals to `javascript/auto` in webpack.
-    let mut resolved_module_type: ResolvedModuleType = Some(ModuleType::Js);
+    // TODO: Stage 2:
+    //           1. remove all extension based module type resolution, and let `module.rules[number].type` to handle this(everything is based on its config)
+    //           2. set default module type to `Js`, it equals to `javascript/auto` in webpack.
+    let mut resolved_module_type: ResolvedModuleType = None;
 
     let loaders = self
       .options

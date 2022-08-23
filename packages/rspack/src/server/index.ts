@@ -1,5 +1,9 @@
 import * as binding from '@rspack/binding';
-import type { ExternalObject, RspackInternal } from '@rspack/binding';
+import type {
+  ExternalObject,
+  RspackInternal,
+  RawModuleRule,
+} from '@rspack/binding';
 
 import * as Config from '../config';
 import type { RspackOptions } from '../config';
@@ -10,6 +14,7 @@ interface ModuleRule {
     this: LoaderContext,
     loaderContext: LoaderContext
   ) => Promise<LoaderResult | void> | LoaderResult | void)[];
+  type?: RawModuleRule['type'];
 }
 
 interface LoaderRunnerContext {

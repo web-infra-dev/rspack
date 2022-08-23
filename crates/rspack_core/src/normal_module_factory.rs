@@ -138,19 +138,6 @@ impl NormalModuleFactory {
     tracing::trace!("resolved uri {:?}", uri);
 
     let url = parse_to_url(&uri);
-    if self.context.module_type.is_none() {
-      // todo currently unreachable module types are temporarily unified with their importers
-      let url = parse_to_url(
-        if uri.starts_with("UnReachable:") || uri.contains(".scss") {
-          self.dependency.importer.as_deref().unwrap()
-        } else {
-          &uri
-        },
-      );
-      debug_assert_eq!(url.scheme(), "specifier");
-      // TODO: remove default module type resolution based on the file extension.
-      self.context.module_type = resolve_module_type_by_uri(url.path());
-    }
 
     self
       .tx
@@ -194,6 +181,20 @@ impl NormalModuleFactory {
         self.loader_runner_runner.run(resource_data).await?;
 
       self.context.module_type = resolved_module_type;
+
+      if self.context.module_type.is_none() {
+        // todo currently unreachable module types are temporarily unified with their importers
+        let url = parse_to_url(
+          if uri.starts_with("UnReachable:") || uri.contains(".scss") {
+            self.dependency.importer.as_deref().unwrap()
+          } else {
+            &uri
+          },
+        );
+        debug_assert_eq!(url.scheme(), "specifier");
+        // TODO: remove default module type resolution based on the file extension.
+        self.context.module_type = resolve_module_type_by_uri(url.path());
+      }
 
       runner_result
     };
