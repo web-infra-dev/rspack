@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use temp_test_utils::{read_test_config_and_normalize, test_fixture};
+use rspack_test::{read_test_config_and_normalize, test_fixture};
 use testing_macros::fixture;
 
 #[fixture("tests/fixtures/*")]

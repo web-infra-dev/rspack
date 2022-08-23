@@ -7,7 +7,6 @@ edition = "2021"
 
 [dev_dependencies]
 rspack = { path = "../rspack" }
-temp_test_utils = { path = "../temp_test_utils" }
 rspack_test = { path = "../rspack_test" }
 
 [dependencies]

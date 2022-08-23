@@ -1,7 +1,6 @@
 // use std::path::PathBuf;
 
 // use schemars::schema_for;
-// use temp_test_utils::TestOptions;
 
 fn main() {
   // let schema = schema_for!(TestOptions);

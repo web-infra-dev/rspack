@@ -7,11 +7,11 @@ version = "0.1.0"
 
 [dev_dependencies]
 criterion = { version = "0.3.6", features = ["async_tokio", "async_futures"] }
-temp_test_utils = { path = "../temp_test_utils" }
 testing_macros = "0.2.5"
-rspack_binding_options = {path = "../rspack_binding_options"}
-serde = {version = "1", features = ["derive"]}
+rspack_binding_options = { path = "../rspack_binding_options" }
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+rspack_test = { path = "../rspack_test" }
 
 [dependencies]
 crossbeam = "0.8.1"
@@ -36,7 +36,6 @@ warp = "0.3"
 hashbrown = { version = "0.12.1", features = ["rayon"] }
 tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
 rspack_error = { path = "../rspack_error" }
-
 [[bench]]
 harness = false
 name = "main"
