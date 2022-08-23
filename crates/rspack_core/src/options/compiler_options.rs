@@ -1,6 +1,6 @@
 use crate::{
-  BundleEntries, Context, Define, DevServerOptions, ModuleOptions, OutputOptions, Plugins, Resolve,
-  Target,
+  BundleEntries, Context, Define, DevServerOptions, External, ModuleOptions, OutputOptions,
+  Plugins, Resolve, Target,
 };
 
 #[derive(Debug)]
@@ -14,4 +14,5 @@ pub struct CompilerOptions {
   pub plugins: Plugins,
   pub module: ModuleOptions,
   pub define: Define,
+  pub external: Vec<External>,
 }

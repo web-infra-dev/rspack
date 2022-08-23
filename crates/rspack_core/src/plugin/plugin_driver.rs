@@ -5,10 +5,10 @@ use rspack_loader_runner::ResourceData;
 use tracing::instrument;
 
 use crate::{
-  ApplyContext, BoxModule, BoxedParser, CompilerOptions, Content, ModuleType,
-  NormalModuleFactoryContext, ParseModuleArgs, Plugin, PluginContext, PluginProcessAssetsOutput,
-  PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, ProcessAssetsArgs,
-  RenderManifestArgs, RenderRuntimeArgs, Resolver,
+  ApplyContext, BoxModule, BoxedParser, CompilerOptions, Content, FactorizeArgs, ModuleType,
+  NormalModuleFactoryContext, ParseModuleArgs, Plugin, PluginContext, PluginFactorizeHookOutput,
+  PluginProcessAssetsOutput, PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput,
+  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, Resolver,
 };
 use rspack_error::{Error, Result};
 
@@ -100,6 +100,20 @@ impl PluginDriver {
       Ok(())
     })?;
     Ok(assets)
+  }
+
+  pub fn factorize(
+    &self,
+    args: FactorizeArgs,
+    job_ctx: &mut NormalModuleFactoryContext,
+  ) -> PluginFactorizeHookOutput {
+    for plugin in &self.plugins {
+      tracing::debug!("running render runtime:{}", plugin.name());
+      if let Some(module) = plugin.factorize(PluginContext::new(), args.clone(), job_ctx)? {
+        return Ok(Some(module));
+      }
+    }
+    Ok(None)
   }
 
   pub fn render_runtime(&self, args: RenderRuntimeArgs) -> PluginRenderRuntimeHookOutput {

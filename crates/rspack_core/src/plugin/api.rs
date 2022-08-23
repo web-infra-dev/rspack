@@ -3,8 +3,14 @@ use std::fmt::Debug;
 use rspack_loader_runner::{Content, ResourceData};
 
 use crate::{
+<<<<<<< HEAD
   BoxModule, ModuleType, ParseModuleArgs, PluginContext, ProcessAssetsArgs, RenderManifestArgs,
   RenderRuntimeArgs, RuntimeSourceNode, TransformAst,
+=======
+  BoxModule, FactorizeArgs, ModuleType, NormalModuleFactoryContext, ParseModuleArgs, PluginContext,
+  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, RuntimeSourceNode, TransformAst,
+  TransformResult,
+>>>>>>> feat: support external
 };
 use rspack_error::Result;
 
@@ -12,7 +18,13 @@ use rspack_error::Result;
 use hashbrown::HashMap;
 pub type PluginBuildStartHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;
+<<<<<<< HEAD
 pub type PluginReadResourceOutput = Result<Option<Content>>;
+=======
+pub type PluginLoadHookOutput = Result<Option<Content>>;
+pub type PluginTransformOutput = Result<TransformResult>;
+pub type PluginFactorizeHookOutput = Result<Option<(String, BoxModule)>>;
+>>>>>>> feat: support external
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
 pub type PluginRenderRuntimeHookOutput = Result<Vec<RuntimeSourceNode>>;
 pub type PluginParseModuleHookOutput = Result<BoxModule>;
@@ -86,6 +98,17 @@ pub trait Plugin: Debug + Send + Sync {
   // }
 
   async fn read_resource(&self, _resource_data: &ResourceData) -> PluginReadResourceOutput {
+    Ok(None)
+  }
+  /**
+   *
+   */
+  fn factorize(
+    &self,
+    _ctx: PluginContext,
+    _args: FactorizeArgs,
+    _job_ctx: &mut NormalModuleFactoryContext,
+  ) -> PluginFactorizeHookOutput {
     Ok(None)
   }
 

@@ -1,4 +1,6 @@
-use crate::{Compilation, CompilerOptions, ErrorSpan, ResolveKind, RuntimeSourceNode};
+use crate::{
+  Compilation, CompilerOptions, Dependency, ErrorSpan, PluginDriver, ResolveKind, RuntimeSourceNode,
+};
 use rspack_loader_runner::Content;
 use std::{fmt::Debug, sync::Arc};
 use swc_css::ast::Stylesheet;
@@ -27,6 +29,12 @@ pub struct RenderManifestArgs<'me> {
 pub struct RenderRuntimeArgs<'me> {
   pub sources: &'me Vec<RuntimeSourceNode>,
   pub compilation: &'me Compilation,
+}
+
+#[derive(Debug, Clone)]
+pub struct FactorizeArgs<'me> {
+  pub dependency: &'me Dependency,
+  pub plugin_driver: &'me Arc<PluginDriver>,
 }
 
 #[derive(Debug, Clone)]

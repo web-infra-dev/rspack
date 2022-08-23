@@ -12,6 +12,7 @@ mod raw_builtins;
 mod raw_context;
 mod raw_define;
 mod raw_entry;
+mod raw_external;
 mod raw_mode;
 mod raw_module;
 mod raw_output;
@@ -23,6 +24,7 @@ pub use raw_builtins::*;
 pub use raw_context::*;
 pub use raw_define::*;
 pub use raw_entry::*;
+pub use raw_external::*;
 pub use raw_mode::*;
 pub use raw_module::*;
 pub use raw_output::*;
@@ -77,6 +79,8 @@ pub struct RawOptions {
   pub builtins: Option<RawBuiltins>,
   #[napi(ts_type = "Record<string, string>")]
   pub define: Option<RawDefine>,
+  #[napi(ts_type = "Record<string, string>")]
+  pub external: Option<RawExternal>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -86,6 +90,7 @@ pub struct RawOptions {
   pub entry: Option<RawEntry>,
   pub mode: Option<RawMode>,
   pub target: Option<RawTarget>,
+  pub external: Option<RawExternal>,
   // pub platform: Option<String>,
   pub context: Option<RawContext>,
   // pub loader: Option<HashMap<String, String>>,
@@ -155,6 +160,11 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
     .then(|mut options| {
       let define = RawOption::raw_to_compiler_option(raw_options.define, &options)?;
       options.define = Some(define);
+      Ok(options)
+    })?
+    .then(|mut options| {
+      let external = RawOption::raw_to_compiler_option(raw_options.external, &options)?;
+      options.external = Some(external);
       Ok(options)
     })?
     .finish();

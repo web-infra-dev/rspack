@@ -6,7 +6,9 @@ use std::{
   },
 };
 
-use crate::{CompilerOptions, LoaderResult, LoaderRunnerRunner, ResourceData};
+use crate::{
+  BoxModule, CompilerOptions, FactorizeArgs, LoaderResult, LoaderRunnerRunner, ResourceData,
+};
 use rspack_error::{Diagnostic, Error};
 use sugar_path::PathSugar;
 use swc_common::Span;
@@ -122,8 +124,23 @@ impl NormalModuleFactory {
     }
   }
 
-  pub async fn resolve_module(&mut self) -> Result<Option<ModuleGraphModule>> {
-    // TODO: caching in resolve
+  pub fn calculate_module_type(&self, uri: &str) -> Option<ModuleType> {
+    // todo currently unreachable module types are temporarily unified with their importers
+    let url = parse_to_url(
+      if uri.starts_with("UnReachable:") || uri.contains(".scss") {
+        match self.dependency.importer.as_deref() {
+          Some(u) => u,
+          None => uri,
+        }
+      } else {
+        uri
+      },
+    );
+    debug_assert_eq!(url.scheme(), "specifier");
+    resolve_module_type_by_uri(url.path())
+  }
+
+  pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, BoxModule)>> {
     let uri = resolve(
       ResolveArgs {
         importer: self.dependency.importer.as_deref(),
@@ -138,6 +155,9 @@ impl NormalModuleFactory {
     tracing::trace!("resolved uri {:?}", uri);
 
     let url = parse_to_url(&uri);
+    if self.context.module_type.is_none() {
+      self.context.module_type = self.calculate_module_type(&uri);
+    }
 
     self
       .tx
@@ -198,11 +218,57 @@ impl NormalModuleFactory {
 
       runner_result
     };
+
     tracing::trace!(
       "load ({:?}) source {:?}",
       self.context.module_type,
       runner_result
     );
+
+    let module = self.plugin_driver.parse(
+      ParseModuleArgs {
+        uri: uri.as_str(),
+        // source: transform_result.content,
+        options: self.context.options.clone(),
+        source: runner_result.content,
+        // ast: transform_result.ast.map(|x| x.into()),
+      },
+      &mut self.context,
+    )?;
+    tracing::trace!("parsed module {:?}", module);
+
+    Ok(Some((uri, module)))
+  }
+
+  pub async fn resolve_module(&mut self) -> Result<Option<ModuleGraphModule>> {
+    // TODO: caching in resolve
+    // Here is the corresponding create function in webpack, but instead of using hooks we use procedural functions
+    let (uri, mut module) = if let Ok(Some(module)) = self.plugin_driver.factorize(
+      FactorizeArgs {
+        dependency: &self.dependency,
+        plugin_driver: &self.plugin_driver,
+      },
+      &mut self.context,
+    ) {
+      let (uri, module) = module;
+      self
+        .tx
+        .send(Msg::DependencyReference(
+          self.dependency.clone(),
+          uri.clone(),
+        ))
+        .map_err(|_| {
+          Error::InternalError(format!(
+            "Failed to resolve dependency {:?}",
+            self.dependency
+          ))
+        })?;
+      (uri, module)
+    } else if let Some(re) = self.factorize_normal_module().await? {
+      re
+    } else {
+      return Ok(None);
+    };
 
     // let source = load(
     //   &self.plugin_driver,
@@ -222,18 +288,18 @@ impl NormalModuleFactory {
     //   &mut self.context,
     // )?;
 
-    let mut module = self.plugin_driver.parse(
-      ParseModuleArgs {
-        uri: uri.as_str(),
-        // source: transform_result.content,
-        options: self.context.options.clone(),
-        source: runner_result.content,
-        // ast: transform_result.ast.map(|x| x.into()),
-      },
-      &mut self.context,
-    )?;
+    // let mut module = self.plugin_driver.parse(
+    //   ParseModuleArgs {
+    //     uri: uri.as_str(),
+    //     // source: transform_result.content,
+    //     options: self.context.options.clone(),
+    //     source: runner_result.content,
+    //     // ast: transform_result.ast.map(|x| x.into()),
+    //   },
+    //   &mut self.context,
+    // )?;
 
-    tracing::trace!("parsed module {:?}", module);
+    // tracing::trace!("parsed module {:?}", module);
 
     // scan deps
 
@@ -265,6 +331,7 @@ impl NormalModuleFactory {
         .module_type
         .ok_or_else(|| Error::InternalError("source type is empty".to_string()))?,
     );
+
     Ok(Some(resolved_module))
   }
 
