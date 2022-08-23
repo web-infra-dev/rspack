@@ -40,6 +40,9 @@ pub struct RawModuleRule {
   pub func__: Option<JsFunction>,
   #[serde(skip_deserializing)]
   pub uses: Option<Vec<JsFunction>>,
+  #[napi(
+    ts_type = r#""js" | "jsx" | "ts" | "tsx" | "css" | "json" | "asset" | "asset/resource" | "asset/source" | "asset/inline""#
+  )]
   pub r#type: Option<String>,
 }
 

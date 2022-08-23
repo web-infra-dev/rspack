@@ -5,6 +5,7 @@ import LogoJPG from './file.jpg';
 import LogoPNG from './file.png';
 import LogoSVG from './file.svg';
 import Json from './data.json';
+import './index.less';
 // import Dark from './dark.svg';
 // import Light from './light.svg'
 // import LogoUrl from './logo.svg'
