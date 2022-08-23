@@ -6,7 +6,7 @@ on:
       - main
       - next
     tags-ignore:
-      - '**'
+      - "**"
   pull_request:
 
 env:
@@ -61,8 +61,8 @@ jobs:
           command: clippy
           args: --workspace --all-targets --verbose -- --deny warnings
 
-  test:
-    name: Cargo test
+  test-rs:
+    name: Rust test
     strategy:
       fail-fast: true
     runs-on: [self-hosted, rspack-common]
@@ -79,6 +79,28 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install toolchain
         run: rustup show
+      - name: Run test
+        # We need to install sass first to enable sass-loader
+        run: |
+          pnpm i
+          cargo test --all -- --nocapture
+  test-js:
+    name: Node binding test
+    runs-on: [self-hosted, rspack-common]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install dependencies and run test
+        run: |
+          pnpm install
+          pnpm --filter @rspack/binding run build 
+          pnpm --filter rspack-dev-server run build 
+          pnpm --filter @rspack/core run build 
+          pnpm --filter @rspack/core run example
       #- name: Cache
       #uses: speedy-js/rust-cache-self-hosted@v1
       # - name: Install yarn
@@ -95,11 +117,3 @@ jobs:
       #       ~/.cargo/git/db/
       #       target/
       #     key: test-${{ runner.os }}-cargo-gcc-${{ matrix.gcc }}-clang-${{ matrix.clang }}-${{ hashFiles('**/Cargo.lock') }}
-      - name: Test
-        run: |
-          pnpm install
-          cargo test --all -- --nocapture
-          pnpm --filter @rspack/binding run build 
-          pnpm --filter rspack-dev-server run build 
-          pnpm --filter @rspack/core run build 
-          pnpm --filter @rspack/core run example

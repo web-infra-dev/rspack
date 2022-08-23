@@ -1846,6 +1846,7 @@ dependencies = [
  "regex",
  "rspack_core",
  "rspack_error",
+ "rspack_loader_sass",
  "rspack_plugin_css",
  "rspack_plugin_html",
  "serde",
@@ -1908,7 +1909,8 @@ name = "rspack_loader_sass"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "lazy_static",
+ "itertools",
+ "once_cell",
  "regex",
  "rspack_core",
  "rspack_error",
@@ -2085,9 +2087,9 @@ checksum = "ef703b7cb59335eae2eb93ceb664c0eb7ea6bf567079d843e09420219668e072"
 
 [[package]]
 name = "sass-embedded"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08ebad66d9bb96a9221c66db18dc981491ab036988e084c3c4b4eafe1f4c8d0a"
+checksum = "59f4bb13e7ebead354cd7c07ab25490a27444a35a45c27aabc9975e834782f6e"
 dependencies = [
  "atty",
  "crossbeam-channel",
