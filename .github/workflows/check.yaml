@@ -80,7 +80,10 @@ jobs:
       - name: Install toolchain
         run: rustup show
       - name: Run test
-        run: cargo test --all -- --nocapture
+        # We need to install sass first to enable sass-loader
+        run: |
+          pnpm i
+          cargo test --all -- --nocapture
   test-js:
     name: Node binding test
     runs-on: [self-hosted, rspack-common]
