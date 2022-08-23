@@ -34,9 +34,9 @@ export interface RspackOptions {
     rules?: ModuleRule[];
     parser?: RawOptions['module']['parser'];
   };
-  define?: RawOptions['define'],
-  target?: RawOptions['target'],
-  mode?: RawOptions['mode']
+  define?: RawOptions['define'];
+  target?: RawOptions['target'];
+  mode?: RawOptions['mode'];
 }
 
 export function normalizePlugins(plugins: Plugin[]) {
@@ -53,7 +53,7 @@ export function User2Native(config: RspackOptions): RawOptions {
     context: config.context,
     define: config.define,
     target: config.target,
-    plugins: normalizePlugins(config.plugins),
+    plugins: normalizePlugins(config.plugins ?? []),
     module: {
       // TODO: support mutliple rules to support `Module Type`
       rules: (config.module.rules || []).map((rule) => {

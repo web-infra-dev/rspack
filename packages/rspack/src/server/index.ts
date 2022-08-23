@@ -1,19 +1,12 @@
 import * as binding from '@rspack/binding';
-import type {
-  ExternalObject,
-  RspackInternal,
-  RawModuleRule,
-} from '@rspack/binding';
+import type { ExternalObject, RspackInternal, RawModuleRule } from '@rspack/binding';
 
 import * as Config from '../config';
 import type { RspackOptions } from '../config';
 
 interface ModuleRule {
   test?: string;
-  uses?: ((
-    this: LoaderContext,
-    loaderContext: LoaderContext
-  ) => Promise<LoaderResult | void> | LoaderResult | void)[];
+  uses?: ((this: LoaderContext, loaderContext: LoaderContext) => Promise<LoaderResult | void> | LoaderResult | void)[];
   type?: RawModuleRule['type'];
 }
 
@@ -36,10 +29,7 @@ interface LoaderContextInternal {
 }
 
 interface LoaderContext
-  extends Pick<
-    LoaderContextInternal,
-    'resource' | 'resourcePath' | 'resourceQuery' | 'resourceFragment'
-  > {
+  extends Pick<LoaderContextInternal, 'resource' | 'resourcePath' | 'resourceQuery' | 'resourceFragment'> {
   source: {
     getCode(): string;
     getBuffer(): Buffer;
@@ -69,9 +59,7 @@ const toBuffer = (bufLike: string | Buffer): Buffer => {
   throw new Error('Buffer or string expected');
 };
 
-function createRspackModuleRuleAdapter(
-  context: LoaderRunnerContext
-): (err: any, data: Buffer) => Promise<Buffer> {
+function createRspackModuleRuleAdapter(context: LoaderRunnerContext): (err: any, data: Buffer) => Promise<Buffer> {
   const { loaders } = context;
 
   return async function (err: any, data: Buffer): Promise<Buffer> {
@@ -79,9 +67,7 @@ function createRspackModuleRuleAdapter(
       throw err;
     }
 
-    const loaderThreadsafeContext: LoaderThreadsafeContext = JSON.parse(
-      data.toString('utf-8')
-    );
+    const loaderThreadsafeContext: LoaderThreadsafeContext = JSON.parse(data.toString('utf-8'));
 
     const { p: payload, id } = loaderThreadsafeContext;
 
@@ -110,11 +96,7 @@ function createRspackModuleRuleAdapter(
       };
 
       let loaderResult: LoaderResult;
-      if (
-        (loaderResult = await Promise.resolve().then(() =>
-          loader.apply(loaderContext, [loaderContext])
-        ))
-      ) {
+      if ((loaderResult = await Promise.resolve().then(() => loader.apply(loaderContext, [loaderContext])))) {
         const content = loaderResult.content;
         sourceBuffer = toBuffer(content);
       }
@@ -136,7 +118,8 @@ class Rspack {
   #instance: ExternalObject<RspackInternal>;
 
   constructor(public options: RspackOptions) {
-    this.#instance = binding.newRspack(Config.User2Native(options));
+    const nativeConfig = Config.User2Native(options);
+    this.#instance = binding.newRspack(nativeConfig);
   }
 
   async build() {

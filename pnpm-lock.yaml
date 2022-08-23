@@ -1,4 +1,4 @@
-lockfileVersion: 5.3
+lockfileVersion: 5.4
 
 importers:
 
@@ -55,8 +55,8 @@ importers:
     dependencies:
       '@antv/data-set': 0.11.8
       '@arco-design/color': 0.4.0
-      '@arco-design/web-react': 2.29.2_react-dom@17.0.2+react@17.0.2
-      '@arco-themes/react-arco-pro': 0.0.7_@arco-design+web-react@2.29.2
+      '@arco-design/web-react': 2.29.2_sfoxds7t5ydpegc3knd667wn6m
+      '@arco-themes/react-arco-pro': 0.0.7_ukqlr2dsvgygpqtt7k6pq4rpp4
       '@loadable/component': 5.15.2_react@17.0.2
       '@turf/turf': 6.5.0
       arco-design-pro: 2.7.0
@@ -72,7 +72,7 @@ importers:
       react: 17.0.2
       react-color: 2.19.3_react@17.0.2
       react-dom: 17.0.2_react@17.0.2
-      react-redux: 7.2.8_react-dom@17.0.2+react@17.0.2
+      react-redux: 7.2.8_sfoxds7t5ydpegc3knd667wn6m
       react-router: 5.3.3_react@17.0.2
       react-router-dom: 5.3.3_react@17.0.2
       redux: 4.2.0
@@ -175,6 +175,12 @@ importers:
       '@types/node': 18.7.9
       tsm: 2.2.2
       typescript: 4.7.4
+
+  webpack-examples:
+    specifiers:
+      '@rspack/core': workspace:*
+    devDependencies:
+      '@rspack/core': link:../packages/rspack
 
 packages:
 
@@ -382,7 +388,7 @@ packages:
       color: 3.2.1
     dev: false
 
-  /@arco-design/web-react/2.29.2_react-dom@17.0.2+react@17.0.2:
+  /@arco-design/web-react/2.29.2_sfoxds7t5ydpegc3knd667wn6m:
     resolution: {integrity: sha512-nDMIWfuvYKlxc8lFBtaLPPDURtAJLmXu77r0KCH0Y6GB3S8mUQb7hs0hCC/K+1Pp5yzuVr05ESrEYovM8O5AvQ==}
     peerDependencies:
       react: '>=16'
@@ -399,7 +405,7 @@ packages:
       react: 17.0.2
       react-dom: 17.0.2_react@17.0.2
       react-focus-lock: 2.9.1_react@17.0.2
-      react-transition-group: 4.4.5_react-dom@17.0.2+react@17.0.2
+      react-transition-group: 4.4.5_sfoxds7t5ydpegc3knd667wn6m
       resize-observer-polyfill: 1.5.1
       scroll-into-view-if-needed: 2.2.20
       shallowequal: 1.1.0
@@ -407,12 +413,12 @@ packages:
       - '@types/react'
     dev: false
 
-  /@arco-themes/react-arco-pro/0.0.7_@arco-design+web-react@2.29.2:
+  /@arco-themes/react-arco-pro/0.0.7_ukqlr2dsvgygpqtt7k6pq4rpp4:
     resolution: {integrity: sha512-ymLuKbfwdYha9noATRQXe5qQH4THjqlEkZTWtAysq4GssYeemNObof51NnuJSMyQtdTS8KC7r//+zHjZrk4dcA==}
     peerDependencies:
       '@arco-design/web-react': ^2.25.1
     dependencies:
-      '@arco-design/web-react': 2.29.2_react-dom@17.0.2+react@17.0.2
+      '@arco-design/web-react': 2.29.2_sfoxds7t5ydpegc3knd667wn6m
     dev: false
 
   /@babel/code-frame/7.18.6:
@@ -2137,7 +2143,7 @@ packages:
     hasBin: true
     dependencies:
       caniuse-lite: 1.0.30001382
-      electron-to-chromium: 1.4.226
+      electron-to-chromium: 1.4.227
       node-releases: 2.0.6
       update-browserslist-db: 1.0.5_browserslist@4.21.3
     dev: false
@@ -2663,8 +2669,8 @@ packages:
     resolution: {integrity: sha1-WQxhFWsK4vTwJVcyoViyZrxWsh0=}
     dev: false
 
-  /electron-to-chromium/1.4.226:
-    resolution: {integrity: sha512-CvevLaSiUp0u12K0e+QhMX1hn724nSUNO9ToBek+FMHk/5RofrQs5MChjrD0re0IwqxDFxFMSZD+uic05i2Z5w==}
+  /electron-to-chromium/1.4.227:
+    resolution: {integrity: sha512-I9VVajA3oswIJOUFg2PSBqrHLF5Y+ahIfjOV9+v6uYyBqFZutmPxA6fxocDUUmgwYevRWFu1VjLyVG3w45qa/g==}
     dev: false
 
   /emoji-regex/8.0.0:
@@ -3697,7 +3703,7 @@ packages:
     engines: {node: '>=6'}
     dev: true
 
-  /mini-create-react-context/0.4.1_prop-types@15.8.1+react@17.0.2:
+  /mini-create-react-context/0.4.1_at7mkepldmzoo6silmqc5bca74:
     resolution: {integrity: sha512-YWCYEmd5CQeHGSAKrYvXgmzzkrvssZcuuQDDeqkT+PziKGMgE+0MCCtcKbROzocGBG1meBLl2FotlRwf4gAzbQ==}
     peerDependencies:
       prop-types: ^15.0.0
@@ -4132,7 +4138,7 @@ packages:
       scheduler: 0.19.1
     dev: false
 
-  /react-redux/7.2.8_react-dom@17.0.2+react@17.0.2:
+  /react-redux/7.2.8_sfoxds7t5ydpegc3knd667wn6m:
     resolution: {integrity: sha512-6+uDjhs3PSIclqoCk0kd6iX74gzrGc3W5zcAjbrFgEdIjRSQObdIwfx80unTkVUYvbQ95Y8Av3OvFHq1w5EOUw==}
     peerDependencies:
       react: ^16.8.3 || ^17 || ^18
@@ -4183,7 +4189,7 @@ packages:
       history: 4.10.1
       hoist-non-react-statics: 3.3.2
       loose-envify: 1.4.0
-      mini-create-react-context: 0.4.1_prop-types@15.8.1+react@17.0.2
+      mini-create-react-context: 0.4.1_at7mkepldmzoo6silmqc5bca74
       path-to-regexp: 1.8.0
       prop-types: 15.8.1
       react: 17.0.2
@@ -4192,7 +4198,7 @@ packages:
       tiny-warning: 1.0.3
     dev: false
 
-  /react-transition-group/4.4.5_react-dom@17.0.2+react@17.0.2:
+  /react-transition-group/4.4.5_sfoxds7t5ydpegc3knd667wn6m:
     resolution: {integrity: sha512-pZcd1MCJoiKiBR2NRxeCRg13uCXbydPnmB4EOeRrY7480qNWO8IIgQG6zlDkm6uRMsURXPuKq0GWtiM59a5Q6g==}
     peerDependencies:
       react: '>=16.6.0'
@@ -4925,7 +4931,7 @@ packages:
     dev: false
 
   /wordwrap/0.0.2:
-    resolution: {integrity: sha1-t5Zpu0LstAn4PVg8rVLKF+qhZD8=}
+    resolution: {integrity: sha512-xSBsCeh+g+dinoBv3GAOWM4LcVVO68wLXRanibtBSdUvkGWQRGeE9P7IwU9EmDDi4jA6L44lz15CGMwdw9N5+Q==}
     engines: {node: '>=0.4.0'}
     dev: false
 
