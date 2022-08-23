@@ -88,6 +88,12 @@ jobs:
     name: Node binding test
     runs-on: [self-hosted, rspack-common]
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install dependencies and run test
         run: |
           pnpm install
