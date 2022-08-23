@@ -77,7 +77,13 @@ impl LoaderRunnerRunner {
 
     Ok((
       LoaderRunner::new(resource_data.clone())
-        .run(&loaders)
+        .run(
+          &loaders,
+          &LoaderRunnerAdditionContext {
+            compiler: (),
+            compilation: (),
+          },
+        )
         .await?,
       resolved_module_type,
     ))

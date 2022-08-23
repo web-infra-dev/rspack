@@ -35,8 +35,9 @@ pub struct LoaderContext<'a, T, U> {
   /// E.g. some-fragment
   pub resource_fragment: Option<&'a str>,
 
-  pub compiler_context: T,
-  pub compilation_context: U,
+  pub compiler_context: &'a T,
+
+  pub compilation_context: &'a U,
 }
 
 #[derive(Debug)]
@@ -53,7 +54,10 @@ impl<T, U> From<LoaderContext<'_, T, U>> for LoaderResult {
 }
 
 #[async_trait::async_trait]
-pub trait Loader<T, U>: Sync + Send + Debug {
+pub trait Loader: Sync + Send + Debug {
+  type CompilerContext;
+  type CompilationContext;
+
   /// Loader name for debugging
   fn name(&self) -> &'static str {
     "unknown-loader"
@@ -63,36 +67,40 @@ pub trait Loader<T, U>: Sync + Send + Debug {
   ///
   /// 1. If a loader returns an error, the loader runner will stop loading the resource.
   /// 2. If a loader returns a `None`, the result of the loader will be the same as the previous one.
-  async fn run(&self, loader_context: &LoaderContext<'_, T, U>) -> Result<Option<LoaderResult>>;
+  async fn run(
+    &self,
+    loader_context: &LoaderContext<'_, Self::CompilerContext, Self::CompilationContext>,
+  ) -> Result<Option<LoaderResult>>;
 
   fn as_any(&self) -> &dyn std::any::Any;
 
   fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
 }
 
-pub type BoxedLoader<T, U> = Box<dyn Loader<T, U>>;
+pub type BoxedLoader<T, U> = Box<dyn Loader<CompilerContext = T, CompilationContext = U>>;
 // type BoxedRunnerPlugin = Box<dyn LoaderRunnerPlugin>;
 
 pub type LoaderRunnerResult = Result<LoaderResult>;
 
-pub struct LoaderRunner<'a, T, U> {
+pub struct LoaderRunner {
   // plugins: Vec<BoxedRunnerPlugin>,
   resource_data: ResourceData,
-  compiler_context: &'a T,
-  compilation_context: &'a U,
 }
 
-impl<T, U> LoaderRunner<'_, T, U> {
+#[derive(Debug)]
+pub struct LoaderRunnerAdditionContext<T, U> {
+  pub compiler: T,
+  pub compilation: U,
+}
+
+impl LoaderRunner {
   pub fn new(
+    // plugins: Vec<BoxedRunnerPlugin>,
     resource_data: ResourceData,
-    compiler_context: &T,
-    compilation_context: &U, // plugins: Vec<BoxedRunnerPlugin>,
   ) -> Self {
     Self {
       // plugins,
       resource_data,
-      compiler_context,
-      compilation_context,
     }
   }
 
@@ -101,7 +109,10 @@ impl<T, U> LoaderRunner<'_, T, U> {
     Ok(Content::from(result))
   }
 
-  async fn get_loader_context(&self) -> Result<LoaderContext<'_, T, U>> {
+  async fn get_loader_context<'c, 'a: 'c, T, U>(
+    &'a self,
+    context: &'c LoaderRunnerAdditionContext<T, U>,
+  ) -> Result<LoaderContext<'c, T, U>> {
     let content = self.process_resource().await?;
 
     let loader_context = LoaderContext {
@@ -110,15 +121,19 @@ impl<T, U> LoaderRunner<'_, T, U> {
       resource_path: &self.resource_data.resource_path,
       resource_query: self.resource_data.resource_query.as_deref(),
       resource_fragment: self.resource_data.resource_fragment.as_deref(),
-      compiler_context: &self.compiler_context,
-      compilation_context: &self.compilation_context,
+      compiler_context: &context.compiler,
+      compilation_context: &context.compilation,
     };
 
     Ok(loader_context)
   }
 
-  pub async fn run(&self, loaders: impl AsRef<[&dyn Loader<T, U>]>) -> LoaderRunnerResult {
-    let mut loader_context = self.get_loader_context().await?;
+  pub async fn run<'loader, T: 'loader, U: 'loader>(
+    &self,
+    loaders: impl AsRef<[&'loader dyn Loader<CompilerContext = T, CompilationContext = U>]>,
+    context: &LoaderRunnerAdditionContext<T, U>,
+  ) -> LoaderRunnerResult {
+    let mut loader_context = self.get_loader_context(context).await?;
 
     tracing::debug!("Running loaders for resource: {}", loader_context.resource);
 

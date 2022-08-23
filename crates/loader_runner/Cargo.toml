@@ -10,7 +10,7 @@ url = "2.2.2"
 similar-asserts = "1.2.0"
 
 [dependencies]
-anyhow = "1"
+anyhow = {version = "1", features = ["backtrace"]}
 async-trait = "0.1.53"
 tokio = { version = "1.17.0", features = ["full"] }
 tracing = "0.1.34"

@@ -25,7 +25,7 @@ pub struct ModuleRule {
   pub module_type: Option<ModuleType>,
   // For loader experimental
   pub func__: Option<ModuleRuleFunc>,
-  pub uses: Vec<Box<dyn Loader>>,
+  pub uses: Vec<Box<dyn Loader<CompilerContext = (), CompilationContext = ()>>>,
 }
 
 impl Debug for ModuleRule {
