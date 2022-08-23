@@ -168,14 +168,19 @@ static REGISTERED_LOADER_SENDERS: once_cell::sync::Lazy<
 
 #[cfg(feature = "node-api")]
 #[async_trait::async_trait]
-impl rspack_core::Loader<(), ()> for NodeLoaderAdapter {
+impl rspack_core::Loader<CompilerContext, CompilationContext> for NodeLoaderAdapter {
   fn name(&self) -> &'static str {
     "node-loader-adapter"
   }
 
   async fn run(
     &self,
-    loader_context: &rspack_core::LoaderContext<'_, '_, (), ()>,
+    loader_context: &rspack_core::LoaderContext<
+      '_,
+      '_,
+      rspack_core::CompilerContext,
+      rspack_core::CompilationContext,
+    >,
   ) -> Result<Option<rspack_core::LoaderResult>> {
     use std::sync::atomic::Ordering;
 

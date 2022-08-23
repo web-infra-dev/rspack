@@ -3,7 +3,10 @@ use std::{
   path::{Path, PathBuf},
 };
 
-use rspack_core::{Loader, LoaderRunner, LoaderRunnerAdditionalContext, ResourceData};
+use rspack_core::{
+  CompilationContext, CompilerContext, Loader, LoaderRunner, LoaderRunnerAdditionalContext,
+  ResourceData,
+};
 use rspack_loader_sass::{SassLoader, SassLoaderOptions};
 use rspack_test::{fixture, test_fixture};
 use sass_embedded::Url;
@@ -22,7 +25,8 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
     resource_fragment: url.fragment().map(|f| f.to_owned()),
   })
   .run(
-    [&SassLoader::new(None, SassLoaderOptions::default()) as &dyn Loader<(), ()>],
+    [&SassLoader::new(None, SassLoaderOptions::default())
+      as &dyn Loader<CompilerContext, CompilationContext>],
     &LoaderRunnerAdditionalContext {
       compiler: &(),
       compilation: &(),
