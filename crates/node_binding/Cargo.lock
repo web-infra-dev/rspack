@@ -1916,6 +1916,7 @@ dependencies = [
  "rspack_error",
  "rspack_loader_runner",
  "sass-embedded",
+ "serde",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -2087,9 +2088,9 @@ checksum = "ef703b7cb59335eae2eb93ceb664c0eb7ea6bf567079d843e09420219668e072"
 
 [[package]]
 name = "sass-embedded"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59f4bb13e7ebead354cd7c07ab25490a27444a35a45c27aabc9975e834782f6e"
+checksum = "c376c2edcb47736d93da602f0bb4ebbe8ad390fad873131cb88b335cc62ddc08"
 dependencies = [
  "atty",
  "crossbeam-channel",
@@ -2099,6 +2100,7 @@ dependencies = [
  "prost-build",
  "regex",
  "rustc-hash",
+ "serde",
  "serde_json",
  "url",
  "urlencoding",
@@ -4024,6 +4026,7 @@ dependencies = [
  "idna",
  "matches",
  "percent-encoding",
+ "serde",
 ]
 
 [[package]]

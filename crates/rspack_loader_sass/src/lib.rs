@@ -18,8 +18,9 @@ use sass_embedded::{
     IndentType, LegacyImporter, LegacyImporterResult, LegacyImporterThis, LegacyOptions,
     LegacyOptionsBuilder, LineFeed, OutputStyle,
   },
-  Exception, Sass, Url,
+  Exception, Sass,
 };
+use serde::Deserialize;
 use tokio::sync::Mutex;
 
 static IS_SPECIAL_MODULE_IMPORT: Lazy<Regex> = Lazy::new(|| Regex::new(r"^~[^/]+$").unwrap());
@@ -29,13 +30,34 @@ static MODULE_REQUEST: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[^?]*~").unwrap(
 static IS_MODULE_IMPORT: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^~([^/]+|[^/]+/|@[^/]+[/][^/]+|@[^/]+/?|@[^/]+[/][^/]+/)$").unwrap());
 
-#[derive(Debug)]
+fn dev_exe_path() -> PathBuf {
+  let os = match env::consts::OS {
+    "linux" => "linux",
+    "macos" => "darwin",
+    "windows" => "win32",
+    os => panic!("dart-sass-embedded is not supported for {os}"),
+  };
+  let arch = match env::consts::ARCH {
+    "x86" => "ia32",
+    "x86_64" => "x64",
+    "aarch64" => "arm64",
+    arch => panic!("dart-sass-embedded is not supported for {arch}"),
+  };
+  PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR")))
+    .join(format!("../../node_modules/@tmp-sass-embedded/{os}-{arch}"))
+    .join("dart-sass-embedded/dart-sass-embedded")
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
 pub struct SassLoaderOptions {
   sass_options: SassOptions,
   // `None` means open or close source map depends on whether in production mode.
   source_map: Option<bool>,
   additional_data: Option<String>,
   rspack_importer: bool,
+  #[serde(rename = "__exePath")]
+  __exe_path: PathBuf,
 }
 
 impl Default for SassLoaderOptions {
@@ -45,11 +67,13 @@ impl Default for SassLoaderOptions {
       source_map: Default::default(),
       additional_data: Default::default(),
       sass_options: Default::default(),
+      __exe_path: dev_exe_path(),
     }
   }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
 pub struct SassOptions {
   indented_syntax: Option<bool>,
   include_paths: Vec<PathBuf>,
@@ -255,7 +279,6 @@ impl LegacyImporter for RspackImporter {
         .ok_or_else(|| Exception::new(format!("dirname of {context} is `None`")))?,
       possible_requests: rspack_possible_requests.into_iter(),
     });
-
     Ok(start_resolving(resolutions.into_iter().peekable()).map(LegacyImporterResult::file))
   }
 }
@@ -266,29 +289,11 @@ pub struct SassLoader {
   options: SassLoaderOptions,
 }
 
-fn exe_path() -> PathBuf {
-  let os = match env::consts::OS {
-    "linux" => "linux",
-    "macos" => "darwin",
-    "windows" => "win32",
-    os => panic!("dart-sass-embedded is not supported for {os}"),
-  };
-  let arch = match env::consts::ARCH {
-    "x86" => "ia32",
-    "x86_64" => "x64",
-    "aarch64" => "arm64",
-    arch => panic!("dart-sass-embedded is not supported for {arch}"),
-  };
-  PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR")))
-    .join(format!("../../node_modules/@tmp-sass-embedded/{os}-{arch}"))
-    .join("dart-sass-embedded/dart-sass-embedded")
-}
-
 impl SassLoader {
-  pub fn new(path: Option<PathBuf>, options: SassLoaderOptions) -> Self {
+  pub fn new(options: SassLoaderOptions) -> Self {
     Self {
       // js side should ensure exe_path is a correct dart-sass-embedded path.
-      compiler: Mutex::new(Sass::new(path.unwrap_or_else(exe_path)).unwrap()),
+      compiler: Mutex::new(Sass::new(&options.__exe_path).unwrap()),
       options,
     }
   }
@@ -313,13 +318,13 @@ impl SassLoader {
       .file(loader_context.resource_path)
       .source_map(source_map)
       // TODO: use OutputStyle::Compressed when loader_context.mode is production.
-      .output_style(
-        self
-          .options
-          .sass_options
-          .output_style
-          .unwrap_or(OutputStyle::Expanded),
-      )
+      // .output_style(
+      //   self
+      //     .options
+      //     .sass_options
+      //     .output_style
+      //     .unwrap_or(OutputStyle::Expanded),
+      // )
       .indented_syntax(
         self
           .options
@@ -408,18 +413,15 @@ impl Loader<CompilerContext, CompilationContext> for SassLoader {
 
 fn sass_exception_to_error(e: Exception) -> Error {
   if let Some(span) = e.span()
-    && let Some(start) = &span.start
-    && let Some(end) = &span.end
-    && let Some(message) = e.sass_message() {
-    Error::TraceableError(TraceableError::from_path(
-      Url::parse(&span.url)
-        .unwrap()
+    && let Some(message) = e.sass_message()
+    && let Some(url) = &span.url {
+    Error::TraceableError(TraceableError::from_path(url
         .to_file_path()
         .unwrap()
         .to_string_lossy()
         .to_string(),
-      start.offset.try_into().unwrap(),
-      end.offset.try_into().unwrap(),
+      span.start.offset,
+      span.end.offset,
       "Sass Error".to_string(),
       message.to_string(),
     ))
