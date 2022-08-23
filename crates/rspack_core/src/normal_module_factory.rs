@@ -148,6 +148,7 @@ impl NormalModuleFactory {
         },
       );
       debug_assert_eq!(url.scheme(), "specifier");
+      // TODO: remove default module type resolution based on the file extension.
       self.context.module_type = resolve_module_type_by_uri(url.path());
     }
 
@@ -189,7 +190,12 @@ impl NormalModuleFactory {
         content: Content::Buffer("module.exports = {}".to_string().as_bytes().to_vec()),
       }
     } else {
-      self.loader_runner_runner.run(resource_data).await?
+      let (runner_result, resolved_module_type) =
+        self.loader_runner_runner.run(resource_data).await?;
+
+      self.context.module_type = resolved_module_type;
+
+      runner_result
     };
     tracing::trace!(
       "load ({:?}) source {:?}",

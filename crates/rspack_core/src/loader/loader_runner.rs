@@ -4,18 +4,30 @@ use rspack_error::Result;
 
 pub use rspack_loader_runner::*;
 
-use crate::{CompilerOptions, ModuleRule};
+use crate::{CompilerOptions, ModuleRule, ModuleType};
 
 pub struct LoaderRunnerRunner {
   pub options: Arc<CompilerOptions>,
 }
+
+type ResolvedModuleType = Option<ModuleType>;
 
 impl LoaderRunnerRunner {
   pub fn new(options: Arc<CompilerOptions>) -> Self {
     Self { options }
   }
 
-  pub async fn run(&self, resource_data: ResourceData) -> Result<LoaderResult> {
+  pub async fn run(
+    &self,
+    resource_data: ResourceData,
+  ) -> Result<(LoaderResult, ResolvedModuleType)> {
+    // Progressive module type resolution:
+    // Stage 1: maintain the resolution logic via file extension
+    // TODO: Stage 2: remove all extension based module type resolution, and let `module.rules[number].type` to handle this(everything is based on its config)
+
+    // set default module type to `Js`, currently it equals to `javascript/auto` in webpack.
+    let mut resolved_module_type: ResolvedModuleType = Some(ModuleType::Js);
+
     let loaders = self
       .options
       .module
@@ -54,9 +66,20 @@ impl LoaderRunnerRunner {
       })
       .collect::<Result<Vec<_>>>()?
       .into_iter()
-      .flat_map(|module_rule| module_rule.uses.iter().map(Box::as_ref).rev())
+      .flat_map(|module_rule| {
+        if module_rule.module_type.is_some() {
+          resolved_module_type = module_rule.module_type;
+        };
+
+        module_rule.uses.iter().map(Box::as_ref).rev()
+      })
       .collect::<Vec<_>>();
 
-    LoaderRunner::new(resource_data.clone()).run(&loaders).await
+    Ok((
+      LoaderRunner::new(resource_data.clone())
+        .run(&loaders)
+        .await?,
+      resolved_module_type,
+    ))
   }
 }
