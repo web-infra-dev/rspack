@@ -43,3 +43,8 @@ impl RawOptionsExt for RawOptions {
     normalize_bundle_options(self).unwrap()
   }
 }
+
+pub fn read_test_config_and_normalize(fixture_path: &Path) -> CompilerOptions {
+  let options = RawOptions::from_fixture(fixture_path);
+  options.to_compiler_options()
+}

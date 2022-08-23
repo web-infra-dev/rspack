@@ -1,4 +1,4 @@
-use temp_test_utils::read_test_config_and_normalize;
+use rspack_test::read_test_config_and_normalize;
 #[tokio::main]
 async fn main() {
   let mut cur_dir = std::env::current_dir().unwrap();

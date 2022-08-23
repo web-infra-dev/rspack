@@ -2,7 +2,7 @@ use criterion::{criterion_group, criterion_main, Criterion};
 
 use std::path::PathBuf;
 
-use temp_test_utils::read_test_config_and_normalize;
+use rspack_test::read_test_config_and_normalize;
 
 async fn bench(cur_dir: &PathBuf) {
   // cur_dir = cur_dir.join("webpack_css_cases_to_be_migrated/bootstrap");
