@@ -2,9 +2,18 @@ use std::sync::Arc;
 
 use rspack_error::Result;
 
-pub use rspack_loader_runner::*;
+pub use rspack_loader_runner::{
+  Content, Loader, LoaderContext, LoaderResult, LoaderRunner, LoaderRunnerAdditionalContext,
+  ResourceData,
+};
 
 use crate::{CompilerOptions, ModuleRule, ModuleType};
+
+// TODO: add context
+pub type CompilerContext = ();
+pub type CompilationContext = ();
+
+pub type BoxedLoader = rspack_loader_runner::BoxedLoader<CompilerContext, CompilationContext>;
 
 pub struct LoaderRunnerRunner {
   pub options: Arc<CompilerOptions>,
@@ -77,7 +86,13 @@ impl LoaderRunnerRunner {
 
     Ok((
       LoaderRunner::new(resource_data.clone())
-        .run(&loaders)
+        .run(
+          &loaders,
+          &LoaderRunnerAdditionalContext {
+            compiler: &(),
+            compilation: &(),
+          },
+        )
         .await?,
       resolved_module_type,
     ))

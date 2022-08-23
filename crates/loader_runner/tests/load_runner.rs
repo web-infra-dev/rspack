@@ -50,7 +50,10 @@ macro_rules! run_loader {
     .build()
     .unwrap()
     .block_on(async {
-      let runner_result = runner.run($loader).await.unwrap();
+      let runner_result = runner.run($loader, &LoaderRunnerAdditionalContext {
+        compiler: &(),
+        compilation: &()
+      }).await.unwrap();
       similar_asserts::assert_eq!(
         runner_result.content,
         $expected
@@ -66,7 +69,10 @@ macro_rules! run_loader {
       .build()
       .unwrap()
       .block_on(async {
-        let runner_result = runner.run($loader).await.unwrap();
+        let runner_result = runner.run($loader, &LoaderRunnerAdditionalContext {
+          compiler: &(),
+          compilation: &()
+        }).await.unwrap();
         similar_asserts::assert_eq!(
           runner_result.content.try_into_string().unwrap(),
           $expected.to_owned()
@@ -83,12 +89,15 @@ mod fixtures {
   pub struct DirectPassLoader {}
 
   #[async_trait::async_trait]
-  impl Loader for DirectPassLoader {
+  impl Loader<(), ()> for DirectPassLoader {
     fn name(&self) -> &'static str {
       "direct-pass-loader"
     }
 
-    async fn run(&self, loader_context: &LoaderContext<'_>) -> Result<Option<LoaderResult>> {
+    async fn run(
+      &self,
+      loader_context: &LoaderContext<'_, '_, (), ()>,
+    ) -> Result<Option<LoaderResult>> {
       let source = loader_context.source.to_owned();
       Ok(Some(LoaderResult { content: source }))
     }
@@ -106,12 +115,15 @@ mod fixtures {
   pub struct SimpleCssLoader {}
 
   #[async_trait::async_trait]
-  impl Loader for SimpleCssLoader {
+  impl Loader<(), ()> for SimpleCssLoader {
     fn name(&self) -> &'static str {
       "basic-loader"
     }
 
-    async fn run(&self, loader_context: &LoaderContext<'_>) -> Result<Option<LoaderResult>> {
+    async fn run(
+      &self,
+      loader_context: &LoaderContext<'_, '_, (), ()>,
+    ) -> Result<Option<LoaderResult>> {
       let source = loader_context.source.to_owned().try_into_string()?;
       Ok(Some(LoaderResult {
         content: Content::String(format!(
@@ -137,12 +149,15 @@ html {{
   pub struct LoaderChain1 {}
 
   #[async_trait::async_trait]
-  impl Loader for LoaderChain1 {
+  impl Loader<(), ()> for LoaderChain1 {
     fn name(&self) -> &'static str {
       "chain-loader"
     }
 
-    async fn run(&self, loader_context: &LoaderContext<'_>) -> Result<Option<LoaderResult>> {
+    async fn run(
+      &self,
+      loader_context: &LoaderContext<'_, '_, (), ()>,
+    ) -> Result<Option<LoaderResult>> {
       let source = loader_context.source.to_owned().try_into_string()?;
       Ok(Some(LoaderResult {
         content: Content::String(format!(
@@ -166,12 +181,15 @@ console.log(2);"#,
   pub struct LoaderChain2 {}
 
   #[async_trait::async_trait]
-  impl Loader for LoaderChain2 {
+  impl Loader<(), ()> for LoaderChain2 {
     fn name(&self) -> &'static str {
       "chain-loader"
     }
 
-    async fn run(&self, loader_context: &LoaderContext<'_>) -> Result<Option<LoaderResult>> {
+    async fn run(
+      &self,
+      loader_context: &LoaderContext<'_, '_, (), ()>,
+    ) -> Result<Option<LoaderResult>> {
       let source = loader_context.source.to_owned().try_into_string()?;
       Ok(Some(LoaderResult {
         content: Content::String(format!(
@@ -198,7 +216,7 @@ mod tests {
   fn should_run_single_loader() {
     use rspack_loader_runner::*;
 
-    let loaders: Vec<&dyn Loader> = vec![&super::fixtures::SimpleCssLoader {}];
+    let loaders: Vec<&dyn Loader<(), ()>> = vec![&super::fixtures::SimpleCssLoader {}];
 
     run_loader!(
       loaders,
@@ -216,7 +234,7 @@ html {
   fn should_run_loader_chain_from_right_to_left() {
     use rspack_loader_runner::*;
 
-    let loaders: Vec<&dyn Loader> = vec![
+    let loaders: Vec<&dyn Loader<(), ()>> = vec![
       &super::fixtures::LoaderChain2 {},
       &super::fixtures::LoaderChain1 {},
     ];
@@ -235,7 +253,7 @@ console.log(3);"#
     use rspack_loader_runner::*;
 
     let expected = Content::from(std::fs::read(&fixtures!("file.png")).unwrap());
-    let loaders: Vec<&dyn Loader> = vec![&super::fixtures::DirectPassLoader {}];
+    let loaders: Vec<&dyn Loader<(), ()>> = vec![&super::fixtures::DirectPassLoader {}];
 
     run_loader!(
       @raw,

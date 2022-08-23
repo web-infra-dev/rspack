@@ -8,7 +8,9 @@ use std::{
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::{Resolve, ResolveResult, Resolver, ResolverFactory};
+use rspack_core::{
+  CompilationContext, CompilerContext, Resolve, ResolveResult, Resolver, ResolverFactory,
+};
 use rspack_error::{Error, Result, TraceableError};
 use rspack_loader_runner::{Loader, LoaderContext, LoaderResult};
 use sass_embedded::{
@@ -291,9 +293,9 @@ impl SassLoader {
     }
   }
 
-  fn get_sass_options<'a>(
+  fn get_sass_options(
     &self,
-    loader_context: &LoaderContext<'a>,
+    loader_context: &LoaderContext<'_, '_, CompilerContext, CompilationContext>,
     content: String,
     source_map: bool,
   ) -> LegacyOptions {
@@ -369,12 +371,15 @@ impl SassLoader {
 }
 
 #[async_trait::async_trait]
-impl Loader for SassLoader {
+impl Loader<CompilerContext, CompilationContext> for SassLoader {
   fn name(&self) -> &'static str {
     "sass-loader"
   }
 
-  async fn run(&self, loader_context: &LoaderContext<'_>) -> Result<Option<LoaderResult>> {
+  async fn run(
+    &self,
+    loader_context: &LoaderContext<'_, '_, CompilerContext, CompilationContext>,
+  ) -> Result<Option<LoaderResult>> {
     let source = loader_context.source.to_owned();
     let source_map = self.options.source_map.unwrap_or({
       // TODO: change to loader_context.options.source_map
