@@ -90,12 +90,11 @@ jobs:
         if: ${{ always() }}
       - name: Run test
         run: |
-          pwd
-          yarn install --no-immutable
-          yarn workspace @rspack/binding run build
-          yarn workspace rspack-dev-server run build
-          yarn workspace @rspack/core run build
-          yarn workspace @rspack/core run example
+          pnpm install
+          pnpm --filter @rspack/binding run build 
+          pnpm --filter rspack-dev-server run build 
+          pnpm --filter @rspack/core run build 
+          pnpm --filter @rspack/core run example
       #- name: Cache
       #uses: speedy-js/rust-cache-self-hosted@v1
       # - name: Install yarn
@@ -112,9 +111,3 @@ jobs:
       #       ~/.cargo/git/db/
       #       target/
       #     key: test-${{ runner.os }}-cargo-gcc-${{ matrix.gcc }}-clang-${{ matrix.clang }}-${{ hashFiles('**/Cargo.lock') }}
-      run: |
-        pnpm install
-        pnpm --filter @rspack/binding run build 
-        pnpm --filter rspack-dev-server run build 
-        pnpm --filter @rspack/core run build 
-        pnpm --filter @rspack/core run example
