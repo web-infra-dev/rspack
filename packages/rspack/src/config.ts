@@ -1,7 +1,7 @@
 import type { RawOptions } from '@rspack/binding';
 
-import type { ModuleRule } from './server';
-import { createRawModuleRuleUses } from './server';
+import type { ModuleRule } from '.';
+import { createRawModuleRuleUses } from '.';
 
 export type Plugin = string | [string] | [string, unknown];
 
