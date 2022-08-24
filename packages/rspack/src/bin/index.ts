@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { createServer } from 'rspack-dev-server';
-import { Rspack } from '../server';
+import { Rspack } from '..';
 import fs from 'fs';
 import { build } from '../build';
 
