@@ -101,7 +101,9 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(None)
   }
   /**
-   *
+   * factorize hook will generate BoxModule which will be used to generate ModuleGraphModule.
+   * It is used to handle the generation of those modules which are not normal, such as External Module
+   * It behaves like a BailHook hook.
    */
   fn factorize(
     &self,
