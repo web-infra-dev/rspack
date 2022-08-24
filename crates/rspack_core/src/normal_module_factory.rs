@@ -126,16 +126,14 @@ impl NormalModuleFactory {
 
   pub fn calculate_module_type(&self, uri: &str) -> Option<ModuleType> {
     // todo currently unreachable module types are temporarily unified with their importers
-    let url = parse_to_url(
-      if uri.starts_with("UnReachable:") || uri.contains(".scss") {
-        match self.dependency.importer.as_deref() {
-          Some(u) => u,
-          None => uri,
-        }
-      } else {
-        uri
-      },
-    );
+    let url = parse_to_url(if uri.starts_with("UnReachable:") {
+      match self.dependency.importer.as_deref() {
+        Some(u) => u,
+        None => uri,
+      }
+    } else {
+      uri
+    });
     debug_assert_eq!(url.scheme(), "specifier");
     resolve_module_type_by_uri(url.path())
   }
@@ -204,13 +202,11 @@ impl NormalModuleFactory {
 
       if self.context.module_type.is_none() {
         // todo currently unreachable module types are temporarily unified with their importers
-        let url = parse_to_url(
-          if uri.starts_with("UnReachable:") || uri.contains(".scss") {
-            self.dependency.importer.as_deref().unwrap()
-          } else {
-            &uri
-          },
-        );
+        let url = parse_to_url(if uri.starts_with("UnReachable:") {
+          self.dependency.importer.as_deref().unwrap()
+        } else {
+          &uri
+        });
         debug_assert_eq!(url.scheme(), "specifier");
         // TODO: remove default module type resolution based on the file extension.
         self.context.module_type = resolve_module_type_by_uri(url.path());
