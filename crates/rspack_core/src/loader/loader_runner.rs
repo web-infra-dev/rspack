@@ -10,7 +10,11 @@ pub use rspack_loader_runner::{
 use crate::{CompilerOptions, ModuleRule, ModuleType};
 
 // TODO: add context
-pub type CompilerContext = ();
+#[derive(Debug)]
+pub struct CompilerContext {
+  pub options: Arc<CompilerOptions>,
+}
+
 pub type CompilationContext = ();
 
 pub type BoxedLoader = rspack_loader_runner::BoxedLoader<CompilerContext, CompilationContext>;
@@ -89,7 +93,9 @@ impl LoaderRunnerRunner {
         .run(
           &loaders,
           &LoaderRunnerAdditionalContext {
-            compiler: &(),
+            compiler: &CompilerContext {
+              options: self.options.clone(),
+            },
             compilation: &(),
           },
         )
