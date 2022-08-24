@@ -88,8 +88,6 @@ pub fn new_rspack(
     })
     .map_err(|e| Error::from_reason(format!("failed to unref tsfn {:?}", e)))?;
 
-  dbg!(&compiler_options);
-
   let rspack = rspack::rspack(compiler_options, vec![]);
 
   // let resolver = rspack.resolver.clone();

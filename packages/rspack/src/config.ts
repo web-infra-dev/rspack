@@ -56,7 +56,7 @@ export function User2Native(config: RspackOptions): RawOptions {
     plugins: normalizePlugins(config.plugins ?? []),
     module: {
       // TODO: support mutliple rules to support `Module Type`
-      rules: (config.module.rules || []).map((rule) => {
+      rules: (config?.module?.rules ?? []).map((rule) => {
         return {
           ...rule,
           uses: [

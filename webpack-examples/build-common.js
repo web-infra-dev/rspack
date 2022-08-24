@@ -1,5 +1,6 @@
 const { build } = require('@rspack/core');
 const path = require('path');
+const fs = require('fs');
 async function main() {
   const configPath = path.resolve(module.parent.path, 'webpack.config.js');
   const defaultEntry = {
@@ -8,7 +9,10 @@ async function main() {
     },
     context: module.parent.path,
   };
-  const config = require(configPath);
+  let config = {};
+  if (fs.existsSync(configPath)) {
+    config = require(configPath);
+  }
   // dirty hack to compatible webpack-examples
   let rules = config?.module?.rules;
   if (rules) {
