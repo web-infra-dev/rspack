@@ -1,0 +1,5 @@
+package.json
+
+# Ignore example fixtures
+examples/**/*
+webpack-examples/**/*

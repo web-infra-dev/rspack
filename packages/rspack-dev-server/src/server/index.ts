@@ -1,18 +1,11 @@
-import express from 'express';
+import express from "express";
 
 export async function createServer(options): Promise<express.Express> {
-  const {
-    dev: {
-      static: {
-        directory = 'dist'
-      } = {}
-    } = {}
-  } = options || {};
+	const { dev: { static: { directory = "dist" } = {} } = {} } = options || {};
 
-  const app = express();
-  
-  app.use(express.static(directory));
+	const app = express();
 
-  return app;
+	app.use(express.static(directory));
+
+	return app;
 }
-

@@ -6,7 +6,7 @@ on:
       - main
       - next
     tags-ignore:
-      - '**'
+      - "**"
   pull_request:
 
 env:
@@ -97,6 +97,7 @@ jobs:
       - name: Install dependencies and run test
         run: |
           pnpm install
+          pnpm run format:js
           pnpm run build:cli
           pnpm run build:webpack
           pnpm --filter @rspack/core run example

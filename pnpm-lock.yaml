@@ -7,12 +7,14 @@ importers:
       husky: ^7.0.4
       lint-staged: ^12.4.0
       mocha: 9.2.2
+      prettier: 2.5.1
       tsm: 2.2.1
       why-is-node-running: 2.2.1
     devDependencies:
       husky: 7.0.4
       lint-staged: 12.5.0
       mocha: 9.2.2
+      prettier: 2.5.1
       tsm: 2.2.1
       why-is-node-running: 2.2.1
 
@@ -3968,6 +3970,12 @@ packages:
     dependencies:
       splaytree: 3.1.1
     dev: false
+
+  /prettier/2.5.1:
+    resolution: {integrity: sha512-vBZcPRUR5MZJwoyi3ZoyQlc1rXeEck8KgeC9AwwOn+exuxLxq5toTRDTSaVrXHxelDMHy9zlicw8u66yxoSUFg==}
+    engines: {node: '>=10.13.0'}
+    hasBin: true
+    dev: true
 
   /prop-types/15.8.1:
     resolution: {integrity: sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==}
