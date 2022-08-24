@@ -1,10 +1,10 @@
 use std::fmt::Debug;
 
-use rspack_loader_runner::{Content, LoaderContext, ResourceData};
+use rspack_loader_runner::{Content, ResourceData};
 
 use crate::{
-  BoxModule, CompilationContext, CompilerContext, ModuleType, ParseModuleArgs, PluginContext,
-  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, RuntimeSourceNode, TransformAst,
+  BoxModule, ModuleType, ParseModuleArgs, PluginContext, ProcessAssetsArgs, RenderManifestArgs,
+  RenderRuntimeArgs, RuntimeSourceNode, TransformAst,
 };
 use rspack_error::Result;
 

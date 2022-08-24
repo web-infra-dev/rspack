@@ -7,7 +7,9 @@ pub use rspack_loader_runner::{
   ResourceData,
 };
 
-use crate::{CompilerOptions, ModuleRule, ModuleType, PluginDriver};
+use crate::{
+  CompilerOptions, LoaderRunnerPluginProcessResource, ModuleRule, ModuleType, PluginDriver,
+};
 
 #[derive(Debug)]
 pub struct CompilerContext {
@@ -98,15 +100,20 @@ impl LoaderRunnerRunner {
       .collect::<Vec<_>>();
 
     Ok((
-      LoaderRunner::new(resource_data.clone(), vec![])
-        .run(
-          &loaders,
-          &LoaderRunnerAdditionalContext {
-            compiler: &self.compiler_context,
-            compilation: &(),
-          },
-        )
-        .await?,
+      LoaderRunner::new(
+        resource_data.clone(),
+        vec![Box::new(LoaderRunnerPluginProcessResource::new(
+          self.plugin_driver.clone(),
+        ))],
+      )
+      .run(
+        &loaders,
+        &LoaderRunnerAdditionalContext {
+          compiler: &self.compiler_context,
+          compilation: &(),
+        },
+      )
+      .await?,
       resolved_module_type,
     ))
   }
