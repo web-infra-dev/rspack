@@ -2,8 +2,7 @@ use rspack_error::Result;
 
 use std::fmt::Debug;
 
-use crate::Content;
-// use crate::LoaderRunnerPlugin;
+use crate::{Content, LoaderRunnerPlugin};
 
 type Source = Content;
 
@@ -73,12 +72,12 @@ pub trait Loader<T, U>: Sync + Send + Debug {
 }
 
 pub type BoxedLoader<T, U> = Box<dyn Loader<T, U>>;
-// type BoxedRunnerPlugin = Box<dyn LoaderRunnerPlugin>;
+pub type BoxedRunnerPlugin = Box<dyn LoaderRunnerPlugin>;
 
 pub type LoaderRunnerResult = Result<LoaderResult>;
 
 pub struct LoaderRunner {
-  // plugins: Vec<BoxedRunnerPlugin>,
+  plugins: Vec<BoxedRunnerPlugin>,
   resource_data: ResourceData,
 }
 
@@ -89,17 +88,24 @@ pub struct LoaderRunnerAdditionalContext<'context, T, U> {
 }
 
 impl LoaderRunner {
-  pub fn new(
-    // plugins: Vec<BoxedRunnerPlugin>,
-    resource_data: ResourceData,
-  ) -> Self {
+  pub fn new(resource_data: ResourceData, plugins: Vec<BoxedRunnerPlugin>) -> Self {
     Self {
-      // plugins,
+      plugins,
       resource_data,
     }
   }
 
+  /// Process resource
+  ///
+  /// Plugins are loaded in order, if a plugin returns `Some(Content)`, then the returning content will be used as the result.
+  /// If plugins returned nothing, the runner will read via the `resource_path`.
   async fn process_resource(&self) -> Result<Content> {
+    for plugin in &self.plugins {
+      if let Some(processed_resource) = plugin.process_resource(&self.resource_data).await? {
+        return Ok(processed_resource);
+      }
+    }
+
     let result = tokio::fs::read(&self.resource_data.resource_path).await?;
     Ok(Content::from(result))
   }

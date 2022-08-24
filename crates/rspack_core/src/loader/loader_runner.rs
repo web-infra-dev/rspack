@@ -96,7 +96,7 @@ impl LoaderRunnerRunner {
       .collect::<Vec<_>>();
 
     Ok((
-      LoaderRunner::new(resource_data.clone())
+      LoaderRunner::new(resource_data.clone(), vec![])
         .run(
           &loaders,
           &LoaderRunnerAdditionalContext {
