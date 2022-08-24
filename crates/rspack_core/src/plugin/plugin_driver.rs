@@ -51,6 +51,11 @@ impl PluginDriver {
     }
   }
 
+  /// Read resource with the given `resource_data`
+  ///
+  /// Warning:
+  /// Webpack does not expose this as the documented API, even though you can reach this with `NormalModule.getCompilationHooks(compilation)`.
+  /// For the most of time, you would not need this.
   pub async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
     for plugin in &self.plugins {
       let result = plugin.read_resource(resource_data).await?;
