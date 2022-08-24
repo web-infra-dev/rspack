@@ -1,7 +1,7 @@
 import type { RawOptions } from '@rspack/binding';
 
-import type { LoaderRunnerContext, ModuleRule } from './server';
-import { createRspackModuleRuleAdapter } from './server';
+import type { ModuleRule } from './server';
+import { createRawModuleRuleUses } from './server';
 
 export type Plugin = string | [string] | [string, unknown];
 
@@ -59,11 +59,7 @@ export function User2Native(config: RspackOptions): RawOptions {
       rules: (config.module.rules || []).map((rule) => {
         return {
           ...rule,
-          uses: [
-            createRspackModuleRuleAdapter({
-              loaders: rule.uses,
-            }),
-          ],
+          uses: createRawModuleRuleUses(rule.uses || []),
         };
       }),
     },

@@ -26,7 +26,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
     resource_fragment: url.fragment().map(|f| f.to_owned()),
   })
   .run(
-    [&SassLoader::new(None, SassLoaderOptions::default())
+    [&SassLoader::new(SassLoaderOptions::default())
       as &dyn Loader<CompilerContext, CompilationContext>],
     &LoaderRunnerAdditionalContext {
       compiler: &CompilerContext {
