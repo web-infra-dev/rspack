@@ -22,11 +22,17 @@
   "cSpell.caseSensitive": true,
   "json.schemas": [
     {
-      "fileMatch": ["test.config.json"],
+      "fileMatch": [
+        "test.config.json"
+      ],
       // Point to the options schema of rspack.
       "url": "./crates/temp_test_utils/test.config.scheme.json"
     }
   ],
   "rust-analyzer.procMacro.enable": true,
-  "rust-analyzer.procMacro.attributes.enable": true
+  "rust-analyzer.procMacro.attributes.enable": true,
+  "rust-analyzer.linkedProjects": [
+    "Cargo.toml",
+    "crates/node_binding/Cargo.toml"
+  ]
 }
