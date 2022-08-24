@@ -7,7 +7,6 @@ use rspack_test::read_test_config_and_normalize;
 async fn bench(cur_dir: &PathBuf) {
   // cur_dir = cur_dir.join("webpack_css_cases_to_be_migrated/bootstrap");
   let options = read_test_config_and_normalize(cur_dir);
-  println!("{:?}", options);
   let mut compiler = rspack::rspack(options, Default::default());
 
   let _stats = compiler
