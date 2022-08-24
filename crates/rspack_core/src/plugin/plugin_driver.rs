@@ -1,11 +1,12 @@
 use std::{collections::HashMap, sync::Arc};
 
 use rayon::prelude::*;
+use rspack_loader_runner::ResourceData;
 use tracing::instrument;
 
 use crate::{
-  ApplyContext, BoxModule, BoxedParser, CompilerOptions, ModuleType, NormalModuleFactoryContext,
-  ParseModuleArgs, Plugin, PluginContext, PluginProcessAssetsOutput,
+  ApplyContext, BoxModule, BoxedParser, CompilerOptions, Content, ModuleType,
+  NormalModuleFactoryContext, ParseModuleArgs, Plugin, PluginContext, PluginProcessAssetsOutput,
   PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, ProcessAssetsArgs,
   RenderManifestArgs, RenderRuntimeArgs, Resolver,
 };
@@ -48,6 +49,17 @@ impl PluginDriver {
       resolver,
       registered_parser,
     }
+  }
+
+  pub async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
+    for plugin in &self.plugins {
+      let result = plugin.read_resource(resource_data).await?;
+      if result.is_some() {
+        return Ok(result);
+      }
+    }
+
+    Ok(None)
   }
 
   #[instrument(skip_all)]

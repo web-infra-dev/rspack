@@ -1,10 +1,10 @@
 use std::fmt::Debug;
 
-use rspack_loader_runner::Content;
+use rspack_loader_runner::{Content, LoaderContext, ResourceData};
 
 use crate::{
-  BoxModule, ModuleType, ParseModuleArgs, PluginContext, ProcessAssetsArgs, RenderManifestArgs,
-  RenderRuntimeArgs, RuntimeSourceNode, TransformAst, TransformResult,
+  BoxModule, CompilationContext, CompilerContext, ModuleType, ParseModuleArgs, PluginContext,
+  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, RuntimeSourceNode, TransformAst,
 };
 use rspack_error::Result;
 
@@ -12,12 +12,10 @@ use rspack_error::Result;
 use hashbrown::HashMap;
 pub type PluginBuildStartHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;
-pub type PluginLoadHookOutput = Result<Option<Content>>;
-pub type PluginTransformOutput = Result<TransformResult>;
+pub type PluginReadResourceOutput = Result<Option<Content>>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
 pub type PluginRenderRuntimeHookOutput = Result<Vec<RuntimeSourceNode>>;
 pub type PluginParseModuleHookOutput = Result<BoxModule>;
-pub type PluginResolveHookOutput = Result<Option<String>>;
 pub type PluginParseOutput = Result<TransformAst>;
 pub type PluginGenerateOutput = Result<Content>;
 pub type PluginProcessAssetsOutput = Result<()>;
@@ -86,6 +84,11 @@ pub trait Plugin: Debug + Send + Sync {
   // fn transform_include(&self, _uri: &str) -> bool {
   //   false
   // }
+
+  async fn read_resource(&self, _resource_data: &ResourceData) -> PluginReadResourceOutput {
+    Ok(None)
+  }
+
   fn render_manifest(
     &self,
     _ctx: PluginContext,
