@@ -12,11 +12,13 @@ const rspack = new Rspack({
       {
         test: '.less$',
         uses: [
-          function (loaderContext) {
-            return {
-              content: loaderContext.source.getBuffer(),
-            };
-          },
+          {
+            loader: function (loaderContext) {
+              return {
+                content: loaderContext.source.getBuffer(),
+              };
+            },
+          }
         ],
         type: 'css',
       },

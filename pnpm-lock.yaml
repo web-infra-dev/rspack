@@ -127,6 +127,16 @@ importers:
       react-dom: 18.0.0_react@18.0.0
       react-refresh: 0.13.0
 
+  examples/react-with-sass:
+    specifiers:
+      '@rspack/core': workspace:*
+      react: 17.0.0
+      react-dom: 17.0.0
+    dependencies:
+      '@rspack/core': link:../../packages/rspack
+      react: 17.0.0
+      react-dom: 17.0.0_react@17.0.0
+
   packages/rspack:
     specifiers:
       '@rspack/binding': workspace:*

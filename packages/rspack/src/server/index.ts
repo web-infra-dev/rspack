@@ -1,18 +1,32 @@
 import * as binding from '@rspack/binding';
-import type { ExternalObject, RspackInternal, RawModuleRule } from '@rspack/binding';
+import type { ExternalObject, RspackInternal, RawModuleRuleUse, RawModuleRule } from '@rspack/binding';
 
+import assert from 'node:assert';
 import * as Config from '../config';
 import type { RspackOptions } from '../config';
 
 interface ModuleRule {
-  test?: string;
-  uses?: ((this: LoaderContext, loaderContext: LoaderContext) => Promise<LoaderResult | void> | LoaderResult | void)[];
+  test?: RawModuleRule['test'];
+  resource?: RawModuleRule['resource'];
+  resourceQuery?: RawModuleRule['resourceQuery'];
+  uses?: ModuleRuleUse[];
   type?: RawModuleRule['type'];
 }
 
-interface LoaderRunnerContext {
-  loaders: ModuleRule['uses'];
+type ModuleRuleUse = {
+  builtinLoader: BuiltinLoader;
+  options?: unknown;
+} | {
+  loader: JsLoader;
+  options?: unknown;
 }
+
+type JsLoader = (
+  this: LoaderContext,
+  loaderContext: LoaderContext
+) => Promise<LoaderResult | void> | LoaderResult | void;
+
+type BuiltinLoader = string;
 
 interface LoaderThreadsafeContext {
   id: number;
@@ -59,59 +73,101 @@ const toBuffer = (bufLike: string | Buffer): Buffer => {
   throw new Error('Buffer or string expected');
 };
 
-function createRspackModuleRuleAdapter(context: LoaderRunnerContext): (err: any, data: Buffer) => Promise<Buffer> {
-  const { loaders } = context;
+function createRawModuleRuleUses(uses: ModuleRuleUse[]): RawModuleRuleUse[] {
+  return createRawModuleRuleUsesImpl([...uses].reverse());
+}
 
-  return async function (err: any, data: Buffer): Promise<Buffer> {
-    if (err) {
-      throw err;
-    }
+function createRawModuleRuleUsesImpl(uses: ModuleRuleUse[]): RawModuleRuleUse[] {
+  const index = uses.findIndex((use) => 'builtinLoader' in use);
+  if (index < 0) {
+    return [composeJsUse(uses)];
+  }
 
-    const loaderThreadsafeContext: LoaderThreadsafeContext = JSON.parse(data.toString('utf-8'));
+  const before = uses.slice(0, index);
+  const after = uses.slice(index + 1);
+  return [
+    composeJsUse(before),
+    createNativeUse(uses[index]),
+    ...createRawModuleRuleUsesImpl(after),
+  ]
+}
 
-    const { p: payload, id } = loaderThreadsafeContext;
+function createNativeUse(use: ModuleRuleUse): RawModuleRuleUse {
+  assert('builtinLoader' in use);
 
-    const loaderContextInternal: LoaderContextInternal = {
-      source: payload.source,
-      resourcePath: payload.resourcePath,
-      resourceQuery: payload.resourceQuery,
-      resource: payload.resource,
-      resourceFragment: payload.resourceFragment,
-    };
+  if (use.builtinLoader === "sass-loader") {
+    (use.options ??= {} as any).__exePath = require.resolve(`@tmp-sass-embedded/${process.platform}-${process.arch}/dart-sass-embedded/dart-sass-embedded${process.platform === 'win32' ? '.bat' : ''}`);
+  }
 
-    let sourceBuffer = Buffer.from(loaderContextInternal.source);
+  return {
+    builtinLoader: use.builtinLoader,
+    options: JSON.stringify(use.options),
+  };
+}
 
-    // Loader is executed from right to left
-    for (const loader of ([...loaders] || []).reverse()) {
-      const loaderContext = {
-        ...loaderContextInternal,
-        source: {
-          getCode(): string {
-            return sourceBuffer.toString('utf-8');
-          },
-          getBuffer(): Buffer {
-            return sourceBuffer;
-          },
-        },
+function composeJsUse(uses: ModuleRuleUse[]): RawModuleRuleUse {
+  return {
+    async loader(err: any, data: Buffer): Promise<Buffer> {
+      if (err) {
+        throw err;
+      }
+
+      const loaderThreadsafeContext: LoaderThreadsafeContext = JSON.parse(
+        data.toString('utf-8')
+      );
+
+      const { p: payload, id } = loaderThreadsafeContext;
+
+      const loaderContextInternal: LoaderContextInternal = {
+        source: payload.source,
+        resourcePath: payload.resourcePath,
+        resourceQuery: payload.resourceQuery,
+        resource: payload.resource,
+        resourceFragment: payload.resourceFragment,
       };
 
-      let loaderResult: LoaderResult;
-      if ((loaderResult = await Promise.resolve().then(() => loader.apply(loaderContext, [loaderContext])))) {
-        const content = loaderResult.content;
-        sourceBuffer = toBuffer(content);
+      let sourceBuffer = Buffer.from(loaderContextInternal.source);
+
+      // Loader is executed from right to left
+      for (const use of uses) {
+        assert('loader' in use);
+        const loaderContext = {
+          ...loaderContextInternal,
+          source: {
+            getCode(): string {
+              return sourceBuffer.toString('utf-8');
+            },
+            getBuffer(): Buffer {
+              return sourceBuffer;
+            },
+          },
+          getOptions() {
+            return use.options;
+          }
+        };
+
+        let loaderResult: LoaderResult;
+        if (
+          (loaderResult = await Promise.resolve().then(() =>
+            use.loader.apply(loaderContext, [loaderContext])
+          ))
+        ) {
+          const content = loaderResult.content;
+          sourceBuffer = toBuffer(content);
+        }
       }
-    }
 
-    const loaderResultPayload: LoaderResultInternal = {
-      content: [...sourceBuffer],
-    };
+      const loaderResultPayload: LoaderResultInternal = {
+        content: [...sourceBuffer],
+      };
 
-    const loaderThreadsafeResult: LoaderThreadsafeResult = {
-      id: id,
-      p: loaderResultPayload,
-    };
-    return Buffer.from(JSON.stringify(loaderThreadsafeResult), 'utf-8');
-  };
+      const loaderThreadsafeResult: LoaderThreadsafeResult = {
+        id: id,
+        p: loaderResultPayload,
+      };
+      return Buffer.from(JSON.stringify(loaderThreadsafeResult), 'utf-8');
+    },
+  }
 }
 
 class Rspack {
@@ -133,6 +189,6 @@ class Rspack {
   }
 }
 
-export { Rspack, createRspackModuleRuleAdapter };
-export type { ModuleRule, LoaderRunnerContext };
+export { Rspack, createRawModuleRuleUses };
+export type { ModuleRule };
 export default Rspack;

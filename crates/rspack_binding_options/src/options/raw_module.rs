@@ -18,7 +18,7 @@ use rspack_error::Result;
 
 use rspack_core::{
   AssetParserDataUrlOption, AssetParserOptions, BoxedLoader, CompilerOptionsBuilder, ModuleOptions,
-  ModuleRule, ParserOptions,
+  ModuleRule, ModuleType, ParserOptions,
 };
 
 use crate::RawOption;
@@ -26,6 +26,44 @@ use crate::RawOption;
 #[cfg(feature = "node-api")]
 type JsLoader = ThreadsafeFunction<Vec<u8>, ErrorStrategy::CalleeHandled>;
 // type ModuleRuleFunc = ThreadsafeFunction<Vec<u8>, ErrorStrategy::CalleeHandled>;
+
+fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxedLoader {
+  let builtin_loader = match builtin {
+    "sass-loader" => {
+      rspack_loader_sass::SassLoader::new(serde_json::from_str(options.unwrap_or("{}")).unwrap())
+    }
+    loader => panic!("{loader} is not supported yet."),
+  };
+  Box::new(builtin_loader)
+}
+
+/// `loader` is for js side loader, `builtin_loader` is for rust side loader,
+/// which is mapped to real rust side loader by [get_builtin_loader].
+///
+/// `options` is
+///   - a `None` on rust side and handled by js side `getOptions` when
+/// using with `loader`.
+///   - a `Some(string)` on rust side, deserialized by `serde_json::from_str`
+/// and passed to rust side loader in [get_builtin_loader] when using with
+/// `builtin_loader`.
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+#[cfg(feature = "node-api")]
+#[napi(object)]
+pub struct RawModuleRuleUse {
+  #[serde(skip_deserializing)]
+  pub loader: Option<JsFunction>,
+  pub builtin_loader: Option<String>,
+  pub options: Option<String>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+#[cfg(not(feature = "node-api"))]
+pub struct RawModuleRuleUse {
+  pub builtin_loader: Option<String>,
+  pub options: Option<String>,
+}
 
 #[derive(Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
@@ -39,7 +77,7 @@ pub struct RawModuleRule {
   #[serde(skip_deserializing)]
   pub func__: Option<JsFunction>,
   #[serde(skip_deserializing)]
-  pub uses: Option<Vec<JsFunction>>,
+  pub uses: Option<Vec<RawModuleRuleUse>>,
   #[napi(
     ts_type = r#""js" | "jsx" | "ts" | "tsx" | "css" | "json" | "asset" | "asset/resource" | "asset/source" | "asset/inline""#
   )]
@@ -56,8 +94,7 @@ pub struct RawModuleRule {
   // Loader experimental
   #[serde(skip_deserializing)]
   pub func__: Option<()>,
-  #[serde(skip_deserializing)]
-  pub uses: Option<()>,
+  pub uses: Option<Vec<RawModuleRuleUse>>,
   pub r#type: Option<String>,
 }
 
@@ -286,82 +323,79 @@ struct LoaderThreadsafeContext {
 impl RawOption<ModuleRule> for RawModuleRule {
   fn to_compiler_option(self, _options: &CompilerOptionsBuilder) -> anyhow::Result<ModuleRule> {
     // Even this part is using the plural version of loader, it's recommended to use singular version from js side to reduce overhead (This behavior maybe changed later for advanced usage).
-    cfg_if::cfg_if! {
-      if #[cfg(feature = "node-api")] {
-        let loaders = self
-        .uses
-        .map(|raw_js_loaders| {
-          raw_js_loaders
-            .into_iter()
-            .map(|raw_js_loader| {
-              let js_loader: JsLoader = raw_js_loader
-                .create_threadsafe_function(
-                  0,
-                  |ctx| Ok(vec![Buffer::from(ctx.value)]),
-                  |ctx: ThreadSafeResultContext<Promise<Buffer>>| {
-                    let return_value = ctx.return_value;
+    let uses = self
+      .uses
+      .map(|uses| {
+        uses
+          .into_iter()
+          .map(|rule_use| {
+            #[cfg(feature = "node-api")]
+            {
+              if let Some(raw_js_loader) = rule_use.loader {
+                let loader: JsLoader = raw_js_loader
+                  .create_threadsafe_function(
+                    0,
+                    |ctx| Ok(vec![Buffer::from(ctx.value)]),
+                    |ctx: ThreadSafeResultContext<Promise<Buffer>>| {
+                      let return_value = ctx.return_value;
 
-                    ctx
-                      .env
-                      .execute_tokio_future(
-                        async move {
-                          let return_value = return_value.await?;
+                      ctx
+                        .env
+                        .execute_tokio_future(
+                          async move {
+                            let return_value = return_value.await?;
 
-                          let result =
-                            serde_json::from_slice::<LoaderThreadsafeResult>(return_value.as_ref())?;
+                            let result =
+                              serde_json::from_slice::<LoaderThreadsafeResult>(return_value.as_ref())?;
 
-                          if let Some((_, sender)) = REGISTERED_LOADER_SENDERS.remove(&result.id) {
-                            sender.send(result.p).map_err(|_| {
-                              Error::new(napi::Status::GenericFailure, "unable to send".to_owned())
-                            })?;
-                          } else {
-                            return Err(Error::new(
-                              napi::Status::GenericFailure,
-                              format!("Loader call id {} not found", result.id),
-                            ));
-                          }
+                            if let Some((_, sender)) = REGISTERED_LOADER_SENDERS.remove(&result.id) {
+                              sender.send(result.p).map_err(|_| {
+                                Error::new(napi::Status::GenericFailure, "unable to send".to_owned())
+                              })?;
+                            } else {
+                              return Err(Error::new(
+                                napi::Status::GenericFailure,
+                                format!("Loader call id {} not found", result.id),
+                              ));
+                            }
 
-                          Ok(())
-                        },
-                        |_env, ret| Ok(ret),
-                      )
-                      .expect("failed to execute tokio future");
-                  },
-                )
-                .unwrap();
-              js_loader
-            })
-            .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
+                            Ok(())
+                          },
+                          |_env, ret| Ok(ret),
+                        )
+                        .expect("failed to execute tokio future");
+                    },
+                  )
+                  .unwrap();
+                return Ok(Box::new(NodeLoaderAdapter { loader }) as BoxedLoader);
+              }
+            }
+            if let Some(builtin_loader) = rule_use.builtin_loader {
+              return Ok(get_builtin_loader(&builtin_loader, rule_use.options.as_deref()));
+            }
+            panic!("`loader` field or `builtin_loader` field in `uses` must not be `None` at the same time.");
+          })
+          .collect::<anyhow::Result<Vec<_>>>()
+      })
+      .transpose()?
+      .unwrap_or_default();
 
-        use rspack_core::ModuleType;
-
-        let module_type = self
-        .r#type
-        .map(|t| match t.as_str() {
-          "js" => Ok(ModuleType::Js),
-          "jsx" => Ok(ModuleType::Jsx),
-          "ts" => Ok(ModuleType::Ts),
-          "tsx" => Ok(ModuleType::Tsx),
-          "css" => Ok(ModuleType::Css),
-          "json" => Ok(ModuleType::Json),
-          "asset" => Ok(ModuleType::Asset),
-          "asset/source" => Ok(ModuleType::AssetSource),
-          "asset/resource" => Ok(ModuleType::AssetResource),
-          "asset/inline" => Ok(ModuleType::AssetInline),
-          _ => Err(anyhow::format_err!("Unsupported module type: {}", t)),
-        })
-        .transpose()?;
-        let uses = loaders
-        .into_iter()
-        .map(|loader| Box::new(NodeLoaderAdapter { loader }) as BoxedLoader)
-        .collect();
-      } else {
-        let module_type = Default::default();
-        let uses = Default::default();
-      }
-    };
+    let module_type = self
+      .r#type
+      .map(|t| match t.as_str() {
+        "js" => Ok(ModuleType::Js),
+        "jsx" => Ok(ModuleType::Jsx),
+        "ts" => Ok(ModuleType::Ts),
+        "tsx" => Ok(ModuleType::Tsx),
+        "css" => Ok(ModuleType::Css),
+        "json" => Ok(ModuleType::Json),
+        "asset" => Ok(ModuleType::Asset),
+        "asset/source" => Ok(ModuleType::AssetSource),
+        "asset/resource" => Ok(ModuleType::AssetResource),
+        "asset/inline" => Ok(ModuleType::AssetInline),
+        _ => Err(anyhow::format_err!("Unsupported module type: {}", t)),
+      })
+      .transpose()?;
 
     // let func = Box::new(
     //   self
@@ -410,7 +444,7 @@ impl RawOption<Option<ModuleOptions>> for RawModuleOptions {
     options: &CompilerOptionsBuilder,
   ) -> anyhow::Result<Option<ModuleOptions>> {
     // FIXME: temporary implementation
-    let mut rules = self
+    let rules = self
       .rules
       .into_iter()
       .map(|rule| {
@@ -419,17 +453,6 @@ impl RawOption<Option<ModuleOptions>> for RawModuleOptions {
           .map_err(|err| anyhow::format_err!("failed to convert rule: {}", err))
       })
       .collect::<anyhow::Result<Vec<ModuleRule>>>()?;
-    rules.push(ModuleRule {
-      test: Some(regex::Regex::new(r"\.s[ac]ss$")?),
-      resource: None,
-      resource_query: None,
-      module_type: Some(rspack_core::ModuleType::Css),
-      func__: None,
-      uses: vec![Box::new(rspack_loader_sass::SassLoader::new(
-        None,
-        rspack_loader_sass::SassLoaderOptions::default(),
-      )) as BoxedLoader],
-    });
     Ok(Some(ModuleOptions {
       rules,
       parser: self.parser.map(|x| ParserOptions {
