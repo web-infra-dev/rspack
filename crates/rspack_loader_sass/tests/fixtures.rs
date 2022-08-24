@@ -1,11 +1,12 @@
 use std::{
   env, fs,
   path::{Path, PathBuf},
+  str::FromStr,
 };
 
 use rspack_core::{
-  CompilationContext, CompilerContext, Loader, LoaderRunner, LoaderRunnerAdditionalContext,
-  ResourceData,
+  CompilationContext, CompilerContext, CompilerOptions, Loader, LoaderRunner,
+  LoaderRunnerAdditionalContext, ResourceData,
 };
 use rspack_loader_sass::{SassLoader, SassLoaderOptions};
 use rspack_test::{fixture, test_fixture};
@@ -28,7 +29,26 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
     [&SassLoader::new(None, SassLoaderOptions::default())
       as &dyn Loader<CompilerContext, CompilationContext>],
     &LoaderRunnerAdditionalContext {
-      compiler: &(),
+      compiler: &CompilerContext {
+        options: std::sync::Arc::new(CompilerOptions {
+          entry: std::collections::HashMap::default(),
+          context: rspack_core::Context::default(),
+          dev_server: rspack_core::DevServerOptions::default(),
+          output: rspack_core::OutputOptions {
+            path: Default::default(),
+            public_path: Default::default(),
+            filename: rspack_core::Filename::from_str("").unwrap(),
+            asset_module_filename: rspack_core::Filename::from_str("").unwrap(),
+            chunk_filename: rspack_core::Filename::from_str("").unwrap(),
+            unique_name: Default::default(),
+          },
+          target: rspack_core::Target::Target(rspack_core::TargetOptions::Web),
+          resolve: rspack_core::Resolve::default(),
+          plugins: Default::default(),
+          module: Default::default(),
+          define: Default::default(),
+        }),
+      },
       compilation: &(),
     },
   )
