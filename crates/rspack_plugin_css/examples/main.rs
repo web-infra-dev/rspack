@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use rspack_test::read_test_config_and_normalize;
 #[tokio::main]
 async fn main() {
