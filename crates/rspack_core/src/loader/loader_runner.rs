@@ -20,13 +20,21 @@ pub type BoxedLoader = rspack_loader_runner::BoxedLoader<CompilerContext, Compil
 
 pub struct LoaderRunnerRunner {
   pub options: Arc<CompilerOptions>,
+  pub compiler_context: CompilerContext,
 }
 
 type ResolvedModuleType = Option<ModuleType>;
 
 impl LoaderRunnerRunner {
   pub fn new(options: Arc<CompilerOptions>) -> Self {
-    Self { options }
+    let compiler_context = CompilerContext {
+      options: options.clone(),
+    };
+
+    Self {
+      options,
+      compiler_context,
+    }
   }
 
   pub async fn run(
@@ -92,9 +100,7 @@ impl LoaderRunnerRunner {
         .run(
           &loaders,
           &LoaderRunnerAdditionalContext {
-            compiler: &CompilerContext {
-              options: self.options.clone(),
-            },
+            compiler: &self.compiler_context,
             compilation: &(),
           },
         )
