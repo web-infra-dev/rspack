@@ -9,7 +9,6 @@ pub use rspack_loader_runner::{
 
 use crate::{CompilerOptions, ModuleRule, ModuleType};
 
-// TODO: add context
 #[derive(Debug)]
 pub struct CompilerContext {
   pub options: Arc<CompilerOptions>,
