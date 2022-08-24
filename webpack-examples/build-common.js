@@ -22,6 +22,11 @@ async function main() {
       }
     }
   }
-  await build({ ...defaultEntry, ...config });
+  try{
+    await build({ ...defaultEntry, ...config });
+  }catch(err){
+    process.exit(1);
+  }
+  
 }
 main();

@@ -43,7 +43,6 @@ impl Compilation {
       diagnostic: vec![],
     }
   }
-
   pub fn add_entry(&mut self, name: String, detail: EntryItem) {
     self.entries.insert(name, detail);
   }
