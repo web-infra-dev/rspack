@@ -2,17 +2,15 @@
 
 const cp = require('child_process');
 const examples = require('./examples');
-const passedList = ['asset-simple'];
-examples
+const path = require('path');
+const list = examples
   .concat(examples.filter((dirname) => dirname.includes('persistent-caching')))
   .filter((x) => {
-    let idx = passedList.findIndex((item) => {
-      return x.includes(item);
-    });
-    return idx !== -1;
+    const basename = path.basename(x);
+    return !basename.startsWith('.');
   })
   .forEach(function (dirname) {
+    console.log(dirname);
     const build_path = `${dirname}/build.js`;
-    console.log(build_path);
-    require(build_path);
+    cp.execSync(`node ${build_path}`); // use child-process to avoid require cache
   });

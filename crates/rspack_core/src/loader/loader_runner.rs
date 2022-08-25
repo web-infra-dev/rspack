@@ -7,7 +7,9 @@ pub use rspack_loader_runner::{
   ResourceData,
 };
 
-use crate::{CompilerOptions, ModuleRule, ModuleType};
+use crate::{
+  CompilerOptions, LoaderRunnerPluginProcessResource, ModuleRule, ModuleType, PluginDriver,
+};
 
 #[derive(Debug)]
 pub struct CompilerContext {
@@ -20,19 +22,21 @@ pub type BoxedLoader = rspack_loader_runner::BoxedLoader<CompilerContext, Compil
 
 pub struct LoaderRunnerRunner {
   pub options: Arc<CompilerOptions>,
+  pub plugin_driver: Arc<PluginDriver>,
   pub compiler_context: CompilerContext,
 }
 
 type ResolvedModuleType = Option<ModuleType>;
 
 impl LoaderRunnerRunner {
-  pub fn new(options: Arc<CompilerOptions>) -> Self {
+  pub fn new(options: Arc<CompilerOptions>, plugin_driver: Arc<PluginDriver>) -> Self {
     let compiler_context = CompilerContext {
       options: options.clone(),
     };
 
     Self {
       options,
+      plugin_driver,
       compiler_context,
     }
   }
@@ -96,15 +100,20 @@ impl LoaderRunnerRunner {
       .collect::<Vec<_>>();
 
     Ok((
-      LoaderRunner::new(resource_data.clone())
-        .run(
-          &loaders,
-          &LoaderRunnerAdditionalContext {
-            compiler: &self.compiler_context,
-            compilation: &(),
-          },
-        )
-        .await?,
+      LoaderRunner::new(
+        resource_data.clone(),
+        vec![Box::new(LoaderRunnerPluginProcessResource::new(
+          self.plugin_driver.clone(),
+        ))],
+      )
+      .run(
+        &loaders,
+        &LoaderRunnerAdditionalContext {
+          compiler: &self.compiler_context,
+          compilation: &(),
+        },
+      )
+      .await?,
       resolved_module_type,
     ))
   }

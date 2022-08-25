@@ -5,8 +5,8 @@ use napi::bindgen_prelude::*;
 use napi::{Env, Result};
 use napi_derive::napi;
 // use nodejs_resolver::Resolver;
+use rspack_error::Diagnostic;
 use tokio::sync::Mutex;
-
 // pub mod adapter;
 // mod options;
 mod utils;
@@ -36,15 +36,27 @@ pub struct RspackBindingContext {
   pub rspack: Rspack,
   // pub resolver: Arc<Resolver>,
 }
-
+#[napi(object)]
+pub struct RspackError {
+  pub message: String,
+}
 #[napi(object)]
 pub struct Stats {
-  // pub assets: Vec<String>,
+  pub errors: Vec<RspackError>,
 }
 
 impl<'a> From<rspack_core::Stats<'a>> for Stats {
-  fn from(_rspack_stats: rspack_core::Stats) -> Self {
-    Self {}
+  fn from(rspack_stats: rspack_core::Stats) -> Self {
+    Self {
+      errors: rspack_stats
+        .compilation
+        .diagnostic
+        .iter()
+        .map(|d| RspackError {
+          message: d.message.clone(),
+        })
+        .collect(),
+    }
   }
 }
 
@@ -88,8 +100,6 @@ pub fn new_rspack(
     })
     .map_err(|e| Error::from_reason(format!("failed to unref tsfn {:?}", e)))?;
 
-  dbg!(&compiler_options);
-
   let rspack = rspack::rspack(compiler_options, vec![]);
 
   // let resolver = rspack.resolver.clone();
@@ -101,22 +111,25 @@ pub fn new_rspack(
 
 #[napi(
   ts_args_type = "rspack: ExternalObject<RspackInternal>",
-  ts_return_type = "Promise<Record<string, string>>"
+  ts_return_type = "Promise<Stats>"
 )]
 pub fn build(env: Env, binding_context: External<RspackBindingContext>) -> Result<napi::JsObject> {
   let compiler = binding_context.rspack.clone();
   env.execute_tokio_future(
     async move {
       let mut compiler = compiler.lock().await;
-      let _rspack_stats = compiler
+      let rspack_stats = compiler
         .run()
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
 
-      // let stats: Stats = rspack_stats.into();
-      println!("build success");
-      // Ok(stats)
-      Ok(())
+      let stats: Stats = rspack_stats.into();
+      if stats.errors.is_empty() {
+        println!("build success");
+      } else {
+        println!("build failed");
+      }
+      Ok(stats)
     },
     |_env, ret| Ok(ret),
   )
@@ -142,10 +155,9 @@ pub fn rebuild(
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
 
-      // let stats: Stats = rspack_stats.into();
+      let stats: Stats = _rspack_stats.into();
       println!("rebuild success");
-      // Ok(stats)
-      Ok(())
+      Ok(stats)
     },
     |_env, ret| Ok(ret),
   )

@@ -36,8 +36,12 @@ impl Compiler {
 
     let resolver_factory = ResolverFactory::new();
     let resolver = resolver_factory.get(options.resolve.clone());
-    let plugin_driver = PluginDriver::new(options.clone(), plugins, Arc::new(resolver));
-    let loader_runner_runner = LoaderRunnerRunner::new(options.clone());
+    let plugin_driver = Arc::new(PluginDriver::new(
+      options.clone(),
+      plugins,
+      Arc::new(resolver),
+    ));
+    let loader_runner_runner = LoaderRunnerRunner::new(options.clone(), plugin_driver.clone());
 
     Self {
       options: options.clone(),
@@ -47,7 +51,7 @@ impl Compiler {
         Default::default(),
         Default::default(),
       ),
-      plugin_driver: Arc::new(plugin_driver),
+      plugin_driver,
       loader_runner_runner: Arc::new(loader_runner_runner),
     }
   }

@@ -4,7 +4,7 @@ use crate::{Compilation, CompilationAssets};
 
 #[derive(Debug)]
 pub struct Stats<'compilation> {
-  compilation: &'compilation Compilation,
+  pub compilation: &'compilation Compilation,
 }
 
 impl<'compilation> Stats<'compilation> {

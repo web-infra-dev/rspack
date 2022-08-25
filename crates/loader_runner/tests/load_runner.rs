@@ -39,6 +39,7 @@ macro_rules! run_loader {
         resource_query: url.query().map(|q| q.to_owned()),
         resource_fragment: url.fragment().map(|f| f.to_owned()),
       },
+      vec![]
     )
   }};
 
