@@ -7,7 +7,7 @@ use std::{
 };
 
 use crate::{
-  BoxModule, CompilerOptions, FactorizeArgs, LoaderResult, LoaderRunnerRunner, ResourceData,
+  BoxModule, CompilerOptions, FactorizeAndBuildArgs, LoaderResult, LoaderRunnerRunner, ResourceData,
 };
 use rspack_error::{Diagnostic, Error};
 use sugar_path::PathSugar;
@@ -239,8 +239,8 @@ impl NormalModuleFactory {
   pub async fn resolve_module(&mut self) -> Result<Option<ModuleGraphModule>> {
     // TODO: caching in resolve
     // Here is the corresponding create function in webpack, but instead of using hooks we use procedural functions
-    let (uri, mut module) = if let Ok(Some(module)) = self.plugin_driver.factorize(
-      FactorizeArgs {
+    let (uri, mut module) = if let Ok(Some(module)) = self.plugin_driver.factorize_and_build(
+      FactorizeAndBuildArgs {
         dependency: &self.dependency,
         plugin_driver: &self.plugin_driver,
       },

@@ -2,8 +2,8 @@ use rspack_error::Error;
 use rspack_loader_runner::Content;
 
 use crate::{
-  ApplyContext, FactorizeArgs, ModuleType, NormalModuleFactoryContext, ParseModuleArgs, Plugin,
-  PluginContext, PluginFactorizeHookOutput,
+  ApplyContext, FactorizeAndBuildArgs, ModuleType, NormalModuleFactoryContext, ParseModuleArgs,
+  Plugin, PluginContext, PluginFactorizeAndBuildHookOutput,
 };
 
 #[derive(Debug)]
@@ -18,12 +18,12 @@ impl Plugin for ExternalPlugin {
     Ok(())
   }
 
-  fn factorize(
+  fn factorize_and_build(
     &self,
     _ctx: PluginContext,
-    args: FactorizeArgs,
+    args: FactorizeAndBuildArgs,
     job_ctx: &mut NormalModuleFactoryContext,
-  ) -> PluginFactorizeHookOutput {
+  ) -> PluginFactorizeAndBuildHookOutput {
     for external_item in &job_ctx.options.external {
       match external_item {
         crate::External::Object(eh) => {

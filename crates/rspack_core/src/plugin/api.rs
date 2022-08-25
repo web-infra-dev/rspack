@@ -3,14 +3,9 @@ use std::fmt::Debug;
 use rspack_loader_runner::{Content, ResourceData};
 
 use crate::{
-<<<<<<< HEAD
-  BoxModule, ModuleType, ParseModuleArgs, PluginContext, ProcessAssetsArgs, RenderManifestArgs,
-  RenderRuntimeArgs, RuntimeSourceNode, TransformAst,
-=======
-  BoxModule, FactorizeArgs, ModuleType, NormalModuleFactoryContext, ParseModuleArgs, PluginContext,
-  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, RuntimeSourceNode, TransformAst,
-  TransformResult,
->>>>>>> feat: support external
+  BoxModule, FactorizeAndBuildArgs, ModuleType, NormalModuleFactoryContext, ParseModuleArgs,
+  PluginContext, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, RuntimeSourceNode,
+  TransformAst, TransformResult,
 };
 use rspack_error::Result;
 
@@ -18,13 +13,10 @@ use rspack_error::Result;
 use hashbrown::HashMap;
 pub type PluginBuildStartHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;
-<<<<<<< HEAD
 pub type PluginReadResourceOutput = Result<Option<Content>>;
-=======
 pub type PluginLoadHookOutput = Result<Option<Content>>;
 pub type PluginTransformOutput = Result<TransformResult>;
-pub type PluginFactorizeHookOutput = Result<Option<(String, BoxModule)>>;
->>>>>>> feat: support external
+pub type PluginFactorizeAndBuildHookOutput = Result<Option<(String, BoxModule)>>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
 pub type PluginRenderRuntimeHookOutput = Result<Vec<RuntimeSourceNode>>;
 pub type PluginParseModuleHookOutput = Result<BoxModule>;
@@ -105,12 +97,12 @@ pub trait Plugin: Debug + Send + Sync {
    * It is used to handle the generation of those modules which are not normal, such as External Module
    * It behaves like a BailHook hook.
    */
-  fn factorize(
+  fn factorize_and_build(
     &self,
     _ctx: PluginContext,
-    _args: FactorizeArgs,
+    _args: FactorizeAndBuildArgs,
     _job_ctx: &mut NormalModuleFactoryContext,
-  ) -> PluginFactorizeHookOutput {
+  ) -> PluginFactorizeAndBuildHookOutput {
     Ok(None)
   }
 

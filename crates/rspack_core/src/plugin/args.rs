@@ -32,7 +32,7 @@ pub struct RenderRuntimeArgs<'me> {
 }
 
 #[derive(Debug, Clone)]
-pub struct FactorizeArgs<'me> {
+pub struct FactorizeAndBuildArgs<'me> {
   pub dependency: &'me Dependency,
   pub plugin_driver: &'me Arc<PluginDriver>,
 }
