@@ -12,6 +12,8 @@ use tokio::sync::Mutex;
 // mod options;
 mod utils;
 
+use utils::get_named_property_value_string;
+
 // use adapter::utils::create_node_adapter_from_plugin_callbacks;
 pub use rspack_binding_options::{normalize_bundle_options, NodeLoaderAdapter, RawOptions};
 
@@ -88,63 +90,15 @@ pub fn new_rspack(
         if let Some(uses) = rule.uses.as_mut() {
           for item in uses {
             if let Some(loader) = item.loader.as_ref() {
-              let loader_ptr = unsafe { loader.raw() };
-
-              let mut name_ptr = ptr::null_mut();
-
-              check_status!(
-                unsafe {
-                  napi_sys::napi_get_named_property(
-                    env.raw(),
-                    loader_ptr,
-                    CStr::from_bytes_with_nul_unchecked(b"name\0").as_ptr(),
-                    &mut name_ptr,
-                  )
-                },
-                "failed to get function name"
-              )?;
-
-              let mut str_len = 0;
-              check_status!(
-                unsafe {
-                  napi_sys::napi_get_value_string_utf8(
-                    env.raw(),
-                    name_ptr,
-                    ptr::null_mut(),
-                    0,
-                    &mut str_len,
-                  )
-                },
-                "failed to get function name"
-              )?;
-
-              str_len += 1;
-              let mut buf = Vec::with_capacity(str_len);
-              let mut copied_len = 0;
-
-              check_status!(
-                unsafe {
-                  napi_sys::napi_get_value_string_utf8(
-                    env.raw(),
-                    name_ptr,
-                    buf.as_mut_ptr(),
-                    str_len,
-                    &mut copied_len,
-                  )
-                },
-                "failed to get function name"
-              )?;
-
-              // Vec<i8> -> Vec<u8> See: https://stackoverflow.com/questions/59707349/cast-vector-of-i8-to-vector-of-u8-in-rust
-              let mut buf = std::mem::ManuallyDrop::new(buf);
-
-              let buf =
-                unsafe { Vec::from_raw_parts(buf.as_mut_ptr() as *mut u8, copied_len, copied_len) };
-
-              item.loader_name__ = Some(
-                String::from_utf8(buf)
-                  .map_err(|_| Error::from_reason("failed to get function name"))?,
-              );
+              let (env_ptr, loader_ptr) = unsafe { (env.raw(), loader.raw()) };
+              if let Ok(display_name) =
+                get_named_property_value_string(env_ptr, loader_ptr, "displayName")
+              {
+                item.loader_name__ = Some(display_name);
+              } else if let Ok(name) = get_named_property_value_string(env_ptr, loader_ptr, "name")
+              {
+                item.loader_name__ = Some(name);
+              }
             }
           }
         }
