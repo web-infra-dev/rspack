@@ -18,6 +18,13 @@ const rspack = new Rspack({
 								content: loaderContext.source.getBuffer()
 							};
 						}
+					},
+          {
+						loader: function testLoader2 (loaderContext) {
+							return {
+								content: loaderContext.source.getBuffer()
+							};
+						}
 					}
 				],
 				type: "css"

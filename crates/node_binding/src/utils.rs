@@ -1,6 +1,5 @@
 use std::ffi::CStr;
-use std::fmt::Write as FmtWrite;
-use std::io::Write as IoWrite;
+use std::io::Write;
 use std::ptr;
 
 use napi::{check_status, Env, Error, Result};
@@ -17,8 +16,8 @@ pub fn get_named_property_value_string(
 ) -> Result<String> {
   let mut bytes_with_nul: Vec<u8> = Vec::with_capacity(property_name.len() + 1);
 
-  std::write!(&mut bytes_with_nul, "{}", property_name)?;
-  std::write!(&mut bytes_with_nul, "{}", '\0')?;
+  write!(&mut bytes_with_nul, "{}", property_name)?;
+  write!(&mut bytes_with_nul, "{}", '\0')?;
 
   let mut value_ptr = ptr::null_mut();
 

@@ -189,10 +189,10 @@ function composeJsUse(uses: ModuleRuleUse[]): RawModuleRuleUse {
     };
     return Buffer.from(JSON.stringify(loaderThreadsafeResult), "utf-8");
   };
-  loader.displayName = uses.map((item) => {
+  loader.displayName = `NodeLoaderAdapter(${uses.map((item) => {
     assert('loader' in item);
     return item.loader.displayName || item.loader.name || "unknown-loader"
-  }).join(" -> ");
+  }).join(" -> ")})`;
 	return {
 		loader,
 	};

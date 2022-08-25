@@ -55,7 +55,7 @@ pub struct RawModuleRuleUse {
   pub loader: Option<JsFunction>,
   pub builtin_loader: Option<String>,
   pub options: Option<String>,
-  pub loader_name__: Option<String>,
+  pub __loader_name: Option<String>,
 }
 
 #[derive(Deserialize, Default)]
@@ -64,13 +64,13 @@ pub struct RawModuleRuleUse {
 pub struct RawModuleRuleUse {
   pub builtin_loader: Option<String>,
   pub options: Option<String>,
-  pub loader_name__: Option<String>,
+  pub __loader_name: Option<String>,
 }
 
 impl Debug for RawModuleRuleUse {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("RawModuleRuleUse")
-      .field("loader", &self.loader_name__)
+      .field("loader", &self.__loader_name)
       .field("builtin_loader", &self.builtin_loader)
       .field("options", &self.options)
       .finish()

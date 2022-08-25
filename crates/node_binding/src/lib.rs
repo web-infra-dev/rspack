@@ -1,10 +1,8 @@
-use std::ffi::CStr;
-use std::ptr;
 // use std::path::Path;
 use std::sync::Arc;
 
 use napi::bindgen_prelude::*;
-use napi::{check_status, Env, NapiRaw, Result};
+use napi::{Env, NapiRaw, Result};
 use napi_derive::napi;
 // use nodejs_resolver::Resolver;
 use tokio::sync::Mutex;
@@ -94,10 +92,10 @@ pub fn new_rspack(
               if let Ok(display_name) =
                 get_named_property_value_string(env_ptr, loader_ptr, "displayName")
               {
-                item.loader_name__ = Some(display_name);
+                item.__loader_name = Some(display_name);
               } else if let Ok(name) = get_named_property_value_string(env_ptr, loader_ptr, "name")
               {
-                item.loader_name__ = Some(name);
+                item.__loader_name = Some(name);
               }
             }
           }
