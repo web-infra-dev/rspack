@@ -1940,6 +1940,7 @@ dependencies = [
  "rspack",
  "rspack_binding_options",
  "rspack_core",
+ "rspack_error",
  "rspack_plugin_html",
  "serde",
  "serde_json",
