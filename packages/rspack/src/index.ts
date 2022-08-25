@@ -191,8 +191,8 @@ function composeJsUse(uses: ModuleRuleUse[]): RawModuleRuleUse {
   };
   loader.displayName = uses.map((item) => {
     assert('loader' in item);
-    return item.loader.displayName || item.loader.name || "anonymous js-loader"
-  }).join(" ");
+    return item.loader.displayName || item.loader.name || "unknown-loader"
+  }).join(" -> ");
 	return {
 		loader,
 	};
