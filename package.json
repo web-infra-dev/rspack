@@ -12,7 +12,7 @@
     "test:example": "cargo run --example arco_pro",
     "prepare": "husky install",
     "format:rs": "cargo fmt --all --verbose",
-    "format:js_fix": "pnpm run format:js --write",
+    "format:js_fix": "pnpm run format:js -- --write",
     "format:js": "prettier \"packages/**/*.{ts,js}\" --check",
     "lint:rs": "cargo clippy --all -- --deny warnings",
     "build:core": "pnpm --filter @rspack/binding run build ",

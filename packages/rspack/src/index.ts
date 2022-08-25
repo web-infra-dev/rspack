@@ -31,11 +31,11 @@ type ModuleRuleUse =
 	  };
 
 interface JsLoader {
-  (
-    this: LoaderContext,
-    loaderContext: LoaderContext
-  ): Promise<LoaderResult | void> | LoaderResult | void
-  displayName?: string
+	(this: LoaderContext, loaderContext: LoaderContext):
+		| Promise<LoaderResult | void>
+		| LoaderResult
+		| void;
+	displayName?: string;
 }
 
 type BuiltinLoader = string;
@@ -129,72 +129,74 @@ function createNativeUse(use: ModuleRuleUse): RawModuleRuleUse {
 }
 
 function composeJsUse(uses: ModuleRuleUse[]): RawModuleRuleUse {
-  async function loader(err: any, data: Buffer): Promise<Buffer> {
-    if (err) {
-      throw err;
-    }
+	async function loader(err: any, data: Buffer): Promise<Buffer> {
+		if (err) {
+			throw err;
+		}
 
-    const loaderThreadsafeContext: LoaderThreadsafeContext = JSON.parse(
-      data.toString("utf-8")
-    );
+		const loaderThreadsafeContext: LoaderThreadsafeContext = JSON.parse(
+			data.toString("utf-8")
+		);
 
-    const { p: payload, id } = loaderThreadsafeContext;
+		const { p: payload, id } = loaderThreadsafeContext;
 
-    const loaderContextInternal: LoaderContextInternal = {
-      source: payload.source,
-      resourcePath: payload.resourcePath,
-      resourceQuery: payload.resourceQuery,
-      resource: payload.resource,
-      resourceFragment: payload.resourceFragment
-    };
+		const loaderContextInternal: LoaderContextInternal = {
+			source: payload.source,
+			resourcePath: payload.resourcePath,
+			resourceQuery: payload.resourceQuery,
+			resource: payload.resource,
+			resourceFragment: payload.resourceFragment
+		};
 
-    let sourceBuffer = Buffer.from(loaderContextInternal.source);
+		let sourceBuffer = Buffer.from(loaderContextInternal.source);
 
-    // Loader is executed from right to left
-    for (const use of uses) {
-      assert("loader" in use);
-      const loaderContext = {
-        ...loaderContextInternal,
-        source: {
-          getCode(): string {
-            return sourceBuffer.toString("utf-8");
-          },
-          getBuffer(): Buffer {
-            return sourceBuffer;
-          }
-        },
-        getOptions() {
-          return use.options;
-        }
-      };
+		// Loader is executed from right to left
+		for (const use of uses) {
+			assert("loader" in use);
+			const loaderContext = {
+				...loaderContextInternal,
+				source: {
+					getCode(): string {
+						return sourceBuffer.toString("utf-8");
+					},
+					getBuffer(): Buffer {
+						return sourceBuffer;
+					}
+				},
+				getOptions() {
+					return use.options;
+				}
+			};
 
-      let loaderResult: LoaderResult;
-      if (
-        (loaderResult = await Promise.resolve().then(() =>
-          use.loader.apply(loaderContext, [loaderContext])
-        ))
-      ) {
-        const content = loaderResult.content;
-        sourceBuffer = toBuffer(content);
-      }
-    }
+			let loaderResult: LoaderResult;
+			if (
+				(loaderResult = await Promise.resolve().then(() =>
+					use.loader.apply(loaderContext, [loaderContext])
+				))
+			) {
+				const content = loaderResult.content;
+				sourceBuffer = toBuffer(content);
+			}
+		}
 
-    const loaderResultPayload: LoaderResultInternal = {
-      content: [...sourceBuffer]
-    };
+		const loaderResultPayload: LoaderResultInternal = {
+			content: [...sourceBuffer]
+		};
 
-    const loaderThreadsafeResult: LoaderThreadsafeResult = {
-      id: id,
-      p: loaderResultPayload
-    };
-    return Buffer.from(JSON.stringify(loaderThreadsafeResult), "utf-8");
-  };
-  loader.displayName = `NodeLoaderAdapter(${uses.map((item) => {
-    assert('loader' in item);
-    return item.loader.displayName || item.loader.name || "unknown-loader"
-  }).join(" -> ")})`;
+		const loaderThreadsafeResult: LoaderThreadsafeResult = {
+			id: id,
+			p: loaderResultPayload
+		};
+		return Buffer.from(JSON.stringify(loaderThreadsafeResult), "utf-8");
+	}
+	loader.displayName = `NodeLoaderAdapter(${uses
+		.map(item => {
+			assert("loader" in item);
+			return item.loader.displayName || item.loader.name || "unknown-loader";
+		})
+		.join(" -> ")})`;
 	return {
-		loader,
+		loader
 	};
 }
 
