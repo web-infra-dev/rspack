@@ -3,7 +3,10 @@ import type { RawOptions } from "@rspack/binding";
 import type { ModuleRule } from ".";
 import { createRawModuleRuleUses } from ".";
 
-export type Plugin = string | [string] | [string, unknown];
+export type Plugin = {
+	name: string;
+	buildEnd?: () => void | Promise<void>;
+};
 
 export interface RspackOptions {
 	/**
@@ -40,22 +43,16 @@ export interface RspackOptions {
 	external?: RawOptions["external"];
 }
 
-export function normalizePlugins(plugins: Plugin[]) {
-	return plugins.map(plugin => {
-		if (typeof plugin === "string") {
-			return [plugin];
-		}
-	});
-}
-
-export function User2Native(config: RspackOptions): RawOptions {
+export function User2Native(config: RspackOptions): RawOptions & {
+	plugins: Plugin[];
+} {
 	return {
 		entry: config.entry ?? {},
 		context: config.context,
 		define: config.define,
 		target: config.target,
-		plugins: normalizePlugins(config.plugins ?? []),
 		external: config.external,
+		plugins: config.plugins ?? [],
 		module: {
 			// TODO: support mutliple rules to support `Module Type`
 			rules: (config?.module?.rules ?? []).map(rule => {

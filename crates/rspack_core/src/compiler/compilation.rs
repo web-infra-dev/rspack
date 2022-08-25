@@ -117,6 +117,10 @@ impl Compilation {
       })
       .ok();
   }
+  pub async fn build_end(&mut self, plugin_driver: Arc<PluginDriver>) -> Result<()> {
+    plugin_driver.build_end().await?;
+    Ok(())
+  }
 
   pub fn render_runtime(&self, plugin_driver: Arc<PluginDriver>) -> Runtime {
     let context_indent = match &self.options.target {

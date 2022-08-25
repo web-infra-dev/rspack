@@ -20,7 +20,8 @@
     "setup": "pnpm install && pnpm build:core",
     "build:bundle": "cargo run --package rspack --example bundle",
     "build:webpack": "cd webpack-examples && node buildAll.js",
-    "build:cli": "pnpm --filter @rspack/core... build"
+    "build:cli": "pnpm --filter @rspack/core... build",
+    "build:binding": "pnpm --filter @rspack/binding build"
   },
   "repository": {
     "type": "git",

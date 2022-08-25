@@ -72,9 +72,6 @@ pub struct RawOptions {
   // pub optimization: Option<RawOptimizationOptions>,
   pub output: Option<RawOutputOptions>,
   pub resolve: Option<RawResolveOptions>,
-  // pub chunk_filename: Option<String>,
-  #[napi(ts_type = "any[]")]
-  pub plugins: Option<RawPlugins>,
   pub module: Option<RawModuleOptions>,
   pub builtins: Option<RawBuiltins>,
   #[napi(ts_type = "Record<string, string>")]
@@ -98,8 +95,6 @@ pub struct RawOptions {
   // pub optimization: Option<RawOptimizationOptions>,
   pub output: Option<RawOutputOptions>,
   pub resolve: Option<RawResolveOptions>,
-  // pub chunk_filename: Option<String>,
-  pub plugins: Option<RawPlugins>,
   pub module: Option<RawModuleOptions>,
   pub builtins: Option<RawBuiltins>,
   pub define: Option<RawDefine>,
@@ -139,7 +134,7 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
       Ok(options)
     })?
     .then(|mut options| {
-      let mut plugins = RawOption::raw_to_compiler_option(raw_options.plugins, &options)?;
+      let mut plugins = vec![];
       let builtins = raw_options.builtins.unwrap_or_default();
       normalize_builtin(&builtins, &mut plugins)?;
 
