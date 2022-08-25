@@ -19,7 +19,10 @@ impl RawOptionsExt for RawOptions {
       let value = qjs_context
         .eval(&format!("{HEAD}\n{pkg_content}\n{TAIL}"))
         .unwrap();
+      dbg!(&value);
+
       let options: RawOptions = serde_json::from_str(&value.into_string().unwrap()).unwrap();
+      dbg!(&options);
       options
     } else {
       RawOptions {

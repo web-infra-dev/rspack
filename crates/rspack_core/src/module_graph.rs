@@ -20,6 +20,11 @@ impl ModuleGraph {
     self.dependency_to_module_uri.insert(dep, resolved_uri);
   }
 
+  pub fn remove_by_uri(&mut self, uri: &str) -> Option<ModuleGraphModule> {
+    let module = self.uri_to_module.remove(uri)?;
+    Some(module)
+  }
+
   pub fn module_by_dependency(&self, dep: &Dependency) -> Option<&ModuleGraphModule> {
     let uri = self.dependency_to_module_uri.get(dep)?;
     self.uri_to_module.get(uri)
@@ -37,6 +42,10 @@ impl ModuleGraph {
 
   pub fn modules(&self) -> impl Iterator<Item = &ModuleGraphModule> {
     self.uri_to_module.values()
+  }
+
+  pub fn uris(&self) -> impl Iterator<Item = &String> {
+    self.uri_to_module.keys()
   }
 
   #[inline]

@@ -1,17 +1,22 @@
-use std::vec;
+use std::collections::HashMap;
+use std::path::Path;
 
 use crate::module::JS_MODULE_SOURCE_TYPE_LIST;
 use crate::utils::{get_wrap_chunk_after, get_wrap_chunk_before, parse_file, wrap_module_function};
-use crate::visitors::{ClearMark, DefineScanner, DefineTransform};
+use crate::visitors::{
+  ClearMark, DefineScanner, DefineTransform, FoundReactRefreshVisitor, ReactHmrFolder,
+  ReactRefreshEntryRuntimeInjector,
+};
 use crate::{module::JsModule, utils::get_swc_compiler};
 // use anyhow::{Context, Result};
 use crate::{RSPACK_REGISTER, RSPACK_REQUIRE};
 use rayon::prelude::*;
 use rspack_core::{
-  AssetContent, BoxModule, ChunkKind, ErrorSpan, FilenameRenderOptions, ModuleRenderResult,
-  ModuleType, ParseModuleArgs, Parser, Plugin, PluginContext, PluginRenderManifestHookOutput,
-  RenderManifestEntry, SourceType, Target, TargetOptions,
+  AssetContent, BoxModule, ChunkKind, EntryItem, ErrorSpan, FilenameRenderOptions,
+  ModuleRenderResult, ModuleType, ParseModuleArgs, Parser, Plugin, PluginContext,
+  PluginRenderManifestHookOutput, RenderManifestEntry, SourceType, Target, TargetOptions,
 };
+use sugar_path::{self, PathSugar};
 
 use rspack_error::{DiagnosticKind, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_common::comments::SingleThreadedComments;
@@ -39,6 +44,7 @@ impl Default for JsPlugin {
   }
 }
 
+#[async_trait::async_trait]
 impl Plugin for JsPlugin {
   fn name(&self) -> &'static str {
     "javascript"
@@ -246,6 +252,14 @@ impl Parser for JsParser {
       )
     })?;
 
+    let ast = if is_entry_uri(args.uri, &args.options.entry) {
+      // TODO: react refresh runtime
+      // ast.fold_with(&mut ReactRefreshEntryRuntimeInjector)
+      ast
+    } else {
+      ast
+    };
+
     let ast = get_swc_compiler().run(|| {
       let defintions = &args.options.define;
       let mut define_scanner = DefineScanner::new(defintions);
@@ -270,6 +284,25 @@ impl Parser for JsParser {
       let ast = ast.fold_with(&mut define_transform);
       let ast = ast.fold_with(&mut resolver(Mark::new(), top_level_mark, false));
       let ast = ast.fold_with(&mut react_folder);
+
+      let ast = match args.uri.contains("node_modules") {
+        true => ast,
+        false => {
+          let mut f = FoundReactRefreshVisitor {
+            is_refresh_boundary: false,
+          };
+          ast.visit_with(&mut f);
+          match f.is_refresh_boundary {
+            true => ast.fold_with(&mut ReactHmrFolder {
+              id: Path::new(args.options.as_ref().context.as_str())
+                .relative(Path::new(&args.uri))
+                .to_string_lossy()
+                .to_string(),
+            }),
+            false => ast,
+          }
+        }
+      };
       ast.fold_with(&mut as_folder(ClearMark))
     });
     let module: BoxModule = Box::new(JsModule {
@@ -307,4 +340,13 @@ pub fn ecma_parse_error_to_diagnostic(
   .with_kind(diagnostic_kind);
   rspack_error::Error::TraceableError(traceable_error)
   //Use this `Error` convertion could avoid eagerly clone source file.
+}
+
+pub fn is_entry_uri(uri: &str, entires: &HashMap<String, EntryItem>) -> bool {
+  for (_, value) in entires {
+    if value.path.eq(uri) {
+      return true;
+    }
+  }
+  false
 }

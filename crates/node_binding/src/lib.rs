@@ -197,14 +197,14 @@ pub fn rebuild(
   env.execute_tokio_future(
     async move {
       let mut compiler = compiler.lock().await;
-      let _rspack_stats = compiler
+      let diff = compiler
         .rebuild(changed_file)
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
 
-      let stats: Stats = _rspack_stats.into();
+      // let stats: Stats = _rspack_stats.into();
       println!("rebuild success");
-      Ok(stats)
+      Ok(diff)
     },
     |_env, ret| Ok(ret),
   )

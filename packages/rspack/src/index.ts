@@ -115,8 +115,9 @@ class Rspack {
 		const stats = await binding.build(this.#instance);
 		return stats;
 	}
-	async rebuild(changeFiles: string[]) {
-		const stats = await binding.rebuild(this.#instance, changeFiles);
+
+	async rebuild(changedFiles: string[]) {
+		const stats = await binding.rebuild(this.#instance, changedFiles);
 		return stats;
 	}
 }

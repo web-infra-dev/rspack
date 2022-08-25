@@ -28,13 +28,15 @@ type JsLoader = ThreadsafeFunction<Vec<u8>, ErrorStrategy::CalleeHandled>;
 // type ModuleRuleFunc = ThreadsafeFunction<Vec<u8>, ErrorStrategy::CalleeHandled>;
 
 fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxedLoader {
-  let builtin_loader = match builtin {
-    "sass-loader" => {
-      rspack_loader_sass::SassLoader::new(serde_json::from_str(options.unwrap_or("{}")).unwrap())
+  match builtin {
+    "sass-loader" => Box::new(rspack_loader_sass::SassLoader::new(
+      serde_json::from_str(options.unwrap_or("{}")).unwrap(),
+    )),
+    "react-refresh-runtime-loader" => {
+      Box::new(rspack_loader_react_hmr::ReactRefreshRuntimeLoader::new())
     }
     loader => panic!("{loader} is not supported yet."),
-  };
-  Box::new(builtin_loader)
+  }
 }
 
 /// `loader` is for js side loader, `builtin_loader` is for rust side loader,

@@ -9,7 +9,7 @@ import Json from './data.json';
 // import Light from './light.svg'
 // import LogoUrl from './logo.svg'
 // import Logo from './logo.svg'
-// const Button = React.lazy(() => import('../src/button'))
+const Button = React.lazy(() => import('../src/button'))
 
 // console.log('LogoUrl', LogoUrl)
 // console.log('Logo', Logo)
@@ -18,7 +18,7 @@ const App = () => {
   return (
     <React.Suspense fallback={<div>loading...</div>}>
       <div>hello world</div>
-      {/* <Button></Button> */}
+      <Button></Button>
 
       <img
         style={{ width: '40px', height: '40px' }}
@@ -42,3 +42,4 @@ const App = () => {
   );
 };
 ReactDOM.render(<App />, document.getElementById('root'));
+

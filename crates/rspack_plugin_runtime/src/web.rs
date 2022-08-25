@@ -44,3 +44,9 @@ pub fn generate_web_dynamic_load_style() -> RuntimeSourceNode {
     content: include_str!("runtime/web/_dynamic_load_style.js").to_string(),
   }
 }
+
+pub fn generate_web_hmr() -> RuntimeSourceNode {
+  RuntimeSourceNode {
+    content: include_str!("runtime/web/_hmr.js").to_string(),
+  }
+}

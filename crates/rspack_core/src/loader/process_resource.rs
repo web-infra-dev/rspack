@@ -23,7 +23,8 @@ impl LoaderRunnerPlugin for LoaderRunnerPluginProcessResource {
   }
 
   async fn process_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
-    let result = self.plugin_driver.read_resource(resource_data).await?;
+    let ctx = self.plugin_driver.options.context.clone();
+    let result = self.plugin_driver.read_resource(resource_data, ctx).await?;
     if result.is_some() {
       return Ok(result);
     }

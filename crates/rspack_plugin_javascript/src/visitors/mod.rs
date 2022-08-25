@@ -10,3 +10,7 @@ mod define_scanner;
 pub use define_scanner::*;
 mod define_transfrom;
 pub use define_transfrom::*;
+mod hmr;
+pub use hmr::*;
+mod react_hmr;
+pub use react_hmr::*;

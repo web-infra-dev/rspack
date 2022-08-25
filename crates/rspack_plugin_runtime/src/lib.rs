@@ -63,6 +63,9 @@ impl Plugin for RuntimePlugin {
             sources.push(generate_web_dynamic_load_script());
             sources.push(generate_web_dynamic_load_style());
           }
+
+          // TODO: should pass dev options
+          sources.push(generate_web_hmr());
         }
         TargetOptions::WebWorker => {
           sources.push(generate_web_worker_init_runtime());

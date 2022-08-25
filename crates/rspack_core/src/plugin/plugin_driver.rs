@@ -8,7 +8,7 @@ use rspack_loader_runner::ResourceData;
 use tracing::instrument;
 
 use crate::{
-  ApplyContext, BoxModule, BoxedParser, CompilerOptions, Content, FactorizeAndBuildArgs,
+  ApplyContext, BoxModule, BoxedParser, CompilerOptions, Content, Context, FactorizeAndBuildArgs,
   ModuleType, NormalModuleFactoryContext, ParseModuleArgs, Plugin, PluginBuildEndHookOutput,
   PluginContext, PluginFactorizeAndBuildHookOutput, PluginProcessAssetsOutput,
   PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, ProcessAssetsArgs,
@@ -68,9 +68,13 @@ impl PluginDriver {
   /// Warning:
   /// Webpack does not expose this as the documented API, even though you can reach this with `NormalModule.getCompilationHooks(compilation)`.
   /// For the most of time, you would not need this.
-  pub async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
+  pub async fn read_resource(
+    &self,
+    resource_data: &ResourceData,
+    ctx: Context,
+  ) -> Result<Option<Content>> {
     for plugin in &self.plugins {
-      let result = plugin.read_resource(resource_data).await?;
+      let result = plugin.read_resource(resource_data, ctx.clone()).await?;
       if result.is_some() {
         return Ok(result);
       }

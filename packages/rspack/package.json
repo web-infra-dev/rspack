@@ -2,7 +2,7 @@
   "name": "@rspack/core",
   "version": "0.0.3",
   "bin": {
-    "rspack": "./bin.js"
+    "rspack": "./bin/rspack"
   },
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",

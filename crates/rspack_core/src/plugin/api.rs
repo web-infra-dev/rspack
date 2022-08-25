@@ -1,9 +1,9 @@
 use std::fmt::Debug;
 
 use crate::{
-  BoxModule, FactorizeAndBuildArgs, ModuleType, NormalModuleFactoryContext, ParseModuleArgs,
-  PluginContext, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, RuntimeSourceNode,
-  TransformAst, TransformResult,
+  BoxModule, Context, FactorizeAndBuildArgs, ModuleType, NormalModuleFactoryContext,
+  ParseModuleArgs, PluginContext, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs,
+  RuntimeSourceNode, TransformAst, TransformResult,
 };
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::{Content, ResourceData};
@@ -90,7 +90,11 @@ pub trait Plugin: Debug + Send + Sync {
   //   false
   // }
 
-  async fn read_resource(&self, _resource_data: &ResourceData) -> PluginReadResourceOutput {
+  async fn read_resource(
+    &self,
+    _resource_data: &ResourceData,
+    _ctx: Context,
+  ) -> PluginReadResourceOutput {
     Ok(None)
   }
   /**

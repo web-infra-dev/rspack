@@ -1,9 +1,14 @@
 // use super::hmr::HmrModuleIdReWriter;
+use super::hmr::HmrModuleIdReWriter;
 use crate::visitors::RspackModuleFinalizer;
 use rspack_core::{Compilation, ModuleGraphModule};
 use swc_common::{chain, Mark, DUMMY_SP};
 use swc_ecma_transforms::resolver;
-use {swc_common, swc_ecma_utils::quote_ident, swc_ecma_visit::Fold};
+use {
+  swc_common,
+  swc_ecma_utils::quote_ident,
+  swc_ecma_visit::{as_folder, Fold},
+};
 
 pub fn finalize<'a>(
   module: &'a ModuleGraphModule,
@@ -23,11 +28,10 @@ pub fn finalize<'a>(
       // entry_flag,
       compilation,
     },
-    // as_folder(HmrModuleIdReWriter {
-    //   resolved_ids,
-    //   rewriting: false,
-    //   bundle,
-    // })
+    as_folder(HmrModuleIdReWriter {
+      rewriting: false,
+      compilation,
+    })
   );
   finalize_pass
 }

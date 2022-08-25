@@ -1856,6 +1856,7 @@ dependencies = [
  "regex",
  "rspack_core",
  "rspack_error",
+ "rspack_loader_react_hmr",
  "rspack_loader_sass",
  "rspack_plugin_css",
  "rspack_plugin_html",
@@ -1903,6 +1904,23 @@ dependencies = [
  "sugar_path",
  "termcolor",
  "thiserror",
+]
+
+[[package]]
+name = "rspack_loader_react_hmr"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "itertools",
+ "once_cell",
+ "regex",
+ "rspack_core",
+ "rspack_error",
+ "rspack_loader_runner",
+ "serde",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -2029,6 +2047,7 @@ name = "rspack_plugin_javascript"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "better_scoped_tls",
  "hashbrown",
  "linked_hash_set",
@@ -2036,8 +2055,10 @@ dependencies = [
  "rayon",
  "rspack_core",
  "rspack_error",
+ "rspack_loader_react_hmr",
  "serde",
  "serde_json",
+ "sugar_path",
  "swc",
  "swc_atoms 0.4.8",
  "swc_common 0.27.11",

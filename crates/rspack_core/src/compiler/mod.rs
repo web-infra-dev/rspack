@@ -13,7 +13,7 @@ use crate::{
 };
 
 use anyhow::Context;
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
 use rayon::prelude::*;
 use rspack_error::{
   emitter::{DiagnosticDisplay, StdioDiagnosticDisplay},
@@ -61,22 +61,67 @@ impl Compiler {
     }
   }
 
-  pub async fn rebuild(&mut self, _changed_files_path: Vec<String>) -> Result<Stats> {
-    // let deps = changed_files_path.into_iter().map(|(name, specifier)| {
-    //   (
-    //     name.clone(),
-    //     Dependency {
-    //       importer: None,
-    //       detail: ModuleDependency {
-    //         specifier,
-    //         kind: ResolveKind::Import,
-    //         span: None,
-    //       },
-    //     },
-    //   )
-    // });
-    // self.compile(deps).await?;
-    self.stats()
+  pub async fn rebuild(
+    &mut self,
+    changed_files_path: Vec<String>,
+  ) -> Result<std::collections::HashMap<String, String>> {
+    let old_module_uri = self
+      .compilation
+      .module_graph
+      .uris()
+      .cloned()
+      .filter(|uri| !changed_files_path.contains(uri))
+      .collect::<HashSet<_>>();
+
+    changed_files_path.iter().for_each(|file_path| {
+      self.compilation.module_graph.remove_by_uri(file_path);
+      self
+        .compilation
+        .visited_module_id
+        .iter()
+        .find(|key| key.0.eq(file_path))
+        .take();
+    });
+
+    let _ = self.build().await?;
+
+    let all_modules_id = self
+      .compilation
+      .module_graph
+      .uris()
+      .cloned()
+      .collect::<HashSet<_>>();
+
+    let diff = all_modules_id
+      .into_iter()
+      .filter(|module_id| !old_module_uri.contains(module_id))
+      .map(|module_id| {
+        // TODO: should optimized
+        let content = if module_id.ends_with(".jsx") {
+          let module = self
+            .compilation
+            .module_graph
+            .module_by_uri(&module_id)
+            .unwrap();
+          // TODO: should optimized
+          let output = module
+            .module
+            .render(crate::SourceType::JavaScript, module, &self.compilation)
+            .unwrap();
+          output
+            .map(|rendered| match rendered {
+              crate::ModuleRenderResult::JavaScript(code) => code,
+              _ => unreachable!(),
+            })
+            .unwrap_or_else(|| String::new())
+        } else {
+          String::new()
+        };
+
+        (module_id, content)
+      })
+      .collect::<std::collections::HashMap<String, String>>();
+    Ok(diff)
   }
 
   pub async fn build(&mut self) -> Result<Stats> {
