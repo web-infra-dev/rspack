@@ -19,12 +19,15 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
   let actual_path = tests_path.join(actual);
 
   let url = Url::from_file_path(&actual_path.to_string_lossy().to_string()).unwrap();
-  let result = LoaderRunner::new(ResourceData {
-    resource: actual_path.to_string_lossy().to_string(),
-    resource_path: url.path().to_owned(),
-    resource_query: url.query().map(|q| q.to_owned()),
-    resource_fragment: url.fragment().map(|f| f.to_owned()),
-  })
+  let result = LoaderRunner::new(
+    ResourceData {
+      resource: actual_path.to_string_lossy().to_string(),
+      resource_path: url.path().to_owned(),
+      resource_query: url.query().map(|q| q.to_owned()),
+      resource_fragment: url.fragment().map(|f| f.to_owned()),
+    },
+    vec![],
+  )
   .run(
     [&SassLoader::new(SassLoaderOptions::default())
       as &dyn Loader<CompilerContext, CompilationContext>],
