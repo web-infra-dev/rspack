@@ -16,7 +16,7 @@ pub fn emit_batch_diagnostic(
   let mut files = SimpleFiles::new();
   for diagnostic in diagnostics {
     if let Some(info) = &diagnostic.source_info {
-      // Since swc related span start with 1, span of diagnostic start with 1
+      // Since `Span` of `swc` started with 1 and span of diagnostic started with 0
       // So we need to subtract 1 to `start_relative_sourcemap`;
       let start_relative_sourcemap = path_pos_map
         .get(&info.path)

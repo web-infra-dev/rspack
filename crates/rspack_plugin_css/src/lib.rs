@@ -42,7 +42,7 @@ impl SwcCompiler {
     let fm = cm.new_source_file(FileName::Custom(path.to_string()), source);
 
     PATH_START_BYTE_POS_MAP.insert(path.to_string(), fm.start_pos.0);
-
+    println!("{:?}", fm.start_pos);
     let lexer = Lexer::new(SourceFileInput::from(&*fm), config);
     let mut parser = Parser::new(lexer, config);
     let stylesheet = parser.parse_all();
