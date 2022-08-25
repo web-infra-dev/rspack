@@ -1,4 +1,5 @@
 use anyhow::Ok;
+use rspack_core::PATH_START_BYTE_POS_MAP;
 use swc_common::{sync::Lrc, FileName, FilePathMapping, SourceMap};
 use swc_html::{
   ast::Document,
@@ -20,9 +21,12 @@ impl HtmlCompiler {
   pub fn parse_file(&self, path: &str, source: String) -> anyhow::Result<Document> {
     let cm = Lrc::new(SourceMap::new(FilePathMapping::empty()));
     let fm = cm.new_source_file(FileName::Custom(path.to_string()), source);
+
+    PATH_START_BYTE_POS_MAP.insert(path.to_string(), fm.start_pos.0);
+
     let mut errors = vec![];
     let document = parse_file_as_document(
-      &fm,
+      fm.as_ref(),
       ParserConfig {
         ..Default::default()
       },

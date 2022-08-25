@@ -1,6 +1,6 @@
 use rspack_error::{emitter::emit_batch_diagnostic, Result};
 
-use crate::{Compilation, CompilationAssets};
+use crate::{Compilation, CompilationAssets, PATH_START_BYTE_POS_MAP};
 
 #[derive(Debug)]
 pub struct Stats<'compilation> {
@@ -13,7 +13,10 @@ impl<'compilation> Stats<'compilation> {
   }
 
   pub fn emit_error(&self) -> Result<()> {
-    emit_batch_diagnostic(&self.compilation.diagnostic)
+    emit_batch_diagnostic(
+      &self.compilation.diagnostic,
+      PATH_START_BYTE_POS_MAP.clone(),
+    )
   }
 }
 

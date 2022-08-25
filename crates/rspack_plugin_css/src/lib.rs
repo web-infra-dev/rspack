@@ -6,6 +6,7 @@ pub mod visitors;
 
 use once_cell::sync::Lazy;
 
+use rspack_core::PATH_START_BYTE_POS_MAP;
 use swc_common::{input::SourceFileInput, sync::Lrc, FileName, FilePathMapping, SourceMap};
 
 use std::sync::Arc;
@@ -39,6 +40,9 @@ impl SwcCompiler {
 
     // let fm = cm.load_file(Path::new(path))?;
     let fm = cm.new_source_file(FileName::Custom(path.to_string()), source);
+
+    PATH_START_BYTE_POS_MAP.insert(path.to_string(), fm.start_pos.0);
+
     let lexer = Lexer::new(SourceFileInput::from(&*fm), config);
     let mut parser = Parser::new(lexer, config);
     let stylesheet = parser.parse_all();
