@@ -5,7 +5,7 @@ use tokio::runtime::Builder;
 // #[tokio::main]
 fn main() {
   let mut vec = vec![];
-  for i in 0..2 {
+  for _ in 0..2 {
     let handle = std::thread::spawn(|| {
       let runtime = Builder::new_multi_thread()
         .worker_threads(4)
