@@ -38,16 +38,14 @@ impl VisitMut for DependencyScanner {
                 (ResolveKind::AtImport, str.value.clone())
               }
             };
+            // TODO: This just naive checking for http:// and https://, but it's not enough.
+            // Because any scheme is valid in `ImportPreludeHref::Url`, like `url(chrome://xxxx)`
+            // We need to find a better way to handle this.
+            if href_string.starts_with("http://") || href_string.starts_with("https://") {
+              return true;
+            }
             match kind {
-              ResolveKind::AtImport => {}
-              ResolveKind::UrlToken => {
-                // TODO: This just naive checking for http:// and https://, but it's not enough.
-                // Because any scheme is valid in `ImportPreludeHref::Url`, like `url(chrome://xxxx)`
-                // We need to find a better way to handle this.
-                if href_string.starts_with("http://") || href_string.starts_with("https://") {
-                  return true;
-                }
-              }
+              ResolveKind::AtImport | ResolveKind::UrlToken => {}
               _ => {
                 unreachable!("ResolveKind in CssPlugin could either be `AtImport` or `UrlToken`")
               }
