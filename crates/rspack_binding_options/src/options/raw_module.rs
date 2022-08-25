@@ -55,6 +55,7 @@ pub struct RawModuleRuleUse {
   pub loader: Option<JsFunction>,
   pub builtin_loader: Option<String>,
   pub options: Option<String>,
+  pub loader_name__: Option<String>,
 }
 
 #[derive(Deserialize, Default)]
@@ -63,6 +64,17 @@ pub struct RawModuleRuleUse {
 pub struct RawModuleRuleUse {
   pub builtin_loader: Option<String>,
   pub options: Option<String>,
+  pub loader_name__: Option<String>,
+}
+
+impl Debug for RawModuleRuleUse {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("RawModuleRuleUse")
+      .field("loader", &self.loader_name__)
+      .field("builtin_loader", &self.builtin_loader)
+      .field("options", &self.options)
+      .finish()
+  }
 }
 
 #[derive(Deserialize, Default)]
@@ -102,8 +114,10 @@ impl Debug for RawModuleRule {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("RawModuleRule")
       .field("test", &self.test)
-      // TODO: More specific (Loader stage 2)
-      .field("uses", &"js-loaders")
+      .field("resource", &self.resource)
+      .field("resource_query", &self.resource_query)
+      .field("type", &self.r#type)
+      .field("uses", &self.uses)
       .finish()
   }
 }

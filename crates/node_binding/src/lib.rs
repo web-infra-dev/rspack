@@ -1,11 +1,12 @@
+use std::ffi::CStr;
+use std::ptr;
 // use std::path::Path;
 use std::sync::Arc;
 
 use napi::bindgen_prelude::*;
-use napi::{Env, Result};
+use napi::{check_status, Env, NapiRaw, Result};
 use napi_derive::napi;
 // use nodejs_resolver::Resolver;
-use rspack_error::Diagnostic;
 use tokio::sync::Mutex;
 // pub mod adapter;
 // mod options;
@@ -69,7 +70,7 @@ pub fn init_trace_subscriber(env: Env) -> Result<()> {
 #[allow(clippy::too_many_arguments)]
 pub fn new_rspack(
   env: Env,
-  options: RawOptions,
+  mut options: RawOptions,
   // plugin_callbacks: Option<PluginCallbacks>,
 ) -> Result<External<RspackBindingContext>> {
   // let node_adapter = create_node_adapter_from_plugin_callbacks(&env, plugin_callbacks)?;
@@ -79,6 +80,79 @@ pub fn new_rspack(
   // if let Some(node_adapter) = node_adapter {
   //   plugins.push(Box::new(node_adapter) as Box<dyn rspack_core::Plugin>);
   // }
+
+  #[cfg(debug_assertions)]
+  {
+    if let Some(module) = options.module.as_mut() {
+      for rule in &mut module.rules {
+        if let Some(uses) = rule.uses.as_mut() {
+          for item in uses {
+            if let Some(loader) = item.loader.as_ref() {
+              let loader_ptr = unsafe { loader.raw() };
+
+              let mut name_ptr = ptr::null_mut();
+
+              check_status!(
+                unsafe {
+                  napi_sys::napi_get_named_property(
+                    env.raw(),
+                    loader_ptr,
+                    CStr::from_bytes_with_nul_unchecked(b"name\0").as_ptr(),
+                    &mut name_ptr,
+                  )
+                },
+                "failed to get function name"
+              )?;
+
+              let mut str_len = 0;
+              check_status!(
+                unsafe {
+                  napi_sys::napi_get_value_string_utf8(
+                    env.raw(),
+                    name_ptr,
+                    ptr::null_mut(),
+                    0,
+                    &mut str_len,
+                  )
+                },
+                "failed to get function name"
+              )?;
+
+              str_len += 1;
+              let mut buf = Vec::with_capacity(str_len);
+              let mut copied_len = 0;
+
+              check_status!(
+                unsafe {
+                  napi_sys::napi_get_value_string_utf8(
+                    env.raw(),
+                    name_ptr,
+                    buf.as_mut_ptr(),
+                    str_len,
+                    &mut copied_len,
+                  )
+                },
+                "failed to get function name"
+              )?;
+
+              // Vec<i8> -> Vec<u8> See: https://stackoverflow.com/questions/59707349/cast-vector-of-i8-to-vector-of-u8-in-rust
+              let mut buf = std::mem::ManuallyDrop::new(buf);
+
+              let buf =
+                unsafe { Vec::from_raw_parts(buf.as_mut_ptr() as *mut u8, copied_len, copied_len) };
+
+              item.loader_name__ = Some(
+                String::from_utf8(buf)
+                  .map_err(|_| Error::from_reason("failed to get function name"))?,
+              );
+            }
+          }
+        }
+      }
+    }
+  }
+
+  dbg!(&options);
 
   let mut compiler_options =
     normalize_bundle_options(options).map_err(|e| Error::from_reason(format!("{:?}", e)))?;
