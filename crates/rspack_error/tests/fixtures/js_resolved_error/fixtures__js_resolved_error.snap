@@ -1,6 +1,6 @@
 ---
 source: crates/rspack_error/tests/fixtures.rs
-expression: stats.emit_error_string().unwrap()
+expression: js_resolved_error
 ---
 error: Resolve error
   ┌─ /Users/bytedance/Documents/rspack/rspack/crates/rspack_error/tests/fixtures/js_resolved_error/index.js:2:1

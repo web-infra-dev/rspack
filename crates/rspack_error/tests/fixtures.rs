@@ -17,9 +17,20 @@ pub async fn test_fixture(fixture_path: &PathBuf) -> rspack_error::Result<()> {
   let mut settings = Settings::clone_current();
   settings.remove_snapshot_suffix();
   settings.set_snapshot_path(fixture_path);
-  settings.set_prepend_module_to_snapshot(false);
+  let dirname = fixture_path
+    .components()
+    .last()
+    .unwrap()
+    .as_os_str()
+    .to_str()
+    .unwrap()
+    .to_owned();
   settings.bind(|| {
-    insta::assert_snapshot!(stats.emit_error_string().unwrap());
+    insta::assert_snapshot!(
+      dirname.as_str(),
+      stats.emit_error_string().unwrap(),
+      dirname.as_str()
+    );
   });
   Ok(())
 }

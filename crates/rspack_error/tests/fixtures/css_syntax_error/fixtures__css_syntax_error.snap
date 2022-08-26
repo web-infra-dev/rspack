@@ -1,6 +1,6 @@
 ---
 source: crates/rspack_error/tests/fixtures.rs
-expression: stats.emit_error_string().unwrap()
+expression: css_syntax_error
 ---
 error: Css parsing error
   ┌─ /Users/bytedance/Documents/rspack/rspack/crates/rspack_error/tests/fixtures/css_syntax_error/style.css:4:14
