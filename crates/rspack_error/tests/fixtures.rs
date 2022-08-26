@@ -10,7 +10,7 @@ pub async fn test_fixture(fixture_path: &PathBuf) -> rspack_error::Result<()> {
   let options: CompilerOptions = RawOptions::from_fixture(fixture_path).to_compiler_options();
   let mut compiler = rspack::rspack(options, Default::default());
 
-  let _stats = compiler
+  let stats = compiler
     .run()
     .await
     .unwrap_or_else(|_| panic!("failed to compile in fixtrue {:?}", fixture_path));
@@ -19,7 +19,7 @@ pub async fn test_fixture(fixture_path: &PathBuf) -> rspack_error::Result<()> {
   settings.set_snapshot_path(fixture_path);
   settings.set_prepend_module_to_snapshot(false);
   settings.bind(|| {
-    insta::assert_snapshot!(_stats.emit_error_string().unwrap());
+    insta::assert_snapshot!(stats.emit_error_string().unwrap());
   });
   Ok(())
 }
