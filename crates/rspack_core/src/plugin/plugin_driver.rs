@@ -6,10 +6,10 @@ use tracing::instrument;
 
 use crate::{
   ApplyContext, BoxModule, BoxedParser, CompilerOptions, Content, FactorizeAndBuildArgs,
-  ModuleType, NormalModuleFactoryContext, ParseModuleArgs, Plugin, PluginContext,
-  PluginFactorizeAndBuildHookOutput, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
-  PluginRenderRuntimeHookOutput, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs,
-  Resolver,
+  ModuleType, NormalModuleFactoryContext, ParseModuleArgs, Plugin, PluginBuildEndHookOutput,
+  PluginContext, PluginFactorizeAndBuildHookOutput, PluginProcessAssetsOutput,
+  PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, ProcessAssetsArgs,
+  RenderManifestArgs, RenderRuntimeArgs, Resolver,
 };
 use rspack_error::{Error, Result};
 
@@ -144,6 +144,13 @@ impl PluginDriver {
       )?;
       Ok(())
     })?;
+    Ok(())
+  }
+  #[instrument(skip_all)]
+  pub async fn build_end(&self) -> PluginBuildEndHookOutput {
+    for plugin in &self.plugins {
+      plugin.build_end().await?;
+    }
     Ok(())
   }
 }

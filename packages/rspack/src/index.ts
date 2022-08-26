@@ -199,15 +199,39 @@ function composeJsUse(uses: ModuleRuleUse[]): RawModuleRuleUse {
 		loader
 	};
 }
-
+interface RspackThreadsafeContext<T> {
+	readonly id: number;
+	readonly inner: T;
+}
+interface RspackThreadsafeResult<T> {
+	readonly id: number;
+	readonly inner: T;
+}
+const createDummyResult = (id: number): string => {
+	const result: RspackThreadsafeResult<null> = {
+		id,
+		inner: null
+	};
+	return JSON.stringify(result);
+};
 class Rspack {
 	#instance: ExternalObject<RspackInternal>;
-
+	#plugins: RspackOptions["plugins"];
 	constructor(public options: RspackOptions) {
 		const nativeConfig = Config.User2Native(options);
-		this.#instance = binding.newRspack(nativeConfig);
-	}
+		this.#plugins = options.plugins ?? [];
 
+		this.#instance = binding.newRspack(nativeConfig, {
+			buildEndCallback: this.#buildEnd.bind(this)
+		});
+	}
+	async #buildEnd(err: Error, value: string) {
+		const context: RspackThreadsafeContext<void> = JSON.parse(value);
+		for (const plugin of this.#plugins) {
+			await plugin.buildEnd?.();
+		}
+		return createDummyResult(context.id);
+	}
 	async build() {
 		const stats = await binding.build(this.#instance);
 		return stats;

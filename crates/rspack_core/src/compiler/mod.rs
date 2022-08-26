@@ -134,6 +134,10 @@ impl Compiler {
     // self.compilation.calc_exec_order();
 
     self.compilation.seal(self.plugin_driver.clone())?;
+    self
+      .compilation
+      .build_end(self.plugin_driver.clone())
+      .await?;
 
     // tracing::trace!("assets {:#?}", assets);
 
