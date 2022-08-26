@@ -2,16 +2,16 @@ use std::ffi::CStr;
 use std::io::Write;
 use std::ptr;
 
-use napi::{check_status, Env, Error, Result};
+use napi::{check_status, Env, Error, NapiRaw, Result};
 use napi_derive::napi;
-use napi_sys::{napi_env, napi_value};
 use once_cell::sync::OnceCell;
 
 static CUSTOM_TRACE_SUBSCRIBER: OnceCell<bool> = OnceCell::new();
 
-pub fn get_named_property_value_string(
-  env_ptr: napi_env,
-  object_ptr: napi_value,
+/// Try to resolve the string value of a given named property
+pub fn get_named_property_value_string<T: NapiRaw>(
+  env: Env,
+  object: T,
   property_name: &str,
 ) -> Result<String> {
   let mut bytes_with_nul: Vec<u8> = Vec::with_capacity(property_name.len() + 1);
@@ -24,8 +24,8 @@ pub fn get_named_property_value_string(
   check_status!(
     unsafe {
       napi_sys::napi_get_named_property(
-        env_ptr,
-        object_ptr,
+        env.raw(),
+        object.raw(),
         CStr::from_bytes_with_nul_unchecked(&bytes_with_nul).as_ptr(),
         &mut value_ptr,
       )
@@ -36,7 +36,7 @@ pub fn get_named_property_value_string(
   let mut str_len = 0;
   check_status!(
     unsafe {
-      napi_sys::napi_get_value_string_utf8(env_ptr, value_ptr, ptr::null_mut(), 0, &mut str_len)
+      napi_sys::napi_get_value_string_utf8(env.raw(), value_ptr, ptr::null_mut(), 0, &mut str_len)
     },
     "failed to get the value"
   )?;
@@ -48,7 +48,7 @@ pub fn get_named_property_value_string(
   check_status!(
     unsafe {
       napi_sys::napi_get_value_string_utf8(
-        env_ptr,
+        env.raw(),
         value_ptr,
         buf.as_mut_ptr(),
         str_len,

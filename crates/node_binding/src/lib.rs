@@ -2,7 +2,7 @@
 use std::sync::Arc;
 
 use napi::bindgen_prelude::*;
-use napi::{Env, NapiRaw, Result};
+use napi::{Env, Result};
 use napi_derive::napi;
 // use nodejs_resolver::Resolver;
 use tokio::sync::Mutex;
@@ -88,13 +88,11 @@ pub fn new_rspack(
         if let Some(uses) = rule.uses.as_mut() {
           for item in uses {
             if let Some(loader) = item.loader.as_ref() {
-              let (env_ptr, loader_ptr) = unsafe { (env.raw(), loader.raw()) };
-              if let Ok(display_name) =
-                get_named_property_value_string(env_ptr, loader_ptr, "displayName")
+              // let (env_ptr, loader_ptr) = unsafe { (env.raw(), loader.raw()) };
+              if let Ok(display_name) = get_named_property_value_string(env, loader, "displayName")
               {
                 item.__loader_name = Some(display_name);
-              } else if let Ok(name) = get_named_property_value_string(env_ptr, loader_ptr, "name")
-              {
+              } else if let Ok(name) = get_named_property_value_string(env, loader, "name") {
                 item.__loader_name = Some(name);
               }
             }
