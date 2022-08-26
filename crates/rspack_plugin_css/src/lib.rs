@@ -6,17 +6,21 @@ pub mod visitors;
 
 use once_cell::sync::Lazy;
 
-use rspack_core::PATH_START_BYTE_POS_MAP;
+use rspack_core::{ErrorSpan, PATH_START_BYTE_POS_MAP};
+use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray};
 use swc_common::{input::SourceFileInput, sync::Lrc, FileName, FilePathMapping, SourceMap};
 
 use std::sync::Arc;
 
-use swc_css::codegen::{
-  writer::basic::{BasicCssWriter, BasicCssWriterConfig},
-  CodeGenerator, CodegenConfig, Emit,
-};
 use swc_css::parser::{lexer::Lexer, parser::ParserConfig};
 use swc_css::{ast::Stylesheet, parser::parser::Parser};
+use swc_css::{
+  codegen::{
+    writer::basic::{BasicCssWriter, BasicCssWriterConfig},
+    CodeGenerator, CodegenConfig, Emit,
+  },
+  parser::error::Error,
+};
 
 pub use plugin::CssPlugin;
 
@@ -32,7 +36,7 @@ impl SwcCssCompiler {
     Self {}
   }
 
-  pub fn parse_file(&self, path: &str, source: String) -> rspack_error::Result<Stylesheet> {
+  pub fn parse_file(&self, path: &str, source: String) -> Result<TWithDiagnosticArray<Stylesheet>> {
     let config: ParserConfig = Default::default();
     let cm = CM.clone();
     // let (handler, errors) = self::string_errors::new_handler(cm.clone(), treat_err_as_bug);
@@ -45,9 +49,14 @@ impl SwcCssCompiler {
     let lexer = Lexer::new(SourceFileInput::from(&*fm), config);
     let mut parser = Parser::new(lexer, config);
     let stylesheet = parser.parse_all();
-    let _errors = parser.take_errors();
-    stylesheet.map_err(|_| rspack_error::Error::InternalError("Css parsing failed".to_string()))
-    // .ok_or_else(|| anyhow::format_err!())
+    let diagnostics = parser
+      .take_errors()
+      .into_iter()
+      .map(|error| css_parse_error_to_diagnostic(error, path))
+      .collect();
+    stylesheet
+      .map_err(|_| rspack_error::Error::InternalError("Css parsing failed".to_string()))
+      .map(|stylesheet| stylesheet.with_diagnostic(diagnostics))
   }
 
   pub fn codegen(&self, ast: &Stylesheet) -> String {
@@ -65,4 +74,19 @@ impl SwcCssCompiler {
 
     output
   }
+}
+
+pub fn css_parse_error_to_diagnostic(error: Error, path: &str) -> Diagnostic {
+  let message = error.message();
+  let error = error.into_inner();
+  let span: ErrorSpan = error.0.into();
+  let traceable_error = rspack_error::TraceableError::from_path(
+    path.to_string(),
+    span.start as usize,
+    span.end as usize,
+    "Css parsing error".to_string(),
+    message.to_string(),
+  );
+  //Use this `Error` convertion could avoid eagerly clone source file.
+  rspack_error::Error::TraceableError(traceable_error).into()
 }

@@ -198,7 +198,10 @@ impl Parser for CssParser {
         "Unable to serialize content as string which is required by plugin css".into(),
       )
     })?;
-    let mut stylesheet = SWC_COMPILER.parse_file(args.uri, content)?;
+    let TWithDiagnosticArray {
+      inner: mut stylesheet,
+      diagnostic,
+    } = SWC_COMPILER.parse_file(args.uri, content)?;
 
     if let Some(query) = self.get_query() {
       stylesheet.visit_mut_with(&mut prefixer(Options {
@@ -211,6 +214,6 @@ impl Parser for CssParser {
       source_type_list: CSS_MODULE_SOURCE_TYPE_LIST,
     });
 
-    Ok(module.with_empty_diagnostic())
+    Ok(module.with_diagnostic(diagnostic))
   }
 }
