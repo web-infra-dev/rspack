@@ -3,8 +3,9 @@ use std::fmt::Debug;
 use rspack_loader_runner::{Content, ResourceData};
 
 use crate::{
-  BoxModule, ModuleType, ParseModuleArgs, PluginContext, ProcessAssetsArgs, RenderManifestArgs,
-  RenderRuntimeArgs, RuntimeSourceNode, TransformAst,
+  BoxModule, FactorizeAndBuildArgs, ModuleType, NormalModuleFactoryContext, ParseModuleArgs,
+  PluginContext, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, RuntimeSourceNode,
+  TransformAst, TransformResult,
 };
 use rspack_error::Result;
 
@@ -13,6 +14,9 @@ use hashbrown::HashMap;
 pub type PluginBuildStartHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;
 pub type PluginReadResourceOutput = Result<Option<Content>>;
+pub type PluginLoadHookOutput = Result<Option<Content>>;
+pub type PluginTransformOutput = Result<TransformResult>;
+pub type PluginFactorizeAndBuildHookOutput = Result<Option<(String, BoxModule)>>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
 pub type PluginRenderRuntimeHookOutput = Result<Vec<RuntimeSourceNode>>;
 pub type PluginParseModuleHookOutput = Result<BoxModule>;
@@ -86,6 +90,20 @@ pub trait Plugin: Debug + Send + Sync {
   // }
 
   async fn read_resource(&self, _resource_data: &ResourceData) -> PluginReadResourceOutput {
+    Ok(None)
+  }
+  /**
+   * factorize_and_build hook will generate BoxModule which will be used to generate ModuleGraphModule.
+   * It is used to handle the generation of those modules which are not normal, such as External Module
+   * It behaves like a BailHook hook.
+   * NOTICE: The factorize_and_build hook is a temporary solution and will be replaced with the real factorize hook later
+   */
+  fn factorize_and_build(
+    &self,
+    _ctx: PluginContext,
+    _args: FactorizeAndBuildArgs,
+    _job_ctx: &mut NormalModuleFactoryContext,
+  ) -> PluginFactorizeAndBuildHookOutput {
     Ok(None)
   }
 

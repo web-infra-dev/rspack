@@ -22,6 +22,8 @@ mod module;
 pub use module::*;
 mod define;
 pub use define::*;
+mod external;
+pub use external::*;
 
 #[derive(Debug, Default)]
 pub struct CompilerOptionsBuilder {
@@ -35,6 +37,7 @@ pub struct CompilerOptionsBuilder {
   pub plugins: Option<Plugins>,
   pub module: Option<ModuleOptions>,
   pub define: Option<Define>,
+  pub external: Option<Vec<External>>,
 }
 
 impl CompilerOptionsBuilder {
@@ -52,6 +55,7 @@ impl CompilerOptionsBuilder {
       plugins: self.plugins.unwrap(),
       module: self.module.unwrap(),
       define: self.define.unwrap(),
+      external: self.external.unwrap(),
     }
   }
 

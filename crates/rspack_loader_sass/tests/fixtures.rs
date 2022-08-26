@@ -50,6 +50,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           plugins: Default::default(),
           module: Default::default(),
           define: Default::default(),
+          external: Default::default(),
         }),
       },
       compilation: &(),

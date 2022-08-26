@@ -37,6 +37,7 @@ export interface RspackOptions {
 	define?: RawOptions["define"];
 	target?: RawOptions["target"];
 	mode?: RawOptions["mode"];
+	external?: RawOptions["external"];
 }
 
 export function normalizePlugins(plugins: Plugin[]) {
@@ -54,6 +55,7 @@ export function User2Native(config: RspackOptions): RawOptions {
 		define: config.define,
 		target: config.target,
 		plugins: normalizePlugins(config.plugins ?? []),
+		external: config.external,
 		module: {
 			// TODO: support mutliple rules to support `Module Type`
 			rules: (config?.module?.rules ?? []).map(rule => {
