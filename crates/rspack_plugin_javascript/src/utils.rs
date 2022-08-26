@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use rspack_core::ModuleType;
+use rspack_core::{ModuleType, PATH_START_BYTE_POS_MAP};
 use std::path::Path;
 use std::sync::Arc;
 use swc::{config::IsModule, Compiler as SwcCompiler};
@@ -31,6 +31,7 @@ pub fn parse_file(
   let fm = compiler
     .cm
     .new_source_file(FileName::Custom(filename.to_string()), source_code);
+  PATH_START_BYTE_POS_MAP.insert(filename.to_string(), fm.start_pos.0);
   swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
     compiler.parse_js(
       fm,
