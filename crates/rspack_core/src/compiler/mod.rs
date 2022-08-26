@@ -16,7 +16,7 @@ use anyhow::Context;
 use rayon::prelude::*;
 use rspack_error::{
   emitter::{DiagnosticDisplay, StdioDiagnosticDisplay},
-  Error, Result, TWithDiagnosticArray,
+  Diagnostic, Error, Result, TWithDiagnosticArray,
 };
 use tracing::instrument;
 
@@ -138,6 +138,13 @@ impl Compiler {
     // self.compilation.calc_exec_order();
 
     self.compilation.seal(self.plugin_driver.clone())?;
+
+    // Consume plugin driver diagnostic
+    let mut plugin_driver_diagnostics = self.plugin_driver.take_diagnostic();
+    self
+      .compilation
+      .diagnostic
+      .append(&mut plugin_driver_diagnostics);
 
     // tracing::trace!("assets {:#?}", assets);
 

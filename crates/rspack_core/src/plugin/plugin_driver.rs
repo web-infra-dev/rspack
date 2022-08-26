@@ -58,6 +58,11 @@ impl PluginDriver {
     }
   }
 
+  pub fn take_diagnostic(&self) -> Vec<Diagnostic> {
+    let mut diagnostic = self.diagnostics.lock().unwrap();
+    std::mem::take(&mut diagnostic)
+  }
+
   /// Read resource with the given `resource_data`
   ///
   /// Warning:
