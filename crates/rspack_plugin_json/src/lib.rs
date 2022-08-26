@@ -1,4 +1,4 @@
-use rspack_error::Result;
+use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 
 use rspack_core::{BoxModule, Module, ModuleRenderResult, ModuleType, Parser, Plugin, SourceType};
 
@@ -38,13 +38,14 @@ impl Parser for JsonParser {
     &self,
     _module_type: ModuleType,
     args: rspack_core::ParseModuleArgs,
-  ) -> Result<BoxModule> {
+  ) -> Result<TWithDiagnosticArray<BoxModule>> {
     let source = args.source.try_into_string()?;
 
     // JSON Validation
     json::parse(&source)?;
 
-    Ok(Box::new(JsonModule::new(source)))
+    let module: BoxModule = Box::new(JsonModule::new(source));
+    Ok(module.with_empty_diagnostic())
   }
 }
 

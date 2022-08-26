@@ -9,13 +9,14 @@ use std::{
 use crate::{
   AssetContent, CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule,
   NormalModuleFactory, NormalModuleFactoryContext, Plugin, PluginDriver, Stats,
-  TWithDiagnosticArray, PATH_START_BYTE_POS_MAP,
+  PATH_START_BYTE_POS_MAP,
 };
+
 use anyhow::Context;
 use rayon::prelude::*;
 use rspack_error::{
   emitter::{DiagnosticDisplay, StdioDiagnosticDisplay},
-  Error, Result,
+  Error, Result, TWithDiagnosticArray,
 };
 use tracing::instrument;
 

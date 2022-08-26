@@ -6,12 +6,12 @@ use crate::{module::JsModule, utils::get_swc_compiler};
 use crate::{RSPACK_REGISTER, RSPACK_REQUIRE};
 use rayon::prelude::*;
 use rspack_core::{
-  AssetContent, ChunkKind, FilenameRenderOptions, ModuleRenderResult, ModuleType, ParseModuleArgs,
-  Parser, Plugin, PluginContext, PluginRenderManifestHookOutput, RenderManifestEntry, SourceType,
-  Target, TargetOptions,
+  AssetContent, BoxModule, ChunkKind, FilenameRenderOptions, ModuleRenderResult, ModuleType,
+  ParseModuleArgs, Parser, Plugin, PluginContext, PluginRenderManifestHookOutput,
+  RenderManifestEntry, SourceType, Target, TargetOptions,
 };
 
-use rspack_error::{Error, Result};
+use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_common::comments::SingleThreadedComments;
 use swc_common::Mark;
 use swc_ecma_transforms::react::{react, Options as ReactOptions};
@@ -197,7 +197,7 @@ impl Parser for JsParser {
     &self,
     module_type: ModuleType,
     args: ParseModuleArgs,
-  ) -> Result<rspack_core::BoxModule> {
+  ) -> Result<TWithDiagnosticArray<BoxModule>> {
     if !module_type.is_js_like() {
       return Err(Error::InternalError(format!(
         "`module_type` {:?} not supported for `JsParser`",
@@ -264,12 +264,13 @@ impl Parser for JsParser {
       let ast = ast.fold_with(&mut react_folder);
       ast.fold_with(&mut as_folder(ClearMark))
     });
-    Ok(Box::new(JsModule {
+    let module: BoxModule = Box::new(JsModule {
       ast,
       uri: args.uri.to_string(),
       module_type,
       source_type_list: JS_MODULE_SOURCE_TYPE_LIST,
       unresolved_mark: self.unresolved_mark,
-    }))
+    });
+    Ok(module.with_empty_diagnostic())
   }
 }

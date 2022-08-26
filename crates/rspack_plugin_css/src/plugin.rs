@@ -10,10 +10,10 @@ use crate::{
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
 use rspack_core::{
-  AssetContent, FilenameRenderOptions, ModuleRenderResult, ModuleType, ParseModuleArgs, Parser,
-  Plugin, RenderManifestEntry, SourceType,
+  AssetContent, BoxModule, FilenameRenderOptions, ModuleRenderResult, ModuleType, ParseModuleArgs,
+  Parser, Plugin, RenderManifestEntry, SourceType,
 };
-use rspack_error::{Error, Result};
+use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 
 use swc_css::visit::VisitMutWith;
 
@@ -192,7 +192,7 @@ impl Parser for CssParser {
     &self,
     _module_type: ModuleType,
     args: ParseModuleArgs,
-  ) -> Result<rspack_core::BoxModule> {
+  ) -> Result<TWithDiagnosticArray<BoxModule>> {
     let content = args.source.try_into_string().map_err(|_| {
       Error::InternalError(
         "Unable to serialize content as string which is required by plugin css".into(),
@@ -206,9 +206,11 @@ impl Parser for CssParser {
       }));
     }
 
-    Ok(Box::new(CssModule {
+    let module: BoxModule = Box::new(CssModule {
       ast: stylesheet,
       source_type_list: CSS_MODULE_SOURCE_TYPE_LIST,
-    }))
+    });
+
+    Ok(module.with_empty_diagnostic())
   }
 }

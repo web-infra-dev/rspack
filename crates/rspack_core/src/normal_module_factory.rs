@@ -9,7 +9,7 @@ use std::{
 use crate::{
   BoxModule, CompilerOptions, FactorizeAndBuildArgs, LoaderResult, LoaderRunnerRunner, ResourceData,
 };
-use rspack_error::{Diagnostic, Error};
+use rspack_error::{Diagnostic, Error, TWithDiagnosticArray};
 use sugar_path::PathSugar;
 use swc_common::Span;
 use tokio::sync::mpsc::UnboundedSender;
@@ -45,18 +45,6 @@ pub struct Dependency {
 //     }
 //   }
 // }
-
-#[derive(Debug)]
-pub struct TWithDiagnosticArray<T: std::fmt::Debug> {
-  pub inner: T,
-  pub diagnostic: Vec<Diagnostic>,
-}
-
-impl<T: std::fmt::Debug> TWithDiagnosticArray<T> {
-  pub fn new(inner: T, diagnostic: Vec<Diagnostic>) -> Self {
-    Self { inner, diagnostic }
-  }
-}
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 pub enum ResolveKind {

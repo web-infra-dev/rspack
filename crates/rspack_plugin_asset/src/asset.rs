@@ -4,7 +4,7 @@ use rspack_core::{
   AssetParserDataUrlOption, BoxModule, FilenameRenderOptions, Module, ModuleRenderResult,
   ModuleType, Parser, SourceType,
 };
-use rspack_error::Result;
+use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 #[derive(Debug)]
 enum DataUrlOption {
   True,
@@ -45,7 +45,7 @@ impl Parser for AssetParser {
     &self,
     module_type: ModuleType,
     args: rspack_core::ParseModuleArgs,
-  ) -> Result<BoxModule> {
+  ) -> Result<TWithDiagnosticArray<BoxModule>> {
     let buf = args.source.into_bytes();
 
     let size = buf.len() as u32;
@@ -61,8 +61,9 @@ impl Parser for AssetParser {
         size <= limit_size
       }
     };
+    let module: BoxModule = Box::new(AssetModule::new(module_type, is_inline, buf));
 
-    Ok(Box::new(AssetModule::new(module_type, is_inline, buf)))
+    Ok(module.with_empty_diagnostic())
   }
 }
 static ASSET_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =

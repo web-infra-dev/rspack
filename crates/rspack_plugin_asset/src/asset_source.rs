@@ -1,6 +1,6 @@
 // use rspack_error::Result;
 use rspack_core::{BoxModule, Module, ModuleRenderResult, ModuleType, Parser, SourceType};
-use rspack_error::Result;
+use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 
 #[derive(Debug, Default)]
 pub struct AssetSourceParser {}
@@ -10,8 +10,9 @@ impl Parser for AssetSourceParser {
     &self,
     _module_type: ModuleType,
     args: rspack_core::ParseModuleArgs,
-  ) -> Result<BoxModule> {
-    Ok(Box::new(AssetSourceModule::new(args.source.into_bytes())))
+  ) -> Result<TWithDiagnosticArray<BoxModule>> {
+    let boxed: BoxModule = Box::new(AssetSourceModule::new(args.source.into_bytes()));
+    Ok(boxed.with_empty_diagnostic())
   }
 }
 static ASSET_SOURCE_MODULE_SOURCE_TYPE_LIST: &[SourceType; 1] = &[SourceType::JavaScript];

@@ -20,19 +20,19 @@ use swc_css::{ast::Stylesheet, parser::parser::Parser};
 
 pub use plugin::CssPlugin;
 
-static SWC_COMPILER: Lazy<Arc<SwcCompiler>> = Lazy::new(|| Arc::new(SwcCompiler::new()));
+static SWC_COMPILER: Lazy<Arc<SwcCssCompiler>> = Lazy::new(|| Arc::new(SwcCssCompiler::new()));
 
 #[derive(Default)]
-pub struct SwcCompiler {}
+pub struct SwcCssCompiler {}
 
 static CM: Lazy<Lrc<SourceMap>> = Lazy::new(|| Lrc::new(SourceMap::new(FilePathMapping::empty())));
 
-impl SwcCompiler {
+impl SwcCssCompiler {
   pub fn new() -> Self {
     Self {}
   }
 
-  pub fn parse_file(&self, path: &str, source: String) -> anyhow::Result<Stylesheet> {
+  pub fn parse_file(&self, path: &str, source: String) -> rspack_error::Result<Stylesheet> {
     let config: ParserConfig = Default::default();
     let cm = CM.clone();
     // let (handler, errors) = self::string_errors::new_handler(cm.clone(), treat_err_as_bug);
@@ -46,7 +46,8 @@ impl SwcCompiler {
     let mut parser = Parser::new(lexer, config);
     let stylesheet = parser.parse_all();
     let _errors = parser.take_errors();
-    stylesheet.ok().ok_or_else(|| anyhow::format_err!("failed"))
+    stylesheet.map_err(|_| rspack_error::Error::InternalError("Css parsing failed".to_string()))
+    // .ok_or_else(|| anyhow::format_err!())
   }
 
   pub fn codegen(&self, ast: &Stylesheet) -> String {
