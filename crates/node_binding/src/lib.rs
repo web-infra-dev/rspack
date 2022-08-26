@@ -5,11 +5,12 @@ use napi::bindgen_prelude::*;
 use napi::{Env, Result};
 use napi_derive::napi;
 // use nodejs_resolver::Resolver;
-use rspack_error::Diagnostic;
 use tokio::sync::Mutex;
 // pub mod adapter;
 // mod options;
 mod utils;
+
+use utils::get_named_property_value_string;
 
 // use adapter::utils::create_node_adapter_from_plugin_callbacks;
 pub use rspack_binding_options::{normalize_bundle_options, NodeLoaderAdapter, RawOptions};
@@ -69,7 +70,7 @@ pub fn init_trace_subscriber(env: Env) -> Result<()> {
 #[allow(clippy::too_many_arguments)]
 pub fn new_rspack(
   env: Env,
-  options: RawOptions,
+  mut options: RawOptions,
   // plugin_callbacks: Option<PluginCallbacks>,
 ) -> Result<External<RspackBindingContext>> {
   // let node_adapter = create_node_adapter_from_plugin_callbacks(&env, plugin_callbacks)?;
@@ -79,6 +80,29 @@ pub fn new_rspack(
   // if let Some(node_adapter) = node_adapter {
   //   plugins.push(Box::new(node_adapter) as Box<dyn rspack_core::Plugin>);
   // }
+
+  #[cfg(debug_assertions)]
+  {
+    if let Some(module) = options.module.as_mut() {
+      for rule in &mut module.rules {
+        if let Some(uses) = rule.uses.as_mut() {
+          for item in uses {
+            if let Some(loader) = item.loader.as_ref() {
+              // let (env_ptr, loader_ptr) = unsafe { (env.raw(), loader.raw()) };
+              if let Ok(display_name) = get_named_property_value_string(env, loader, "displayName")
+              {
+                item.__loader_name = Some(display_name);
+              } else if let Ok(name) = get_named_property_value_string(env, loader, "name") {
+                item.__loader_name = Some(name);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  dbg!(&options);
 
   let mut compiler_options =
     normalize_bundle_options(options).map_err(|e| Error::from_reason(format!("{:?}", e)))?;

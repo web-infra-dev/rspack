@@ -13,7 +13,14 @@ const rspack = new Rspack({
 				test: ".less$",
 				uses: [
 					{
-						loader: function (loaderContext) {
+						loader: function testLoader(loaderContext) {
+							return {
+								content: loaderContext.source.getBuffer()
+							};
+						}
+					},
+					{
+						loader: function testLoader2(loaderContext) {
 							return {
 								content: loaderContext.source.getBuffer()
 							};
