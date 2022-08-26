@@ -1936,6 +1936,7 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
+ "napi-sys",
  "once_cell",
  "regex",
  "rspack",
