@@ -56,6 +56,7 @@ impl CompilerOptionsBuilder {
       module: self.module.unwrap(),
       define: self.define.unwrap(),
       external: self.external.unwrap(),
+      emit_error: false,
     }
   }
 

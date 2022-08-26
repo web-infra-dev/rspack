@@ -12,7 +12,7 @@ pub trait DiagnosticDisplay {
   type Output;
   fn emit_batch_diagnostic(
     &mut self,
-    diagnostics: &Vec<RspackDiagnostic>,
+    diagnostics: &[RspackDiagnostic],
     path_pos_map: Arc<DashMap<String, u32>>,
   ) -> Self::Output;
 }
@@ -25,7 +25,7 @@ impl DiagnosticDisplay for StdioDiagnosticDisplay {
 
   fn emit_batch_diagnostic(
     &mut self,
-    diagnostics: &Vec<RspackDiagnostic>,
+    diagnostics: &[RspackDiagnostic],
     path_pos_map: Arc<DashMap<String, u32>>,
   ) -> Self::Output {
     let writer = StandardStream::stderr(ColorChoice::Always);
@@ -69,7 +69,7 @@ impl DiagnosticDisplay for StringDiagnosticDisplay {
 
   fn emit_batch_diagnostic(
     &mut self,
-    diagnostics: &Vec<RspackDiagnostic>,
+    diagnostics: &[RspackDiagnostic],
     path_pos_map: Arc<DashMap<String, u32>>,
   ) -> Self::Output {
     emit_batch_diagnostic(diagnostics, path_pos_map, self)?;
@@ -78,7 +78,7 @@ impl DiagnosticDisplay for StringDiagnosticDisplay {
   }
 }
 fn emit_batch_diagnostic<T: Write + WriteColor>(
-  diagnostics: &Vec<RspackDiagnostic>,
+  diagnostics: &[RspackDiagnostic],
   path_pos_map: Arc<DashMap<String, u32>>,
   writer: &mut T,
 ) -> crate::Result<()> {

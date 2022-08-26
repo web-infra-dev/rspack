@@ -179,10 +179,12 @@ impl Compiler {
   #[instrument(skip_all)]
   pub async fn run(&mut self) -> Result<Stats> {
     self.compile().await?;
-    StdioDiagnosticDisplay::default().emit_batch_diagnostic(
-      &self.compilation.diagnostic,
-      PATH_START_BYTE_POS_MAP.clone(),
-    )?;
+    if self.options.emit_error {
+      StdioDiagnosticDisplay::default().emit_batch_diagnostic(
+        &self.compilation.diagnostic,
+        PATH_START_BYTE_POS_MAP.clone(),
+      )?;
+    }
     Ok(Stats::new(&self.compilation))
   }
 }

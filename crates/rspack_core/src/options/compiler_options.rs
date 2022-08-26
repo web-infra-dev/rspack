@@ -15,4 +15,5 @@ pub struct CompilerOptions {
   pub module: ModuleOptions,
   pub define: Define,
   pub external: Vec<External>,
+  pub emit_error: bool,
 }
