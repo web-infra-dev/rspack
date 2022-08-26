@@ -1,0 +1,35 @@
+---
+source: crates/rspack_error/tests/fixtures.rs
+expression: stats.emit_error_string().unwrap()
+---
+error: Css parsing error
+  ┌─ /Users/bytedance/Documents/rspack/rspack/crates/rspack_error/tests/fixtures/css_syntax_error/style.css:3:6
+  │
+3 │ body {
+  │      ^ Expected ';' token
+
+error: Css parsing error
+  ┌─ /Users/bytedance/Documents/rspack/rspack/crates/rspack_error/tests/fixtures/css_syntax_error/style.css:3:6
+  │
+3 │ body {
+  │      ^ Expected ';' token
+
+error: Css parsing error
+  ┌─ /Users/bytedance/Documents/rspack/rspack/crates/rspack_error/tests/fixtures/css_syntax_error/style.css:3:1
+  │
+3 │ body {
+  │ ^^^^ Expected string, url or function token
+
+error: Css parsing error
+  ┌─ /Users/bytedance/Documents/rspack/rspack/crates/rspack_error/tests/fixtures/css_syntax_error/style.css:3:1
+  │
+3 │ body {
+  │ ^^^^ Expected string, url or function token
+
+error: Css parsing error
+  ┌─ /Users/bytedance/Documents/rspack/rspack/crates/rspack_error/tests/fixtures/css_syntax_error/style.css:3:6
+  │
+3 │ body {
+  │      ^ Expected string, url or function token
+
+
