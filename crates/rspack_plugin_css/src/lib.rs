@@ -7,7 +7,7 @@ pub mod visitors;
 use once_cell::sync::Lazy;
 
 use rspack_core::{ErrorSpan, PATH_START_BYTE_POS_MAP};
-use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray};
+use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_common::{input::SourceFileInput, sync::Lrc, FileName, FilePathMapping, SourceMap};
 
 use std::sync::Arc;

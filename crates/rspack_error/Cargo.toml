@@ -12,6 +12,7 @@ thiserror = "1.0.32"
 termcolor = "1.1"
 json = "0.12.4"
 dashmap = "5.3.4"
+sugar_path = { version = "0.0.5" }
 
 [dev-dependencies]
 insta = "1.19.0"

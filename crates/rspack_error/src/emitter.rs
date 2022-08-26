@@ -4,7 +4,9 @@ use codespan_reporting::term;
 use codespan_reporting::term::termcolor::{ColorChoice, StandardStream};
 use dashmap::DashMap;
 use std::io::Write;
+use std::path::Path;
 use std::sync::Arc;
+use sugar_path::PathSugar;
 use termcolor::{Color, ColorSpec, WriteColor};
 
 use crate::Diagnostic as RspackDiagnostic;
@@ -83,6 +85,8 @@ fn emit_batch_diagnostic<T: Write + WriteColor>(
   writer: &mut T,
 ) -> crate::Result<()> {
   let mut files = SimpleFiles::new();
+  let pwd = std::env::current_dir()?;
+
   for diagnostic in diagnostics {
     if let Some(info) = &diagnostic.source_info {
       // Since `Span` of `swc` started with 1 and span of diagnostic started with 0
@@ -94,7 +98,10 @@ fn emit_batch_diagnostic<T: Write + WriteColor>(
         .saturating_sub(1) as usize;
       let start = diagnostic.start - start_relative_sourcemap;
       let end = diagnostic.end - start_relative_sourcemap;
-      let file_id = files.add(info.path.clone(), info.source.clone());
+      let file_path = Path::new(&info.path);
+      let relative_path = file_path.relative(&pwd);
+      let relative_path = relative_path.as_os_str().to_string_lossy().to_string();
+      let file_id = files.add(relative_path, info.source.clone());
       let diagnostic = Diagnostic::new(diagnostic.severity.into())
         .with_message(&diagnostic.title)
         .with_labels(vec![

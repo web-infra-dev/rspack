@@ -16,7 +16,7 @@ use anyhow::Context;
 use rayon::prelude::*;
 use rspack_error::{
   emitter::{DiagnosticDisplay, StdioDiagnosticDisplay},
-  Diagnostic, Error, Result, TWithDiagnosticArray,
+  Error, Result, TWithDiagnosticArray,
 };
 use tracing::instrument;
 

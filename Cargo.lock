@@ -2194,6 +2194,7 @@ dependencies = [
  "rspack_binding_options",
  "rspack_core",
  "rspack_test",
+ "sugar_path",
  "termcolor",
  "thiserror",
  "tokio",
