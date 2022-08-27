@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use std::str::FromStr;
 
 use crate::sri::HtmlSriHashFunction;
 
@@ -9,12 +10,46 @@ pub enum HtmlPluginConfigInject {
   Body,
 }
 
+impl FromStr for HtmlPluginConfigInject {
+  type Err = anyhow::Error;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    if s.eq("head") {
+      Ok(HtmlPluginConfigInject::Head)
+    } else if s.eq("body") {
+      Ok(HtmlPluginConfigInject::Body)
+    } else {
+      Err(anyhow::Error::msg(
+        "inject in html config only support 'head' or 'body'",
+      ))
+    }
+  }
+}
+
 #[derive(Deserialize, Debug, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum HtmlPluginConfigScriptLoading {
   Blocking,
   Defer,
   Module,
+}
+
+impl FromStr for HtmlPluginConfigScriptLoading {
+  type Err = anyhow::Error;
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    if s.eq("blocking") {
+      Ok(HtmlPluginConfigScriptLoading::Blocking)
+    } else if s.eq("defer") {
+      Ok(HtmlPluginConfigScriptLoading::Defer)
+    } else if s.eq("module") {
+      Ok(HtmlPluginConfigScriptLoading::Module)
+    } else {
+      Err(anyhow::Error::msg(
+        "scriptLoading in html config only support 'blocking', 'defer' or 'module'",
+      ))
+    }
+  }
 }
 
 #[derive(Deserialize, Debug)]
