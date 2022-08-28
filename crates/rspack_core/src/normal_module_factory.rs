@@ -178,9 +178,11 @@ impl NormalModuleFactory {
       resource_fragment: url.fragment().map(|f| f.to_owned()),
     };
 
+    dbg!(&resource_data);
     let runner_result = if uri.starts_with("UnReachable:") {
       LoaderResult {
         content: Content::Buffer("module.exports = {}".to_string().as_bytes().to_vec()),
+        meta_data: None,
       }
     } else {
       let (runner_result, resolved_module_type) =
@@ -199,6 +201,9 @@ impl NormalModuleFactory {
         // TODO: remove default module type resolution based on the file extension.
         self.context.module_type = resolve_module_type_by_uri(url.path());
       }
+      if url.path().ends_with(".css") {
+        dbg!(url.path(), &runner_result);
+      }
 
       runner_result
     };
@@ -208,10 +213,10 @@ impl NormalModuleFactory {
       self.context.module_type,
       runner_result
     );
-
     let module = self.plugin_driver.parse(
       ParseModuleArgs {
         uri: uri.as_str(),
+        meta_data: runner_result.meta_data,
         // source: transform_result.content,
         options: self.context.options.clone(),
         source: runner_result.content,

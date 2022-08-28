@@ -11,6 +11,7 @@ pub struct ParseModuleArgs<'a> {
   pub uri: &'a str,
   pub options: Arc<CompilerOptions>,
   pub source: Content,
+  pub meta_data: Option<String>
   // pub ast: Option<ModuleAst>,
 }
 

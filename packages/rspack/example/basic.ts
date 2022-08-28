@@ -3,45 +3,27 @@ import { Rspack } from "../src";
 
 const rspack = new Rspack({
 	entry: {
-		main: path.resolve(__dirname, "../../../examples/react/src/index.js")
+		main: path.resolve(__dirname, "../../../examples/test/index.js")
 	},
-	context: path.resolve(__dirname, "../../../examples/react"),
+	context: path.resolve(__dirname, "../../../examples/test"),
 	plugins: [
-		{
-			name: "test",
-			buildEnd() {
-				console.log("build end");
-			}
-		},
-		{
-			name: "test2",
-			buildEnd() {
-				console.log("build end2");
-			}
-		}
 	],
 	module: {
 		rules: [
 			{
-				test: ".less$",
+				test: ".module.css$",
 				uses: [
 					{
 						loader: function testLoader(loaderContext) {
+							// console.log(loaderContext);
 							return {
-								content: loaderContext.source.getBuffer()
-							};
-						}
-					},
-					{
-						loader: function testLoader2(loaderContext) {
-							return {
-								content: loaderContext.source.getBuffer()
+								content: loaderContext.source.getBuffer(),
+								metaData: Buffer.from("something")
 							};
 						}
 					}
-				],
-				type: "css"
-			}
+				]
+			},
 		]
 	}
 });
