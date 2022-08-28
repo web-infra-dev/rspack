@@ -1,6 +1,6 @@
 # workaround for getting workspace root dir, reference: https://github.com/rust-lang/cargo/issues/3946
 [env]
-CARGO_WORKSPACE_DIR = {value = "", relative = true}
+CARGO_WORKSPACE_DIR = { value = "", relative = true }
 
 [alias]
 lint = "clippy --workspace --all-targets --verbose -- --deny warnings"
@@ -13,4 +13,4 @@ rustflags = [
 ]
 
 [target.x86_64-unknown-linux-gnu]
-rustflags = ["-C", "link-arg=-fuse-ld=mold"]
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]
