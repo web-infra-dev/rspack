@@ -165,6 +165,7 @@ html {{
     ) -> Result<Option<LoaderResult>> {
       let source = loader_context.source.to_owned().try_into_string()?;
       Ok(Some(LoaderResult {
+        meta_data: None,
         content: Content::String(format!(
           r#"{}
 console.log(2);"#,
@@ -197,6 +198,7 @@ console.log(2);"#,
     ) -> Result<Option<LoaderResult>> {
       let source = loader_context.source.to_owned().try_into_string()?;
       Ok(Some(LoaderResult {
+        meta_data: None,
         content: Content::String(format!(
           r#"{}
 console.log(3);"#,

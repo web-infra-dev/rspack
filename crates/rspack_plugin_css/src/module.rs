@@ -48,7 +48,7 @@ impl Module for CssModule {
   ) -> Result<Option<ModuleRenderResult>> {
     let result = match requested_source_type {
       SourceType::Css => Some(ModuleRenderResult::Css(SWC_COMPILER.codegen(&self.ast))),
-      SourceType::JavaScript => Some(ModuleRenderResult::JavaScript(String::from(format!(
+      SourceType::JavaScript => Some(ModuleRenderResult::JavaScript(format!(
         r#"function(module, exports, __rspack_require__, __rspack_dynamic_require__) {{
           "use strict";
           {}
@@ -58,8 +58,8 @@ impl Module for CssModule {
           .meta_data
           .clone()
           .map(|item| { format!("module.exports = {}", item) })
-          .unwrap_or("".to_string())
-      )))),
+          .unwrap_or_else(|| "".to_string())
+      ))),
       _ => None,
     };
     Ok(result)
