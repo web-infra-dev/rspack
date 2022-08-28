@@ -16,6 +16,7 @@ pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
 pub struct CssModule {
   pub ast: Stylesheet,
   pub source_type_list: &'static [SourceType; 2],
+  pub meta_data: Option<String>,
 }
 
 impl Debug for CssModule {
@@ -47,12 +48,18 @@ impl Module for CssModule {
   ) -> Result<Option<ModuleRenderResult>> {
     let result = match requested_source_type {
       SourceType::Css => Some(ModuleRenderResult::Css(SWC_COMPILER.codegen(&self.ast))),
-      SourceType::JavaScript => Some(ModuleRenderResult::JavaScript(String::from(
+      SourceType::JavaScript => Some(ModuleRenderResult::JavaScript(String::from(format!(
         r#"function(module, exports, __rspack_require__, __rspack_dynamic_require__) {{
-  "use strict";
-}};
-"#,
-      ))),
+          "use strict";
+          {}
+        }};
+        "#,
+        self
+          .meta_data
+          .clone()
+          .map(|item| { format!("module.exports = {}", item) })
+          .unwrap_or("".to_string())
+      )))),
       _ => None,
     };
     Ok(result)

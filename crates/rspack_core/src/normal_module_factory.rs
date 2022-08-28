@@ -202,7 +202,7 @@ impl NormalModuleFactory {
         self.context.module_type = resolve_module_type_by_uri(url.path());
       }
       if url.path().ends_with(".css") {
-        dbg!(url.path(), &runner_result);
+        // dbg!(url.path(), &runner_result);
       }
 
       runner_result

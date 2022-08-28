@@ -289,10 +289,10 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
       println!("loader_result, {:?}", loader_result);
       rspack_core::LoaderResult {
         content: rspack_core::Content::from(loader_result.content),
-        meta_data: Some("somthing".to_string()),
-        // meta_data: loader_result
-        //   .meta_data
-        //   .map(|item| String::from_utf8_lossy(&item).to_string()),
+        // meta_data: Some("somthing".to_string()),
+        meta_data: loader_result
+          .meta_data
+          .map(|item| String::from_utf8_lossy(&item).to_string()),
       }
     }))
   }

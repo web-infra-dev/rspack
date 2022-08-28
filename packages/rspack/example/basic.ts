@@ -1,4 +1,5 @@
 import path from "path";
+import postcssLoader from "rspack-plugin-postcss";
 import { Rspack } from "../src";
 
 const rspack = new Rspack({
@@ -6,24 +7,29 @@ const rspack = new Rspack({
 		main: path.resolve(__dirname, "../../../examples/test/index.js")
 	},
 	context: path.resolve(__dirname, "../../../examples/test"),
-	plugins: [
-	],
+	plugins: [],
 	module: {
 		rules: [
 			{
 				test: ".module.css$",
 				uses: [
 					{
-						loader: function testLoader(loaderContext) {
-							// console.log(loaderContext);
-							return {
-								content: loaderContext.source.getBuffer(),
-								metaData: Buffer.from("something")
-							};
+						loader: postcssLoader,
+						options: {
+							modules: true
 						}
 					}
+					// {
+					// 	loader: function testLoader(loaderContext) {
+					// 		// console.log(loaderContext);
+					// 		return {
+					// 			content: loaderContext.source.getBufFer(),
+					// 			metaData: Buffer.from("something")
+					// 		};
+					// 	}
+					// }
 				]
-			},
+			}
 		]
 	}
 });
