@@ -178,7 +178,6 @@ impl NormalModuleFactory {
       resource_fragment: url.fragment().map(|f| f.to_owned()),
     };
 
-    dbg!(&resource_data);
     let runner_result = if uri.starts_with("UnReachable:") {
       LoaderResult {
         content: Content::Buffer("module.exports = {}".to_string().as_bytes().to_vec()),
@@ -200,9 +199,6 @@ impl NormalModuleFactory {
         debug_assert_eq!(url.scheme(), "specifier");
         // TODO: remove default module type resolution based on the file extension.
         self.context.module_type = resolve_module_type_by_uri(url.path());
-      }
-      if url.path().ends_with(".css") {
-        // dbg!(url.path(), &runner_result);
       }
 
       runner_result
