@@ -142,7 +142,7 @@ impl Compiler {
           }
           Msg::TaskErrorEncountered(err) => {
             active_task_count.fetch_sub(1, Ordering::SeqCst);
-            self.compilation.push_diagnostic(err.into());
+            self.compilation.push_batch_diagnostic(err.into());
           }
         },
         None => {

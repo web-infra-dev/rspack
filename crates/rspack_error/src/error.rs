@@ -1,4 +1,4 @@
-use std::io;
+use std::{error, io};
 
 use thiserror::Error;
 
@@ -62,4 +62,7 @@ pub enum Error {
     #[from]
     source: json::Error,
   },
+
+  #[error("")]
+  BatchErrors(Vec<Error>),
 }

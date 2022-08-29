@@ -52,7 +52,7 @@ impl SwcCssCompiler {
     let diagnostics = parser
       .take_errors()
       .into_iter()
-      .map(|error| css_parse_error_to_diagnostic(error, path))
+      .flat_map(|error| css_parse_error_to_diagnostic(error, path))
       .collect();
     stylesheet
       .map_err(|_| rspack_error::Error::InternalError("Css parsing failed".to_string()))
@@ -76,7 +76,7 @@ impl SwcCssCompiler {
   }
 }
 
-pub fn css_parse_error_to_diagnostic(error: Error, path: &str) -> Diagnostic {
+pub fn css_parse_error_to_diagnostic(error: Error, path: &str) -> Vec<Diagnostic> {
   let message = error.message();
   let error = error.into_inner();
   let span: ErrorSpan = error.0.into();
@@ -88,5 +88,5 @@ pub fn css_parse_error_to_diagnostic(error: Error, path: &str) -> Diagnostic {
     message.to_string(),
   );
   //Use this `Error` convertion could avoid eagerly clone source file.
-  rspack_error::Error::TraceableError(traceable_error).into()
+  <Vec<Diagnostic>>::from(rspack_error::Error::TraceableError(traceable_error))
 }
