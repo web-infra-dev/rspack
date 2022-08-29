@@ -1,6 +1,7 @@
 use rspack_core::CompilationAsset;
 use serde::Deserialize;
 use sha2::{Digest, Sha256, Sha384, Sha512};
+use std::str::FromStr;
 
 use crate::visitors::asset::{HTMLPluginTag, HtmlPluginAttribute};
 
@@ -10,6 +11,24 @@ pub enum HtmlSriHashFunction {
   Sha256,
   Sha384,
   Sha512,
+}
+
+impl FromStr for HtmlSriHashFunction {
+  type Err = anyhow::Error;
+
+  fn from_str(s: &str) -> anyhow::Result<HtmlSriHashFunction> {
+    if s.eq("sha256") {
+      Ok(HtmlSriHashFunction::Sha256)
+    } else if s.starts_with("sha384") {
+      Ok(HtmlSriHashFunction::Sha384)
+    } else if s.eq("sha512") {
+      Ok(HtmlSriHashFunction::Sha512)
+    } else {
+      Err(anyhow::Error::msg(
+        "sri hash function in html config only support 'sha256', 'sha384' or 'sha512'",
+      ))
+    }
+  }
 }
 
 pub fn create_digest_from_asset(
