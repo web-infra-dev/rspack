@@ -7,7 +7,7 @@ const rspack = new Rspack({
 		main: path.resolve(__dirname, "../../../examples/postcss/index.js")
 	},
 	context: path.resolve(__dirname, "../../../examples/postcss"),
-	plugins: [],
+	plugins: [{ name: "html" }],
 	module: {
 		rules: [
 			{
