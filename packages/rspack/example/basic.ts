@@ -4,9 +4,9 @@ import { Rspack } from "../src";
 
 const rspack = new Rspack({
 	entry: {
-		main: path.resolve(__dirname, "../../../examples/test/index.js")
+		main: path.resolve(__dirname, "../../../examples/postcss/index.js")
 	},
-	context: path.resolve(__dirname, "../../../examples/test"),
+	context: path.resolve(__dirname, "../../../examples/postcss"),
 	plugins: [],
 	module: {
 		rules: [
