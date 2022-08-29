@@ -2,7 +2,7 @@ use clap::{self, Args, Parser, Subcommand};
 use std::{env, ffi::OsString};
 pub mod helper;
 mod record;
-mod rst;
+pub mod rst;
 mod update;
 pub use rst::test;
 

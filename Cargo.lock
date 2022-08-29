@@ -264,6 +264,7 @@ dependencies = [
  "serde",
  "serde_json",
  "similar",
+ "testing_macros",
  "tokio",
 ]
 
@@ -2360,6 +2361,7 @@ dependencies = [
 name = "rspack_test"
 version = "0.1.0"
 dependencies = [
+ "cargo-rst",
  "colored",
  "derive_builder",
  "glob",

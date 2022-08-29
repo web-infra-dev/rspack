@@ -26,3 +26,4 @@ tokio = "1.20.1"
 rspack_binding_options = { path = "../rspack_binding_options" }
 glob = "0.3.0"
 quick-js = "0.4.1"
+cargo-rst = { path = "../cargo-rst" }
