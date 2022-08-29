@@ -1,0 +1,17 @@
+---
+source: crates/rspack_error/tests/fixtures.rs
+expression: css_syntax_error
+---
+error: Css parsing error
+  ┌─ tests/fixtures/css_syntax_error/style.css:4:14
+  │
+4 │   background: red;
+  │              ^ Expected function or ident tokens
+
+error: Css parsing error
+  ┌─ tests/fixtures/css_syntax_error/style.css:4:18
+  │
+4 │   background: red;
+  │                  ^ Unexpected character `';'`
+
+

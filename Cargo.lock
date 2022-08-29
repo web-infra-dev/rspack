@@ -1064,6 +1064,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "insta"
+version = "1.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f37dc501f12ec0c339b385787fa89ffda3d5d2caa62e558da731134c24d6e0c4"
+dependencies = [
+ "console",
+ "linked-hash-map",
+ "once_cell",
+ "similar",
+ "yaml-rust",
+]
+
+[[package]]
 name = "instant"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2175,9 +2188,16 @@ dependencies = [
  "anyhow",
  "codespan-reporting",
  "dashmap",
+ "insta",
  "json",
+ "rspack",
+ "rspack_binding_options",
+ "rspack_core",
+ "rspack_test",
+ "sugar_path",
  "termcolor",
  "thiserror",
+ "tokio",
 ]
 
 [[package]]
@@ -4722,3 +4742,12 @@ name = "windows_x86_64_msvc"
 version = "0.36.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c811ca4a8c853ef420abd8592ba53ddbbac90410fab6903b3e79972a631f7680"
+
+[[package]]
+name = "yaml-rust"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56c1936c4cc7a1c9ab21a1ebb602eb942ba868cbd44a99cb7cdc5892335e1c85"
+dependencies = [
+ "linked-hash-map",
+]

@@ -9,11 +9,15 @@ use std::{
 use crate::{
   AssetContent, CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule,
   NormalModuleFactory, NormalModuleFactoryContext, Plugin, PluginDriver, Stats,
-  TWithDiagnosticArray, PATH_START_BYTE_POS_MAP,
+  PATH_START_BYTE_POS_MAP,
 };
+
 use anyhow::Context;
 use rayon::prelude::*;
-use rspack_error::{emitter::emit_batch_diagnostic, Error, Result};
+use rspack_error::{
+  emitter::{DiagnosticDisplay, StdioDiagnosticDisplay},
+  Error, Result, TWithDiagnosticArray,
+};
 use tracing::instrument;
 
 mod compilation;
@@ -139,6 +143,13 @@ impl Compiler {
       .build_end(self.plugin_driver.clone())
       .await?;
 
+    // Consume plugin driver diagnostic
+    let mut plugin_driver_diagnostics = self.plugin_driver.take_diagnostic();
+    self
+      .compilation
+      .diagnostic
+      .append(&mut plugin_driver_diagnostics);
+
     // tracing::trace!("assets {:#?}", assets);
 
     std::fs::create_dir_all(Path::new(&self.options.context).join(&self.options.output.path))
@@ -180,10 +191,12 @@ impl Compiler {
   #[instrument(skip_all)]
   pub async fn run(&mut self) -> Result<Stats> {
     self.compile().await?;
-    emit_batch_diagnostic(
-      &self.compilation.diagnostic,
-      PATH_START_BYTE_POS_MAP.clone(),
-    )?;
+    if self.options.emit_error {
+      StdioDiagnosticDisplay::default().emit_batch_diagnostic(
+        &self.compilation.diagnostic,
+        PATH_START_BYTE_POS_MAP.clone(),
+      )?;
+    }
     Ok(Stats::new(&self.compilation))
   }
 }

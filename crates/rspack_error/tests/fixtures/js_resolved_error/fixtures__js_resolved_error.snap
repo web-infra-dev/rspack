@@ -1,0 +1,11 @@
+---
+source: crates/rspack_error/tests/fixtures.rs
+expression: js_resolved_error
+---
+error: Resolve error
+  ┌─ tests/fixtures/js_resolved_error/index.js:2:1
+  │
+2 │ import './result.svg'
+  │ ^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./result.svg
+
+

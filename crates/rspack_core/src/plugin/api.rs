@@ -7,7 +7,7 @@ use crate::{
   PluginContext, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, RuntimeSourceNode,
   TransformAst, TransformResult,
 };
-use rspack_error::Result;
+use rspack_error::{Result, TWithDiagnosticArray};
 
 // use anyhow::{Context, Result};
 use hashbrown::HashMap;
@@ -162,7 +162,11 @@ impl RenderManifestEntry {
 }
 
 pub trait Parser: Debug + Sync + Send {
-  fn parse(&self, module_type: ModuleType, args: ParseModuleArgs) -> Result<BoxModule>;
+  fn parse(
+    &self,
+    module_type: ModuleType,
+    args: ParseModuleArgs,
+  ) -> Result<TWithDiagnosticArray<BoxModule>>;
 }
 
 pub type BoxedParser = Box<dyn Parser>;
