@@ -258,9 +258,13 @@ name = "cargo-rst"
 version = "0.1.0"
 dependencies = [
  "clap 3.2.17",
+ "colored",
  "derive_builder",
  "glob",
- "rspack_test",
+ "serde",
+ "serde_json",
+ "similar",
+ "tokio",
 ]
 
 [[package]]

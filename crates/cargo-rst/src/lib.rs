@@ -1,8 +1,15 @@
 use clap::{self, Args, Parser, Subcommand};
 use std::{env, ffi::OsString};
+pub mod helper;
+mod record;
+mod rst;
 mod update;
+pub use rst::test;
 
 use update::update;
+
+#[macro_use]
+extern crate derive_builder;
 
 #[derive(Parser)]
 #[clap(version, name = "cargo_rst", about, long_about = None)]
