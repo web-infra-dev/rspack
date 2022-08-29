@@ -38,20 +38,20 @@ pub struct LoaderContext<'a, 'context, T, U> {
 
   pub compilation_context: &'context U,
 
-  pub meta_data: Option<String>,
+  pub extra_data: Option<String>,
 }
 
 #[derive(Debug)]
 pub struct LoaderResult {
   pub content: Content,
-  pub meta_data: Option<String>,
+  pub extra_data: Option<String>,
 }
 
 impl<T, U> From<LoaderContext<'_, '_, T, U>> for LoaderResult {
   fn from(loader_context: LoaderContext<'_, '_, T, U>) -> Self {
     Self {
       content: loader_context.source,
-      meta_data: loader_context.meta_data,
+      extra_data: loader_context.extra_data,
     }
   }
 }
@@ -128,7 +128,7 @@ impl LoaderRunner {
       resource_fragment: self.resource_data.resource_fragment.as_deref(),
       compiler_context: context.compiler,
       compilation_context: context.compilation,
-      meta_data: None,
+      extra_data: None,
     };
 
     Ok(loader_context)
@@ -148,7 +148,7 @@ impl LoaderRunner {
 
       if let Some(loader_result) = loader.run(&loader_context).await? {
         loader_context.source = loader_result.content;
-        loader_context.meta_data = loader_result.meta_data;
+        loader_context.extra_data = loader_result.extra_data;
       }
     }
 

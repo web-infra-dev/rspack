@@ -16,7 +16,7 @@ pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
 pub struct CssModule {
   pub ast: Stylesheet,
   pub source_type_list: &'static [SourceType; 2],
-  pub meta_data: Option<String>,
+  pub extra_data: Option<String>,
 }
 
 impl Debug for CssModule {
@@ -55,7 +55,7 @@ impl Module for CssModule {
         }};
         "#,
         self
-          .meta_data
+          .extra_data
           .clone()
           .map(|item| { format!("module.exports = {}", item) })
           .unwrap_or_else(|| "".to_string())

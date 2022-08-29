@@ -24,7 +24,7 @@ const rspack = new Rspack({
 					// 		// console.log(loaderContext);
 					// 		return {
 					// 			content: loaderContext.source.getBufFer(),
-					// 			metaData: Buffer.from("something")
+					// 			extraData: Buffer.from("something")
 					// 		};
 					// 	}
 					// }

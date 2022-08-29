@@ -289,9 +289,9 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
       println!("loader_result, {:?}", loader_result);
       rspack_core::LoaderResult {
         content: rspack_core::Content::from(loader_result.content),
-        // meta_data: Some("somthing".to_string()),
-        meta_data: loader_result
-          .meta_data
+        // extra_data: Some("somthing".to_string()),
+        extra_data: loader_result
+          .extra_data
           .map(|item| String::from_utf8_lossy(&item).to_string()),
       }
     }))
@@ -320,7 +320,7 @@ pub struct LoaderContext {
 #[serde(rename_all = "camelCase")]
 struct LoaderResult {
   pub content: Vec<u8>,
-  pub meta_data: Option<Vec<u8>>,
+  pub extra_data: Option<Vec<u8>>,
 }
 
 type LoaderThreadsafeLoaderContext = LoaderContext;

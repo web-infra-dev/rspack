@@ -67,12 +67,12 @@ interface LoaderContext
 
 interface LoaderResultInternal {
 	content: number[];
-	metaData: number[]
+	extraData: number[];
 }
 
 interface LoaderResult {
 	content: Buffer | string;
-	metaData: Buffer | string
+	extraData: Buffer | string;
 }
 
 interface LoaderThreadsafeResult {
@@ -151,7 +151,7 @@ function composeJsUse(uses: ModuleRuleUse[]): RawModuleRuleUse {
 		};
 
 		let sourceBuffer = Buffer.from(loaderContextInternal.source);
-		let metaData = Buffer.from("")
+		let extraData = Buffer.from("");
 		// Loader is executed from right to left
 		for (const use of uses) {
 			assert("loader" in use);
@@ -177,14 +177,15 @@ function composeJsUse(uses: ModuleRuleUse[]): RawModuleRuleUse {
 				))
 			) {
 				const content = loaderResult.content;
-				metaData = metaData.length > 0 ? metaData : toBuffer(loaderResult.metaData)
+				extraData =
+					extraData.length > 0 ? extraData : toBuffer(loaderResult.extraData);
 				sourceBuffer = toBuffer(content);
 			}
 		}
 
 		const loaderResultPayload: LoaderResultInternal = {
 			content: [...sourceBuffer],
-			metaData: [...metaData]
+			extraData: [...extraData]
 		};
 
 		const loaderThreadsafeResult: LoaderThreadsafeResult = {
