@@ -107,6 +107,12 @@ importers:
     devDependencies:
       '@rspack/core': link:../../packages/rspack
 
+  examples/postcss:
+    specifiers:
+      '@rspack/core': workspace:*
+    devDependencies:
+      '@rspack/core': link:../../packages/rspack
+
   examples/react:
     specifiers:
       '@rspack/core': workspace:*
@@ -138,12 +144,6 @@ importers:
       '@rspack/core': link:../../packages/rspack
       react: 17.0.0
       react-dom: 17.0.0_react@17.0.0
-
-  examples/test:
-    specifiers:
-      '@rspack/core': workspace:*
-    devDependencies:
-      '@rspack/core': link:../../packages/rspack
 
   packages/rspack:
     specifiers:
