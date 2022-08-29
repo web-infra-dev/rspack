@@ -48,6 +48,7 @@ impl Module for CssModule {
   ) -> Result<Option<ModuleRenderResult>> {
     let result = match requested_source_type {
       SourceType::Css => Some(ModuleRenderResult::Css(SWC_COMPILER.codegen(&self.ast))),
+      // This is just a temporary solution for css-modules
       SourceType::JavaScript => Some(ModuleRenderResult::JavaScript(format!(
         r#"function(module, exports, __rspack_require__, __rspack_dynamic_require__) {{
           "use strict";
