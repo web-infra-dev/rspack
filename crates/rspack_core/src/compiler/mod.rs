@@ -138,6 +138,10 @@ impl Compiler {
     // self.compilation.calc_exec_order();
 
     self.compilation.seal(self.plugin_driver.clone())?;
+    self
+      .compilation
+      .build_end(self.plugin_driver.clone())
+      .await?;
 
     // Consume plugin driver diagnostic
     let mut plugin_driver_diagnostics = self.plugin_driver.take_diagnostic();

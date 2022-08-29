@@ -6,7 +6,20 @@ const rspack = new Rspack({
 		main: path.resolve(__dirname, "../../../examples/react/src/index.js")
 	},
 	context: path.resolve(__dirname, "../../../examples/react"),
-	plugins: ["html"],
+	plugins: [
+		{
+			name: "test",
+			buildEnd() {
+				console.log("build end");
+			}
+		},
+		{
+			name: "test2",
+			buildEnd() {
+				console.log("build end2");
+			}
+		}
+	],
 	module: {
 		rules: [
 			{

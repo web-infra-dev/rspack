@@ -42,7 +42,7 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  fn build_end(&self) -> PluginBuildEndHookOutput {
+  async fn build_end(&self) -> PluginBuildEndHookOutput {
     Ok(())
   }
 

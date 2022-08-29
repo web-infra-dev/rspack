@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 // use std::path::Path;
 use std::sync::Arc;
 
@@ -6,9 +7,10 @@ use napi::{Env, Result};
 use napi_derive::napi;
 // use nodejs_resolver::Resolver;
 use tokio::sync::Mutex;
-// pub mod adapter;
+mod adapter;
 // mod options;
 mod utils;
+use adapter::create_node_adapter_from_plugin_callbacks;
 
 use utils::get_named_property_value_string;
 
@@ -25,13 +27,18 @@ pub fn create_external<T>(value: T) -> External<T> {
 
 pub type Rspack = Arc<Mutex<rspack::Compiler>>;
 
-// #[napi(object)]
-// pub struct PluginCallbacks {
-//   pub build_start_callback: JsFunction,
-//   pub load_callback: JsFunction,
-//   pub resolve_callback: JsFunction,
-//   pub build_end_callback: JsFunction,
-// }
+#[napi(object)]
+
+pub struct PluginCallbacks {
+  pub build_end_callback: JsFunction,
+}
+impl Debug for PluginCallbacks {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("PluginCallbacks")
+      .field("build_end_callback", &"build_end_adapter")
+      .finish()
+  }
+}
 
 pub struct RspackBindingContext {
   pub rspack: Rspack,
@@ -71,16 +78,8 @@ pub fn init_trace_subscriber(env: Env) -> Result<()> {
 pub fn new_rspack(
   env: Env,
   mut options: RawOptions,
-  // plugin_callbacks: Option<PluginCallbacks>,
+  plugin_callbacks: Option<PluginCallbacks>,
 ) -> Result<External<RspackBindingContext>> {
-  // let node_adapter = create_node_adapter_from_plugin_callbacks(&env, plugin_callbacks)?;
-
-  // let mut plugins = vec![];
-
-  // if let Some(node_adapter) = node_adapter {
-  //   plugins.push(Box::new(node_adapter) as Box<dyn rspack_core::Plugin>);
-  // }
-
   #[cfg(debug_assertions)]
   {
     if let Some(module) = options.module.as_mut() {
@@ -101,12 +100,14 @@ pub fn new_rspack(
       }
     }
   }
-
-  dbg!(&options);
-
+  let node_adapter = create_node_adapter_from_plugin_callbacks(&env, plugin_callbacks)?;
   let mut compiler_options =
     normalize_bundle_options(options).map_err(|e| Error::from_reason(format!("{:?}", e)))?;
-
+  if let Some(node_adapter) = node_adapter {
+    compiler_options
+      .plugins
+      .push(Box::new(node_adapter) as Box<dyn rspack_core::Plugin>);
+  }
   // TODO: this way or passing env as context to `normalize_bundle_option`?
   compiler_options
     .module
