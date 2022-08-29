@@ -160,15 +160,7 @@ impl Plugin for CssPlugin {
           .output
           .filename
           .render(FilenameRenderOptions {
-            filename: Some(
-              args
-                .compilation
-                .chunk_by_rid
-                .get(&args.chunk_rid)
-                .unwrap()
-                .id
-                .to_owned(),
-            ),
+            filename: Some(args.chunk().id.to_owned()),
             extension: Some(".css".to_owned()),
             id: None,
           }),

@@ -48,7 +48,7 @@ impl Plugin for HtmlPlugin {
     let compilation = args.compilation;
     let assets = &compilation.assets;
 
-    let chunk_graph = &compilation.chunk_graph;
+    let _chunk_graph = &compilation.chunk_graph;
     let chunk_by_rid = &compilation.chunk_by_rid;
 
     let parser = HtmlCompiler::new();

@@ -8,6 +8,12 @@ static NEXT_RES_ID: AtomicUsize = AtomicUsize::new(0);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Rid(usize, Option<&'static str>);
 
+impl Default for Rid {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 impl Rid {
   pub fn new() -> Self {
     Self(NEXT_RES_ID.fetch_add(1, Ordering::SeqCst), None)

@@ -3,7 +3,6 @@ use std::collections::{HashMap, HashSet, VecDeque};
 // use crate::{
 //     BundleOptions, Chunk, ChunkGraph, ChunkIdAlgo, ChunkKind, JsModuleKind, ModuleGraphContainer,
 // };
-use tracing::instrument;
 
 use crate::{uri_to_chunk_name, Chunk, ChunkIdAlgo, ChunkKind, ChunkRid, Compilation, ModuleGraph};
 

@@ -110,13 +110,7 @@ impl Plugin for JsPlugin {
         Some(get_wrap_chunk_before(
           namespace,
           RSPACK_REGISTER,
-          &args
-            .compilation
-            .chunk_by_rid
-            .get(&args.chunk_rid)
-            .unwrap()
-            .id
-            .to_owned(),
+          &args.chunk().id.to_owned(),
         )),
       );
       module_code_array.push(Some(get_wrap_chunk_after()));
@@ -156,15 +150,7 @@ impl Plugin for JsPlugin {
           .output
           .filename
           .render(FilenameRenderOptions {
-            filename: Some(
-              args
-                .compilation
-                .chunk_by_rid
-                .get(&args.chunk_rid)
-                .unwrap()
-                .id
-                .to_owned(),
-            ),
+            filename: Some(args.chunk().id.to_owned()),
             extension: Some(".js".to_owned()),
             id: None,
           })
@@ -177,16 +163,7 @@ impl Plugin for JsPlugin {
           .render(FilenameRenderOptions {
             filename: None,
             extension: Some(".js".to_owned()),
-            id: Some(format!(
-              "static/js/{}",
-              args
-                .compilation
-                .chunk_by_rid
-                .get(&args.chunk_rid)
-                .unwrap()
-                .id
-                .to_owned()
-            )),
+            id: Some(format!("static/js/{}", args.chunk().id.to_owned())),
           })
       }
     };
