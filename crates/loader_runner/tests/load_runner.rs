@@ -102,7 +102,7 @@ mod fixtures {
       let source = loader_context.source.to_owned();
       Ok(Some(LoaderResult {
         content: source,
-        extra_data: None,
+        meta: None,
       }))
     }
 
@@ -130,7 +130,7 @@ mod fixtures {
     ) -> Result<Option<LoaderResult>> {
       let source = loader_context.source.to_owned().try_into_string()?;
       Ok(Some(LoaderResult {
-        extra_data: None,
+        meta: None,
         content: Content::String(format!(
           r#"{}
 html {{
@@ -165,7 +165,7 @@ html {{
     ) -> Result<Option<LoaderResult>> {
       let source = loader_context.source.to_owned().try_into_string()?;
       Ok(Some(LoaderResult {
-        extra_data: None,
+        meta: None,
         content: Content::String(format!(
           r#"{}
 console.log(2);"#,
@@ -198,7 +198,7 @@ console.log(2);"#,
     ) -> Result<Option<LoaderResult>> {
       let source = loader_context.source.to_owned().try_into_string()?;
       Ok(Some(LoaderResult {
-        extra_data: None,
+        meta: None,
         content: Content::String(format!(
           r#"{}
 console.log(3);"#,

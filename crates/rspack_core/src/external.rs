@@ -36,7 +36,7 @@ impl Plugin for ExternalPlugin {
             let module = args.plugin_driver.parse(
               ParseModuleArgs {
                 uri: specifier,
-                extra_data: None,
+                meta: None,
                 options: job_ctx.options.clone(),
                 source: Content::Buffer(format!("module.exports = {}", value).as_bytes().to_vec()),
               },

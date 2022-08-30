@@ -399,7 +399,7 @@ impl Loader<CompilerContext, CompilationContext> for SassLoader {
       .map_err(sass_exception_to_error)?;
     Ok(Some(LoaderResult {
       content: result.css.into(),
-      extra_data: None,
+      meta: None,
     }))
   }
 

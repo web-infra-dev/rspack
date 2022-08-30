@@ -7,7 +7,7 @@ const rspack = new Rspack({
 		main: path.resolve(__dirname, "../../../examples/postcss/index.js")
 	},
 	context: path.resolve(__dirname, "../../../examples/postcss"),
-	plugins: [{ name: "html" }],
+	plugins: ["html"],
 	module: {
 		rules: [
 			{
@@ -24,7 +24,7 @@ const rspack = new Rspack({
 					// 		// console.log(loaderContext);
 					// 		return {
 					// 			content: loaderContext.source.getBufFer(),
-					// 			extraData: Buffer.from("something")
+					// 			meta: Buffer.from("something")
 					// 		};
 					// 	}
 					// }

@@ -25,7 +25,7 @@ module.exports = async function loader(loaderContext) {
 		let res = await root.process(loaderContext.source.getCode());
 		return {
 			content: res.css,
-			extraData: meta ? Buffer.from(JSON.stringify(meta)) : ""
+			meta: meta ? Buffer.from(JSON.stringify(meta)) : ""
 		};
 	} catch (err) {
 		throw new Error(err);
