@@ -13,7 +13,6 @@ use colored::Colorize;
 
 use glob::glob;
 
-use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use serde_json;
@@ -171,21 +170,21 @@ impl Default for Rst {
 
 #[macro_export]
 macro_rules! prt {
-  ($($arg:tt)*) => {{
-    if !$crate::helper::is_mute() {
-      print!($($arg)*);
-    }
-}};
-}
+    ($($arg:tt)*) => {{
+      if !$crate::helper::is_mute() {
+        print!($($arg)*);
+      }
+  }};
+  }
 
 #[macro_export]
 macro_rules! prtln {
-  ($($arg:tt)*) => {{
-    if !is_mute() {
-      println!($($arg)*);
-    }
-}};
-}
+    ($($arg:tt)*) => {{
+      if !is_mute() {
+        println!($($arg)*);
+      }
+  }};
+  }
 
 impl Rst {
   /// Generate Rst using **relative** path.
@@ -592,7 +591,7 @@ fn update_single_case(dir: &PathBuf) {
     .unwrap()
     .map(|dir| dir.unwrap().path())
     .collect::<Vec<_>>();
-  failed_files.par_iter().for_each(|failed_path| {
+  failed_files.iter().for_each(|failed_path| {
     let record = serde_json::from_slice::<Record>(&fs::read(&failed_path).unwrap()).unwrap();
     let rst: Rst = record.into();
     rst.update_fixture();
@@ -629,7 +628,7 @@ pub fn assert(p: PathBuf) {
 #[cfg(test)]
 mod test {
   use crate::{
-    for_each_dir,
+    helper::for_each_dir,
     rst::{self, Mode, RstBuilder, TestErrorKind},
   };
   use std::{env, fs, path::PathBuf};

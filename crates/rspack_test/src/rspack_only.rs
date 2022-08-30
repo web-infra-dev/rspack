@@ -1,5 +1,5 @@
 use crate::test_options::RawOptionsExt;
-use crate::{helper::make_relative_from, rst::RstBuilder};
+use cargo_rst::{helper::make_relative_from, rst::RstBuilder};
 use rspack_binding_options::RawOptions;
 use rspack_core::CompilerOptions;
 use std::path::{Path, PathBuf};

@@ -3,7 +3,7 @@ use std::{
   path::{self, Path, PathBuf},
 };
 
-use rspack_test::rst::Rst;
+use crate::rst::Rst;
 
 fn get_record_dir() -> PathBuf {
   let mut p = env::current_dir().unwrap();

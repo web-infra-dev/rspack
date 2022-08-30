@@ -4,9 +4,17 @@ name = "cargo-rst"
 version = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dev-dependencies]
+testing_macros = "0.2.5"
 
 [dependencies]
-clap = {version = "3.2.15", features = ["derive"]}
+clap = { version = "3.2.15", features = ["derive"] }
 derive_builder = "0.11.2"
-rspack_test = {path = "../rspack_test"}
 glob = "0.3.0"
+
+colored = "2.0.0"
+serde = { version = "1.0.139", features = ["derive"] }
+serde_json = "1.0.82"
+
+similar = "2.1.0"
+tokio = "1.20.1"

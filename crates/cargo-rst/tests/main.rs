@@ -5,8 +5,8 @@ use std::{
   path::{Path, PathBuf},
 };
 
+use cargo_rst::helper::for_each_dir;
 use cargo_rst::setup;
-use rspack_test::for_each_dir;
 
 /*
  * disable update test in CI, because update will remove
@@ -34,7 +34,7 @@ fn main() {
   all.push("tests/fixtures");
 
   for_each_dir(&all, |dir| {
-    assert!(rspack_test::test(PathBuf::from(dir)).is_err());
+    assert!(cargo_rst::test(PathBuf::from(dir)).is_err());
   });
 
   // update one fixture
@@ -49,14 +49,14 @@ fn main() {
   ];
   setup(&cmd);
 
-  assert!(rspack_test::test(file_fixture.clone()).is_ok());
+  assert!(cargo_rst::test(file_fixture.clone()).is_ok());
 
   // update all fixtures
   let cmd: Vec<OsString> = vec!["rst".into(), "update".into()];
   setup(&cmd);
 
   for_each_dir(&all, |dir| {
-    assert!(rspack_test::test(PathBuf::from(dir)).is_ok());
+    assert!(cargo_rst::test(PathBuf::from(dir)).is_ok());
   });
 }
 
