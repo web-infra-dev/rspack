@@ -181,6 +181,7 @@ impl NormalModuleFactory {
     let runner_result = if uri.starts_with("UnReachable:") {
       LoaderResult {
         content: Content::Buffer("module.exports = {}".to_string().as_bytes().to_vec()),
+        meta: None,
       }
     } else {
       let (runner_result, resolved_module_type) =
@@ -208,10 +209,10 @@ impl NormalModuleFactory {
       self.context.module_type,
       runner_result
     );
-
     let module = self.plugin_driver.parse(
       ParseModuleArgs {
         uri: uri.as_str(),
+        meta: runner_result.meta,
         // source: transform_result.content,
         options: self.context.options.clone(),
         source: runner_result.content,

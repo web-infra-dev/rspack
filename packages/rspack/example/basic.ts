@@ -1,46 +1,34 @@
 import path from "path";
+import postcssLoader from "rspack-plugin-postcss";
 import { Rspack } from "../src";
 
 const rspack = new Rspack({
 	entry: {
-		main: path.resolve(__dirname, "../../../examples/react/src/index.js")
+		main: path.resolve(__dirname, "../../../examples/postcss/index.js")
 	},
-	context: path.resolve(__dirname, "../../../examples/react"),
-	plugins: [
-		{
-			name: "test",
-			buildEnd() {
-				console.log("build end");
-			}
-		},
-		{
-			name: "test2",
-			buildEnd() {
-				console.log("build end2");
-			}
-		}
-	],
+	context: path.resolve(__dirname, "../../../examples/postcss"),
+	plugins: ["html"],
 	module: {
 		rules: [
 			{
-				test: ".less$",
+				test: ".module.css$",
 				uses: [
 					{
-						loader: function testLoader(loaderContext) {
-							return {
-								content: loaderContext.source.getBuffer()
-							};
-						}
-					},
-					{
-						loader: function testLoader2(loaderContext) {
-							return {
-								content: loaderContext.source.getBuffer()
-							};
+						loader: postcssLoader,
+						options: {
+							modules: true
 						}
 					}
-				],
-				type: "css"
+					// {
+					// 	loader: function testLoader(loaderContext) {
+					// 		// console.log(loaderContext);
+					// 		return {
+					// 			content: loaderContext.source.getBufFer(),
+					// 			meta: Buffer.from("something")
+					// 		};
+					// 	}
+					// }
+				]
 			}
 		]
 	}

@@ -21,7 +21,8 @@
     "build:bundle": "cargo run --package rspack --example bundle",
     "build:webpack": "cd webpack-examples && node buildAll.js",
     "build:cli": "pnpm --filter @rspack/core... build",
-    "build:binding": "pnpm --filter @rspack/binding build"
+    "build:binding": "pnpm --filter @rspack/binding build",
+    "build_binding_and_run_example": "pnpm build:binding && pnpm --filter @rspack/core run example "
   },
   "repository": {
     "type": "git",

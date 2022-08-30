@@ -6,9 +6,6 @@ module.exports = {
   output: {
     publicPath: "http://localhost:3000",
   },
-  define: {
-    "process.env.NODE_ENV": "development",
-  },
   module: {
     rules: [
       {

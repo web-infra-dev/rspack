@@ -100,7 +100,10 @@ mod fixtures {
       loader_context: &LoaderContext<'_, '_, (), ()>,
     ) -> Result<Option<LoaderResult>> {
       let source = loader_context.source.to_owned();
-      Ok(Some(LoaderResult { content: source }))
+      Ok(Some(LoaderResult {
+        content: source,
+        meta: None,
+      }))
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
@@ -127,6 +130,7 @@ mod fixtures {
     ) -> Result<Option<LoaderResult>> {
       let source = loader_context.source.to_owned().try_into_string()?;
       Ok(Some(LoaderResult {
+        meta: None,
         content: Content::String(format!(
           r#"{}
 html {{
@@ -161,6 +165,7 @@ html {{
     ) -> Result<Option<LoaderResult>> {
       let source = loader_context.source.to_owned().try_into_string()?;
       Ok(Some(LoaderResult {
+        meta: None,
         content: Content::String(format!(
           r#"{}
 console.log(2);"#,
@@ -193,6 +198,7 @@ console.log(2);"#,
     ) -> Result<Option<LoaderResult>> {
       let source = loader_context.source.to_owned().try_into_string()?;
       Ok(Some(LoaderResult {
+        meta: None,
         content: Content::String(format!(
           r#"{}
 console.log(3);"#,
