@@ -105,6 +105,6 @@ impl TryFrom<&str> for ModuleType {
   }
 }
 
-pub(crate) type VisitedModuleIdentity = Arc<DashSet<(String, ModuleDependency)>>;
+pub(crate) type VisitedModuleIdentity = Arc<DashSet<(String, ResolveKind)>>;
 
 pub(crate) type ChunkByUkey = HashMap<ChunkUkey, Chunk>;

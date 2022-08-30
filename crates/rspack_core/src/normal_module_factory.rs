@@ -161,7 +161,7 @@ impl NormalModuleFactory {
     if self
       .context
       .visited_module_identity
-      .contains(&(uri.clone(), self.dependency.detail.clone()))
+      .contains(&(uri.clone(), self.dependency.detail.kind))
     {
       return Ok(None);
     }
@@ -169,7 +169,7 @@ impl NormalModuleFactory {
     self
       .context
       .visited_module_identity
-      .insert((uri.clone(), self.dependency.detail.clone()));
+      .insert((uri.clone(), self.dependency.detail.kind));
 
     let resource_data = ResourceData {
       resource: uri.clone(),
