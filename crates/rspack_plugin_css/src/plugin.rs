@@ -126,9 +126,9 @@ impl Plugin for CssPlugin {
     let compilation = args.compilation;
     let module_graph = &compilation.module_graph;
     let chunk = compilation
-      .chunk_by_rid
-      .get(&args.chunk_rid)
-      .ok_or_else(|| anyhow::format_err!("Not found chunk {:?}", args.chunk_rid))?;
+      .chunk_by_ukey
+      .get(&args.chunk_ukey)
+      .ok_or_else(|| anyhow::format_err!("Not found chunk {:?}", args.chunk_ukey))?;
     let ordered_modules = chunk.ordered_modules(module_graph);
     let code = ordered_modules
       .par_iter()

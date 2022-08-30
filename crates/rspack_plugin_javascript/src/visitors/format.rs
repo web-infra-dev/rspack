@@ -258,7 +258,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
         let chunk_id = if let Some(chunk) = self
           .compilation
           .chunk_graph
-          .chunk_by_split_point_module_uri(&js_module.uri, &self.compilation.chunk_by_rid)
+          .chunk_by_split_point_module_uri(&js_module.uri, &self.compilation.chunk_by_ukey)
         {
           chunk.id.as_str()
         } else {

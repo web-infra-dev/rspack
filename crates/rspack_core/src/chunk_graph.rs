@@ -1,8 +1,8 @@
-use crate::{Chunk, ChunkByRid, ChunkRid};
+use crate::{Chunk, ChunkByUkey, ChunkUkey};
 
 #[derive(Debug, Default)]
 pub struct ChunkGraph {
-  split_point_module_uri_to_chunk_ref: hashbrown::HashMap<String, ChunkRid>,
+  split_point_module_uri_to_chunk_ref: hashbrown::HashMap<String, ChunkUkey>,
 }
 
 impl ChunkGraph {
@@ -15,9 +15,9 @@ impl ChunkGraph {
   pub fn chunk_by_split_point_module_uri<'a>(
     &self,
     uri: &str,
-    chunk_by_rid: &'a ChunkByRid,
+    chunk_by_ukey: &'a ChunkByUkey,
   ) -> Option<&'a Chunk> {
-    let chunk_ref = self.split_point_module_uri_to_chunk_ref.get(uri)?;
-    chunk_by_rid.get(chunk_ref)
+    let ukey = self.split_point_module_uri_to_chunk_ref.get(uri)?;
+    chunk_by_ukey.get(ukey)
   }
 }

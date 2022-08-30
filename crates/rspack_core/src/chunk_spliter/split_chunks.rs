@@ -4,7 +4,9 @@ use std::collections::{HashMap, HashSet, VecDeque};
 //     BundleOptions, Chunk, ChunkGraph, ChunkIdAlgo, ChunkKind, JsModuleKind, ModuleGraphContainer,
 // };
 
-use crate::{uri_to_chunk_name, Chunk, ChunkIdAlgo, ChunkKind, ChunkRid, Compilation, ModuleGraph};
+use crate::{
+  uri_to_chunk_name, Chunk, ChunkIdAlgo, ChunkKind, ChunkUkey, Compilation, ModuleGraph,
+};
 
 pub fn code_splitting2(compilation: &mut Compilation) {
   // let code_splitting_options = &bundle_options.code_splitting;
@@ -20,8 +22,8 @@ pub fn code_splitting2(compilation: &mut Compilation) {
     chunk_id_algo: ChunkIdAlgo::Named,
   };
 
-  let mut chunk_ref_by_entry_module_uri: HashMap<&str, ChunkRid> = HashMap::new();
-  let mut chunk_relation_graph2 = petgraph::graphmap::DiGraphMap::<ChunkRid, ()>::new();
+  let mut chunk_ref_by_entry_module_uri: HashMap<&str, ChunkUkey> = HashMap::new();
+  let mut chunk_relation_graph2 = petgraph::graphmap::DiGraphMap::<ChunkUkey, ()>::new();
 
   let mut chunk_entries = compilation
     .entry_dependencies()
@@ -30,7 +32,7 @@ pub fn code_splitting2(compilation: &mut Compilation) {
     .map(|module| module.uri.as_str())
     .collect::<Vec<_>>();
 
-  let chunk_by_ref = &mut compilation.chunk_by_rid;
+  let chunk_by_ref = &mut compilation.chunk_by_ukey;
 
   let chunk_graph = &mut compilation.chunk_graph;
 
@@ -38,7 +40,7 @@ pub fn code_splitting2(compilation: &mut Compilation) {
   for entry in &chunk_entries {
     let chunk_id = id_generator.gen_id(entry);
     let chunk = Chunk::new(
-      ChunkRid::with_debug_info("Entry chunk"),
+      ChunkUkey::with_debug_info("Entry chunk"),
       chunk_id.clone(),
       entry.to_string(),
       ChunkKind::Entry { name: chunk_id },
@@ -62,7 +64,7 @@ pub fn code_splitting2(compilation: &mut Compilation) {
 
               let chunk_id = id_generator.gen_id(mod_uri);
               let chunk = Chunk::new(
-                ChunkRid::with_debug_info("Async chunk"),
+                ChunkUkey::with_debug_info("Async chunk"),
                 chunk_id,
                 mod_uri.to_string(),
                 ChunkKind::Normal,
@@ -89,7 +91,7 @@ pub fn code_splitting2(compilation: &mut Compilation) {
   // In this case, two chunks will be generated, chunk entires are `a.js` (Chunk A) and `b.js` (Chunk B),
   // and module `c.js` will be placed into both of them.
 
-  let mut mod_to_chunk_ref: HashMap<&str, HashSet<ChunkRid>> = Default::default();
+  let mut mod_to_chunk_ref: HashMap<&str, HashSet<ChunkUkey>> = Default::default();
 
   for entry in &chunk_entries {
     let chunk_ref = chunk_ref_by_entry_module_uri[*entry];

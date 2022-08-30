@@ -1,5 +1,5 @@
 use crate::{
-  Chunk, ChunkRid, Compilation, CompilerOptions, Dependency, ErrorSpan, PluginDriver, ResolveKind,
+  Chunk, ChunkUkey, Compilation, CompilerOptions, Dependency, ErrorSpan, PluginDriver, ResolveKind,
   RuntimeSourceNode,
 };
 use rspack_loader_runner::Content;
@@ -22,7 +22,7 @@ pub struct ProcessAssetsArgs<'me> {
 
 #[derive(Debug, Clone)]
 pub struct RenderManifestArgs<'me> {
-  pub chunk_rid: ChunkRid,
+  pub chunk_ukey: ChunkUkey,
   pub compilation: &'me Compilation,
 }
 
@@ -30,9 +30,9 @@ impl<'me> RenderManifestArgs<'me> {
   pub fn chunk(&self) -> &Chunk {
     self
       .compilation
-      .chunk_by_rid
-      .get(&self.chunk_rid)
-      .expect("chunk is exsited in chunk_by_rid")
+      .chunk_by_ukey
+      .get(&self.chunk_ukey)
+      .expect("chunk should exsit in chunk_by_ukey")
   }
 }
 

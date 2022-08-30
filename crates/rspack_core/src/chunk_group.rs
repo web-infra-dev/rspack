@@ -1,20 +1,20 @@
 use hashbrown::HashSet;
 
-use crate::{ChunkByRid, ChunkRid};
+use crate::{ChunkByUkey, ChunkUkey};
 
 #[derive(Debug, Default)]
 pub struct ChunkGroup {
-  pub(crate) chunks: Vec<ChunkRid>,
+  pub(crate) chunks: Vec<ChunkUkey>,
 }
 
 impl ChunkGroup {
-  pub fn get_files(&self, chunk_by_rid: &ChunkByRid) -> HashSet<String> {
+  pub fn get_files(&self, chunk_by_ukey: &ChunkByUkey) -> HashSet<String> {
     self
       .chunks
       .iter()
-      .flat_map(|chunk_rid| {
-        chunk_by_rid
-          .get(chunk_rid)
+      .flat_map(|chunk_ukey| {
+        chunk_by_ukey
+          .get(chunk_ukey)
           .unwrap()
           .files
           .iter()

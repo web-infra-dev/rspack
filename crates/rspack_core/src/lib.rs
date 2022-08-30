@@ -36,8 +36,8 @@ mod external;
 pub use external::*;
 mod chunk_group;
 pub use chunk_group::*;
-mod rid;
-pub use rid::*;
+mod ukey;
+pub use ukey::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SourceType {
@@ -107,4 +107,4 @@ impl TryFrom<&str> for ModuleType {
 
 pub(crate) type VisitedModuleIdentity = Arc<DashSet<(String, ModuleDependency)>>;
 
-pub(crate) type ChunkByRid = HashMap<ChunkRid, Chunk>;
+pub(crate) type ChunkByUkey = HashMap<ChunkUkey, Chunk>;

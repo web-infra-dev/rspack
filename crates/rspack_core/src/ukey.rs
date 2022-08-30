@@ -1,20 +1,20 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-pub type ChunkRid = Rid;
+pub type ChunkUkey = Ukey;
 
 static NEXT_RES_ID: AtomicUsize = AtomicUsize::new(0);
 
-/// Rid stands for Resource Id
+/// Ukey stands for Unique key
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Rid(usize, Option<&'static str>);
+pub struct Ukey(usize, Option<&'static str>);
 
-impl Default for Rid {
+impl Default for Ukey {
   fn default() -> Self {
     Self::new()
   }
 }
 
-impl Rid {
+impl Ukey {
   pub fn new() -> Self {
     Self(NEXT_RES_ID.fetch_add(1, Ordering::SeqCst), None)
   }
