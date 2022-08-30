@@ -18,9 +18,9 @@ pub struct Chunk {
 }
 
 impl Chunk {
-  pub fn new(rid: ChunkUkey, id: String, entry_uri: String, kind: ChunkKind) -> Self {
+  pub fn new(ukey: ChunkUkey, id: String, entry_uri: String, kind: ChunkKind) -> Self {
     Self {
-      ukey: rid,
+      ukey,
       id,
       module_uris: Default::default(),
       entry_uri,
