@@ -8,7 +8,7 @@ pub type ChunkUkey = Ukey;
 static NEXT_UNIQUE_KEY: AtomicUsize = AtomicUsize::new(0);
 
 /// Ukey stands for Unique key
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, Eq, PartialOrd, Ord)]
 pub struct Ukey(usize, Option<&'static str>);
 
 impl Default for Ukey {
@@ -28,5 +28,17 @@ impl Ukey {
 
   pub fn with_debug_info(info: &'static str) -> Self {
     Self(Self::gen_ukey(), Some(info))
+  }
+}
+
+impl Hash for Ukey {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.0.hash(state);
+  }
+}
+
+impl PartialEq for Ukey {
+  fn eq(&self, other: &Self) -> bool {
+    self.0 == other.0
   }
 }
