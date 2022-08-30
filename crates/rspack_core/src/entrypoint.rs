@@ -1,9 +1,11 @@
-use crate::ChunkGraph;
+use std::ops::{Deref, DerefMut};
+
+use crate::ChunkGroup;
 
 #[derive(Debug, Default)]
 pub struct Entrypoint {
   // pub(crate) files: Vec<String>,
-  pub(crate) chunk_ids: Vec<String>,
+  chunk_group: ChunkGroup,
 }
 
 // The implmentation is temporary and will be aligned with Webpack.
@@ -11,23 +13,22 @@ impl Entrypoint {
   pub fn new() -> Self {
     Self {
       // files,
-      chunk_ids: Default::default(),
+      chunk_group: Default::default(),
     }
   }
+}
 
-  /// the files contained in Entrypoint
-  pub fn get_files(&self, chunk_graph: &ChunkGraph) -> Vec<String> {
-    self
-      .chunk_ids
-      .iter()
-      .flat_map(|chunk_id| {
-        chunk_graph
-          .chunk_by_id(chunk_id)
-          .expect("Failed to get chunk by id")
-          .files
-          .iter()
-          .map(|file| file.to_string())
-      })
-      .collect::<Vec<_>>()
+// Use `Deref` to stimulate the inheritance in OO language.
+// This is not recommended in Rust, but it's helpful for porting.
+impl Deref for Entrypoint {
+  type Target = ChunkGroup;
+  fn deref(&self) -> &Self::Target {
+    &self.chunk_group
+  }
+}
+
+impl DerefMut for Entrypoint {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.chunk_group
   }
 }

@@ -4,6 +4,7 @@ mod module;
 use std::sync::Arc;
 
 use dashmap::DashSet;
+use hashbrown::HashMap;
 pub use module::*;
 mod plugin;
 pub use plugin::*;
@@ -33,6 +34,10 @@ mod loader;
 pub use loader::*;
 mod external;
 pub use external::*;
+mod chunk_group;
+pub use chunk_group::*;
+mod ukey;
+pub use ukey::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SourceType {
@@ -101,3 +106,5 @@ impl TryFrom<&str> for ModuleType {
 }
 
 pub(crate) type VisitedModuleIdentity = Arc<DashSet<(String, ModuleDependency)>>;
+
+pub(crate) type ChunkByUkey = HashMap<ChunkUkey, Chunk>;
