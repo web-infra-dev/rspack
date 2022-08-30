@@ -13,7 +13,7 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler {
   let mut compiler = rspack::rspack(options, Default::default());
 
   let _stats = compiler
-    .run()
+    .build()
     .await
     .unwrap_or_else(|_| panic!("failed to compile in fixtrue {:?}", fixture_path));
   let output_name = make_relative_from(Path::new(&output_path), fixture_path);

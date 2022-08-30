@@ -144,7 +144,7 @@ pub fn build(env: Env, binding_context: External<RspackBindingContext>) -> Resul
     async move {
       let mut compiler = compiler.lock().await;
       let rspack_stats = compiler
-        .run()
+        .build()
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
 
@@ -169,14 +169,14 @@ pub fn build(env: Env, binding_context: External<RspackBindingContext>) -> Resul
 pub fn rebuild(
   env: Env,
   binding_context: External<RspackBindingContext>,
-  // changed_file: Vec<String>,
+  changed_file: Vec<String>,
 ) -> Result<napi::JsObject> {
   let compiler = binding_context.rspack.clone();
   env.execute_tokio_future(
     async move {
       let mut compiler = compiler.lock().await;
       let _rspack_stats = compiler
-        .run()
+        .rebuild(changed_file)
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
 
