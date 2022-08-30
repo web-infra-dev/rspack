@@ -8,7 +8,7 @@ use crate::{ChunkUkey, ModuleGraph, ModuleGraphModule};
 
 #[derive(Debug)]
 pub struct Chunk {
-  pub rid: ChunkUkey,
+  pub ukey: ChunkUkey,
   pub id: String,
   pub(crate) module_uris: HashSet<String>,
   pub(crate) entry_uri: String,
@@ -20,7 +20,7 @@ pub struct Chunk {
 impl Chunk {
   pub fn new(rid: ChunkUkey, id: String, entry_uri: String, kind: ChunkKind) -> Self {
     Self {
-      rid,
+      ukey: rid,
       id,
       module_uris: Default::default(),
       entry_uri,

@@ -9,7 +9,7 @@ impl ChunkGraph {
   pub fn add_chunk(&mut self, chunk: &Chunk) {
     self
       .split_point_module_uri_to_chunk_ref
-      .insert(chunk.entry_uri.clone(), chunk.rid);
+      .insert(chunk.entry_uri.clone(), chunk.ukey);
   }
 
   pub fn chunk_by_split_point_module_uri<'a>(

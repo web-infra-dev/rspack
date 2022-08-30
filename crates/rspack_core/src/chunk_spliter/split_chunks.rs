@@ -46,9 +46,9 @@ pub fn code_splitting2(compilation: &mut Compilation) {
       ChunkKind::Entry { name: chunk_id },
     );
 
-    chunk_ref_by_entry_module_uri.insert(*entry, chunk.rid);
+    chunk_ref_by_entry_module_uri.insert(*entry, chunk.ukey);
     chunk_graph.add_chunk(&chunk);
-    chunk_by_ref.insert(chunk.rid, chunk);
+    chunk_by_ref.insert(chunk.ukey, chunk);
   }
 
   if is_enable_code_splitting {
@@ -69,9 +69,9 @@ pub fn code_splitting2(compilation: &mut Compilation) {
                 mod_uri.to_string(),
                 ChunkKind::Normal,
               );
-              let chunk_ref = chunk.rid;
+              let chunk_ref = chunk.ukey;
               chunk_graph.add_chunk(&chunk);
-              chunk_by_ref.insert(chunk.rid, chunk);
+              chunk_by_ref.insert(chunk.ukey, chunk);
               chunk_ref
             });
         });
@@ -222,7 +222,7 @@ pub fn code_splitting2(compilation: &mut Compilation) {
     let empty_chunk_id_to_be_removed = chunk_by_ref
       .values()
       .filter(|chunk| chunk.module_uris.is_empty())
-      .map(|chunk| chunk.rid)
+      .map(|chunk| chunk.ukey)
       .collect::<Vec<_>>();
 
     empty_chunk_id_to_be_removed.iter().for_each(|chunk_ref| {

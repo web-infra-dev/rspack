@@ -84,10 +84,10 @@ impl Compilation {
       .par_values()
       .map(|chunk| {
         let manifest = plugin_driver.render_manifest(RenderManifestArgs {
-          chunk_ukey: chunk.rid,
+          chunk_ukey: chunk.ukey,
           compilation: self,
         });
-        (chunk.rid, manifest)
+        (chunk.ukey, manifest)
       })
       .collect::<Vec<_>>();
 
@@ -175,7 +175,7 @@ impl Compilation {
         .chunk_by_ukey
         .values()
         .filter(|chunk| &chunk.id == name)
-        .map(|chunk| chunk.rid)
+        .map(|chunk| chunk.ukey)
         .for_each(|chunk_ref| {
           entrypoint.chunks.push(chunk_ref);
         });
