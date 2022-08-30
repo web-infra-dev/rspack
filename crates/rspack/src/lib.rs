@@ -32,7 +32,7 @@ pub struct DevServer {
 
 impl DevServer {
   pub async fn serve(&mut self) -> Result<()> {
-    self.compiler.compile().await?;
+    self.compiler.build().await?;
 
     warp::fs::dir(Path::new(self.compiler.options.context.as_str()).join("dist"));
     let filter = warp::fs::dir(Path::new(self.compiler.options.context.as_str()).join("dist"));

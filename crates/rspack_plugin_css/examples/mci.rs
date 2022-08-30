@@ -48,7 +48,7 @@ async fn test() {
   let mut compiler = rspack::rspack(options, Default::default());
 
   let _stats = compiler
-    .run()
+    .build()
     .await
     .unwrap_or_else(|e| panic!("{:?}, failed to compile in fixtrue {:?}", e, bundle_dir));
 }

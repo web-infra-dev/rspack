@@ -11,7 +11,7 @@ pub async fn test_fixture(fixture_path: &PathBuf) -> rspack_error::Result<()> {
   let mut compiler = rspack::rspack(options, Default::default());
 
   let stats = compiler
-    .run()
+    .build()
     .await
     .unwrap_or_else(|_| panic!("failed to compile in fixtrue {:?}", fixture_path));
   let mut settings = Settings::clone_current();

@@ -13,6 +13,7 @@ use crate::{
 };
 
 use anyhow::Context;
+use hashbrown::HashMap;
 use rayon::prelude::*;
 use rspack_error::{
   emitter::{DiagnosticDisplay, StdioDiagnosticDisplay},
@@ -60,9 +61,25 @@ impl Compiler {
     }
   }
 
-  #[instrument(skip_all)]
-  pub async fn compile(&mut self) -> Result<()> {
-    // TODO: supports rebuild
+  pub async fn rebuild(&mut self, _changed_files_path: Vec<String>) -> Result<Stats> {
+    // let deps = changed_files_path.into_iter().map(|(name, specifier)| {
+    //   (
+    //     name.clone(),
+    //     Dependency {
+    //       importer: None,
+    //       detail: ModuleDependency {
+    //         specifier,
+    //         kind: ResolveKind::Import,
+    //         span: None,
+    //       },
+    //     },
+    //   )
+    // });
+    // self.compile(deps).await?;
+    self.stats()
+  }
+
+  pub async fn build(&mut self) -> Result<Stats> {
     self.compilation = Compilation::new(
       // TODO: use Arc<T> instead
       self.options.clone(),
@@ -70,34 +87,35 @@ impl Compiler {
       Default::default(),
       Default::default(),
     );
+    let deps = self.compilation.entry_dependencies();
+    self.compile(deps).await?;
+    self.stats()
+  }
 
-    // self.compilation.
+  #[instrument(skip_all)]
+  async fn compile(&mut self, deps: HashMap<String, Dependency>) -> Result<()> {
     let active_task_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
 
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
 
-    self
-      .compilation
-      .entry_dependencies()
-      .into_iter()
-      .for_each(|(name, dep)| {
-        let task = NormalModuleFactory::new(
-          NormalModuleFactoryContext {
-            module_name: Some(name),
-            active_task_count: active_task_count.clone(),
-            visited_module_identity: self.compilation.visited_module_id.clone(),
-            module_type: None,
-            side_effects: None,
-            options: self.options.clone(),
-          },
-          dep,
-          tx.clone(),
-          self.plugin_driver.clone(),
-          self.loader_runner_runner.clone(),
-        );
+    deps.into_iter().for_each(|(name, dep)| {
+      let task = NormalModuleFactory::new(
+        NormalModuleFactoryContext {
+          module_name: Some(name),
+          active_task_count: active_task_count.clone(),
+          visited_module_identity: self.compilation.visited_module_id.clone(),
+          module_type: None,
+          side_effects: None,
+          options: self.options.clone(),
+        },
+        dep,
+        tx.clone(),
+        self.plugin_driver.clone(),
+        self.loader_runner_runner.clone(),
+      );
 
-        tokio::task::spawn(async move { task.run().await });
-      });
+      tokio::task::spawn(async move { task.run().await });
+    });
 
     while active_task_count.load(Ordering::SeqCst) != 0 {
       match rx.recv().await {
@@ -188,9 +206,7 @@ impl Compiler {
     Ok(())
   }
 
-  #[instrument(skip_all)]
-  pub async fn run(&mut self) -> Result<Stats> {
-    self.compile().await?;
+  fn stats(&mut self) -> Result<Stats> {
     if self.options.emit_error {
       StdioDiagnosticDisplay::default().emit_batch_diagnostic(
         &self.compilation.diagnostic,
