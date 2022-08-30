@@ -4,16 +4,25 @@
       "name": "debug-js",
       "port": 9229,
       "request": "attach",
-      "skipFiles": ["<node_internals>/**"],
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
       "type": "node"
     },
     {
       "type": "lldb",
       "request": "launch",
-      "sourceLanguages": ["rust"],
+      "sourceLanguages": [
+        "rust"
+      ],
       "name": "debug-rust",
       "program": "node",
-      "args": ["--inspect", "-r", "tsm", "example/basic.ts"],
+      "args": [
+        "--inspect",
+        "-r",
+        "tsm",
+        "example/basic.ts"
+      ],
       "cwd": "${workspaceFolder}/packages/rspack"
     }
     // {
@@ -61,7 +70,10 @@
   "compounds": [
     {
       "name": "debug-rspack",
-      "configurations": ["debug-js", "debug-rust"]
+      "configurations": [
+        "debug-js",
+        "debug-rust"
+      ]
     }
   ]
 }

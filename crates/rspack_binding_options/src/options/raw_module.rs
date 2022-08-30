@@ -285,11 +285,14 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
 
     let loader_result = rx.await.map_err(|err| anyhow::Error::from(err))?;
 
-    Ok(
-      loader_result.map(|loader_result| rspack_core::LoaderResult {
+    Ok(loader_result.map(|loader_result| {
+      rspack_core::LoaderResult {
         content: rspack_core::Content::from(loader_result.content),
-      }),
-    )
+        meta: loader_result
+          .meta
+          .map(|item| String::from_utf8_lossy(&item).to_string()),
+      }
+    }))
   }
 
   fn as_any(&self) -> &dyn std::any::Any {
@@ -315,6 +318,7 @@ pub struct LoaderContext {
 #[serde(rename_all = "camelCase")]
 struct LoaderResult {
   pub content: Vec<u8>,
+  pub meta: Option<Vec<u8>>,
 }
 
 type LoaderThreadsafeLoaderContext = LoaderContext;

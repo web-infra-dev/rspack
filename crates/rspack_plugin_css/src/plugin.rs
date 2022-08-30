@@ -212,6 +212,9 @@ impl Parser for CssParser {
     let module: BoxModule = Box::new(CssModule {
       ast: stylesheet,
       source_type_list: CSS_MODULE_SOURCE_TYPE_LIST,
+      meta: args
+        .meta
+        .and_then(|data| if data.is_empty() { None } else { Some(data) }),
     });
 
     Ok(module.with_diagnostic(diagnostic))
