@@ -30,7 +30,7 @@ impl<'compilation> Stats<'compilation> {
 }
 
 impl<'compilation> Stats<'compilation> {
-  // This function is only used for tests compatiable.
+  // This function is only used for tests compatible.
   pub fn __should_only_used_in_tests_assets(&self) -> &CompilationAssets {
     &self.compilation.assets
   }

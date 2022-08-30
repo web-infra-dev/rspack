@@ -34,5 +34,12 @@
   "rust-analyzer.linkedProjects": [
     "Cargo.toml",
     "crates/node_binding/Cargo.toml"
+  ],
+  "cSpell.words": [
+    "napi",
+    "rspack",
+    "tokio",
+    "ukey",
+    "Ukey"
   ]
 }

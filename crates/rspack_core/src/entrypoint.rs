@@ -8,7 +8,7 @@ pub struct Entrypoint {
   chunk_group: ChunkGroup,
 }
 
-// The implmentation is temporary and will be aligned with Webpack.
+// The implementation is temporary and will be aligned with Webpack.
 impl Entrypoint {
   pub fn new() -> Self {
     Self {
