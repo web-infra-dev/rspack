@@ -152,6 +152,7 @@ impl Module for AssetModule {
                     .ok_or_else(|| anyhow::anyhow!("failed"))?,
                 ),
                 id: None,
+                contenthash: None,
               });
           let public_path = compilation.options.output.public_path.public_path();
           format!("{}{}", public_path, file_name)

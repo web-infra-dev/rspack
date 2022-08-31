@@ -30,3 +30,7 @@ swc_common = "0.27.2"
 tracing-chrome = "0.6.0"
 tracing-subscriber = {version = "0.3.9", features = ["env-filter"]}
 url = "2.2.2"
+rspack_loader_runner = { path = "../loader_runner" }
+rspack_error = { path = "../rspack_error" }
+swc_common = "0.27.2"
+xxhash-rust = { version = "0.8.5", features = ["xxh3"] }
