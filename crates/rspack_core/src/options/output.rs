@@ -16,12 +16,13 @@ pub const EXT_PLACEHOLDER: &str = "[ext]";
 pub const ID_PLACEHOLDER: &str = "[id]";
 pub const HASH_PLACEHOLDER: &str = "[hash]";
 pub const CHUNK_HASH_PLACEHOLDER: &str = "[chunkhash]";
-pub const CONTENT_PLACEHOLDER: &str = "[contenthash]";
+pub const CONTENT_HASH_PLACEHOLDER: &str = "[contenthash]";
 
 pub struct FilenameRenderOptions {
   pub filename: Option<String>,
   pub extension: Option<String>,
   pub id: Option<String>,
+  pub contenthash: Option<String>,
 }
 #[derive(Debug)]
 pub struct Filename {
@@ -51,6 +52,10 @@ impl Filename {
 
     if let Some(id) = options.id {
       filename = filename.replace(ID_PLACEHOLDER, &id);
+    }
+
+    if let Some(contenthash) = options.contenthash {
+      filename = filename.replace(CONTENT_HASH_PLACEHOLDER, &contenthash);
     }
 
     filename

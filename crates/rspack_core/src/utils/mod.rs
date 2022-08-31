@@ -11,6 +11,9 @@ use sugar_path::PathSugar;
 mod hooks;
 pub use hooks::*;
 
+mod hash;
+pub use hash::*;
+
 pub static PATH_START_BYTE_POS_MAP: Lazy<Arc<DashMap<String, u32>>> =
   Lazy::new(|| Arc::new(DashMap::new()));
 

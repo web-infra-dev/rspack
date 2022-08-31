@@ -109,6 +109,7 @@ impl Plugin for AssetPlugin {
                       .and_then(OsStr::to_str)
                       .map(|str| format!("{}{}", ".", str)),
                     id: None,
+                    contenthash: None,
                   }),
               ))
             } else {
