@@ -12,5 +12,8 @@ const list = examples
   .forEach(function (dirname) {
     console.log(dirname);
     const build_path = `${dirname}/build.js`;
-    cp.execSync(`node ${build_path}`); // use child-process to avoid require cache
+      cp.execSync(`node ${build_path}`, {
+        stdio: 'inherit'
+      }); // use child-process to avoid require cache
+   
   });
