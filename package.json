@@ -22,7 +22,10 @@
     "build:webpack": "cd webpack-examples && node buildAll.js",
     "build:cli": "pnpm --filter @rspack/core... build",
     "build:binding": "pnpm --filter @rspack/binding build",
-    "build_binding_and_run_example": "pnpm build:binding && pnpm --filter @rspack/core run example "
+    "build_binding_and_run_example": "pnpm build:binding && pnpm --filter @rspack/core run example ",
+    "release": "changeset publish",
+    "bump": "changeset version",
+    "changeset": "changeset"
   },
   "repository": {
     "type": "git",
@@ -39,6 +42,7 @@
     "*.rs": "rustfmt --edition 2021"
   },
   "devDependencies": {
+    "@changesets/cli": "2.24.4",
     "husky": "^7.0.4",
     "lint-staged": "^12.4.0",
     "mocha": "9.2.2",

@@ -1,5 +1,5 @@
 import path from "path";
-import postcssLoader from "rspack-plugin-postcss";
+import postcssLoader from "@rspack/plugin-postcss";
 import { Rspack } from "../src";
 
 const rspack = new Rspack({

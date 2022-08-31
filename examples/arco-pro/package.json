@@ -1,7 +1,8 @@
 {
-  "name": "arco-design-pro",
+  "name": "example-arco-design-pro",
   "version": "1.0.0",
   "description": "Arco Design Pro",
+  "private": true,
   "scripts": {
     "dev": "rspack",
     "build": "rspack build",

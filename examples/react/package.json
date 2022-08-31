@@ -1,8 +1,9 @@
 {
-  "name": "react",
+  "name": "example-react",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "private": true,
   "scripts": {
     "dev": "rspack"
   },

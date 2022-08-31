@@ -1,6 +1,6 @@
 {
-  "name": "rspack-plugin-postcss",
-  "version": "0.1.0",
+  "name": "@rspack/plugin-postcss",
+  "version": "0.0.3",
   "description": "",
   "main": "src/index.js",
   "scripts": {
