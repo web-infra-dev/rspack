@@ -1,6 +1,7 @@
 {
   "name": "@rspack/core",
   "main": "./dist/index.js",
+  "version": "0.0.3",
   "bin": {
     "rspack": "./bin.js"
   },
@@ -18,8 +19,8 @@
   "dependencies": {
     "@rspack/binding": "workspace:*",
     "commander": "^9.4.0",
-    "rspack-dev-server": "workspace:^",
-    "rspack-plugin-postcss": "workspace:^"
+    "@rspack/dev-server": "workspace:^",
+    "@rspack/plugin-postcss": "workspace:^"
   },
   "optionalDependencies": {
     "@tmp-sass-embedded/darwin-arm64": "1.54.4",

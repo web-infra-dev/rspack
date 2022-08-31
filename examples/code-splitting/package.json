@@ -1,8 +1,9 @@
 {
-  "name": "code-splitting",
+  "name": "example-code-splitting",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "private": true,
   "scripts": {
     "dev": "rspack"
   },

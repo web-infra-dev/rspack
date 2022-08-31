@@ -1,7 +1,8 @@
 {
-  "name": "webpack-examples",
+  "name": "example-webpack",
   "version": "1.0.0",
   "description": "## Table of Contents",
+  "private": true,
   "main": "build-common.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

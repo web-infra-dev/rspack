@@ -1,8 +1,9 @@
 {
-  "name": "multi-entry",
+  "name": "example-multi-entry",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "private": true,
   "scripts": {
     "dev": "rspack"
   },
