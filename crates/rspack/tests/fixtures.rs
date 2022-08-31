@@ -12,10 +12,10 @@ fn rspack(fixture_path: PathBuf) {
 async fn run(context: PathBuf) {
   let options = read_test_config_and_normalize(&context);
   let mut compiler = rspack::rspack(options, vec![]);
-  compiler.build().await.unwrap();
+  compiler.compile().await.unwrap();
 }
 
-#[fixture("../../examples/react")]
+#[fixture("../../examples/*")]
 fn example(fixture_path: PathBuf) {
   run(fixture_path);
 }
