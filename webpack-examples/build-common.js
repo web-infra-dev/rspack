@@ -25,6 +25,7 @@ async function main() {
   try{
     await build({ ...defaultEntry, ...config });
   }catch(err){
+    console.log(`build ${module.parent.path} failed:`,err);
     process.exit(1);
   }
   
