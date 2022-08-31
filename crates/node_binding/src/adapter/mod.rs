@@ -17,12 +17,12 @@ pub mod utils;
 pub use utils::create_node_adapter_from_plugin_callbacks;
 
 use common::ThreadsafeRspackCallback;
-use common::REGISTERED_BUILD_END_SENDERS;
+use common::REGISTERED_DONE_SENDERS;
 
 pub static CALL_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(1));
 
 pub struct RspackPluginNodeAdapter {
-  pub build_end_tsfn: ThreadsafeRspackCallback,
+  pub done_tsfn: ThreadsafeRspackCallback,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -78,12 +78,12 @@ impl Plugin for RspackPluginNodeAdapter {
     "rspack_plugin_node_adapter"
   }
   #[tracing::instrument(skip_all)]
-  async fn build_end(&self) -> PluginBuildEndHookOutput {
+  async fn done(&self) -> PluginBuildEndHookOutput {
     let context = RspackThreadsafeContext::new(());
 
     let (tx, rx) = oneshot::channel::<()>();
 
-    match REGISTERED_BUILD_END_SENDERS.entry(context.get_call_id()) {
+    match REGISTERED_DONE_SENDERS.entry(context.get_call_id()) {
       dashmap::mapref::entry::Entry::Vacant(v) => {
         v.insert(tx);
       }
@@ -96,7 +96,7 @@ impl Plugin for RspackPluginNodeAdapter {
           ),
         );
         self
-          .build_end_tsfn
+          .done_tsfn
           .call(Err(err.clone()), ThreadsafeFunctionCallMode::Blocking);
 
         let any_error = anyhow::Error::from(err);
@@ -112,12 +112,12 @@ impl Plugin for RspackPluginNodeAdapter {
     });
 
     self
-      .build_end_tsfn
+      .done_tsfn
       .call(value, ThreadsafeFunctionCallMode::Blocking);
 
     let t = rx
       .await
-      .context("failed to receive build_end result")
+      .context("failed to receive done result")
       .map_err(|err| err.into());
     return t;
   }

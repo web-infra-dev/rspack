@@ -30,12 +30,12 @@ pub type Rspack = Arc<Mutex<rspack::Compiler>>;
 #[napi(object)]
 
 pub struct PluginCallbacks {
-  pub build_end_callback: JsFunction,
+  pub done_callback: JsFunction,
 }
 impl Debug for PluginCallbacks {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("PluginCallbacks")
-      .field("build_end_callback", &"build_end_adapter")
+      .field("done_callback", &"done_adapter")
       .finish()
   }
 }

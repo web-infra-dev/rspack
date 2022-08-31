@@ -119,8 +119,8 @@ impl Compilation {
       })
       .ok();
   }
-  pub async fn build_end(&mut self, plugin_driver: Arc<PluginDriver>) -> Result<()> {
-    plugin_driver.build_end().await?;
+  pub async fn done(&mut self, plugin_driver: Arc<PluginDriver>) -> Result<()> {
+    plugin_driver.done().await?;
     Ok(())
   }
 
