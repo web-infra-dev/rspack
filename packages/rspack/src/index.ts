@@ -226,13 +226,13 @@ class Rspack {
 		this.#plugins = options.plugins ?? [];
 
 		this.#instance = binding.newRspack(nativeConfig, {
-			buildEndCallback: this.#buildEnd.bind(this)
+			doneCallback: this.#done.bind(this)
 		});
 	}
-	async #buildEnd(err: Error, value: string) {
+	async #done(err: Error, value: string) {
 		const context: RspackThreadsafeContext<void> = JSON.parse(value);
 		for (const plugin of this.#plugins) {
-			await plugin.buildEnd?.();
+			await plugin.done?.();
 		}
 		return createDummyResult(context.id);
 	}

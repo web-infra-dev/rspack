@@ -5,7 +5,7 @@ import { createRawModuleRuleUses } from ".";
 
 export type Plugin = {
 	name: string;
-	buildEnd?: () => void | Promise<void>;
+	done?: () => void | Promise<void>;
 };
 
 export interface RspackOptions {

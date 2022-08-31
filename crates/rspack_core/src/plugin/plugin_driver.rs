@@ -166,9 +166,9 @@ impl PluginDriver {
     Ok(())
   }
   #[instrument(skip_all)]
-  pub async fn build_end(&self) -> PluginBuildEndHookOutput {
+  pub async fn done(&self) -> PluginBuildEndHookOutput {
     for plugin in &self.plugins {
-      plugin.build_end().await?;
+      plugin.done().await?;
     }
     Ok(())
   }
