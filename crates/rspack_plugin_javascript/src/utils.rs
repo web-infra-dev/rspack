@@ -32,7 +32,7 @@ pub fn parse_js(
   is_module: IsModule,
   comments: Option<&dyn Comments>,
 ) -> Result<Program, Vec<swc_ecma_parser::error::Error>> {
-  let mut res = compiler.run(|| {
+  let res = compiler.run(|| {
     let mut errors = vec![];
     let program_result = match is_module {
       IsModule::Bool(true) => {

@@ -228,7 +228,7 @@ impl Parser for JsParser {
     //   }
     // }?;
 
-    let mut ast = parse_file(
+    let ast = parse_file(
       args
         .source
         .try_into_string()
@@ -241,7 +241,7 @@ impl Parser for JsParser {
       Error::BatchErrors(
         err
           .into_iter()
-          .map(|e| ecma_parse_error_to_diagnostic(e, args.uri.clone()))
+          .map(|e| ecma_parse_error_to_diagnostic(e, args.uri.clone(), &module_type))
           .collect(),
       )
     })?;
@@ -283,7 +283,18 @@ impl Parser for JsParser {
   }
 }
 
-pub fn ecma_parse_error_to_diagnostic(error: swc_ecma_parser::error::Error, path: &str) -> Error {
+pub fn ecma_parse_error_to_diagnostic(
+  error: swc_ecma_parser::error::Error,
+  path: &str,
+  module_type: &ModuleType,
+) -> Error {
+  let file_type = match module_type {
+    ModuleType::Js => "JavaScript",
+    ModuleType::Jsx => "JSX",
+    ModuleType::Tsx => "TSX",
+    ModuleType::Ts => "Typescript",
+    _ => unreachable!(),
+  };
   let message = error.kind().msg().to_string();
   // let error = error;
   let span: ErrorSpan = error.span().into();
@@ -291,7 +302,7 @@ pub fn ecma_parse_error_to_diagnostic(error: swc_ecma_parser::error::Error, path
     path.to_string(),
     span.start as usize,
     span.end as usize,
-    "Css parsing error".to_string(),
+    format!("{} parsing error", file_type),
     message.to_string(),
   );
   rspack_error::Error::TraceableError(traceable_error)

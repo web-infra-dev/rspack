@@ -1,0 +1,12 @@
+---
+source: crates/rspack_error/tests/fixtures.rs
+assertion_line: 29
+expression: jsx_syntax_error
+---
+error: JSX parsing error
+  ┌─ tests/fixtures/jsx_syntax_error/index.jsx:2:1
+  │
+2 │ 
+  │ ^ Unexpected eof
+
+
