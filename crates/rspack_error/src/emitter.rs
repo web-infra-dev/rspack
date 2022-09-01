@@ -137,7 +137,7 @@ fn emit_batch_diagnostic<T: Write + WriteColor + FlushDiagnostic>(
       let config = codespan_reporting::term::Config::default();
 
       term::emit(writer, &config, &files, &diagnostic).unwrap();
-      // error-span will not write the diagnostic message in a whole,
+      // `codespan_reporting` will not write the diagnostic message in a whole,
       // we need to insert some helper flag for sorting
       writer.flush_diagnostic();
     } else {
