@@ -24,7 +24,9 @@ const rspack = new Rspack({
 					}
 				);
 				compiler.hooks.processAssets.tap("processAssets2", args => {
-					console.log({ args });
+					compiler.updateAsset("main.js", {
+						source: "hello world"
+					});
 				});
 			}
 		}

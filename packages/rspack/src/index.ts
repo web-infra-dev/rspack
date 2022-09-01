@@ -69,6 +69,13 @@ class Rspack {
 		const stats = await binding.rebuild(this.#instance, changedFilesPath);
 		return stats;
 	}
+	updateAsset(filename: string, asset: Config.Asset) {
+		console.log("xx:", filename, asset);
+		binding.updateAsset(this.#instance, {
+			filename,
+			asset
+		});
+	}
 }
 
 export { Rspack };
