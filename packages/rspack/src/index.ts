@@ -246,7 +246,7 @@ class Rspack {
 		}
 		const context: RspackThreadsafeContext<Config.Assets> = JSON.parse(value);
 		for (const plugin of this.#plugins) {
-			await plugin.process_assets?.(context?.inner);
+			await plugin.processAssets?.(context?.inner);
 		}
 		return createDummyResult(context.id);
 	}

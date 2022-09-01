@@ -13,6 +13,7 @@ use serde::Serialize;
 use hashbrown::HashMap;
 pub type PluginBuildStartHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;
+pub type PluginProcessAssetsHookOutput = Result<()>;
 pub type PluginReadResourceOutput = Result<Option<Content>>;
 pub type PluginLoadHookOutput = Result<Option<Content>>;
 pub type PluginTransformOutput = Result<TransformResult>;

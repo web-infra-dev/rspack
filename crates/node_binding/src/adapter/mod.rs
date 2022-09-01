@@ -1,7 +1,9 @@
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use rspack_core::{Plugin, PluginBuildEndHookOutput, PluginContext, ProcessAssetsArgs};
+use rspack_core::{
+  Plugin, PluginBuildEndHookOutput, PluginContext, PluginProcessAssetsHookOutput, ProcessAssetsArgs,
+};
 
 use anyhow::Context;
 use async_trait::async_trait;
@@ -83,9 +85,9 @@ impl Plugin for RspackPluginNodeAdapter {
   async fn process_assets(
     &self,
     _ctx: PluginContext,
-    _args: ProcessAssetsArgs<'_>,
-  ) -> PluginBuildEndHookOutput {
-    let context = RspackThreadsafeContext::new(_args.compilation.assets.clone());
+    args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsHookOutput {
+    let context = RspackThreadsafeContext::new(args.compilation.assets.clone());
     let (tx, rx) = oneshot::channel::<()>();
 
     match REGISTERED_PROCESS_ASSETS_SENDERS.entry(context.get_call_id()) {
@@ -121,7 +123,7 @@ impl Plugin for RspackPluginNodeAdapter {
 
     let t = rx
       .await
-      .context("failed to receive done result")
+      .context("failed to receive process_assets result")
       .map_err(|err| err.into());
     return t;
   }

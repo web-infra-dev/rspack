@@ -22,13 +22,14 @@ const rspack = new Rspack({
 		},
 		{
 			name: "process_assets1",
-			process_assets() {
-				console.log("process_asssets1");
+			processAssets() {
+				console.log("processAssets1");
 			}
 		},
 		{
 			name: "process_assets2",
-			process_assets(args) {
+			processAssets(args) {
+				console.log("processAssets2");
 				for (const value of Object.values(args)) {
 					//console.log("source:", value.source);
 				}

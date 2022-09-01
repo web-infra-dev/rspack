@@ -34,7 +34,7 @@ pub fn create_node_adapter_from_plugin_callbacks(
                     let result: super::RspackThreadsafeResult<()> =
                       serde_json::from_str(&result).expect("failed to evaluate done result");
 
-                    tracing::debug!("build end result {:?}", result);
+                    tracing::debug!("done result {:?}", result);
 
                     let sender = REGISTERED_DONE_SENDERS.remove(&result.get_call_id());
 
@@ -75,7 +75,7 @@ pub fn create_node_adapter_from_plugin_callbacks(
                     let result: super::RspackThreadsafeResult<()> =
                       serde_json::from_str(&result).expect("failed to evaluate done result");
 
-                    tracing::debug!("build end result {:?}", result);
+                    tracing::debug!("done result {:?}", result);
 
                     let sender = REGISTERED_PROCESS_ASSETS_SENDERS.remove(&result.get_call_id());
 

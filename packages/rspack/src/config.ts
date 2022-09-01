@@ -9,7 +9,7 @@ export type Assets = Record<string, Asset>;
 export type Plugin = {
 	name: string;
 	done?: () => void | Promise<void>;
-	process_assets?: (assets: Assets) => void | Promise<void>;
+	processAssets?: (assets: Assets) => void | Promise<void>;
 };
 
 export interface RspackOptions {
