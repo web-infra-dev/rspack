@@ -21,11 +21,13 @@ impl<'compilation> Stats<'compilation> {
     )
   }
 
-  pub fn emit_error_string(&self) -> Result<String> {
-    StringDiagnosticDisplay::default().emit_batch_diagnostic(
-      &self.compilation.diagnostic,
-      PATH_START_BYTE_POS_MAP.clone(),
-    )
+  pub fn emit_error_string(&self, sorted: bool) -> Result<String> {
+    StringDiagnosticDisplay::default()
+      .with_sorted(sorted)
+      .emit_batch_diagnostic(
+        &self.compilation.diagnostic,
+        PATH_START_BYTE_POS_MAP.clone(),
+      )
   }
 }
 
