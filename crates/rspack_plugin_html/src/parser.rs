@@ -32,10 +32,7 @@ impl HtmlCompiler {
       .collect();
     document
       .map(|doc| doc.with_diagnostic(diagnostics))
-      .map_err(|e| {
-        dbg!(&e);
-        html_parse_error_to_traceable_error(e, path)
-      })
+      .map_err(|e| html_parse_error_to_traceable_error(e, path))
   }
 
   pub fn codegen(&self, ast: &Document) -> anyhow::Result<String> {

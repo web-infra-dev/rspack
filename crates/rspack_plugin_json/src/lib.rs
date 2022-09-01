@@ -55,10 +55,9 @@ impl Parser for JsonParser {
             .fold(line_offset, |acc, cur| acc + cur.len_utf8());
           Error::TraceableError(TraceableError::from_path(
             args.uri.to_owned(),
-            // because this json error only have start offset,
-            // so the start and end of span should be the same
+            // one character offset
             start_offset,
-            start_offset,
+            start_offset + 1,
             "Json parsing error".to_string(),
             format!("Unexpected character {}", ch),
           ))
