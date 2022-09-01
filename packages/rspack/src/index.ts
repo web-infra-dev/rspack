@@ -226,13 +226,27 @@ class Rspack {
 		this.#plugins = options.plugins ?? [];
 
 		this.#instance = binding.newRspack(nativeConfig, {
-			doneCallback: this.#done.bind(this)
+			doneCallback: this.#done.bind(this),
+			processAssetsCallback: this.#procssAssets.bind(this)
 		});
 	}
 	async #done(err: Error, value: string) {
+		if (err) {
+			throw err;
+		}
 		const context: RspackThreadsafeContext<void> = JSON.parse(value);
 		for (const plugin of this.#plugins) {
 			await plugin.done?.();
+		}
+		return createDummyResult(context.id);
+	}
+	async #procssAssets(err: Error, value: string) {
+		if (err) {
+			throw err;
+		}
+		const context: RspackThreadsafeContext<Config.Assets> = JSON.parse(value);
+		for (const plugin of this.#plugins) {
+			await plugin.processAssets?.(context?.inner);
 		}
 		return createDummyResult(context.id);
 	}

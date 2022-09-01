@@ -9,3 +9,6 @@ pub type ThreadsafeRspackCallback = ThreadsafeFunction<String, ErrorStrategy::Ca
 
 pub static REGISTERED_DONE_SENDERS: Lazy<Arc<DashMap<usize, Sender<()>>>> =
   Lazy::new(Default::default);
+
+pub static REGISTERED_PROCESS_ASSETS_SENDERS: Lazy<Arc<DashMap<usize, Sender<()>>>> =
+  Lazy::new(Default::default);

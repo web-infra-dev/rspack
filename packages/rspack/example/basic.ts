@@ -7,7 +7,35 @@ const rspack = new Rspack({
 		main: path.resolve(__dirname, "../../../examples/postcss/index.js")
 	},
 	context: path.resolve(__dirname, "../../../examples/postcss"),
-	plugins: ["html"],
+	plugins: [
+		{
+			name: "done1",
+			done() {
+				console.log("done1");
+			}
+		},
+		{
+			name: "done1",
+			done() {
+				console.log("done2");
+			}
+		},
+		{
+			name: "process_assets1",
+			processAssets() {
+				console.log("processAssets1");
+			}
+		},
+		{
+			name: "process_assets2",
+			processAssets(args) {
+				console.log("processAssets2");
+				for (const value of Object.values(args)) {
+					//console.log("source:", value.source);
+				}
+			}
+		}
+	],
 	module: {
 		rules: [
 			{

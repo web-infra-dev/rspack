@@ -1,7 +1,9 @@
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use rspack_core::{Plugin, PluginBuildEndHookOutput};
+use rspack_core::{
+  Plugin, PluginBuildEndHookOutput, PluginContext, PluginProcessAssetsHookOutput, ProcessAssetsArgs,
+};
 
 use anyhow::Context;
 use async_trait::async_trait;
@@ -18,11 +20,13 @@ pub use utils::create_node_adapter_from_plugin_callbacks;
 
 use common::ThreadsafeRspackCallback;
 use common::REGISTERED_DONE_SENDERS;
+use common::REGISTERED_PROCESS_ASSETS_SENDERS;
 
 pub static CALL_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(1));
 
 pub struct RspackPluginNodeAdapter {
   pub done_tsfn: ThreadsafeRspackCallback,
+  pub process_assets_tsfn: ThreadsafeRspackCallback,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -77,6 +81,53 @@ impl Plugin for RspackPluginNodeAdapter {
   fn name(&self) -> &'static str {
     "rspack_plugin_node_adapter"
   }
+  #[tracing::instrument(skip_all)]
+  async fn process_assets(
+    &self,
+    _ctx: PluginContext,
+    args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsHookOutput {
+    let context = RspackThreadsafeContext::new(args.compilation.assets.clone());
+    let (tx, rx) = oneshot::channel::<()>();
+
+    match REGISTERED_PROCESS_ASSETS_SENDERS.entry(context.get_call_id()) {
+      dashmap::mapref::entry::Entry::Vacant(v) => {
+        v.insert(tx);
+      }
+      dashmap::mapref::entry::Entry::Occupied(_) => {
+        let err = Error::new(
+          napi::Status::Unknown,
+          format!(
+            "duplicated call id encountered {}, please file an issue.",
+            context.get_call_id(),
+          ),
+        );
+        self
+          .process_assets_tsfn
+          .call(Err(err.clone()), ThreadsafeFunctionCallMode::Blocking);
+
+        let any_error = anyhow::Error::from(err);
+        return Err(any_error.into());
+      }
+    }
+
+    let value = serde_json::to_string(&context).map_err(|_| {
+      Error::new(
+        napi::Status::Unknown,
+        "unable to convert context".to_owned(),
+      )
+    });
+    self
+      .process_assets_tsfn
+      .call(value, ThreadsafeFunctionCallMode::Blocking);
+
+    let t = rx
+      .await
+      .context("failed to receive process_assets result")
+      .map_err(|err| err.into());
+    return t;
+  }
+
   #[tracing::instrument(skip_all)]
   async fn done(&self) -> PluginBuildEndHookOutput {
     let context = RspackThreadsafeContext::new(());

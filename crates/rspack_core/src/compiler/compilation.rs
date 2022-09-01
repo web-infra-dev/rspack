@@ -1,16 +1,15 @@
-use std::{fmt::Debug, sync::Arc};
-
-use hashbrown::HashMap;
-use rayon::prelude::*;
-use rspack_error::{Diagnostic, Result};
-use tracing::instrument;
-
 use crate::{
   split_chunks::code_splitting2, AssetContent, Chunk, ChunkGraph, ChunkUkey, CompilerOptions,
   Dependency, EntryItem, Entrypoint, ModuleDependency, ModuleGraph, PluginDriver,
   ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime,
   VisitedModuleIdentity,
 };
+use hashbrown::HashMap;
+use rayon::prelude::*;
+use rspack_error::{Diagnostic, Result};
+use serde::Serialize;
+use std::{fmt::Debug, sync::Arc};
+use tracing::instrument;
 
 #[derive(Debug)]
 pub struct Compilation {
@@ -25,7 +24,6 @@ pub struct Compilation {
   pub assets: CompilationAssets,
   pub diagnostic: Vec<Diagnostic>,
 }
-
 impl Compilation {
   pub fn new(
     options: Arc<CompilerOptions>,
@@ -114,9 +112,10 @@ impl Compilation {
       })
   }
 
-  fn process_assets(&mut self, plugin_driver: Arc<PluginDriver>) {
+  async fn process_assets(&mut self, plugin_driver: Arc<PluginDriver>) {
     plugin_driver
       .process_assets(ProcessAssetsArgs { compilation: self })
+      .await
       .map_err(|e| {
         eprintln!("process_assets is not ok, err {:#?}", e);
         e
@@ -127,7 +126,6 @@ impl Compilation {
     plugin_driver.done().await?;
     Ok(())
   }
-
   pub fn render_runtime(&self, plugin_driver: Arc<PluginDriver>) -> Runtime {
     let context_indent = match &self.options.target {
       crate::Target::Target(target) => match target {
@@ -158,7 +156,7 @@ impl Compilation {
   }
 
   #[instrument(skip_all)]
-  pub fn seal(&mut self, plugin_driver: Arc<PluginDriver>) -> Result<()> {
+  pub async fn seal(&mut self, plugin_driver: Arc<PluginDriver>) -> Result<()> {
     code_splitting2(self);
     // TODO: optmize chunks
 
@@ -186,7 +184,7 @@ impl Compilation {
       self.entrypoints.insert(name.clone(), entrypoint);
     });
 
-    self.process_assets(plugin_driver);
+    self.process_assets(plugin_driver).await;
     Ok(())
   }
 }
@@ -194,7 +192,7 @@ impl Compilation {
 // TODO: This is a temporary struct. This struct should be replaced with `rspack_sources`.
 // See https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L159
 // See https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L159
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize)]
 pub struct CompilationAsset {
   pub source: AssetContent,
 }
