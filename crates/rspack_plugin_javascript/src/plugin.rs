@@ -296,7 +296,6 @@ pub fn ecma_parse_error_to_diagnostic(
     _ => unreachable!(),
   };
   let message = error.kind().msg().to_string();
-  // let error = error;
   let span: ErrorSpan = error.span().into();
   let traceable_error = rspack_error::TraceableError::from_path(
     path.to_string(),
@@ -307,5 +306,4 @@ pub fn ecma_parse_error_to_diagnostic(
   );
   rspack_error::Error::TraceableError(traceable_error)
   //Use this `Error` convertion could avoid eagerly clone source file.
-  // <Vec<Diagnostic>>::from(rspack_error::Error::TraceableError(traceable_error))
 }
