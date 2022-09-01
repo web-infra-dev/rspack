@@ -12,6 +12,25 @@ use rspack_core::{
 
 use crate::RawOption;
 
+pub fn generate_path(path: Option<String>, context: &Option<String>) -> String {
+  match path {
+    Some(path) => {
+      if Path::new(&path).is_absolute() {
+        path
+      } else {
+        Path::new(context.as_ref().unwrap())
+          .join(path)
+          .to_string_lossy()
+          .to_string()
+      }
+    }
+    None => Path::new(context.as_ref().unwrap())
+      .join("dist")
+      .to_string_lossy()
+      .to_string(),
+  }
+}
+
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 #[cfg(feature = "node-api")]
@@ -62,12 +81,7 @@ impl RawOption<OutputOptions> for RawOutputOptions {
     let chunk_filename = self
       .chunk_filename
       .unwrap_or_else(|| filename.replace(NAME_PLACEHOLDER, &format!("{}.chunk", ID_PLACEHOLDER)));
-    let path = self.path.unwrap_or_else(|| {
-      Path::new(options.context.as_ref().unwrap())
-        .join("dist")
-        .to_string_lossy()
-        .to_string()
-    });
+    let path = generate_path(self.path, &options.context);
     // todo unique name needs to be determined by package.name
     let unique_name = self
       .unique_name
