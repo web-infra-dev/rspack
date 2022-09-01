@@ -58,11 +58,5 @@ pub enum Error {
     source: anyhow::Error,
   },
   #[error("")]
-  Json {
-    #[from]
-    source: json::Error,
-  },
-
-  #[error("")]
   BatchErrors(Vec<Error>),
 }

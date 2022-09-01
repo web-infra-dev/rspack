@@ -143,6 +143,7 @@ fn emit_batch_diagnostic<T: Write + WriteColor + FlushDiagnostic>(
     } else {
       writer.set_color(ColorSpec::new().set_fg(Some(Color::Red)))?;
       writeln!(writer, "{}", diagnostic.message)?;
+      writer.flush_diagnostic();
     }
   }
   Ok(())

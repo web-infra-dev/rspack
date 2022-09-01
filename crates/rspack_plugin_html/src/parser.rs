@@ -25,17 +25,11 @@ impl HtmlCompiler {
     PATH_START_BYTE_POS_MAP.insert(path.to_string(), fm.start_pos.0);
 
     let mut errors = vec![];
-    let document = parse_file_as_document(
-      fm.as_ref(),
-      ParserConfig {
-        ..Default::default()
-      },
-      &mut errors,
-    );
+    let document = parse_file_as_document(fm.as_ref(), ParserConfig::default(), &mut errors);
     let diagnostics: Vec<rspack_error::Diagnostic> = errors
       .into_iter()
-      .map(|error| html_parse_error_to_traceable_error(error, path).into())
-      .collect::<Vec<_>>();
+      .flat_map(|error| <Vec<Diagnostic>>::from(html_parse_error_to_traceable_error(error, path)))
+      .collect();
     document
       .map(|doc| doc.with_diagnostic(diagnostics))
       .map_err(|e| {
