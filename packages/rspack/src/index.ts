@@ -7,7 +7,7 @@ import type {
 	RawModuleRuleUse,
 	RawModuleRule
 } from "@rspack/binding";
-
+import * as tapable from "tapable";
 import assert from "node:assert";
 import * as Config from "./config";
 import type { RspackOptions } from "./config";
@@ -221,23 +221,32 @@ const createDummyResult = (id: number): string => {
 class Rspack {
 	#instance: ExternalObject<RspackInternal>;
 	#plugins: RspackOptions["plugins"];
+	hooks: {
+		processAssets: tapable.AsyncSeriesHook<Config.Assets>;
+		done: tapable.AsyncSeriesHook<void>;
+	};
 	constructor(public options: RspackOptions) {
 		const nativeConfig = Config.User2Native(options);
-		this.#plugins = options.plugins ?? [];
 
 		this.#instance = binding.newRspack(nativeConfig, {
 			doneCallback: this.#done.bind(this),
 			processAssetsCallback: this.#procssAssets.bind(this)
 		});
+		this.hooks = {
+			processAssets: new tapable.AsyncSeriesHook<Config.Assets>(["assets"]),
+			done: new tapable.AsyncSeriesHook<void>()
+		};
+		this.#plugins = options.plugins ?? [];
+		for (const plugin of this.#plugins) {
+			plugin.apply(this);
+		}
 	}
 	async #done(err: Error, value: string) {
 		if (err) {
 			throw err;
 		}
 		const context: RspackThreadsafeContext<void> = JSON.parse(value);
-		for (const plugin of this.#plugins) {
-			await plugin.done?.();
-		}
+		await this.hooks.done.promise();
 		return createDummyResult(context.id);
 	}
 	async #procssAssets(err: Error, value: string) {
@@ -245,9 +254,7 @@ class Rspack {
 			throw err;
 		}
 		const context: RspackThreadsafeContext<Config.Assets> = JSON.parse(value);
-		for (const plugin of this.#plugins) {
-			await plugin.processAssets?.(context?.inner);
-		}
+		await this.hooks.processAssets.promise(context?.inner);
 		return createDummyResult(context.id);
 	}
 	async build() {
