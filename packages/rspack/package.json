@@ -9,18 +9,20 @@
   "scripts": {
     "build": "rm -rf dist/ && tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json -w",
-    "example": "node -r tsm ./example/basic.ts"
+    "example": "node -r ts-node/register ./example/basic.ts"
   },
   "devDependencies": {
     "@types/node": "^18.6.3",
     "tsm": "^2.2.2",
+    "ts-node": "10.9.1",
     "typescript": "4.7.3"
   },
   "dependencies": {
     "@rspack/binding": "workspace:*",
     "commander": "^9.4.0",
     "@rspack/dev-server": "workspace:^",
-    "@rspack/plugin-postcss": "workspace:^"
+    "@rspack/plugin-postcss": "workspace:^",
+    "tapable": "2.2.1"
   },
   "optionalDependencies": {
     "@tmp-sass-embedded/darwin-arm64": "1.54.4",

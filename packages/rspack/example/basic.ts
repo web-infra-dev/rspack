@@ -9,30 +9,23 @@ const rspack = new Rspack({
 	context: path.resolve(__dirname, "../../../examples/postcss"),
 	plugins: [
 		{
-			name: "done1",
-			done() {
-				console.log("done1");
-			}
-		},
-		{
-			name: "done1",
-			done() {
-				console.log("done2");
-			}
-		},
-		{
-			name: "process_assets1",
-			processAssets() {
-				console.log("processAssets1");
-			}
-		},
-		{
-			name: "process_assets2",
-			processAssets(args) {
-				console.log("processAssets2");
-				for (const value of Object.values(args)) {
-					//console.log("source:", value.source);
-				}
+			name: "test",
+			apply(compiler) {
+				compiler.hooks.done.tap("done1", () => {
+					console.log("done1");
+				});
+				compiler.hooks.done.tap("done2", () => {
+					console.log("done2");
+				});
+				compiler.hooks.processAssets.tapPromise(
+					"processAssets1",
+					async (...args) => {
+						console.log({ args });
+					}
+				);
+				compiler.hooks.processAssets.tap("processAssets2", args => {
+					console.log({ args });
+				});
 			}
 		}
 	],

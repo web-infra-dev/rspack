@@ -1,15 +1,14 @@
 import type { RawOptions } from "@rspack/binding";
 
 import type { ModuleRule } from ".";
-import { createRawModuleRuleUses } from ".";
+import Rspack, { createRawModuleRuleUses } from ".";
 export type Asset = {
 	source: string;
 };
 export type Assets = Record<string, Asset>;
 export type Plugin = {
 	name: string;
-	done?: () => void | Promise<void>;
-	processAssets?: (assets: Assets) => void | Promise<void>;
+	apply(compiler: Rspack): void;
 };
 
 export interface RspackOptions {
