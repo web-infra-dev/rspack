@@ -91,10 +91,6 @@ impl From<Error> for Vec<Diagnostic> {
         message: format!("{}\nbacktrace: {}", source, source.backtrace()),
         ..Default::default()
       },
-      Error::Json { source } => Diagnostic {
-        message: source.to_string(),
-        ..Default::default()
-      },
       Error::BatchErrors(diagnostics) => {
         return diagnostics
           .into_iter()

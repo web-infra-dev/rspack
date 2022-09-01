@@ -1,5 +1,5 @@
-use anyhow::Ok;
-use rspack_core::PATH_START_BYTE_POS_MAP;
+use rspack_core::{ErrorSpan, PATH_START_BYTE_POS_MAP};
+use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_common::{sync::Lrc, FileName, FilePathMapping, SourceMap};
 use swc_html::{
   ast::Document,
@@ -7,7 +7,7 @@ use swc_html::{
     writer::basic::{BasicHtmlWriter, BasicHtmlWriterConfig},
     CodeGenerator, CodegenConfig, Emit,
   },
-  parser::{parse_file_as_document, parser::ParserConfig},
+  parser::{error::Error, parse_file_as_document, parser::ParserConfig},
 };
 
 #[derive(Default)]
@@ -18,23 +18,21 @@ impl HtmlCompiler {
     Self {}
   }
 
-  pub fn parse_file(&self, path: &str, source: String) -> anyhow::Result<Document> {
+  pub fn parse_file(&self, path: &str, source: String) -> Result<TWithDiagnosticArray<Document>> {
     let cm = Lrc::new(SourceMap::new(FilePathMapping::empty()));
     let fm = cm.new_source_file(FileName::Custom(path.to_string()), source);
 
     PATH_START_BYTE_POS_MAP.insert(path.to_string(), fm.start_pos.0);
 
     let mut errors = vec![];
-    let document = parse_file_as_document(
-      fm.as_ref(),
-      ParserConfig {
-        ..Default::default()
-      },
-      &mut errors,
-    )
-    .map_err(|e| anyhow::format_err!(e.message()))?;
-
-    Ok(document)
+    let document = parse_file_as_document(fm.as_ref(), ParserConfig::default(), &mut errors);
+    let diagnostics: Vec<rspack_error::Diagnostic> = errors
+      .into_iter()
+      .flat_map(|error| <Vec<Diagnostic>>::from(html_parse_error_to_traceable_error(error, path)))
+      .collect();
+    document
+      .map(|doc| doc.with_diagnostic(diagnostics))
+      .map_err(|e| html_parse_error_to_traceable_error(e, path))
   }
 
   pub fn codegen(&self, ast: &Document) -> anyhow::Result<String> {
@@ -48,4 +46,19 @@ impl HtmlCompiler {
     gen.emit(&ast).map_err(|e| anyhow::format_err!(e))?;
     Ok(output)
   }
+}
+
+pub fn html_parse_error_to_traceable_error(error: Error, path: &str) -> rspack_error::Error {
+  let message = error.message();
+  let error = error.into_inner();
+  let span: ErrorSpan = error.0.into();
+  let traceable_error = rspack_error::TraceableError::from_path(
+    path.to_string(),
+    span.start as usize,
+    span.end as usize,
+    "HTML parsing error".to_string(),
+    message.to_string(),
+  );
+  //Use this `Error` convertion could avoid eagerly clone source file.
+  rspack_error::Error::TraceableError(traceable_error)
 }

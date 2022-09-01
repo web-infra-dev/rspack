@@ -26,6 +26,11 @@ impl<T: std::fmt::Debug> TWithDiagnosticArray<T> {
   pub fn take_inner(self) -> T {
     self.inner
   }
+
+  pub fn split_into_parts(mut self) -> (T, Vec<Diagnostic>) {
+    let diagnostic = std::mem::take(&mut self.diagnostic);
+    (self.inner, diagnostic)
+  }
 }
 
 // Helper trait to make `TWithDiagnosticArray` convertion more easily.

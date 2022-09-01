@@ -1,4 +1,7 @@
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use json::Error::{
+  ExceededDepthLimit, FailedUtf8Parsing, UnexpectedCharacter, UnexpectedEndOfJson, WrongType,
+};
+use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, TraceableError};
 
 use rspack_core::{BoxModule, Module, ModuleRenderResult, ModuleType, Parser, Plugin, SourceType};
 
@@ -41,8 +44,40 @@ impl Parser for JsonParser {
   ) -> Result<TWithDiagnosticArray<BoxModule>> {
     let source = args.source.try_into_string()?;
 
-    // JSON Validation
-    json::parse(&source)?;
+    json::parse(&source).map_err(|e| {
+      match e {
+        UnexpectedCharacter { ch, line, column } => {
+          let rope = ropey::Rope::from_str(&source);
+          let line_offset = rope.try_line_to_byte(line - 1).unwrap();
+          let start_offset = source[line_offset..]
+            .chars()
+            .take(column)
+            .fold(line_offset, |acc, cur| acc + cur.len_utf8());
+          Error::TraceableError(TraceableError::from_path(
+            args.uri.to_owned(),
+            // one character offset
+            start_offset,
+            start_offset + 1,
+            "Json parsing error".to_string(),
+            format!("Unexpected character {}", ch),
+          ))
+        }
+        ExceededDepthLimit | WrongType(_) | FailedUtf8Parsing => {
+          Error::InternalError(format!("{}", e))
+        }
+        UnexpectedEndOfJson => {
+          // End offset of json file
+          let offset = source.len();
+          Error::TraceableError(TraceableError::from_path(
+            args.uri.to_owned(),
+            offset,
+            offset,
+            "Json parsing error".to_string(),
+            format!("{}", e),
+          ))
+        }
+      }
+    })?;
 
     let module: BoxModule = Box::new(JsonModule::new(source));
     Ok(module.with_empty_diagnostic())
