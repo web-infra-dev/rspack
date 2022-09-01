@@ -41,6 +41,7 @@ export interface RspackOptions {
 	target?: RawOptions["target"];
 	mode?: RawOptions["mode"];
 	external?: RawOptions["external"];
+	output?: RawOptions["output"];
 }
 
 export function User2Native(config: RspackOptions): RawOptions & {
@@ -49,6 +50,7 @@ export function User2Native(config: RspackOptions): RawOptions & {
 	return {
 		entry: config.entry ?? {},
 		context: config.context,
+		output: config.output,
 		define: config.define,
 		target: config.target,
 		external: config.external,
