@@ -685,6 +685,7 @@ checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
 dependencies = [
  "ahash",
  "rayon",
+ "serde",
 ]
 
 [[package]]
@@ -1869,6 +1870,7 @@ dependencies = [
  "regex",
  "rspack_error",
  "rspack_loader_runner",
+ "serde",
  "sugar_path",
  "swc_common 0.27.11",
  "swc_css",
@@ -1996,6 +1998,7 @@ name = "rspack_plugin_html"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "base64",
  "hashbrown",
  "once_cell",

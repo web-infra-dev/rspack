@@ -1,4 +1,5 @@
 use anyhow::Context;
+use async_trait::async_trait;
 use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
 use rspack_core::{parse_to_url, AssetContent, Plugin};
 use serde::Deserialize;
@@ -34,15 +35,16 @@ fn default_template() -> &'static str {
   </body>
 </html>"#
 }
+#[async_trait]
 impl Plugin for HtmlPlugin {
   fn name(&self) -> &'static str {
     "html"
   }
 
-  fn process_assets(
+  async fn process_assets(
     &self,
     _ctx: rspack_core::PluginContext,
-    args: rspack_core::ProcessAssetsArgs,
+    args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsOutput {
     let config = &self.config;
     let compilation = args.compilation;

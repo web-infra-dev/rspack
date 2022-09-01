@@ -155,7 +155,7 @@ impl Compiler {
 
     // self.compilation.calc_exec_order();
 
-    self.compilation.seal(self.plugin_driver.clone())?;
+    self.compilation.seal(self.plugin_driver.clone()).await?;
     self.compilation.done(self.plugin_driver.clone()).await?;
 
     // Consume plugin driver diagnostic

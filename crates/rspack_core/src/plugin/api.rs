@@ -1,13 +1,13 @@
 use std::fmt::Debug;
 
-use rspack_loader_runner::{Content, ResourceData};
-
 use crate::{
   BoxModule, FactorizeAndBuildArgs, ModuleType, NormalModuleFactoryContext, ParseModuleArgs,
   PluginContext, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, RuntimeSourceNode,
   TransformAst, TransformResult,
 };
 use rspack_error::{Result, TWithDiagnosticArray};
+use rspack_loader_runner::{Content, ResourceData};
+use serde::Serialize;
 
 // use anyhow::{Context, Result};
 use hashbrown::HashMap;
@@ -121,16 +121,16 @@ pub trait Plugin: Debug + Send + Sync {
   ) -> PluginRenderRuntimeHookOutput {
     Ok(args.sources.to_vec())
   }
-  fn process_assets(
+  async fn process_assets(
     &self,
     _ctx: PluginContext,
-    _args: ProcessAssetsArgs,
+    _args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
     Ok(())
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize)]
 pub enum AssetContent {
   Buffer(Vec<u8>),
   String(String),

@@ -153,16 +153,17 @@ impl PluginDriver {
     Ok(sources)
   }
   #[instrument(skip_all)]
-  pub fn process_assets(&self, args: ProcessAssetsArgs) -> PluginProcessAssetsOutput {
-    self.plugins.iter().try_for_each(|plugin| -> Result<()> {
-      plugin.process_assets(
-        PluginContext::new(),
-        ProcessAssetsArgs {
-          compilation: args.compilation,
-        },
-      )?;
-      Ok(())
-    })?;
+  pub async fn process_assets(&self, args: ProcessAssetsArgs<'_>) -> PluginProcessAssetsOutput {
+    for plugin in &self.plugins {
+      plugin
+        .process_assets(
+          PluginContext::new(),
+          ProcessAssetsArgs {
+            compilation: args.compilation,
+          },
+        )
+        .await?;
+    }
     Ok(())
   }
   #[instrument(skip_all)]
