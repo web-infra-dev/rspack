@@ -1,18 +1,14 @@
-use anyhow::Error;
 use once_cell::sync::Lazy;
-use rspack_core::{Compiler, ModuleType, PATH_START_BYTE_POS_MAP};
-use rspack_error::{IntoTWithDiagnosticArray, TWithDiagnosticArray};
+use rspack_core::{ModuleType, PATH_START_BYTE_POS_MAP};
 use std::path::Path;
 use std::sync::Arc;
 use swc::{config::IsModule, Compiler as SwcCompiler};
 use swc_atoms::js_word;
 use swc_common::comments::Comments;
-use swc_common::errors::Handler;
 use swc_common::{FileName, FilePathMapping, Mark, SourceFile, SourceMap, Span, DUMMY_SP};
 use swc_ecma_ast::{CallExpr, Callee, EsVersion, Expr, ExprOrSpread, Id, Ident, Lit, Program, Str};
 use swc_ecma_parser::{parse_file_as_module, parse_file_as_program, parse_file_as_script, Syntax};
 use swc_ecma_parser::{EsConfig, TsConfig};
-use tracing::instrument;
 
 static SWC_COMPILER: Lazy<Arc<SwcCompiler>> = Lazy::new(|| {
   let cm = Arc::new(SourceMap::new(FilePathMapping::empty()));
@@ -32,7 +28,7 @@ pub fn parse_js(
   is_module: IsModule,
   comments: Option<&dyn Comments>,
 ) -> Result<Program, Vec<swc_ecma_parser::error::Error>> {
-  let res = compiler.run(|| {
+  compiler.run(|| {
     let mut errors = vec![];
     let program_result = match is_module {
       IsModule::Bool(true) => {
@@ -54,9 +50,7 @@ pub fn parse_js(
     })?;
 
     Ok(program)
-  });
-
-  res
+  })
 }
 pub fn parse_file(
   source_code: String,

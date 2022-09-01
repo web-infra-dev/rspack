@@ -98,7 +98,7 @@ impl From<Error> for Vec<Diagnostic> {
       Error::BatchErrors(diagnostics) => {
         return diagnostics
           .into_iter()
-          .flat_map(|item| Vec::<Diagnostic>::from(item))
+          .flat_map(Vec::<Diagnostic>::from)
           .collect::<Vec<_>>()
       }
     };

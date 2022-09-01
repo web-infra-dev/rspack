@@ -12,20 +12,18 @@ use termcolor::{Color, ColorSpec, StandardStreamLock, WriteColor};
 use crate::Diagnostic as RspackDiagnostic;
 
 pub trait FlushDiagnostic {
-  fn flush_diagnostic(&mut self) -> ();
+  fn flush_diagnostic(&mut self) {}
 }
 
 impl FlushDiagnostic for StringDiagnosticDisplay {
-  fn flush_diagnostic(&mut self) -> () {
+  fn flush_diagnostic(&mut self) {
     self
       .diagnostic_vector
       .push(std::mem::take(&mut self.string_buffer).join(""));
   }
 }
 
-impl FlushDiagnostic for StandardStreamLock<'_> {
-  fn flush_diagnostic(&mut self) -> () {}
-}
+impl FlushDiagnostic for StandardStreamLock<'_> {}
 pub trait DiagnosticDisplay {
   type Output;
   fn emit_batch_diagnostic(

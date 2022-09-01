@@ -241,7 +241,7 @@ impl Parser for JsParser {
       Error::BatchErrors(
         err
           .into_iter()
-          .map(|e| ecma_parse_error_to_diagnostic(e, args.uri.clone(), &module_type))
+          .map(|e| ecma_parse_error_to_diagnostic(e, args.uri, &module_type))
           .collect(),
       )
     })?;
@@ -303,7 +303,7 @@ pub fn ecma_parse_error_to_diagnostic(
     span.start as usize,
     span.end as usize,
     format!("{} parsing error", file_type),
-    message.to_string(),
+    message,
   );
   rspack_error::Error::TraceableError(traceable_error)
   //Use this `Error` convertion could avoid eagerly clone source file.
