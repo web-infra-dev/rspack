@@ -3,7 +3,8 @@ import type { RawOptions } from "@rspack/binding";
 import type { ModuleRule } from ".";
 import Rspack, { createRawModuleRuleUses } from ".";
 export type Asset = {
-	source: string;
+	source?: string;
+	buffer?: Buffer;
 };
 export type Assets = Record<string, Asset>;
 export type Plugin = {

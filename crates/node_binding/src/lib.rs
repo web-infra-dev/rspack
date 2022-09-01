@@ -5,6 +5,7 @@ use std::sync::Arc;
 use napi::bindgen_prelude::*;
 use napi::{Env, Result};
 use napi_derive::napi;
+use rspack_core::CompilationAsset;
 // use nodejs_resolver::Resolver;
 use tokio::sync::Mutex;
 mod adapter;
@@ -26,6 +27,27 @@ pub fn create_external<T>(value: T) -> External<T> {
 }
 
 pub type Rspack = Arc<Mutex<rspack::Compiler>>;
+
+#[napi(object)]
+pub struct AssetContent {
+  pub buffer: Option<Buffer>,
+  pub source: Option<String>,
+}
+impl Debug for AssetContent {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("AssetContent")
+      .field("buffer", &"buffer")
+      .field("source", &self.source)
+      .finish()
+  }
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct UpdateAssetOptions {
+  pub asset: AssetContent,
+  pub filename: String,
+}
 
 #[napi(object)]
 
@@ -137,6 +159,30 @@ pub fn new_rspack(
 }
 
 #[napi(
+  ts_args_type = "rspack: ExternalObject<RspackInternal>,options: {filename:string,asset:{source?:string;buffer?:Buffer;}}",
+  ts_return_type = "Promise<Stats>"
+)]
+pub fn update_asset(
+  env: Env,
+  binding_context: External<RspackBindingContext>,
+  options: UpdateAssetOptions,
+) -> Result<napi::JsObject> {
+  let compiler = binding_context.rspack.clone();
+  env.execute_tokio_future(
+    async move {
+      let mut compiler = compiler.lock().await;
+      compiler.update_asset(
+        options.filename,
+        CompilationAsset {
+          source: rspack_core::AssetContent::String(options.asset.source.unwrap()),
+        },
+      );
+      Ok(())
+    },
+    |_env, ret| Ok(ret),
+  )
+}
+#[napi(
   ts_args_type = "rspack: ExternalObject<RspackInternal>",
   ts_return_type = "Promise<Stats>"
 )]
@@ -189,7 +235,6 @@ pub fn rebuild(
     |_env, ret| Ok(ret),
   )
 }
-
 // #[napi(
 //   ts_args_type = "rspack: ExternalObject<RspackInternal>, source: string, resolveOptions: ResolveOptions",
 //   ts_return_type = "ResolveResult"
