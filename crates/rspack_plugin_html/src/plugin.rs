@@ -1,9 +1,9 @@
 use anyhow::Context;
 use async_trait::async_trait;
 use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
-use rspack_core::{parse_to_url, resolve, AssetContent, Plugin};
+use rspack_core::{parse_to_url, AssetContent, Plugin};
 use serde::Deserialize;
-use std::{borrow::Cow, fs, path::Path};
+use std::{fs, path::Path};
 use swc_html::visit::VisitMutWith;
 
 use crate::{
