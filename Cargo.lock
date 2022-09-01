@@ -2295,6 +2295,7 @@ dependencies = [
  "once_cell",
  "rayon",
  "rspack_core",
+ "rspack_error",
  "rspack_test",
  "serde",
  "serde_json",

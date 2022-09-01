@@ -1,9 +1,9 @@
 use anyhow::Context;
 use async_trait::async_trait;
 use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
-use rspack_core::{parse_to_url, AssetContent, Plugin};
+use rspack_core::{parse_to_url, resolve, AssetContent, Plugin};
 use serde::Deserialize;
-use std::{fs, path::Path};
+use std::{borrow::Cow, fs, path::Path};
 use swc_html::visit::VisitMutWith;
 
 use crate::{
@@ -58,18 +58,26 @@ impl Plugin for HtmlPlugin {
       Some(_template) => {
         let url = parse_to_url(_template);
         let resolved_template = resolve_from_context(&compilation.options.context, url.path());
-        let content = fs::read_to_string(resolved_template).context(format!(
+        let content = fs::read_to_string(&resolved_template).context(format!(
           "failed to read `{}` from `{}`",
           url.path(),
           &compilation.options.context
         ))?;
-        (content, url)
+        (content, resolved_template.to_string_lossy().to_string())
       }
-      None => (default_template().to_owned(), parse_to_url("default.html")),
+      None => (
+        default_template().to_owned(),
+        parse_to_url("default.html").path().to_string(),
+      ),
     };
 
-    let mut current_ast = parser.parse_file(url.path(), content)?;
+    let ast_with_diagnostic = parser.parse_file(&url, content)?;
 
+    let (mut current_ast, mut diagnostic) = ast_with_diagnostic.split_into_parts();
+
+    if !diagnostic.is_empty() {
+      compilation.diagnostic.append(&mut diagnostic);
+    }
     let mut included_assets = compilation
       .entrypoints
       .keys()
