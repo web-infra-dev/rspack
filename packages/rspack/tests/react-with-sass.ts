@@ -1,4 +1,6 @@
 import path from "path";
+import { test } from "uvu";
+import assert from "assert";
 import { Rspack } from "../src";
 
 const context = path.resolve(__dirname, "../../../examples/react-with-sass");
@@ -8,7 +10,6 @@ const rspack = new Rspack({
 		main: path.resolve(context, "./src/index.jsx")
 	},
 	context,
-	plugins: ["html"],
 	module: {
 		rules: [
 			{
@@ -20,9 +21,9 @@ const rspack = new Rspack({
 	}
 });
 
-async function main() {
+test("sass", async () => {
 	const stats = await rspack.build();
-	console.log(stats);
-}
+	assert.equal(stats.errors.length, 0);
+});
 
-main();
+test.run();

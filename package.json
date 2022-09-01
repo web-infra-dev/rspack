@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "init": "pnpm install",
-    "test:js": "mocha && pnpm --filter arco-design-pro run build",
+    "test:js": "pnpm run test",
     "snapshot:js": "mocha --update",
     "test:rust": "cargo test --all -- --nocapture",
     "test:example": "cargo run --example arco_pro",
