@@ -58,6 +58,10 @@ impl Compilation {
     self.diagnostic.push(diagnostic);
   }
 
+  pub fn push_batch_diagnostic(&mut self, mut diagnostic: Vec<Diagnostic>) {
+    self.diagnostic.append(&mut diagnostic);
+  }
+
   pub fn entry_dependencies(&self) -> HashMap<String, Dependency> {
     self
       .entries

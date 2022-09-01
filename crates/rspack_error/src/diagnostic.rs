@@ -51,10 +51,10 @@ impl Diagnostic {
   }
 }
 
-impl From<Error> for Diagnostic {
+impl From<Error> for Vec<Diagnostic> {
   fn from(err: Error) -> Self {
-    match err {
-      Error::InternalError(message) => Self {
+    let diagnostic = match err {
+      Error::InternalError(message) => Diagnostic {
         message,
         source_info: None,
         start: 0,
@@ -74,7 +74,7 @@ impl From<Error> for Diagnostic {
         } else {
           std::fs::read_to_string(&path).unwrap()
         };
-        Self {
+        Diagnostic {
           message: error_message,
           source_info: Some(DiagnosticSourceInfo { source, path }),
           start,
@@ -83,18 +83,25 @@ impl From<Error> for Diagnostic {
           ..Default::default()
         }
       }
-      Error::Io { source } => Self {
+      Error::Io { source } => Diagnostic {
         message: source.to_string(),
         ..Default::default()
       },
-      Error::Anyhow { source } => Self {
+      Error::Anyhow { source } => Diagnostic {
         message: format!("{}\nbacktrace: {}", source, source.backtrace()),
         ..Default::default()
       },
-      Error::Json { source } => Self {
+      Error::Json { source } => Diagnostic {
         message: source.to_string(),
         ..Default::default()
       },
-    }
+      Error::BatchErrors(diagnostics) => {
+        return diagnostics
+          .into_iter()
+          .flat_map(Vec::<Diagnostic>::from)
+          .collect::<Vec<_>>()
+      }
+    };
+    vec![diagnostic]
   }
 }

@@ -1,0 +1,90 @@
+---
+source: crates/rspack_error/tests/fixtures.rs
+assertion_line: 63
+expression: multiple_file_syntax_error
+---
+error: JavaScript parsing error
+  ┌─ tests/out_of_order/multiple_file_syntax_error/a.js:2:10
+  │
+2 │ const  D {
+  │          ^ Expected a semicolon
+
+error: JavaScript parsing error
+  ┌─ tests/out_of_order/multiple_file_syntax_error/a.js:2:8
+  │
+2 │ const  D {
+  │        ^ 'const' declarations must be initialized
+
+error: JavaScript parsing error
+  ┌─ tests/out_of_order/multiple_file_syntax_error/b.js:2:10
+  │
+2 │ const  D {
+  │          ^ Expected a semicolon
+
+error: JavaScript parsing error
+  ┌─ tests/out_of_order/multiple_file_syntax_error/b.js:2:8
+  │
+2 │ const  D {
+  │        ^ 'const' declarations must be initialized
+
+error: JavaScript parsing error
+  ┌─ tests/out_of_order/multiple_file_syntax_error/c.js:2:10
+  │
+2 │ const  D {
+  │          ^ Expected a semicolon
+
+error: JavaScript parsing error
+  ┌─ tests/out_of_order/multiple_file_syntax_error/c.js:2:8
+  │
+2 │ const  D {
+  │        ^ 'const' declarations must be initialized
+
+error: JavaScript parsing error
+  ┌─ tests/out_of_order/multiple_file_syntax_error/d.js:2:10
+  │
+2 │ const  D {
+  │          ^ Expected a semicolon
+
+error: JavaScript parsing error
+  ┌─ tests/out_of_order/multiple_file_syntax_error/d.js:2:8
+  │
+2 │ const  D {
+  │        ^ 'const' declarations must be initialized
+
+error: JavaScript parsing error
+  ┌─ tests/out_of_order/multiple_file_syntax_error/e.js:2:10
+  │
+2 │ const  D {
+  │          ^ Expected a semicolon
+
+error: JavaScript parsing error
+  ┌─ tests/out_of_order/multiple_file_syntax_error/e.js:2:8
+  │
+2 │ const  D {
+  │        ^ 'const' declarations must be initialized
+
+error: JavaScript parsing error
+  ┌─ tests/out_of_order/multiple_file_syntax_error/f.js:2:10
+  │
+2 │ const  D {
+  │          ^ Expected a semicolon
+
+error: JavaScript parsing error
+  ┌─ tests/out_of_order/multiple_file_syntax_error/f.js:2:8
+  │
+2 │ const  D {
+  │        ^ 'const' declarations must be initialized
+
+error: JavaScript parsing error
+  ┌─ tests/out_of_order/multiple_file_syntax_error/g.js:2:10
+  │
+2 │ const  D {
+  │          ^ Expected a semicolon
+
+error: JavaScript parsing error
+  ┌─ tests/out_of_order/multiple_file_syntax_error/g.js:2:8
+  │
+2 │ const  D {
+  │        ^ 'const' declarations must be initialized
+
+

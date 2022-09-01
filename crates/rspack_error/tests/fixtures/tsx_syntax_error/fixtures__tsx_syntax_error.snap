@@ -1,0 +1,12 @@
+---
+source: crates/rspack_error/tests/fixtures.rs
+assertion_line: 29
+expression: tsx_syntax_error
+---
+error: TSX parsing error
+  ┌─ tests/fixtures/tsx_syntax_error/index.tsx:1:10
+  │
+1 │ let c = <test>/test>;
+  │          ^^^^ Unexpected token `test`. Expected jsx identifier
+
+

@@ -7,9 +7,23 @@ use std::io::Write;
 use std::path::Path;
 use std::sync::Arc;
 use sugar_path::PathSugar;
-use termcolor::{Color, ColorSpec, WriteColor};
+use termcolor::{Color, ColorSpec, StandardStreamLock, WriteColor};
 
 use crate::Diagnostic as RspackDiagnostic;
+
+pub trait FlushDiagnostic {
+  fn flush_diagnostic(&mut self) {}
+}
+
+impl FlushDiagnostic for StringDiagnosticDisplay {
+  fn flush_diagnostic(&mut self) {
+    self
+      .diagnostic_vector
+      .push(std::mem::take(&mut self.string_buffer).join(""));
+  }
+}
+
+impl FlushDiagnostic for StandardStreamLock<'_> {}
 pub trait DiagnosticDisplay {
   type Output;
   fn emit_batch_diagnostic(
@@ -38,13 +52,23 @@ impl DiagnosticDisplay for StdioDiagnosticDisplay {
 
 #[derive(Default)]
 pub struct StringDiagnosticDisplay {
-  inner: String,
+  string_buffer: Vec<String>,
+  sorted: bool,
+  diagnostic_vector: Vec<String>,
+}
+
+impl StringDiagnosticDisplay {
+  pub fn with_sorted(self, sorted: bool) -> Self {
+    Self { sorted, ..self }
+  }
 }
 
 impl Write for StringDiagnosticDisplay {
   fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
     let len = buf.len();
-    self.inner.push_str(&String::from_utf8_lossy(buf));
+    self
+      .string_buffer
+      .push(String::from_utf8_lossy(buf).to_string());
     Ok(len)
   }
 
@@ -75,11 +99,13 @@ impl DiagnosticDisplay for StringDiagnosticDisplay {
     path_pos_map: Arc<DashMap<String, u32>>,
   ) -> Self::Output {
     emit_batch_diagnostic(diagnostics, path_pos_map, self)?;
-    let ret = std::mem::take(&mut self.inner);
-    Ok(ret)
+    if self.sorted {
+      self.diagnostic_vector.sort();
+    }
+    Ok(self.diagnostic_vector.join(""))
   }
 }
-fn emit_batch_diagnostic<T: Write + WriteColor>(
+fn emit_batch_diagnostic<T: Write + WriteColor + FlushDiagnostic>(
   diagnostics: &[RspackDiagnostic],
   path_pos_map: Arc<DashMap<String, u32>>,
   writer: &mut T,
@@ -111,6 +137,9 @@ fn emit_batch_diagnostic<T: Write + WriteColor>(
       let config = codespan_reporting::term::Config::default();
 
       term::emit(writer, &config, &files, &diagnostic).unwrap();
+      // `codespan_reporting` will not write the diagnostic message in a whole,
+      // we need to insert some helper flag for sorting
+      writer.flush_diagnostic();
     } else {
       writer.set_color(ColorSpec::new().set_fg(Some(Color::Red)))?;
       writeln!(writer, "{}", diagnostic.message)?;

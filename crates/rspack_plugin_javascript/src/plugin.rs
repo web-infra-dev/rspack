@@ -1,3 +1,5 @@
+use std::vec;
+
 use crate::module::JS_MODULE_SOURCE_TYPE_LIST;
 use crate::utils::{get_wrap_chunk_after, get_wrap_chunk_before, parse_file, wrap_module_function};
 use crate::visitors::{ClearMark, DefineScanner, DefineTransform};
@@ -6,14 +8,14 @@ use crate::{module::JsModule, utils::get_swc_compiler};
 use crate::{RSPACK_REGISTER, RSPACK_REQUIRE};
 use rayon::prelude::*;
 use rspack_core::{
-  AssetContent, BoxModule, ChunkKind, FilenameRenderOptions, ModuleRenderResult, ModuleType,
-  ParseModuleArgs, Parser, Plugin, PluginContext, PluginRenderManifestHookOutput,
+  AssetContent, BoxModule, ChunkKind, ErrorSpan, FilenameRenderOptions, ModuleRenderResult,
+  ModuleType, ParseModuleArgs, Parser, Plugin, PluginContext, PluginRenderManifestHookOutput,
   RenderManifestEntry, SourceType, Target, TargetOptions,
 };
 
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_common::comments::SingleThreadedComments;
-use swc_common::Mark;
+use swc_common::{Mark, Spanned};
 use swc_ecma_transforms::react::{react, Options as ReactOptions};
 use swc_ecma_transforms::{react as swc_react, resolver};
 use swc_ecma_visit::{as_folder, FoldWith, VisitWith};
@@ -233,7 +235,16 @@ impl Parser for JsParser {
         .map_err(|_| Error::InternalError("Unable to serialize content as string".into()))?,
       args.uri,
       &module_type,
-    );
+    )
+    .map_err(|err| {
+      // Convert `swc_ecma_parser::error::Error` to `rspack_error::Error`
+      Error::BatchErrors(
+        err
+          .into_iter()
+          .map(|e| ecma_parse_error_to_diagnostic(e, args.uri, &module_type))
+          .collect(),
+      )
+    })?;
 
     let ast = get_swc_compiler().run(|| {
       let defintions = &args.options.define;
@@ -270,4 +281,29 @@ impl Parser for JsParser {
     });
     Ok(module.with_empty_diagnostic())
   }
+}
+
+pub fn ecma_parse_error_to_diagnostic(
+  error: swc_ecma_parser::error::Error,
+  path: &str,
+  module_type: &ModuleType,
+) -> Error {
+  let file_type = match module_type {
+    ModuleType::Js => "JavaScript",
+    ModuleType::Jsx => "JSX",
+    ModuleType::Tsx => "TSX",
+    ModuleType::Ts => "Typescript",
+    _ => unreachable!(),
+  };
+  let message = error.kind().msg().to_string();
+  let span: ErrorSpan = error.span().into();
+  let traceable_error = rspack_error::TraceableError::from_path(
+    path.to_string(),
+    span.start as usize,
+    span.end as usize,
+    format!("{} parsing error", file_type),
+    message,
+  );
+  rspack_error::Error::TraceableError(traceable_error)
+  //Use this `Error` convertion could avoid eagerly clone source file.
 }

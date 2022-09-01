@@ -62,4 +62,7 @@ pub enum Error {
     #[from]
     source: json::Error,
   },
+
+  #[error("")]
+  BatchErrors(Vec<Error>),
 }

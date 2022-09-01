@@ -4,11 +4,11 @@ use std::path::Path;
 use std::sync::Arc;
 use swc::{config::IsModule, Compiler as SwcCompiler};
 use swc_atoms::js_word;
-use swc_common::{FileName, FilePathMapping, Mark, SourceMap, Span, DUMMY_SP};
-use swc_ecma_ast::{CallExpr, Callee, Expr, ExprOrSpread, Id, Ident, Lit, Str};
-use swc_ecma_parser::Syntax;
+use swc_common::comments::Comments;
+use swc_common::{FileName, FilePathMapping, Mark, SourceFile, SourceMap, Span, DUMMY_SP};
+use swc_ecma_ast::{CallExpr, Callee, EsVersion, Expr, ExprOrSpread, Id, Ident, Lit, Program, Str};
+use swc_ecma_parser::{parse_file_as_module, parse_file_as_program, parse_file_as_script, Syntax};
 use swc_ecma_parser::{EsConfig, TsConfig};
-use tracing::instrument;
 
 static SWC_COMPILER: Lazy<Arc<SwcCompiler>> = Lazy::new(|| {
   let cm = Arc::new(SourceMap::new(FilePathMapping::empty()));
@@ -20,30 +20,58 @@ pub fn get_swc_compiler() -> Arc<SwcCompiler> {
   SWC_COMPILER.clone()
 }
 
-#[instrument(skip_all)]
+pub fn parse_js(
+  compiler: &SwcCompiler,
+  fm: Arc<SourceFile>,
+  target: EsVersion,
+  syntax: Syntax,
+  is_module: IsModule,
+  comments: Option<&dyn Comments>,
+) -> Result<Program, Vec<swc_ecma_parser::error::Error>> {
+  compiler.run(|| {
+    let mut errors = vec![];
+    let program_result = match is_module {
+      IsModule::Bool(true) => {
+        parse_file_as_module(&fm, syntax, target, comments, &mut errors).map(Program::Module)
+      }
+      IsModule::Bool(false) => {
+        parse_file_as_script(&fm, syntax, target, comments, &mut errors).map(Program::Script)
+      }
+      IsModule::Unknown => parse_file_as_program(&fm, syntax, target, comments, &mut errors),
+    };
+
+    if !errors.is_empty() {
+      return Err(errors);
+    }
+
+    let program = program_result.map_err(|e| {
+      errors.push(e);
+      errors
+    })?;
+
+    Ok(program)
+  })
+}
 pub fn parse_file(
   source_code: String,
   filename: &str,
   module_type: &ModuleType,
-) -> swc_ecma_ast::Program {
+) -> Result<Program, Vec<swc_ecma_parser::error::Error>> {
   let syntax = syntax_by_module_type(filename, module_type);
   let compiler = get_swc_compiler();
   let fm = compiler
     .cm
     .new_source_file(FileName::Custom(filename.to_string()), source_code);
   PATH_START_BYTE_POS_MAP.insert(filename.to_string(), fm.start_pos.0);
-  swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
-    compiler.parse_js(
-      fm,
-      handler,
-      swc_ecma_ast::EsVersion::Es2022,
-      syntax,
-      // TODO: Is this correct to think the code is module by default?
-      IsModule::Bool(true),
-      None,
-    )
-  })
-  .unwrap()
+  parse_js(
+    &compiler,
+    fm,
+    swc_ecma_ast::EsVersion::Es2022,
+    syntax,
+    // TODO: Is this correct to think the code is module by default?
+    IsModule::Bool(true),
+    None,
+  )
 }
 
 pub fn syntax_by_ext(ext: &str) -> Syntax {
