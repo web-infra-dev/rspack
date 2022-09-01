@@ -9,4 +9,10 @@ error: Json parsing error
 3 │ }
   │ ^ Unexpected character }
 
+error: Json parsing error
+  ┌─ tests/out_of_order/multi_json_syntax_error/b.json:1:8
+  │
+1 │ "我的你的\"
+  │            ^ Unexpected end of JSON
+
 
