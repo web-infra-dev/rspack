@@ -15,7 +15,7 @@ async fn run(context: PathBuf) {
   compiler.compile().await.unwrap();
 }
 
-#[fixture("../../examples/*")]
+#[fixture("../../examples/react")]
 fn example(fixture_path: PathBuf) {
   run(fixture_path);
 }
