@@ -11,7 +11,7 @@ use regex::Regex;
 use rspack_core::{
   CompilationContext, CompilerContext, Resolve, ResolveResult, Resolver, ResolverFactory,
 };
-use rspack_error::{Error, Result, TraceableError};
+use rspack_error::{DiagnosticKind, Error, Result, TraceableError};
 use rspack_loader_runner::{Loader, LoaderContext, LoaderResult};
 use sass_embedded::{
   legacy::{
@@ -425,7 +425,7 @@ fn sass_exception_to_error(e: Exception) -> Error {
       span.end.offset,
       "Sass Error".to_string(),
       message.to_string(),
-    ))
+    ).with_kind(DiagnosticKind::Scss))
   } else {
     Error::InternalError(e.message().to_string())
   }

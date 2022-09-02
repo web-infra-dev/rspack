@@ -1,5 +1,7 @@
 use rspack_core::{ErrorSpan, PATH_START_BYTE_POS_MAP};
-use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{
+  Diagnostic, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+};
 use swc_common::{sync::Lrc, FileName, FilePathMapping, SourceMap};
 use swc_html::{
   ast::Document,
@@ -58,7 +60,8 @@ pub fn html_parse_error_to_traceable_error(error: Error, path: &str) -> rspack_e
     span.end as usize,
     "HTML parsing error".to_string(),
     message.to_string(),
-  );
+  )
+  .with_kind(DiagnosticKind::Html);
   //Use this `Error` convertion could avoid eagerly clone source file.
   rspack_error::Error::TraceableError(traceable_error)
 }
