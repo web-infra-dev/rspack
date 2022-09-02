@@ -1,4 +1,4 @@
-use crate::{Error, TraceableError};
+use crate::{DiagnosticKind, Error, TraceableError};
 
 #[derive(Debug, Clone, Default, Copy)]
 pub enum Severity {
@@ -20,6 +20,7 @@ pub struct Diagnostic {
   pub source_info: Option<DiagnosticSourceInfo>,
   pub start: usize,
   pub end: usize,
+  pub kind: DiagnosticKind,
 }
 
 impl Diagnostic {
@@ -31,6 +32,7 @@ impl Diagnostic {
       source_info: None,
       start,
       end,
+      ..Default::default()
     }
   }
 
@@ -42,6 +44,7 @@ impl Diagnostic {
       start,
       end,
       title,
+      ..Default::default()
     }
   }
 
@@ -68,6 +71,7 @@ impl From<Error> for Vec<Diagnostic> {
         error_message,
         source,
         title,
+        kind,
       }) => {
         let source = if let Some(source) = source {
           source
@@ -80,11 +84,13 @@ impl From<Error> for Vec<Diagnostic> {
           start,
           end,
           title,
+          kind,
           ..Default::default()
         }
       }
       Error::Io { source } => Diagnostic {
         message: source.to_string(),
+        kind: DiagnosticKind::Io,
         ..Default::default()
       },
       Error::Anyhow { source } => Diagnostic {

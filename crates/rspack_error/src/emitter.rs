@@ -130,6 +130,10 @@ fn emit_batch_diagnostic<T: Write + WriteColor + FlushDiagnostic>(
       let file_id = files.add(relative_path, info.source.clone());
       let diagnostic = Diagnostic::new(diagnostic.severity.into())
         .with_message(&diagnostic.title)
+        // Because we don't have error code now, and I don't think we have
+        // enough energy to matain error code either in the future, so I use
+        // this field to represent diagnostic kind, looks pretty neat.
+        .with_code(diagnostic.kind.to_string())
         .with_labels(vec![
           Label::primary(file_id, start..end).with_message(&diagnostic.message)
         ]);
