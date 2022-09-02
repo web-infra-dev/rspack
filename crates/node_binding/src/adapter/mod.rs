@@ -1,7 +1,6 @@
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use napi_sys::napi_env;
 use rspack_core::{
   Compilation, CompilationAsset, Plugin, PluginBuildEndHookOutput, PluginContext,
   PluginProcessAssetsHookOutput, ProcessAssetsArgs,
@@ -10,7 +9,7 @@ use rspack_core::{
 use anyhow::Context;
 use async_trait::async_trait;
 use napi::threadsafe_function::ThreadsafeFunctionCallMode;
-use napi::{CallContext, Env, Error, JsFunction, JsString, JsUndefined};
+use napi::{CallContext, Error, JsString, JsUndefined};
 use napi_derive::napi;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
