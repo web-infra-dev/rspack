@@ -52,7 +52,14 @@ class Rspack {
 		await this.hooks.done.promise();
 		return createDummyResult(context.id);
 	}
-	async #procssAssets(err: Error, value: string) {
+	async #procssAssets(err: Error, value: string, emitAsset: any) {
+		emitAsset("main.cssss", {
+			filename: "main.cssss",
+			asset: {
+				source: ".replaced-css {}"
+			}
+		});
+
 		if (err) {
 			throw err;
 		}

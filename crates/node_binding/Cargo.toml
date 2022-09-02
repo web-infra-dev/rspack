@@ -19,6 +19,7 @@ napi = {git = "https://github.com/speedy-js/napi-rs", branch = "speedy-release",
   "async",
   "tokio_rt",
   "serde-json",
+  "napi5"
 ]}
 napi-derive = {git = "https://github.com/speedy-js/napi-rs", branch = "speedy-release"}
 napi-sys = {git = "https://github.com/speedy-js/napi-rs", branch = "speedy-release"}
