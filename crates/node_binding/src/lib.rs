@@ -124,7 +124,7 @@ pub fn new_rspack(
       }
     }
   }
-  let node_adapter = create_node_adapter_from_plugin_callbacks(&env, plugin_callbacks)?;
+  let node_adapter = create_node_adapter_from_plugin_callbacks(env, plugin_callbacks)?;
   let mut compiler_options =
     normalize_bundle_options(options).map_err(|e| Error::from_reason(format!("{:?}", e)))?;
   if let Some(node_adapter) = node_adapter {
