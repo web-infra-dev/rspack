@@ -55,8 +55,8 @@ impl Filename {
     }
 
     if let Some(contenthash) = options.contenthash {
-      let hash_placeholder = get_hash_placeholder(&filename, &CONTENT_HASH_PLACEHOLDER);
-      let hash_length: usize = get_hash_length(&hash_placeholder, &CONTENT_HASH_PLACEHOLDER);
+      let hash_placeholder = get_hash_placeholder(&filename, CONTENT_HASH_PLACEHOLDER);
+      let hash_length: usize = get_hash_length(&hash_placeholder, CONTENT_HASH_PLACEHOLDER);
 
       filename = filename.replace(&hash_placeholder, &contenthash[..hash_length]);
     }
@@ -106,7 +106,7 @@ impl PublicPath {
 }
 
 fn get_hash_placeholder(filename: &str, placeholder: &str) -> String {
-  let filename_split = filename.split(".");
+  let filename_split = filename.split('.');
 
   let mut return_placeholder: String = String::from(placeholder);
   for sub_filename in filename_split {
@@ -124,7 +124,7 @@ fn get_hash_length(placeholder_with_length: &str, placeholder: &str) -> usize {
   let end_index: usize = placeholder_with_length.len() - 1;
   if start_index < end_index {
     let hash_length_string = String::from(&placeholder_with_length[start_index + 1..end_index]);
-    if hash_length_string.len() != 0 && is_string_numeric(&hash_length_string) {
+    if !hash_length_string.is_empty() && is_string_numeric(&hash_length_string) {
       hash_length = hash_length_string.parse().unwrap()
     }
   }
@@ -138,5 +138,5 @@ fn is_string_numeric(str: &str) -> bool {
       return false;
     }
   }
-  return true;
+  true
 }
