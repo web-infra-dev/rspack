@@ -13,7 +13,7 @@ use rspack_core::{
   RenderManifestEntry, SourceType, Target, TargetOptions,
 };
 
-use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{DiagnosticKind, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_common::comments::SingleThreadedComments;
 use swc_common::{Mark, Spanned};
 use swc_ecma_transforms::react::{react, Options as ReactOptions};
@@ -288,11 +288,11 @@ pub fn ecma_parse_error_to_diagnostic(
   path: &str,
   module_type: &ModuleType,
 ) -> Error {
-  let file_type = match module_type {
-    ModuleType::Js => "JavaScript",
-    ModuleType::Jsx => "JSX",
-    ModuleType::Tsx => "TSX",
-    ModuleType::Ts => "Typescript",
+  let (file_type, diagnostic_kind) = match module_type {
+    ModuleType::Js => ("JavaScript", DiagnosticKind::JavaScript),
+    ModuleType::Jsx => ("JSX", DiagnosticKind::Jsx),
+    ModuleType::Tsx => ("TSX", DiagnosticKind::Tsx),
+    ModuleType::Ts => ("Typescript", DiagnosticKind::Typescript),
     _ => unreachable!(),
   };
   let message = error.kind().msg().to_string();
@@ -303,7 +303,8 @@ pub fn ecma_parse_error_to_diagnostic(
     span.end as usize,
     format!("{} parsing error", file_type),
     message,
-  );
+  )
+  .with_kind(diagnostic_kind);
   rspack_error::Error::TraceableError(traceable_error)
   //Use this `Error` convertion could avoid eagerly clone source file.
 }

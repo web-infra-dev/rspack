@@ -1,7 +1,9 @@
 use json::Error::{
   ExceededDepthLimit, FailedUtf8Parsing, UnexpectedCharacter, UnexpectedEndOfJson, WrongType,
 };
-use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, TraceableError};
+use rspack_error::{
+  DiagnosticKind, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, TraceableError,
+};
 
 use rspack_core::{BoxModule, Module, ModuleRenderResult, ModuleType, Parser, Plugin, SourceType};
 
@@ -53,14 +55,17 @@ impl Parser for JsonParser {
             .chars()
             .take(column)
             .fold(line_offset, |acc, cur| acc + cur.len_utf8());
-          Error::TraceableError(TraceableError::from_path(
-            args.uri.to_owned(),
-            // one character offset
-            start_offset,
-            start_offset + 1,
-            "Json parsing error".to_string(),
-            format!("Unexpected character {}", ch),
-          ))
+          Error::TraceableError(
+            TraceableError::from_path(
+              args.uri.to_owned(),
+              // one character offset
+              start_offset,
+              start_offset + 1,
+              "Json parsing error".to_string(),
+              format!("Unexpected character {}", ch),
+            )
+            .with_kind(DiagnosticKind::Json),
+          )
         }
         ExceededDepthLimit | WrongType(_) | FailedUtf8Parsing => {
           Error::InternalError(format!("{}", e))
@@ -68,13 +73,16 @@ impl Parser for JsonParser {
         UnexpectedEndOfJson => {
           // End offset of json file
           let offset = source.len();
-          Error::TraceableError(TraceableError::from_path(
-            args.uri.to_owned(),
-            offset,
-            offset,
-            "Json parsing error".to_string(),
-            format!("{}", e),
-          ))
+          Error::TraceableError(
+            TraceableError::from_path(
+              args.uri.to_owned(),
+              offset,
+              offset,
+              "Json parsing error".to_string(),
+              format!("{}", e),
+            )
+            .with_kind(DiagnosticKind::Json),
+          )
         }
       }
     })?;
