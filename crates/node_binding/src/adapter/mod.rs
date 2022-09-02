@@ -27,12 +27,11 @@ use crate::UpdateAssetOptions;
 
 pub static CALL_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(1));
 
+pub type BoxedClosure = Box<dyn Fn(CallContext<'_>) -> napi::Result<JsUndefined>>;
+
 pub struct RspackPluginNodeAdapter {
   pub done_tsfn: ThreadsafeRspackCallback,
-  pub process_assets_tsfn: ThreadsafeRspackCallback<(
-    String,
-    Box<dyn Fn(CallContext<'_>) -> napi::Result<JsUndefined>>,
-  )>,
+  pub process_assets_tsfn: ThreadsafeRspackCallback<(String, BoxedClosure)>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -148,12 +147,7 @@ impl Plugin for RspackPluginNodeAdapter {
             "unable to convert context".to_owned(),
           )
         })
-        .map(|value| {
-          (
-            value,
-            Box::new(emit_asset) as Box<dyn Fn(CallContext<'_>) -> napi::Result<JsUndefined>>,
-          )
-        });
+        .map(|value| (value, Box::new(emit_asset) as BoxedClosure));
 
       self
         .process_assets_tsfn

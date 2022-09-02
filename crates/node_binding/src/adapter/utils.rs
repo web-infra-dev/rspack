@@ -1,11 +1,12 @@
+use napi::bindgen_prelude::*;
 use napi::threadsafe_function::ThreadSafeCallContext;
-use napi::{bindgen_prelude::*, CallContext, JsUndefined};
 use napi::{
   threadsafe_function::{ErrorStrategy, ThreadSafeResultContext, ThreadsafeFunction},
   Env,
 };
 
 use super::common::REGISTERED_DONE_SENDERS;
+use super::BoxedClosure;
 use crate::adapter::common::REGISTERED_PROCESS_ASSETS_SENDERS;
 use crate::PluginCallbacks;
 
@@ -61,17 +62,11 @@ pub fn create_node_adapter_from_plugin_callbacks(
             },
           )?;
         let mut process_assets_tsfn: ThreadsafeFunction<
-          (
-            String,
-            Box<dyn Fn(CallContext<'_>) -> napi::Result<JsUndefined>>,
-          ),
+          (String, BoxedClosure),
           ErrorStrategy::CalleeHandled,
         > = process_assets_callback.create_threadsafe_function(
           0,
-          |ctx: ThreadSafeCallContext<(
-            String,
-            Box<dyn Fn(CallContext<'_>) -> napi::Result<JsUndefined>>,
-          )>| {
+          |ctx: ThreadSafeCallContext<(String, BoxedClosure)>| {
             let (value, emit_asset_cb) = ctx.value;
 
             let emit_asset_cb = ctx
@@ -126,7 +121,6 @@ pub fn create_node_adapter_from_plugin_callbacks(
         Ok(super::RspackPluginNodeAdapter {
           done_tsfn,
           process_assets_tsfn,
-          // env: env.raw(),
         })
       },
     )
