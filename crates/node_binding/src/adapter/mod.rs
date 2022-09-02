@@ -120,18 +120,13 @@ impl Plugin for RspackPluginNodeAdapter {
       let compilation = args.compilation as *mut Compilation;
 
       let emit_asset = move |call_context: CallContext<'_>| {
-        let filename = call_context
-          .get::<JsString>(0)?
-          .into_utf8()?
-          .as_str()?
-          .to_owned();
-        let options = call_context.get::<UpdateAssetOptions>(1)?;
+        let options = call_context.get::<UpdateAssetOptions>(0)?;
 
         // Safety: since the `compilation` will available throughout the build procedure, this operation is safe.
         let compilation = unsafe { &mut *compilation.cast::<Compilation>() };
 
         compilation.emit_asset(
-          filename,
+          options.filename,
           CompilationAsset {
             source: rspack_core::AssetContent::String(options.asset.source.unwrap()),
           },

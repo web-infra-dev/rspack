@@ -157,31 +157,6 @@ pub fn new_rspack(
     // resolver,
   }))
 }
-
-#[napi(
-  ts_args_type = "rspack: ExternalObject<RspackInternal>,options: {filename:string,asset:{source?:string;buffer?:Buffer;}}",
-  ts_return_type = "Promise<Stats>"
-)]
-pub fn update_asset(
-  env: Env,
-  binding_context: External<RspackBindingContext>,
-  options: UpdateAssetOptions,
-) -> Result<napi::JsObject> {
-  let compiler = binding_context.rspack.clone();
-  env.execute_tokio_future(
-    async move {
-      let mut compiler = compiler.lock().await;
-      compiler.update_asset(
-        options.filename,
-        CompilationAsset {
-          source: rspack_core::AssetContent::String(options.asset.source.unwrap()),
-        },
-      );
-      Ok(())
-    },
-    |_env, ret| Ok(ret),
-  )
-}
 #[napi(
   ts_args_type = "rspack: ExternalObject<RspackInternal>",
   ts_return_type = "Promise<Stats>"

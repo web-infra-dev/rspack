@@ -19,25 +19,69 @@ const createDummyResult = (id: number): string => {
 	};
 	return JSON.stringify(result);
 };
-class Rspack {
-	#instance: ExternalObject<RspackInternal>;
-	#plugins: RspackOptions["plugins"];
+type EmitAssetCallback = (options: {
+	filename: string;
+	asset: Config.Asset;
+}) => void;
+class RspackCompilation {
+	#emitAssetCallback: EmitAssetCallback;
 	hooks: {
-		processAssets: tapable.AsyncSeriesHook<Assets>;
-		done: tapable.AsyncSeriesHook<void>;
+		processAssets: tapable.AsyncSeriesHook<Config.Assets>;
 	};
-	options: ResolvedRspackOptions;
-	constructor(options: RspackOptions = {}) {
-		this.options = config.resolveConfig(options);
-
-		//@ts-ignored TODO: fix it later
-		this.#instance = binding.newRspack(this.options, {
+	constructor() {
+		this.hooks = {
+			processAssets: new tapable.AsyncSeriesHook<Config.Assets>(["assets"])
+		};
+	}
+	/**
+	 * unsafe to call out of processAssets
+	 * @param filename
+	 * @param asset
+	 */
+	updateAsset(filename: string, asset: Config.Asset) {
+		this.emitAsset(filename, asset);
+	}
+	/**
+	 * unsafe to call out of processAssets
+	 * @param filename
+	 * @param asset
+	 */
+	emitAsset(filename: string, asset: Config.Asset) {
+		if (!this.#emitAssetCallback) {
+			throw new Error("can't call emitAsset outof processAssets hook for now");
+		}
+		this.#emitAssetCallback({
+			filename: filename,
+			asset
+		});
+	}
+	async procssAssets(err: Error, value: string, emitAsset: any) {
+		this.#emitAssetCallback = emitAsset;
+		if (err) {
+			throw err;
+		}
+		const context: RspackThreadsafeContext<Config.Assets> = JSON.parse(value);
+		await this.hooks.processAssets.promise(context?.inner);
+		return createDummyResult(context.id);
+	}
+}
+class Rspack {
+	#plugins: RspackOptions["plugins"];
+	#instance: ExternalObject<RspackInternal>;
+	compilation: RspackCompilation;
+	hooks: {
+		done: tapable.AsyncSeriesHook<void>;
+		compilation: tapable.SyncHook<RspackCompilation>;
+	};
+	constructor(public options: RspackOptions) {
+		const nativeConfig = Config.User2Native(options);
+		this.#instance = binding.newRspack(nativeConfig, {
 			doneCallback: this.#done.bind(this),
 			processAssetsCallback: this.#procssAssets.bind(this)
 		});
 		this.hooks = {
-			processAssets: new tapable.AsyncSeriesHook<Assets>(["assets"]),
-			done: new tapable.AsyncSeriesHook<void>()
+			done: new tapable.AsyncSeriesHook<void>(),
+			compilation: new tapable.SyncHook<RspackCompilation>(["compilation"])
 		};
 		this.#plugins = options.plugins ?? [];
 		for (const plugin of this.#plugins) {
@@ -53,37 +97,24 @@ class Rspack {
 		return createDummyResult(context.id);
 	}
 	async #procssAssets(err: Error, value: string, emitAsset: any) {
-		emitAsset("main.cssss", {
-			filename: "main.cssss",
-			asset: {
-				source: ".replaced-css {}"
-			}
-		});
-
-		if (err) {
-			throw err;
-		}
-		const context: RspackThreadsafeContext<Assets> = JSON.parse(value);
-		await this.hooks.processAssets.promise(context?.inner);
-		return createDummyResult(context.id);
+		return this.compilation.procssAssets(err, value, emitAsset);
+	}
+	#newCompilation() {
+		const compilation = new RspackCompilation();
+		this.compilation = compilation;
+		this.hooks.compilation.call(compilation);
+		return compilation;
 	}
 	async build() {
+		const compilation = this.#newCompilation();
 		const stats = await binding.build(this.#instance);
 		return stats;
 	}
-
-	async rebuild(changedFilesPath: string[]) {
-		const stats = await binding.rebuild(this.#instance, changedFilesPath);
+	async rebuild() {
+		const stats = await binding.rebuild(this.#instance);
 		return stats;
 	}
-	updateAsset(filename: string, asset: Config.Asset) {
-		console.log("xx:", filename, asset);
-		binding.updateAsset(this.#instance, {
-			filename,
-			asset
-		});
-	}
 }
-
-export { Rspack };
+export { Rspack, createRawModuleRuleUses };
+export type { ModuleRule };
 export default Rspack;

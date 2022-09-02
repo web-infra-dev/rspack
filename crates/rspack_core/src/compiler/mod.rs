@@ -171,10 +171,6 @@ impl Compiler {
 
     std::fs::create_dir_all(&self.options.output.path)
       .map_err(|_| Error::InternalError("failed to create output directory".into()))?;
-    dbg!(
-      "assets2",
-      self.compilation.assets.entry("main.js".to_owned())
-    );
     self
       .compilation
       .assets
