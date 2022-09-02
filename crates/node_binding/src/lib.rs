@@ -163,8 +163,7 @@ pub fn build(env: Env, binding_context: External<RspackBindingContext>) -> Resul
 }
 
 #[napi(
-  // ts_args_type = "rspack: ExternalObject<RspackInternal>, changedFile: string[]",
-  ts_args_type = "rspack: ExternalObject<RspackInternal>",
+  ts_args_type = "rspack: ExternalObject<RspackInternal>, changedFile: string[]",
   // ts_return_type = "Promise<[diff: Record<string, string>, map: Record<string, string>]>"
   ts_return_type = "Promise<Record<string, string>>"
 )]
