@@ -5,6 +5,7 @@ use std::sync::Arc;
 use napi::bindgen_prelude::*;
 use napi::{Env, Result};
 use napi_derive::napi;
+use rspack_core::CompilationAsset;
 // use nodejs_resolver::Resolver;
 use tokio::sync::Mutex;
 mod adapter;
@@ -26,6 +27,27 @@ pub fn create_external<T>(value: T) -> External<T> {
 }
 
 pub type Rspack = Arc<Mutex<rspack::Compiler>>;
+
+#[napi(object)]
+pub struct AssetContent {
+  pub buffer: Option<Buffer>,
+  pub source: Option<String>,
+}
+impl Debug for AssetContent {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("AssetContent")
+      .field("buffer", &"buffer")
+      .field("source", &self.source)
+      .finish()
+  }
+}
+
+#[derive(Debug)]
+#[napi(object)]
+pub struct UpdateAssetOptions {
+  pub asset: AssetContent,
+  pub filename: String,
+}
 
 #[napi(object)]
 
@@ -102,7 +124,7 @@ pub fn new_rspack(
       }
     }
   }
-  let node_adapter = create_node_adapter_from_plugin_callbacks(&env, plugin_callbacks)?;
+  let node_adapter = create_node_adapter_from_plugin_callbacks(env, plugin_callbacks)?;
   let mut compiler_options =
     normalize_bundle_options(options).map_err(|e| Error::from_reason(format!("{:?}", e)))?;
   if let Some(node_adapter) = node_adapter {
@@ -135,7 +157,6 @@ pub fn new_rspack(
     // resolver,
   }))
 }
-
 #[napi(
   ts_args_type = "rspack: ExternalObject<RspackInternal>",
   ts_return_type = "Promise<Stats>"
@@ -188,7 +209,6 @@ pub fn rebuild(
     |_env, ret| Ok(ret),
   )
 }
-
 // #[napi(
 //   ts_args_type = "rspack: ExternalObject<RspackInternal>, source: string, resolveOptions: ResolveOptions",
 //   ts_return_type = "ResolveResult"

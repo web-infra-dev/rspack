@@ -1,7 +1,7 @@
 import type { RawModuleRuleUse, RawModuleRule } from "@rspack/binding";
 import assert from "node:assert";
 
-interface ModuleRule {
+export interface ModuleRule {
 	test?: RawModuleRule["test"];
 	resource?: RawModuleRule["resource"];
 	resourceQuery?: RawModuleRule["resourceQuery"];
