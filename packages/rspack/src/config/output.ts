@@ -17,7 +17,7 @@ export interface ResolvedOutput {
 	uniqueName?: string;
 }
 
-export function resolveOutput(output: Output = {}): ResolvedOutput {
+export function resolveOutputOptions(output: Output = {}): ResolvedOutput {
 	return {
 		path: output.path,
 		publicPath: output.publicPath,
