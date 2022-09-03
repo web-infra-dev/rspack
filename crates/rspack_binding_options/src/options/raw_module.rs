@@ -214,7 +214,7 @@ static LOADER_CALL_ID: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU
 
 #[cfg(feature = "node-api")]
 static REGISTERED_LOADER_SENDERS: once_cell::sync::Lazy<
-  std::sync::Arc<dashmap::DashMap<u32, tokio::sync::oneshot::Sender<LoaderThreadsafeLoaderResult>>>,
+  dashmap::DashMap<u32, tokio::sync::oneshot::Sender<LoaderThreadsafeLoaderResult>>,
 > = once_cell::sync::Lazy::new(Default::default);
 
 #[cfg(feature = "node-api")]
