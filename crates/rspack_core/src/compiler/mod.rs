@@ -156,7 +156,6 @@ impl Compiler {
     // self.compilation.calc_exec_order();
 
     self.compilation.seal(self.plugin_driver.clone()).await?;
-    self.compilation.done(self.plugin_driver.clone()).await?;
 
     // Consume plugin driver diagnostic
     let mut plugin_driver_diagnostics = self.plugin_driver.take_diagnostic();
@@ -172,7 +171,6 @@ impl Compiler {
 
     std::fs::create_dir_all(&self.options.output.path)
       .map_err(|_| Error::InternalError("failed to create output directory".into()))?;
-
     self
       .compilation
       .assets
@@ -199,7 +197,7 @@ impl Compiler {
         }
       })
       .unwrap();
-
+    self.compilation.done(self.plugin_driver.clone()).await?;
     Ok(())
   }
 
@@ -211,6 +209,13 @@ impl Compiler {
       )?;
     }
     Ok(Stats::new(&self.compilation))
+  }
+  pub fn update_asset(&mut self, filename: String, asset: CompilationAsset) {
+    self.compilation.assets.insert(filename, asset);
+    dbg!(
+      "change",
+      &self.compilation.assets.entry("main.js".to_owned())
+    );
   }
 }
 
