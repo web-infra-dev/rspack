@@ -1,7 +1,7 @@
 import type { RawOptions } from "@rspack/binding";
 
-import type { ModuleRule } from ".";
-import Rspack, { createRawModuleRuleUses } from ".";
+import Rspack from ".";
+import { createRawModuleRuleUses, ModuleRule } from "./config/module";
 export type Asset = {
 	source?: string;
 	buffer?: Buffer;

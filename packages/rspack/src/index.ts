@@ -3,7 +3,7 @@ import * as binding from "@rspack/binding";
 import type { ExternalObject, RspackInternal } from "@rspack/binding";
 import * as tapable from "tapable";
 import * as config from "./config";
-import type { RspackOptions, ResolvedRspackOptions, Assets } from "./config";
+import { RspackOptions, Assets, Asset, User2Native } from "./config";
 interface RspackThreadsafeContext<T> {
 	readonly id: number;
 	readonly inner: T;
@@ -19,18 +19,15 @@ const createDummyResult = (id: number): string => {
 	};
 	return JSON.stringify(result);
 };
-type EmitAssetCallback = (options: {
-	filename: string;
-	asset: Config.Asset;
-}) => void;
+type EmitAssetCallback = (options: { filename: string; asset: Asset }) => void;
 class RspackCompilation {
 	#emitAssetCallback: EmitAssetCallback;
 	hooks: {
-		processAssets: tapable.AsyncSeriesHook<Config.Assets>;
+		processAssets: tapable.AsyncSeriesHook<Assets>;
 	};
 	constructor() {
 		this.hooks = {
-			processAssets: new tapable.AsyncSeriesHook<Config.Assets>(["assets"])
+			processAssets: new tapable.AsyncSeriesHook<Assets>(["assets"])
 		};
 	}
 	/**
@@ -38,7 +35,7 @@ class RspackCompilation {
 	 * @param filename
 	 * @param asset
 	 */
-	updateAsset(filename: string, asset: Config.Asset) {
+	updateAsset(filename: string, asset: Asset) {
 		this.emitAsset(filename, asset);
 	}
 	/**
@@ -46,7 +43,7 @@ class RspackCompilation {
 	 * @param filename
 	 * @param asset
 	 */
-	emitAsset(filename: string, asset: Config.Asset) {
+	emitAsset(filename: string, asset: Asset) {
 		if (!this.#emitAssetCallback) {
 			throw new Error("can't call emitAsset outof processAssets hook for now");
 		}
@@ -60,7 +57,7 @@ class RspackCompilation {
 		if (err) {
 			throw err;
 		}
-		const context: RspackThreadsafeContext<Config.Assets> = JSON.parse(value);
+		const context: RspackThreadsafeContext<Assets> = JSON.parse(value);
 		await this.hooks.processAssets.promise(context?.inner);
 		return createDummyResult(context.id);
 	}
@@ -74,7 +71,7 @@ class Rspack {
 		compilation: tapable.SyncHook<RspackCompilation>;
 	};
 	constructor(public options: RspackOptions) {
-		const nativeConfig = Config.User2Native(options);
+		const nativeConfig = User2Native(options);
 		this.#instance = binding.newRspack(nativeConfig, {
 			doneCallback: this.#done.bind(this),
 			processAssetsCallback: this.#procssAssets.bind(this)
@@ -110,11 +107,10 @@ class Rspack {
 		const stats = await binding.build(this.#instance);
 		return stats;
 	}
-	async rebuild() {
-		const stats = await binding.rebuild(this.#instance);
+	async rebuild(changeFiles: string[]) {
+		const stats = await binding.rebuild(this.#instance, changeFiles);
 		return stats;
 	}
 }
-export { Rspack, createRawModuleRuleUses };
-export type { ModuleRule };
+export { Rspack };
 export default Rspack;
