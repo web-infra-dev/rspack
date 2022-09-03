@@ -122,7 +122,8 @@ impl Plugin for RspackPluginNodeAdapter {
       let emit_asset = move |call_context: CallContext<'_>| {
         let options = call_context.get::<UpdateAssetOptions>(0)?;
 
-        // Safety: since the `compilation` will available throughout the build procedure, this operation is safe.
+        // Safety: since the `compilation` will available throughout the build procedure, this operation is always considered safe under the `processAsset` hook.
+        // For developers who use `@rspack/binding` under the hood, exposing a reference to the `emit_asset` fn to user side is strongly not recommended since `compilation` may be dropped.
         let compilation = unsafe { &mut *compilation.cast::<Compilation>() };
 
         compilation.emit_asset(
