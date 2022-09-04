@@ -20,7 +20,8 @@
     "@types/ws": "8.5.3",
     "@types/connect": "3.4.35",
     "uvu": "0.5.6",
-    "@rspack/core": "workspace:*"
+    "@rspack/core": "workspace:*",
+    "@types/webpack-sources": "3.2.0"
   },
   "dependencies": {
     "@rspack/binding": "workspace:*",
@@ -33,7 +34,8 @@
     "@rspack/dev-server": "workspace:^",
     "sirv": "2.0.2",
     "@rspack/plugin-postcss": "workspace:^",
-    "tapable": "2.2.1"
+    "tapable": "2.2.1",
+    "webpack-sources": "3.2.3"
   },
   "optionalDependencies": {
     "@tmp-sass-embedded/darwin-arm64": "1.54.4",
