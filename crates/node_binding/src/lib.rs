@@ -5,7 +5,6 @@ use std::sync::Arc;
 use napi::bindgen_prelude::*;
 use napi::{Env, Result};
 use napi_derive::napi;
-use rspack_core::CompilationAsset;
 // use nodejs_resolver::Resolver;
 use tokio::sync::Mutex;
 mod adapter;
