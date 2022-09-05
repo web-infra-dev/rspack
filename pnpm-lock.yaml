@@ -150,6 +150,7 @@ importers:
   packages/rspack:
     specifiers:
       '@rspack/binding': workspace:*
+      '@rspack/core': workspace:*
       '@rspack/dev-server': workspace:^
       '@rspack/plugin-postcss': workspace:^
       '@tmp-sass-embedded/darwin-arm64': 1.54.4
@@ -172,6 +173,7 @@ importers:
       ts-node: 10.9.1
       tsm: ^2.2.2
       typescript: 4.7.3
+      uvu: 0.5.6
       ws: 8.8.1
     dependencies:
       '@rspack/binding': link:../../crates/node_binding
@@ -194,12 +196,14 @@ importers:
       '@tmp-sass-embedded/win32-ia32': 1.54.4
       '@tmp-sass-embedded/win32-x64': 1.54.4
     devDependencies:
+      '@rspack/core': 'link:'
       '@types/connect': 3.4.35
       '@types/node': 18.7.9
       '@types/ws': 8.5.3
       ts-node: 10.9.1_iqqktkndlpjcw7xba3ta44d6ve
       tsm: 2.2.2
       typescript: 4.7.3
+      uvu: 0.5.6
 
   packages/rspack-dev-server:
     specifiers:
@@ -3119,6 +3123,11 @@ packages:
     engines: {node: '>= 0.8'}
     dev: false
 
+  /dequal/2.0.3:
+    resolution: {integrity: sha512-0je+qPKHEMohvfRTCEo3CrPG6cAzAYgmzKyxRiYSSDkS6eGJdyVJm7WaYA5ECaAD9wLB2T4EEeymA5aFVcYXCA==}
+    engines: {node: '>=6'}
+    dev: true
+
   /destroy/1.2.0:
     resolution: {integrity: sha512-2sJGJTaXIIaR1w4iJSNoN0hnMY7Gpc/n8D4qSCJw8QqFWXf7cuAgnEHxBpweaVcPevC2l3KpjYCx3NypQQgaJg==}
     engines: {node: '>= 0.8', npm: 1.2.8000 || >= 1.4.16}
@@ -4564,6 +4573,11 @@ packages:
       commander: 9.4.0
     dev: false
 
+  /mri/1.2.0:
+    resolution: {integrity: sha512-tzzskb3bG8LvYGFF/mDTpq3jpI6Q9wc3LEmBaghu+DdCssd1FakN7Bc0hVNmEyGq1bq3RgfkCb3cmQLpNPOroA==}
+    engines: {node: '>=4'}
+    dev: true
+
   /mrmime/1.0.1:
     resolution: {integrity: sha512-hzzEagAgDyoU1Q6yg5uI+AorQgdvMCur3FcKf7NhMKWsaYg+RnbTyHRa/9IlLF9rf455MOCtcqqrQQ83pPP7Uw==}
     engines: {node: '>=10'}
@@ -5413,6 +5427,13 @@ packages:
       tslib: 2.4.0
     dev: true
 
+  /sade/1.8.1:
+    resolution: {integrity: sha512-xal3CZX1Xlo/k4ApwCFrHVACi9fBqJ7V+mwhBsuf/1IOKbBy098Fex+Wa/5QMubw09pSZ/u8EY8PWgevJsXp1A==}
+    engines: {node: '>=6'}
+    dependencies:
+      mri: 1.2.0
+    dev: true
+
   /safe-buffer/5.2.1:
     resolution: {integrity: sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==}
 
@@ -6146,6 +6167,17 @@ packages:
     resolution: {integrity: sha1-n5VxD1CiZ5R7LMwSR0HBAoQn5xM=}
     engines: {node: '>= 0.4.0'}
     dev: false
+
+  /uvu/0.5.6:
+    resolution: {integrity: sha512-+g8ENReyr8YsOc6fv/NVJs2vFdHBnBNdfE49rshrTzDWOlUx4Gq7KOS2GD8eqhy2j+Ejq29+SbKH8yjkAqXqoA==}
+    engines: {node: '>=8'}
+    hasBin: true
+    dependencies:
+      dequal: 2.0.3
+      diff: 5.0.0
+      kleur: 4.1.5
+      sade: 1.8.1
+    dev: true
 
   /v8-compile-cache-lib/3.0.1:
     resolution: {integrity: sha512-wa7YjyUGfNZngI/vtK0UHAN+lgDCxBPCylVXGp0zu59Fz5aiGtNXaq3DhIov063MorB+VfufLh3JlF2KdTK3xg==}

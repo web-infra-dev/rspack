@@ -1,6 +1,6 @@
 import type { Context, ResolvedContext } from "./context";
 import type { Define, ResolvedDefine } from "./define";
-import { Dev, ResolvedDev, resolveDevConfig } from "./dev";
+import type { Dev, ResolvedDev } from "./dev";
 import type { Entry, ResolvedEntry } from "./entry";
 import type { External, ResolvedExternal } from "./external";
 import type { Mode, ResolvedMode } from "./mode";
@@ -8,8 +8,9 @@ import type { Module, ResolvedModule } from "./module";
 import type { Plugin } from "./plugin";
 import type { ResolvedTarget, Target } from "./target";
 import type { Output, ResolvedOutput } from "./output";
-import { resolveOutput } from "./output";
-import { createRawModuleRuleUses } from "./module";
+import { resolveOutputOptions } from "./output";
+import { resolveDevOptions } from "./dev";
+import { resolveModuleOptions } from "./module";
 
 export type Asset = {
 	source: string;
@@ -42,25 +43,27 @@ export interface ResolvedRspackOptions {
 	output: ResolvedOutput;
 }
 
-export function resolveConfig(config: RspackOptions): ResolvedRspackOptions {
+export function resolveOptions(config: RspackOptions): ResolvedRspackOptions {
+	const context = config.context ?? process.cwd();
+	const mode = config.mode ?? "development";
+	const dev = resolveDevOptions(config.dev, { context });
+	const entry = config.entry ?? {};
+	const output = resolveOutputOptions(config.output);
+	const define = config.define ?? {};
+	const target = config.target ?? "";
+	const external = config.external ?? {};
+	const plugins = config.plugins ?? [];
+	const module = resolveModuleOptions(config.module);
 	return {
-		mode: config.mode ?? "development",
-		dev: resolveDevConfig(config.dev),
-		entry: config.entry ?? {},
-		context: config.context ?? process.cwd(),
-		output: resolveOutput(config.output),
-		define: config.define ?? {},
-		target: config.target ?? "",
-		external: config.external ?? {},
-		plugins: config.plugins ?? [],
-		module: {
-			// TODO: support mutliple rules to support `Module Type`
-			rules: (config?.module?.rules ?? []).map(rule => {
-				return {
-					...rule,
-					uses: createRawModuleRuleUses(rule.uses || [])
-				};
-			})
-		}
+		context,
+		mode,
+		dev,
+		entry,
+		output,
+		define,
+		target,
+		external,
+		plugins,
+		module
 	};
 }

@@ -1,7 +1,7 @@
 import type { RawModuleRuleUse, RawModuleRule } from "@rspack/binding";
 import assert from "node:assert";
 
-interface ModuleRule {
+export interface ModuleRule {
 	test?: RawModuleRule["test"];
 	resource?: RawModuleRule["resource"];
 	resourceQuery?: RawModuleRule["resourceQuery"];
@@ -179,9 +179,7 @@ type ModuleRuleUse =
 			options?: unknown;
 	  };
 
-export function createRawModuleRuleUses(
-	uses: ModuleRuleUse[]
-): RawModuleRuleUse[] {
+function createRawModuleRuleUses(uses: ModuleRuleUse[]): RawModuleRuleUse[] {
 	return createRawModuleRuleUsesImpl([...uses].reverse());
 }
 
@@ -218,5 +216,16 @@ function createNativeUse(use: ModuleRuleUse): RawModuleRuleUse {
 	return {
 		builtinLoader: use.builtinLoader,
 		options: JSON.stringify(use.options)
+	};
+}
+
+export function resolveModuleOptions(module: Module = {}): ResolvedModule {
+	// TODO: support mutliple rules to support `Module Type`
+	const rules = (module.rules ?? []).map(rule => ({
+		...rule,
+		uses: createRawModuleRuleUses(rule.uses || [])
+	}));
+	return {
+		rules
 	};
 }
