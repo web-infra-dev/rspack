@@ -14,11 +14,19 @@ export interface ResolvedDev {
 	};
 }
 
-export function resolveDevConfig(devConfig: Dev = {}): ResolvedDev {
+interface ResolveDevConfigContext {
+	context: string;
+}
+
+export function resolveDevOptions(
+	devConfig: Dev = {},
+	context: ResolveDevConfigContext
+): ResolvedDev {
 	return {
 		port: devConfig.port ?? 8080,
 		static: {
-			directory: devConfig.static?.directory ?? path.resolve(__dirname, "dist") // TODO:
+			directory:
+				devConfig.static?.directory ?? path.resolve(context.context, "dist")
 		}
 	};
 }
