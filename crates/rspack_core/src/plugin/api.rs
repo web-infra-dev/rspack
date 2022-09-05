@@ -7,7 +7,7 @@ use crate::{
 };
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::{Content, ResourceData};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 // use anyhow::{Context, Result};
 use hashbrown::HashMap;
@@ -131,7 +131,8 @@ pub trait Plugin: Debug + Send + Sync {
   }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum AssetContent {
   Buffer(Vec<u8>),
   String(String),

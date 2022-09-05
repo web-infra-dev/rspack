@@ -2,14 +2,15 @@ export * from "./build";
 import * as binding from "@rspack/binding";
 import type { ExternalObject, RspackInternal } from "@rspack/binding";
 import * as tapable from "tapable";
-import type {
+import {
 	RspackOptions,
 	ResolvedRspackOptions,
 	Assets,
-	Asset
+	Asset,
+	resolveOptions
 } from "./config";
-import { resolveOptions } from "./config";
 
+import { RawSource, Source } from "webpack-sources";
 interface RspackThreadsafeContext<T> {
 	readonly id: number;
 	readonly inner: T;
@@ -29,11 +30,13 @@ type EmitAssetCallback = (options: { filename: string; asset: Asset }) => void;
 class RspackCompilation {
 	#emitAssetCallback: EmitAssetCallback;
 	hooks: {
-		processAssets: tapable.AsyncSeriesHook<Assets>;
+		processAssets: tapable.AsyncSeriesHook<Record<string, Source>>;
 	};
 	constructor() {
 		this.hooks = {
-			processAssets: new tapable.AsyncSeriesHook<Assets>(["assets"])
+			processAssets: new tapable.AsyncSeriesHook<Record<string, Source>>([
+				"assets"
+			])
 		};
 	}
 	/**
@@ -58,13 +61,26 @@ class RspackCompilation {
 			asset
 		});
 	}
-	async procssAssets(err: Error, value: string, emitAsset: any) {
+	async processAssets(err: Error, value: string, emitAsset: any) {
 		this.#emitAssetCallback = emitAsset;
 		if (err) {
 			throw err;
 		}
-		const context: RspackThreadsafeContext<Assets> = JSON.parse(value);
-		await this.hooks.processAssets.promise(context?.inner);
+		const context: RspackThreadsafeContext<
+			Record<string, { source: string | Buffer }>
+		> = JSON.parse(value);
+		let content: Record<string, { source: string | Buffer }> =
+			context.inner ?? {};
+		let assets = {};
+		for (const [key, value] of Object.entries(content)) {
+			// webpack-sources's type definition is wrong, it actually could accept Buffer type
+			let source = value.source;
+			if (Array.isArray(value.source)) {
+				source = Buffer.from(value.source);
+			}
+			assets[key] = new RawSource(source as string);
+		}
+		await this.hooks.processAssets.promise(assets);
 		return createDummyResult(context.id);
 	}
 }
@@ -82,7 +98,7 @@ class Rspack {
 		// @ts-ignored
 		this.#instance = binding.newRspack(this.options, {
 			doneCallback: this.#done.bind(this),
-			processAssetsCallback: this.#procssAssets.bind(this)
+			processAssetsCallback: this.#processAssets.bind(this)
 		});
 		this.hooks = {
 			done: new tapable.AsyncSeriesHook<void>(),
@@ -101,8 +117,8 @@ class Rspack {
 		await this.hooks.done.promise();
 		return createDummyResult(context.id);
 	}
-	async #procssAssets(err: Error, value: string, emitAsset: any) {
-		return this.compilation.procssAssets(err, value, emitAsset);
+	async #processAssets(err: Error, value: string, emitAsset: any) {
+		return this.compilation.processAssets(err, value, emitAsset);
 	}
 	#newCompilation() {
 		const compilation = new RspackCompilation();
