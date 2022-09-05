@@ -179,7 +179,9 @@ type ModuleRuleUse =
 			options?: unknown;
 	  };
 
-function createRawModuleRuleUses(uses: ModuleRuleUse[]): RawModuleRuleUse[] {
+export function createRawModuleRuleUses(
+	uses: ModuleRuleUse[]
+): RawModuleRuleUse[] {
 	return createRawModuleRuleUsesImpl([...uses].reverse());
 }
 
