@@ -10,8 +10,8 @@ use crate::{
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
 use rspack_core::{
-  AssetContent, BoxModule, FilenameRenderOptions, ModuleRenderResult, ModuleType, ParseModuleArgs,
-  Parser, Plugin, RenderManifestEntry, SourceType,
+  AssetContent, BoxModule, ChunkKind, FilenameRenderOptions, ModuleRenderResult, ModuleType,
+  ParseModuleArgs, Parser, Plugin, RenderManifestEntry, SourceType,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 
@@ -150,17 +150,34 @@ impl Plugin for CssPlugin {
     if code.is_empty() {
       Ok(Default::default())
     } else {
+      let output_path = match chunk.kind {
+        ChunkKind::Entry { .. } => {
+          compilation
+            .options
+            .output
+            .filename
+            .render(FilenameRenderOptions {
+              filename: Some(args.chunk().id.to_owned()),
+              extension: Some(".css".to_owned()),
+              id: None,
+            })
+        }
+        ChunkKind::Normal => {
+          compilation
+            .options
+            .output
+            .chunk_filename
+            .render(FilenameRenderOptions {
+              filename: None,
+              extension: Some(".css".to_owned()),
+              id: Some(format!("static/css/{}", args.chunk().id.to_owned())),
+            })
+        }
+      };
+
       Ok(vec![RenderManifestEntry::new(
         AssetContent::String(code),
-        compilation
-          .options
-          .output
-          .filename
-          .render(FilenameRenderOptions {
-            filename: Some(args.chunk().id.to_owned()),
-            extension: Some(".css".to_owned()),
-            id: None,
-          }),
+        output_path,
       )])
     }
   }

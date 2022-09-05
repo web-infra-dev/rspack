@@ -46,6 +46,7 @@ export interface RspackOptions {
   mode?: RawOptions["mode"];
   external?: RawOptions["external"];
   output?: RawOptions["output"];
+  builtins?: RawOptions["builtins"];
 }
 
 export function User2Native(config: RspackOptions): RawOptions & {
@@ -57,8 +58,9 @@ export function User2Native(config: RspackOptions): RawOptions & {
     output: config.output,
     define: config.define,
     target: config.target,
-    external: config.external,
     plugins: config.plugins ?? [],
+    builtins: config.builtins ?? {},
+    external: config.external,
     module: {
       // TODO: support mutliple rules to support `Module Type`
       rules: (config?.module?.rules ?? []).map(rule => {
