@@ -2,8 +2,14 @@ export * from "./build";
 import * as binding from "@rspack/binding";
 import type { ExternalObject, RspackInternal } from "@rspack/binding";
 import * as tapable from "tapable";
-import * as config from "./config";
-import { RspackOptions, Assets, Asset, User2Native } from "./config";
+import type {
+	RspackOptions,
+	ResolvedRspackOptions,
+	Assets,
+	Asset
+} from "./config";
+import { resolveOptions } from "./config";
+
 interface RspackThreadsafeContext<T> {
 	readonly id: number;
 	readonly inner: T;
@@ -70,9 +76,11 @@ class Rspack {
 		done: tapable.AsyncSeriesHook<void>;
 		compilation: tapable.SyncHook<RspackCompilation>;
 	};
-	constructor(public options: RspackOptions) {
-		const nativeConfig = User2Native(options);
-		this.#instance = binding.newRspack(nativeConfig, {
+	options: ResolvedRspackOptions;
+	constructor(options: RspackOptions) {
+		this.options = resolveOptions(options);
+		// @ts-ignored
+		this.#instance = binding.newRspack(this.options, {
 			doneCallback: this.#done.bind(this),
 			processAssetsCallback: this.#procssAssets.bind(this)
 		});
