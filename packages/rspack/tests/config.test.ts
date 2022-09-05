@@ -27,9 +27,10 @@ test("default config snapshot", () => {
 			entry: {},
 			output: {},
 			define: {},
-			target: "",
+			target: "web",
 			external: {},
 			plugins: [],
+			builtins: [],
 			module: { rules: [] }
 		})
 	);
