@@ -21,6 +21,9 @@ const rspack = new Rspack({
 					compilation.hooks.processAssets.tapPromise(
 						"processAssets1",
 						async assets => {
+							for (const value of Object.values(assets)) {
+								console.log("value:", value.buffer(), value.source());
+							}
 							compilation.emitAsset("test.js", {
 								source: "hello world"
 							});
