@@ -7,6 +7,6 @@ error[typescript]: Typescript parsing error
   ┌─ tests/fixtures/ts_syntax_error/index.ts:5:5
   │
 5 │     g = CONST
-  │     ^ Expected ',', got 'Some(g)'
+  │     ^ Expected ',', got 'g'
 
 
