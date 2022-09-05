@@ -156,13 +156,12 @@ impl Compilation {
 
     tracing::debug!("chunk graph {:#?}", self.chunk_graph);
 
-    let context_indent = match &self.options.target {
-      crate::Target::Target(target) => match target {
-        crate::TargetOptions::Web => String::from("self"),
-        _ => String::from("this"),
-      },
-      crate::Target::None => String::from("self"),
+    let context_indent = if self.options.target.platform == crate::TargetPlatform::Web {
+      String::from("self")
+    } else {
+      String::from("this")
     };
+
     self.runtime = Runtime {
       sources: vec![],
       context_indent,

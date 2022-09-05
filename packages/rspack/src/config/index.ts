@@ -8,6 +8,7 @@ import type { Module, ResolvedModule } from "./module";
 import type { Plugin } from "./plugin";
 import type { ResolvedTarget, Target } from "./target";
 import type { Output, ResolvedOutput } from "./output";
+import { resolveTargetOptions } from "./target";
 import { resolveOutputOptions } from "./output";
 import { resolveDevOptions } from "./dev";
 import { resolveModuleOptions } from "./module";
@@ -53,7 +54,7 @@ export function resolveOptions(config: RspackOptions): ResolvedRspackOptions {
 	const entry = config.entry ?? {};
 	const output = resolveOutputOptions(config.output);
 	const define = config.define ?? {};
-	const target = config.target ?? "web";
+	const target = resolveTargetOptions(config.target);
 	const external = config.external ?? {};
 	const plugins = config.plugins ?? [];
 	const builtins = config.builtins ?? [];

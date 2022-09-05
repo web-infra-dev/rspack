@@ -1,32 +1,75 @@
-use std::str::FromStr;
+use anyhow::anyhow;
+use swc_ecma_ast::EsVersion;
 
-#[derive(Debug)]
-pub enum TargetOptions {
+#[derive(Debug, PartialEq, Eq)]
+pub enum TargetPlatform {
+  BrowsersList,
   Web,
   WebWorker,
   Node(String),
-}
-
-#[derive(Debug)]
-pub enum Target {
-  Target(TargetOptions),
-  // we are not going to support StringArray in the near feature
-  // StringArray(Vec<String>),
   None,
 }
 
-impl FromStr for Target {
-  type Err = anyhow::Error;
+#[derive(Debug, PartialEq, Eq)]
+pub enum TargetEsVersion {
+  Es(EsVersion),
+  None,
+}
 
-  fn from_str(s: &str) -> anyhow::Result<Target> {
-    if s.eq("web") {
-      Ok(Target::Target(TargetOptions::Web))
-    } else if s.starts_with("node") {
-      Ok(Target::Target(TargetOptions::Node(s.replace("node", ""))))
-    } else if s.eq("webworker") {
-      Ok(Target::Target(TargetOptions::WebWorker))
-    } else {
-      Ok(Target::None)
+#[derive(Debug)]
+pub struct Target {
+  pub platform: TargetPlatform,
+  pub es_version: TargetEsVersion,
+}
+
+impl Target {
+  pub fn new(args: &Vec<String>) -> anyhow::Result<Target> {
+    let mut platform = TargetPlatform::None;
+    let mut es_version = TargetEsVersion::None;
+
+    for item in args {
+      let item = item.as_str();
+      if item.starts_with("es") {
+        // es version
+        if es_version != TargetEsVersion::None {
+          return Err(anyhow!("target es version conflict"));
+        }
+        let version = match item {
+          "es3" => EsVersion::Es3,
+          "es5" => EsVersion::Es5,
+          "es2015" => EsVersion::Es2015,
+          "es2016" => EsVersion::Es2016,
+          "es2017" => EsVersion::Es2017,
+          "es2018" => EsVersion::Es2018,
+          "es2019" => EsVersion::Es2019,
+          "es2020" => EsVersion::Es2020,
+          "es2021" => EsVersion::Es2021,
+          "es2022" => EsVersion::Es2022,
+          _ => {
+            return Err(anyhow!("unknown target es version {}", item));
+          }
+        };
+        es_version = TargetEsVersion::Es(version);
+        continue;
+      }
+
+      // platform
+      if platform != TargetPlatform::None {
+        return Err(anyhow!("target platform conflict"));
+      }
+      platform = match item {
+        "web" => TargetPlatform::Web,
+        "webworker" => TargetPlatform::WebWorker,
+        "browserslist" => TargetPlatform::BrowsersList,
+        _ => {
+          return Err(anyhow!("unknown target platform {}", item));
+        }
+      };
     }
+
+    Ok(Target {
+      platform,
+      es_version,
+    })
   }
 }
