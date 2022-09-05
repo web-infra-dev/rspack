@@ -245,7 +245,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
       resource_query: loader_context.resource_query.map(|r| r.to_owned()),
     };
 
-    let current_id = LOADER_CALL_ID.fetch_add(1, Ordering::SeqCst);
+    let current_id = LOADER_CALL_ID.fetch_add(1, Ordering::Relaxed);
 
     let loader_tsfn_context = LoaderThreadsafeContext {
       p: loader_context,

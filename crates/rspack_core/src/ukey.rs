@@ -19,7 +19,7 @@ impl Default for Ukey {
 
 impl Ukey {
   fn gen_ukey() -> usize {
-    NEXT_UNIQUE_KEY.fetch_add(1, Ordering::SeqCst)
+    NEXT_UNIQUE_KEY.fetch_add(1, Ordering::Relaxed)
   }
 
   pub fn new() -> Self {
