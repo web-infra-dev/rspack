@@ -14,7 +14,7 @@ pub struct Chunk {
   pub(crate) entry_uri: String,
   pub kind: ChunkKind,
   pub module_index: HashMap<String, usize>,
-  pub(crate) files: HashSet<String>,
+  pub files: HashSet<String>,
 }
 
 impl Chunk {
