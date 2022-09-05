@@ -7,5 +7,6 @@ version = "0.1.0"
 
 [dependencies]
 anyhow = "1"
-rspack_core = { path = "../rspack_core" }
-rspack_error = { path = "../rspack_error" }
+async-trait = "*"
+rspack_core = {path = "../rspack_core"}
+rspack_error = {path = "../rspack_error"}

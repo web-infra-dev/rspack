@@ -2086,6 +2086,7 @@ name = "rspack_plugin_runtime"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "rspack_core",
  "rspack_error",
 ]
