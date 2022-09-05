@@ -9,7 +9,7 @@ use rspack_core::{
 use anyhow::Context;
 use async_trait::async_trait;
 use napi::threadsafe_function::ThreadsafeFunctionCallMode;
-use napi::{CallContext, Error, JsString, JsUndefined};
+use napi::{CallContext, Error, JsUndefined};
 use napi_derive::napi;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -44,7 +44,7 @@ pub struct RspackThreadsafeContext<T: Debug> {
 impl<T: Debug> RspackThreadsafeContext<T> {
   pub fn new(payload: T) -> Self {
     Self {
-      id: CALL_ID.fetch_add(1, Ordering::SeqCst),
+      id: CALL_ID.fetch_add(1, Ordering::Relaxed),
       inner: payload,
     }
   }
