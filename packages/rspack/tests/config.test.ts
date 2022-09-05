@@ -19,20 +19,24 @@ test("default config snapshot", () => {
 	// @ts-expect-error
 	delete resolvedOptions.dev.static.directory;
 
-	assert.snapshot(
-		JSON.stringify(resolvedOptions),
-		JSON.stringify({
-			mode: "development",
-			dev: { port: 8080, static: {} },
-			entry: {},
-			output: {},
-			define: {},
-			target: "",
-			external: {},
-			plugins: [],
-			module: { rules: [] }
-		})
-	);
+	assert.equal(resolvedOptions, {
+		mode: "development",
+		dev: { port: 8080, static: {}, hmr: true, open: true },
+		entry: {},
+		output: {
+			path: undefined,
+			publicPath: undefined,
+			chunkFilename: undefined,
+			filename: undefined,
+			assetModuleFilename: undefined,
+			uniqueName: undefined
+		},
+		define: {},
+		target: "",
+		external: {},
+		plugins: [],
+		module: { rules: [] }
+	});
 });
 
 test.run();
