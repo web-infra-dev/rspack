@@ -59,7 +59,7 @@ pub struct RawOptions {
   pub entry: Option<RawEntry>,
   #[napi(ts_type = "string")]
   pub mode: Option<RawMode>,
-  #[napi(ts_type = "string")]
+  #[napi(ts_type = "string[]")]
   pub target: Option<RawTarget>,
   // #[napi(ts_type = "\"browser\" | \"node\"")]
   // pub platform: Option<String>,
