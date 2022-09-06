@@ -5,7 +5,7 @@ use common::*;
 use rspack_core::{
   AssetContent, ChunkKind, Plugin, PluginContext, PluginRenderManifestHookOutput,
   PluginRenderRuntimeHookOutput, RenderManifestArgs, RenderManifestEntry, RenderRuntimeArgs,
-  RuntimeSourceNode, Target, TargetOptions, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
+  RuntimeSourceNode, TargetPlatform, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
 };
 use web::*;
 use web_worker::*;
@@ -73,36 +73,33 @@ impl Plugin for RuntimePlugin {
     // common runtime
     let mut sources = args.sources.to_vec();
 
-    if let rspack_core::Target::Target(target) = &compilation.options.target {
-      match target {
-        TargetOptions::Web => {
-          sources.push(generate_common_init_runtime());
-          sources.push(generate_common_module_and_chunk_data());
-          sources.push(generate_common_check_by_id());
-          sources.push(generate_common_public_path(public_path));
-          sources.push(generate_web_rspack_require());
-          sources.push(generate_web_rspack_register());
-          if !dynamic_js.is_empty() || !dynamic_css.is_empty() {
-            sources.push(generate_common_dynamic_data(dynamic_js, dynamic_css));
-            sources.push(generate_web_dynamic_get_chunk_url(has_hash));
-            sources.push(generate_web_dynamic_require());
-            sources.push(generate_web_dynamic_load_script());
-            sources.push(generate_web_dynamic_load_style());
-          }
+    match &compilation.options.target.platform {
+      TargetPlatform::Web => {
+        sources.push(generate_common_init_runtime());
+        sources.push(generate_common_module_and_chunk_data());
+        sources.push(generate_common_check_by_id());
+        sources.push(generate_common_public_path(public_path));
+        sources.push(generate_web_rspack_require());
+        sources.push(generate_web_rspack_register());
+        if !dynamic_js.is_empty() || !dynamic_css.is_empty() {
+          sources.push(generate_common_dynamic_data(dynamic_js, dynamic_css));
+          sources.push(generate_web_dynamic_get_chunk_url(has_hash));
+          sources.push(generate_web_dynamic_require());
+          sources.push(generate_web_dynamic_load_script());
+          sources.push(generate_web_dynamic_load_style());
         }
-        TargetOptions::WebWorker => {
-          sources.push(generate_web_worker_init_runtime());
-          sources.push(generate_common_module_and_chunk_data());
-          sources.push(generate_common_check_by_id());
-          sources.push(generate_web_rspack_require());
-          sources.push(RuntimeSourceNode {
-            content: RUNTIME_PLACEHOLDER_RSPACK_EXECUTE.to_string(),
-          });
-        }
-        TargetOptions::Node(_) => {}
       }
+      TargetPlatform::WebWorker => {
+        sources.push(generate_web_worker_init_runtime());
+        sources.push(generate_common_module_and_chunk_data());
+        sources.push(generate_common_check_by_id());
+        sources.push(generate_web_rspack_require());
+        sources.push(RuntimeSourceNode {
+          content: RUNTIME_PLACEHOLDER_RSPACK_EXECUTE.to_string(),
+        });
+      }
+      _ => {}
     }
-
     Ok(sources)
   }
 
@@ -114,8 +111,8 @@ impl Plugin for RuntimePlugin {
     let compilation = args.compilation;
     //Todo we need add optimize.runtime to ensure runtime generation
     if matches!(
-      &compilation.options.target,
-      Target::Target(TargetOptions::WebWorker),
+      compilation.options.target.platform,
+      TargetPlatform::WebWorker,
     ) {
       Ok(vec![])
     } else {
