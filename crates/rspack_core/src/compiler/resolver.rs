@@ -42,8 +42,8 @@ impl ResolverFactory {
   }
 
   pub fn get(&self, options: Resolve) -> Resolver {
-    Resolver(nodejs_resolver::Resolver::new(
-      nodejs_resolver::ResolverOptions {
+    Resolver {
+      resolver: nodejs_resolver::Resolver::new(nodejs_resolver::ResolverOptions {
         extensions: options.extensions,
         alias: options.alias,
         prefer_relative: options.prefer_relative,
@@ -56,18 +56,26 @@ impl ResolverFactory {
         external_cache: Some(self.cache.clone()),
         description_file: Some(String::from("package.json")),
         tsconfig: None,
-      },
-    ))
+      }),
+    }
   }
 }
 
+/**
+ * support to override default options in rule.resolve
+ */
+pub struct ResolveWithOptions {
+  pub prefer_relative: Option<bool>,
+}
 #[derive(Debug)]
-pub struct Resolver(pub(crate) nodejs_resolver::Resolver);
+pub struct Resolver {
+  resolver: nodejs_resolver::Resolver,
+}
 
 impl Resolver {
   pub fn resolve(&self, base_dir: &Path, request: &str) -> anyhow::Result<ResolveResult> {
     self
-      .0
+      .resolver
       .resolve(base_dir, request)
       .map(|inner_result| match inner_result {
         nodejs_resolver::ResolveResult::Info(info) => ResolveResult::Info(ResolveInfo {
@@ -78,5 +86,15 @@ impl Resolver {
         nodejs_resolver::ResolveResult::Ignored => ResolveResult::Ignored,
       })
       .map_err(anyhow::Error::msg)
+  }
+  pub fn with_options(&self, options: ResolveWithOptions) -> Resolver {
+    let merged_options = nodejs_resolver::ResolverOptions {
+      prefer_relative: options
+        .prefer_relative
+        .unwrap_or(self.resolver.options.prefer_relative),
+      ..self.resolver.options.clone()
+    };
+    let resolver = nodejs_resolver::Resolver::new(merged_options);
+    Self { resolver }
   }
 }

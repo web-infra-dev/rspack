@@ -18,7 +18,7 @@ use rspack_error::Result;
 
 use rspack_core::{
   AssetParserDataUrlOption, AssetParserOptions, BoxedLoader, CompilerOptionsBuilder, ModuleOptions,
-  ModuleRule, ModuleType, ParserOptions,
+  ModuleRule, ModuleType, ParserOptions, ResolveWithOptions,
 };
 
 use crate::RawOption;
@@ -435,6 +435,7 @@ impl RawOption<ModuleRule> for RawModuleRule {
     // let module_rule_tsfn: &'static Option<ModuleRuleFunc> = Box::leak(func);
 
     Ok(ModuleRule {
+      resolve: None,
       test: self.test.map(|reg| regex::Regex::new(&reg)).transpose()?,
       resource_query: self
         .resource_query
@@ -472,6 +473,13 @@ impl RawOption<Option<ModuleOptions>> for RawModuleOptions {
       })
       .collect::<anyhow::Result<Vec<ModuleRule>>>()?;
     Ok(Some(ModuleOptions {
+      default_rules: vec![ModuleRule {
+        module_type: Some(ModuleType::Css),
+        resolve: Some(ResolveWithOptions {
+          prefer_relative: Some(true),
+        }),
+        ..Default::default()
+      }],
       rules,
       parser: self.parser.map(|x| ParserOptions {
         asset: x.asset.map(|y| AssetParserOptions {

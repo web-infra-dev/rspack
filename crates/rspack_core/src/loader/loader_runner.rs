@@ -6,6 +6,7 @@ pub use rspack_loader_runner::{
   Content, Loader, LoaderContext, LoaderResult, LoaderRunner, LoaderRunnerAdditionalContext,
   ResourceData,
 };
+use swc_common::util::take::Take;
 
 use crate::{
   CompilerOptions, LoaderRunnerPluginProcessResource, ModuleRule, ModuleType, PluginDriver,
@@ -33,7 +34,6 @@ impl LoaderRunnerRunner {
     let compiler_context = CompilerContext {
       options: options.clone(),
     };
-
     Self {
       options,
       plugin_driver,
@@ -51,12 +51,12 @@ impl LoaderRunnerRunner {
     //           1. remove all extension based module type resolution, and let `module.rules[number].type` to handle this(everything is based on its config)
     //           2. set default module type to `Js`, it equals to `javascript/auto` in webpack.
     let mut resolved_module_type: ResolvedModuleType = None;
-
     let loaders = self
       .options
       .module
       .rules
       .iter()
+      .chain(self.options.module.default_rules.iter())
       .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
         if let Some(func) = &module_rule.func__ {
           match func(&resource_data) {

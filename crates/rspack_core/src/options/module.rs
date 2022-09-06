@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::{BoxedLoader, ModuleType, ResourceData};
+use crate::{BoxedLoader, ModuleType, ResolveWithOptions, ResourceData};
 
 #[derive(Debug, Clone, Default)]
 pub struct AssetParserDataUrlOption {
@@ -26,6 +26,7 @@ pub struct ModuleRule {
   // For loader experimental
   pub func__: Option<ModuleRuleFunc>,
   pub uses: Vec<BoxedLoader>,
+  pub resolve: Option<ResolveWithOptions>,
 }
 
 impl Debug for ModuleRule {
@@ -43,6 +44,7 @@ impl Debug for ModuleRule {
 
 #[derive(Debug, Default)]
 pub struct ModuleOptions {
+  pub default_rules: Vec<ModuleRule>,
   pub rules: Vec<ModuleRule>,
   pub parser: Option<ParserOptions>,
 }

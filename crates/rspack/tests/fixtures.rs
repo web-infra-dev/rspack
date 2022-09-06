@@ -19,3 +19,8 @@ async fn run(context: PathBuf) {
 fn example(fixture_path: PathBuf) {
   run(fixture_path);
 }
+
+#[fixture("../../examples/rule-resolve")]
+fn rule_resolve(fixture_path: PathBuf) {
+  run(fixture_path);
+}

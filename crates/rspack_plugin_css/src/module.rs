@@ -69,6 +69,7 @@ impl Module for CssModule {
   fn dependencies(&mut self) -> Vec<rspack_core::ModuleDependency> {
     let mut scanner = DependencyScanner::default();
     self.ast.visit_mut_with(&mut scanner);
+    dbg!(&scanner.dependencies);
     scanner.dependencies
   }
 }
