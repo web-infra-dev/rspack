@@ -1,26 +1,26 @@
 module.exports = {
-  mode: "development",
-  entry: {
-    main: "./src/index.js",
+  mode : 'development',
+  entry : {
+    main : './src/index.js',
   },
-  output: {
-    publicPath: "http://localhost:3000",
+  output : {
+    publicPath : 'http://localhost:3000',
     filename: '[name].[contenthash:8][ext]',
   },
-  define: {
-    "process.env.NODE_ENV": "development",
+  define : {
+    'process.env.NODE_ENV' : 'development',
   },
-  module: {
-    rules: [],
-    parser: {
-      asset: {
-        dataUrlCondition: {
-          maxSize: 1,
+  module : {
+    rules : [{test : '.less',type : 'css',}],
+    parser : {
+      asset : {
+        dataUrlCondition : {
+          maxSize : 1,
         },
       },
     },
   },
-  builtins: {
-    html: [{}],
+  builtins : {
+    html : [{}],
   },
 };
