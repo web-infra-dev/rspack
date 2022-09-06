@@ -156,7 +156,10 @@ impl Compilation {
 
     tracing::debug!("chunk graph {:#?}", self.chunk_graph);
 
-    let context_indent = if self.options.target.platform == crate::TargetPlatform::Web {
+    let context_indent = if matches!(
+      self.options.target.platform,
+      crate::TargetPlatform::Web | crate::TargetPlatform::None
+    ) {
       String::from("self")
     } else {
       String::from("this")
