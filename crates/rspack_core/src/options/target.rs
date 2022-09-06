@@ -32,7 +32,7 @@ impl Target {
       if item.starts_with("es") {
         // es version
         if es_version != TargetEsVersion::None {
-          return Err(anyhow!("target es version conflict"));
+          return Err(anyhow!("Target es version conflict"));
         }
         let version = match item {
           "es3" => EsVersion::Es3,
@@ -46,7 +46,7 @@ impl Target {
           "es2021" => EsVersion::Es2021,
           "es2022" => EsVersion::Es2022,
           _ => {
-            return Err(anyhow!("unknown target es version {}", item));
+            return Err(anyhow!("Unknown target es version {}", item));
           }
         };
         es_version = TargetEsVersion::Es(version);
@@ -55,14 +55,14 @@ impl Target {
 
       // platform
       if platform != TargetPlatform::None {
-        return Err(anyhow!("target platform conflict"));
+        return Err(anyhow!("Target platform conflict"));
       }
       platform = match item {
         "web" => TargetPlatform::Web,
         "webworker" => TargetPlatform::WebWorker,
         "browserslist" => TargetPlatform::BrowsersList,
         _ => {
-          return Err(anyhow!("unknown target platform {}", item));
+          return Err(anyhow!("Unknown target platform {}", item));
         }
       };
     }
