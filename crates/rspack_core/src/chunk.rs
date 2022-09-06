@@ -4,7 +4,7 @@ use hashbrown::HashSet;
 use rspack_error::{Error, Result};
 use tracing::instrument;
 
-use crate::{ChunkUkey, ModuleGraph, ModuleGraphModule};
+use crate::{ChunkGroupUkey, ChunkUkey, ModuleGraph, ModuleGraphModule};
 
 #[derive(Debug)]
 pub struct Chunk {
@@ -15,18 +15,20 @@ pub struct Chunk {
   pub kind: ChunkKind,
   pub module_index: HashMap<String, usize>,
   pub files: HashSet<String>,
+  pub groups: HashSet<ChunkGroupUkey>,
 }
 
 impl Chunk {
-  pub fn new(ukey: ChunkUkey, id: String, entry_uri: String, kind: ChunkKind) -> Self {
+  pub fn new(id: String, entry_uri: String, kind: ChunkKind) -> Self {
     Self {
-      ukey,
+      ukey: ChunkUkey::with_debug_info("Chunk"),
       id,
       module_uris: Default::default(),
       entry_uri,
       kind,
       module_index: Default::default(),
       files: Default::default(),
+      groups: Default::default(),
     }
   }
 

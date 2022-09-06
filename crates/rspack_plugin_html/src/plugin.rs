@@ -92,7 +92,7 @@ impl Plugin for HtmlPlugin {
         }
         included
       })
-      .map(|entry_name| compilation.entrypoints.get(entry_name).unwrap())
+      .map(|entry_name| compilation.entrypoint_by_name(entry_name))
       .flat_map(|entry| entry.get_files(chunk_by_ukey))
       .map(|asset_name| (asset_name.clone(), assets.get(&asset_name).unwrap()))
       .collect::<Vec<_>>();

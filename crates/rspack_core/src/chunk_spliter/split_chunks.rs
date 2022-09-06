@@ -40,7 +40,6 @@ pub fn code_splitting2(compilation: &mut Compilation) {
   for entry in &chunk_entries {
     let chunk_id = id_generator.gen_id(entry);
     let chunk = Chunk::new(
-      ChunkUkey::with_debug_info("Entry chunk"),
       chunk_id.clone(),
       entry.to_string(),
       ChunkKind::Entry { name: chunk_id },
@@ -63,12 +62,7 @@ pub fn code_splitting2(compilation: &mut Compilation) {
               chunk_entries.push(*mod_uri);
 
               let chunk_id = id_generator.gen_id(mod_uri);
-              let chunk = Chunk::new(
-                ChunkUkey::with_debug_info("Async chunk"),
-                chunk_id,
-                mod_uri.to_string(),
-                ChunkKind::Normal,
-              );
+              let chunk = Chunk::new(chunk_id, mod_uri.to_string(), ChunkKind::Normal);
               let chunk_ref = chunk.ukey;
               chunk_graph.add_chunk(&chunk);
               chunk_by_ref.insert(chunk.ukey, chunk);

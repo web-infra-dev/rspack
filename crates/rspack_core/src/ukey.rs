@@ -4,6 +4,7 @@ use std::{
 };
 
 pub type ChunkUkey = Ukey;
+pub type ChunkGroupUkey = Ukey;
 
 static NEXT_UNIQUE_KEY: AtomicUsize = AtomicUsize::new(0);
 

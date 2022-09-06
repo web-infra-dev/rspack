@@ -1,7 +1,7 @@
 use crate::{
-  split_chunks::code_splitting2, AssetContent, Chunk, ChunkGraph, ChunkUkey, CompilerOptions,
-  Dependency, EntryItem, Entrypoint, ModuleDependency, ModuleGraph, PluginDriver,
-  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime,
+  split_chunks::code_splitting2, AssetContent, Chunk, ChunkGraph, ChunkGroup, ChunkGroupUkey,
+  ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint, ModuleDependency, ModuleGraph,
+  PluginDriver, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime,
   VisitedModuleIdentity,
 };
 use hashbrown::HashMap;
@@ -19,8 +19,9 @@ pub struct Compilation {
   pub module_graph: ModuleGraph,
   pub chunk_graph: ChunkGraph,
   pub chunk_by_ukey: HashMap<ChunkUkey, Chunk>,
+  pub chunk_group_by_ukey: HashMap<ChunkGroupUkey, ChunkGroup>,
   pub runtime: Runtime,
-  pub entrypoints: HashMap<String, Entrypoint>,
+  pub entrypoints: HashMap<String, ChunkGroupUkey>,
   pub assets: CompilationAssets,
   pub diagnostic: Vec<Diagnostic>,
 }
@@ -36,6 +37,7 @@ impl Compilation {
       visited_module_id,
       module_graph,
       chunk_by_ukey: Default::default(),
+      chunk_group_by_ukey: Default::default(),
       entries: HashMap::from_iter(entries),
       chunk_graph: Default::default(),
       runtime: Default::default(),
@@ -145,6 +147,14 @@ impl Compilation {
     todo!()
   }
 
+  pub fn entrypoint_by_name(&self, name: &str) -> &Entrypoint {
+    let ukey = self.entrypoints.get(name).expect("entrypoint not found");
+    self
+      .chunk_group_by_ukey
+      .get(ukey)
+      .expect("entrypoint not found by ukey")
+  }
+
   #[instrument(skip_all)]
   pub async fn seal(&mut self, plugin_driver: Arc<PluginDriver>) -> Result<()> {
     code_splitting2(self);
@@ -184,7 +194,8 @@ impl Compilation {
         .for_each(|chunk_ref| {
           entrypoint.chunks.push(chunk_ref);
         });
-      self.entrypoints.insert(name.clone(), entrypoint);
+      self.entrypoints.insert(name.clone(), entrypoint.ukey);
+      self.chunk_group_by_ukey.insert(entrypoint.ukey, entrypoint);
     });
 
     self.process_assets(plugin_driver).await;
