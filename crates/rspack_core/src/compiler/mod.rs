@@ -78,7 +78,14 @@ impl Compiler {
     // self.compile(deps).await?;
     self.stats()
   }
-
+  pub async fn run(&mut self) -> anyhow::Result<()> {
+    let stats = self.build().await?;
+    if !stats.compilation.diagnostic.is_empty() {
+      let err_msg = stats.emit_error_string(true).unwrap();
+      anyhow::bail!(err_msg)
+    }
+    Ok(())
+  }
   pub async fn build(&mut self) -> Result<Stats> {
     self.compilation = Compilation::new(
       // TODO: use Arc<T> instead
