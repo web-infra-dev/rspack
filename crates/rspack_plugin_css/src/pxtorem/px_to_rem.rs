@@ -72,7 +72,9 @@ impl PxToRem {
     self.all_match = all_match;
   }
 
-  fn normalized_num(&self, num: f64) -> f64 {
+  fn normalized_num(&self, n: f64) -> f64 {
+    let num = n.abs();
+    let sign = n.signum();
     let normalized_num = if num < self.min_pixel_value {
       num
     } else {
@@ -93,7 +95,7 @@ impl PxToRem {
         }
       }
     };
-    normalized_num
+    normalized_num * sign
   }
 
   fn is_match(&self, prop: &str) -> bool {
