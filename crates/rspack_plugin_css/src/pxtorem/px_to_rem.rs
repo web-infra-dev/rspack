@@ -189,6 +189,6 @@ impl VisitMut for PxToRem {
   fn visit_mut_length(&mut self, n: &mut swc_css::ast::Length) {}
 }
 
-pub fn px_to_rem() -> impl VisitMut {
-  PxToRem::from(PxToRemOption::default())
+pub fn px_to_rem(option: PxToRemOption) -> impl VisitMut {
+  PxToRem::from(option)
 }

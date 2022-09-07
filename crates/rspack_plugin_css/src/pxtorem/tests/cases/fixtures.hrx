@@ -18,7 +18,7 @@ h1 { margin: 0 0 20px; font-size: 32px; line-height: 1.2; letter-spacing: 1px; }
 .rule { margin: 0.5rem .5px -0.2px -.2em }
 <===> .config
 {
-  propList: ["margin"]
+  "propList": ["margin"]
 }
 
 <===> should not add properties that already exist.css

@@ -1,18 +1,20 @@
 use hashbrown::HashMap;
 use hrx_parser::Entry;
 use rspack_error::TWithDiagnosticArray;
+use swc_common::{FileName, FilePathMapping, SourceFile, SourceMap};
 use swc_css::{
-  ast,
+  ast::{self, Stylesheet},
   codegen::{
     writer::basic::{BasicCssWriter, BasicCssWriterConfig},
     CodeGenerator, CodegenConfig, Emit,
   },
+  parser::{parse_file, parser::ParserConfig},
   visit::VisitMutWith,
 };
 
 use crate::SWC_COMPILER;
 
-use super::px_to_rem::px_to_rem;
+use super::{option::PxToRemOption, px_to_rem::px_to_rem};
 
 #[test]
 fn valid() {
@@ -22,28 +24,29 @@ fn valid() {
     .filter(|unit| !unit.path.starts_with('-'))
   {
     insta::with_settings!({sort_maps => false, snapshot_path => "cases", prepend_module_to_snapshot => false, snapshot_suffix => ""}, {
-        insta::assert_snapshot!(unit.path, transform(&unit.content));
+      let config = unit.meta_data.get("config");
+      insta::assert_snapshot!(unit.path, transform(&unit.content, config));
     });
   }
 }
 
-fn transform(source: &str) -> String {
-  let TWithDiagnosticArray {
-    inner: mut stylesheet,
-    diagnostic,
-  } = SWC_COMPILER
-    .parse_file("test.css", source.to_owned())
-    .unwrap();
+fn transform(source: &str, config_file: Option<&String>) -> String {
+  let cm = SourceMap::new(FilePathMapping::empty());
+  let fm = cm.new_source_file(FileName::Custom("test.css".to_owned()), source.to_owned());
+  let mut stylesheet = parse_file::<Stylesheet>(&fm, ParserConfig::default(), &mut vec![]).unwrap();
+
   let mut output = String::new();
   let wr = BasicCssWriter::new(
     &mut output,
     None, // Some(&mut src_map_buf),
     BasicCssWriterConfig::default(),
   );
-
+  let config: PxToRemOption = config_file
+    .map(|file| serde_json::from_str(file).unwrap())
+    .unwrap_or_default();
   let mut gen = CodeGenerator::new(wr, CodegenConfig { minify: false });
 
-  stylesheet.visit_mut_with(&mut px_to_rem());
+  stylesheet.visit_mut_with(&mut px_to_rem(config));
   gen.emit(&stylesheet).unwrap();
 
   output
