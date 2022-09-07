@@ -30,3 +30,4 @@ hashbrown = { version = "0.12.1", features = ["rayon"] }
 rspack_error = { path = "../rspack_error" }
 preset_env_base = "0.2.0"
 hrx-parser = "0.1.1"
+regex = "1.6.0"

@@ -1,3 +1,33 @@
+#[derive(Default)]
+pub struct PxToRemOption {
+  pub root_value: Option<i32>,
+  pub unit_precision: Option<i32>,
+  pub selector_black_list: Option<Vec<String>>,
+  pub prop_list: Option<Vec<String>>,
+  pub replace: Option<bool>,
+  pub media_query: Option<bool>,
+  pub min_pixel_value: Option<f64>,
+}
+
+impl From<PxToRemOption> for PxtToRem {
+  fn from(option: PxToRemOption) -> Self {}
+}
+#[derive(Debug)]
+pub struct PxtToRem {
+  root_value: u32,
+  unit_precision: u32,
+  selector_black_list: Vec<String>,
+  prop_list: Vec<String>,
+  replace: bool,
+  media_query: bool,
+  min_pixel_value: f64,
+  has_wild: bool, // exclude: null we don't need the prop, since this is always used for cli
+  pub match_list: MatchList,
+  // exact_list: Vec<&'a String>,
+  all_match: bool,
+  map_stack: Vec<Vec<(SmolStr, SmolStr)>>,
+}
+
 // use swc_css::{ast::ComponentValue, visit::VisitMut};
 // struct PxToRem {}
 
