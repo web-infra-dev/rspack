@@ -24,7 +24,7 @@ h1 { margin: 0 0 20px; font-size: 32px; line-height: 1.2; letter-spacing: 1px; }
 <===> -should not add properties that already exist.css
 .rule { font-size: 16px; font-size: 1rem; }
 
-<===> -should remain unitless if 0.css
+<===> should remain unitless if 0.css
 .rule { font-size: 0px; font-size: 0; }
 
 <===> should not replace values in double quotes or single quotes.css

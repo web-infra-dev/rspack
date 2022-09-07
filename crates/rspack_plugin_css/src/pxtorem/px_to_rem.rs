@@ -171,7 +171,7 @@ impl VisitMut for PxToRem {
         ComponentValue::Dimension(d) => match d {
           swc_css::ast::Dimension::Length(len) => {
             // let num = l.value.clone();
-            if &len.unit.value == "px" {
+            if &len.unit.value == "px" && len.value.value != 0f64 {
               len.unit.span = DUMMY_SP;
               // TODO: figure it out
               len.unit.raw = None;
@@ -198,7 +198,7 @@ impl VisitMut for PxToRem {
             raw_value,
             ..
           } => {
-            if unit == "px" {
+            if unit == "px" && *value != 0f64 {
               *unit = "rem".into();
               *value = self.normalized_num(*value);
               *raw_unit = unit.clone();
