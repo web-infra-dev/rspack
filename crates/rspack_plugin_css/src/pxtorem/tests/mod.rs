@@ -1,15 +1,13 @@
 use hashbrown::HashMap;
 use hrx_parser::Entry;
-use std::fs;
 
 #[test]
 fn valid() {
   let file = include_str!("./cases/fixtures.hrx");
-  let test_units = normalize(file)
+  for unit in normalize(file)
     .into_iter()
-    .filter(|unit| !unit.path.starts_with("-"))
-    .collect::<Vec<_>>();
-  for unit in test_units.into_iter() {
+    .filter(|unit| !unit.path.starts_with('-'))
+  {
     insta::with_settings!({sort_maps => false, snapshot_path => "cases", prepend_module_to_snapshot => false, snapshot_suffix => ""}, {
         insta::assert_snapshot!(unit.path, unit.content);
     });
@@ -37,7 +35,7 @@ fn normalize(source: &str) -> Vec<TestUnit> {
     i += 1;
     while i < archive.entries.len() {
       let another_entry = &archive.entries[i];
-      if !another_entry.path().starts_with(".") {
+      if !another_entry.path().starts_with('.') {
         break;
       }
       if let Some(another_unit) = convert_entry_to_unit(another_entry) {
