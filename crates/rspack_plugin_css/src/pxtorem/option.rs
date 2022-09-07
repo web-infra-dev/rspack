@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-#[derive(Default, Deserialize)]
+#[derive(Default, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PxToRemOption {
   pub root_value: Option<u32>,

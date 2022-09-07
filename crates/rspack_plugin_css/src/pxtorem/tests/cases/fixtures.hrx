@@ -7,7 +7,7 @@ h1 { margin: 0 0 20px; font-size: 32px; line-height: 1.2; letter-spacing: 1px; }
 <===> should ignore non px properties.css
 .rule { font-size: 2em }
 
-<===> -should ignore px in custom property names.css
+<===> should ignore px in custom property names.css
 :root { --rem-14px: 14px; } .rule { font-size: var(--rem-14px); }
 <===> .config
 {
