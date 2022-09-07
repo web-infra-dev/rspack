@@ -1,0 +1,7 @@
+---
+source: crates/rspack_plugin_css/src/pxtorem/tests/mod.rs
+assertion_line: 14
+expression: unit.content
+---
+.rule { font-size: 16px; margin: 16px; margin-left: 5px; padding: 5px; padding-right: 16px }
+

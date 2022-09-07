@@ -1,0 +1,7 @@
+---
+source: crates/rspack_plugin_css/src/pxtorem/tests/mod.rs
+assertion_line: 14
+expression: unit.content
+---
+:root { --rem-14px: 14px; } .rule { font-size: var(--rem-14px); }
+

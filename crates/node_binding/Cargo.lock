@@ -729,6 +729,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "hrx-parser"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb741d1d6fce95c065abb032a5f302299520a23928a95e96ab64799b5fd97f3a"
+
+[[package]]
 name = "http"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2007,6 +2013,7 @@ dependencies = [
  "better_scoped_tls",
  "dashmap",
  "hashbrown",
+ "hrx-parser",
  "linked_hash_set",
  "once_cell",
  "preset_env_base 0.2.4",

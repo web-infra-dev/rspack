@@ -1,0 +1,7 @@
+---
+source: crates/rspack_plugin_css/src/pxtorem/tests/mod.rs
+assertion_line: 14
+expression: unit.content
+---
+.rule { content: '16px'; font-family: \"16px\"; font-size: 16px; }
+
