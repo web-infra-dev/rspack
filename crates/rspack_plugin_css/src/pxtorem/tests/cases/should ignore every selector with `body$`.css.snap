@@ -1,0 +1,7 @@
+---
+source: crates/rspack_plugin_css/src/pxtorem/tests/mod.rs
+assertion_line: 14
+expression: unit.content
+---
+body { font-size: 16px; } .class-body$ { font-size: 16px; } .simple-class { font-size: 16px; }
+
