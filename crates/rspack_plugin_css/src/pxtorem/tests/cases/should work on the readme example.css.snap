@@ -1,7 +1,7 @@
 ---
 source: crates/rspack_plugin_css/src/pxtorem/tests/mod.rs
-assertion_line: 25
-expression: transform(&unit.content)
+assertion_line: 28
+expression: "transform(&unit.content, config)"
 ---
 h1 {
   margin: 0 0 20px;

@@ -25,6 +25,7 @@ fn valid() {
   {
     insta::with_settings!({sort_maps => false, snapshot_path => "cases", prepend_module_to_snapshot => false, snapshot_suffix => ""}, {
       let config = unit.meta_data.get("config");
+      dbg!(&unit.path);
       insta::assert_snapshot!(unit.path, transform(&unit.content, config));
     });
   }
