@@ -127,26 +127,16 @@ impl Compilation {
     Ok(())
   }
   pub fn render_runtime(&self, plugin_driver: Arc<PluginDriver>) -> Runtime {
-    let context_indent = match &self.options.target {
-      crate::Target::Target(target) => match target {
-        crate::TargetOptions::Web => String::from("self"),
-        _ => String::from("this"),
-      },
-      crate::Target::None => String::from("self"),
-    };
     if let Ok(sources) = plugin_driver.render_runtime(RenderRuntimeArgs {
       sources: &vec![],
       compilation: self,
     }) {
       Runtime {
-        context_indent,
+        context_indent: self.runtime.context_indent.clone(),
         sources,
       }
     } else {
-      Runtime {
-        context_indent,
-        sources: vec![],
-      }
+      self.runtime.clone()
     }
   }
 
@@ -166,10 +156,23 @@ impl Compilation {
 
     tracing::debug!("chunk graph {:#?}", self.chunk_graph);
 
-    // generate runtime
-    self.runtime = self.render_runtime(plugin_driver.clone());
+    let context_indent = if matches!(
+      self.options.target.platform,
+      crate::TargetPlatform::Web | crate::TargetPlatform::None
+    ) {
+      String::from("self")
+    } else {
+      String::from("this")
+    };
+
+    self.runtime = Runtime {
+      sources: vec![],
+      context_indent,
+    };
 
     self.create_chunk_assets(plugin_driver.clone());
+    // generate runtime
+    self.runtime = self.render_runtime(plugin_driver.clone());
 
     self.entries.iter().for_each(|(name, _entry)| {
       let mut entrypoint = Entrypoint::new();

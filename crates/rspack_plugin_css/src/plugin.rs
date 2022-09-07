@@ -152,6 +152,31 @@ impl Plugin for CssPlugin {
     if code.is_empty() {
       Ok(Default::default())
     } else {
+      let output_path = match chunk.kind {
+        ChunkKind::Entry { .. } => {
+          compilation
+            .options
+            .output
+            .filename
+            .render(FilenameRenderOptions {
+              filename: Some(args.chunk().id.to_owned()),
+              extension: Some(".css".to_owned()),
+              id: None,
+            })
+        }
+        ChunkKind::Normal => {
+          compilation
+            .options
+            .output
+            .chunk_filename
+            .render(FilenameRenderOptions {
+              filename: None,
+              extension: Some(".css".to_owned()),
+              id: Some(format!("static/css/{}", args.chunk().id.to_owned())),
+            })
+        }
+      };
+
       Ok(vec![RenderManifestEntry::new(
         AssetContent::String(code),
         compilation
@@ -164,6 +189,7 @@ impl Plugin for CssPlugin {
             id: None,
             contenthash,
           }),
+        output_path,
       )])
     }
   }

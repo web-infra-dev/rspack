@@ -94,13 +94,16 @@ jobs:
         uses: arduino/setup-protoc@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Install dependencies and run test
+      - name: Install dependencies && and build lib
         run: |
           pnpm install
           pnpm run format:js
           pnpm run build:cli
+      - name: binding test
+        run: |
           pnpm run build:webpack
           pnpm --filter @rspack/core run example
+          pnpm --filter @rspack/core run test
       #- name: Cache
       #uses: speedy-js/rust-cache-self-hosted@v1
       # - name: Install yarn

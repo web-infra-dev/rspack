@@ -17,14 +17,21 @@ const rspack = new Rspack({
 				compiler.hooks.done.tap("done2", () => {
 					console.log("done2");
 				});
-				compiler.hooks.processAssets.tapPromise(
-					"processAssets1",
-					async (...args) => {
-						console.log({ args });
-					}
-				);
-				compiler.hooks.processAssets.tap("processAssets2", args => {
-					console.log({ args });
+				compiler.hooks.compilation.tap("compilation", compilation => {
+					compilation.hooks.processAssets.tapPromise(
+						"processAssets1",
+						async assets => {
+							for (const value of Object.values(assets)) {
+								console.log("value:", value.buffer(), value.source());
+							}
+							compilation.emitAsset("test.js", {
+								source: "hello world"
+							});
+							compilation.updateAsset("main.js", {
+								source: "hello main"
+							});
+						}
+					);
 				});
 			}
 		}

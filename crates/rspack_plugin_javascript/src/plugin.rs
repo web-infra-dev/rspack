@@ -8,12 +8,12 @@ use crate::{module::JsModule, utils::get_swc_compiler};
 use crate::{RSPACK_REGISTER, RSPACK_REQUIRE};
 use rayon::prelude::*;
 use rspack_core::{
-  get_xxh3_64_hash, AssetContent, BoxModule, ChunkKind, ErrorSpan, FilenameRenderOptions,
-  ModuleRenderResult, ModuleType, ParseModuleArgs, Parser, Plugin, PluginContext,
-  PluginRenderManifestHookOutput, RenderManifestEntry, SourceType, Target, TargetOptions,
+  get_xxh3_64_hash, AssetContent, BoxModule, ChunkKind, ErrorSpan, FilenameRenderOptions, ModuleRenderResult,
+  ModuleType, ParseModuleArgs, Parser, Plugin, PluginContext, PluginRenderManifestHookOutput,
+  RenderManifestEntry, SourceType, TargetPlatform,
 };
 
-use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{DiagnosticKind, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_common::comments::SingleThreadedComments;
 use swc_common::{Mark, Spanned};
 use swc_ecma_transforms::react::{react, Options as ReactOptions};
@@ -76,8 +76,8 @@ impl Plugin for JsPlugin {
     let ordered_modules = chunk.ordered_modules(module_graph);
 
     let has_inline_runtime = matches!(
-      &compilation.options.target,
-      Target::Target(TargetOptions::WebWorker),
+      &compilation.options.target.platform,
+      TargetPlatform::WebWorker
     ) && matches!(chunk.kind, ChunkKind::Entry { .. });
 
     let mut module_code_array = ordered_modules
@@ -292,11 +292,11 @@ pub fn ecma_parse_error_to_diagnostic(
   path: &str,
   module_type: &ModuleType,
 ) -> Error {
-  let file_type = match module_type {
-    ModuleType::Js => "JavaScript",
-    ModuleType::Jsx => "JSX",
-    ModuleType::Tsx => "TSX",
-    ModuleType::Ts => "Typescript",
+  let (file_type, diagnostic_kind) = match module_type {
+    ModuleType::Js => ("JavaScript", DiagnosticKind::JavaScript),
+    ModuleType::Jsx => ("JSX", DiagnosticKind::Jsx),
+    ModuleType::Tsx => ("TSX", DiagnosticKind::Tsx),
+    ModuleType::Ts => ("Typescript", DiagnosticKind::Typescript),
     _ => unreachable!(),
   };
   let message = error.kind().msg().to_string();
@@ -307,7 +307,8 @@ pub fn ecma_parse_error_to_diagnostic(
     span.end as usize,
     format!("{} parsing error", file_type),
     message,
-  );
+  )
+  .with_kind(diagnostic_kind);
   rspack_error::Error::TraceableError(traceable_error)
   //Use this `Error` convertion could avoid eagerly clone source file.
 }

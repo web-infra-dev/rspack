@@ -2,13 +2,14 @@ use std::fmt::Debug;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use rspack_core::{
-  Plugin, PluginBuildEndHookOutput, PluginContext, PluginProcessAssetsHookOutput, ProcessAssetsArgs,
+  Compilation, CompilationAsset, Plugin, PluginBuildEndHookOutput, PluginContext,
+  PluginProcessAssetsHookOutput, ProcessAssetsArgs,
 };
 
 use anyhow::Context;
 use async_trait::async_trait;
 use napi::threadsafe_function::ThreadsafeFunctionCallMode;
-use napi::Error;
+use napi::{CallContext, Error, JsUndefined};
 use napi_derive::napi;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -22,11 +23,15 @@ use common::ThreadsafeRspackCallback;
 use common::REGISTERED_DONE_SENDERS;
 use common::REGISTERED_PROCESS_ASSETS_SENDERS;
 
+use crate::UpdateAssetOptions;
+
 pub static CALL_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(1));
+
+pub type BoxedClosure = Box<dyn Fn(CallContext<'_>) -> napi::Result<JsUndefined>>;
 
 pub struct RspackPluginNodeAdapter {
   pub done_tsfn: ThreadsafeRspackCallback,
-  pub process_assets_tsfn: ThreadsafeRspackCallback,
+  pub process_assets_tsfn: ThreadsafeRspackCallback<(String, BoxedClosure)>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -39,7 +44,7 @@ pub struct RspackThreadsafeContext<T: Debug> {
 impl<T: Debug> RspackThreadsafeContext<T> {
   pub fn new(payload: T) -> Self {
     Self {
-      id: CALL_ID.fetch_add(1, Ordering::SeqCst),
+      id: CALL_ID.fetch_add(1, Ordering::Relaxed),
       inner: payload,
     }
   }
@@ -111,15 +116,39 @@ impl Plugin for RspackPluginNodeAdapter {
       }
     }
 
-    let value = serde_json::to_string(&context).map_err(|_| {
-      Error::new(
-        napi::Status::Unknown,
-        "unable to convert context".to_owned(),
-      )
-    });
-    self
-      .process_assets_tsfn
-      .call(value, ThreadsafeFunctionCallMode::Blocking);
+    {
+      let compilation = args.compilation as *mut Compilation;
+
+      let emit_asset = move |call_context: CallContext<'_>| {
+        let options = call_context.get::<UpdateAssetOptions>(0)?;
+
+        // Safety: since the `compilation` will available throughout the build procedure, this operation is always considered safe under the `processAsset` hook.
+        // For developers who use `@rspack/binding` under the hood, exposing a reference to the `emit_asset` fn to user side is strongly not recommended since `compilation` may be dropped.
+        let compilation = unsafe { &mut *compilation.cast::<Compilation>() };
+
+        compilation.emit_asset(
+          options.filename,
+          CompilationAsset {
+            source: rspack_core::AssetContent::String(options.asset.source.unwrap()),
+          },
+        );
+
+        call_context.env.get_undefined()
+      };
+
+      let value = serde_json::to_string(&context)
+        .map_err(|_| {
+          Error::new(
+            napi::Status::Unknown,
+            "unable to convert context".to_owned(),
+          )
+        })
+        .map(|value| (value, Box::new(emit_asset) as BoxedClosure));
+
+      self
+        .process_assets_tsfn
+        .call(value, ThreadsafeFunctionCallMode::Blocking);
+    }
 
     let t = rx
       .await

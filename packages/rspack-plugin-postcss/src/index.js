@@ -4,12 +4,17 @@ const cssModules = require("postcss-modules");
 
 module.exports = async function loader(loaderContext) {
 	// TODO: customize options, until js binding support this functionality
-	console.log(loaderContext.getOptions());
+	// console.log(loaderContext.getOptions());
 	let options = loaderContext.getOptions() ?? {};
 	let enableModules = options.modules;
 	try {
 		let meta = "";
-		let plugins = [pxtorem];
+		let plugins = [
+			pxtorem({
+				rootValue: 50,
+				propList: ["*"]
+			})
+		];
 		if (enableModules) {
 			plugins.push(
 				cssModules({

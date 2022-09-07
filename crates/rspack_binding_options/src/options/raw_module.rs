@@ -214,7 +214,7 @@ static LOADER_CALL_ID: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU
 
 #[cfg(feature = "node-api")]
 static REGISTERED_LOADER_SENDERS: once_cell::sync::Lazy<
-  std::sync::Arc<dashmap::DashMap<u32, tokio::sync::oneshot::Sender<LoaderThreadsafeLoaderResult>>>,
+  dashmap::DashMap<u32, tokio::sync::oneshot::Sender<LoaderThreadsafeLoaderResult>>,
 > = once_cell::sync::Lazy::new(Default::default);
 
 #[cfg(feature = "node-api")]
@@ -245,7 +245,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
       resource_query: loader_context.resource_query.map(|r| r.to_owned()),
     };
 
-    let current_id = LOADER_CALL_ID.fetch_add(1, Ordering::SeqCst);
+    let current_id = LOADER_CALL_ID.fetch_add(1, Ordering::Relaxed);
 
     let loader_tsfn_context = LoaderThreadsafeContext {
       p: loader_context,
