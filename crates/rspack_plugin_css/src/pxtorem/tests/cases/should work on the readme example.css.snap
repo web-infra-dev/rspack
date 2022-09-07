@@ -1,8 +1,11 @@
 ---
 source: crates/rspack_plugin_css/src/pxtorem/tests/mod.rs
-assertion_line: 14
-expression: unit.content
+assertion_line: 25
+expression: transform(&unit.content)
 ---
-h1 { margin: 0 0 20px; font-size: 32px; line-height: 1.2; letter-spacing: 1px; }
-
-
+h1 {
+  margin: 0 0 20px;
+  font-size: 2rem;
+  line-height: 1.2;
+  letter-spacing: 0.0625rem;
+}

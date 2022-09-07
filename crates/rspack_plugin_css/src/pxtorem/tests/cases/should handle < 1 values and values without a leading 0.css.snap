@@ -1,7 +1,8 @@
 ---
 source: crates/rspack_plugin_css/src/pxtorem/tests/mod.rs
-assertion_line: 14
-expression: unit.content
+assertion_line: 25
+expression: transform(&unit.content)
 ---
-.rule { margin: 0.5rem .5px -0.2px -.2em }
-
+.rule {
+  margin: 0.5rem .5px -0.2px -.2em;
+}
