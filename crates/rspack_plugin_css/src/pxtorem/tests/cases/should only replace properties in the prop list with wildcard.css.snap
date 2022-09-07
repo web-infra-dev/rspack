@@ -1,11 +1,11 @@
 ---
 source: crates/rspack_plugin_css/src/pxtorem/tests/mod.rs
-assertion_line: 28
+assertion_line: 29
 expression: "transform(&unit.content, config)"
 ---
 .rule {
-  font-size: 1rem;
-  margin: 16px;
+  font-size: 16px;
+  margin: 1rem;
   margin-left: 5px;
   padding: 5px;
   padding-right: 16px;

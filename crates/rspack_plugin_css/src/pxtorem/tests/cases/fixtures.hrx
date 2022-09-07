@@ -69,14 +69,14 @@ ignored, since we don't want to support function configuration
 .rule { font-size: 16px; margin: 16px; margin-left: 5px; padding: 5px; padding-right: 16px }
 <===> .config
 {
-  "propWhiteList": ["*font*", "margin*", "!margin-left", "*-right", "pad"]
+  "propList": ["*font*", "margin*", "!margin-left", "*-right", "pad"]
 }
 
-<===> -should only replace properties in the prop list with wildcard.css
+<===> should only replace properties in the prop list with wildcard.css
 .rule { font-size: 16px; margin: 16px; margin-left: 5px; padding: 5px; padding-right: 16px }
 <===> .config
 {
-  "propWhiteList": ["*", "!margin-left", "!*padding*", "!font*"]
+  "propList": ["*", "!margin-left", "!*padding*", "!font*"]
 }
 
 <===> should ignore selectors in the selector black list.css
@@ -114,10 +114,10 @@ body { font-size: 16px; } .class-body { font-size: 16px; } .simple-class { font-
   "mediaQuery": true
 }
 
-<===> should not replace values below minPixelValue.css
+<===> -should not replace values below minPixelValue.css
 .rule { border: 1px solid #000; font-size: 16px; margin: 1px 10px; }
 <===> .config
 {
-  "propWhiteList": [],
+  "propList": [],
   "minPixelValue": 2
 }
