@@ -28,7 +28,7 @@ h1 { margin: 0 0 20px; font-size: 32px; line-height: 1.2; letter-spacing: 1px; }
 .rule { font-size: 0px; font-size: 0; }
 
 <===> should not replace values in double quotes or single quotes.css
-.rule { content: '16px'; font-family: \"16px\"; font-size: 16px; }
+.rule { content: '16px'; font-family: "16px"; font-size: 16px; }
 <===> .config
 {
   "propList": ["*"]
