@@ -13,6 +13,7 @@ import { resolveOutputOptions } from "./output";
 import { resolveDevOptions } from "./dev";
 import { resolveModuleOptions } from "./module";
 import { Builtins, ResolvedBuiltins } from "./builtins";
+import { Resolve, ResolvedResolve } from "./resolve";
 
 export type Asset = {
 	source: string;
@@ -31,6 +32,7 @@ export interface RspackOptions {
 	external?: External;
 	output?: Output;
 	builtins: Builtins;
+	resolve: Resolve;
 }
 
 export interface ResolvedRspackOptions {
@@ -45,6 +47,7 @@ export interface ResolvedRspackOptions {
 	external: ResolvedExternal;
 	output: ResolvedOutput;
 	builtins: ResolvedBuiltins;
+	resolve: ResolvedResolve;
 }
 
 export function resolveOptions(config: RspackOptions): ResolvedRspackOptions {
@@ -58,6 +61,7 @@ export function resolveOptions(config: RspackOptions): ResolvedRspackOptions {
 	const external = config.external ?? {};
 	const plugins = config.plugins ?? [];
 	const builtins = config.builtins ?? [];
+	const resolve = config.resolve ?? {};
 	const module = resolveModuleOptions(config.module);
 	return {
 		context,
@@ -70,6 +74,7 @@ export function resolveOptions(config: RspackOptions): ResolvedRspackOptions {
 		external,
 		plugins,
 		builtins,
-		module
+		module,
+		resolve
 	};
 }
