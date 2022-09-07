@@ -15,6 +15,9 @@ mod web;
 mod web_worker;
 
 pub const RUNTIME_FILE_NAME: &str = "runtime";
+pub const RSPACK_REQUIRE: &str = "__rspack_require__";
+pub const RSPACK_DYNAMIC_IMPORT: &str = "__rspack_dynamic_require__";
+pub const RSPACK_REGISTER: &str = "__rspack_register__";
 
 #[derive(Debug)]
 pub struct ChunkHash {
@@ -43,6 +46,7 @@ impl Plugin for RuntimePlugin {
     args: RenderRuntimeArgs,
   ) -> PluginRenderRuntimeHookOutput {
     let compilation = args.compilation;
+    let namespace = &compilation.options.output.unique_name;
     let public_path = compilation.options.output.public_path.public_path();
 
     //Todo we are not implement hash now，it will be replaced by real value later
@@ -90,7 +94,7 @@ impl Plugin for RuntimePlugin {
         }
       }
       TargetPlatform::WebWorker => {
-        sources.push(generate_web_worker_init_runtime());
+        sources.push(generate_web_worker_init_runtime(namespace));
         sources.push(generate_common_module_and_chunk_data());
         sources.push(generate_common_check_by_id());
         sources.push(generate_web_rspack_require());
@@ -131,13 +135,57 @@ impl Plugin for RuntimePlugin {
     args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsOutput {
     let compilation = args.compilation;
-    let runtime = &compilation.runtime;
-    compilation.emit_asset(
-      RUNTIME_FILE_NAME.to_string() + ".js",
-      rspack_core::CompilationAsset {
-        source: AssetContent::String(runtime.generate()),
-      },
-    );
+    let namespace = &compilation.options.output.unique_name;
+    let platform = &compilation.options.target.platform;
+
+    match platform {
+      TargetPlatform::WebWorker => {
+        let mut entry_code_array: Vec<(String, String)> = vec![];
+        let _ = &compilation.chunk_by_ukey.values().for_each(|chunk| {
+          if matches!(chunk.kind, ChunkKind::Entry { .. }) {
+            let js_entry_file = chunk
+              .files
+              .iter()
+              .find(|file| file.ends_with(".js"))
+              .unwrap();
+            if let AssetContent::String(code) =
+              &compilation.assets.get(js_entry_file).unwrap().source()
+            {
+              let ordered_modules = chunk.ordered_modules(&compilation.module_graph);
+              let entry_module_id = ordered_modules.last().unwrap().id.as_str();
+              let execute_code = compilation.runtime.generate_rspack_execute(
+                namespace,
+                RSPACK_REQUIRE,
+                entry_module_id,
+              );
+              entry_code_array.push((
+                js_entry_file.to_string(),
+                compilation
+                  .runtime
+                  .generate_with_inline_modules(code, &execute_code),
+              ));
+            }
+          }
+        });
+        for (file, code) in entry_code_array {
+          compilation.emit_asset(
+            file.to_string(),
+            rspack_core::CompilationAsset {
+              source: AssetContent::String(code),
+            },
+          );
+        }
+      }
+      _ => {
+        compilation.emit_asset(
+          RUNTIME_FILE_NAME.to_string() + ".js",
+          rspack_core::CompilationAsset {
+            source: AssetContent::String(compilation.runtime.generate()),
+          },
+        );
+      }
+    }
+
     Ok(())
   }
 }
