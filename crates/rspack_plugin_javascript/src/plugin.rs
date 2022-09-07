@@ -126,12 +126,12 @@ impl Plugin for JsPlugin {
         .runtime
         .generate_rspack_execute(namespace, RSPACK_REQUIRE, entry_module_id);
 
-    let mut code = module_code_array
+    let code = module_code_array
       .into_par_iter()
       .flatten()
       .chain([{
         if chunk.kind.is_entry() && !has_inline_runtime {
-          execute_code.clone()
+          execute_code
         } else {
           String::new()
         }
@@ -170,12 +170,6 @@ impl Plugin for JsPlugin {
           })
       }
     };
-
-    if has_inline_runtime {
-      code = compilation
-        .runtime
-        .generate_with_inline_modules(&code, &execute_code);
-    }
 
     Ok(vec![RenderManifestEntry::new(
       AssetContent::String(code),
