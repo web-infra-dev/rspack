@@ -10,8 +10,8 @@ use crate::{
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
 use rspack_core::{
-  AssetContent, BoxModule, ChunkKind, FilenameRenderOptions, ModuleRenderResult, ModuleType,
-  ParseModuleArgs, Parser, Plugin, RenderManifestEntry, SourceType,
+  get_xxh3_64_hash, AssetContent, BoxModule, ChunkKind, FilenameRenderOptions, ModuleRenderResult,
+  ModuleType, ParseModuleArgs, Parser, Plugin, RenderManifestEntry, SourceType,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 
@@ -147,6 +147,8 @@ impl Plugin for CssPlugin {
       })
       .collect::<String>();
 
+    let contenthash = Some(get_xxh3_64_hash(&code).to_string());
+
     if code.is_empty() {
       Ok(Default::default())
     } else {
@@ -160,6 +162,7 @@ impl Plugin for CssPlugin {
               filename: Some(args.chunk().id.to_owned()),
               extension: Some(".css".to_owned()),
               id: None,
+              contenthash,
             })
         }
         ChunkKind::Normal => {
@@ -171,6 +174,7 @@ impl Plugin for CssPlugin {
               filename: None,
               extension: Some(".css".to_owned()),
               id: Some(format!("static/css/{}", args.chunk().id.to_owned())),
+              contenthash,
             })
         }
       };
