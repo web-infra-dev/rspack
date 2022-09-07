@@ -3,7 +3,7 @@ source: crates/rspack_plugin_css/src/pxtorem/tests/mod.rs
 assertion_line: 29
 expression: "transform(&unit.content, config)"
 ---
-@media (min-width: 500px) {
+@media (min-width: 31.25rem) {
   .rule {
     font-size: 1rem;
   }

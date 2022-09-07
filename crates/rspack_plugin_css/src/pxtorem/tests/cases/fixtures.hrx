@@ -65,7 +65,7 @@ ignored, since we don't want to support function configuration
   "unitPrecision": 2
 }
 
-<===> -should only replace properties in the prop list.css
+<===> should only replace properties in the prop list.css
 .rule { font-size: 16px; margin: 16px; margin-left: 5px; padding: 5px; padding-right: 16px }
 <===> .config
 {
