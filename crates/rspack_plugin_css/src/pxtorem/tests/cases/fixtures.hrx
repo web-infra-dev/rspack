@@ -41,7 +41,7 @@ h1 { margin: 0 0 20px; font-size: 32px; line-height: 1.2; letter-spacing: 1px; }
   "propList": ["*"]
 }
 
-<===> -should not replace values with an uppercase P or X.css
+<===> should not replace values with an uppercase P or X.css
 .rule { margin: 12px calc(100% - 14PX); height: calc(100% - 20px); font-size: 12Px; line-height: 16px; }
 <===> .config
 {

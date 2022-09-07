@@ -170,18 +170,8 @@ impl VisitMut for PxToRem {
       match ele {
         ComponentValue::Dimension(d) => match d {
           swc_css::ast::Dimension::Length(len) => {
+            self.visit_mut_length(len);
             // let num = l.value.clone();
-            if &len.unit.value == "px" && len.value.value != 0f64 {
-              len.unit.span = DUMMY_SP;
-              // TODO: figure it out
-              len.unit.raw = None;
-              len.unit.value = "rem".into();
-              len.value.span = DUMMY_SP;
-              // TODO: figure out what the raw is;
-              len.value.raw = None;
-              len.value.value = self.normalized_num(len.value.value);
-              // len.value.raw =
-            }
           }
           swc_css::ast::Dimension::Angle(_)
           | swc_css::ast::Dimension::Time(_)
@@ -207,34 +197,24 @@ impl VisitMut for PxToRem {
           }
           _ => {}
         },
-        ComponentValue::Function(_)
-        | ComponentValue::SimpleBlock(_)
-        | ComponentValue::DeclarationOrAtRule(_)
-        | ComponentValue::Rule(_)
-        | ComponentValue::StyleBlock(_)
-        | ComponentValue::KeyframeBlock(_)
-        | ComponentValue::Ident(_)
-        | ComponentValue::DashedIdent(_)
-        | ComponentValue::Str(_)
-        | ComponentValue::Url(_)
-        | ComponentValue::Integer(_)
-        | ComponentValue::Number(_)
-        | ComponentValue::Percentage(_)
-        | ComponentValue::Ratio(_)
-        | ComponentValue::UnicodeRange(_)
-        | ComponentValue::Color(_)
-        | ComponentValue::AlphaValue(_)
-        | ComponentValue::Hue(_)
-        | ComponentValue::CmykComponent(_)
-        | ComponentValue::Delimiter(_)
-        | ComponentValue::CalcSum(_)
-        | ComponentValue::ComplexSelector(_)
-        | ComponentValue::LayerName(_) => {}
+        _ => self.visit_mut_component_value(ele),
       }
     }
   }
 
-  fn visit_mut_length(&mut self, n: &mut swc_css::ast::Length) {}
+  fn visit_mut_length(&mut self, len: &mut swc_css::ast::Length) {
+    if &len.unit.value == "px" && len.value.value != 0f64 {
+      len.unit.span = DUMMY_SP;
+      // TODO: figure it out
+      len.unit.raw = None;
+      len.unit.value = "rem".into();
+      len.value.span = DUMMY_SP;
+      // TODO: figure out what the raw is;
+      len.value.raw = None;
+      len.value.value = self.normalized_num(len.value.value);
+      // len.value.raw =
+    }
+  }
 }
 
 pub fn px_to_rem(option: PxToRemOption) -> impl VisitMut {
