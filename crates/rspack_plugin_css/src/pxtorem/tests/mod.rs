@@ -1,5 +1,18 @@
 use hashbrown::HashMap;
 use hrx_parser::Entry;
+use rspack_error::TWithDiagnosticArray;
+use swc_css::{
+  ast,
+  codegen::{
+    writer::basic::{BasicCssWriter, BasicCssWriterConfig},
+    CodeGenerator, CodegenConfig, Emit,
+  },
+  visit::VisitMutWith,
+};
+
+use crate::SWC_COMPILER;
+
+use super::px_to_rem::px_to_rem;
 
 #[test]
 fn valid() {
@@ -9,9 +22,31 @@ fn valid() {
     .filter(|unit| !unit.path.starts_with('-'))
   {
     insta::with_settings!({sort_maps => false, snapshot_path => "cases", prepend_module_to_snapshot => false, snapshot_suffix => ""}, {
-        insta::assert_snapshot!(unit.path, unit.content);
+        insta::assert_snapshot!(unit.path, transform(&unit.content));
     });
   }
+}
+
+fn transform(source: &str) -> String {
+  let TWithDiagnosticArray {
+    inner: mut stylesheet,
+    diagnostic,
+  } = SWC_COMPILER
+    .parse_file("test.css", source.to_owned())
+    .unwrap();
+  let mut output = String::new();
+  let wr = BasicCssWriter::new(
+    &mut output,
+    None, // Some(&mut src_map_buf),
+    BasicCssWriterConfig::default(),
+  );
+
+  let mut gen = CodeGenerator::new(wr, CodegenConfig { minify: false });
+
+  stylesheet.visit_mut_with(&mut px_to_rem());
+  gen.emit(&stylesheet).unwrap();
+
+  output
 }
 
 #[derive(Debug)]

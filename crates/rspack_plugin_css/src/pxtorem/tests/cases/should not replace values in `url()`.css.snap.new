@@ -1,0 +1,9 @@
+---
+source: crates/rspack_plugin_css/src/pxtorem/tests/mod.rs
+assertion_line: 25
+expression: transform(&unit.content)
+---
+.rule {
+  background: url(16px.jpg);
+  font-size: 1rem;
+}

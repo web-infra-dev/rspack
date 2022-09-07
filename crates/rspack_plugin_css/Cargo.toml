@@ -31,3 +31,5 @@ rspack_error = { path = "../rspack_error" }
 preset_env_base = "0.2.0"
 hrx-parser = "0.1.1"
 regex = "1.6.0"
+serde_json = "1.0.85"
+serde = "1.0.144"
