@@ -33,6 +33,12 @@ impl From<PxToRemOption> for PxToRem {
       all_match: false,
       map_stack: vec![],
     };
+
+    // https://github.com/cuth/postcss-pxtorem/blob/master/index.js#L25-L44
+    if ret.prop_list.is_empty() {
+      ret.prop_list = vec!["*".to_string()];
+    }
+
     ret.normalize_options();
     dbg!(&ret.match_list);
     ret
@@ -156,6 +162,16 @@ pub struct MatchList {
 // use swc_css::{ast::ComponentValue, visit::VisitMut};
 
 impl VisitMut for PxToRem {
+  fn visit_mut_at_rule(&mut self, n: &mut swc_css::ast::AtRule) {
+    if self.media_query {
+      if let Some(ref mut prelude) = n.prelude {
+        self.visit_mut_at_rule_prelude(prelude);
+      }
+    }
+    if let Some(ref mut block) = n.block {
+      self.visit_mut_simple_block(block);
+    }
+  }
   fn visit_mut_declaration(&mut self, n: &mut swc_css::ast::Declaration) {
     let name = match &n.name {
       swc_css::ast::DeclarationName::Ident(indent) => indent.value.clone(),

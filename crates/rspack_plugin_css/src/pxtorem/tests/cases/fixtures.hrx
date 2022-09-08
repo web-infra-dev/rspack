@@ -79,6 +79,13 @@ ignored, since we don't want to support function configuration
   "propList": ["*", "!margin-left", "!*padding*", "!font*"]
 }
 
+<===> should replace all properties when white list is empty.css
+.rule { margin: 16px; font-size: 15px }
+<===> .config
+{
+  "propList": []
+}
+
 <===> should ignore selectors in the selector black list.css
 .rule { font-size: 15px } .rule2 { font-size: 15px }
 <===> .config
@@ -113,6 +120,9 @@ body { font-size: 16px; } .class-body { font-size: 16px; } .simple-class { font-
 {
   "mediaQuery": true
 }
+
+<===> should not replace px in media queries.css
+@media (min-width: 500px) { .rule { font-size: 16px } }
 
 <===> -should not replace values below minPixelValue.css
 .rule { border: 1px solid #000; font-size: 16px; margin: 1px 10px; }
