@@ -160,3 +160,5 @@ lib/
 .rspack-style
 
 crates/node_binding/binding.d.ts
+
+.pnpm-store/
