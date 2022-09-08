@@ -1,6 +1,6 @@
 # workaround for getting workspace root dir, reference: https://github.com/rust-lang/cargo/issues/3946
 [env]
-CARGO_WORKSPACE_DIR = { value = "", relative = true }
+CARGO_WORKSPACE_DIR = {value = "", relative = true}
 
 [alias]
 lint = "clippy --workspace --all-targets --verbose -- --deny warnings"
@@ -11,6 +11,3 @@ tu = "run -p cargo-rst -- update"
 rustflags = [
   "-Dclippy::unwrap_in_result", # https://rust-lang.github.io/rust-clippy/master/index.html#unwrap_in_result
 ]
-
-[target.x86_64-unknown-linux-gnu]
-rustflags = ["-C", "link-arg=-fuse-ld=lld"]

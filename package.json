@@ -10,7 +10,6 @@
     "snapshot:js": "mocha --update",
     "test:rust": "cargo test --all -- --nocapture",
     "test:example": "cargo run --example arco_pro",
-    "prepare": "husky install",
     "format:rs": "cargo fmt --all --verbose",
     "format:js_fix": "pnpm run format:js --write",
     "format:js": "prettier \"packages/**/*.{ts,js}\" --check",
@@ -23,10 +22,11 @@
     "build:cli": "pnpm --filter @rspack/core... build",
     "build:binding": "pnpm --filter @rspack/binding build",
     "build_binding_and_run_example": "pnpm build:binding && pnpm --filter @rspack/core run example ",
-    "release": "changeset publish",
+    "release": "changeset publish --no-git-checks",
     "bump": "changeset version",
     "gen-release-note": "echo skip",
-    "changeset": "changeset"
+    "changeset": "changeset",
+    "build": "pnpm run build:cli"
   },
   "repository": {
     "type": "git",

@@ -1,6 +1,7 @@
 name: Release
 
 on:
+  push:
   workflow_dispatch:
     inputs:
       version:
@@ -13,10 +14,6 @@ on:
           - alpha
           - pre
           - latest
-      branch:
-        description: "Release Branch(confirm release branch)"
-        required: true
-        default: "main"
 
 jobs:
   release:
@@ -28,16 +25,29 @@ jobs:
         with:
           # This makes Actions fetch only one branch to release
           fetch-depth: 1
-
-      - name: Release
-        uses: modern-js-dev/actions@main
+      - name: Install rus toolchain
+        uses: actions-rs/toolchain@v1
         with:
-          # this expects you to have a script called release which does a build for your packages and calls changeset publish
-          version: ${{ github.event.inputs.version }}
-          branch: ${{ github.event.inputs.branch }}
-          type: "release"
+          toolchain: nightly-2022-08-06
+          profile: default
+          components: rustfmt, clippy, cargo
+      - name: Install protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: install node_modules
+        run: |
+          npm install -g pnpm
+          pnpm install
+      - name: build
+        run: |
+          pnpm run build:cli
+      - name: Create Release Pull Request or Publish to npm
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          # This expects you to have a script called release which does a build for your packages and calls changeset publish
+          publish: pnpm run release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          REPOSITORY: ${{ github.repository }}
-          REF: ${{ github.ref }}
