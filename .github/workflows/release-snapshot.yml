@@ -24,16 +24,13 @@ jobs:
         with:
           # This makes Actions fetch only one branch to release
           fetch-depth: 100
-
+      - name: install pnpm
+        run: |
+          npm install -g pnpm
+          pnpm install
       - name: Create Release Pull Request
-        uses: modern-js-dev/actions@main
+        uses: changesets/action@v1
         with:
-          # this expects you to have a script called release which does a build for your packages and calls changeset publish
-          version: ${{ github.event.inputs.version }}
-          versionNumber: "auto"
-          type: "pull request"
+          version: pnpm run bump -- --snapshot
         env:
-          GITHUB_TOKEN: ${{ secrets.REPO_SCOPED_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          REPOSITORY: ${{ github.repository }}
-          REF: ${{ github.ref }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

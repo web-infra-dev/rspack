@@ -22,6 +22,8 @@
     "build:cli": "pnpm --filter @rspack/core... build",
     "build:binding": "pnpm --filter @rspack/binding build",
     "build_binding_and_run_example": "pnpm build:binding && pnpm --filter @rspack/core run example ",
+    "version:snapshot": "changeset version --snapshot",
+    "release:snapshot": "changeset publish --tag snapshot --no-git-tag --no-git-checks",
     "release": "changeset publish --no-git-checks",
     "bump": "changeset version",
     "gen-release-note": "echo skip",
