@@ -1,5 +1,11 @@
 # rspack-dev-server
 
+## 0.0.6
+
+### Patch Changes
+
+- e6d0926a: unify version
+
 ## 0.0.4
 
 ### Patch Changes
