@@ -1,6 +1,8 @@
+use std::collections::HashMap;
+use swc_atoms::JsWord;
 use swc_common::DUMMY_SP;
 use swc_css::{
-  ast::{ComponentValue, Token},
+  ast::{ComponentValue, Declaration, Token},
   codegen::{
     writer::basic::{BasicCssWriter, BasicCssWriterConfig},
     CodeGenerator, CodegenConfig, Emit,
@@ -36,6 +38,7 @@ impl From<PxToRemOption> for PxToRem {
       match_list: MatchList::default(),
       all_match: false,
       map_stack: vec![],
+      skip_mutate_length: false,
     };
 
     // https://github.com/cuth/postcss-pxtorem/blob/master/index.js#L25-L44
@@ -61,7 +64,8 @@ pub struct PxToRem {
   pub match_list: MatchList,
   // exact_list: Vec<&'a String>,
   all_match: bool,
-  map_stack: Vec<Vec<(String, String)>>,
+  map_stack: Vec<HashMap<JsWord, u32>>,
+  skip_mutate_length: bool,
 }
 
 impl PxToRem {
@@ -177,10 +181,6 @@ pub struct MatchList {
 }
 // use swc_css::{ast::ComponentValue, visit::VisitMut};
 
-struct HasMatchedRuleName {
-  matched: bool,
-}
-
 impl VisitMut for PxToRem {
   fn visit_mut_at_rule(&mut self, n: &mut swc_css::ast::AtRule) {
     if self.media_query {
@@ -216,11 +216,79 @@ impl VisitMut for PxToRem {
       swc_css::ast::Rule::AtRule(at) => at.visit_mut_with(self),
     }
   }
+
+  fn visit_mut_simple_block(&mut self, n: &mut swc_css::ast::SimpleBlock) {
+    // We push a declaration map into map_stack before enter the block,
+    // pop it before leave the block. The hashmap record the relation how many times
+    // each declaration name occurs.
+
+    // The original implementation you could reference here, https://github.com/cuth/postcss-pxtorem/blob/122649015322214f8e9d1ac852eb11c0791b634b/index.js#L164
+    // There is no easy way we could do the same thing in `swc_css`, except we made the trade off to perf which is we could codegen each prop and value of declaration
+    // That means we almost codegen twice for each css file when postcss plugin is enable.
+
+    let mut map: std::collections::HashMap<JsWord, u32> = HashMap::default();
+    // prescan
+    for ele in n.value.iter_mut() {
+      match ele {
+        ComponentValue::DeclarationOrAtRule(decl_or_at_rule) => match decl_or_at_rule {
+          swc_css::ast::DeclarationOrAtRule::Declaration(decl) => {
+            let name = get_decl_name(decl);
+            *(map.entry(name).or_insert(0)) += 1;
+          }
+          _ => {}
+        },
+        ComponentValue::PreservedToken(_) => todo!(),
+        ComponentValue::Function(_) => todo!(),
+        ComponentValue::SimpleBlock(_) => {
+          // dbg!(&ele);
+        }
+        ComponentValue::Rule(_) => {}
+        ComponentValue::StyleBlock(block) => match block {
+          swc_css::ast::StyleBlock::ListOfComponentValues(_) => todo!(),
+          swc_css::ast::StyleBlock::AtRule(_) => todo!(),
+          swc_css::ast::StyleBlock::Declaration(decl) => {
+            let name = get_decl_name(decl);
+            *(map.entry(name).or_insert(0)) += 1;
+          }
+          swc_css::ast::StyleBlock::QualifiedRule(_) => todo!(),
+        },
+        ComponentValue::KeyframeBlock(_) => todo!(),
+        ComponentValue::Ident(_) => todo!(),
+        ComponentValue::DashedIdent(_) => todo!(),
+        ComponentValue::Str(_) => todo!(),
+        ComponentValue::Url(_) => todo!(),
+        ComponentValue::Integer(_) => todo!(),
+        ComponentValue::Number(_) => todo!(),
+        ComponentValue::Percentage(_) => todo!(),
+        ComponentValue::Dimension(_) => todo!(),
+        ComponentValue::Ratio(_) => todo!(),
+        ComponentValue::UnicodeRange(_) => todo!(),
+        ComponentValue::Color(_) => todo!(),
+        ComponentValue::AlphaValue(_) => todo!(),
+        ComponentValue::Hue(_) => todo!(),
+        ComponentValue::CmykComponent(_) => todo!(),
+        ComponentValue::Delimiter(_) => todo!(),
+        ComponentValue::CalcSum(_) => todo!(),
+        ComponentValue::ComplexSelector(_) => todo!(),
+        ComponentValue::LayerName(_) => todo!(),
+      }
+    }
+    // dbg!(&map);
+    self.map_stack.push(map);
+
+    for ele in n.value.iter_mut() {
+      ele.visit_mut_with(self);
+    }
+    self.map_stack.pop();
+  }
+
   fn visit_mut_declaration(&mut self, n: &mut swc_css::ast::Declaration) {
+    let map = self.map_stack.last().unwrap();
     let name = match &n.name {
       swc_css::ast::DeclarationName::Ident(indent) => indent.value.clone(),
       swc_css::ast::DeclarationName::DashedIdent(indent) => indent.value.clone(),
     };
+    let frequency = *map.get(&name).unwrap();
 
     if !self.is_match(&name) {
       return;
@@ -230,15 +298,11 @@ impl VisitMut for PxToRem {
       match ele {
         ComponentValue::Dimension(d) => match d {
           swc_css::ast::Dimension::Length(len) => {
+            self.skip_mutate_length = frequency != 1;
             self.visit_mut_length(len);
-            // let num = l.value.clone();
+            self.skip_mutate_length = false;
           }
-          swc_css::ast::Dimension::Angle(_)
-          | swc_css::ast::Dimension::Time(_)
-          | swc_css::ast::Dimension::Frequency(_)
-          | swc_css::ast::Dimension::Resolution(_)
-          | swc_css::ast::Dimension::Flex(_)
-          | swc_css::ast::Dimension::UnknownDimension(_) => {}
+          _ => {}
         },
         ComponentValue::PreservedToken(tok) => match &mut tok.token {
           Token::Dimension {
@@ -248,7 +312,11 @@ impl VisitMut for PxToRem {
             raw_value,
             ..
           } => {
-            if unit == "px" && *value != 0f64 && (*value).abs() >= self.min_pixel_value {
+            if unit == "px"
+              && *value != 0f64
+              && (*value).abs() >= self.min_pixel_value
+              && frequency == 1
+            {
               *unit = "rem".into();
               *value = self.normalized_num(*value);
               *raw_unit = unit.clone();
@@ -266,6 +334,7 @@ impl VisitMut for PxToRem {
     if &len.unit.value == "px"
       && len.value.value != 0f64
       && len.value.value.abs() >= self.min_pixel_value
+      && !self.skip_mutate_length
     {
       len.unit.span = DUMMY_SP;
       // TODO: figure it out
@@ -282,4 +351,12 @@ impl VisitMut for PxToRem {
 
 pub fn px_to_rem(option: PxToRemOption) -> impl VisitMut {
   PxToRem::from(option)
+}
+
+fn get_decl_name(n: &Declaration) -> JsWord {
+  let name = match &n.name {
+    swc_css::ast::DeclarationName::Ident(indent) => indent.value.clone(),
+    swc_css::ast::DeclarationName::DashedIdent(indent) => indent.value.clone(),
+  };
+  name
 }

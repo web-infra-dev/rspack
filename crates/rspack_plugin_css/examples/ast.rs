@@ -39,13 +39,16 @@ fn transform(source: &str, config_file: Option<&String>) -> String {
 // use swc_css::parser::{self, parser::ParserConfig};
 fn main() {
   let source = r#"
-  .rule { margin: 0.5rem .5px -0.2px -.2em }
-  
+h1 {
+  margin: 0 0 20px;
+  font-size: 2rem;
+  line-height: 1.2;
+  letter-spacing: 0.0625rem;
+}
   "#;
   let config = Some(
     r#"
 {
-  "propList": ["margin"]
 }
     
   "#
