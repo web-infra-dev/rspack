@@ -85,7 +85,11 @@ interface LoaderThreadsafeContext {
 	p: LoaderContextInternal;
 }
 
-function composeJsUse(uses: ModuleRuleUse[]): RawModuleRuleUse {
+function composeJsUse(uses: ModuleRuleUse[]): RawModuleRuleUse | null {
+	if (!uses.length) {
+		return null;
+	}
+
 	async function loader(err: any, data: Buffer): Promise<Buffer> {
 		if (err) {
 			throw err;
@@ -188,6 +192,10 @@ export function createRawModuleRuleUses(
 function createRawModuleRuleUsesImpl(
 	uses: ModuleRuleUse[]
 ): RawModuleRuleUse[] {
+	if (!uses.length) {
+		return [];
+	}
+
 	const index = uses.findIndex(use => "builtinLoader" in use);
 	if (index < 0) {
 		return [composeJsUse(uses)];
@@ -199,7 +207,7 @@ function createRawModuleRuleUsesImpl(
 		composeJsUse(before),
 		createNativeUse(uses[index]),
 		...createRawModuleRuleUsesImpl(after)
-	];
+	].filter((item): item is RawModuleRuleUse => Boolean(item));
 }
 
 function createNativeUse(use: ModuleRuleUse): RawModuleRuleUse {
@@ -222,7 +230,6 @@ function createNativeUse(use: ModuleRuleUse): RawModuleRuleUse {
 }
 
 export function resolveModuleOptions(module: Module = {}): ResolvedModule {
-	// TODO: support mutliple rules to support `Module Type`
 	const rules = (module.rules ?? []).map(rule => ({
 		...rule,
 		uses: createRawModuleRuleUses(rule.uses || [])
