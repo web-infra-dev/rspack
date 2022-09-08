@@ -75,10 +75,8 @@ impl Plugin for JsPlugin {
     let chunk = args.chunk();
     let ordered_modules = chunk.ordered_modules(module_graph);
 
-    let has_inline_runtime = matches!(
-      &compilation.options.target.platform,
-      TargetPlatform::WebWorker
-    ) && matches!(chunk.kind, ChunkKind::Entry { .. });
+    let has_inline_runtime = !TargetPlatform::is_web(&compilation.options.target.platform)
+      && matches!(chunk.kind, ChunkKind::Entry { .. });
 
     let mut module_code_array = ordered_modules
       .par_iter()

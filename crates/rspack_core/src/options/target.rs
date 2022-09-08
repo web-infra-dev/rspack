@@ -10,6 +10,12 @@ pub enum TargetPlatform {
   None,
 }
 
+impl TargetPlatform {
+  pub fn is_web(target: &Self) -> bool {
+    matches!(target, TargetPlatform::BrowsersList | TargetPlatform::Web)
+  }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum TargetEsVersion {
   Es(EsVersion),

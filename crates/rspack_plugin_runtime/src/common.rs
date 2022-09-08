@@ -2,9 +2,11 @@ use rspack_core::{RuntimeSourceNode, RUNTIME_PLACEHOLDER_INSTALLED_MODULES};
 
 use crate::ChunkHash;
 
-pub fn generate_common_init_runtime() -> RuntimeSourceNode {
+pub fn generate_common_init_runtime(namespace: &str) -> RuntimeSourceNode {
   RuntimeSourceNode {
-    content: include_str!("runtime/common/_init_runtime.js").to_string(),
+    content: include_str!("runtime/common/_init_runtime.js")
+      .to_string()
+      .replace("__rspack_runtime__", namespace),
   }
 }
 
