@@ -79,7 +79,7 @@ impl Plugin for RuntimePlugin {
 
     match &compilation.options.target.platform {
       TargetPlatform::Web => {
-        sources.push(generate_common_init_runtime());
+        sources.push(generate_common_init_runtime(namespace));
         sources.push(generate_common_module_and_chunk_data());
         sources.push(generate_common_check_by_id());
         sources.push(generate_common_public_path(public_path));
@@ -93,7 +93,7 @@ impl Plugin for RuntimePlugin {
           sources.push(generate_web_dynamic_load_style());
         }
       }
-      TargetPlatform::WebWorker => {
+      TargetPlatform::WebWorker | TargetPlatform::Node(_) => {
         sources.push(generate_web_worker_init_runtime(namespace));
         sources.push(generate_common_module_and_chunk_data());
         sources.push(generate_common_check_by_id());
@@ -114,18 +114,15 @@ impl Plugin for RuntimePlugin {
   ) -> PluginRenderManifestHookOutput {
     let compilation = args.compilation;
     //Todo we need add optimize.runtime to ensure runtime generation
-    if matches!(
-      compilation.options.target.platform,
-      TargetPlatform::WebWorker,
-    ) {
-      Ok(vec![])
-    } else {
+    if TargetPlatform::is_web(&compilation.options.target.platform) {
       let compilation = args.compilation;
       let runtime = &compilation.runtime;
       Ok(vec![RenderManifestEntry::new(
         AssetContent::String(runtime.generate()),
         RUNTIME_FILE_NAME.to_string() + ".js",
       )])
+    } else {
+      Ok(vec![])
     }
   }
 
@@ -139,7 +136,7 @@ impl Plugin for RuntimePlugin {
     let platform = &compilation.options.target.platform;
 
     match platform {
-      TargetPlatform::WebWorker => {
+      TargetPlatform::WebWorker | TargetPlatform::Node(_) => {
         let mut entry_code_array: Vec<(String, String)> = vec![];
         let _ = &compilation.chunk_by_ukey.values().for_each(|chunk| {
           if matches!(chunk.kind, ChunkKind::Entry { .. }) {

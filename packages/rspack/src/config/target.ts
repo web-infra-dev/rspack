@@ -1,6 +1,7 @@
 type TargetItem =
 	| "web"
 	| "webworker"
+	| "node"
 	| "browserslist"
 	| "es3"
 	| "es5"
