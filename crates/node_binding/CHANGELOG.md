@@ -1,5 +1,11 @@
 # @rspack/binding
 
+## 0.0.5
+
+### Patch Changes
+
+- d466288: add process_assets hook
+
 ## 0.0.4
 
 ### Patch Changes

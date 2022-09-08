@@ -1,5 +1,11 @@
 # rspack-dev-server
 
+## 0.0.4
+
+### Patch Changes
+
+- d466288: add process_assets hook
+
 ## 0.0.3
 
 ### Patch Changes
