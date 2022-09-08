@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        type: choice
+        description: "Release Version(canary, alpha, pre, latest)"
+        required: true
+        default: "canary"
+        options:
+          - canary
+          - alpha
+          - pre
+          - latest
+      branch:
+        description: "Release Branch(confirm release branch)"
+        required: true
+        default: "main"
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@master
+        with:
+          # This makes Actions fetch only one branch to release
+          fetch-depth: 1
+
+      - name: Release
+        uses: modern-js-dev/actions@main
+        with:
+          # this expects you to have a script called release which does a build for your packages and calls changeset publish
+          version: ${{ github.event.inputs.version }}
+          branch: ${{ github.event.inputs.branch }}
+          type: "release"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          REF: ${{ github.ref }}
