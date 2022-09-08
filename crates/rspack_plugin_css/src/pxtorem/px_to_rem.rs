@@ -129,42 +129,38 @@ impl PxToRem {
       return true;
     };
     (self.has_wild
-      || self
-        .match_list
-        .exact_list
-        .iter()
-        .any(|p| p.as_str() == prop)
+      || self.match_list.exact_list.iter().any(|p| p == prop)
       || self
         .match_list
         .contain_list
         .iter()
-        .any(|p| prop.contains(p.as_str()))
+        .any(|p| prop.contains(p))
       || self
         .match_list
         .starts_with_list
         .iter()
-        .any(|p| prop.starts_with(p.as_str()))
+        .any(|p| prop.starts_with(p))
       || self
         .match_list
         .ends_with_list
         .iter()
-        .any(|p| prop.ends_with(p.as_str())))
+        .any(|p| prop.ends_with(p)))
       && !(self.match_list.not_exact_list.iter().any(|p| p == prop)
         || self
           .match_list
           .not_contain_list
           .iter()
-          .any(|p| prop.contains(p.as_str()))
+          .any(|p| prop.contains(p))
         || self
           .match_list
           .not_starts_list
           .iter()
-          .any(|p| prop.starts_with(p.as_str()))
+          .any(|p| prop.starts_with(p))
         || self
           .match_list
           .not_ends_list
           .iter()
-          .any(|p| prop.ends_with(p.as_str())))
+          .any(|p| prop.ends_with(p)))
   }
 }
 
@@ -179,7 +175,6 @@ pub struct MatchList {
   pub not_starts_list: Vec<String>,
   pub not_ends_list: Vec<String>,
 }
-// use swc_css::{ast::ComponentValue, visit::VisitMut};
 
 impl VisitMut for PxToRem {
   fn visit_mut_at_rule(&mut self, n: &mut swc_css::ast::AtRule) {
@@ -196,6 +191,7 @@ impl VisitMut for PxToRem {
   fn visit_mut_rule(&mut self, n: &mut swc_css::ast::Rule) {
     match n {
       swc_css::ast::Rule::QualifiedRule(rule) => {
+        // Reducing codegen overhead if there are no selector_black_list
         if !self.selector_black_list.is_empty() {
           let mut selector_string = String::new();
           let wr = BasicCssWriter::new(
