@@ -1,5 +1,13 @@
 # rspack-plugin-postcss
 
+## 0.0.4
+
+### Patch Changes
+
+- d466288: add process_assets hook
+- Updated dependencies [d466288]
+  - @rspack/binding@0.0.5
+
 ## 0.0.3
 
 ### Patch Changes
