@@ -3,7 +3,7 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
-      version:
+      tag:
         type: choice
         description: "Release Version(canary, alpha, pre, latest)"
         required: true
@@ -41,12 +41,12 @@ jobs:
       - name: build
         run: |
           pnpm run build:cli
-      - name: Create Release Pull Request or Publish to npm
+      - name: release
         id: changesets
         uses: changesets/action@v1
         with:
           # This expects you to have a script called release which does a build for your packages and calls changeset publish
-          publish: pnpm run release
+          publish: pnpm run release --tag ${{github.event.inputs.tag}}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
