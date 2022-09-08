@@ -25,6 +25,7 @@
     "build_binding_and_run_example": "pnpm build:binding && pnpm --filter @rspack/core run example ",
     "release": "changeset publish",
     "bump": "changeset version",
+    "gen-release-note": "echo skip",
     "changeset": "changeset"
   },
   "repository": {
