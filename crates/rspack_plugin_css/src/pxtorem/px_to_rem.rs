@@ -196,19 +196,24 @@ impl VisitMut for PxToRem {
   fn visit_mut_rule(&mut self, n: &mut swc_css::ast::Rule) {
     match n {
       swc_css::ast::Rule::QualifiedRule(rule) => {
-        let mut selector = String::new();
-        let wr = BasicCssWriter::new(
-          &mut selector,
-          None, // Some(&mut src_map_buf),
-          BasicCssWriterConfig::default(),
-        );
-        let mut gen = CodeGenerator::new(wr, CodegenConfig { minify: false });
-        gen.emit(&rule.prelude).unwrap();
-        if !self.black_listed_selector(&selector) {
-          self.visit_mut_simple_block(&mut rule.block);
+        if !self.selector_black_list.is_empty() {
+          let mut selector_string = String::new();
+          let wr = BasicCssWriter::new(
+            &mut selector_string,
+            None, // Some(&mut src_map_buf),
+            BasicCssWriterConfig::default(),
+          );
+          let mut gen = CodeGenerator::new(wr, CodegenConfig { minify: false });
+          gen.emit(&rule.prelude).unwrap();
+          if !self.black_listed_selector(&selector_string) {
+            rule.visit_mut_with(self);
+          }
+        } else {
+          rule.visit_mut_with(self);
         }
       }
-      swc_css::ast::Rule::Invalid(_) | swc_css::ast::Rule::AtRule(_) => n.visit_mut_with(self),
+      swc_css::ast::Rule::Invalid(v) => v.visit_mut_with(self),
+      swc_css::ast::Rule::AtRule(at) => at.visit_mut_with(self),
     }
   }
   fn visit_mut_declaration(&mut self, n: &mut swc_css::ast::Declaration) {
