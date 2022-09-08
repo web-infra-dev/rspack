@@ -1,5 +1,13 @@
 # rspack-plugin-postcss
 
+## 0.0.6
+
+### Patch Changes
+
+- e6d0926a: unify version
+- Updated dependencies [e6d0926a]
+  - @rspack/binding@0.0.6
+
 ## 0.0.4
 
 ### Patch Changes
