@@ -107,8 +107,20 @@ body { font-size: 16px; } .class-body { font-size: 16px; } .simple-class { font-
   "selectorBlackList": ["/^body$/""]
 }
 
-<===> -should leave fallback pixel unit with root em value.css
+<===> should leave fallback pixel unit with root em value.css
 .rule { font-size: 15px }
+<===> .config
+{
+  "replace": false
+}
+
+
+<===> should leave fallback pixel unit with root em value2.css
+.rule {
+  font-size: 15px;
+  margin: 20px;
+  font: 16px;
+}
 <===> .config
 {
   "replace": false

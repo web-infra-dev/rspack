@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use swc_atoms::JsWord;
 use swc_common::DUMMY_SP;
 use swc_css::{
-  ast::{ComponentValue, Declaration, Token},
+  ast::{ComponentValue, Declaration, DeclarationOrAtRule, StyleBlock, Token},
   codegen::{
     writer::basic::{BasicCssWriter, BasicCssWriterConfig},
     CodeGenerator, CodegenConfig, Emit,
@@ -39,6 +39,7 @@ impl From<PxToRemOption> for PxToRem {
       all_match: false,
       map_stack: vec![],
       skip_mutate_length: false,
+      mutated: false,
     };
 
     // https://github.com/cuth/postcss-pxtorem/blob/master/index.js#L25-L44
@@ -60,12 +61,13 @@ pub struct PxToRem {
   replace: bool,
   media_query: bool,
   min_pixel_value: f64,
-  has_wild: bool, // exclude: null we don't need the prop, since this is always used for cli
+  has_wild: bool,
   pub match_list: MatchList,
-  // exact_list: Vec<&'a String>,
   all_match: bool,
   map_stack: Vec<HashMap<JsWord, u32>>,
   skip_mutate_length: bool,
+  /// Flag to mark if declaration has been mutated
+  mutated: bool,
 }
 
 impl PxToRem {
@@ -226,9 +228,7 @@ impl VisitMut for PxToRem {
     // prescan
     for ele in n.value.iter_mut() {
       match ele {
-        ComponentValue::DeclarationOrAtRule(swc_css::ast::DeclarationOrAtRule::Declaration(
-          decl,
-        )) => {
+        ComponentValue::DeclarationOrAtRule(DeclarationOrAtRule::Declaration(decl)) => {
           let name = get_decl_name(decl);
           *(map.entry(name).or_insert(0)) += 1;
         }
@@ -241,8 +241,76 @@ impl VisitMut for PxToRem {
     }
     self.map_stack.push(map);
 
-    for ele in n.value.iter_mut() {
-      ele.visit_mut_with(self);
+    // only used for `replace = false`
+    let mut snapshot_and_index_list: Vec<(usize, ComponentValue)> = vec![];
+
+    for (index, ele) in n.value.iter_mut().enumerate() {
+      match ele {
+        ComponentValue::DeclarationOrAtRule(DeclarationOrAtRule::Declaration(decl)) => {
+          let snapshot = if self.replace {
+            None
+          } else {
+            Some(decl.clone())
+          };
+          self.mutated = false;
+          self.visit_mut_declaration(decl);
+          if !self.replace && self.mutated {
+            // SAFETY: if `self.replace = false` we must save the snapshot of the declaration
+            let mut snapshot = snapshot.unwrap();
+            // std::mem::take(dest)
+            std::mem::swap(decl, &mut snapshot);
+            // Now, snapshot save the mutated version of declaration
+            snapshot_and_index_list.push((
+              index,
+              ComponentValue::DeclarationOrAtRule(DeclarationOrAtRule::Declaration(snapshot)),
+            ));
+            // Next, we will insert the mutated version of declaration after the original version of declaration
+          }
+          self.mutated = false;
+        }
+        ComponentValue::StyleBlock(swc_css::ast::StyleBlock::Declaration(decl)) => {
+          let snapshot = if self.replace {
+            None
+          } else {
+            Some(decl.clone())
+          };
+          self.mutated = false;
+          self.visit_mut_declaration(decl);
+
+          if !self.replace && self.mutated {
+            // SAFETY: if `self.replace = false` we must save the snapshot of the declaration
+            let mut snapshot = snapshot.unwrap();
+            // std::mem::take(dest)
+            std::mem::swap(decl, &mut snapshot);
+            // Now, snapshot save the mutated version of declaration
+            snapshot_and_index_list.push((
+              index,
+              ComponentValue::StyleBlock(StyleBlock::Declaration(snapshot)),
+            ));
+            // Next, we will insert the mutated version of declaration after the original version of declaration
+          }
+          self.mutated = false;
+        }
+        _ => {
+          ele.visit_mut_with(self);
+        }
+      }
+    }
+
+    if !self.replace {
+      // Why reverse order? Insertion will mutate the vector and the order of original element would change
+      // e.g.
+      // We have array [1, 2, 3];
+      // We want insert mutated version of each element after the original element, expect [1, 1', 2, 2', 3, 3']
+      // the `snapshot_and_index_list` would be `[(0, 1'), (1, '2'), (2, 3')]
+      // If insert in order
+      // the result would be
+      // [1, 1',2',3', 2, 3]
+      // Insert in reverse order
+      // [1, 1', 2,2', 3, 3']
+      for (index, component) in snapshot_and_index_list.into_iter().rev() {
+        n.value.insert(index + 1, component);
+      }
     }
     self.map_stack.pop();
   }
@@ -279,6 +347,7 @@ impl VisitMut for PxToRem {
               && (*value).abs() >= self.min_pixel_value
               && frequency == 1
             {
+              self.mutated = true;
               *unit = "rem".into();
               *value = self.normalized_num(*value);
               *raw_unit = unit.clone();
@@ -297,6 +366,7 @@ impl VisitMut for PxToRem {
       && len.value.value.abs() >= self.min_pixel_value
       && !self.skip_mutate_length
     {
+      self.mutated = true;
       let normalized_value = self.normalized_num(len.value.value);
       len.unit.span = DUMMY_SP;
       len.unit.raw = Some("rem".into());

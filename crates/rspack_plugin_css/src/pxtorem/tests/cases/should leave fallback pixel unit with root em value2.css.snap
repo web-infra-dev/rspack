@@ -6,4 +6,7 @@ expression: "transform(&unit.content, config)"
 .rule {
   font-size: 15px;
   font-size: 0.9375rem;
+  margin: 20px;
+  font: 16px;
+  font: 1rem;
 }
