@@ -1,5 +1,11 @@
 # @rspack/binding
 
+## 0.0.7
+
+### Patch Changes
+
+- 57e54cc: test alpha publish
+
 ## 0.0.6
 
 ### Patch Changes

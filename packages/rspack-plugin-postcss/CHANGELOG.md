@@ -1,5 +1,13 @@
 # rspack-plugin-postcss
 
+## 0.0.7
+
+### Patch Changes
+
+- 57e54cc: test alpha publish
+- Updated dependencies [57e54cc]
+  - @rspack/binding@0.0.7
+
 ## 0.0.6
 
 ### Patch Changes
