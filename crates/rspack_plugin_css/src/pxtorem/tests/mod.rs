@@ -1,5 +1,6 @@
 use hashbrown::HashMap;
 use hrx_parser::Entry;
+use std::fmt::Write;
 use swc_common::{FileName, FilePathMapping, SourceMap};
 use swc_css::{
   ast::Stylesheet,
@@ -22,8 +23,9 @@ fn valid() {
   {
     insta::with_settings!({sort_maps => false, snapshot_path => "cases", prepend_module_to_snapshot => false, snapshot_suffix => ""}, {
       let config = unit.meta_data.get("config");
-      dbg!(&unit.path);
-      insta::assert_snapshot!(unit.path.replace(" ", "_"), transform(&unit.content, config));
+      let snapshot_result = get_snapshot_result(&unit.content, "", &transform(&unit.content, config));
+      let snapshot_path = unit.path.replace(" ", "_").to_string();
+      insta::assert_snapshot!(snapshot_path.clone(), snapshot_result, &snapshot_path);
     });
   }
 }
@@ -96,4 +98,15 @@ fn convert_entry_to_unit(entry: &Entry) -> Option<TestUnit> {
       meta_data: HashMap::default(),
     }
   })
+}
+
+fn get_snapshot_result(input: &str, expected: &str, actual: &str) -> String {
+  let mut result = String::new();
+  writeln!(result, "# Input").unwrap();
+  writeln!(result, "{}", input).unwrap();
+  writeln!(result, "# Expected").unwrap();
+  writeln!(result, "{}", expected).unwrap();
+  writeln!(result, "# Actual").unwrap();
+  writeln!(result, "{}", actual).unwrap();
+  result
 }

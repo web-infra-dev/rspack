@@ -1,8 +1,15 @@
 ---
 source: crates/rspack_plugin_css/src/pxtorem/tests/mod.rs
-assertion_line: 26
-expression: "transform(&unit.content, config)"
+assertion_line: 27
+expression: snapshot_result
 ---
+# Input
+.rule { margin: 0.5rem .5px -0.2px -.2em }
+
+# Expected
+
+# Actual
 .rule {
   margin: 0.5rem 0.03125rem -0.0125rem -.2em;
 }
+

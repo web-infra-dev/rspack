@@ -1,8 +1,14 @@
 ---
 source: crates/rspack_plugin_css/src/pxtorem/tests/mod.rs
-assertion_line: 26
-expression: "transform(&unit.content, config)"
+assertion_line: 27
+expression: snapshot_result
 ---
+# Input
+body { font-size: 16px; } .class-body$ { font-size: 16px; } .simple-class { font-size: 16px; }
+
+# Expected
+
+# Actual
 body {
   font-size: 1rem;
 }
@@ -12,3 +18,4 @@ body {
 .simple-class {
   font-size: 1rem;
 }
+

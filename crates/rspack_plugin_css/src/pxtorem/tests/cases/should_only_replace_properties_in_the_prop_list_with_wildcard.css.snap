@@ -1,8 +1,14 @@
 ---
 source: crates/rspack_plugin_css/src/pxtorem/tests/mod.rs
-assertion_line: 26
-expression: "transform(&unit.content, config)"
+assertion_line: 27
+expression: snapshot_result
 ---
+# Input
+.rule { font-size: 16px; margin: 16px; margin-left: 5px; padding: 5px; padding-right: 16px }
+
+# Expected
+
+# Actual
 .rule {
   font-size: 16px;
   margin: 1rem;
@@ -10,3 +16,4 @@ expression: "transform(&unit.content, config)"
   padding: 5px;
   padding-right: 16px;
 }
+
