@@ -3,9 +3,12 @@ source: crates/rspack_plugin_css/src/pxtorem/tests/mod.rs
 assertion_line: 29
 expression: "transform(&unit.content, config)"
 ---
-.rule {
-  font-size: 0.9375rem;
+body {
+  font-size: 1rem;
 }
-.rule2 {
-  font-size: 15px;
+.class-body$ {
+  font-size: 16px;
+}
+.simple-class {
+  font-size: 1rem;
 }

@@ -93,18 +93,18 @@ ignored, since we don't want to support function configuration
   "selectorBlackList": [".rule2"]
 }
 
-<===> -should ignore every selector with `body$`.css
+<===> should ignore every selector with `body$`.css
 body { font-size: 16px; } .class-body$ { font-size: 16px; } .simple-class { font-size: 16px; }
 <===> .config
 {
   "selectorBlackList": ["body$"]
 }
 
-<===> should only ignore exactly `body`.css
+<===> -should only ignore exactly `body`.css,(ignore regex for now)
 body { font-size: 16px; } .class-body { font-size: 16px; } .simple-class { font-size: 16px; 
 <===> .config
 {
-  "selectorBlackList": ["^body$"]
+  "selectorBlackList": ["/^body$/""]
 }
 
 <===> should leave fallback pixel unit with root em value.css

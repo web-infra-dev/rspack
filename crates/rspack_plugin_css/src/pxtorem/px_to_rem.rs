@@ -1,7 +1,11 @@
 use swc_common::DUMMY_SP;
 use swc_css::{
   ast::{ComponentValue, Token},
-  visit::VisitMut,
+  codegen::{
+    writer::basic::{BasicCssWriter, BasicCssWriterConfig},
+    CodeGenerator, CodegenConfig, Emit,
+  },
+  visit::{VisitMut, VisitMutWith, VisitWith},
 };
 
 use super::{
@@ -104,6 +108,18 @@ impl PxToRem {
     normalized_num * sign
   }
 
+  /// TODO: Suppport regex pattern
+  /// Regex supporting is none trivial, only support string pattern for now, main reasons are listed below:
+  /// 1. Difference between ECMA regex and rust `regex` crate, some features of `ECMA regex` are not supported by `regex`
+  /// 2. Hard to test, there is no way to represent a regex in json file
+  /// 3. Our node binding testing system are not stable yet.
+  fn black_listed_selector(&self, selector: &str) -> bool {
+    self
+      .selector_black_list
+      .iter()
+      .any(|pattern| selector.contains(pattern))
+  }
+
   fn is_match(&self, prop: &str) -> bool {
     if self.all_match {
       return true;
@@ -161,6 +177,10 @@ pub struct MatchList {
 }
 // use swc_css::{ast::ComponentValue, visit::VisitMut};
 
+struct HasMatchedRuleName {
+  matched: bool,
+}
+
 impl VisitMut for PxToRem {
   fn visit_mut_at_rule(&mut self, n: &mut swc_css::ast::AtRule) {
     if self.media_query {
@@ -170,6 +190,25 @@ impl VisitMut for PxToRem {
     }
     if let Some(ref mut block) = n.block {
       self.visit_mut_simple_block(block);
+    }
+  }
+
+  fn visit_mut_rule(&mut self, n: &mut swc_css::ast::Rule) {
+    match n {
+      swc_css::ast::Rule::QualifiedRule(rule) => {
+        let mut selector = String::new();
+        let wr = BasicCssWriter::new(
+          &mut selector,
+          None, // Some(&mut src_map_buf),
+          BasicCssWriterConfig::default(),
+        );
+        let mut gen = CodeGenerator::new(wr, CodegenConfig { minify: false });
+        gen.emit(&rule.prelude).unwrap();
+        if !self.black_listed_selector(&selector) {
+          self.visit_mut_simple_block(&mut rule.block);
+        }
+      }
+      swc_css::ast::Rule::Invalid(_) | swc_css::ast::Rule::AtRule(_) => n.visit_mut_with(self),
     }
   }
   fn visit_mut_declaration(&mut self, n: &mut swc_css::ast::Declaration) {
