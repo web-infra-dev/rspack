@@ -107,7 +107,7 @@ body { font-size: 16px; } .class-body { font-size: 16px; } .simple-class { font-
   "selectorBlackList": ["/^body$/""]
 }
 
-<===> should leave fallback pixel unit with root em value.css
+<===> -should leave fallback pixel unit with root em value.css
 .rule { font-size: 15px }
 <===> .config
 {
@@ -124,7 +124,7 @@ body { font-size: 16px; } .class-body { font-size: 16px; } .simple-class { font-
 <===> should not replace px in media queries.css
 @media (min-width: 500px) { .rule { font-size: 16px } }
 
-<===> -should not replace values below minPixelValue.css
+<===> should not replace values below minPixelValue.css
 .rule { border: 1px solid #000; font-size: 16px; margin: 1px 10px; }
 <===> .config
 {

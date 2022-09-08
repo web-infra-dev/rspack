@@ -248,7 +248,7 @@ impl VisitMut for PxToRem {
             raw_value,
             ..
           } => {
-            if unit == "px" && *value != 0f64 {
+            if unit == "px" && *value != 0f64 && (*value).abs() >= self.min_pixel_value {
               *unit = "rem".into();
               *value = self.normalized_num(*value);
               *raw_unit = unit.clone();
@@ -263,7 +263,10 @@ impl VisitMut for PxToRem {
   }
 
   fn visit_mut_length(&mut self, len: &mut swc_css::ast::Length) {
-    if &len.unit.value == "px" && len.value.value != 0f64 {
+    if &len.unit.value == "px"
+      && len.value.value != 0f64
+      && len.value.value.abs() >= self.min_pixel_value
+    {
       len.unit.span = DUMMY_SP;
       // TODO: figure it out
       len.unit.raw = None;
