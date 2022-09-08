@@ -1,17 +1,17 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-const EXACT_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[^*!]+$").unwrap());
+static EXACT_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[^*!]+$").unwrap());
 
-const CONTAIN_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\*.+\*$").unwrap());
-const ENDS_WITH_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\*[^*]+$").unwrap());
-const STARTS_WITH_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[^*!]+\*$").unwrap());
-const NOT_EXACT: Lazy<Regex> = Lazy::new(|| Regex::new(r"^![^*].*$").unwrap());
-const NOT_CONTAIN_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^!\*.+\*$").unwrap());
-const NOT_ENDS_WITH_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^!\*[^*]+$").unwrap());
-const NOT_STARTS_WITH_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^![^*]+\*").unwrap());
+static CONTAIN_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\*.+\*$").unwrap());
+static ENDS_WITH_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\*[^*]+$").unwrap());
+static STARTS_WITH_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[^*!]+\*$").unwrap());
+static NOT_EXACT: Lazy<Regex> = Lazy::new(|| Regex::new(r"^![^*].*$").unwrap());
+static NOT_CONTAIN_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^!\*.+\*$").unwrap());
+static NOT_ENDS_WITH_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^!\*[^*]+$").unwrap());
+static NOT_STARTS_WITH_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^![^*]+\*").unwrap());
 
-pub fn exact(list: &Vec<String>) -> Vec<String> {
+pub fn exact(list: &[String]) -> Vec<String> {
   list
     .iter()
     .filter(|prop| EXACT_REG.is_match(prop))
@@ -19,7 +19,7 @@ pub fn exact(list: &Vec<String>) -> Vec<String> {
     .collect::<Vec<_>>()
 }
 
-pub fn contain(list: &Vec<String>) -> Vec<String> {
+pub fn contain(list: &[String]) -> Vec<String> {
   list
     .iter()
     .filter(|prop| CONTAIN_REG.is_match(prop))
@@ -27,7 +27,7 @@ pub fn contain(list: &Vec<String>) -> Vec<String> {
     .collect::<Vec<_>>()
 }
 
-pub fn ends_with(list: &Vec<String>) -> Vec<String> {
+pub fn ends_with(list: &[String]) -> Vec<String> {
   list
     .iter()
     .filter(|prop| ENDS_WITH_REG.is_match(prop))
@@ -35,7 +35,7 @@ pub fn ends_with(list: &Vec<String>) -> Vec<String> {
     .collect::<Vec<_>>()
 }
 
-pub fn starts_with(list: &Vec<String>) -> Vec<String> {
+pub fn starts_with(list: &[String]) -> Vec<String> {
   list
     .iter()
     .filter(|prop| STARTS_WITH_REG.is_match(prop))
@@ -43,7 +43,7 @@ pub fn starts_with(list: &Vec<String>) -> Vec<String> {
     .collect::<Vec<_>>()
 }
 
-pub fn not_exact(list: &Vec<String>) -> Vec<String> {
+pub fn not_exact(list: &[String]) -> Vec<String> {
   list
     .iter()
     .filter(|prop| NOT_EXACT.is_match(prop))
@@ -51,7 +51,7 @@ pub fn not_exact(list: &Vec<String>) -> Vec<String> {
     .collect::<Vec<_>>()
 }
 
-pub fn not_contain(list: &Vec<String>) -> Vec<String> {
+pub fn not_contain(list: &[String]) -> Vec<String> {
   list
     .iter()
     .filter(|prop| NOT_CONTAIN_REG.is_match(prop))
@@ -59,7 +59,7 @@ pub fn not_contain(list: &Vec<String>) -> Vec<String> {
     .collect::<Vec<_>>()
 }
 
-pub fn not_ends_with(list: &Vec<String>) -> Vec<String> {
+pub fn not_ends_with(list: &[String]) -> Vec<String> {
   list
     .iter()
     .filter(|prop| NOT_ENDS_WITH_REG.is_match(prop))
@@ -67,7 +67,7 @@ pub fn not_ends_with(list: &Vec<String>) -> Vec<String> {
     .collect::<Vec<_>>()
 }
 
-pub fn not_starts_with(list: &Vec<String>) -> Vec<String> {
+pub fn not_starts_with(list: &[String]) -> Vec<String> {
   list
     .iter()
     .filter(|prop| NOT_STARTS_WITH_REG.is_match(prop))

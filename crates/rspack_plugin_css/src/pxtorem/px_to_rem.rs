@@ -7,7 +7,7 @@ use swc_css::{
     writer::basic::{BasicCssWriter, BasicCssWriterConfig},
     CodeGenerator, CodegenConfig, Emit,
   },
-  visit::{VisitMut, VisitMutWith, VisitWith},
+  visit::{VisitMut, VisitMutWith},
 };
 
 use super::{
@@ -230,13 +230,12 @@ impl VisitMut for PxToRem {
     // prescan
     for ele in n.value.iter_mut() {
       match ele {
-        ComponentValue::DeclarationOrAtRule(decl_or_at_rule) => match decl_or_at_rule {
-          swc_css::ast::DeclarationOrAtRule::Declaration(decl) => {
+        ComponentValue::DeclarationOrAtRule(decl_or_at_rule) => {
+          if let swc_css::ast::DeclarationOrAtRule::Declaration(decl) = decl_or_at_rule {
             let name = get_decl_name(decl);
             *(map.entry(name).or_insert(0)) += 1;
           }
-          _ => {}
-        },
+        }
         ComponentValue::PreservedToken(_) => todo!(),
         ComponentValue::Function(_) => todo!(),
         ComponentValue::SimpleBlock(_) => {
@@ -296,22 +295,22 @@ impl VisitMut for PxToRem {
 
     for ele in n.value.iter_mut() {
       match ele {
-        ComponentValue::Dimension(d) => match d {
-          swc_css::ast::Dimension::Length(len) => {
+        ComponentValue::Dimension(d) => {
+          if let swc_css::ast::Dimension::Length(len) = d {
             self.skip_mutate_length = frequency != 1;
             self.visit_mut_length(len);
             self.skip_mutate_length = false;
           }
-          _ => {}
-        },
-        ComponentValue::PreservedToken(tok) => match &mut tok.token {
-          Token::Dimension {
+        }
+        ComponentValue::PreservedToken(tok) => {
+          if let Token::Dimension {
             unit,
             value,
             raw_unit,
             raw_value,
             ..
-          } => {
+          } = &mut tok.token
+          {
             if unit == "px"
               && *value != 0f64
               && (*value).abs() >= self.min_pixel_value
@@ -323,8 +322,7 @@ impl VisitMut for PxToRem {
               *raw_value = value.to_string().into();
             }
           }
-          _ => {}
-        },
+        }
         _ => self.visit_mut_component_value(ele),
       }
     }
@@ -354,9 +352,8 @@ pub fn px_to_rem(option: PxToRemOption) -> impl VisitMut {
 }
 
 fn get_decl_name(n: &Declaration) -> JsWord {
-  let name = match &n.name {
+  match &n.name {
     swc_css::ast::DeclarationName::Ident(indent) => indent.value.clone(),
     swc_css::ast::DeclarationName::DashedIdent(indent) => indent.value.clone(),
-  };
-  name
+  }
 }
