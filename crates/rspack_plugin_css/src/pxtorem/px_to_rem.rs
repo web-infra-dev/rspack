@@ -301,14 +301,13 @@ impl VisitMut for PxToRem {
       && len.value.value.abs() >= self.min_pixel_value
       && !self.skip_mutate_length
     {
+      let normalized_value = self.normalized_num(len.value.value);
       len.unit.span = DUMMY_SP;
-      // TODO: figure it out
-      len.unit.raw = None;
+      len.unit.raw = Some("rem".into());
       len.unit.value = "rem".into();
       len.value.span = DUMMY_SP;
-      // TODO: figure out what the raw is;
-      len.value.raw = None;
-      len.value.value = self.normalized_num(len.value.value);
+      len.value.raw = Some(normalized_value.to_string().into());
+      len.value.value = normalized_value;
       // len.value.raw =
     }
   }
