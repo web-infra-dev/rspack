@@ -4,5 +4,8 @@ module.exports = {
 	},
 	experiments: {
 		css: true
+	},
+	resolve: {
+		preferRelative: true
 	}
 };

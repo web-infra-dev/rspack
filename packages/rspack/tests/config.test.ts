@@ -31,7 +31,8 @@ test("default config snapshot", () => {
 			external: {},
 			plugins: [],
 			builtins: [],
-			module: { rules: [] }
+			module: { rules: [] },
+			resolve: {}
 		})
 	);
 });
