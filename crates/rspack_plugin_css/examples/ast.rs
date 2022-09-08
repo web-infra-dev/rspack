@@ -1,6 +1,6 @@
-use swc_common::{FileName, FilePathMapping, SourceFile, SourceMap};
+use swc_common::{FileName, FilePathMapping, SourceMap};
 use swc_css::{
-  ast::{self, Stylesheet},
+  ast::Stylesheet,
   codegen::{
     writer::basic::{BasicCssWriter, BasicCssWriterConfig},
     CodeGenerator, CodegenConfig, Emit,
