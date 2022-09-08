@@ -230,49 +230,19 @@ impl VisitMut for PxToRem {
     // prescan
     for ele in n.value.iter_mut() {
       match ele {
-        ComponentValue::DeclarationOrAtRule(decl_or_at_rule) => {
-          if let swc_css::ast::DeclarationOrAtRule::Declaration(decl) = decl_or_at_rule {
-            let name = get_decl_name(decl);
-            *(map.entry(name).or_insert(0)) += 1;
-          }
+        ComponentValue::DeclarationOrAtRule(swc_css::ast::DeclarationOrAtRule::Declaration(
+          decl,
+        )) => {
+          let name = get_decl_name(decl);
+          *(map.entry(name).or_insert(0)) += 1;
         }
-        ComponentValue::PreservedToken(_) => todo!(),
-        ComponentValue::Function(_) => todo!(),
-        ComponentValue::SimpleBlock(_) => {
-          // dbg!(&ele);
+        ComponentValue::StyleBlock(swc_css::ast::StyleBlock::Declaration(decl)) => {
+          let name = get_decl_name(decl);
+          *(map.entry(name).or_insert(0)) += 1;
         }
-        ComponentValue::Rule(_) => {}
-        ComponentValue::StyleBlock(block) => match block {
-          swc_css::ast::StyleBlock::ListOfComponentValues(_) => todo!(),
-          swc_css::ast::StyleBlock::AtRule(_) => todo!(),
-          swc_css::ast::StyleBlock::Declaration(decl) => {
-            let name = get_decl_name(decl);
-            *(map.entry(name).or_insert(0)) += 1;
-          }
-          swc_css::ast::StyleBlock::QualifiedRule(_) => todo!(),
-        },
-        ComponentValue::KeyframeBlock(_) => todo!(),
-        ComponentValue::Ident(_) => todo!(),
-        ComponentValue::DashedIdent(_) => todo!(),
-        ComponentValue::Str(_) => todo!(),
-        ComponentValue::Url(_) => todo!(),
-        ComponentValue::Integer(_) => todo!(),
-        ComponentValue::Number(_) => todo!(),
-        ComponentValue::Percentage(_) => todo!(),
-        ComponentValue::Dimension(_) => todo!(),
-        ComponentValue::Ratio(_) => todo!(),
-        ComponentValue::UnicodeRange(_) => todo!(),
-        ComponentValue::Color(_) => todo!(),
-        ComponentValue::AlphaValue(_) => todo!(),
-        ComponentValue::Hue(_) => todo!(),
-        ComponentValue::CmykComponent(_) => todo!(),
-        ComponentValue::Delimiter(_) => todo!(),
-        ComponentValue::CalcSum(_) => todo!(),
-        ComponentValue::ComplexSelector(_) => todo!(),
-        ComponentValue::LayerName(_) => todo!(),
+        _ => {}
       }
     }
-    // dbg!(&map);
     self.map_stack.push(map);
 
     for ele in n.value.iter_mut() {
@@ -283,10 +253,7 @@ impl VisitMut for PxToRem {
 
   fn visit_mut_declaration(&mut self, n: &mut swc_css::ast::Declaration) {
     let map = self.map_stack.last().unwrap();
-    let name = match &n.name {
-      swc_css::ast::DeclarationName::Ident(indent) => indent.value.clone(),
-      swc_css::ast::DeclarationName::DashedIdent(indent) => indent.value.clone(),
-    };
+    let name = get_decl_name(n);
     let frequency = *map.get(&name).unwrap();
 
     if !self.is_match(&name) {
