@@ -1,9 +1,8 @@
 use hashbrown::HashMap;
 use hrx_parser::Entry;
-use rspack_error::TWithDiagnosticArray;
-use swc_common::{FileName, FilePathMapping, SourceFile, SourceMap};
+use swc_common::{FileName, FilePathMapping, SourceMap};
 use swc_css::{
-  ast::{self, Stylesheet},
+  ast::Stylesheet,
   codegen::{
     writer::basic::{BasicCssWriter, BasicCssWriterConfig},
     CodeGenerator, CodegenConfig, Emit,
@@ -11,8 +10,6 @@ use swc_css::{
   parser::{parse_file, parser::ParserConfig},
   visit::VisitMutWith,
 };
-
-use crate::SWC_COMPILER;
 
 use super::{option::PxToRemOption, px_to_rem::px_to_rem};
 
