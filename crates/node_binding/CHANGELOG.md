@@ -1,5 +1,11 @@
 # @rspack/binding
 
+## 0.0.7
+
+### Patch Changes
+
+- bf5fb65: test alpha publish
+
 ## 0.0.6
 
 ### Patch Changes
