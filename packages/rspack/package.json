@@ -12,6 +12,10 @@
     "example": "node -r ts-node/register ./example/basic.ts",
     "test": "uvu -r tsm tests"
   },
+  "files": [
+    "lib",
+    "bin.js"
+  ],
   "devDependencies": {
     "@types/node": "^18.6.3",
     "tsm": "^2.2.2",

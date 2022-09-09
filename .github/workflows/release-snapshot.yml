@@ -1,29 +1,18 @@
-name: Release
+name: release snapshot
 
 on:
+  push:
   workflow_dispatch:
-    inputs:
-      tag:
-        type: choice
-        description: "Release Version(canary, alpha, pre, latest)"
-        required: true
-        default: "canary"
-        options:
-          - canary
-          - alpha
-          - pre
-          - latest
-
 jobs:
   release:
-    name: Release
+    name: Create Release Pull Request
     runs-on: macos-latest
     steps:
       - name: Checkout Repo
         uses: actions/checkout@master
         with:
           # This makes Actions fetch only one branch to release
-          fetch-depth: 1
+          fetch-depth: 100
       - name: Install rus toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -34,18 +23,19 @@ jobs:
         uses: arduino/setup-protoc@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: install node_modules
+      - name: install pnpm
         run: |
           npm install -g pnpm
           pnpm install
-      - name: release pull request
-        id: changesets
-        uses: changesets/action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: publish
-        if: steps.changesets.outputs.hasChangesets == 'false'
+      - name: Creating .npmrc
         run: |
-          pnpm run build:cli
-          pnpm run release --tag ${{github.event.inputs.tag}}
+          cat << EOF > "$HOME/.npmrc"
+           //registry.npmjs.org/:_authToken=$NPM_TOKEN
+           EOF
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: release snapshot
+        run: |
+          npm run build
+          npm run version:snapshot
+          npm run release:snapshot
