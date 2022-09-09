@@ -1,7 +1,7 @@
 ---
 source: crates/rspack_plugin_css/src/pxtorem/tests/mod.rs
-assertion_line: 27
-expression: snapshot_result
+assertion_line: 29
+expression: should_leave_fallback_pixel_unit_with_root_em_value2.css
 ---
 # Input
 .rule {
@@ -11,6 +11,15 @@ expression: snapshot_result
 }
 
 # Expected
+.rule {
+  font-size: 15px;
+  font-size: 0.9375rem;
+  margin: 20px;
+  font: 16px;
+  font: 1rem;
+}
+
+
 
 # Actual
 .rule {

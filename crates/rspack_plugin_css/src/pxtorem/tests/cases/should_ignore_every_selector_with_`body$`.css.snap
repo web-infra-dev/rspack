@@ -1,12 +1,14 @@
 ---
 source: crates/rspack_plugin_css/src/pxtorem/tests/mod.rs
-assertion_line: 27
-expression: snapshot_result
+assertion_line: 29
+expression: "should_ignore_every_selector_with_`body$`.css"
 ---
 # Input
 body { font-size: 16px; } .class-body$ { font-size: 16px; } .simple-class { font-size: 16px; }
 
 # Expected
+body { font-size: 1rem; } .class-body$ { font-size: 16px; } .simple-class { font-size: 1rem; }
+
 
 # Actual
 body {
