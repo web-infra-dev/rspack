@@ -1,5 +1,15 @@
 # @rspack/core
 
+## 0.0.7
+
+### Patch Changes
+
+- 0ae5d90: test alpha publish
+- Updated dependencies [0ae5d90]
+  - @rspack/binding@0.0.7
+  - @rspack/dev-server@0.0.7
+  - @rspack/plugin-postcss@0.0.7
+
 ## 0.0.6
 
 ### Patch Changes

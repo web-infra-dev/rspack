@@ -1,5 +1,11 @@
 # rspack-dev-server
 
+## 0.0.7
+
+### Patch Changes
+
+- 0ae5d90: test alpha publish
+
 ## 0.0.6
 
 ### Patch Changes
