@@ -126,6 +126,8 @@ impl PxToRem {
       .any(|pattern| selector.contains(pattern))
   }
 
+  /// Checking if the prop match against any pattern of `prop_list`
+  /// Related logic you could reference https://github.com/cuth/postcss-pxtorem/blob/master/index.js#L89-L116
   fn is_match(&self, prop: &str) -> bool {
     if self.all_match {
       return true;
