@@ -23,7 +23,8 @@ fn valid() {
   {
     insta::with_settings!({sort_maps => false, snapshot_path => "cases", prepend_module_to_snapshot => false, snapshot_suffix => ""}, {
       let config = unit.meta_data.get("config");
-      let snapshot_result = get_snapshot_result(&unit.content, "", &transform(&unit.content, config));
+      let expected = unit.meta_data.get("expected").cloned().unwrap_or_default();
+      let snapshot_result = get_snapshot_result(&unit.content, &expected, &transform(&unit.content, config));
       let snapshot_path = unit.path.replace(' ', "_");
       insta::assert_snapshot!(snapshot_path.clone(), snapshot_result, &snapshot_path);
     });
