@@ -257,7 +257,6 @@ impl VisitMut for PxToRem {
           if !self.replace && self.mutated {
             // SAFETY: if `self.replace = false` we must save the snapshot of the declaration
             let mut snapshot = snapshot.unwrap();
-            // std::mem::take(dest)
             std::mem::swap(decl, &mut snapshot);
             // Now, snapshot save the mutated version of declaration
             snapshot_and_index_list.push((
@@ -280,7 +279,6 @@ impl VisitMut for PxToRem {
           if !self.replace && self.mutated {
             // SAFETY: if `self.replace = false` we must save the snapshot of the declaration
             let mut snapshot = snapshot.unwrap();
-            // std::mem::take(dest)
             std::mem::swap(decl, &mut snapshot);
             // Now, snapshot save the mutated version of declaration
             snapshot_and_index_list.push((
@@ -374,7 +372,6 @@ impl VisitMut for PxToRem {
       len.value.span = DUMMY_SP;
       len.value.raw = Some(normalized_value.to_string().into());
       len.value.value = normalized_value;
-      // len.value.raw =
     }
   }
 }
