@@ -1,8 +1,7 @@
 use once_cell::sync::Lazy;
 use rspack_core::{ErrorSpan, ModuleType, PATH_START_BYTE_POS_MAP};
 use rspack_error::{
-  errors_to_diagnostics, DiagnosticKind, Error, IntoTWithDiagnosticArray, Severity,
-  TWithDiagnosticArray,
+  errors_to_diagnostics, DiagnosticKind, Error, IntoTWithDiagnosticArray, TWithDiagnosticArray,
 };
 use std::path::Path;
 use std::sync::Arc;

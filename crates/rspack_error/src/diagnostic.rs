@@ -87,7 +87,6 @@ impl From<Error> for Vec<Diagnostic> {
           title,
           kind,
           severity,
-          ..Default::default()
         }
       }
       Error::Io { source } => Diagnostic {
