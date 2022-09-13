@@ -24,21 +24,25 @@ pub async fn resolve(
     match plugin_driver
       .resolver
       .resolve(base_dir, args.specifier)
-      .map_err(|_| {
-        if let Some(importer) = args.importer {
-          let span = args.span.unwrap_or_default();
-          Error::TraceableError(TraceableError::from_path(
-            importer.to_string(),
-            span.start as usize,
-            span.end as usize,
-            "Resolve error".to_string(),
-            format!("Failed to resolve {}", args.specifier),
-          ))
+      .map_err(|error| {
+        if let Error::BatchErrors(_) = error {
+          if let Some(importer) = args.importer {
+            let span = args.span.unwrap_or_default();
+            Error::TraceableError(TraceableError::from_path(
+              importer.to_string(),
+              span.start as usize,
+              span.end as usize,
+              "Resolve error".to_string(),
+              format!("Failed to resolve {}", args.specifier),
+            ))
+          } else {
+            Error::InternalError(format!(
+              "fail to resolved importer:{:?},specifier:{:?}",
+              args.importer, args.specifier
+            ))
+          }
         } else {
-          Error::InternalError(format!(
-            "fail to resolved importer:{:?},specifier:{:?}",
-            args.importer, args.specifier
-          ))
+          error
         }
       })? {
       ResolveResult::Info(info) => info.path.to_string_lossy().to_string(),

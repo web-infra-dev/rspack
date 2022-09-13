@@ -1,9 +1,9 @@
-use nodejs_resolver::ResolverCache;
+use crate::Resolve;
+use nodejs_resolver::{ResolverCache, ResolverError};
+use rspack_error::{Error, Result};
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
-
-use crate::Resolve;
 
 #[derive(Debug)]
 pub enum ResolveResult {
@@ -65,10 +65,10 @@ impl ResolverFactory {
 pub struct Resolver(pub(crate) nodejs_resolver::Resolver);
 
 impl Resolver {
-  pub fn resolve(&self, base_dir: &Path, request: &str) -> anyhow::Result<ResolveResult> {
+  pub fn resolve(&self, path: &Path, request: &str) -> Result<ResolveResult> {
     self
       .0
-      .resolve(base_dir, request)
+      .resolve(path, request)
       .map(|inner_result| match inner_result {
         nodejs_resolver::ResolveResult::Info(info) => ResolveResult::Info(ResolveInfo {
           path: info.path,
@@ -77,6 +77,15 @@ impl Resolver {
         }),
         nodejs_resolver::ResolveResult::Ignored => ResolveResult::Ignored,
       })
-      .map_err(anyhow::Error::msg)
+      .map_err(|error| match error {
+        ResolverError::Io(error) => Error::Io { source: error },
+        ResolverError::UnexpectedJson((json_path, error)) => Error::Anyhow {
+          source: anyhow::Error::msg(format!("{:?} in {:?}", error, json_path)),
+        },
+        ResolverError::UnexpectedValue(error) => Error::Anyhow {
+          source: anyhow::Error::msg(error),
+        },
+        ResolverError::ResolveFailedTag => Error::BatchErrors(vec![]), // just for tag
+      })
   }
 }
