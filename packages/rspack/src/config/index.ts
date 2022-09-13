@@ -31,8 +31,8 @@ export interface RspackOptions {
 	mode?: Mode;
 	external?: External;
 	output?: Output;
-	builtins: Builtins;
-	resolve: Resolve;
+	builtins?: Builtins;
+	resolve?: Resolve;
 }
 
 export interface ResolvedRspackOptions {
@@ -78,3 +78,5 @@ export function resolveOptions(config: RspackOptions): ResolvedRspackOptions {
 		resolve
 	};
 }
+
+export type { Plugin };

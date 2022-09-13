@@ -1,4 +1,4 @@
-import Rspack from "..";
+import { Rspack } from "..";
 
 export interface Plugin {
 	name: string;

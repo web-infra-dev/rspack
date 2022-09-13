@@ -102,7 +102,6 @@ jobs:
       - name: binding test
         run: |
           pnpm run build:webpack
-          pnpm --filter @rspack/core run example
           pnpm --filter @rspack/core run test
       #- name: Cache
       #uses: speedy-js/rust-cache-self-hosted@v1
