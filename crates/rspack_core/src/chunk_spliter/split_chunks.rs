@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 
 // use crate::{
 //     BundleOptions, Chunk, ChunkGraph, ChunkIdAlgo, ChunkKind, JsModuleKind, ModuleGraphContainer,
@@ -7,8 +7,8 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use rspack_error::Result;
 
 use crate::{
-  uri_to_chunk_name, Chunk, ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkIdAlgo, ChunkKind,
-  ChunkUkey, Compilation, Dependency, ModuleGraph,
+  uri_to_chunk_name, ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
+  Dependency,
 };
 
 // pub fn code_splitting2(compilation: &mut Compilation) {
@@ -226,42 +226,13 @@ use crate::{
 
 struct EntryData {
   name: String,
-  module_uri: String,
+  _module_uri: String,
   dependencies: Vec<Dependency>,
 }
 
 pub fn code_splitting(compilation: &mut Compilation) -> Result<()> {
   CodeSplitter::new(compilation).split()?;
   Ok(())
-}
-
-struct ChunkIdGenerator<'me> {
-  id_count: usize,
-  chunk_id_algo: ChunkIdAlgo,
-  module_graph: &'me ModuleGraph,
-  root: &'me str,
-}
-
-impl<'me> ChunkIdGenerator<'me> {
-  pub fn gen_id(&mut self, module_uri: &str) -> String {
-    match self.chunk_id_algo {
-      ChunkIdAlgo::Numeric => {
-        let id = self.id_count.to_string();
-        self.id_count += 1;
-        id
-      }
-      ChunkIdAlgo::Named => {
-        let js_mod = self
-          .module_graph
-          .module_by_uri(module_uri)
-          .expect("Failed to get module by uri");
-        js_mod
-          .name
-          .clone()
-          .unwrap_or_else(|| uri_to_chunk_name(self.root, &js_mod.uri))
-      }
-    }
-  }
 }
 
 struct CodeSplitter<'me> {
@@ -290,8 +261,6 @@ impl<'me> CodeSplitter<'me> {
   ) -> Result<HashMap<ChunkGroupUkey, Vec<String>>> {
     let compilation = &mut self.compilation;
     let module_graph = &compilation.module_graph;
-    // let chunk_by_ukey = &mut compilation.chunk_by_ukey;
-    // let chunk_group_by_ukey = &mut compilation.chunk_group_by_ukey;
 
     let entries = compilation
       .entry_dependencies()
@@ -300,7 +269,7 @@ impl<'me> CodeSplitter<'me> {
         module_graph
           .module_by_dependency(dep)
           .map(|module| EntryData {
-            module_uri: module.uri.clone(),
+            _module_uri: module.uri.clone(),
             name: name.to_string(),
             dependencies: vec![dep.clone()],
           })
@@ -311,7 +280,7 @@ impl<'me> CodeSplitter<'me> {
 
     for EntryData {
       name,
-      module_uri,
+      _module_uri: _,
       dependencies,
     } in &entries
     {
@@ -340,7 +309,10 @@ impl<'me> CodeSplitter<'me> {
         let ukey = entrypoint.ukey;
         compilation.chunk_group_by_ukey.insert(ukey, entrypoint);
 
-        compilation.chunk_group_by_ukey.get(&ukey).unwrap()
+        compilation
+          .chunk_group_by_ukey
+          .get(&ukey)
+          .ok_or_else(|| anyhow::format_err!("no chunk group found"))?
       };
 
       let mut entry_modules_uri = HashSet::new();
@@ -348,7 +320,7 @@ impl<'me> CodeSplitter<'me> {
       for dep in dependencies {
         let module = module_graph
           .module_by_dependency(dep)
-          .expect("no module found");
+          .ok_or_else(|| anyhow::format_err!("no module found"))?;
         compilation.chunk_graph.add_module(module.uri.clone());
 
         input_entrypoints_and_modules
@@ -375,13 +347,13 @@ impl<'me> CodeSplitter<'me> {
         .compilation
         .chunk_group_by_ukey
         .get(&chunk_group)
-        .unwrap();
+        .ok_or_else(|| anyhow::format_err!("no chunk group found"))?;
       // We could assume that the chunk group is an entrypoint and must have one chunk, which is entry chunk.
       // TODO: we need a better and safe way to ensure this.
       let chunk = chunk_group.chunks[0];
       for module in modules {
         self.queue.push(QueueItem {
-          action: QueueAction::AddAndEnterModule,
+          action: QueueAction::AddAndEnter,
           chunk,
           chunk_group: chunk_group.ukey,
           module_uri: module,
@@ -454,10 +426,10 @@ impl<'me> CodeSplitter<'me> {
     tracing::debug!("process_queue");
     while let Some(queue_item) = self.queue.pop() {
       match queue_item.action {
-        QueueAction::AddAndEnterModule => self.add_and_enter_module(&queue_item),
-        QueueAction::EnterModule => self.enter_module(&queue_item),
-        QueueAction::ProcessModule => self.process_module(&queue_item),
-        QueueAction::LeaveModule => self.leave_module(&queue_item),
+        QueueAction::AddAndEnter => self.add_and_enter_module(&queue_item),
+        QueueAction::_Enter => self.enter_module(&queue_item),
+        QueueAction::_ProcessModule => self.process_module(&queue_item),
+        QueueAction::Leave => self.leave_module(&queue_item),
       }
     }
   }
@@ -515,7 +487,7 @@ impl<'me> CodeSplitter<'me> {
     }
 
     self.queue.push(QueueItem {
-      action: QueueAction::LeaveModule,
+      action: QueueAction::Leave,
       ..item.clone()
     });
     self.process_module(item)
@@ -566,7 +538,7 @@ impl<'me> CodeSplitter<'me> {
       .rev()
     {
       self.queue.push(QueueItem {
-        action: QueueAction::AddAndEnterModule,
+        action: QueueAction::AddAndEnter,
         chunk: item.chunk,
         chunk_group: item.chunk_group,
         module_uri: dep_mgm.uri.clone(),
@@ -604,7 +576,7 @@ impl<'me> CodeSplitter<'me> {
       };
 
       self.queue_delayed.push(QueueItem {
-        action: QueueAction::AddAndEnterModule,
+        action: QueueAction::AddAndEnter,
         chunk: chunk.ukey,
         chunk_group: chunk_group.ukey,
         module_uri: dyn_dep_mgm.uri.clone(),
@@ -623,10 +595,10 @@ struct QueueItem {
 
 #[derive(Debug, Clone)]
 enum QueueAction {
-  AddAndEnterModule,
-  EnterModule,
-  ProcessModule,
-  LeaveModule,
+  AddAndEnter,
+  _Enter,
+  _ProcessModule,
+  Leave,
 }
 
 // struct chunkGroupInfoMap {}

@@ -1,14 +1,10 @@
-use std::collections::HashMap;
-
 use hashbrown::HashSet;
-use rspack_error::{Error, Result};
-use tracing::instrument;
 
-use crate::{ChunkGroupUkey, ChunkUkey, ModuleGraph, ModuleGraphModule};
+use crate::{ChunkGroupUkey, ChunkUkey};
 
 #[derive(Debug)]
 pub struct Chunk {
-  pub(crate) name: Option<String>,
+  pub(crate) _name: Option<String>,
   pub ukey: ChunkUkey,
   pub id: String,
   pub kind: ChunkKind,
@@ -17,9 +13,9 @@ pub struct Chunk {
 }
 
 impl Chunk {
-  pub fn new(name: Option<String>, id: String, kind: ChunkKind) -> Self {
+  pub fn new(_name: Option<String>, id: String, kind: ChunkKind) -> Self {
     Self {
-      name,
+      _name,
       ukey: ChunkUkey::with_debug_info("Chunk"),
       id,
       kind,

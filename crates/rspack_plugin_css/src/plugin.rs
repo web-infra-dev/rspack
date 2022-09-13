@@ -10,8 +10,8 @@ use crate::{
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
 use rspack_core::{
-  get_xxh3_64_hash, AssetContent, BoxModule, ChunkKind, FilenameRenderOptions, ModuleGraphModule,
-  ModuleRenderResult, ModuleType, ParseModuleArgs, Parser, Plugin, RenderManifestEntry, SourceType,
+  get_xxh3_64_hash, AssetContent, BoxModule, ChunkKind, FilenameRenderOptions, ModuleRenderResult,
+  ModuleType, ParseModuleArgs, Parser, Plugin, RenderManifestEntry, SourceType,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 
@@ -124,7 +124,6 @@ impl Plugin for CssPlugin {
     args: rspack_core::RenderManifestArgs,
   ) -> rspack_core::PluginRenderManifestHookOutput {
     let compilation = args.compilation;
-    let module_graph = &compilation.module_graph;
     let chunk = args.chunk();
 
     let ordered_modules = {
@@ -159,10 +158,12 @@ impl Plugin for CssPlugin {
               .collect::<Vec<_>>()
           );
           modules
-        })
-        .collect::<Vec<_>>();
+        });
 
-      groups.into_iter().next().unwrap()
+      groups
+        .into_iter()
+        .next()
+        .unwrap_or_else(|| panic!("No groups found"))
     };
 
     let code = ordered_modules

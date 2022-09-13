@@ -1,8 +1,7 @@
 use hashbrown::{HashMap, HashSet};
 
 use crate::{
-  chunk_group, Chunk, ChunkByUkey, ChunkGroup, ChunkGroupUkey, ChunkUkey, ModuleGraph,
-  ModuleGraphModule, SourceType,
+  Chunk, ChunkByUkey, ChunkGroupUkey, ChunkUkey, ModuleGraph, ModuleGraphModule, SourceType,
 };
 
 #[derive(Debug, Default)]
@@ -18,13 +17,13 @@ impl ChunkGraph {
     self
       .chunk_graph_chunk_by_chunk_ukey
       .entry(chunk_ukey)
-      .or_insert_with(|| ChunkGraphChunk::new());
+      .or_insert_with(ChunkGraphChunk::new);
   }
   pub fn add_module(&mut self, module_uri: String) {
     self
       .chunk_graph_module_by_module_url
       .entry(module_uri)
-      .or_insert_with(|| ChunkGraphModule::new());
+      .or_insert_with(ChunkGraphModule::new);
   }
 
   pub fn chunk_by_split_point_module_uri<'a>(
@@ -85,8 +84,8 @@ impl ChunkGraph {
   }
 
   pub(crate) fn disconnect_chunk_and_module(&mut self, chunk: &ChunkUkey, module_uri: &str) {
-    let cgm = self.get_chunk_graph_module_mut(&module_uri);
-    cgm.chunks.remove(&chunk);
+    let cgm = self.get_chunk_graph_module_mut(module_uri);
+    cgm.chunks.remove(chunk);
 
     let cgc = self.get_chunk_graph_chunk_mut(*chunk);
     cgc.modules.remove(module_uri);
@@ -133,13 +132,12 @@ impl ChunkGraph {
       .iter()
       .filter_map(|uri| module_graph.module_by_uri(uri))
       .filter(|mgm| mgm.module.source_types().contains(&source_type))
-      .map(|mgm| mgm)
       .collect::<Vec<_>>();
     modules
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ChunkGraphModule {
   pub(crate) entry_in_chunks: HashSet<ChunkUkey>,
   pub(crate) chunks: HashSet<ChunkUkey>,
@@ -154,7 +152,7 @@ impl ChunkGraphModule {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ChunkGraphChunk {
   // URI of modules => ChunkGroupUkey
   pub(crate) entry_modules: HashMap<String, ChunkGroupUkey>,

@@ -9,7 +9,6 @@ use rayon::prelude::*;
 use rspack_error::{Diagnostic, Result};
 use serde::Serialize;
 use std::{fmt::Debug, sync::Arc};
-use tracing::instrument;
 
 #[derive(Debug)]
 pub struct Compilation {
@@ -24,7 +23,7 @@ pub struct Compilation {
   pub entrypoints: HashMap<String, ChunkGroupUkey>,
   pub assets: CompilationAssets,
   pub diagnostic: Vec<Diagnostic>,
-  pub(crate) named_chunk: HashMap<String, ChunkUkey>,
+  pub(crate) _named_chunk: HashMap<String, ChunkUkey>,
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
 }
 impl Compilation {
@@ -46,7 +45,7 @@ impl Compilation {
       entrypoints: Default::default(),
       assets: Default::default(),
       diagnostic: vec![],
-      named_chunk: Default::default(),
+      _named_chunk: Default::default(),
       named_chunk_groups: Default::default(),
     }
   }
@@ -172,7 +171,7 @@ impl Compilation {
   }
 
   pub async fn seal(&mut self, plugin_driver: Arc<PluginDriver>) -> Result<()> {
-    code_splitting(self);
+    code_splitting(self)?;
     // TODO: optmize chunks
 
     // for chunk in self.chunk_by_ukey.values_mut() {

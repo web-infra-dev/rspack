@@ -125,19 +125,17 @@ impl Plugin for JsPlugin {
             .get_chunk_entry_modules(&args.chunk_ukey)
             .into_iter()
             .next()
-            .expect("entry module not found");
+            .unwrap_or_else(|| panic!("entry module not found"));
           let entry_module_id = &args
             .compilation
             .module_graph
             .module_by_uri(entry_module_uri)
-            .expect("entry module not found")
+            .unwrap_or_else(|| panic!("entry module not found"))
             .id;
 
-          let execute_code =
-            compilation
-              .runtime
-              .generate_rspack_execute(namespace, RSPACK_REQUIRE, entry_module_id);
-          execute_code
+          compilation
+            .runtime
+            .generate_rspack_execute(namespace, RSPACK_REQUIRE, entry_module_id)
         } else {
           String::new()
         }
