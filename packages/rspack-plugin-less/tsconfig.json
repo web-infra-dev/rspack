@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "module": "CommonJS",
+    "target": "ES2018",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "outDir": "lib",
+    "declaration": true
+  },
+  "include": ["src"],
+  "ts-node": {
+    "transpileOnly": true
+  }
+}

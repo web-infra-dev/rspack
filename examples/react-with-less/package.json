@@ -1,0 +1,16 @@
+{
+  "name": "example-react-example-sass",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "private": true,
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@rspack/core": "workspace:*",
+    "react": "17.0.0",
+    "react-dom": "17.0.0"
+  }
+}
