@@ -1,0 +1,12 @@
+---
+source: crates/rspack_error/tests/fixtures.rs
+assertion_line: 38
+expression: resolve_inexisits_file_error
+---
+error[internal]: Resolve error
+  ┌─ tests/fixtures/resolve_inexisits_file_error/index.js:1:1
+  │
+1 │ import a from "./a";
+  │ ^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./a
+
+
