@@ -7,7 +7,7 @@ error[html]: HTML parsing error
   ┌─ tests/fixtures/html_syntax_error/index.html:1:1
   │
 1 │ <head>
-  │ ^^^^^^ Start tag seen without seeing a doctype firs, expected "<!DOCTYPE html>"
+  │ ^^^^^^ Start tag seen without seeing a doctype first, expected "<!DOCTYPE html>"
 
 error[html]: HTML parsing error
   ┌─ tests/fixtures/html_syntax_error/index.html:2:3
