@@ -48,18 +48,19 @@ jobs:
           script: |
             const response = await github.request(context.payload.issue.pull_request.url);
             return response.data.head.sha;
-      - name: Install protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Checkout PR Branch
         uses: actions/checkout@v3
         with:
           submodules: false
           ref: ${{ steps.sha.outputs.result }}
 
+      - name: Install protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install toolchain
+        uses: actions-rs/toolchain@v1
         run: rustup show
 
       - name: Cache
