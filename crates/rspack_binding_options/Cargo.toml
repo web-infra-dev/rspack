@@ -26,11 +26,11 @@ cfg-if = "1.0.0"
 rspack_error = { path = "../rspack_error" }
 [dependencies.napi]
 git = "https://github.com/speedy-js/napi-rs"
-branch = "speedy-release"
+branch = "main"
 features = ["async", "tokio_rt", "serde-json"]
 optional = true
 
 [dependencies.napi-derive]
 git = "https://github.com/speedy-js/napi-rs"
-branch = "speedy-release"
+branch = "main"
 optional = true
