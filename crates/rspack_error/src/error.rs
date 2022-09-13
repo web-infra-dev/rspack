@@ -2,6 +2,8 @@ use std::io;
 
 use thiserror::Error;
 
+use crate::Severity;
+
 #[derive(Debug)]
 /// ## Warning
 /// For a [TraceableError], the path is required.
@@ -15,6 +17,7 @@ pub struct TraceableError {
   pub title: String,
   pub source: Option<String>,
   pub kind: DiagnosticKind,
+  pub severity: Severity,
 }
 
 impl TraceableError {
@@ -33,6 +36,7 @@ impl TraceableError {
       source: None,
       title,
       kind: DiagnosticKind::Internal,
+      severity: Severity::Error,
     }
   }
   pub fn with_source(mut self, source: String) -> Self {
@@ -42,6 +46,10 @@ impl TraceableError {
 
   pub fn with_kind(mut self, kind: DiagnosticKind) -> Self {
     self.kind = kind;
+    self
+  }
+  pub fn with_severity(mut self, severity: Severity) -> Self {
+    self.severity = severity;
     self
   }
 }
@@ -72,6 +80,15 @@ impl Error {
   pub fn kind(&self) -> DiagnosticKind {
     match self {
       Error::InternalError(_) => DiagnosticKind::Internal,
+      Error::TraceableError(_) => todo!(),
+      Error::Io { .. } => todo!(),
+      Error::Anyhow { .. } => todo!(),
+      Error::BatchErrors(_) => todo!(),
+    }
+  }
+  pub fn severity(&self) -> Severity {
+    match self {
+      Error::InternalError(_) => Severity::default(),
       Error::TraceableError(_) => todo!(),
       Error::Io { .. } => todo!(),
       Error::Anyhow { .. } => todo!(),

@@ -72,6 +72,7 @@ impl From<Error> for Vec<Diagnostic> {
         source,
         title,
         kind,
+        severity,
       }) => {
         let source = if let Some(source) = source {
           source
@@ -85,6 +86,7 @@ impl From<Error> for Vec<Diagnostic> {
           end,
           title,
           kind,
+          severity,
           ..Default::default()
         }
       }
@@ -94,7 +96,7 @@ impl From<Error> for Vec<Diagnostic> {
         ..Default::default()
       },
       Error::Anyhow { source } => Diagnostic {
-        message: format!("{}\nbacktrace: {}", source, source.backtrace()),
+        message: format!("{}\nbacktrace:\n{}", source, source.backtrace()),
         ..Default::default()
       },
       Error::BatchErrors(diagnostics) => {
@@ -106,4 +108,7 @@ impl From<Error> for Vec<Diagnostic> {
     };
     vec![diagnostic]
   }
+}
+pub fn errors_to_diagnostics(errs: Vec<Error>) -> Vec<Diagnostic> {
+  errs.into_iter().flat_map(Vec::<Diagnostic>::from).collect()
 }
