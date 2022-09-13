@@ -1,8 +1,8 @@
 use crate::{
-  split_chunks::code_splitting2, AssetContent, Chunk, ChunkGraph, ChunkGroup, ChunkGroupUkey,
-  ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint, ModuleDependency, ModuleGraph,
-  PluginDriver, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime,
-  VisitedModuleIdentity,
+  split_chunks::code_splitting, AssetContent, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup,
+  ChunkGroupKind, ChunkGroupUkey, ChunkKind, ChunkUkey, CompilerOptions, Dependency, EntryItem,
+  Entrypoint, ModuleDependency, ModuleGraph, PluginDriver, ProcessAssetsArgs, RenderManifestArgs,
+  RenderRuntimeArgs, ResolveKind, Runtime, VisitedModuleIdentity,
 };
 use hashbrown::HashMap;
 use rayon::prelude::*;
@@ -24,6 +24,8 @@ pub struct Compilation {
   pub entrypoints: HashMap<String, ChunkGroupUkey>,
   pub assets: CompilationAssets,
   pub diagnostic: Vec<Diagnostic>,
+  pub(crate) named_chunk: HashMap<String, ChunkUkey>,
+  pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
 }
 impl Compilation {
   pub fn new(
@@ -44,6 +46,8 @@ impl Compilation {
       entrypoints: Default::default(),
       assets: Default::default(),
       diagnostic: vec![],
+      named_chunk: Default::default(),
+      named_chunk_groups: Default::default(),
     }
   }
   pub fn add_entry(&mut self, name: String, detail: EntryItem) {
@@ -60,6 +64,18 @@ impl Compilation {
 
   pub fn push_batch_diagnostic(&mut self, mut diagnostic: Vec<Diagnostic>) {
     self.diagnostic.append(&mut diagnostic);
+  }
+
+  pub(crate) fn add_chunk(
+    chunk_by_ukey: &mut ChunkByUkey,
+    name: Option<String>,
+    id: String,
+    kind: ChunkKind,
+  ) -> &mut Chunk {
+    let chunk = Chunk::new(name, id, kind);
+    let ueky = chunk.ukey;
+    chunk_by_ukey.insert(chunk.ukey, chunk);
+    chunk_by_ukey.get_mut(&ueky).expect("chunk not found")
   }
 
   pub fn entry_dependencies(&self) -> HashMap<String, Dependency> {
@@ -155,14 +171,13 @@ impl Compilation {
       .expect("entrypoint not found by ukey")
   }
 
-  #[instrument(skip_all)]
   pub async fn seal(&mut self, plugin_driver: Arc<PluginDriver>) -> Result<()> {
-    code_splitting2(self);
+    code_splitting(self);
     // TODO: optmize chunks
 
-    for chunk in self.chunk_by_ukey.values_mut() {
-      chunk.calc_exec_order(&self.module_graph)?;
-    }
+    // for chunk in self.chunk_by_ukey.values_mut() {
+    //   chunk.calc_exec_order(&self.module_graph)?;
+    // }
 
     tracing::debug!("chunk graph {:#?}", self.chunk_graph);
 
@@ -185,7 +200,7 @@ impl Compilation {
     self.runtime = self.render_runtime(plugin_driver.clone());
 
     self.entries.iter().for_each(|(name, _entry)| {
-      let mut entrypoint = Entrypoint::new();
+      let mut entrypoint = Entrypoint::new(ChunkGroupKind::Entrypoint);
       self
         .chunk_by_ukey
         .values()

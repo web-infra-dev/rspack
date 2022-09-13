@@ -95,11 +95,7 @@ impl Module for AssetModule {
   }
 
   #[inline(always)]
-  fn source_types(
-    &self,
-    _module: &rspack_core::ModuleGraphModule,
-    _compilation: &rspack_core::Compilation,
-  ) -> &[SourceType] {
+  fn source_types(&self) -> &[SourceType] {
     if self.inline {
       &self.source_type_list[1..]
     } else {

@@ -117,11 +117,7 @@ impl Module for JsonModule {
   }
 
   #[inline(always)]
-  fn source_types(
-    &self,
-    _module: &rspack_core::ModuleGraphModule,
-    _compilation: &rspack_core::Compilation,
-  ) -> &[SourceType] {
+  fn source_types(&self) -> &[SourceType] {
     self.source_type_list.as_ref()
   }
 

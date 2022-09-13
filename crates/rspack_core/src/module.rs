@@ -17,6 +17,8 @@ pub struct ModuleGraphModule {
   // TODO remove this since its included in module
   pub module_type: ModuleType,
   all_dependencies: Vec<Dependency>,
+  pub(crate) pre_order_index: Option<usize>,
+  pub post_order_index: Option<usize>,
 }
 
 impl ModuleGraphModule {
@@ -36,6 +38,8 @@ impl ModuleGraphModule {
       module,
       all_dependencies: dependencies,
       module_type,
+      pre_order_index: None,
+      post_order_index: None,
     }
   }
 
@@ -72,7 +76,7 @@ pub enum ModuleRenderResult {
 pub trait Module: Debug + Send + Sync {
   fn module_type(&self) -> ModuleType;
 
-  fn source_types(&self, _module: &ModuleGraphModule, _compilation: &Compilation) -> &[SourceType];
+  fn source_types(&self) -> &[SourceType];
 
   fn render(
     &self,
