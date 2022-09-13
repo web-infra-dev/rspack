@@ -56,12 +56,15 @@ impl Diagnostic {
 
 impl From<Error> for Vec<Diagnostic> {
   fn from(err: Error) -> Self {
+    let kind = err.kind();
+    let severity = err.severity();
     let diagnostic = match err {
       Error::InternalError(message) => Diagnostic {
         message,
         source_info: None,
         start: 0,
         end: 0,
+        severity,
         ..Default::default()
       },
       Error::TraceableError(TraceableError {
@@ -71,8 +74,7 @@ impl From<Error> for Vec<Diagnostic> {
         error_message,
         source,
         title,
-        kind,
-        severity,
+        ..
       }) => {
         let source = if let Some(source) = source {
           source
@@ -91,10 +93,13 @@ impl From<Error> for Vec<Diagnostic> {
       }
       Error::Io { source } => Diagnostic {
         message: source.to_string(),
-        kind: DiagnosticKind::Io,
+        kind,
+        severity,
         ..Default::default()
       },
       Error::Anyhow { source } => Diagnostic {
+        kind,
+        severity,
         message: format!("{}\nbacktrace:\n{}", source, source.backtrace()),
         ..Default::default()
       },

@@ -80,19 +80,19 @@ impl Error {
   pub fn kind(&self) -> DiagnosticKind {
     match self {
       Error::InternalError(_) => DiagnosticKind::Internal,
-      Error::TraceableError(_) => todo!(),
-      Error::Io { .. } => todo!(),
-      Error::Anyhow { .. } => todo!(),
-      Error::BatchErrors(_) => todo!(),
+      Error::TraceableError(TraceableError { kind, .. }) => *kind,
+      Error::Io { .. } => DiagnosticKind::Io,
+      Error::Anyhow { .. } => DiagnosticKind::Internal,
+      Error::BatchErrors(_) => DiagnosticKind::Internal,
     }
   }
   pub fn severity(&self) -> Severity {
     match self {
-      Error::InternalError(_) => Severity::default(),
-      Error::TraceableError(_) => todo!(),
-      Error::Io { .. } => todo!(),
-      Error::Anyhow { .. } => todo!(),
-      Error::BatchErrors(_) => todo!(),
+      Error::InternalError(_) => Severity::Error,
+      Error::TraceableError(TraceableError { severity, .. }) => *severity,
+      Error::Io { .. } => Severity::Error,
+      Error::Anyhow { .. } => Severity::Error,
+      Error::BatchErrors(_) => Severity::Error,
     }
   }
 }
