@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "@rspack/core": "workspace:*",
+    "@rspack/plugin-less": "workspace:^",
     "react": "17.0.0",
     "react-dom": "17.0.0"
   }

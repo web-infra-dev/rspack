@@ -3,12 +3,18 @@ module.exports = {
   entry: {
     main: "./src/index.jsx",
   },
-  output: {
-    publicPath: "http://localhost:3000",
-  },
-  module: {
+  define: {
+    "process.env.NODE_ENV": "development",
   },
   builtins: {
     html: [{}],
   },
+  module: {
+    rules: [
+      {
+        test: ".less$",
+        type: "asset"
+      }
+    ]
+  }
 };
