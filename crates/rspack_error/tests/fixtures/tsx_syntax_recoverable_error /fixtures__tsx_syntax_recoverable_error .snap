@@ -1,6 +1,0 @@
----
-source: crates/rspack_error/tests/fixtures.rs
-expression: "tsx_syntax_recoverable_error "
----
-No such file or directory (os error 2)
-

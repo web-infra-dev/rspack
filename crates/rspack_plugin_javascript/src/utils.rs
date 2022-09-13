@@ -82,14 +82,14 @@ pub fn parse_file(
     Ok((program, errs)) => {
       let errors = errs
         .into_iter()
-        .map(|err| ecma_parse_error_to_rspack_error(err, filename, module_type, Severity::Warn))
+        .map(|err| ecma_parse_error_to_rspack_error(err, filename, module_type))
         .collect::<Vec<_>>();
       Ok(program.with_diagnostic(errors_to_diagnostics(errors)))
     }
     Err(errs) => Err(Error::BatchErrors(
       errs
         .into_iter()
-        .map(|err| ecma_parse_error_to_rspack_error(err, filename, module_type, Severity::Error))
+        .map(|err| ecma_parse_error_to_rspack_error(err, filename, module_type))
         .collect::<Vec<_>>(),
     )),
   }
@@ -231,7 +231,6 @@ pub fn ecma_parse_error_to_rspack_error(
   error: swc_ecma_parser::error::Error,
   path: &str,
   module_type: &ModuleType,
-  severity: Severity,
 ) -> Error {
   let (file_type, diagnostic_kind) = match module_type {
     ModuleType::Js => ("JavaScript", DiagnosticKind::JavaScript),
@@ -250,6 +249,6 @@ pub fn ecma_parse_error_to_rspack_error(
     message,
   )
   .with_kind(diagnostic_kind);
-  rspack_error::Error::TraceableError(traceable_error.with_severity(severity))
+  rspack_error::Error::TraceableError(traceable_error)
   //Use this `Error` convertion could avoid eagerly clone source file.
 }

@@ -1,3 +1,4 @@
+#![feature(box_patterns)]
 // mod js_module;
 // pub use js_module::*;
 pub mod module;
