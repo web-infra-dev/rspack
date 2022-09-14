@@ -6,7 +6,7 @@ use crate::{
 
 #[derive(Debug, Default)]
 pub struct ChunkGraph {
-  split_point_module_uri_to_chunk_ref: hashbrown::HashMap<String, ChunkUkey>,
+  split_point_module_uri_to_chunk_ukey: hashbrown::HashMap<String, ChunkUkey>,
 
   chunk_graph_module_by_module_url: HashMap<String, ChunkGraphModule>,
   chunk_graph_chunk_by_chunk_ukey: HashMap<ChunkUkey, ChunkGraphChunk>,
@@ -31,7 +31,7 @@ impl ChunkGraph {
     uri: &str,
     chunk_by_ukey: &'a ChunkByUkey,
   ) -> Option<&'a Chunk> {
-    let ukey = self.split_point_module_uri_to_chunk_ref.get(uri)?;
+    let ukey = self.split_point_module_uri_to_chunk_ukey.get(uri)?;
     chunk_by_ukey.get(ukey)
   }
 

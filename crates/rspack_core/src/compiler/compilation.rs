@@ -98,7 +98,7 @@ impl Compilation {
   }
 
   fn create_chunk_assets(&mut self, plugin_driver: Arc<PluginDriver>) {
-    let chunk_ref_and_manifest = self
+    let chunk_ukey_and_manifest = self
       .chunk_by_ukey
       .par_values()
       .map(|chunk| {
@@ -110,11 +110,11 @@ impl Compilation {
       })
       .collect::<Vec<_>>();
 
-    chunk_ref_and_manifest
+    chunk_ukey_and_manifest
       .into_iter()
-      .for_each(|(chunk_ref, manifest)| {
+      .for_each(|(chunk_ukey, manifest)| {
         manifest.unwrap().into_iter().for_each(|file_manifest| {
-          let current_chunk = self.chunk_by_ukey.get_mut(&chunk_ref).unwrap();
+          let current_chunk = self.chunk_by_ukey.get_mut(&chunk_ukey).unwrap();
           current_chunk
             .files
             .insert(file_manifest.filename().to_string());
