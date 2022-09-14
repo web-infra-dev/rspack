@@ -198,20 +198,6 @@ impl Compilation {
     // generate runtime
     self.runtime = self.render_runtime(plugin_driver.clone());
 
-    self.entries.iter().for_each(|(name, _entry)| {
-      let mut entrypoint = Entrypoint::new(ChunkGroupKind::Entrypoint);
-      self
-        .chunk_by_ukey
-        .values()
-        .filter(|chunk| &chunk.id == name)
-        .map(|chunk| chunk.ukey)
-        .for_each(|chunk_ref| {
-          entrypoint.chunks.push(chunk_ref);
-        });
-      self.entrypoints.insert(name.clone(), entrypoint.ukey);
-      self.chunk_group_by_ukey.insert(entrypoint.ukey, entrypoint);
-    });
-
     self.process_assets(plugin_driver).await;
     Ok(())
   }
