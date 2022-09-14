@@ -21,20 +21,20 @@ impl VisitMut for DependencyScanner {
       .into_iter()
       .filter(|rule| match rule {
         Rule::AtRule(at_rule) => {
-          if let Some(AtRulePrelude::ImportPrelude(prelude)) = &at_rule.prelude {
+          if let Some(box AtRulePrelude::ImportPrelude(prelude)) = &at_rule.prelude {
             let (kind, href_string) = match &prelude.href {
-              swc_css::ast::ImportPreludeHref::Url(url) => {
+              box swc_css::ast::ImportPreludeHref::Url(url) => {
                 let href_string = url
                   .value
                   .as_ref()
-                  .map(|value| match value {
+                  .map(|box value| match value {
                     UrlValue::Str(str) => str.value.clone(),
                     UrlValue::Raw(raw) => raw.value.clone(),
                   })
                   .unwrap_or_default();
                 (ResolveKind::UrlToken, href_string)
               }
-              swc_css::ast::ImportPreludeHref::Str(str) => {
+              box swc_css::ast::ImportPreludeHref::Str(str) => {
                 (ResolveKind::AtImport, str.value.clone())
               }
             };
