@@ -102,8 +102,6 @@ impl<'me> CodeSplitter<'me> {
           .ok_or_else(|| anyhow::format_err!("no chunk group found"))?
       };
 
-      let mut entry_modules_uri = HashSet::new();
-
       for dep in dependencies {
         let module = module_graph
           .module_by_dependency(dep)
@@ -120,7 +118,6 @@ impl<'me> CodeSplitter<'me> {
           module.uri.clone(),
           entrypoint.ukey,
         );
-        entry_modules_uri.insert(module.uri.clone());
       }
     }
     Ok(input_entrypoints_and_modules)
