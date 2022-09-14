@@ -1,7 +1,7 @@
 use crate::{
   split_chunks::code_splitting, AssetContent, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup,
-  ChunkGroupKind, ChunkGroupUkey, ChunkKind, ChunkUkey, CompilerOptions, Dependency, EntryItem,
-  Entrypoint, ModuleDependency, ModuleGraph, PluginDriver, ProcessAssetsArgs, RenderManifestArgs,
+  ChunkGroupUkey, ChunkKind, ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint,
+  ModuleDependency, ModuleGraph, PluginDriver, ProcessAssetsArgs, RenderManifestArgs,
   RenderRuntimeArgs, ResolveKind, Runtime, VisitedModuleIdentity,
 };
 use hashbrown::HashMap;
