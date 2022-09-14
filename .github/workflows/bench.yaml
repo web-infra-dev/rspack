@@ -78,7 +78,7 @@ jobs:
           ref: next
 
       - name: Run Bench on Next Branch
-        run: cargo bench --bench main -- --save-baseline next
+        run: cargo bench --bench main -- --save-baseline baseline
 
       - name: Compare Bench Results
         id: bench_comparison
