@@ -150,8 +150,7 @@ impl<'me> CodeSplitter<'me> {
     while !self.queue.is_empty() || !self.queue_delayed.is_empty() {
       self.process_queue();
       if self.queue.is_empty() {
-        self.queue = self.queue_delayed;
-        self.queue_delayed = vec![];
+        self.queue = std::mem::take(&mut self.queue_delayed);
       }
     }
     tracing::debug!("--- process_queue end ---");
