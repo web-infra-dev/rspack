@@ -50,7 +50,7 @@ impl ChunkGraph {
     self
       .chunk_graph_module_by_module_url
       .get_mut(module_uri)
-      .expect("module should be added before")
+      .expect("Module should be added before")
   }
 
   pub(crate) fn get_chunk_graph_chunk_mut(
@@ -60,14 +60,14 @@ impl ChunkGraph {
     self
       .chunk_graph_chunk_by_chunk_ukey
       .get_mut(&chunk_ukey)
-      .expect("chunk should be added before")
+      .expect("Chunk should be added before")
   }
 
   pub(crate) fn get_chunk_graph_chunk(&self, chunk_ukey: &ChunkUkey) -> &ChunkGraphChunk {
     self
       .chunk_graph_chunk_by_chunk_ukey
       .get(chunk_ukey)
-      .expect("chunk should be added before")
+      .expect("Chunk should be added before")
   }
 
   pub(crate) fn connect_chunk_and_entry_module(
@@ -103,7 +103,7 @@ impl ChunkGraph {
     let cgm = self
       .chunk_graph_module_by_module_url
       .get(module_uri)
-      .expect("module should be added before");
+      .expect("Module should be added before");
     &cgm.chunks
   }
 
