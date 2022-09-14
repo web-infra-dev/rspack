@@ -36,14 +36,14 @@ impl ChunkGraph {
   }
 
   pub fn get_chunk_entry_modules(&self, chunk_ukey: &ChunkUkey) -> HashSet<&String> {
-    let cgc = self.get_chunk_graph_chunk(chunk_ukey);
+    let chunk_graph_chunk = self.get_chunk_graph_chunk(chunk_ukey);
 
-    cgc.entry_modules.keys().collect()
+    chunk_graph_chunk.entry_modules.keys().collect()
   }
 
   pub(crate) fn is_module_in_chunk(&mut self, module_uri: &str, chunk_ukey: ChunkUkey) -> bool {
-    let cgc = self.get_chunk_graph_chunk_mut(chunk_ukey);
-    cgc.modules.contains(module_uri)
+    let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(chunk_ukey);
+    chunk_graph_chunk.modules.contains(module_uri)
   }
 
   pub(crate) fn get_chunk_graph_module_mut(&mut self, module_uri: &str) -> &mut ChunkGraphModule {
@@ -76,35 +76,37 @@ impl ChunkGraph {
     module_uri: String,
     entrypoint: ChunkGroupUkey,
   ) {
-    let cgm = self.get_chunk_graph_module_mut(&module_uri);
-    cgm.entry_in_chunks.insert(chunk);
+    let chunk_graph_module = self.get_chunk_graph_module_mut(&module_uri);
+    chunk_graph_module.entry_in_chunks.insert(chunk);
 
-    let cgc = self.get_chunk_graph_chunk_mut(chunk);
-    cgc.entry_modules.insert(module_uri, entrypoint);
+    let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(chunk);
+    chunk_graph_chunk
+      .entry_modules
+      .insert(module_uri, entrypoint);
   }
 
   pub(crate) fn disconnect_chunk_and_module(&mut self, chunk: &ChunkUkey, module_uri: &str) {
-    let cgm = self.get_chunk_graph_module_mut(module_uri);
-    cgm.chunks.remove(chunk);
+    let chunk_graph_module = self.get_chunk_graph_module_mut(module_uri);
+    chunk_graph_module.chunks.remove(chunk);
 
-    let cgc = self.get_chunk_graph_chunk_mut(*chunk);
-    cgc.modules.remove(module_uri);
+    let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(*chunk);
+    chunk_graph_chunk.modules.remove(module_uri);
   }
 
   pub(crate) fn connect_chunk_and_module(&mut self, chunk: ChunkUkey, module_uri: String) {
-    let cgm = self.get_chunk_graph_module_mut(&module_uri);
-    cgm.chunks.insert(chunk);
+    let chunk_graph_module = self.get_chunk_graph_module_mut(&module_uri);
+    chunk_graph_module.chunks.insert(chunk);
 
-    let cgc = self.get_chunk_graph_chunk_mut(chunk);
-    cgc.modules.insert(module_uri);
+    let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(chunk);
+    chunk_graph_chunk.modules.insert(module_uri);
   }
 
   pub fn get_modules_chunks(&self, module_uri: &str) -> &HashSet<ChunkUkey> {
-    let cgm = self
+    let chunk_graph_module = self
       .chunk_graph_module_by_module_url
       .get(module_uri)
       .expect("Module should be added before");
-    &cgm.chunks
+    &chunk_graph_module.chunks
   }
 
   pub fn get_chunk_modules<'module>(
@@ -112,8 +114,8 @@ impl ChunkGraph {
     chunk: &ChunkUkey,
     module_graph: &'module ModuleGraph,
   ) -> Vec<&'module ModuleGraphModule> {
-    let cgc = self.get_chunk_graph_chunk(chunk);
-    cgc
+    let chunk_graph_chunk = self.get_chunk_graph_chunk(chunk);
+    chunk_graph_chunk
       .modules
       .iter()
       .filter_map(|uri| module_graph.module_by_uri(uri))
@@ -126,8 +128,8 @@ impl ChunkGraph {
     source_type: SourceType,
     module_graph: &'module ModuleGraph,
   ) -> Vec<&'module ModuleGraphModule> {
-    let cgc = self.get_chunk_graph_chunk(chunk);
-    let modules = cgc
+    let chunk_graph_chunk = self.get_chunk_graph_chunk(chunk);
+    let modules = chunk_graph_chunk
       .modules
       .iter()
       .filter_map(|uri| module_graph.module_by_uri(uri))
