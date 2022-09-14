@@ -11,6 +11,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug)]
 pub struct TWithDiagnosticArray<T: std::fmt::Debug> {
   pub inner: T,
+
   pub diagnostic: Vec<Diagnostic>,
 }
 
