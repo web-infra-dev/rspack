@@ -37,7 +37,6 @@
     "napi",
     "rspack",
     "tokio",
-    "ueky",
     "ukey",
     "Ukey"
   ]

@@ -72,9 +72,9 @@ impl Compilation {
     kind: ChunkKind,
   ) -> &mut Chunk {
     let chunk = Chunk::new(name, id, kind);
-    let ueky = chunk.ukey;
+    let ukey = chunk.ukey;
     chunk_by_ukey.insert(chunk.ukey, chunk);
-    chunk_by_ukey.get_mut(&ueky).expect("chunk not found")
+    chunk_by_ukey.get_mut(&ukey).expect("chunk not found")
   }
 
   pub fn entry_dependencies(&self) -> HashMap<String, Dependency> {
