@@ -1,3 +1,5 @@
+use std::{collections::HashSet, iter::FromIterator};
+
 use crate::RawOption;
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
@@ -10,6 +12,11 @@ use serde::Deserialize;
 #[napi(object)]
 pub struct RawResolveOptions {
   pub prefer_relative: Option<bool>,
+  pub extensions: Option<Vec<String>>,
+  pub main_files: Option<Vec<String>>,
+  pub main_fields: Option<Vec<String>>,
+  pub browser_field: Option<bool>,
+  pub condition_names: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -17,15 +24,35 @@ pub struct RawResolveOptions {
 #[cfg(not(feature = "node-api"))]
 pub struct RawResolveOptions {
   pub prefer_relative: Option<bool>,
+  pub extensions: Option<Vec<String>>,
+  pub main_files: Option<Vec<String>>,
+  pub main_fields: Option<Vec<String>>,
+  pub browser_field: Option<bool>,
+  pub condition_names: Option<Vec<String>>,
+  // TODO: `alias`
 }
 
 impl RawOption<Resolve> for RawResolveOptions {
   fn to_compiler_option(self, _options: &CompilerOptionsBuilder) -> anyhow::Result<Resolve> {
-    // TODO: read resolve
-    Ok(Resolve {
-      prefer_relative: self.prefer_relative.unwrap_or(false),
+    let default = Resolve::default();
+    let prefer_relative = self.prefer_relative.unwrap_or(default.prefer_relative);
+    let extensions = self.extensions.unwrap_or(default.extensions);
+    let browser_field = self.browser_field.unwrap_or(default.browser_field);
+    let main_files = self.main_files.unwrap_or(default.main_files);
+    let main_fields = self.main_fields.unwrap_or(default.main_fields);
+    let condition_names = self
+      .condition_names
+      .map(HashSet::from_iter)
+      .unwrap_or(default.condition_names);
 
-      ..Default::default()
+    Ok(Resolve {
+      prefer_relative,
+      extensions,
+      browser_field,
+      main_fields,
+      main_files,
+      condition_names,
+      ..default
     })
   }
 
