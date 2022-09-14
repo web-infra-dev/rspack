@@ -44,7 +44,8 @@ const rspack = new Rspack({
 					{
 						loader: postcssLoader,
 						options: {
-							modules: true
+							modules: true,
+							pxToRem: false
 						}
 					}
 					// {

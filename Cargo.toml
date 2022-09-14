@@ -1,8 +1,8 @@
 [workspace]
-members = [
-  "crates/*"
-]
-exclude = ["crates/node_binding"] # Avoid including node binding, since feature unification will cause an linking issue. See: https://doc.rust-lang.org/cargo/reference/features.html#feature-unification
+members = ["crates/*"]
+exclude = [
+  "crates/node_binding",
+] # Avoid including node binding, since feature unification will cause an linking issue. See: https://doc.rust-lang.org/cargo/reference/features.html#feature-unification
 
 [profile.dev]
 incremental = true
@@ -10,8 +10,7 @@ debug = 2
 
 [profile.release]
 codegen-units = 1
-debug = false
+debug = true
 lto = true
 opt-level = 3
 incremental = true
-
