@@ -4,7 +4,8 @@ const fs = require("fs");
 const path = require("path");
 
 const source = fs.readFileSync(
-	path.resolve(__dirname, "../tailwind_component.css"),
+	path.resolve(__dirname, "../../../test.css"),
+// path.resolve(__dirname, "../tailwind_component.css"),
 ).toString();
 async function loader(source) {
 	// TODO: customize options, until js binding support this functionality
@@ -31,9 +32,12 @@ async function loader(source) {
 }
 
 (async () => {
+	console.time("bench");
+
 	for (let i = 0; i < 100; i++) {
 		// console.time("label");
 		let res = await loader(source);
 		// console.timeEnd("label");
 	}
+	console.timeEnd("bench");
 })();

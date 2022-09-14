@@ -40,18 +40,19 @@ fn transform(source: &str, config_file: Option<&String>) -> String {
   String::new()
 }
 fn main() {
-  let source = include_str!("../../../examples/bench/src/tailwind_component.css");
-  let config = Some(
-    r#"
-{
-  "propList": ["*"]
-}
-    
-  "#
-    .to_string(),
-  );
+  // let source = include_str!("../../../examples/bench/src/tailwind_component.css");
+  //   let source = include_str!("../../../test.css");
+  //   let config = Some(
+  //     r#"
+  // {
+  //   "propList": ["*"]
+  // }
 
-  // let start = Instant::now();
-  transform(source, config.as_ref());
-  // println!("{:?}", start.elapsed());
+  //   "#
+  //     .to_string(),
+  //   );
+
+  //   let start = Instant::now();
+  //   transform(source, config.as_ref());
+  //   println!("{:?}", start.elapsed());
 }
