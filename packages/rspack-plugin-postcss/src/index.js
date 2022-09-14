@@ -7,30 +7,35 @@ module.exports = async function loader(loaderContext) {
 	// console.log(loaderContext.getOptions());
 	let options = loaderContext.getOptions() ?? {};
 	let enableModules = options.modules;
+	let pxToRem = options.pxToRem;
 	try {
 		let meta = "";
-		let plugins = [
-			pxtorem({
-				rootValue: 50,
-				propList: ["*"]
-			})
-		];
+		let plugins = [];
+		if (enablePxToRem) {
+			plugins.push(
+				pxtorem({
+					...pxToRem,
+				}),
+			);
+		}
 		if (enableModules) {
 			plugins.push(
 				cssModules({
-					getJSON(name, json) {
+					getJSON(_, json) {
 						if (json) {
 							meta = json;
 						}
-					}
-				})
+					},
+				}),
 			);
 		}
 		let root = new Processor(plugins);
-		let res = await root.process(loaderContext.source.getCode());
+		let res = await root.process(loaderContext.source.getCode(), {
+			from: undefined,
+		});
 		return {
 			content: res.css,
-			meta: meta ? Buffer.from(JSON.stringify(meta)) : ""
+			meta: meta ? Buffer.from(JSON.stringify(meta)) : "",
 		};
 	} catch (err) {
 		throw new Error(err);
