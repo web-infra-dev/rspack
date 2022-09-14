@@ -73,19 +73,19 @@ impl Plugin for JsPlugin {
     let module_graph = &compilation.module_graph;
     let namespace = &compilation.options.output.unique_name;
     let chunk = args.chunk();
-    let ordered_modules = chunk.ordered_modules(module_graph);
+    let mut ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+      &args.chunk_ukey,
+      SourceType::JavaScript,
+      module_graph,
+    );
+
+    ordered_modules.sort_by_key(|m| &m.uri);
 
     let has_inline_runtime = !TargetPlatform::is_web(&compilation.options.target.platform)
       && matches!(chunk.kind, ChunkKind::Entry { .. });
 
     let mut module_code_array = ordered_modules
       .par_iter()
-      .filter(|module| {
-        module
-          .module
-          .source_types(module, compilation)
-          .contains(&SourceType::JavaScript)
-      })
       .map(|module| {
         module
           .module
@@ -113,23 +113,29 @@ impl Plugin for JsPlugin {
       module_code_array.push(Some(get_wrap_chunk_after()));
     }
 
-    let entry_module_id = ordered_modules
-      .last()
-      .ok_or_else(|| anyhow::format_err!("TODO:"))?
-      .id
-      .as_str();
-
-    let execute_code =
-      compilation
-        .runtime
-        .generate_rspack_execute(namespace, RSPACK_REQUIRE, entry_module_id);
-
     let code = module_code_array
       .into_par_iter()
       .flatten()
       .chain([{
         if chunk.kind.is_entry() && !has_inline_runtime {
-          execute_code
+          // TODO: how do we handle multiple entry modules?
+          let entry_module_uri = args
+            .compilation
+            .chunk_graph
+            .get_chunk_entry_modules(&args.chunk_ukey)
+            .into_iter()
+            .next()
+            .unwrap_or_else(|| panic!("entry module not found"));
+          let entry_module_id = &args
+            .compilation
+            .module_graph
+            .module_by_uri(entry_module_uri)
+            .unwrap_or_else(|| panic!("entry module not found"))
+            .id;
+
+          compilation
+            .runtime
+            .generate_rspack_execute(namespace, RSPACK_REQUIRE, entry_module_id)
         } else {
           String::new()
         }

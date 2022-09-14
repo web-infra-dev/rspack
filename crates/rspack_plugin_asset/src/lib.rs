@@ -73,18 +73,14 @@ impl Plugin for AssetPlugin {
   ) -> PluginRenderManifestHookOutput {
     let compilation = args.compilation;
     let module_graph = &compilation.module_graph;
-    let chunk = args.chunk();
 
-    let ordered_modules = chunk.ordered_modules(module_graph);
+    let ordered_modules = compilation
+      .chunk_graph
+      .get_chunk_modules(&args.chunk_ukey, module_graph);
 
     let assets = ordered_modules
       .par_iter()
-      .filter(|module| {
-        module
-          .module
-          .source_types(module, compilation)
-          .contains(&SourceType::Asset)
-      })
+      .filter(|module| module.module.source_types().contains(&SourceType::Asset))
       .map(|module| {
         module
           .module

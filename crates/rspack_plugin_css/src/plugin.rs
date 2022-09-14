@@ -124,17 +124,50 @@ impl Plugin for CssPlugin {
     args: rspack_core::RenderManifestArgs,
   ) -> rspack_core::PluginRenderManifestHookOutput {
     let compilation = args.compilation;
-    let module_graph = &compilation.module_graph;
     let chunk = args.chunk();
-    let ordered_modules = chunk.ordered_modules(module_graph);
+
+    let ordered_modules = {
+      let modules = args
+        .compilation
+        .chunk_graph
+        .get_chunk_modules_by_source_type(
+          &chunk.ukey,
+          SourceType::Css,
+          &args.compilation.module_graph,
+        );
+
+      if chunk.groups.len() > 1 {
+        panic!("TODO: Supports multiple ChunkGroup");
+      }
+
+      let groups = chunk
+        .groups
+        .iter()
+        .filter_map(|ukey| args.compilation.chunk_group_by_ukey.get(ukey))
+        .map(|chunk_group| {
+          let mut modules = modules.clone();
+          modules.sort_by_key(|mgm| chunk_group.module_post_order_index(mgm.uri.as_str()));
+          tracing::debug!(
+            "modules: {:#?}",
+            modules
+              .iter()
+              .map(|mgm| (
+                mgm.uri.clone(),
+                chunk_group.module_post_order_index(mgm.uri.as_str())
+              ))
+              .collect::<Vec<_>>()
+          );
+          modules
+        });
+
+      groups
+        .into_iter()
+        .next()
+        .unwrap_or_else(|| panic!("No groups found"))
+    };
+
     let code = ordered_modules
       .par_iter()
-      .filter(|module| {
-        module
-          .module
-          .source_types(module, compilation)
-          .contains(&SourceType::Css)
-      })
       .map(|module| module.module.render(SourceType::Css, module, compilation))
       .collect::<Result<Vec<_>>>()?
       .into_par_iter()

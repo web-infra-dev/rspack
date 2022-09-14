@@ -1,31 +1,6 @@
 self["__rspack_runtime__"].__rspack_register__([
     "main"
-  ], {"./lib.js":function(module, exports, __rspack_require__, __rspack_dynamic_require__) {
-    "use strict";
-    Object.defineProperty(exports, "__esModule", {
-        value: true
-    });
-    function _export(target, all) {
-        for(var name in all)Object.defineProperty(target, name, {
-            enumerable: true,
-            get: all[name]
-        });
-    }
-    _export(exports, {
-        default: function() {
-            return _default;
-        },
-        DO_NOT_CONVERTED7: function() {
-            return DO_NOT_CONVERTED7;
-        },
-        DO_NOT_CONVERTED9: function() {
-            return DO_NOT_CONVERTED9;
-        }
-    });
-    const DO_NOT_CONVERTED7 = 402;
-    const DO_NOT_CONVERTED9 = 403;
-    var _default = 401;
-},"./index.js":function(module, exports, __rspack_require__, __rspack_dynamic_require__) {
+  ], {"./index.js":function(module, exports, __rspack_require__, __rspack_dynamic_require__) {
     "use strict";
     function _getRequireWildcardCache(nodeInterop) {
         if (typeof WeakMap !== "function") return null;
@@ -322,4 +297,29 @@ self["__rspack_runtime__"].__rspack_register__([
     } catch (err7) {}
     assert.deepStrictEqual(error_count, 8);
     console.log(console.log(console.log));
+},"./lib.js":function(module, exports, __rspack_require__, __rspack_dynamic_require__) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", {
+        value: true
+    });
+    function _export(target, all) {
+        for(var name in all)Object.defineProperty(target, name, {
+            enumerable: true,
+            get: all[name]
+        });
+    }
+    _export(exports, {
+        default: function() {
+            return _default;
+        },
+        DO_NOT_CONVERTED7: function() {
+            return DO_NOT_CONVERTED7;
+        },
+        DO_NOT_CONVERTED9: function() {
+            return DO_NOT_CONVERTED9;
+        }
+    });
+    const DO_NOT_CONVERTED7 = 402;
+    const DO_NOT_CONVERTED9 = 403;
+    var _default = 401;
 },});self["__rspack_runtime__"].__rspack_require__("./index.js");

@@ -1,15 +1,14 @@
 use crate::{
-  split_chunks::code_splitting2, AssetContent, Chunk, ChunkGraph, ChunkUkey, CompilerOptions,
-  Dependency, EntryItem, Entrypoint, ModuleDependency, ModuleGraph, PluginDriver,
-  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime,
-  VisitedModuleIdentity,
+  split_chunks::code_splitting, AssetContent, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup,
+  ChunkGroupUkey, ChunkKind, ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint,
+  ModuleDependency, ModuleGraph, PluginDriver, ProcessAssetsArgs, RenderManifestArgs,
+  RenderRuntimeArgs, ResolveKind, Runtime, VisitedModuleIdentity,
 };
 use hashbrown::HashMap;
 use rayon::prelude::*;
 use rspack_error::{Diagnostic, Result};
 use serde::Serialize;
 use std::{fmt::Debug, sync::Arc};
-use tracing::instrument;
 
 #[derive(Debug)]
 pub struct Compilation {
@@ -19,10 +18,13 @@ pub struct Compilation {
   pub module_graph: ModuleGraph,
   pub chunk_graph: ChunkGraph,
   pub chunk_by_ukey: HashMap<ChunkUkey, Chunk>,
+  pub chunk_group_by_ukey: HashMap<ChunkGroupUkey, ChunkGroup>,
   pub runtime: Runtime,
-  pub entrypoints: HashMap<String, Entrypoint>,
+  pub entrypoints: HashMap<String, ChunkGroupUkey>,
   pub assets: CompilationAssets,
   pub diagnostic: Vec<Diagnostic>,
+  pub(crate) _named_chunk: HashMap<String, ChunkUkey>,
+  pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
 }
 impl Compilation {
   pub fn new(
@@ -36,12 +38,15 @@ impl Compilation {
       visited_module_id,
       module_graph,
       chunk_by_ukey: Default::default(),
+      chunk_group_by_ukey: Default::default(),
       entries: HashMap::from_iter(entries),
       chunk_graph: Default::default(),
       runtime: Default::default(),
       entrypoints: Default::default(),
       assets: Default::default(),
       diagnostic: vec![],
+      _named_chunk: Default::default(),
+      named_chunk_groups: Default::default(),
     }
   }
   pub fn add_entry(&mut self, name: String, detail: EntryItem) {
@@ -58,6 +63,18 @@ impl Compilation {
 
   pub fn push_batch_diagnostic(&mut self, mut diagnostic: Vec<Diagnostic>) {
     self.diagnostic.append(&mut diagnostic);
+  }
+
+  pub(crate) fn add_chunk(
+    chunk_by_ukey: &mut ChunkByUkey,
+    name: Option<String>,
+    id: String,
+    kind: ChunkKind,
+  ) -> &mut Chunk {
+    let chunk = Chunk::new(name, id, kind);
+    let ukey = chunk.ukey;
+    chunk_by_ukey.insert(chunk.ukey, chunk);
+    chunk_by_ukey.get_mut(&ukey).expect("chunk not found")
   }
 
   pub fn entry_dependencies(&self) -> HashMap<String, Dependency> {
@@ -81,7 +98,7 @@ impl Compilation {
   }
 
   fn create_chunk_assets(&mut self, plugin_driver: Arc<PluginDriver>) {
-    let chunk_ref_and_manifest = self
+    let chunk_ukey_and_manifest = self
       .chunk_by_ukey
       .par_values()
       .map(|chunk| {
@@ -93,11 +110,11 @@ impl Compilation {
       })
       .collect::<Vec<_>>();
 
-    chunk_ref_and_manifest
+    chunk_ukey_and_manifest
       .into_iter()
-      .for_each(|(chunk_ref, manifest)| {
+      .for_each(|(chunk_ukey, manifest)| {
         manifest.unwrap().into_iter().for_each(|file_manifest| {
-          let current_chunk = self.chunk_by_ukey.get_mut(&chunk_ref).unwrap();
+          let current_chunk = self.chunk_by_ukey.get_mut(&chunk_ukey).unwrap();
           current_chunk
             .files
             .insert(file_manifest.filename().to_string());
@@ -145,14 +162,21 @@ impl Compilation {
     todo!()
   }
 
-  #[instrument(skip_all)]
+  pub fn entrypoint_by_name(&self, name: &str) -> &Entrypoint {
+    let ukey = self.entrypoints.get(name).expect("entrypoint not found");
+    self
+      .chunk_group_by_ukey
+      .get(ukey)
+      .expect("entrypoint not found by ukey")
+  }
+
   pub async fn seal(&mut self, plugin_driver: Arc<PluginDriver>) -> Result<()> {
-    code_splitting2(self);
+    code_splitting(self)?;
     // TODO: optmize chunks
 
-    for chunk in self.chunk_by_ukey.values_mut() {
-      chunk.calc_exec_order(&self.module_graph)?;
-    }
+    // for chunk in self.chunk_by_ukey.values_mut() {
+    //   chunk.calc_exec_order(&self.module_graph)?;
+    // }
 
     tracing::debug!("chunk graph {:#?}", self.chunk_graph);
 
@@ -173,19 +197,6 @@ impl Compilation {
     self.create_chunk_assets(plugin_driver.clone());
     // generate runtime
     self.runtime = self.render_runtime(plugin_driver.clone());
-
-    self.entries.iter().for_each(|(name, _entry)| {
-      let mut entrypoint = Entrypoint::new();
-      self
-        .chunk_by_ukey
-        .values()
-        .filter(|chunk| &chunk.id == name)
-        .map(|chunk| chunk.ukey)
-        .for_each(|chunk_ref| {
-          entrypoint.chunks.push(chunk_ref);
-        });
-      self.entrypoints.insert(name.clone(), entrypoint);
-    });
 
     self.process_assets(plugin_driver).await;
     Ok(())

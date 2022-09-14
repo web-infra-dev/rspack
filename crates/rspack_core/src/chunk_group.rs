@@ -1,13 +1,43 @@
-use hashbrown::HashSet;
+use hashbrown::{HashMap, HashSet};
 
-use crate::{ChunkByUkey, ChunkUkey};
+use crate::{Chunk, ChunkByUkey, ChunkGroupUkey, ChunkUkey};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct ChunkGroup {
+  pub ukey: ChunkGroupUkey,
   pub(crate) chunks: Vec<ChunkUkey>,
+  pub(crate) module_pre_order_indices: HashMap<String, usize>,
+  pub(crate) module_post_order_indices: HashMap<String, usize>,
+  _parents: HashSet<ChunkGroupUkey>,
+  _children: HashSet<ChunkGroupUkey>,
+  _kind: ChunkGroupKind,
+  // ChunkGroupInfo
+  pub(crate) next_pre_order_index: usize,
+  pub(crate) next_post_order_index: usize,
 }
 
 impl ChunkGroup {
+  pub fn new(kind: ChunkGroupKind) -> Self {
+    Self {
+      ukey: ChunkGroupUkey::new(),
+      chunks: vec![],
+      module_post_order_indices: Default::default(),
+      module_pre_order_indices: Default::default(),
+      _parents: Default::default(),
+      _children: Default::default(),
+      _kind: kind,
+      next_pre_order_index: 0,
+      next_post_order_index: 0,
+    }
+  }
+
+  pub fn module_post_order_index(&self, module_uri: &str) -> usize {
+    *self
+      .module_post_order_indices
+      .get(module_uri)
+      .expect("module not found")
+  }
+
   pub fn get_files(&self, chunk_by_ukey: &ChunkByUkey) -> HashSet<String> {
     self
       .chunks
@@ -22,4 +52,15 @@ impl ChunkGroup {
       })
       .collect()
   }
+
+  pub(crate) fn connect_chunk(&mut self, chunk: &mut Chunk) {
+    self.chunks.push(chunk.ukey);
+    chunk.add_group(self.ukey);
+  }
+}
+
+#[derive(Debug)]
+pub enum ChunkGroupKind {
+  Entrypoint,
+  Normal,
 }

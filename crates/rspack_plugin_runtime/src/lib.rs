@@ -148,7 +148,9 @@ impl Plugin for RuntimePlugin {
             if let AssetContent::String(code) =
               &compilation.assets.get(js_entry_file).unwrap().source()
             {
-              let ordered_modules = chunk.ordered_modules(&compilation.module_graph);
+              let ordered_modules = compilation
+                .chunk_graph
+                .get_chunk_modules(&chunk.ukey, &compilation.module_graph);
               let entry_module_id = ordered_modules.last().unwrap().id.as_str();
               let execute_code = compilation.runtime.generate_rspack_execute(
                 namespace,
