@@ -86,7 +86,7 @@ jobs:
         run: |
           echo "### Benchmark Results" > output
           echo "\`\`\`"  >> output
-          critcmp next pr >> output
+          critcmp baseline pr >> output
           echo "\`\`\`" >> output
           cat output
           comment="$(cat output)"
