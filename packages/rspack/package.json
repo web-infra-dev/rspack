@@ -2,7 +2,7 @@
   "name": "@rspack/core",
   "version": "0.0.4",
   "bin": {
-    "rspack": "./bin.js"
+    "rspack": "./lib/bin/index.js"
   },
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -12,10 +12,7 @@
     "example": "node -r ts-node/register ./example/basic.ts",
     "test": "jest --verbose"
   },
-  "files": [
-    "lib",
-    "bin.js"
-  ],
+  "files": ["lib", "bin.js"],
   "devDependencies": {
     "@types/node": "^18.6.3",
     "tsm": "^2.2.2",
@@ -44,7 +41,8 @@
     "sirv": "2.0.2",
     "@rspack/plugin-postcss": "workspace:^",
     "tapable": "2.2.1",
-    "webpack-sources": "3.2.3"
+    "webpack-sources": "3.2.3",
+    "browserslist": "^4.21.3"
   },
   "optionalDependencies": {
     "@tmp-sass-embedded/darwin-arm64": "1.54.4",

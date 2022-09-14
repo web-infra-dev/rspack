@@ -134,9 +134,9 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
     .then(|mut options| {
       let mut plugins = vec![];
       let builtins = raw_options.builtins.unwrap_or_default();
-      normalize_builtin(builtins, &mut plugins, &options)?;
-
+      let res_builtins = normalize_builtin(builtins, &mut plugins, &options)?;
       options.plugins = Some(plugins);
+      options.builtins = Some(res_builtins);
       Ok(options)
     })?
     .then(|mut options| {

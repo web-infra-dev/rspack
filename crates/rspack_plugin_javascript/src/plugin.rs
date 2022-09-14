@@ -10,7 +10,7 @@ use rayon::prelude::*;
 use rspack_core::{
   get_xxh3_64_hash, AssetContent, BoxModule, ChunkKind, FilenameRenderOptions, ModuleRenderResult,
   ModuleType, ParseModuleArgs, Parser, Plugin, PluginContext, PluginRenderManifestHookOutput,
-  RenderManifestEntry, SourceType, TargetPlatform,
+  RenderManifestEntry, SourceType,
 };
 
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -82,7 +82,7 @@ impl Plugin for JsPlugin {
 
     ordered_modules.sort_by_key(|m| &m.uri);
 
-    let has_inline_runtime = !TargetPlatform::is_web(&compilation.options.target.platform)
+    let has_inline_runtime = !compilation.options.target.platform.is_web()
       && matches!(chunk.kind, ChunkKind::Entry { .. });
 
     let mut module_code_array = ordered_modules

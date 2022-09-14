@@ -36,6 +36,21 @@ impl RawOptionsExt for RawOptions {
     );
     options.context = Some(fixture_path.to_str().unwrap().to_string());
 
+    // set builtins.minify default to false
+    if options.builtins.is_none() {
+      options.builtins = Some(Default::default())
+    };
+    if let Some(ref mut raw_builtins) = options.builtins && raw_builtins.minify.is_none() {
+        raw_builtins.minify = Some(false);
+    };
+
+    // target default set es_version to es2022
+    if options.target.is_none() {
+      options.target = Some(vec!["web".to_string(), "es2022".to_string()]);
+    };
+    if let Some(ref mut target) = options.target && !target.iter().any(|i| i.as_str().starts_with("es")) {
+      target.push("es2022".to_string());
+    };
     options
   }
 

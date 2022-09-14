@@ -14,6 +14,8 @@ mod resolve;
 pub use resolve::*;
 mod mode;
 pub use mode::*;
+mod builtins;
+pub use builtins::*;
 mod context;
 pub use context::*;
 mod plugins;
@@ -34,6 +36,7 @@ pub struct CompilerOptionsBuilder {
   pub output: Option<OutputOptions>,
   pub target: Option<Target>,
   pub resolve: Option<Resolve>,
+  pub builtins: Option<Builtins>,
   pub plugins: Option<Plugins>,
   pub module: Option<ModuleOptions>,
   pub define: Option<Define>,
@@ -52,6 +55,7 @@ impl CompilerOptionsBuilder {
       output: self.output.unwrap(),
       target: self.target.unwrap(),
       resolve: self.resolve.unwrap(),
+      builtins: self.builtins.unwrap(),
       plugins: self.plugins.unwrap(),
       module: self.module.unwrap(),
       define: self.define.unwrap(),
