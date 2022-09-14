@@ -47,7 +47,11 @@ pub struct RawPxToRemConfig {
   pub media_query: Option<bool>,
   pub min_pixel_value: Option<f64>,
 }
-
+#[allow(clippy::from_over_into)]
+/// I need to use `Into` instead of `From` because
+/// using `From` means I need to import [RawPostCssConfig]
+/// in `rspack_plugin_css` which lead a cycle reference
+/// `rspack_plugin_css <- rspack_binding_options` <- `rspack_plugin_css`
 impl Into<PxToRemOption> for RawPxToRemConfig {
   fn into(self) -> PxToRemOption {
     PxToRemOption {

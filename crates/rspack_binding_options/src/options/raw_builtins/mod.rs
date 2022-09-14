@@ -54,6 +54,11 @@ pub(super) fn normalize_builtin(
   Ok(())
 }
 
+#[allow(clippy::from_over_into)]
+/// I need to use `Into` instead of `From` because
+/// using `From` means I need to import [RawPostCssConfig]
+/// in `rspack_plugin_css` which lead a cycle reference
+/// `rspack_plugin_css <- rspack_binding_options` <- `rspack_plugin_css`
 impl Into<PostcssConfig> for RawPostCssConfig {
   fn into(self) -> PostcssConfig {
     PostcssConfig {
