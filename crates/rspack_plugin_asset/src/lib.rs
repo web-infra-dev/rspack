@@ -5,8 +5,8 @@ use rayon::prelude::*;
 use rspack_error::Result;
 
 use rspack_core::{
-  AssetContent, AssetParserOptions, FilenameRenderOptions, ModuleRenderResult, Plugin,
-  PluginContext, PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry,
+  get_xxh3_64_hash, AssetContent, AssetParserOptions, FilenameRenderOptions, ModuleRenderResult,
+  Plugin, PluginContext, PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry,
   SourceType,
 };
 
@@ -78,6 +78,27 @@ impl Plugin for AssetPlugin {
       .chunk_graph
       .get_chunk_modules(&args.chunk_ukey, module_graph);
 
+    let assets_code = ordered_modules
+      .par_iter()
+      .filter(|module| {
+        module
+          .module
+          .source_types(module, compilation)
+          .contains(&SourceType::Asset)
+      })
+      .map(|module| module.module.render(SourceType::Asset, module, compilation))
+      .collect::<Result<Vec<_>>>()?
+      .into_par_iter()
+      .fold(String::new, |mut output, cur| {
+        if let Some(ModuleRenderResult::Asset(source)) = cur {
+          let assert_string = String::from_utf8_lossy(&source);
+          output += "\n\n";
+          output += &assert_string
+        }
+        output
+      })
+      .collect::<String>();
+
     let assets = ordered_modules
       .par_iter()
       .filter(|module| module.module.source_types().contains(&SourceType::Asset))
@@ -87,6 +108,9 @@ impl Plugin for AssetPlugin {
           .render(SourceType::Asset, module, compilation)
           .map(|result| {
             if let Some(ModuleRenderResult::Asset(asset)) = result {
+              let code = String::from_utf8_lossy(&asset);
+              let contenthash = Some(get_xxh3_64_hash(&code).to_string());
+              let chunkhash = Some(get_xxh3_64_hash(&assets_code).to_string());
               let path = Path::new(&module.id);
               Some(RenderManifestEntry::new(
                 AssetContent::Buffer(asset),
@@ -105,7 +129,8 @@ impl Plugin for AssetPlugin {
                       .and_then(OsStr::to_str)
                       .map(|str| format!("{}{}", ".", str)),
                     id: None,
-                    contenthash: None,
+                    contenthash,
+                    chunkhash,
                   }),
               ))
             } else {

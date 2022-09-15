@@ -187,6 +187,41 @@ impl Plugin for CssPlugin {
       })
       .collect::<String>();
 
+    // to combine css and js code to generate chunkhash
+    let combined_code = ordered_modules
+      .par_iter()
+      .map(|module| {
+        if module
+          .module
+          .source_types(module, compilation)
+          .contains(&SourceType::Css)
+        {
+          module.module.render(SourceType::Css, module, compilation)
+        } else if module
+          .module
+          .source_types(module, compilation)
+          .contains(&SourceType::JavaScript)
+        {
+          module
+            .module
+            .render(SourceType::JavaScript, module, compilation)
+        } else {
+          module.module.render(SourceType::Asset, module, compilation)
+        }
+      })
+      .collect::<Result<Vec<_>>>()?
+      .into_par_iter()
+      .fold(String::new, |mut output, cur| {
+        if let Some(ModuleRenderResult::Css(source) | ModuleRenderResult::JavaScript(source)) = cur
+        {
+          output += "\n\n";
+          output += &source;
+        }
+        output
+      })
+      .collect::<String>();
+
+    let chunkhash = Some(get_xxh3_64_hash(&combined_code).to_string());
     let contenthash = Some(get_xxh3_64_hash(&code).to_string());
 
     if code.is_empty() {
@@ -203,6 +238,7 @@ impl Plugin for CssPlugin {
               extension: Some(".css".to_owned()),
               id: None,
               contenthash,
+              chunkhash,
             })
         }
         ChunkKind::Normal => {
@@ -215,6 +251,7 @@ impl Plugin for CssPlugin {
               extension: Some(".css".to_owned()),
               id: Some(format!("static/css/{}", args.chunk().id.to_owned())),
               contenthash,
+              chunkhash,
             })
         }
       };
