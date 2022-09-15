@@ -1,11 +1,5 @@
-import assert from "assert";
-import { test, suite } from "uvu";
-import { runCase } from "./case.template";
+import { describeCases } from "./case.template";
 
-test("case-runner", () => {
-	runCase({
-		name: "basic"
-	});
+describeCases({
+	name: "basic"
 });
-
-test.run();
