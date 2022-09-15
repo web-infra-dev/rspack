@@ -23,6 +23,7 @@ pub struct FilenameRenderOptions {
   pub extension: Option<String>,
   pub id: Option<String>,
   pub contenthash: Option<String>,
+  pub chunkhash: Option<String>,
 }
 #[derive(Debug)]
 pub struct Filename {
@@ -59,6 +60,13 @@ impl Filename {
       let hash_length: usize = get_hash_length(&hash_placeholder, CONTENT_HASH_PLACEHOLDER);
 
       filename = filename.replace(&hash_placeholder, &contenthash[..hash_length]);
+    }
+
+    if let Some(chunkhash) = options.chunkhash {
+      let hash_placeholder = get_hash_placeholder(&filename, CHUNK_HASH_PLACEHOLDER);
+      let hash_length: usize = get_hash_length(&hash_placeholder, CHUNK_HASH_PLACEHOLDER);
+
+      filename = filename.replace(&hash_placeholder, &chunkhash[..hash_length]);
     }
 
     filename
