@@ -83,7 +83,6 @@ export function describeCases(config: { name: string }) {
 						_it,
 						expect
 					);
-					console.log("fn:", fn);
 					return m.exports;
 				});
 				const { it: _it } = createLazyTestEnv(10000);

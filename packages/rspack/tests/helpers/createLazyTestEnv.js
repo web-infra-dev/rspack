@@ -1,3 +1,4 @@
+// copy from https://github.com/webpack/webpack/blob/main/test/helpers/createLazyTestEnv.js to align with webpack test suits
 const STATE_SYM = Object.getOwnPropertySymbols(global).find(
 	Symbol("x").description
 		? s => s.description === "JEST_STATE_SYMBOL"
