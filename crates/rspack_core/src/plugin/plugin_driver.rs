@@ -8,11 +8,12 @@ use rspack_loader_runner::ResourceData;
 use tracing::instrument;
 
 use crate::{
-  ApplyContext, BoxModule, BoxedParser, CompilerOptions, Content, FactorizeAndBuildArgs,
-  ModuleType, NormalModuleFactoryContext, ParseModuleArgs, Plugin, PluginBuildEndHookOutput,
-  PluginContext, PluginFactorizeAndBuildHookOutput, PluginProcessAssetsOutput,
-  PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, ProcessAssetsArgs,
-  RenderManifestArgs, RenderRuntimeArgs, Resolver,
+  ApplyContext, BoxModule, BoxedParser, Compilation, CompilerOptions, Content,
+  FactorizeAndBuildArgs, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs,
+  ParseModuleArgs, Plugin, PluginBuildEndHookOutput, PluginContext,
+  PluginFactorizeAndBuildHookOutput, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
+  PluginRenderRuntimeHookOutput, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs,
+  Resolver,
 };
 use rspack_error::{Diagnostic, Error, Result};
 
@@ -170,6 +171,13 @@ impl PluginDriver {
   pub async fn done(&self) -> PluginBuildEndHookOutput {
     for plugin in &self.plugins {
       plugin.done().await?;
+    }
+    Ok(())
+  }
+
+  pub fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<()> {
+    for plugin in &self.plugins {
+      plugin.optimize_chunks(PluginContext::new(), OptimizeChunksArgs { compilation })?;
     }
     Ok(())
   }

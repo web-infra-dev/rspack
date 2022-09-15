@@ -99,3 +99,8 @@ pub struct TransformResult {
   pub content: Option<Content>,
   pub ast: Option<TransformAst>,
 }
+
+#[derive(Debug)]
+pub struct OptimizeChunksArgs<'me> {
+  pub compilation: &'me mut Compilation,
+}
