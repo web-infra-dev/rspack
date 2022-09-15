@@ -11,13 +11,24 @@ module.exports = async function loader(loaderContext) {
 	try {
 		let meta = "";
 		let plugins = [];
-		if (enablePxToRem) {
-			plugins.push(
-				pxtorem({
-					...pxToRem,
-				}),
-			);
+		let enablePxToRem = false;
+		let pxToRemConfig = {
+			rootValue: 50,
+			propList: ["*"]
+		};
+
+		if (pxToRem) {
+			enablePxToRem = true;
+			// Custom config
+			if (typeof pxToRem === "object") {
+				pxToRemConfig = pxToRem;
+			}
 		}
+
+		if (enablePxToRem) {
+			plugins.push(pxtorem(pxToRemConfig));
+		}
+
 		if (enableModules) {
 			plugins.push(
 				cssModules({
@@ -25,17 +36,17 @@ module.exports = async function loader(loaderContext) {
 						if (json) {
 							meta = json;
 						}
-					},
-				}),
+					}
+				})
 			);
 		}
 		let root = new Processor(plugins);
 		let res = await root.process(loaderContext.source.getCode(), {
-			from: undefined,
+			from: undefined
 		});
 		return {
 			content: res.css,
-			meta: meta ? Buffer.from(JSON.stringify(meta)) : "",
+			meta: meta ? Buffer.from(JSON.stringify(meta)) : ""
 		};
 	} catch (err) {
 		throw new Error(err);
