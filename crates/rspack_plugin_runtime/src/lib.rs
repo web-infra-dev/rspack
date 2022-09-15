@@ -148,10 +148,17 @@ impl Plugin for RuntimePlugin {
             if let AssetContent::String(code) =
               &compilation.assets.get(js_entry_file).unwrap().source()
             {
-              let ordered_modules = compilation
+              let entry_module_uri = compilation
                 .chunk_graph
-                .get_chunk_modules(&chunk.ukey, &compilation.module_graph);
-              let entry_module_id = ordered_modules.last().unwrap().id.as_str();
+                .get_chunk_entry_modules(&chunk.ukey)
+                .into_iter()
+                .next()
+                .unwrap_or_else(|| panic!("entry module not found"));
+              let entry_module_id = &compilation
+                .module_graph
+                .module_by_uri(entry_module_uri)
+                .unwrap_or_else(|| panic!("entry module not found"))
+                .id;
               let execute_code = compilation.runtime.generate_rspack_execute(
                 namespace,
                 RSPACK_REQUIRE,
