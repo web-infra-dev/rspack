@@ -3,6 +3,7 @@
 
 use crate::{
   module::{CssModule, CSS_MODULE_SOURCE_TYPE_LIST},
+  pxtorem::{option::PxToRemOption, px_to_rem::px_to_rem},
   SWC_COMPILER,
 };
 
@@ -23,9 +24,15 @@ pub struct CssPlugin {
   config: CssConfig,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct PostcssConfig {
+  pub pxtorem: Option<PxToRemOption>,
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct CssConfig {
   pub preset_env: Vec<String>,
+  pub postcss: PostcssConfig,
 }
 
 impl CssPlugin {
@@ -258,6 +265,10 @@ impl Parser for CssParser {
       stylesheet.visit_mut_with(&mut prefixer(Options {
         env: Some(Targets::Query(query)),
       }));
+    }
+
+    if let Some(config) = self.config.postcss.pxtorem.clone() {
+      stylesheet.visit_mut_with(&mut px_to_rem(config));
     }
 
     let module: BoxModule = Box::new(CssModule {

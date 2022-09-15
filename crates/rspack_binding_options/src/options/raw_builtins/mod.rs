@@ -1,13 +1,15 @@
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
 use rspack_core::{CompilerOptionsBuilder, Plugin};
-use rspack_plugin_css::plugin::CssConfig;
+use rspack_plugin_css::plugin::{CssConfig, PostcssConfig};
 
 mod raw_css;
 mod raw_html;
+mod raw_postcss;
 
 pub use raw_css::*;
 pub use raw_html::*;
+pub use raw_postcss::*;
 
 use crate::RawOption;
 
@@ -19,6 +21,7 @@ use serde::Deserialize;
 pub struct RawBuiltins {
   pub html: Option<Vec<RawHtmlPluginConfig>>,
   pub css: Option<RawCssPluginConfig>,
+  pub postcss: Option<RawPostCssConfig>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -26,6 +29,7 @@ pub struct RawBuiltins {
 pub struct RawBuiltins {
   pub html: Option<Vec<RawHtmlPluginConfig>>,
   pub css: Option<RawCssPluginConfig>,
+  pub postcss: Option<RawPostCssConfig>,
 }
 
 pub(super) fn normalize_builtin(
@@ -42,8 +46,23 @@ pub(super) fn normalize_builtin(
   }
 
   let css_config = builtins.css.clone().unwrap_or_default();
+  let postcss_config = builtins.postcss.clone().unwrap_or_default();
   plugins.push(Box::new(rspack_plugin_css::CssPlugin::new(CssConfig {
     preset_env: css_config.preset_env,
+    postcss: postcss_config.into(),
   })));
   Ok(())
+}
+
+#[allow(clippy::from_over_into)]
+/// I need to use `Into` instead of `From` because
+/// using `From` means I need to import [RawPostCssConfig]
+/// in `rspack_plugin_css` which lead a cycle reference
+/// `rspack_plugin_css <- rspack_binding_options` <- `rspack_plugin_css`
+impl Into<PostcssConfig> for RawPostCssConfig {
+  fn into(self) -> PostcssConfig {
+    PostcssConfig {
+      pxtorem: self.pxtorem.map(|item| item.into()),
+    }
+  }
 }

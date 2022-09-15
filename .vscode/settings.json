@@ -35,6 +35,8 @@
   "cSpell.words": [
     "Deque",
     "napi",
+    "postcss",
+    "pxtorem",
     "rspack",
     "tokio",
     "ukey",
