@@ -172,9 +172,9 @@ pub fn build(env: Env, binding_context: External<RspackBindingContext>) -> Resul
 
       let stats: Stats = rspack_stats.into();
       if stats.errors.is_empty() {
-        println!("build success");
+        tracing::info!("build success");
       } else {
-        println!("build failed");
+        tracing::info!("build failed");
       }
       Ok(stats)
     },
@@ -202,7 +202,7 @@ pub fn rebuild(
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
 
       let stats: Stats = _rspack_stats.into();
-      println!("rebuild success");
+      tracing::info!("rebuild success");
       Ok(stats)
     },
     |_env, ret| Ok(ret),
