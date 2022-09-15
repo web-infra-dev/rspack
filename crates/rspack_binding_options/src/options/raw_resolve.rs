@@ -45,6 +45,7 @@ impl RawOption<Resolve> for RawResolveOptions {
       .condition_names
       .map(HashSet::from_iter)
       .unwrap_or(default.condition_names);
+    // todo alias false
     let alias = self
       .alias
       .map(|alias| {
