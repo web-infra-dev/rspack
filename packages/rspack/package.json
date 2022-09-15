@@ -10,7 +10,7 @@
     "build": "rm -rf lib/ && tsc",
     "dev": "tsc -w",
     "example": "node -r ts-node/register ./example/basic.ts",
-    "test": "uvu -r tsm tests"
+    "test": "uvu -r tsm tests 'test.ts$'"
   },
   "files": [
     "lib",
@@ -24,6 +24,7 @@
     "@types/ws": "8.5.3",
     "@types/connect": "3.4.35",
     "uvu": "0.5.6",
+    "expect": "29.0.3",
     "@rspack/core": "workspace:*",
     "@types/webpack-sources": "3.2.0",
     "sinon": "14.0.0",

@@ -8,12 +8,13 @@ import type { Module, ResolvedModule } from "./module";
 import type { Plugin } from "./plugin";
 import type { ResolvedTarget, Target } from "./target";
 import type { Output, ResolvedOutput } from "./output";
+import type { Resolve, ResolvedResolve } from "./resolve";
+import type { Builtins, ResolvedBuiltins } from "./builtins";
 import { resolveTargetOptions } from "./target";
 import { resolveOutputOptions } from "./output";
 import { resolveDevOptions } from "./dev";
 import { resolveModuleOptions } from "./module";
-import { Builtins, ResolvedBuiltins } from "./builtins";
-import { Resolve, ResolvedResolve } from "./resolve";
+import { resolveResolveOptions } from "./resolve";
 
 export type Asset = {
 	source: string;
@@ -61,7 +62,7 @@ export function resolveOptions(config: RspackOptions): ResolvedRspackOptions {
 	const external = config.external ?? {};
 	const plugins = config.plugins ?? [];
 	const builtins = config.builtins ?? [];
-	const resolve = config.resolve ?? {};
+	const resolve = resolveResolveOptions(config.resolve);
 	const module = resolveModuleOptions(config.module);
 	return {
 		context,
