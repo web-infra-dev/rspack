@@ -1,5 +1,4 @@
 use std::{
-  collections::HashSet,
   env,
   iter::Peekable,
   path::{Path, PathBuf},
@@ -125,7 +124,7 @@ impl RspackImporter {
     });
     let rspack_module_resolve = factory.get(Resolve {
       // TODO: add dependencyType.
-      condition_names: HashSet::from_iter(["sass".to_owned(), "style".to_owned()]),
+      condition_names: vec!["sass".to_owned(), "style".to_owned()],
       // TODO: ["sass", "style", "main", "..."] support `"..."`.
       main_fields: vec!["sass".to_owned(), "style".to_owned(), "main".to_owned()],
       // TODO: ["_index", "index", "..."] support `"..."`.
@@ -135,7 +134,7 @@ impl RspackImporter {
       ..Default::default()
     });
     let rspack_import_resolve = factory.get(Resolve {
-      condition_names: HashSet::from_iter(["sass".to_owned(), "style".to_owned()]),
+      condition_names: vec!["sass".to_owned(), "style".to_owned()],
       main_fields: vec!["sass".to_owned(), "style".to_owned(), "main".to_owned()],
       main_files: vec![
         "_index.import".to_owned(),

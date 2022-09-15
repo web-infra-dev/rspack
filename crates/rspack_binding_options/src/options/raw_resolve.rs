@@ -1,4 +1,4 @@
-use std::{collections::HashMap, collections::HashSet, iter::FromIterator};
+use std::collections::HashMap;
 
 use crate::RawOption;
 #[cfg(feature = "node-api")]
@@ -41,10 +41,7 @@ impl RawOption<Resolve> for RawResolveOptions {
     let browser_field = self.browser_field.unwrap_or(default.browser_field);
     let main_files = self.main_files.unwrap_or(default.main_files);
     let main_fields = self.main_fields.unwrap_or(default.main_fields);
-    let condition_names = self
-      .condition_names
-      .map(HashSet::from_iter)
-      .unwrap_or(default.condition_names);
+    let condition_names = self.condition_names.unwrap_or(default.condition_names);
     // todo alias false
     let alias = self
       .alias

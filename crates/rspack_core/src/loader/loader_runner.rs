@@ -9,11 +9,13 @@ pub use rspack_loader_runner::{
 
 use crate::{
   CompilerOptions, LoaderRunnerPluginProcessResource, ModuleRule, ModuleType, PluginDriver,
+  ResolverFactory,
 };
 
 #[derive(Debug)]
 pub struct CompilerContext {
   pub options: Arc<CompilerOptions>,
+  pub resolver_factory: Arc<ResolverFactory>,
 }
 
 pub type CompilationContext = ();
@@ -30,9 +32,14 @@ pub struct LoaderRunnerRunner {
 type ResolvedModuleType = Option<ModuleType>;
 
 impl LoaderRunnerRunner {
-  pub fn new(options: Arc<CompilerOptions>, plugin_driver: Arc<PluginDriver>) -> Self {
+  pub fn new(
+    options: Arc<CompilerOptions>,
+    resolver_factory: Arc<ResolverFactory>,
+    plugin_driver: Arc<PluginDriver>,
+  ) -> Self {
     let compiler_context = CompilerContext {
       options: options.clone(),
+      resolver_factory,
     };
 
     Self {

@@ -39,14 +39,15 @@ impl Compiler {
   pub fn new(options: CompilerOptions, plugins: Vec<Box<dyn Plugin>>) -> Self {
     let options = Arc::new(options);
 
-    let resolver_factory = ResolverFactory::new();
+    let resolver_factory = Arc::new(ResolverFactory::default());
     let resolver = resolver_factory.get(options.resolve.clone());
     let plugin_driver = Arc::new(PluginDriver::new(
       options.clone(),
       plugins,
       Arc::new(resolver),
     ));
-    let loader_runner_runner = LoaderRunnerRunner::new(options.clone(), plugin_driver.clone());
+    let loader_runner_runner =
+      LoaderRunnerRunner::new(options.clone(), resolver_factory, plugin_driver.clone());
 
     Self {
       options: options.clone(),
