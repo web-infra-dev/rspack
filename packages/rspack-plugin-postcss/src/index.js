@@ -12,8 +12,8 @@ module.exports = async function loader(loaderContext) {
 		let plugins = [
 			pxtorem({
 				rootValue: 50,
-				propList: ["*"],
-			}),
+				propList: ["*"]
+			})
 		];
 		if (enableModules) {
 			plugins.push(
@@ -22,15 +22,15 @@ module.exports = async function loader(loaderContext) {
 						if (json) {
 							meta = json;
 						}
-					},
-				}),
+					}
+				})
 			);
 		}
 		let root = new Processor(plugins);
 		let res = await root.process(loaderContext.source.getCode());
 		return {
 			content: res.css,
-			meta: meta ? Buffer.from(JSON.stringify(meta)) : "",
+			meta: meta ? Buffer.from(JSON.stringify(meta)) : ""
 		};
 	} catch (err) {
 		throw new Error(err);
