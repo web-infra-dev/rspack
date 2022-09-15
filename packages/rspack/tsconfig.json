@@ -5,9 +5,12 @@
     "moduleResolution": "node",
     "esModuleInterop": true,
     "outDir": "lib",
-    "declaration": true
+    "declaration": true,
+    "isolatedModules": true
   },
-  "include": ["src"],
+  "include": [
+    "src"
+  ],
   "ts-node": {
     "transpileOnly": true
   }

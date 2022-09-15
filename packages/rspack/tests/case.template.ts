@@ -1,10 +1,9 @@
-import { test, suite } from "uvu";
 import path from "path";
 import fs from "fs";
 import vm from "vm";
-import { expect } from "expect";
-
 import { Rspack, Plugin, RspackOptions } from "../src";
+import assert from "assert";
+import createLazyTestEnv from "./helpers/createLazyTestEnv";
 
 const casesPath = path.resolve(__dirname, "cases");
 let categoriesDir = fs.readdirSync(casesPath);
@@ -24,51 +23,48 @@ function toEval(modName: string) {
 }
 // most of these could be removed when we support external builtins by default
 const externalModule = ["uvu", "path", "fs", "expect"];
-export function runCase(config: { name: string }) {
-	for (const category of categories) {
-		for (const example of category.tests) {
-			const entry = `./${category.name}/${example}/`;
-			const outputPath = path.resolve(
-				casesPath,
-				`./${category.name}/${example}/dist`
-			);
-			const bundlePath = path.resolve(outputPath, "main.js");
-			test(`${example} should compile`, async () => {
-				const external = Object.fromEntries(
-					externalModule.map(x => [x, toEval(x)])
+export function describeCases(config: { name: string }) {
+	describe(config.name, () => {
+		for (const category of categories) {
+			for (const example of category.tests) {
+				const entry = `./${category.name}/${example}/`;
+				const outputPath = path.resolve(
+					casesPath,
+					`./${category.name}/${example}/dist`
 				);
-				const options: RspackOptions = {
-					target: ["webworker"], // FIXME when target=commonjs supported
-					context: casesPath,
-					entry: {
-						main: entry
-					},
-					output: {
-						path: outputPath,
-						filename: "bundle.js" // not working by now @Todo need fixed later
-					},
-					external: external
-				};
-				const rspack = new Rspack(options);
-				const stats = await rspack.build();
-				if (stats.errors.length > 0) {
-					throw new Error(stats.errors.map(x => x.message).join("\n"));
-				}
-			});
-			// this will run the compiled test code to test against itself, a genius idea from webpack
-			test(`${example} should load the compiled test`, async () => {
-				const context = {};
-				vm.createContext(context);
-				const code = fs.readFileSync(bundlePath, "utf-8");
-				function _require() {}
-				try {
+				const bundlePath = path.resolve(outputPath, "main.js");
+				it(`${example} should compile`, async () => {
+					const external = Object.fromEntries(
+						externalModule.map(x => [x, toEval(x)])
+					);
+					const options: RspackOptions = {
+						target: ["webworker"], // FIXME when target=commonjs supported
+						context: casesPath,
+						entry: {
+							main: entry
+						},
+						output: {
+							path: outputPath,
+							filename: "bundle.js" // not working by now @Todo need fixed later
+						},
+						external: external
+					};
+					const rspack = new Rspack(options);
+					const stats = await rspack.build();
+					assert(stats.errors.length === 0);
+				});
+				// this will run the compiled test code to test against itself, a genius idea from webpack
+				it(`${example} should load the compiled test`, async () => {
+					const context = {};
+					vm.createContext(context);
+					const code = fs.readFileSync(bundlePath, "utf-8");
+					function _require() {}
 					const fn = vm.runInThisContext(
 						`
 				(function testWrapper(require,module,exports,__dirname,__filename,it,expect){
 					global.expect = expect;
 					function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }
 				  ${code};
-					it.run();
 				 }
 				)
 				`,
@@ -77,7 +73,6 @@ export function runCase(config: { name: string }) {
 					const m = {
 						exports: {}
 					};
-					let it = suite(example);
 					fn.call(
 						m.exports,
 						_require,
@@ -85,14 +80,14 @@ export function runCase(config: { name: string }) {
 						m.exports,
 						outputPath,
 						bundlePath,
-						it,
+						_it,
 						expect
 					);
-				} catch (err) {
-					console.log("err:", err);
-				}
-			});
-			test.run();
+					console.log("fn:", fn);
+					return m.exports;
+				});
+				const { it: _it } = createLazyTestEnv(10000);
+			}
 		}
-	}
+	});
 }
