@@ -5,25 +5,25 @@ import { Rspack, Plugin, RspackOptions } from "../src";
 import assert from "assert";
 import createLazyTestEnv from "./helpers/createLazyTestEnv";
 
-const casesPath = path.resolve(__dirname, "cases");
-let categoriesDir = fs.readdirSync(casesPath);
-let categories = categoriesDir
-	.filter(x => x !== "dist" || x.includes("."))
-	.map(cat => {
-		return {
-			name: cat,
-			tests: fs
-				.readdirSync(path.resolve(casesPath, cat))
-				.filter(folder => !folder.includes("_"))
-		};
-	});
 // We do not support externalsType.node-commonjs yet, so I have to use eval to hack around the limitation
 function toEval(modName: string) {
 	return `eval('require("${modName}")')`;
 }
 // most of these could be removed when we support external builtins by default
 const externalModule = ["uvu", "path", "fs", "expect"];
-export function describeCases(config: { name: string }) {
+export function describeCases(config: { name: string; casePath: string }) {
+	const casesPath = path.resolve(__dirname, config.casePath);
+	let categoriesDir = fs.readdirSync(casesPath);
+	let categories = categoriesDir
+		.filter(x => x !== "dist" || x.includes("."))
+		.map(cat => {
+			return {
+				name: cat,
+				tests: fs
+					.readdirSync(path.resolve(casesPath, cat))
+					.filter(folder => !folder.includes("_"))
+			};
+		});
 	describe(config.name, () => {
 		for (const category of categories) {
 			for (const example of category.tests) {
@@ -34,6 +34,15 @@ export function describeCases(config: { name: string }) {
 				);
 				const bundlePath = path.resolve(outputPath, "main.js");
 				it(`${example} should compile`, async () => {
+					const configFile = path.resolve(
+						casesPath,
+						entry,
+						"webpack.config.js"
+					);
+					let config = {};
+					if (fs.existsSync(configFile)) {
+						config = require(configFile);
+					}
 					const external = Object.fromEntries(
 						externalModule.map(x => [x, toEval(x)])
 					);
@@ -47,10 +56,14 @@ export function describeCases(config: { name: string }) {
 							path: outputPath,
 							filename: "bundle.js" // not working by now @Todo need fixed later
 						},
-						external: external
+						external: external,
+						...config // we may need to use deepMerge to handle config merge, but we may fix it until we need it
 					};
 					const rspack = new Rspack(options);
 					const stats = await rspack.build();
+					if (stats.errors.length > 0) {
+						console.log("erros:", stats.errors.map(x => x.message).join("\n"));
+					}
 					assert(stats.errors.length === 0);
 				});
 				// this will run the compiled test code to test against itself, a genius idea from webpack
