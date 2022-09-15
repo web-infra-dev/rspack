@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 pub type AliasMap = nodejs_resolver::AliasMap;
 
 #[derive(Debug, Clone)]
@@ -33,8 +31,8 @@ pub struct Resolve {
   /// type is a `HashSet`, because the priority is
   /// related to the order in which the export field
   /// fields are written.
-  /// Default is `Set()`.
-  pub condition_names: HashSet<String>,
+  /// Default is `["module", "import"]`.
+  pub condition_names: Vec<String>,
 }
 
 impl Default for Resolve {
@@ -50,7 +48,7 @@ impl Default for Resolve {
       main_files: vec![String::from("index")],
       main_fields: vec![String::from("module"), String::from("main")],
       browser_field: true,
-      condition_names: HashSet::from_iter(["module".to_string(), "import".to_string()]),
+      condition_names: vec!["module".to_string(), "import".to_string()],
     }
   }
 }
