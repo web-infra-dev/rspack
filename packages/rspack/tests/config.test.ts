@@ -18,7 +18,6 @@ test("default config snapshot", () => {
 	delete resolvedOptions.context;
 	// @ts-expect-error
 	delete resolvedOptions.dev.static.directory;
-
 	assert.snapshot(
 		JSON.stringify(resolvedOptions),
 		JSON.stringify({
@@ -32,7 +31,14 @@ test("default config snapshot", () => {
 			plugins: [],
 			builtins: [],
 			module: { rules: [] },
-			resolve: {}
+			resolve: {
+				preferRelative: false,
+				extensions: [".tsx", ".jsx", ".ts", ".js", ".json", ".d.ts"],
+				mainFiles: ["index"],
+				mainFields: ["module", "main"],
+				browserField: true,
+				conditionNames: ["module", "import"]
+			}
 		})
 	);
 });
