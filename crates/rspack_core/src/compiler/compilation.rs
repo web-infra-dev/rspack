@@ -172,11 +172,8 @@ impl Compilation {
 
   pub async fn seal(&mut self, plugin_driver: Arc<PluginDriver>) -> Result<()> {
     code_splitting(self)?;
-    // TODO: optmize chunks
 
-    // for chunk in self.chunk_by_ukey.values_mut() {
-    //   chunk.calc_exec_order(&self.module_graph)?;
-    // }
+    plugin_driver.optimize_chunks(self)?;
 
     tracing::debug!("chunk graph {:#?}", self.chunk_graph);
 

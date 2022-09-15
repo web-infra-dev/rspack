@@ -1,9 +1,9 @@
 use std::fmt::Debug;
 
 use crate::{
-  BoxModule, FactorizeAndBuildArgs, ModuleType, NormalModuleFactoryContext, ParseModuleArgs,
-  PluginContext, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, RuntimeSourceNode,
-  TransformAst, TransformResult,
+  BoxModule, FactorizeAndBuildArgs, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs,
+  ParseModuleArgs, PluginContext, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs,
+  RuntimeSourceNode, TransformAst, TransformResult,
 };
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::{Content, ResourceData};
@@ -24,6 +24,7 @@ pub type PluginParseModuleHookOutput = Result<BoxModule>;
 pub type PluginParseOutput = Result<TransformAst>;
 pub type PluginGenerateOutput = Result<Content>;
 pub type PluginProcessAssetsOutput = Result<()>;
+pub type PluginOptimizeChunksOutput = Result<()>;
 // pub type PluginTransformAstHookOutput = Result<ast::Module>;
 
 // pub type PluginTransformHookOutput = Result<TransformResult>;
@@ -127,6 +128,14 @@ pub trait Plugin: Debug + Send + Sync {
     _ctx: PluginContext,
     _args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
+  fn optimize_chunks(
+    &self,
+    _ctx: PluginContext,
+    _args: OptimizeChunksArgs,
+  ) -> PluginOptimizeChunksOutput {
     Ok(())
   }
 }
