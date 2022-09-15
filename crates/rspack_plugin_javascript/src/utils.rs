@@ -5,9 +5,10 @@ use rspack_error::{
 };
 use std::path::Path;
 use std::sync::Arc;
+use swc::SwcComments;
 use swc::{config::IsModule, Compiler as SwcCompiler};
 use swc_atoms::js_word;
-use swc_common::comments::Comments;
+use swc_common::comments::{Comments, SingleThreadedComments};
 use swc_common::{FileName, FilePathMapping, Mark, SourceFile, SourceMap, Span, Spanned, DUMMY_SP};
 use swc_ecma_ast::{CallExpr, Callee, EsVersion, Expr, ExprOrSpread, Id, Ident, Lit, Program, Str};
 use swc_ecma_parser::{parse_file_as_module, parse_file_as_program, parse_file_as_script, Syntax};
@@ -76,7 +77,7 @@ pub fn parse_file(
     syntax,
     // TODO: Is this correct to think the code is module by default?
     IsModule::Bool(true),
-    None,
+    Some(&SwcComments::default()),
   ) {
     Ok((program, errs)) => {
       let errors = errs

@@ -241,6 +241,8 @@ impl Parser for JsParser {
       let ast = ast.fold_with(&mut define_transform);
       let ast = ast.fold_with(&mut resolver(Mark::new(), top_level_mark, false));
       let ast = ast.fold_with(&mut react_folder);
+      // dbg!(&ast);
+
       ast.fold_with(&mut as_folder(ClearMark))
     });
     let module: BoxModule = Box::new(JsModule {
