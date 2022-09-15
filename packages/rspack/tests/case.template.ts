@@ -18,7 +18,7 @@ let categories = categoriesDir
 				.filter(folder => !folder.includes("_"))
 		};
 	});
-// we not support externalsType.node-commonjs yet, so I have to use eval to hack around the limitation
+// We do not support externalsType.node-commonjs yet, so I have to use eval to hack around the limitation
 function toEval(modName: string) {
 	return `eval('require("${modName}")')`;
 }
