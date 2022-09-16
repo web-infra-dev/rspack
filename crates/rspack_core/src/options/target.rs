@@ -67,6 +67,7 @@ impl Target {
         "web" => TargetPlatform::Web,
         "webworker" => TargetPlatform::WebWorker,
         "browserslist" => TargetPlatform::BrowsersList,
+        "node" => TargetPlatform::Node(String::new()),
         _ => {
           return Err(anyhow!("Unknown target platform {}", item));
         }

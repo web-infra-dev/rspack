@@ -2,8 +2,8 @@ use rspack_error::Error;
 use rspack_loader_runner::Content;
 
 use crate::{
-  ApplyContext, FactorizeAndBuildArgs, ModuleType, NormalModuleFactoryContext, ParseModuleArgs,
-  Plugin, PluginContext, PluginFactorizeAndBuildHookOutput,
+  ApplyContext, ExternalType, FactorizeAndBuildArgs, ModuleType, NormalModuleFactoryContext,
+  ParseModuleArgs, Plugin, PluginContext, PluginFactorizeAndBuildHookOutput, TargetPlatform,
 };
 
 #[derive(Debug)]
@@ -27,6 +27,8 @@ impl Plugin for ExternalPlugin {
     args: FactorizeAndBuildArgs,
     job_ctx: &mut NormalModuleFactoryContext,
   ) -> PluginFactorizeAndBuildHookOutput {
+    let target = &job_ctx.options.target;
+    let external_type = &job_ctx.options.external_type;
     for external_item in &job_ctx.options.external {
       match external_item {
         crate::External::Object(eh) => {
@@ -38,7 +40,29 @@ impl Plugin for ExternalPlugin {
                 uri: specifier,
                 meta: None,
                 options: job_ctx.options.clone(),
-                source: Content::Buffer(format!("module.exports = {}", value).as_bytes().to_vec()),
+                source: Content::Buffer(
+                  (match external_type {
+                    ExternalType::NodeCommonjs => {
+                      // format!("module.exports = {}", value)
+                      format!(r#"module.exports = require("{}")"#, value)
+                    }
+                    ExternalType::Window => {
+                      format!("module.exports = window.{}", value)
+                    }
+                    ExternalType::Auto => match target.platform {
+                      TargetPlatform::BrowsersList
+                      | TargetPlatform::Web
+                      | TargetPlatform::WebWorker
+                      | TargetPlatform::None => format!("module.exports = {}", value),
+                      TargetPlatform::Node(_) => {
+                        format!(r#"module.exports = __rspack_require__.nr("{}")"#, value)
+                        // format!(r#"module.exports = require("{}")"#, value)
+                      }
+                    },
+                  })
+                  .as_bytes()
+                  .to_vec(),
+                ),
               },
               job_ctx,
             )?;
