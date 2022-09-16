@@ -80,12 +80,7 @@ impl Plugin for AssetPlugin {
 
     let assets_code = ordered_modules
       .par_iter()
-      .filter(|module| {
-        module
-          .module
-          .source_types(module, compilation)
-          .contains(&SourceType::Asset)
-      })
+      .filter(|module| module.module.source_types().contains(&SourceType::Asset))
       .map(|module| module.module.render(SourceType::Asset, module, compilation))
       .collect::<Result<Vec<_>>>()?
       .into_par_iter()

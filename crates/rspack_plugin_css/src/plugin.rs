@@ -131,6 +131,7 @@ impl Plugin for CssPlugin {
     args: rspack_core::RenderManifestArgs,
   ) -> rspack_core::PluginRenderManifestHookOutput {
     let compilation = args.compilation;
+    let module_graph = &compilation.module_graph;
     let chunk = args.chunk();
 
     let ordered_modules = {
@@ -188,25 +189,23 @@ impl Plugin for CssPlugin {
       .collect::<String>();
 
     // to combine css and js code to generate chunkhash
-    let combined_code = ordered_modules
+    let combined_code = compilation
+      .chunk_graph
+      .get_chunk_modules(&args.chunk_ukey, module_graph)
       .par_iter()
       .map(|module| {
-        if module
-          .module
-          .source_types(module, compilation)
-          .contains(&SourceType::Css)
-        {
+        if module.module.source_types().contains(&SourceType::Css) {
           module.module.render(SourceType::Css, module, compilation)
         } else if module
           .module
-          .source_types(module, compilation)
+          .source_types()
           .contains(&SourceType::JavaScript)
         {
           module
             .module
             .render(SourceType::JavaScript, module, compilation)
         } else {
-          module.module.render(SourceType::Asset, module, compilation)
+          Ok(None)
         }
       })
       .collect::<Result<Vec<_>>>()?
@@ -220,7 +219,6 @@ impl Plugin for CssPlugin {
         output
       })
       .collect::<String>();
-
     let chunkhash = Some(get_xxh3_64_hash(&combined_code).to_string());
     let contenthash = Some(get_xxh3_64_hash(&code).to_string());
 
