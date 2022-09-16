@@ -33,6 +33,9 @@ export function describeCases(config: { name: string; casePath: string }) {
 				);
 				const outputPath = path.resolve(testRoot, `./dist`);
 				const bundlePath = path.resolve(outputPath, "main.js");
+				if (!fs.existsSync(path.resolve(testRoot, "index.js"))) {
+					continue;
+				}
 				describe(category.name, () => {
 					describe(example, () => {
 						it(`${example} should compile`, async () => {
