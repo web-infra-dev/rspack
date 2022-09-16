@@ -146,26 +146,24 @@ impl Plugin for JsPlugin {
       })
       .collect::<String>();
 
-    // to combine css and js code to generate chunkhash
-    let combined_code = ordered_modules
-      .par_iter()
+    // get code for given chunk_ukey to generate chunkhash
+    let combined_code = compilation
+      .chunk_graph
+      .get_chunk_modules(&args.chunk_ukey, module_graph)
+      .into_iter()
       .map(|module| {
-        if module
-          .module
-          .source_types(module, compilation)
-          .contains(&SourceType::Css)
-        {
+        if module.module.source_types().contains(&SourceType::Css) {
           module.module.render(SourceType::Css, module, compilation)
         } else if module
           .module
-          .source_types(module, compilation)
+          .source_types()
           .contains(&SourceType::JavaScript)
         {
           module
             .module
             .render(SourceType::JavaScript, module, compilation)
         } else {
-          module.module.render(SourceType::Asset, module, compilation)
+          Ok(None)
         }
       })
       .collect::<Result<Vec<_>>>()?
