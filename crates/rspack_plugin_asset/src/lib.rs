@@ -78,9 +78,26 @@ impl Plugin for AssetPlugin {
       .chunk_graph
       .get_chunk_modules(&args.chunk_ukey, module_graph);
 
-    let assets_code = ordered_modules
+    let chunk_code = compilation
+      .chunk_graph
+      .get_chunk_modules(&args.chunk_ukey, module_graph)
       .par_iter()
-      .filter(|module| module.module.source_types().contains(&SourceType::Asset))
+      .map(|module| module.module.render(SourceType::Asset, module, compilation))
+      .collect::<Result<Vec<_>>>()?
+      .into_par_iter()
+      .fold(String::new, |mut output, cur| {
+        if let Some(ModuleRenderResult::Asset(source)) = cur {
+          let assert_string = String::from_utf8_lossy(&source);
+          output += "\n\n";
+          output += &assert_string
+        }
+        output
+      })
+      .collect::<String>();
+
+    let all_code = compilation
+      .module_graph
+      .modules()
       .map(|module| module.module.render(SourceType::Asset, module, compilation))
       .collect::<Result<Vec<_>>>()?
       .into_par_iter()
@@ -105,7 +122,8 @@ impl Plugin for AssetPlugin {
             if let Some(ModuleRenderResult::Asset(asset)) = result {
               let code = String::from_utf8_lossy(&asset);
               let contenthash = Some(get_xxh3_64_hash(&code).to_string());
-              let chunkhash = Some(get_xxh3_64_hash(&assets_code).to_string());
+              let chunkhash = Some(get_xxh3_64_hash(&chunk_code).to_string());
+              let hash = Some(get_xxh3_64_hash(&all_code).to_string());
               let path = Path::new(&module.id);
               Some(RenderManifestEntry::new(
                 AssetContent::Buffer(asset),
@@ -126,6 +144,7 @@ impl Plugin for AssetPlugin {
                     id: None,
                     contenthash,
                     chunkhash,
+                    hash,
                   }),
               ))
             } else {

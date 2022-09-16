@@ -147,8 +147,39 @@ impl Plugin for JsPlugin {
       })
       .collect::<String>();
 
-    // to combine css and js code to generate chunkhash
-    let combined_code = compilation
+    // get all code to generate hash
+    let all_code = compilation
+      .module_graph
+      .modules()
+      .map(|module| {
+        if module.module.source_types().contains(&SourceType::Css) {
+          module.module.render(SourceType::Css, module, compilation)
+        } else if module
+          .module
+          .source_types()
+          .contains(&SourceType::JavaScript)
+        {
+          module
+            .module
+            .render(SourceType::JavaScript, module, compilation)
+        } else {
+          Ok(None)
+        }
+      })
+      .collect::<Result<Vec<_>>>()?
+      .into_par_iter()
+      .fold(String::new, |mut output, cur| {
+        if let Some(ModuleRenderResult::Css(source) | ModuleRenderResult::JavaScript(source)) = cur
+        {
+          output += "\n\n";
+          output += &source;
+        }
+        output
+      })
+      .collect::<String>();
+
+    // get chunk_code for a given chunk_ukey to generate chunkhash
+    let chunk_code = compilation
       .chunk_graph
       .get_chunk_modules(&args.chunk_ukey, module_graph)
       .par_iter()
@@ -179,7 +210,8 @@ impl Plugin for JsPlugin {
       })
       .collect::<String>();
 
-    let chunkhash = Some(get_xxh3_64_hash(&combined_code).to_string());
+    let hash = Some(get_xxh3_64_hash(&all_code).to_string());
+    let chunkhash = Some(get_xxh3_64_hash(&chunk_code).to_string());
     let contenthash = Some(get_xxh3_64_hash(&code).to_string());
 
     let output_path = match chunk.kind {
@@ -194,6 +226,7 @@ impl Plugin for JsPlugin {
             id: None,
             contenthash,
             chunkhash,
+            hash,
           })
       }
       ChunkKind::Normal => {
@@ -207,6 +240,7 @@ impl Plugin for JsPlugin {
             id: Some(format!("static/js/{}", args.chunk().id.to_owned())),
             contenthash,
             chunkhash,
+            hash,
           })
       }
     };

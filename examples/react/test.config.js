@@ -5,7 +5,7 @@ module.exports = {
   },
   output : {
     publicPath : 'http://localhost:3000',
-    filename: '[name].[chunkhash:8][ext]',
+    filename: '[name].[hash:8][ext]',
   },
   define : {
     'process.env.NODE_ENV' : 'development',
