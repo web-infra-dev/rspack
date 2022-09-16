@@ -33,71 +33,78 @@ export function describeCases(config: { name: string; casePath: string }) {
 					`./${category.name}/${example}/dist`
 				);
 				const bundlePath = path.resolve(outputPath, "main.js");
-				it(`${example} should compile`, async () => {
-					const configFile = path.resolve(
-						casesPath,
-						entry,
-						"webpack.config.js"
-					);
-					let config = {};
-					if (fs.existsSync(configFile)) {
-						config = require(configFile);
-					}
-					const external = Object.fromEntries(
-						externalModule.map(x => [x, toEval(x)])
-					);
-					const options: RspackOptions = {
-						target: ["webworker"], // FIXME when target=commonjs supported
-						context: casesPath,
-						entry: {
-							main: entry
-						},
-						output: {
-							path: outputPath,
-							filename: "bundle.js" // not working by now @Todo need fixed later
-						},
-						external: external,
-						...config // we may need to use deepMerge to handle config merge, but we may fix it until we need it
-					};
-					const rspack = new Rspack(options);
-					const stats = await rspack.build();
-					if (stats.errors.length > 0) {
-						console.log("erros:", stats.errors.map(x => x.message).join("\n"));
-					}
-					assert(stats.errors.length === 0);
-				});
-				// this will run the compiled test code to test against itself, a genius idea from webpack
-				it(`${example} should load the compiled test`, async () => {
-					const context = {};
-					vm.createContext(context);
-					const code = fs.readFileSync(bundlePath, "utf-8");
-					function _require() {}
-					const fn = vm.runInThisContext(
-						`
-				(function testWrapper(require,module,exports,__dirname,__filename,it,expect){
+				describe(category.name, () => {
+					describe(example, () => {
+						it(`${example} should compile`, async () => {
+							const configFile = path.resolve(
+								casesPath,
+								entry,
+								"webpack.config.js"
+							);
+							let config = {};
+							if (fs.existsSync(configFile)) {
+								config = require(configFile);
+							}
+							const external = Object.fromEntries(
+								externalModule.map(x => [x, toEval(x)])
+							);
+							const options: RspackOptions = {
+								target: ["webworker"], // FIXME when target=commonjs supported
+								context: casesPath,
+								entry: {
+									main: entry
+								},
+								output: {
+									path: outputPath,
+									filename: "bundle.js" // not working by now @Todo need fixed later
+								},
+								external: external,
+								...config // we may need to use deepMerge to handle config merge, but we may fix it until we need it
+							};
+							const rspack = new Rspack(options);
+							const stats = await rspack.build();
+							if (stats.errors.length > 0) {
+								console.log(
+									"erros:",
+									stats.errors.map(x => x.message).join("\n")
+								);
+							}
+							assert(stats.errors.length === 0);
+						});
+						// this will run the compiled test code to test against itself, a genius idea from webpack
+						it(`${example} should load the compiled test`, async () => {
+							const context = {};
+							vm.createContext(context);
+							const code = fs.readFileSync(bundlePath, "utf-8");
+							const fn = vm.runInThisContext(
+								`
+				(function testWrapper(require,_module,exports,__dirname,__filename,it,expect){
 					global.expect = expect;
 					function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }
 				  ${code};
 				 }
 				)
 				`,
-						bundlePath
-					);
-					const m = {
-						exports: {}
-					};
-					fn.call(
-						m.exports,
-						_require,
-						m,
-						m.exports,
-						outputPath,
-						bundlePath,
-						_it,
-						expect
-					);
-					return m.exports;
+								bundlePath
+							);
+							const m = {
+								exports: {}
+							};
+							fn.call(
+								m.exports,
+								require,
+								m,
+								m.exports,
+								outputPath,
+								bundlePath,
+								_it,
+								expect
+							);
+							return m.exports;
+						});
+					});
 				});
+
 				const { it: _it } = createLazyTestEnv(10000);
 			}
 		}
