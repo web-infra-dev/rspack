@@ -1,43 +1,44 @@
-use rspack_core::{RuntimeSourceNode, RUNTIME_PLACEHOLDER_INSTALLED_MODULES};
+use rspack_core::{
+  rspack_sources::{BoxSource, RawSource},
+  RUNTIME_PLACEHOLDER_INSTALLED_MODULES,
+};
 
 use crate::ChunkHash;
 
-pub fn generate_common_init_runtime(namespace: &str) -> RuntimeSourceNode {
-  RuntimeSourceNode {
-    content: include_str!("runtime/common/_init_runtime.js")
+pub fn generate_common_init_runtime(namespace: &str) -> RawSource {
+  RawSource::from(
+    include_str!("runtime/common/_init_runtime.js")
       .to_string()
       .replace("__rspack_runtime__", namespace),
-  }
+  )
 }
 
-pub fn generate_common_module_and_chunk_data() -> RuntimeSourceNode {
-  RuntimeSourceNode {
-    content: include_str!("runtime/common/_module_and_chunk_data.js")
+pub fn generate_common_module_and_chunk_data() -> RawSource {
+  RawSource::from(
+    include_str!("runtime/common/_module_and_chunk_data.js")
       .to_string()
       .replace(
         "__INSTALLED_MODULES__",
         RUNTIME_PLACEHOLDER_INSTALLED_MODULES,
       ),
-  }
+  )
 }
 
-pub fn generate_common_check_by_id() -> RuntimeSourceNode {
-  RuntimeSourceNode {
-    content: include_str!("runtime/common/_check_by_id.js").to_string(),
-  }
+pub fn generate_common_check_by_id() -> RawSource {
+  RawSource::from(include_str!("runtime/common/_check_by_id.js").to_string())
 }
 
-pub fn generate_common_public_path(public_path: &str) -> RuntimeSourceNode {
-  RuntimeSourceNode {
-    content: include_str!("runtime/common/_public_path.js")
+pub fn generate_common_public_path(public_path: &str) -> RawSource {
+  RawSource::from(
+    include_str!("runtime/common/_public_path.js")
       .to_string()
       .replace("__PUBLIC_PATH_PLACEHOLDER__", public_path),
-  }
+  )
 }
 
-pub fn generate_common_dynamic_data(js: Vec<ChunkHash>, css: Vec<ChunkHash>) -> RuntimeSourceNode {
-  RuntimeSourceNode {
-    content: include_str!("runtime/common/_dynamic_data.js")
+pub fn generate_common_dynamic_data(js: Vec<ChunkHash>, css: Vec<ChunkHash>) -> RawSource {
+  RawSource::from(
+    include_str!("runtime/common/_dynamic_data.js")
       .to_string()
       .replace(
         "__JS__",
@@ -77,5 +78,5 @@ pub fn generate_common_dynamic_data(js: Vec<ChunkHash>, css: Vec<ChunkHash>) -> 
           })
         ),
       ),
-  }
+  )
 }

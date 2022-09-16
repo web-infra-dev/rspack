@@ -7,9 +7,8 @@ use std::{
 };
 
 use crate::{
-  AssetContent, CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule,
-  NormalModuleFactory, NormalModuleFactoryContext, Plugin, PluginDriver, Stats,
-  PATH_START_BYTE_POS_MAP,
+  CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule, NormalModuleFactory,
+  NormalModuleFactoryContext, Plugin, PluginDriver, Stats, PATH_START_BYTE_POS_MAP,
 };
 
 use anyhow::Context;
@@ -19,6 +18,7 @@ use rspack_error::{
   emitter::{DiagnosticDisplay, StdioDiagnosticDisplay},
   Error, Result, TWithDiagnosticArray,
 };
+use rspack_sources::BoxSource;
 use tracing::instrument;
 
 mod compilation;
@@ -192,16 +192,11 @@ impl Compiler {
             .unwrap(),
         )?;
 
-        match asset.source() {
-          AssetContent::Buffer(buf) => {
-            fs::write(Path::new(&self.options.output.path).join(filename), buf)
-              .context("failed to write asset")
-          }
-          AssetContent::String(str) => {
-            fs::write(Path::new(&self.options.output.path).join(filename), str)
-              .context("failed to write asset")
-          }
-        }
+        fs::write(
+          Path::new(&self.options.output.path).join(filename),
+          asset.buffer(),
+        )
+        .context("failed to write asset")
       })
       .unwrap();
     self.compilation.done(self.plugin_driver.clone()).await?;
@@ -217,7 +212,7 @@ impl Compiler {
     }
     Ok(Stats::new(&self.compilation))
   }
-  pub fn update_asset(&mut self, filename: String, asset: CompilationAsset) {
+  pub fn update_asset(&mut self, filename: String, asset: BoxSource) {
     self.compilation.assets.insert(filename, asset);
     dbg!(
       "change",

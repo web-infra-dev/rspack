@@ -1,5 +1,8 @@
 // use rspack_error::Result;
-use rspack_core::{BoxModule, Module, ModuleRenderResult, ModuleType, Parser, SourceType};
+use rspack_core::{
+  rspack_sources::{BoxSource, RawSource, Source, SourceExt},
+  BoxModule, Module, ModuleType, Parser, SourceType,
+};
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 
 #[derive(Debug, Default)]
@@ -11,21 +14,21 @@ impl Parser for AssetSourceParser {
     _module_type: ModuleType,
     args: rspack_core::ParseModuleArgs,
   ) -> Result<TWithDiagnosticArray<BoxModule>> {
-    let boxed: BoxModule = Box::new(AssetSourceModule::new(args.source.into_bytes()));
+    let boxed: BoxModule = Box::new(AssetSourceModule::new(args.source));
     Ok(boxed.with_empty_diagnostic())
   }
 }
 static ASSET_SOURCE_MODULE_SOURCE_TYPE_LIST: &[SourceType; 1] = &[SourceType::JavaScript];
 #[derive(Debug)]
 struct AssetSourceModule {
-  buf: Vec<u8>,
+  source: BoxSource,
   source_type_list: &'static [SourceType; 1],
 }
 
 impl AssetSourceModule {
-  fn new(buf: Vec<u8>) -> Self {
+  fn new(source: BoxSource) -> Self {
     Self {
-      buf,
+      source,
       source_type_list: ASSET_SOURCE_MODULE_SOURCE_TYPE_LIST,
     }
   }
@@ -40,26 +43,33 @@ impl Module for AssetSourceModule {
     self.source_type_list.as_ref()
   }
 
+  fn original_source(&self) -> &dyn Source {
+    self.source.as_ref()
+  }
+
   fn render(
     &self,
     requested_source_type: SourceType,
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
-  ) -> Result<Option<ModuleRenderResult>> {
+  ) -> Result<Option<BoxSource>> {
     let result = match requested_source_type {
       SourceType::JavaScript => {
-        if self.buf.is_empty() {
+        let source = self.source.source();
+        if source.is_empty() {
           None
         } else {
-          Some(ModuleRenderResult::JavaScript(format!(
-            r#"function (module, exports, __rspack_require__, __rspack_dynamic_require__) {{
+          Some(
+            RawSource::from(format!(
+              r#"function (module, exports, __rspack_require__, __rspack_dynamic_require__) {{
   "use strict";
   module.exports = {:?};
 }};
 "#,
-            // Align to Node's `Buffer.prototype.toString("utf-8")`: If encoding is 'utf8' and a byte sequence in the input is not valid UTF-8, then each invalid byte is replaced with the replacement character U+FFFD.
-            String::from_utf8_lossy(&self.buf)
-          )))
+              source
+            ))
+            .boxed(),
+          )
         }
       }
       _ => None,

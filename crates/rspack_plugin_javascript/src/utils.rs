@@ -1,4 +1,7 @@
 use once_cell::sync::Lazy;
+use rspack_core::rspack_sources::{
+  BoxSource, ConcatSource, RawSource, ReplaceSource, Source, SourceExt,
+};
 use rspack_core::{ErrorSpan, ModuleType, PATH_START_BYTE_POS_MAP};
 use rspack_error::{
   errors_to_diagnostics, DiagnosticKind, Error, IntoTWithDiagnosticArray, TWithDiagnosticArray,
@@ -205,25 +208,32 @@ pub fn is_dynamic_import_literal_expr(e: &CallExpr) -> bool {
   }
 }
 
-pub fn wrap_module_function(source: String, module_id: &str) -> String {
-  format!(
-    r#""{}":{},"#,
-    module_id,
-    source.trim_end().trim_end_matches(';')
-  )
+pub fn wrap_module_function(source: BoxSource, module_id: &str) -> BoxSource {
+  let mut replace = ReplaceSource::new(source);
+  let end = replace.size() as u32;
+  replace.replace(end - 2, end, "", None);
+  let concat = ConcatSource::new([
+    RawSource::from("\"").boxed(),
+    RawSource::from(module_id.to_string()).boxed(),
+    RawSource::from("\":").boxed(),
+    replace.boxed(),
+    RawSource::from(",").boxed(),
+  ]);
+  concat.boxed()
 }
 
-pub fn get_wrap_chunk_before(namespace: &str, register: &str, chunk_id: &str) -> String {
-  format!(
+pub fn get_wrap_chunk_before(namespace: &str, register: &str, chunk_id: &str) -> BoxSource {
+  RawSource::from(format!(
     r#"self["{}"].{}([
     "{}"
   ], {{"#,
     namespace, register, chunk_id
-  )
+  ))
+  .boxed()
 }
 
-pub fn get_wrap_chunk_after() -> String {
-  String::from("});")
+pub fn get_wrap_chunk_after() -> BoxSource {
+  RawSource::from("});").boxed()
 }
 
 pub fn ecma_parse_error_to_rspack_error(

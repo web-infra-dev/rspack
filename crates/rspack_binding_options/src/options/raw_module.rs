@@ -284,10 +284,17 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
     debug_assert_eq!(status, napi::Status::Ok);
 
     let loader_result = rx.await.map_err(|err| anyhow::Error::from(err))?;
+    let source_map = loader_result
+      .as_ref()
+      .and_then(|r| r.source_map.as_ref())
+      .map(|s| rspack_core::rspack_sources::SourceMap::from_slice(s))
+      .transpose()
+      .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?;
 
     Ok(loader_result.map(|loader_result| {
       rspack_core::LoaderResult {
         content: rspack_core::Content::from(loader_result.content),
+        source_map,
         meta: loader_result
           .meta
           .map(|item| String::from_utf8_lossy(&item).to_string()),
@@ -318,6 +325,7 @@ pub struct LoaderContext {
 #[serde(rename_all = "camelCase")]
 struct LoaderResult {
   pub content: Vec<u8>,
+  pub source_map: Option<Vec<u8>>,
   pub meta: Option<Vec<u8>>,
 }
 

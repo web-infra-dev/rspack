@@ -5,7 +5,10 @@ use rspack_error::{
   DiagnosticKind, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, TraceableError,
 };
 
-use rspack_core::{BoxModule, Module, ModuleRenderResult, ModuleType, Parser, Plugin, SourceType};
+use rspack_core::{
+  rspack_sources::{BoxSource, RawSource, Source, SourceExt},
+  BoxModule, Module, ModuleType, Parser, Plugin, SourceType,
+};
 
 mod utils;
 
@@ -44,7 +47,7 @@ impl Parser for JsonParser {
     _module_type: ModuleType,
     args: rspack_core::ParseModuleArgs,
   ) -> Result<TWithDiagnosticArray<BoxModule>> {
-    let source = args.source.try_into_string()?;
+    let source = args.source.source();
 
     json::parse(&source).map_err(|e| {
       match e {
@@ -87,7 +90,7 @@ impl Parser for JsonParser {
       }
     })?;
 
-    let module: BoxModule = Box::new(JsonModule::new(source));
+    let module: BoxModule = Box::new(JsonModule::new(args.source));
     Ok(module.with_empty_diagnostic())
   }
 }
@@ -96,15 +99,15 @@ static JSON_MODULE_SOURCE_TYPE_LIST: &[SourceType; 1] = &[SourceType::JavaScript
 #[derive(Debug)]
 struct JsonModule {
   module_type: ModuleType,
-  json_str: String,
+  source: BoxSource,
   source_type_list: &'static [SourceType; 1],
 }
 
 impl JsonModule {
-  fn new(json_str: String) -> Self {
+  fn new(source: BoxSource) -> Self {
     Self {
       module_type: ModuleType::Json,
-      json_str,
+      source,
       source_type_list: JSON_MODULE_SOURCE_TYPE_LIST,
     }
   }
@@ -121,22 +124,29 @@ impl Module for JsonModule {
     self.source_type_list.as_ref()
   }
 
+  fn original_source(&self) -> &dyn Source {
+    self.source.as_ref()
+  }
+
   #[tracing::instrument(skip_all)]
   fn render(
     &self,
     requested_source_type: SourceType,
     _module: &rspack_core::ModuleGraphModule,
     _compilation: &rspack_core::Compilation,
-  ) -> Result<Option<ModuleRenderResult>> {
+  ) -> Result<Option<BoxSource>> {
     let result = match requested_source_type {
-      SourceType::JavaScript => Some(ModuleRenderResult::JavaScript(format!(
-        r#"function (module, exports, __rspack_require__, __rspack_dynamic_require__) {{
-    "use strict";
-    module.exports = {};
-  }};
-  "#,
-        utils::escape_json(&self.json_str)
-      ))),
+      SourceType::JavaScript => Some(
+        RawSource::from(format!(
+          r#"function (module, exports, __rspack_require__, __rspack_dynamic_require__) {{
+  "use strict";
+  module.exports = {};
+}};
+"#,
+          utils::escape_json(&self.source.source())
+        ))
+        .boxed(),
+      ),
       _ => None,
     };
 

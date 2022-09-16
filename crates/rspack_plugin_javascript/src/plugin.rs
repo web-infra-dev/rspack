@@ -6,11 +6,13 @@ use crate::visitors::{ClearMark, DefineScanner, DefineTransform};
 use crate::{RSPACK_REGISTER, RSPACK_REQUIRE};
 use async_trait::async_trait;
 use rayon::prelude::*;
+use rspack_core::rspack_sources::{
+  BoxSource, CachedSource, ConcatSource, RawSource, Source, SourceExt,
+};
 use rspack_core::{
-  get_chunkhash, get_contenthash, get_hash, AssetContent, BoxModule, ChunkKind,
-  FilenameRenderOptions, ModuleRenderResult, ModuleType, ParseModuleArgs, Parser, Plugin,
-  PluginContext, PluginProcessAssetsOutput, PluginRenderManifestHookOutput, ProcessAssetsArgs,
-  RenderManifestEntry, SourceType,
+  get_chunkhash, get_contenthash, get_hash, BoxModule, ChunkKind, FilenameRenderOptions, ModuleType, ParseModuleArgs,
+  Parser, Plugin, PluginContext, PluginRenderManifestHookOutput, RenderManifestEntry, SourceType,
+  TargetPlatform,
 };
 use swc::config::JsMinifyOptions;
 
@@ -94,14 +96,14 @@ impl Plugin for JsPlugin {
           .module
           .render(SourceType::JavaScript, module, compilation)
           .map(|source| {
-            if let Some(ModuleRenderResult::JavaScript(source)) = source {
+            if let Some(source) = source {
               Some(wrap_module_function(source, &module.id))
             } else {
               None
             }
           })
       })
-      .collect::<Result<Vec<Option<String>>>>()?;
+      .collect::<Result<Vec<Option<BoxSource>>>>()?;
 
     if !has_inline_runtime {
       // insert chunk wrapper
@@ -116,7 +118,7 @@ impl Plugin for JsPlugin {
       module_code_array.push(Some(get_wrap_chunk_after()));
     }
 
-    let code = module_code_array
+    let sources = module_code_array
       .into_par_iter()
       .flatten()
       .chain([{
@@ -140,18 +142,19 @@ impl Plugin for JsPlugin {
             .runtime
             .generate_rspack_execute(namespace, RSPACK_REQUIRE, entry_module_id)
         } else {
-          String::new()
+          RawSource::from(String::new()).boxed()
         }
       }])
-      .fold(String::new, |mut output, cur| {
-        output += &cur;
+      .fold(ConcatSource::default, |mut output, cur| {
+        output.add(cur);
         output
       })
-      .collect::<String>();
+      .collect::<Vec<ConcatSource>>();
+    let source = CachedSource::new(ConcatSource::new(sources));
 
     let hash = Some(get_hash(compilation).to_string());
     let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
-    let contenthash = Some(get_contenthash(&code).to_string());
+    let contenthash = Some(get_contenthash(&source.source()).to_string());
 
     let output_path = match chunk.kind {
       ChunkKind::Entry { .. } => {
@@ -184,10 +187,7 @@ impl Plugin for JsPlugin {
       }
     };
 
-    Ok(vec![RenderManifestEntry::new(
-      AssetContent::String(code),
-      output_path,
-    )])
+    Ok(vec![RenderManifestEntry::new(source.boxed(), output_path)])
   }
 
   async fn process_assets(
@@ -273,14 +273,8 @@ impl Parser for JsParser {
       )));
     }
 
-    let ast_with_diagnostics = parse_file(
-      args
-        .source
-        .try_into_string()
-        .map_err(|_| Error::InternalError("Unable to serialize content as string".into()))?,
-      args.uri,
-      &module_type,
-    )?;
+    let ast_with_diagnostics =
+      parse_file(args.source.source().to_string(), args.uri, &module_type)?;
 
     let (ast, diagnostics) = ast_with_diagnostics.split_into_parts();
 
@@ -317,6 +311,7 @@ impl Parser for JsParser {
       module_type,
       source_type_list: JS_MODULE_SOURCE_TYPE_LIST,
       unresolved_mark: self.unresolved_mark,
+      loaded_source: args.source,
     });
     Ok(module.with_diagnostic(diagnostics))
   }

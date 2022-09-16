@@ -1831,6 +1831,7 @@ dependencies = [
  "regex",
  "rspack_error",
  "rspack_loader_runner",
+ "rspack_sources",
  "serde",
  "sugar_path",
  "swc",
@@ -1868,6 +1869,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "rspack_error",
+ "rspack_sources",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -2033,6 +2035,17 @@ dependencies = [
  "async-trait",
  "rspack_core",
  "rspack_error",
+]
+
+[[package]]
+name = "rspack_sources"
+version = "0.1.1"
+source = "git+https://github.com/speedy-js/rspack-sources.git?branch=fix-source#53ade1a1ad8dd2a0ee8a8ba24601cb90ec998deb"
+dependencies = [
+ "parking_lot",
+ "serde",
+ "serde_json",
+ "smol_str",
 ]
 
 [[package]]

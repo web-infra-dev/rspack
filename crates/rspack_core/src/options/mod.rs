@@ -1,5 +1,7 @@
 mod compiler_options;
 pub use compiler_options::*;
+mod devtool;
+pub use devtool::*;
 mod entry;
 pub use entry::*;
 mod optimization;
@@ -40,6 +42,7 @@ pub struct CompilerOptionsBuilder {
   pub plugins: Option<Plugins>,
   pub module: Option<ModuleOptions>,
   pub define: Option<Define>,
+  pub devtool: Option<Devtool>,
   pub external: Option<Vec<External>>,
   pub external_type: Option<ExternalType>,
 }
@@ -60,6 +63,7 @@ impl CompilerOptionsBuilder {
       plugins: self.plugins.unwrap(),
       module: self.module.unwrap(),
       define: self.define.unwrap(),
+      devtool: self.devtool.unwrap(),
       external: self.external.unwrap(),
       external_type: self.external_type.unwrap(),
       emit_error: false,

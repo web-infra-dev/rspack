@@ -1,9 +1,11 @@
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use rspack_core::rspack_sources::RawSource;
 use rspack_core::{
-  Compilation, CompilationAsset, Plugin, PluginBuildEndHookOutput, PluginContext,
-  PluginProcessAssetsHookOutput, ProcessAssetsArgs,
+  Compilation, Plugin, PluginBuildEndHookOutput, PluginContext, PluginProcessAssetsHookOutput,
+  ProcessAssetsArgs,
 };
 
 use anyhow::Context;
@@ -23,7 +25,7 @@ use common::ThreadsafeRspackCallback;
 use common::REGISTERED_DONE_SENDERS;
 use common::REGISTERED_PROCESS_ASSETS_SENDERS;
 
-use crate::UpdateAssetOptions;
+use crate::{AssetContent, UpdateAssetOptions};
 
 pub static CALL_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(1));
 
@@ -92,7 +94,13 @@ impl Plugin for RspackPluginNodeAdapter {
     _ctx: PluginContext,
     args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsHookOutput {
-    let context = RspackThreadsafeContext::new(args.compilation.assets.clone());
+    let assets: HashMap<String, Vec<u8>> = args
+      .compilation
+      .assets
+      .iter()
+      .map(|asset| (asset.0.clone(), asset.1.buffer().to_vec()))
+      .collect();
+    let context = RspackThreadsafeContext::new(assets);
     let (tx, rx) = oneshot::channel::<()>();
 
     match REGISTERED_PROCESS_ASSETS_SENDERS.entry(context.get_call_id()) {
@@ -128,8 +136,16 @@ impl Plugin for RspackPluginNodeAdapter {
 
         compilation.emit_asset(
           options.filename,
-          CompilationAsset {
-            source: rspack_core::AssetContent::String(options.asset.source.unwrap()),
+          match options.asset {
+            AssetContent {
+              buffer: Some(buffer),
+              source: None,
+            } => RawSource::Buffer(buffer.into()).into(),
+            AssetContent {
+              buffer: None,
+              source: Some(source),
+            } => RawSource::Source(source).into(),
+            _ => panic!("AssetContent can only be string or buffer"),
           },
         );
 

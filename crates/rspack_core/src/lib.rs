@@ -39,6 +39,8 @@ pub use chunk_group::*;
 mod ukey;
 pub use ukey::*;
 
+pub use rspack_sources;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SourceType {
   JavaScript,

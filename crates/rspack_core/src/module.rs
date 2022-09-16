@@ -1,4 +1,5 @@
 use rspack_error::Result;
+use rspack_sources::{BoxSource, Source};
 
 use std::fmt::Debug;
 
@@ -65,25 +66,19 @@ impl ModuleGraphModule {
   }
 }
 
-// TODO replace with rspack-sources
-#[derive(Debug)]
-pub enum ModuleRenderResult {
-  JavaScript(String),
-  Css(String),
-  Asset(Vec<u8>),
-}
-
 pub trait Module: Debug + Send + Sync {
   fn module_type(&self) -> ModuleType;
 
   fn source_types(&self) -> &[SourceType];
+
+  fn original_source(&self) -> &dyn Source;
 
   fn render(
     &self,
     requested_source_type: SourceType,
     module: &ModuleGraphModule,
     compilation: &Compilation,
-  ) -> Result<Option<ModuleRenderResult>>;
+  ) -> Result<Option<BoxSource>>;
 
   fn dependencies(&mut self) -> Vec<ModuleDependency> {
     vec![]

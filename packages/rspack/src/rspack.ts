@@ -67,18 +67,15 @@ class RspackCompilation {
 			throw err;
 		}
 		const context: RspackThreadsafeContext<
-			Record<string, { source: string | Buffer }>
+			Record<string, number[]>
 		> = JSON.parse(value);
-		let content: Record<string, { source: string | Buffer }> =
+		let content: Record<string, number[]> =
 			context.inner ?? {};
 		let assets = {};
 		for (const [key, value] of Object.entries(content)) {
+			let buffer = Buffer.from(value);
 			// webpack-sources's type definition is wrong, it actually could accept Buffer type
-			let source = value.source;
-			if (Array.isArray(value.source)) {
-				source = Buffer.from(value.source);
-			}
-			assets[key] = new RawSource(source as string);
+			assets[key] = new RawSource(buffer as any);
 		}
 		await this.hooks.processAssets.promise(assets);
 		return createDummyResult(context.id);

@@ -1,12 +1,13 @@
 use crate::{
-  split_chunks::code_splitting, AssetContent, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup,
-  ChunkGroupUkey, ChunkKind, ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint,
-  ModuleDependency, ModuleGraph, PluginDriver, ProcessAssetsArgs, RenderManifestArgs,
-  RenderRuntimeArgs, ResolveKind, Runtime, VisitedModuleIdentity,
+  split_chunks::code_splitting, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey,
+  ChunkKind, ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint, ModuleDependency,
+  ModuleGraph, PluginDriver, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, ResolveKind,
+  Runtime, VisitedModuleIdentity,
 };
 use hashbrown::HashMap;
 use rayon::prelude::*;
 use rspack_error::{Diagnostic, Result};
+use rspack_sources::BoxSource;
 use serde::Serialize;
 use std::{fmt::Debug, sync::Arc};
 
@@ -53,7 +54,7 @@ impl Compilation {
     self.entries.insert(name, detail);
   }
 
-  pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
+  pub fn emit_asset(&mut self, filename: String, asset: BoxSource) {
     self.assets.insert(filename, asset);
   }
 
@@ -119,12 +120,7 @@ impl Compilation {
             .files
             .insert(file_manifest.filename().to_string());
 
-          self.emit_asset(
-            file_manifest.filename().to_string(),
-            CompilationAsset {
-              source: file_manifest.content,
-            },
-          );
+          self.emit_asset(file_manifest.filename().to_string(), file_manifest.source);
         });
       })
   }
@@ -145,7 +141,7 @@ impl Compilation {
   }
   pub fn render_runtime(&self, plugin_driver: Arc<PluginDriver>) -> Runtime {
     if let Ok(sources) = plugin_driver.render_runtime(RenderRuntimeArgs {
-      sources: &vec![],
+      sources: vec![],
       compilation: self,
     }) {
       Runtime {
@@ -200,32 +196,4 @@ impl Compilation {
   }
 }
 
-// TODO: This is a temporary struct. This struct should be replaced with `rspack_sources`.
-// See https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L159
-// See https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L159
-#[derive(Debug, Clone, Serialize)]
-pub struct CompilationAsset {
-  pub source: AssetContent,
-}
-
-impl CompilationAsset {
-  pub fn source(&self) -> &AssetContent {
-    &self.source
-  }
-
-  pub fn string(&self) -> String {
-    match &self.source {
-      AssetContent::String(s) => s.to_string(),
-      AssetContent::Buffer(b) => String::from_utf8_lossy(b).to_string(),
-    }
-  }
-
-  pub fn buffer(&self) -> &[u8] {
-    match &self.source {
-      AssetContent::String(s) => s.as_bytes(),
-      AssetContent::Buffer(b) => b,
-    }
-  }
-}
-
-pub type CompilationAssets = HashMap<String, CompilationAsset>;
+pub type CompilationAssets = HashMap<String, BoxSource>;

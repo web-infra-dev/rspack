@@ -3,10 +3,11 @@ use std::fmt::Debug;
 use crate::{
   BoxModule, FactorizeAndBuildArgs, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs,
   ParseModuleArgs, PluginContext, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs,
-  RuntimeSourceNode, TransformAst, TransformResult,
+  TransformAst, TransformResult,
 };
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::{Content, ResourceData};
+use rspack_sources::{BoxSource, RawSource};
 use serde::{Deserialize, Serialize};
 
 // use anyhow::{Context, Result};
@@ -19,7 +20,7 @@ pub type PluginLoadHookOutput = Result<Option<Content>>;
 pub type PluginTransformOutput = Result<TransformResult>;
 pub type PluginFactorizeAndBuildHookOutput = Result<Option<(String, BoxModule)>>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
-pub type PluginRenderRuntimeHookOutput = Result<Vec<RuntimeSourceNode>>;
+pub type PluginRenderRuntimeHookOutput = Result<Vec<RawSource>>;
 pub type PluginParseModuleHookOutput = Result<BoxModule>;
 pub type PluginParseOutput = Result<TransformAst>;
 pub type PluginGenerateOutput = Result<Content>;
@@ -121,7 +122,7 @@ pub trait Plugin: Debug + Send + Sync {
     _ctx: PluginContext,
     args: RenderRuntimeArgs,
   ) -> PluginRenderRuntimeHookOutput {
-    Ok(args.sources.to_vec())
+    Ok(args.sources)
   }
   async fn process_assets(
     &self,
@@ -140,16 +141,16 @@ pub trait Plugin: Debug + Send + Sync {
   }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum AssetContent {
-  Buffer(Vec<u8>),
-  String(String),
-}
+// #[derive(Debug, Clone, Serialize, Deserialize)]
+// #[serde(untagged)]
+// pub enum AssetContent {
+//   Buffer(Vec<u8>),
+//   String(String),
+// }
 
 #[derive(Debug)]
 pub struct RenderManifestEntry {
-  pub(crate) content: AssetContent,
+  pub(crate) source: BoxSource,
   filename: String,
   // pathOptions÷: PathData;
   // info?: AssetInfo;
@@ -159,12 +160,12 @@ pub struct RenderManifestEntry {
 }
 
 impl RenderManifestEntry {
-  pub fn new(content: AssetContent, filename: String) -> Self {
-    Self { content, filename }
+  pub fn new(source: BoxSource, filename: String) -> Self {
+    Self { source, filename }
   }
 
-  pub fn content(&self) -> &AssetContent {
-    &self.content
+  pub fn source(&self) -> &BoxSource {
+    &self.source
   }
 
   pub fn filename(&self) -> &str {
