@@ -1819,6 +1819,7 @@ dependencies = [
 name = "rspack_core"
 version = "0.1.0"
 dependencies = [
+ "ahash",
  "anyhow",
  "async-trait",
  "crossbeam",
@@ -1836,6 +1837,7 @@ dependencies = [
  "swc_common 0.28.3",
  "swc_css 0.118.2",
  "swc_ecma_ast 0.90.15",
+ "swc_ecma_visit 0.77.3",
  "tokio",
  "tracing",
  "tracing-chrome",

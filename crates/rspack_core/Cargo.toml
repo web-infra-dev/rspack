@@ -32,3 +32,5 @@ tracing-chrome = "0.6.0"
 tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
 url = "2.2.2"
 xxhash-rust = { version = "0.8.5", features = ["xxh3"] }
+swc_ecma_visit = "0.77.3"
+ahash = "0.7.6"
