@@ -8,7 +8,6 @@ use rspack_core::{
 
 use std::fmt::Debug;
 use swc_common::{FileName, Mark};
-use swc_ecma_ast::EsVersion;
 use swc_ecma_transforms::{pass::noop, react};
 use swc_ecma_visit::VisitMutWith;
 
@@ -78,7 +77,7 @@ impl Module for JsModule {
             &swc_config::Options {
               config: swc_config::Config {
                 jsc: swc_config::JscConfig {
-                  target: Some(EsVersion::Es2022),
+                  target: compilation.options.target.es_version,
                   syntax: Some(syntax_by_module_type(self.uri.as_str(), &self.module_type)),
                   transform: Some(swc_config::TransformConfig {
                     react: react::Options {
@@ -93,6 +92,24 @@ impl Module for JsModule {
                 inline_sources_content: true.into(),
                 // emit_source_map_columns: (!matches!(options.mode, BundleMode::Dev)).into(),
                 source_maps: Some(SourceMapsConfig::Bool(source_map)),
+                minify: swc::BoolConfig::new(Some(compilation.options.builtins.minify)),
+                env: if compilation.options.target.platform.is_browsers_list() {
+                  Some(swc_ecma_preset_env::Config {
+                    mode: if compilation.options.builtins.polyfill {
+                      Some(swc_ecma_preset_env::Mode::Usage)
+                    } else {
+                      Some(swc_ecma_preset_env::Mode::Entry)
+                    },
+                    targets: Some(swc_ecma_preset_env::Targets::Query(
+                      preset_env_base::query::Query::Multiple(
+                        compilation.options.builtins.browserslist.clone(),
+                      ),
+                    )),
+                    ..Default::default()
+                  })
+                } else {
+                  None
+                },
                 ..Default::default()
               },
               // top_level_mark: Some(bundle_ctx.top_level_mark),

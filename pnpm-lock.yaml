@@ -166,6 +166,7 @@ importers:
       '@types/sinon': 10.0.13
       '@types/webpack-sources': 3.2.0
       '@types/ws': 8.5.3
+      browserslist: ^4.21.3
       chokidar: 3.5.3
       clipanion: 3.2.0-rc.11
       commander: 9.4.0
@@ -186,6 +187,7 @@ importers:
       '@rspack/binding': link:../../crates/node_binding
       '@rspack/dev-server': link:../rspack-dev-server
       '@rspack/plugin-postcss': link:../rspack-plugin-postcss
+      browserslist: 4.21.3
       chokidar: 3.5.3
       clipanion: 3.2.0-rc.11
       commander: 9.4.0

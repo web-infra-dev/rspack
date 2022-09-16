@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use swc_ecma_ast::EsVersion;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum TargetPlatform {
   BrowsersList,
   Web,
@@ -11,33 +11,33 @@ pub enum TargetPlatform {
 }
 
 impl TargetPlatform {
-  pub fn is_web(target: &Self) -> bool {
-    matches!(target, TargetPlatform::BrowsersList | TargetPlatform::Web)
+  pub fn is_none(&self) -> bool {
+    matches!(self, TargetPlatform::None)
   }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum TargetEsVersion {
-  Es(EsVersion),
-  None,
+  pub fn is_web(&self) -> bool {
+    matches!(self, TargetPlatform::BrowsersList | TargetPlatform::Web)
+  }
+  pub fn is_browsers_list(&self) -> bool {
+    matches!(self, TargetPlatform::BrowsersList)
+  }
 }
 
 #[derive(Debug)]
 pub struct Target {
   pub platform: TargetPlatform,
-  pub es_version: TargetEsVersion,
+  pub es_version: Option<EsVersion>,
 }
 
 impl Target {
   pub fn new(args: &Vec<String>) -> anyhow::Result<Target> {
-    let mut platform = TargetPlatform::None;
-    let mut es_version = TargetEsVersion::None;
+    let mut platform: TargetPlatform = TargetPlatform::None;
+    let mut es_version: Option<EsVersion> = None;
 
     for item in args {
       let item = item.as_str();
       if item.starts_with("es") {
         // es version
-        if es_version != TargetEsVersion::None {
+        if es_version.is_some() {
           return Err(anyhow!("Target es version conflict"));
         }
         let version = match item {
@@ -55,12 +55,12 @@ impl Target {
             return Err(anyhow!("Unknown target es version {}", item));
           }
         };
-        es_version = TargetEsVersion::Es(version);
+        es_version = Some(version);
         continue;
       }
 
       // platform
-      if platform != TargetPlatform::None {
+      if !platform.is_none() {
         return Err(anyhow!("Target platform conflict"));
       }
       platform = match item {
