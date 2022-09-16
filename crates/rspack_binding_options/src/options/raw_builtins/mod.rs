@@ -1,6 +1,6 @@
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
-use rspack_core::{CompilerOptionsBuilder, Plugin};
+use rspack_core::{Builtins, CompilerOptionsBuilder, Mode, Plugin};
 use rspack_plugin_css::plugin::{CssConfig, PostcssConfig};
 
 mod raw_css;
@@ -22,6 +22,9 @@ pub struct RawBuiltins {
   pub html: Option<Vec<RawHtmlPluginConfig>>,
   pub css: Option<RawCssPluginConfig>,
   pub postcss: Option<RawPostCssConfig>,
+  pub minify: Option<bool>,
+  pub polyfill: Option<bool>,
+  pub browserslist: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -30,13 +33,16 @@ pub struct RawBuiltins {
   pub html: Option<Vec<RawHtmlPluginConfig>>,
   pub css: Option<RawCssPluginConfig>,
   pub postcss: Option<RawPostCssConfig>,
+  pub minify: Option<bool>,
+  pub polyfill: Option<bool>,
+  pub browserslist: Option<Vec<String>>,
 }
 
 pub(super) fn normalize_builtin(
   builtins: RawBuiltins,
   plugins: &mut Vec<Box<dyn Plugin>>,
   options: &CompilerOptionsBuilder,
-) -> Result<(), anyhow::Error> {
+) -> Result<Builtins, anyhow::Error> {
   if let Some(configs) = builtins.html {
     for config in configs {
       plugins.push(Box::new(rspack_plugin_html::HtmlPlugin::new(
@@ -51,7 +57,14 @@ pub(super) fn normalize_builtin(
     preset_env: css_config.preset_env,
     postcss: postcss_config.into(),
   })));
-  Ok(())
+
+  Ok(Builtins {
+    browserslist: builtins.browserslist.unwrap_or_default(),
+    minify: builtins
+      .minify
+      .unwrap_or(matches!(options.mode, Some(Mode::Production))),
+    polyfill: builtins.polyfill.unwrap_or(true),
+  })
 }
 
 #[allow(clippy::from_over_into)]
