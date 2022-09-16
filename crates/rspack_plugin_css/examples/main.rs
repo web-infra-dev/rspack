@@ -4,8 +4,8 @@ use rspack_test::read_test_config_and_normalize;
 #[tokio::main]
 async fn main() {
   let manifest_dir = PathBuf::from(&std::env::var("CARGO_MANIFEST_DIR").unwrap());
-  let bundle_dir = manifest_dir.join("tests/fixtures/postcss/pxtorem");
-  // manifest_dir = manifest_dir.join("../../examples/bench");
+  // let bundle_dir = manifest_dir.join("tests/fixtures/postcss/pxtorem");
+  let bundle_dir = manifest_dir.join("../../benchcases/css-heavy");
   println!("{:?}", manifest_dir);
   let mut options = read_test_config_and_normalize(&bundle_dir);
 

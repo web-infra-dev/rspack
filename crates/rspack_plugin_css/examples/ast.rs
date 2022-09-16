@@ -37,7 +37,7 @@ fn transform(source: &str, config_file: Option<&String>) -> String {
   String::new()
 }
 fn main() {
-  let source = include_str!("../../../examples/bench/src/tailwind_component.css");
+  let source = "";
   let config = Some(
     r#"
   {
