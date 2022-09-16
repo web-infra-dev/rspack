@@ -26,9 +26,21 @@ regex = "1.6.0"
 rspack_error = {path = "../rspack_error"}
 rspack_loader_runner = {path = "../loader_runner"}
 serde = '1'
-swc_common = {version = "0.28.3", features = ["concurrent"]}
+swc_common = { version = "0.28.3", features = ["concurrent", "tty-emitter"] }
+swc = "0.226.16"
+swc_ecma_codegen = "0.124.13"
+
 
 tracing-chrome = "0.6.0"
-tracing-subscriber = {version = "0.3.9", features = ["env-filter"]}
+tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
 url = "2.2.2"
-xxhash-rust = {version = "0.8.5", features = ["xxh3"]}
+xxhash-rust = { version = "0.8.5", features = ["xxh3"] }
+swc_ecma_visit = "0.77.3"
+ahash = "0.7.6"
+swc_ecma_transforms = { version = "0.193.14", features = [
+  "swc_ecma_transforms_module",
+  "swc_ecma_transforms_react",
+] }
+
+[dev-dependencies]
+swc_ecma_parser = "0.119.7"

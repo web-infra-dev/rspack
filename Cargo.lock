@@ -2137,6 +2137,7 @@ dependencies = [
 name = "rspack_core"
 version = "0.1.0"
 dependencies = [
+ "ahash",
  "anyhow",
  "async-trait",
  "crossbeam",
@@ -2151,9 +2152,14 @@ dependencies = [
  "rspack_loader_runner",
  "serde",
  "sugar_path",
+ "swc",
  "swc_common 0.28.7",
  "swc_css 0.118.2",
  "swc_ecma_ast 0.91.7",
+ "swc_ecma_codegen 0.124.13",
+ "swc_ecma_parser 0.119.11",
+ "swc_ecma_transforms",
+ "swc_ecma_visit 0.77.7",
  "tokio",
  "tracing",
  "tracing-chrome",
@@ -2950,6 +2956,7 @@ checksum = "44e620ded71d80237149d26699daaebf69c14051e5de8104e3a41bd6f1ec3407"
 dependencies = [
  "ahash",
  "ast_node",
+ "atty",
  "better_scoped_tls",
  "cfg-if",
  "debug_unreachable",
@@ -2966,6 +2973,7 @@ dependencies = [
  "swc_atoms 0.4.14",
  "swc_eq_ignore_macros",
  "swc_visit",
+ "termcolor",
  "tracing",
  "unicode-width",
  "url",
