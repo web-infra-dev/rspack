@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use rspack_test::read_test_config_and_normalize;
 
@@ -20,10 +20,15 @@ fn criterion_benchmark(c: &mut Criterion) {
     .enable_all()
     .build()
     .unwrap();
-  let mut cur_dir = PathBuf::from(&std::env::var("CARGO_MANIFEST_DIR").unwrap());
-  cur_dir = cur_dir.join("../../examples/bench");
-  cur_dir = cur_dir.canonicalize().unwrap();
-  c.bench_function("rspack", |b| b.to_async(&rt).iter(|| bench(&cur_dir)));
+  let lodash = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "../../benchcases/lodash-with-simple-css"
+  )
+  .into();
+  let css_heavy = concat!(env!("CARGO_MANIFEST_DIR"), "../../benchcases/css-heavy").into();
+
+  c.bench_function("lodash", |b| b.to_async(&rt).iter(|| bench(&lodash)));
+  c.bench_function("css_heavy", |b| b.to_async(&rt).iter(|| bench(&css_heavy)));
 }
 criterion_group!(benches, criterion_benchmark);
 criterion_main!(benches);
