@@ -1,5 +1,6 @@
 ---
 source: crates/rspack_plugin_css/src/pxtorem/tests/mod.rs
+assertion_line: 29
 expression: should_replace_0px_to_0.css
 ---
 # Input
@@ -11,6 +12,8 @@ expression: should_replace_0px_to_0.css
 .test {
   width: 0;
 }
+
+
 # Actual
 .test {
   width: 0;

@@ -207,3 +207,16 @@ body { font-size: 16px; } .class-body { font-size: 16px; } .simple-class { font-
 .test {
   width: 0;
 }
+
+<===> should replace 0px to 0 (preserved-token).css
+.translate-x-0 {
+  --tw-translate-x: 0px;
+}
+<===> .config
+{
+  "propList": ["*"]
+}
+<===> .expected
+.translate-x-0 {
+  --tw-translate-x: 0;
+}
