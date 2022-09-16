@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use rspack_test::read_test_config_and_normalize;
 
