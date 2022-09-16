@@ -18,6 +18,35 @@
 - Open rspack project.
 - Run `cargo build` to see that is everthing ok.
 
-<!-- # Testing
+## Testing
 
-Run `cargo run gen_test_config_schema` to update the schema of `test.config.json`, if you change the `TestOptions` in `rspack_test`. -->
+We currently have two sets of test suits, one for rust and one for node.
+
+### Rust Testing
+
+- cargo test will run all the rust side tests, which includes standalone tests for core functionality and plugins.
+
+### Node Testing
+
+```sh
+# you need to build js package before running tests
+pnpm run build && pnpm run test:js
+```
+
+### Node Testing Suit Overview
+
+We use jest for nodejs tests, The most important test cases are the case in the packages/rspack. most of these cases comes from webpack https://github.com/webpack/webpack/tree/main/test because we want to make sure that rspack can work as same as webpack.
+
+There are three kinds of integration cases in rspack/core.
+
+#### case.test.ts
+
+Cases are used to test normal build behavior, we use these cases to test against bundler core functionality, like `entry`, `output`, `module` `resolve`, etc. it will first build your test file to test whether the input could be compiled successfully, then it will use the bundled test file to run test cases in the test file to test bundler's all kinds of behavior.
+
+#### configCase.test.ts
+
+Cases are used to test custom build behavior, you could use custom `webpack.config.js` to override default build behavior, you can use these cases to test against behavior related to specific config.
+
+##### statsTestCase.test.ts
+
+Cases are used to test your stats, By Default we will use jest's snapshot to snapshot your stats, and we **highly** recommend to **avoid** snapshot except statsCase. you can use statsCase to test behaviors like code splitting | bundle splitting, which is hard to test by just running code.
