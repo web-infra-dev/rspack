@@ -5,7 +5,6 @@ use rspack_error::{
 };
 use std::path::Path;
 use std::sync::Arc;
-use swc::SwcComments;
 use swc::{config::IsModule, Compiler as SwcCompiler};
 use swc_atoms::js_word;
 use swc_common::comments::Comments;
@@ -77,7 +76,7 @@ pub fn parse_file(
     syntax,
     // TODO: Is this correct to think the code is module by default?
     IsModule::Bool(true),
-    Some(&SwcComments::default()),
+    None,
   ) {
     Ok((program, errs)) => {
       let errors = errs
