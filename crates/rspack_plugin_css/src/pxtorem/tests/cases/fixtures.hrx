@@ -194,3 +194,16 @@ body { font-size: 16px; } .class-body { font-size: 16px; } .simple-class { font-
 }
 <===> .expected
 .rule { border: 1px solid #000; font-size: 1rem; margin: 1px 0.625rem; }
+
+<===> should replace 0px to 0.css
+.test {
+  width: 0px;
+}
+<===> .config
+{
+  "propList": ["*"]
+}
+<===> .expected
+.test {
+  width: 0;
+}

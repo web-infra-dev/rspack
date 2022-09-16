@@ -360,19 +360,23 @@ impl VisitMut for PxToRem {
   }
 
   fn visit_mut_length(&mut self, len: &mut swc_css::ast::Length) {
-    if &len.unit.value == "px"
-      && len.value.value != 0f64
-      && len.value.value.abs() >= self.min_pixel_value
-      && !self.skip_mutate_length
-    {
-      self.mutated = true;
-      let normalized_value = self.normalized_num(len.value.value);
-      len.unit.span = DUMMY_SP;
-      len.unit.raw = Some("rem".into());
-      len.unit.value = "rem".into();
-      len.value.span = DUMMY_SP;
-      len.value.raw = Some(normalized_value.to_string().into());
-      len.value.value = normalized_value;
+    if &len.unit.value == "px" && !self.skip_mutate_length {
+      if len.value.value != 0f64 && len.value.value.abs() >= self.min_pixel_value {
+        self.mutated = true;
+        let normalized_value = self.normalized_num(len.value.value);
+        len.unit.span = DUMMY_SP;
+        len.unit.raw = Some("rem".into());
+        len.unit.value = "rem".into();
+        len.value.span = DUMMY_SP;
+        len.value.raw = Some(normalized_value.to_string().into());
+        len.value.value = normalized_value;
+        // xxx: 0px;
+      } else if len.value.value == 0f64 {
+        self.mutated = true;
+        len.unit.span = DUMMY_SP;
+        len.unit.raw = None;
+        len.unit.value = "".into();
+      }
     }
   }
 }
