@@ -1,6 +1,5 @@
 ---
 source: crates/rspack_plugin_css/src/pxtorem/tests/mod.rs
-assertion_line: 29
 expression: should_not_replace_values_below_minPixelValue.css
 ---
 # Input
@@ -8,6 +7,7 @@ expression: should_not_replace_values_below_minPixelValue.css
 
 # Expected
 .rule { border: 1px solid #000; font-size: 1rem; margin: 1px 0.625rem; }
+
 
 # Actual
 .rule {
