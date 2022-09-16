@@ -1,5 +1,4 @@
 use rspack_error::Result;
-use swc::config::{JsMinifyFormatOptions, JsMinifyOptions};
 use tracing::instrument;
 
 use crate::visitors::DependencyScanner;
@@ -71,47 +70,37 @@ impl Module for JsModule {
             .new_source_file(FileName::Custom(self.uri.to_string()), self.uri.to_string());
 
           let source_map = false;
-          let config = swc_config::Options {
-            config: swc_config::Config {
-              jsc: swc_config::JscConfig {
-                minify: Some(JsMinifyOptions {
-                  format: JsMinifyFormatOptions {
-                    preserve_annotations: true,
-                    ..Default::default()
-                  },
-                  ..Default::default()
-                }),
-                target: Some(EsVersion::Es2022),
-                syntax: Some(syntax_by_module_type(self.uri.as_str(), &self.module_type)),
-                transform: Some(swc_config::TransformConfig {
-                  react: react::Options {
-                    runtime: Some(react::Runtime::Automatic),
-                    ..Default::default()
-                  },
-                  ..Default::default()
-                })
-                .into(),
-                preserve_all_comments: true.into(),
-                ..Default::default()
-              },
-              inline_sources_content: true.into(),
-              // emit_source_map_columns: (!matches!(options.mode, BundleMode::Dev)).into(),
-              source_maps: Some(SourceMapsConfig::Bool(source_map)),
-              ..Default::default()
-            },
-            // top_level_mark: Some(bundle_ctx.top_level_mark),
-            ..Default::default()
-          };
           compiler.process_js_with_custom_pass(
             fm,
             // TODO: It should have a better way rather than clone.
             Some(self.ast.clone()),
             handler,
-            &config,
+            &swc_config::Options {
+              config: swc_config::Config {
+                jsc: swc_config::JscConfig {
+                  target: Some(EsVersion::Es2022),
+                  syntax: Some(syntax_by_module_type(self.uri.as_str(), &self.module_type)),
+                  transform: Some(swc_config::TransformConfig {
+                    react: react::Options {
+                      runtime: Some(react::Runtime::Automatic),
+                      ..Default::default()
+                    },
+                    ..Default::default()
+                  })
+                  .into(),
+                  ..Default::default()
+                },
+                inline_sources_content: true.into(),
+                // emit_source_map_columns: (!matches!(options.mode, BundleMode::Dev)).into(),
+                source_maps: Some(SourceMapsConfig::Bool(source_map)),
+                ..Default::default()
+              },
+              // top_level_mark: Some(bundle_ctx.top_level_mark),
+              ..Default::default()
+            },
             |_, _| noop(),
-            |program, _| {
+            |_, _| {
               // noop()
-              dbg!(&program);
               finalize(module, compilation, self.unresolved_mark)
             },
           )
@@ -119,7 +108,6 @@ impl Module for JsModule {
         .unwrap()
       })
     });
-
     Ok(Some(ModuleRenderResult::JavaScript(output.code)))
   }
 

@@ -1,9 +1,9 @@
-use std::{collections::HashMap, collections::HashSet, iter::FromIterator};
+use std::{collections::HashSet, iter::FromIterator};
 
 use crate::RawOption;
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
-use rspack_core::{AliasMap, CompilerOptionsBuilder, Resolve};
+use rspack_core::{CompilerOptionsBuilder, Resolve};
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Default)]
@@ -17,7 +17,6 @@ pub struct RawResolveOptions {
   pub main_fields: Option<Vec<String>>,
   pub browser_field: Option<bool>,
   pub condition_names: Option<Vec<String>>,
-  pub alias: Option<HashMap<String, String>>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -30,7 +29,7 @@ pub struct RawResolveOptions {
   pub main_fields: Option<Vec<String>>,
   pub browser_field: Option<bool>,
   pub condition_names: Option<Vec<String>>,
-  pub alias: Option<HashMap<String, String>>,
+  // TODO: `alias`
 }
 
 impl RawOption<Resolve> for RawResolveOptions {
@@ -45,21 +44,6 @@ impl RawOption<Resolve> for RawResolveOptions {
       .condition_names
       .map(HashSet::from_iter)
       .unwrap_or(default.condition_names);
-    // todo alias false
-    let alias = self
-      .alias
-      .map(|alias| {
-        alias
-          .keys()
-          .map(|key| {
-            (
-              key.clone(),
-              AliasMap::Target(alias.get(key).unwrap().clone()),
-            )
-          })
-          .collect::<Vec<(String, AliasMap)>>()
-      })
-      .unwrap_or(default.alias);
 
     Ok(Resolve {
       prefer_relative,
@@ -68,7 +52,6 @@ impl RawOption<Resolve> for RawResolveOptions {
       main_fields,
       main_files,
       condition_names,
-      alias,
       ..default
     })
   }

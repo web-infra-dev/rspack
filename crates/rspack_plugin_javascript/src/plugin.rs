@@ -16,7 +16,6 @@ use rspack_core::{
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_common::comments::SingleThreadedComments;
 use swc_common::Mark;
-use swc_ecma_transforms::helpers::{Helpers, HELPERS};
 use swc_ecma_transforms::react::{react, Options as ReactOptions};
 use swc_ecma_transforms::{react as swc_react, resolver};
 use swc_ecma_visit::{as_folder, FoldWith, VisitWith};
@@ -219,31 +218,30 @@ impl Parser for JsParser {
     let (ast, diagnostics) = ast_with_diagnostics.split_into_parts();
 
     let processed_ast = get_swc_compiler().run(|| {
-      HELPERS.set(&Helpers::new(true), || {
-        let defintions = &args.options.define;
-        let mut define_scanner = DefineScanner::new(defintions);
-        // TODO: find more suitable position.
-        ast.visit_with(&mut define_scanner);
-        let mut define_transform = DefineTransform::new(defintions, define_scanner);
-        let top_level_mark = Mark::new();
-        let mut react_folder = react::<SingleThreadedComments>(
-          get_swc_compiler().cm.clone(),
-          None,
-          ReactOptions {
-            development: Some(false),
-            runtime: Some(swc_react::Runtime::Classic),
-            refresh: None,
-            ..Default::default()
-          },
-          Mark::new(),
-        );
+      let defintions = &args.options.define;
+      let mut define_scanner = DefineScanner::new(defintions);
+      // TODO: find more suitable position.
+      ast.visit_with(&mut define_scanner);
+      let mut define_transform = DefineTransform::new(defintions, define_scanner);
 
-        // TODO: the order
-        let ast = ast.fold_with(&mut define_transform);
-        let ast = ast.fold_with(&mut resolver(Mark::new(), top_level_mark, false));
-        let ast = ast.fold_with(&mut react_folder);
-        ast.fold_with(&mut as_folder(ClearMark))
-      })
+      let top_level_mark = Mark::new();
+      let mut react_folder = react::<SingleThreadedComments>(
+        get_swc_compiler().cm.clone(),
+        None,
+        ReactOptions {
+          development: Some(false),
+          runtime: Some(swc_react::Runtime::Classic),
+          refresh: None,
+          ..Default::default()
+        },
+        Mark::new(),
+      );
+
+      // TODO: the order
+      let ast = ast.fold_with(&mut define_transform);
+      let ast = ast.fold_with(&mut resolver(Mark::new(), top_level_mark, false));
+      let ast = ast.fold_with(&mut react_folder);
+      ast.fold_with(&mut as_folder(ClearMark))
     });
     let module: BoxModule = Box::new(JsModule {
       ast: processed_ast,
