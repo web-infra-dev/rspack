@@ -114,7 +114,7 @@ impl Plugin for RuntimePlugin {
   ) -> PluginRenderManifestHookOutput {
     let compilation = args.compilation;
     //Todo we need add optimize.runtime to ensure runtime generation
-    if TargetPlatform::is_web(&compilation.options.target.platform) {
+    if compilation.options.target.platform.is_web() {
       let compilation = args.compilation;
       let runtime = &compilation.runtime;
       Ok(vec![RenderManifestEntry::new(

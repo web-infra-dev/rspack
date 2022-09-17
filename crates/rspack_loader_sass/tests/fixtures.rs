@@ -47,6 +47,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           },
           target: rspack_core::Target::new(&vec![String::from("web")]).unwrap(),
           resolve: rspack_core::Resolve::default(),
+          builtins: Default::default(),
           plugins: Default::default(),
           module: Default::default(),
           define: Default::default(),

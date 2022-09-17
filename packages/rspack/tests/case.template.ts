@@ -27,20 +27,19 @@ export function describeCases(config: { name: string; casePath: string }) {
 	describe(config.name, () => {
 		for (const category of categories) {
 			for (const example of category.tests) {
-				const entry = `./${category.name}/${example}/`;
-				const outputPath = path.resolve(
+				const testRoot = path.resolve(
 					casesPath,
-					`./${category.name}/${example}/dist`
+					`./${category.name}/${example}/`
 				);
+				const outputPath = path.resolve(testRoot, `./dist`);
 				const bundlePath = path.resolve(outputPath, "main.js");
+				if (!fs.existsSync(path.resolve(testRoot, "index.js"))) {
+					continue;
+				}
 				describe(category.name, () => {
 					describe(example, () => {
 						it(`${example} should compile`, async () => {
-							const configFile = path.resolve(
-								casesPath,
-								entry,
-								"webpack.config.js"
-							);
+							const configFile = path.resolve(testRoot, "webpack.config.js");
 							let config = {};
 							if (fs.existsSync(configFile)) {
 								config = require(configFile);
@@ -50,9 +49,9 @@ export function describeCases(config: { name: string; casePath: string }) {
 							);
 							const options: RspackOptions = {
 								target: ["webworker"], // FIXME when target=commonjs supported
-								context: casesPath,
+								context: testRoot,
 								entry: {
-									main: entry
+									main: "./"
 								},
 								output: {
 									path: outputPath,
@@ -79,7 +78,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 							const fn = vm.runInThisContext(
 								`
 				(function testWrapper(require,_module,exports,__dirname,__filename,it,expect){
-					global.expect = expect;
+          global.expect = expect;
 					function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }
 				  ${code};
 				 }

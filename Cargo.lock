@@ -1522,9 +1522,9 @@ checksum = "e4a24736216ec316047a1fc4252e27dabb04218aa4a3f37c6e7ddbf1f9782b54"
 
 [[package]]
 name = "nodejs-resolver"
-version = "0.0.38"
+version = "0.0.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8f5e9fa89e8ba1d8eabf997825d2d1f2632340386d915e786d877b1b301029b"
+checksum = "6fadb5e8d8f653cf82b52cf3341ed77fa9adba8284a11ec207b00d6e2aae2136"
 dependencies = [
  "daachorse",
  "dashmap",
@@ -2153,7 +2153,7 @@ dependencies = [
  "sugar_path",
  "swc_common 0.28.7",
  "swc_css 0.118.2",
- "swc_ecma_ast 0.90.10",
+ "swc_ecma_ast 0.91.7",
  "tokio",
  "tracing",
  "tracing-chrome",
@@ -2294,6 +2294,7 @@ dependencies = [
  "hashbrown",
  "linked_hash_set",
  "once_cell",
+ "preset_env_base",
  "rayon",
  "rspack_core",
  "rspack_error",
@@ -2305,6 +2306,7 @@ dependencies = [
  "swc_common 0.28.7",
  "swc_ecma_ast 0.91.7",
  "swc_ecma_parser 0.119.11",
+ "swc_ecma_preset_env",
  "swc_ecma_transforms",
  "swc_ecma_utils 0.102.12",
  "swc_ecma_visit 0.77.7",
@@ -3292,23 +3294,6 @@ dependencies = [
  "string_enum",
  "swc_atoms 0.2.13",
  "swc_common 0.24.3",
- "unicode-id",
-]
-
-[[package]]
-name = "swc_ecma_ast"
-version = "0.90.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4d9cb0825962e9f9baabec6270aeb6e7c21ade1a16d707916186ad5f13126d1"
-dependencies = [
- "bitflags",
- "is-macro",
- "num-bigint",
- "scoped-tls",
- "serde",
- "string_enum",
- "swc_atoms 0.4.14",
- "swc_common 0.27.11",
  "unicode-id",
 ]
 
