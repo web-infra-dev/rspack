@@ -35,7 +35,8 @@ describe("config", () => {
 					mainFields: ["module", "main"],
 					browserField: true,
 					conditionNames: ["module", "import"]
-				}
+				},
+				devtool: false,
 			})
 		);
 	});

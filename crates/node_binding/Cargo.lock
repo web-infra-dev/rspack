@@ -1782,6 +1782,7 @@ dependencies = [
  "rspack_loader_sass",
  "rspack_plugin_asset",
  "rspack_plugin_css",
+ "rspack_plugin_devtool",
  "rspack_plugin_html",
  "rspack_plugin_javascript",
  "rspack_plugin_json",
@@ -1962,6 +1963,16 @@ dependencies = [
  "swc_css 0.125.5",
  "swc_css_prefixer",
  "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_devtool"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "rspack_core",
+ "rspack_error",
  "tracing",
 ]
 

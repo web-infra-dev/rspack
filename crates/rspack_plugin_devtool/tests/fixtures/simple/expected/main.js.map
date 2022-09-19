@@ -1,0 +1,1 @@
+{"version":3,"file":"main.js.map","sources":["</Users/bytedance/Codes/rspack/crates/rspack_plugin_devtool/tests/fixtures/simple/index.jsx>"],"sourcesContent":["console.log(<div>?</div>);"],"names":["console","log"],"mappings":";;;AAAAA,OAAO,CAACC,GAAG,CAAC,oBAAC,KAAG,QAAC,GAAC,CAAM,CAAC,CAAC"}

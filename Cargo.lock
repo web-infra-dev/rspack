@@ -2096,6 +2096,7 @@ dependencies = [
  "rspack_loader_sass",
  "rspack_plugin_asset",
  "rspack_plugin_css",
+ "rspack_plugin_devtool",
  "rspack_plugin_html",
  "rspack_plugin_javascript",
  "rspack_plugin_json",
@@ -2149,7 +2150,7 @@ dependencies = [
  "regex",
  "rspack_error",
  "rspack_loader_runner",
- "rspack_sources",
+ "rspack_sources 0.1.1 (git+https://github.com/speedy-js/rspack-sources.git?branch=fix-source)",
  "serde",
  "sugar_path",
  "swc",
@@ -2194,7 +2195,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "rspack_error",
- "rspack_sources",
+ "rspack_sources 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "similar-asserts",
  "tokio",
  "tracing",
@@ -2267,6 +2268,17 @@ dependencies = [
  "swc_css 0.125.9",
  "swc_css_prefixer",
  "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_devtool"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "rspack_core",
+ "rspack_error",
+ "rspack_test",
  "tracing",
 ]
 
@@ -2350,6 +2362,18 @@ name = "rspack_plugin_split_chunks"
 version = "0.1.0"
 dependencies = [
  "rspack_core",
+]
+
+[[package]]
+name = "rspack_sources"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0bcf4e83b0039e09a397a440f9fd095034dafbb727830db64228ac6b3702abe"
+dependencies = [
+ "parking_lot",
+ "serde",
+ "serde_json",
+ "smol_str",
 ]
 
 [[package]]

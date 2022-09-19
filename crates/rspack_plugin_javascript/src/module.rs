@@ -69,6 +69,7 @@ impl Module for JsModule {
       return Ok(None);
     }
 
+    let source_map = compilation.options.devtool;
     let compiler = get_swc_compiler();
     let output = compiler.run(|| {
       HELPERS.set(&JS_HELPERS, || {
@@ -77,7 +78,6 @@ impl Module for JsModule {
             .cm
             .new_source_file(FileName::Custom(self.uri.to_string()), self.uri.to_string());
 
-          let source_map = false;
           compiler.process_js_with_custom_pass(
             fm,
             // TODO: It should have a better way rather than clone.
