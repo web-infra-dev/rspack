@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use pathdiff::diff_paths;
 use rspack_core::{
   rspack_sources::{MapOptions, RawSource, SourceExt},
   Plugin, PluginContext, PluginProcessAssetsOutput, ProcessAssetsArgs,
@@ -25,17 +26,30 @@ impl Plugin for DevtoolPlugin {
     let mut maps = HashMap::new();
     for (filename, asset) in &args.compilation.assets {
       if let Some(map) = asset.map(&MapOptions::default()) {
-        maps.insert(format!("{filename}.map"), map);
+        maps.insert(filename.to_owned(), map);
       }
     }
     for (filename, mut map) in maps {
       map.set_file(Some(filename.clone()));
+      for source in map.sources_mut() {
+        let uri = &source[1..source.len() - 2]; // remove '<' and '>' in <uri>
+        *source = if let Some(relative_path) = diff_paths(uri, &args.compilation.options.context) {
+          let relative_path = if !relative_path.starts_with(".") {
+            format!("./{}", relative_path.display())
+          } else {
+            relative_path.display().to_string()
+          };
+          format!("rspack://{}", relative_path)
+        } else {
+          uri.to_owned()
+        };
+      }
       let map = map
         .to_json()
         .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?;
       args
         .compilation
-        .emit_asset(filename, RawSource::from(map).boxed());
+        .emit_asset(filename + ".map", RawSource::from(map).boxed());
     }
     Ok(())
   }
