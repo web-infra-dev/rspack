@@ -1819,7 +1819,6 @@ dependencies = [
 name = "rspack_core"
 version = "0.1.0"
 dependencies = [
- "ahash",
  "anyhow",
  "async-trait",
  "crossbeam",

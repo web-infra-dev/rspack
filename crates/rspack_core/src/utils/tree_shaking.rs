@@ -1,27 +1,26 @@
 use std::sync::Arc;
 
-use dashmap::DashMap;
 use swc::SwcComments;
 use swc_common::{
   comments::{self, Comment},
-  BytePos, Globals, Mark, SourceMap, SyntaxContext, DUMMY_SP, GLOBALS,
+  Globals, Mark, SourceMap, SyntaxContext, DUMMY_SP, GLOBALS,
 };
 use swc_ecma_codegen::{text_writer::JsWriter, Emitter};
 use swc_ecma_transforms::resolver;
 use swc_ecma_visit::{noop_visit_mut_type, swc_ecma_ast::Module, VisitMut, VisitMutWith};
 
-struct Noop {
-  trailing: Arc<DashMap<BytePos, Vec<Comment>, ahash::RandomState>>,
+struct CtxtDumpVisitor {
+  comments: SwcComments,
 }
-impl Noop {}
-impl VisitMut for Noop {
+impl CtxtDumpVisitor {}
+impl VisitMut for CtxtDumpVisitor {
   noop_visit_mut_type!();
 
   fn visit_mut_ident(&mut self, n: &mut swc_ecma_visit::swc_ecma_ast::Ident) {
     let ctxt = n.span.ctxt;
     let hi = n.span.hi;
     if SyntaxContext::empty() != ctxt {
-      match self.trailing.entry(hi) {
+      match self.comments.trailing.entry(hi) {
         dashmap::mapref::entry::Entry::Occupied(mut value) => {
           value.get_mut().insert(
             1,
@@ -52,10 +51,10 @@ pub fn dump_ast_with_ctxt(
 ) -> String {
   GLOBALS.set(global, || {
     module.visit_mut_with(&mut resolver(Mark::new(), Mark::new(), false));
-    let mut noop = Noop {
-      trailing: comment.trailing.clone(),
+    let mut visitor = CtxtDumpVisitor {
+      comments: comment.clone(),
     };
-    noop.visit_mut_module(module);
+    visitor.visit_mut_module(module);
   });
   let code = {
     let mut buf = vec![];
