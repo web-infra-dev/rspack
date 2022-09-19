@@ -69,9 +69,7 @@ fn get_modules_hash(modules: &Vec<Option<ModuleRenderResult>>) -> u64 {
       output += "\n\n";
       output += source;
     }
-  }
 
-  for result in modules {
     if let Some(ModuleRenderResult::Css(source)) = result {
       output += "\n\n";
       output += source;
