@@ -1,7 +1,11 @@
 use rspack_core::Plugin;
 
+use crate::SplitChunksOptions;
+
 #[derive(Debug)]
-pub struct SplitChunksPlugin {}
+pub struct SplitChunksPlugin {
+  options: SplitChunksOptions,
+}
 
 impl Plugin for SplitChunksPlugin {
   fn name(&self) -> &'static str {
