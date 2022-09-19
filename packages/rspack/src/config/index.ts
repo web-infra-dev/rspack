@@ -91,7 +91,7 @@ export function resolveOptions(config: RspackOptions): ResolvedRspackOptions {
 		builtins,
 		module,
 		resolve,
-		devtool,
+		devtool
 	};
 }
 

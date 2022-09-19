@@ -66,11 +66,9 @@ class RspackCompilation {
 		if (err) {
 			throw err;
 		}
-		const context: RspackThreadsafeContext<
-			Record<string, number[]>
-		> = JSON.parse(value);
-		let content: Record<string, number[]> =
-			context.inner ?? {};
+		const context: RspackThreadsafeContext<Record<string, number[]>> =
+			JSON.parse(value);
+		let content: Record<string, number[]> = context.inner ?? {};
 		let assets = {};
 		for (const [key, value] of Object.entries(content)) {
 			let buffer = Buffer.from(value);
