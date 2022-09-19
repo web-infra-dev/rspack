@@ -1,5 +1,4 @@
 use rspack_error::Error;
-use rspack_loader_runner::Content;
 use rspack_sources::{RawSource, SourceExt};
 
 use crate::{

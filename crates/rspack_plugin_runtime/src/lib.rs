@@ -101,7 +101,9 @@ impl Plugin for RuntimePlugin {
         sources.push(generate_common_module_and_chunk_data());
         sources.push(generate_common_check_by_id());
         sources.push(generate_web_rspack_require());
-        sources.push(RawSource::from(RUNTIME_PLACEHOLDER_RSPACK_EXECUTE.to_string()).into());
+        sources.push(RawSource::from(
+          RUNTIME_PLACEHOLDER_RSPACK_EXECUTE.to_string(),
+        ));
       }
       TargetPlatform::Node(_) => {
         sources.push(generate_node_init_runtime(namespace));

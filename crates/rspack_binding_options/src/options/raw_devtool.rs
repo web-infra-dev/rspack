@@ -1,6 +1,5 @@
 use crate::RawOption;
 use rspack_core::{CompilerOptionsBuilder, Devtool};
-use std::collections::HashMap;
 
 pub type RawDevtool = bool;
 

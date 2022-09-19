@@ -1,7 +1,4 @@
-use rspack_core::{
-  rspack_sources::{BoxSource, RawSource},
-  RUNTIME_PLACEHOLDER_INSTALLED_MODULES,
-};
+use rspack_core::{rspack_sources::RawSource, RUNTIME_PLACEHOLDER_INSTALLED_MODULES};
 
 use crate::ChunkHash;
 

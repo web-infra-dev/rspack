@@ -8,7 +8,6 @@ use crate::{
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::{BoxSource, RawSource};
-use serde::{Deserialize, Serialize};
 
 // use anyhow::{Context, Result};
 use hashbrown::HashMap;

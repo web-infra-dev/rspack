@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use rspack_core::rspack_sources::RawSource;
+use rspack_core::rspack_sources::{RawSource, SourceExt};
 use rspack_core::{
   Compilation, Plugin, PluginBuildEndHookOutput, PluginContext, PluginProcessAssetsHookOutput,
   ProcessAssetsArgs,
@@ -140,11 +140,11 @@ impl Plugin for RspackPluginNodeAdapter {
             AssetContent {
               buffer: Some(buffer),
               source: None,
-            } => RawSource::Buffer(buffer.into()).into(),
+            } => RawSource::Buffer(buffer.into()).boxed(),
             AssetContent {
               buffer: None,
               source: Some(source),
-            } => RawSource::Source(source).into(),
+            } => RawSource::Source(source).boxed(),
             _ => panic!("AssetContent can only be string or buffer"),
           },
         );

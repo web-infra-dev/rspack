@@ -12,11 +12,11 @@ use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
 use rspack_core::{
   get_chunkhash, get_contenthash, get_hash,
-  rspack_sources::{BoxSource, CachedSource, ConcatSource, RawSource, Source, SourceExt},
+  rspack_sources::{CachedSource, ConcatSource, RawSource, Source, SourceExt},
   BoxModule, ChunkKind, FilenameRenderOptions, ModuleType, ParseModuleArgs, Parser, Plugin,
   RenderManifestEntry, SourceType,
 };
-use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 
 use swc_css::visit::VisitMutWith;
 

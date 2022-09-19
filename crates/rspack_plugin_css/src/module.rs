@@ -5,9 +5,7 @@ use rspack_error::Result;
 use std::fmt::Debug;
 
 use rspack_core::{
-  rspack_sources::{
-    BoxSource, MapOptions, RawSource, Source, SourceExt, SourceMapSource, WithoutOriginalOptions,
-  },
+  rspack_sources::{BoxSource, RawSource, Source, SourceExt},
   Module, ModuleType, SourceType,
 };
 
@@ -59,18 +57,13 @@ impl Module for CssModule {
       }
       // This is just a temporary solution for css-modules
       SourceType::JavaScript => Some(
-        RawSource::from(format!(
-          r#"function(module, exports, __rspack_require__, __rspack_dynamic_require__) {{
-  "use strict";
-  {}
-}};
-"#,
+        RawSource::from(
           self
             .meta
             .clone()
-            .map(|item| { format!("module.exports = {}", item) })
-            .unwrap_or_else(|| "".to_string())
-        ))
+            .map(|item| format!("module.exports = {};", item))
+            .unwrap_or_else(|| "".to_string()),
+        )
         .boxed(),
       ),
       _ => None,

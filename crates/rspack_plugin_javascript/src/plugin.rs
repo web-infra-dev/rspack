@@ -12,7 +12,6 @@ use rspack_core::rspack_sources::{
 use rspack_core::{
   get_chunkhash, get_contenthash, get_hash, BoxModule, ChunkKind, FilenameRenderOptions, ModuleType, ParseModuleArgs,
   Parser, Plugin, PluginContext, PluginRenderManifestHookOutput, RenderManifestEntry, SourceType,
-  TargetPlatform,
 };
 use swc::config::JsMinifyOptions;
 
@@ -95,13 +94,7 @@ impl Plugin for JsPlugin {
         module
           .module
           .render(SourceType::JavaScript, module, compilation)
-          .map(|source| {
-            if let Some(source) = source {
-              Some(wrap_module_function(source, &module.id))
-            } else {
-              None
-            }
-          })
+          .map(|source| source.map(|source| wrap_module_function(source, &module.id)))
       })
       .collect::<Result<Vec<Option<BoxSource>>>>()?;
 

@@ -1,7 +1,7 @@
 use rspack_core::rspack_sources::RawSource;
 
 pub fn generate_web_rspack_require() -> RawSource {
-  RawSource::from(include_str!("runtime/web/_rspack_require.js").to_string()).into()
+  RawSource::from(include_str!("runtime/web/_rspack_require.js").to_string())
 }
 
 pub fn generate_web_rspack_register() -> RawSource {

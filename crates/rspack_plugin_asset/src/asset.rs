@@ -117,11 +117,7 @@ impl Module for AssetModule {
     let result = match requested_source_type {
       SourceType::JavaScript => Some(
         RawSource::from(format!(
-          r#"function (module, exports, __rspack_require__, __rspack_dynamic_require__) {{
-  "use strict";
-  module.exports = "{}";
-}};
-"#,
+          r#"module.exports = "{}";"#,
           if self.inline {
             format!(
               "data:{};base64,{}",

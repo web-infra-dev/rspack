@@ -8,7 +8,6 @@ use hashbrown::HashMap;
 use rayon::prelude::*;
 use rspack_error::{Diagnostic, Result};
 use rspack_sources::BoxSource;
-use serde::Serialize;
 use std::{fmt::Debug, sync::Arc};
 
 #[derive(Debug)]

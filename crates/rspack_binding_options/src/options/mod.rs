@@ -83,6 +83,7 @@ pub struct RawOptions {
   pub external: Option<RawExternal>,
   #[napi(ts_type = "string")]
   pub external_type: Option<RawExternalType>,
+  #[napi(ts_type = "boolean")]
   pub devtool: Option<RawDevtool>,
 }
 

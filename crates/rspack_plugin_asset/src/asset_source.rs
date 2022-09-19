@@ -59,17 +59,7 @@ impl Module for AssetSourceModule {
         if source.is_empty() {
           None
         } else {
-          Some(
-            RawSource::from(format!(
-              r#"function (module, exports, __rspack_require__, __rspack_dynamic_require__) {{
-  "use strict";
-  module.exports = {:?};
-}};
-"#,
-              source
-            ))
-            .boxed(),
-          )
+          Some(RawSource::from(format!(r#"module.exports = {:?};"#, source)).boxed())
         }
       }
       _ => None,

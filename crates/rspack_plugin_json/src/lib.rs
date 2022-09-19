@@ -138,11 +138,7 @@ impl Module for JsonModule {
     let result = match requested_source_type {
       SourceType::JavaScript => Some(
         RawSource::from(format!(
-          r#"function (module, exports, __rspack_require__, __rspack_dynamic_require__) {{
-  "use strict";
-  module.exports = {};
-}};
-"#,
+          r#"module.exports = {};"#,
           utils::escape_json(&self.source.source())
         ))
         .boxed(),

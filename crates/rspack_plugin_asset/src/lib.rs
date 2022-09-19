@@ -5,9 +5,9 @@ use rayon::prelude::*;
 use rspack_error::Result;
 
 use rspack_core::{
-  get_chunkhash, get_contenthash, get_hash, rspack_sources::RawSource, AssetParserOptions,
-  FilenameRenderOptions, Plugin, PluginContext, PluginRenderManifestHookOutput, RenderManifestArgs,
-  RenderManifestEntry, SourceType,
+  get_chunkhash, get_contenthash, get_hash, AssetParserOptions, FilenameRenderOptions, Plugin,
+  PluginContext, PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry,
+  SourceType,
 };
 
 mod asset;
