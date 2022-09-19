@@ -149,6 +149,8 @@ impl Module for AssetModule {
                 ),
                 id: None,
                 contenthash: None,
+                chunkhash: None,
+                hash: None,
               });
           let public_path = compilation.options.output.public_path.public_path();
           format!("{}{}", public_path, file_name)
