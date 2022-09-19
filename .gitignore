@@ -57,6 +57,7 @@ build/Release
 
 # Dependency directories
 node_modules/
+!scripts/node_modules/
 !webpack-examples/*/node_modules
 jspm_packages/
 
