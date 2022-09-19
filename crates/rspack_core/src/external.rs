@@ -43,7 +43,6 @@ impl Plugin for ExternalPlugin {
                 source: Content::Buffer(
                   (match external_type {
                     ExternalType::NodeCommonjs => {
-                      // format!("module.exports = {}", value)
                       format!(r#"module.exports = require("{}")"#, value)
                     }
                     ExternalType::Window => {
@@ -56,7 +55,6 @@ impl Plugin for ExternalPlugin {
                       | TargetPlatform::None => format!("module.exports = {}", value),
                       TargetPlatform::Node(_) => {
                         format!(r#"module.exports = __rspack_require__.nr("{}")"#, value)
-                        // format!(r#"module.exports = require("{}")"#, value)
                       }
                     },
                   })

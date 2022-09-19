@@ -2,9 +2,7 @@ use rspack_core::RuntimeSourceNode;
 
 pub fn generate_node_init_runtime(namespace: &str) -> RuntimeSourceNode {
   RuntimeSourceNode {
-    content: include_str!("runtime/node/_init_runtime.js")
-      .to_string()
-      .replace("__rspack_runtime__", namespace),
+    content: include_str!("runtime/node/_init_runtime.js").replace("__rspack_runtime__", namespace),
   }
 }
 
