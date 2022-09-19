@@ -43,7 +43,7 @@ pub fn get_hash(compilation: &Compilation) -> u64 {
     .modules()
     .map(|module| {
       if module.module.source_types().contains(&SourceType::Css) {
-        module.module.render(SourceType::Css, module, &compilation)
+        module.module.render(SourceType::Css, module, compilation)
       } else if module
         .module
         .source_types()
@@ -51,7 +51,7 @@ pub fn get_hash(compilation: &Compilation) -> u64 {
       {
         module
           .module
-          .render(SourceType::JavaScript, module, &compilation)
+          .render(SourceType::JavaScript, module, compilation)
       } else {
         Ok(None)
       }
@@ -65,10 +65,18 @@ fn get_modules_hash(modules: &Vec<Option<ModuleRenderResult>>) -> u64 {
   let mut output = String::new();
 
   for result in modules {
-    if let Some(ModuleRenderResult::Css(source) | ModuleRenderResult::JavaScript(source)) = result {
+    if let Some(ModuleRenderResult::JavaScript(source)) = result {
       output += "\n\n";
-      output += &source;
+      output += source;
     }
   }
+
+  for result in modules {
+    if let Some(ModuleRenderResult::Css(source)) = result {
+      output += "\n\n";
+      output += source;
+    }
+  }
+
   xxh3_64(output.as_bytes())
 }
