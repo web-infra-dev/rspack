@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use rspack_error::Result;
 
 use common::*;
+use node::*;
 use rspack_core::{
   AssetContent, ChunkKind, Plugin, PluginContext, PluginRenderManifestHookOutput,
   PluginRenderRuntimeHookOutput, RenderManifestArgs, RenderManifestEntry, RenderRuntimeArgs,
@@ -11,6 +12,7 @@ use web::*;
 use web_worker::*;
 
 mod common;
+mod node;
 mod web;
 mod web_worker;
 
@@ -93,11 +95,20 @@ impl Plugin for RuntimePlugin {
           sources.push(generate_web_dynamic_load_style());
         }
       }
-      TargetPlatform::WebWorker | TargetPlatform::Node(_) => {
+      TargetPlatform::WebWorker => {
         sources.push(generate_web_worker_init_runtime(namespace));
         sources.push(generate_common_module_and_chunk_data());
         sources.push(generate_common_check_by_id());
         sources.push(generate_web_rspack_require());
+        sources.push(RuntimeSourceNode {
+          content: RUNTIME_PLACEHOLDER_RSPACK_EXECUTE.to_string(),
+        });
+      }
+      TargetPlatform::Node(_) => {
+        sources.push(generate_node_init_runtime(namespace));
+        sources.push(generate_common_module_and_chunk_data());
+        sources.push(generate_common_check_by_id());
+        sources.push(generate_node_rspack_require());
         sources.push(RuntimeSourceNode {
           content: RUNTIME_PLACEHOLDER_RSPACK_EXECUTE.to_string(),
         });

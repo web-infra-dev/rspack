@@ -57,6 +57,7 @@ build/Release
 
 # Dependency directories
 node_modules/
+!scripts/node_modules/
 !webpack-examples/*/node_modules
 jspm_packages/
 
@@ -162,3 +163,5 @@ lib/
 crates/node_binding/binding.d.ts
 
 .pnpm-store/
+
+!packages/rspack/tests/configCases/target

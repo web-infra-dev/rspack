@@ -29,6 +29,7 @@ struct CodeSplitter<'me> {
   queue: Vec<QueueItem>,
   queue_delayed: Vec<QueueItem>,
   chunk_relation_graph: petgraph::graphmap::DiGraphMap<ChunkUkey, ()>,
+  split_point_modules: HashSet<String>,
 }
 
 impl<'me> CodeSplitter<'me> {
@@ -40,6 +41,7 @@ impl<'me> CodeSplitter<'me> {
       queue: Default::default(),
       queue_delayed: Default::default(),
       chunk_relation_graph: Default::default(),
+      split_point_modules: Default::default(),
     }
   }
 
@@ -333,6 +335,13 @@ impl<'me> CodeSplitter<'me> {
       .into_iter()
       .rev()
     {
+      let is_already_split_module = self.split_point_modules.contains(&dyn_dep_mgm.uri);
+      if is_already_split_module {
+        continue;
+      } else {
+        self.split_point_modules.insert(dyn_dep_mgm.uri.clone());
+      }
+
       let chunk = Compilation::add_chunk(
         &mut self.compilation.chunk_by_ukey,
         None,

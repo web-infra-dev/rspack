@@ -24,6 +24,7 @@ describe("config", () => {
 				define: {},
 				target: ["web"],
 				external: {},
+				externalType: "",
 				plugins: [],
 				builtins: { browserslist: [] },
 				module: { rules: [] },

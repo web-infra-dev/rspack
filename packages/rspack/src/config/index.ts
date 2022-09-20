@@ -2,7 +2,12 @@ import type { Context, ResolvedContext } from "./context";
 import type { Define, ResolvedDefine } from "./define";
 import type { Dev, ResolvedDev } from "./dev";
 import type { Entry, ResolvedEntry } from "./entry";
-import type { External, ResolvedExternal } from "./external";
+import type {
+	External,
+	ExternalType,
+	ResolvedExternal,
+	ResolvedExternalType
+} from "./external";
 import type { Mode, ResolvedMode } from "./mode";
 import type { Module, ResolvedModule } from "./module";
 import type { Plugin } from "./plugin";
@@ -31,7 +36,8 @@ export interface RspackOptions {
 	define?: Define;
 	target?: Target;
 	mode?: Mode;
-	external?: External;
+	externals?: External;
+	externalsType?: ExternalType;
 	output?: Output;
 	builtins?: Builtins;
 	resolve?: Resolve;
@@ -47,6 +53,7 @@ export interface ResolvedRspackOptions {
 	target: ResolvedTarget;
 	mode: ResolvedMode;
 	external: ResolvedExternal;
+	externalType: ResolvedExternalType;
 	output: ResolvedOutput;
 	builtins: ResolvedBuiltins;
 	resolve: ResolvedResolve;
@@ -60,7 +67,8 @@ export function resolveOptions(config: RspackOptions): ResolvedRspackOptions {
 	const output = resolveOutputOptions(config.output);
 	const define = config.define ?? {};
 	const target = resolveTargetOptions(config.target);
-	const external = config.external ?? {};
+	const external = config.externals ?? {};
+	const externalType = config.externalsType ?? "";
 	const plugins = config.plugins ?? [];
 	const builtins = resolveBuiltinsOptions(config.builtins || {}, context);
 	const resolve = resolveResolveOptions(config.resolve);
@@ -74,6 +82,7 @@ export function resolveOptions(config: RspackOptions): ResolvedRspackOptions {
 		define,
 		target,
 		external,
+		externalType,
 		plugins,
 		builtins,
 		module,

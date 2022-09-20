@@ -8,9 +8,9 @@ use crate::{module::JsModule, utils::get_swc_compiler};
 use crate::{RSPACK_REGISTER, RSPACK_REQUIRE};
 use rayon::prelude::*;
 use rspack_core::{
-  get_xxh3_64_hash, AssetContent, BoxModule, ChunkKind, FilenameRenderOptions, ModuleRenderResult,
-  ModuleType, ParseModuleArgs, Parser, Plugin, PluginContext, PluginRenderManifestHookOutput,
-  RenderManifestEntry, SourceType,
+  get_chunkhash, get_contenthash, get_hash, AssetContent, BoxModule, ChunkKind,
+  FilenameRenderOptions, ModuleRenderResult, ModuleType, ParseModuleArgs, Parser, Plugin,
+  PluginContext, PluginRenderManifestHookOutput, RenderManifestEntry, SourceType,
 };
 
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -147,7 +147,9 @@ impl Plugin for JsPlugin {
       })
       .collect::<String>();
 
-    let contenthash = Some(get_xxh3_64_hash(&code).to_string());
+    let hash = Some(get_hash(compilation).to_string());
+    let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
+    let contenthash = Some(get_contenthash(&code).to_string());
 
     let output_path = match chunk.kind {
       ChunkKind::Entry { .. } => {
@@ -160,6 +162,8 @@ impl Plugin for JsPlugin {
             extension: Some(".js".to_owned()),
             id: None,
             contenthash,
+            chunkhash,
+            hash,
           })
       }
       ChunkKind::Normal => {
@@ -172,6 +176,8 @@ impl Plugin for JsPlugin {
             extension: Some(".js".to_owned()),
             id: Some(format!("static/js/{}", args.chunk().id.to_owned())),
             contenthash,
+            chunkhash,
+            hash,
           })
       }
     };
