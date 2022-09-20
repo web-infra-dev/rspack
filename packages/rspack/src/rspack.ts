@@ -1,11 +1,13 @@
 export * from "./build";
 import * as binding from "@rspack/binding";
+import { resolveWatchOption } from "./config/watch";
+import type { Watch, ResolvedWatch } from "./config/watch";
+
 import type { ExternalObject, RspackInternal } from "@rspack/binding";
 import * as tapable from "tapable";
 import {
 	RspackOptions,
 	ResolvedRspackOptions,
-	Assets,
 	Asset,
 	resolveOptions
 } from "./config";
@@ -88,8 +90,8 @@ class Rspack {
 		compilation: tapable.SyncHook<RspackCompilation>;
 	};
 	options: ResolvedRspackOptions;
-	constructor(options: RspackOptions) {
-		this.options = resolveOptions(options);
+	constructor(private userOptions: RspackOptions) {
+		this.options = resolveOptions(userOptions);
 		// @ts-ignored
 		this.#instance = binding.newRspack(this.options, {
 			doneCallback: this.#done.bind(this),
@@ -99,7 +101,7 @@ class Rspack {
 			done: new tapable.AsyncSeriesHook<void>(),
 			compilation: new tapable.SyncHook<RspackCompilation>(["compilation"])
 		};
-		this.#plugins = options.plugins ?? [];
+		this.#plugins = userOptions.plugins ?? [];
 		for (const plugin of this.#plugins) {
 			plugin.apply(this);
 		}
@@ -130,5 +132,37 @@ class Rspack {
 		const stats = await binding.rebuild(this.#instance, changeFiles);
 		return stats;
 	}
+
+	async watch(watchOptions?: Watch): Promise<Watching> {
+		const options = resolveWatchOption(watchOptions);
+
+		const watcher = (await import("chokidar")).default.watch(
+			this.options.context,
+			{
+				ignoreInitial: true,
+				...options
+			}
+		);
+		let stats = await this.build();
+
+		watcher.on("change", async () => {
+			// TODO: only build because we lack the snapshot info of file.
+			// TODO: it means there a lot of things to do....
+			console.log("hit change");
+			const compiler = new Rspack(this.userOptions);
+			stats = await compiler.build();
+		});
+
+		return {
+			async close() {
+				await watcher.close();
+			}
+		};
+	}
 }
+
+export interface Watching {
+	close(): Promise<void>;
+}
+
 export { Rspack };
