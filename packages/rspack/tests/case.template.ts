@@ -57,7 +57,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 									path: outputPath,
 									filename: "bundle.js" // not working by now @Todo need fixed later
 								},
-								external: external,
+								externals: external,
 								...config // we may need to use deepMerge to handle config merge, but we may fix it until we need it
 							};
 							const rspack = new Rspack(options);

@@ -41,6 +41,7 @@ pub struct CompilerOptionsBuilder {
   pub module: Option<ModuleOptions>,
   pub define: Option<Define>,
   pub external: Option<Vec<External>>,
+  pub external_type: Option<ExternalType>,
 }
 
 impl CompilerOptionsBuilder {
@@ -60,6 +61,7 @@ impl CompilerOptionsBuilder {
       module: self.module.unwrap(),
       define: self.define.unwrap(),
       external: self.external.unwrap(),
+      external_type: self.external_type.unwrap(),
       emit_error: false,
     }
   }

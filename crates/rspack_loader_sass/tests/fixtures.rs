@@ -5,7 +5,7 @@ use std::{
 };
 
 use rspack_core::{
-  CompilationContext, CompilerContext, CompilerOptions, Loader, LoaderRunner,
+  CompilationContext, CompilerContext, CompilerOptions, ExternalType, Loader, LoaderRunner,
   LoaderRunnerAdditionalContext, ResourceData,
 };
 use rspack_loader_sass::{SassLoader, SassLoaderOptions};
@@ -52,6 +52,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           module: Default::default(),
           define: Default::default(),
           external: Default::default(),
+          external_type: ExternalType::Auto,
           emit_error: false,
         }),
       },
