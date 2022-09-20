@@ -10,8 +10,9 @@ use rspack_core::rspack_sources::{
   BoxSource, CachedSource, ConcatSource, RawSource, Source, SourceExt,
 };
 use rspack_core::{
-  get_chunkhash, get_contenthash, get_hash, BoxModule, ChunkKind, FilenameRenderOptions, ModuleType, ParseModuleArgs,
-  Parser, Plugin, PluginContext, PluginRenderManifestHookOutput, RenderManifestEntry, SourceType,
+  get_chunkhash, get_contenthash, get_hash, BoxModule, ChunkKind, FilenameRenderOptions,
+  ModuleType, ParseModuleArgs, Parser, Plugin, PluginContext, PluginRenderManifestHookOutput,
+  RenderManifestEntry, SourceType,
 };
 use swc::config::JsMinifyOptions;
 
@@ -147,7 +148,7 @@ impl Plugin for JsPlugin {
 
     let hash = Some(get_hash(compilation).to_string());
     let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
-    let contenthash = Some(get_contenthash(&source.source()).to_string());
+    let contenthash = Some(get_contenthash(&source).to_string());
 
     let output_path = match chunk.kind {
       ChunkKind::Entry { .. } => {

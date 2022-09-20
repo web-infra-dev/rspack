@@ -1,11 +1,16 @@
-use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
-use xxhash_rust::xxh3::xxh3_64;
+use std::hash::{Hash, Hasher};
 
-use crate::{Compilation, ModuleGraph, ModuleRenderResult, SourceType, Ukey};
+use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
+use rspack_sources::{BoxSource, Source};
+use xxhash_rust::xxh3::Xxh3;
+
+use crate::{Compilation, ModuleGraph, SourceType, Ukey};
 use rspack_error::Result;
 
-pub fn get_contenthash(code: &str) -> u64 {
-  xxh3_64(code.as_bytes())
+pub fn get_contenthash<T: Source + Hash>(source: &T) -> u64 {
+  let mut xxh3 = Xxh3::new();
+  source.hash(&mut xxh3);
+  xxh3.finish()
 }
 
 pub fn get_chunkhash(
@@ -61,20 +66,12 @@ pub fn get_hash(compilation: &Compilation) -> u64 {
   get_modules_hash(all_modules.as_ref().unwrap())
 }
 
-fn get_modules_hash(modules: &Vec<Option<ModuleRenderResult>>) -> u64 {
-  let mut output = String::new();
+fn get_modules_hash(sources: &[Option<BoxSource>]) -> u64 {
+  let mut xxh3 = Xxh3::new();
 
-  for result in modules {
-    if let Some(ModuleRenderResult::JavaScript(source)) = result {
-      output += "\n\n";
-      output += source;
-    }
-
-    if let Some(ModuleRenderResult::Css(source)) = result {
-      output += "\n\n";
-      output += source;
-    }
+  for source in sources.iter().flatten() {
+    source.hash(&mut xxh3);
   }
 
-  xxh3_64(output.as_bytes())
+  xxh3.finish()
 }

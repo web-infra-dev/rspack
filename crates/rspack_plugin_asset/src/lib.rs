@@ -87,7 +87,7 @@ impl Plugin for AssetPlugin {
           .render(SourceType::Asset, module, compilation)
           .map(|result| {
             if let Some(asset) = result {
-              let contenthash = Some(get_contenthash(&code).to_string());
+              let contenthash = Some(get_contenthash(&asset).to_string());
               let chunkhash =
                 Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
               let hash = Some(get_hash(compilation).to_string());

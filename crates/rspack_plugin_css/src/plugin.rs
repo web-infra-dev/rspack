@@ -193,7 +193,7 @@ impl Plugin for CssPlugin {
 
     let hash = Some(get_hash(compilation).to_string());
     let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
-    let contenthash = Some(get_contenthash(&source.source()).to_string());
+    let contenthash = Some(get_contenthash(&source).to_string());
 
     if source.source().is_empty() {
       Ok(Default::default())
