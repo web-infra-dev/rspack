@@ -341,16 +341,18 @@ impl VisitMut for PxToRem {
             ..
           } = &mut tok.token
           {
-            if unit == "px"
-              && *value != 0f64
-              && (*value).abs() >= self.min_pixel_value
-              && frequency == 1
-            {
-              self.mutated = true;
-              *unit = "rem".into();
-              *value = self.normalized_num(*value);
-              *raw_unit = unit.clone();
-              *raw_value = value.to_string().into();
+            if unit == "px" && frequency == 1 {
+              if *value != 0f64 && (*value).abs() >= self.min_pixel_value {
+                self.mutated = true;
+                *unit = "rem".into();
+                *value = self.normalized_num(*value);
+                *raw_unit = unit.clone();
+                *raw_value = value.to_string().into();
+              } else if *value == 0f64 {
+                self.mutated = true;
+                *unit = "".into();
+                *raw_unit = unit.clone();
+              }
             }
           }
         }
