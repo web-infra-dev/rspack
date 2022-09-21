@@ -1,8 +1,6 @@
 import { Command } from "commander";
+import { build } from "@rspack/core";
 import { createServer } from "@rspack/dev-server";
-import { Rspack } from "..";
-import fs from "fs";
-import { build } from "../build";
 
 const program = new Command();
 
@@ -26,11 +24,8 @@ program
 	.argument("<config-file>", "rspack config file path")
 	.action(async configPath => {
 		const config = require(configPath);
-		const rspack = new Rspack(config);
-		const { options: { dev: { port = 8080 } = {} } = {} } = rspack;
-		await rspack.build();
-		const server = await createServer(rspack.options);
-		server.listen(port, () => console.log(`Server listening on port: ${port}`));
+		const server = await createServer(config);
+		await server.start();
 	});
 
 program.parse();

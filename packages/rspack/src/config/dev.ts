@@ -14,13 +14,13 @@ export interface ResolvedDev {
 	};
 }
 
-interface ResolveDevConfigContext {
+interface ResolveDevOptionContext {
 	context: string;
 }
 
 export function resolveDevOptions(
 	devConfig: Dev = {},
-	context: ResolveDevConfigContext
+	context: ResolveDevOptionContext
 ): ResolvedDev {
 	return {
 		port: devConfig.port ?? 8080,
