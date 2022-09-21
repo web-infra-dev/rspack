@@ -1,4 +1,6 @@
+use crate::{RSPACK_DYNAMIC_IMPORT, RSPACK_REQUIRE};
 use once_cell::sync::Lazy;
+use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{ErrorSpan, ModuleType, PATH_START_BYTE_POS_MAP};
 use rspack_error::{
   errors_to_diagnostics, DiagnosticKind, Error, IntoTWithDiagnosticArray, TWithDiagnosticArray,
@@ -205,25 +207,40 @@ pub fn is_dynamic_import_literal_expr(e: &CallExpr) -> bool {
   }
 }
 
-pub fn wrap_module_function(source: String, module_id: &str) -> String {
-  format!(
-    r#""{}":{},"#,
-    module_id,
-    source.trim_end().trim_end_matches(';')
-  )
+pub fn wrap_module_function(source: BoxSource, module_id: &str) -> BoxSource {
+  /***
+   * generate wrapper module:
+   * {module_id}: function(module, exports, __rspack_require__, __rspack_dynamic_require__) {
+   * "use strict";
+   * {source}
+   * },
+   */
+  ConcatSource::new([
+    RawSource::from("\"").boxed(),
+    RawSource::from(module_id.to_string()).boxed(),
+    RawSource::from("\": ").boxed(),
+    RawSource::from(format!(
+      "function (module, exports, {}, {}) {{\n",
+      RSPACK_REQUIRE, RSPACK_DYNAMIC_IMPORT
+    ))
+    .boxed(),
+    RawSource::from("\"use strict\";\n").boxed(),
+    source,
+    RawSource::from("},\n").boxed(),
+  ])
+  .boxed()
 }
 
-pub fn get_wrap_chunk_before(namespace: &str, register: &str, chunk_id: &str) -> String {
-  format!(
-    r#"self["{}"].{}([
-    "{}"
-  ], {{"#,
+pub fn get_wrap_chunk_before(namespace: &str, register: &str, chunk_id: &str) -> BoxSource {
+  RawSource::from(format!(
+    "self[\"{}\"].{}([\"{}\"], {{\n",
     namespace, register, chunk_id
-  )
+  ))
+  .boxed()
 }
 
-pub fn get_wrap_chunk_after() -> String {
-  String::from("});")
+pub fn get_wrap_chunk_after() -> BoxSource {
+  RawSource::from("});").boxed()
 }
 
 pub fn ecma_parse_error_to_rspack_error(

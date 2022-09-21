@@ -1,4 +1,4 @@
-use rspack_core::CompilationAsset;
+use rspack_core::rspack_sources::Source;
 use serde::Deserialize;
 use sha2::{Digest, Sha256, Sha384, Sha512};
 use std::str::FromStr;
@@ -31,10 +31,7 @@ impl FromStr for HtmlSriHashFunction {
   }
 }
 
-pub fn create_digest_from_asset(
-  hash_func: &HtmlSriHashFunction,
-  asset: &CompilationAsset,
-) -> String {
+pub fn create_digest_from_asset(hash_func: &HtmlSriHashFunction, asset: &dyn Source) -> String {
   let byte_content = asset.buffer();
   match hash_func {
     HtmlSriHashFunction::Sha384 => {

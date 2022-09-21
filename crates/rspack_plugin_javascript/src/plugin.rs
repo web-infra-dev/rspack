@@ -6,11 +6,14 @@ use crate::visitors::{ClearMark, DefineScanner, DefineTransform};
 use crate::{RSPACK_REGISTER, RSPACK_REQUIRE};
 use async_trait::async_trait;
 use rayon::prelude::*;
+use rspack_core::rspack_sources::{
+  BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
+  SourceMapSource, SourceMapSourceOptions,
+};
 use rspack_core::{
-  get_chunkhash, get_contenthash, get_hash, AssetContent, BoxModule, ChunkKind,
-  FilenameRenderOptions, ModuleRenderResult, ModuleType, ParseModuleArgs, Parser, Plugin,
-  PluginContext, PluginProcessAssetsOutput, PluginRenderManifestHookOutput, ProcessAssetsArgs,
-  RenderManifestEntry, SourceType,
+  get_chunkhash, get_contenthash, get_hash, BoxModule, ChunkKind, FilenameRenderOptions,
+  ModuleType, ParseModuleArgs, Parser, Plugin, PluginContext, PluginProcessAssetsOutput,
+  PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderManifestEntry, SourceType,
 };
 use swc::config::JsMinifyOptions;
 
@@ -93,15 +96,9 @@ impl Plugin for JsPlugin {
         module
           .module
           .render(SourceType::JavaScript, module, compilation)
-          .map(|source| {
-            if let Some(ModuleRenderResult::JavaScript(source)) = source {
-              Some(wrap_module_function(source, &module.id))
-            } else {
-              None
-            }
-          })
+          .map(|source| source.map(|source| wrap_module_function(source, &module.id)))
       })
-      .collect::<Result<Vec<Option<String>>>>()?;
+      .collect::<Result<Vec<Option<BoxSource>>>>()?;
 
     if !has_inline_runtime {
       // insert chunk wrapper
@@ -116,7 +113,7 @@ impl Plugin for JsPlugin {
       module_code_array.push(Some(get_wrap_chunk_after()));
     }
 
-    let code = module_code_array
+    let sources = module_code_array
       .into_par_iter()
       .flatten()
       .chain([{
@@ -140,18 +137,19 @@ impl Plugin for JsPlugin {
             .runtime
             .generate_rspack_execute(namespace, RSPACK_REQUIRE, entry_module_id)
         } else {
-          String::new()
+          RawSource::from(String::new()).boxed()
         }
       }])
-      .fold(String::new, |mut output, cur| {
-        output += &cur;
+      .fold(ConcatSource::default, |mut output, cur| {
+        output.add(cur);
         output
       })
-      .collect::<String>();
+      .collect::<Vec<ConcatSource>>();
+    let source = CachedSource::new(ConcatSource::new(sources));
 
     let hash = Some(get_hash(compilation).to_string());
     let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
-    let contenthash = Some(get_contenthash(&code).to_string());
+    let contenthash = Some(get_contenthash(&source).to_string());
 
     let output_path = match chunk.kind {
       ChunkKind::Entry { .. } => {
@@ -184,10 +182,7 @@ impl Plugin for JsPlugin {
       }
     };
 
-    Ok(vec![RenderManifestEntry::new(
-      AssetContent::String(code),
-      output_path,
-    )])
+    Ok(vec![RenderManifestEntry::new(source.boxed(), output_path)])
   }
 
   async fn process_assets(
@@ -202,20 +197,19 @@ impl Plugin for JsPlugin {
     }
 
     let swc_compiler = get_swc_compiler();
-    let filename_code_pair: Vec<(String, Result<String>)> = compilation
+    let filename_source_pair: Vec<(String, BoxSource)> = compilation
       .assets
       .par_iter()
-      .filter_map(|(filename, source)| {
-        if !filename.ends_with(".js") && !filename.ends_with(".cjs") && !filename.ends_with(".mjs")
-        {
-          return None;
-        }
-
+      .filter(|(filename, _)| {
+        filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs")
+      })
+      .map(|(filename, original)| {
+        let original_code = original.source().to_string();
         let output =
           swc::try_with_handler(swc_compiler.cm.clone(), Default::default(), |handler| {
             let fm = swc_compiler.cm.new_source_file(
               swc_common::FileName::Custom(filename.to_string()),
-              source.string(),
+              original_code.clone(),
             );
             swc_compiler.minify(
               fm,
@@ -224,26 +218,27 @@ impl Plugin for JsPlugin {
                 ..Default::default()
               },
             )
-          });
-
-        Some((
-          filename.to_string(),
-          match output {
-            Ok(output) => Ok(output.code),
-            Err(err) => Err(err.into()),
-          },
-        ))
+          })?;
+        let source = if let Some(map) = &output.map {
+          SourceMapSource::new(SourceMapSourceOptions {
+            value: output.code,
+            name: filename,
+            source_map: SourceMap::from_json(map)
+              .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
+            original_source: Some(original_code),
+            inner_source_map: original.map(&MapOptions::default()),
+            remove_original_source: false,
+          })
+          .boxed()
+        } else {
+          RawSource::from(output.code).boxed()
+        };
+        Ok((filename.to_string(), source))
       })
-      .collect();
+      .collect::<Result<Vec<_>>>()?;
 
-    for (filename, code) in filename_code_pair {
-      let code = code?;
-      compilation.emit_asset(
-        filename,
-        rspack_core::CompilationAsset {
-          source: AssetContent::String(code),
-        },
-      )
+    for (filename, source) in filename_source_pair {
+      compilation.emit_asset(filename, source)
     }
     Ok(())
   }
@@ -273,14 +268,8 @@ impl Parser for JsParser {
       )));
     }
 
-    let ast_with_diagnostics = parse_file(
-      args
-        .source
-        .try_into_string()
-        .map_err(|_| Error::InternalError("Unable to serialize content as string".into()))?,
-      args.uri,
-      &module_type,
-    )?;
+    let ast_with_diagnostics =
+      parse_file(args.source.source().to_string(), args.uri, &module_type)?;
 
     let (ast, diagnostics) = ast_with_diagnostics.split_into_parts();
 
@@ -317,6 +306,7 @@ impl Parser for JsParser {
       module_type,
       source_type_list: JS_MODULE_SOURCE_TYPE_LIST,
       unresolved_mark: self.unresolved_mark,
+      loaded_source: args.source,
     });
     Ok(module.with_diagnostic(diagnostics))
   }

@@ -1,5 +1,5 @@
 use rspack_error::Error;
-use rspack_loader_runner::Content;
+use rspack_sources::{RawSource, SourceExt};
 
 use crate::{
   ApplyContext, ExternalType, FactorizeAndBuildArgs, ModuleType, NormalModuleFactoryContext,
@@ -40,27 +40,24 @@ impl Plugin for ExternalPlugin {
                 uri: specifier,
                 meta: None,
                 options: job_ctx.options.clone(),
-                source: Content::Buffer(
-                  (match external_type {
-                    ExternalType::NodeCommonjs => {
-                      format!(r#"module.exports = require("{}")"#, value)
+                source: RawSource::from(match external_type {
+                  ExternalType::NodeCommonjs => {
+                    format!(r#"module.exports = require("{}")"#, value)
+                  }
+                  ExternalType::Window => {
+                    format!("module.exports = window.{}", value)
+                  }
+                  ExternalType::Auto => match target.platform {
+                    TargetPlatform::BrowsersList
+                    | TargetPlatform::Web
+                    | TargetPlatform::WebWorker
+                    | TargetPlatform::None => format!("module.exports = {}", value),
+                    TargetPlatform::Node(_) => {
+                      format!(r#"module.exports = __rspack_require__.nr("{}")"#, value)
                     }
-                    ExternalType::Window => {
-                      format!("module.exports = window.{}", value)
-                    }
-                    ExternalType::Auto => match target.platform {
-                      TargetPlatform::BrowsersList
-                      | TargetPlatform::Web
-                      | TargetPlatform::WebWorker
-                      | TargetPlatform::None => format!("module.exports = {}", value),
-                      TargetPlatform::Node(_) => {
-                        format!(r#"module.exports = __rspack_require__.nr("{}")"#, value)
-                      }
-                    },
-                  })
-                  .as_bytes()
-                  .to_vec(),
-                ),
+                  },
+                })
+                .boxed(),
               },
               job_ctx,
             )?;

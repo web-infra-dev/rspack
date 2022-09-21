@@ -11,11 +11,12 @@ use crate::{
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
 use rspack_core::{
-  get_chunkhash, get_contenthash, get_hash, AssetContent, BoxModule, ChunkKind,
-  FilenameRenderOptions, ModuleRenderResult, ModuleType, ParseModuleArgs, Parser, Plugin,
+  get_chunkhash, get_contenthash, get_hash,
+  rspack_sources::{CachedSource, ConcatSource, RawSource, Source, SourceExt},
+  BoxModule, ChunkKind, FilenameRenderOptions, ModuleType, ParseModuleArgs, Parser, Plugin,
   RenderManifestEntry, SourceType,
 };
-use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 
 use swc_css::visit::VisitMutWith;
 
@@ -175,25 +176,26 @@ impl Plugin for CssPlugin {
         .unwrap_or_else(|| panic!("No groups found"))
     };
 
-    let code = ordered_modules
+    let sources = ordered_modules
       .par_iter()
       .map(|module| module.module.render(SourceType::Css, module, compilation))
       .collect::<Result<Vec<_>>>()?
       .into_par_iter()
-      .fold(String::new, |mut output, cur| {
-        if let Some(ModuleRenderResult::Css(source)) = cur {
-          output += "\n\n";
-          output += &source;
+      .fold(ConcatSource::default, |mut output, cur| {
+        if let Some(source) = cur {
+          output.add(RawSource::from("\n\n"));
+          output.add(source);
         }
         output
       })
-      .collect::<String>();
+      .collect::<Vec<ConcatSource>>();
+    let source = CachedSource::new(ConcatSource::new(sources));
 
     let hash = Some(get_hash(compilation).to_string());
     let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
-    let contenthash = Some(get_contenthash(&code).to_string());
+    let contenthash = Some(get_contenthash(&source).to_string());
 
-    if code.is_empty() {
+    if source.source().is_empty() {
       Ok(Default::default())
     } else {
       let output_path = match chunk.kind {
@@ -227,10 +229,7 @@ impl Plugin for CssPlugin {
         }
       };
 
-      Ok(vec![RenderManifestEntry::new(
-        AssetContent::String(code),
-        output_path,
-      )])
+      Ok(vec![RenderManifestEntry::new(source.boxed(), output_path)])
     }
   }
 }
@@ -259,11 +258,7 @@ impl Parser for CssParser {
     _module_type: ModuleType,
     args: ParseModuleArgs,
   ) -> Result<TWithDiagnosticArray<BoxModule>> {
-    let content = args.source.try_into_string().map_err(|_| {
-      Error::InternalError(
-        "Unable to serialize content as string which is required by plugin css".into(),
-      )
-    })?;
+    let content = args.source.source().to_string();
     let TWithDiagnosticArray {
       inner: mut stylesheet,
       diagnostic,
@@ -281,6 +276,7 @@ impl Parser for CssParser {
 
     let module: BoxModule = Box::new(CssModule {
       ast: stylesheet,
+      loaded_source: args.source,
       source_type_list: CSS_MODULE_SOURCE_TYPE_LIST,
       meta: args
         .meta

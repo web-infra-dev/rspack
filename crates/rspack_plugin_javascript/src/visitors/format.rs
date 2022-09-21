@@ -39,6 +39,7 @@ impl<'a> Fold for RspackModuleFinalizer<'a> {
         self.unresolved_mark,
         CommonJsConfig {
           ignore_dynamic: true,
+          strict_mode: false, // 'use strict' will add in `wrap_module_function`
           ..Default::default()
         },
         Default::default(),
@@ -54,83 +55,16 @@ impl<'a> Fold for RspackModuleFinalizer<'a> {
       self.compilation,
     ));
 
-    let stmts = cjs_module
+    let body = cjs_module
       .body
       .into_iter()
       .filter_map(|stmt| stmt.stmt())
+      .map(|stmt| stmt.into())
       .collect();
-
-    /***
-     * generate wrapper module such as
-     * "function(module, exports, __rspack_require__, __rspack_dynamic_require__) {
-     *    module.exports = {}
-     * }"
-     */
-    let module_body = vec![Expr::Fn(FnExpr {
-      ident: None,
-      function: Function {
-        params: vec![
-          Param {
-            span: DUMMY_SP,
-            decorators: Default::default(),
-            pat: quote_ident!("module").into(),
-          },
-          Param {
-            span: DUMMY_SP,
-            decorators: Default::default(),
-            pat: quote_ident!("exports").into(),
-          },
-          Param {
-            span: DUMMY_SP,
-            decorators: Default::default(),
-            // keep require mark same as swc common_js used
-            pat: quote_ident!(RSPACK_REQUIRE).into(),
-          },
-          Param {
-            span: DUMMY_SP,
-            decorators: Default::default(),
-            // keep require mark same as swc common_js used
-            pat: quote_ident!(RSPACK_DYNAMIC_IMPORT).into(),
-          },
-        ],
-        decorators: Default::default(),
-        span: DUMMY_SP,
-        body: Some(BlockStmt {
-          span: DUMMY_SP,
-          stmts,
-        }),
-        is_generator: false,
-        is_async: false,
-        type_params: Default::default(),
-        return_type: Default::default(),
-      },
-    })
-    .into_stmt()
-    .into()];
-
-    // if self.entry_flag {
-    //   let is_hmr_enabled = self.compilation.options.dev_server.hmr;
-    //   let callee = if is_hmr_enabled {
-    //     cjs_runtime_helper!(require_hot, rs.require)
-    //   } else {
-    //     cjs_runtime_helper!(require, rs.require)
-    //   };
-
-    //   module_body.push(
-    //     CallExpr {
-    //       span: DUMMY_SP,
-    //       callee,
-    //       args: vec![Expr::Lit(Lit::Str(quote_str!(self.module.id.clone()))).as_arg()],
-    //       type_args: Default::default(),
-    //     }
-    //     .into_stmt()
-    //     .into(),
-    //   );
-    // }
 
     Module {
       span: Default::default(),
-      body: module_body,
+      body,
       shebang: None,
     }
   }

@@ -1,4 +1,5 @@
 use rspack_error::Result;
+use rspack_sources::SourceMap;
 
 use std::fmt::Debug;
 
@@ -38,12 +39,15 @@ pub struct LoaderContext<'a, 'context, T, U> {
 
   pub compilation_context: &'context U,
 
+  pub source_map: Option<SourceMap>,
+
   pub meta: Option<String>,
 }
 
 #[derive(Debug)]
 pub struct LoaderResult {
   pub content: Content,
+  pub source_map: Option<SourceMap>,
   pub meta: Option<String>,
 }
 
@@ -51,6 +55,7 @@ impl<T, U> From<LoaderContext<'_, '_, T, U>> for LoaderResult {
   fn from(loader_context: LoaderContext<'_, '_, T, U>) -> Self {
     Self {
       content: loader_context.source,
+      source_map: loader_context.source_map,
       meta: loader_context.meta,
     }
   }
@@ -128,6 +133,7 @@ impl LoaderRunner {
       resource_fragment: self.resource_data.resource_fragment.as_deref(),
       compiler_context: context.compiler,
       compilation_context: context.compilation,
+      source_map: None,
       meta: None,
     };
 

@@ -1,8 +1,8 @@
 use crate::{
   Chunk, ChunkUkey, Compilation, CompilerOptions, Dependency, ErrorSpan, PluginDriver, ResolveKind,
-  RuntimeSourceNode,
 };
 use rspack_loader_runner::Content;
+use rspack_sources::{BoxSource, RawSource};
 use std::{fmt::Debug, sync::Arc};
 use swc_css::ast::Stylesheet;
 use swc_ecma_ast as ast;
@@ -11,7 +11,7 @@ use swc_ecma_ast as ast;
 pub struct ParseModuleArgs<'a> {
   pub uri: &'a str,
   pub options: Arc<CompilerOptions>,
-  pub source: Content,
+  pub source: BoxSource,
   pub meta: Option<String>, // pub ast: Option<ModuleAst>,
 }
 
@@ -36,9 +36,9 @@ impl<'me> RenderManifestArgs<'me> {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct RenderRuntimeArgs<'me> {
-  pub sources: &'me Vec<RuntimeSourceNode>,
+  pub sources: Vec<RawSource>,
   pub compilation: &'me Compilation,
 }
 

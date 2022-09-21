@@ -143,10 +143,9 @@ impl PluginDriver {
     let mut sources = vec![];
     for plugin in &self.plugins {
       tracing::debug!("running render runtime:{}", plugin.name());
-      let x = sources;
       let args = RenderRuntimeArgs {
         compilation: args.compilation,
-        sources: &x,
+        sources,
       };
       let res = plugin.render_runtime(PluginContext::new(), args)?;
       sources = res;

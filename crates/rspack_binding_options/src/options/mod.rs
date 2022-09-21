@@ -10,6 +10,7 @@ use serde::Deserialize;
 mod raw_builtins;
 mod raw_context;
 mod raw_define;
+mod raw_devtool;
 mod raw_entry;
 mod raw_external;
 mod raw_external_type;
@@ -32,6 +33,8 @@ pub use raw_output::*;
 pub use raw_plugins::*;
 pub use raw_resolve::*;
 pub use raw_target::*;
+
+use self::raw_devtool::RawDevtool;
 pub trait RawOption<T> {
   fn to_compiler_option(self, options: &CompilerOptionsBuilder) -> anyhow::Result<T>;
   /// use to create default value when input is `None`.
@@ -80,6 +83,8 @@ pub struct RawOptions {
   pub external: Option<RawExternal>,
   #[napi(ts_type = "string")]
   pub external_type: Option<RawExternalType>,
+  #[napi(ts_type = "boolean")]
+  pub devtool: Option<RawDevtool>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -101,6 +106,7 @@ pub struct RawOptions {
   pub module: Option<RawModuleOptions>,
   pub builtins: Option<RawBuiltins>,
   pub define: Option<RawDefine>,
+  pub devtool: Option<RawDevtool>,
 }
 
 pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<CompilerOptions> {
@@ -158,6 +164,11 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
     .then(|mut options| {
       let define = RawOption::raw_to_compiler_option(raw_options.define, &options)?;
       options.define = Some(define);
+      Ok(options)
+    })?
+    .then(|mut options| {
+      let devtool = RawOption::raw_to_compiler_option(raw_options.devtool, &options)?;
+      options.devtool = Some(devtool);
       Ok(options)
     })?
     .then(|mut options| {

@@ -1,0 +1,16 @@
+[package]
+name = "rspack_plugin_devtool"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rspack_core = { path = "../rspack_core" }
+rspack_error = { path = "../rspack_error" }
+tracing = "0.1"
+async-trait = "0.1"
+pathdiff = "0.2"
+
+[dev_dependencies]
+rspack_test = { path = "../rspack_test" }

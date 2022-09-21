@@ -3,7 +3,11 @@ use tracing::instrument;
 
 use crate::visitors::DependencyScanner;
 use rspack_core::{
-  Compilation, Module, ModuleGraphModule, ModuleRenderResult, ModuleType, SourceType,
+  rspack_sources::{
+    BoxSource, MapOptions, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
+    SourceMapSourceOptions,
+  },
+  Compilation, Module, ModuleGraphModule, ModuleType, SourceType,
 };
 
 use std::fmt::Debug;
@@ -24,6 +28,7 @@ pub struct JsModule {
   pub ast: swc_ecma_ast::Program,
   pub source_type_list: &'static [SourceType; 1],
   pub unresolved_mark: Mark,
+  pub loaded_source: BoxSource,
 }
 
 impl Debug for JsModule {
@@ -47,19 +52,24 @@ impl Module for JsModule {
     self.source_type_list.as_ref()
   }
 
+  fn original_source(&self) -> &dyn Source {
+    self.loaded_source.as_ref()
+  }
+
   #[instrument]
   fn render(
     &self,
     requested_source_type: SourceType,
     module: &ModuleGraphModule,
     compilation: &Compilation,
-  ) -> Result<Option<ModuleRenderResult>> {
+  ) -> Result<Option<BoxSource>> {
     use swc::config::{self as swc_config, SourceMapsConfig};
 
     if requested_source_type != SourceType::JavaScript {
       return Ok(None);
     }
 
+    let source_map = compilation.options.devtool;
     let compiler = get_swc_compiler();
     let output = compiler.run(|| {
       HELPERS.set(&JS_HELPERS, || {
@@ -68,7 +78,6 @@ impl Module for JsModule {
             .cm
             .new_source_file(FileName::Custom(self.uri.to_string()), self.uri.to_string());
 
-          let source_map = false;
           compiler.process_js_with_custom_pass(
             fm,
             // TODO: It should have a better way rather than clone.
@@ -124,7 +133,22 @@ impl Module for JsModule {
         .unwrap()
       })
     });
-    Ok(Some(ModuleRenderResult::JavaScript(output.code)))
+    if let Some(map) = output.map {
+      Ok(Some(
+        SourceMapSource::new(SourceMapSourceOptions {
+          value: output.code,
+          source_map: SourceMap::from_json(&map)
+            .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
+          name: module.uri.to_string(),
+          original_source: Some(self.original_source().source().to_string()),
+          inner_source_map: self.original_source().map(&MapOptions::default()),
+          remove_original_source: false,
+        })
+        .boxed(),
+      ))
+    } else {
+      Ok(Some(RawSource::from(output.code).boxed()))
+    }
   }
 
   fn dependencies(&mut self) -> Vec<rspack_core::ModuleDependency> {

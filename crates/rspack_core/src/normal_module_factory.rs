@@ -10,6 +10,10 @@ use crate::{
   BoxModule, CompilerOptions, FactorizeAndBuildArgs, LoaderResult, LoaderRunnerRunner, ResourceData,
 };
 use rspack_error::{Diagnostic, Error, TWithDiagnosticArray};
+use rspack_sources::{
+  BoxSource, OriginalSource, RawSource, SourceExt, SourceMap, SourceMapSource,
+  WithoutOriginalOptions,
+};
 use sugar_path::PathSugar;
 use swc_common::Span;
 use tokio::sync::mpsc::UnboundedSender;
@@ -181,6 +185,7 @@ impl NormalModuleFactory {
     let runner_result = if uri.starts_with("UnReachable:") {
       LoaderResult {
         content: Content::Buffer("module.exports = {}".to_string().as_bytes().to_vec()),
+        source_map: None,
         meta: None,
       }
     } else {
@@ -209,13 +214,13 @@ impl NormalModuleFactory {
       self.context.module_type,
       runner_result
     );
+    let source = self.create_source(&uri, runner_result.content, runner_result.source_map);
     let module = self.plugin_driver.parse(
       ParseModuleArgs {
         uri: uri.as_str(),
         meta: runner_result.meta,
-        // source: transform_result.content,
         options: self.context.options.clone(),
-        source: runner_result.content,
+        source,
         // ast: transform_result.ast.map(|x| x.into()),
       },
       &mut self.context,
@@ -223,6 +228,20 @@ impl NormalModuleFactory {
     tracing::trace!("parsed module {:?}", module);
 
     Ok(Some((uri, module)))
+  }
+
+  fn create_source(&self, uri: &str, content: Content, source_map: Option<SourceMap>) -> BoxSource {
+    match (self.context.options.devtool, content, source_map) {
+      (true, Content::String(content), Some(map)) => SourceMapSource::new(WithoutOriginalOptions {
+        value: content,
+        name: uri,
+        source_map: map,
+      })
+      .boxed(),
+      (true, Content::String(content), None) => OriginalSource::new(content, uri).boxed(),
+      (_, Content::String(content), _) => RawSource::from(content).boxed(),
+      (_, Content::Buffer(content), _) => RawSource::from(content).boxed(),
+    }
   }
 
   pub async fn resolve_module(&mut self) -> Result<Option<ModuleGraphModule>> {

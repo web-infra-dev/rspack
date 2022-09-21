@@ -4,9 +4,9 @@ use rspack_error::Result;
 use common::*;
 use node::*;
 use rspack_core::{
-  AssetContent, ChunkKind, Plugin, PluginContext, PluginRenderManifestHookOutput,
+  rspack_sources::RawSource, ChunkKind, Plugin, PluginContext, PluginRenderManifestHookOutput,
   PluginRenderRuntimeHookOutput, RenderManifestArgs, RenderManifestEntry, RenderRuntimeArgs,
-  RuntimeSourceNode, TargetPlatform, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
+  TargetPlatform, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
 };
 use web::*;
 use web_worker::*;
@@ -77,7 +77,7 @@ impl Plugin for RuntimePlugin {
     //Todo we need a dynamic chunk tag to judge it
 
     // common runtime
-    let mut sources = args.sources.to_vec();
+    let mut sources = args.sources;
 
     match &compilation.options.target.platform {
       TargetPlatform::Web => {
@@ -100,18 +100,18 @@ impl Plugin for RuntimePlugin {
         sources.push(generate_common_module_and_chunk_data());
         sources.push(generate_common_check_by_id());
         sources.push(generate_web_rspack_require());
-        sources.push(RuntimeSourceNode {
-          content: RUNTIME_PLACEHOLDER_RSPACK_EXECUTE.to_string(),
-        });
+        sources.push(RawSource::from(
+          RUNTIME_PLACEHOLDER_RSPACK_EXECUTE.to_string(),
+        ));
       }
       TargetPlatform::Node(_) => {
         sources.push(generate_node_init_runtime(namespace));
         sources.push(generate_common_module_and_chunk_data());
         sources.push(generate_common_check_by_id());
         sources.push(generate_node_rspack_require());
-        sources.push(RuntimeSourceNode {
-          content: RUNTIME_PLACEHOLDER_RSPACK_EXECUTE.to_string(),
-        });
+        sources.push(RawSource::from(
+          RUNTIME_PLACEHOLDER_RSPACK_EXECUTE.to_string(),
+        ));
       }
       _ => {}
     }
@@ -129,7 +129,7 @@ impl Plugin for RuntimePlugin {
       let compilation = args.compilation;
       let runtime = &compilation.runtime;
       Ok(vec![RenderManifestEntry::new(
-        AssetContent::String(runtime.generate()),
+        runtime.generate(),
         RUNTIME_FILE_NAME.to_string() + ".js",
       )])
     } else {
@@ -148,7 +148,7 @@ impl Plugin for RuntimePlugin {
 
     match platform {
       TargetPlatform::WebWorker | TargetPlatform::Node(_) => {
-        let mut entry_code_array: Vec<(String, String)> = vec![];
+        let mut entry_source_array = vec![];
         let _ = &compilation.chunk_by_ukey.values().for_each(|chunk| {
           if matches!(chunk.kind, ChunkKind::Entry { .. }) {
             let js_entry_file = chunk
@@ -156,49 +156,40 @@ impl Plugin for RuntimePlugin {
               .iter()
               .find(|file| file.ends_with(".js"))
               .unwrap();
-            if let AssetContent::String(code) =
-              &compilation.assets.get(js_entry_file).unwrap().source()
-            {
-              let entry_module_uri = compilation
-                .chunk_graph
-                .get_chunk_entry_modules(&chunk.ukey)
-                .into_iter()
-                .next()
-                .unwrap_or_else(|| panic!("entry module not found"));
-              let entry_module_id = &compilation
-                .module_graph
-                .module_by_uri(entry_module_uri)
-                .unwrap_or_else(|| panic!("entry module not found"))
-                .id;
-              let execute_code = compilation.runtime.generate_rspack_execute(
-                namespace,
-                RSPACK_REQUIRE,
-                entry_module_id,
-              );
-              entry_code_array.push((
-                js_entry_file.to_string(),
-                compilation
-                  .runtime
-                  .generate_with_inline_modules(code, &execute_code),
-              ));
-            }
+            // will emit_asset back so remove is fine at here.
+            let source = compilation.assets.remove(js_entry_file).unwrap();
+            let entry_module_uri = compilation
+              .chunk_graph
+              .get_chunk_entry_modules(&chunk.ukey)
+              .into_iter()
+              .next()
+              .unwrap_or_else(|| panic!("entry module not found"));
+            let entry_module_id = &compilation
+              .module_graph
+              .module_by_uri(entry_module_uri)
+              .unwrap_or_else(|| panic!("entry module not found"))
+              .id;
+            let execute_code = compilation.runtime.generate_rspack_execute(
+              namespace,
+              RSPACK_REQUIRE,
+              entry_module_id,
+            );
+            entry_source_array.push((
+              js_entry_file.to_string(),
+              compilation
+                .runtime
+                .generate_with_inline_modules(source, execute_code),
+            ));
           }
         });
-        for (file, code) in entry_code_array {
-          compilation.emit_asset(
-            file.to_string(),
-            rspack_core::CompilationAsset {
-              source: AssetContent::String(code),
-            },
-          );
+        for (file, source) in entry_source_array {
+          compilation.emit_asset(file.to_string(), source);
         }
       }
       _ => {
         compilation.emit_asset(
           RUNTIME_FILE_NAME.to_string() + ".js",
-          rspack_core::CompilationAsset {
-            source: AssetContent::String(compilation.runtime.generate()),
-          },
+          compilation.runtime.generate(),
         );
       }
     }

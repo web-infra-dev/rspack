@@ -1782,6 +1782,7 @@ dependencies = [
  "rspack_loader_sass",
  "rspack_plugin_asset",
  "rspack_plugin_css",
+ "rspack_plugin_devtool",
  "rspack_plugin_html",
  "rspack_plugin_javascript",
  "rspack_plugin_json",
@@ -1831,6 +1832,7 @@ dependencies = [
  "regex",
  "rspack_error",
  "rspack_loader_runner",
+ "rspack_sources",
  "serde",
  "sugar_path",
  "swc",
@@ -1868,6 +1870,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "rspack_error",
+ "rspack_sources",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -1964,6 +1967,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_plugin_devtool"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "pathdiff",
+ "rspack_core",
+ "rspack_error",
+ "tracing",
+]
+
+[[package]]
 name = "rspack_plugin_html"
 version = "0.1.0"
 dependencies = [
@@ -2033,6 +2047,18 @@ dependencies = [
  "async-trait",
  "rspack_core",
  "rspack_error",
+]
+
+[[package]]
+name = "rspack_sources"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c685e684a05be19cb1297e97b68922a3d9d657e534bb75094e5bae0cd5dd8ed"
+dependencies = [
+ "parking_lot",
+ "serde",
+ "serde_json",
+ "smol_str",
 ]
 
 [[package]]
