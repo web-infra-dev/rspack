@@ -207,7 +207,6 @@ impl Plugin for JsPlugin {
         let original_code = original.source().to_string();
         let output =
           swc::try_with_handler(swc_compiler.cm.clone(), Default::default(), |handler| {
-            let original_code = original.source().to_string();
             let fm = swc_compiler.cm.new_source_file(
               swc_common::FileName::Custom(filename.to_string()),
               original_code.clone(),
