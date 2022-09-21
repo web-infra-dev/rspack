@@ -1,17 +1,18 @@
-use std::vec;
-
-use crate::module::JS_MODULE_SOURCE_TYPE_LIST;
-use crate::utils::{get_wrap_chunk_after, get_wrap_chunk_before, parse_file, wrap_module_function};
+use crate::module::{JsModule, JS_MODULE_SOURCE_TYPE_LIST};
+use crate::utils::{
+  get_swc_compiler, get_wrap_chunk_after, get_wrap_chunk_before, parse_file, wrap_module_function,
+};
 use crate::visitors::{ClearMark, DefineScanner, DefineTransform};
-use crate::{module::JsModule, utils::get_swc_compiler};
-// use anyhow::{Context, Result};
 use crate::{RSPACK_REGISTER, RSPACK_REQUIRE};
+use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_core::{
   get_chunkhash, get_contenthash, get_hash, AssetContent, BoxModule, ChunkKind,
   FilenameRenderOptions, ModuleRenderResult, ModuleType, ParseModuleArgs, Parser, Plugin,
-  PluginContext, PluginRenderManifestHookOutput, RenderManifestEntry, SourceType,
+  PluginContext, PluginProcessAssetsOutput, PluginRenderManifestHookOutput, ProcessAssetsArgs,
+  RenderManifestEntry, SourceType,
 };
+use swc::config::JsMinifyOptions;
 
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_common::comments::SingleThreadedComments;
@@ -40,6 +41,7 @@ impl Default for JsPlugin {
   }
 }
 
+#[async_trait]
 impl Plugin for JsPlugin {
   fn name(&self) -> &'static str {
     "javascript"
@@ -186,6 +188,64 @@ impl Plugin for JsPlugin {
       AssetContent::String(code),
       output_path,
     )])
+  }
+
+  async fn process_assets(
+    &self,
+    _ctx: PluginContext,
+    args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    let compilation = args.compilation;
+    let minify = &compilation.options.builtins.minify;
+    if !minify {
+      return Ok(());
+    }
+
+    let swc_compiler = get_swc_compiler();
+    let filename_code_pair: Vec<(String, Result<String>)> = compilation
+      .assets
+      .par_iter()
+      .filter_map(|(filename, source)| {
+        if !filename.ends_with(".js") && !filename.ends_with(".cjs") && !filename.ends_with(".mjs")
+        {
+          return None;
+        }
+
+        let output =
+          swc::try_with_handler(swc_compiler.cm.clone(), Default::default(), |handler| {
+            let fm = swc_compiler.cm.new_source_file(
+              swc_common::FileName::Custom(filename.to_string()),
+              source.string(),
+            );
+            swc_compiler.minify(
+              fm,
+              handler,
+              &JsMinifyOptions {
+                ..Default::default()
+              },
+            )
+          });
+
+        Some((
+          filename.to_string(),
+          match output {
+            Ok(output) => Ok(output.code),
+            Err(err) => Err(err.into()),
+          },
+        ))
+      })
+      .collect();
+
+    for (filename, code) in filename_code_pair {
+      let code = code?;
+      compilation.emit_asset(
+        filename,
+        rspack_core::CompilationAsset {
+          source: AssetContent::String(code),
+        },
+      )
+    }
+    Ok(())
   }
 }
 
