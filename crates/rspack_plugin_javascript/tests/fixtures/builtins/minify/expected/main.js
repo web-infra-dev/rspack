@@ -1,3 +1,1 @@
-self["__rspack_runtime__"].__rspack_register__([
-    "main"
-  ], {"./index.js":function(module,exports,__rspack_require__,__rspack_dynamic_require__){"use strict";Object.defineProperty(exports,"__esModule",{value:true});Object.defineProperty(exports,"main",{enumerable:true,get:function(){return main}});function main(){console.log("hello world!")}},});self["__rspack_runtime__"].__rspack_require__("./index.js");
+self.__rspack_runtime__.__rspack_register__(["main"],{"./index.js":function(e,_,r,n){"use strict";function i(){console.log("hello world!")}Object.defineProperty(_,"__esModule",{value:!0}),Object.defineProperty(_,"main",{enumerable:!0,get:function(){return i}})}}),self.__rspack_runtime__.__rspack_require__("./index.js");

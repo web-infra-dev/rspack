@@ -6,7 +6,6 @@ use rspack_error::Result;
 use rspack_plugin_asset::AssetConfig;
 
 pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -> Compiler {
-  plugins.push(Box::new(rspack_plugin_javascript::JsPlugin::new()));
   // plugins.push(Box::new(rspack_plugin_css::CssPlugin::default()));
   plugins.push(Box::new(rspack_plugin_asset::AssetPlugin::new(
     AssetConfig {
@@ -17,6 +16,7 @@ pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -
   plugins.push(Box::new(rspack_plugin_runtime::RuntimePlugin {}));
   plugins.push(Box::new(ExternalPlugin {}));
   plugins.append(&mut options.plugins);
+  plugins.push(Box::new(rspack_plugin_javascript::JsPlugin::new()));
   Compiler::new(options, plugins)
 }
 

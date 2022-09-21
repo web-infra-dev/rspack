@@ -213,6 +213,13 @@ impl CompilationAsset {
     &self.source
   }
 
+  pub fn string(&self) -> String {
+    match &self.source {
+      AssetContent::String(s) => s.to_string(),
+      AssetContent::Buffer(b) => String::from_utf8_lossy(b).to_string(),
+    }
+  }
+
   pub fn buffer(&self) -> &[u8] {
     match &self.source {
       AssetContent::String(s) => s.as_bytes(),

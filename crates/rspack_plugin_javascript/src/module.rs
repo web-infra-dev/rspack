@@ -92,7 +92,6 @@ impl Module for JsModule {
                 inline_sources_content: true.into(),
                 // emit_source_map_columns: (!matches!(options.mode, BundleMode::Dev)).into(),
                 source_maps: Some(SourceMapsConfig::Bool(source_map)),
-                minify: swc::BoolConfig::new(Some(compilation.options.builtins.minify)),
                 env: if compilation.options.target.platform.is_browsers_list() {
                   Some(swc_ecma_preset_env::Config {
                     mode: if compilation.options.builtins.polyfill {
