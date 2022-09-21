@@ -4,10 +4,9 @@ use rspack_error::Result;
 use common::*;
 use node::*;
 use rspack_core::{
-  rspack_sources::{RawSource, SourceExt},
-  ChunkKind, Plugin, PluginContext, PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput,
-  RenderManifestArgs, RenderManifestEntry, RenderRuntimeArgs, TargetPlatform,
-  RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
+  rspack_sources::RawSource, ChunkKind, Plugin, PluginContext, PluginRenderManifestHookOutput,
+  PluginRenderRuntimeHookOutput, RenderManifestArgs, RenderManifestEntry, RenderRuntimeArgs,
+  TargetPlatform, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
 };
 use web::*;
 use web_worker::*;
@@ -149,7 +148,7 @@ impl Plugin for RuntimePlugin {
 
     match platform {
       TargetPlatform::WebWorker | TargetPlatform::Node(_) => {
-        let mut entry_code_array: Vec<(String, String)> = vec![];
+        let mut entry_source_array = vec![];
         let _ = &compilation.chunk_by_ukey.values().for_each(|chunk| {
           if matches!(chunk.kind, ChunkKind::Entry { .. }) {
             let js_entry_file = chunk
@@ -157,7 +156,8 @@ impl Plugin for RuntimePlugin {
               .iter()
               .find(|file| file.ends_with(".js"))
               .unwrap();
-            let code = &compilation.assets.get(js_entry_file).unwrap().source();
+            // will emit_asset back so remove is fine at here.
+            let source = compilation.assets.remove(js_entry_file).unwrap();
             let entry_module_uri = compilation
               .chunk_graph
               .get_chunk_entry_modules(&chunk.ukey)
@@ -174,16 +174,16 @@ impl Plugin for RuntimePlugin {
               RSPACK_REQUIRE,
               entry_module_id,
             );
-            entry_code_array.push((
+            entry_source_array.push((
               js_entry_file.to_string(),
               compilation
                 .runtime
-                .generate_with_inline_modules(code, &execute_code.source()),
+                .generate_with_inline_modules(source, execute_code),
             ));
           }
         });
-        for (file, code) in entry_code_array {
-          compilation.emit_asset(file.to_string(), RawSource::from(code).boxed());
+        for (file, source) in entry_source_array {
+          compilation.emit_asset(file.to_string(), source);
         }
       }
       _ => {

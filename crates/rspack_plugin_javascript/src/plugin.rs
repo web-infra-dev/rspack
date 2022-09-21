@@ -7,12 +7,13 @@ use crate::{RSPACK_REGISTER, RSPACK_REQUIRE};
 use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{
-  BoxSource, CachedSource, ConcatSource, RawSource, Source, SourceExt,
+  BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
+  SourceMapSource, SourceMapSourceOptions,
 };
 use rspack_core::{
   get_chunkhash, get_contenthash, get_hash, BoxModule, ChunkKind, FilenameRenderOptions,
-  ModuleType, ParseModuleArgs, Parser, Plugin, PluginContext, PluginRenderManifestHookOutput,
-  RenderManifestEntry, SourceType,
+  ModuleType, ParseModuleArgs, Parser, Plugin, PluginContext, PluginProcessAssetsOutput,
+  PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderManifestEntry, SourceType,
 };
 use swc::config::JsMinifyOptions;
 
@@ -196,20 +197,20 @@ impl Plugin for JsPlugin {
     }
 
     let swc_compiler = get_swc_compiler();
-    let filename_code_pair: Vec<(String, Result<String>)> = compilation
+    let filename_source_pair: Vec<(String, BoxSource)> = compilation
       .assets
       .par_iter()
-      .filter_map(|(filename, source)| {
-        if !filename.ends_with(".js") && !filename.ends_with(".cjs") && !filename.ends_with(".mjs")
-        {
-          return None;
-        }
-
+      .filter(|(filename, _)| {
+        filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs")
+      })
+      .map(|(filename, original)| {
+        let original_code = original.source().to_string();
         let output =
           swc::try_with_handler(swc_compiler.cm.clone(), Default::default(), |handler| {
+            let original_code = original.source().to_string();
             let fm = swc_compiler.cm.new_source_file(
               swc_common::FileName::Custom(filename.to_string()),
-              source.string(),
+              original_code.clone(),
             );
             swc_compiler.minify(
               fm,
@@ -218,26 +219,27 @@ impl Plugin for JsPlugin {
                 ..Default::default()
               },
             )
-          });
-
-        Some((
-          filename.to_string(),
-          match output {
-            Ok(output) => Ok(output.code),
-            Err(err) => Err(err.into()),
-          },
-        ))
+          })?;
+        let source = if let Some(map) = &output.map {
+          SourceMapSource::new(SourceMapSourceOptions {
+            value: output.code,
+            name: filename,
+            source_map: SourceMap::from_json(map)
+              .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
+            original_source: Some(original_code),
+            inner_source_map: original.map(&MapOptions::default()),
+            remove_original_source: false,
+          })
+          .boxed()
+        } else {
+          RawSource::from(output.code).boxed()
+        };
+        Ok((filename.to_string(), source))
       })
-      .collect();
+      .collect::<Result<Vec<_>>>()?;
 
-    for (filename, code) in filename_code_pair {
-      let code = code?;
-      compilation.emit_asset(
-        filename,
-        rspack_core::CompilationAsset {
-          source: AssetContent::String(code),
-        },
-      )
+    for (filename, source) in filename_source_pair {
+      compilation.emit_asset(filename, source)
     }
     Ok(())
   }

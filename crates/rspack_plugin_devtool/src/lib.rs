@@ -32,14 +32,9 @@ impl Plugin for DevtoolPlugin {
     for (filename, mut map) in maps {
       map.set_file(Some(filename.clone()));
       for source in map.sources_mut() {
-        let uri = &source[1..source.len() - 2]; // remove '<' and '>' in <uri>
+        let uri = &source[1..source.len() - 1]; // remove '<' and '>' in <uri>
         *source = if let Some(relative_path) = diff_paths(uri, &args.compilation.options.context) {
-          let relative_path = if !relative_path.starts_with(".") {
-            format!("./{}", relative_path.display())
-          } else {
-            relative_path.display().to_string()
-          };
-          format!("rspack://{}", relative_path)
+          relative_path.display().to_string()
         } else {
           uri.to_owned()
         };

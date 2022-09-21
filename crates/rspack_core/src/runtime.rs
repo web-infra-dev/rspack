@@ -30,14 +30,30 @@ impl Runtime {
     .boxed()
   }
 
-  pub fn generate_with_inline_modules(&mut self, modules_code: &str, execute_code: &str) -> String {
-    self
-      .generate()
-      .source()
-      .replace(
-        RUNTIME_PLACEHOLDER_INSTALLED_MODULES,
-        &format!("{{{}}}", modules_code),
-      )
-      .replace(RUNTIME_PLACEHOLDER_RSPACK_EXECUTE, execute_code)
+  pub fn generate_with_inline_modules(
+    &mut self,
+    modules_code: BoxSource,
+    execute_code: BoxSource,
+  ) -> BoxSource {
+    let runtime_source = self.generate().source().to_string();
+    let modules_code_start = runtime_source
+      .find(RUNTIME_PLACEHOLDER_INSTALLED_MODULES)
+      .unwrap();
+    let modules_code_end = modules_code_start + RUNTIME_PLACEHOLDER_INSTALLED_MODULES.len();
+    let execute_code_start = runtime_source
+      .find(RUNTIME_PLACEHOLDER_RSPACK_EXECUTE)
+      .unwrap();
+    let execute_code_end = execute_code_start + RUNTIME_PLACEHOLDER_RSPACK_EXECUTE.len();
+    ConcatSource::new([
+      // runtime_source is all runtime code, and it's RawSource, so use RawSource at here is fine.
+      RawSource::from(&runtime_source[0..modules_code_start]).boxed(),
+      RawSource::from("{\n").boxed(),
+      modules_code,
+      RawSource::from("}").boxed(),
+      RawSource::from(&runtime_source[modules_code_end..execute_code_start]).boxed(),
+      execute_code,
+      RawSource::from(&runtime_source[execute_code_end..runtime_source.len()]).boxed(),
+    ])
+    .boxed()
   }
 }
