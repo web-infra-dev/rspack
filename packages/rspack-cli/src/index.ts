@@ -1,6 +1,6 @@
 import { Command } from "commander";
-import { build } from "./build";
-import { createServer } from "./server";
+import { build } from "@rspack/core";
+import { createServer } from "@rspack/dev-server";
 
 const program = new Command();
 
