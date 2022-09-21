@@ -23,7 +23,7 @@ pub struct Compilation {
   pub entrypoints: HashMap<String, ChunkGroupUkey>,
   pub assets: CompilationAssets,
   pub diagnostic: Vec<Diagnostic>,
-  pub(crate) _named_chunk: HashMap<String, ChunkUkey>,
+  pub named_chunk: HashMap<String, ChunkUkey>,
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
 }
 impl Compilation {
@@ -45,7 +45,7 @@ impl Compilation {
       entrypoints: Default::default(),
       assets: Default::default(),
       diagnostic: vec![],
-      _named_chunk: Default::default(),
+      named_chunk: Default::default(),
       named_chunk_groups: Default::default(),
     }
   }

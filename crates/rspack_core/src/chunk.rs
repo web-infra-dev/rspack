@@ -41,6 +41,14 @@ impl Chunk {
       new_chunk.add_group(group.ukey);
     });
   }
+
+  pub fn can_be_initial(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> bool {
+    self
+      .groups
+      .iter()
+      .filter_map(|ukey| chunk_group_by_ukey.get(ukey))
+      .any(|group| group.is_initial())
+  }
 }
 
 #[derive(Debug)]
