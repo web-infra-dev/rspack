@@ -97,7 +97,7 @@ jobs:
       - name: Install dependencies && and build lib
         run: |
           pnpm install
-          pnpm run format:js
+          pnpm run lint:js
           pnpm run build:cli
       - name: binding test
         run: |
