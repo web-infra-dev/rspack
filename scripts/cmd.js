@@ -70,9 +70,13 @@ function createCLI() {
 		.option("cli", "build @rspack/core which located in js side")
 		.option("bundle", "build example directory in rust side")
 		.option("webpack", "build webpack-example directory")
+		.option("js", "build all js library")
 		.action(args => {
 			let command;
 			switch (args) {
+				case "js":
+					command = "pnpm run build";
+					break;
 				case "binding":
 					command = "pnpm --filter @rspack/binding build";
 					break;
@@ -153,7 +157,34 @@ function createCLI() {
 			});
 			log.info("format finished");
 		});
-
+	cli
+		.command("clean")
+		.option("all", "clean all")
+		.option("dist", "clean build artifacts")
+		.option("npm", "clean node_modules")
+		.action(args => {
+			let commands = [];
+			let clean_npm = `rm -rf node_modules && rm -rf packages/**/node_modules`;
+			let clean_rust = `cargo clean`;
+			let clean_dist = `rm -rf packages/**/{lib,dist}`;
+			log.info("start clean");
+			switch (args) {
+				case "all":
+					commands = [clean_npm, clean_rust, clean_dist];
+					break;
+				case "npm":
+					commands = [clean_npm];
+					break;
+				case "dist":
+					commands = [clean_dist];
+			}
+			commands.forEach(command => {
+				cp.execSync(command, {
+					stdio: "inherit"
+				});
+			});
+			log.info("finish clean");
+		});
 	return cli;
 }
 
