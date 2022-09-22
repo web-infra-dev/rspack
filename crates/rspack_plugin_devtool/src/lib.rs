@@ -32,7 +32,11 @@ impl Plugin for DevtoolPlugin {
     for (filename, mut map) in maps {
       map.set_file(Some(filename.clone()));
       for source in map.sources_mut() {
-        let uri = &source[1..source.len() - 1]; // remove '<' and '>' in <uri>
+        let uri = if source.starts_with('<') && source.ends_with('>') {
+          &source[1..source.len() - 1] // remove '<' and '>' for swc FileName::Custom
+        } else {
+          &source[..]
+        };
         *source = if let Some(relative_path) = diff_paths(uri, &args.compilation.options.context) {
           relative_path.display().to_string()
         } else {

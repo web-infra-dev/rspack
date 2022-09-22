@@ -214,7 +214,7 @@ impl NormalModuleFactory {
       self.context.module_type,
       runner_result
     );
-    let source = self.create_source(&uri, runner_result.content, runner_result.source_map);
+    let source = self.create_source(&uri, runner_result.content, runner_result.source_map)?;
     let module = self.plugin_driver.parse(
       ParseModuleArgs {
         uri: uri.as_str(),
@@ -230,17 +230,30 @@ impl NormalModuleFactory {
     Ok(Some((uri, module)))
   }
 
-  fn create_source(&self, uri: &str, content: Content, source_map: Option<SourceMap>) -> BoxSource {
+  fn create_source(
+    &self,
+    uri: &str,
+    content: Content,
+    source_map: Option<SourceMap>,
+  ) -> Result<BoxSource> {
     match (self.context.options.devtool, content, source_map) {
-      (true, Content::String(content), Some(map)) => SourceMapSource::new(WithoutOriginalOptions {
-        value: content,
-        name: uri,
-        source_map: map,
-      })
-      .boxed(),
-      (true, Content::String(content), None) => OriginalSource::new(content, uri).boxed(),
-      (_, Content::String(content), _) => RawSource::from(content).boxed(),
-      (_, Content::Buffer(content), _) => RawSource::from(content).boxed(),
+      (true, content, Some(map)) => {
+        let content = content.try_into_string()?;
+        Ok(
+          SourceMapSource::new(WithoutOriginalOptions {
+            value: content,
+            name: uri,
+            source_map: map,
+          })
+          .boxed(),
+        )
+      }
+      (true, content, None) => {
+        let content = content.try_into_string()?;
+        Ok(OriginalSource::new(content, uri).boxed())
+      }
+      (_, Content::String(content), _) => Ok(RawSource::from(content).boxed()),
+      (_, Content::Buffer(content), _) => Ok(RawSource::from(content).boxed()),
     }
   }
 
