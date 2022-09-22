@@ -148,9 +148,11 @@ class Rspack {
 		watcher.on("change", async () => {
 			// TODO: only build because we lack the snapshot info of file.
 			// TODO: it means there a lot of things to do....
-			console.log("hit change");
+			const begin = Date.now();
+			console.log("hit change and start to build");
 			const compiler = new Rspack(this.userOptions);
 			stats = await compiler.build();
+			console.log("build success, time cost", Date.now() - begin);
 		});
 
 		return {
