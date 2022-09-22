@@ -5,9 +5,8 @@ use rayon::prelude::*;
 use rspack_error::Result;
 
 use rspack_core::{
-  get_chunkhash, get_contenthash, get_hash, AssetParserOptions, FilenameRenderOptions, Plugin,
-  PluginContext, PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry,
-  SourceType,
+  get_contenthash, AssetParserOptions, FilenameRenderOptions, Plugin, PluginContext,
+  PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, SourceType,
 };
 
 mod asset;
@@ -88,9 +87,10 @@ impl Plugin for AssetPlugin {
           .map(|result| {
             if let Some(asset) = result {
               let contenthash = Some(get_contenthash(&asset).to_string());
-              let chunkhash =
-                Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
-              let hash = Some(get_hash(compilation).to_string());
+              let chunkhash = None;
+              // Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
+              // let hash = Some(get_hash(compilation).to_string());
+              let hash = None;
 
               let path = Path::new(&module.id);
               Some(RenderManifestEntry::new(
