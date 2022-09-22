@@ -75,7 +75,7 @@ function createCLI() {
 			let command;
 			switch (args) {
 				case "js":
-					command = "pnpm run build";
+					command = `pnpm --filter "@rspack/*" build`;
 					break;
 				case "binding":
 					command = "pnpm --filter @rspack/binding build";
