@@ -79,8 +79,9 @@ impl SwcCssCompiler {
     );
 
     let mut gen = CodeGenerator::new(wr, CodegenConfig { minify: false });
-
-    gen.emit(ast).unwrap();
+    gen
+      .emit(ast)
+      .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?;
 
     if let Some(src_map_buf) = &mut src_map_buf {
       let map = CM.build_source_map_with_config(src_map_buf, None, SwcCssSourceMapGenConfig);
