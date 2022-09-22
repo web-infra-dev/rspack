@@ -1,0 +1,34 @@
+name: Benchmark History
+on:
+  push:
+    branches:
+      - next
+
+permissions:
+  contents: write
+  deployments: write
+
+jobs:
+  benchmark:
+    name: Run Criterion.rs benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install toolchain
+        run: rustup show
+      - name: Run benchmark
+        run: cargo bench --bench main -- --output-format bencher | tee output.txt
+
+      - name: Store benchmark result
+        uses: benchmark-action/github-action-benchmark@v1.14.0
+        with:
+          name: Rust Benchmark
+          tool: "cargo"
+          output-file-path: output.txt
+          github-token: ${{ secrets.BENCHMARK_TOKEN }}
+          auto-push: false
+          # Show alert with commit comment on detecting possible performance regression
+          fail-on-alert: false
+
+      - name: Push benchmark result
+        run: git push 'https:///speedy-js:${{ secrets.GITHUB_TOKEN }}@github.com/speedy-js/rspack.git' gh-pages:gh-pages
