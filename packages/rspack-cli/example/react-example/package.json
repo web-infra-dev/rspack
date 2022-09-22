@@ -4,13 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "rspack dev rspack.config.json"
+    "build:webpack": "webpack -c webpack.config.js",
+    "build": "../../bin/rspack build -c rspack.config.js",
+    "dev": "../../bin/rspack serve -c rspack.config.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@rspack/core": "workspace:*",
     "react": "17.0.0",
     "react-dom": "17.0.0"
   }
