@@ -11,7 +11,7 @@ use crate::{
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
 use rspack_core::{
-  get_chunkhash, get_contenthash, get_hash,
+  get_contenthash,
   rspack_sources::{CachedSource, ConcatSource, RawSource, Source, SourceExt},
   BoxModule, ChunkKind, FilenameRenderOptions, ModuleType, ParseModuleArgs, Parser, Plugin,
   RenderManifestEntry, SourceType,
@@ -133,7 +133,7 @@ impl Plugin for CssPlugin {
     args: rspack_core::RenderManifestArgs,
   ) -> rspack_core::PluginRenderManifestHookOutput {
     let compilation = args.compilation;
-    let module_graph = &compilation.module_graph;
+    // let module_graph = &compilation.module_graph;
     let chunk = args.chunk();
 
     let ordered_modules = {
@@ -191,8 +191,10 @@ impl Plugin for CssPlugin {
       .collect::<Vec<ConcatSource>>();
     let source = CachedSource::new(ConcatSource::new(sources));
 
-    let hash = Some(get_hash(compilation).to_string());
-    let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
+    // let hash = Some(get_hash(compilation).to_string());
+    // let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
+    let hash = None;
+    let chunkhash = None;
     let contenthash = Some(get_contenthash(&source).to_string());
 
     if source.source().is_empty() {
