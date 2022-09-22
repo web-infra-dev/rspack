@@ -2262,7 +2262,6 @@ dependencies = [
  "rspack_test",
  "serde",
  "serde_json",
- "sourcemap",
  "sugar_path",
  "swc_atoms 0.4.14",
  "swc_common 0.28.7",
