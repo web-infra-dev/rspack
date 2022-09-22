@@ -1,14 +1,5 @@
 function __rspack_dynamic_require__(chunkId) {
-  return Promise.all(
-    Object.keys(this)
-      .filter(function (key) {
-        return key.indexOf('rspack_load_dynamic') > 0;
-      })
-      .reduce(function (promises, key) {
-        this[key](chunkId, promises);
-        return promises;
-      }.bind(this), [])
-  );
+  return new Promise(resolve => resolve(require(this.__rspack_get_dynamic_chunk_url__(chunkId, 'js'))));
 }
 
 // mount register dynamic require

@@ -109,6 +109,11 @@ impl Plugin for RuntimePlugin {
         sources.push(generate_common_module_and_chunk_data());
         sources.push(generate_common_check_by_id());
         sources.push(generate_node_rspack_require());
+        if !dynamic_js.is_empty() || !dynamic_css.is_empty() {
+          sources.push(generate_common_dynamic_data(dynamic_js, dynamic_css));
+          sources.push(generate_node_dynamic_get_chunk_url(has_hash));
+          sources.push(generate_node_dynamic_require());
+        }
         sources.push(RawSource::from(
           RUNTIME_PLACEHOLDER_RSPACK_EXECUTE.to_string(),
         ));
