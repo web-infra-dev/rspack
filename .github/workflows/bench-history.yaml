@@ -29,7 +29,7 @@ jobs:
           name: Rust Benchmark
           tool: "cargo"
           output-file-path: output.txt
-          github-token: ${{ secrets.BENCHMARK_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           auto-push: false
           # Show alert with commit comment on detecting possible performance regression
           fail-on-alert: false
