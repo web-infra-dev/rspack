@@ -1,0 +1,15 @@
+{
+  "name": "@rspack/builder",
+  "version": "0.0.4",
+  "description": "",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@rspack/core": "workspace:*"
+  }
+}

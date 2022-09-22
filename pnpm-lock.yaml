@@ -207,6 +207,12 @@ importers:
       typescript: 4.7.3
       uvu: 0.5.6
 
+  packages/rspack-builder:
+    specifiers:
+      '@rspack/core': workspace:*
+    dependencies:
+      '@rspack/core': link:../rspack
+
   packages/rspack-cli:
     specifiers:
       '@rspack/core': workspace:*

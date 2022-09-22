@@ -1,11 +1,6 @@
 {
-  "compilerOptions": {
-    "module": "CommonJS",
-    "target": "ES2018",
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "outDir": "lib",
-    "declaration": true
-  },
-  "include": ["src"]
+  "extends": "../../tsconfig.base.json",
+  "include": [
+    "src"
+  ]
 }
