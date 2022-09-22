@@ -65,7 +65,7 @@ impl Compilation {
     self.diagnostic.append(&mut diagnostic);
   }
 
-  pub(crate) fn add_chunk(
+  pub fn add_chunk(
     chunk_by_ukey: &mut ChunkByUkey,
     name: Option<String>,
     id: String,
