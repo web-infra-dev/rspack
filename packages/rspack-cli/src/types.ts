@@ -1,4 +1,5 @@
 import { Colorette } from "colorette";
+import { RspackCLI } from "./rspack-cli";
 export interface IRspackCLI {
 	runRspack(): Promise<void>;
 }
@@ -21,4 +22,8 @@ export interface RspackCLIOptions {
 	devtool: boolean;
 	mode: string;
 	watch: boolean;
+}
+
+export interface RspackCommand {
+	apply(cli: RspackCLI): Promise<void>;
 }
