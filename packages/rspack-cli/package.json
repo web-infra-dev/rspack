@@ -9,14 +9,20 @@
   "scripts": {
     "build": "rm -rf lib/ && tsc",
     "dev": "tsc -w",
-    "test": ""
+    "test": "jest --verbose"
   },
   "files": [
     "lib"
   ],
+  "devDependencies": {
+    "internal-ip": "6.2.0",
+    "concat-stream": "^2.0.0",
+    "execa": "^5.0.0"
+  },
   "dependencies": {
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "workspace:*",
-    "commander": "9.4.0"
+    "colorette": "2.0.19",
+    "yargs": "17.5.1"
   }
 }
