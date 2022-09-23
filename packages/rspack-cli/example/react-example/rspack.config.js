@@ -1,6 +1,7 @@
 const path = require("path");
 
 module.exports = {
+	context: __dirname,
 	mode: "development",
 	entry: {
 		main: path.resolve(__dirname, "./src/index.js")
@@ -15,6 +16,10 @@ module.exports = {
 		"process.env.NODE_ENV": "development"
 	},
 	builtins: {
-		html: [{}]
+		html: [
+			{
+				template: path.resolve(__dirname, "./index.html")
+			}
+		]
 	}
 };

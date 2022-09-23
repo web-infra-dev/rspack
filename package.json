@@ -43,7 +43,10 @@
     "tsm": "2.2.1",
     "why-is-node-running": "2.2.1",
     "prettier": "2.5.1",
-    "commander": "9.4.0"
+    "commander": "9.4.0",
+    "ts-jest": "29.0.1",
+    "jest": "29.0.3",
+    "webpack": "5.74.0"
   },
   "packageManager": "pnpm@7.3.0"
 }

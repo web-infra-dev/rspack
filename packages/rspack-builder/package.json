@@ -4,12 +4,15 @@
   "description": "",
   "main": "lib/index.js",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "test": "jest --verbose"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@rspack/core": "workspace:*"
+    "jest": "29.0.3",
+    "@rspack/core": "workspace:*",
+    "webpack-dev-server": "4.11.1"
   }
 }
