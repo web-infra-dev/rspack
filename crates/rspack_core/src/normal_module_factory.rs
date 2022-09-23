@@ -126,7 +126,7 @@ impl NormalModuleFactory {
     } else {
       uri
     });
-    debug_assert_eq!(url.scheme().unwrap().as_str(), "specifier");
+    debug_assert_eq!(url.scheme().map(|item| item.as_str()), Some("specifier"));
     resolve_module_type_by_uri(PathBuf::from(url.path().as_str()))
   }
 
