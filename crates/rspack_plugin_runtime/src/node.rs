@@ -14,9 +14,13 @@ pub fn generate_node_dynamic_require() -> RawSource {
   RawSource::from(include_str!("runtime/node/_dynamic_require.js").to_string())
 }
 
+pub fn generate_node_load_chunk() -> RawSource {
+  RawSource::from(include_str!("runtime/node/_dynamic_load_chunk.js").to_string())
+}
+
 pub fn generate_node_dynamic_get_chunk_url(has_hash: bool) -> RawSource {
   RawSource::from(
-    include_str!("runtime/web/_dynamic_get_chunk_url.js").replace(
+    include_str!("runtime/node/_dynamic_get_chunk_url.js").replace(
       "__GET_DYNAMIC_URL_HASH_PLACEHOLDER__",
       if has_hash {
         r#"'.' + this.chunkHashData[type][chunkId]"#

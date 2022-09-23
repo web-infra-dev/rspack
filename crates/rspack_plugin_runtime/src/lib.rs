@@ -112,6 +112,7 @@ impl Plugin for RuntimePlugin {
         if !dynamic_js.is_empty() || !dynamic_css.is_empty() {
           sources.push(generate_common_dynamic_data(dynamic_js, dynamic_css));
           sources.push(generate_node_dynamic_get_chunk_url(has_hash));
+          sources.push(generate_node_load_chunk());
           sources.push(generate_node_dynamic_require());
         }
         sources.push(RawSource::from(

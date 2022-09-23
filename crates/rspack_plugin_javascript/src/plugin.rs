@@ -108,9 +108,12 @@ impl Plugin for JsPlugin {
           namespace,
           RSPACK_REGISTER,
           &args.chunk().id.to_owned(),
+          &compilation.options.target.platform,
         )),
       );
-      module_code_array.push(Some(get_wrap_chunk_after()));
+      module_code_array.push(Some(get_wrap_chunk_after(
+        &compilation.options.target.platform,
+      )));
     }
 
     let sources = module_code_array

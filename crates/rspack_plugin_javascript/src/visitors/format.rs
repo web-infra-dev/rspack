@@ -194,11 +194,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
             .compilation
             .chunk_graph
             .get_module_chunk_group(&js_module.uri, &self.compilation.chunk_by_ukey);
-          let chunk_group = self
-            .compilation
-            .chunk_group_by_ukey
-            .get(chunk_group_ukey)
-            .expect("Chunk group should exist");
+          let chunk_group = self.compilation.chunk_group_by_ukey.get(chunk_group_ukey)?;
           chunk_group
             .chunks
             .iter()
@@ -207,7 +203,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
                 .compilation
                 .chunk_by_ukey
                 .get(chunk_ukey)
-                .expect("Chunk should exist");
+                .unwrap_or_else(|| panic!("chunk should exist"));
               chunk.id.as_str()
             })
             .collect::<Vec<_>>()
