@@ -29,8 +29,9 @@
     "source-map": "^0.7.4"
   },
   "dependencies": {
-    "@rspack/binding": "workspace:*",
     "chokidar": "3.5.3",
+    "@rspack/binding": "workspace:*",
+    "@rspack/dev-client": "workspace:*",
     "@rspack/plugin-postcss": "workspace:^",
     "tapable": "2.2.1",
     "webpack-sources": "3.2.3",

@@ -15,13 +15,15 @@ import type { ResolvedTarget, Target } from "./target";
 import type { Output, ResolvedOutput } from "./output";
 import type { Resolve, ResolvedResolve } from "./resolve";
 import type { Builtins, ResolvedBuiltins } from "./builtins";
+import type { Devtool, ResolvedDevtool } from "./devtool";
 import { resolveTargetOptions } from "./target";
 import { resolveOutputOptions } from "./output";
 import { resolveDevOptions } from "./dev";
 import { resolveModuleOptions } from "./module";
 import { resolveBuiltinsOptions } from "./builtins";
 import { resolveResolveOptions } from "./resolve";
-import { Devtool, ResolvedDevtool } from "./devtool";
+import { resolveDefine } from "./define";
+import { resolveEntry } from "./entry";
 
 export type Asset = {
 	source: string;
@@ -66,9 +68,9 @@ export function resolveOptions(config: RspackOptions): ResolvedRspackOptions {
 	const context = config.context ?? process.cwd();
 	const mode = config.mode ?? "development";
 	const dev = resolveDevOptions(config.dev, { context });
-	const entry = config.entry ?? {};
+	const entry = resolveEntry(config.entry, { dev: config.dev });
 	const output = resolveOutputOptions(config.output);
-	const define = config.define ?? {};
+	const define = resolveDefine(config.define);
 	const target = resolveTargetOptions(config.target);
 	const external = config.externals ?? {};
 	const externalType = config.externalsType ?? "";
