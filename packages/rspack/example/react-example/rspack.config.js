@@ -15,6 +15,10 @@ module.exports = {
 		"process.env.NODE_ENV": "development"
 	},
 	builtins: {
-		html: [{}]
+		html: [
+			{
+				template: path.resolve(__dirname, "./index.html")
+			}
+		]
 	}
 };
