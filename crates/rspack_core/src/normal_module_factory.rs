@@ -1,5 +1,5 @@
 use std::{
-  path::Path,
+  path::{Path, PathBuf},
   sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
@@ -126,8 +126,8 @@ impl NormalModuleFactory {
     } else {
       uri
     });
-    debug_assert_eq!(url.scheme(), "specifier");
-    resolve_module_type_by_uri(url.path())
+    debug_assert_eq!(url.scheme().unwrap().as_str(), "specifier");
+    resolve_module_type_by_uri(PathBuf::from(url.path().as_str()))
   }
 
   pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, BoxModule)>> {
@@ -177,9 +177,9 @@ impl NormalModuleFactory {
 
     let resource_data = ResourceData {
       resource: uri.clone(),
-      resource_path: url.path().to_owned(),
-      resource_query: url.query().map(|q| q.to_owned()),
-      resource_fragment: url.fragment().map(|f| f.to_owned()),
+      resource_path: url.path().to_string(),
+      resource_query: url.query().map(|q| q.to_string()),
+      resource_fragment: url.fragment().map(|f| f.to_string()),
     };
 
     let runner_result = if uri.starts_with("UnReachable:") {
@@ -201,9 +201,9 @@ impl NormalModuleFactory {
         } else {
           &uri
         });
-        debug_assert_eq!(url.scheme(), "specifier");
+        debug_assert_eq!(url.scheme().unwrap().as_str(), "specifier");
         // TODO: remove default module type resolution based on the file extension.
-        self.context.module_type = resolve_module_type_by_uri(url.path());
+        self.context.module_type = resolve_module_type_by_uri(PathBuf::from(url.path().as_str()));
       }
 
       runner_result
