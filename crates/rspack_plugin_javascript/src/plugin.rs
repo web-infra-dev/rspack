@@ -16,6 +16,7 @@ use rspack_core::{
   ProcessAssetsArgs, RenderManifestEntry, SourceType,
 };
 use swc::config::JsMinifyOptions;
+use swc::BoolOrDataConfig;
 
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_common::comments::SingleThreadedComments;
@@ -220,21 +221,26 @@ impl Plugin for JsPlugin {
               fm,
               handler,
               &JsMinifyOptions {
+                source_map: BoolOrDataConfig::from_bool(true),
+                inline_sources_content: true,
+                emit_source_map_columns: true,
                 ..Default::default()
               },
             )
           })?;
         let source = if let Some(map) = &output.map {
-          SourceMapSource::new(SourceMapSourceOptions {
+          let s = SourceMapSource::new(SourceMapSourceOptions {
             value: output.code,
-            name: filename,
+            name: format!("<{filename}>"), // match with swc FileName::Custom...
             source_map: SourceMap::from_json(map)
               .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
             original_source: Some(original_code),
             inner_source_map: original.map(&MapOptions::default()),
-            remove_original_source: false,
+            remove_original_source: true,
           })
-          .boxed()
+          .boxed();
+          s.map(&MapOptions::default());
+          s
         } else {
           RawSource::from(output.code).boxed()
         };
