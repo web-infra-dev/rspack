@@ -8,7 +8,8 @@ use std::{
 
 use crate::{
   CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule, NormalModuleFactory,
-  NormalModuleFactoryContext, Plugin, PluginDriver, Stats, PATH_START_BYTE_POS_MAP,
+  NormalModuleFactoryContext, Plugin, PluginDriver, SharedPluginDriver, Stats,
+  PATH_START_BYTE_POS_MAP,
 };
 
 use anyhow::Context;
@@ -19,6 +20,7 @@ use rspack_error::{
   Error, Result, TWithDiagnosticArray,
 };
 use rspack_sources::BoxSource;
+use tokio::sync::RwLock;
 use tracing::instrument;
 
 mod compilation;
@@ -30,7 +32,7 @@ pub use resolver::*;
 pub struct Compiler {
   pub options: Arc<CompilerOptions>,
   pub compilation: Compilation,
-  pub plugin_driver: Arc<PluginDriver>,
+  pub plugin_driver: SharedPluginDriver,
   pub loader_runner_runner: Arc<LoaderRunnerRunner>,
 }
 
@@ -41,11 +43,11 @@ impl Compiler {
 
     let resolver_factory = ResolverFactory::new();
     let resolver = resolver_factory.get(options.resolve.clone());
-    let plugin_driver = Arc::new(PluginDriver::new(
+    let plugin_driver = Arc::new(RwLock::new(PluginDriver::new(
       options.clone(),
       plugins,
       Arc::new(resolver),
-    ));
+    )));
     let loader_runner_runner = LoaderRunnerRunner::new(options.clone(), plugin_driver.clone());
 
     Self {
@@ -165,7 +167,7 @@ impl Compiler {
     self.compilation.seal(self.plugin_driver.clone()).await?;
 
     // Consume plugin driver diagnostic
-    let mut plugin_driver_diagnostics = self.plugin_driver.take_diagnostic();
+    let mut plugin_driver_diagnostics = self.plugin_driver.read().await.take_diagnostic();
     self
       .compilation
       .diagnostic

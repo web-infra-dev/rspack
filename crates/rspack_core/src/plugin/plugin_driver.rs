@@ -153,8 +153,8 @@ impl PluginDriver {
     Ok(sources)
   }
   #[instrument(skip_all)]
-  pub async fn process_assets(&self, args: ProcessAssetsArgs<'_>) -> PluginProcessAssetsOutput {
-    for plugin in &self.plugins {
+  pub async fn process_assets(&mut self, args: ProcessAssetsArgs<'_>) -> PluginProcessAssetsOutput {
+    for plugin in &mut self.plugins {
       plugin
         .process_assets(
           PluginContext::new(),
@@ -167,15 +167,15 @@ impl PluginDriver {
     Ok(())
   }
   #[instrument(skip_all)]
-  pub async fn done(&self) -> PluginBuildEndHookOutput {
-    for plugin in &self.plugins {
+  pub async fn done(&mut self) -> PluginBuildEndHookOutput {
+    for plugin in &mut self.plugins {
       plugin.done().await?;
     }
     Ok(())
   }
 
-  pub fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<()> {
-    for plugin in &self.plugins {
+  pub fn optimize_chunks(&mut self, compilation: &mut Compilation) -> Result<()> {
+    for plugin in &mut self.plugins {
       plugin.optimize_chunks(PluginContext::new(), OptimizeChunksArgs { compilation })?;
     }
     Ok(())

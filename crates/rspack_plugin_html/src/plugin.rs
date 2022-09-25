@@ -46,7 +46,7 @@ impl Plugin for HtmlPlugin {
   }
 
   async fn process_assets(
-    &self,
+    &mut self,
     _ctx: rspack_core::PluginContext,
     args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsOutput {

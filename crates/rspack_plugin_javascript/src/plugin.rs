@@ -188,7 +188,7 @@ impl Plugin for JsPlugin {
   }
 
   async fn process_assets(
-    &self,
+    &mut self,
     _ctx: PluginContext,
     args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {

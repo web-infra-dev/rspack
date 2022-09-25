@@ -19,6 +19,7 @@ pub use module_graph::*;
 mod chunk;
 pub use chunk::*;
 mod utils;
+use tokio::sync::RwLock;
 pub use utils::*;
 mod chunk_graph;
 pub use chunk_graph::*;
@@ -110,3 +111,4 @@ impl TryFrom<&str> for ModuleType {
 pub(crate) type VisitedModuleIdentity = Arc<DashSet<(String, ModuleDependency)>>;
 
 pub(crate) type ChunkByUkey = HashMap<ChunkUkey, Chunk>;
+pub(crate) type SharedPluginDriver = Arc<RwLock<PluginDriver>>;

@@ -2142,6 +2142,7 @@ dependencies = [
  "async-trait",
  "crossbeam",
  "dashmap",
+ "futures",
  "hashbrown",
  "nodejs-resolver",
  "once_cell",

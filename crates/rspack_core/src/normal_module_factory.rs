@@ -7,7 +7,8 @@ use std::{
 };
 
 use crate::{
-  BoxModule, CompilerOptions, FactorizeAndBuildArgs, LoaderResult, LoaderRunnerRunner, ResourceData,
+  BoxModule, CompilerOptions, FactorizeAndBuildArgs, LoaderResult, LoaderRunnerRunner,
+  ResourceData, SharedPluginDriver,
 };
 use rspack_error::{Diagnostic, Error, TWithDiagnosticArray};
 use rspack_sources::{
@@ -27,7 +28,6 @@ use crate::{
   ModuleType,
   Msg,
   ParseModuleArgs,
-  PluginDriver,
   ResolveArgs,
   VisitedModuleIdentity,
 };
@@ -64,7 +64,7 @@ pub struct NormalModuleFactory {
   context: NormalModuleFactoryContext,
   dependency: Dependency,
   tx: UnboundedSender<Msg>,
-  plugin_driver: Arc<PluginDriver>,
+  plugin_driver: SharedPluginDriver,
   loader_runner_runner: Arc<LoaderRunnerRunner>,
   diagnostic: Vec<Diagnostic>,
 }
@@ -74,7 +74,7 @@ impl NormalModuleFactory {
     context: NormalModuleFactoryContext,
     dependency: Dependency,
     tx: UnboundedSender<Msg>,
-    plugin_driver: Arc<PluginDriver>,
+    plugin_driver: SharedPluginDriver,
     loader_runner_runner: Arc<LoaderRunnerRunner>,
   ) -> Self {
     context.active_task_count.fetch_add(1, Ordering::SeqCst);
@@ -215,7 +215,7 @@ impl NormalModuleFactory {
       runner_result
     );
     let source = self.create_source(&uri, runner_result.content, runner_result.source_map);
-    let module = self.plugin_driver.parse(
+    let module = self.plugin_driver.read().await.parse(
       ParseModuleArgs {
         uri: uri.as_str(),
         meta: runner_result.meta,
@@ -247,13 +247,14 @@ impl NormalModuleFactory {
   pub async fn resolve_module(&mut self) -> Result<Option<ModuleGraphModule>> {
     // TODO: caching in resolve
     // Here is the corresponding create function in webpack, but instead of using hooks we use procedural functions
-    let (uri, mut module) = if let Ok(Some(module)) = self.plugin_driver.factorize_and_build(
+    let factorize_and_build_result = self.plugin_driver.clone().read().await.factorize_and_build(
       FactorizeAndBuildArgs {
         dependency: &self.dependency,
         plugin_driver: &self.plugin_driver,
       },
       &mut self.context,
-    ) {
+    );
+    let (uri, mut module) = if let Ok(Some(module)) = factorize_and_build_result {
       let (uri, module) = module;
       self
         .tx
@@ -324,7 +325,10 @@ impl NormalModuleFactory {
     let resolved_module = ModuleGraphModule::new(
       self.context.module_name.clone(),
       Path::new("./")
-        .join(Path::new(uri.as_str()).relative(self.plugin_driver.options.context.as_str()))
+        .join(
+          Path::new(uri.as_str())
+            .relative(self.plugin_driver.read().await.options.context.as_str()),
+        )
         .to_string_lossy()
         .to_string(),
       uri,

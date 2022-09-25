@@ -35,7 +35,7 @@ impl Plugin for ExternalPlugin {
           let specifier = args.dependency.detail.specifier.as_str();
           if let Some(value) = eh.get(specifier) {
             job_ctx.module_type = Some(ModuleType::Js);
-            let module = args.plugin_driver.parse(
+            let module = args.plugin_driver.blocking_read().parse(
               ParseModuleArgs {
                 uri: specifier,
                 meta: None,

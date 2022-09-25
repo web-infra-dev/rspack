@@ -8,7 +8,7 @@ pub use rspack_loader_runner::{
 };
 
 use crate::{
-  CompilerOptions, LoaderRunnerPluginProcessResource, ModuleRule, ModuleType, PluginDriver,
+  CompilerOptions, LoaderRunnerPluginProcessResource, ModuleRule, ModuleType, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -22,14 +22,14 @@ pub type BoxedLoader = rspack_loader_runner::BoxedLoader<CompilerContext, Compil
 
 pub struct LoaderRunnerRunner {
   pub options: Arc<CompilerOptions>,
-  pub plugin_driver: Arc<PluginDriver>,
+  pub plugin_driver: SharedPluginDriver,
   pub compiler_context: CompilerContext,
 }
 
 type ResolvedModuleType = Option<ModuleType>;
 
 impl LoaderRunnerRunner {
-  pub fn new(options: Arc<CompilerOptions>, plugin_driver: Arc<PluginDriver>) -> Self {
+  pub fn new(options: Arc<CompilerOptions>, plugin_driver: SharedPluginDriver) -> Self {
     let compiler_context = CompilerContext {
       options: options.clone(),
     };

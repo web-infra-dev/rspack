@@ -1,5 +1,6 @@
 use crate::{
-  Chunk, ChunkUkey, Compilation, CompilerOptions, Dependency, ErrorSpan, PluginDriver, ResolveKind,
+  Chunk, ChunkUkey, Compilation, CompilerOptions, Dependency, ErrorSpan, ResolveKind,
+  SharedPluginDriver,
 };
 use rspack_loader_runner::Content;
 use rspack_sources::{BoxSource, RawSource};
@@ -45,7 +46,7 @@ pub struct RenderRuntimeArgs<'me> {
 #[derive(Debug, Clone)]
 pub struct FactorizeAndBuildArgs<'me> {
   pub dependency: &'me Dependency,
-  pub plugin_driver: &'me Arc<PluginDriver>,
+  pub plugin_driver: &'me SharedPluginDriver,
 }
 
 #[derive(Debug, Clone)]

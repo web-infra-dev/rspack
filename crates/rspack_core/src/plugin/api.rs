@@ -40,56 +40,13 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  fn build_start(&self) -> PluginBuildStartHookOutput {
+  fn build_start(&mut self) -> PluginBuildStartHookOutput {
     Ok(())
   }
 
-  async fn done(&self) -> PluginBuildEndHookOutput {
+  async fn done(&mut self) -> PluginBuildEndHookOutput {
     Ok(())
   }
-
-  // async fn resolve(
-  //   &self,
-  //   _ctx: PluginContext<&mut NormalModuleFactoryContext>,
-  //   _agrs: ResolveArgs<'_>,
-  // ) -> PluginResolveHookOutput {
-  //   Ok(None)
-  // }
-
-  // async fn load(
-  //   &self,
-  //   _ctx: PluginContext<&mut NormalModuleFactoryContext>,
-  //   _args: LoadArgs<'_>,
-  // ) -> PluginLoadHookOutput {
-  //   Ok(None)
-  // }
-  // fn reuse_ast(&self) -> bool {
-  //   false
-  // }
-  // fn generate(&self, ast: &Option<TransformAst>) -> PluginGenerateOutput {
-  //   let ast = ast.as_ref().context("call generate when ast is empty")?;
-  //   match ast {
-  //     TransformAst::JavaScript(_ast) => Err(anyhow::anyhow!("js ast codegen not supported yet")),
-  //     TransformAst::Css(_ast) => Err(anyhow::anyhow!("css ast codegen not supported yet ")),
-  //   }
-  // }
-  // fn parse(&self, _uri: &str, _content: &Content) -> PluginParseOutput {
-  //   unreachable!()
-  // }
-  // fn transform(
-  //   &self,
-  //   _ctx: PluginContext<&mut NormalModuleFactoryContext>,
-  //   args: TransformArgs,
-  // ) -> PluginTransformOutput {
-  //   let result = TransformResult {
-  //     content: args.content,
-  //     ast: args.ast,
-  //   };
-  //   Ok(result)
-  // }
-  // fn transform_include(&self, _uri: &str) -> bool {
-  //   false
-  // }
 
   async fn read_resource(&self, _resource_data: &ResourceData) -> PluginReadResourceOutput {
     Ok(None)
@@ -124,7 +81,7 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(args.sources)
   }
   async fn process_assets(
-    &self,
+    &mut self,
     _ctx: PluginContext,
     _args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
@@ -132,7 +89,7 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   fn optimize_chunks(
-    &self,
+    &mut self,
     _ctx: PluginContext,
     _args: OptimizeChunksArgs,
   ) -> PluginOptimizeChunksOutput {
