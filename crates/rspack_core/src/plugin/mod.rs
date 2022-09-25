@@ -6,3 +6,5 @@ mod context;
 pub use context::*;
 mod args;
 pub use args::*;
+mod process_assets_stage;
+pub use process_assets_stage::*;

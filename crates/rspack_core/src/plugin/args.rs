@@ -1,5 +1,6 @@
 use crate::{
-  Chunk, ChunkUkey, Compilation, CompilerOptions, Dependency, ErrorSpan, PluginDriver, ResolveKind,
+  Chunk, ChunkUkey, Compilation, CompilerOptions, Dependency, ErrorSpan, PluginDriver,
+  ProcessAssetStage, ResolveKind,
 };
 use rspack_loader_runner::Content;
 use rspack_sources::{BoxSource, RawSource};
@@ -18,6 +19,7 @@ pub struct ParseModuleArgs<'a> {
 #[derive(Debug)]
 pub struct ProcessAssetsArgs<'me> {
   pub compilation: &'me mut Compilation,
+  pub stage: &'me ProcessAssetStage,
 }
 
 #[derive(Debug, Clone)]

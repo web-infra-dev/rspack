@@ -1,8 +1,8 @@
 use crate::{
   split_chunks::code_splitting, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey,
   ChunkKind, ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint, ModuleDependency,
-  ModuleGraph, PluginDriver, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, ResolveKind,
-  Runtime, VisitedModuleIdentity,
+  ModuleGraph, PluginDriver, RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime,
+  VisitedModuleIdentity,
 };
 use hashbrown::HashMap;
 use rayon::prelude::*;
@@ -126,7 +126,7 @@ impl Compilation {
 
   async fn process_assets(&mut self, plugin_driver: Arc<PluginDriver>) {
     plugin_driver
-      .process_assets(ProcessAssetsArgs { compilation: self })
+      .process_assets(self)
       .await
       .map_err(|e| {
         eprintln!("process_assets is not ok, err {:#?}", e);

@@ -2,15 +2,15 @@ use std::fmt::Debug;
 
 use crate::{
   BoxModule, FactorizeAndBuildArgs, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs,
-  ParseModuleArgs, PluginContext, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs,
-  TransformAst, TransformResult,
+  ParseModuleArgs, PluginContext, ProcessAssetStage, ProcessAssetsArgs, RenderManifestArgs,
+  RenderRuntimeArgs, TransformAst, TransformResult,
 };
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::{BoxSource, RawSource};
 
 // use anyhow::{Context, Result};
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
 pub type PluginBuildStartHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;
 pub type PluginProcessAssetsHookOutput = Result<()>;
@@ -123,6 +123,28 @@ pub trait Plugin: Debug + Send + Sync {
   ) -> PluginRenderRuntimeHookOutput {
     Ok(args.sources)
   }
+  /// `process_assets` hook will be called with `ProcessAssetStage::Default`.
+  /// If you need to process assets in other stages,
+  /// you could use `ctx.register_process_assets_stage` in `Plugin#apply` to register a new stage.
+  ///
+  /// # Usages
+  /// ```ignore
+  /// impl Plugin for MyPlugin {
+  ///   fn apply(&mut self, ctx: PluginContext<&mut ApplyContext>) -> Result<()> {
+  ///     ctx.register_process_assets_stage(ProcessAssetStage::OptimizeCompatibility)
+  ///     // Even register multiple times
+  ///     ctx.register_process_assets_stage(ProcessAssetStage::PreProcess)
+  ///   }
+  ///
+  ///   fn process_assets(&self, ctx: PluginContext, args: ProcessAssetsArgs) -> PluginProcessAssetsOutput {
+  ///     if args.stage == ProcessAssetStage::OptimizeCompatibility {
+  ///       // do something
+  ///     } else if args.stage == ProcessAssetStage::PreProcess {
+  ///       // do something
+  ///     }
+  ///   }
+  /// }
+  /// ```
   async fn process_assets(
     &self,
     _ctx: PluginContext,
@@ -185,10 +207,14 @@ pub type BoxedParser = Box<dyn Parser>;
 #[derive(Debug, Default)]
 pub struct ApplyContext {
   pub(crate) registered_parser: HashMap<ModuleType, BoxedParser>,
+  pub(crate) registered_process_assets_stages: HashSet<ProcessAssetStage>,
 }
 
 impl ApplyContext {
   pub fn register_parser(&mut self, module_type: ModuleType, parser: BoxedParser) {
     self.registered_parser.insert(module_type, parser);
+  }
+  pub fn register_process_assets_stage(&mut self, stage: ProcessAssetStage) {
+    self.registered_process_assets_stages.insert(stage);
   }
 }
