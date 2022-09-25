@@ -247,13 +247,19 @@ impl NormalModuleFactory {
   pub async fn resolve_module(&mut self) -> Result<Option<ModuleGraphModule>> {
     // TODO: caching in resolve
     // Here is the corresponding create function in webpack, but instead of using hooks we use procedural functions
-    let factorize_and_build_result = self.plugin_driver.clone().read().await.factorize_and_build(
-      FactorizeAndBuildArgs {
-        dependency: &self.dependency,
-        plugin_driver: &self.plugin_driver,
-      },
-      &mut self.context,
-    );
+    let factorize_and_build_result = self
+      .plugin_driver
+      .clone()
+      .read()
+      .await
+      .factorize_and_build(
+        FactorizeAndBuildArgs {
+          dependency: &self.dependency,
+          plugin_driver: &self.plugin_driver,
+        },
+        &mut self.context,
+      )
+      .await;
     let (uri, mut module) = if let Ok(Some(module)) = factorize_and_build_result {
       let (uri, module) = module;
       self

@@ -24,7 +24,7 @@ impl Plugin for ExternalPlugin {
   async fn factorize_and_build(
     &self,
     _ctx: PluginContext,
-    args: FactorizeAndBuildArgs,
+    args: FactorizeAndBuildArgs<'_>,
     job_ctx: &mut NormalModuleFactoryContext,
   ) -> PluginFactorizeAndBuildHookOutput {
     let target = &job_ctx.options.target;

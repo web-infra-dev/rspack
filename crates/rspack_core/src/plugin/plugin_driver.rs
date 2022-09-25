@@ -123,15 +123,16 @@ impl PluginDriver {
     Ok(assets)
   }
 
-  pub fn factorize_and_build(
+  pub async fn factorize_and_build(
     &self,
-    args: FactorizeAndBuildArgs,
+    args: FactorizeAndBuildArgs<'_>,
     job_ctx: &mut NormalModuleFactoryContext,
   ) -> PluginFactorizeAndBuildHookOutput {
     for plugin in &self.plugins {
       tracing::debug!("running render runtime:{}", plugin.name());
-      if let Some(module) =
-        plugin.factorize_and_build(PluginContext::new(), args.clone(), job_ctx)?
+      if let Some(module) = plugin
+        .factorize_and_build(PluginContext::new(), args.clone(), job_ctx)
+        .await?
       {
         return Ok(Some(module));
       }

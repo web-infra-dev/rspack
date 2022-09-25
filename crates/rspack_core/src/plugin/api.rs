@@ -60,7 +60,7 @@ pub trait Plugin: Debug + Send + Sync {
   async fn factorize_and_build(
     &self,
     _ctx: PluginContext,
-    _args: FactorizeAndBuildArgs,
+    _args: FactorizeAndBuildArgs<'_>,
     _job_ctx: &mut NormalModuleFactoryContext,
   ) -> PluginFactorizeAndBuildHookOutput {
     Ok(None)
