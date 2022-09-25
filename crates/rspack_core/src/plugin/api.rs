@@ -57,7 +57,7 @@ pub trait Plugin: Debug + Send + Sync {
    * It behaves like a BailHook hook.
    * NOTICE: The factorize_and_build hook is a temporary solution and will be replaced with the real factorize hook later
    */
-  fn factorize_and_build(
+  async fn factorize_and_build(
     &self,
     _ctx: PluginContext,
     _args: FactorizeAndBuildArgs,
