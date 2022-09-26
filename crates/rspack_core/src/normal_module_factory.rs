@@ -248,10 +248,8 @@ impl NormalModuleFactory {
           .boxed(),
         )
       }
-      (true, content, None) => {
-        let content = content.try_into_string()?;
-        Ok(OriginalSource::new(content, uri).boxed())
-      }
+      (true, Content::String(content), None) => Ok(OriginalSource::new(content, uri).boxed()),
+      (true, Content::Buffer(content), None) => Ok(RawSource::from(content).boxed()),
       (_, Content::String(content), _) => Ok(RawSource::from(content).boxed()),
       (_, Content::Buffer(content), _) => Ok(RawSource::from(content).boxed()),
     }
