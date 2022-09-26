@@ -1,6 +1,6 @@
-function __rspack_dynamic_require__(chunkId) {
-  return Promise.all(
-    Object.keys(this)
+function __rspack_dynamic_require__(chunkIds) {
+  return Promise.all(chunkIds.map(function (chunkId) {
+    return Object.keys(this)
       .filter(function (key) {
         return key.indexOf('rspack_load_dynamic') > 0;
       })
@@ -8,7 +8,9 @@ function __rspack_dynamic_require__(chunkId) {
         this[key](chunkId, promises);
         return promises;
       }.bind(this), [])
-  );
+  }.bind(this)).reduce(function (prev, cur) {
+    return prev.concat(cur)
+  }, []));
 }
 
 // mount register dynamic require
