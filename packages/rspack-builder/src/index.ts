@@ -1,5 +1,6 @@
 import Server from "webpack-dev-server";
 import { Server as ModernServer } from "@modern-js/server";
+import { rdm } from "@rspack/dev-middleware";
 import { RspackCLI } from "@rspack/cli";
 import path from "path";
 import { rspack } from "@rspack/core";
@@ -25,14 +26,17 @@ async function run_modern_server() {
 		compiler: compiler as any,
 		config: {
 			source: {},
-			tools: {},
+			tools: {
+				devServer: {
+					before: [rdm(compiler, {})]
+				}
+			},
 			server: {}
 		} as any
 	});
 	const app = await server.init();
 	return new Promise<void>(resolve => {
 		app.listen(8888, (err: Error) => {
-			console.log("xxx");
 			if (err) {
 				throw err;
 			}

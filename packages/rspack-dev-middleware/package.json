@@ -2,9 +2,11 @@
   "name": "@rspack/dev-middleware",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "dev": "tsc -w"
   },
   "dependencies": {
     "@rspack/core": "workspace:*",

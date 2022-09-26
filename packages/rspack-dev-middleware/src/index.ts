@@ -14,6 +14,7 @@ export function rdm(
 
 function wrapper(): ExpressRequestHandler {
 	return function middleware(req, res, next) {
+		console.log("rdm:", req.path);
 		return next();
 	};
 }

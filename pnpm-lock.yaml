@@ -219,6 +219,7 @@ importers:
       '@modern-js/server': 1.18.1
       '@rspack/cli': workspace:*
       '@rspack/core': workspace:*
+      '@rspack/dev-middleware': workspace:*
       jest: 29.0.3
       webpack-dev-server: 4.11.1
     dependencies:
@@ -226,6 +227,7 @@ importers:
       '@modern-js/server': 1.18.1
       '@rspack/cli': link:../rspack-cli
       '@rspack/core': link:../rspack
+      '@rspack/dev-middleware': link:../rspack-dev-middleware
       jest: 29.0.3
       webpack-dev-server: 4.11.1
 

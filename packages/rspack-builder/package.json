@@ -16,6 +16,7 @@
     "webpack-dev-server": "4.11.1",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
+    "@rspack/dev-middleware": "workspace:*",
     "@modern-js/server": "1.18.1",
     "@modern-js/core": "1.18.1"
   }

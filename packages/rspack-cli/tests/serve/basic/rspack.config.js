@@ -8,7 +8,7 @@ module.exports = {
 				compiler.hooks.compilation.tap("compilation", compilation => {
 					compilation.hooks.processAssets.tap("assets", assets => {
 						console.log({
-							asset
+							assets
 						});
 					});
 				});
