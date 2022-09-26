@@ -1,0 +1,3 @@
+c:nth-child(0):after { content: "c0"; }
+c:nth-child(1):after { content: "c1"; }
+c:nth-child(2):after { content: "c2"; }

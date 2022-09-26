@@ -2451,9 +2451,9 @@ dependencies = [
 
 [[package]]
 name = "sass-embedded"
-version = "0.5.2"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "397715500ec3ba38b33ab61a6b1b7278c2dfad62ac92e469d5d32ff07a222b52"
+checksum = "47086f717f9caced148562f076c54e3b8d54d25be85da999290a572dd21cea7d"
 dependencies = [
  "atty",
  "crossbeam-channel",

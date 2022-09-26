@@ -8,10 +8,12 @@ pub mod visitors;
 
 use once_cell::sync::Lazy;
 
+use rspack_core::rspack_sources::Source;
 use rspack_core::{ErrorSpan, PATH_START_BYTE_POS_MAP};
 use rspack_error::{
   Diagnostic, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
+use swc_common::source_map::SourceMapGenConfig;
 use swc_common::{input::SourceFileInput, sync::Lrc, FileName, FilePathMapping, SourceMap};
 
 use std::sync::Arc;
@@ -63,20 +65,51 @@ impl SwcCssCompiler {
       .map(|stylesheet| stylesheet.with_diagnostic(diagnostics))
   }
 
-  pub fn codegen(&self, ast: &Stylesheet) -> String {
-    let _config: CodegenConfig = CodegenConfig { minify: false };
+  pub fn codegen(
+    &self,
+    ast: &Stylesheet,
+    orignal_source: Option<&dyn Source>,
+  ) -> Result<(String, Option<Vec<u8>>)> {
     let mut output = String::new();
+    let mut src_map_buf = orignal_source.is_some().then(Vec::new);
     let wr = BasicCssWriter::new(
       &mut output,
-      None, // Some(&mut src_map_buf),
+      src_map_buf.as_mut(),
       BasicCssWriterConfig::default(),
     );
 
     let mut gen = CodeGenerator::new(wr, CodegenConfig { minify: false });
+    gen
+      .emit(ast)
+      .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?;
 
-    gen.emit(ast).unwrap();
+    if let Some(src_map_buf) = &mut src_map_buf {
+      let map = CM.build_source_map_with_config(src_map_buf, None, SwcCssSourceMapGenConfig);
+      let mut raw_map = Vec::new();
+      map
+        .to_writer(&mut raw_map)
+        .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?;
+      Ok((output, Some(raw_map)))
+    } else {
+      Ok((output, None))
+    }
+  }
+}
 
-    output
+struct SwcCssSourceMapGenConfig;
+
+impl SourceMapGenConfig for SwcCssSourceMapGenConfig {
+  fn file_name_to_source(&self, f: &FileName) -> String {
+    let f = f.to_string();
+    if f.starts_with('<') && f.ends_with('>') {
+      f[1..f.len() - 1].to_string()
+    } else {
+      f
+    }
+  }
+
+  fn inline_sources_content(&self, _: &FileName) -> bool {
+    true
   }
 }
 

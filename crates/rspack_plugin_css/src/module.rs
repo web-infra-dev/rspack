@@ -5,7 +5,10 @@ use rspack_error::Result;
 use std::fmt::Debug;
 
 use rspack_core::{
-  rspack_sources::{BoxSource, RawSource, Source, SourceExt},
+  rspack_sources::{
+    BoxSource, MapOptions, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
+    SourceMapSourceOptions,
+  },
   Module, ModuleType, SourceType,
 };
 
@@ -47,13 +50,30 @@ impl Module for CssModule {
   fn render(
     &self,
     requested_source_type: SourceType,
-    _module: &rspack_core::ModuleGraphModule,
-    _compilation: &rspack_core::Compilation,
+    module: &rspack_core::ModuleGraphModule,
+    compilation: &rspack_core::Compilation,
   ) -> Result<Option<BoxSource>> {
     let result = match requested_source_type {
       SourceType::Css => {
-        // TODO: css sourcemap
-        Some(RawSource::from(SWC_COMPILER.codegen(&self.ast)).boxed())
+        let (code, source_map) = SWC_COMPILER.codegen(
+          &self.ast,
+          compilation.options.devtool.then(|| self.original_source()),
+        )?;
+        if let Some(source_map) = source_map {
+          let source = SourceMapSource::new(SourceMapSourceOptions {
+            value: code,
+            name: module.uri.to_string(),
+            source_map: SourceMap::from_slice(&source_map)
+              .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
+            original_source: Some(self.original_source().source().to_string()),
+            inner_source_map: self.original_source().map(&MapOptions::default()),
+            remove_original_source: false,
+          })
+          .boxed();
+          Some(source)
+        } else {
+          Some(RawSource::from(code).boxed())
+        }
       }
       // This is just a temporary solution for css-modules
       SourceType::JavaScript => Some(
