@@ -5,7 +5,7 @@ use rspack_sources::{
   WithoutOriginalOptions,
 };
 
-use std::fmt::Debug;
+use std::{collections::HashMap, fmt::Debug};
 
 use crate::{
   Compilation, CompilationContext, CompilerContext, Dependency, LoaderRunnerRunner, ModuleAst,
@@ -128,7 +128,11 @@ impl AstOrSource {
 
 pub trait ParserAndGenerator: Send + Sync + Debug {
   fn parse(&self, source: &dyn Source) -> Result<AstOrSource>;
-  fn generate(&self, ast_or_source: &AstOrSource) -> Result<GenerationResult>;
+  fn generate(
+    &self,
+    requested_source_type: SourceType,
+    ast_or_source: &AstOrSource,
+  ) -> Result<GenerationResult>;
 }
 
 #[derive(Debug)]
@@ -145,16 +149,25 @@ pub struct NormalModule {
   ast_or_source: Option<AstOrSource>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct CodeGenerationResult {
-  inner: GenerationResult,
+  inner: HashMap<SourceType, GenerationResult>,
   // TODO: add runtime requirements
   // runtime_requirements: Vec<RuntimeRequirements>,
 }
 
 impl CodeGenerationResult {
-  pub fn inner(&self) -> &GenerationResult {
+  pub fn inner(&self) -> &HashMap<SourceType, GenerationResult> {
     &self.inner
+  }
+
+  pub fn code_generation_result(&self, source_type: SourceType) -> Option<&GenerationResult> {
+    self.inner.get(&source_type)
+  }
+
+  pub(super) fn add(&mut self, source_type: SourceType, generation_result: GenerationResult) {
+    let result = self.inner.insert(source_type, generation_result);
+    debug_assert!(result.is_none());
   }
 }
 
@@ -247,17 +260,37 @@ impl NormalModule {
 
   pub async fn code_generation(&self) -> Result<CodeGenerationResult> {
     if let Some(ast_or_source) = self.ast_or_source() {
-      let generate_result = self.parser_and_generator.generate(ast_or_source)?;
-      Ok(CodeGenerationResult {
-        inner: generate_result,
-      })
+      let mut code_generation_result = CodeGenerationResult::default();
+
+      for source_type in self.source_types() {
+        let generation_result = self
+          .parser_and_generator
+          .generate(*source_type, ast_or_source)?;
+
+        code_generation_result.add(*source_type, generation_result);
+      }
+
+      Ok(code_generation_result)
     } else {
       Err(Error::InternalError(
         "Failed to generate code because ast or source is not set".into(),
       ))
     }
   }
+
+  // TODO: temporary workaround for dependency
+  pub fn dependencies(&self) -> Vec<ModuleDependency> {
+    vec![]
+  }
 }
+
+impl std::cmp::PartialEq for NormalModule {
+  fn eq(&self, other: &Self) -> bool {
+    self.identifier() == other.identifier()
+  }
+}
+
+impl std::cmp::Eq for NormalModule {}
 
 impl NormalModule {
   fn create_source(

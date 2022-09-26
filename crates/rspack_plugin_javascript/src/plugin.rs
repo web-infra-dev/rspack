@@ -11,9 +11,10 @@ use rspack_core::rspack_sources::{
   SourceMapSource, SourceMapSourceOptions,
 };
 use rspack_core::{
-  get_contenthash, BoxModule, ChunkKind, FilenameRenderOptions, ModuleType, ParseModuleArgs,
-  Parser, Plugin, PluginContext, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
-  ProcessAssetsArgs, RenderManifestEntry, SourceType,
+  get_contenthash, AstOrSource, BoxModule, ChunkKind, FilenameRenderOptions, GenerationResult,
+  ModuleType, ParseModuleArgs, Parser, ParserAndGenerator, Plugin, PluginContext,
+  PluginProcessAssetsOutput, PluginRenderManifestHookOutput, ProcessAssetsArgs,
+  RenderManifestEntry, SourceType,
 };
 use swc::config::JsMinifyOptions;
 use swc::BoolOrDataConfig;
@@ -53,7 +54,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     todo!()
   }
 
-  fn generate(&self, ast_or_source: &AstOrSource) -> Result<GenerationResult> {
+  fn generate(
+    &self,
+    requested_source_type: SourceType,
+    ast_or_source: &AstOrSource,
+  ) -> Result<GenerationResult> {
     todo!()
   }
 }
@@ -81,7 +86,8 @@ impl Plugin for JsPlugin {
       Box::new(JsParser::new(self.unresolved_mark)),
     );
 
-    let create_parser_and_generator = || Box::new(JavaScriptParserAndGenerator::default());
+    let create_parser_and_generator =
+      || Box::new(JavaScriptParserAndGenerator::default()) as Box<dyn ParserAndGenerator>;
     ctx.context.register_parser_and_generator_builder(
       ModuleType::Js,
       Box::new(create_parser_and_generator.clone()),
