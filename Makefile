@@ -12,7 +12,7 @@ copy/three:
 
 
 bench_three: | copy/three
-	# @cargo build -p bench --release
+	@cargo build -p bench --release
 	@echo "rspack"
 	@hyperfine --warmup 3 ./target/release/bench
 	@echo "esbuild"
