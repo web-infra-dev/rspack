@@ -161,7 +161,7 @@ impl NormalModule {
     raw_request: String,
     module_type: impl Into<ModuleType>,
     source_types: impl IntoIterator<Item = SourceType>,
-    parser_and_generator: impl ParserAndGenerator + 'static,
+    parser_and_generator: Box<dyn ParserAndGenerator>,
     resource_data: ResourceData,
   ) -> Self {
     Self {
@@ -170,7 +170,7 @@ impl NormalModule {
       raw_request,
       module_type: module_type.into(),
       source_types: source_types.into_iter().collect(),
-      parser_and_generator: Box::new(parser_and_generator),
+      parser_and_generator,
       resource_data,
 
       ast_or_source: None,

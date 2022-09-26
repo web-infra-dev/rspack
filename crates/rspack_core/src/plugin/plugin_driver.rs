@@ -74,7 +74,7 @@ impl PluginDriver {
       })
       .flat_map(|apply_context| {
         apply_context
-          .registered_parser_and_generator
+          .registered_parser_and_generator_builder
           .into_iter()
           .collect::<Vec<_>>()
       })
