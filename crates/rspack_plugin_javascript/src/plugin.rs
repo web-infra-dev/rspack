@@ -229,7 +229,7 @@ impl Plugin for JsPlugin {
             )
           })?;
         let source = if let Some(map) = &output.map {
-          let s = SourceMapSource::new(SourceMapSourceOptions {
+          SourceMapSource::new(SourceMapSourceOptions {
             value: output.code,
             name: format!("<{filename}>"), // match with swc FileName::Custom...
             source_map: SourceMap::from_json(map)
@@ -238,9 +238,7 @@ impl Plugin for JsPlugin {
             inner_source_map: original.map(&MapOptions::default()),
             remove_original_source: true,
           })
-          .boxed();
-          s.map(&MapOptions::default());
-          s
+          .boxed()
         } else {
           RawSource::from(output.code).boxed()
         };
