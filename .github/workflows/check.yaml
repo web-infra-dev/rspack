@@ -62,7 +62,7 @@ jobs:
           args: --workspace --all-targets --verbose -- --deny warnings
       - name: Check Dependencies
         run: |
-          node ./script/check_rust_dependency.js
+          node ./scripts/check_rust_dependency.js
 
   test-rs:
     name: Rust test
