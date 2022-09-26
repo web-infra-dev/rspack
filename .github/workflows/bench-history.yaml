@@ -31,7 +31,7 @@ jobs:
           name: Rust Benchmark
           tool: "cargo"
           output-file-path: output.txt
-          github-token: ${{ secrets.PUSH_TOKEN }}
+          github-token: ${{ secrets.PR_STATS_COMMENT_TOKEN }}
           auto-push: true
           gh-repository: "github.com/speedy-js/metrics"
 
