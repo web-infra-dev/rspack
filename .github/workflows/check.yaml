@@ -61,7 +61,6 @@ jobs:
           command: clippy
           args: --workspace --all-targets --verbose -- --deny warnings
       - name: Check Dependencies
-        uses: actions-rs/cargo@v1
         run: |
           node ./script/check_rust_dependency.js
 
