@@ -165,3 +165,6 @@ crates/node_binding/binding.d.ts
 .pnpm-store/
 
 !packages/rspack/tests/configCases/target
+
+
+/github/
