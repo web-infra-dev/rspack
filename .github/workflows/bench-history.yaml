@@ -30,8 +30,10 @@ jobs:
           name: Rust Benchmark
           tool: "cargo"
           output-file-path: output.txt
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          auto-push: false
+          github-token: ${{ secrets.PUSH_TOKEN }}
+          auto-push: true
+          gh-repository: "github.com/speedy-js/metrics"
+
           # Show alert with commit comment on detecting possible performance regression
           fail-on-alert: false
 
