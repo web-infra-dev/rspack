@@ -23,7 +23,8 @@
     "chokidar": "3.5.3",
     "ws": "8.8.1",
     "@rspack/dev-client": "workspace:*",
-    "@rspack/dev-middleware": "workspace:*"
+    "@rspack/dev-middleware": "workspace:*",
+    "webpack-dev-server": "4.11.1"
   },
   "peerDependencies": {
     "@rspack/core": "*"

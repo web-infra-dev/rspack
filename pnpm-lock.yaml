@@ -286,12 +286,14 @@ importers:
       express: 4.18.1
       tsm: ^2.2.2
       typescript: ^4.7.4
+      webpack-dev-server: 4.11.1
       ws: 8.8.1
     dependencies:
       '@rspack/dev-client': link:../rspack-dev-client
       '@rspack/dev-middleware': link:../rspack-dev-middleware
       chokidar: 3.5.3
       express: 4.18.1
+      webpack-dev-server: 4.11.1
       ws: 8.8.1
     devDependencies:
       '@rspack/core': link:../rspack
@@ -4714,7 +4716,7 @@ packages:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
 
   /batch/0.6.1:
-    resolution: {integrity: sha512-x+VAiMRL6UPkx+kudNvxTl6hB2XNNCG2r+7wixVfIYwu/2HKRXimwQyaumLjMveWvT2Hkd/cAJw+QBMfJ/EKVw==}
+    resolution: {integrity: sha1-3DQxT05nkxgJP8dgJyUl+UvyXBY=}
     dev: false
 
   /better-path-resolve/1.0.0:
