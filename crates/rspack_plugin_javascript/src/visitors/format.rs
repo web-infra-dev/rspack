@@ -189,17 +189,28 @@ impl<'a> RspackModuleFormatTransformer<'a> {
         })
         .as_arg()];
 
-        let chunk_id = if let Some(chunk) = self
-          .compilation
-          .chunk_graph
-          .chunk_by_split_point_module_uri(&js_module.uri, &self.compilation.chunk_by_ukey)
-        {
-          chunk.id.as_str()
-        } else {
-          js_module_id
+        let mut chunk_ids = {
+          let chunk_group_ukey = self
+            .compilation
+            .chunk_graph
+            .get_module_chunk_group(&js_module.uri, &self.compilation.chunk_by_ukey);
+          let chunk_group = self.compilation.chunk_group_by_ukey.get(chunk_group_ukey)?;
+          chunk_group
+            .chunks
+            .iter()
+            .map(|chunk_ukey| {
+              let chunk = self
+                .compilation
+                .chunk_by_ukey
+                .get(chunk_ukey)
+                .unwrap_or_else(|| panic!("chunk should exist"));
+              chunk.id.as_str()
+            })
+            .collect::<Vec<_>>()
         };
+        chunk_ids.sort();
 
-        n.callee = self.get_rspack_dynamic_import_callee(chunk_id);
+        n.callee = self.get_rspack_dynamic_import_callee(chunk_ids[0]);
         // n.callee = if self.compilation.options.chunk_loading.is_jsonp() {
         // n.callee = if true {
         //   cjs_runtime_helper!(jsonp, rs.dynamic_require)

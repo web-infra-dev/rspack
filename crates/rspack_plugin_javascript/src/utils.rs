@@ -1,7 +1,7 @@
 use crate::{RSPACK_DYNAMIC_IMPORT, RSPACK_REQUIRE};
 use once_cell::sync::Lazy;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
-use rspack_core::{ErrorSpan, ModuleType, PATH_START_BYTE_POS_MAP};
+use rspack_core::{ErrorSpan, ModuleType, TargetPlatform, PATH_START_BYTE_POS_MAP};
 use rspack_error::{
   errors_to_diagnostics, DiagnosticKind, Error, IntoTWithDiagnosticArray, TWithDiagnosticArray,
 };
@@ -231,16 +231,32 @@ pub fn wrap_module_function(source: BoxSource, module_id: &str) -> BoxSource {
   .boxed()
 }
 
-pub fn get_wrap_chunk_before(namespace: &str, register: &str, chunk_id: &str) -> BoxSource {
-  RawSource::from(format!(
-    "self[\"{}\"].{}([\"{}\"], {{\n",
-    namespace, register, chunk_id
-  ))
-  .boxed()
+pub fn get_wrap_chunk_before(
+  namespace: &str,
+  register: &str,
+  chunk_id: &str,
+  platform: &TargetPlatform,
+) -> BoxSource {
+  match platform {
+    TargetPlatform::Node(_) => RawSource::from(format!(
+      r#"exports.ids = ["{}"];
+      exports.modules = {{"#,
+      chunk_id
+    ))
+    .boxed(),
+    _ => RawSource::from(format!(
+      "self[\"{}\"].{}([\"{}\"], {{\n",
+      namespace, register, chunk_id
+    ))
+    .boxed(),
+  }
 }
 
-pub fn get_wrap_chunk_after() -> BoxSource {
-  RawSource::from("});").boxed()
+pub fn get_wrap_chunk_after(platform: &TargetPlatform) -> BoxSource {
+  match platform {
+    TargetPlatform::Node(_) => RawSource::from("};").boxed(),
+    _ => RawSource::from("});").boxed(),
+  }
 }
 
 pub fn ecma_parse_error_to_rspack_error(

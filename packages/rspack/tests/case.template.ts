@@ -91,7 +91,11 @@ export function describeCases(config: { name: string; casePath: string }) {
 							};
 							fn.call(
 								m.exports,
-								require,
+								function (p) {
+									return p && p.startsWith(".")
+										? require(path.resolve(outputPath, p))
+										: require(p);
+								},
 								m,
 								m.exports,
 								outputPath,
