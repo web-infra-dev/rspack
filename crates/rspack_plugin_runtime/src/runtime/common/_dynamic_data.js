@@ -17,7 +17,7 @@
 
 (function () {
   runtime.__rspack_has_dynamic_chunk__ = function (chunkId, type) {
-    return Boolean(this.chunkHashData && this.chunkHashData[type] && typeof this.chunkHashData[type][chunkId] !== undefined);
+    return Boolean(this.chunkHashData && this.chunkHashData[type] && typeof this.chunkHashData[type][chunkId] !== 'undefined');
   };
 })();
 
