@@ -1,12 +1,12 @@
 use rspack_error::{Error, Result};
-use rspack_loader_runner::ResourceData;
+use rspack_loader_runner::{Loader, ResourceData};
 use rspack_sources::{BoxSource, Source, SourceMap};
 
 use std::fmt::Debug;
 
 use crate::{
-  Compilation, Dependency, ModuleAst, ModuleDependency, ModuleGraph, ModuleType, ResolveKind,
-  SourceType,
+  Compilation, CompilationContext, CompilerContext, Dependency, LoaderRunnerRunner, ModuleAst,
+  ModuleDependency, ModuleGraph, ModuleType, ResolveKind, SourceType,
 };
 
 #[derive(Debug)]
@@ -136,6 +136,7 @@ pub struct NormalModule {
   module_type: ModuleType,
   source_types: Vec<SourceType>,
   parser_and_generator: Box<dyn ParserAndGenerator>,
+  resource_data: ResourceData,
 
   ast_or_source: Option<AstOrSource>,
 }
@@ -170,6 +171,7 @@ impl NormalModule {
       module_type: module_type.into(),
       source_types: source_types.into_iter().collect(),
       parser_and_generator: Box::new(parser_and_generator),
+      resource_data,
 
       ast_or_source: None,
     }
@@ -211,13 +213,18 @@ impl NormalModule {
     self.source_types = source_types.into_iter().collect();
   }
 
-  pub async fn build(&mut self) -> Result<()> {
-    // self
-    //   .parser_and_generator
-    //   .parse(&self.request)
-    //   .map(|ast_or_source| {
-    //     self.ast_or_source = Some(ast_or_source);
-    //   });
+  pub async fn build(
+    &mut self,
+    loader_runner_runner: &LoaderRunnerRunner,
+    resolved_loaders: impl IntoIterator<Item = &dyn Loader<CompilerContext, CompilationContext>>,
+  ) -> Result<()> {
+    let loader_result = loader_runner_runner
+      .run(self.resource_data, resolved_loaders)
+      .await?;
+
+    let ast_or_source = self.parser_and_generator.parse(&self.request)?;
+    self.ast_or_source = Some(ast_or_source);
+
     Ok(())
   }
 
