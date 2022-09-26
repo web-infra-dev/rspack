@@ -1,5 +1,6 @@
 packages:
-  - 'packages/*'
-  - 'crates/node_binding'
-  - 'examples/*'
-  - 'webpack-examples'
+  - "packages/*"
+  - "crates/node_binding"
+  - "examples/*"
+  - "!examples/three"
+  - "webpack-examples"
