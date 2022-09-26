@@ -45,6 +45,19 @@ impl Default for JsPlugin {
   }
 }
 
+#[derive(Debug, Default)]
+pub struct JavaScriptParserAndGenerator;
+
+impl ParserAndGenerator for JavaScriptParserAndGenerator {
+  fn parse(&self, source: &dyn Source) -> Result<AstOrSource> {
+    todo!()
+  }
+
+  fn generate(&self, ast_or_source: &AstOrSource) -> Result<GenerationResult> {
+    todo!()
+  }
+}
+
 #[async_trait]
 impl Plugin for JsPlugin {
   fn name(&self) -> &'static str {
@@ -66,6 +79,24 @@ impl Plugin for JsPlugin {
     ctx.context.register_parser(
       ModuleType::Jsx,
       Box::new(JsParser::new(self.unresolved_mark)),
+    );
+
+    let create_parser_and_generator = || Box::new(JavaScriptParserAndGenerator::default());
+    ctx.context.register_parser_and_generator_builder(
+      ModuleType::Js,
+      Box::new(create_parser_and_generator.clone()),
+    );
+    ctx.context.register_parser_and_generator_builder(
+      ModuleType::Ts,
+      Box::new(create_parser_and_generator.clone()),
+    );
+    ctx.context.register_parser_and_generator_builder(
+      ModuleType::Tsx,
+      Box::new(create_parser_and_generator.clone()),
+    );
+    ctx.context.register_parser_and_generator_builder(
+      ModuleType::Jsx,
+      Box::new(create_parser_and_generator.clone()),
     );
 
     Ok(())

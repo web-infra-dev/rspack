@@ -7,9 +7,11 @@ use std::{
 };
 
 use crate::{
-  BoxModule, CompilerOptions, FactorizeAndBuildArgs, LoaderResult, LoaderRunnerRunner, ResourceData,
+  BoxModule, CompilationContext, CompilerContext, CompilerOptions, FactorizeAndBuildArgs,
+  LoaderResult, LoaderRunnerRunner, ModuleRule, NormalModule, ResourceData,
 };
 use rspack_error::{Diagnostic, Error, TWithDiagnosticArray};
+use rspack_loader_runner::Loader;
 use rspack_sources::{
   BoxSource, OriginalSource, RawSource, SourceExt, SourceMap, SourceMapSource,
   WithoutOriginalOptions,
@@ -130,7 +132,7 @@ impl NormalModuleFactory {
     resolve_module_type_by_uri(PathBuf::from(url.path().as_str()))
   }
 
-  pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, BoxModule)>> {
+  pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, NormalModule)>> {
     let uri = resolve(
       ResolveArgs {
         importer: self.dependency.importer.as_deref(),
@@ -189,6 +191,30 @@ impl NormalModuleFactory {
         meta: None,
       }
     } else {
+      let (resolved_loaders, resolved_module_type) = self.calculate_loaders(&resource_data)?;
+      let parser_and_generator_builder = self
+        .plugin_driver
+        .registered_parser_and_generator_builder
+        .get(&resolved_module_type)
+        .ok_or_else(|| {
+          Error::InternalError(format!(
+            "No parser and generator builder for module type {:?}",
+            resolved_module_type
+          ))
+        })?;
+
+      let resolved_parser_and_generator = parser_and_generator_builder();
+
+      let normal_module = NormalModule::new(
+        uri.clone(),
+        uri.clone(),
+        self.dependency.detail.specifier.to_owned(),
+        resolved_module_type,
+        vec![],
+        resolved_parser_and_generator,
+        resource_data,
+      );
+
       let (runner_result, resolved_module_type) =
         self.loader_runner_runner.run(resource_data).await?;
 
@@ -253,6 +279,79 @@ impl NormalModuleFactory {
       (_, Content::String(content), _) => Ok(RawSource::from(content).boxed()),
       (_, Content::Buffer(content), _) => Ok(RawSource::from(content).boxed()),
     }
+  }
+
+  pub fn calculate_loaders(
+    &self,
+    resource_data: &ResourceData,
+  ) -> Result<(
+    Vec<&dyn Loader<CompilerContext, CompilationContext>>,
+    ModuleType,
+  )> {
+    // Progressive module type resolution:
+    // Stage 1: maintain the resolution logic via file extension
+    // TODO: Stage 2:
+    //           1. remove all extension based module type resolution, and let `module.rules[number].type` to handle this(everything is based on its config)
+    //           2. set default module type to `Js`, it equals to `javascript/auto` in webpack.
+    let mut resolved_module_type: Option<ModuleType> = None;
+
+    let resolved_loaders = self
+      .context
+      .options
+      .module
+      .rules
+      .iter()
+      .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
+        if let Some(func) = &module_rule.func__ {
+          match func(&resource_data) {
+            Ok(result) => {
+              if result {
+                return Some(Ok(module_rule));
+              }
+
+              return None
+            },
+            Err(e) => {
+              return Some(Err(e.into()))
+            }
+          }
+        }
+
+        // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
+        // See: https://webpack.js.org/configuration/module/#ruletest
+        if let Some(test_rule) = &module_rule.test && test_rule.is_match(&resource_data.resource) {
+          return Some(Ok(module_rule));
+        } else if let Some(resource_rule) = &module_rule.resource && resource_rule.is_match(&resource_data.resource) {
+          return Some(Ok(module_rule));
+        }
+
+        if let Some(resource_query_rule) = &module_rule.resource_query && let Some(resource_query) = &resource_data.resource_query && resource_query_rule.is_match(resource_query) {
+          return Some(Ok(module_rule));
+        }
+
+
+        None
+      })
+      .collect::<Result<Vec<_>>>()?
+      .into_iter()
+      .flat_map(|module_rule| {
+        if module_rule.module_type.is_some() {
+          resolved_module_type = module_rule.module_type;
+        };
+
+        module_rule.uses.iter().map(Box::as_ref).rev()
+      })
+      .collect::<Vec<_>>();
+
+    Ok((
+      resolved_loaders,
+      resolved_module_type.ok_or_else(|| {
+        Error::InternalError(format!(
+          "Unable to determine the module type of {}. Make sure to specify the `type` property in the module rule.",
+          resource_data.resource
+        ))
+      })?,
+    ))
   }
 
   pub async fn resolve_module(&mut self) -> Result<Option<ModuleGraphModule>> {

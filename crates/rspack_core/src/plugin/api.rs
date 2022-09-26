@@ -2,8 +2,8 @@ use std::fmt::Debug;
 
 use crate::{
   BoxModule, FactorizeAndBuildArgs, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs,
-  ParseModuleArgs, PluginContext, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs,
-  TransformAst, TransformResult,
+  ParseModuleArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderManifestArgs,
+  RenderRuntimeArgs, TransformAst, TransformResult,
 };
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::{Content, ResourceData};
@@ -181,14 +181,28 @@ pub trait Parser: Debug + Sync + Send {
 }
 
 pub type BoxedParser = Box<dyn Parser>;
+pub type BoxedParserAndGenerator = Box<dyn ParserAndGenerator>;
+pub type BoxedParserAndGeneratorBuilder = Box<dyn Fn() -> BoxedParserAndGenerator>;
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct ApplyContext {
   pub(crate) registered_parser: HashMap<ModuleType, BoxedParser>,
+  pub(crate) registered_parser_and_generator_builder:
+    HashMap<ModuleType, BoxedParserAndGeneratorBuilder>,
 }
 
 impl ApplyContext {
   pub fn register_parser(&mut self, module_type: ModuleType, parser: BoxedParser) {
     self.registered_parser.insert(module_type, parser);
+  }
+
+  pub fn register_parser_and_generator_builder(
+    &mut self,
+    module_type: ModuleType,
+    parser_and_generator_builder: BoxedParserAndGeneratorBuilder,
+  ) {
+    self
+      .registered_parser_and_generator_builder
+      .insert(module_type, parser_and_generator_builder);
   }
 }

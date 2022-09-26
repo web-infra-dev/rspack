@@ -6,6 +6,9 @@ pub mod utils;
 pub mod visitors;
 use once_cell::sync::Lazy;
 
+use rspack_core::{rspack_sources::Source, AstOrSource, GenerationResult, ParserAndGenerator};
+use rspack_error::Result;
+
 pub use runtime::*;
 
 pub mod module;

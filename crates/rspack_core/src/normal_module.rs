@@ -1,4 +1,5 @@
 use rspack_error::{Error, Result};
+use rspack_loader_runner::ResourceData;
 use rspack_sources::{BoxSource, Source, SourceMap};
 
 use std::fmt::Debug;
@@ -86,11 +87,13 @@ pub trait Module: Debug + Send + Sync {
   }
 }
 
+#[derive(Debug)]
 pub struct GenerationResult {
   pub ast_or_source: AstOrSource,
   pub source_map: Option<SourceMap>,
 }
 
+#[derive(Debug)]
 pub enum AstOrSource {
   Ast(ModuleAst),
   Source(BoxSource),
@@ -120,20 +123,24 @@ impl AstOrSource {
   }
 }
 
-pub trait ParserAndGenerator: Send + Sync {
+pub trait ParserAndGenerator: Send + Sync + Debug {
   fn parse(&self, source: &dyn Source) -> Result<AstOrSource>;
   fn generate(&self, ast_or_source: &AstOrSource) -> Result<GenerationResult>;
 }
 
-pub struct NormalModule<C: ParserAndGenerator> {
+#[derive(Debug)]
+pub struct NormalModule {
   request: String,
+  user_request: String,
+  raw_request: String,
   module_type: ModuleType,
   source_types: Vec<SourceType>,
-  parser_and_generator: C,
+  parser_and_generator: Box<dyn ParserAndGenerator>,
 
   ast_or_source: Option<AstOrSource>,
 }
 
+#[derive(Debug)]
 pub struct CodeGenerationResult {
   inner: GenerationResult,
   // TODO: add runtime requirements
@@ -146,18 +153,23 @@ impl CodeGenerationResult {
   }
 }
 
-impl<C: ParserAndGenerator> NormalModule<C> {
+impl NormalModule {
   pub fn new(
     request: String,
+    user_request: String,
+    raw_request: String,
     module_type: impl Into<ModuleType>,
     source_types: impl IntoIterator<Item = SourceType>,
-    parser_and_generator: C,
+    parser_and_generator: impl ParserAndGenerator + 'static,
+    resource_data: ResourceData,
   ) -> Self {
     Self {
       request,
+      user_request,
+      raw_request,
       module_type: module_type.into(),
       source_types: source_types.into_iter().collect(),
-      parser_and_generator,
+      parser_and_generator: Box::new(parser_and_generator),
 
       ast_or_source: None,
     }
@@ -199,7 +211,17 @@ impl<C: ParserAndGenerator> NormalModule<C> {
     self.source_types = source_types.into_iter().collect();
   }
 
-  pub fn code_generation(&self) -> Result<CodeGenerationResult> {
+  pub async fn build(&mut self) -> Result<()> {
+    // self
+    //   .parser_and_generator
+    //   .parse(&self.request)
+    //   .map(|ast_or_source| {
+    //     self.ast_or_source = Some(ast_or_source);
+    //   });
+    Ok(())
+  }
+
+  pub async fn code_generation(&self) -> Result<CodeGenerationResult> {
     if let Some(ast_or_source) = self.ast_or_source() {
       let generate_result = self.parser_and_generator.generate(ast_or_source)?;
       Ok(CodeGenerationResult {
