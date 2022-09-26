@@ -109,7 +109,7 @@ impl LoaderRunnerRunner {
 
     Ok(
       LoaderRunner::new(
-        resource_data.clone(),
+        resource_data,
         vec![Box::new(LoaderRunnerPluginProcessResource::new(
           self.plugin_driver.clone(),
         ))],

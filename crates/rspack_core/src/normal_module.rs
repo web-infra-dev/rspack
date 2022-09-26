@@ -1,6 +1,9 @@
 use rspack_error::{Error, Result};
-use rspack_loader_runner::{Loader, ResourceData};
-use rspack_sources::{BoxSource, Source, SourceMap};
+use rspack_loader_runner::{Content, Loader, ResourceData};
+use rspack_sources::{
+  BoxSource, OriginalSource, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
+  WithoutOriginalOptions,
+};
 
 use std::fmt::Debug;
 
@@ -138,6 +141,7 @@ pub struct NormalModule {
   parser_and_generator: Box<dyn ParserAndGenerator>,
   resource_data: ResourceData,
 
+  original_source: Option<Box<dyn Source>>,
   ast_or_source: Option<AstOrSource>,
 }
 
@@ -173,6 +177,7 @@ impl NormalModule {
       parser_and_generator,
       resource_data,
 
+      original_source: None,
       ast_or_source: None,
     }
   }
@@ -192,6 +197,10 @@ impl NormalModule {
   }
 
   pub fn original_source(&self) -> Option<&dyn Source> {
+    self.original_source.as_deref()
+  }
+
+  pub fn source(&self) -> Option<&dyn Source> {
     self
       .ast_or_source()
       .map(|ast_or_source| ast_or_source.as_source().map(|source| source.as_ref()))
@@ -219,10 +228,18 @@ impl NormalModule {
     resolved_loaders: impl IntoIterator<Item = &dyn Loader<CompilerContext, CompilationContext>>,
   ) -> Result<()> {
     let loader_result = loader_runner_runner
-      .run(self.resource_data, resolved_loaders)
+      .run(self.resource_data.clone(), resolved_loaders)
       .await?;
 
-    let ast_or_source = self.parser_and_generator.parse(&self.request)?;
+    let original_source = self.create_source(
+      &self.resource_data.resource,
+      loader_result.content,
+      loader_result.source_map,
+    )?;
+
+    let ast_or_source = self.parser_and_generator.parse(&original_source)?;
+
+    self.original_source = Some(original_source);
     self.ast_or_source = Some(ast_or_source);
 
     Ok(())
@@ -238,6 +255,34 @@ impl NormalModule {
       Err(Error::InternalError(
         "Failed to generate code because ast or source is not set".into(),
       ))
+    }
+  }
+}
+
+impl NormalModule {
+  fn create_source(
+    &self,
+    uri: &str,
+    content: Content,
+    source_map: Option<SourceMap>,
+  ) -> Result<BoxSource> {
+    // TODO: change back to self.context.options.devtool
+    match (true, content, source_map) {
+      (true, content, Some(map)) => {
+        let content = content.try_into_string()?;
+        Ok(
+          SourceMapSource::new(WithoutOriginalOptions {
+            value: content,
+            name: uri,
+            source_map: map,
+          })
+          .boxed(),
+        )
+      }
+      (true, Content::String(content), None) => Ok(OriginalSource::new(content, uri).boxed()),
+      (true, Content::Buffer(content), None) => Ok(RawSource::from(content).boxed()),
+      (_, Content::String(content), _) => Ok(RawSource::from(content).boxed()),
+      (_, Content::Buffer(content), _) => Ok(RawSource::from(content).boxed()),
     }
   }
 }

@@ -281,30 +281,30 @@ impl NormalModuleFactory {
     Ok(Some((uri, normal_module)))
   }
 
-  fn create_source(
-    &self,
-    uri: &str,
-    content: Content,
-    source_map: Option<SourceMap>,
-  ) -> Result<BoxSource> {
-    match (self.context.options.devtool, content, source_map) {
-      (true, content, Some(map)) => {
-        let content = content.try_into_string()?;
-        Ok(
-          SourceMapSource::new(WithoutOriginalOptions {
-            value: content,
-            name: uri,
-            source_map: map,
-          })
-          .boxed(),
-        )
-      }
-      (true, Content::String(content), None) => Ok(OriginalSource::new(content, uri).boxed()),
-      (true, Content::Buffer(content), None) => Ok(RawSource::from(content).boxed()),
-      (_, Content::String(content), _) => Ok(RawSource::from(content).boxed()),
-      (_, Content::Buffer(content), _) => Ok(RawSource::from(content).boxed()),
-    }
-  }
+  // fn create_source(
+  //   &self,
+  //   uri: &str,
+  //   content: Content,
+  //   source_map: Option<SourceMap>,
+  // ) -> Result<BoxSource> {
+  //   match (self.context.options.devtool, content, source_map) {
+  //     (true, content, Some(map)) => {
+  //       let content = content.try_into_string()?;
+  //       Ok(
+  //         SourceMapSource::new(WithoutOriginalOptions {
+  //           value: content,
+  //           name: uri,
+  //           source_map: map,
+  //         })
+  //         .boxed(),
+  //       )
+  //     }
+  //     (true, Content::String(content), None) => Ok(OriginalSource::new(content, uri).boxed()),
+  //     (true, Content::Buffer(content), None) => Ok(RawSource::from(content).boxed()),
+  //     (_, Content::String(content), _) => Ok(RawSource::from(content).boxed()),
+  //     (_, Content::Buffer(content), _) => Ok(RawSource::from(content).boxed()),
+  //   }
+  // }
 
   pub fn calculate_loaders(
     &self,
