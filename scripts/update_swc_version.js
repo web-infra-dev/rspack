@@ -1,6 +1,5 @@
 const path = require("path");
 const fs = require("fs");
-const fetch = require("node-fetch");
 const TOML = require("@iarna/toml");
 
 const swc_version = "v1.3.1";
