@@ -95,13 +95,21 @@ impl<'a> RspackModuleFormatTransformer<'a> {
     Ident::new(RSPACK_REQUIRE.into(), DUMMY_SP).as_callee()
   }
 
-  fn get_rspack_dynamic_import_callee(&self, chunk_id: &str) -> Callee {
+  fn get_rspack_dynamic_import_callee(&self, chunk_ids: Vec<&str>) -> Callee {
     MemberExpr {
       span: DUMMY_SP,
       obj: Box::new(swc_ecma_ast::Expr::Call(CallExpr {
         span: DUMMY_SP,
         callee: Ident::new(RSPACK_DYNAMIC_IMPORT.into(), DUMMY_SP).as_callee(),
-        args: vec![Lit::Str(chunk_id.into()).as_arg()],
+        args: vec![Expr::Array(ArrayLit {
+          span: DUMMY_SP,
+          elems: chunk_ids
+            .iter()
+            .map(|chunk_id| Some(Lit::Str(chunk_id.to_string().into()).as_arg()))
+            .collect::<Vec<Option<ExprOrSpread>>>(),
+        })
+        .as_arg()],
+
         type_args: None,
       })),
       prop: MemberProp::Ident(Ident::new("then".into(), DUMMY_SP)),
@@ -210,7 +218,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
         };
         chunk_ids.sort();
 
-        n.callee = self.get_rspack_dynamic_import_callee(chunk_ids[0]);
+        n.callee = self.get_rspack_dynamic_import_callee(chunk_ids);
         // n.callee = if self.compilation.options.chunk_loading.is_jsonp() {
         // n.callee = if true {
         //   cjs_runtime_helper!(jsonp, rs.dynamic_require)
