@@ -5,7 +5,7 @@ version = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dev_dependencies]
+[dev-dependencies]
 rspack_test = { path = "../rspack_test" }
 
 [dependencies]
@@ -19,10 +19,10 @@ rspack_core = { path = "../rspack_core" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10.2"
-swc_atoms = "0.4.5"
-swc_common = { version = "0.28.3", features = ["concurrent"] }
+swc_atoms = "0.4.14"
+swc_common = { version = "0.28.5", features = ["concurrent"] }
 
-swc_html = "0.73.12"
-swc_html_minifier = "0.46.0"
+swc_html = "0.73.17"
+swc_html_minifier = "0.70.17"
 
 rspack_error = { path = "../rspack_error" }

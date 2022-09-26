@@ -135,27 +135,28 @@ function createCLI() {
 		.option("js", "lint js code")
 		.option("rs", "lint rust code")
 		.action(args => {
-			let command;
+			let commands = [];
 			switch (args) {
 				case "js":
-					command = 'npx prettier "packages/**/*.{ts,js}" --check';
+					commands = ['npx prettier "packages/**/*.{ts,js}" --check'];
 					break;
 				case "rs":
-					command = "cargo clippy --all -- --deny warnings";
+					commands = [
+						"cargo clippy --all -- --deny warnings",
+						"node ./scripts/check_rust_dependency.js"
+					];
 					break;
 				default:
 					log.error(
 						"invalid args, see `./x format -h` to get more information"
 					);
 			}
-			if (!command) {
-				return;
-			}
-			log.info(`start format by '${command}'`);
-			cp.execSync(command, {
-				stdio: "inherit"
+			commands.forEach(command => {
+				cp.execSync(command, {
+					stdio: "inherit"
+				});
 			});
-			log.info("format finished");
+			log.info("lint finished");
 		});
 	cli
 		.command("clean")
@@ -184,6 +185,31 @@ function createCLI() {
 				});
 			});
 			log.info("finish clean");
+		});
+
+	cli
+		.command("script")
+		.option(
+			"update_swc_version",
+			"update all swc sub packages to the correct version"
+		)
+		.action(args => {
+			let commands = [];
+			switch (args) {
+				case "update_swc_version":
+					commands = ["node ./scripts/update_swc_version.js"];
+					break;
+				default:
+					log.error(
+						"invalid args, see `./x format -h` to get more information"
+					);
+			}
+			commands.forEach(command => {
+				cp.execSync(command, {
+					stdio: "inherit"
+				});
+			});
+			log.info("run script finished");
 		});
 	return cli;
 }
