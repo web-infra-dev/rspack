@@ -7,6 +7,7 @@ on:
 permissions:
   contents: write
   deployments: write
+  repository-projects: write
 
 jobs:
   benchmark:
@@ -37,5 +38,5 @@ jobs:
           # Show alert with commit comment on detecting possible performance regression
           fail-on-alert: false
 
-      - name: Push benchmark result
-        run: git push 'https:///speedy-js:${{ secrets.GITHUB_TOKEN }}@github.com/speedy-js/rspack.git' gh-pages:gh-pages
+      # - name: Push benchmark result
+      #   run: git push 'https:///speedy-js:${{ secrets.GITHUB_TOKEN }}@github.com/speedy-js/rspack.git' gh-pages:gh-pages
