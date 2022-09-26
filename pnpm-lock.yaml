@@ -160,6 +160,7 @@ importers:
   packages/rspack:
     specifiers:
       '@rspack/binding': workspace:*
+      '@rspack/core': workspace:*
       '@rspack/dev-client': workspace:*
       '@rspack/plugin-postcss': workspace:^
       '@tmp-sass-embedded/darwin-arm64': 1.54.4
@@ -201,6 +202,7 @@ importers:
       '@tmp-sass-embedded/win32-ia32': 1.54.4
       '@tmp-sass-embedded/win32-x64': 1.54.4
     devDependencies:
+      '@rspack/core': 'link:'
       '@types/jest': 29.0.2
       '@types/node': 18.7.9
       '@types/sinon': 10.0.13

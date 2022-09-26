@@ -13,6 +13,7 @@
     "lib"
   ],
   "devDependencies": {
+    "@rspack/core": "workspace:*",
     "@types/node": "^18.6.3",
     "tsm": "^2.2.2",
     "ts-node": "10.9.1",

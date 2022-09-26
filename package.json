@@ -10,7 +10,6 @@
     "build": "./x build cli",
     "build:cli": "./x build cli",
     "build:webpack": "./x build webpack",
-    "pretest": "pnpm run build",
     "format:rs": "./x format rs",
     "format:js": "./x format js",
     "lint:js": "./x lint js",
