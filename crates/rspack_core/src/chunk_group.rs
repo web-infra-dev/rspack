@@ -5,7 +5,7 @@ use crate::{Chunk, ChunkByUkey, ChunkGroupUkey, ChunkUkey};
 #[derive(Debug)]
 pub struct ChunkGroup {
   pub ukey: ChunkGroupUkey,
-  pub(crate) chunks: Vec<ChunkUkey>,
+  pub chunks: Vec<ChunkUkey>,
   pub(crate) module_pre_order_indices: HashMap<String, usize>,
   pub(crate) module_post_order_indices: HashMap<String, usize>,
   _parents: HashSet<ChunkGroupUkey>,

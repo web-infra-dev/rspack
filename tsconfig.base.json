@@ -6,6 +6,7 @@
     "esModuleInterop": true,
     "outDir": "lib",
     "declaration": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "sourceMap": true
   }
 }
