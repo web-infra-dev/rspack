@@ -66,7 +66,8 @@ pub struct Resolver(pub(crate) nodejs_resolver::Resolver);
 
 impl Resolver {
   pub fn resolve(&self, path: &Path, request: &str) -> Result<ResolveResult> {
-    self
+    let start = std::time::SystemTime::now();
+    let result = self
       .0
       .resolve(path, request)
       .map(|inner_result| match inner_result {
@@ -86,6 +87,17 @@ impl Resolver {
           source: anyhow::Error::msg(error),
         },
         ResolverError::ResolveFailedTag => Error::BatchErrors(vec![]), // just for tag
-      })
+      });
+    let cost = start.elapsed().unwrap();
+    // if cost > std::time::Duration::from_millis(1) {
+    println!(
+      "resolve cost: {:?}, path: {:?}, request: {:?}",
+      start.elapsed(),
+      path,
+      request
+    );
+    // }
+
+    result
   }
 }
