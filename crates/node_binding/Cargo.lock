@@ -2061,9 +2061,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.1.3"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c685e684a05be19cb1297e97b68922a3d9d657e534bb75094e5bae0cd5dd8ed"
+checksum = "7cd8e564b2eb7bb273cf3549bc6259c294a2c74c24da2b04079dddd190d6320f"
 dependencies = [
  "parking_lot",
  "serde",
