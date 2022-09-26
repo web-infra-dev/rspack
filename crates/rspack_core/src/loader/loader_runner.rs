@@ -115,7 +115,7 @@ impl LoaderRunnerRunner {
         ))],
       )
       .run(
-        &loaders,
+        loaders.into_iter().collect::<Vec<_>>(),
         &LoaderRunnerAdditionalContext {
           compiler: &self.compiler_context,
           compilation: &(),

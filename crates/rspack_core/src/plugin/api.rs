@@ -182,7 +182,8 @@ pub trait Parser: Debug + Sync + Send {
 
 pub type BoxedParser = Box<dyn Parser>;
 pub type BoxedParserAndGenerator = Box<dyn ParserAndGenerator>;
-pub type BoxedParserAndGeneratorBuilder = Box<dyn Fn() -> BoxedParserAndGenerator>;
+pub type BoxedParserAndGeneratorBuilder =
+  Box<dyn 'static + Send + Sync + Fn() -> BoxedParserAndGenerator>;
 
 #[derive(Default)]
 pub struct ApplyContext {

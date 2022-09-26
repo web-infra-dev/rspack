@@ -1788,14 +1788,9 @@ dependencies = [
  "once_cell",
  "rspack_core",
  "rspack_error",
- "rspack_loader_sass",
- "rspack_plugin_asset",
- "rspack_plugin_css",
  "rspack_plugin_devtool",
- "rspack_plugin_html",
  "rspack_plugin_javascript",
  "rspack_plugin_json",
- "rspack_plugin_runtime",
  "sugar_path",
  "tokio",
  "tracing",
@@ -1933,23 +1928,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack_plugin_asset"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "base64",
- "hashbrown",
- "mime_guess",
- "once_cell",
- "rayon",
- "rspack_core",
- "rspack_error",
- "tokio",
- "tracing",
-]
-
-[[package]]
 name = "rspack_plugin_css"
 version = "0.1.0"
 dependencies = [
@@ -2048,16 +2026,6 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "tracing",
-]
-
-[[package]]
-name = "rspack_plugin_runtime"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "rspack_core",
- "rspack_error",
 ]
 
 [[package]]

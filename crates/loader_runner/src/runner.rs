@@ -142,14 +142,14 @@ impl LoaderRunner {
 
   pub async fn run<'loader, 'context: 'loader, T, U>(
     &self,
-    loaders: impl AsRef<[&'loader dyn Loader<T, U>]>,
+    loaders: impl IntoIterator<Item = &'loader dyn Loader<T, U>>,
     context: &'context LoaderRunnerAdditionalContext<'_, T, U>,
   ) -> LoaderRunnerResult {
     let mut loader_context = self.get_loader_context(context).await?;
 
     tracing::debug!("Running loaders for resource: {}", loader_context.resource);
 
-    for loader in loaders.as_ref().iter().rev() {
+    for loader in loaders {
       tracing::debug!("Running loader: {}", loader.name());
 
       if let Some(loader_result) = loader.run(&loader_context).await? {

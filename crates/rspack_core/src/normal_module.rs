@@ -16,7 +16,7 @@ pub struct ModuleGraphModule {
   pub id: String,
   // pub exec_order: usize,
   pub uri: String,
-  pub module: BoxModule,
+  pub module: NormalModule,
   // TODO remove this since its included in module
   pub module_type: ModuleType,
   all_dependencies: Vec<Dependency>,
@@ -29,7 +29,7 @@ impl ModuleGraphModule {
     name: Option<String>,
     id: String,
     uri: String,
-    module: BoxModule,
+    module: NormalModule,
     dependencies: Vec<Dependency>,
     module_type: ModuleType,
   ) -> Self {
