@@ -60,6 +60,10 @@ jobs:
         with:
           command: clippy
           args: --workspace --all-targets --verbose -- --deny warnings
+      - name: Check Dependencies
+        uses: actions-rs/cargo@v1
+        run: |
+          node ./script/check_rust_dependency.js
 
   test-rs:
     name: Rust test
@@ -84,6 +88,7 @@ jobs:
         run: |
           pnpm i
           cargo test --all -- --nocapture
+
   test-js:
     name: Node binding test
     runs-on: [self-hosted, rspack-common]

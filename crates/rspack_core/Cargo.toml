@@ -8,8 +8,6 @@ version = "0.1.0"
 [dependencies]
 crossbeam = "0.8.1"
 dashmap = "5.0.0"
-swc_css = "0.118.0"
-swc_ecma_ast = "0.91.3"
 # futures = "0.3.21"
 anyhow = "1"
 async-trait = "0.1.53"
@@ -18,7 +16,7 @@ once_cell = "1"
 sugar_path = "0.0.5"
 tokio = { version = "1.17.0", features = ["full"] }
 tracing = "0.1.34"
-rspack_sources = "0.1.3"
+rspack_sources = "0.1.4"
 hashbrown = { version = "0.12.1", features = ["rayon", "serde", "ahash"] }
 petgraph = "0.6.0"
 rayon = "1.5.3"
@@ -26,20 +24,22 @@ regex = "1.6.0"
 rspack_error = { path = "../rspack_error" }
 rspack_loader_runner = { path = "../loader_runner" }
 serde = '1'
-swc_common = { version = "0.28.3", features = ["concurrent", "tty-emitter"] }
-swc = "0.226.16"
-swc_ecma_codegen = "0.124.13"
+# swc v1.3.1
+swc = "0.226.21"
+swc_css = "0.125.7"
+swc_ecma_ast = "0.91.5"
+swc_common = { version = "0.28.5", features = ["concurrent", "tty-emitter"] }
+swc_ecma_codegen = "0.124.11"
+swc_ecma_visit = "0.77.5"
+swc_ecma_transforms = { version = "0.193.18", features = [
+  "swc_ecma_transforms_module",
+  "swc_ecma_transforms_react",
+] }
 fluent-uri = "0.1.3"
-
 tracing-chrome = "0.6.0"
 tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
 url = "2.2.2"
 xxhash-rust = { version = "0.8.5", features = ["xxh3"] }
-swc_ecma_visit = "0.77.3"
-swc_ecma_transforms = { version = "0.193.14", features = [
-  "swc_ecma_transforms_module",
-  "swc_ecma_transforms_react",
-] }
 
 [dev-dependencies]
-swc_ecma_parser = "0.119.7"
+swc_ecma_parser = "0.119.9"

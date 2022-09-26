@@ -15,9 +15,9 @@ pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -
   plugins.push(Box::new(rspack_plugin_json::JsonPlugin {}));
   plugins.push(Box::new(rspack_plugin_runtime::RuntimePlugin {}));
   plugins.push(Box::new(ExternalPlugin {}));
-  plugins.push(Box::new(rspack_plugin_devtool::DevtoolPlugin {}));
   plugins.append(&mut options.plugins);
   plugins.push(Box::new(rspack_plugin_javascript::JsPlugin::new()));
+  plugins.push(Box::new(rspack_plugin_devtool::DevtoolPlugin {}));
   Compiler::new(options, plugins)
 }
 
