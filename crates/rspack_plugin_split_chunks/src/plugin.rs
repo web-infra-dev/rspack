@@ -341,6 +341,33 @@ impl Plugin for SplitChunksPlugin {
         chunk_name.clone(),
         ChunkKind::Normal,
       );
+
+      let used_chunks = &info
+        .chunks
+        .iter()
+        .filter(|chunk_ukey| {
+          // Chunks containing at least one related module are used.
+          info.modules.iter().any(|module_uri| {
+            compilation
+              .chunk_graph
+              .is_module_in_chunk(module_uri, **chunk_ukey)
+          })
+        })
+        .collect::<Vec<_>>();
+      let new_chunk_ukey = new_chunk.ukey;
+      for used_chunk in used_chunks {
+        let [new_chunk, used_chunk] = compilation
+          .chunk_by_ukey
+          .get_many_mut([&new_chunk_ukey, used_chunk])
+          .unwrap();
+        used_chunk.split(new_chunk, &mut compilation.chunk_group_by_ukey)
+      }
+
+      for module_uri in info.modules {
+        compilation
+          .chunk_graph
+          .disconnect_chunk_and_module(&new_chunk_ukey, &module_uri);
+      }
     }
 
     Ok(())

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Debug, sync::Arc};
+use std::{collections::HashMap, fmt::Debug, str::FromStr, sync::Arc};
 
 use rspack_core::{Chunk, ChunkGroupByUkey, ModuleGraphModule};
 
@@ -102,6 +102,18 @@ pub enum ChunkType {
   Initial,
   Async,
   Custom(Box<dyn Fn(&Chunk) -> bool + Sync + Send>),
+}
+
+impl TryFrom<&str> for ChunkType {
+  type Error = String;
+
+  fn try_from(value: &str) -> Result<Self, Self::Error> {
+    match value {
+      "initial" => Ok(ChunkType::Initial),
+      "async" => Ok(ChunkType::Async),
+      _ => Err(format!("Invalid chunk type: {}", value)),
+    }
+  }
 }
 
 impl ChunkType {

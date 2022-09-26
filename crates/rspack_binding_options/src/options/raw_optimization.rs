@@ -1,5 +1,8 @@
-use napi_derive::napi;
 use serde::Deserialize;
+
+#[cfg(feature = "node-api")]
+use napi_derive::napi;
+use rspack_core::{AliasMap, CompilerOptionsBuilder, Resolve};
 
 use crate::RawSplitChunksOptions;
 
@@ -9,10 +12,6 @@ use crate::RawSplitChunksOptions;
 #[napi(object)]
 pub struct RawOptimizationOptions {
   pub split_chunks: Option<RawSplitChunksOptions>,
-  pub minify: Option<bool>,
-  pub remove_empty_chunks: Option<bool>,
-  pub chunk_id_algo: Option<String>,
-  pub module_id_algo: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -20,8 +19,4 @@ pub struct RawOptimizationOptions {
 #[cfg(not(feature = "node-api"))]
 pub struct RawOptimizationOptions {
   pub split_chunks: Option<RawSplitChunksOptions>,
-  pub minify: Option<bool>,
-  pub remove_empty_chunks: Option<bool>,
-  pub chunk_id_algo: Option<String>,
-  pub module_id_algo: Option<String>,
 }

@@ -41,7 +41,7 @@ impl ChunkGraph {
     chunk_graph_chunk.entry_modules.keys().collect()
   }
 
-  pub(crate) fn is_module_in_chunk(&mut self, module_uri: &str, chunk_ukey: ChunkUkey) -> bool {
+  pub fn is_module_in_chunk(&mut self, module_uri: &str, chunk_ukey: ChunkUkey) -> bool {
     let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(chunk_ukey);
     chunk_graph_chunk.modules.contains(module_uri)
   }
@@ -85,7 +85,7 @@ impl ChunkGraph {
       .insert(module_uri, entrypoint);
   }
 
-  pub(crate) fn disconnect_chunk_and_module(&mut self, chunk: &ChunkUkey, module_uri: &str) {
+  pub fn disconnect_chunk_and_module(&mut self, chunk: &ChunkUkey, module_uri: &str) {
     let chunk_graph_module = self.get_chunk_graph_module_mut(module_uri);
     chunk_graph_module.chunks.remove(chunk);
 

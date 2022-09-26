@@ -16,9 +16,11 @@ mod raw_external;
 mod raw_external_type;
 mod raw_mode;
 mod raw_module;
+mod raw_optimization;
 mod raw_output;
 mod raw_plugins;
 mod raw_resolve;
+mod raw_split_chunks;
 mod raw_target;
 
 pub use raw_builtins::*;
@@ -29,9 +31,11 @@ pub use raw_external::*;
 pub use raw_external_type::*;
 pub use raw_mode::*;
 pub use raw_module::*;
+pub use raw_optimization::*;
 pub use raw_output::*;
 pub use raw_plugins::*;
 pub use raw_resolve::*;
+pub use raw_split_chunks::*;
 pub use raw_target::*;
 
 use self::raw_devtool::RawDevtool;

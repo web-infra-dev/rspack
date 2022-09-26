@@ -28,11 +28,7 @@ impl Chunk {
     self.groups.insert(group);
   }
 
-  pub(crate) fn split(
-    &mut self,
-    new_chunk: &mut Chunk,
-    chunk_group_by_ukey: &mut ChunkGroupByUkey,
-  ) {
+  pub fn split(&mut self, new_chunk: &mut Chunk, chunk_group_by_ukey: &mut ChunkGroupByUkey) {
     self.groups.iter().for_each(|group| {
       let group = chunk_group_by_ukey
         .get_mut(group)
