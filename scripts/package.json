@@ -7,6 +7,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "commander": "9.4.0"
+    "@iarna/toml": "2.2.5",
+    "commander": "9.4.0",
+    "node-fetch": "2.6.7"
   }
 }

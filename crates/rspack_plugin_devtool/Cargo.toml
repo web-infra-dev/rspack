@@ -12,5 +12,5 @@ tracing = "0.1"
 async-trait = "0.1"
 pathdiff = "0.2"
 
-[dev_dependencies]
+[dev-dependencies]
 rspack_test = { path = "../rspack_test" }
