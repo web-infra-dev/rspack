@@ -1,5 +1,7 @@
 import type { RspackOptions, ResolvedRspackOptions } from "@rspack/core";
-import type { DevMiddleware } from "@rspack/middleware";
+import type { DevMiddleware } from "@rspack/dev-middleware";
+import { rdm } from "@rspack/dev-middleware";
+
 import type {
 	Express,
 	RequestHandler as ExpressRequestHandler,

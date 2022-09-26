@@ -13,6 +13,7 @@ importers:
       prettier: 2.5.1
       ts-jest: 29.0.1
       tsm: 2.2.1
+      typescript: 4.8.3
       webpack: 5.74.0
       why-is-node-running: 2.2.1
     devDependencies:
@@ -23,8 +24,9 @@ importers:
       jest: 29.0.3
       lint-staged: 12.5.0
       prettier: 2.5.1
-      ts-jest: 29.0.1_esbuild@0.15.9+jest@29.0.3
+      ts-jest: 29.0.1_xqdqigz244m3lt4wgbpk45wbrm
       tsm: 2.2.1
+      typescript: 4.8.3
       webpack: 5.74.0_esbuild@0.15.9
       why-is-node-running: 2.2.1
 
@@ -158,7 +160,6 @@ importers:
   packages/rspack:
     specifiers:
       '@rspack/binding': workspace:*
-      '@rspack/core': workspace:*
       '@rspack/dev-client': workspace:*
       '@rspack/plugin-postcss': workspace:^
       '@tmp-sass-embedded/darwin-arm64': 1.54.4
@@ -200,7 +201,6 @@ importers:
       '@tmp-sass-embedded/win32-ia32': 1.54.4
       '@tmp-sass-embedded/win32-x64': 1.54.4
     devDependencies:
-      '@rspack/core': 'link:'
       '@types/jest': 29.0.2
       '@types/node': 18.7.9
       '@types/sinon': 10.0.13
@@ -9864,7 +9864,7 @@ packages:
     engines: {node: '>=8'}
     dev: true
 
-  /ts-jest/29.0.1_esbuild@0.15.9+jest@29.0.3:
+  /ts-jest/29.0.1_xqdqigz244m3lt4wgbpk45wbrm:
     resolution: {integrity: sha512-htQOHshgvhn93QLxrmxpiQPk69+M1g7govO1g6kf6GsjCv4uvRV0znVmDrrvjUrVCnTYeY4FBxTYYYD4airyJA==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     hasBin: true
@@ -9894,6 +9894,7 @@ packages:
       lodash.memoize: 4.1.2
       make-error: 1.3.6
       semver: 7.3.7
+      typescript: 4.8.3
       yargs-parser: 21.1.1
     dev: true
 
@@ -10021,6 +10022,12 @@ packages:
 
   /typescript/4.7.4:
     resolution: {integrity: sha512-C0WQT0gezHuw6AdY1M2jxUO83Rjf0HP7Sk1DtXj6j1EwkQNZrHAg2XPWlq62oqEhYvONq5pkC2Y9oPljWToLmQ==}
+    engines: {node: '>=4.2.0'}
+    hasBin: true
+    dev: true
+
+  /typescript/4.8.3:
+    resolution: {integrity: sha512-goMHfm00nWPa8UvR/CPSvykqf6dVV8x/dp0c5mFTMTIu0u0FlGWRioyy7Nn0PGAdHxpJZnuO/ut+PpQ8UiHAig==}
     engines: {node: '>=4.2.0'}
     hasBin: true
     dev: true
