@@ -67,3 +67,7 @@ This script can config with the following
 * `swc_packages` - the regex to match dependency which is in swc repo
 
 WARNING: We have hacked `@iarna/toml/stringify.js` to make the output match our format while developing this script
+
+##### check_rust_dependency.js
+
+This script will print the duplicate dependencies in `cargo.toml` for all crates.
