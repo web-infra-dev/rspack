@@ -78,15 +78,15 @@ impl Compiler {
     // self.compile(deps).await?;
     self.stats()
   }
-  pub async fn run(&mut self) -> anyhow::Result<()> {
-    let stats = self.build().await?;
+  pub fn run(&mut self) -> anyhow::Result<()> {
+    let stats = self.build()?;
     if !stats.compilation.diagnostic.is_empty() {
       let err_msg = stats.emit_error_string(true).unwrap();
       anyhow::bail!(err_msg)
     }
     Ok(())
   }
-  pub async fn build(&mut self) -> Result<Stats> {
+  pub fn build(&mut self) -> Result<Stats> {
     self.compilation = Compilation::new(
       // TODO: use Arc<T> instead
       self.options.clone(),
@@ -95,12 +95,12 @@ impl Compiler {
       Default::default(),
     );
     let deps = self.compilation.entry_dependencies();
-    self.compile(deps).await?;
+    self.compile(deps)?;
     self.stats()
   }
 
   #[instrument(skip_all)]
-  async fn compile(&mut self, deps: HashMap<String, Dependency>) -> Result<()> {
+  fn compile(&mut self, deps: HashMap<String, Dependency>) -> Result<()> {
     let active_task_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
 
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
@@ -121,48 +121,48 @@ impl Compiler {
         self.loader_runner_runner.clone(),
       );
 
-      tokio::task::spawn(async move { task.run().await });
+      task.run(self);
     });
 
-    while active_task_count.load(Ordering::SeqCst) != 0 {
-      match rx.recv().await {
-        Some(job) => match job {
-          Msg::TaskFinished(mut module_with_diagnostic) => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
-            self
-              .compilation
-              .module_graph
-              .add_module(*module_with_diagnostic.inner);
-            self
-              .compilation
-              .diagnostic
-              .append(&mut module_with_diagnostic.diagnostic);
-          }
-          Msg::TaskCanceled => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
-          }
-          Msg::DependencyReference(dep, resolved_uri) => {
-            self
-              .compilation
-              .module_graph
-              .add_dependency(dep, resolved_uri);
-          }
-          Msg::TaskErrorEncountered(err) => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
-            self.compilation.push_batch_diagnostic(err.into());
-          }
-        },
-        None => {
-          tracing::trace!("All sender is dropped");
-        }
-      }
-    }
+    // while active_task_count.load(Ordering::SeqCst) != 0 {
+    //   match rx.recv().await {
+    //     Some(job) => match job {
+    //       Msg::TaskFinished(mut module_with_diagnostic) => {
+    //         active_task_count.fetch_sub(1, Ordering::SeqCst);
+    //         self
+    //           .compilation
+    //           .module_graph
+    //           .add_module(*module_with_diagnostic.inner);
+    //         self
+    //           .compilation
+    //           .diagnostic
+    //           .append(&mut module_with_diagnostic.diagnostic);
+    //       }
+    //       Msg::TaskCanceled => {
+    //         active_task_count.fetch_sub(1, Ordering::SeqCst);
+    //       }
+    //       Msg::DependencyReference(dep, resolved_uri) => {
+    //         self
+    //           .compilation
+    //           .module_graph
+    //           .add_dependency(dep, resolved_uri);
+    //       }
+    //       Msg::TaskErrorEncountered(err) => {
+    //         active_task_count.fetch_sub(1, Ordering::SeqCst);
+    //         self.compilation.push_batch_diagnostic(err.into());
+    //       }
+    //     },
+    //     None => {
+    //       tracing::trace!("All sender is dropped");
+    //     }
+    //   }
+    // }
 
     tracing::debug!("module graph {:#?}", self.compilation.module_graph);
 
     // self.compilation.calc_exec_order();
 
-    self.compilation.seal(self.plugin_driver.clone()).await?;
+    self.compilation.seal(self.plugin_driver.clone())?;
 
     // Consume plugin driver diagnostic
     let mut plugin_driver_diagnostics = self.plugin_driver.take_diagnostic();
@@ -199,7 +199,7 @@ impl Compiler {
         .context("failed to write asset")
       })
       .unwrap();
-    self.compilation.done(self.plugin_driver.clone()).await?;
+    self.compilation.done(self.plugin_driver.clone())?;
     Ok(())
   }
 

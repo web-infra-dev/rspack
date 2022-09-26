@@ -124,18 +124,17 @@ impl Compilation {
       })
   }
 
-  async fn process_assets(&mut self, plugin_driver: Arc<PluginDriver>) {
+  fn process_assets(&mut self, plugin_driver: Arc<PluginDriver>) {
     plugin_driver
       .process_assets(ProcessAssetsArgs { compilation: self })
-      .await
       .map_err(|e| {
         eprintln!("process_assets is not ok, err {:#?}", e);
         e
       })
       .ok();
   }
-  pub async fn done(&mut self, plugin_driver: Arc<PluginDriver>) -> Result<()> {
-    plugin_driver.done().await?;
+  pub fn done(&mut self, plugin_driver: Arc<PluginDriver>) -> Result<()> {
+    plugin_driver.done()?;
     Ok(())
   }
   pub fn render_runtime(&self, plugin_driver: Arc<PluginDriver>) -> Runtime {
@@ -165,7 +164,7 @@ impl Compilation {
       .expect("entrypoint not found by ukey")
   }
 
-  pub async fn seal(&mut self, plugin_driver: Arc<PluginDriver>) -> Result<()> {
+  pub fn seal(&mut self, plugin_driver: Arc<PluginDriver>) -> Result<()> {
     code_splitting(self)?;
 
     plugin_driver.optimize_chunks(self)?;
@@ -190,7 +189,7 @@ impl Compilation {
     // generate runtime
     self.runtime = self.render_runtime(plugin_driver.clone());
 
-    self.process_assets(plugin_driver).await;
+    self.process_assets(plugin_driver);
     Ok(())
   }
 }

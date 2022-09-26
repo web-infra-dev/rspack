@@ -7,16 +7,16 @@ use rspack_plugin_asset::AssetConfig;
 
 pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -> Compiler {
   // plugins.push(Box::new(rspack_plugin_css::CssPlugin::default()));
-  plugins.push(Box::new(rspack_plugin_asset::AssetPlugin::new(
-    AssetConfig {
-      parse_options: options.module.parser.as_ref().and_then(|x| x.asset.clone()),
-    },
-  )));
-  plugins.push(Box::new(rspack_plugin_json::JsonPlugin {}));
-  plugins.push(Box::new(rspack_plugin_runtime::RuntimePlugin {}));
-  plugins.push(Box::new(ExternalPlugin {}));
-  plugins.push(Box::new(rspack_plugin_devtool::DevtoolPlugin {}));
-  plugins.append(&mut options.plugins);
+  // plugins.push(Box::new(rspack_plugin_asset::AssetPlugin::new(
+  //   AssetConfig {
+  //     parse_options: options.module.parser.as_ref().and_then(|x| x.asset.clone()),
+  //   },
+  // )));
+  // plugins.push(Box::new(rspack_plugin_json::JsonPlugin {}));
+  // plugins.push(Box::new(rspack_plugin_runtime::RuntimePlugin {}));
+  // plugins.push(Box::new(ExternalPlugin {}));
+  // plugins.push(Box::new(rspack_plugin_devtool::DevtoolPlugin {}));
+  // plugins.append(&mut options.plugins);
   plugins.push(Box::new(rspack_plugin_javascript::JsPlugin::new()));
   Compiler::new(options, plugins)
 }
@@ -33,7 +33,7 @@ pub struct DevServer {
 
 impl DevServer {
   pub async fn serve(&mut self) -> Result<()> {
-    self.compiler.build().await?;
+    self.compiler.build()?;
 
     warp::fs::dir(Path::new(self.compiler.options.context.as_str()).join("dist"));
     let filter = warp::fs::dir(Path::new(self.compiler.options.context.as_str()).join("dist"));

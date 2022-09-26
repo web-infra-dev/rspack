@@ -7,7 +7,8 @@ use std::{
 };
 
 use crate::{
-  BoxModule, CompilerOptions, FactorizeAndBuildArgs, LoaderResult, LoaderRunnerRunner, ResourceData,
+  BoxModule, Compiler, CompilerOptions, FactorizeAndBuildArgs, LoaderResult, LoaderRunnerRunner,
+  ResourceData,
 };
 use rspack_error::{Diagnostic, Error, TWithDiagnosticArray};
 use rspack_sources::{
@@ -89,21 +90,22 @@ impl NormalModuleFactory {
     }
   }
 
-  pub async fn run(mut self) {
-    match self.resolve_module().await {
+  pub fn run(mut self, compiler: &mut Compiler) {
+    match self.resolve_module(compiler) {
       Ok(maybe_module) => {
         if let Some(module) = maybe_module {
-          let diagnostic = std::mem::take(&mut self.diagnostic);
-          self.send(Msg::TaskFinished(TWithDiagnosticArray::new(
-            Box::new(module),
-            diagnostic,
-          )));
+          // let diagnostic = std::mem::take(&mut self.diagnostic);
+          compiler.compilation.module_graph.add_module(module)
+          // self.send(Msg::TaskFinished(TWithDiagnosticArray::new(
+          //   Box::new(module),
+          //   diagnostic,
+          // )));
         } else {
-          self.send(Msg::TaskCanceled);
+          // self.send(Msg::TaskCanceled);
         }
       }
-      Err(err) => self.send(Msg::TaskErrorEncountered(err)),
-    }
+      Err(err) => (), //self.send(Msg::TaskErrorEncountered(err)),
+    };
   }
 
   pub fn add_diagnostic<T: Into<Diagnostic>>(&mut self, diagnostic: T) {
@@ -130,7 +132,10 @@ impl NormalModuleFactory {
     resolve_module_type_by_uri(url.path())
   }
 
-  pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, BoxModule)>> {
+  pub fn factorize_normal_module(
+    &mut self,
+    compiler: &mut Compiler,
+  ) -> Result<Option<(String, BoxModule)>> {
     let uri = resolve(
       ResolveArgs {
         importer: self.dependency.importer.as_deref(),
@@ -140,8 +145,7 @@ impl NormalModuleFactory {
       },
       &self.plugin_driver,
       &mut self.context,
-    )
-    .await?;
+    )?;
     tracing::trace!("resolved uri {:?}", uri);
 
     let url = parse_to_url(&uri);
@@ -149,18 +153,22 @@ impl NormalModuleFactory {
       self.context.module_type = self.calculate_module_type(&uri);
     }
 
-    self
-      .tx
-      .send(Msg::DependencyReference(
-        self.dependency.clone(),
-        uri.clone(),
-      ))
-      .map_err(|_| {
-        Error::InternalError(format!(
-          "Failed to resolve dependency {:?}",
-          self.dependency
-        ))
-      })?;
+    compiler
+      .compilation
+      .module_graph
+      .add_dependency(self.dependency.clone(), uri.clone());
+    // self
+    //   .tx
+    //   .send(Msg::DependencyReference(
+    //     self.dependency.clone(),
+    //     uri.clone(),
+    //   ))
+    //   .map_err(|_| {
+    //     Error::InternalError(format!(
+    //       "Failed to resolve dependency {:?}",
+    //       self.dependency
+    //     ))
+    //   })?;
 
     if self
       .context
@@ -189,8 +197,7 @@ impl NormalModuleFactory {
         meta: None,
       }
     } else {
-      let (runner_result, resolved_module_type) =
-        self.loader_runner_runner.run(resource_data).await?;
+      let (runner_result, resolved_module_type) = self.loader_runner_runner.run(resource_data)?;
 
       self.context.module_type = resolved_module_type;
 
@@ -244,7 +251,7 @@ impl NormalModuleFactory {
     }
   }
 
-  pub async fn resolve_module(&mut self) -> Result<Option<ModuleGraphModule>> {
+  pub fn resolve_module(&mut self, compiler: &mut Compiler) -> Result<Option<ModuleGraphModule>> {
     // TODO: caching in resolve
     // Here is the corresponding create function in webpack, but instead of using hooks we use procedural functions
     let (uri, mut module) = if let Ok(Some(module)) = self.plugin_driver.factorize_and_build(
@@ -268,7 +275,7 @@ impl NormalModuleFactory {
           ))
         })?;
       (uri, module)
-    } else if let Some(re) = self.factorize_normal_module().await? {
+    } else if let Some(re) = self.factorize_normal_module(compiler)? {
       re
     } else {
       return Ok(None);
@@ -318,7 +325,19 @@ impl NormalModuleFactory {
 
     tracing::trace!("get deps {:?}", deps);
     deps.iter().for_each(|dep| {
-      self.fork(dep.clone());
+      let task = NormalModuleFactory::new(
+        NormalModuleFactoryContext {
+          module_name: None,
+          module_type: None,
+          ..self.context.clone()
+        },
+        dep.clone(),
+        self.tx.clone(),
+        self.plugin_driver.clone(),
+        self.loader_runner_runner.clone(),
+      );
+
+      task.run(compiler);
     });
 
     let resolved_module = ModuleGraphModule::new(
@@ -340,21 +359,21 @@ impl NormalModuleFactory {
   }
 
   fn fork(&self, dep: Dependency) {
-    let task = NormalModuleFactory::new(
-      NormalModuleFactoryContext {
-        module_name: None,
-        module_type: None,
-        ..self.context.clone()
-      },
-      dep,
-      self.tx.clone(),
-      self.plugin_driver.clone(),
-      self.loader_runner_runner.clone(),
-    );
+    // let task = NormalModuleFactory::new(
+    //   NormalModuleFactoryContext {
+    //     module_name: None,
+    //     module_type: None,
+    //     ..self.context.clone()
+    //   },
+    //   dep,
+    //   self.tx.clone(),
+    //   self.plugin_driver.clone(),
+    //   self.loader_runner_runner.clone(),
+    // );
 
-    tokio::task::spawn(async move {
-      task.run().await;
-    });
+    // tokio::task::spawn(async move {
+    //   task.run().await;
+    // });
   }
 }
 

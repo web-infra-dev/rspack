@@ -137,7 +137,7 @@ impl Plugin for RuntimePlugin {
     }
   }
 
-  async fn process_assets(
+  fn process_assets(
     &self,
     _ctx: rspack_core::PluginContext,
     args: rspack_core::ProcessAssetsArgs<'_>,

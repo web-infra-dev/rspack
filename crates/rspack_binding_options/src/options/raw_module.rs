@@ -27,15 +27,16 @@ use crate::RawOption;
 type JsLoader = ThreadsafeFunction<Vec<u8>, ErrorStrategy::CalleeHandled>;
 // type ModuleRuleFunc = ThreadsafeFunction<Vec<u8>, ErrorStrategy::CalleeHandled>;
 
-fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxedLoader {
-  let builtin_loader = match builtin {
-    "sass-loader" => {
-      rspack_loader_sass::SassLoader::new(serde_json::from_str(options.unwrap_or("{}")).unwrap())
-    }
-    loader => panic!("{loader} is not supported yet."),
-  };
-  Box::new(builtin_loader)
-}
+// fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxedLoader {
+//   let builtin_loader = match builtin {
+//     "sass-loader" => {
+//       unreachable!();
+//       // rspack_loader_sass::SassLoader::new(serde_json::from_str(options.unwrap_or("{}")).unwrap())
+//     }
+//     loader => panic!("{loader} is not supported yet."),
+//   };
+//   Box::new(builtin_loader)
+// }
 
 /// `loader` is for js side loader, `builtin_loader` is for rust side loader,
 /// which is mapped to real rust side loader by [get_builtin_loader].
@@ -226,7 +227,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
     "node-loader-adapter"
   }
 
-  async fn run(
+  fn run(
     &self,
     loader_context: &rspack_core::LoaderContext<
       '_,
@@ -396,9 +397,9 @@ impl RawOption<ModuleRule> for RawModuleRule {
                 return Ok(Box::new(NodeLoaderAdapter { loader }) as BoxedLoader);
               }
             }
-            if let Some(builtin_loader) = rule_use.builtin_loader {
-              return Ok(get_builtin_loader(&builtin_loader, rule_use.options.as_deref()));
-            }
+            // if let Some(builtin_loader) = rule_use.builtin_loader {
+            //   return Ok(get_builtin_loader(&builtin_loader, rule_use.options.as_deref()));
+            // }
             panic!("`loader` field or `builtin_loader` field in `uses` must not be `None` at the same time.");
           })
           .collect::<anyhow::Result<Vec<_>>>()

@@ -4,11 +4,11 @@ use rspack_core::{Builtins, CompilerOptionsBuilder, Mode, Plugin};
 use rspack_plugin_css::plugin::{CssConfig, PostcssConfig};
 
 mod raw_css;
-mod raw_html;
+// mod raw_html;
 mod raw_postcss;
 
 pub use raw_css::*;
-pub use raw_html::*;
+// pub use raw_html::*;
 pub use raw_postcss::*;
 
 use crate::RawOption;
@@ -19,7 +19,7 @@ use serde::Deserialize;
 #[cfg(feature = "node-api")]
 #[napi(object)]
 pub struct RawBuiltins {
-  pub html: Option<Vec<RawHtmlPluginConfig>>,
+  // pub html: Option<Vec<RawHtmlPluginConfig>>,
   pub css: Option<RawCssPluginConfig>,
   pub postcss: Option<RawPostCssConfig>,
   pub minify: Option<bool>,
@@ -30,7 +30,7 @@ pub struct RawBuiltins {
 #[derive(Debug, Deserialize, Default)]
 #[cfg(not(feature = "node-api"))]
 pub struct RawBuiltins {
-  pub html: Option<Vec<RawHtmlPluginConfig>>,
+  // pub html: Option<Vec<RawHtmlPluginConfig>>,
   pub css: Option<RawCssPluginConfig>,
   pub postcss: Option<RawPostCssConfig>,
   pub minify: Option<bool>,
@@ -43,13 +43,13 @@ pub(super) fn normalize_builtin(
   plugins: &mut Vec<Box<dyn Plugin>>,
   options: &CompilerOptionsBuilder,
 ) -> Result<Builtins, anyhow::Error> {
-  if let Some(configs) = builtins.html {
-    for config in configs {
-      plugins.push(Box::new(rspack_plugin_html::HtmlPlugin::new(
-        config.to_compiler_option(options)?,
-      )));
-    }
-  }
+  // if let Some(configs) = builtins.html {
+  //   for config in configs {
+  //     plugins.push(Box::new(rspack_plugin_html::HtmlPlugin::new(
+  //       config.to_compiler_option(options)?,
+  //     )));
+  //   }
+  // }
 
   let css_config = builtins.css.clone().unwrap_or_default();
   let postcss_config = builtins.postcss.clone().unwrap_or_default();

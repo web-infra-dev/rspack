@@ -44,7 +44,6 @@ impl Default for JsPlugin {
   }
 }
 
-#[async_trait]
 impl Plugin for JsPlugin {
   fn name(&self) -> &'static str {
     "javascript"
@@ -187,7 +186,7 @@ impl Plugin for JsPlugin {
     Ok(vec![RenderManifestEntry::new(source.boxed(), output_path)])
   }
 
-  async fn process_assets(
+  fn process_assets(
     &self,
     _ctx: PluginContext,
     args: ProcessAssetsArgs<'_>,

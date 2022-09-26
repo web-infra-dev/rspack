@@ -2,7 +2,7 @@ use crate::{NormalModuleFactoryContext, PluginDriver, ResolveArgs, ResolveResult
 use rspack_error::{Error, Result, TraceableError};
 use std::path::Path;
 
-pub async fn resolve(
+pub fn resolve(
   args: ResolveArgs<'_>,
   plugin_driver: &PluginDriver,
   _job_context: &mut NormalModuleFactoryContext,

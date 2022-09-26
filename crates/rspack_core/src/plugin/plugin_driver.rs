@@ -69,9 +69,9 @@ impl PluginDriver {
   /// Warning:
   /// Webpack does not expose this as the documented API, even though you can reach this with `NormalModule.getCompilationHooks(compilation)`.
   /// For the most of time, you would not need this.
-  pub async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
+  pub fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
     for plugin in &self.plugins {
-      let result = plugin.read_resource(resource_data).await?;
+      let result = plugin.read_resource(resource_data)?;
       if result.is_some() {
         return Ok(result);
       }
@@ -153,23 +153,21 @@ impl PluginDriver {
     Ok(sources)
   }
   #[instrument(skip_all)]
-  pub async fn process_assets(&self, args: ProcessAssetsArgs<'_>) -> PluginProcessAssetsOutput {
+  pub fn process_assets(&self, args: ProcessAssetsArgs<'_>) -> PluginProcessAssetsOutput {
     for plugin in &self.plugins {
-      plugin
-        .process_assets(
-          PluginContext::new(),
-          ProcessAssetsArgs {
-            compilation: args.compilation,
-          },
-        )
-        .await?;
+      plugin.process_assets(
+        PluginContext::new(),
+        ProcessAssetsArgs {
+          compilation: args.compilation,
+        },
+      )?;
     }
     Ok(())
   }
   #[instrument(skip_all)]
-  pub async fn done(&self) -> PluginBuildEndHookOutput {
+  pub fn done(&self) -> PluginBuildEndHookOutput {
     for plugin in &self.plugins {
-      plugin.done().await?;
+      plugin.done()?;
     }
     Ok(())
   }

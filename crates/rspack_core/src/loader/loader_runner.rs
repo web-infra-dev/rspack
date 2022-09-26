@@ -41,10 +41,7 @@ impl LoaderRunnerRunner {
     }
   }
 
-  pub async fn run(
-    &self,
-    resource_data: ResourceData,
-  ) -> Result<(LoaderResult, ResolvedModuleType)> {
+  pub fn run(&self, resource_data: ResourceData) -> Result<(LoaderResult, ResolvedModuleType)> {
     // Progressive module type resolution:
     // Stage 1: maintain the resolution logic via file extension
     // TODO: Stage 2:
@@ -112,8 +109,7 @@ impl LoaderRunnerRunner {
           compiler: &self.compiler_context,
           compilation: &(),
         },
-      )
-      .await?,
+      )?,
       resolved_module_type,
     ))
   }

@@ -31,7 +31,6 @@ pub type PluginOptimizeChunksOutput = Result<()>;
 // pub type PluginTapGeneratedChunkHookOutput = Result<()>;
 // pub type PluginRenderChunkHookOutput = Result<OutputChunk>;
 
-#[async_trait::async_trait]
 pub trait Plugin: Debug + Send + Sync {
   fn name(&self) -> &'static str {
     "unknown"
@@ -44,7 +43,7 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn done(&self) -> PluginBuildEndHookOutput {
+  fn done(&self) -> PluginBuildEndHookOutput {
     Ok(())
   }
 
@@ -91,7 +90,7 @@ pub trait Plugin: Debug + Send + Sync {
   //   false
   // }
 
-  async fn read_resource(&self, _resource_data: &ResourceData) -> PluginReadResourceOutput {
+  fn read_resource(&self, _resource_data: &ResourceData) -> PluginReadResourceOutput {
     Ok(None)
   }
   /**
@@ -123,7 +122,7 @@ pub trait Plugin: Debug + Send + Sync {
   ) -> PluginRenderRuntimeHookOutput {
     Ok(args.sources)
   }
-  async fn process_assets(
+  fn process_assets(
     &self,
     _ctx: PluginContext,
     _args: ProcessAssetsArgs<'_>,

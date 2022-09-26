@@ -16,14 +16,13 @@ impl LoaderRunnerPluginProcessResource {
   }
 }
 
-#[async_trait::async_trait]
 impl LoaderRunnerPlugin for LoaderRunnerPluginProcessResource {
   fn name(&self) -> &'static str {
     "process-resource"
   }
 
-  async fn process_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
-    let result = self.plugin_driver.read_resource(resource_data).await?;
+  fn process_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
+    let result = self.plugin_driver.read_resource(resource_data)?;
     if result.is_some() {
       return Ok(result);
     }

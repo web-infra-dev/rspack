@@ -61,7 +61,6 @@ impl<T, U> From<LoaderContext<'_, '_, T, U>> for LoaderResult {
   }
 }
 
-#[async_trait::async_trait]
 pub trait Loader<T, U>: Sync + Send + Debug {
   /// Loader name for debugging
   fn name(&self) -> &'static str {
@@ -72,8 +71,7 @@ pub trait Loader<T, U>: Sync + Send + Debug {
   ///
   /// 1. If a loader returns an error, the loader runner will stop loading the resource.
   /// 2. If a loader returns a `None`, the result of the loader will be the same as the previous one.
-  async fn run(&self, loader_context: &LoaderContext<'_, '_, T, U>)
-    -> Result<Option<LoaderResult>>;
+  fn run(&self, loader_context: &LoaderContext<'_, '_, T, U>) -> Result<Option<LoaderResult>>;
 
   fn as_any(&self) -> &dyn std::any::Any;
 
@@ -108,22 +106,22 @@ impl LoaderRunner {
   ///
   /// Plugins are loaded in order, if a plugin returns `Some(Content)`, then the returning content will be used as the result.
   /// If plugins returned nothing, the runner will read via the `resource_path`.
-  async fn process_resource(&self) -> Result<Content> {
+  fn process_resource(&self) -> Result<Content> {
     for plugin in &self.plugins {
-      if let Some(processed_resource) = plugin.process_resource(&self.resource_data).await? {
+      if let Some(processed_resource) = plugin.process_resource(&self.resource_data)? {
         return Ok(processed_resource);
       }
     }
 
-    let result = tokio::fs::read(&self.resource_data.resource_path).await?;
+    let result = std::fs::read(&self.resource_data.resource_path)?;
     Ok(Content::from(result))
   }
 
-  async fn get_loader_context<'context, T, U>(
+  fn get_loader_context<'context, T, U>(
     &self,
     context: &'context LoaderRunnerAdditionalContext<'_, T, U>,
   ) -> Result<LoaderContext<'_, 'context, T, U>> {
-    let content = self.process_resource().await?;
+    let content = self.process_resource()?;
 
     let loader_context = LoaderContext {
       source: content,
@@ -140,19 +138,19 @@ impl LoaderRunner {
     Ok(loader_context)
   }
 
-  pub async fn run<'loader, 'context: 'loader, T, U>(
+  pub fn run<'loader, 'context: 'loader, T, U>(
     &self,
     loaders: impl AsRef<[&'loader dyn Loader<T, U>]>,
     context: &'context LoaderRunnerAdditionalContext<'_, T, U>,
   ) -> LoaderRunnerResult {
-    let mut loader_context = self.get_loader_context(context).await?;
+    let mut loader_context = self.get_loader_context(context)?;
 
     tracing::debug!("Running loaders for resource: {}", loader_context.resource);
 
     for loader in loaders.as_ref().iter().rev() {
       tracing::debug!("Running loader: {}", loader.name());
 
-      if let Some(loader_result) = loader.run(&loader_context).await? {
+      if let Some(loader_result) = loader.run(&loader_context)? {
         loader_context.source = loader_result.content;
         loader_context.meta = loader_result.meta;
       }

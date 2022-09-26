@@ -1,0 +1,1 @@
+import moduleName from 'webpack-dev-server';
