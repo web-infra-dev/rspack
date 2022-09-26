@@ -10,7 +10,8 @@ copy/three:
 	echo "module.exports = {mode: 'development',entry: {index: './src/entry.js'}};" > benchcases/three/test.config.js
 	echo "module.exports = {mode: 'development', entry: {index: './src/entry.js',devtool: 'eval',cache: {type: 'filesystem'}}}" > benchcases/three/webpack.config.js
 
-
+flamegraph:
+	samply record ./target/release/bench
 
 bench_three: | copy/three
 	@cargo build -p bench --release
