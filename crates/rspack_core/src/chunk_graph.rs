@@ -6,7 +6,7 @@ use crate::{
 
 #[derive(Debug, Default)]
 pub struct ChunkGraph {
-  split_point_module_uri_to_chunk_ukey: hashbrown::HashMap<String, ChunkUkey>,
+  pub(crate) split_point_module_uri_to_chunk_ukey: hashbrown::HashMap<String, ChunkUkey>,
 
   chunk_graph_module_by_module_url: HashMap<String, ChunkGraphModule>,
   chunk_graph_chunk_by_chunk_ukey: HashMap<ChunkUkey, ChunkGraphChunk>,
@@ -107,6 +107,21 @@ impl ChunkGraph {
       .get(module_uri)
       .expect("Module should be added before");
     &chunk_graph_module.chunks
+  }
+
+  pub fn get_module_chunk_group<'a>(
+    &self,
+    module_uri: &str,
+    chunk_by_ukey: &'a ChunkByUkey,
+  ) -> &'a ChunkGroupUkey {
+    let chunk = self
+      .chunk_by_split_point_module_uri(module_uri, chunk_by_ukey)
+      .expect("Chunk should be added before");
+    chunk
+      .groups
+      .iter()
+      .next()
+      .expect("Chunk should have at least one group")
   }
 
   pub fn get_chunk_modules<'module>(
