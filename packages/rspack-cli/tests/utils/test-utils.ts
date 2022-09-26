@@ -64,7 +64,7 @@ const createProcess = (cwd, args, options) => {
  * @param {Object<string, any>} options Options for tests
  * @returns {Promise}
  */
-const run = async (cwd, args = [], options = {}) => {
+const run = async (cwd, args: string[] = [], options = {}) => {
 	return createProcess(cwd, args, options);
 };
 
@@ -88,7 +88,11 @@ const runAndGetProcess = (cwd, args = [], options = {}) => {
  * @param {Object<string, any>} options Options for tests
  * @returns {Object} The rspack output or Promise when nodeOptions are present
  */
-const runWatch = (cwd, args = [], options = {}) => {
+const runWatch = (
+	cwd,
+	args: string[] = [],
+	options: Record<string, any> = {}
+): any => {
 	return new Promise((resolve, reject) => {
 		const process = createProcess(cwd, args, options);
 		const outputKillStr = options.killString || /rspack \d+\.\d+\.\d/;
@@ -183,7 +187,7 @@ const runPromptWithAnswers = (location, args, answers) => {
 	);
 
 	return new Promise(resolve => {
-		const obj = {};
+		const obj: Record<string, any> = {};
 
 		let stdoutDone = false;
 		let stderrDone = false;
@@ -320,22 +324,6 @@ const normalizeStderr = stderr => {
 	return normalizedStderr;
 };
 
-const getWebpackCliArguments = startWith => {
-	if (typeof startWith === "undefined") {
-		return cli.getArguments();
-	}
-
-	const result = {};
-
-	for (const [name, value] of Object.entries(cli.getArguments())) {
-		if (name.startsWith(startWith)) {
-			result[name] = value;
-		}
-	}
-
-	return result;
-};
-
 const readFile = (path, options = {}) =>
 	new Promise((resolve, reject) => {
 		fs.readFile(path, options, (err, stats) => {
@@ -382,7 +370,7 @@ const uniqueDirectoryForTest = async () => {
 	return result;
 };
 
-module.exports = {
+export {
 	run,
 	runAndGetProcess,
 	runWatch,
@@ -394,6 +382,5 @@ module.exports = {
 	readFile,
 	readdir,
 	hyphenToUpperCase,
-	processKill,
-	getWebpackCliArguments
+	processKill
 };

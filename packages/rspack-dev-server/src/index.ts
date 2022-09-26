@@ -1,5 +1,7 @@
 import type { RspackOptions, ResolvedRspackOptions } from "@rspack/core";
-import type { DevMiddleware } from "./middleware";
+import type { DevMiddleware } from "@rspack/dev-middleware";
+import { rdm } from "@rspack/dev-middleware";
+
 import type {
 	Express,
 	RequestHandler as ExpressRequestHandler,
@@ -11,7 +13,6 @@ import http from "http";
 import express from "express";
 import chokidar from "chokidar";
 import { Rspack } from "@rspack/core";
-import { rdm } from "./middleware";
 import { createWebSocketServer } from "./ws";
 import type { ClientConnection, WebSocketServer } from "./ws";
 

@@ -10,7 +10,6 @@
     "build": "./x build cli",
     "build:cli": "./x build cli",
     "build:webpack": "./x build webpack",
-    "pretest": "pnpm run build",
     "format:rs": "./x format rs",
     "format:js": "./x format js",
     "lint:js": "./x lint js",
@@ -38,16 +37,17 @@
   },
   "devDependencies": {
     "@changesets/cli": "2.24.4",
-    "husky": "^7.0.4",
-    "lint-staged": "^12.4.0",
-    "tsm": "2.2.1",
-    "why-is-node-running": "2.2.1",
-    "prettier": "2.5.1",
     "commander": "9.4.0",
-    "ts-jest": "29.0.1",
+    "husky": "^7.0.4",
     "jest": "29.0.3",
+    "lint-staged": "^12.4.0",
+    "prettier": "2.5.1",
+    "ts-jest": "29.0.1",
+    "esbuild": "^0.15.9",
+    "tsm": "2.2.1",
     "webpack": "5.74.0",
-    "esbuild": "^0.15.9"
+    "why-is-node-running": "2.2.1",
+    "typescript": "4.8.3"
   },
   "packageManager": "pnpm@7.3.0"
 }

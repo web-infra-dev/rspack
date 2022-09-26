@@ -1,17 +1,26 @@
-import { build } from "@rspack/core";
-import { createServer } from "@rspack/dev-server";
 import { hideBin } from "yargs/helpers";
-import yargs, { boolean } from "yargs";
+import yargs from "yargs";
 import util from "util";
 import path from "path";
 import fs from "fs";
 import { RspackCLIColors, RspackCLILogger, RspackCLIOptions } from "./types";
+import { BuildCommand } from "./commands/build";
+import { ServeCommand } from "./commands/serve";
+import { rspack, RspackOptions } from "@rspack/core";
 const defaultConfig = "rspack.config.js";
 const defaultEntry = "src/index.js";
+
 export class RspackCLI {
 	colors: RspackCLIColors;
+	program: yargs.Argv<{}>;
 	constructor() {
 		this.colors = this.createColors();
+		this.program = yargs();
+	}
+	async createCompiler(options: RspackCLIOptions) {
+		let config = await this.loadConfig(options);
+		const compiler = rspack(config);
+		return compiler;
 	}
 	createColors(useColor?: boolean): RspackCLIColors {
 		const { createColors, isColorSupported } = require("colorette");
@@ -41,59 +50,16 @@ export class RspackCLI {
 		};
 	}
 	async run(argv: string[]) {
-		let program = yargs(hideBin(argv));
-		const commonOptions = (yargs: yargs.Argv<{}>) => {
-			return yargs
-				.positional("entry", {
-					type: "string",
-					array: true,
-					describe: "entry"
-				})
-				.options({
-					config: {
-						type: "string",
-						describe: "config file",
-						alias: "c"
-					},
-					mode: { type: "string", default: "none", describe: "mode" },
-					watch: {
-						type: "boolean",
-						default: false,
-						describe: "watch"
-					},
-					devtool: {
-						type: "boolean",
-						default: false,
-						describe: "devtool"
-					}
-				});
-		};
-		program.usage("[options]");
-		program.scriptName("rspack");
-		program.command(
-			["build [entry..]", "$0"],
-			"build",
-			commonOptions,
-			async options => {
-				const config = await this.loadConfig(options);
-				console.time("build");
-				console.log({ config });
-				const stats = await build(config);
-				console.timeEnd("build");
-			}
-		);
-		program.command(
-			"serve [entry..]",
-			"serve",
-			commonOptions,
-			async options => {
-				const config = await this.loadConfig(options);
-
-				const server = await createServer(config);
-				await server.start();
-			}
-		);
-		await program.parseAsync();
+		this.program.usage("[options]");
+		this.program.scriptName("rspack");
+		this.registerCommands();
+		await this.program.parseAsync(hideBin(argv));
+	}
+	async registerCommands() {
+		const builtinCommands = [new BuildCommand(), new ServeCommand()];
+		for (const command of builtinCommands) {
+			command.apply(this);
+		}
 	}
 	async loadConfig(options: RspackCLIOptions) {
 		let loadedConfig;
