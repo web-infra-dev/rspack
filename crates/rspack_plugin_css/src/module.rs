@@ -63,7 +63,7 @@ impl Module for CssModule {
           let source = SourceMapSource::new(SourceMapSourceOptions {
             value: code,
             name: module.uri.to_string(),
-            source_map: SourceMap::from_json(&source_map)
+            source_map: SourceMap::from_slice(&source_map)
               .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
             original_source: Some(self.original_source().source().to_string()),
             inner_source_map: self.original_source().map(&MapOptions::default()),

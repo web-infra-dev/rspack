@@ -69,7 +69,7 @@ impl SwcCssCompiler {
     &self,
     ast: &Stylesheet,
     orignal_source: Option<&dyn Source>,
-  ) -> Result<(String, Option<String>)> {
+  ) -> Result<(String, Option<Vec<u8>>)> {
     let mut output = String::new();
     let mut src_map_buf = orignal_source.is_some().then(Vec::new);
     let wr = BasicCssWriter::new(
@@ -89,8 +89,7 @@ impl SwcCssCompiler {
       map
         .to_writer(&mut raw_map)
         .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?;
-      let map_string = String::from_utf8_lossy(&raw_map).to_string();
-      Ok((output, Some(map_string)))
+      Ok((output, Some(raw_map)))
     } else {
       Ok((output, None))
     }
