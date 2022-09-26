@@ -21,7 +21,7 @@ use swc::BoolOrDataConfig;
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_common::comments::SingleThreadedComments;
 use swc_common::Mark;
-use swc_ecma_transforms::helpers::{Helpers, HELPERS};
+use swc_ecma_transforms::helpers::{inject_helpers, Helpers, HELPERS};
 use swc_ecma_transforms::react::{react, Options as ReactOptions};
 use swc_ecma_transforms::{react as swc_react, resolver};
 use swc_ecma_visit::{as_folder, FoldWith, VisitWith};
@@ -306,6 +306,7 @@ impl Parser for JsParser {
         let ast = ast.fold_with(&mut define_transform);
         let ast = ast.fold_with(&mut resolver(Mark::new(), top_level_mark, false));
         let ast = ast.fold_with(&mut react_folder);
+        let ast = ast.fold_with(&mut inject_helpers());
         ast.fold_with(&mut as_folder(ClearMark))
       })
     });

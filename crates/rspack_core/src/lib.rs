@@ -89,6 +89,7 @@ impl TryFrom<&str> for ModuleType {
     match value {
       "json" => Ok(Self::Json),
       "css" => Ok(Self::Css),
+      "mjs" => Ok(Self::Js),
       "js" => Ok(Self::Js),
       "jsx" => Ok(Self::Jsx),
       "tsx" => Ok(Self::Tsx),
