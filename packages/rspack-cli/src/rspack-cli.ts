@@ -6,6 +6,7 @@ import fs from "fs";
 import { RspackCLIColors, RspackCLILogger, RspackCLIOptions } from "./types";
 import { BuildCommand } from "./commands/build";
 import { ServeCommand } from "./commands/serve";
+import { rspack, RspackOptions } from "@rspack/core";
 const defaultConfig = "rspack.config.js";
 const defaultEntry = "src/index.js";
 
@@ -15,6 +16,11 @@ export class RspackCLI {
 	constructor() {
 		this.colors = this.createColors();
 		this.program = yargs();
+	}
+	async createCompiler(options: RspackCLIOptions) {
+		let config = await this.loadConfig(options);
+		const compiler = rspack(config);
+		return compiler;
 	}
 	createColors(useColor?: boolean): RspackCLIColors {
 		const { createColors, isColorSupported } = require("colorette");
