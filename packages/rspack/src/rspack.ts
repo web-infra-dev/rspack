@@ -5,6 +5,7 @@ import type { Watch, ResolvedWatch } from "./config/watch";
 
 import type { ExternalObject, RspackInternal } from "@rspack/binding";
 import * as tapable from "tapable";
+import { SyncHook } from "tapable";
 import {
 	RspackOptions,
 	ResolvedRspackOptions,
@@ -81,17 +82,36 @@ class RspackCompilation {
 		return createDummyResult(context.id);
 	}
 }
+class EntryPlugin {
+	apply() {}
+}
+class HotModuleReplacementPlugin {
+	apply() {}
+}
 class Rspack {
+	webpack: any;
 	#plugins: RspackOptions["plugins"];
 	#instance: ExternalObject<RspackInternal>;
 	compilation: RspackCompilation;
 	hooks: {
 		done: tapable.AsyncSeriesHook<void>;
 		compilation: tapable.SyncHook<RspackCompilation>;
+		invalid: tapable.SyncHook<[string | null, number]>;
+		compile: tapable.SyncHook<[any]>;
 	};
 	options: ResolvedRspackOptions;
+	getInfrastructureLogger(name: string) {
+		return {
+			info: msg => console.info(msg)
+		};
+	}
 	constructor(private userOptions: RspackOptions) {
 		this.options = resolveOptions(userOptions);
+		// to workaround some plugin access webpack, we may change dev-server to avoid this hack in the future
+		this.webpack = {
+			EntryPlugin,
+			HotModuleReplacementPlugin
+		};
 		// @ts-ignored
 		this.#instance = binding.newRspack(this.options, {
 			doneCallback: this.#done.bind(this),
@@ -99,7 +119,9 @@ class Rspack {
 		});
 		this.hooks = {
 			done: new tapable.AsyncSeriesHook<void>(),
-			compilation: new tapable.SyncHook<RspackCompilation>(["compilation"])
+			compilation: new tapable.SyncHook<RspackCompilation>(["compilation"]),
+			invalid: new SyncHook(["filename", "changeTime"]),
+			compile: new SyncHook(["params"])
 		};
 		this.#plugins = userOptions.plugins ?? [];
 		for (const plugin of this.#plugins) {

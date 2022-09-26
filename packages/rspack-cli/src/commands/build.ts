@@ -5,14 +5,13 @@ import { commonOptions } from "../utils/options";
 export class BuildCommand implements RspackCommand {
 	async apply(cli: RspackCLI): Promise<void> {
 		cli.program.command(
-			["build [entry..]", "$0"],
-			"build",
+			["build [entry..]", "$0", "bundle", "b"],
+			"run the rspack build",
 			commonOptions,
 			async options => {
-				const config = await cli.loadConfig(options);
 				console.time("build");
-				console.log({ config });
-				const stats = await build(config);
+				const compiler = await cli.createCompiler(options);
+				const stats = await compiler.build();
 				console.timeEnd("build");
 			}
 		);
