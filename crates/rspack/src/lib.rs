@@ -11,7 +11,7 @@ use rspack_error::Result;
 use rspack_plugin_asset::AssetConfig;
 
 pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -> Compiler {
-  // plugins.push(Box::new(rspack_plugin_css::CssPlugin::default()));
+  plugins.push(Box::new(rspack_plugin_css::CssPlugin::default()));
   plugins.push(Box::new(rspack_plugin_asset::AssetPlugin::new(
     AssetConfig {
       parse_options: options.module.parser.as_ref().and_then(|x| x.asset.clone()),

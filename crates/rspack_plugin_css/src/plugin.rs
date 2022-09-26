@@ -178,7 +178,18 @@ impl Plugin for CssPlugin {
 
     let sources = ordered_modules
       .par_iter()
-      .map(|module| module.module.render(SourceType::Css, module, compilation))
+      .map(|module| {
+        module
+          .module
+          .code_generation(module, compilation)
+          .map(|source| {
+            // TODO: this logic is definitely not performant, move to compilation afterwards
+            source
+              .inner()
+              .get(&SourceType::Css)
+              .map(|source| source.ast_or_source.clone().try_into_source().unwrap())
+          })
+      })
       .collect::<Result<Vec<_>>>()?
       .into_par_iter()
       .fold(ConcatSource::default, |mut output, cur| {

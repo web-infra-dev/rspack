@@ -90,13 +90,13 @@ pub trait Module: Debug + Send + Sync {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GenerationResult {
   pub ast_or_source: AstOrSource,
   pub source_map: Option<SourceMap>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum AstOrSource {
   Ast(ModuleAst),
   Source(BoxSource),
@@ -124,6 +124,22 @@ impl AstOrSource {
       _ => None,
     }
   }
+
+  pub fn try_into_ast(self) -> Result<ModuleAst> {
+    match self {
+      AstOrSource::Ast(ast) => Ok(ast),
+      // TODO: change to user error
+      _ => Err(Error::InternalError("Failed to convert to ast".into())),
+    }
+  }
+
+  pub fn try_into_source(self) -> Result<BoxSource> {
+    match self {
+      AstOrSource::Source(source) => Ok(source),
+      // TODO: change to user error
+      _ => Err(Error::InternalError("Failed to convert to source".into())),
+    }
+  }
 }
 
 pub trait ParserAndGenerator: Send + Sync + Debug {
@@ -132,6 +148,8 @@ pub trait ParserAndGenerator: Send + Sync + Debug {
     &self,
     requested_source_type: SourceType,
     ast_or_source: &AstOrSource,
+    module: &ModuleGraphModule,
+    compilation: &Compilation,
   ) -> Result<GenerationResult>;
 }
 
@@ -258,14 +276,21 @@ impl NormalModule {
     Ok(())
   }
 
-  pub async fn code_generation(&self) -> Result<CodeGenerationResult> {
+  pub fn code_generation(
+    &self,
+    module_graph_module: &ModuleGraphModule,
+    compilation: &Compilation,
+  ) -> Result<CodeGenerationResult> {
     if let Some(ast_or_source) = self.ast_or_source() {
       let mut code_generation_result = CodeGenerationResult::default();
 
       for source_type in self.source_types() {
-        let generation_result = self
-          .parser_and_generator
-          .generate(*source_type, ast_or_source)?;
+        let generation_result = self.parser_and_generator.generate(
+          *source_type,
+          ast_or_source,
+          module_graph_module,
+          compilation,
+        )?;
 
         code_generation_result.add(*source_type, generation_result);
       }

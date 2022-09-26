@@ -11,10 +11,10 @@ use rspack_core::rspack_sources::{
   SourceMapSource, SourceMapSourceOptions,
 };
 use rspack_core::{
-  get_contenthash, AstOrSource, BoxModule, ChunkKind, FilenameRenderOptions, GenerationResult,
-  ModuleType, ParseModuleArgs, Parser, ParserAndGenerator, Plugin, PluginContext,
-  PluginProcessAssetsOutput, PluginRenderManifestHookOutput, ProcessAssetsArgs,
-  RenderManifestEntry, SourceType,
+  get_contenthash, AstOrSource, BoxModule, ChunkKind, Compilation, FilenameRenderOptions,
+  GenerationResult, ModuleGraphModule, ModuleType, ParseModuleArgs, Parser, ParserAndGenerator,
+  Plugin, PluginContext, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
+  ProcessAssetsArgs, RenderManifestEntry, SourceType,
 };
 use swc::config::JsMinifyOptions;
 use swc::BoolOrDataConfig;
@@ -58,6 +58,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     &self,
     requested_source_type: SourceType,
     ast_or_source: &AstOrSource,
+    module: &ModuleGraphModule,
+    compilation: &Compilation,
   ) -> Result<GenerationResult> {
     todo!()
   }
@@ -133,8 +135,16 @@ impl Plugin for JsPlugin {
       .map(|module| {
         module
           .module
-          .render(SourceType::JavaScript, module, compilation)
-          .map(|source| source.map(|source| wrap_module_function(source, &module.id)))
+          .code_generation(module, compilation)
+          .map(|source| {
+            // TODO: this logic is definitely not performant, move to compilation afterwards
+            source.inner().get(&SourceType::JavaScript).map(|source| {
+              wrap_module_function(
+                source.ast_or_source.clone().try_into_source().unwrap(),
+                &module.id,
+              )
+            })
+          })
       })
       .collect::<Result<Vec<Option<BoxSource>>>>()?;
 
