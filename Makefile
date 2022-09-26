@@ -12,8 +12,10 @@ copy/three:
 
 
 bench_three: | copy/three
-	@cargo build -p bench --release
+	# @cargo build -p bench --release
 	@echo "rspack"
 	@hyperfine --warmup 3 ./target/release/bench
 	@echo "esbuild"
 	@hyperfine --warmup 3 './node_modules/esbuild/bin/esbuild --bundle --global-name=THREE  benchcases/three/src/entry.js --outfile=benchcases/three/esbuild/entry.esbuild.js --timing'
+	@echo "webpack"
+	@hyperfine --warmup 3 'npx webpack --entry ./benchcases/three/src/entry.js --mode development'
