@@ -5,8 +5,9 @@ use rayon::prelude::*;
 use rspack_error::Result;
 
 use rspack_core::{
-  get_contenthash, AssetParserOptions, FilenameRenderOptions, Plugin, PluginContext,
-  PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, SourceType,
+  get_chunkhash, get_contenthash, get_hash, AssetParserOptions, FilenameRenderOptions, Plugin,
+  PluginContext, PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry,
+  SourceType,
 };
 
 mod asset;
@@ -77,6 +78,9 @@ impl Plugin for AssetPlugin {
       .chunk_graph
       .get_chunk_modules(&args.chunk_ukey, module_graph);
 
+    let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
+    let hash = Some(get_hash(compilation).to_string());
+
     let assets = ordered_modules
       .par_iter()
       .filter(|module| module.module.source_types().contains(&SourceType::Asset))
@@ -87,11 +91,6 @@ impl Plugin for AssetPlugin {
           .map(|result| {
             if let Some(asset) = result {
               let contenthash = Some(get_contenthash(&asset).to_string());
-              let chunkhash = None;
-              // Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
-              // let hash = Some(get_hash(compilation).to_string());
-              let hash = None;
-
               let path = Path::new(&module.id);
               Some(RenderManifestEntry::new(
                 asset,
@@ -111,8 +110,8 @@ impl Plugin for AssetPlugin {
                       .map(|str| format!("{}{}", ".", str)),
                     id: None,
                     contenthash,
-                    chunkhash,
-                    hash,
+                    chunkhash: chunkhash.clone(),
+                    hash: hash.clone(),
                   }),
               ))
             } else {
