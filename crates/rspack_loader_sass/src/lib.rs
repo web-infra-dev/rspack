@@ -390,7 +390,7 @@ impl Loader<CompilerContext, CompilationContext> for SassLoader {
     let source_map = self
       .options
       .source_map
-      .unwrap_or(loader_context.compiler_context.options.devtool);
+      .unwrap_or(loader_context.compiler_context.options.devtool.source_map());
     let sass_options = self.get_sass_options(loader_context, source.try_into_string()?, source_map);
     let result = self
       .compiler
