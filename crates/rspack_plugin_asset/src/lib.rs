@@ -29,6 +29,12 @@ impl AssetPlugin {
   }
 }
 
+#[derive(Debug)]
+pub struct AssetParserAndGenerator {}
+
+#[derive(Debug)]
+pub struct AssetSourceParserAndGenerator {}
+
 #[async_trait]
 impl Plugin for AssetPlugin {
   fn name(&self) -> &'static str {
