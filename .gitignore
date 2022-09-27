@@ -172,3 +172,6 @@ crates/node_binding/binding.d.ts
 
 # profile
 profile.json
+
+# esbuild trace
+esbuild.trace
