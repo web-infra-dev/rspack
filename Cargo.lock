@@ -2136,6 +2136,7 @@ dependencies = [
  "crossbeam",
  "dashmap",
  "hashbrown",
+ "num_cpus",
  "once_cell",
  "rayon",
  "rspack_binding_options",

@@ -18,7 +18,7 @@ async fn bench(cur_dir: &PathBuf) {
 fn criterion_benchmark(c: &mut Criterion) {
   dbg!(&num_cpus::get());
   dbg!(&num_cpus::get_physical());
-  let num_threads = std::env::var("WORKER_THREAD")
+  let num_threads = std::env::var("")
     .ok()
     .and_then(|num| num.parse::<usize>().ok())
     .unwrap_or(4);
@@ -30,6 +30,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
   let rt = tokio::runtime::Builder::new_multi_thread()
     .enable_all()
+    .worker_threads(8)
     .build()
     .unwrap();
   let lodash: PathBuf = concat!(
