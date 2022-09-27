@@ -16,6 +16,16 @@ async fn bench(cur_dir: &PathBuf) {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
+  let num_threads = std::env::var("WORKER_THREAD")
+    .ok()
+    .and_then(|num| num.parse::<usize>().ok())
+    .unwrap_or(8);
+  dbg!(num_threads);
+  rayon::ThreadPoolBuilder::new()
+    .num_threads(num_threads)
+    .build_global()
+    .unwrap();
+
   let rt = tokio::runtime::Builder::new_multi_thread()
     .enable_all()
     .build()

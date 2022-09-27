@@ -2137,6 +2137,7 @@ dependencies = [
  "dashmap",
  "hashbrown",
  "once_cell",
+ "rayon",
  "rspack_binding_options",
  "rspack_core",
  "rspack_error",
