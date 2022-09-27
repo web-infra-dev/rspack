@@ -2,17 +2,22 @@ use linked_hash_set::LinkedHashSet;
 use rspack_core::{ModuleDependency, ResolveKind};
 use swc_atoms::JsWord;
 use swc_common::Span;
-use swc_ecma_ast::{CallExpr, Callee, ExportSpecifier, Expr, ExprOrSpread, Lit, ModuleDecl};
+use swc_ecma_ast::{
+  CallExpr, Callee, ExportSpecifier, Expr, ExprOrSpread, Lit, ModuleDecl, ModuleItem, Program,
+};
 use swc_ecma_visit::{noop_visit_mut_type, VisitMut, VisitMutWith};
 
 #[derive(Default)]
 pub struct DependencyScanner {
   pub dependencies: LinkedHashSet<ModuleDependency>,
-  // pub dyn_dependencies: HashSet<DynImportDesc>,
+  pub prescan: bool,
+  pub cursor: usize, // pub dyn_dependencies: HashSet<DynImportDesc>,
+  pub added_dep_flag: bool,
 }
 
 impl DependencyScanner {
   fn add_dependency(&mut self, specifier: JsWord, kind: ResolveKind, span: Span) {
+    self.added_dep_flag = true;
     self.dependencies.insert_if_absent(ModuleDependency {
       specifier: specifier.to_string(),
       kind,
@@ -102,7 +107,31 @@ impl DependencyScanner {
 
 impl VisitMut for DependencyScanner {
   noop_visit_mut_type!();
-
+  fn visit_mut_program(&mut self, node: &mut Program) {
+    match node {
+      Program::Module(ref mut module) => {
+        if self.prescan {
+          for (i, ele) in module.body.iter_mut().skip(self.cursor).enumerate() {
+            self.added_dep_flag = false;
+            ele.visit_mut_with(self);
+            if self.added_dep_flag == false {
+              self.cursor = i + 1;
+              break;
+            }
+          }
+        } else {
+          for (ele) in module.body.iter_mut().skip(self.cursor) {
+            ele.visit_mut_with(self);
+          }
+        }
+      }
+      Program::Script(module) => {
+        // TODO: handle script
+        // module.body
+      }
+    }
+  }
+  // fn visit_mut_module_item(&mut self, node: &mut ModuleItem) {}
   fn visit_mut_module_decl(&mut self, node: &mut ModuleDecl) {
     self.add_import(node);
     if let Err(e) = self.add_export(node) {

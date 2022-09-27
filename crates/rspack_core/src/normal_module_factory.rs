@@ -1,14 +1,17 @@
 use std::{
+  iter::Inspect,
   path::{Path, PathBuf},
   sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
   },
+  time::Instant,
 };
 
 use crate::{
   BoxModule, CompilerOptions, FactorizeAndBuildArgs, LoaderResult, LoaderRunnerRunner, ResourceData,
 };
+use crossbeam::{channel::Sender, queue::SegQueue};
 use rspack_error::{Diagnostic, Error, TWithDiagnosticArray};
 use rspack_sources::{
   BoxSource, OriginalSource, RawSource, SourceExt, SourceMap, SourceMapSource,
@@ -63,7 +66,7 @@ pub enum ResolveKind {
 pub struct NormalModuleFactory {
   context: NormalModuleFactoryContext,
   dependency: Dependency,
-  tx: UnboundedSender<Msg>,
+  tx: Sender<Msg>,
   plugin_driver: Arc<PluginDriver>,
   loader_runner_runner: Arc<LoaderRunnerRunner>,
   diagnostic: Vec<Diagnostic>,
@@ -73,11 +76,11 @@ impl NormalModuleFactory {
   pub fn new(
     context: NormalModuleFactoryContext,
     dependency: Dependency,
-    tx: UnboundedSender<Msg>,
+    tx: Sender<Msg>,
     plugin_driver: Arc<PluginDriver>,
     loader_runner_runner: Arc<LoaderRunnerRunner>,
   ) -> Self {
-    context.active_task_count.fetch_add(1, Ordering::SeqCst);
+    // context.active_task_count.fetch_add(1, Ordering::SeqCst);
 
     Self {
       context,
@@ -258,28 +261,31 @@ impl NormalModuleFactory {
   pub async fn resolve_module(&mut self) -> Result<Option<ModuleGraphModule>> {
     // TODO: caching in resolve
     // Here is the corresponding create function in webpack, but instead of using hooks we use procedural functions
-    let (uri, mut module) = if let Ok(Some(module)) = self.plugin_driver.factorize_and_build(
-      FactorizeAndBuildArgs {
-        dependency: &self.dependency,
-        plugin_driver: &self.plugin_driver,
-      },
-      &mut self.context,
-    ) {
-      let (uri, module) = module;
-      self
-        .tx
-        .send(Msg::DependencyReference(
-          self.dependency.clone(),
-          uri.clone(),
-        ))
-        .map_err(|_| {
-          Error::InternalError(format!(
-            "Failed to resolve dependency {:?}",
-            self.dependency
-          ))
-        })?;
-      (uri, module)
-    } else if let Some(re) = self.factorize_normal_module().await? {
+    // let (uri, mut module) = if let Ok(Some(module)) = self.plugin_driver.factorize_and_build(
+    //   FactorizeAndBuildArgs {
+    //     dependency: &self.dependency,
+    //     plugin_driver: &self.plugin_driver,
+    //   },
+    //   &mut self.context,
+    // ) {
+    //   // println!("first entry");
+    //   let (uri, module) = module;
+    //   // self
+    //   //   .tx
+    //   //   .send(Msg::DependencyReference(
+    //   //     self.dependency.clone(),
+    //   //     uri.clone(),
+    //   //   ))
+    //   //   .map_err(|_| {
+    //   //     Error::InternalError(format!(
+    //   //       "Failed to resolve dependency {:?}",
+    //   //       self.dependency
+    //   //     ))
+    //   //   })?;
+    //   (uri, module)
+    // } else
+    let (uri, mut module) = if let Some(re) = self.factorize_normal_module().await? {
+      // println!("second entry");
       re
     } else {
       return Ok(None);
@@ -317,8 +323,21 @@ impl NormalModuleFactory {
     // tracing::trace!("parsed module {:?}", module);
 
     // scan deps
-
-    let deps = module
+    let mut prescan_dependencies = module
+      .prescan_dependencies()
+      .into_iter()
+      .map(|dep| Dependency {
+        importer: Some(uri.clone()),
+        detail: dep,
+      })
+      .collect::<Vec<_>>();
+    if !prescan_dependencies.is_empty() {
+      prescan_dependencies.iter().for_each(|dep| {
+        self.fork(dep.clone());
+      });
+    }
+    // let start = Instant::now();
+    let mut deps = module
       .dependencies()
       .into_iter()
       .map(|dep| Dependency {
@@ -327,10 +346,12 @@ impl NormalModuleFactory {
       })
       .collect::<Vec<_>>();
 
+    // println!("scan dep: {:?}", start.elapsed());
     tracing::trace!("get deps {:?}", deps);
     deps.iter().for_each(|dep| {
       self.fork(dep.clone());
     });
+    prescan_dependencies.append(&mut deps);
 
     let resolved_module = ModuleGraphModule::new(
       self.context.module_name.clone(),
@@ -340,7 +361,7 @@ impl NormalModuleFactory {
         .to_string(),
       uri,
       module,
-      deps,
+      prescan_dependencies,
       self
         .context
         .module_type
@@ -362,10 +383,7 @@ impl NormalModuleFactory {
       self.plugin_driver.clone(),
       self.loader_runner_runner.clone(),
     );
-
-    tokio::task::spawn(async move {
-      task.run().await;
-    });
+    self.context.module_queue.push(task);
   }
 }
 
@@ -379,7 +397,8 @@ pub fn resolve_module_type_by_uri<T: AsRef<Path>>(uri: T) -> Option<ModuleType> 
 #[derive(Debug, Clone)]
 pub struct NormalModuleFactoryContext {
   pub module_name: Option<String>,
-  pub(crate) active_task_count: Arc<AtomicUsize>,
+  // pub(crate) active_task_count: Arc<AtomicUsize>,
+  pub module_queue: Arc<SegQueue<NormalModuleFactory>>,
   pub(crate) visited_module_identity: VisitedModuleIdentity,
   pub module_type: Option<ModuleType>,
   pub side_effects: Option<bool>,

@@ -29,6 +29,31 @@ pub struct JsModule {
   pub source_type_list: &'static [SourceType; 1],
   pub unresolved_mark: Mark,
   pub loaded_source: BoxSource,
+  scanner: DependencyScanner,
+}
+
+impl JsModule {
+  pub fn new(
+    uri: String,
+    module_type: ModuleType,
+    ast: swc_ecma_ast::Program,
+    source_type_list: &'static [SourceType; 1],
+    unresolved_mark: Mark,
+    loaded_source: BoxSource,
+  ) -> Self {
+    Self {
+      uri,
+      module_type,
+      ast,
+      source_type_list,
+      unresolved_mark,
+      loaded_source,
+      scanner: DependencyScanner {
+        prescan: true,
+        ..Default::default()
+      },
+    }
+  }
 }
 
 impl Debug for JsModule {
@@ -152,8 +177,18 @@ impl Module for JsModule {
   }
 
   fn dependencies(&mut self) -> Vec<rspack_core::ModuleDependency> {
-    let mut dep_scanner = DependencyScanner::default();
-    self.ast.visit_mut_with(&mut dep_scanner);
-    dep_scanner.dependencies.into_iter().collect()
+    self.ast.visit_mut_with(&mut self.scanner);
+    std::mem::take(&mut self.scanner.dependencies)
+      .into_iter()
+      .collect()
+  }
+
+  fn prescan_dependencies(&mut self) -> Vec<rspack_core::ModuleDependency> {
+    self.ast.visit_mut_with(&mut self.scanner);
+    let ret = std::mem::take(&mut self.scanner.dependencies)
+      .into_iter()
+      .collect();
+    self.scanner.prescan = false;
+    ret
   }
 }

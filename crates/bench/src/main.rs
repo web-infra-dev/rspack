@@ -8,6 +8,10 @@ static GLOBAL: GlobalMiMalloc = GlobalMiMalloc;
 use rspack_test::read_test_config_and_normalize;
 #[tokio::main]
 async fn main() {
+  // rayon::ThreadPoolBuilder::new()
+  //   .num_threads(8)
+  //   .build_global()
+  //   .unwrap();
   let manifest_dir = PathBuf::from(&std::env::var("PWD").unwrap());
   // let bundle_dir = manifest_dir.join("tests/fixtures/postcss/pxtorem");
   let bundle_dir: PathBuf = manifest_dir.join("benchcases/three");

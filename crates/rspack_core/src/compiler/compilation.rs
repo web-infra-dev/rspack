@@ -8,7 +8,7 @@ use hashbrown::HashMap;
 use rayon::prelude::*;
 use rspack_error::{Diagnostic, Result};
 use rspack_sources::BoxSource;
-use std::{fmt::Debug, sync::Arc};
+use std::{fmt::Debug, sync::Arc, time::Instant};
 
 #[derive(Debug)]
 pub struct Compilation {
@@ -166,9 +166,13 @@ impl Compilation {
   }
 
   pub async fn seal(&mut self, plugin_driver: Arc<PluginDriver>) -> Result<()> {
+    let start = Instant::now();
     code_splitting(self)?;
+    println!("code split {:?}", start.elapsed());
 
+    let start = Instant::now();
     plugin_driver.optimize_chunks(self)?;
+    println!("optimize chunks{:?}", start.elapsed());
 
     tracing::debug!("chunk graph {:#?}", self.chunk_graph);
 
@@ -186,9 +190,17 @@ impl Compilation {
       context_indent,
     };
 
+    let start = Instant::now();
     self.create_chunk_assets(plugin_driver.clone());
+    println!("create chunk assets{:?}", start.elapsed());
+
+    let start = Instant::now();
+    plugin_driver.optimize_chunks(self)?;
+    println!("optimize chunks{:?}", start.elapsed());
     // generate runtime
+    let start = Instant::now();
     self.runtime = self.render_runtime(plugin_driver.clone());
+    println!("render runtime {:?}", start.elapsed());
 
     self.process_assets(plugin_driver).await;
     Ok(())

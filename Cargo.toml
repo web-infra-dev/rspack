@@ -11,6 +11,6 @@ debug = 2
 [profile.release]
 codegen-units = 1
 debug = false
-lto = true
+# lto = true
 opt-level = 3
 incremental = true

@@ -83,6 +83,9 @@ pub trait Module: Debug + Send + Sync {
   fn dependencies(&mut self) -> Vec<ModuleDependency> {
     vec![]
   }
+  fn prescan_dependencies(&mut self) -> Vec<ModuleDependency> {
+    vec![]
+  }
 }
 
 pub type BoxModule = Box<dyn Module>;

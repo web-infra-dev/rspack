@@ -4,6 +4,7 @@ use std::{
     atomic::{AtomicUsize, Ordering},
     Arc,
   },
+  time::Instant,
 };
 
 use crate::{
@@ -12,6 +13,7 @@ use crate::{
 };
 
 use anyhow::Context;
+use crossbeam::queue::SegQueue;
 use hashbrown::HashMap;
 use rayon::prelude::*;
 use rspack_error::{
@@ -19,6 +21,7 @@ use rspack_error::{
   Error, Result, TWithDiagnosticArray,
 };
 use rspack_sources::BoxSource;
+use tokio::runtime::Builder;
 use tracing::instrument;
 
 mod compilation;
@@ -101,15 +104,19 @@ impl Compiler {
 
   #[instrument(skip_all)]
   async fn compile(&mut self, deps: HashMap<String, Dependency>) -> Result<()> {
-    let active_task_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
+    let start = Instant::now();
+    let thread_count = 16;
+    let active_task_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(thread_count));
 
-    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
+    let queue = Arc::new(SegQueue::<NormalModuleFactory>::new());
+
+    let (tx, rx) = crossbeam::channel::unbounded::<Msg>();
 
     deps.into_iter().for_each(|(name, dep)| {
       let task = NormalModuleFactory::new(
         NormalModuleFactoryContext {
           module_name: Some(name),
-          active_task_count: active_task_count.clone(),
+          module_queue: queue.clone(),
           visited_module_identity: self.compilation.visited_module_id.clone(),
           module_type: None,
           side_effects: None,
@@ -120,15 +127,44 @@ impl Compiler {
         self.plugin_driver.clone(),
         self.loader_runner_runner.clone(),
       );
-
-      tokio::task::spawn(async move { task.run().await });
+      queue.push(task);
     });
 
-    while active_task_count.load(Ordering::SeqCst) != 0 {
-      match rx.recv().await {
-        Some(job) => match job {
-          Msg::TaskFinished(mut module_with_diagnostic) => {
+    let mut quit_thread_count = 0;
+    for i in 0..thread_count {
+      let active_task_count = active_task_count.clone();
+      let tx = tx.clone();
+      let queue = queue.clone();
+      std::thread::spawn(move || {
+        let rt = Builder::new_current_thread().build().unwrap();
+
+        rt.block_on(async {
+          loop {
             active_task_count.fetch_sub(1, Ordering::SeqCst);
+            if let Some(task) = queue.pop() {
+              task.run().await;
+              active_task_count.fetch_add(1, Ordering::SeqCst);
+            } else {
+              active_task_count.fetch_add(1, Ordering::SeqCst);
+              loop {
+                if !queue.is_empty() {
+                  break;
+                } else if active_task_count.load(Ordering::SeqCst) == thread_count {
+                  tx.send(Msg::ThreadQuit).unwrap();
+                  return;
+                }
+              }
+            }
+          }
+        });
+      });
+    }
+    // while active_task_count.load(Ordering::SeqCst) != 0 {
+    loop {
+      match rx.try_recv() {
+        Ok(job) => match job {
+          Msg::TaskFinished(mut module_with_diagnostic) => {
+            // active_task_count.fetch_sub(1, Ordering::SeqCst);
             self
               .compilation
               .module_graph
@@ -139,7 +175,7 @@ impl Compiler {
               .append(&mut module_with_diagnostic.diagnostic);
           }
           Msg::TaskCanceled => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
+            // active_task_count.fetch_sub(1, Ordering::SeqCst);
           }
           Msg::DependencyReference(dep, resolved_uri) => {
             self
@@ -148,22 +184,31 @@ impl Compiler {
               .add_dependency(dep, resolved_uri);
           }
           Msg::TaskErrorEncountered(err) => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
+            // active_task_count.fetch_sub(1, Ordering::SeqCst);
             self.compilation.push_batch_diagnostic(err.into());
           }
+          Msg::ThreadQuit => {
+            quit_thread_count += 1;
+            // println!("quit ");
+          }
         },
-        None => {
+        Err(_) => {
+          if quit_thread_count == thread_count {
+            break;
+          }
           tracing::trace!("All sender is dropped");
         }
       }
     }
+    // }
 
+    println!("{:?}", start.elapsed());
     tracing::debug!("module graph {:#?}", self.compilation.module_graph);
 
     // self.compilation.calc_exec_order();
-
+    let start = Instant::now();
     self.compilation.seal(self.plugin_driver.clone()).await?;
-
+    println!("{:?}", start.elapsed());
     // Consume plugin driver diagnostic
     let mut plugin_driver_diagnostics = self.plugin_driver.take_diagnostic();
     self
@@ -227,4 +272,5 @@ pub enum Msg {
   TaskFinished(TWithDiagnosticArray<Box<ModuleGraphModule>>),
   TaskCanceled,
   TaskErrorEncountered(Error),
+  ThreadQuit,
 }

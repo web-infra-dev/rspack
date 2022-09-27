@@ -288,35 +288,36 @@ impl Parser for JsParser {
         let mut define_scanner = DefineScanner::new(defintions);
         // TODO: find more suitable position.
         ast.visit_with(&mut define_scanner);
-        let mut define_transform = DefineTransform::new(defintions, define_scanner);
-        let top_level_mark = Mark::new();
-        let mut react_folder = react::<SingleThreadedComments>(
-          get_swc_compiler().cm.clone(),
-          None,
-          ReactOptions {
-            development: Some(false),
-            runtime: Some(swc_react::Runtime::Classic),
-            refresh: None,
-            ..Default::default()
-          },
-          Mark::new(),
-        );
+        // let mut define_transform = DefineTransform::new(defintions, define_scanner);
+        // let top_level_mark = Mark::new();
+        // let mut react_folder = react::<SingleThreadedComments>(
+        //   get_swc_compiler().cm.clone(),
+        //   None,
+        //   ReactOptions {
+        //     development: Some(false),
+        //     runtime: Some(swc_react::Runtime::Classic),
+        //     refresh: None,
+        //     ..Default::default()
+        //   },
+        //   Mark::new(),
+        // );
 
         // TODO: the order
-        let ast = ast.fold_with(&mut define_transform);
-        let ast = ast.fold_with(&mut resolver(Mark::new(), top_level_mark, false));
-        let ast = ast.fold_with(&mut react_folder);
-        ast.fold_with(&mut as_folder(ClearMark))
+        // let ast = ast.fold_with(&mut define_transform);
+        // let ast = ast.fold_with(&mut resolver(Mark::new(), top_level_mark, false));
+        // let ast = ast.fold_with(&mut react_folder);
+        // ast.fold_with(&mut as_folder(ClearMark))
+        ast
       })
     });
-    let module: BoxModule = Box::new(JsModule {
-      ast: processed_ast,
-      uri: args.uri.to_string(),
+    let module: BoxModule = Box::new(JsModule::new(
+      args.uri.to_string(),
       module_type,
-      source_type_list: JS_MODULE_SOURCE_TYPE_LIST,
-      unresolved_mark: self.unresolved_mark,
-      loaded_source: args.source,
-    });
+      processed_ast,
+      JS_MODULE_SOURCE_TYPE_LIST,
+      self.unresolved_mark,
+      args.source,
+    ));
     Ok(module.with_diagnostic(diagnostics))
   }
 }

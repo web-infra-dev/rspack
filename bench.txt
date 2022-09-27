@@ -1,0 +1,160 @@
+1
+"/home/victor/Documents/rust/rspack/benchcases/three"
+273.096091ms
+code split 9.518696ms
+optimize chunks430ns
+create chunk assets850.215407ms
+optimize chunks1.172µs
+render runtime 7.243µs
+859.783225ms
+1.181094032s
+2
+"/home/victor/Documents/rust/rspack/benchcases/three"
+293.875287ms
+code split 10.008427ms
+optimize chunks451ns
+create chunk assets483.106057ms
+optimize chunks1.332µs
+render runtime 5.942µs
+493.161804ms
+846.713133ms
+3
+"/home/victor/Documents/rust/rspack/benchcases/three"
+277.28165ms
+code split 10.681021ms
+optimize chunks712ns
+create chunk assets333.691712ms
+optimize chunks972ns
+render runtime 5.991µs
+344.424321ms
+676.017769ms
+4
+"/home/victor/Documents/rust/rspack/benchcases/three"
+269.797729ms
+code split 12.272813ms
+optimize chunks361ns
+create chunk assets259.081753ms
+optimize chunks952ns
+render runtime 5.861µs
+271.405112ms
+595.2808ms
+5
+"/home/victor/Documents/rust/rspack/benchcases/three"
+279.235604ms
+code split 11.807097ms
+optimize chunks340ns
+create chunk assets228.46325ms
+optimize chunks952ns
+render runtime 5.461µs
+240.318618ms
+574.396397ms
+6
+"/home/victor/Documents/rust/rspack/benchcases/three"
+266.293913ms
+code split 10.342935ms
+optimize chunks490ns
+create chunk assets206.733938ms
+optimize chunks1.323µs
+render runtime 5.75µs
+217.126276ms
+543.730605ms
+7
+"/home/victor/Documents/rust/rspack/benchcases/three"
+271.712691ms
+code split 10.296538ms
+optimize chunks611ns
+create chunk assets205.587162ms
+optimize chunks952ns
+render runtime 5.681µs
+215.935647ms
+546.814111ms
+8
+"/home/victor/Documents/rust/rspack/benchcases/three"
+264.155662ms
+code split 9.879304ms
+optimize chunks591ns
+create chunk assets225.210083ms
+optimize chunks962ns
+render runtime 6.232µs
+235.138699ms
+553.896997ms
+9
+"/home/victor/Documents/rust/rspack/benchcases/three"
+291.997045ms
+code split 11.63233ms
+optimize chunks742ns
+create chunk assets265.167725ms
+optimize chunks1.302µs
+render runtime 5.891µs
+276.856571ms
+632.594412ms
+10
+"/home/victor/Documents/rust/rspack/benchcases/three"
+239.662375ms
+code split 10.937704ms
+optimize chunks842ns
+create chunk assets324.134084ms
+optimize chunks952ns
+render runtime 6.963µs
+335.13132ms
+630.528708ms
+12
+"/home/victor/Documents/rust/rspack/benchcases/three"
+272.590791ms
+code split 11.856491ms
+optimize chunks1.844µs
+create chunk assets369.108728ms
+optimize chunks1.133µs
+render runtime 6.322µs
+381.291693ms
+723.027198ms
+16
+"/home/victor/Documents/rust/rspack/benchcases/three"
+265.868363ms
+code split 11.879895ms
+optimize chunks1.122µs
+create chunk assets742.098353ms
+optimize chunks932ns
+render runtime 5.801µs
+754.034703ms
+1.06999941s
+22
+"/home/victor/Documents/rust/rspack/benchcases/three"
+273.581333ms
+code split 9.240553ms
+optimize chunks681ns
+create chunk assets990.510667ms
+optimize chunks1.012µs
+render runtime 6.603µs
+999.800173ms
+1.336284375s
+24
+"/home/victor/Documents/rust/rspack/benchcases/three"
+237.364965ms
+code split 10.478561ms
+optimize chunks360ns
+create chunk assets995.483817ms
+optimize chunks1.233µs
+render runtime 7.965µs
+1.006023262s
+1.303509587s
+28
+"/home/victor/Documents/rust/rspack/benchcases/three"
+277.156955ms
+code split 10.259027ms
+optimize chunks601ns
+create chunk assets1.010567175s
+optimize chunks892ns
+render runtime 5.861µs
+1.0208786s
+1.349571155s
+32
+"/home/victor/Documents/rust/rspack/benchcases/three"
+265.582937ms
+code split 12.266771ms
+optimize chunks381ns
+create chunk assets1.022517852s
+optimize chunks981ns
+render runtime 6.522µs
+1.034830611s
+1.358176834s
