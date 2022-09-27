@@ -116,6 +116,7 @@ impl Plugin for ExternalPlugin {
               },
             );
 
+            // This hacks normal module to skip build, since external module is not exist on the filesystem.
             normal_module.set_skip_build(true);
 
             tracing::trace!("parsed module {:?}", normal_module);

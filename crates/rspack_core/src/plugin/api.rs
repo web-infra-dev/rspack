@@ -2,10 +2,10 @@ use std::fmt::Debug;
 
 use crate::{
   BoxModule, FactorizeAndBuildArgs, ModuleType, NormalModule, NormalModuleFactoryContext,
-  OptimizeChunksArgs, ParseModuleArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs,
-  RenderManifestArgs, RenderRuntimeArgs, TransformAst, TransformResult,
+  OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderManifestArgs,
+  RenderRuntimeArgs, TransformAst, TransformResult,
 };
-use rspack_error::{Result, TWithDiagnosticArray};
+use rspack_error::Result;
 use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::{BoxSource, RawSource};
 
