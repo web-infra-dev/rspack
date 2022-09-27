@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use rayon::prelude::*;
 
-use swc::config::JsMinifyOptions;
+use swc::{config::JsMinifyOptions, BoolOrDataConfig};
 use swc_common::comments::SingleThreadedComments;
 use swc_common::{FileName, Mark};
 use swc_ecma_transforms::helpers::inject_helpers, Helpers;
