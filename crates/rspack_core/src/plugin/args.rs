@@ -89,8 +89,22 @@ impl ModuleAst {
 
   pub fn try_into_css(self) -> Result<Stylesheet> {
     match self {
-      ModuleAst::Css(style_sheet) => Ok(style_sheet),
+      ModuleAst::Css(stylesheet) => Ok(stylesheet),
       ModuleAst::JavaScript(_) => Err(Error::InternalError("Failed".to_owned())),
+    }
+  }
+
+  pub fn as_javascript(&self) -> Option<&ast::Program> {
+    match self {
+      ModuleAst::JavaScript(program) => Some(program),
+      ModuleAst::Css(_) => None,
+    }
+  }
+
+  pub fn as_css(&self) -> Option<&Stylesheet> {
+    match self {
+      ModuleAst::Css(stylesheet) => Some(stylesheet),
+      ModuleAst::JavaScript(_) => None,
     }
   }
 }

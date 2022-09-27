@@ -154,6 +154,18 @@ impl From<ModuleAst> for AstOrSource {
   }
 }
 
+impl From<swc_ecma_ast::Program> for AstOrSource {
+  fn from(program: swc_ecma_ast::Program) -> Self {
+    AstOrSource::Ast(ModuleAst::JavaScript(program))
+  }
+}
+
+impl From<swc_css::ast::Stylesheet> for AstOrSource {
+  fn from(style_sheet: swc_css::ast::Stylesheet) -> Self {
+    AstOrSource::Ast(ModuleAst::Css(style_sheet))
+  }
+}
+
 impl From<BoxSource> for AstOrSource {
   fn from(source: BoxSource) -> Self {
     AstOrSource::Source(source)
@@ -165,6 +177,7 @@ pub struct ParseContext<'a> {
   pub module_type: &'a ModuleType,
   pub resource_data: &'a ResourceData,
   pub compiler_options: &'a CompilerOptions,
+  pub meta: Option<String>,
 }
 
 #[derive(Debug)]
@@ -174,7 +187,7 @@ pub struct ParseResult {
 }
 
 pub trait ParserAndGenerator: Send + Sync + Debug {
-  fn parse(&self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>>;
+  fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>>;
   fn generate(
     &self,
     requested_source_type: SourceType,
@@ -335,6 +348,7 @@ impl NormalModule {
         module_type: &self.module_type,
         resource_data: &self.resource_data,
         compiler_options: build_context.compiler_options,
+        meta: loader_result.meta,
       })?
       .split_into_parts();
 

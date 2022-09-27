@@ -60,12 +60,13 @@ impl JavaScriptParserAndGenerator {
 }
 
 impl ParserAndGenerator for JavaScriptParserAndGenerator {
-  fn parse(&self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
+  fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
     let ParseContext {
       source,
       module_type,
       resource_data,
       compiler_options,
+      ..
     } = parse_context;
 
     if !module_type.is_js_like() {
@@ -258,22 +259,22 @@ impl Plugin for JsPlugin {
     "javascript"
   }
   fn apply(&mut self, ctx: PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
-    ctx.context.register_parser(
-      ModuleType::Js,
-      Box::new(JsParser::new(self.unresolved_mark)),
-    );
-    ctx.context.register_parser(
-      ModuleType::Ts,
-      Box::new(JsParser::new(self.unresolved_mark)),
-    );
-    ctx.context.register_parser(
-      ModuleType::Tsx,
-      Box::new(JsParser::new(self.unresolved_mark)),
-    );
-    ctx.context.register_parser(
-      ModuleType::Jsx,
-      Box::new(JsParser::new(self.unresolved_mark)),
-    );
+    // ctx.context.register_parser(
+    //   ModuleType::Js,
+    //   Box::new(JsParser::new(self.unresolved_mark)),
+    // );
+    // ctx.context.register_parser(
+    //   ModuleType::Ts,
+    //   Box::new(JsParser::new(self.unresolved_mark)),
+    // );
+    // ctx.context.register_parser(
+    //   ModuleType::Tsx,
+    //   Box::new(JsParser::new(self.unresolved_mark)),
+    // );
+    // ctx.context.register_parser(
+    //   ModuleType::Jsx,
+    //   Box::new(JsParser::new(self.unresolved_mark)),
+    // );
 
     let unresolved_mark = self.unresolved_mark;
     let create_parser_and_generator = move || {

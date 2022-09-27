@@ -268,7 +268,7 @@ impl NormalModuleFactory {
       .get(&resolved_module_type)
       .ok_or_else(|| {
         Error::InternalError(format!(
-          "No parser and generator builder for module type {:?}",
+          "Parser and generator builder for module type {:?} is not registered",
           resolved_module_type
         ))
       })?();
