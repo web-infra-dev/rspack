@@ -159,8 +159,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         crate::HELPERS.set(&JS_HELPERS, || {
           swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
             let fm = compiler.cm.new_source_file(
-              FileName::Custom(mgm.module.raw_request().to_string()),
-              mgm.module.raw_request().to_string(),
+              FileName::Custom(mgm.module.request().to_string()),
+              mgm.module.request().to_string(),
             );
 
             compiler.process_js_with_custom_pass(
@@ -178,7 +178,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
                   jsc: swc_config::JscConfig {
                     target: compilation.options.target.es_version,
                     syntax: Some(syntax_by_module_type(
-                      mgm.module.raw_request(),
+                      mgm.module.request(),
                       &mgm.module.module_type(),
                     )),
                     transform: Some(swc_config::TransformConfig {
@@ -232,7 +232,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             value: output.code,
             source_map: SourceMap::from_json(&map)
               .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
-            name: mgm.module.raw_request().to_string(),
+            name: mgm.module.request().to_string(),
             // Safety: you can sure that `build` is called before code generation, so that the `original_source` is exist
             original_source: Some(mgm.module.original_source().unwrap().source().to_string()),
             inner_source_map: mgm

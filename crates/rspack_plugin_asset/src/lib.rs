@@ -165,17 +165,17 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           if parsed_asset_config.is_inline() {
             format!(
               "data:{};base64,{}",
-              mime_guess::MimeGuess::from_path(Path::new(&mgm.module.raw_request()))
+              mime_guess::MimeGuess::from_path(Path::new(&mgm.module.request()))
                 .first()
                 .ok_or_else(|| anyhow::format_err!(
                   "failed to guess mime type of {}",
-                  mgm.module.raw_request()
+                  mgm.module.request()
                 ))?,
               base64::encode(&ast_or_source.as_source().unwrap().buffer())
             )
           } else if parsed_asset_config.is_external() {
-            let identifier = mgm.module.identifier();
-            let path = Path::new(&identifier);
+            let request = mgm.module.request();
+            let path = Path::new(&request);
 
             let file_name =
               compilation

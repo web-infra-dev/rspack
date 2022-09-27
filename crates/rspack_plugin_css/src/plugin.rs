@@ -143,7 +143,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         if let Some(source_map) = source_map {
           let source = SourceMapSource::new(SourceMapSourceOptions {
             value: code,
-            name: mgm.module.raw_request().to_string(),
+            name: mgm.module.request().to_string(),
             source_map: SourceMap::from_slice(&source_map)
               .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
             original_source: Some(mgm.module.original_source().unwrap().source().to_string()),
