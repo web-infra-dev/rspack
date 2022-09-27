@@ -21,3 +21,8 @@ bench_three: | copy/three
 	@hyperfine --warmup 3 './node_modules/esbuild/bin/esbuild --bundle --global-name=THREE  benchcases/three/src/entry.js --outfile=benchcases/three/esbuild/entry.esbuild.js --timing'
 	@echo "webpack"
 	@hyperfine --warmup 3 './node_modules/webpack-cli/bin/cli.js  -c ./benchcases/three/webpack.config.js'
+
+
+esbuild_perf:
+	./node_modules/esbuild/bin/esbuild --bundle benchcases/three/src/entry.js --outfile=/dev/null --trace=esbuild.trace
+	go tool trace esbuild.trace
