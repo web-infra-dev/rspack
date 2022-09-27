@@ -209,6 +209,9 @@ pub struct NormalModule {
 
   original_source: Option<Box<dyn Source>>,
   ast_or_source: Option<AstOrSource>,
+
+  // FIXME: dirty workaround to support external module
+  skip_build: bool,
 }
 
 #[derive(Debug, Default)]
@@ -263,6 +266,7 @@ impl NormalModule {
 
       original_source: None,
       ast_or_source: None,
+      skip_build: false,
     }
   }
 
@@ -274,6 +278,10 @@ impl NormalModule {
   #[inline(always)]
   pub fn source_types(&self) -> &[SourceType] {
     self.parser_and_generator.source_types()
+  }
+
+  pub fn resource_resolved_data(&self) -> &ResourceData {
+    &self.resource_data
   }
 
   pub fn request(&self) -> &str {
@@ -294,6 +302,11 @@ impl NormalModule {
 
   pub fn original_source(&self) -> Option<&dyn Source> {
     self.original_source.as_deref()
+  }
+
+  // FIXME: dirty workaround to support external module
+  pub fn set_skip_build(&mut self, skip_build: bool) {
+    self.skip_build = skip_build;
   }
 
   pub fn source(&self) -> Option<&dyn Source> {
@@ -318,6 +331,29 @@ impl NormalModule {
     &mut self,
     build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>> {
+    // FIXME: dirty workaround for external module
+    if self.skip_build {
+      let (parse_result, diagnostics) = self
+        .parser_and_generator
+        .parse(ParseContext {
+          source: RawSource::from("").boxed(),
+          module_type: &self.module_type,
+          resource_data: &self.resource_data,
+          compiler_options: build_context.compiler_options,
+          meta: None,
+        })?
+        .split_into_parts();
+
+      self.ast_or_source = Some(parse_result.ast_or_source);
+
+      return Ok(
+        BuildResult {
+          dependencies: parse_result.dependencies,
+        }
+        .with_diagnostic(diagnostics),
+      );
+    }
+
     let loader_result = build_context
       .loader_runner_runner
       .run(self.resource_data.clone(), build_context.resolved_loaders)

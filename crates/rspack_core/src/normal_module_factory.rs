@@ -136,9 +136,7 @@ impl NormalModuleFactory {
     resolve_module_type_by_uri(PathBuf::from(url.path().as_str()))
   }
 
-  pub async fn factorize_normal_module(
-    &mut self,
-  ) -> Result<Option<(String, NormalModule, ResourceData)>> {
+  pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, NormalModule)>> {
     let uri = resolve(
       ResolveArgs {
         importer: self.dependency.importer.as_deref(),
@@ -281,10 +279,10 @@ impl NormalModuleFactory {
       self.dependency.detail.specifier.to_owned(),
       resolved_module_type,
       resolved_parser_and_generator,
-      resource_data.clone(),
+      resource_data,
     );
 
-    Ok(Some((uri, normal_module, resource_data)))
+    Ok(Some((uri, normal_module)))
   }
 
   // fn create_source(
@@ -435,29 +433,28 @@ impl NormalModuleFactory {
     // TODO: add it back
     // TODO: caching in resolve
     // Here is the corresponding create function in webpack, but instead of using hooks we use procedural functions
-    // let (uri, mut module) = if let Ok(Some(module)) = self.plugin_driver.factorize_and_build(
-    //   FactorizeAndBuildArgs {
-    //     dependency: &self.dependency,
-    //     plugin_driver: &self.plugin_driver,
-    //   },
-    //   &mut self.context,
-    // ) {
-    //   let (uri, module) = module;
-    //   self
-    //     .tx
-    //     .send(Msg::DependencyReference(
-    //       self.dependency.clone(),
-    //       uri.clone(),
-    //     ))
-    //     .map_err(|_| {
-    //       Error::InternalError(format!(
-    //         "Failed to resolve dependency {:?}",
-    //         self.dependency
-    //       ))
-    //     })?;
-    //   (uri, module)
-    // } else
-    let (uri, mut module, resource_data) = if let Some(re) = self.factorize_normal_module().await? {
+    let (uri, mut module) = if let Some(module) = self.plugin_driver.factorize_and_build(
+      FactorizeAndBuildArgs {
+        dependency: &self.dependency,
+        plugin_driver: &self.plugin_driver,
+      },
+      &mut self.context,
+    )? {
+      let (uri, module) = module;
+      self
+        .tx
+        .send(Msg::DependencyReference(
+          self.dependency.clone(),
+          uri.clone(),
+        ))
+        .map_err(|_| {
+          Error::InternalError(format!(
+            "Failed to resolve dependency {:?}",
+            self.dependency
+          ))
+        })?;
+      (uri, module)
+    } else if let Some(re) = self.factorize_normal_module().await? {
       re
     } else {
       return Ok(None);
@@ -468,7 +465,7 @@ impl NormalModuleFactory {
     let build_result = module
       .build(BuildContext {
         loader_runner_runner: &self.loader_runner_runner,
-        resolved_loaders: self.calculate_loaders(&resource_data)?,
+        resolved_loaders: self.calculate_loaders(module.resource_resolved_data())?,
         compiler_options: &self.context.options,
       })
       .await?;

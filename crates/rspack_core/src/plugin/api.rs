@@ -1,9 +1,9 @@
 use std::fmt::Debug;
 
 use crate::{
-  BoxModule, FactorizeAndBuildArgs, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs,
-  ParseModuleArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderManifestArgs,
-  RenderRuntimeArgs, TransformAst, TransformResult,
+  BoxModule, FactorizeAndBuildArgs, ModuleType, NormalModule, NormalModuleFactoryContext,
+  OptimizeChunksArgs, ParseModuleArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs,
+  RenderManifestArgs, RenderRuntimeArgs, TransformAst, TransformResult,
 };
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::{Content, ResourceData};
@@ -17,7 +17,7 @@ pub type PluginProcessAssetsHookOutput = Result<()>;
 pub type PluginReadResourceOutput = Result<Option<Content>>;
 pub type PluginLoadHookOutput = Result<Option<Content>>;
 pub type PluginTransformOutput = Result<TransformResult>;
-pub type PluginFactorizeAndBuildHookOutput = Result<Option<(String, BoxModule)>>;
+pub type PluginFactorizeAndBuildHookOutput = Result<Option<(String, NormalModule)>>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
 pub type PluginRenderRuntimeHookOutput = Result<Vec<RawSource>>;
 pub type PluginParseModuleHookOutput = Result<BoxModule>;
