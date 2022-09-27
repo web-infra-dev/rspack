@@ -6,13 +6,14 @@ use mimalloc_rust::GlobalMiMalloc;
 #[global_allocator]
 static GLOBAL: GlobalMiMalloc = GlobalMiMalloc;
 use rspack_test::read_test_config_and_normalize;
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() {
   // rayon::ThreadPoolBuilder::new()
   //   .num_threads(8)
   //   .build_global()
   //   .unwrap();
-  let manifest_dir = PathBuf::from(&std::env::var("PWD").unwrap());
+  let manifest_dir = PathBuf::from(env!("CARGO_WORKSPACE_DIR"));
+  println!("manifest_dir: {:?}", manifest_dir);
   // let bundle_dir = manifest_dir.join("tests/fixtures/postcss/pxtorem");
   let bundle_dir: PathBuf = manifest_dir.join("benchcases/three");
   println!("{:?}", bundle_dir);
@@ -27,5 +28,5 @@ async fn main() {
     .build()
     .await
     .unwrap_or_else(|e| panic!("{:?}, failed to compile in fixtrue {:?}", e, bundle_dir));
-  println!("{:?}", start.elapsed());
+  println!("all: {:?}", start.elapsed());
 }

@@ -105,7 +105,7 @@ impl Compiler {
   #[instrument(skip_all)]
   async fn compile(&mut self, deps: HashMap<String, Dependency>) -> Result<()> {
     let start = Instant::now();
-    let thread_count = 16;
+    let thread_count = 8;
     let active_task_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(thread_count));
 
     let queue = Arc::new(SegQueue::<NormalModuleFactory>::new());
@@ -136,7 +136,10 @@ impl Compiler {
       let tx = tx.clone();
       let queue = queue.clone();
       std::thread::spawn(move || {
-        let rt = Builder::new_current_thread().build().unwrap();
+        let rt = Builder::new_current_thread()
+          .max_blocking_threads(1)
+          .build()
+          .unwrap();
 
         rt.block_on(async {
           loop {
