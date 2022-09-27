@@ -8,7 +8,7 @@ use mimalloc_rust::GlobalMiMalloc;
 #[global_allocator]
 static GLOBAL: GlobalMiMalloc = GlobalMiMalloc;
 use rspack_test::read_test_config_and_normalize;
-#[tokio::main]
+#[tokio::main(worker_threads = 4)]
 async fn main() {
   #[cfg(feature = "tracing")]
   let guard = enable_tracing_by_env_with_chrome_layer();
