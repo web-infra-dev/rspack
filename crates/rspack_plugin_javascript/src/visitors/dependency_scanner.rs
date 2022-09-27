@@ -3,7 +3,7 @@ use rspack_core::{ModuleDependency, ResolveKind};
 use swc_atoms::JsWord;
 use swc_common::Span;
 use swc_ecma_ast::{CallExpr, Callee, ExportSpecifier, Expr, ExprOrSpread, Lit, ModuleDecl};
-use swc_ecma_visit::{noop_visit_mut_type, VisitMut, VisitMutWith};
+use swc_ecma_visit::{noop_visit_type, VisitAll, VisitAllWith};
 
 #[derive(Default)]
 pub struct DependencyScanner {
@@ -20,7 +20,7 @@ impl DependencyScanner {
     });
   }
 
-  fn add_import(&mut self, module_decl: &mut ModuleDecl) {
+  fn add_import(&mut self, module_decl: &ModuleDecl) {
     if let ModuleDecl::Import(import_decl) = module_decl {
       let source = import_decl.src.value.clone();
       self.add_dependency(source, ResolveKind::Import, import_decl.span);
@@ -100,19 +100,19 @@ impl DependencyScanner {
   }
 }
 
-impl VisitMut for DependencyScanner {
-  noop_visit_mut_type!();
+impl VisitAll for DependencyScanner {
+  noop_visit_type!();
 
-  fn visit_mut_module_decl(&mut self, node: &mut ModuleDecl) {
+  fn visit_module_decl(&mut self, node: &ModuleDecl) {
     self.add_import(node);
     if let Err(e) = self.add_export(node) {
       eprintln!("{}", e);
     }
-    node.visit_mut_children_with(self);
+    node.visit_all_children_with(self);
   }
-  fn visit_mut_call_expr(&mut self, node: &mut CallExpr) {
+  fn visit_call_expr(&mut self, node: &CallExpr) {
     self.add_dynamic_import(node);
     self.add_require(node);
-    node.visit_mut_children_with(self);
+    node.visit_all_children_with(self);
   }
 }

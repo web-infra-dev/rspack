@@ -13,7 +13,7 @@ use rspack_core::{
 use std::fmt::Debug;
 use swc_common::{FileName, Mark};
 use swc_ecma_transforms::{pass::noop, react};
-use swc_ecma_visit::VisitMutWith;
+use swc_ecma_visit::VisitAllWith;
 
 use crate::{
   utils::{get_swc_compiler, syntax_by_module_type},
@@ -153,7 +153,7 @@ impl Module for JsModule {
 
   fn dependencies(&mut self) -> Vec<rspack_core::ModuleDependency> {
     let mut dep_scanner = DependencyScanner::default();
-    self.ast.visit_mut_with(&mut dep_scanner);
+    self.ast.visit_all_with(&mut dep_scanner);
     dep_scanner.dependencies.into_iter().collect()
   }
 }

@@ -1,9 +1,10 @@
 use crate::module::{JsModule, JS_MODULE_SOURCE_TYPE_LIST};
 use crate::utils::{
-  get_swc_compiler, get_wrap_chunk_after, get_wrap_chunk_before, parse_file, wrap_module_function,
+  get_swc_compiler, get_wrap_chunk_after, get_wrap_chunk_before, parse_file, syntax_by_module_type,
+  wrap_module_function,
 };
-use crate::visitors::{ClearMark, DefineScanner, DefineTransform};
-use crate::{RSPACK_REGISTER, RSPACK_REQUIRE};
+use crate::visitors::{finalize, ClearMark, DefineScanner, DefineTransform, DependencyScanner};
+use crate::{JS_HELPERS, RSPACK_REGISTER, RSPACK_REQUIRE};
 use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{
@@ -12,20 +13,21 @@ use rspack_core::rspack_sources::{
 };
 use rspack_core::{
   get_contenthash, AstOrSource, BoxModule, ChunkKind, Compilation, FilenameRenderOptions,
-  GenerationResult, ModuleGraphModule, ModuleType, ParseModuleArgs, Parser, ParserAndGenerator,
-  Plugin, PluginContext, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
-  ProcessAssetsArgs, RenderManifestEntry, SourceType,
+  GenerationResult, ModuleAst, ModuleGraphModule, ModuleType, ParseContext, ParseModuleArgs,
+  ParseResult, Parser, ParserAndGenerator, Plugin, PluginContext, PluginProcessAssetsOutput,
+  PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderManifestEntry, SourceType,
 };
 use swc::config::JsMinifyOptions;
 use swc::BoolOrDataConfig;
 
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_common::comments::SingleThreadedComments;
-use swc_common::Mark;
-use swc_ecma_transforms::helpers::{inject_helpers, Helpers, HELPERS};
+use swc_common::{FileName, Mark};
+use swc_ecma_transforms::helpers::inject_helpers, Helpers;
 use swc_ecma_transforms::react::{react, Options as ReactOptions};
+use swc_ecma_transforms::{pass::noop, react};
 use swc_ecma_transforms::{react as swc_react, resolver};
-use swc_ecma_visit::{as_folder, FoldWith, VisitWith};
+use swc_ecma_visit::{as_folder, FoldWith, VisitAllWith, VisitWith};
 
 #[derive(Debug)]
 pub struct JsPlugin {
@@ -46,22 +48,207 @@ impl Default for JsPlugin {
   }
 }
 
-#[derive(Debug, Default)]
-pub struct JavaScriptParserAndGenerator;
+#[derive(Debug)]
+pub struct JavaScriptParserAndGenerator {
+  unresolved_mark: Mark,
+}
+
+impl JavaScriptParserAndGenerator {
+  fn new(unresolved_mark: Mark) -> Self {
+    Self { unresolved_mark }
+  }
+}
 
 impl ParserAndGenerator for JavaScriptParserAndGenerator {
-  fn parse(&self, source: &dyn Source) -> Result<AstOrSource> {
-    todo!()
+  fn parse(&self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
+    let ParseContext {
+      source,
+      module_type,
+      resource_data,
+      compiler_options,
+    } = parse_context;
+
+    if !module_type.is_js_like() {
+      return Err(Error::InternalError(format!(
+        "`module_type` {:?} not supported for `JsParser`",
+        module_type
+      )));
+    }
+
+    let ast_with_diagnostics = parse_file(
+      source.source().to_string(),
+      &resource_data.resource_path,
+      module_type,
+    )?;
+
+    let (ast, diagnostics) = ast_with_diagnostics.split_into_parts();
+
+    let processed_ast = get_swc_compiler().run(|| {
+      swc_ecma_transforms::helpers::HELPERS.set(&Helpers::new(true), || {
+        let defintions = &compiler_options.define;
+        let mut define_scanner = DefineScanner::new(defintions);
+        // TODO: find more suitable position.
+        ast.visit_with(&mut define_scanner);
+        let mut define_transform = DefineTransform::new(defintions, define_scanner);
+        let top_level_mark = Mark::new();
+        let mut react_folder = react::<SingleThreadedComments>(
+          get_swc_compiler().cm.clone(),
+          None,
+          ReactOptions {
+            development: Some(false),
+            runtime: Some(swc_react::Runtime::Classic),
+            refresh: None,
+            ..Default::default()
+          },
+          Mark::new(),
+        );
+
+        // TODO: the order
+        let ast = ast.fold_with(&mut define_transform);
+        let ast = ast.fold_with(&mut resolver(Mark::new(), top_level_mark, false));
+        let ast = ast.fold_with(&mut react_folder);
+        ast.fold_with(&mut as_folder(ClearMark))
+      })
+    });
+
+    let mut dep_scanner = DependencyScanner::default();
+    processed_ast.visit_all_with(&mut dep_scanner);
+
+    Ok(
+      ParseResult {
+        ast_or_source: AstOrSource::Ast(ModuleAst::JavaScript(processed_ast)),
+        dependencies: dep_scanner.dependencies.into_iter().collect(),
+      }
+      .with_diagnostic(diagnostics),
+    )
   }
 
   fn generate(
     &self,
     requested_source_type: SourceType,
     ast_or_source: &AstOrSource,
-    module: &ModuleGraphModule,
+    mgm: &ModuleGraphModule,
     compilation: &Compilation,
   ) -> Result<GenerationResult> {
-    todo!()
+    use swc::config::{self as swc_config, SourceMapsConfig};
+
+    if matches!(requested_source_type, SourceType::JavaScript) {
+      // TODO: this should only return AST for javascript only, It's a fast pass, defer to another pr to solve this.
+      // Ok(ast_or_source.to_owned().into())
+
+      if requested_source_type != SourceType::JavaScript {
+        return Err(
+          anyhow::format_err!(
+            "Failed to generate source for requested source type: {:?}",
+            requested_source_type
+          )
+          .into(),
+        );
+      }
+
+      let source_map = compilation.options.devtool;
+      let compiler = get_swc_compiler();
+      let output = compiler.run(|| {
+        crate::HELPERS.set(&JS_HELPERS, || {
+          swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
+            let fm = compiler.cm.new_source_file(
+              FileName::Custom(mgm.module.raw_request().to_string()),
+              mgm.module.raw_request().to_string(),
+            );
+
+            compiler.process_js_with_custom_pass(
+              fm,
+              // TODO: It should have a better way rather than clone.
+              Some(
+                ast_or_source
+                  .to_owned()
+                  .try_into_ast()?
+                  .try_into_javascript()?,
+              ),
+              handler,
+              &swc_config::Options {
+                config: swc_config::Config {
+                  jsc: swc_config::JscConfig {
+                    target: compilation.options.target.es_version,
+                    syntax: Some(syntax_by_module_type(
+                      mgm.module.raw_request(),
+                      &mgm.module.module_type(),
+                    )),
+                    transform: Some(swc_config::TransformConfig {
+                      react: react::Options {
+                        runtime: Some(react::Runtime::Automatic),
+                        ..Default::default()
+                      },
+                      ..Default::default()
+                    })
+                    .into(),
+                    ..Default::default()
+                  },
+                  inline_sources_content: true.into(),
+                  // emit_source_map_columns: (!matches!(options.mode, BundleMode::Dev)).into(),
+                  source_maps: Some(SourceMapsConfig::Bool(source_map)),
+                  env: if compilation.options.target.platform.is_browsers_list() {
+                    Some(swc_ecma_preset_env::Config {
+                      mode: if compilation.options.builtins.polyfill {
+                        Some(swc_ecma_preset_env::Mode::Usage)
+                      } else {
+                        Some(swc_ecma_preset_env::Mode::Entry)
+                      },
+                      targets: Some(swc_ecma_preset_env::Targets::Query(
+                        preset_env_base::query::Query::Multiple(
+                          compilation.options.builtins.browserslist.clone(),
+                        ),
+                      )),
+                      ..Default::default()
+                    })
+                  } else {
+                    None
+                  },
+                  ..Default::default()
+                },
+                // top_level_mark: Some(bundle_ctx.top_level_mark),
+                ..Default::default()
+              },
+              |_, _| noop(),
+              |_, _| {
+                // noop()
+                finalize(mgm, compilation, self.unresolved_mark)
+              },
+            )
+          })
+          .unwrap()
+        })
+      });
+      if let Some(map) = output.map {
+        Ok(GenerationResult {
+          ast_or_source: SourceMapSource::new(SourceMapSourceOptions {
+            value: output.code,
+            source_map: SourceMap::from_json(&map)
+              .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
+            name: mgm.module.raw_request().to_string(),
+            // Safety: you can sure that `build` is called before code generation, so that the `original_source` is exist
+            original_source: Some(mgm.module.original_source().unwrap().source().to_string()),
+            inner_source_map: mgm
+              .module
+              .original_source()
+              .unwrap()
+              .map(&MapOptions::default()),
+            remove_original_source: false,
+          })
+          .boxed()
+          .into(),
+        })
+      } else {
+        Ok(GenerationResult {
+          ast_or_source: RawSource::from(output.code).boxed().into(),
+        })
+      }
+    } else {
+      Err(Error::InternalError(format!(
+        "Unsupported source type {:?} for plugin JavaScript",
+        requested_source_type,
+      )))
+    }
   }
 }
 
@@ -88,8 +275,11 @@ impl Plugin for JsPlugin {
       Box::new(JsParser::new(self.unresolved_mark)),
     );
 
-    let create_parser_and_generator =
-      || Box::new(JavaScriptParserAndGenerator::default()) as Box<dyn ParserAndGenerator>;
+    let unresolved_mark = self.unresolved_mark;
+    let create_parser_and_generator = move || {
+      Box::new(JavaScriptParserAndGenerator::new(unresolved_mark)) as Box<dyn ParserAndGenerator>
+    };
+
     ctx.context.register_parser_and_generator_builder(
       ModuleType::Js,
       Box::new(create_parser_and_generator.clone()),
@@ -330,7 +520,7 @@ impl Parser for JsParser {
     let (ast, diagnostics) = ast_with_diagnostics.split_into_parts();
 
     let processed_ast = get_swc_compiler().run(|| {
-      HELPERS.set(&Helpers::new(true), || {
+      swc_ecma_transforms::helpers::HELPERS.set(&Helpers::new(true), || {
         let defintions = &args.options.define;
         let mut define_scanner = DefineScanner::new(defintions);
         // TODO: find more suitable position.

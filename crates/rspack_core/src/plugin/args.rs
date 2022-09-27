@@ -1,6 +1,7 @@
 use crate::{
   Chunk, ChunkUkey, Compilation, CompilerOptions, Dependency, ErrorSpan, PluginDriver, ResolveKind,
 };
+use rspack_error::{Error, Result};
 use rspack_loader_runner::Content;
 use rspack_sources::{BoxSource, RawSource};
 use std::{fmt::Debug, sync::Arc};
@@ -76,6 +77,22 @@ pub enum TransformAst {
 pub enum ModuleAst {
   JavaScript(ast::Program),
   Css(Stylesheet),
+}
+
+impl ModuleAst {
+  pub fn try_into_javascript(self) -> Result<ast::Program> {
+    match self {
+      ModuleAst::JavaScript(program) => Ok(program),
+      ModuleAst::Css(_) => Err(Error::InternalError("Failed".to_owned())),
+    }
+  }
+
+  pub fn try_into_css(self) -> Result<Stylesheet> {
+    match self {
+      ModuleAst::Css(style_sheet) => Ok(style_sheet),
+      ModuleAst::JavaScript(_) => Err(Error::InternalError("Failed".to_owned())),
+    }
+  }
 }
 
 impl From<TransformAst> for ModuleAst {

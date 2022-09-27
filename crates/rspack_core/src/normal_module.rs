@@ -1,15 +1,16 @@
-use rspack_error::{Error, Result};
+use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_loader_runner::{Content, Loader, ResourceData};
 use rspack_sources::{
   BoxSource, OriginalSource, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
   WithoutOriginalOptions,
 };
 
-use std::{collections::HashMap, fmt::Debug};
+use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
 use crate::{
-  Compilation, CompilationContext, CompilerContext, Dependency, LoaderRunnerRunner, ModuleAst,
-  ModuleDependency, ModuleGraph, ModuleType, ResolveKind, SourceType,
+  Compilation, CompilationContext, CompilerContext, CompilerOptions, Dependency,
+  LoaderRunnerRunner, ModuleAst, ModuleDependency, ModuleGraph, ModuleType, ResolveKind,
+  SourceType,
 };
 
 #[derive(Debug)]
@@ -93,7 +94,12 @@ pub trait Module: Debug + Send + Sync {
 #[derive(Debug, Clone)]
 pub struct GenerationResult {
   pub ast_or_source: AstOrSource,
-  pub source_map: Option<SourceMap>,
+}
+
+impl From<AstOrSource> for GenerationResult {
+  fn from(ast_or_source: AstOrSource) -> Self {
+    GenerationResult { ast_or_source }
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -142,8 +148,33 @@ impl AstOrSource {
   }
 }
 
+impl From<ModuleAst> for AstOrSource {
+  fn from(ast: ModuleAst) -> Self {
+    AstOrSource::Ast(ast)
+  }
+}
+
+impl From<BoxSource> for AstOrSource {
+  fn from(source: BoxSource) -> Self {
+    AstOrSource::Source(source)
+  }
+}
+
+pub struct ParseContext<'a> {
+  pub source: &'a dyn Source,
+  pub module_type: &'a ModuleType,
+  pub resource_data: &'a ResourceData,
+  pub compiler_options: &'a CompilerOptions,
+}
+
+#[derive(Debug)]
+pub struct ParseResult {
+  pub dependencies: Vec<ModuleDependency>,
+  pub ast_or_source: AstOrSource,
+}
+
 pub trait ParserAndGenerator: Send + Sync + Debug {
-  fn parse(&self, source: &dyn Source) -> Result<AstOrSource>;
+  fn parse(&self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>>;
   fn generate(
     &self,
     requested_source_type: SourceType,
@@ -179,7 +210,7 @@ impl CodeGenerationResult {
     &self.inner
   }
 
-  pub fn code_generation_result(&self, source_type: SourceType) -> Option<&GenerationResult> {
+  pub fn get(&self, source_type: SourceType) -> Option<&GenerationResult> {
     self.inner.get(&source_type)
   }
 
@@ -187,6 +218,17 @@ impl CodeGenerationResult {
     let result = self.inner.insert(source_type, generation_result);
     debug_assert!(result.is_none());
   }
+}
+
+#[derive(Debug)]
+pub struct BuildResult {
+  pub dependencies: Vec<ModuleDependency>,
+}
+
+pub struct BuildContext<'a> {
+  pub loader_runner_runner: &'a LoaderRunnerRunner,
+  pub resolved_loaders: Vec<&'a dyn Loader<CompilerContext, CompilationContext>>,
+  pub compiler_options: &'a CompilerOptions,
 }
 
 impl NormalModule {
@@ -223,6 +265,18 @@ impl NormalModule {
     &self.source_types
   }
 
+  pub fn request(&self) -> &str {
+    &self.request
+  }
+
+  pub fn user_request(&self) -> &str {
+    &self.user_request
+  }
+
+  pub fn raw_request(&self) -> &str {
+    &self.raw_request
+  }
+
   pub fn identifier(&self) -> String {
     self.request.to_owned()
   }
@@ -255,11 +309,11 @@ impl NormalModule {
 
   pub async fn build(
     &mut self,
-    loader_runner_runner: &LoaderRunnerRunner,
-    resolved_loaders: impl IntoIterator<Item = &dyn Loader<CompilerContext, CompilationContext>>,
-  ) -> Result<()> {
-    let loader_result = loader_runner_runner
-      .run(self.resource_data.clone(), resolved_loaders)
+    build_context: BuildContext<'_>,
+  ) -> Result<TWithDiagnosticArray<BuildResult>> {
+    let loader_result = build_context
+      .loader_runner_runner
+      .run(self.resource_data.clone(), build_context.resolved_loaders)
       .await?;
 
     let original_source = self.create_source(
@@ -268,12 +322,29 @@ impl NormalModule {
       loader_result.source_map,
     )?;
 
-    let ast_or_source = self.parser_and_generator.parse(&original_source)?;
+    let (
+      ParseResult {
+        ast_or_source,
+        dependencies,
+      },
+      diagnostics,
+    ) = self
+      .parser_and_generator
+      .parse(ParseContext {
+        source: &original_source,
+        module_type: &self.module_type,
+        resource_data: &self.resource_data,
+        compiler_options: build_context.compiler_options,
+      })?
+      .split_into_parts();
 
     self.original_source = Some(original_source);
     self.ast_or_source = Some(ast_or_source);
 
-    Ok(())
+    Ok(IntoTWithDiagnosticArray::with_diagnostic(
+      BuildResult { dependencies },
+      diagnostics,
+    ))
   }
 
   pub fn code_generation(
@@ -301,11 +372,6 @@ impl NormalModule {
         "Failed to generate code because ast or source is not set".into(),
       ))
     }
-  }
-
-  // TODO: temporary workaround for dependency
-  pub fn dependencies(&self) -> Vec<ModuleDependency> {
-    vec![]
   }
 }
 
