@@ -173,7 +173,7 @@ impl From<BoxSource> for AstOrSource {
 }
 
 pub struct ParseContext<'a> {
-  pub source: &'a dyn Source,
+  pub source: Box<dyn Source>,
   pub module_type: &'a ModuleType,
   pub resource_data: &'a ResourceData,
   pub compiler_options: &'a CompilerOptions,
@@ -187,6 +187,7 @@ pub struct ParseResult {
 }
 
 pub trait ParserAndGenerator: Send + Sync + Debug {
+  fn source_types(&self) -> &[SourceType];
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>>;
   fn generate(
     &self,
@@ -203,7 +204,6 @@ pub struct NormalModule {
   user_request: String,
   raw_request: String,
   module_type: ModuleType,
-  source_types: Vec<SourceType>,
   parser_and_generator: Box<dyn ParserAndGenerator>,
   resource_data: ResourceData,
 
@@ -250,7 +250,6 @@ impl NormalModule {
     user_request: String,
     raw_request: String,
     module_type: impl Into<ModuleType>,
-    source_types: impl IntoIterator<Item = SourceType>,
     parser_and_generator: Box<dyn ParserAndGenerator>,
     resource_data: ResourceData,
   ) -> Self {
@@ -259,7 +258,6 @@ impl NormalModule {
       user_request,
       raw_request,
       module_type: module_type.into(),
-      source_types: source_types.into_iter().collect(),
       parser_and_generator,
       resource_data,
 
@@ -275,7 +273,7 @@ impl NormalModule {
 
   #[inline(always)]
   pub fn source_types(&self) -> &[SourceType] {
-    &self.source_types
+    self.parser_and_generator.source_types()
   }
 
   pub fn request(&self) -> &str {
@@ -316,10 +314,6 @@ impl NormalModule {
     self.ast_or_source.as_ref()
   }
 
-  pub fn update_source_types(&mut self, source_types: impl IntoIterator<Item = SourceType>) {
-    self.source_types = source_types.into_iter().collect();
-  }
-
   pub async fn build(
     &mut self,
     build_context: BuildContext<'_>,
@@ -344,7 +338,7 @@ impl NormalModule {
     ) = self
       .parser_and_generator
       .parse(ParseContext {
-        source: &original_source,
+        source: original_source.clone(),
         module_type: &self.module_type,
         resource_data: &self.resource_data,
         compiler_options: build_context.compiler_options,

@@ -59,7 +59,13 @@ impl JavaScriptParserAndGenerator {
   }
 }
 
+static SOURCE_TYPES: &[SourceType; 1] = &[SourceType::JavaScript];
+
 impl ParserAndGenerator for JavaScriptParserAndGenerator {
+  fn source_types(&self) -> &[SourceType] {
+    SOURCE_TYPES
+  }
+
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
     let ParseContext {
       source,

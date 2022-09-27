@@ -280,7 +280,6 @@ impl NormalModuleFactory {
       uri.clone(),
       self.dependency.detail.specifier.to_owned(),
       resolved_module_type,
-      vec![],
       resolved_parser_and_generator,
       resource_data.clone(),
     );

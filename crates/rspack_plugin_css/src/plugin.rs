@@ -76,7 +76,13 @@ impl CssParserAndGenerator {
   }
 }
 
+static SOURCE_TYPES: &[SourceType; 2] = &[SourceType::JavaScript, SourceType::Css];
+
 impl ParserAndGenerator for CssParserAndGenerator {
+  fn source_types(&self) -> &[SourceType] {
+    SOURCE_TYPES
+  }
+
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
     let ParseContext {
       source,
