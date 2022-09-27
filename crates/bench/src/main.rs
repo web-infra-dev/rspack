@@ -8,7 +8,7 @@ static GLOBAL: GlobalMiMalloc = GlobalMiMalloc;
 use rspack_test::read_test_config_and_normalize;
 #[tokio::main]
 async fn main() {
-  let manifest_dir = PathBuf::from(&std::env::var("PWD").unwrap());
+  let manifest_dir = PathBuf::from(&std::env::var("CARGO_WORKSPACE_DIR").unwrap());
   // let bundle_dir = manifest_dir.join("tests/fixtures/postcss/pxtorem");
   let bundle_dir: PathBuf = manifest_dir.join("benchcases/three");
   println!("{:?}", bundle_dir);
