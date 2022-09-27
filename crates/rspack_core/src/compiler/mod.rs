@@ -10,8 +10,6 @@ use crate::{
   CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule, NormalModuleFactory,
   NormalModuleFactoryContext, Plugin, PluginDriver, Stats, PATH_START_BYTE_POS_MAP,
 };
-use tracing::{span, Level};
-
 use anyhow::Context;
 use hashbrown::HashMap;
 use rayon::prelude::*;
@@ -100,10 +98,8 @@ impl Compiler {
     self.compile(deps).await?;
     self.stats()
   }
-
-  #[instrument(name = "compile")]
-  async fn compile(&mut self, deps: HashMap<String, Dependency>) -> Result<()> {
-    let make_span = span!(Level::TRACE, "make").entered();
+  #[instrument(name = "make")]
+  async fn make(&mut self, deps: HashMap<String, Dependency>) {
     let active_task_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
 
@@ -159,13 +155,12 @@ impl Compiler {
         }
       }
     }
-    make_span.exit();
     tracing::debug!("module graph {:#?}", self.compilation.module_graph);
-
-    // self.compilation.calc_exec_order();
-    let seal_span = span!(Level::TRACE, "seal").entered();
+  }
+  #[instrument(name = "compile")]
+  async fn compile(&mut self, deps: HashMap<String, Dependency>) -> Result<()> {
+    self.make(deps).await;
     self.compilation.seal(self.plugin_driver.clone()).await?;
-    seal_span.exit();
 
     // Consume plugin driver diagnostic
     let mut plugin_driver_diagnostics = self.plugin_driver.take_diagnostic();
