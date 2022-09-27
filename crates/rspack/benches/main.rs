@@ -16,6 +16,8 @@ async fn bench(cur_dir: &PathBuf) {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
+  dbg!(&num_cpus::get());
+  dbg!(&num_cpus::get_physical());
   let num_threads = std::env::var("WORKER_THREAD")
     .ok()
     .and_then(|num| num.parse::<usize>().ok())
