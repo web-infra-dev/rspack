@@ -35,7 +35,7 @@ pub fn enable_tracing_by_env_with_chrome_layer() -> Option<FlushGuard> {
   });
   if is_enable_tracing && !IS_TRACING_ENABLED.swap(true, std::sync::atomic::Ordering::SeqCst) {
     use tracing_chrome::ChromeLayerBuilder;
-    use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+    use tracing_subscriber::{prelude::*, EnvFilter};
 
     let (chrome_layer, guard) = ChromeLayerBuilder::new().build();
     // If we don't do this. chrome_layer will collect nothing.
