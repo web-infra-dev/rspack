@@ -162,6 +162,7 @@ version = "0.1.0"
 dependencies = [
  "mimalloc-rust",
  "rspack",
+ "rspack_core",
  "rspack_error",
  "rspack_test",
  "tokio",

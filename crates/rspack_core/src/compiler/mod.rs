@@ -10,7 +10,6 @@ use crate::{
   CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule, NormalModuleFactory,
   NormalModuleFactoryContext, Plugin, PluginDriver, Stats, PATH_START_BYTE_POS_MAP,
 };
-
 use anyhow::Context;
 use hashbrown::HashMap;
 use rayon::prelude::*;
@@ -27,6 +26,7 @@ mod resolver;
 pub use compilation::*;
 pub use resolver::*;
 
+#[derive(Debug)]
 pub struct Compiler {
   pub options: Arc<CompilerOptions>,
   pub compilation: Compilation,
@@ -98,11 +98,9 @@ impl Compiler {
     self.compile(deps).await?;
     self.stats()
   }
-
-  #[instrument(skip_all)]
-  async fn compile(&mut self, deps: HashMap<String, Dependency>) -> Result<()> {
+  #[instrument(name = "make")]
+  async fn make(&mut self, deps: HashMap<String, Dependency>) {
     let active_task_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
-
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
 
     deps.into_iter().for_each(|(name, dep)| {
@@ -157,11 +155,11 @@ impl Compiler {
         }
       }
     }
-
     tracing::debug!("module graph {:#?}", self.compilation.module_graph);
-
-    // self.compilation.calc_exec_order();
-
+  }
+  #[instrument(name = "compile")]
+  async fn compile(&mut self, deps: HashMap<String, Dependency>) -> Result<()> {
+    self.make(deps).await;
     self.compilation.seal(self.plugin_driver.clone()).await?;
 
     // Consume plugin driver diagnostic
