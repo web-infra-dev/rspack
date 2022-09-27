@@ -19,7 +19,7 @@ fn criterion_benchmark(c: &mut Criterion) {
   let num_threads = std::env::var("WORKER_THREAD")
     .ok()
     .and_then(|num| num.parse::<usize>().ok())
-    .unwrap_or(8);
+    .unwrap_or(4);
   dbg!(num_threads);
   rayon::ThreadPoolBuilder::new()
     .num_threads(num_threads)
