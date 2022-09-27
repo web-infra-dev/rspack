@@ -17,7 +17,7 @@ import { createLogger } from "./logger";
 import WebpackDevServer from "webpack-dev-server";
 import express from "express";
 import { rdm } from "@rspack/dev-middleware";
-import { createWebSocketServer } from "./ws";
+import { createWebsocketServer } from "./ws";
 
 interface Middleware {
 	name?: string;
@@ -33,8 +33,7 @@ type Port = number | string | "auto";
 
 // copy from webpack-dev-server
 export class RspackDevServer {
-	compiler: Rspack;
-	options: ResolvedRspackOptions["dev"];
+	options: ResolvedRspackOptions["devServer"];
 	logger: Logger;
 	staticWatchers: FSWatcher[];
 	sockets: Socket[];
@@ -43,16 +42,16 @@ export class RspackDevServer {
 	private listeners: Listener[];
 	private currentHash: string;
 	private middleware: RspackDevMiddleware | undefined;
-	// TODO: only support 'ws'
+	// TODO: now only support 'ws'
 	webSocketServer: WebSocketServer | undefined;
 
-	constructor(compiler: Rspack) {
+	constructor(public compiler: Rspack) {
 		this.logger = createLogger("rspack-dev-server");
 		this.staticWatchers = [];
 		this.listeners = [];
 		this.sockets = [];
 		this.currentHash = "";
-		this.options = compiler.options["dev"];
+		this.options = compiler.options["devServer"];
 	}
 
 	static isAbsoluteURL(URL: string): boolean {
@@ -130,7 +129,7 @@ export class RspackDevServer {
 
 	async start(): Promise<void> {
 		this.initialize();
-		this.setupWebSocketServer();
+		this.createWebsocketServer();
 		await new Promise(resolve =>
 			this.server.listen(
 				{
@@ -165,7 +164,11 @@ export class RspackDevServer {
 		if (this.server) {
 			this.server.close();
 		}
-		await this.webSocketServer.stop();
+		if (this.webSocketServer) {
+			await new Promise(resolve => {
+				this.webSocketServer;
+			});
+		}
 	}
 
 	private initialize() {
@@ -191,8 +194,10 @@ export class RspackDevServer {
 		this.middleware = rdm(this.compiler, this.options.devMiddleware);
 	}
 
-	private setupWebSocketServer() {
-		this.webSocketServer = createWebSocketServer(this.server, {});
+	private createWebsocketServer() {
+		if (this.options.webSocketServer !== false) {
+			this.webSocketServer = createWebsocketServer(this);
+		}
 	}
 
 	private setupMiddlewares() {

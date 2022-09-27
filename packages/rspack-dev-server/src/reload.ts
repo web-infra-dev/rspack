@@ -7,7 +7,7 @@ interface Status {
 }
 
 export function reloadApp(
-	{ liveReload, hmr }: ResolvedRspackOptions["dev"],
+	{ liveReload, hmr }: ResolvedRspackOptions["devServer"],
 	status: Status
 ) {
 	if (status.isUnloading) {
