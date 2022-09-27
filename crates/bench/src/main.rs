@@ -9,8 +9,7 @@ static GLOBAL: GlobalMiMalloc = GlobalMiMalloc;
 use rspack_test::read_test_config_and_normalize;
 #[tokio::main]
 async fn main() {
-  let guard = enable_tracing_by_env_with_chrome_layer();
-  let manifest_dir = PathBuf::from(&std::env::var("CARGO_WORKSPACE_DIR").unwrap());
+  let manifest_dir = PathBuf::from(env!("CARGO_WORKSPACE_DIR"));
   // let bundle_dir = manifest_dir.join("tests/fixtures/postcss/pxtorem");
   let bundle_dir: PathBuf = manifest_dir.join("benchcases/three");
   println!("{:?}", bundle_dir);
@@ -26,7 +25,4 @@ async fn main() {
     .await
     .unwrap_or_else(|e| panic!("{:?}, failed to compile in fixtrue {:?}", e, bundle_dir));
   println!("{:?}", start.elapsed());
-  if let Some(guard) = guard {
-    guard.flush();
-  }
 }
