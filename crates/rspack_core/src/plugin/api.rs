@@ -172,30 +172,30 @@ impl RenderManifestEntry {
   }
 }
 
-pub trait Parser: Debug + Sync + Send {
-  fn parse(
-    &self,
-    module_type: ModuleType,
-    args: ParseModuleArgs,
-  ) -> Result<TWithDiagnosticArray<BoxModule>>;
-}
+// pub trait Parser: Debug + Sync + Send {
+//   fn parse(
+//     &self,
+//     module_type: ModuleType,
+//     args: ParseModuleArgs,
+//   ) -> Result<TWithDiagnosticArray<BoxModule>>;
+// }
 
-pub type BoxedParser = Box<dyn Parser>;
+// pub type BoxedParser = Box<dyn Parser>;
 pub type BoxedParserAndGenerator = Box<dyn ParserAndGenerator>;
 pub type BoxedParserAndGeneratorBuilder =
   Box<dyn 'static + Send + Sync + Fn() -> BoxedParserAndGenerator>;
 
 #[derive(Default)]
 pub struct ApplyContext {
-  pub(crate) registered_parser: HashMap<ModuleType, BoxedParser>,
+  // pub(crate) registered_parser: HashMap<ModuleType, BoxedParser>,
   pub(crate) registered_parser_and_generator_builder:
     HashMap<ModuleType, BoxedParserAndGeneratorBuilder>,
 }
 
 impl ApplyContext {
-  pub fn register_parser(&mut self, module_type: ModuleType, parser: BoxedParser) {
-    self.registered_parser.insert(module_type, parser);
-  }
+  // pub fn register_parser(&mut self, module_type: ModuleType, parser: BoxedParser) {
+  //   self.registered_parser.insert(module_type, parser);
+  // }
 
   pub fn register_parser_and_generator_builder(
     &mut self,

@@ -6,34 +6,18 @@ use std::{
   },
 };
 
-use crate::{
-  BoxModule, BuildContext, Compilation, CompilationContext, CompilerContext, CompilerOptions,
-  FactorizeAndBuildArgs, LoaderResult, LoaderRunnerRunner, ModuleRule, NormalModule, ResourceData,
-};
-use rspack_error::{Diagnostic, Error, TWithDiagnosticArray};
-use rspack_loader_runner::Loader;
-use rspack_sources::{
-  BoxSource, OriginalSource, RawSource, SourceExt, SourceMap, SourceMapSource,
-  WithoutOriginalOptions,
-};
 use sugar_path::PathSugar;
 use swc_common::Span;
 use tokio::sync::mpsc::UnboundedSender;
 
+use rspack_error::{Diagnostic, Error, Result, TWithDiagnosticArray};
+use rspack_loader_runner::Loader;
+
 use crate::{
-  // load,
-  parse_to_url,
-  resolve,
-  Content,
-  ModuleGraphModule,
-  ModuleType,
-  Msg,
-  ParseModuleArgs,
-  PluginDriver,
-  ResolveArgs,
-  VisitedModuleIdentity,
+  parse_to_url, resolve, BuildContext, CompilationContext, CompilerContext, CompilerOptions,
+  FactorizeAndBuildArgs, LoaderRunnerRunner, ModuleGraphModule, ModuleRule, ModuleType, Msg,
+  NormalModule, PluginDriver, ResolveArgs, ResourceData, VisitedModuleIdentity,
 };
-use rspack_error::Result;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct Dependency {
@@ -188,75 +172,6 @@ impl NormalModuleFactory {
       resource_fragment: url.fragment().map(|f| f.to_string()),
     };
 
-    // TODO: this should be added to NormalModule build
-    // let runner_result = if uri.starts_with("UnReachable:") {
-    //   LoaderResult {
-    //     content: Content::Buffer("module.exports = {}".to_string().as_bytes().to_vec()),
-    //     source_map: None,
-    //     meta: None,
-    //   }
-    // } else {
-    //   let (resolved_loaders, resolved_module_type) = self.calculate_loaders(&resource_data)?;
-
-    //   let resolved_parser_and_generator = self
-    //     .plugin_driver
-    //     .registered_parser_and_generator_builder
-    //     .get(&resolved_module_type)
-    //     .ok_or_else(|| {
-    //       Error::InternalError(format!(
-    //         "No parser and generator builder for module type {:?}",
-    //         resolved_module_type
-    //       ))
-    //     })?();
-
-    //   self.context.module_type = Some(resolved_module_type);
-
-    //   let normal_module = NormalModule::new(
-    //     uri.clone(),
-    //     uri.clone(),
-    //     self.dependency.detail.specifier.to_owned(),
-    //     resolved_module_type,
-    //     vec![],
-    //     resolved_parser_and_generator,
-    //     resource_data,
-    //   );
-
-    //   // let (runner_result, resolved_module_type) =
-    //   //   self.loader_runner_runner.run(resource_data).await?;
-
-    //   if self.context.module_type.is_none() {
-    //     // todo currently unreachable module types are temporarily unified with their importers
-    //     let url = parse_to_url(if uri.starts_with("UnReachable:") {
-    //       self.dependency.importer.as_deref().unwrap()
-    //     } else {
-    //       &uri
-    //     });
-    //     debug_assert_eq!(url.scheme().unwrap().as_str(), "specifier");
-    //     // TODO: remove default module type resolution based on the file extension.
-    //     self.context.module_type = resolve_module_type_by_uri(PathBuf::from(url.path().as_str()));
-    //   }
-
-    //   runner_result
-    // };
-
-    // tracing::trace!(
-    //   "load ({:?}) source {:?}",
-    //   self.context.module_type,
-    //   runner_result
-    // );
-    // let source = self.create_source(&uri, runner_result.content, runner_result.source_map)?;
-    // let module = self.plugin_driver.parse(
-    //   ParseModuleArgs {
-    //     uri: uri.as_str(),
-    //     meta: runner_result.meta,
-    //     options: self.context.options.clone(),
-    //     source,
-    //     // ast: transform_result.ast.map(|x| x.into()),
-    //   },
-    //   &mut self.context,
-    // )?;
-    // tracing::trace!("parsed module {:?}", module);
-
     let resolved_module_type =
       self.calculate_module_type(&resource_data, self.context.module_type)?;
 
@@ -271,7 +186,7 @@ impl NormalModuleFactory {
         ))
       })?();
 
-    self.context.module_type = Some(resolved_module_type.clone());
+    self.context.module_type = Some(resolved_module_type);
 
     let normal_module = NormalModule::new(
       uri.clone(),
@@ -285,31 +200,6 @@ impl NormalModuleFactory {
     Ok(Some((uri, normal_module)))
   }
 
-  // fn create_source(
-  //   &self,
-  //   uri: &str,
-  //   content: Content,
-  //   source_map: Option<SourceMap>,
-  // ) -> Result<BoxSource> {
-  //   match (self.context.options.devtool, content, source_map) {
-  //     (true, content, Some(map)) => {
-  //       let content = content.try_into_string()?;
-  //       Ok(
-  //         SourceMapSource::new(WithoutOriginalOptions {
-  //           value: content,
-  //           name: uri,
-  //           source_map: map,
-  //         })
-  //         .boxed(),
-  //       )
-  //     }
-  //     (true, Content::String(content), None) => Ok(OriginalSource::new(content, uri).boxed()),
-  //     (true, Content::Buffer(content), None) => Ok(RawSource::from(content).boxed()),
-  //     (_, Content::String(content), _) => Ok(RawSource::from(content).boxed()),
-  //     (_, Content::Buffer(content), _) => Ok(RawSource::from(content).boxed()),
-  //   }
-  // }
-
   pub fn calculate_loaders(
     &self,
     resource_data: &ResourceData,
@@ -322,7 +212,7 @@ impl NormalModuleFactory {
       .iter()
       .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
         if let Some(func) = &module_rule.func__ {
-          match func(&resource_data) {
+          match func(resource_data) {
             Ok(result) => {
               if result {
                 return Some(Ok(module_rule));
@@ -361,6 +251,7 @@ impl NormalModuleFactory {
     Ok(resolved_loaders)
   }
 
+  // FIXME: this function is duplicated with the above one, will be fixed later.
   pub fn calculate_module_type(
     &self,
     resource_data: &ResourceData,
@@ -381,7 +272,7 @@ impl NormalModuleFactory {
       .iter()
       .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
         if let Some(func) = &module_rule.func__ {
-          match func(&resource_data) {
+          match func(resource_data) {
             Ok(result) => {
               if result {
                 return Some(Ok(module_rule));
@@ -419,19 +310,17 @@ impl NormalModuleFactory {
 
       });
 
-    Ok(
-      resolved_module_type.ok_or_else(|| {
+    resolved_module_type.ok_or_else(|| {
         Error::InternalError(format!(
           "Unable to determine the module type of {}. Make sure to specify the `type` property in the module rule.",
           resource_data.resource
         ))
-      })?,
+      },
     )
   }
 
   pub async fn resolve_module(&mut self) -> Result<Option<ModuleGraphModule>> {
-    // TODO: add it back
-    // TODO: caching in resolve
+    // TODO: caching in resolve, align to webpack's external module
     // Here is the corresponding create function in webpack, but instead of using hooks we use procedural functions
     let (uri, mut module) = if let Some(module) = self.plugin_driver.factorize_and_build(
       FactorizeAndBuildArgs {

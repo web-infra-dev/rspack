@@ -12,12 +12,6 @@ use rspack_core::{
   RenderManifestArgs, RenderManifestEntry, SourceType,
 };
 
-mod asset;
-mod asset_source;
-
-// use asset::AssetParser;
-// use asset_source::AssetSourceParser;
-
 #[derive(Debug)]
 pub struct AssetConfig {
   pub parse_options: Option<AssetParserOptions>,
@@ -150,6 +144,8 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     )
   }
 
+  // Safety: `original_source` and `ast_and_source` are available in code generation.
+  #[allow(clippy::unwrap_in_result)]
   fn generate(
     &self,
     requested_source_type: SourceType,
@@ -218,9 +214,9 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       }),
       SourceType::Asset => {
         if parsed_asset_config.is_source() || parsed_asset_config.is_inline() {
-          Err(Error::InternalError(format!(
-            "Inline or Source asset does not have source type `asset`"
-          )))
+          Err(Error::InternalError(
+            "Inline or Source asset does not have source type `asset`".to_string(),
+          ))
         } else {
           // Safety: This is safe because we returned the source in parser.
           Ok(GenerationResult {

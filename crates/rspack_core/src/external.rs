@@ -3,7 +3,7 @@ use rspack_sources::{RawSource, SourceExt};
 
 use crate::{
   ApplyContext, ExternalType, FactorizeAndBuildArgs, ModuleType, NormalModule,
-  NormalModuleFactoryContext, ParseModuleArgs, ParserAndGenerator, Plugin, PluginContext,
+  NormalModuleFactoryContext, ParserAndGenerator, Plugin, PluginContext,
   PluginFactorizeAndBuildHookOutput, SourceType, Target, TargetPlatform,
 };
 
@@ -24,7 +24,7 @@ impl ParserAndGenerator for ExternalParserAndGenerator {
 
   fn parse(
     &mut self,
-    parse_context: crate::ParseContext,
+    _parse_context: crate::ParseContext,
   ) -> rspack_error::Result<rspack_error::TWithDiagnosticArray<crate::ParseResult>> {
     Ok(
       crate::ParseResult {
@@ -58,14 +58,14 @@ impl ParserAndGenerator for ExternalParserAndGenerator {
 
   fn generate(
     &self,
-    requested_source_type: crate::SourceType,
+    _requested_source_type: crate::SourceType,
     ast_or_source: &crate::AstOrSource,
-    module: &crate::ModuleGraphModule,
-    compilation: &crate::Compilation,
+    _module: &crate::ModuleGraphModule,
+    _compilation: &crate::Compilation,
   ) -> rspack_error::Result<crate::GenerationResult> {
     Ok(crate::GenerationResult {
       // Safety: We know this value comes from parser, so it is safe here.
-      ast_or_source: ast_or_source.to_owned().try_into_source().unwrap().into(),
+      ast_or_source: ast_or_source.to_owned().try_into_source()?.into(),
     })
   }
 }
@@ -118,32 +118,6 @@ impl Plugin for ExternalPlugin {
 
             normal_module.set_skip_build(true);
 
-            // let module = args.plugin_driver.parse(
-            //   ParseModuleArgs {
-            //     uri: specifier,
-            //     meta: None,
-            //     options: job_ctx.options.clone(),
-            //     source: RawSource::from(match external_type {
-            //       ExternalType::NodeCommonjs => {
-            //         format!(r#"module.exports = require("{}")"#, value)
-            //       }
-            //       ExternalType::Window => {
-            //         format!("module.exports = window.{}", value)
-            //       }
-            //       ExternalType::Auto => match target.platform {
-            //         TargetPlatform::BrowsersList
-            //         | TargetPlatform::Web
-            //         | TargetPlatform::WebWorker
-            //         | TargetPlatform::None => format!("module.exports = {}", value),
-            //         TargetPlatform::Node(_) => {
-            //           format!(r#"module.exports = __rspack_require__.nr("{}")"#, value)
-            //         }
-            //       },
-            //     })
-            //     .boxed(),
-            //   },
-            //   job_ctx,
-            // )?;
             tracing::trace!("parsed module {:?}", normal_module);
             return Ok(Some((specifier.to_string(), normal_module)));
           }

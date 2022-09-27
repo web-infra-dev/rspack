@@ -1,11 +1,11 @@
 use std::hash::{Hash, Hasher};
 
-use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
-use rspack_sources::{BoxSource, Source};
+// use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
+// use rspack_error::Result;
+use rspack_sources::Source;
 use xxhash_rust::xxh3::Xxh3;
 
-use crate::{Compilation, ModuleGraph, SourceType, Ukey};
-use rspack_error::Result;
+// use crate::{Compilation, ModuleGraph, SourceType, Ukey};
 
 pub fn get_contenthash<T: Source + Hash>(source: &T) -> u64 {
   let mut xxh3 = Xxh3::new();
@@ -66,12 +66,12 @@ pub fn get_contenthash<T: Source + Hash>(source: &T) -> u64 {
 //   get_modules_hash(all_modules.as_ref().unwrap())
 // }
 
-fn get_modules_hash(sources: &[Option<BoxSource>]) -> u64 {
-  let mut xxh3 = Xxh3::new();
+// fn get_modules_hash(sources: &[Option<BoxSource>]) -> u64 {
+//   let mut xxh3 = Xxh3::new();
 
-  for source in sources.iter().flatten() {
-    source.hash(&mut xxh3);
-  }
+//   for source in sources.iter().flatten() {
+//     source.hash(&mut xxh3);
+//   }
 
-  xxh3.finish()
-}
+//   xxh3.finish()
+// }

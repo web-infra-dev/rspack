@@ -5,7 +5,7 @@ use rspack_sources::{
   WithoutOriginalOptions,
 };
 
-use std::{collections::HashMap, fmt::Debug, sync::Arc};
+use std::{collections::HashMap, fmt::Debug};
 
 use crate::{
   Compilation, CompilationContext, CompilerContext, CompilerOptions, Dependency,
@@ -312,15 +312,13 @@ impl NormalModule {
   pub fn source(&self) -> Option<&dyn Source> {
     self
       .ast_or_source()
-      .map(|ast_or_source| ast_or_source.as_source().map(|source| source.as_ref()))
-      .flatten()
+      .and_then(|ast_or_source| ast_or_source.as_source().map(|source| source.as_ref()))
   }
 
   pub fn ast(&self) -> Option<&ModuleAst> {
     self
       .ast_or_source()
-      .map(|ast_or_source| ast_or_source.as_ast())
-      .flatten()
+      .and_then(|ast_or_source| ast_or_source.as_ast())
   }
 
   pub fn ast_or_source(&self) -> Option<&AstOrSource> {

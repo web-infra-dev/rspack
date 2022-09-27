@@ -7,10 +7,7 @@ pub use rspack_loader_runner::{
   ResourceData,
 };
 
-use crate::{
-  CompilerOptions, LoaderRunnerPluginProcessResource, ModuleRule, ModuleType, PluginDriver,
-  ResolverFactory,
-};
+use crate::{CompilerOptions, LoaderRunnerPluginProcessResource, PluginDriver, ResolverFactory};
 
 #[derive(Debug)]
 pub struct CompilerContext {
@@ -28,8 +25,6 @@ pub struct LoaderRunnerRunner {
   pub plugin_driver: Arc<PluginDriver>,
   pub compiler_context: CompilerContext,
 }
-
-type ResolvedModuleType = Option<ModuleType>;
 
 impl LoaderRunnerRunner {
   pub fn new(
@@ -54,74 +49,19 @@ impl LoaderRunnerRunner {
     resource_data: ResourceData,
     loaders: impl IntoIterator<Item = &dyn Loader<CompilerContext, CompilationContext>>,
   ) -> Result<LoaderResult> {
-    // Progressive module type resolution:
-    // Stage 1: maintain the resolution logic via file extension
-    // TODO: Stage 2:
-    //           1. remove all extension based module type resolution, and let `module.rules[number].type` to handle this(everything is based on its config)
-    //           2. set default module type to `Js`, it equals to `javascript/auto` in webpack.
-    // let mut resolved_module_type: ResolvedModuleType = None;
-
-    // let loaders = self
-    //   .options
-    //   .module
-    //   .rules
-    //   .iter()
-    //   .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
-    //     if let Some(func) = &module_rule.func__ {
-    //       match func(&resource_data) {
-    //         Ok(result) => {
-    //           if result {
-    //             return Some(Ok(module_rule));
-    //           }
-
-    //           return None
-    //         },
-    //         Err(e) => {
-    //           return Some(Err(e.into()))
-    //         }
-    //       }
-    //     }
-
-    //     // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
-    //     // See: https://webpack.js.org/configuration/module/#ruletest
-    //     if let Some(test_rule) = &module_rule.test && test_rule.is_match(&resource_data.resource) {
-    //       return Some(Ok(module_rule));
-    //     } else if let Some(resource_rule) = &module_rule.resource && resource_rule.is_match(&resource_data.resource) {
-    //       return Some(Ok(module_rule));
-    //     }
-
-    //     if let Some(resource_query_rule) = &module_rule.resource_query && let Some(resource_query) = &resource_data.resource_query && resource_query_rule.is_match(resource_query) {
-    //       return Some(Ok(module_rule));
-    //     }
-
-    //     None
-    //   })
-    //   .collect::<Result<Vec<_>>>()?
-    //   .into_iter()
-    //   .flat_map(|module_rule| {
-    //     if module_rule.module_type.is_some() {
-    //       resolved_module_type = module_rule.module_type;
-    //     };
-
-    //     module_rule.uses.iter().map(Box::as_ref).rev()
-    //   })
-    //   .collect::<Vec<_>>();
-
-    Ok(
-      LoaderRunner::new(
-        resource_data,
-        vec![Box::new(LoaderRunnerPluginProcessResource::new(
-          self.plugin_driver.clone(),
-        ))],
-      )
-      .run(
-        loaders.into_iter().collect::<Vec<_>>(),
-        &LoaderRunnerAdditionalContext {
-          compiler: &self.compiler_context,
-          compilation: &(),
-        },
-      )
-      .await?,
+    LoaderRunner::new(
+      resource_data,
+      vec![Box::new(LoaderRunnerPluginProcessResource::new(
+        self.plugin_driver.clone(),
+      ))],
     )
+    .run(
+      loaders.into_iter().collect::<Vec<_>>(),
+      &LoaderRunnerAdditionalContext {
+        compiler: &self.compiler_context,
+        compilation: &(),
+      },
+    )
+    .await
   }
 }

@@ -1,31 +1,26 @@
-// mod js_module;
-// pub use js_module::*;
-
-use crate::{
-  module::{CssModule, CSS_MODULE_SOURCE_TYPE_LIST},
-  pxtorem::{option::PxToRemOption, px_to_rem::px_to_rem},
-  visitors::DependencyScanner,
-  SWC_COMPILER,
-};
-
-// use anyhow::{Context, Result};
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
+
+use swc_css::visit::VisitMutWith;
+use swc_css_prefixer::{options::Options, prefixer};
+
 use rspack_core::{
   get_contenthash,
   rspack_sources::{
     CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
     SourceMapSource, SourceMapSourceOptions,
   },
-  AstOrSource, BoxModule, ChunkKind, FilenameRenderOptions, GenerationResult, ModuleAst,
-  ModuleType, ParseContext, ParseModuleArgs, ParseResult, Parser, ParserAndGenerator, Plugin,
-  RenderManifestEntry, SourceType,
+  ChunkKind, FilenameRenderOptions, GenerationResult, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, Plugin, RenderManifestEntry, SourceType,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 
-use swc_css::visit::VisitMutWith;
+use crate::{
+  pxtorem::{option::PxToRemOption, px_to_rem::px_to_rem},
+  visitors::DependencyScanner,
+  SWC_COMPILER,
+};
 
-use swc_css_prefixer::{options::Options, prefixer};
 #[derive(Debug, Default)]
 pub struct CssPlugin {
   config: CssConfig,
@@ -48,20 +43,18 @@ impl CssPlugin {
   }
 }
 
+pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
+  &[SourceType::JavaScript, SourceType::Css];
+
 #[derive(Debug)]
 pub struct CssParserAndGenerator {
   config: CssConfig,
-  source_type_list: &'static [SourceType; 2],
   meta: Option<String>,
 }
 
 impl CssParserAndGenerator {
   pub fn new(config: CssConfig) -> Self {
-    Self {
-      config,
-      source_type_list: CSS_MODULE_SOURCE_TYPE_LIST,
-      meta: None,
-    }
+    Self { config, meta: None }
   }
 
   pub fn get_query(&self) -> Option<Query> {
@@ -76,21 +69,13 @@ impl CssParserAndGenerator {
   }
 }
 
-static SOURCE_TYPES: &[SourceType; 2] = &[SourceType::JavaScript, SourceType::Css];
-
 impl ParserAndGenerator for CssParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
-    SOURCE_TYPES
+    CSS_MODULE_SOURCE_TYPE_LIST
   }
 
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
-    let ParseContext {
-      source,
-      module_type,
-      resource_data,
-      compiler_options,
-      meta,
-    } = parse_context;
+    let ParseContext { source, meta, .. } = parse_context;
 
     let content = source.source().to_string();
     let TWithDiagnosticArray {
@@ -108,7 +93,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
       stylesheet.visit_mut_with(&mut px_to_rem(config));
     }
 
-    self.source_type_list = CSS_MODULE_SOURCE_TYPE_LIST;
     self.meta = meta.and_then(|data| if data.is_empty() { None } else { Some(data) });
 
     let mut scanner = DependencyScanner::default();
@@ -123,6 +107,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     )
   }
 
+  #[allow(clippy::unwrap_in_result)]
   fn generate(
     &self,
     requested_source_type: SourceType,
@@ -135,6 +120,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       SourceType::Css => {
         let (code, source_map) = SWC_COMPILER.codegen(
           ast_or_source.as_ast().unwrap().as_css().unwrap(),
+          // Safety: original source exists in code generation
           compilation
             .options
             .devtool
@@ -146,7 +132,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
             name: mgm.module.request().to_string(),
             source_map: SourceMap::from_slice(&source_map)
               .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
+            // Safety: original source exists in code generation
             original_source: Some(mgm.module.original_source().unwrap().source().to_string()),
+            // Safety: original source exists in code generation
             inner_source_map: mgm
               .module
               .original_source()
@@ -192,17 +180,10 @@ impl Plugin for CssPlugin {
     &mut self,
     ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
   ) -> Result<()> {
-    ctx.context.register_parser(
-      ModuleType::Css,
-      Box::new(CssParser {
-        config: self.config.clone(),
-      }),
-    );
     let config = self.config.clone();
     let builder = move || {
       Box::new(CssParserAndGenerator {
         config: config.clone(),
-        source_type_list: CSS_MODULE_SOURCE_TYPE_LIST,
         meta: None,
       }) as Box<dyn ParserAndGenerator>
     };
@@ -398,58 +379,5 @@ impl Plugin for CssPlugin {
 
       Ok(vec![RenderManifestEntry::new(source.boxed(), output_path)])
     }
-  }
-}
-
-#[derive(Debug)]
-struct CssParser {
-  config: CssConfig,
-}
-
-impl CssParser {
-  pub fn get_query(&self) -> Option<Query> {
-    // TODO: figure out if the prefixer visitMut is stateless
-    // I need to clone the preset_env every time, due to I don't know if it is stateless
-    // If it is true, I reduce this clone
-    if !self.config.preset_env.is_empty() {
-      Some(Query::Multiple(self.config.preset_env.clone()))
-    } else {
-      None
-    }
-  }
-}
-
-impl Parser for CssParser {
-  fn parse(
-    &self,
-    _module_type: ModuleType,
-    args: ParseModuleArgs,
-  ) -> Result<TWithDiagnosticArray<BoxModule>> {
-    let content = args.source.source().to_string();
-    let TWithDiagnosticArray {
-      inner: mut stylesheet,
-      diagnostic,
-    } = SWC_COMPILER.parse_file(args.uri, content)?;
-
-    if let Some(query) = self.get_query() {
-      stylesheet.visit_mut_with(&mut prefixer(Options {
-        env: Some(Targets::Query(query)),
-      }));
-    }
-
-    if let Some(config) = self.config.postcss.pxtorem.clone() {
-      stylesheet.visit_mut_with(&mut px_to_rem(config));
-    }
-
-    let module: BoxModule = Box::new(CssModule {
-      ast: stylesheet,
-      loaded_source: args.source,
-      source_type_list: CSS_MODULE_SOURCE_TYPE_LIST,
-      meta: args
-        .meta
-        .and_then(|data| if data.is_empty() { None } else { Some(data) }),
-    });
-
-    Ok(module.with_diagnostic(diagnostic))
   }
 }
