@@ -371,8 +371,6 @@ impl NormalModuleFactory {
       })
       .collect::<Vec<_>>();
 
-    println!("{:#?}", deps);
-
     tracing::trace!("get deps {:?}", deps);
     deps.iter().for_each(|dep| {
       self.fork(dep.clone());
