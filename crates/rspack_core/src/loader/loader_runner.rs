@@ -20,6 +20,7 @@ pub type CompilationContext = ();
 
 pub type BoxedLoader = rspack_loader_runner::BoxedLoader<CompilerContext, CompilationContext>;
 
+#[derive(Debug)]
 pub struct LoaderRunnerRunner {
   pub options: Arc<CompilerOptions>,
   pub plugin_driver: Arc<PluginDriver>,

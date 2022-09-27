@@ -42,7 +42,6 @@ pub fn enable_tracing_by_env_with_chrome_layer() -> Option<FlushGuard> {
     // std::mem::forget(guard);
     tracing_subscriber::registry()
       .with(chrome_layer)
-      .with(fmt::layer().pretty().with_file(false))
       .with(
         tracing_subscriber::filter::Targets::new().with_targets(vec![
           ("rspack_core", Level::TRACE),
