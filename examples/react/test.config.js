@@ -4,11 +4,14 @@ module.exports = {
     main : './src/index.js',
   },
   output : {
-    publicPath : 'http://localhost:3000',
-    filename: '[name].[contenthash:8][ext]',
+    // publicPath : 'http://localhost:3000',
+    // filename: '[name].[contenthash:8][ext]',
   },
   define : {
     'process.env.NODE_ENV' : 'development',
+  },
+  devServer: {
+    webSocketServer: true
   },
   module : {
     rules : [{test : '.less',type : 'css',}],
@@ -21,6 +24,8 @@ module.exports = {
     },
   },
   builtins : {
-    html : [{}],
+    html : [{
+      template: './index.html'
+    }],
   },
 };

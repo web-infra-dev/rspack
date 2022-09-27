@@ -2,6 +2,14 @@ import type { WatchOptions } from "chokidar";
 import path from "node:path";
 import { resolveWatchOption } from "./watch";
 
+export interface WebSocketServerOptions {
+	protocol?: string;
+	host?: string;
+	port?: number;
+	prefix?: string;
+	path?: string;
+}
+
 export interface Dev {
 	port?: number;
 	// TODO: static maybe `boolean`, `string`, `object`, `array`
@@ -13,6 +21,8 @@ export interface Dev {
 	hmr?: boolean;
 	open?: boolean;
 	liveReload?: boolean;
+	// TODO: only support ws.
+	webSocketServer?: boolean | WebSocketServerOptions;
 }
 
 export interface ResolvedDev {
@@ -25,6 +35,7 @@ export interface ResolvedDev {
 	hmr: boolean;
 	open: boolean;
 	liveReload: boolean;
+	webSocketServer: false | WebSocketServerOptions;
 }
 
 export function getAdditionDevEntry() {
@@ -48,6 +59,7 @@ export function resolveDevOptions(
 	// --- static
 	const directory =
 		devConfig.static?.directory ?? path.resolve(context.context, "dist");
+	// TODO: default should not false
 	let watch: false | WatchOptions = false;
 	if (devConfig.static?.watch === true) {
 		watch = resolveWatchOption({});
@@ -57,6 +69,15 @@ export function resolveDevOptions(
 	// ---
 	const devMiddleware = devConfig.devMiddleware ?? {};
 	const liveReload = devConfig.liveReload ?? true;
+
+	// TODO: default should not false
+	let webSocketServer: false | WebSocketServerOptions = false;
+	if (devConfig.webSocketServer === true) {
+		webSocketServer = {};
+	} else if (devConfig.webSocketServer) {
+		webSocketServer = devConfig.webSocketServer;
+	}
+
 	return {
 		port,
 		static: {
@@ -66,6 +87,7 @@ export function resolveDevOptions(
 		devMiddleware,
 		open,
 		hmr,
-		liveReload
+		liveReload,
+		webSocketServer
 	};
 }

@@ -13,7 +13,7 @@ const COLOR = {
 };
 
 export function createLogger(name: string): Logger {
-	if (name.length) {
+	if (!name.length) {
 		throw Error();
 	}
 	return {
