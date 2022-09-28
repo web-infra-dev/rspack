@@ -3,7 +3,7 @@ use std::str::FromStr;
 use bitflags::bitflags;
 
 bitflags! {
-  struct DevtoolFlags: u32 {
+  struct DevtoolFlags: u8 {
     const SOURCE_MAP = 0b00000001;
     const CHEAP = 0b00000010;
     const INLINE = 0b00000100;

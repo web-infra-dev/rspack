@@ -4,9 +4,10 @@ use pathdiff::diff_paths;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
-  rspack_sources::{ConcatSource, MapOptions, RawSource, SourceExt, SourceMap},
+  rspack_sources::{ConcatSource, MapOptions, RawSource, SourceExt},
   Plugin, PluginContext, PluginProcessAssetsOutput, ProcessAssetsArgs,
 };
+use rspack_error::Result;
 use tracing::instrument;
 
 static IS_CSS_FILE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\.css($|\?)").unwrap());
@@ -63,40 +64,44 @@ impl Plugin for DevtoolPlugin {
     if !args.compilation.options.devtool.source_map() {
       return Ok(());
     }
-    let maps: HashMap<String, SourceMap> = args
+    let maps: HashMap<String, Vec<u8>> = args
       .compilation
       .assets
       .par_iter()
       .filter_map(|(filename, asset)| {
-        asset
-          .map(&MapOptions::new(self.columns))
-          .map(|source_map| (filename.to_owned(), source_map))
+        asset.map(&MapOptions::new(self.columns)).map(|mut map| {
+          map.set_file(Some(filename.clone()));
+          for source in map.sources_mut() {
+            let uri = if source.starts_with('<') && source.ends_with('>') {
+              &source[1..source.len() - 1] // remove '<' and '>' for swc FileName::Custom
+            } else {
+              &source[..]
+            };
+            let resource_path =
+              if let Some(relative_path) = diff_paths(uri, &args.compilation.options.context) {
+                relative_path.to_string_lossy().to_string()
+              } else {
+                uri.to_owned()
+              };
+            *source = self
+              .module_filename_template
+              .replace("[namespace]", &self.namespace)
+              .replace("[resourcePath]", &resource_path);
+          }
+          if self.no_sources {
+            for content in map.sources_content_mut() {
+              *content = String::default();
+            }
+          }
+          let mut map_buffer = Vec::new();
+          map
+            .to_writer(&mut map_buffer)
+            .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?;
+          Ok((filename.to_owned(), map_buffer))
+        })
       })
-      .collect();
-    for (filename, mut map) in maps {
-      map.set_file(Some(filename.clone()));
-      for source in map.sources_mut() {
-        let uri = if source.starts_with('<') && source.ends_with('>') {
-          &source[1..source.len() - 1] // remove '<' and '>' for swc FileName::Custom
-        } else {
-          &source[..]
-        };
-        let resource_path =
-          if let Some(relative_path) = diff_paths(uri, &args.compilation.options.context) {
-            relative_path.to_string_lossy().to_string()
-          } else {
-            uri.to_owned()
-          };
-        *source = self
-          .module_filename_template
-          .replace("[namespace]", &self.namespace)
-          .replace("[resourcePath]", &resource_path);
-      }
-      if self.no_sources {
-        for content in map.sources_content_mut() {
-          *content = String::default();
-        }
-      }
+      .collect::<Result<_>>()?;
+    for (filename, map_buffer) in maps {
       let current_source_mapping_url_comment =
         self.source_mapping_url_comment.as_ref().map(|comment| {
           if IS_CSS_FILE.is_match(&filename) {
@@ -105,10 +110,6 @@ impl Plugin for DevtoolPlugin {
             format!("\n//{}", comment)
           }
         });
-      let mut map_buffer = Vec::new();
-      map
-        .to_writer(&mut map_buffer)
-        .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?;
       if self.inline {
         let current_source_mapping_url_comment = current_source_mapping_url_comment
           .expect("DevToolPlugin: append can't be false when inline is true.");
