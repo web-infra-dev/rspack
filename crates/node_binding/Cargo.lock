@@ -1988,7 +1988,10 @@ name = "rspack_plugin_devtool"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "base64",
+ "once_cell",
  "pathdiff",
+ "regex",
  "rspack_core",
  "rspack_error",
  "tracing",

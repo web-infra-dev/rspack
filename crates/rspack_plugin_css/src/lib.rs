@@ -6,8 +6,7 @@ pub mod visitors;
 
 use once_cell::sync::Lazy;
 
-use rspack_core::rspack_sources::Source;
-use rspack_core::{ErrorSpan, PATH_START_BYTE_POS_MAP};
+use rspack_core::{Compilation, ErrorSpan, PATH_START_BYTE_POS_MAP};
 use rspack_error::{
   Diagnostic, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
@@ -66,10 +65,10 @@ impl SwcCssCompiler {
   pub fn codegen(
     &self,
     ast: &Stylesheet,
-    original_source: Option<&dyn Source>,
+    compilation: &Compilation,
   ) -> Result<(String, Option<Vec<u8>>)> {
     let mut output = String::new();
-    let mut src_map_buf = original_source.is_some().then(Vec::new);
+    let mut src_map_buf: Option<Vec<_>> = compilation.options.devtool.source_map().then(Vec::new);
     let wr = BasicCssWriter::new(
       &mut output,
       src_map_buf.as_mut(),
@@ -82,7 +81,14 @@ impl SwcCssCompiler {
       .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?;
 
     if let Some(src_map_buf) = &mut src_map_buf {
-      let map = CM.build_source_map_with_config(src_map_buf, None, SwcCssSourceMapGenConfig);
+      let map = CM.build_source_map_with_config(
+        src_map_buf,
+        None,
+        SwcCssSourceMapGenConfig {
+          emit_columns: !compilation.options.devtool.cheap(),
+          inline_sources_content: !compilation.options.devtool.no_sources(),
+        },
+      );
       let mut raw_map = Vec::new();
       map
         .to_writer(&mut raw_map)
@@ -94,7 +100,10 @@ impl SwcCssCompiler {
   }
 }
 
-struct SwcCssSourceMapGenConfig;
+struct SwcCssSourceMapGenConfig {
+  emit_columns: bool,
+  inline_sources_content: bool,
+}
 
 impl SourceMapGenConfig for SwcCssSourceMapGenConfig {
   fn file_name_to_source(&self, f: &FileName) -> String {
@@ -107,7 +116,11 @@ impl SourceMapGenConfig for SwcCssSourceMapGenConfig {
   }
 
   fn inline_sources_content(&self, _: &FileName) -> bool {
-    true
+    self.inline_sources_content
+  }
+
+  fn emit_columns(&self, _f: &FileName) -> bool {
+    self.emit_columns
   }
 }
 

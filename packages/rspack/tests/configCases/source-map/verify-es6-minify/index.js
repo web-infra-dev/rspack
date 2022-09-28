@@ -6,7 +6,7 @@ try {
 	// ignore
 }
 
-it("verify es6 (esmodule) bundle source map", async () => {
+it("verify es6 (esmodule) minify bundle source map", async () => {
 	const fs = require("fs");
 	const source = fs.readFileSync(__filename + ".map", "utf-8");
 	const map = JSON.parse(source);

@@ -1,3 +1,3 @@
 module.exports = {
-	devtool: true
+	devtool: "source-map"
 };

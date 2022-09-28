@@ -2323,7 +2323,10 @@ name = "rspack_plugin_devtool"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "base64",
+ "once_cell",
  "pathdiff",
+ "regex",
  "rspack_core",
  "rspack_error",
  "rspack_test",
@@ -2415,9 +2418,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.1.5"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fbaea73ceecb2af34c2f3ec7f05ab88904cefdc7bd3c762a66ffe5a170a7da72"
+checksum = "c3d68d8e12bcd78e8979c8cc2ed5e47f89d6a749fdc7c8c2a327d6d64c6eb513"
 dependencies = [
  "dyn-clone",
  "parking_lot",

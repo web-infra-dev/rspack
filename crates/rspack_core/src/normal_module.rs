@@ -5,7 +5,7 @@ use rspack_sources::{
   WithoutOriginalOptions,
 };
 
-use std::{collections::HashMap, fmt::Debug};
+use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
 use crate::{
   Compilation, CompilationContext, CompilerContext, CompilerOptions, Dependency,
@@ -210,6 +210,8 @@ pub struct NormalModule {
   original_source: Option<Box<dyn Source>>,
   ast_or_source: Option<AstOrSource>,
 
+  options: Arc<CompilerOptions>,
+
   // FIXME: dirty workaround to support external module
   skip_build: bool,
 }
@@ -255,6 +257,7 @@ impl NormalModule {
     module_type: impl Into<ModuleType>,
     parser_and_generator: Box<dyn ParserAndGenerator>,
     resource_data: ResourceData,
+    options: Arc<CompilerOptions>,
   ) -> Self {
     Self {
       request,
@@ -266,6 +269,7 @@ impl NormalModule {
 
       original_source: None,
       ast_or_source: None,
+      options,
       skip_build: false,
     }
   }
@@ -429,24 +433,21 @@ impl NormalModule {
     content: Content,
     source_map: Option<SourceMap>,
   ) -> Result<BoxSource> {
-    // TODO: change back to self.context.options.devtool
-    match (true, content, source_map) {
-      (true, content, Some(map)) => {
-        let content = content.try_into_string()?;
-        Ok(
-          SourceMapSource::new(WithoutOriginalOptions {
-            value: content,
-            name: uri,
-            source_map: map,
-          })
-          .boxed(),
-        )
-      }
-      (true, Content::String(content), None) => Ok(OriginalSource::new(content, uri).boxed()),
-      (true, Content::Buffer(content), None) => Ok(RawSource::from(content).boxed()),
-      (_, Content::String(content), _) => Ok(RawSource::from(content).boxed()),
-      (_, Content::Buffer(content), _) => Ok(RawSource::from(content).boxed()),
+    if self.options.devtool.enabled() && let Some(source_map) = source_map {
+      let content = content.try_into_string()?;
+      return Ok(
+        SourceMapSource::new(WithoutOriginalOptions {
+          value: content,
+          name: uri,
+          source_map,
+        })
+        .boxed(),
+      );
     }
+    if self.options.devtool.source_map() && let Content::String(content) = content {
+      return Ok(OriginalSource::new(content, uri).boxed());
+    }
+    Ok(RawSource::from(content.into_bytes()).boxed())
   }
 }
 

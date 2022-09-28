@@ -53,7 +53,7 @@ describe("config", () => {
 				browserField: true,
 				conditionNames: ["module", "import"]
 			},
-			devtool: false
+			devtool: ""
 		});
 	});
 });

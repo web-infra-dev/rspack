@@ -72,6 +72,11 @@ impl Devtool {
   pub fn eval(&self) -> bool {
     self.inner.contains(DevtoolFlags::EVAL)
   }
+
+  /// for loader author whether need to care about source map.
+  pub fn enabled(&self) -> bool {
+    self.source_map() && self.module()
+  }
 }
 
 impl FromStr for Devtool {
@@ -94,7 +99,7 @@ impl FromStr for Devtool {
     if s.contains("cheap") {
       devtool.add_cheap();
     }
-    if s.contains("module") {
+    if s.contains("module") || !s.contains("cheap") {
       devtool.add_module();
     }
     if s.contains("eval") {

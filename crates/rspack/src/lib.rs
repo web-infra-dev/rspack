@@ -21,12 +21,12 @@ pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -
   plugins.push(Box::new(rspack_plugin_javascript::JsPlugin::new()));
   plugins.push(Box::new(rspack_plugin_devtool::DevtoolPlugin::new(
     DevtoolPluginOptions {
+      inline: options.devtool.inline(),
       append: !options.devtool.hidden(),
       namespace: options.output.unique_name.clone(),
       columns: !options.devtool.cheap(),
       no_sources: options.devtool.no_sources(),
       public_path: None,
-      source_root: None,
     },
   )));
   Compiler::new(options, plugins)

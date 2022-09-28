@@ -2,5 +2,5 @@ module.exports = {
 	entry: {
 		main: "./index.jsx"
 	},
-  devtool: true,
+  devtool: "cheap-source-map"
 };
