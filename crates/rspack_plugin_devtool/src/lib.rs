@@ -1,12 +1,13 @@
-use std::collections::HashMap;
-
+use hashbrown::HashMap;
 use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
+use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
-  rspack_sources::{ConcatSource, MapOptions, RawSource, SourceExt},
+  rspack_sources::{ConcatSource, MapOptions, RawSource, SourceExt, SourceMap},
   Plugin, PluginContext, PluginProcessAssetsOutput, ProcessAssetsArgs,
 };
+use tracing::instrument;
 
 static IS_CSS_FILE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\.css($|\?)").unwrap());
 
@@ -53,6 +54,7 @@ impl Plugin for DevtoolPlugin {
     "devtool"
   }
 
+  #[instrument]
   async fn process_assets(
     &self,
     _ctx: PluginContext,
@@ -61,12 +63,16 @@ impl Plugin for DevtoolPlugin {
     if !args.compilation.options.devtool.source_map() {
       return Ok(());
     }
-    let mut maps = HashMap::new();
-    for (filename, asset) in &args.compilation.assets {
-      if let Some(map) = asset.map(&MapOptions::new(self.columns)) {
-        maps.insert(filename.to_owned(), map);
-      }
-    }
+    let maps: HashMap<String, SourceMap> = args
+      .compilation
+      .assets
+      .par_iter()
+      .filter_map(|(filename, asset)| {
+        asset
+          .map(&MapOptions::new(self.columns))
+          .map(|source_map| (filename.to_owned(), source_map))
+      })
+      .collect();
     for (filename, mut map) in maps {
       map.set_file(Some(filename.clone()));
       for source in map.sources_mut() {

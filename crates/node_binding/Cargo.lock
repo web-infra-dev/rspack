@@ -1989,8 +1989,10 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "base64",
+ "hashbrown",
  "once_cell",
  "pathdiff",
+ "rayon",
  "regex",
  "rspack_core",
  "rspack_error",
