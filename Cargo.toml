@@ -10,7 +10,7 @@ debug = 2
 
 [profile.release]
 codegen-units = 1
-debug = true
-lto = false
+debug = false
+lto = true
 opt-level = 3
 incremental = true
