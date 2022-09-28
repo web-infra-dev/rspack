@@ -4,7 +4,7 @@ use rayon::prelude::*;
 use swc::{config::JsMinifyOptions, BoolOrDataConfig};
 use swc_common::comments::SingleThreadedComments;
 use swc_common::{FileName, Mark};
-use swc_ecma_transforms::helpers::inject_helpers, Helpers;
+use swc_ecma_transforms::helpers::{inject_helpers, Helpers};
 use swc_ecma_transforms::react::{react, Options as ReactOptions};
 use swc_ecma_transforms::{pass::noop, react};
 use swc_ecma_transforms::{react as swc_react, resolver};
