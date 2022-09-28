@@ -1,5 +1,7 @@
 // use crate::{cjs_runtime_helper, Bundle, ModuleGraph, Platform, ResolvedURI};
 use ast::*;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use rspack_core::{Compilation, Dependency, ModuleDependency, ModuleGraphModule, ResolveKind};
 use swc_atoms::{Atom, JsWord};
 use swc_common::comments::SingleThreadedComments;
@@ -21,6 +23,9 @@ use {
   // swc_ecma_utils::{self},
   swc_ecma_visit::{self, noop_visit_mut_type},
 };
+
+static SWC_HELPERS_REG: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"@swc/helpers/lib/(\w*)\.js$").unwrap());
 
 pub struct RspackModuleFinalizer<'a> {
   pub module: &'a ModuleGraphModule,
@@ -117,7 +122,6 @@ impl<'a> RspackModuleFormatTransformer<'a> {
     .as_callee()
   }
 
-  #[instrument(skip_all)]
   fn rewrite_static_import(&mut self, n: &mut CallExpr) -> Option<()> {
     if is_require_literal_expr(n, self.unresolved_mark, &self.require_id) {
       if let Callee::Expr(box Expr::Ident(_ident)) = &mut n.callee {
@@ -126,10 +130,20 @@ impl<'a> RspackModuleFormatTransformer<'a> {
           expr: box Expr::Lit(Lit::Str(str)),
         } = n.args.first_mut()?
         {
+          // swc will automatically replace @swc/helpers/src/xx.mjs with @swc/helpers/lib/xx.js when it transform code to commonjs
+          // so we need replace it to original specifier to find module
+          // this is a temporary solution
+          let specifier = match SWC_HELPERS_REG.captures(&str.value) {
+            Some(cap) => match cap.get(1) {
+              Some(cap) => format!(r#"@swc/helpers/src/{}.mjs"#, cap.as_str()),
+              None => str.value.to_string(),
+            },
+            None => str.value.to_string(),
+          };
           let require_dep = Dependency {
             importer: Some(self.module.uri.clone()),
             detail: ModuleDependency {
-              specifier: str.value.to_string(),
+              specifier: specifier.clone(),
               kind: ResolveKind::Require,
               span: Some(n.span.into()),
             },
@@ -138,7 +152,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
           let import_dep = Dependency {
             importer: Some(self.module.uri.clone()),
             detail: ModuleDependency {
-              specifier: str.value.to_string(),
+              specifier,
               kind: ResolveKind::Import,
               span: Some(n.span.into()),
             },

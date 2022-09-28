@@ -45,6 +45,7 @@ describe("config", () => {
 			builtins: { browserslist: [] },
 			module: { rules: [] },
 			resolve: {
+				alias: {},
 				preferRelative: false,
 				extensions: [".tsx", ".jsx", ".ts", ".js", ".json", ".d.ts"],
 				mainFiles: ["index"],
