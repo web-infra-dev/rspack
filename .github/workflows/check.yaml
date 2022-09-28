@@ -9,8 +9,8 @@ on:
       - "**"
   pull_request:
 
-env:
-  TRACE: DEBUG
+# env:
+#   TRACE: DEBUG
 
 jobs:
   format:

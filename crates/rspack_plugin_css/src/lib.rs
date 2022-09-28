@@ -1,7 +1,5 @@
 #![feature(box_patterns)]
-// mod js_module;
-// pub use js_module::*;
-pub mod module;
+
 pub mod plugin;
 pub mod pxtorem;
 pub mod visitors;
@@ -68,10 +66,10 @@ impl SwcCssCompiler {
   pub fn codegen(
     &self,
     ast: &Stylesheet,
-    orignal_source: Option<&dyn Source>,
+    original_source: Option<&dyn Source>,
   ) -> Result<(String, Option<Vec<u8>>)> {
     let mut output = String::new();
-    let mut src_map_buf = orignal_source.is_some().then(Vec::new);
+    let mut src_map_buf = original_source.is_some().then(Vec::new);
     let wr = BasicCssWriter::new(
       &mut output,
       src_map_buf.as_mut(),

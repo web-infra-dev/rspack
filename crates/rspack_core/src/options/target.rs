@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use swc_ecma_ast::EsVersion;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TargetPlatform {
   BrowsersList,
   Web,
@@ -22,7 +22,7 @@ impl TargetPlatform {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Target {
   pub platform: TargetPlatform,
   pub es_version: Option<EsVersion>,

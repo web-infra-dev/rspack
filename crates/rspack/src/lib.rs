@@ -6,7 +6,7 @@ use rspack_error::Result;
 use rspack_plugin_asset::AssetConfig;
 
 pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -> Compiler {
-  // plugins.push(Box::new(rspack_plugin_css::CssPlugin::default()));
+  // Css plugin is registered via option normalization
   plugins.push(Box::new(rspack_plugin_asset::AssetPlugin::new(
     AssetConfig {
       parse_options: options.module.parser.as_ref().and_then(|x| x.asset.clone()),
@@ -15,6 +15,7 @@ pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -
   plugins.push(Box::new(rspack_plugin_json::JsonPlugin {}));
   plugins.push(Box::new(rspack_plugin_runtime::RuntimePlugin {}));
   plugins.push(Box::new(ExternalPlugin {}));
+  plugins.push(Box::new(rspack_plugin_devtool::DevtoolPlugin {}));
   plugins.append(&mut options.plugins);
   plugins.push(Box::new(rspack_plugin_javascript::JsPlugin::new()));
   plugins.push(Box::new(rspack_plugin_devtool::DevtoolPlugin {}));
