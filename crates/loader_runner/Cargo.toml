@@ -17,6 +17,7 @@ tokio = { version = "1.21.0", features = [
   "rt-multi-thread",
   "macros",
   "test-util",
+  "parking_lot",
 ] }
 
 tracing = "0.1.34"

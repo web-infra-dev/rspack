@@ -19,6 +19,7 @@ tokio = { version = "1.21.0", features = [
   "rt-multi-thread",
   "macros",
   "test-util",
+  "parking_lot",
 ] }
 base64 = "0.13.0"
 mime_guess = "2.0.4"

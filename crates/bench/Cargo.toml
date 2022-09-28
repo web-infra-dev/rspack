@@ -15,6 +15,7 @@ tokio = { version = "1.21.0", features = [
   "rt-multi-thread",
   "macros",
   "test-util",
+  "parking_lot",
 ] }
 
 # [target.'cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))'.dependencies]
