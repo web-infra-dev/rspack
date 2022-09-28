@@ -183,7 +183,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
                     path
                       .file_stem()
                       .and_then(OsStr::to_str)
-                      .ok_or_else(|| anyhow::anyhow!("failed"))?
+                      .ok_or_else(|| anyhow::anyhow!("Failed to get filename for asset/resource"))?
                       .to_owned(),
                   ),
                   extension: Some(
@@ -191,7 +191,9 @@ impl ParserAndGenerator for AssetParserAndGenerator {
                       .extension()
                       .and_then(OsStr::to_str)
                       .map(|str| format!("{}{}", ".", str))
-                      .ok_or_else(|| anyhow::anyhow!("failed"))?,
+                      .ok_or_else(|| {
+                        anyhow::anyhow!("Failed to get extension for asset/resource")
+                      })?,
                   ),
                   id: None,
                   contenthash: None,

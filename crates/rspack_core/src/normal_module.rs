@@ -383,10 +383,7 @@ impl NormalModule {
     self.original_source = Some(original_source);
     self.ast_or_source = Some(ast_or_source);
 
-    Ok(IntoTWithDiagnosticArray::with_diagnostic(
-      BuildResult { dependencies },
-      diagnostics,
-    ))
+    Ok(BuildResult { dependencies }.with_diagnostic(diagnostics))
   }
 
   pub fn code_generation(
