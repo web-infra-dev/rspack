@@ -157,10 +157,10 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     let result = match requested_source_type {
       SourceType::JavaScript => Ok(GenerationResult {
         ast_or_source: RawSource::from(format!(
-          r#"module.exports = "{}";"#,
+          r#"module.exports = {};"#,
           if parsed_asset_config.is_inline() {
             format!(
-              "data:{};base64,{}",
+              r#""data:{};base64,{}""#,
               mime_guess::MimeGuess::from_path(Path::new(&mgm.module.request()))
                 .first()
                 .ok_or_else(|| anyhow::format_err!(
@@ -199,12 +199,9 @@ impl ParserAndGenerator for AssetParserAndGenerator {
                   hash: None,
                 });
             let public_path = compilation.options.output.public_path.public_path();
-            format!("{}{}", public_path, file_name)
+            format!(r#""{}{}""#, public_path, file_name)
           } else if parsed_asset_config.is_source() {
-            format!(
-              r#"module.exports = {:?};"#,
-              ast_or_source.as_source().unwrap().source()
-            )
+            format!(r"{:?}", ast_or_source.as_source().unwrap().source())
           } else {
             unreachable!()
           }
@@ -246,29 +243,6 @@ impl Plugin for AssetPlugin {
     &mut self,
     ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
   ) -> Result<()> {
-    // ctx.context.register_parser(
-    //   rspack_core::ModuleType::Asset,
-    //   Box::new(AssetParser::with_auto(
-    //     self
-    //       .config
-    //       .parse_options
-    //       .as_ref()
-    //       .and_then(|x| x.data_url_condition.clone()),
-    //   )),
-    // );
-    // ctx.context.register_parser(
-    //   rspack_core::ModuleType::AssetInline,
-    //   Box::new(AssetParser::with_inline()),
-    // );
-    // ctx.context.register_parser(
-    //   rspack_core::ModuleType::AssetResource,
-    //   Box::new(AssetParser::with_resource()),
-    // );
-    // ctx.context.register_parser(
-    //   rspack_core::ModuleType::AssetSource,
-    //   Box::new(AssetSourceParser::default()),
-    // );
-
     let data_url_condition = self
       .config
       .parse_options
