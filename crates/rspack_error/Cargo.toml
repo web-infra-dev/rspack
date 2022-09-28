@@ -18,6 +18,11 @@ sugar_path = { version = "0.0.5" }
 insta = "1.19.0"
 rspack_test = { path = "../rspack_test" }
 rspack = { path = "../rspack" }
-tokio = "1.20.1"
+tokio = { version = "1.21.0", features = [
+  "rt",
+  "rt-multi-thread",
+  "macros",
+  "test-util",
+] }
 rspack_binding_options = { path = "../rspack_binding_options" }
 rspack_core = { path = "../rspack_core" }
