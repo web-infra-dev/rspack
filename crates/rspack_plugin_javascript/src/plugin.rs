@@ -145,16 +145,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       // TODO: this should only return AST for javascript only, It's a fast pass, defer to another pr to solve this.
       // Ok(ast_or_source.to_owned().into())
 
-      if requested_source_type != SourceType::JavaScript {
-        return Err(
-          anyhow::format_err!(
-            "Failed to generate source for requested source type: {:?}",
-            requested_source_type
-          )
-          .into(),
-        );
-      }
-
       let source_map = compilation.options.devtool;
       let compiler = get_swc_compiler();
       let output = compiler.run(|| {
@@ -225,9 +215,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
               },
             )
           })
-          .unwrap()
         })
-      });
+      })?;
 
       if let Some(map) = output.map {
         Ok(GenerationResult {
@@ -239,7 +228,12 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             original_source: {
               Some(
                 // Safety: you can sure that `build` is called before code generation, so that the `original_source` is exist
-                mgm.module.original_source().unwrap().source().to_string(),
+                mgm
+                  .module
+                  .original_source()
+                  .expect("Failed to get original source, please file an issue.")
+                  .source()
+                  .to_string(),
               )
             },
             inner_source_map: {
@@ -247,7 +241,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
               mgm
                 .module
                 .original_source()
-                .unwrap()
+                .expect("Failed to get original source, please file an issue.")
                 .map(&MapOptions::default())
             },
             remove_original_source: false,

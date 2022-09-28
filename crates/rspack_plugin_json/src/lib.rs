@@ -94,7 +94,12 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       SourceType::JavaScript => Ok(rspack_core::GenerationResult {
         ast_or_source: RawSource::from(format!(
           r#"module.exports = {};"#,
-          utils::escape_json(&ast_or_source.as_source().unwrap().source())
+          utils::escape_json(
+            &ast_or_source
+              .as_source()
+              .expect("Expected source for JSON generator, please file an issue.")
+              .source()
+          )
         ))
         .boxed()
         .into(),

@@ -119,12 +119,18 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let result = match requested_source_type {
       SourceType::Css => {
         let (code, source_map) = SWC_COMPILER.codegen(
-          ast_or_source.as_ast().unwrap().as_css().unwrap(),
+          ast_or_source
+            .as_ast()
+            .expect("Expected AST for CSS generator, please file an issue.")
+            .as_css()
+            .expect("Expected CSS AST for CSS generation, please file an issue."),
           // Safety: original source exists in code generation
-          compilation
-            .options
-            .devtool
-            .then(|| mgm.module.original_source().unwrap()),
+          compilation.options.devtool.then(|| {
+            mgm
+              .module
+              .original_source()
+              .expect("Failed to get original source, please file an issue.")
+          }),
         )?;
         if let Some(source_map) = source_map {
           let source = SourceMapSource::new(SourceMapSourceOptions {
@@ -133,12 +139,19 @@ impl ParserAndGenerator for CssParserAndGenerator {
             source_map: SourceMap::from_slice(&source_map)
               .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
             // Safety: original source exists in code generation
-            original_source: Some(mgm.module.original_source().unwrap().source().to_string()),
+            original_source: Some(
+              mgm
+                .module
+                .original_source()
+                .expect("Failed to get original source, please file an issue.")
+                .source()
+                .to_string(),
+            ),
             // Safety: original source exists in code generation
             inner_source_map: mgm
               .module
               .original_source()
-              .unwrap()
+              .expect("Failed to get original source, please file an issue.")
               .map(&MapOptions::default()),
             remove_original_source: false,
           })

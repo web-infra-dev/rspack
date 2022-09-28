@@ -167,7 +167,12 @@ impl ParserAndGenerator for AssetParserAndGenerator {
                   "failed to guess mime type of {}",
                   mgm.module.request()
                 ))?,
-              base64::encode(&ast_or_source.as_source().unwrap().buffer())
+              base64::encode(
+                &ast_or_source
+                  .as_source()
+                  .expect("Expected source for asset generator, please file an issue.")
+                  .buffer()
+              )
             )
           } else if parsed_asset_config.is_external() {
             let request = mgm.module.request();
@@ -203,7 +208,13 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             let public_path = compilation.options.output.public_path.public_path();
             format!(r#""{}{}""#, public_path, file_name)
           } else if parsed_asset_config.is_source() {
-            format!(r"{:?}", ast_or_source.as_source().unwrap().source())
+            format!(
+              r"{:?}",
+              ast_or_source
+                .as_source()
+                .expect("Expected source for asset generator, please file an issue.")
+                .source()
+            )
           } else {
             unreachable!()
           }
@@ -219,9 +230,15 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         } else {
           // Safety: This is safe because we returned the source in parser.
           Ok(GenerationResult {
-            ast_or_source: RawSource::from(ast_or_source.as_source().unwrap().buffer().to_vec())
-              .boxed()
-              .into(),
+            ast_or_source: RawSource::from(
+              ast_or_source
+                .as_source()
+                .expect("Expected source for asset generator, please file an issue.")
+                .buffer()
+                .to_vec(),
+            )
+            .boxed()
+            .into(),
           })
         }
       }
