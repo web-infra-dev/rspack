@@ -2028,10 +2028,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "base64",
  "better_scoped_tls",
  "hashbrown",
  "linked_hash_set",
  "once_cell",
+ "parking_lot",
+ "pathdiff",
  "preset_env_base",
  "rayon",
  "regex",
@@ -2077,8 +2080,7 @@ dependencies = [
 [[package]]
 name = "rspack_sources"
 version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3d68d8e12bcd78e8979c8cc2ed5e47f89d6a749fdc7c8c2a327d6d64c6eb513"
+source = "git+https://github.com/speedy-js/rspack-sources?branch=add-eq#b8b6c3e7f43ec546159db3cfc65611c778c075e4"
 dependencies = [
  "dyn-clone",
  "parking_lot",

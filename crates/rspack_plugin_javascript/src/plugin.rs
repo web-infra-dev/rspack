@@ -1,4 +1,6 @@
 use async_trait::async_trait;
+use hashbrown::HashMap;
+use parking_lot::Mutex;
 use rayon::prelude::*;
 
 use swc::{config::JsMinifyOptions, BoolOrDataConfig};
@@ -25,7 +27,7 @@ use tracing::instrument;
 
 use crate::utils::{
   get_swc_compiler, get_wrap_chunk_after, get_wrap_chunk_before, parse_file, syntax_by_module_type,
-  wrap_module_function,
+  wrap_eval_source_map, wrap_module_function,
 };
 use crate::visitors::{finalize, ClearMark, DefineScanner, DefineTransform, DependencyScanner};
 use crate::{JS_HELPERS, RSPACK_REGISTER, RSPACK_REQUIRE};
@@ -33,12 +35,14 @@ use crate::{JS_HELPERS, RSPACK_REGISTER, RSPACK_REQUIRE};
 #[derive(Debug)]
 pub struct JsPlugin {
   unresolved_mark: Mark,
+  eval_source_map_cache: Mutex<HashMap<Box<dyn Source>, Box<dyn Source>>>,
 }
 
 impl JsPlugin {
   pub fn new() -> Self {
     Self {
       unresolved_mark: GLOBALS.set(&Default::default(), || get_swc_compiler().run(Mark::new)),
+      eval_source_map_cache: Default::default(),
     }
   }
 }
@@ -327,14 +331,23 @@ impl Plugin for JsPlugin {
         module
           .module
           .code_generation(module, compilation)
-          .map(|source| {
+          .and_then(|source| {
             // TODO: this logic is definitely not performant, move to compilation afterwards
-            source.inner().get(&SourceType::JavaScript).map(|source| {
-              wrap_module_function(
-                source.ast_or_source.clone().try_into_source().unwrap(),
-                &module.id,
-              )
-            })
+            source
+              .inner()
+              .get(&SourceType::JavaScript)
+              .map(|source| {
+                let mut module_source = source.ast_or_source.clone().try_into_source().unwrap();
+                if args.compilation.options.devtool.eval() {
+                  module_source = wrap_eval_source_map(
+                    module_source,
+                    &self.eval_source_map_cache,
+                    &args.compilation,
+                  )?;
+                }
+                Ok(wrap_module_function(module_source, &module.id))
+              })
+              .transpose()
           })
       })
       .collect::<Result<Vec<Option<BoxSource>>>>()?;
