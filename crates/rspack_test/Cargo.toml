@@ -22,7 +22,13 @@ serde = { version = "1.0.139", features = ["derive"] }
 serde_json = "1.0.82"
 similar = "2.1.0"
 testing_macros = "0.2.5"
-tokio = "1.20.1"
+tokio = { version = "1.21.0", features = [
+  "rt",
+  "rt-multi-thread",
+  "macros",
+  "test-util",
+  "parking_lot",
+] }
 rspack_binding_options = { path = "../rspack_binding_options" }
 glob = "0.3.0"
 quick-js = "0.4.1"
