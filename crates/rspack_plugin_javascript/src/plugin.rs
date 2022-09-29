@@ -92,8 +92,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let defintions = &compiler_options.define;
     let has_define = !defintions.is_empty();
-    let jsx = compiler_options.builtins.jsx;
-    let need_process = jsx || has_define;
+    let is_jsx_like = module_type.is_jsx_like();
+    let need_process = is_jsx_like || has_define;
     let processed_ast = if need_process {
       get_swc_compiler().run(|| {
         swc_ecma_transforms::helpers::HELPERS.set(&Helpers::new(true), || {
@@ -105,7 +105,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             let mut define_transform = DefineTransform::new(defintions, define_scanner);
             ast = ast.fold_with(&mut define_transform);
           }
-          if jsx {
+          if is_jsx_like {
             let top_level_mark = Mark::new();
             let mut react_folder = react::<SingleThreadedComments>(
               get_swc_compiler().cm.clone(),
