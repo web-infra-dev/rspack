@@ -12,6 +12,7 @@ rspack_test = { path = "../rspack_test" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 testing_macros = "0.2.5"
+xshell = "0.2.2"
 
 [dependencies]
 crossbeam = "0.8.1"
