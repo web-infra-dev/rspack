@@ -114,6 +114,7 @@ impl Plugin for ExternalPlugin {
                 resource_query: None,
                 resource_fragment: None,
               },
+              job_ctx.options.clone(),
             );
 
             // This hacks normal module to skip build, since external module is not exist on the filesystem.

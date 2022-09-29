@@ -184,7 +184,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
                   },
                   inline_sources_content: (!compilation.options.devtool.no_sources()).into(),
                   emit_source_map_columns: (!compilation.options.devtool.cheap()).into(),
-                  source_maps: Some(SourceMapsConfig::Bool(compilation.options.devtool.source_map())),
+                  source_maps: Some(SourceMapsConfig::Bool(
+                    compilation.options.devtool.source_map(),
+                  )),
                   env: if compilation.options.target.platform.is_browsers_list() {
                     Some(swc_ecma_preset_env::Config {
                       mode: if compilation.options.builtins.polyfill {
