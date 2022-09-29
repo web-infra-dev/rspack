@@ -1,9 +1,6 @@
 use std::{
   path::{Path, PathBuf},
-  sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
-  },
+  sync::Arc,
 };
 
 use sugar_path::PathSugar;
@@ -46,51 +43,47 @@ pub enum ResolveKind {
   UrlToken,
 }
 
+#[derive(Debug)]
 pub struct NormalModuleFactory {
   context: NormalModuleFactoryContext,
-  dependency: Dependency,
-  tx: UnboundedSender<Msg>,
+  pub(crate) dependency: Dependency,
   plugin_driver: Arc<PluginDriver>,
   loader_runner_runner: Arc<LoaderRunnerRunner>,
-  diagnostic: Vec<Diagnostic>,
+  pub(crate) diagnostic: Vec<Diagnostic>,
 }
 
 impl NormalModuleFactory {
   pub fn new(
     context: NormalModuleFactoryContext,
     dependency: Dependency,
-    tx: UnboundedSender<Msg>,
     plugin_driver: Arc<PluginDriver>,
     loader_runner_runner: Arc<LoaderRunnerRunner>,
   ) -> Self {
-    context.active_task_count.fetch_add(1, Ordering::SeqCst);
-
     Self {
       context,
       dependency,
-      tx,
       plugin_driver,
       loader_runner_runner,
       diagnostic: vec![],
     }
   }
 
-  pub async fn run(mut self) {
-    match self.resolve_module().await {
-      Ok(maybe_module) => {
-        if let Some(module) = maybe_module {
-          let diagnostic = std::mem::take(&mut self.diagnostic);
-          self.send(Msg::TaskFinished(TWithDiagnosticArray::new(
-            Box::new(module),
-            diagnostic,
-          )));
-        } else {
-          self.send(Msg::TaskCanceled);
-        }
-      }
-      Err(err) => self.send(Msg::TaskErrorEncountered(err)),
-    }
-  }
+  // pub async fn run(mut self) {
+  //   match self.resolve_module().await {
+  //     Ok(maybe_module) => {
+  //       if let Some(module) = maybe_module {
+  //         let diagnostic = std::mem::take(&mut self.diagnostic);
+  //         self.send(Msg::TaskFinished(TWithDiagnosticArray::new(
+  //           Box::new(module),
+  //           diagnostic,
+  //         )));
+  //       } else {
+  //         self.send(Msg::TaskCanceled);
+  //       }
+  //     }
+  //     Err(err) => self.send(Msg::TaskErrorEncountered(err)),
+  //   }
+  // }
 
   pub fn add_diagnostic<T: Into<Diagnostic>>(&mut self, diagnostic: T) {
     self.diagnostic.push(diagnostic.into());
@@ -101,9 +94,9 @@ impl NormalModuleFactory {
   }
 
   pub fn send(&self, msg: Msg) {
-    if let Err(err) = self.tx.send(msg) {
-      tracing::trace!("fail to send msg {:?}", err)
-    }
+    // if let Err(err) = self.tx.send(msg) {
+    //   tracing::trace!("fail to send msg {:?}", err)
+    // }
   }
 
   pub fn calculate_module_type_by_uri(&self, uri: &str) -> Option<ModuleType> {
@@ -120,7 +113,7 @@ impl NormalModuleFactory {
     resolve_module_type_by_uri(PathBuf::from(url.path().as_str()))
   }
 
-  pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, NormalModule)>> {
+  pub fn factorize_normal_module(&mut self) -> Result<Option<(String, NormalModule)>> {
     let uri = resolve(
       ResolveArgs {
         importer: self.dependency.importer.as_deref(),
@@ -129,9 +122,7 @@ impl NormalModuleFactory {
         span: self.dependency.detail.span,
       },
       &self.plugin_driver,
-      &mut self.context,
-    )
-    .await?;
+    )?;
     tracing::trace!("resolved uri {:?}", uri);
 
     let url = parse_to_url(&uri);
@@ -139,19 +130,7 @@ impl NormalModuleFactory {
       self.context.module_type = self.calculate_module_type_by_uri(&uri);
     }
 
-    self
-      .tx
-      .send(Msg::DependencyReference(
-        self.dependency.clone(),
-        uri.clone(),
-      ))
-      .map_err(|_| {
-        Error::InternalError(format!(
-          "Failed to resolve dependency {:?}",
-          self.dependency
-        ))
-      })?;
-
+    // TODO: should use watch filesystem.
     if self
       .context
       .visited_module_identity
@@ -320,10 +299,9 @@ impl NormalModuleFactory {
     )
   }
 
-  pub async fn resolve_module(&mut self) -> Result<Option<ModuleGraphModule>> {
-    // TODO: caching in resolve, align to webpack's external module
+  pub fn pre_resolve_module(&mut self) -> Result<Option<(String, NormalModule)>> {
     // Here is the corresponding create function in webpack, but instead of using hooks we use procedural functions
-    let (uri, mut module) = if let Some(module) = self.plugin_driver.factorize_and_build(
+    if let Some(module) = self.plugin_driver.factorize_and_build(
       FactorizeAndBuildArgs {
         dependency: &self.dependency,
         plugin_driver: &self.plugin_driver,
@@ -331,27 +309,22 @@ impl NormalModuleFactory {
       &mut self.context,
     )? {
       let (uri, module) = module;
-      self
-        .tx
-        .send(Msg::DependencyReference(
-          self.dependency.clone(),
-          uri.clone(),
-        ))
-        .map_err(|_| {
-          Error::InternalError(format!(
-            "Failed to resolve dependency {:?}",
-            self.dependency
-          ))
-        })?;
-      (uri, module)
-    } else if let Some(re) = self.factorize_normal_module().await? {
-      re
+      Ok(Some((uri, module)))
+    } else if let Some(re) = self.factorize_normal_module()? {
+      Ok(Some(re))
     } else {
-      return Ok(None);
-    };
+      Ok(None)
+    }
+  }
+
+  pub async fn resolve_module(
+    &mut self,
+    uri: String,
+    mut module: NormalModule,
+  ) -> Result<(Vec<NormalModuleFactory>, ModuleGraphModule)> {
+    // TODO: caching in resolve, align to webpack's external module
 
     // scan deps
-
     let build_result = module
       .build(BuildContext {
         loader_runner_runner: &self.loader_runner_runner,
@@ -373,9 +346,21 @@ impl NormalModuleFactory {
       .collect::<Vec<_>>();
 
     tracing::trace!("get deps {:?}", deps);
-    deps.iter().for_each(|dep| {
-      self.fork(dep.clone());
-    });
+    let next_tasks = deps
+      .iter()
+      .map(|dep| {
+        NormalModuleFactory::new(
+          NormalModuleFactoryContext {
+            module_name: None,
+            module_type: None,
+            ..self.context.clone()
+          },
+          dep.clone(),
+          self.plugin_driver.clone(),
+          self.loader_runner_runner.clone(),
+        )
+      })
+      .collect();
 
     let resolved_module = ModuleGraphModule::new(
       self.context.module_name.clone(),
@@ -391,27 +376,25 @@ impl NormalModuleFactory {
         .module_type
         .ok_or_else(|| Error::InternalError("source type is empty".to_string()))?,
     );
-
-    Ok(Some(resolved_module))
+    Ok((next_tasks, resolved_module))
   }
 
-  fn fork(&self, dep: Dependency) {
-    let task = NormalModuleFactory::new(
-      NormalModuleFactoryContext {
-        module_name: None,
-        module_type: None,
-        ..self.context.clone()
-      },
-      dep,
-      self.tx.clone(),
-      self.plugin_driver.clone(),
-      self.loader_runner_runner.clone(),
-    );
+  // fn fork(&self, dep: Dependency) {
+  //   let task = NormalModuleFactory::new(
+  //     NormalModuleFactoryContext {
+  //       module_name: None,
+  //       module_type: None,
+  //       ..self.context.clone()
+  //     },
+  //     dep,
+  //     self.plugin_driver.clone(),
+  //     self.loader_runner_runner.clone(),
+  //   );
 
-    tokio::task::spawn(async move {
-      task.run().await;
-    });
-  }
+  //   tokio::task::spawn(async move {
+  //     task.run().await;
+  //   });
+  // }
 }
 
 pub fn resolve_module_type_by_uri<T: AsRef<Path>>(uri: T) -> Option<ModuleType> {
@@ -424,7 +407,6 @@ pub fn resolve_module_type_by_uri<T: AsRef<Path>>(uri: T) -> Option<ModuleType> 
 #[derive(Debug, Clone)]
 pub struct NormalModuleFactoryContext {
   pub module_name: Option<String>,
-  pub(crate) active_task_count: Arc<AtomicUsize>,
   pub(crate) visited_module_identity: VisitedModuleIdentity,
   pub module_type: Option<ModuleType>,
   pub side_effects: Option<bool>,

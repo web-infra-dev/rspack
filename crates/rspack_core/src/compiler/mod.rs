@@ -1,10 +1,4 @@
-use std::{
-  path::Path,
-  sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
-  },
-};
+use std::{collections::VecDeque, path::Path, sync::Arc};
 
 use crate::{
   CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule, NormalModuleFactory,
@@ -99,35 +93,68 @@ impl Compiler {
     self.compile(deps).await?;
     self.stats()
   }
-  #[instrument(name = "make")]
+
   async fn make(&mut self, deps: HashMap<String, Dependency>) {
-    let active_task_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
-    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
+    let mut queue = VecDeque::new();
 
     deps.into_iter().for_each(|(name, dep)| {
       let task = NormalModuleFactory::new(
         NormalModuleFactoryContext {
           module_name: Some(name),
-          active_task_count: active_task_count.clone(),
           visited_module_identity: self.compilation.visited_module_id.clone(),
           module_type: None,
           side_effects: None,
           options: self.options.clone(),
         },
         dep,
-        tx.clone(),
         self.plugin_driver.clone(),
         self.loader_runner_runner.clone(),
       );
-
-      tokio::task::spawn(async move { task.run().await });
+      queue.push_back(task);
     });
 
-    while active_task_count.load(Ordering::SeqCst) != 0 {
-      match rx.recv().await {
-        Some(job) => match job {
-          Msg::TaskFinished(mut module_with_diagnostic) => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
+    while let Some(mut task) = queue.pop_front() {
+      let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
+
+      match task.pre_resolve_module() {
+        Ok(pre_result) => match pre_result {
+          Some((uri, module)) => {
+            self
+              .compilation
+              .module_graph
+              .add_dependency(task.dependency.clone(), uri.clone());
+
+            tokio::task::spawn(async move {
+              match task.resolve_module(uri, module).await {
+                Ok((next_tasks, resolved_module)) => {
+                  let diagnostic = std::mem::take(&mut task.diagnostic);
+                  if let Err(err) = tx.send(Msg::TaskFinished((
+                    next_tasks,
+                    TWithDiagnosticArray::new(Box::new(resolved_module), diagnostic),
+                  ))) {
+                    tracing::trace!("fail to send msg {:?}", err)
+                  }
+                }
+                Err(error) => {
+                  if let Err(err) = tx.send(Msg::TaskErrorEncountered(error)) {
+                    tracing::trace!("fail to send msg {:?}", err)
+                  }
+                }
+              };
+            });
+          }
+          None => continue,
+        },
+        Err(error) => {
+          self.compilation.push_batch_diagnostic(error.into());
+        }
+      }
+
+      while let Some(job) = rx.recv().await {
+        match job {
+          Msg::DependencyReference(_, _) => (),
+          Msg::TaskFinished((mut next_tasks, mut module_with_diagnostic)) => {
+            queue.append(&mut next_tasks.into());
             self
               .compilation
               .module_graph
@@ -137,25 +164,41 @@ impl Compiler {
               .diagnostic
               .append(&mut module_with_diagnostic.diagnostic);
           }
-          Msg::TaskCanceled => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
-          }
-          Msg::DependencyReference(dep, resolved_uri) => {
-            self
-              .compilation
-              .module_graph
-              .add_dependency(dep, resolved_uri);
-          }
+          Msg::TaskCanceled => {}
           Msg::TaskErrorEncountered(err) => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
             self.compilation.push_batch_diagnostic(err.into());
           }
-        },
-        None => {
-          tracing::trace!("All sender is dropped");
         }
       }
     }
+
+    // while active_task_count.load(Ordering::SeqCst) != 0 {
+    //   match rx.recv().await {
+    //     Some(job) => match job {
+    //       Msg::TaskFinished(mut module_with_diagnostic) => {
+    //         active_task_count.fetch_sub(1, Ordering::SeqCst);
+    //         self
+    //           .compilation
+    //           .module_graph
+    //           .add_module(*module_with_diagnostic.inner);
+    //         self
+    //           .compilation
+    //           .diagnostic
+    //           .append(&mut module_with_diagnostic.diagnostic);
+    //       }
+    //       Msg::TaskCanceled => {
+    //         active_task_count.fetch_sub(1, Ordering::SeqCst);
+    //       }
+    //       Msg::TaskErrorEncountered(err) => {
+    //         active_task_count.fetch_sub(1, Ordering::SeqCst);
+    //         self.compilation.push_batch_diagnostic(err.into());
+    //       }
+    //     },
+    //     None => {
+    //       tracing::trace!("All sender is dropped");
+    //     }
+    //   }
+    // }
     tracing::debug!("module graph {:#?}", self.compilation.module_graph);
   }
   #[instrument(name = "compile")]
@@ -223,7 +266,12 @@ impl Compiler {
 #[derive(Debug)]
 pub enum Msg {
   DependencyReference(Dependency, String),
-  TaskFinished(TWithDiagnosticArray<Box<ModuleGraphModule>>),
+  TaskFinished(
+    (
+      Vec<NormalModuleFactory>,
+      TWithDiagnosticArray<Box<ModuleGraphModule>>,
+    ),
+  ),
   TaskCanceled,
   TaskErrorEncountered(Error),
 }
