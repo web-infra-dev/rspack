@@ -1,12 +1,13 @@
 # github/three:
 # 	mkdir -p github
 # 	git clone --depth 1 --branch r108 https://github.com/mrdoob/three.js.git github/three
-
+copy_num = 10
 copy/three:
+
 	mkdir -p benchcases/three/src
 	echo > benchcases/three/src/entry.js
-	for i in 1 2 3 4 5 6 7 8 9 10; do test -d "benchcases/three/src/copy$$i" || cp -r examples/.three/src "benchcases/three/src/copy$$i"; done
-	for i in 1 2 3 4 5 6 7 8 9 10; do echo "import * as copy$$i from './copy$$i/Three.js'; export {copy$$i}" >> benchcases/three/src/entry.js; done
+	for i in {1..$(copy_num)}; do test -d "benchcases/three/src/copy$$i" || cp -r examples/.three/src "benchcases/three/src/copy$$i"; done
+	for i in {1..$(copy_num)}; do echo "import * as copy$$i from './copy$$i/Three.js'; export {copy$$i}" >> benchcases/three/src/entry.js; done
 	echo "module.exports = {mode: 'development',entry: {index: './src/entry.js'}};" > benchcases/three/test.config.js
 	echo "module.exports = {mode: 'development',entry: {index: './benchcases/three/src/entry.js'},devtool: 'eval',cache: {type: 'filesystem'}}" > benchcases/three/webpack.config.js
 
@@ -23,6 +24,9 @@ bench_three: | copy/three
 	@hyperfine --warmup 3 './node_modules/webpack-cli/bin/cli.js  -c ./benchcases/three/webpack.config.js'
 
 
-esbuild_perf:
+esbuild_trace:
 	./node_modules/esbuild/bin/esbuild --bundle benchcases/three/src/entry.js --outfile=/dev/null --trace=esbuild.trace
 	go tool trace esbuild.trace
+
+rspack_trace:
+	TRACE=TRACE cargo run -F tracing --release --bin bench
