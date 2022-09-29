@@ -1841,6 +1841,7 @@ dependencies = [
  "crossbeam",
  "dashmap",
  "fluent-uri",
+ "futures",
  "hashbrown",
  "nodejs-resolver",
  "once_cell",

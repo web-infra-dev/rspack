@@ -1,11 +1,11 @@
 use crate::{
   split_chunks::code_splitting, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey,
   ChunkKind, ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint, ModuleDependency,
-  ModuleGraph, PluginDriver, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, ResolveKind,
-  Runtime, VisitedModuleIdentity,
+  ModuleGraph, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime,
+  SharedPluginDriver, VisitedModuleIdentity,
 };
+use futures::{stream::FuturesUnordered, StreamExt};
 use hashbrown::HashMap;
-use rayon::prelude::*;
 use rspack_error::{Diagnostic, Result};
 use rspack_sources::BoxSource;
 use std::{fmt::Debug, sync::Arc};
@@ -98,18 +98,23 @@ impl Compilation {
       .collect()
   }
 
-  fn create_chunk_assets(&mut self, plugin_driver: Arc<PluginDriver>) {
-    let chunk_ukey_and_manifest = self
+  async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) {
+    let chunk_ukey_and_manifest = (self
       .chunk_by_ukey
-      .par_values()
-      .map(|chunk| {
-        let manifest = plugin_driver.render_manifest(RenderManifestArgs {
-          chunk_ukey: chunk.ukey,
-          compilation: self,
-        });
+      .values()
+      .map(|chunk| async {
+        let manifest = plugin_driver
+          .read()
+          .await
+          .render_manifest(RenderManifestArgs {
+            chunk_ukey: chunk.ukey,
+            compilation: self,
+          });
         (chunk.ukey, manifest)
       })
-      .collect::<Vec<_>>();
+      .collect::<FuturesUnordered<_>>())
+    .collect::<Vec<_>>()
+    .await;
 
     chunk_ukey_and_manifest
       .into_iter()
@@ -125,8 +130,10 @@ impl Compilation {
       })
   }
 
-  async fn process_assets(&mut self, plugin_driver: Arc<PluginDriver>) {
+  async fn process_assets(&mut self, plugin_driver: SharedPluginDriver) {
     plugin_driver
+      .write()
+      .await
       .process_assets(ProcessAssetsArgs { compilation: self })
       .await
       .map_err(|e| {
@@ -135,15 +142,19 @@ impl Compilation {
       })
       .ok();
   }
-  pub async fn done(&mut self, plugin_driver: Arc<PluginDriver>) -> Result<()> {
-    plugin_driver.done().await?;
+  pub async fn done(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    plugin_driver.write().await.done().await?;
     Ok(())
   }
-  pub fn render_runtime(&self, plugin_driver: Arc<PluginDriver>) -> Runtime {
-    if let Ok(sources) = plugin_driver.render_runtime(RenderRuntimeArgs {
-      sources: vec![],
-      compilation: self,
-    }) {
+  pub async fn render_runtime(&self, plugin_driver: SharedPluginDriver) -> Runtime {
+    if let Ok(sources) = plugin_driver
+      .read()
+      .await
+      .render_runtime(RenderRuntimeArgs {
+        sources: vec![],
+        compilation: self,
+      })
+    {
       Runtime {
         context_indent: self.runtime.context_indent.clone(),
         sources,
@@ -166,10 +177,10 @@ impl Compilation {
       .expect("entrypoint not found by ukey")
   }
   #[instrument(name = "seal")]
-  pub async fn seal(&mut self, plugin_driver: Arc<PluginDriver>) -> Result<()> {
+  pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     code_splitting(self)?;
 
-    plugin_driver.optimize_chunks(self)?;
+    plugin_driver.write().await.optimize_chunks(self)?;
 
     tracing::debug!("chunk graph {:#?}", self.chunk_graph);
 
@@ -187,9 +198,9 @@ impl Compilation {
       context_indent,
     };
 
-    self.create_chunk_assets(plugin_driver.clone());
+    self.create_chunk_assets(plugin_driver.clone()).await;
     // generate runtime
-    self.runtime = self.render_runtime(plugin_driver.clone());
+    self.runtime = self.render_runtime(plugin_driver.clone()).await;
 
     self.process_assets(plugin_driver).await;
     Ok(())

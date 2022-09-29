@@ -8,7 +8,7 @@ version = "0.1.0"
 [dependencies]
 crossbeam = "0.8.1"
 dashmap = "5.0.0"
-# futures = "0.3.21"
+futures = "0.3.21"
 anyhow = "1"
 async-trait = "0.1.53"
 nodejs-resolver = "0.0.39"

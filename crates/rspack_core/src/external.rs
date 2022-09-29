@@ -70,6 +70,7 @@ impl ParserAndGenerator for ExternalParserAndGenerator {
   }
 }
 
+#[async_trait::async_trait]
 impl Plugin for ExternalPlugin {
   fn name(&self) -> &'static str {
     "external"
@@ -82,10 +83,10 @@ impl Plugin for ExternalPlugin {
   // Todo The factorize_and_build hook is a temporary solution and will be replaced with the real factorize hook later
   // stage 1: we need move building function(parse,loader runner) out of normal module factory
   // stage 2: Create a new hook that is the same as factory in webpack and change factorize_and_build to that
-  fn factorize_and_build(
+  async fn factorize_and_build(
     &self,
     _ctx: PluginContext,
-    args: FactorizeAndBuildArgs,
+    args: FactorizeAndBuildArgs<'_>,
     job_ctx: &mut NormalModuleFactoryContext,
   ) -> PluginFactorizeAndBuildHookOutput {
     let target = &job_ctx.options.target;

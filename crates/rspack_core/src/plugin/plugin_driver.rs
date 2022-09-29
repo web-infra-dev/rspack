@@ -153,15 +153,16 @@ impl PluginDriver {
     Ok(assets)
   }
 
-  pub fn factorize_and_build(
+  pub async fn factorize_and_build(
     &self,
-    args: FactorizeAndBuildArgs,
+    args: FactorizeAndBuildArgs<'_>,
     job_ctx: &mut NormalModuleFactoryContext,
   ) -> PluginFactorizeAndBuildHookOutput {
     for plugin in &self.plugins {
       tracing::debug!("running render runtime:{}", plugin.name());
-      if let Some(module) =
-        plugin.factorize_and_build(PluginContext::new(), args.clone(), job_ctx)?
+      if let Some(module) = plugin
+        .factorize_and_build(PluginContext::new(), args.clone(), job_ctx)
+        .await?
       {
         return Ok(Some(module));
       }
@@ -183,8 +184,8 @@ impl PluginDriver {
     Ok(sources)
   }
   #[instrument(skip_all)]
-  pub async fn process_assets(&self, args: ProcessAssetsArgs<'_>) -> PluginProcessAssetsOutput {
-    for plugin in &self.plugins {
+  pub async fn process_assets(&mut self, args: ProcessAssetsArgs<'_>) -> PluginProcessAssetsOutput {
+    for plugin in &mut self.plugins {
       plugin
         .process_assets(
           PluginContext::new(),
@@ -197,15 +198,15 @@ impl PluginDriver {
     Ok(())
   }
   #[instrument(skip_all)]
-  pub async fn done(&self) -> PluginBuildEndHookOutput {
-    for plugin in &self.plugins {
+  pub async fn done(&mut self) -> PluginBuildEndHookOutput {
+    for plugin in &mut self.plugins {
       plugin.done().await?;
     }
     Ok(())
   }
 
-  pub fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<()> {
-    for plugin in &self.plugins {
+  pub fn optimize_chunks(&mut self, compilation: &mut Compilation) -> Result<()> {
+    for plugin in &mut self.plugins {
       plugin.optimize_chunks(PluginContext::new(), OptimizeChunksArgs { compilation })?;
     }
     Ok(())

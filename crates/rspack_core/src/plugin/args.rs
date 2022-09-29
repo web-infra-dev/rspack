@@ -1,8 +1,10 @@
-use crate::{Chunk, ChunkUkey, Compilation, Dependency, ErrorSpan, PluginDriver, ResolveKind};
+use crate::{
+  Chunk, ChunkUkey, Compilation, Dependency, ErrorSpan, ResolveKind, SharedPluginDriver,
+};
 use rspack_error::{Error, Result};
 use rspack_loader_runner::Content;
 use rspack_sources::RawSource;
-use std::{fmt::Debug, sync::Arc};
+use std::fmt::Debug;
 use swc_css::ast::Stylesheet;
 use swc_ecma_ast as ast;
 
@@ -44,7 +46,7 @@ pub struct RenderRuntimeArgs<'me> {
 #[derive(Debug, Clone)]
 pub struct FactorizeAndBuildArgs<'me> {
   pub dependency: &'me Dependency,
-  pub plugin_driver: &'me Arc<PluginDriver>,
+  pub plugin_driver: &'me SharedPluginDriver,
 }
 
 #[derive(Debug, Clone)]
