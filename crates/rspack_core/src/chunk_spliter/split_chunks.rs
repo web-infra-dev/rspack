@@ -13,7 +13,7 @@ use crate::{
 
 struct EntryData {
   name: String,
-  _module_uri: String,
+  module_uri: String,
   dependencies: Vec<Dependency>,
 }
 
@@ -58,7 +58,7 @@ impl<'me> CodeSplitter<'me> {
         module_graph
           .module_by_dependency(dep)
           .map(|module| EntryData {
-            _module_uri: module.uri.clone(),
+            module_uri: module.uri.clone(),
             name: name.to_string(),
             dependencies: vec![dep.clone()],
           })
@@ -69,7 +69,7 @@ impl<'me> CodeSplitter<'me> {
 
     for EntryData {
       name,
-      _module_uri: _,
+      module_uri,
       dependencies,
     } in &entries
     {
@@ -81,6 +81,10 @@ impl<'me> CodeSplitter<'me> {
       );
 
       compilation.chunk_graph.add_chunk(chunk.ukey);
+      compilation
+        .chunk_graph
+        .split_point_module_uri_to_chunk_ukey
+        .insert(module_uri.clone(), chunk.ukey);
 
       let mut entrypoint = ChunkGroup::new(ChunkGroupKind::Entrypoint);
 
@@ -352,6 +356,12 @@ impl<'me> CodeSplitter<'me> {
       self
         .chunk_relation_graph
         .add_edge(chunk.ukey, item.chunk, ());
+
+      self
+        .compilation
+        .chunk_graph
+        .split_point_module_uri_to_chunk_ukey
+        .insert(dyn_dep_mgm.uri.clone(), chunk.ukey);
 
       let mut chunk_group = ChunkGroup::new(ChunkGroupKind::Entrypoint);
 

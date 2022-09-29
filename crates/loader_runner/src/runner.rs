@@ -154,6 +154,7 @@ impl LoaderRunner {
 
       if let Some(loader_result) = loader.run(&loader_context).await? {
         loader_context.source = loader_result.content;
+        loader_context.source_map = loader_result.source_map;
         loader_context.meta = loader_result.meta;
       }
     }

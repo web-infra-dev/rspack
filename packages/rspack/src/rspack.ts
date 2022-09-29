@@ -5,6 +5,7 @@ import type { Watch, ResolvedWatch } from "./config/watch";
 
 import type { ExternalObject, RspackInternal } from "@rspack/binding";
 import * as tapable from "tapable";
+import { SyncHook } from "tapable";
 import {
 	RspackOptions,
 	ResolvedRspackOptions,
@@ -13,6 +14,7 @@ import {
 } from "./config";
 
 import { RawSource, Source } from "webpack-sources";
+import { RspackStats } from "./stats";
 interface RspackThreadsafeContext<T> {
 	readonly id: number;
 	readonly inner: T;
@@ -29,7 +31,7 @@ const createDummyResult = (id: number): string => {
 	return JSON.stringify(result);
 };
 type EmitAssetCallback = (options: { filename: string; asset: Asset }) => void;
-class RspackCompilation {
+export class RspackCompilation {
 	#emitAssetCallback: EmitAssetCallback;
 	hooks: {
 		processAssets: tapable.AsyncSeriesHook<Record<string, Source>>;
@@ -81,25 +83,46 @@ class RspackCompilation {
 		return createDummyResult(context.id);
 	}
 }
+class EntryPlugin {
+	apply() {}
+}
+class HotModuleReplacementPlugin {
+	apply() {}
+}
 class Rspack {
+	webpack: any;
 	#plugins: RspackOptions["plugins"];
 	#instance: ExternalObject<RspackInternal>;
 	compilation: RspackCompilation;
 	hooks: {
-		done: tapable.AsyncSeriesHook<void>;
+		done: tapable.AsyncSeriesHook<RspackStats>;
 		compilation: tapable.SyncHook<RspackCompilation>;
+		invalid: tapable.SyncHook<[string | null, number]>;
+		compile: tapable.SyncHook<[any]>;
 	};
 	options: ResolvedRspackOptions;
+	getInfrastructureLogger(name: string) {
+		return {
+			info: msg => console.info(msg)
+		};
+	}
 	constructor(private userOptions: RspackOptions) {
 		this.options = resolveOptions(userOptions);
+		// to workaround some plugin access webpack, we may change dev-server to avoid this hack in the future
+		this.webpack = {
+			EntryPlugin, // modernjs/server use this to inject dev-client
+			HotModuleReplacementPlugin // modernjs/server will auto inject this this plugin not set
+		};
 		// @ts-ignored
 		this.#instance = binding.newRspack(this.options, {
 			doneCallback: this.#done.bind(this),
 			processAssetsCallback: this.#processAssets.bind(this)
 		});
 		this.hooks = {
-			done: new tapable.AsyncSeriesHook<void>(),
-			compilation: new tapable.SyncHook<RspackCompilation>(["compilation"])
+			done: new tapable.AsyncSeriesHook<RspackStats>(["stats"]),
+			compilation: new tapable.SyncHook<RspackCompilation>(["compilation"]),
+			invalid: new SyncHook(["filename", "changeTime"]),
+			compile: new SyncHook(["params"])
 		};
 		this.#plugins = userOptions.plugins ?? [];
 		for (const plugin of this.#plugins) {
@@ -111,7 +134,9 @@ class Rspack {
 			throw err;
 		}
 		const context: RspackThreadsafeContext<void> = JSON.parse(value);
-		await this.hooks.done.promise();
+		// @todo context.inner is empty, since we didn't pass to binding
+		const stats = new RspackStats(context.inner);
+		await this.hooks.done.promise(stats);
 		return createDummyResult(context.id);
 	}
 	async #processAssets(err: Error, value: string, emitAsset: any) {

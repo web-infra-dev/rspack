@@ -1,4 +1,4 @@
-import { Dev, getAdditionDevEntry } from "./dev";
+import { Dev, getAdditionDevEntry } from "./devServer";
 import { mapValues } from "../utils";
 import path from "path";
 

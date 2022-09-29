@@ -11,7 +11,6 @@ use crate::{
   NormalModuleFactoryContext, Plugin, PluginDriver, SharedPluginDriver, Stats,
   PATH_START_BYTE_POS_MAP,
 };
-
 use anyhow::Context;
 use hashbrown::HashMap;
 use rayon::prelude::*;
@@ -29,6 +28,7 @@ mod resolver;
 pub use compilation::*;
 pub use resolver::*;
 
+#[derive(Debug)]
 pub struct Compiler {
   pub options: Arc<CompilerOptions>,
   pub compilation: Compilation,
@@ -41,14 +41,15 @@ impl Compiler {
   pub fn new(options: CompilerOptions, plugins: Vec<Box<dyn Plugin>>) -> Self {
     let options = Arc::new(options);
 
-    let resolver_factory = ResolverFactory::new();
+    let resolver_factory = Arc::new(ResolverFactory::default());
     let resolver = resolver_factory.get(options.resolve.clone());
     let plugin_driver = Arc::new(RwLock::new(PluginDriver::new(
       options.clone(),
       plugins,
       Arc::new(resolver),
     )));
-    let loader_runner_runner = LoaderRunnerRunner::new(options.clone(), plugin_driver.clone());
+    let loader_runner_runner =
+      LoaderRunnerRunner::new(options.clone(), resolver_factory, plugin_driver.clone());
 
     Self {
       options: options.clone(),
@@ -100,11 +101,9 @@ impl Compiler {
     self.compile(deps).await?;
     self.stats()
   }
-
-  #[instrument(skip_all)]
-  async fn compile(&mut self, deps: HashMap<String, Dependency>) -> Result<()> {
+  #[instrument(name = "make")]
+  async fn make(&mut self, deps: HashMap<String, Dependency>) {
     let active_task_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
-
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
 
     deps.into_iter().for_each(|(name, dep)| {
@@ -159,11 +158,11 @@ impl Compiler {
         }
       }
     }
-
     tracing::debug!("module graph {:#?}", self.compilation.module_graph);
-
-    // self.compilation.calc_exec_order();
-
+  }
+  #[instrument(name = "compile")]
+  async fn compile(&mut self, deps: HashMap<String, Dependency>) -> Result<()> {
+    self.make(deps).await;
     self.compilation.seal(self.plugin_driver.clone()).await?;
 
     // Consume plugin driver diagnostic

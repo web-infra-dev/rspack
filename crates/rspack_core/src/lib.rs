@@ -1,11 +1,12 @@
 #![feature(iter_intersperse)]
 
-mod module;
 use std::sync::Arc;
 
 use dashmap::DashSet;
 use hashbrown::HashMap;
-pub use module::*;
+
+mod normal_module;
+pub use normal_module::*;
 mod plugin;
 pub use plugin::*;
 mod normal_module_factory;
@@ -42,11 +43,13 @@ pub use ukey::*;
 
 pub use rspack_sources;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SourceType {
   JavaScript,
   Css,
   Asset,
+  #[default]
+  Unknown,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -90,6 +93,7 @@ impl TryFrom<&str> for ModuleType {
     match value {
       "json" => Ok(Self::Json),
       "css" => Ok(Self::Css),
+      "mjs" => Ok(Self::Js),
       "js" => Ok(Self::Js),
       "jsx" => Ok(Self::Jsx),
       "tsx" => Ok(Self::Tsx),

@@ -23,6 +23,8 @@
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "workspace:*",
     "colorette": "2.0.19",
-    "yargs": "17.5.1"
+    "yargs": "17.5.1",
+    "webpack-dev-server": "4.11.1",
+    "webpack": "5.74.0"
   }
 }

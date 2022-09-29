@@ -5,6 +5,7 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
+    "dev": "tsc -w",
     "test": "jest --verbose"
   },
   "keywords": [],
@@ -12,7 +13,11 @@
   "license": "ISC",
   "dependencies": {
     "jest": "29.0.3",
+    "webpack-dev-server": "4.11.1",
+    "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
-    "webpack-dev-server": "4.11.1"
+    "@rspack/dev-middleware": "workspace:*",
+    "@modern-js/server": "1.18.1",
+    "@modern-js/core": "1.18.1"
   }
 }

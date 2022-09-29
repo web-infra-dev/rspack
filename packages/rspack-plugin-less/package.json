@@ -1,0 +1,29 @@
+{
+  "name": "@rspack/plugin-less",
+  "version": "0.0.1",
+  "description": "less plugin for rspack",
+  "author": "wangzhenzhuo",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "build": "rm -rf lib/ && tsc"
+  },
+  "keywords": [
+    "rspack",
+    "less"
+  ],
+  "license": "ISC",
+  "devDependencies": {
+    "@rspack/core": "workspace:*",
+    "@types/jest": "^27.0.1",
+    "@types/less": "^3.0.3"
+  },
+  "dependencies": {
+    "klona": "2.0.5",
+    "less": "4.1.2",
+    "tslib": "^2.3.1"
+  },
+  "peerDependencies": {
+    "@rspack/core": "workspace:*"
+  }
+}

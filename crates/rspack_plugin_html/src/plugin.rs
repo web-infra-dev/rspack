@@ -61,7 +61,8 @@ impl Plugin for HtmlPlugin {
     let (content, url) = match &config.template {
       Some(_template) => {
         let url = parse_to_url(_template);
-        let resolved_template = resolve_from_context(&compilation.options.context, url.path());
+        let resolved_template =
+          resolve_from_context(&compilation.options.context, url.path().as_str());
         let content = fs::read_to_string(&resolved_template).context(format!(
           "failed to read `{}` from `{}`",
           url.path(),

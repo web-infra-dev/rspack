@@ -64,8 +64,8 @@ export function describeCases(config: { name: string; casePath: string }) {
 							const stats = await rspack.build();
 							if (stats.errors.length > 0) {
 								console.log(
-									"erros:",
-									stats.errors.map(x => x.message).join("\n")
+									`case: ${example}\nerrors:\n`,
+									`${stats.errors.map(x => x.message).join("\n")}`
 								);
 							}
 							assert(stats.errors.length === 0);
@@ -91,7 +91,11 @@ export function describeCases(config: { name: string; casePath: string }) {
 							};
 							fn.call(
 								m.exports,
-								require,
+								function (p) {
+									return p && p.startsWith(".")
+										? require(path.resolve(outputPath, p))
+										: require(p);
+								},
 								m,
 								m.exports,
 								outputPath,

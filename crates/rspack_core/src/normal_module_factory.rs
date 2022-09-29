@@ -1,37 +1,23 @@
 use std::{
-  path::Path,
+  path::{Path, PathBuf},
   sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
   },
 };
 
-use crate::{
-  BoxModule, CompilerOptions, FactorizeAndBuildArgs, LoaderResult, LoaderRunnerRunner,
-  ResourceData, SharedPluginDriver,
-};
-use rspack_error::{Diagnostic, Error, TWithDiagnosticArray};
-use rspack_sources::{
-  BoxSource, OriginalSource, RawSource, SourceExt, SourceMap, SourceMapSource,
-  WithoutOriginalOptions,
-};
 use sugar_path::PathSugar;
 use swc_common::Span;
 use tokio::sync::mpsc::UnboundedSender;
 
+use rspack_error::{Diagnostic, Error, Result, TWithDiagnosticArray};
+use rspack_loader_runner::Loader;
+
 use crate::{
-  // load,
-  parse_to_url,
-  resolve,
-  Content,
-  ModuleGraphModule,
-  ModuleType,
-  Msg,
-  ParseModuleArgs,
-  ResolveArgs,
-  VisitedModuleIdentity,
+  parse_to_url, resolve, BuildContext, CompilationContext, CompilerContext, CompilerOptions,
+  FactorizeAndBuildArgs, LoaderRunnerRunner, ModuleGraphModule, ModuleRule, ModuleType, Msg,
+  NormalModule, ResolveArgs, ResourceData, SharedPluginDriver, VisitedModuleIdentity,
 };
-use rspack_error::Result;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct Dependency {
@@ -110,13 +96,17 @@ impl NormalModuleFactory {
     self.diagnostic.push(diagnostic.into());
   }
 
+  pub fn add_diagnostics<T: IntoIterator<Item = Diagnostic>>(&mut self, diagnostic: T) {
+    self.diagnostic.extend(diagnostic);
+  }
+
   pub fn send(&self, msg: Msg) {
     if let Err(err) = self.tx.send(msg) {
       tracing::trace!("fail to send msg {:?}", err)
     }
   }
 
-  pub fn calculate_module_type(&self, uri: &str) -> Option<ModuleType> {
+  pub fn calculate_module_type_by_uri(&self, uri: &str) -> Option<ModuleType> {
     // todo currently unreachable module types are temporarily unified with their importers
     let url = parse_to_url(if uri.starts_with("UnReachable:") {
       match self.dependency.importer.as_deref() {
@@ -126,11 +116,11 @@ impl NormalModuleFactory {
     } else {
       uri
     });
-    debug_assert_eq!(url.scheme(), "specifier");
-    resolve_module_type_by_uri(url.path())
+    debug_assert_eq!(url.scheme().map(|item| item.as_str()), Some("specifier"));
+    resolve_module_type_by_uri(PathBuf::from(url.path().as_str()))
   }
 
-  pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, BoxModule)>> {
+  pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, NormalModule)>> {
     let uri = resolve(
       ResolveArgs {
         importer: self.dependency.importer.as_deref(),
@@ -146,7 +136,7 @@ impl NormalModuleFactory {
 
     let url = parse_to_url(&uri);
     if self.context.module_type.is_none() {
-      self.context.module_type = self.calculate_module_type(&uri);
+      self.context.module_type = self.calculate_module_type_by_uri(&uri);
     }
 
     self
@@ -177,79 +167,166 @@ impl NormalModuleFactory {
 
     let resource_data = ResourceData {
       resource: uri.clone(),
-      resource_path: url.path().to_owned(),
-      resource_query: url.query().map(|q| q.to_owned()),
-      resource_fragment: url.fragment().map(|f| f.to_owned()),
+      resource_path: url.path().to_string(),
+      resource_query: url.query().map(|q| q.to_string()),
+      resource_fragment: url.fragment().map(|f| f.to_string()),
     };
 
-    let runner_result = if uri.starts_with("UnReachable:") {
-      LoaderResult {
-        content: Content::Buffer("module.exports = {}".to_string().as_bytes().to_vec()),
-        source_map: None,
-        meta: None,
-      }
-    } else {
-      let (runner_result, resolved_module_type) =
-        self.loader_runner_runner.run(resource_data).await?;
+    let resolved_module_type =
+      self.calculate_module_type(&resource_data, self.context.module_type)?;
 
-      self.context.module_type = resolved_module_type;
+    let resolved_parser_and_generator = self
+      .plugin_driver
+      .read()
+      .await
+      .registered_parser_and_generator_builder
+      .get(&resolved_module_type)
+      .ok_or_else(|| {
+        Error::InternalError(format!(
+          "Parser and generator builder for module type {:?} is not registered",
+          resolved_module_type
+        ))
+      })?();
 
-      if self.context.module_type.is_none() {
-        // todo currently unreachable module types are temporarily unified with their importers
-        let url = parse_to_url(if uri.starts_with("UnReachable:") {
-          self.dependency.importer.as_deref().unwrap()
-        } else {
-          &uri
-        });
-        debug_assert_eq!(url.scheme(), "specifier");
-        // TODO: remove default module type resolution based on the file extension.
-        self.context.module_type = resolve_module_type_by_uri(url.path());
-      }
+    self.context.module_type = Some(resolved_module_type);
 
-      runner_result
-    };
-
-    tracing::trace!(
-      "load ({:?}) source {:?}",
-      self.context.module_type,
-      runner_result
+    let normal_module = NormalModule::new(
+      uri.clone(),
+      uri.clone(),
+      self.dependency.detail.specifier.to_owned(),
+      resolved_module_type,
+      resolved_parser_and_generator,
+      resource_data,
+      self.context.options.clone(),
     );
-    let source = self.create_source(&uri, runner_result.content, runner_result.source_map);
-    let module = self.plugin_driver.read().await.parse(
-      ParseModuleArgs {
-        uri: uri.as_str(),
-        meta: runner_result.meta,
-        options: self.context.options.clone(),
-        source,
-        // ast: transform_result.ast.map(|x| x.into()),
-      },
-      &mut self.context,
-    )?;
-    tracing::trace!("parsed module {:?}", module);
 
-    Ok(Some((uri, module)))
+    Ok(Some((uri, normal_module)))
   }
 
-  fn create_source(&self, uri: &str, content: Content, source_map: Option<SourceMap>) -> BoxSource {
-    match (self.context.options.devtool, content, source_map) {
-      (true, Content::String(content), Some(map)) => SourceMapSource::new(WithoutOriginalOptions {
-        value: content,
-        name: uri,
-        source_map: map,
+  pub fn calculate_loaders(
+    &self,
+    resource_data: &ResourceData,
+  ) -> Result<Vec<&dyn Loader<CompilerContext, CompilationContext>>> {
+    let resolved_loaders = self
+      .context
+      .options
+      .module
+      .rules
+      .iter()
+      .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
+        if let Some(func) = &module_rule.func__ {
+          match func(resource_data) {
+            Ok(result) => {
+              if result {
+                return Some(Ok(module_rule));
+              }
+
+              return None
+            },
+            Err(e) => {
+              return Some(Err(e.into()))
+            }
+          }
+        }
+
+        // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
+        // See: https://webpack.js.org/configuration/module/#ruletest
+        if let Some(test_rule) = &module_rule.test && test_rule.is_match(&resource_data.resource) {
+          return Some(Ok(module_rule));
+        } else if let Some(resource_rule) = &module_rule.resource && resource_rule.is_match(&resource_data.resource) {
+          return Some(Ok(module_rule));
+        }
+
+        if let Some(resource_query_rule) = &module_rule.resource_query && let Some(resource_query) = &resource_data.resource_query && resource_query_rule.is_match(resource_query) {
+          return Some(Ok(module_rule));
+        }
+
+
+        None
       })
-      .boxed(),
-      (true, Content::String(content), None) => OriginalSource::new(content, uri).boxed(),
-      (_, Content::String(content), _) => RawSource::from(content).boxed(),
-      (_, Content::Buffer(content), _) => RawSource::from(content).boxed(),
-    }
+      .collect::<Result<Vec<_>>>()?
+      .into_iter()
+      .flat_map(|module_rule| {
+        module_rule.uses.iter().map(Box::as_ref).rev()
+      })
+      .collect::<Vec<_>>();
+
+    Ok(resolved_loaders)
+  }
+
+  // FIXME: this function is duplicated with the above one, will be fixed later.
+  pub fn calculate_module_type(
+    &self,
+    resource_data: &ResourceData,
+    default_module_type: Option<ModuleType>,
+  ) -> Result<ModuleType> {
+    // Progressive module type resolution:
+    // Stage 1: maintain the resolution logic via file extension
+    // TODO: Stage 2:
+    //           1. remove all extension based module type resolution, and let `module.rules[number].type` to handle this(everything is based on its config)
+    //           2. set default module type to `Js`, it equals to `javascript/auto` in webpack.
+    let mut resolved_module_type = default_module_type;
+
+    self
+      .context
+      .options
+      .module
+      .rules
+      .iter()
+      .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
+        if let Some(func) = &module_rule.func__ {
+          match func(resource_data) {
+            Ok(result) => {
+              if result {
+                return Some(Ok(module_rule));
+              }
+
+              return None
+            },
+            Err(e) => {
+              return Some(Err(e.into()))
+            }
+          }
+        }
+
+        // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
+        // See: https://webpack.js.org/configuration/module/#ruletest
+        if let Some(test_rule) = &module_rule.test && test_rule.is_match(&resource_data.resource) {
+          return Some(Ok(module_rule));
+        } else if let Some(resource_rule) = &module_rule.resource && resource_rule.is_match(&resource_data.resource) {
+          return Some(Ok(module_rule));
+        }
+
+        if let Some(resource_query_rule) = &module_rule.resource_query && let Some(resource_query) = &resource_data.resource_query && resource_query_rule.is_match(resource_query) {
+          return Some(Ok(module_rule));
+        }
+
+
+        None
+      })
+      .collect::<Result<Vec<_>>>()?
+      .into_iter()
+      .for_each(|module_rule| {
+        if module_rule.module_type.is_some() {
+          resolved_module_type = module_rule.module_type;
+        };
+
+      });
+
+    resolved_module_type.ok_or_else(|| {
+        Error::InternalError(format!(
+          "Unable to determine the module type of {}. Make sure to specify the `type` property in the module rule.",
+          resource_data.resource
+        ))
+      },
+    )
   }
 
   pub async fn resolve_module(&mut self) -> Result<Option<ModuleGraphModule>> {
-    // TODO: caching in resolve
+    // TODO: caching in resolve, align to webpack's external module
     // Here is the corresponding create function in webpack, but instead of using hooks we use procedural functions
-    let factorize_and_build_result = self
+    let result = self
       .plugin_driver
-      .clone()
       .read()
       .await
       .factorize_and_build(
@@ -259,8 +336,8 @@ impl NormalModuleFactory {
         },
         &mut self.context,
       )
-      .await;
-    let (uri, mut module) = if let Ok(Some(module)) = factorize_and_build_result {
+      .await?;
+    let (uri, mut module) = if let Some(module) = result {
       let (uri, module) = module;
       self
         .tx
@@ -281,41 +358,21 @@ impl NormalModuleFactory {
       return Ok(None);
     };
 
-    // let source = load(
-    //   &self.plugin_driver,
-    //   LoadArgs { uri: uri.as_str() },
-    //   &mut self.context,
-    // )
-    // .await?;
-    // tracing::trace!("load ({:?}) source {:?}", self.context.module_type, source);
-
-    // TODO: transform
-    // let transform_result = self.plugin_driver.transform(
-    //   TransformArgs {
-    //     uri: &uri,
-    //     content: Some(source),
-    //     ast: None,
-    //   },
-    //   &mut self.context,
-    // )?;
-
-    // let mut module = self.plugin_driver.parse(
-    //   ParseModuleArgs {
-    //     uri: uri.as_str(),
-    //     // source: transform_result.content,
-    //     options: self.context.options.clone(),
-    //     source: runner_result.content,
-    //     // ast: transform_result.ast.map(|x| x.into()),
-    //   },
-    //   &mut self.context,
-    // )?;
-
-    // tracing::trace!("parsed module {:?}", module);
-
     // scan deps
 
-    let deps = module
-      .dependencies()
+    let build_result = module
+      .build(BuildContext {
+        loader_runner_runner: &self.loader_runner_runner,
+        resolved_loaders: self.calculate_loaders(module.resource_resolved_data())?,
+        compiler_options: &self.context.options,
+      })
+      .await?;
+
+    let (build_result, diagnostics) = build_result.split_into_parts();
+    self.add_diagnostics(diagnostics);
+
+    let deps = build_result
+      .dependencies
       .into_iter()
       .map(|dep| Dependency {
         importer: Some(uri.clone()),

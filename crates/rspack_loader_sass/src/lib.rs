@@ -1,5 +1,4 @@
 use std::{
-  collections::HashSet,
   env,
   iter::Peekable,
   path::{Path, PathBuf},
@@ -9,7 +8,8 @@ use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  CompilationContext, CompilerContext, Resolve, ResolveResult, Resolver, ResolverFactory,
+  rspack_sources::SourceMap, CompilationContext, CompilerContext, Resolve, ResolveResult, Resolver,
+  ResolverFactory,
 };
 use rspack_error::{DiagnosticKind, Error, Result, TraceableError};
 use rspack_loader_runner::{Loader, LoaderContext, LoaderResult};
@@ -18,7 +18,7 @@ use sass_embedded::{
     IndentType, LegacyImporter, LegacyImporterResult, LegacyImporterThis, LegacyOptions,
     LegacyOptionsBuilder, LineFeed, OutputStyle,
   },
-  Exception, Sass,
+  Exception, Sass, Url,
 };
 use serde::Deserialize;
 use tokio::sync::Mutex;
@@ -124,7 +124,7 @@ impl RspackImporter {
     });
     let rspack_module_resolve = factory.get(Resolve {
       // TODO: add dependencyType.
-      condition_names: HashSet::from_iter(["sass".to_owned(), "style".to_owned()]),
+      condition_names: vec!["sass".to_owned(), "style".to_owned()],
       // TODO: ["sass", "style", "main", "..."] support `"..."`.
       main_fields: vec!["sass".to_owned(), "style".to_owned(), "main".to_owned()],
       // TODO: ["_index", "index", "..."] support `"..."`.
@@ -134,7 +134,7 @@ impl RspackImporter {
       ..Default::default()
     });
     let rspack_import_resolve = factory.get(Resolve {
-      condition_names: HashSet::from_iter(["sass".to_owned(), "style".to_owned()]),
+      condition_names: vec!["sass".to_owned(), "style".to_owned()],
       main_fields: vec!["sass".to_owned(), "style".to_owned(), "main".to_owned()],
       main_files: vec![
         "_index.import".to_owned(),
@@ -302,7 +302,6 @@ impl SassLoader {
     &self,
     loader_context: &LoaderContext<'_, '_, CompilerContext, CompilationContext>,
     content: String,
-    source_map: bool,
   ) -> LegacyOptions {
     let mut builder = LegacyOptionsBuilder::default()
       .data(
@@ -316,7 +315,13 @@ impl SassLoader {
       // logging implemented (https://webpack.js.org/api/loaders/#logging).
       // .logger(arg)
       .file(loader_context.resource_path)
-      .source_map(source_map)
+      .source_map(
+        self
+          .options
+          .source_map
+          .unwrap_or_else(|| loader_context.compiler_context.options.devtool.enabled()),
+      )
+      .source_map_contents(true)
       // TODO: use OutputStyle::Compressed when loader_context.mode is production.
       // .output_style(
       //   self
@@ -386,20 +391,34 @@ impl Loader<CompilerContext, CompilationContext> for SassLoader {
     loader_context: &LoaderContext<'_, '_, CompilerContext, CompilationContext>,
   ) -> Result<Option<LoaderResult>> {
     let source = loader_context.source.to_owned();
-    let source_map = self.options.source_map.unwrap_or({
-      // TODO: change to loader_context.options.source_map
-      false
-    });
-    let sass_options = self.get_sass_options(loader_context, source.try_into_string()?, source_map);
+    let sass_options = self.get_sass_options(loader_context, source.try_into_string()?);
     let result = self
       .compiler
       .lock()
       .await
       .render(sass_options)
       .map_err(sass_exception_to_error)?;
+    let source_map = result
+      .map
+      .map(|map| -> Result<SourceMap> {
+        let mut map = SourceMap::from_slice(&map)
+          .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?;
+        for source in map.sources_mut() {
+          if source.starts_with("file:") {
+            *source = Url::parse(source)
+              .unwrap()
+              .to_file_path()
+              .unwrap()
+              .display()
+              .to_string();
+          }
+        }
+        Ok(map)
+      })
+      .transpose()?;
     Ok(Some(LoaderResult {
       content: result.css.into(),
-      source_map: None,
+      source_map,
       meta: None,
     }))
   }

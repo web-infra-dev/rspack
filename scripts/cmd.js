@@ -1,6 +1,6 @@
 const cp = require("child_process");
 const log = require("./log");
-const { Command } = require("commander");
+const { Command, command } = require("commander");
 
 const COMMANDER_VERSION = "2.20.3";
 
@@ -33,7 +33,6 @@ function createCLI() {
 			});
 			log.info("finish install deps");
 		});
-
 	cli
 		.command("test")
 		.option("rust", "run all rust test")
@@ -63,7 +62,23 @@ function createCLI() {
 			});
 			log.info("test finished");
 		});
-
+	cli
+		.command("dev")
+		.description("run dev for ")
+		.option("js", "dev for all js package")
+		.action(args => {
+			let command;
+			switch (args) {
+				case "js":
+					command = `pnpm -parallel --filter "@rspack/*" dev`;
+					break;
+				default:
+					log.error(`invalid args, see "./x dev -h" to get more information`);
+			}
+			cp.execSync(command, {
+				stdio: "inherit"
+			});
+		});
 	cli
 		.command("build")
 		.option("binding", "build binding between rust and js")
@@ -135,27 +150,28 @@ function createCLI() {
 		.option("js", "lint js code")
 		.option("rs", "lint rust code")
 		.action(args => {
-			let command;
+			let commands = [];
 			switch (args) {
 				case "js":
-					command = 'npx prettier "packages/**/*.{ts,js}" --check';
+					commands = ['npx prettier "packages/**/*.{ts,js}" --check'];
 					break;
 				case "rs":
-					command = "cargo clippy --all -- --deny warnings";
+					commands = [
+						"cargo clippy --all -- --deny warnings",
+						"node ./scripts/check_rust_dependency.js"
+					];
 					break;
 				default:
 					log.error(
 						"invalid args, see `./x format -h` to get more information"
 					);
 			}
-			if (!command) {
-				return;
-			}
-			log.info(`start format by '${command}'`);
-			cp.execSync(command, {
-				stdio: "inherit"
+			commands.forEach(command => {
+				cp.execSync(command, {
+					stdio: "inherit"
+				});
 			});
-			log.info("format finished");
+			log.info("lint finished");
 		});
 	cli
 		.command("clean")
@@ -184,6 +200,31 @@ function createCLI() {
 				});
 			});
 			log.info("finish clean");
+		});
+
+	cli
+		.command("script")
+		.option(
+			"update_swc_version",
+			"update all swc sub packages to the correct version"
+		)
+		.action(args => {
+			let commands = [];
+			switch (args) {
+				case "update_swc_version":
+					commands = ["node ./scripts/update_swc_version.js"];
+					break;
+				default:
+					log.error(
+						"invalid args, see `./x format -h` to get more information"
+					);
+			}
+			commands.forEach(command => {
+				cp.execSync(command, {
+					stdio: "inherit"
+				});
+			});
+			log.info("run script finished");
 		});
 	return cli;
 }

@@ -1,17 +1,14 @@
 #![feature(box_patterns)]
 #![allow(dead_code)]
 
-mod runtime;
-pub mod utils;
-pub mod visitors;
 use once_cell::sync::Lazy;
 
+mod runtime;
 pub use runtime::*;
-
-pub mod module;
-
 mod plugin;
 pub use plugin::*;
+pub mod utils;
+pub mod visitors;
 
 static JS_HELPERS: Lazy<Helpers> = Lazy::new(Helpers::default);
 

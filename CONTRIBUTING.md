@@ -50,3 +50,24 @@ Cases are used to test custom build behavior, you could use custom `webpack.conf
 ##### statsTestCase.test.ts
 
 Cases are used to test your stats, By Default we will use jest's snapshot to snapshot your stats, and we **highly** recommend to **avoid** snapshot except statsCase. you can use statsCase to test behaviors like code splitting | bundle splitting, which is hard to test by just running code.
+
+### Useful Scripts
+
+We have written some useful scripts in `scripts` folder to help with some tedious things.
+
+NOTE: We should upload `node_modules` to git while developing scripts.
+
+##### update_swc_version.js
+
+This script will scan all of `cargo.toml` and replace dependency version with the corresponding version in https://github.com/swc-project/swc/tree/main
+
+This script can config with the following
+
+* `swc_version` - the swc version tag, we need update it when upgrade swc.
+* `swc_packages` - the regex to match dependency which is in swc repo
+
+WARNING: We have hacked `@iarna/toml/stringify.js` to make the output match our format while developing this script
+
+##### check_rust_dependency.js
+
+This script will print the duplicate dependencies in `cargo.toml` for all crates.

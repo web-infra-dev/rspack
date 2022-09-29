@@ -9,6 +9,7 @@ use hashbrown::HashMap;
 use rspack_error::{Diagnostic, Result};
 use rspack_sources::BoxSource;
 use std::{fmt::Debug, sync::Arc};
+use tracing::instrument;
 
 #[derive(Debug)]
 pub struct Compilation {
@@ -175,7 +176,7 @@ impl Compilation {
       .get(ukey)
       .expect("entrypoint not found by ukey")
   }
-
+  #[instrument(name = "seal")]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     code_splitting(self)?;
 

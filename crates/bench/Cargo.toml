@@ -1,0 +1,19 @@
+[package]
+edition = "2021"
+name = "bench"
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rspack = {path = "../rspack"}
+rspack_core = {path = "../rspack_core"}
+rspack_error = {path = "../rspack_error"}
+rspack_test = {path = "../rspack_test"}
+tokio = {version = "1.17.0", features = ["full"]}
+
+# [target.'cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))'.dependencies]
+mimalloc-rust = {version = "0.2"}
+
+[features]
+tracing = []

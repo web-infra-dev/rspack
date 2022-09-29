@@ -1,5 +1,7 @@
 // use crate::{cjs_runtime_helper, Bundle, ModuleGraph, Platform, ResolvedURI};
 use ast::*;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use rspack_core::{Compilation, Dependency, ModuleDependency, ModuleGraphModule, ResolveKind};
 use swc_atoms::{Atom, JsWord};
 use swc_common::comments::SingleThreadedComments;
@@ -21,6 +23,9 @@ use {
   // swc_ecma_utils::{self},
   swc_ecma_visit::{self, noop_visit_mut_type},
 };
+
+static SWC_HELPERS_REG: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"@swc/helpers/lib/(\w*)\.js$").unwrap());
 
 pub struct RspackModuleFinalizer<'a> {
   pub module: &'a ModuleGraphModule,
@@ -95,13 +100,21 @@ impl<'a> RspackModuleFormatTransformer<'a> {
     Ident::new(RSPACK_REQUIRE.into(), DUMMY_SP).as_callee()
   }
 
-  fn get_rspack_dynamic_import_callee(&self, chunk_id: &str) -> Callee {
+  fn get_rspack_dynamic_import_callee(&self, chunk_ids: Vec<&str>) -> Callee {
     MemberExpr {
       span: DUMMY_SP,
       obj: Box::new(swc_ecma_ast::Expr::Call(CallExpr {
         span: DUMMY_SP,
         callee: Ident::new(RSPACK_DYNAMIC_IMPORT.into(), DUMMY_SP).as_callee(),
-        args: vec![Lit::Str(chunk_id.into()).as_arg()],
+        args: vec![Expr::Array(ArrayLit {
+          span: DUMMY_SP,
+          elems: chunk_ids
+            .iter()
+            .map(|chunk_id| Some(Lit::Str(chunk_id.to_string().into()).as_arg()))
+            .collect::<Vec<Option<ExprOrSpread>>>(),
+        })
+        .as_arg()],
+
         type_args: None,
       })),
       prop: MemberProp::Ident(Ident::new("then".into(), DUMMY_SP)),
@@ -109,7 +122,6 @@ impl<'a> RspackModuleFormatTransformer<'a> {
     .as_callee()
   }
 
-  #[instrument(skip_all)]
   fn rewrite_static_import(&mut self, n: &mut CallExpr) -> Option<()> {
     if is_require_literal_expr(n, self.unresolved_mark, &self.require_id) {
       if let Callee::Expr(box Expr::Ident(_ident)) = &mut n.callee {
@@ -118,10 +130,20 @@ impl<'a> RspackModuleFormatTransformer<'a> {
           expr: box Expr::Lit(Lit::Str(str)),
         } = n.args.first_mut()?
         {
+          // swc will automatically replace @swc/helpers/src/xx.mjs with @swc/helpers/lib/xx.js when it transform code to commonjs
+          // so we need replace it to original specifier to find module
+          // this is a temporary solution
+          let specifier = match SWC_HELPERS_REG.captures(&str.value) {
+            Some(cap) => match cap.get(1) {
+              Some(cap) => format!(r#"@swc/helpers/src/{}.mjs"#, cap.as_str()),
+              None => str.value.to_string(),
+            },
+            None => str.value.to_string(),
+          };
           let require_dep = Dependency {
             importer: Some(self.module.uri.clone()),
             detail: ModuleDependency {
-              specifier: str.value.to_string(),
+              specifier: specifier.clone(),
               kind: ResolveKind::Require,
               span: Some(n.span.into()),
             },
@@ -130,7 +152,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
           let import_dep = Dependency {
             importer: Some(self.module.uri.clone()),
             detail: ModuleDependency {
-              specifier: str.value.to_string(),
+              specifier,
               kind: ResolveKind::Import,
               span: Some(n.span.into()),
             },
@@ -189,17 +211,28 @@ impl<'a> RspackModuleFormatTransformer<'a> {
         })
         .as_arg()];
 
-        let chunk_id = if let Some(chunk) = self
-          .compilation
-          .chunk_graph
-          .chunk_by_split_point_module_uri(&js_module.uri, &self.compilation.chunk_by_ukey)
-        {
-          chunk.id.as_str()
-        } else {
-          js_module_id
+        let mut chunk_ids = {
+          let chunk_group_ukey = self
+            .compilation
+            .chunk_graph
+            .get_module_chunk_group(&js_module.uri, &self.compilation.chunk_by_ukey);
+          let chunk_group = self.compilation.chunk_group_by_ukey.get(chunk_group_ukey)?;
+          chunk_group
+            .chunks
+            .iter()
+            .map(|chunk_ukey| {
+              let chunk = self
+                .compilation
+                .chunk_by_ukey
+                .get(chunk_ukey)
+                .unwrap_or_else(|| panic!("chunk should exist"));
+              chunk.id.as_str()
+            })
+            .collect::<Vec<_>>()
         };
+        chunk_ids.sort();
 
-        n.callee = self.get_rspack_dynamic_import_callee(chunk_id);
+        n.callee = self.get_rspack_dynamic_import_callee(chunk_ids);
         // n.callee = if self.compilation.options.chunk_loading.is_jsonp() {
         // n.callee = if true {
         //   cjs_runtime_helper!(jsonp, rs.dynamic_require)
