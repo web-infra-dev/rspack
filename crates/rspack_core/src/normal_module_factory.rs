@@ -75,8 +75,8 @@ impl NormalModuleFactory {
     }
   }
 
-  pub async fn run(mut self) {
-    match self.resolve_module().await {
+  pub async fn create(mut self) {
+    match self.factorize().await {
       Ok(maybe_module) => {
         if let Some(module) = maybe_module {
           let diagnostic = std::mem::take(&mut self.diagnostic);
@@ -322,7 +322,7 @@ impl NormalModuleFactory {
     )
   }
 
-  pub async fn resolve_module(&mut self) -> Result<Option<ModuleGraphModule>> {
+  pub async fn factorize(&mut self) -> Result<Option<ModuleGraphModule>> {
     // TODO: caching in resolve, align to webpack's external module
     // Here is the corresponding create function in webpack, but instead of using hooks we use procedural functions
     let result = self
@@ -407,7 +407,7 @@ impl NormalModuleFactory {
   }
 
   fn fork(&self, dep: Dependency) {
-    let task = NormalModuleFactory::new(
+    let normal_module_factory = NormalModuleFactory::new(
       NormalModuleFactoryContext {
         module_name: None,
         module_type: None,
@@ -420,7 +420,7 @@ impl NormalModuleFactory {
     );
 
     tokio::task::spawn(async move {
-      task.run().await;
+      normal_module_factory.create().await;
     });
   }
 }

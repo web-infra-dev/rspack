@@ -118,7 +118,7 @@ impl Compilation {
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
 
     entry_deps.into_iter().for_each(|(name, dep)| {
-      let task = NormalModuleFactory::new(
+      let normal_module_factory = NormalModuleFactory::new(
         NormalModuleFactoryContext {
           module_name: Some(name),
           active_task_count: active_task_count.clone(),
@@ -133,7 +133,7 @@ impl Compilation {
         self.loader_runner_runner.clone(),
       );
 
-      tokio::task::spawn(async move { task.run().await });
+      tokio::task::spawn(async move { normal_module_factory.create().await });
     });
 
     while active_task_count.load(Ordering::SeqCst) != 0 {
