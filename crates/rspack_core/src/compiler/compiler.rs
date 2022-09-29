@@ -1,6 +1,5 @@
 use std::{path::Path, sync::Arc};
 
-use anyhow::Context;
 use hashbrown::HashMap;
 use rayon::prelude::*;
 use rspack_error::{
@@ -109,16 +108,31 @@ impl Compiler {
       .diagnostic
       .append(&mut plugin_driver_diagnostics);
 
-    // tracing::trace!("assets {:#?}", assets);
+    self.emit_assets(&self.compilation)?;
+    self.compilation.done(self.plugin_driver.clone()).await?;
 
+    Ok(())
+  }
+
+  fn stats(&mut self) -> Result<Stats> {
+    if self.options.emit_error {
+      StdioDiagnosticDisplay::default().emit_batch_diagnostic(
+        &self.compilation.diagnostic,
+        PATH_START_BYTE_POS_MAP.clone(),
+      )?;
+    }
+    Ok(Stats::new(&self.compilation))
+  }
+
+  pub fn emit_assets(&self, compilation: &Compilation) -> Result<()> {
     std::fs::create_dir_all(Path::new(&self.options.context).join(&self.options.output.path))
-      .map_err(|_| Error::InternalError("failed to create output directory".into()))?;
+      .map_err(|_| Error::InternalError("Failed to create output directory".into()))?;
 
     std::fs::create_dir_all(&self.options.output.path)
-      .map_err(|_| Error::InternalError("failed to create output directory".into()))?;
-    self
-      .compilation
-      .assets
+      .map_err(|_| Error::InternalError("Failed to create output directory".into()))?;
+
+    compilation
+      .assets()
       .par_iter()
       .try_for_each(|(filename, asset)| -> anyhow::Result<()> {
         use std::fs;
@@ -134,22 +148,11 @@ impl Compiler {
           Path::new(&self.options.output.path).join(filename),
           asset.buffer(),
         )
-        .context("failed to write asset")
+        .map_err(|e| e.into())
       })
-      .unwrap();
-    self.compilation.done(self.plugin_driver.clone()).await?;
-    Ok(())
+      .map_err(|e| e.into())
   }
 
-  fn stats(&mut self) -> Result<Stats> {
-    if self.options.emit_error {
-      StdioDiagnosticDisplay::default().emit_batch_diagnostic(
-        &self.compilation.diagnostic,
-        PATH_START_BYTE_POS_MAP.clone(),
-      )?;
-    }
-    Ok(Stats::new(&self.compilation))
-  }
   pub fn update_asset(&mut self, filename: String, asset: BoxSource) {
     self.compilation.assets.insert(filename, asset);
     dbg!(

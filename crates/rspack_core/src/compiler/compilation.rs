@@ -72,6 +72,10 @@ impl Compilation {
     self.assets.insert(filename, asset);
   }
 
+  pub fn assets(&self) -> &CompilationAssets {
+    &self.assets
+  }
+
   pub fn push_diagnostic(&mut self, diagnostic: Diagnostic) {
     self.diagnostic.push(diagnostic);
   }
