@@ -124,13 +124,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             .expect("Expected AST for CSS generator, please file an issue.")
             .as_css()
             .expect("Expected CSS AST for CSS generation, please file an issue."),
-          // Safety: original source exists in code generation
-          compilation.options.devtool.then(|| {
-            mgm
-              .module
-              .original_source()
-              .expect("Failed to get original source, please file an issue.")
-          }),
+          compilation,
         )?;
         if let Some(source_map) = source_map {
           let source = SourceMapSource::new(SourceMapSourceOptions {

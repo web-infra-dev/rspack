@@ -37,7 +37,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           entry: std::collections::HashMap::default(),
           context: rspack_core::Context::default(),
           dev_server: rspack_core::DevServerOptions::default(),
-          devtool: false,
+          devtool: rspack_core::Devtool::default(),
           output: rspack_core::OutputOptions {
             path: Default::default(),
             public_path: Default::default(),

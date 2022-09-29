@@ -145,7 +145,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       // TODO: this should only return AST for javascript only, It's a fast pass, defer to another pr to solve this.
       // Ok(ast_or_source.to_owned().into())
 
-      let source_map = compilation.options.devtool;
       let compiler = get_swc_compiler();
       let output = compiler.run(|| {
         crate::HELPERS.set(&JS_HELPERS, || {
@@ -183,9 +182,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
                     .into(),
                     ..Default::default()
                   },
-                  inline_sources_content: true.into(),
-                  // emit_source_map_columns: (!matches!(options.mode, BundleMode::Dev)).into(),
-                  source_maps: Some(SourceMapsConfig::Bool(source_map)),
+                  inline_sources_content: (!compilation.options.devtool.no_sources()).into(),
+                  emit_source_map_columns: (!compilation.options.devtool.cheap()).into(),
+                  source_maps: Some(SourceMapsConfig::Bool(
+                    compilation.options.devtool.source_map(),
+                  )),
                   env: if compilation.options.target.platform.is_browsers_list() {
                     Some(swc_ecma_preset_env::Config {
                       mode: if compilation.options.builtins.polyfill {
@@ -440,20 +441,21 @@ impl Plugin for JsPlugin {
         filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs")
       })
       .map(|(filename, original)| {
-        let original_code = original.source().to_string();
+        let input = original.source().to_string();
+        let input_source_map = original.map(&MapOptions::default());
         let output =
           swc::try_with_handler(swc_compiler.cm.clone(), Default::default(), |handler| {
             let fm = swc_compiler.cm.new_source_file(
               swc_common::FileName::Custom(filename.to_string()),
-              original_code.clone(),
+              input.clone(),
             );
             swc_compiler.minify(
               fm,
               handler,
               &JsMinifyOptions {
-                source_map: BoolOrDataConfig::from_bool(true),
-                inline_sources_content: true,
-                emit_source_map_columns: true,
+                source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
+                inline_sources_content: false, // don't need this since we have inner_source_map in SourceMapSource
+                emit_source_map_columns: !compilation.options.devtool.cheap(),
                 ..Default::default()
               },
             )
@@ -464,8 +466,8 @@ impl Plugin for JsPlugin {
             name: format!("<{filename}>"), // match with swc FileName::Custom...
             source_map: SourceMap::from_json(map)
               .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
-            original_source: Some(original_code),
-            inner_source_map: original.map(&MapOptions::default()),
+            original_source: Some(input),
+            inner_source_map: input_source_map,
             remove_original_source: true,
           })
           .boxed()

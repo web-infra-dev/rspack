@@ -11,6 +11,11 @@ rspack_error = { path = "../rspack_error" }
 tracing = "0.1"
 async-trait = "0.1"
 pathdiff = "0.2"
+regex = "1"
+once_cell = "1"
+base64 = "0.13"
+rayon = "1"
+hashbrown = { version = "0.12", features = ["rayon"] }
 
 [dev-dependencies]
 rspack_test = { path = "../rspack_test" }

@@ -195,6 +195,7 @@ impl NormalModuleFactory {
       resolved_module_type,
       resolved_parser_and_generator,
       resource_data,
+      self.context.options.clone(),
     );
 
     Ok(Some((uri, normal_module)))
