@@ -25,6 +25,7 @@ pub struct RawBuiltins {
   pub minify: Option<bool>,
   pub polyfill: Option<bool>,
   pub browserslist: Option<Vec<String>>,
+  pub jsx: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -36,6 +37,7 @@ pub struct RawBuiltins {
   pub minify: Option<bool>,
   pub polyfill: Option<bool>,
   pub browserslist: Option<Vec<String>>,
+  pub jsx: Option<bool>,
 }
 
 pub(super) fn normalize_builtin(
@@ -64,6 +66,7 @@ pub(super) fn normalize_builtin(
       .minify
       .unwrap_or(matches!(options.mode, Some(Mode::Production))),
     polyfill: builtins.polyfill.unwrap_or(true),
+    jsx: builtins.jsx.unwrap_or(false),
   })
 }
 

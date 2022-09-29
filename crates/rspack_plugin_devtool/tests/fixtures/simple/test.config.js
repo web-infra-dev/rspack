@@ -2,5 +2,8 @@ module.exports = {
 	entry: {
 		main: "./index.jsx"
 	},
-  devtool: "source-map"
+	devtool: "source-map",
+	builtins: {
+		jsx: true
+	}
 };
