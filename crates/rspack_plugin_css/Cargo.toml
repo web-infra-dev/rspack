@@ -23,7 +23,13 @@ anyhow = "1"
 # typemap = "0.3.3"
 better_scoped_tls = "0.1.0"
 rayon = "1.5.3"
-tokio = { version = "1.17.0", features = ["full"] }
+tokio = { version = "1.21.0", features = [
+  "rt",
+  "rt-multi-thread",
+  "macros",
+  "test-util",
+  "parking_lot",
+] }
 dashmap = "5.0.0"
 sugar_path = "0.0.5"
 hashbrown = { version = "0.12.1", features = ["rayon"] }
