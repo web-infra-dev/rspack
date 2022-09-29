@@ -39,6 +39,7 @@
     "postcss",
     "pxtorem",
     "rspack",
+    "threejs",
     "tokio",
     "ukey",
     "Ukey"
