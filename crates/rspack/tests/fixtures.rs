@@ -21,3 +21,14 @@ async fn run(context: PathBuf) {
 fn example(fixture_path: PathBuf) {
   run(fixture_path);
 }
+
+// #[tokio::main]
+// #[test]
+// async fn test_lodash() {
+//   let start = std::time::SystemTime::now();
+//   let path = std::path::Path::new("/Users/bytedance/rspack/benchcases/lodash-with-simple-css");
+//   let options = read_test_config_and_normalize(&path);
+//   let mut compiler = rspack::rspack(options, vec![]);
+//   compiler.run().await.unwrap();
+//   println!("cost: {:?}", start.elapsed());
+// }
