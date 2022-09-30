@@ -344,7 +344,7 @@ impl Plugin for JsPlugin {
                   module_source = wrap_eval_source_map(
                     module_source,
                     &self.eval_source_map_cache,
-                    &args.compilation,
+                    args.compilation,
                   )?;
                 }
                 Ok(wrap_module_function(module_source, &module.id))
