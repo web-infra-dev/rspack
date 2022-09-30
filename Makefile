@@ -9,6 +9,8 @@ copy/three:
 	for i in 1 2 3 4 5 6 7 8 9 10; do echo "import * as copy$$i from './copy$$i/Three.js'; export {copy$$i}" >> benchcases/three/src/entry.js; done
 	echo "module.exports = {mode: 'development',entry: {index: './src/entry.js'}};" > benchcases/three/test.config.js
 	echo "module.exports = {mode: 'development',entry: {index: './benchcases/three/src/entry.js'},devtool: 'eval',cache: {type: 'filesystem'}}" > benchcases/three/webpack.config.js
+	echo "module.exports = {mode: 'development',entry: {index: './benchcases/three/src/entry.js'},module: {rules: [{test: /\.js/,use: ['esbuild-loader']}]},devtool: 'eval',cache: {type: 'filesystem'}}" > benchcases/three/webpack.esbuild.config.js
+	echo "module.exports = {mode: 'development',entry: {index: './benchcases/three/src/entry.js'},module: {rules: [{test: /\.js/,use: ['swc-loader']}]},devtool: 'eval',cache: {type: 'filesystem'}}" > benchcases/three/webpack.swc.config.js
 
 flamegraph:
 	samply record ./target/release/bench
@@ -21,6 +23,10 @@ bench_three: | copy/three
 	@hyperfine --warmup 3 './node_modules/esbuild/bin/esbuild --bundle --global-name=THREE  benchcases/three/src/entry.js --outfile=benchcases/three/esbuild/entry.esbuild.js --timing'
 	@echo "webpack"
 	@hyperfine --warmup 3 './node_modules/webpack-cli/bin/cli.js  -c ./benchcases/three/webpack.config.js'
+	@echo "webpack_swc"
+	@hyperfine --warmup 3 './node_modules/webpack-cli/bin/cli.js  -c ./benchcases/three/webpack.swc.config.js'
+	@echo "webpack_esbuild"
+	@hyperfine --warmup 3 './node_modules/webpack-cli/bin/cli.js  -c ./benchcases/three/webpack.esbuild.config.js'
 
 
 esbuild_trace:
