@@ -338,7 +338,9 @@ impl Plugin for JsPlugin {
               .get(&SourceType::JavaScript)
               .map(|source| {
                 let mut module_source = source.ast_or_source.clone().try_into_source().unwrap();
-                if args.compilation.options.devtool.eval() {
+                if args.compilation.options.devtool.eval()
+                  && args.compilation.options.devtool.source_map()
+                {
                   module_source = wrap_eval_source_map(
                     module_source,
                     &self.eval_source_map_cache,

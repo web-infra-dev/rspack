@@ -296,11 +296,6 @@ pub fn wrap_eval_source_map(
   if let Some(cached) = cache.get(&module_source) {
     return Ok(cached.clone());
   }
-  let key = module_source.clone();
-  let result = |result: BoxSource| {
-    cache.insert(key, result.clone());
-    result
-  };
   if let Some(mut map) = module_source.map(&MapOptions::new(compilation.options.devtool.cheap())) {
     for source in map.sources_mut() {
       let uri = if source.starts_with('<') && source.ends_with('>') {
@@ -314,6 +309,11 @@ pub fn wrap_eval_source_map(
         uri.to_owned()
       };
     }
+    if compilation.options.devtool.no_sources() {
+      for content in map.sources_content_mut() {
+        *content = String::default();
+      }
+    }
     let mut map_buffer = Vec::new();
     map
       .to_writer(&mut map_buffer)
@@ -322,10 +322,10 @@ pub fn wrap_eval_source_map(
     let footer =
       format!("\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}");
     let content = module_source.source().to_string();
-    Ok(result(
-      RawSource::from(format!("eval({});", json!(content + &footer))).boxed(),
-    ))
+    let result = RawSource::from(format!("eval({});", json!(content + &footer))).boxed();
+    cache.insert(module_source, result.clone());
+    Ok(result)
   } else {
-    Ok(result(module_source))
+    Ok(module_source)
   }
 }
