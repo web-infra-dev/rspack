@@ -1,15 +1,23 @@
-use crate::{
-  split_chunks::code_splitting, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey,
-  ChunkKind, ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint, ModuleDependency,
-  ModuleGraph, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime,
-  SharedPluginDriver, VisitedModuleIdentity,
+use std::{
+  fmt::Debug,
+  sync::atomic::{AtomicU32, Ordering},
+  sync::Arc,
 };
+
 use futures::{stream::FuturesUnordered, StreamExt};
 use hashbrown::HashMap;
+use tracing::instrument;
+
 use rspack_error::{Diagnostic, Result};
 use rspack_sources::BoxSource;
-use std::{fmt::Debug, sync::Arc};
-use tracing::instrument;
+
+use crate::{
+  split_chunks::code_splitting, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey,
+  ChunkKind, ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint, LoaderRunnerRunner,
+  ModuleDependency, ModuleGraph, Msg, NormalModuleFactory, NormalModuleFactoryContext,
+  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime,
+  SharedPluginDriver, VisitedModuleIdentity,
+};
 
 #[derive(Debug)]
 pub struct Compilation {
@@ -24,6 +32,8 @@ pub struct Compilation {
   pub entrypoints: HashMap<String, ChunkGroupUkey>,
   pub assets: CompilationAssets,
   pub diagnostic: Vec<Diagnostic>,
+  pub(crate) plugin_driver: SharedPluginDriver,
+  pub(crate) loader_runner_runner: Arc<LoaderRunnerRunner>,
   pub(crate) _named_chunk: HashMap<String, ChunkUkey>,
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
 }
@@ -33,6 +43,8 @@ impl Compilation {
     entries: std::collections::HashMap<String, EntryItem>,
     visited_module_id: VisitedModuleIdentity,
     module_graph: ModuleGraph,
+    plugin_driver: SharedPluginDriver,
+    loader_runner_runner: Arc<LoaderRunnerRunner>,
   ) -> Self {
     Self {
       options,
@@ -46,6 +58,8 @@ impl Compilation {
       entrypoints: Default::default(),
       assets: Default::default(),
       diagnostic: vec![],
+      plugin_driver,
+      loader_runner_runner,
       _named_chunk: Default::default(),
       named_chunk_groups: Default::default(),
     }
@@ -56,6 +70,10 @@ impl Compilation {
 
   pub fn emit_asset(&mut self, filename: String, asset: BoxSource) {
     self.assets.insert(filename, asset);
+  }
+
+  pub fn assets(&self) -> &CompilationAssets {
+    &self.assets
   }
 
   pub fn push_diagnostic(&mut self, diagnostic: Diagnostic) {
@@ -96,6 +114,59 @@ impl Compilation {
         )
       })
       .collect()
+  }
+
+  #[instrument(name = "make")]
+  pub async fn make(&mut self, entry_deps: HashMap<String, Dependency>) {
+    let active_task_count: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
+
+    entry_deps.into_iter().for_each(|(name, dep)| {
+      let normal_module_factory = NormalModuleFactory::new(
+        NormalModuleFactoryContext {
+          module_name: Some(name),
+          active_task_count: active_task_count.clone(),
+          visited_module_identity: self.visited_module_id.clone(),
+          module_type: None,
+          side_effects: None,
+          options: self.options.clone(),
+        },
+        dep,
+        tx.clone(),
+        self.plugin_driver.clone(),
+        self.loader_runner_runner.clone(),
+      );
+
+      tokio::task::spawn(async move { normal_module_factory.create().await });
+    });
+
+    while active_task_count.load(Ordering::SeqCst) != 0 {
+      match rx.recv().await {
+        Some(job) => match job {
+          Msg::TaskFinished(mut module_with_diagnostic) => {
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
+            self.module_graph.add_module(*module_with_diagnostic.inner);
+            self
+              .diagnostic
+              .append(&mut module_with_diagnostic.diagnostic);
+          }
+          Msg::TaskCanceled => {
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
+          }
+          Msg::DependencyReference(dep, resolved_uri) => {
+            self.module_graph.add_dependency(dep, resolved_uri);
+          }
+          Msg::TaskErrorEncountered(err) => {
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
+            self.push_batch_diagnostic(err.into());
+          }
+        },
+        None => {
+          tracing::trace!("All sender is dropped");
+        }
+      }
+    }
+    tracing::debug!("module graph {:#?}", self.module_graph);
   }
 
   async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) {

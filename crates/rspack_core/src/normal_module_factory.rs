@@ -1,7 +1,7 @@
 use std::{
   path::{Path, PathBuf},
   sync::{
-    atomic::{AtomicUsize, Ordering},
+    atomic::{AtomicU32, Ordering},
     Arc,
   },
 };
@@ -75,8 +75,8 @@ impl NormalModuleFactory {
     }
   }
 
-  pub async fn run(mut self) {
-    match self.resolve_module().await {
+  pub async fn create(mut self) {
+    match self.factorize().await {
       Ok(maybe_module) => {
         if let Some(module) = maybe_module {
           let diagnostic = std::mem::take(&mut self.diagnostic);
@@ -322,7 +322,7 @@ impl NormalModuleFactory {
     )
   }
 
-  pub async fn resolve_module(&mut self) -> Result<Option<ModuleGraphModule>> {
+  pub async fn factorize(&mut self) -> Result<Option<ModuleGraphModule>> {
     // TODO: caching in resolve, align to webpack's external module
     // Here is the corresponding create function in webpack, but instead of using hooks we use procedural functions
     let result = self
@@ -407,7 +407,7 @@ impl NormalModuleFactory {
   }
 
   fn fork(&self, dep: Dependency) {
-    let task = NormalModuleFactory::new(
+    let normal_module_factory = NormalModuleFactory::new(
       NormalModuleFactoryContext {
         module_name: None,
         module_type: None,
@@ -420,7 +420,7 @@ impl NormalModuleFactory {
     );
 
     tokio::task::spawn(async move {
-      task.run().await;
+      normal_module_factory.create().await;
     });
   }
 }
@@ -435,7 +435,7 @@ pub fn resolve_module_type_by_uri<T: AsRef<Path>>(uri: T) -> Option<ModuleType> 
 #[derive(Debug, Clone)]
 pub struct NormalModuleFactoryContext {
   pub module_name: Option<String>,
-  pub(crate) active_task_count: Arc<AtomicUsize>,
+  pub(crate) active_task_count: Arc<AtomicU32>,
   pub(crate) visited_module_identity: VisitedModuleIdentity,
   pub module_type: Option<ModuleType>,
   pub side_effects: Option<bool>,
