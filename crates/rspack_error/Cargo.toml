@@ -23,7 +23,6 @@ tokio = { version = "1.21.0", features = [
   "rt-multi-thread",
   "macros",
   "test-util",
-  "parking_lot",
 ] }
 rspack_binding_options = { path = "../rspack_binding_options" }
 rspack_core = { path = "../rspack_core" }

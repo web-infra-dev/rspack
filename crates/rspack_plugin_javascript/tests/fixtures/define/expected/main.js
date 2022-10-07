@@ -85,8 +85,8 @@ assert.deepStrictEqual(error_count, 2);
 assert.deepStrictEqual([
     300,
     [
-        "six", 
-    ], 
+        "six"
+    ]
 ], [
     300,
     [
@@ -102,8 +102,8 @@ assert.deepStrictEqual([
 assert.deepStrictEqual([
     300,
     [
-        "six", 
-    ], 
+        "six"
+    ]
 ][0][1], undefined);
 assert.deepStrictEqual([
     300,
@@ -116,8 +116,8 @@ assert.deepStrictEqual([
 assert.deepStrictEqual([
     300,
     [
-        "six", 
-    ], 
+        "six"
+    ]
 ][1][0], "six");
 assert.deepStrictEqual([
     300,
@@ -128,7 +128,7 @@ assert.deepStrictEqual([
 assert.deepStrictEqual([
     300,
     [
-        "six", 
+        "six"
     ]
 ][1], [
     "six"
@@ -137,7 +137,7 @@ assert.deepStrictEqual([
     300,
     [
         "six"
-    ], 
+    ]
 ][[
     300,
     [

@@ -49,7 +49,7 @@ pub fn dump_ast_with_ctxt(
   comment: SwcComments,
   cm: Arc<SourceMap>,
 ) -> String {
-  GLOBALS.set(global, || {
+  GLOBALS.set(&global, || {
     module.visit_mut_with(&mut resolver(Mark::new(), Mark::new(), false));
     let mut visitor = CtxtDumpVisitor {
       comments: comment.clone(),
@@ -126,16 +126,18 @@ mod test_tree_shaking {
         ..Default::default()
       })
     };
-    compiler
-      .parse_js(
-        fm,
-        &handler,
-        swc_ecma_visit::swc_ecma_ast::EsVersion::Es2022,
-        syntax,
-        IsModule::Bool(true),
-        Some(&comments),
-      )
-      .map(|prog| prog.expect_module())
+    GLOBALS.set(&Default::default(), || {
+      compiler
+        .parse_js(
+          fm,
+          &handler,
+          swc_ecma_visit::swc_ecma_ast::EsVersion::Es2022,
+          syntax,
+          IsModule::Bool(true),
+          Some(&comments),
+        )
+        .map(|prog| prog.expect_module())
+    })
   }
   #[test]
   fn test_tree_shaking_dump() {
