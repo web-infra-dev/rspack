@@ -82,7 +82,7 @@ jobs:
 
       - name: Compare Bench Results
         id: bench_comparison
-        shell: zsh
+        shell: bash
         run: |
           echo "### Benchmark Results" > output
           echo "\`\`\`"  >> output
