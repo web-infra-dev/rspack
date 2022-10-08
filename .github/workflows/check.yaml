@@ -17,9 +17,9 @@ jobs:
     name: Format Rust Files
     runs-on: [self-hosted, rspack-common]
     steps:
-      - name: Cleanup workspace
-        uses: TooMuch4U/actions-clean@v2.1
-        if: ${{ always() }}
+      # - name: Cleanup workspace
+      #   uses: TooMuch4U/actions-clean@v2.1
+      #   if: ${{ always() }}
       - name: Checkout PR Branch
         uses: actions/checkout@v3
         with:
@@ -42,13 +42,13 @@ jobs:
     name: Lint Rust Files
     runs-on: [self-hosted, rspack-common]
     steps:
-      - name: Cleanup workspace
-        uses: TooMuch4U/actions-clean@v2.1
-        if: ${{ always() }}
+      # - name: Cleanup workspace
+      #   uses: TooMuch4U/actions-clean@v2.1
+      #   if: ${{ always() }}
       - name: Checkout repository
         uses: actions/checkout@v3
-      - name: Install protoc
-        uses: arduino/setup-protoc@v1
+        # - name: Install protoc
+        #   uses: arduino/setup-protoc@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install toolchain
@@ -71,13 +71,13 @@ jobs:
     runs-on: [self-hosted, rspack-common]
     timeout-minutes: 30
     steps:
-      - name: Cleanup workspace
-        uses: TooMuch4U/actions-clean@v2.1
-        if: ${{ always() }}
+      # - name: Cleanup workspace
+      #   uses: TooMuch4U/actions-clean@v2.1
+      #   if: ${{ always() }}
       - name: Checkout repository
         uses: actions/checkout@v3
-      - name: Install protoc
-        uses: arduino/setup-protoc@v1
+        # - name: Install protoc
+        #   uses: arduino/setup-protoc@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install toolchain
@@ -94,8 +94,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-      - name: Install protoc
-        uses: arduino/setup-protoc@v1
+        # - name: Install protoc
+        #   uses: arduino/setup-protoc@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install dependencies && and build lib
@@ -105,8 +105,8 @@ jobs:
           pnpm run build:cli
       - name: binding test
         run: |
-          pnpm run build:webpack
           pnpm --filter @rspack/core run test
+          pnpm run build:webpack
       #- name: Cache
       #uses: speedy-js/rust-cache-self-hosted@v1
       # - name: Install yarn
