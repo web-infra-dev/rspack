@@ -82,7 +82,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v3
         with:
-          node-version: "18"
+          node-version: "16"
           architecture: "arm64"
       - name: Install toolchain
         run: rustup show
@@ -105,7 +105,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v3
         with:
-          node-version: "18"
+          node-version: "16"
           architecture: "arm64"
       - name: Install dependencies && and build lib
         run: |
