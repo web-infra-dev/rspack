@@ -30,19 +30,27 @@ static MODULE_REQUEST: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[^?]*~").unwrap(
 static IS_MODULE_IMPORT: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^~([^/]+|[^/]+/|@[^/]+[/][^/]+|@[^/]+/?|@[^/]+[/][^/]+/)$").unwrap());
 
-fn dev_exe_path() -> PathBuf {
-  let os = match env::consts::OS {
+fn get_os() -> &'static str {
+  match env::consts::OS {
     "linux" => "linux",
     "macos" => "darwin",
     "windows" => "win32",
     os => panic!("dart-sass-embedded is not supported for {os}"),
-  };
-  let arch = match env::consts::ARCH {
+  }
+}
+
+fn get_arch() -> &'static str {
+  match env::consts::ARCH {
     "x86" => "ia32",
     "x86_64" => "x64",
     "aarch64" => "arm64",
     arch => panic!("dart-sass-embedded is not supported for {arch}"),
-  };
+  }
+}
+
+fn dev_exe_path() -> PathBuf {
+  let os = get_os();
+  let arch = get_arch();
   PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR")))
     .join(format!("../../node_modules/@tmp-sass-embedded/{os}-{arch}"))
     .join("dart-sass-embedded/dart-sass-embedded")
@@ -293,7 +301,19 @@ impl SassLoader {
   pub fn new(options: SassLoaderOptions) -> Self {
     Self {
       // js side should ensure exe_path is a correct dart-sass-embedded path.
-      compiler: Mutex::new(Sass::new(&options.__exe_path).unwrap()),
+      compiler: Mutex::new(
+        Sass::new(&options.__exe_path)
+          .map_err(|e| {
+            format!(
+              "{}: The dart-sass-embedded path is {}, your OS is {}, your Arch is {}",
+              e.message(),
+              &options.__exe_path.display(),
+              get_os(),
+              get_arch(),
+            )
+          })
+          .unwrap(),
+      ),
       options,
     }
   }
