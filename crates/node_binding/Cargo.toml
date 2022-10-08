@@ -10,7 +10,7 @@ version = "0.1.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-anyhow = { version = "1.0.65", features = [] }
+anyhow = { version = "1.0.65", features = ["backtrace"] }
 async-trait = "0.1.53"
 backtrace = "0.3"
 dashmap = "5.0.0"
