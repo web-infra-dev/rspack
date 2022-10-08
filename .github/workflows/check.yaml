@@ -108,6 +108,7 @@ jobs:
           architecture: "arm64"
       - name: Install dependencies && and build lib
         run: |
+          node -e "console.log(process.arch)"  
           pnpm install
           pnpm run lint:js
           pnpm run build:cli
