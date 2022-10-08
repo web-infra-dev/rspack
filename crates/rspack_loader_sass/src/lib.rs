@@ -31,6 +31,7 @@ static IS_MODULE_IMPORT: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^~([^/]+|[^/]+/|@[^/]+[/][^/]+|@[^/]+/?|@[^/]+[/][^/]+/)$").unwrap());
 
 fn dev_exe_path() -> PathBuf {
+  dbg!(env::consts::OS, env::consts::ARCH);
   let os = match env::consts::OS {
     "linux" => "linux",
     "macos" => "darwin",
