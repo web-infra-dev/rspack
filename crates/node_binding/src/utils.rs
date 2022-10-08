@@ -72,7 +72,7 @@ pub fn init_custom_trace_subscriber(
   // trace_out_file_path: Option<String>,
 ) -> Result<()> {
   CUSTOM_TRACE_SUBSCRIBER.get_or_init(|| {
-    let guard = rspack_core::log::enable_tracing_by_env_with_chrome_layer();
+    let guard = rspack_tracing::enable_tracing_by_env_with_chrome_layer();
     if let Some(guard) = guard {
       env
         .add_env_cleanup_hook(guard, |flush_guard| {

@@ -1,4 +1,3 @@
-pub mod log;
 use std::{
   path::{Component, Path},
   sync::Arc,
