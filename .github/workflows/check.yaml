@@ -80,6 +80,10 @@ jobs:
         #   uses: arduino/setup-protoc@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "14"
+          architecture: "arm64"
       - name: Install toolchain
         run: rustup show
       - name: Run test
@@ -98,6 +102,10 @@ jobs:
         #   uses: arduino/setup-protoc@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "14"
+          architecture: "arm64"
       - name: Install dependencies && and build lib
         run: |
           pnpm install
