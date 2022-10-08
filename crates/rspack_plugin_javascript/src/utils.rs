@@ -32,7 +32,6 @@ pub fn get_swc_compiler() -> Arc<SwcCompiler> {
 /// need to return those error for better dx, some warning behavior may lead some unexpected result.
 /// 2. We can't convert to [rspack_error::Error] at this point, because there is no `path` and `source`
 pub fn parse_js(
-  compiler: &SwcCompiler,
   fm: Arc<SourceFile>,
   target: EsVersion,
   syntax: Syntax,
@@ -74,7 +73,6 @@ pub fn parse_file(
   PATH_START_BYTE_POS_MAP.insert(filename.to_string(), fm.start_pos.0);
 
   match parse_js(
-    &compiler,
     fm,
     swc_ecma_ast::EsVersion::Es2022,
     syntax,

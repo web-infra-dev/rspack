@@ -49,7 +49,7 @@ pub fn dump_ast_with_ctxt(
   comment: SwcComments,
   cm: Arc<SourceMap>,
 ) -> String {
-  GLOBALS.set(&global, || {
+  GLOBALS.set(global, || {
     module.visit_mut_with(&mut resolver(Mark::new(), Mark::new(), false));
     let mut visitor = CtxtDumpVisitor {
       comments: comment.clone(),
