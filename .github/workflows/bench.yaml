@@ -37,9 +37,6 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Cleanup workspace
-        uses: TooMuch4U/actions-clean@v2.1
-        if: ${{ always() }}
       - name: Get PR SHA
         id: sha
         uses: actions/github-script@v6
