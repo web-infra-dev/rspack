@@ -28,6 +28,7 @@ tokio = { version = "1.21.0", features = [
   "rt-multi-thread",
   "macros",
   "test-util",
+  "parking_lot",
 ] }
 dashmap = "5.0.0"
 sugar_path = "0.0.5"
