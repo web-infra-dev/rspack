@@ -59,9 +59,10 @@ export function resolveDevOptions(
 	// --- static
 	const directory =
 		devConfig.static?.directory ?? path.resolve(context.context, "dist");
-	// TODO: default should not false
-	let watch: false | WatchOptions = false;
-	if (devConfig.static?.watch === true) {
+	let watch: false | WatchOptions = {};
+	if (devConfig.static?.watch === false) {
+		watch = false;
+	} else if (devConfig.static?.watch === true) {
 		watch = resolveWatchOption({});
 	} else if (devConfig.static?.watch) {
 		watch = devConfig.static?.watch;
@@ -70,9 +71,10 @@ export function resolveDevOptions(
 	const devMiddleware = devConfig.devMiddleware ?? {};
 	const liveReload = devConfig.liveReload ?? true;
 
-	// TODO: default should not false
-	let webSocketServer: false | WebSocketServerOptions = false;
-	if (devConfig.webSocketServer === true) {
+	let webSocketServer: false | WebSocketServerOptions = {};
+	if (devConfig.webSocketServer === false) {
+		webSocketServer = false;
+	} else if (devConfig.webSocketServer === true) {
 		webSocketServer = {};
 	} else if (devConfig.webSocketServer) {
 		webSocketServer = devConfig.webSocketServer;
