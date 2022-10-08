@@ -136,6 +136,6 @@ pub fn css_parse_error_to_diagnostic(error: Error, path: &str) -> Vec<Diagnostic
     message.to_string(),
   )
   .with_kind(DiagnosticKind::Css);
-  //Use this `Error` convertion could avoid eagerly clone source file.
+  //Use this `Error` convertion could avoid eagerly clone source file .
   <Vec<Diagnostic>>::from(rspack_error::Error::TraceableError(traceable_error))
 }
