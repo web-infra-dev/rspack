@@ -153,8 +153,8 @@ class Rspack {
 		const stats = await binding.build(this.#instance);
 		return stats;
 	}
-	async rebuild(changeFiles: string[]) {
-		const stats = await binding.rebuild(this.#instance, changeFiles);
+	async rebuild() {
+		const stats = await binding.rebuild(this.#instance);
 		return stats;
 	}
 
@@ -175,8 +175,7 @@ class Rspack {
 			// TODO: it means there a lot of things to do....
 			const begin = Date.now();
 			console.log("hit change and start to build");
-			const compiler = new Rspack(this.userOptions);
-			stats = await compiler.build();
+			const diffStats = await this.rebuild();
 			console.log("build success, time cost", Date.now() - begin);
 		});
 

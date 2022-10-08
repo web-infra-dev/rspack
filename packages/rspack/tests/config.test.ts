@@ -20,13 +20,13 @@ describe("config", () => {
 			devServer: {
 				port: 8080,
 				static: {
-					watch: false
+					watch: {}
 				},
 				devMiddleware: {},
 				open: true,
 				hmr: false,
 				liveReload: true,
-				webSocketServer: false
+				webSocketServer: {}
 			},
 			entry: {},
 			output: {
