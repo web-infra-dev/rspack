@@ -82,13 +82,14 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v3
         with:
-          node-version: "14"
+          node-version: "18"
           architecture: "arm64"
       - name: Install toolchain
         run: rustup show
       - name: Run test
         # We need to install sass first to enable sass-loader
         run: |
+          node -e "console.log(process.arch)"  
           pnpm i
           cargo test --all -- --nocapture
 
@@ -104,7 +105,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v3
         with:
-          node-version: "14"
+          node-version: "18"
           architecture: "arm64"
       - name: Install dependencies && and build lib
         run: |
