@@ -171,7 +171,7 @@ impl From<BoxSource> for AstOrSource {
     AstOrSource::Source(source)
   }
 }
-
+#[derive(Debug)]
 pub struct ParseContext<'a> {
   pub source: Box<dyn Source>,
   pub module_type: &'a ModuleType,

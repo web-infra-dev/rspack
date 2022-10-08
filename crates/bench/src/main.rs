@@ -1,5 +1,5 @@
 #[cfg(feature = "tracing")]
-use rspack_core::log::enable_tracing_by_env_with_chrome_layer;
+use rspack_tracing::enable_tracing_by_env_with_chrome_layer;
 use std::{path::PathBuf, time::Instant};
 
 use mimalloc_rust::GlobalMiMalloc;

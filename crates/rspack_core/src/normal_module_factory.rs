@@ -12,6 +12,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use rspack_error::{Diagnostic, Error, Result, TWithDiagnosticArray};
 use rspack_loader_runner::Loader;
+use tracing::instrument;
 
 use crate::{
   parse_to_url, resolve, BuildContext, CompilationContext, CompilerContext, CompilerOptions,
@@ -46,6 +47,7 @@ pub enum ResolveKind {
   UrlToken,
 }
 
+#[derive(Debug)]
 pub struct NormalModuleFactory {
   context: NormalModuleFactoryContext,
   dependency: Dependency,
@@ -74,7 +76,7 @@ impl NormalModuleFactory {
       diagnostic: vec![],
     }
   }
-
+  #[instrument(name = "normal_module:create")]
   pub async fn create(mut self) {
     match self.factorize().await {
       Ok(maybe_module) => {
@@ -119,7 +121,7 @@ impl NormalModuleFactory {
     debug_assert_eq!(url.scheme().map(|item| item.as_str()), Some("specifier"));
     resolve_module_type_by_uri(PathBuf::from(url.path().as_str()))
   }
-
+  #[instrument(name = "normal_module:build")]
   pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, NormalModule)>> {
     let uri = resolve(
       ResolveArgs {
@@ -321,7 +323,7 @@ impl NormalModuleFactory {
       },
     )
   }
-
+  #[instrument(name = "normal_module:factorize")]
   pub async fn factorize(&mut self) -> Result<Option<ModuleGraphModule>> {
     // TODO: caching in resolve, align to webpack's external module
     // Here is the corresponding create function in webpack, but instead of using hooks we use procedural functions

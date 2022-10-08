@@ -5,6 +5,7 @@ use std::collections::{HashMap, HashSet};
 // };
 
 use rspack_error::Result;
+use tracing::instrument;
 
 use crate::{
   uri_to_chunk_name, ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
@@ -16,7 +17,7 @@ struct EntryData {
   module_uri: String,
   dependencies: Vec<Dependency>,
 }
-
+#[instrument()]
 pub fn code_splitting(compilation: &mut Compilation) -> Result<()> {
   CodeSplitter::new(compilation).split()?;
   Ok(())

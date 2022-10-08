@@ -165,6 +165,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_test",
+ "rspack_tracing",
  "tokio",
 ]
 
@@ -2147,6 +2148,7 @@ dependencies = [
  "rspack_plugin_json",
  "rspack_plugin_runtime",
  "rspack_test",
+ "rspack_tracing",
  "serde",
  "serde_json",
  "sugar_path",
@@ -2200,6 +2202,7 @@ dependencies = [
  "rspack_error",
  "rspack_loader_runner",
  "rspack_sources",
+ "rspack_tracing",
  "serde",
  "sugar_path",
  "swc",
@@ -2212,8 +2215,6 @@ dependencies = [
  "swc_ecma_visit",
  "tokio",
  "tracing",
- "tracing-chrome",
- "tracing-subscriber",
  "url",
  "xxhash-rust",
 ]
@@ -2446,11 +2447,21 @@ dependencies = [
  "rspack",
  "rspack_binding_options",
  "rspack_core",
+ "rspack_tracing",
  "serde",
  "serde_json",
  "similar",
  "testing_macros",
  "tokio",
+]
+
+[[package]]
+name = "rspack_tracing"
+version = "0.1.0"
+dependencies = [
+ "tracing",
+ "tracing-chrome",
+ "tracing-subscriber",
 ]
 
 [[package]]
