@@ -14,6 +14,7 @@ use rspack_core::{
   ParserAndGenerator, Plugin, RenderManifestEntry, SourceType,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use tracing::instrument;
 
 use crate::{
   pxtorem::{option::PxToRemOption, px_to_rem::px_to_rem},
@@ -73,7 +74,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
     CSS_MODULE_SOURCE_TYPE_LIST
   }
-
+  #[instrument(name = "css:parse")]
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
     let ParseContext { source, meta, .. } = parse_context;
 
@@ -108,6 +109,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
   }
 
   #[allow(clippy::unwrap_in_result)]
+  #[instrument(name = "css:generate")]
   fn generate(
     &self,
     requested_source_type: SourceType,

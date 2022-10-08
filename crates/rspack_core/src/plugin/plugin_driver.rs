@@ -99,6 +99,7 @@ impl PluginDriver {
   /// Warning:
   /// Webpack does not expose this as the documented API, even though you can reach this with `NormalModule.getCompilationHooks(compilation)`.
   /// For the most of time, you would not need this.
+  #[instrument(name = "plugin:read_resource")]
   pub async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
     for plugin in &self.plugins {
       let result = plugin.read_resource(resource_data).await?;
@@ -142,7 +143,7 @@ impl PluginDriver {
   //   Ok(module.take_inner())
   // }
 
-  #[instrument(skip_all)]
+  #[instrument(name = "plugin:render_manifest", skip_all)]
   pub fn render_manifest(&self, args: RenderManifestArgs) -> PluginRenderManifestHookOutput {
     let mut assets = vec![];
     self.plugins.iter().try_for_each(|plugin| -> Result<()> {
@@ -169,7 +170,7 @@ impl PluginDriver {
     }
     Ok(None)
   }
-
+  #[instrument(name = "plugin:render_runtime")]
   pub fn render_runtime(&self, args: RenderRuntimeArgs) -> PluginRenderRuntimeHookOutput {
     let mut sources = vec![];
     for plugin in &self.plugins {
@@ -183,7 +184,7 @@ impl PluginDriver {
     }
     Ok(sources)
   }
-  #[instrument(skip_all)]
+  #[instrument(name = "plugin:process_assets", skip_all)]
   pub async fn process_assets(&mut self, args: ProcessAssetsArgs<'_>) -> PluginProcessAssetsOutput {
     for plugin in &mut self.plugins {
       plugin
@@ -197,14 +198,14 @@ impl PluginDriver {
     }
     Ok(())
   }
-  #[instrument(skip_all)]
+  #[instrument(name = "plugin:done", skip_all)]
   pub async fn done(&mut self) -> PluginBuildEndHookOutput {
     for plugin in &mut self.plugins {
       plugin.done().await?;
     }
     Ok(())
   }
-
+  #[instrument(name = "plugin:optimize_chunks")]
   pub fn optimize_chunks(&mut self, compilation: &mut Compilation) -> Result<()> {
     for plugin in &mut self.plugins {
       plugin.optimize_chunks(PluginContext::new(), OptimizeChunksArgs { compilation })?;

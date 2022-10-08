@@ -87,6 +87,7 @@ impl Compiler {
     }
     Ok(())
   }
+  #[instrument(name = "build")]
   pub async fn build(&mut self) -> Result<Stats> {
     self.compilation = Compilation::new(
       // TODO: use Arc<T> instead

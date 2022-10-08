@@ -5,6 +5,7 @@ use std::collections::HashSet;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
+use tracing::instrument;
 
 #[derive(Debug)]
 pub enum ResolveResult {
@@ -147,6 +148,7 @@ fn to_string(a: Vec<&str>) -> Vec<String> {
 pub struct Resolver(pub(crate) nodejs_resolver::Resolver);
 
 impl Resolver {
+  #[instrument(name = "nodejs_resolver")]
   pub fn resolve(&self, path: &Path, request: &str) -> Result<ResolveResult> {
     self
       .0

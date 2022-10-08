@@ -21,6 +21,7 @@ use rspack_core::{
   RenderManifestEntry, SourceType,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use tracing::instrument;
 
 use crate::utils::{
   get_swc_compiler, get_wrap_chunk_after, get_wrap_chunk_before, parse_file, syntax_by_module_type,
@@ -65,7 +66,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
     SOURCE_TYPES
   }
-
+  #[instrument(name = "js:parse")]
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
     let ParseContext {
       source,
@@ -132,6 +133,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   }
 
   #[allow(clippy::unwrap_in_result)]
+  #[instrument(name = "js:generate")]
   fn generate(
     &self,
     requested_source_type: SourceType,
