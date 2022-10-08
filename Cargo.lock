@@ -2148,6 +2148,7 @@ dependencies = [
  "rspack_plugin_json",
  "rspack_plugin_runtime",
  "rspack_test",
+ "rspack_tracing",
  "serde",
  "serde_json",
  "sugar_path",
