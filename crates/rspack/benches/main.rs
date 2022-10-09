@@ -5,6 +5,12 @@ use std::path::PathBuf;
 
 use rspack_test::read_test_config_and_normalize;
 
+use mimalloc_rust::GlobalMiMalloc;
+
+#[cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))]
+#[global_allocator]
+static GLOBAL: GlobalMiMalloc = GlobalMiMalloc;
+
 async fn bench(cur_dir: &PathBuf) {
   // cur_dir = cur_dir.join("webpack_css_cases_to_be_migrated/bootstrap");
   let options = read_test_config_and_normalize(cur_dir);

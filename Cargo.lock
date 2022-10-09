@@ -2135,6 +2135,7 @@ dependencies = [
  "crossbeam",
  "dashmap",
  "hashbrown",
+ "mimalloc-rust",
  "once_cell",
  "rspack_binding_options",
  "rspack_core",
