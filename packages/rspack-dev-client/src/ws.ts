@@ -5,6 +5,7 @@ export function createWebSocketClient(url: string) {
 	client.onerror = error => {
 		console.error(error);
 	};
+	console.log("ws in client create success");
 	return {
 		onOpen(f: Fn) {
 			client.onopen = f;

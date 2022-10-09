@@ -477,6 +477,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "dyn-clone"
+version = "1.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f94fa09c2aeea5b8839e414b7b841bf429fd25b9c522116ac97ee87856d88b2"
+
+[[package]]
 name = "either"
 version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1796,6 +1802,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_plugin_json",
  "rspack_plugin_runtime",
+ "rspack_tracing",
  "sugar_path",
  "tokio",
  "tracing",
@@ -1832,9 +1839,11 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "bitflags",
  "crossbeam",
  "dashmap",
  "fluent-uri",
+ "futures",
  "hashbrown",
  "nodejs-resolver",
  "once_cell",
@@ -1844,6 +1853,7 @@ dependencies = [
  "rspack_error",
  "rspack_loader_runner",
  "rspack_sources",
+ "rspack_tracing",
  "serde",
  "sugar_path",
  "swc",
@@ -1855,8 +1865,6 @@ dependencies = [
  "swc_ecma_visit",
  "tokio",
  "tracing",
- "tracing-chrome",
- "tracing-subscriber",
  "url",
  "xxhash-rust",
 ]
@@ -1926,6 +1934,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_plugin_html",
+ "rspack_tracing",
  "serde",
  "serde_json",
  "testing_macros",
@@ -1982,7 +1991,12 @@ name = "rspack_plugin_devtool"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "base64",
+ "hashbrown",
+ "once_cell",
  "pathdiff",
+ "rayon",
+ "regex",
  "rspack_core",
  "rspack_error",
  "tracing",
@@ -2021,6 +2035,7 @@ dependencies = [
  "once_cell",
  "preset_env_base",
  "rayon",
+ "regex",
  "rspack_core",
  "rspack_error",
  "serde",
@@ -2069,14 +2084,24 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.1.4"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7cd8e564b2eb7bb273cf3549bc6259c294a2c74c24da2b04079dddd190d6320f"
+checksum = "c3d68d8e12bcd78e8979c8cc2ed5e47f89d6a749fdc7c8c2a327d6d64c6eb513"
 dependencies = [
+ "dyn-clone",
  "parking_lot",
  "serde",
  "serde_json",
  "smol_str",
+]
+
+[[package]]
+name = "rspack_tracing"
+version = "0.1.0"
+dependencies = [
+ "tracing",
+ "tracing-chrome",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -2265,15 +2290,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "900fba806f70c630b0a382d0d825e17a0f19fcd059a2ade1ff237bcddf446b31"
 dependencies = [
  "lazy_static",
-]
-
-[[package]]
-name = "signal-hook-registry"
-version = "1.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e51e73328dc4ac0c7ccbda3a494dfa03df1de2f46018127f60c693f2648455b0"
-dependencies = [
- "libc",
 ]
 
 [[package]]
@@ -3499,9 +3515,9 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "tokio"
-version = "1.20.1"
+version = "1.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a8325f63a7d4774dd041e363b2409ed1c5cbbd0f867795e661df066b2b0a581"
+checksum = "a9e03c497dc955702ba729190dc4aac6f2a0ce97f913e5b1b5912fc5039d9099"
 dependencies = [
  "autocfg",
  "bytes",
@@ -3509,10 +3525,8 @@ dependencies = [
  "memchr",
  "mio",
  "num_cpus",
- "once_cell",
  "parking_lot",
  "pin-project-lite",
- "signal-hook-registry",
  "socket2",
  "tokio-macros",
  "winapi",

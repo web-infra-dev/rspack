@@ -169,3 +169,9 @@ crates/node_binding/binding.d.ts
 # Benchmark 
 /github/
 /benchcases/three
+
+# profile
+profile.json
+
+# esbuild trace
+esbuild.trace

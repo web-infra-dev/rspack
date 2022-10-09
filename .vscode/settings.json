@@ -35,10 +35,12 @@
   "cSpell.words": [
     "Ctxt",
     "Deque",
+    "ecma",
     "napi",
     "postcss",
     "pxtorem",
     "rspack",
+    "threejs",
     "tokio",
     "ukey",
     "Ukey"

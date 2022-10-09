@@ -1,5 +1,5 @@
 module.exports = {
-	devtool: true,
+	devtool: "source-map",
 	builtin: {
 		minify: true
 	}

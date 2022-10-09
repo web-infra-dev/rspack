@@ -7,7 +7,7 @@ pub enum External {
   String(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ExternalType {
   NodeCommonjs,
   Window,

@@ -1,14 +1,23 @@
-use crate::{
-  split_chunks::code_splitting, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey,
-  ChunkKind, ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint, ModuleDependency,
-  ModuleGraph, PluginDriver, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, ResolveKind,
-  Runtime, VisitedModuleIdentity,
+use std::{
+  fmt::Debug,
+  sync::atomic::{AtomicU32, Ordering},
+  sync::Arc,
 };
+
+use futures::{stream::FuturesUnordered, StreamExt};
 use hashbrown::HashMap;
-use rayon::prelude::*;
+use tracing::instrument;
+
 use rspack_error::{Diagnostic, Result};
 use rspack_sources::BoxSource;
-use std::{fmt::Debug, sync::Arc};
+
+use crate::{
+  split_chunks::code_splitting, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey,
+  ChunkKind, ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint, LoaderRunnerRunner,
+  ModuleDependency, ModuleGraph, Msg, NormalModuleFactory, NormalModuleFactoryContext,
+  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime,
+  SharedPluginDriver, VisitedModuleIdentity,
+};
 
 #[derive(Debug)]
 pub struct Compilation {
@@ -23,7 +32,9 @@ pub struct Compilation {
   pub entrypoints: HashMap<String, ChunkGroupUkey>,
   pub assets: CompilationAssets,
   pub diagnostic: Vec<Diagnostic>,
-  pub named_chunk: HashMap<String, ChunkUkey>,
+  pub(crate) plugin_driver: SharedPluginDriver,
+  pub(crate) loader_runner_runner: Arc<LoaderRunnerRunner>,
+  pub(crate) named_chunk: HashMap<String, ChunkUkey>,
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
 }
 impl Compilation {
@@ -32,6 +43,8 @@ impl Compilation {
     entries: std::collections::HashMap<String, EntryItem>,
     visited_module_id: VisitedModuleIdentity,
     module_graph: ModuleGraph,
+    plugin_driver: SharedPluginDriver,
+    loader_runner_runner: Arc<LoaderRunnerRunner>,
   ) -> Self {
     Self {
       options,
@@ -45,6 +58,8 @@ impl Compilation {
       entrypoints: Default::default(),
       assets: Default::default(),
       diagnostic: vec![],
+      plugin_driver,
+      loader_runner_runner,
       named_chunk: Default::default(),
       named_chunk_groups: Default::default(),
     }
@@ -55,6 +70,10 @@ impl Compilation {
 
   pub fn emit_asset(&mut self, filename: String, asset: BoxSource) {
     self.assets.insert(filename, asset);
+  }
+
+  pub fn assets(&self) -> &CompilationAssets {
+    &self.assets
   }
 
   pub fn push_diagnostic(&mut self, diagnostic: Diagnostic) {
@@ -76,7 +95,7 @@ impl Compilation {
     chunk_by_ukey.insert(chunk.ukey, chunk);
     chunk_by_ukey.get_mut(&ukey).expect("chunk not found")
   }
-
+  #[instrument(name = "entry_deps")]
   pub fn entry_dependencies(&self) -> HashMap<String, Dependency> {
     self
       .entries
@@ -97,18 +116,76 @@ impl Compilation {
       .collect()
   }
 
-  fn create_chunk_assets(&mut self, plugin_driver: Arc<PluginDriver>) {
-    let chunk_ukey_and_manifest = self
+  #[instrument(name = "compilation:make")]
+  pub async fn make(&mut self, entry_deps: HashMap<String, Dependency>) {
+    let active_task_count: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
+
+    entry_deps.into_iter().for_each(|(name, dep)| {
+      let normal_module_factory = NormalModuleFactory::new(
+        NormalModuleFactoryContext {
+          module_name: Some(name),
+          active_task_count: active_task_count.clone(),
+          visited_module_identity: self.visited_module_id.clone(),
+          module_type: None,
+          side_effects: None,
+          options: self.options.clone(),
+        },
+        dep,
+        tx.clone(),
+        self.plugin_driver.clone(),
+        self.loader_runner_runner.clone(),
+      );
+
+      tokio::task::spawn(async move { normal_module_factory.create().await });
+    });
+
+    while active_task_count.load(Ordering::SeqCst) != 0 {
+      match rx.recv().await {
+        Some(job) => match job {
+          Msg::TaskFinished(mut module_with_diagnostic) => {
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
+            self.module_graph.add_module(*module_with_diagnostic.inner);
+            self
+              .diagnostic
+              .append(&mut module_with_diagnostic.diagnostic);
+          }
+          Msg::TaskCanceled => {
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
+          }
+          Msg::DependencyReference(dep, resolved_uri) => {
+            self.module_graph.add_dependency(dep, resolved_uri);
+          }
+          Msg::TaskErrorEncountered(err) => {
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
+            self.push_batch_diagnostic(err.into());
+          }
+        },
+        None => {
+          tracing::trace!("All sender is dropped");
+        }
+      }
+    }
+    tracing::debug!("module graph {:#?}", self.module_graph);
+  }
+  #[instrument()]
+  async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) {
+    let chunk_ukey_and_manifest = (self
       .chunk_by_ukey
-      .par_values()
-      .map(|chunk| {
-        let manifest = plugin_driver.render_manifest(RenderManifestArgs {
-          chunk_ukey: chunk.ukey,
-          compilation: self,
-        });
+      .values()
+      .map(|chunk| async {
+        let manifest = plugin_driver
+          .read()
+          .await
+          .render_manifest(RenderManifestArgs {
+            chunk_ukey: chunk.ukey,
+            compilation: self,
+          });
         (chunk.ukey, manifest)
       })
-      .collect::<Vec<_>>();
+      .collect::<FuturesUnordered<_>>())
+    .collect::<Vec<_>>()
+    .await;
 
     chunk_ukey_and_manifest
       .into_iter()
@@ -123,9 +200,11 @@ impl Compilation {
         });
       })
   }
-
-  async fn process_assets(&mut self, plugin_driver: Arc<PluginDriver>) {
+  #[instrument(name = "compilation:process_asssets")]
+  async fn process_assets(&mut self, plugin_driver: SharedPluginDriver) {
     plugin_driver
+      .write()
+      .await
       .process_assets(ProcessAssetsArgs { compilation: self })
       .await
       .map_err(|e| {
@@ -134,15 +213,20 @@ impl Compilation {
       })
       .ok();
   }
-  pub async fn done(&mut self, plugin_driver: Arc<PluginDriver>) -> Result<()> {
-    plugin_driver.done().await?;
+  pub async fn done(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    plugin_driver.write().await.done().await?;
     Ok(())
   }
-  pub fn render_runtime(&self, plugin_driver: Arc<PluginDriver>) -> Runtime {
-    if let Ok(sources) = plugin_driver.render_runtime(RenderRuntimeArgs {
-      sources: vec![],
-      compilation: self,
-    }) {
+  #[instrument(name = "compilation:render_runtime")]
+  pub async fn render_runtime(&self, plugin_driver: SharedPluginDriver) -> Runtime {
+    if let Ok(sources) = plugin_driver
+      .read()
+      .await
+      .render_runtime(RenderRuntimeArgs {
+        sources: vec![],
+        compilation: self,
+      })
+    {
       Runtime {
         context_indent: self.runtime.context_indent.clone(),
         sources,
@@ -164,11 +248,11 @@ impl Compilation {
       .get(ukey)
       .expect("entrypoint not found by ukey")
   }
-
-  pub async fn seal(&mut self, plugin_driver: Arc<PluginDriver>) -> Result<()> {
+  #[instrument(name = "compilation:seal")]
+  pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     code_splitting(self)?;
 
-    plugin_driver.optimize_chunks(self)?;
+    plugin_driver.write().await.optimize_chunks(self)?;
 
     tracing::debug!("chunk graph {:#?}", self.chunk_graph);
 
@@ -186,9 +270,9 @@ impl Compilation {
       context_indent,
     };
 
-    self.create_chunk_assets(plugin_driver.clone());
+    self.create_chunk_assets(plugin_driver.clone()).await;
     // generate runtime
-    self.runtime = self.render_runtime(plugin_driver.clone());
+    self.runtime = self.render_runtime(plugin_driver.clone()).await;
 
     self.process_assets(plugin_driver).await;
     Ok(())

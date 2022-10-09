@@ -1,11 +1,11 @@
 use std::fmt::Debug;
 
 use crate::{
-  BoxModule, FactorizeAndBuildArgs, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs,
-  ParseModuleArgs, PluginContext, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs,
-  TransformAst, TransformResult,
+  BoxModule, FactorizeAndBuildArgs, ModuleType, NormalModule, NormalModuleFactoryContext,
+  OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderManifestArgs,
+  RenderRuntimeArgs, TransformAst, TransformResult,
 };
-use rspack_error::{Result, TWithDiagnosticArray};
+use rspack_error::Result;
 use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::{BoxSource, RawSource};
 
@@ -17,7 +17,7 @@ pub type PluginProcessAssetsHookOutput = Result<()>;
 pub type PluginReadResourceOutput = Result<Option<Content>>;
 pub type PluginLoadHookOutput = Result<Option<Content>>;
 pub type PluginTransformOutput = Result<TransformResult>;
-pub type PluginFactorizeAndBuildHookOutput = Result<Option<(String, BoxModule)>>;
+pub type PluginFactorizeAndBuildHookOutput = Result<Option<(String, NormalModule)>>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
 pub type PluginRenderRuntimeHookOutput = Result<Vec<RawSource>>;
 pub type PluginParseModuleHookOutput = Result<BoxModule>;
@@ -40,56 +40,13 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  fn build_start(&self) -> PluginBuildStartHookOutput {
+  fn build_start(&mut self) -> PluginBuildStartHookOutput {
     Ok(())
   }
 
-  async fn done(&self) -> PluginBuildEndHookOutput {
+  async fn done(&mut self) -> PluginBuildEndHookOutput {
     Ok(())
   }
-
-  // async fn resolve(
-  //   &self,
-  //   _ctx: PluginContext<&mut NormalModuleFactoryContext>,
-  //   _agrs: ResolveArgs<'_>,
-  // ) -> PluginResolveHookOutput {
-  //   Ok(None)
-  // }
-
-  // async fn load(
-  //   &self,
-  //   _ctx: PluginContext<&mut NormalModuleFactoryContext>,
-  //   _args: LoadArgs<'_>,
-  // ) -> PluginLoadHookOutput {
-  //   Ok(None)
-  // }
-  // fn reuse_ast(&self) -> bool {
-  //   false
-  // }
-  // fn generate(&self, ast: &Option<TransformAst>) -> PluginGenerateOutput {
-  //   let ast = ast.as_ref().context("call generate when ast is empty")?;
-  //   match ast {
-  //     TransformAst::JavaScript(_ast) => Err(anyhow::anyhow!("js ast codegen not supported yet")),
-  //     TransformAst::Css(_ast) => Err(anyhow::anyhow!("css ast codegen not supported yet ")),
-  //   }
-  // }
-  // fn parse(&self, _uri: &str, _content: &Content) -> PluginParseOutput {
-  //   unreachable!()
-  // }
-  // fn transform(
-  //   &self,
-  //   _ctx: PluginContext<&mut NormalModuleFactoryContext>,
-  //   args: TransformArgs,
-  // ) -> PluginTransformOutput {
-  //   let result = TransformResult {
-  //     content: args.content,
-  //     ast: args.ast,
-  //   };
-  //   Ok(result)
-  // }
-  // fn transform_include(&self, _uri: &str) -> bool {
-  //   false
-  // }
 
   async fn read_resource(&self, _resource_data: &ResourceData) -> PluginReadResourceOutput {
     Ok(None)
@@ -100,10 +57,10 @@ pub trait Plugin: Debug + Send + Sync {
    * It behaves like a BailHook hook.
    * NOTICE: The factorize_and_build hook is a temporary solution and will be replaced with the real factorize hook later
    */
-  fn factorize_and_build(
+  async fn factorize_and_build(
     &self,
     _ctx: PluginContext,
-    _args: FactorizeAndBuildArgs,
+    _args: FactorizeAndBuildArgs<'_>,
     _job_ctx: &mut NormalModuleFactoryContext,
   ) -> PluginFactorizeAndBuildHookOutput {
     Ok(None)
@@ -124,7 +81,7 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(args.sources)
   }
   async fn process_assets(
-    &self,
+    &mut self,
     _ctx: PluginContext,
     _args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
@@ -132,7 +89,7 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   fn optimize_chunks(
-    &self,
+    &mut self,
     _ctx: PluginContext,
     _args: OptimizeChunksArgs,
   ) -> PluginOptimizeChunksOutput {
@@ -172,23 +129,38 @@ impl RenderManifestEntry {
   }
 }
 
-pub trait Parser: Debug + Sync + Send {
-  fn parse(
-    &self,
-    module_type: ModuleType,
-    args: ParseModuleArgs,
-  ) -> Result<TWithDiagnosticArray<BoxModule>>;
-}
+// pub trait Parser: Debug + Sync + Send {
+//   fn parse(
+//     &self,
+//     module_type: ModuleType,
+//     args: ParseModuleArgs,
+//   ) -> Result<TWithDiagnosticArray<BoxModule>>;
+// }
 
-pub type BoxedParser = Box<dyn Parser>;
+// pub type BoxedParser = Box<dyn Parser>;
+pub type BoxedParserAndGenerator = Box<dyn ParserAndGenerator>;
+pub type BoxedParserAndGeneratorBuilder =
+  Box<dyn 'static + Send + Sync + Fn() -> BoxedParserAndGenerator>;
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct ApplyContext {
-  pub(crate) registered_parser: HashMap<ModuleType, BoxedParser>,
+  // pub(crate) registered_parser: HashMap<ModuleType, BoxedParser>,
+  pub(crate) registered_parser_and_generator_builder:
+    HashMap<ModuleType, BoxedParserAndGeneratorBuilder>,
 }
 
 impl ApplyContext {
-  pub fn register_parser(&mut self, module_type: ModuleType, parser: BoxedParser) {
-    self.registered_parser.insert(module_type, parser);
+  // pub fn register_parser(&mut self, module_type: ModuleType, parser: BoxedParser) {
+  //   self.registered_parser.insert(module_type, parser);
+  // }
+
+  pub fn register_parser_and_generator_builder(
+    &mut self,
+    module_type: ModuleType,
+    parser_and_generator_builder: BoxedParserAndGeneratorBuilder,
+  ) {
+    self
+      .registered_parser_and_generator_builder
+      .insert(module_type, parser_and_generator_builder);
   }
 }

@@ -1,17 +1,15 @@
-use std::sync::Arc;
-
 use rspack_error::Result;
 
 use rspack_loader_runner::{Content, LoaderRunnerPlugin, ResourceData};
 
-use crate::PluginDriver;
+use crate::SharedPluginDriver;
 
 pub struct LoaderRunnerPluginProcessResource {
-  plugin_driver: Arc<PluginDriver>,
+  plugin_driver: SharedPluginDriver,
 }
 
 impl LoaderRunnerPluginProcessResource {
-  pub fn new(plugin_driver: Arc<PluginDriver>) -> Self {
+  pub fn new(plugin_driver: SharedPluginDriver) -> Self {
     Self { plugin_driver }
   }
 }
@@ -23,7 +21,12 @@ impl LoaderRunnerPlugin for LoaderRunnerPluginProcessResource {
   }
 
   async fn process_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
-    let result = self.plugin_driver.read_resource(resource_data).await?;
+    let result = self
+      .plugin_driver
+      .read()
+      .await
+      .read_resource(resource_data)
+      .await?;
     if result.is_some() {
       return Ok(result);
     }

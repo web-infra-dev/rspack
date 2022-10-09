@@ -1,6 +1,6 @@
 const cp = require("child_process");
 const log = require("./log");
-const { Command } = require("commander");
+const { Command, command } = require("commander");
 
 const COMMANDER_VERSION = "2.20.3";
 
@@ -33,7 +33,6 @@ function createCLI() {
 			});
 			log.info("finish install deps");
 		});
-
 	cli
 		.command("test")
 		.option("rust", "run all rust test")
@@ -63,7 +62,23 @@ function createCLI() {
 			});
 			log.info("test finished");
 		});
-
+	cli
+		.command("dev")
+		.description("run dev for ")
+		.option("js", "dev for all js package")
+		.action(args => {
+			let command;
+			switch (args) {
+				case "js":
+					command = `pnpm -parallel --filter "@rspack/*" dev`;
+					break;
+				default:
+					log.error(`invalid args, see "./x dev -h" to get more information`);
+			}
+			cp.execSync(command, {
+				stdio: "inherit"
+			});
+		});
 	cli
 		.command("build")
 		.option("binding", "build binding between rust and js")

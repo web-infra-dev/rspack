@@ -5,6 +5,7 @@ export type Resolve = {
 	mainFields?: string[];
 	browserField?: boolean;
 	conditionNames?: string[];
+	alias?: Record<string, string>;
 };
 
 export type ResolvedResolve = {
@@ -14,6 +15,7 @@ export type ResolvedResolve = {
 	mainFields: string[];
 	browserField: boolean;
 	conditionNames: string[];
+	alias: Record<string, string>;
 };
 
 export function resolveResolveOptions(resolve: Resolve = {}): ResolvedResolve {
@@ -29,6 +31,7 @@ export function resolveResolveOptions(resolve: Resolve = {}): ResolvedResolve {
 	const mainFields = resolve.mainFields ?? ["module", "main"];
 	const mainFiles = resolve.mainFiles ?? ["index"];
 	const browserField = resolve.browserField ?? true;
+	const alias = resolve.alias ?? {};
 	const conditionNames = resolve.conditionNames ?? ["module", "import"];
 	return {
 		preferRelative,
@@ -36,6 +39,7 @@ export function resolveResolveOptions(resolve: Resolve = {}): ResolvedResolve {
 		mainFiles,
 		mainFields,
 		browserField,
-		conditionNames
+		conditionNames,
+		alias
 	};
 }

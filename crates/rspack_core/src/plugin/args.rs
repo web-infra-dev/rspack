@@ -1,19 +1,20 @@
 use crate::{
-  Chunk, ChunkUkey, Compilation, CompilerOptions, Dependency, ErrorSpan, PluginDriver, ResolveKind,
+  Chunk, ChunkUkey, Compilation, Dependency, ErrorSpan, ResolveKind, SharedPluginDriver,
 };
+use rspack_error::{Error, Result};
 use rspack_loader_runner::Content;
-use rspack_sources::{BoxSource, RawSource};
-use std::{fmt::Debug, sync::Arc};
+use rspack_sources::RawSource;
+use std::fmt::Debug;
 use swc_css::ast::Stylesheet;
 use swc_ecma_ast as ast;
 
-#[derive(Debug)]
-pub struct ParseModuleArgs<'a> {
-  pub uri: &'a str,
-  pub options: Arc<CompilerOptions>,
-  pub source: BoxSource,
-  pub meta: Option<String>, // pub ast: Option<ModuleAst>,
-}
+// #[derive(Debug)]
+// pub struct ParseModuleArgs<'a> {
+//   pub uri: &'a str,
+//   pub options: Arc<CompilerOptions>,
+//   pub source: BoxSource,
+//   pub meta: Option<String>, // pub ast: Option<ModuleAst>,
+// }
 
 #[derive(Debug)]
 pub struct ProcessAssetsArgs<'me> {
@@ -45,7 +46,7 @@ pub struct RenderRuntimeArgs<'me> {
 #[derive(Debug, Clone)]
 pub struct FactorizeAndBuildArgs<'me> {
   pub dependency: &'me Dependency,
-  pub plugin_driver: &'me Arc<PluginDriver>,
+  pub plugin_driver: &'me SharedPluginDriver,
 }
 
 #[derive(Debug, Clone)]
@@ -76,6 +77,36 @@ pub enum TransformAst {
 pub enum ModuleAst {
   JavaScript(ast::Program),
   Css(Stylesheet),
+}
+
+impl ModuleAst {
+  pub fn try_into_javascript(self) -> Result<ast::Program> {
+    match self {
+      ModuleAst::JavaScript(program) => Ok(program),
+      ModuleAst::Css(_) => Err(Error::InternalError("Failed".to_owned())),
+    }
+  }
+
+  pub fn try_into_css(self) -> Result<Stylesheet> {
+    match self {
+      ModuleAst::Css(stylesheet) => Ok(stylesheet),
+      ModuleAst::JavaScript(_) => Err(Error::InternalError("Failed".to_owned())),
+    }
+  }
+
+  pub fn as_javascript(&self) -> Option<&ast::Program> {
+    match self {
+      ModuleAst::JavaScript(program) => Some(program),
+      ModuleAst::Css(_) => None,
+    }
+  }
+
+  pub fn as_css(&self) -> Option<&Stylesheet> {
+    match self {
+      ModuleAst::Css(stylesheet) => Some(stylesheet),
+      ModuleAst::JavaScript(_) => None,
+    }
+  }
 }
 
 impl From<TransformAst> for ModuleAst {

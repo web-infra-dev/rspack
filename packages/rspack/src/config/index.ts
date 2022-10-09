@@ -1,6 +1,6 @@
 import type { Context, ResolvedContext } from "./context";
 import { Define, ResolvedDefine, resolveDefine } from "./define";
-import type { Dev, ResolvedDev } from "./dev";
+import type { Dev, ResolvedDev } from "./devServer";
 import { Entry, ResolvedEntry, resolveEntryOptions } from "./entry";
 import type {
 	External,
@@ -15,10 +15,10 @@ import type { ResolvedTarget, Target } from "./target";
 import type { Output, ResolvedOutput } from "./output";
 import type { Resolve, ResolvedResolve } from "./resolve";
 import type { Builtins, ResolvedBuiltins } from "./builtins";
-import type { Devtool, ResolvedDevtool } from "./devtool";
+import { Devtool, ResolvedDevtool, resolveDevtoolOptions } from "./devtool";
 import { resolveTargetOptions } from "./target";
 import { resolveOutputOptions } from "./output";
-import { resolveDevOptions } from "./dev";
+import { resolveDevOptions } from "./devServer";
 import { resolveModuleOptions } from "./module";
 import { resolveBuiltinsOptions } from "./builtins";
 import { resolveResolveOptions } from "./resolve";
@@ -33,7 +33,7 @@ export interface RspackOptions {
 	entry?: Entry;
 	context?: Context;
 	plugins?: Plugin[];
-	dev?: Dev;
+	devServer?: Dev;
 	module?: Module;
 	define?: Define;
 	target?: Target;
@@ -50,7 +50,7 @@ export interface ResolvedRspackOptions {
 	entry: ResolvedEntry;
 	context: ResolvedContext;
 	plugins: Plugin[];
-	dev: ResolvedDev;
+	devServer: ResolvedDev;
 	module: ResolvedModule;
 	define: ResolvedDefine;
 	target: ResolvedTarget;
@@ -66,10 +66,10 @@ export interface ResolvedRspackOptions {
 export function resolveOptions(config: RspackOptions): ResolvedRspackOptions {
 	const context = config.context ?? process.cwd();
 	const mode = config.mode ?? "development";
-	const dev = resolveDevOptions(config.dev, { context });
+	const devServer = resolveDevOptions(config.devServer, { context });
 	const entry = resolveEntryOptions(config.entry ?? {}, {
 		context,
-		dev: !!config.dev
+		dev: !!config.devServer
 	});
 	const output = resolveOutputOptions(config.output);
 	const define = resolveDefine(config.define);
@@ -80,12 +80,12 @@ export function resolveOptions(config: RspackOptions): ResolvedRspackOptions {
 	const builtins = resolveBuiltinsOptions(config.builtins || {}, context);
 	const resolve = resolveResolveOptions(config.resolve);
 	const module = resolveModuleOptions(config.module);
-	const devtool = config.devtool ?? false;
-	console.log("entry:", entry);
+	const devtool = resolveDevtoolOptions(config.devtool);
+
 	return {
 		context,
 		mode,
-		dev,
+		devServer,
 		entry,
 		output,
 		define,

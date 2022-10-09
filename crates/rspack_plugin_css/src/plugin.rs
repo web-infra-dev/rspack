@@ -1,26 +1,27 @@
-// mod js_module;
-// pub use js_module::*;
+use preset_env_base::query::{Query, Targets};
+use rayon::prelude::*;
+
+use swc_css::visit::VisitMutWith;
+use swc_css_prefixer::{options::Options, prefixer};
+
+use rspack_core::{
+  get_contenthash,
+  rspack_sources::{
+    CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
+    SourceMapSource, SourceMapSourceOptions,
+  },
+  ChunkKind, FilenameRenderOptions, GenerationResult, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, Plugin, RenderManifestEntry, SourceType,
+};
+use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use tracing::instrument;
 
 use crate::{
-  module::{CssModule, CSS_MODULE_SOURCE_TYPE_LIST},
   pxtorem::{option::PxToRemOption, px_to_rem::px_to_rem},
+  visitors::DependencyScanner,
   SWC_COMPILER,
 };
 
-// use anyhow::{Context, Result};
-use preset_env_base::query::{Query, Targets};
-use rayon::prelude::*;
-use rspack_core::{
-  get_contenthash,
-  rspack_sources::{CachedSource, ConcatSource, RawSource, Source, SourceExt},
-  BoxModule, ChunkKind, FilenameRenderOptions, ModuleType, ParseModuleArgs, Parser, Plugin,
-  RenderManifestEntry, SourceType,
-};
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-
-use swc_css::visit::VisitMutWith;
-
-use swc_css_prefixer::{options::Options, prefixer};
 #[derive(Debug, Default)]
 pub struct CssPlugin {
   config: CssConfig,
@@ -42,6 +43,143 @@ impl CssPlugin {
     Self { config }
   }
 }
+
+pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
+  &[SourceType::JavaScript, SourceType::Css];
+
+#[derive(Debug)]
+pub struct CssParserAndGenerator {
+  config: CssConfig,
+  meta: Option<String>,
+}
+
+impl CssParserAndGenerator {
+  pub fn new(config: CssConfig) -> Self {
+    Self { config, meta: None }
+  }
+
+  pub fn get_query(&self) -> Option<Query> {
+    // TODO: figure out if the prefixer visitMut is stateless
+    // I need to clone the preset_env every time, due to I don't know if it is stateless
+    // If it is true, I reduce this clone
+    if !self.config.preset_env.is_empty() {
+      Some(Query::Multiple(self.config.preset_env.clone()))
+    } else {
+      None
+    }
+  }
+}
+
+impl ParserAndGenerator for CssParserAndGenerator {
+  fn source_types(&self) -> &[SourceType] {
+    CSS_MODULE_SOURCE_TYPE_LIST
+  }
+  #[instrument(name = "css:parse")]
+  fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
+    let ParseContext { source, meta, .. } = parse_context;
+
+    let content = source.source().to_string();
+    let TWithDiagnosticArray {
+      inner: mut stylesheet,
+      diagnostic,
+    } = SWC_COMPILER.parse_file(&parse_context.resource_data.resource_path, content)?;
+
+    if let Some(query) = self.get_query() {
+      stylesheet.visit_mut_with(&mut prefixer(Options {
+        env: Some(Targets::Query(query)),
+      }));
+    }
+
+    if let Some(config) = self.config.postcss.pxtorem.clone() {
+      stylesheet.visit_mut_with(&mut px_to_rem(config));
+    }
+
+    self.meta = meta.and_then(|data| if data.is_empty() { None } else { Some(data) });
+
+    let mut scanner = DependencyScanner::default();
+    stylesheet.visit_mut_with(&mut scanner);
+
+    Ok(
+      ParseResult {
+        dependencies: scanner.dependencies,
+        ast_or_source: stylesheet.into(),
+      }
+      .with_diagnostic(diagnostic),
+    )
+  }
+
+  #[allow(clippy::unwrap_in_result)]
+  #[instrument(name = "css:generate")]
+  fn generate(
+    &self,
+    requested_source_type: SourceType,
+    ast_or_source: &rspack_core::AstOrSource,
+    mgm: &rspack_core::ModuleGraphModule,
+    compilation: &rspack_core::Compilation,
+  ) -> Result<rspack_core::GenerationResult> {
+    // Safety: OriginalSource exists in code generation, and CSS AST is also available from parse.
+    let result = match requested_source_type {
+      SourceType::Css => {
+        let (code, source_map) = SWC_COMPILER.codegen(
+          ast_or_source
+            .as_ast()
+            .expect("Expected AST for CSS generator, please file an issue.")
+            .as_css()
+            .expect("Expected CSS AST for CSS generation, please file an issue."),
+          compilation,
+        )?;
+        if let Some(source_map) = source_map {
+          let source = SourceMapSource::new(SourceMapSourceOptions {
+            value: code,
+            name: mgm.module.request().to_string(),
+            source_map: SourceMap::from_slice(&source_map)
+              .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
+            // Safety: original source exists in code generation
+            original_source: Some(
+              mgm
+                .module
+                .original_source()
+                .expect("Failed to get original source, please file an issue.")
+                .source()
+                .to_string(),
+            ),
+            // Safety: original source exists in code generation
+            inner_source_map: mgm
+              .module
+              .original_source()
+              .expect("Failed to get original source, please file an issue.")
+              .map(&MapOptions::default()),
+            remove_original_source: false,
+          })
+          .boxed();
+          Ok(source)
+        } else {
+          Ok(RawSource::from(code).boxed())
+        }
+      }
+      // This is just a temporary solution for css-modules
+      SourceType::JavaScript => Ok(
+        RawSource::from(
+          self
+            .meta
+            .clone()
+            .map(|item| format!("module.exports = {};", item))
+            .unwrap_or_else(|| "".to_string()),
+        )
+        .boxed(),
+      ),
+      _ => Err(Error::InternalError(format!(
+        "Unsupported source type: {:?}",
+        requested_source_type
+      ))),
+    }?;
+
+    Ok(GenerationResult {
+      ast_or_source: result.into(),
+    })
+  }
+}
+
 impl Plugin for CssPlugin {
   fn name(&self) -> &'static str {
     "css"
@@ -51,12 +189,18 @@ impl Plugin for CssPlugin {
     &mut self,
     ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
   ) -> Result<()> {
-    ctx.context.register_parser(
-      ModuleType::Css,
-      Box::new(CssParser {
-        config: self.config.clone(),
-      }),
-    );
+    let config = self.config.clone();
+    let builder = move || {
+      Box::new(CssParserAndGenerator {
+        config: config.clone(),
+        meta: None,
+      }) as Box<dyn ParserAndGenerator>
+    };
+
+    ctx
+      .context
+      .register_parser_and_generator_builder(ModuleType::Css, Box::new(builder));
+
     Ok(())
   }
 
@@ -178,7 +322,18 @@ impl Plugin for CssPlugin {
 
     let sources = ordered_modules
       .par_iter()
-      .map(|module| module.module.render(SourceType::Css, module, compilation))
+      .map(|module| {
+        module
+          .module
+          .code_generation(module, compilation)
+          .map(|source| {
+            // TODO: this logic is definitely not performant, move to compilation afterwards
+            source
+              .inner()
+              .get(&SourceType::Css)
+              .map(|source| source.ast_or_source.clone().try_into_source().unwrap())
+          })
+      })
       .collect::<Result<Vec<_>>>()?
       .into_par_iter()
       .fold(ConcatSource::default, |mut output, cur| {
@@ -233,58 +388,5 @@ impl Plugin for CssPlugin {
 
       Ok(vec![RenderManifestEntry::new(source.boxed(), output_path)])
     }
-  }
-}
-
-#[derive(Debug)]
-struct CssParser {
-  config: CssConfig,
-}
-
-impl CssParser {
-  pub fn get_query(&self) -> Option<Query> {
-    // TODO: figure out if the prefixer visitMut is stateless
-    // I need to clone the preset_env every time, due to I don't know if it is stateless
-    // If it is true, I reduce this clone
-    if !self.config.preset_env.is_empty() {
-      Some(Query::Multiple(self.config.preset_env.clone()))
-    } else {
-      None
-    }
-  }
-}
-
-impl Parser for CssParser {
-  fn parse(
-    &self,
-    _module_type: ModuleType,
-    args: ParseModuleArgs,
-  ) -> Result<TWithDiagnosticArray<BoxModule>> {
-    let content = args.source.source().to_string();
-    let TWithDiagnosticArray {
-      inner: mut stylesheet,
-      diagnostic,
-    } = SWC_COMPILER.parse_file(args.uri, content)?;
-
-    if let Some(query) = self.get_query() {
-      stylesheet.visit_mut_with(&mut prefixer(Options {
-        env: Some(Targets::Query(query)),
-      }));
-    }
-
-    if let Some(config) = self.config.postcss.pxtorem.clone() {
-      stylesheet.visit_mut_with(&mut px_to_rem(config));
-    }
-
-    let module: BoxModule = Box::new(CssModule {
-      ast: stylesheet,
-      loaded_source: args.source,
-      source_type_list: CSS_MODULE_SOURCE_TYPE_LIST,
-      meta: args
-        .meta
-        .and_then(|data| if data.is_empty() { None } else { Some(data) }),
-    });
-
-    Ok(module.with_diagnostic(diagnostic))
   }
 }

@@ -90,7 +90,7 @@ impl Plugin for RspackPluginNodeAdapter {
   }
   #[tracing::instrument(skip_all)]
   async fn process_assets(
-    &self,
+    &mut self,
     _ctx: PluginContext,
     args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsHookOutput {
@@ -174,7 +174,7 @@ impl Plugin for RspackPluginNodeAdapter {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn done(&self) -> PluginBuildEndHookOutput {
+  async fn done(&mut self) -> PluginBuildEndHookOutput {
     let context = RspackThreadsafeContext::new(());
 
     let (tx, rx) = oneshot::channel::<()>();

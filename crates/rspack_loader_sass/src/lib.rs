@@ -1,5 +1,4 @@
 use std::{
-  collections::HashSet,
   env,
   iter::Peekable,
   path::{Path, PathBuf},
@@ -31,19 +30,27 @@ static MODULE_REQUEST: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[^?]*~").unwrap(
 static IS_MODULE_IMPORT: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^~([^/]+|[^/]+/|@[^/]+[/][^/]+|@[^/]+/?|@[^/]+[/][^/]+/)$").unwrap());
 
-fn dev_exe_path() -> PathBuf {
-  let os = match env::consts::OS {
+fn get_os() -> &'static str {
+  match env::consts::OS {
     "linux" => "linux",
     "macos" => "darwin",
     "windows" => "win32",
     os => panic!("dart-sass-embedded is not supported for {os}"),
-  };
-  let arch = match env::consts::ARCH {
+  }
+}
+
+fn get_arch() -> &'static str {
+  match env::consts::ARCH {
     "x86" => "ia32",
     "x86_64" => "x64",
     "aarch64" => "arm64",
     arch => panic!("dart-sass-embedded is not supported for {arch}"),
-  };
+  }
+}
+
+fn dev_exe_path() -> PathBuf {
+  let os = get_os();
+  let arch = get_arch();
   PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR")))
     .join(format!("../../node_modules/@tmp-sass-embedded/{os}-{arch}"))
     .join("dart-sass-embedded/dart-sass-embedded")
@@ -125,7 +132,7 @@ impl RspackImporter {
     });
     let rspack_module_resolve = factory.get(Resolve {
       // TODO: add dependencyType.
-      condition_names: HashSet::from_iter(["sass".to_owned(), "style".to_owned()]),
+      condition_names: vec!["sass".to_owned(), "style".to_owned()],
       // TODO: ["sass", "style", "main", "..."] support `"..."`.
       main_fields: vec!["sass".to_owned(), "style".to_owned(), "main".to_owned()],
       // TODO: ["_index", "index", "..."] support `"..."`.
@@ -135,7 +142,7 @@ impl RspackImporter {
       ..Default::default()
     });
     let rspack_import_resolve = factory.get(Resolve {
-      condition_names: HashSet::from_iter(["sass".to_owned(), "style".to_owned()]),
+      condition_names: vec!["sass".to_owned(), "style".to_owned()],
       main_fields: vec!["sass".to_owned(), "style".to_owned(), "main".to_owned()],
       main_files: vec![
         "_index.import".to_owned(),
@@ -294,7 +301,19 @@ impl SassLoader {
   pub fn new(options: SassLoaderOptions) -> Self {
     Self {
       // js side should ensure exe_path is a correct dart-sass-embedded path.
-      compiler: Mutex::new(Sass::new(&options.__exe_path).unwrap()),
+      compiler: Mutex::new(
+        Sass::new(&options.__exe_path)
+          .map_err(|e| {
+            format!(
+              "{}: The dart-sass-embedded path is {}, your OS is {}, your Arch is {}",
+              e.message(),
+              &options.__exe_path.display(),
+              get_os(),
+              get_arch(),
+            )
+          })
+          .unwrap(),
+      ),
       options,
     }
   }
@@ -303,7 +322,6 @@ impl SassLoader {
     &self,
     loader_context: &LoaderContext<'_, '_, CompilerContext, CompilationContext>,
     content: String,
-    source_map: bool,
   ) -> LegacyOptions {
     let mut builder = LegacyOptionsBuilder::default()
       .data(
@@ -317,7 +335,12 @@ impl SassLoader {
       // logging implemented (https://webpack.js.org/api/loaders/#logging).
       // .logger(arg)
       .file(loader_context.resource_path)
-      .source_map(source_map)
+      .source_map(
+        self
+          .options
+          .source_map
+          .unwrap_or_else(|| loader_context.compiler_context.options.devtool.enabled()),
+      )
       .source_map_contents(true)
       // TODO: use OutputStyle::Compressed when loader_context.mode is production.
       // .output_style(
@@ -388,11 +411,7 @@ impl Loader<CompilerContext, CompilationContext> for SassLoader {
     loader_context: &LoaderContext<'_, '_, CompilerContext, CompilationContext>,
   ) -> Result<Option<LoaderResult>> {
     let source = loader_context.source.to_owned();
-    let source_map = self
-      .options
-      .source_map
-      .unwrap_or(loader_context.compiler_context.options.devtool);
-    let sass_options = self.get_sass_options(loader_context, source.try_into_string()?, source_map);
+    let sass_options = self.get_sass_options(loader_context, source.try_into_string()?);
     let result = self
       .compiler
       .lock()
