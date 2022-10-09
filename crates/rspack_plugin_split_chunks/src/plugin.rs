@@ -287,7 +287,7 @@ impl Plugin for SplitChunksPlugin {
   }
 
   fn optimize_chunks(
-    &self,
+    &mut self,
     _ctx: rspack_core::PluginContext,
     args: rspack_core::OptimizeChunksArgs,
   ) -> rspack_core::PluginOptimizeChunksOutput {
