@@ -308,8 +308,10 @@ impl Plugin for AssetPlugin {
       .get_chunk_modules(&args.chunk_ukey, module_graph);
 
     let assets = ordered_modules
-      .par_iter()
+      .iter()
       .filter(|module| module.module.source_types().contains(&SourceType::Asset))
+      .collect::<Vec<_>>()
+      .par_iter()
       .map(|module| {
         // TODO: this logic is definitely not performant, move to compilation afterwards
         Ok(
