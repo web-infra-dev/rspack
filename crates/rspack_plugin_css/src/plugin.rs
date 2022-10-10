@@ -10,8 +10,8 @@ use rspack_core::{
     CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
     SourceMapSource, SourceMapSourceOptions,
   },
-  ChunkKind, FilenameRenderOptions, GenerationResult, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, Plugin, RenderManifestEntry, SourceType,
+  ChunkKind, FilenameRenderOptions, GenerationResult, ModuleType, NormalModule, ParseContext,
+  ParseResult, ParserAndGenerator, Plugin, RenderManifestEntry, SourceType,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;
@@ -74,6 +74,22 @@ impl ParserAndGenerator for CssParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
     CSS_MODULE_SOURCE_TYPE_LIST
   }
+
+  fn size(&self, module: &NormalModule, source_type: &SourceType) -> f32 {
+    match source_type {
+      SourceType::JavaScript => {
+        // meta + `module.exports = ...`
+        self
+          .meta
+          .as_ref()
+          .map(|item| item.len() as f32 + 17.0)
+          .unwrap_or(0.0)
+      }
+      SourceType::Css => module.original_source().map_or(0, |source| source.size()) as f32,
+      _ => unreachable!(),
+    }
+  }
+
   #[instrument(name = "css:parse")]
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
     let ParseContext { source, meta, .. } = parse_context;

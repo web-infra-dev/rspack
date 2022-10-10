@@ -8,8 +8,8 @@ use rspack_core::{
   get_contenthash,
   rspack_sources::{RawSource, SourceExt},
   AssetParserDataUrlOption, AssetParserOptions, FilenameRenderOptions, GenerationResult,
-  ParseContext, ParserAndGenerator, Plugin, PluginContext, PluginRenderManifestHookOutput,
-  RenderManifestArgs, RenderManifestEntry, SourceType,
+  NormalModule, ParseContext, ParserAndGenerator, Plugin, PluginContext,
+  PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, SourceType,
 };
 
 #[derive(Debug)]
@@ -40,6 +40,9 @@ enum DataUrlOption {
 
 type IsInline = bool;
 
+const ASSET_INLINE: bool = true;
+const ASSET_EXTERNAL: bool = false;
+
 #[derive(Debug)]
 enum CanonicalizedDataUrlOption {
   Source,
@@ -52,11 +55,11 @@ impl CanonicalizedDataUrlOption {
   }
 
   fn is_inline(&self) -> bool {
-    matches!(self, CanonicalizedDataUrlOption::Asset(true))
+    matches!(self, CanonicalizedDataUrlOption::Asset(ASSET_INLINE))
   }
 
   fn is_external(&self) -> bool {
-    matches!(self, CanonicalizedDataUrlOption::Asset(false))
+    matches!(self, CanonicalizedDataUrlOption::Asset(ASSET_EXTERNAL))
   }
 }
 
@@ -109,6 +112,47 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       }
     } else {
       panic!("Failed to read source types for asset module")
+    }
+  }
+
+  fn size(&self, module: &NormalModule, source_type: &SourceType) -> f32 {
+    let original_source_size = module.original_source().map_or(0, |source| source.size()) as f32;
+    match source_type {
+      SourceType::Asset => original_source_size,
+      SourceType::JavaScript => {
+        if module.original_source().is_none() {
+          return 0.0;
+        }
+
+        let parsed_size = self.parsed_asset_config.as_ref().map(|config| {
+          match config {
+            CanonicalizedDataUrlOption::Source => {
+              return original_source_size;
+            }
+            CanonicalizedDataUrlOption::Asset(meta) => {
+              match *meta {
+                ASSET_INLINE => {
+                  // copied from webpack's AssetGenerator
+                  // roughly for data url
+                  // Example: m.exports="data:image/png;base64,ag82/f+2=="
+                  // 4/3 = base64 encoding
+                  // 34 = ~ data url header + footer + rounding
+                  return original_source_size * 1.34 + 36.0;
+                }
+                ASSET_EXTERNAL => {
+                  // copied from webpack's AssetGenerator
+                  // roughly for url
+                  // Example: m.exports=r.p+"0123456789012345678901.ext"
+                  return 42.0;
+                }
+              }
+            }
+          }
+        });
+
+        parsed_size.unwrap_or_default()
+      }
+      _ => unreachable!(),
     }
   }
 
