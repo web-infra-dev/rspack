@@ -340,7 +340,7 @@ impl NormalModule {
       *size_ref
     } else {
       let size = f32::max(1.0, self.parser_and_generator.size(self, source_type));
-      self.cached_source_sizes.insert(source_type.clone(), size);
+      self.cached_source_sizes.insert(*source_type, size);
       size
     }
   }

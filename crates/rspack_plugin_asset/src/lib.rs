@@ -126,9 +126,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
         let parsed_size = self.parsed_asset_config.as_ref().map(|config| {
           match config {
-            CanonicalizedDataUrlOption::Source => {
-              return original_source_size;
-            }
+            CanonicalizedDataUrlOption::Source => original_source_size,
             CanonicalizedDataUrlOption::Asset(meta) => {
               match *meta {
                 ASSET_INLINE => {
@@ -137,13 +135,13 @@ impl ParserAndGenerator for AssetParserAndGenerator {
                   // Example: m.exports="data:image/png;base64,ag82/f+2=="
                   // 4/3 = base64 encoding
                   // 34 = ~ data url header + footer + rounding
-                  return original_source_size * 1.34 + 36.0;
+                  original_source_size * 1.34 + 36.0
                 }
                 ASSET_EXTERNAL => {
                   // copied from webpack's AssetGenerator
                   // roughly for url
                   // Example: m.exports=r.p+"0123456789012345678901.ext"
-                  return 42.0;
+                  42.0
                 }
               }
             }
