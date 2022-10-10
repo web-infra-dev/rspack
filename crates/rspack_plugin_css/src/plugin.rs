@@ -75,17 +75,17 @@ impl ParserAndGenerator for CssParserAndGenerator {
     CSS_MODULE_SOURCE_TYPE_LIST
   }
 
-  fn size(&self, module: &NormalModule, source_type: &SourceType) -> f32 {
+  fn size(&self, module: &NormalModule, source_type: &SourceType) -> f64 {
     match source_type {
       SourceType::JavaScript => {
         // meta + `module.exports = ...`
         self
           .meta
           .as_ref()
-          .map(|item| item.len() as f32 + 17.0)
+          .map(|item| item.len() as f64 + 17.0)
           .unwrap_or(0.0)
       }
-      SourceType::Css => module.original_source().map_or(0, |source| source.size()) as f32,
+      SourceType::Css => module.original_source().map_or(0, |source| source.size()) as f64,
       _ => unreachable!(),
     }
   }

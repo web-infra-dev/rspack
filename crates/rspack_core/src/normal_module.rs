@@ -191,7 +191,7 @@ pub struct ParseResult {
 pub trait ParserAndGenerator: Send + Sync + Debug {
   fn source_types(&self) -> &[SourceType];
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>>;
-  fn size(&self, module: &NormalModule, source_type: &SourceType) -> f32;
+  fn size(&self, module: &NormalModule, source_type: &SourceType) -> f64;
   fn generate(
     &self,
     requested_source_type: SourceType,
@@ -214,7 +214,7 @@ pub struct NormalModule {
   ast_or_source: Option<AstOrSource>,
 
   options: Arc<CompilerOptions>,
-  cached_source_sizes: DashMap<SourceType, f32>,
+  cached_source_sizes: DashMap<SourceType, f64>,
 
   // FIXME: dirty workaround to support external module
   skip_build: bool,
@@ -335,11 +335,11 @@ impl NormalModule {
     self.ast_or_source.as_ref()
   }
 
-  pub fn size(&self, source_type: &SourceType) -> f32 {
+  pub fn size(&self, source_type: &SourceType) -> f64 {
     if let Some(size_ref) = self.cached_source_sizes.get(source_type) {
       *size_ref
     } else {
-      let size = f32::max(1.0, self.parser_and_generator.size(self, source_type));
+      let size = f64::max(1.0, self.parser_and_generator.size(self, source_type));
       self.cached_source_sizes.insert(*source_type, size);
       size
     }

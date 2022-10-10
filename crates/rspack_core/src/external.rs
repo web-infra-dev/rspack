@@ -22,7 +22,7 @@ impl ParserAndGenerator for ExternalParserAndGenerator {
     &[SourceType::JavaScript]
   }
 
-  fn size(&self, _module: &NormalModule, _source_type: &SourceType) -> f32 {
+  fn size(&self, _module: &NormalModule, _source_type: &SourceType) -> f64 {
     // copied from webpack `ExternalModule`
     // roughly for url
     42.0

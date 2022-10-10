@@ -20,8 +20,8 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     &[SourceType::JavaScript]
   }
 
-  fn size(&self, module: &NormalModule, _source_type: &SourceType) -> f32 {
-    module.original_source().map_or(0, |source| source.size()) as f32
+  fn size(&self, module: &NormalModule, _source_type: &SourceType) -> f64 {
+    module.original_source().map_or(0, |source| source.size()) as f64
   }
 
   fn parse(
