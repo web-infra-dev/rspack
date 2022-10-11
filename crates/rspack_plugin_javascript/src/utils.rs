@@ -1,7 +1,7 @@
 use crate::{RSPACK_DYNAMIC_IMPORT, RSPACK_REQUIRE};
-use hashbrown::HashMap;
+use dashmap::DashMap;
+use hashbrown::hash_map::DefaultHashBuilder;
 use once_cell::sync::Lazy;
-use parking_lot::Mutex;
 use pathdiff::diff_paths;
 use rspack_core::rspack_sources::{
   BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt,
@@ -289,10 +289,9 @@ pub fn ecma_parse_error_to_rspack_error(
 
 pub fn wrap_eval_source_map(
   module_source: BoxSource,
-  cache: &Mutex<HashMap<BoxSource, BoxSource>>,
+  cache: &DashMap<BoxSource, BoxSource, DefaultHashBuilder>,
   compilation: &Compilation,
 ) -> rspack_error::Result<BoxSource> {
-  let mut cache = cache.lock();
   if let Some(cached) = cache.get(&module_source) {
     return Ok(cached.clone());
   }

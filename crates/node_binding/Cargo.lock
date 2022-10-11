@@ -2030,6 +2030,7 @@ dependencies = [
  "async-trait",
  "base64",
  "better_scoped_tls",
+ "dashmap",
  "hashbrown",
  "linked_hash_set",
  "once_cell",

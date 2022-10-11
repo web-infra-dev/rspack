@@ -1,6 +1,6 @@
 use async_trait::async_trait;
-use hashbrown::HashMap;
-use parking_lot::Mutex;
+use dashmap::DashMap;
+use hashbrown::hash_map::DefaultHashBuilder;
 use rayon::prelude::*;
 
 use swc::{config::JsMinifyOptions, BoolOrDataConfig};
@@ -35,7 +35,7 @@ use crate::{JS_HELPERS, RSPACK_REGISTER, RSPACK_REQUIRE};
 #[derive(Debug)]
 pub struct JsPlugin {
   unresolved_mark: Mark,
-  eval_source_map_cache: Mutex<HashMap<Box<dyn Source>, Box<dyn Source>>>,
+  eval_source_map_cache: DashMap<Box<dyn Source>, Box<dyn Source>, DefaultHashBuilder>,
 }
 
 impl JsPlugin {
