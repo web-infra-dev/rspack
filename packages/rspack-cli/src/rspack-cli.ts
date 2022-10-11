@@ -61,7 +61,7 @@ export class RspackCLI {
 			command.apply(this);
 		}
 	}
-	async loadConfig(options: RspackCLIOptions) {
+	async loadConfig(options: RspackCLIOptions): Promise<RspackOptions> {
 		let loadedConfig;
 		// if we pass config paras
 		if (options.config) {

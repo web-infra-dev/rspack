@@ -12,7 +12,7 @@ use crate::{
   FactorizeAndBuildArgs, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
   PluginBuildEndHookOutput, PluginContext, PluginFactorizeAndBuildHookOutput,
   PluginProcessAssetsOutput, PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput,
-  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, Resolver,
+  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, Resolver, Stats,
 };
 use rspack_error::{Diagnostic, Result};
 
@@ -199,9 +199,9 @@ impl PluginDriver {
     Ok(())
   }
   #[instrument(name = "plugin:done", skip_all)]
-  pub async fn done(&mut self) -> PluginBuildEndHookOutput {
+  pub async fn done<'c>(&mut self, stats: &mut Stats<'c>) -> PluginBuildEndHookOutput {
     for plugin in &mut self.plugins {
-      plugin.done().await?;
+      plugin.done(stats).await?;
     }
     Ok(())
   }

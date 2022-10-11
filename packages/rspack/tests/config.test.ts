@@ -33,7 +33,7 @@ describe("config", () => {
 				assetModuleFilename: undefined,
 				chunkFilename: undefined,
 				filename: undefined,
-				path: undefined,
+				path: path.join(process.cwd(), "dist"),
 				publicPath: undefined,
 				uniqueName: undefined
 			},

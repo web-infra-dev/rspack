@@ -15,16 +15,18 @@
     "lib"
   ],
   "devDependencies": {
-    "internal-ip": "6.2.0",
+    "@types/webpack-bundle-analyzer": "^4.6.0",
     "concat-stream": "^2.0.0",
-    "execa": "^5.0.0"
+    "execa": "^5.0.0",
+    "internal-ip": "6.2.0"
   },
   "dependencies": {
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "workspace:*",
     "colorette": "2.0.19",
-    "yargs": "17.5.1",
+    "webpack": "5.74.0",
+    "webpack-bundle-analyzer": "4.6.1",
     "webpack-dev-server": "4.11.1",
-    "webpack": "5.74.0"
+    "yargs": "17.5.1"
   }
 }

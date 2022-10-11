@@ -1,3 +1,5 @@
+import path from "path";
+
 export interface Output {
 	path?: string;
 	publicPath?: string;
@@ -19,7 +21,7 @@ export interface ResolvedOutput {
 
 export function resolveOutputOptions(output: Output = {}): ResolvedOutput {
 	return {
-		path: output.path,
+		path: output.path ?? path.join(process.cwd(), "dist"),
 		publicPath: output.publicPath,
 		chunkFilename: output.chunkFilename,
 		filename: output.publicPath,

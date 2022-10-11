@@ -18,7 +18,7 @@ use crate::{
   LoaderRunnerRunner, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg,
   NormalModule, NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs,
   RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver,
-  VisitedModuleIdentity,
+  VisitedModuleIdentity, Stats
 };
 
 #[derive(Debug)]
@@ -452,7 +452,11 @@ impl Compilation {
       .ok();
   }
   pub async fn done(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    plugin_driver.write().await.done().await?;
+    plugin_driver
+      .write()
+      .await
+      .done(&mut Stats::new(self))
+      .await?;
     Ok(())
   }
   #[instrument(name = "compilation:render_runtime")]
@@ -502,17 +506,22 @@ impl Compilation {
     } else {
       String::from("this")
     };
+    dbg!(&self.chunk_by_ukey);
 
     self.runtime = Runtime {
       sources: vec![],
       context_indent,
     };
 
+    dbg!(&self.chunk_by_ukey);
     self.create_chunk_assets(plugin_driver.clone()).await;
+    dbg!(&self.chunk_by_ukey);
     // generate runtime
     self.runtime = self.render_runtime(plugin_driver.clone()).await;
+    dbg!(&self.chunk_by_ukey);
 
     self.process_assets(plugin_driver).await;
+    dbg!(&self.chunk_by_ukey);
     Ok(())
   }
 }

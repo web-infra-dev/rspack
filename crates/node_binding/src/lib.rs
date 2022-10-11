@@ -6,6 +6,7 @@ use std::sync::Arc;
 use napi::bindgen_prelude::*;
 use napi::{Env, Result};
 use napi_derive::napi;
+use serde::Serialize;
 // use nodejs_resolver::Resolver;
 use tokio::sync::Mutex;
 mod adapter;
@@ -68,17 +69,51 @@ pub struct RspackBindingContext {
   pub rspack: Rspack,
   // pub resolver: Arc<Resolver>,
 }
+
 #[napi(object)]
+#[derive(Debug, Serialize)]
+pub struct StatsAsset {
+  pub r#type: &'static str,
+  pub name: String,
+  pub size: f64,
+  pub chunks: Vec<String>,
+}
+
+#[napi(object)]
+#[derive(Debug, Serialize)]
+pub struct StatsModule {
+  pub module_type: String,
+  pub identifier: String,
+  pub name: String,
+  pub id: String,
+  pub chunks: Vec<String>,
+}
+
+#[napi(object)]
+#[derive(Debug, Serialize)]
+pub struct StatsChunk {
+  pub files: Vec<String>,
+  pub id: String,
+}
+
+#[napi(object)]
+#[derive(Debug, Serialize)]
 pub struct RspackError {
   pub message: String,
 }
+
 #[napi(object)]
+#[derive(Debug, Serialize)]
 pub struct Stats {
+  pub assets: Vec<StatsAsset>,
+  pub modules: Vec<StatsModule>,
+  pub chunks: Vec<StatsChunk>,
   pub errors: Vec<RspackError>,
 }
 
 impl<'a> From<rspack_core::Stats<'a>> for Stats {
   fn from(rspack_stats: rspack_core::Stats) -> Self {
+    let desc = rspack_stats.to_description();
     Self {
       errors: rspack_stats
         .compilation
@@ -86,6 +121,35 @@ impl<'a> From<rspack_core::Stats<'a>> for Stats {
         .iter()
         .map(|d| RspackError {
           message: d.message.clone(),
+        })
+        .collect(),
+      assets: desc
+        .assets
+        .into_iter()
+        .map(|a| StatsAsset {
+          r#type: a.r#type,
+          name: a.name,
+          size: a.size,
+          chunks: a.chunks,
+        })
+        .collect(),
+      modules: desc
+        .modules
+        .into_iter()
+        .map(|m| StatsModule {
+          module_type: m.module_type.to_string(),
+          identifier: m.identifier,
+          name: m.name,
+          id: m.id,
+          chunks: m.chunks,
+        })
+        .collect(),
+      chunks: desc
+        .chunks
+        .into_iter()
+        .map(|c| StatsChunk {
+          files: c.files.into_iter().collect(),
+          id: c.id,
         })
         .collect(),
     }

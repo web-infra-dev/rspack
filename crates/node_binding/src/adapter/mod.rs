@@ -25,7 +25,7 @@ use common::ThreadsafeRspackCallback;
 use common::REGISTERED_DONE_SENDERS;
 use common::REGISTERED_PROCESS_ASSETS_SENDERS;
 
-use crate::{AssetContent, UpdateAssetOptions};
+use crate::{AssetContent, UpdateAssetOptions, Stats};
 
 pub static CALL_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(1));
 
@@ -171,8 +171,8 @@ impl Plugin for RspackPluginNodeAdapter {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn done(&mut self) -> PluginBuildEndHookOutput {
-    let context = RspackThreadsafeContext::new(());
+  async fn done<'c>(&mut self, stats: &mut rspack_core::Stats<'c>) -> PluginBuildEndHookOutput {
+    let context = RspackThreadsafeContext::new(Stats::from(stats.to_owned()));
 
     let (tx, rx) = oneshot::channel::<()>();
 

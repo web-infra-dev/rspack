@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use crate::{
   BoxModule, FactorizeAndBuildArgs, ModuleType, NormalModule, NormalModuleFactoryContext,
   OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderManifestArgs,
-  RenderRuntimeArgs, TransformAst, TransformResult,
+  RenderRuntimeArgs, Stats, TransformAst, TransformResult,
 };
 use rspack_error::Result;
 use rspack_loader_runner::{Content, ResourceData};
@@ -44,7 +44,7 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn done(&mut self) -> PluginBuildEndHookOutput {
+  async fn done<'c>(&mut self, _stats: &mut Stats<'c>) -> PluginBuildEndHookOutput {
     Ok(())
   }
 

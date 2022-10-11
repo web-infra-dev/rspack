@@ -53,6 +53,13 @@ impl ChunkGraph {
       .expect("Module should be added before")
   }
 
+  pub(crate) fn get_chunk_graph_module(&self, module_uri: &str) -> &ChunkGraphModule {
+    self
+      .chunk_graph_module_by_module_url
+      .get(module_uri)
+      .expect("Module should be added before")
+  }
+
   pub(crate) fn get_chunk_graph_chunk_mut(
     &mut self,
     chunk_ukey: ChunkUkey,
