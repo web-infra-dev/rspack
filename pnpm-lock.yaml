@@ -5,6 +5,7 @@ importers:
   .:
     specifiers:
       '@changesets/cli': 2.24.4
+      '@taplo/cli': ^0.5.2
       commander: 9.4.0
       esbuild: ^0.15.9
       husky: ^7.0.4
@@ -19,6 +20,7 @@ importers:
       why-is-node-running: 2.2.1
     devDependencies:
       '@changesets/cli': 2.24.4
+      '@taplo/cli': 0.5.2
       commander: 9.4.0
       esbuild: 0.15.9
       husky: 7.0.4
@@ -2781,6 +2783,11 @@ packages:
 
   /@sinonjs/text-encoding/0.7.2:
     resolution: {integrity: sha512-sXXKG+uL9IrKqViTtao2Ws6dy0znu9sOaP1di/jKGW1M6VssO8vlpXCQcpZ+jisQ1tTFAC5Jo/EOzFbggBagFQ==}
+    dev: true
+
+  /@taplo/cli/0.5.2:
+    resolution: {integrity: sha512-6Sg10lt0fV9aHHWPycz4gzIsUodZihu68zAFZGWq0UDq+Gif2KMrAvNwjMbe+ZUKbnTJjvqJZcPvE4+UEyanAQ==}
+    hasBin: true
     dev: true
 
   /@tmp-sass-embedded/darwin-arm64/1.54.4:

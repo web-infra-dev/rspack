@@ -1,6 +1,6 @@
 [package]
 edition = "2021"
-name = "rspack_node"
+name    = "rspack_node"
 publish = false
 version = "0.1.0"
 
