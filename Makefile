@@ -16,11 +16,10 @@ flamegraph:
 bench_three: | copy/three
 	@cargo build -p bench --release
 	@echo "rspack"
-	@hyperfine --warmup 3 ./target/release/bench
-	@echo "esbuild"
-	@hyperfine --warmup 3 './node_modules/esbuild/bin/esbuild --bundle --global-name=THREE  benchcases/three/src/entry.js --outfile=benchcases/three/esbuild/entry.esbuild.js --timing'
-	@echo "webpack"
-	@hyperfine --warmup 3 './node_modules/webpack-cli/bin/cli.js  -c ./benchcases/three/webpack.config.js'
+	@hyperfine --warmup 3  \
+		-n rspack './target/release/bench' \
+		-n esbuild  './node_modules/esbuild/bin/esbuild --bundle --global-name=THREE  benchcases/three/src/entry.js --outfile=benchcases/three/esbuild/entry.esbuild.js --timing' \
+		-n webpack './node_modules/webpack-cli/bin/cli.js  -c ./benchcases/three/webpack.config.js'
 
 
 esbuild_trace:
