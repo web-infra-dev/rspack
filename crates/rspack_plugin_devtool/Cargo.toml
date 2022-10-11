@@ -1,21 +1,21 @@
 [package]
-name = "rspack_plugin_devtool"
-version = "0.1.0"
 edition = "2021"
+name    = "rspack_plugin_devtool"
+version = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rspack_core = { path = "../rspack_core" }
+async-trait  = "0.1"
+base64       = "0.13"
+hashbrown    = { version = "0.12", features = ["rayon"] }
+once_cell    = "1"
+pathdiff     = "0.2"
+rayon        = "1"
+regex        = "1"
+rspack_core  = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
-tracing = "0.1"
-async-trait = "0.1"
-pathdiff = "0.2"
-regex = "1"
-once_cell = "1"
-base64 = "0.13"
-rayon = "1"
-hashbrown = { version = "0.12", features = ["rayon"] }
+tracing      = "0.1"
 
 [dev-dependencies]
 rspack_test = { path = "../rspack_test" }

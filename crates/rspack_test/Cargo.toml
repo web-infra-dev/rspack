@@ -1,18 +1,18 @@
 [package]
 edition = "2021"
-name = "rspack_test"
+name    = "rspack_test"
 version = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [[bin]]
 bench = false
-name = "gen_test_config_schema"
-path = "./bin/gen_test_config_schema.rs"
-test = false
+name  = "gen_test_config_schema"
+path  = "./bin/gen_test_config_schema.rs"
+test  = false
 
 [dependencies]
-colored = "2.0.0"
+colored        = "2.0.0"
 derive_builder = "0.11.2"
 
 cargo-rst = { path = "../cargo-rst" }

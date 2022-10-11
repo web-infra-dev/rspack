@@ -121,6 +121,7 @@ function createCLI() {
 		.command("format")
 		.option("rs", "format rust code")
 		.option("js", "format js code")
+		.option("toml", "format toml code")
 		.action(args => {
 			let command;
 			switch (args) {
@@ -129,6 +130,10 @@ function createCLI() {
 					break;
 				case "rs":
 					command = "pnpm --filter @rspack/core... build";
+					break;
+				case "toml":
+					command =
+						"npx @taplo/cli format --check '.cargo/*.toml' './crates/**/Cargo.toml'";
 					break;
 				default:
 					log.error(
