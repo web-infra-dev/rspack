@@ -7,10 +7,12 @@ mod runtime;
 pub use runtime::*;
 mod plugin;
 pub use plugin::*;
+use swc_common::Globals;
 pub mod utils;
 pub mod visitors;
 
 static JS_HELPERS: Lazy<Helpers> = Lazy::new(Helpers::default);
+static JS_GLOBALS: Lazy<Globals> = Lazy::new(Globals::default);
 
 // use typemap::{Key, TypeMap};
 
