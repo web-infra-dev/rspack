@@ -38,27 +38,25 @@ pub fn parse_js(
   is_module: IsModule,
   comments: Option<&dyn Comments>,
 ) -> Result<(Program, Vec<swc_ecma_parser::error::Error>), Vec<swc_ecma_parser::error::Error>> {
-  GLOBALS.set(&Default::default(), || {
-    let mut errors = vec![];
-    let program_result = match is_module {
-      IsModule::Bool(true) => {
-        parse_file_as_module(&fm, syntax, target, comments, &mut errors).map(Program::Module)
-      }
-      IsModule::Bool(false) => {
-        parse_file_as_script(&fm, syntax, target, comments, &mut errors).map(Program::Script)
-      }
-      IsModule::Unknown => parse_file_as_program(&fm, syntax, target, comments, &mut errors),
-    };
-
-    // Using combinator will let rustc unhappy.
-    match program_result {
-      Ok(program) => Ok((program, errors)),
-      Err(err) => {
-        errors.push(err);
-        Err(errors)
-      }
+  let mut errors = vec![];
+  let program_result = match is_module {
+    IsModule::Bool(true) => {
+      parse_file_as_module(&fm, syntax, target, comments, &mut errors).map(Program::Module)
     }
-  })
+    IsModule::Bool(false) => {
+      parse_file_as_script(&fm, syntax, target, comments, &mut errors).map(Program::Script)
+    }
+    IsModule::Unknown => parse_file_as_program(&fm, syntax, target, comments, &mut errors),
+  };
+
+  // Using combinator will let rustc unhappy.
+  match program_result {
+    Ok(program) => Ok((program, errors)),
+    Err(err) => {
+      errors.push(err);
+      Err(errors)
+    }
+  }
 }
 pub fn parse_file(
   source_code: String,
