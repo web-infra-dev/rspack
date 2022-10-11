@@ -254,7 +254,7 @@ impl IntoIIFE for Vec<Stmt> {
       span: DUMMY_SP,
       expr: Expr::Fn(FnExpr {
         ident: None,
-        function: Function {
+        function: Box::new(Function {
           params: Default::default(),
           decorators: Default::default(),
           span: DUMMY_SP,
@@ -266,7 +266,7 @@ impl IntoIIFE for Vec<Stmt> {
           is_async: false,
           type_params: None,
           return_type: None,
-        },
+        }),
       })
       .into(),
     };

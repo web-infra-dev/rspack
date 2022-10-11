@@ -3,7 +3,7 @@ use rayon::prelude::*;
 
 use swc::{config::JsMinifyOptions, BoolOrDataConfig};
 use swc_common::comments::SingleThreadedComments;
-use swc_common::{FileName, Mark};
+use swc_common::{FileName, Mark, GLOBALS};
 use swc_ecma_transforms::helpers::{inject_helpers, Helpers};
 use swc_ecma_transforms::react::{react, Options as ReactOptions};
 use swc_ecma_transforms::{pass::noop, react};
@@ -16,11 +16,12 @@ use rspack_core::rspack_sources::{
 };
 use rspack_core::{
   get_contenthash, AstOrSource, ChunkKind, Compilation, FilenameRenderOptions, GenerationResult,
-  ModuleAst, ModuleGraphModule, ModuleType, ParseContext, ParseResult, ParserAndGenerator, Plugin,
-  PluginContext, PluginProcessAssetsOutput, PluginRenderManifestHookOutput, ProcessAssetsArgs,
-  RenderManifestEntry, SourceType,
+  ModuleAst, ModuleGraphModule, ModuleType, NormalModule, ParseContext, ParseResult,
+  ParserAndGenerator, Plugin, PluginContext, PluginProcessAssetsOutput,
+  PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderManifestEntry, SourceType,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use tracing::instrument;
 
 use crate::utils::{
   get_swc_compiler, get_wrap_chunk_after, get_wrap_chunk_before, parse_file, syntax_by_module_type,
@@ -37,7 +38,7 @@ pub struct JsPlugin {
 impl JsPlugin {
   pub fn new() -> Self {
     Self {
-      unresolved_mark: get_swc_compiler().run(Mark::new),
+      unresolved_mark: GLOBALS.set(&Default::default(), || get_swc_compiler().run(Mark::new)),
     }
   }
 }
@@ -66,6 +67,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     SOURCE_TYPES
   }
 
+  fn size(&self, module: &NormalModule, _source_type: &SourceType) -> f64 {
+    module.original_source().map_or(0, |source| source.size()) as f64
+  }
+
+  #[instrument(name = "js:parse")]
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
     let ParseContext {
       source,
@@ -90,7 +96,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let (ast, diagnostics) = ast_with_diagnostics.split_into_parts();
 
-    let processed_ast = get_swc_compiler().run(|| {
+    let processed_ast = GLOBALS.set(&Default::default(), || {
       swc_ecma_transforms::helpers::HELPERS.set(&Helpers::new(true), || {
         let defintions = &compiler_options.define;
         let ast = if !defintions.is_empty() {
@@ -136,6 +142,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   }
 
   #[allow(clippy::unwrap_in_result)]
+  #[instrument(name = "js:generate")]
   fn generate(
     &self,
     requested_source_type: SourceType,
@@ -150,7 +157,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       // Ok(ast_or_source.to_owned().into())
 
       let compiler = get_swc_compiler();
-      let output = compiler.run(|| {
+      let output = GLOBALS.set(&Default::default(), || {
         crate::HELPERS.set(&JS_HELPERS, || {
           swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
             let fm = compiler.cm.new_source_file(
@@ -447,7 +454,7 @@ impl Plugin for JsPlugin {
       .map(|(filename, original)| {
         let input = original.source().to_string();
         let input_source_map = original.map(&MapOptions::default());
-        let output =
+        let output = GLOBALS.set(&Default::default(), || {
           swc::try_with_handler(swc_compiler.cm.clone(), Default::default(), |handler| {
             let fm = swc_compiler.cm.new_source_file(
               swc_common::FileName::Custom(filename.to_string()),
@@ -463,7 +470,8 @@ impl Plugin for JsPlugin {
                 ..Default::default()
               },
             )
-          })?;
+          })
+        })?;
         let source = if let Some(map) = &output.map {
           SourceMapSource::new(SourceMapSourceOptions {
             value: output.code,

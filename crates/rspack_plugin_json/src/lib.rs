@@ -7,7 +7,7 @@ use rspack_error::{
 
 use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
-  ParserAndGenerator, Plugin, SourceType,
+  NormalModule, ParserAndGenerator, Plugin, SourceType,
 };
 
 mod utils;
@@ -18,6 +18,10 @@ struct JsonParserAndGenerator {}
 impl ParserAndGenerator for JsonParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
     &[SourceType::JavaScript]
+  }
+
+  fn size(&self, module: &NormalModule, _source_type: &SourceType) -> f64 {
+    module.original_source().map_or(0, |source| source.size()) as f64
   }
 
   fn parse(

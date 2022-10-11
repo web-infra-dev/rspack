@@ -1,7 +1,9 @@
 use crate::{NormalModuleFactoryContext, ResolveArgs, ResolveResult, SharedPluginDriver};
 use rspack_error::{Error, Result, TraceableError};
 use std::path::Path;
+use tracing::instrument;
 
+#[instrument(name = "resolve")]
 pub async fn resolve(
   args: ResolveArgs<'_>,
   plugin_driver: &SharedPluginDriver,

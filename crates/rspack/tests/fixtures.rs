@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use rspack_core::log::enable_tracing_by_env;
 use rspack_test::{read_test_config_and_normalize, test_fixture};
+use rspack_tracing::enable_tracing_by_env;
 use testing_macros::fixture;
 
 #[fixture("tests/fixtures/*")]

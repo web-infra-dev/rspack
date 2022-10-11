@@ -6,6 +6,7 @@ pub use rspack_loader_runner::{
   Content, Loader, LoaderContext, LoaderResult, LoaderRunner, LoaderRunnerAdditionalContext,
   ResourceData,
 };
+use tracing::instrument;
 
 use crate::{
   CompilerOptions, LoaderRunnerPluginProcessResource, ResolverFactory, SharedPluginDriver,
@@ -45,7 +46,7 @@ impl LoaderRunnerRunner {
       compiler_context,
     }
   }
-
+  #[instrument(name = "loader:run", skip_all)]
   pub async fn run(
     &self,
     resource_data: ResourceData,

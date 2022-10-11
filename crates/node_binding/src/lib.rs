@@ -183,21 +183,20 @@ pub fn build(env: Env, binding_context: External<RspackBindingContext>) -> Resul
 }
 
 #[napi(
-  ts_args_type = "rspack: ExternalObject<RspackInternal>, changedFile: string[]",
+  ts_args_type = "rspack: ExternalObject<RspackInternal>",
   // ts_return_type = "Promise<[diff: Record<string, string>, map: Record<string, string>]>"
   ts_return_type = "Promise<Record<string, string>>"
 )]
 pub fn rebuild(
   env: Env,
   binding_context: External<RspackBindingContext>,
-  changed_file: Vec<String>,
 ) -> Result<napi::JsObject> {
   let compiler = binding_context.rspack.clone();
   env.execute_tokio_future(
     async move {
       let mut compiler = compiler.lock().await;
       let _rspack_stats = compiler
-        .rebuild(changed_file)
+        .rebuild()
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
 

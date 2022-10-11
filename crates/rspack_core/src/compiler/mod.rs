@@ -62,23 +62,14 @@ impl Compiler {
     }
   }
 
-  pub async fn rebuild(&mut self, _changed_files_path: Vec<String>) -> Result<Stats> {
-    // let deps = changed_files_path.into_iter().map(|(name, specifier)| {
-    //   (
-    //     name.clone(),
-    //     Dependency {
-    //       importer: None,
-    //       detail: ModuleDependency {
-    //         specifier,
-    //         kind: ResolveKind::Import,
-    //         span: None,
-    //       },
-    //     },
-    //   )
-    // });
-    // self.compile(deps).await?;
+  // TODO: remove this function when we had hash in stats.
+  pub async fn rebuild(&mut self) -> Result<Stats> {
+    let _pre_stats = self.stats()?;
+    let _stats = self.build().await?;
+    // TODO: return diff stats;
     self.stats()
   }
+
   pub async fn run(&mut self) -> anyhow::Result<()> {
     let stats = self.build().await?;
     if !stats.compilation.diagnostic.is_empty() {
@@ -87,6 +78,7 @@ impl Compiler {
     }
     Ok(())
   }
+  #[instrument(name = "build")]
   pub async fn build(&mut self) -> Result<Stats> {
     self.compilation = Compilation::new(
       // TODO: use Arc<T> instead

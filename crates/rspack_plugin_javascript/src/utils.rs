@@ -30,34 +30,31 @@ pub fn get_swc_compiler() -> Arc<SwcCompiler> {
 /// need to return those error for better dx, some warning behavior may lead some unexpected result.
 /// 2. We can't convert to [rspack_error::Error] at this point, because there is no `path` and `source`
 pub fn parse_js(
-  compiler: &SwcCompiler,
   fm: Arc<SourceFile>,
   target: EsVersion,
   syntax: Syntax,
   is_module: IsModule,
   comments: Option<&dyn Comments>,
 ) -> Result<(Program, Vec<swc_ecma_parser::error::Error>), Vec<swc_ecma_parser::error::Error>> {
-  compiler.run(|| {
-    let mut errors = vec![];
-    let program_result = match is_module {
-      IsModule::Bool(true) => {
-        parse_file_as_module(&fm, syntax, target, comments, &mut errors).map(Program::Module)
-      }
-      IsModule::Bool(false) => {
-        parse_file_as_script(&fm, syntax, target, comments, &mut errors).map(Program::Script)
-      }
-      IsModule::Unknown => parse_file_as_program(&fm, syntax, target, comments, &mut errors),
-    };
-
-    // Using combinator will let rustc unhappy.
-    match program_result {
-      Ok(program) => Ok((program, errors)),
-      Err(err) => {
-        errors.push(err);
-        Err(errors)
-      }
+  let mut errors = vec![];
+  let program_result = match is_module {
+    IsModule::Bool(true) => {
+      parse_file_as_module(&fm, syntax, target, comments, &mut errors).map(Program::Module)
     }
-  })
+    IsModule::Bool(false) => {
+      parse_file_as_script(&fm, syntax, target, comments, &mut errors).map(Program::Script)
+    }
+    IsModule::Unknown => parse_file_as_program(&fm, syntax, target, comments, &mut errors),
+  };
+
+  // Using combinator will let rustc unhappy.
+  match program_result {
+    Ok(program) => Ok((program, errors)),
+    Err(err) => {
+      errors.push(err);
+      Err(errors)
+    }
+  }
 }
 pub fn parse_file(
   source_code: String,
@@ -72,7 +69,6 @@ pub fn parse_file(
   PATH_START_BYTE_POS_MAP.insert(filename.to_string(), fm.start_pos.0);
 
   match parse_js(
-    &compiler,
     fm,
     swc_ecma_ast::EsVersion::Es2022,
     syntax,

@@ -1,11 +1,13 @@
+use std::{collections::HashMap, fmt::Debug, sync::Arc};
+
+use dashmap::DashMap;
+
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_loader_runner::{Content, Loader, ResourceData};
 use rspack_sources::{
   BoxSource, OriginalSource, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
   WithoutOriginalOptions,
 };
-
-use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
 use crate::{
   Compilation, CompilationContext, CompilerContext, CompilerOptions, Dependency,
@@ -171,7 +173,7 @@ impl From<BoxSource> for AstOrSource {
     AstOrSource::Source(source)
   }
 }
-
+#[derive(Debug)]
 pub struct ParseContext<'a> {
   pub source: Box<dyn Source>,
   pub module_type: &'a ModuleType,
@@ -189,6 +191,7 @@ pub struct ParseResult {
 pub trait ParserAndGenerator: Send + Sync + Debug {
   fn source_types(&self) -> &[SourceType];
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>>;
+  fn size(&self, module: &NormalModule, source_type: &SourceType) -> f64;
   fn generate(
     &self,
     requested_source_type: SourceType,
@@ -211,6 +214,7 @@ pub struct NormalModule {
   ast_or_source: Option<AstOrSource>,
 
   options: Arc<CompilerOptions>,
+  cached_source_sizes: DashMap<SourceType, f64>,
 
   // FIXME: dirty workaround to support external module
   skip_build: bool,
@@ -269,7 +273,9 @@ impl NormalModule {
 
       original_source: None,
       ast_or_source: None,
+
       options,
+      cached_source_sizes: DashMap::new(),
       skip_build: false,
     }
   }
@@ -327,6 +333,16 @@ impl NormalModule {
 
   pub fn ast_or_source(&self) -> Option<&AstOrSource> {
     self.ast_or_source.as_ref()
+  }
+
+  pub fn size(&self, source_type: &SourceType) -> f64 {
+    if let Some(size_ref) = self.cached_source_sizes.get(source_type) {
+      *size_ref
+    } else {
+      let size = f64::max(1.0, self.parser_and_generator.size(self, source_type));
+      self.cached_source_sizes.insert(*source_type, size);
+      size
+    }
   }
 
   pub async fn build(

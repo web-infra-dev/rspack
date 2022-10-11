@@ -37,9 +37,9 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Cleanup workspace
-        uses: TooMuch4U/actions-clean@v2.1
-        if: ${{ always() }}
+      # - name: Cleanup workspace
+      #   uses: TooMuch4U/actions-clean@v2.1
+      #   if: ${{ always() }}
       - name: Get PR SHA
         id: sha
         uses: actions/github-script@v6
@@ -48,10 +48,10 @@ jobs:
           script: |
             const response = await github.request(context.payload.issue.pull_request.url);
             return response.data.head.sha;
-      - name: Install protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Install protoc
+      #   uses: arduino/setup-protoc@v1
+      #   with:
+      #     repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout PR Branch
         uses: actions/checkout@v3
@@ -90,9 +90,9 @@ jobs:
           echo "\`\`\`" >> output
           cat output
           comment="$(cat output)"
-          comment="${comment//'%'/'%25'}"
-          comment="${comment//$'\n'/'%0A'}"
-          comment="${comment//$'\r'/'%0D'}"
+          comment="${comment//'%'/%25}"
+          comment="${comment//$'\n'/%0A}"
+          comment="${comment//$'\r'/%0D}"
           echo "::set-output name=comment::$comment"
       - name: Write a new comment
         uses: peter-evans/create-or-update-comment@v1.4.5

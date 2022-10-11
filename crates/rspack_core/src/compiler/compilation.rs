@@ -95,7 +95,7 @@ impl Compilation {
     chunk_by_ukey.insert(chunk.ukey, chunk);
     chunk_by_ukey.get_mut(&ukey).expect("chunk not found")
   }
-
+  #[instrument(name = "entry_deps")]
   pub fn entry_dependencies(&self) -> HashMap<String, Dependency> {
     self
       .entries
@@ -116,7 +116,7 @@ impl Compilation {
       .collect()
   }
 
-  #[instrument(name = "make")]
+  #[instrument(name = "compilation:make")]
   pub async fn make(&mut self, entry_deps: HashMap<String, Dependency>) {
     let active_task_count: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
@@ -168,7 +168,7 @@ impl Compilation {
     }
     tracing::debug!("module graph {:#?}", self.module_graph);
   }
-
+  #[instrument()]
   async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) {
     let chunk_ukey_and_manifest = (self
       .chunk_by_ukey
@@ -200,7 +200,7 @@ impl Compilation {
         });
       })
   }
-
+  #[instrument(name = "compilation:process_asssets")]
   async fn process_assets(&mut self, plugin_driver: SharedPluginDriver) {
     plugin_driver
       .write()
@@ -217,6 +217,7 @@ impl Compilation {
     plugin_driver.write().await.done().await?;
     Ok(())
   }
+  #[instrument(name = "compilation:render_runtime")]
   pub async fn render_runtime(&self, plugin_driver: SharedPluginDriver) -> Runtime {
     if let Ok(sources) = plugin_driver
       .read()
@@ -247,7 +248,7 @@ impl Compilation {
       .get(ukey)
       .expect("entrypoint not found by ukey")
   }
-  #[instrument(name = "seal")]
+  #[instrument(name = "compilation:seal")]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     code_splitting(self)?;
 
