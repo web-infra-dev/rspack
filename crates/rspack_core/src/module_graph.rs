@@ -2,11 +2,11 @@ use hashbrown::HashMap;
 
 use crate::{Dependency, ModuleDependency, ModuleGraphModule, ModuleIdentifier, NormalModule};
 
-#[derive(Debug, Hash)]
+#[derive(Debug, Hash, PartialEq, Eq)]
 pub struct ModuleGraphConnection {
-  original_module: Option<ModuleIdentifier>,
-  module: ModuleIdentifier,
-  dependency: ModuleDependency,
+  pub original_module: Option<ModuleIdentifier>,
+  pub module: ModuleIdentifier,
+  pub dependency: ModuleDependency,
 }
 
 impl ModuleGraphConnection {

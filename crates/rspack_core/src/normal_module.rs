@@ -1,7 +1,10 @@
 use std::{
   collections::HashMap,
   fmt::Debug,
-  sync::{atomic::AtomicU32, Arc},
+  sync::{
+    atomic::{AtomicU32, Ordering},
+    Arc,
+  },
 };
 
 use dashmap::DashMap;
@@ -32,7 +35,9 @@ pub struct ModuleGraphModule {
   pub id: String,
   // pub exec_order: usize,
   pub uri: String,
+  // TODO: change to ModuleIdentifier
   pub module: NormalModule,
+  pub module_identifier: ModuleIdentifier,
   // TODO remove this since its included in module
   pub module_type: ModuleType,
   all_dependencies: Vec<Dependency>,
@@ -49,6 +54,7 @@ impl ModuleGraphModule {
     dependencies: Vec<Dependency>,
     module_type: ModuleType,
   ) -> Self {
+    let module_identifier = module.identifier();
     Self {
       name,
 
@@ -59,6 +65,7 @@ impl ModuleGraphModule {
       // exec_order: usize::MAX,
       uri,
       module,
+      module_identifier,
       all_dependencies: dependencies,
       module_type,
       pre_order_index: None,
@@ -72,6 +79,21 @@ impl ModuleGraphModule {
 
   pub fn add_outgoing_connection(&mut self, connection: ModuleGraphConnection) {
     self.outgoing_connections.insert(connection);
+  }
+
+  pub fn incoming_connections_unordered(&self) -> impl Iterator<Item = &ModuleGraphConnection> {
+    self.incoming_connections.iter()
+  }
+
+  pub fn outgoing_connections_unordered(&self) -> impl Iterator<Item = &ModuleGraphConnection> {
+    self.outgoing_connections.iter()
+  }
+
+  pub fn all_dependencies(&mut self) -> Vec<&ModuleDependency> {
+    self
+      .outgoing_connections_unordered()
+      .map(|conn| &conn.dependency)
+      .collect()
   }
 
   pub fn depended_modules<'a>(&self, module_graph: &'a ModuleGraph) -> Vec<&'a ModuleGraphModule> {
@@ -299,6 +321,7 @@ impl NormalModule {
 
       original_source: None,
       ast_or_source: None,
+      debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
 
       options,
       cached_source_sizes: DashMap::new(),
