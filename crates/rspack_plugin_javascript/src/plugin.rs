@@ -16,9 +16,9 @@ use rspack_core::rspack_sources::{
 };
 use rspack_core::{
   get_contenthash, AstOrSource, ChunkKind, Compilation, FilenameRenderOptions, GenerationResult,
-  ModuleAst, ModuleGraphModule, ModuleType, ParseContext, ParseResult, ParserAndGenerator, Plugin,
-  PluginContext, PluginProcessAssetsOutput, PluginRenderManifestHookOutput, ProcessAssetsArgs,
-  RenderManifestEntry, SourceType,
+  ModuleAst, ModuleGraphModule, ModuleType, NormalModule, ParseContext, ParseResult,
+  ParserAndGenerator, Plugin, PluginContext, PluginProcessAssetsOutput,
+  PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderManifestEntry, SourceType,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;
@@ -66,6 +66,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
     SOURCE_TYPES
   }
+
+  fn size(&self, module: &NormalModule, _source_type: &SourceType) -> f64 {
+    module.original_source().map_or(0, |source| source.size()) as f64
+  }
+
   #[instrument(name = "js:parse")]
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
     let ParseContext {
