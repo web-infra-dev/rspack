@@ -1,7 +1,12 @@
-use std::{collections::HashMap, fmt::Debug, sync::Arc};
+use std::{
+  collections::HashMap,
+  fmt::Debug,
+  sync::{atomic::AtomicU32, Arc},
+};
 
 use dashmap::DashMap;
 
+use hashbrown::HashSet;
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_loader_runner::{Content, Loader, ResourceData};
 use rspack_sources::{
@@ -11,14 +16,19 @@ use rspack_sources::{
 
 use crate::{
   Compilation, CompilationContext, CompilerContext, CompilerOptions, Dependency,
-  LoaderRunnerRunner, ModuleAst, ModuleDependency, ModuleGraph, ModuleType, ResolveKind,
-  SourceType,
+  LoaderRunnerRunner, ModuleAst, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleType,
+  ResolveKind, SourceType,
 };
 
 #[derive(Debug)]
 pub struct ModuleGraphModule {
   // Only user defined entry module has name for now.
   pub name: Option<String>,
+
+  // edges from module to module
+  pub outgoing_connections: HashSet<ModuleGraphConnection>,
+  pub incoming_connections: HashSet<ModuleGraphConnection>,
+
   pub id: String,
   // pub exec_order: usize,
   pub uri: String,
@@ -41,6 +51,10 @@ impl ModuleGraphModule {
   ) -> Self {
     Self {
       name,
+
+      outgoing_connections: Default::default(),
+      incoming_connections: Default::default(),
+
       id,
       // exec_order: usize::MAX,
       uri,
@@ -50,6 +64,14 @@ impl ModuleGraphModule {
       pre_order_index: None,
       post_order_index: None,
     }
+  }
+
+  pub fn add_incoming_connection(&mut self, connection: ModuleGraphConnection) {
+    self.incoming_connections.insert(connection);
+  }
+
+  pub fn add_outgoing_connection(&mut self, connection: ModuleGraphConnection) {
+    self.outgoing_connections.insert(connection);
   }
 
   pub fn depended_modules<'a>(&self, module_graph: &'a ModuleGraph) -> Vec<&'a ModuleGraphModule> {
@@ -214,6 +236,7 @@ pub struct NormalModule {
   ast_or_source: Option<AstOrSource>,
 
   options: Arc<CompilerOptions>,
+  debug_id: u32,
   cached_source_sizes: DashMap<SourceType, f64>,
 
   // FIXME: dirty workaround to support external module
@@ -252,6 +275,9 @@ pub struct BuildContext<'a> {
   pub resolved_loaders: Vec<&'a dyn Loader<CompilerContext, CompilationContext>>,
   pub compiler_options: &'a CompilerOptions,
 }
+
+pub type ModuleIdentifier = String;
+pub static DEBUG_ID: AtomicU32 = AtomicU32::new(0);
 
 impl NormalModule {
   pub fn new(
@@ -306,7 +332,7 @@ impl NormalModule {
     &self.raw_request
   }
 
-  pub fn identifier(&self) -> String {
+  pub fn identifier(&self) -> ModuleIdentifier {
     self.request.to_owned()
   }
 

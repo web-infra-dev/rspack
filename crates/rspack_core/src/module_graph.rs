@@ -1,12 +1,36 @@
-use std::collections::HashMap;
+use hashbrown::HashMap;
 
-use crate::{Dependency, ModuleGraphModule};
+use crate::{Dependency, ModuleDependency, ModuleGraphModule, ModuleIdentifier, NormalModule};
+
+#[derive(Debug, Hash)]
+pub struct ModuleGraphConnection {
+  original_module: Option<ModuleIdentifier>,
+  module: ModuleIdentifier,
+  dependency: ModuleDependency,
+}
+
+impl ModuleGraphConnection {
+  pub fn new(
+    original_module: Option<ModuleIdentifier>,
+    module: ModuleIdentifier,
+    dependency: ModuleDependency,
+  ) -> Self {
+    Self {
+      original_module,
+      module,
+      dependency,
+    }
+  }
+}
 
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
   uri_to_module: HashMap<String, ModuleGraphModule>,
   dependency_to_module_uri: HashMap<Dependency, String>,
-  // id_to_uri: hashbrown::HashMap<String, String>,
+
+  module_identifier_to_module: HashMap<ModuleIdentifier, NormalModule>,
+  module_identifier_to_module_graph_module: HashMap<ModuleIdentifier, ModuleGraphModule>,
+  /* id_to_uri: hashbrown::HashMap<String, String>, */
 }
 
 impl ModuleGraph {
