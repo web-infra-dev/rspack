@@ -45,8 +45,9 @@ pub struct ModuleGraph {
   uri_to_module: DashMap<String, ModuleGraphModule>,
   dependency_to_module_uri: DashMap<Dependency, String>,
 
-  module_identifier_to_module: DashMap<ModuleIdentifier, NormalModule>,
-  module_identifier_to_module_graph_module: DashMap<ModuleIdentifier, ModuleGraphModule>,
+  // TODO: cleanup `pub`
+  pub module_identifier_to_module: DashMap<ModuleIdentifier, NormalModule>,
+  pub module_identifier_to_module_graph_module: DashMap<ModuleIdentifier, ModuleGraphModule>,
 
   pub connections: DashMap<u32, ModuleGraphConnection>,
   /* id_to_uri: hashbrown::HashMap<String, String>, */
@@ -114,19 +115,19 @@ impl ModuleGraph {
 
   pub fn set_resolved_module(
     &self,
-    original_module_identifier: ModuleIdentifier,
+    original_module_identifier: Option<ModuleIdentifier>,
     dependency: ModuleDependency,
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
     let connection = ModuleGraphConnection::new(
-      Some(original_module_identifier),
+      original_module_identifier.clone(),
       dependency,
       module_identifier.clone(),
     );
     let connection_id = connection.id;
     self.connections.insert(connection_id, connection);
 
-    let mgm = self
+    let mut mgm = self
       .module_identifier_to_module_graph_module
       .get_mut(&module_identifier)
       .ok_or_else(|| {
@@ -138,12 +139,11 @@ impl ModuleGraph {
 
     mgm.add_incoming_connection(connection_id);
 
-    if let Some(original_mgm) = self
-      .module_identifier_to_module_graph_module
-      .get_mut(&original_module_identifier)
-    {
-      original_mgm.add_outgoing_connection(connection_id);
-    }
+    if let Some(identifier) = original_module_identifier && let Some(mut original_mgm) = self
+    .module_identifier_to_module_graph_module
+    .get_mut(&identifier) {
+        original_mgm.add_outgoing_connection(connection_id);
+    };
 
     Ok(())
   }

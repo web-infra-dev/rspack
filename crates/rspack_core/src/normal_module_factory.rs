@@ -332,10 +332,10 @@ impl NormalModuleFactory {
     )
   }
 
-  #[instrument(name = "normal_module:factorize")]
+  // #[instrument(name = "normal_module:factorize")]
   pub async fn factorize(
     &mut self,
-  ) -> Result<Option<(ModuleGraphModule, NormalModule, ModuleIdentifier)>> {
+  ) -> Result<Option<(ModuleGraphModule, NormalModule, Option<ModuleIdentifier>)>> {
     // TODO: caching in resolve, align to webpack's external module
     // Here is the corresponding create function in webpack, but instead of using hooks we use procedural functions
     let result = self
@@ -400,7 +400,7 @@ impl NormalModuleFactory {
       self.fork(dep.clone());
     });
 
-    let mut mgm = ModuleGraphModule::new(
+    let mgm = ModuleGraphModule::new(
       self.context.module_name.clone(),
       Path::new("./")
         .join(

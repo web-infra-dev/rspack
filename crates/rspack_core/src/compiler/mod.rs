@@ -17,8 +17,9 @@ use tokio::sync::RwLock;
 use tracing::instrument;
 
 use crate::{
-  CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule, ModuleIdentifier,
-  NormalModule, Plugin, PluginDriver, SharedPluginDriver, Stats, PATH_START_BYTE_POS_MAP,
+  CompilerOptions, Dependency, LoaderRunnerRunner, ModuleDependency, ModuleGraphModule,
+  ModuleIdentifier, NormalModule, Plugin, PluginDriver, SharedPluginDriver, Stats,
+  PATH_START_BYTE_POS_MAP,
 };
 
 #[derive(Debug)]
@@ -220,7 +221,7 @@ pub enum Msg {
       Box<(
         ModuleGraphModule,
         NormalModule,
-        ModuleIdentifier,
+        Option<ModuleIdentifier>,
         ModuleDependency,
       )>,
     >,

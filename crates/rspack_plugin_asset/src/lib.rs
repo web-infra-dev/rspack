@@ -196,6 +196,11 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     compilation: &rspack_core::Compilation,
   ) -> Result<rspack_core::GenerationResult> {
     let parsed_asset_config = self.parsed_asset_config.as_ref().unwrap();
+    let module = compilation
+      .module_graph
+      .module_by_identifier(&mgm.module_identifier)
+      .ok_or_else(|| Error::InternalError("Failed to get module".to_owned()))?;
+
     let result = match requested_source_type {
       SourceType::JavaScript => Ok(GenerationResult {
         ast_or_source: RawSource::from(format!(
@@ -203,11 +208,11 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           if parsed_asset_config.is_inline() {
             format!(
               r#""data:{};base64,{}""#,
-              mime_guess::MimeGuess::from_path(Path::new(&mgm.module.request()))
+              mime_guess::MimeGuess::from_path(Path::new(&module.request()))
                 .first()
                 .ok_or_else(|| anyhow::format_err!(
                   "failed to guess mime type of {}",
-                  mgm.module.request()
+                  module.request()
                 ))?,
               base64::encode(
                 &ast_or_source
@@ -217,7 +222,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
               )
             )
           } else if parsed_asset_config.is_external() {
-            let request = mgm.module.request();
+            let request = module.request();
             let path = Path::new(&request);
 
             let file_name =
@@ -343,6 +348,7 @@ impl Plugin for AssetPlugin {
     args: RenderManifestArgs,
   ) -> PluginRenderManifestHookOutput {
     let compilation = args.compilation;
+
     let module_graph = &compilation.module_graph;
 
     let ordered_modules = compilation
@@ -351,13 +357,27 @@ impl Plugin for AssetPlugin {
 
     let assets = ordered_modules
       .par_iter()
-      .filter(|module| module.module.source_types().contains(&SourceType::Asset))
-      .map(|module| {
+      .filter(|mgm| {
+        let module = compilation
+          .module_graph
+          .module_by_identifier(&mgm.module_identifier)
+          .ok_or_else(|| Error::InternalError("Failed to get module".to_owned()))
+          // FIXME: use result
+          .expect("Failed to get module");
+        module.source_types().contains(&SourceType::Asset)
+      })
+      .map(|mgm| {
         // TODO: this logic is definitely not performant, move to compilation afterwards
+        let module = compilation
+          .module_graph
+          .module_by_identifier(&mgm.module_identifier)
+          .ok_or_else(|| Error::InternalError("Failed to get module".to_owned()))
+          // FIXME: use result
+          .expect("Failed to get module");
+
         Ok(
           module
-            .module
-            .code_generation(module, compilation)
+            .code_generation(mgm.value(), compilation)
             .map(|source| {
               source
                 .inner()

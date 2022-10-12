@@ -117,12 +117,12 @@ impl ModuleGraphModule {
     Ok(result)
   }
 
-  pub fn all_dependencies(&mut self) -> Vec<&ModuleDependency> {
-    self
-      .outgoing_connections_unordered()
-      .map(|conn| &conn.dependency)
-      .collect()
-  }
+  // pub fn all_dependencies(&mut self) -> Vec<&ModuleDependency> {
+  //   self
+  //     .outgoing_connections_unordered()
+  //     .map(|conn| &conn.dependency)
+  //     .collect()
+  // }
 
   pub fn depended_modules<'a>(
     &self,
@@ -289,6 +289,7 @@ pub struct NormalModule {
   ast_or_source: Option<AstOrSource>,
 
   options: Arc<CompilerOptions>,
+  #[allow(unused)]
   debug_id: u32,
   cached_source_sizes: DashMap<SourceType, f64>,
 
