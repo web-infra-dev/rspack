@@ -3,6 +3,7 @@ name: Benchmark
 on:
   issue_comment:
     types: [created]
+
 # jobs:
 #   benchmarks:
 #     name: Benchmarks
