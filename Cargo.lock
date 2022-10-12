@@ -2347,7 +2347,6 @@ dependencies = [
  "hashbrown",
  "linked_hash_set",
  "once_cell",
- "parking_lot",
  "pathdiff",
  "preset_env_base",
  "rayon",
