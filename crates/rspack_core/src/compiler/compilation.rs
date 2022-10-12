@@ -24,7 +24,7 @@ pub struct Compilation {
   pub options: Arc<CompilerOptions>,
   entries: HashMap<String, EntryItem>,
   pub(crate) visited_module_id: VisitedModuleIdentity,
-  pub module_graph: ModuleGraph,
+  pub module_graph: Arc<ModuleGraph>,
   pub chunk_graph: ChunkGraph,
   pub chunk_by_ukey: HashMap<ChunkUkey, Chunk>,
   pub chunk_group_by_ukey: HashMap<ChunkGroupUkey, ChunkGroup>,
@@ -42,7 +42,7 @@ impl Compilation {
     options: Arc<CompilerOptions>,
     entries: std::collections::HashMap<String, EntryItem>,
     visited_module_id: VisitedModuleIdentity,
-    module_graph: ModuleGraph,
+    module_graph: Arc<ModuleGraph>,
     plugin_driver: SharedPluginDriver,
     loader_runner_runner: Arc<LoaderRunnerRunner>,
   ) -> Self {
@@ -105,6 +105,7 @@ impl Compilation {
           name.clone(),
           Dependency {
             importer: None,
+            parent_module_identifier: None,
             detail: ModuleDependency {
               specifier: detail.path.clone(),
               kind: ResolveKind::Import,
@@ -129,6 +130,7 @@ impl Compilation {
           visited_module_identity: self.visited_module_id.clone(),
           module_type: None,
           side_effects: None,
+          module_graph: self.module_graph.clone(),
           options: self.options.clone(),
         },
         dep,
@@ -145,7 +147,11 @@ impl Compilation {
         Some(job) => match job {
           Msg::TaskFinished(mut module_with_diagnostic) => {
             active_task_count.fetch_sub(1, Ordering::SeqCst);
-            self.module_graph.add_module(*module_with_diagnostic.inner);
+            let (mgm, module) = *module_with_diagnostic.inner;
+
+            self.module_graph.add_module_graph_module(mgm);
+            self.module_graph.add_module(module);
+
             self
               .diagnostic
               .append(&mut module_with_diagnostic.diagnostic);

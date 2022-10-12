@@ -16,14 +16,16 @@ use tracing::instrument;
 
 use crate::{
   parse_to_url, resolve, BuildContext, CompilationContext, CompilerContext, CompilerOptions,
-  FactorizeAndBuildArgs, LoaderRunnerRunner, ModuleGraphModule, ModuleRule, ModuleType, Msg,
-  NormalModule, ResolveArgs, ResourceData, SharedPluginDriver, VisitedModuleIdentity,
+  FactorizeAndBuildArgs, LoaderRunnerRunner, ModuleGraph, ModuleGraphConnection, ModuleGraphModule,
+  ModuleIdentifier, ModuleRule, ModuleType, Msg, NormalModule, ResolveArgs, ResourceData,
+  SharedPluginDriver, VisitedModuleIdentity,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct Dependency {
   /// Uri of importer module
   pub importer: Option<String>,
+  pub parent_module_identifier: Option<ModuleIdentifier>,
   pub detail: ModuleDependency,
 }
 
@@ -80,10 +82,10 @@ impl NormalModuleFactory {
   pub async fn create(mut self) {
     match self.factorize().await {
       Ok(maybe_module) => {
-        if let Some(module) = maybe_module {
+        if let Some((mgm, module)) = maybe_module {
           let diagnostic = std::mem::take(&mut self.diagnostic);
           self.send(Msg::TaskFinished(TWithDiagnosticArray::new(
-            Box::new(module),
+            Box::new((mgm, module)),
             diagnostic,
           )));
         } else {
@@ -324,7 +326,7 @@ impl NormalModuleFactory {
     )
   }
   #[instrument(name = "normal_module:factorize")]
-  pub async fn factorize(&mut self) -> Result<Option<ModuleGraphModule>> {
+  pub async fn factorize(&mut self) -> Result<Option<(ModuleGraphModule, NormalModule)>> {
     // TODO: caching in resolve, align to webpack's external module
     // Here is the corresponding create function in webpack, but instead of using hooks we use procedural functions
     let result = self
@@ -378,6 +380,7 @@ impl NormalModuleFactory {
       .into_iter()
       .map(|dep| Dependency {
         importer: Some(uri.clone()),
+        parent_module_identifier: Some(module.identifier()),
         detail: dep,
       })
       .collect::<Vec<_>>();
@@ -387,7 +390,7 @@ impl NormalModuleFactory {
       self.fork(dep.clone());
     });
 
-    let resolved_module = ModuleGraphModule::new(
+    let mut mgm = ModuleGraphModule::new(
       self.context.module_name.clone(),
       Path::new("./")
         .join(
@@ -397,7 +400,7 @@ impl NormalModuleFactory {
         .to_string_lossy()
         .to_string(),
       uri,
-      module,
+      module.identifier(),
       deps,
       self
         .context
@@ -405,7 +408,13 @@ impl NormalModuleFactory {
         .ok_or_else(|| Error::InternalError("source type is empty".to_string()))?,
     );
 
-    Ok(Some(resolved_module))
+    mgm.add_incoming_connection(ModuleGraphConnection::new(
+      self.dependency.parent_module_identifier.clone(),
+      module.identifier(),
+      self.dependency.detail.clone(),
+    ));
+
+    Ok(Some((mgm, module)))
   }
 
   fn fork(&self, dep: Dependency) {
@@ -437,6 +446,7 @@ pub fn resolve_module_type_by_uri<T: AsRef<Path>>(uri: T) -> Option<ModuleType> 
 #[derive(Debug, Clone)]
 pub struct NormalModuleFactoryContext {
   pub module_name: Option<String>,
+  pub module_graph: Arc<ModuleGraph>,
   pub(crate) active_task_count: Arc<AtomicU32>,
   pub(crate) visited_module_identity: VisitedModuleIdentity,
   pub module_type: Option<ModuleType>,

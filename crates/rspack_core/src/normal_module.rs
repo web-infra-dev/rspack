@@ -7,7 +7,7 @@ use std::{
   },
 };
 
-use dashmap::DashMap;
+use dashmap::{mapref::one::Ref, DashMap};
 
 use hashbrown::HashSet;
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -36,7 +36,7 @@ pub struct ModuleGraphModule {
   // pub exec_order: usize,
   pub uri: String,
   // TODO: change to ModuleIdentifier
-  pub module: NormalModule,
+  // pub module: NormalModule,
   pub module_identifier: ModuleIdentifier,
   // TODO remove this since its included in module
   pub module_type: ModuleType,
@@ -50,11 +50,10 @@ impl ModuleGraphModule {
     name: Option<String>,
     id: String,
     uri: String,
-    module: NormalModule,
+    module_identifier: ModuleIdentifier,
     dependencies: Vec<Dependency>,
     module_type: ModuleType,
   ) -> Self {
-    let module_identifier = module.identifier();
     Self {
       name,
 
@@ -64,7 +63,6 @@ impl ModuleGraphModule {
       id,
       // exec_order: usize::MAX,
       uri,
-      module,
       module_identifier,
       all_dependencies: dependencies,
       module_type,
@@ -96,7 +94,10 @@ impl ModuleGraphModule {
       .collect()
   }
 
-  pub fn depended_modules<'a>(&self, module_graph: &'a ModuleGraph) -> Vec<&'a ModuleGraphModule> {
+  pub fn depended_modules<'a>(
+    &self,
+    module_graph: &'a ModuleGraph,
+  ) -> Vec<Ref<'a, String, ModuleGraphModule>> {
     self
       .all_dependencies
       .iter()
@@ -108,7 +109,7 @@ impl ModuleGraphModule {
   pub fn dynamic_depended_modules<'a>(
     &self,
     module_graph: &'a ModuleGraph,
-  ) -> Vec<&'a ModuleGraphModule> {
+  ) -> Vec<Ref<'a, String, ModuleGraphModule>> {
     self
       .all_dependencies
       .iter()
