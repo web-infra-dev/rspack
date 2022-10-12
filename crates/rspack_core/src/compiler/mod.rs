@@ -80,6 +80,10 @@ impl Compiler {
   }
   #[instrument(name = "build")]
   pub async fn build(&mut self) -> Result<Stats> {
+    // TODO: clear the outdate cache entires in resolver,
+    // TODO: maybe it's better to use external entries.
+    self.plugin_driver.read().await.resolver.clear();
+
     self.compilation = Compilation::new(
       // TODO: use Arc<T> instead
       self.options.clone(),
