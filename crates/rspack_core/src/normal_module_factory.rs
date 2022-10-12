@@ -78,14 +78,20 @@ impl NormalModuleFactory {
       diagnostic: vec![],
     }
   }
-  #[instrument(name = "normal_module:create")]
+  #[instrument(name = "normal_module_factory:create")]
   pub async fn create(mut self) {
     match self.factorize().await {
       Ok(maybe_module) => {
-        if let Some((mgm, module)) = maybe_module {
+        if let Some((mgm, module, original_module_identifier)) = maybe_module {
           let diagnostic = std::mem::take(&mut self.diagnostic);
           self.send(Msg::TaskFinished(TWithDiagnosticArray::new(
-            Box::new((mgm, module)),
+            Box::new((
+              mgm,
+              module,
+              original_module_identifier,
+              // FIXME: redundant
+              self.dependency.detail.clone(),
+            )),
             diagnostic,
           )));
         } else {
@@ -325,8 +331,11 @@ impl NormalModuleFactory {
       },
     )
   }
+
   #[instrument(name = "normal_module:factorize")]
-  pub async fn factorize(&mut self) -> Result<Option<(ModuleGraphModule, NormalModule)>> {
+  pub async fn factorize(
+    &mut self,
+  ) -> Result<Option<(ModuleGraphModule, NormalModule, ModuleIdentifier)>> {
     // TODO: caching in resolve, align to webpack's external module
     // Here is the corresponding create function in webpack, but instead of using hooks we use procedural functions
     let result = self
@@ -341,6 +350,7 @@ impl NormalModuleFactory {
         &mut self.context,
       )
       .await?;
+
     let (uri, mut module) = if let Some(module) = result {
       let (uri, module) = module;
       self
@@ -408,13 +418,11 @@ impl NormalModuleFactory {
         .ok_or_else(|| Error::InternalError("source type is empty".to_string()))?,
     );
 
-    mgm.add_incoming_connection(ModuleGraphConnection::new(
+    Ok(Some((
+      mgm,
+      module,
       self.dependency.parent_module_identifier.clone(),
-      module.identifier(),
-      self.dependency.detail.clone(),
-    ));
-
-    Ok(Some((mgm, module)))
+    )))
   }
 
   fn fork(&self, dep: Dependency) {

@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicU32, Ordering};
+
 use dashmap::{
   mapref::{
     multiple::RefMulti,
@@ -7,25 +9,33 @@ use dashmap::{
 };
 use hashbrown::HashMap;
 
+use rspack_error::{Error, Result};
+
 use crate::{Dependency, ModuleDependency, ModuleGraphModule, ModuleIdentifier, NormalModule};
 
-#[derive(Debug, Hash, PartialEq, Eq)]
+static MODULE_GRAPH_CONNECTION_ID: AtomicU32 = AtomicU32::new(0);
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct ModuleGraphConnection {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub module_identifier: ModuleIdentifier,
   pub dependency: ModuleDependency,
+
+  pub id: u32,
 }
 
 impl ModuleGraphConnection {
   pub fn new(
     original_module_identifier: Option<ModuleIdentifier>,
-    module_identifier: ModuleIdentifier,
     dependency: ModuleDependency,
+    module_identifier: ModuleIdentifier,
   ) -> Self {
     Self {
       original_module_identifier,
       module_identifier,
       dependency,
+
+      id: MODULE_GRAPH_CONNECTION_ID.fetch_add(1, Ordering::Relaxed),
     }
   }
 }
@@ -37,6 +47,8 @@ pub struct ModuleGraph {
 
   module_identifier_to_module: DashMap<ModuleIdentifier, NormalModule>,
   module_identifier_to_module_graph_module: DashMap<ModuleIdentifier, ModuleGraphModule>,
+
+  pub connections: DashMap<u32, ModuleGraphConnection>,
   /* id_to_uri: hashbrown::HashMap<String, String>, */
 }
 
@@ -98,6 +110,42 @@ impl ModuleGraph {
   ) -> impl Iterator<Item = RefMulti<'_, std::string::String, ModuleGraphModule>> {
     self.uri_to_module.iter()
     // self.uri_to_module.values()
+  }
+
+  pub fn set_resolved_module(
+    &self,
+    original_module_identifier: ModuleIdentifier,
+    dependency: ModuleDependency,
+    module_identifier: ModuleIdentifier,
+  ) -> Result<()> {
+    let connection = ModuleGraphConnection::new(
+      Some(original_module_identifier),
+      dependency,
+      module_identifier.clone(),
+    );
+    let connection_id = connection.id;
+    self.connections.insert(connection_id, connection);
+
+    let mgm = self
+      .module_identifier_to_module_graph_module
+      .get_mut(&module_identifier)
+      .ok_or_else(|| {
+        Error::InternalError(format!(
+          "Failed to set resolved module: Module linked to module identifier {} cannot be found",
+          module_identifier
+        ))
+      })?;
+
+    mgm.add_incoming_connection(connection_id);
+
+    if let Some(original_mgm) = self
+      .module_identifier_to_module_graph_module
+      .get_mut(&original_module_identifier)
+    {
+      original_mgm.add_outgoing_connection(connection_id);
+    }
+
+    Ok(())
   }
 
   #[inline]

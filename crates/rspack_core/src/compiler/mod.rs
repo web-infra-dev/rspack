@@ -17,8 +17,8 @@ use tokio::sync::RwLock;
 use tracing::instrument;
 
 use crate::{
-  CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule, NormalModule, Plugin,
-  PluginDriver, SharedPluginDriver, Stats, PATH_START_BYTE_POS_MAP,
+  CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule, ModuleIdentifier,
+  NormalModule, Plugin, PluginDriver, SharedPluginDriver, Stats, PATH_START_BYTE_POS_MAP,
 };
 
 #[derive(Debug)]
@@ -215,7 +215,16 @@ impl Compiler {
 #[derive(Debug)]
 pub enum Msg {
   DependencyReference(Dependency, String),
-  TaskFinished(TWithDiagnosticArray<Box<(ModuleGraphModule, NormalModule)>>),
+  TaskFinished(
+    TWithDiagnosticArray<
+      Box<(
+        ModuleGraphModule,
+        NormalModule,
+        ModuleIdentifier,
+        ModuleDependency,
+      )>,
+    >,
+  ),
   TaskCanceled,
   TaskErrorEncountered(Error),
 }

@@ -147,10 +147,18 @@ impl Compilation {
         Some(job) => match job {
           Msg::TaskFinished(mut module_with_diagnostic) => {
             active_task_count.fetch_sub(1, Ordering::SeqCst);
-            let (mgm, module) = *module_with_diagnostic.inner;
+            let (mgm, module, original_module_identifier, module_dependency) =
+              *module_with_diagnostic.inner;
+
+            let module_identifier = module.identifier();
 
             self.module_graph.add_module_graph_module(mgm);
             self.module_graph.add_module(module);
+            self.module_graph.set_resolved_module(
+              original_module_identifier,
+              module_dependency,
+              module_identifier,
+            );
 
             self
               .diagnostic

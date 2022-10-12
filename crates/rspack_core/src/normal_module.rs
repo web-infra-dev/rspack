@@ -29,8 +29,8 @@ pub struct ModuleGraphModule {
   pub name: Option<String>,
 
   // edges from module to module
-  pub outgoing_connections: HashSet<ModuleGraphConnection>,
-  pub incoming_connections: HashSet<ModuleGraphConnection>,
+  pub outgoing_connections: HashSet<u32>,
+  pub incoming_connections: HashSet<u32>,
 
   pub id: String,
   // pub exec_order: usize,
@@ -71,20 +71,50 @@ impl ModuleGraphModule {
     }
   }
 
-  pub fn add_incoming_connection(&mut self, connection: ModuleGraphConnection) {
-    self.incoming_connections.insert(connection);
+  pub fn add_incoming_connection(&mut self, connection_id: u32) {
+    self.incoming_connections.insert(connection_id);
   }
 
-  pub fn add_outgoing_connection(&mut self, connection: ModuleGraphConnection) {
-    self.outgoing_connections.insert(connection);
+  pub fn add_outgoing_connection(&mut self, connection_id: u32) {
+    self.outgoing_connections.insert(connection_id);
   }
 
-  pub fn incoming_connections_unordered(&self) -> impl Iterator<Item = &ModuleGraphConnection> {
-    self.incoming_connections.iter()
+  pub fn incoming_connections_unordered<'m>(
+    &self,
+    module_graph: &'m ModuleGraph,
+  ) -> Result<impl Iterator<Item = Ref<'m, u32, ModuleGraphConnection>>> {
+    let result = self
+      .incoming_connections
+      .iter()
+      .map(|id| {
+        module_graph
+          .connections
+          .get(id)
+          .ok_or_else(|| Error::InternalError(format!("Failed to get connection with id {}", id)))
+      })
+      .collect::<Result<Vec<Ref<'m, u32, ModuleGraphConnection>>>>()?
+      .into_iter();
+
+    Ok(result)
   }
 
-  pub fn outgoing_connections_unordered(&self) -> impl Iterator<Item = &ModuleGraphConnection> {
-    self.outgoing_connections.iter()
+  pub fn outgoing_connections_unordered<'m>(
+    &self,
+    module_graph: &'m ModuleGraph,
+  ) -> Result<impl Iterator<Item = Ref<'m, u32, ModuleGraphConnection>>> {
+    let result = self
+      .outgoing_connections
+      .iter()
+      .map(|id| {
+        module_graph
+          .connections
+          .get(id)
+          .ok_or_else(|| Error::InternalError(format!("Failed to get connection with id {}", id)))
+      })
+      .collect::<Result<Vec<Ref<'m, u32, ModuleGraphConnection>>>>()?
+      .into_iter();
+
+    Ok(result)
   }
 
   pub fn all_dependencies(&mut self) -> Vec<&ModuleDependency> {
