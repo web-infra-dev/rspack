@@ -60,7 +60,7 @@ impl ResolverFactory {
         condition_names: HashSet::from_iter(options.condition_names),
         enforce_extension: None,
         external_cache: Some(self.cache.clone()),
-        description_file: Some(String::from("package.json")),
+        description_file: String::from("package.json"),
         tsconfig: None,
       },
     ))
@@ -148,6 +148,10 @@ fn to_string(a: Vec<&str>) -> Vec<String> {
 pub struct Resolver(pub(crate) nodejs_resolver::Resolver);
 
 impl Resolver {
+  pub fn clear(&self) {
+    self.0.clear_entries();
+  }
+
   #[instrument(name = "nodejs_resolver")]
   pub fn resolve(&self, path: &Path, request: &str) -> Result<ResolveResult> {
     self
