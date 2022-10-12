@@ -103,10 +103,15 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let processed_ast = GLOBALS.set(&Default::default(), || {
       swc_ecma_transforms::helpers::HELPERS.set(&Helpers::new(true), || {
         let defintions = &compiler_options.define;
-        let mut define_scanner = DefineScanner::new(defintions);
-        // TODO: find more suitable position.
-        ast.visit_with(&mut define_scanner);
-        let mut define_transform = DefineTransform::new(defintions, define_scanner);
+        let ast = if !defintions.is_empty() {
+          let mut define_scanner = DefineScanner::new(defintions);
+          // TODO: find more suitable position.
+          ast.visit_with(&mut define_scanner);
+          let mut define_transform = DefineTransform::new(defintions, define_scanner);
+          ast.fold_with(&mut define_transform)
+        } else {
+          ast
+        };
         let top_level_mark = Mark::new();
         let mut react_folder = react::<SingleThreadedComments>(
           get_swc_compiler().cm.clone(),
@@ -121,7 +126,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         );
 
         // TODO: the order
-        let ast = ast.fold_with(&mut define_transform);
         let ast = ast.fold_with(&mut resolver(Mark::new(), top_level_mark, false));
         let ast = ast.fold_with(&mut react_folder);
         let ast = ast.fold_with(&mut inject_helpers());
