@@ -2340,10 +2340,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "base64",
  "better_scoped_tls",
+ "dashmap",
  "hashbrown",
  "linked_hash_set",
  "once_cell",
+ "pathdiff",
  "preset_env_base",
  "rayon",
  "regex",

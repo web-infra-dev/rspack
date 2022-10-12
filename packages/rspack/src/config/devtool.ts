@@ -16,7 +16,13 @@ export type Devtool =
 	| "hidden-nosources-source-map"
 	| "hidden-cheap-source-map"
 	| "hidden-cheap-module-source-map"
-	| "hidden-source-map";
+	| "hidden-source-map"
+	| "eval-cheap-source-map"
+	| "eval-cheap-module-source-map"
+	| "eval-source-map"
+	| "eval-nosources-cheap-source-map"
+	| "eval-nosources-cheap-module-source-map"
+	| "eval-nosources-source-map";
 
 export type ResolvedDevtool = string;
 

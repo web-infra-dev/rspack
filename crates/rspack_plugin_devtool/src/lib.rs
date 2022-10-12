@@ -61,7 +61,7 @@ impl Plugin for DevtoolPlugin {
     _ctx: PluginContext,
     args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
-    if !args.compilation.options.devtool.source_map() {
+    if !args.compilation.options.devtool.source_map() || args.compilation.options.devtool.eval() {
       return Ok(());
     }
     let maps: HashMap<String, Vec<u8>> = args
