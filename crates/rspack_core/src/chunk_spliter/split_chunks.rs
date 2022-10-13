@@ -324,6 +324,16 @@ impl<'me> CodeSplitter<'me> {
       .module_by_uri(&item.module_uri)
       .expect("no module found");
 
+    // TODO: cleanup this
+    println!(
+      "mgm {} depends on {:?}",
+      mgm.id,
+      mgm
+        .depended_modules(&self.compilation.module_graph)
+        .iter()
+        .map(|mgm| { &mgm.uri })
+        .collect::<Vec<_>>()
+    );
     for dep_mgm in mgm
       .depended_modules(&self.compilation.module_graph)
       .into_iter()

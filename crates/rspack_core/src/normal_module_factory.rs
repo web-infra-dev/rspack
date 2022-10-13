@@ -18,7 +18,7 @@ use crate::{
   parse_to_url, resolve, BuildContext, CompilationContext, CompilerContext, CompilerOptions,
   FactorizeAndBuildArgs, LoaderRunnerRunner, ModuleGraph, ModuleGraphConnection, ModuleGraphModule,
   ModuleIdentifier, ModuleRule, ModuleType, Msg, NormalModule, ResolveArgs, ResourceData,
-  SharedPluginDriver, VisitedModuleIdentity,
+  SharedPluginDriver, VisitedModuleIdentity, DEPENDENCY_ID,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -82,13 +82,14 @@ impl NormalModuleFactory {
   pub async fn create(mut self) {
     match self.factorize().await {
       Ok(maybe_module) => {
-        if let Some((mgm, module, original_module_identifier)) = maybe_module {
+        if let Some((mgm, module, original_module_identifier, dependency_id)) = maybe_module {
           let diagnostic = std::mem::take(&mut self.diagnostic);
           self.send(Msg::TaskFinished(TWithDiagnosticArray::new(
             Box::new((
               mgm,
               module,
               original_module_identifier,
+              dependency_id,
               // FIXME: redundant
               self.dependency.clone(),
             )),
@@ -130,7 +131,7 @@ impl NormalModuleFactory {
     resolve_module_type_by_uri(PathBuf::from(url.path().as_str()))
   }
   #[instrument(name = "normal_module:build")]
-  pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, NormalModule)>> {
+  pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, NormalModule, u32)>> {
     let uri = resolve(
       ResolveArgs {
         importer: self.dependency.importer.as_deref(),
@@ -149,10 +150,12 @@ impl NormalModuleFactory {
       self.context.module_type = self.calculate_module_type_by_uri(&uri);
     }
 
+    let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
+
     self
       .tx
       .send(Msg::DependencyReference(
-        self.dependency.clone(),
+        (self.dependency.clone(), dependency_id),
         uri.clone(),
       ))
       .map_err(|_| {
@@ -210,7 +213,7 @@ impl NormalModuleFactory {
       self.context.options.clone(),
     );
 
-    Ok(Some((uri, normal_module)))
+    Ok(Some((uri, normal_module, dependency_id)))
   }
 
   pub fn calculate_loaders(
@@ -335,7 +338,14 @@ impl NormalModuleFactory {
   // #[instrument(name = "normal_module:factorize")]
   pub async fn factorize(
     &mut self,
-  ) -> Result<Option<(ModuleGraphModule, NormalModule, Option<ModuleIdentifier>)>> {
+  ) -> Result<
+    Option<(
+      ModuleGraphModule,
+      NormalModule,
+      Option<ModuleIdentifier>,
+      u32,
+    )>,
+  > {
     // TODO: caching in resolve, align to webpack's external module
     // Here is the corresponding create function in webpack, but instead of using hooks we use procedural functions
     let result = self
@@ -351,12 +361,15 @@ impl NormalModuleFactory {
       )
       .await?;
 
-    let (uri, mut module) = if let Some(module) = result {
+    let (uri, mut module, dependency_id) = if let Some(module) = result {
+      // module
       let (uri, module) = module;
+      // TODO: remove this
+      let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
       self
         .tx
         .send(Msg::DependencyReference(
-          self.dependency.clone(),
+          (self.dependency.clone(), dependency_id),
           uri.clone(),
         ))
         .map_err(|_| {
@@ -365,7 +378,7 @@ impl NormalModuleFactory {
             self.dependency
           ))
         })?;
-      (uri, module)
+      (uri, module, dependency_id)
     } else if let Some(re) = self.factorize_normal_module().await? {
       re
     } else {
@@ -422,6 +435,7 @@ impl NormalModuleFactory {
       mgm,
       module,
       self.dependency.parent_module_identifier.clone(),
+      dependency_id,
     )))
   }
 

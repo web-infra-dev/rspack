@@ -150,7 +150,6 @@ impl ChunkGraph {
       .iter()
       .filter_map(|uri| module_graph.module_by_uri(uri))
       .filter(|mgm| {
-        // let a = mgm.module.source_types().contains(&source_type);
         module_graph
           .module_by_identifier(&mgm.module_identifier)
           .map(|module| module.source_types().contains(&source_type))

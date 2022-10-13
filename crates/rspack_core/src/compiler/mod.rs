@@ -215,13 +215,14 @@ impl Compiler {
 
 #[derive(Debug)]
 pub enum Msg {
-  DependencyReference(Dependency, String),
+  DependencyReference((Dependency, u32), String),
   TaskFinished(
     TWithDiagnosticArray<
       Box<(
         ModuleGraphModule,
         NormalModule,
         Option<ModuleIdentifier>,
+        u32,
         Dependency,
       )>,
     >,

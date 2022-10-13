@@ -147,7 +147,7 @@ impl Compilation {
         Some(job) => match job {
           Msg::TaskFinished(mut module_with_diagnostic) => {
             active_task_count.fetch_sub(1, Ordering::SeqCst);
-            let (mgm, module, original_module_identifier, module_dependency) =
+            let (mgm, module, original_module_identifier, dependency_id, module_dependency) =
               *module_with_diagnostic.inner;
 
             let module_identifier = module.identifier();
@@ -156,7 +156,7 @@ impl Compilation {
             self.module_graph.add_module(module);
             self.module_graph.set_resolved_module(
               original_module_identifier,
-              module_dependency,
+              dependency_id,
               module_identifier,
             );
 
@@ -180,7 +180,10 @@ impl Compilation {
         }
       }
     }
-    println!("{:#?}", self.module_graph.connections);
+    println!(
+      "{:#?}",
+      self.module_graph.module_identifier_to_module_graph_module
+    );
     tracing::debug!("module graph {:#?}", self.module_graph);
   }
   #[instrument()]

@@ -9,13 +9,14 @@ use rspack_error::{Error, Result};
 
 use crate::{Dependency, ModuleGraphModule, ModuleIdentifier, NormalModule};
 
-static MODULE_GRAPH_CONNECTION_ID: AtomicU32 = AtomicU32::new(0);
+static MODULE_GRAPH_CONNECTION_ID: AtomicU32 = AtomicU32::new(1);
+pub(crate) static DEPENDENCY_ID: AtomicU32 = AtomicU32::new(1);
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct ModuleGraphConnection {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub module_identifier: ModuleIdentifier,
-  pub dependency: Dependency,
+  pub dependency_id: u32,
 
   pub id: u32,
 }
@@ -23,13 +24,13 @@ pub struct ModuleGraphConnection {
 impl ModuleGraphConnection {
   pub fn new(
     original_module_identifier: Option<ModuleIdentifier>,
-    dependency: Dependency,
+    dependency_id: u32,
     module_identifier: ModuleIdentifier,
   ) -> Self {
     Self {
       original_module_identifier,
       module_identifier,
-      dependency,
+      dependency_id,
 
       id: MODULE_GRAPH_CONNECTION_ID.fetch_add(1, Ordering::Relaxed),
     }
@@ -38,54 +39,57 @@ impl ModuleGraphConnection {
 
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
-  dependency_to_module_uri: DashMap<Dependency, String>,
+  // FIXME: rename this to module identifier, as module uri is not unique anymore
+  dependency_id_to_module_uri: DashMap<u32, String>,
 
-  // TODO: cleanup `pub`
   pub module_identifier_to_module: DashMap<ModuleIdentifier, NormalModule>,
   pub module_identifier_to_module_graph_module: DashMap<ModuleIdentifier, ModuleGraphModule>,
+  pub dependency_id_to_dependency: DashMap<u32, Dependency>,
+  // FIXME: This is only used for temporarily workaround the dependency matching logic in format, will be removed for better solution later.
+  pub dependency_to_dependency_id: DashMap<Dependency, u32>,
 
   pub connections: DashMap<u32, ModuleGraphConnection>,
 }
 
 impl ModuleGraph {
   pub fn add_module_graph_module(&self, module_graph_module: ModuleGraphModule) {
-    // self.uri_to_module.insert(
-    //   module_graph_module.module_identifier.clone(),
-    //   module_graph_module,
-    // );
-    self.module_identifier_to_module_graph_module.insert(
-      module_graph_module.module_identifier.clone(),
-      module_graph_module,
-    );
+    if let dashmap::mapref::entry::Entry::Vacant(val) = self
+      .module_identifier_to_module_graph_module
+      .entry(module_graph_module.module_identifier.clone())
+    {
+      val.insert(module_graph_module);
+    }
   }
 
   pub fn add_module(&self, module: NormalModule) {
-    // let id = module.id().to_owned();
-    // self.uri_to_module.insert(module.identifier(), module);
-
     if let dashmap::mapref::entry::Entry::Vacant(val) =
       self.module_identifier_to_module.entry(module.identifier())
     {
       val.insert(module);
     }
-
-    // self
-    //   .module_identifier_to_module
-    //   .insert(module.identifier(), module)
-    // self.id_to_uri.insert(id, uri);
   }
 
   // TODO: remove this function when we implements dependency
-  pub fn add_dependency(&self, dep: Dependency, resolved_uri: String) {
-    self.dependency_to_module_uri.insert(dep, resolved_uri);
+  pub fn add_dependency(&self, (dep, dependency_id): (Dependency, u32), resolved_uri: String) {
+    self
+      .dependency_id_to_dependency
+      .insert(dependency_id, dep.clone());
+    self.dependency_to_dependency_id.insert(dep, dependency_id);
+
+    self
+      .dependency_id_to_module_uri
+      .insert(dependency_id, resolved_uri);
   }
 
   pub fn module_by_dependency(
     &self,
     dep: &Dependency,
   ) -> Option<Ref<'_, String, ModuleGraphModule>> {
-    let uri = self.dependency_to_module_uri.get(dep)?;
-    self.module_identifier_to_module_graph_module.get(&*uri)
+    let dependency_id = self.dependency_to_dependency_id.get(dep)?;
+    let module_uri = self.dependency_id_to_module_uri.get(&*dependency_id)?;
+    self
+      .module_identifier_to_module_graph_module
+      .get(&*module_uri)
   }
 
   // pub fn uri_by_dependency(&self, dep: &Dependency) -> Option<&str> {
@@ -111,12 +115,28 @@ impl ModuleGraph {
   pub fn set_resolved_module(
     &self,
     original_module_identifier: Option<ModuleIdentifier>,
-    dependency: Dependency,
+    dependency_id: u32,
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
+    // TODO: add these:
+    // dependency id to connection id
+    // connection id to dependency id
+
+    // let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
+    // self
+    //   .dependency_id_to_dependency
+    //   .insert(dependency_id, dependency.clone());
+    // self
+    //   .dependency_to_dependency_id
+    //   .insert(dependency, dependency_id);
+
+    // self
+    //   .dependency_id_to_module_uri
+    //   .insert(dependency_id, module_identifier.clone());
+
     let connection = ModuleGraphConnection::new(
       original_module_identifier.clone(),
-      dependency,
+      dependency_id,
       module_identifier.clone(),
     );
     let connection_id = connection.id;

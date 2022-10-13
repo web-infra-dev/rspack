@@ -331,7 +331,7 @@ pub struct BuildContext<'a> {
 }
 
 pub type ModuleIdentifier = String;
-pub static DEBUG_ID: AtomicU32 = AtomicU32::new(0);
+pub static DEBUG_ID: AtomicU32 = AtomicU32::new(1);
 
 impl NormalModule {
   pub fn new(
