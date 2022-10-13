@@ -1,6 +1,6 @@
 import path from "path";
 import fs from "fs";
-import { Rspack, RspackOptions } from "../src";
+import { createCompiler, rspack, RspackOptions } from "../src";
 const base = path.resolve(__dirname, "statsCases");
 const outputBase = path.resolve(__dirname, "stats");
 const tests = fs.readdirSync(base).filter(testName => {
@@ -40,8 +40,7 @@ describe("StatsTestCases", () => {
 				externals: external,
 				...config // we may need to use deepMerge to handle config merge, but we may fix it until we need it
 			};
-			const rspack = new Rspack(options);
-			const stats = await rspack.build();
+			const stats = await createCompiler(options).build();
 			// case ends with error should generate errors
 			if (/error$/.test(testName)) {
 				expect(stats.errors.length > 0);

@@ -1,4 +1,4 @@
-const { build } = require('@rspack/core');
+const { build, rspack } = require('@rspack/core');
 const path = require('path');
 const fs = require('fs');
 async function main() {
@@ -23,7 +23,7 @@ async function main() {
     }
   }
   try{
-    await build({ ...defaultEntry, ...config });
+    await rspack({ ...defaultEntry, ...config });
   }catch(err){
     console.log(`build ${module.parent.path} failed:`,err);
     process.exit(1);
