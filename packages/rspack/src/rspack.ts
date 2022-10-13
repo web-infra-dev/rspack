@@ -1,6 +1,7 @@
 import { resolveOptions, RspackOptions } from "./config";
 import { Compiler } from "./compiler";
-import { Stats } from "./stats";
+import type { Stats } from "@rspack/binding";
+
 function createCompiler(userOptions: RspackOptions) {
 	const options = resolveOptions(userOptions);
 	const compiler = new Compiler(options.context, options);
@@ -8,7 +9,7 @@ function createCompiler(userOptions: RspackOptions) {
 	compiler.hooks.initialize.call();
 	return compiler;
 }
-async function rspack(options: RspackOptions) {
+async function rspack(options: RspackOptions): Promise<Stats> {
 	let compiler = createCompiler(options);
 	const stats = await compiler.build();
 	if (stats.errors.length > 0) {

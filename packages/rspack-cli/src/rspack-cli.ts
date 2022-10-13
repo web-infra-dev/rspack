@@ -7,6 +7,7 @@ import { RspackCLIColors, RspackCLILogger, RspackCLIOptions } from "./types";
 import { BuildCommand } from "./commands/build";
 import { ServeCommand } from "./commands/serve";
 import { rspack, RspackOptions } from "@rspack/core";
+
 const defaultConfig = "rspack.config.js";
 const defaultEntry = "src/index.js";
 

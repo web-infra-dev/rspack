@@ -1,7 +1,6 @@
 import * as binding from "@rspack/binding";
 import { resolveWatchOption } from "./config/watch";
 import type { Watch, ResolvedWatch } from "./config/watch";
-
 import type { ExternalObject, RspackInternal } from "@rspack/binding";
 import * as tapable from "tapable";
 import { SyncHook } from "tapable";

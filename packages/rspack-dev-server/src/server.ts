@@ -1,4 +1,4 @@
-import type { Rspack, ResolvedRspackOptions } from "@rspack/core";
+import type { Compiler, ResolvedRspackOptions } from "@rspack/core";
 import type { Logger } from "./logger";
 import type { Socket } from "net";
 import type { FSWatcher, WatchOptions } from "chokidar";
@@ -45,7 +45,7 @@ export class RspackDevServer {
 	// TODO: now only support 'ws'
 	webSocketServer: WebSocketServer | undefined;
 
-	constructor(public compiler: Rspack) {
+	constructor(public compiler: Compiler) {
 		this.logger = createLogger("rspack-dev-server");
 		this.staticWatchers = [];
 		this.listeners = [];

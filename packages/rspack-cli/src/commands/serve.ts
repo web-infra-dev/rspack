@@ -1,9 +1,8 @@
-import { Rspack } from "@rspack/core";
+import type { RspackCLI } from "../rspack-cli";
 import { RspackDevServer } from "@rspack/dev-server";
-import { RspackCLI } from "../rspack-cli";
 import { RspackCommand } from "../types";
 import { commonOptions } from "../utils/options";
-
+import { createCompiler } from "@rspack/core";
 export class ServeCommand implements RspackCommand {
 	async apply(cli: RspackCLI): Promise<void> {
 		cli.program.command(
@@ -12,7 +11,7 @@ export class ServeCommand implements RspackCommand {
 			commonOptions,
 			async options => {
 				const config = await cli.loadConfig(options);
-				const compiler = new Rspack(config);
+				const compiler = createCompiler(config);
 				const server = new RspackDevServer(compiler);
 				await server.start();
 			}
