@@ -1,7 +1,6 @@
-import { resolve } from "node:path";
 import { resolveOptions, RspackOptions } from "./config";
 import { Compiler } from "./compiler";
-
+import { Stats } from "./stats";
 function createCompiler(userOptions: RspackOptions) {
 	const options = resolveOptions(userOptions);
 	const compiler = new Compiler(options.context, options);
@@ -9,11 +8,13 @@ function createCompiler(userOptions: RspackOptions) {
 	compiler.hooks.initialize.call();
 	return compiler;
 }
-function rspack(options: RspackOptions) {
+async function rspack(options: RspackOptions) {
 	let compiler = createCompiler(options);
-	return {
-		compiler
-	};
+	const stats = await compiler.build();
+	if (stats.errors.length > 0) {
+		throw new Error(stats.errors[0].message);
+	}
+	return stats;
 }
 // deliberately alias rspack as webpack
-export { rspack, rspack as webpack };
+export { rspack, createCompiler };

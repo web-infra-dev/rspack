@@ -1,4 +1,3 @@
-export * from "./build";
 import * as binding from "@rspack/binding";
 import { resolveWatchOption } from "./config/watch";
 import type { Watch, ResolvedWatch } from "./config/watch";
@@ -13,7 +12,7 @@ import {
 	resolveOptions
 } from "./config";
 
-import { RspackStats } from "./stats";
+import { Stats } from "./stats";
 import { Compilation } from "./compilation";
 export interface RspackThreadsafeContext<T> {
 	readonly id: number;
@@ -46,7 +45,7 @@ class Compiler {
 	#instance: ExternalObject<RspackInternal>;
 	compilation: Compilation;
 	hooks: {
-		done: tapable.AsyncSeriesHook<RspackStats>;
+		done: tapable.AsyncSeriesHook<Stats>;
 		compilation: tapable.SyncHook<Compilation>;
 		invalid: tapable.SyncHook<[string | null, number]>;
 		compile: tapable.SyncHook<[any]>;
@@ -71,7 +70,7 @@ class Compiler {
 			processAssetsCallback: this.#processAssets.bind(this)
 		});
 		this.hooks = {
-			done: new tapable.AsyncSeriesHook<RspackStats>(["stats"]),
+			done: new tapable.AsyncSeriesHook<Stats>(["stats"]),
 			compilation: new tapable.SyncHook<Compilation>(["compilation"]),
 			invalid: new SyncHook(["filename", "changeTime"]),
 			compile: new SyncHook(["params"]),
@@ -88,7 +87,7 @@ class Compiler {
 		}
 		const context: RspackThreadsafeContext<void> = JSON.parse(value);
 		// @todo context.inner is empty, since we didn't pass to binding
-		const stats = new RspackStats(context.inner);
+		const stats = new Stats(context.inner);
 		await this.hooks.done.promise(stats);
 		return createDummyResult(context.id);
 	}
