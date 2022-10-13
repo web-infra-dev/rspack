@@ -8,7 +8,6 @@ use mimalloc_rust::GlobalMiMalloc;
 #[global_allocator]
 static GLOBAL: GlobalMiMalloc = GlobalMiMalloc;
 use rspack_test::read_test_config_and_normalize;
-
 #[tokio::main]
 async fn main() {
   #[cfg(feature = "tracing")]
