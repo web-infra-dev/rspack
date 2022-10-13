@@ -12,14 +12,14 @@ crossbeam = "0.8.1"
 dashmap = "5.0.0"
 futures = "0.3.21"
 hashbrown = { version = "0.12.1", features = ["rayon", "serde", "ahash"] }
-nodejs-resolver = "0.0.39"
+nodejs-resolver = "0.0.41"
 once_cell = "1"
 petgraph = "0.6.0"
 rayon = "1.5.3"
 regex = "1.6.0"
 rspack_error = { path = "../rspack_error" }
 rspack_loader_runner = { path = "../loader_runner" }
-rspack_sources = "0.1.7"
+rspack_sources = "0.1.9"
 rspack_tracing = { path = "../rspack_tracing" }
 serde = '1'
 sugar_path = "0.0.5"

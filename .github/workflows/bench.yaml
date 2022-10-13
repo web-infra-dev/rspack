@@ -62,11 +62,14 @@ jobs:
       - name: Install toolchain
         run: rustup show
 
-      - name: Cache
-        uses: speedy-js/rust-cache-self-hosted@v1
+      # - name: Cache
+      #   uses: speedy-js/rust-cache-self-hosted@v1
 
       - name: Install critcmp
         run: cargo install critcmp
+
+      - name: Remove Release
+        run: rm -rf ./target/release
 
       - name: Run Bench on PR Branch
         run: cargo bench --bench main -- --save-baseline pr
@@ -76,6 +79,9 @@ jobs:
         with:
           clean: false
           ref: next
+
+      - name: Remove Release
+        run: rm -rf ./target/release
 
       - name: Run Bench on Next Branch
         run: cargo bench --bench main -- --save-baseline baseline

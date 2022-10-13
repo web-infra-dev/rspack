@@ -1,10 +1,16 @@
 use crate::{RSPACK_DYNAMIC_IMPORT, RSPACK_REQUIRE};
+use dashmap::DashMap;
+use hashbrown::hash_map::DefaultHashBuilder;
 use once_cell::sync::Lazy;
-use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
-use rspack_core::{ErrorSpan, ModuleType, TargetPlatform, PATH_START_BYTE_POS_MAP};
+use pathdiff::diff_paths;
+use rspack_core::rspack_sources::{
+  BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt,
+};
+use rspack_core::{Compilation, ErrorSpan, ModuleType, TargetPlatform, PATH_START_BYTE_POS_MAP};
 use rspack_error::{
   errors_to_diagnostics, DiagnosticKind, Error, IntoTWithDiagnosticArray, TWithDiagnosticArray,
 };
+use serde_json::json;
 use std::path::Path;
 use std::sync::Arc;
 use swc::{config::IsModule, Compiler as SwcCompiler};
@@ -279,4 +285,46 @@ pub fn ecma_parse_error_to_rspack_error(
   .with_kind(diagnostic_kind);
   rspack_error::Error::TraceableError(traceable_error)
   //Use this `Error` convertion could avoid eagerly clone source file.
+}
+
+pub fn wrap_eval_source_map(
+  module_source: BoxSource,
+  cache: &DashMap<BoxSource, BoxSource, DefaultHashBuilder>,
+  compilation: &Compilation,
+) -> rspack_error::Result<BoxSource> {
+  if let Some(cached) = cache.get(&module_source) {
+    return Ok(cached.clone());
+  }
+  if let Some(mut map) = module_source.map(&MapOptions::new(compilation.options.devtool.cheap())) {
+    for source in map.sources_mut() {
+      let uri = if source.starts_with('<') && source.ends_with('>') {
+        &source[1..source.len() - 1] // remove '<' and '>' for swc FileName::Custom
+      } else {
+        &source[..]
+      };
+      *source = if let Some(relative_path) = diff_paths(uri, &compilation.options.context) {
+        relative_path.to_string_lossy().to_string()
+      } else {
+        uri.to_owned()
+      };
+    }
+    if compilation.options.devtool.no_sources() {
+      for content in map.sources_content_mut() {
+        *content = String::default();
+      }
+    }
+    let mut map_buffer = Vec::new();
+    map
+      .to_writer(&mut map_buffer)
+      .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?;
+    let base64 = base64::encode(&map_buffer);
+    let footer =
+      format!("\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}");
+    let content = module_source.source().to_string();
+    let result = RawSource::from(format!("eval({});", json!(content + &footer))).boxed();
+    cache.insert(module_source, result.clone());
+    Ok(result)
+  } else {
+    Ok(module_source)
+  }
 }
