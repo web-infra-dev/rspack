@@ -133,7 +133,7 @@ function createCLI() {
 					break;
 				case "toml":
 					command =
-						"npx @taplo/cli format --check '.cargo/*.toml' './crates/**/Cargo.toml'";
+						"npx @taplo/cli format --check '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'";
 					break;
 				default:
 					log.error(
