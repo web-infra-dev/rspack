@@ -1,6 +1,6 @@
-import { RspackCompilation } from "./rspack";
+import { Compilation } from "./compilation";
 
-export class RspackStats {
+export class Stats {
 	inner_value: any;
 	constructor(value: any) {}
 	toJson() {
