@@ -69,7 +69,7 @@ impl ModuleGraph {
     }
   }
 
-  // TODO: remove this function when we implements dependency
+  // FIXME: attention! this does not fix connection issue between modules, we should definitely separate module creation and module build
   pub fn add_dependency(&self, (dep, dependency_id): (Dependency, u32), resolved_uri: String) {
     self
       .dependency_id_to_dependency
