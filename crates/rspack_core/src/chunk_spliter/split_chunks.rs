@@ -270,7 +270,7 @@ impl<'me> CodeSplitter<'me> {
         .compilation
         .module_graph
         .module_by_uri_mut(&item.module_uri)
-        .expect("no module found");
+        .expect("No module found");
 
       if module.pre_order_index.is_none() {
         module.pre_order_index = Some(self.next_free_module_pre_order_index);

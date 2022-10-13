@@ -90,7 +90,7 @@ impl ModuleGraph {
     dep: &Dependency,
   ) -> Option<Ref<'_, String, ModuleGraphModule>> {
     let uri = self.dependency_to_module_uri.get(dep)?;
-    self.uri_to_module.get(&*uri)
+    self.module_identifier_to_module_graph_module.get(&*uri)
   }
 
   // pub fn uri_by_dependency(&self, dep: &Dependency) -> Option<&str> {
@@ -127,17 +127,19 @@ impl ModuleGraph {
     let connection_id = connection.id;
     self.connections.insert(connection_id, connection);
 
-    let mut mgm = self
-      .module_identifier_to_module_graph_module
-      .get_mut(&module_identifier)
-      .ok_or_else(|| {
-        Error::InternalError(format!(
-          "Failed to set resolved module: Module linked to module identifier {} cannot be found",
-          module_identifier
-        ))
-      })?;
+    {
+      let mut mgm = self
+        .module_identifier_to_module_graph_module
+        .get_mut(&module_identifier)
+        .ok_or_else(|| {
+          Error::InternalError(format!(
+            "Failed to set resolved module: Module linked to module identifier {} cannot be found",
+            module_identifier
+          ))
+        })?;
 
-    mgm.add_incoming_connection(connection_id);
+      mgm.add_incoming_connection(connection_id);
+    }
 
     if let Some(identifier) = original_module_identifier && let Some(mut original_mgm) = self
     .module_identifier_to_module_graph_module
@@ -150,7 +152,8 @@ impl ModuleGraph {
 
   #[inline]
   pub fn module_by_uri(&self, uri: &str) -> Option<Ref<'_, String, ModuleGraphModule>> {
-    self.uri_to_module.get(uri)
+    self.module_identifier_to_module_graph_module.get(uri)
+    // self.uri_to_module.get(uri)
     // .unwrap_or_else(|| panic!("fail to find module by uri: {:?}", uri))
   }
 
@@ -161,6 +164,7 @@ impl ModuleGraph {
 
   #[inline]
   pub fn module_by_uri_mut(&self, uri: &str) -> Option<RefMut<'_, String, ModuleGraphModule>> {
-    self.uri_to_module.get_mut(uri)
+    self.module_identifier_to_module_graph_module.get_mut(uri)
+    // self.uri_to_module.get_mut(uri)
   }
 }
