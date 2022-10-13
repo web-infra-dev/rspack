@@ -35,7 +35,9 @@
   },
   "homepage": "https://github.com/speedy-js/rspack#readme",
   "lint-staged": {
-    "*.rs": "rustfmt --edition 2021"
+    "*.rs": "rustfmt --edition 2021",
+    "*.js": "pnpm run format:js",
+    "*.toml": "pnpm run format:toml"
   },
   "devDependencies": {
     "@changesets/cli": "2.24.4",
