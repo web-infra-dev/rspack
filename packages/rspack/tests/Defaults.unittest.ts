@@ -155,23 +155,6 @@ describe("snapshots", () => {
 			}
 		});
 	};
-	test.skip = (name, options, fn, before, after) => {
-		it.skip(`should generate the correct defaults from ${name}`, () => {
-			if (!("mode" in options)) options.mode = "none";
-			try {
-				if (before) before();
-				const result = getDefaultConfig(options);
-
-				const diff = stripAnsi(
-					jestDiff(baseConfig, result, { expand: false, contextLines: 0 })
-				);
-
-				fn(expect(new Diff(diff)), expect(result));
-			} finally {
-				if (after) after();
-			}
-		});
-	};
 
 	test("empty config", {}, e =>
 		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
@@ -212,47 +195,45 @@ describe("snapshots", () => {
 	/**
 	 * not support yet
 	 */
-	test.skip("sync wasm", { experiments: { syncWebAssembly: true } }, e =>
-		e.toMatchInlineSnapshot()
+	test("sync wasm", { experiments: { syncWebAssembly: true } }, e =>
+		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 	/**
 	 * not support yet
 	 */
-	test.skip("output module", { experiments: { outputModule: true } }, e =>
-		e.toMatchInlineSnapshot()
+	test("output module", { experiments: { outputModule: true } }, e =>
+		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 	/**
 	 * not support yet
 	 */
-	test.skip("async wasm", { experiments: { asyncWebAssembly: true } }, e =>
-		e.toMatchInlineSnapshot()
+	test("async wasm", { experiments: { asyncWebAssembly: true } }, e =>
+		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
-	test.skip(
+	test(
 		"both wasm",
 		{ experiments: { syncWebAssembly: true, asyncWebAssembly: true } },
-		e => e.toMatchInlineSnapshot()
+		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 	test("const filename", { output: { filename: "bundle.js" } }, e =>
 		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
-	test.skip(
-		"function filename",
-		{ output: { filename: () => "bundle.js" } },
-		e => e.toMatchInlineSnapshot()
+	test("function filename", { output: { filename: () => "bundle.js" } }, e =>
+		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
-	test.skip("library", { output: { library: ["myLib", "awesome"] } }, e =>
-		e.toMatchInlineSnapshot()
+	test("library", { output: { library: ["myLib", "awesome"] } }, e =>
+		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
-	test.skip(
+	test(
 		"library contains [name] placeholder",
 		{
 			output: {
 				library: ["myLib", "[name]"]
 			}
 		},
-		e => e.toMatchInlineSnapshot()
+		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
-	test.skip(
+	test(
 		"library.name contains [name] placeholder",
 		{
 			output: {
@@ -262,9 +243,9 @@ describe("snapshots", () => {
 				}
 			}
 		},
-		e => e.toMatchInlineSnapshot()
+		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
-	test.skip(
+	test(
 		"library.name.root contains [name] placeholder",
 		{
 			output: {
@@ -276,9 +257,9 @@ describe("snapshots", () => {
 				}
 			}
 		},
-		e => e.toMatchInlineSnapshot()
+		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
-	test.skip(
+	test(
 		"library.name.root contains escaped placeholder",
 		{
 			output: {
@@ -290,7 +271,7 @@ describe("snapshots", () => {
 				}
 			}
 		},
-		e => e.toMatchInlineSnapshot()
+		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 	test("target node", { target: "node" }, e =>
 		e.toMatchInlineSnapshot(`
@@ -428,14 +409,25 @@ describe("snapshots", () => {
 		`)
 	);
 
-	test.skip(
+	test(
 		"non-root directory",
 		{
 			cache: {
 				type: "filesystem"
 			}
 		},
-		e => e.toMatchInlineSnapshot(),
+		e =>
+			e.toMatchInlineSnapshot(`
+			- Expected
+			+ Received
+
+			@@ ... @@
+			-   "context": "<cwd>",
+			+   "context": "<cwd>/tests/fixtures",
+			@@ ... @@
+			-       "directory": "<cwd>/dist",
+			+       "directory": "<cwd>/tests/fixtures/dist",
+		`),
 		() => {
 			process.chdir(path.resolve(__dirname, "fixtures"));
 		},
@@ -444,7 +436,7 @@ describe("snapshots", () => {
 		}
 	);
 
-	test.skip(
+	test(
 		"array defaults",
 		{
 			output: {
@@ -465,7 +457,7 @@ describe("snapshots", () => {
 		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 
-	test.skip(
+	test(
 		"experiments.futureDefaults w/ experiments.css disabled",
 		{
 			experiments: {
@@ -473,24 +465,7 @@ describe("snapshots", () => {
 				futureDefaults: true
 			}
 		},
-		e => e.toMatchInlineSnapshot()
+		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
-});
-
-it.skip("should result in the same target options for same target", () => {
-	const inlineTarget = getDefaultConfig({ target: "node12.17" });
-	const browserslistTarget = getDefaultConfig({
-		target: "browserslist: node 12.17"
-	});
-	const diff = stripAnsi(
-		jestDiff(inlineTarget, browserslistTarget, {
-			expand: false,
-			contextLines: 0
-		})
-	);
-
-	expect(inlineTarget.output.environment.module).toBe(true);
-	expect(inlineTarget.output.environment.dynamicImport).toBe(true);
-	expect(new Diff(diff)).toMatchInlineSnapshot();
 });
 export {};
