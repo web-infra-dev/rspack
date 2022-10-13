@@ -21,7 +21,8 @@
     "release:snapshot": "changeset publish --tag snapshot --no-git-tag --no-git-checks",
     "release": "changeset publish --no-git-checks",
     "bump": "changeset version",
-    "changeset": "changeset"
+    "changeset": "changeset",
+    "prepare": "husky install"
   },
   "repository": {
     "type": "git",
@@ -35,7 +36,9 @@
   },
   "homepage": "https://github.com/speedy-js/rspack#readme",
   "lint-staged": {
-    "*.rs": "rustfmt --edition 2021"
+    "*.rs": "rustfmt --edition 2021",
+    "*.js": "pnpm run format:js",
+    "*.toml": "pnpm run format:toml"
   },
   "devDependencies": {
     "@changesets/cli": "2.24.4",
@@ -44,7 +47,7 @@
     "esbuild": "^0.15.9",
     "husky": "^7.0.4",
     "jest": "29.0.3",
-    "lint-staged": "^12.4.0",
+    "lint-staged": "^12.5.0",
     "prettier": "2.5.1",
     "ts-jest": "29.0.1",
     "tsm": "2.2.1",
