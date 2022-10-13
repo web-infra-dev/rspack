@@ -1,17 +1,13 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use dashmap::{
-  mapref::{
-    multiple::RefMulti,
-    one::{Ref, RefMut},
-  },
+  mapref::one::{Ref, RefMut},
   DashMap,
 };
-use hashbrown::HashMap;
 
 use rspack_error::{Error, Result};
 
-use crate::{Dependency, ModuleDependency, ModuleGraphModule, ModuleIdentifier, NormalModule};
+use crate::{Dependency, ModuleGraphModule, ModuleIdentifier, NormalModule};
 
 static MODULE_GRAPH_CONNECTION_ID: AtomicU32 = AtomicU32::new(0);
 
@@ -19,7 +15,7 @@ static MODULE_GRAPH_CONNECTION_ID: AtomicU32 = AtomicU32::new(0);
 pub struct ModuleGraphConnection {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub module_identifier: ModuleIdentifier,
-  pub dependency: ModuleDependency,
+  pub dependency: Dependency,
 
   pub id: u32,
 }
@@ -27,7 +23,7 @@ pub struct ModuleGraphConnection {
 impl ModuleGraphConnection {
   pub fn new(
     original_module_identifier: Option<ModuleIdentifier>,
-    dependency: ModuleDependency,
+    dependency: Dependency,
     module_identifier: ModuleIdentifier,
   ) -> Self {
     Self {
@@ -42,7 +38,6 @@ impl ModuleGraphConnection {
 
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
-  uri_to_module: DashMap<String, ModuleGraphModule>,
   dependency_to_module_uri: DashMap<Dependency, String>,
 
   // TODO: cleanup `pub`
@@ -50,7 +45,6 @@ pub struct ModuleGraph {
   pub module_identifier_to_module_graph_module: DashMap<ModuleIdentifier, ModuleGraphModule>,
 
   pub connections: DashMap<u32, ModuleGraphConnection>,
-  /* id_to_uri: hashbrown::HashMap<String, String>, */
 }
 
 impl ModuleGraph {
@@ -81,6 +75,7 @@ impl ModuleGraph {
     // self.id_to_uri.insert(id, uri);
   }
 
+  // TODO: remove this function when we implements dependency
   pub fn add_dependency(&self, dep: Dependency, resolved_uri: String) {
     self.dependency_to_module_uri.insert(dep, resolved_uri);
   }
@@ -98,25 +93,25 @@ impl ModuleGraph {
   //   Some(uri.as_str())
   // }
 
-  pub fn module_by_dependency_mut(
-    &mut self,
-    dep: &Dependency,
-  ) -> Option<RefMut<'_, String, ModuleGraphModule>> {
-    let uri = self.dependency_to_module_uri.get(dep)?;
-    self.uri_to_module.get_mut(&*uri)
-  }
+  // pub fn module_by_dependency_mut(
+  //   &mut self,
+  //   dep: &Dependency,
+  // ) -> Option<RefMut<'_, String, ModuleGraphModule>> {
+  //   let uri = self.dependency_to_module_uri.get(dep)?;
+  //   self.uri_to_module.get_mut(&*uri)
+  // }
 
-  pub fn modules(
-    &self,
-  ) -> impl Iterator<Item = RefMulti<'_, std::string::String, ModuleGraphModule>> {
-    self.uri_to_module.iter()
-    // self.uri_to_module.values()
-  }
+  // pub fn modules(
+  //   &self,
+  // ) -> impl Iterator<Item = RefMulti<'_, std::string::String, ModuleGraphModule>> {
+  //   self.uri_to_module.iter()
+  //   // self.uri_to_module.values()
+  // }
 
   pub fn set_resolved_module(
     &self,
     original_module_identifier: Option<ModuleIdentifier>,
-    dependency: ModuleDependency,
+    dependency: Dependency,
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
     let connection = ModuleGraphConnection::new(

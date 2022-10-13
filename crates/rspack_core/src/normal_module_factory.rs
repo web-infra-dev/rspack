@@ -90,7 +90,7 @@ impl NormalModuleFactory {
               module,
               original_module_identifier,
               // FIXME: redundant
-              self.dependency.detail.clone(),
+              self.dependency.clone(),
             )),
             diagnostic,
           )));

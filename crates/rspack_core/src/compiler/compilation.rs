@@ -180,6 +180,7 @@ impl Compilation {
         }
       }
     }
+    println!("{:#?}", self.module_graph.connections);
     tracing::debug!("module graph {:#?}", self.module_graph);
   }
   #[instrument()]

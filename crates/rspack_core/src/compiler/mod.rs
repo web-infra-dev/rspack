@@ -222,7 +222,7 @@ pub enum Msg {
         ModuleGraphModule,
         NormalModule,
         Option<ModuleIdentifier>,
-        ModuleDependency,
+        Dependency,
       )>,
     >,
   ),
