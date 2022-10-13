@@ -15,5 +15,5 @@ function rspack(options: RspackOptions) {
 		compiler
 	};
 }
-
-export { rspack };
+// deliberately alias rspack as webpack
+export { rspack, rspack as webpack };
