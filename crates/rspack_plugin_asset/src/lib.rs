@@ -390,7 +390,7 @@ impl Plugin for AssetPlugin {
                   // let hash = Some(get_hash(compilation).to_string());
                   let hash = None;
 
-                  let path = Path::new(&module.id);
+                  let path = Path::new(&mgm.id);
                   Some(RenderManifestEntry::new(
                     asset,
                     args

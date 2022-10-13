@@ -156,17 +156,23 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   ) -> Result<GenerationResult> {
     use swc::config::{self as swc_config, SourceMapsConfig};
 
+    let module = compilation
+      .module_graph
+      .module_by_identifier(&mgm.module_identifier)
+      .ok_or_else(|| Error::InternalError("Failed to get module".to_owned()))?;
+
     if matches!(requested_source_type, SourceType::JavaScript) {
       // TODO: this should only return AST for javascript only, It's a fast pass, defer to another pr to solve this.
       // Ok(ast_or_source.to_owned().into())
 
       let compiler = get_swc_compiler();
+
       let output = GLOBALS.set(&Default::default(), || {
         crate::HELPERS.set(&JS_HELPERS, || {
           swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
             let fm = compiler.cm.new_source_file(
-              FileName::Custom(mgm.module.request().to_string()),
-              mgm.module.request().to_string(),
+              FileName::Custom(module.request().to_string()),
+              module.request().to_string(),
             );
 
             compiler.process_js_with_custom_pass(
@@ -184,8 +190,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
                   jsc: swc_config::JscConfig {
                     target: compilation.options.target.es_version,
                     syntax: Some(syntax_by_module_type(
-                      mgm.module.request(),
-                      mgm.module.module_type(),
+                      module.request(),
+                      module.module_type(),
                     )),
                     transform: Some(swc_config::TransformConfig {
                       react: react::Options {
@@ -240,12 +246,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             value: output.code,
             source_map: SourceMap::from_json(&map)
               .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
-            name: mgm.module.request().to_string(),
+            name: module.request().to_string(),
             original_source: {
               Some(
                 // Safety: you can sure that `build` is called before code generation, so that the `original_source` is exist
-                mgm
-                  .module
+                module
                   .original_source()
                   .expect("Failed to get original source, please file an issue.")
                   .source()
@@ -254,8 +259,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             },
             inner_source_map: {
               // Safety: you can sure that `build` is called before code generation, so that the `original_source` is exist
-              mgm
-                .module
+              module
                 .original_source()
                 .expect("Failed to get original source, please file an issue.")
                 .map(&MapOptions::default())
@@ -324,14 +328,22 @@ impl Plugin for JsPlugin {
       module_graph,
     );
 
-    ordered_modules.sort_by_key(|m| &m.uri);
+    // FIXME: clone is not good
+    ordered_modules.sort_by_key(|m| m.uri.to_owned());
 
     let has_inline_runtime = !compilation.options.target.platform.is_web()
       && matches!(chunk.kind, ChunkKind::Entry { .. });
 
     let mut module_code_array = ordered_modules
       .par_iter()
-      .map(|module| {
+      .map(|mgm| {
+        let module = compilation
+          .module_graph
+          .module_by_identifier(&mgm.module_identifier)
+          .ok_or_else(|| Error::InternalError("Failed to get module".to_owned()))
+          // FIXME: use result
+          .expect("Failed to get module");
+
         module
           .module
           .code_generation(module, compilation)
