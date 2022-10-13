@@ -1,4 +1,4 @@
-import { RspackCompilation } from "./rspack";
+import { Compilation } from "./compilation";
 
 export class RspackStats {
 	inner_value: any;
