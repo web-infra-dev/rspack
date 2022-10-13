@@ -13,7 +13,7 @@ function _interopRequireWildcard(obj, nodeInterop) {
     if (!nodeInterop && obj && obj.__esModule) {
         return obj;
     }
-    if (obj === null || (typeof obj !== "object" && typeof obj !== "function")) {
+    if (obj === null || typeof obj !== "object" && typeof obj !== "function") {
         return {
             default: obj
         };
@@ -43,7 +43,7 @@ function _interopRequireWildcard(obj, nodeInterop) {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _lib = _interopRequireWildcard(__rspack_require__("./lib.js"));
+const _lib = _interopRequireWildcard(__rspack_require__("./lib.js"));
 const lib = __rspack_require__("./lib.js");
 const { DO_NOT_CONVERTED9  } = __rspack_require__("./lib.js");
 equal(true, true);
@@ -250,8 +250,8 @@ const USELESS = {
     assert.deepStrictEqual(DO_NOT_CONVERTED31, 205);
     const B = 0;
     assert.deepStrictEqual(B, 0);
-    let IN_BLOCK1 = 2;
-    assert.deepStrictEqual(IN_BLOCK1, 2);
+    let IN_BLOCK = 2;
+    assert.deepStrictEqual(IN_BLOCK, 2);
     {
         {
             {
@@ -261,7 +261,7 @@ const USELESS = {
     }
 }try {
     error_count += 1;
-    IN_BLOCK;
+    SHOULD_BE_CONVERTED_IN_UNDEFINED_BLOCK;
     error_count += 1;
 } catch (err4) {}
 assert.deepStrictEqual(error_count, 5);
@@ -308,18 +308,12 @@ function _export(target, all) {
     });
 }
 _export(exports, {
-    default: function() {
-        return _default;
-    },
-    DO_NOT_CONVERTED7: function() {
-        return DO_NOT_CONVERTED7;
-    },
-    DO_NOT_CONVERTED9: function() {
-        return DO_NOT_CONVERTED9;
-    }
+    default: ()=>_default,
+    DO_NOT_CONVERTED7: ()=>DO_NOT_CONVERTED7,
+    DO_NOT_CONVERTED9: ()=>DO_NOT_CONVERTED9
 });
 const DO_NOT_CONVERTED7 = 402;
 const DO_NOT_CONVERTED9 = 403;
-var _default = 401;
+const _default = 401;
 },
 });self["__rspack_runtime__"].__rspack_require__("./index.js");
