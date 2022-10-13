@@ -62,14 +62,6 @@ impl Compiler {
     }
   }
 
-  // TODO: remove this function when we had hash in stats.
-  pub async fn rebuild(&mut self) -> Result<Stats> {
-    let _pre_stats = self.stats()?;
-    let _stats = self.build().await?;
-    // TODO: return diff stats;
-    self.stats()
-  }
-
   pub async fn run(&mut self) -> anyhow::Result<()> {
     let stats = self.build().await?;
     if !stats.compilation.diagnostic.is_empty() {
@@ -116,7 +108,7 @@ impl Compiler {
     Ok(())
   }
 
-  fn stats(&mut self) -> Result<Stats> {
+  fn stats(&self) -> Result<Stats> {
     if self.options.emit_error {
       StdioDiagnosticDisplay::default().emit_batch_diagnostic(
         &self.compilation.diagnostic,
@@ -161,6 +153,62 @@ impl Compiler {
       "change",
       &self.compilation.assets.entry("main.js".to_owned())
     );
+  }
+
+  // TODO: remove this function when we had hash in stats.
+  pub async fn rebuild(&mut self) -> Result<std::collections::HashMap<String, (u8, String)>> {
+    fn collect_modules_from_stats(s: &Stats<'_>) -> HashMap<String, String> {
+      let modules = s.compilation.module_graph.modules();
+      let modules = modules.filter(|item| item.module_type.is_js_like());
+      // TODO: use hash;
+      modules
+        .map(|item| {
+          let uri = item.uri.to_string();
+          // TODO: it soo slowly, should use cache to instead.
+          let code = item.module.code_generation(item, s.compilation).unwrap();
+          let code = code
+            .inner()
+            .get(&crate::SourceType::JavaScript)
+            .expect("expected javascript file")
+            .ast_or_source
+            .as_source()
+            .unwrap()
+            .source()
+            .to_string();
+          (uri, code)
+        })
+        .collect()
+    }
+
+    let old = self.stats()?;
+    let old = collect_modules_from_stats(&old);
+
+    let new = self.build().await?;
+    let new = collect_modules_from_stats(&new);
+
+    let mut diff = std::collections::HashMap::new();
+
+    for (new_uri, new_content) in &new {
+      if !old.contains_key(new_uri) {
+        // added
+        diff.insert(new_uri.to_string(), (2, new_content.to_string()));
+      }
+    }
+
+    for (old_uri, old_content) in old {
+      if let Some(new_content) = new.get(&old_uri) {
+        // changed
+        // TODO: should use module hash.
+        if *new_content != old_content {
+          diff.insert(old_uri, (0, new_content.to_string()));
+        }
+      } else {
+        // deleted
+        diff.insert(old_uri, (1, String::new()));
+      }
+    }
+
+    Ok(diff)
   }
 }
 

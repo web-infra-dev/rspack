@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt::Debug;
 // use std::path::Path;
 use std::sync::Arc;
@@ -182,10 +183,35 @@ pub fn build(env: Env, binding_context: External<RspackBindingContext>) -> Resul
   )
 }
 
+#[napi]
+pub enum DiffStatKind {
+  Changed,
+  Deleted,
+  Added,
+}
+
+impl From<u8> for DiffStatKind {
+  fn from(n: u8) -> Self {
+    match n {
+      0 => Self::Changed,
+      1 => Self::Deleted,
+      2 => Self::Added,
+      _ => unreachable!(),
+    }
+  }
+}
+
+// TODO: remove it after hash
+#[napi]
+pub struct DiffStat {
+  pub content: String,
+  pub kind: DiffStatKind,
+}
+
 #[napi(
   ts_args_type = "rspack: ExternalObject<RspackInternal>",
   // ts_return_type = "Promise<[diff: Record<string, string>, map: Record<string, string>]>"
-  ts_return_type = "Promise<Record<string, string>>"
+  ts_return_type = "Promise<Record<string, {content: string, kind: number}>>"
 )]
 pub fn rebuild(
   env: Env,
@@ -195,12 +221,24 @@ pub fn rebuild(
   env.execute_tokio_future(
     async move {
       let mut compiler = compiler.lock().await;
-      let _rspack_stats = compiler
+      let diff = compiler
         .rebuild()
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
+      let stats: HashMap<String, DiffStat> = diff
+        .into_iter()
+        .map(|(uri, stats)| {
+          (
+            uri,
+            DiffStat {
+              kind: DiffStatKind::from(stats.0),
+              content: stats.1,
+            },
+          )
+        })
+        .collect();
+      // let stats: Stats = _rspack_stats.into();
 
-      let stats: Stats = _rspack_stats.into();
       tracing::info!("rebuild success");
       Ok(stats)
     },
