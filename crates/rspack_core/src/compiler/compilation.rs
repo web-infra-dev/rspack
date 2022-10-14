@@ -4,6 +4,7 @@ use std::{
   sync::Arc,
 };
 
+use dashmap::DashMap;
 use futures::{stream::FuturesUnordered, StreamExt};
 use hashbrown::HashMap;
 use tracing::instrument;
@@ -12,11 +13,11 @@ use rspack_error::{Diagnostic, Result};
 use rspack_sources::BoxSource;
 
 use crate::{
-  split_chunks::code_splitting, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey,
-  ChunkKind, ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint, LoaderRunnerRunner,
-  ModuleDependency, ModuleGraph, Msg, NormalModuleFactory, NormalModuleFactoryContext,
-  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime,
-  SharedPluginDriver, VisitedModuleIdentity,
+  split_chunks::code_splitting, BuildContext, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup,
+  ChunkGroupUkey, ChunkKind, ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint,
+  LoaderRunnerRunner, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg,
+  NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs,
+  RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver, VisitedModuleIdentity,
 };
 
 #[derive(Debug)]
@@ -143,11 +144,12 @@ impl Compilation {
     });
 
     while active_task_count.load(Ordering::SeqCst) != 0 {
+      println!("{}", active_task_count.load(Ordering::SeqCst));
       match rx.recv().await {
         Some(job) => match job {
           Msg::TaskFinished(mut module_with_diagnostic) => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
-            let (mgm, module, original_module_identifier, dependency_id, module_dependency) =
+            // active_task_count.fetch_sub(1, Ordering::SeqCst);
+            let (mgm, module, original_module_identifier, dependency_id, dependency) =
               *module_with_diagnostic.inner;
 
             let module_identifier = module.identifier();
@@ -157,8 +159,128 @@ impl Compilation {
             self.module_graph.set_resolved_module(
               original_module_identifier,
               dependency_id,
-              module_identifier,
+              module_identifier.clone(),
             );
+
+            if self
+              .visited_module_id
+              .contains(&(module_identifier.clone(), dependency.detail.clone()))
+            {
+              active_task_count.fetch_sub(1, Ordering::SeqCst);
+              continue;
+            }
+
+            self
+              .visited_module_id
+              .insert((module_identifier.clone(), dependency.detail.clone()));
+
+            let module_graph = self.module_graph.clone();
+            let compiler_options = self.options.clone();
+            let loader_runner_runner = self.loader_runner_runner.clone();
+            let active_task_count = active_task_count.clone();
+            let plugin_driver = self.plugin_driver.clone();
+            let visited_module_id = self.visited_module_id.clone();
+            let tx = tx.clone();
+            // tokio::spawn(async move {
+            if let Some(mut module) = module_graph.module_by_identifier_mut(&module_identifier) {
+              let resource_data = module.resource_resolved_data();
+              let resolved_loaders = compiler_options
+                .module
+                .rules
+                .iter()
+                .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
+                  if let Some(func) = &module_rule.func__ {
+                    match func(resource_data) {
+                      Ok(result) => {
+                        if result {
+                          return Some(Ok(module_rule));
+                        }
+
+                        return None
+                      },
+                      Err(e) => {
+                        return Some(Err(e.into()))
+                      }
+                    }
+                  }
+
+                  // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
+                  // See: https://webpack.js.org/configuration/module/#ruletest
+                  if let Some(test_rule) = &module_rule.test && test_rule.is_match(&resource_data.resource) {
+                    return Some(Ok(module_rule));
+                  } else if let Some(resource_rule) = &module_rule.resource && resource_rule.is_match(&resource_data.resource) {
+                    return Some(Ok(module_rule));
+                  }
+
+                  if let Some(resource_query_rule) = &module_rule.resource_query && let Some(resource_query) = &resource_data.resource_query && resource_query_rule.is_match(resource_query) {
+                    return Some(Ok(module_rule));
+                  }
+
+                  None
+                })
+                // FIXME: add to diagnostics
+                .collect::<Result<Vec<_>>>().expect("Failed to resolve loaders")
+                .into_iter()
+                .flat_map(|module_rule| {
+                  module_rule.uses.iter().map(Box::as_ref).rev()
+                })
+                .collect::<Vec<_>>();
+              // FIXME: change to diagnostic
+              let build_result = module
+                .build(BuildContext {
+                  resolved_loaders,
+                  loader_runner_runner: &loader_runner_runner,
+                  compiler_options: &compiler_options,
+                })
+                .await
+                .expect("Failed to build module");
+
+              let module_identifier = module.identifier();
+
+              active_task_count.fetch_sub(1, Ordering::SeqCst);
+              drop(module);
+
+              let (build_result, mut diagnostics) = build_result.split_into_parts();
+              // self.diagnostic.append(&mut diagnostics);
+
+              let deps = build_result
+                .dependencies
+                .into_iter()
+                .map(|dep| Dependency {
+                  importer: Some(module_identifier.clone()),
+                  parent_module_identifier: Some(module_identifier.clone()),
+                  detail: dep,
+                })
+                .collect::<Vec<_>>();
+
+              deps.iter().for_each(|dep| {
+                let normal_module_factory = NormalModuleFactory::new(
+                  NormalModuleFactoryContext {
+                    module_name: None,
+                    module_type: None,
+                    active_task_count: active_task_count.clone(),
+                    visited_module_identity: visited_module_id.clone(),
+                    side_effects: None,
+                    module_graph: module_graph.clone(),
+                    options: compiler_options.clone(),
+                  },
+                  dep.clone(),
+                  tx.clone(),
+                  plugin_driver.clone(),
+                  loader_runner_runner.clone(),
+                );
+
+                tokio::task::spawn(async move {
+                  normal_module_factory.create().await;
+                });
+              });
+              let mut module_graph_module = module_graph
+                .module_graph_module_by_identifier_mut(&module_identifier)
+                .unwrap();
+
+              module_graph_module.all_dependencies = deps;
+            }
+            // });
 
             self
               .diagnostic

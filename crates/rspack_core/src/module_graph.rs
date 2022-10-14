@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 use dashmap::{
   mapref::one::{Ref, RefMut},
-  DashMap,
+  DashMap, DashSet,
 };
 
 use rspack_error::{Error, Result};
@@ -12,13 +12,21 @@ use crate::{Dependency, ModuleGraphModule, ModuleIdentifier, NormalModule};
 static MODULE_GRAPH_CONNECTION_ID: AtomicU32 = AtomicU32::new(1);
 pub(crate) static DEPENDENCY_ID: AtomicU32 = AtomicU32::new(1);
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, Eq)]
 pub struct ModuleGraphConnection {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub module_identifier: ModuleIdentifier,
   pub dependency_id: u32,
 
   pub id: u32,
+}
+
+impl std::cmp::PartialEq for ModuleGraphConnection {
+  fn eq(&self, other: &Self) -> bool {
+    self.original_module_identifier == other.original_module_identifier
+      && self.module_identifier == other.module_identifier
+      && self.dependency_id == other.dependency_id
+  }
 }
 
 impl ModuleGraphConnection {
@@ -48,7 +56,7 @@ pub struct ModuleGraph {
   // FIXME: This is only used for temporarily workaround the dependency matching logic in format, will be removed for better solution later.
   pub dependency_to_dependency_id: DashMap<Dependency, u32>,
 
-  pub connections: DashMap<u32, ModuleGraphConnection>,
+  pub connections: DashSet<ModuleGraphConnection>,
 }
 
 impl ModuleGraph {
@@ -134,13 +142,19 @@ impl ModuleGraph {
     //   .dependency_id_to_module_uri
     //   .insert(dependency_id, module_identifier.clone());
 
-    let connection = ModuleGraphConnection::new(
+    let new_connection = ModuleGraphConnection::new(
       original_module_identifier.clone(),
       dependency_id,
       module_identifier.clone(),
     );
-    let connection_id = connection.id;
-    self.connections.insert(connection_id, connection);
+
+    let connection_id = if let Some(connection) = self.connections.get(&new_connection) {
+      connection.id
+    } else {
+      let id = new_connection.id;
+      self.connections.insert(new_connection);
+      id
+    };
 
     {
       let mut mgm = self
@@ -175,6 +189,34 @@ impl ModuleGraph {
   #[inline]
   pub fn module_by_identifier(&self, identifier: &str) -> Option<Ref<'_, String, NormalModule>> {
     self.module_identifier_to_module.get(identifier)
+  }
+
+  #[inline]
+  pub fn module_by_identifier_mut(
+    &self,
+    identifier: &str,
+  ) -> Option<RefMut<'_, String, NormalModule>> {
+    self.module_identifier_to_module.get_mut(identifier)
+  }
+
+  #[inline]
+  pub fn module_graph_module_by_identifier(
+    &self,
+    identifier: &str,
+  ) -> Option<Ref<'_, String, ModuleGraphModule>> {
+    self
+      .module_identifier_to_module_graph_module
+      .get(identifier)
+  }
+
+  #[inline]
+  pub fn module_graph_module_by_identifier_mut(
+    &self,
+    identifier: &str,
+  ) -> Option<RefMut<'_, String, ModuleGraphModule>> {
+    self
+      .module_identifier_to_module_graph_module
+      .get_mut(identifier)
   }
 
   #[inline]

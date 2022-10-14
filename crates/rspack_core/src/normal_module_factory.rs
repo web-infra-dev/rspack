@@ -1,4 +1,5 @@
 use std::{
+  collections::VecDeque,
   path::{Path, PathBuf},
   sync::{
     atomic::{AtomicU32, Ordering},
@@ -6,6 +7,7 @@ use std::{
   },
 };
 
+use dashmap::DashMap;
 use sugar_path::PathSugar;
 use swc_common::Span;
 use tokio::sync::mpsc::UnboundedSender;
@@ -36,6 +38,16 @@ pub struct Dependency {
 //       specifier,
 //       kind,
 //     }
+//   }
+// }
+
+// pub struct ModuleBuildTask {
+//   tx: UnboundedSender<Msg>,
+// }
+
+// impl ModuleBuildTask {
+//   pub fn add(&mut self, module_identifier: ModuleIdentifier) {
+//     self.tasks.push_back(module_identifier);
 //   }
 // }
 
@@ -165,18 +177,18 @@ impl NormalModuleFactory {
         ))
       })?;
 
-    if self
-      .context
-      .visited_module_identity
-      .contains(&(uri.clone(), self.dependency.detail.clone()))
-    {
-      return Ok(None);
-    }
+    // if self
+    //   .context
+    //   .visited_module_identity
+    //   .contains(&(uri.clone(), self.dependency.detail.clone()))
+    // {
+    //   return Ok(None);
+    // }
 
-    self
-      .context
-      .visited_module_identity
-      .insert((uri.clone(), self.dependency.detail.clone()));
+    // self
+    //   .context
+    //   .visited_module_identity
+    //   .insert((uri.clone(), self.dependency.detail.clone()));
 
     let resource_data = ResourceData {
       resource: uri.clone(),
@@ -387,31 +399,31 @@ impl NormalModuleFactory {
 
     // scan deps
 
-    let build_result = module
-      .build(BuildContext {
-        loader_runner_runner: &self.loader_runner_runner,
-        resolved_loaders: self.calculate_loaders(module.resource_resolved_data())?,
-        compiler_options: &self.context.options,
-      })
-      .await?;
+    // let build_result = module
+    //   .build(BuildContext {
+    //     loader_runner_runner: &self.loader_runner_runner,
+    //     resolved_loaders: self.calculate_loaders(module.resource_resolved_data())?,
+    //     compiler_options: &self.context.options,
+    //   })
+    //   .await?;
 
-    let (build_result, diagnostics) = build_result.split_into_parts();
-    self.add_diagnostics(diagnostics);
+    // let (build_result, diagnostics) = build_result.split_into_parts();
+    // self.add_diagnostics(diagnostics);
 
-    let deps = build_result
-      .dependencies
-      .into_iter()
-      .map(|dep| Dependency {
-        importer: Some(uri.clone()),
-        parent_module_identifier: Some(module.identifier()),
-        detail: dep,
-      })
-      .collect::<Vec<_>>();
+    // let deps = build_result
+    //   .dependencies
+    //   .into_iter()
+    //   .map(|dep| Dependency {
+    //     importer: Some(uri.clone()),
+    //     parent_module_identifier: Some(module.identifier()),
+    //     detail: dep,
+    //   })
+    //   .collect::<Vec<_>>();
 
-    tracing::trace!("get deps {:?}", deps);
-    deps.iter().for_each(|dep| {
-      self.fork(dep.clone());
-    });
+    // tracing::trace!("get deps {:?}", deps);
+    // deps.iter().for_each(|dep| {
+    //   self.fork(dep.clone());
+    // });
 
     let mgm = ModuleGraphModule::new(
       self.context.module_name.clone(),
@@ -424,7 +436,7 @@ impl NormalModuleFactory {
         .to_string(),
       uri,
       module.identifier(),
-      deps,
+      vec![],
       self
         .context
         .module_type

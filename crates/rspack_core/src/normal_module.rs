@@ -40,7 +40,7 @@ pub struct ModuleGraphModule {
   pub module_identifier: ModuleIdentifier,
   // TODO remove this since its included in module
   pub module_type: ModuleType,
-  all_dependencies: Vec<Dependency>,
+  pub all_dependencies: Vec<Dependency>,
   pub(crate) pre_order_index: Option<usize>,
   pub post_order_index: Option<usize>,
 }
@@ -82,17 +82,13 @@ impl ModuleGraphModule {
   pub fn incoming_connections_unordered<'m>(
     &self,
     module_graph: &'m ModuleGraph,
-  ) -> Result<impl Iterator<Item = Ref<'m, u32, ModuleGraphConnection>>> {
-    let result = self
-      .incoming_connections
+  ) -> Result<impl Iterator<Item = dashmap::setref::multiple::RefMulti<'m, ModuleGraphConnection>>>
+  {
+    let result = module_graph
+      .connections
       .iter()
-      .map(|id| {
-        module_graph
-          .connections
-          .get(id)
-          .ok_or_else(|| Error::InternalError(format!("Failed to get connection with id {}", id)))
-      })
-      .collect::<Result<Vec<Ref<'m, u32, ModuleGraphConnection>>>>()?
+      .filter(|con| self.incoming_connections.contains(&con.id))
+      .collect::<Vec<_>>()
       .into_iter();
 
     Ok(result)
@@ -101,17 +97,13 @@ impl ModuleGraphModule {
   pub fn outgoing_connections_unordered<'m>(
     &self,
     module_graph: &'m ModuleGraph,
-  ) -> Result<impl Iterator<Item = Ref<'m, u32, ModuleGraphConnection>>> {
-    let result = self
-      .outgoing_connections
+  ) -> Result<impl Iterator<Item = dashmap::setref::multiple::RefMulti<'m, ModuleGraphConnection>>>
+  {
+    let result = module_graph
+      .connections
       .iter()
-      .map(|id| {
-        module_graph
-          .connections
-          .get(id)
-          .ok_or_else(|| Error::InternalError(format!("Failed to get connection with id {}", id)))
-      })
-      .collect::<Result<Vec<Ref<'m, u32, ModuleGraphConnection>>>>()?
+      .filter(|con| self.outgoing_connections.contains(&con.id))
+      .collect::<Vec<_>>()
       .into_iter();
 
     Ok(result)
@@ -127,7 +119,7 @@ impl ModuleGraphModule {
   pub fn depended_modules<'a>(
     &self,
     module_graph: &'a ModuleGraph,
-  ) -> Vec<Ref<'a, String, ModuleGraphModule>> {
+  ) -> Vec<dashmap::mapref::one::Ref<'a, String, ModuleGraphModule>> {
     self
       .all_dependencies
       .iter()
@@ -139,7 +131,7 @@ impl ModuleGraphModule {
   pub fn dynamic_depended_modules<'a>(
     &self,
     module_graph: &'a ModuleGraph,
-  ) -> Vec<Ref<'a, String, ModuleGraphModule>> {
+  ) -> Vec<dashmap::mapref::one::Ref<'a, String, ModuleGraphModule>> {
     self
       .all_dependencies
       .iter()
