@@ -181,10 +181,10 @@ impl Compilation {
             let plugin_driver = self.plugin_driver.clone();
             let visited_module_id = self.visited_module_id.clone();
             let tx = tx.clone();
-            // tokio::spawn(async move {
-            if let Some(mut module) = module_graph.module_by_identifier_mut(&module_identifier) {
-              let resource_data = module.resource_resolved_data();
-              let resolved_loaders = compiler_options
+            tokio::spawn(async move {
+              if let Some(mut module) = module_graph.module_by_identifier_mut(&module_identifier) {
+                let resource_data = module.resource_resolved_data();
+                let resolved_loaders = compiler_options
                 .module
                 .rules
                 .iter()
@@ -225,62 +225,62 @@ impl Compilation {
                   module_rule.uses.iter().map(Box::as_ref).rev()
                 })
                 .collect::<Vec<_>>();
-              // FIXME: change to diagnostic
-              let build_result = module
-                .build(BuildContext {
-                  resolved_loaders,
-                  loader_runner_runner: &loader_runner_runner,
-                  compiler_options: &compiler_options,
-                })
-                .await
-                .expect("Failed to build module");
+                // FIXME: change to diagnostic
+                let build_result = module
+                  .build(BuildContext {
+                    resolved_loaders,
+                    loader_runner_runner: &loader_runner_runner,
+                    compiler_options: &compiler_options,
+                  })
+                  .await
+                  .expect("Failed to build module");
 
-              let module_identifier = module.identifier();
+                let module_identifier = module.identifier();
 
-              active_task_count.fetch_sub(1, Ordering::SeqCst);
-              drop(module);
+                active_task_count.fetch_sub(1, Ordering::SeqCst);
+                drop(module);
 
-              let (build_result, mut diagnostics) = build_result.split_into_parts();
-              // self.diagnostic.append(&mut diagnostics);
+                let (build_result, mut diagnostics) = build_result.split_into_parts();
+                // self.diagnostic.append(&mut diagnostics);
 
-              let deps = build_result
-                .dependencies
-                .into_iter()
-                .map(|dep| Dependency {
-                  importer: Some(module_identifier.clone()),
-                  parent_module_identifier: Some(module_identifier.clone()),
-                  detail: dep,
-                })
-                .collect::<Vec<_>>();
+                let deps = build_result
+                  .dependencies
+                  .into_iter()
+                  .map(|dep| Dependency {
+                    importer: Some(module_identifier.clone()),
+                    parent_module_identifier: Some(module_identifier.clone()),
+                    detail: dep,
+                  })
+                  .collect::<Vec<_>>();
 
-              deps.iter().for_each(|dep| {
-                let normal_module_factory = NormalModuleFactory::new(
-                  NormalModuleFactoryContext {
-                    module_name: None,
-                    module_type: None,
-                    active_task_count: active_task_count.clone(),
-                    visited_module_identity: visited_module_id.clone(),
-                    side_effects: None,
-                    module_graph: module_graph.clone(),
-                    options: compiler_options.clone(),
-                  },
-                  dep.clone(),
-                  tx.clone(),
-                  plugin_driver.clone(),
-                  loader_runner_runner.clone(),
-                );
+                deps.iter().for_each(|dep| {
+                  let normal_module_factory = NormalModuleFactory::new(
+                    NormalModuleFactoryContext {
+                      module_name: None,
+                      module_type: None,
+                      active_task_count: active_task_count.clone(),
+                      visited_module_identity: visited_module_id.clone(),
+                      side_effects: None,
+                      module_graph: module_graph.clone(),
+                      options: compiler_options.clone(),
+                    },
+                    dep.clone(),
+                    tx.clone(),
+                    plugin_driver.clone(),
+                    loader_runner_runner.clone(),
+                  );
 
-                tokio::task::spawn(async move {
-                  normal_module_factory.create().await;
+                  tokio::task::spawn(async move {
+                    normal_module_factory.create().await;
+                  });
                 });
-              });
-              let mut module_graph_module = module_graph
-                .module_graph_module_by_identifier_mut(&module_identifier)
-                .unwrap();
+                let mut module_graph_module = module_graph
+                  .module_graph_module_by_identifier_mut(&module_identifier)
+                  .unwrap();
 
-              module_graph_module.all_dependencies = deps;
-            }
-            // });
+                module_graph_module.all_dependencies = deps;
+              }
+            });
 
             self
               .diagnostic
