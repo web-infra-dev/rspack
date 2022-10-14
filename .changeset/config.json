@@ -9,7 +9,7 @@
   ],
   "linked": [],
   "access": "public",
-  "baseBranch": "next",
+  "baseBranch": "main",
   "updateInternalDependencies": "patch",
   "ignore": [
     "example-*"
