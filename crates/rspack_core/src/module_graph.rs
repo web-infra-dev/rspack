@@ -9,6 +9,7 @@ use rspack_error::{Error, Result};
 
 use crate::{Dependency, ModuleGraphModule, ModuleIdentifier, NormalModule};
 
+// FIXME: placing this as global id is not acceptable, move it to compilation later
 static MODULE_GRAPH_CONNECTION_ID: AtomicU32 = AtomicU32::new(1);
 pub(crate) static DEPENDENCY_ID: AtomicU32 = AtomicU32::new(1);
 
