@@ -96,7 +96,7 @@ impl NormalModuleFactory {
       Ok(maybe_module) => {
         if let Some((mgm, module, original_module_identifier, dependency_id)) = maybe_module {
           let diagnostic = std::mem::take(&mut self.diagnostic);
-          self.send(Msg::TaskFinished(TWithDiagnosticArray::new(
+          self.send(Msg::ModuleCreated(TWithDiagnosticArray::new(
             Box::new((
               mgm,
               module,

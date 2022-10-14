@@ -216,7 +216,7 @@ impl Compiler {
 #[derive(Debug)]
 pub enum Msg {
   DependencyReference((Dependency, u32), String),
-  TaskFinished(
+  ModuleCreated(
     TWithDiagnosticArray<
       Box<(
         ModuleGraphModule,
@@ -227,6 +227,7 @@ pub enum Msg {
       )>,
     >,
   ),
+  ModuleBuilt,
   TaskCanceled,
   TaskErrorEncountered(Error),
 }

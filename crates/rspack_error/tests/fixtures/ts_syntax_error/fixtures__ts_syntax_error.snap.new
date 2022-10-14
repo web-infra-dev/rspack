@@ -1,0 +1,6 @@
+---
+source: crates/rspack_error/tests/fixtures.rs
+assertion_line: 38
+expression: ts_syntax_error
+---
+

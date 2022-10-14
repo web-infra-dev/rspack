@@ -21,3 +21,16 @@ async fn run(context: PathBuf) {
 fn example(fixture_path: PathBuf) {
   run(fixture_path);
 }
+
+#[test]
+#[inline(never)]
+#[doc(hidden)]
+fn example______examples__react_with_less2() {
+  eprintln!(
+    "Input: {}",
+    "/Users/bytedance/Projects/rspack/examples/react-with-less"
+  );
+  example(::std::path::PathBuf::from(
+    "/Users/bytedance/Projects/rspack/examples/react-with-less",
+  ));
+}

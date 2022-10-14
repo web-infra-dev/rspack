@@ -7,9 +7,8 @@ use std::{
   },
 };
 
-use dashmap::{mapref::one::Ref, DashMap};
+use dashmap::{DashMap, DashSet};
 
-use hashbrown::HashSet;
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_loader_runner::{Content, Loader, ResourceData};
 use rspack_sources::{
@@ -29,8 +28,8 @@ pub struct ModuleGraphModule {
   pub name: Option<String>,
 
   // edges from module to module
-  pub outgoing_connections: HashSet<u32>,
-  pub incoming_connections: HashSet<u32>,
+  pub outgoing_connections: DashSet<u32>,
+  pub incoming_connections: DashSet<u32>,
 
   pub id: String,
   // pub exec_order: usize,
@@ -71,11 +70,11 @@ impl ModuleGraphModule {
     }
   }
 
-  pub fn add_incoming_connection(&mut self, connection_id: u32) {
+  pub fn add_incoming_connection(&self, connection_id: u32) {
     self.incoming_connections.insert(connection_id);
   }
 
-  pub fn add_outgoing_connection(&mut self, connection_id: u32) {
+  pub fn add_outgoing_connection(&self, connection_id: u32) {
     self.outgoing_connections.insert(connection_id);
   }
 
@@ -500,9 +499,10 @@ impl NormalModule {
 
       Ok(code_generation_result)
     } else {
-      Err(Error::InternalError(
-        "Failed to generate code because ast or source is not set".into(),
-      ))
+      Err(Error::InternalError(format!(
+        "Failed to generate code because ast or source is not set for module {}",
+        self.request
+      )))
     }
   }
 }

@@ -4,7 +4,7 @@ use std::{
   sync::Arc,
 };
 
-use dashmap::DashMap;
+use dashmap::{DashMap, DashSet};
 use futures::{stream::FuturesUnordered, StreamExt};
 use hashbrown::HashMap;
 use tracing::instrument;
@@ -144,11 +144,9 @@ impl Compilation {
     });
 
     while active_task_count.load(Ordering::SeqCst) != 0 {
-      println!("{}", active_task_count.load(Ordering::SeqCst));
       match rx.recv().await {
         Some(job) => match job {
-          Msg::TaskFinished(mut module_with_diagnostic) => {
-            // active_task_count.fetch_sub(1, Ordering::SeqCst);
+          Msg::ModuleCreated(mut module_with_diagnostic) => {
             let (mgm, module, original_module_identifier, dependency_id, dependency) =
               *module_with_diagnostic.inner;
 
@@ -226,65 +224,78 @@ impl Compilation {
                 })
                 .collect::<Vec<_>>();
                 // FIXME: change to diagnostic
-                let build_result = module
+                match module
                   .build(BuildContext {
                     resolved_loaders,
                     loader_runner_runner: &loader_runner_runner,
                     compiler_options: &compiler_options,
                   })
                   .await
-                  .expect("Failed to build module");
+                {
+                  Ok(build_result) => {
+                    let module_identifier = module.identifier();
+                    drop(module);
 
-                let module_identifier = module.identifier();
+                    let (build_result, mut diagnostics) = build_result.split_into_parts();
+                    // self.diagnostic.append(&mut diagnostics);
 
-                active_task_count.fetch_sub(1, Ordering::SeqCst);
-                drop(module);
+                    let deps = build_result
+                      .dependencies
+                      .into_iter()
+                      .map(|dep| Dependency {
+                        importer: Some(module_identifier.clone()),
+                        parent_module_identifier: Some(module_identifier.clone()),
+                        detail: dep,
+                      })
+                      .collect::<Vec<_>>();
 
-                let (build_result, mut diagnostics) = build_result.split_into_parts();
-                // self.diagnostic.append(&mut diagnostics);
+                    deps.iter().for_each(|dep| {
+                      let normal_module_factory = NormalModuleFactory::new(
+                        NormalModuleFactoryContext {
+                          module_name: None,
+                          module_type: None,
+                          active_task_count: active_task_count.clone(),
+                          visited_module_identity: visited_module_id.clone(),
+                          side_effects: None,
+                          module_graph: module_graph.clone(),
+                          options: compiler_options.clone(),
+                        },
+                        dep.clone(),
+                        tx.clone(),
+                        plugin_driver.clone(),
+                        loader_runner_runner.clone(),
+                      );
 
-                let deps = build_result
-                  .dependencies
-                  .into_iter()
-                  .map(|dep| Dependency {
-                    importer: Some(module_identifier.clone()),
-                    parent_module_identifier: Some(module_identifier.clone()),
-                    detail: dep,
-                  })
-                  .collect::<Vec<_>>();
+                      tokio::task::spawn(async move {
+                        normal_module_factory.create().await;
+                      });
+                    });
+                    {
+                      let mut module_graph_module = module_graph
+                        .module_graph_module_by_identifier_mut(&module_identifier)
+                        .unwrap();
+                      module_graph_module.all_dependencies = deps;
+                    }
 
-                deps.iter().for_each(|dep| {
-                  let normal_module_factory = NormalModuleFactory::new(
-                    NormalModuleFactoryContext {
-                      module_name: None,
-                      module_type: None,
-                      active_task_count: active_task_count.clone(),
-                      visited_module_identity: visited_module_id.clone(),
-                      side_effects: None,
-                      module_graph: module_graph.clone(),
-                      options: compiler_options.clone(),
-                    },
-                    dep.clone(),
-                    tx.clone(),
-                    plugin_driver.clone(),
-                    loader_runner_runner.clone(),
-                  );
-
-                  tokio::task::spawn(async move {
-                    normal_module_factory.create().await;
-                  });
-                });
-                let mut module_graph_module = module_graph
-                  .module_graph_module_by_identifier_mut(&module_identifier)
-                  .unwrap();
-
-                module_graph_module.all_dependencies = deps;
+                    if let Err(err) = tx.send(Msg::ModuleBuilt) {
+                      tracing::trace!("fail to send msg {:?}", err)
+                    }
+                  }
+                  Err(err) => {
+                    if let Err(err) = tx.send(Msg::TaskErrorEncountered(err)) {
+                      tracing::trace!("fail to send msg {:?}", err)
+                    }
+                  }
+                }
               }
             });
 
             self
               .diagnostic
               .append(&mut module_with_diagnostic.diagnostic);
+          }
+          Msg::ModuleBuilt => {
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
           }
           Msg::TaskCanceled => {
             active_task_count.fetch_sub(1, Ordering::SeqCst);
@@ -303,9 +314,10 @@ impl Compilation {
       }
     }
     println!(
-      "{:#?}",
+      "mgm: {:#?}",
       self.module_graph.module_identifier_to_module_graph_module
     );
+    // println!("m: {:#?}", self.module_graph.module_identifier_to_module);
     tracing::debug!("module graph {:#?}", self.module_graph);
   }
   #[instrument()]

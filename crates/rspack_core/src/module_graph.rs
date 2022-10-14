@@ -157,9 +157,8 @@ impl ModuleGraph {
     };
 
     {
-      let mut mgm = self
-        .module_identifier_to_module_graph_module
-        .get_mut(&module_identifier)
+      let mgm = self
+        .module_graph_module_by_identifier(&module_identifier)
         .ok_or_else(|| {
           Error::InternalError(format!(
             "Failed to set resolved module: Module linked to module identifier {} cannot be found",
@@ -170,9 +169,8 @@ impl ModuleGraph {
       mgm.add_incoming_connection(connection_id);
     }
 
-    if let Some(identifier) = original_module_identifier && let Some(mut original_mgm) = self
-    .module_identifier_to_module_graph_module
-    .get_mut(&identifier) {
+    if let Some(identifier) = original_module_identifier && let Some(original_mgm) = self.
+    module_graph_module_by_identifier(&identifier) {
         original_mgm.add_outgoing_connection(connection_id);
     };
 
