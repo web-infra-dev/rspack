@@ -223,7 +223,7 @@ impl Compilation {
                   module_rule.uses.iter().map(Box::as_ref).rev()
                 })
                 .collect::<Vec<_>>();
-                // FIXME: change to diagnostic
+
                 match module
                   .build(BuildContext {
                     resolved_loaders,
@@ -236,7 +236,7 @@ impl Compilation {
                     let module_identifier = module.identifier();
                     drop(module);
 
-                    let (build_result, mut diagnostics) = build_result.split_into_parts();
+                    let (build_result, diagnostics) = build_result.split_into_parts();
                     // self.diagnostic.append(&mut diagnostics);
 
                     let deps = build_result
@@ -277,12 +277,14 @@ impl Compilation {
                       module_graph_module.all_dependencies = deps;
                     }
 
-                    if let Err(err) = tx.send(Msg::ModuleBuilt) {
+                    if let Err(err) = tx.send(Msg::ModuleBuilt(diagnostics)) {
                       tracing::trace!("fail to send msg {:?}", err)
                     }
                   }
                   Err(err) => {
-                    if let Err(err) = tx.send(Msg::TaskErrorEncountered(err)) {
+                    if let Err(err) =
+                      tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err))
+                    {
                       tracing::trace!("fail to send msg {:?}", err)
                     }
                   }
@@ -294,8 +296,21 @@ impl Compilation {
               .diagnostic
               .append(&mut module_with_diagnostic.diagnostic);
           }
-          Msg::ModuleBuilt => {
+          Msg::ModuleBuilt(mut diagnostics) => {
+            self.diagnostic.append(&mut diagnostics);
             active_task_count.fetch_sub(1, Ordering::SeqCst);
+          }
+          Msg::ModuleBuiltErrorEncountered(module_identifier, err) => {
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
+            self
+              .module_graph
+              .module_identifier_to_module
+              .remove(&module_identifier);
+            self
+              .module_graph
+              .module_identifier_to_module_graph_module
+              .remove(&module_identifier);
+            self.push_batch_diagnostic(err.into());
           }
           Msg::TaskCanceled => {
             active_task_count.fetch_sub(1, Ordering::SeqCst);

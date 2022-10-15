@@ -10,7 +10,7 @@ use hashbrown::HashMap;
 use rayon::prelude::*;
 use rspack_error::{
   emitter::{DiagnosticDisplay, StdioDiagnosticDisplay},
-  Error, Result, TWithDiagnosticArray,
+  Diagnostic, Error, Result, TWithDiagnosticArray,
 };
 use rspack_sources::BoxSource;
 use tokio::sync::RwLock;
@@ -227,7 +227,8 @@ pub enum Msg {
       )>,
     >,
   ),
-  ModuleBuilt,
+  ModuleBuilt(Vec<Diagnostic>),
+  ModuleBuiltErrorEncountered(ModuleIdentifier, Error),
   TaskCanceled,
   TaskErrorEncountered(Error),
 }

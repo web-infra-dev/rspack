@@ -1,6 +1,0 @@
----
-source: crates/rspack_error/tests/fixtures.rs
-assertion_line: 38
-expression: recoverable_syntax_error
----
-
