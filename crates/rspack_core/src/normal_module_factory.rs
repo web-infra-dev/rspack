@@ -108,10 +108,10 @@ impl NormalModuleFactory {
             diagnostic,
           )));
         } else {
-          self.send(Msg::TaskCanceled);
+          self.send(Msg::ModuleCreationCanceled);
         }
       }
-      Err(err) => self.send(Msg::TaskErrorEncountered(err)),
+      Err(err) => self.send(Msg::ModuleCreationErrorEncountered(err)),
     }
   }
 

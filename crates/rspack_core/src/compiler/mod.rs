@@ -229,6 +229,6 @@ pub enum Msg {
   ),
   ModuleBuilt(Vec<Diagnostic>),
   ModuleBuiltErrorEncountered(ModuleIdentifier, Error),
-  TaskCanceled,
-  TaskErrorEncountered(Error),
+  ModuleCreationCanceled,
+  ModuleCreationErrorEncountered(Error),
 }

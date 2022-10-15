@@ -312,13 +312,13 @@ impl Compilation {
               .remove(&module_identifier);
             self.push_batch_diagnostic(err.into());
           }
-          Msg::TaskCanceled => {
+          Msg::ModuleCreationCanceled => {
             active_task_count.fetch_sub(1, Ordering::SeqCst);
           }
           Msg::DependencyReference(dep, resolved_uri) => {
             self.module_graph.add_dependency(dep, resolved_uri);
           }
-          Msg::TaskErrorEncountered(err) => {
+          Msg::ModuleCreationErrorEncountered(err) => {
             active_task_count.fetch_sub(1, Ordering::SeqCst);
             self.push_batch_diagnostic(err.into());
           }
