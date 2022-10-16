@@ -272,21 +272,15 @@ impl SplitChunksPlugin {
 }
 
 struct ChunksInfoItem {
-  // * @property {SortableSet<Module>}
+  // Sortable Module Set
   pub modules: HashSet<String>,
-  // * @property {CacheGroup}
   pub cache_group: String,
-  // * @property {number}
   pub cache_group_index: usize,
-  // * @property {string}
   pub name: String,
-  // * @property {Record<string, number>}
   pub sizes: SplitChunkSizes,
-  // * @property {Set<Chunk>}
   pub chunks: HashSet<ChunkUkey>,
-  // * @property {Set<Chunk>}
   pub reuseable_chunks: HashSet<ChunkUkey>,
-  // * @property {Set<bigint | Chunk>}
+  // bigint | Chunk
   // pub chunks_keys: Hash
 }
 
