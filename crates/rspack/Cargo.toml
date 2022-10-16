@@ -1,30 +1,34 @@
 [package]
 edition = "2021"
-name = "rspack"
+name    = "rspack"
 version = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dev-dependencies]
-criterion = { version = "0.3.6", features = ["async_tokio", "async_futures"] }
+criterion              = { version = "0.3.6", features = ["async_tokio", "async_futures"] }
 rspack_binding_options = { path = "../rspack_binding_options" }
-rspack_test = { path = "../rspack_test" }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-testing_macros = "0.2.5"
-xshell = "0.2.2"
+rspack_test            = { path = "../rspack_test" }
+serde                  = { version = "1", features = ["derive"] }
+serde_json             = "1"
+testing_macros         = "0.2.5"
+xshell                 = "0.2.2"
+
+[target.'cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))'.dev-dependencies]
+mimalloc-rust = { version = "0.2" }
+
 [dependencies]
-crossbeam = "0.8.1"
-dashmap = "5.0.0"
-rspack_core = { path = "../rspack_core" }
-rspack_loader_sass = { path = "../rspack_loader_sass" }
-rspack_plugin_asset = { path = "../rspack_plugin_asset" }
-rspack_plugin_css = { path = "../rspack_plugin_css" }
-rspack_plugin_html = { path = "../rspack_plugin_html" }
+crossbeam                = "0.8.1"
+dashmap                  = "5.0.0"
+rspack_core              = { path = "../rspack_core" }
+rspack_loader_sass       = { path = "../rspack_loader_sass" }
+rspack_plugin_asset      = { path = "../rspack_plugin_asset" }
+rspack_plugin_css        = { path = "../rspack_plugin_css" }
+rspack_plugin_devtool    = { path = "../rspack_plugin_devtool" }
+rspack_plugin_html       = { path = "../rspack_plugin_html" }
 rspack_plugin_javascript = { path = "../rspack_plugin_javascript" }
-rspack_plugin_json = { path = "../rspack_plugin_json" }
-rspack_plugin_runtime = { path = "../rspack_plugin_runtime" }
-rspack_plugin_devtool = { path = "../rspack_plugin_devtool" }
+rspack_plugin_json       = { path = "../rspack_plugin_json" }
+rspack_plugin_runtime    = { path = "../rspack_plugin_runtime" }
 # futures = "0.3.21"
 anyhow = "1"
 async-trait = "0.1.53"
@@ -41,9 +45,9 @@ tokio = { version = "1.21.0", features = [
 tracing = "0.1.34"
 warp = "0.3"
 # rspack_sources = "0.0.3"
-hashbrown = { version = "0.12.1", features = ["rayon"] }
-rspack_error = { path = "../rspack_error" }
+hashbrown          = { version = "0.12.1", features = ["rayon"] }
+rspack_error       = { path = "../rspack_error" }
 tracing-subscriber = { version = "0.3.9", features = ["env-filter"] }
 [[bench]]
 harness = false
-name = "main"
+name    = "main"

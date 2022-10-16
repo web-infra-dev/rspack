@@ -84,6 +84,9 @@ impl ModuleType {
       ModuleType::Asset | ModuleType::AssetInline | ModuleType::AssetResource
     )
   }
+  pub fn is_jsx_like(&self) -> bool {
+    matches!(self, ModuleType::Tsx | ModuleType::Jsx)
+  }
 }
 
 impl TryFrom<&str> for ModuleType {

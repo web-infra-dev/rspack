@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - next
     tags-ignore:
       - "**"
   pull_request:
@@ -111,6 +110,7 @@ jobs:
         run: |
           node -e "console.log(process.arch)"  
           pnpm install
+          pnpm run format-ci:toml
           pnpm run lint:js
           pnpm run build:cli
       - name: binding test

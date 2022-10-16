@@ -1,7 +1,7 @@
 // use super::hmr::HmrModuleIdReWriter;
 use crate::visitors::RspackModuleFinalizer;
 use rspack_core::{Compilation, ModuleGraphModule};
-use swc_common::{chain, Mark, DUMMY_SP};
+use swc_common::{chain, Mark, DUMMY_SP, GLOBALS};
 use swc_ecma_transforms::resolver;
 use {swc_common, swc_ecma_utils::quote_ident, swc_ecma_visit::Fold};
 
@@ -11,6 +11,7 @@ pub fn finalize<'a>(
   unresolved_mark: Mark,
 ) -> impl Fold + 'a {
   let top_level_mark = Mark::new();
+  debug_assert!(GLOBALS.is_set());
   let finalize_pass = chain!(
     // We assume the AST is cleaned by default
     // as_folder(ClearMark),

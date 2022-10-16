@@ -62,11 +62,14 @@ jobs:
       - name: Install toolchain
         run: rustup show
 
-      - name: Cache
-        uses: speedy-js/rust-cache-self-hosted@v1
+      # - name: Cache
+      #   uses: speedy-js/rust-cache-self-hosted@v1
 
       - name: Install critcmp
         run: cargo install critcmp
+
+      - name: Remove Release
+        run: rm -rf ./target/release
 
       - name: Run Bench on PR Branch
         run: cargo bench --bench main -- --save-baseline pr
@@ -75,7 +78,10 @@ jobs:
         uses: actions/checkout@v3
         with:
           clean: false
-          ref: next
+          ref: main
+
+      - name: Remove Release
+        run: rm -rf ./target/release
 
       - name: Run Bench on Next Branch
         run: cargo bench --bench main -- --save-baseline baseline
@@ -90,9 +96,9 @@ jobs:
           echo "\`\`\`" >> output
           cat output
           comment="$(cat output)"
-          # comment="${comment//'%'/'%25'}"
-          # comment="${comment//$'\n'/'%0A'}"
-          # comment="${comment//$'\r'/'%0D'}"
+          comment="${comment//'%'/%25}"
+          comment="${comment//$'\n'/%0A}"
+          comment="${comment//$'\r'/%0D}"
           echo "::set-output name=comment::$comment"
       - name: Write a new comment
         uses: peter-evans/create-or-update-comment@v1.4.5

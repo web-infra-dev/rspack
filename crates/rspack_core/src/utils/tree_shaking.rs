@@ -126,16 +126,18 @@ mod test_tree_shaking {
         ..Default::default()
       })
     };
-    compiler
-      .parse_js(
-        fm,
-        &handler,
-        swc_ecma_visit::swc_ecma_ast::EsVersion::Es2022,
-        syntax,
-        IsModule::Bool(true),
-        Some(&comments),
-      )
-      .map(|prog| prog.expect_module())
+    GLOBALS.set(&Default::default(), || {
+      compiler
+        .parse_js(
+          fm,
+          &handler,
+          swc_ecma_visit::swc_ecma_ast::EsVersion::Es2022,
+          syntax,
+          IsModule::Bool(true),
+          Some(&comments),
+        )
+        .map(|prog| prog.expect_module())
+    })
   }
   #[test]
   fn test_tree_shaking_dump() {

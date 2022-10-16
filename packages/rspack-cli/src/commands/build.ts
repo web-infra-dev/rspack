@@ -1,5 +1,4 @@
-import { build } from "@rspack/core";
-import { RspackCLI } from "../rspack-cli";
+import type { RspackCLI } from "../rspack-cli";
 import { RspackCommand } from "../types";
 import { commonOptions } from "../utils/options";
 export class BuildCommand implements RspackCommand {
@@ -11,7 +10,7 @@ export class BuildCommand implements RspackCommand {
 			async options => {
 				console.time("build");
 				const compiler = await cli.createCompiler(options);
-				const stats = await compiler.build();
+				// const stats = await compiler.build();
 				console.timeEnd("build");
 			}
 		);

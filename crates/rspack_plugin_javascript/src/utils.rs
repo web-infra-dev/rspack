@@ -1,10 +1,16 @@
 use crate::{RSPACK_DYNAMIC_IMPORT, RSPACK_REQUIRE};
+use dashmap::DashMap;
+use hashbrown::hash_map::DefaultHashBuilder;
 use once_cell::sync::Lazy;
-use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
-use rspack_core::{ErrorSpan, ModuleType, TargetPlatform, PATH_START_BYTE_POS_MAP};
+use pathdiff::diff_paths;
+use rspack_core::rspack_sources::{
+  BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt,
+};
+use rspack_core::{Compilation, ErrorSpan, ModuleType, TargetPlatform, PATH_START_BYTE_POS_MAP};
 use rspack_error::{
   errors_to_diagnostics, DiagnosticKind, Error, IntoTWithDiagnosticArray, TWithDiagnosticArray,
 };
+use serde_json::json;
 use std::path::Path;
 use std::sync::Arc;
 use swc::{config::IsModule, Compiler as SwcCompiler};
@@ -30,34 +36,31 @@ pub fn get_swc_compiler() -> Arc<SwcCompiler> {
 /// need to return those error for better dx, some warning behavior may lead some unexpected result.
 /// 2. We can't convert to [rspack_error::Error] at this point, because there is no `path` and `source`
 pub fn parse_js(
-  compiler: &SwcCompiler,
   fm: Arc<SourceFile>,
   target: EsVersion,
   syntax: Syntax,
   is_module: IsModule,
   comments: Option<&dyn Comments>,
 ) -> Result<(Program, Vec<swc_ecma_parser::error::Error>), Vec<swc_ecma_parser::error::Error>> {
-  compiler.run(|| {
-    let mut errors = vec![];
-    let program_result = match is_module {
-      IsModule::Bool(true) => {
-        parse_file_as_module(&fm, syntax, target, comments, &mut errors).map(Program::Module)
-      }
-      IsModule::Bool(false) => {
-        parse_file_as_script(&fm, syntax, target, comments, &mut errors).map(Program::Script)
-      }
-      IsModule::Unknown => parse_file_as_program(&fm, syntax, target, comments, &mut errors),
-    };
-
-    // Using combinator will let rustc unhappy.
-    match program_result {
-      Ok(program) => Ok((program, errors)),
-      Err(err) => {
-        errors.push(err);
-        Err(errors)
-      }
+  let mut errors = vec![];
+  let program_result = match is_module {
+    IsModule::Bool(true) => {
+      parse_file_as_module(&fm, syntax, target, comments, &mut errors).map(Program::Module)
     }
-  })
+    IsModule::Bool(false) => {
+      parse_file_as_script(&fm, syntax, target, comments, &mut errors).map(Program::Script)
+    }
+    IsModule::Unknown => parse_file_as_program(&fm, syntax, target, comments, &mut errors),
+  };
+
+  // Using combinator will let rustc unhappy.
+  match program_result {
+    Ok(program) => Ok((program, errors)),
+    Err(err) => {
+      errors.push(err);
+      Err(errors)
+    }
+  }
 }
 pub fn parse_file(
   source_code: String,
@@ -72,7 +75,6 @@ pub fn parse_file(
   PATH_START_BYTE_POS_MAP.insert(filename.to_string(), fm.start_pos.0);
 
   match parse_js(
-    &compiler,
     fm,
     swc_ecma_ast::EsVersion::Es2022,
     syntax,
@@ -283,4 +285,46 @@ pub fn ecma_parse_error_to_rspack_error(
   .with_kind(diagnostic_kind);
   rspack_error::Error::TraceableError(traceable_error)
   //Use this `Error` convertion could avoid eagerly clone source file.
+}
+
+pub fn wrap_eval_source_map(
+  module_source: BoxSource,
+  cache: &DashMap<BoxSource, BoxSource, DefaultHashBuilder>,
+  compilation: &Compilation,
+) -> rspack_error::Result<BoxSource> {
+  if let Some(cached) = cache.get(&module_source) {
+    return Ok(cached.clone());
+  }
+  if let Some(mut map) = module_source.map(&MapOptions::new(compilation.options.devtool.cheap())) {
+    for source in map.sources_mut() {
+      let uri = if source.starts_with('<') && source.ends_with('>') {
+        &source[1..source.len() - 1] // remove '<' and '>' for swc FileName::Custom
+      } else {
+        &source[..]
+      };
+      *source = if let Some(relative_path) = diff_paths(uri, &compilation.options.context) {
+        relative_path.to_string_lossy().to_string()
+      } else {
+        uri.to_owned()
+      };
+    }
+    if compilation.options.devtool.no_sources() {
+      for content in map.sources_content_mut() {
+        *content = String::default();
+      }
+    }
+    let mut map_buffer = Vec::new();
+    map
+      .to_writer(&mut map_buffer)
+      .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?;
+    let base64 = base64::encode(&map_buffer);
+    let footer =
+      format!("\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}");
+    let content = module_source.source().to_string();
+    let result = RawSource::from(format!("eval({});", json!(content + &footer))).boxed();
+    cache.insert(module_source, result.clone());
+    Ok(result)
+  } else {
+    Ok(module_source)
+  }
 }
