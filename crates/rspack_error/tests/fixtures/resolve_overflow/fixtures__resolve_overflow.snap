@@ -1,0 +1,12 @@
+---
+source: crates/rspack_error/tests/fixtures.rs
+assertion_line: 38
+expression: resolve_overflow
+---
+error[internal]: Resolve error
+  ┌─ tests/fixtures/resolve_overflow/index.js:1:1
+  │
+1 │ import { a } from "cycle-alias/a";
+  │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Can't resolve "cycle-alias/a", maybe it had cycle alias
+
+

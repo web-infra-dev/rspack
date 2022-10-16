@@ -27,22 +27,27 @@ pub async fn resolve(
       .resolver
       .resolve(base_dir, args.specifier)
       .map_err(|error| {
-        if let Error::BatchErrors(_) = error {
-          if let Some(importer) = args.importer {
-            let span = args.span.unwrap_or_default();
-            Error::TraceableError(TraceableError::from_path(
-              importer.to_string(),
-              span.start as usize,
-              span.end as usize,
-              "Resolve error".to_string(),
-              format!("Failed to resolve {}", args.specifier),
-            ))
+        let is_overflow = matches!(error, Error::InternalError(_));
+        let is_failed_tag = matches!(error, Error::BatchErrors(_));
+        if !is_failed_tag && !is_overflow {
+          error
+        } else if let Some(importer) = args.importer {
+          let span = args.span.unwrap_or_default();
+          let message = if is_overflow {
+            format!(
+              "Can't resolve {:?}, maybe it had cycle alias",
+              args.specifier
+            )
           } else {
-            Error::InternalError(format!(
-              "fail to resolved importer:{:?},specifier:{:?}",
-              args.importer, args.specifier
-            ))
-          }
+            format!("Failed to resolve {}", args.specifier)
+          };
+          Error::TraceableError(TraceableError::from_path(
+            importer.to_string(),
+            span.start as usize,
+            span.end as usize,
+            "Resolve error".to_string(),
+            message,
+          ))
         } else {
           error
         }
