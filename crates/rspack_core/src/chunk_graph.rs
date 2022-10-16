@@ -93,7 +93,7 @@ impl ChunkGraph {
     chunk_graph_chunk.modules.remove(module_uri);
   }
 
-  pub(crate) fn connect_chunk_and_module(&mut self, chunk: ChunkUkey, module_uri: String) {
+  pub fn connect_chunk_and_module(&mut self, chunk: ChunkUkey, module_uri: String) {
     let chunk_graph_module = self.get_chunk_graph_module_mut(&module_uri);
     chunk_graph_module.chunks.insert(chunk);
 

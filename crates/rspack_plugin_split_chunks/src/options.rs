@@ -98,11 +98,12 @@ impl Debug for CacheGroup {
   }
 }
 
+#[derive(Clone)]
 pub enum ChunkType {
   Initial,
   Async,
   All,
-  Custom(Box<dyn Fn(&Chunk) -> bool + Sync + Send>),
+  // Custom(Box<dyn Fn(&Chunk) -> bool + Sync + Send>),
 }
 
 impl TryFrom<&str> for ChunkType {
@@ -124,7 +125,7 @@ impl ChunkType {
       ChunkType::Initial => chunk.can_be_initial(chunk_group_by_ukey),
       ChunkType::Async => !chunk.can_be_initial(chunk_group_by_ukey),
       ChunkType::All => true,
-      ChunkType::Custom(f) => f(chunk),
+      // ChunkType::Custom(f) => f(chunk),
     }
   }
 }
@@ -135,11 +136,12 @@ impl Debug for ChunkType {
       Self::Initial => write!(f, "Initial"),
       Self::Async => write!(f, "Async"),
       Self::All => write!(f, "All"),
-      Self::Custom(_) => write!(f, "Custom"),
+      // Self::Custom(_) => write!(f, "Custom"),
     }
   }
 }
 
+#[derive(Clone)]
 pub struct CacheGroupOptions {
   pub priority: isize,
   pub reuse_existing_chunk: bool,

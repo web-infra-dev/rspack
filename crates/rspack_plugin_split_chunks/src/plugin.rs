@@ -97,7 +97,7 @@ pub struct SplitChunksPlugin {
 }
 
 pub fn create_cache_group_source(
-  options: &CacheGroupOptions,
+  options: CacheGroupOptions,
   key: String,
   default_size_types: &[SizeType],
 ) -> CacheGroupSource {
@@ -159,7 +159,12 @@ pub fn create_cache_group_source(
     key,
     priority: options.priority,
     get_name,
-    chunks_filter: Arc::new(move |_| false),
+    chunks_filter: Arc::new(move |_chunk| match options.chunks {
+      crate::ChunkType::Initial => todo!("Supports initial"),
+      crate::ChunkType::Async => todo!("Supports async"),
+      crate::ChunkType::All => true,
+      // crate::ChunkType::Custom(_) => todo!(),
+    }),
     enforce: options.enforce,
     min_size,
     min_size_reduction,
@@ -181,12 +186,16 @@ pub fn create_cache_group_source(
 impl SplitChunksPlugin {
   pub fn new(options: SplitChunksOptions) -> Self {
     let cache_group_source_by_key = {
-      options.cache_groups.iter().map(|(name, group_option)| {
-        (
-          name.clone(),
-          create_cache_group_source(group_option, name.clone(), &options.default_size_types),
-        )
-      })
+      options
+        .cache_groups
+        .clone()
+        .into_iter()
+        .map(|(name, group_option)| {
+          (
+            name.clone(),
+            create_cache_group_source(group_option, name.clone(), &options.default_size_types),
+          )
+        })
     }
     .collect::<HashMap<_, _>>();
 
@@ -300,10 +309,12 @@ impl Plugin for SplitChunksPlugin {
     let mut chunks_info_map: HashMap<String, ChunksInfoItem> = Default::default();
 
     for module in compilation.module_graph.modules() {
+      println!("process module {:?}", module.uri);
       let cache_group_source_keys = self.get_cache_groups(module);
       if cache_group_source_keys.len() == 0 {
         continue;
       }
+      println!("cache_group_source_keys {:?}", cache_group_source_keys);
 
       let mut cache_group_index = 0;
       for cache_group_source in cache_group_source_keys {
@@ -313,14 +324,21 @@ impl Plugin for SplitChunksPlugin {
           chunks
         };
         if combinations.len() < cache_group.min_chunks {
+          println!(
+            "bailout because of combinations.len() {:?} < {:?} cache_group.min_chunks",
+            combinations.len(),
+            cache_group.min_chunks
+          );
           continue;
         }
 
         let selected_chunks = combinations
           .iter()
-          .filter_map(|c| compilation.chunk_by_ukey.get(c))
+          .map(|c| compilation.chunk_by_ukey.get(c).unwrap())
           .filter(|c| (cache_group.chunks_filter)(c))
           .collect::<Vec<_>>();
+
+        println!("selected_chunks {:?}", selected_chunks);
         self.add_module_to_chunks_info_map(
           cache_group,
           cache_group_index,
@@ -341,6 +359,7 @@ impl Plugin for SplitChunksPlugin {
         chunk_name.clone(),
         ChunkKind::Normal,
       );
+      compilation.chunk_graph.add_chunk(new_chunk.ukey);
 
       let used_chunks = &info
         .chunks
@@ -360,13 +379,18 @@ impl Plugin for SplitChunksPlugin {
           .chunk_by_ukey
           .get_many_mut([&new_chunk_ukey, used_chunk])
           .unwrap();
-        used_chunk.split(new_chunk, &mut compilation.chunk_group_by_ukey)
-      }
+        used_chunk.split(new_chunk, &mut compilation.chunk_group_by_ukey);
 
+        for module_uri in &info.modules {
+          compilation
+            .chunk_graph
+            .disconnect_chunk_and_module(&used_chunk.ukey, &module_uri);
+        }
+      }
       for module_uri in info.modules {
         compilation
           .chunk_graph
-          .disconnect_chunk_and_module(&new_chunk_ukey, &module_uri);
+          .connect_chunk_and_module(new_chunk_ukey, module_uri);
       }
     }
 
