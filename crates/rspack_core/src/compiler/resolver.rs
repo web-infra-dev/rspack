@@ -1,5 +1,4 @@
 use crate::Resolve;
-use nodejs_resolver::{ResolverCache, ResolverError};
 use rspack_error::{Error, Result};
 use std::collections::HashSet;
 use std::path::Path;
@@ -28,7 +27,7 @@ impl ResolveInfo {
 
 #[derive(Debug)]
 pub struct ResolverFactory {
-  cache: Arc<ResolverCache>,
+  cache: Arc<nodejs_resolver::Cache>,
   base_options: Resolve,
 }
 
@@ -41,29 +40,27 @@ impl Default for ResolverFactory {
 impl ResolverFactory {
   pub fn new(base_options: Resolve) -> Self {
     Self {
-      cache: Arc::new(ResolverCache::default()),
+      cache: Arc::new(nodejs_resolver::Cache::default()),
       base_options,
     }
   }
 
   pub fn get(&self, options: Resolve) -> Resolver {
     let options = merge_resolver_options(&self.base_options, options);
-    Resolver(nodejs_resolver::Resolver::new(
-      nodejs_resolver::ResolverOptions {
-        extensions: options.extensions,
-        alias: options.alias,
-        prefer_relative: options.prefer_relative,
-        symlinks: options.symlinks,
-        main_files: options.main_files,
-        main_fields: options.main_fields,
-        browser_field: options.browser_field,
-        condition_names: HashSet::from_iter(options.condition_names),
-        enforce_extension: None,
-        external_cache: Some(self.cache.clone()),
-        description_file: String::from("package.json"),
-        tsconfig: None,
-      },
-    ))
+    Resolver(nodejs_resolver::Resolver::new(nodejs_resolver::Options {
+      extensions: options.extensions,
+      alias: options.alias,
+      prefer_relative: options.prefer_relative,
+      symlinks: options.symlinks,
+      main_files: options.main_files,
+      main_fields: options.main_fields,
+      browser_field: options.browser_field,
+      condition_names: HashSet::from_iter(options.condition_names),
+      enforce_extension: None,
+      external_cache: Some(self.cache.clone()),
+      description_file: String::from("package.json"),
+      tsconfig: None,
+    }))
   }
 }
 
@@ -154,6 +151,8 @@ impl Resolver {
 
   #[instrument(name = "nodejs_resolver")]
   pub fn resolve(&self, path: &Path, request: &str) -> Result<ResolveResult> {
+    use nodejs_resolver::Error::*;
+
     self
       .0
       .resolve(path, request)
@@ -166,14 +165,15 @@ impl Resolver {
         nodejs_resolver::ResolveResult::Ignored => ResolveResult::Ignored,
       })
       .map_err(|error| match error {
-        ResolverError::Io(error) => Error::Io { source: error },
-        ResolverError::UnexpectedJson((json_path, error)) => Error::Anyhow {
+        Io(error) => Error::Io { source: error },
+        UnexpectedJson((json_path, error)) => Error::Anyhow {
           source: anyhow::Error::msg(format!("{:?} in {:?}", error, json_path)),
         },
-        ResolverError::UnexpectedValue(error) => Error::Anyhow {
+        UnexpectedValue(error) => Error::Anyhow {
           source: anyhow::Error::msg(error),
         },
-        ResolverError::ResolveFailedTag => Error::BatchErrors(vec![]), // just for tag
+        ResolveFailedTag => Error::BatchErrors(vec![]), // just for tag
+        Overflow => Error::InternalError(String::new()), // tag also
       })
   }
 }
