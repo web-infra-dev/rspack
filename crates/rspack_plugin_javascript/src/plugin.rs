@@ -12,8 +12,8 @@ use rspack_core::rspack_sources::{
 };
 use rspack_core::{
   get_contenthash, AstOrSource, ChunkKind, Compilation, FilenameRenderOptions, GenerationResult,
-  ModuleAst, ModuleGraphModule, ModuleType, NormalModule, ParseContext, ParseResult,
-  ParserAndGenerator, Plugin, PluginContext, PluginProcessAssetsOutput,
+  JavascriptAstExtend, ModuleAst, ModuleGraphModule, ModuleType, NormalModule, ParseContext,
+  ParseResult, ParserAndGenerator, Plugin, PluginContext, PluginProcessAssetsOutput,
   PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, ProcessAssetsArgs,
   RenderManifestEntry, RenderRuntimeArgs, SourceType, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
 };
@@ -101,7 +101,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     Ok(
       ParseResult {
-        ast_or_source: AstOrSource::Ast(ModuleAst::JavaScript(processed_ast)),
+        ast_or_source: AstOrSource::Ast(ModuleAst::JavaScript(JavascriptAstExtend {
+          ast: processed_ast,
+          top_level_mark,
+          unresolved_mark,
+        })),
         dependencies: dep_scanner.dependencies.into_iter().collect(),
       }
       .with_diagnostic(diagnostics),

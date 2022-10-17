@@ -12,6 +12,7 @@ use tracing::instrument;
 
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity};
 use rspack_sources::BoxSource;
+use swc_ecma_visit::VisitWith;
 use ustr::ustr;
 
 use crate::{
@@ -462,13 +463,37 @@ impl Compilation {
   }
 
   pub async fn optimize_dependency(&mut self) -> Result<()> {
+    let dep_to_module_uri = &self.module_graph.dependency_to_module_uri;
     self
       .module_graph
       .uri_to_module
       .par_iter()
       .for_each(|(k, v)| {
         let uri_key = ustr(k);
-        dbg!(&uri_key);
+        let ast = match v.module_type {
+          crate::ModuleType::Js
+          | crate::ModuleType::Jsx
+          | crate::ModuleType::Tsx
+          | crate::ModuleType::Ts => v.module.ast().unwrap(),
+          // Of course this is unsafe, but if we can't get a ast of a javascript module, then panic is ideal.
+          _ => {
+            // Ignore analyzing other module for now
+            return;
+          }
+        };
+        // dep;
+        let JavascriptAstExtend {
+          ast,
+          top_level_mark,
+          unresolved_mark,
+        } = ast.as_javascript().unwrap();
+        dbg!(unresolved_mark);
+        ast.visit_with(&mut ModuleRefAnalyze::new(
+          *top_level_mark,
+          *unresolved_mark,
+          uri_key,
+          &dep_to_module_uri,
+        ))
       });
     Ok(())
   }

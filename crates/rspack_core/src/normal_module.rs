@@ -16,6 +16,7 @@ use rspack_sources::{
   BoxSource, OriginalSource, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
   WithoutOriginalOptions,
 };
+use swc_common::Mark;
 
 use crate::{
   Compilation, CompilationContext, CompilerContext, CompilerOptions, Dependency,
@@ -238,7 +239,11 @@ impl From<ModuleAst> for AstOrSource {
 
 impl From<swc_ecma_ast::Program> for AstOrSource {
   fn from(program: swc_ecma_ast::Program) -> Self {
-    AstOrSource::Ast(ModuleAst::JavaScript(program))
+    AstOrSource::Ast(ModuleAst::JavaScript(JavascriptAstExtend {
+      unresolved_mark: Mark::root(),
+      top_level_mark: Mark::root(),
+      ast: program,
+    }))
   }
 }
 
