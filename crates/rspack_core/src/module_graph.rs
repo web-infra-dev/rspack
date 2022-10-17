@@ -1,9 +1,11 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use dashmap::{
-  mapref::one::{Ref, RefMut},
-  DashMap, DashSet,
-};
+// use dashmap::{
+//   mapref::one::{Ref, RefMut},
+//   DashMap, DashSet,
+// };
+
+use hashbrown::{HashMap, HashSet};
 
 use rspack_error::{Error, Result};
 
@@ -56,22 +58,22 @@ impl ModuleGraphConnection {
 
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
-  dependency_id_to_module_identifier: DashMap<u32, String>,
+  dependency_id_to_module_identifier: HashMap<u32, String>,
 
-  pub module_identifier_to_module: DashMap<ModuleIdentifier, NormalModule>,
-  pub module_identifier_to_module_graph_module: DashMap<ModuleIdentifier, ModuleGraphModule>,
+  pub module_identifier_to_module: HashMap<ModuleIdentifier, NormalModule>,
+  pub module_identifier_to_module_graph_module: HashMap<ModuleIdentifier, ModuleGraphModule>,
 
-  dependency_id_to_connection_id: DashMap<u32, u32>,
-  dependency_id_to_dependency: DashMap<u32, Dependency>,
-  dependency_to_dependency_id: DashMap<Dependency, u32>,
+  dependency_id_to_connection_id: HashMap<u32, u32>,
+  dependency_id_to_dependency: HashMap<u32, Dependency>,
+  dependency_to_dependency_id: HashMap<Dependency, u32>,
 
-  pub connections: DashSet<ModuleGraphConnection>,
-  connection_id_to_connection: DashMap<u32, ModuleGraphConnection>,
+  pub connections: HashSet<ModuleGraphConnection>,
+  connection_id_to_connection: HashMap<u32, ModuleGraphConnection>,
 }
 
 impl ModuleGraph {
-  pub fn add_module_graph_module(&self, module_graph_module: ModuleGraphModule) {
-    if let dashmap::mapref::entry::Entry::Vacant(val) = self
+  pub fn add_module_graph_module(&mut self, module_graph_module: ModuleGraphModule) {
+    if let hashbrown::hash_map::Entry::Vacant(val) = self
       .module_identifier_to_module_graph_module
       .entry(module_graph_module.module_identifier.clone())
     {
@@ -79,20 +81,20 @@ impl ModuleGraph {
     }
   }
 
-  pub fn add_module(&self, module: NormalModule) {
-    // if let hashbrown::hash_map::Entry::Vacant(val) =
-    //   self.module_identifier_to_module.entry(module.identifier())
-    // {
-    //   val.insert(RwLock::new(module));
-    // }
-    if let dashmap::mapref::entry::Entry::Vacant(val) =
+  pub fn add_module(&mut self, module: NormalModule) {
+    if let hashbrown::hash_map::Entry::Vacant(val) =
       self.module_identifier_to_module.entry(module.identifier())
     {
       val.insert(module);
     }
+    // if let dashmap::mapref::entry::Entry::Vacant(val) =
+    //   self.module_identifier_to_module.entry(module.identifier())
+    // {
+    //   val.insert(module);
+    // }
   }
 
-  pub fn add_dependency(&self, (dep, dependency_id): (Dependency, u32), resolved_uri: String) {
+  pub fn add_dependency(&mut self, (dep, dependency_id): (Dependency, u32), resolved_uri: String) {
     self
       .dependency_id_to_dependency
       .insert(dependency_id, dep.clone());
@@ -103,10 +105,7 @@ impl ModuleGraph {
       .insert(dependency_id, resolved_uri);
   }
 
-  pub fn module_by_dependency(
-    &self,
-    dep: &Dependency,
-  ) -> Option<Ref<'_, String, ModuleGraphModule>> {
+  pub fn module_by_dependency(&self, dep: &Dependency) -> Option<&ModuleGraphModule> {
     self
       .dependency_to_dependency_id
       .get(dep)
@@ -123,7 +122,7 @@ impl ModuleGraph {
   }
 
   pub fn set_resolved_module(
-    &self,
+    &mut self,
     original_module_identifier: Option<ModuleIdentifier>,
     dependency_id: u32,
     module_identifier: ModuleIdentifier,
@@ -149,7 +148,7 @@ impl ModuleGraph {
 
     {
       let mgm = self
-        .module_graph_module_by_identifier(&module_identifier)
+        .module_graph_module_by_identifier_mut(&module_identifier)
         .ok_or_else(|| {
           Error::InternalError(format!(
             "Failed to set resolved module: Module linked to module identifier {} cannot be found",
@@ -161,7 +160,7 @@ impl ModuleGraph {
     }
 
     if let Some(identifier) = original_module_identifier && let Some(original_mgm) = self.
-    module_graph_module_by_identifier(&identifier) {
+    module_graph_module_by_identifier_mut(&identifier) {
         original_mgm.add_outgoing_connection(connection_id);
     };
 
@@ -169,28 +168,22 @@ impl ModuleGraph {
   }
 
   #[inline]
-  pub fn module_by_uri(&self, uri: &str) -> Option<Ref<'_, String, ModuleGraphModule>> {
+  pub fn module_by_uri(&self, uri: &str) -> Option<&ModuleGraphModule> {
     self.module_identifier_to_module_graph_module.get(uri)
   }
 
   #[inline]
-  pub fn module_by_identifier(&self, identifier: &str) -> Option<Ref<'_, String, NormalModule>> {
+  pub fn module_by_identifier(&self, identifier: &str) -> Option<&NormalModule> {
     self.module_identifier_to_module.get(identifier)
   }
 
   #[inline]
-  pub fn module_by_identifier_mut(
-    &self,
-    identifier: &str,
-  ) -> Option<RefMut<'_, String, NormalModule>> {
+  pub fn module_by_identifier_mut(&mut self, identifier: &str) -> Option<&mut NormalModule> {
     self.module_identifier_to_module.get_mut(identifier)
   }
 
   #[inline]
-  pub fn module_graph_module_by_identifier(
-    &self,
-    identifier: &str,
-  ) -> Option<Ref<'_, String, ModuleGraphModule>> {
+  pub fn module_graph_module_by_identifier(&self, identifier: &str) -> Option<&ModuleGraphModule> {
     self
       .module_identifier_to_module_graph_module
       .get(identifier)
@@ -198,23 +191,20 @@ impl ModuleGraph {
 
   #[inline]
   pub fn module_graph_module_by_identifier_mut(
-    &self,
+    &mut self,
     identifier: &str,
-  ) -> Option<RefMut<'_, String, ModuleGraphModule>> {
+  ) -> Option<&mut ModuleGraphModule> {
     self
       .module_identifier_to_module_graph_module
       .get_mut(identifier)
   }
 
   #[inline]
-  pub fn module_by_uri_mut(&self, uri: &str) -> Option<RefMut<'_, String, ModuleGraphModule>> {
+  pub fn module_by_uri_mut(&mut self, uri: &str) -> Option<&mut ModuleGraphModule> {
     self.module_identifier_to_module_graph_module.get_mut(uri)
   }
 
-  pub fn connection_by_dependency(
-    &self,
-    dep: &Dependency,
-  ) -> Option<Ref<'_, u32, ModuleGraphConnection>> {
+  pub fn connection_by_dependency(&self, dep: &Dependency) -> Option<&ModuleGraphConnection> {
     self
       .dependency_to_dependency_id
       .get(dep)
@@ -222,10 +212,7 @@ impl ModuleGraph {
       .and_then(|id| self.connection_id_to_connection.get(&*id))
   }
 
-  pub fn connection_by_connection_id(
-    &self,
-    connection_id: u32,
-  ) -> Option<Ref<'_, u32, ModuleGraphConnection>> {
+  pub fn connection_by_connection_id(&self, connection_id: u32) -> Option<&ModuleGraphConnection> {
     self.connection_id_to_connection.get(&connection_id)
   }
 }

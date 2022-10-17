@@ -1,4 +1,3 @@
-use dashmap::mapref::one::Ref;
 use hashbrown::{HashMap, HashSet};
 
 use crate::{
@@ -129,7 +128,7 @@ impl ChunkGraph {
     &self,
     chunk: &ChunkUkey,
     module_graph: &'module ModuleGraph,
-  ) -> Vec<Ref<'module, String, ModuleGraphModule>> {
+  ) -> Vec<&'module ModuleGraphModule> {
     let chunk_graph_chunk = self.get_chunk_graph_chunk(chunk);
     chunk_graph_chunk
       .modules
@@ -143,7 +142,7 @@ impl ChunkGraph {
     chunk: &ChunkUkey,
     source_type: SourceType,
     module_graph: &'module ModuleGraph,
-  ) -> Vec<Ref<'module, String, ModuleGraphModule>> {
+  ) -> Vec<&'module ModuleGraphModule> {
     let chunk_graph_chunk = self.get_chunk_graph_chunk(chunk);
     let modules = chunk_graph_chunk
       .modules

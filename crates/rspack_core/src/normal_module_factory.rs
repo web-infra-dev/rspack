@@ -14,7 +14,7 @@ use rspack_error::{Diagnostic, Error, Result, TWithDiagnosticArray};
 use tracing::instrument;
 
 use crate::{
-  parse_to_url, resolve, CompilerOptions, FactorizeAndBuildArgs, ModuleGraph, ModuleGraphModule,
+  parse_to_url, resolve, CompilerOptions, FactorizeAndBuildArgs, ModuleGraphModule,
   ModuleIdentifier, ModuleRule, ModuleType, Msg, NormalModule, ResolveArgs, ResourceData,
   SharedPluginDriver, DEPENDENCY_ID,
 };
@@ -369,7 +369,6 @@ pub fn resolve_module_type_by_uri<T: AsRef<Path>>(uri: T) -> Option<ModuleType> 
 #[derive(Debug, Clone)]
 pub struct NormalModuleFactoryContext {
   pub module_name: Option<String>,
-  pub module_graph: Arc<ModuleGraph>,
   pub(crate) active_task_count: Arc<AtomicU32>,
   pub module_type: Option<ModuleType>,
   pub side_effects: Option<bool>,

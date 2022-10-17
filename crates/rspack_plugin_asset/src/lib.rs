@@ -377,7 +377,7 @@ impl Plugin for AssetPlugin {
 
         Ok(
           module
-            .code_generation(mgm.value(), compilation)
+            .code_generation(mgm, compilation)
             .map(|source| {
               source
                 .inner()

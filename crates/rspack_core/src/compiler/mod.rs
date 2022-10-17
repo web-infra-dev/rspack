@@ -10,7 +10,7 @@ use hashbrown::HashMap;
 use rayon::prelude::*;
 use rspack_error::{
   emitter::{DiagnosticDisplay, StdioDiagnosticDisplay},
-  Diagnostic, Error, Result, TWithDiagnosticArray,
+  Error, Result, TWithDiagnosticArray,
 };
 use rspack_sources::BoxSource;
 use tokio::sync::RwLock;
@@ -226,7 +226,11 @@ pub enum Msg {
       )>,
     >,
   ),
-  ModuleBuilt(Vec<Diagnostic>),
+  ModuleReused(TWithDiagnosticArray<(Option<ModuleIdentifier>, u32, ModuleIdentifier)>),
+  ModuleResolved(
+    TWithDiagnosticArray<(Option<ModuleIdentifier>, u32, NormalModule, Vec<Dependency>)>,
+  ),
+  ModuleGraphModuleCreated(ModuleGraphModule),
   ModuleBuiltErrorEncountered(ModuleIdentifier, Error),
   ModuleCreationCanceled,
   ModuleCreationErrorEncountered(Error),

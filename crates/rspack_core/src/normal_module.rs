@@ -7,7 +7,8 @@ use std::{
   },
 };
 
-use dashmap::{DashMap, DashSet};
+use dashmap::DashMap;
+use hashbrown::HashSet;
 
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_loader_runner::{Content, Loader, ResourceData};
@@ -28,8 +29,8 @@ pub struct ModuleGraphModule {
   pub name: Option<String>,
 
   // edges from module to module
-  pub outgoing_connections: DashSet<u32>,
-  pub incoming_connections: DashSet<u32>,
+  pub outgoing_connections: HashSet<u32>,
+  pub incoming_connections: HashSet<u32>,
 
   pub id: String,
   // pub exec_order: usize,
@@ -70,18 +71,18 @@ impl ModuleGraphModule {
     }
   }
 
-  pub fn add_incoming_connection(&self, connection_id: u32) {
+  pub fn add_incoming_connection(&mut self, connection_id: u32) {
     self.incoming_connections.insert(connection_id);
   }
 
-  pub fn add_outgoing_connection(&self, connection_id: u32) {
+  pub fn add_outgoing_connection(&mut self, connection_id: u32) {
     self.outgoing_connections.insert(connection_id);
   }
 
   pub fn incoming_connections_unordered<'m>(
     &self,
     module_graph: &'m ModuleGraph,
-  ) -> Result<impl Iterator<Item = dashmap::mapref::one::Ref<'m, u32, ModuleGraphConnection>>> {
+  ) -> Result<impl Iterator<Item = &'m ModuleGraphConnection>> {
     let result = self
       .incoming_connections
       .iter()
@@ -104,7 +105,7 @@ impl ModuleGraphModule {
   pub fn outgoing_connections_unordered<'m>(
     &self,
     module_graph: &'m ModuleGraph,
-  ) -> Result<impl Iterator<Item = dashmap::mapref::one::Ref<'m, u32, ModuleGraphConnection>>> {
+  ) -> Result<impl Iterator<Item = &'m ModuleGraphConnection>> {
     let result = self
       .outgoing_connections
       .iter()
@@ -131,10 +132,7 @@ impl ModuleGraphModule {
   //     .collect()
   // }
 
-  pub fn depended_modules<'a>(
-    &self,
-    module_graph: &'a ModuleGraph,
-  ) -> Vec<dashmap::mapref::one::Ref<'a, String, ModuleGraphModule>> {
+  pub fn depended_modules<'a>(&self, module_graph: &'a ModuleGraph) -> Vec<&'a ModuleGraphModule> {
     self
       .all_dependencies
       .iter()
@@ -146,7 +144,7 @@ impl ModuleGraphModule {
   pub fn dynamic_depended_modules<'a>(
     &self,
     module_graph: &'a ModuleGraph,
-  ) -> Vec<dashmap::mapref::one::Ref<'a, String, ModuleGraphModule>> {
+  ) -> Vec<&'a ModuleGraphModule> {
     self
       .all_dependencies
       .iter()
