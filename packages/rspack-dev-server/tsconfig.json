@@ -4,6 +4,7 @@
     "src"
   ],
   "compilerOptions": {
-    "outDir": "lib"
+    "outDir": "lib",
+    "rootDir": "src"
   }
 }
