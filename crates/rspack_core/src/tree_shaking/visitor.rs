@@ -324,10 +324,28 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             })
             .unwrap();
           dbg!(&resolved_uri);
+          import.specifiers.iter().for_each(|specifier| {});
           // import.visit_with(self);
         }
         ModuleDecl::ExportDecl(decl) => {}
-        ModuleDecl::ExportNamed(_) => todo!(),
+        ModuleDecl::ExportNamed(named_export) => {
+          let src: Option<String> = named_export.src.as_ref().map(|src| src.value.to_string());
+          if let Some(src) = src {
+            let resolved_uri = self
+              .dep_to_module_uri
+              .get(&Dependency {
+                importer: Some(self.uri.to_string()),
+                detail: crate::ModuleDependency {
+                  specifier: src,
+                  kind: ResolveKind::Import,
+                  span: None,
+                },
+              })
+              .unwrap();
+            dbg!(&resolved_uri);
+          } else {
+          }
+        }
         ModuleDecl::ExportDefaultDecl(_) => todo!(),
         ModuleDecl::ExportDefaultExpr(_) => todo!(),
         ModuleDecl::ExportAll(_) => todo!(),
