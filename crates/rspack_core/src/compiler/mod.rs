@@ -12,7 +12,6 @@ use rspack_error::{
   emitter::{DiagnosticDisplay, StdioDiagnosticDisplay},
   Error, Result, TWithDiagnosticArray,
 };
-use rspack_sources::BoxSource;
 use tokio::sync::RwLock;
 use tracing::instrument;
 
@@ -134,7 +133,11 @@ impl Compiler {
 
         std::fs::create_dir_all(Path::new(&output_path).join(filename).parent().unwrap())?;
 
-        fs::write(Path::new(&output_path).join(filename), asset.get_source().buffer()).map_err(|e| e.into())
+        fs::write(
+          Path::new(&output_path).join(filename),
+          asset.get_source().buffer(),
+        )
+        .map_err(|e| e.into())
       })
       .map_err(|e| e.into())
   }

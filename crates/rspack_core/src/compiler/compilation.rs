@@ -10,7 +10,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use tracing::instrument;
 
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result};
-use rspack_sources::{BoxSource, Source};
+use rspack_sources::BoxSource;
 
 use crate::{
   split_chunks::code_splitting, BuildContext, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup,

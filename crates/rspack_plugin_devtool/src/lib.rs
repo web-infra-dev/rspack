@@ -146,8 +146,10 @@ impl Plugin for DevtoolPlugin {
           asset.info.related.source_map = Some(source_map_filename.clone());
           args.compilation.emit_asset(filename, asset);
         }
-        let mut source_map_asset_info = AssetInfo::default();
-        source_map_asset_info.development = true;
+        let source_map_asset_info = AssetInfo {
+          development: true,
+          ..Default::default()
+        };
         args.compilation.emit_asset(
           source_map_filename,
           CompilationAsset::new(RawSource::from(map_buffer).boxed(), source_map_asset_info),

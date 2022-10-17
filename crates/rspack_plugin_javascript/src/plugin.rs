@@ -17,9 +17,9 @@ use rspack_core::rspack_sources::{
   SourceMapSource, SourceMapSourceOptions,
 };
 use rspack_core::{
-  get_contenthash, AstOrSource, ChunkKind, Compilation, CompilationAsset, FilenameRenderOptions,
-  GenerationResult, ModuleAst, ModuleGraphModule, ModuleType, NormalModule, ParseContext,
-  ParseResult, ParserAndGenerator, Plugin, PluginContext, PluginProcessAssetsOutput,
+  get_contenthash, AstOrSource, ChunkKind, Compilation, FilenameRenderOptions, GenerationResult,
+  ModuleAst, ModuleGraphModule, ModuleType, NormalModule, ParseContext, ParseResult,
+  ParserAndGenerator, Plugin, PluginContext, PluginProcessAssetsOutput,
   PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderManifestEntry, SourceType,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
