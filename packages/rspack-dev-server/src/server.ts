@@ -109,11 +109,12 @@ export class RspackDevServer {
 		if (this.options.liveReload) {
 			watcher.on("change", item => {
 				if (this.webSocketServer) {
-					this.sendMessage(
-						this.webSocketServer.clients,
-						"static-changed",
-						item
-					);
+					// TODO: after memory FileSystem
+					// this.sendMessage(
+					// 	this.webSocketServer.clients,
+					// 	"static-changed",
+					// 	item
+					// );
 				}
 			});
 		}
@@ -128,8 +129,13 @@ export class RspackDevServer {
 	}
 
 	async start(): Promise<void> {
-		this.initialize();
+		this.setupApp();
+		this.createServer();
+		this.setupWatchStaticFiles();
 		this.createWebsocketServer();
+		this.setupDevMiddleware();
+		this.setupMiddlewares();
+
 		await new Promise(resolve =>
 			this.server.listen(
 				{
@@ -171,14 +177,6 @@ export class RspackDevServer {
 		}
 	}
 
-	private initialize() {
-		this.setupApp();
-		this.setupDevMiddleware();
-		this.setupWatchStaticFiles();
-		this.setupMiddlewares();
-		this.createServer();
-	}
-
 	private setupApp() {
 		this.app = express();
 	}
@@ -191,7 +189,11 @@ export class RspackDevServer {
 	}
 
 	private setupDevMiddleware() {
-		this.middleware = rdm(this.compiler, this.options.devMiddleware);
+		this.middleware = rdm(
+			this.compiler,
+			this.options.devMiddleware,
+			this.webSocketServer
+		);
 	}
 
 	private createWebsocketServer() {

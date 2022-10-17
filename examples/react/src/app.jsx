@@ -18,7 +18,7 @@ import './index.less';
 const App = () => {
   return (
     <React.Suspense fallback={<div>loading...</div>}>
-      <div>hello world</div>
+      <div>hello3 world</div>
       {/* <Button></Button> */}
 
       <img

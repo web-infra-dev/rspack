@@ -163,6 +163,7 @@ impl Compiler {
       // TODO: use hash;
       modules
         .map(|item| {
+          // TODO: return `filename` in manifest.
           let uri = item.uri.to_string();
           // TODO: it soo slowly, should use cache to instead.
           let code = item.module.code_generation(item, s.compilation).unwrap();

@@ -1,18 +1,14 @@
 import * as binding from "@rspack/binding";
 import { resolveWatchOption } from "./config/watch";
-import type { Watch, ResolvedWatch } from "./config/watch";
+import type { Watch } from "./config/watch";
 import type { ExternalObject, RspackInternal } from "@rspack/binding";
 import * as tapable from "tapable";
 import { SyncHook } from "tapable";
-import {
-	RspackOptions,
-	ResolvedRspackOptions,
-	Asset,
-	resolveOptions
-} from "./config";
-
+import type { RspackOptions, ResolvedRspackOptions, Asset } from "./config";
 import { Stats } from "./stats";
 import { Compilation } from "./compilation";
+import path from "path";
+
 export interface RspackThreadsafeContext<T> {
 	readonly id: number;
 	readonly inner: T;
@@ -109,7 +105,10 @@ class Compiler {
 		return stats;
 	}
 
-	async watch(watchOptions?: Watch): Promise<Watching> {
+	// TODO: use ws to send message to client temporary.
+	// TODO: we should use `Stats` which got from `hooks.done`
+	// TODO: in `dev-server`
+	async watch(watchOptions?: Watch, ws?: any): Promise<Watching> {
 		const options = resolveWatchOption(watchOptions);
 
 		const watcher = (await import("chokidar")).default.watch(
@@ -119,14 +118,37 @@ class Compiler {
 				...options
 			}
 		);
-		let stats = await this.build();
+		let _ = await this.build();
 
 		watcher.on("change", async () => {
 			// TODO: only build because we lack the snapshot info of file.
 			// TODO: it means there a lot of things to do....
 			const begin = Date.now();
 			console.log("hit change and start to build");
+			// rebuild is not the best choice,
 			const diffStats = await this.rebuild();
+
+			for (const [uri, stats] of Object.entries(diffStats)) {
+				let relativePath = path.relative(this.options.context, uri);
+				if (
+					!(relativePath.startsWith("../") || relativePath.startsWith("./"))
+				) {
+					relativePath = "./" + relativePath;
+				}
+
+				// send Message
+				if (ws) {
+					const data = JSON.stringify({
+						uri: relativePath,
+						content: stats.content
+					});
+
+					for (const client of ws.clients) {
+						client.send(JSON.stringify({ type: "update", data }));
+					}
+				}
+			}
+
 			console.log("build success, time cost", Date.now() - begin);
 		});
 

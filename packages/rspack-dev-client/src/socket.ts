@@ -4,6 +4,7 @@ export interface Handler {
 	ok(): void;
 	close(): void;
 	"static-changed"(): void;
+	"update"(data: string): void;
 }
 
 let retries = 0;
@@ -45,7 +46,7 @@ const socket = function initSocket(
 
 	client.onMessage((data: any) => {
 		const message = JSON.parse(data);
-		console.log("hit messge", message);
+		console.log("hit message", message);
 
 		if (handlers[message.type]) {
 			handlers[message.type](message.data, message.params);

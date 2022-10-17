@@ -8,6 +8,7 @@ interface ObjURL {
 	hash?: string;
 	slashes?: boolean;
 }
+
 function format(objURL: ObjURL): string {
 	let protocol = objURL.protocol || "";
 
