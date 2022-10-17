@@ -14,56 +14,44 @@ use crate::{
 pub fn create_cache_group(group_source: &CacheGroupSource) -> CacheGroup {
   let min_size = {
     let mut cloned = group_source.min_size.clone();
-    cloned.extend(if group_source.enforce {
-      HashMap::new()
-    } else {
-      group_source.enforce_size_threshold.clone()
-    });
+    if !group_source.enforce {
+      cloned.extend(group_source.enforce_size_threshold.clone());
+    }
     cloned
   };
   let min_size_reduction = {
     let mut cloned = group_source.min_size_reduction.clone();
-    cloned.extend(if group_source.enforce {
-      HashMap::new()
-    } else {
-      group_source.enforce_size_threshold.clone()
-    });
+    if !group_source.enforce {
+      cloned.extend(group_source.enforce_size_threshold.clone());
+    }
     cloned
   };
   let min_remaining_size = {
     let mut cloned = group_source.min_remaining_size.clone();
-    cloned.extend(if group_source.enforce {
-      HashMap::new()
-    } else {
-      group_source.enforce_size_threshold.clone()
-    });
+    if !group_source.enforce {
+      cloned.extend(group_source.enforce_size_threshold.clone());
+    }
     cloned
   };
   let enforce_size_threshold = {
     let mut cloned = group_source.enforce_size_threshold.clone();
-    cloned.extend(if group_source.enforce {
-      HashMap::new()
-    } else {
-      group_source.enforce_size_threshold.clone()
-    });
+    if !group_source.enforce {
+      cloned.extend(group_source.enforce_size_threshold.clone());
+    }
     cloned
   };
   let max_async_size = {
     let mut cloned = group_source.max_async_size.clone();
-    cloned.extend(if group_source.enforce {
-      HashMap::new()
-    } else {
-      group_source.enforce_size_threshold.clone()
-    });
+    if !group_source.enforce {
+      cloned.extend(group_source.enforce_size_threshold.clone());
+    }
     cloned
   };
   let max_initial_size = {
     let mut cloned = group_source.max_initial_size.clone();
-    cloned.extend(if group_source.enforce {
-      HashMap::new()
-    } else {
-      group_source.enforce_size_threshold.clone()
-    });
+    if !group_source.enforce {
+      cloned.extend(group_source.enforce_size_threshold.clone());
+    }
     cloned
   };
   let get_name = group_source.get_name.clone();
