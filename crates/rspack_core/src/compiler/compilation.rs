@@ -4,9 +4,9 @@ use std::{
   sync::Arc,
 };
 
-use dashmap::{DashMap, DashSet};
 use futures::{stream::FuturesUnordered, StreamExt};
 use hashbrown::HashMap;
+use tokio::sync::mpsc::UnboundedSender;
 use tracing::instrument;
 
 use rspack_error::{Diagnostic, Result};
@@ -15,9 +15,9 @@ use rspack_sources::BoxSource;
 use crate::{
   split_chunks::code_splitting, BuildContext, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup,
   ChunkGroupUkey, ChunkKind, ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint,
-  LoaderRunnerRunner, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg,
-  NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs,
-  RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver, VisitedModuleIdentity,
+  LoaderRunnerRunner, ModuleDependency, ModuleGraph, ModuleRule, Msg, NormalModuleFactory,
+  NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs,
+  ResolveKind, Runtime, SharedPluginDriver, VisitedModuleIdentity,
 };
 
 #[derive(Debug)]
@@ -128,7 +128,6 @@ impl Compilation {
         NormalModuleFactoryContext {
           module_name: Some(name),
           active_task_count: active_task_count.clone(),
-          visited_module_identity: self.visited_module_id.clone(),
           module_type: None,
           side_effects: None,
           module_graph: self.module_graph.clone(),
@@ -137,7 +136,6 @@ impl Compilation {
         dep,
         tx.clone(),
         self.plugin_driver.clone(),
-        self.loader_runner_runner.clone(),
       );
 
       tokio::task::spawn(async move { normal_module_factory.create().await });
@@ -154,11 +152,13 @@ impl Compilation {
 
             self.module_graph.add_module_graph_module(mgm);
             self.module_graph.add_module(module);
-            self.module_graph.set_resolved_module(
+            if let Err(err) = self.module_graph.set_resolved_module(
               original_module_identifier,
               dependency_id,
               module_identifier.clone(),
-            );
+            ) {
+              self.push_batch_diagnostic(err.into())
+            };
 
             if self
               .visited_module_id
@@ -177,12 +177,12 @@ impl Compilation {
             let loader_runner_runner = self.loader_runner_runner.clone();
             let active_task_count = active_task_count.clone();
             let plugin_driver = self.plugin_driver.clone();
-            let visited_module_id = self.visited_module_id.clone();
             let tx = tx.clone();
+
             tokio::spawn(async move {
               if let Some(mut module) = module_graph.module_by_identifier_mut(&module_identifier) {
                 let resource_data = module.resource_resolved_data();
-                let resolved_loaders = compiler_options
+                let resolved_loaders = match compiler_options
                 .module
                 .rules
                 .iter()
@@ -216,13 +216,22 @@ impl Compilation {
 
                   None
                 })
-                // FIXME: add to diagnostics
-                .collect::<Result<Vec<_>>>().expect("Failed to resolve loaders")
-                .into_iter()
-                .flat_map(|module_rule| {
-                  module_rule.uses.iter().map(Box::as_ref).rev()
-                })
-                .collect::<Vec<_>>();
+                .collect::<Result<Vec<_>>>() {
+                  Ok(result) => result,
+                  Err(err) => {
+                    if let Err(err) =
+                      tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err))
+                    {
+                      tracing::trace!("fail to send msg {:?}", err)
+                    }
+                    return
+                  }
+                };
+
+                let resolved_loaders = resolved_loaders
+                  .into_iter()
+                  .flat_map(|module_rule| module_rule.uses.iter().map(Box::as_ref).rev())
+                  .collect::<Vec<_>>();
 
                 match module
                   .build(BuildContext {
@@ -237,7 +246,6 @@ impl Compilation {
                     drop(module);
 
                     let (build_result, diagnostics) = build_result.split_into_parts();
-                    // self.diagnostic.append(&mut diagnostics);
 
                     let deps = build_result
                       .dependencies
@@ -249,27 +257,15 @@ impl Compilation {
                       })
                       .collect::<Vec<_>>();
 
-                    deps.iter().for_each(|dep| {
-                      let normal_module_factory = NormalModuleFactory::new(
-                        NormalModuleFactoryContext {
-                          module_name: None,
-                          module_type: None,
-                          active_task_count: active_task_count.clone(),
-                          visited_module_identity: visited_module_id.clone(),
-                          side_effects: None,
-                          module_graph: module_graph.clone(),
-                          options: compiler_options.clone(),
-                        },
-                        dep.clone(),
-                        tx.clone(),
-                        plugin_driver.clone(),
-                        loader_runner_runner.clone(),
-                      );
+                    Compilation::process_module_dependencies(
+                      &deps,
+                      active_task_count.clone(),
+                      tx.clone(),
+                      module_graph.clone(),
+                      plugin_driver.clone(),
+                      compiler_options.clone(),
+                    );
 
-                      tokio::task::spawn(async move {
-                        normal_module_factory.create().await;
-                      });
-                    });
                     {
                       let mut module_graph_module = module_graph
                         .module_graph_module_by_identifier_mut(&module_identifier)
@@ -335,6 +331,36 @@ impl Compilation {
     // println!("m: {:#?}", self.module_graph.module_identifier_to_module);
     tracing::debug!("module graph {:#?}", self.module_graph);
   }
+
+  fn process_module_dependencies(
+    dependencies: &[Dependency],
+    active_task_count: Arc<AtomicU32>,
+    tx: UnboundedSender<Msg>,
+    module_graph: Arc<ModuleGraph>,
+    plugin_driver: SharedPluginDriver,
+    compiler_options: Arc<CompilerOptions>,
+  ) {
+    dependencies.iter().for_each(|dep| {
+      let normal_module_factory = NormalModuleFactory::new(
+        NormalModuleFactoryContext {
+          module_name: None,
+          module_type: None,
+          active_task_count: active_task_count.clone(),
+          side_effects: None,
+          module_graph: module_graph.clone(),
+          options: compiler_options.clone(),
+        },
+        dep.clone(),
+        tx.clone(),
+        plugin_driver.clone(),
+      );
+
+      tokio::task::spawn(async move {
+        normal_module_factory.create().await;
+      });
+    })
+  }
+
   #[instrument()]
   async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) {
     let chunk_ukey_and_manifest = (self

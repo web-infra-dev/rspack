@@ -1,5 +1,4 @@
 use std::{
-  collections::VecDeque,
   path::{Path, PathBuf},
   sync::{
     atomic::{AtomicU32, Ordering},
@@ -7,20 +6,17 @@ use std::{
   },
 };
 
-use dashmap::DashMap;
 use sugar_path::PathSugar;
 use swc_common::Span;
 use tokio::sync::mpsc::UnboundedSender;
 
 use rspack_error::{Diagnostic, Error, Result, TWithDiagnosticArray};
-use rspack_loader_runner::Loader;
 use tracing::instrument;
 
 use crate::{
-  parse_to_url, resolve, BuildContext, CompilationContext, CompilerContext, CompilerOptions,
-  FactorizeAndBuildArgs, LoaderRunnerRunner, ModuleGraph, ModuleGraphConnection, ModuleGraphModule,
+  parse_to_url, resolve, CompilerOptions, FactorizeAndBuildArgs, ModuleGraph, ModuleGraphModule,
   ModuleIdentifier, ModuleRule, ModuleType, Msg, NormalModule, ResolveArgs, ResourceData,
-  SharedPluginDriver, VisitedModuleIdentity, DEPENDENCY_ID,
+  SharedPluginDriver, DEPENDENCY_ID,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -41,16 +37,6 @@ pub struct Dependency {
 //   }
 // }
 
-// pub struct ModuleBuildTask {
-//   tx: UnboundedSender<Msg>,
-// }
-
-// impl ModuleBuildTask {
-//   pub fn add(&mut self, module_identifier: ModuleIdentifier) {
-//     self.tasks.push_back(module_identifier);
-//   }
-// }
-
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 pub enum ResolveKind {
   Import,
@@ -67,7 +53,6 @@ pub struct NormalModuleFactory {
   dependency: Dependency,
   tx: UnboundedSender<Msg>,
   plugin_driver: SharedPluginDriver,
-  loader_runner_runner: Arc<LoaderRunnerRunner>,
   diagnostic: Vec<Diagnostic>,
 }
 
@@ -77,7 +62,6 @@ impl NormalModuleFactory {
     dependency: Dependency,
     tx: UnboundedSender<Msg>,
     plugin_driver: SharedPluginDriver,
-    loader_runner_runner: Arc<LoaderRunnerRunner>,
   ) -> Self {
     context.active_task_count.fetch_add(1, Ordering::SeqCst);
 
@@ -86,7 +70,6 @@ impl NormalModuleFactory {
       dependency,
       tx,
       plugin_driver,
-      loader_runner_runner,
       diagnostic: vec![],
     }
   }
@@ -142,7 +125,7 @@ impl NormalModuleFactory {
     debug_assert_eq!(url.scheme().map(|item| item.as_str()), Some("specifier"));
     resolve_module_type_by_uri(PathBuf::from(url.path().as_str()))
   }
-  #[instrument(name = "normal_module:build")]
+  #[instrument(name = "normal_module_factory:factory_normal_module")]
   pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, NormalModule, u32)>> {
     let uri = resolve(
       ResolveArgs {
@@ -176,19 +159,6 @@ impl NormalModuleFactory {
           self.dependency
         ))
       })?;
-
-    // if self
-    //   .context
-    //   .visited_module_identity
-    //   .contains(&(uri.clone(), self.dependency.detail.clone()))
-    // {
-    //   return Ok(None);
-    // }
-
-    // self
-    //   .context
-    //   .visited_module_identity
-    //   .insert((uri.clone(), self.dependency.detail.clone()));
 
     let resource_data = ResourceData {
       resource: uri.clone(),
@@ -228,58 +198,6 @@ impl NormalModuleFactory {
     Ok(Some((uri, normal_module, dependency_id)))
   }
 
-  pub fn calculate_loaders(
-    &self,
-    resource_data: &ResourceData,
-  ) -> Result<Vec<&dyn Loader<CompilerContext, CompilationContext>>> {
-    let resolved_loaders = self
-      .context
-      .options
-      .module
-      .rules
-      .iter()
-      .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
-        if let Some(func) = &module_rule.func__ {
-          match func(resource_data) {
-            Ok(result) => {
-              if result {
-                return Some(Ok(module_rule));
-              }
-
-              return None
-            },
-            Err(e) => {
-              return Some(Err(e.into()))
-            }
-          }
-        }
-
-        // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
-        // See: https://webpack.js.org/configuration/module/#ruletest
-        if let Some(test_rule) = &module_rule.test && test_rule.is_match(&resource_data.resource) {
-          return Some(Ok(module_rule));
-        } else if let Some(resource_rule) = &module_rule.resource && resource_rule.is_match(&resource_data.resource) {
-          return Some(Ok(module_rule));
-        }
-
-        if let Some(resource_query_rule) = &module_rule.resource_query && let Some(resource_query) = &resource_data.resource_query && resource_query_rule.is_match(resource_query) {
-          return Some(Ok(module_rule));
-        }
-
-
-        None
-      })
-      .collect::<Result<Vec<_>>>()?
-      .into_iter()
-      .flat_map(|module_rule| {
-        module_rule.uses.iter().map(Box::as_ref).rev()
-      })
-      .collect::<Vec<_>>();
-
-    Ok(resolved_loaders)
-  }
-
-  // FIXME: this function is duplicated with the above one, will be fixed later.
   pub fn calculate_module_type(
     &self,
     resource_data: &ResourceData,
@@ -347,7 +265,7 @@ impl NormalModuleFactory {
     )
   }
 
-  // #[instrument(name = "normal_module:factorize")]
+  #[instrument(name = "normal_module_factory:factorize")]
   pub async fn factorize(
     &mut self,
   ) -> Result<
@@ -373,7 +291,7 @@ impl NormalModuleFactory {
       )
       .await?;
 
-    let (uri, mut module, dependency_id) = if let Some(module) = result {
+    let (uri, module, dependency_id) = if let Some(module) = result {
       // module
       let (uri, module) = module;
       // TODO: remove this
@@ -391,39 +309,11 @@ impl NormalModuleFactory {
           ))
         })?;
       (uri, module, dependency_id)
-    } else if let Some(re) = self.factorize_normal_module().await? {
-      re
+    } else if let Some(result) = self.factorize_normal_module().await? {
+      result
     } else {
       return Ok(None);
     };
-
-    // scan deps
-
-    // let build_result = module
-    //   .build(BuildContext {
-    //     loader_runner_runner: &self.loader_runner_runner,
-    //     resolved_loaders: self.calculate_loaders(module.resource_resolved_data())?,
-    //     compiler_options: &self.context.options,
-    //   })
-    //   .await?;
-
-    // let (build_result, diagnostics) = build_result.split_into_parts();
-    // self.add_diagnostics(diagnostics);
-
-    // let deps = build_result
-    //   .dependencies
-    //   .into_iter()
-    //   .map(|dep| Dependency {
-    //     importer: Some(uri.clone()),
-    //     parent_module_identifier: Some(module.identifier()),
-    //     detail: dep,
-    //   })
-    //   .collect::<Vec<_>>();
-
-    // tracing::trace!("get deps {:?}", deps);
-    // deps.iter().for_each(|dep| {
-    //   self.fork(dep.clone());
-    // });
 
     let mgm = ModuleGraphModule::new(
       self.context.module_name.clone(),
@@ -451,23 +341,22 @@ impl NormalModuleFactory {
     )))
   }
 
-  fn fork(&self, dep: Dependency) {
-    let normal_module_factory = NormalModuleFactory::new(
-      NormalModuleFactoryContext {
-        module_name: None,
-        module_type: None,
-        ..self.context.clone()
-      },
-      dep,
-      self.tx.clone(),
-      self.plugin_driver.clone(),
-      self.loader_runner_runner.clone(),
-    );
+  // fn fork(&self, dep: Dependency) {
+  //   let normal_module_factory = NormalModuleFactory::new(
+  //     NormalModuleFactoryContext {
+  //       module_name: None,
+  //       module_type: None,
+  //       ..self.context.clone()
+  //     },
+  //     dep,
+  //     self.tx.clone(),
+  //     self.plugin_driver.clone(),
+  //   );
 
-    tokio::task::spawn(async move {
-      normal_module_factory.create().await;
-    });
-  }
+  //   tokio::task::spawn(async move {
+  //     normal_module_factory.create().await;
+  //   });
+  // }
 }
 
 pub fn resolve_module_type_by_uri<T: AsRef<Path>>(uri: T) -> Option<ModuleType> {
@@ -482,7 +371,6 @@ pub struct NormalModuleFactoryContext {
   pub module_name: Option<String>,
   pub module_graph: Arc<ModuleGraph>,
   pub(crate) active_task_count: Arc<AtomicU32>,
-  pub(crate) visited_module_identity: VisitedModuleIdentity,
   pub module_type: Option<ModuleType>,
   pub side_effects: Option<bool>,
   pub options: Arc<CompilerOptions>,

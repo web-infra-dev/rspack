@@ -13,13 +13,21 @@ use crate::{Dependency, ModuleGraphModule, ModuleIdentifier, NormalModule};
 static MODULE_GRAPH_CONNECTION_ID: AtomicU32 = AtomicU32::new(1);
 pub(crate) static DEPENDENCY_ID: AtomicU32 = AtomicU32::new(1);
 
-#[derive(Debug, Clone, Hash, Eq)]
+#[derive(Debug, Clone, Eq)]
 pub struct ModuleGraphConnection {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub module_identifier: ModuleIdentifier,
   pub dependency_id: u32,
 
   pub id: u32,
+}
+
+impl std::hash::Hash for ModuleGraphConnection {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.original_module_identifier.hash(state);
+    self.module_identifier.hash(state);
+    self.dependency_id.hash(state);
+  }
 }
 
 impl std::cmp::PartialEq for ModuleGraphConnection {
