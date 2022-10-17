@@ -145,7 +145,7 @@ impl Compilation {
       match rx.recv().await {
         Some(job) => match job {
           Msg::ModuleCreated(mut module_with_diagnostic) => {
-            let (mgm, module, original_module_identifier, dependency_id, dependency) =
+            let (mgm, mut module, original_module_identifier, dependency_id, dependency) =
               *module_with_diagnostic.inner;
 
             let module_identifier = module.identifier();
@@ -173,14 +173,16 @@ impl Compilation {
               .insert((module_identifier.clone(), dependency.detail.clone()));
 
             self.module_graph.add_module_graph_module(mgm);
-            self.module_graph.add_module(module);
-            if let Err(err) = self.module_graph.set_resolved_module(
-              original_module_identifier,
-              dependency_id,
-              module_identifier.clone(),
-            ) {
-              self.push_batch_diagnostic(err.into())
-            };
+
+            // self.module_graph.add_module_graph_module(mgm);
+            // self.module_graph.add_module(module);
+            // if let Err(err) = self.module_graph.set_resolved_module(
+            //   original_module_identifier,
+            //   dependency_id,
+            //   module_identifier.clone(),
+            // ) {
+            //   self.push_batch_diagnostic(err.into())
+            // };
 
             let module_graph = self.module_graph.clone();
             let compiler_options = self.options.clone();
@@ -190,9 +192,8 @@ impl Compilation {
             let tx = tx.clone();
 
             tokio::spawn(async move {
-              if let Some(mut module) = module_graph.module_by_identifier_mut(&module_identifier) {
-                let resource_data = module.resource_resolved_data();
-                let resolved_loaders = match compiler_options
+              let resource_data = module.resource_resolved_data();
+              let resolved_loaders = match compiler_options
                 .module
                 .rules
                 .iter()
@@ -238,61 +239,77 @@ impl Compilation {
                   }
                 };
 
-                let resolved_loaders = resolved_loaders
-                  .into_iter()
-                  .flat_map(|module_rule| module_rule.uses.iter().map(Box::as_ref).rev())
-                  .collect::<Vec<_>>();
+              let resolved_loaders = resolved_loaders
+                .into_iter()
+                .flat_map(|module_rule| module_rule.uses.iter().map(Box::as_ref).rev())
+                .collect::<Vec<_>>();
 
-                match module
-                  .build(BuildContext {
-                    resolved_loaders,
-                    loader_runner_runner: &loader_runner_runner,
-                    compiler_options: &compiler_options,
-                  })
-                  .await
-                {
-                  Ok(build_result) => {
-                    let module_identifier = module.identifier();
-                    drop(module);
+              match module
+                .build(BuildContext {
+                  resolved_loaders,
+                  loader_runner_runner: &loader_runner_runner,
+                  compiler_options: &compiler_options,
+                })
+                .await
+              {
+                Ok(build_result) => {
+                  let module_identifier = module.identifier();
 
-                    let (build_result, diagnostics) = build_result.split_into_parts();
+                  module_graph.add_module(module);
 
-                    let deps = build_result
-                      .dependencies
-                      .into_iter()
-                      .map(|dep| Dependency {
-                        importer: Some(module_identifier.clone()),
-                        parent_module_identifier: Some(module_identifier.clone()),
-                        detail: dep,
-                      })
-                      .collect::<Vec<_>>();
-
-                    Compilation::process_module_dependencies(
-                      &deps,
-                      active_task_count.clone(),
-                      tx.clone(),
-                      module_graph.clone(),
-                      plugin_driver.clone(),
-                      compiler_options.clone(),
-                    );
-
-                    {
-                      let mut module_graph_module = module_graph
-                        .module_graph_module_by_identifier_mut(&module_identifier)
-                        .unwrap();
-                      module_graph_module.all_dependencies = deps;
-                    }
-
-                    if let Err(err) = tx.send(Msg::ModuleBuilt(diagnostics)) {
+                  if let Err(err) = module_graph.set_resolved_module(
+                    original_module_identifier,
+                    dependency_id,
+                    module_identifier.clone(),
+                  ) {
+                    // self.push_batch_diagnostic(err.into());
+                    if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(
+                      module_identifier,
+                      err.into(),
+                    )) {
                       tracing::trace!("fail to send msg {:?}", err)
                     }
+
+                    return;
+                  };
+
+                  let (build_result, diagnostics) = build_result.split_into_parts();
+
+                  let deps = build_result
+                    .dependencies
+                    .into_iter()
+                    .map(|dep| Dependency {
+                      importer: Some(module_identifier.clone()),
+                      parent_module_identifier: Some(module_identifier.clone()),
+                      detail: dep,
+                    })
+                    .collect::<Vec<_>>();
+
+                  Compilation::process_module_dependencies(
+                    &deps,
+                    active_task_count.clone(),
+                    tx.clone(),
+                    module_graph.clone(),
+                    plugin_driver.clone(),
+                    compiler_options.clone(),
+                  );
+
+                  {
+                    let mut module_graph_module = module_graph
+                      .module_graph_module_by_identifier_mut(&module_identifier)
+                      .unwrap();
+                    module_graph_module.all_dependencies = deps;
                   }
-                  Err(err) => {
-                    if let Err(err) =
-                      tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err))
-                    {
-                      tracing::trace!("fail to send msg {:?}", err)
-                    }
+
+                  if let Err(err) = tx.send(Msg::ModuleBuilt(diagnostics)) {
+                    tracing::trace!("fail to send msg {:?}", err)
+                  }
+                }
+                Err(err) => {
+                  if let Err(err) =
+                    tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err))
+                  {
+                    tracing::trace!("fail to send msg {:?}", err)
                   }
                 }
               }
