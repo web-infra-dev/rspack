@@ -1,6 +1,7 @@
 import path from "path";
 import fs from "fs";
 import vm from "vm";
+import util from "util";
 import { Compiler, Plugin, rspack, RspackOptions } from "../src";
 import assert from "assert";
 import createLazyTestEnv from "./helpers/createLazyTestEnv";
@@ -61,7 +62,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 								...config // we may need to use deepMerge to handle config merge, but we may fix it until we need it
 							};
 
-							const stats = await rspack(options);
+							const stats = await util.promisify(rspack)(options);
 							if (stats.errors.length > 0) {
 								console.log(
 									`case: ${example}\nerrors:\n`,

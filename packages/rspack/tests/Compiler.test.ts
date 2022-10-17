@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { getNormalizedRspackOptions, webpack } from "../src";
+import { getNormalizedRspackOptions, rspack, webpack } from "../src";
 const path = require("path");
 const Stats = require("../lib/Stats");
 const { createFsFromVolume, Volume } = require("memfs");
@@ -25,7 +25,7 @@ describe("Compiler", () => {
 			writeFile: []
 		};
 
-		const c = webpack(options);
+		const c = rspack(options);
 		const files = {};
 		// c.outputFileSystem = {
 		// 	mkdir(path, callback) {
