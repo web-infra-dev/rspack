@@ -1,6 +1,7 @@
+#![allow(unused_variables)]
+
 use std::{
   collections::{HashMap, HashSet},
-  hash::Hash,
   sync::Arc,
 };
 
@@ -92,7 +93,7 @@ pub fn create_cache_group(group_source: &CacheGroupSource) -> CacheGroup {
 #[derive(Debug)]
 pub struct SplitChunksPlugin {
   options: SplitChunksOptions,
-  cache_group_source_by_key: HashMap<String, CacheGroupSource>,
+  _cache_group_source_by_key: HashMap<String, CacheGroupSource>,
   cache_group_by_key: HashMap<String, CacheGroup>,
 }
 
@@ -193,7 +194,7 @@ impl SplitChunksPlugin {
         .map(|(name, group_option)| {
           (
             name.clone(),
-            create_cache_group_source(group_option, name.clone(), &options.default_size_types),
+            create_cache_group_source(group_option, name, &options.default_size_types),
           )
         })
     }
@@ -208,7 +209,7 @@ impl SplitChunksPlugin {
 
     Self {
       options,
-      cache_group_source_by_key,
+      _cache_group_source_by_key: cache_group_source_by_key,
       cache_group_by_key,
     }
   }
@@ -253,12 +254,12 @@ impl SplitChunksPlugin {
       .entry(key)
       .or_insert_with(|| ChunksInfoItem {
         modules: Default::default(),
-        cache_group: cache_group.key.clone(),
-        cache_group_index,
+        _cache_group: cache_group.key.clone(),
+        _cache_group_index: cache_group_index,
         name,
-        sizes: Default::default(),
+        _sizes: Default::default(),
         chunks: Default::default(),
-        reuseable_chunks: Default::default(),
+        _reuseable_chunks: Default::default(),
       });
 
     info.modules.insert(module_uri);
@@ -274,12 +275,12 @@ impl SplitChunksPlugin {
 struct ChunksInfoItem {
   // Sortable Module Set
   pub modules: HashSet<String>,
-  pub cache_group: String,
-  pub cache_group_index: usize,
+  pub _cache_group: String,
+  pub _cache_group_index: usize,
   pub name: String,
-  pub sizes: SplitChunkSizes,
+  pub _sizes: SplitChunkSizes,
   pub chunks: HashSet<ChunkUkey>,
-  pub reuseable_chunks: HashSet<ChunkUkey>,
+  pub _reuseable_chunks: HashSet<ChunkUkey>,
   // bigint | Chunk
   // pub chunks_keys: Hash
 }
@@ -289,6 +290,7 @@ impl Plugin for SplitChunksPlugin {
     "split_chunks"
   }
 
+  #[allow(clippy::unwrap_in_result)]
   fn optimize_chunks(
     &mut self,
     _ctx: rspack_core::PluginContext,
@@ -305,7 +307,7 @@ impl Plugin for SplitChunksPlugin {
     for module in compilation.module_graph.modules() {
       println!("process module {:?}", module.uri);
       let cache_group_source_keys = self.get_cache_groups(module);
-      if cache_group_source_keys.len() == 0 {
+      if cache_group_source_keys.is_empty() {
         continue;
       }
       println!("cache_group_source_keys {:?}", cache_group_source_keys);
@@ -313,10 +315,7 @@ impl Plugin for SplitChunksPlugin {
       let mut cache_group_index = 0;
       for cache_group_source in cache_group_source_keys {
         let cache_group = self.cache_group_by_key.get(&cache_group_source).unwrap();
-        let combinations = {
-          let chunks = compilation.chunk_graph.get_modules_chunks(&module.uri);
-          chunks
-        };
+        let combinations = compilation.chunk_graph.get_modules_chunks(&module.uri);
         if combinations.len() < cache_group.min_chunks {
           println!(
             "bailout because of combinations.len() {:?} < {:?} cache_group.min_chunks",
@@ -328,7 +327,7 @@ impl Plugin for SplitChunksPlugin {
 
         let selected_chunks = combinations
           .iter()
-          .map(|c| compilation.chunk_by_ukey.get(c).unwrap())
+          .filter_map(|c| compilation.chunk_by_ukey.get(c))
           .filter(|c| (cache_group.chunks_filter)(c))
           .collect::<Vec<_>>();
 
@@ -378,7 +377,7 @@ impl Plugin for SplitChunksPlugin {
         for module_uri in &info.modules {
           compilation
             .chunk_graph
-            .disconnect_chunk_and_module(&used_chunk.ukey, &module_uri);
+            .disconnect_chunk_and_module(&used_chunk.ukey, module_uri);
         }
       }
       for module_uri in info.modules {

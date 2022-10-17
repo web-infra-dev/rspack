@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Debug, str::FromStr, sync::Arc};
+use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
 use rspack_core::{Chunk, ChunkGroupByUkey, ModuleGraphModule};
 

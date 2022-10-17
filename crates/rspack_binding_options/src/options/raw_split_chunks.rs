@@ -1,6 +1,6 @@
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
-use rspack_core::{AliasMap, CompilerOptionsBuilder, Resolve};
+use rspack_core::CompilerOptionsBuilder;
 use rspack_plugin_split_chunks::{CacheGroupOptions, ChunkType, SizeType, SplitChunksOptions};
 use serde::Deserialize;
 use std::{collections::HashMap, sync::Arc};
@@ -55,12 +55,12 @@ pub struct RawSplitChunksOptions {
 }
 
 impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
+  #[allow(clippy::field_reassign_with_default)]
   fn to_compiler_option(
     self,
     _options: &CompilerOptionsBuilder,
   ) -> anyhow::Result<SplitChunksOptions> {
     let mut defaults = SplitChunksOptions::default();
-    defaults.chunks = ChunkType::All;
     defaults.cache_groups = self
       .cache_groups
       .into_iter()

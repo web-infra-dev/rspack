@@ -34,7 +34,7 @@ pub struct Compilation {
   pub diagnostic: Vec<Diagnostic>,
   pub(crate) plugin_driver: SharedPluginDriver,
   pub(crate) loader_runner_runner: Arc<LoaderRunnerRunner>,
-  pub(crate) named_chunk: HashMap<String, ChunkUkey>,
+  pub(crate) _named_chunk: HashMap<String, ChunkUkey>,
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
 }
 impl Compilation {
@@ -60,7 +60,7 @@ impl Compilation {
       diagnostic: vec![],
       plugin_driver,
       loader_runner_runner,
-      named_chunk: Default::default(),
+      _named_chunk: Default::default(),
       named_chunk_groups: Default::default(),
     }
   }
