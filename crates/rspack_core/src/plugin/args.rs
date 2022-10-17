@@ -5,6 +5,7 @@ use rspack_error::{Error, Result};
 use rspack_loader_runner::Content;
 use rspack_sources::RawSource;
 use std::fmt::Debug;
+use swc_common::Mark;
 use swc_css::ast::Stylesheet;
 use swc_ecma_ast as ast;
 
@@ -61,6 +62,12 @@ pub struct ResolveArgs<'a> {
 pub struct LoadArgs<'a> {
   pub uri: &'a str,
 }
+#[derive(Debug, Clone)]
+pub struct JavascriptAstExtend {
+  pub unresolved_mark: Mark,
+  pub top_level_mark: Mark,
+  pub ast: ast::Program,
+}
 /**
  * ast resused in transform hook
  */
@@ -75,12 +82,12 @@ pub enum TransformAst {
  */
 #[derive(Debug, Clone)]
 pub enum ModuleAst {
-  JavaScript(ast::Program),
+  JavaScript(JavascriptAstExtend),
   Css(Stylesheet),
 }
 
 impl ModuleAst {
-  pub fn try_into_javascript(self) -> Result<ast::Program> {
+  pub fn try_into_javascript(self) -> Result<JavascriptAstExtend> {
     match self {
       ModuleAst::JavaScript(program) => Ok(program),
       ModuleAst::Css(_) => Err(Error::InternalError("Failed".to_owned())),
@@ -94,7 +101,7 @@ impl ModuleAst {
     }
   }
 
-  pub fn as_javascript(&self) -> Option<&ast::Program> {
+  pub fn as_javascript(&self) -> Option<&JavascriptAstExtend> {
     match self {
       ModuleAst::JavaScript(program) => Some(program),
       ModuleAst::Css(_) => None,
@@ -113,7 +120,11 @@ impl From<TransformAst> for ModuleAst {
   fn from(ast: TransformAst) -> ModuleAst {
     match ast {
       TransformAst::Css(_ast) => ModuleAst::Css(_ast),
-      TransformAst::JavaScript(_ast) => ModuleAst::JavaScript(_ast),
+      TransformAst::JavaScript(_ast) => ModuleAst::JavaScript(JavascriptAstExtend {
+        unresolved_mark: Mark::root(),
+        top_level_mark: Mark::root(),
+        ast: _ast,
+      }),
     }
   }
 }
