@@ -2,6 +2,7 @@ use std::{
   env,
   iter::Peekable,
   path::{Path, PathBuf},
+  sync::Arc,
 };
 
 use itertools::Itertools;
@@ -104,10 +105,7 @@ struct RspackImporter {
 }
 
 impl RspackImporter {
-  pub fn new(include_paths: Vec<PathBuf>) -> Self {
-    // TODO: use `loader_context.getResolve` for factory to support inherit
-    // alias and modules from compiler options.
-    let factory = ResolverFactory::default();
+  pub fn new(include_paths: Vec<PathBuf>, factory: Arc<ResolverFactory>) -> Self {
     let sass_module_resolve = factory.get(Resolve {
       extensions: Some(vec![
         ".sass".to_owned(),
@@ -146,9 +144,14 @@ impl RspackImporter {
         "sass".to_owned(),
         "style".to_owned(),
         "main".to_owned(),
+        "...".to_owned(),
       ]),
       // TODO: ["_index", "index", "..."] support `"..."`.
-      main_files: Some(vec!["_index".to_owned(), "index".to_owned()]),
+      main_files: Some(vec![
+        "_index".to_owned(),
+        "index".to_owned(),
+        "...".to_owned(),
+      ]),
       extensions: Some(vec![
         ".sass".to_owned(),
         ".scss".to_owned(),
@@ -163,12 +166,14 @@ impl RspackImporter {
         "sass".to_owned(),
         "style".to_owned(),
         "main".to_owned(),
+        "...".to_owned(),
       ]),
       main_files: Some(vec![
         "_index.import".to_owned(),
         "_index".to_owned(),
         "index.import".to_owned(),
         "index".to_owned(),
+        "...".to_owned(),
       ]),
       extensions: Some(vec![
         ".sass".to_owned(),
@@ -398,7 +403,10 @@ impl SassLoader {
     builder = builder.include_paths(&include_paths);
 
     if self.options.rspack_importer {
-      builder = builder.importer(RspackImporter::new(include_paths));
+      builder = builder.importer(RspackImporter::new(
+        include_paths,
+        Arc::clone(&loader_context.compiler_context.resolver_factory),
+      ));
     }
 
     if let Some(charset) = &self.options.sass_options.charset {

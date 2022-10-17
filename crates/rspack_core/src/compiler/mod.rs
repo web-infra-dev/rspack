@@ -33,8 +33,8 @@ impl Compiler {
   pub fn new(options: CompilerOptions, plugins: Vec<Box<dyn Plugin>>) -> Self {
     let options = Arc::new(options);
 
-    let resolver_factory = Arc::new(ResolverFactory::default());
-    let resolver = resolver_factory.get(options.resolve.clone());
+    let resolver_factory = Arc::new(ResolverFactory::new(options.resolve.clone()));
+    let resolver = resolver_factory.get(Default::default());
     let plugin_driver = Arc::new(RwLock::new(PluginDriver::new(
       options.clone(),
       plugins,
