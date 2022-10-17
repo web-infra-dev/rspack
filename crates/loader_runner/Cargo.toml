@@ -18,6 +18,7 @@ tokio = { version = "1.21.0", features = [
   "macros",
   "test-util",
   "parking_lot",
+  "fs",
 ] }
 
 rspack_error       = { path = "../rspack_error" }

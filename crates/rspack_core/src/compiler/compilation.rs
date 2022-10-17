@@ -6,11 +6,13 @@ use std::{
 
 use futures::{stream::FuturesUnordered, StreamExt};
 use hashbrown::HashMap;
+use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::instrument;
 
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity};
 use rspack_sources::BoxSource;
+use ustr::ustr;
 
 use crate::{
   split_chunks::code_splitting, BuildContext, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup,
@@ -458,6 +460,19 @@ impl Compilation {
       })
       .ok();
   }
+
+  pub async fn optimize_dependency(&mut self) -> Result<()> {
+    self
+      .module_graph
+      .uri_to_module
+      .par_iter()
+      .for_each(|(k, v)| {
+        let uri_key = ustr(k);
+        dbg!(&uri_key);
+      });
+    Ok(())
+  }
+
   pub async fn done(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let stats = &mut Stats::new(self);
     plugin_driver.write().await.done(stats).await?;

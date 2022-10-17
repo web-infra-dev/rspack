@@ -41,6 +41,8 @@ pub use chunk_group::*;
 mod ukey;
 pub use ukey::*;
 
+pub(crate) mod tree_shaking;
+
 pub use rspack_sources;
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
