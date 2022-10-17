@@ -81,13 +81,21 @@ impl ModuleGraphModule {
   pub fn incoming_connections_unordered<'m>(
     &self,
     module_graph: &'m ModuleGraph,
-  ) -> Result<impl Iterator<Item = dashmap::setref::multiple::RefMulti<'m, ModuleGraphConnection>>>
-  {
-    let result = module_graph
-      .connections
+  ) -> Result<impl Iterator<Item = dashmap::mapref::one::Ref<'m, u32, ModuleGraphConnection>>> {
+    let result = self
+      .incoming_connections
       .iter()
-      .filter(|con| self.incoming_connections.contains(&con.id))
-      .collect::<Vec<_>>()
+      .map(|connection_id| {
+        module_graph
+          .connection_by_connection_id(*connection_id)
+          .ok_or_else(|| {
+            Error::InternalError(format!(
+              "connection_id_to_connection does not have connection_id: {}",
+              &*connection_id
+            ))
+          })
+      })
+      .collect::<Result<Vec<_>>>()?
       .into_iter();
 
     Ok(result)
@@ -96,13 +104,21 @@ impl ModuleGraphModule {
   pub fn outgoing_connections_unordered<'m>(
     &self,
     module_graph: &'m ModuleGraph,
-  ) -> Result<impl Iterator<Item = dashmap::setref::multiple::RefMulti<'m, ModuleGraphConnection>>>
-  {
-    let result = module_graph
-      .connections
+  ) -> Result<impl Iterator<Item = dashmap::mapref::one::Ref<'m, u32, ModuleGraphConnection>>> {
+    let result = self
+      .outgoing_connections
       .iter()
-      .filter(|con| self.outgoing_connections.contains(&con.id))
-      .collect::<Vec<_>>()
+      .map(|connection_id| {
+        module_graph
+          .connection_by_connection_id(*connection_id)
+          .ok_or_else(|| {
+            Error::InternalError(format!(
+              "connection_id_to_connection does not have connection_id: {}",
+              &*connection_id
+            ))
+          })
+      })
+      .collect::<Result<Vec<_>>>()?
       .into_iter();
 
     Ok(result)

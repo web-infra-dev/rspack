@@ -324,11 +324,6 @@ impl Compilation {
         }
       }
     }
-    println!(
-      "mgm: {:#?}",
-      self.module_graph.module_identifier_to_module_graph_module
-    );
-    // println!("m: {:#?}", self.module_graph.module_identifier_to_module);
     tracing::debug!("module graph {:#?}", self.module_graph);
   }
 
