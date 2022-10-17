@@ -320,15 +320,9 @@ impl Plugin for CssPlugin {
         .filter_map(|ukey| args.compilation.chunk_group_by_ukey.get(ukey))
         .map(|chunk_group| {
           let mut modules = modules.iter().map(|mgm| mgm.value()).collect::<Vec<_>>();
-          println!(
-            "css module graph modules for chunk id {}: {}",
-            args.chunk().id,
-            modules.len()
-          );
           modules.sort_by_key(|mgm| chunk_group.module_post_order_index(mgm.uri.as_str()));
-          // FIXME: change back to tracing::debug
-          println!(
-            "css modules for chunk id {}: {:#?} ",
+          tracing::debug!(
+            "modules for chunk id {}: {:#?} ",
             args.chunk().id,
             modules
               .iter()

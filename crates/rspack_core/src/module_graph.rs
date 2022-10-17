@@ -80,6 +80,11 @@ impl ModuleGraph {
   }
 
   pub fn add_module(&self, module: NormalModule) {
+    // if let hashbrown::hash_map::Entry::Vacant(val) =
+    //   self.module_identifier_to_module.entry(module.identifier())
+    // {
+    //   val.insert(RwLock::new(module));
+    // }
     if let dashmap::mapref::entry::Entry::Vacant(val) =
       self.module_identifier_to_module.entry(module.identifier())
     {
@@ -111,6 +116,10 @@ impl ModuleGraph {
           .module_identifier_to_module_graph_module
           .get(&*module_identifier)
       })
+  }
+
+  pub fn dependency_id_by_dependency(&self, dep: &Dependency) -> Option<u32> {
+    self.dependency_to_dependency_id.get(dep).map(|id| *id)
   }
 
   pub fn set_resolved_module(

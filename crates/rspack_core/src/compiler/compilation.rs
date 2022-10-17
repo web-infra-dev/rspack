@@ -141,7 +141,7 @@ impl Compilation {
       tokio::task::spawn(async move { normal_module_factory.create().await });
     });
 
-    while active_task_count.load(Ordering::SeqCst) != 0 {
+    while active_task_count.load(Ordering::Relaxed) != 0 {
       match rx.recv().await {
         Some(job) => match job {
           Msg::ModuleCreated(mut module_with_diagnostic) => {
@@ -149,6 +149,28 @@ impl Compilation {
               *module_with_diagnostic.inner;
 
             let module_identifier = module.identifier();
+
+            if self
+              .visited_module_id
+              .contains(&(module_identifier.clone(), dependency.detail.clone()))
+            {
+              active_task_count.fetch_sub(1, Ordering::Relaxed);
+              if let Err(err) = self.module_graph.set_resolved_module(
+                original_module_identifier,
+                self
+                  .module_graph
+                  .dependency_id_by_dependency(&dependency)
+                  .expect("Dependency not found"),
+                module_identifier,
+              ) {
+                self.push_batch_diagnostic(err.into())
+              };
+              continue;
+            }
+
+            self
+              .visited_module_id
+              .insert((module_identifier.clone(), dependency.detail.clone()));
 
             self.module_graph.add_module_graph_module(mgm);
             self.module_graph.add_module(module);
@@ -159,18 +181,6 @@ impl Compilation {
             ) {
               self.push_batch_diagnostic(err.into())
             };
-
-            if self
-              .visited_module_id
-              .contains(&(module_identifier.clone(), dependency.detail.clone()))
-            {
-              active_task_count.fetch_sub(1, Ordering::SeqCst);
-              continue;
-            }
-
-            self
-              .visited_module_id
-              .insert((module_identifier.clone(), dependency.detail.clone()));
 
             let module_graph = self.module_graph.clone();
             let compiler_options = self.options.clone();
