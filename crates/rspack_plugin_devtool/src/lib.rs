@@ -5,7 +5,7 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   rspack_sources::{ConcatSource, MapOptions, RawSource, SourceExt},
-  Plugin, PluginContext, PluginProcessAssetsOutput, ProcessAssetsArgs,
+  AssetInfo, CompilationAsset, Plugin, PluginContext, PluginProcessAssetsOutput, ProcessAssetsArgs,
 };
 use rspack_error::Result;
 use tracing::instrument;
@@ -69,36 +69,39 @@ impl Plugin for DevtoolPlugin {
       .assets
       .par_iter()
       .filter_map(|(filename, asset)| {
-        asset.map(&MapOptions::new(self.columns)).map(|mut map| {
-          map.set_file(Some(filename.clone()));
-          for source in map.sources_mut() {
-            let uri = if source.starts_with('<') && source.ends_with('>') {
-              &source[1..source.len() - 1] // remove '<' and '>' for swc FileName::Custom
-            } else {
-              &source[..]
-            };
-            let resource_path =
-              if let Some(relative_path) = diff_paths(uri, &args.compilation.options.context) {
-                relative_path.to_string_lossy().to_string()
+        asset
+          .get_source()
+          .map(&MapOptions::new(self.columns))
+          .map(|mut map| {
+            map.set_file(Some(filename.clone()));
+            for source in map.sources_mut() {
+              let uri = if source.starts_with('<') && source.ends_with('>') {
+                &source[1..source.len() - 1] // remove '<' and '>' for swc FileName::Custom
               } else {
-                uri.to_owned()
+                &source[..]
               };
-            *source = self
-              .module_filename_template
-              .replace("[namespace]", &self.namespace)
-              .replace("[resourcePath]", &resource_path);
-          }
-          if self.no_sources {
-            for content in map.sources_content_mut() {
-              *content = String::default();
+              let resource_path =
+                if let Some(relative_path) = diff_paths(uri, &args.compilation.options.context) {
+                  relative_path.to_string_lossy().to_string()
+                } else {
+                  uri.to_owned()
+                };
+              *source = self
+                .module_filename_template
+                .replace("[namespace]", &self.namespace)
+                .replace("[resourcePath]", &resource_path);
             }
-          }
-          let mut map_buffer = Vec::new();
-          map
-            .to_writer(&mut map_buffer)
-            .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?;
-          Ok((filename.to_owned(), map_buffer))
-        })
+            if self.no_sources {
+              for content in map.sources_content_mut() {
+                *content = String::default();
+              }
+            }
+            let mut map_buffer = Vec::new();
+            map
+              .to_writer(&mut map_buffer)
+              .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?;
+            Ok((filename.to_owned(), map_buffer))
+          })
       })
       .collect::<Result<_>>()?;
     for (filename, map_buffer) in maps {
@@ -114,16 +117,17 @@ impl Plugin for DevtoolPlugin {
         let current_source_mapping_url_comment = current_source_mapping_url_comment
           .expect("DevToolPlugin: append can't be false when inline is true.");
         let base64 = base64::encode(&map_buffer);
-        let asset = args.compilation.assets.remove(&filename).unwrap();
-        let asset = ConcatSource::new([
-          asset,
+        let mut asset = args.compilation.assets.remove(&filename).unwrap();
+        asset.source = ConcatSource::new([
+          asset.source,
           RawSource::from(current_source_mapping_url_comment.replace(
             "[url]",
             &format!("data:application/json;charset=utf-8;base64,{}", base64),
           ))
           .boxed(),
-        ]);
-        args.compilation.emit_asset(filename, asset.boxed());
+        ])
+        .boxed();
+        args.compilation.emit_asset(filename, asset);
       } else {
         let source_map_filename = filename.clone() + ".map";
         if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment {
@@ -132,17 +136,22 @@ impl Plugin for DevtoolPlugin {
           } else {
             source_map_filename.clone()
           };
-          let asset = args.compilation.assets.remove(&filename).unwrap();
-          let asset = ConcatSource::new([
-            asset,
+          let mut asset = args.compilation.assets.remove(&filename).unwrap();
+          asset.source = ConcatSource::new([
+            asset.source,
             RawSource::from(current_source_mapping_url_comment.replace("[url]", &source_map_url))
               .boxed(),
-          ]);
-          args.compilation.emit_asset(filename, asset.boxed());
+          ])
+          .boxed();
+          asset.info.related.source_map = Some(source_map_filename.clone());
+          args.compilation.emit_asset(filename, asset);
         }
-        args
-          .compilation
-          .emit_asset(source_map_filename, RawSource::from(map_buffer).boxed());
+        let mut source_map_asset_info = AssetInfo::default();
+        source_map_asset_info.development = true;
+        args.compilation.emit_asset(
+          source_map_filename,
+          CompilationAsset::new(RawSource::from(map_buffer).boxed(), source_map_asset_info),
+        );
       }
     }
     Ok(())

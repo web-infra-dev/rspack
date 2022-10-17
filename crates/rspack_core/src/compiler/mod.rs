@@ -134,17 +134,9 @@ impl Compiler {
 
         std::fs::create_dir_all(Path::new(&output_path).join(filename).parent().unwrap())?;
 
-        fs::write(Path::new(&output_path).join(filename), asset.buffer()).map_err(|e| e.into())
+        fs::write(Path::new(&output_path).join(filename), asset.get_source().buffer()).map_err(|e| e.into())
       })
       .map_err(|e| e.into())
-  }
-
-  pub fn update_asset(&mut self, filename: String, asset: BoxSource) {
-    self.compilation.assets.insert(filename, asset);
-    dbg!(
-      "change",
-      &self.compilation.assets.entry("main.js".to_owned())
-    );
   }
 
   // TODO: remove this function when we had hash in stats.

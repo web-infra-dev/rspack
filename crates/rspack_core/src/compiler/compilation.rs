@@ -10,7 +10,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use tracing::instrument;
 
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result};
-use rspack_sources::BoxSource;
+use rspack_sources::{BoxSource, Source};
 
 use crate::{
   split_chunks::code_splitting, BuildContext, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup,
@@ -70,7 +70,7 @@ impl Compilation {
     self.entries.insert(name, detail);
   }
 
-  pub fn emit_asset(&mut self, filename: String, asset: BoxSource) {
+  pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
     self.assets.insert(filename, asset);
   }
 
@@ -431,7 +431,10 @@ impl Compilation {
             .files
             .insert(file_manifest.filename().to_string());
 
-          self.emit_asset(file_manifest.filename().to_string(), file_manifest.source);
+          self.emit_asset(
+            file_manifest.filename().to_string(),
+            CompilationAsset::new(file_manifest.source, AssetInfo::default()),
+          );
         });
       })
   }
@@ -514,4 +517,73 @@ impl Compilation {
   }
 }
 
-pub type CompilationAssets = HashMap<String, BoxSource>;
+pub type CompilationAssets = HashMap<String, CompilationAsset>;
+
+#[derive(Debug)]
+pub struct CompilationAsset {
+  pub source: BoxSource,
+  pub info: AssetInfo,
+}
+
+impl CompilationAsset {
+  pub fn new(source: BoxSource, info: AssetInfo) -> Self {
+    Self { source, info }
+  }
+
+  pub fn get_source(&self) -> &BoxSource {
+    &self.source
+  }
+
+  pub fn get_source_mut(&mut self) -> &mut BoxSource {
+    &mut self.source
+  }
+
+  pub fn set_source(&mut self, source: BoxSource) {
+    self.source = source;
+  }
+
+  pub fn get_info(&self) -> &AssetInfo {
+    &self.info
+  }
+
+  pub fn get_info_mut(&mut self) -> &mut AssetInfo {
+    &mut self.info
+  }
+
+  pub fn set_info(&mut self, info: AssetInfo) {
+    self.info = info;
+  }
+}
+
+#[derive(Debug, Default)]
+pub struct AssetInfo {
+  /// if the asset can be long term cached forever (contains a hash)
+  // pub immutable: bool,
+  /// whether the asset is minimized
+  pub minimized: bool,
+  /// the value(s) of the full hash used for this asset
+  // pub full_hash:
+  /// the value(s) of the chunk hash used for this asset
+  // pub chunk_hash:
+  /// the value(s) of the module hash used for this asset
+  // pub module_hash:
+  /// the value(s) of the content hash used for this asset
+  // pub content_hash:
+  /// when asset was created from a source file (potentially transformed), the original filename relative to compilation context
+  // pub source_filename:
+  /// size in bytes, only set after asset has been emitted
+  // pub size: f64,
+  /// when asset is only used for development and doesn't count towards user-facing assets
+  pub development: bool,
+  /// when asset ships data for updating an existing application (HMR)
+  // pub hot_module_replacement:
+  /// when asset is javascript and an ESM
+  // pub javascript_module:
+  /// related object to other assets, keyed by type of relation (only points from parent to child)
+  pub related: AssetInfoRelated,
+}
+
+#[derive(Debug, Default)]
+pub struct AssetInfoRelated {
+  pub source_map: Option<String>,
+}

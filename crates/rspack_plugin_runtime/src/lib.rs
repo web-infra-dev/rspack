@@ -4,9 +4,9 @@ use rspack_error::Result;
 use common::*;
 use node::*;
 use rspack_core::{
-  rspack_sources::RawSource, ChunkKind, Plugin, PluginContext, PluginRenderManifestHookOutput,
-  PluginRenderRuntimeHookOutput, RenderManifestArgs, RenderManifestEntry, RenderRuntimeArgs,
-  TargetPlatform, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
+  rspack_sources::RawSource, AssetInfo, ChunkKind, CompilationAsset, Plugin, PluginContext,
+  PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, RenderManifestArgs,
+  RenderManifestEntry, RenderRuntimeArgs, TargetPlatform, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
 };
 use web::*;
 use web_worker::*;
@@ -155,7 +155,7 @@ impl Plugin for RuntimePlugin {
     match platform {
       TargetPlatform::WebWorker | TargetPlatform::Node(_) => {
         let mut entry_source_array = vec![];
-        let _ = &compilation.chunk_by_ukey.values().for_each(|chunk| {
+        compilation.chunk_by_ukey.values().for_each(|chunk| {
           if matches!(chunk.kind, ChunkKind::Entry { .. }) {
             let js_entry_file = chunk
               .files
@@ -163,7 +163,7 @@ impl Plugin for RuntimePlugin {
               .find(|file| file.ends_with(".js"))
               .unwrap();
             // will emit_asset back so remove is fine at here.
-            let source = compilation.assets.remove(js_entry_file).unwrap();
+            let mut asset = compilation.assets.remove(js_entry_file).unwrap();
             let entry_module_uri = compilation
               .chunk_graph
               .get_chunk_entry_modules(&chunk.ukey)
@@ -180,12 +180,10 @@ impl Plugin for RuntimePlugin {
               RSPACK_REQUIRE,
               entry_module_id,
             );
-            entry_source_array.push((
-              js_entry_file.to_string(),
-              compilation
-                .runtime
-                .generate_with_inline_modules(source, execute_code),
-            ));
+            asset.source = compilation
+              .runtime
+              .generate_with_inline_modules(asset.source, execute_code);
+            entry_source_array.push((js_entry_file.to_string(), asset));
           }
         });
         for (file, source) in entry_source_array {
@@ -195,7 +193,7 @@ impl Plugin for RuntimePlugin {
       _ => {
         compilation.emit_asset(
           RUNTIME_FILE_NAME.to_string() + ".js",
-          compilation.runtime.generate(),
+          CompilationAsset::new(compilation.runtime.generate(), AssetInfo::default()),
         );
       }
     }
