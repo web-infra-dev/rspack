@@ -82,11 +82,13 @@ pub struct StatsAsset {
 #[napi(object)]
 #[derive(Debug, Serialize)]
 pub struct StatsModule {
+  pub r#type: &'static str,
   pub module_type: String,
   pub identifier: String,
   pub name: String,
   pub id: String,
   pub chunks: Vec<String>,
+  pub size: f64,
 }
 
 #[napi(object)]
@@ -137,11 +139,13 @@ impl<'a> From<rspack_core::Stats<'a>> for Stats {
         .modules
         .into_iter()
         .map(|m| StatsModule {
+          r#type: m.r#type,
           module_type: m.module_type.to_string(),
           identifier: m.identifier,
           name: m.name,
           id: m.id,
           chunks: m.chunks,
+          size: m.size,
         })
         .collect(),
       chunks: desc

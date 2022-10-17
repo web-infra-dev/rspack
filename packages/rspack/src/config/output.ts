@@ -1,4 +1,5 @@
 import path from "path";
+import { ResolvedContext } from "./context";
 
 export interface Output {
 	path?: string;
@@ -19,9 +20,9 @@ export interface ResolvedOutput {
 	uniqueName?: string;
 }
 
-export function resolveOutputOptions(output: Output = {}): ResolvedOutput {
+export function resolveOutputOptions(output: Output = {}, context: ResolvedContext): ResolvedOutput {
 	return {
-		path: output.path ?? path.join(process.cwd(), "dist"),
+		path: output.path ?? path.join(context, "dist"),
 		publicPath: output.publicPath,
 		chunkFilename: output.chunkFilename,
 		filename: output.publicPath,

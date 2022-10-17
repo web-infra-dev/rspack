@@ -25,7 +25,7 @@ use common::ThreadsafeRspackCallback;
 use common::REGISTERED_DONE_SENDERS;
 use common::REGISTERED_PROCESS_ASSETS_SENDERS;
 
-use crate::{AssetContent, UpdateAssetOptions, Stats};
+use crate::{AssetContent, Stats, UpdateAssetOptions};
 
 pub static CALL_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(1));
 

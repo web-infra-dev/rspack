@@ -1,4 +1,6 @@
-use crate::{Chunk, Compilation, CompilationAssets, ModuleType, PATH_START_BYTE_POS_MAP};
+use crate::{
+  Chunk, Compilation, CompilationAssets, ModuleType, SourceType, PATH_START_BYTE_POS_MAP,
+};
 use hashbrown::{HashMap, HashSet};
 use rspack_error::{
   emitter::{DiagnosticDisplay, StdioDiagnosticDisplay, StringDiagnosticDisplay},
@@ -71,6 +73,7 @@ impl<'compilation> Stats<'compilation> {
         .module_graph
         .modules()
         .map(|module| StatsModule {
+          r#type: "module",
           chunks: self
             .compilation
             .chunk_graph
@@ -83,6 +86,7 @@ impl<'compilation> Stats<'compilation> {
           identifier: module.module.identifier(),
           name: module.module.identifier(),
           id: module.id.clone(),
+          size: module.module.size(&SourceType::JavaScript),
         })
         .collect(),
       chunks: self
@@ -114,11 +118,13 @@ pub struct StatsAsset {
 }
 
 pub struct StatsModule {
+  pub r#type: &'static str,
   pub module_type: ModuleType,
   pub identifier: String,
   pub name: String,
   pub id: String,
   pub chunks: Vec<String>,
+  pub size: f64,
 }
 
 pub struct StatsChunk {

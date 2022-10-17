@@ -73,7 +73,7 @@ export function getNormalizedRspackOptions(
 		context,
 		dev: !!config.devServer
 	});
-	const output = resolveOutputOptions(config.output);
+	const output = resolveOutputOptions(config.output, context);
 	const define = resolveDefine(config.define);
 	const target = resolveTargetOptions(config.target);
 	const external = config.externals ?? {};
