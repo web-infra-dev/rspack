@@ -17,12 +17,6 @@ async function rspack(options: RspackOptions): Promise<Stats> {
 	}
 	return stats;
 }
-/**
- * just used for test
- */
-function webpack(options: RspackOptions) {
-	return createCompiler(options);
-}
 
 // deliberately alias rspack as webpack
-export { rspack, createCompiler, webpack };
+export { rspack, createCompiler };

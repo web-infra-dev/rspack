@@ -219,7 +219,6 @@ class Compiler {
 	async build() {
 		const compilation = this.#newCompilation();
 		const stats = await binding.build(this.#instance);
-		console.log("stats:", stats);
 		return stats;
 	}
 	async rebuild() {

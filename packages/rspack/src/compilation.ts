@@ -6,9 +6,6 @@ import {
 	RspackThreadsafeContext,
 	createDummyResult
 } from "./compiler";
-console.log({
-	RawSource
-});
 export class Compilation {
 	#emitAssetCallback: EmitAssetCallback;
 	hooks: {
