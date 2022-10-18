@@ -265,15 +265,17 @@ impl<'me> CodeSplitter<'me> {
       chunk_group.next_pre_order_index += 1;
     }
 
-    let module = self
-      .compilation
-      .module_graph
-      .module_by_uri_mut(&item.module_uri)
-      .expect("no module found");
+    {
+      let mut module = self
+        .compilation
+        .module_graph
+        .module_by_uri_mut(&item.module_uri)
+        .expect("No module found");
 
-    if module.pre_order_index.is_none() {
-      module.pre_order_index = Some(self.next_free_module_pre_order_index);
-      self.next_free_module_pre_order_index += 1;
+      if module.pre_order_index.is_none() {
+        module.pre_order_index = Some(self.next_free_module_pre_order_index);
+        self.next_free_module_pre_order_index += 1;
+      }
     }
 
     self.queue.push(QueueItem {
@@ -302,7 +304,7 @@ impl<'me> CodeSplitter<'me> {
       chunk_group.next_post_order_index += 1;
     }
 
-    let module = self
+    let mut module = self
       .compilation
       .module_graph
       .module_by_uri_mut(&item.module_uri)

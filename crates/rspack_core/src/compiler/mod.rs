@@ -17,8 +17,8 @@ use tokio::sync::RwLock;
 use tracing::instrument;
 
 use crate::{
-  CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule, Plugin, PluginDriver,
-  SharedPluginDriver, Stats, PATH_START_BYTE_POS_MAP,
+  CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule, ModuleIdentifier,
+  NormalModule, Plugin, PluginDriver, SharedPluginDriver, Stats, PATH_START_BYTE_POS_MAP,
 };
 
 #[derive(Debug)]
@@ -150,24 +150,30 @@ impl Compiler {
   // TODO: remove this function when we had hash in stats.
   pub async fn rebuild(&mut self) -> Result<std::collections::HashMap<String, (u8, String)>> {
     fn collect_modules_from_stats(s: &Stats<'_>) -> HashMap<String, String> {
-      let modules = s.compilation.module_graph.modules();
-      let modules = modules.filter(|item| item.module_type.is_js_like());
+      let modules = s.compilation.module_graph.module_graph_modules();
       // TODO: use hash;
       modules
-        .map(|item| {
+        .filter(|item| item.module_type.is_js_like())
+        .filter_map(|item| {
           let uri = item.uri.to_string();
-          // TODO: it soo slowly, should use cache to instead.
-          let code = item.module.code_generation(item, s.compilation).unwrap();
-          let code = code
-            .inner()
-            .get(&crate::SourceType::JavaScript)
-            .expect("expected javascript file")
-            .ast_or_source
-            .as_source()
-            .unwrap()
-            .source()
-            .to_string();
-          (uri, code)
+
+          s.compilation
+            .module_graph
+            .module_by_identifier(&uri)
+            .map(|module| {
+              // TODO: it soo slowly, should use cache to instead.
+              let code = module.code_generation(item, s.compilation).unwrap();
+              let code = code
+                .inner()
+                .get(&crate::SourceType::JavaScript)
+                .expect("expected javascript file")
+                .ast_or_source
+                .as_source()
+                .unwrap()
+                .source()
+                .to_string();
+              (uri, code)
+            })
         })
         .collect()
     }
@@ -204,10 +210,31 @@ impl Compiler {
   }
 }
 
+pub type ModuleCreatedData = TWithDiagnosticArray<
+  Box<(
+    ModuleGraphModule,
+    NormalModule,
+    Option<ModuleIdentifier>,
+    u32,
+    Dependency,
+  )>,
+>;
+
+pub type ModuleResolvedData = TWithDiagnosticArray<(
+  Option<ModuleIdentifier>,
+  u32,
+  Box<NormalModule>,
+  Box<Vec<Dependency>>,
+)>;
+
 #[derive(Debug)]
 pub enum Msg {
-  DependencyReference(Dependency, String),
-  TaskFinished(TWithDiagnosticArray<Box<ModuleGraphModule>>),
-  TaskCanceled,
-  TaskErrorEncountered(Error),
+  DependencyReference((Dependency, u32), String),
+  ModuleCreated(ModuleCreatedData),
+  ModuleReused(TWithDiagnosticArray<(Option<ModuleIdentifier>, u32, ModuleIdentifier)>),
+  ModuleResolved(ModuleResolvedData),
+  ModuleGraphModuleCreated(ModuleGraphModule),
+  ModuleBuiltErrorEncountered(ModuleIdentifier, Error),
+  ModuleCreationCanceled,
+  ModuleCreationErrorEncountered(Error),
 }
