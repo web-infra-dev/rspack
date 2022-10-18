@@ -9,7 +9,7 @@ use swc_ecma_ast::*;
 use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
 use ustr::{ustr, Ustr};
 
-use crate::{tree_shaking::symbol::Symbol, Dependency, ResolveKind};
+use crate::{tree_shaking::symbol::Symbol, Dependency, ModuleGraph, ResolveKind};
 
 use super::symbol::IndirectTopLevelSymbol;
 
@@ -164,7 +164,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   top_level_mark: Mark,
   unresolved_mark: Mark,
   uri: Ustr,
-  dep_to_module_uri: &'a HashMap<Dependency, String>,
+  module_graph: &'a ModuleGraph,
   pub(crate) export_map: HashMap<JsWord, SymbolRef>,
   /// list of uri, each uri represent export all named export from specific uri
   pub export_all_list: Vec<Ustr>,
@@ -181,13 +181,13 @@ impl<'a> ModuleRefAnalyze<'a> {
     top_level_mark: Mark,
     unresolved_mark: Mark,
     uri: Ustr,
-    dep_to_module_uri: &'a HashMap<Dependency, String>,
+    dep_to_module_uri: &'a ModuleGraph,
   ) -> Self {
     Self {
       top_level_mark,
       unresolved_mark,
       uri,
-      dep_to_module_uri,
+      module_graph: dep_to_module_uri,
       export_map: HashMap::new(),
       export_all_list: vec![],
     }
@@ -207,14 +207,15 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         ModuleDecl::Import(import) => {
           let src: String = import.src.value.to_string();
           let resolved_uri = self
-            .dep_to_module_uri
-            .get(&Dependency {
+            .module_graph
+            .module_uri_by_deppendency(&Dependency {
               importer: Some(self.uri.to_string()),
               detail: crate::ModuleDependency {
                 specifier: src,
                 kind: ResolveKind::Import,
                 span: None,
               },
+              parent_module_identifier: Some(self.uri.to_string()),
             })
             .unwrap();
           import.specifiers.iter().for_each(|specifier| {});
@@ -332,27 +333,29 @@ impl<'a> ModuleRefAnalyze<'a> {
   /// This function will panic if can't find
   fn resolve_uri(&mut self, src: String, resolve_kind: ResolveKind) -> &String {
     let resolved_uri = self
-      .dep_to_module_uri
-      .get(&Dependency {
+      .module_graph
+      .module_uri_by_deppendency(&Dependency {
         importer: Some(self.uri.to_string()),
         detail: crate::ModuleDependency {
           specifier: src,
           kind: resolve_kind,
           span: None,
         },
+        parent_module_identifier: Some(self.uri.to_string()),
       })
       .unwrap();
     resolved_uri
   }
 
   fn try_resolve_uri(&mut self, src: String, resolve_kind: ResolveKind) -> Option<&String> {
-    self.dep_to_module_uri.get(&Dependency {
+    self.module_graph.module_uri_by_deppendency(&Dependency {
       importer: Some(self.uri.to_string()),
       detail: crate::ModuleDependency {
         specifier: src,
         kind: resolve_kind,
         span: None,
       },
+      parent_module_identifier: Some(self.uri.to_string()),
     })
   }
 }
