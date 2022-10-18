@@ -48,7 +48,6 @@ impl<'compilation> Stats<'compilation> {
         chunks.push(chunk);
       }
     }
-    dbg!(&compilation_file_to_chunks);
     StatsDescription {
       assets: self
         .compilation

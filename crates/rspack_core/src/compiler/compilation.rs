@@ -506,7 +506,6 @@ impl Compilation {
     } else {
       String::from("this")
     };
-    dbg!(&self.chunk_by_ukey);
 
     self.runtime = Runtime {
       sources: vec![],
@@ -518,10 +517,8 @@ impl Compilation {
     dbg!(&self.chunk_by_ukey);
     // generate runtime
     self.runtime = self.render_runtime(plugin_driver.clone()).await;
-    dbg!(&self.chunk_by_ukey);
 
     self.process_assets(plugin_driver).await;
-    dbg!(&self.chunk_by_ukey);
     Ok(())
   }
 }
