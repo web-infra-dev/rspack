@@ -13,140 +13,6 @@ use crate::{tree_shaking::symbol::Symbol, Dependency, ModuleGraph, ResolveKind};
 
 use super::symbol::IndirectTopLevelSymbol;
 
-const LOG: bool = false && cfg!(debug_assertions);
-
-/// See [Ident] for know how does swc manages identifiers.
-///
-/// # When to run
-///
-/// The resolver expects 'clean' ast. You can get clean ast by parsing, or by
-/// removing all syntax context in ast nodes.
-///
-/// # What does it do
-///
-/// Firstly all scopes (fn, block) has it's own SyntaxContext.
-/// Resolver visits all identifiers in module, and look for binding identifies
-/// in the scope. Those identifiers now have the SyntaxContext of scope (fn,
-/// block). While doing so, resolver tries to resolve normal identifiers (no
-/// hygiene info) as a reference to identifier of scope. If the resolver find
-/// suitable variable, the identifier reference will have same context as the
-/// variable.
-///
-///
-/// # Panics
-///
-/// `top_level_mark` should not be root.
-///
-/// # Example
-///
-/// ```js
-/// let a = 1;
-/// {
-///     let a = 2;
-///     use(a);
-/// }
-/// use(a)
-/// ```
-///
-/// resolver does
-///
-/// 1.  Define `a` with top level context.
-///
-/// 2.  Found a block, so visit block with a new syntax context.
-///
-/// 3. Defined `a` with syntax context of the block statement.
-////
-/// 4. Found usage of `a`, and determines that it's reference to `a` in the
-/// block. So the reference to `a` will have same syntax context as `a` in the
-/// block.
-///
-/// 5. Found usage of `a` (last line), and determines that it's a
-/// reference to top-level `a`, and change syntax context of `a` on last line to
-/// top-level syntax context.
-///
-///
-/// # Parameters
-///
-/// ## `unresolved_mark`
-///
-/// [Mark] applied to unresolved references.
-///
-/// A pass should accept this [Mark] if it's going to generate a refernce to
-/// globals like `require`.
-///
-/// e.g. `common_js` pass generates calls to `require`, and this should not
-/// be shadowed by a declaration named `require` in the same file.
-/// So it uses this value.
-///
-/// ## `top_level_mark`
-///
-/// [Mark] applied to top-level bindings.
-///
-/// **NOTE**: This is **not** globals. This is for top level items declared by
-/// users.
-///
-/// A pass should accept this [Mark] if it requires user-defined top-level
-/// items.
-///
-/// e.g. `jsx` pass requires to call `React` imported by the user.
-///
-/// ```js
-/// import React from 'react';
-/// ```
-///
-/// In the code above, `React` has this [Mark]. `jsx` passes need to
-/// reference this [Mark], so it accpets this.
-///
-/// This [Mark] should be used for referencing top-level bindings written by
-/// user. If you are going to create a binding, use `private_ident`
-/// instead.
-///
-/// In other words, **this [Mark] should not be used for determining if a
-/// variable is top-level.** This is simply a configuration of the `resolver`
-/// pass.
-///
-///
-/// ## `typescript`
-///
-/// Enable this only if you are going to strip types or apply type-aware
-/// passes like decorators pass.
-///
-///
-/// # FAQ
-///
-/// ## Does a pair `(JsWord, SyntaxContext)` always uniquely identifiers a
-/// variable binding?
-///
-/// Yes, but multiple variables can have the exactly same name.
-///
-/// In the code below,
-///
-/// ```js
-/// var a = 1, a = 2;
-/// ```
-///
-/// both of them have the same name, so the `(JsWord, SyntaxContext)` pair will
-/// be also identical.
-pub fn resolver(unresolved_mark: Mark, top_level_mark: Mark, typescript: bool) {
-  //   assert_ne!(
-  //     unresolved_mark,
-  //     Mark::root(),
-  //     "Marker provided to resolver should not be the root mark"
-  //   );
-
-  //   as_folder(Resolver {
-  //     current: Scope::new(ScopeKind::Fn, top_level_mark, None),
-  //     ident_type: IdentType::Ref,
-  //     in_type: false,
-  //     in_ts_module: false,
-  //     decl_kind: DeclKind::Lexical,
-  //     strict_mode: false,
-  //     config: InnerConfig {
-  //       handle_types: typescript,
-  //       unresolved_mark,
-  //     },
-  //   })
-}
 #[derive(Debug)]
 pub(crate) enum SymbolRef {
   Direct(Symbol),
@@ -347,15 +213,15 @@ impl<'a> ModuleRefAnalyze<'a> {
     resolved_uri
   }
 
-  fn try_resolve_uri(&mut self, src: String, resolve_kind: ResolveKind) -> Option<&String> {
-    self.module_graph.module_uri_by_deppendency(&Dependency {
-      importer: Some(self.uri.to_string()),
-      detail: crate::ModuleDependency {
-        specifier: src,
-        kind: resolve_kind,
-        span: None,
-      },
-      parent_module_identifier: Some(self.uri.to_string()),
-    })
-  }
+  // fn try_resolve_uri(&mut self, src: String, resolve_kind: ResolveKind) -> Option<&String> {
+  //   self.module_graph.module_uri_by_deppendency(&Dependency {
+  //     importer: Some(self.uri.to_string()),
+  //     detail: crate::ModuleDependency {
+  //       specifier: src,
+  //       kind: resolve_kind,
+  //       span: None,
+  //     },
+  //     parent_module_identifier: Some(self.uri.to_string()),
+  //   })
+  // }
 }
