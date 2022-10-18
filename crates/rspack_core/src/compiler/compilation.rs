@@ -140,7 +140,7 @@ impl Compilation {
       tokio::task::spawn(async move { normal_module_factory.create().await });
     });
 
-    while active_task_count.load(Ordering::Relaxed) != 0 {
+    while active_task_count.load(Ordering::SeqCst) != 0 {
       match rx.recv().await {
         Some(job) => match job {
           Msg::ModuleCreated(module_with_diagnostic) => {
@@ -287,7 +287,7 @@ impl Compilation {
             self.module_graph.add_module_graph_module(mgm);
           }
           Msg::ModuleReused(result_with_diagnostics) => {
-            active_task_count.fetch_sub(1, Ordering::Relaxed);
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
 
             let (original_module_identifier, dependency_id, module_identifier) =
               result_with_diagnostics.inner;
@@ -304,7 +304,7 @@ impl Compilation {
             };
           }
           Msg::ModuleResolved(result_with_diagnostics) => {
-            active_task_count.fetch_sub(1, Ordering::Relaxed);
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
 
             let (original_module_identifier, dependency_id, module, deps) =
               result_with_diagnostics.inner;
@@ -330,7 +330,7 @@ impl Compilation {
             self.module_graph.add_module(*module);
           }
           Msg::ModuleBuiltErrorEncountered(module_identifier, err) => {
-            active_task_count.fetch_sub(1, Ordering::Relaxed);
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
             self
               .module_graph
               .module_identifier_to_module
@@ -342,13 +342,13 @@ impl Compilation {
             self.push_batch_diagnostic(err.into());
           }
           Msg::ModuleCreationCanceled => {
-            active_task_count.fetch_sub(1, Ordering::Relaxed);
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
           }
           Msg::DependencyReference(dep, resolved_uri) => {
             self.module_graph.add_dependency(dep, resolved_uri);
           }
           Msg::ModuleCreationErrorEncountered(err) => {
-            active_task_count.fetch_sub(1, Ordering::Relaxed);
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
             self.push_batch_diagnostic(err.into());
           }
         },
