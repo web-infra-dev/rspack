@@ -99,16 +99,20 @@ impl ModuleGraph {
     self
       .dependency_to_dependency_id
       .get(dep)
-      .and_then(|id| self.dependency_id_to_module_identifier.get(&*id))
+      .and_then(|id| self.dependency_id_to_module_identifier.get(id))
       .and_then(|module_identifier| {
         self
           .module_identifier_to_module_graph_module
-          .get(&*module_identifier)
+          .get(module_identifier)
       })
   }
 
   pub fn dependency_id_by_dependency(&self, dep: &Dependency) -> Option<u32> {
-    self.dependency_to_dependency_id.get(dep).map(|id| *id)
+    self.dependency_to_dependency_id.get(dep).cloned()
+  }
+
+  pub fn module_graph_modules(&self) -> impl Iterator<Item = &ModuleGraphModule> {
+    self.module_identifier_to_module_graph_module.values()
   }
 
   pub fn set_resolved_module(
@@ -198,8 +202,8 @@ impl ModuleGraph {
     self
       .dependency_to_dependency_id
       .get(dep)
-      .and_then(|id| self.dependency_id_to_connection_id.get(&*id))
-      .and_then(|id| self.connection_id_to_connection.get(&*id))
+      .and_then(|id| self.dependency_id_to_connection_id.get(id))
+      .and_then(|id| self.connection_id_to_connection.get(id))
   }
 
   pub fn connection_by_connection_id(&self, connection_id: u32) -> Option<&ModuleGraphConnection> {

@@ -47,6 +47,13 @@ pub enum ResolveKind {
   UrlToken,
 }
 
+pub type FactorizeResult = Option<(
+  ModuleGraphModule,
+  NormalModule,
+  Option<ModuleIdentifier>,
+  u32,
+)>;
+
 #[derive(Debug)]
 pub struct NormalModuleFactory {
   context: NormalModuleFactoryContext,
@@ -266,16 +273,7 @@ impl NormalModuleFactory {
   }
 
   #[instrument(name = "normal_module_factory:factorize")]
-  pub async fn factorize(
-    &mut self,
-  ) -> Result<
-    Option<(
-      ModuleGraphModule,
-      NormalModule,
-      Option<ModuleIdentifier>,
-      u32,
-    )>,
-  > {
+  pub async fn factorize(&mut self) -> Result<FactorizeResult> {
     // TODO: caching in resolve, align to webpack's external module
     // Here is the corresponding create function in webpack, but instead of using hooks we use procedural functions
     let result = self

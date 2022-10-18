@@ -344,29 +344,26 @@ impl Plugin for JsPlugin {
           // FIXME: use result
           .expect("Failed to get module");
 
-        module
-          .module
-          .code_generation(module, compilation)
-          .and_then(|source| {
-            // TODO: this logic is definitely not performant, move to compilation afterwards
-            source
-              .inner()
-              .get(&SourceType::JavaScript)
-              .map(|source| {
-                let mut module_source = source.ast_or_source.clone().try_into_source().unwrap();
-                if args.compilation.options.devtool.eval()
-                  && args.compilation.options.devtool.source_map()
-                {
-                  module_source = wrap_eval_source_map(
-                    module_source,
-                    &self.eval_source_map_cache,
-                    args.compilation,
-                  )?;
-                }
-                Ok(wrap_module_function(module_source, &module.id))
-              })
-              .transpose()
-          })
+        module.code_generation(mgm, compilation).and_then(|source| {
+          // TODO: this logic is definitely not performant, move to compilation afterwards
+          source
+            .inner()
+            .get(&SourceType::JavaScript)
+            .map(|source| {
+              let mut module_source = source.ast_or_source.clone().try_into_source().unwrap();
+              if args.compilation.options.devtool.eval()
+                && args.compilation.options.devtool.source_map()
+              {
+                module_source = wrap_eval_source_map(
+                  module_source,
+                  &self.eval_source_map_cache,
+                  args.compilation,
+                )?;
+              }
+              Ok(wrap_module_function(module_source, &module.identifier()))
+            })
+            .transpose()
+        })
       })
       .collect::<Result<Vec<Option<BoxSource>>>>()?;
 

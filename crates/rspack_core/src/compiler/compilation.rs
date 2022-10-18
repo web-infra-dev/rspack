@@ -298,10 +298,7 @@ impl Compilation {
               dependency_id,
               module_identifier.clone(),
             ) {
-              if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(
-                module_identifier,
-                err.into(),
-              )) {
+              if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err)) {
                 tracing::trace!("fail to send msg {:?}", err)
               }
             };
@@ -325,10 +322,8 @@ impl Compilation {
               dependency_id,
               module.identifier(),
             ) {
-              if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(
-                module.identifier(),
-                err.into(),
-              )) {
+              if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module.identifier(), err))
+              {
                 tracing::trace!("fail to send msg {:?}", err)
               }
             };

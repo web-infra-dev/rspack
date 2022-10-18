@@ -178,10 +178,10 @@ impl<'a> RspackModuleFormatTransformer<'a> {
               .module_by_dependency(&import_dep)
           }
 
-          str.value = JsWord::from(js_module.as_deref()?.id.as_str());
+          str.value = JsWord::from(js_module?.id.as_str());
           str.raw = Some(Atom::from(format!(
             "\"{}\"",
-            js_module.as_deref()?.id.as_str()
+            js_module?.id.as_str()
           )));
         };
         n.callee = self.get_rspack_import_callee();
