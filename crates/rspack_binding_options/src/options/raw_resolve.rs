@@ -18,6 +18,7 @@ pub struct RawResolveOptions {
   pub browser_field: Option<bool>,
   pub condition_names: Option<Vec<String>>,
   pub alias: Option<HashMap<String, String>>,
+  pub symlinks: Option<bool>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -31,32 +32,30 @@ pub struct RawResolveOptions {
   pub browser_field: Option<bool>,
   pub condition_names: Option<Vec<String>>,
   pub alias: Option<HashMap<String, String>>,
+  pub symlinks: Option<bool>,
 }
 
 impl RawOption<Resolve> for RawResolveOptions {
   fn to_compiler_option(self, _options: &CompilerOptionsBuilder) -> anyhow::Result<Resolve> {
-    let default = Resolve::default();
-    let prefer_relative = self.prefer_relative.unwrap_or(default.prefer_relative);
-    let extensions = self.extensions.unwrap_or(default.extensions);
-    let browser_field = self.browser_field.unwrap_or(default.browser_field);
-    let main_files = self.main_files.unwrap_or(default.main_files);
-    let main_fields = self.main_fields.unwrap_or(default.main_fields);
-    let condition_names = self.condition_names.unwrap_or(default.condition_names);
+    let prefer_relative = self.prefer_relative;
+    let extensions = self.extensions;
+    let browser_field = self.browser_field;
+    let main_files = self.main_files;
+    let main_fields = self.main_fields;
+    let condition_names = self.condition_names;
+    let symlinks = self.symlinks;
     // todo alias false
-    let alias = self
-      .alias
-      .map(|alias| {
-        alias
-          .keys()
-          .map(|key| {
-            (
-              key.clone(),
-              AliasMap::Target(alias.get(key).unwrap().clone()),
-            )
-          })
-          .collect::<Vec<(String, AliasMap)>>()
-      })
-      .unwrap_or(default.alias);
+    let alias = self.alias.map(|alias| {
+      alias
+        .keys()
+        .map(|key| {
+          (
+            key.clone(),
+            AliasMap::Target(alias.get(key).unwrap().clone()),
+          )
+        })
+        .collect::<Vec<(String, AliasMap)>>()
+    });
 
     Ok(Resolve {
       prefer_relative,
@@ -66,7 +65,7 @@ impl RawOption<Resolve> for RawResolveOptions {
       main_files,
       condition_names,
       alias,
-      ..default
+      symlinks,
     })
   }
 
