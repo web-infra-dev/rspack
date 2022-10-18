@@ -63,15 +63,19 @@ interface LoaderResultInternal {
 	meta: number[];
 }
 
-interface LoaderContext
+export interface LoaderContext
 	extends Pick<
 		LoaderContextInternal,
-		"resource" | "resourcePath" | "resourceQuery" | "resourceFragment"
+		"resource" | "resourcePath" | "resourceQuery" | "resourceFragment" | "sourceMap"
 	> {
 	source: {
 		getCode(): string;
 		getBuffer(): Buffer;
 	};
+	useSourceMap: boolean,
+	rootContext: string,
+	context: string,
+	getOptions: () => unknown;
 }
 
 const toBuffer = (bufLike: string | Buffer): Buffer => {
@@ -191,13 +195,13 @@ type BuiltinLoader = string;
 
 type ModuleRuleUse =
 	| {
-			builtinLoader: BuiltinLoader;
-			options?: unknown;
-	  }
+		builtinLoader: BuiltinLoader;
+		options?: unknown;
+	}
 	| {
-			loader: JsLoader;
-			options?: unknown;
-	  };
+		loader: JsLoader;
+		options?: unknown;
+	};
 
 export function createRawModuleRuleUses(
 	uses: ModuleRuleUse[],
@@ -233,10 +237,8 @@ function createNativeUse(use: ModuleRuleUse): RawModuleRuleUse {
 
 	if (use.builtinLoader === "sass-loader") {
 		(use.options ??= {} as any).__exePath = require.resolve(
-			`@tmp-sass-embedded/${process.platform}-${
-				process.arch
-			}/dart-sass-embedded/dart-sass-embedded${
-				process.platform === "win32" ? ".bat" : ""
+			`@tmp-sass-embedded/${process.platform}-${process.arch
+			}/dart-sass-embedded/dart-sass-embedded${process.platform === "win32" ? ".bat" : ""
 			}`
 		);
 	}

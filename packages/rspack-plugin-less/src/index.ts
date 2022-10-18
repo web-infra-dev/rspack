@@ -14,11 +14,12 @@ const generateOptions = (options: Less.Options): Less.Options => {
 export interface Options {
 	implementation?: string;
 	lessOptions?: Less.Options;
+	sourceMap?: boolean,
 }
 
 export default async function lessLoader(loaderContext) {
 	let meta = "";
-	const options = loaderContext.getOptions() ?? {};
+	const options: Options = loaderContext.getOptions() ?? {};
 	const lessOptions = options.lessOptions ?? {};
 	const useSourceMap =
 		typeof options.sourceMap === "boolean"
