@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 use std::sync::Arc;
 
@@ -213,20 +213,24 @@ pub struct DiffStat {
 }
 
 #[napi(
-  ts_args_type = "rspack: ExternalObject<RspackInternal>",
-  // ts_return_type = "Promise<[diff: Record<string, string>, map: Record<string, string>]>"
+  ts_args_type = "rspack: ExternalObject<RspackInternal>, changedFiles: string[], removedFiles: string[]",
   ts_return_type = "Promise<Record<string, {content: string, kind: number}>>"
 )]
 pub fn rebuild(
   env: Env,
   binding_context: External<RspackBindingContext>,
+  changed_files: Vec<String>,
+  removed_files: Vec<String>,
 ) -> Result<napi::JsObject> {
   let compiler = binding_context.rspack.clone();
   env.execute_tokio_future(
     async move {
       let mut compiler = compiler.lock().await;
       let diff = compiler
-        .rebuild()
+        .rebuild(
+          HashSet::from_iter(changed_files.into_iter()),
+          HashSet::from_iter(removed_files.into_iter()),
+        )
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
       let stats: HashMap<String, DiffStat> = diff
