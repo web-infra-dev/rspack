@@ -1,10 +1,5 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 
-// use dashmap::{
-//   mapref::one::{Ref, RefMut},
-//   DashMap, DashSet,
-// };
-
 use hashbrown::{HashMap, HashSet};
 
 use rspack_error::{Error, Result};
@@ -87,11 +82,6 @@ impl ModuleGraph {
     {
       val.insert(module);
     }
-    // if let dashmap::mapref::entry::Entry::Vacant(val) =
-    //   self.module_identifier_to_module.entry(module.identifier())
-    // {
-    //   val.insert(module);
-    // }
   }
 
   pub fn add_dependency(&mut self, (dep, dependency_id): (Dependency, u32), resolved_uri: String) {

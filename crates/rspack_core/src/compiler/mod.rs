@@ -228,7 +228,12 @@ pub enum Msg {
   ),
   ModuleReused(TWithDiagnosticArray<(Option<ModuleIdentifier>, u32, ModuleIdentifier)>),
   ModuleResolved(
-    TWithDiagnosticArray<(Option<ModuleIdentifier>, u32, NormalModule, Vec<Dependency>)>,
+    TWithDiagnosticArray<(
+      Option<ModuleIdentifier>,
+      u32,
+      Box<NormalModule>,
+      Box<Vec<Dependency>>,
+    )>,
   ),
   ModuleGraphModuleCreated(ModuleGraphModule),
   ModuleBuiltErrorEncountered(ModuleIdentifier, Error),

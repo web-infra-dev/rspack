@@ -153,25 +153,12 @@ impl Compilation {
               .visited_module_id
               .contains(&(module_identifier.clone(), dependency.detail.clone()))
             {
-              // active_task_count.fetch_sub(1, Ordering::Relaxed);
-
               if let Err(err) = tx.send(Msg::ModuleReused(
                 (original_module_identifier, dependency_id, module_identifier)
                   .with_diagnostic(module_with_diagnostic.diagnostic),
               )) {
                 tracing::trace!("fail to send msg {:?}", err)
               }
-
-              // if let Err(err) = self.module_graph.set_resolved_module(
-              //   original_module_identifier,
-              //   self
-              //     .module_graph
-              //     .dependency_id_by_dependency(&dependency)
-              //     .expect("Dependency not found"),
-              //   module_identifier,
-              // ) {
-              //   self.push_batch_diagnostic(err.into())
-              // };
               continue;
             }
 
@@ -182,16 +169,6 @@ impl Compilation {
             if let Err(err) = tx.send(Msg::ModuleGraphModuleCreated(mgm)) {
               tracing::trace!("fail to send msg {:?}", err)
             }
-
-            // self.module_graph.add_module_graph_module(mgm);
-            // self.module_graph.add_module(module);
-            // if let Err(err) = self.module_graph.set_resolved_module(
-            //   original_module_identifier,
-            //   dependency_id,
-            //   module_identifier.clone(),
-            // ) {
-            //   self.push_batch_diagnostic(err.into())
-            // };
 
             let compiler_options = self.options.clone();
             let loader_runner_runner = self.loader_runner_runner.clone();
@@ -279,8 +256,8 @@ impl Compilation {
                     (
                       original_module_identifier.clone(),
                       dependency_id,
-                      module,
-                      deps.clone(),
+                      Box::new(module),
+                      Box::new(deps.clone()),
                     )
                       .with_diagnostic(diagnostics),
                   )) {
@@ -341,7 +318,7 @@ impl Compilation {
                 .module_graph
                 .module_graph_module_by_identifier_mut(&module.identifier())
                 .unwrap();
-              module_graph_module.all_dependencies = deps;
+              module_graph_module.all_dependencies = *deps;
             }
             if let Err(err) = self.module_graph.set_resolved_module(
               original_module_identifier,
@@ -355,7 +332,7 @@ impl Compilation {
                 tracing::trace!("fail to send msg {:?}", err)
               }
             };
-            self.module_graph.add_module(module);
+            self.module_graph.add_module(*module);
           }
           Msg::ModuleBuiltErrorEncountered(module_identifier, err) => {
             active_task_count.fetch_sub(1, Ordering::SeqCst);
