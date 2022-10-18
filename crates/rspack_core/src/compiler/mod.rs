@@ -1,9 +1,9 @@
 mod compilation;
 mod resolver;
 
+use anyhow::Context;
 pub use compilation::*;
 pub use resolver::*;
-
 use std::{path::Path, sync::Arc};
 
 use hashbrown::HashMap;
@@ -119,11 +119,12 @@ impl Compiler {
   }
 
   pub fn emit_assets(&self, compilation: &Compilation) -> Result<()> {
-    std::fs::create_dir_all(Path::new(&self.options.context).join(&self.options.output.path))
-      .map_err(|_| Error::InternalError("Failed to create output directory".into()))?;
-
-    std::fs::create_dir_all(&self.options.output.path)
-      .map_err(|_| Error::InternalError("Failed to create output directory".into()))?;
+    let output_path = Path::new(&self.options.context).join(&self.options.output.path);
+    if !output_path.exists() {
+      std::fs::create_dir_all(&output_path)
+        .with_context(|| format!("failed to create dir: {:?}", &output_path))
+        .map_err(|e| Error::Anyhow { source: e })?;
+    }
 
     compilation
       .assets()
@@ -131,18 +132,9 @@ impl Compiler {
       .try_for_each(|(filename, asset)| -> anyhow::Result<()> {
         use std::fs;
 
-        std::fs::create_dir_all(
-          Path::new(&self.options.output.path)
-            .join(filename)
-            .parent()
-            .unwrap(),
-        )?;
+        std::fs::create_dir_all(Path::new(&output_path).join(filename).parent().unwrap())?;
 
-        fs::write(
-          Path::new(&self.options.output.path).join(filename),
-          asset.buffer(),
-        )
-        .map_err(|e| e.into())
+        fs::write(Path::new(&output_path).join(filename), asset.buffer()).map_err(|e| e.into())
       })
       .map_err(|e| e.into())
   }

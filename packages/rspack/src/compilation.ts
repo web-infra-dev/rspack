@@ -6,7 +6,6 @@ import {
 	RspackThreadsafeContext,
 	createDummyResult
 } from "./compiler";
-
 export class Compilation {
 	#emitAssetCallback: EmitAssetCallback;
 	hooks: {
@@ -57,5 +56,8 @@ export class Compilation {
 		}
 		await this.hooks.processAssets.promise(assets);
 		return createDummyResult(context.id);
+	}
+	createStats() {
+		return {};
 	}
 }

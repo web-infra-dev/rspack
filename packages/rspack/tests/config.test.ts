@@ -1,10 +1,10 @@
 import assert from "assert";
-import { resolveOptions } from "@rspack/core";
+import { getNormalizedRspackOptions } from "@rspack/core";
 import path from "path";
 
 describe("config", () => {
 	it("default config snapshot", () => {
-		const resolvedOptions = resolveOptions({});
+		const resolvedOptions = getNormalizedRspackOptions({});
 		assert.deepStrictEqual(resolvedOptions.context, process.cwd());
 		assert.deepStrictEqual(
 			resolvedOptions.devServer.static.directory,
