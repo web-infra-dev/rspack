@@ -1,3 +1,5 @@
 // import './style.css'
 
-export { a as c } from "./test.js";
+export * as ccc from "./test.js";
+
+export const c = ccc;

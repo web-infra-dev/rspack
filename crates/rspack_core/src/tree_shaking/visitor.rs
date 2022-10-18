@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, hash::Hash};
 
 use swc_atoms::{js_word, JsWord};
 use swc_common::{
@@ -6,14 +6,12 @@ use swc_common::{
   Mark, SyntaxContext,
 };
 use swc_ecma_ast::*;
-use swc_ecma_visit::{
-  as_folder, noop_visit_type, visit_obj_and_computed, Fold, Visit, VisitMut, VisitMutWith,
-  VisitWith,
-};
-use tracing::{debug, span, Level};
+use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
 use ustr::Ustr;
 
 use crate::{tree_shaking::symbol::Symbol, Dependency, ResolveKind};
+
+use super::symbol::IndirectTopLevelSymbol;
 
 const LOG: bool = false && cfg!(debug_assertions);
 
@@ -149,7 +147,12 @@ pub fn resolver(unresolved_mark: Mark, top_level_mark: Mark, typescript: bool) {
   //     },
   //   })
 }
-
+enum SymbolRef {
+  Direct(Symbol),
+  Indirect(IndirectTopLevelSymbol),
+  /// uri
+  Star(Ustr),
+}
 /// # Phases
 ///
 /// ## Hoisting phase
@@ -160,6 +163,7 @@ pub struct ModuleRefAnalyze<'a> {
   unresolved_mark: Mark,
   uri: Ustr,
   dep_to_module_uri: &'a HashMap<Dependency, String>,
+  export_map: HashMap<JsWord, SymbolRef>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -180,123 +184,9 @@ impl<'a> ModuleRefAnalyze<'a> {
       unresolved_mark,
       uri,
       dep_to_module_uri,
+      export_map: HashMap::new(),
     }
   }
-
-  //   fn mark_for_ref_inner(&self, sym: &JsWord, stop_an_fn_scope: bool) -> Option<Mark> {
-  //     // NaN always points the globals
-  //     if *sym == js_word!("NaN") {
-  //       return Some(self.config.unresolved_mark);
-  //     }
-
-  //     if self.config.handle_types && self.in_type {
-  //       let mut mark = self.current.mark;
-  //       let mut scope = Some(&self.current);
-
-  //       while let Some(cur) = scope {
-  //         // if cur.declared_types.contains(sym) ||
-  //         // cur.hoisted_symbols.borrow().contains(sym) {
-  //         if cur.declared_types.contains(sym) {
-  //           if mark == Mark::root() {
-  //             break;
-  //           }
-  //           return Some(mark);
-  //         }
-
-  //         if cur.kind == ScopeKind::Fn && stop_an_fn_scope {
-  //           return None;
-  //         }
-
-  //         if let Some(parent) = &cur.parent {
-  //           mark = parent.mark;
-  //         }
-  //         scope = cur.parent;
-  //       }
-  //     }
-
-  //     let mut mark = self.current.mark;
-  //     let mut scope = Some(&self.current);
-
-  //     while let Some(cur) = scope {
-  //       if cur.declared_symbols.contains_key(sym) {
-  //         if mark == Mark::root() {
-  //           return None;
-  //         }
-  //         return Some(mark);
-  //       }
-
-  //       if cur.kind == ScopeKind::Fn && stop_an_fn_scope {
-  //         return None;
-  //       }
-
-  //       if let Some(parent) = &cur.parent {
-  //         mark = parent.mark;
-  //       }
-  //       scope = cur.parent;
-  //     }
-
-  //     None
-  //   }
-
-  //   /// Modifies a binding identifier.
-  //   fn modify(&mut self, ident: &mut Ident, kind: DeclKind) {
-  //     if cfg!(debug_assertions) && LOG {
-  //       debug!(
-  //         "Binding (type = {}) {}{:?} {:?}",
-  //         self.in_type,
-  //         ident.sym,
-  //         ident.span.ctxt(),
-  //         kind
-  //       );
-  //     }
-
-  //     if ident.span.ctxt() != SyntaxContext::empty() {
-  //       return;
-  //     }
-
-  //     if self.in_type {
-  //       self.current.declared_types.insert(ident.sym.clone());
-  //       let mark = self.current.mark;
-
-  //       ident.span = if mark == Mark::root() {
-  //         ident.span
-  //       } else {
-  //         let span = ident.span.apply_mark(mark);
-  //         if cfg!(debug_assertions) && LOG {
-  //           debug!("\t-> {:?}", span.ctxt());
-  //         }
-  //         span
-  //       };
-  //       return;
-  //     }
-
-  //     let mark = self.current.mark;
-
-  //     self
-  //       .current
-  //       .declared_symbols
-  //       .insert(ident.sym.clone(), kind);
-
-  //     ident.span = if mark == Mark::root() {
-  //       ident.span
-  //     } else {
-  //       let span = ident.span.apply_mark(mark);
-  //       if cfg!(debug_assertions) && LOG {
-  //         debug!("\t-> {:?}", span.ctxt());
-  //       }
-  //       span
-  //     };
-  //   }
-
-  //   fn try_resolving_as_type(&mut self, i: &mut Ident) {
-  //     if i.span.ctxt.outer() == self.config.unresolved_mark {
-  //       i.span.ctxt = SyntaxContext::empty()
-  //     }
-
-  //     self.in_type = true;
-  //     i.visit_with(self);
-  //     self.in_type = false;
-  //   }
 }
 
 impl<'a> Visit for ModuleRefAnalyze<'a> {
@@ -329,22 +219,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         }
         ModuleDecl::ExportDecl(decl) => {}
         ModuleDecl::ExportNamed(named_export) => {
-          let src: Option<String> = named_export.src.as_ref().map(|src| src.value.to_string());
-          if let Some(src) = src {
-            let resolved_uri = self
-              .dep_to_module_uri
-              .get(&Dependency {
-                importer: Some(self.uri.to_string()),
-                detail: crate::ModuleDependency {
-                  specifier: src,
-                  kind: ResolveKind::Import,
-                  span: None,
-                },
-              })
-              .unwrap();
-            dbg!(&resolved_uri);
-          } else {
-          }
+          self.analyze_named_export(named_export);
         }
         ModuleDecl::ExportDefaultDecl(_) => todo!(),
         ModuleDecl::ExportDefaultExpr(_) => todo!(),
@@ -355,6 +230,85 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       },
       ModuleItem::Stmt(_) => node.visit_children_with(self),
     }
+  }
+}
+
+impl<'a> ModuleRefAnalyze<'a> {
+  fn add_export(&mut self, id: JsWord, symbol: SymbolRef) {
+    if self.export_map.contains_key(&id) {
+      // TODO: should add some Diagnostic
+    } else {
+      self.export_map.insert(id, symbol);
+    }
+  }
+  fn analyze_named_export(&mut self, named_export: &NamedExport) {
+    let src: Option<String> = named_export.src.as_ref().map(|src| src.value.to_string());
+    if let Some(src) = src {
+      let resolved_uri = self
+        .dep_to_module_uri
+        .get(&Dependency {
+          importer: Some(self.uri.to_string()),
+          detail: crate::ModuleDependency {
+            specifier: src,
+            kind: ResolveKind::Import,
+            span: None,
+          },
+        })
+        .unwrap();
+      named_export
+        .specifiers
+        .iter()
+        .for_each(|specifier| match specifier {
+          ExportSpecifier::Namespace(namespace) => {
+            // TODO: handle `* as xxx`, do we need a extra binding
+            self.add_export(id, symbol)
+          }
+          ExportSpecifier::Default(_) => {
+            // Currently swc does not support syntax like `export v from 'xxx';`
+            unimplemented!("")
+          }
+          ExportSpecifier::Named(named) => {
+            // TODO: what if the named binding is a unresolved_binding?
+            // TODO: handle `as xxx`
+            let id = match &named.orig {
+              ModuleExportName::Ident(ident) => ident.to_id(),
+              // export {'a'} is a syntax error;
+              // export {'a'} is not.
+              // we know here export has no src,  so this branch should not reachable.
+              ModuleExportName::Str(_) => unreachable!(),
+            };
+            let symbol_ref = SymbolRef::Direct(Symbol::from_id_and_uri(id, self.uri));
+          }
+        });
+    } else {
+      named_export
+        .specifiers
+        .iter()
+        .for_each(|specifier| match specifier {
+          ExportSpecifier::Namespace(_) => {
+            // named_export has namespace specifier but no src will trigger a syntax error and should not reach here. e.g.
+            // `export *`;
+            unreachable!("")
+          }
+          ExportSpecifier::Default(_) => {
+            // Currently swc does not support syntax like `export v from 'xxx';`
+            unimplemented!("")
+          }
+          ExportSpecifier::Named(named) => {
+            // TODO: what if the named binding is a unresolved_binding?
+            // TODO: handle `as xxx`
+            let id = match &named.orig {
+              ModuleExportName::Ident(ident) => ident.to_id(),
+              // export {'a'} is a syntax error;
+              // export {'a'} is not.
+              // we know here export has no src,  so this branch should not reachable.
+              ModuleExportName::Str(_) => unreachable!(),
+            };
+            let symbol_ref = SymbolRef::Direct(Symbol::from_id_and_uri(id.clone(), self.uri));
+            self.add_export(id.0, symbol_ref);
+          }
+        });
+    };
   }
 }
 

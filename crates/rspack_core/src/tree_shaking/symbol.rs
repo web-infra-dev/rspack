@@ -28,3 +28,14 @@ impl Symbol {
     Self { atom, ctxt, uri }
   }
 }
+
+pub(crate) struct IndirectTopLevelSymbol {
+  uri: Ustr,
+  id: JsWord,
+}
+
+impl IndirectTopLevelSymbol {
+  pub(crate) fn new(uri: Ustr, id: JsWord) -> Self {
+    Self { uri, id }
+  }
+}
