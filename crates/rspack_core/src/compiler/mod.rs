@@ -69,6 +69,7 @@ impl Compiler {
     }
     Ok(())
   }
+
   #[instrument(name = "build")]
   pub async fn build(&mut self) -> Result<Stats> {
     // TODO: clear the outdate cache entires in resolver,
@@ -143,41 +144,53 @@ impl Compiler {
   }
 
   // TODO: remove this function when we had hash in stats.
-  pub async fn rebuild(&mut self) -> Result<std::collections::HashMap<String, (u8, String)>> {
-    fn collect_modules_from_stats(s: &Stats<'_>) -> HashMap<String, String> {
+  pub async fn rebuild(
+    &mut self,
+    changed_files: std::collections::HashSet<String>,
+    removed_files: std::collections::HashSet<String>,
+  ) -> Result<std::collections::HashMap<String, (u8, String)>> {
+    fn collect_modules_from_stats(
+      s: &Stats<'_>,
+      changed_files: &std::collections::HashSet<String>,
+      removed_files: &std::collections::HashSet<String>,
+    ) -> HashMap<String, String> {
       let modules = s.compilation.module_graph.module_graph_modules();
       // TODO: use hash;
       modules
         .filter(|item| item.module_type.is_js_like())
         .filter_map(|item| {
           let uri = item.uri.to_string();
-
-          s.compilation
-            .module_graph
-            .module_by_identifier(&uri)
-            .map(|module| {
-              // TODO: it soo slowly, should use cache to instead.
-              let code = module.code_generation(item, s.compilation).unwrap();
-              let code = code
-                .inner()
-                .get(&crate::SourceType::JavaScript)
-                .expect("expected javascript file")
-                .ast_or_source
-                .as_source()
-                .unwrap()
-                .source()
-                .to_string();
-              (uri, code)
-            })
+          // TODO: should use filetime snapshot
+          if !changed_files.contains(&uri) && !removed_files.contains(&uri) {
+            None
+          } else {
+            s.compilation
+              .module_graph
+              .module_by_identifier(&uri)
+              .map(|module| {
+                // TODO: it soo slowly, should use cache to instead.
+                let code = module.code_generation(item, s.compilation).unwrap();
+                let code = code
+                  .inner()
+                  .get(&crate::SourceType::JavaScript)
+                  .expect("expected javascript file")
+                  .ast_or_source
+                  .as_source()
+                  .unwrap()
+                  .source()
+                  .to_string();
+                (uri, code)
+              })
+          }
         })
         .collect()
     }
 
     let old = self.stats()?;
-    let old = collect_modules_from_stats(&old);
+    let old = collect_modules_from_stats(&old, &changed_files, &removed_files);
 
     let new = self.build().await?;
-    let new = collect_modules_from_stats(&new);
+    let new = collect_modules_from_stats(&new, &changed_files, &removed_files);
 
     let mut diff = std::collections::HashMap::new();
 
@@ -200,7 +213,8 @@ impl Compiler {
         diff.insert(old_uri, (1, String::new()));
       }
     }
-
+    // return all diff modules is not a good idea,
+    // maybe a connection between browser client and local server is a better choice.
     Ok(diff)
   }
 }

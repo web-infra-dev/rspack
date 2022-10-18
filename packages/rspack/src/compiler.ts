@@ -202,8 +202,8 @@ class Compiler {
 		const stats = await binding.build(this.#instance);
 		return stats;
 	}
-	async rebuild() {
-		const stats = await binding.rebuild(this.#instance);
+	async rebuild(changedFiles: string[]) {
+		const stats = await binding.rebuild(this.#instance, changedFiles, []);
 		return stats.inner;
 	}
 
@@ -219,12 +219,13 @@ class Compiler {
 		);
 		let stats = await this.build();
 
-		watcher.on("change", async () => {
+		// TODO: should use aggregated
+		watcher.on("change", async path => {
 			// TODO: only build because we lack the snapshot info of file.
 			// TODO: it means there a lot of things to do....
 			const begin = Date.now();
 			console.log("hit change and start to build");
-			const diffStats = await this.rebuild();
+			const diffStats = await this.rebuild([path]);
 			console.log("build success, time cost", Date.now() - begin);
 		});
 
