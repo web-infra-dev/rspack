@@ -4,9 +4,21 @@
     "src"
   ],
   "compilerOptions": {
-    "outDir": "lib"
+    "outDir": "lib",
+    "rootDir": "src"
   },
   "ts-node": {
     "transpileOnly": true
-  }
+  },
+  "references": [
+    {
+      "path": "../rspack"
+    },
+    {
+      "path": "../rspack-dev-middleware"
+    },
+    {
+      "path": "../rspack-dev-server"
+    }
+  ]
 }
