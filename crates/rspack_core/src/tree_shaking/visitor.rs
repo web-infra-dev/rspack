@@ -20,11 +20,6 @@ pub(crate) enum SymbolRef {
   /// uri
   Star(Ustr),
 }
-/// # Phases
-///
-/// ## Hoisting phase
-///
-/// ## Resolving phase
 #[derive(Debug)]
 pub(crate) struct ModuleRefAnalyze<'a> {
   top_level_mark: Mark,
@@ -32,6 +27,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   uri: Ustr,
   module_graph: &'a ModuleGraph,
   pub(crate) export_map: HashMap<JsWord, SymbolRef>,
+  pub(crate) import_map: HashMap<JsWord, SymbolRef>,
   /// list of uri, each uri represent export all named export from specific uri
   pub export_all_list: Vec<Ustr>,
 }
@@ -55,6 +51,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       uri,
       module_graph: dep_to_module_uri,
       export_map: HashMap::new(),
+      import_map: HashMap::new(),
       export_all_list: vec![],
     }
   }
@@ -72,19 +69,50 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       ModuleItem::ModuleDecl(decl) => match decl {
         ModuleDecl::Import(import) => {
           let src: String = import.src.value.to_string();
-          let resolved_uri = self
-            .module_graph
-            .module_uri_by_deppendency(&Dependency {
-              importer: Some(self.uri.to_string()),
-              detail: crate::ModuleDependency {
-                specifier: src,
-                kind: ResolveKind::Import,
-                span: None,
-              },
-              parent_module_identifier: Some(self.uri.to_string()),
-            })
-            .unwrap();
-          import.specifiers.iter().for_each(|specifier| {});
+          let resolved_uri = self.resolve_uri(src, ResolveKind::Import);
+          let resolved_uri_ukey = ustr(&resolved_uri);
+          import
+            .specifiers
+            .iter()
+            .for_each(|specifier| match specifier {
+              ImportSpecifier::Named(named) => {
+                let local = named.local.sym.clone();
+                let imported = match &named.imported {
+                  Some(imported) => match imported {
+                    ModuleExportName::Ident(ident) => ident.sym.clone(),
+                    ModuleExportName::Str(str) => str.value.clone(),
+                  },
+                  None => local.clone(),
+                };
+                let symbol_ref =
+                  SymbolRef::Indirect(IndirectTopLevelSymbol::new(resolved_uri_ukey, imported));
+                self.add_import(local, symbol_ref);
+              }
+              ImportSpecifier::Default(_) => todo!(),
+              ImportSpecifier::Namespace(namespace) => {
+                let local = namespace.local.sym.clone();
+                self.add_import(local, SymbolRef::Star(resolved_uri_ukey));
+              }
+              // ExportSpecifier::Namespace(namespace) => {
+              //   // TODO: handle `* as xxx`, do we need a extra binding
+              //   self.export_all_list.push(resolved_uri_ukey);
+              // }
+              // ExportSpecifier::Default(_) => {
+              //   // Currently swc does not support syntax like `export v from 'xxx';`
+              //   unreachable!("Module has syntax error should not trigger tree_shaking")
+              // }
+              // ExportSpecifier::Named(named) => {
+              //   // TODO: what if the named binding is a unresolved_binding?
+              //   // TODO: handle `as xxx`
+              //   let id = match &named.orig {
+              //     ModuleExportName::Ident(ident) => ident.sym.clone(),
+              //     ModuleExportName::Str(_) => todo!(),
+              //   };
+              //   let symbol_ref =
+              //     SymbolRef::Indirect(IndirectTopLevelSymbol::new(resolved_uri_ukey, id.clone()));
+              //   self.add_export(id, symbol_ref);
+              // }
+            });
           // import.visit_with(self);
         }
         ModuleDecl::ExportDecl(decl) => match &decl.decl {
@@ -131,6 +159,14 @@ impl<'a> ModuleRefAnalyze<'a> {
       // TODO: should add some Diagnostic
     } else {
       self.export_map.insert(id, symbol);
+    }
+  }
+
+  fn add_import(&mut self, id: JsWord, symbol: SymbolRef) {
+    if self.import_map.contains_key(&id) {
+      // TODO: should add some Diagnostic
+    } else {
+      self.import_map.insert(id, symbol);
     }
   }
   fn analyze_named_export(&mut self, named_export: &NamedExport) {
