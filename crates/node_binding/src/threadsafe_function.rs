@@ -2,6 +2,7 @@
 // only returning args. This enables us to use the return value of the function.
 
 #![allow(clippy::single_component_path_imports)]
+#![allow(unused)]
 
 use std::convert::Into;
 use std::ffi::CString;
@@ -11,15 +12,17 @@ use std::ptr;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 
+use napi::bindgen_prelude::FromNapiValue;
 use napi::{check_status, sys, Env, Result, Status};
 use napi::{JsError, JsFunction, NapiValue};
 
 /// ThreadSafeFunction Context object
 /// the `value` is the value passed to `call` method
-pub struct ThreadSafeCallContext<T: 'static> {
+pub struct ThreadSafeCallContext<T: 'static, R: FromNapiValue> {
   pub env: Env,
   pub value: T,
   pub callback: JsFunction,
+  pub tx: tokio::sync::oneshot::Sender<R>,
 }
 
 #[repr(u8)]
@@ -87,14 +90,14 @@ impl From<ThreadsafeFunctionCallMode> for sys::napi_threadsafe_function_call_mod
 ///   ctx.env.get_undefined()
 /// }
 /// ```
-pub struct ThreadsafeFunction<T: 'static> {
+pub struct ThreadsafeFunction<T: 'static, R: FromNapiValue> {
   raw_tsfn: sys::napi_threadsafe_function,
   aborted: Arc<AtomicBool>,
   ref_count: Arc<AtomicUsize>,
-  _phantom: PhantomData<T>,
+  _phantom: PhantomData<(T, R)>,
 }
 
-impl<T: 'static> Clone for ThreadsafeFunction<T> {
+impl<T: 'static, R: FromNapiValue> Clone for ThreadsafeFunction<T, R> {
   fn clone(&self) -> Self {
     if !self.aborted.load(Ordering::Acquire) {
       let acquire_status = unsafe { sys::napi_acquire_threadsafe_function(self.raw_tsfn) };
@@ -113,17 +116,17 @@ impl<T: 'static> Clone for ThreadsafeFunction<T> {
   }
 }
 
-unsafe impl<T> Send for ThreadsafeFunction<T> {}
-unsafe impl<T> Sync for ThreadsafeFunction<T> {}
+unsafe impl<T, R: FromNapiValue> Send for ThreadsafeFunction<T, R> {}
+unsafe impl<T, R: FromNapiValue> Sync for ThreadsafeFunction<T, R> {}
 
-impl<T: 'static> ThreadsafeFunction<T> {
+impl<T: 'static, R: FromNapiValue> ThreadsafeFunction<T, R> {
   /// See [napi_create_threadsafe_function](https://nodejs.org/api/n-api.html#n_api_napi_create_threadsafe_function)
   /// for more information.
-  pub(crate) fn create<R: 'static + Send + FnMut(ThreadSafeCallContext<T>) -> Result<()>>(
+  pub(crate) fn create<C: 'static + Send + FnMut(ThreadSafeCallContext<T, R>) -> Result<()>>(
     env: sys::napi_env,
     func: sys::napi_value,
     max_queue_size: usize,
-    callback: R,
+    callback: C,
   ) -> Result<Self> {
     let mut async_resource_name = ptr::null_mut();
     let s = "napi_rs_threadsafe_function";
@@ -145,9 +148,9 @@ impl<T: 'static> ThreadsafeFunction<T> {
         max_queue_size,
         initial_thread_count,
         ptr,
-        Some(thread_finalize_cb::<T, R>),
+        Some(thread_finalize_cb::<T, C, R>),
         ptr,
-        Some(call_js_cb::<T, R>),
+        Some(call_js_cb::<T, C, R>),
         &mut raw_tsfn,
       )
     })?;
@@ -165,25 +168,32 @@ impl<T: 'static> ThreadsafeFunction<T> {
   }
 }
 
-impl<T: 'static> ThreadsafeFunction<T> {
+impl<T: 'static, R: FromNapiValue> ThreadsafeFunction<T, R> {
   /// See [napi_call_threadsafe_function](https://nodejs.org/api/n-api.html#n_api_napi_call_threadsafe_function)
   /// for more information.
-  pub fn call(&self, value: T, mode: ThreadsafeFunctionCallMode) -> Status {
+  pub async fn call(&self, value: T, mode: ThreadsafeFunctionCallMode) -> Result<R> {
     if self.aborted.load(Ordering::Acquire) {
-      return Status::Closing;
+      return Err(napi::Error::from_status(Status::Closing));
     }
-    unsafe {
-      sys::napi_call_threadsafe_function(
-        self.raw_tsfn,
-        Box::into_raw(Box::new(value)) as *mut _,
-        mode.into(),
-      )
-    }
-    .into()
+
+    let (tx, rx) = tokio::sync::oneshot::channel::<R>();
+
+    check_status! {
+      unsafe {
+        sys::napi_call_threadsafe_function(
+          self.raw_tsfn,
+          Box::into_raw(Box::new((value, tx))) as *mut _,
+          mode.into(),
+        )
+      }
+    };
+
+    rx.await
+      .map_err(|err| napi::Error::from_reason(format!("Failed to receive call result: {}", err)))
   }
 }
 
-impl<T: 'static> Drop for ThreadsafeFunction<T> {
+impl<T: 'static, R: FromNapiValue> Drop for ThreadsafeFunction<T, R> {
   fn drop(&mut self) {
     if !self.aborted.load(Ordering::Acquire) && self.ref_count.load(Ordering::Acquire) > 0usize {
       let release_status = unsafe {
@@ -205,41 +215,47 @@ unsafe extern "C" fn cleanup_cb(cleanup_data: *mut c_void) {
   aborted.store(true, Ordering::SeqCst);
 }
 
-unsafe extern "C" fn thread_finalize_cb<T: 'static, R>(
+unsafe extern "C" fn thread_finalize_cb<T: 'static, C, R: FromNapiValue>(
   _raw_env: sys::napi_env,
+  // context
   finalize_data: *mut c_void,
+  // data
   _finalize_hint: *mut c_void,
 ) where
-  R: 'static + Send + FnMut(ThreadSafeCallContext<T>) -> Result<()>,
+  C: 'static + Send + FnMut(ThreadSafeCallContext<T, R>) -> Result<()>,
 {
   // cleanup
-  drop(Box::<R>::from_raw(finalize_data.cast()));
+  drop(Box::<C>::from_raw(finalize_data.cast()));
 }
 
-unsafe extern "C" fn call_js_cb<T: 'static, R>(
+unsafe extern "C" fn call_js_cb<T: 'static, C, R: FromNapiValue>(
   raw_env: sys::napi_env,
   js_callback: sys::napi_value,
   context: *mut c_void,
   data: *mut c_void,
 ) where
-  R: 'static + Send + FnMut(ThreadSafeCallContext<T>) -> Result<()>,
+  C: 'static + Send + FnMut(ThreadSafeCallContext<T, R>) -> Result<()>,
 {
   // env and/or callback can be null when shutting down
   if raw_env.is_null() || js_callback.is_null() {
     return;
   }
 
-  let ctx: &mut R = &mut *context.cast::<R>();
-  let val: Result<T> = Ok(*Box::<T>::from_raw(data.cast()));
+  let ctx: &mut C = &mut *context.cast::<C>();
+  let val = Ok(*Box::<(T, tokio::sync::oneshot::Sender<R>)>::from_raw(
+    data.cast(),
+  ));
 
   let mut recv = ptr::null_mut();
   sys::napi_get_undefined(raw_env, &mut recv);
 
   let ret = val.and_then(|v| {
+    let (value, tx) = v;
     (ctx)(ThreadSafeCallContext {
       env: Env::from_raw(raw_env),
-      value: v,
+      value,
       callback: JsFunction::from_raw(raw_env, js_callback).unwrap(), // TODO: unwrap
+      tx,
     })
   });
 

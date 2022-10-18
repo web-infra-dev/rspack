@@ -9,6 +9,7 @@ use napi_derive::napi;
 // use nodejs_resolver::Resolver;
 use tokio::sync::Mutex;
 mod adapter;
+mod threadsafe_function;
 // mod options;
 mod utils;
 use adapter::create_node_adapter_from_plugin_callbacks;
