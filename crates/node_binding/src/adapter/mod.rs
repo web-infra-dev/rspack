@@ -98,7 +98,7 @@ impl Plugin for RspackPluginNodeAdapter {
       .compilation
       .assets
       .iter()
-      .map(|asset| (asset.0.clone(), asset.1.buffer().to_vec()))
+      .map(|asset| (asset.0.clone(), asset.1.get_source().buffer().to_vec()))
       .collect();
     let context = RspackThreadsafeContext::new(assets);
     let (tx, rx) = oneshot::channel::<()>();
@@ -133,21 +133,18 @@ impl Plugin for RspackPluginNodeAdapter {
         // Safety: since the `compilation` will available throughout the build procedure, this operation is always considered safe under the `processAsset` hook.
         // For developers who use `@rspack/binding` under the hood, exposing a reference to the `emit_asset` fn to user side is strongly not recommended since `compilation` may be dropped.
         let compilation = unsafe { &mut *compilation.cast::<Compilation>() };
-
-        compilation.emit_asset(
-          options.filename,
-          match options.asset {
-            AssetContent {
-              buffer: Some(buffer),
-              source: None,
-            } => RawSource::Buffer(buffer.into()).boxed(),
-            AssetContent {
-              buffer: None,
-              source: Some(source),
-            } => RawSource::Source(source).boxed(),
-            _ => panic!("AssetContent can only be string or buffer"),
-          },
-        );
+        let asset = compilation.assets.get_mut(&options.filename).unwrap();
+        asset.set_source(match options.asset {
+          AssetContent {
+            buffer: Some(buffer),
+            source: None,
+          } => RawSource::Buffer(buffer.into()).boxed(),
+          AssetContent {
+            buffer: None,
+            source: Some(source),
+          } => RawSource::Source(source).boxed(),
+          _ => panic!("AssetContent can only be string or buffer"),
+        });
 
         call_context.env.get_undefined()
       };

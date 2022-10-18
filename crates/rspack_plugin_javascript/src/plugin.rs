@@ -469,15 +469,19 @@ impl Plugin for JsPlugin {
     }
 
     let swc_compiler = get_swc_compiler();
-    let filename_source_pair: Vec<(String, BoxSource)> = compilation
+    compilation
       .assets
-      .par_iter()
+      .par_iter_mut()
       .filter(|(filename, _)| {
         filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs")
       })
-      .map(|(filename, original)| {
-        let input = original.source().to_string();
-        let input_source_map = original.map(&MapOptions::default());
+      .try_for_each(|(filename, original)| -> Result<()> {
+        if original.get_info().minimized {
+          return Ok(());
+        }
+
+        let input = original.get_source().source().to_string();
+        let input_source_map = original.get_source().map(&MapOptions::default());
         let output = GLOBALS.set(&Default::default(), || {
           swc::try_with_handler(swc_compiler.cm.clone(), Default::default(), |handler| {
             let fm = swc_compiler.cm.new_source_file(
@@ -510,13 +514,11 @@ impl Plugin for JsPlugin {
         } else {
           RawSource::from(output.code).boxed()
         };
-        Ok((filename.to_string(), source))
-      })
-      .collect::<Result<Vec<_>>>()?;
+        original.set_source(source);
+        original.get_info_mut().minimized = true;
+        Ok(())
+      })?;
 
-    for (filename, source) in filename_source_pair {
-      compilation.emit_asset(filename, source)
-    }
     Ok(())
   }
 }
