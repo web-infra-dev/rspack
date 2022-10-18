@@ -1,6 +1,5 @@
 use crate::Resolve;
 use rspack_error::{Error, Result};
-use std::collections::HashSet;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -46,38 +45,60 @@ impl ResolverFactory {
   }
 
   pub fn get(&self, options: Resolve) -> Resolver {
-    let options = merge_resolver_options(&self.base_options, options);
-    Resolver(nodejs_resolver::Resolver::new(nodejs_resolver::Options {
-      extensions: options.extensions,
-      alias: options.alias,
-      prefer_relative: options.prefer_relative,
-      symlinks: options.symlinks,
-      main_files: options.main_files,
-      main_fields: options.main_fields,
-      browser_field: options.browser_field,
-      condition_names: HashSet::from_iter(options.condition_names),
-      enforce_extension: None,
-      external_cache: Some(self.cache.clone()),
-      description_file: String::from("package.json"),
-      tsconfig: None,
-    }))
+    let base = self
+      .base_options
+      .clone()
+      .to_inner_options(self.cache.clone());
+    let options = merge_resolver_options(base, options);
+    Resolver(nodejs_resolver::Resolver::new(
+      options.to_inner_options(self.cache.clone()),
+    ))
   }
 }
 
-fn merge_resolver_options(a: &Resolve, b: Resolve) -> Resolve {
+fn merge_resolver_options(base: nodejs_resolver::Options, other: Resolve) -> Resolve {
+  fn overwrite<T: Clone, F: FnOnce(T, T) -> Option<T>>(a: T, b: Option<T>, f: F) -> Option<T> {
+    match b {
+      Some(value) => f(a, value),
+      None => Some(a),
+    }
+  }
+
+  let alias = overwrite(base.alias, other.alias, |_, value| Some(value));
+  let prefer_relative = overwrite(base.prefer_relative, other.prefer_relative, |_, value| {
+    Some(value)
+  });
+  let symlinks = overwrite(base.symlinks, other.symlinks, |_, value| Some(value));
+  let browser_field = overwrite(base.browser_field, other.browser_field, |_, value| {
+    Some(value)
+  });
+  let extensions = overwrite(base.extensions, other.extensions, |base, value| {
+    Some(normalize_string_array(&base, value))
+  });
+  let main_files = overwrite(base.main_files, other.main_files, |base, value| {
+    Some(normalize_string_array(&base, value))
+  });
+  let main_fields = overwrite(base.main_fields, other.main_fields, |base, value| {
+    Some(normalize_string_array(&base, value))
+  });
+  let condition_names = overwrite(
+    base.condition_names.into_iter().collect(),
+    other.condition_names,
+    |base, value| Some(normalize_string_array(&base, value)),
+  );
   Resolve {
-    alias: b.alias,
-    prefer_relative: b.prefer_relative,
-    symlinks: b.symlinks,
-    browser_field: b.browser_field,
-    extensions: merge_string_array(&a.extensions, b.extensions),
-    main_files: merge_string_array(&a.main_files, b.main_files),
-    main_fields: merge_string_array(&a.main_fields, b.main_fields),
-    condition_names: merge_string_array(&a.condition_names, b.condition_names),
+    alias,
+    prefer_relative,
+    symlinks,
+    browser_field,
+    extensions,
+    main_files,
+    main_fields,
+    condition_names,
   }
 }
 
-fn merge_string_array(a: &[String], b: Vec<String>) -> Vec<String> {
+fn normalize_string_array(a: &[String], b: Vec<String>) -> Vec<String> {
   b.into_iter().fold(vec![], |mut acc, item| {
     if item.eq("...") {
       acc.append(&mut a.to_vec());
@@ -92,44 +113,47 @@ fn merge_string_array(a: &[String], b: Vec<String>) -> Vec<String> {
 fn test_merge_resolver_options() {
   use crate::AliasMap;
   let base = Resolve {
-    extensions: to_string(vec!["a", "b"]),
-    alias: vec![("c".to_string(), AliasMap::Ignored)],
-    prefer_relative: false,
-    symlinks: true,
-    main_files: to_string(vec!["d", "e", "f"]),
-    main_fields: to_string(vec!["g", "h", "i"]),
-    browser_field: true,
-    condition_names: to_string(vec!["j", "k"]),
+    extensions: Some(to_string(vec!["a", "b"])),
+    alias: Some(vec![("c".to_string(), AliasMap::Ignored)]),
+    symlinks: Some(false),
+    main_files: Some(to_string(vec!["d", "e", "f"])),
+    main_fields: Some(to_string(vec!["g", "h", "i"])),
+    browser_field: Some(true),
+    condition_names: Some(to_string(vec!["j", "k"])),
+    ..Default::default()
   };
   let another = Resolve {
-    extensions: to_string(vec!["a1", "b1"]),
-    alias: vec![("c2".to_string(), AliasMap::Ignored)],
-    prefer_relative: true,
-    symlinks: false,
-    browser_field: true,
-    main_files: to_string(vec!["d1", "e", "..."]),
-    main_fields: to_string(vec!["...", "h"]),
-    condition_names: to_string(vec!["..."]),
+    extensions: Some(to_string(vec!["a1", "b1"])),
+    alias: Some(vec![("c2".to_string(), AliasMap::Ignored)]),
+    prefer_relative: Some(true),
+    browser_field: Some(true),
+    main_files: Some(to_string(vec!["d1", "e", "..."])),
+    main_fields: Some(to_string(vec!["...", "h", "..."])),
+    condition_names: Some(to_string(vec!["f", "..."])),
+    ..Default::default()
   };
-  let options = merge_resolver_options(&base, another);
-  assert_eq!(options.extensions, to_string(vec!["a1", "b1"]));
-  assert!(options.prefer_relative);
-  assert!(!options.symlinks);
-  assert_eq!(options.main_files, vec!["d1", "e", "d", "e", "f"]);
-  assert_eq!(options.main_fields, vec!["g", "h", "i", "h"]);
-  assert_eq!(options.condition_names, vec!["j", "k"]);
+  let options = merge_resolver_options(base.to_inner_options(Default::default()), another);
+  assert_eq!(options.extensions.unwrap(), to_string(vec!["a1", "b1"]));
+  assert!(options.prefer_relative.unwrap());
+  assert!(!options.symlinks.unwrap());
+  assert_eq!(options.main_files.unwrap(), vec!["d1", "e", "d", "e", "f"]);
+  assert_eq!(
+    options.main_fields.unwrap(),
+    vec!["g", "h", "i", "h", "g", "h", "i"]
+  );
+  assert_eq!(options.condition_names.unwrap().len(), 3);
 }
 
 #[test]
-fn test_merge_string_array() {
+fn test_normalize_string_array() {
   let base = to_string(vec!["base0", "base1"]);
-  assert!(merge_string_array(&base, vec![]).is_empty());
+  assert!(normalize_string_array(&base, vec![]).is_empty());
   assert_eq!(
-    merge_string_array(&base, to_string(vec!["a", "b"])),
+    normalize_string_array(&base, to_string(vec!["a", "b"])),
     to_string(vec!["a", "b"])
   );
   assert_eq!(
-    merge_string_array(&base, to_string(vec!["...", "a", "...", "b", "..."])),
+    normalize_string_array(&base, to_string(vec!["...", "a", "...", "b", "..."])),
     to_string(vec![
       "base0", "base1", "a", "base0", "base1", "b", "base0", "base1"
     ])

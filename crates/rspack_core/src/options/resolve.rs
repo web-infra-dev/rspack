@@ -1,54 +1,75 @@
+use std::{collections::HashSet, sync::Arc};
+
 pub type AliasMap = nodejs_resolver::AliasMap;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Resolve {
   /// Tried detect file with this extension.
-  /// Default is `[".tsx", ".jsx", ".ts", ".js", ".json"]`
-  pub extensions: Vec<String>,
+  pub extensions: Option<Vec<String>>,
   /// Maps key to value.
-  /// Default is `vec![]`.
   /// The reason for using `Vec` instead `HashMap` to keep the order.
-  pub alias: Vec<(String, AliasMap)>,
+  pub alias: Option<Vec<(String, AliasMap)>>,
   /// Prefer to resolve request as relative request and
   /// fallback to resolving as modules.
-  /// Default is `false`
-  pub prefer_relative: bool,
+  pub prefer_relative: Option<bool>,
   /// Whether to resolve the real path when the result
   /// is a symlink.
-  /// Default is `true`.
-  pub symlinks: bool,
+  pub symlinks: Option<bool>,
   /// Main file in this directory.
-  /// Default is `["index"]`.
-  pub main_files: Vec<String>,
+  pub main_files: Option<Vec<String>>,
   /// Main fields in Description.
-  /// Default is `["main"]`.
-  pub main_fields: Vec<String>,
+  pub main_fields: Option<Vec<String>>,
   /// Whether read and parse `"browser"` filed
   /// in package.json.
-  /// Default is `true`
-  pub browser_field: bool,
+  pub browser_field: Option<bool>,
   /// Condition names for exports filed. Note that its
   /// type is a `HashSet`, because the priority is
   /// related to the order in which the export field
   /// fields are written.
-  /// Default is `["module", "import"]`.
-  pub condition_names: Vec<String>,
+  pub condition_names: Option<Vec<String>>,
 }
 
-impl Default for Resolve {
-  fn default() -> Self {
-    Self {
-      extensions: vec![".tsx", ".jsx", ".ts", ".js", ".mjs", ".json", ".d.ts"]
+impl Resolve {
+  pub fn to_inner_options(self, cache: Arc<nodejs_resolver::Cache>) -> nodejs_resolver::Options {
+    let tsconfig = None;
+    let enforce_extension = None;
+    let external_cache = Some(cache);
+    let description_file = String::from("package.json");
+    let extensions = self.extensions.unwrap_or_else(|| {
+      vec![".tsx", ".jsx", ".ts", ".js", ".mjs", ".json", ".d.ts"]
         .into_iter()
         .map(|s| s.to_string())
-        .collect(),
-      alias: vec![],
-      prefer_relative: false,
-      symlinks: true,
-      main_files: vec![String::from("index")],
-      main_fields: vec![String::from("module"), String::from("main")],
-      browser_field: true,
-      condition_names: vec!["module".to_string(), "import".to_string()],
+        .collect()
+    });
+    let alias = self.alias.unwrap_or_default();
+    let prefer_relative = self.prefer_relative.unwrap_or(false);
+    let symlinks = self.symlinks.unwrap_or(true);
+    let main_files = self
+      .main_files
+      .unwrap_or_else(|| vec![String::from("index")]);
+    let main_fields = self
+      .main_fields
+      .unwrap_or_else(|| vec![String::from("module"), String::from("main")]);
+    let browser_field = self.browser_field.unwrap_or(true);
+    let condition_names = HashSet::from_iter(
+      self
+        .condition_names
+        .unwrap_or_else(|| vec!["module".to_string(), "import".to_string()]),
+    );
+
+    nodejs_resolver::Options {
+      extensions,
+      enforce_extension,
+      alias,
+      prefer_relative,
+      external_cache,
+      symlinks,
+      description_file,
+      main_files,
+      main_fields,
+      browser_field,
+      condition_names,
+      tsconfig,
     }
   }
 }
