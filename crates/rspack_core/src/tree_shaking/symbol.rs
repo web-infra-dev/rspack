@@ -29,6 +29,7 @@ impl Symbol {
   }
 }
 
+#[derive(Debug)]
 pub(crate) struct IndirectTopLevelSymbol {
   uri: Ustr,
   id: JsWord,
