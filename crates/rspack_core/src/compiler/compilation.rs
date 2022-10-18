@@ -493,7 +493,7 @@ impl Compilation {
           &self.module_graph,
         );
         ast.visit_with(&mut analyzer);
-        dbg!(uri_key, analyzer.export_all_list, analyzer.export_map);
+        dbg!(uri_key, analyzer.export_all_list, analyzer.export_map, analyzer.import_map);
       });
     Ok(())
   }
