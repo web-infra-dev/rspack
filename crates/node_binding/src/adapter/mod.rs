@@ -32,7 +32,7 @@ pub static CALL_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(1));
 pub type BoxedClosure = Box<dyn Fn(CallContext<'_>) -> napi::Result<JsUndefined>>;
 
 pub struct RspackPluginNodeAdapter {
-  pub done_tsfn: ThreadsafeRspackCallback,
+  pub done_tsfn: crate::threadsafe_function::ThreadsafeFunction<(), u8>,
   pub process_assets_tsfn: ThreadsafeRspackCallback<(String, BoxedClosure)>,
 }
 
@@ -172,46 +172,53 @@ impl Plugin for RspackPluginNodeAdapter {
 
   #[tracing::instrument(skip_all)]
   async fn done(&mut self) -> PluginBuildEndHookOutput {
-    let context = RspackThreadsafeContext::new(());
+    // let context = RspackThreadsafeContext::new(());
 
-    let (tx, rx) = oneshot::channel::<()>();
+    // let (tx, rx) = oneshot::channel::<()>();
 
-    match REGISTERED_DONE_SENDERS.entry(context.get_call_id()) {
-      dashmap::mapref::entry::Entry::Vacant(v) => {
-        v.insert(tx);
-      }
-      dashmap::mapref::entry::Entry::Occupied(_) => {
-        let err = Error::new(
-          napi::Status::Unknown,
-          format!(
-            "duplicated call id encountered {}, please file an issue.",
-            context.get_call_id(),
-          ),
-        );
-        self
-          .done_tsfn
-          .call(Err(err.clone()), ThreadsafeFunctionCallMode::Blocking);
+    // match REGISTERED_DONE_SENDERS.entry(context.get_call_id()) {
+    //   dashmap::mapref::entry::Entry::Vacant(v) => {
+    //     v.insert(tx);
+    //   }
+    //   dashmap::mapref::entry::Entry::Occupied(_) => {
+    //     let err = Error::new(
+    //       napi::Status::Unknown,
+    //       format!(
+    //         "duplicated call id encountered {}, please file an issue.",
+    //         context.get_call_id(),
+    //       ),
+    //     );
+    //     self
+    //       .done_tsfn
+    //       .call(Err(err.clone()), ThreadsafeFunctionCallMode::Blocking);
 
-        let any_error = anyhow::Error::from(err);
-        return Err(any_error.into());
-      }
-    }
+    //     let any_error = anyhow::Error::from(err);
+    //     return Err(any_error.into());
+    //   }
+    // }
 
-    let value = serde_json::to_string(&context).map_err(|_| {
-      Error::new(
-        napi::Status::Unknown,
-        "unable to convert context".to_owned(),
-      )
-    });
+    // let value = serde_json::to_string(&context).map_err(|_| {
+    //   Error::new(
+    //     napi::Status::Unknown,
+    //     "unable to convert context".to_owned(),
+    //   )
+    // });
 
     self
       .done_tsfn
-      .call(value, ThreadsafeFunctionCallMode::Blocking);
-
-    let t = rx
+      .call(
+        (),
+        crate::threadsafe_function::ThreadsafeFunctionCallMode::Blocking,
+      )
       .await
-      .context("failed to receive done result")
-      .map_err(|err| err.into());
-    return t;
+      .map_err(|err| rspack_error::Error::InternalError(format!("{:?}", err)))?;
+
+    Ok(())
+
+    // let t = rx
+    //   .await
+    //   .context("failed to receive done result")
+    //   .map_err(|err| err.into());
+    // return t;
   }
 }

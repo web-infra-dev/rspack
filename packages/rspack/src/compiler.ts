@@ -182,15 +182,17 @@ class Compiler {
 	 * @param value
 	 * @returns
 	 */
-	async #done(err: Error, value: string) {
-		if (err) {
-			throw err;
-		}
-		const context: RspackThreadsafeContext<void> = JSON.parse(value);
+	async #done(value: any) {
+		console.log("done", value);
+
+		// if (err) {
+		// 	throw err;
+		// }
+		// const context: RspackThreadsafeContext<void> = JSON.parse(value);
 		// @todo context.inner is empty, since we didn't pass to binding
-		const stats = new Stats({} as any, context.inner as any);
+		const stats = new Stats({} as any, undefined);
 		await this.hooks.done.promise(stats);
-		return createDummyResult(context.id);
+		// return createDummyResult(context.id);
 	}
 	async #processAssets(err: Error, value: string, emitAsset: any) {
 		return this.compilation.processAssets(err, value, emitAsset);
