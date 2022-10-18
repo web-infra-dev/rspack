@@ -107,6 +107,13 @@ impl ModuleGraph {
       })
   }
 
+  pub fn module_uri_by_deppendency(&self, dep: &Dependency) -> Option<&String> {
+    self
+      .dependency_to_dependency_id
+      .get(dep)
+      .and_then(|id| self.dependency_id_to_module_identifier.get(id))
+  }
+
   pub fn dependency_id_by_dependency(&self, dep: &Dependency) -> Option<u32> {
     self.dependency_to_dependency_id.get(dep).cloned()
   }

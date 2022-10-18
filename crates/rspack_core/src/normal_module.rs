@@ -20,8 +20,8 @@ use swc_common::Mark;
 
 use crate::{
   Compilation, CompilationContext, CompilerContext, CompilerOptions, Dependency,
-  LoaderRunnerRunner, ModuleAst, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleType,
-  ResolveKind, SourceType,
+  JavascriptAstExtend, LoaderRunnerRunner, ModuleAst, ModuleDependency, ModuleGraph,
+  ModuleGraphConnection, ModuleType, ResolveKind, SourceType,
 };
 
 #[derive(Debug)]

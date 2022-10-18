@@ -16,12 +16,12 @@ use swc_ecma_visit::VisitWith;
 use ustr::ustr;
 
 use crate::{
-  split_chunks::code_splitting, BuildContext, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup,
-  ChunkGroupUkey, ChunkKind, ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint,
-  LoaderRunnerRunner, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg,
-  NormalModule, NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs,
-  RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver, Stats,
-  VisitedModuleIdentity,
+  split_chunks::code_splitting, tree_shaking::visitor::ModuleRefAnalyze, BuildContext, Chunk,
+  ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CompilerOptions,
+  Dependency, EntryItem, Entrypoint, JavascriptAstExtend, LoaderRunnerRunner, ModuleDependency,
+  ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModule, NormalModuleFactory,
+  NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs,
+  ResolveKind, Runtime, SharedPluginDriver, Stats, VisitedModuleIdentity,
 };
 
 #[derive(Debug)]
@@ -463,18 +463,17 @@ impl Compilation {
   }
 
   pub async fn optimize_dependency(&mut self) -> Result<()> {
-    let dep_to_module_uri = &self.module_graph.dependency_to_module_uri;
     self
       .module_graph
-      .uri_to_module
+      .module_identifier_to_module
       .par_iter()
       .for_each(|(k, v)| {
         let uri_key = ustr(k);
-        let ast = match v.module_type {
+        let ast = match v.module_type() {
           crate::ModuleType::Js
           | crate::ModuleType::Jsx
           | crate::ModuleType::Tsx
-          | crate::ModuleType::Ts => v.module.ast().unwrap(),
+          | crate::ModuleType::Ts => v.ast().unwrap(),
           // Of course this is unsafe, but if we can't get a ast of a javascript module, then panic is ideal.
           _ => {
             // Ignore analyzing other module for now
@@ -486,11 +485,12 @@ impl Compilation {
           top_level_mark,
           unresolved_mark,
         } = ast.as_javascript().unwrap();
+        // dbg!(top_level_mark);
         let mut analyzer = ModuleRefAnalyze::new(
           *top_level_mark,
           *unresolved_mark,
           uri_key,
-          &dep_to_module_uri,
+          &self.module_graph,
         );
         ast.visit_with(&mut analyzer);
         dbg!(uri_key, analyzer.export_all_list, analyzer.export_map);
