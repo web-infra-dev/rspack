@@ -360,7 +360,7 @@ impl Plugin for JsPlugin {
                   args.compilation,
                 )?;
               }
-              Ok(wrap_module_function(module_source, &module.identifier()))
+              Ok(wrap_module_function(module_source, &mgm.id))
             })
             .transpose()
         })
