@@ -79,8 +79,8 @@ export function resolveOptions(config: RspackOptions): ResolvedRspackOptions {
 	const plugins = config.plugins ?? [];
 	const builtins = resolveBuiltinsOptions(config.builtins || {}, context);
 	const resolve = resolveResolveOptions(config.resolve);
-	const module = resolveModuleOptions(config.module);
 	const devtool = resolveDevtoolOptions(config.devtool);
+	const module = resolveModuleOptions(config.module, { devtool, context });
 
 	return {
 		context,
