@@ -19,7 +19,7 @@ import { Devtool, ResolvedDevtool, resolveDevtoolOptions } from "./devtool";
 import { resolveTargetOptions } from "./target";
 import { resolveOutputOptions } from "./output";
 import { resolveDevOptions } from "./devServer";
-import { resolveModuleOptions, LoaderContext } from "./module";
+import { resolveModuleOptions } from "./module";
 import { resolveBuiltinsOptions } from "./builtins";
 import { resolveResolveOptions } from "./resolve";
 import { resolveEntry } from "./entry";
@@ -100,4 +100,4 @@ export function resolveOptions(config: RspackOptions): ResolvedRspackOptions {
 	};
 }
 
-export type { Plugin, LoaderContext };
+export type { Plugin };

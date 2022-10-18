@@ -1,20 +1,10 @@
 import path from "path";
 import { normalizeSourceMap } from "./utils";
 
-const generateOptions = (options: Less.Options): Less.Options => {
-	const defaultConfig = {
-		enableSourcemap: false
-	};
-	return {
-		...defaultConfig,
-		...options
-	};
-};
-
 export interface Options {
 	implementation?: string;
 	lessOptions?: Less.Options;
-	sourceMap?: boolean,
+	sourceMap?: boolean;
 }
 
 export default async function lessLoader(loaderContext) {
@@ -34,7 +24,7 @@ export default async function lessLoader(loaderContext) {
 
 	try {
 		let code = loaderContext.source.getCode();
-		const final_options = generateOptions({
+		const final_options = {
 			filename: loaderContext.resourcePath,
 			...lessOptions,
 			paths: [
@@ -42,7 +32,7 @@ export default async function lessLoader(loaderContext) {
 				path.dirname(loaderContext.resourcePath)
 			],
 			plugins: []
-		});
+		};
 
 		// eslint-disable-next-line import/no-dynamic-require, global-require
 		let lessImplementation;
