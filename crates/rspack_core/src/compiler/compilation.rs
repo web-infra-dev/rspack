@@ -287,7 +287,7 @@ impl Compilation {
             self.module_graph.add_module_graph_module(mgm);
           }
           Msg::ModuleReused(result_with_diagnostics) => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
+            active_task_count.fetch_sub(1, Ordering::Relaxed);
 
             let (original_module_identifier, dependency_id, module_identifier) =
               result_with_diagnostics.inner;
@@ -304,7 +304,7 @@ impl Compilation {
             };
           }
           Msg::ModuleResolved(result_with_diagnostics) => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
+            active_task_count.fetch_sub(1, Ordering::Relaxed);
 
             let (original_module_identifier, dependency_id, module, deps) =
               result_with_diagnostics.inner;
@@ -330,7 +330,7 @@ impl Compilation {
             self.module_graph.add_module(*module);
           }
           Msg::ModuleBuiltErrorEncountered(module_identifier, err) => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
+            active_task_count.fetch_sub(1, Ordering::Relaxed);
             self
               .module_graph
               .module_identifier_to_module
@@ -342,13 +342,13 @@ impl Compilation {
             self.push_batch_diagnostic(err.into());
           }
           Msg::ModuleCreationCanceled => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
+            active_task_count.fetch_sub(1, Ordering::Relaxed);
           }
           Msg::DependencyReference(dep, resolved_uri) => {
             self.module_graph.add_dependency(dep, resolved_uri);
           }
           Msg::ModuleCreationErrorEncountered(err) => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
+            active_task_count.fetch_sub(1, Ordering::Relaxed);
             self.push_batch_diagnostic(err.into());
           }
         },
