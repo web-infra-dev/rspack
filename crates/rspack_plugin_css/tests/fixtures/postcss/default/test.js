@@ -1,3 +1,5 @@
-export function a() {}
+function a() {}
 
-export function b() {}
+function b() {}
+
+export { a, b };

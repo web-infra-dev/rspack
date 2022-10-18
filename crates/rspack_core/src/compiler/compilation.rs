@@ -481,19 +481,19 @@ impl Compilation {
             return;
           }
         };
-        // dep;
         let JavascriptAstExtend {
           ast,
           top_level_mark,
           unresolved_mark,
         } = ast.as_javascript().unwrap();
-        dbg!(unresolved_mark);
-        ast.visit_with(&mut ModuleRefAnalyze::new(
+        let mut analyzer = ModuleRefAnalyze::new(
           *top_level_mark,
           *unresolved_mark,
           uri_key,
           &dep_to_module_uri,
-        ))
+        );
+        ast.visit_with(&mut analyzer);
+        dbg!(uri_key, analyzer.export_all_list, analyzer.export_map);
       });
     Ok(())
   }

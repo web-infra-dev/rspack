@@ -147,7 +147,8 @@ pub fn resolver(unresolved_mark: Mark, top_level_mark: Mark, typescript: bool) {
   //     },
   //   })
 }
-enum SymbolRef {
+#[derive(Debug)]
+pub(crate) enum SymbolRef {
   Direct(Symbol),
   Indirect(IndirectTopLevelSymbol),
   /// uri
@@ -158,14 +159,15 @@ enum SymbolRef {
 /// ## Hoisting phase
 ///
 /// ## Resolving phase
-pub struct ModuleRefAnalyze<'a> {
+#[derive(Debug)]
+pub(crate) struct ModuleRefAnalyze<'a> {
   top_level_mark: Mark,
   unresolved_mark: Mark,
   uri: Ustr,
   dep_to_module_uri: &'a HashMap<Dependency, String>,
-  export_map: HashMap<JsWord, SymbolRef>,
+  pub(crate) export_map: HashMap<JsWord, SymbolRef>,
   /// list of uri, each uri represent export all named export from specific uri
-  export_all_list: Vec<Ustr>,
+  pub export_all_list: Vec<Ustr>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -197,7 +199,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   fn visit_ident(&mut self, node: &Ident) {
     let id = node.to_id();
     let symbol = Symbol::from_id_and_uri(id, self.uri);
-    dbg!(symbol);
   }
 
   fn visit_module_item(&mut self, node: &ModuleItem) {
@@ -219,7 +220,25 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           import.specifiers.iter().for_each(|specifier| {});
           // import.visit_with(self);
         }
-        ModuleDecl::ExportDecl(decl) => {}
+        ModuleDecl::ExportDecl(decl) => match &decl.decl {
+          Decl::Class(class) => {
+            self.add_export(
+              class.ident.sym.clone(),
+              SymbolRef::Direct(Symbol::from_id_and_uri(class.ident.to_id(), self.uri)),
+            );
+          }
+          Decl::Fn(function) => {
+            self.add_export(
+              function.ident.sym.clone(),
+              SymbolRef::Direct(Symbol::from_id_and_uri(function.ident.to_id(), self.uri)),
+            );
+          }
+          Decl::Var(_) => todo!(),
+          Decl::TsInterface(_) => todo!(),
+          Decl::TsTypeAlias(_) => todo!(),
+          Decl::TsEnum(_) => todo!(),
+          Decl::TsModule(_) => todo!(),
+        },
         ModuleDecl::ExportNamed(named_export) => {
           self.analyze_named_export(named_export);
         }
