@@ -4,14 +4,9 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{Compilation, Dependency, ModuleDependency, ModuleGraphModule, ResolveKind};
 use swc_atoms::{Atom, JsWord};
-use swc_common::comments::SingleThreadedComments;
 use swc_common::{Mark, DUMMY_SP};
-use swc_ecma_transforms::hygiene;
-use swc_ecma_transforms::modules::common_js;
-use swc_ecma_transforms::modules::common_js::Config as CommonJsConfig;
-use swc_ecma_transforms::{fixer, helpers::inject_helpers};
 use swc_ecma_utils::{quote_ident, ExprFactory};
-use swc_ecma_visit::{Fold, FoldWith, VisitMut, VisitMutWith};
+use swc_ecma_visit::{Fold, VisitMut, VisitMutWith};
 use tracing::instrument;
 
 use crate::utils::{is_dynamic_import_literal_expr, is_require_literal_expr};
@@ -38,29 +33,14 @@ pub struct RspackModuleFinalizer<'a> {
 }
 
 impl<'a> Fold for RspackModuleFinalizer<'a> {
-  fn fold_module(&mut self, module: Module) -> Module {
-    let mut cjs_module = module
-      .fold_with(&mut common_js::<SingleThreadedComments>(
-        self.unresolved_mark,
-        CommonJsConfig {
-          ignore_dynamic: true,
-          strict_mode: false, // 'use strict' will add in `wrap_module_function`
-          ..Default::default()
-        },
-        Default::default(),
-        None,
-      ))
-      .fold_with(&mut fixer::fixer(None))
-      .fold_with(&mut inject_helpers())
-      .fold_with(&mut hygiene());
-
-    cjs_module.visit_mut_with(&mut RspackModuleFormatTransformer::new(
+  fn fold_module(&mut self, mut module: Module) -> Module {
+    module.visit_mut_with(&mut RspackModuleFormatTransformer::new(
       self.unresolved_mark,
       self.module,
       self.compilation,
     ));
 
-    let body = cjs_module
+    let body = module
       .body
       .into_iter()
       .filter_map(|stmt| stmt.stmt())
@@ -140,8 +120,16 @@ impl<'a> RspackModuleFormatTransformer<'a> {
             },
             None => str.value.to_string(),
           };
+          // let importer_module = self
+          //   .compilation
+          //   .module_graph
+          //   .module_by_identifier(&self.module.uri)
+          //   .expect("Module not found");
+
+          // FIXME: currently uri equals to specifier, but this will be changed later.
           let require_dep = Dependency {
             importer: Some(self.module.uri.clone()),
+            parent_module_identifier: Some(self.module.uri.clone()),
             detail: ModuleDependency {
               specifier: specifier.clone(),
               kind: ResolveKind::Require,
@@ -151,6 +139,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
           // FIXME: No need to say this is a ugly workaround
           let import_dep = Dependency {
             importer: Some(self.module.uri.clone()),
+            parent_module_identifier: Some(self.module.uri.clone()),
             detail: ModuleDependency {
               specifier,
               kind: ResolveKind::Import,
@@ -183,8 +172,10 @@ impl<'a> RspackModuleFormatTransformer<'a> {
     if is_dynamic_import_literal_expr(n) {
       if let Lit::Str(Str { value: literal, .. }) = n.args.first()?.expr.as_lit()? {
         // If the import module is not exsit in module graph, we need to leave it as it is
+        // FIXME: currently uri equals to specifier, but this will be changed later.
         let dep = Dependency {
           importer: Some(self.module.uri.clone()),
+          parent_module_identifier: Some(self.module.uri.clone()),
           detail: ModuleDependency {
             specifier: literal.to_string(),
             kind: ResolveKind::DynamicImport,

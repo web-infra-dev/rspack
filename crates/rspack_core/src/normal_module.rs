@@ -1,6 +1,14 @@
-use std::{collections::HashMap, fmt::Debug, sync::Arc};
+use std::{
+  collections::HashMap,
+  fmt::Debug,
+  sync::{
+    atomic::{AtomicU32, Ordering},
+    Arc,
+  },
+};
 
 use dashmap::DashMap;
+use hashbrown::HashSet;
 
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_loader_runner::{Content, Loader, ResourceData};
@@ -11,21 +19,28 @@ use rspack_sources::{
 
 use crate::{
   Compilation, CompilationContext, CompilerContext, CompilerOptions, Dependency,
-  LoaderRunnerRunner, ModuleAst, ModuleDependency, ModuleGraph, ModuleType, ResolveKind,
-  SourceType,
+  LoaderRunnerRunner, ModuleAst, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleType,
+  ResolveKind, SourceType,
 };
 
 #[derive(Debug)]
 pub struct ModuleGraphModule {
   // Only user defined entry module has name for now.
   pub name: Option<String>,
+
+  // edges from module to module
+  pub outgoing_connections: HashSet<u32>,
+  pub incoming_connections: HashSet<u32>,
+
   pub id: String,
   // pub exec_order: usize,
   pub uri: String,
-  pub module: NormalModule,
+  // TODO: change to ModuleIdentifier
+  // pub module: NormalModule,
+  pub module_identifier: ModuleIdentifier,
   // TODO remove this since its included in module
   pub module_type: ModuleType,
-  all_dependencies: Vec<Dependency>,
+  pub all_dependencies: Vec<Dependency>,
   pub(crate) pre_order_index: Option<usize>,
   pub post_order_index: Option<usize>,
 }
@@ -35,22 +50,87 @@ impl ModuleGraphModule {
     name: Option<String>,
     id: String,
     uri: String,
-    module: NormalModule,
+    module_identifier: ModuleIdentifier,
     dependencies: Vec<Dependency>,
     module_type: ModuleType,
   ) -> Self {
     Self {
       name,
+
+      outgoing_connections: Default::default(),
+      incoming_connections: Default::default(),
+
       id,
       // exec_order: usize::MAX,
       uri,
-      module,
+      module_identifier,
       all_dependencies: dependencies,
       module_type,
       pre_order_index: None,
       post_order_index: None,
     }
   }
+
+  pub fn add_incoming_connection(&mut self, connection_id: u32) {
+    self.incoming_connections.insert(connection_id);
+  }
+
+  pub fn add_outgoing_connection(&mut self, connection_id: u32) {
+    self.outgoing_connections.insert(connection_id);
+  }
+
+  pub fn incoming_connections_unordered<'m>(
+    &self,
+    module_graph: &'m ModuleGraph,
+  ) -> Result<impl Iterator<Item = &'m ModuleGraphConnection>> {
+    let result = self
+      .incoming_connections
+      .iter()
+      .map(|connection_id| {
+        module_graph
+          .connection_by_connection_id(*connection_id)
+          .ok_or_else(|| {
+            Error::InternalError(format!(
+              "connection_id_to_connection does not have connection_id: {}",
+              connection_id
+            ))
+          })
+      })
+      .collect::<Result<Vec<_>>>()?
+      .into_iter();
+
+    Ok(result)
+  }
+
+  pub fn outgoing_connections_unordered<'m>(
+    &self,
+    module_graph: &'m ModuleGraph,
+  ) -> Result<impl Iterator<Item = &'m ModuleGraphConnection>> {
+    let result = self
+      .outgoing_connections
+      .iter()
+      .map(|connection_id| {
+        module_graph
+          .connection_by_connection_id(*connection_id)
+          .ok_or_else(|| {
+            Error::InternalError(format!(
+              "connection_id_to_connection does not have connection_id: {}",
+              connection_id
+            ))
+          })
+      })
+      .collect::<Result<Vec<_>>>()?
+      .into_iter();
+
+    Ok(result)
+  }
+
+  // pub fn all_dependencies(&mut self) -> Vec<&ModuleDependency> {
+  //   self
+  //     .outgoing_connections_unordered()
+  //     .map(|conn| &conn.dependency)
+  //     .collect()
+  // }
 
   pub fn depended_modules<'a>(&self, module_graph: &'a ModuleGraph) -> Vec<&'a ModuleGraphModule> {
     self
@@ -214,6 +294,8 @@ pub struct NormalModule {
   ast_or_source: Option<AstOrSource>,
 
   options: Arc<CompilerOptions>,
+  #[allow(unused)]
+  debug_id: u32,
   cached_source_sizes: DashMap<SourceType, f64>,
 
   // FIXME: dirty workaround to support external module
@@ -253,6 +335,9 @@ pub struct BuildContext<'a> {
   pub compiler_options: &'a CompilerOptions,
 }
 
+pub type ModuleIdentifier = String;
+pub static DEBUG_ID: AtomicU32 = AtomicU32::new(1);
+
 impl NormalModule {
   pub fn new(
     request: String,
@@ -273,6 +358,7 @@ impl NormalModule {
 
       original_source: None,
       ast_or_source: None,
+      debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
 
       options,
       cached_source_sizes: DashMap::new(),
@@ -306,7 +392,7 @@ impl NormalModule {
     &self.raw_request
   }
 
-  pub fn identifier(&self) -> String {
+  pub fn identifier(&self) -> ModuleIdentifier {
     self.request.to_owned()
   }
 
@@ -427,9 +513,10 @@ impl NormalModule {
 
       Ok(code_generation_result)
     } else {
-      Err(Error::InternalError(
-        "Failed to generate code because ast or source is not set".into(),
-      ))
+      Err(Error::InternalError(format!(
+        "Failed to generate code because ast or source is not set for module {}",
+        self.request
+      )))
     }
   }
 }

@@ -134,6 +134,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
     compilation: &rspack_core::Compilation,
   ) -> Result<rspack_core::GenerationResult> {
     // Safety: OriginalSource exists in code generation, and CSS AST is also available from parse.
+
+    let module = compilation
+      .module_graph
+      .module_by_identifier(&mgm.module_identifier)
+      .ok_or_else(|| Error::InternalError("Failed to get module".to_owned()))?;
+
     let result = match requested_source_type {
       SourceType::Css => {
         let (code, source_map) = SWC_COMPILER.codegen(
@@ -147,21 +153,19 @@ impl ParserAndGenerator for CssParserAndGenerator {
         if let Some(source_map) = source_map {
           let source = SourceMapSource::new(SourceMapSourceOptions {
             value: code,
-            name: mgm.module.request().to_string(),
+            name: module.request().to_string(),
             source_map: SourceMap::from_slice(&source_map)
               .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
             // Safety: original source exists in code generation
             original_source: Some(
-              mgm
-                .module
+              module
                 .original_source()
                 .expect("Failed to get original source, please file an issue.")
                 .source()
                 .to_string(),
             ),
             // Safety: original source exists in code generation
-            inner_source_map: mgm
-              .module
+            inner_source_map: module
               .original_source()
               .expect("Failed to get original source, please file an issue.")
               .map(&MapOptions::default()),
@@ -296,16 +300,16 @@ impl Plugin for CssPlugin {
     // let module_graph = &compilation.module_graph;
     let chunk = args.chunk();
 
-    let ordered_modules = {
-      let modules = args
-        .compilation
-        .chunk_graph
-        .get_chunk_modules_by_source_type(
-          &chunk.ukey,
-          SourceType::Css,
-          &args.compilation.module_graph,
-        );
+    let modules = args
+      .compilation
+      .chunk_graph
+      .get_chunk_modules_by_source_type(
+        &chunk.ukey,
+        SourceType::Css,
+        &args.compilation.module_graph,
+      );
 
+    let ordered_modules = {
       if chunk.groups.len() > 1 {
         panic!("TODO: Supports multiple ChunkGroup");
       }
@@ -318,7 +322,8 @@ impl Plugin for CssPlugin {
           let mut modules = modules.clone();
           modules.sort_by_key(|mgm| chunk_group.module_post_order_index(mgm.uri.as_str()));
           tracing::debug!(
-            "modules: {:#?}",
+            "modules for chunk id {}: {:#?} ",
+            args.chunk().id,
             modules
               .iter()
               .map(|mgm| (
@@ -338,17 +343,21 @@ impl Plugin for CssPlugin {
 
     let sources = ordered_modules
       .par_iter()
-      .map(|module| {
-        module
-          .module
-          .code_generation(module, compilation)
-          .map(|source| {
-            // TODO: this logic is definitely not performant, move to compilation afterwards
-            source
-              .inner()
-              .get(&SourceType::Css)
-              .map(|source| source.ast_or_source.clone().try_into_source().unwrap())
-          })
+      .map(|mgm| {
+        let module = compilation
+          .module_graph
+          .module_by_identifier(&mgm.module_identifier)
+          .ok_or_else(|| Error::InternalError("Failed to get module".to_owned()))
+          // FIXME: use result
+          .expect("Failed to get module");
+
+        module.code_generation(mgm, compilation).map(|source| {
+          // TODO: this logic is definitely not performant, move to compilation afterwards
+          source
+            .inner()
+            .get(&SourceType::Css)
+            .map(|source| source.ast_or_source.clone().try_into_source().unwrap())
+        })
       })
       .collect::<Result<Vec<_>>>()?
       .into_par_iter()

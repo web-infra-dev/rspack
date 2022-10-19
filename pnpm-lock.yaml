@@ -180,6 +180,7 @@ importers:
       '@rspack/dev-client': workspace:*
       '@rspack/plugin-less': workspace:^
       '@rspack/plugin-postcss': workspace:^
+      '@swc/helpers': ^0.4.12
       '@tmp-sass-embedded/darwin-arm64': 1.54.4
       '@tmp-sass-embedded/darwin-x64': 1.54.4
       '@tmp-sass-embedded/linux-arm64': 1.54.4
@@ -221,6 +222,7 @@ importers:
       '@tmp-sass-embedded/win32-x64': 1.54.4
     devDependencies:
       '@rspack/core': 'link:'
+      '@swc/helpers': 0.4.12
       '@types/jest': 29.0.2
       '@types/node': 18.7.9
       '@types/sinon': 10.0.13
@@ -2783,6 +2785,12 @@ packages:
 
   /@sinonjs/text-encoding/0.7.2:
     resolution: {integrity: sha512-sXXKG+uL9IrKqViTtao2Ws6dy0znu9sOaP1di/jKGW1M6VssO8vlpXCQcpZ+jisQ1tTFAC5Jo/EOzFbggBagFQ==}
+    dev: true
+
+  /@swc/helpers/0.4.12:
+    resolution: {integrity: sha512-R6RmwS9Dld5lNvwKlPn62+piU+WDG1sMfsnfJioXCciyko/gZ0DQ4Mqglhq1iGU1nQ/RcGkAwfMH+elMSkJH3Q==}
+    dependencies:
+      tslib: 2.4.0
     dev: true
 
   /@taplo/cli/0.5.2:

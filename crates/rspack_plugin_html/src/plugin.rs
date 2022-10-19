@@ -4,7 +4,7 @@ use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
 use rspack_core::{
   parse_to_url,
   rspack_sources::{RawSource, SourceExt},
-  Plugin,
+  AssetInfo, CompilationAsset, Plugin,
 };
 use serde::Deserialize;
 use std::{fs, path::Path};
@@ -146,7 +146,7 @@ impl Plugin for HtmlPlugin {
     // both the name and the integrity may be inaccurate
     if let Some(hash_func) = &config.sri {
       tags.par_iter_mut().for_each(|(tag, asset)| {
-        let asset = asset.as_ref();
+        let asset = asset.get_source();
         let sri_value = create_digest_from_asset(hash_func, asset);
         add_sri(tag, &sri_value);
       });
@@ -157,7 +157,10 @@ impl Plugin for HtmlPlugin {
     current_ast.visit_mut_with(&mut visitor);
 
     let source = parser.codegen(&current_ast)?;
-    compilation.emit_asset(config.filename.clone(), RawSource::from(source).boxed());
+    compilation.emit_asset(
+      config.filename.clone(),
+      CompilationAsset::new(RawSource::from(source).boxed(), AssetInfo::default()),
+    );
 
     Ok(())
   }

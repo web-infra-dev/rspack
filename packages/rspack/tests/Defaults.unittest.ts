@@ -2,7 +2,7 @@
 const path = require("path");
 const jestDiff = require("jest-diff").diff;
 const stripAnsi = require("strip-ansi");
-import { resolveOptions } from "../src";
+import { getNormalizedRspackOptions } from "../src";
 /**
  * Escapes regular expression metacharacters
  * @param {string} str String to quote
@@ -62,7 +62,7 @@ expect.addSnapshotSerializer({
 });
 
 const getDefaultConfig = config => {
-	config = resolveOptions(config);
+	config = getNormalizedRspackOptions(config);
 	process.chdir(cwd);
 	return config;
 };
@@ -400,6 +400,11 @@ describe("snapshots", () => {
 			- Expected
 			+ Received
 
+			@@ ... @@
+			-     "browserslist": Array [],
+			+     "browserslist": Array [
+			+       "ie >= 9",
+			+     ],
 			@@ ... @@
 			-   "context": "<cwd>",
 			+   "context": "<cwd>/tests/fixtures/browserslist",

@@ -2,7 +2,7 @@ module.exports = {
 	entry: {
 		main: "./index.js"
 	},
-	target: ["browserslist", "es5"],
+	target: ["browserslist", "es2022"],
 	builtins: {
 		browserslist: ["chrome 60"]
 	},

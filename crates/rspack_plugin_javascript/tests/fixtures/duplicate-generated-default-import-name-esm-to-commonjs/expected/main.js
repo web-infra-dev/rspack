@@ -6,11 +6,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "default", {
     enumerable: true,
-    get: function() {
-        return _default;
-    }
+    get: ()=>_default
 });
-var _default = 'cart-a';
+const _default = 'cart-a';
 },
 "./b/cart.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__) {
 "use strict";
@@ -19,11 +17,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "default", {
     enumerable: true,
-    get: function() {
-        return _default;
-    }
+    get: ()=>_default
 });
-var _default = 'cart-b';
+const _default = 'cart-b';
 },
 "./c/cart.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__) {
 "use strict";
@@ -32,11 +28,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "default", {
     enumerable: true,
-    get: function() {
-        return _default;
-    }
+    get: ()=>_default
 });
-var _default = 'cart-c';
+const _default = 'cart-c';
 },
 "./index.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__) {
 "use strict";
@@ -48,9 +42,9 @@ function _interopRequireDefault(obj) {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _cart = _interopRequireDefault(__rspack_require__("./a/cart.js"));
-var _cart1 = _interopRequireDefault(__rspack_require__("./b/cart.js"));
-var _cart2 = _interopRequireDefault(__rspack_require__("./c/cart.js"));
+const _cart = _interopRequireDefault(__rspack_require__("./a/cart.js"));
+const _cart1 = _interopRequireDefault(__rspack_require__("./b/cart.js"));
+const _cart2 = _interopRequireDefault(__rspack_require__("./c/cart.js"));
 console.log(_cart.default, _cart1.default, _cart2.default);
 },
 });self["__rspack_runtime__"].__rspack_require__("./index.js");

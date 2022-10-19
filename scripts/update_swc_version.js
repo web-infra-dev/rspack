@@ -2,7 +2,7 @@ const path = require("path");
 const fs = require("fs");
 const TOML = require("@iarna/toml");
 
-const swc_version = "v1.3.1";
+const swc_version = "v1.3.4";
 const swc_packages = [/^swc/];
 const crates_dir = path.resolve(__dirname, "../crates");
 

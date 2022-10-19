@@ -1,21 +1,30 @@
-import { resolveOptions, RspackOptions } from "./config";
+import { getNormalizedRspackOptions, RspackOptions } from "./config";
 import { Compiler } from "./compiler";
 import type { Stats } from "@rspack/binding";
-
+import util from "util";
+type Callback<T> = (err: Error, t: T) => void;
 function createCompiler(userOptions: RspackOptions) {
-	const options = resolveOptions(userOptions);
+	const options = getNormalizedRspackOptions(userOptions);
 	const compiler = new Compiler(options.context, options);
 	// todo applyRspackOptions.apply()
 	compiler.hooks.initialize.call();
 	return compiler;
 }
-async function rspack(options: RspackOptions): Promise<Stats> {
+function rspack(options: RspackOptions, callback: Callback<Stats>): Compiler {
 	let compiler = createCompiler(options);
-	const stats = await compiler.build();
-	if (stats.errors.length > 0) {
-		throw new Error(stats.errors[0].message);
+	const doRun = async () => {
+		const stats = await compiler.build();
+		if (stats.errors.length > 0) {
+			throw new Error(stats.errors[0].message);
+		}
+		return stats;
+	};
+	if (callback) {
+		util.callbackify(doRun)(callback);
+	} else {
+		return compiler;
 	}
-	return stats;
 }
+
 // deliberately alias rspack as webpack
 export { rspack, createCompiler };

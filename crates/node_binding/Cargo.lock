@@ -1275,9 +1275,9 @@ checksum = "e4a24736216ec316047a1fc4252e27dabb04218aa4a3f37c6e7ddbf1f9782b54"
 
 [[package]]
 name = "nodejs-resolver"
-version = "0.0.41"
+version = "0.0.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61346536ded04aa3e15d115da79d9dcdda82ebe3483e76228bce1f61e4766941"
+checksum = "5d68f10bc2f04a3e5c8c854e1095c6dd085af52afa7e59f875ae553518d59dac"
 dependencies = [
  "daachorse",
  "dashmap",
@@ -2031,6 +2031,7 @@ dependencies = [
  "base64",
  "better_scoped_tls",
  "dashmap",
+ "either",
  "hashbrown",
  "linked_hash_set",
  "once_cell",
@@ -2046,6 +2047,7 @@ dependencies = [
  "swc_atoms",
  "swc_common",
  "swc_ecma_ast",
+ "swc_ecma_lints",
  "swc_ecma_parser",
  "swc_ecma_preset_env",
  "swc_ecma_transforms",

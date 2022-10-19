@@ -63,7 +63,9 @@ export interface ResolvedRspackOptions {
 	devtool: ResolvedDevtool;
 }
 
-export function resolveOptions(config: RspackOptions): ResolvedRspackOptions {
+export function getNormalizedRspackOptions(
+	config: RspackOptions
+): ResolvedRspackOptions {
 	const context = config.context ?? process.cwd();
 	const mode = config.mode ?? "development";
 	const devServer = resolveDevOptions(config.devServer, { context });
