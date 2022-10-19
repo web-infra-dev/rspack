@@ -32,8 +32,9 @@ pub static CALL_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(1));
 pub type BoxedClosure = Box<dyn Fn(CallContext<'_>) -> napi::Result<JsUndefined>>;
 
 pub struct RspackPluginNodeAdapter {
-  pub done_tsfn: crate::threadsafe_function::ThreadsafeFunction<(), u8>,
-  pub process_assets_tsfn: ThreadsafeRspackCallback<(String, BoxedClosure)>,
+  pub done_tsfn: crate::threadsafe_function::ThreadsafeFunction<(), ()>,
+  pub process_assets_tsfn:
+    crate::threadsafe_function::ThreadsafeFunction<(String, BoxedClosure), ()>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -100,31 +101,31 @@ impl Plugin for RspackPluginNodeAdapter {
       .iter()
       .map(|asset| (asset.0.clone(), asset.1.get_source().buffer().to_vec()))
       .collect();
-    let context = RspackThreadsafeContext::new(assets);
-    let (tx, rx) = oneshot::channel::<()>();
+    // let context = RspackThreadsafeContext::new(assets);
+    // let (tx, rx) = oneshot::channel::<()>();
 
-    match REGISTERED_PROCESS_ASSETS_SENDERS.entry(context.get_call_id()) {
-      dashmap::mapref::entry::Entry::Vacant(v) => {
-        v.insert(tx);
-      }
-      dashmap::mapref::entry::Entry::Occupied(_) => {
-        let err = Error::new(
-          napi::Status::Unknown,
-          format!(
-            "duplicated call id encountered {}, please file an issue.",
-            context.get_call_id(),
-          ),
-        );
-        self
-          .process_assets_tsfn
-          .call(Err(err.clone()), ThreadsafeFunctionCallMode::Blocking);
+    // match REGISTERED_PROCESS_ASSETS_SENDERS.entry(context.get_call_id()) {
+    //   dashmap::mapref::entry::Entry::Vacant(v) => {
+    //     v.insert(tx);
+    //   }
+    //   dashmap::mapref::entry::Entry::Occupied(_) => {
+    //     let err = Error::new(
+    //       napi::Status::Unknown,
+    //       format!(
+    //         "duplicated call id encountered {}, please file an issue.",
+    //         context.get_call_id(),
+    //       ),
+    //     );
+    //     self
+    //       .process_assets_tsfn
+    //       .call(Err(err.clone()), ThreadsafeFunctionCallMode::Blocking);
 
-        let any_error = anyhow::Error::from(err);
-        return Err(any_error.into());
-      }
-    }
+    //     let any_error = anyhow::Error::from(err);
+    //     return Err(any_error.into());
+    //   }
+    // }
 
-    {
+    let rx = {
       let compilation = args.compilation as *mut Compilation;
 
       let emit_asset = move |call_context: CallContext<'_>| {
@@ -149,25 +150,33 @@ impl Plugin for RspackPluginNodeAdapter {
         call_context.env.get_undefined()
       };
 
-      let value = serde_json::to_string(&context)
-        .map_err(|_| {
-          Error::new(
-            napi::Status::Unknown,
-            "unable to convert context".to_owned(),
-          )
-        })
-        .map(|value| (value, Box::new(emit_asset) as BoxedClosure));
+      let value = serde_json::to_string(&assets)
+        .map_err(|_| rspack_error::Error::InternalError("Failed to stringify assets".to_owned()))?;
 
       self
         .process_assets_tsfn
-        .call(value, ThreadsafeFunctionCallMode::Blocking);
-    }
+        .call(
+          (value, Box::new(emit_asset) as BoxedClosure),
+          crate::threadsafe_function::ThreadsafeFunctionCallMode::Blocking,
+        )
+        .map_err(|err| rspack_error::Error::InternalError(format!("{:?}", err)))?
+    };
 
-    let t = rx
-      .await
-      .context("failed to receive process_assets result")
-      .map_err(|err| err.into());
-    return t;
+    rx.await
+      .map_err(|err| rspack_error::Error::InternalError(format!("{:?}", err)))
+
+    // self.process_assets_tsfn.call(
+    //   (value, Box::new(emit_asset) as BoxedClosure),
+    //   crate::threadsafe_function::ThreadsafeFunctionCallMode::Blocking,
+    // )
+    // .await
+    // .map_err(|err| rspack_error::Error::InternalError(format!("{:?}", err)))
+
+    // let t = rx
+    //   .await
+    //   .context("failed to receive process_assets result")
+    //   .map_err(|err| err.into());
+    // return t;
   }
 
   #[tracing::instrument(skip_all)]
@@ -210,6 +219,7 @@ impl Plugin for RspackPluginNodeAdapter {
         (),
         crate::threadsafe_function::ThreadsafeFunctionCallMode::Blocking,
       )
+      .map_err(|err| rspack_error::Error::InternalError(format!("{:?}", err)))?
       .await
       .map_err(|err| rspack_error::Error::InternalError(format!("{:?}", err)))?;
 

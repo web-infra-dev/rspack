@@ -18,7 +18,7 @@ use napi::{JsError, JsFunction, NapiValue};
 
 /// ThreadSafeFunction Context object
 /// the `value` is the value passed to `call` method
-pub struct ThreadSafeCallContext<T: 'static, R: FromNapiValue> {
+pub struct ThreadSafeCallContext<T: 'static, R> {
   pub env: Env,
   pub value: T,
   pub callback: JsFunction,
@@ -90,14 +90,14 @@ impl From<ThreadsafeFunctionCallMode> for sys::napi_threadsafe_function_call_mod
 ///   ctx.env.get_undefined()
 /// }
 /// ```
-pub struct ThreadsafeFunction<T: 'static, R: FromNapiValue> {
+pub struct ThreadsafeFunction<T: 'static, R> {
   raw_tsfn: sys::napi_threadsafe_function,
   aborted: Arc<AtomicBool>,
   ref_count: Arc<AtomicUsize>,
   _phantom: PhantomData<(T, R)>,
 }
 
-impl<T: 'static, R: FromNapiValue> Clone for ThreadsafeFunction<T, R> {
+impl<T: 'static, R> Clone for ThreadsafeFunction<T, R> {
   fn clone(&self) -> Self {
     if !self.aborted.load(Ordering::Acquire) {
       let acquire_status = unsafe { sys::napi_acquire_threadsafe_function(self.raw_tsfn) };
@@ -116,10 +116,10 @@ impl<T: 'static, R: FromNapiValue> Clone for ThreadsafeFunction<T, R> {
   }
 }
 
-unsafe impl<T, R: FromNapiValue> Send for ThreadsafeFunction<T, R> {}
-unsafe impl<T, R: FromNapiValue> Sync for ThreadsafeFunction<T, R> {}
+unsafe impl<T, R> Send for ThreadsafeFunction<T, R> {}
+unsafe impl<T, R> Sync for ThreadsafeFunction<T, R> {}
 
-impl<T: 'static, R: FromNapiValue> ThreadsafeFunction<T, R> {
+impl<T: 'static, R> ThreadsafeFunction<T, R> {
   /// See [napi_create_threadsafe_function](https://nodejs.org/api/n-api.html#n_api_napi_create_threadsafe_function)
   /// for more information.
   pub(crate) fn create<C: 'static + Send + FnMut(ThreadSafeCallContext<T, R>) -> Result<()>>(
@@ -168,10 +168,14 @@ impl<T: 'static, R: FromNapiValue> ThreadsafeFunction<T, R> {
   }
 }
 
-impl<T: 'static, R: FromNapiValue> ThreadsafeFunction<T, R> {
+impl<T: 'static, R> ThreadsafeFunction<T, R> {
   /// See [napi_call_threadsafe_function](https://nodejs.org/api/n-api.html#n_api_napi_call_threadsafe_function)
   /// for more information.
-  pub async fn call(&self, value: T, mode: ThreadsafeFunctionCallMode) -> Result<R> {
+  pub fn call(
+    &self,
+    value: T,
+    mode: ThreadsafeFunctionCallMode,
+  ) -> Result<tokio::sync::oneshot::Receiver<R>> {
     if self.aborted.load(Ordering::Acquire) {
       return Err(napi::Error::from_status(Status::Closing));
     }
@@ -188,12 +192,11 @@ impl<T: 'static, R: FromNapiValue> ThreadsafeFunction<T, R> {
       }
     };
 
-    rx.await
-      .map_err(|err| napi::Error::from_reason(format!("Failed to receive call result: {}", err)))
+    Ok(rx)
   }
 }
 
-impl<T: 'static, R: FromNapiValue> Drop for ThreadsafeFunction<T, R> {
+impl<T: 'static, R> Drop for ThreadsafeFunction<T, R> {
   fn drop(&mut self) {
     if !self.aborted.load(Ordering::Acquire) && self.ref_count.load(Ordering::Acquire) > 0usize {
       let release_status = unsafe {
@@ -215,7 +218,7 @@ unsafe extern "C" fn cleanup_cb(cleanup_data: *mut c_void) {
   aborted.store(true, Ordering::SeqCst);
 }
 
-unsafe extern "C" fn thread_finalize_cb<T: 'static, C, R: FromNapiValue>(
+unsafe extern "C" fn thread_finalize_cb<T: 'static, C, R>(
   _raw_env: sys::napi_env,
   // context
   finalize_data: *mut c_void,
@@ -228,7 +231,7 @@ unsafe extern "C" fn thread_finalize_cb<T: 'static, C, R: FromNapiValue>(
   drop(Box::<C>::from_raw(finalize_data.cast()));
 }
 
-unsafe extern "C" fn call_js_cb<T: 'static, C, R: FromNapiValue>(
+unsafe extern "C" fn call_js_cb<T: 'static, C, R>(
   raw_env: sys::napi_env,
   js_callback: sys::napi_value,
   context: *mut c_void,
