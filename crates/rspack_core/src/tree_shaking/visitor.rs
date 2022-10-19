@@ -3,6 +3,7 @@ use std::{
   hash::Hash,
 };
 
+use bitflags::bitflags;
 use swc_atoms::{js_word, JsWord};
 use swc_common::{
   collections::{AHashMap, AHashSet},
@@ -23,6 +24,12 @@ pub(crate) enum SymbolRef {
   /// uri
   Star(Ustr),
 }
+
+bitflags! {
+  struct AnalyzeState: u8 {
+    const EXPORT_DEFAULT = 1 << 0;
+  }
+}
 #[derive(Debug)]
 pub(crate) struct ModuleRefAnalyze<'a> {
   top_level_mark: Mark,
@@ -35,6 +42,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub export_all_list: Vec<Ustr>,
   current_region: Option<BetterId>,
   pub(crate) reference_map: HashMap<BetterId, HashSet<BetterId>>,
+  state: AnalyzeState,
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
@@ -54,6 +62,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       export_all_list: vec![],
       current_region: None,
       reference_map: HashMap::default(),
+      state: AnalyzeState::empty(),
     }
   }
 
@@ -120,54 +129,47 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                 let local = namespace.local.sym.clone();
                 self.add_import(local, SymbolRef::Star(resolved_uri_ukey));
               }
-              // ExportSpecifier::Namespace(namespace) => {
-              //   // TODO: handle `* as xxx`, do we need a extra binding
-              //   self.export_all_list.push(resolved_uri_ukey);
-              // }
-              // ExportSpecifier::Default(_) => {
-              //   // Currently swc does not support syntax like `export v from 'xxx';`
-              //   unreachable!("Module has syntax error should not trigger tree_shaking")
-              // }
-              // ExportSpecifier::Named(named) => {
-              //   // TODO: what if the named binding is a unresolved_binding?
-              //   // TODO: handle `as xxx`
-              //   let id = match &named.orig {
-              //     ModuleExportName::Ident(ident) => ident.sym.clone(),
-              //     ModuleExportName::Str(_) => todo!(),
-              //   };
-              //   let symbol_ref =
-              //     SymbolRef::Indirect(IndirectTopLevelSymbol::new(resolved_uri_ukey, id.clone()));
-              //   self.add_export(id, symbol_ref);
-              // }
             });
         }
-        ModuleDecl::ExportDecl(decl) => match &decl.decl {
-          Decl::Class(class) => {
-            class.visit_with(self);
-            self.add_export(
-              class.ident.sym.clone(),
-              SymbolRef::Direct(Symbol::from_id_and_uri(
-                class.ident.to_id().into(),
-                self.module_identifier,
-              )),
-            );
+        ModuleDecl::ExportDecl(decl) => {
+          self.state |= AnalyzeState::EXPORT_DEFAULT;
+          match &decl.decl {
+            Decl::Class(class) => {
+              class.visit_with(self);
+              self.add_export(
+                class.ident.sym.clone(),
+                SymbolRef::Direct(Symbol::from_id_and_uri(
+                  class.ident.to_id().into(),
+                  self.module_identifier,
+                )),
+              );
+            }
+            Decl::Fn(function) => {
+              function.visit_with(self);
+              self.add_export(
+                function.ident.sym.clone(),
+                SymbolRef::Direct(Symbol::from_id_and_uri(
+                  function.ident.to_id().into(),
+                  self.module_identifier,
+                )),
+              );
+            }
+            Decl::Var(var) => {
+              var.visit_with(self);
+              // self.add_export(
+              //   var.sym.clone(),
+              //   SymbolRef::Direct(Symbol::from_id_and_uri(
+              //     function.ident.to_id().into(),
+              //     self.module_identifier,
+              //   )),
+              // );
+            }
+            Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
+              todo!()
+            }
           }
-          Decl::Fn(function) => {
-            function.visit_with(self);
-            self.add_export(
-              function.ident.sym.clone(),
-              SymbolRef::Direct(Symbol::from_id_and_uri(
-                function.ident.to_id().into(),
-                self.module_identifier,
-              )),
-            );
-          }
-          Decl::Var(_) => todo!(),
-          Decl::TsInterface(_) => todo!(),
-          Decl::TsTypeAlias(_) => todo!(),
-          Decl::TsEnum(_) => todo!(),
-          Decl::TsModule(_) => todo!(),
-        },
+          self.state.remove(AnalyzeState::EXPORT_DEFAULT);
+        }
         ModuleDecl::ExportNamed(named_export) => {
           self.analyze_named_export(named_export);
         }
@@ -208,6 +210,34 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     }
     node.visit_children_with(self);
     self.current_region = old_region;
+  }
+
+  fn visit_var_decl(&mut self, node: &VarDecl) {
+    for ele in node.decls.iter() {
+      let lhs: BetterId = match &ele.name {
+        Pat::Ident(ident) => ident.to_id().into(),
+        Pat::Array(_) => todo!(),
+        Pat::Rest(_) => todo!(),
+        Pat::Object(_) => todo!(),
+        Pat::Assign(_) => todo!(),
+        Pat::Invalid(_) => todo!(),
+        Pat::Expr(_) => todo!(),
+      };
+      if let Some(ref init) = ele.init && lhs.ctxt.outer() == self.top_level_mark {
+        let before_region = self.current_region.clone();
+        self.current_region = Some(lhs);
+        init.visit_with(self);
+        self.current_region = before_region;
+      }
+    }
+    // let id: BetterId = node.ident.to_id().into();
+    // let mark = id.ctxt.outer();
+    // let old_region = self.current_region.clone();
+    // if mark == self.top_level_mark {
+    //   self.current_region = Some(id);
+    // }
+    // node.visit_children_with(self);
+    // self.current_region = old_
   }
   fn visit_decl(&mut self, node: &Decl) {
     match node {
