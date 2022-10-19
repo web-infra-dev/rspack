@@ -1,10 +1,13 @@
 function a() {}
 
-function b() {}
+function b() {
+	c(a);
+	c(a);
+}
 
 export { a, b, c };
 
-function c() {
+export function c() {
 	class Test {
 		a() {
 			a();

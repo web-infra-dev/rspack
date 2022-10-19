@@ -143,6 +143,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         }
         ModuleDecl::ExportDecl(decl) => match &decl.decl {
           Decl::Class(class) => {
+            class.visit_with(self);
             self.add_export(
               class.ident.sym.clone(),
               SymbolRef::Direct(Symbol::from_id_and_uri(
@@ -152,6 +153,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             );
           }
           Decl::Fn(function) => {
+            function.visit_with(self);
             self.add_export(
               function.ident.sym.clone(),
               SymbolRef::Direct(Symbol::from_id_and_uri(
@@ -186,33 +188,33 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       }
     }
   }
+  fn visit_class_decl(&mut self, node: &ClassDecl) {
+    let id: BetterId = node.ident.to_id().into();
+    let mark = id.ctxt.outer();
+    let old_region = self.current_region.clone();
+    if mark == self.top_level_mark {
+      self.current_region = Some(id);
+    }
+    node.visit_children_with(self);
+    self.current_region = old_region;
+  }
 
+  fn visit_fn_decl(&mut self, node: &FnDecl) {
+    let id: BetterId = node.ident.to_id().into();
+    let mark = id.ctxt.outer();
+    let old_region = self.current_region.clone();
+    if mark == self.top_level_mark {
+      self.current_region = Some(id);
+    }
+    node.visit_children_with(self);
+    self.current_region = old_region;
+  }
   fn visit_decl(&mut self, node: &Decl) {
     match node {
-      Decl::Class(class) => {
-        let id: BetterId = class.ident.to_id().into();
-        let mark = id.ctxt.outer();
-        let old_region = self.current_region.clone();
-        if mark == self.top_level_mark {
-          self.current_region = Some(id);
-        }
-        class.visit_children_with(self);
-        self.current_region = old_region;
-      }
-      Decl::Fn(function) => {
-        let id: BetterId = function.ident.to_id().into();
-        let mark = id.ctxt.outer();
-        let old_region = self.current_region.clone();
-        if mark == self.top_level_mark {
-          self.current_region = Some(id);
-        }
-        function.visit_children_with(self);
-        self.current_region = old_region;
-      }
-      Decl::Var(_) => {
+      Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => todo!(),
+      Decl::Class(_) | Decl::Fn(_) | Decl::Var(_) => {
         node.visit_children_with(self);
       }
-      Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {}
     }
   }
 }
