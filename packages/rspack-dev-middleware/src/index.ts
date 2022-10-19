@@ -1,4 +1,4 @@
-import type { Compiler, ResolvedRspackOptions } from "@rspack/core";
+import type { Compiler, RspackOptionsNormalized } from "@rspack/core";
 import type { RequestHandler as ExpressRequestHandler } from "express";
 // import { ready } from "webpack-dev-middleware/dist/utils/ready";
 
@@ -9,7 +9,7 @@ export type RspackDevMiddleware = ExpressRequestHandler & {
 
 export function rdm(
 	compiler: Compiler,
-	options: ResolvedRspackOptions["devServer"]["devMiddleware"]
+	options: RspackOptionsNormalized["devServer"]["devMiddleware"]
 ): RspackDevMiddleware {
 	// @ts-ignore
 	const instance: RspackDevMiddleware = wrapper();

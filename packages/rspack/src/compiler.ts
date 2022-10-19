@@ -8,7 +8,7 @@ import { SyncHook, SyncBailHook } from "tapable";
 import util from "util";
 import {
 	RspackOptions,
-	ResolvedRspackOptions,
+	RspackOptionsNormalized,
 	Asset,
 	getNormalizedRspackOptions
 } from "./config";
@@ -32,7 +32,7 @@ class Compiler {
 	#plugins: RspackOptions["plugins"];
 	#instance: ExternalObject<RspackInternal>;
 	compilation: Compilation;
-	infrastructureLogger = undefined;
+	infrastructureLogger: any;
 	hooks: {
 		done: tapable.AsyncSeriesHook<Stats>;
 		afterDone: tapable.SyncHook<Stats>;
@@ -45,9 +45,9 @@ class Compiler {
 		beforeRun: tapable.AsyncSeriesHook<[Compiler]>;
 		run: tapable.AsyncSeriesHook<[Compiler]>;
 	};
-	options: ResolvedRspackOptions;
+	options: RspackOptionsNormalized;
 
-	constructor(context: string, options: ResolvedRspackOptions) {
+	constructor(context: string, options: RspackOptionsNormalized) {
 		this.options = options;
 		// to workaround some plugin access webpack, we may change dev-server to avoid this hack in the future
 		this.webpack = {
@@ -74,13 +74,6 @@ class Compiler {
 			compile: new SyncHook(["params"]),
 			infrastructureLog: new SyncBailHook(["origin", "type", "args"])
 		};
-		/**
-		 * adapter for webpack
-		 */
-		this.#plugins = options.plugins ?? [];
-		for (const plugin of this.#plugins) {
-			plugin.apply(this);
-		}
 	}
 	getInfrastructureLogger(name: string | Function) {
 		if (!name) {

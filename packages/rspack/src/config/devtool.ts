@@ -1,5 +1,6 @@
 export type Devtool =
 	| false
+	| "eval"
 	| "cheap-source-map"
 	| "cheap-module-source-map"
 	| "source-map"
@@ -29,8 +30,7 @@ export type ResolvedDevtool = string;
 export function resolveDevtoolOptions(
 	devtool: Devtool = false
 ): ResolvedDevtool {
-	if (devtool === false) return "";
-	return devtool;
+	return devtool === false ? "" : devtool;
 }
 
 export function isUseSourceMap(devtool: ResolvedDevtool): boolean {
