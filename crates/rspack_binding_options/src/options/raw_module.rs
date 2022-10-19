@@ -329,27 +329,14 @@ impl RawOption<ModuleRule> for RawModuleRule {
                   js_loader,
                   0,
                   |ctx| {
+                    let (ctx, resolver) = ctx.split_into_parts();
+
                     let buf= ctx.env.create_buffer_with_data(ctx.value)?.into_raw();
                     let result = ctx.callback.call(None, &[buf])?;
 
-                    // TODO: use deferred value
-
-                    assert!(result.is_promise()?);
-
-                    // TODO: enable feature anyhow
-                    let promise = unsafe { Promise::<Buffer>::from_napi_value(ctx.env.raw(), result.raw()) }?;
-
-                    ctx.env.execute_tokio_future(
-                      async move {
-                        let result = serde_json::from_slice::<LoaderThreadsafeLoaderResult>(promise.await?.as_ref())?;
-                        ctx.tx.send(result).map_err(|err| {
-                          napi::Error::from_reason(format!("Failed to send result: {:?}", err))
-                        })
-                      },
-                      |_, res| Ok(res),
-                    )?;
-
-                    Ok(())
+                    resolver.resolve::<Buffer>(result, |p| {
+                      serde_json::from_slice::<LoaderThreadsafeLoaderResult>(p.as_ref()).map_err(|err| err.into())
+                    })
                   })
                 })?;
                 return Ok(Box::new(NodeLoaderAdapter { loader }) as BoxedLoader);

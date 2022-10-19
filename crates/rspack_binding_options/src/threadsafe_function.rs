@@ -19,25 +19,55 @@ use napi::{JsError, JsFunction, NapiValue};
 
 /// ThreadSafeFunction Context object
 /// the `value` is the value passed to `call` method
-pub struct ThreadSafeCallContext<T: 'static, R> {
+pub struct ThreadSafeContext<T: 'static, R> {
   pub env: Env,
   pub value: T,
   pub callback: JsFunction,
   pub tx: tokio::sync::oneshot::Sender<R>,
 }
 
-impl<T: 'static, R: 'static + Send> ThreadSafeCallContext<T, R> {
+pub struct ThreadSafeCallContext<T: 'static> {
+  pub env: Env,
+  pub value: T,
+  pub callback: JsFunction,
+}
+
+pub struct ThreadSafeResolver<R> {
+  pub env: Env,
+  pub tx: tokio::sync::oneshot::Sender<R>,
+}
+
+impl<T: 'static, R> ThreadSafeContext<T, R> {
+  /// Split context into two parts, good for calling JS function, and resolving the return value in separate steps
+  pub fn split_into_parts(self) -> (ThreadSafeCallContext<T>, ThreadSafeResolver<R>) {
+    let call_context = ThreadSafeCallContext {
+      env: self.env,
+      value: self.value,
+      callback: self.callback,
+    };
+    let resolver = ThreadSafeResolver {
+      env: self.env,
+      tx: self.tx,
+    };
+
+    (call_context, resolver)
+  }
+}
+
+impl<R: 'static + Send> ThreadSafeResolver<R> {
   /// Consume the context and resolve the result from Node side. Calling the real callback should be happened before this.
   ///
   /// Since the original calling of threadsafe function is a pure enqueue operation,
   /// no matter a plain data structure or a `Promise` is returned, we need to send the message to the receiver side.
-  pub fn resolve<V, P, F>(self, result: V, resolver: F) -> Result<()>
+  pub fn resolve<P>(
+    self,
+    result: impl NapiRaw,
+    resolver: impl 'static + Send + FnOnce(P) -> Result<R>,
+  ) -> Result<()>
   where
-    F: 'static + Send + FnOnce(P) -> Result<R>,
     // Pure return value without promise wrapper
     P: FromNapiValue + Send + 'static,
     // Return value directly from Node
-    V: NapiRaw,
   {
     let raw = unsafe { result.raw() };
 
@@ -107,7 +137,7 @@ impl From<ThreadsafeFunctionCallMode> for sys::napi_threadsafe_function_call_mod
 ///
 /// use napi::{
 ///   threadsafe_function::{
-///     ThreadSafeCallContext, ThreadsafeFunctionCallMode, ThreadsafeFunctionReleaseMode,
+///     ThreadSafeContext, ThreadsafeFunctionCallMode, ThreadsafeFunctionReleaseMode,
 ///   },
 ///   CallContext, Error, JsFunction, JsNumber, JsUndefined, Result, Status,
 /// };
@@ -119,7 +149,7 @@ impl From<ThreadsafeFunctionCallMode> for sys::napi_threadsafe_function_call_mod
 ///   let tsfn =
 ///     ctx
 ///       .env
-///       .create_threadsafe_function(&func, 0, |ctx: ThreadSafeCallContext<Vec<u32>>| {
+///       .create_threadsafe_function(&func, 0, |ctx: ThreadSafeContext<Vec<u32>>| {
 ///         ctx
 ///           .value
 ///           .iter()
@@ -176,7 +206,7 @@ unsafe impl<T, R> Sync for ThreadsafeFunction<T, R> {}
 impl<T: 'static, R> ThreadsafeFunction<T, R> {
   /// See [napi_create_threadsafe_function](https://nodejs.org/api/n-api.html#n_api_napi_create_threadsafe_function)
   /// for more information.
-  pub fn create<C: 'static + Send + FnMut(ThreadSafeCallContext<T, R>) -> Result<()>>(
+  pub fn create<C: 'static + Send + FnMut(ThreadSafeContext<T, R>) -> Result<()>>(
     env: sys::napi_env,
     func: sys::napi_value,
     max_queue_size: usize,
@@ -286,7 +316,7 @@ unsafe extern "C" fn thread_finalize_cb<T: 'static, C, R>(
   // data
   _finalize_hint: *mut c_void,
 ) where
-  C: 'static + Send + FnMut(ThreadSafeCallContext<T, R>) -> Result<()>,
+  C: 'static + Send + FnMut(ThreadSafeContext<T, R>) -> Result<()>,
 {
   // cleanup
   drop(Box::<C>::from_raw(finalize_data.cast()));
@@ -298,7 +328,7 @@ unsafe extern "C" fn call_js_cb<T: 'static, C, R>(
   context: *mut c_void,
   data: *mut c_void,
 ) where
-  C: 'static + Send + FnMut(ThreadSafeCallContext<T, R>) -> Result<()>,
+  C: 'static + Send + FnMut(ThreadSafeContext<T, R>) -> Result<()>,
 {
   // env and/or callback can be null when shutting down
   if raw_env.is_null() || js_callback.is_null() {
@@ -315,7 +345,7 @@ unsafe extern "C" fn call_js_cb<T: 'static, C, R>(
 
   let ret = val.and_then(|v| {
     let (value, tx) = v;
-    (ctx)(ThreadSafeCallContext {
+    (ctx)(ThreadSafeContext {
       env: Env::from_raw(raw_env),
       value,
       callback: JsFunction::from_raw(raw_env, js_callback).unwrap(), // TODO: unwrap

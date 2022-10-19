@@ -3,9 +3,8 @@ use std::fmt::Debug;
 use std::sync::Arc;
 
 use napi::bindgen_prelude::*;
-use napi::{Env, NapiRaw, Result};
+use napi::{Env, Result};
 use napi_derive::napi;
-use sys::napi_env;
 // use nodejs_resolver::Resolver;
 use tokio::sync::Mutex;
 mod adapter;
