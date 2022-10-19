@@ -1,17 +1,12 @@
 use std::fmt::Debug;
 
-use napi::JsBuffer;
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
 
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "node-api")]
-use napi::{
-  bindgen_prelude::*,
-  threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode},
-  JsFunction, NapiRaw,
-};
+use napi::{bindgen_prelude::*, JsFunction, NapiRaw};
 #[cfg(feature = "node-api")]
 use rspack_error::Result;
 
@@ -211,14 +206,6 @@ impl Debug for NodeLoaderAdapter {
 }
 
 #[cfg(feature = "node-api")]
-static LOADER_CALL_ID: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
-
-#[cfg(feature = "node-api")]
-static REGISTERED_LOADER_SENDERS: once_cell::sync::Lazy<
-  dashmap::DashMap<u32, tokio::sync::oneshot::Sender<LoaderThreadsafeLoaderResult>>,
-> = once_cell::sync::Lazy::new(Default::default);
-
-#[cfg(feature = "node-api")]
 #[async_trait::async_trait]
 impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationContext>
   for NodeLoaderAdapter
@@ -244,37 +231,9 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
       resource_query: loader_context.resource_query.map(|r| r.to_owned()),
     };
 
-    // let current_id = LOADER_CALL_ID.fetch_add(1, Ordering::Relaxed);
-
-    // let loader_tsfn_context = LoaderThreadsafeContext {
-    //   p: loader_context,
-    //   id: current_id,
-    // };
-
-    // let (tx, rx) = tokio::sync::oneshot::channel::<LoaderThreadsafeLoaderResult>();
-
     let result = serde_json::to_vec(&loader_context).map_err(|err| {
       rspack_error::Error::InternalError(format!("Failed to serialize loader context: {}", err))
     })?;
-
-    // match REGISTERED_LOADER_SENDERS.entry(current_id) {
-    //   dashmap::mapref::entry::Entry::Vacant(v) => {
-    //     v.insert(tx);
-    //   }
-    //   dashmap::mapref::entry::Entry::Occupied(_) => {
-    //     let err = napi::Error::new(
-    //         napi::Status::Unknown,
-    //         format!(
-    //           "Duplicated call id encountered {}, this is not an expected behavior. Please file an issue.",
-    //           current_id,
-    //         ),
-    //       );
-    //     self
-    //       .loader
-    //       .call(Err(err.clone()), ThreadsafeFunctionCallMode::Blocking);
-    //     return Err(anyhow::Error::from(err).into());
-    //   }
-    // }
 
     let loader_result = self
       .loader
@@ -288,9 +247,6 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
         rspack_error::Error::InternalError(format!("Failed to call loader: {}", err))
       })?;
 
-    // debug_assert_eq!(status, napi::Status::Ok);
-
-    // let loader_result = rx.await.map_err(|err| anyhow::Error::from(err))?;
     let source_map = loader_result
       .as_ref()
       .and_then(|r| r.source_map.as_ref())
