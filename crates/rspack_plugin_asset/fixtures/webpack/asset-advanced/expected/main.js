@@ -12,7 +12,7 @@ function _interopRequireDefault(obj) {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _fileSvg = _interopRequireDefault(__rspack_require__("./images/file.svg"));
+const _fileSvg = _interopRequireDefault(__rspack_require__("./images/file.svg"));
 const container = document.createElement("div");
 Object.assign(container.style, {
     display: "flex",

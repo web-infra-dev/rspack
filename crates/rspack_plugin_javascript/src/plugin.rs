@@ -2,15 +2,9 @@ use async_trait::async_trait;
 use dashmap::DashMap;
 use hashbrown::hash_map::DefaultHashBuilder;
 use rayon::prelude::*;
-
 use swc::{config::JsMinifyOptions, BoolOrDataConfig};
-use swc_common::comments::SingleThreadedComments;
-use swc_common::{FileName, Mark, GLOBALS};
-use swc_ecma_transforms::helpers::{inject_helpers, Helpers};
-use swc_ecma_transforms::react::{react, Options as ReactOptions};
-use swc_ecma_transforms::{pass::noop, react};
-use swc_ecma_transforms::{react as swc_react, resolver};
-use swc_ecma_visit::{as_folder, FoldWith, VisitAllWith, VisitWith};
+use swc_common::GLOBALS;
+use swc_ecma_visit::VisitAllWith;
 
 use rspack_core::rspack_sources::{
   BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
@@ -26,22 +20,20 @@ use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray
 use tracing::instrument;
 
 use crate::utils::{
-  get_swc_compiler, get_wrap_chunk_after, get_wrap_chunk_before, parse_file, syntax_by_module_type,
+  get_swc_compiler, get_wrap_chunk_after, get_wrap_chunk_before, syntax_by_module_type,
   wrap_eval_source_map, wrap_module_function,
 };
-use crate::visitors::{finalize, ClearMark, DefineScanner, DefineTransform, DependencyScanner};
-use crate::{JS_HELPERS, RSPACK_REGISTER, RSPACK_REQUIRE};
+use crate::visitors::{run_after_pass, run_before_pass, DependencyScanner};
+use crate::{RSPACK_REGISTER, RSPACK_REQUIRE};
 
 #[derive(Debug)]
 pub struct JsPlugin {
-  unresolved_mark: Mark,
   eval_source_map_cache: DashMap<Box<dyn Source>, Box<dyn Source>, DefaultHashBuilder>,
 }
 
 impl JsPlugin {
   pub fn new() -> Self {
     Self {
-      unresolved_mark: GLOBALS.set(&Default::default(), || get_swc_compiler().run(Mark::new)),
       eval_source_map_cache: Default::default(),
     }
   }
@@ -54,13 +46,11 @@ impl Default for JsPlugin {
 }
 
 #[derive(Debug)]
-pub struct JavaScriptParserAndGenerator {
-  unresolved_mark: Mark,
-}
+pub struct JavaScriptParserAndGenerator {}
 
 impl JavaScriptParserAndGenerator {
-  fn new(unresolved_mark: Mark) -> Self {
-    Self { unresolved_mark }
+  fn new() -> Self {
+    Self {}
   }
 }
 
@@ -92,7 +82,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       )));
     }
 
-    let ast_with_diagnostics = parse_file(
+    let ast_with_diagnostics = crate::ast::parse(
       source.source().to_string(),
       &resource_data.resource_path,
       module_type,
@@ -100,39 +90,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let (ast, diagnostics) = ast_with_diagnostics.split_into_parts();
 
-    let processed_ast = GLOBALS.set(&Default::default(), || {
-      swc_ecma_transforms::helpers::HELPERS.set(&Helpers::new(true), || {
-        let defintions = &compiler_options.define;
-        let ast = if !defintions.is_empty() {
-          let mut define_scanner = DefineScanner::new(defintions);
-          // TODO: find more suitable position.
-          ast.visit_with(&mut define_scanner);
-          let mut define_transform = DefineTransform::new(defintions, define_scanner);
-          ast.fold_with(&mut define_transform)
-        } else {
-          ast
-        };
-        let top_level_mark = Mark::new();
-        let mut react_folder = react::<SingleThreadedComments>(
-          get_swc_compiler().cm.clone(),
-          None,
-          ReactOptions {
-            development: Some(false),
-            runtime: Some(swc_react::Runtime::Classic),
-            refresh: None,
-            ..Default::default()
-          },
-          Mark::new(),
-        );
-
-        // TODO: the order
-        let ast = ast.fold_with(&mut resolver(Mark::new(), top_level_mark, false));
-        let ast = ast.fold_with(&mut react_folder);
-        let ast = ast.fold_with(&mut inject_helpers());
-        ast.fold_with(&mut as_folder(ClearMark))
-      })
-    });
-
+    let processed_ast = run_before_pass(
+      ast,
+      compiler_options,
+      syntax_by_module_type(source.source().to_string().as_str(), module_type),
+    )?;
     let mut dep_scanner = DependencyScanner::default();
     processed_ast.visit_all_with(&mut dep_scanner);
 
@@ -154,8 +116,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     mgm: &ModuleGraphModule,
     compilation: &Compilation,
   ) -> Result<GenerationResult> {
-    use swc::config::{self as swc_config, SourceMapsConfig};
-
     let module = compilation
       .module_graph
       .module_by_identifier(&mgm.module_identifier)
@@ -165,80 +125,12 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       // TODO: this should only return AST for javascript only, It's a fast pass, defer to another pr to solve this.
       // Ok(ast_or_source.to_owned().into())
 
-      let compiler = get_swc_compiler();
-
-      let output = GLOBALS.set(&Default::default(), || {
-        crate::HELPERS.set(&JS_HELPERS, || {
-          swc::try_with_handler(compiler.cm.clone(), Default::default(), |handler| {
-            let fm = compiler.cm.new_source_file(
-              FileName::Custom(module.request().to_string()),
-              module.request().to_string(),
-            );
-
-            compiler.process_js_with_custom_pass(
-              fm,
-              // TODO: It should have a better way rather than clone.
-              Some(
-                ast_or_source
-                  .to_owned()
-                  .try_into_ast()?
-                  .try_into_javascript()?,
-              ),
-              handler,
-              &swc_config::Options {
-                config: swc_config::Config {
-                  jsc: swc_config::JscConfig {
-                    target: compilation.options.target.es_version,
-                    syntax: Some(syntax_by_module_type(
-                      module.request(),
-                      module.module_type(),
-                    )),
-                    transform: Some(swc_config::TransformConfig {
-                      react: react::Options {
-                        runtime: Some(react::Runtime::Automatic),
-                        ..Default::default()
-                      },
-                      ..Default::default()
-                    })
-                    .into(),
-                    ..Default::default()
-                  },
-                  inline_sources_content: (!compilation.options.devtool.no_sources()).into(),
-                  emit_source_map_columns: (!compilation.options.devtool.cheap()).into(),
-                  source_maps: Some(SourceMapsConfig::Bool(
-                    compilation.options.devtool.source_map(),
-                  )),
-                  env: if compilation.options.target.platform.is_browsers_list() {
-                    Some(swc_ecma_preset_env::Config {
-                      mode: if compilation.options.builtins.polyfill {
-                        Some(swc_ecma_preset_env::Mode::Usage)
-                      } else {
-                        Some(swc_ecma_preset_env::Mode::Entry)
-                      },
-                      targets: Some(swc_ecma_preset_env::Targets::Query(
-                        preset_env_base::query::Query::Multiple(
-                          compilation.options.builtins.browserslist.clone(),
-                        ),
-                      )),
-                      ..Default::default()
-                    })
-                  } else {
-                    None
-                  },
-                  ..Default::default()
-                },
-                // top_level_mark: Some(bundle_ctx.top_level_mark),
-                ..Default::default()
-              },
-              |_, _| noop(),
-              |_, _| {
-                // noop()
-                finalize(mgm, compilation, self.unresolved_mark)
-              },
-            )
-          })
-        })
-      })?;
+      let ast = ast_or_source
+        .to_owned()
+        .try_into_ast()?
+        .try_into_javascript()?;
+      let ast = run_after_pass(ast, mgm, compilation)?;
+      let output = crate::ast::stringify(&ast, &compilation.options.devtool)?;
 
       if let Some(map) = output.map {
         Ok(GenerationResult {
@@ -289,11 +181,8 @@ impl Plugin for JsPlugin {
     "javascript"
   }
   fn apply(&mut self, ctx: PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
-    let unresolved_mark = self.unresolved_mark;
-
-    let create_parser_and_generator = move || {
-      Box::new(JavaScriptParserAndGenerator::new(unresolved_mark)) as Box<dyn ParserAndGenerator>
-    };
+    let create_parser_and_generator =
+      move || Box::new(JavaScriptParserAndGenerator::new()) as Box<dyn ParserAndGenerator>;
 
     ctx
       .context

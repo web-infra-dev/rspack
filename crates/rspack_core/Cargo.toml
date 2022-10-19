@@ -8,8 +8,10 @@ version = "0.1.0"
 [dependencies]
 anyhow = "1"
 async-trait = "0.1.53"
+bitflags = "1.3.2"
 crossbeam = "0.8.1"
 dashmap = "5.0.0"
+fluent-uri = "0.1.3"
 futures = "0.3.21"
 hashbrown = { version = "0.12.1", features = ["rayon", "serde", "ahash"] }
 nodejs-resolver = "0.0.42"
@@ -21,7 +23,7 @@ rspack_error = { path = "../rspack_error" }
 rspack_loader_runner = { path = "../loader_runner" }
 rspack_sources = "0.1.9"
 rspack_tracing = { path = "../rspack_tracing" }
-serde = '1'
+serde = "1"
 sugar_path = "0.0.5"
 tokio = { version = "1.21.0", features = [
   "rt",
@@ -31,21 +33,19 @@ tokio = { version = "1.21.0", features = [
   "parking_lot",
 ] }
 tracing = "0.1.34"
-# swc v1.3.1
-bitflags = "1.3.2"
-fluent-uri = "0.1.3"
-swc = "0.230.14"
+# swc v1.3.4
+swc = "0.230.9"
 swc_common = { version = "0.29.3", features = ["concurrent", "tty-emitter"] }
-swc_css = "0.127.0"
-swc_ecma_ast = "0.94.0"
-swc_ecma_codegen = "0.127.0"
-swc_ecma_transforms = { version = "0.196.0", features = [
+swc_css = "0.127.5"
+swc_ecma_ast = "0.94.3"
+swc_ecma_codegen = "0.127.5"
+swc_ecma_transforms = { version = "0.196.10", features = [
   "swc_ecma_transforms_module",
   "swc_ecma_transforms_react",
 ] }
-swc_ecma_visit = "0.80.0"
+swc_ecma_visit = "0.80.3"
 url = "2.2.2"
 xxhash-rust = { version = "0.8.5", features = ["xxh3"] }
 
 [dev-dependencies]
-swc_ecma_parser = "0.122.0"
+swc_ecma_parser = "0.122.4"

@@ -5,9 +5,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "main", {
     enumerable: true,
-    get: function() {
-        return main;
-    }
+    get: ()=>main
 });
 async function task() {
     await new Promise((res)=>{

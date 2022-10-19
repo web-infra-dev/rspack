@@ -7,6 +7,7 @@ mod runtime;
 pub use runtime::*;
 mod plugin;
 pub use plugin::*;
+mod ast;
 pub mod utils;
 pub mod visitors;
 

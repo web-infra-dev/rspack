@@ -6,9 +6,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "main", {
     enumerable: true,
-    get: function() {
-        return main;
-    }
+    get: ()=>main
 });
 require("core-js/modules/es.promise.js");
 require("core-js/modules/es.regexp.exec.js");

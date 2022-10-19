@@ -9,7 +9,7 @@ function _interopRequireDefault(obj) {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _jsonJson = _interopRequireDefault(__rspack_require__("./json.json"));
+const _jsonJson = _interopRequireDefault(__rspack_require__("./json.json"));
 console.log(_jsonJson.default);
 },
 "./json.json": function (module, exports, __rspack_require__, __rspack_dynamic_require__) {

@@ -18,9 +18,9 @@ function _interopRequireDefault(obj) {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _filePng = _interopRequireDefault(__rspack_require__("./images/file.png"));
-var _fileJpg = _interopRequireDefault(__rspack_require__("./images/file.jpg"));
-var _fileSvg = _interopRequireDefault(__rspack_require__("./images/file.svg"));
+const _filePng = _interopRequireDefault(__rspack_require__("./images/file.png"));
+const _fileJpg = _interopRequireDefault(__rspack_require__("./images/file.jpg"));
+const _fileSvg = _interopRequireDefault(__rspack_require__("./images/file.svg"));
 const container = document.createElement("div");
 Object.assign(container.style, {
     display: "flex",
