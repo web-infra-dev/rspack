@@ -54,7 +54,7 @@ pub struct BetterId {
 
 impl std::fmt::Debug for BetterId {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    write!(f, "{}|#{}", &self.atom, self.ctxt.as_u32())
+    write!(f, "'{}'#{}", &self.atom, self.ctxt.as_u32())
   }
 }
 
