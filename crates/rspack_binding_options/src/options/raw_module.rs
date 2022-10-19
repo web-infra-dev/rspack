@@ -378,68 +378,26 @@ impl RawOption<ModuleRule> for RawModuleRule {
                     let buf= ctx.env.create_buffer_with_data(ctx.value)?.into_raw();
                     let result = ctx.callback.call(None, &[buf])?;
 
-            // TODO: use deferred value
+                    // TODO: use deferred value
 
-            assert!(result.is_promise()?);
+                    assert!(result.is_promise()?);
 
-            // TODO: enable feature anyhow
-            let promise = unsafe { Promise::<Buffer>::from_napi_value(ctx.env.raw(), result.raw()) }?;
+                    // TODO: enable feature anyhow
+                    let promise = unsafe { Promise::<Buffer>::from_napi_value(ctx.env.raw(), result.raw()) }?;
 
-            ctx.env.execute_tokio_future(
-              async move {
-                let result = serde_json::from_slice::<LoaderThreadsafeLoaderResult>(promise.await?.as_ref())?;
-                ctx.tx.send(result).map_err(|err| {
-                  napi::Error::from_reason(format!("Failed to send result: {:?}", err))
-                })
-              },
-              |_, res| Ok(res),
-            )?;
+                    ctx.env.execute_tokio_future(
+                      async move {
+                        let result = serde_json::from_slice::<LoaderThreadsafeLoaderResult>(promise.await?.as_ref())?;
+                        ctx.tx.send(result).map_err(|err| {
+                          napi::Error::from_reason(format!("Failed to send result: {:?}", err))
+                        })
+                      },
+                      |_, res| Ok(res),
+                    )?;
 
-            Ok(())
-
-                    }
-                  )
+                    Ok(())
+                  })
                 })?;
-                // NAPI_ENV;
-
-                // crate::threadsafe_function::ThreadsafeFunction::create(
-
-                // );
-                // let loader: JsLoader = raw_js_loader
-                //   .create_threadsafe_function(
-                //     0,
-                //     |ctx| Ok(vec![Buffer::from(ctx.value)]),
-                //     |ctx: ThreadSafeResultContext<Promise<Buffer>>| {
-                //       let return_value = ctx.return_value;
-
-                //       ctx
-                //         .env
-                //         .execute_tokio_future(
-                //           async move {
-                //             let return_value = return_value.await?;
-
-                //             let result =
-                //               serde_json::from_slice::<LoaderThreadsafeResult>(return_value.as_ref())?;
-
-                //             if let Some((_, sender)) = REGISTERED_LOADER_SENDERS.remove(&result.id) {
-                //               sender.send(result.p).map_err(|_| {
-                //                 Error::new(napi::Status::GenericFailure, "unable to send".to_owned())
-                //               })?;
-                //             } else {
-                //               return Err(Error::new(
-                //                 napi::Status::GenericFailure,
-                //                 format!("Loader call id {} not found", result.id),
-                //               ));
-                //             }
-
-                //             Ok(())
-                //           },
-                //           |_env, ret| Ok(ret),
-                //         )
-                //         .expect("failed to execute tokio future");
-                //     },
-                //   )
-                //   .unwrap();
                 return Ok(Box::new(NodeLoaderAdapter { loader }) as BoxedLoader);
               }
             }
