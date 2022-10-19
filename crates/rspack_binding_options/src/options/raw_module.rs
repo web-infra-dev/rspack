@@ -186,12 +186,10 @@ pub struct NodeLoaderAdapter {
 #[cfg(feature = "node-api")]
 impl NodeLoaderAdapter {
   pub fn unref(&mut self, env: &napi::Env) -> anyhow::Result<()> {
-    // TODO:
-    Ok(())
-    // self
-    //   .loader
-    //   .unref(env)
-    //   .map_err(|e| anyhow::format_err!("failed to unref tsfn: {}", e))
+    self
+      .loader
+      .unref(env)
+      .map_err(|e| anyhow::format_err!("failed to unref tsfn: {}", e))
   }
 }
 

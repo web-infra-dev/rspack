@@ -81,8 +81,8 @@ pub fn create_node_adapter_from_plugin_callbacks(
           })
         }?;
 
-        // done_tsfn.unref(&env)?;
-        // process_assets_tsfn.unref(&env)?;
+        done_tsfn.unref(&env)?;
+        process_assets_tsfn.unref(&env)?;
 
         Ok(super::RspackPluginNodeAdapter {
           done_tsfn,

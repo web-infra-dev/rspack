@@ -1,3 +1,4 @@
+// Modified based on https://github.com/parcel-bundler/lightningcss/blob/865270134da6f25d66ce4a4ec0e4c4b93b90b759/node/src/threadsafe_function.rs
 // Fork of threadsafe_function from napi-rs that allows calling JS function manually rather than
 // only returning args. This enables us to use the return value of the function.
 
@@ -193,6 +194,13 @@ impl<T: 'static, R> ThreadsafeFunction<T, R> {
     };
 
     Ok(rx)
+  }
+
+  /// Dereferencing a threadsafe function, this might be helpful for those tsfns that are not manually dropped.
+  /// See [napi_unref_threadsafe_function](https://nodejs.org/api/n-api.html#napi_unref_threadsafe_function)
+  /// for more information.
+  pub fn unref(&self, env: &Env) -> Result<()> {
+    check_status!(unsafe { sys::napi_unref_threadsafe_function(env.raw(), self.raw_tsfn) })
   }
 }
 
