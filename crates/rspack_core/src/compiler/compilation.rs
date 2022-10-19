@@ -506,7 +506,8 @@ impl Compilation {
           uri_key,
           analyzer.export_all_list,
           analyzer.export_map,
-          analyzer.import_map
+          analyzer.import_map,
+          analyzer.reference_map
         );
       });
     Ok(())
