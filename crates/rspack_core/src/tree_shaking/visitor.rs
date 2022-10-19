@@ -57,6 +57,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   noop_visit_type!();
   fn visit_ident(&mut self, node: &Ident) {
     let id = node.to_id();
+    dbg!(&id.1.outer());
     let symbol = Symbol::from_id_and_uri(id, self.uri);
   }
 
@@ -148,6 +149,21 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         node.visit_children_with(self);
       }
     }
+  }
+
+  fn visit_decl(&mut self, node: &Decl) {
+    node.visit_children_with(self);
+    // match node {
+    //   Decl::Class(class) => {
+    //     class.ident.span.ctxt();
+    //   }
+    //   Decl::Fn(_) => todo!(),
+    //   Decl::Var(_) => todo!(),
+    //   Decl::TsInterface(_) => todo!(),
+    //   Decl::TsTypeAlias(_) => todo!(),
+    //   Decl::TsEnum(_) => todo!(),
+    //   Decl::TsModule(_) => todo!(),
+    // }
   }
 }
 
