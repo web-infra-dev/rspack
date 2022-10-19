@@ -91,7 +91,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let (ast, diagnostics) = ast_with_diagnostics.split_into_parts();
 
-    let processed_ast = run_before_pass(
+    let (processed_ast, top_level_mark, unresolved_mark) = run_before_pass(
       ast,
       compiler_options,
       syntax_by_module_type(source.source().to_string().as_str(), module_type),
@@ -134,7 +134,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .to_owned()
         .try_into_ast()?
         .try_into_javascript()?;
-      let ast = run_after_pass(ast, mgm, compilation)?;
+      let ast = run_after_pass(ast.ast, mgm, compilation)?;
       let output = crate::ast::stringify(&ast, &compilation.options.devtool)?;
 
       if let Some(map) = output.map {

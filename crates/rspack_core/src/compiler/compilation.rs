@@ -485,7 +485,7 @@ impl Compilation {
           top_level_mark,
           unresolved_mark,
         } = ast.as_javascript().unwrap();
-        // dbg!(top_level_mark);
+        dbg!(top_level_mark, unresolved_mark);
         let mut analyzer = ModuleRefAnalyze::new(
           *top_level_mark,
           *unresolved_mark,
@@ -493,7 +493,12 @@ impl Compilation {
           &self.module_graph,
         );
         ast.visit_with(&mut analyzer);
-        dbg!(uri_key, analyzer.export_all_list, analyzer.export_map, analyzer.import_map);
+        dbg!(
+          uri_key,
+          analyzer.export_all_list,
+          analyzer.export_map,
+          analyzer.import_map
+        );
       });
     Ok(())
   }
