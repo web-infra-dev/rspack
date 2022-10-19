@@ -62,9 +62,6 @@ pub fn create_node_adapter_from_plugin_callbacks(
 
             assert!(result.is_promise()?);
 
-            // TODO: use deferred value
-
-            // TODO: enable feature anyhow
             let promise = unsafe { Promise::<()>::from_napi_value(ctx.env.raw(), result.raw()) }?;
 
             ctx.env.execute_tokio_future(

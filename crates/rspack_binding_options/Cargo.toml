@@ -31,7 +31,7 @@ tokio = { version = "1.21.0", features = [
   "parking_lot",
 ] }
   [dependencies.napi]
-  features = ["async", "tokio_rt", "serde-json"]
+  features = ["async", "tokio_rt", "serde-json", "anyhow"]
   optional = true
   version  = "2"
 

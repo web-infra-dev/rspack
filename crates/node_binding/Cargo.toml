@@ -20,6 +20,7 @@ napi = { version = "2", default-features = false, features = [
   "tokio_rt",
   "serde-json",
   "napi5",
+  "anyhow",
 ] }
 napi-derive = "2"
 napi-sys = "2"

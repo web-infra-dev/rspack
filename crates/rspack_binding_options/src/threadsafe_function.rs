@@ -13,8 +13,8 @@ use std::ptr;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 
-use napi::bindgen_prelude::FromNapiValue;
-use napi::{check_status, sys, Env, Result, Status};
+use napi::bindgen_prelude::{FromNapiValue, Promise, ToNapiValue};
+use napi::{check_status, sys, Env, JsUnknown, NapiRaw, Result, Status};
 use napi::{JsError, JsFunction, NapiValue};
 
 /// ThreadSafeFunction Context object
@@ -24,6 +24,59 @@ pub struct ThreadSafeCallContext<T: 'static, R> {
   pub value: T,
   pub callback: JsFunction,
   pub tx: tokio::sync::oneshot::Sender<R>,
+}
+
+impl<T: 'static, R: 'static + Send> ThreadSafeCallContext<T, R> {
+  /// Consume the context and resolve the result from Node side. Calling the real callback should be happened before this.
+  ///
+  /// Since the original calling of threadsafe function is a pure enqueue operation,
+  /// no matter a plain data structure or a `Promise` is returned, we need to send the message to the receiver side.
+  pub fn resolve<V, P, F>(self, result: V, resolver: F) -> Result<()>
+  where
+    F: 'static + Send + FnOnce(P) -> Result<R>,
+    // Pure return value without promise wrapper
+    P: FromNapiValue + Send + 'static,
+    // Return value directly from Node
+    V: NapiRaw,
+  {
+    let raw = unsafe { result.raw() };
+
+    let mut is_promise = false;
+    check_status!(unsafe { sys::napi_is_promise(self.env.raw(), raw, &mut is_promise) })?;
+
+    if is_promise {
+      let p = unsafe { Promise::<P>::from_napi_value(self.env.raw(), raw) }?;
+
+      self.env.execute_tokio_future(
+        async move {
+          let p = p
+            .await
+            .map_err(|err| napi::Error::from_reason(format!("Failed to resolve {:?}", err)))?;
+
+          let resolved = resolver(p)?;
+          self
+            .tx
+            .send(resolved)
+            .map_err(|_| napi::Error::from_reason(format!("Failed to resolve")))?;
+
+          Ok(())
+        },
+        |_, _| Ok(()),
+      )?;
+
+      return Ok(());
+    }
+
+    let p = {
+      let p = unsafe { P::from_napi_value(self.env.raw(), raw) }?;
+      resolver(p)?
+    };
+
+    self
+      .tx
+      .send(p)
+      .map_err(|_| napi::Error::from_reason(format!("Failed to resolve")))
+  }
 }
 
 #[repr(u8)]
