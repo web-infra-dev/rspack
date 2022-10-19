@@ -106,7 +106,6 @@ pub fn new_rspack(
   mut options: RawOptions,
   plugin_callbacks: Option<PluginCallbacks>,
 ) -> Result<External<RspackBindingContext>> {
-  // NAPI_ENV.set(Some(env.raw()));
   NAPI_ENV.with(|napi_env| *napi_env.borrow_mut() = Some(env.raw()));
 
   #[cfg(debug_assertions)]
