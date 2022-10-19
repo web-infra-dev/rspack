@@ -139,14 +139,12 @@ impl RspackImporter {
     let rspack_module_resolve = factory.get(Resolve {
       // TODO: add dependencyType.
       condition_names: Some(vec!["sass".to_owned(), "style".to_owned()]),
-      // TODO: ["sass", "style", "main", "..."] support `"..."`.
       main_fields: Some(vec![
         "sass".to_owned(),
         "style".to_owned(),
         "main".to_owned(),
         "...".to_owned(),
       ]),
-      // TODO: ["_index", "index", "..."] support `"..."`.
       main_files: Some(vec![
         "_index".to_owned(),
         "index".to_owned(),
