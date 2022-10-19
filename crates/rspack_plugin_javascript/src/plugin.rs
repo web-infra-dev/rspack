@@ -91,7 +91,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let (ast, diagnostics) = ast_with_diagnostics.split_into_parts();
 
-    let (processed_ast, top_level_mark, unresolved_mark) = run_before_pass(
+    let (processed_ast, top_level_mark, unresolved_mark, globals) = run_before_pass(
       ast,
       compiler_options,
       syntax_by_module_type(source.source().to_string().as_str(), module_type),
@@ -106,6 +106,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           top_level_mark,
           unresolved_mark,
         })),
+        parse_phase_global: Some(globals),
         dependencies: dep_scanner.dependencies.into_iter().collect(),
       }
       .with_diagnostic(diagnostics),

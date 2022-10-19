@@ -3,7 +3,7 @@ use std::{collections::HashMap, hash::Hash};
 use swc_atoms::{js_word, JsWord};
 use swc_common::{
   collections::{AHashMap, AHashSet},
-  Mark, SyntaxContext,
+  Globals, Mark, SyntaxContext, GLOBALS,
 };
 use swc_ecma_ast::*;
 use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
@@ -24,7 +24,7 @@ pub(crate) enum SymbolRef {
 pub(crate) struct ModuleRefAnalyze<'a> {
   top_level_mark: Mark,
   unresolved_mark: Mark,
-  uri: Ustr,
+  module_identifier: Ustr,
   module_graph: &'a ModuleGraph,
   pub(crate) export_map: HashMap<JsWord, SymbolRef>,
   pub(crate) import_map: HashMap<JsWord, SymbolRef>,
@@ -43,7 +43,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     Self {
       top_level_mark,
       unresolved_mark,
-      uri,
+      module_identifier: uri,
       module_graph: dep_to_module_uri,
       export_map: HashMap::new(),
       import_map: HashMap::new(),
@@ -55,10 +55,14 @@ impl<'a> ModuleRefAnalyze<'a> {
 
 impl<'a> Visit for ModuleRefAnalyze<'a> {
   noop_visit_type!();
+  fn visit_program(&mut self, node: &Program) {
+    assert!(GLOBALS.is_set());
+    node.visit_children_with(self);
+  }
   fn visit_ident(&mut self, node: &Ident) {
     let id = node.to_id();
-    dbg!(&id.1.outer());
-    let symbol = Symbol::from_id_and_uri(id, self.uri);
+    dbg!(&id.1.outer(), &id);
+    let symbol = Symbol::from_id_and_uri(id, self.module_identifier);
   }
 
   fn visit_module_item(&mut self, node: &ModuleItem) {
@@ -66,7 +70,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       ModuleItem::ModuleDecl(decl) => match decl {
         ModuleDecl::Import(import) => {
           let src: String = import.src.value.to_string();
-          let resolved_uri = self.resolve_uri(src, ResolveKind::Import);
+          let resolved_uri = self.resolve_module_identifier(src, ResolveKind::Import);
           let resolved_uri_ukey = ustr(&resolved_uri);
           import
             .specifiers
@@ -116,13 +120,19 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           Decl::Class(class) => {
             self.add_export(
               class.ident.sym.clone(),
-              SymbolRef::Direct(Symbol::from_id_and_uri(class.ident.to_id(), self.uri)),
+              SymbolRef::Direct(Symbol::from_id_and_uri(
+                class.ident.to_id(),
+                self.module_identifier,
+              )),
             );
           }
           Decl::Fn(function) => {
             self.add_export(
               function.ident.sym.clone(),
-              SymbolRef::Direct(Symbol::from_id_and_uri(function.ident.to_id(), self.uri)),
+              SymbolRef::Direct(Symbol::from_id_and_uri(
+                function.ident.to_id(),
+                self.module_identifier,
+              )),
             );
           }
           Decl::Var(_) => todo!(),
@@ -137,8 +147,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         ModuleDecl::ExportDefaultDecl(_) => todo!(),
         ModuleDecl::ExportDefaultExpr(_) => todo!(),
         ModuleDecl::ExportAll(export_all) => {
-          let resolved_uri_key =
-            ustr(self.resolve_uri(export_all.src.value.to_string(), ResolveKind::Import));
+          let resolved_uri_key = ustr(
+            self.resolve_module_identifier(export_all.src.value.to_string(), ResolveKind::Import),
+          );
           self.export_all_list.push(resolved_uri_key);
         }
         ModuleDecl::TsImportEquals(_) => todo!(),
@@ -186,7 +197,7 @@ impl<'a> ModuleRefAnalyze<'a> {
   fn analyze_named_export(&mut self, named_export: &NamedExport) {
     let src: Option<String> = named_export.src.as_ref().map(|src| src.value.to_string());
     if let Some(src) = src {
-      let resolved_uri = self.resolve_uri(src, ResolveKind::Import);
+      let resolved_uri = self.resolve_module_identifier(src, ResolveKind::Import);
       let resolved_uri_ukey = ustr(&resolved_uri);
       named_export
         .specifiers
@@ -236,30 +247,32 @@ impl<'a> ModuleRefAnalyze<'a> {
               // we know here export has no src,  so this branch should not reachable.
               ModuleExportName::Str(_) => unreachable!(),
             };
-            let symbol_ref = SymbolRef::Direct(Symbol::from_id_and_uri(id.clone(), self.uri));
+            let symbol_ref =
+              SymbolRef::Direct(Symbol::from_id_and_uri(id.clone(), self.module_identifier));
             self.add_export(id.0, symbol_ref);
           }
         });
     };
   }
 
-  /// Try to resolve_uri from `src`, `resolve_kind`, and `importer`
-  /// For simplicity, this function will assume the importer is always `self.uri`
+  /// Try to get the module_identifier from `src`, `resolve_kind`, and `importer`
+  /// For simplicity, this function will assume the importer is always `self.module_identifier`
   /// # Panic
   /// This function will panic if can't find
-  fn resolve_uri(&mut self, src: String, resolve_kind: ResolveKind) -> &String {
-    let resolved_uri = self
+  fn resolve_module_identifier(&mut self, src: String, resolve_kind: ResolveKind) -> &String {
+    let resolved_uri = &self
       .module_graph
-      .module_uri_by_deppendency(&Dependency {
-        importer: Some(self.uri.to_string()),
+      .module_by_dependency(&Dependency {
+        importer: Some(self.module_identifier.to_string()),
         detail: crate::ModuleDependency {
           specifier: src,
           kind: resolve_kind,
           span: None,
         },
-        parent_module_identifier: Some(self.uri.to_string()),
+        parent_module_identifier: Some(self.module_identifier.to_string()),
       })
-      .unwrap();
+      .unwrap()
+      .module_identifier;
     resolved_uri
   }
 
