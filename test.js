@@ -1,1 +1,3 @@
-import a, { "a" as c } from "./result";
+import c, {} from "./result";
+
+let a = {};

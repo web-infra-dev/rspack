@@ -30,12 +30,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) import_map: HashMap<JsWord, SymbolRef>,
   /// list of uri, each uri represent export all named export from specific uri
   pub export_all_list: Vec<Ustr>,
-}
-
-#[derive(Debug, Clone, Copy)]
-struct InnerConfig {
-  handle_types: bool,
-  unresolved_mark: Mark,
+  current_region: Option<Id>,
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
@@ -53,6 +48,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       export_map: HashMap::new(),
       import_map: HashMap::new(),
       export_all_list: vec![],
+      current_region: None,
     }
   }
 }
@@ -148,7 +144,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         ModuleDecl::TsExportAssignment(_) => todo!(),
         ModuleDecl::TsNamespaceExport(_) => todo!(),
       },
-      ModuleItem::Stmt(_) => node.visit_children_with(self),
+      ModuleItem::Stmt(_) => {
+        node.visit_children_with(self);
+      }
     }
   }
 }
