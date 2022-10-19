@@ -4,4 +4,7 @@ import { a } from "./test";
 // export { default as c, a } from "./test.js";
 
 // export const c = ccc;
-console.log(a);
+console.log();
+function test() {
+	a;
+}

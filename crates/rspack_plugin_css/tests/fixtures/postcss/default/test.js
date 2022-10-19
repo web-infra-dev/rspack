@@ -5,7 +5,7 @@ function b() {
 	c(a);
 }
 
-export { a, b, c, dddd };
+export { a, b, c };
 
 export function c() {
 	class Test {
@@ -15,6 +15,6 @@ export function c() {
 	}
 	function result() {}
 }
-const dddd = c;
-console.log(a);
+export const dddd = c;
+dddd;
 // export default 20;

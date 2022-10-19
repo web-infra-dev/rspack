@@ -1,7 +1,4 @@
-use std::{
-  collections::{HashMap, HashSet},
-  hash::Hash,
-};
+use std::hash::Hash;
 
 use bitflags::bitflags;
 use swc_atoms::{js_word, JsWord};
@@ -36,13 +33,15 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   unresolved_mark: Mark,
   module_identifier: Ustr,
   module_graph: &'a ModuleGraph,
-  pub(crate) export_map: HashMap<JsWord, SymbolRef>,
-  pub(crate) import_map: HashMap<JsWord, SymbolRef>,
+  pub(crate) export_map: AHashMap<JsWord, SymbolRef>,
+  pub(crate) import_map: AHashMap<BetterId, SymbolRef>,
   /// list of uri, each uri represent export all named export from specific uri
   pub export_all_list: Vec<Ustr>,
   current_region: Option<BetterId>,
-  pub(crate) reference_map: HashMap<BetterId, HashSet<BetterId>>,
+  pub(crate) reference_map: AHashMap<BetterId, AHashSet<BetterId>>,
+  pub(crate) export_import_map: AHashMap<BetterId, AHashSet<BetterId>>,
   state: AnalyzeState,
+  // pub(crate) used_set: AHashSet<BetterId>,
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
@@ -57,12 +56,14 @@ impl<'a> ModuleRefAnalyze<'a> {
       unresolved_mark,
       module_identifier: uri,
       module_graph: dep_to_module_uri,
-      export_map: HashMap::new(),
-      import_map: HashMap::new(),
+      export_map: AHashMap::default(),
+      import_map: AHashMap::default(),
       export_all_list: vec![],
       current_region: None,
-      reference_map: HashMap::default(),
+      reference_map: AHashMap::default(),
+      export_import_map: AHashMap::default(),
       state: AnalyzeState::empty(),
+      // used_set: AHashSet::default(),
     }
   }
 
@@ -72,10 +73,12 @@ impl<'a> ModuleRefAnalyze<'a> {
         occ.get_mut().insert(to);
       }
       std::collections::hash_map::Entry::Vacant(vac) => {
-        vac.insert(HashSet::from_iter([to]));
+        vac.insert(AHashSet::from_iter([to]));
       }
     }
   }
+
+  pub fn get_all_import_() {}
 }
 
 impl<'a> Visit for ModuleRefAnalyze<'a> {
@@ -83,21 +86,14 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   fn visit_program(&mut self, node: &Program) {
     assert!(GLOBALS.is_set());
     node.visit_children_with(self);
+    // let import_
   }
   fn visit_ident(&mut self, node: &Ident) {
     let id: BetterId = node.to_id().into();
     let marker = id.ctxt.outer();
     if let Some(ref region) = self.current_region && marker == self.top_level_mark && region != &id {
       self.add_reference(region.clone(), id);
-    } else {
-      // TODO: handle used
     }
-    // if  == self.top_level_mark {
-    //   dbg!(&id);
-    // } else {
-    //   dbg!(&id);
-    // }
-    // let symbol = Symbol::from_id_and_uri(id, self.module_identifier);
   }
 
   fn visit_module_item(&mut self, node: &ModuleItem) {
@@ -122,12 +118,14 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                 };
                 let symbol_ref =
                   SymbolRef::Indirect(IndirectTopLevelSymbol::new(resolved_uri_ukey, imported));
-                self.add_import(local, symbol_ref);
+                self.add_import(named.local.to_id().into(), symbol_ref);
               }
               ImportSpecifier::Default(_) => todo!(),
               ImportSpecifier::Namespace(namespace) => {
-                let local = namespace.local.sym.clone();
-                self.add_import(local, SymbolRef::Star(resolved_uri_ukey));
+                self.add_import(
+                  namespace.local.to_id().into(),
+                  SymbolRef::Star(resolved_uri_ukey),
+                );
               }
             });
         }
@@ -156,13 +154,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             }
             Decl::Var(var) => {
               var.visit_with(self);
-              // self.add_export(
-              //   var.sym.clone(),
-              //   SymbolRef::Direct(Symbol::from_id_and_uri(
-              //     function.ident.to_id().into(),
-              //     self.module_identifier,
-              //   )),
-              // );
             }
             Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
               todo!()
@@ -208,7 +199,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     if mark == self.top_level_mark {
       self.current_region = Some(id);
     }
-    node.visit_children_with(self);
+    node.function.visit_with(self);
     self.current_region = old_region;
   }
 
@@ -223,6 +214,12 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         Pat::Invalid(_) => todo!(),
         Pat::Expr(_) => todo!(),
       };
+      if self.state.contains(AnalyzeState::EXPORT_DEFAULT) {
+        self.add_export(
+          lhs.atom.clone(),
+          SymbolRef::Direct(Symbol::from_id_and_uri(lhs.clone(), self.module_identifier)),
+        );
+      }
       if let Some(ref init) = ele.init && lhs.ctxt.outer() == self.top_level_mark {
         let before_region = self.current_region.clone();
         self.current_region = Some(lhs);
@@ -258,7 +255,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     }
   }
 
-  fn add_import(&mut self, id: JsWord, symbol: SymbolRef) {
+  fn add_import(&mut self, id: BetterId, symbol: SymbolRef) {
     if self.import_map.contains_key(&id) {
       // TODO: should add some Diagnostic
     } else {
