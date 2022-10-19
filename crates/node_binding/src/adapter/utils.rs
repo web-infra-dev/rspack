@@ -18,26 +18,10 @@ pub fn create_node_adapter_from_plugin_callbacks(
           let cb = unsafe { done_callback.raw() };
 
           crate::threadsafe_function::ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
+            let (ctx, resolver) = ctx.split_into_parts();
             let result = ctx.callback.call_without_args(None)?;
 
-            // TODO: use deferred value
-
-            assert!(result.is_promise()?);
-
-            // TODO: enable feature anyhow
-            let promise = unsafe { Promise::<()>::from_napi_value(ctx.env.raw(), result.raw()) }?;
-
-            ctx.env.execute_tokio_future(
-              async move {
-                let _ = promise.await?;
-                ctx.tx.send(()).map_err(|err| {
-                  napi::Error::from_reason(format!("Failed to send result: {:?}", err))
-                })
-              },
-              |_, res| Ok(res),
-            )?;
-
-            Ok(())
+            resolver.resolve::<()>(result, |_| Ok(()))
           })
         }?;
 
@@ -48,6 +32,8 @@ pub fn create_node_adapter_from_plugin_callbacks(
           let cb = unsafe { process_assets_callback.raw() };
 
           crate::threadsafe_function::ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
+            let (ctx, resolver) = ctx.split_into_parts();
+
             let (s, emit_asset_cb) = ctx.value;
             let result = ctx.callback.call(
               None,
@@ -60,21 +46,7 @@ pub fn create_node_adapter_from_plugin_callbacks(
               ],
             )?;
 
-            assert!(result.is_promise()?);
-
-            let promise = unsafe { Promise::<()>::from_napi_value(ctx.env.raw(), result.raw()) }?;
-
-            ctx.env.execute_tokio_future(
-              async move {
-                let _ = promise.await?;
-                ctx.tx.send(()).map_err(|err| {
-                  napi::Error::from_reason(format!("Failed to send result: {:?}", err))
-                })
-              },
-              |_, res| Ok(res),
-            )?;
-
-            Ok(())
+            resolver.resolve::<()>(result, |_| Ok(()))
           })
         }?;
 
