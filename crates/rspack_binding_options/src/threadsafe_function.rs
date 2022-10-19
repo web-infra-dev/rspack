@@ -196,7 +196,7 @@ impl<T: 'static, R> ThreadsafeFunction<T, R> {
     Ok(rx)
   }
 
-  /// Dereferencing a threadsafe function, this might be helpful for those tsfns that are not manually dropped.
+  /// Unreferencing a threadsafe function, this might be helpful for those tsfns that are not manually dropped.
   /// See [napi_unref_threadsafe_function](https://nodejs.org/api/n-api.html#napi_unref_threadsafe_function)
   /// for more information.
   pub fn unref(&self, env: &Env) -> Result<()> {

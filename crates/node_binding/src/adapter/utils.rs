@@ -41,7 +41,7 @@ pub fn create_node_adapter_from_plugin_callbacks(
           })
         }?;
 
-        let mut process_assets_tsfn: crate::threadsafe_function::ThreadsafeFunction<
+        let process_assets_tsfn: crate::threadsafe_function::ThreadsafeFunction<
           (String, BoxedClosure),
           (),
         > = {
@@ -81,6 +81,7 @@ pub fn create_node_adapter_from_plugin_callbacks(
           })
         }?;
 
+        // See the comment in `threadsafe_function.rs`
         done_tsfn.unref(&env)?;
         process_assets_tsfn.unref(&env)?;
 
