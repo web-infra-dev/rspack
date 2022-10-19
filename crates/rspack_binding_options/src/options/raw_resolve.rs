@@ -6,6 +6,8 @@ use napi_derive::napi;
 use rspack_core::{AliasMap, CompilerOptionsBuilder, Resolve};
 use serde::Deserialize;
 
+pub type AliasValue = serde_json::Value;
+
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 #[cfg(feature = "node-api")]
@@ -17,7 +19,9 @@ pub struct RawResolveOptions {
   pub main_fields: Option<Vec<String>>,
   pub browser_field: Option<bool>,
   pub condition_names: Option<Vec<String>>,
-  pub alias: Option<HashMap<String, String>>,
+  #[serde(serialize_with = "ordered_map")]
+  #[napi(ts_type = "Record<string, string | false>")]
+  pub alias: Option<HashMap<String, AliasValue>>,
   pub symlinks: Option<bool>,
 }
 
@@ -31,7 +35,8 @@ pub struct RawResolveOptions {
   pub main_fields: Option<Vec<String>>,
   pub browser_field: Option<bool>,
   pub condition_names: Option<Vec<String>>,
-  pub alias: Option<HashMap<String, String>>,
+  #[serde(serialize_with = "ordered_map")]
+  pub alias: Option<HashMap<String, AliasValue>>,
   pub symlinks: Option<bool>,
 }
 
@@ -44,18 +49,31 @@ impl RawOption<Resolve> for RawResolveOptions {
     let main_fields = self.main_fields;
     let condition_names = self.condition_names;
     let symlinks = self.symlinks;
-    // todo alias false
-    let alias = self.alias.map(|alias| {
-      alias
-        .keys()
-        .map(|key| {
-          (
-            key.clone(),
-            AliasMap::Target(alias.get(key).unwrap().clone()),
-          )
-        })
-        .collect::<Vec<(String, AliasMap)>>()
-    });
+    let alias = if let Some(alias) = self.alias {
+      let mut temp = vec![];
+      for (key, value) in alias {
+        if let Some(s) = value.as_str() {
+          temp.push((key, AliasMap::Target(s.to_string())))
+        } else if let Some(b) = value.as_bool() {
+          if b {
+            return Err(anyhow::Error::msg(format!(
+              "Alias should not be true in {}",
+              key
+            )));
+          } else {
+            temp.push((key, AliasMap::Ignored))
+          }
+        } else {
+          return Err(anyhow::Error::msg(format!(
+            "Alias should be false or string in {}",
+            key
+          )));
+        }
+      }
+      Some(temp)
+    } else {
+      None
+    };
 
     Ok(Resolve {
       prefer_relative,
