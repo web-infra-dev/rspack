@@ -34,12 +34,5 @@ export function resolveDevtoolOptions(
 }
 
 export function isUseSourceMap(devtool: ResolvedDevtool): boolean {
-	return (
-		devtool.includes("source-map") &&
-		(devtool.includes("module")
-			? true
-			: devtool.includes("cheap")
-			? false
-			: true)
-	);
+	return devtool.includes("module") || !devtool.includes("cheap");
 }
