@@ -14,7 +14,7 @@ use ustr::{ustr, Ustr};
 
 use crate::{tree_shaking::symbol::Symbol, Dependency, ModuleGraph, ResolveKind};
 
-use super::symbol::IndirectTopLevelSymbol;
+use super::symbol::{BetterId, IndirectTopLevelSymbol};
 
 #[derive(Debug)]
 pub(crate) enum SymbolRef {
@@ -33,8 +33,8 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) import_map: HashMap<JsWord, SymbolRef>,
   /// list of uri, each uri represent export all named export from specific uri
   pub export_all_list: Vec<Ustr>,
-  current_region: Option<Id>,
-  pub(crate) reference_map: HashMap<Id, HashSet<Id>>,
+  current_region: Option<BetterId>,
+  pub(crate) reference_map: HashMap<BetterId, HashSet<BetterId>>,
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
@@ -57,7 +57,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     }
   }
 
-  pub fn add_reference(&mut self, from: Id, to: Id) {
+  pub fn add_reference(&mut self, from: BetterId, to: BetterId) {
     match self.reference_map.entry(from) {
       std::collections::hash_map::Entry::Occupied(mut occ) => {
         occ.get_mut().insert(to);
@@ -76,8 +76,8 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     node.visit_children_with(self);
   }
   fn visit_ident(&mut self, node: &Ident) {
-    let id = node.to_id();
-    let marker = id.1.outer();
+    let id: BetterId = node.to_id().into();
+    let marker = id.ctxt.outer();
     if let Some(ref region) = self.current_region && marker == self.top_level_mark && region != &id {
       self.add_reference(region.clone(), id);
     } else {
@@ -146,7 +146,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             self.add_export(
               class.ident.sym.clone(),
               SymbolRef::Direct(Symbol::from_id_and_uri(
-                class.ident.to_id(),
+                class.ident.to_id().into(),
                 self.module_identifier,
               )),
             );
@@ -155,7 +155,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             self.add_export(
               function.ident.sym.clone(),
               SymbolRef::Direct(Symbol::from_id_and_uri(
-                function.ident.to_id(),
+                function.ident.to_id().into(),
                 self.module_identifier,
               )),
             );
@@ -190,21 +190,21 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   fn visit_decl(&mut self, node: &Decl) {
     match node {
       Decl::Class(class) => {
-        let (id, ctxt) = class.ident.to_id();
-        let mark = ctxt.outer();
+        let id: BetterId = class.ident.to_id().into();
+        let mark = id.ctxt.outer();
         let old_region = self.current_region.clone();
         if mark == self.top_level_mark {
-          self.current_region = Some((id, ctxt));
+          self.current_region = Some(id);
         }
         class.visit_children_with(self);
         self.current_region = old_region;
       }
       Decl::Fn(function) => {
-        let (id, ctxt) = function.ident.to_id();
-        let mark = ctxt.outer();
+        let id: BetterId = function.ident.to_id().into();
+        let mark = id.ctxt.outer();
         let old_region = self.current_region.clone();
         if mark == self.top_level_mark {
-          self.current_region = Some((id, ctxt));
+          self.current_region = Some(id);
         }
         function.visit_children_with(self);
         self.current_region = old_region;
@@ -286,8 +286,10 @@ impl<'a> ModuleRefAnalyze<'a> {
               // we know here export has no src,  so this branch should not reachable.
               ModuleExportName::Str(_) => unreachable!(),
             };
-            let symbol_ref =
-              SymbolRef::Direct(Symbol::from_id_and_uri(id.clone(), self.module_identifier));
+            let symbol_ref = SymbolRef::Direct(Symbol::from_id_and_uri(
+              id.clone().into(),
+              self.module_identifier,
+            ));
             self.add_export(id.0, symbol_ref);
           }
         });

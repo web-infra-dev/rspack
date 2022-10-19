@@ -14,18 +14,19 @@ bitflags! {
 #[derive(Debug, Hash)]
 pub(crate) struct Symbol {
   pub(crate) uri: Ustr,
-  ctxt: SyntaxContext,
-  atom: JsWord,
+  id: BetterId,
 }
 
 impl Symbol {
   pub(crate) fn new(uri: ustr::Ustr, ctxt: SyntaxContext, atom: JsWord) -> Self {
-    Self { uri, ctxt, atom }
+    Self {
+      uri,
+      id: (atom, ctxt).into(),
+    }
   }
 
-  pub(crate) fn from_id_and_uri(id: Id, uri: Ustr) -> Self {
-    let (atom, ctxt) = id;
-    Self { atom, ctxt, uri }
+  pub(crate) fn from_id_and_uri(id: BetterId, uri: Ustr) -> Self {
+    Self { uri, id }
   }
 }
 
@@ -38,5 +39,28 @@ pub(crate) struct IndirectTopLevelSymbol {
 impl IndirectTopLevelSymbol {
   pub(crate) fn new(uri: Ustr, id: JsWord) -> Self {
     Self { uri, id }
+  }
+}
+
+/// Just a wrapper type of [swc_ecma_ast::Id],just want a better debug experience e.g.
+/// `BetterId.debug()` -> `xxxxxxx|#10`
+/// debug of [swc_ecma_ast::Id] -> `(#1, atom: Atom('b' type=static))`
+/// We don't care the kind of inter of the [JsWord]
+#[derive(Hash, Clone, PartialEq, Eq)]
+pub struct BetterId {
+  pub ctxt: SyntaxContext,
+  pub atom: JsWord,
+}
+
+impl std::fmt::Debug for BetterId {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "{}|#{}", &self.atom, self.ctxt.as_u32())
+  }
+}
+
+impl From<Id> for BetterId {
+  fn from(id: Id) -> Self {
+    let (atom, ctxt) = id;
+    Self { ctxt, atom }
   }
 }
