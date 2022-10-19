@@ -15,21 +15,7 @@ import {
 
 import { Stats } from "./stats";
 import { Compilation } from "./compilation";
-export interface RspackThreadsafeContext<T> {
-	readonly id: number;
-	readonly inner: T;
-}
-interface RspackThreadsafeResult<T> {
-	readonly id: number;
-	readonly inner: T;
-}
-export const createDummyResult = (id: number): string => {
-	const result: RspackThreadsafeResult<null> = {
-		id,
-		inner: null
-	};
-	return JSON.stringify(result);
-};
+
 export type EmitAssetCallback = (options: {
 	filename: string;
 	asset: Asset;
@@ -183,19 +169,12 @@ class Compiler {
 	 * @returns
 	 */
 	async #done(value: any) {
-		console.log("done", value);
-
-		// if (err) {
-		// 	throw err;
-		// }
-		// const context: RspackThreadsafeContext<void> = JSON.parse(value);
-		// @todo context.inner is empty, since we didn't pass to binding
-		const stats = new Stats({} as any, undefined);
+		// @todo value is empty, since we didn't pass to binding
+		const stats = new Stats({} as any, value);
 		await this.hooks.done.promise(stats);
-		// return createDummyResult(context.id);
 	}
-	async #processAssets(err: Error, value: string, emitAsset: any) {
-		return this.compilation.processAssets(err, value, emitAsset);
+	async #processAssets(value: string, emitAsset: any) {
+		return this.compilation.processAssets(value, emitAsset);
 	}
 	#newCompilation() {
 		const compilation = new Compilation();
