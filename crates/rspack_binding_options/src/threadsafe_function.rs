@@ -67,7 +67,6 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
   where
     // Pure return value without promise wrapper
     P: FromNapiValue + Send + 'static,
-    // Return value directly from Node
   {
     let raw = unsafe { result.raw() };
 
