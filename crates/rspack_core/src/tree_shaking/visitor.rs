@@ -1,4 +1,7 @@
-use std::{collections::HashMap, hash::Hash};
+use std::{
+  collections::{HashMap, HashSet},
+  hash::Hash,
+};
 
 use swc_atoms::{js_word, JsWord};
 use swc_common::{
@@ -31,6 +34,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   /// list of uri, each uri represent export all named export from specific uri
   pub export_all_list: Vec<Ustr>,
   current_region: Option<Id>,
+  pub(crate) reference_map: HashMap<Id, HashSet<Id>>,
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
@@ -49,6 +53,18 @@ impl<'a> ModuleRefAnalyze<'a> {
       import_map: HashMap::new(),
       export_all_list: vec![],
       current_region: None,
+      reference_map: HashMap::default(),
+    }
+  }
+
+  pub fn add_reference(&mut self, from: Id, to: Id) {
+    match self.reference_map.entry(from) {
+      std::collections::hash_map::Entry::Occupied(mut occ) => {
+        occ.get_mut().insert(to);
+      }
+      std::collections::hash_map::Entry::Vacant(vac) => {
+        vac.insert(HashSet::from_iter([to]));
+      }
     }
   }
 }
@@ -61,8 +77,18 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   }
   fn visit_ident(&mut self, node: &Ident) {
     let id = node.to_id();
-    dbg!(&id.1.outer(), &id);
-    let symbol = Symbol::from_id_and_uri(id, self.module_identifier);
+    let marker = id.1.outer();
+    if let Some(ref region) = self.current_region && marker == self.top_level_mark && region != &id {
+      self.add_reference(region.clone(), id);
+    } else {
+      // TODO: handle used
+    }
+    // if  == self.top_level_mark {
+    //   dbg!(&id);
+    // } else {
+    //   dbg!(&id);
+    // }
+    // let symbol = Symbol::from_id_and_uri(id, self.module_identifier);
   }
 
   fn visit_module_item(&mut self, node: &ModuleItem) {
@@ -114,7 +140,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               //   self.add_export(id, symbol_ref);
               // }
             });
-          // import.visit_with(self);
         }
         ModuleDecl::ExportDecl(decl) => match &decl.decl {
           Decl::Class(class) => {
@@ -163,18 +188,32 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   }
 
   fn visit_decl(&mut self, node: &Decl) {
-    node.visit_children_with(self);
-    // match node {
-    //   Decl::Class(class) => {
-    //     class.ident.span.ctxt();
-    //   }
-    //   Decl::Fn(_) => todo!(),
-    //   Decl::Var(_) => todo!(),
-    //   Decl::TsInterface(_) => todo!(),
-    //   Decl::TsTypeAlias(_) => todo!(),
-    //   Decl::TsEnum(_) => todo!(),
-    //   Decl::TsModule(_) => todo!(),
-    // }
+    match node {
+      Decl::Class(class) => {
+        let (id, ctxt) = class.ident.to_id();
+        let mark = ctxt.outer();
+        let old_region = self.current_region.clone();
+        if mark == self.top_level_mark {
+          self.current_region = Some((id, ctxt));
+        }
+        class.visit_children_with(self);
+        self.current_region = old_region;
+      }
+      Decl::Fn(function) => {
+        let (id, ctxt) = function.ident.to_id();
+        let mark = ctxt.outer();
+        let old_region = self.current_region.clone();
+        if mark == self.top_level_mark {
+          self.current_region = Some((id, ctxt));
+        }
+        function.visit_children_with(self);
+        self.current_region = old_region;
+      }
+      Decl::Var(_) => {
+        node.visit_children_with(self);
+      }
+      Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {}
+    }
   }
 }
 

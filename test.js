@@ -1,3 +1,7 @@
-import c, {} from "./result";
-
 let a = {};
+
+function test() {
+	class T {}
+}
+
+let c = new T();
