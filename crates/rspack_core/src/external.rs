@@ -35,6 +35,7 @@ impl ParserAndGenerator for ExternalParserAndGenerator {
     Ok(
       crate::ParseResult {
         dependencies: vec![],
+        parse_phase_global: None,
         ast_or_source: RawSource::from(match self.external_type {
           ExternalType::NodeCommonjs => {
             format!(r#"module.exports = require("{}")"#, self.specifier)

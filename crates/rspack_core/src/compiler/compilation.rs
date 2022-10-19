@@ -7,6 +7,7 @@ use std::{
 use futures::{stream::FuturesUnordered, StreamExt};
 use hashbrown::HashMap;
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
+use swc_common::GLOBALS;
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::instrument;
 
@@ -465,34 +466,42 @@ impl Compilation {
   pub async fn optimize_dependency(&mut self) -> Result<()> {
     self
       .module_graph
-      .module_identifier_to_module
+      .module_identifier_to_module_graph_module
       .par_iter()
       .for_each(|(k, v)| {
         let uri_key = ustr(k);
-        let ast = match v.module_type() {
+        let ast = match v.module_type {
           crate::ModuleType::Js
           | crate::ModuleType::Jsx
           | crate::ModuleType::Tsx
-          | crate::ModuleType::Ts => v.ast().unwrap(),
+          | crate::ModuleType::Ts => self
+            .module_graph
+            .module_by_identifier(&v.module_identifier)
+            .and_then(|module| module.ast())
+            .unwrap(),
           // Of course this is unsafe, but if we can't get a ast of a javascript module, then panic is ideal.
           _ => {
             // Ignore analyzing other module for now
             return;
           }
         };
+        let normal_module = self.module_graph.module_by_identifier(&v.module_identifier);
+        let globals = normal_module.and_then(|module| module.parse_phase_global());
         let JavascriptAstExtend {
           ast,
           top_level_mark,
           unresolved_mark,
         } = ast.as_javascript().unwrap();
-        dbg!(top_level_mark, unresolved_mark);
+        // dbg!(top_level_mark, unresolved_mark);
         let mut analyzer = ModuleRefAnalyze::new(
           *top_level_mark,
           *unresolved_mark,
           uri_key,
           &self.module_graph,
         );
-        ast.visit_with(&mut analyzer);
+        GLOBALS.set(globals.unwrap(), || {
+          ast.visit_with(&mut analyzer);
+        });
         dbg!(
           uri_key,
           analyzer.export_all_list,

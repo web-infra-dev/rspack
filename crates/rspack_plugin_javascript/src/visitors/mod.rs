@@ -10,7 +10,8 @@ mod format;
 use format::*;
 mod pass_global;
 use pass_global::PassGlobal;
-use swc_common::Mark;
+use swc_common::{Globals, Mark, GLOBALS};
+use swc_ecma_transforms::helpers::Helpers;
 mod swc_visitor;
 use crate::utils::get_swc_compiler;
 use anyhow::Error;
@@ -28,70 +29,80 @@ pub fn run_before_pass(
   ast: Program,
   options: &CompilerOptions,
   syntax: Syntax,
-) -> Result<(Program, Mark, Mark), Error> {
+) -> Result<(Program, Mark, Mark, Globals), Error> {
   let pass_global = PassGlobal::new();
   let top_level_mark = pass_global.top_level_mark;
   let unresolved_mark = pass_global.unresolved_mark;
   let cm = get_swc_compiler().cm.clone();
   let comments = None;
-  pass_global.try_with_handler(move |handler| {
-    let mut pass = chain!(
-      swc_visitor::resolver(unresolved_mark, top_level_mark, false),
-      //      swc_visitor::lint(
-      //        &ast,
-      //        top_level_mark,
-      //        unresolved_mark,
-      //        EsVersion::Es2022,
-      //        &cm
-      //      ),
-      Optional::new(swc_visitor::decorator(), syntax.decorators()),
-      //    swc_visitor::import_assertions(),
-      Optional::new(
-        swc_visitor::typescript(top_level_mark, comments, &cm),
-        syntax.typescript()
-      ),
-      Optional::new(
-        swc_visitor::react(top_level_mark, comments, &cm),
-        syntax.jsx()
-      ),
-      // enable if configurable
-      // swc_visitor::const_modules(cm, globals),
-      Optional::new(
-        swc_visitor::define(&options.builtins.define, handler, &cm),
-        !options.builtins.define.is_empty()
-      ),
-      Optional::new(
-        swc_visitor::export_default_from(),
-        syntax.export_default_from()
-      ),
-      // enable if necessary
-      // swc_visitor::simplifier(unresolved_mark, Default::default()),
-      // enable if configurable
-      // swc_visitor::json_parse(min_cost),
-      swc_visitor::paren_remover(comments.map(|v| v as &dyn Comments)),
-      Optional::new(swc_visitor::private_in_object(), syntax.private_in_object()),
-      swc_visitor::compat(
-        if options.target.platform.is_browsers_list() {
-          Some((
-            options.builtins.browserslist.clone(),
-            options.builtins.polyfill,
-          ))
-        } else {
-          None
+  let globals = Default::default();
+  let ret = GLOBALS.set(&globals, || {
+    swc_ecma_transforms::helpers::HELPERS.set(&Helpers::new(true), || {
+      swc::try_with_handler(
+        get_swc_compiler().cm.clone(),
+        Default::default(),
+        move |handler| {
+          let mut pass = chain!(
+            swc_visitor::resolver(unresolved_mark, top_level_mark, false),
+            //      swc_visitor::lint(
+            //        &ast,
+            //        top_level_mark,
+            //        unresolved_mark,
+            //        EsVersion::Es2022,
+            //        &cm
+            //      ),
+            Optional::new(swc_visitor::decorator(), syntax.decorators()),
+            //    swc_visitor::import_assertions(),
+            Optional::new(
+              swc_visitor::typescript(top_level_mark, comments, &cm),
+              syntax.typescript()
+            ),
+            Optional::new(
+              swc_visitor::react(top_level_mark, comments, &cm),
+              syntax.jsx()
+            ),
+            // enable if configurable
+            // swc_visitor::const_modules(cm, globals),
+            Optional::new(
+              swc_visitor::define(&options.define, handler, &cm),
+              !options.define.is_empty()
+            ),
+            Optional::new(
+              swc_visitor::export_default_from(),
+              syntax.export_default_from()
+            ),
+            // enable if necessary
+            // swc_visitor::simplifier(unresolved_mark, Default::default()),
+            // enable if configurable
+            // swc_visitor::json_parse(min_cost),
+            swc_visitor::paren_remover(comments.map(|v| v as &dyn Comments)),
+            Optional::new(swc_visitor::private_in_object(), syntax.private_in_object()),
+            swc_visitor::compat(
+              if options.target.platform.is_browsers_list() {
+                Some((
+                  options.builtins.browserslist.clone(),
+                  options.builtins.polyfill,
+                ))
+              } else {
+                None
+              },
+              options.target.es_version,
+              top_level_mark,
+              unresolved_mark,
+              comments,
+              syntax.typescript()
+            ),
+            swc_visitor::import_analyzer(true.into(), true),
+            swc_visitor::reserved_words(),
+            swc_visitor::inject_helpers()
+          );
+          let ast = ast.fold_with(&mut pass);
+          Ok((ast, top_level_mark, unresolved_mark))
         },
-        options.target.es_version,
-        top_level_mark,
-        unresolved_mark,
-        comments,
-        syntax.typescript()
-      ),
-      swc_visitor::import_analyzer(true.into(), true),
-      swc_visitor::reserved_words(),
-      swc_visitor::inject_helpers()
-    );
-    let ast = ast.fold_with(&mut pass);
-    Ok((ast, top_level_mark, unresolved_mark))
-  })
+      )
+    })
+  });
+  ret.map(|item| (item.0, item.1, item.2, globals))
 }
 
 pub fn run_after_pass(
