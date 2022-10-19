@@ -93,8 +93,6 @@ function composeJsUse(uses: ModuleRuleUse[]): RawModuleRuleUse | null {
 	async function loader(data: Buffer): Promise<Buffer> {
 		const payload: LoaderContextInternal = JSON.parse(data.toString("utf-8"));
 
-		// const { p: payload, id } = loaderThreadsafeContext;
-
 		const loaderContextInternal: LoaderContextInternal = {
 			source: payload.source,
 			resourcePath: payload.resourcePath,
@@ -140,10 +138,6 @@ function composeJsUse(uses: ModuleRuleUse[]): RawModuleRuleUse | null {
 			meta: [...meta]
 		};
 
-		// const loaderThreadsafeResult: LoaderThreadsafeResult = {
-		// 	id: id,
-		// 	p: loaderResultPayload
-		// };
 		return Buffer.from(JSON.stringify(loaderResultPayload), "utf-8");
 	}
 	loader.displayName = `NodeLoaderAdapter(${uses
