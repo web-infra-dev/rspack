@@ -30,7 +30,7 @@ export class Compilation {
 	 */
 	emitAsset(filename: string, asset: Asset) {
 		if (!this.#emitAssetCallback) {
-			throw new Error("can't call emitAsset outof processAssets hook for now");
+			throw new Error("can't call emitAsset out of processAssets hook for now");
 		}
 		this.#emitAssetCallback({
 			filename: filename,
