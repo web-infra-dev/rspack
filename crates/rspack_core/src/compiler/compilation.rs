@@ -508,7 +508,7 @@ impl Compilation {
           analyzer.export_map,
           analyzer.import_map,
           analyzer.reference_map,
-          // analyzer.used_set
+          analyzer.reachable_import_of_export
         );
       });
     Ok(())

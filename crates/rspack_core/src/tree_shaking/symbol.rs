@@ -14,7 +14,7 @@ bitflags! {
 #[derive(Debug, Hash)]
 pub(crate) struct Symbol {
   pub(crate) uri: Ustr,
-  id: BetterId,
+  pub(crate) id: BetterId,
 }
 
 impl Symbol {

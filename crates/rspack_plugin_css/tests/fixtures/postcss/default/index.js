@@ -5,6 +5,6 @@ import { a } from "./test";
 
 // export const c = ccc;
 console.log();
-function test() {
+export function test() {
 	a;
 }
