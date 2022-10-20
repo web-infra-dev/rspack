@@ -502,14 +502,14 @@ impl Compilation {
         GLOBALS.set(globals.unwrap(), || {
           ast.visit_with(&mut analyzer);
         });
-        dbg!(
-          uri_key,
-          analyzer.export_all_list,
-          analyzer.export_map,
-          analyzer.import_map,
-          analyzer.reference_map,
-          analyzer.reachable_import_of_export
-        );
+        // dbg!(
+        //   uri_key,
+        //   analyzer.export_all_list,
+        //   analyzer.export_map,
+        //   analyzer.import_map,
+        //   analyzer.reference_map,
+        //   analyzer.reachable_import_of_export
+        // );
       });
     Ok(())
   }

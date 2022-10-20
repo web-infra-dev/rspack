@@ -130,7 +130,13 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       ModuleItem::ModuleDecl(decl) => match decl {
         ModuleDecl::Import(import) => {
           let src: String = import.src.value.to_string();
-          let resolved_uri = self.resolve_module_identifier(src, ResolveKind::Import);
+          let resolved_uri = match self.resolve_module_identifier(src, ResolveKind::Import) {
+            Some(module_identifier) => module_identifier,
+            None => {
+              // TODO: Ignore because helper interference.
+              return;
+            }
+          };
           let resolved_uri_ukey = ustr(&resolved_uri);
           import
             .specifiers
@@ -149,7 +155,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   SymbolRef::Indirect(IndirectTopLevelSymbol::new(resolved_uri_ukey, imported));
                 self.add_import(named.local.to_id().into(), symbol_ref);
               }
-              ImportSpecifier::Default(_) => todo!(),
+              ImportSpecifier::Default(_) => {
+                // TODO:
+              }
               ImportSpecifier::Namespace(namespace) => {
                 self.add_import(
                   namespace.local.to_id().into(),
@@ -193,17 +201,30 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         ModuleDecl::ExportNamed(named_export) => {
           self.analyze_named_export(named_export);
         }
-        ModuleDecl::ExportDefaultDecl(_) => todo!(),
-        ModuleDecl::ExportDefaultExpr(_) => todo!(),
+        ModuleDecl::ExportDefaultDecl(_) => {
+          // TODO:
+        }
+        ModuleDecl::ExportDefaultExpr(_) => {
+          // TODO:
+        }
         ModuleDecl::ExportAll(export_all) => {
-          let resolved_uri_key = ustr(
-            self.resolve_module_identifier(export_all.src.value.to_string(), ResolveKind::Import),
-          );
+          let resolved_uri = match self
+            .resolve_module_identifier(export_all.src.value.to_string(), ResolveKind::Import)
+          {
+            Some(module_identifier) => module_identifier,
+            None => {
+              // TODO: ignore for now, or  three copy js will failed
+              return;
+            }
+          };
+          let resolved_uri_key = ustr(&resolved_uri);
           self.export_all_list.push(resolved_uri_key);
         }
-        ModuleDecl::TsImportEquals(_) => todo!(),
-        ModuleDecl::TsExportAssignment(_) => todo!(),
-        ModuleDecl::TsNamespaceExport(_) => todo!(),
+        ModuleDecl::TsImportEquals(_)
+        | ModuleDecl::TsExportAssignment(_)
+        | ModuleDecl::TsNamespaceExport(_) => {
+          // TODO:
+        }
       },
       ModuleItem::Stmt(_) => {
         node.visit_children_with(self);
@@ -236,12 +257,15 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     for ele in node.decls.iter() {
       let lhs: BetterId = match &ele.name {
         Pat::Ident(ident) => ident.to_id().into(),
-        Pat::Array(_) => todo!(),
-        Pat::Rest(_) => todo!(),
-        Pat::Object(_) => todo!(),
-        Pat::Assign(_) => todo!(),
-        Pat::Invalid(_) => todo!(),
-        Pat::Expr(_) => todo!(),
+        Pat::Array(_)
+        | Pat::Rest(_)
+        | Pat::Object(_)
+        | Pat::Assign(_)
+        | Pat::Invalid(_)
+        | Pat::Expr(_) => {
+          // TODO:
+          continue;
+        }
       };
       if self.state.contains(AnalyzeState::EXPORT_DEFAULT) {
         self.add_export(
@@ -267,7 +291,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   }
   fn visit_decl(&mut self, node: &Decl) {
     match node {
-      Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => todo!(),
+      Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
+        // TODO:
+      }
       Decl::Class(_) | Decl::Fn(_) | Decl::Var(_) => {
         node.visit_children_with(self);
       }
@@ -294,7 +320,13 @@ impl<'a> ModuleRefAnalyze<'a> {
   fn analyze_named_export(&mut self, named_export: &NamedExport) {
     let src: Option<String> = named_export.src.as_ref().map(|src| src.value.to_string());
     if let Some(src) = src {
-      let resolved_uri = self.resolve_module_identifier(src, ResolveKind::Import);
+      let resolved_uri = match self.resolve_module_identifier(src, ResolveKind::Import) {
+        Some(module_identifier) => module_identifier,
+        None => {
+          // TODO: Ignore because helper interference.
+          return;
+        }
+      };
       let resolved_uri_ukey = ustr(&resolved_uri);
       named_export
         .specifiers
@@ -313,7 +345,9 @@ impl<'a> ModuleRefAnalyze<'a> {
             // TODO: handle `as xxx`
             let id = match &named.orig {
               ModuleExportName::Ident(ident) => ident.sym.clone(),
-              ModuleExportName::Str(_) => todo!(),
+              ModuleExportName::Str(_) => {
+                todo!()
+              }
             };
             let symbol_ref =
               SymbolRef::Indirect(IndirectTopLevelSymbol::new(resolved_uri_ukey, id.clone()));
@@ -358,21 +392,24 @@ impl<'a> ModuleRefAnalyze<'a> {
   /// For simplicity, this function will assume the importer is always `self.module_identifier`
   /// # Panic
   /// This function will panic if can't find
-  fn resolve_module_identifier(&mut self, src: String, resolve_kind: ResolveKind) -> &String {
-    let resolved_uri = &self
+  fn resolve_module_identifier(
+    &mut self,
+    src: String,
+    resolve_kind: ResolveKind,
+  ) -> Option<&String> {
+    let dep = Dependency {
+      importer: Some(self.module_identifier.to_string()),
+      detail: crate::ModuleDependency {
+        specifier: src,
+        kind: resolve_kind,
+        span: None,
+      },
+      parent_module_identifier: Some(self.module_identifier.to_string()),
+    };
+    self
       .module_graph
-      .module_by_dependency(&Dependency {
-        importer: Some(self.module_identifier.to_string()),
-        detail: crate::ModuleDependency {
-          specifier: src,
-          kind: resolve_kind,
-          span: None,
-        },
-        parent_module_identifier: Some(self.module_identifier.to_string()),
-      })
-      .unwrap()
-      .module_identifier;
-    resolved_uri
+      .module_by_dependency(&dep)
+      .map(|module| &module.module_identifier)
   }
 
   // fn try_resolve_uri(&mut self, src: String, resolve_kind: ResolveKind) -> Option<&String> {
