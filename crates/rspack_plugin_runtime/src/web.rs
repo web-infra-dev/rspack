@@ -34,3 +34,7 @@ pub fn generate_web_dynamic_load_script() -> RawSource {
 pub fn generate_web_dynamic_load_style() -> RawSource {
   RawSource::from(include_str!("runtime/web/_dynamic_load_style.js").to_string())
 }
+
+pub fn generate_web_hot() -> RawSource {
+  RawSource::from(include_str!("runtime/web/_hot.js").to_string())
+}
