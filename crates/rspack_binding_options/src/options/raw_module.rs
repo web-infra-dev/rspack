@@ -245,7 +245,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
         result,
         crate::threadsafe_function::ThreadsafeFunctionCallMode::Blocking,
       )
-      .map_err(|err| rspack_error::Error::InternalError(format!("Failed to call loader: {}", err)))?
+      .map_err(rspack_error::Error::from)?
       .await
       .map_err(|err| {
         rspack_error::Error::InternalError(format!("Failed to call loader: {}", err))
@@ -329,23 +329,23 @@ impl RawOption<ModuleRule> for RawModuleRule {
                 let js_loader = unsafe { raw_js_loader.raw() };
 
 
-              let loader = crate::NAPI_ENV.with(|env| {
-                let env = env.borrow().expect("Failed to get env, did you forget to call it from node?");
-                  crate::threadsafe_function::ThreadsafeFunction::<Vec<u8>,LoaderThreadsafeLoaderResult>::create(
-                  env,
-                  js_loader,
-                  0,
-                  |ctx| {
-                    let (ctx, resolver) = ctx.split_into_parts();
+                let loader = crate::NAPI_ENV.with(|env| {
+                  let env = env.borrow().expect("Failed to get env, did you forget to call it from node?");
+                    crate::threadsafe_function::ThreadsafeFunction::<Vec<u8>,LoaderThreadsafeLoaderResult>::create(
+                    env,
+                    js_loader,
+                    0,
+                    |ctx| {
+                      let (ctx, resolver) = ctx.split_into_parts();
 
-                    let buf= ctx.env.create_buffer_with_data(ctx.value)?.into_raw();
-                    let result = ctx.callback.call(None, &[buf])?;
+                      let buf= ctx.env.create_buffer_with_data(ctx.value)?.into_raw();
+                      let result = ctx.callback.call(None, &[buf])?;
 
-                    resolver.resolve::<Buffer>(result, |p| {
-                      serde_json::from_slice::<LoaderThreadsafeLoaderResult>(p.as_ref()).map_err(|err| err.into())
+                      resolver.resolve::<Buffer>(result, |p| {
+                        serde_json::from_slice::<LoaderThreadsafeLoaderResult>(p.as_ref()).map_err(|err| err.into())
+                      })
                     })
-                  })
-                })?;
+                  })?;
                 return Ok(Box::new(NodeLoaderAdapter { loader }) as BoxedLoader);
               }
             }

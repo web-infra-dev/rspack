@@ -89,7 +89,7 @@ impl Plugin for RspackPluginNodeAdapter {
           (value, Box::new(emit_asset) as BoxedClosure),
           crate::threadsafe_function::ThreadsafeFunctionCallMode::Blocking,
         )
-        .map_err(|err| rspack_error::Error::InternalError(format!("{:?}", err)))?
+        .map_err(rspack_error::Error::from)?
     };
 
     rx.await
@@ -104,7 +104,7 @@ impl Plugin for RspackPluginNodeAdapter {
         (),
         crate::threadsafe_function::ThreadsafeFunctionCallMode::Blocking,
       )
-      .map_err(|err| rspack_error::Error::InternalError(format!("{:?}", err)))?
+      .map_err(rspack_error::Error::from)?
       .await
       .map_err(|err| rspack_error::Error::InternalError(format!("{:?}", err)))?;
 

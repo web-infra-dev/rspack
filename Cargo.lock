@@ -2208,6 +2208,7 @@ dependencies = [
  "dashmap",
  "insta",
  "json",
+ "napi",
  "rspack",
  "rspack_binding_options",
  "rspack_core",
