@@ -1,5 +1,4 @@
 import type { Context, ResolvedContext } from "./context";
-import { Define, ResolvedDefine, resolveDefine } from "./define";
 import type { Dev, ResolvedDev } from "./devServer";
 import { Entry, ResolvedEntry, resolveEntryOptions } from "./entry";
 import type {
@@ -35,7 +34,6 @@ export interface RspackOptions {
 	plugins?: Plugin[];
 	devServer?: Dev;
 	module?: Module;
-	define?: Define;
 	target?: Target;
 	mode?: Mode;
 	externals?: External;
@@ -52,7 +50,6 @@ export interface ResolvedRspackOptions {
 	plugins: Plugin[];
 	devServer: ResolvedDev;
 	module: ResolvedModule;
-	define: ResolvedDefine;
 	target: ResolvedTarget;
 	mode: ResolvedMode;
 	external: ResolvedExternal;
@@ -74,15 +71,14 @@ export function getNormalizedRspackOptions(
 		dev: !!config.devServer
 	});
 	const output = resolveOutputOptions(config.output);
-	const define = resolveDefine(config.define);
 	const target = resolveTargetOptions(config.target);
 	const external = config.externals ?? {};
 	const externalType = config.externalsType ?? "";
 	const plugins = config.plugins ?? [];
 	const builtins = resolveBuiltinsOptions(config.builtins || {}, context);
 	const resolve = resolveResolveOptions(config.resolve);
-	const module = resolveModuleOptions(config.module);
 	const devtool = resolveDevtoolOptions(config.devtool);
+	const module = resolveModuleOptions(config.module, { devtool, context });
 
 	return {
 		context,
@@ -90,7 +86,6 @@ export function getNormalizedRspackOptions(
 		devServer,
 		entry,
 		output,
-		define,
 		target,
 		external,
 		externalType,

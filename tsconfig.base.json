@@ -4,7 +4,7 @@
     "target": "ES2018",
     "moduleResolution": "node",
     "esModuleInterop": true,
-    "outDir": "lib",
+    "outDir": "dist",
     "declaration": true,
     "isolatedModules": true,
     "sourceMap": true,

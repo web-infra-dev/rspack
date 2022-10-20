@@ -9,7 +9,6 @@ use serde::Deserialize;
 
 mod raw_builtins;
 mod raw_context;
-mod raw_define;
 mod raw_devtool;
 mod raw_entry;
 mod raw_external;
@@ -23,7 +22,6 @@ mod raw_target;
 
 pub use raw_builtins::*;
 pub use raw_context::*;
-pub use raw_define::*;
 pub use raw_entry::*;
 pub use raw_external::*;
 pub use raw_external_type::*;
@@ -78,8 +76,6 @@ pub struct RawOptions {
   pub module: Option<RawModuleOptions>,
   pub builtins: Option<RawBuiltins>,
   #[napi(ts_type = "Record<string, string>")]
-  pub define: Option<RawDefine>,
-  #[napi(ts_type = "Record<string, string>")]
   pub external: Option<RawExternal>,
   #[napi(ts_type = "string")]
   pub external_type: Option<RawExternalType>,
@@ -105,7 +101,6 @@ pub struct RawOptions {
   pub resolve: Option<RawResolveOptions>,
   pub module: Option<RawModuleOptions>,
   pub builtins: Option<RawBuiltins>,
-  pub define: Option<RawDefine>,
   pub devtool: Option<RawDevtool>,
 }
 
@@ -159,11 +154,6 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
     .then(|mut options| {
       let module_options = RawOption::raw_to_compiler_option(raw_options.module, &options)?;
       options.module = module_options;
-      Ok(options)
-    })?
-    .then(|mut options| {
-      let define = RawOption::raw_to_compiler_option(raw_options.define, &options)?;
-      options.define = Some(define);
       Ok(options)
     })?
     .then(|mut options| {

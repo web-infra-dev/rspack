@@ -3,10 +3,10 @@
   "version": "0.0.1",
   "description": "less plugin for rspack",
   "author": "wangzhenzhuo",
-  "main": "lib/index.js",
-  "typings": "lib/index.d.ts",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
   "scripts": {
-    "build": "rm -rf lib/ && tsc"
+    "build": "tsc"
   },
   "keywords": [
     "rspack",

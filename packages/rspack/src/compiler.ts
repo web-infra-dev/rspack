@@ -2,7 +2,6 @@ import * as binding from "@rspack/binding";
 import { Logger } from "./logging/Logger";
 import { resolveWatchOption } from "./config/watch";
 import type { Watch, ResolvedWatch } from "./config/watch";
-import type { ExternalObject, RspackInternal } from "@rspack/binding";
 import * as tapable from "tapable";
 import { SyncHook, SyncBailHook } from "tapable";
 import util from "util";
@@ -15,21 +14,7 @@ import {
 
 import { Stats } from "./stats";
 import { Compilation } from "./compilation";
-export interface RspackThreadsafeContext<T> {
-	readonly id: number;
-	readonly inner: T;
-}
-interface RspackThreadsafeResult<T> {
-	readonly id: number;
-	readonly inner: T;
-}
-export const createDummyResult = (id: number): string => {
-	const result: RspackThreadsafeResult<null> = {
-		id,
-		inner: null
-	};
-	return JSON.stringify(result);
-};
+
 export type EmitAssetCallback = (options: {
 	filename: string;
 	asset: Asset;
@@ -44,7 +29,7 @@ type CompilationParams = Record<string, any>;
 class Compiler {
 	webpack: any;
 	#plugins: RspackOptions["plugins"];
-	#instance: ExternalObject<RspackInternal>;
+	#instance: binding.Rspack;
 	compilation: Compilation;
 	infrastructureLogger = undefined;
 	hooks: {
@@ -69,7 +54,7 @@ class Compiler {
 			HotModuleReplacementPlugin // modernjs/server will auto inject this this plugin not set
 		};
 		// @ts-ignored
-		this.#instance = binding.newRspack(this.options, {
+		this.#instance = new binding.Rspack(this.options, {
 			doneCallback: this.#done.bind(this),
 			processAssetsCallback: this.#processAssets.bind(this)
 		});
@@ -182,18 +167,13 @@ class Compiler {
 	 * @param value
 	 * @returns
 	 */
-	async #done(err: Error, value: string) {
-		if (err) {
-			throw err;
-		}
-		const context: RspackThreadsafeContext<void> = JSON.parse(value);
-		// @todo context.inner is empty, since we didn't pass to binding
-		const stats = new Stats({} as any, context.inner as any);
+	async #done(value: any) {
+		// @todo value is empty, since we didn't pass to binding
+		const stats = new Stats({} as any, value);
 		await this.hooks.done.promise(stats);
-		return createDummyResult(context.id);
 	}
-	async #processAssets(err: Error, value: string, emitAsset: any) {
-		return this.compilation.processAssets(err, value, emitAsset);
+	async #processAssets(value: string, emitAsset: any) {
+		return this.compilation.processAssets(value, emitAsset);
 	}
 	#newCompilation() {
 		const compilation = new Compilation();
@@ -218,11 +198,11 @@ class Compiler {
 	}
 	async build() {
 		const compilation = this.#newCompilation();
-		const stats = await binding.build(this.#instance);
+		const stats = await this.#instance.build();
 		return stats;
 	}
-	async rebuild() {
-		const stats = await binding.rebuild(this.#instance);
+	async rebuild(changedFiles: string[]) {
+		const stats = await this.#instance.rebuild(changedFiles, []);
 		return stats.inner;
 	}
 
@@ -238,12 +218,13 @@ class Compiler {
 		);
 		let stats = await this.build();
 
-		watcher.on("change", async () => {
+		// TODO: should use aggregated
+		watcher.on("change", async path => {
 			// TODO: only build because we lack the snapshot info of file.
 			// TODO: it means there a lot of things to do....
 			const begin = Date.now();
 			console.log("hit change and start to build");
-			const diffStats = await this.rebuild();
+			const diffStats = await this.rebuild([path]);
 			console.log("build success, time cost", Date.now() - begin);
 		});
 

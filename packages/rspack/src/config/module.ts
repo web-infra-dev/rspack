@@ -1,5 +1,8 @@
 import type { RawModuleRuleUse, RawModuleRule } from "@rspack/binding";
 import assert from "node:assert";
+import path from "node:path";
+import { ResolvedContext } from "./context";
+import { isUseSourceMap, ResolvedDevtool } from "./devtool";
 
 export interface ModuleRule {
 	test?: RawModuleRule["test"];
@@ -38,10 +41,11 @@ export interface ResolvedModule {
 interface LoaderContextInternal {
 	// TODO: It's not a good way to do this, we should split the `source` into a separate type and avoid using `serde_json`, but it's a temporary solution.
 	source: number[];
-	resource: String;
-	resourcePath: String;
-	resourceQuery: String | null;
-	resourceFragment: String | null;
+	sourceMap: string | null;
+	resource: string;
+	resourcePath: string;
+	resourceQuery: string | null;
+	resourceFragment: string | null;
 }
 
 interface LoaderResult {
@@ -59,15 +63,23 @@ interface LoaderResultInternal {
 	meta: number[];
 }
 
-interface LoaderContext
+export interface LoaderContext
 	extends Pick<
 		LoaderContextInternal,
-		"resource" | "resourcePath" | "resourceQuery" | "resourceFragment"
+		| "resource"
+		| "resourcePath"
+		| "resourceQuery"
+		| "resourceFragment"
+		| "sourceMap"
 	> {
 	source: {
 		getCode(): string;
 		getBuffer(): Buffer;
 	};
+	useSourceMap: boolean;
+	rootContext: string;
+	context: string;
+	getOptions: () => unknown;
 }
 
 const toBuffer = (bufLike: string | Buffer): Buffer => {
@@ -85,24 +97,25 @@ interface LoaderThreadsafeContext {
 	p: LoaderContextInternal;
 }
 
-function composeJsUse(uses: ModuleRuleUse[]): RawModuleRuleUse | null {
+export interface ComposeJsUseOptions {
+	devtool: ResolvedDevtool;
+	context: ResolvedContext;
+}
+
+function composeJsUse(
+	uses: ModuleRuleUse[],
+	options: ComposeJsUseOptions
+): RawModuleRuleUse | null {
 	if (!uses.length) {
 		return null;
 	}
 
-	async function loader(err: any, data: Buffer): Promise<Buffer> {
-		if (err) {
-			throw err;
-		}
-
-		const loaderThreadsafeContext: LoaderThreadsafeContext = JSON.parse(
-			data.toString("utf-8")
-		);
-
-		const { p: payload, id } = loaderThreadsafeContext;
+	async function loader(data: Buffer): Promise<Buffer> {
+		const payload: LoaderContextInternal = JSON.parse(data.toString("utf-8"));
 
 		const loaderContextInternal: LoaderContextInternal = {
 			source: payload.source,
+			sourceMap: payload.sourceMap,
 			resourcePath: payload.resourcePath,
 			resourceQuery: payload.resourceQuery,
 			resource: payload.resource,
@@ -126,7 +139,10 @@ function composeJsUse(uses: ModuleRuleUse[]): RawModuleRuleUse | null {
 				},
 				getOptions() {
 					return use.options;
-				}
+				},
+				useSourceMap: isUseSourceMap(options.devtool),
+				rootContext: options.context,
+				context: path.dirname(loaderContextInternal.resourcePath)
 			};
 
 			let loaderResult: LoaderResult;
@@ -146,11 +162,7 @@ function composeJsUse(uses: ModuleRuleUse[]): RawModuleRuleUse | null {
 			meta: [...meta]
 		};
 
-		const loaderThreadsafeResult: LoaderThreadsafeResult = {
-			id: id,
-			p: loaderResultPayload
-		};
-		return Buffer.from(JSON.stringify(loaderThreadsafeResult), "utf-8");
+		return Buffer.from(JSON.stringify(loaderResultPayload), "utf-8");
 	}
 	loader.displayName = `NodeLoaderAdapter(${uses
 		.map(item => {
@@ -184,13 +196,15 @@ type ModuleRuleUse =
 	  };
 
 export function createRawModuleRuleUses(
-	uses: ModuleRuleUse[]
+	uses: ModuleRuleUse[],
+	options: ComposeJsUseOptions
 ): RawModuleRuleUse[] {
-	return createRawModuleRuleUsesImpl([...uses].reverse());
+	return createRawModuleRuleUsesImpl([...uses].reverse(), options);
 }
 
 function createRawModuleRuleUsesImpl(
-	uses: ModuleRuleUse[]
+	uses: ModuleRuleUse[],
+	options: ComposeJsUseOptions
 ): RawModuleRuleUse[] {
 	if (!uses.length) {
 		return [];
@@ -198,15 +212,15 @@ function createRawModuleRuleUsesImpl(
 
 	const index = uses.findIndex(use => "builtinLoader" in use);
 	if (index < 0) {
-		return [composeJsUse(uses)];
+		return [composeJsUse(uses, options)];
 	}
 
 	const before = uses.slice(0, index);
 	const after = uses.slice(index + 1);
 	return [
-		composeJsUse(before),
+		composeJsUse(before, options),
 		createNativeUse(uses[index]),
-		...createRawModuleRuleUsesImpl(after)
+		...createRawModuleRuleUsesImpl(after, options)
 	].filter((item): item is RawModuleRuleUse => Boolean(item));
 }
 
@@ -229,10 +243,13 @@ function createNativeUse(use: ModuleRuleUse): RawModuleRuleUse {
 	};
 }
 
-export function resolveModuleOptions(module: Module = {}): ResolvedModule {
+export function resolveModuleOptions(
+	module: Module = {},
+	options: ComposeJsUseOptions
+): ResolvedModule {
 	const rules = (module.rules ?? []).map(rule => ({
 		...rule,
-		uses: createRawModuleRuleUses(rule.uses || [])
+		uses: createRawModuleRuleUses(rule.uses || [], options)
 	}));
 	return {
 		rules

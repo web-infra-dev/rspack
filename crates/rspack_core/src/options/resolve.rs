@@ -32,7 +32,7 @@ pub struct Resolve {
 impl Resolve {
   pub fn to_inner_options(self, cache: Arc<nodejs_resolver::Cache>) -> nodejs_resolver::Options {
     let tsconfig = None;
-    let enforce_extension = None;
+    let enforce_extension = nodejs_resolver::EnforceExtension::Auto;
     let external_cache = Some(cache);
     let description_file = String::from("package.json");
     let extensions = self.extensions.unwrap_or_else(|| {

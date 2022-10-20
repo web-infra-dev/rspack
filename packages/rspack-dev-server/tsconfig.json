@@ -4,7 +4,7 @@
     "src"
   ],
   "compilerOptions": {
-    "outDir": "lib",
+    "outDir": "dist",
     "rootDir": "src"
   }
 }

@@ -1,11 +1,8 @@
 import * as tapable from "tapable";
 import { Asset } from "./config";
 import { RawSource, Source } from "webpack-sources";
-import {
-	EmitAssetCallback,
-	RspackThreadsafeContext,
-	createDummyResult
-} from "./compiler";
+import { EmitAssetCallback } from "./compiler";
+
 export class Compilation {
 	#emitAssetCallback: EmitAssetCallback;
 	hooks: {
@@ -33,21 +30,16 @@ export class Compilation {
 	 */
 	emitAsset(filename: string, asset: Asset) {
 		if (!this.#emitAssetCallback) {
-			throw new Error("can't call emitAsset outof processAssets hook for now");
+			throw new Error("can't call emitAsset out of processAssets hook for now");
 		}
 		this.#emitAssetCallback({
 			filename: filename,
 			asset
 		});
 	}
-	async processAssets(err: Error, value: string, emitAsset: any) {
+	async processAssets(value: string, emitAsset: any) {
 		this.#emitAssetCallback = emitAsset;
-		if (err) {
-			throw err;
-		}
-		const context: RspackThreadsafeContext<Record<string, number[]>> =
-			JSON.parse(value);
-		let content: Record<string, number[]> = context.inner ?? {};
+		let content: Record<string, number[]> = JSON.parse(value) ?? {};
 		let assets = {};
 		for (const [key, value] of Object.entries(content)) {
 			let buffer = Buffer.from(value);
@@ -55,7 +47,6 @@ export class Compilation {
 			assets[key] = new RawSource(buffer as any);
 		}
 		await this.hooks.processAssets.promise(assets);
-		return createDummyResult(context.id);
 	}
 	createStats() {
 		return {};
