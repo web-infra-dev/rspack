@@ -60,7 +60,7 @@ pub struct ModuleGraph {
 
   dependency_id_to_connection_id: HashMap<u32, u32>,
   dependency_id_to_dependency: HashMap<u32, Dependency>,
-  dependency_to_dependency_id: HashMap<Dependency, u32>,
+  pub dependency_to_dependency_id: HashMap<Dependency, u32>,
 
   pub connections: HashSet<ModuleGraphConnection>,
   connection_id_to_connection: HashMap<u32, ModuleGraphConnection>,
