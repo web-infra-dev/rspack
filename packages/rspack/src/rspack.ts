@@ -16,7 +16,7 @@ function createCompiler(userOptions: RspackOptions) {
 	const { infrastructureLogging } = options;
 	compiler.infrastructureLogger = createConsoleLogger({
 		level: infrastructureLogging.level || "info",
-		debug: infrastructureLogging.level || false,
+		debug: infrastructureLogging.debug || false,
 		console:
 			infrastructureLogging.console ||
 			nodeConsole({
