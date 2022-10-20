@@ -2,7 +2,6 @@ import * as binding from "@rspack/binding";
 import { Logger } from "./logging/Logger";
 import { resolveWatchOption } from "./config/watch";
 import type { Watch, ResolvedWatch } from "./config/watch";
-import type { ExternalObject, RspackInternal } from "@rspack/binding";
 import * as tapable from "tapable";
 import { SyncHook, SyncBailHook } from "tapable";
 import util from "util";
@@ -30,7 +29,7 @@ type CompilationParams = Record<string, any>;
 class Compiler {
 	webpack: any;
 	#plugins: RspackOptions["plugins"];
-	#instance: ExternalObject<RspackInternal>;
+	#instance: binding.Rspack;
 	compilation: Compilation;
 	infrastructureLogger = undefined;
 	hooks: {
@@ -55,7 +54,7 @@ class Compiler {
 			HotModuleReplacementPlugin // modernjs/server will auto inject this this plugin not set
 		};
 		// @ts-ignored
-		this.#instance = binding.newRspack(this.options, {
+		this.#instance = new binding.Rspack(this.options, {
 			doneCallback: this.#done.bind(this),
 			processAssetsCallback: this.#processAssets.bind(this)
 		});
@@ -199,11 +198,11 @@ class Compiler {
 	}
 	async build() {
 		const compilation = this.#newCompilation();
-		const stats = await binding.build(this.#instance);
+		const stats = await this.#instance.build();
 		return stats;
 	}
 	async rebuild(changedFiles: string[]) {
-		const stats = await binding.rebuild(this.#instance, changedFiles, []);
+		const stats = await this.#instance.rebuild(changedFiles, []);
 		return stats.inner;
 	}
 
