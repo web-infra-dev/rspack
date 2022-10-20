@@ -14,15 +14,16 @@ use tracing::instrument;
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity};
 use rspack_sources::BoxSource;
 use swc_ecma_visit::VisitWith;
-use ustr::ustr;
+use ustr::{ustr, Ustr};
 
 use crate::{
-  split_chunks::code_splitting, tree_shaking::visitor::ModuleRefAnalyze, BuildContext, Chunk,
-  ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CompilerOptions,
-  Dependency, EntryItem, Entrypoint, JavascriptAstExtend, LoaderRunnerRunner, ModuleDependency,
-  ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModule, NormalModuleFactory,
-  NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs,
-  ResolveKind, Runtime, SharedPluginDriver, Stats, VisitedModuleIdentity,
+  split_chunks::code_splitting,
+  tree_shaking::visitor::{ModuleRefAnalyze, TreeShakingResult},
+  BuildContext, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey,
+  CompilerOptions, Dependency, EntryItem, Entrypoint, JavascriptAstExtend, LoaderRunnerRunner,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModule,
+  NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs,
+  RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver, Stats, VisitedModuleIdentity,
 };
 
 #[derive(Debug)]
@@ -468,7 +469,7 @@ impl Compilation {
       .module_graph
       .module_identifier_to_module_graph_module
       .par_iter()
-      .for_each(|(k, v)| {
+      .filter_map(|(k, v)| {
         let uri_key = ustr(k);
         let ast = match v.module_type {
           crate::ModuleType::Js
@@ -482,7 +483,7 @@ impl Compilation {
           // Of course this is unsafe, but if we can't get a ast of a javascript module, then panic is ideal.
           _ => {
             // Ignore analyzing other module for now
-            return;
+            return None;
           }
         };
         let normal_module = self.module_graph.module_by_identifier(&v.module_identifier);
@@ -492,7 +493,6 @@ impl Compilation {
           top_level_mark,
           unresolved_mark,
         } = ast.as_javascript().unwrap();
-        // dbg!(top_level_mark, unresolved_mark);
         let mut analyzer = ModuleRefAnalyze::new(
           *top_level_mark,
           *unresolved_mark,
@@ -502,15 +502,20 @@ impl Compilation {
         GLOBALS.set(globals.unwrap(), || {
           ast.visit_with(&mut analyzer);
         });
-        // dbg!(
-        //   uri_key,
-        //   analyzer.export_all_list,
-        //   analyzer.export_map,
-        //   analyzer.import_map,
-        //   analyzer.reference_map,
-        //   analyzer.reachable_import_of_export
-        // );
-      });
+        dbg!(
+          &uri_key,
+          &analyzer.export_all_list,
+          &analyzer.export_map,
+          &analyzer.import_map,
+          &analyzer.reference_map,
+          &analyzer.reachable_import_of_export
+        );
+        Some((uri_key, analyzer.into()))
+      })
+      .collect::<std::collections::HashMap<Ustr, TreeShakingResult>>();
+
+    // topological sort of export_all_list
+
     Ok(())
   }
 
