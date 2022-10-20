@@ -80,8 +80,8 @@ impl NormalModuleFactory {
       diagnostic: vec![],
     }
   }
-  #[instrument(name = "normal_module_factory:create")]
-  pub async fn create(mut self) {
+  // #[instrument(name = "normal_module_factory:create")]
+  pub async fn create(mut self, is_entry: bool) {
     match self.factorize().await {
       Ok(maybe_module) => {
         if let Some((mgm, module, original_module_identifier, dependency_id)) = maybe_module {
@@ -94,6 +94,7 @@ impl NormalModuleFactory {
               dependency_id,
               // FIXME: redundant
               self.dependency.clone(),
+              is_entry,
             )),
             diagnostic,
           )));

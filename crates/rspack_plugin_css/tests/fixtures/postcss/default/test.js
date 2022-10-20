@@ -16,5 +16,4 @@ export function c() {
 	function result() {}
 }
 export const dddd = c;
-dddd;
 // export default 20;

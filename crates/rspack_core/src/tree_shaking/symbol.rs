@@ -11,7 +11,7 @@ bitflags! {
     }
 
 }
-#[derive(Debug, Hash)]
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub(crate) struct Symbol {
   pub(crate) uri: Ustr,
   pub(crate) id: BetterId,
@@ -30,10 +30,10 @@ impl Symbol {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct IndirectTopLevelSymbol {
-  uri: Ustr,
-  id: JsWord,
+  pub(crate) uri: Ustr,
+  pub(crate) id: JsWord,
 }
 
 impl IndirectTopLevelSymbol {
