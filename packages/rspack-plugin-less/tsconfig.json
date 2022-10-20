@@ -4,10 +4,12 @@
     "target": "ES2018",
     "moduleResolution": "node",
     "esModuleInterop": true,
-    "outDir": "lib",
+    "outDir": "dist",
     "declaration": true
   },
-  "include": ["src"],
+  "include": [
+    "src"
+  ],
   "ts-node": {
     "transpileOnly": true
   }
