@@ -1,4 +1,4 @@
-use std::hash::Hash;
+use std::{collections::VecDeque, hash::Hash};
 
 use bitflags::bitflags;
 use swc_atoms::{js_word, JsWord};
@@ -39,7 +39,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub export_all_list: Vec<Ustr>,
   current_region: Option<BetterId>,
   pub(crate) reference_map: AHashMap<BetterId, AHashSet<BetterId>>,
-  pub(crate) export_import_map: AHashMap<BetterId, AHashSet<BetterId>>,
+  pub(crate) reachable_import_of_export: AHashMap<JsWord, AHashSet<BetterId>>,
   state: AnalyzeState,
   // pub(crate) used_set: AHashSet<BetterId>,
 }
@@ -61,7 +61,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       export_all_list: vec![],
       current_region: None,
       reference_map: AHashMap::default(),
-      export_import_map: AHashMap::default(),
+      reachable_import_of_export: AHashMap::default(),
       state: AnalyzeState::empty(),
       // used_set: AHashSet::default(),
     }
@@ -78,7 +78,24 @@ impl<'a> ModuleRefAnalyze<'a> {
     }
   }
 
-  pub fn get_all_import_() {}
+  /// Collecting all reachable import binding from given start binding
+  pub fn get_all_import(&self, start: BetterId) -> AHashSet<BetterId> {
+    let mut seen: AHashSet<BetterId> = AHashSet::default();
+    let mut q: VecDeque<BetterId> = VecDeque::from_iter([start]);
+    while let Some(cur) = q.pop_front() {
+      if seen.contains(&cur) {
+        continue;
+      }
+      if let Some(ref_list) = self.reference_map.get(&cur) {
+        q.extend(ref_list.clone());
+      }
+      seen.insert(cur);
+    }
+    return seen
+      .into_iter()
+      .filter(|id| self.import_map.contains_key(&id))
+      .collect();
+  }
 }
 
 impl<'a> Visit for ModuleRefAnalyze<'a> {
@@ -86,7 +103,19 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   fn visit_program(&mut self, node: &Program) {
     assert!(GLOBALS.is_set());
     node.visit_children_with(self);
-    // let import_
+    for (key, symbol) in self.export_map.iter() {
+      match symbol {
+        // At this time uri of symbol will always equal to `self.module_identifier`
+        SymbolRef::Direct(symbol) => {
+          let reachable_import = self.get_all_import(symbol.id.clone());
+          self
+            .reachable_import_of_export
+            .insert(key.clone(), reachable_import);
+        }
+        // ignore any indrect symbol
+        SymbolRef::Indirect(_) | SymbolRef::Star(_) => {}
+      }
+    }
   }
   fn visit_ident(&mut self, node: &Ident) {
     let id: BetterId = node.to_id().into();
