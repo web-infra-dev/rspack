@@ -37,12 +37,11 @@ describe("config", () => {
 				publicPath: undefined,
 				uniqueName: undefined
 			},
-			define: {},
 			target: ["web"],
 			external: {},
 			externalType: "",
 			plugins: [],
-			builtins: { browserslist: [] },
+			builtins: { browserslist: [], define: {} },
 			module: { rules: [] },
 			resolve: {
 				alias: {},

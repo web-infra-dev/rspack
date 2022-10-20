@@ -1,6 +1,6 @@
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
-use rspack_core::{Builtins, CompilerOptionsBuilder, Mode, Plugin};
+use rspack_core::{Builtins, CompilerOptionsBuilder, Define, Mode, Plugin};
 use rspack_plugin_css::plugin::{CssConfig, PostcssConfig};
 
 mod raw_css;
@@ -25,6 +25,8 @@ pub struct RawBuiltins {
   pub minify: Option<bool>,
   pub polyfill: Option<bool>,
   pub browserslist: Option<Vec<String>>,
+  #[napi(ts_type = "Record<string, string>")]
+  pub define: Option<Define>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -36,6 +38,7 @@ pub struct RawBuiltins {
   pub minify: Option<bool>,
   pub polyfill: Option<bool>,
   pub browserslist: Option<Vec<String>>,
+  pub define: Option<Define>,
 }
 
 pub(super) fn normalize_builtin(
@@ -64,6 +67,7 @@ pub(super) fn normalize_builtin(
       .minify
       .unwrap_or(matches!(options.mode, Some(Mode::Production))),
     polyfill: builtins.polyfill.unwrap_or(true),
+    define: builtins.define.unwrap_or_default(),
   })
 }
 

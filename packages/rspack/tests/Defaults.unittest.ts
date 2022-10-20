@@ -75,9 +75,9 @@ describe("snapshots", () => {
 		{
 		  "builtins": {
 		    "browserslist": [],
+		    "define": {},
 		  },
 		  "context": "<cwd>",
-		  "define": {},
 		  "devServer": {
 		    "devMiddleware": {},
 		    "hmr": false,
