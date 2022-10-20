@@ -1,3 +1,4 @@
+import { createCompiler } from "@rspack/core";
 import type { RspackCLI } from "../rspack-cli";
 import { RspackCommand } from "../types";
 import { commonOptions } from "../utils/options";
@@ -25,11 +26,11 @@ export class BuildCommand implements RspackCommand {
 						apply(compiler) {
 							new BundleAnalyzerPlugin({
 								generateStatsFile: true,
-								// TODO: delete this after refactor runtime
+								// TODO: delete this once runtime refacted.
 								excludeAssets: 'runtime.js'
 							}).apply({
 								...compiler,
-								// hack for this.compiler in BundleAnalyzerPlugin
+								// hack for this.compiler in BundleAnalyzerPlugin.
 								outputPath: compiler.options.output.path,
 								outputFileSystem: { constructor: undefined }
 							} as any);
@@ -37,8 +38,8 @@ export class BuildCommand implements RspackCommand {
 					});
 				}
 				console.time("build");
-				const compiler = await cli.createCompiler(config);
-				// const stats = await compiler.build();
+				const compiler = createCompiler(config);
+				const stats = await compiler.build();
 				console.timeEnd("build");
 			}
 		);

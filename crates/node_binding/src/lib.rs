@@ -106,14 +106,14 @@ pub struct RspackError {
 
 #[napi(object)]
 #[derive(Debug, Serialize)]
-pub struct Stats {
+pub struct StatsDescription {
   pub assets: Vec<StatsAsset>,
   pub modules: Vec<StatsModule>,
   pub chunks: Vec<StatsChunk>,
   pub errors: Vec<RspackError>,
 }
 
-impl<'a> From<rspack_core::Stats<'a>> for Stats {
+impl<'a> From<rspack_core::Stats<'a>> for StatsDescription {
   fn from(rspack_stats: rspack_core::Stats) -> Self {
     let desc = rspack_stats.to_description();
     Self {
@@ -227,7 +227,7 @@ pub fn new_rspack(
 }
 #[napi(
   ts_args_type = "rspack: ExternalObject<RspackInternal>",
-  ts_return_type = "Promise<Stats>"
+  ts_return_type = "Promise<StatsDescription>"
 )]
 pub fn build(env: Env, binding_context: External<RspackBindingContext>) -> Result<napi::JsObject> {
   let compiler = binding_context.rspack.clone();
@@ -239,7 +239,7 @@ pub fn build(env: Env, binding_context: External<RspackBindingContext>) -> Resul
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
 
-      let stats: Stats = rspack_stats.into();
+      let stats: StatsDescription = rspack_stats.into();
       if stats.errors.is_empty() {
         tracing::info!("build success");
       } else {

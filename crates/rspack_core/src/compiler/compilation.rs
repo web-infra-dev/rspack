@@ -17,8 +17,8 @@ use crate::{
   ChunkGroupUkey, ChunkKind, ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint,
   LoaderRunnerRunner, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg,
   NormalModule, NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs,
-  RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver,
-  VisitedModuleIdentity, Stats
+  RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver, Stats,
+  VisitedModuleIdentity,
 };
 
 #[derive(Debug)]
@@ -512,9 +512,8 @@ impl Compilation {
       context_indent,
     };
 
-    dbg!(&self.chunk_by_ukey);
     self.create_chunk_assets(plugin_driver.clone()).await;
-    dbg!(&self.chunk_by_ukey);
+
     // generate runtime
     self.runtime = self.render_runtime(plugin_driver.clone()).await;
 

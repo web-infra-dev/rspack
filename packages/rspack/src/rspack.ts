@@ -1,6 +1,6 @@
 import { getNormalizedRspackOptions, RspackOptions } from "./config";
 import { Compiler } from "./compiler";
-import type { Stats } from "@rspack/binding";
+import type { StatsDescription } from "@rspack/binding";
 import util from "util";
 type Callback<T> = (err: Error, t: T) => void;
 function createCompiler(userOptions: RspackOptions) {
@@ -10,7 +10,7 @@ function createCompiler(userOptions: RspackOptions) {
 	compiler.hooks.initialize.call();
 	return compiler;
 }
-function rspack(options: RspackOptions, callback: Callback<Stats>): Compiler {
+function rspack(options: RspackOptions, callback: Callback<StatsDescription>): Compiler {
 	let compiler = createCompiler(options);
 	const doRun = async () => {
 		const stats = await compiler.build();

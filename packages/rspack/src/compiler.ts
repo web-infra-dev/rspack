@@ -186,9 +186,9 @@ class Compiler {
 		if (err) {
 			throw err;
 		}
-		const context: RspackThreadsafeContext<void> = JSON.parse(value);
+		const context: RspackThreadsafeContext<binding.StatsDescription> = JSON.parse(value);
 		// @todo context.inner is empty, since we didn't pass to binding
-		const stats = new Stats({} as any, context.inner as any);
+		const stats = new Stats({} as any, context.inner);
 		await this.hooks.done.promise(stats);
 		return createDummyResult(context.id);
 	}

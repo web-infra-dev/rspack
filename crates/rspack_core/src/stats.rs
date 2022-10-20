@@ -1,6 +1,4 @@
-use crate::{
-  Chunk, Compilation, CompilationAssets, ModuleType, SourceType, PATH_START_BYTE_POS_MAP,
-};
+use crate::{Chunk, Compilation, ModuleType, SourceType, PATH_START_BYTE_POS_MAP};
 use hashbrown::{HashMap, HashSet};
 use rspack_error::{
   emitter::{DiagnosticDisplay, StdioDiagnosticDisplay, StringDiagnosticDisplay},
@@ -35,59 +33,82 @@ impl<'compilation> Stats<'compilation> {
 }
 
 impl<'compilation> Stats<'compilation> {
-  // This function is only used for tests compatible.
-  pub fn __should_only_used_in_tests_assets(&self) -> &CompilationAssets {
-    &self.compilation.assets
-  }
-
   pub fn to_description(&self) -> StatsDescription {
-    let mut compilation_file_to_chunks: HashMap<&str, Vec<&Chunk>> = HashMap::new();
+    let mut compilation_file_to_chunks: HashMap<&String, Vec<&Chunk>> = HashMap::new();
     for (_, chunk) in &self.compilation.chunk_by_ukey {
       for file in &chunk.files {
+        // TODO: avoid runtime.js in every chunk.files, delete this once runtime refacted.
+        if file == "runtime.js" {
+          continue;
+        }
         let chunks = compilation_file_to_chunks.entry(file).or_default();
         chunks.push(chunk);
       }
     }
-    StatsDescription {
-      assets: self
-        .compilation
-        .assets
-        .iter()
-        // TODO: we needs asset.into.related to filter asset not in chunks, such as '.map' file.
-        .filter(|(filename, _)| compilation_file_to_chunks.get(filename.as_str()).is_some())
-        .map(|(filename, source)| StatsAsset {
-          r#type: "asset",
-          name: filename.clone(),
-          size: source.size() as f64,
-          chunks: compilation_file_to_chunks
-            .get(filename.as_str())
-            .unwrap()
-            .iter()
-            .map(|c| c.id.clone())
-            .collect(),
-        })
-        .collect(),
-      modules: self
-        .compilation
-        .module_graph
-        .modules()
-        .map(|module| StatsModule {
+    let mut assets: HashMap<&String, StatsAsset> =
+      HashMap::from_iter(self.compilation.assets.iter().map(|(name, asset)| {
+        (
+          name,
+          StatsAsset {
+            r#type: "asset",
+            name: name.clone(),
+            size: asset.get_source().size() as f64,
+            chunks: Vec::new(),
+          },
+        )
+      }));
+    for (_, asset) in &self.compilation.assets {
+      if let Some(source_map) = &asset.get_info().related.source_map {
+        assets.remove(source_map);
+      }
+    }
+    for (name, asset) in &mut assets {
+      if let Some(chunks) = compilation_file_to_chunks.get(name) {
+        asset.chunks = chunks.into_iter().map(|chunk| chunk.id.clone()).collect();
+        asset.chunks.sort();
+      }
+    }
+    let mut assets: Vec<StatsAsset> = assets.into_values().collect();
+    assets.sort_by(|a, b| {
+      // SAFETY: size should not be NAN.
+      b.size.partial_cmp(&a.size).unwrap()
+    });
+
+    let mut modules: Vec<StatsModule> = self
+      .compilation
+      .module_graph
+      .modules()
+      .map(|module| {
+        let identifier = module.identifier();
+        let mgm = self
+          .compilation
+          .module_graph
+          .module_graph_module_by_identifier(&identifier)
+          .unwrap();
+        let mut chunks: Vec<String> = self
+          .compilation
+          .chunk_graph
+          .get_chunk_graph_module(&mgm.uri)
+          .chunks
+          .iter()
+          .map(|k| self.compilation.chunk_by_ukey.get(k).unwrap().id.clone())
+          .collect();
+        chunks.sort();
+        StatsModule {
           r#type: "module",
-          chunks: self
-            .compilation
-            .chunk_graph
-            .get_chunk_graph_module(&module.uri)
-            .chunks
-            .iter()
-            .map(|k| self.compilation.chunk_by_ukey.get(k).unwrap().id.clone())
-            .collect(),
-          module_type: module.module_type,
-          identifier: module.module.identifier(),
-          name: module.module.identifier(),
-          id: module.id.clone(),
-          size: module.module.size(&SourceType::JavaScript),
-        })
-        .collect(),
+          module_type: module.module_type(),
+          identifier,
+          name: module.identifier(), // TODO: short it with requestShortener
+          id: mgm.id.clone(),
+          chunks,
+          size: module.size(&SourceType::JavaScript),
+        }
+      })
+      .collect();
+    modules.sort_by_cached_key(|m| m.identifier.to_string()); // TODO: sort by module.depth
+    StatsDescription {
+      assets,
+      modules,
       chunks: self
         .compilation
         .chunk_by_ukey

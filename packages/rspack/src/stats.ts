@@ -1,10 +1,11 @@
 import { Compilation } from "./compilation";
+import { StatsDescription } from "@rspack/binding";
 
 export class Stats {
 	compilation: Compilation;
 	// remove this when support delegate compilation to rust side
-	stats: any;
-	constructor(compilation: Compilation, stats: any) {
+	stats: StatsDescription;
+	constructor(compilation: Compilation, stats: StatsDescription) {
 		this.compilation = compilation;
 		this.stats = stats;
 	}

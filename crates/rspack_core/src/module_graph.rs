@@ -115,6 +115,10 @@ impl ModuleGraph {
     self.module_identifier_to_module_graph_module.values()
   }
 
+  pub fn modules(&self) -> impl Iterator<Item = &NormalModule> {
+    self.module_identifier_to_module.values()
+  }
+
   pub fn set_resolved_module(
     &mut self,
     original_module_identifier: Option<ModuleIdentifier>,
