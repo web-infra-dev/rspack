@@ -1882,6 +1882,7 @@ dependencies = [
  "codespan-reporting",
  "dashmap",
  "json",
+ "napi",
  "sugar_path",
  "termcolor",
  "thiserror",
