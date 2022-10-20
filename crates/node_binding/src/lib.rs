@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+#[macro_use]
+extern crate napi_derive;
+
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::Arc;
 
@@ -9,11 +12,12 @@ use napi_derive::napi;
 use tokio::sync::Mutex;
 mod adapter;
 
+mod next;
+
 // mod options;
 mod utils;
-use adapter::create_node_adapter_from_plugin_callbacks;
-
-use utils::get_named_property_value_string;
+pub use adapter::*;
+pub use utils::*;
 
 // use adapter::utils::create_node_adapter_from_plugin_callbacks;
 pub use rspack_binding_options::{
@@ -57,6 +61,7 @@ pub struct PluginCallbacks {
   pub done_callback: JsFunction,
   pub process_assets_callback: JsFunction,
 }
+
 impl Debug for PluginCallbacks {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("PluginCallbacks")
