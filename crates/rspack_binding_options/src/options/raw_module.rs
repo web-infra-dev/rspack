@@ -6,13 +6,7 @@ use napi_derive::napi;
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "node-api")]
-use napi::{
-  bindgen_prelude::*,
-  threadsafe_function::{
-    ErrorStrategy, ThreadSafeResultContext, ThreadsafeFunction, ThreadsafeFunctionCallMode,
-  },
-  JsFunction,
-};
+use napi::{bindgen_prelude::*, JsFunction, NapiRaw};
 #[cfg(feature = "node-api")]
 use rspack_error::Result;
 
@@ -24,7 +18,7 @@ use rspack_core::{
 use crate::RawOption;
 
 #[cfg(feature = "node-api")]
-type JsLoader = ThreadsafeFunction<Vec<u8>, ErrorStrategy::CalleeHandled>;
+type JsLoader<R> = crate::threadsafe_function::ThreadsafeFunction<Vec<u8>, R>;
 // type ModuleRuleFunc = ThreadsafeFunction<Vec<u8>, ErrorStrategy::CalleeHandled>;
 
 fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxedLoader {
@@ -186,7 +180,7 @@ pub struct RawModuleOptions {
 
 #[cfg(feature = "node-api")]
 pub struct NodeLoaderAdapter {
-  pub loader: JsLoader,
+  pub loader: JsLoader<LoaderThreadsafeLoaderResult>,
 }
 
 #[cfg(feature = "node-api")]
@@ -210,14 +204,6 @@ impl Debug for NodeLoaderAdapter {
 }
 
 #[cfg(feature = "node-api")]
-static LOADER_CALL_ID: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
-
-#[cfg(feature = "node-api")]
-static REGISTERED_LOADER_SENDERS: once_cell::sync::Lazy<
-  dashmap::DashMap<u32, tokio::sync::oneshot::Sender<LoaderThreadsafeLoaderResult>>,
-> = once_cell::sync::Lazy::new(Default::default);
-
-#[cfg(feature = "node-api")]
 #[async_trait::async_trait]
 impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationContext>
   for NodeLoaderAdapter
@@ -235,8 +221,6 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
       rspack_core::CompilationContext,
     >,
   ) -> Result<Option<rspack_core::LoaderResult>> {
-    use std::sync::atomic::Ordering;
-
     let loader_context = LoaderContext {
       source: loader_context.source.to_owned().into_bytes(),
       resource: loader_context.resource.to_owned(),
@@ -245,45 +229,22 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
       resource_query: loader_context.resource_query.map(|r| r.to_owned()),
     };
 
-    let current_id = LOADER_CALL_ID.fetch_add(1, Ordering::Relaxed);
+    let result = serde_json::to_vec(&loader_context).map_err(|err| {
+      rspack_error::Error::InternalError(format!("Failed to serialize loader context: {}", err))
+    })?;
 
-    let loader_tsfn_context = LoaderThreadsafeContext {
-      p: loader_context,
-      id: current_id,
-    };
-
-    let (tx, rx) = tokio::sync::oneshot::channel::<LoaderThreadsafeLoaderResult>();
-
-    let result = serde_json::to_vec(&loader_tsfn_context).map_err(|err| {
-      napi::Error::from_reason(format!("Failed to serialize loader context: {}", err))
-    });
-
-    match REGISTERED_LOADER_SENDERS.entry(current_id) {
-      dashmap::mapref::entry::Entry::Vacant(v) => {
-        v.insert(tx);
-      }
-      dashmap::mapref::entry::Entry::Occupied(_) => {
-        let err = napi::Error::new(
-            napi::Status::Unknown,
-            format!(
-              "Duplicated call id encountered {}, this is not an expected behavior. Please file an issue.",
-              current_id,
-            ),
-          );
-        self
-          .loader
-          .call(Err(err.clone()), ThreadsafeFunctionCallMode::Blocking);
-        return Err(anyhow::Error::from(err).into());
-      }
-    }
-
-    let status = self
+    let loader_result = self
       .loader
-      .call(result, ThreadsafeFunctionCallMode::Blocking);
+      .call(
+        result,
+        crate::threadsafe_function::ThreadsafeFunctionCallMode::Blocking,
+      )
+      .map_err(|err| rspack_error::Error::InternalError(format!("Failed to call loader: {}", err)))?
+      .await
+      .map_err(|err| {
+        rspack_error::Error::InternalError(format!("Failed to call loader: {}", err))
+      })?;
 
-    debug_assert_eq!(status, napi::Status::Ok);
-
-    let loader_result = rx.await.map_err(|err| anyhow::Error::from(err))?;
     let source_map = loader_result
       .as_ref()
       .and_then(|r| r.source_map.as_ref())
@@ -323,14 +284,14 @@ pub struct LoaderContext {
 
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
-struct LoaderResult {
+pub struct LoaderResult {
   pub content: Vec<u8>,
   pub source_map: Option<Vec<u8>>,
   pub meta: Option<Vec<u8>>,
 }
 
 type LoaderThreadsafeLoaderContext = LoaderContext;
-type LoaderThreadsafeLoaderResult = Option<LoaderResult>;
+pub type LoaderThreadsafeLoaderResult = Option<LoaderResult>;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct LoaderThreadsafeResult {
@@ -358,41 +319,26 @@ impl RawOption<ModuleRule> for RawModuleRule {
             #[cfg(feature = "node-api")]
             {
               if let Some(raw_js_loader) = rule_use.loader {
-                let loader: JsLoader = raw_js_loader
-                  .create_threadsafe_function(
-                    0,
-                    |ctx| Ok(vec![Buffer::from(ctx.value)]),
-                    |ctx: ThreadSafeResultContext<Promise<Buffer>>| {
-                      let return_value = ctx.return_value;
+                let js_loader = unsafe { raw_js_loader.raw() };
 
-                      ctx
-                        .env
-                        .execute_tokio_future(
-                          async move {
-                            let return_value = return_value.await?;
 
-                            let result =
-                              serde_json::from_slice::<LoaderThreadsafeResult>(return_value.as_ref())?;
+              let loader = crate::NAPI_ENV.with(|env| {
+                let env = env.borrow().expect("Failed to get env, did you forget to call it from node?");
+                  crate::threadsafe_function::ThreadsafeFunction::<Vec<u8>,LoaderThreadsafeLoaderResult>::create(
+                  env,
+                  js_loader,
+                  0,
+                  |ctx| {
+                    let (ctx, resolver) = ctx.split_into_parts();
 
-                            if let Some((_, sender)) = REGISTERED_LOADER_SENDERS.remove(&result.id) {
-                              sender.send(result.p).map_err(|_| {
-                                Error::new(napi::Status::GenericFailure, "unable to send".to_owned())
-                              })?;
-                            } else {
-                              return Err(Error::new(
-                                napi::Status::GenericFailure,
-                                format!("Loader call id {} not found", result.id),
-                              ));
-                            }
+                    let buf= ctx.env.create_buffer_with_data(ctx.value)?.into_raw();
+                    let result = ctx.callback.call(None, &[buf])?;
 
-                            Ok(())
-                          },
-                          |_env, ret| Ok(ret),
-                        )
-                        .expect("failed to execute tokio future");
-                    },
-                  )
-                  .unwrap();
+                    resolver.resolve::<Buffer>(result, |p| {
+                      serde_json::from_slice::<LoaderThreadsafeLoaderResult>(p.as_ref()).map_err(|err| err.into())
+                    })
+                  })
+                })?;
                 return Ok(Box::new(NodeLoaderAdapter { loader }) as BoxedLoader);
               }
             }

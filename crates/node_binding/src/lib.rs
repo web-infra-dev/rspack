@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
-// use std::path::Path;
 use std::sync::Arc;
 
 use napi::bindgen_prelude::*;
@@ -9,6 +8,7 @@ use napi_derive::napi;
 // use nodejs_resolver::Resolver;
 use tokio::sync::Mutex;
 mod adapter;
+
 // mod options;
 mod utils;
 use adapter::create_node_adapter_from_plugin_callbacks;
@@ -16,7 +16,9 @@ use adapter::create_node_adapter_from_plugin_callbacks;
 use utils::get_named_property_value_string;
 
 // use adapter::utils::create_node_adapter_from_plugin_callbacks;
-pub use rspack_binding_options::{normalize_bundle_options, NodeLoaderAdapter, RawOptions};
+pub use rspack_binding_options::{
+  normalize_bundle_options, threadsafe_function, NodeLoaderAdapter, RawOptions, NAPI_ENV,
+};
 
 #[cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))]
 #[global_allocator]
@@ -104,6 +106,8 @@ pub fn new_rspack(
   mut options: RawOptions,
   plugin_callbacks: Option<PluginCallbacks>,
 ) -> Result<External<RspackBindingContext>> {
+  NAPI_ENV.with(|napi_env| *napi_env.borrow_mut() = Some(env.raw()));
+
   #[cfg(debug_assertions)]
   {
     if let Some(module) = options.module.as_mut() {

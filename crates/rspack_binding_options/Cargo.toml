@@ -7,7 +7,7 @@ version = "0.1.0"
 
 [features]
 default  = []
-node-api = ["napi-derive", "napi"]
+node-api = ["napi-derive", "napi", "napi-sys"]
 
 [dependencies]
 anyhow = { version = "1", features = ["backtrace"] }
@@ -31,12 +31,14 @@ tokio = { version = "1.21.0", features = [
   "parking_lot",
 ] }
   [dependencies.napi]
-  branch   = "main"
-  features = ["async", "tokio_rt", "serde-json"]
-  git      = "https://github.com/speedy-js/napi-rs"
+  features = ["async", "tokio_rt", "serde-json", "anyhow"]
   optional = true
+  version  = "2"
 
   [dependencies.napi-derive]
-  branch   = "main"
-  git      = "https://github.com/speedy-js/napi-rs"
   optional = true
+  version  = "2"
+
+  [dependencies.napi-sys]
+  optional = true
+  version  = "2"

@@ -90,16 +90,8 @@ function composeJsUse(uses: ModuleRuleUse[]): RawModuleRuleUse | null {
 		return null;
 	}
 
-	async function loader(err: any, data: Buffer): Promise<Buffer> {
-		if (err) {
-			throw err;
-		}
-
-		const loaderThreadsafeContext: LoaderThreadsafeContext = JSON.parse(
-			data.toString("utf-8")
-		);
-
-		const { p: payload, id } = loaderThreadsafeContext;
+	async function loader(data: Buffer): Promise<Buffer> {
+		const payload: LoaderContextInternal = JSON.parse(data.toString("utf-8"));
 
 		const loaderContextInternal: LoaderContextInternal = {
 			source: payload.source,
@@ -146,11 +138,7 @@ function composeJsUse(uses: ModuleRuleUse[]): RawModuleRuleUse | null {
 			meta: [...meta]
 		};
 
-		const loaderThreadsafeResult: LoaderThreadsafeResult = {
-			id: id,
-			p: loaderResultPayload
-		};
-		return Buffer.from(JSON.stringify(loaderThreadsafeResult), "utf-8");
+		return Buffer.from(JSON.stringify(loaderResultPayload), "utf-8");
 	}
 	loader.displayName = `NodeLoaderAdapter(${uses
 		.map(item => {
