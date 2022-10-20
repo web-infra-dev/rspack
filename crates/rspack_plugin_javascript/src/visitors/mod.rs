@@ -64,8 +64,8 @@ pub fn run_before_pass(
             // enable if configurable
             // swc_visitor::const_modules(cm, globals),
             Optional::new(
-              swc_visitor::define(&options.define, handler, &cm),
-              !options.define.is_empty()
+              swc_visitor::define(&options.builtins.define, handler, &cm),
+              !options.builtins.define.is_empty()
             ),
             Optional::new(
               swc_visitor::export_default_from(),
