@@ -1,6 +1,10 @@
 const { Processor } = require("postcss");
 const pxtorem = require("postcss-pxtorem");
 const cssModules = require("postcss-modules");
+const {
+	normalizeSourceMap,
+	normalizeSourceMapAfterPostcss
+} = require("./utils");
 
 module.exports = async function loader(loaderContext) {
 	// TODO: customize options, until js binding support this functionality
@@ -8,6 +12,10 @@ module.exports = async function loader(loaderContext) {
 	let options = loaderContext.getOptions() ?? {};
 	let enableModules = options.modules;
 	let pxToRem = options.pxToRem;
+	let useSourceMap =
+		typeof options.sourceMap !== "undefined"
+			? options.sourceMap
+			: loaderContext.useSourceMap;
 	try {
 		let meta = "";
 		let plugins = [];
@@ -15,6 +23,10 @@ module.exports = async function loader(loaderContext) {
 		let pxToRemConfig = {
 			rootValue: 50,
 			propList: ["*"]
+		};
+		let processOptions = {
+			from: loaderContext.resourcePath,
+			to: loaderContext.resourcePath
 		};
 
 		if (pxToRem) {
@@ -40,13 +52,35 @@ module.exports = async function loader(loaderContext) {
 				})
 			);
 		}
+
+		if (useSourceMap) {
+			processOptions.map = {
+				inline: false,
+				annotation: false
+			};
+		}
+		if (loaderContext.sourceMap && processOptions.map) {
+			processOptions.map.prev = normalizeSourceMap(
+				loaderContext.sourceMap,
+				loaderContext.context
+			);
+		}
+
 		let root = new Processor(plugins);
-		let res = await root.process(loaderContext.source.getCode(), {
-			from: undefined
-		});
+		let res = await root.process(
+			loaderContext.source.getCode(),
+			processOptions
+		);
+		let map = res.map ? res.map.toJSON() : undefined;
+
+		if (map && useSourceMap) {
+			map = normalizeSourceMapAfterPostcss(map, loaderContext.context);
+		}
+
 		return {
 			content: res.css,
-			meta: meta ? Buffer.from(JSON.stringify(meta)) : ""
+			meta: meta ? Buffer.from(JSON.stringify(meta)) : "",
+			sourceMap: map
 		};
 	} catch (err) {
 		throw new Error(err);

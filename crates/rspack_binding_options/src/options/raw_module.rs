@@ -223,6 +223,12 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
   ) -> Result<Option<rspack_core::LoaderResult>> {
     let loader_context = LoaderContext {
       source: loader_context.source.to_owned().into_bytes(),
+      source_map: loader_context
+        .source_map
+        .clone()
+        .map(|v| v.to_json())
+        .transpose()
+        .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
       resource: loader_context.resource.to_owned(),
       resource_path: loader_context.resource_path.to_owned(),
       resource_fragment: loader_context.resource_fragment.map(|r| r.to_owned()),
@@ -276,6 +282,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
 #[serde(rename_all = "camelCase")]
 pub struct LoaderContext {
   pub source: Vec<u8>,
+  pub source_map: Option<String>,
   pub resource: String,
   pub resource_path: String,
   pub resource_query: Option<String>,
