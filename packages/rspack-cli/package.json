@@ -4,8 +4,8 @@
   "bin": {
     "rspack": "./bin/rspack"
   },
-  "main": "./lib/index.js",
-  "types": "./lib/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "build": "rm -rf lib/ && tsc",
     "dev": "tsc -w",

@@ -1,8 +1,8 @@
 {
   "name": "@rspack/core",
   "version": "0.0.4",
-  "main": "./lib/index.js",
-  "types": "./lib/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "dev": "tsc -w",
