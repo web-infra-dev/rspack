@@ -70,7 +70,7 @@ impl NormalModuleFactory {
     tx: UnboundedSender<Msg>,
     plugin_driver: SharedPluginDriver,
   ) -> Self {
-    context.active_task_count.fetch_add(1, Ordering::SeqCst);
+    context.active_task_count.fetch_add(1, Ordering::AcqRel);
 
     Self {
       context,
