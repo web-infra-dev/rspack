@@ -23,6 +23,7 @@ pub(crate) enum SymbolRef {
 }
 
 bitflags! {
+  #[derive(Default)]
   struct AnalyzeState: u8 {
     const EXPORT_DEFAULT = 1 << 0;
   }
@@ -423,4 +424,37 @@ impl<'a> ModuleRefAnalyze<'a> {
   //     parent_module_identifier: Some(self.uri.to_string()),
   //   })
   // }
+}
+
+/// The `allow(unused)` will be removed after the Tree shaking is finished
+#[allow(unused)]
+pub(crate) struct TreeShakingResult {
+  top_level_mark: Mark,
+  unresolved_mark: Mark,
+  module_identifier: Ustr,
+  pub(crate) export_map: AHashMap<JsWord, SymbolRef>,
+  pub(crate) import_map: AHashMap<BetterId, SymbolRef>,
+  /// list of uri, each uri represent export all named export from specific uri
+  pub export_all_list: Vec<Ustr>,
+  current_region: Option<BetterId>,
+  pub(crate) reference_map: AHashMap<BetterId, AHashSet<BetterId>>,
+  pub(crate) reachable_import_of_export: AHashMap<JsWord, AHashSet<BetterId>>,
+  state: AnalyzeState,
+}
+
+impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
+  fn from(mut analyze: ModuleRefAnalyze<'_>) -> Self {
+    Self {
+      top_level_mark: std::mem::take(&mut analyze.top_level_mark),
+      unresolved_mark: std::mem::take(&mut analyze.unresolved_mark),
+      module_identifier: std::mem::take(&mut analyze.module_identifier),
+      export_map: std::mem::take(&mut analyze.export_map),
+      import_map: std::mem::take(&mut analyze.import_map),
+      export_all_list: std::mem::take(&mut analyze.export_all_list),
+      current_region: std::mem::take(&mut analyze.current_region),
+      reference_map: std::mem::take(&mut analyze.reference_map),
+      reachable_import_of_export: std::mem::take(&mut analyze.reachable_import_of_export),
+      state: std::mem::take(&mut analyze.state),
+    }
+  }
 }
