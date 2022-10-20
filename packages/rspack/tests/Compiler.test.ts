@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { getNormalizedRspackOptions, rspack, webpack } from "../src";
+import { Stats } from "../src/stats";
 const path = require("path");
-const Stats = require("../lib/Stats");
 const { createFsFromVolume, Volume } = require("memfs");
 const captureStdio = require("./helpers/captureStdio");
 const deprecationTracking = require("./helpers/deprecationTracking");
