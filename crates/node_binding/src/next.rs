@@ -1,14 +1,25 @@
-// use napi;
+use std::collections::HashMap;
+use std::pin::Pin;
+use std::sync::Arc;
 
 use napi::bindgen_prelude::*;
+use napi::JsObject;
+
+use tokio::sync::RwLock;
+
 use rspack_binding_options::*;
 
+use crate::DiffStat;
+use crate::DiffStatKind;
 use crate::{
   create_node_adapter_from_plugin_callbacks, get_named_property_value_string, PluginCallbacks,
+  Stats,
 };
 
 #[napi]
-pub struct Rspack(rspack::Compiler);
+pub struct Rspack {
+  inner: Pin<Arc<RwLock<rspack::Compiler>>>,
+}
 
 #[napi]
 impl Rspack {
@@ -68,6 +79,65 @@ impl Rspack {
 
     let rspack = rspack::rspack(compiler_options, vec![]);
 
-    Ok(Self(rspack))
+    Ok(Self {
+      inner: Arc::pin(RwLock::new(rspack)),
+    })
+  }
+
+  #[napi(ts_return_type = "Promise<Stats>")]
+  pub fn build(&self, env: Env) -> Result<JsObject> {
+    let inner = self.inner.clone();
+    env.execute_tokio_future(
+      async move {
+        let mut compiler = inner.write().await;
+
+        let rspack_stats = compiler
+          .build()
+          .await
+          .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
+
+        let stats: Stats = rspack_stats.into();
+        if stats.errors.is_empty() {
+          tracing::info!("build success");
+        } else {
+          tracing::info!("build failed");
+        }
+        Ok(stats)
+      },
+      |_env, ret| Ok(ret),
+    )
+  }
+
+  #[napi(ts_return_type = "Promise<Record<string, {content: string, kind: number}>>")]
+  pub fn rebuild(&self, env: Env) -> Result<JsObject> {
+    let inner = self.inner.clone();
+
+    env.execute_tokio_future(
+      async move {
+        let mut compiler = inner.write().await;
+
+        let diff = compiler
+          .rebuild()
+          .await
+          .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
+        let stats: HashMap<String, DiffStat> = diff
+          .into_iter()
+          .map(|(uri, stats)| {
+            (
+              uri,
+              DiffStat {
+                kind: DiffStatKind::from(stats.0),
+                content: stats.1,
+              },
+            )
+          })
+          .collect();
+        // let stats: Stats = _rspack_stats.into();
+
+        tracing::info!("rebuild success");
+        Ok(stats)
+      },
+      |_env, ret| Ok(ret),
+    )
   }
 }
