@@ -113,7 +113,6 @@ fn emit_batch_diagnostic<T: Write + WriteColor + FlushDiagnostic>(
   let mut files = SimpleFiles::new();
   let pwd = std::env::current_dir()?;
 
-  dbg!(&diagnostics);
   for diagnostic in diagnostics {
     if let Some(info) = &diagnostic.source_info {
       // Since `Span` of `swc` started with 1 and span of diagnostic started with 0
