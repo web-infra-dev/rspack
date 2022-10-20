@@ -1,6 +1,5 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
-// use std::path::Path;
 use std::sync::Arc;
 
 use napi::bindgen_prelude::*;
@@ -9,6 +8,7 @@ use napi_derive::napi;
 // use nodejs_resolver::Resolver;
 use tokio::sync::Mutex;
 mod adapter;
+
 // mod options;
 mod utils;
 use adapter::create_node_adapter_from_plugin_callbacks;
@@ -16,7 +16,9 @@ use adapter::create_node_adapter_from_plugin_callbacks;
 use utils::get_named_property_value_string;
 
 // use adapter::utils::create_node_adapter_from_plugin_callbacks;
-pub use rspack_binding_options::{normalize_bundle_options, NodeLoaderAdapter, RawOptions};
+pub use rspack_binding_options::{
+  normalize_bundle_options, threadsafe_function, NodeLoaderAdapter, RawOptions, NAPI_ENV,
+};
 
 #[cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))]
 #[global_allocator]
@@ -104,6 +106,8 @@ pub fn new_rspack(
   mut options: RawOptions,
   plugin_callbacks: Option<PluginCallbacks>,
 ) -> Result<External<RspackBindingContext>> {
+  NAPI_ENV.with(|napi_env| *napi_env.borrow_mut() = Some(env.raw()));
+
   #[cfg(debug_assertions)]
   {
     if let Some(module) = options.module.as_mut() {
@@ -209,20 +213,24 @@ pub struct DiffStat {
 }
 
 #[napi(
-  ts_args_type = "rspack: ExternalObject<RspackInternal>",
-  // ts_return_type = "Promise<[diff: Record<string, string>, map: Record<string, string>]>"
+  ts_args_type = "rspack: ExternalObject<RspackInternal>, changedFiles: string[], removedFiles: string[]",
   ts_return_type = "Promise<Record<string, {content: string, kind: number}>>"
 )]
 pub fn rebuild(
   env: Env,
   binding_context: External<RspackBindingContext>,
+  changed_files: Vec<String>,
+  removed_files: Vec<String>,
 ) -> Result<napi::JsObject> {
   let compiler = binding_context.rspack.clone();
   env.execute_tokio_future(
     async move {
       let mut compiler = compiler.lock().await;
       let diff = compiler
-        .rebuild()
+        .rebuild(
+          HashSet::from_iter(changed_files.into_iter()),
+          HashSet::from_iter(removed_files.into_iter()),
+        )
         .await
         .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
       let stats: HashMap<String, DiffStat> = diff

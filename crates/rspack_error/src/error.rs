@@ -130,3 +130,10 @@ impl std::fmt::Display for DiagnosticKind {
     }
   }
 }
+
+#[cfg(feature = "napi")]
+impl From<napi::Error> for Error {
+  fn from(err: napi::Error) -> Self {
+    Error::InternalError(err.to_string())
+  }
+}
