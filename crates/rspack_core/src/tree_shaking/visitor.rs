@@ -14,7 +14,7 @@ use crate::{tree_shaking::symbol::Symbol, Dependency, ModuleGraph, ResolveKind};
 
 use super::symbol::{BetterId, IndirectTopLevelSymbol};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum SymbolRef {
   Direct(Symbol),
   Indirect(IndirectTopLevelSymbol),
@@ -40,7 +40,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub export_all_list: Vec<Ustr>,
   current_region: Option<BetterId>,
   pub(crate) reference_map: AHashMap<BetterId, AHashSet<BetterId>>,
-  pub(crate) reachable_import_of_export: AHashMap<JsWord, AHashSet<BetterId>>,
+  pub(crate) reachable_import_of_export: AHashMap<JsWord, AHashSet<SymbolRef>>,
   state: AnalyzeState,
   // pub(crate) used_set: AHashSet<BetterId>,
 }
@@ -80,7 +80,7 @@ impl<'a> ModuleRefAnalyze<'a> {
   }
 
   /// Collecting all reachable import binding from given start binding
-  pub fn get_all_import(&self, start: BetterId) -> AHashSet<BetterId> {
+  pub fn get_all_import(&self, start: BetterId) -> AHashSet<SymbolRef> {
     let mut seen: AHashSet<BetterId> = AHashSet::default();
     let mut q: VecDeque<BetterId> = VecDeque::from_iter([start]);
     while let Some(cur) = q.pop_front() {
@@ -93,8 +93,24 @@ impl<'a> ModuleRefAnalyze<'a> {
       seen.insert(cur);
     }
     return seen
-      .into_iter()
-      .filter(|id| self.import_map.contains_key(&id))
+      .iter()
+      .filter_map(|id| {
+        let ret = self
+          .import_map
+          .get(&id)
+          .map(|item| item.clone())
+          .or_else(|| match self.export_map.get(&id.atom) {
+            Some(sym_ref @ SymbolRef::Direct(sym)) => {
+              if &sym.id == id {
+                Some(sym_ref.clone())
+              } else {
+                None
+              }
+            }
+            _ => None,
+          });
+        ret
+      })
       .collect();
   }
 }
@@ -438,7 +454,7 @@ pub(crate) struct TreeShakingResult {
   pub export_all_list: Vec<Ustr>,
   current_region: Option<BetterId>,
   pub(crate) reference_map: AHashMap<BetterId, AHashSet<BetterId>>,
-  pub(crate) reachable_import_of_export: AHashMap<JsWord, AHashSet<BetterId>>,
+  pub(crate) reachable_import_of_export: AHashMap<JsWord, AHashSet<SymbolRef>>,
   state: AnalyzeState,
 }
 

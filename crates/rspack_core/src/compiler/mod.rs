@@ -227,6 +227,7 @@ pub type ModuleCreatedData = TWithDiagnosticArray<
     Option<ModuleIdentifier>,
     u32,
     Dependency,
+    bool,
   )>,
 >;
 
