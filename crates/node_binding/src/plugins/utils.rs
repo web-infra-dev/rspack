@@ -1,8 +1,6 @@
-use napi::Env;
-use napi::{bindgen_prelude::*, NapiRaw};
+use napi::{bindgen_prelude::*, Env, NapiRaw};
 
-use super::BoxedClosure;
-use crate::PluginCallbacks;
+use crate::{BoxedClosure, PluginCallbacks};
 
 pub fn create_node_adapter_from_plugin_callbacks(
   env: Env,

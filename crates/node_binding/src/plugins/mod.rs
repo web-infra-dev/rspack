@@ -1,28 +1,30 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
 
+use napi::{CallContext, JsUndefined};
+use napi_derive::napi;
+
+use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
+
 use rspack_core::rspack_sources::{RawSource, SourceExt};
 use rspack_core::{
   Compilation, Plugin, PluginBuildEndHookOutput, PluginContext, PluginProcessAssetsHookOutput,
   ProcessAssetsArgs,
 };
+use rspack_error::Error;
 
-use async_trait::async_trait;
-use napi::{CallContext, JsUndefined};
-use napi_derive::napi;
-use serde::{Deserialize, Serialize};
-
-pub mod utils;
-pub use utils::create_node_adapter_from_plugin_callbacks;
-
+use crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use crate::{AssetContent, UpdateAssetOptions};
+
+mod utils;
+pub use utils::*;
 
 pub type BoxedClosure = Box<dyn Fn(CallContext<'_>) -> napi::Result<JsUndefined>>;
 
 pub struct RspackPluginNodeAdapter {
-  pub done_tsfn: crate::threadsafe_function::ThreadsafeFunction<(), ()>,
-  pub process_assets_tsfn:
-    crate::threadsafe_function::ThreadsafeFunction<(String, BoxedClosure), ()>,
+  pub done_tsfn: ThreadsafeFunction<(), ()>,
+  pub process_assets_tsfn: ThreadsafeFunction<(String, BoxedClosure), ()>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -81,32 +83,29 @@ impl Plugin for RspackPluginNodeAdapter {
       };
 
       let value = serde_json::to_string(&assets)
-        .map_err(|_| rspack_error::Error::InternalError("Failed to stringify assets".to_owned()))?;
+        .map_err(|_| Error::InternalError("Failed to stringify assets".to_owned()))?;
 
       self
         .process_assets_tsfn
         .call(
           (value, Box::new(emit_asset) as BoxedClosure),
-          crate::threadsafe_function::ThreadsafeFunctionCallMode::Blocking,
+          ThreadsafeFunctionCallMode::Blocking,
         )
-        .map_err(rspack_error::Error::from)?
+        .map_err(Error::from)?
     };
 
     rx.await
-      .map_err(|err| rspack_error::Error::InternalError(format!("{:?}", err)))
+      .map_err(|err| Error::InternalError(format!("{:?}", err)))
   }
 
   #[tracing::instrument(skip_all)]
   async fn done(&mut self) -> PluginBuildEndHookOutput {
     self
       .done_tsfn
-      .call(
-        (),
-        crate::threadsafe_function::ThreadsafeFunctionCallMode::Blocking,
-      )
-      .map_err(rspack_error::Error::from)?
+      .call((), ThreadsafeFunctionCallMode::Blocking)
+      .map_err(Error::from)?
       .await
-      .map_err(|err| rspack_error::Error::InternalError(format!("{:?}", err)))?;
+      .map_err(|err| Error::InternalError(format!("{:?}", err)))?;
 
     Ok(())
   }
