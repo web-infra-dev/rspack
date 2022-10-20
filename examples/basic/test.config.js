@@ -1,3 +1,7 @@
+
+/**
+ * @type {import('webpack').Configuration}
+ */
 module.exports = {
   mode: "development",
   entry: {
@@ -6,4 +10,7 @@ module.exports = {
   define: {
     "process.env.NODE_ENV": "development",
   },
+  infrastructureLogging: {
+    debug:true
+  }
 };

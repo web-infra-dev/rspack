@@ -75,7 +75,6 @@ describe("snapshots", () => {
 		{
 		  "builtins": {
 		    "browserslist": [],
-		    "define": {},
 		  },
 		  "context": "<cwd>",
 		  "devServer": {
@@ -94,6 +93,7 @@ describe("snapshots", () => {
 		  "entry": {},
 		  "external": {},
 		  "externalType": "",
+		  "infrastructureLogging": {},
 		  "mode": "none",
 		  "module": {
 		    "rules": [],
@@ -196,24 +196,58 @@ describe("snapshots", () => {
 	 * not support yet
 	 */
 	test("sync wasm", { experiments: { syncWebAssembly: true } }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		+   "experiments": Object {
+		+     "syncWebAssembly": true,
+		+   },
+	`)
 	);
 	/**
 	 * not support yet
 	 */
 	test("output module", { experiments: { outputModule: true } }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		+   "experiments": Object {
+		+     "outputModule": true,
+		+   },
+	`)
 	);
 	/**
 	 * not support yet
 	 */
 	test("async wasm", { experiments: { asyncWebAssembly: true } }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		+   "experiments": Object {
+		+     "asyncWebAssembly": true,
+		+   },
+	`)
 	);
 	test(
 		"both wasm",
 		{ experiments: { syncWebAssembly: true, asyncWebAssembly: true } },
-		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e =>
+			e.toMatchInlineSnapshot(`
+			- Expected
+			+ Received
+
+			@@ ... @@
+			+   "experiments": Object {
+			+     "asyncWebAssembly": true,
+			+     "syncWebAssembly": true,
+			+   },
+		`)
 	);
 	test("const filename", { output: { filename: "bundle.js" } }, e =>
 		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
@@ -314,27 +348,72 @@ describe("snapshots", () => {
 	`)
 	);
 	test("records", { recordsPath: "some-path" }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		+   "recordsPath": "some-path",
+	`)
 	);
 	test("ecmaVersion", { output: { ecmaVersion: 2020 } }, e =>
 		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 	test("single runtimeChunk", { optimization: { runtimeChunk: "single" } }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		+   "optimization": Object {
+		+     "runtimeChunk": "single",
+		+   },
+	`)
 	);
 	test(
 		"single runtimeChunk",
 		{ optimization: { runtimeChunk: "multiple" } },
-		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e =>
+			e.toMatchInlineSnapshot(`
+			- Expected
+			+ Received
+
+			@@ ... @@
+			+   "optimization": Object {
+			+     "runtimeChunk": "multiple",
+			+   },
+		`)
 	);
 	test("single runtimeChunk", { optimization: { runtimeChunk: true } }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		+   "optimization": Object {
+		+     "runtimeChunk": true,
+		+   },
+	`)
 	);
 	test("cache true", { cache: true }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		+   "cache": true,
+	`)
 	);
 	test("cache filesystem", { cache: { type: "filesystem" } }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		+   "cache": Object {
+		+     "type": "filesystem",
+		+   },
+	`)
 	);
 	test(
 		"cache filesystem development",
@@ -344,6 +423,10 @@ describe("snapshots", () => {
 			- Expected
 			+ Received
 
+			@@ ... @@
+			+   "cache": Object {
+			+     "type": "filesystem",
+			+   },
 			@@ ... @@
 			-   "mode": "none",
 			+   "mode": "development",
@@ -358,7 +441,21 @@ describe("snapshots", () => {
 			amd: false,
 			optimization: { splitChunks: false }
 		},
-		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e =>
+			e.toMatchInlineSnapshot(`
+			- Expected
+			+ Received
+
+			@@ ... @@
+			+   "amd": false,
+			@@ ... @@
+			+   "cache": false,
+			@@ ... @@
+			+   },
+			+   "node": false,
+			+   "optimization": Object {
+			+     "splitChunks": false,
+		`)
 	);
 
 	test(
@@ -381,15 +478,33 @@ describe("snapshots", () => {
 	);
 
 	test("stats true", { stats: true }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		+   "stats": true,
+	`)
 	);
 
 	test("stats false", { stats: false }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		+   "stats": false,
+	`)
 	);
 
 	test("stats string", { stats: "minimal" }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		+   "stats": "minimal",
+	`)
 	);
 
 	test(
@@ -428,6 +543,9 @@ describe("snapshots", () => {
 
 			@@ ... @@
 			-   "context": "<cwd>",
+			+   "cache": Object {
+			+     "type": "filesystem",
+			+   },
 			+   "context": "<cwd>/tests/fixtures",
 			@@ ... @@
 			-       "directory": "<cwd>/dist",
@@ -459,7 +577,16 @@ describe("snapshots", () => {
 				futureDefaults: true
 			}
 		},
-		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e =>
+			e.toMatchInlineSnapshot(`
+			- Expected
+			+ Received
+
+			@@ ... @@
+			+   "experiments": Object {
+			+     "futureDefaults": true,
+			+   },
+		`)
 	);
 
 	test(
@@ -470,7 +597,17 @@ describe("snapshots", () => {
 				futureDefaults: true
 			}
 		},
-		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e =>
+			e.toMatchInlineSnapshot(`
+			- Expected
+			+ Received
+
+			@@ ... @@
+			+   "experiments": Object {
+			+     "css": false,
+			+     "futureDefaults": true,
+			+   },
+		`)
 	);
 });
 export {};
