@@ -1,4 +1,4 @@
-(function () { (function () {
+(function () {
 	function _getRequireCache(nodeInterop) {
 		if (typeof WeakMap !== "function") return null;
 
@@ -48,4 +48,3 @@
 		return newObj;
 	};
 })();
- })();

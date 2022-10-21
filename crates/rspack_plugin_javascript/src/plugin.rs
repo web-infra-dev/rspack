@@ -14,17 +14,18 @@ use rspack_core::{
   get_contenthash, AstOrSource, ChunkKind, Compilation, FilenameRenderOptions, GenerationResult,
   ModuleAst, ModuleGraphModule, ModuleType, NormalModule, ParseContext, ParseResult,
   ParserAndGenerator, Plugin, PluginContext, PluginProcessAssetsOutput,
-  PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderManifestEntry, SourceType,
+  PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, ProcessAssetsArgs,
+  RenderManifestEntry, RenderRuntimeArgs, SourceType, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;
 
+use crate::runtime::{generate_interop_require, RSPACK_REGISTER, RSPACK_REQUIRE};
 use crate::utils::{
   get_swc_compiler, get_wrap_chunk_after, get_wrap_chunk_before, syntax_by_module_type,
   wrap_eval_source_map, wrap_module_function,
 };
 use crate::visitors::{run_after_pass, run_before_pass, DependencyScanner};
-use crate::{RSPACK_REGISTER, RSPACK_REQUIRE};
 
 #[derive(Debug)]
 pub struct JsPlugin {
@@ -202,6 +203,24 @@ impl Plugin for JsPlugin {
     Ok(())
   }
 
+  fn render_runtime(
+    &self,
+    _ctx: PluginContext,
+    args: RenderRuntimeArgs,
+  ) -> PluginRenderRuntimeHookOutput {
+    let mut sources = args.sources;
+    let code = generate_interop_require();
+    // the interop require code must be front of RUNTIME_PLACEHOLDER_RSPACK_EXECUTE
+    let position = sources
+      .iter()
+      .position(|item| item.source() == RUNTIME_PLACEHOLDER_RSPACK_EXECUTE);
+    match position {
+      Some(index) => sources.insert(index, code),
+      None => sources.push(code),
+    };
+    Ok(sources)
+  }
+
   fn render_manifest(
     &self,
     _ctx: PluginContext,
@@ -291,7 +310,6 @@ impl Plugin for JsPlugin {
             .module_by_uri(entry_module_uri)
             .unwrap_or_else(|| panic!("entry module not found"))
             .id;
-
           compilation
             .runtime
             .generate_rspack_execute(namespace, RSPACK_REQUIRE, entry_module_id)
