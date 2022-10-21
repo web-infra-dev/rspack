@@ -2,6 +2,10 @@ import path from "path";
 import fs from "fs";
 import util from "util";
 import { rspack, RspackOptions } from "../src";
+import serializer from "jest-serializer-path";
+
+expect.addSnapshotSerializer(serializer);
+
 const base = path.resolve(__dirname, "statsCases");
 const outputBase = path.resolve(__dirname, "stats");
 const tests = fs.readdirSync(base).filter(testName => {

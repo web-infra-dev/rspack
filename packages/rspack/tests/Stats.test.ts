@@ -1,5 +1,8 @@
 import * as util from "util";
 import { rspack, RspackOptions } from "../src";
+import serializer from "jest-serializer-path";
+
+expect.addSnapshotSerializer(serializer);
 
 const compile = async (options: RspackOptions) => {
 	return util.promisify(rspack)(options);
@@ -49,9 +52,9 @@ describe("Stats", () => {
 		        "main",
 		      ],
 		      "id": "./fixtures/a.js",
-		      "identifier": "/Users/bytedance/Codes/rspack/packages/rspack/tests/fixtures/a.js",
+		      "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
 		      "moduleType": "js",
-		      "name": "/Users/bytedance/Codes/rspack/packages/rspack/tests/fixtures/a.js",
+		      "name": "<PROJECT_ROOT>/tests/fixtures/a.js",
 		      "size": 55,
 		      "type": "module",
 		    },

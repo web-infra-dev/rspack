@@ -195,6 +195,7 @@ importers:
       '@types/ws': 8.5.3
       browserslist: ^4.21.3
       chokidar: 3.5.3
+      jest-serializer-path: ^0.1.15
       sinon: 14.0.0
       source-map: ^0.7.4
       tapable: 2.2.1
@@ -228,6 +229,7 @@ importers:
       '@types/sinon': 10.0.13
       '@types/webpack-sources': 3.2.0
       '@types/ws': 8.5.3
+      jest-serializer-path: 0.1.15
       sinon: 14.0.0
       source-map: 0.7.4
       ts-node: 10.9.1_iqqktkndlpjcw7xba3ta44d6ve
@@ -7638,6 +7640,15 @@ packages:
     transitivePeerDependencies:
       - supports-color
 
+  /jest-serializer-path/0.1.15:
+    resolution: {integrity: sha512-sXb+Ckz9LK5bB5sRAXFeG/nwhGn1XBKayy9xhPpgOmAWaljJiS+VN/xJ3P4I19jZ+WejowvO/kES+A9HePTMvQ==}
+    engines: {node: '>=6.4.x', npm: '>=3.10.3'}
+    dependencies:
+      lodash.clonedeep: 4.5.0
+      lodash.iserror: 3.1.1
+      slash: 2.0.0
+    dev: true
+
   /jest-snapshot/29.0.3:
     resolution: {integrity: sha512-52q6JChm04U3deq+mkQ7R/7uy7YyfVIrebMi6ZkBoDJ85yEjm/sJwdr1P0LOIEHmpyLlXrxy3QP0Zf5J2kj0ew==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
@@ -7975,12 +7986,20 @@ packages:
     resolution: {integrity: sha512-TwuEnCnxbc3rAvhf/LbG7tJUDzhqXyFnv3dtzLOPgCG/hODL7WFnsbwktkD7yUV0RrreP/l1PALq/YSg6VvjlA==}
     dev: false
 
+  /lodash.clonedeep/4.5.0:
+    resolution: {integrity: sha512-H5ZhCF25riFd9uB5UCkVKo61m3S/xZk1x4wA6yp/L3RFP6Z/eHH1ymQcGLo7J3GMPfm0V/7m1tryHuGVxpqEBQ==}
+    dev: true
+
   /lodash.debounce/4.0.8:
     resolution: {integrity: sha512-FT1yDzDYEoYWhnSGnpE/4Kj1fLZkDFyqRb7fNt6FdYOSxlUWAtp42Eh6Wb0rGIv/m9Bgo7x4GhQbm5Ys4SG5ow==}
     dev: false
 
   /lodash.get/4.4.2:
     resolution: {integrity: sha512-z+Uw/vLuy6gQe8cfaFWD7p0wVv8fJl3mbzXh33RS+0oW2wvUqiRXiQ69gLWSLpgB5/6sU+r6BlQR0MBILadqTQ==}
+    dev: true
+
+  /lodash.iserror/3.1.1:
+    resolution: {integrity: sha512-eT/VeNns9hS7vAj1NKW/rRX6b+C3UX3/IAAqEE7aC4Oo2C0iD82NaP5IS4bSlQsammTii4qBJ8G1zd1LTL8hCw==}
     dev: true
 
   /lodash.memoize/4.1.2:
@@ -9582,6 +9601,11 @@ packages:
   /skmeans/0.9.7:
     resolution: {integrity: sha512-hNj1/oZ7ygsfmPZ7ZfN5MUBRoGg1gtpnImuJBgLO0ljQ67DtJuiQaiYdS4lUA6s0KCwnPhGivtC/WRwIZLkHyg==}
     dev: false
+
+  /slash/2.0.0:
+    resolution: {integrity: sha512-ZYKh3Wh2z1PpEXWr0MpSBZ0V6mZHAQfYevttO11c51CaWjGTaadiKZ+wVt1PbMlDV5qhMFslpZCemhwOK7C89A==}
+    engines: {node: '>=6'}
+    dev: true
 
   /slash/3.0.0:
     resolution: {integrity: sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q==}
