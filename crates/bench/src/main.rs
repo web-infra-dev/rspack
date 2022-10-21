@@ -18,7 +18,7 @@ async fn main() {
   println!("{:?}", bundle_dir);
   let mut options = read_test_config_and_normalize(&bundle_dir);
 
-  options.emit_error = true;
+  options.emit_error = false;
   let start = Instant::now();
   // println!("{:?}", options);
   let mut compiler = rspack::rspack(options, Default::default());

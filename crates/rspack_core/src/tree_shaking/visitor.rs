@@ -1,10 +1,10 @@
 use std::{collections::VecDeque, hash::Hash};
 
 use bitflags::bitflags;
-use swc_atoms::{js_word, JsWord};
+use swc_atoms::JsWord;
 use swc_common::{
   collections::{AHashMap, AHashSet},
-  Globals, Mark, SyntaxContext, GLOBALS,
+  Mark, GLOBALS,
 };
 use swc_ecma_ast::*;
 use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
@@ -42,7 +42,8 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) reference_map: AHashMap<BetterId, AHashSet<BetterId>>,
   pub(crate) reachable_import_of_export: AHashMap<JsWord, AHashSet<SymbolRef>>,
   state: AnalyzeState,
-  // pub(crate) used_set: AHashSet<BetterId>,
+  pub(crate) used_id_set: AHashSet<BetterId>,
+  pub(crate) used_symbol_ref: AHashSet<SymbolRef>,
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
@@ -64,7 +65,8 @@ impl<'a> ModuleRefAnalyze<'a> {
       reference_map: AHashMap::default(),
       reachable_import_of_export: AHashMap::default(),
       state: AnalyzeState::empty(),
-      // used_set: AHashSet::default(),
+      used_id_set: AHashSet::default(),
+      used_symbol_ref: AHashSet::default(),
     }
   }
 
@@ -120,6 +122,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   fn visit_program(&mut self, node: &Program) {
     assert!(GLOBALS.is_set());
     node.visit_children_with(self);
+    // calc reachable imports for each export symbol defined in current module
     for (key, symbol) in self.export_map.iter() {
       match symbol {
         // At this time uri of symbol will always equal to `self.module_identifier`
@@ -133,12 +136,26 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         SymbolRef::Indirect(_) | SymbolRef::Star(_) => {}
       }
     }
+    // each used variable maybe related to some indirect symbol ref
+    self.used_symbol_ref = self
+      .used_id_set
+      .iter()
+      .filter_map(|id| self.import_map.get(id).map(|symbol_ref| symbol_ref.clone()))
+      .collect::<AHashSet<_>>();
   }
   fn visit_ident(&mut self, node: &Ident) {
     let id: BetterId = node.to_id().into();
     let marker = id.ctxt.outer();
-    if let Some(ref region) = self.current_region && marker == self.top_level_mark && region != &id {
-      self.add_reference(region.clone(), id);
+    if marker == self.top_level_mark {
+      match self.current_region {
+        Some(ref region) if region != &id => {
+          self.add_reference(region.clone(), id);
+        }
+        _ if marker != self.unresolved_mark => {
+          self.used_id_set.insert(id);
+        }
+        _ => {}
+      }
     }
   }
 
@@ -456,6 +473,7 @@ pub(crate) struct TreeShakingResult {
   pub(crate) reference_map: AHashMap<BetterId, AHashSet<BetterId>>,
   pub(crate) reachable_import_of_export: AHashMap<JsWord, AHashSet<SymbolRef>>,
   state: AnalyzeState,
+  pub(crate) used_symbol_ref: AHashSet<SymbolRef>,
 }
 
 impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
@@ -471,6 +489,7 @@ impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
       reference_map: std::mem::take(&mut analyze.reference_map),
       reachable_import_of_export: std::mem::take(&mut analyze.reachable_import_of_export),
       state: std::mem::take(&mut analyze.state),
+      used_symbol_ref: std::mem::take(&mut analyze.used_symbol_ref),
     }
   }
 }
