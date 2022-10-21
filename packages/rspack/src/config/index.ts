@@ -22,6 +22,7 @@ import { resolveModuleOptions } from "./module";
 import { resolveBuiltinsOptions } from "./builtins";
 import { resolveResolveOptions } from "./resolve";
 import { resolveEntry } from "./entry";
+import { InfrastructureLogging } from "./RspackOptions";
 
 export type Asset = {
 	source: string;
@@ -42,9 +43,9 @@ export interface RspackOptions {
 	builtins?: Builtins;
 	resolve?: Resolve;
 	devtool?: Devtool;
+	infrastructureLogging?: InfrastructureLogging;
 }
-
-export interface ResolvedRspackOptions {
+export interface RspackOptionsNormalized {
 	entry: ResolvedEntry;
 	context: ResolvedContext;
 	plugins: Plugin[];
@@ -58,11 +59,12 @@ export interface ResolvedRspackOptions {
 	builtins: ResolvedBuiltins;
 	resolve: ResolvedResolve;
 	devtool: ResolvedDevtool;
+	infrastructureLogging: InfrastructureLogging;
 }
 
 export function getNormalizedRspackOptions(
 	config: RspackOptions
-): ResolvedRspackOptions {
+): RspackOptionsNormalized {
 	const context = config.context ?? process.cwd();
 	const mode = config.mode ?? "development";
 	const devServer = resolveDevOptions(config.devServer, { context });
@@ -81,6 +83,7 @@ export function getNormalizedRspackOptions(
 	const module = resolveModuleOptions(config.module, { devtool, context });
 
 	return {
+		...config,
 		context,
 		mode,
 		devServer,
@@ -93,8 +96,12 @@ export function getNormalizedRspackOptions(
 		builtins,
 		module,
 		resolve,
-		devtool
+		devtool,
+		infrastructureLogging: cloneObject(config.infrastructureLogging)
 	};
 }
 
+function cloneObject(value: Record<string, any> | undefined) {
+	return { ...value };
+}
 export type { Plugin };

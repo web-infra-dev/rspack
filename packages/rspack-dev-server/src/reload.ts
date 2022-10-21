@@ -1,4 +1,4 @@
-import type { ResolvedRspackOptions } from "@rspack/core";
+import type { RspackOptionsNormalized } from "@rspack/core";
 
 interface Status {
 	isUnloading: boolean;
@@ -7,7 +7,7 @@ interface Status {
 }
 
 export function reloadApp(
-	{ liveReload, hmr }: ResolvedRspackOptions["devServer"],
+	{ liveReload, hmr }: RspackOptionsNormalized["devServer"],
 	status: Status
 ) {
 	if (status.isUnloading) {

@@ -20,7 +20,6 @@ export function resolveBuiltinsOptions(
 	const browserslist = loadConfig({ path: contextPath }) || [];
 	return {
 		...builtins,
-		browserslist,
-		define: resolveDefine(builtins.define)
+		browserslist
 	};
 }

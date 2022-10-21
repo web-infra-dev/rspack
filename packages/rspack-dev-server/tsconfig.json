@@ -6,5 +6,10 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src"
-  }
+  },
+  "references": [
+    {
+      "path": "../rspack-dev-middleware"
+    }
+  ]
 }
