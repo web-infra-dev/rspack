@@ -37,7 +37,8 @@ impl Rspack {
     plugin_callbacks: Option<PluginCallbacks>,
   ) -> Result<Self> {
     Self::prepare_environment(&env, &mut options);
-
+    rspack_tracing::enable_tracing_by_env();
+    tracing::info!("raw_options: {:?}", &options);
     let compiler_options = create_node_adapter_from_plugin_callbacks(env, plugin_callbacks)
       .and_then(|node_adapter| {
         let mut compiler_options =
@@ -67,9 +68,8 @@ impl Rspack {
 
         Ok(compiler_options)
       })?;
-
+    tracing::info!("normalized_options: {:?}", &compiler_options);
     let rspack = rspack::rspack(compiler_options, vec![]);
-
     Ok(Self {
       inner: Arc::pin(RwLock::new(rspack)),
     })
