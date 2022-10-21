@@ -8,11 +8,11 @@ use rspack_loader_runner::ResourceData;
 use tracing::instrument;
 
 use crate::{
-  ApplyContext, BoxedParserAndGeneratorBuilder, Compilation, CompilerOptions, Content,
+  ApplyContext, BoxedParserAndGeneratorBuilder, Compilation, CompilerOptions, Content, DoneArgs,
   FactorizeAndBuildArgs, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
   PluginBuildEndHookOutput, PluginContext, PluginFactorizeAndBuildHookOutput,
   PluginProcessAssetsOutput, PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput,
-  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, Resolver,
+  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, Resolver, Stats,
 };
 use rspack_error::{Diagnostic, Result};
 
@@ -199,9 +199,11 @@ impl PluginDriver {
     Ok(())
   }
   #[instrument(name = "plugin:done", skip_all)]
-  pub async fn done(&mut self) -> PluginBuildEndHookOutput {
+  pub async fn done<'s, 'c>(&mut self, stats: &'s mut Stats<'c>) -> PluginBuildEndHookOutput {
     for plugin in &mut self.plugins {
-      plugin.done().await?;
+      plugin
+        .done(PluginContext::new(), DoneArgs { stats })
+        .await?;
     }
     Ok(())
   }

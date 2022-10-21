@@ -367,8 +367,8 @@ impl NormalModule {
   }
 
   #[inline(always)]
-  pub fn module_type(&self) -> &ModuleType {
-    &self.module_type
+  pub fn module_type(&self) -> ModuleType {
+    self.module_type
   }
 
   #[inline(always)]

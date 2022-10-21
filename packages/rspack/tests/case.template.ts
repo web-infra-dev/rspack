@@ -63,13 +63,14 @@ export function describeCases(config: { name: string; casePath: string }) {
 							};
 
 							const stats = await util.promisify(rspack)(options);
-							if (stats.errors.length > 0) {
+							const statsJson = stats.toJson();
+							if (statsJson.errors.length > 0) {
 								console.log(
 									`case: ${example}\nerrors:\n`,
-									`${stats.errors.map(x => x.message).join("\n")}`
+									`${statsJson.errors.map(x => x.message).join("\n")}`
 								);
 							}
-							assert(stats.errors.length === 0);
+							assert(statsJson.errors.length === 0);
 						});
 						// this will run the compiled test code to test against itself, a genius idea from webpack
 						it(`${example} should load the compiled test`, async () => {

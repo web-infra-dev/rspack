@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use crate::{
-  BoxModule, FactorizeAndBuildArgs, ModuleType, NormalModule, NormalModuleFactoryContext,
+  BoxModule, DoneArgs, FactorizeAndBuildArgs, ModuleType, NormalModule, NormalModuleFactoryContext,
   OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderManifestArgs,
   RenderRuntimeArgs, TransformAst, TransformResult,
 };
@@ -44,7 +44,11 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn done(&mut self) -> PluginBuildEndHookOutput {
+  async fn done<'s, 'c>(
+    &mut self,
+    _ctx: PluginContext,
+    _args: DoneArgs<'s, 'c>,
+  ) -> PluginBuildEndHookOutput {
     Ok(())
   }
 

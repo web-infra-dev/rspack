@@ -1,6 +1,6 @@
-use napi::{bindgen_prelude::*, Env, NapiRaw};
+use napi::{bindgen_prelude::*, Env, JsObject, NapiRaw, NapiValue};
 
-use crate::{BoxedClosure, PluginCallbacks};
+use crate::{js_values::StatsCompilation, BoxedClosure, PluginCallbacks};
 
 pub fn create_node_adapter_from_plugin_callbacks(
   env: Env,
@@ -12,12 +12,17 @@ pub fn create_node_adapter_from_plugin_callbacks(
          done_callback,
          process_assets_callback,
        }| {
-        let done_tsfn: crate::threadsafe_function::ThreadsafeFunction<(), ()> = {
+        let done_tsfn: crate::threadsafe_function::ThreadsafeFunction<StatsCompilation, ()> = {
           let cb = unsafe { done_callback.raw() };
 
           crate::threadsafe_function::ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
             let (ctx, resolver) = ctx.split_into_parts();
-            let result = ctx.callback.call_without_args(None)?;
+            let stats_json = unsafe {
+              let raw =
+                napi::bindgen_prelude::ToNapiValue::to_napi_value(ctx.env.raw(), ctx.value)?;
+              JsObject::from_raw_unchecked(ctx.env.raw(), raw)
+            };
+            let result = ctx.callback.call(None, &[stats_json])?;
 
             resolver.resolve::<()>(result, |_| Ok(()))
           })
