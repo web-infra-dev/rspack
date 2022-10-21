@@ -5,7 +5,7 @@ function b() {
 	c(a);
 }
 
-export { a, b, c };
+export { a, b };
 
 export function c() {
 	class Test {
@@ -16,4 +16,6 @@ export function c() {
 	function result() {}
 }
 export const dddd = c;
+dddd;
+c;
 // export default 20;

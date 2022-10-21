@@ -518,21 +518,33 @@ impl Compilation {
           &analyzer.export_map,
           &analyzer.import_map,
           &analyzer.reference_map,
-          &analyzer.reachable_import_of_export
+          &analyzer.reachable_import_of_export,
+          &analyzer.used_symbol_ref
         );
         Some((uri_key, analyzer.into()))
       })
       .collect::<HashMap<Ustr, TreeShakingResult>>();
-
+    let mut used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
+    for analyze_result in analyze_results.values() {
+      used_symbol_ref.extend(analyze_result.used_symbol_ref.clone().into_iter());
+    }
     // topological sort of export_all_list
 
-    // reaching definition
     let mut used_symbol = HashSet::new();
     println!("---------------------------------");
+    // mark used symbol for each module
+    let temp_used_symbol = mark_used_symbol(
+      &analyze_results,
+      VecDeque::from_iter(used_symbol_ref.into_iter()),
+    );
+    used_symbol.extend(temp_used_symbol);
+
+    // reaching definition
     for entry in self.entry_modules() {
-      let used_symbol_set = mark_used_symbol(self, &analyze_results, ustr(&entry));
+      let used_symbol_set = collect_reachable_symbol(self, &analyze_results, ustr(&entry));
       used_symbol.extend(used_symbol_set);
     }
+
     dbg!(&used_symbol);
 
     Ok(())
@@ -675,7 +687,7 @@ pub struct AssetInfoRelated {
   pub source_map: Option<String>,
 }
 
-fn mark_used_symbol(
+fn collect_reachable_symbol(
   compilation: &mut Compilation,
   analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
   entry_identifier: Ustr,
@@ -686,7 +698,6 @@ fn mark_used_symbol(
 
   for import_list in entry_module_result.reachable_import_of_export.values() {
     q.extend(import_list.clone());
-    dbg!(&q);
   }
 
   for item in entry_module_result.export_map.values() {
@@ -695,6 +706,18 @@ fn mark_used_symbol(
 
   while let Some(sym_ref) = q.pop_front() {
     mark_symbol(sym_ref, &mut used_symbol_set, analyze_map, &mut q);
+  }
+  used_symbol_set
+}
+
+fn mark_used_symbol(
+  analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
+  mut init_queue: VecDeque<SymbolRef>,
+) -> HashSet<Symbol> {
+  let mut used_symbol_set = HashSet::new();
+
+  while let Some(sym_ref) = init_queue.pop_front() {
+    mark_symbol(sym_ref, &mut used_symbol_set, analyze_map, &mut init_queue);
   }
   used_symbol_set
 }
@@ -727,7 +750,7 @@ fn mark_symbol(
     SymbolRef::Star(star) => {
       let module_result = analyze_map.get(&star).unwrap();
       for symbol_ref in module_result.export_map.values() {
-        dbg!(&symbol_ref);
+        // dbg!(&symbol_ref);
         q.push_back(symbol_ref.clone());
       }
     }

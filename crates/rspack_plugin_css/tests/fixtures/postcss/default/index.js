@@ -4,8 +4,10 @@ import { a, dddd } from "./test";
 // export { default as c, a } from "./test.js";
 
 // export const c = ccc;
-console.log();
 export function test() {
-	a;
-	dddd;
+	a();
+	dddd();
 }
+
+// a;
+// dddd;
