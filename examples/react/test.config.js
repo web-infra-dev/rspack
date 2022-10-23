@@ -7,9 +7,6 @@ module.exports = {
     // publicPath : 'http://localhost:3000',
     // filename: '[name].[contenthash:8][ext]',
   },
-  define : {
-    'process.env.NODE_ENV' : 'development',
-  },
   devServer: {
     webSocketServer: true
   },
@@ -27,5 +24,9 @@ module.exports = {
     html : [{
       template: './index.html'
     }],
+    define : {
+      'process.env.NODE_ENV' : 'development',
+    },
+    progress: {}
   },
 };
