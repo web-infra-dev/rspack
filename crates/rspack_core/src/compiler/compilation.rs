@@ -48,6 +48,7 @@ pub struct Compilation {
   pub(crate) _named_chunk: HashMap<String, ChunkUkey>,
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   pub entry_module_identifiers: HashSet<String>,
+  pub used_symbol: HashSet<Symbol>,
 }
 impl Compilation {
   pub fn new(
@@ -75,6 +76,7 @@ impl Compilation {
       _named_chunk: Default::default(),
       named_chunk_groups: Default::default(),
       entry_module_identifiers: HashSet::new(),
+      used_symbol: HashSet::new(),
     }
   }
   pub fn add_entry(&mut self, name: String, detail: EntryItem) {
@@ -474,7 +476,7 @@ impl Compilation {
       .ok();
   }
 
-  pub async fn optimize_dependency(&mut self) -> Result<()> {
+  pub async fn optimize_dependency(&mut self) -> Result<HashSet<Symbol>> {
     let analyze_results = self
       .module_graph
       .module_identifier_to_module_graph_module
@@ -512,15 +514,15 @@ impl Compilation {
         GLOBALS.set(globals.unwrap(), || {
           ast.visit_with(&mut analyzer);
         });
-        // dbg!(
-        // &uri_key,
-        // &analyzer.export_all_list,
-        // &analyzer.export_map,
-        // &analyzer.import_map,
-        // &analyzer.reference_map,
-        // &analyzer.reachable_import_of_export,
-        // &analyzer.used_symbol_ref
-        // );
+        dbg!(
+          // &uri_key,
+          // &analyzer.export_all_list,
+          // &analyzer.export_map,
+          // &analyzer.import_map,
+          // &analyzer.reference_map,
+          // &analyzer.reachable_import_of_export,
+          // &analyzer.used_symbol_ref
+        );
         Some((uri_key, analyzer.into()))
       })
       .collect::<HashMap<Ustr, TreeShakingResult>>();
@@ -533,21 +535,22 @@ impl Compilation {
     let mut used_symbol = HashSet::new();
     println!("---------------------------------");
     // mark used symbol for each module
-    let temp_used_symbol = mark_used_symbol(
+    let used_symbol_from_import = mark_used_symbol(
       &analyze_results,
       VecDeque::from_iter(used_symbol_ref.into_iter()),
     );
-    used_symbol.extend(temp_used_symbol);
 
+    used_symbol.extend(used_symbol_from_import);
+    dbg!(&used_symbol);
     // reaching definition
     for entry in self.entry_modules() {
       let used_symbol_set = collect_reachable_symbol(self, &analyze_results, ustr(&entry));
       used_symbol.extend(used_symbol_set);
     }
 
-    dbg!(&used_symbol);
+    // dbg!(&used_symbol);
 
-    Ok(())
+    Ok(used_symbol)
   }
 
   pub async fn done(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
@@ -756,8 +759,8 @@ fn mark_symbol(
     }
     SymbolRef::Star(star) => {
       let module_result = analyze_map.get(&star).unwrap();
+      dbg!(&module_result.export_map);
       for symbol_ref in module_result.export_map.values() {
-        // dbg!(&symbol_ref);
         q.push_back(symbol_ref.clone());
       }
     }

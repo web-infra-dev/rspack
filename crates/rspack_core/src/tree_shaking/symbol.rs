@@ -12,7 +12,7 @@ bitflags! {
 
 }
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
-pub(crate) struct Symbol {
+pub struct Symbol {
   pub(crate) uri: Ustr,
   pub(crate) id: BetterId,
 }
