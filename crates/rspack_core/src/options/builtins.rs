@@ -8,4 +8,5 @@ pub struct Builtins {
   pub polyfill: bool,
   pub browserslist: Vec<String>,
   pub define: Define,
+  pub tree_shaking: bool,
 }
