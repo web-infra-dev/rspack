@@ -142,6 +142,11 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       .iter()
       .filter_map(|id| self.import_map.get(id).map(|symbol_ref| symbol_ref.clone()))
       .collect::<AHashSet<_>>();
+    // all reachable import from used symbol in current module
+    for used_id in &self.used_id_set {
+      let reachable_import = self.get_all_import(used_id.clone());
+      self.used_symbol_ref.extend(reachable_import);
+    }
   }
   fn visit_ident(&mut self, node: &Ident) {
     let id: BetterId = node.to_id().into();
