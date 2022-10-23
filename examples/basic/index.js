@@ -1,3 +1,4 @@
-import { render } from "./app";
+import * as test from "./app";
 
 // render();
+test.result();

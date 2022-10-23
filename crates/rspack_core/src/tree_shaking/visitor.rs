@@ -205,38 +205,36 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               }
             });
         }
-        ModuleDecl::ExportDecl(decl) => {
-          self.state |= AnalyzeState::EXPORT_DEFAULT;
-          match &decl.decl {
-            Decl::Class(class) => {
-              class.visit_with(self);
-              self.add_export(
-                class.ident.sym.clone(),
-                SymbolRef::Direct(Symbol::from_id_and_uri(
-                  class.ident.to_id().into(),
-                  self.module_identifier,
-                )),
-              );
-            }
-            Decl::Fn(function) => {
-              function.visit_with(self);
-              self.add_export(
-                function.ident.sym.clone(),
-                SymbolRef::Direct(Symbol::from_id_and_uri(
-                  function.ident.to_id().into(),
-                  self.module_identifier,
-                )),
-              );
-            }
-            Decl::Var(var) => {
-              var.visit_with(self);
-            }
-            Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
-              todo!()
-            }
+        ModuleDecl::ExportDecl(decl) => match &decl.decl {
+          Decl::Class(class) => {
+            class.visit_with(self);
+            self.add_export(
+              class.ident.sym.clone(),
+              SymbolRef::Direct(Symbol::from_id_and_uri(
+                class.ident.to_id().into(),
+                self.module_identifier,
+              )),
+            );
           }
-          self.state.remove(AnalyzeState::EXPORT_DEFAULT);
-        }
+          Decl::Fn(function) => {
+            function.visit_with(self);
+            self.add_export(
+              function.ident.sym.clone(),
+              SymbolRef::Direct(Symbol::from_id_and_uri(
+                function.ident.to_id().into(),
+                self.module_identifier,
+              )),
+            );
+          }
+          Decl::Var(var) => {
+            self.state |= AnalyzeState::EXPORT_DEFAULT;
+            var.visit_with(self);
+            self.state.remove(AnalyzeState::EXPORT_DEFAULT);
+          }
+          Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
+            todo!()
+          }
+        },
         ModuleDecl::ExportNamed(named_export) => {
           self.analyze_named_export(named_export);
         }
