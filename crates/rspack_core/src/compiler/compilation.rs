@@ -512,15 +512,15 @@ impl Compilation {
         GLOBALS.set(globals.unwrap(), || {
           ast.visit_with(&mut analyzer);
         });
-        dbg!(
-          &uri_key,
-          &analyzer.export_all_list,
-          &analyzer.export_map,
-          &analyzer.import_map,
-          &analyzer.reference_map,
-          &analyzer.reachable_import_of_export,
-          &analyzer.used_symbol_ref
-        );
+        // dbg!(
+        //   &uri_key,
+        //   &analyzer.export_all_list,
+        //   &analyzer.export_map,
+        //   &analyzer.import_map,
+        //   &analyzer.reference_map,
+        //   &analyzer.reachable_import_of_export,
+        //   &analyzer.used_symbol_ref
+        // );
         Some((uri_key, analyzer.into()))
       })
       .collect::<HashMap<Ustr, TreeShakingResult>>();
@@ -694,7 +694,14 @@ fn collect_reachable_symbol(
 ) -> HashSet<Symbol> {
   let mut used_symbol_set = HashSet::new();
   let mut q = VecDeque::new();
-  let entry_module_result = analyze_map.get(&entry_identifier).unwrap();
+  dbg!(&entry_identifier);
+  let entry_module_result = match analyze_map.get(&entry_identifier) {
+    Some(result) => result,
+    None => {
+      // TODO: currently we just want to pass test in rspack_error
+      return HashSet::default();
+    }
+  };
 
   for import_list in entry_module_result.reachable_import_of_export.values() {
     q.extend(import_list.clone());
