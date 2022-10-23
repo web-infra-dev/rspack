@@ -92,8 +92,11 @@ impl Compiler {
 
   #[instrument(name = "compile")]
   async fn compile(&mut self, deps: HashMap<String, Dependency>) -> Result<()> {
+    let option = self.options.clone();
     self.compilation.make(deps).await;
-    // self.compilation.optimize_dependency().await?;
+    if option.builtins.tree_shaking {
+      self.compilation.optimize_dependency().await?;
+    }
     self.compilation.seal(self.plugin_driver.clone()).await?;
 
     // Consume plugin driver diagnostic

@@ -27,6 +27,7 @@ pub struct RawBuiltins {
   pub browserslist: Option<Vec<String>>,
   #[napi(ts_type = "Record<string, string>")]
   pub define: Option<Define>,
+  pub tree_shaking: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -39,6 +40,7 @@ pub struct RawBuiltins {
   pub polyfill: Option<bool>,
   pub browserslist: Option<Vec<String>>,
   pub define: Option<Define>,
+  pub tree_shaking: Option<bool>,
 }
 
 pub(super) fn normalize_builtin(
@@ -68,6 +70,7 @@ pub(super) fn normalize_builtin(
       .unwrap_or(matches!(options.mode, Some(Mode::Production))),
     polyfill: builtins.polyfill.unwrap_or(true),
     define: builtins.define.unwrap_or_default(),
+    tree_shaking: builtins.tree_shaking.unwrap_or_default(),
   })
 }
 
