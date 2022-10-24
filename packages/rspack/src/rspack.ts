@@ -1,6 +1,6 @@
 import { getNormalizedRspackOptions, RspackOptions } from "./config";
 import { Compiler } from "./compiler";
-import type { Stats } from "@rspack/binding";
+import type { StatsCompilation } from "@rspack/binding";
 import util from "util";
 import {
 	applyRspackOptionsBaseDefaults,
@@ -8,6 +8,8 @@ import {
 } from "./config/defaults";
 import createConsoleLogger from "./logging/createConsoleLogger";
 import nodeConsole from "./node/nodeConsole";
+import { Stats } from "./stats";
+
 type Callback<T> = (err: Error, t: T) => void;
 function createCompiler(userOptions: RspackOptions) {
 	const options = getNormalizedRspackOptions(userOptions);
@@ -47,10 +49,7 @@ function rspack(options: RspackOptions, callback: Callback<Stats>): Compiler {
 	let compiler = createCompiler(options);
 	const doRun = async () => {
 		const stats = await compiler.build();
-		if (stats.errors.length > 0) {
-			throw new Error(stats.errors[0].message);
-		}
-		return stats;
+		return new Stats(compiler.compilation, stats);
 	};
 	if (callback) {
 		util.callbackify(doRun)(callback);

@@ -75,7 +75,7 @@ impl Rspack {
     })
   }
 
-  #[napi(ts_return_type = "Promise<Stats>")]
+  #[napi(ts_return_type = "Promise<StatsCompilation>")]
   pub fn build(&self, env: Env) -> Result<JsObject> {
     let inner = self.inner.clone();
     env.execute_tokio_future(
@@ -87,7 +87,7 @@ impl Rspack {
           .await
           .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
 
-        let stats: Stats = rspack_stats.into();
+        let stats: StatsCompilation = rspack_stats.to_description().into();
         if stats.errors.is_empty() {
           tracing::info!("build success");
         } else {

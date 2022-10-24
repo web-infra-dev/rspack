@@ -9,7 +9,7 @@ use hashbrown::HashMap;
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::instrument;
 
-use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result};
+use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity};
 use rspack_sources::BoxSource;
 
 use crate::{
@@ -17,7 +17,7 @@ use crate::{
   ChunkGroupUkey, ChunkKind, ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint,
   LoaderRunnerRunner, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg,
   NormalModule, NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs,
-  RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver,
+  RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver, Stats,
   VisitedModuleIdentity,
 };
 
@@ -84,6 +84,13 @@ impl Compilation {
 
   pub fn push_batch_diagnostic(&mut self, mut diagnostic: Vec<Diagnostic>) {
     self.diagnostic.append(&mut diagnostic);
+  }
+
+  pub fn get_errors(&self) -> impl Iterator<Item = &Diagnostic> {
+    self
+      .diagnostic
+      .iter()
+      .filter(|d| matches!(d.severity, Severity::Error))
   }
 
   pub(crate) fn add_chunk(
@@ -452,7 +459,8 @@ impl Compilation {
       .ok();
   }
   pub async fn done(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    plugin_driver.write().await.done().await?;
+    let stats = &mut Stats::new(self);
+    plugin_driver.write().await.done(stats).await?;
     Ok(())
   }
   #[instrument(name = "compilation:render_runtime")]

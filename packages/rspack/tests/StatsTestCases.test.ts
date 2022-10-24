@@ -1,6 +1,11 @@
 import path from "path";
 import fs from "fs";
-import { createCompiler, rspack, RspackOptions } from "../src";
+import util from "util";
+import { rspack, RspackOptions } from "../src";
+import serializer from "jest-serializer-path";
+
+expect.addSnapshotSerializer(serializer);
+
 const base = path.resolve(__dirname, "statsCases");
 const outputBase = path.resolve(__dirname, "stats");
 const tests = fs.readdirSync(base).filter(testName => {
@@ -40,14 +45,15 @@ describe("StatsTestCases", () => {
 				externals: external,
 				...config // we may need to use deepMerge to handle config merge, but we may fix it until we need it
 			};
-			const stats = await createCompiler(options).build();
+			const stats = await util.promisify(rspack)(options);
+			const stateJson = stats.toJson();
 			// case ends with error should generate errors
 			if (/error$/.test(testName)) {
-				expect(stats.errors.length > 0);
+				expect(stateJson.errors.length > 0);
 			} else {
-				expect(stats.errors.length === 0);
+				expect(stateJson.errors.length === 0);
 			}
-			expect(stats).toMatchSnapshot();
+			expect(stateJson).toMatchSnapshot();
 		});
 	});
 });

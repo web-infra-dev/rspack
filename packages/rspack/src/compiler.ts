@@ -160,9 +160,8 @@ class Compiler {
 	 * @param value
 	 * @returns
 	 */
-	async #done(value: any) {
-		// @todo value is empty, since we didn't pass to binding
-		const stats = new Stats({} as any, value);
+	async #done(statsJson: binding.StatsCompilation) {
+		const stats = new Stats(this.compilation, statsJson);
 		await this.hooks.done.promise(stats);
 	}
 	async #processAssets(value: string, emitAsset: any) {
