@@ -37,8 +37,8 @@ describe("Stats", () => {
 		  "chunks": [
 		    {
 		      "files": [
-		        "runtime.js",
 		        "main.js",
+		        "runtime.js",
 		      ],
 		      "id": "main",
 		      "type": "chunk",
