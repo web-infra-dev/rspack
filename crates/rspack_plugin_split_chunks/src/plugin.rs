@@ -292,20 +292,19 @@ impl Plugin for SplitChunksPlugin {
     //   .collect::<Vec<_>>();
     let mut chunks_info_map: HashMap<String, ChunksInfoItem> = Default::default();
 
-    for module in compilation.module_graph.modules() {
-      println!("process module {:?}", module.uri);
+    for module in compilation.module_graph.module_graph_modules() {
       let cache_group_source_keys = self.get_cache_groups(module);
       if cache_group_source_keys.is_empty() {
         continue;
       }
-      println!("cache_group_source_keys {:?}", cache_group_source_keys);
+      tracing::debug!("cache_group_source_keys {:?}", cache_group_source_keys);
 
       let mut cache_group_index = 0;
       for cache_group_source in cache_group_source_keys {
         let cache_group = self.cache_group_by_key.get(&cache_group_source).unwrap();
         let combinations = compilation.chunk_graph.get_modules_chunks(&module.uri);
         if combinations.len() < cache_group.min_chunks {
-          println!(
+          tracing::debug!(
             "bailout because of combinations.len() {:?} < {:?} cache_group.min_chunks",
             combinations.len(),
             cache_group.min_chunks
@@ -319,7 +318,7 @@ impl Plugin for SplitChunksPlugin {
           .filter(|c| (cache_group.chunks_filter)(c))
           .collect::<Vec<_>>();
 
-        println!("selected_chunks {:?}", selected_chunks);
+        tracing::debug!("selected_chunks {:?}", selected_chunks);
         self.add_module_to_chunks_info_map(
           cache_group,
           cache_group_index,
