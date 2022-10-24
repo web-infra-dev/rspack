@@ -159,13 +159,13 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
   fn visit_ident(&mut self, node: &swc_ecma_ast::Ident) {
     let id: BetterId = node.to_id().into();
-    let marker = id.ctxt.outer();
-    if marker == self.top_level_mark {
+    let mark = id.ctxt.outer();
+    if mark == self.top_level_mark {
       match self.current_region {
         Some(ref region) if region != &id => {
           self.add_reference(region.clone(), id);
         }
-        _ if marker != self.unresolved_mark => {
+        _ if mark != self.unresolved_mark => {
           self.used_id_set.insert(id);
         }
         _ => {}
