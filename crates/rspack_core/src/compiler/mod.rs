@@ -95,7 +95,12 @@ impl Compiler {
     let option = self.options.clone();
     self.compilation.make(deps).await;
     if option.builtins.tree_shaking {
-      self.compilation.used_symbol = self.compilation.optimize_dependency().await?;
+      let (used_symbol, analyze_result) = self.compilation.optimize_dependency().await?;
+      self.compilation.used_symbol = used_symbol;
+      // #[cfg(debug_assertions)]
+      if cfg!(debug_assertions) {
+        self.compilation.tree_shaking_result = analyze_result;
+      }
     }
     self.compilation.seal(self.plugin_driver.clone()).await?;
 

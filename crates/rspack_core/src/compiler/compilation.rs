@@ -49,6 +49,8 @@ pub struct Compilation {
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   pub entry_module_identifiers: HashSet<String>,
   pub used_symbol: HashSet<Symbol>,
+  #[cfg(debug_assertions)]
+  pub tree_shaking_result: HashMap<Ustr, TreeShakingResult>,
 }
 impl Compilation {
   pub fn new(
@@ -77,6 +79,8 @@ impl Compilation {
       named_chunk_groups: Default::default(),
       entry_module_identifiers: HashSet::new(),
       used_symbol: HashSet::new(),
+      #[cfg(debug_assertions)]
+      tree_shaking_result: HashMap::new(),
     }
   }
   pub fn add_entry(&mut self, name: String, detail: EntryItem) {
@@ -476,7 +480,9 @@ impl Compilation {
       .ok();
   }
 
-  pub async fn optimize_dependency(&mut self) -> Result<HashSet<Symbol>> {
+  pub async fn optimize_dependency(
+    &mut self,
+  ) -> Result<(HashSet<Symbol>, HashMap<Ustr, TreeShakingResult>)> {
     let analyze_results = self
       .module_graph
       .module_identifier_to_module_graph_module
@@ -550,7 +556,7 @@ impl Compilation {
 
     // dbg!(&used_symbol);
 
-    Ok(used_symbol)
+    Ok((used_symbol, analyze_results))
   }
 
   pub async fn done(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
