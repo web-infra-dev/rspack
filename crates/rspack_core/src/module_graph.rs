@@ -112,7 +112,7 @@ impl ModuleGraph {
       .dependency_to_dependency_id
       .get(dep)
       .and_then(|id| self.dependency_id_to_module_identifier.get(id))
-      .and_then(|module_identifier| self.module_by_identifier(&module_identifier))
+      .and_then(|module_identifier| self.module_by_identifier(module_identifier))
   }
 
   pub fn module_uri_by_deppendency(&self, dep: &Dependency) -> Option<&String> {

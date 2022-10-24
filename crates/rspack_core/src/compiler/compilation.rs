@@ -550,7 +550,7 @@ impl Compilation {
     dbg!(&used_symbol);
     // reaching definition
     for entry in self.entry_modules() {
-      let used_symbol_set = collect_reachable_symbol(self, &analyze_results, ustr(&entry));
+      let used_symbol_set = collect_reachable_symbol(&analyze_results, ustr(&entry));
       used_symbol.extend(used_symbol_set);
     }
 
@@ -697,7 +697,6 @@ pub struct AssetInfoRelated {
 }
 
 fn collect_reachable_symbol(
-  compilation: &mut Compilation,
   analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
   entry_identifier: Ustr,
 ) -> HashSet<Symbol> {
