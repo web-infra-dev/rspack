@@ -638,7 +638,7 @@ describe("Compiler", () => {
 			runCb();
 		});
 	});
-	it.skip("should call afterDone hook after other callbacks (instance cb)", done => {
+	it.only("should call afterDone hook after other callbacks (instance cb)", done => {
 		const instanceCb = jest.fn();
 		compiler = rspack(
 			{

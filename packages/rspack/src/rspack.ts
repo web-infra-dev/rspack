@@ -48,12 +48,8 @@ function createCompiler(userOptions: RspackOptions) {
 }
 function rspack(options: RspackOptions, callback: Callback<Stats>): Compiler {
 	let compiler = createCompiler(options);
-	const doRun = async () => {
-		const stats = await compiler.build();
-		return new Stats(compiler.compilation, stats);
-	};
 	if (callback) {
-		util.callbackify(doRun)(callback);
+		compiler.run(callback);
 		return compiler;
 	} else {
 		return compiler;

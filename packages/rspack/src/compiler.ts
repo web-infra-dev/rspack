@@ -182,25 +182,44 @@ class Compiler {
 		return compilation;
 	}
 	run(callback) {
-		let logger;
-		const doRun = async () => {
-			await this.hooks.beforeRun.promise(this);
-			await this.hooks.run.promise(this);
-			const raw_stats = await this.build();
-			const stats = new Stats(this.compilation, raw_stats);
-			await this.hooks.done.promise(stats);
-			return stats;
+		const doRun = () => {
+			const finalCallback = (err, stats?) => {
+				if (err) {
+					this.hooks.failed.call(err);
+				}
+				if (callback) {
+					callback(err, stats);
+				}
+				this.hooks.afterDone.call(stats);
+			};
+			this.hooks.beforeRun.callAsync(this, err => {
+				if (err) {
+					return finalCallback(err);
+				}
+				this.hooks.run.callAsync(this, err => {
+					if (err) {
+						return finalCallback(err);
+					}
+					let build_cb = util.callbackify(this.build.bind(this)) as unknown as (
+						cb: tapable.Callback<Error, any>
+					) => void;
+					build_cb((err, raw_stats) => {
+						if (err) {
+							return finalCallback(err);
+						}
+						const stats = new Stats(this.compilation, raw_stats);
+						this.hooks.done.callAsync(stats, err => {
+							if (err) {
+								return finalCallback(err);
+							} else {
+								return finalCallback(null, stats);
+							}
+						});
+					});
+				});
+			});
 		};
-		const finalCallback = (err, stats) => {
-			if (err) {
-				this.hooks.failed.call(err);
-			}
-			if (callback) {
-				callback(err, stats);
-			}
-			this.hooks.afterDone.call(stats);
-		};
-		util.callbackify(doRun)(finalCallback);
+		doRun();
 	}
 	async build() {
 		const compilation = this.#newCompilation();
