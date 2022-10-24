@@ -27,7 +27,6 @@ async fn main() {
     .build()
     .await
     .unwrap_or_else(|e| panic!("{:?}, failed to compile in fixtrue {:?}", e, bundle_dir));
-  dbg!(&_stats.compilation.used_symbol);
   println!("{:?}", start.elapsed());
   #[cfg(feature = "tracing")]
   {
