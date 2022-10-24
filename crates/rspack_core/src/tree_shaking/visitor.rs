@@ -86,7 +86,7 @@ impl<'a> ModuleRefAnalyze<'a> {
   }
 
   /// Collecting all reachable import binding from given start binding
-  pub fn get_all_import(&self, start: BetterId) -> AHashSet<SymbolRef> {
+  pub fn get_all_import_or_export(&self, start: BetterId) -> AHashSet<SymbolRef> {
     let mut seen: AHashSet<BetterId> = AHashSet::default();
     let mut q: VecDeque<BetterId> = VecDeque::from_iter([start]);
     while let Some(cur) = q.pop_front() {
@@ -139,7 +139,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       match symbol {
         // At this time uri of symbol will always equal to `self.module_identifier`
         SymbolRef::Direct(symbol) => {
-          let reachable_import = self.get_all_import(symbol.id.clone());
+          let reachable_import = self.get_all_import_or_export(symbol.id.clone());
           self
             .reachable_import_and_export
             .insert(key.clone(), reachable_import);
@@ -151,7 +151,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     // dbg!(&self.);
     // all reachable import from used symbol in current module
     for used_id in &self.used_id_set {
-      let reachable_import = self.get_all_import(used_id.clone());
+      let reachable_import = self.get_all_import_or_export(used_id.clone());
       // dbg!(&used_id, &reachable_import);
       self.used_symbol_ref.extend(reachable_import);
     }
