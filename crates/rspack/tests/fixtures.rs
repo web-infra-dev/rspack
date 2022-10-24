@@ -5,7 +5,7 @@ use rspack_binding_options::RawOptions;
 use rspack_core::tree_shaking::symbol::Symbol;
 use rspack_core::tree_shaking::visitor::TreeShakingResult;
 use rspack_core::Compilation;
-use rspack_core::{CompilerOptions, Stats};
+use rspack_core::CompilerOptions;
 use rspack_test::{read_test_config_and_normalize, test_fixture, test_options::RawOptionsExt};
 use rspack_tracing::enable_tracing_by_env;
 use testing_macros::fixture;
@@ -43,7 +43,7 @@ pub async fn tree_shaking_test(fixture_path: &PathBuf) -> rspack_error::Result<(
     .build()
     .await
     .unwrap_or_else(|_| panic!("failed to compile in fixtrue {:?}", fixture_path));
-  let snapshot = get_used_snapshot(&stats.compilation).await;
+  let snapshot = get_used_snapshot(stats.compilation).await;
   let mut settings = Settings::clone_current();
   settings.remove_snapshot_suffix();
   settings.set_snapshot_path(fixture_path);
@@ -76,12 +76,12 @@ pub async fn get_used_snapshot(compilation: &Compilation) -> String {
       &key.as_str()[common_prefix_string.len()..]
     );
     single_snapshot += &tokio::fs::read_to_string(key.as_str()).await.unwrap();
-    single_snapshot += &format!("// <-- unused-export: --> \n");
+    single_snapshot += "// <-- unused-export: --> \n";
     let unused_symbol_list = get_unused_list(result, &compilation.used_symbol);
     single_snapshot += &format!("{:#?}", unused_symbol_list);
     ret.push((key, single_snapshot));
   }
-  ret.sort_by(|a, b| a.0.cmp(&b.0));
+  ret.sort_by(|a, b| a.0.cmp(b.0));
   ret
     .into_iter()
     .map(|case| case.1)

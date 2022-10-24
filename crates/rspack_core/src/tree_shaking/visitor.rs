@@ -5,7 +5,7 @@ use swc_atoms::JsWord;
 use swc_common::{
   collections::{AHashMap, AHashSet},
   util::take::Take,
-  Mark, SyntaxContext, GLOBALS,
+  Mark, GLOBALS,
 };
 use swc_ecma_ast::*;
 use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
@@ -101,20 +101,21 @@ impl<'a> ModuleRefAnalyze<'a> {
     return seen
       .iter()
       .filter_map(|id| {
-        let ret = self
-          .import_map
-          .get(&id)
-          .map(|item| item.clone())
-          .or_else(|| match self.export_map.get(&id.atom) {
-            Some(sym_ref @ SymbolRef::Direct(sym)) => {
-              if &sym.id == id {
-                Some(sym_ref.clone())
-              } else {
-                None
+        let ret =
+          self
+            .import_map
+            .get(id)
+            .cloned()
+            .or_else(|| match self.export_map.get(&id.atom) {
+              Some(sym_ref @ SymbolRef::Direct(sym)) => {
+                if &sym.id == id {
+                  Some(sym_ref.clone())
+                } else {
+                  None
+                }
               }
-            }
-            _ => None,
-          });
+              _ => None,
+            });
         ret
       })
       .collect();
@@ -184,7 +185,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               return;
             }
           };
-          let resolved_uri_ukey = ustr(&resolved_uri);
+          let resolved_uri_ukey = ustr(resolved_uri);
           import
             .specifiers
             .iter()
@@ -268,7 +269,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               return;
             }
           };
-          let resolved_uri_key = ustr(&resolved_uri);
+          let resolved_uri_key = ustr(resolved_uri);
           self.export_all_list.push(resolved_uri_key);
         }
         ModuleDecl::TsImportEquals(_)
@@ -467,18 +468,24 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
 impl<'a> ModuleRefAnalyze<'a> {
   fn add_export(&mut self, id: JsWord, symbol: SymbolRef) {
-    if self.export_map.contains_key(&id) {
-      // TODO: should add some Diagnostic
-    } else {
-      self.export_map.insert(id, symbol);
+    match self.export_map.entry(id) {
+      std::collections::hash_map::Entry::Occupied(_) => {
+        // TODO: should add some Diagnostic
+      }
+      std::collections::hash_map::Entry::Vacant(vac) => {
+        vac.insert(symbol);
+      }
     }
   }
 
   fn add_import(&mut self, id: BetterId, symbol: SymbolRef) {
-    if self.import_map.contains_key(&id) {
-      // TODO: should add some Diagnostic
-    } else {
-      self.import_map.insert(id, symbol);
+    match self.import_map.entry(id) {
+      std::collections::hash_map::Entry::Occupied(_) => {
+        // TODO: should add some Diagnostic
+      }
+      std::collections::hash_map::Entry::Vacant(vac) => {
+        vac.insert(symbol);
+      }
     }
   }
   fn analyze_named_export(&mut self, named_export: &NamedExport) {
@@ -491,12 +498,12 @@ impl<'a> ModuleRefAnalyze<'a> {
           return;
         }
       };
-      let resolved_uri_ukey = ustr(&resolved_uri);
+      let resolved_uri_ukey = ustr(resolved_uri);
       named_export
         .specifiers
         .iter()
         .for_each(|specifier| match specifier {
-          ExportSpecifier::Namespace(namespace) => {
+          ExportSpecifier::Namespace(_) => {
             // TODO: handle `* as xxx`, do we need a extra binding
             self.export_all_list.push(resolved_uri_ukey);
           }

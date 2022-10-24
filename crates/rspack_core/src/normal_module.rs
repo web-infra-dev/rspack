@@ -277,7 +277,7 @@ impl std::fmt::Debug for ParseResult {
     f.debug_struct("ParseResult")
       .field("dependencies", &self.dependencies)
       .field("ast_or_source", &self.ast_or_source)
-      .field("parse_phase_global", &format!("..."))
+      .field("parse_phase_global", &"...".to_string())
       .finish()
   }
 }
@@ -329,7 +329,7 @@ impl std::fmt::Debug for NormalModule {
       .field("options", &self.options)
       .field("debug_id", &self.debug_id)
       .field("cached_source_sizes", &self.cached_source_sizes)
-      .field("parse_phase_global", &format!("..."))
+      .field("parse_phase_global", &"...".to_string())
       .field("skip_build", &self.skip_build)
       .finish()
   }
