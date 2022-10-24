@@ -161,7 +161,6 @@ class Compiler {
 	 * @returns
 	 */
 	async #done(statsJson: binding.StatsCompilation) {
-		// @todo value is empty, since we didn't pass to binding
 		const stats = new Stats(this.compilation, statsJson);
 		await this.hooks.done.promise(stats);
 	}
