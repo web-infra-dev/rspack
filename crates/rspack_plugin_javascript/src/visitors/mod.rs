@@ -4,6 +4,8 @@ mod finalize;
 use finalize::finalize;
 // mod clear_mark;
 // use clear_mark::*;
+mod import_interop;
+use import_interop::import_interop;
 mod format;
 use format::*;
 mod pass_global;
@@ -30,7 +32,7 @@ pub fn run_before_pass(
   let unresolved_mark = pass_global.unresolved_mark;
   let cm = get_swc_compiler().cm.clone();
   let comments = None;
-  pass_global.try_with_handler(true, move |handler| {
+  pass_global.try_with_handler(move |handler| {
     let mut pass = chain!(
       swc_visitor::resolver(unresolved_mark, top_level_mark, false),
       //      swc_visitor::lint(
@@ -99,7 +101,7 @@ pub fn run_after_pass(
   let unresolved_mark = pass_global.unresolved_mark;
   let cm = get_swc_compiler().cm.clone();
   let comments = None;
-  pass_global.try_with_handler(false, |_handler| {
+  pass_global.try_with_handler(|_handler| {
     let mut pass = chain!(
       swc_visitor::build_module(
         &cm,
@@ -113,11 +115,12 @@ pub fn run_after_pass(
         comments,
         compilation.options.target.es_version
       ),
-      swc_visitor::inject_helpers(),
+      import_interop(),
       swc_visitor::hygiene(false),
       swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
       finalize(mgm, compilation, unresolved_mark)
     );
+
     Ok(ast.fold_with(&mut pass))
   })
 }

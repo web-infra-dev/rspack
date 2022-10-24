@@ -1,4 +1,4 @@
-use crate::{RSPACK_DYNAMIC_IMPORT, RSPACK_REQUIRE};
+use crate::{RSPACK_DYNAMIC_IMPORT, RSPACK_REQUIRE, RSPACK_RUNTIME};
 use dashmap::DashMap;
 use hashbrown::hash_map::DefaultHashBuilder;
 use once_cell::sync::Lazy;
@@ -152,8 +152,8 @@ pub fn wrap_module_function(source: BoxSource, module_id: &str) -> BoxSource {
     RawSource::from(module_id.to_string()).boxed(),
     RawSource::from("\": ").boxed(),
     RawSource::from(format!(
-      "function (module, exports, {}, {}) {{\n",
-      RSPACK_REQUIRE, RSPACK_DYNAMIC_IMPORT
+      "function (module, exports, {}, {}, {}) {{\n",
+      RSPACK_REQUIRE, RSPACK_DYNAMIC_IMPORT, RSPACK_RUNTIME
     ))
     .boxed(),
     RawSource::from("\"use strict\";\n").boxed(),

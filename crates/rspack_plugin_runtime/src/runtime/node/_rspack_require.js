@@ -21,7 +21,8 @@ function __rspack_require__(moduleId) {
     module,
     module.exports,
     rr,
-    this.__rspack_dynamic_require__ && this.__rspack_dynamic_require__.bind(this)
+    this.__rspack_dynamic_require__ && this.__rspack_dynamic_require__.bind(this),
+    runtime
   );
 
   return module.exports;
