@@ -2138,6 +2138,7 @@ dependencies = [
  "crossbeam",
  "dashmap",
  "hashbrown",
+ "insta",
  "mimalloc-rust",
  "once_cell",
  "rspack_binding_options",
@@ -2160,6 +2161,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "ustr",
  "warp",
  "xshell",
 ]

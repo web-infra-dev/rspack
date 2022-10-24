@@ -15,7 +15,7 @@ use crate::{tree_shaking::symbol::Symbol, Dependency, ModuleGraph, ResolveKind};
 use super::symbol::{BetterId, IndirectTopLevelSymbol};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) enum SymbolRef {
+pub enum SymbolRef {
   Direct(Symbol),
   Indirect(IndirectTopLevelSymbol),
   /// uri
@@ -463,12 +463,13 @@ impl<'a> ModuleRefAnalyze<'a> {
 }
 
 /// The `allow(unused)` will be removed after the Tree shaking is finished
+#[derive(Debug)]
 #[allow(unused)]
-pub(crate) struct TreeShakingResult {
+pub struct TreeShakingResult {
   top_level_mark: Mark,
   unresolved_mark: Mark,
   module_identifier: Ustr,
-  pub(crate) export_map: AHashMap<JsWord, SymbolRef>,
+  pub export_map: AHashMap<JsWord, SymbolRef>,
   pub(crate) import_map: AHashMap<BetterId, SymbolRef>,
   /// list of uri, each uri represent export all named export from specific uri
   pub export_all_list: Vec<Ustr>,

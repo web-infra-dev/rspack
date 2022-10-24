@@ -18,27 +18,36 @@ pub struct Symbol {
 }
 
 impl Symbol {
-  pub(crate) fn new(uri: ustr::Ustr, ctxt: SyntaxContext, atom: JsWord) -> Self {
-    Self {
-      uri,
-      id: (atom, ctxt).into(),
-    }
-  }
-
   pub(crate) fn from_id_and_uri(id: BetterId, uri: Ustr) -> Self {
     Self { uri, id }
+  }
+
+  pub fn uri(&self) -> Ustr {
+    self.uri
+  }
+
+  pub fn id(&self) -> &BetterId {
+    &self.id
   }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct IndirectTopLevelSymbol {
-  pub(crate) uri: Ustr,
-  pub(crate) id: JsWord,
+pub struct IndirectTopLevelSymbol {
+  pub uri: Ustr,
+  pub id: JsWord,
 }
 
 impl IndirectTopLevelSymbol {
-  pub(crate) fn new(uri: Ustr, id: JsWord) -> Self {
+  pub fn new(uri: Ustr, id: JsWord) -> Self {
     Self { uri, id }
+  }
+
+  pub fn uri(&self) -> Ustr {
+    self.uri
+  }
+
+  pub fn id(&self) -> &str {
+    self.id.as_ref()
   }
 }
 
