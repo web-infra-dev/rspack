@@ -25,6 +25,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
       resource_path: url.path().to_owned(),
       resource_query: url.query().map(|q| q.to_owned()),
       resource_fragment: url.fragment().map(|f| f.to_owned()),
+      ignored: false,
     },
     vec![],
   )
