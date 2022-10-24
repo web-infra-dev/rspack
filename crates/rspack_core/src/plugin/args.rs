@@ -1,5 +1,5 @@
 use crate::{
-  Chunk, ChunkUkey, Compilation, Dependency, ErrorSpan, ResolveKind, SharedPluginDriver,
+  Chunk, ChunkUkey, Compilation, Dependency, ErrorSpan, ResolveKind, SharedPluginDriver, Stats,
 };
 use rspack_error::{Error, Result};
 use rspack_loader_runner::Content;
@@ -134,4 +134,9 @@ pub struct TransformResult {
 #[derive(Debug)]
 pub struct OptimizeChunksArgs<'me> {
   pub compilation: &'me mut Compilation,
+}
+
+#[derive(Debug)]
+pub struct DoneArgs<'s, 'c: 's> {
+  pub stats: &'s mut Stats<'c>,
 }

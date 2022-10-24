@@ -2,9 +2,42 @@
 
 exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
 {
+  "assets": [
+    {
+      "chunks": [
+        "main",
+      ],
+      "name": "main.js",
+      "size": 1440,
+      "type": "asset",
+    },
+  ],
+  "chunks": [
+    {
+      "files": [
+        "main.js",
+      ],
+      "id": "main",
+      "type": "chunk",
+    },
+  ],
   "errors": [
     {
       "message": "Failed to resolve not-exist",
+    },
+  ],
+  "errorsCount": 1,
+  "modules": [
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "./index.js",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/normal-errors/index.js",
+      "moduleType": "js",
+      "name": "<PROJECT_ROOT>/tests/statsCases/normal-errors/index.js",
+      "size": 20,
+      "type": "module",
     },
   ],
 }
@@ -12,6 +45,39 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
 
 exports[`StatsTestCases should print correct stats for simple 1`] = `
 {
+  "assets": [
+    {
+      "chunks": [
+        "main",
+      ],
+      "name": "main.js",
+      "size": 1557,
+      "type": "asset",
+    },
+  ],
+  "chunks": [
+    {
+      "files": [
+        "main.js",
+      ],
+      "id": "main",
+      "type": "chunk",
+    },
+  ],
   "errors": [],
+  "errorsCount": 0,
+  "modules": [
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "./index.js",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/simple/index.js",
+      "moduleType": "js",
+      "name": "<PROJECT_ROOT>/tests/statsCases/simple/index.js",
+      "size": 26,
+      "type": "module",
+    },
+  ],
 }
 `;

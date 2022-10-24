@@ -1,6 +1,6 @@
 #![feature(iter_intersperse)]
 
-use std::sync::Arc;
+use std::{fmt, sync::Arc};
 
 use dashmap::DashSet;
 use hashbrown::HashMap;
@@ -86,6 +86,27 @@ impl ModuleType {
   }
   pub fn is_jsx_like(&self) -> bool {
     matches!(self, ModuleType::Tsx | ModuleType::Jsx)
+  }
+}
+
+impl fmt::Display for ModuleType {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(
+      f,
+      "{}",
+      match self {
+        ModuleType::Js => "js",
+        ModuleType::Jsx => "jsx",
+        ModuleType::Ts => "ts",
+        ModuleType::Tsx => "tsx",
+        ModuleType::Css => "css",
+        ModuleType::Json => "json",
+        ModuleType::Asset => "asset",
+        ModuleType::AssetSource => "asset/source",
+        ModuleType::AssetResource => "asset/resource",
+        ModuleType::AssetInline => "asset/inline",
+      }
+    )
   }
 }
 

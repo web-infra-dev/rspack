@@ -115,6 +115,10 @@ impl ModuleGraph {
     self.module_identifier_to_module_graph_module.values()
   }
 
+  pub fn modules(&self) -> impl Iterator<Item = &NormalModule> {
+    self.module_identifier_to_module.values()
+  }
+
   pub fn set_resolved_module(
     &mut self,
     original_module_identifier: Option<ModuleIdentifier>,
@@ -208,9 +212,5 @@ impl ModuleGraph {
 
   pub fn connection_by_connection_id(&self, connection_id: u32) -> Option<&ModuleGraphConnection> {
     self.connection_id_to_connection.get(&connection_id)
-  }
-
-  pub fn modules(&self) -> impl Iterator<Item = &NormalModule> {
-    self.module_identifier_to_module.values()
   }
 }

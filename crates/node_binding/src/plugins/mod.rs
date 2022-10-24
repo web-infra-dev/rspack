@@ -9,11 +9,12 @@ use serde::{Deserialize, Serialize};
 
 use rspack_core::rspack_sources::{RawSource, SourceExt};
 use rspack_core::{
-  Compilation, Plugin, PluginBuildEndHookOutput, PluginContext, PluginProcessAssetsHookOutput,
-  ProcessAssetsArgs,
+  Compilation, DoneArgs, Plugin, PluginBuildEndHookOutput, PluginContext,
+  PluginProcessAssetsHookOutput, ProcessAssetsArgs,
 };
 use rspack_error::Error;
 
+use crate::js_values::StatsCompilation;
 use crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use crate::{AssetContent, UpdateAssetOptions};
 
@@ -23,7 +24,7 @@ pub use utils::*;
 pub type BoxedClosure = Box<dyn Fn(CallContext<'_>) -> napi::Result<JsUndefined>>;
 
 pub struct RspackPluginNodeAdapter {
-  pub done_tsfn: ThreadsafeFunction<(), ()>,
+  pub done_tsfn: ThreadsafeFunction<StatsCompilation, ()>,
   pub process_assets_tsfn: ThreadsafeFunction<(String, BoxedClosure), ()>,
 }
 
@@ -99,10 +100,17 @@ impl Plugin for RspackPluginNodeAdapter {
   }
 
   #[tracing::instrument(skip_all)]
-  async fn done(&mut self) -> PluginBuildEndHookOutput {
+  async fn done<'s, 'c>(
+    &mut self,
+    _ctx: PluginContext,
+    args: DoneArgs<'s, 'c>,
+  ) -> PluginBuildEndHookOutput {
     self
       .done_tsfn
-      .call((), ThreadsafeFunctionCallMode::Blocking)
+      .call(
+        args.stats.to_description().into(),
+        ThreadsafeFunctionCallMode::Blocking,
+      )
       .map_err(Error::from)?
       .await
       .map_err(|err| Error::InternalError(format!("{:?}", err)))?;
