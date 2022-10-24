@@ -3,7 +3,8 @@ import { Logger } from "./logging/Logger";
 import { resolveWatchOption } from "./config/watch";
 import type { Watch, ResolvedWatch } from "./config/watch";
 import * as tapable from "tapable";
-import { SyncHook, SyncBailHook } from "tapable";
+
+import { SyncHook, SyncBailHook, Callback } from "tapable";
 import util from "util";
 import fs from "fs";
 import asyncLib from "neo-async";
@@ -168,11 +169,8 @@ class Compiler {
 	 * @param value
 	 * @returns
 	 */
-	async #done(statsJson: binding.StatsCompilation) {
-		const stats = new Stats(this.compilation, statsJson);
-		await this.hooks.done.promise(stats);
-	}
-	async #processAssets(value: string, emitAsset: any) {
+	#done(statsJson: binding.StatsCompilation) {}
+	#processAssets(value: string, emitAsset: any) {
 		return this.compilation.processAssets(value, emitAsset);
 	}
 	#newCompilation() {
@@ -221,14 +219,30 @@ class Compiler {
 		};
 		doRun();
 	}
-	async build() {
+	build(cb) {
 		const compilation = this.#newCompilation();
-		const stats = await this.#instance.build();
-		return stats;
+		const build_cb = util.callbackify(
+			this.#instance.build.bind(this.#instance)
+		) as (cb: Callback<Error, any>) => void;
+		build_cb((err, stats) => {
+			if (err) {
+				cb(err);
+			} else {
+				cb(null, stats);
+			}
+		});
 	}
-	async rebuild(changedFiles: string[]) {
-		const stats = await this.#instance.rebuild(changedFiles, []);
-		return stats.inner;
+	rebuild(changedFiles: string[], cb) {
+		const rebuild_cb = util.callbackify(
+			this.#instance.rebuild.bind(this.#instance)
+		) as (cb: Callback<Error, any>) => void;
+		rebuild_cb((err, stats) => {
+			if (err) {
+				cb(err);
+			} else {
+				cb(null, stats);
+			}
+		});
 	}
 
 	async watch(watchOptions?: Watch): Promise<Watching> {
@@ -241,7 +255,7 @@ class Compiler {
 				...options
 			}
 		);
-		let stats = await this.build();
+		let stats = await util.promisify(this.build.bind(this))();
 
 		// TODO: should use aggregated
 		watcher.on("change", async path => {
@@ -249,7 +263,7 @@ class Compiler {
 			// TODO: it means there a lot of things to do....
 			const begin = Date.now();
 			console.log("hit change and start to build");
-			const diffStats = await this.rebuild([path]);
+			const diffStats = await util.promisify(this.rebuild.bind(this))([path]);
 			console.log("build success, time cost", Date.now() - begin);
 		});
 

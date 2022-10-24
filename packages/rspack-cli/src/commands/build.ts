@@ -11,7 +11,7 @@ export class BuildCommand implements RspackCommand {
 			async options => {
 				console.time("build");
 				const compiler = await cli.createCompiler(options);
-				const stats = await compiler.build();
+				const stats = await util.promisify(compiler.build.bind(compiler))();
 				if (stats.errors.length > 0) {
 					throw new Error(stats.errors.map(x => x.message).join("\n"));
 				}
