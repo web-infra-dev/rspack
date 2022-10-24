@@ -1,20 +1,17 @@
 ---
 source: crates/rspack/tests/fixtures.rs
-expression: basic
+expression: default_export
 ---
 
 // <-- relative path: answer.js -->
 
-export const answer = 103330
+export const answer = 103330;
+// export default answer;
 // <-- unused-export: --> 
 []
 // <-- relative path: app.js -->
 
 import { myanswer, secret } from "./lib";
-
-setTimeout(() => {
-	console.log(myanswer);
-}, 1000);
 
 export function render() {
 	function test() {
@@ -23,18 +20,14 @@ export function render() {
 	}
 }
 
-if (module.hot?.accept) {
-	module.hot.accept((module) => {
-		console.log("xxx:", module);
-	});
-}
+export default function result() {}
 // <-- unused-export: --> 
-[
-    "render",
-]
+[]
 // <-- relative path: index.js -->
 
-import * as test from "./app";
+import app, { render } from "./app";
+
+render(app);
 // <-- unused-export: --> 
 []
 // <-- relative path: lib.js -->
@@ -46,5 +39,4 @@ export const myanswer = answer,
 // <-- unused-export: --> 
 [
     "result",
-    "secret",
 ]

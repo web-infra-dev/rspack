@@ -4,7 +4,8 @@ use bitflags::bitflags;
 use swc_atoms::JsWord;
 use swc_common::{
   collections::{AHashMap, AHashSet},
-  Mark, GLOBALS,
+  util::take::Take,
+  Mark, SyntaxContext, GLOBALS,
 };
 use swc_ecma_ast::*;
 use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
@@ -25,7 +26,8 @@ pub enum SymbolRef {
 bitflags! {
   #[derive(Default)]
   struct AnalyzeState: u8 {
-    const EXPORT_DEFAULT = 1 << 0;
+    const EXPORT_DECL = 1 << 0;
+    const EXPORT_DEFAULT = 1 << 1;
   }
 }
 #[derive(Debug)]
@@ -40,10 +42,11 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub export_all_list: Vec<Ustr>,
   current_region: Option<BetterId>,
   pub(crate) reference_map: AHashMap<BetterId, AHashSet<BetterId>>,
-  pub(crate) reachable_import_of_export: AHashMap<JsWord, AHashSet<SymbolRef>>,
+  pub(crate) reachable_import_and_export: AHashMap<JsWord, AHashSet<SymbolRef>>,
   state: AnalyzeState,
   pub(crate) used_id_set: AHashSet<BetterId>,
   pub(crate) used_symbol_ref: AHashSet<SymbolRef>,
+  pub(crate) export_default_name: Option<JsWord>,
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
@@ -63,10 +66,11 @@ impl<'a> ModuleRefAnalyze<'a> {
       export_all_list: vec![],
       current_region: None,
       reference_map: AHashMap::default(),
-      reachable_import_of_export: AHashMap::default(),
+      reachable_import_and_export: AHashMap::default(),
       state: AnalyzeState::empty(),
       used_id_set: AHashSet::default(),
       used_symbol_ref: AHashSet::default(),
+      export_default_name: None,
     }
   }
 
@@ -115,6 +119,13 @@ impl<'a> ModuleRefAnalyze<'a> {
       })
       .collect();
   }
+
+  fn generate_default_ident(&self) -> Ident {
+    let mut default_ident = Ident::dummy();
+    default_ident.sym = "default".into();
+    default_ident.span = default_ident.span.apply_mark(self.top_level_mark);
+    default_ident
+  }
 }
 
 impl<'a> Visit for ModuleRefAnalyze<'a> {
@@ -129,26 +140,23 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         SymbolRef::Direct(symbol) => {
           let reachable_import = self.get_all_import(symbol.id.clone());
           self
-            .reachable_import_of_export
+            .reachable_import_and_export
             .insert(key.clone(), reachable_import);
         }
         // ignore any indrect symbol
         SymbolRef::Indirect(_) | SymbolRef::Star(_) => {}
       }
     }
-    // each used variable maybe related to some indirect symbol ref
-    self.used_symbol_ref = self
-      .used_id_set
-      .iter()
-      .filter_map(|id| self.import_map.get(id).map(|symbol_ref| symbol_ref.clone()))
-      .collect::<AHashSet<_>>();
+    // dbg!(&self.);
     // all reachable import from used symbol in current module
     for used_id in &self.used_id_set {
       let reachable_import = self.get_all_import(used_id.clone());
+      // dbg!(&used_id, &reachable_import);
       self.used_symbol_ref.extend(reachable_import);
     }
   }
-  fn visit_ident(&mut self, node: &Ident) {
+
+  fn visit_ident(&mut self, node: &swc_ecma_ast::Ident) {
     let id: BetterId = node.to_id().into();
     let marker = id.ctxt.outer();
     if marker == self.top_level_mark {
@@ -182,20 +190,25 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             .iter()
             .for_each(|specifier| match specifier {
               ImportSpecifier::Named(named) => {
-                let local = named.local.sym.clone();
                 let imported = match &named.imported {
                   Some(imported) => match imported {
                     ModuleExportName::Ident(ident) => ident.sym.clone(),
                     ModuleExportName::Str(str) => str.value.clone(),
                   },
-                  None => local.clone(),
+                  None => named.local.sym.clone(),
                 };
                 let symbol_ref =
                   SymbolRef::Indirect(IndirectTopLevelSymbol::new(resolved_uri_ukey, imported));
                 self.add_import(named.local.to_id().into(), symbol_ref);
               }
-              ImportSpecifier::Default(_) => {
-                // TODO:
+              ImportSpecifier::Default(default) => {
+                self.add_import(
+                  default.local.to_id().into(),
+                  SymbolRef::Indirect(IndirectTopLevelSymbol::new(
+                    resolved_uri_ukey,
+                    "default".into(),
+                  )),
+                );
               }
               ImportSpecifier::Namespace(namespace) => {
                 self.add_import(
@@ -227,9 +240,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             );
           }
           Decl::Var(var) => {
-            self.state |= AnalyzeState::EXPORT_DEFAULT;
+            self.state |= AnalyzeState::EXPORT_DECL;
             var.visit_with(self);
-            self.state.remove(AnalyzeState::EXPORT_DEFAULT);
+            self.state.remove(AnalyzeState::EXPORT_DECL);
           }
           Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
             todo!()
@@ -238,12 +251,13 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         ModuleDecl::ExportNamed(named_export) => {
           self.analyze_named_export(named_export);
         }
-        ModuleDecl::ExportDefaultDecl(_) => {
-          // TODO:
+        ModuleDecl::ExportDefaultDecl(decl) => {
+          decl.visit_with(self);
         }
-        ModuleDecl::ExportDefaultExpr(_) => {
-          // TODO:
+        ModuleDecl::ExportDefaultExpr(expr) => {
+          expr.visit_with(self);
         }
+
         ModuleDecl::ExportAll(export_all) => {
           let resolved_uri = match self
             .resolve_module_identifier(export_all.src.value.to_string(), ResolveKind::Import)
@@ -268,6 +282,101 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       }
     }
   }
+
+  fn visit_export_default_expr(&mut self, node: &ExportDefaultExpr) {
+    let before_region = self.current_region.clone();
+    self.current_region = Some(self.generate_default_ident().to_id().into());
+    node.visit_children_with(self);
+    self.current_region = before_region;
+  }
+
+  fn visit_export_default_decl(&mut self, node: &ExportDefaultDecl) {
+    self.state |= AnalyzeState::EXPORT_DEFAULT;
+    match &node.decl {
+      DefaultDecl::Class(_) | DefaultDecl::Fn(_) => {
+        node.visit_children_with(self);
+      }
+      DefaultDecl::TsInterfaceDecl(_) => {
+        todo!()
+      }
+    }
+    self.state.remove(AnalyzeState::EXPORT_DEFAULT);
+  }
+
+  fn visit_class_expr(&mut self, node: &ClassExpr) {
+    if self.state.contains(AnalyzeState::EXPORT_DEFAULT) {
+      let default_ident = self.generate_default_ident();
+      self.export_map.insert(
+        default_ident.sym.clone(),
+        SymbolRef::Direct(Symbol::from_id_and_uri(
+          default_ident.to_id().into(),
+          self.module_identifier,
+        )),
+      );
+      let region: BetterId = if let Some(ident) = &node.ident {
+        match self.export_default_name {
+          Some(_) => {
+            // TODO: Better diagnostic
+            panic!("Duplicate export default")
+          }
+          None => {
+            self.export_default_name = Some(ident.sym.clone());
+            self.add_reference(default_ident.to_id().into(), ident.to_id().into());
+            self.add_reference(ident.to_id().into(), default_ident.to_id().into());
+          }
+        }
+        ident.to_id().into()
+      } else {
+        default_ident.to_id().into()
+      };
+      let before_region = self.current_region.clone();
+      self.current_region = Some(region);
+      node.class.visit_with(self);
+      self.current_region = before_region;
+    } else {
+      // if the class expr is not inside a default expr, it will not
+      // generate a binding.
+      node.class.visit_with(self);
+    }
+  }
+
+  fn visit_fn_expr(&mut self, node: &FnExpr) {
+    if self.state.contains(AnalyzeState::EXPORT_DEFAULT) {
+      let default_ident = self.generate_default_ident();
+      self.export_map.insert(
+        default_ident.sym.clone(),
+        SymbolRef::Direct(Symbol::from_id_and_uri(
+          default_ident.to_id().into(),
+          self.module_identifier,
+        )),
+      );
+      let region: BetterId = if let Some(ident) = &node.ident {
+        match self.export_default_name {
+          Some(_) => {
+            // TODO: Better diagnostic
+            panic!("Duplicate export default")
+          }
+          None => {
+            self.export_default_name = Some(ident.sym.clone());
+            self.add_reference(default_ident.to_id().into(), ident.to_id().into());
+            self.add_reference(ident.to_id().into(), default_ident.to_id().into());
+          }
+        }
+        ident.to_id().into()
+      } else {
+        default_ident.to_id().into()
+      };
+      let before_region = self.current_region.clone();
+      self.current_region = Some(region);
+      node.function.visit_with(self);
+      self.current_region = before_region;
+    } else {
+      // if the class expr is not inside a default expr, it will not
+      // generate a binding.
+      node.function.visit_with(self);
+    }
+  }
+
   fn visit_class_decl(&mut self, node: &ClassDecl) {
     let id: BetterId = node.ident.to_id().into();
     let mark = id.ctxt.outer();
@@ -304,7 +413,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           continue;
         }
       };
-      if self.state.contains(AnalyzeState::EXPORT_DEFAULT) {
+      if self.state.contains(AnalyzeState::EXPORT_DECL) {
         self.add_export(
           lhs.atom.clone(),
           SymbolRef::Direct(Symbol::from_id_and_uri(lhs.clone(), self.module_identifier)),
@@ -491,7 +600,7 @@ impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
       export_all_list: std::mem::take(&mut analyze.export_all_list),
       current_region: std::mem::take(&mut analyze.current_region),
       reference_map: std::mem::take(&mut analyze.reference_map),
-      reachable_import_of_export: std::mem::take(&mut analyze.reachable_import_of_export),
+      reachable_import_of_export: std::mem::take(&mut analyze.reachable_import_and_export),
       state: std::mem::take(&mut analyze.state),
       used_symbol_ref: std::mem::take(&mut analyze.used_symbol_ref),
     }

@@ -10,10 +10,14 @@ export function render() {
 	container.innerHTML = `secret:${secret}\nanswer:${myanswer}`;
 }
 
-if (module.hot?.accept) {
-	module.hot.accept((module) => {
-		console.log("xxx:", module);
-		render();
-	});
-}
+// if (module.hot?.accept) {
+// 	module.hot.accept((module) => {
+// 		console.log("xxx:", module);
+// 	});
+// }
 export function result() {}
+
+export default function test() {}
+
+// test();
+render();
