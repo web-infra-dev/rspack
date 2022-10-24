@@ -12,6 +12,7 @@ describe("Compiler", () => {
 		const noOutputPath = !options.output || !options.output.path;
 
 		options = getNormalizedRspackOptions(options);
+
 		if (!options.mode) options.mode = "production";
 		options.entry = entry;
 		options.context = path.join(__dirname, "fixtures");
@@ -213,7 +214,6 @@ describe("Compiler", () => {
 	describe("methods", () => {
 		let compiler;
 		beforeEach(() => {
-			const webpack = require("..");
 			compiler = webpack({
 				entry: "./c",
 				context: path.join(__dirname, "fixtures"),
@@ -592,14 +592,12 @@ describe("Compiler", () => {
 			});
 		});
 	});
-	it.skip("should run again correctly inside afterDone hook", done => {
-		const webpack = require("..");
-		compiler = webpack({
+	it("should run again correctly inside afterDone hook", done => {
+		compiler = rspack({
 			context: __dirname,
 			mode: "production",
 			entry: "./c",
 			output: {
-				path: "/directory",
 				filename: "bundle.js"
 			}
 		});
@@ -617,14 +615,12 @@ describe("Compiler", () => {
 			if (err) return done(err);
 		});
 	});
-	it.skip("should call afterDone hook after other callbacks (run)", done => {
-		const webpack = require("..");
-		compiler = webpack({
+	it("should call afterDone hook after other callbacks (run)", done => {
+		compiler = rspack({
 			context: __dirname,
 			mode: "production",
 			entry: "./c",
 			output: {
-				path: "/directory",
 				filename: "bundle.js"
 			}
 		});
@@ -644,14 +640,12 @@ describe("Compiler", () => {
 	});
 	it.skip("should call afterDone hook after other callbacks (instance cb)", done => {
 		const instanceCb = jest.fn();
-		const webpack = require("..");
-		compiler = webpack(
+		compiler = rspack(
 			{
 				context: __dirname,
 				mode: "production",
 				entry: "./c",
 				output: {
-					path: "/directory",
 					filename: "bundle.js"
 				}
 			},
@@ -670,8 +664,7 @@ describe("Compiler", () => {
 		});
 	});
 	it.skip("should call afterDone hook after other callbacks (watch)", done => {
-		const webpack = require("..");
-		compiler = webpack({
+		compiler = rspack({
 			context: __dirname,
 			mode: "production",
 			entry: "./c",

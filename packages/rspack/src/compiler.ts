@@ -5,15 +5,18 @@ import type { Watch, ResolvedWatch } from "./config/watch";
 import * as tapable from "tapable";
 import { SyncHook, SyncBailHook } from "tapable";
 import util from "util";
+import fs from "fs";
+import asyncLib from "neo-async";
+import path from "path";
 import {
 	RspackOptions,
 	RspackOptionsNormalized,
-	Asset,
 	getNormalizedRspackOptions
 } from "./config";
 
 import { Stats } from "./stats";
-import { Compilation } from "./compilation";
+import { Asset, Compilation } from "./compilation";
+import { mkdir } from "fs";
 
 export type EmitAssetCallback = (options: {
 	filename: string;
@@ -32,6 +35,9 @@ class Compiler {
 	#instance: binding.Rspack;
 	compilation: Compilation;
 	infrastructureLogger: any;
+	outputPath: string;
+	name: string;
+	outputFileSystem: any;
 	hooks: {
 		done: tapable.AsyncSeriesHook<Stats>;
 		afterDone: tapable.SyncHook<Stats>;
@@ -43,6 +49,7 @@ class Compiler {
 		infrastructureLog: tapable.SyncBailHook<[string, string, any[]], true>;
 		beforeRun: tapable.AsyncSeriesHook<[Compiler]>;
 		run: tapable.AsyncSeriesHook<[Compiler]>;
+		failed: tapable.SyncHook<[Error]>;
 	};
 	options: RspackOptionsNormalized;
 
@@ -71,7 +78,8 @@ class Compiler {
 			compilation: new tapable.SyncHook<Compilation>(["compilation"]),
 			invalid: new SyncHook(["filename", "changeTime"]),
 			compile: new SyncHook(["params"]),
-			infrastructureLog: new SyncBailHook(["origin", "type", "args"])
+			infrastructureLog: new SyncBailHook(["origin", "type", "args"]),
+			failed: new SyncHook(["error"])
 		};
 	}
 	getInfrastructureLogger(name: string | Function) {
@@ -168,12 +176,13 @@ class Compiler {
 		return this.compilation.processAssets(value, emitAsset);
 	}
 	#newCompilation() {
-		const compilation = new Compilation();
+		const compilation = new Compilation(this.options);
 		this.compilation = compilation;
 		this.hooks.compilation.call(compilation);
 		return compilation;
 	}
-	async run(callback) {
+	run(callback) {
+		let logger;
 		const doRun = async () => {
 			await this.hooks.beforeRun.promise(this);
 			await this.hooks.run.promise(this);
@@ -182,11 +191,16 @@ class Compiler {
 			await this.hooks.done.promise(stats);
 			return stats;
 		};
-		if (callback) {
-			util.callbackify(doRun)(callback);
-		} else {
-			return doRun();
-		}
+		const finalCallback = (err, stats) => {
+			if (err) {
+				this.hooks.failed.call(err);
+			}
+			if (callback) {
+				callback(err, stats);
+			}
+			this.hooks.afterDone.call(stats);
+		};
+		util.callbackify(doRun)(finalCallback);
 	}
 	async build() {
 		const compilation = this.#newCompilation();
@@ -231,6 +245,38 @@ class Compiler {
 	 */
 	close(callback) {
 		callback();
+	}
+	emitAssets(compilation: Compilation, callback) {
+		const outputPath = compilation.getPath(this.outputPath, {});
+		fs.mkdirSync(outputPath, { recursive: true });
+		const assets = compilation.getAssets();
+		compilation.assets = { ...compilation.assets };
+		asyncLib.forEachLimit(
+			assets,
+			15,
+			({ name: file, source, info }, callback) => {
+				let targetFile = file;
+				const absPath = path.resolve(outputPath, targetFile);
+				const getContent = () => {
+					if (typeof source.buffer === "function") {
+						return source.buffer();
+					} else {
+						const bufferOrString = source.source();
+						if (Buffer.isBuffer(bufferOrString)) {
+							return bufferOrString;
+						} else {
+							return Buffer.from(bufferOrString as string, "utf-8");
+						}
+					}
+				};
+
+				const doWrite = content => {
+					this.outputFileSystem.writeFile(absPath, content, callback);
+				};
+				let content = getContent();
+				doWrite(content);
+			}
+		);
 	}
 }
 

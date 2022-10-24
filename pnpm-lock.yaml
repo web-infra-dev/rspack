@@ -101,9 +101,9 @@ importers:
 
   examples/basic:
     specifiers:
-      '@rspack/core': workspace:*
+      '@rspack/cli': workspace:*
     devDependencies:
-      '@rspack/core': link:../../packages/rspack
+      '@rspack/cli': link:../../packages/rspack-cli
 
   examples/bundle-splitting:
     specifiers:
@@ -195,7 +195,9 @@ importers:
       '@types/ws': 8.5.3
       browserslist: ^4.21.3
       chokidar: 3.5.3
+      graceful-fs: 4.2.10
       jest-serializer-path: ^0.1.15
+      neo-async: 2.6.2
       sinon: 14.0.0
       source-map: ^0.7.4
       tapable: 2.2.1
@@ -211,6 +213,8 @@ importers:
       '@rspack/plugin-postcss': link:../rspack-plugin-postcss
       browserslist: 4.21.3
       chokidar: 3.5.3
+      graceful-fs: 4.2.10
+      neo-async: 2.6.2
       tapable: 2.2.1
       webpack-sources: 3.2.3
     optionalDependencies:
@@ -263,6 +267,7 @@ importers:
       concat-stream: ^2.0.0
       execa: ^5.0.0
       internal-ip: 6.2.0
+      source-map-support: ^0.5.19
       webpack: 5.74.0
       webpack-dev-server: 4.11.1
       yargs: 17.5.1
@@ -277,6 +282,7 @@ importers:
       concat-stream: 2.0.0
       execa: 5.1.1
       internal-ip: 6.2.0
+      source-map-support: 0.5.21
 
   packages/rspack-dev-client:
     specifiers:

@@ -8,6 +8,7 @@ use std::sync::Arc;
 use napi::bindgen_prelude::*;
 use napi::JsObject;
 
+use rspack_tracing::enable_tracing_by_env;
 use tokio::sync::RwLock;
 
 mod js_values;
@@ -36,6 +37,7 @@ impl Rspack {
     mut options: RawOptions,
     plugin_callbacks: Option<PluginCallbacks>,
   ) -> Result<Self> {
+    enable_tracing_by_env();
     Self::prepare_environment(&env, &mut options);
     rspack_tracing::enable_tracing_by_env();
     tracing::info!("raw_options: {:?}", &options);
