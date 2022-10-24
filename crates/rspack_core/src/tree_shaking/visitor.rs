@@ -285,7 +285,25 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
   fn visit_export_default_expr(&mut self, node: &ExportDefaultExpr) {
     let before_region = self.current_region.clone();
-    self.current_region = Some(self.generate_default_ident().to_id().into());
+    let default_ident: BetterId = self.generate_default_ident().to_id().into();
+
+    self.export_map.insert(
+      default_ident.atom.clone(),
+      SymbolRef::Direct(Symbol::from_id_and_uri(
+        default_ident.clone(),
+        self.module_identifier,
+      )),
+    );
+    match self.export_default_name {
+      Some(_) => {
+        // TODO: Better diagnostic
+        panic!("Duplicate export default")
+      }
+      None => {
+        self.export_default_name = Some("".into());
+      }
+    }
+    self.current_region = Some(default_ident);
     node.visit_children_with(self);
     self.current_region = before_region;
   }

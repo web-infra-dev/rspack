@@ -18,9 +18,8 @@ export function render() {
 // 		console.log("xxx:", module);
 // 	});
 // }
-export function result() {}
+function result() {}
 
-export default function test() {}
-
+export default result;
 // test();
 render();
