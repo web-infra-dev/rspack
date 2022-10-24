@@ -1,3 +1,4 @@
+import { memoize } from "../utils/memoize";
 type TargetItem =
 	| "web"
 	| "webworker"
@@ -27,3 +28,11 @@ export function resolveTargetOptions(target: Target = "web"): ResolvedTarget {
 
 	return target;
 }
+
+const getBrowserslistTargetHandler = memoize(() =>
+	require("./browserslistTargetHandler")
+);
+export const getDefaultTarget = (context: string) => {
+	const browsers = getBrowserslistTargetHandler().load(null, context);
+	return resolveTargetOptions(browsers ? "browserslist" : "web");
+};

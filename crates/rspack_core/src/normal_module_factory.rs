@@ -15,8 +15,8 @@ use tracing::instrument;
 
 use crate::{
   parse_to_url, resolve, CompilerOptions, FactorizeAndBuildArgs, ModuleGraphModule,
-  ModuleIdentifier, ModuleRule, ModuleType, Msg, NormalModule, ResolveArgs, ResourceData,
-  SharedPluginDriver, DEPENDENCY_ID,
+  ModuleIdentifier, ModuleRule, ModuleType, Msg, NormalModule, ResolveArgs, ResolveResult,
+  ResourceData, SharedPluginDriver, DEPENDENCY_ID,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -134,7 +134,7 @@ impl NormalModuleFactory {
   }
   #[instrument(name = "normal_module_factory:factory_normal_module")]
   pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, NormalModule, u32)>> {
-    let uri = resolve(
+    match resolve(
       ResolveArgs {
         importer: self.dependency.importer.as_deref(),
         specifier: self.dependency.detail.specifier.as_str(),
@@ -144,65 +144,70 @@ impl NormalModuleFactory {
       &self.plugin_driver,
       &mut self.context,
     )
-    .await?;
-    tracing::trace!("resolved uri {:?}", uri);
+    .await?
+    {
+      ResolveResult::Info(info) => {
+        let uri = info.join();
+        tracing::trace!("resolved uri {:?}", uri);
 
-    let url = parse_to_url(&uri);
-    if self.context.module_type.is_none() {
-      self.context.module_type = self.calculate_module_type_by_uri(&uri);
+        if self.context.module_type.is_none() {
+          self.context.module_type = self.calculate_module_type_by_uri(&uri);
+        }
+
+        let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
+
+        self
+          .tx
+          .send(Msg::DependencyReference(
+            (self.dependency.clone(), dependency_id),
+            uri.clone(),
+          ))
+          .map_err(|_| {
+            Error::InternalError(format!(
+              "Failed to resolve dependency {:?}",
+              self.dependency
+            ))
+          })?;
+
+        let resource_data = ResourceData {
+          resource: uri.clone(),
+          resource_path: info.path.to_string_lossy().to_string(),
+          resource_query: (!info.query.is_empty()).then_some(info.query),
+          resource_fragment: (!info.fragment.is_empty()).then_some(info.fragment),
+        };
+
+        let resolved_module_type =
+          self.calculate_module_type(&resource_data, self.context.module_type)?;
+
+        let resolved_parser_and_generator = self
+          .plugin_driver
+          .read()
+          .await
+          .registered_parser_and_generator_builder
+          .get(&resolved_module_type)
+          .ok_or_else(|| {
+            Error::InternalError(format!(
+              "Parser and generator builder for module type {:?} is not registered",
+              resolved_module_type
+            ))
+          })?();
+
+        self.context.module_type = Some(resolved_module_type);
+
+        let normal_module = NormalModule::new(
+          uri.clone(),
+          uri.clone(),
+          self.dependency.detail.specifier.to_owned(),
+          resolved_module_type,
+          resolved_parser_and_generator,
+          resource_data,
+          self.context.options.clone(),
+        );
+
+        Ok(Some((uri, normal_module, dependency_id)))
+      }
+      ResolveResult::Ignored => unreachable!(), // TODO: fix it later
     }
-
-    let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
-
-    self
-      .tx
-      .send(Msg::DependencyReference(
-        (self.dependency.clone(), dependency_id),
-        uri.clone(),
-      ))
-      .map_err(|_| {
-        Error::InternalError(format!(
-          "Failed to resolve dependency {:?}",
-          self.dependency
-        ))
-      })?;
-
-    let resource_data = ResourceData {
-      resource: uri.clone(),
-      resource_path: url.path().to_string(),
-      resource_query: url.query().map(|q| q.to_string()),
-      resource_fragment: url.fragment().map(|f| f.to_string()),
-    };
-
-    let resolved_module_type =
-      self.calculate_module_type(&resource_data, self.context.module_type)?;
-
-    let resolved_parser_and_generator = self
-      .plugin_driver
-      .read()
-      .await
-      .registered_parser_and_generator_builder
-      .get(&resolved_module_type)
-      .ok_or_else(|| {
-        Error::InternalError(format!(
-          "Parser and generator builder for module type {:?} is not registered",
-          resolved_module_type
-        ))
-      })?();
-
-    self.context.module_type = Some(resolved_module_type);
-
-    let normal_module = NormalModule::new(
-      uri.clone(),
-      uri.clone(),
-      self.dependency.detail.specifier.to_owned(),
-      resolved_module_type,
-      resolved_parser_and_generator,
-      resource_data,
-      self.context.options.clone(),
-    );
-
-    Ok(Some((uri, normal_module, dependency_id)))
   }
 
   pub fn calculate_module_type(

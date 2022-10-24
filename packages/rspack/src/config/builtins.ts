@@ -5,6 +5,14 @@ export type Builtins = Omit<RawBuiltins, "browserslist">;
 
 export type ResolvedBuiltins = RawBuiltins;
 
+function resolveDefine(define = {}) {
+	const entries = Object.entries(define).map(([key, value]) => [
+		key,
+		JSON.stringify(value)
+	]);
+	return Object.fromEntries(entries);
+}
+
 export function resolveBuiltinsOptions(
 	builtins: Builtins,
 	contextPath: string

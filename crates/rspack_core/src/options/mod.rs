@@ -24,8 +24,6 @@ mod plugins;
 pub use plugins::*;
 mod module;
 pub use module::*;
-mod define;
-pub use define::*;
 mod external;
 pub use external::*;
 
@@ -41,7 +39,6 @@ pub struct CompilerOptionsBuilder {
   pub builtins: Option<Builtins>,
   pub plugins: Option<Plugins>,
   pub module: Option<ModuleOptions>,
-  pub define: Option<Define>,
   pub devtool: Option<Devtool>,
   pub external: Option<Vec<External>>,
   pub external_type: Option<ExternalType>,
@@ -62,7 +59,6 @@ impl CompilerOptionsBuilder {
       builtins: self.builtins.unwrap(),
       plugins: self.plugins.unwrap(),
       module: self.module.unwrap(),
-      define: self.define.unwrap(),
       devtool: self.devtool.unwrap(),
       external: self.external.unwrap(),
       external_type: self.external_type.unwrap(),

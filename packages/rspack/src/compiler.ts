@@ -2,13 +2,12 @@ import * as binding from "@rspack/binding";
 import { Logger } from "./logging/Logger";
 import { resolveWatchOption } from "./config/watch";
 import type { Watch, ResolvedWatch } from "./config/watch";
-import type { ExternalObject, RspackInternal } from "@rspack/binding";
 import * as tapable from "tapable";
 import { SyncHook, SyncBailHook } from "tapable";
 import util from "util";
 import {
 	RspackOptions,
-	ResolvedRspackOptions,
+	RspackOptionsNormalized,
 	Asset,
 	getNormalizedRspackOptions
 } from "./config";
@@ -30,9 +29,9 @@ type CompilationParams = Record<string, any>;
 class Compiler {
 	webpack: any;
 	#plugins: RspackOptions["plugins"];
-	#instance: ExternalObject<RspackInternal>;
+	#instance: binding.Rspack;
 	compilation: Compilation;
-	infrastructureLogger = undefined;
+	infrastructureLogger: any;
 	hooks: {
 		done: tapable.AsyncSeriesHook<Stats>;
 		afterDone: tapable.SyncHook<Stats>;
@@ -45,9 +44,9 @@ class Compiler {
 		beforeRun: tapable.AsyncSeriesHook<[Compiler]>;
 		run: tapable.AsyncSeriesHook<[Compiler]>;
 	};
-	options: ResolvedRspackOptions;
+	options: RspackOptionsNormalized;
 
-	constructor(context: string, options: ResolvedRspackOptions) {
+	constructor(context: string, options: RspackOptionsNormalized) {
 		this.options = options;
 		// to workaround some plugin access webpack, we may change dev-server to avoid this hack in the future
 		this.webpack = {
@@ -55,7 +54,7 @@ class Compiler {
 			HotModuleReplacementPlugin // modernjs/server will auto inject this this plugin not set
 		};
 		// @ts-ignored
-		this.#instance = binding.newRspack(this.options, {
+		this.#instance = new binding.Rspack(this.options, {
 			doneCallback: this.#done.bind(this),
 			processAssetsCallback: this.#processAssets.bind(this)
 		});
@@ -74,13 +73,6 @@ class Compiler {
 			compile: new SyncHook(["params"]),
 			infrastructureLog: new SyncBailHook(["origin", "type", "args"])
 		};
-		/**
-		 * adapter for webpack
-		 */
-		this.#plugins = options.plugins ?? [];
-		for (const plugin of this.#plugins) {
-			plugin.apply(this);
-		}
 	}
 	getInfrastructureLogger(name: string | Function) {
 		if (!name) {
@@ -199,11 +191,11 @@ class Compiler {
 	}
 	async build() {
 		const compilation = this.#newCompilation();
-		const stats = await binding.build(this.#instance);
+		const stats = await this.#instance.build();
 		return stats;
 	}
 	async rebuild(changedFiles: string[]) {
-		const stats = await binding.rebuild(this.#instance, changedFiles, []);
+		const stats = await this.#instance.rebuild(changedFiles, []);
 		return stats.inner;
 	}
 

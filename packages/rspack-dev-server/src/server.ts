@@ -1,4 +1,4 @@
-import type { Compiler, ResolvedRspackOptions } from "@rspack/core";
+import type { Compiler, RspackOptionsNormalized } from "@rspack/core";
 import type { Logger } from "./logger";
 import type { Socket } from "net";
 import type { FSWatcher, WatchOptions } from "chokidar";
@@ -33,7 +33,7 @@ type Port = number | string | "auto";
 
 // copy from webpack-dev-server
 export class RspackDevServer {
-	options: ResolvedRspackOptions["devServer"];
+	options: RspackOptionsNormalized["devServer"];
 	logger: Logger;
 	staticWatchers: FSWatcher[];
 	sockets: Socket[];
@@ -85,7 +85,7 @@ export class RspackDevServer {
 		return "";
 	}
 
-	private getCompilerOptions(): ResolvedRspackOptions {
+	private getCompilerOptions(): RspackOptionsNormalized {
 		return this.compiler.options;
 	}
 

@@ -1,5 +1,4 @@
 import type { Context, ResolvedContext } from "./context";
-import { Define, ResolvedDefine, resolveDefine } from "./define";
 import type { Dev, ResolvedDev } from "./devServer";
 import { Entry, ResolvedEntry, resolveEntryOptions } from "./entry";
 import type {
@@ -23,6 +22,7 @@ import { resolveModuleOptions } from "./module";
 import { resolveBuiltinsOptions } from "./builtins";
 import { resolveResolveOptions } from "./resolve";
 import { resolveEntry } from "./entry";
+import { InfrastructureLogging } from "./RspackOptions";
 
 export type Asset = {
 	source: string;
@@ -35,7 +35,6 @@ export interface RspackOptions {
 	plugins?: Plugin[];
 	devServer?: Dev;
 	module?: Module;
-	define?: Define;
 	target?: Target;
 	mode?: Mode;
 	externals?: External;
@@ -44,15 +43,14 @@ export interface RspackOptions {
 	builtins?: Builtins;
 	resolve?: Resolve;
 	devtool?: Devtool;
+	infrastructureLogging?: InfrastructureLogging;
 }
-
-export interface ResolvedRspackOptions {
+export interface RspackOptionsNormalized {
 	entry: ResolvedEntry;
 	context: ResolvedContext;
 	plugins: Plugin[];
 	devServer: ResolvedDev;
 	module: ResolvedModule;
-	define: ResolvedDefine;
 	target: ResolvedTarget;
 	mode: ResolvedMode;
 	external: ResolvedExternal;
@@ -61,11 +59,12 @@ export interface ResolvedRspackOptions {
 	builtins: ResolvedBuiltins;
 	resolve: ResolvedResolve;
 	devtool: ResolvedDevtool;
+	infrastructureLogging: InfrastructureLogging;
 }
 
 export function getNormalizedRspackOptions(
 	config: RspackOptions
-): ResolvedRspackOptions {
+): RspackOptionsNormalized {
 	const context = config.context ?? process.cwd();
 	const mode = config.mode ?? "development";
 	const devServer = resolveDevOptions(config.devServer, { context });
@@ -74,7 +73,6 @@ export function getNormalizedRspackOptions(
 		dev: !!config.devServer
 	});
 	const output = resolveOutputOptions(config.output);
-	const define = resolveDefine(config.define);
 	const target = resolveTargetOptions(config.target);
 	const external = config.externals ?? {};
 	const externalType = config.externalsType ?? "";
@@ -85,12 +83,12 @@ export function getNormalizedRspackOptions(
 	const module = resolveModuleOptions(config.module, { devtool, context });
 
 	return {
+		...config,
 		context,
 		mode,
 		devServer,
 		entry,
 		output,
-		define,
 		target,
 		external,
 		externalType,
@@ -98,8 +96,12 @@ export function getNormalizedRspackOptions(
 		builtins,
 		module,
 		resolve,
-		devtool
+		devtool,
+		infrastructureLogging: cloneObject(config.infrastructureLogging)
 	};
 }
 
+function cloneObject(value: Record<string, any> | undefined) {
+	return { ...value };
+}
 export type { Plugin };

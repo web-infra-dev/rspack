@@ -80,7 +80,7 @@ const LogLevel = {
  * @param {LoggerOptions} options options object
  * @returns {function(string, LogTypeEnum, any[]): void} logging function
  */
-export = ({ level = "info", debug = false, console }) => {
+export = ({ level = "info", debug = false, console }: any) => {
 	const debugFilters =
 		typeof debug === "boolean"
 			? [() => debug]
