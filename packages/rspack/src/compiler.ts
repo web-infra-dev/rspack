@@ -220,7 +220,7 @@ class Compiler {
 	build(cb: Callback<Error, any>) {
 		const compilation = this.#newCompilation();
 		const build_cb = util.callbackify(
-			this.#instance.build.bind(this.#instance)
+			this.#instance.unsafe_build.bind(this.#instance)
 		) as (cb: Callback<Error, any>) => void;
 		build_cb((err, stats) => {
 			if (err) {
@@ -232,7 +232,7 @@ class Compiler {
 	}
 	rebuild(changedFiles: string[], cb) {
 		const rebuild_cb = util.callbackify(
-			this.#instance.rebuild.bind(this.#instance)
+			this.#instance.unsafe_rebuild.bind(this.#instance)
 		) as (cb: Callback<Error, any>) => void;
 		rebuild_cb((err, stats) => {
 			if (err) {

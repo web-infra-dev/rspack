@@ -3,13 +3,14 @@ extern crate napi_derive;
 
 use std::collections::{HashMap, HashSet};
 use std::pin::Pin;
-use std::sync::Arc;
+use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::Mutex;
 
 use napi::bindgen_prelude::*;
 use napi::JsObject;
 
+use once_cell::sync::Lazy;
 use rspack_tracing::enable_tracing_by_env;
-use tokio::sync::RwLock;
 
 mod js_values;
 mod plugins;
@@ -24,9 +25,65 @@ use utils::*;
 #[global_allocator]
 static ALLOC: mimalloc_rust::GlobalMiMalloc = mimalloc_rust::GlobalMiMalloc;
 
+struct SingleThreadedHashMap<K, V>(Mutex<HashMap<K, V>>);
+
+impl<K, V> SingleThreadedHashMap<K, V>
+where
+  K: Eq + std::hash::Hash,
+{
+  /// Acquire a mutable reference to the inner hashmap.
+  ///
+  /// Safety: Mutable reference can almost let you do anything you want, this is intended to be used from the thread where the map was created.
+  #[allow(unused)]
+  unsafe fn borrow_mut<F, R>(&self, f: F) -> Result<R>
+  where
+    F: FnOnce(&mut HashMap<K, V>) -> Result<R>,
+  {
+    let mut inner = self
+      .0
+      .lock()
+      .map_err(|_| napi::Error::from_reason("Failed to acquire lock on single-threaded hashmap"))?;
+
+    f(&mut *inner)
+  }
+
+  /// Acquire a shared reference to the inner hashmap.
+  ///
+  /// Safety: It's not thread-safe, so this is intended to be used from the thread where the map was created.
+  #[allow(unused)]
+  unsafe fn borrow<F, R>(&self, f: F) -> Result<R>
+  where
+    F: FnOnce(&HashMap<K, V>) -> Result<R>,
+  {
+    let inner = self
+      .0
+      .lock()
+      .map_err(|_| napi::Error::from_reason("Failed to acquire lock on single-threaded hashmap"))?;
+
+    f(&*inner)
+  }
+}
+
+impl<K, V> Default for SingleThreadedHashMap<K, V> {
+  fn default() -> Self {
+    Self(Mutex::new(HashMap::new()))
+  }
+}
+
+// Safety: Methods are already marked as unsafe.
+unsafe impl<K, V> Send for SingleThreadedHashMap<K, V> {}
+unsafe impl<K, V> Sync for SingleThreadedHashMap<K, V> {}
+
+static COMPILERS: Lazy<SingleThreadedHashMap<CompilerId, rspack::Compiler>> =
+  Lazy::new(SingleThreadedHashMap::default);
+
+static COMPILER_ID: AtomicU32 = AtomicU32::new(1);
+
+type CompilerId = u32;
+
 #[napi]
 pub struct Rspack {
-  inner: Pin<Arc<RwLock<rspack::Compiler>>>,
+  id: CompilerId,
 }
 
 #[napi]
@@ -71,75 +128,110 @@ impl Rspack {
         Ok(compiler_options)
       })?;
     tracing::info!("normalized_options: {:?}", &compiler_options);
+
     let rspack = rspack::rspack(compiler_options, vec![]);
-    Ok(Self {
-      inner: Arc::pin(RwLock::new(rspack)),
-    })
+
+    let handle_compiler_creation = move |map: &mut HashMap<_, _>| {
+      let id = COMPILER_ID.fetch_add(1, Ordering::SeqCst);
+      map.insert(id, rspack);
+      Ok(id)
+    };
+
+    let id = unsafe { COMPILERS.borrow_mut(handle_compiler_creation) }?;
+
+    Ok(Self { id })
   }
 
-  #[napi(ts_return_type = "Promise<StatsCompilation>")]
+  /// Build with the given option passed to the constructor
+  ///
+  /// Warning:
+  /// Calling this method recursively will cause a panic.
+  #[napi(js_name = "unsafe_build", ts_return_type = "Promise<StatsCompilation>")]
   pub fn build(&self, env: Env) -> Result<JsObject> {
-    let inner = self.inner.clone();
-    env.execute_tokio_future(
-      async move {
-        let mut compiler = inner.write().await;
+    let handle_build = |map: &mut HashMap<_, _>| {
+      // Safety: compiler is stored in a global hashmap, so it's guaranteed to be alive.
+      let compiler = unsafe {
+        std::mem::transmute::<&'_ mut rspack::Compiler, &'static mut rspack::Compiler>(
+          map.get_mut(&self.id).unwrap(),
+        )
+      };
 
-        let rspack_stats = compiler
-          .build()
-          .await
-          .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
+      env.execute_tokio_future(
+        async move {
+          let rspack_stats = compiler
+            .build()
+            .await
+            .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
 
-        let stats: StatsCompilation = rspack_stats.to_description().into();
-        if stats.errors.is_empty() {
-          tracing::info!("build success");
-        } else {
-          tracing::info!("build failed");
-        }
-        Ok(stats)
-      },
-      |_env, ret| Ok(ret),
-    )
+          let stats: StatsCompilation = rspack_stats.to_description().into();
+          if stats.errors.is_empty() {
+            tracing::info!("build success");
+          } else {
+            tracing::info!("build failed");
+          }
+
+          Ok(stats)
+        },
+        |_env, ret| Ok(ret),
+      )
+    };
+    unsafe { COMPILERS.borrow_mut(handle_build) }
   }
 
-  #[napi(ts_return_type = "Promise<Record<string, {content: string, kind: number}>>")]
+  /// Rebuild with the given option passed to the constructor
+  ///
+  /// Warning:
+  /// Calling this method recursively will cause a panic.
+  #[napi(
+    js_name = "unsafe_rebuild",
+    ts_return_type = "Promise<Record<string, {content: string, kind: number}>>"
+  )]
   pub fn rebuild(
     &self,
     env: Env,
     changed_files: Vec<String>,
     removed_files: Vec<String>,
   ) -> Result<JsObject> {
-    let inner = self.inner.clone();
+    let handle_rebuild = |map: &mut HashMap<_, _>| {
+      // Safety: compiler is stored in a global hashmap, so it's guaranteed to be alive.
+      let compiler = unsafe {
+        std::mem::transmute::<&'_ mut rspack::Compiler, &'static mut rspack::Compiler>(
+          map.get_mut(&self.id).unwrap(),
+        )
+      };
 
-    env.execute_tokio_future(
-      async move {
-        let mut compiler = inner.write().await;
-
-        let diff = compiler
-          .rebuild(
-            HashSet::from_iter(changed_files.into_iter()),
-            HashSet::from_iter(removed_files.into_iter()),
-          )
-          .await
-          .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
-        let stats: HashMap<String, DiffStat> = diff
-          .into_iter()
-          .map(|(uri, stats)| {
-            (
-              uri,
-              DiffStat {
-                kind: DiffStatKind::from(stats.0),
-                content: stats.1,
-              },
+      env.execute_tokio_future(
+        async move {
+          let diff = compiler
+            .rebuild(
+              HashSet::from_iter(changed_files.into_iter()),
+              HashSet::from_iter(removed_files.into_iter()),
             )
-          })
-          .collect();
-        // let stats: Stats = _rspack_stats.into();
+            .await
+            .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
 
-        tracing::info!("rebuild success");
-        Ok(stats)
-      },
-      |_env, ret| Ok(ret),
-    )
+          let stats: HashMap<String, DiffStat> = diff
+            .into_iter()
+            .map(|(uri, stats)| {
+              (
+                uri,
+                DiffStat {
+                  kind: DiffStatKind::from(stats.0),
+                  content: stats.1,
+                },
+              )
+            })
+            .collect();
+          // let stats: Stats = _rspack_stats.into();
+
+          tracing::info!("rebuild success");
+          Ok(stats)
+        },
+        |_env, ret| Ok(ret),
+      )
+    };
+
+    unsafe { COMPILERS.borrow_mut(handle_rebuild) }
   }
 }
 
