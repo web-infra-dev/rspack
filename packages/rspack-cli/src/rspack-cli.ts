@@ -17,11 +17,6 @@ export class RspackCLI {
 		this.colors = this.createColors();
 		this.program = yargs();
 	}
-	async createCompiler(options: RspackCLIOptions) {
-		let config = await this.loadConfig(options);
-		const compiler = createCompiler(config);
-		return compiler;
-	}
 	createColors(useColor?: boolean): RspackCLIColors {
 		const { createColors, isColorSupported } = require("colorette");
 
@@ -61,8 +56,8 @@ export class RspackCLI {
 			command.apply(this);
 		}
 	}
-	async loadConfig(options: RspackCLIOptions) {
-		let loadedConfig;
+	async loadConfig(options: RspackCLIOptions): Promise<RspackOptions> {
+		let loadedConfig: RspackOptions;
 		// if we pass config paras
 		if (options.config) {
 			const resolvedConfigPath = path.resolve(process.cwd(), options.config);
