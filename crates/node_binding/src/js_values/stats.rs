@@ -93,7 +93,7 @@ impl From<rspack_core::StatsChunk> for StatsChunk {
   fn from(stats: rspack_core::StatsChunk) -> Self {
     Self {
       r#type: stats.r#type,
-      files: Vec::from_iter(stats.files.into_iter()),
+      files: stats.files,
       id: stats.id,
     }
   }
