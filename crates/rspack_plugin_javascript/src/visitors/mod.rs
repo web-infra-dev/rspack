@@ -34,6 +34,13 @@ pub fn run_before_pass(
   let comments = None;
   pass_global.try_with_handler(move |handler| {
     let mut pass = chain!(
+      Optional::new(
+        swc_plugin_react_utils::react_utils(&swc_plugin_react_utils::ReactUtilsConfig {
+          auto_import_react: Some(true),
+          rm_effect: Some(false)
+        }),
+        syntax.jsx()
+      ),
       swc_visitor::resolver(unresolved_mark, top_level_mark, false),
       //      swc_visitor::lint(
       //        &ast,
@@ -88,6 +95,7 @@ pub fn run_before_pass(
       swc_visitor::inject_helpers()
     );
     let ast = ast.fold_with(&mut pass);
+
     Ok(ast)
   })
 }

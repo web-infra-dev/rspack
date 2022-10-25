@@ -38,4 +38,5 @@ swc_ecma_transforms = { version = "0.196.10", features = [
 ] }
 swc_ecma_utils = "0.105.5"
 swc_ecma_visit = "0.80.3"
+swc_plugin_react_utils = { git = "https://github.com/modern-js-dev/swc-plugins", package = "plugin_react_utils" }
 tracing = "0.1.34"
