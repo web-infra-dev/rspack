@@ -7,5 +7,6 @@ module.exports = {
 		"<rootDir>/tests/*.basictest.ts",
 		"<rootDir>/tests/*.longtest.ts",
 		"<rootDir>/tests/*.unittest.ts"
-	]
+	],
+	cache: false
 };

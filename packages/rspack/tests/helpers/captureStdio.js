@@ -32,10 +32,10 @@ module.exports = (stdio, tty) => {
 			stdio.isTTY = isTTY;
 
 			delete require.cache[require.resolve("../../")];
-			delete require.cache[
-				require.resolve("../../lib/node/NodeEnvironmentPlugin")
-			];
-			delete require.cache[require.resolve("../../lib/node/nodeConsole")];
+			// delete require.cache[
+			// 	require.resolve("../../lib/node/NodeEnvironmentPlugin")
+			// ];
+			// delete require.cache[require.resolve("../../lib/node/nodeConsole")];
 		}
 	};
 };

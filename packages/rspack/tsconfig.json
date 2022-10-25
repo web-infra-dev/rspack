@@ -2,12 +2,18 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "allowJs": true,
   },
   "include": [
     "src"
   ],
   "ts-node": {
     "transpileOnly": true
-  }
+  },
+  "references": [
+    {
+      "path": "../rspack-dev-client"
+    }
+  ]
 }

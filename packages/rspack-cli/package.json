@@ -17,7 +17,8 @@
   "devDependencies": {
     "internal-ip": "6.2.0",
     "concat-stream": "^2.0.0",
-    "execa": "^5.0.0"
+    "execa": "^5.0.0",
+    "source-map-support": "^0.5.19"
   },
   "dependencies": {
     "@rspack/core": "workspace:*",

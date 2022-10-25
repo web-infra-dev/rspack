@@ -3,17 +3,21 @@ import { Logger } from "./logging/Logger";
 import { resolveWatchOption } from "./config/watch";
 import type { Watch, ResolvedWatch } from "./config/watch";
 import * as tapable from "tapable";
-import { SyncHook, SyncBailHook } from "tapable";
+
+import { SyncHook, SyncBailHook, Callback } from "tapable";
 import util from "util";
+import fs from "fs";
+import asyncLib from "neo-async";
+import path from "path";
 import {
 	RspackOptions,
 	RspackOptionsNormalized,
-	Asset,
 	getNormalizedRspackOptions
 } from "./config";
 
 import { Stats } from "./stats";
-import { Compilation } from "./compilation";
+import { Asset, Compilation } from "./compilation";
+import { mkdir } from "fs";
 
 export type EmitAssetCallback = (options: {
 	filename: string;
@@ -28,10 +32,13 @@ class HotModuleReplacementPlugin {
 type CompilationParams = Record<string, any>;
 class Compiler {
 	webpack: any;
-	#plugins: RspackOptions["plugins"];
 	#instance: binding.Rspack;
 	compilation: Compilation;
 	infrastructureLogger: any;
+	outputPath: string;
+	name: string;
+	inputFileSystem: any;
+	outputFileSystem: any;
 	hooks: {
 		done: tapable.AsyncSeriesHook<Stats>;
 		afterDone: tapable.SyncHook<Stats>;
@@ -43,6 +50,7 @@ class Compiler {
 		infrastructureLog: tapable.SyncBailHook<[string, string, any[]], true>;
 		beforeRun: tapable.AsyncSeriesHook<[Compiler]>;
 		run: tapable.AsyncSeriesHook<[Compiler]>;
+		failed: tapable.SyncHook<[Error]>;
 	};
 	options: RspackOptionsNormalized;
 
@@ -71,7 +79,8 @@ class Compiler {
 			compilation: new tapable.SyncHook<Compilation>(["compilation"]),
 			invalid: new SyncHook(["filename", "changeTime"]),
 			compile: new SyncHook(["params"]),
-			infrastructureLog: new SyncBailHook(["origin", "type", "args"])
+			infrastructureLog: new SyncBailHook(["origin", "type", "args"]),
+			failed: new SyncHook(["error"])
 		};
 	}
 	getInfrastructureLogger(name: string | Function) {
@@ -160,42 +169,78 @@ class Compiler {
 	 * @param value
 	 * @returns
 	 */
-	async #done(statsJson: binding.StatsCompilation) {
-		const stats = new Stats(this.compilation, statsJson);
-		await this.hooks.done.promise(stats);
-	}
-	async #processAssets(value: string, emitAsset: any) {
+	#done(statsJson: binding.StatsCompilation) {}
+	#processAssets(value: string, emitAsset: any) {
 		return this.compilation.processAssets(value, emitAsset);
 	}
 	#newCompilation() {
-		const compilation = new Compilation();
+		const compilation = new Compilation(this.options);
 		this.compilation = compilation;
 		this.hooks.compilation.call(compilation);
 		return compilation;
 	}
-	async run(callback) {
-		const doRun = async () => {
-			await this.hooks.beforeRun.promise(this);
-			await this.hooks.run.promise(this);
-			const raw_stats = await this.build();
-			const stats = new Stats(this.compilation, raw_stats);
-			await this.hooks.done.promise(stats);
-			return stats;
+	run(callback) {
+		const doRun = () => {
+			const finalCallback = (err, stats?) => {
+				if (err) {
+					this.hooks.failed.call(err);
+				}
+				if (callback) {
+					callback(err, stats);
+				}
+				this.hooks.afterDone.call(stats);
+			};
+			this.hooks.beforeRun.callAsync(this, err => {
+				if (err) {
+					return finalCallback(err);
+				}
+				this.hooks.run.callAsync(this, err => {
+					if (err) {
+						return finalCallback(err);
+					}
+
+					this.build((err, raw_stats) => {
+						if (err) {
+							return finalCallback(err);
+						}
+						const stats = new Stats(this.compilation, raw_stats);
+						this.hooks.done.callAsync(stats, err => {
+							if (err) {
+								return finalCallback(err);
+							} else {
+								return finalCallback(null, stats);
+							}
+						});
+					});
+				});
+			});
 		};
-		if (callback) {
-			util.callbackify(doRun)(callback);
-		} else {
-			return doRun();
-		}
+		doRun();
 	}
-	async build() {
+	build(cb: Callback<Error, any>) {
 		const compilation = this.#newCompilation();
-		const stats = await this.#instance.build();
-		return stats;
+		const build_cb = util.callbackify(
+			this.#instance.build.bind(this.#instance)
+		) as (cb: Callback<Error, any>) => void;
+		build_cb((err, stats) => {
+			if (err) {
+				cb(err);
+			} else {
+				cb(null, stats);
+			}
+		});
 	}
-	async rebuild(changedFiles: string[]) {
-		const stats = await this.#instance.rebuild(changedFiles, []);
-		return stats.inner;
+	rebuild(changedFiles: string[], cb) {
+		const rebuild_cb = util.callbackify(
+			this.#instance.rebuild.bind(this.#instance)
+		) as (cb: Callback<Error, any>) => void;
+		rebuild_cb((err, stats) => {
+			if (err) {
+				cb(err);
+			} else {
+				cb(null, stats);
+			}
+		});
 	}
 
 	async watch(watchOptions?: Watch): Promise<Watching> {
@@ -208,7 +253,7 @@ class Compiler {
 				...options
 			}
 		);
-		let stats = await this.build();
+		let stats = await util.promisify(this.build.bind(this))();
 
 		// TODO: should use aggregated
 		watcher.on("change", async path => {
@@ -216,7 +261,7 @@ class Compiler {
 			// TODO: it means there a lot of things to do....
 			const begin = Date.now();
 			console.log("hit change and start to build");
-			const diffStats = await this.rebuild([path]);
+			const diffStats = await util.promisify(this.rebuild.bind(this))([path]);
 			console.log("build success, time cost", Date.now() - begin);
 		});
 
@@ -226,11 +271,48 @@ class Compiler {
 			}
 		};
 	}
+	purgeInputFileSystem() {
+		if (this.inputFileSystem && this.inputFileSystem.purge) {
+			this.inputFileSystem.purge();
+		}
+	}
 	/**
 	 * @todo
 	 */
 	close(callback) {
 		callback();
+	}
+	emitAssets(compilation: Compilation, callback) {
+		const outputPath = compilation.getPath(this.outputPath, {});
+		fs.mkdirSync(outputPath, { recursive: true });
+		const assets = compilation.getAssets();
+		compilation.assets = { ...compilation.assets };
+		asyncLib.forEachLimit(
+			assets,
+			15,
+			({ name: file, source, info }, callback) => {
+				let targetFile = file;
+				const absPath = path.resolve(outputPath, targetFile);
+				const getContent = () => {
+					if (typeof source.buffer === "function") {
+						return source.buffer();
+					} else {
+						const bufferOrString = source.source();
+						if (Buffer.isBuffer(bufferOrString)) {
+							return bufferOrString;
+						} else {
+							return Buffer.from(bufferOrString as string, "utf-8");
+						}
+					}
+				};
+
+				const doWrite = content => {
+					this.outputFileSystem.writeFile(absPath, content, callback);
+				};
+				let content = getContent();
+				doWrite(content);
+			}
+		);
 	}
 }
 
