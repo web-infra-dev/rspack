@@ -2,13 +2,6 @@
  * @type {import('webpack').Configuration}
  */
 module.exports = {
-	builtins: {
-		html: [
-			{
-				template: "./index.html",
-			},
-		],
-	},
 	context: __dirname,
 	mode: "development",
 	entry: {
