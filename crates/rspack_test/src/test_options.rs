@@ -27,7 +27,6 @@ impl RawOptionsExt for RawOptions {
       );
       const TAIL: &str = "JSON.stringify(module.exports)";
       let qjs_context = quick_js::Context::new().unwrap();
-      dbg!(&pkg_content);
       let value = qjs_context
         .eval(&format!("{head}\n{pkg_content}\n{TAIL}"))
         .unwrap();
