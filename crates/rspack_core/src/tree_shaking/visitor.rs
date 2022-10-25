@@ -165,7 +165,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         Some(ref body_owner_id) if body_owner_id != &id => {
           self.add_reference(body_owner_id.clone(), id);
         }
-        _ if mark != self.unresolved_mark => {
+        None => {
           self.used_id_set.insert(id);
         }
         _ => {}
