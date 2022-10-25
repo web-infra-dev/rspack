@@ -5,10 +5,10 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "dev": "rspack"
+    "dev": "rspack -c test.config.js"
   },
   "devDependencies": {
-    "@rspack/core": "workspace:*"
+    "@rspack/cli": "workspace:*"
   },
   "keywords": [],
   "author": "",
