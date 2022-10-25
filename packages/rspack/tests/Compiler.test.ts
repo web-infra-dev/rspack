@@ -638,7 +638,7 @@ describe("Compiler", () => {
 			runCb();
 		});
 	});
-	it.only("should call afterDone hook after other callbacks (instance cb)", done => {
+	it("should call afterDone hook after other callbacks (instance cb)", done => {
 		const instanceCb = jest.fn();
 		compiler = rspack(
 			{
@@ -774,10 +774,9 @@ describe("Compiler", () => {
 			});
 		});
 	});
-	it.skip("should call the failed-hook on error", done => {
+	it("should call the failed-hook on error", done => {
 		const failedSpy = jest.fn();
-		const webpack = require("..");
-		compiler = webpack({
+		compiler = rspack({
 			bail: true,
 			context: __dirname,
 			mode: "production",
@@ -840,9 +839,8 @@ describe("Compiler", () => {
 				logger.timeEnd("Time");
 			}
 		}
-		it.skip("should log to the console (verbose)", done => {
-			const webpack = require("..");
-			compiler = webpack({
+		it("should log to the console (verbose)", done => {
+			compiler = rspack({
 				context: path.join(__dirname, "fixtures"),
 				entry: "./a",
 				output: {
@@ -871,9 +869,8 @@ describe("Compiler", () => {
 				done();
 			});
 		});
-		it.skip("should log to the console (debug mode)", done => {
-			const webpack = require("..");
-			compiler = webpack({
+		it("should log to the console (debug mode)", done => {
+			compiler = rspack({
 				context: path.join(__dirname, "fixtures"),
 				entry: "./a",
 				output: {
@@ -904,9 +901,8 @@ describe("Compiler", () => {
 				done();
 			});
 		});
-		it.skip("should log to the console (none)", done => {
-			const webpack = require("..");
-			compiler = webpack({
+		it("should log to the console (none)", done => {
+			compiler = rspack({
 				context: path.join(__dirname, "fixtures"),
 				entry: "./a",
 				output: {
@@ -924,13 +920,11 @@ describe("Compiler", () => {
 				done();
 			});
 		});
-		it.skip("should log to the console with colors (verbose)", done => {
-			const webpack = require("..");
-			compiler = webpack({
+		it("should log to the console with colors (verbose)", done => {
+			compiler = rspack({
 				context: path.join(__dirname, "fixtures"),
 				entry: "./a",
 				output: {
-					path: "/directory",
 					filename: "bundle.js"
 				},
 				infrastructureLogging: {
@@ -956,13 +950,11 @@ describe("Compiler", () => {
 				done();
 			});
 		});
-		it.skip("should log to the console with colors (debug mode)", done => {
-			const webpack = require("..");
-			compiler = webpack({
+		it("should log to the console with colors (debug mode)", done => {
+			compiler = rspack({
 				context: path.join(__dirname, "fixtures"),
 				entry: "./a",
 				output: {
-					path: "/directory",
 					filename: "bundle.js"
 				},
 				infrastructureLogging: {
