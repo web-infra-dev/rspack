@@ -23,13 +23,10 @@ import { resolveBuiltinsOptions } from "./builtins";
 import { resolveResolveOptions } from "./resolve";
 import { resolveEntry } from "./entry";
 import { InfrastructureLogging } from "./RspackOptions";
-
-export type Asset = {
-	source: string;
-};
-export type Assets = Record<string, Asset>;
+import { Source } from "webpack-sources";
 
 export interface RspackOptions {
+	name?: string;
 	entry?: Entry;
 	context?: Context;
 	plugins?: Plugin[];
@@ -46,6 +43,7 @@ export interface RspackOptions {
 	infrastructureLogging?: InfrastructureLogging;
 }
 export interface RspackOptionsNormalized {
+	name?: string;
 	entry: ResolvedEntry;
 	context: ResolvedContext;
 	plugins: Plugin[];

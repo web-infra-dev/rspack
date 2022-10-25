@@ -55,13 +55,14 @@ export function describeCases(config: { name: string; casePath: string }) {
 									main: "./"
 								},
 								output: {
-									path: outputPath,
-									filename: "bundle.js" // not working by now @Todo need fixed later
+									path: outputPath
+								},
+								infrastructureLogging: {
+									debug: false
 								},
 								externals: external,
 								...config // we may need to use deepMerge to handle config merge, but we may fix it until we need it
 							};
-
 							const stats = await util.promisify(rspack)(options);
 							const statsJson = stats.toJson();
 							if (statsJson.errors.length > 0) {

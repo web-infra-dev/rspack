@@ -98,14 +98,7 @@ describe("snapshots", () => {
 		  "module": {
 		    "rules": [],
 		  },
-		  "output": {
-		    "assetModuleFilename": undefined,
-		    "chunkFilename": undefined,
-		    "filename": undefined,
-		    "path": undefined,
-		    "publicPath": undefined,
-		    "uniqueName": undefined,
-		  },
+		  "output": {},
 		  "plugins": [],
 		  "resolve": {
 		    "alias": {},
@@ -250,13 +243,43 @@ describe("snapshots", () => {
 		`)
 	);
 	test("const filename", { output: { filename: "bundle.js" } }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		-   "output": Object {},
+		+   "output": Object {
+		+     "filename": "bundle.js",
+		+   },
+	`)
 	);
 	test("function filename", { output: { filename: () => "bundle.js" } }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		-   "output": Object {},
+		+   "output": Object {
+		+     "filename": [Function filename],
+		+   },
+	`)
 	);
 	test("library", { output: { library: ["myLib", "awesome"] } }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		-   "output": Object {},
+		+   "output": Object {
+		+     "library": Array [
+		+       "myLib",
+		+       "awesome",
+		+     ],
+		+   },
+	`)
 	);
 	test(
 		"library contains [name] placeholder",
@@ -265,7 +288,20 @@ describe("snapshots", () => {
 				library: ["myLib", "[name]"]
 			}
 		},
-		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e =>
+			e.toMatchInlineSnapshot(`
+			- Expected
+			+ Received
+
+			@@ ... @@
+			-   "output": Object {},
+			+   "output": Object {
+			+     "library": Array [
+			+       "myLib",
+			+       "[name]",
+			+     ],
+			+   },
+		`)
 	);
 	test(
 		"library.name contains [name] placeholder",
@@ -277,7 +313,24 @@ describe("snapshots", () => {
 				}
 			}
 		},
-		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e =>
+			e.toMatchInlineSnapshot(`
+			- Expected
+			+ Received
+
+			@@ ... @@
+			-   "output": Object {},
+			+   "output": Object {
+			+     "library": Object {
+			+       "name": Array [
+			+         "my[name]Lib",
+			+         "[name]",
+			+         "lib",
+			+       ],
+			+       "type": "var",
+			+     },
+			+   },
+		`)
 	);
 	test(
 		"library.name.root contains [name] placeholder",
@@ -291,7 +344,25 @@ describe("snapshots", () => {
 				}
 			}
 		},
-		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e =>
+			e.toMatchInlineSnapshot(`
+			- Expected
+			+ Received
+
+			@@ ... @@
+			-   "output": Object {},
+			+   "output": Object {
+			+     "library": Object {
+			+       "name": Object {
+			+         "root": Array [
+			+           "[name]",
+			+           "myLib",
+			+         ],
+			+       },
+			+       "type": "var",
+			+     },
+			+   },
+		`)
 	);
 	test(
 		"library.name.root contains escaped placeholder",
@@ -305,7 +376,26 @@ describe("snapshots", () => {
 				}
 			}
 		},
-		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e =>
+			e.toMatchInlineSnapshot(`
+			- Expected
+			+ Received
+
+			@@ ... @@
+			-   "output": Object {},
+			+   "output": Object {
+			+     "library": Object {
+			+       "name": Object {
+			+         "root": Array [
+			+           "[\\\\name\\\\]",
+			+           "my[\\\\name\\\\]Lib[name]",
+			+           "[\\\\name\\\\]",
+			+         ],
+			+       },
+			+       "type": "var",
+			+     },
+			+   },
+		`)
 	);
 	test("target node", { target: "node" }, e =>
 		e.toMatchInlineSnapshot(`
@@ -357,7 +447,16 @@ describe("snapshots", () => {
 	`)
 	);
 	test("ecmaVersion", { output: { ecmaVersion: 2020 } }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		-   "output": Object {},
+		+   "output": Object {
+		+     "ecmaVersion": 2020,
+		+   },
+	`)
 	);
 	test("single runtimeChunk", { optimization: { runtimeChunk: "single" } }, e =>
 		e.toMatchInlineSnapshot(`
@@ -472,8 +571,11 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-     "uniqueName": undefined,
+			-   "output": Object {},
+			+   "output": Object {
+			+     "trustedTypes": true,
 			+     "uniqueName": "@@@Hello World!",
+			+   },
 		`)
 	);
 
@@ -567,7 +669,24 @@ describe("snapshots", () => {
 				enabledWasmLoadingTypes: ["...", "async-node"]
 			}
 		},
-		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e =>
+			e.toMatchInlineSnapshot(`
+			- Expected
+			+ Received
+
+			@@ ... @@
+			-   "output": Object {},
+			+   "output": Object {
+			+     "enabledChunkLoadingTypes": Array [
+			+       "require",
+			+       "...",
+			+     ],
+			+     "enabledWasmLoadingTypes": Array [
+			+       "...",
+			+       "async-node",
+			+     ],
+			+   },
+		`)
 	);
 
 	test(

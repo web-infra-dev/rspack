@@ -7,7 +7,7 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
       "chunks": [
         "main",
       ],
-      "name": "main.js",
+      "name": "bundle.js",
       "size": 2709,
       "type": "asset",
     },
@@ -15,7 +15,7 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
   "chunks": [
     {
       "files": [
-        "main.js",
+        "bundle.js",
       ],
       "id": "main",
       "type": "chunk",
@@ -50,7 +50,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "chunks": [
         "main",
       ],
-      "name": "main.js",
+      "name": "bundle.js",
       "size": 2826,
       "type": "asset",
     },
@@ -58,7 +58,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
   "chunks": [
     {
       "files": [
-        "main.js",
+        "bundle.js",
       ],
       "id": "main",
       "type": "chunk",

@@ -470,7 +470,8 @@ impl NormalModule {
     build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>> {
     // FIXME: dirty workaround for external module
-    if self.skip_build {
+    // FIXME: remove `self.resource_data.ignored` after `RawModule`.
+    if self.skip_build || self.resource_data.ignored {
       let (parse_result, diagnostics) = self
         .parser_and_generator
         .parse(ParseContext {

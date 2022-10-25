@@ -4,3 +4,4 @@ package.json
 examples/**/*
 webpack-examples/**/*
 packages/rspack/tests/fixtures/**/*
+dist/

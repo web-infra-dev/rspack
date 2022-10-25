@@ -122,24 +122,20 @@ impl NormalModuleFactory {
 
   pub fn calculate_module_type_by_uri(&self, uri: &str) -> Option<ModuleType> {
     // todo currently unreachable module types are temporarily unified with their importers
-    let url = parse_to_url(if uri.starts_with("UnReachable:") {
-      match self.dependency.importer.as_deref() {
-        Some(u) => u,
-        None => uri,
-      }
-    } else {
-      uri
-    });
+    let url = parse_to_url(uri);
     debug_assert_eq!(url.scheme().map(|item| item.as_str()), Some("specifier"));
     resolve_module_type_by_uri(PathBuf::from(url.path().as_str()))
   }
   #[instrument(name = "normal_module_factory:factory_normal_module")]
   pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, NormalModule, u32)>> {
-    match resolve(
+    let importer = self.dependency.importer.as_deref();
+    let specifier = self.dependency.detail.specifier.as_str();
+    let kind = self.dependency.detail.kind;
+    let resource_data = match resolve(
       ResolveArgs {
-        importer: self.dependency.importer.as_deref(),
-        specifier: self.dependency.detail.specifier.as_str(),
-        kind: self.dependency.detail.kind,
+        importer,
+        specifier,
+        kind,
         span: self.dependency.detail.span,
       },
       &self.plugin_driver,
@@ -149,66 +145,92 @@ impl NormalModuleFactory {
     {
       ResolveResult::Info(info) => {
         let uri = info.join();
-        tracing::trace!("resolved uri {:?}", uri);
-
-        if self.context.module_type.is_none() {
-          self.context.module_type = self.calculate_module_type_by_uri(&uri);
-        }
-
-        let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
-
-        self
-          .tx
-          .send(Msg::DependencyReference(
-            (self.dependency.clone(), dependency_id),
-            uri.clone(),
-          ))
-          .map_err(|_| {
-            Error::InternalError(format!(
-              "Failed to resolve dependency {:?}",
-              self.dependency
-            ))
-          })?;
-
-        let resource_data = ResourceData {
-          resource: uri.clone(),
+        ResourceData {
+          resource: uri,
           resource_path: info.path.to_string_lossy().to_string(),
           resource_query: (!info.query.is_empty()).then_some(info.query),
           resource_fragment: (!info.fragment.is_empty()).then_some(info.fragment),
-        };
-
-        let resolved_module_type =
-          self.calculate_module_type(&resource_data, self.context.module_type)?;
-
-        let resolved_parser_and_generator = self
-          .plugin_driver
-          .read()
-          .await
-          .registered_parser_and_generator_builder
-          .get(&resolved_module_type)
-          .ok_or_else(|| {
-            Error::InternalError(format!(
-              "Parser and generator builder for module type {:?} is not registered",
-              resolved_module_type
-            ))
-          })?();
-
-        self.context.module_type = Some(resolved_module_type);
-
-        let normal_module = NormalModule::new(
-          uri.clone(),
-          uri.clone(),
-          self.dependency.detail.specifier.to_owned(),
-          resolved_module_type,
-          resolved_parser_and_generator,
-          resource_data,
-          self.context.options.clone(),
-        );
-
-        Ok(Some((uri, normal_module, dependency_id)))
+          ignored: false,
+        }
       }
-      ResolveResult::Ignored => unreachable!(), // TODO: fix it later
+      ResolveResult::Ignored => {
+        // TODO: return rawModule is a better choice.
+
+        // TODO: Duplicate with the head code in the `resolve` function, should remove it.
+        let importer = if let Some(importer) = importer {
+          Path::new(importer)
+            .parent()
+            .ok_or_else(|| anyhow::format_err!("parent() failed for {:?}", importer))?
+            .to_path_buf()
+        } else {
+          let context = self.context.options.context.as_str();
+          Path::new(context).to_path_buf()
+        };
+        // ----
+
+        // TODO: just for identifier tag. should removed after Module::identifier
+        let uri = format!("{}/{}", importer.display(), specifier);
+        ResourceData {
+          resource: uri.clone(),
+          resource_path: uri,
+          resource_query: None,
+          resource_fragment: None,
+          ignored: true,
+        }
+      }
+    };
+
+    let uri = resource_data.resource.clone();
+    tracing::trace!("resolved uri {:?}", uri);
+
+    if self.context.module_type.is_none() {
+      self.context.module_type = self.calculate_module_type_by_uri(&uri);
     }
+
+    let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
+
+    self
+      .tx
+      .send(Msg::DependencyReference(
+        (self.dependency.clone(), dependency_id),
+        uri.clone(),
+      ))
+      .map_err(|_| {
+        Error::InternalError(format!(
+          "Failed to resolve dependency {:?}",
+          self.dependency
+        ))
+      })?;
+
+    let resolved_module_type =
+      self.calculate_module_type(&resource_data, self.context.module_type)?;
+
+    let resolved_parser_and_generator = self
+      .plugin_driver
+      .read()
+      .await
+      .registered_parser_and_generator_builder
+      .get(&resolved_module_type)
+      .ok_or_else(|| {
+        Error::InternalError(format!(
+          "Parser and generator builder for module type {:?} is not registered",
+          resolved_module_type
+        ))
+      })?();
+
+    self.context.module_type = Some(resolved_module_type);
+
+    let normal_module = NormalModule::new(
+      uri.clone(),
+      uri.clone(),
+      self.dependency.detail.specifier.to_owned(),
+      resolved_module_type,
+      resolved_parser_and_generator,
+      resource_data,
+      self.context.options.clone(),
+    );
+
+    Ok(Some((uri, normal_module, dependency_id)))
   }
 
   pub fn calculate_module_type(
@@ -216,6 +238,10 @@ impl NormalModuleFactory {
     resource_data: &ResourceData,
     default_module_type: Option<ModuleType>,
   ) -> Result<ModuleType> {
+    // TODO: should removed after `RawModule`.
+    if resource_data.ignored {
+      return Ok(ModuleType::Js);
+    }
     // Progressive module type resolution:
     // Stage 1: maintain the resolution logic via file extension
     // TODO: Stage 2:
