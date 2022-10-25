@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { getNormalizedRspackOptions, rspack, webpack } from "../src";
+import { Compiler, getNormalizedRspackOptions, rspack, webpack } from "../src";
 import { Stats } from "../src/stats";
 const path = require("path");
 const { createFsFromVolume, Volume } = require("memfs");
@@ -52,9 +52,6 @@ describe("Compiler", () => {
 			if (err) throw err;
 			expect(typeof stats).toBe("object");
 			const compilation = stats.compilation;
-			console.log({
-				stats
-			});
 			stats = stats.toJson({
 				modules: true,
 				reasons: true
@@ -74,7 +71,7 @@ describe("Compiler", () => {
 		});
 	}
 
-	let compiler;
+	let compiler: Compiler;
 	afterEach(callback => {
 		if (compiler) {
 			compiler.close(callback);
@@ -214,11 +211,10 @@ describe("Compiler", () => {
 	describe("methods", () => {
 		let compiler;
 		beforeEach(() => {
-			compiler = webpack({
+			compiler = rspack({
 				entry: "./c",
 				context: path.join(__dirname, "fixtures"),
 				output: {
-					path: "/directory",
 					pathinfo: true
 				}
 			});
@@ -232,7 +228,7 @@ describe("Compiler", () => {
 			}
 		});
 		describe("purgeInputFileSystem", () => {
-			it.skip("invokes purge() if inputFileSystem.purge", done => {
+			it("invokes purge() if inputFileSystem.purge", done => {
 				const mockPurge = jest.fn();
 				compiler.inputFileSystem = {
 					purge: mockPurge
@@ -241,7 +237,7 @@ describe("Compiler", () => {
 				expect(mockPurge.mock.calls.length).toBe(1);
 				done();
 			});
-			it.skip("does NOT invoke purge() if !inputFileSystem.purge", done => {
+			it("does NOT invoke purge() if !inputFileSystem.purge", done => {
 				const mockPurge = jest.fn();
 				compiler.inputFileSystem = null;
 				compiler.purgeInputFileSystem();
@@ -292,14 +288,12 @@ describe("Compiler", () => {
 			});
 		});
 	});
-	it.skip("should not emit on errors", done => {
-		const webpack = require("..");
-		compiler = webpack({
+	it("should not emit on errors", done => {
+		compiler = rspack({
 			context: __dirname,
 			mode: "production",
 			entry: "./missing",
 			output: {
-				path: "/directory",
 				filename: "bundle.js"
 			}
 		});
@@ -311,12 +305,11 @@ describe("Compiler", () => {
 			done();
 		});
 	});
-	it.skip("should bubble up errors when wrapped in a promise and bail is true", async () => {
+	it("should bubble up errors when wrapped in a promise and bail is true", async () => {
 		try {
 			const createCompiler = options => {
 				return new Promise((resolve, reject) => {
-					const webpack = require("..");
-					const c = webpack(options);
+					const c = rspack(options);
 					c.run((err, stats) => {
 						if (err) {
 							reject(err);
@@ -324,7 +317,7 @@ describe("Compiler", () => {
 						if (stats !== undefined && "errors" in stats) {
 							reject(err);
 						} else {
-							resolve(stats);
+							resolve(c);
 						}
 					});
 					return c;
@@ -335,15 +328,12 @@ describe("Compiler", () => {
 				mode: "production",
 				entry: "./missing-file",
 				output: {
-					path: "/directory",
 					filename: "bundle.js"
 				},
 				bail: true
 			});
 		} catch (err) {
-			expect(err.toString()).toMatch(
-				"ModuleNotFoundError: Module not found: Error: Can't resolve './missing-file'"
-			);
+			expect(err.toString()).toMatchInlineSnapshot();
 		}
 	});
 	it.skip("should not emit compilation errors in async (watch)", async () => {

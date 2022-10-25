@@ -32,12 +32,12 @@ class HotModuleReplacementPlugin {
 type CompilationParams = Record<string, any>;
 class Compiler {
 	webpack: any;
-	#plugins: RspackOptions["plugins"];
 	#instance: binding.Rspack;
 	compilation: Compilation;
 	infrastructureLogger: any;
 	outputPath: string;
 	name: string;
+	inputFileSystem: any;
 	outputFileSystem: any;
 	hooks: {
 		done: tapable.AsyncSeriesHook<Stats>;
@@ -270,6 +270,11 @@ class Compiler {
 				await watcher.close();
 			}
 		};
+	}
+	purgeInputFileSystem() {
+		if (this.inputFileSystem && this.inputFileSystem.purge) {
+			this.inputFileSystem.purge();
+		}
 	}
 	/**
 	 * @todo
