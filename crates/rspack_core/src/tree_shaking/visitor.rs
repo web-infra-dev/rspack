@@ -40,7 +40,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) import_map: AHashMap<BetterId, SymbolRef>,
   /// list of uri, each uri represent export all named export from specific uri
   pub export_all_list: Vec<Ustr>,
-  current_region: Option<BetterId>,
+  current_body_owner_id: Option<BetterId>,
   pub(crate) reference_map: AHashMap<BetterId, AHashSet<BetterId>>,
   pub(crate) reachable_import_and_export: AHashMap<JsWord, AHashSet<SymbolRef>>,
   state: AnalyzeState,
@@ -64,7 +64,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       export_map: AHashMap::default(),
       import_map: AHashMap::default(),
       export_all_list: vec![],
-      current_region: None,
+      current_body_owner_id: None,
       reference_map: AHashMap::default(),
       reachable_import_and_export: AHashMap::default(),
       state: AnalyzeState::empty(),
@@ -161,9 +161,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     let id: BetterId = node.to_id().into();
     let mark = id.ctxt.outer();
     if mark == self.top_level_mark {
-      match self.current_region {
-        Some(ref region) if region != &id => {
-          self.add_reference(region.clone(), id);
+      match self.current_body_owner_id {
+        Some(ref body_owner_id) if body_owner_id != &id => {
+          self.add_reference(body_owner_id.clone(), id);
         }
         _ if mark != self.unresolved_mark => {
           self.used_id_set.insert(id);
@@ -285,7 +285,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   }
 
   fn visit_export_default_expr(&mut self, node: &ExportDefaultExpr) {
-    let before_region = self.current_region.clone();
+    let before_owner_id = self.current_body_owner_id.clone();
     let default_ident: BetterId = self.generate_default_ident().to_id().into();
 
     self.export_map.insert(
@@ -304,9 +304,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         self.export_default_name = Some("".into());
       }
     }
-    self.current_region = Some(default_ident);
+    self.current_body_owner_id = Some(default_ident);
     node.visit_children_with(self);
-    self.current_region = before_region;
+    self.current_body_owner_id = before_owner_id;
   }
 
   fn visit_export_default_decl(&mut self, node: &ExportDefaultDecl) {
@@ -348,10 +348,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       } else {
         default_ident.to_id().into()
       };
-      let before_region = self.current_region.clone();
-      self.current_region = Some(region);
+      let before_owner_id = self.current_body_owner_id.clone();
+      self.current_body_owner_id = Some(region);
       node.class.visit_with(self);
-      self.current_region = before_region;
+      self.current_body_owner_id = before_owner_id;
     } else {
       // if the class expr is not inside a default expr, it will not
       // generate a binding.
@@ -385,10 +385,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       } else {
         default_ident.to_id().into()
       };
-      let before_region = self.current_region.clone();
-      self.current_region = Some(region);
+      let before_region = self.current_body_owner_id.clone();
+      self.current_body_owner_id = Some(region);
       node.function.visit_with(self);
-      self.current_region = before_region;
+      self.current_body_owner_id = before_region;
     } else {
       // if the class expr is not inside a default expr, it will not
       // generate a binding.
@@ -399,23 +399,23 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   fn visit_class_decl(&mut self, node: &ClassDecl) {
     let id: BetterId = node.ident.to_id().into();
     let mark = id.ctxt.outer();
-    let old_region = self.current_region.clone();
+    let old_region = self.current_body_owner_id.clone();
     if mark == self.top_level_mark {
-      self.current_region = Some(id);
+      self.current_body_owner_id = Some(id);
     }
     node.visit_children_with(self);
-    self.current_region = old_region;
+    self.current_body_owner_id = old_region;
   }
 
   fn visit_fn_decl(&mut self, node: &FnDecl) {
     let id: BetterId = node.ident.to_id().into();
     let mark = id.ctxt.outer();
-    let old_region = self.current_region.clone();
+    let before_owner_id = self.current_body_owner_id.clone();
     if mark == self.top_level_mark {
-      self.current_region = Some(id);
+      self.current_body_owner_id = Some(id);
     }
     node.function.visit_with(self);
-    self.current_region = old_region;
+    self.current_body_owner_id = before_owner_id;
   }
 
   fn visit_var_decl(&mut self, node: &VarDecl) {
@@ -439,10 +439,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         );
       }
       if let Some(ref init) = ele.init && lhs.ctxt.outer() == self.top_level_mark {
-        let before_region = self.current_region.clone();
-        self.current_region = Some(lhs);
+        let before_region = self.current_body_owner_id.clone();
+        self.current_body_owner_id = Some(lhs);
         init.visit_with(self);
-        self.current_region = before_region;
+        self.current_body_owner_id = before_region;
       }
     }
     // let id: BetterId = node.ident.to_id().into();
@@ -623,7 +623,7 @@ impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
       export_map: std::mem::take(&mut analyze.export_map),
       import_map: std::mem::take(&mut analyze.import_map),
       export_all_list: std::mem::take(&mut analyze.export_all_list),
-      current_region: std::mem::take(&mut analyze.current_region),
+      current_region: std::mem::take(&mut analyze.current_body_owner_id),
       reference_map: std::mem::take(&mut analyze.reference_map),
       reachable_import_of_export: std::mem::take(&mut analyze.reachable_import_and_export),
       state: std::mem::take(&mut analyze.state),
