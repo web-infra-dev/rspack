@@ -198,10 +198,8 @@ class Compiler {
 					if (err) {
 						return finalCallback(err);
 					}
-					let build_cb = util.callbackify(this.build.bind(this)) as unknown as (
-						cb: tapable.Callback<Error, any>
-					) => void;
-					build_cb((err, raw_stats) => {
+
+					this.build((err, raw_stats) => {
 						if (err) {
 							return finalCallback(err);
 						}
@@ -219,7 +217,7 @@ class Compiler {
 		};
 		doRun();
 	}
-	build(cb) {
+	build(cb: Callback<Error, any>) {
 		const compilation = this.#newCompilation();
 		const build_cb = util.callbackify(
 			this.#instance.build.bind(this.#instance)
