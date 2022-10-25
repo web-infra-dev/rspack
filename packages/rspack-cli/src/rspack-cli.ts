@@ -17,6 +17,11 @@ export class RspackCLI {
 		this.colors = this.createColors();
 		this.program = yargs();
 	}
+	async createCompiler(options: RspackCLIOptions) {
+		let config = await this.loadConfig(options);
+		const compiler = createCompiler(config);
+		return compiler;
+	}
 	createColors(useColor?: boolean): RspackCLIColors {
 		const { createColors, isColorSupported } = require("colorette");
 
