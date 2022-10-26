@@ -2,4 +2,4 @@
 [formatting]
 align_entries = true
 indent_tables = true
-reorder_keys = true
+reorder_keys  = true

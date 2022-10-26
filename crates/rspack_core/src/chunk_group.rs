@@ -10,7 +10,7 @@ pub struct ChunkGroup {
   pub(crate) module_post_order_indices: HashMap<String, usize>,
   _parents: HashSet<ChunkGroupUkey>,
   _children: HashSet<ChunkGroupUkey>,
-  _kind: ChunkGroupKind,
+  kind: ChunkGroupKind,
   // ChunkGroupInfo
   pub(crate) next_pre_order_index: usize,
   pub(crate) next_post_order_index: usize,
@@ -25,7 +25,7 @@ impl ChunkGroup {
       module_pre_order_indices: Default::default(),
       _parents: Default::default(),
       _children: Default::default(),
-      _kind: kind,
+      kind,
       next_pre_order_index: 0,
       next_post_order_index: 0,
     }
@@ -56,6 +56,10 @@ impl ChunkGroup {
   pub(crate) fn connect_chunk(&mut self, chunk: &mut Chunk) {
     self.chunks.push(chunk.ukey);
     chunk.add_group(self.ukey);
+  }
+
+  pub(crate) fn is_initial(&self) -> bool {
+    matches!(self.kind, ChunkGroupKind::Entrypoint)
   }
 }
 

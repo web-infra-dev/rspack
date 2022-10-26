@@ -7,3 +7,4 @@ version = "0.1.0"
 
 [dependencies]
 rspack_core = { path = "../rspack_core" }
+tracing     = "0.1.34"
