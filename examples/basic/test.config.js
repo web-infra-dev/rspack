@@ -1,8 +1,13 @@
-
 /**
  * @type {import('webpack').Configuration}
  */
 module.exports = {
+  builtins: {
+    html: [{
+      template: './index.html'
+    }]
+  },
+  context: __dirname,
   mode: "development",
   entry: {
     main: "./index.js",
@@ -11,6 +16,6 @@ module.exports = {
     "process.env.NODE_ENV": "development",
   },
   infrastructureLogging: {
-    debug:true
+    debug: false
   }
 };

@@ -20,6 +20,7 @@ pub const RUNTIME_FILE_NAME: &str = "runtime";
 pub const RSPACK_REQUIRE: &str = "__rspack_require__";
 pub const RSPACK_DYNAMIC_IMPORT: &str = "__rspack_dynamic_require__";
 pub const RSPACK_REGISTER: &str = "__rspack_register__";
+pub const RSPACK_RUNTIME: &str = "__rspack_runtime__";
 
 #[derive(Debug)]
 pub struct ChunkHash {

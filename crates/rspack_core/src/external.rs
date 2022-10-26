@@ -120,6 +120,7 @@ impl Plugin for ExternalPlugin {
                 resource_path: value.to_owned(),
                 resource_query: None,
                 resource_fragment: None,
+                ignored: false,
               },
               job_ctx.options.clone(),
             );

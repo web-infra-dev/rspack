@@ -30,6 +30,7 @@ fn parse(code: &str, name: &str) -> Vec<Stmt> {
 pub const RSPACK_REQUIRE: &str = "__rspack_require__";
 pub const RSPACK_DYNAMIC_IMPORT: &str = "__rspack_dynamic_require__";
 pub const RSPACK_REGISTER: &str = "__rspack_register__";
+pub const RSPACK_RUNTIME: &str = "__rspack_runtime__";
 
 pub fn generate_rspack_register(namespace: &str) -> String {
   format!(r#"self["{}"].{}"#, namespace, RSPACK_REGISTER)

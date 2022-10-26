@@ -1,49 +1,10 @@
 self["__rspack_runtime__"].__rspack_register__(["main"], {
-"./index.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__) {
+"./index.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
 "use strict";
-function _getRequireWildcardCache(nodeInterop) {
-    if (typeof WeakMap !== "function") return null;
-    var cacheBabelInterop = new WeakMap();
-    var cacheNodeInterop = new WeakMap();
-    return (_getRequireWildcardCache = function(nodeInterop) {
-        return nodeInterop ? cacheNodeInterop : cacheBabelInterop;
-    })(nodeInterop);
-}
-function _interopRequireWildcard(obj, nodeInterop) {
-    if (!nodeInterop && obj && obj.__esModule) {
-        return obj;
-    }
-    if (obj === null || typeof obj !== "object" && typeof obj !== "function") {
-        return {
-            default: obj
-        };
-    }
-    var cache = _getRequireWildcardCache(nodeInterop);
-    if (cache && cache.has(obj)) {
-        return cache.get(obj);
-    }
-    var newObj = {};
-    var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor;
-    for(var key in obj){
-        if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) {
-            var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null;
-            if (desc && (desc.get || desc.set)) {
-                Object.defineProperty(newObj, key, desc);
-            } else {
-                newObj[key] = obj[key];
-            }
-        }
-    }
-    newObj.default = obj;
-    if (cache) {
-        cache.set(obj, newObj);
-    }
-    return newObj;
-}
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _lib = _interopRequireWildcard(__rspack_require__("./lib.js"));
+const _lib = __rspack_runtime__.interopRequire(__rspack_require__("./lib.js"));
 const lib = __rspack_require__("./lib.js");
 const { DO_NOT_CONVERTED9  } = __rspack_require__("./lib.js");
 equal(true, true);
@@ -296,7 +257,7 @@ try {
 assert.deepStrictEqual(error_count, 8);
 console.log(console.log(console.log));
 },
-"./lib.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__) {
+"./lib.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true

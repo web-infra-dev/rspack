@@ -9,7 +9,7 @@ import { ServeCommand } from "./commands/serve";
 import { rspack, RspackOptions, createCompiler } from "@rspack/core";
 const defaultConfig = "rspack.config.js";
 const defaultEntry = "src/index.js";
-
+type Callback<T> = <T>(err: Error, res?: T) => void;
 export class RspackCLI {
 	colors: RspackCLIColors;
 	program: yargs.Argv<{}>;

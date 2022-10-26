@@ -1,5 +1,5 @@
 use crate::{Chunk, Compilation, ModuleType, SourceType, PATH_START_BYTE_POS_MAP};
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashMap;
 use rspack_error::{
   emitter::{DiagnosticDisplay, StdioDiagnosticDisplay, StringDiagnosticDisplay},
   Result,
@@ -123,10 +123,14 @@ impl<'compilation> Stats<'compilation> {
         .chunk_by_ukey
         .values()
         .into_iter()
-        .map(|c| StatsChunk {
-          r#type: "chunk",
-          files: c.files.clone(),
-          id: c.id.clone(),
+        .map(|c| {
+          let mut files = Vec::from_iter(c.files.iter().cloned());
+          files.sort();
+          StatsChunk {
+            r#type: "chunk",
+            files,
+            id: c.id.clone(),
+          }
         })
         .collect(),
       errors_count: errors.len(),
@@ -172,7 +176,7 @@ pub struct StatsModule {
 #[derive(Debug)]
 pub struct StatsChunk {
   pub r#type: &'static str,
-  pub files: HashSet<String>,
+  pub files: Vec<String>,
   pub id: String,
 }
 

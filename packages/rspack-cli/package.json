@@ -7,17 +7,19 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "rm -rf lib/ && tsc",
-    "dev": "tsc -w",
+    "build": "rm -rf dist/ && tsc -b --force",
+    "dev": "tsc -w -b",
     "test": "jest --verbose"
   },
   "files": [
-    "lib"
+    "bin",
+    "dist"
   ],
   "devDependencies": {
     "internal-ip": "6.2.0",
     "concat-stream": "^2.0.0",
-    "execa": "^5.0.0"
+    "execa": "^5.0.0",
+    "source-map-support": "^0.5.19"
   },
   "dependencies": {
     "@rspack/core": "workspace:*",

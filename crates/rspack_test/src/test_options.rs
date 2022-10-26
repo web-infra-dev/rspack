@@ -1,7 +1,10 @@
 use rspack_binding_options::{normalize_bundle_options, RawOptions};
 use rspack_core::CompilerOptions;
 
-use std::{collections::HashMap, path::Path};
+use std::{
+  collections::HashMap,
+  path::{Path, PathBuf},
+};
 
 pub trait RawOptionsExt {
   fn from_fixture(fixture_path: &Path) -> Self;
@@ -13,11 +16,19 @@ impl RawOptionsExt for RawOptions {
     let pkg_path = fixture_path.join("test.config.js");
     let mut options = if pkg_path.exists() {
       let pkg_content = std::fs::read_to_string(pkg_path).unwrap();
-      const HEAD: &str = "var module = {exports: {}};";
+      let manifest_dir = PathBuf::from(env!("CARGO_WORKSPACE_DIR"));
+      let dirname = manifest_dir
+        .join(fixture_path)
+        .to_string_lossy()
+        .to_string();
+      let head = format!(
+        "{}\"{}\"",
+        "var module = {exports: {}}; var __dirname =", &dirname
+      );
       const TAIL: &str = "JSON.stringify(module.exports)";
       let qjs_context = quick_js::Context::new().unwrap();
       let value = qjs_context
-        .eval(&format!("{HEAD}\n{pkg_content}\n{TAIL}"))
+        .eval(&format!("{head}\n{pkg_content}\n{TAIL}"))
         .unwrap();
       let options: RawOptions = serde_json::from_str(&value.into_string().unwrap()).unwrap();
       options
@@ -30,12 +41,9 @@ impl RawOptionsExt for RawOptions {
         ..Default::default()
       }
     };
-    assert!(
-      options.context.is_none(),
-      "You should not specify `root` in config. It would probably resolve to a wrong path"
-    );
-    options.context = Some(fixture_path.to_str().unwrap().to_string());
-
+    if options.context.is_none() {
+      options.context = Some(fixture_path.to_str().unwrap().to_string());
+    }
     // set builtins.minify default to false
     if options.builtins.is_none() {
       options.builtins = Some(Default::default())

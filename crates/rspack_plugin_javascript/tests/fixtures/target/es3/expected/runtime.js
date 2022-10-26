@@ -39,7 +39,8 @@ function __rspack_require__(moduleId) {
 		module.exports,
 		this.__rspack_require__.bind(this),
 		this.__rspack_dynamic_require__ &&
-			this.__rspack_dynamic_require__.bind(this)
+			this.__rspack_dynamic_require__.bind(this),
+		runtime
 	);
 
 	return module.exports;
@@ -484,5 +485,55 @@ function __rspack_register__(chunkIds, modules, callback) {
 			return true;
 		}
 	}
+})();
+(function () {
+	function _getRequireCache(nodeInterop) {
+		if (typeof WeakMap !== "function") return null;
+
+		var cacheBabelInterop = new WeakMap();
+		var cacheNodeInterop = new WeakMap();
+		return (_getRequireCache = function (nodeInterop) {
+			return nodeInterop ? cacheNodeInterop : cacheBabelInterop;
+		})(nodeInterop);
+	}
+
+	runtime.interopRequire = function (obj, nodeInterop) {
+		if (!nodeInterop && obj && obj.__esModule) {
+			return obj;
+		}
+
+		if (
+			obj === null ||
+			(typeof obj !== "object" && typeof obj !== "function")
+		) {
+			return { default: obj };
+		}
+
+		var cache = _getRequireCache(nodeInterop);
+		if (cache && cache.has(obj)) {
+			return cache.get(obj);
+		}
+
+		var newObj = {};
+		var hasPropertyDescriptor =
+			Object.defineProperty && Object.getOwnPropertyDescriptor;
+		for (var key in obj) {
+			if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) {
+				var desc = hasPropertyDescriptor
+					? Object.getOwnPropertyDescriptor(obj, key)
+					: null;
+				if (desc && (desc.get || desc.set)) {
+					Object.defineProperty(newObj, key, desc);
+				} else {
+					newObj[key] = obj[key];
+				}
+			}
+		}
+		newObj.default = obj;
+		if (cache) {
+			cache.set(obj, newObj);
+		}
+		return newObj;
+	};
 })();
  })();

@@ -26,12 +26,12 @@ impl PassGlobal {
     PASS_GLOBAL.clone()
   }
 
-  pub fn try_with_handler<F, Ret>(&self, external: bool, f: F) -> Result<Ret, Error>
+  pub fn try_with_handler<F, Ret>(&self, f: F) -> Result<Ret, Error>
   where
     F: FnOnce(&Handler) -> Result<Ret, Error>,
   {
     GLOBALS.set(&Default::default(), || {
-      swc_ecma_transforms::helpers::HELPERS.set(&Helpers::new(external), || {
+      swc_ecma_transforms::helpers::HELPERS.set(&Helpers::new(true), || {
         swc::try_with_handler(get_swc_compiler().cm.clone(), Default::default(), f)
       })
     })

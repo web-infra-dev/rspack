@@ -10,7 +10,7 @@
     "test": "jest --verbose"
   },
   "files": [
-    "lib"
+    "dist"
   ],
   "devDependencies": {
     "@rspack/core": "workspace:*",
@@ -36,7 +36,9 @@
     "browserslist": "^4.21.3",
     "chokidar": "3.5.3",
     "tapable": "2.2.1",
-    "webpack-sources": "3.2.3"
+    "webpack-sources": "3.2.3",
+    "graceful-fs": "4.2.10",
+    "neo-async": "2.6.2"
   },
   "optionalDependencies": {
     "@tmp-sass-embedded/darwin-arm64": "1.54.4",

@@ -1,7 +1,7 @@
 #![feature(box_patterns)]
 #![allow(dead_code)]
 
-use once_cell::sync::Lazy;
+// use once_cell::sync::Lazy;
 
 mod runtime;
 pub use runtime::*;
@@ -11,7 +11,7 @@ mod ast;
 pub mod utils;
 pub mod visitors;
 
-static JS_HELPERS: Lazy<Helpers> = Lazy::new(Helpers::default);
+// static JS_HELPERS: Lazy<Helpers> = Lazy::new(Helpers::default);
 
 // use typemap::{Key, TypeMap};
 

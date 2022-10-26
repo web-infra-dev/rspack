@@ -1,5 +1,5 @@
 self["__rspack_runtime__"].__rspack_register__(["main"], {
-"./index.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__) {
+"./index.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -61,7 +61,7 @@ function _main() {
     return _main.apply(this, arguments);
 }
 },
-"./../../../../../../node_modules/@swc/helpers/src/_async_to_generator.mjs": function (module, exports, __rspack_require__, __rspack_dynamic_require__) {
+"./../../../../../../node_modules/@swc/helpers/src/_async_to_generator.mjs": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -102,7 +102,7 @@ function _asyncToGenerator(fn) {
     };
 }
 },
-"./../../../../../../node_modules/@swc/helpers/src/_instanceof.mjs": function (module, exports, __rspack_require__, __rspack_dynamic_require__) {
+"./../../../../../../node_modules/@swc/helpers/src/_instanceof.mjs": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -122,7 +122,7 @@ function _instanceof(left, right) {
     }
 }
 },
-"./../../../../../../node_modules/@swc/helpers/src/_ts_generator.mjs": function (module, exports, __rspack_require__, __rspack_dynamic_require__) {
+"./../../../../../../node_modules/@swc/helpers/src/_ts_generator.mjs": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -135,7 +135,7 @@ Object.defineProperty(exports, "default", {
 });
 var _tslib = __rspack_require__("./../../../../../../node_modules/tslib/tslib.es6.js");
 },
-"./../../../../../../node_modules/tslib/tslib.es6.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__) {
+"./../../../../../../node_modules/tslib/tslib.es6.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true

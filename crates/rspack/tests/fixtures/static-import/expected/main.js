@@ -1,5 +1,5 @@
 self["__rspack_runtime__"].__rspack_register__(["main"], {
-"./a.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__) {
+"./a.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -7,11 +7,11 @@ Object.defineProperty(exports, "__esModule", {
 __rspack_require__("./b.js");
 console.log('a');
 },
-"./b.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__) {
+"./b.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
 "use strict";
 console.log('b');
 },
-"./index.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__) {
+"./index.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
