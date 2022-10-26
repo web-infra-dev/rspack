@@ -91,8 +91,8 @@ describe("snapshots", () => {
 		  },
 		  "devtool": "",
 		  "entry": {},
-		  "external": {},
 		  "externalType": "",
+		  "externals": {},
 		  "infrastructureLogging": {},
 		  "mode": "none",
 		  "module": {
