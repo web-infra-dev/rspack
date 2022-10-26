@@ -5,7 +5,7 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "dev": "rspack dev -c test.config.js",
+    "serve": "rspack serve -c test.config.js",
     "build": "rspack dev -c test.config.js"
   },
   "devDependencies": {
