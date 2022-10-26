@@ -97,6 +97,7 @@ impl Compiler {
     if option.builtins.tree_shaking {
       let result = self.compilation.optimize_dependency().await?;
       self.compilation.used_symbol = result.0;
+      // This is only used when testing
       #[cfg(debug_assertions)]
       {
         self.compilation.tree_shaking_result = result.1;
