@@ -86,6 +86,13 @@ impl NormalModuleFactory {
       Ok(maybe_module) => {
         if let Some((mgm, module, original_module_identifier, dependency_id)) = maybe_module {
           let diagnostic = std::mem::take(&mut self.diagnostic);
+
+          debug_assert!(
+            // We don't need any guarantees other than the atomicity here.
+            self.context.active_task_count.load(Ordering::Relaxed) > 0,
+            "Failed as the receiver end has already been dropped."
+          );
+
           if let Err(err) = self.tx.send(Msg::ModuleCreated(TWithDiagnosticArray::new(
             Box::new((
               mgm,
@@ -112,6 +119,12 @@ impl NormalModuleFactory {
         }
       }
       Err(err) => {
+        debug_assert!(
+          // We don't need any guarantees other than the atomicity here.
+          self.context.active_task_count.load(Ordering::Relaxed) > 0,
+          "Failed as the receiver end has already been dropped."
+        );
+
         // If build error message is failed to send, then we should manually decrease the active task count
         // Otherwise, it will be gracefully handled by the error message handler.
         if let Err(err) = self.tx.send(Msg::ModuleCreationErrorEncountered(err)) {
