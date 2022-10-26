@@ -32,7 +32,7 @@ impl RspackCompilation {
     )
   }
 
-  // #[napi]
+  #[napi]
   pub fn emit_asset(&mut self, options: UpdateAssetOptions) -> Result<()> {
     // Safety: It is safe as modify for the asset will never move Compilation.
     let assets = unsafe { &mut self.inner.as_mut().get_unchecked_mut().assets };
