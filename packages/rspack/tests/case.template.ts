@@ -11,7 +11,7 @@ function toEval(modName: string) {
 	return `eval('require("${modName}")')`;
 }
 // most of these could be removed when we support external builtins by default
-const externalModule = ["uvu", "path", "fs", "expect", "source-map"];
+const externalModule = ["uvu", "expect", "source-map"];
 export function describeCases(config: { name: string; casePath: string }) {
 	const casesPath = path.resolve(__dirname, config.casePath);
 	let categoriesDir = fs.readdirSync(casesPath);
@@ -45,7 +45,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 							if (fs.existsSync(configFile)) {
 								config = require(configFile);
 							}
-							const external = Object.fromEntries(
+							const externals = Object.fromEntries(
 								externalModule.map(x => [x, toEval(x)])
 							);
 							const options: RspackOptions = {
@@ -60,7 +60,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 								infrastructureLogging: {
 									debug: false
 								},
-								externals: external,
+								externals,
 								...config // we may need to use deepMerge to handle config merge, but we may fix it until we need it
 							};
 							const stats = await util.promisify(rspack)(options);
