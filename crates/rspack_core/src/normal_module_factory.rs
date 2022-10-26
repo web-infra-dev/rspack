@@ -107,14 +107,14 @@ impl NormalModuleFactory {
               .context
               .active_task_count
               .fetch_sub(1, Ordering::SeqCst);
-            tracing::trace!("fail to send msg {:?}", err)
+            tracing::debug!("fail to send msg {:?}", err)
           }
         } else if let Err(err) = self.tx.send(Msg::ModuleCreationCanceled) {
           self
             .context
             .active_task_count
             .fetch_sub(1, Ordering::SeqCst);
-          tracing::trace!("fail to send msg {:?}", err)
+          tracing::debug!("fail to send msg {:?}", err)
         }
       }
       Err(err) => {
@@ -130,7 +130,7 @@ impl NormalModuleFactory {
             .context
             .active_task_count
             .fetch_sub(1, Ordering::SeqCst);
-          tracing::trace!("fail to send msg {:?}", err)
+          tracing::debug!("fail to send msg {:?}", err)
         }
       }
     }
@@ -146,7 +146,7 @@ impl NormalModuleFactory {
 
   pub fn send(&self, msg: Msg) {
     if let Err(err) = self.tx.send(msg) {
-      tracing::trace!("fail to send msg {:?}", err)
+      tracing::debug!("fail to send msg {:?}", err)
     }
   }
 

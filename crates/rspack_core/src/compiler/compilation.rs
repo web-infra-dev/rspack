@@ -277,7 +277,7 @@ impl Compilation {
         }
       }
     }
-    tracing::debug!("module graph {:#?}", self.module_graph);
+    tracing::trace!("module graph {:#?}", self.module_graph);
   }
 
   fn handle_module_build_and_dependencies(
@@ -530,7 +530,7 @@ impl Compilation {
 
     plugin_driver.write().await.optimize_chunks(self)?;
 
-    tracing::debug!("chunk graph {:#?}", self.chunk_graph);
+    tracing::trace!("chunk graph {:#?}", self.chunk_graph);
 
     let context_indent = if matches!(
       self.options.target.platform,

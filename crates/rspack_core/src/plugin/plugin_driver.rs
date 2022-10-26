@@ -160,7 +160,7 @@ impl PluginDriver {
     job_ctx: &mut NormalModuleFactoryContext,
   ) -> PluginFactorizeAndBuildHookOutput {
     for plugin in &self.plugins {
-      tracing::debug!("running render runtime:{}", plugin.name());
+      tracing::trace!("running render runtime:{}", plugin.name());
       if let Some(module) = plugin
         .factorize_and_build(PluginContext::new(), args.clone(), job_ctx)
         .await?
@@ -174,7 +174,7 @@ impl PluginDriver {
   pub fn render_runtime(&self, args: RenderRuntimeArgs) -> PluginRenderRuntimeHookOutput {
     let mut sources = vec![];
     for plugin in &self.plugins {
-      tracing::debug!("running render runtime:{}", plugin.name());
+      tracing::trace!("running render runtime:{}", plugin.name());
       let args = RenderRuntimeArgs {
         compilation: args.compilation,
         sources,
