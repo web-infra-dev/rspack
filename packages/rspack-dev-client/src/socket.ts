@@ -1,7 +1,8 @@
 import { createWebSocketClient } from "./ws";
 
 export interface Handler {
-	ok(): void;
+	// TODO: remove data after jsonp
+	ok(data: any): void;
 	close(): void;
 	"static-changed"(): void;
 }
@@ -45,8 +46,6 @@ const socket = function initSocket(
 
 	client.onMessage((data: any) => {
 		const message = JSON.parse(data);
-		console.log("hit messge", message);
-
 		if (handlers[message.type]) {
 			handlers[message.type](message.data, message.params);
 		}

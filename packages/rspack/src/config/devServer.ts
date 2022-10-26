@@ -18,7 +18,7 @@ export interface Dev {
 		watch?: boolean | WatchOptions;
 	};
 	devMiddleware?: {};
-	hmr?: boolean;
+	hot?: boolean;
 	open?: boolean;
 	liveReload?: boolean;
 	// TODO: only support ws.
@@ -32,7 +32,7 @@ export interface ResolvedDev {
 		watch: false | WatchOptions;
 	};
 	devMiddleware: {};
-	hmr: boolean;
+	hot: boolean;
 	open: boolean;
 	liveReload: boolean;
 	webSocketServer: false | WebSocketServerOptions;
@@ -40,9 +40,12 @@ export interface ResolvedDev {
 
 export function getAdditionDevEntry() {
 	const devClientEntryPath = require.resolve("@rspack/dev-client");
-	return {
-		"rspack-dev-client": devClientEntryPath
+	const additionalEntry = {
+		"rspack-dev-client": devClientEntryPath,
+		"rspack-hot-update": require.resolve("@rspack/dev-client/devServer")
 	};
+
+	return additionalEntry;
 }
 
 interface ResolveDevOptionContext {
@@ -55,7 +58,7 @@ export function resolveDevOptions(
 ): ResolvedDev {
 	const port = devConfig.port ?? 8080;
 	const open = true;
-	const hmr = false;
+	const hot = devConfig.hot ?? false;
 	// --- static
 	const directory =
 		devConfig.static?.directory ?? path.resolve(context.context, "dist");
@@ -88,7 +91,7 @@ export function resolveDevOptions(
 		},
 		devMiddleware,
 		open,
-		hmr,
+		hot,
 		liveReload,
 		webSocketServer
 	};

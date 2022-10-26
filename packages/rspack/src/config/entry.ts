@@ -10,19 +10,6 @@ interface ResolveEntryContext {
 	dev: Dev;
 }
 
-export function resolveEntry(
-	entry = {},
-	context: ResolveEntryContext
-): ResolvedEntry {
-	if (!context.dev) {
-		return entry;
-	} else {
-		return {
-			...entry,
-			...getAdditionDevEntry()
-		};
-	}
-}
 export function resolveEntryOptions(
 	entry: Record<string, string> | string,
 	options: { context: string; dev: boolean }
