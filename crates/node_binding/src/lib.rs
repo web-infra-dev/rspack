@@ -2,12 +2,11 @@
 extern crate napi_derive;
 
 use std::collections::{HashMap, HashSet};
-use std::pin::Pin;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Mutex;
 
+use napi::bindgen_prelude::*;
 use napi::JsObject;
-use napi::{bindgen_prelude::*, JsBuffer};
 
 use once_cell::sync::Lazy;
 use rspack_tracing::enable_tracing_by_env;

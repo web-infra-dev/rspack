@@ -1,9 +1,6 @@
 use napi::{bindgen_prelude::*, Env, JsObject, NapiRaw, NapiValue};
 
-use crate::{
-  js_values::StatsCompilation, threadsafe_function::*, BoxedClosure, PluginCallbacks,
-  RspackCompilation,
-};
+use crate::{threadsafe_function::*, BoxedClosure, PluginCallbacks, StatsCompilation};
 
 pub fn create_node_adapter_from_plugin_callbacks(
   env: Env,
