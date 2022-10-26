@@ -291,7 +291,6 @@ impl Compilation {
     let compiler_options = self.options.clone();
     let loader_runner_runner = self.loader_runner_runner.clone();
     let plugin_driver = self.plugin_driver.clone();
-    let active_task_count = active_task_count.clone();
 
     let module_identifier = module.identifier();
 
