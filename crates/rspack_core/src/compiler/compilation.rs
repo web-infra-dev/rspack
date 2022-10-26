@@ -403,8 +403,11 @@ impl Compilation {
           if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err)) {
             active_task_count.fetch_sub(1, Ordering::SeqCst);
             tracing::trace!("fail to send msg {:?}", err);
-            return;
           }
+
+          // Manually add return here to prevent the following code from being executed in the future
+          #[allow(clippy::needless_return)]
+          return;
         }
       }
     });
