@@ -7,7 +7,7 @@ console.log('answer:', myanswer, secret)
 
 export function render() {
   const container = document.getElementById('root')
-  container.innerHTML = `adddd333:${secret}:${myanswer}`
+  container.innerHTML = `secret:${secret}\nanswer:${myanswer}`
 }
 
 if (module.hot?.accept) {

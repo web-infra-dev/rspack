@@ -45,7 +45,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 							if (fs.existsSync(configFile)) {
 								config = require(configFile);
 							}
-							const external = Object.fromEntries(
+							const externals = Object.fromEntries(
 								externalModule.map(x => [x, toEval(x)])
 							);
 							const options: RspackOptions = {
@@ -60,7 +60,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 								infrastructureLogging: {
 									debug: false
 								},
-								externals: external,
+								externals,
 								...config // we may need to use deepMerge to handle config merge, but we may fix it until we need it
 							};
 							const stats = await util.promisify(rspack)(options);
