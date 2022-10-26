@@ -1,7 +1,7 @@
 // hot runtime
 (function () {
 	var currentModuleData = {};
-	var installedModules = this.installedModules;
+	var installedModules = this.moduleCache;
 
 	// module and require creation
 	var currentChildModule;
@@ -26,7 +26,7 @@
 		var module = options.module;
 		var require = createRequire(options.require, options.id);
 		module.hot = createModuleHotObject(options.id, module);
-		module.parent = currentParents;
+		module.parents = currentParents;
 		module.children = [];
 		currentParents = [];
 		options.require = require;
@@ -108,7 +108,7 @@
 				runtime.__rspack_require__(moduleId);
 			},
 			active: true,
-			accpet: function (dep, callback, errorHandler) {
+			accept: function (dep, callback, errorHandler) {
 				if (dep === undefined) {
 					hot._selfAccepted = true;
 				} else if (typeof dep === "function") {
@@ -253,52 +253,55 @@
 	}
 
 	function hotCheck(applyOnUpdate) {
-		if (currentStatus === "idle") {
+		if (currentStatus !== "idle") {
 			throw new Error("check() is only allowed in idle status");
 		}
-		return (
-			setStatus("check")
-				// .then(runtime.__rspack_require__.hmrM) // TODO: fetch is not needed
-				.then(function (update) {
-					if (!update) {
-						return setStatus(applyInvalidatedModules() ? "ready" : "idle").then(
-							function () {
-								return null;
-							}
-						);
-					}
+		return setStatus("check")
+			.then(runtime.__rspack_require__.hmrM)
+			.then(function (update) {
+				if (!update) {
+					return setStatus(applyInvalidatedModules() ? "ready" : "idle").then(
+						function () {
+							return null;
+						}
+					);
+				}
 
-					return setStatus("prepare").then(function () {
-						var updatedModules = [];
-						currentUpdateApplyHandlers = [];
-						return Promise.all(
-							Object.keys(runtime.__rspack_require__.hmrC).reduce(function (
+				return setStatus("prepare").then(function () {
+					// var updatedModules = [];
+					// TODO: updatedModule should removed after hash
+					var updatedModules = update.updatedModule;
+					currentUpdateApplyHandlers = [];
+					return Promise.all(
+						// TODO: update.c, .r, .m is useless now.
+						Object.keys(runtime.__rspack_require__.hmrC).reduce(function (
+							promises,
+							key
+						) {
+							runtime.__rspack_require__.hmrC[key](
+								update.c,
+								update.r,
+								update.m,
 								promises,
-								key
-							) {
-								runtime.__rspack_require__.hmrC[key](
-									update.c,
-									update.r,
-									update.m,
-									promises,
-									currentUpdateApplyHandlers,
-									updatedModules
-								);
-							})
-						).then(function () {
-							return waitForBlockingPromises(function () {
-								if (applyOnUpdate) {
-									return internalApply(applyOnUpdate);
-								} else {
-									return setStatus("ready").then(function () {
-										return updatedModules;
-									});
-								}
-							});
+								currentUpdateApplyHandlers,
+								updatedModules
+							);
+							return promises;
+						},
+						[])
+					).then(function () {
+						return waitForBlockingPromises(function () {
+							if (applyOnUpdate) {
+								return internalApply(applyOnUpdate);
+							} else {
+								return setStatus("ready").then(function () {
+									return updatedModules;
+								});
+							}
 						});
 					});
-				})
-		);
+				});
+			});
 	}
 
 	function hotApply(options) {

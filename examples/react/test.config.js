@@ -8,7 +8,8 @@ module.exports = {
     // filename: '[name].[contenthash:8][ext]',
   },
   devServer: {
-    webSocketServer: true
+    webSocketServer: true,
+    hmr: true,
   },
   module : {
     rules : [{test : '.less',type : 'css',}],
@@ -28,5 +29,6 @@ module.exports = {
       'process.env.NODE_ENV' : 'development',
     },
     progress: {}
+    },
   },
 };

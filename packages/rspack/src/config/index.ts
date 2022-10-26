@@ -21,7 +21,6 @@ import { resolveDevOptions } from "./devServer";
 import { resolveModuleOptions } from "./module";
 import { resolveBuiltinsOptions } from "./builtins";
 import { resolveResolveOptions } from "./resolve";
-import { resolveEntry } from "./entry";
 import { InfrastructureLogging } from "./RspackOptions";
 import { Source } from "webpack-sources";
 

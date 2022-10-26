@@ -38,3 +38,11 @@ pub fn generate_web_dynamic_load_style() -> RawSource {
 pub fn generate_web_hot() -> RawSource {
   RawSource::from(include_str!("runtime/web/_hot.js").to_string())
 }
+
+pub fn generate_web_jsonp() -> RawSource {
+  RawSource::from(include_str!("runtime/web/_jsonp.js").to_string())
+}
+
+pub fn generate_web_load_script_content() -> RawSource {
+  RawSource::from(include_str!("runtime/web/_load_script_content.js").to_string())
+}

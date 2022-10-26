@@ -3,6 +3,7 @@ import b from "./b";
 const fs = require("fs");
 
 it("should exports __esModule", function () {
+	debugger;
 	expect(exports.__esModule).toBe(true);
 });
 

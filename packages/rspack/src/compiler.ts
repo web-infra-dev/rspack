@@ -14,7 +14,6 @@ import {
 	RspackOptionsNormalized,
 	getNormalizedRspackOptions
 } from "./config";
-
 import { Stats } from "./stats";
 import { Asset, Compilation } from "./compilation";
 import { mkdir } from "fs";
@@ -24,10 +23,10 @@ export type EmitAssetCallback = (options: {
 	asset: Asset;
 }) => void;
 class EntryPlugin {
-	apply() {}
+	apply() { }
 }
 class HotModuleReplacementPlugin {
-	apply() {}
+	apply() { }
 }
 type CompilationParams = Record<string, any>;
 class Compiler {
@@ -173,7 +172,7 @@ class Compiler {
 	 * @param value
 	 * @returns
 	 */
-	#done(statsJson: binding.StatsCompilation) {}
+	#done(statsJson: binding.StatsCompilation) { }
 	#processAssets(value: string, emitAsset: any) {
 		return this.compilation.processAssets(value, emitAsset);
 	}
@@ -234,11 +233,18 @@ class Compiler {
 			}
 		});
 	}
-	rebuild(changedFiles: string[], cb) {
+	rebuild(
+		changedFiles: string[],
+		cb: (error?: Error, stats?: binding.DiffStat) => void
+	) {
 		const rebuild_cb = util.callbackify(
-			this.#instance.unsafe_rebuild.bind(this.#instance, changedFiles, [])
-		) as (cb: Callback<Error, any>) => void;
-		rebuild_cb((err, stats) => {
+			this.#instance.rebuild.bind(this.#instance)
+		) as unknown as (
+			changed: string[],
+			removed: string[],
+			cb: Callback<Error, any>
+		) => void;
+		rebuild_cb(changedFiles, [], (err, stats) => {
 			if (err) {
 				cb(err);
 			} else {
@@ -247,7 +253,10 @@ class Compiler {
 		});
 	}
 
-	async watch(watchOptions?: Watch): Promise<Watching> {
+	// TODO: use ws to send message to client temporary.
+	// TODO: we should use `Stats` which got from `hooks.done`
+	// TODO: in `dev-server`
+	async watch(watchOptions?: Watch, ws?: any): Promise<Watching> {
 		const options = resolveWatchOption(watchOptions);
 
 		const watcher = (await import("chokidar")).default.watch(
@@ -260,13 +269,40 @@ class Compiler {
 		let stats = await util.promisify(this.build.bind(this))();
 
 		// TODO: should use aggregated
-		watcher.on("change", async path => {
+		watcher.on("change", async changedFilepath => {
 			// TODO: only build because we lack the snapshot info of file.
 			// TODO: it means there a lot of things to do....
 			const begin = Date.now();
 			console.log("hit change and start to build");
-			const diffStats = await util.promisify(this.rebuild.bind(this))([path]);
-			console.log(`build success, time cost ${(Date.now() - begin) / 1000}ms`);
+
+			this.rebuild([changedFilepath], (error: any, diffStats) => {
+				if (error) {
+					throw error;
+				}
+				for (const [uri, stats] of Object.entries(diffStats)) {
+					let relativePath = path.relative(this.options.context, uri);
+					if (
+						!(relativePath.startsWith("../") || relativePath.startsWith("./"))
+					) {
+						relativePath = "./" + relativePath;
+					}
+
+					// send Message
+					if (ws) {
+						const data = JSON.stringify({
+							uri: relativePath,
+							content: stats.content
+						});
+
+						for (const client of ws.clients) {
+							// the type of "ok" means rebuild success.
+							// the data should deleted after we had hash in stats.
+							client.send(JSON.stringify({ type: "ok", data }));
+						}
+					}
+				}
+				console.log("build success, time cost", Date.now() - begin);
+			});
 		});
 
 		return {
