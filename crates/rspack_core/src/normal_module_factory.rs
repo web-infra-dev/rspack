@@ -88,7 +88,7 @@ impl NormalModuleFactory {
       Ok(maybe_module) => {
         if let Some((mgm, module, original_module_identifier, dependency_id)) = maybe_module {
           let diagnostic = std::mem::take(&mut self.diagnostic);
-          self.send(Msg::ModuleCreated(TWithDiagnosticArray::new(
+          if let Err(err) = self.tx.send(Msg::ModuleCreated(TWithDiagnosticArray::new(
             Box::new((
               mgm,
               module,
@@ -99,15 +99,19 @@ impl NormalModuleFactory {
               is_entry,
             )),
             diagnostic,
-          )));
-        } else {
-          if let Err(err) = self.tx.send(Msg::ModuleCreationCanceled) {
+          ))) {
             self
               .context
               .active_task_count
               .fetch_sub(1, Ordering::SeqCst);
             tracing::trace!("fail to send msg {:?}", err)
           }
+        } else if let Err(err) = self.tx.send(Msg::ModuleCreationCanceled) {
+          self
+            .context
+            .active_task_count
+            .fetch_sub(1, Ordering::SeqCst);
+          tracing::trace!("fail to send msg {:?}", err)
         }
       }
       Err(err) => {
