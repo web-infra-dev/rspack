@@ -28,3 +28,18 @@ esbuild_trace:
 
 rspack_trace:
 	TRACE=TRACE cargo run -F tracing --release --bin bench
+
+
+sync_bnpm:
+	@bnpm sync @rspack/core
+	@bnpm sync @rspack/dev-server
+	@bnpm sync @rspack/dev-client
+	@bnpm sync @rspack/dev-middleware
+	@bnpm sync @rspack/plugin-less
+	@bnpm sync @rspack/plugin-postcss
+	@bnpm sync @rspack/cli
+release:
+	@pnpm version:snapshot
+	@./x build js-release
+	@pnpm release:snapshot
+	@make sync_bnpm
