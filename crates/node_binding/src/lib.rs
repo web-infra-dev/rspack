@@ -145,7 +145,7 @@ impl Rspack {
   /// Build with the given option passed to the constructor
   ///
   /// Warning:
-  /// Calling this method recursively will cause a panic.
+  /// Calling this method recursively might cause a deadlock.
   #[napi(js_name = "unsafe_build", ts_return_type = "Promise<StatsCompilation>")]
   pub fn build(&self, env: Env) -> Result<JsObject> {
     let handle_build = |map: &mut HashMap<_, _>| {
@@ -181,7 +181,7 @@ impl Rspack {
   /// Rebuild with the given option passed to the constructor
   ///
   /// Warning:
-  /// Calling this method recursively will cause a panic.
+  /// Calling this method recursively will cause a deadlock.
   #[napi(
     js_name = "unsafe_rebuild",
     ts_return_type = "Promise<Record<string, {content: string, kind: number}>>"
@@ -238,7 +238,7 @@ impl Rspack {
   ///
   /// Warning:
   ///
-  /// Calling this method under the build or rebuild method will cause a panic.
+  /// Calling this method under the build or rebuild method might cause a deadlock.
   ///
   /// **Note** that this method is not safe if you cache the _RspackCompilation_ on the Node side, as it will be invalidated by the next build and accessing a dangling ptr is a UB.
   #[napi(js_name = "unsafe_last_compilation")]
