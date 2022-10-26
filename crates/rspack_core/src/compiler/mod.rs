@@ -63,6 +63,16 @@ impl Compiler {
 
   pub async fn run(&mut self) -> anyhow::Result<()> {
     let stats = self.build().await?;
+
+    // fileDependencies and missingDependencies
+    // let (file_deps, missing_deps) = self
+    //   .plugin_driver
+    //   .read()
+    //   .await
+    //   .resolver
+    //   .0
+    //   .get_dependency_from_entry();
+
     if !stats.compilation.diagnostic.is_empty() {
       let err_msg = stats.emit_error_string(true).unwrap();
       anyhow::bail!(err_msg)
