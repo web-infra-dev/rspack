@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::pin::Pin;
 
 use napi::bindgen_prelude::*;
 use napi::JsBuffer;
@@ -9,7 +10,7 @@ use crate::{AssetContent, UpdateAssetOptions};
 
 #[napi]
 pub struct RspackCompilation {
-  inner: &'static mut rspack_core::Compilation,
+  inner: Pin<&'static mut rspack_core::Compilation>,
 }
 
 #[napi]
@@ -31,9 +32,12 @@ impl RspackCompilation {
     )
   }
 
-  #[napi]
+  // #[napi]
   pub fn emit_asset(&mut self, options: UpdateAssetOptions) -> Result<()> {
-    let asset = self.inner.assets.get_mut(&options.filename).unwrap();
+    // Safety: It is safe as modify for the asset will never move Compilation.
+    let assets = unsafe { &mut self.inner.as_mut().get_unchecked_mut().assets };
+
+    let asset = assets.get_mut(&options.filename).unwrap();
     asset.set_source(match options.asset {
       AssetContent {
         buffer: Some(buffer),
@@ -53,7 +57,7 @@ impl RspackCompilation {
 }
 
 impl RspackCompilation {
-  pub fn from_compilation(c: &'static mut rspack_core::Compilation) -> Self {
+  pub fn from_compilation(c: Pin<&'static mut rspack_core::Compilation>) -> Self {
     Self { inner: c }
   }
 }

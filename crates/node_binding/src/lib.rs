@@ -2,6 +2,7 @@
 extern crate napi_derive;
 
 use std::collections::{HashMap, HashSet};
+use std::pin::Pin;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Mutex;
 
@@ -252,9 +253,9 @@ impl Rspack {
           map.get_mut(&self.id).unwrap(),
         )
       };
-      f(RspackCompilation::from_compilation(
-        &mut compiler.compilation,
-      ))
+      f(RspackCompilation::from_compilation(unsafe {
+        Pin::new_unchecked(&mut compiler.compilation)
+      }))
     };
 
     unsafe { COMPILERS.borrow_mut(handle_last_compilation) }

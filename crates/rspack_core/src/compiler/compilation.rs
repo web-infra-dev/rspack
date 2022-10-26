@@ -1,5 +1,6 @@
 use std::{
   fmt::Debug,
+  marker::PhantomPinned,
   sync::atomic::{AtomicU32, Ordering},
   sync::Arc,
 };
@@ -38,6 +39,8 @@ pub struct Compilation {
   pub(crate) loader_runner_runner: Arc<LoaderRunnerRunner>,
   pub(crate) _named_chunk: HashMap<String, ChunkUkey>,
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
+  // TODO: make compilation safer
+  _pin: PhantomPinned,
 }
 impl Compilation {
   pub fn new(
@@ -64,6 +67,7 @@ impl Compilation {
       loader_runner_runner,
       _named_chunk: Default::default(),
       named_chunk_groups: Default::default(),
+      _pin: PhantomPinned,
     }
   }
   pub fn add_entry(&mut self, name: String, detail: EntryItem) {
