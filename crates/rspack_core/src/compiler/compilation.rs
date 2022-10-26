@@ -1,12 +1,14 @@
 use std::{
   collections::VecDeque,
   fmt::Debug,
+  hash::Hash,
   sync::atomic::{AtomicU32, Ordering},
   sync::Arc,
 };
 
 use futures::{stream::FuturesUnordered, StreamExt};
 use hashbrown::{HashMap, HashSet};
+use petgraph::prelude::GraphMap;
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use swc_common::GLOBALS;
 use tokio::sync::mpsc::UnboundedSender;
@@ -110,7 +112,7 @@ impl Compilation {
       .filter(|d| matches!(d.severity, Severity::Error))
   }
 
-  pub(crate) fn add_chunk(
+  pub fn add_chunk(
     chunk_by_ukey: &mut ChunkByUkey,
     name: Option<String>,
     id: String,
@@ -483,7 +485,7 @@ impl Compilation {
   pub async fn optimize_dependency(
     &mut self,
   ) -> Result<(HashSet<Symbol>, HashMap<Ustr, TreeShakingResult>)> {
-    let analyze_results = self
+    let mut analyze_results = self
       .module_graph
       .module_identifier_to_module_graph_module
       .par_iter()
@@ -538,6 +540,9 @@ impl Compilation {
     for analyze_result in analyze_results.values() {
       used_symbol_ref.extend(analyze_result.used_symbol_ref.clone().into_iter());
     }
+    // calculate each module that has `export * from 'xxxx'`
+    let export_all_ref_graph = create_graph(&analyze_results);
+    let extends_map = get_extends_map(&export_all_ref_graph);
 
     let mut used_symbol = HashSet::new();
     // Marking used symbol and all reachable export symbol from the used symbol for each module
@@ -621,6 +626,45 @@ impl Compilation {
     self.process_assets(plugin_driver).await;
     Ok(())
   }
+}
+
+fn get_extends_map(
+  export_all_ref_graph: &GraphMap<&Ustr, (), petgraph::Directed>,
+) -> HashMap<Ustr, HashSet<Ustr>> {
+  let mut map = HashMap::new();
+  for node in export_all_ref_graph.nodes() {
+    let reachable_set = get_reachable(node.clone(), export_all_ref_graph);
+    map.insert(node.clone(), reachable_set);
+  }
+  map
+}
+fn get_reachable(start: Ustr, g: &GraphMap<&Ustr, (), petgraph::Directed>) -> HashSet<Ustr> {
+  let mut visited: HashSet<Ustr> = HashSet::new();
+  let mut reachable_module_id = HashSet::new();
+  let mut q = VecDeque::from_iter([start]);
+  while let Some(cur) = q.pop_front() {
+    match visited.entry(cur) {
+      hashbrown::hash_set::Entry::Occupied(_) => continue,
+      hashbrown::hash_set::Entry::Vacant(vac) => vac.insert(),
+    }
+    if cur != start {
+      reachable_module_id.insert(cur);
+    }
+    q.extend(g.neighbors_directed(&cur, petgraph::Direction::Outgoing));
+  }
+  reachable_module_id
+}
+
+fn create_graph(
+  analyze_map: &HashMap<Ustr, TreeShakingResult>,
+) -> GraphMap<&Ustr, (), petgraph::Directed> {
+  let mut g = petgraph::graphmap::DiGraphMap::new();
+  for (module_id, result) in analyze_map.iter() {
+    for export_all_module_id in result.export_all_extend_map.keys() {
+      g.add_edge(module_id, export_all_module_id, ());
+    }
+  }
+  g
 }
 
 pub type CompilationAssets = HashMap<String, CompilationAsset>;
