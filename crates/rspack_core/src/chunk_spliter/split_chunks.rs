@@ -151,14 +151,14 @@ impl<'me> CodeSplitter<'me> {
     }
     self.queue.reverse();
 
-    tracing::debug!("--- process_queue start ---");
+    tracing::trace!("--- process_queue start ---");
     while !self.queue.is_empty() || !self.queue_delayed.is_empty() {
       self.process_queue();
       if self.queue.is_empty() {
         self.queue = std::mem::take(&mut self.queue_delayed);
       }
     }
-    tracing::debug!("--- process_queue end ---");
+    tracing::trace!("--- process_queue end ---");
 
     // Optmize to remove duplicated module which is safe
 
@@ -189,7 +189,7 @@ impl<'me> CodeSplitter<'me> {
             .insert(module.uri.clone());
         }
 
-        tracing::debug!(
+        tracing::trace!(
           "module {} in chunk {:?} has_superior {:?}",
           module.uri,
           chunk.id,
@@ -211,7 +211,7 @@ impl<'me> CodeSplitter<'me> {
   }
 
   fn process_queue(&mut self) {
-    tracing::debug!("process_queue");
+    tracing::trace!("process_queue");
     while let Some(queue_item) = self.queue.pop() {
       match queue_item.action {
         QueueAction::AddAndEnter => self.add_and_enter_module(&queue_item),
@@ -223,7 +223,7 @@ impl<'me> CodeSplitter<'me> {
   }
 
   fn add_and_enter_module(&mut self, item: &QueueItem) {
-    tracing::debug!("add_and_enter_module {:?}", item);
+    tracing::trace!("add_and_enter_module {:?}", item);
     if self
       .compilation
       .chunk_graph
@@ -245,7 +245,7 @@ impl<'me> CodeSplitter<'me> {
   }
 
   fn enter_module(&mut self, item: &QueueItem) {
-    tracing::debug!("enter_module {:?}", item);
+    tracing::trace!("enter_module {:?}", item);
     let chunk_group = self
       .compilation
       .chunk_group_by_ukey
@@ -284,7 +284,7 @@ impl<'me> CodeSplitter<'me> {
   }
 
   fn leave_module(&mut self, item: &QueueItem) {
-    tracing::debug!("leave_module {:?}", item);
+    tracing::trace!("leave_module {:?}", item);
     let chunk_group = self
       .compilation
       .chunk_group_by_ukey
@@ -315,7 +315,7 @@ impl<'me> CodeSplitter<'me> {
   }
 
   fn process_module(&mut self, item: &QueueItem) {
-    tracing::debug!("process_module {:?}", item);
+    tracing::trace!("process_module {:?}", item);
     let mgm = self
       .compilation
       .module_graph

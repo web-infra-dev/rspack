@@ -150,10 +150,10 @@ impl LoaderRunner {
   ) -> LoaderRunnerResult {
     let mut loader_context = self.get_loader_context(context).await?;
 
-    tracing::debug!("Running loaders for resource: {}", loader_context.resource);
+    tracing::trace!("Running loaders for resource: {}", loader_context.resource);
 
     for loader in loaders.as_ref().iter().rev() {
-      tracing::debug!("Running loader: {}", loader.name());
+      tracing::trace!("Running loader: {}", loader.name());
 
       if let Some(loader_result) = loader.run(&loader_context).await? {
         loader_context.source = loader_result.content;
