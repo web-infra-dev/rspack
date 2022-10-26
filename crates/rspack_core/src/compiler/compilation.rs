@@ -297,10 +297,12 @@ impl Compilation {
           }
         },
         None => {
-          tracing::trace!("All sender is dropped");
+          tracing::debug!("All sender is dropped");
         }
       }
     }
+
+    tracing::debug!("All task is finished");
     tracing::trace!("module graph {:#?}", self.module_graph);
   }
 
