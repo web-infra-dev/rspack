@@ -6,8 +6,8 @@ use std::pin::Pin;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Mutex;
 
-use napi::bindgen_prelude::*;
 use napi::JsObject;
+use napi::{bindgen_prelude::*, JsBuffer};
 
 use once_cell::sync::Lazy;
 use rspack_tracing::enable_tracing_by_env;
@@ -232,6 +232,45 @@ impl Rspack {
     };
 
     unsafe { COMPILERS.borrow_mut(handle_rebuild) }
+  }
+
+  /// Get the last compilation
+  ///
+  /// Warning:
+  ///
+  /// Calling this method under the build or rebuild method will cause a panic.
+  ///
+  /// **Note** that this method is not safe if you cache the _RspackCompilation_ on the Node side, as it will be invalidated by the next build and accessing a dangling ptr is a UB.
+  #[napi(js_name = "unsafe_last_compilation")]
+  pub fn unsafe_last_compilation<F: Fn(RspackCompilation) -> Result<()>>(
+    &self,
+    f: F,
+  ) -> Result<()> {
+    let handle_last_compilation = |map: &mut HashMap<_, _>| {
+      // Safety: compiler is stored in a global hashmap, and compilation is only available in the callback of this function, so it is safe to cast to a static lifetime. See more in the warning part of this method.
+      let compiler = unsafe {
+        std::mem::transmute::<&'_ mut rspack::Compiler, &'static mut rspack::Compiler>(
+          map.get_mut(&self.id).unwrap(),
+        )
+      };
+      f(RspackCompilation::from_compilation(
+        &mut compiler.compilation,
+      ))
+    };
+
+    unsafe { COMPILERS.borrow_mut(handle_last_compilation) }
+  }
+
+  /// Destroy the compiler
+  ///
+  /// Warning:
+  ///
+  /// Anything related to this compiler will be invalidated after this method is called.
+  #[napi(js_name = "unsafe_drop")]
+  pub fn drop(&self) -> Result<()> {
+    unsafe { COMPILERS.borrow_mut(|map| Ok(map.remove(&self.id))) }?;
+
+    Ok(())
   }
 }
 

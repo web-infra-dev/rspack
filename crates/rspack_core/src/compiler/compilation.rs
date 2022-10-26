@@ -527,7 +527,7 @@ impl Compilation {
 
 pub type CompilationAssets = HashMap<String, CompilationAsset>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CompilationAsset {
   pub source: BoxSource,
   pub info: AssetInfo,
@@ -563,7 +563,7 @@ impl CompilationAsset {
   }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct AssetInfo {
   /// if the asset can be long term cached forever (contains a hash)
   // pub immutable: bool,
@@ -591,7 +591,7 @@ pub struct AssetInfo {
   pub related: AssetInfoRelated,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct AssetInfoRelated {
   pub source_map: Option<String>,
 }
