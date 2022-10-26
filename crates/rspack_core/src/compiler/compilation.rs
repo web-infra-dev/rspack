@@ -206,8 +206,11 @@ impl Compilation {
               // Otherwise, it will be gracefully handled by the error message handler.
               if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err)) {
                 active_task_count.fetch_sub(1, Ordering::SeqCst);
-                tracing::trace!("fail to send msg {:?}", err)
+                tracing::trace!("fail to send msg {:?}", err);
               }
+
+              // Early bail out if task is failed to finish
+              return;
             };
 
             // Gracefully exit
@@ -237,7 +240,7 @@ impl Compilation {
                 active_task_count.fetch_sub(1, Ordering::SeqCst);
                 tracing::trace!("fail to send msg {:?}", err)
               }
-
+              // Early bail out if task is failed to finish
               return;
             };
 
@@ -400,7 +403,8 @@ impl Compilation {
           // Otherwise, it will be gracefully handled by the error message handler.
           if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err)) {
             active_task_count.fetch_sub(1, Ordering::SeqCst);
-            tracing::trace!("fail to send msg {:?}", err)
+            tracing::trace!("fail to send msg {:?}", err);
+            return;
           }
         }
       }
