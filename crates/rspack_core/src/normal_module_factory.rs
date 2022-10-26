@@ -85,8 +85,10 @@ impl NormalModuleFactory {
     match self.factorize().await {
       Ok(maybe_module) => {
         debug_assert!(
-          self.context.active_task_count.load(Ordering::SeqCst) > 0,
-          "Failed as the receiver end has already been dropped."
+          !self.tx.is_closed(),
+          "failed as the receiver end has already been dropped. active_task_count {}, sender {:#?}",
+          self.context.active_task_count.load(Ordering::SeqCst),
+          self.tx
         );
 
         if let Some((mgm, module, original_module_identifier, dependency_id)) = maybe_module {
@@ -119,8 +121,10 @@ impl NormalModuleFactory {
       }
       Err(err) => {
         debug_assert!(
-          self.context.active_task_count.load(Ordering::SeqCst) > 0,
-          "Failed as the receiver end has already been dropped."
+          !self.tx.is_closed(),
+          "failed as the receiver end has already been dropped. active_task_count {}, sender {:#?}",
+          self.context.active_task_count.load(Ordering::SeqCst),
+          self.tx
         );
 
         // If build error message is failed to send, then we should manually decrease the active task count
@@ -220,8 +224,10 @@ impl NormalModuleFactory {
     let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
 
     debug_assert!(
-      self.context.active_task_count.load(Ordering::SeqCst) > 0,
-      "Failed as the receiver end has already been dropped."
+      !self.tx.is_closed(),
+      "failed as the receiver end has already been dropped. active_task_count {}, sender {:#?}",
+      self.context.active_task_count.load(Ordering::SeqCst),
+      self.tx
     );
 
     self
@@ -363,8 +369,10 @@ impl NormalModuleFactory {
       let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
 
       debug_assert!(
-        self.context.active_task_count.load(Ordering::SeqCst) > 0,
-        "Failed as the receiver end has already been dropped."
+        !self.tx.is_closed(),
+        "failed as the receiver end has already been dropped. active_task_count {}, sender {:#?}",
+        self.context.active_task_count.load(Ordering::SeqCst),
+        self.tx
       );
 
       self
