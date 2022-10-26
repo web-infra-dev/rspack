@@ -84,13 +84,13 @@ impl NormalModuleFactory {
   pub async fn create(mut self) {
     match self.factorize().await {
       Ok(maybe_module) => {
+        debug_assert!(
+          self.context.active_task_count.load(Ordering::SeqCst) > 0,
+          "Failed as the receiver end has already been dropped."
+        );
+
         if let Some((mgm, module, original_module_identifier, dependency_id)) = maybe_module {
           let diagnostic = std::mem::take(&mut self.diagnostic);
-
-          debug_assert!(
-            self.context.active_task_count.load(Ordering::SeqCst) > 0,
-            "Failed as the receiver end has already been dropped."
-          );
 
           if let Err(err) = self.tx.send(Msg::ModuleCreated(TWithDiagnosticArray::new(
             Box::new((
