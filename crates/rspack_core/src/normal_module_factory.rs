@@ -81,8 +81,7 @@ impl NormalModuleFactory {
     }
   }
   #[instrument(name = "normal_module_factory:create")]
-  /// set `is_entry` true if you are trying to create a new module factory with a module identifier which is an entry
-  pub async fn create(mut self, is_entry: bool) {
+  pub async fn create(mut self) {
     match self.factorize().await {
       Ok(maybe_module) => {
         if let Some((mgm, module, original_module_identifier, dependency_id)) = maybe_module {
@@ -95,7 +94,6 @@ impl NormalModuleFactory {
               dependency_id,
               // FIXME: redundant
               self.dependency.clone(),
-              is_entry,
             )),
             diagnostic,
           )));
@@ -103,10 +101,7 @@ impl NormalModuleFactory {
           self.send(Msg::ModuleCreationCanceled);
         }
       }
-      Err(err) => {
-        dbg!(&err);
-        self.send(Msg::ModuleCreationErrorEncountered(err))
-      }
+      Err(err) => self.send(Msg::ModuleCreationErrorEncountered(err)),
     }
   }
 
@@ -191,7 +186,7 @@ impl NormalModuleFactory {
       self.context.module_type = self.calculate_module_type_by_uri(&uri);
     }
 
-    let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::SeqCst);
+    let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
 
     self
       .tx
@@ -199,13 +194,12 @@ impl NormalModuleFactory {
         (self.dependency.clone(), dependency_id),
         uri.clone(),
       ))
-      .unwrap();
-    // .map_err(|_| {
-    //   Error::InternalError(format!(
-    //     "Failed to resolve dependency {:?}",
-    //     self.dependency
-    //   ))
-    // })?;
+      .map_err(|_| {
+        Error::InternalError(format!(
+          "Failed to resolve dependency {:?}",
+          self.dependency
+        ))
+      })?;
 
     let resolved_module_type =
       self.calculate_module_type(&resource_data, self.context.module_type)?;
@@ -393,12 +387,6 @@ impl NormalModuleFactory {
   //   });
   // }
 }
-
-// impl Drop for NormalModuleFactory {
-//   fn drop(&mut self) {
-//     drop(self);
-//   }
-// }
 
 pub fn resolve_module_type_by_uri<T: AsRef<Path>>(uri: T) -> Option<ModuleType> {
   let uri = uri.as_ref();
