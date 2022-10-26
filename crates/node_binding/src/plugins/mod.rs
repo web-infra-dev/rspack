@@ -14,7 +14,7 @@ use rspack_core::{
 };
 use rspack_error::Error;
 
-use crate::js_values::StatsCompilation;
+use crate::js_values::{RspackCompilation, StatsCompilation};
 use crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use crate::{AssetContent, UpdateAssetOptions};
 

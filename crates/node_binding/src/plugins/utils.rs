@@ -1,6 +1,9 @@
 use napi::{bindgen_prelude::*, Env, JsObject, NapiRaw, NapiValue};
 
-use crate::{js_values::StatsCompilation, BoxedClosure, PluginCallbacks};
+use crate::{
+  js_values::StatsCompilation, threadsafe_function::*, BoxedClosure, PluginCallbacks,
+  RspackCompilation,
+};
 
 pub fn create_node_adapter_from_plugin_callbacks(
   env: Env,
@@ -12,10 +15,10 @@ pub fn create_node_adapter_from_plugin_callbacks(
          done_callback,
          process_assets_callback,
        }| {
-        let done_tsfn: crate::threadsafe_function::ThreadsafeFunction<StatsCompilation, ()> = {
+        let done_tsfn: ThreadsafeFunction<StatsCompilation, ()> = {
           let cb = unsafe { done_callback.raw() };
 
-          crate::threadsafe_function::ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
+          ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
             let (ctx, resolver) = ctx.split_into_parts();
             let stats_json = unsafe {
               let raw =
@@ -28,13 +31,10 @@ pub fn create_node_adapter_from_plugin_callbacks(
           })
         }?;
 
-        let process_assets_tsfn: crate::threadsafe_function::ThreadsafeFunction<
-          (String, BoxedClosure),
-          (),
-        > = {
+        let process_assets_tsfn: ThreadsafeFunction<(String, BoxedClosure), ()> = {
           let cb = unsafe { process_assets_callback.raw() };
 
-          crate::threadsafe_function::ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
+          ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
             let (ctx, resolver) = ctx.split_into_parts();
 
             let (s, emit_asset_cb) = ctx.value;
