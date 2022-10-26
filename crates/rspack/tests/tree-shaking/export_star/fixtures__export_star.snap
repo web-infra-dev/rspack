@@ -1,0 +1,57 @@
+---
+source: crates/rspack/tests/fixtures.rs
+expression: export_star
+---
+
+// <-- relative path: crates/rspack/tests/tree-shaking/export_star/bar.js -->
+
+export function b() {}
+
+export * from "./foo";
+export * from "./result";
+// <-- unused-export: --> 
+[
+    "b",
+]
+// <-- relative path: crates/rspack/tests/tree-shaking/export_star/foo.js -->
+
+export const a = 3;
+export * from "./bar";
+export * from "./result";
+// <-- unused-export: --> 
+[
+    "a",
+]
+// <-- relative path: crates/rspack/tests/tree-shaking/export_star/index.js -->
+
+import { c } from "./foo";
+
+c();
+// <-- unused-export: --> 
+[]
+// <-- relative path: crates/rspack/tests/tree-shaking/export_star/result.js -->
+
+export const c = 103330;
+
+export * from "./foo";
+export * from "./bar";
+// <-- unused-export: --> 
+[]
+// <-- relative path: node_modules/@swc/helpers/src/_export_star.mjs -->
+
+export default function _exportStar(from, to) {
+  Object.keys(from).forEach(function (k) {
+    if (k !== "default" && !Object.prototype.hasOwnProperty.call(to, k))
+      Object.defineProperty(to, k, {
+        enumerable: true,
+        get: function () {
+          return from[k];
+        },
+      });
+  });
+  return from;
+}
+// <-- unused-export: --> 
+[
+    "default",
+]
