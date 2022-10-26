@@ -176,9 +176,9 @@ fn init() {
   use backtrace::Backtrace;
   use std::panic::set_hook;
 
-  // set_hook(Box::new(|panic_info| {
-  //   let backtrace = Backtrace::new();
-  //   println!("Panic: {:?}\nBacktrace: {:?}", panic_info, backtrace);
-  //   std::process::exit(1)
-  // }));
+  set_hook(Box::new(|panic_info| {
+    let backtrace = Backtrace::new();
+    println!("Panic: {:?}\nBacktrace: {:?}", panic_info, backtrace);
+    std::process::exit(1)
+  }));
 }
