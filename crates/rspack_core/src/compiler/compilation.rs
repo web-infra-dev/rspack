@@ -218,8 +218,6 @@ impl Compilation {
             self.module_graph.add_module_graph_module(mgm);
           }
           Msg::ModuleReused(result_with_diagnostics) => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
-
             let (original_module_identifier, dependency_id, module_identifier) =
               result_with_diagnostics.inner;
             self.push_batch_diagnostic(result_with_diagnostics.diagnostic);
@@ -228,14 +226,18 @@ impl Compilation {
               dependency_id,
               module_identifier.clone(),
             ) {
+              // If build error message is failed to send, then we should manually decrease the active task count
+              // Otherwise, it will be gracefully handled by the error message handler.
               if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err)) {
+                active_task_count.fetch_sub(1, Ordering::SeqCst);
                 tracing::trace!("fail to send msg {:?}", err)
               }
             };
+
+            // Gracefully exit
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
           }
           Msg::ModuleResolved(result_with_diagnostics) => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
-
             let (original_module_identifier, dependency_id, module, deps) =
               result_with_diagnostics.inner;
             self.push_batch_diagnostic(result_with_diagnostics.diagnostic);
@@ -252,15 +254,23 @@ impl Compilation {
               dependency_id,
               module.identifier(),
             ) {
+              // If build error message is failed to send, then we should manually decrease the active task count
+              // Otherwise, it will be gracefully handled by the error message handler.
               if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module.identifier(), err))
               {
+                active_task_count.fetch_sub(1, Ordering::SeqCst);
                 tracing::trace!("fail to send msg {:?}", err)
               }
+
+              return;
             };
+
             self.module_graph.add_module(*module);
+
+            // Gracefully exit
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
           }
           Msg::ModuleBuiltErrorEncountered(module_identifier, err) => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
             self
               .module_graph
               .module_identifier_to_module
@@ -270,6 +280,7 @@ impl Compilation {
               .module_identifier_to_module_graph_module
               .remove(&module_identifier);
             self.push_batch_diagnostic(err.into());
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
           }
           Msg::ModuleCreationCanceled => {
             active_task_count.fetch_sub(1, Ordering::SeqCst);
@@ -301,6 +312,7 @@ impl Compilation {
     let compiler_options = self.options.clone();
     let loader_runner_runner = self.loader_runner_runner.clone();
     let plugin_driver = self.plugin_driver.clone();
+    let active_task_count = active_task_count.clone();
 
     let module_identifier = module.identifier();
 
@@ -343,9 +355,12 @@ impl Compilation {
         .collect::<Result<Vec<_>>>() {
           Ok(result) => result,
           Err(err) => {
+            // If build error message is failed to send, then we should manually decrease the active task count
+            // Otherwise, it will be gracefully handled by the error message handler.
             if let Err(err) =
               tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err))
             {
+              active_task_count.fetch_sub(1, Ordering::SeqCst);
               tracing::trace!("fail to send msg {:?}", err)
             }
             return
@@ -392,6 +407,8 @@ impl Compilation {
             })
             .collect::<Vec<_>>();
 
+          // If build error message is failed to send, then we should manually decrease the active task count
+          // Otherwise, it will be gracefully handled by the error message handler.
           if let Err(err) = tx.send(Msg::ModuleResolved(
             (
               original_module_identifier.clone(),
@@ -401,6 +418,7 @@ impl Compilation {
             )
               .with_diagnostic(diagnostics),
           )) {
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
             tracing::trace!("fail to send msg {:?}", err);
             return;
           };
@@ -414,7 +432,10 @@ impl Compilation {
           );
         }
         Err(err) => {
+          // If build error message is failed to send, then we should manually decrease the active task count
+          // Otherwise, it will be gracefully handled by the error message handler.
           if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err)) {
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
             tracing::trace!("fail to send msg {:?}", err)
           }
         }
