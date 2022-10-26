@@ -103,7 +103,10 @@ impl NormalModuleFactory {
           self.send(Msg::ModuleCreationCanceled);
         }
       }
-      Err(err) => self.send(Msg::ModuleCreationErrorEncountered(err)),
+      Err(err) => {
+        dbg!(&err);
+        self.send(Msg::ModuleCreationErrorEncountered(err))
+      }
     }
   }
 
@@ -188,7 +191,7 @@ impl NormalModuleFactory {
       self.context.module_type = self.calculate_module_type_by_uri(&uri);
     }
 
-    let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
+    let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::SeqCst);
 
     self
       .tx
@@ -196,12 +199,13 @@ impl NormalModuleFactory {
         (self.dependency.clone(), dependency_id),
         uri.clone(),
       ))
-      .map_err(|_| {
-        Error::InternalError(format!(
-          "Failed to resolve dependency {:?}",
-          self.dependency
-        ))
-      })?;
+      .unwrap();
+    // .map_err(|_| {
+    //   Error::InternalError(format!(
+    //     "Failed to resolve dependency {:?}",
+    //     self.dependency
+    //   ))
+    // })?;
 
     let resolved_module_type =
       self.calculate_module_type(&resource_data, self.context.module_type)?;
@@ -389,6 +393,12 @@ impl NormalModuleFactory {
   //   });
   // }
 }
+
+// impl Drop for NormalModuleFactory {
+//   fn drop(&mut self) {
+//     drop(self);
+//   }
+// }
 
 pub fn resolve_module_type_by_uri<T: AsRef<Path>>(uri: T) -> Option<ModuleType> {
   let uri = uri.as_ref();

@@ -173,6 +173,7 @@ impl Compilation {
               *module_with_diagnostic.inner;
 
             let module_identifier = module.identifier();
+            dbg!(&module_identifier);
 
             if self
               .visited_module_id
@@ -182,7 +183,8 @@ impl Compilation {
                 (original_module_identifier, dependency_id, module_identifier)
                   .with_diagnostic(module_with_diagnostic.diagnostic),
               )) {
-                tracing::trace!("fail to send msg {:?}", err)
+                // tracing::trace!("fail to send msg {:?}", err)
+                dbg!("fail to send msg {:?}", err);
               }
               continue;
             }
@@ -192,6 +194,7 @@ impl Compilation {
               .insert((module_identifier.clone(), dependency.detail.clone()));
 
             if let Err(err) = tx.send(Msg::ModuleGraphModuleCreated(mgm)) {
+              dbg!("fail to send msg {:?}", &err);
               tracing::trace!("fail to send msg {:?}", err)
             }
             if is_entry {
@@ -212,8 +215,6 @@ impl Compilation {
             self.module_graph.add_module_graph_module(mgm);
           }
           Msg::ModuleReused(result_with_diagnostics) => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
-
             let (original_module_identifier, dependency_id, module_identifier) =
               result_with_diagnostics.inner;
             self.push_batch_diagnostic(result_with_diagnostics.diagnostic);
@@ -223,13 +224,12 @@ impl Compilation {
               module_identifier.clone(),
             ) {
               if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err)) {
+                dbg!("fail to send msg {:?}", &err);
                 tracing::trace!("fail to send msg {:?}", err)
               }
             };
           }
           Msg::ModuleResolved(result_with_diagnostics) => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
-
             let (original_module_identifier, dependency_id, module, deps) =
               result_with_diagnostics.inner;
             self.push_batch_diagnostic(result_with_diagnostics.diagnostic);
@@ -248,13 +248,13 @@ impl Compilation {
             ) {
               if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module.identifier(), err))
               {
+                dbg!("fail to send msg {:?}", &err);
                 tracing::trace!("fail to send msg {:?}", err)
               }
             };
             self.module_graph.add_module(*module);
           }
           Msg::ModuleBuiltErrorEncountered(module_identifier, err) => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
             self
               .module_graph
               .module_identifier_to_module
@@ -265,19 +265,17 @@ impl Compilation {
               .remove(&module_identifier);
             self.push_batch_diagnostic(err.into());
           }
-          Msg::ModuleCreationCanceled => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
-          }
+          Msg::ModuleCreationCanceled => {}
           Msg::DependencyReference(dep, resolved_uri) => {
             self.module_graph.add_dependency(dep, resolved_uri);
           }
           Msg::ModuleCreationErrorEncountered(err) => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
             self.push_batch_diagnostic(err.into());
           }
         },
         None => {
           tracing::trace!("All sender is dropped");
+          dbg!("All sender is dropped");
         }
       }
     }
@@ -483,6 +481,7 @@ impl Compilation {
   pub async fn optimize_dependency(
     &mut self,
   ) -> Result<(HashSet<Symbol>, HashMap<Ustr, TreeShakingResult>)> {
+    dbg!(&self.module_graph);
     let analyze_results = self
       .module_graph
       .module_identifier_to_module_graph_module
@@ -706,10 +705,6 @@ fn collect_reachable_symbol(
       panic!("Can't get analyze result from entry_identifier");
     }
   };
-
-  for import_list in entry_module_result.reachable_import_of_export.values() {
-    q.extend(import_list.clone());
-  }
 
   for item in entry_module_result.export_map.values() {
     mark_symbol(item.clone(), &mut used_symbol_set, analyze_map, &mut q);
