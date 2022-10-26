@@ -36,4 +36,17 @@ impl PassGlobal {
       })
     })
   }
+
+  pub fn try_with_handler_return_used_globals<F, Ret>(&self, f: F) -> Result<(Ret, Globals), Error>
+  where
+    F: FnOnce(&Handler) -> Result<Ret, Error>,
+  {
+    let globals = Default::default();
+    let ret = GLOBALS.set(&globals, || {
+      swc_ecma_transforms::helpers::HELPERS.set(&Helpers::new(true), || {
+        swc::try_with_handler(get_swc_compiler().cm.clone(), Default::default(), f)
+      })
+    });
+    ret.map(|item| (item, globals))
+  }
 }

@@ -60,7 +60,7 @@ pub struct ModuleGraph {
 
   dependency_id_to_connection_id: HashMap<u32, u32>,
   dependency_id_to_dependency: HashMap<u32, Dependency>,
-  pub dependency_to_dependency_id: HashMap<Dependency, u32>,
+  dependency_to_dependency_id: HashMap<Dependency, u32>,
 
   pub connections: HashSet<ModuleGraphConnection>,
   connection_id_to_connection: HashMap<u32, ModuleGraphConnection>,
@@ -105,21 +105,6 @@ impl ModuleGraph {
           .module_identifier_to_module_graph_module
           .get(module_identifier)
       })
-  }
-
-  pub fn normal_module_by_dependency(&self, dep: &Dependency) -> Option<&NormalModule> {
-    self
-      .dependency_to_dependency_id
-      .get(dep)
-      .and_then(|id| self.dependency_id_to_module_identifier.get(id))
-      .and_then(|module_identifier| self.module_by_identifier(module_identifier))
-  }
-
-  pub fn module_uri_by_deppendency(&self, dep: &Dependency) -> Option<&String> {
-    self
-      .dependency_to_dependency_id
-      .get(dep)
-      .and_then(|id| self.dependency_id_to_module_identifier.get(id))
   }
 
   pub fn dependency_id_by_dependency(&self, dep: &Dependency) -> Option<u32> {

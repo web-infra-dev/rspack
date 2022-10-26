@@ -13,12 +13,12 @@ async fn main() {
   #[cfg(feature = "tracing")]
   let guard = enable_tracing_by_env_with_chrome_layer();
   let manifest_dir = PathBuf::from(env!("CARGO_WORKSPACE_DIR"));
-  let bundle_dir = manifest_dir.join("examples/basic");
-  // let bundle_dir: PathBuf = manifest_dir.join("benchcases/three");
+  // let bundle_dir = manifest_dir.join("tests/fixtures/postcss/pxtorem");
+  let bundle_dir: PathBuf = manifest_dir.join("benchcases/three");
   println!("{:?}", bundle_dir);
   let mut options = read_test_config_and_normalize(&bundle_dir);
 
-  options.emit_error = false;
+  options.emit_error = true;
   let start = Instant::now();
   // println!("{:?}", options);
   let mut compiler = rspack::rspack(options, Default::default());
