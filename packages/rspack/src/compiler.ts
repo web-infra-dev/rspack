@@ -232,7 +232,7 @@ class Compiler {
 	}
 	rebuild(changedFiles: string[], cb) {
 		const rebuild_cb = util.callbackify(
-			this.#instance.rebuild.bind(this.#instance)
+			this.#instance.rebuild.bind(this.#instance, changedFiles, [])
 		) as (cb: Callback<Error, any>) => void;
 		rebuild_cb((err, stats) => {
 			if (err) {
@@ -262,7 +262,7 @@ class Compiler {
 			const begin = Date.now();
 			console.log("hit change and start to build");
 			const diffStats = await util.promisify(this.rebuild.bind(this))([path]);
-			console.log("build success, time cost", Date.now() - begin);
+			console.log(`build success, time cost ${(Date.now() - begin) / 1000}ms`);
 		});
 
 		return {
