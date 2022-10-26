@@ -88,8 +88,7 @@ impl NormalModuleFactory {
           let diagnostic = std::mem::take(&mut self.diagnostic);
 
           debug_assert!(
-            // We don't need any guarantees other than the atomicity here.
-            self.context.active_task_count.load(Ordering::Relaxed) > 0,
+            self.context.active_task_count.load(Ordering::SeqCst) > 0,
             "Failed as the receiver end has already been dropped."
           );
 
@@ -120,8 +119,7 @@ impl NormalModuleFactory {
       }
       Err(err) => {
         debug_assert!(
-          // We don't need any guarantees other than the atomicity here.
-          self.context.active_task_count.load(Ordering::Relaxed) > 0,
+          self.context.active_task_count.load(Ordering::SeqCst) > 0,
           "Failed as the receiver end has already been dropped."
         );
 
@@ -222,8 +220,7 @@ impl NormalModuleFactory {
     let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
 
     debug_assert!(
-      // We don't need any guarantees other than the atomicity here.
-      self.context.active_task_count.load(Ordering::Relaxed) > 0,
+      self.context.active_task_count.load(Ordering::SeqCst) > 0,
       "Failed as the receiver end has already been dropped."
     );
 
@@ -366,8 +363,7 @@ impl NormalModuleFactory {
       let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
 
       debug_assert!(
-        // We don't need any guarantees other than the atomicity here.
-        self.context.active_task_count.load(Ordering::Relaxed) > 0,
+        self.context.active_task_count.load(Ordering::SeqCst) > 0,
         "Failed as the receiver end has already been dropped."
       );
 
