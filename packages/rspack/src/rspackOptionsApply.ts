@@ -8,13 +8,10 @@ export class RspackOptionsApply {
 		compiler.outputPath = options.output.path;
 		compiler.name = options.name;
 		compiler.outputFileSystem = fs;
-		if (
-			compiler.options.target.includes("node") ||
-			compiler.options.target.includes("webworker") // FiXME: rspack doesn't supports node well
-		) {
+		if (compiler.options.target.includes("node")) {
 			new NodeTargetPlugin().apply(compiler);
 		}
-		if (compiler.options.builtins.polyfill) {
+		if (compiler.options.builtins.polyfillBuiltins) {
 			new PolyfillBuiltinsPlugin().apply(compiler);
 		}
 	}

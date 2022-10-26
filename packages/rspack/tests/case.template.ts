@@ -11,7 +11,7 @@ function toEval(modName: string) {
 	return `eval('require("${modName}")')`;
 }
 // most of these could be removed when we support external builtins by default
-const externalModule = ["uvu", "expect", "source-map"];
+const externalModule = ["uvu", "path", "fs", "expect", "source-map"];
 export function describeCases(config: { name: string; casePath: string }) {
 	const casesPath = path.resolve(__dirname, config.casePath);
 	let categoriesDir = fs.readdirSync(casesPath);
