@@ -47,7 +47,7 @@ impl VisitMut for InjectRuntimeHelper {
           prop: MemberProp::Ident(Ident::new("exportStar".into(), DUMMY_SP)),
         }
         .as_callee();
-        return;
+        //        return;
       }
 
       // have some unhandled helper
