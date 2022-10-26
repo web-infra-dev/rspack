@@ -333,7 +333,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           self.module_identifier,
         )),
       );
-      let region: BetterId = if let Some(ident) = &node.ident {
+      let body_owner_id: BetterId = if let Some(ident) = &node.ident {
         match self.export_default_name {
           Some(_) => {
             // TODO: Better diagnostic
@@ -350,7 +350,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         default_ident.to_id().into()
       };
       let before_owner_id = self.current_body_owner_id.clone();
-      self.current_body_owner_id = Some(region);
+      self.current_body_owner_id = Some(body_owner_id);
       node.class.visit_with(self);
       self.current_body_owner_id = before_owner_id;
     } else {
@@ -370,7 +370,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           self.module_identifier,
         )),
       );
-      let region: BetterId = if let Some(ident) = &node.ident {
+      let body_owner_id: BetterId = if let Some(ident) = &node.ident {
         match self.export_default_name {
           Some(_) => {
             // TODO: Better diagnostic
@@ -387,11 +387,11 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         default_ident.to_id().into()
       };
       let before_region = self.current_body_owner_id.clone();
-      self.current_body_owner_id = Some(region);
+      self.current_body_owner_id = Some(body_owner_id);
       node.function.visit_with(self);
       self.current_body_owner_id = before_region;
     } else {
-      // if the class expr is not inside a default expr, it will not
+      // if the function expr is not inside a default expr, it will not
       // generate a binding.
       node.function.visit_with(self);
     }
@@ -446,19 +446,11 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         self.current_body_owner_id = before_region;
       }
     }
-    // let id: BetterId = node.ident.to_id().into();
-    // let mark = id.ctxt.outer();
-    // let old_region = self.current_region.clone();
-    // if mark == self.top_level_mark {
-    //   self.current_region = Some(id);
-    // }
-    // node.visit_children_with(self);
-    // self.current_region = old_
   }
   fn visit_decl(&mut self, node: &Decl) {
     match node {
       Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
-        // TODO:
+        // TODO: Ignore ts related tree-shaking for now.
       }
       Decl::Class(_) | Decl::Fn(_) | Decl::Var(_) => {
         node.visit_children_with(self);
@@ -504,12 +496,16 @@ impl<'a> ModuleRefAnalyze<'a> {
         .specifiers
         .iter()
         .for_each(|specifier| match specifier {
-          ExportSpecifier::Namespace(_) => {
-            // TODO: handle `* as xxx`, do we need a extra binding
-            self.export_all_list.push(resolved_uri_ukey);
+          ExportSpecifier::Namespace(namespace) => {
+            let atom = match namespace.name {
+              ModuleExportName::Ident(ref ident) => ident.sym.clone(),
+              ModuleExportName::Str(ref str) => str.value.clone(),
+            };
+            self.add_export(atom, SymbolRef::Star(resolved_uri_ukey));
           }
           ExportSpecifier::Default(_) => {
-            // Currently swc does not support syntax like `export v from 'xxx';`
+            // Currently swc does not support syntax like `export v from 'xxx';
+            // Since this is a syntax error the logic should not reach here.`
             unreachable!("Module has syntax error should not trigger tree_shaking")
           }
           ExportSpecifier::Named(named) => {
@@ -545,8 +541,7 @@ impl<'a> ModuleRefAnalyze<'a> {
             // TODO: handle `as xxx`
             let id = match &named.orig {
               ModuleExportName::Ident(ident) => ident.to_id(),
-              // export {'a'} is a syntax error;
-              // `export {'a'} from 'xxx'` is not.
+              // `export {'a'}` is a syntax error;
               // we know here export has no src,  so this branch should not reachable.
               ModuleExportName::Str(_) => unreachable!(),
             };
@@ -583,18 +578,6 @@ impl<'a> ModuleRefAnalyze<'a> {
       .module_by_dependency(&dep)
       .map(|module| &module.module_identifier)
   }
-
-  // fn try_resolve_uri(&mut self, src: String, resolve_kind: ResolveKind) -> Option<&String> {
-  //   self.module_graph.module_uri_by_deppendency(&Dependency {
-  //     importer: Some(self.uri.to_string()),
-  //     detail: crate::ModuleDependency {
-  //       specifier: src,
-  //       kind: resolve_kind,
-  //       span: None,
-  //     },
-  //     parent_module_identifier: Some(self.uri.to_string()),
-  //   })
-  // }
 }
 
 /// The `allow(unused)` will be removed after the Tree shaking is finished
