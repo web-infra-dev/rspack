@@ -98,10 +98,26 @@ impl NormalModuleFactory {
             diagnostic,
           )));
         } else {
-          self.send(Msg::ModuleCreationCanceled);
+          if let Err(err) = self.tx.send(Msg::ModuleCreationCanceled) {
+            self
+              .context
+              .active_task_count
+              .fetch_sub(1, Ordering::SeqCst);
+            tracing::trace!("fail to send msg {:?}", err)
+          }
         }
       }
-      Err(err) => self.send(Msg::ModuleCreationErrorEncountered(err)),
+      Err(err) => {
+        // If build error message is failed to send, then we should manually decrease the active task count
+        // Otherwise, it will be gracefully handled by the error message handler.
+        if let Err(err) = self.tx.send(Msg::ModuleCreationErrorEncountered(err)) {
+          self
+            .context
+            .active_task_count
+            .fetch_sub(1, Ordering::SeqCst);
+          tracing::trace!("fail to send msg {:?}", err)
+        }
+      }
     }
   }
 
