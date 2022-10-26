@@ -210,6 +210,12 @@ impl NormalModuleFactory {
 
     let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
 
+    debug_assert!(
+      // We don't need any guarantees other than the atomicity here.
+      self.context.active_task_count.load(Ordering::Relaxed) > 0,
+      "Failed as the receiver end has already been dropped."
+    );
+
     self
       .tx
       .send(Msg::DependencyReference(
@@ -347,6 +353,13 @@ impl NormalModuleFactory {
       let (uri, module) = module;
       // TODO: remove this
       let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
+
+      debug_assert!(
+        // We don't need any guarantees other than the atomicity here.
+        self.context.active_task_count.load(Ordering::Relaxed) > 0,
+        "Failed as the receiver end has already been dropped."
+      );
+
       self
         .tx
         .send(Msg::DependencyReference(
