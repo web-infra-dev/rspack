@@ -10,7 +10,7 @@
     "test": "jest --verbose"
   },
   "files": [
-    "lib"
+    "dist"
   ],
   "devDependencies": {
     "@rspack/core": "workspace:*",
