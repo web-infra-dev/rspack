@@ -144,15 +144,15 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             .reachable_import_and_export
             .insert(key.clone(), reachable_import);
         }
-        // ignore any indrect symbol
+        // ignore any indrect symbol, because it will not generate binding, the reachable exports will
+        // be calculated in the module where it is defined
         SymbolRef::Indirect(_) | SymbolRef::Star(_) => {}
       }
     }
-    // dbg!(&self.);
-    // all reachable import from used symbol in current module
+
+    // all reachable export from used symbol in current module
     for used_id in &self.used_id_set {
       let reachable_import = self.get_all_import_or_export(used_id.clone());
-      // dbg!(&used_id, &reachable_import);
       self.used_symbol_ref.extend(reachable_import);
     }
   }
@@ -181,7 +181,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           let resolved_uri = match self.resolve_module_identifier(src, ResolveKind::Import) {
             Some(module_identifier) => module_identifier,
             None => {
-              // TODO: Ignore because helper interference.
+              // TODO: Ignore for now because swc helper interference.
               return;
             }
           };
@@ -265,7 +265,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           {
             Some(module_identifier) => module_identifier,
             None => {
-              // TODO: ignore for now, or  three copy js will failed
+              // TODO: ignore for now, or three copy js will failed
               return;
             }
           };
@@ -275,7 +275,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         ModuleDecl::TsImportEquals(_)
         | ModuleDecl::TsExportAssignment(_)
         | ModuleDecl::TsNamespaceExport(_) => {
-          // TODO:
+          // TODO: ignore ts related syntax visit for now
         }
       },
       ModuleItem::Stmt(_) => {
@@ -316,7 +316,8 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         node.visit_children_with(self);
       }
       DefaultDecl::TsInterfaceDecl(_) => {
-        todo!()
+        // TODO: Ts syntax related tree-shaking is ignored by now.
+        todo!("Ts ")
       }
     }
     self.state.remove(AnalyzeState::EXPORT_DEFAULT);

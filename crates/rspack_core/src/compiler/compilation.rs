@@ -520,15 +520,17 @@ impl Compilation {
         GLOBALS.set(globals.unwrap(), || {
           ast.visit_with(&mut analyzer);
         });
-        dbg!(
-          &uri_key,
-          // &analyzer.export_all_list,
-          &analyzer.export_map,
-          &analyzer.import_map,
-          &analyzer.reference_map,
-          &analyzer.reachable_import_and_export,
-          &analyzer.used_symbol_ref
-        );
+        // Keep this debug info until we stabilize the tree-shaking
+
+        // dbg!(
+        //   &uri_key,
+        //   // &analyzer.export_all_list,
+        //   &analyzer.export_map,
+        //   &analyzer.import_map,
+        //   &analyzer.reference_map,
+        //   &analyzer.reachable_import_and_export,
+        //   &analyzer.used_symbol_ref
+        // );
         Some((uri_key, analyzer.into()))
       })
       .collect::<HashMap<Ustr, TreeShakingResult>>();
@@ -536,25 +538,21 @@ impl Compilation {
     for analyze_result in analyze_results.values() {
       used_symbol_ref.extend(analyze_result.used_symbol_ref.clone().into_iter());
     }
-    // topological sort of export_all_list
 
     let mut used_symbol = HashSet::new();
-    println!("---------------------------------");
-    // mark used symbol for each module
+    // Marking used symbol and all reachable export symbol from the used symbol for each module
     let used_symbol_from_import = mark_used_symbol(
       &analyze_results,
       VecDeque::from_iter(used_symbol_ref.into_iter()),
     );
 
     used_symbol.extend(used_symbol_from_import);
-    dbg!(&used_symbol);
-    // reaching definition
+
+    // We considering all export symbol in each entry module as used for now
     for entry in self.entry_modules() {
       let used_symbol_set = collect_reachable_symbol(&analyze_results, ustr(&entry));
       used_symbol.extend(used_symbol_set);
     }
-
-    // dbg!(&used_symbol);
 
     Ok((used_symbol, analyze_results))
   }
@@ -702,12 +700,10 @@ fn collect_reachable_symbol(
 ) -> HashSet<Symbol> {
   let mut used_symbol_set = HashSet::new();
   let mut q = VecDeque::new();
-  dbg!(&entry_identifier);
   let entry_module_result = match analyze_map.get(&entry_identifier) {
     Some(result) => result,
     None => {
-      // TODO: currently we just want to pass test in rspack_error
-      return HashSet::default();
+      panic!("Can't get analyze result from entry_identifier");
     }
   };
 
@@ -764,7 +760,6 @@ fn mark_symbol(
     }
     SymbolRef::Star(star) => {
       let module_result = analyze_map.get(&star).unwrap();
-      dbg!(&module_result.export_map);
       for symbol_ref in module_result.export_map.values() {
         q.push_back(symbol_ref.clone());
       }

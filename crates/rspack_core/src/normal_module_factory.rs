@@ -81,6 +81,7 @@ impl NormalModuleFactory {
     }
   }
   #[instrument(name = "normal_module_factory:create")]
+  /// set `is_entry` true if you are trying to create a new module factory with a module identifier which is an entry
   pub async fn create(mut self, is_entry: bool) {
     match self.factorize().await {
       Ok(maybe_module) => {
