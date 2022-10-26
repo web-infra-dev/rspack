@@ -1,6 +1,6 @@
 use hashbrown::HashSet;
 
-use crate::{ChunkGroupUkey, ChunkUkey};
+use crate::{ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey};
 
 #[derive(Debug)]
 pub struct Chunk {
@@ -26,6 +26,24 @@ impl Chunk {
 
   pub(crate) fn add_group(&mut self, group: ChunkGroupUkey) {
     self.groups.insert(group);
+  }
+
+  pub fn split(&mut self, new_chunk: &mut Chunk, chunk_group_by_ukey: &mut ChunkGroupByUkey) {
+    self.groups.iter().for_each(|group| {
+      let group = chunk_group_by_ukey
+        .get_mut(group)
+        .expect("Group should exist");
+      group.chunks.push(new_chunk.ukey);
+      new_chunk.add_group(group.ukey);
+    });
+  }
+
+  pub fn can_be_initial(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> bool {
+    self
+      .groups
+      .iter()
+      .filter_map(|ukey| chunk_group_by_ukey.get(ukey))
+      .any(|group| group.is_initial())
   }
 }
 

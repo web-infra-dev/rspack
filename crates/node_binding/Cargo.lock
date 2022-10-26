@@ -1858,6 +1858,7 @@ dependencies = [
  "rspack_loader_sass",
  "rspack_plugin_css",
  "rspack_plugin_html",
+ "rspack_plugin_split_chunks",
  "serde",
  "serde_json",
  "tokio",
@@ -2114,6 +2115,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_plugin_split_chunks"
+version = "0.1.0"
+dependencies = [
+ "rspack_core",
+ "tracing",
+]
+
+[[package]]
 name = "rspack_sources"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2173,9 +2182,9 @@ checksum = "ef703b7cb59335eae2eb93ceb664c0eb7ea6bf567079d843e09420219668e072"
 
 [[package]]
 name = "sass-embedded"
-version = "0.6.1"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47086f717f9caced148562f076c54e3b8d54d25be85da999290a572dd21cea7d"
+checksum = "91bc40eea43391e185d1760f78b7d254f8f8348da7ff7963e98c10ecd1ed0f15"
 dependencies = [
  "atty",
  "crossbeam-channel",

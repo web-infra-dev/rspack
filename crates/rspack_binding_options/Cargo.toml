@@ -21,6 +21,7 @@ rspack_error = { path = "../rspack_error", features = ["napi"] }
 rspack_loader_sass = { path = "../rspack_loader_sass" }
 rspack_plugin_css = { path = "../rspack_plugin_css" }
 rspack_plugin_html = { path = "../rspack_plugin_html" }
+rspack_plugin_split_chunks = { path = "../rspack_plugin_split_chunks" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1.21.0", features = [

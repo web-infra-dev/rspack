@@ -15,9 +15,11 @@ mod raw_external;
 mod raw_external_type;
 mod raw_mode;
 mod raw_module;
+mod raw_optimization;
 mod raw_output;
 mod raw_plugins;
 mod raw_resolve;
+mod raw_split_chunks;
 mod raw_target;
 
 pub use raw_builtins::*;
@@ -27,9 +29,11 @@ pub use raw_external::*;
 pub use raw_external_type::*;
 pub use raw_mode::*;
 pub use raw_module::*;
+pub use raw_optimization::*;
 pub use raw_output::*;
 pub use raw_plugins::*;
 pub use raw_resolve::*;
+pub use raw_split_chunks::*;
 pub use raw_target::*;
 
 use self::raw_devtool::RawDevtool;
@@ -81,6 +85,7 @@ pub struct RawOptions {
   pub external_type: Option<RawExternalType>,
   #[napi(ts_type = "string")]
   pub devtool: Option<RawDevtool>,
+  pub optimization: Option<RawOptimizationOptions>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -102,6 +107,7 @@ pub struct RawOptions {
   pub module: Option<RawModuleOptions>,
   pub builtins: Option<RawBuiltins>,
   pub devtool: Option<RawDevtool>,
+  pub optimization: Option<RawOptimizationOptions>,
 }
 
 pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<CompilerOptions> {
@@ -169,6 +175,15 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
     .then(|mut options| {
       let external_type = RawOption::raw_to_compiler_option(raw_options.external_type, &options)?;
       options.external_type = Some(external_type);
+      Ok(options)
+    })?
+    .then(|mut options| {
+      if let Some(optimization) = raw_options.optimization {
+        let split_chunks = RawOption::raw_to_compiler_option(optimization.split_chunks, &options)?;
+        options.plugins.get_or_insert_default().push(Box::new(
+          rspack_plugin_split_chunks::SplitChunksPlugin::new(split_chunks),
+        ))
+      }
       Ok(options)
     })?
     .finish();
