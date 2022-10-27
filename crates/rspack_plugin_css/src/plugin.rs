@@ -10,8 +10,8 @@ use rspack_core::{
     CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
     SourceMapSource, SourceMapSourceOptions,
   },
-  ChunkKind, FilenameRenderOptions, GenerationResult, ModuleType, NormalModule, ParseContext,
-  ParseResult, ParserAndGenerator, Plugin, RenderManifestEntry, SourceType,
+  FilenameRenderOptions, GenerationResult, ModuleType, NormalModule, ParseContext, ParseResult,
+  ParserAndGenerator, Plugin, RenderManifestEntry, SourceType,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;
@@ -381,35 +381,32 @@ impl Plugin for CssPlugin {
     if source.source().is_empty() {
       Ok(Default::default())
     } else {
-      let output_path = match chunk.kind {
-        ChunkKind::Entry { .. } => {
-          compilation
-            .options
-            .output
-            .filename
-            .render(FilenameRenderOptions {
-              filename: Some(args.chunk().id.to_owned()),
-              extension: Some(".css".to_owned()),
-              id: None,
-              contenthash,
-              chunkhash,
-              hash,
-            })
-        }
-        ChunkKind::Normal => {
-          compilation
-            .options
-            .output
-            .chunk_filename
-            .render(FilenameRenderOptions {
-              filename: None,
-              extension: Some(".css".to_owned()),
-              id: Some(format!("static/css/{}", args.chunk().id.to_owned())),
-              contenthash,
-              chunkhash,
-              hash,
-            })
-        }
+      let output_path = if chunk.is_only_initial(&args.compilation.chunk_group_by_ukey) {
+        compilation
+          .options
+          .output
+          .filename
+          .render(FilenameRenderOptions {
+            filename: Some(args.chunk().id.to_owned()),
+            extension: Some(".css".to_owned()),
+            id: None,
+            contenthash,
+            chunkhash,
+            hash,
+          })
+      } else {
+        compilation
+          .options
+          .output
+          .chunk_filename
+          .render(FilenameRenderOptions {
+            filename: None,
+            extension: Some(".css".to_owned()),
+            id: Some(format!("static/css/{}", args.chunk().id.to_owned())),
+            contenthash,
+            chunkhash,
+            hash,
+          })
       };
 
       Ok(vec![RenderManifestEntry::new(source.boxed(), output_path)])

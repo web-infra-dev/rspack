@@ -11,7 +11,7 @@ use rspack_core::rspack_sources::{
   SourceMapSource, SourceMapSourceOptions,
 };
 use rspack_core::{
-  get_contenthash, AstOrSource, ChunkKind, Compilation, FilenameRenderOptions, GenerationResult,
+  get_contenthash, AstOrSource, Compilation, FilenameRenderOptions, GenerationResult,
   JavascriptAstExtend, ModuleAst, ModuleGraphModule, ModuleType, NormalModule, ParseContext,
   ParseResult, ParserAndGenerator, Plugin, PluginContext, PluginProcessAssetsOutput,
   PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, ProcessAssetsArgs,
@@ -252,7 +252,7 @@ impl Plugin for JsPlugin {
     ordered_modules.sort_by_key(|m| m.uri.to_owned());
 
     let has_inline_runtime = !compilation.options.target.platform.is_web()
-      && matches!(chunk.kind, ChunkKind::Entry { .. });
+      && chunk.is_only_initial(&args.compilation.chunk_group_by_ukey);
 
     let mut module_code_array = ordered_modules
       .par_iter()
@@ -307,7 +307,7 @@ impl Plugin for JsPlugin {
       .into_par_iter()
       .flatten()
       .chain([{
-        if chunk.kind.is_entry() && !has_inline_runtime {
+        if chunk.is_only_initial(&args.compilation.chunk_group_by_ukey) && !has_inline_runtime {
           // TODO: how do we handle multiple entry modules?
           let entry_module_uri = args
             .compilation
@@ -341,36 +341,32 @@ impl Plugin for JsPlugin {
     // let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
     let chunkhash = None;
     let contenthash = Some(get_contenthash(&source).to_string());
-
-    let output_path = match chunk.kind {
-      ChunkKind::Entry { .. } => {
-        compilation
-          .options
-          .output
-          .filename
-          .render(FilenameRenderOptions {
-            filename: Some(args.chunk().id.to_owned()),
-            extension: Some(".js".to_owned()),
-            id: None,
-            contenthash,
-            chunkhash,
-            hash,
-          })
-      }
-      ChunkKind::Normal => {
-        compilation
-          .options
-          .output
-          .chunk_filename
-          .render(FilenameRenderOptions {
-            filename: None,
-            extension: Some(".js".to_owned()),
-            id: Some(format!("static/js/{}", args.chunk().id.to_owned())),
-            contenthash,
-            chunkhash,
-            hash,
-          })
-      }
+    let output_path = if chunk.is_only_initial(&args.compilation.chunk_group_by_ukey) {
+      compilation
+        .options
+        .output
+        .filename
+        .render(FilenameRenderOptions {
+          filename: Some(args.chunk().id.to_owned()),
+          extension: Some(".js".to_owned()),
+          id: None,
+          contenthash,
+          chunkhash,
+          hash,
+        })
+    } else {
+      compilation
+        .options
+        .output
+        .chunk_filename
+        .render(FilenameRenderOptions {
+          filename: None,
+          extension: Some(".js".to_owned()),
+          id: Some(format!("static/js/{}", args.chunk().id.to_owned())),
+          contenthash,
+          chunkhash,
+          hash,
+        })
     };
 
     Ok(vec![RenderManifestEntry::new(source.boxed(), output_path)])
