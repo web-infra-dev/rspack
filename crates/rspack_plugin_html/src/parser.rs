@@ -44,8 +44,10 @@ impl<'a> HtmlCompiler<'a> {
 
   pub fn codegen(&self, ast: &mut Document) -> anyhow::Result<String> {
     let writer_config = BasicHtmlWriterConfig::default();
-    let mut codegen_config = CodegenConfig::default();
-    codegen_config.minify = self.config.minify;
+    let codegen_config = CodegenConfig {
+      minify: self.config.minify,
+      ..Default::default()
+    };
     if self.config.minify {
       // Minify can't leak to user land because it doesn't implement `ToNapiValue` Trait
       minify_document(ast, &MinifyOptions::default());
