@@ -61,8 +61,8 @@ export class RspackCLI {
 			command.apply(this);
 		}
 	}
-	async loadConfig(options: RspackCLIOptions) {
-		let loadedConfig;
+	async loadConfig(options: RspackCLIOptions): Promise<RspackOptions> {
+		let loadedConfig: RspackOptions;
 		// if we pass config paras
 		if (options.config) {
 			const resolvedConfigPath = path.resolve(process.cwd(), options.config);
