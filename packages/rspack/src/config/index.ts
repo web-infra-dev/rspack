@@ -64,7 +64,7 @@ export function getNormalizedRspackOptions(
 	config: RspackOptions
 ): RspackOptionsNormalized {
 	const context = config.context ?? process.cwd();
-	const mode = config.mode ?? "development";
+	const mode = config.mode ?? "production";
 	const devServer = resolveDevOptions(config.devServer, { context });
 	const entry = resolveEntryOptions(config.entry ?? {}, {
 		context,

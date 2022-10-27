@@ -162,7 +162,7 @@ describe("snapshots", () => {
 
 		@@ ... @@
 		-   "mode": "none",
-		+   "mode": "development",
+		+   "mode": "production",
 	`)
 	);
 	test("production", { mode: "production" }, e =>
