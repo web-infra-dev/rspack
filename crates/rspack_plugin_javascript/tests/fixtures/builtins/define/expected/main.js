@@ -8,7 +8,7 @@ const _lib = __rspack_runtime__.interopRequire(__rspack_require__("./lib.js"));
 const lib = __rspack_require__("./lib.js");
 const { DO_NOT_CONVERTED9  } = __rspack_require__("./lib.js");
 equal(true, true);
-assert.deepStrictEqual(3 + 2, 5);
+assert.deepStrictEqual(5, 5);
 assert.deepStrictEqual(null, null);
 assert.deepStrictEqual(undefined, undefined);
 assert.deepStrictEqual(100.05, 100.05);
@@ -22,9 +22,9 @@ assert.deepStrictEqual(ZERO_OBJ[0], undefined);
 assert.deepStrictEqual(ZERO_OBJ["ZERO"], 0);
 assert.deepStrictEqual(BigInt(10000), 10000n);
 assert.deepStrictEqual(100000000000n, 100000000000n);
-assert.deepStrictEqual(+0, 0);
+assert.deepStrictEqual(0, 0);
 assert.deepStrictEqual(-0, -0);
-assert.deepStrictEqual(+100.25, 100.25);
+assert.deepStrictEqual(100.25, 100.25);
 assert.deepStrictEqual(-100.25, -100.25);
 assert.deepStrictEqual("string", "string");
 assert.deepStrictEqual("", "");
@@ -54,44 +54,18 @@ assert.deepStrictEqual([
         "six"
     ]
 ]);
+assert.deepStrictEqual(300, 300);
+assert.deepStrictEqual(300[1], undefined);
 assert.deepStrictEqual([
-    300,
-    [
-        "six"
-    ]
-][0], 300);
-assert.deepStrictEqual([
-    300,
-    [
-        "six"
-    ]
-][0][1], undefined);
-assert.deepStrictEqual([
-    300,
-    [
-        "six"
-    ]
-][1], [
+    "six"
+], [
     "six"
 ]);
+assert.deepStrictEqual("six", "six");
+assert.deepStrictEqual("s", "s");
 assert.deepStrictEqual([
-    300,
-    [
-        "six"
-    ]
-][1][0], "six");
-assert.deepStrictEqual([
-    300,
-    [
-        "six"
-    ]
-][1][0][0], "s");
-assert.deepStrictEqual([
-    300,
-    [
-        "six"
-    ]
-][1], [
+    "six"
+], [
     "six"
 ]);
 assert.deepStrictEqual([
@@ -213,13 +187,7 @@ const USELESS = {
     assert.deepStrictEqual(B, 0);
     let IN_BLOCK = 2;
     assert.deepStrictEqual(IN_BLOCK, 2);
-    {
-        {
-            {
-                assert.deepStrictEqual(205, 205);
-            }
-        }
-    }
+    assert.deepStrictEqual(205, 205);
 }try {
     error_count += 1;
     SHOULD_BE_CONVERTED_IN_UNDEFINED_BLOCK;
@@ -247,8 +215,8 @@ try {
     error_count += 1;
 } catch (err6) {}
 assert.deepStrictEqual(error_count, 7);
-assert.deepStrictEqual(205 == 205, true);
-assert.deepStrictEqual(207 == 205, false);
+assert.deepStrictEqual(true, true);
+assert.deepStrictEqual(false, false);
 try {
     error_count += 1;
     A1.A2.A3;
