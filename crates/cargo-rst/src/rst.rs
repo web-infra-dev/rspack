@@ -5,7 +5,6 @@ use std::{
   ffi::OsString,
   fmt::Display,
   fs,
-  io::Write,
   path::{self, Path, PathBuf},
   sync::{Arc, Mutex},
 };
