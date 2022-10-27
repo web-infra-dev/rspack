@@ -657,23 +657,26 @@ impl Compilation {
       used_symbol_ref.extend(analyze_result.used_symbol_ref.clone().into_iter());
     }
 
-    // calculate each module that has `export * from 'xxxx'`
-    let export_all_ref_graph = create_graph(&analyze_results);
-    let extends_map = get_extends_map(&export_all_ref_graph);
+    // calculate relation of module that has `export * from 'xxxx'`
+    let inherit_export_ref_graph = create_graph(&analyze_results);
+    // key is the module_id of module that potential have reexport all symbol from other module
+    // value is the set which contains several module_id the key related module need to inherit
+    let map_of_inherit_map = get_extends_map(&inherit_export_ref_graph);
 
-    for (module_id, include_export_module_id) in extends_map.iter() {
-      let mut extends_map = {
+    for (module_id, include_export_module_id) in map_of_inherit_map.iter() {
+      // This is just a work around for rustc checker, because we have immutable and mutable borrow in same time.
+      let mut inherit_export_maps = {
         let main_module = analyze_results.get_mut(module_id).unwrap();
-        std::mem::take(&mut main_module.export_all_extend_map)
+        std::mem::take(&mut main_module.inherit_export_maps)
       };
       for export_module_id in include_export_module_id {
         let export_module = &analyze_results.get(export_module_id).unwrap().export_map;
-        extends_map.insert(*export_module_id, export_module.clone());
+        inherit_export_maps.insert(*export_module_id, export_module.clone());
       }
       analyze_results
         .get_mut(module_id)
         .unwrap()
-        .export_all_extend_map = extends_map;
+        .inherit_export_maps = inherit_export_maps;
     }
 
     let mut used_symbol = HashSet::new();
@@ -845,7 +848,7 @@ fn collect_reachable_symbol(
   };
 
   // All the reexport star symbol should be included in the bundle
-  for (_, extend_map) in entry_module_result.export_all_extend_map.iter() {
+  for (_, extend_map) in entry_module_result.inherit_export_maps.iter() {
     q.extend(extend_map.values().cloned());
   }
 
@@ -904,7 +907,7 @@ fn mark_symbol(
         .get(&indirect_symbol.id)
         .or_else(|| {
           // TODO: better diagnostic and handle if multiple extends_map has export same symbol
-          for (_, extends_export_map) in module_result.export_all_extend_map.iter() {
+          for (_, extends_export_map) in module_result.inherit_export_maps.iter() {
             if let Some(value) = extends_export_map.get(&indirect_symbol.id) {
               return Some(value);
             }
@@ -928,7 +931,7 @@ fn mark_symbol(
         q.push_back(symbol_ref.clone());
       }
 
-      for (_, extend_map) in module_result.export_all_extend_map.iter() {
+      for (_, extend_map) in module_result.inherit_export_maps.iter() {
         q.extend(extend_map.values().cloned());
       }
     }
@@ -967,7 +970,7 @@ fn create_graph(
 ) -> GraphMap<&Ustr, (), petgraph::Directed> {
   let mut g = petgraph::graphmap::DiGraphMap::new();
   for (module_id, result) in analyze_map.iter() {
-    for export_all_module_id in result.export_all_extend_map.keys() {
+    for export_all_module_id in result.inherit_export_maps.keys() {
       g.add_edge(module_id, export_all_module_id, ());
     }
   }

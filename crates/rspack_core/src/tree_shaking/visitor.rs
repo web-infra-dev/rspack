@@ -36,8 +36,13 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   module_graph: &'a ModuleGraph,
   pub(crate) export_map: AHashMap<JsWord, SymbolRef>,
   pub(crate) import_map: AHashMap<BetterId, SymbolRef>,
-  /// list of uri, each uri represent export all named export from specific uri
-  pub export_all_extend_map: AHashMap<Ustr, AHashMap<JsWord, SymbolRef>>,
+  /// key is the module identifier, value is the corresponding export map
+  /// This data structure is used for collecting reexport * from some module. e.g.
+  /// ```js
+  /// export * from './test.js'
+  /// ```
+  /// then inherit_exports_maps become, `{"test.js": {...test_js_export_map} }`
+  pub inherit_export_maps: AHashMap<Ustr, AHashMap<JsWord, SymbolRef>>,
   current_body_owner_symbol_ext: Option<SymbolExt>,
   pub(crate) reference_map: AHashMap<SymbolExt, AHashSet<IdOrMemExpr>>,
   pub(crate) reachable_import_and_export: AHashMap<JsWord, AHashSet<SymbolRef>>,
@@ -62,7 +67,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       module_graph: dep_to_module_identifier,
       export_map: AHashMap::default(),
       import_map: AHashMap::default(),
-      export_all_extend_map: AHashMap::default(),
+      inherit_export_maps: AHashMap::default(),
       current_body_owner_symbol_ext: None,
       reference_map: AHashMap::default(),
       reachable_import_and_export: AHashMap::default(),
@@ -322,7 +327,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           };
           let resolved_uri_key = ustr(resolved_uri);
           self
-            .export_all_extend_map
+            .inherit_export_maps
             .insert(resolved_uri_key, AHashMap::default());
         }
         ModuleDecl::TsImportEquals(_)
@@ -733,8 +738,7 @@ pub struct TreeShakingResult {
   module_identifier: Ustr,
   pub export_map: AHashMap<JsWord, SymbolRef>,
   pub(crate) import_map: AHashMap<BetterId, SymbolRef>,
-  /// list of uri, each uri represent export all named export from specific uri
-  pub export_all_extend_map: AHashMap<Ustr, AHashMap<JsWord, SymbolRef>>,
+  pub inherit_export_maps: AHashMap<Ustr, AHashMap<JsWord, SymbolRef>>,
   // current_region: Option<BetterId>,
   // pub(crate) reference_map: AHashMap<BetterId, AHashSet<BetterId>>,
   pub(crate) reachable_import_of_export: AHashMap<JsWord, AHashSet<SymbolRef>>,
@@ -750,9 +754,9 @@ impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
       module_identifier: std::mem::take(&mut analyze.module_identifier),
       export_map: std::mem::take(&mut analyze.export_map),
       import_map: std::mem::take(&mut analyze.import_map),
-      export_all_list: std::mem::take(&mut analyze.export_all_list),
-      // current_region: std::mem::take(&mut analyze.current_body_owner_extend_symbol),
-      // reference_map: std::mem::take(&mut analyze.reference_map),
+      inherit_export_maps: std::mem::take(&mut analyze.inherit_export_maps),
+      current_region: std::mem::take(&mut analyze.current_body_owner_id),
+      reference_map: std::mem::take(&mut analyze.reference_map),
       reachable_import_of_export: std::mem::take(&mut analyze.reachable_import_and_export),
       state: std::mem::take(&mut analyze.state),
       used_symbol_ref: std::mem::take(&mut analyze.used_symbol_ref),
