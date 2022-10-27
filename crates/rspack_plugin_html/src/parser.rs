@@ -12,12 +12,15 @@ use swc_html::{
   parser::{error::Error, parse_file_as_document, parser::ParserConfig},
 };
 
-#[derive(Default)]
-pub struct HtmlCompiler {}
+use crate::config::HtmlPluginConfig;
 
-impl HtmlCompiler {
-  pub fn new() -> Self {
-    Self {}
+pub struct HtmlCompiler<'a> {
+  config: &'a HtmlPluginConfig,
+}
+
+impl<'a> HtmlCompiler<'a> {
+  pub fn new(config: &'a HtmlPluginConfig) -> Self {
+    Self { config }
   }
 
   pub fn parse_file(&self, path: &str, source: String) -> Result<TWithDiagnosticArray<Document>> {
@@ -39,7 +42,8 @@ impl HtmlCompiler {
 
   pub fn codegen(&self, ast: &Document) -> anyhow::Result<String> {
     let writer_config = BasicHtmlWriterConfig::default();
-    let codegen_config = CodegenConfig::default();
+    let mut codegen_config = CodegenConfig::default();
+    codegen_config.minify = self.config.minify;
 
     let mut output = String::new();
     let wr = BasicHtmlWriter::new(&mut output, None, writer_config);

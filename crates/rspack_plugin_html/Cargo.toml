@@ -21,5 +21,5 @@ serde_json        = "1"
 sha2              = "0.10.2"
 swc_atoms         = "0.4.18"
 swc_common        = { version = "0.29.3", features = ["concurrent"] }
-swc_html          = "0.78.25"
-swc_html_minifier = "0.75.25"
+swc_html          = "0.89.6"
+swc_html_minifier = "0.86.6"

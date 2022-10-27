@@ -70,6 +70,7 @@ pub struct RawHtmlPluginConfig {
   pub excluded_chunks: Option<Vec<String>>,
   #[napi(ts_type = "string | void")]
   pub sri: Option<RawHtmlSriHashFunction>,
+  pub minify: Option<bool>,
 }
 
 #[derive(Deserialize, Debug, Serialize)]
@@ -90,6 +91,7 @@ pub struct RawHtmlPluginConfig {
   pub chunks: Option<Vec<String>>,
   pub excluded_chunks: Option<Vec<String>>,
   pub sri: Option<RawHtmlSriHashFunction>,
+  pub minify: Option<bool>,
 }
 
 impl RawOption<HtmlPluginConfig> for RawHtmlPluginConfig {
@@ -120,6 +122,7 @@ impl RawOption<HtmlPluginConfig> for RawHtmlPluginConfig {
       chunks: self.chunks,
       excluded_chunks: self.excluded_chunks,
       sri,
+      minify: self.minify.unwrap_or_default(),
     })
   }
 
@@ -133,6 +136,7 @@ impl RawOption<HtmlPluginConfig> for RawHtmlPluginConfig {
       chunks: Default::default(),
       excluded_chunks: Default::default(),
       sri: Default::default(),
+      minify: Default::default(),
     }
   }
 }
