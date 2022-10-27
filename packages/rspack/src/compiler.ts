@@ -266,43 +266,78 @@ class Compiler {
 				...options
 			}
 		);
+		const begin = Date.now();
 		let stats = await util.promisify(this.build.bind(this))();
+		console.log("build success, time cost", Date.now() - begin);
+
+		let pendingChangedFilepaths = new Set<string>();
+		let isBuildFinished = true;
 
 		// TODO: should use aggregated
 		watcher.on("change", async changedFilepath => {
 			// TODO: only build because we lack the snapshot info of file.
 			// TODO: it means there a lot of things to do....
 			const begin = Date.now();
-			console.log("hit change and start to build");
 
-			this.rebuild([changedFilepath], (error: any, diffStats) => {
-				if (error) {
-					throw error;
+			// store the changed file path, it may or may not be consumed right now
+			pendingChangedFilepaths.add(changedFilepath);
+
+			const rebuildWithFilepaths = changedFilepath => {
+				if (!isBuildFinished) {
+					console.log(
+						"hit change but rebuild is not finished, caching files: ",
+						pendingChangedFilepaths
+					);
+					return;
 				}
-				for (const [uri, stats] of Object.entries(diffStats)) {
-					let relativePath = path.relative(this.options.context, uri);
-					if (
-						!(relativePath.startsWith("../") || relativePath.startsWith("./"))
-					) {
-						relativePath = "./" + relativePath;
+
+				// Rebuild finished, we can start to rebuild again
+				isBuildFinished = false;
+				console.log("hit change and start to build");
+
+				this.rebuild(changedFilepath, (error: any, diffStats) => {
+					isBuildFinished = true;
+
+					const hasPending = Boolean(pendingChangedFilepaths.size);
+
+					// If we have any pending task left, we should rebuild again with the pending files
+					if (hasPending) {
+						const pending = [...pendingChangedFilepaths];
+						pendingChangedFilepaths.clear();
+						rebuildWithFilepaths(pending);
+						return;
 					}
 
-					// send Message
-					if (ws) {
-						const data = JSON.stringify({
-							uri: relativePath,
-							content: stats.content
-						});
+					if (error) {
+						throw error;
+					}
+					for (const [uri, stats] of Object.entries(diffStats)) {
+						let relativePath = path.relative(this.options.context, uri);
+						if (
+							!(relativePath.startsWith("../") || relativePath.startsWith("./"))
+						) {
+							relativePath = "./" + relativePath;
+						}
 
-						for (const client of ws.clients) {
-							// the type of "ok" means rebuild success.
-							// the data should deleted after we had hash in stats.
-							client.send(JSON.stringify({ type: "ok", data }));
+						// send Message
+						if (ws) {
+							const data = JSON.stringify({
+								uri: relativePath,
+								content: stats.content
+							});
+
+							for (const client of ws.clients) {
+								// the type of "ok" means rebuild success.
+								// the data should deleted after we had hash in stats.
+								client.send(JSON.stringify({ type: "ok", data }));
+							}
 						}
 					}
-				}
-				console.log("build success, time cost", Date.now() - begin);
-			});
+					console.log("rebuild success, time cost", Date.now() - begin);
+				});
+			};
+
+			rebuildWithFilepaths([...pendingChangedFilepaths]);
 		});
 
 		return {
