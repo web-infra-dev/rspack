@@ -668,7 +668,7 @@ impl Compilation {
       };
       for export_module_id in include_export_module_id {
         let export_module = &analyze_results.get(export_module_id).unwrap().export_map;
-        extends_map.insert(export_module_id.clone(), export_module.clone());
+        extends_map.insert(*export_module_id, export_module.clone());
       }
       analyze_results
         .get_mut(module_id)
@@ -909,7 +909,7 @@ fn mark_symbol(
               return Some(value);
             }
           }
-          return None;
+          None
         })
         .unwrap();
       q.push_back(symbol.clone());
@@ -940,8 +940,8 @@ fn get_extends_map(
 ) -> HashMap<Ustr, HashSet<Ustr>> {
   let mut map = HashMap::new();
   for node in export_all_ref_graph.nodes() {
-    let reachable_set = get_reachable(node.clone(), export_all_ref_graph);
-    map.insert(node.clone(), reachable_set);
+    let reachable_set = get_reachable(*node, export_all_ref_graph);
+    map.insert(*node, reachable_set);
   }
   map
 }
