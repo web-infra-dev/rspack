@@ -29,6 +29,7 @@ pub use swc_ecma_transforms::helpers::inject_helpers;
 pub use swc_ecma_transforms::optimization::const_modules;
 pub use swc_ecma_transforms::optimization::json_parse;
 pub use swc_ecma_transforms::optimization::simplifier;
+pub use swc_ecma_transforms::optimization::simplify::dead_branch_remover;
 pub use swc_ecma_transforms::proposals::export_default_from;
 pub use swc_ecma_transforms::proposals::import_assertions;
 pub use swc_ecma_transforms::resolver;
