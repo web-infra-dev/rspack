@@ -32,7 +32,6 @@ class HotModuleReplacementPlugin {
 type CompilationParams = Record<string, any>;
 class Compiler {
 	webpack: any;
-	#instance: binding.Rspack;
 	compilation: Compilation;
 	infrastructureLogger: any;
 	outputPath: string;
@@ -61,11 +60,6 @@ class Compiler {
 			EntryPlugin, // modernjs/server use this to inject dev-client
 			HotModuleReplacementPlugin // modernjs/server will auto inject this this plugin not set
 		};
-		// @ts-ignored
-		this.#instance = new binding.Rspack(this.options, {
-			doneCallback: this.#done.bind(this),
-			processAssetsCallback: this.#processAssets.bind(this)
-		});
 		this.hooks = {
 			initialize: new SyncHook([]),
 			done: new tapable.AsyncSeriesHook<Stats>(["stats"]),
@@ -82,6 +76,16 @@ class Compiler {
 			infrastructureLog: new SyncBailHook(["origin", "type", "args"]),
 			failed: new SyncHook(["error"])
 		};
+	}
+	/**
+	 * Lazy initialize instance so it could access the changed options
+	 */
+	get #instance() {
+		// @ts-ignored
+		return new binding.Rspack(this.options, {
+			doneCallback: this.#done.bind(this),
+			processAssetsCallback: this.#processAssets.bind(this)
+		});
 	}
 	getInfrastructureLogger(name: string | Function) {
 		if (!name) {
@@ -232,7 +236,7 @@ class Compiler {
 	}
 	rebuild(changedFiles: string[], cb) {
 		const rebuild_cb = util.callbackify(
-			this.#instance.unsafe_rebuild.bind(this.#instance)
+			this.#instance.unsafe_rebuild.bind(this.#instance, changedFiles, [])
 		) as (cb: Callback<Error, any>) => void;
 		rebuild_cb((err, stats) => {
 			if (err) {
@@ -262,7 +266,7 @@ class Compiler {
 			const begin = Date.now();
 			console.log("hit change and start to build");
 			const diffStats = await util.promisify(this.rebuild.bind(this))([path]);
-			console.log("build success, time cost", Date.now() - begin);
+			console.log(`build success, time cost ${(Date.now() - begin) / 1000}ms`);
 		});
 
 		return {
