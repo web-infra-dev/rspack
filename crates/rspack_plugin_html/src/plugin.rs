@@ -156,7 +156,7 @@ impl Plugin for HtmlPlugin {
     let mut visitor = AssetWriter::new(config, &tags);
     current_ast.visit_mut_with(&mut visitor);
 
-    let source = parser.codegen(&current_ast)?;
+    let source = parser.codegen(&mut current_ast)?;
     compilation.emit_asset(
       config.filename.clone(),
       CompilationAsset::new(RawSource::from(source).boxed(), AssetInfo::default()),

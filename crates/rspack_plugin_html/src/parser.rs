@@ -11,8 +11,10 @@ use swc_html::{
   },
   parser::{error::Error, parse_file_as_document, parser::ParserConfig},
 };
+use swc_html_minifier::minify_document;
 
 use crate::config::HtmlPluginConfig;
+pub use swc_html_minifier::option::MinifyOptions;
 
 pub struct HtmlCompiler<'a> {
   config: &'a HtmlPluginConfig,
@@ -40,16 +42,20 @@ impl<'a> HtmlCompiler<'a> {
       .map_err(|e| html_parse_error_to_traceable_error(e, path))
   }
 
-  pub fn codegen(&self, ast: &Document) -> anyhow::Result<String> {
+  pub fn codegen(&self, ast: &mut Document) -> anyhow::Result<String> {
     let writer_config = BasicHtmlWriterConfig::default();
     let mut codegen_config = CodegenConfig::default();
     codegen_config.minify = self.config.minify;
+    if self.config.minify {
+      // Minify can't leak to user land because it doesn't implement `ToNapiValue` Trait
+      minify_document(ast, &MinifyOptions::default());
+    }
 
     let mut output = String::new();
     let wr = BasicHtmlWriter::new(&mut output, None, writer_config);
     let mut gen = CodeGenerator::new(wr, codegen_config);
 
-    gen.emit(&ast).map_err(|e| anyhow::format_err!(e))?;
+    gen.emit(ast).map_err(|e| anyhow::format_err!(e))?;
     Ok(output)
   }
 }
