@@ -14,7 +14,7 @@ use swc_common::{Globals, Mark};
 mod swc_visitor;
 use crate::utils::get_swc_compiler;
 use anyhow::Error;
-use rspack_core::{Compilation, CompilerOptions, ModuleGraphModule};
+use rspack_core::{Compilation, CompilerOptions, ModuleGraphModule, ResourceData};
 use swc::config::ModuleConfig;
 use swc_common::{chain, comments::Comments};
 use swc_ecma_ast::Program;
@@ -25,6 +25,7 @@ use swc_ecma_visit::FoldWith;
 
 /// return (ast, top_level_mark, unresolved_mark, globals)
 pub fn run_before_pass(
+  resource_data: &ResourceData,
   ast: Program,
   options: &CompilerOptions,
   syntax: Syntax,
@@ -53,6 +54,14 @@ pub fn run_before_pass(
       Optional::new(
         swc_visitor::react(top_level_mark, comments, &cm, &options.builtins.react),
         syntax.jsx()
+      ),
+      Optional::new(
+        {
+          let context = options.context.as_str();
+          let uri = resource_data.resource.as_str();
+          swc_visitor::fold_react_refresh(context, uri)
+        },
+        !resource_data.resource.contains("node_modules")
       ),
       // enable if configurable
       // swc_visitor::const_modules(cm, globals),

@@ -79,7 +79,7 @@ describe("snapshots", () => {
 		  "context": "<cwd>",
 		  "devServer": {
 		    "devMiddleware": {},
-		    "hmr": false,
+		    "hot": false,
 		    "liveReload": true,
 		    "open": true,
 		    "port": 8080,

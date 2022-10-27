@@ -8,7 +8,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "rm -rf dist/ && tsc -b --force",
-    "dev": "tsc -w -b",
+    "dev": "tsc -b -w",
     "test": "jest --verbose"
   },
   "files": [

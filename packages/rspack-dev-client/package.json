@@ -2,8 +2,6 @@
   "name": "@rspack/dev-client",
   "description": "",
   "version": "0.0.4",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "dev": "tsc -w",
@@ -16,9 +14,14 @@
     "@types/node": "16.11.7"
   },
   "dependencies": {
-    "ws": "8.8.1"
+    "ws": "8.8.1",
+    "events": "3.3.0"
   },
   "peerDependencies": {
     "@rspack/core": "*"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./devServer": "./dist/devServer.js"
   }
 }

@@ -107,6 +107,11 @@ export class RspackDevServer {
 
 		// disabling refreshing on changing the content
 		if (this.options.liveReload) {
+			// TODO: remove this after we had memory filesystem
+			if (this.options.hot) {
+				return;
+			}
+
 			watcher.on("change", item => {
 				if (this.webSocketServer) {
 					this.sendMessage(
@@ -128,8 +133,12 @@ export class RspackDevServer {
 	}
 
 	async start(): Promise<void> {
-		this.initialize();
+		this.setupApp();
+		this.createServer();
+		this.setupWatchStaticFiles();
 		this.createWebsocketServer();
+		this.setupDevMiddleware();
+		this.setupMiddlewares();
 		await new Promise(resolve =>
 			this.server.listen(
 				{
@@ -191,7 +200,11 @@ export class RspackDevServer {
 	}
 
 	private setupDevMiddleware() {
-		this.middleware = rdm(this.compiler, this.options.devMiddleware);
+		this.middleware = rdm(
+			this.compiler,
+			this.options.devMiddleware,
+			this.webSocketServer
+		);
 	}
 
 	private createWebsocketServer() {

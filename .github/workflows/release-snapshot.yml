@@ -1,10 +1,11 @@
 name: release snapshot
-
 on:
-  workflow_dispatch:
+  issue_comment:
+    types: [created]
 jobs:
   release:
-    name: Create Release Pull Request
+    name: release-snapshot
+    if: github.event.issue.pull_request && contains(github.event.comment.body, '!snapshot')
     runs-on: macos-latest
     steps:
       - name: Checkout Repo
@@ -35,6 +36,4 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: release snapshot
         run: |
-          npm run build
-          npm run version:snapshot
-          npm run release:snapshot
+          make release-snapshot

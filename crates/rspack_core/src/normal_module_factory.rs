@@ -45,6 +45,7 @@ pub enum ResolveKind {
   AtImport,
   AtImportUrl,
   UrlToken,
+  ModuleHotAccept,
 }
 
 pub type FactorizeResult = Option<(

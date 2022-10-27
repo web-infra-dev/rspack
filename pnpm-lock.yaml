@@ -132,12 +132,12 @@ importers:
   examples/react:
     specifiers:
       '@rspack/core': workspace:*
-      react: 17.0.0
-      react-dom: 17.0.0
+      react: 18.2.0
+      react-dom: 18.2.0
     dependencies:
       '@rspack/core': link:../../packages/rspack
-      react: 17.0.0
-      react-dom: 17.0.0_react@17.0.0
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
 
   examples/react-refresh:
     specifiers:
@@ -198,6 +198,7 @@ importers:
       graceful-fs: 4.2.10
       jest-serializer-path: ^0.1.15
       neo-async: 2.6.2
+      react-refresh: 0.14.0
       sinon: 14.0.0
       source-map: ^0.7.4
       tapable: 2.2.1
@@ -216,6 +217,7 @@ importers:
       chokidar: 3.5.3
       graceful-fs: 4.2.10
       neo-async: 2.6.2
+      react-refresh: 0.14.0
       tapable: 2.2.1
       webpack-sources: 3.2.3
     optionalDependencies:
@@ -275,9 +277,11 @@ importers:
   packages/rspack-dev-client:
     specifiers:
       '@types/node': 16.11.7
+      events: 3.3.0
       typescript: ^4.7.4
       ws: 8.8.1
     dependencies:
+      events: 3.3.0
       ws: 8.8.1
     devDependencies:
       '@types/node': 16.11.7
@@ -7511,6 +7515,16 @@ packages:
       scheduler: 0.21.0
     dev: false
 
+  /react-dom/18.2.0_react@18.2.0:
+    resolution: {integrity: sha512-6IMTriUmvsjHUjNtEDudZfuDQUoWXVxKHhlEGSk81n4YFS+r/Kl99wXiwlVXtPBtJenozv2P+hxDsw9eA7Xo6g==}
+    peerDependencies:
+      react: ^18.2.0
+    dependencies:
+      loose-envify: 1.4.0
+      react: 18.2.0
+      scheduler: 0.23.0
+    dev: false
+
   /react-error-boundary/3.0.2_react@17.0.2:
     resolution: {integrity: sha512-KVzCusRTFpUYG0OFJbzbdRuxNQOBiGXVCqyNpBXM9z5NFsFLzMjUXMjx8gTja6M6WH+D2PvP3yKz4d8gD1PRaA==}
     engines: {node: '>=10', npm: '>=6'}
@@ -7590,6 +7604,11 @@ packages:
     engines: {node: '>=0.10.0'}
     dev: false
 
+  /react-refresh/0.14.0:
+    resolution: {integrity: sha512-wViHqhAd8OHeLS/IRMJjTSDHF3U9eWi62F/MledQGPdJGDhodXJ9PBLNGr6WWL7qlH12Mt3TyTpbS+hGXMjCzQ==}
+    engines: {node: '>=0.10.0'}
+    dev: false
+
   /react-router-dom/5.3.3_react@17.0.2:
     resolution: {integrity: sha512-Ov0tGPMBgqmbu5CDmN++tv2HQ9HlWDuWIIqn4b88gjlAN5IHI+4ZUZRcpz9Hl0azFIwihbLDYw1OiHGRo7ZIng==}
     peerDependencies:
@@ -7655,6 +7674,13 @@ packages:
 
   /react/18.0.0:
     resolution: {integrity: sha512-x+VL6wbT4JRVPm7EGxXhZ8w8LTROaxPXOqhlGyVSrv0sB1jkyFGgXxJ8LVoPRLvPR6/CIZGFmfzqUa2NYeMr2A==}
+    engines: {node: '>=0.10.0'}
+    dependencies:
+      loose-envify: 1.4.0
+    dev: false
+
+  /react/18.2.0:
+    resolution: {integrity: sha512-/3IjMdb2L9QbBdWiW5e3P2/npwMBaU9mHCSCUzNln0ZCYbcfTsGbTJrU/kGemdH2IWmB2ioZ+zkxtmq6g09fGQ==}
     engines: {node: '>=0.10.0'}
     dependencies:
       loose-envify: 1.4.0
@@ -7924,6 +7950,12 @@ packages:
 
   /scheduler/0.21.0:
     resolution: {integrity: sha512-1r87x5fz9MXqswA2ERLo0EbOAU74DpIUO090gIasYTqlVoJeMcl+Z1Rg7WHz+qtPujhS/hGIt9kxZOYBV3faRQ==}
+    dependencies:
+      loose-envify: 1.4.0
+    dev: false
+
+  /scheduler/0.23.0:
+    resolution: {integrity: sha512-CtuThmgHNg7zIZWAXi3AsyIzA3n4xx7aNyjwC2VJldO2LMVDhFK+63xGqq6CsJH4rTAt6/M+N4GhZiDYPx9eUw==}
     dependencies:
       loose-envify: 1.4.0
     dev: false
