@@ -220,6 +220,7 @@ class Compiler {
 		};
 		doRun();
 	}
+	// Safety: This method is only valid to call if the previous build task is finished, or there will be data races.
 	unsafe_build(cb: Callback<Error, any>) {
 		const compilation = this.#newCompilation();
 		const build_cb = util.callbackify(
@@ -233,6 +234,7 @@ class Compiler {
 			}
 		});
 	}
+	// Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
 	unsafe_rebuild(
 		changedFiles: string[],
 		cb: (error?: Error, stats?: binding.DiffStat) => void
