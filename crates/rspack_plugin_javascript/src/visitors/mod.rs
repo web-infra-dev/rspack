@@ -10,6 +10,7 @@ mod format;
 use format::*;
 mod pass_global;
 use pass_global::PassGlobal;
+use swc_common::{Globals, Mark};
 mod swc_visitor;
 use crate::utils::get_swc_compiler;
 use anyhow::Error;
@@ -22,17 +23,18 @@ use swc_ecma_transforms::modules::common_js::Config as CommonjsConfig;
 use swc_ecma_transforms::pass::Optional;
 use swc_ecma_visit::FoldWith;
 
+/// return (ast, top_level_mark, unresolved_mark, globals)
 pub fn run_before_pass(
   ast: Program,
   options: &CompilerOptions,
   syntax: Syntax,
-) -> Result<Program, Error> {
+) -> Result<(Program, Mark, Mark, Globals), Error> {
   let pass_global = PassGlobal::new();
   let top_level_mark = pass_global.top_level_mark;
   let unresolved_mark = pass_global.unresolved_mark;
   let cm = get_swc_compiler().cm.clone();
   let comments = None;
-  pass_global.try_with_handler(move |handler| {
+  let ret = pass_global.try_with_handler(move |handler| {
     let mut pass = chain!(
       swc_visitor::resolver(unresolved_mark, top_level_mark, syntax.typescript()),
       //      swc_visitor::lint(
@@ -88,7 +90,9 @@ pub fn run_before_pass(
     );
     let ast = ast.fold_with(&mut pass);
     Ok(ast)
-  })
+  });
+  let globals = pass_global.global;
+  ret.map(|ast| (ast, top_level_mark, unresolved_mark, globals))
 }
 
 pub fn run_after_pass(

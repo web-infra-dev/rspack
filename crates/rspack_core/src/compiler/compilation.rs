@@ -1,24 +1,33 @@
 use std::{
+  collections::VecDeque,
   fmt::Debug,
   sync::atomic::{AtomicU32, Ordering},
   sync::Arc,
 };
 
 use futures::{stream::FuturesUnordered, StreamExt};
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
+use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
+use swc_common::GLOBALS;
 use tokio::sync::mpsc::UnboundedSender;
 use tracing::instrument;
 
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity};
 use rspack_sources::BoxSource;
+use swc_ecma_visit::VisitWith;
+use ustr::{ustr, Ustr};
 
 use crate::{
-  split_chunks::code_splitting, BuildContext, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup,
-  ChunkGroupUkey, ChunkKind, ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint,
-  LoaderRunnerRunner, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg,
-  NormalModule, NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs,
-  RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver, Stats,
-  VisitedModuleIdentity,
+  split_chunks::code_splitting,
+  tree_shaking::{
+    symbol::Symbol,
+    visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
+  },
+  BuildContext, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey,
+  CompilerOptions, Dependency, EntryItem, Entrypoint, JavascriptAstExtend, LoaderRunnerRunner,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModule,
+  NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs,
+  RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver, Stats, VisitedModuleIdentity,
 };
 
 #[derive(Debug)]
@@ -38,6 +47,10 @@ pub struct Compilation {
   pub(crate) loader_runner_runner: Arc<LoaderRunnerRunner>,
   pub(crate) _named_chunk: HashMap<String, ChunkUkey>,
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
+  pub entry_module_identifiers: HashSet<String>,
+  pub used_symbol: HashSet<Symbol>,
+  #[cfg(debug_assertions)]
+  pub tree_shaking_result: HashMap<Ustr, TreeShakingResult>,
 }
 impl Compilation {
   pub fn new(
@@ -64,6 +77,10 @@ impl Compilation {
       loader_runner_runner,
       _named_chunk: Default::default(),
       named_chunk_groups: Default::default(),
+      entry_module_identifiers: HashSet::new(),
+      used_symbol: HashSet::new(),
+      #[cfg(debug_assertions)]
+      tree_shaking_result: HashMap::new(),
     }
   }
   pub fn add_entry(&mut self, name: String, detail: EntryItem) {
@@ -148,14 +165,14 @@ impl Compilation {
         self.plugin_driver.clone(),
       );
 
-      tokio::task::spawn(async move { normal_module_factory.create().await });
+      tokio::task::spawn(async move { normal_module_factory.create(true).await });
     });
 
     while active_task_count.load(Ordering::SeqCst) != 0 {
       match rx.recv().await {
         Some(job) => match job {
           Msg::ModuleCreated(module_with_diagnostic) => {
-            let (mgm, module, original_module_identifier, dependency_id, dependency) =
+            let (mgm, module, original_module_identifier, dependency_id, dependency, is_entry) =
               *module_with_diagnostic.inner;
 
             let module_identifier = module.identifier();
@@ -180,6 +197,11 @@ impl Compilation {
             if let Err(err) = tx.send(Msg::ModuleGraphModuleCreated(mgm)) {
               tracing::trace!("fail to send msg {:?}", err)
             }
+            if is_entry {
+              self
+                .entry_module_identifiers
+                .insert(module_identifier.clone());
+            }
 
             self.handle_module_build_and_dependencies(
               original_module_identifier,
@@ -198,7 +220,6 @@ impl Compilation {
             let (original_module_identifier, dependency_id, module_identifier) =
               result_with_diagnostics.inner;
             self.push_batch_diagnostic(result_with_diagnostics.diagnostic);
-
             if let Err(err) = self.module_graph.set_resolved_module(
               original_module_identifier,
               dependency_id,
@@ -420,7 +441,7 @@ impl Compilation {
       );
 
       tokio::task::spawn(async move {
-        normal_module_factory.create().await;
+        normal_module_factory.create(false).await;
       });
     })
   }
@@ -473,6 +494,84 @@ impl Compilation {
       })
       .ok();
   }
+
+  pub async fn optimize_dependency(
+    &mut self,
+  ) -> Result<(HashSet<Symbol>, HashMap<Ustr, TreeShakingResult>)> {
+    let analyze_results = self
+      .module_graph
+      .module_identifier_to_module_graph_module
+      .par_iter()
+      .filter_map(|(module_identifier, m)| {
+        let uri_key = ustr(module_identifier);
+        let ast = match m.module_type {
+          crate::ModuleType::Js
+          | crate::ModuleType::Jsx
+          | crate::ModuleType::Tsx
+          | crate::ModuleType::Ts => self
+            .module_graph
+            .module_by_identifier(&m.module_identifier)
+            .and_then(|module| module.ast())
+            .unwrap(),
+          // Of course this is unsafe, but if we can't get a ast of a javascript module, then panic is ideal.
+          _ => {
+            // Ignore analyzing other module for now
+            return None;
+          }
+        };
+        let normal_module = self.module_graph.module_by_identifier(&m.module_identifier);
+        let globals = normal_module.and_then(|module| module.parse_phase_global());
+        let JavascriptAstExtend {
+          ast,
+          top_level_mark,
+          unresolved_mark,
+        } = ast.as_javascript().unwrap();
+        let mut analyzer = ModuleRefAnalyze::new(
+          *top_level_mark,
+          *unresolved_mark,
+          uri_key,
+          &self.module_graph,
+        );
+        GLOBALS.set(globals.unwrap(), || {
+          ast.visit_with(&mut analyzer);
+        });
+        // Keep this debug info until we stabilize the tree-shaking
+
+        // dbg!(
+        //   &uri_key,
+        //   // &analyzer.export_all_list,
+        //   &analyzer.export_map,
+        //   &analyzer.import_map,
+        //   &analyzer.reference_map,
+        //   &analyzer.reachable_import_and_export,
+        //   &analyzer.used_symbol_ref
+        // );
+        Some((uri_key, analyzer.into()))
+      })
+      .collect::<HashMap<Ustr, TreeShakingResult>>();
+    let mut used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
+    for analyze_result in analyze_results.values() {
+      used_symbol_ref.extend(analyze_result.used_symbol_ref.clone().into_iter());
+    }
+
+    let mut used_symbol = HashSet::new();
+    // Marking used symbol and all reachable export symbol from the used symbol for each module
+    let used_symbol_from_import = mark_used_symbol(
+      &analyze_results,
+      VecDeque::from_iter(used_symbol_ref.into_iter()),
+    );
+
+    used_symbol.extend(used_symbol_from_import);
+
+    // We considering all export symbol in each entry module as used for now
+    for entry in self.entry_modules() {
+      let used_symbol_set = collect_reachable_symbol(&analyze_results, ustr(&entry));
+      used_symbol.extend(used_symbol_set);
+    }
+
+    Ok((used_symbol, analyze_results))
+  }
+
   pub async fn done(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let stats = &mut Stats::new(self);
     plugin_driver.write().await.done(stats).await?;
@@ -497,9 +596,8 @@ impl Compilation {
     }
   }
 
-  pub fn entry_modules(&self) {
-    // self.
-    todo!()
+  pub fn entry_modules(&self) -> impl Iterator<Item = String> {
+    self.entry_module_identifiers.clone().into_iter()
   }
 
   pub fn entrypoint_by_name(&self, name: &str) -> &Entrypoint {
@@ -609,4 +707,77 @@ pub struct AssetInfo {
 #[derive(Debug, Default)]
 pub struct AssetInfoRelated {
   pub source_map: Option<String>,
+}
+
+fn collect_reachable_symbol(
+  analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
+  entry_identifier: Ustr,
+) -> HashSet<Symbol> {
+  let mut used_symbol_set = HashSet::new();
+  let mut q = VecDeque::new();
+  let entry_module_result = match analyze_map.get(&entry_identifier) {
+    Some(result) => result,
+    None => {
+      panic!("Can't get analyze result from entry_identifier");
+    }
+  };
+
+  for import_list in entry_module_result.reachable_import_of_export.values() {
+    q.extend(import_list.clone());
+  }
+
+  for item in entry_module_result.export_map.values() {
+    mark_symbol(item.clone(), &mut used_symbol_set, analyze_map, &mut q);
+  }
+
+  while let Some(sym_ref) = q.pop_front() {
+    mark_symbol(sym_ref, &mut used_symbol_set, analyze_map, &mut q);
+  }
+  used_symbol_set
+}
+
+fn mark_used_symbol(
+  analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
+  mut init_queue: VecDeque<SymbolRef>,
+) -> HashSet<Symbol> {
+  let mut used_symbol_set = HashSet::new();
+
+  while let Some(sym_ref) = init_queue.pop_front() {
+    mark_symbol(sym_ref, &mut used_symbol_set, analyze_map, &mut init_queue);
+  }
+  used_symbol_set
+}
+
+fn mark_symbol(
+  item: SymbolRef,
+  used_symbol_set: &mut HashSet<Symbol>,
+  analyze_map: &HashMap<Ustr, TreeShakingResult>,
+  q: &mut VecDeque<SymbolRef>,
+) {
+  match item {
+    SymbolRef::Direct(symbol) => match used_symbol_set.entry(symbol) {
+      hashbrown::hash_set::Entry::Occupied(_) => {}
+      hashbrown::hash_set::Entry::Vacant(vac) => {
+        let module_result = analyze_map.get(&vac.get().uri).unwrap();
+        if let Some(set) = module_result
+          .reachable_import_of_export
+          .get(&vac.get().id.atom)
+        {
+          q.extend(set.clone());
+        };
+        vac.insert();
+      }
+    },
+    SymbolRef::Indirect(indirect_symbol) => {
+      let module_result = analyze_map.get(&indirect_symbol.uri).unwrap();
+      let symbol = module_result.export_map.get(&indirect_symbol.id).unwrap();
+      q.push_back(symbol.clone());
+    }
+    SymbolRef::Star(star) => {
+      let module_result = analyze_map.get(&star).unwrap();
+      for symbol_ref in module_result.export_map.values() {
+        q.push_back(symbol_ref.clone());
+      }
+    }
+  }
 }

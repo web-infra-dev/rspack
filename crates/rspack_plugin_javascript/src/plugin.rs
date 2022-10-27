@@ -12,8 +12,8 @@ use rspack_core::rspack_sources::{
 };
 use rspack_core::{
   get_contenthash, AstOrSource, ChunkKind, Compilation, FilenameRenderOptions, GenerationResult,
-  ModuleAst, ModuleGraphModule, ModuleType, NormalModule, ParseContext, ParseResult,
-  ParserAndGenerator, Plugin, PluginContext, PluginProcessAssetsOutput,
+  JavascriptAstExtend, ModuleAst, ModuleGraphModule, ModuleType, NormalModule, ParseContext,
+  ParseResult, ParserAndGenerator, Plugin, PluginContext, PluginProcessAssetsOutput,
   PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, ProcessAssetsArgs,
   RenderManifestEntry, RenderRuntimeArgs, SourceType, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
 };
@@ -91,7 +91,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let (ast, diagnostics) = ast_with_diagnostics.split_into_parts();
 
-    let processed_ast = run_before_pass(
+    let (processed_ast, top_level_mark, unresolved_mark, globals) = run_before_pass(
       ast,
       compiler_options,
       syntax_by_module_type(source.source().to_string().as_str(), module_type),
@@ -101,7 +101,12 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     Ok(
       ParseResult {
-        ast_or_source: AstOrSource::Ast(ModuleAst::JavaScript(processed_ast)),
+        ast_or_source: AstOrSource::Ast(ModuleAst::JavaScript(JavascriptAstExtend {
+          ast: processed_ast,
+          top_level_mark,
+          unresolved_mark,
+        })),
+        parse_phase_global: Some(globals),
         dependencies: dep_scanner.dependencies.into_iter().collect(),
       }
       .with_diagnostic(diagnostics),
@@ -130,7 +135,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .to_owned()
         .try_into_ast()?
         .try_into_javascript()?;
-      let ast = run_after_pass(ast, mgm, compilation)?;
+      let ast = run_after_pass(ast.ast, mgm, compilation)?;
       let output = crate::ast::stringify(&ast, &compilation.options.devtool)?;
 
       if let Some(map) = output.map {

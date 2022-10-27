@@ -20,6 +20,7 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize, Default)]
 #[cfg(feature = "node-api")]
 #[napi(object)]
+#[serde(rename_all = "camelCase")]
 pub struct RawBuiltins {
   pub html: Option<Vec<RawHtmlPluginConfig>>,
   pub css: Option<RawCssPluginConfig>,
@@ -29,11 +30,13 @@ pub struct RawBuiltins {
   pub browserslist: Option<Vec<String>>,
   #[napi(ts_type = "Record<string, string>")]
   pub define: Option<Define>,
+  pub tree_shaking: Option<bool>,
   pub progress: Option<RawProgressPluginConfig>,
 }
 
 #[derive(Debug, Deserialize, Default)]
 #[cfg(not(feature = "node-api"))]
+#[serde(rename_all = "camelCase")]
 pub struct RawBuiltins {
   pub html: Option<Vec<RawHtmlPluginConfig>>,
   pub css: Option<RawCssPluginConfig>,
@@ -42,6 +45,7 @@ pub struct RawBuiltins {
   pub polyfill: Option<bool>,
   pub browserslist: Option<Vec<String>>,
   pub define: Option<Define>,
+  pub tree_shaking: Option<bool>,
   pub progress: Option<RawProgressPluginConfig>,
 }
 
@@ -77,6 +81,7 @@ pub(super) fn normalize_builtin(
       .unwrap_or(matches!(options.mode, Some(Mode::Production))),
     polyfill: builtins.polyfill.unwrap_or(true),
     define: builtins.define.unwrap_or_default(),
+    tree_shaking: builtins.tree_shaking.unwrap_or_default(),
   })
 }
 
