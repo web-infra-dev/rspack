@@ -1,0 +1,39 @@
+---
+source: crates/rspack/tests/fixtures.rs
+expression: export_star
+---
+
+// <-- relative path: bar.js -->
+
+export function b() {}
+
+export * from "./foo";
+export * from "./result";
+// <-- unused-export: --> 
+[
+    "b",
+]
+// <-- relative path: foo.js -->
+
+export const a = 3;
+export * from "./bar";
+export * from "./result";
+// <-- unused-export: --> 
+[
+    "a",
+]
+// <-- relative path: index.js -->
+
+import { c } from "./foo";
+
+c();
+// <-- unused-export: --> 
+[]
+// <-- relative path: result.js -->
+
+export const c = 103330;
+
+export * from "./foo";
+export * from "./bar";
+// <-- unused-export: --> 
+[]
