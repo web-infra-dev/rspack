@@ -17,7 +17,6 @@ pub struct RawReactOptions {
   pub pragma_frag: Option<String>,
   pub throw_if_namespace: Option<bool>,
   pub development: Option<bool>,
-  #[serde(default, alias = "useBuiltIns")]
   pub use_builtins: Option<bool>,
   pub use_spread: Option<bool>,
 }
@@ -32,7 +31,6 @@ pub struct RawReactOptions {
   pub pragma_frag: Option<String>,
   pub throw_if_namespace: Option<bool>,
   pub development: Option<bool>,
-  #[serde(default, alias = "useBuiltIns")]
   pub use_builtins: Option<bool>,
   pub use_spread: Option<bool>,
 }
@@ -42,18 +40,18 @@ impl RawOption<ReactOptions> for RawReactOptions {
     self,
     _options: &rspack_core::CompilerOptionsBuilder,
   ) -> anyhow::Result<ReactOptions> {
-    if let Some(runtime) = &self.runtime {
-      if !runtime.eq("automatic") && !runtime.eq("classic") {
-        return Err(anyhow::anyhow!("Invalid runtime: {}", runtime));
+    let runtime = if let Some(runtime) = &self.runtime {
+      match runtime.as_str() {
+        "automatic" => Some(Runtime::Automatic),
+        "classic" => Some(Runtime::Classic),
+        _ => anyhow::bail!("Invalid runtime: {}", runtime),
       }
-    }
+    } else {
+      None
+    };
 
     Ok(ReactOptions {
-      runtime: self.runtime.map(|runtime| match runtime.as_str() {
-        "automatic" => Runtime::Automatic,
-        "classic" => Runtime::Classic,
-        _ => unreachable!(),
-      }),
+      runtime,
       import_source: self.import_source,
       pragma: self.pragma,
       pragma_frag: self.pragma_frag,
