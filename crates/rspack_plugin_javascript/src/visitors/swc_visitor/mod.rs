@@ -26,7 +26,6 @@ pub use swc_ecma_transforms::compat::es2022::private_in_object;
 pub use swc_ecma_transforms::compat::reserved_words::reserved_words;
 pub use swc_ecma_transforms::fixer::{fixer, paren_remover};
 pub use swc_ecma_transforms::helpers::inject_helpers;
-pub use swc_ecma_transforms::modules::import_analysis::import_analyzer;
 pub use swc_ecma_transforms::optimization::const_modules;
 pub use swc_ecma_transforms::optimization::json_parse;
 pub use swc_ecma_transforms::optimization::simplifier;

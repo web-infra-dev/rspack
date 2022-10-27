@@ -2,22 +2,27 @@
 use napi_derive::napi;
 use rspack_core::{Builtins, CompilerOptionsBuilder, Define, Mode, Plugin};
 use rspack_plugin_css::plugin::{CssConfig, PostcssConfig};
+use rspack_plugin_progress::{ProgressPlugin, ProgressPluginConfig};
 
 mod raw_css;
 mod raw_html;
 mod raw_postcss;
+mod raw_progress;
+mod raw_react;
 
+use crate::RawOption;
 pub use raw_css::*;
 pub use raw_html::*;
 pub use raw_postcss::*;
-
-use crate::RawOption;
+pub use raw_progress::*;
+pub use raw_react::*;
 
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize, Default)]
 #[cfg(feature = "node-api")]
 #[napi(object)]
+#[serde(rename_all = "camelCase")]
 pub struct RawBuiltins {
   pub html: Option<Vec<RawHtmlPluginConfig>>,
   pub css: Option<RawCssPluginConfig>,
@@ -27,10 +32,14 @@ pub struct RawBuiltins {
   pub browserslist: Option<Vec<String>>,
   #[napi(ts_type = "Record<string, string>")]
   pub define: Option<Define>,
+  pub tree_shaking: Option<bool>,
+  pub progress: Option<RawProgressPluginConfig>,
+  pub react: Option<RawReactOptions>,
 }
 
 #[derive(Debug, Deserialize, Default)]
 #[cfg(not(feature = "node-api"))]
+#[serde(rename_all = "camelCase")]
 pub struct RawBuiltins {
   pub html: Option<Vec<RawHtmlPluginConfig>>,
   pub css: Option<RawCssPluginConfig>,
@@ -39,6 +48,9 @@ pub struct RawBuiltins {
   pub polyfill: Option<bool>,
   pub browserslist: Option<Vec<String>>,
   pub define: Option<Define>,
+  pub tree_shaking: Option<bool>,
+  pub progress: Option<RawProgressPluginConfig>,
+  pub react: Option<RawReactOptions>,
 }
 
 pub(super) fn normalize_builtin(
@@ -60,6 +72,11 @@ pub(super) fn normalize_builtin(
     preset_env: css_config.preset_env,
     postcss: postcss_config.into(),
   })));
+  if let Some(progress_config) = builtins.progress.clone() {
+    plugins.push(Box::new(ProgressPlugin::new(ProgressPluginConfig {
+      prefix: progress_config.prefix,
+    })));
+  }
 
   Ok(Builtins {
     browserslist: builtins.browserslist.unwrap_or_default(),
@@ -68,6 +85,8 @@ pub(super) fn normalize_builtin(
       .unwrap_or(matches!(options.mode, Some(Mode::Production))),
     polyfill: builtins.polyfill.unwrap_or(true),
     define: builtins.define.unwrap_or_default(),
+    tree_shaking: builtins.tree_shaking.unwrap_or_default(),
+    react: RawOption::raw_to_compiler_option(builtins.react, options)?,
   })
 }
 

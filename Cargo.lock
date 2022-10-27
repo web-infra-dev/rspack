@@ -386,6 +386,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "terminal_size",
+ "unicode-width",
  "winapi 0.3.9",
 ]
 
@@ -658,7 +659,7 @@ dependencies = [
  "hashbrown",
  "lock_api",
  "once_cell",
- "parking_lot_core",
+ "parking_lot_core 0.9.3",
 ]
 
 [[package]]
@@ -1098,6 +1099,17 @@ dependencies = [
  "autocfg",
  "hashbrown",
  "serde",
+]
+
+[[package]]
+name = "indicatif"
+version = "0.17.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bfddc9561e8baf264e0e45e197fd7696320026eb10a8180340debc27b18f535b"
+dependencies = [
+ "console",
+ "number_prefix",
+ "unicode-width",
 ]
 
 [[package]]
@@ -1629,6 +1641,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "number_prefix"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "830b246a0e5f20af87141b25c173cd1b609bd7779a4617d6ec582abaf90870f3"
+
+[[package]]
 name = "object"
 version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1672,12 +1690,37 @@ checksum = "c1b04fb49957986fdce4d6ee7a65027d55d4b6d2265e5848bbb507b58ccfdb6f"
 
 [[package]]
 name = "parking_lot"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d17b78036a60663b797adeaee46f5c9dfebb86948d1255007a1d6be0271ff99"
+dependencies = [
+ "instant",
+ "lock_api",
+ "parking_lot_core 0.8.5",
+]
+
+[[package]]
+name = "parking_lot"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3742b2c103b9f06bc9fff0a37ff4912935851bee6d36f3c02bcc755bcfec228f"
 dependencies = [
  "lock_api",
- "parking_lot_core",
+ "parking_lot_core 0.9.3",
+]
+
+[[package]]
+name = "parking_lot_core"
+version = "0.8.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d76e8e1493bcac0d2766c42737f34458f1c8c50c0d23bcb24ea953affb273216"
+dependencies = [
+ "cfg-if",
+ "instant",
+ "libc",
+ "redox_syscall",
+ "smallvec",
+ "winapi 0.3.9",
 ]
 
 [[package]]
@@ -2113,6 +2156,7 @@ dependencies = [
  "crossbeam",
  "dashmap",
  "hashbrown",
+ "insta",
  "mimalloc-rust",
  "once_cell",
  "rspack_binding_options",
@@ -2135,6 +2179,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "ustr",
  "warp",
  "xshell",
 ]
@@ -2157,9 +2202,11 @@ dependencies = [
  "rspack_loader_sass",
  "rspack_plugin_css",
  "rspack_plugin_html",
+ "rspack_plugin_progress",
  "rspack_plugin_split_chunks",
  "serde",
  "serde_json",
+ "swc_ecma_transforms",
  "tokio",
 ]
 
@@ -2187,6 +2234,7 @@ dependencies = [
  "serde",
  "sugar_path",
  "swc",
+ "swc_atoms",
  "swc_common",
  "swc_css",
  "swc_ecma_ast",
@@ -2197,6 +2245,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+ "ustr",
  "xxhash-rust",
 ]
 
@@ -2392,6 +2441,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_plugin_progress"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "indicatif",
+ "rspack_core",
+ "rspack_error",
+]
+
+[[package]]
 name = "rspack_plugin_runtime"
 version = "0.1.0"
 dependencies = [
@@ -2419,7 +2478,7 @@ dependencies = [
  "dyn-clone",
  "hashbrown",
  "once_cell",
- "parking_lot",
+ "parking_lot 0.12.1",
  "serde",
  "serde_json",
  "smol_str",
@@ -2515,7 +2574,7 @@ dependencies = [
  "atty",
  "crossbeam-channel",
  "dashmap",
- "parking_lot",
+ "parking_lot 0.12.1",
  "prost",
  "prost-build",
  "regex",
@@ -2799,7 +2858,7 @@ checksum = "213494b7a2b503146286049378ce02b482200519accc31872ee8be91fa820a08"
 dependencies = [
  "new_debug_unreachable",
  "once_cell",
- "parking_lot",
+ "parking_lot 0.12.1",
  "phf_shared",
  "precomputed-hash",
  "serde",
@@ -2888,7 +2947,7 @@ dependencies = [
  "json_comments",
  "lru",
  "once_cell",
- "parking_lot",
+ "parking_lot 0.12.1",
  "pathdiff",
  "regex",
  "rustc-hash",
@@ -2922,9 +2981,9 @@ dependencies = [
 
 [[package]]
 name = "swc_atoms"
-version = "0.4.18"
+version = "0.4.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da6caaa52367e268c7507a6723a5cffa03c78df8b0bdf3c8af3475eb99418b69"
+checksum = "f5ffecde9d1a937a61b4799478d598121b539eb7da6127c16af86a044017e1e5"
 dependencies = [
  "once_cell",
  "rustc-hash",
@@ -2965,7 +3024,7 @@ dependencies = [
  "from_variant",
  "num-bigint",
  "once_cell",
- "parking_lot",
+ "parking_lot 0.12.1",
  "rustc-hash",
  "serde",
  "siphasher",
@@ -3207,7 +3266,7 @@ dependencies = [
  "ahash",
  "auto_impl",
  "dashmap",
- "parking_lot",
+ "parking_lot 0.12.1",
  "rayon",
  "regex",
  "serde",
@@ -3231,7 +3290,7 @@ dependencies = [
  "lru",
  "normpath",
  "once_cell",
- "parking_lot",
+ "parking_lot 0.12.1",
  "path-clean",
  "pathdiff",
  "serde",
@@ -3253,7 +3312,7 @@ dependencies = [
  "num-bigint",
  "num_cpus",
  "once_cell",
- "parking_lot",
+ "parking_lot 0.12.1",
  "regex",
  "retain_mut",
  "rustc-hash",
@@ -3580,7 +3639,7 @@ dependencies = [
  "anyhow",
  "miette",
  "once_cell",
- "parking_lot",
+ "parking_lot 0.12.1",
  "swc_common",
 ]
 
@@ -3943,7 +4002,7 @@ dependencies = [
  "memchr",
  "mio",
  "num_cpus",
- "parking_lot",
+ "parking_lot 0.12.1",
  "pin-project-lite",
  "socket2",
  "tokio-macros",
@@ -4219,6 +4278,18 @@ name = "urlencoding"
 version = "2.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e8db7427f936968176eaa7cdf81b7f98b980b18495ec28f1b5791ac3bfe3eea9"
+
+[[package]]
+name = "ustr"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "371436099f2980de56dc385b615696d3eabbdac9649a72b85f9d75f68474fa9c"
+dependencies = [
+ "ahash",
+ "byteorder",
+ "lazy_static",
+ "parking_lot 0.11.2",
+]
 
 [[package]]
 name = "utf-8"

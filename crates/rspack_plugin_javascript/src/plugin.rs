@@ -12,15 +12,15 @@ use rspack_core::rspack_sources::{
 };
 use rspack_core::{
   get_contenthash, AstOrSource, ChunkKind, Compilation, FilenameRenderOptions, GenerationResult,
-  ModuleAst, ModuleGraphModule, ModuleType, NormalModule, ParseContext, ParseResult,
-  ParserAndGenerator, Plugin, PluginContext, PluginProcessAssetsOutput,
+  JavascriptAstExtend, ModuleAst, ModuleGraphModule, ModuleType, NormalModule, ParseContext,
+  ParseResult, ParserAndGenerator, Plugin, PluginContext, PluginProcessAssetsOutput,
   PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, ProcessAssetsArgs,
   RenderManifestEntry, RenderRuntimeArgs, SourceType, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;
 
-use crate::runtime::{generate_interop_require, RSPACK_REGISTER, RSPACK_REQUIRE};
+use crate::runtime::{generate_commonjs_runtime, RSPACK_REGISTER, RSPACK_REQUIRE};
 use crate::utils::{
   get_swc_compiler, get_wrap_chunk_after, get_wrap_chunk_before, syntax_by_module_type,
   wrap_eval_source_map, wrap_module_function,
@@ -91,7 +91,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let (ast, diagnostics) = ast_with_diagnostics.split_into_parts();
 
-    let processed_ast = run_before_pass(
+    let (processed_ast, top_level_mark, unresolved_mark, globals) = run_before_pass(
       ast,
       compiler_options,
       syntax_by_module_type(source.source().to_string().as_str(), module_type),
@@ -101,7 +101,12 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     Ok(
       ParseResult {
-        ast_or_source: AstOrSource::Ast(ModuleAst::JavaScript(processed_ast)),
+        ast_or_source: AstOrSource::Ast(ModuleAst::JavaScript(JavascriptAstExtend {
+          ast: processed_ast,
+          top_level_mark,
+          unresolved_mark,
+        })),
+        parse_phase_global: Some(globals),
         dependencies: dep_scanner.dependencies.into_iter().collect(),
       }
       .with_diagnostic(diagnostics),
@@ -130,7 +135,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .to_owned()
         .try_into_ast()?
         .try_into_javascript()?;
-      let ast = run_after_pass(ast, mgm, compilation)?;
+      let ast = run_after_pass(ast.ast, mgm, compilation)?;
       let output = crate::ast::stringify(&ast, &compilation.options.devtool)?;
 
       if let Some(map) = output.map {
@@ -208,17 +213,22 @@ impl Plugin for JsPlugin {
     _ctx: PluginContext,
     args: RenderRuntimeArgs,
   ) -> PluginRenderRuntimeHookOutput {
-    let mut sources = args.sources;
-    let code = generate_interop_require();
-    // the interop require code must be front of RUNTIME_PLACEHOLDER_RSPACK_EXECUTE
-    let position = sources
-      .iter()
-      .position(|item| item.source() == RUNTIME_PLACEHOLDER_RSPACK_EXECUTE);
-    match position {
-      Some(index) => sources.insert(index, code),
-      None => sources.push(code),
-    };
-    Ok(sources)
+    let sources = args.sources;
+    let mut codes = generate_commonjs_runtime();
+    let mut execute_code = None;
+    let mut result = Vec::with_capacity(sources.len() + codes.len());
+    for item in sources {
+      if item.source() == RUNTIME_PLACEHOLDER_RSPACK_EXECUTE {
+        execute_code = Some(item);
+        continue;
+      }
+      result.push(item);
+    }
+    result.append(&mut codes);
+    if let Some(code) = execute_code {
+      result.push(code);
+    }
+    Ok(result)
   }
 
   fn render_manifest(

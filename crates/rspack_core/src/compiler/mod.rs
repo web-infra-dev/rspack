@@ -92,7 +92,17 @@ impl Compiler {
 
   #[instrument(name = "compile")]
   async fn compile(&mut self, deps: HashMap<String, Dependency>) -> Result<()> {
+    let option = self.options.clone();
     self.compilation.make(deps).await;
+    if option.builtins.tree_shaking {
+      let result = self.compilation.optimize_dependency().await?;
+      self.compilation.used_symbol = result.0;
+      // This is only used when testing
+      #[cfg(debug_assertions)]
+      {
+        self.compilation.tree_shaking_result = result.1;
+      }
+    }
     self.compilation.seal(self.plugin_driver.clone()).await?;
 
     // Consume plugin driver diagnostic
@@ -226,6 +236,7 @@ pub type ModuleCreatedData = TWithDiagnosticArray<
     Option<ModuleIdentifier>,
     u32,
     Dependency,
+    bool,
   )>,
 >;
 

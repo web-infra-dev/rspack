@@ -3,13 +3,14 @@ pub use dependency_scanner::*;
 mod finalize;
 use finalize::finalize;
 // mod clear_mark;
-// use clear_mark::*;
-mod import_interop;
-use import_interop::import_interop;
+// use clear_mark::clear_mark;
+mod inject_runtime_helper;
+use inject_runtime_helper::inject_runtime_helper;
 mod format;
 use format::*;
 mod pass_global;
 use pass_global::PassGlobal;
+use swc_common::{Globals, Mark};
 mod swc_visitor;
 use crate::utils::get_swc_compiler;
 use anyhow::Error;
@@ -22,19 +23,20 @@ use swc_ecma_transforms::modules::common_js::Config as CommonjsConfig;
 use swc_ecma_transforms::pass::Optional;
 use swc_ecma_visit::FoldWith;
 
+/// return (ast, top_level_mark, unresolved_mark, globals)
 pub fn run_before_pass(
   ast: Program,
   options: &CompilerOptions,
   syntax: Syntax,
-) -> Result<Program, Error> {
+) -> Result<(Program, Mark, Mark, Globals), Error> {
   let pass_global = PassGlobal::new();
   let top_level_mark = pass_global.top_level_mark;
   let unresolved_mark = pass_global.unresolved_mark;
   let cm = get_swc_compiler().cm.clone();
   let comments = None;
-  pass_global.try_with_handler(move |handler| {
+  let ret = pass_global.try_with_handler(move |handler| {
     let mut pass = chain!(
-      swc_visitor::resolver(unresolved_mark, top_level_mark, false),
+      swc_visitor::resolver(unresolved_mark, top_level_mark, syntax.typescript()),
       //      swc_visitor::lint(
       //        &ast,
       //        top_level_mark,
@@ -49,7 +51,7 @@ pub fn run_before_pass(
         syntax.typescript()
       ),
       Optional::new(
-        swc_visitor::react(top_level_mark, comments, &cm),
+        swc_visitor::react(top_level_mark, comments, &cm, &options.builtins.react),
         syntax.jsx()
       ),
       // enable if configurable
@@ -83,13 +85,14 @@ pub fn run_before_pass(
         comments,
         syntax.typescript()
       ),
-      swc_visitor::import_analyzer(true.into(), true),
       swc_visitor::reserved_words(),
       swc_visitor::inject_helpers()
     );
     let ast = ast.fold_with(&mut pass);
     Ok(ast)
-  })
+  });
+  let globals = pass_global.global;
+  ret.map(|ast| (ast, top_level_mark, unresolved_mark, globals))
 }
 
 pub fn run_after_pass(
@@ -115,7 +118,7 @@ pub fn run_after_pass(
         comments,
         compilation.options.target.es_version
       ),
-      import_interop(),
+      inject_runtime_helper(),
       swc_visitor::hygiene(false),
       swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
       finalize(mgm, compilation, unresolved_mark)

@@ -34,7 +34,12 @@ export function describeCases(config: { name: string; casePath: string }) {
 				);
 				const outputPath = path.resolve(testRoot, `./dist`);
 				const bundlePath = path.resolve(outputPath, "main.js");
-				if (!fs.existsSync(path.resolve(testRoot, "index.js"))) {
+				if (
+					!(
+						fs.existsSync(path.resolve(testRoot, "index.js")) ||
+						fs.existsSync(path.resolve(testRoot, "index.jsx"))
+					)
+				) {
 					continue;
 				}
 				describe(category.name, () => {
@@ -54,6 +59,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 								entry: {
 									main: "./"
 								},
+								mode: "development",
 								output: {
 									path: outputPath
 								},
