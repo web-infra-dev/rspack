@@ -3,13 +3,15 @@ extern crate napi_derive;
 
 use std::collections::{HashMap, HashSet};
 use std::pin::Pin;
-use std::sync::Arc;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use napi::bindgen_prelude::*;
 use napi::JsObject;
 
+use dashmap::DashMap;
+use once_cell::sync::Lazy;
+
 use rspack_tracing::enable_tracing_by_env;
-use tokio::sync::RwLock;
 
 mod js_values;
 mod plugins;
@@ -24,9 +26,98 @@ use utils::*;
 #[global_allocator]
 static ALLOC: mimalloc_rust::GlobalMiMalloc = mimalloc_rust::GlobalMiMalloc;
 
+// **Note** that Node's main thread and the worker thread share the same binding context. Using `Mutex<HashMap>` would cause deadlocks if multiple compilers exist.
+struct SingleThreadedHashMap<K, V>(DashMap<K, V>);
+
+impl<K, V> SingleThreadedHashMap<K, V>
+where
+  K: Eq + std::hash::Hash + std::fmt::Display,
+{
+  /// Acquire a mutable reference to the inner hashmap.
+  ///
+  /// Safety: Mutable reference can almost let you do anything you want, this is intended to be used from the thread where the map was created.
+  #[allow(unused)]
+  unsafe fn borrow_mut<F, R>(&self, key: &K, f: F) -> Result<R>
+  where
+    F: FnOnce(&mut V) -> Result<R>,
+  {
+    let mut inner = self.0.get_mut(&key).ok_or_else(|| {
+      napi::Error::from_reason(format!(
+        "Failed to find key {} for single-threaded hashmap",
+        key
+      ))
+    })?;
+
+    f(&mut *inner)
+  }
+
+  /// Acquire a shared reference to the inner hashmap.
+  ///
+  /// Safety: It's not thread-safe if a value is not safe to modify cross thread boundary, so this is intended to be used from the thread where the map was created.
+  #[allow(unused)]
+  unsafe fn borrow<F, R>(&self, key: &K, f: F) -> Result<R>
+  where
+    F: FnOnce(&V) -> Result<R>,
+  {
+    let inner = self.0.get(&key).ok_or_else(|| {
+      napi::Error::from_reason(format!(
+        "Failed to find key {} for single-threaded hashmap",
+        key
+      ))
+    })?;
+
+    f(&*inner)
+  }
+
+  /// Insert a value into the map.
+  ///
+  /// Safety: It's not thread-safe if a value has thread affinity, so this is intended to be used from the thread where the map was created.
+  #[allow(unused)]
+  unsafe fn insert_if_vacant(&self, key: K, value: V) -> Result<()> {
+    if let dashmap::mapref::entry::Entry::Vacant(vacant) = self.0.entry(key) {
+      vacant.insert(value);
+      Ok(())
+    } else {
+      Err(napi::Error::from_reason(
+        "Failed to insert on single-threaded hashmap as it's not vacant",
+      ))
+    }
+  }
+
+  /// Remove a value from the map.
+  ///
+  /// See: [DashMap::remove] for more details. https://docs.rs/dashmap/latest/dashmap/struct.DashMap.html#method.remove
+  ///
+  /// Safety: It's not thread-safe if a value has thread affinity, so this is intended to be used from the thread where the map was created.
+  #[allow(unused)]
+  unsafe fn remove(&self, key: &K) -> Option<V> {
+    self.0.remove(key).map(|(_, v)| v)
+  }
+}
+
+impl<K, V> Default for SingleThreadedHashMap<K, V>
+where
+  K: Eq + std::hash::Hash,
+{
+  fn default() -> Self {
+    Self(Default::default())
+  }
+}
+
+// Safety: Methods are already marked as unsafe.
+unsafe impl<K, V> Send for SingleThreadedHashMap<K, V> {}
+unsafe impl<K, V> Sync for SingleThreadedHashMap<K, V> {}
+
+static COMPILERS: Lazy<SingleThreadedHashMap<CompilerId, rspack::Compiler>> =
+  Lazy::new(Default::default);
+
+static COMPILER_ID: AtomicU32 = AtomicU32::new(1);
+
+type CompilerId = u32;
+
 #[napi]
 pub struct Rspack {
-  inner: Pin<Arc<RwLock<rspack::Compiler>>>,
+  id: CompilerId,
 }
 
 #[napi]
@@ -71,75 +162,138 @@ impl Rspack {
         Ok(compiler_options)
       })?;
     tracing::info!("normalized_options: {:?}", &compiler_options);
+
     let rspack = rspack::rspack(compiler_options, vec![]);
-    Ok(Self {
-      inner: Arc::pin(RwLock::new(rspack)),
-    })
+
+    let id = COMPILER_ID.fetch_add(1, Ordering::SeqCst);
+    unsafe { COMPILERS.insert_if_vacant(id, rspack) }?;
+
+    Ok(Self { id })
   }
 
-  #[napi(ts_return_type = "Promise<StatsCompilation>")]
+  /// Build with the given option passed to the constructor
+  ///
+  /// Warning:
+  /// Calling this method recursively might cause a deadlock.
+  #[napi(js_name = "unsafe_build", ts_return_type = "Promise<StatsCompilation>")]
   pub fn build(&self, env: Env) -> Result<JsObject> {
-    let inner = self.inner.clone();
-    env.execute_tokio_future(
-      async move {
-        let mut compiler = inner.write().await;
+    let handle_build = |compiler: &mut _| {
+      // Safety: compiler is stored in a global hashmap, so it's guaranteed to be alive.
+      let compiler = unsafe {
+        std::mem::transmute::<&'_ mut rspack::Compiler, &'static mut rspack::Compiler>(compiler)
+      };
 
-        let rspack_stats = compiler
-          .build()
-          .await
-          .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
+      env.execute_tokio_future(
+        async move {
+          let rspack_stats = compiler
+            .build()
+            .await
+            .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
 
-        let stats: StatsCompilation = rspack_stats.to_description().into();
-        if stats.errors.is_empty() {
-          tracing::info!("build success");
-        } else {
-          tracing::info!("build failed");
-        }
-        Ok(stats)
-      },
-      |_env, ret| Ok(ret),
-    )
+          let stats: StatsCompilation = rspack_stats.to_description().into();
+          if stats.errors.is_empty() {
+            tracing::info!("build success");
+          } else {
+            tracing::info!("build failed");
+          }
+
+          Ok(stats)
+        },
+        |_env, ret| Ok(ret),
+      )
+    };
+    unsafe { COMPILERS.borrow_mut(&self.id, handle_build) }
   }
 
-  #[napi(ts_return_type = "Promise<Record<string, {content: string, kind: number}>>")]
+  /// Rebuild with the given option passed to the constructor
+  ///
+  /// Warning:
+  /// Calling this method recursively will cause a deadlock.
+  #[napi(
+    js_name = "unsafe_rebuild",
+    ts_return_type = "Promise<Record<string, {content: string, kind: number}>>"
+  )]
   pub fn rebuild(
     &self,
     env: Env,
     changed_files: Vec<String>,
     removed_files: Vec<String>,
   ) -> Result<JsObject> {
-    let inner = self.inner.clone();
+    let handle_rebuild = |compiler: &mut _| {
+      // Safety: compiler is stored in a global hashmap, so it's guaranteed to be alive.
+      let compiler = unsafe {
+        std::mem::transmute::<&'_ mut rspack::Compiler, &'static mut rspack::Compiler>(compiler)
+      };
 
-    env.execute_tokio_future(
-      async move {
-        let mut compiler = inner.write().await;
-
-        let diff = compiler
-          .rebuild(
-            HashSet::from_iter(changed_files.into_iter()),
-            HashSet::from_iter(removed_files.into_iter()),
-          )
-          .await
-          .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
-        let stats: HashMap<String, DiffStat> = diff
-          .into_iter()
-          .map(|(uri, stats)| {
-            (
-              uri,
-              DiffStat {
-                kind: DiffStatKind::from(stats.0),
-                content: stats.1,
-              },
+      env.execute_tokio_future(
+        async move {
+          let diff = compiler
+            .rebuild(
+              HashSet::from_iter(changed_files.into_iter()),
+              HashSet::from_iter(removed_files.into_iter()),
             )
-          })
-          .collect();
-        // let stats: Stats = _rspack_stats.into();
+            .await
+            .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
 
-        tracing::info!("rebuild success");
-        Ok(stats)
-      },
-      |_env, ret| Ok(ret),
-    )
+          let stats: HashMap<String, DiffStat> = diff
+            .into_iter()
+            .map(|(uri, stats)| {
+              (
+                uri,
+                DiffStat {
+                  kind: DiffStatKind::from(stats.0),
+                  content: stats.1,
+                },
+              )
+            })
+            .collect();
+          // let stats: Stats = _rspack_stats.into();
+
+          tracing::info!("rebuild success");
+          Ok(stats)
+        },
+        |_env, ret| Ok(ret),
+      )
+    };
+
+    unsafe { COMPILERS.borrow_mut(&self.id, handle_rebuild) }
+  }
+
+  /// Get the last compilation
+  ///
+  /// Warning:
+  ///
+  /// Calling this method under the build or rebuild method might cause a deadlock.
+  ///
+  /// **Note** that this method is not safe if you cache the _RspackCompilation_ on the Node side, as it will be invalidated by the next build and accessing a dangling ptr is a UB.
+  #[napi(js_name = "unsafe_last_compilation")]
+  pub fn unsafe_last_compilation<F: Fn(RspackCompilation) -> Result<()>>(
+    &self,
+    f: F,
+  ) -> Result<()> {
+    let handle_last_compilation = |compiler: &mut _| {
+      // Safety: compiler is stored in a global hashmap, and compilation is only available in the callback of this function, so it is safe to cast to a static lifetime. See more in the warning part of this method.
+      let compiler = unsafe {
+        std::mem::transmute::<&'_ mut rspack::Compiler, &'static mut rspack::Compiler>(compiler)
+      };
+      f(RspackCompilation::from_compilation(unsafe {
+        Pin::new_unchecked(&mut compiler.compilation)
+      }))
+    };
+
+    unsafe { COMPILERS.borrow_mut(&self.id, handle_last_compilation) }
+  }
+
+  /// Destroy the compiler
+  ///
+  /// Warning:
+  ///
+  /// Anything related to this compiler will be invalidated after this method is called.
+  #[napi(js_name = "unsafe_drop")]
+  pub fn drop(&self) -> Result<()> {
+    unsafe { COMPILERS.remove(&self.id) };
+
+    Ok(())
   }
 }
 

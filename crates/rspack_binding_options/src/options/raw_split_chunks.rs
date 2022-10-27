@@ -107,8 +107,8 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
 }
 
 #[cfg(feature = "node-api")]
-#[serde(rename_all = "camelCase")]
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawCacheGroupOptions {
   //   pub priority: isize,

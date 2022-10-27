@@ -1,6 +1,7 @@
 use std::{
   collections::VecDeque,
   fmt::Debug,
+  marker::PhantomPinned,
   sync::atomic::{AtomicU32, Ordering},
   sync::Arc,
 };
@@ -51,6 +52,8 @@ pub struct Compilation {
   pub used_symbol: HashSet<Symbol>,
   #[cfg(debug_assertions)]
   pub tree_shaking_result: HashMap<Ustr, TreeShakingResult>,
+  // TODO: make compilation safer
+  _pin: PhantomPinned,
 }
 impl Compilation {
   pub fn new(
@@ -81,6 +84,7 @@ impl Compilation {
       used_symbol: HashSet::new(),
       #[cfg(debug_assertions)]
       tree_shaking_result: HashMap::new(),
+      _pin: PhantomPinned,
     }
   }
   pub fn add_entry(&mut self, name: String, detail: EntryItem) {
@@ -640,7 +644,7 @@ impl Compilation {
 
 pub type CompilationAssets = HashMap<String, CompilationAsset>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CompilationAsset {
   pub source: BoxSource,
   pub info: AssetInfo,
@@ -676,7 +680,7 @@ impl CompilationAsset {
   }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct AssetInfo {
   /// if the asset can be long term cached forever (contains a hash)
   // pub immutable: bool,
@@ -704,7 +708,7 @@ pub struct AssetInfo {
   pub related: AssetInfoRelated,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct AssetInfoRelated {
   pub source_map: Option<String>,
 }
