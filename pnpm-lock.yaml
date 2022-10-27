@@ -131,13 +131,15 @@ importers:
 
   examples/react:
     specifiers:
-      '@rspack/core': workspace:*
+      '@rspack/cli': workspace:*
       react: 18.2.0
       react-dom: 18.2.0
+      react-refresh: 0.14.0
     dependencies:
-      '@rspack/core': link:../../packages/rspack
+      '@rspack/cli': link:../../packages/rspack-cli
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
+      react-refresh: 0.14.0
 
   examples/react-refresh:
     specifiers:
