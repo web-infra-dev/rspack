@@ -34,7 +34,7 @@ pub fn run_before_pass(
   let unresolved_mark = pass_global.unresolved_mark;
   let cm = get_swc_compiler().cm.clone();
   let comments = None;
-  let ret = pass_global.try_with_handler_return_used_globals(move |handler| {
+  let ret = pass_global.try_with_handler(move |handler| {
     let mut pass = chain!(
       swc_visitor::resolver(unresolved_mark, top_level_mark, syntax.typescript()),
       //      swc_visitor::lint(
@@ -91,7 +91,8 @@ pub fn run_before_pass(
     let ast = ast.fold_with(&mut pass);
     Ok(ast)
   });
-  ret.map(|(ast, globals)| (ast, top_level_mark, unresolved_mark, globals))
+  let globals = pass_global.global;
+  ret.map(|ast| (ast, top_level_mark, unresolved_mark, globals))
 }
 
 pub fn run_after_pass(
