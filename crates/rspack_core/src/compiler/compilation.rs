@@ -15,6 +15,7 @@ use hashbrown::{
 use indexmap::IndexSet;
 use petgraph::prelude::GraphMap;
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
+use swc_atoms::JsWord;
 use tokio::sync::mpsc::{error::TryRecvError, UnboundedSender};
 use tracing::instrument;
 
@@ -663,15 +664,21 @@ impl Compilation {
     // value is the set which contains several module_id the key related module need to inherit
     let map_of_inherit_map = get_extends_map(&inherit_export_ref_graph);
 
-    for (module_id, include_export_module_id) in map_of_inherit_map.iter() {
+    for (module_id, inherit_export_module_id) in map_of_inherit_map.iter() {
       // This is just a work around for rustc checker, because we have immutable and mutable borrow in same time.
       let mut inherit_export_maps = {
         let main_module = analyze_results.get_mut(module_id).unwrap();
         std::mem::take(&mut main_module.inherit_export_maps)
       };
-      for export_module_id in include_export_module_id {
-        let export_module = &analyze_results.get(export_module_id).unwrap().export_map;
-        inherit_export_maps.insert(*export_module_id, export_module.clone());
+      for inherit_export_module in inherit_export_module_id {
+        let export_module = analyze_results
+          .get(inherit_export_module)
+          .unwrap()
+          .export_map
+          .iter()
+          .filter(|(k, v)| k)
+          .collect::<HashMap<JsWord, SymbolRef>>();
+        inherit_export_maps.insert(*inherit_export_module, export_module);
       }
       analyze_results
         .get_mut(module_id)
