@@ -208,11 +208,11 @@ impl Plugin for JsPlugin {
     _ctx: PluginContext,
     args: RenderRuntimeArgs,
   ) -> PluginRenderRuntimeHookOutput {
-    let mut sources = args.sources;
+    let sources = args.sources;
     let mut codes = generate_commonjs_runtime();
     let mut execute_code = None;
     let mut result = Vec::with_capacity(sources.len() + codes.len());
-    for item in sources.drain(..) {
+    for item in sources {
       if item.source() == RUNTIME_PLACEHOLDER_RSPACK_EXECUTE {
         execute_code = Some(item);
         continue;

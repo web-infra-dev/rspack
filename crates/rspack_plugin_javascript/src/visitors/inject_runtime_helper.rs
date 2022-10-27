@@ -24,9 +24,9 @@ impl VisitMut for InjectRuntimeHelper {
       //   return;
       // }
 
-      let word = ident.sym.to_string();
+      let word = ident.sym.as_ref();
       if matches!(
-        word.as_str(),
+        word,
         "_interop_require_default" | "_interop_require_wildcard"
       ) {
         // TODO try with ast.parse(r#"self["__rspack_runtime__"].interopRequire"#)
@@ -39,7 +39,7 @@ impl VisitMut for InjectRuntimeHelper {
         return;
       }
 
-      if matches!(word.as_str(), "_export_star") {
+      if matches!(word, "_export_star") {
         // TODO try with ast.parse(r#"self["__rspack_runtime__"].exportStar"#)
         n.callee = MemberExpr {
           span: DUMMY_SP,
