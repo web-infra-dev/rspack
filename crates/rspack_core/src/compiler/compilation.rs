@@ -52,7 +52,7 @@ pub struct Compilation {
   pub used_symbol: HashSet<Symbol>,
   #[cfg(debug_assertions)]
   pub tree_shaking_result: HashMap<Ustr, TreeShakingResult>,
-   // TODO: make compilation safer
+  // TODO: make compilation safer
   _pin: PhantomPinned,
 }
 impl Compilation {
