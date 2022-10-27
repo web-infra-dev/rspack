@@ -19,6 +19,7 @@ export class RspackCLI {
 	}
 	async createCompiler(options: RspackCLIOptions) {
 		let config = await this.loadConfig(options);
+		config = await this.buildConfig(config, options);
 		const compiler = createCompiler(config);
 		return compiler;
 	}
@@ -61,8 +62,28 @@ export class RspackCLI {
 			command.apply(this);
 		}
 	}
-	async loadConfig(options: RspackCLIOptions): Promise<RspackOptions> {
-		let loadedConfig: RspackOptions;
+	async buildConfig(item: any, options: RspackCLIOptions) {
+		if (options.mode) {
+			item.mode = options.mode;
+		}
+		if (
+			!item.mode &&
+			process.env &&
+			process.env.NODE_ENV &&
+			(process.env.NODE_ENV === "development" ||
+				process.env.NODE_ENV === "production" ||
+				process.env.NODE_ENV === "none")
+		) {
+			item.mode = process.env.NODE_ENV;
+		}
+		if (!item.mode) {
+			item.mode = "production";
+		}
+		console.log("mode:", options.mode, item.mode);
+		return item;
+	}
+	async loadConfig(options: RspackCLIOptions) {
+		let loadedConfig;
 		// if we pass config paras
 		if (options.config) {
 			const resolvedConfigPath = path.resolve(process.cwd(), options.config);

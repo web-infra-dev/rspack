@@ -2,7 +2,7 @@ import { RspackOptions, RspackOptionsNormalized } from "..";
 import path from "path";
 import { getDefaultTarget } from "./target";
 import { ResolvedOutput } from "./output";
-const D = <T, P extends keyof T>(obj, prop, value) => {
+const D = <T, P extends keyof T>(obj: T, prop: P, value: T[P]) => {
 	if (obj[prop] === undefined) {
 		obj[prop] = value;
 	}
@@ -49,4 +49,5 @@ export function applyRspackOptionsDefaults(options: RspackOptionsNormalized) {
 	const production = mode === "production" || !mode;
 	F(options, "devtool", () => (development ? "eval" : ""));
 	applyOutputDefault(options.output);
+	D(options.builtins, "minify", production);
 }

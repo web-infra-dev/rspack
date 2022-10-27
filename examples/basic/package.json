@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "serve": "rspack serve -c test.config.js",
-    "build": "rspack dev -c test.config.js"
+    "build": "rspack build -c test.config.js"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*"

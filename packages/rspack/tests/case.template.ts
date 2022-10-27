@@ -59,6 +59,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 								entry: {
 									main: "./"
 								},
+								mode: "development",
 								output: {
 									path: outputPath
 								},
