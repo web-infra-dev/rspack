@@ -87,6 +87,7 @@ pub fn run_before_pass(
       ),
       swc_visitor::reserved_words(),
       swc_visitor::inject_helpers(),
+      swc_visitor::expr_simplifier(unresolved_mark, Default::default()),
       swc_visitor::dead_branch_remover(unresolved_mark),
     );
     let ast = ast.fold_with(&mut pass);

@@ -4,15 +4,15 @@
 module.exports = {
 	mode: "development",
 	entry: {
-		main: "./index.js",
+		main: "./index.js"
 	},
 	define: {
-		"process.env.NODE_ENV": "development",
+		"process.env.NODE_ENV": "'development'"
 	},
 	infrastructureLogging: {
-		debug: true,
+		debug: true
 	},
 	builtins: {
-		treeShaking: true,
-	},
+		treeShaking: true
+	}
 };
