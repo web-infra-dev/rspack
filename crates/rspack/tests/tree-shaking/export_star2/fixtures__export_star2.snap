@@ -1,13 +1,13 @@
 ---
 source: crates/rspack/tests/fixtures.rs
-expression: export_star
+expression: export_star2
 ---
 
 // <-- relative path: bar.js -->
 
 export function b() {}
 
-export * as bar from "./foo";
+export * from "./foo";
 export * from "./result";
 // <-- unused-export: --> 
 []
@@ -20,9 +20,9 @@ export * from "./result";
 []
 // <-- relative path: index.js -->
 
-import { c, bar } from "./foo";
-
-c(bar);
+export * from "./foo";
+export * from "./bar";
+export * from "./result";
 // <-- unused-export: --> 
 []
 // <-- relative path: result.js -->

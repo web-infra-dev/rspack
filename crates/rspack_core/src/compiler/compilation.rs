@@ -686,7 +686,6 @@ impl Compilation {
     used_symbol.extend(used_symbol_from_import);
 
     // We considering all export symbol in each entry module as used for now
-    // TODO: we also need to mark all the  extends_export_map export symbol as used
     for entry in self.entry_modules() {
       let used_symbol_set = collect_reachable_symbol(&analyze_results, ustr(&entry));
       used_symbol.extend(used_symbol_set);
@@ -845,8 +844,9 @@ fn collect_reachable_symbol(
     }
   };
 
-  for import_list in entry_module_result.reachable_import_of_export.values() {
-    q.extend(import_list.clone());
+  // All the reexport star symbol should be included in the bundle
+  for (_, extend_map) in entry_module_result.export_all_extend_map.iter() {
+    q.extend(extend_map.values().cloned());
   }
 
   for item in entry_module_result.export_map.values() {
@@ -864,8 +864,14 @@ fn mark_used_symbol(
   mut init_queue: VecDeque<SymbolRef>,
 ) -> HashSet<Symbol> {
   let mut used_symbol_set = HashSet::new();
+  let mut visited = HashSet::new();
 
   while let Some(sym_ref) = init_queue.pop_front() {
+    if visited.contains(&sym_ref) {
+      continue;
+    } else {
+      visited.insert(sym_ref.clone());
+    }
     mark_symbol(sym_ref, &mut used_symbol_set, analyze_map, &mut init_queue);
   }
   used_symbol_set
@@ -886,7 +892,7 @@ fn mark_symbol(
           .reachable_import_of_export
           .get(&vac.get().id().atom)
         {
-          q.extend(set.clone());
+          q.extend(set.iter().cloned());
         };
         vac.insert();
       }
@@ -909,9 +915,21 @@ fn mark_symbol(
       q.push_back(symbol.clone());
     }
     SymbolRef::Star(star) => {
+      // If a star ref is used. e.g.
+      // ```js
+      // import * as all from './test.js'
+      // all
+      // ```
+      // then, all the exports in `test.js` including
+      // export defined in `test.js` and all realted
+      // reexport should be marked as used
       let module_result = analyze_map.get(&star).unwrap();
       for symbol_ref in module_result.export_map.values() {
         q.push_back(symbol_ref.clone());
+      }
+
+      for (_, extend_map) in module_result.export_all_extend_map.iter() {
+        q.extend(extend_map.values().cloned());
       }
     }
   }
