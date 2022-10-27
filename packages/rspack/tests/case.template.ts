@@ -2,7 +2,7 @@ import path from "path";
 import fs from "fs";
 import vm from "vm";
 import util from "util";
-import { Compiler, Plugin, rspack, RspackOptions } from "../src";
+import { rspack, RspackOptions } from "../src";
 import assert from "assert";
 import createLazyTestEnv from "./helpers/createLazyTestEnv";
 
@@ -86,7 +86,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 							const code = fs.readFileSync(bundlePath, "utf-8");
 							const fn = vm.runInThisContext(
 								`
-				(function testWrapper(require,_module,exports,__dirname,__filename,it,expect){
+				(function testWrapper(require,_module,exports,__dirname,__filename,it,expect,jest){
           global.expect = expect;
 					function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }
 				  ${code};
@@ -110,7 +110,8 @@ export function describeCases(config: { name: string; casePath: string }) {
 								outputPath,
 								bundlePath,
 								_it,
-								expect
+								expect,
+								jest
 							);
 							return m.exports;
 						});
