@@ -344,12 +344,20 @@ impl Rst {
         let is_actual_file = actual_dir.is_file();
 
         if is_expect_file && is_actual_file {
-          let diff = FileDiff {
-            expected_path: expected_dir.clone(),
-            actual_path: actual_dir.clone(),
-          };
+          let expected_buf = fs::read(expected_dir.as_path()).unwrap();
+          let expected_str = String::from_utf8_lossy(&expected_buf);
 
-          err.push(TestErrorKind::Difference(diff))
+          let actual_buf = fs::read(actual_dir.as_path()).unwrap();
+          let actual_str = String::from_utf8_lossy(&actual_buf);
+
+          if expected_str != actual_str {
+            let diff = FileDiff {
+              expected_path: expected_dir.clone(),
+              actual_path: actual_dir.clone(),
+            };
+
+            err.push(TestErrorKind::Difference(diff))
+          }
         } else if !is_expect_file && !is_actual_file {
           // directory diff
           if let Err(e) = Self::compare(
