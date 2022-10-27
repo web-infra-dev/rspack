@@ -279,7 +279,6 @@ class Compiler {
 		watcher.on("change", async changedFilepath => {
 			// TODO: only build because we lack the snapshot info of file.
 			// TODO: it means there a lot of things to do....
-			const begin = Date.now();
 
 			// store the changed file path, it may or may not be consumed right now
 			pendingChangedFilepaths.add(changedFilepath);
@@ -297,6 +296,7 @@ class Compiler {
 				isBuildFinished = false;
 				console.log("hit change and start to build");
 
+				const begin = Date.now();
 				this.unsafe_rebuild(changedFilepath, (error: any, diffStats) => {
 					isBuildFinished = true;
 
