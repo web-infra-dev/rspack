@@ -92,10 +92,12 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let (ast, diagnostics) = ast_with_diagnostics.split_into_parts();
 
     let (processed_ast, top_level_mark, unresolved_mark, globals) = run_before_pass(
+      resource_data,
       ast,
       compiler_options,
       syntax_by_module_type(source.source().to_string().as_str(), module_type),
     )?;
+
     let mut dep_scanner = DependencyScanner::default();
     processed_ast.visit_all_with(&mut dep_scanner);
 

@@ -49,6 +49,8 @@
 		if (waitingUpdateResolves[chunkId]) {
 			waitingUpdateResolves[chunkId]();
 			waitingUpdateResolves[chunkId] = undefined;
+			var tag = document.getElementById("hot-script");
+			tag && tag.parentNode && tag.parentNode.removeChild(tag);
 		}
 	};
 

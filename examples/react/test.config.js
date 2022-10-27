@@ -9,10 +9,24 @@ module.exports = {
   },
   devServer: {
     webSocketServer: true,
-    hmr: true,
+    hot: true,
   },
   module : {
-    rules : [{test : '.less',type : 'css',}],
+    rules : [
+      {
+        test : '.less',
+        type : 'css'
+      }, 
+      {
+        // use entry or not
+        test: "\.js$",
+        uses: [
+          {
+            builtinLoader: "react-refresh-loader"
+          }
+        ]
+      }
+    ],
     parser : {
       asset : {
         dataUrlCondition : {
@@ -26,9 +40,11 @@ module.exports = {
       template: './index.html'
     }],
     define : {
-      'process.env.NODE_ENV' : 'development',
+      'process.env.NODE_ENV' : '"development"',
     },
-    progress: {}
-    },
+    progress: {},
+    react: {
+      development: true,
+    }
   },
 };

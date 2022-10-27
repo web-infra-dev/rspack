@@ -1,7 +1,7 @@
 // hot runtime
 (function () {
 	var currentModuleData = {};
-	var installedModules = this.moduleCache;
+	var installedModules = runtime.moduleCache;
 
 	// module and require creation
 	var currentChildModule;

@@ -1,12 +1,12 @@
 // The require function
 function __rspack_require__(moduleId) {
-	var cachedModule = this.moduleCache[moduleId];
+	var cachedModule = runtime.moduleCache[moduleId];
 	if (cachedModule !== undefined) {
 		return cachedModule.exports;
 	}
 
 	// Create a new module (and put it into the cache)
-	var module = (this.moduleCache[moduleId] = {
+	var module = (runtime.moduleCache[moduleId] = {
 		// no module.id needed
 		// no module.loaded needed
 		exports: {}

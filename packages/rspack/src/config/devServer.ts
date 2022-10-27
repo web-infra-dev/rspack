@@ -1,6 +1,6 @@
-import type { WatchOptions } from "chokidar";
 import path from "node:path";
 import { resolveWatchOption } from "./watch";
+import type { WatchOptions } from "chokidar";
 
 export interface WebSocketServerOptions {
 	protocol?: string;
@@ -44,7 +44,7 @@ export function getAdditionDevEntry() {
 		"rspack-dev-client": devClientEntryPath,
 		"rspack-hot-update": require.resolve("@rspack/dev-client/devServer")
 	};
-
+	// console.log(additionalEntry);
 	return additionalEntry;
 }
 

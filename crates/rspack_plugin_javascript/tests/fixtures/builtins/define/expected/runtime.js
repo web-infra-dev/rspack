@@ -22,13 +22,13 @@ self['__rspack_runtime__'] = runtime;// mount Modules
   runtime.publicPath = "/";
 })();// The require function
 function __rspack_require__(moduleId) {
-	var cachedModule = this.moduleCache[moduleId];
+	var cachedModule = runtime.moduleCache[moduleId];
 	if (cachedModule !== undefined) {
 		return cachedModule.exports;
 	}
 
 	// Create a new module (and put it into the cache)
-	var module = (this.moduleCache[moduleId] = {
+	var module = (runtime.moduleCache[moduleId] = {
 		// no module.id needed
 		// no module.loaded needed
 		exports: {}
@@ -114,7 +114,7 @@ function __rspack_register__(chunkIds, modules, callback) {
 })();// hot runtime
 (function () {
 	var currentModuleData = {};
-	var installedModules = this.moduleCache;
+	var installedModules = runtime.moduleCache;
 
 	// module and require creation
 	var currentChildModule;
@@ -555,6 +555,7 @@ function __rspack_register__(chunkIds, modules, callback) {
 
 			script.charset = "utf-8";
 			script.timeout = 120;
+			script.id = "hot-script";
 			// if (__webpack_require__.nc) {
 			// 	script.setAttribute("nonce", __webpack_require__.nc);
 			// }
@@ -639,6 +640,8 @@ function __rspack_register__(chunkIds, modules, callback) {
 		if (waitingUpdateResolves[chunkId]) {
 			waitingUpdateResolves[chunkId]();
 			waitingUpdateResolves[chunkId] = undefined;
+			var tag = document.getElementById("hot-script");
+			tag && tag.parentNode && tag.parentNode.removeChild(tag);
 		}
 	};
 
@@ -1138,6 +1141,20 @@ function __rspack_register__(chunkIds, modules, callback) {
 			cache.set(obj, newObj);
 		}
 		return newObj;
+	};
+})();
+(function () {
+	runtime.exportStar = function (from, to) {
+		Object.keys(from).forEach(function (k) {
+			if (k !== "default" && !Object.prototype.hasOwnProperty.call(to, k))
+				Object.defineProperty(to, k, {
+					enumerable: true,
+					get: function () {
+						return from[k];
+					}
+				});
+		});
+		return from;
 	};
 })();
  })();

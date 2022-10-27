@@ -1,32 +1,26 @@
 import * as binding from "@rspack/binding";
 import { Logger } from "./logging/Logger";
 import { resolveWatchOption } from "./config/watch";
-import type { Watch, ResolvedWatch } from "./config/watch";
+import type { Watch } from "./config/watch";
 import * as tapable from "tapable";
-
 import { SyncHook, SyncBailHook, Callback } from "tapable";
 import util from "util";
 import fs from "fs";
 import asyncLib from "neo-async";
 import path from "path";
-import {
-	RspackOptions,
-	RspackOptionsNormalized,
-	getNormalizedRspackOptions
-} from "./config";
+import { RspackOptionsNormalized } from "./config";
 import { Stats } from "./stats";
 import { Asset, Compilation } from "./compilation";
-import { mkdir } from "fs";
 
 export type EmitAssetCallback = (options: {
 	filename: string;
 	asset: Asset;
 }) => void;
 class EntryPlugin {
-	apply() { }
+	apply() {}
 }
 class HotModuleReplacementPlugin {
-	apply() { }
+	apply() {}
 }
 type CompilationParams = Record<string, any>;
 class Compiler {
@@ -81,10 +75,16 @@ class Compiler {
 	 */
 	get #instance() {
 		// @ts-ignored
-		return new binding.Rspack(this.options, {
-			doneCallback: this.#done.bind(this),
-			processAssetsCallback: this.#processAssets.bind(this)
-		});
+		this._instance =
+			// @ts-ignored
+			this._instance ||
+			// @ts-ignored
+			new binding.Rspack(this.options, {
+				doneCallback: this.#done.bind(this),
+				processAssetsCallback: this.#processAssets.bind(this)
+			});
+		// @ts-ignored
+		return this._instance;
 	}
 	getInfrastructureLogger(name: string | Function) {
 		if (!name) {
@@ -172,7 +172,7 @@ class Compiler {
 	 * @param value
 	 * @returns
 	 */
-	#done(statsJson: binding.StatsCompilation) { }
+	#done(statsJson: binding.StatsCompilation) {}
 	#processAssets(value: string, emitAsset: any) {
 		return this.compilation.processAssets(value, emitAsset);
 	}
@@ -238,7 +238,7 @@ class Compiler {
 		cb: (error?: Error, stats?: binding.DiffStat) => void
 	) {
 		const rebuild_cb = util.callbackify(
-			this.#instance.rebuild.bind(this.#instance)
+			this.#instance.unsafe_rebuild.bind(this.#instance)
 		) as unknown as (
 			changed: string[],
 			removed: string[],
