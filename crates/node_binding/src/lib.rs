@@ -26,6 +26,7 @@ use utils::*;
 #[global_allocator]
 static ALLOC: mimalloc_rust::GlobalMiMalloc = mimalloc_rust::GlobalMiMalloc;
 
+// **Note** that Node's main thread and the worker thread share the same binding context. Using `Mutex<HashMap>` would cause deadlocks if multiple compilers exist.
 struct SingleThreadedHashMap<K, V>(DashMap<K, V>);
 
 impl<K, V> SingleThreadedHashMap<K, V>
