@@ -145,6 +145,9 @@ impl Compilation {
 
   #[instrument(name = "compilation:make")]
   pub async fn make(&mut self, entry_deps: HashMap<String, Dependency>) {
+    if let Some(e) = self.plugin_driver.clone().read().await.make(self).err() {
+      self.push_batch_diagnostic(e.into());
+    }
     let active_task_count: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
 
@@ -351,6 +354,12 @@ impl Compilation {
         .flat_map(|module_rule| module_rule.uses.iter().map(Box::as_ref).rev())
         .collect::<Vec<_>>();
 
+      if let Err(e) = plugin_driver.read().await.build_module(&mut module).await {
+        if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module.identifier(), e)) {
+          tracing::trace!("fail to send msg {:?}", err);
+        }
+      }
+
       match module
         .build(BuildContext {
           resolved_loaders,
@@ -360,6 +369,12 @@ impl Compilation {
         .await
       {
         Ok(build_result) => {
+          if let Err(e) = plugin_driver.read().await.succeed_module(&module).await {
+            if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module.identifier(), e)) {
+              tracing::trace!("fail to send msg {:?}", err);
+            }
+          }
+
           let module_identifier = module.identifier();
 
           let (build_result, diagnostics) = build_result.split_into_parts();

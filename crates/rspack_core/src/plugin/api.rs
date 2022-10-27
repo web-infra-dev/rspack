@@ -1,9 +1,9 @@
 use std::fmt::Debug;
 
 use crate::{
-  BoxModule, DoneArgs, FactorizeAndBuildArgs, ModuleType, NormalModule, NormalModuleFactoryContext,
-  OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderManifestArgs,
-  RenderRuntimeArgs, TransformAst, TransformResult,
+  BoxModule, Compilation, DoneArgs, FactorizeAndBuildArgs, ModuleType, NormalModule,
+  NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
+  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, TransformAst, TransformResult,
 };
 use rspack_error::Result;
 use rspack_loader_runner::{Content, ResourceData};
@@ -40,7 +40,7 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  fn build_start(&mut self) -> PluginBuildStartHookOutput {
+  fn make(&self, _ctx: PluginContext, _compilation: &Compilation) -> PluginBuildStartHookOutput {
     Ok(())
   }
 
@@ -97,6 +97,14 @@ pub trait Plugin: Debug + Send + Sync {
     _ctx: PluginContext,
     _args: OptimizeChunksArgs,
   ) -> PluginOptimizeChunksOutput {
+    Ok(())
+  }
+
+  async fn build_module(&self, _module: &mut NormalModule) -> Result<()> {
+    Ok(())
+  }
+
+  async fn succeed_module(&self, _module: &NormalModule) -> Result<()> {
     Ok(())
   }
 }
