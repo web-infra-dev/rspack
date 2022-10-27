@@ -830,13 +830,6 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/core': 7.19.1
-<<<<<<< HEAD
-      '@babel/helper-plugin-utils': 7.18.9
-    dev: true
-
-  /@babel/plugin-syntax-bigint/7.8.3_@babel+core@7.19.1:
-    resolution: {integrity: sha512-wnTnFlG+YxQm3vDxpGE57Pj0srRU4sHE/mDkt1qv2YJJSeUAec2ma4WLUnUPeKjyrfntVwe/N6dCXpU+zL3Npg==}
-=======
       '@babel/helper-plugin-utils': 7.18.9
     dev: true
 
@@ -851,7 +844,6 @@ packages:
 
   /@babel/plugin-syntax-class-properties/7.12.13_@babel+core@7.19.1:
     resolution: {integrity: sha512-fm4idjKla0YahUNgFNLCB0qySdsoPiZP3iQE3rky0mBUtMZ23yDJ9SJdg6dXTSDnulOVqiF3Hgr9nbXvXTQZYA==}
->>>>>>> bc2dcc7d (feat: add progress plugin)
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
@@ -859,13 +851,8 @@ packages:
       '@babel/helper-plugin-utils': 7.18.9
     dev: true
 
-<<<<<<< HEAD
-  /@babel/plugin-syntax-class-properties/7.12.13_@babel+core@7.19.1:
-    resolution: {integrity: sha512-fm4idjKla0YahUNgFNLCB0qySdsoPiZP3iQE3rky0mBUtMZ23yDJ9SJdg6dXTSDnulOVqiF3Hgr9nbXvXTQZYA==}
-=======
   /@babel/plugin-syntax-import-meta/7.10.4_@babel+core@7.19.1:
     resolution: {integrity: sha512-Yqfm+XDx0+Prh3VSeEQCPU81yC+JWZ2pDPFSS4ZdpfZhp4MkFMaDC1UqseovEKwSUpnIL7+vK+Clp7bfh0iD7g==}
->>>>>>> bc2dcc7d (feat: add progress plugin)
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
@@ -873,13 +860,8 @@ packages:
       '@babel/helper-plugin-utils': 7.18.9
     dev: true
 
-<<<<<<< HEAD
-  /@babel/plugin-syntax-import-meta/7.10.4_@babel+core@7.19.1:
-    resolution: {integrity: sha512-Yqfm+XDx0+Prh3VSeEQCPU81yC+JWZ2pDPFSS4ZdpfZhp4MkFMaDC1UqseovEKwSUpnIL7+vK+Clp7bfh0iD7g==}
-=======
   /@babel/plugin-syntax-json-strings/7.8.3_@babel+core@7.19.1:
     resolution: {integrity: sha512-lY6kdGpWHvjoe2vk4WrAapEuBR69EMxZl+RoGRhrFGNYVK8mOPAW8VfbT/ZgrFbXlDNiiaxQnAtgVCZ6jv30EA==}
->>>>>>> bc2dcc7d (feat: add progress plugin)
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
@@ -887,14 +869,9 @@ packages:
       '@babel/helper-plugin-utils': 7.18.9
     dev: true
 
-<<<<<<< HEAD
-  /@babel/plugin-syntax-json-strings/7.8.3_@babel+core@7.19.1:
-    resolution: {integrity: sha512-lY6kdGpWHvjoe2vk4WrAapEuBR69EMxZl+RoGRhrFGNYVK8mOPAW8VfbT/ZgrFbXlDNiiaxQnAtgVCZ6jv30EA==}
-=======
   /@babel/plugin-syntax-jsx/7.18.6_@babel+core@7.19.1:
     resolution: {integrity: sha512-6mmljtAedFGTWu2p/8WIORGwy+61PLgOMPOdazc7YoJ9ZCWUyFy3A6CpPkRKLKD1ToAesxX8KGEViAiLo9N+7Q==}
     engines: {node: '>=6.9.0'}
->>>>>>> bc2dcc7d (feat: add progress plugin)
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
@@ -902,14 +879,8 @@ packages:
       '@babel/helper-plugin-utils': 7.18.9
     dev: true
 
-<<<<<<< HEAD
-  /@babel/plugin-syntax-jsx/7.18.6_@babel+core@7.19.1:
-    resolution: {integrity: sha512-6mmljtAedFGTWu2p/8WIORGwy+61PLgOMPOdazc7YoJ9ZCWUyFy3A6CpPkRKLKD1ToAesxX8KGEViAiLo9N+7Q==}
-    engines: {node: '>=6.9.0'}
-=======
   /@babel/plugin-syntax-logical-assignment-operators/7.10.4_@babel+core@7.19.1:
     resolution: {integrity: sha512-d8waShlpFDinQ5MtvGU9xDAOzKH47+FFoney2baFIoMr952hKOLp1HR7VszoZvOsV/4+RRszNY7D17ba0te0ig==}
->>>>>>> bc2dcc7d (feat: add progress plugin)
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
@@ -917,13 +888,8 @@ packages:
       '@babel/helper-plugin-utils': 7.18.9
     dev: true
 
-<<<<<<< HEAD
-  /@babel/plugin-syntax-logical-assignment-operators/7.10.4_@babel+core@7.19.1:
-    resolution: {integrity: sha512-d8waShlpFDinQ5MtvGU9xDAOzKH47+FFoney2baFIoMr952hKOLp1HR7VszoZvOsV/4+RRszNY7D17ba0te0ig==}
-=======
   /@babel/plugin-syntax-nullish-coalescing-operator/7.8.3_@babel+core@7.19.1:
     resolution: {integrity: sha512-aSff4zPII1u2QD7y+F8oDsz19ew4IGEJg9SVW+bqwpwtfFleiQDMdzA/R+UlWDzfnHFCxxleFT0PMIrR36XLNQ==}
->>>>>>> bc2dcc7d (feat: add progress plugin)
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
@@ -931,13 +897,8 @@ packages:
       '@babel/helper-plugin-utils': 7.18.9
     dev: true
 
-<<<<<<< HEAD
-  /@babel/plugin-syntax-nullish-coalescing-operator/7.8.3_@babel+core@7.19.1:
-    resolution: {integrity: sha512-aSff4zPII1u2QD7y+F8oDsz19ew4IGEJg9SVW+bqwpwtfFleiQDMdzA/R+UlWDzfnHFCxxleFT0PMIrR36XLNQ==}
-=======
   /@babel/plugin-syntax-numeric-separator/7.10.4_@babel+core@7.19.1:
     resolution: {integrity: sha512-9H6YdfkcK/uOnY/K7/aA2xpzaAgkQn37yzWUMRK7OaPOqOpGS1+n0H5hxT9AUw9EsSjPW8SVyMJwYRtWs3X3ug==}
->>>>>>> bc2dcc7d (feat: add progress plugin)
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
@@ -945,13 +906,8 @@ packages:
       '@babel/helper-plugin-utils': 7.18.9
     dev: true
 
-<<<<<<< HEAD
-  /@babel/plugin-syntax-numeric-separator/7.10.4_@babel+core@7.19.1:
-    resolution: {integrity: sha512-9H6YdfkcK/uOnY/K7/aA2xpzaAgkQn37yzWUMRK7OaPOqOpGS1+n0H5hxT9AUw9EsSjPW8SVyMJwYRtWs3X3ug==}
-=======
   /@babel/plugin-syntax-object-rest-spread/7.8.3_@babel+core@7.19.1:
     resolution: {integrity: sha512-XoqMijGZb9y3y2XskN+P1wUGiVwWZ5JmoDRwx5+3GmEplNyVM2s2Dg8ILFQm8rWM48orGy5YpI5Bl8U1y7ydlA==}
->>>>>>> bc2dcc7d (feat: add progress plugin)
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
@@ -959,13 +915,8 @@ packages:
       '@babel/helper-plugin-utils': 7.18.9
     dev: true
 
-<<<<<<< HEAD
-  /@babel/plugin-syntax-object-rest-spread/7.8.3_@babel+core@7.19.1:
-    resolution: {integrity: sha512-XoqMijGZb9y3y2XskN+P1wUGiVwWZ5JmoDRwx5+3GmEplNyVM2s2Dg8ILFQm8rWM48orGy5YpI5Bl8U1y7ydlA==}
-=======
   /@babel/plugin-syntax-optional-catch-binding/7.8.3_@babel+core@7.19.1:
     resolution: {integrity: sha512-6VPD0Pc1lpTqw0aKoeRTMiB+kWhAoT24PA+ksWSBrFtl5SIRVpZlwN3NNPQjehA2E/91FV3RjLWoVTglWcSV3Q==}
->>>>>>> bc2dcc7d (feat: add progress plugin)
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
@@ -973,13 +924,8 @@ packages:
       '@babel/helper-plugin-utils': 7.18.9
     dev: true
 
-<<<<<<< HEAD
-  /@babel/plugin-syntax-optional-catch-binding/7.8.3_@babel+core@7.19.1:
-    resolution: {integrity: sha512-6VPD0Pc1lpTqw0aKoeRTMiB+kWhAoT24PA+ksWSBrFtl5SIRVpZlwN3NNPQjehA2E/91FV3RjLWoVTglWcSV3Q==}
-=======
   /@babel/plugin-syntax-optional-chaining/7.8.3_@babel+core@7.19.1:
     resolution: {integrity: sha512-KoK9ErH1MBlCPxV0VANkXW2/dw4vlbGDrFgz8bmUsBGYkFRcbRwMh6cIJubdPrkxRwuGdtCk0v/wPTKbQgBjkg==}
->>>>>>> bc2dcc7d (feat: add progress plugin)
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
@@ -987,14 +933,9 @@ packages:
       '@babel/helper-plugin-utils': 7.18.9
     dev: true
 
-<<<<<<< HEAD
-  /@babel/plugin-syntax-optional-chaining/7.8.3_@babel+core@7.19.1:
-    resolution: {integrity: sha512-KoK9ErH1MBlCPxV0VANkXW2/dw4vlbGDrFgz8bmUsBGYkFRcbRwMh6cIJubdPrkxRwuGdtCk0v/wPTKbQgBjkg==}
-=======
   /@babel/plugin-syntax-top-level-await/7.14.5_@babel+core@7.19.1:
     resolution: {integrity: sha512-hx++upLv5U1rgYfwe1xBQUhRmU41NEvpUvrp8jkrSCdvGSnM5/qdRMtylJ6PG5OFkBaHkbTAKTnd3/YyESRHFw==}
     engines: {node: '>=6.9.0'}
->>>>>>> bc2dcc7d (feat: add progress plugin)
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
@@ -1002,33 +943,12 @@ packages:
       '@babel/helper-plugin-utils': 7.18.9
     dev: true
 
-<<<<<<< HEAD
-  /@babel/plugin-syntax-top-level-await/7.14.5_@babel+core@7.19.1:
-    resolution: {integrity: sha512-hx++upLv5U1rgYfwe1xBQUhRmU41NEvpUvrp8jkrSCdvGSnM5/qdRMtylJ6PG5OFkBaHkbTAKTnd3/YyESRHFw==}
-=======
   /@babel/plugin-syntax-typescript/7.18.6_@babel+core@7.19.1:
     resolution: {integrity: sha512-mAWAuq4rvOepWCBid55JuRNvpTNf2UGVgoz4JV0fXEKolsVZDzsa4NqCef758WZJj/GDu0gVGItjKFiClTAmZA==}
->>>>>>> bc2dcc7d (feat: add progress plugin)
     engines: {node: '>=6.9.0'}
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-      '@babel/core': 7.19.1
-      '@babel/helper-plugin-utils': 7.18.9
-    dev: true
-
-<<<<<<< HEAD
-  /@babel/plugin-syntax-typescript/7.18.6_@babel+core@7.19.1:
-    resolution: {integrity: sha512-mAWAuq4rvOepWCBid55JuRNvpTNf2UGVgoz4JV0fXEKolsVZDzsa4NqCef758WZJj/GDu0gVGItjKFiClTAmZA==}
-=======
-  /@babel/plugin-transform-modules-commonjs/7.18.6:
-    resolution: {integrity: sha512-Qfv2ZOWikpvmedXQJDSbxNqy7Xr/j2Y8/KfijM0iJyKkBTmWuvCA1yeH1yDM7NJhBW/2aXxeucLj6i80/LAJ/Q==}
->>>>>>> bc2dcc7d (feat: add progress plugin)
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-<<<<<<< HEAD
       '@babel/core': 7.19.1
       '@babel/helper-plugin-utils': 7.18.9
     dev: true
@@ -1039,8 +959,6 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
     dependencies:
-=======
->>>>>>> bc2dcc7d (feat: add progress plugin)
       '@babel/helper-module-transforms': 7.18.9
       '@babel/helper-plugin-utils': 7.18.9
       '@babel/helper-simple-access': 7.18.6
@@ -5304,10 +5222,6 @@ packages:
     resolution: {integrity: sha512-jqYfLp7mo9vIyQf8ykW2v7A+2N4QjeCeI5+Dz9XraiO1ign81wjiH7Fb9vSOWvQfNtmSa4H2RoQTrrXivdUZmw==}
     dependencies:
       is-callable: 1.2.4
-<<<<<<< HEAD
-=======
-    dev: false
->>>>>>> bc2dcc7d (feat: add progress plugin)
 
   /forwarded/0.2.0:
     resolution: {integrity: sha512-buRG0fpBtRHSTCOASe6hD258tEubFoRLb4ZNA6NxMVHNw2gOcwHo9wyablzMzOA5z9xA9L1KNjk/Nt6MT9aYow==}
@@ -5835,7 +5749,6 @@ packages:
     resolution: {integrity: sha512-cTIB4yPYL/Grw0EaSzASzg6bBy9gqCofvWN8okThAYIxKJZC+udlRAmGbM0XLeniEJSs8uEgHPGuHSe1XsOLSQ==}
     engines: {node: '>=6'}
     dev: true
-<<<<<<< HEAD
 
   /is-generator-function/1.0.10:
     resolution: {integrity: sha512-jsEjy9l3yiXEQ+PsXdmBwEPcOxaXWLspKdplFUVI9vq1iZgIekeC0L167qeu86czQaxed3q/Uzuw0swL0irL8A==}
@@ -5843,8 +5756,6 @@ packages:
     dependencies:
       has-tostringtag: 1.0.0
     dev: true
-=======
->>>>>>> bc2dcc7d (feat: add progress plugin)
 
   /is-glob/4.0.3:
     resolution: {integrity: sha512-xelSayHH36ZgE7ZWhli7pW34hNbNl8Ojv5KVmkJD4hBdD3th8Tfk9vYasLM+mXWOZhFkgZfxhLSnrwRr4elSSg==}
@@ -5925,7 +5836,6 @@ packages:
     dependencies:
       has-symbols: 1.0.3
 
-<<<<<<< HEAD
   /is-typed-array/1.1.9:
     resolution: {integrity: sha512-kfrlnTTn8pZkfpJMUgYD7YZ3qzeJgWUn8XfVYBARc4wnmNOmLbmuuaAs3q5fvB0UJOn6yHAKaGTPM7d6ezoD/A==}
     engines: {node: '>= 0.4'}
@@ -5937,8 +5847,6 @@ packages:
       has-tostringtag: 1.0.0
     dev: true
 
-=======
->>>>>>> bc2dcc7d (feat: add progress plugin)
   /is-weakref/1.0.2:
     resolution: {integrity: sha512-qctsuLZmIQ0+vSSMfoVvyFe2+GSEvnmZ2ezTup1SBse9+twCCeial6EEi3Nc2KFcf6+qz2FBPnjXsk8xhKSaPQ==}
     dependencies:
