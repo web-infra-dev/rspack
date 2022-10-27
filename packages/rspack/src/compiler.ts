@@ -267,7 +267,7 @@ class Compiler {
 			}
 		);
 		const begin = Date.now();
-		let stats = await util.promisify(this.build.bind(this))();
+		let stats = await util.promisify(this.unsafe_build.bind(this))();
 		console.log("build success, time cost", Date.now() - begin);
 
 		let pendingChangedFilepaths = new Set<string>();
