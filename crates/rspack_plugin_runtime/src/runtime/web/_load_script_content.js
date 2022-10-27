@@ -33,6 +33,7 @@
 
 			script.charset = "utf-8";
 			script.timeout = 120;
+			script.id = "hot-script";
 			// if (__webpack_require__.nc) {
 			// 	script.setAttribute("nonce", __webpack_require__.nc);
 			// }

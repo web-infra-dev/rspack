@@ -22,7 +22,7 @@ describe("Stats", () => {
 		    {
 		      "chunks": [],
 		      "name": "runtime.js",
-		      "size": 29972,
+		      "size": 11790,
 		      "type": "asset",
 		    },
 		    {

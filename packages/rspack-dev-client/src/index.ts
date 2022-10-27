@@ -8,30 +8,27 @@ import type { Handler } from "./socket";
 
 function reloadApp(data: string) {
 	// @ts-ignore
-	self.__rspack_runtime__.__rspack_require__.hmrM =
-		// @ts-ignore
-		self.__rspack_runtime__.__rspack_require__.hmrM ||
-		(() => {
-			return new Promise(resolve => {
-				const { uri, content } = JSON.parse(data);
-				const update = {
-					c: ["main"],
-					r: [],
-					m: [],
-					// TODO: remove this after hash
-					updatedModule: {
-						uri,
-						content: `self["hotUpdate"](
+	self.__rspack_runtime__.__rspack_require__.hmrM = () => {
+		return new Promise(resolve => {
+			const { uri, content } = JSON.parse(data);
+			const update = {
+				c: ["main"],
+				r: [],
+				m: [],
+				// TODO: remove this after hash
+				updatedModule: {
+					uri,
+					content: `self["hotUpdate"](
 						"main", 
 						{ 
-							"${uri}": function (module, exports) { ${content} } 
+							"${uri}": function (module, exports, __rspack_require__) { ${content} } 
 						}
 						)`
-					}
-				};
-				resolve(update);
-			});
+				}
+			};
+			resolve(update);
 		});
+	};
 	// @ts-ignore
 	self.__rspack_runtime__.hotEmitter.emit("hotUpdate");
 }

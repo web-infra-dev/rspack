@@ -1,5 +1,4 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
 import './base.css';
 import LogoJPG from './file.jpg';
 import LogoPNG from './file.png';
@@ -15,10 +14,12 @@ import './index.less';
 // console.log('LogoUrl', LogoUrl)
 // console.log('Logo', Logo)
 
-const App = () => {
+export const App = () => {
+  const [count, setCount] = React.useState(0);
   return (
     <React.Suspense fallback={<div>loading...</div>}>
       <div>hello world</div>
+      <button onClick={() => setCount(count + 1)}>count: {count}</button>
       {/* <Button></Button> */}
 
       <img
@@ -42,4 +43,3 @@ const App = () => {
     </React.Suspense>
   );
 };
-ReactDOM.render(<App />, document.getElementById('root'));

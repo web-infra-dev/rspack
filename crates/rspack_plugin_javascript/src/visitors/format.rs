@@ -11,6 +11,8 @@ use tracing::instrument;
 
 use crate::utils::{is_dynamic_import_literal_expr, is_require_literal_expr};
 use crate::{RSPACK_DYNAMIC_IMPORT, RSPACK_REQUIRE};
+
+use super::is_module_hot_accept_call;
 use {
   swc_atoms,
   swc_common,
@@ -238,13 +240,37 @@ impl<'a> RspackModuleFormatTransformer<'a> {
     }
     Some(())
   }
+
+  fn rewrite_module_hot_accept_import(&mut self, n: &mut CallExpr) {
+    if let Some(Lit::Str(str)) = n
+      .args
+      .get_mut(0)
+      .and_then(|first_arg| first_arg.expr.as_mut_lit())
+    {
+      let dep = Dependency {
+        importer: Some(self.module.uri.clone()),
+        parent_module_identifier: Some(self.module.uri.clone()),
+        detail: ModuleDependency {
+          specifier: str.value.to_string(),
+          kind: ResolveKind::ModuleHotAccept,
+          span: Some(n.span.into()),
+        },
+      };
+      if let Some(module) = self.compilation.module_graph.module_by_dependency(&dep) {
+        str.value = JsWord::from(module.id.as_str());
+        str.raw = Some(Atom::from(format!("\"{}\"", module.id.as_str())));
+      }
+    }
+  }
 }
 
 impl<'a> VisitMut for RspackModuleFormatTransformer<'a> {
   noop_visit_mut_type!();
 
   fn visit_mut_call_expr(&mut self, n: &mut CallExpr) {
-    if n.callee.is_import() {
+    if is_module_hot_accept_call(n) {
+      self.rewrite_module_hot_accept_import(n);
+    } else if n.callee.is_import() {
       // transform "require('react')" into "__rspack_require__('chunks/react.js')"
       self.rewrite_dyn_import(n);
     } else {

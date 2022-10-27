@@ -94,6 +94,7 @@ impl Plugin for RuntimePlugin {
           sources.push(generate_web_load_script_content());
           sources.push(generate_web_jsonp());
         }
+
         if !dynamic_js.is_empty() || !dynamic_css.is_empty() {
           sources.push(generate_common_dynamic_data(dynamic_js, dynamic_css));
           sources.push(generate_web_dynamic_get_chunk_url(has_hash));

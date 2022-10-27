@@ -39,7 +39,8 @@
     "tapable": "2.2.1",
     "webpack-sources": "3.2.3",
     "graceful-fs": "4.2.10",
-    "neo-async": "2.6.2"
+    "neo-async": "2.6.2",
+    "react-refresh": "0.14.0"
   },
   "optionalDependencies": {
     "@tmp-sass-embedded/darwin-arm64": "1.54.4",

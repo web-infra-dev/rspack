@@ -23,7 +23,7 @@ if (module.hot) {
 				}
 
 				if (!upToDate()) {
-					check();
+					// check();
 				}
 
 				// require("./log-apply-result")(updatedModules, updatedModules);

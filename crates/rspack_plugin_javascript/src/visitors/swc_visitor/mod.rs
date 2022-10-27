@@ -8,7 +8,7 @@ mod typescript;
 pub use typescript::typescript;
 
 mod react;
-pub use react::react;
+pub use react::{fold_react_refresh, react};
 
 mod define;
 pub use define::define;
