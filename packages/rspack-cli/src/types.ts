@@ -24,6 +24,7 @@ export interface RspackCLIOptions {
 	devtool?: boolean;
 	mode?: string;
 	watch?: boolean;
+	analyze?: boolean;
 }
 
 export interface RspackCommand {
