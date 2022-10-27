@@ -21,8 +21,7 @@ pub enum FailedCase {
   MissingExpectedFile(PathBuf),
   Difference {
     expected_file_path: PathBuf,
-    added: Vec<usize>,
-    removed: Vec<usize>,
+    actual_file_path: PathBuf,
   },
 }
 
