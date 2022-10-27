@@ -1,4 +1,3 @@
-use core::panic;
 use std::{
   collections::VecDeque,
   fmt::Debug,
@@ -559,20 +558,7 @@ impl Compilation {
     // calculate each module that has `export * from 'xxxx'`
     let export_all_ref_graph = create_graph(&analyze_results);
     let extends_map = get_extends_map(&export_all_ref_graph);
-    for (module_id, include_export_module_id) in extends_map.iter() {
-      let mut extends_map = {
-        let main_module = analyze_results.get_mut(module_id).unwrap();
-        std::mem::take(&mut main_module.export_all_extend_map)
-      };
-      for export_module_id in include_export_module_id {
-        let export_module = &analyze_results.get(export_module_id).unwrap().export_map;
-        extends_map.insert(export_module_id.clone(), export_module.clone());
-      }
-      analyze_results
-        .get_mut(module_id)
-        .unwrap()
-        .export_all_extend_map = extends_map;
-    }
+
     let mut used_symbol = HashSet::new();
     // Marking used symbol and all reachable export symbol from the used symbol for each module
     let used_symbol_from_import = mark_used_symbol(
@@ -583,12 +569,11 @@ impl Compilation {
     used_symbol.extend(used_symbol_from_import);
 
     // We considering all export symbol in each entry module as used for now
-    // TODO: we also need to mark all the  extends_export_map export symbol as used
     for entry in self.entry_modules() {
       let used_symbol_set = collect_reachable_symbol(&analyze_results, ustr(&entry));
       used_symbol.extend(used_symbol_set);
     }
-    dbg!(&used_symbol);
+
     Ok((used_symbol, analyze_results))
   }
 
@@ -829,19 +814,7 @@ fn mark_symbol(
     },
     SymbolRef::Indirect(indirect_symbol) => {
       let module_result = analyze_map.get(&indirect_symbol.uri).unwrap();
-      let symbol = module_result
-        .export_map
-        .get(&indirect_symbol.id)
-        .or_else(|| {
-          // TODO: better diagnostic and handle if multiple extends_map has export same symbol
-          for (_, extends_export_map) in module_result.export_all_extend_map.iter() {
-            if let Some(value) = extends_export_map.get(&indirect_symbol.id) {
-              return Some(value);
-            }
-          }
-          return None;
-        })
-        .unwrap();
+      let symbol = module_result.export_map.get(&indirect_symbol.id).unwrap();
       q.push_back(symbol.clone());
     }
     SymbolRef::Star(star) => {
