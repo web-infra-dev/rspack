@@ -9,10 +9,11 @@ use tracing::instrument;
 
 use crate::{
   ApplyContext, BoxedParserAndGeneratorBuilder, Compilation, CompilerOptions, Content, DoneArgs,
-  FactorizeAndBuildArgs, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
-  PluginBuildEndHookOutput, PluginContext, PluginFactorizeAndBuildHookOutput,
-  PluginProcessAssetsOutput, PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput,
-  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, Resolver, Stats,
+  FactorizeAndBuildArgs, ModuleType, NormalModule, NormalModuleFactoryContext, OptimizeChunksArgs,
+  Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput, PluginContext,
+  PluginFactorizeAndBuildHookOutput, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
+  PluginRenderRuntimeHookOutput, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs,
+  Resolver, Stats,
 };
 use rspack_error::{Diagnostic, Result};
 
@@ -198,6 +199,15 @@ impl PluginDriver {
     }
     Ok(())
   }
+
+  #[instrument(name = "plugin:make", skip_all)]
+  pub fn make(&self, compilation: &Compilation) -> PluginBuildStartHookOutput {
+    for plugin in &self.plugins {
+      plugin.make(PluginContext::new(), compilation)?;
+    }
+    Ok(())
+  }
+
   #[instrument(name = "plugin:done", skip_all)]
   pub async fn done<'s, 'c>(&mut self, stats: &'s mut Stats<'c>) -> PluginBuildEndHookOutput {
     for plugin in &mut self.plugins {
@@ -211,6 +221,22 @@ impl PluginDriver {
   pub fn optimize_chunks(&mut self, compilation: &mut Compilation) -> Result<()> {
     for plugin in &mut self.plugins {
       plugin.optimize_chunks(PluginContext::new(), OptimizeChunksArgs { compilation })?;
+    }
+    Ok(())
+  }
+
+  #[instrument(name = "plugin:build_module")]
+  pub async fn build_module(&self, module: &mut NormalModule) -> Result<()> {
+    for plugin in &self.plugins {
+      plugin.build_module(module).await?;
+    }
+    Ok(())
+  }
+
+  #[instrument(name = "plugin:succeed_module")]
+  pub async fn succeed_module(&self, module: &NormalModule) -> Result<()> {
+    for plugin in &self.plugins {
+      plugin.succeed_module(module).await?;
     }
     Ok(())
   }

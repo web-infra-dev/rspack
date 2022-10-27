@@ -2,16 +2,18 @@
 use napi_derive::napi;
 use rspack_core::{Builtins, CompilerOptionsBuilder, Define, Mode, Plugin};
 use rspack_plugin_css::plugin::{CssConfig, PostcssConfig};
+use rspack_plugin_progress::{ProgressPlugin, ProgressPluginConfig};
 
 mod raw_css;
 mod raw_html;
 mod raw_postcss;
+mod raw_progress;
 
+use crate::RawOption;
 pub use raw_css::*;
 pub use raw_html::*;
 pub use raw_postcss::*;
-
-use crate::RawOption;
+pub use raw_progress::*;
 
 use serde::Deserialize;
 
@@ -27,6 +29,7 @@ pub struct RawBuiltins {
   pub browserslist: Option<Vec<String>>,
   #[napi(ts_type = "Record<string, string>")]
   pub define: Option<Define>,
+  pub progress: Option<RawProgressPluginConfig>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -39,6 +42,7 @@ pub struct RawBuiltins {
   pub polyfill: Option<bool>,
   pub browserslist: Option<Vec<String>>,
   pub define: Option<Define>,
+  pub progress: Option<RawProgressPluginConfig>,
 }
 
 pub(super) fn normalize_builtin(
@@ -60,6 +64,11 @@ pub(super) fn normalize_builtin(
     preset_env: css_config.preset_env,
     postcss: postcss_config.into(),
   })));
+  if let Some(progress_config) = builtins.progress.clone() {
+    plugins.push(Box::new(ProgressPlugin::new(ProgressPluginConfig {
+      prefix: progress_config.prefix,
+    })));
+  }
 
   Ok(Builtins {
     browserslist: builtins.browserslist.unwrap_or_default(),
