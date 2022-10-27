@@ -13,6 +13,6 @@ module.exports = {
 		debug: true,
 	},
 	builtins: {
-		tree_shaking: true,
+		treeShaking: true,
 	},
 };

@@ -18,6 +18,7 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize, Default)]
 #[cfg(feature = "node-api")]
 #[napi(object)]
+#[serde(rename_all = "camelCase")]
 pub struct RawBuiltins {
   pub html: Option<Vec<RawHtmlPluginConfig>>,
   pub css: Option<RawCssPluginConfig>,
@@ -32,6 +33,7 @@ pub struct RawBuiltins {
 
 #[derive(Debug, Deserialize, Default)]
 #[cfg(not(feature = "node-api"))]
+#[serde(rename_all = "camelCase")]
 pub struct RawBuiltins {
   pub html: Option<Vec<RawHtmlPluginConfig>>,
   pub css: Option<RawCssPluginConfig>,
