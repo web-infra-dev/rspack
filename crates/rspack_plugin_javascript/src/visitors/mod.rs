@@ -3,9 +3,9 @@ pub use dependency_scanner::*;
 mod finalize;
 use finalize::finalize;
 // mod clear_mark;
-// use clear_mark::*;
-mod import_interop;
-use import_interop::import_interop;
+// use clear_mark::clear_mark;
+mod inject_runtime_helper;
+use inject_runtime_helper::inject_runtime_helper;
 mod format;
 use format::*;
 mod pass_global;
@@ -36,7 +36,7 @@ pub fn run_before_pass(
   let comments = None;
   let ret = pass_global.try_with_handler_return_used_globals(move |handler| {
     let mut pass = chain!(
-      swc_visitor::resolver(unresolved_mark, top_level_mark, false),
+      swc_visitor::resolver(unresolved_mark, top_level_mark, syntax.typescript()),
       //      swc_visitor::lint(
       //        &ast,
       //        top_level_mark,
@@ -85,7 +85,6 @@ pub fn run_before_pass(
         comments,
         syntax.typescript()
       ),
-      swc_visitor::import_analyzer(true.into(), true),
       swc_visitor::reserved_words(),
       swc_visitor::inject_helpers()
     );
@@ -118,7 +117,7 @@ pub fn run_after_pass(
         comments,
         compilation.options.target.es_version
       ),
-      import_interop(),
+      inject_runtime_helper(),
       swc_visitor::hygiene(false),
       swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
       finalize(mgm, compilation, unresolved_mark)

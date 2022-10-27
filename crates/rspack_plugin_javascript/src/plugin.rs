@@ -20,7 +20,7 @@ use rspack_core::{
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;
 
-use crate::runtime::{generate_interop_require, RSPACK_REGISTER, RSPACK_REQUIRE};
+use crate::runtime::{generate_commonjs_runtime, RSPACK_REGISTER, RSPACK_REQUIRE};
 use crate::utils::{
   get_swc_compiler, get_wrap_chunk_after, get_wrap_chunk_before, syntax_by_module_type,
   wrap_eval_source_map, wrap_module_function,
@@ -213,17 +213,22 @@ impl Plugin for JsPlugin {
     _ctx: PluginContext,
     args: RenderRuntimeArgs,
   ) -> PluginRenderRuntimeHookOutput {
-    let mut sources = args.sources;
-    let code = generate_interop_require();
-    // the interop require code must be front of RUNTIME_PLACEHOLDER_RSPACK_EXECUTE
-    let position = sources
-      .iter()
-      .position(|item| item.source() == RUNTIME_PLACEHOLDER_RSPACK_EXECUTE);
-    match position {
-      Some(index) => sources.insert(index, code),
-      None => sources.push(code),
-    };
-    Ok(sources)
+    let sources = args.sources;
+    let mut codes = generate_commonjs_runtime();
+    let mut execute_code = None;
+    let mut result = Vec::with_capacity(sources.len() + codes.len());
+    for item in sources {
+      if item.source() == RUNTIME_PLACEHOLDER_RSPACK_EXECUTE {
+        execute_code = Some(item);
+        continue;
+      }
+      result.push(item);
+    }
+    result.append(&mut codes);
+    if let Some(code) = execute_code {
+      result.push(code);
+    }
+    Ok(result)
   }
 
   fn render_manifest(
