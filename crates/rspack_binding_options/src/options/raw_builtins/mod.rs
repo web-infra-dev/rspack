@@ -86,7 +86,7 @@ pub(super) fn normalize_builtin(
     polyfill: builtins.polyfill.unwrap_or(true),
     define: builtins.define.unwrap_or_default(),
     tree_shaking: builtins.tree_shaking.unwrap_or_default(),
-    react: RawOption::raw_to_compiler_option(builtins.react, &options)?,
+    react: RawOption::raw_to_compiler_option(builtins.react, options)?,
   })
 }
 
