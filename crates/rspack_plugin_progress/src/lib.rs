@@ -29,7 +29,12 @@ impl ProgressPlugin {
     progress_bar.set_style(
       ProgressStyle::with_template("{prefix} {bar:40.cyan/blue} {precent} {msg}").unwrap(),
     );
-    progress_bar.set_prefix(options.prefix.clone().unwrap_or("Rspack".to_string()));
+    progress_bar.set_prefix(
+      options
+        .prefix
+        .clone()
+        .unwrap_or_else(|| "Rspack".to_string()),
+    );
     Self {
       options,
       progress_bar,
@@ -62,7 +67,8 @@ impl Plugin for ProgressPlugin {
   }
 
   async fn succeed_module(&self, _module: &NormalModule) -> Result<()> {
-    let modules_done = self.modules_done.fetch_add(1, SeqCst);
+    let previous_modules_done = self.modules_done.fetch_add(1, SeqCst);
+    let modules_done = previous_modules_done + 1;
     let percent = (modules_done as f32)
       / (cmp::max(
         self.last_modules_count.unwrap_or(1),
