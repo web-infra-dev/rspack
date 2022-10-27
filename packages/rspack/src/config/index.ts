@@ -51,7 +51,7 @@ export interface RspackOptionsNormalized {
 	module: ResolvedModule;
 	target: ResolvedTarget;
 	mode: ResolvedMode;
-	external: ResolvedExternal;
+	externals: ResolvedExternal;
 	externalType: ResolvedExternalType;
 	output: ResolvedOutput;
 	builtins: ResolvedBuiltins;
@@ -72,7 +72,7 @@ export function getNormalizedRspackOptions(
 	});
 	const output = resolveOutputOptions(config.output);
 	const target = resolveTargetOptions(config.target);
-	const external = config.externals ?? {};
+	const externals = config.externals ?? {};
 	const externalType = config.externalsType ?? "";
 	const plugins = config.plugins ?? [];
 	const builtins = resolveBuiltinsOptions(config.builtins || {}, context);
@@ -88,7 +88,7 @@ export function getNormalizedRspackOptions(
 		entry,
 		output,
 		target,
-		external,
+		externals,
 		externalType,
 		plugins,
 		builtins,
