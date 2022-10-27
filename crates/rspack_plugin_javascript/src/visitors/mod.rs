@@ -51,7 +51,7 @@ pub fn run_before_pass(
         syntax.typescript()
       ),
       Optional::new(
-        swc_visitor::react(top_level_mark, comments, &cm),
+        swc_visitor::react(top_level_mark, comments, &cm, &options.builtins.react),
         syntax.jsx()
       ),
       // enable if configurable
