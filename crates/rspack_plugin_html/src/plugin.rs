@@ -167,7 +167,7 @@ impl Plugin for HtmlPlugin {
       let resolved_favicon =
         resolve_from_context(&compilation.options.context, url.path().as_str());
       let content = fs::read(&resolved_favicon).context(format!(
-        "failed to read `{}` from `{}`",
+        "failed to read `{}` from `{:?}`",
         url.path(),
         &compilation.options.context
       ))?;
