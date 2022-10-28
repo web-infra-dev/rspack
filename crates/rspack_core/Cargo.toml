@@ -21,6 +21,7 @@ regex = "1.6.0"
 rspack_error = { path = "../rspack_error" }
 rspack_loader_runner = { path = "../loader_runner" }
 rspack_sources = "0.1.9"
+rspack_symbol = { path = "../rspack_symbol" }
 rspack_tracing = { path = "../rspack_tracing" }
 serde = "1"
 sugar_path = "0.0.8"
@@ -46,6 +47,5 @@ tracing = "0.1.34"
 url = "2.2.2"
 ustr = "0.9.0"
 xxhash-rust = { version = "0.8.5", features = ["xxh3"] }
-
 [dev-dependencies]
 swc_ecma_parser = "0.122.20"

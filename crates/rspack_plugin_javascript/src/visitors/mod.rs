@@ -11,6 +11,7 @@ mod format;
 use format::*;
 use swc_common::pass::Repeat;
 mod swc_visitor;
+mod tree_shaking;
 use crate::utils::get_swc_compiler;
 use rspack_core::{
   ast::javascript::Ast, Compilation, CompilerOptions, ModuleGraphModule, ResourceData,
@@ -21,6 +22,9 @@ use swc_common::{chain, comments::Comments};
 use swc_ecma_parser::Syntax;
 use swc_ecma_transforms::modules::common_js::Config as CommonjsConfig;
 use swc_ecma_transforms::pass::Optional;
+use swc_ecma_visit::FoldWith;
+use tree_shaking::tree_shaker;
+use ustr::ustr;
 
 /// return (ast, top_level_mark, unresolved_mark, globals)
 pub fn run_before_pass(
@@ -114,6 +118,10 @@ pub fn run_after_pass(ast: &mut Ast, mgm: &ModuleGraphModule, compilation: &Comp
     let comments = None;
 
     let mut pass = chain!(
+      Optional::new(
+        tree_shaker(ustr(&mgm.module_identifier,), &compilation.used_symbol),
+        tree_shaking
+      ),
       swc_visitor::build_module(
         &cm,
         unresolved_mark,

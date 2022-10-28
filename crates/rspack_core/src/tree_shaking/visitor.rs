@@ -11,10 +11,8 @@ use swc_ecma_ast::*;
 use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
 use ustr::{ustr, Ustr};
 
-use crate::{tree_shaking::symbol::Symbol, Dependency, ModuleGraph, ResolveKind};
-
-use super::symbol::{BetterId, IndirectTopLevelSymbol};
-
+use crate::{Dependency, ModuleGraph, ResolveKind};
+use rspack_symbol::{BetterId, IndirectTopLevelSymbol, Symbol};
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SymbolRef {
   Direct(Symbol),
@@ -108,7 +106,7 @@ impl<'a> ModuleRefAnalyze<'a> {
             .cloned()
             .or_else(|| match self.export_map.get(&id.atom) {
               Some(sym_ref @ SymbolRef::Direct(sym)) => {
-                if &sym.id == id {
+                if sym.id() == id {
                   Some(sym_ref.clone())
                 } else {
                   None
@@ -139,7 +137,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       match symbol {
         // At this time uri of symbol will always equal to `self.module_identifier`
         SymbolRef::Direct(symbol) => {
-          let reachable_import = self.get_all_import_or_export(symbol.id.clone());
+          let reachable_import = self.get_all_import_or_export(symbol.id().clone());
           self
             .reachable_import_and_export
             .insert(key.clone(), reachable_import);

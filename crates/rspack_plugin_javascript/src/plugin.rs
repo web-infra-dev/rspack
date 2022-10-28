@@ -4,6 +4,7 @@ use hashbrown::hash_map::DefaultHashBuilder;
 use rayon::prelude::*;
 use swc::{config::JsMinifyOptions, BoolOrDataConfig};
 use swc_common::GLOBALS;
+use swc_ecma_minifier::option::terser::{TerserCompressorOptions, TerserEcmaVersion};
 use swc_ecma_visit::VisitAllWith;
 
 use crate::visitors::minify::minify as minifier;
@@ -440,10 +441,10 @@ fn get_js_minify_options(
       dead_code: Some(true),
       side_effects: Some(true),
       unused: Some(true),
+      // TODO: according options target
+      ecma: TerserEcmaVersion::Num(6),
       ..Default::default()
     });
-  }
-  if !minify {
     options.mangle = BoolOrDataConfig::from_bool(false);
   }
   options

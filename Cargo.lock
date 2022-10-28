@@ -2241,6 +2241,7 @@ dependencies = [
  "rspack_error",
  "rspack_loader_runner",
  "rspack_sources",
+ "rspack_symbol",
  "rspack_tracing",
  "serde",
  "sugar_path",
@@ -2422,6 +2423,7 @@ dependencies = [
  "regex",
  "rspack_core",
  "rspack_error",
+ "rspack_symbol",
  "rspack_test",
  "serde",
  "serde_json",
@@ -2438,6 +2440,7 @@ dependencies = [
  "swc_ecma_utils",
  "swc_ecma_visit",
  "tracing",
+ "ustr",
 ]
 
 [[package]]
@@ -2497,6 +2500,17 @@ dependencies = [
  "serde_json",
  "smol_str",
  "substring",
+]
+
+[[package]]
+name = "rspack_symbol"
+version = "0.1.0"
+dependencies = [
+ "bitflags",
+ "swc_atoms",
+ "swc_common",
+ "swc_ecma_ast",
+ "ustr",
 ]
 
 [[package]]
