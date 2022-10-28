@@ -1,26 +1,45 @@
 use crate::runtime::RSPACK_RUNTIME;
 use hashbrown::HashSet;
-use swc_common::DUMMY_SP;
+use swc_common::{Globals, Mark, DUMMY_SP, GLOBALS};
 use swc_ecma_ast::*;
 // use swc_ecma_utils::
 use rspack_symbol::{BetterId, Symbol};
-use swc_ecma_visit::{as_folder, noop_fold_type, noop_visit_mut_type, Fold, VisitMut};
+use swc_ecma_utils::{quote_expr, quote_ident};
+use swc_ecma_visit::{as_folder, noop_fold_type, noop_visit_mut_type, Fold, FoldWith, VisitMut};
 use ustr::Ustr;
 
-pub fn tree_shaker<'a>(module_id: Ustr, used_symbol_set: &'a HashSet<Symbol>) -> impl Fold + 'a {
+pub fn tree_shaker<'a>(
+  module_id: Ustr,
+  used_symbol_set: &'a HashSet<Symbol>,
+  top_level_mark: Mark,
+  parse_phase_global: Option<&'a Globals>,
+) -> impl Fold + 'a {
   TreeShaker {
     module_id,
     used_symbol_set,
+    top_level_mark,
+    parse_phase_global,
   }
 }
 
 struct TreeShaker<'a> {
-  pub(crate) module_id: Ustr,
+  module_id: Ustr,
   used_symbol_set: &'a HashSet<Symbol>,
+  top_level_mark: Mark,
+  parse_phase_global: Option<&'a Globals>,
 }
 
 impl<'a> Fold for TreeShaker<'a> {
   noop_fold_type!();
+  fn fold_program(&mut self, node: Program) -> Program {
+    if self.parse_phase_global.is_none() {
+      // TODO: maybe we should push this warning into Diagnostic
+      eprintln!("Failed to tree shake module: {}", self.module_id.as_str());
+      node
+    } else {
+      node.fold_with(self)
+    }
+  }
   fn fold_module_item(&mut self, node: ModuleItem) -> ModuleItem {
     match node {
       ModuleItem::ModuleDecl(module_decl) => match module_decl {
@@ -71,12 +90,12 @@ impl<'a> Fold for TreeShaker<'a> {
                     self.used_symbol_set.contains(&symbol),
                   )
                 }
-                Pat::Array(_) => (decl, true),
-                Pat::Rest(_) => (decl, true),
-                Pat::Object(_) => (decl, true),
-                Pat::Assign(_) => (decl, true),
-                Pat::Invalid(_) => (decl, true),
-                Pat::Expr(_) => (decl, true),
+                Pat::Array(_)
+                | Pat::Rest(_)
+                | Pat::Object(_)
+                | Pat::Assign(_)
+                | Pat::Invalid(_)
+                | Pat::Expr(_) => (decl, true),
               })
               .filter(|item| item.1)
               .collect::<Vec<_>>();
@@ -107,9 +126,16 @@ impl<'a> Fold for TreeShaker<'a> {
           // TODO: TODO!
           ModuleItem::ModuleDecl(module_decl)
         }
-        ModuleDecl::ExportDefaultExpr(_) => {
-          // TODO: TODO!
-          ModuleItem::ModuleDecl(module_decl)
+        ModuleDecl::ExportDefaultExpr(expr) => {
+          let default_symbol = self.crate_virtual_default_symbol();
+          if self.used_symbol_set.contains(&default_symbol) {
+            ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(expr))
+          } else {
+            ModuleItem::Stmt(Stmt::Expr(ExprStmt {
+              span: DUMMY_SP,
+              expr: expr.expr,
+            }))
+          }
         }
         ModuleDecl::ExportAll(_) => ModuleItem::ModuleDecl(module_decl),
         ModuleDecl::TsImportEquals(_) => ModuleItem::ModuleDecl(module_decl),
@@ -118,5 +144,16 @@ impl<'a> Fold for TreeShaker<'a> {
       },
       ModuleItem::Stmt(_) => node,
     }
+  }
+}
+
+impl<'a> TreeShaker<'a> {
+  fn crate_virtual_default_symbol(&self) -> Symbol {
+    let ident = GLOBALS.set(self.parse_phase_global.unwrap(), || {
+      let default = quote_ident!("default");
+      default.span.apply_mark(self.top_level_mark);
+      default
+    });
+    Symbol::from_id_and_uri(ident.to_id().into(), self.module_id)
   }
 }

@@ -119,7 +119,12 @@ pub fn run_after_pass(ast: &mut Ast, mgm: &ModuleGraphModule, compilation: &Comp
 
     let mut pass = chain!(
       Optional::new(
-        tree_shaker(ustr(&mgm.module_identifier,), &compilation.used_symbol),
+        tree_shaker(
+          ustr(&mgm.module_identifier,),
+          &compilation.used_symbol,
+          pass_global.top_level_mark,
+          parse_phase_globals
+        ),
         tree_shaking
       ),
       swc_visitor::build_module(
