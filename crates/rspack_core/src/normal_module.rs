@@ -19,7 +19,7 @@ use rspack_sources::{
 use swc_common::{Globals, Mark};
 
 use crate::{
-  Compilation, CompilationContext, CompilerContext, CompilerOptions, Dependency,
+  Compilation, CompilationContext, CompilerContext, CompilerOptions, Context, Dependency,
   JavascriptAstExtend, LoaderRunnerRunner, ModuleAst, ModuleDependency, ModuleGraph,
   ModuleGraphConnection, ModuleType, ResolveKind, SourceType,
 };
@@ -428,6 +428,10 @@ impl NormalModule {
 
   pub fn identifier(&self) -> ModuleIdentifier {
     self.request.to_owned()
+  }
+
+  pub fn readable_identifier(&self, context: &Context) -> String {
+    context.shorten(&self.user_request)
   }
 
   pub fn original_source(&self) -> Option<&dyn Source> {

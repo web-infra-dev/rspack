@@ -24,7 +24,7 @@ rspack_loader_runner = { path = "../loader_runner" }
 rspack_sources = "0.1.9"
 rspack_tracing = { path = "../rspack_tracing" }
 serde = "1"
-sugar_path = "0.0.5"
+sugar_path = "0.0.8"
 tokio = { version = "1.21.0", features = [
   "rt",
   "rt-multi-thread",

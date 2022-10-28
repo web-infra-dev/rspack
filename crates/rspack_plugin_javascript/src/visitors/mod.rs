@@ -57,7 +57,7 @@ pub fn run_before_pass(
       ),
       Optional::new(
         {
-          let context = options.context.as_str();
+          let context = &options.context;
           let uri = resource_data.resource.as_str();
           swc_visitor::fold_react_refresh(context, uri)
         },

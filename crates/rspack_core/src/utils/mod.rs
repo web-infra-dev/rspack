@@ -5,16 +5,20 @@ use std::{
 
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
-use sugar_path::PathSugar;
+use sugar_path::SugarPath;
 
 mod hooks;
 pub use hooks::*;
+
+mod identifier;
+pub use identifier::*;
 
 mod hash;
 pub use hash::*;
 
 mod tree_shaking;
 pub use tree_shaking::*;
+
 pub static PATH_START_BYTE_POS_MAP: Lazy<Arc<DashMap<String, u32>>> =
   Lazy::new(|| Arc::new(DashMap::new()));
 

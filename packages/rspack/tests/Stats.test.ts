@@ -54,7 +54,7 @@ describe("Stats", () => {
 		      "id": "./fixtures/a.js",
 		      "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
 		      "moduleType": "js",
-		      "name": "<PROJECT_ROOT>/tests/fixtures/a.js",
+		      "name": "./fixtures/a.js",
 		      "size": 55,
 		      "type": "module",
 		    },

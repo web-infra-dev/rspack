@@ -98,7 +98,7 @@ impl<'compilation> Stats<'compilation> {
           r#type: "module",
           module_type: module.module_type(),
           identifier,
-          name: module.identifier(), // TODO: short it with requestShortener
+          name: module.readable_identifier(&self.compilation.options.context),
           id: mgm.id.clone(),
           chunks,
           size: module.size(&SourceType::JavaScript),

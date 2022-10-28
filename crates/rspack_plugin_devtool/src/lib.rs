@@ -81,7 +81,7 @@ impl Plugin for DevtoolPlugin {
                 &source[..]
               };
               let resource_path =
-                if let Some(relative_path) = diff_paths(uri, &args.compilation.options.context) {
+                if let Some(relative_path) = diff_paths(uri, &*args.compilation.options.context) {
                   relative_path.to_string_lossy().to_string()
                 } else {
                   uri.to_owned()

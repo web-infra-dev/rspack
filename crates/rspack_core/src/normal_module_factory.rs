@@ -6,7 +6,7 @@ use std::{
   },
 };
 
-use sugar_path::PathSugar;
+use sugar_path::SugarPath;
 use swc_common::Span;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -165,8 +165,7 @@ impl NormalModuleFactory {
             .ok_or_else(|| anyhow::format_err!("parent() failed for {:?}", importer))?
             .to_path_buf()
         } else {
-          let context = self.context.options.context.as_str();
-          Path::new(context).to_path_buf()
+          PathBuf::from(self.context.options.context.as_path())
         };
         // ----
 
@@ -350,10 +349,7 @@ impl NormalModuleFactory {
     let mgm = ModuleGraphModule::new(
       self.context.module_name.clone(),
       Path::new("./")
-        .join(
-          Path::new(uri.as_str())
-            .relative(self.plugin_driver.read().await.options.context.as_str()),
-        )
+        .join(Path::new(uri.as_str()).relative(&self.context.options.context))
         .to_string_lossy()
         .to_string(),
       uri,

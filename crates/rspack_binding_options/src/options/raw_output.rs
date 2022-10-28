@@ -1,5 +1,6 @@
 use std::{path::Path, str::FromStr};
 
+use anyhow::Context;
 use serde::Deserialize;
 
 #[cfg(feature = "node-api")]
@@ -12,22 +13,16 @@ use rspack_core::{
 
 use crate::RawOption;
 
-pub fn generate_path(path: Option<String>, context: &Option<String>) -> String {
+pub fn generate_path(path: Option<String>, context: &Path) -> String {
   match path {
     Some(path) => {
       if Path::new(&path).is_absolute() {
         path
       } else {
-        Path::new(context.as_ref().unwrap())
-          .join(path)
-          .to_string_lossy()
-          .to_string()
+        context.join(path).to_string_lossy().to_string()
       }
     }
-    None => Path::new(context.as_ref().unwrap())
-      .join("dist")
-      .to_string_lossy()
-      .to_string(),
+    None => context.join("dist").to_string_lossy().to_string(),
   }
 }
 
@@ -81,7 +76,10 @@ impl RawOption<OutputOptions> for RawOutputOptions {
     let chunk_filename = self
       .chunk_filename
       .unwrap_or_else(|| filename.replace(NAME_PLACEHOLDER, &format!("{}.chunk", ID_PLACEHOLDER)));
-    let path = generate_path(self.path, &options.context);
+    let path = generate_path(
+      self.path,
+      options.context.as_ref().context("should have context")?,
+    );
     // todo unique name needs to be determined by package.name
     let unique_name = self
       .unique_name
