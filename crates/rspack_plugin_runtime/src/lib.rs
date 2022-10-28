@@ -166,7 +166,7 @@ impl Plugin for RuntimePlugin {
       TargetPlatform::WebWorker | TargetPlatform::Node(_) => {
         let mut entry_source_array = vec![];
         compilation.chunk_by_ukey.values().for_each(|chunk| {
-          if chunk.is_only_initial(&compilation.chunk_group_by_ukey) {
+          if chunk.has_entry_module(&compilation.chunk_graph) {
             let js_entry_file = chunk
               .files
               .iter()
