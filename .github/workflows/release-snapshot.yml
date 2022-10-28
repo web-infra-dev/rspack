@@ -6,7 +6,7 @@ jobs:
   release:
     name: release-snapshot
     if: github.event.issue.pull_request && contains(github.event.comment.body, '!snapshot')
-    runs-on: macos-latest
+    runs-on: [self-hosted, rspack-common, macOS]
     steps:
       - name: Checkout Repo
         uses: actions/checkout@master
@@ -36,4 +36,7 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: release snapshot
         run: |
+          echo "::set-output name=comment::hello"
           make release-snapshot
+          comment=$(./x pkg-version)
+          echo "::set-output name=comment::$comment"
