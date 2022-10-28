@@ -1,6 +1,6 @@
 use hashbrown::HashSet;
 
-use crate::{ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey};
+use crate::{ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey};
 
 #[derive(Debug)]
 pub struct Chunk {
@@ -50,5 +50,9 @@ impl Chunk {
       .iter()
       .filter_map(|ukey| chunk_group_by_ukey.get(ukey))
       .all(|group| group.is_initial())
+  }
+
+  pub fn has_entry_module(&self, chunk_graph: &ChunkGraph) -> bool {
+    !chunk_graph.get_chunk_entry_modules(&self.ukey).is_empty()
   }
 }

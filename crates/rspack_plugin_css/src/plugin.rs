@@ -381,7 +381,7 @@ impl Plugin for CssPlugin {
     if source.source().is_empty() {
       Ok(Default::default())
     } else {
-      let output_path = if chunk.is_only_initial(&args.compilation.chunk_group_by_ukey) {
+      let output_path = if chunk.has_entry_module(&args.compilation.chunk_graph) {
         compilation
           .options
           .output

@@ -57,8 +57,10 @@ impl Plugin for RuntimePlugin {
 
     let mut dynamic_js: Vec<ChunkHash> = vec![];
     let mut dynamic_css: Vec<ChunkHash> = vec![];
-    for (_, chunk) in &compilation.chunk_by_ukey {
-      if chunk.is_only_initial(&args.compilation.chunk_group_by_ukey) {
+    let mut chunks = compilation.chunk_by_ukey.values().collect::<Vec<_>>();
+    chunks.sort_by_key(|c| &c.id);
+    for chunk in &chunks {
+      if chunk.has_entry_module(&args.compilation.chunk_graph) {
         for file in &chunk.files {
           if file.ends_with(".js") && !file.eq(&(RUNTIME_FILE_NAME.to_string() + ".js")) {
             dynamic_js.push(ChunkHash {

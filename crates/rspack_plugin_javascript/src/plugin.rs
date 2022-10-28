@@ -307,7 +307,7 @@ impl Plugin for JsPlugin {
       .into_par_iter()
       .flatten()
       .chain([{
-        if chunk.is_only_initial(&args.compilation.chunk_group_by_ukey) && !has_inline_runtime {
+        if chunk.has_entry_module(&args.compilation.chunk_graph) && !has_inline_runtime {
           // TODO: how do we handle multiple entry modules?
           let entry_module_uri = args
             .compilation
