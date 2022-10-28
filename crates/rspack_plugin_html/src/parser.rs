@@ -11,13 +11,18 @@ use swc_html::{
   },
   parser::{error::Error, parse_file_as_document, parser::ParserConfig},
 };
+use swc_html_minifier::minify_document;
 
-#[derive(Default)]
-pub struct HtmlCompiler {}
+use crate::config::HtmlPluginConfig;
+pub use swc_html_minifier::option::MinifyOptions;
 
-impl HtmlCompiler {
-  pub fn new() -> Self {
-    Self {}
+pub struct HtmlCompiler<'a> {
+  config: &'a HtmlPluginConfig,
+}
+
+impl<'a> HtmlCompiler<'a> {
+  pub fn new(config: &'a HtmlPluginConfig) -> Self {
+    Self { config }
   }
 
   pub fn parse_file(&self, path: &str, source: String) -> Result<TWithDiagnosticArray<Document>> {
@@ -37,15 +42,22 @@ impl HtmlCompiler {
       .map_err(|e| html_parse_error_to_traceable_error(e, path))
   }
 
-  pub fn codegen(&self, ast: &Document) -> anyhow::Result<String> {
+  pub fn codegen(&self, ast: &mut Document) -> anyhow::Result<String> {
     let writer_config = BasicHtmlWriterConfig::default();
-    let codegen_config = CodegenConfig::default();
+    let codegen_config = CodegenConfig {
+      minify: self.config.minify,
+      ..Default::default()
+    };
+    if self.config.minify {
+      // Minify can't leak to user land because it doesn't implement `ToNapiValue` Trait
+      minify_document(ast, &MinifyOptions::default());
+    }
 
     let mut output = String::new();
     let wr = BasicHtmlWriter::new(&mut output, None, writer_config);
     let mut gen = CodeGenerator::new(wr, codegen_config);
 
-    gen.emit(&ast).map_err(|e| anyhow::format_err!(e))?;
+    gen.emit(ast).map_err(|e| anyhow::format_err!(e))?;
     Ok(output)
   }
 }

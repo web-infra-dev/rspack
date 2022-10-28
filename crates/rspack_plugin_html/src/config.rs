@@ -74,6 +74,7 @@ pub struct HtmlPluginConfig {
   /// hash func that used in subsource integrity
   /// sha384, sha256 or sha512
   pub sri: Option<HtmlSriHashFunction>,
+  pub minify: bool,
 }
 
 fn default_filename() -> String {
@@ -99,6 +100,7 @@ impl Default for HtmlPluginConfig {
       chunks: None,
       excluded_chunks: None,
       sri: None,
+      minify: false,
     }
   }
 }
