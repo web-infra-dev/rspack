@@ -149,6 +149,11 @@ impl VisitMut for AssetWriter<'_> {
 
         // add favicon
         if let Some(favicon) = &self.config.favicon {
+          let favicon_path = if let Some(public_path) = &self.config.public_path {
+            format!("{}{}", public_path, favicon)
+          } else {
+            favicon.to_string()
+          };
           n.children.push(Child::Element(Element {
             tag_name: JsWord::from("link"),
             children: vec![],
@@ -169,18 +174,9 @@ impl VisitMut for AssetWriter<'_> {
                 span: Default::default(),
                 namespace: None,
                 prefix: None,
-                name: "type".into(),
-                raw_name: None,
-                value: Some("image/x-icon".into()),
-                raw_value: None,
-              },
-              Attribute {
-                span: Default::default(),
-                namespace: None,
-                prefix: None,
                 name: "href".into(),
                 raw_name: None,
-                value: Some(favicon.clone().into()),
+                value: Some(favicon_path.into()),
                 raw_value: None,
               },
             ],
