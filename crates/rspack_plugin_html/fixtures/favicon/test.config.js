@@ -5,7 +5,7 @@ module.exports = {
 	builtins: {
 		html: [
 			{
-				favicon: "./favicon.ico"
+				favicon: "favicon.ico"
 			}
 		]
 	}
