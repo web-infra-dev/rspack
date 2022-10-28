@@ -19,6 +19,10 @@ jobs:
           toolchain: nightly-2022-08-06
           profile: default
           components: rustfmt, clippy, cargo
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+          architecture: "arm64"
       - name: Install protoc
         uses: arduino/setup-protoc@v1
         with:
