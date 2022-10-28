@@ -2,8 +2,7 @@
 
 use std::{fmt, sync::Arc};
 
-use dashmap::DashSet;
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
 
 mod normal_module;
 pub use normal_module::*;
@@ -138,7 +137,7 @@ impl TryFrom<&str> for ModuleType {
   }
 }
 
-pub(crate) type VisitedModuleIdentity = Arc<DashSet<(String, ModuleDependency)>>;
+pub(crate) type VisitedModuleIdentity = HashSet<(String, ModuleDependency)>;
 
 pub(crate) type ChunkByUkey = HashMap<ChunkUkey, Chunk>;
 pub type ChunkGroupByUkey = HashMap<ChunkGroupUkey, ChunkGroup>;
