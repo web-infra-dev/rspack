@@ -1,6 +1,7 @@
 mod dependency_scanner;
 pub use dependency_scanner::*;
 mod finalize;
+pub(crate) mod minify;
 use finalize::finalize;
 // mod clear_mark;
 // use clear_mark::clear_mark;

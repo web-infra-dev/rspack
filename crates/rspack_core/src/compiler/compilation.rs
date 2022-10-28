@@ -554,7 +554,7 @@ impl Compilation {
         });
       })
   }
-  #[instrument(name = "compilation:process_asssets")]
+  // #[instrument(name = "compilation:process_asssets")]
   async fn process_assets(&mut self, plugin_driver: SharedPluginDriver) {
     plugin_driver
       .write()

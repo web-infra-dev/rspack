@@ -2128,6 +2128,7 @@ dependencies = [
  "rspack_error",
  "serde",
  "serde_json",
+ "sourcemap",
  "sugar_path",
  "swc",
  "swc_atoms",
@@ -2445,9 +2446,9 @@ dependencies = [
 
 [[package]]
 name = "sourcemap"
-version = "6.1.0"
+version = "6.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58ad6f449ac2dc2eaa01e766408b76b55fc0a20c842b63aa11a8448caa72f50b"
+checksum = "c46fdc1838ff49cf692226f5c2b0f5b7538f556863d0eca602984714667ac6e7"
 dependencies = [
  "base64",
  "if_chain",
