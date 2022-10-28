@@ -1,4 +1,6 @@
-use swc_html::ast::{Child, Element};
+use swc_atoms::JsWord;
+use swc_common::DUMMY_SP;
+use swc_html::ast::{Attribute, Child, Element, Namespace, Text};
 use swc_html::visit::{VisitMut, VisitMutWith};
 
 use crate::config::{HtmlPluginConfig, HtmlPluginConfigInject, HtmlPluginConfigScriptLoading};
@@ -13,8 +15,6 @@ pub struct HTMLPluginTag {
   pub void_tag: bool,
   // `head` or `body`
   pub append_to: HtmlPluginConfigInject,
-  // future
-  pub meta: (),
 }
 
 impl HTMLPluginTag {
@@ -32,7 +32,6 @@ impl HTMLPluginTag {
           attr_value: Some("stylesheet".to_string()),
         },
       ],
-      meta: (),
       void_tag: true,
     }
   }
@@ -66,7 +65,6 @@ impl HTMLPluginTag {
       tag_name: "script".to_string(),
       append_to: append_to.unwrap_or(HtmlPluginConfigInject::Body),
       attributes,
-      meta: (),
       void_tag: false,
     }
   }
@@ -117,6 +115,110 @@ impl VisitMut for AssetWriter<'_> {
 
     match &*n.tag_name {
       "head" => {
+        // add title
+        if let Some(title) = &self.config.title {
+          let title_ele = n.children.iter_mut().find(|child| {
+            if let Child::Element(ele) = child {
+              return ele.tag_name.eq("title");
+            }
+            false
+          });
+
+          if let Some(Child::Element(title_ele)) = title_ele {
+            title_ele.children = vec![Child::Text(Text {
+              span: DUMMY_SP,
+              data: JsWord::from(title.as_str()),
+              raw: None,
+            })];
+          } else {
+            n.children.push(Child::Element(Element {
+              tag_name: JsWord::from("title"),
+              children: vec![Child::Text(Text {
+                span: DUMMY_SP,
+                data: JsWord::from(title.as_str()),
+                raw: None,
+              })],
+              is_self_closing: false,
+              namespace: Namespace::HTML,
+              span: DUMMY_SP,
+              attributes: vec![],
+              content: None,
+            }));
+          }
+        }
+
+        // add favicon
+        if let Some(favicon) = &self.config.favicon {
+          let favicon_path = if let Some(public_path) = &self.config.public_path {
+            format!("{}{}", public_path, favicon)
+          } else {
+            favicon.to_string()
+          };
+          n.children.push(Child::Element(Element {
+            tag_name: JsWord::from("link"),
+            children: vec![],
+            is_self_closing: true,
+            namespace: Namespace::HTML,
+            span: DUMMY_SP,
+            attributes: vec![
+              Attribute {
+                span: Default::default(),
+                namespace: None,
+                prefix: None,
+                name: "rel".into(),
+                raw_name: None,
+                value: Some("icon".into()),
+                raw_value: None,
+              },
+              Attribute {
+                span: Default::default(),
+                namespace: None,
+                prefix: None,
+                name: "href".into(),
+                raw_name: None,
+                value: Some(favicon_path.into()),
+                raw_value: None,
+              },
+            ],
+            content: None,
+          }));
+        }
+
+        // add meta tags
+        if let Some(meta) = &self.config.meta {
+          for (key, value) in meta.iter() {
+            let meta_ele = Element {
+              tag_name: JsWord::from("meta"),
+              attributes: vec![
+                Attribute {
+                  span: Default::default(),
+                  namespace: None,
+                  prefix: None,
+                  name: "name".into(),
+                  raw_name: None,
+                  value: Some(key.clone().into()),
+                  raw_value: None,
+                },
+                Attribute {
+                  span: Default::default(),
+                  namespace: None,
+                  prefix: None,
+                  name: "content".into(),
+                  raw_name: None,
+                  value: Some(value.clone().into()),
+                  raw_value: None,
+                },
+              ],
+              children: vec![],
+              content: None,
+              is_self_closing: true,
+              namespace: Namespace::HTML,
+              span: DUMMY_SP,
+            };
+            n.children.push(Child::Element(meta_ele));
+          }
+        }
+
         for tag in head_tags.iter() {
           let new_element = create_element(tag);
           n.children.push(Child::Element(new_element));
