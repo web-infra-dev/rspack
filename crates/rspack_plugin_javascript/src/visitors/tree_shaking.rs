@@ -4,7 +4,7 @@ use swc_common::{Globals, Mark, DUMMY_SP, GLOBALS};
 use swc_ecma_ast::*;
 // use swc_ecma_utils::
 use rspack_symbol::{BetterId, Symbol};
-use swc_ecma_utils::{quote_expr, quote_ident};
+use swc_ecma_utils::{quote_expr, quote_ident, ExprFactory};
 use swc_ecma_visit::{as_folder, noop_fold_type, noop_visit_mut_type, Fold, FoldWith, VisitMut};
 use ustr::Ustr;
 
@@ -126,9 +126,46 @@ impl<'a> Fold for TreeShaker<'a> {
           }
           // TODO: TODO!
         }
-        ModuleDecl::ExportDefaultDecl(_) => {
-          // TODO: TODO!
-          ModuleItem::ModuleDecl(module_decl)
+        ModuleDecl::ExportDefaultDecl(decl) => {
+          let default_symbol = self.crate_virtual_default_symbol();
+          dbg!(&default_symbol);
+          let ctxt = default_symbol.id().ctxt;
+          if self.used_symbol_set.contains(&default_symbol) {
+            ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultDecl(decl))
+          } else {
+            let decl = match decl.decl {
+              DefaultDecl::Class(class) => {
+                let ident = if let Some(ident) = class.ident {
+                  ident
+                } else {
+                  let mut named = quote_ident!("__RSPACK_DEFAULT_EXPORT__");
+                  named.span = named.span.with_ctxt(ctxt);
+                  named
+                };
+                Decl::Class(ClassDecl {
+                  ident,
+                  declare: false,
+                  class: class.class,
+                })
+              }
+              DefaultDecl::Fn(func) => {
+                let ident = if let Some(ident) = func.ident {
+                  ident
+                } else {
+                  let mut named = quote_ident!("__RSPACK_DEFAULT_EXPORT__");
+                  named.span = named.span.with_ctxt(ctxt);
+                  named
+                };
+                Decl::Fn(FnDecl {
+                  ident,
+                  declare: false,
+                  function: func.function,
+                })
+              }
+              DefaultDecl::TsInterfaceDecl(_) => todo!(),
+            };
+            ModuleItem::Stmt(Stmt::Decl(decl))
+          }
         }
         ModuleDecl::ExportDefaultExpr(expr) => {
           let default_symbol = self.crate_virtual_default_symbol();
@@ -154,8 +191,8 @@ impl<'a> Fold for TreeShaker<'a> {
 impl<'a> TreeShaker<'a> {
   fn crate_virtual_default_symbol(&self) -> Symbol {
     let ident = GLOBALS.set(self.parse_phase_global.unwrap(), || {
-      let default = quote_ident!("default");
-      default.span.apply_mark(self.top_level_mark);
+      let mut default = quote_ident!("default");
+      default.span = default.span.apply_mark(self.top_level_mark);
       default
     });
     Symbol::from_id_and_uri(ident.to_id().into(), self.module_id)
