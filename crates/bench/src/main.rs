@@ -14,7 +14,8 @@ async fn main() {
   let guard = enable_tracing_by_env_with_chrome_layer();
   let manifest_dir = PathBuf::from(env!("CARGO_WORKSPACE_DIR"));
   // let bundle_dir = manifest_dir.join("tests/fixtures/postcss/pxtorem");
-  let bundle_dir: PathBuf = manifest_dir.join("examples/basic");
+  let bundle_dir: PathBuf =
+    manifest_dir.join("crates/rspack/tests/fixtures/rollup_unused_called_import");
   println!("{:?}", bundle_dir);
   let mut options = read_test_config_and_normalize(&bundle_dir);
   options.__emit_error = true;
@@ -27,6 +28,7 @@ async fn main() {
     .build()
     .await
     .unwrap_or_else(|e| panic!("{:?}, failed to compile in fixtrue {:?}", e, bundle_dir));
+  dbg!(&compiler.compilation.used_symbol);
   println!("{:?}", start.elapsed());
   #[cfg(feature = "tracing")]
   {
