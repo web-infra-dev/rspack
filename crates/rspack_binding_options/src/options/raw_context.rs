@@ -5,7 +5,7 @@ pub type RawContext = String;
 
 impl RawOption<Context> for RawContext {
   fn to_compiler_option(self, _options: &CompilerOptionsBuilder) -> anyhow::Result<Context> {
-    Ok(self)
+    Ok(Context::from(self))
   }
 
   fn fallback_value(_options: &CompilerOptionsBuilder) -> Self {

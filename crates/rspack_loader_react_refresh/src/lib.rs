@@ -55,10 +55,10 @@ impl Loader<CompilerContext, CompilationContext> for ReactRefreshRuntimeLoader {
   }
 }
 
-fn load_hmr_runtime(context: &String) -> String {
+fn load_hmr_runtime(context: &Path) -> String {
   let resolver = ResolverFactory::new(Default::default()).get(Default::default());
 
-  match resolver.resolve(Path::new(&context), "react-refresh/runtime") {
+  match resolver.resolve(context, "react-refresh/runtime") {
     Ok(ResolveResult::Info(info)) => {
       let path = info.path;
       let runtime = std::fs::read_to_string(
@@ -103,7 +103,7 @@ fn load_hmr_runtime(context: &String) -> String {
     _ => {
       println!(
         "[warning]: Not found react-refresh in {}, please install it.",
-        &context
+        context.display()
       );
       String::new()
     }

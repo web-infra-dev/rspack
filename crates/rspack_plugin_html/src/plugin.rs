@@ -66,7 +66,7 @@ impl Plugin for HtmlPlugin {
         let content = fs::read_to_string(&resolved_template).context(format!(
           "failed to read `{}` from `{}`",
           url.path(),
-          &compilation.options.context
+          &compilation.options.context.display()
         ))?;
         (content, resolved_template.to_string_lossy().to_string())
       }

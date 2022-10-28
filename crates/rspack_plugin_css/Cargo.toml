@@ -25,7 +25,6 @@ rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 serde = "1.0.144"
 serde_json = "1.0.85"
-sugar_path = "0.0.5"
 swc_atoms = "0.4.18"
 swc_common = { version = "0.29.3", features = ["concurrent"] }
 swc_css = "0.127.5"
