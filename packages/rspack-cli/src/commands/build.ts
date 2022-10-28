@@ -1,6 +1,6 @@
 import { rspack } from "@rspack/core";
 import * as util from "util";
-import * as fs from 'fs';
+import * as fs from "fs";
 import type { RspackCLI } from "../rspack-cli";
 import { RspackCommand } from "../types";
 import { commonOptions } from "../utils/options";
@@ -18,7 +18,7 @@ export class BuildCommand implements RspackCommand {
 						describe: "analyze"
 					},
 					json: {
-						describe: "emit stats json",
+						describe: "emit stats json"
 					}
 				}),
 			async options => {
@@ -47,9 +47,11 @@ export class BuildCommand implements RspackCommand {
 				console.timeEnd("build");
 
 				if (options.json) {
-					const { stringifyStream: createJsonStringifyStream } = await import("@discoveryjs/json-ext");
+					const { stringifyStream: createJsonStringifyStream } = await import(
+						"@discoveryjs/json-ext"
+					);
 					const logger = cli.getLogger();
-					const handleWriteError = (error) => {
+					const handleWriteError = error => {
 						logger.error(error);
 						process.exit(2);
 					};
@@ -59,14 +61,18 @@ export class BuildCommand implements RspackCommand {
 							.pipe(process.stdout)
 							.on("error", handleWriteError)
 							.on("close", () => process.stdout.write("\n"));
-					} else if (typeof options.json === 'string') {
+					} else if (typeof options.json === "string") {
 						createJsonStringifyStream(statsJson)
 							.on("error", handleWriteError)
 							.pipe(fs.createWriteStream(options.json))
 							.on("error", handleWriteError)
 							// Use stderr to logging
 							.on("close", () => {
-								process.stderr.write(`[rspack-cli] ${cli.colors.green(`stats are successfully stored as json to ${options.json}`)}\n`);
+								process.stderr.write(
+									`[rspack-cli] ${cli.colors.green(
+										`stats are successfully stored as json to ${options.json}`
+									)}\n`
+								);
 							});
 					}
 				}
