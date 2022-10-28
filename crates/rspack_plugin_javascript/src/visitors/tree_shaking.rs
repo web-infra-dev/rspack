@@ -118,9 +118,13 @@ impl<'a> Fold for TreeShaker<'a> {
           Decl::TsEnum(_) => todo!(),
           Decl::TsModule(_) => todo!(),
         },
-        ModuleDecl::ExportNamed(_) => {
+        ModuleDecl::ExportNamed(named) => {
+          if named.src.is_some() {
+            ModuleItem::ModuleDecl(ModuleDecl::ExportNamed(named))
+          } else {
+            todo!()
+          }
           // TODO: TODO!
-          ModuleItem::ModuleDecl(module_decl)
         }
         ModuleDecl::ExportDefaultDecl(_) => {
           // TODO: TODO!
