@@ -38,6 +38,7 @@ sync_bnpm:
 	@bnpm sync @rspack/plugin-less
 	@bnpm sync @rspack/plugin-postcss
 	@bnpm sync @rspack/cli
+	@bnpm sync @rspack/binding
 release-snapshot:
 	@pnpm version:snapshot
 	@./x build js-release
