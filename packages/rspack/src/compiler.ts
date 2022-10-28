@@ -281,17 +281,16 @@ class Compiler {
 			// TODO: it means there a lot of things to do....
 
 			// store the changed file path, it may or may not be consumed right now
-			pendingChangedFilepaths.add(changedFilepath);
+			if (!isBuildFinished) {
+				pendingChangedFilepaths.add(changedFilepath);
+				console.log(
+					"hit change but rebuild is not finished, caching files: ",
+					pendingChangedFilepaths
+				);
+				return;
+			}
 
-			const rebuildWithFilepaths = changedFilepath => {
-				if (!isBuildFinished) {
-					console.log(
-						"hit change but rebuild is not finished, caching files: ",
-						pendingChangedFilepaths
-					);
-					return;
-				}
-
+			const rebuildWithFilepaths = (changedFilepath: string[]) => {
 				// Rebuild finished, we can start to rebuild again
 				isBuildFinished = false;
 				console.log("hit change and start to build");
@@ -307,7 +306,6 @@ class Compiler {
 						const pending = [...pendingChangedFilepaths];
 						pendingChangedFilepaths.clear();
 						rebuildWithFilepaths(pending);
-						return;
 					}
 
 					if (error) {
@@ -339,7 +337,7 @@ class Compiler {
 				});
 			};
 
-			rebuildWithFilepaths([...pendingChangedFilepaths]);
+			rebuildWithFilepaths([...pendingChangedFilepaths, changedFilepath]);
 		});
 
 		return {
