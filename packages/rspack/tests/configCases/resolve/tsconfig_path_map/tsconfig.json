@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "fake": ["./real.js"]
+    }
+  }
+}
