@@ -1,4 +1,4 @@
-use std::{collections::HashSet, sync::Arc};
+use std::{collections::HashSet, path::PathBuf, sync::Arc};
 
 pub type AliasMap = nodejs_resolver::AliasMap;
 
@@ -27,6 +27,8 @@ pub struct Resolve {
   /// related to the order in which the export field
   /// fields are written.
   pub condition_names: Option<Vec<String>>,
+  /// the path of tsconfig.
+  pub tsconfig: Option<PathBuf>,
 }
 
 impl Resolve {

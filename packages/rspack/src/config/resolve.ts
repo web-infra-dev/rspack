@@ -6,6 +6,7 @@ export type Resolve = {
 	browserField?: boolean;
 	conditionNames?: string[];
 	alias?: Record<string, string>;
+	tsConfigPath?: string;
 };
 
 export type ResolvedResolve = {
@@ -16,6 +17,7 @@ export type ResolvedResolve = {
 	browserField: boolean;
 	conditionNames: string[];
 	alias: Record<string, string>;
+	tsConfigPath: string;
 };
 
 export function resolveResolveOptions(resolve: Resolve = {}): ResolvedResolve {
@@ -33,6 +35,7 @@ export function resolveResolveOptions(resolve: Resolve = {}): ResolvedResolve {
 	const browserField = resolve.browserField ?? true;
 	const alias = resolve.alias ?? {};
 	const conditionNames = resolve.conditionNames ?? ["module", "import"];
+	const tsConfigPath = resolve.tsConfigPath ?? "";
 	return {
 		preferRelative,
 		extensions,
@@ -40,6 +43,7 @@ export function resolveResolveOptions(resolve: Resolve = {}): ResolvedResolve {
 		mainFields,
 		browserField,
 		conditionNames,
-		alias
+		alias,
+		tsConfigPath
 	};
 }

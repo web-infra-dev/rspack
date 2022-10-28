@@ -117,6 +117,7 @@ describe("snapshots", () => {
 		      "index",
 		    ],
 		    "preferRelative": false,
+		    "tsConfigPath": "",
 		  },
 		  "stats": {
 		    "colors": false,
