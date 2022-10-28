@@ -1,4 +1,6 @@
-use swc_html::ast::{Child, Element};
+use swc_atoms::JsWord;
+use swc_common::DUMMY_SP;
+use swc_html::ast::{Attribute, Child, Element, Namespace, Text};
 use swc_html::visit::{VisitMut, VisitMutWith};
 
 use crate::config::{HtmlPluginConfig, HtmlPluginConfigInject, HtmlPluginConfigScriptLoading};
@@ -117,6 +119,114 @@ impl VisitMut for AssetWriter<'_> {
 
     match &*n.tag_name {
       "head" => {
+        // add title
+        if let Some(title) = &self.config.title {
+          let title_ele = n.children.iter_mut().find(|child| {
+            if let Child::Element(ele) = child {
+              return ele.tag_name.eq("title");
+            }
+            false
+          });
+
+          if let Some(Child::Element(title_ele)) = title_ele {
+            title_ele.children = vec![Child::Text(Text {
+              span: DUMMY_SP,
+              data: JsWord::from(title.as_str()),
+              raw: None,
+            })];
+          } else {
+            n.children.push(Child::Element(Element {
+              tag_name: JsWord::from("title"),
+              children: vec![Child::Text(Text {
+                span: DUMMY_SP,
+                data: JsWord::from(title.as_str()),
+                raw: None,
+              })],
+              is_self_closing: false,
+              namespace: Namespace::HTML,
+              span: DUMMY_SP,
+              attributes: vec![],
+              content: None,
+            }));
+          }
+        }
+
+        // add favicon
+        if let Some(favicon) = &self.config.favicon {
+          n.children.push(Child::Element(Element {
+            tag_name: JsWord::from("link"),
+            children: vec![],
+            is_self_closing: true,
+            namespace: Namespace::HTML,
+            span: DUMMY_SP,
+            attributes: vec![
+              Attribute {
+                span: Default::default(),
+                namespace: None,
+                prefix: None,
+                name: "rel".into(),
+                raw_name: None,
+                value: Some("icon".into()),
+                raw_value: None,
+              },
+              Attribute {
+                span: Default::default(),
+                namespace: None,
+                prefix: None,
+                name: "type".into(),
+                raw_name: None,
+                value: Some("image/x-icon".into()),
+                raw_value: None,
+              },
+              Attribute {
+                span: Default::default(),
+                namespace: None,
+                prefix: None,
+                name: "href".into(),
+                raw_name: None,
+                value: Some(favicon.clone().into()),
+                raw_value: None,
+              },
+            ],
+            content: None,
+          }));
+        }
+
+        // add meta tags
+        if let Some(meta) = &self.config.meta {
+          for (key, value) in meta.iter() {
+            let meta_ele = Element {
+              tag_name: JsWord::from("meta"),
+              attributes: vec![
+                Attribute {
+                  span: Default::default(),
+                  namespace: None,
+                  prefix: None,
+                  name: "name".into(),
+                  raw_name: None,
+                  value: Some(key.clone().into()),
+                  raw_value: None,
+                },
+                Attribute {
+                  span: Default::default(),
+                  namespace: None,
+                  prefix: None,
+                  name: "content".into(),
+                  raw_name: None,
+                  value: Some(value.clone().into()),
+                  raw_value: None,
+                },
+              ],
+              children: vec![],
+              content: None,
+              is_self_closing: true,
+              namespace: Namespace::HTML,
+              span: DUMMY_SP,
+            };
+            n.children.push(Child::Element(meta_ele));
+          }
+        }
+
         for tag in head_tags.iter() {
           let new_element = create_element(tag);
           n.children.push(Child::Element(new_element));
