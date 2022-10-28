@@ -95,7 +95,10 @@ pub fn run_before_pass(
         syntax.typescript()
       ),
       swc_visitor::reserved_words(),
-      swc_visitor::inject_helpers()
+      swc_visitor::inject_helpers(),
+      // The ordering of these two is important, `expr_simplifier` goes first and `dead_branch_remover` goes second.
+      swc_visitor::expr_simplifier(unresolved_mark, Default::default()),
+      swc_visitor::dead_branch_remover(unresolved_mark),
     );
     let ast = ast.fold_with(&mut pass);
     Ok(ast)

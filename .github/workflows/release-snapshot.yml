@@ -1,7 +1,7 @@
 name: release snapshot
-
 on:
-  workflow_dispatch:
+  issue_comment:
+    types: [created]
 jobs:
   release:
     name: release-snapshot

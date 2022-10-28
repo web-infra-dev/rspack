@@ -4,7 +4,7 @@ module.exports = {
     main: "./src/index.jsx",
   },
   define: {
-    "process.env.NODE_ENV": "development",
+    "process.env.NODE_ENV": "'development'",
   },
   builtins: {
     html: [{}],

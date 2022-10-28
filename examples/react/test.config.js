@@ -40,7 +40,7 @@ module.exports = {
       template: './index.html'
     }],
     define : {
-      'process.env.NODE_ENV' : '"development"',
+      'process.env.NODE_ENV' : "'development'"
     },
     progress: {},
     react: {
