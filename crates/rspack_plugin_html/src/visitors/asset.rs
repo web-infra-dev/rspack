@@ -15,8 +15,6 @@ pub struct HTMLPluginTag {
   pub void_tag: bool,
   // `head` or `body`
   pub append_to: HtmlPluginConfigInject,
-  // future
-  pub meta: (),
 }
 
 impl HTMLPluginTag {
@@ -34,7 +32,6 @@ impl HTMLPluginTag {
           attr_value: Some("stylesheet".to_string()),
         },
       ],
-      meta: (),
       void_tag: true,
     }
   }
@@ -68,7 +65,6 @@ impl HTMLPluginTag {
       tag_name: "script".to_string(),
       append_to: append_to.unwrap_or(HtmlPluginConfigInject::Body),
       attributes,
-      meta: (),
       void_tag: false,
     }
   }
