@@ -235,6 +235,13 @@ function createCLI() {
 			});
 			log.info("run script finished");
 		});
+	cli
+		.command("pkg-version")
+		.option("show package version for release note")
+		.action(args => {
+			const { version } = require("../packages/rspack-cli/package.json");
+			console.log(version);
+		});
 	return cli;
 }
 
