@@ -36,11 +36,16 @@ describe("Stats", () => {
 		  ],
 		  "chunks": [
 		    {
+		      "entry": true,
 		      "files": [
 		        "main.js",
 		        "runtime.js",
 		      ],
 		      "id": "main",
+		      "initial": true,
+		      "names": [
+		        "main",
+		      ],
 		      "type": "chunk",
 		    },
 		  ],

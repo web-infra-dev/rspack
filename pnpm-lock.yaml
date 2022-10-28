@@ -249,6 +249,7 @@ importers:
 
   packages/rspack-cli:
     specifiers:
+      '@discoveryjs/json-ext': ^0.5.7
       '@rspack/core': workspace:*
       '@rspack/dev-server': workspace:*
       '@types/webpack-bundle-analyzer': ^4.6.0
@@ -262,6 +263,7 @@ importers:
       webpack-dev-server: 4.11.1
       yargs: 17.5.1
     dependencies:
+      '@discoveryjs/json-ext': 0.5.7
       '@rspack/core': link:../rspack
       '@rspack/dev-server': link:../rspack-dev-server
       colorette: 2.0.19
@@ -1253,7 +1255,6 @@ packages:
   /@discoveryjs/json-ext/0.5.7:
     resolution: {integrity: sha512-dBVuXR082gk3jsFp7Rd/JI4kytwGHecnCoTtXFb7DB6CNHp4rg5k1bhg0nWdLGLnOV71lmDzGQaLMy8iPLY0pw==}
     engines: {node: '>=10.0.0'}
-    dev: true
 
   /@esbuild/android-arm/0.15.9:
     resolution: {integrity: sha512-VZPy/ETF3fBG5PiinIkA0W/tlsvlEgJccyN2DzWZEl0DlVKRbu91PvY2D6Lxgluj4w9QtYHjOWjAT44C+oQ+EQ==}

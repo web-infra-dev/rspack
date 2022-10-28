@@ -87,6 +87,9 @@ pub struct StatsChunk {
   pub r#type: &'static str,
   pub files: Vec<String>,
   pub id: String,
+  pub entry: bool,
+  pub initial: bool,
+  pub names: Vec<String>,
 }
 
 impl From<rspack_core::StatsChunk> for StatsChunk {
@@ -95,6 +98,9 @@ impl From<rspack_core::StatsChunk> for StatsChunk {
       r#type: stats.r#type,
       files: stats.files,
       id: stats.id,
+      entry: stats.entry,
+      initial: stats.initial,
+      names: stats.names,
     }
   }
 }
