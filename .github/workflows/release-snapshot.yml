@@ -37,6 +37,6 @@ jobs:
       - name: release snapshot
         run: |
           echo "::set-output name=comment::hello"
-          make release-snapshot
+          make snapshot_ci
           comment=$(./x pkg-version)
           echo "::set-output name=comment::$comment"
