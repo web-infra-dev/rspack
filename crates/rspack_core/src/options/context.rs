@@ -1,6 +1,6 @@
 use std::{
   ops::{Deref, DerefMut},
-  path::PathBuf,
+  path::{Path, PathBuf},
 };
 
 use crate::contextify;
@@ -8,6 +8,12 @@ use crate::contextify;
 #[derive(Debug, Default)]
 pub struct Context {
   inner: PathBuf,
+}
+
+impl AsRef<Path> for Context {
+  fn as_ref(&self) -> &Path {
+    &self.inner
+  }
 }
 
 impl From<String> for Context {
