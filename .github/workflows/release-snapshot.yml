@@ -23,10 +23,6 @@ jobs:
         with:
           node-version: "16"
           architecture: "arm64"
-      - name: Install protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: install pnpm
         run: |
           npm install -g pnpm
