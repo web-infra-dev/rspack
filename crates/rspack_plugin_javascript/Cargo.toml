@@ -22,6 +22,7 @@ rayon = "1.5.3"
 regex = "1.6.0"
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
+rspack_symbol = { path = "../rspack_symbol" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sourcemap = "6.2.0"
@@ -40,3 +41,4 @@ swc_ecma_transforms = { version = "0.198.27", features = [
 swc_ecma_utils = "0.105.25"
 swc_ecma_visit = "0.80.14"
 tracing = "0.1.34"
+ustr = "0.9.0"

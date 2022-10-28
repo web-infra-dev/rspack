@@ -18,7 +18,7 @@ pub struct Symbol {
 }
 
 impl Symbol {
-  pub(crate) fn from_id_and_uri(id: BetterId, uri: Ustr) -> Self {
+  pub fn from_id_and_uri(id: BetterId, uri: Ustr) -> Self {
     Self { uri, id }
   }
 
