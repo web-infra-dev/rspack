@@ -9,10 +9,13 @@ self.__rspack_runtime__.__rspack_register__([
             enumerable: !0,
             get: ()=>foo
         });
-        var obj, foo = {
+        var foo = {
             value: 1
         };
-        obj = foo, obj.value += 1;
+        function mutate(obj) {
+            return obj.value += 1, obj;
+        }
+        mutate(foo);
     },
     "./index.js": function(module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
         "use strict";
