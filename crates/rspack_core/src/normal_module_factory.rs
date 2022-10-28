@@ -86,13 +86,6 @@ impl NormalModuleFactory {
   pub async fn create(mut self, is_entry: bool) {
     match self.factorize().await {
       Ok(maybe_module) => {
-        debug_assert!(
-          !self.tx.is_closed(),
-          "failed as the receiver end has already been dropped. active_task_count {}, sender {:#?}",
-          self.context.active_task_count.load(Ordering::SeqCst),
-          self.tx
-        );
-
         if let Some((mgm, module, original_module_identifier, dependency_id)) = maybe_module {
           let diagnostic = std::mem::take(&mut self.diagnostic);
 
@@ -123,13 +116,6 @@ impl NormalModuleFactory {
         }
       }
       Err(err) => {
-        debug_assert!(
-          !self.tx.is_closed(),
-          "failed as the receiver end has already been dropped. active_task_count {}, sender {:#?}",
-          self.context.active_task_count.load(Ordering::SeqCst),
-          self.tx
-        );
-
         // If build error message is failed to send, then we should manually decrease the active task count
         // Otherwise, it will be gracefully handled by the error message handler.
         if let Err(err) = self.tx.send(Msg::ModuleCreationErrorEncountered(err)) {
@@ -224,13 +210,6 @@ impl NormalModuleFactory {
     }
 
     let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
-
-    debug_assert!(
-      !self.tx.is_closed(),
-      "failed as the receiver end has already been dropped. active_task_count {}, sender {:#?}",
-      self.context.active_task_count.load(Ordering::SeqCst),
-      self.tx
-    );
 
     self
       .tx
@@ -369,13 +348,6 @@ impl NormalModuleFactory {
       let (uri, module) = module;
       // TODO: remove this
       let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
-
-      debug_assert!(
-        !self.tx.is_closed(),
-        "failed as the receiver end has already been dropped. active_task_count {}, sender {:#?}",
-        self.context.active_task_count.load(Ordering::SeqCst),
-        self.tx
-      );
 
       self
         .tx
