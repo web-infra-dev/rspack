@@ -13,7 +13,11 @@ use hashbrown::{
 };
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use swc_common::GLOBALS;
+<<<<<<< HEAD
 use tokio::sync::mpsc::UnboundedSender;
+=======
+use tokio::sync::mpsc::{error::TryRecvError, UnboundedSender};
+>>>>>>> 0f488f2b (fix: schedule)
 use tracing::instrument;
 
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity};
@@ -174,9 +178,9 @@ impl Compilation {
       tokio::task::spawn(async move { normal_module_factory.create(true).await });
     });
 
-    while active_task_count.load(Ordering::SeqCst) != 0 {
-      match rx.recv().await {
-        Some(job) => match job {
+    loop {
+      match rx.try_recv() {
+        Ok(item) => match item {
           Msg::ModuleCreated(module_with_diagnostic) => {
             let (mgm, module, original_module_identifier, dependency_id, dependency, is_entry) =
               *module_with_diagnostic.inner;
@@ -296,8 +300,13 @@ impl Compilation {
             self.push_batch_diagnostic(err.into());
           }
         },
-        None => {
-          tracing::debug!("All sender is dropped");
+        Err(TryRecvError::Disconnected) => {
+          break;
+        }
+        Err(TryRecvError::Empty) => {
+          if active_task_count.load(Ordering::SeqCst) == 0 {
+            break;
+          }
         }
       }
     }
