@@ -532,7 +532,7 @@ impl<'a> ModuleRefAnalyze<'a> {
           }
           ExportSpecifier::Default(_) => {
             // Currently swc does not support syntax like `export v from 'xxx';`
-            unreachable!("Module has syntax error should not trigger tree shaking")
+            unreachable!("Module has syntax error should not reach tree shaking analyze")
           }
           ExportSpecifier::Named(named) => {
             // TODO: what if the named binding is a unresolved_binding?
@@ -543,11 +543,19 @@ impl<'a> ModuleRefAnalyze<'a> {
               // we know here export has no src,  so this branch should not reachable.
               ModuleExportName::Str(_) => unreachable!(),
             };
+
+            let exported_atom = match named.exported {
+              Some(ref exported) => match exported {
+                ModuleExportName::Ident(ident) => ident.sym.clone(),
+                ModuleExportName::Str(str) => str.value.clone(),
+              },
+              None => id.0.clone(),
+            };
             let symbol_ref = SymbolRef::Direct(Symbol::from_id_and_uri(
               id.clone().into(),
               self.module_identifier,
             ));
-            self.add_export(id.0, symbol_ref);
+            self.add_export(exported_atom, symbol_ref);
           }
         });
     };
