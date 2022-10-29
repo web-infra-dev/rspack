@@ -3,16 +3,25 @@ self.__rspack_runtime__.__rspack_register__([
 ], {
     "./foo.js": function(module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
         "use strict";
+        function _export(target, all) {
+            for(var name in all)Object.defineProperty(target, name, {
+                enumerable: !0,
+                get: all[name]
+            });
+        }
         Object.defineProperty(exports, "__esModule", {
             value: !0
-        }), Object.defineProperty(exports, "default", {
-            enumerable: !0,
-            get: ()=>_default
+        }), _export(exports, {
+            default: ()=>_default,
+            bar: ()=>bar
         });
         var foo = function() {
             return 42;
         };
         let _default = foo;
+        function bar() {
+            return contrivedExample(foo);
+        }
     },
     "./index.js": function(module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
         "use strict";

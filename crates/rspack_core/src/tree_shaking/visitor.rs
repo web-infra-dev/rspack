@@ -73,6 +73,9 @@ impl<'a> ModuleRefAnalyze<'a> {
   }
 
   pub fn add_reference(&mut self, from: BetterId, to: BetterId) {
+    if from == to {
+      return;
+    }
     match self.reference_map.entry(from) {
       std::collections::hash_map::Entry::Occupied(mut occ) => {
         occ.get_mut().insert(to);
@@ -148,6 +151,24 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       }
     }
 
+    // if some identifier reference a variable imported from other module, we mark it as used
+    let side_effect_id_list = self
+      .reference_map
+      .iter()
+      .filter(|(id, ref_list)| {
+        match self.export_map.entry(id.atom.clone()) {
+          std::collections::hash_map::Entry::Occupied(occ) => match occ.get() {
+            SymbolRef::Direct(sym) if sym.id() == *id => return false,
+            _ => {}
+          },
+          std::collections::hash_map::Entry::Vacant(_) => {}
+        }
+        ref_list
+          .iter()
+          .any(|ref_id| self.import_map.contains_key(ref_id))
+      })
+      .map(|(k, _)| k.clone());
+    self.used_id_set.extend(side_effect_id_list);
     // all reachable export from used symbol in current module
     for used_id in &self.used_id_set {
       let reachable_import = self.get_all_import_or_export(used_id.clone());
