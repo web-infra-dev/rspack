@@ -118,11 +118,45 @@ impl<'a> Fold for TreeShaker<'a> {
           Decl::TsEnum(_) => todo!(),
           Decl::TsModule(_) => todo!(),
         },
-        ModuleDecl::ExportNamed(named) => {
+        ModuleDecl::ExportNamed(mut named) => {
           if named.src.is_some() {
             ModuleItem::ModuleDecl(ModuleDecl::ExportNamed(named))
           } else {
-            todo!()
+            let before_legnth = named.specifiers.len();
+            let specifiers = named
+              .specifiers
+              .into_iter()
+              .filter(|specifier| match specifier {
+                ExportSpecifier::Namespace(_) => {
+                  // named_export has namespace specifier but no src will trigger a syntax error and should not reach here. e.g.
+                  // `export *`;
+                  unreachable!("")
+                }
+                ExportSpecifier::Default(_) => {
+                  // `export v`; is a unrecoverable syntax error, code should reach here.
+                  unreachable!("")
+                }
+
+                ExportSpecifier::Named(named_spec) => match named_spec.orig {
+                  ModuleExportName::Ident(ref ident) => {
+                    let id: BetterId = ident.to_id().into();
+                    let symbol = Symbol::from_id_and_uri(id, self.module_id);
+                    self.used_symbol_set.contains(&symbol)
+                  }
+                  ModuleExportName::Str(_) => {
+                    // named export without src has string lit orig is a syntax error
+                    // `export { "something" }`
+                    unreachable!("")
+                  }
+                },
+              })
+              .collect::<Vec<_>>();
+            let is_all_used = before_legnth != specifiers.len();
+            named.specifiers = specifiers;
+            if !is_all_used {
+              named.span = DUMMY_SP;
+            }
+            ModuleItem::ModuleDecl(ModuleDecl::ExportNamed(named))
           }
           // TODO: TODO!
         }
