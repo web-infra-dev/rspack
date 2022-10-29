@@ -604,15 +604,15 @@ impl Compilation {
         });
         // Keep this debug info until we stabilize the tree-shaking
 
-        // dbg!(
-        //   &uri_key,
-        //   // &analyzer.export_all_list,
-        //   &analyzer.export_map,
-        //   &analyzer.import_map,
-        //   &analyzer.reference_map,
-        //   &analyzer.reachable_import_and_export,
-        //   &analyzer.used_symbol_ref
-        // );
+        dbg!(
+          &uri_key,
+          // &analyzer.export_all_list,
+          &analyzer.export_map,
+          &analyzer.import_map,
+          &analyzer.reference_map,
+          &analyzer.reachable_import_and_export,
+          &analyzer.used_symbol_ref
+        );
         Some((uri_key, analyzer.into()))
       })
       .collect::<HashMap<Ustr, TreeShakingResult>>();
