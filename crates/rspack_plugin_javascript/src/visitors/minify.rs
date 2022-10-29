@@ -1,19 +1,22 @@
 use std::sync::Arc;
 
 use anyhow::{Context, Error};
+use swc_atoms::JsWord;
 use swc_common::{
+  collections::AHashMap,
   comments::{Comment, Comments},
   errors::Handler,
   BytePos, Mark, SourceFile,
 };
+use swc_ecma_ast::Ident;
 use swc_ecma_minifier::option::{MinifyOptions, TopLevelOptions};
 use swc_ecma_parser::{EsConfig, Syntax};
 use swc_ecma_transforms::{fixer, hygiene, resolver};
-use swc_ecma_visit::{FoldWith, VisitMutWith, VisitWith};
+use swc_ecma_visit::{noop_visit_type, FoldWith, Visit, VisitMutWith, VisitWith};
 
 use swc::{
   config::{IsModule, JsMinifyCommentOption, JsMinifyOptions, SourceMapsConfig},
-  BoolOr, IdentCollector, TransformOutput,
+  BoolOr, TransformOutput,
 };
 use swc_common::comments::SingleThreadedComments;
 
@@ -106,15 +109,13 @@ pub fn minify(
     .context("failed to parse input file")?;
 
   let source_map_names = if source_map.enabled() {
-    // TODO: this is just a work around, should comment out the comment once `names` of `IdentCollector` is pub
-    // let mut v = IdentCollector {
-    //   names: Default::default(),
-    // };
+    let mut v = IdentCollector {
+      names: Default::default(),
+    };
 
-    // module.visit_with(&mut v);
+    module.visit_with(&mut v);
 
-    // v.names
-    Default::default()
+    v.names
   } else {
     Default::default()
   };
@@ -193,5 +194,17 @@ pub(crate) fn minify_file_comments(
       l.clear();
       t.clear();
     }
+  }
+}
+
+pub struct IdentCollector {
+  pub names: AHashMap<BytePos, JsWord>,
+}
+
+impl Visit for IdentCollector {
+  noop_visit_type!();
+
+  fn visit_ident(&mut self, ident: &Ident) {
+    self.names.insert(ident.span.lo, ident.sym.clone());
   }
 }
