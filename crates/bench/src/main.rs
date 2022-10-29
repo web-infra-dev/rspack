@@ -14,8 +14,8 @@ async fn main() {
   let guard = enable_tracing_by_env_with_chrome_layer();
   let manifest_dir = PathBuf::from(env!("CARGO_WORKSPACE_DIR"));
   // let bundle_dir = manifest_dir.join("tests/fixtures/postcss/pxtorem");
-  let bundle_dir: PathBuf =
-    manifest_dir.join("crates/rspack/tests/fixtures/rollup_unused_inner_functions_and_classes");
+  let bundle_dir: PathBuf = manifest_dir
+    .join("crates/rspack/tests/fixtures/rollup-unmodified-default-exports-function-argument");
   println!("{:?}", bundle_dir);
   let mut options = read_test_config_and_normalize(&bundle_dir);
   options.__emit_error = true;
