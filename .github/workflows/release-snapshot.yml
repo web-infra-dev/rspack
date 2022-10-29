@@ -35,8 +35,16 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: release snapshot
+        id: release
         run: |
           echo "::set-output name=comment::hello"
           make snapshot_ci
           comment=$(./x pkg-version)
           echo "::set-output name=comment::$comment"
+      - name: Write a new comment
+        uses: peter-evans/create-or-update-comment@v1.4.5
+        continue-on-error: true
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            ${{ steps.release.outputs.comment }}
