@@ -270,7 +270,7 @@ class Compiler {
 		);
 		const begin = Date.now();
 		let stats = await util.promisify(this.unsafe_build.bind(this))();
-		console.log("build success, time cost", Date.now() - begin);
+		console.log("build success, time cost", Date.now() - begin, "ms");
 
 		let pendingChangedFilepaths = new Set<string>();
 		let isBuildFinished = true;
@@ -307,10 +307,10 @@ class Compiler {
 						pendingChangedFilepaths.clear();
 						rebuildWithFilepaths(pending);
 					}
-
 					if (error) {
 						throw error;
 					}
+
 					for (const [uri, stats] of Object.entries(diffStats)) {
 						let relativePath = path.relative(this.options.context, uri);
 						if (
@@ -321,15 +321,39 @@ class Compiler {
 
 						// send Message
 						if (ws) {
-							const data = JSON.stringify({
+							const data = {
 								uri: relativePath,
 								content: stats.content
-							});
+							};
+							if (/\.[less|css|sass|scss]$/.test(data.uri)) {
+								const cssOutput = fs
+									.readFileSync(
+										path.resolve(this.options.output.path, "main.css")
+									)
+									.toString("utf-8");
+								// TODO: need support more
+								data.content = [
+									`var cssStyleTag = document.querySelector("style[id='hot-css']")`,
+									`if (cssStyleTag) {`,
+									`  cssStyleTag.innerText = \`${cssOutput}\``,
+									`} else {`,
+									`  var newCSStyleTag = document.createElement('style')`,
+									`  newCSStyleTag.setAttribute('id', 'hot-css')`,
+									`  newCSStyleTag.innerText = \`${cssOutput}\``,
+									`  document.head.appendChild(newCSStyleTag)`,
+									`}`,
+									``,
+									`var outdataCSSLinkTag = document.querySelector("link[href='main.css']")`,
+									`outdataCSSLinkTag && outdataCSSLinkTag.parentNode && outdataCSSLinkTag.parentNode.removeChild(outdataCSSLinkTag)`
+								].join("\n");
+							}
 
 							for (const client of ws.clients) {
 								// the type of "ok" means rebuild success.
 								// the data should deleted after we had hash in stats.
-								client.send(JSON.stringify({ type: "ok", data }));
+								client.send(
+									JSON.stringify({ type: "ok", data: JSON.stringify(data) })
+								);
 							}
 						}
 					}
