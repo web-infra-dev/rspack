@@ -1944,7 +1944,6 @@ dependencies = [
  "futures",
  "hashbrown",
  "hashlink",
- "indexmap",
  "nodejs-resolver",
  "once_cell",
  "petgraph",
