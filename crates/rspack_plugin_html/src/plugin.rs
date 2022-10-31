@@ -80,7 +80,7 @@ impl Plugin for HtmlPlugin {
     // process with template parameters
     let template_result = if let Some(template_parameters) = &self.config.template_parameters {
       let mut dj = Dojang::new();
-      dj.add(url.clone(), content.to_string())
+      dj.add(url.clone(), content)
         .expect("failed to add template");
       dj.render(&url, serde_json::json!(template_parameters))
         .expect("failed to render template")
