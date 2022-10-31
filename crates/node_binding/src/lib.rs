@@ -176,31 +176,46 @@ impl Rspack {
   /// Warning:
   /// Calling this method recursively might cause a deadlock.
   #[napi(js_name = "unsafe_build", ts_return_type = "Promise<StatsCompilation>")]
-  pub fn build(&self, env: Env) -> Result<JsObject> {
+  pub fn build(&self, env: Env, f: JsFunction) -> Result<()> {
     let handle_build = |compiler: &mut _| {
       // Safety: compiler is stored in a global hashmap, so it's guaranteed to be alive.
       let compiler = unsafe {
         std::mem::transmute::<&'_ mut rspack::Compiler, &'static mut rspack::Compiler>(compiler)
       };
 
-      env.execute_tokio_future(
-        async move {
-          let rspack_stats = compiler
-            .build()
-            .await
-            .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
+      callbackify(env, f, async move {
+        let rspack_stats = compiler
+          .build()
+          .await
+          .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
 
-          let stats: StatsCompilation = rspack_stats.to_description().into();
-          if stats.errors.is_empty() {
-            tracing::info!("build success");
-          } else {
-            tracing::info!("build failed");
-          }
+        let stats: StatsCompilation = rspack_stats.to_description().into();
+        if stats.errors.is_empty() {
+          tracing::info!("build success");
+        } else {
+          tracing::info!("build failed");
+        }
 
-          Ok(stats)
-        },
-        |_env, ret| Ok(ret),
-      )
+        Ok(stats)
+      })
+      // env.execute_tokio_future(
+      //   async move {
+      //     let rspack_stats = compiler
+      //       .build()
+      //       .await
+      //       .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
+
+      //     let stats: StatsCompilation = rspack_stats.to_description().into();
+      //     if stats.errors.is_empty() {
+      //       tracing::info!("build success");
+      //     } else {
+      //       tracing::info!("build failed");
+      //     }
+
+      //     Ok(stats)
+      //   },
+      //   |_env, ret| Ok(ret),
+      // )
     };
     unsafe { COMPILERS.borrow_mut(&self.id, handle_build) }
   }
