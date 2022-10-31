@@ -420,6 +420,14 @@ impl Compilation {
             })
             .collect::<Vec<_>>();
 
+          Compilation::process_module_dependencies(
+            deps.clone(),
+            active_task_count.clone(),
+            tx.clone(),
+            plugin_driver.clone(),
+            compiler_options.clone(),
+          );
+
           // If build error message is failed to send, then we should manually decrease the active task count
           // Otherwise, it will be gracefully handled by the error message handler.
           if let Err(err) = tx.send(Msg::ModuleResolved(
@@ -427,7 +435,7 @@ impl Compilation {
               original_module_identifier.clone(),
               dependency_id,
               Box::new(module),
-              Box::new(deps.clone()),
+              Box::new(deps),
             )
               .with_diagnostic(diagnostics),
           )) {
@@ -435,14 +443,6 @@ impl Compilation {
             tracing::trace!("fail to send msg {:?}", err);
             return;
           };
-
-          Compilation::process_module_dependencies(
-            deps,
-            active_task_count.clone(),
-            tx.clone(),
-            plugin_driver.clone(),
-            compiler_options.clone(),
-          );
         }
         Err(err) => {
           // If build error message is failed to send, then we should manually decrease the active task count
