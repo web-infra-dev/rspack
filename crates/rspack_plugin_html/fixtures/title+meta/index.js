@@ -1,3 +1,3 @@
-import "./foo.css";
+import "./index.css";
 
 console.log("index.js");
