@@ -115,12 +115,12 @@ fn is_entry_uri(uri: &str, entires: &BundleEntries) -> bool {
   if uri.contains("rspack-hot-update") || uri.contains("rspack-dev-client") {
     return false;
   }
-  for value in entires.values() {
-    if value.path.eq(uri) {
-      return true;
-    }
-  }
-  false
+  entires.values().any(|items| {
+    items
+      .get(0)
+      .map(|item| item.path.eq(uri))
+      .unwrap_or_default()
+  })
 }
 
 static REACT_REFRESH_MODULE_ID: &str = "/react-refresh";

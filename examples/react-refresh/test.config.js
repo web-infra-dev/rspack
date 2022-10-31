@@ -1,7 +1,7 @@
 module.exports = {
   mode: "development",
   entry: {
-    main: "./src/index.tsx",
+    main: ["./src/index.tsx"],
   },
   output: {
     publicPath: "http://localhost:3000",

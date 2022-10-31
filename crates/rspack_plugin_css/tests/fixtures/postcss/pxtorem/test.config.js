@@ -1,13 +1,13 @@
 module.exports = {
 	entry: {
-		main: "./index.js",
+		main: ["./index.js"]
 	},
 	builtins: {
 		postcss: {
 			pxtorem: {
 				propList: ["*"],
-				rootValue: 50,
-			},
-		},
-	},
+				rootValue: 50
+			}
+		}
+	}
 };

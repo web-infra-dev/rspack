@@ -27,17 +27,18 @@ use crate::{
     symbol::Symbol,
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
   },
-  BuildContext, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey,
-  CompilerOptions, Dependency, EntryItem, Entrypoint, JavascriptAstExtend, LoaderRunnerRunner,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModule,
-  NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs,
-  RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver, Stats, VisitedModuleIdentity,
+  BuildContext, BundleEntries, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey,
+  ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint, JavascriptAstExtend,
+  LoaderRunnerRunner, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg,
+  NormalModule, NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs,
+  RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver, Stats,
+  VisitedModuleIdentity,
 };
 
 #[derive(Debug)]
 pub struct Compilation {
   pub options: Arc<CompilerOptions>,
-  entries: HashMap<String, EntryItem>,
+  entries: HashMap<String, Vec<EntryItem>>,
   pub(crate) visited_module_id: VisitedModuleIdentity,
   pub module_graph: ModuleGraph,
   pub chunk_graph: ChunkGraph,
@@ -61,7 +62,7 @@ pub struct Compilation {
 impl Compilation {
   pub fn new(
     options: Arc<CompilerOptions>,
-    entries: std::collections::HashMap<String, EntryItem>,
+    entries: BundleEntries,
     visited_module_id: VisitedModuleIdentity,
     module_graph: ModuleGraph,
     plugin_driver: SharedPluginDriver,
@@ -91,7 +92,7 @@ impl Compilation {
     }
   }
   pub fn add_entry(&mut self, name: String, detail: EntryItem) {
-    self.entries.insert(name, detail);
+    self.entries.insert(name, vec![detail]);
   }
 
   pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
@@ -128,14 +129,15 @@ impl Compilation {
     chunk_by_ukey.get_mut(&ukey).expect("chunk not found")
   }
   #[instrument(name = "entry_deps")]
-  pub fn entry_dependencies(&self) -> HashMap<String, Dependency> {
+  pub fn entry_dependencies(&self) -> HashMap<String, Vec<Dependency>> {
     self
       .entries
       .iter()
-      .map(|(name, detail)| {
-        (
-          name.clone(),
-          Dependency {
+      .map(|(name, items)| {
+        let name = name.clone();
+        let items = items
+          .iter()
+          .map(|detail| Dependency {
             importer: None,
             parent_module_identifier: None,
             detail: ModuleDependency {
@@ -143,35 +145,37 @@ impl Compilation {
               kind: ResolveKind::Import,
               span: None,
             },
-          },
-        )
+          })
+          .collect();
+        (name, items)
       })
       .collect()
   }
 
   #[instrument(name = "compilation:make")]
-  pub async fn make(&mut self, entry_deps: HashMap<String, Dependency>) {
+  pub async fn make(&mut self, entry_deps: HashMap<String, Vec<Dependency>>) {
     if let Some(e) = self.plugin_driver.clone().read().await.make(self).err() {
       self.push_batch_diagnostic(e.into());
     }
     let active_task_count: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
 
-    entry_deps.into_iter().for_each(|(name, dep)| {
-      let normal_module_factory = NormalModuleFactory::new(
-        NormalModuleFactoryContext {
-          module_name: Some(name),
-          active_task_count: active_task_count.clone(),
-          module_type: None,
-          side_effects: None,
-          options: self.options.clone(),
-        },
-        dep,
-        tx.clone(),
-        self.plugin_driver.clone(),
-      );
-
-      tokio::task::spawn(async move { normal_module_factory.create(true).await });
+    entry_deps.into_iter().for_each(|(_, deps)| {
+      deps.into_iter().for_each(|dep| {
+        let normal_module_factory = NormalModuleFactory::new(
+          NormalModuleFactoryContext {
+            module_name: None,
+            active_task_count: active_task_count.clone(),
+            module_type: None,
+            side_effects: None,
+            options: self.options.clone(),
+          },
+          dep,
+          tx.clone(),
+          self.plugin_driver.clone(),
+        );
+        tokio::task::spawn(async move { normal_module_factory.create(true).await });
+      })
     });
 
     while active_task_count.load(Ordering::SeqCst) != 0 {

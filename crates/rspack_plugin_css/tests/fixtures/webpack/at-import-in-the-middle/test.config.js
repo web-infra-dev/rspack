@@ -1,5 +1,5 @@
 module.exports = {
-  entry: {
-    main: "./index.css",
-  },
+	entry: {
+		main: ["./index.css"]
+	}
 };

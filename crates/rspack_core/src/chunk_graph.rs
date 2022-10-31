@@ -35,7 +35,7 @@ impl ChunkGraph {
     chunk_by_ukey.get(ukey)
   }
 
-  pub fn get_chunk_entry_modules(&self, chunk_ukey: &ChunkUkey) -> HashSet<&String> {
+  pub fn get_chunk_entry_modules(&self, chunk_ukey: &ChunkUkey) -> Vec<&String> {
     let chunk_graph_chunk = self.get_chunk_graph_chunk(chunk_ukey);
 
     chunk_graph_chunk.entry_modules.keys().collect()
@@ -183,8 +183,10 @@ impl ChunkGraphModule {
 
 #[derive(Debug, Default)]
 pub struct ChunkGraphChunk {
-  // URI of modules => ChunkGroupUkey
-  pub(crate) entry_modules: HashMap<String, ChunkGroupUkey>,
+  /// URI of modules => ChunkGroupUkey
+  ///
+  /// use `LinkedHashMap` to keep the ordered from entry array.
+  pub(crate) entry_modules: hashlink::LinkedHashMap<String, ChunkGroupUkey>,
   pub(crate) modules: HashSet<String>,
 }
 

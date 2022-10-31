@@ -1,14 +1,14 @@
 module.exports = {
 	entry: {
-		main: "./index.js"
+		main: ["./index.js"]
 	},
 	optimization: {
 		splitChunks: {
 			cacheGroups: {
 				vendor: {
-					chunks: 'all',
+					chunks: "all",
 					name: "vendor",
-					test: 'foo'
+					test: "foo"
 				}
 			}
 		}

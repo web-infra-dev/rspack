@@ -306,29 +306,33 @@ impl Plugin for JsPlugin {
     let sources = module_code_array
       .into_par_iter()
       .flatten()
-      .chain([{
+      .chain({
         if chunk.has_entry_module(&args.compilation.chunk_graph) && !has_inline_runtime {
           // TODO: how do we handle multiple entry modules?
-          let entry_module_uri = args
+          let entry_uri_list = args
             .compilation
             .chunk_graph
-            .get_chunk_entry_modules(&args.chunk_ukey)
+            .get_chunk_entry_modules(&args.chunk_ukey);
+          entry_uri_list
             .into_iter()
-            .next()
-            .unwrap_or_else(|| panic!("entry module not found"));
-          let entry_module_id = &args
-            .compilation
-            .module_graph
-            .module_by_uri(entry_module_uri)
-            .unwrap_or_else(|| panic!("entry module not found"))
-            .id;
-          compilation
-            .runtime
-            .generate_rspack_execute(namespace, RSPACK_REQUIRE, entry_module_id)
+            .map(|uri| {
+              let entry_module_id = &args
+                .compilation
+                .module_graph
+                .module_by_uri(uri)
+                .unwrap_or_else(|| panic!("entry module not found"))
+                .id;
+              compilation.runtime.generate_rspack_execute(
+                namespace,
+                RSPACK_REQUIRE,
+                entry_module_id,
+              )
+            })
+            .collect()
         } else {
-          RawSource::from(String::new()).boxed()
+          vec![RawSource::from(String::new()).boxed()]
         }
-      }])
+      })
       .fold(ConcatSource::default, |mut output, cur| {
         output.add(cur);
         output
