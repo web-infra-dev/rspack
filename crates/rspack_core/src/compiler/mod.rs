@@ -253,7 +253,6 @@ pub enum Msg {
   ModuleCreated(ModuleCreatedData),
   ModuleReused(TWithDiagnosticArray<(Option<ModuleIdentifier>, u32, ModuleIdentifier)>),
   ModuleResolved(ModuleResolvedData),
-  ModuleGraphModuleCreated(ModuleGraphModule),
   ModuleBuiltErrorEncountered(ModuleIdentifier, Error),
   ModuleCreationCanceled,
   ModuleCreationErrorEncountered(Error),
