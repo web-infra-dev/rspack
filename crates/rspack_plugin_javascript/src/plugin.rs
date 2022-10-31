@@ -389,7 +389,6 @@ impl Plugin for JsPlugin {
         let minify_options = get_js_minify_options(
           !compilation.options.devtool.cheap(),
           input_source_map.is_some(),
-          minify,
           tree_shaking,
         );
         let output = GLOBALS.set(&Default::default(), || {
@@ -427,7 +426,6 @@ impl Plugin for JsPlugin {
 fn get_js_minify_options(
   emit_source_map_columns: bool,
   has_source_map: bool,
-  minify: bool,
   tree_shaking: bool,
 ) -> JsMinifyOptions {
   let mut options = JsMinifyOptions {

@@ -1,3 +1,3 @@
-import { answeranswer } from './answer'
+import { answer } from './answer'
 export const secret = '24'
-export const myanswer = 100;
+export const myanswer = answer
