@@ -6,12 +6,8 @@ import { rspack, RspackOptions } from "../src";
 import assert from "assert";
 import createLazyTestEnv from "./helpers/createLazyTestEnv";
 
-// We do not support externalsType.node-commonjs yet, so I have to use eval to hack around the limitation
-function toEval(modName: string) {
-	return `eval('require("${modName}")')`;
-}
 // most of these could be removed when we support external builtins by default
-const externalModule = ["uvu", "path", "fs", "expect", "source-map"];
+const externalModule = ["uvu", "path", "fs", "expect", "source-map", "util"];
 export function describeCases(config: { name: string; casePath: string }) {
 	const casesPath = path.resolve(__dirname, config.casePath);
 	let categoriesDir = fs.readdirSync(casesPath);
@@ -51,10 +47,10 @@ export function describeCases(config: { name: string; casePath: string }) {
 								config = require(configFile);
 							}
 							const externals = Object.fromEntries(
-								externalModule.map(x => [x, toEval(x)])
+								externalModule.map(x => [x, x])
 							);
 							const options: RspackOptions = {
-								target: ["webworker"], // FIXME when target=commonjs supported
+								target: "node", // FIXME when target=commonjs supported
 								context: testRoot,
 								entry: {
 									main: "./"
@@ -67,6 +63,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 									debug: false
 								},
 								externals,
+								externalsType: "node-commonjs",
 								...config // we may need to use deepMerge to handle config merge, but we may fix it until we need it
 							};
 							const stats = await util.promisify(rspack)(options);

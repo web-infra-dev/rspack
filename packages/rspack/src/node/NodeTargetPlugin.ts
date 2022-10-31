@@ -51,19 +51,16 @@ const builtins = [
 	"wasi",
 	"worker_threads",
 	"zlib",
-	/^node:/,
+	// /^node:/,
 
 	// cspell:word pnpapi
 	// Yarn PnP adds pnpapi as "builtin"
 	"pnpapi"
 ];
-// We do not support externalsType.node-commonjs yet, so I have to use eval to hack around the limitation
-function toEval(modName) {
-	return `eval('require("${modName}")')`;
-}
+
 export class NodeTargetPlugin {
 	apply(compiler: Compiler) {
-		const externals = Object.fromEntries(builtins.map(x => [x, toEval(x)]));
+		const externals = Object.fromEntries(builtins.map(x => [x, x]));
 		compiler.options.externals = {
 			...externals,
 			...compiler.options.externals

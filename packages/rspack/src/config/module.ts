@@ -5,6 +5,7 @@ import { ResolvedContext } from "./context";
 import { isUseSourceMap, ResolvedDevtool } from "./devtool";
 
 export interface ModuleRule {
+	name?: string;
 	test?: RawModuleRule["test"];
 	resource?: RawModuleRule["resource"];
 	resourceQuery?: RawModuleRule["resourceQuery"];
@@ -189,10 +190,12 @@ type ModuleRuleUse =
 	| {
 			builtinLoader: BuiltinLoader;
 			options?: unknown;
+			name?: string;
 	  }
 	| {
 			loader: JsLoader;
 			options?: unknown;
+			name?: string;
 	  };
 
 export function createRawModuleRuleUses(

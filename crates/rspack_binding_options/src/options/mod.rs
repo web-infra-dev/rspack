@@ -82,7 +82,7 @@ pub struct RawOptions {
   #[napi(ts_type = "Record<string, string>")]
   pub externals: Option<RawExternal>,
   #[napi(ts_type = "string")]
-  pub external_type: Option<RawExternalType>,
+  pub externals_type: Option<RawExternalType>,
   #[napi(ts_type = "string")]
   pub devtool: Option<RawDevtool>,
   pub optimization: Option<RawOptimizationOptions>,
@@ -96,7 +96,7 @@ pub struct RawOptions {
   pub mode: Option<RawMode>,
   pub target: Option<RawTarget>,
   pub externals: Option<RawExternal>,
-  pub external_type: Option<RawExternalType>,
+  pub externals_type: Option<RawExternalType>,
   // pub platform: Option<String>,
   pub context: Option<RawContext>,
   // pub loader: Option<HashMap<String, String>>,
@@ -173,7 +173,7 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
       Ok(options)
     })?
     .then(|mut options| {
-      let external_type = RawOption::raw_to_compiler_option(raw_options.external_type, &options)?;
+      let external_type = RawOption::raw_to_compiler_option(raw_options.externals_type, &options)?;
       options.external_type = Some(external_type);
       Ok(options)
     })?
