@@ -91,7 +91,7 @@ impl Compiler {
   }
 
   #[instrument(name = "compile")]
-  async fn compile(&mut self, deps: HashMap<String, Dependency>) -> Result<()> {
+  async fn compile(&mut self, deps: HashMap<String, Vec<Dependency>>) -> Result<()> {
     let option = self.options.clone();
     self.compilation.make(deps).await;
     if option.builtins.tree_shaking {

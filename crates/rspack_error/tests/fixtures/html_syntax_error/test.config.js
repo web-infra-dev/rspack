@@ -1,12 +1,12 @@
 module.exports = {
 	entry: {
-		main: "./index.js",
+		main: ["./index.js"]
 	},
 	builtins: {
 		html: [
 			{
-				template: "index.html",
-			},
-		],
-	},
+				template: "index.html"
+			}
+		]
+	}
 };

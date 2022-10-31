@@ -36,7 +36,7 @@ impl RawOptionsExt for RawOptions {
       RawOptions {
         entry: Some(HashMap::from([(
           "main".to_string(),
-          fixture_path.join("index.js").to_str().unwrap().to_string(),
+          vec![fixture_path.join("index.js").to_str().unwrap().to_string()],
         )])),
         ..Default::default()
       }

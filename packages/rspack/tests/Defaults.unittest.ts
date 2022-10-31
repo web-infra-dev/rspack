@@ -90,7 +90,11 @@ describe("snapshots", () => {
 		    "webSocketServer": {},
 		  },
 		  "devtool": "",
-		  "entry": {},
+		  "entry": {
+		    "main": [
+		      "<cwd>/src/index.js",
+		    ],
+		  },
 		  "externalType": "",
 		  "externals": {},
 		  "infrastructureLogging": {},
@@ -628,6 +632,9 @@ describe("snapshots", () => {
 			@@ ... @@
 			-       "directory": "<cwd>/dist",
 			+       "directory": "<cwd>/tests/fixtures/browserslist/dist",
+			@@ ... @@
+			-       "<cwd>/src/index.js",
+			+       "<cwd>/tests/fixtures/browserslist/src/index.js",
 		`)
 	);
 
@@ -652,6 +659,9 @@ describe("snapshots", () => {
 			@@ ... @@
 			-       "directory": "<cwd>/dist",
 			+       "directory": "<cwd>/tests/fixtures/dist",
+			@@ ... @@
+			-       "<cwd>/src/index.js",
+			+       "<cwd>/tests/fixtures/src/index.js",
 		`),
 		() => {
 			process.chdir(path.resolve(__dirname, "fixtures"));

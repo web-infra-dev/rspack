@@ -1,7 +1,7 @@
 module.exports = {
   mode : 'development',
   entry : {
-    main : './src/index.js',
+    main : ['./src/index.js'],
   },
   output : {
     // publicPath : 'http://localhost:3000',
