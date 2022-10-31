@@ -251,36 +251,6 @@ impl Rspack {
         tracing::info!("rebuild success");
         Ok(stats)
       })
-
-      // env.execute_tokio_future(
-      //   async move {
-      //     let diff = compiler
-      //       .rebuild(
-      //         HashSet::from_iter(changed_files.into_iter()),
-      //         HashSet::from_iter(removed_files.into_iter()),
-      //       )
-      //       .await
-      //       .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
-
-      //     let stats: HashMap<String, DiffStat> = diff
-      //       .into_iter()
-      //       .map(|(uri, stats)| {
-      //         (
-      //           uri,
-      //           DiffStat {
-      //             kind: DiffStatKind::from(stats.0),
-      //             content: stats.1,
-      //           },
-      //         )
-      //       })
-      //       .collect();
-      //     // let stats: Stats = _rspack_stats.into();
-
-      //     tracing::info!("rebuild success");
-      //     Ok(stats)
-      //   },
-      //   |_env, ret| Ok(ret),
-      // )
     };
 
     unsafe { COMPILERS.borrow_mut(&self.id, handle_rebuild) }
