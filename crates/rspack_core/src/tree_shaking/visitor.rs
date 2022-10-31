@@ -572,10 +572,8 @@ impl<'a> ModuleRefAnalyze<'a> {
               },
               None => id.0.clone(),
             };
-            let symbol_ref = SymbolRef::Direct(Symbol::from_id_and_uri(
-              id.clone().into(),
-              self.module_identifier,
-            ));
+            let symbol_ref =
+              SymbolRef::Direct(Symbol::from_id_and_uri(id.into(), self.module_identifier));
             self.add_export(exported_atom, symbol_ref);
           }
         });

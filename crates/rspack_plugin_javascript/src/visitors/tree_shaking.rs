@@ -1,11 +1,10 @@
-use crate::runtime::RSPACK_RUNTIME;
 use hashbrown::HashSet;
 use swc_common::{Globals, Mark, DUMMY_SP, GLOBALS};
 use swc_ecma_ast::*;
 // use swc_ecma_utils::
 use rspack_symbol::{BetterId, Symbol};
-use swc_ecma_utils::{quote_expr, quote_ident, ExprFactory};
-use swc_ecma_visit::{as_folder, noop_fold_type, noop_visit_mut_type, Fold, FoldWith, VisitMut};
+use swc_ecma_utils::quote_ident;
+use swc_ecma_visit::{noop_fold_type, Fold, FoldWith};
 use ustr::Ustr;
 
 pub fn tree_shaker<'a>(
@@ -99,7 +98,7 @@ impl<'a> Fold for TreeShaker<'a> {
               })
               .filter(|item| item.1)
               .collect::<Vec<_>>();
-            if used.len() == 0 {
+            if used.is_empty() {
               ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }))
             } else {
               ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(ExportDecl {
