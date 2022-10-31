@@ -221,11 +221,11 @@ class Compiler {
 		doRun();
 	}
 	// Safety: This method is only valid to call if the previous build task is finished, or there will be data races.
-	unsafe_build(cb: Callback<Error, any>) {
+	unsafe_build(cb: Callback<Error, binding.StatsCompilation>) {
 		const compilation = this.#newCompilation();
-		const build_cb = util.callbackify(
-			this.#instance.unsafe_build.bind(this.#instance)
-		) as (cb: Callback<Error, any>) => void;
+		const build_cb = this.#instance.unsafe_build.bind(this.#instance) as (
+			cb: Callback<Error, any>
+		) => void;
 		build_cb((err, stats) => {
 			if (err) {
 				cb(err);

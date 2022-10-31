@@ -175,7 +175,10 @@ impl Rspack {
   ///
   /// Warning:
   /// Calling this method recursively might cause a deadlock.
-  #[napi(js_name = "unsafe_build", ts_return_type = "Promise<StatsCompilation>")]
+  #[napi(
+    js_name = "unsafe_build",
+    ts_args_type = "callback: (err: null | Error, result: StatsCompilation) => void"
+  )]
   pub fn build(&self, env: Env, f: JsFunction) -> Result<()> {
     let handle_build = |compiler: &mut _| {
       // Safety: compiler is stored in a global hashmap, so it's guaranteed to be alive.
