@@ -15,7 +15,7 @@ pub async fn resolve(
       .parent()
       .ok_or_else(|| anyhow::format_err!("parent() failed for {:?}", importer))?
   } else {
-    Path::new(plugin_driver.options.context.as_str())
+    &plugin_driver.options.context
   };
   tracing::trace!(
     "resolved importer:{:?},specifier:{:?}",

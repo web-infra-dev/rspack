@@ -66,7 +66,7 @@ impl Plugin for HtmlPlugin {
         let content = fs::read_to_string(&resolved_template).context(format!(
           "failed to read `{}` from `{}`",
           url.path(),
-          &compilation.options.context
+          &compilation.options.context.display()
         ))?;
         (content, resolved_template.to_string_lossy().to_string())
       }
@@ -161,6 +161,21 @@ impl Plugin for HtmlPlugin {
       config.filename.clone(),
       CompilationAsset::new(RawSource::from(source).boxed(), AssetInfo::default()),
     );
+
+    if let Some(favicon) = &self.config.favicon {
+      let url = parse_to_url(favicon);
+      let resolved_favicon =
+        resolve_from_context(&compilation.options.context, url.path().as_str());
+      let content = fs::read(&resolved_favicon).context(format!(
+        "failed to read `{}` from `{}`",
+        url.path(),
+        &compilation.options.context.display()
+      ))?;
+      compilation.emit_asset(
+        favicon.clone(),
+        CompilationAsset::new(RawSource::from(content).boxed(), AssetInfo::default()),
+      );
+    }
 
     Ok(())
   }

@@ -2,7 +2,7 @@ use crate::ast::parse;
 use rspack_core::ModuleType;
 use rspack_core::ReactOptions;
 use std::{path::Path, sync::Arc};
-use sugar_path::PathSugar;
+use sugar_path::SugarPath;
 use swc_common::{comments::SingleThreadedComments, Mark, SourceMap};
 use swc_ecma_ast::{CallExpr, Callee, Expr, Module, Program};
 use swc_ecma_transforms::react::{react as swc_react, Options};
@@ -39,10 +39,10 @@ pub fn react<'a>(
   )
 }
 
-pub fn fold_react_refresh(context: &str, uri: &str) -> impl Fold {
+pub fn fold_react_refresh(context: &Path, uri: &str) -> impl Fold {
   ReactHmrFolder {
     id: Path::new(uri)
-      .relative(Path::new(context))
+      .relative(context)
       .to_string_lossy()
       .to_string(),
   }

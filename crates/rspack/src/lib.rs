@@ -1,5 +1,3 @@
-use std::path::Path;
-
 pub use rspack_core::Compiler;
 use rspack_core::{CompilerOptions, ExternalPlugin, Plugin};
 use rspack_error::Result;
@@ -45,8 +43,8 @@ impl DevServer {
   pub async fn serve(&mut self) -> Result<()> {
     self.compiler.build().await?;
 
-    warp::fs::dir(Path::new(self.compiler.options.context.as_str()).join("dist"));
-    let filter = warp::fs::dir(Path::new(self.compiler.options.context.as_str()).join("dist"));
+    warp::fs::dir(self.compiler.options.context.join("dist"));
+    let filter = warp::fs::dir(self.compiler.options.context.join("dist"));
 
     // let routes = warp::ws().map(|ws: warp::ws::Ws| {
     //   // And then our closure will be called when it completes...

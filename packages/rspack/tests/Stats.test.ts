@@ -36,11 +36,16 @@ describe("Stats", () => {
 		  ],
 		  "chunks": [
 		    {
+		      "entry": true,
 		      "files": [
 		        "main.js",
 		        "runtime.js",
 		      ],
 		      "id": "main",
+		      "initial": true,
+		      "names": [
+		        "main",
+		      ],
 		      "type": "chunk",
 		    },
 		  ],
@@ -54,7 +59,7 @@ describe("Stats", () => {
 		      "id": "./fixtures/a.js",
 		      "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
 		      "moduleType": "js",
-		      "name": "<PROJECT_ROOT>/tests/fixtures/a.js",
+		      "name": "./fixtures/a.js",
 		      "size": 55,
 		      "type": "module",
 		    },

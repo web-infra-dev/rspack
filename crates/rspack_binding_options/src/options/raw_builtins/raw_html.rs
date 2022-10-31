@@ -7,7 +7,7 @@ use rspack_plugin_html::config::HtmlPluginConfigScriptLoading;
 use rspack_plugin_html::sri::HtmlSriHashFunction;
 use serde::Deserialize;
 use serde::Serialize;
-
+use std::collections::HashMap;
 use std::str::FromStr;
 
 use crate::RawOption;
@@ -71,6 +71,9 @@ pub struct RawHtmlPluginConfig {
   #[napi(ts_type = "string | void")]
   pub sri: Option<RawHtmlSriHashFunction>,
   pub minify: Option<bool>,
+  pub title: Option<String>,
+  pub favicon: Option<String>,
+  pub meta: Option<HashMap<String, String>>,
 }
 
 #[derive(Deserialize, Debug, Serialize)]
@@ -92,6 +95,9 @@ pub struct RawHtmlPluginConfig {
   pub excluded_chunks: Option<Vec<String>>,
   pub sri: Option<RawHtmlSriHashFunction>,
   pub minify: Option<bool>,
+  pub title: Option<String>,
+  pub favicon: Option<String>,
+  pub meta: Option<HashMap<String, String>>,
 }
 
 impl RawOption<HtmlPluginConfig> for RawHtmlPluginConfig {
@@ -123,6 +129,9 @@ impl RawOption<HtmlPluginConfig> for RawHtmlPluginConfig {
       excluded_chunks: self.excluded_chunks,
       sri,
       minify: self.minify.unwrap_or_default(),
+      title: self.title,
+      favicon: self.favicon,
+      meta: self.meta,
     })
   }
 
@@ -137,6 +146,9 @@ impl RawOption<HtmlPluginConfig> for RawHtmlPluginConfig {
       excluded_chunks: Default::default(),
       sri: Default::default(),
       minify: Default::default(),
+      title: Default::default(),
+      favicon: Default::default(),
+      meta: None,
     }
   }
 }

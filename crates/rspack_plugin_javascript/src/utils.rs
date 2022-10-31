@@ -232,7 +232,7 @@ pub fn wrap_eval_source_map(
       } else {
         &source[..]
       };
-      *source = if let Some(relative_path) = diff_paths(uri, &compilation.options.context) {
+      *source = if let Some(relative_path) = diff_paths(uri, &*compilation.options.context) {
         relative_path.to_string_lossy().to_string()
       } else {
         uri.to_owned()

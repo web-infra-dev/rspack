@@ -23,6 +23,7 @@
     "source-map-support": "^0.5.19"
   },
   "dependencies": {
+    "@discoveryjs/json-ext": "^0.5.7",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "workspace:*",
     "colorette": "2.0.19",

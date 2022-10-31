@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 
 use crate::sri::HtmlSriHashFunction;
 
@@ -75,6 +75,9 @@ pub struct HtmlPluginConfig {
   /// sha384, sha256 or sha512
   pub sri: Option<HtmlSriHashFunction>,
   pub minify: bool,
+  pub title: Option<String>,
+  pub favicon: Option<String>,
+  pub meta: Option<HashMap<String, String>>,
 }
 
 fn default_filename() -> String {
@@ -101,6 +104,9 @@ impl Default for HtmlPluginConfig {
       excluded_chunks: None,
       sri: None,
       minify: false,
+      title: None,
+      favicon: None,
+      meta: None,
     }
   }
 }

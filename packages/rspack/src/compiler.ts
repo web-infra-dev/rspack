@@ -202,7 +202,7 @@ class Compiler {
 						return finalCallback(err);
 					}
 
-					this.build((err, raw_stats) => {
+					this.unsafe_build((err, raw_stats) => {
 						if (err) {
 							return finalCallback(err);
 						}
@@ -220,7 +220,8 @@ class Compiler {
 		};
 		doRun();
 	}
-	build(cb: Callback<Error, any>) {
+	// Safety: This method is only valid to call if the previous build task is finished, or there will be data races.
+	unsafe_build(cb: Callback<Error, any>) {
 		const compilation = this.#newCompilation();
 		const build_cb = util.callbackify(
 			this.#instance.unsafe_build.bind(this.#instance)
@@ -233,7 +234,8 @@ class Compiler {
 			}
 		});
 	}
-	rebuild(
+	// Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
+	unsafe_rebuild(
 		changedFiles: string[],
 		cb: (error?: Error, stats?: binding.DiffStat) => void
 	) {
@@ -266,43 +268,76 @@ class Compiler {
 				...options
 			}
 		);
-		let stats = await util.promisify(this.build.bind(this))();
+		const begin = Date.now();
+		let stats = await util.promisify(this.unsafe_build.bind(this))();
+		console.log("build success, time cost", Date.now() - begin);
+
+		let pendingChangedFilepaths = new Set<string>();
+		let isBuildFinished = true;
 
 		// TODO: should use aggregated
 		watcher.on("change", async changedFilepath => {
 			// TODO: only build because we lack the snapshot info of file.
 			// TODO: it means there a lot of things to do....
-			const begin = Date.now();
-			console.log("hit change and start to build");
 
-			this.rebuild([changedFilepath], (error: any, diffStats) => {
-				if (error) {
-					throw error;
-				}
-				for (const [uri, stats] of Object.entries(diffStats)) {
-					let relativePath = path.relative(this.options.context, uri);
-					if (
-						!(relativePath.startsWith("../") || relativePath.startsWith("./"))
-					) {
-						relativePath = "./" + relativePath;
+			// store the changed file path, it may or may not be consumed right now
+			if (!isBuildFinished) {
+				pendingChangedFilepaths.add(changedFilepath);
+				console.log(
+					"hit change but rebuild is not finished, caching files: ",
+					pendingChangedFilepaths
+				);
+				return;
+			}
+
+			const rebuildWithFilepaths = (changedFilepath: string[]) => {
+				// Rebuild finished, we can start to rebuild again
+				isBuildFinished = false;
+				console.log("hit change and start to build");
+
+				const begin = Date.now();
+				this.unsafe_rebuild(changedFilepath, (error: any, diffStats) => {
+					isBuildFinished = true;
+
+					const hasPending = Boolean(pendingChangedFilepaths.size);
+
+					// If we have any pending task left, we should rebuild again with the pending files
+					if (hasPending) {
+						const pending = [...pendingChangedFilepaths];
+						pendingChangedFilepaths.clear();
+						rebuildWithFilepaths(pending);
 					}
 
-					// send Message
-					if (ws) {
-						const data = JSON.stringify({
-							uri: relativePath,
-							content: stats.content
-						});
+					if (error) {
+						throw error;
+					}
+					for (const [uri, stats] of Object.entries(diffStats)) {
+						let relativePath = path.relative(this.options.context, uri);
+						if (
+							!(relativePath.startsWith("../") || relativePath.startsWith("./"))
+						) {
+							relativePath = "./" + relativePath;
+						}
 
-						for (const client of ws.clients) {
-							// the type of "ok" means rebuild success.
-							// the data should deleted after we had hash in stats.
-							client.send(JSON.stringify({ type: "ok", data }));
+						// send Message
+						if (ws) {
+							const data = JSON.stringify({
+								uri: relativePath,
+								content: stats.content
+							});
+
+							for (const client of ws.clients) {
+								// the type of "ok" means rebuild success.
+								// the data should deleted after we had hash in stats.
+								client.send(JSON.stringify({ type: "ok", data }));
+							}
 						}
 					}
-				}
-				console.log("build success, time cost", Date.now() - begin);
-			});
+					console.log("rebuild success, time cost", Date.now() - begin);
+				});
+			};
+
+			rebuildWithFilepaths([...pendingChangedFilepaths, changedFilepath]);
 		});
 
 		return {
