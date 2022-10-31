@@ -239,9 +239,7 @@ class Compiler {
 		changedFiles: string[],
 		cb: (error?: Error, stats?: binding.DiffStat) => void
 	) {
-		const rebuild_cb = util.callbackify(
-			this.#instance.unsafe_rebuild.bind(this.#instance)
-		) as unknown as (
+		const rebuild_cb = this.#instance.unsafe_rebuild.bind(this.#instance) as (
 			changed: string[],
 			removed: string[],
 			cb: Callback<Error, any>

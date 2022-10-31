@@ -6,7 +6,6 @@ use std::pin::Pin;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use napi::bindgen_prelude::*;
-use napi::JsObject;
 
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
@@ -201,24 +200,6 @@ impl Rspack {
 
         Ok(stats)
       })
-      // env.execute_tokio_future(
-      //   async move {
-      //     let rspack_stats = compiler
-      //       .build()
-      //       .await
-      //       .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
-
-      //     let stats: StatsCompilation = rspack_stats.to_description().into();
-      //     if stats.errors.is_empty() {
-      //       tracing::info!("build success");
-      //     } else {
-      //       tracing::info!("build failed");
-      //     }
-
-      //     Ok(stats)
-      //   },
-      //   |_env, ret| Ok(ret),
-      // )
     };
     unsafe { COMPILERS.borrow_mut(&self.id, handle_build) }
   }
@@ -229,49 +210,77 @@ impl Rspack {
   /// Calling this method recursively will cause a deadlock.
   #[napi(
     js_name = "unsafe_rebuild",
-    ts_return_type = "Promise<Record<string, {content: string, kind: number}>>"
+    ts_args_type = "callback: (err: null | Error, result: Record<string, {content: string, kind: number}>) => void"
   )]
   pub fn rebuild(
     &self,
     env: Env,
     changed_files: Vec<String>,
     removed_files: Vec<String>,
-  ) -> Result<JsObject> {
+    f: JsFunction,
+  ) -> Result<()> {
     let handle_rebuild = |compiler: &mut _| {
       // Safety: compiler is stored in a global hashmap, so it's guaranteed to be alive.
       let compiler = unsafe {
         std::mem::transmute::<&'_ mut rspack::Compiler, &'static mut rspack::Compiler>(compiler)
       };
 
-      env.execute_tokio_future(
-        async move {
-          let diff = compiler
-            .rebuild(
-              HashSet::from_iter(changed_files.into_iter()),
-              HashSet::from_iter(removed_files.into_iter()),
+      callbackify(env, f, async move {
+        let diff = compiler
+          .rebuild(
+            HashSet::from_iter(changed_files.into_iter()),
+            HashSet::from_iter(removed_files.into_iter()),
+          )
+          .await
+          .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
+
+        let stats: HashMap<String, DiffStat> = diff
+          .into_iter()
+          .map(|(uri, stats)| {
+            (
+              uri,
+              DiffStat {
+                kind: DiffStatKind::from(stats.0),
+                content: stats.1,
+              },
             )
-            .await
-            .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
+          })
+          .collect();
+        // let stats: Stats = _rspack_stats.into();
 
-          let stats: HashMap<String, DiffStat> = diff
-            .into_iter()
-            .map(|(uri, stats)| {
-              (
-                uri,
-                DiffStat {
-                  kind: DiffStatKind::from(stats.0),
-                  content: stats.1,
-                },
-              )
-            })
-            .collect();
-          // let stats: Stats = _rspack_stats.into();
+        tracing::info!("rebuild success");
+        Ok(stats)
+      })
 
-          tracing::info!("rebuild success");
-          Ok(stats)
-        },
-        |_env, ret| Ok(ret),
-      )
+      // env.execute_tokio_future(
+      //   async move {
+      //     let diff = compiler
+      //       .rebuild(
+      //         HashSet::from_iter(changed_files.into_iter()),
+      //         HashSet::from_iter(removed_files.into_iter()),
+      //       )
+      //       .await
+      //       .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
+
+      //     let stats: HashMap<String, DiffStat> = diff
+      //       .into_iter()
+      //       .map(|(uri, stats)| {
+      //         (
+      //           uri,
+      //           DiffStat {
+      //             kind: DiffStatKind::from(stats.0),
+      //             content: stats.1,
+      //           },
+      //         )
+      //       })
+      //       .collect();
+      //     // let stats: Stats = _rspack_stats.into();
+
+      //     tracing::info!("rebuild success");
+      //     Ok(stats)
+      //   },
+      //   |_env, ret| Ok(ret),
+      // )
     };
 
     unsafe { COMPILERS.borrow_mut(&self.id, handle_rebuild) }
