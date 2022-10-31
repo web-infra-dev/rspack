@@ -13,7 +13,7 @@ anyhow             = "1.0.61"
 codespan-reporting = "0.11.1"
 dashmap            = "5.3.4"
 json               = "0.12.4"
-sugar_path         = { version = "0.0.5" }
+sugar_path         = "0.0.8"
 termcolor          = "1.1"
 thiserror          = "1.0.32"
 

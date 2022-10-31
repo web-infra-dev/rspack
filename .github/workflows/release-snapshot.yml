@@ -6,7 +6,7 @@ jobs:
   release:
     name: release-snapshot
     if: github.event.issue.pull_request && contains(github.event.comment.body, '!snapshot')
-    runs-on: macos-latest
+    runs-on: [self-hosted, rspack-common, macOS]
     steps:
       - name: Checkout Repo
         uses: actions/checkout@master
@@ -19,10 +19,10 @@ jobs:
           toolchain: nightly-2022-08-06
           profile: default
           components: rustfmt, clippy, cargo
-      - name: Install protoc
-        uses: arduino/setup-protoc@v1
+      - uses: actions/setup-node@v3
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          node-version: "16"
+          architecture: "arm64"
       - name: install pnpm
         run: |
           npm install -g pnpm
@@ -35,5 +35,16 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: release snapshot
+        id: release
         run: |
-          make release-snapshot
+          echo "::set-output name=comment::hello"
+          make snapshot_ci
+          comment=$(./x pkg-version)
+          echo "::set-output name=comment::$comment"
+      - name: Write a new comment
+        uses: peter-evans/create-or-update-comment@v1.4.5
+        continue-on-error: true
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            ${{ steps.release.outputs.comment }}

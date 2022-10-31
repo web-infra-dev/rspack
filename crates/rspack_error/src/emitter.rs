@@ -6,7 +6,7 @@ use dashmap::DashMap;
 use std::io::Write;
 use std::path::Path;
 use std::sync::Arc;
-use sugar_path::PathSugar;
+use sugar_path::SugarPath;
 use termcolor::{Color, ColorSpec, StandardStreamLock, WriteColor};
 
 use crate::Diagnostic as RspackDiagnostic;

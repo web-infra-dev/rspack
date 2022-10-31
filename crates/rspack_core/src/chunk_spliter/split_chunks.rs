@@ -350,7 +350,10 @@ impl<'me> CodeSplitter<'me> {
       let chunk = Compilation::add_chunk(
         &mut self.compilation.chunk_by_ukey,
         None,
-        uri_to_chunk_name(self.compilation.options.context.as_str(), &dyn_dep_mgm.uri),
+        uri_to_chunk_name(
+          &self.compilation.options.context.to_string_lossy(),
+          &dyn_dep_mgm.uri,
+        ),
       );
       self.compilation.chunk_graph.add_chunk(chunk.ukey);
       self

@@ -98,7 +98,7 @@ impl<'compilation> Stats<'compilation> {
           r#type: "module",
           module_type: module.module_type(),
           identifier,
-          name: module.identifier(), // TODO: short it with requestShortener
+          name: module.readable_identifier(&self.compilation.options.context),
           id: mgm.id.clone(),
           chunks,
           size: module.size(&SourceType::JavaScript),
@@ -130,6 +130,9 @@ impl<'compilation> Stats<'compilation> {
             r#type: "chunk",
             files,
             id: c.id.clone(),
+            names: c._name.clone().map(|n| vec![n]).unwrap_or_default(),
+            entry: c.has_entry_module(&self.compilation.chunk_graph),
+            initial: c.can_be_initial(&self.compilation.chunk_group_by_ukey),
           }
         })
         .collect(),
@@ -178,6 +181,9 @@ pub struct StatsChunk {
   pub r#type: &'static str,
   pub files: Vec<String>,
   pub id: String,
+  pub entry: bool,
+  pub initial: bool,
+  pub names: Vec<String>,
 }
 
 #[derive(Debug)]

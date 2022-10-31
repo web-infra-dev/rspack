@@ -129,7 +129,7 @@ impl Compiler {
   }
 
   pub fn emit_assets(&self, compilation: &Compilation) -> Result<()> {
-    let output_path = Path::new(&self.options.context).join(&self.options.output.path);
+    let output_path = self.options.context.join(&self.options.output.path);
     if !output_path.exists() {
       std::fs::create_dir_all(&output_path)
         .with_context(|| format!("failed to create dir: {:?}", &output_path))
@@ -253,7 +253,6 @@ pub enum Msg {
   ModuleCreated(ModuleCreatedData),
   ModuleReused(TWithDiagnosticArray<(Option<ModuleIdentifier>, u32, ModuleIdentifier)>),
   ModuleResolved(ModuleResolvedData),
-  ModuleGraphModuleCreated(ModuleGraphModule),
   ModuleBuiltErrorEncountered(ModuleIdentifier, Error),
   ModuleCreationCanceled,
   ModuleCreationErrorEncountered(Error),

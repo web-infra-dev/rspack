@@ -8,7 +8,7 @@ import type {
 	ResolvedExternalType
 } from "./external";
 import type { Mode, ResolvedMode } from "./mode";
-import type { Module, ResolvedModule } from "./module";
+import type { Module, ResolvedModule, LoaderContext } from "./module";
 import type { Plugin } from "./plugin";
 import type { ResolvedTarget, Target } from "./target";
 import type { Output, ResolvedOutput } from "./output";
@@ -101,4 +101,4 @@ export function getNormalizedRspackOptions(
 function cloneObject(value: Record<string, any> | undefined) {
 	return { ...value };
 }
-export type { Plugin };
+export type { Plugin, LoaderContext };

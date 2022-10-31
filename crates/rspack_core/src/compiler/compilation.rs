@@ -7,7 +7,10 @@ use std::{
 };
 
 use futures::{stream::FuturesUnordered, StreamExt};
-use hashbrown::{HashMap, HashSet};
+use hashbrown::{
+  hash_set::Entry::{Occupied, Vacant},
+  HashMap, HashSet,
+};
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use swc_common::GLOBALS;
 use tokio::sync::mpsc::UnboundedSender;
@@ -180,26 +183,24 @@ impl Compilation {
 
             let module_identifier = module.identifier();
 
-            if self
+            match self
               .visited_module_id
-              .contains(&(module_identifier.clone(), dependency.detail.clone()))
+              .entry((module_identifier.clone(), dependency.detail.clone()))
             {
-              if let Err(err) = tx.send(Msg::ModuleReused(
-                (original_module_identifier, dependency_id, module_identifier)
-                  .with_diagnostic(module_with_diagnostic.diagnostic),
-              )) {
-                tracing::trace!("fail to send msg {:?}", err)
+              Occupied(_) => {
+                if let Err(err) = tx.send(Msg::ModuleReused(
+                  (original_module_identifier, dependency_id, module_identifier)
+                    .with_diagnostic(module_with_diagnostic.diagnostic),
+                )) {
+                  tracing::trace!("fail to send msg {:?}", err)
+                }
+                continue;
               }
-              continue;
+              Vacant(vac) => {
+                vac.insert();
+              }
             }
 
-            self
-              .visited_module_id
-              .insert((module_identifier.clone(), dependency.detail.clone()));
-
-            if let Err(err) = tx.send(Msg::ModuleGraphModuleCreated(mgm)) {
-              tracing::trace!("fail to send msg {:?}", err)
-            }
             if is_entry {
               self
                 .entry_module_identifiers
@@ -213,8 +214,7 @@ impl Compilation {
               active_task_count.clone(),
               tx.clone(),
             );
-          }
-          Msg::ModuleGraphModuleCreated(mgm) => {
+            // After module created we add module graph module into module graph
             self.module_graph.add_module_graph_module(mgm);
           }
           Msg::ModuleReused(result_with_diagnostics) => {
@@ -759,8 +759,8 @@ fn mark_symbol(
 ) {
   match item {
     SymbolRef::Direct(symbol) => match used_symbol_set.entry(symbol) {
-      hashbrown::hash_set::Entry::Occupied(_) => {}
-      hashbrown::hash_set::Entry::Vacant(vac) => {
+      Occupied(_) => {}
+      Vacant(vac) => {
         let module_result = analyze_map.get(&vac.get().uri).unwrap();
         if let Some(set) = module_result
           .reachable_import_of_export
