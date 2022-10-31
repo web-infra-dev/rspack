@@ -1,1 +1,1 @@
-export const answeranswer = 42
+export const answer = 42

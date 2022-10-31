@@ -552,7 +552,7 @@ impl Compilation {
         });
       })
   }
-  // #[instrument(name = "compilation:process_asssets")]
+  #[instrument(name = "compilation:process_asssets")]
   async fn process_assets(&mut self, plugin_driver: SharedPluginDriver) {
     plugin_driver
       .write()
@@ -604,15 +604,15 @@ impl Compilation {
         });
         // Keep this debug info until we stabilize the tree-shaking
 
-        dbg!(
-          &uri_key,
-          // &analyzer.export_all_list,
-          &analyzer.export_map,
-          &analyzer.import_map,
-          &analyzer.reference_map,
-          &analyzer.reachable_import_and_export,
-          &analyzer.used_symbol_ref
-        );
+        // dbg!(
+        //   &uri_key,
+        //   // &analyzer.export_all_list,
+        //   &analyzer.export_map,
+        //   &analyzer.import_map,
+        //   &analyzer.reference_map,
+        //   &analyzer.reachable_import_and_export,
+        //   &analyzer.used_symbol_ref
+        // );
         Some((uri_key, analyzer.into()))
       })
       .collect::<HashMap<Ustr, TreeShakingResult>>();
@@ -825,7 +825,7 @@ fn mark_symbol(
     SymbolRef::Direct(symbol) => match used_symbol_set.entry(symbol) {
       Occupied(_) => {}
       Vacant(vac) => {
-        let module_result = analyze_map.get(&vac.get().uri).unwrap();
+        let module_result = analyze_map.get(&vac.get().uri()).unwrap();
         if let Some(set) = module_result
           .reachable_import_of_export
           .get(&vac.get().id().atom)

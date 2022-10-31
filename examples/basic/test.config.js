@@ -5,9 +5,7 @@ module.exports = {
   builtins: {
     html: [{
       template: './index.html'
-    }],
-    minify: false,
-    treeShaking: true
+    }]
   },
   context: __dirname,
   mode: "development",
