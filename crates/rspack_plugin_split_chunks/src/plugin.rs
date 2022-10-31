@@ -5,7 +5,7 @@ use std::{
   sync::Arc,
 };
 
-use rspack_core::{Chunk, ChunkKind, ChunkUkey, Compilation, ModuleGraphModule, Plugin};
+use rspack_core::{Chunk, ChunkUkey, Compilation, ModuleGraphModule, Plugin};
 
 use crate::{
   CacheGroup, CacheGroupOptions, CacheGroupSource, SizeType, SplitChunkSizes, SplitChunksOptions,
@@ -337,7 +337,6 @@ impl Plugin for SplitChunksPlugin {
         &mut compilation.chunk_by_ukey,
         Some(chunk_name.clone()),
         chunk_name.clone(),
-        ChunkKind::Normal,
       );
       compilation.chunk_graph.add_chunk(new_chunk.ukey);
 

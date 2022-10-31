@@ -8,8 +8,7 @@ use rspack_error::Result;
 use tracing::instrument;
 
 use crate::{
-  uri_to_chunk_name, ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
-  Dependency,
+  uri_to_chunk_name, ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation, Dependency,
 };
 
 struct EntryData {
@@ -78,7 +77,6 @@ impl<'me> CodeSplitter<'me> {
         &mut compilation.chunk_by_ukey,
         Some(name.to_string()),
         name.to_string(),
-        ChunkKind::Entry,
       );
 
       compilation.chunk_graph.add_chunk(chunk.ukey);
@@ -356,7 +354,6 @@ impl<'me> CodeSplitter<'me> {
           &self.compilation.options.context.to_string_lossy(),
           &dyn_dep_mgm.uri,
         ),
-        ChunkKind::Normal,
       );
       self.compilation.chunk_graph.add_chunk(chunk.ukey);
       self

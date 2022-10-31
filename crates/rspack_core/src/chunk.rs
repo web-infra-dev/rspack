@@ -1,24 +1,22 @@
 use hashbrown::HashSet;
 
-use crate::{ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey};
+use crate::{ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey};
 
 #[derive(Debug)]
 pub struct Chunk {
   pub(crate) _name: Option<String>,
   pub ukey: ChunkUkey,
   pub id: String,
-  pub kind: ChunkKind,
   pub files: HashSet<String>,
   pub groups: HashSet<ChunkGroupUkey>,
 }
 
 impl Chunk {
-  pub fn new(_name: Option<String>, id: String, kind: ChunkKind) -> Self {
+  pub fn new(_name: Option<String>, id: String) -> Self {
     Self {
       _name,
       ukey: ChunkUkey::with_debug_info("Chunk"),
       id,
-      kind,
       files: Default::default(),
       groups: Default::default(),
     }
@@ -45,21 +43,16 @@ impl Chunk {
       .filter_map(|ukey| chunk_group_by_ukey.get(ukey))
       .any(|group| group.is_initial())
   }
-}
 
-#[derive(Debug)]
-pub enum ChunkKind {
-  Entry,
-  Normal,
-  // TODO: support it.
-  // Initial,
-}
-
-impl ChunkKind {
-  pub fn is_entry(&self) -> bool {
-    matches!(self, ChunkKind::Entry { .. })
+  pub fn is_only_initial(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> bool {
+    self
+      .groups
+      .iter()
+      .filter_map(|ukey| chunk_group_by_ukey.get(ukey))
+      .all(|group| group.is_initial())
   }
-  pub fn is_normal(&self) -> bool {
-    matches!(self, ChunkKind::Normal)
+
+  pub fn has_entry_module(&self, chunk_graph: &ChunkGraph) -> bool {
+    !chunk_graph.get_chunk_entry_modules(&self.ukey).is_empty()
   }
 }

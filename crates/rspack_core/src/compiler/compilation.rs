@@ -27,7 +27,7 @@ use crate::{
     symbol::Symbol,
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
   },
-  BuildContext, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey,
+  BuildContext, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey,
   CompilerOptions, Dependency, EntryItem, Entrypoint, JavascriptAstExtend, LoaderRunnerRunner,
   ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModule,
   NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs,
@@ -121,9 +121,8 @@ impl Compilation {
     chunk_by_ukey: &mut ChunkByUkey,
     name: Option<String>,
     id: String,
-    kind: ChunkKind,
   ) -> &mut Chunk {
-    let chunk = Chunk::new(name, id, kind);
+    let chunk = Chunk::new(name, id);
     let ukey = chunk.ukey;
     chunk_by_ukey.insert(chunk.ukey, chunk);
     chunk_by_ukey.get_mut(&ukey).expect("chunk not found")

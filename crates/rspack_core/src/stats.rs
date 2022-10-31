@@ -131,7 +131,7 @@ impl<'compilation> Stats<'compilation> {
             files,
             id: c.id.clone(),
             names: c._name.clone().map(|n| vec![n]).unwrap_or_default(),
-            entry: c.kind.is_entry(),
+            entry: c.has_entry_module(&self.compilation.chunk_graph),
             initial: c.can_be_initial(&self.compilation.chunk_group_by_ukey),
           }
         })

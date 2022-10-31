@@ -4,7 +4,7 @@ use rspack_error::Result;
 use common::*;
 use node::*;
 use rspack_core::{
-  rspack_sources::RawSource, AssetInfo, ChunkKind, CompilationAsset, Plugin, PluginContext,
+  rspack_sources::RawSource, AssetInfo, CompilationAsset, Plugin, PluginContext,
   PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, RenderManifestArgs,
   RenderManifestEntry, RenderRuntimeArgs, TargetPlatform, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
 };
@@ -57,8 +57,10 @@ impl Plugin for RuntimePlugin {
 
     let mut dynamic_js: Vec<ChunkHash> = vec![];
     let mut dynamic_css: Vec<ChunkHash> = vec![];
-    for (_, chunk) in &compilation.chunk_by_ukey {
-      if matches!(chunk.kind, ChunkKind::Normal) {
+    let mut chunks = compilation.chunk_by_ukey.values().collect::<Vec<_>>();
+    chunks.sort_by_key(|c| &c.id);
+    for chunk in &chunks {
+      if chunk.has_entry_module(&args.compilation.chunk_graph) {
         for file in &chunk.files {
           if file.ends_with(".js") && !file.eq(&(RUNTIME_FILE_NAME.to_string() + ".js")) {
             dynamic_js.push(ChunkHash {
@@ -164,7 +166,7 @@ impl Plugin for RuntimePlugin {
       TargetPlatform::WebWorker | TargetPlatform::Node(_) => {
         let mut entry_source_array = vec![];
         compilation.chunk_by_ukey.values().for_each(|chunk| {
-          if matches!(chunk.kind, ChunkKind::Entry { .. }) {
+          if chunk.has_entry_module(&compilation.chunk_graph) {
             let js_entry_file = chunk
               .files
               .iter()
