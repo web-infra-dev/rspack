@@ -129,7 +129,7 @@ where
     let res = fut.await;
     tsfn
       .call(res, ThreadsafeFunctionCallMode::Blocking)
-      .expect("Failed to JS callback");
+      .expect("Failed to call JS callback");
   });
 
   Ok(())
