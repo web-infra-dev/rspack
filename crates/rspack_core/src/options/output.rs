@@ -26,7 +26,7 @@ pub struct FilenameRenderOptions {
   pub chunkhash: Option<String>,
   pub hash: Option<String>,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Filename {
   template: String,
 }

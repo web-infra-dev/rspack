@@ -6,7 +6,10 @@ use pathdiff::diff_paths;
 use rspack_core::rspack_sources::{
   BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt,
 };
-use rspack_core::{Compilation, ErrorSpan, ModuleType, TargetPlatform};
+use rspack_core::{
+  Chunk, ChunkGraph, ChunkGroupByUkey, Compilation, ErrorSpan, Filename, ModuleType, OutputOptions,
+  TargetPlatform,
+};
 use rspack_error::{DiagnosticKind, Error};
 use serde_json::json;
 use std::path::Path;
@@ -256,5 +259,17 @@ pub fn wrap_eval_source_map(
     Ok(result)
   } else {
     Ok(module_source)
+  }
+}
+
+pub fn get_chunk_filename_template(
+  chunk: &Chunk,
+  output_options: &OutputOptions,
+  chunk_group_by_ukey: &ChunkGroupByUkey,
+) -> Filename {
+  if chunk.can_be_initial(chunk_group_by_ukey) {
+    output_options.filename.clone()
+  } else {
+    output_options.chunk_filename.clone()
   }
 }
