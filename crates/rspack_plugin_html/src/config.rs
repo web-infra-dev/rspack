@@ -78,7 +78,7 @@ pub struct HtmlPluginConfig {
   pub minify: bool,
   pub title: Option<String>,
   pub favicon: Option<String>,
-  pub meta: Option<HashMap<String, String>>,
+  pub meta: Option<HashMap<String, HashMap<String, String>>>,
 }
 
 fn default_filename() -> String {

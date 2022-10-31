@@ -186,29 +186,21 @@ impl VisitMut for AssetWriter<'_> {
 
         // add meta tags
         if let Some(meta) = &self.config.meta {
-          for (key, value) in meta.iter() {
+          for (_, value) in meta.iter() {
             let meta_ele = Element {
               tag_name: JsWord::from("meta"),
-              attributes: vec![
-                Attribute {
+              attributes: value
+                .iter()
+                .map(|(key, value)| Attribute {
                   span: Default::default(),
                   namespace: None,
                   prefix: None,
-                  name: "name".into(),
-                  raw_name: None,
-                  value: Some(key.clone().into()),
-                  raw_value: None,
-                },
-                Attribute {
-                  span: Default::default(),
-                  namespace: None,
-                  prefix: None,
-                  name: "content".into(),
+                  name: key.clone().into(),
                   raw_name: None,
                   value: Some(value.clone().into()),
                   raw_value: None,
-                },
-              ],
+                })
+                .collect(),
               children: vec![],
               content: None,
               is_self_closing: true,
