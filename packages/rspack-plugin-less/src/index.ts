@@ -1,3 +1,4 @@
+import type { LoaderContext } from "@rspack/core";
 import path from "path";
 import { normalizeSourceMap } from "./utils";
 
@@ -5,9 +6,13 @@ export interface Options {
 	implementation?: string;
 	lessOptions?: Less.Options;
 	sourceMap?: boolean;
+	additionalData?:
+		| string
+		| ((content: string, loaderContext: LoaderContext) => string)
+		| ((content: string, loaderContext: LoaderContext) => Promise<string>);
 }
 
-export default async function lessLoader(loaderContext) {
+export default async function lessLoader(loaderContext: LoaderContext) {
 	let meta = "";
 	const options: Options = loaderContext.getOptions() ?? {};
 	const lessOptions = options.lessOptions ?? {};
@@ -23,7 +28,14 @@ export default async function lessLoader(loaderContext) {
 	}
 
 	try {
-		let code = loaderContext.source.getCode();
+		let data = loaderContext.source.getCode();
+		if (typeof options.additionalData !== "undefined") {
+			data =
+				typeof options.additionalData === "function"
+					? `${await options.additionalData(data, loaderContext)}`
+					: `${options.additionalData}\n${data}`;
+		}
+
 		const final_options = {
 			filename: loaderContext.resourcePath,
 			...lessOptions,
@@ -31,10 +43,10 @@ export default async function lessLoader(loaderContext) {
 				...(lessOptions?.paths || ["node_modules"]),
 				path.dirname(loaderContext.resourcePath)
 			],
-			plugins: []
+			plugins: [],
+			relativeUrls: true
 		};
 
-		// eslint-disable-next-line import/no-dynamic-require, global-require
 		let lessImplementation;
 
 		if (typeof options.implementation === "string") {
@@ -42,7 +54,7 @@ export default async function lessLoader(loaderContext) {
 		} else {
 			lessImplementation = (await import("less")).default;
 		}
-		const result = await lessImplementation.render(code, final_options);
+		const result = await lessImplementation.render(data, final_options);
 		let map =
 			typeof result.map === "string" ? JSON.parse(result.map) : result.map;
 
