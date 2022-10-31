@@ -1,7 +1,9 @@
-function test() {
-	return 123;
-}
+const fs = require("fs");
+const path = require("path");
 
-it("basic", () => {
-	expect(test()).toBe(123);
+it("html meta", () => {
+	const htmlPath = path.join(__dirname, "./index.html");
+	expect(fs.readFileSync(htmlPath, "utf-8")).toMatch(
+		'<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">'
+	);
 });
