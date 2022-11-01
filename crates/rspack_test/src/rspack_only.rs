@@ -26,7 +26,7 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler {
     .build()
     .unwrap();
 
-  if stats.to_description().errors.len() > 0 {
+  if !stats.to_description().errors.is_empty() {
     panic!(
       "failed to compile in fixtrue {:?}, errors: {:?}",
       fixture_path,
