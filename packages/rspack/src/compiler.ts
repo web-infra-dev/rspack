@@ -224,7 +224,7 @@ class Compiler {
 	unsafe_build(cb: Callback<Error, binding.StatsCompilation>) {
 		const compilation = this.#newCompilation();
 		const build_cb = this.#instance.unsafe_build.bind(this.#instance) as (
-			cb: Callback<Error, any>
+			cb: Callback<Error, binding.StatsCompilation>
 		) => void;
 		build_cb((err, stats) => {
 			if (err) {
