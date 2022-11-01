@@ -186,7 +186,7 @@ impl VisitMut for AssetWriter<'_> {
 
         // add meta tags
         if let Some(meta) = &self.config.meta {
-          for (_, value) in meta.iter() {
+          for (_, value) in meta {
             let meta_ele = Element {
               tag_name: JsWord::from("meta"),
               attributes: value
