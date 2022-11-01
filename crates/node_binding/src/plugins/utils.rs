@@ -17,6 +17,15 @@ pub fn create_node_adapter_from_plugin_callbacks(
          this_compilation_callback,
          compilation_callback,
        }| {
+        // *Note* that the order of the creation of threadsafe function is important. There is a queue of threadsafe calls for each tsfn:
+        // For example:
+        // tsfn1: [call-in-js-task1, call-in-js-task2]
+        // tsfn2: [call-in-js-task3, call-in-js-task4]
+        // If the tsfn1 is created before tsfn2, and task1 is created before task2(single tsfn level), tasks will be called on main thread in the order of `task1` `task2` `task3` `task4`
+        //
+        // In practice:
+        // The creation of callback `this_compilation` is placed before the callback `compilation` because we want the JS hooks `this_compilation` to be called before the JS hooks `compilation`.
+
         let mut done_tsfn: ThreadsafeFunction<StatsCompilation, ()> = {
           let cb = unsafe { done_callback.raw() };
 
@@ -55,8 +64,8 @@ pub fn create_node_adapter_from_plugin_callbacks(
           })
         }?;
 
-        let mut compilation_tsfn: ThreadsafeFunction<RspackCompilation, ()> = {
-          let cb = unsafe { compilation_callback.raw() };
+        let mut this_compilation_tsfn: ThreadsafeFunction<RspackCompilation, ()> = {
+          let cb = unsafe { this_compilation_callback.raw() };
 
           ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
             let ThreadSafeContext {
@@ -79,8 +88,8 @@ pub fn create_node_adapter_from_plugin_callbacks(
           })
         }?;
 
-        let mut this_compilation_tsfn: ThreadsafeFunction<RspackCompilation, ()> = {
-          let cb = unsafe { this_compilation_callback.raw() };
+        let mut compilation_tsfn: ThreadsafeFunction<RspackCompilation, ()> = {
+          let cb = unsafe { compilation_callback.raw() };
 
           ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
             let ThreadSafeContext {
