@@ -153,7 +153,7 @@ impl<'compilation> Stats<'compilation> {
             r#type: "chunk",
             files,
             id: c.id.clone(),
-            names: c._name.clone().map(|n| vec![n]).unwrap_or_default(),
+            names: c.name.clone().map(|n| vec![n]).unwrap_or_default(),
             entry: c.has_entry_module(&self.compilation.chunk_graph),
             initial: c.can_be_initial(&self.compilation.chunk_group_by_ukey),
             size: self

@@ -5,6 +5,7 @@ import util from "util";
 import { rspack, RspackOptions } from "../src";
 import assert from "assert";
 import createLazyTestEnv from "./helpers/createLazyTestEnv";
+import deepmerge from "deepmerge";
 
 // most of these could be removed when we support external builtins by default
 const externalModule = ["uvu", "path", "fs", "expect", "source-map", "util"];
@@ -29,6 +30,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 					`./${category.name}/${example}/`
 				);
 				const outputPath = path.resolve(testRoot, `./dist`);
+				console.log({ outputPath });
 				const bundlePath = path.resolve(outputPath, "main.js");
 				if (
 					!(
@@ -42,15 +44,15 @@ export function describeCases(config: { name: string; casePath: string }) {
 					describe(example, () => {
 						it(`${example} should compile`, async () => {
 							const configFile = path.resolve(testRoot, "webpack.config.js");
-							let config = {};
+							let config: RspackOptions = {};
 							if (fs.existsSync(configFile)) {
 								config = require(configFile);
 							}
 							const externals = Object.fromEntries(
 								externalModule.map(x => [x, x])
 							);
-							const options: RspackOptions = {
-								target: "node",
+							const options: RspackOptions = deepmerge(config, {
+								target: "node", // FIXME when target=commonjs supported
 								context: testRoot,
 								entry: {
 									main: "./"
@@ -60,12 +62,12 @@ export function describeCases(config: { name: string; casePath: string }) {
 									path: outputPath
 								},
 								infrastructureLogging: {
-									debug: false
+									debug: true
 								},
 								externals,
 								externalsType: "node-commonjs",
 								...config // we may need to use deepMerge to handle config merge, but we may fix it until we need it
-							};
+							});
 							const stats = await util.promisify(rspack)(options);
 							const statsJson = stats.toJson();
 							if (statsJson.errors.length > 0) {

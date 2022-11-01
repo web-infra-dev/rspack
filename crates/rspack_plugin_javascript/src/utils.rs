@@ -262,7 +262,7 @@ pub fn wrap_eval_source_map(
   }
 }
 
-pub fn get_chunk_filename_template(
+pub(crate) fn get_chunk_filename_template(
   chunk: &Chunk,
   output_options: &OutputOptions,
   chunk_group_by_ukey: &ChunkGroupByUkey,
@@ -271,5 +271,38 @@ pub fn get_chunk_filename_template(
     output_options.filename.clone()
   } else {
     output_options.chunk_filename.clone()
+  }
+}
+
+mod identifier {
+  use once_cell::sync::Lazy;
+  use regex::Regex;
+
+  static PATH_QUERY_FRAGMENT_REGEXP: Lazy<Regex> =
+    Lazy::new(|| regex::Regex::new(r#"^((?:\0.|[^?#\0])*)(\?(?:\0.|[^#\0])*)?(#.*)?$"#).unwrap());
+  pub struct ParsedResource {
+    pub resource: String,
+    pub path: String,
+    pub query: String,
+    pub fragment: String,
+  }
+  static REMOVE_NULL_RE: Lazy<Regex> = Lazy::new(|| regex::Regex::new(r#"\\0(.)"#).unwrap());
+  pub fn parse_resource(str: String) -> ParsedResource {
+    // Align with https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/util/identifier.js#L318
+    let captures = PATH_QUERY_FRAGMENT_REGEXP.captures(str.as_str()).unwrap();
+    let path = {
+      let tmp = captures.get(1).map(|s| s.as_str()).unwrap_or_default();
+      REMOVE_NULL_RE.replace_all(tmp, "$1").to_string()
+    };
+    let query = {
+      let tmp = captures.get(2).map(|s| s.as_str()).unwrap_or_default();
+      REMOVE_NULL_RE.replace_all(tmp, "$1").to_string()
+    };
+    ParsedResource {
+      path,
+      query,
+      fragment: captures.get(3).unwrap().as_str().to_string(),
+      resource: str,
+    }
   }
 }

@@ -20,6 +20,7 @@
     "@types/sinon": "10.0.13",
     "@types/webpack-sources": "3.2.0",
     "@types/ws": "8.5.3",
+    "deepmerge": "^4.2.2",
     "jest-serializer-path": "^0.1.15",
     "sinon": "14.0.0",
     "source-map": "^0.7.4",
@@ -36,11 +37,11 @@
     "@rspack/plugin-postcss": "workspace:^",
     "browserslist": "^4.21.3",
     "chokidar": "3.5.3",
-    "tapable": "2.2.1",
-    "webpack-sources": "3.2.3",
     "graceful-fs": "4.2.10",
     "neo-async": "2.6.2",
-    "react-refresh": "0.14.0"
+    "react-refresh": "0.14.0",
+    "tapable": "2.2.1",
+    "webpack-sources": "3.2.3"
   },
   "optionalDependencies": {
     "@tmp-sass-embedded/darwin-arm64": "1.54.4",

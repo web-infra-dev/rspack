@@ -22,8 +22,8 @@ use tracing::instrument;
 
 use crate::runtime::{generate_commonjs_runtime, RSPACK_REGISTER};
 use crate::utils::{
-  get_swc_compiler, get_wrap_chunk_after, get_wrap_chunk_before, syntax_by_module_type,
-  wrap_eval_source_map, wrap_module_function,
+  get_chunk_filename_template, get_swc_compiler, get_wrap_chunk_after, get_wrap_chunk_before,
+  syntax_by_module_type, wrap_eval_source_map, wrap_module_function,
 };
 use crate::visitors::{run_after_pass, run_before_pass, DependencyScanner};
 
@@ -326,34 +326,27 @@ impl Plugin for JsPlugin {
     // let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
     let chunkhash = None;
     let contenthash = Some(get_contenthash(&source).to_string());
-    let output_path = if chunk.is_only_initial(&args.compilation.chunk_group_by_ukey) {
-      compilation
-        .options
-        .output
-        .filename
-        .render(FilenameRenderOptions {
-          filename: Some(args.chunk().id.to_owned()),
-          extension: Some(".js".to_owned()),
-          id: None,
-          contenthash,
-          chunkhash,
-          hash,
-        })
-    } else {
-      compilation
-        .options
-        .output
-        .chunk_filename
-        .render(FilenameRenderOptions {
-          filename: None,
-          extension: Some(".js".to_owned()),
-          id: Some(format!("static/js/{}", args.chunk().id.to_owned())),
-          contenthash,
-          chunkhash,
-          hash,
-        })
-    };
+    let filename = get_chunk_filename_template(
+      chunk,
+      &compilation.options.output,
+      &compilation.chunk_group_by_ukey,
+    );
+    tracing::debug!("@@filename: {:#?}, chunk:{:?}", filename, chunk.id);
 
+    let output_path = filename.render(FilenameRenderOptions {
+      filename: chunk
+        .name
+        .clone()
+        .map(|name| Some(name))
+        .unwrap_or(Some(chunk.id.clone())),
+      id: Some(chunk.id.clone()),
+      chunkhash,
+      contenthash,
+      extension: Some(".js".to_owned()),
+      hash,
+    });
+
+    tracing::debug!("output_path: {:#?}", output_path);
     Ok(vec![RenderManifestEntry::new(source.boxed(), output_path)])
   }
 

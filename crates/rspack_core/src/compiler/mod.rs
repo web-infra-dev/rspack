@@ -130,12 +130,18 @@ impl Compiler {
   }
 
   pub fn emit_assets(&self, compilation: &Compilation) -> Result<()> {
+    tracing::debug!("self.options.output.path: {:?}", self.options.output.path);
     let output_path = self.options.context.join(&self.options.output.path);
     if !output_path.exists() {
       std::fs::create_dir_all(&output_path)
         .with_context(|| format!("failed to create dir: {:?}", &output_path))
         .map_err(|e| Error::Anyhow { source: e })?;
     }
+    tracing::debug!(
+      "output_path:{}\nassets to write: {:#?}",
+      output_path.display(),
+      compilation.assets().keys().collect::<Vec<_>>()
+    );
 
     compilation
       .assets()
