@@ -193,6 +193,7 @@ class Compiler {
 		return this.compilation.processAssets(value, emitAsset);
 	}
 	#compilation(native: binding.RspackCompilation) {
+		// TODO: implement this based on the child compiler impl.
 		this.hooks.compilation.call(this.compilation);
 	}
 	#newCompilation(native: binding.RspackCompilation) {
