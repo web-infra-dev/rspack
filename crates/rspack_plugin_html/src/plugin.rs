@@ -1,5 +1,6 @@
 use anyhow::Context;
 use async_trait::async_trait;
+use dojang::dojang::Dojang;
 use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
 use rspack_core::{
   parse_to_url,
@@ -76,7 +77,18 @@ impl Plugin for HtmlPlugin {
       ),
     };
 
-    let ast_with_diagnostic = parser.parse_file(&url, content)?;
+    // process with template parameters
+    let template_result = if let Some(template_parameters) = &self.config.template_parameters {
+      let mut dj = Dojang::new();
+      dj.add(url.clone(), content)
+        .expect("failed to add template");
+      dj.render(&url, serde_json::json!(template_parameters))
+        .expect("failed to render template")
+    } else {
+      content
+    };
+
+    let ast_with_diagnostic = parser.parse_file(&url, template_result)?;
 
     let (mut current_ast, mut diagnostic) = ast_with_diagnostic.split_into_parts();
 

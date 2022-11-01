@@ -1,5 +1,5 @@
 module.exports = {
 	entry: {
-		main: "./index.tsx",
-	},
+		main: ["./index.tsx"]
+	}
 };

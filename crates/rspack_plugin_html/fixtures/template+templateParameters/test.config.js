@@ -5,7 +5,10 @@ module.exports = {
 	builtins: {
 		html: [
 			{
-				favicon: "favicon.ico"
+				template: "index.html",
+				templateParameters: {
+					foo: "bar"
+				}
 			}
 		]
 	}

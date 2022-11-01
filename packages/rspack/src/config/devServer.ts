@@ -1,6 +1,7 @@
 import path from "node:path";
 import { resolveWatchOption } from "./watch";
 import type { WatchOptions } from "chokidar";
+import type { ResolvedEntry } from "./entry";
 
 export interface WebSocketServerOptions {
 	protocol?: string;
@@ -38,13 +39,12 @@ export interface ResolvedDev {
 	webSocketServer: false | WebSocketServerOptions;
 }
 
-export function getAdditionDevEntry() {
+export function getAdditionDevEntry(): ResolvedEntry {
 	const devClientEntryPath = require.resolve("@rspack/dev-client");
 	const additionalEntry = {
-		"rspack-dev-client": devClientEntryPath,
-		"rspack-hot-update": require.resolve("@rspack/dev-client/devServer")
+		"rspack-dev-client": [devClientEntryPath],
+		"rspack-hot-update": [require.resolve("@rspack/dev-client/devServer")]
 	};
-	// console.log(additionalEntry);
 	return additionalEntry;
 }
 

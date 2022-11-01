@@ -91,7 +91,7 @@ impl Compiler {
   }
 
   #[instrument(name = "compile")]
-  async fn compile(&mut self, deps: HashMap<String, Dependency>) -> Result<()> {
+  async fn compile(&mut self, deps: HashMap<String, Vec<Dependency>>) -> Result<()> {
     let option = self.options.clone();
     self.compilation.make(deps).await;
     if option.builtins.tree_shaking {
@@ -172,31 +172,45 @@ impl Compiler {
     ) -> HashMap<String, String> {
       let modules = s.compilation.module_graph.module_graph_modules();
       // TODO: use hash;
+
       modules
-        .filter(|item| item.module_type.is_js_like())
         .filter_map(|item| {
-          let uri = item.uri.to_string();
-          // TODO: should use filetime snapshot
-          if !changed_files.contains(&uri) && !removed_files.contains(&uri) {
+          use crate::SourceType::*;
+          if !changed_files.contains(&item.uri) && !removed_files.contains(&item.uri) {
             None
-          } else {
+          } else if item.module_type.is_js_like() {
             s.compilation
               .module_graph
-              .module_by_identifier(&uri)
+              .module_by_identifier(&item.uri)
               .map(|module| {
                 // TODO: it soo slowly, should use cache to instead.
                 let code = module.code_generation(item, s.compilation).unwrap();
-                let code = code
-                  .inner()
-                  .get(&crate::SourceType::JavaScript)
-                  .expect("expected javascript file")
-                  .ast_or_source
-                  .as_source()
-                  .unwrap()
-                  .source()
-                  .to_string();
-                (uri, code)
+                let code = if let Some(code) = code.get(JavaScript) {
+                  code.ast_or_source.as_source().unwrap().source().to_string()
+                } else {
+                  println!("expect get JavaScirpt code");
+                  String::new()
+                };
+                (item.uri.clone(), code)
               })
+          } else if item.module_type.is_css() {
+            s.compilation
+              .module_graph
+              .module_by_identifier(&item.uri)
+              .map(|module| {
+                // TODO: it soo slowly, should use cache to instead.
+                let code = module.code_generation(item, s.compilation).unwrap();
+                let code = if let Some(code) = code.get(Css) {
+                  // only used for compare between two build
+                  code.ast_or_source.as_source().unwrap().source().to_string()
+                } else {
+                  println!("expect get CSS code");
+                  String::new()
+                };
+                (item.uri.clone(), code)
+              })
+          } else {
+            None
           }
         })
         .collect()

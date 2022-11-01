@@ -48,6 +48,7 @@ pub type RawHtmlFilename = String;
 // }
 
 #[derive(Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 #[cfg(feature = "node-api")]
 #[napi(object)]
 pub struct RawHtmlPluginConfig {
@@ -56,6 +57,7 @@ pub struct RawHtmlPluginConfig {
   pub filename: Option<RawHtmlFilename>,
   /// template html file
   pub template: Option<String>,
+  pub template_parameters: Option<HashMap<String, String>>,
   /// `head`, `body` or None
   #[napi(ts_type = "string | void")]
   pub inject: Option<RawHtmlPluginConfigInject>,
@@ -77,12 +79,14 @@ pub struct RawHtmlPluginConfig {
 }
 
 #[derive(Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 #[cfg(not(feature = "node-api"))]
 pub struct RawHtmlPluginConfig {
   /// emitted file name in output path
   pub filename: Option<RawHtmlFilename>,
   /// template html file
   pub template: Option<String>,
+  pub template_parameters: Option<HashMap<String, String>>,
   /// `head`, `body` or None
   pub inject: Option<RawHtmlPluginConfigInject>,
   /// path or `auto`
@@ -122,6 +126,7 @@ impl RawOption<HtmlPluginConfig> for RawHtmlPluginConfig {
     Ok(HtmlPluginConfig {
       filename: self.filename.unwrap_or_else(|| String::from("index.html")),
       template: self.template,
+      template_parameters: self.template_parameters,
       inject,
       public_path: self.public_path,
       script_loading,
@@ -139,6 +144,7 @@ impl RawOption<HtmlPluginConfig> for RawHtmlPluginConfig {
     Self {
       filename: Some(String::from("index.html")),
       template: Default::default(),
+      template_parameters: None,
       inject: Default::default(),
       public_path: Default::default(),
       script_loading: Some(String::from("defer")),

@@ -1,12 +1,12 @@
 module.exports = {
 	entry: {
-		index: "./index.js",
+		index: ["./index.js"]
 	},
 	builtins: {
 		html: [
 			{
-				minify: true,
-			},
-		],
-	},
+				minify: true
+			}
+		]
+	}
 };

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-pub type BundleEntries = HashMap<String, EntryItem>;
+pub type BundleEntries = HashMap<String, Vec<EntryItem>>;
 
 #[derive(Debug, Clone)]
 pub struct EntryItem {

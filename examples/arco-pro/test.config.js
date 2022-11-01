@@ -1,7 +1,7 @@
 module.exports = {
   mode: "development",
   entry: {
-    index: "./src/empty.tsx",
+    index: ["./src/empty.tsx"],
   },
   loader: {
     json: "json",

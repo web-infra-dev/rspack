@@ -11,9 +11,10 @@ use crate::{
   uri_to_chunk_name, ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation, Dependency,
 };
 
+#[derive(Debug)]
 struct EntryData {
   name: String,
-  module_uri: String,
+  modules_uri: Vec<String>,
   dependencies: Vec<Dependency>,
 }
 #[instrument()]
@@ -54,14 +55,20 @@ impl<'me> CodeSplitter<'me> {
     let entries = compilation
       .entry_dependencies()
       .iter()
-      .filter_map(|(name, dep)| {
-        module_graph
-          .module_by_dependency(dep)
-          .map(|module| EntryData {
-            module_uri: module.uri.clone(),
-            name: name.to_string(),
-            dependencies: vec![dep.clone()],
+      .filter_map(|(name, deps)| {
+        let modules_uri = deps
+          .iter()
+          .filter_map(|dep| {
+            module_graph
+              .module_by_dependency(dep)
+              .map(|module| module.uri.clone())
           })
+          .collect::<Vec<_>>();
+        (!modules_uri.is_empty()).then_some(EntryData {
+          modules_uri,
+          name: name.to_string(),
+          dependencies: deps.clone(),
+        })
       })
       .collect::<Vec<_>>();
 
@@ -69,7 +76,7 @@ impl<'me> CodeSplitter<'me> {
 
     for EntryData {
       name,
-      module_uri,
+      modules_uri,
       dependencies,
     } in &entries
     {
@@ -80,10 +87,13 @@ impl<'me> CodeSplitter<'me> {
       );
 
       compilation.chunk_graph.add_chunk(chunk.ukey);
-      compilation
-        .chunk_graph
-        .split_point_module_uri_to_chunk_ukey
-        .insert(module_uri.clone(), chunk.ukey);
+
+      for module_uri in modules_uri {
+        compilation
+          .chunk_graph
+          .split_point_module_uri_to_chunk_ukey
+          .insert(module_uri.clone(), chunk.ukey);
+      }
 
       let mut entrypoint = ChunkGroup::new(ChunkGroupKind::Entrypoint);
 
