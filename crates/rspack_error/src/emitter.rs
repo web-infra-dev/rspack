@@ -1,3 +1,4 @@
+use anyhow::Context;
 use codespan_reporting::diagnostic::{Diagnostic, Label, Severity};
 use codespan_reporting::files::SimpleFiles;
 use codespan_reporting::term;
@@ -7,7 +8,7 @@ use std::io::Write;
 use std::path::Path;
 use std::sync::Arc;
 use sugar_path::SugarPath;
-use termcolor::{Color, ColorSpec, StandardStreamLock, WriteColor};
+use termcolor::{Buffer, Color, ColorSpec, StandardStreamLock, WriteColor};
 
 use crate::Diagnostic as RspackDiagnostic;
 
@@ -63,13 +64,7 @@ impl DiagnosticDisplay for StdioDiagnosticDisplay {
     let mut lock_writer = writer.lock();
     let mut files = SimpleFiles::new();
     let pwd = std::env::current_dir()?;
-    emit_diagnostic(
-      diagnostic,
-      path_pos_map.clone(),
-      &mut lock_writer,
-      &pwd,
-      &mut files,
-    )
+    emit_diagnostic(diagnostic, path_pos_map, &mut lock_writer, &pwd, &mut files)
   }
 }
 
@@ -135,8 +130,46 @@ impl DiagnosticDisplay for StringDiagnosticDisplay {
   ) -> Self::Output {
     let mut files = SimpleFiles::new();
     let pwd = std::env::current_dir()?;
-    emit_diagnostic(diagnostic, path_pos_map.clone(), self, &pwd, &mut files)?;
-    Ok(std::mem::take(&mut self.string_buffer).join(""))
+    emit_diagnostic(diagnostic, path_pos_map, self, &pwd, &mut files)?;
+    self.flush_diagnostic();
+    Ok(
+      self
+        .diagnostic_vector
+        .pop()
+        .context("diagnostic_vector should not empty after flush_diagnostic")?,
+    )
+  }
+}
+
+pub struct ColoredStringDiagnosticDisplay;
+
+impl DiagnosticDisplay for ColoredStringDiagnosticDisplay {
+  type Output = crate::Result<String>;
+
+  fn emit_batch_diagnostic(
+    &mut self,
+    diagnostics: &[RspackDiagnostic],
+    path_pos_map: Arc<DashMap<String, u32>>,
+  ) -> Self::Output {
+    let mut files = SimpleFiles::new();
+    let pwd = std::env::current_dir()?;
+    let mut buf = Buffer::ansi();
+    for d in diagnostics {
+      emit_diagnostic(d, path_pos_map.clone(), &mut buf, &pwd, &mut files)?;
+    }
+    Ok(String::from_utf8_lossy(buf.as_slice()).to_string())
+  }
+
+  fn emit_diagnostic(
+    &mut self,
+    diagnostic: &RspackDiagnostic,
+    path_pos_map: Arc<DashMap<String, u32>>,
+  ) -> Self::Output {
+    let mut files = SimpleFiles::new();
+    let pwd = std::env::current_dir()?;
+    let mut buf = Buffer::ansi();
+    emit_diagnostic(diagnostic, path_pos_map, &mut buf, &pwd, &mut files)?;
+    Ok(String::from_utf8_lossy(buf.as_slice()).to_string())
   }
 }
 
@@ -157,7 +190,7 @@ fn emit_batch_diagnostic<T: Write + WriteColor + FlushDiagnostic>(
   Ok(())
 }
 
-fn emit_diagnostic<'a, T: Write + WriteColor>(
+fn emit_diagnostic<T: Write + WriteColor>(
   diagnostic: &RspackDiagnostic,
   path_pos_map: Arc<DashMap<String, u32>>,
   writer: &mut T,
@@ -172,8 +205,14 @@ fn emit_diagnostic<'a, T: Write + WriteColor>(
       .map(|v| *v)
       .unwrap_or(0)
       .saturating_sub(1) as usize;
-    let start = diagnostic.start - start_relative_sourcemap;
-    let end = diagnostic.end - start_relative_sourcemap;
+    let start = diagnostic
+      .start
+      .checked_sub(start_relative_sourcemap)
+      .unwrap_or(diagnostic.start);
+    let end = diagnostic
+      .end
+      .checked_sub(start_relative_sourcemap)
+      .unwrap_or(diagnostic.end);
     let file_path = Path::new(&info.path);
     let relative_path = file_path.relative(&pwd);
     let relative_path = relative_path.as_os_str().to_string_lossy().to_string();

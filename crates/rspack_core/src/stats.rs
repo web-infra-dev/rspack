@@ -1,7 +1,10 @@
 use crate::{Chunk, Compilation, ModuleType, SourceType, PATH_START_BYTE_POS_MAP};
 use hashbrown::HashMap;
 use rspack_error::{
-  emitter::{DiagnosticDisplay, StdioDiagnosticDisplay, StringDiagnosticDisplay},
+  emitter::{
+    ColoredStringDiagnosticDisplay, DiagnosticDisplay, StdioDiagnosticDisplay,
+    StringDiagnosticDisplay,
+  },
   Result,
 };
 
@@ -107,7 +110,7 @@ impl<'compilation> Stats<'compilation> {
       .collect();
     modules.sort_by_cached_key(|m| m.identifier.to_string()); // TODO: sort by module.depth
 
-    let mut diagnostic_displayer = StringDiagnosticDisplay::default();
+    let mut diagnostic_displayer = ColoredStringDiagnosticDisplay;
     let errors: Vec<StatsError> = self
       .compilation
       .get_errors()

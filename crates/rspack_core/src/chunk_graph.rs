@@ -171,7 +171,7 @@ impl ChunkGraph {
     module_graph: &'module ModuleGraph,
   ) -> f64 {
     self
-      .get_chunk_modules(&chunk, module_graph)
+      .get_chunk_modules(chunk, module_graph)
       .iter()
       .fold(0.0, |acc, m| {
         let module = module_graph

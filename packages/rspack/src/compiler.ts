@@ -202,11 +202,11 @@ class Compiler {
 						return finalCallback(err);
 					}
 
-					this.unsafe_build((err, raw_stats) => {
+					this.unsafe_build((err, rawStats) => {
 						if (err) {
 							return finalCallback(err);
 						}
-						const stats = new Stats(this.compilation, raw_stats);
+						const stats = new Stats(rawStats);
 						this.hooks.done.callAsync(stats, err => {
 							if (err) {
 								return finalCallback(err);
@@ -270,13 +270,9 @@ class Compiler {
 			}
 		);
 		const begin = Date.now();
-		let stats = await util.promisify(this.unsafe_build.bind(this))();
-		if (stats.errors.length > 0) {
-			logger.error(
-				"build failed:",
-				stats.errors.map(x => x.message).join("\n")
-			);
-		}
+		let rawStats = await util.promisify(this.unsafe_build.bind(this))();
+		let stats = new Stats(rawStats);
+		console.log(stats.toString());
 		console.log("build success, time cost", Date.now() - begin, "ms");
 
 		let pendingChangedFilepaths = new Set<string>();
@@ -303,13 +299,9 @@ class Compiler {
 				console.log("hit change and start to build");
 
 				const begin = Date.now();
-				this.unsafe_rebuild(changedFilepath, (error: any, { diff, stats }) => {
-					if (stats.errors.length > 0) {
-						logger.error(
-							"build error:",
-							stats.errors.map(err => err.message).join("\n")
-						);
-					}
+				this.unsafe_rebuild(changedFilepath, (error: any, { diff, stats: rawStats }) => {
+					let stats = new Stats(rawStats);
+					console.log(stats.toString());
 					isBuildFinished = true;
 
 					const hasPending = Boolean(pendingChangedFilepaths.size);

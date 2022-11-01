@@ -1,257 +1,21 @@
 import * as binding from "@rspack/binding";
-import { Compilation } from "./compilation";
-
-/**
- * This interface was referenced by `WebpackOptions`'s JSON-Schema
- * via the `definition` "FilterTypes".
- */
-export type FilterTypes = FilterItemTypes | FilterItemTypes[];
-
-/**
- * This interface was referenced by `WebpackOptions`'s JSON-Schema
- * via the `definition` "FilterItemTypes".
- */
-export type FilterItemTypes = RegExp | string | ((value: string) => boolean);
-
-/**
- * This interface was referenced by `WebpackOptions`'s JSON-Schema
- * via the `definition` "StatsOptions".
- */
-export interface StatsOptions {
-	/**
-	 * fallback value for stats options when an option is not defined (has precedence over local webpack defaults)
-	 */
-	all?: boolean;
-	/**
-	 * add assets information
-	 */
-	assets?: boolean;
-	/**
-	 * sort the assets by that field
-	 */
-	assetsSort?: string;
-	/**
-	 * add built at time information
-	 */
-	builtAt?: boolean;
-	/**
-	 * add also information about cached (not built) modules
-	 */
-	cached?: boolean;
-	/**
-	 * Show cached assets (setting this to `false` only shows emitted files)
-	 */
-	cachedAssets?: boolean;
-	/**
-	 * add children information
-	 */
-	children?: boolean;
-	/**
-	 * Display all chunk groups with the corresponding bundles
-	 */
-	chunkGroups?: boolean;
-	/**
-	 * add built modules information to chunk information
-	 */
-	chunkModules?: boolean;
-	/**
-	 * add the origins of chunks and chunk merging info
-	 */
-	chunkOrigins?: boolean;
-	/**
-	 * add chunk information
-	 */
-	chunks?: boolean;
-	/**
-	 * sort the chunks by that field
-	 */
-	chunksSort?: string;
-	/**
-	 * Enables/Disables colorful output
-	 */
-	colors?:
-	| boolean
-	| {
-		/**
-		 * Custom color for bold text
-		 */
-		bold?: string;
-		/**
-		 * Custom color for cyan text
-		 */
-		cyan?: string;
-		/**
-		 * Custom color for green text
-		 */
-		green?: string;
-		/**
-		 * Custom color for magenta text
-		 */
-		magenta?: string;
-		/**
-		 * Custom color for red text
-		 */
-		red?: string;
-		/**
-		 * Custom color for yellow text
-		 */
-		yellow?: string;
-	};
-	/**
-	 * context directory for request shortening
-	 */
-	context?: string;
-	/**
-	 * add module depth in module graph
-	 */
-	depth?: boolean;
-	/**
-	 * Display the entry points with the corresponding bundles
-	 */
-	entrypoints?: boolean;
-	/**
-	 * add --env information
-	 */
-	env?: boolean;
-	/**
-	 * add details to errors (like resolving log)
-	 */
-	errorDetails?: boolean;
-	/**
-	 * add errors
-	 */
-	errors?: boolean;
-	/**
-	 * Please use excludeModules instead.
-	 */
-	exclude?: FilterTypes | boolean;
-	/**
-	 * Suppress assets that match the specified filters. Filters can be Strings, RegExps or Functions
-	 */
-	excludeAssets?: FilterTypes;
-	/**
-	 * Suppress modules that match the specified filters. Filters can be Strings, RegExps, Booleans or Functions
-	 */
-	excludeModules?: FilterTypes | boolean;
-	/**
-	 * add the hash of the compilation
-	 */
-	hash?: boolean;
-	/**
-	 * add logging output
-	 */
-	logging?: boolean | ("none" | "error" | "warn" | "info" | "log" | "verbose");
-	/**
-	 * Include debug logging of specified loggers (i. e. for plugins or loaders). Filters can be Strings, RegExps or Functions
-	 */
-	loggingDebug?: FilterTypes | boolean;
-	/**
-	 * add stack traces to logging output
-	 */
-	loggingTrace?: boolean;
-	/**
-	 * Set the maximum number of modules to be shown
-	 */
-	maxModules?: number;
-	/**
-	 * add information about assets inside modules
-	 */
-	moduleAssets?: boolean;
-	/**
-	 * add dependencies and origin of warnings/errors
-	 */
-	moduleTrace?: boolean;
-	/**
-	 * add built modules information
-	 */
-	modules?: boolean;
-	/**
-	 * sort the modules by that field
-	 */
-	modulesSort?: string;
-	/**
-	 * add information about modules nested in other modules (like with module concatenation)
-	 */
-	nestedModules?: boolean;
-	/**
-	 * show reasons why optimization bailed out for modules
-	 */
-	optimizationBailout?: boolean;
-	/**
-	 * Add output path information
-	 */
-	outputPath?: boolean;
-	/**
-	 * add performance hint flags
-	 */
-	performance?: boolean;
-	/**
-	 * show exports provided by modules
-	 */
-	providedExports?: boolean;
-	/**
-	 * Add public path information
-	 */
-	publicPath?: boolean;
-	/**
-	 * add information about the reasons why modules are included
-	 */
-	reasons?: boolean;
-	/**
-	 * add the source code of modules
-	 */
-	source?: boolean;
-	/**
-	 * add timing information
-	 */
-	timings?: boolean;
-	/**
-	 * show exports used by modules
-	 */
-	usedExports?: boolean;
-	/**
-	 * add webpack version information
-	 */
-	version?: boolean;
-	/**
-	 * add warnings
-	 */
-	warnings?: boolean;
-	/**
-	 * Suppress warnings that match the specified filters. Filters can be Strings, RegExps or Functions
-	 */
-	warningsFilter?: FilterTypes;
-}
+import { LogType } from "./logging/Logger";
 
 export class Stats {
-	compilation: Compilation;
 	// remove this when support delegate compilation to rust side
 	#statsJson: binding.StatsCompilation;
 
-	constructor(compilation: Compilation, statsJson: binding.StatsCompilation) {
-		this.compilation = compilation;
+	constructor(statsJson: binding.StatsCompilation) {
 		this.#statsJson = statsJson;
 	}
 
-	toJson(options?: StatsOptions) {
-		if (typeof options === "boolean" || typeof options === "string") {
-			options = Stats.presetToOptions(options);
-		} else if (!options) {
-			options = {};
-		}
-		// TODO: filter stats json fields by options
+	toJson() {
 		return this.#statsJson;
 	}
 
-	toString(options?: StatsOptions) {
-		if (typeof options === "boolean" || typeof options === "string") {
-			options = Stats.presetToOptions(options);
-		} else if (!options) {
-			options = {};
-		}
-		const obj = this.toJson(options);
-		const useColors = optionsOrFallback(options.colors, false);
-		return Stats.jsonToString(obj, useColors);
+	toString() {
+		const obj = this.toJson();
+		return Stats.jsonToString(obj, process.stdout.isTTY);
 	}
 
 	static jsonToString(obj/* : binding.StatsCompilation */, useColors: boolean) {
@@ -766,6 +530,7 @@ export class Stats {
 				}
 				colors.normal(" ");
 				colors.normal(SizeFormatHelpers.formatSize(chunk.size));
+				// TODO: stats chunk relation
 				// for (const id of chunk.parents) {
 				// 	colors.normal(" <{");
 				// 	colors.yellow(id);
@@ -842,111 +607,111 @@ export class Stats {
 
 		processModulesList(obj, "");
 
-		// if (obj.logging) {
-		// 	for (const origin of Object.keys(obj.logging)) {
-		// 		const logData = obj.logging[origin];
-		// 		if (logData.entries.length > 0) {
-		// 			newline();
-		// 			if (logData.debug) {
-		// 				colors.red("DEBUG ");
-		// 			}
-		// 			colors.bold("LOG from " + origin);
-		// 			newline();
-		// 			let indent = "";
-		// 			for (const entry of logData.entries) {
-		// 				let color = colors.normal;
-		// 				let prefix = "    ";
-		// 				switch (entry.type) {
-		// 					case LogType.clear:
-		// 						colors.normal(`${indent}-------`);
-		// 						newline();
-		// 						continue;
-		// 					case LogType.error:
-		// 						color = colors.red;
-		// 						prefix = "<e> ";
-		// 						break;
-		// 					case LogType.warn:
-		// 						color = colors.yellow;
-		// 						prefix = "<w> ";
-		// 						break;
-		// 					case LogType.info:
-		// 						color = colors.green;
-		// 						prefix = "<i> ";
-		// 						break;
-		// 					case LogType.log:
-		// 						color = colors.bold;
-		// 						break;
-		// 					case LogType.trace:
-		// 					case LogType.debug:
-		// 						color = colors.normal;
-		// 						break;
-		// 					case LogType.status:
-		// 						color = colors.magenta;
-		// 						prefix = "<s> ";
-		// 						break;
-		// 					case LogType.profile:
-		// 						color = colors.magenta;
-		// 						prefix = "<p> ";
-		// 						break;
-		// 					case LogType.profileEnd:
-		// 						color = colors.magenta;
-		// 						prefix = "</p> ";
-		// 						break;
-		// 					case LogType.time:
-		// 						color = colors.magenta;
-		// 						prefix = "<t> ";
-		// 						break;
-		// 					case LogType.group:
-		// 						color = colors.cyan;
-		// 						prefix = "<-> ";
-		// 						break;
-		// 					case LogType.groupCollapsed:
-		// 						color = colors.cyan;
-		// 						prefix = "<+> ";
-		// 						break;
-		// 					case LogType.groupEnd:
-		// 						if (indent.length >= 2)
-		// 							indent = indent.slice(0, indent.length - 2);
-		// 						continue;
-		// 				}
-		// 				if (entry.message) {
-		// 					for (const line of entry.message.split("\n")) {
-		// 						colors.normal(`${indent}${prefix}`);
-		// 						color(line);
-		// 						newline();
-		// 					}
-		// 				}
-		// 				if (entry.trace) {
-		// 					for (const line of entry.trace) {
-		// 						colors.normal(`${indent}| ${line}`);
-		// 						newline();
-		// 					}
-		// 				}
-		// 				switch (entry.type) {
-		// 					case LogType.group:
-		// 						indent += "  ";
-		// 						break;
-		// 				}
-		// 			}
-		// 			if (logData.filteredEntries) {
-		// 				colors.normal(`+ ${logData.filteredEntries} hidden lines`);
-		// 				newline();
-		// 			}
-		// 		}
-		// 	}
-		// }
+		if (obj.logging) {
+			for (const origin of Object.keys(obj.logging)) {
+				const logData = obj.logging[origin];
+				if (logData.entries.length > 0) {
+					newline();
+					if (logData.debug) {
+						colors.red("DEBUG ");
+					}
+					colors.bold("LOG from " + origin);
+					newline();
+					let indent = "";
+					for (const entry of logData.entries) {
+						let color = colors.normal;
+						let prefix = "    ";
+						switch (entry.type) {
+							case LogType.clear:
+								colors.normal(`${indent}-------`);
+								newline();
+								continue;
+							case LogType.error:
+								color = colors.red;
+								prefix = "<e> ";
+								break;
+							case LogType.warn:
+								color = colors.yellow;
+								prefix = "<w> ";
+								break;
+							case LogType.info:
+								color = colors.green;
+								prefix = "<i> ";
+								break;
+							case LogType.log:
+								color = colors.bold;
+								break;
+							case LogType.trace:
+							case LogType.debug:
+								color = colors.normal;
+								break;
+							case LogType.status:
+								color = colors.magenta;
+								prefix = "<s> ";
+								break;
+							case LogType.profile:
+								color = colors.magenta;
+								prefix = "<p> ";
+								break;
+							case LogType.profileEnd:
+								color = colors.magenta;
+								prefix = "</p> ";
+								break;
+							case LogType.time:
+								color = colors.magenta;
+								prefix = "<t> ";
+								break;
+							case LogType.group:
+								color = colors.cyan;
+								prefix = "<-> ";
+								break;
+							case LogType.groupCollapsed:
+								color = colors.cyan;
+								prefix = "<+> ";
+								break;
+							case LogType.groupEnd:
+								if (indent.length >= 2)
+									indent = indent.slice(0, indent.length - 2);
+								continue;
+						}
+						if (entry.message) {
+							for (const line of entry.message.split("\n")) {
+								colors.normal(`${indent}${prefix}`);
+								color(line);
+								newline();
+							}
+						}
+						if (entry.trace) {
+							for (const line of entry.trace) {
+								colors.normal(`${indent}| ${line}`);
+								newline();
+							}
+						}
+						switch (entry.type) {
+							case LogType.group:
+								indent += "  ";
+								break;
+						}
+					}
+					if (logData.filteredEntries) {
+						colors.normal(`+ ${logData.filteredEntries} hidden lines`);
+						newline();
+					}
+				}
+			}
+		}
 
 		if (obj.warnings) {
 			for (const warning of obj.warnings) {
 				newline();
-				colors.yellow(`WARNING in ${warning}`);
+				colors.normal(formatError(warning));
 				newline();
 			}
 		}
 		if (obj.errors) {
 			for (const error of obj.errors) {
 				newline();
-				colors.red(`ERROR in ${formatError(error)}`);
+				colors.normal(formatError(error));
 				newline();
 			}
 		}
@@ -979,81 +744,6 @@ export class Stats {
 		}
 		return buf.join("");
 	}
-
-	static presetToOptions(name): StatsOptions {
-		// Accepted values: none, errors-only, minimal, normal, detailed, verbose
-		// Any other falsy value will behave as 'none', truthy values as 'normal'
-		const pn =
-			(typeof name === "string" && name.toLowerCase()) || name || "none";
-		switch (pn) {
-			case "none":
-				return {
-					all: false
-				};
-			case "verbose":
-				return {
-					entrypoints: true,
-					chunkGroups: true,
-					modules: false,
-					chunks: true,
-					chunkModules: true,
-					chunkOrigins: true,
-					depth: true,
-					env: true,
-					reasons: true,
-					usedExports: true,
-					providedExports: true,
-					optimizationBailout: true,
-					errorDetails: true,
-					publicPath: true,
-					logging: "verbose",
-					exclude: false,
-					maxModules: Infinity
-				};
-			case "detailed":
-				return {
-					entrypoints: true,
-					chunkGroups: true,
-					chunks: true,
-					chunkModules: false,
-					chunkOrigins: true,
-					depth: true,
-					usedExports: true,
-					providedExports: true,
-					optimizationBailout: true,
-					errorDetails: true,
-					publicPath: true,
-					logging: true,
-					exclude: false,
-					maxModules: Infinity
-				};
-			case "minimal":
-				return {
-					all: false,
-					modules: true,
-					maxModules: 0,
-					errors: true,
-					warnings: true,
-					logging: "warn"
-				};
-			case "errors-only":
-				return {
-					all: false,
-					errors: true,
-					moduleTrace: true,
-					logging: "error"
-				};
-			case "errors-warnings":
-				return {
-					all: false,
-					errors: true,
-					warnings: true,
-					logging: "warn"
-				};
-			default:
-				return {};
-		}
-	}
 }
 
 
@@ -1072,12 +762,6 @@ const SizeFormatHelpers = {
 
 		return `${+(size / Math.pow(1024, index)).toPrecision(3)} ${abbreviations[index]}`;
 	}
-};
-
-const optionsOrFallback = (...args) => {
-	let optionValues = [];
-	optionValues.push(...args);
-	return optionValues.find(optionValue => optionValue !== undefined);
 };
 
 const formatError = (e: binding.StatsError) => {
