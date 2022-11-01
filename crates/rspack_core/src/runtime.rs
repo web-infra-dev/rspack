@@ -22,12 +22,23 @@ impl Runtime {
     concat.boxed()
   }
 
-  pub fn generate_rspack_execute(&self, namespace: &str, require_str: &str, id: &str) -> BoxSource {
-    RawSource::from(format!(
-      r#"{}["{}"].{}("{}");"#,
-      self.context_indent, namespace, require_str, id
-    ))
-    .boxed()
+  pub fn generate_rspack_execute(
+    &self,
+    namespace: &str,
+    require_str: &str,
+    ids: &[&String],
+  ) -> BoxSource {
+    let sources = ids
+      .iter()
+      .map(|id| {
+        RawSource::from(format!(
+          r#"{}["{}"].{}("{}");"#,
+          self.context_indent, namespace, require_str, id
+        ))
+      })
+      .collect::<Vec<_>>();
+    let concat = ConcatSource::new(sources);
+    concat.boxed()
   }
 
   pub fn generate_with_inline_modules(

@@ -95,6 +95,23 @@ impl Compilation {
     self.entries.insert(name, vec![detail]);
   }
 
+  pub fn generate_chunk_entry_code(&self, chunk_ukey: &ChunkUkey) -> BoxSource {
+    let entry_modules_uri = self.chunk_graph.get_chunk_entry_modules(chunk_ukey);
+    let entry_modules_id = entry_modules_uri
+      .into_iter()
+      .filter_map(|entry_module_uri| {
+        self
+          .module_graph
+          .module_by_uri(entry_module_uri)
+          .map(|module| &module.id)
+      })
+      .collect::<Vec<_>>();
+    let namespace = &self.options.output.unique_name;
+    self
+      .runtime
+      .generate_rspack_execute(namespace, "__rspack_require__", &entry_modules_id)
+  }
+
   pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
     self.assets.insert(filename, asset);
   }

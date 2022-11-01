@@ -159,13 +159,12 @@ impl Plugin for RuntimePlugin {
     args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsOutput {
     let compilation = args.compilation;
-    let namespace = &compilation.options.output.unique_name;
     let platform = &compilation.options.target.platform;
 
     match platform {
       TargetPlatform::WebWorker | TargetPlatform::Node(_) => {
         let mut entry_source_array = vec![];
-        compilation.chunk_by_ukey.values().for_each(|chunk| {
+        for chunk in compilation.chunk_by_ukey.values() {
           if chunk.has_entry_module(&compilation.chunk_graph) {
             let js_entry_file = chunk
               .files
@@ -174,28 +173,14 @@ impl Plugin for RuntimePlugin {
               .unwrap();
             // will emit_asset back so remove is fine at here.
             let mut asset = compilation.assets.remove(js_entry_file).unwrap();
-            let entry_module_uri = compilation
-              .chunk_graph
-              .get_chunk_entry_modules(&chunk.ukey)
-              .into_iter()
-              .next()
-              .unwrap_or_else(|| panic!("entry module not found"));
-            let entry_module_id = &compilation
-              .module_graph
-              .module_by_uri(entry_module_uri)
-              .unwrap_or_else(|| panic!("entry module not found"))
-              .id;
-            let execute_code = compilation.runtime.generate_rspack_execute(
-              namespace,
-              RSPACK_REQUIRE,
-              entry_module_id,
-            );
+            let ukey = &chunk.ukey.clone();
+            let execute_code = compilation.generate_chunk_entry_code(ukey);
             asset.source = compilation
               .runtime
               .generate_with_inline_modules(asset.source, execute_code);
             entry_source_array.push((js_entry_file.to_string(), asset));
           }
-        });
+        }
         for (file, source) in entry_source_array {
           compilation.emit_asset(file.to_string(), source);
         }
