@@ -88,7 +88,8 @@ impl NormalModuleFactory {
       Ok(maybe_module) => {
         if let Some((mgm, module, original_module_identifier, dependency_id)) = maybe_module {
           let diagnostic = std::mem::take(&mut self.diagnostic);
-          self.send(Msg::ModuleCreated(TWithDiagnosticArray::new(
+
+          if let Err(err) = self.tx.send(Msg::ModuleCreated(TWithDiagnosticArray::new(
             Box::new((
               mgm,
               module,
@@ -99,12 +100,32 @@ impl NormalModuleFactory {
               is_entry,
             )),
             diagnostic,
-          )));
-        } else {
-          self.send(Msg::ModuleCreationCanceled);
+          ))) {
+            self
+              .context
+              .active_task_count
+              .fetch_sub(1, Ordering::SeqCst);
+            tracing::debug!("fail to send msg {:?}", err)
+          }
+        } else if let Err(err) = self.tx.send(Msg::ModuleCreationCanceled) {
+          self
+            .context
+            .active_task_count
+            .fetch_sub(1, Ordering::SeqCst);
+          tracing::debug!("fail to send msg {:?}", err)
         }
       }
-      Err(err) => self.send(Msg::ModuleCreationErrorEncountered(err)),
+      Err(err) => {
+        // If build error message is failed to send, then we should manually decrease the active task count
+        // Otherwise, it will be gracefully handled by the error message handler.
+        if let Err(err) = self.tx.send(Msg::ModuleCreationErrorEncountered(err)) {
+          self
+            .context
+            .active_task_count
+            .fetch_sub(1, Ordering::SeqCst);
+          tracing::debug!("fail to send msg {:?}", err)
+        }
+      }
     }
   }
 
@@ -118,7 +139,7 @@ impl NormalModuleFactory {
 
   pub fn send(&self, msg: Msg) {
     if let Err(err) = self.tx.send(msg) {
-      tracing::trace!("fail to send msg {:?}", err)
+      tracing::debug!("fail to send msg {:?}", err)
     }
   }
 
@@ -327,6 +348,7 @@ impl NormalModuleFactory {
       let (uri, module) = module;
       // TODO: remove this
       let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
+
       self
         .tx
         .send(Msg::DependencyReference(
@@ -336,7 +358,7 @@ impl NormalModuleFactory {
         .map_err(|_| {
           Error::InternalError(format!(
             "Failed to resolve dependency {:?}",
-            self.dependency
+            self.dependency,
           ))
         })?;
       (uri, module, dependency_id)
