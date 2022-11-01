@@ -13,7 +13,7 @@ use hashbrown::{
 };
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use swc_common::GLOBALS;
-use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::mpsc::{error::TryRecvError, UnboundedSender};
 use tracing::instrument;
 
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity};
@@ -195,120 +195,145 @@ impl Compilation {
       })
     });
 
-    while active_task_count.load(Ordering::SeqCst) != 0 {
-      match rx.recv().await {
-        Some(job) => match job {
-          Msg::ModuleCreated(module_with_diagnostic) => {
-            let (mgm, module, original_module_identifier, dependency_id, dependency, is_entry) =
-              *module_with_diagnostic.inner;
+    tokio::task::block_in_place(|| {
+      loop {
+        match rx.try_recv() {
+          Ok(item) => match item {
+            Msg::ModuleCreated(module_with_diagnostic) => {
+              let (mgm, module, original_module_identifier, dependency_id, dependency, is_entry) =
+                *module_with_diagnostic.inner;
 
-            let module_identifier = module.identifier();
+              let module_identifier = module.identifier();
 
-            match self
-              .visited_module_id
-              .entry((module_identifier.clone(), dependency.detail.clone()))
-            {
-              Occupied(_) => {
-                if let Err(err) = tx.send(Msg::ModuleReused(
-                  (original_module_identifier, dependency_id, module_identifier)
-                    .with_diagnostic(module_with_diagnostic.diagnostic),
-                )) {
+              match self
+                .visited_module_id
+                .entry((module_identifier.clone(), dependency.detail.clone()))
+              {
+                Occupied(_) => {
+                  if let Err(err) = tx.send(Msg::ModuleReused(
+                    (original_module_identifier, dependency_id, module_identifier)
+                      .with_diagnostic(module_with_diagnostic.diagnostic),
+                  )) {
+                    tracing::trace!("fail to send msg {:?}", err)
+                  }
+                  continue;
+                }
+                Vacant(vac) => {
+                  vac.insert();
+                }
+              }
+
+              if is_entry {
+                self
+                  .entry_module_identifiers
+                  .insert(module_identifier.clone());
+              }
+
+              self.handle_module_build_and_dependencies(
+                original_module_identifier,
+                module,
+                dependency_id,
+                active_task_count.clone(),
+                tx.clone(),
+              );
+              // After module created we add module graph module into module graph
+              self.module_graph.add_module_graph_module(mgm);
+            }
+            Msg::ModuleReused(result_with_diagnostics) => {
+              let (original_module_identifier, dependency_id, module_identifier) =
+                result_with_diagnostics.inner;
+              self.push_batch_diagnostic(result_with_diagnostics.diagnostic);
+              if let Err(err) = self.module_graph.set_resolved_module(
+                original_module_identifier,
+                dependency_id,
+                module_identifier.clone(),
+              ) {
+                // If build error message is failed to send, then we should manually decrease the active task count
+                // Otherwise, it will be gracefully handled by the error message handler.
+                if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err))
+                {
+                  active_task_count.fetch_sub(1, Ordering::SeqCst);
+                  tracing::trace!("fail to send msg {:?}", err);
+                }
+
+                // Early bail out if task is failed to finish
+                return;
+              };
+
+              // Gracefully exit
+              active_task_count.fetch_sub(1, Ordering::SeqCst);
+            }
+            Msg::ModuleResolved(result_with_diagnostics) => {
+              let (original_module_identifier, dependency_id, module, deps) =
+                result_with_diagnostics.inner;
+              self.push_batch_diagnostic(result_with_diagnostics.diagnostic);
+
+              {
+                let mut module_graph_module = self
+                  .module_graph
+                  .module_graph_module_by_identifier_mut(&module.identifier())
+                  .unwrap();
+                module_graph_module.all_dependencies = *deps;
+              }
+              if let Err(err) = self.module_graph.set_resolved_module(
+                original_module_identifier,
+                dependency_id,
+                module.identifier(),
+              ) {
+                // If build error message is failed to send, then we should manually decrease the active task count
+                // Otherwise, it will be gracefully handled by the error message handler.
+                if let Err(err) =
+                  tx.send(Msg::ModuleBuiltErrorEncountered(module.identifier(), err))
+                {
+                  active_task_count.fetch_sub(1, Ordering::SeqCst);
                   tracing::trace!("fail to send msg {:?}", err)
                 }
-                continue;
-              }
-              Vacant(vac) => {
-                vac.insert();
-              }
-            }
+                // Early bail out if task is failed to finish
+                return;
+              };
 
-            if is_entry {
+              self.module_graph.add_module(*module);
+
+              // Gracefully exit
+              active_task_count.fetch_sub(1, Ordering::SeqCst);
+            }
+            Msg::ModuleBuiltErrorEncountered(module_identifier, err) => {
               self
-                .entry_module_identifiers
-                .insert(module_identifier.clone());
-            }
-
-            self.handle_module_build_and_dependencies(
-              original_module_identifier,
-              module,
-              dependency_id,
-              active_task_count.clone(),
-              tx.clone(),
-            );
-            // After module created we add module graph module into module graph
-            self.module_graph.add_module_graph_module(mgm);
-          }
-          Msg::ModuleReused(result_with_diagnostics) => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
-
-            let (original_module_identifier, dependency_id, module_identifier) =
-              result_with_diagnostics.inner;
-            self.push_batch_diagnostic(result_with_diagnostics.diagnostic);
-            if let Err(err) = self.module_graph.set_resolved_module(
-              original_module_identifier,
-              dependency_id,
-              module_identifier.clone(),
-            ) {
-              if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err)) {
-                tracing::trace!("fail to send msg {:?}", err)
-              }
-            };
-          }
-          Msg::ModuleResolved(result_with_diagnostics) => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
-
-            let (original_module_identifier, dependency_id, module, deps) =
-              result_with_diagnostics.inner;
-            self.push_batch_diagnostic(result_with_diagnostics.diagnostic);
-
-            {
-              let mut module_graph_module = self
                 .module_graph
-                .module_graph_module_by_identifier_mut(&module.identifier())
-                .unwrap();
-              module_graph_module.all_dependencies = *deps;
+                .module_identifier_to_module
+                .remove(&module_identifier);
+              self
+                .module_graph
+                .module_identifier_to_module_graph_module
+                .remove(&module_identifier);
+              self.push_batch_diagnostic(err.into());
+              active_task_count.fetch_sub(1, Ordering::SeqCst);
             }
-            if let Err(err) = self.module_graph.set_resolved_module(
-              original_module_identifier,
-              dependency_id,
-              module.identifier(),
-            ) {
-              if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module.identifier(), err))
-              {
-                tracing::trace!("fail to send msg {:?}", err)
-              }
-            };
-            self.module_graph.add_module(*module);
+            Msg::ModuleCreationCanceled => {
+              active_task_count.fetch_sub(1, Ordering::SeqCst);
+            }
+            Msg::DependencyReference(dep, resolved_uri) => {
+              self.module_graph.add_dependency(dep, resolved_uri);
+            }
+            Msg::ModuleCreationErrorEncountered(err) => {
+              active_task_count.fetch_sub(1, Ordering::SeqCst);
+              self.push_batch_diagnostic(err.into());
+            }
+          },
+          Err(TryRecvError::Disconnected) => {
+            break;
           }
-          Msg::ModuleBuiltErrorEncountered(module_identifier, err) => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
-            self
-              .module_graph
-              .module_identifier_to_module
-              .remove(&module_identifier);
-            self
-              .module_graph
-              .module_identifier_to_module_graph_module
-              .remove(&module_identifier);
-            self.push_batch_diagnostic(err.into());
+          Err(TryRecvError::Empty) => {
+            if active_task_count.load(Ordering::SeqCst) == 0 {
+              break;
+            }
           }
-          Msg::ModuleCreationCanceled => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
-          }
-          Msg::DependencyReference(dep, resolved_uri) => {
-            self.module_graph.add_dependency(dep, resolved_uri);
-          }
-          Msg::ModuleCreationErrorEncountered(err) => {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
-            self.push_batch_diagnostic(err.into());
-          }
-        },
-        None => {
-          tracing::trace!("All sender is dropped");
         }
       }
-    }
-    tracing::debug!("module graph {:#?}", self.module_graph);
+    });
+
+    tracing::debug!("All task is finished");
+    tracing::trace!("module graph {:#?}", self.module_graph);
   }
 
   fn handle_module_build_and_dependencies(
@@ -364,9 +389,12 @@ impl Compilation {
         .collect::<Result<Vec<_>>>() {
           Ok(result) => result,
           Err(err) => {
+            // If build error message is failed to send, then we should manually decrease the active task count
+            // Otherwise, it will be gracefully handled by the error message handler.
             if let Err(err) =
               tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err))
             {
+              active_task_count.fetch_sub(1, Ordering::SeqCst);
               tracing::trace!("fail to send msg {:?}", err)
             }
             return
@@ -413,31 +441,44 @@ impl Compilation {
             })
             .collect::<Vec<_>>();
 
-          if let Err(err) = tx.send(Msg::ModuleResolved(
-            (
-              original_module_identifier.clone(),
-              dependency_id,
-              Box::new(module),
-              Box::new(deps.clone()),
-            )
-              .with_diagnostic(diagnostics),
-          )) {
-            tracing::trace!("fail to send msg {:?}", err);
-            return;
-          };
-
           Compilation::process_module_dependencies(
-            deps,
+            deps.clone(),
             active_task_count.clone(),
             tx.clone(),
             plugin_driver.clone(),
             compiler_options.clone(),
           );
+
+          // If build error message is failed to send, then we should manually decrease the active task count
+          // Otherwise, it will be gracefully handled by the error message handler.
+          if let Err(err) = tx.send(Msg::ModuleResolved(
+            (
+              original_module_identifier.clone(),
+              dependency_id,
+              Box::new(module),
+              Box::new(deps),
+            )
+              .with_diagnostic(diagnostics),
+          )) {
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
+            tracing::trace!("fail to send msg {:?}", err);
+
+            // Manually add return here to prevent the following code from being executed in the future
+            #[allow(clippy::needless_return)]
+            return;
+          };
         }
         Err(err) => {
+          // If build error message is failed to send, then we should manually decrease the active task count
+          // Otherwise, it will be gracefully handled by the error message handler.
           if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err)) {
-            tracing::trace!("fail to send msg {:?}", err)
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
+            tracing::trace!("fail to send msg {:?}", err);
           }
+
+          // Manually add return here to prevent the following code from being executed in the future
+          #[allow(clippy::needless_return)]
+          return;
         }
       }
     });
@@ -637,7 +678,7 @@ impl Compilation {
 
     plugin_driver.write().await.optimize_chunks(self)?;
 
-    tracing::debug!("chunk graph {:#?}", self.chunk_graph);
+    tracing::trace!("chunk graph {:#?}", self.chunk_graph);
 
     let context_indent = if matches!(
       self.options.target.platform,

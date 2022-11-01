@@ -2,9 +2,16 @@ use std::ffi::CStr;
 use std::io::Write;
 use std::ptr;
 
-use napi::{check_status, Env, Error, NapiRaw, Result};
+use napi::bindgen_prelude::*;
+use napi::{check_status, Env, Error, JsFunction, JsUnknown, NapiRaw, Result};
 use napi_derive::napi;
+
+use futures::Future;
 use once_cell::sync::OnceCell;
+
+use crate::threadsafe_function::{
+  ThreadSafeContext, ThreadsafeFunction, ThreadsafeFunctionCallMode,
+};
 
 static CUSTOM_TRACE_SUBSCRIBER: OnceCell<bool> = OnceCell::new();
 
@@ -82,6 +89,47 @@ pub fn init_custom_trace_subscriber(
         .expect("Should able to initialize cleanup for custom trace subscriber");
     }
     true
+  });
+
+  Ok(())
+}
+
+pub fn callbackify<R, F>(env: Env, f: JsFunction, fut: F) -> Result<()>
+where
+  R: 'static + ToNapiValue,
+  F: 'static + Send + Future<Output = Result<R>>,
+{
+  let ptr = unsafe { f.raw() };
+
+  let tsfn = ThreadsafeFunction::<Result<R>, ()>::create(env.raw(), ptr, 0, |ctx| {
+    let ThreadSafeContext {
+      value,
+      env,
+      callback,
+      ..
+    } = ctx;
+
+    let argv = match value {
+      Ok(value) => {
+        let val = unsafe { R::to_napi_value(env.raw(), value)? };
+        let js_value = unsafe { JsUnknown::from_napi_value(env.raw(), val)? };
+        vec![env.get_null()?.into_unknown(), js_value]
+      }
+      Err(err) => {
+        vec![JsError::from(err).into_unknown(env)]
+      }
+    };
+
+    callback.call(None, &argv)?;
+
+    Ok(())
+  })?;
+
+  napi::bindgen_prelude::spawn(async move {
+    let res = fut.await;
+    tsfn
+      .call(res, ThreadsafeFunctionCallMode::Blocking)
+      .expect("Failed to call JS callback");
   });
 
   Ok(())

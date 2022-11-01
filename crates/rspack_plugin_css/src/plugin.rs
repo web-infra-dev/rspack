@@ -322,7 +322,7 @@ impl Plugin for CssPlugin {
         .map(|chunk_group| {
           let mut modules = modules.clone();
           modules.sort_by_key(|mgm| chunk_group.module_post_order_index(mgm.uri.as_str()));
-          tracing::debug!(
+          tracing::trace!(
             "modules for chunk id {}: {:#?} ",
             args.chunk().id,
             modules
