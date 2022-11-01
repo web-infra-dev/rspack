@@ -26,9 +26,6 @@ fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxedLoader {
     "sass-loader" => Box::new(rspack_loader_sass::SassLoader::new(
       serde_json::from_str(options.unwrap_or("{}")).unwrap(),
     )),
-    "react-refresh-loader" => {
-      Box::new(rspack_loader_react_refresh::ReactRefreshRuntimeLoader::default())
-    }
     loader => panic!("{loader} is not supported yet."),
   }
 }

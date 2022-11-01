@@ -370,7 +370,7 @@ class Compiler {
 							}
 						}
 					}
-					console.log("rebuild success, time cost", Date.now() - begin);
+					console.log("rebuild success, time cost", Date.now() - begin, "ms");
 				});
 			};
 

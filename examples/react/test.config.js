@@ -17,15 +17,6 @@ module.exports = {
         test : '.less',
         type : 'css'
       }, 
-      {
-        // use entry or not
-        test: "\.js$",
-        uses: [
-          {
-            builtinLoader: "react-refresh-loader"
-          }
-        ]
-      }
     ],
     parser : {
       asset : {
