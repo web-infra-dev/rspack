@@ -78,15 +78,14 @@ pub(super) fn normalize_builtin(
     })));
   }
 
-  let minify = builtins
-    .minify
-    .unwrap_or(matches!(options.mode, Some(Mode::Production)));
   Ok(Builtins {
     browserslist: builtins.browserslist.unwrap_or_default(),
-    minify,
+    minify: builtins
+      .minify
+      .unwrap_or(matches!(options.mode, Some(Mode::Production))),
     polyfill: builtins.polyfill.unwrap_or(true),
     define: builtins.define.unwrap_or_default(),
-    tree_shaking: builtins.tree_shaking.unwrap_or_else(|| minify),
+    tree_shaking: builtins.tree_shaking.unwrap_or_default(),
     react: RawOption::raw_to_compiler_option(builtins.react, options)?,
   })
 }
