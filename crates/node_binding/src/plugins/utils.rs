@@ -1,6 +1,9 @@
-use napi::{bindgen_prelude::*, Env, JsObject, NapiRaw, NapiValue};
+use napi::{bindgen_prelude::*, Env, JsObject, JsUnknown, NapiRaw, NapiValue};
 
-use crate::{threadsafe_function::*, BoxedClosure, PluginCallbacks, StatsCompilation};
+use crate::{
+  js_values::RspackCompilation, threadsafe_function::*, BoxedClosure, PluginCallbacks,
+  StatsCompilation,
+};
 
 pub fn create_node_adapter_from_plugin_callbacks(
   env: Env,
@@ -11,8 +14,10 @@ pub fn create_node_adapter_from_plugin_callbacks(
       |PluginCallbacks {
          done_callback,
          process_assets_callback,
+         this_compilation_callback,
+         compilation_callback,
        }| {
-        let done_tsfn: ThreadsafeFunction<StatsCompilation, ()> = {
+        let mut done_tsfn: ThreadsafeFunction<StatsCompilation, ()> = {
           let cb = unsafe { done_callback.raw() };
 
           ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
@@ -28,7 +33,7 @@ pub fn create_node_adapter_from_plugin_callbacks(
           })
         }?;
 
-        let process_assets_tsfn: ThreadsafeFunction<(String, BoxedClosure), ()> = {
+        let mut process_assets_tsfn: ThreadsafeFunction<(String, BoxedClosure), ()> = {
           let cb = unsafe { process_assets_callback.raw() };
 
           ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
@@ -50,13 +55,65 @@ pub fn create_node_adapter_from_plugin_callbacks(
           })
         }?;
 
+        let mut compilation_tsfn: ThreadsafeFunction<RspackCompilation, ()> = {
+          let cb = unsafe { compilation_callback.raw() };
+
+          ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
+            let ThreadSafeContext {
+              env,
+              value,
+              callback,
+              ..
+            } = ctx;
+
+            let value = unsafe {
+              JsUnknown::from_napi_value(
+                env.raw(),
+                RspackCompilation::to_napi_value(env.raw(), value)?,
+              )?
+            };
+
+            callback.call(None, &[value])?;
+
+            Ok(())
+          })
+        }?;
+
+        let mut this_compilation_tsfn: ThreadsafeFunction<RspackCompilation, ()> = {
+          let cb = unsafe { compilation_callback.raw() };
+
+          ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
+            let ThreadSafeContext {
+              env,
+              value,
+              callback,
+              ..
+            } = ctx;
+
+            let value = unsafe {
+              JsUnknown::from_napi_value(
+                env.raw(),
+                RspackCompilation::to_napi_value(env.raw(), value)?,
+              )?
+            };
+
+            callback.call(None, &[value])?;
+
+            Ok(())
+          })
+        }?;
+
         // See the comment in `threadsafe_function.rs`
         done_tsfn.unref(&env)?;
         process_assets_tsfn.unref(&env)?;
+        compilation_tsfn.unref(&env)?;
+        this_compilation_tsfn.unref(&env)?;
 
         Ok(super::RspackPluginNodeAdapter {
           done_tsfn,
           process_assets_tsfn,
+          compilation_tsfn,
+          this_compilation_tsfn,
         })
       },
     )

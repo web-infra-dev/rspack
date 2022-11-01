@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::pin::Pin;
 
 use napi::{CallContext, JsUndefined};
 use napi_derive::napi;
@@ -9,14 +10,14 @@ use serde::{Deserialize, Serialize};
 
 use rspack_core::rspack_sources::{RawSource, SourceExt};
 use rspack_core::{
-  Compilation, DoneArgs, Plugin, PluginBuildEndHookOutput, PluginContext,
-  PluginProcessAssetsHookOutput, ProcessAssetsArgs,
+  Compilation, CompilationArgs, DoneArgs, Plugin, PluginBuildEndHookOutput,
+  PluginCompilationHookOutput, PluginContext, PluginProcessAssetsHookOutput,
+  PluginThisCompilationHookOutput, ProcessAssetsArgs, ThisCompilationArgs,
 };
 use rspack_error::Error;
 
-use crate::js_values::StatsCompilation;
 use crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
-use crate::{AssetContent, UpdateAssetOptions};
+use crate::{AssetContent, RspackCompilation, StatsCompilation, UpdateAssetOptions};
 
 mod utils;
 pub use utils::*;
@@ -25,6 +26,8 @@ pub type BoxedClosure = Box<dyn Fn(CallContext<'_>) -> napi::Result<JsUndefined>
 
 pub struct RspackPluginNodeAdapter {
   pub done_tsfn: ThreadsafeFunction<StatsCompilation, ()>,
+  pub compilation_tsfn: ThreadsafeFunction<RspackCompilation, ()>,
+  pub this_compilation_tsfn: ThreadsafeFunction<RspackCompilation, ()>,
   pub process_assets_tsfn: ThreadsafeFunction<(String, BoxedClosure), ()>,
 }
 
@@ -45,6 +48,34 @@ impl Plugin for RspackPluginNodeAdapter {
   fn name(&self) -> &'static str {
     "rspack_plugin_node_adapter"
   }
+  fn compilation(&mut self, args: CompilationArgs) -> PluginCompilationHookOutput {
+    let compilation = RspackCompilation::from_compilation(unsafe {
+      Pin::new_unchecked(std::mem::transmute::<
+        &'_ mut Compilation,
+        &'static mut Compilation,
+      >(args.compilation))
+    });
+
+    self
+      .compilation_tsfn
+      .call(compilation, ThreadsafeFunctionCallMode::Blocking)?;
+    Ok(())
+  }
+
+  fn this_compilation(&mut self, args: ThisCompilationArgs) -> PluginThisCompilationHookOutput {
+    let compilation = RspackCompilation::from_compilation(unsafe {
+      Pin::new_unchecked(std::mem::transmute::<
+        &'_ mut Compilation,
+        &'static mut Compilation,
+      >(args.this_compilation))
+    });
+
+    self
+      .this_compilation_tsfn
+      .call(compilation, ThreadsafeFunctionCallMode::Blocking)?;
+    Ok(())
+  }
+
   #[tracing::instrument(skip_all)]
   async fn process_assets(
     &mut self,
