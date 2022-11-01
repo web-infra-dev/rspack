@@ -2424,6 +2424,7 @@ dependencies = [
  "base64",
  "dojang",
  "hashbrown",
+ "itertools",
  "once_cell",
  "rayon",
  "rspack_core",
