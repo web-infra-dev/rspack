@@ -1,9 +1,9 @@
+use crate::config::{HtmlPluginConfig, HtmlPluginConfigInject, HtmlPluginConfigScriptLoading};
+use itertools::Itertools;
 use swc_atoms::JsWord;
 use swc_common::DUMMY_SP;
 use swc_html::ast::{Attribute, Child, Element, Namespace, Text};
 use swc_html::visit::{VisitMut, VisitMutWith};
-
-use crate::config::{HtmlPluginConfig, HtmlPluginConfigInject, HtmlPluginConfigScriptLoading};
 
 use super::utils::create_element;
 
@@ -186,29 +186,23 @@ impl VisitMut for AssetWriter<'_> {
 
         // add meta tags
         if let Some(meta) = &self.config.meta {
-          for (key, value) in meta.iter() {
+          for key in meta.keys().sorted() {
+            let value = meta.get(key).expect("should have value");
             let meta_ele = Element {
               tag_name: JsWord::from("meta"),
-              attributes: vec![
-                Attribute {
+              attributes: value
+                .iter()
+                .sorted()
+                .map(|(key, value)| Attribute {
                   span: Default::default(),
                   namespace: None,
                   prefix: None,
-                  name: "name".into(),
-                  raw_name: None,
-                  value: Some(key.clone().into()),
-                  raw_value: None,
-                },
-                Attribute {
-                  span: Default::default(),
-                  namespace: None,
-                  prefix: None,
-                  name: "content".into(),
+                  name: key.clone().into(),
                   raw_name: None,
                   value: Some(value.clone().into()),
                   raw_value: None,
-                },
-              ],
+                })
+                .collect(),
               children: vec![],
               content: None,
               is_self_closing: true,

@@ -75,7 +75,7 @@ pub struct RawHtmlPluginConfig {
   pub minify: Option<bool>,
   pub title: Option<String>,
   pub favicon: Option<String>,
-  pub meta: Option<HashMap<String, String>>,
+  pub meta: Option<HashMap<String, HashMap<String, String>>>,
 }
 
 #[derive(Deserialize, Debug, Serialize)]
@@ -101,7 +101,7 @@ pub struct RawHtmlPluginConfig {
   pub minify: Option<bool>,
   pub title: Option<String>,
   pub favicon: Option<String>,
-  pub meta: Option<HashMap<String, String>>,
+  pub meta: Option<HashMap<String, HashMap<String, String>>>,
 }
 
 impl RawOption<HtmlPluginConfig> for RawHtmlPluginConfig {

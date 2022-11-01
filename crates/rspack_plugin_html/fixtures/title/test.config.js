@@ -6,9 +6,6 @@ module.exports = {
 		html: [
 			{
 				title: "Rspack title",
-				meta: {
-					description: "Rspack description"
-				}
 			}
 		]
 	}
