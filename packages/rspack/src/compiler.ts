@@ -206,6 +206,13 @@ class Compiler {
 						if (err) {
 							return finalCallback(err);
 						}
+						if (raw_stats.errors.length > 0) {
+							const logger = this.getInfrastructureLogger("build");
+							logger.error(
+								"build failed:",
+								raw_stats.errors.map(x => x.message).join("\n")
+							);
+						}
 						const stats = new Stats(this.compilation, raw_stats);
 						this.hooks.done.callAsync(stats, err => {
 							if (err) {

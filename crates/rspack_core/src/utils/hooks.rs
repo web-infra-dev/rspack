@@ -25,30 +25,40 @@ pub async fn resolve(
   plugin_driver
     .resolver
     .resolve(base_dir, args.specifier)
-    .map_err(|error| {
-      let is_overflow = matches!(error, Error::InternalError(_));
-      let is_failed_tag = matches!(error, Error::BatchErrors(_));
-      if !is_failed_tag && !is_overflow {
-        error
-      } else if let Some(importer) = args.importer {
-        let span = args.span.unwrap_or_default();
-        let message = if is_overflow {
-          format!(
-            "Can't resolve {:?}, maybe it had cycle alias",
-            args.specifier
-          )
+    .map_err(|error| match error {
+      nodejs_resolver::Error::Io(error) => Error::Io { source: error },
+      nodejs_resolver::Error::UnexpectedJson((json_path, error)) => Error::Anyhow {
+        source: anyhow::Error::msg(format!("{:?} in {:?}", error, json_path)),
+      },
+      nodejs_resolver::Error::UnexpectedValue(error) => Error::Anyhow {
+        source: anyhow::Error::msg(error),
+      },
+      _ => {
+        if let Some(importer) = args.importer {
+          let span = args.span.unwrap_or_default();
+
+          let message = if let nodejs_resolver::Error::Overflow = error {
+            format!(
+              "Can't resolve {:?}, maybe it had cycle alias",
+              args.specifier
+            )
+          } else {
+            format!(
+              "Failed to resolve {} at {}",
+              args.specifier,
+              importer.to_string()
+            )
+          };
+          Error::TraceableError(TraceableError::from_path(
+            importer.to_string(),
+            span.start as usize,
+            span.end as usize,
+            "Resolve error".to_string(),
+            message,
+          ))
         } else {
-          format!("Failed to resolve {}", args.specifier)
-        };
-        Error::TraceableError(TraceableError::from_path(
-          importer.to_string(),
-          span.start as usize,
-          span.end as usize,
-          "Resolve error".to_string(),
-          message,
-        ))
-      } else {
-        error
+          Error::InternalError(format!("Failed to resolve {}", args.specifier))
+        }
       }
     })
 }
