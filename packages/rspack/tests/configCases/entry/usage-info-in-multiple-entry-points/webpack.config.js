@@ -1,3 +1,3 @@
 module.exports = {
-	entry: ["./before", "./index.js"]
+	entry: ["./before.js", "./index.js"]
 };
