@@ -7,7 +7,7 @@ it("html meta", () => {
 		fs
 			.readFileSync(htmlPath, "utf-8")
 			.includes(
-				'<meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport" />'
+				'<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />'
 			)
 	).toBe(true);
 });
