@@ -17,7 +17,7 @@ pub struct RspackCompilation {
 
 #[napi]
 impl RspackCompilation {
-  #[napi]
+  #[napi(ts_return_type = "Readonly<Asset>[]")]
   pub fn get_assets(&self, env: Env) -> Result<Vec<Asset>> {
     let mut assets = Vec::<Asset>::with_capacity(self.inner.assets.len());
 

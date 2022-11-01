@@ -1,8 +1,10 @@
 import * as tapable from "tapable";
+import { RspackCompilation } from "@rspack/binding";
 import { RspackOptionsNormalized } from "./config";
 import { RawSource, Source } from "webpack-sources";
 import { EmitAssetCallback } from "./compiler";
 import { createHash } from "./utils/createHash";
+import { createSource } from "./utils/createSource";
 export type Asset = {
 	source: Source;
 	name: string;
@@ -15,7 +17,9 @@ type KnownAssetInfo = Object;
 type AssetInfo = KnownAssetInfo & Record<string, any>;
 const EMPTY_ASSET_INFO = Object.freeze({});
 export class Compilation {
+	#inner: RspackCompilation;
 	#emitAssetCallback: EmitAssetCallback;
+
 	hooks: {
 		processAssets: tapable.AsyncSeriesHook<Record<string, Source>>;
 	};
@@ -24,7 +28,7 @@ export class Compilation {
 	options: RspackOptionsNormalized;
 	assets: CompilationAssets;
 	assetsInfo: Map<string, Map<string, Set<string>>>;
-	constructor(options: RspackOptionsNormalized) {
+	constructor(options: RspackOptionsNormalized, inner: RspackCompilation) {
 		this.hooks = {
 			processAssets: new tapable.AsyncSeriesHook<Record<string, Source>>([
 				"assets"
@@ -36,6 +40,7 @@ export class Compilation {
 		this.hash = this.fullHash.slice(0, hashDigestLength);
 		this.assets = {};
 		this.assetsInfo = new Map();
+		this.#inner = inner;
 	}
 	/**
 	 * unsafe to call out of processAssets
@@ -86,15 +91,15 @@ export class Compilation {
 		return filename;
 	}
 	getAssets() {
-		const array: Readonly<Asset>[] = [];
-		for (const assetName of Object.keys(this.assets)) {
-			array.push({
-				name: assetName,
-				source: this.assets[assetName],
-				info: this.assetsInfo.get(assetName) || EMPTY_ASSET_INFO
-			});
-		}
-		return array;
+		const assets = this.#inner.getAssets();
+
+		return assets.map(asset => {
+			const source = createSource(asset.source);
+			return {
+				...asset,
+				source
+			};
+		});
 	}
 	seal() {}
 	unseal() {}

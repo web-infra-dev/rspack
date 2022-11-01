@@ -80,7 +80,7 @@ pub fn create_node_adapter_from_plugin_callbacks(
         }?;
 
         let mut this_compilation_tsfn: ThreadsafeFunction<RspackCompilation, ()> = {
-          let cb = unsafe { compilation_callback.raw() };
+          let cb = unsafe { this_compilation_callback.raw() };
 
           ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
             let ThreadSafeContext {

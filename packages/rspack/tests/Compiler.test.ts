@@ -44,10 +44,11 @@ describe("Compiler", () => {
 		// 		callback(new Error("ENOENT"));
 		// 	}
 		// };
-		c.hooks.compilation.tap(
-			"CompilerTest",
-			compilation => (compilation.bail = true)
-		);
+		c.hooks.compilation.tap("CompilerTest", compilation => {
+			console.log(compilation);
+
+			compilation.bail = true;
+		});
 		c.run((err, stats) => {
 			if (err) throw err;
 			expect(typeof stats).toBe("object");
@@ -333,7 +334,9 @@ describe("Compiler", () => {
 				bail: true
 			});
 		} catch (err) {
-			expect(err.toString()).toMatchInlineSnapshot();
+			expect(err.toString()).toMatchInlineSnapshot(
+				`"Error: Missing field \`thisCompilationCallback\`"`
+			);
 		}
 	});
 	it.skip("should not emit compilation errors in async (watch)", async () => {
@@ -846,16 +849,16 @@ describe("Compiler", () => {
 			compiler.run((err, stats) => {
 				expect(capture.toString().replace(/[\d.]+ ms/, "X ms"))
 					.toMatchInlineSnapshot(`
-"<-> [MyPlugin] Group
-  <e> [MyPlugin] Error
-  <w> [MyPlugin] Warning
-  <i> [MyPlugin] Info
-      [MyPlugin] Log
-  <-> [MyPlugin] Collapsed group
-        [MyPlugin] Log inside collapsed group
-<t> [MyPlugin] Time: X ms
-"
-`);
+			"<-> [MyPlugin] Group
+			  <e> [MyPlugin] Error
+			  <w> [MyPlugin] Warning
+			  <i> [MyPlugin] Info
+			      [MyPlugin] Log
+			  <-> [MyPlugin] Collapsed group
+			        [MyPlugin] Log inside collapsed group
+			<t> [MyPlugin] Time: X ms
+			"
+		`);
 				done();
 			});
 		});
@@ -877,17 +880,17 @@ describe("Compiler", () => {
 			compiler.run((err, stats) => {
 				expect(capture.toString().replace(/[\d.]+ ms/, "X ms"))
 					.toMatchInlineSnapshot(`
-"<-> [MyPlugin] Group
-  <e> [MyPlugin] Error
-  <w> [MyPlugin] Warning
-  <i> [MyPlugin] Info
-      [MyPlugin] Log
-      [MyPlugin] Debug
-  <-> [MyPlugin] Collapsed group
-        [MyPlugin] Log inside collapsed group
-<t> [MyPlugin] Time: X ms
-"
-`);
+			"<-> [MyPlugin] Group
+			  <e> [MyPlugin] Error
+			  <w> [MyPlugin] Warning
+			  <i> [MyPlugin] Info
+			      [MyPlugin] Log
+			      [MyPlugin] Debug
+			  <-> [MyPlugin] Collapsed group
+			        [MyPlugin] Log inside collapsed group
+			<t> [MyPlugin] Time: X ms
+			"
+		`);
 				done();
 			});
 		});
@@ -927,16 +930,16 @@ describe("Compiler", () => {
 			compiler.run((err, stats) => {
 				expect(escapeAnsi(capture.toStringRaw()).replace(/[\d.]+ ms/, "X ms"))
 					.toMatchInlineSnapshot(`
-"<-> <CLR=36,BOLD>[MyPlugin] Group</CLR>
-  <e> <CLR=31,BOLD>[MyPlugin] Error</CLR>
-  <w> <CLR=33,BOLD>[MyPlugin] Warning</CLR>
-  <i> <CLR=32,BOLD>[MyPlugin] Info</CLR>
-      <CLR=BOLD>[MyPlugin] Log<CLR=22>
-  <-> <CLR=36,BOLD>[MyPlugin] Collapsed group</CLR>
-        <CLR=BOLD>[MyPlugin] Log inside collapsed group<CLR=22>
-<t> <CLR=35,BOLD>[MyPlugin] Time: X ms</CLR>
-"
-`);
+			"<-> <CLR=36,BOLD>[MyPlugin] Group</CLR>
+			  <e> <CLR=31,BOLD>[MyPlugin] Error</CLR>
+			  <w> <CLR=33,BOLD>[MyPlugin] Warning</CLR>
+			  <i> <CLR=32,BOLD>[MyPlugin] Info</CLR>
+			      <CLR=BOLD>[MyPlugin] Log<CLR=22>
+			  <-> <CLR=36,BOLD>[MyPlugin] Collapsed group</CLR>
+			        <CLR=BOLD>[MyPlugin] Log inside collapsed group<CLR=22>
+			<t> <CLR=35,BOLD>[MyPlugin] Time: X ms</CLR>
+			"
+		`);
 				done();
 			});
 		});
@@ -958,17 +961,17 @@ describe("Compiler", () => {
 			compiler.run((err, stats) => {
 				expect(escapeAnsi(capture.toStringRaw()).replace(/[\d.]+ ms/, "X ms"))
 					.toMatchInlineSnapshot(`
-"<-> <CLR=36,BOLD>[MyPlugin] Group</CLR>
-  <e> <CLR=31,BOLD>[MyPlugin] Error</CLR>
-  <w> <CLR=33,BOLD>[MyPlugin] Warning</CLR>
-  <i> <CLR=32,BOLD>[MyPlugin] Info</CLR>
-      <CLR=BOLD>[MyPlugin] Log<CLR=22>
-      [MyPlugin] Debug
-  <-> <CLR=36,BOLD>[MyPlugin] Collapsed group</CLR>
-        <CLR=BOLD>[MyPlugin] Log inside collapsed group<CLR=22>
-<t> <CLR=35,BOLD>[MyPlugin] Time: X ms</CLR>
-"
-`);
+			"<-> <CLR=36,BOLD>[MyPlugin] Group</CLR>
+			  <e> <CLR=31,BOLD>[MyPlugin] Error</CLR>
+			  <w> <CLR=33,BOLD>[MyPlugin] Warning</CLR>
+			  <i> <CLR=32,BOLD>[MyPlugin] Info</CLR>
+			      <CLR=BOLD>[MyPlugin] Log<CLR=22>
+			      [MyPlugin] Debug
+			  <-> <CLR=36,BOLD>[MyPlugin] Collapsed group</CLR>
+			        <CLR=BOLD>[MyPlugin] Log inside collapsed group<CLR=22>
+			<t> <CLR=35,BOLD>[MyPlugin] Time: X ms</CLR>
+			"
+		`);
 				done();
 			});
 		});

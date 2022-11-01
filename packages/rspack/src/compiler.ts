@@ -34,8 +34,10 @@ class Compiler {
 	hooks: {
 		done: tapable.AsyncSeriesHook<Stats>;
 		afterDone: tapable.SyncHook<Stats>;
+		// TODO: CompilationParams
 		compilation: tapable.SyncHook<Compilation>;
-		thisCompilation: tapable.SyncHook<[Compilation, CompilationParams]>;
+		// TODO: CompilationParams
+		thisCompilation: tapable.SyncHook<[Compilation]>;
 		invalid: tapable.SyncHook<[string | null, number]>;
 		compile: tapable.SyncHook<[any]>;
 		initialize: tapable.SyncHook<[]>;
@@ -59,9 +61,14 @@ class Compiler {
 			afterDone: new tapable.SyncHook<Stats>(["stats"]),
 			beforeRun: new tapable.AsyncSeriesHook(["compiler"]),
 			run: new tapable.AsyncSeriesHook(["compiler"]),
-			thisCompilation: new tapable.SyncHook<[Compilation, CompilationParams]>([
-				"compilation",
-				"params"
+			thisCompilation: new tapable.SyncHook<
+				[
+					Compilation
+					// CompilationParams
+				]
+			>([
+				"compilation"
+				// "params"
 			]),
 			compilation: new tapable.SyncHook<Compilation>(["compilation"]),
 			invalid: new SyncHook(["filename", "changeTime"]),
@@ -81,7 +88,16 @@ class Compiler {
 			// @ts-ignored
 			new binding.Rspack(this.options, {
 				doneCallback: this.#done.bind(this),
-				processAssetsCallback: this.#processAssets.bind(this)
+				processAssetsCallback: this.#processAssets.bind(this),
+				// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
+				// We know that the hook `thisCompilation` will not be called from a child compiler(it doesn't matter whether the child compiler is created on the Rust or the Node side).
+				// See webpack's API: https://webpack.js.org/api/compiler-hooks/#thiscompilation
+				// So it is safe to create a new compilation here.
+				thisCompilationCallback: this.#newCompilation.bind(this),
+				// The hook `Compilation` should be called whenever it's a call from the child compiler or normal compiler and
+				// still it does not matter where the child compiler is created(Rust or Node) as calling the hook `compilation` is a required task.
+				// No matter how it will be implemented, it will be copied to the child compiler.
+				compilationCallback: this.#compilation.bind(this)
 			});
 		// @ts-ignored
 		return this._instance;
@@ -176,12 +192,15 @@ class Compiler {
 	#processAssets(value: string, emitAsset: any) {
 		return this.compilation.processAssets(value, emitAsset);
 	}
-	#newCompilation() {
-		const compilation = new Compilation(this.options);
-		this.compilation = compilation;
-		this.hooks.compilation.call(compilation);
-		return compilation;
+	#compilation(native: binding.RspackCompilation) {
+		this.hooks.compilation.call(this.compilation);
 	}
+	#newCompilation(native: binding.RspackCompilation) {
+		const compilation = new Compilation(this.options, native);
+		this.compilation = compilation;
+		this.hooks.thisCompilation.call(this.compilation);
+	}
+
 	run(callback) {
 		const doRun = () => {
 			const finalCallback = (err, stats?) => {
@@ -222,7 +241,6 @@ class Compiler {
 	}
 	// Safety: This method is only valid to call if the previous build task is finished, or there will be data races.
 	build(cb: Callback<Error, binding.StatsCompilation>) {
-		const compilation = this.#newCompilation();
 		const build_cb = this.#instance.unsafe_build.bind(this.#instance) as (
 			cb: Callback<Error, binding.StatsCompilation>
 		) => void;
