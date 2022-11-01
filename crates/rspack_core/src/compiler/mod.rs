@@ -158,7 +158,7 @@ impl Compiler {
     &mut self,
     changed_files: std::collections::HashSet<String>,
     removed_files: std::collections::HashSet<String>,
-  ) -> Result<std::collections::HashMap<String, (u8, String)>> {
+  ) -> Result<(std::collections::HashMap<String, (u8, String)>, Stats)> {
     fn collect_modules_from_stats(
       s: &Stats<'_>,
       changed_files: &std::collections::HashSet<String>,
@@ -213,8 +213,8 @@ impl Compiler {
     let old = self.stats()?;
     let old = collect_modules_from_stats(&old, &changed_files, &removed_files);
 
-    let new = self.build().await?;
-    let new = collect_modules_from_stats(&new, &changed_files, &removed_files);
+    let new_stats = self.build().await?;
+    let new = collect_modules_from_stats(&new_stats, &changed_files, &removed_files);
 
     let mut diff = std::collections::HashMap::new();
 
@@ -239,7 +239,7 @@ impl Compiler {
     }
     // return all diff modules is not a good idea,
     // maybe a connection between browser client and local server is a better choice.
-    Ok(diff)
+    Ok((diff, new_stats))
   }
 }
 
