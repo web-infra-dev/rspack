@@ -78,6 +78,19 @@ impl Compiler {
       self.plugin_driver.clone(),
       self.loader_runner_runner.clone(),
     );
+    self
+      .plugin_driver
+      .write()
+      .await
+      .compilation(&mut self.compilation)?;
+
+    // Fake this compilation as *currently* rebuilding does not create a new compilation
+    self
+      .plugin_driver
+      .write()
+      .await
+      .this_compilation(&mut self.compilation)?;
+
     let deps = self.compilation.entry_dependencies();
     self.compile(deps).await?;
     Ok(self.stats())
