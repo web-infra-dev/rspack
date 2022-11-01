@@ -366,7 +366,7 @@ impl<'me> CodeSplitter<'me> {
         .split_point_module_uri_to_chunk_ukey
         .insert(dyn_dep_mgm.uri.clone(), chunk.ukey);
 
-      let mut chunk_group = ChunkGroup::new(ChunkGroupKind::Entrypoint);
+      let mut chunk_group = ChunkGroup::new(ChunkGroupKind::Normal);
 
       chunk_group.connect_chunk(chunk);
 

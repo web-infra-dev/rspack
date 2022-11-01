@@ -73,7 +73,7 @@ impl RawOption<OutputOptions> for RawOutputOptions {
       if has_name || has_id || has_chunk_hash || hash_content_hash {
         filename.clone()
       } else {
-        let re = regex::Regex::new(r#"(^|\/)([^/]*(?:\?|$))"#).unwrap();
+        let re = regex::Regex::new(r#"(^|\\/)([^/]*(?:\\?|$))"#).unwrap();
         let captures = re.captures(&filename);
         format!(
           "{}[id].{}",

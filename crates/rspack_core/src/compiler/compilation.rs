@@ -580,7 +580,7 @@ impl Compilation {
     plugin_driver.write().await.done(stats).await?;
     Ok(())
   }
-  #[instrument(name = "compilation:render_runtime")]
+  #[instrument(name = "compilation:render_runtime", skip_all)]
   pub async fn render_runtime(&self, plugin_driver: SharedPluginDriver) -> Runtime {
     if let Ok(sources) = plugin_driver
       .read()
@@ -610,7 +610,7 @@ impl Compilation {
       .get(ukey)
       .expect("entrypoint not found by ukey")
   }
-  #[instrument(name = "compilation:seal")]
+  #[instrument(name = "compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     code_splitting(self)?;
 
