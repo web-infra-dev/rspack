@@ -2,6 +2,7 @@ use crate::test_options::RawOptionsExt;
 use cargo_rst::{helper::make_relative_from, rst::RstBuilder};
 use rspack_binding_options::RawOptions;
 use rspack_core::CompilerOptions;
+use rspack_core::Stats;
 use rspack_tracing::enable_tracing_by_env;
 use std::path::{Path, PathBuf};
 
@@ -14,7 +15,7 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler {
   let output_path = options.output.path.clone();
   let mut compiler = rspack::rspack(options, Default::default());
 
-  let _stats = compiler
+  let stats: Stats = compiler
     .build()
     .await
     .unwrap_or_else(|_| panic!("failed to compile in fixtrue {:?}", fixture_path));
@@ -24,6 +25,14 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler {
     .actual(output_name)
     .build()
     .unwrap();
+
+  if !stats.to_description().errors.is_empty() {
+    panic!(
+      "Failed to compile in fixtrue {:?}, errors: {:?}",
+      fixture_path,
+      stats.emit_error_string(true).unwrap()
+    );
+  }
 
   rst.assert();
   compiler

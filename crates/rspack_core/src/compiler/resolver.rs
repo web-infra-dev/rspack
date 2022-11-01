@@ -1,5 +1,4 @@
 use crate::Resolve;
-use rspack_error::{Error, Result};
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -174,9 +173,7 @@ impl Resolver {
   }
 
   #[instrument(name = "nodejs_resolver")]
-  pub fn resolve(&self, path: &Path, request: &str) -> Result<ResolveResult> {
-    use nodejs_resolver::Error::*;
-
+  pub fn resolve(&self, path: &Path, request: &str) -> nodejs_resolver::RResult<ResolveResult> {
     self
       .0
       .resolve(path, request)
@@ -187,17 +184,6 @@ impl Resolver {
           fragment: info.request.fragment.into(),
         }),
         nodejs_resolver::ResolveResult::Ignored => ResolveResult::Ignored,
-      })
-      .map_err(|error| match error {
-        Io(error) => Error::Io { source: error },
-        UnexpectedJson((json_path, error)) => Error::Anyhow {
-          source: anyhow::Error::msg(format!("{:?} in {:?}", error, json_path)),
-        },
-        UnexpectedValue(error) => Error::Anyhow {
-          source: anyhow::Error::msg(error),
-        },
-        ResolveFailedTag => Error::BatchErrors(vec![]), // just for tag
-        Overflow => Error::InternalError(String::new()), // tag also
       })
   }
 }
