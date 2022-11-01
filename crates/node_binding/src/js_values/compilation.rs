@@ -6,7 +6,9 @@ use napi::JsBuffer;
 
 use rspack_core::rspack_sources::{RawSource, SourceExt};
 
-use crate::{AssetContent, UpdateAssetOptions};
+use crate::{
+  Asset, AssetContent, AssetInfo, AssetInfoRelated, ToWebpackSource, UpdateAssetOptions,
+};
 
 #[napi]
 pub struct RspackCompilation {
@@ -16,20 +18,18 @@ pub struct RspackCompilation {
 #[napi]
 impl RspackCompilation {
   #[napi]
-  pub fn get_assets(&self, env: Env) -> Result<HashMap<String, JsBuffer>> {
-    Ok(
-      self
-        .inner
-        .assets()
-        .iter()
-        .map(|record| {
-          let buf = env
-            .create_buffer_with_data(record.1.source.buffer().to_vec())
-            .unwrap();
-          (record.0.to_owned(), buf.into_raw())
-        })
-        .collect(),
-    )
+  pub fn get_assets(&self, env: Env) -> Result<Vec<Asset>> {
+    let mut assets = Vec::<Asset>::with_capacity(self.inner.assets.len());
+
+    for (filename, asset) in self.inner.assets() {
+      assets.push(Asset {
+        name: filename.clone(),
+        source: asset.source.to_webpack_source()?,
+        info: asset.info.clone().into(),
+      });
+    }
+
+    Ok(assets)
   }
 
   #[napi]
