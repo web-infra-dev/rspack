@@ -3,10 +3,10 @@ use swc_common::{Globals, Mark, DUMMY_SP, GLOBALS};
 use swc_ecma_ast::*;
 // use swc_ecma_utils::
 use rspack_symbol::{BetterId, Symbol};
+use swc_atoms::JsWord;
 use swc_ecma_utils::quote_ident;
 use swc_ecma_visit::{noop_fold_type, Fold, FoldWith};
 use ustr::Ustr;
-
 pub fn tree_shaking_visitor<'a>(
   module_id: Ustr,
   used_symbol_set: &'a HashSet<Symbol>,
@@ -203,10 +203,26 @@ impl<'a> Fold for TreeShaking<'a> {
           if self.used_symbol_set.contains(&default_symbol) {
             ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(expr))
           } else {
-            ModuleItem::Stmt(Stmt::Expr(ExprStmt {
+            // convert the original expr to
+            // var __RSPACK_DEFAULT_EXPORT__ = ${expr}
+            ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(VarDecl {
               span: DUMMY_SP,
-              expr: expr.expr,
-            }))
+              kind: VarDeclKind::Let,
+              declare: false,
+              decls: vec![VarDeclarator {
+                span: DUMMY_SP,
+                name: Pat::Ident(BindingIdent {
+                  id: Ident {
+                    span: DUMMY_SP,
+                    sym: JsWord::from("__RSPACK_DEFAULT_EXPORT__"),
+                    optional: false,
+                  },
+                  type_ann: None,
+                }),
+                init: Some(expr.expr),
+                definite: false,
+              }],
+            }))))
           }
         }
         ModuleDecl::ExportAll(_) => ModuleItem::ModuleDecl(module_decl),
