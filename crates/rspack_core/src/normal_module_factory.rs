@@ -101,7 +101,6 @@ impl NormalModuleFactory {
             )),
             diagnostic,
           ))) {
-            panic!("{:?}", err);
             self
               .context
               .active_task_count
@@ -109,7 +108,6 @@ impl NormalModuleFactory {
             tracing::debug!("fail to send msg {:?}", err)
           }
         } else if let Err(err) = self.tx.send(Msg::ModuleCreationCanceled) {
-          panic!("{:#?}", err);
           self
             .context
             .active_task_count
@@ -121,7 +119,6 @@ impl NormalModuleFactory {
         // If build error message is failed to send, then we should manually decrease the active task count
         // Otherwise, it will be gracefully handled by the error message handler.
         if let Err(err) = self.tx.send(Msg::ModuleCreationErrorEncountered(err)) {
-          panic!("{:#?}", err);
           self
             .context
             .active_task_count
@@ -225,8 +222,7 @@ impl NormalModuleFactory {
           "Failed to resolve dependency {:?}",
           self.dependency
         ))
-      })
-      .unwrap();
+      })?;
 
     let resolved_module_type =
       self.calculate_module_type(&resource_data, self.context.module_type)?;
@@ -364,8 +360,7 @@ impl NormalModuleFactory {
             "Failed to resolve dependency {:?}",
             self.dependency,
           ))
-        })
-        .unwrap();
+        })?;
       (uri, module, dependency_id)
     } else if let Some(result) = self.factorize_normal_module().await? {
       result
