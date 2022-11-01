@@ -178,7 +178,6 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
     Ok(
       rspack_core::ParseResult {
-        parse_phase_global: None,
         // Assets do not have dependencies
         dependencies: vec![],
         ast_or_source: source.into(),
@@ -383,7 +382,7 @@ impl Plugin for AssetPlugin {
               source
                 .inner()
                 .get(&SourceType::Asset)
-                .map(|source| source.ast_or_source.clone().try_into_source().unwrap())
+                .map(|source| source.ast_or_source.try_into_source().unwrap())
                 .map(|asset| {
                   let contenthash = Some(get_contenthash(&asset).to_string());
                   let chunkhash = None;

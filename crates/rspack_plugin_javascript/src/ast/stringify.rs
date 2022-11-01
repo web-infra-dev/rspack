@@ -1,16 +1,15 @@
 use crate::utils::get_swc_compiler;
-use rspack_core::Devtool;
+use rspack_core::{ast::javascript::Ast, Devtool};
 use rspack_error::Result;
 use swc::config::SourceMapsConfig;
 use swc::TransformOutput;
-use swc_common::GLOBALS;
-use swc_ecma_ast::{EsVersion, Program};
+use swc_ecma_ast::EsVersion;
 
-pub fn stringify(ast: &Program, devtool: &Devtool) -> Result<TransformOutput> {
-  GLOBALS
-    .set(&Default::default(), || {
+pub fn stringify(ast: &Ast, devtool: &Devtool) -> Result<TransformOutput> {
+  ast
+    .transform(|program, _context| {
       get_swc_compiler().print(
-        ast,
+        program.get_inner_program(),
         None,
         None,
         !devtool.no_sources(),

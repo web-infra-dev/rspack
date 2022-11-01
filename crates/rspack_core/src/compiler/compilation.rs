@@ -12,13 +12,11 @@ use hashbrown::{
   HashMap, HashSet,
 };
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
-use swc_common::GLOBALS;
 use tokio::sync::mpsc::{error::TryRecvError, UnboundedSender};
 use tracing::instrument;
 
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity};
 use rspack_sources::BoxSource;
-use swc_ecma_visit::VisitWith;
 use ustr::{ustr, Ustr};
 
 use crate::{
@@ -28,11 +26,10 @@ use crate::{
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
   },
   BuildContext, BundleEntries, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey,
-  ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint, JavascriptAstExtend,
-  LoaderRunnerRunner, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg,
-  NormalModule, NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs,
-  RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver, Stats,
-  VisitedModuleIdentity,
+  ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint, LoaderRunnerRunner,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModule,
+  NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs,
+  RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver, Stats, VisitedModuleIdentity,
 };
 
 #[derive(Debug)]
@@ -588,6 +585,8 @@ impl Compilation {
             .module_graph
             .module_by_identifier(&m.module_identifier)
             .and_then(|module| module.ast())
+            .unwrap()
+            .as_javascript()
             .unwrap(),
           // Of course this is unsafe, but if we can't get a ast of a javascript module, then panic is ideal.
           _ => {
@@ -595,21 +594,15 @@ impl Compilation {
             return None;
           }
         };
-        let normal_module = self.module_graph.module_by_identifier(&m.module_identifier);
-        let globals = normal_module.and_then(|module| module.parse_phase_global());
-        let JavascriptAstExtend {
-          ast,
-          top_level_mark,
-          unresolved_mark,
-        } = ast.as_javascript().unwrap();
-        let mut analyzer = ModuleRefAnalyze::new(
-          *top_level_mark,
-          *unresolved_mark,
-          uri_key,
-          &self.module_graph,
-        );
-        GLOBALS.set(globals.unwrap(), || {
-          ast.visit_with(&mut analyzer);
+        // let normal_module = self.module_graph.module_by_identifier(&m.module_identifier);
+        //        let ast = ast.as_javascript().unwrap();
+        let analyzer = ast.transform(|program, context| {
+          let top_level_mark = context.top_level_mark;
+          let unresolved_mark = context.unresolved_mark;
+          let mut analyzer =
+            ModuleRefAnalyze::new(top_level_mark, unresolved_mark, uri_key, &self.module_graph);
+          program.visit_with(&mut analyzer);
+          analyzer
         });
         // Keep this debug info until we stabilize the tree-shaking
 

@@ -4,6 +4,7 @@ use std::{fmt, sync::Arc};
 
 use hashbrown::{HashMap, HashSet};
 
+pub mod ast;
 mod normal_module;
 pub use normal_module::*;
 mod plugin;

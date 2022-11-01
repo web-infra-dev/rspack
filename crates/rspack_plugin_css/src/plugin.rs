@@ -117,7 +117,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     Ok(
       ParseResult {
-        parse_phase_global: None,
         dependencies: scanner.dependencies,
         ast_or_source: stylesheet.into(),
       }
@@ -357,7 +356,7 @@ impl Plugin for CssPlugin {
           source
             .inner()
             .get(&SourceType::Css)
-            .map(|source| source.ast_or_source.clone().try_into_source().unwrap())
+            .map(|source| source.ast_or_source.try_into_source().unwrap())
         })
       })
       .collect::<Result<Vec<_>>>()?
