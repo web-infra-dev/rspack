@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use napi::bindgen_prelude::*;
 
 #[napi]
@@ -19,10 +21,16 @@ impl From<u8> for DiffStatKind {
 }
 
 // TODO: remove it after hash
-#[napi]
+#[napi(object)]
 pub struct DiffStat {
   pub content: String,
   pub kind: DiffStatKind,
+}
+
+#[napi(object)]
+pub struct RebuildResult {
+  pub diff: HashMap<String, DiffStat>,
+  pub stats: StatsCompilation,
 }
 
 #[napi(object)]

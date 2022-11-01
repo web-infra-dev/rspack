@@ -226,7 +226,7 @@ impl Rspack {
       };
 
       callbackify(env, f, async move {
-        let diff = compiler
+        let (diff, stats) = compiler
           .rebuild(
             HashSet::from_iter(changed_files.into_iter()),
             HashSet::from_iter(removed_files.into_iter()),
@@ -234,7 +234,7 @@ impl Rspack {
           .await
           .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
 
-        let stats: HashMap<String, DiffStat> = diff
+        let diff_stats: HashMap<String, DiffStat> = diff
           .into_iter()
           .map(|(uri, stats)| {
             (
@@ -246,10 +246,14 @@ impl Rspack {
             )
           })
           .collect();
+        let stats: StatsCompilation = stats.to_description().into();
         // let stats: Stats = _rspack_stats.into();
-
+        let rebuild_result = RebuildResult {
+          diff: diff_stats,
+          stats: stats,
+        };
         tracing::info!("rebuild success");
-        Ok(stats)
+        Ok(rebuild_result)
       })
     };
 

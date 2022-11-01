@@ -5,7 +5,7 @@ import type { Watch } from "./config/watch";
 import * as tapable from "tapable";
 import { SyncHook, SyncBailHook, Callback } from "tapable";
 import util from "util";
-import fs from "fs";
+import fs, { stat } from "fs";
 import asyncLib from "neo-async";
 import path from "path";
 import { RspackOptionsNormalized } from "./config";
@@ -237,7 +237,10 @@ class Compiler {
 	// Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
 	unsafe_rebuild(
 		changedFiles: string[],
-		cb: (error?: Error, stats?: binding.DiffStat) => void
+		cb: (
+			error?: Error,
+			stats?: { diff: binding.DiffStat; stats: binding.StatsCompilation }
+		) => void
 	) {
 		const rebuild_cb = this.#instance.unsafe_rebuild.bind(this.#instance) as (
 			changed: string[],
@@ -258,7 +261,7 @@ class Compiler {
 	// TODO: in `dev-server`
 	async watch(watchOptions?: Watch, ws?: any): Promise<Watching> {
 		const options = resolveWatchOption(watchOptions);
-
+		let logger = this.getInfrastructureLogger("watch");
 		const watcher = (await import("chokidar")).default.watch(
 			this.options.context,
 			{
@@ -268,6 +271,12 @@ class Compiler {
 		);
 		const begin = Date.now();
 		let stats = await util.promisify(this.unsafe_build.bind(this))();
+		if (stats.errors.length > 0) {
+			logger.error(
+				"build failed:",
+				stats.errors.map(x => x.message).join("\n")
+			);
+		}
 		console.log("build success, time cost", Date.now() - begin, "ms");
 
 		let pendingChangedFilepaths = new Set<string>();
@@ -294,7 +303,13 @@ class Compiler {
 				console.log("hit change and start to build");
 
 				const begin = Date.now();
-				this.unsafe_rebuild(changedFilepath, (error: any, diffStats) => {
+				this.unsafe_rebuild(changedFilepath, (error: any, { diff, stats }) => {
+					if (stats.errors.length > 0) {
+						logger.error(
+							"build error:",
+							stats.errors.map(err => err.message).join("\n")
+						);
+					}
 					isBuildFinished = true;
 
 					const hasPending = Boolean(pendingChangedFilepaths.size);
@@ -309,7 +324,7 @@ class Compiler {
 						throw error;
 					}
 
-					for (const [uri, stats] of Object.entries(diffStats)) {
+					for (const [uri, stats] of Object.entries(diff)) {
 						let relativePath = path.relative(this.options.context, uri);
 						if (
 							!(relativePath.startsWith("../") || relativePath.startsWith("./"))
