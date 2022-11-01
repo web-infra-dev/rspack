@@ -95,7 +95,7 @@ describe("snapshots", () => {
 		      "<cwd>/src/index.js",
 		    ],
 		  },
-		  "externalType": "",
+		  "externalsType": "",
 		  "externals": {},
 		  "infrastructureLogging": {},
 		  "mode": "none",
