@@ -65,7 +65,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 									path: outputPath
 								},
 								infrastructureLogging: {
-									debug: true
+									debug: false
 								},
 								externals
 							});
