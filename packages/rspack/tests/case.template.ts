@@ -50,7 +50,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 								externalModule.map(x => [x, x])
 							);
 							const options: RspackOptions = {
-								target: "node", // FIXME when target=commonjs supported
+								target: "node",
 								context: testRoot,
 								entry: {
 									main: "./"
