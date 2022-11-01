@@ -43,11 +43,7 @@ pub async fn resolve(
               args.specifier
             )
           } else {
-            format!(
-              "Failed to resolve {} at {}",
-              args.specifier,
-              importer.to_string()
-            )
+            format!("Failed to resolve {}", args.specifier)
           };
           Error::TraceableError(TraceableError::from_path(
             importer.to_string(),

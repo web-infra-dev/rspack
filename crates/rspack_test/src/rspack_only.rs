@@ -26,12 +26,11 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler {
     .build()
     .unwrap();
 
-  let errors = stats.to_description().errors;
-
-  if errors.len() > 0 {
+  if stats.to_description().errors.len() > 0 {
     panic!(
       "failed to compile in fixtrue {:?}, errors: {:?}",
-      fixture_path, errors
+      fixture_path,
+      stats.emit_error_string(true).unwrap()
     );
   }
 
