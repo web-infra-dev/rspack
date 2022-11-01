@@ -34,7 +34,6 @@ export function describeCases(config: { name: string; casePath: string }) {
 					`./${category.name}/${example}/`
 				);
 				const outputPath = path.resolve(testRoot, `./dist`);
-				console.log({ outputPath });
 				const bundlePath = path.resolve(outputPath, "main.js");
 				if (
 					!(
