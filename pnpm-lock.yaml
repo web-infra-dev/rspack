@@ -282,6 +282,7 @@ importers:
     specifiers:
       '@types/node': 16.11.7
       events: 3.3.0
+      react-refresh: 0.14.0
       typescript: ^4.7.4
       ws: 8.8.1
     dependencies:
@@ -289,6 +290,7 @@ importers:
       ws: 8.8.1
     devDependencies:
       '@types/node': 16.11.7
+      react-refresh: 0.14.0
       typescript: 4.7.4
 
   packages/rspack-dev-middleware:
@@ -7610,7 +7612,6 @@ packages:
   /react-refresh/0.14.0:
     resolution: {integrity: sha512-wViHqhAd8OHeLS/IRMJjTSDHF3U9eWi62F/MledQGPdJGDhodXJ9PBLNGr6WWL7qlH12Mt3TyTpbS+hGXMjCzQ==}
     engines: {node: '>=0.10.0'}
-    dev: false
 
   /react-router-dom/5.3.3_react@17.0.2:
     resolution: {integrity: sha512-Ov0tGPMBgqmbu5CDmN++tv2HQ9HlWDuWIIqn4b88gjlAN5IHI+4ZUZRcpz9Hl0azFIwihbLDYw1OiHGRo7ZIng==}

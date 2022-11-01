@@ -11,17 +11,20 @@
   "license": "ISC",
   "devDependencies": {
     "typescript": "^4.7.4",
-    "@types/node": "16.11.7"
+    "@types/node": "16.11.7",
+    "react-refresh": "0.14.0"
   },
   "dependencies": {
     "ws": "8.8.1",
     "events": "3.3.0"
   },
   "peerDependencies": {
-    "@rspack/core": "*"
+    "@rspack/core": "*",
+    "react-refresh": ">=0.10.0 <1.0.0"
   },
   "exports": {
     ".": "./dist/index.js",
-    "./devServer": "./dist/devServer.js"
+    "./devServer": "./dist/devServer.js",
+    "./react-refresh": "./dist/reactRefresh.js"
   }
 }

@@ -41,9 +41,14 @@ export interface ResolvedDev {
 
 export function getAdditionDevEntry(): ResolvedEntry {
 	const devClientEntryPath = require.resolve("@rspack/dev-client");
+	const hotUpdateEntryPath = require.resolve("@rspack/dev-client/devServer");
+	const reactRefreshEntryPath = require.resolve(
+		"@rspack/dev-client/react-refresh"
+	);
 	const additionalEntry = {
-		"rspack-dev-client": [devClientEntryPath],
-		"rspack-hot-update": [require.resolve("@rspack/dev-client/devServer")]
+		_rspack_dev_client: [devClientEntryPath],
+		_rspack_hot_update: [hotUpdateEntryPath],
+		_rspack_react_refresh: [reactRefreshEntryPath]
 	};
 	return additionalEntry;
 }
