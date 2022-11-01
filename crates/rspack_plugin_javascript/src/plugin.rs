@@ -390,6 +390,7 @@ impl Plugin for JsPlugin {
           !compilation.options.devtool.cheap(),
           input_source_map.is_some(),
           tree_shaking,
+          minify,
         );
         let output = GLOBALS.set(&Default::default(), || {
           swc::try_with_handler(swc_compiler.cm.clone(), Default::default(), |handler| {
@@ -427,6 +428,7 @@ fn get_js_minify_options(
   emit_source_map_columns: bool,
   has_source_map: bool,
   tree_shaking: bool,
+  minify: bool,
 ) -> JsMinifyOptions {
   let mut options = JsMinifyOptions {
     source_map: BoolOrDataConfig::from_bool(has_source_map),
@@ -434,9 +436,9 @@ fn get_js_minify_options(
     emit_source_map_columns,
     ..Default::default()
   };
-  // We check the condition before, if both `minify` and `tree_shaking` are `false` the program should
-  // not reach here.
-  if tree_shaking {
+  if tree_shaking && !minify {
+    // If user want tree shake the code without minify, we need to disable some option
+    // to avoid swc transform introduce too much noise to the code
     options.compress = BoolOrDataConfig::from_obj(TerserCompressorOptions {
       dead_code: Some(true),
       side_effects: Some(true),
@@ -447,6 +449,14 @@ fn get_js_minify_options(
       ..Default::default()
     });
     options.mangle = BoolOrDataConfig::from_bool(false);
+  } else if tree_shaking {
+    options.compress = BoolOrDataConfig::from_obj(TerserCompressorOptions {
+      dead_code: Some(true),
+      side_effects: Some(true),
+      unused: Some(true),
+      ..Default::default()
+    });
+    options.mangle = BoolOrDataConfig::from_bool(true);
   }
   options
 }

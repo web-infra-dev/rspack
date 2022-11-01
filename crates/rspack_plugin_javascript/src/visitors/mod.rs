@@ -23,7 +23,7 @@ use swc_ecma_parser::Syntax;
 use swc_ecma_transforms::modules::common_js::Config as CommonjsConfig;
 use swc_ecma_transforms::pass::Optional;
 use swc_ecma_visit::FoldWith;
-use tree_shaking::tree_shaker;
+use tree_shaking::tree_shaking_visitor;
 use ustr::ustr;
 
 /// return (ast, top_level_mark, unresolved_mark, globals)
@@ -119,7 +119,7 @@ pub fn run_after_pass(ast: &mut Ast, mgm: &ModuleGraphModule, compilation: &Comp
 
     let mut pass = chain!(
       Optional::new(
-        tree_shaker(
+        tree_shaking_visitor(
           ustr(&mgm.module_identifier,),
           &compilation.used_symbol,
           pass_global.top_level_mark,

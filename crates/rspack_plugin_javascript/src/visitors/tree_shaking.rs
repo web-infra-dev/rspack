@@ -7,13 +7,13 @@ use swc_ecma_utils::quote_ident;
 use swc_ecma_visit::{noop_fold_type, Fold, FoldWith};
 use ustr::Ustr;
 
-pub fn tree_shaker<'a>(
+pub fn tree_shaking_visitor<'a>(
   module_id: Ustr,
   used_symbol_set: &'a HashSet<Symbol>,
   top_level_mark: Mark,
   parse_phase_global: Option<&'a Globals>,
 ) -> impl Fold + 'a {
-  TreeShaker {
+  TreeShaking {
     module_id,
     used_symbol_set,
     top_level_mark,
@@ -21,14 +21,14 @@ pub fn tree_shaker<'a>(
   }
 }
 
-struct TreeShaker<'a> {
+struct TreeShaking<'a> {
   module_id: Ustr,
   used_symbol_set: &'a HashSet<Symbol>,
   top_level_mark: Mark,
   parse_phase_global: Option<&'a Globals>,
 }
 
-impl<'a> Fold for TreeShaker<'a> {
+impl<'a> Fold for TreeShaking<'a> {
   noop_fold_type!();
   fn fold_program(&mut self, node: Program) -> Program {
     if self.parse_phase_global.is_none() {
@@ -71,7 +71,6 @@ impl<'a> Fold for TreeShaker<'a> {
             }
           }
           Decl::Var(var) => {
-            // TODO: for simplicity don't concern var
             let used = var
               .decls
               .into_iter()
@@ -132,7 +131,7 @@ impl<'a> Fold for TreeShaker<'a> {
                   unreachable!("")
                 }
                 ExportSpecifier::Default(_) => {
-                  // `export v`; is a unrecoverable syntax error, code should reach here.
+                  // `export v`; is a unrecoverable syntax error, code should not reach here.
                   unreachable!("")
                 }
 
@@ -157,7 +156,6 @@ impl<'a> Fold for TreeShaker<'a> {
             }
             ModuleItem::ModuleDecl(ModuleDecl::ExportNamed(named))
           }
-          // TODO: TODO!
         }
         ModuleDecl::ExportDefaultDecl(decl) => {
           let default_symbol = self.crate_virtual_default_symbol();
@@ -221,7 +219,7 @@ impl<'a> Fold for TreeShaker<'a> {
   }
 }
 
-impl<'a> TreeShaker<'a> {
+impl<'a> TreeShaking<'a> {
   fn crate_virtual_default_symbol(&self) -> Symbol {
     let ident = GLOBALS.set(self.parse_phase_global.unwrap(), || {
       let mut default = quote_ident!("default");
