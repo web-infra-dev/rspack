@@ -1,7 +1,7 @@
 module.exports = {
 	mode: "development",
 	entry: {
-		index: "./index.js"
+		index: ["./index.js"]
 	},
 	enhanced: {},
 	builtins: {
