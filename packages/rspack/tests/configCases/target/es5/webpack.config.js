@@ -1,3 +1,3 @@
 module.exports = {
-	target: ["webworker", "es5"]
+	target: ["node", "es5"]
 };
