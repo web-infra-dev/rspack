@@ -17,10 +17,10 @@ export type EmitAssetCallback = (options: {
 	asset: Asset;
 }) => void;
 class EntryPlugin {
-	apply() {}
+	apply() { }
 }
 class HotModuleReplacementPlugin {
-	apply() {}
+	apply() { }
 }
 type CompilationParams = Record<string, any>;
 class Compiler {
@@ -172,7 +172,7 @@ class Compiler {
 	 * @param value
 	 * @returns
 	 */
-	#done(statsJson: binding.StatsCompilation) {}
+	#done(statsJson: binding.StatsCompilation) { }
 	#processAssets(value: string, emitAsset: any) {
 		return this.compilation.processAssets(value, emitAsset);
 	}

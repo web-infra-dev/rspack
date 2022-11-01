@@ -8,16 +8,13 @@ use std::{path::Path, sync::Arc};
 
 use hashbrown::HashMap;
 use rayon::prelude::*;
-use rspack_error::{
-  emitter::{DiagnosticDisplay, StdioDiagnosticDisplay},
-  Error, Result, TWithDiagnosticArray,
-};
+use rspack_error::{Error, Result, TWithDiagnosticArray};
 use tokio::sync::RwLock;
 use tracing::instrument;
 
 use crate::{
   CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule, ModuleIdentifier,
-  NormalModule, Plugin, PluginDriver, SharedPluginDriver, Stats, PATH_START_BYTE_POS_MAP,
+  NormalModule, Plugin, PluginDriver, SharedPluginDriver, Stats,
 };
 
 #[derive(Debug)]
@@ -87,7 +84,7 @@ impl Compiler {
     );
     let deps = self.compilation.entry_dependencies();
     self.compile(deps).await?;
-    self.stats()
+    Ok(self.stats())
   }
 
   #[instrument(name = "compile")]
@@ -118,14 +115,8 @@ impl Compiler {
     Ok(())
   }
 
-  fn stats(&self) -> Result<Stats> {
-    if self.options.emit_error {
-      StdioDiagnosticDisplay::default().emit_batch_diagnostic(
-        &self.compilation.diagnostic,
-        PATH_START_BYTE_POS_MAP.clone(),
-      )?;
-    }
-    Ok(Stats::new(&self.compilation))
+  fn stats(&self) -> Stats {
+    Stats::new(&self.compilation)
   }
 
   pub fn emit_assets(&self, compilation: &Compilation) -> Result<()> {
@@ -210,7 +201,7 @@ impl Compiler {
         .collect()
     }
 
-    let old = self.stats()?;
+    let old = self.compilation.get_stats();
     let old = collect_modules_from_stats(&old, &changed_files, &removed_files);
 
     let new_stats = self.build().await?;

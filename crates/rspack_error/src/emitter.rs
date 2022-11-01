@@ -31,6 +31,11 @@ pub trait DiagnosticDisplay {
     diagnostics: &[RspackDiagnostic],
     path_pos_map: Arc<DashMap<String, u32>>,
   ) -> Self::Output;
+  fn emit_diagnostic(
+    &mut self,
+    diagnostic: &RspackDiagnostic,
+    path_pos_map: Arc<DashMap<String, u32>>,
+  ) -> Self::Output;
 }
 
 #[derive(Default)]
@@ -47,6 +52,24 @@ impl DiagnosticDisplay for StdioDiagnosticDisplay {
     let writer = StandardStream::stderr(ColorChoice::Always);
     let mut lock_writer = writer.lock();
     emit_batch_diagnostic(diagnostics, path_pos_map, &mut lock_writer)
+  }
+
+  fn emit_diagnostic(
+    &mut self,
+    diagnostic: &RspackDiagnostic,
+    path_pos_map: Arc<DashMap<String, u32>>,
+  ) -> Self::Output {
+    let writer = StandardStream::stderr(ColorChoice::Always);
+    let mut lock_writer = writer.lock();
+    let mut files = SimpleFiles::new();
+    let pwd = std::env::current_dir()?;
+    emit_diagnostic(
+      diagnostic,
+      path_pos_map.clone(),
+      &mut lock_writer,
+      &pwd,
+      &mut files,
+    )
   }
 }
 
@@ -104,7 +127,19 @@ impl DiagnosticDisplay for StringDiagnosticDisplay {
     }
     Ok(self.diagnostic_vector.join(""))
   }
+
+  fn emit_diagnostic(
+    &mut self,
+    diagnostic: &RspackDiagnostic,
+    path_pos_map: Arc<DashMap<String, u32>>,
+  ) -> Self::Output {
+    let mut files = SimpleFiles::new();
+    let pwd = std::env::current_dir()?;
+    emit_diagnostic(diagnostic, path_pos_map.clone(), self, &pwd, &mut files)?;
+    Ok(std::mem::take(&mut self.string_buffer).join(""))
+  }
 }
+
 fn emit_batch_diagnostic<T: Write + WriteColor + FlushDiagnostic>(
   diagnostics: &[RspackDiagnostic],
   path_pos_map: Arc<DashMap<String, u32>>,
@@ -114,41 +149,51 @@ fn emit_batch_diagnostic<T: Write + WriteColor + FlushDiagnostic>(
   let pwd = std::env::current_dir()?;
 
   for diagnostic in diagnostics {
-    if let Some(info) = &diagnostic.source_info {
-      // Since `Span` of `swc` started with 1 and span of diagnostic started with 0
-      // So we need to subtract 1 to `start_relative_sourcemap`;
-      let start_relative_sourcemap = path_pos_map
-        .get(&info.path)
-        .map(|v| *v)
-        .unwrap_or(0)
-        .saturating_sub(1) as usize;
-      let start = diagnostic.start - start_relative_sourcemap;
-      let end = diagnostic.end - start_relative_sourcemap;
-      let file_path = Path::new(&info.path);
-      let relative_path = file_path.relative(&pwd);
-      let relative_path = relative_path.as_os_str().to_string_lossy().to_string();
-      let file_id = files.add(relative_path, info.source.clone());
-      let diagnostic = Diagnostic::new(diagnostic.severity.into())
-        .with_message(&diagnostic.title)
-        // Because we don't have error code now, and I don't think we have
-        // enough energy to matain error code either in the future, so I use
-        // this field to represent diagnostic kind, looks pretty neat.
-        .with_code(diagnostic.kind.to_string())
-        .with_labels(vec![
-          Label::primary(file_id, start..end).with_message(&diagnostic.message)
-        ]);
+    emit_diagnostic(diagnostic, path_pos_map.clone(), writer, &pwd, &mut files)?;
+    // `codespan_reporting` will not write the diagnostic message in a whole,
+    // we need to insert some helper flag for sorting
+    writer.flush_diagnostic();
+  }
+  Ok(())
+}
 
-      let config = codespan_reporting::term::Config::default();
+fn emit_diagnostic<'a, T: Write + WriteColor>(
+  diagnostic: &RspackDiagnostic,
+  path_pos_map: Arc<DashMap<String, u32>>,
+  writer: &mut T,
+  pwd: impl AsRef<Path>,
+  files: &mut SimpleFiles<String, String>,
+) -> crate::Result<()> {
+  if let Some(info) = &diagnostic.source_info {
+    // Since `Span` of `swc` started with 1 and span of diagnostic started with 0
+    // So we need to subtract 1 to `start_relative_sourcemap`;
+    let start_relative_sourcemap = path_pos_map
+      .get(&info.path)
+      .map(|v| *v)
+      .unwrap_or(0)
+      .saturating_sub(1) as usize;
+    let start = diagnostic.start - start_relative_sourcemap;
+    let end = diagnostic.end - start_relative_sourcemap;
+    let file_path = Path::new(&info.path);
+    let relative_path = file_path.relative(&pwd);
+    let relative_path = relative_path.as_os_str().to_string_lossy().to_string();
+    let file_id = files.add(relative_path, info.source.clone());
+    let diagnostic = Diagnostic::new(diagnostic.severity.into())
+      .with_message(&diagnostic.title)
+      // Because we don't have error code now, and I don't think we have
+      // enough energy to matain error code either in the future, so I use
+      // this field to represent diagnostic kind, looks pretty neat.
+      .with_code(diagnostic.kind.to_string())
+      .with_labels(vec![
+        Label::primary(file_id, start..end).with_message(&diagnostic.message)
+      ]);
 
-      term::emit(writer, &config, &files, &diagnostic).unwrap();
-      // `codespan_reporting` will not write the diagnostic message in a whole,
-      // we need to insert some helper flag for sorting
-      writer.flush_diagnostic();
-    } else {
-      writer.set_color(ColorSpec::new().set_fg(Some(Color::Red)))?;
-      writeln!(writer, "{}", diagnostic.message)?;
-      writer.flush_diagnostic();
-    }
+    let config = codespan_reporting::term::Config::default();
+
+    term::emit(writer, &config, files, &diagnostic).unwrap();
+  } else {
+    writer.set_color(ColorSpec::new().set_fg(Some(Color::Red)))?;
+    writeln!(writer, "{}", diagnostic.message)?;
   }
   Ok(())
 }

@@ -46,6 +46,7 @@ describe("Stats", () => {
 		      "names": [
 		        "main",
 		      ],
+		      "size": 55,
 		      "type": "chunk",
 		    },
 		  ],
@@ -64,7 +65,16 @@ describe("Stats", () => {
 		      "type": "module",
 		    },
 		  ],
+		  "warnings": [],
+		  "warningsCount": 0,
 		}
+	`);
+		expect(stats.toString()).toMatchInlineSnapshot(`
+		"     Asset       Size  Chunks  
+		runtime.js   14.5 KiB          
+		   main.js  210 bytes    main  
+		chunk {main} main.js, runtime.js (main) 55 bytes [entry]
+		[./fixtures/a.js] 55 bytes {main}"
 	`);
 	});
 });
