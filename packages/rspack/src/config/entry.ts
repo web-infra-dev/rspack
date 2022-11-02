@@ -13,33 +13,31 @@ export function resolveEntryOptions(
 	options: Entry,
 	context: ResolveEntryContext
 ): ResolvedEntry {
-	const additionDevEntry = context.dev ? getAdditionDevEntry() : {};
+	const additionDevEntry = context.dev ? getAdditionDevEntry() : [];
 	if (typeof options === "undefined" || options === null) {
 		return {
-			main: [path.resolve(context.context, "src", "index.js")],
-			...additionDevEntry
+			main: [
+				...additionDevEntry,
+				path.resolve(context.context, "src", "index.js")
+			]
 		};
 	} else if (typeof options === "string") {
 		return {
-			main: [options],
-			...additionDevEntry
+			main: [...additionDevEntry, options]
 		};
 	} else if (Array.isArray(options)) {
 		return {
-			main: options,
-			...additionDevEntry
+			main: [...additionDevEntry, ...options]
 		};
 	} else if (typeof options === "object") {
 		return Object.fromEntries(
-			Object.entries({ ...options, ...additionDevEntry }).map(
-				([key, value]) => {
-					if (Array.isArray(value)) {
-						return [key, value];
-					} else {
-						return [key, [value]];
-					}
+			Object.entries({ ...options }).map(([key, value]) => {
+				if (Array.isArray(value)) {
+					return [key, [...additionDevEntry, ...value]];
+				} else {
+					return [key, [...additionDevEntry, value]];
 				}
-			)
+			})
 		);
 	} else {
 		return {};
