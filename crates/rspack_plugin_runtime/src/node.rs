@@ -18,15 +18,11 @@ pub fn generate_node_load_chunk() -> RawSource {
   RawSource::from(include_str!("runtime/node/_dynamic_load_chunk.js").to_string())
 }
 
-pub fn generate_node_dynamic_get_chunk_url(has_hash: bool) -> RawSource {
+pub fn generate_node_dynamic_get_chunk_url(has_hash: bool, template: String) -> RawSource {
   RawSource::from(
     include_str!("runtime/node/_dynamic_get_chunk_url.js").replace(
-      "__GET_DYNAMIC_URL_HASH_PLACEHOLDER__",
-      if has_hash {
-        r#"'.' + this.chunkHashData[type][chunkId]"#
-      } else {
-        r#""""#
-      },
+      "__GET_DYNAMIC_URL_PLACEHOLDER__",
+      &format!(r#"{}"#, template.replace("[chunkId]", r#"" + chunkId + ""#)),
     ),
   )
 }

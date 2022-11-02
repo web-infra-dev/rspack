@@ -1,18 +1,20 @@
 use async_trait::async_trait;
-use rspack_error::Result;
-
 use common::*;
 use node::*;
 use rspack_core::{
-  rspack_sources::RawSource, AssetInfo, CompilationAsset, Plugin, PluginContext,
-  PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, RenderManifestArgs,
+  rspack_sources::RawSource, AssetInfo, CompilationAsset, FilenameRenderOptions, Plugin,
+  PluginContext, PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, RenderManifestArgs,
   RenderManifestEntry, RenderRuntimeArgs, TargetPlatform, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
 };
+use rspack_error::Result;
 use web::*;
 use web_worker::*;
 
+use crate::utils::node_dynamic_url_template;
+
 mod common;
 mod node;
+mod utils;
 mod web;
 mod web_worker;
 
@@ -51,16 +53,34 @@ impl Plugin for RuntimePlugin {
     let compilation = args.compilation;
     let namespace = &compilation.options.output.unique_name;
     let public_path = compilation.options.output.public_path.public_path();
-
     //Todo we are not implement hash now，it will be replaced by real value later
     let has_hash = false;
+
+    let filename = &compilation
+      .options
+      .output
+      .filename
+      .render(FilenameRenderOptions {
+        filename: Some(String::new()),
+        extension: Some(String::new()),
+        ..FilenameRenderOptions::default()
+      });
+    let chunk_filename = &compilation
+      .options
+      .output
+      .chunk_filename
+      .render(FilenameRenderOptions {
+        filename: Some(String::from("[chunkId]")),
+        extension: Some(String::new()),
+        ..FilenameRenderOptions::default()
+      });
 
     let mut dynamic_js: Vec<ChunkHash> = vec![];
     let mut dynamic_css: Vec<ChunkHash> = vec![];
     let mut chunks = compilation.chunk_by_ukey.values().collect::<Vec<_>>();
     chunks.sort_by_key(|c| &c.id);
     for chunk in &chunks {
-      if chunk.has_entry_module(&args.compilation.chunk_graph) {
+      if !chunk.has_entry_module(&args.compilation.chunk_graph) {
         for file in &chunk.files {
           if file.ends_with(".js") && !file.eq(&(RUNTIME_FILE_NAME.to_string() + ".js")) {
             dynamic_js.push(ChunkHash {
@@ -120,8 +140,9 @@ impl Plugin for RuntimePlugin {
         sources.push(generate_common_check_by_id());
         sources.push(generate_node_rspack_require());
         if !dynamic_js.is_empty() || !dynamic_css.is_empty() {
+          let template = node_dynamic_url_template(chunk_filename, filename);
           sources.push(generate_common_dynamic_data(dynamic_js, dynamic_css));
-          sources.push(generate_node_dynamic_get_chunk_url(has_hash));
+          sources.push(generate_node_dynamic_get_chunk_url(has_hash, template));
           sources.push(generate_node_load_chunk());
           sources.push(generate_node_dynamic_require());
         }

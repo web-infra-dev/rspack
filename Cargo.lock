@@ -2468,6 +2468,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "pathdiff",
  "rspack_core",
  "rspack_error",
 ]
