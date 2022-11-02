@@ -272,6 +272,7 @@ class Compiler {
 		const begin = Date.now();
 		let rawStats = await util.promisify(this.unsafe_build.bind(this))();
 		let stats = new Stats(rawStats);
+		// TODO: log stats string should move to cli
 		console.log(stats.toString());
 		console.log("build success, time cost", Date.now() - begin, "ms");
 
@@ -301,6 +302,7 @@ class Compiler {
 				const begin = Date.now();
 				this.unsafe_rebuild(changedFilepath, (error: any, { diff, stats: rawStats }) => {
 					let stats = new Stats(rawStats);
+					// TODO: log stats string should move to cli
 					console.log(stats.toString());
 					isBuildFinished = true;
 
