@@ -61,8 +61,12 @@ assert.deepStrictEqual([
 ], [
     "six"
 ]);
-assert.deepStrictEqual("six", "six");
-assert.deepStrictEqual("s", "s");
+assert.deepStrictEqual([
+    "six"
+][0], "six");
+assert.deepStrictEqual([
+    "six"
+][0][0], "s");
 assert.deepStrictEqual([
     "six"
 ], [
