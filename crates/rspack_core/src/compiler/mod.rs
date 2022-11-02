@@ -116,6 +116,16 @@ impl Compiler {
   }
 
   fn stats(&self) -> Stats {
+    if self.options.__emit_error {
+      use rspack_error::emitter::{DiagnosticDisplay, StdioDiagnosticDisplay};
+      StdioDiagnosticDisplay::default()
+        .emit_batch_diagnostic(
+          &self.compilation.diagnostic,
+          crate::PATH_START_BYTE_POS_MAP.clone(),
+        )
+        .unwrap();
+    }
+
     Stats::new(&self.compilation)
   }
 

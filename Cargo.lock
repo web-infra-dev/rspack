@@ -2252,7 +2252,6 @@ dependencies = [
  "hashlink",
  "nodejs-resolver",
  "once_cell",
- "owo-colors",
  "petgraph",
  "rayon",
  "regex",

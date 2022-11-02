@@ -16,7 +16,8 @@ async fn main() {
   // let bundle_dir = manifest_dir.join("tests/fixtures/postcss/pxtorem");
   let bundle_dir: PathBuf = manifest_dir.join("benchcases/three");
   println!("{:?}", bundle_dir);
-  let options = read_test_config_and_normalize(&bundle_dir);
+  let mut options = read_test_config_and_normalize(&bundle_dir);
+  options.__emit_error = true;
 
   let start = Instant::now();
   // println!("{:?}", options);
