@@ -11,9 +11,11 @@ interface ResolveEntryContext {
 
 export function resolveEntryOptions(
 	options: Entry,
+	mode: string,
 	context: ResolveEntryContext
 ): ResolvedEntry {
-	const additionDevEntry = context.dev ? getAdditionDevEntry() : [];
+	const additionDevEntry =
+		context.dev && mode !== "produnction" ? getAdditionDevEntry() : {};
 	if (typeof options === "undefined" || options === null) {
 		return {
 			main: [
