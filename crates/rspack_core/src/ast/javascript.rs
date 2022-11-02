@@ -1,5 +1,5 @@
 use anyhow::Error;
-use std::sync::Mutex;
+use std::sync::Arc;
 use swc_common::{errors::Handler, sync::Lrc, util::take::Take, Globals, Mark, SourceMap, GLOBALS};
 use swc_ecma_ast::{Module, Program as SwcProgram};
 use swc_ecma_transforms::helpers::Helpers;
@@ -18,11 +18,11 @@ impl Program {
     self.0 = p.fold_with(v);
   }
 
-  pub fn visit_with<V: ?Sized + Visit>(&mut self, v: &mut V) {
+  pub fn visit_with<V: ?Sized + Visit>(&self, v: &mut V) {
     self.0.visit_with(v)
   }
 
-  pub fn visit_all_with<V: ?Sized + VisitAll>(&mut self, v: &mut V) {
+  pub fn visit_all_with<V: ?Sized + VisitAll>(&self, v: &mut V) {
     self.0.visit_all_with(v)
   }
 
@@ -74,25 +74,31 @@ impl std::fmt::Debug for Context {
 }
 
 /// The global javascript ast
-#[derive(Debug)]
-pub struct Ast(Mutex<Box<(Program, Context)>>);
+#[derive(Debug, Clone)]
+pub struct Ast {
+  program: Program,
+  context: Arc<Context>,
+}
 
 impl Ast {
   pub fn new(program: SwcProgram) -> Self {
-    Self(Mutex::new(Box::new((Program(program), Context::new()))))
+    Self {
+      program: Program(program),
+      context: Arc::new(Context::new()),
+    }
   }
 
-  pub fn transform<F, R>(&self, f: F) -> R
+  pub fn transform<F, R>(&mut self, f: F) -> R
   where
     F: FnOnce(&mut Program, &Context) -> R,
   {
-    let (ref mut program, ref mut context) = **self.0.lock().unwrap();
+    let Self { program, context } = self;
     GLOBALS.set(&context.globals, || {
       swc_ecma_transforms::helpers::HELPERS.set(&context.helpers, || f(program, context))
     })
   }
 
-  pub fn transform_with_handler<F, R>(&self, cm: Lrc<SourceMap>, f: F) -> Result<R, Error>
+  pub fn transform_with_handler<F, R>(&mut self, cm: Lrc<SourceMap>, f: F) -> Result<R, Error>
   where
     F: FnOnce(&Handler, &mut Program, &Context) -> Result<R, Error>,
   {
@@ -100,6 +106,16 @@ impl Ast {
       swc::try_with_handler(cm, Default::default(), |handler| {
         f(handler, program, context)
       })
+    })
+  }
+
+  pub fn visit<F, R>(&self, f: F) -> R
+  where
+    F: FnOnce(&Program, &Context) -> R,
+  {
+    let Self { program, context } = self;
+    GLOBALS.set(&context.globals, || {
+      swc_ecma_transforms::helpers::HELPERS.set(&context.helpers, || f(program, context))
     })
   }
 }

@@ -75,7 +75,7 @@ pub enum TransformAst {
 /**
  *  AST used in first class Module
  */
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ModuleAst {
   JavaScript(JsAst),
   Css(Stylesheet),
@@ -114,8 +114,8 @@ impl ModuleAst {
 impl From<TransformAst> for ModuleAst {
   fn from(ast: TransformAst) -> ModuleAst {
     match ast {
-      TransformAst::Css(_ast) => ModuleAst::Css(_ast),
-      TransformAst::JavaScript(_ast) => ModuleAst::JavaScript(JsAst::new(_ast)),
+      TransformAst::Css(ast) => ModuleAst::Css(ast),
+      TransformAst::JavaScript(ast) => ModuleAst::JavaScript(JsAst::new(ast)),
     }
   }
 }

@@ -24,7 +24,7 @@ use swc_ecma_transforms::pass::Optional;
 /// return (ast, top_level_mark, unresolved_mark, globals)
 pub fn run_before_pass(
   resource_data: &ResourceData,
-  ast: &Ast,
+  ast: &mut Ast,
   options: &CompilerOptions,
   syntax: Syntax,
 ) -> Result<()> {
@@ -106,7 +106,7 @@ pub fn run_before_pass(
   Ok(())
 }
 
-pub fn run_after_pass(ast: &Ast, mgm: &ModuleGraphModule, compilation: &Compilation) {
+pub fn run_after_pass(ast: &mut Ast, mgm: &ModuleGraphModule, compilation: &Compilation) {
   let cm = get_swc_compiler().cm.clone();
   ast.transform(|program, context| {
     let unresolved_mark = context.unresolved_mark;

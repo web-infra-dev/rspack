@@ -596,7 +596,7 @@ impl Compilation {
         };
         // let normal_module = self.module_graph.module_by_identifier(&m.module_identifier);
         //        let ast = ast.as_javascript().unwrap();
-        let analyzer = ast.transform(|program, context| {
+        let analyzer = ast.visit(|program, context| {
           let top_level_mark = context.top_level_mark;
           let unresolved_mark = context.unresolved_mark;
           let mut analyzer =

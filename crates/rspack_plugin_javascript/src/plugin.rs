@@ -88,16 +88,16 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_type,
     )?;
 
-    let (ast, diagnostics) = ast_with_diagnostics.split_into_parts();
+    let (mut ast, diagnostics) = ast_with_diagnostics.split_into_parts();
 
     run_before_pass(
       resource_data,
-      &ast,
+      &mut ast,
       compiler_options,
       syntax_by_module_type(source.source().to_string().as_str(), module_type),
     )?;
 
-    let dep_scanner = ast.transform(|program, _context| {
+    let dep_scanner = ast.visit(|program, _context| {
       let mut dep_scanner = DependencyScanner::default();
       program.visit_all_with(&mut dep_scanner);
       dep_scanner
@@ -130,9 +130,12 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       // TODO: this should only return AST for javascript only, It's a fast pass, defer to another pr to solve this.
       // Ok(ast_or_source.to_owned().into())
 
-      let ast = ast_or_source.as_ast().unwrap().as_javascript().unwrap();
-      run_after_pass(ast, mgm, compilation);
-      let output = crate::ast::stringify(ast, &compilation.options.devtool)?;
+      let mut ast = ast_or_source
+        .to_owned()
+        .try_into_ast()?
+        .try_into_javascript()?;
+      run_after_pass(&mut ast, mgm, compilation);
+      let output = crate::ast::stringify(&ast, &compilation.options.devtool)?;
 
       if let Some(map) = output.map {
         Ok(GenerationResult {
@@ -264,7 +267,7 @@ impl Plugin for JsPlugin {
             .inner()
             .get(&SourceType::JavaScript)
             .map(|source| {
-              let mut module_source = source.ast_or_source.try_into_source().unwrap();
+              let mut module_source = source.ast_or_source.clone().try_into_source().unwrap();
               if args.compilation.options.devtool.eval()
                 && args.compilation.options.devtool.source_map()
               {

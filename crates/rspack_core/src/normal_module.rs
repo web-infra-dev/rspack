@@ -174,7 +174,7 @@ pub trait Module: Debug + Send + Sync {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GenerationResult {
   pub ast_or_source: AstOrSource,
 }
@@ -185,7 +185,7 @@ impl From<AstOrSource> for GenerationResult {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum AstOrSource {
   Ast(ModuleAst),
   Source(BoxSource),
@@ -222,9 +222,9 @@ impl AstOrSource {
     }
   }
 
-  pub fn try_into_source(&self) -> Result<BoxSource> {
+  pub fn try_into_source(self) -> Result<BoxSource> {
     match self {
-      AstOrSource::Source(source) => Ok(source.clone()),
+      AstOrSource::Source(source) => Ok(source),
       // TODO: change to user error
       _ => Err(Error::InternalError("Failed to convert to source".into())),
     }
