@@ -57,6 +57,7 @@ impl<'compilation> Stats<'compilation> {
             name: name.clone(),
             size: asset.get_source().size() as f64,
             chunks: Vec::new(),
+            chunk_names: Vec::new(),
           },
         )
       }));
@@ -69,6 +70,12 @@ impl<'compilation> Stats<'compilation> {
       if let Some(chunks) = compilation_file_to_chunks.get(name) {
         asset.chunks = chunks.iter().map(|chunk| chunk.id.clone()).collect();
         asset.chunks.sort();
+        asset.chunk_names = chunks
+          .iter()
+          .map(|chunk| chunk._name.clone())
+          .filter_map(|n| n)
+          .collect();
+        asset.chunk_names.sort();
       }
     }
     let mut assets: Vec<StatsAsset> = assets.into_values().collect();
@@ -195,6 +202,7 @@ pub struct StatsAsset {
   pub name: String,
   pub size: f64,
   pub chunks: Vec<String>,
+  pub chunk_names: Vec<String>,
 }
 
 #[derive(Debug)]

@@ -41,9 +41,6 @@ export class BuildCommand implements RspackCommand {
 				console.time("build");
 				const stats = await util.promisify(rspack)(config);
 				const statsJson = stats.toJson();
-				if (statsJson.errors.length > 0) {
-					throw new Error(statsJson.errors.map(x => x.message).join("\n"));
-				}
 				console.timeEnd("build");
 
 				const logger = cli.getLogger();

@@ -69,6 +69,7 @@ pub struct StatsAsset {
   pub name: String,
   pub size: f64,
   pub chunks: Vec<String>,
+  pub chunk_names: Vec<String>,
 }
 
 impl From<rspack_core::StatsAsset> for StatsAsset {
@@ -78,6 +79,7 @@ impl From<rspack_core::StatsAsset> for StatsAsset {
       name: stats.name,
       size: stats.size,
       chunks: stats.chunks,
+      chunk_names: stats.chunk_names,
     }
   }
 }
