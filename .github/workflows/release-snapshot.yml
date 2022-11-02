@@ -8,12 +8,19 @@ jobs:
     if: github.event.issue.pull_request && contains(github.event.comment.body, '!snapshot')
     runs-on: [self-hosted, rspack-common, macOS]
     steps:
+      - name: Get PR SHA
+        id: sha
+        uses: actions/github-script@v6
+        with:
+          result-encoding: string
+          script: |
+            const response = await github.request(context.payload.issue.pull_request.url);
+            return response.data.head.sha;
       - name: Checkout Repo
         uses: actions/checkout@master
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          # This makes Actions fetch only one branch to release
-          fetch-depth: 100
+          submodules: false
+          ref: ${{ steps.sha.outputs.result }}
       - name: Install rust toolchain
         uses: actions-rs/toolchain@v1
         with:
