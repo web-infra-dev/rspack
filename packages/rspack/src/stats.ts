@@ -191,11 +191,11 @@ export class Stats {
 					{
 						value: "",
 						color: colors.bold
+					},
+					{
+						value: "Chunk Names",
+						color: colors.bold
 					}
-					// {
-					// 	value: "Chunk Names",
-					// 	color: colors.bold
-					// }
 				]
 			];
 			for (const asset of obj.assets) {
@@ -226,11 +226,11 @@ export class Stats {
 					{
 						value: asset.isOverSizeLimit ? "[big]" : "",
 						color: getAssetColor(asset, colors.normal)
+					},
+					{
+						value: asset.chunkNames.join(", "),
+						color: colors.normal
 					}
-					// {
-					// 	value: asset.chunkNames.join(", "),
-					// 	color: colors.normal
-					// }
 				]);
 			}
 			table(t, "rrrlll");
@@ -330,8 +330,7 @@ export class Stats {
 			}
 			if (module.assets && module.assets.length) {
 				colors.magenta(
-					` [${module.assets.length} asset${
-						module.assets.length === 1 ? "" : "s"
+					` [${module.assets.length} asset${module.assets.length === 1 ? "" : "s"
 					}]`
 				);
 			}
@@ -708,6 +707,7 @@ export class Stats {
 		if (obj.warnings) {
 			for (const warning of obj.warnings) {
 				newline();
+				// formatted warning already have color.
 				colors.normal(formatError(warning));
 				newline();
 			}
@@ -715,6 +715,7 @@ export class Stats {
 		if (obj.errors) {
 			for (const error of obj.errors) {
 				newline();
+				// formatted error already have color.
 				colors.normal(formatError(error));
 				newline();
 			}
@@ -763,9 +764,8 @@ const SizeFormatHelpers = {
 		const abbreviations = ["bytes", "KiB", "MiB", "GiB"];
 		const index = Math.floor(Math.log(size) / Math.log(1024));
 
-		return `${+(size / Math.pow(1024, index)).toPrecision(3)} ${
-			abbreviations[index]
-		}`;
+		return `${+(size / Math.pow(1024, index)).toPrecision(3)} ${abbreviations[index]
+			}`;
 	}
 };
 

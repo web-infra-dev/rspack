@@ -20,12 +20,16 @@ describe("Stats", () => {
 		{
 		  "assets": [
 		    {
+		      "chunkNames": [],
 		      "chunks": [],
 		      "name": "runtime.js",
 		      "size": 14892,
 		      "type": "asset",
 		    },
 		    {
+		      "chunkNames": [
+		        "main",
+		      ],
 		      "chunks": [
 		        "main",
 		      ],
@@ -70,9 +74,9 @@ describe("Stats", () => {
 		}
 	`);
 		expect(stats.toString()).toMatchInlineSnapshot(`
-		"     Asset       Size  Chunks  
+		"     Asset       Size  Chunks  Chunk Names
 		runtime.js   14.5 KiB          
-		   main.js  210 bytes    main  
+		   main.js  210 bytes    main  main
 		chunk {main} main.js, runtime.js (main) 55 bytes [entry]
 		[./fixtures/a.js] 55 bytes {main}"
 	`);
