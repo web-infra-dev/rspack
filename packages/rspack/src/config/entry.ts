@@ -7,13 +7,15 @@ export type ResolvedEntry = Record<string, string[]>;
 interface ResolveEntryContext {
 	context: string;
 	dev: boolean; // TODO: dev: DEV
+	mode: string;
 }
 
 export function resolveEntryOptions(
 	options: Entry,
 	context: ResolveEntryContext
 ): ResolvedEntry {
-	const additionDevEntry = context.dev ? getAdditionDevEntry() : [];
+	const additionDevEntry =
+		context.dev && context.mode !== "production" ? getAdditionDevEntry() : [];
 	if (typeof options === "undefined" || options === null) {
 		return {
 			main: [

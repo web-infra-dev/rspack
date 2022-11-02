@@ -1,5 +1,62 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`StatsTestCases should print correct stats for hot+production 1`] = `
+{
+  "assets": [
+    {
+      "chunkNames": [
+        "main",
+      ],
+      "chunks": [
+        "main",
+      ],
+      "name": "bundle.js",
+      "size": 1626,
+      "type": "asset",
+    },
+  ],
+  "chunks": [
+    {
+      "entry": true,
+      "files": [
+        "bundle.js",
+      ],
+      "id": "main",
+      "initial": true,
+      "names": [
+        "main",
+      ],
+      "size": 25,
+      "type": "chunk",
+    },
+  ],
+  "errors": [],
+  "errorsCount": 0,
+  "modules": [
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "./index.js",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/hot+production/index.js",
+      "moduleType": "js",
+      "name": "./index.js",
+      "size": 25,
+      "type": "module",
+    },
+  ],
+  "warnings": [],
+  "warningsCount": 0,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for hot+production 2`] = `
+"    Asset      Size  Chunks  Chunk Names
+bundle.js  1.59 KiB    main  main
+chunk {main} bundle.js (main) 25 bytes [entry]
+[./index.js] 25 bytes {main}"
+`;
+
 exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
 {
   "assets": [

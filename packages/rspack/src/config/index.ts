@@ -68,7 +68,8 @@ export function getNormalizedRspackOptions(
 	const devServer = resolveDevOptions(config.devServer, { context });
 	const entry = resolveEntryOptions(config.entry, {
 		context,
-		dev: !!config.devServer
+		dev: !!config.devServer,
+		mode
 	});
 	const output = resolveOutputOptions(config.output);
 	const target = resolveTargetOptions(config.target);
