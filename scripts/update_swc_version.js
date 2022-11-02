@@ -2,7 +2,7 @@ const path = require("path");
 const fs = require("fs");
 const TOML = require("@iarna/toml");
 
-const swc_version = "v1.3.4";
+const swc_version = "v1.3.11";
 const swc_packages = [/^swc/];
 const crates_dir = path.resolve(__dirname, "../crates");
 
@@ -25,8 +25,8 @@ async function getPkgVersion(name) {
 		const res = await fetch(
 			`https://raw.githubusercontent.com/swc-project/swc/${swc_version}/crates/${name}/Cargo.toml`,
 			{
-				timeout: 10000
-			}
+				timeout: 10000,
+			},
 		);
 		const tomlString = await res.text();
 		const version = TOML.parse(tomlString).package.version;
@@ -37,8 +37,8 @@ async function getPkgVersion(name) {
 }
 
 async function updateDependencies(name, deps = {}) {
-	const swc_pkgs = Object.keys(deps).filter(pkg =>
-		swc_packages.some(item => item.test(pkg))
+	const swc_pkgs = Object.keys(deps).filter((pkg) =>
+		swc_packages.some((item) => item.test(pkg)),
 	);
 	let hasChanged = false;
 	for (const pkg of swc_pkgs) {
@@ -66,8 +66,8 @@ async function main() {
 		const hasChanged = [
 			await updateDependencies(name, cargoToml.dependencies),
 			await updateDependencies(name, cargoToml["dev-dependencies"]),
-			await updateDependencies(name, cargoToml["build-dependencies"])
-		].some(item => !!item);
+			await updateDependencies(name, cargoToml["build-dependencies"]),
+		].some((item) => !!item);
 
 		if (hasChanged) {
 			writeCargoToml(name, cargoToml);
