@@ -211,8 +211,8 @@ impl VisitMut for PxToRem {
           rule.visit_mut_with(self);
         }
       }
-      swc_css::ast::Rule::Invalid(v) => v.visit_mut_with(self),
       swc_css::ast::Rule::AtRule(at) => at.visit_mut_with(self),
+      swc_css::ast::Rule::ListOfComponentValues(comp) => comp.visit_mut_with(self),
     }
   }
 
@@ -389,7 +389,11 @@ pub fn px_to_rem(option: PxToRemOption) -> impl VisitMut {
 
 fn get_decl_name(n: &Declaration) -> JsWord {
   match &n.name {
-    swc_css::ast::DeclarationName::Ident(indent) => indent.value.clone(),
-    swc_css::ast::DeclarationName::DashedIdent(indent) => indent.value.clone(),
+    swc_css::ast::DeclarationName::Ident(indent) => {
+      indent.raw.clone().unwrap_or_else(|| indent.value.clone())
+    }
+    swc_css::ast::DeclarationName::DashedIdent(indent) => {
+      indent.raw.clone().unwrap_or_else(|| indent.value.clone())
+    }
   }
 }

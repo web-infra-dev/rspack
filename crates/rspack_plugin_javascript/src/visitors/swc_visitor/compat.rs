@@ -109,7 +109,8 @@ fn compat_by_es_version(
             },
             computed_props: compat::es2015::computed_props::Config { loose: false },
             for_of: compat::es2015::for_of::Config {
-              assume_array: false
+              assume_array: false,
+              ..Default::default()
             },
             spread: compat::es2015::spread::Config { loose: false },
             destructuring: compat::es2015::destructuring::Config { loose: false },
