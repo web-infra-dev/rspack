@@ -15,7 +15,7 @@ export function resolveEntryOptions(
 	context: ResolveEntryContext
 ): ResolvedEntry {
 	const additionDevEntry =
-		context.dev && context.mode !== "production" ? getAdditionDevEntry() : {};
+		context.dev && context.mode !== "production" ? getAdditionDevEntry() : [];
 	if (typeof options === "undefined" || options === null) {
 		return {
 			main: [
