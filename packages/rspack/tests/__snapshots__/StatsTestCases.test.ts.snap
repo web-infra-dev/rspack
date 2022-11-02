@@ -4,6 +4,9 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
 {
   "assets": [
     {
+      "chunkNames": [
+        "main",
+      ],
       "chunks": [
         "main",
       ],
@@ -23,6 +26,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "names": [
         "main",
       ],
+      "size": 25,
       "type": "chunk",
     },
   ],
@@ -41,7 +45,16 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "type": "module",
     },
   ],
+  "warnings": [],
+  "warningsCount": 0,
 }
+`;
+
+exports[`StatsTestCases should print correct stats for hot+production 2`] = `
+"    [1mAsset[39m[22m      [1mSize[39m[22m  [1mChunks[39m[22m  [1m[39m[22m[1m[39m[22m[1mChunk Names[39m[22m
+[1m[32mbundle.js[39m[22m  1.59 KiB    [1mmain[39m[22m  [1m[32m[39m[22mmain
+chunk {[1m[33mmain[39m[22m} [1m[32mbundle.js[39m[22m (main) 25 bytes[1m[33m [entry][39m[22m
+[[1m./index.js[39m[22m] 25 bytes {[1m[33mmain[39m[22m}"
 `;
 
 exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
@@ -106,10 +119,10 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for normal-errors 2`] = `
-"    Asset      Size  Chunks  Chunk Names
-bundle.js  1.63 KiB    main  main
-chunk {main} bundle.js (main) 20 bytes [entry]
-[./index.js] 20 bytes {main}
+"    [1mAsset[39m[22m      [1mSize[39m[22m  [1mChunks[39m[22m  [1m[39m[22m[1m[39m[22m[1mChunk Names[39m[22m
+[1m[32mbundle.js[39m[22m  1.63 KiB    [1mmain[39m[22m  [1m[32m[39m[22mmain
+chunk {[1m[33mmain[39m[22m} [1m[32mbundle.js[39m[22m (main) 20 bytes[1m[33m [entry][39m[22m
+[[1m./index.js[39m[22m] 20 bytes {[1m[33mmain[39m[22m}
 
 [0m[1m[38;5;9merror[internal][0m[1m: Resolve error[0m
   [0m[34m┌─[0m tests/statsCases/normal-errors/index.js:1:1
@@ -171,8 +184,8 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for simple 2`] = `
-"    Asset      Size  Chunks  Chunk Names
-bundle.js  1.69 KiB    main  main
-chunk {main} bundle.js (main) 26 bytes [entry]
-[./index.js] 26 bytes {main}"
+"    [1mAsset[39m[22m      [1mSize[39m[22m  [1mChunks[39m[22m  [1m[39m[22m[1m[39m[22m[1mChunk Names[39m[22m
+[1m[32mbundle.js[39m[22m  1.69 KiB    [1mmain[39m[22m  [1m[32m[39m[22mmain
+chunk {[1m[33mmain[39m[22m} [1m[32mbundle.js[39m[22m (main) 26 bytes[1m[33m [entry][39m[22m
+[[1m./index.js[39m[22m] 26 bytes {[1m[33mmain[39m[22m}"
 `;
