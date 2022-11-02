@@ -1,4 +1,5 @@
 import * as binding from "@rspack/binding";
+import { resolveStatsOptions, StatsOptions } from "./config/stats";
 import { LogType } from "./logging/Logger";
 
 export class Stats {
@@ -9,13 +10,18 @@ export class Stats {
 		this.#statsJson = statsJson;
 	}
 
-	toJson() {
+	hasErrors() {
+		return this.#statsJson.errorsCount > 0;
+	}
+
+	toJson(options?: StatsOptions) {
 		return this.#statsJson;
 	}
 
-	toString() {
-		const obj = this.toJson();
-		return Stats.jsonToString(obj, process.stdout.isTTY);
+	toString(options?: StatsOptions) {
+		options = resolveStatsOptions(options);
+		const obj = this.toJson(options);
+		return Stats.jsonToString(obj, options.colors);
 	}
 
 	static jsonToString(

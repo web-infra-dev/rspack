@@ -82,8 +82,8 @@ export class RspackCLI {
 		console.log("mode:", options.mode, item.mode);
 		return item;
 	}
-	async loadConfig(options: RspackCLIOptions) {
-		let loadedConfig;
+	async loadConfig(options: RspackCLIOptions): Promise<RspackOptions> {
+		let loadedConfig: RspackOptions;
 		// if we pass config paras
 		if (options.config) {
 			const resolvedConfigPath = path.resolve(process.cwd(), options.config);
@@ -111,6 +111,10 @@ export class RspackCLI {
 					entry
 				};
 			}
+		}
+		loadedConfig.stats ??= {};
+		if (this.colors.isColorSupported) {
+			loadedConfig.stats.colors = true;
 		}
 		return loadedConfig;
 	}

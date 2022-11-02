@@ -73,7 +73,7 @@ describe("Stats", () => {
 		  "warningsCount": 0,
 		}
 	`);
-		expect(stats.toString()).toMatchInlineSnapshot(`
+		expect(stats.toString({ colors: false })).toMatchInlineSnapshot(`
 		"     Asset       Size  Chunks  Chunk Names
 		runtime.js   14.5 KiB          
 		   main.js  210 bytes    main  main

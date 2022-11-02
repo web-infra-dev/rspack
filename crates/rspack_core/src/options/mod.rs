@@ -26,6 +26,8 @@ mod module;
 pub use module::*;
 mod external;
 pub use external::*;
+mod stats;
+pub use stats::*;
 
 #[derive(Debug, Default)]
 pub struct CompilerOptionsBuilder {
@@ -42,6 +44,7 @@ pub struct CompilerOptionsBuilder {
   pub devtool: Option<Devtool>,
   pub external: Option<Vec<External>>,
   pub external_type: Option<ExternalType>,
+  pub stats: Option<StatsOptions>,
 }
 
 impl CompilerOptionsBuilder {
@@ -62,6 +65,7 @@ impl CompilerOptionsBuilder {
       devtool: self.devtool.unwrap(),
       external: self.external.unwrap(),
       external_type: self.external_type.unwrap(),
+      stats: self.stats.unwrap(),
       __emit_error: false,
     }
   }
