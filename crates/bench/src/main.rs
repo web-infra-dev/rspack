@@ -17,8 +17,8 @@ async fn main() {
   let bundle_dir: PathBuf = manifest_dir.join("benchcases/three");
   println!("{:?}", bundle_dir);
   let mut options = read_test_config_and_normalize(&bundle_dir);
+  options.__emit_error = true;
 
-  options.emit_error = true;
   let start = Instant::now();
   // println!("{:?}", options);
   let mut compiler = rspack::rspack(options, Default::default());

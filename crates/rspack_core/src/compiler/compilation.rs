@@ -135,6 +135,17 @@ impl Compilation {
       .filter(|d| matches!(d.severity, Severity::Error))
   }
 
+  pub fn get_warnings(&self) -> impl Iterator<Item = &Diagnostic> {
+    self
+      .diagnostic
+      .iter()
+      .filter(|d| matches!(d.severity, Severity::Warn))
+  }
+
+  pub fn get_stats(&self) -> Stats {
+    Stats::new(self)
+  }
+
   pub fn add_chunk(
     chunk_by_ukey: &mut ChunkByUkey,
     name: Option<String>,

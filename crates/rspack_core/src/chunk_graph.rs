@@ -164,6 +164,26 @@ impl ChunkGraph {
       .collect::<Vec<_>>();
     modules
   }
+
+  pub fn get_chunk_modules_size<'module>(
+    &self,
+    chunk: &ChunkUkey,
+    module_graph: &'module ModuleGraph,
+  ) -> f64 {
+    self
+      .get_chunk_modules(chunk, module_graph)
+      .iter()
+      .fold(0.0, |acc, m| {
+        let module = module_graph
+          .module_by_identifier(&m.module_identifier)
+          .unwrap();
+        acc
+          + module
+            .source_types()
+            .iter()
+            .fold(0.0, |acc, t| acc + module.size(t))
+      })
+  }
 }
 
 #[derive(Debug, Default)]

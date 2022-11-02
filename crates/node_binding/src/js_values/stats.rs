@@ -36,12 +36,29 @@ pub struct RebuildResult {
 #[napi(object)]
 pub struct StatsError {
   pub message: String,
+  pub formatted: String,
 }
 
 impl From<rspack_core::StatsError> for StatsError {
   fn from(stats: rspack_core::StatsError) -> Self {
     Self {
       message: stats.message,
+      formatted: stats.formatted,
+    }
+  }
+}
+
+#[napi(object)]
+pub struct StatsWarning {
+  pub message: String,
+  pub formatted: String,
+}
+
+impl From<rspack_core::StatsWarning> for StatsWarning {
+  fn from(stats: rspack_core::StatsWarning) -> Self {
+    Self {
+      message: stats.message,
+      formatted: stats.formatted,
     }
   }
 }
@@ -52,6 +69,7 @@ pub struct StatsAsset {
   pub name: String,
   pub size: f64,
   pub chunks: Vec<String>,
+  pub chunk_names: Vec<String>,
 }
 
 impl From<rspack_core::StatsAsset> for StatsAsset {
@@ -61,6 +79,7 @@ impl From<rspack_core::StatsAsset> for StatsAsset {
       name: stats.name,
       size: stats.size,
       chunks: stats.chunks,
+      chunk_names: stats.chunk_names,
     }
   }
 }
@@ -98,6 +117,7 @@ pub struct StatsChunk {
   pub entry: bool,
   pub initial: bool,
   pub names: Vec<String>,
+  pub size: f64,
 }
 
 impl From<rspack_core::StatsChunk> for StatsChunk {
@@ -109,6 +129,7 @@ impl From<rspack_core::StatsChunk> for StatsChunk {
       entry: stats.entry,
       initial: stats.initial,
       names: stats.names,
+      size: stats.size,
     }
   }
 }
@@ -120,6 +141,8 @@ pub struct StatsCompilation {
   pub chunks: Vec<StatsChunk>,
   pub errors: Vec<StatsError>,
   pub errors_count: u32,
+  pub warnings: Vec<StatsWarning>,
+  pub warnings_count: u32,
 }
 
 impl From<rspack_core::StatsCompilation> for StatsCompilation {
@@ -130,6 +153,8 @@ impl From<rspack_core::StatsCompilation> for StatsCompilation {
       chunks: stats.chunks.into_iter().map(Into::into).collect(),
       errors: stats.errors.into_iter().map(Into::into).collect(),
       errors_count: stats.errors_count as u32,
+      warnings: stats.warnings.into_iter().map(Into::into).collect(),
+      warnings_count: stats.warnings_count as u32,
     }
   }
 }

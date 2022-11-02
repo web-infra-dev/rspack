@@ -17,5 +17,5 @@ pub struct CompilerOptions {
   pub devtool: Devtool,
   pub external: Vec<External>,
   pub external_type: ExternalType,
-  pub emit_error: bool,
+  pub __emit_error: bool,
 }

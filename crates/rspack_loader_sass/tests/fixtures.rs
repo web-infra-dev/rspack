@@ -54,7 +54,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           module: Default::default(),
           external: Default::default(),
           external_type: ExternalType::Auto,
-          emit_error: false,
+          __emit_error: false,
         }),
         resolver_factory: Default::default(),
       },

@@ -62,7 +62,7 @@ impl CompilerOptionsBuilder {
       devtool: self.devtool.unwrap(),
       external: self.external.unwrap(),
       external_type: self.external_type.unwrap(),
-      emit_error: false,
+      __emit_error: false,
     }
   }
 

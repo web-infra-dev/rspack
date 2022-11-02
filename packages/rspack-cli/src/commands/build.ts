@@ -41,16 +41,13 @@ export class BuildCommand implements RspackCommand {
 				console.time("build");
 				const stats = await util.promisify(rspack)(config);
 				const statsJson = stats.toJson();
-				if (statsJson.errors.length > 0) {
-					throw new Error(statsJson.errors.map(x => x.message).join("\n"));
-				}
 				console.timeEnd("build");
 
+				const logger = cli.getLogger();
 				if (options.json) {
 					const { stringifyStream: createJsonStringifyStream } = await import(
 						"@discoveryjs/json-ext"
 					);
-					const logger = cli.getLogger();
 					const handleWriteError = error => {
 						logger.error(error);
 						process.exit(2);
@@ -74,6 +71,12 @@ export class BuildCommand implements RspackCommand {
 									)}\n`
 								);
 							});
+					}
+				} else {
+					const printedStats = stats.toString();
+					// Avoid extra empty line when `stats: 'none'`
+					if (printedStats) {
+						logger.raw(printedStats);
 					}
 				}
 			}
