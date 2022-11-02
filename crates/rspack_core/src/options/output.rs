@@ -1,5 +1,4 @@
 use std::{str::FromStr, string::ParseError};
-
 #[derive(Debug)]
 pub struct OutputOptions {
   pub path: String,
@@ -18,6 +17,7 @@ pub const HASH_PLACEHOLDER: &str = "[hash]";
 pub const CHUNK_HASH_PLACEHOLDER: &str = "[chunkhash]";
 pub const CONTENT_HASH_PLACEHOLDER: &str = "[contenthash]";
 
+#[derive(Debug, Clone, Default)]
 pub struct FilenameRenderOptions {
   pub filename: Option<String>,
   pub extension: Option<String>,
@@ -28,7 +28,7 @@ pub struct FilenameRenderOptions {
 }
 #[derive(Debug, Clone)]
 pub struct Filename {
-  template: String,
+  pub template: String,
 }
 
 impl FromStr for Filename {
