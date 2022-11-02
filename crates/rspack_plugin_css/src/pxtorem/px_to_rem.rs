@@ -48,6 +48,7 @@ impl From<PxToRemOption> for PxToRem {
     }
 
     ret.normalize_options();
+    dbg!(&ret);
     ret
   }
 }
@@ -197,11 +198,7 @@ impl VisitMut for PxToRem {
         // Reducing codegen overhead if there are no selector_black_list
         if !self.selector_black_list.is_empty() {
           let mut selector_string = String::new();
-          let wr = BasicCssWriter::new(
-            &mut selector_string,
-            None, // Some(&mut src_map_buf),
-            BasicCssWriterConfig::default(),
-          );
+          let wr = BasicCssWriter::new(&mut selector_string, None, BasicCssWriterConfig::default());
           let mut gen = CodeGenerator::new(wr, CodegenConfig { minify: false });
           gen.emit(&rule.prelude).unwrap();
           if !self.black_listed_selector(&selector_string) {
