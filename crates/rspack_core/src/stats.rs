@@ -72,8 +72,7 @@ impl<'compilation> Stats<'compilation> {
         asset.chunks.sort();
         asset.chunk_names = chunks
           .iter()
-          .map(|chunk| chunk._name.clone())
-          .filter_map(|n| n)
+          .filter_map(|chunk| chunk._name.clone())
           .collect();
         asset.chunk_names.sort();
       }
