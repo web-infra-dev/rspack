@@ -2,6 +2,7 @@ use std::{
   collections::VecDeque,
   fmt::Debug,
   marker::PhantomPinned,
+  pin::Pin,
   sync::atomic::{AtomicU32, Ordering},
   sync::Arc,
 };
@@ -16,7 +17,7 @@ use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use tokio::sync::mpsc::{error::TryRecvError, UnboundedSender};
 use tracing::instrument;
 
-use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity};
+use rspack_error::{Diagnostic, Error, IntoTWithDiagnosticArray, Result, Severity};
 use rspack_sources::BoxSource;
 use ustr::{ustr, Ustr};
 
@@ -106,6 +107,31 @@ impl Compilation {
     self
       .runtime
       .generate_rspack_execute(namespace, "__rspack_require__", &entry_modules_id)
+  }
+
+  pub fn update_asset(
+    self: Pin<&mut Self>,
+    filename: &str,
+    source_updater: impl Fn(&mut BoxSource) -> Result<()>,
+    asset_updater: impl Fn(&mut AssetInfo) -> Result<()>,
+  ) -> Result<()> {
+    // Safety: we don't move anything from compilation
+    let assets = unsafe { self.map_unchecked_mut(|c| &mut c.assets) }.get_mut();
+
+    match assets.get_mut(filename) {
+      Some(asset) => {
+        source_updater(&mut asset.source)?;
+        asset_updater(&mut asset.info)?;
+
+        Ok(())
+      }
+      None => {
+        return Err(Error::InternalError(format!(
+          "Called Compilation.updateAsset for not existing filename {}",
+          filename
+        )));
+      }
+    }
   }
 
   pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {

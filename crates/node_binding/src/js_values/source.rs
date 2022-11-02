@@ -1,7 +1,12 @@
+use std::borrow::Cow;
+
 use napi::bindgen_prelude::*;
 use napi::NapiRaw;
 
-use rspack_core::rspack_sources::{MapOptions, RawSource, Source, SourceMap};
+use rspack_core::rspack_sources::{
+  helpers::{GeneratedInfo, OnChunk, OnName, OnSource, StreamChunks},
+  MapOptions, RawSource, Source, SourceExt, SourceMap,
+};
 
 #[napi(object)]
 pub struct WebpackSource {
@@ -11,6 +16,79 @@ pub struct WebpackSource {
   pub is_buffer: bool,
   pub source: Buffer,
   pub map: Option<Buffer>,
+}
+
+#[derive(Clone, Eq)]
+pub struct CompatSource {
+  pub is_raw: bool,
+  pub is_buffer: bool,
+  pub source: Vec<u8>,
+  pub map: Option<Vec<u8>>,
+}
+
+impl std::hash::Hash for CompatSource {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    "__CompatSource".hash(state);
+    self.is_raw.hash(state);
+    self.is_buffer.hash(state);
+    self.source.hash(state);
+    self.map.hash(state);
+  }
+}
+
+impl PartialEq for CompatSource {
+  fn eq(&self, other: &Self) -> bool {
+    self.is_raw == other.is_raw
+      && self.is_buffer == other.is_buffer
+      && self.source == other.source
+      && self.map == other.map
+  }
+}
+
+impl From<WebpackSource> for CompatSource {
+  fn from(source: WebpackSource) -> Self {
+    Self {
+      is_raw: source.is_raw,
+      is_buffer: source.is_buffer,
+      source: source.source.into(),
+      map: source.map(Into::into),
+    }
+  }
+}
+
+impl StreamChunks for CompatSource {
+  fn stream_chunks(
+    &self,
+    options: &MapOptions,
+    on_chunk: OnChunk,
+    on_source: OnSource,
+    on_name: OnName,
+  ) -> GeneratedInfo {
+    todo!()
+  }
+}
+
+impl Source for CompatSource {
+  fn source(&self) -> Cow<str> {
+    if self.is_raw && self.is_buffer {
+      // FIXME: if a source is a raw buffer source, the source should be a buffer
+      Cow::Owned("".to_owned())
+    } else {
+      Cow::Owned(unsafe { String::from_utf8_unchecked(self.source.as_ref().to_vec()) })
+    }
+  }
+
+  fn buffer(&self) -> Cow<[u8]> {
+    Cow::Borrowed(self.source.as_ref())
+  }
+
+  fn size(&self) -> usize {
+    self.source.as_ref().len()
+  }
+
+  fn map(&self, _options: &MapOptions) -> Option<SourceMap> {
+    self.map.map(|m| SourceMap::from_slice(m.as_ref()))
+  }
 }
 
 pub trait ToWebpackSource {
@@ -47,23 +125,3 @@ impl ToWebpackSource for dyn Source {
     }
   }
 }
-
-// impl ToNapiValue for dyn Source {
-//   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
-//     if let a = val.as_any().downcast_ref::<RawSource>() {};
-//   }
-// }
-
-// impl ToNapiValue for Box<dyn Source> {
-//   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
-//     let env = Env::from(env);
-
-//     if let Some(val) = val.as_any().downcast_ref::<RawSource>() {
-//       let buf = env.create_buffer_with_data(val.buffer().to_vec())?;
-//       // buf.to_napi_value(env)
-//       Ok(buf.into_raw().raw())
-//     } else {
-//       unimplemented!()
-//     }
-//   }
-// }
