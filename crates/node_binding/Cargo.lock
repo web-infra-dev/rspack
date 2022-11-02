@@ -2138,6 +2138,10 @@ dependencies = [
  "swc_common",
  "swc_ecma_ast",
  "swc_ecma_lints",
+<<<<<<< HEAD
+=======
+ "swc_ecma_minifier",
+>>>>>>> 02fdce05 (chore: 🤖 update dep and codegen)
  "swc_ecma_parser",
  "swc_ecma_preset_env",
  "swc_ecma_transforms",
@@ -2608,9 +2612,15 @@ dependencies = [
 
 [[package]]
 name = "swc"
+<<<<<<< HEAD
 version = "0.232.72"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f35e7c201d3dba297a10fa006dfe051eb8836aa53faddb950253999799293af"
+=======
+version = "0.232.61"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c7b623448dd18849aef4f0b05481baad6b0f308ca3924e3f878603cd2b1d0ca"
+>>>>>>> 02fdce05 (chore: 🤖 update dep and codegen)
 dependencies = [
  "ahash",
  "anyhow",
@@ -2974,9 +2984,15 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_minifier"
+<<<<<<< HEAD
 version = "0.159.63"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "deb2fecd28585723799105514dc3838eb42c7665a239dff84b9a721788a853f0"
+=======
+version = "0.159.55"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "669ae7641b41cf68a7fc3e06a2e557e8d5aeac8a1bf3d9ac40c2cce58fe30827"
+>>>>>>> 02fdce05 (chore: 🤖 update dep and codegen)
 dependencies = [
  "ahash",
  "arrayvec",
@@ -2985,7 +3001,10 @@ dependencies = [
  "num_cpus",
  "once_cell",
  "parking_lot 0.12.1",
+<<<<<<< HEAD
  "radix_fmt",
+=======
+>>>>>>> 02fdce05 (chore: 🤖 update dep and codegen)
  "regex",
  "retain_mut",
  "rustc-hash",
@@ -3329,9 +3348,15 @@ dependencies = [
 
 [[package]]
 name = "swc_html"
+<<<<<<< HEAD
 version = "0.93.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5339a07565b528f3e49efbd9273b544fe90839fd8b860ea2447b2b9e9759bd6a"
+=======
+version = "0.93.36"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01d4f4d4c0b7a783bf0cbec780d96db44330f30fc77376534540b9cba713c95f"
+>>>>>>> 02fdce05 (chore: 🤖 update dep and codegen)
 dependencies = [
  "swc_html_ast",
  "swc_html_codegen",
@@ -3354,9 +3379,15 @@ dependencies = [
 
 [[package]]
 name = "swc_html_codegen"
+<<<<<<< HEAD
 version = "0.37.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1eeef985a64f0081a61ddfe2f35013099e5d902d4bc1c19955447cef849d04d9"
+=======
+version = "0.37.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c68fca47569985c47d9aad51b649a10456680caa61235321234aafa40aaa3836"
+>>>>>>> 02fdce05 (chore: 🤖 update dep and codegen)
 dependencies = [
  "auto_impl",
  "bitflags",
@@ -3383,9 +3414,15 @@ dependencies = [
 
 [[package]]
 name = "swc_html_minifier"
+<<<<<<< HEAD
 version = "0.90.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1747538138a3ef9a3f1e405d51ec10b453f503e85f0ae5f9d80660931cb42b30"
+=======
+version = "0.90.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "88936dc5b33a2dcae6ed16e575ed4ae387d28fb6b3a8eca85231cc422051980d"
+>>>>>>> 02fdce05 (chore: 🤖 update dep and codegen)
 dependencies = [
  "once_cell",
  "serde",
@@ -3412,9 +3449,15 @@ dependencies = [
 
 [[package]]
 name = "swc_html_parser"
+<<<<<<< HEAD
 version = "0.34.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6199d89ca1a4cd8769fbc1816ba0d32757dee49fee6ad57e10f792c8cd5c6c1d"
+=======
+version = "0.34.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c8091211aec20841a2b06cd2cf87f220405b3462784279d975626c8b7b195fb"
+>>>>>>> 02fdce05 (chore: 🤖 update dep and codegen)
 dependencies = [
  "swc_atoms",
  "swc_common",
