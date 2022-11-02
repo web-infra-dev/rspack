@@ -18,7 +18,10 @@ export class Stats {
 		return Stats.jsonToString(obj, process.stdout.isTTY);
 	}
 
-	static jsonToString(obj/* : binding.StatsCompilation */, useColors: boolean) {
+	static jsonToString(
+		obj /* : binding.StatsCompilation */,
+		useColors: boolean
+	) {
 		const buf = [];
 
 		const defaultColors = {
@@ -188,7 +191,7 @@ export class Stats {
 					{
 						value: "",
 						color: colors.bold
-					},
+					}
 					// {
 					// 	value: "Chunk Names",
 					// 	color: colors.bold
@@ -223,7 +226,7 @@ export class Stats {
 					{
 						value: asset.isOverSizeLimit ? "[big]" : "",
 						color: getAssetColor(asset, colors.normal)
-					},
+					}
 					// {
 					// 	value: asset.chunkNames.join(", "),
 					// 	color: colors.normal
@@ -327,7 +330,8 @@ export class Stats {
 			}
 			if (module.assets && module.assets.length) {
 				colors.magenta(
-					` [${module.assets.length} asset${module.assets.length === 1 ? "" : "s"
+					` [${module.assets.length} asset${
+						module.assets.length === 1 ? "" : "s"
 					}]`
 				);
 			}
@@ -746,7 +750,6 @@ export class Stats {
 	}
 }
 
-
 const SizeFormatHelpers = {
 	formatSize: size => {
 		if (typeof size !== "number" || Number.isNaN(size) === true) {
@@ -760,10 +763,12 @@ const SizeFormatHelpers = {
 		const abbreviations = ["bytes", "KiB", "MiB", "GiB"];
 		const index = Math.floor(Math.log(size) / Math.log(1024));
 
-		return `${+(size / Math.pow(1024, index)).toPrecision(3)} ${abbreviations[index]}`;
+		return `${+(size / Math.pow(1024, index)).toPrecision(3)} ${
+			abbreviations[index]
+		}`;
 	}
 };
 
 const formatError = (e: binding.StatsError) => {
-	return e.formatted
-}
+	return e.formatted;
+};

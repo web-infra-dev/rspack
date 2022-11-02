@@ -17,10 +17,10 @@ export type EmitAssetCallback = (options: {
 	asset: Asset;
 }) => void;
 class EntryPlugin {
-	apply() { }
+	apply() {}
 }
 class HotModuleReplacementPlugin {
-	apply() { }
+	apply() {}
 }
 type CompilationParams = Record<string, any>;
 class Compiler {
@@ -172,7 +172,7 @@ class Compiler {
 	 * @param value
 	 * @returns
 	 */
-	#done(statsJson: binding.StatsCompilation) { }
+	#done(statsJson: binding.StatsCompilation) {}
 	#processAssets(value: string, emitAsset: any) {
 		return this.compilation.processAssets(value, emitAsset);
 	}
@@ -300,72 +300,78 @@ class Compiler {
 				console.log("hit change and start to build");
 
 				const begin = Date.now();
-				this.unsafe_rebuild(changedFilepath, (error: any, { diff, stats: rawStats }) => {
-					let stats = new Stats(rawStats);
-					// TODO: log stats string should move to cli
-					console.log(stats.toString());
-					isBuildFinished = true;
+				this.unsafe_rebuild(
+					changedFilepath,
+					(error: any, { diff, stats: rawStats }) => {
+						let stats = new Stats(rawStats);
+						// TODO: log stats string should move to cli
+						console.log(stats.toString());
+						isBuildFinished = true;
 
-					const hasPending = Boolean(pendingChangedFilepaths.size);
+						const hasPending = Boolean(pendingChangedFilepaths.size);
 
-					// If we have any pending task left, we should rebuild again with the pending files
-					if (hasPending) {
-						const pending = [...pendingChangedFilepaths];
-						pendingChangedFilepaths.clear();
-						rebuildWithFilepaths(pending);
-					}
-					if (error) {
-						throw error;
-					}
-
-					for (const [uri, stats] of Object.entries(diff)) {
-						let relativePath = path.relative(this.options.context, uri);
-						if (
-							!(relativePath.startsWith("../") || relativePath.startsWith("./"))
-						) {
-							relativePath = "./" + relativePath;
+						// If we have any pending task left, we should rebuild again with the pending files
+						if (hasPending) {
+							const pending = [...pendingChangedFilepaths];
+							pendingChangedFilepaths.clear();
+							rebuildWithFilepaths(pending);
+						}
+						if (error) {
+							throw error;
 						}
 
-						// send Message
-						if (ws) {
-							const data = {
-								uri: relativePath,
-								content: stats.content
-							};
-							if (/\.[less|css|sass|scss]$/.test(data.uri)) {
-								const cssOutput = fs
-									.readFileSync(
-										path.resolve(this.options.output.path, "main.css")
-									)
-									.toString("utf-8");
-								// TODO: need support more
-								data.content = [
-									`var cssStyleTag = document.querySelector("style[id='hot-css']")`,
-									`if (cssStyleTag) {`,
-									`  cssStyleTag.innerText = \`${cssOutput}\``,
-									`} else {`,
-									`  var newCSStyleTag = document.createElement('style')`,
-									`  newCSStyleTag.setAttribute('id', 'hot-css')`,
-									`  newCSStyleTag.innerText = \`${cssOutput}\``,
-									`  document.head.appendChild(newCSStyleTag)`,
-									`}`,
-									``,
-									`var outdataCSSLinkTag = document.querySelector("link[href='main.css']")`,
-									`outdataCSSLinkTag && outdataCSSLinkTag.parentNode && outdataCSSLinkTag.parentNode.removeChild(outdataCSSLinkTag)`
-								].join("\n");
+						for (const [uri, stats] of Object.entries(diff)) {
+							let relativePath = path.relative(this.options.context, uri);
+							if (
+								!(
+									relativePath.startsWith("../") ||
+									relativePath.startsWith("./")
+								)
+							) {
+								relativePath = "./" + relativePath;
 							}
 
-							for (const client of ws.clients) {
-								// the type of "ok" means rebuild success.
-								// the data should deleted after we had hash in stats.
-								client.send(
-									JSON.stringify({ type: "ok", data: JSON.stringify(data) })
-								);
+							// send Message
+							if (ws) {
+								const data = {
+									uri: relativePath,
+									content: stats.content
+								};
+								if (/\.[less|css|sass|scss]$/.test(data.uri)) {
+									const cssOutput = fs
+										.readFileSync(
+											path.resolve(this.options.output.path, "main.css")
+										)
+										.toString("utf-8");
+									// TODO: need support more
+									data.content = [
+										`var cssStyleTag = document.querySelector("style[id='hot-css']")`,
+										`if (cssStyleTag) {`,
+										`  cssStyleTag.innerText = \`${cssOutput}\``,
+										`} else {`,
+										`  var newCSStyleTag = document.createElement('style')`,
+										`  newCSStyleTag.setAttribute('id', 'hot-css')`,
+										`  newCSStyleTag.innerText = \`${cssOutput}\``,
+										`  document.head.appendChild(newCSStyleTag)`,
+										`}`,
+										``,
+										`var outdataCSSLinkTag = document.querySelector("link[href='main.css']")`,
+										`outdataCSSLinkTag && outdataCSSLinkTag.parentNode && outdataCSSLinkTag.parentNode.removeChild(outdataCSSLinkTag)`
+									].join("\n");
+								}
+
+								for (const client of ws.clients) {
+									// the type of "ok" means rebuild success.
+									// the data should deleted after we had hash in stats.
+									client.send(
+										JSON.stringify({ type: "ok", data: JSON.stringify(data) })
+									);
+								}
 							}
 						}
+						console.log("rebuild success, time cost", Date.now() - begin, "ms");
 					}
-					console.log("rebuild success, time cost", Date.now() - begin, "ms");
-				});
+				);
 			};
 
 			rebuildWithFilepaths([...pendingChangedFilepaths, changedFilepath]);
