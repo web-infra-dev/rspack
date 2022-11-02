@@ -11,9 +11,10 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@master
         with:
+          ref: ${{ github.event.pull_request.head.sha }}
           # This makes Actions fetch only one branch to release
           fetch-depth: 100
-      - name: Install rus toolchain
+      - name: Install rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly-2022-08-06
@@ -37,7 +38,6 @@ jobs:
       - name: release snapshot
         id: release
         run: |
-          echo "::set-output name=comment::hello"
           make snapshot_ci
           comment=$(./x pkg-version)
           echo "::set-output name=comment::$comment"
