@@ -1,28 +1,31 @@
-self.__rspack_runtime__.__rspack_register__([
+self["__rspack_runtime__"].__rspack_register__([
     "main"
 ], {
     "./foo.js": function(module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
         "use strict";
         Object.defineProperty(exports, "__esModule", {
-            value: !0
-        }), Object.defineProperty(exports, "foo", {
-            enumerable: !0,
+            value: true
+        });
+        Object.defineProperty(exports, "foo", {
+            enumerable: true,
             get: ()=>foo
         });
         var foo = {
             value: 1
         };
         function mutate(obj) {
-            return obj.value += 1, obj;
+            obj.value += 1;
+            return obj;
         }
         mutate(foo);
     },
     "./index.js": function(module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
         "use strict";
         Object.defineProperty(exports, "__esModule", {
-            value: !0
+            value: true
         });
-        let _foo = __rspack_require__("./foo.js");
+        const _foo = __rspack_require__("./foo.js");
         assert.equal(_foo.foo.value, 2);
     }
-}), self.__rspack_runtime__.__rspack_require__("./index.js");
+});
+self["__rspack_runtime__"].__rspack_require__("./index.js");

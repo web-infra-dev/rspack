@@ -1210,12 +1210,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "078e285eafdfb6c4b434e0d31e8cfcb5115b651496faca5749b88fafd4f23bfd"
 
 [[package]]
-name = "json_comments"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41ee439ee368ba4a77ac70d04f14015415af8600d6c894dc1f11bd79758c57d5"
-
-[[package]]
 name = "jsonc-parser"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2038,6 +2032,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "radix_fmt"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce082a9940a7ace2ad4a8b7d0b1eac6aa378895f18be598230c5f2284ac05426"
+
+[[package]]
 name = "rand"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2435,6 +2435,10 @@ dependencies = [
  "swc_common",
  "swc_ecma_ast",
  "swc_ecma_lints",
+<<<<<<< HEAD
+=======
+ "swc_ecma_minifier",
+>>>>>>> 02fdce05 (chore: 🤖 update dep and codegen)
  "swc_ecma_parser",
  "swc_ecma_preset_env",
  "swc_ecma_transforms",
@@ -2973,9 +2977,15 @@ dependencies = [
 
 [[package]]
 name = "swc"
+<<<<<<< HEAD
 version = "0.232.61"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c7b623448dd18849aef4f0b05481baad6b0f308ca3924e3f878603cd2b1d0ca"
+=======
+version = "0.232.72"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f35e7c201d3dba297a10fa006dfe051eb8836aa53faddb950253999799293af"
+>>>>>>> 02fdce05 (chore: 🤖 update dep and codegen)
 dependencies = [
  "ahash",
  "anyhow",
@@ -2983,7 +2993,7 @@ dependencies = [
  "dashmap",
  "either",
  "indexmap",
- "json_comments",
+ "jsonc-parser",
  "lru",
  "once_cell",
  "parking_lot 0.12.1",
@@ -3161,6 +3171,7 @@ dependencies = [
 [[package]]
 name = "swc_css_minifier"
 version = "0.99.15"
+<<<<<<< HEAD
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e09cb65850445ed27732ea635f6a284a7e9cb427a62e3601aa127e89276a5e71"
 dependencies = [
@@ -3177,6 +3188,26 @@ name = "swc_css_parser"
 version = "0.133.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f28266f6b5b41dd73cf42782912f94e7da86882edc2beab3daf37981234cc27a"
+=======
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e09cb65850445ed27732ea635f6a284a7e9cb427a62e3601aa127e89276a5e71"
+>>>>>>> 02fdce05 (chore: 🤖 update dep and codegen)
+dependencies = [
+ "serde",
+ "swc_atoms",
+ "swc_common",
+ "swc_css_ast",
+<<<<<<< HEAD
+=======
+ "swc_css_utils",
+ "swc_css_visit",
+]
+
+[[package]]
+name = "swc_css_parser"
+version = "0.133.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f28266f6b5b41dd73cf42782912f94e7da86882edc2beab3daf37981234cc27a"
 dependencies = [
  "bitflags",
  "lexical",
@@ -3184,6 +3215,7 @@ dependencies = [
  "swc_atoms",
  "swc_common",
  "swc_css_ast",
+>>>>>>> 02fdce05 (chore: 🤖 update dep and codegen)
 ]
 
 [[package]]
@@ -3339,9 +3371,15 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_minifier"
+<<<<<<< HEAD
 version = "0.159.55"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "669ae7641b41cf68a7fc3e06a2e557e8d5aeac8a1bf3d9ac40c2cce58fe30827"
+=======
+version = "0.159.63"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "deb2fecd28585723799105514dc3838eb42c7665a239dff84b9a721788a853f0"
+>>>>>>> 02fdce05 (chore: 🤖 update dep and codegen)
 dependencies = [
  "ahash",
  "arrayvec",
@@ -3350,6 +3388,10 @@ dependencies = [
  "num_cpus",
  "once_cell",
  "parking_lot 0.12.1",
+<<<<<<< HEAD
+=======
+ "radix_fmt",
+>>>>>>> 02fdce05 (chore: 🤖 update dep and codegen)
  "regex",
  "retain_mut",
  "rustc-hash",
@@ -3693,9 +3735,15 @@ dependencies = [
 
 [[package]]
 name = "swc_html"
+<<<<<<< HEAD
 version = "0.93.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5339a07565b528f3e49efbd9273b544fe90839fd8b860ea2447b2b9e9759bd6a"
+=======
+version = "0.93.36"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01d4f4d4c0b7a783bf0cbec780d96db44330f30fc77376534540b9cba713c95f"
+>>>>>>> 02fdce05 (chore: 🤖 update dep and codegen)
 dependencies = [
  "swc_html_ast",
  "swc_html_codegen",
@@ -3718,9 +3766,15 @@ dependencies = [
 
 [[package]]
 name = "swc_html_codegen"
+<<<<<<< HEAD
 version = "0.37.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1eeef985a64f0081a61ddfe2f35013099e5d902d4bc1c19955447cef849d04d9"
+=======
+version = "0.37.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c68fca47569985c47d9aad51b649a10456680caa61235321234aafa40aaa3836"
+>>>>>>> 02fdce05 (chore: 🤖 update dep and codegen)
 dependencies = [
  "auto_impl",
  "bitflags",
@@ -3747,9 +3801,15 @@ dependencies = [
 
 [[package]]
 name = "swc_html_minifier"
+<<<<<<< HEAD
 version = "0.90.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "88936dc5b33a2dcae6ed16e575ed4ae387d28fb6b3a8eca85231cc422051980d"
+=======
+version = "0.90.36"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "955c8a6533f24e1d3b5d092bced2ccf9d2f9745c9b02b5c82ee213fa68d437cb"
+>>>>>>> 02fdce05 (chore: 🤖 update dep and codegen)
 dependencies = [
  "once_cell",
  "serde",
@@ -3776,9 +3836,15 @@ dependencies = [
 
 [[package]]
 name = "swc_html_parser"
+<<<<<<< HEAD
 version = "0.34.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6199d89ca1a4cd8769fbc1816ba0d32757dee49fee6ad57e10f792c8cd5c6c1d"
+=======
+version = "0.34.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c8091211aec20841a2b06cd2cf87f220405b3462784279d975626c8b7b195fb"
+>>>>>>> 02fdce05 (chore: 🤖 update dep and codegen)
 dependencies = [
  "swc_atoms",
  "swc_common",
@@ -3838,9 +3904,9 @@ dependencies = [
 
 [[package]]
 name = "swc_timer"
-version = "0.17.12"
+version = "0.17.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c06f8e75728d8e84bd88f51d0712343034ec6a9c51f359a159ffc7c8282eebe"
+checksum = "bb051167c8568445a1917104b55c2ec4db36f458b1864022a066a9b99f14f0dc"
 dependencies = [
  "tracing",
 ]

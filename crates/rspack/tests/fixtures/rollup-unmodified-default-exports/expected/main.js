@@ -1,18 +1,20 @@
-self.__rspack_runtime__.__rspack_register__([
+self["__rspack_runtime__"].__rspack_register__([
     "main"
 ], {
     "./foo.js": function(module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
         "use strict";
         Object.defineProperty(exports, "__esModule", {
-            value: !0
-        }), Object.defineProperty(exports, "default", {
-            enumerable: !0,
+            value: true
+        });
+        Object.defineProperty(exports, "default", {
+            enumerable: true,
             get: ()=>_default
         });
         var Foo = function() {
-            console.log("side effect"), this.isFoo = !0;
+            console.log("side effect");
+            this.isFoo = true;
         };
-        let _default = Foo;
+        const _default = Foo;
         Foo.prototype = {
             answer: function() {
                 return 42;
@@ -22,9 +24,10 @@ self.__rspack_runtime__.__rspack_register__([
     "./index.js": function(module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
         "use strict";
         Object.defineProperty(exports, "__esModule", {
-            value: !0
+            value: true
         });
-        let _foo = __rspack_runtime__.interopRequire(__rspack_require__("./foo.js"));
+        const _foo = __rspack_runtime__.interopRequire(__rspack_require__("./foo.js"));
         new _foo.default();
     }
-}), self.__rspack_runtime__.__rspack_require__("./index.js");
+});
+self["__rspack_runtime__"].__rspack_require__("./index.js");

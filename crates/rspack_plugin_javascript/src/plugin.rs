@@ -446,6 +446,7 @@ fn get_js_minify_options(
       // TODO: according options target
       ecma: TerserEcmaVersion::Num(6),
       inline: Some(TerserInlineOption::Bool(false)),
+      defaults: false,
       ..Default::default()
     });
     options.mangle = BoolOrDataConfig::from_bool(false);
