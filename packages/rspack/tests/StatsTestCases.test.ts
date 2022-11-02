@@ -57,5 +57,4 @@ describe("StatsTestCases", () => {
 			const statsString = stats.toString();
 			expect(statsString).toMatchSnapshot();
 		});
-	});
 });

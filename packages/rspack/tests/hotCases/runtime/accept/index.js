@@ -2,7 +2,7 @@ var value = require("./file");
 
 console.log("value should be 1, get ", value);
 
-if (module.hot && module.hot.accept) {
+if (module.hot.accept) {
 	// `./file.js` is a dependency, which should be ended with `.js`
 	// should fixed it.
 	module.hot.accept("./file.js", () => {
