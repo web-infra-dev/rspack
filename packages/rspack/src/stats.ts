@@ -18,16 +18,14 @@ export class Stats {
 		return this.#statsJson;
 	}
 
-	toString(options?: StatsOptions) {
-		options = resolveStatsOptions(options);
-		const obj = this.toJson(options);
-		return Stats.jsonToString(obj, options.colors);
+	toString() {
+		const obj: any = this.toJson();
+		obj.filteredModules = obj.modules.length - 15;
+		obj.modules = obj.modules.slice(0, 15);
+		return Stats.jsonToString(obj, process.stdout.isTTY);
 	}
 
-	static jsonToString(
-		obj /* : binding.StatsCompilation */,
-		useColors: boolean
-	) {
+	static jsonToString(obj, useColors: boolean) {
 		const buf = [];
 
 		const defaultColors = {

@@ -58,6 +58,9 @@ impl<'compilation> Stats<'compilation> {
             size: asset.get_source().size() as f64,
             chunks: Vec::new(),
             chunk_names: Vec::new(),
+            info: StatsAssetInfo {
+              development: asset.info.development,
+            },
           },
         )
       }));
@@ -114,7 +117,7 @@ impl<'compilation> Stats<'compilation> {
         }
       })
       .collect();
-    modules.sort_by_cached_key(|m| m.identifier.to_string()); // TODO: sort by module.depth
+    modules.sort_by_cached_key(|m| m.name.len()); // TODO: sort by module.depth
 
     let mut diagnostic_displayer = get_diagnostic_displayer(&self.compilation.options.stats);
     let errors: Vec<StatsError> = self
@@ -202,6 +205,12 @@ pub struct StatsAsset {
   pub size: f64,
   pub chunks: Vec<String>,
   pub chunk_names: Vec<String>,
+  pub info: StatsAssetInfo,
+}
+
+#[derive(Debug)]
+pub struct StatsAssetInfo {
+  pub development: bool,
 }
 
 #[derive(Debug)]

@@ -70,6 +70,7 @@ pub struct StatsAsset {
   pub size: f64,
   pub chunks: Vec<String>,
   pub chunk_names: Vec<String>,
+  pub info: StatsAssetInfo,
 }
 
 impl From<rspack_core::StatsAsset> for StatsAsset {
@@ -80,6 +81,20 @@ impl From<rspack_core::StatsAsset> for StatsAsset {
       size: stats.size,
       chunks: stats.chunks,
       chunk_names: stats.chunk_names,
+      info: stats.info.into(),
+    }
+  }
+}
+
+#[napi(object)]
+pub struct StatsAssetInfo {
+  pub development: bool,
+}
+
+impl From<rspack_core::StatsAssetInfo> for StatsAssetInfo {
+  fn from(stats: rspack_core::StatsAssetInfo) -> Self {
+    Self {
+      development: stats.development,
     }
   }
 }

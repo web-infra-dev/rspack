@@ -370,8 +370,8 @@ impl NormalModuleFactory {
 
     let mgm = ModuleGraphModule::new(
       self.context.module_name.clone(),
-      Path::new("./")
-        .join(Path::new(uri.as_str()).relative(&self.context.options.context))
+      Path::new(uri.as_str())
+        .relative(&self.context.options.context)
         .to_string_lossy()
         .to_string(),
       uri,
