@@ -107,7 +107,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
     }
 
     if let Some(config) = self.config.postcss.pxtorem.clone() {
-      dbg!(&config);
       stylesheet.visit_mut_with(&mut px_to_rem(config));
     }
 

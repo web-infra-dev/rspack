@@ -13,7 +13,7 @@ pub fn tree_shaking_visitor<'a>(
   top_level_mark: Mark,
   parse_phase_global: Option<&'a Globals>,
 ) -> impl Fold + 'a {
-  TreeShaking {
+  TreeShaker {
     module_id,
     used_symbol_set,
     top_level_mark,
@@ -21,14 +21,25 @@ pub fn tree_shaking_visitor<'a>(
   }
 }
 
-struct TreeShaking<'a> {
+/// The basic idea of shaking the tree is pretty easy,
+/// we visit each export symbol, if the symbol is marked as used in the tree-shaking analysis phase,
+/// we keep it as is. Otherwise, we remove the export related reserved word. e.g.
+/// ```js
+/// export function test() {}
+/// ```
+/// if the function `test` is never used in other module, remove the `export`, it become :
+/// ```js
+/// function test() {}
+/// ```
+/// if function `test` is also unused in local module, then it will be removed in DCE phase of `swc`
+struct TreeShaker<'a> {
   module_id: Ustr,
   used_symbol_set: &'a HashSet<Symbol>,
   top_level_mark: Mark,
   parse_phase_global: Option<&'a Globals>,
 }
 
-impl<'a> Fold for TreeShaking<'a> {
+impl<'a> Fold for TreeShaker<'a> {
   noop_fold_type!();
   fn fold_program(&mut self, node: Program) -> Program {
     if self.parse_phase_global.is_none() {
@@ -159,7 +170,6 @@ impl<'a> Fold for TreeShaking<'a> {
         }
         ModuleDecl::ExportDefaultDecl(decl) => {
           let default_symbol = self.crate_virtual_default_symbol();
-          dbg!(&default_symbol);
           let ctxt = default_symbol.id().ctxt;
           if self.used_symbol_set.contains(&default_symbol) {
             ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultDecl(decl))
@@ -235,7 +245,7 @@ impl<'a> Fold for TreeShaking<'a> {
   }
 }
 
-impl<'a> TreeShaking<'a> {
+impl<'a> TreeShaker<'a> {
   fn crate_virtual_default_symbol(&self) -> Symbol {
     let ident = GLOBALS.set(self.parse_phase_global.unwrap(), || {
       let mut default = quote_ident!("default");
