@@ -10,6 +10,7 @@ mod format;
 use format::*;
 mod pass_global;
 use pass_global::PassGlobal;
+use swc_common::pass::Repeat;
 use swc_common::{Globals, Mark};
 mod swc_visitor;
 use crate::utils::get_swc_compiler;
@@ -97,7 +98,10 @@ pub fn run_before_pass(
       swc_visitor::reserved_words(),
       swc_visitor::inject_helpers(),
       // The ordering of these two is important, `expr_simplifier` goes first and `dead_branch_remover` goes second.
-      swc_visitor::expr_simplifier(unresolved_mark, Default::default()),
+      Repeat::new(swc_visitor::expr_simplifier(
+        unresolved_mark,
+        Default::default()
+      ),),
       swc_visitor::dead_branch_remover(unresolved_mark),
     );
     let ast = ast.fold_with(&mut pass);
