@@ -115,6 +115,8 @@ pub fn run_after_pass(ast: &mut Ast, mgm: &ModuleGraphModule, compilation: &Comp
   let cm = get_swc_compiler().cm.clone();
   ast.transform(|program, context| {
     let unresolved_mark = context.unresolved_mark;
+    let top_level_mark = context.top_level_mark;
+    let tree_shaking = compilation.options.builtins.tree_shaking;
     let comments = None;
 
     let mut pass = chain!(
@@ -122,8 +124,7 @@ pub fn run_after_pass(ast: &mut Ast, mgm: &ModuleGraphModule, compilation: &Comp
         tree_shaking_visitor(
           ustr(&mgm.module_identifier,),
           &compilation.used_symbol,
-          pass_global.top_level_mark,
-          parse_phase_globals
+          top_level_mark,
         ),
         tree_shaking
       ),
