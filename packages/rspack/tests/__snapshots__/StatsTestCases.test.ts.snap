@@ -253,7 +253,7 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
       "names": [
         "main",
       ],
-      "size": 30,
+      "size": 28,
       "type": "chunk",
     },
   ],
@@ -279,7 +279,7 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
       "identifier": "<PROJECT_ROOT>/tests/statsCases/parse-error/a.js",
       "moduleType": "js",
       "name": "./a.js",
-      "size": 15,
+      "size": 14,
       "type": "module",
     },
     {
@@ -290,7 +290,7 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
       "identifier": "<PROJECT_ROOT>/tests/statsCases/parse-error/index.js",
       "moduleType": "js",
       "name": "./index.js",
-      "size": 15,
+      "size": 14,
       "type": "module",
     },
   ],
@@ -302,9 +302,9 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
 exports[`StatsTestCases should print correct stats for parse-error 2`] = `
 "    Asset      Size  Chunks  Chunk Names
 bundle.js  1.73 KiB    main  main
-chunk {main} bundle.js (main) 30 bytes [entry]
-[./a.js] 15 bytes {main}
-[./index.js] 15 bytes {main}
+chunk {main} bundle.js (main) 28 bytes [entry]
+[./a.js] 14 bytes {main}
+[./index.js] 14 bytes {main}
 
 [0m[1m[38;5;9merror[javascript][0m[1m: JavaScript parsing error[0m
   [0m[34m┌─[0m tests/statsCases/parse-error/b.js:6:8
