@@ -23,6 +23,11 @@ import { resolveModuleOptions } from "./module";
 import { resolveBuiltinsOptions } from "./builtins";
 import { resolveResolveOptions } from "./resolve";
 import { InfrastructureLogging } from "./RspackOptions";
+import {
+	ResolvedStatsOptions,
+	resolveStatsOptions,
+	StatsOptions
+} from "./stats";
 import { Source } from "webpack-sources";
 
 export interface RspackOptions {
@@ -41,6 +46,7 @@ export interface RspackOptions {
 	resolve?: Resolve;
 	devtool?: Devtool;
 	infrastructureLogging?: InfrastructureLogging;
+	stats?: StatsOptions;
 }
 export interface RspackOptionsNormalized {
 	name?: string;
@@ -58,6 +64,7 @@ export interface RspackOptionsNormalized {
 	resolve: ResolvedResolve;
 	devtool: ResolvedDevtool;
 	infrastructureLogging: InfrastructureLogging;
+	stats: ResolvedStatsOptions;
 }
 
 export function getNormalizedRspackOptions(
@@ -80,6 +87,7 @@ export function getNormalizedRspackOptions(
 	const resolve = resolveResolveOptions(config.resolve);
 	const devtool = resolveDevtoolOptions(config.devtool);
 	const module = resolveModuleOptions(config.module, { devtool, context });
+	const stats = resolveStatsOptions(config.stats);
 
 	return {
 		...config,
@@ -96,7 +104,8 @@ export function getNormalizedRspackOptions(
 		module,
 		resolve,
 		devtool,
-		infrastructureLogging: cloneObject(config.infrastructureLogging)
+		infrastructureLogging: cloneObject(config.infrastructureLogging),
+		stats
 	};
 }
 

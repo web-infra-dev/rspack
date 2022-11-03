@@ -129,6 +129,9 @@ describe("snapshots", () => {
 		    ],
 		    "preferRelative": false,
 		  },
+		  "stats": {
+		    "colors": false,
+		  },
 		  "target": [
 		    "web",
 		  ],
@@ -585,33 +588,15 @@ describe("snapshots", () => {
 	);
 
 	test("stats true", { stats: true }, e =>
-		e.toMatchInlineSnapshot(`
-		- Expected
-		+ Received
-
-		@@ ... @@
-		+   "stats": true,
-	`)
+		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 
 	test("stats false", { stats: false }, e =>
-		e.toMatchInlineSnapshot(`
-		- Expected
-		+ Received
-
-		@@ ... @@
-		+   "stats": false,
-	`)
+		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 
 	test("stats string", { stats: "minimal" }, e =>
-		e.toMatchInlineSnapshot(`
-		- Expected
-		+ Received
-
-		@@ ... @@
-		+   "stats": "minimal",
-	`)
+		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 
 	test(

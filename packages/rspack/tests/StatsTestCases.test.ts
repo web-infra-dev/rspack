@@ -54,7 +54,7 @@ describe("StatsTestCases", () => {
 				expect(statsJson.errors.length === 0);
 			}
 			expect(statsJson).toMatchSnapshot();
-			const statsString = stats.toString();
+			const statsString = stats.toString({ colors: false });
 			expect(statsString).toMatchSnapshot();
 		});
 	});
