@@ -8,7 +8,6 @@ mod inject_runtime_helper;
 use inject_runtime_helper::inject_runtime_helper;
 mod format;
 use format::*;
-use swc_common::pass::Repeat;
 mod swc_visitor;
 use crate::utils::get_swc_compiler;
 use rspack_core::{
