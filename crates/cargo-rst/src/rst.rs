@@ -16,7 +16,7 @@ use glob::glob;
 use serde::{Deserialize, Serialize};
 
 use serde_json;
-use similar::ChangeTag;
+use similar_asserts::SimpleDiff;
 
 use crate::{
   helper::{cp, is_detail, is_mute, make_relative_from, no_write},
@@ -74,10 +74,9 @@ pub enum TestErrorKind {
 #[derive(Debug)]
 pub struct FileDiff {
   /// expected file path
-  path: PathBuf,
+  expected_path: PathBuf,
 
-  /// (expected_index, change_type, line content)
-  diff: Vec<(usize, ChangeTag, String)>,
+  actual_path: PathBuf,
 }
 
 impl Display for TestError {
@@ -100,27 +99,15 @@ impl Display for TestError {
         ))
       };
 
-      fn color(f: &mut std::fmt::Formatter<'_>, tag: &ChangeTag, s: &str) {
-        f.write_str(&format!(
-          "{}",
-          match tag {
-            ChangeTag::Delete => s.red(),
-            ChangeTag::Insert => s.green(),
-            _ => s.black(),
-          }
-        ))
-        .unwrap();
-      }
-
       match &kind {
         TestErrorKind::Difference(diff) => {
-          output("File difference", diff.path.as_path().to_str().unwrap()).unwrap();
-          if is_detail() {
-            for (idx, tag, content) in &diff.diff {
-              color(f, tag, &format!("   {} {}| {}\n", tag, idx, content));
-            }
-          }
-          Ok(())
+          let expected_file = std::fs::read_to_string(&diff.expected_path).unwrap();
+          let actual_file = std::fs::read_to_string(&diff.actual_path).unwrap();
+          panic!(
+            "File difference: {}\n{}",
+            diff.expected_path.to_string_lossy(),
+            SimpleDiff::from_str(&expected_file, &actual_file, "expected", "actual")
+          );
         }
         TestErrorKind::MissingExpectedDir(dir) => output(
           "Directory exists in 'expected' directory, but not found in 'actual' directory: ",
@@ -269,24 +256,10 @@ impl Rst {
               TestErrorKind::MissingActualFile(p) => FailedCase::MissingActualFile(p.clone()),
               TestErrorKind::MissingExpectedDir(p) => FailedCase::MissingExpectedDir(p.clone()),
               TestErrorKind::MissingExpectedFile(p) => FailedCase::MissingExpectedFile(p.clone()),
-              TestErrorKind::Difference(diff) => {
-                let mut added = vec![];
-                let mut removed = vec![];
-
-                for (line, change, _) in &diff.diff {
-                  match change {
-                    ChangeTag::Delete => removed.push(*line),
-                    ChangeTag::Insert => added.push(*line),
-                    _ => {}
-                  }
-                }
-
-                FailedCase::Difference {
-                  expected_file_path: diff.path.clone(),
-                  added,
-                  removed,
-                }
-              }
+              TestErrorKind::Difference(diff) => FailedCase::Difference {
+                expected_file_path: diff.expected_path.clone(),
+                actual_file_path: diff.actual_path.clone(),
+              },
             })
             .collect(),
         );
@@ -371,68 +344,20 @@ impl Rst {
         let is_actual_file = actual_dir.is_file();
 
         if is_expect_file && is_actual_file {
-          // file diff
           let expected_buf = fs::read(expected_dir.as_path()).unwrap();
-          let expected_str = String::from_utf8(expected_buf.clone());
+          let expected_str = String::from_utf8_lossy(&expected_buf);
 
           let actual_buf = fs::read(actual_dir.as_path()).unwrap();
-          let actual_str = String::from_utf8(actual_buf.clone());
+          let actual_str = String::from_utf8_lossy(&actual_buf);
 
-          let mut diff = FileDiff {
-            path: expected_dir.clone(),
-            diff: vec![],
-          };
+          if expected_str != actual_str {
+            let diff = FileDiff {
+              expected_path: expected_dir.clone(),
+              actual_path: actual_dir.clone(),
+            };
 
-          match (expected_str, actual_str) {
-            // make text diff
-            (Ok(expected_str), Ok(actual_str)) => {
-              for change in similar::TextDiff::from_lines(
-                expected_str.as_str().trim(),
-                actual_str.as_str().trim(),
-              )
-              .iter_all_changes()
-              {
-                if matches!(change.tag(), ChangeTag::Equal) {
-                  continue;
-                }
-
-                let old_index = change.old_index();
-                diff.diff.push((
-                  old_index.unwrap_or_else(|| change.new_index().unwrap()),
-                  change.tag(),
-                  match old_index {
-                    Some(idx) => expected_str
-                      .split('\n')
-                      .collect::<Vec<&str>>()
-                      .get(idx)
-                      .copied()
-                      .unwrap_or("")
-                      .into(),
-                    None => {
-                      let new_idx = change.new_index().unwrap();
-                      actual_str
-                        .split('\n')
-                        .collect::<Vec<&str>>()
-                        .get(new_idx)
-                        .copied()
-                        .unwrap_or("")
-                        .into()
-                    }
-                  },
-                ))
-              }
-
-              if !diff.diff.is_empty() {
-                err.push(TestErrorKind::Difference(diff));
-              }
-            }
-            _ => {
-              // binary file diff
-              if expected_buf != actual_buf {
-                err.push(TestErrorKind::Difference(diff))
-              }
-            }
-          };
+            err.push(TestErrorKind::Difference(diff))
+          }
         } else if !is_expect_file && !is_actual_file {
           // directory diff
           if let Err(e) = Self::compare(

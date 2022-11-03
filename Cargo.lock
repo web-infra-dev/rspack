@@ -267,7 +267,7 @@ dependencies = [
  "glob",
  "serde",
  "serde_json",
- "similar",
+ "similar-asserts",
  "testing_macros",
  "tokio",
 ]
