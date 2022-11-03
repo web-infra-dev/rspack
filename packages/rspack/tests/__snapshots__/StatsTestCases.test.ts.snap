@@ -89,21 +89,21 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
   ],
   "errors": [
     {
-      "formatted": "[0m[1m[38;5;9merror[javascript][0m[1m: JavaScript parsing error[0m
-  [0m[34m┌─[0m tests/statsCases/identifier-let-strict-mode/index.js:1:5
-  [0m[34m│[0m
-[0m[34m1[0m [0m[34m│[0m let [0m[31mlet[0m = let;
-  [0m[34m│[0m     [0m[31m^^^[0m [0m[31m\`let\` cannot be used as an identifier in strict mode[0m
+      "formatted": "error[javascript]: JavaScript parsing error
+  ┌─ tests/statsCases/identifier-let-strict-mode/index.js:1:5
+  │
+1 │ let let = let;
+  │     ^^^ \`let\` cannot be used as an identifier in strict mode
 
 ",
       "message": "\`let\` cannot be used as an identifier in strict mode",
     },
     {
-      "formatted": "[0m[1m[38;5;9merror[javascript][0m[1m: JavaScript parsing error[0m
-  [0m[34m┌─[0m tests/statsCases/identifier-let-strict-mode/index.js:1:11
-  [0m[34m│[0m
-[0m[34m1[0m [0m[34m│[0m let let = [0m[31mlet[0m;
-  [0m[34m│[0m           [0m[31m^^^[0m [0m[31m\`let\` cannot be used as an identifier in strict mode[0m
+      "formatted": "error[javascript]: JavaScript parsing error
+  ┌─ tests/statsCases/identifier-let-strict-mode/index.js:1:11
+  │
+1 │ let let = let;
+  │           ^^^ \`let\` cannot be used as an identifier in strict mode
 
 ",
       "message": "\`let\` cannot be used as an identifier in strict mode",
@@ -134,19 +134,19 @@ bundle.js  3.65 KiB    main  main
 chunk {main} bundle.js (main) 15 bytes [entry]
 [./index.js] 15 bytes {main}
 
-[0m[1m[38;5;9merror[javascript][0m[1m: JavaScript parsing error[0m
-  [0m[34m┌─[0m tests/statsCases/identifier-let-strict-mode/index.js:1:5
-  [0m[34m│[0m
-[0m[34m1[0m [0m[34m│[0m let [0m[31mlet[0m = let;
-  [0m[34m│[0m     [0m[31m^^^[0m [0m[31m\`let\` cannot be used as an identifier in strict mode[0m
+error[javascript]: JavaScript parsing error
+  ┌─ tests/statsCases/identifier-let-strict-mode/index.js:1:5
+  │
+1 │ let let = let;
+  │     ^^^ \`let\` cannot be used as an identifier in strict mode
 
 
 
-[0m[1m[38;5;9merror[javascript][0m[1m: JavaScript parsing error[0m
-  [0m[34m┌─[0m tests/statsCases/identifier-let-strict-mode/index.js:1:11
-  [0m[34m│[0m
-[0m[34m1[0m [0m[34m│[0m let let = [0m[31mlet[0m;
-  [0m[34m│[0m           [0m[31m^^^[0m [0m[31m\`let\` cannot be used as an identifier in strict mode[0m
+error[javascript]: JavaScript parsing error
+  ┌─ tests/statsCases/identifier-let-strict-mode/index.js:1:11
+  │
+1 │ let let = let;
+  │           ^^^ \`let\` cannot be used as an identifier in strict mode
 
 "
 `;
@@ -259,11 +259,11 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
   ],
   "errors": [
     {
-      "formatted": "[0m[1m[38;5;9merror[javascript][0m[1m: JavaScript parsing error[0m
-  [0m[34m┌─[0m tests/statsCases/parse-error/b.js:6:8
-  [0m[34m│[0m
-[0m[34m6[0m [0m[34m│[0m parser [0m[31m)[0m
-  [0m[34m│[0m        [0m[31m^[0m [0m[31mExpected ';', '}' or <eof>[0m
+      "formatted": "error[javascript]: JavaScript parsing error
+  ┌─ tests/statsCases/parse-error/b.js:6:8
+  │
+6 │ parser )
+  │        ^ Expected ';', '}' or <eof>
 
 ",
       "message": "Expected ';', '}' or <eof>",
@@ -306,11 +306,11 @@ chunk {main} bundle.js (main) 28 bytes [entry]
 [./a.js] 14 bytes {main}
 [./index.js] 14 bytes {main}
 
-[0m[1m[38;5;9merror[javascript][0m[1m: JavaScript parsing error[0m
-  [0m[34m┌─[0m tests/statsCases/parse-error/b.js:6:8
-  [0m[34m│[0m
-[0m[34m6[0m [0m[34m│[0m parser [0m[31m)[0m
-  [0m[34m│[0m        [0m[31m^[0m [0m[31mExpected ';', '}' or <eof>[0m
+error[javascript]: JavaScript parsing error
+  ┌─ tests/statsCases/parse-error/b.js:6:8
+  │
+6 │ parser )
+  │        ^ Expected ';', '}' or <eof>
 
 "
 `;

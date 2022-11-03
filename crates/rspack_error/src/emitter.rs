@@ -245,3 +245,44 @@ impl From<crate::Severity> for Severity {
     }
   }
 }
+
+pub enum DiagnosticDisplayer {
+  Colored(ColoredStringDiagnosticDisplay),
+  Plain(StringDiagnosticDisplay),
+}
+
+impl DiagnosticDisplayer {
+  pub fn new(colored: bool) -> Self {
+    if colored {
+      Self::Colored(ColoredStringDiagnosticDisplay)
+    } else {
+      Self::Plain(StringDiagnosticDisplay::default())
+    }
+  }
+}
+
+impl DiagnosticDisplay for DiagnosticDisplayer {
+  type Output = crate::Result<String>;
+
+  fn emit_batch_diagnostic(
+    &mut self,
+    diagnostics: impl Iterator<Item = &RspackDiagnostic>,
+    path_pos_map: std::sync::Arc<dashmap::DashMap<String, u32>>,
+  ) -> Self::Output {
+    match self {
+      Self::Colored(d) => d.emit_batch_diagnostic(diagnostics, path_pos_map),
+      Self::Plain(d) => d.emit_batch_diagnostic(diagnostics, path_pos_map),
+    }
+  }
+
+  fn emit_diagnostic(
+    &mut self,
+    diagnostic: &RspackDiagnostic,
+    path_pos_map: std::sync::Arc<dashmap::DashMap<String, u32>>,
+  ) -> Self::Output {
+    match self {
+      Self::Colored(d) => d.emit_diagnostic(diagnostic, path_pos_map),
+      Self::Plain(d) => d.emit_diagnostic(diagnostic, path_pos_map),
+    }
+  }
+}
