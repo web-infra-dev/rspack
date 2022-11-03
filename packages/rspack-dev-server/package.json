@@ -7,7 +7,7 @@
   "scripts": {
     "build": "rm -rf lib/ && tsc",
     "dev": "tsc -w",
-    "test": "echo success"
+    "test": "jest --verbose"
   },
   "author": "",
   "license": "ISC",
@@ -24,6 +24,7 @@
     "ws": "8.8.1",
     "@rspack/dev-client": "workspace:*",
     "@rspack/dev-middleware": "workspace:*",
+    "@rspack/dev-server": "workspace:*",
     "webpack-dev-server": "4.11.1"
   },
   "peerDependencies": {

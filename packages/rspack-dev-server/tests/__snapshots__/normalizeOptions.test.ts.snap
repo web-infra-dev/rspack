@@ -1,0 +1,42 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`normalize options snapshot additional entires should added 1`] = `
+{
+  "main": [
+    "<HOME_DIR>/rspack/packages/rspack-dev-client/dist/devServer.js",
+    "<HOME_DIR>/rspack/packages/rspack-dev-client/dist/reactRefresh.js",
+    "<HOME_DIR>/rspack/packages/rspack-dev-client/dist/index.js",
+    "something",
+  ],
+}
+`;
+
+exports[`normalize options snapshot no options 1`] = `
+{
+  "devMiddleware": {},
+  "hot": true,
+  "liveReload": true,
+  "open": true,
+  "port": 8080,
+  "static": {
+    "directory": "<PROJECT_ROOT>/dist",
+    "watch": {},
+  },
+  "webSocketServer": {},
+}
+`;
+
+exports[`normalize options snapshot port string 1`] = `
+{
+  "devMiddleware": {},
+  "hot": true,
+  "liveReload": true,
+  "open": true,
+  "port": 9000,
+  "static": {
+    "directory": "<PROJECT_ROOT>/dist",
+    "watch": {},
+  },
+  "webSocketServer": {},
+}
+`;
