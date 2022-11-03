@@ -1,5 +1,5 @@
 import type { Context, ResolvedContext } from "./context";
-import type { Dev, ResolvedDev } from "./devServer";
+import type { Dev } from "./devServer";
 import type { Entry, ResolvedEntry } from "./entry";
 import { resolveEntryOptions } from "./entry";
 import type {
@@ -18,7 +18,6 @@ import type { Builtins, ResolvedBuiltins } from "./builtins";
 import { Devtool, ResolvedDevtool, resolveDevtoolOptions } from "./devtool";
 import { resolveTargetOptions } from "./target";
 import { resolveOutputOptions } from "./output";
-import { resolveDevOptions } from "./devServer";
 import { resolveModuleOptions } from "./module";
 import { resolveBuiltinsOptions } from "./builtins";
 import { resolveResolveOptions } from "./resolve";
@@ -28,7 +27,6 @@ import {
 	resolveStatsOptions,
 	StatsOptions
 } from "./stats";
-import { Source } from "webpack-sources";
 
 export interface RspackOptions {
 	name?: string;
@@ -53,7 +51,7 @@ export interface RspackOptionsNormalized {
 	entry: ResolvedEntry;
 	context: ResolvedContext;
 	plugins: Plugin[];
-	devServer: ResolvedDev;
+	devServer?: Dev;
 	module: ResolvedModule;
 	target: ResolvedTarget;
 	mode: ResolvedMode;
@@ -72,11 +70,8 @@ export function getNormalizedRspackOptions(
 ): RspackOptionsNormalized {
 	const context = config.context ?? process.cwd();
 	const mode = config.mode ?? "production";
-	const devServer = resolveDevOptions(config.devServer, { context });
 	const entry = resolveEntryOptions(config.entry, {
-		context,
-		dev: !!config.devServer,
-		mode
+		context
 	});
 	const output = resolveOutputOptions(config.output);
 	const target = resolveTargetOptions(config.target);
@@ -88,6 +83,7 @@ export function getNormalizedRspackOptions(
 	const devtool = resolveDevtoolOptions(config.devtool);
 	const module = resolveModuleOptions(config.module, { devtool, context });
 	const stats = resolveStatsOptions(config.stats);
+	const devServer = config.devServer;
 
 	return {
 		...config,
@@ -113,3 +109,5 @@ function cloneObject(value: Record<string, any> | undefined) {
 	return { ...value };
 }
 export type { Plugin, LoaderContext };
+export type { WebSocketServerOptions, Dev } from "./devServer";
+export { resolveWatchOption } from "./watch";

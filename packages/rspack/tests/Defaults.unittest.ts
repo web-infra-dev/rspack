@@ -78,18 +78,7 @@ describe("snapshots", () => {
 		    "html": [],
 		  },
 		  "context": "<cwd>",
-		  "devServer": {
-		    "devMiddleware": {},
-		    "hot": false,
-		    "liveReload": true,
-		    "open": true,
-		    "port": 8080,
-		    "static": {
-		      "directory": "<cwd>/dist",
-		      "watch": {},
-		    },
-		    "webSocketServer": {},
-		  },
+		  "devServer": undefined,
 		  "devtool": "",
 		  "entry": {
 		    "main": [
@@ -616,9 +605,6 @@ describe("snapshots", () => {
 			-   "context": "<cwd>",
 			+   "context": "<cwd>/tests/fixtures/browserslist",
 			@@ ... @@
-			-       "directory": "<cwd>/dist",
-			+       "directory": "<cwd>/tests/fixtures/browserslist/dist",
-			@@ ... @@
 			-       "<cwd>/src/index.js",
 			+       "<cwd>/tests/fixtures/browserslist/src/index.js",
 		`)
@@ -642,9 +628,6 @@ describe("snapshots", () => {
 			+     "type": "filesystem",
 			+   },
 			+   "context": "<cwd>/tests/fixtures",
-			@@ ... @@
-			-       "directory": "<cwd>/dist",
-			+       "directory": "<cwd>/tests/fixtures/dist",
 			@@ ... @@
 			-       "<cwd>/src/index.js",
 			+       "<cwd>/tests/fixtures/src/index.js",

@@ -18,7 +18,7 @@ pub fn react<'a>(
     cm.clone(),
     comments,
     Options {
-      refresh: options.development.and_then(|dev| {
+      refresh: options.refresh.and_then(|dev| {
         if dev {
           Some(swc_ecma_transforms::react::RefreshOptions::default())
         } else {

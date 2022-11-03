@@ -14,6 +14,7 @@ pub struct ReactOptions {
   pub development: Option<bool>,
   pub use_builtins: Option<bool>,
   pub use_spread: Option<bool>,
+  pub refresh: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default)]
