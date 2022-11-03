@@ -17,7 +17,7 @@ impl fmt::Display for Line {
 
 pub fn pretty_diff(expected: String, actual: String) -> String {
   let mut output = String::new();
-  let diff = TextDiff::from_lines(&expected, &actual);
+  let diff: TextDiff<str> = TextDiff::from_lines(&expected, &actual);
 
   for (idx, group) in diff.grouped_ops(3).iter().enumerate() {
     if idx > 0 {

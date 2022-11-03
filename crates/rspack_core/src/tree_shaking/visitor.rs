@@ -178,6 +178,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   fn visit_ident(&mut self, node: &swc_ecma_ast::Ident) {
     let id: BetterId = node.to_id().into();
     let mark = id.ctxt.outer();
+    // dbg!(&id);
     if mark == self.top_level_mark {
       match self.current_body_owner_symbol_ext {
         Some(ref body_owner_symbol_ext) if body_owner_symbol_ext.id() != &id => {
@@ -471,15 +472,19 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           SymbolRef::Direct(Symbol::from_id_and_uri(lhs.clone(), self.module_identifier)),
         );
       }
-      if let Some(ref init) = ele.init && lhs.ctxt.outer() == self.top_level_mark {
-        let mut symbol_ext = SymbolExt::new(lhs, SymbolFlag::VAR_DECL);
-        if is_export {
-          symbol_ext.flag.insert(SymbolFlag::EXPORT);
+      if let Some(ref init) = ele.init {
+        if lhs.ctxt.outer() == self.top_level_mark {
+          let mut symbol_ext = SymbolExt::new(lhs, SymbolFlag::VAR_DECL);
+          if is_export {
+            symbol_ext.flag.insert(SymbolFlag::EXPORT);
+          }
+          let before_symbol_ext = self.current_body_owner_symbol_ext.clone();
+          self.current_body_owner_symbol_ext = Some(symbol_ext);
+          init.visit_children_with(self);
+          self.current_body_owner_symbol_ext = before_symbol_ext;
+        } else {
+          init.visit_children_with(self);
         }
-        let before_symbol_ext = self.current_body_owner_symbol_ext.clone();
-        self.current_body_owner_symbol_ext = Some(symbol_ext);
-        init.visit_with(self);
-        self.current_body_owner_symbol_ext = before_symbol_ext;
       }
     }
   }
