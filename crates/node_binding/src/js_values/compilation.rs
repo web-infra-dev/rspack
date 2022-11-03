@@ -93,7 +93,7 @@ impl RspackCompilation {
       },
     );
 
-    OK(())
+    Ok(())
   }
 
   #[napi(ts_return_type = "Readonly<Asset>[]")]

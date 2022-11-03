@@ -12,7 +12,7 @@ use rspack_core::rspack_sources::{RawSource, SourceExt};
 use rspack_core::{
   Compilation, CompilationArgs, DoneArgs, Plugin, PluginBuildEndHookOutput,
   PluginCompilationHookOutput, PluginContext, PluginProcessAssetsHookOutput,
-  PluginThisCompilationHookOutput, ProcessAssetsArgs, ThisCompilationArgs,
+  PluginThisCompilationHookOutput, ProcessAssetsArgs, StatsAsset, ThisCompilationArgs,
 };
 use rspack_error::Error;
 

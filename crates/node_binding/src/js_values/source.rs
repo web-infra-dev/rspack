@@ -74,7 +74,7 @@ impl Source for CompatSource {
       // FIXME: if a source is a raw buffer source, the source should be a buffer
       Cow::Owned("".to_owned())
     } else {
-      Cow::Owned(unsafe { String::from_utf8_unchecked(self.source.as_ref().to_vec()) })
+      Cow::Owned(String::from_utf8_lossy(self.source.as_ref().to_vec()))
     }
   }
 
