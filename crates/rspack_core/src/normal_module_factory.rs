@@ -368,12 +368,14 @@ impl NormalModuleFactory {
       return Ok(None);
     };
 
+    let id = Path::new(uri.as_str()).relative(&self.context.options.context);
     let mgm = ModuleGraphModule::new(
       self.context.module_name.clone(),
-      Path::new(uri.as_str())
-        .relative(&self.context.options.context)
-        .to_string_lossy()
-        .to_string(),
+      if !id.starts_with(".") {
+        format!("./{}", id.to_string_lossy())
+      } else {
+        id.to_string_lossy().to_string()
+      },
       uri,
       module.identifier(),
       vec![],

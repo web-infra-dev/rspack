@@ -18,11 +18,10 @@ export class Stats {
 		return this.#statsJson;
 	}
 
-	toString() {
-		const obj: any = this.toJson();
-		obj.filteredModules = obj.modules.length - 15;
-		obj.modules = obj.modules.slice(0, 15);
-		return Stats.jsonToString(obj, process.stdout.isTTY);
+	toString(options?: StatsOptions) {
+		options = resolveStatsOptions(options);
+		const obj = this.toJson(options);
+		return Stats.jsonToString(obj, options.colors);
 	}
 
 	static jsonToString(obj, useColors: boolean) {
