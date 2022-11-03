@@ -50,7 +50,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 							const externals = Object.fromEntries(
 								externalModule.map(x => [x, x])
 							);
-							const options: RspackOptions = deepmerge(config, {
+							const options: RspackOptions = deepmerge({
 								target: "node", // FIXME when target=commonjs supported
 								context: testRoot,
 								entry: {
@@ -65,8 +65,8 @@ export function describeCases(config: { name: string; casePath: string }) {
 								},
 								externals,
 								externalsType: "node-commonjs",
-								...config // we may need to use deepMerge to handle config merge, but we may fix it until we need it
-							});
+							}, config);
+							console.log('merged options', options)
 							const stats = await util.promisify(rspack)(options);
 							const statsJson = stats.toJson();
 							if (statsJson.errors.length > 0) {

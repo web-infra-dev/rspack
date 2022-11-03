@@ -17,7 +17,7 @@ it("basic", () => {
 	expect(hasValueObject(obj)).toBe(true);
 });
 
-it("format", () => {
+it("target-es5-format", () => {
 	const content = fs.readFileSync(__filename, "utf-8");
 	expect(content).toMatch(/obj\.const/);
 	expect(content).not.toMatch(/value\ instanceof\ Object/);
