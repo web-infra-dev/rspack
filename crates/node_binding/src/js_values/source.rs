@@ -1,11 +1,10 @@
 use std::borrow::Cow;
 
 use napi::bindgen_prelude::*;
-use napi::NapiRaw;
 
 use rspack_core::rspack_sources::{
-  helpers::{GeneratedInfo, OnChunk, OnName, OnSource, StreamChunks},
-  MapOptions, RawSource, Source, SourceExt, SourceMap,
+  stream_chunks::{stream_chunks_default, GeneratedInfo, OnChunk, OnName, OnSource, StreamChunks},
+  MapOptions, RawSource, Source, SourceMap,
 };
 
 #[napi(object)]
@@ -18,7 +17,7 @@ pub struct WebpackSource {
   pub map: Option<Buffer>,
 }
 
-#[derive(Clone, Eq)]
+#[derive(Debug, Clone, Eq)]
 pub struct CompatSource {
   pub is_raw: bool,
   pub is_buffer: bool,
@@ -51,7 +50,7 @@ impl From<WebpackSource> for CompatSource {
       is_raw: source.is_raw,
       is_buffer: source.is_buffer,
       source: source.source.into(),
-      map: source.map(Into::into),
+      map: source.map.map(Into::into),
     }
   }
 }
@@ -64,17 +63,16 @@ impl StreamChunks for CompatSource {
     on_source: OnSource,
     on_name: OnName,
   ) -> GeneratedInfo {
-    todo!()
+    stream_chunks_default(self, options, on_chunk, on_source, on_name)
   }
 }
 
 impl Source for CompatSource {
   fn source(&self) -> Cow<str> {
     if self.is_raw && self.is_buffer {
-      // FIXME: if a source is a raw buffer source, the source should be a buffer
       Cow::Owned("".to_owned())
     } else {
-      Cow::Owned(String::from_utf8_lossy(self.source.as_ref().to_vec()))
+      String::from_utf8_lossy(&self.source)
     }
   }
 
@@ -83,11 +81,14 @@ impl Source for CompatSource {
   }
 
   fn size(&self) -> usize {
-    self.source.as_ref().len()
+    self.source.len()
   }
 
   fn map(&self, _options: &MapOptions) -> Option<SourceMap> {
-    self.map.map(|m| SourceMap::from_slice(m.as_ref()))
+    self
+      .map
+      .as_ref()
+      .and_then(|m| SourceMap::from_slice(m).ok())
   }
 }
 

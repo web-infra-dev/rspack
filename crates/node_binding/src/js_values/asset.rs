@@ -30,6 +30,13 @@ pub struct AssetInfoRelated {
   pub source_map: Option<String>,
 }
 
+impl From<AssetInfoRelated> for rspack_core::AssetInfoRelated {
+  fn from(i: AssetInfoRelated) -> Self {
+    Self {
+      source_map: i.source_map,
+    }
+  }
+}
 #[napi(object)]
 pub struct AssetInfo {
   /// if the asset can be long term cached forever (contains a hash)
@@ -56,6 +63,16 @@ pub struct AssetInfo {
   // pub javascript_module:
   /// related object to other assets, keyed by type of relation (only points from parent to child)
   pub related: AssetInfoRelated,
+}
+
+impl From<AssetInfo> for rspack_core::AssetInfo {
+  fn from(i: AssetInfo) -> Self {
+    Self {
+      minimized: i.minimized,
+      development: i.development,
+      related: i.related.into(),
+    }
+  }
 }
 
 #[napi(object)]

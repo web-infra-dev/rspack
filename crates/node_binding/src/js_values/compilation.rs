@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::pin::Pin;
 
 use napi::bindgen_prelude::*;
-use napi::{JsBuffer, JsUnknown};
+use napi::{JsBuffer, JsUnknown, NapiRaw};
 
 use rspack_core::rspack_sources::{BoxSource, RawSource, SourceExt};
 
@@ -18,82 +18,69 @@ pub struct RspackCompilation {
 
 #[napi]
 impl RspackCompilation {
-  #[napi]
+  #[napi(
+    ts_args_type = r#"filename: string, newSourceOrFunction: WebpackSource | ((...args: any[]) => any), assetInfoUpdateOrFunction: AssetInfo | ((...args: any[]) => any)"#
+  )]
   pub fn update_asset(
-    &self,
+    &mut self,
     env: Env,
     filename: String,
-    new_source_or_function: Either<BoxSource, JsFunction>,
+    new_source_or_function: Either<WebpackSource, JsFunction>,
     asset_info_update_or_function: Either<AssetInfo, JsFunction>,
   ) -> Result<()> {
-    self.inner.update_asset(
-      &filename,
-      |source| {
-        let new_source = match new_source_or_function {
-          Either::A(new_source) => new_source,
-          Either::B(new_source_fn) => unsafe {
-            <CompatSource as Into>::into(
-              WebpackSource::from_napi_value(
-                env.raw(),
-                new_source_fn
-                  .call(
-                    None,
-                    &[{
-                      unsafe {
-                        JsUnknown::from_napi_value(
-                          env.raw(),
-                          ToNapiValue::to_napi_value(
-                            env.raw(),
-                            source.to_webpack_source().unwrap(),
-                          )
-                          .unwrap(),
-                        )
-                        .unwrap()
-                      }
-                    }],
-                  )
-                  .unwrap()
-                  .raw(),
-              )
-              .unwrap(),
-            )
-            .boxed()
-          },
-        };
-
-        Ok(new_source)
-      },
-      |info| {
-        let asset_info = match asset_info_update_or_function {
-          Either::A(asset_info) => asset_info,
-          Either::B(asset_info_fn) => unsafe {
-            AssetInfo::from_napi_value(
-              env.raw(),
-              asset_info_fn
-                .call(
-                  None,
-                  &[{
-                    unsafe {
-                      JsUnknown::from_napi_value(
-                        env.raw(),
-                        ToNapiValue::to_napi_value(env.raw(), info.clone()).unwrap(),
-                      )
-                      .unwrap()
-                    }
-                  }],
+    dbg!("called update asset");
+    self
+      .inner
+      .as_mut()
+      .update_asset(
+        &filename,
+        |js_source| {
+          let new_source = match new_source_or_function {
+            Either::A(new_source) => Into::<CompatSource>::into(new_source).boxed(),
+            Either::B(new_source_fn) => {
+              let webpack_source = unsafe {
+                call_js_function_with_napi_objects!(
+                  env,
+                  new_source_fn,
+                  js_source.to_webpack_source()
                 )
-                .unwrap()
-                .raw(),
-            )
-            .unwrap()
-          },
-        };
+              }?;
 
-        Ok(asset_info)
-      },
-    );
+              let compat_source: CompatSource = unsafe {
+                convert_raw_napi_value_to_napi_value!(env, WebpackSource, webpack_source.raw())
+              }?
+              .into();
 
-    Ok(())
+              compat_source.boxed()
+            }
+          };
+
+          *js_source = new_source;
+
+          Ok(())
+        },
+        |js_info| {
+          let asset_info = match asset_info_update_or_function {
+            Either::A(asset_info) => asset_info.into(),
+            Either::B(asset_info_fn) => {
+              let asset_info = unsafe {
+                call_js_function_with_napi_objects!(
+                  env,
+                  asset_info_fn,
+                  Into::<AssetInfo>::into(js_info.clone())
+                )
+              }?;
+
+              unsafe { convert_raw_napi_value_to_napi_value!(env, AssetInfo, asset_info.raw()) }?
+            }
+          };
+
+          *js_info = asset_info.into();
+
+          Ok(())
+        },
+      )
+      .map_err(|err| err.into())
   }
 
   #[napi(ts_return_type = "Readonly<Asset>[]")]

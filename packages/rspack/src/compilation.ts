@@ -4,7 +4,7 @@ import { RspackOptionsNormalized } from "./config";
 import { RawSource, Source } from "webpack-sources";
 import { EmitAssetCallback } from "./compiler";
 import { createHash } from "./utils/createHash";
-import { createSource } from "./utils/createSource";
+import { createSourceFromRaw } from "./utils/createSource";
 export type Asset = {
 	source: Source;
 	name: string;
@@ -17,7 +17,8 @@ type KnownAssetInfo = Object;
 type AssetInfo = KnownAssetInfo & Record<string, any>;
 const EMPTY_ASSET_INFO = Object.freeze({});
 export class Compilation {
-	#inner: RspackCompilation;
+	// FIXME: keep this private
+	inner: RspackCompilation;
 	#emitAssetCallback: EmitAssetCallback;
 
 	hooks: {
@@ -40,7 +41,7 @@ export class Compilation {
 		this.hash = this.fullHash.slice(0, hashDigestLength);
 		this.assets = {};
 		this.assetsInfo = new Map();
-		this.#inner = inner;
+		this.inner = inner;
 	}
 	/**
 	 * unsafe to call out of processAssets
@@ -91,10 +92,10 @@ export class Compilation {
 		return filename;
 	}
 	getAssets() {
-		const assets = this.#inner.getAssets();
+		const assets = this.inner.getAssets();
 
 		return assets.map(asset => {
-			const source = createSource(asset.source);
+			const source = createSourceFromRaw(asset.source);
 			return {
 				...asset,
 				source

@@ -1,6 +1,9 @@
 #[macro_use]
 extern crate napi_derive;
 
+#[macro_use]
+mod macros;
+
 use std::collections::{HashMap, HashSet};
 use std::pin::Pin;
 use std::sync::atomic::{AtomicU32, Ordering};

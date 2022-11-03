@@ -11,6 +11,8 @@ import path from "path";
 import { RspackOptionsNormalized } from "./config";
 import { Stats } from "./stats";
 import { Asset, Compilation } from "./compilation";
+import { RawSource } from "webpack-sources";
+import { createRawFromSource } from "./utils/createSource";
 
 export type EmitAssetCallback = (options: {
 	filename: string;
@@ -195,6 +197,18 @@ class Compiler {
 	#compilation(native: binding.RspackCompilation) {
 		// TODO: implement this based on the child compiler impl.
 		this.hooks.compilation.call(this.compilation);
+
+		// FIXME: remove this
+		console.log(this.compilation.getAssets());
+		console.log(
+			this.compilation.inner.updateAsset(
+				"abc",
+				createRawFromSource(new RawSource("abc")),
+				assetInfo => {
+					console.log(assetInfo);
+				}
+			)
+		);
 	}
 	#newCompilation(native: binding.RspackCompilation) {
 		const compilation = new Compilation(this.options, native);

@@ -112,8 +112,8 @@ impl Compilation {
   pub fn update_asset(
     self: Pin<&mut Self>,
     filename: &str,
-    source_updater: impl Fn(&mut BoxSource) -> Result<()>,
-    asset_updater: impl Fn(&mut AssetInfo) -> Result<()>,
+    source_updater: impl FnOnce(&mut BoxSource) -> Result<()>,
+    asset_updater: impl FnOnce(&mut AssetInfo) -> Result<()>,
   ) -> Result<()> {
     // Safety: we don't move anything from compilation
     let assets = unsafe { self.map_unchecked_mut(|c| &mut c.assets) }.get_mut();

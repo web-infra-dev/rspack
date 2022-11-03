@@ -2,7 +2,7 @@ import type { WebpackSource } from "@rspack/binding";
 
 import { RawSource, CompatSource, Source } from "webpack-sources";
 
-function createSource(source: WebpackSource): Source {
+function createSourceFromRaw(source: WebpackSource): Source {
 	if (source.isRaw) {
 		return new RawSource(
 			// @ts-expect-error: webpack-sources can accept buffer as source, see: https://github.com/webpack/webpack-sources/blob/9f98066311d53a153fdc7c633422a1d086528027/lib/RawSource.js#L12
@@ -28,4 +28,30 @@ function createSource(source: WebpackSource): Source {
 	});
 }
 
-export { createSource };
+function createRawFromSource(source: Source): WebpackSource {
+	const isBuffer = Buffer.isBuffer(source.source());
+
+	if (source instanceof RawSource) {
+		return {
+			source: source.buffer(),
+			isRaw: true,
+			isBuffer
+		};
+	}
+
+	const buffer = source.buffer();
+	const map = JSON.stringify(
+		source.map({
+			columns: true
+		})
+	);
+
+	return {
+		source: buffer,
+		map: Buffer.from(map),
+		isRaw: false,
+		isBuffer
+	};
+}
+
+export { createSourceFromRaw, createRawFromSource };
