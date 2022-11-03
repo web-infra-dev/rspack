@@ -22,7 +22,6 @@ use swc_common::{chain, comments::Comments};
 use swc_ecma_parser::Syntax;
 use swc_ecma_transforms::modules::common_js::Config as CommonjsConfig;
 use swc_ecma_transforms::pass::Optional;
-use swc_ecma_visit::FoldWith;
 use tree_shaking::tree_shaking_visitor;
 use ustr::ustr;
 

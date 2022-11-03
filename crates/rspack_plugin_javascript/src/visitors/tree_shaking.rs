@@ -1,5 +1,5 @@
 use hashbrown::HashSet;
-use swc_common::{Globals, Mark, DUMMY_SP, GLOBALS};
+use swc_common::{Mark, DUMMY_SP, GLOBALS};
 use swc_ecma_ast::*;
 // use swc_ecma_utils::
 use rspack_symbol::{BetterId, Symbol};
@@ -7,11 +7,11 @@ use swc_atoms::JsWord;
 use swc_ecma_utils::quote_ident;
 use swc_ecma_visit::{noop_fold_type, Fold, FoldWith};
 use ustr::Ustr;
-pub fn tree_shaking_visitor<'a>(
+pub fn tree_shaking_visitor(
   module_id: Ustr,
-  used_symbol_set: &'a HashSet<Symbol>,
+  used_symbol_set: &'_ HashSet<Symbol>,
   top_level_mark: Mark,
-) -> impl Fold + 'a {
+) -> impl Fold + '_ {
   TreeShaker {
     module_id,
     used_symbol_set,

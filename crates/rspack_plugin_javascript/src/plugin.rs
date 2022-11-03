@@ -7,7 +7,6 @@ use swc_common::GLOBALS;
 use swc_ecma_minifier::option::terser::{
   TerserCompressorOptions, TerserEcmaVersion, TerserInlineOption,
 };
-use swc_ecma_visit::VisitAllWith;
 
 use crate::visitors::minify::minify as minifier;
 use rspack_core::rspack_sources::{
