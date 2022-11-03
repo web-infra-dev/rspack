@@ -16,7 +16,6 @@ use glob::glob;
 use serde::{Deserialize, Serialize};
 
 use serde_json;
-use similar::DiffableStr;
 
 use crate::{
   helper::{cp, is_detail, is_mute, make_relative_from, no_write},

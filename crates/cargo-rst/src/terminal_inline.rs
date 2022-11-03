@@ -46,7 +46,7 @@ pub fn pretty_diff(expected: String, actual: String) -> String {
           }
         }
         if change.missing_newline() {
-          write!(output, "\n").unwrap()
+          writeln!(output).unwrap()
         }
       }
     }
