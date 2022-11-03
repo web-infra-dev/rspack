@@ -202,7 +202,7 @@ class Compiler {
 						return finalCallback(err);
 					}
 
-					this.unsafe_build((err, rawStats) => {
+					this.build((err, rawStats) => {
 						if (err) {
 							return finalCallback(err);
 						}
@@ -221,7 +221,7 @@ class Compiler {
 		doRun();
 	}
 	// Safety: This method is only valid to call if the previous build task is finished, or there will be data races.
-	unsafe_build(cb: Callback<Error, binding.StatsCompilation>) {
+	build(cb: Callback<Error, binding.StatsCompilation>) {
 		const compilation = this.#newCompilation();
 		const build_cb = this.#instance.unsafe_build.bind(this.#instance) as (
 			cb: Callback<Error, binding.StatsCompilation>
@@ -235,7 +235,7 @@ class Compiler {
 		});
 	}
 	// Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
-	unsafe_rebuild(
+	rebuild(
 		changedFiles: string[],
 		cb: (
 			error?: Error,
@@ -270,7 +270,7 @@ class Compiler {
 			}
 		);
 		const begin = Date.now();
-		let rawStats = await util.promisify(this.unsafe_build.bind(this))();
+		let rawStats = await util.promisify(this.build.bind(this))();
 		let stats = new Stats(rawStats);
 		// TODO: log stats string should move to cli
 		console.log(stats.toString(this.options.stats));
@@ -300,7 +300,7 @@ class Compiler {
 				console.log("hit change and start to build");
 
 				const begin = Date.now();
-				this.unsafe_rebuild(
+				this.rebuild(
 					changedFilepath,
 					(error: any, { diff, stats: rawStats }) => {
 						let stats = new Stats(rawStats);
