@@ -24,7 +24,6 @@ export class BuildCommand implements RspackCommand {
 				}),
 			async options => {
 				const logger = cli.getLogger();
-				let compiler;
 				let createJsonStringifyStream;
 				if (options.json) {
 					const jsonExt = await import("@discoveryjs/json-ext");
@@ -78,26 +77,9 @@ export class BuildCommand implements RspackCommand {
 						}
 					}
 				};
-
-				const config = await cli.loadConfig(options);
-				if (options.analyze) {
-					const { BundleAnalyzerPlugin } = await import(
-						"webpack-bundle-analyzer"
-					);
-					(config.plugins ??= []).push({
-						name: "rspack-bundle-analyzer",
-						apply(compiler) {
-							new BundleAnalyzerPlugin({
-								generateStatsFile: true,
-								// TODO: delete this once runtime refacted.
-								excludeAssets: "runtime.js"
-							}).apply(compiler as any);
-						}
-					});
-				}
-
 				console.time("build");
-				compiler = rspack(config, callback);
+				const compiler = await cli.createCompiler(options);
+				compiler.run(callback);
 				console.timeEnd("build");
 			}
 		);

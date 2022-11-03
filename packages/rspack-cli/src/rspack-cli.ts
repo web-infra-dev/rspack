@@ -63,6 +63,19 @@ export class RspackCLI {
 		}
 	}
 	async buildConfig(item: any, options: RspackCLIOptions) {
+		if (options.analyze) {
+			const { BundleAnalyzerPlugin } = await import("webpack-bundle-analyzer");
+			(item.plugins ??= []).push({
+				name: "rspack-bundle-analyzer",
+				apply(compiler) {
+					new BundleAnalyzerPlugin({
+						generateStatsFile: true,
+						// TODO: delete this once runtime refacted.
+						excludeAssets: "runtime.js"
+					}).apply(compiler as any);
+				}
+			});
+		}
 		if (options.mode) {
 			item.mode = options.mode;
 		}
