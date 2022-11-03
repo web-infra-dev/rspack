@@ -263,11 +263,12 @@ version = "0.1.0"
 dependencies = [
  "clap 3.2.22",
  "colored",
+ "console",
  "derive_builder",
  "glob",
  "serde",
  "serde_json",
- "similar-asserts",
+ "similar",
  "testing_macros",
  "tokio",
 ]

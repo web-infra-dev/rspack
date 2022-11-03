@@ -16,11 +16,11 @@ use glob::glob;
 use serde::{Deserialize, Serialize};
 
 use serde_json;
-use similar_asserts::SimpleDiff;
 
 use crate::{
   helper::{cp, is_detail, is_mute, make_relative_from, no_write},
   record::{self, FailedCase, Record},
+  terminal_inline::pretty_diff,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -79,6 +79,12 @@ pub struct FileDiff {
   actual_path: PathBuf,
 }
 
+fn output(f: &mut std::fmt::Formatter<'_>, prefix: &str, msg: &str) -> std::fmt::Result {
+  f.write_str(&format!(
+    "{}",
+    format!("- {}: {}\n", prefix.white().on_red(), msg).red()
+  ))
+}
 impl Display for TestError {
   #[allow(clippy::unwrap_in_result)]
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -92,36 +98,33 @@ impl Display for TestError {
     .unwrap();
 
     for kind in self.errors.iter() {
-      let mut output = |prefix: &str, msg: &str| {
-        f.write_str(&format!(
-          "{}",
-          format!("- {}: {}\n", prefix.white().on_red(), msg).red()
-        ))
-      };
-
       match &kind {
         TestErrorKind::Difference(diff) => {
           let expected_file = std::fs::read_to_string(&diff.expected_path).unwrap();
           let actual_file = std::fs::read_to_string(&diff.actual_path).unwrap();
-          panic!(
+          f.write_str(&format!(
             "File difference: {}\n{}",
-            diff.expected_path.to_string_lossy(),
-            SimpleDiff::from_str(&expected_file, &actual_file, "expected", "actual")
-          );
+            diff.expected_path.to_string_lossy().red(),
+            &pretty_diff(expected_file, actual_file)
+          ))
         }
         TestErrorKind::MissingExpectedDir(dir) => output(
+          f,
           "Directory exists in 'expected' directory, but not found in 'actual' directory: ",
           dir.as_path().to_str().unwrap(),
         ),
         TestErrorKind::MissingActualDir(dir) => output(
+          f,
           "Directory exists in 'actual' directory, but not found in 'expected' directory: ",
           dir.as_path().to_str().unwrap(),
         ),
         TestErrorKind::MissingActualFile(file) => output(
+          f,
           "File exists in 'actual' directory, but not found in 'expected' directory: ",
           file.as_path().to_str().unwrap(),
         ),
         TestErrorKind::MissingExpectedFile(file) => output(
+          f,
           "File exists in 'expected' directory, but not found in 'actual' directory: ",
           file.as_path().to_str().unwrap(),
         ),
