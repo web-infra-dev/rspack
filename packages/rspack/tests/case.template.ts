@@ -50,23 +50,25 @@ export function describeCases(config: { name: string; casePath: string }) {
 							const externals = Object.fromEntries(
 								externalModule.map(x => [x, x])
 							);
-							const options: RspackOptions = deepmerge({
-								target: "node", // FIXME when target=commonjs supported
-								context: testRoot,
-								entry: {
-									main: "./"
+							const options: RspackOptions = deepmerge(
+								{
+									target: "node", // FIXME when target=commonjs supported
+									context: testRoot,
+									entry: {
+										main: "./"
+									},
+									mode: "development",
+									output: {
+										path: outputPath
+									},
+									infrastructureLogging: {
+										debug: false
+									},
+									externals,
+									externalsType: "node-commonjs"
 								},
-								mode: "development",
-								output: {
-									path: outputPath
-								},
-								infrastructureLogging: {
-									debug: false
-								},
-								externals,
-								externalsType: "node-commonjs",
-							}, config);
-							console.log('merged options', options)
+								config
+							);
 							const stats = await util.promisify(rspack)(options);
 							const statsJson = stats.toJson();
 							if (statsJson.errors.length > 0) {
