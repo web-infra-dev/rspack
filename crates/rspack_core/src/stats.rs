@@ -18,7 +18,7 @@ impl<'compilation> Stats<'compilation> {
     Self { compilation }
   }
 
-  pub fn emit_error_and_warning(&self) -> Result<()> {
+  pub fn emit_diagnostics(&self) -> Result<()> {
     let mut displayer = StdioDiagnosticDisplay::default();
     displayer.emit_batch_diagnostic(
       self.compilation.get_warnings(),
@@ -30,7 +30,7 @@ impl<'compilation> Stats<'compilation> {
     )
   }
 
-  pub fn emit_error_and_warning_string(&self, sorted: bool) -> Result<String> {
+  pub fn emit_diagnostics_string(&self, sorted: bool) -> Result<String> {
     let mut displayer = StringDiagnosticDisplay::default().with_sorted(sorted);
     let warnings = displayer.emit_batch_diagnostic(
       self.compilation.get_warnings(),
