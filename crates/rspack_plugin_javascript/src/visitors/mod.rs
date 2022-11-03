@@ -94,10 +94,7 @@ pub fn run_before_pass(
       swc_visitor::reserved_words(),
       swc_visitor::inject_helpers(),
       // The ordering of these two is important, `expr_simplifier` goes first and `dead_branch_remover` goes second.
-      Repeat::new(swc_visitor::expr_simplifier(
-        unresolved_mark,
-        Default::default()
-      ),),
+      swc_visitor::expr_simplifier(unresolved_mark, Default::default()),
       swc_visitor::dead_branch_remover(unresolved_mark),
     );
     program.fold_with(&mut pass);
@@ -113,6 +110,10 @@ pub fn run_after_pass(ast: &mut Ast, mgm: &ModuleGraphModule, compilation: &Comp
     let comments = None;
 
     let mut pass = chain!(
+      Repeat::new(swc_visitor::expr_simplifier(
+        unresolved_mark,
+        Default::default()
+      )),
       swc_visitor::build_module(
         &cm,
         unresolved_mark,
