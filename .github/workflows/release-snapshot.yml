@@ -1,11 +1,12 @@
 name: release snapshot
 on:
+  workflow_dispatch:
   issue_comment:
     types: [created]
 jobs:
   release:
     name: release-snapshot
-    if: github.event.issue.pull_request && contains(github.event.comment.body, '!snapshot')
+    if: (github.event.issue.pull_request && contains(github.event.comment.body, '!snapshot')) || (github.ref == 'refs/heads/main')
     runs-on: [self-hosted, rspack-common, macOS]
     steps:
       - name: Get PR SHA
@@ -14,8 +15,12 @@ jobs:
         with:
           result-encoding: string
           script: |
-            const response = await github.request(context.payload.issue.pull_request.url);
-            return response.data.head.sha;
+            try {
+              const response = await github.request(context.payload.issue.pull_request.url);
+              return response.data.head.sha;
+            } catch(err) {
+              return "";
+            }
       - name: Checkout Repo
         uses: actions/checkout@master
         with:
