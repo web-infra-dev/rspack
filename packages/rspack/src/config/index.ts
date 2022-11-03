@@ -22,15 +22,11 @@ import { resolveModuleOptions } from "./module";
 import { resolveBuiltinsOptions } from "./builtins";
 import { resolveResolveOptions } from "./resolve";
 import { InfrastructureLogging } from "./RspackOptions";
-<<<<<<< HEAD
 import {
 	ResolvedStatsOptions,
 	resolveStatsOptions,
 	StatsOptions
 } from "./stats";
-import { Source } from "webpack-sources";
-=======
->>>>>>> fae0fc76 (test: devServer test init)
 
 export interface RspackOptions {
 	name?: string;
