@@ -110,10 +110,6 @@ pub fn run_after_pass(ast: &mut Ast, mgm: &ModuleGraphModule, compilation: &Comp
     let comments = None;
 
     let mut pass = chain!(
-      Repeat::new(swc_visitor::expr_simplifier(
-        unresolved_mark,
-        Default::default()
-      )),
       swc_visitor::build_module(
         &cm,
         unresolved_mark,
