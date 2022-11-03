@@ -11,13 +11,11 @@ pub fn tree_shaking_visitor<'a>(
   module_id: Ustr,
   used_symbol_set: &'a HashSet<Symbol>,
   top_level_mark: Mark,
-  parse_phase_global: Option<&'a Globals>,
 ) -> impl Fold + 'a {
   TreeShaker {
     module_id,
     used_symbol_set,
     top_level_mark,
-    parse_phase_global,
   }
 }
 
@@ -36,19 +34,13 @@ struct TreeShaker<'a> {
   module_id: Ustr,
   used_symbol_set: &'a HashSet<Symbol>,
   top_level_mark: Mark,
-  parse_phase_global: Option<&'a Globals>,
 }
 
 impl<'a> Fold for TreeShaker<'a> {
   noop_fold_type!();
   fn fold_program(&mut self, node: Program) -> Program {
-    if self.parse_phase_global.is_none() {
-      // TODO: maybe we should push this warning into Diagnostic
-      eprintln!("Failed to tree shake module: {}", self.module_id.as_str());
-      node
-    } else {
-      node.fold_with(self)
-    }
+    debug_assert!(GLOBALS.is_set());
+    node.fold_with(self)
   }
   fn fold_module_item(&mut self, node: ModuleItem) -> ModuleItem {
     match node {
@@ -247,11 +239,8 @@ impl<'a> Fold for TreeShaker<'a> {
 
 impl<'a> TreeShaker<'a> {
   fn crate_virtual_default_symbol(&self) -> Symbol {
-    let ident = GLOBALS.set(self.parse_phase_global.unwrap(), || {
-      let mut default = quote_ident!("default");
-      default.span = default.span.apply_mark(self.top_level_mark);
-      default
-    });
-    Symbol::from_id_and_uri(ident.to_id().into(), self.module_id)
+    let mut default_ident = quote_ident!("default");
+    default_ident.span = default_ident.span.apply_mark(self.top_level_mark);
+    Symbol::from_id_and_uri(default_ident.to_id().into(), self.module_id)
   }
 }
