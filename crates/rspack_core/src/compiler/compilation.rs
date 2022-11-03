@@ -21,16 +21,14 @@ use ustr::{ustr, Ustr};
 
 use crate::{
   split_chunks::code_splitting,
-  tree_shaking::{
-    symbol::Symbol,
-    visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
-  },
+  tree_shaking::visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
   BuildContext, BundleEntries, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey,
   ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint, LoaderRunnerRunner,
   ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModule,
   NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs,
   RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver, Stats, VisitedModuleIdentity,
 };
+use rspack_symbol::Symbol;
 
 #[derive(Debug)]
 pub struct Compilation {
@@ -827,10 +825,10 @@ fn mark_symbol(
     SymbolRef::Direct(symbol) => match used_symbol_set.entry(symbol) {
       Occupied(_) => {}
       Vacant(vac) => {
-        let module_result = analyze_map.get(&vac.get().uri).unwrap();
+        let module_result = analyze_map.get(&vac.get().uri()).unwrap();
         if let Some(set) = module_result
           .reachable_import_of_export
-          .get(&vac.get().id.atom)
+          .get(&vac.get().id().atom)
         {
           q.extend(set.clone());
         };

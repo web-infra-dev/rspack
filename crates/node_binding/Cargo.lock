@@ -1879,6 +1879,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_plugin_json",
  "rspack_plugin_runtime",
+ "rspack_symbol",
  "rspack_tracing",
  "tokio",
  "tracing",
@@ -1933,6 +1934,7 @@ dependencies = [
  "rspack_error",
  "rspack_loader_runner",
  "rspack_sources",
+ "rspack_symbol",
  "rspack_tracing",
  "serde",
  "sugar_path",
@@ -2126,20 +2128,24 @@ dependencies = [
  "regex",
  "rspack_core",
  "rspack_error",
+ "rspack_symbol",
  "serde",
  "serde_json",
+ "sourcemap",
  "sugar_path",
  "swc",
  "swc_atoms",
  "swc_common",
  "swc_ecma_ast",
  "swc_ecma_lints",
+ "swc_ecma_minifier",
  "swc_ecma_parser",
  "swc_ecma_preset_env",
  "swc_ecma_transforms",
  "swc_ecma_utils",
  "swc_ecma_visit",
  "tracing",
+ "ustr",
 ]
 
 [[package]]
@@ -2198,6 +2204,17 @@ dependencies = [
  "serde_json",
  "smol_str",
  "substring",
+]
+
+[[package]]
+name = "rspack_symbol"
+version = "0.1.0"
+dependencies = [
+ "bitflags",
+ "swc_atoms",
+ "swc_common",
+ "swc_ecma_ast",
+ "ustr",
 ]
 
 [[package]]
@@ -2445,9 +2462,9 @@ dependencies = [
 
 [[package]]
 name = "sourcemap"
-version = "6.1.0"
+version = "6.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58ad6f449ac2dc2eaa01e766408b76b55fc0a20c842b63aa11a8448caa72f50b"
+checksum = "c46fdc1838ff49cf692226f5c2b0f5b7538f556863d0eca602984714667ac6e7"
 dependencies = [
  "base64",
  "if_chain",

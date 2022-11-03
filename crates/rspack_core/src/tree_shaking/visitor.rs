@@ -11,10 +11,8 @@ use swc_ecma_ast::*;
 use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
 use ustr::{ustr, Ustr};
 
-use crate::{tree_shaking::symbol::Symbol, Dependency, ModuleGraph, ResolveKind};
-
-use super::symbol::{BetterId, IndirectTopLevelSymbol};
-
+use crate::{Dependency, ModuleGraph, ResolveKind};
+use rspack_symbol::{BetterId, IndirectTopLevelSymbol, Symbol, SymbolExt, SymbolFlag};
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SymbolRef {
   Direct(Symbol),
@@ -40,12 +38,13 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) import_map: AHashMap<BetterId, SymbolRef>,
   /// list of uri, each uri represent export all named export from specific uri
   pub export_all_list: Vec<Ustr>,
-  current_body_owner_id: Option<BetterId>,
-  pub(crate) reference_map: AHashMap<BetterId, AHashSet<BetterId>>,
+  current_body_owner_symbol_ext: Option<SymbolExt>,
+  pub(crate) reference_map: AHashMap<SymbolExt, AHashSet<BetterId>>,
   pub(crate) reachable_import_and_export: AHashMap<JsWord, AHashSet<SymbolRef>>,
   state: AnalyzeState,
   pub(crate) used_id_set: AHashSet<BetterId>,
   pub(crate) used_symbol_ref: AHashSet<SymbolRef>,
+  // This field is used for duplicated export default checking
   pub(crate) export_default_name: Option<JsWord>,
 }
 
@@ -64,7 +63,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       export_map: AHashMap::default(),
       import_map: AHashMap::default(),
       export_all_list: vec![],
-      current_body_owner_id: None,
+      current_body_owner_symbol_ext: None,
       reference_map: AHashMap::default(),
       reachable_import_and_export: AHashMap::default(),
       state: AnalyzeState::empty(),
@@ -74,7 +73,10 @@ impl<'a> ModuleRefAnalyze<'a> {
     }
   }
 
-  pub fn add_reference(&mut self, from: BetterId, to: BetterId) {
+  pub fn add_reference(&mut self, from: SymbolExt, to: BetterId) {
+    if from.id() == &to {
+      return;
+    }
     match self.reference_map.entry(from) {
       std::collections::hash_map::Entry::Occupied(mut occ) => {
         occ.get_mut().insert(to);
@@ -93,7 +95,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       if seen.contains(&cur) {
         continue;
       }
-      if let Some(ref_list) = self.reference_map.get(&cur) {
+      if let Some(ref_list) = self.reference_map.get(&cur.clone().into()) {
         q.extend(ref_list.clone());
       }
       seen.insert(cur);
@@ -108,7 +110,7 @@ impl<'a> ModuleRefAnalyze<'a> {
             .cloned()
             .or_else(|| match self.export_map.get(&id.atom) {
               Some(sym_ref @ SymbolRef::Direct(sym)) => {
-                if &sym.id == id {
+                if sym.id() == id {
                   Some(sym_ref.clone())
                 } else {
                   None
@@ -139,7 +141,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       match symbol {
         // At this time uri of symbol will always equal to `self.module_identifier`
         SymbolRef::Direct(symbol) => {
-          let reachable_import = self.get_all_import_or_export(symbol.id.clone());
+          let reachable_import = self.get_all_import_or_export(symbol.id().clone());
           self
             .reachable_import_and_export
             .insert(key.clone(), reachable_import);
@@ -150,6 +152,22 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       }
     }
 
+    // Any var declaration has reference a symbol from other module, it is marked as used
+    // Because the symbol import from other module possibly has side effect
+    let side_effect_id_list = self
+      .reference_map
+      .iter()
+      .filter(|(symbol, ref_list)| {
+        if !symbol.flag.contains(SymbolFlag::VAR_DECL) {
+          false
+        } else {
+          ref_list
+            .iter()
+            .any(|ref_id| self.import_map.contains_key(ref_id))
+        }
+      })
+      .map(|(k, _)| k.id().clone());
+    self.used_id_set.extend(side_effect_id_list);
     // all reachable export from used symbol in current module
     for used_id in &self.used_id_set {
       let reachable_import = self.get_all_import_or_export(used_id.clone());
@@ -161,9 +179,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     let id: BetterId = node.to_id().into();
     let mark = id.ctxt.outer();
     if mark == self.top_level_mark {
-      match self.current_body_owner_id {
-        Some(ref body_owner_id) if body_owner_id != &id => {
-          self.add_reference(body_owner_id.clone(), id);
+      match self.current_body_owner_symbol_ext {
+        Some(ref body_owner_symbol_ext) if body_owner_symbol_ext.id() != &id => {
+          self.add_reference(body_owner_symbol_ext.clone(), id);
         }
         None => {
           self.used_id_set.insert(id);
@@ -285,7 +303,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   }
 
   fn visit_export_default_expr(&mut self, node: &ExportDefaultExpr) {
-    let before_owner_id = self.current_body_owner_id.clone();
+    let before_owner_extend_symbol = self.current_body_owner_symbol_ext.clone();
     let default_ident: BetterId = self.generate_default_ident().to_id().into();
 
     self.export_map.insert(
@@ -301,12 +319,14 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         panic!("Duplicate export default")
       }
       None => {
-        self.export_default_name = Some("".into());
+        self.export_default_name = Some("default".into());
       }
     }
-    self.current_body_owner_id = Some(default_ident);
+    let mut symbol_ext: SymbolExt = default_ident.into();
+    symbol_ext.flag |= SymbolFlag::EXPORT_DEFAULT;
+    self.current_body_owner_symbol_ext = Some(symbol_ext);
     node.visit_children_with(self);
-    self.current_body_owner_id = before_owner_id;
+    self.current_body_owner_symbol_ext = before_owner_extend_symbol;
   }
 
   fn visit_export_default_decl(&mut self, node: &ExportDefaultDecl) {
@@ -333,26 +353,29 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           self.module_identifier,
         )),
       );
-      let body_owner_id: BetterId = if let Some(ident) = &node.ident {
-        match self.export_default_name {
-          Some(_) => {
-            // TODO: Better diagnostic
-            panic!("Duplicate export default")
-          }
-          None => {
-            self.export_default_name = Some(ident.sym.clone());
-            self.add_reference(default_ident.to_id().into(), ident.to_id().into());
-            self.add_reference(ident.to_id().into(), default_ident.to_id().into());
-          }
+      let body_owner_extend_symbol: SymbolExt = match self.export_default_name {
+        Some(_) => {
+          // TODO: Better diagnostic
+          panic!("Duplicate export default")
         }
-        ident.to_id().into()
-      } else {
-        default_ident.to_id().into()
+        None => {
+          let symbol_ext: SymbolExt = if let Some(ident) = &node.ident {
+            let symbol_ext = SymbolExt::new(ident.to_id().into(), SymbolFlag::EXPORT_DEFAULT);
+            self.add_reference(BetterId::from(ident.to_id()).into(), symbol_ext.id.clone());
+            self.add_reference(symbol_ext.clone(), default_ident.to_id().into());
+            symbol_ext
+          } else {
+            SymbolExt::new(default_ident.to_id().into(), SymbolFlag::EXPORT_DEFAULT)
+          };
+          self.export_default_name = Some(symbol_ext.id().atom.clone());
+          symbol_ext
+        }
       };
-      let before_owner_id = self.current_body_owner_id.clone();
-      self.current_body_owner_id = Some(body_owner_id);
+      let before_owner_extend_symbol = self.current_body_owner_symbol_ext.clone();
+
+      self.current_body_owner_symbol_ext = Some(body_owner_extend_symbol);
       node.class.visit_with(self);
-      self.current_body_owner_id = before_owner_id;
+      self.current_body_owner_symbol_ext = before_owner_extend_symbol;
     } else {
       // if the class expr is not inside a default expr, it will not
       // generate a binding.
@@ -370,26 +393,34 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           self.module_identifier,
         )),
       );
-      let body_owner_id: BetterId = if let Some(ident) = &node.ident {
-        match self.export_default_name {
-          Some(_) => {
-            // TODO: Better diagnostic
-            panic!("Duplicate export default")
-          }
-          None => {
-            self.export_default_name = Some(ident.sym.clone());
-            self.add_reference(default_ident.to_id().into(), ident.to_id().into());
-            self.add_reference(ident.to_id().into(), default_ident.to_id().into());
-          }
+      let body_owner_extend_symbol: SymbolExt = match self.export_default_name {
+        Some(_) => {
+          // TODO: Better diagnostic
+          panic!("Duplicate export default")
         }
-        ident.to_id().into()
-      } else {
-        default_ident.to_id().into()
+        None => {
+          let symbol_ext: SymbolExt = if let Some(ident) = &node.ident {
+            let symbol_ext = SymbolExt::new(ident.to_id().into(), SymbolFlag::EXPORT_DEFAULT);
+            // considering default export has bind to new symbol e.g.
+            // export default function test() {
+            // }
+            // let result = test();
+
+            self.add_reference(symbol_ext.clone(), default_ident.to_id().into());
+            self.add_reference(BetterId::from(ident.to_id()).into(), symbol_ext.id.clone());
+            symbol_ext
+          } else {
+            SymbolExt::new(default_ident.to_id().into(), SymbolFlag::EXPORT_DEFAULT)
+          };
+          self.export_default_name = Some(symbol_ext.id().atom.clone());
+          symbol_ext
+        }
       };
-      let before_region = self.current_body_owner_id.clone();
-      self.current_body_owner_id = Some(body_owner_id);
+      let before_owner_extend_symbol = self.current_body_owner_symbol_ext.clone();
+
+      self.current_body_owner_symbol_ext = Some(body_owner_extend_symbol);
       node.function.visit_with(self);
-      self.current_body_owner_id = before_region;
+      self.current_body_owner_symbol_ext = before_owner_extend_symbol;
     } else {
       // if the function expr is not inside a default expr, it will not
       // generate a binding.
@@ -400,23 +431,23 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   fn visit_class_decl(&mut self, node: &ClassDecl) {
     let id: BetterId = node.ident.to_id().into();
     let mark = id.ctxt.outer();
-    let old_region = self.current_body_owner_id.clone();
+    let old_region = self.current_body_owner_symbol_ext.clone();
     if mark == self.top_level_mark {
-      self.current_body_owner_id = Some(id);
+      self.current_body_owner_symbol_ext = Some(id.into());
     }
     node.visit_children_with(self);
-    self.current_body_owner_id = old_region;
+    self.current_body_owner_symbol_ext = old_region;
   }
 
   fn visit_fn_decl(&mut self, node: &FnDecl) {
     let id: BetterId = node.ident.to_id().into();
     let mark = id.ctxt.outer();
-    let before_owner_id = self.current_body_owner_id.clone();
+    let before_symbol_ext = self.current_body_owner_symbol_ext.clone();
     if mark == self.top_level_mark {
-      self.current_body_owner_id = Some(id);
+      self.current_body_owner_symbol_ext = Some(id.into());
     }
     node.function.visit_with(self);
-    self.current_body_owner_id = before_owner_id;
+    self.current_body_owner_symbol_ext = before_symbol_ext;
   }
 
   fn visit_var_decl(&mut self, node: &VarDecl) {
@@ -433,17 +464,22 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           continue;
         }
       };
-      if self.state.contains(AnalyzeState::EXPORT_DECL) {
+      let is_export = self.state.contains(AnalyzeState::EXPORT_DECL);
+      if is_export {
         self.add_export(
           lhs.atom.clone(),
           SymbolRef::Direct(Symbol::from_id_and_uri(lhs.clone(), self.module_identifier)),
         );
       }
       if let Some(ref init) = ele.init && lhs.ctxt.outer() == self.top_level_mark {
-        let before_region = self.current_body_owner_id.clone();
-        self.current_body_owner_id = Some(lhs);
+        let mut symbol_ext = SymbolExt::new(lhs, SymbolFlag::VAR_DECL);
+        if is_export {
+          symbol_ext.flag.insert(SymbolFlag::EXPORT);
+        }
+        let before_symbol_ext = self.current_body_owner_symbol_ext.clone();
+        self.current_body_owner_symbol_ext = Some(symbol_ext);
         init.visit_with(self);
-        self.current_body_owner_id = before_region;
+        self.current_body_owner_symbol_ext = before_symbol_ext;
       }
     }
   }
@@ -534,7 +570,7 @@ impl<'a> ModuleRefAnalyze<'a> {
           }
           ExportSpecifier::Default(_) => {
             // Currently swc does not support syntax like `export v from 'xxx';`
-            unreachable!("Module has syntax error should not trigger tree shaking")
+            unreachable!("Module has syntax error should not reach tree shaking analyze")
           }
           ExportSpecifier::Named(named) => {
             // TODO: what if the named binding is a unresolved_binding?
@@ -545,11 +581,17 @@ impl<'a> ModuleRefAnalyze<'a> {
               // we know here export has no src,  so this branch should not reachable.
               ModuleExportName::Str(_) => unreachable!(),
             };
-            let symbol_ref = SymbolRef::Direct(Symbol::from_id_and_uri(
-              id.clone().into(),
-              self.module_identifier,
-            ));
-            self.add_export(id.0, symbol_ref);
+
+            let exported_atom = match named.exported {
+              Some(ref exported) => match exported {
+                ModuleExportName::Ident(ident) => ident.sym.clone(),
+                ModuleExportName::Str(str) => str.value.clone(),
+              },
+              None => id.0.clone(),
+            };
+            let symbol_ref =
+              SymbolRef::Direct(Symbol::from_id_and_uri(id.into(), self.module_identifier));
+            self.add_export(exported_atom, symbol_ref);
           }
         });
     };
@@ -591,8 +633,8 @@ pub struct TreeShakingResult {
   pub(crate) import_map: AHashMap<BetterId, SymbolRef>,
   /// list of uri, each uri represent export all named export from specific uri
   pub export_all_list: Vec<Ustr>,
-  current_region: Option<BetterId>,
-  pub(crate) reference_map: AHashMap<BetterId, AHashSet<BetterId>>,
+  // current_region: Option<BetterId>,
+  // pub(crate) reference_map: AHashMap<BetterId, AHashSet<BetterId>>,
   pub(crate) reachable_import_of_export: AHashMap<JsWord, AHashSet<SymbolRef>>,
   state: AnalyzeState,
   pub(crate) used_symbol_ref: AHashSet<SymbolRef>,
@@ -607,8 +649,8 @@ impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
       export_map: std::mem::take(&mut analyze.export_map),
       import_map: std::mem::take(&mut analyze.import_map),
       export_all_list: std::mem::take(&mut analyze.export_all_list),
-      current_region: std::mem::take(&mut analyze.current_body_owner_id),
-      reference_map: std::mem::take(&mut analyze.reference_map),
+      // current_region: std::mem::take(&mut analyze.current_body_owner_extend_symbol),
+      // reference_map: std::mem::take(&mut analyze.reference_map),
       reachable_import_of_export: std::mem::take(&mut analyze.reachable_import_and_export),
       state: std::mem::take(&mut analyze.state),
       used_symbol_ref: std::mem::take(&mut analyze.used_symbol_ref),

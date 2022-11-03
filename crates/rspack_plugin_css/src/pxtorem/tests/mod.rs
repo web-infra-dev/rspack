@@ -45,7 +45,6 @@ fn transform(source: &str, config_file: Option<&String>) -> String {
   let config: PxToRemOption = config_file
     .map(|file| serde_json::from_str(file).unwrap())
     .unwrap_or_default();
-  dbg!(&config);
   let mut gen = CodeGenerator::new(wr, CodegenConfig { minify: false });
 
   stylesheet.visit_mut_with(&mut px_to_rem(config));
