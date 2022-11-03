@@ -97,7 +97,7 @@ impl Error {
   }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub enum DiagnosticKind {
   JavaScript,
   Typescript,

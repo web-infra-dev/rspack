@@ -18,20 +18,29 @@ impl<'compilation> Stats<'compilation> {
     Self { compilation }
   }
 
-  pub fn emit_error(&self) -> Result<()> {
-    StdioDiagnosticDisplay::default().emit_batch_diagnostic(
-      &self.compilation.diagnostic,
+  pub fn emit_error_and_warning(&self) -> Result<()> {
+    let mut displayer = StdioDiagnosticDisplay::default();
+    displayer.emit_batch_diagnostic(
+      self.compilation.get_warnings(),
+      PATH_START_BYTE_POS_MAP.clone(),
+    )?;
+    displayer.emit_batch_diagnostic(
+      self.compilation.get_errors(),
       PATH_START_BYTE_POS_MAP.clone(),
     )
   }
 
-  pub fn emit_error_string(&self, sorted: bool) -> Result<String> {
-    StringDiagnosticDisplay::default()
-      .with_sorted(sorted)
-      .emit_batch_diagnostic(
-        &self.compilation.diagnostic,
-        PATH_START_BYTE_POS_MAP.clone(),
-      )
+  pub fn emit_error_and_warning_string(&self, sorted: bool) -> Result<String> {
+    let mut displayer = StringDiagnosticDisplay::default().with_sorted(sorted);
+    let warnings = displayer.emit_batch_diagnostic(
+      self.compilation.get_warnings(),
+      PATH_START_BYTE_POS_MAP.clone(),
+    )?;
+    let errors = displayer.emit_batch_diagnostic(
+      self.compilation.get_errors(),
+      PATH_START_BYTE_POS_MAP.clone(),
+    )?;
+    Ok(warnings + &errors)
   }
 }
 

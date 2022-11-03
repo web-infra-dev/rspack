@@ -11,6 +11,7 @@ use hashbrown::{
   hash_set::Entry::{Occupied, Vacant},
   HashMap, HashSet,
 };
+use indexmap::IndexSet;
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use tokio::sync::mpsc::{error::TryRecvError, UnboundedSender};
 use tracing::instrument;
@@ -44,7 +45,7 @@ pub struct Compilation {
   pub runtime: Runtime,
   pub entrypoints: HashMap<String, ChunkGroupUkey>,
   pub assets: CompilationAssets,
-  pub diagnostic: Vec<Diagnostic>,
+  diagnostics: IndexSet<Diagnostic, hashbrown::hash_map::DefaultHashBuilder>,
   pub(crate) plugin_driver: SharedPluginDriver,
   pub(crate) loader_runner_runner: Arc<LoaderRunnerRunner>,
   pub(crate) _named_chunk: HashMap<String, ChunkUkey>,
@@ -76,7 +77,7 @@ impl Compilation {
       runtime: Default::default(),
       entrypoints: Default::default(),
       assets: Default::default(),
-      diagnostic: vec![],
+      diagnostics: Default::default(),
       plugin_driver,
       loader_runner_runner,
       _named_chunk: Default::default(),
@@ -118,23 +119,23 @@ impl Compilation {
   }
 
   pub fn push_diagnostic(&mut self, diagnostic: Diagnostic) {
-    self.diagnostic.push(diagnostic);
+    self.diagnostics.insert(diagnostic);
   }
 
-  pub fn push_batch_diagnostic(&mut self, mut diagnostic: Vec<Diagnostic>) {
-    self.diagnostic.append(&mut diagnostic);
+  pub fn push_batch_diagnostic(&mut self, diagnostics: Vec<Diagnostic>) {
+    self.diagnostics.extend(diagnostics);
   }
 
   pub fn get_errors(&self) -> impl Iterator<Item = &Diagnostic> {
     self
-      .diagnostic
+      .diagnostics
       .iter()
       .filter(|d| matches!(d.severity, Severity::Error))
   }
 
   pub fn get_warnings(&self) -> impl Iterator<Item = &Diagnostic> {
     self
-      .diagnostic
+      .diagnostics
       .iter()
       .filter(|d| matches!(d.severity, Severity::Warn))
   }

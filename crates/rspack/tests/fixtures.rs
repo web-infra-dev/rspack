@@ -19,7 +19,8 @@ fn rspack(fixture_path: PathBuf) {
 
 #[tokio::main]
 async fn run(context: PathBuf) {
-  let options = read_test_config_and_normalize(&context);
+  let mut options = read_test_config_and_normalize(&context);
+  options.__emit_error = true;
   let mut compiler = rspack::rspack(options, vec![]);
   compiler.run().await.unwrap();
 }

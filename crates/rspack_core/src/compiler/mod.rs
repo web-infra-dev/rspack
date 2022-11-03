@@ -58,12 +58,8 @@ impl Compiler {
     }
   }
 
-  pub async fn run(&mut self) -> anyhow::Result<()> {
-    let stats = self.build().await?;
-    if !stats.compilation.diagnostic.is_empty() {
-      let err_msg = stats.emit_error_string(true).unwrap();
-      anyhow::bail!(err_msg)
-    }
+  pub async fn run(&mut self) -> Result<()> {
+    self.build().await?;
     Ok(())
   }
 
@@ -103,11 +99,10 @@ impl Compiler {
     self.compilation.seal(self.plugin_driver.clone()).await?;
 
     // Consume plugin driver diagnostic
-    let mut plugin_driver_diagnostics = self.plugin_driver.read().await.take_diagnostic();
+    let plugin_driver_diagnostics = self.plugin_driver.read().await.take_diagnostic();
     self
       .compilation
-      .diagnostic
-      .append(&mut plugin_driver_diagnostics);
+      .push_batch_diagnostic(plugin_driver_diagnostics);
 
     self.emit_assets(&self.compilation)?;
     self.compilation.done(self.plugin_driver.clone()).await?;
@@ -116,17 +111,11 @@ impl Compiler {
   }
 
   fn stats(&self) -> Stats {
+    let stats = Stats::new(&self.compilation);
     if self.options.__emit_error {
-      use rspack_error::emitter::{DiagnosticDisplay, StdioDiagnosticDisplay};
-      StdioDiagnosticDisplay::default()
-        .emit_batch_diagnostic(
-          &self.compilation.diagnostic,
-          crate::PATH_START_BYTE_POS_MAP.clone(),
-        )
-        .unwrap();
+      stats.emit_error_and_warning().unwrap();
     }
-
-    Stats::new(&self.compilation)
+    stats
   }
 
   pub fn emit_assets(&self, compilation: &Compilation) -> Result<()> {

@@ -53,10 +53,6 @@ impl Plugin for HtmlPlugin {
   ) -> rspack_core::PluginProcessAssetsOutput {
     let config = &self.config;
     let compilation = args.compilation;
-    let assets = &compilation.assets;
-
-    let _chunk_graph = &compilation.chunk_graph;
-    let chunk_by_ukey = &compilation.chunk_by_ukey;
 
     let parser = HtmlCompiler::new(config);
     let (content, url) = match &config.template {
@@ -90,10 +86,10 @@ impl Plugin for HtmlPlugin {
 
     let ast_with_diagnostic = parser.parse_file(&url, template_result)?;
 
-    let (mut current_ast, mut diagnostic) = ast_with_diagnostic.split_into_parts();
+    let (mut current_ast, diagnostic) = ast_with_diagnostic.split_into_parts();
 
     if !diagnostic.is_empty() {
-      compilation.diagnostic.append(&mut diagnostic);
+      compilation.push_batch_diagnostic(diagnostic);
     }
     let mut included_assets = compilation
       .entrypoints
@@ -110,8 +106,13 @@ impl Plugin for HtmlPlugin {
         included
       })
       .map(|entry_name| compilation.entrypoint_by_name(entry_name))
-      .flat_map(|entry| entry.get_files(chunk_by_ukey))
-      .map(|asset_name| (asset_name.clone(), assets.get(&asset_name).unwrap()))
+      .flat_map(|entry| entry.get_files(&compilation.chunk_by_ukey))
+      .map(|asset_name| {
+        (
+          asset_name.clone(),
+          compilation.assets.get(&asset_name).unwrap(),
+        )
+      })
       .collect::<Vec<_>>();
 
     // entrypoint.get_files() are unstable, I need to sort it to pass tests.

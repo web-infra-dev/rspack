@@ -37,7 +37,7 @@ fn custom(fixture_path: PathBuf) {
     settings.bind(|| {
       insta::assert_snapshot!(
         dirname.as_str(),
-        stats.emit_error_string(false).unwrap(),
+        stats.emit_error_and_warning_string(false).unwrap(),
         dirname.as_str()
       );
     });
@@ -62,7 +62,7 @@ fn out_of_order(fixture_path: PathBuf) {
     settings.bind(|| {
       insta::assert_snapshot!(
         dirname.as_str(),
-        stats.emit_error_string(true).unwrap(),
+        stats.emit_error_and_warning_string(true).unwrap(),
         dirname.as_str()
       );
     });
