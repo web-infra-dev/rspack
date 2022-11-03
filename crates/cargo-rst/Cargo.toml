@@ -18,7 +18,7 @@ serde_json = "1.0.82"
 
 
 console = "0.15.2"
-similar = "2.2.0"
+similar = { version = "2.2.0", features = ["inline"] }
 tokio = { version = "1.21.0", features = [
   "rt",
   "rt-multi-thread",
