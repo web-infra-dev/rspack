@@ -178,7 +178,6 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
     Ok(
       rspack_core::ParseResult {
-        parse_phase_global: None,
         // Assets do not have dependencies
         dependencies: vec![],
         ast_or_source: source.into(),

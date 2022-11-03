@@ -135,7 +135,7 @@ impl VisitAll for DependencyScanner {
 
 #[test]
 fn test_dependency_scanner() {
-  use crate::ast::parse;
+  use crate::ast::parse_js_code;
   use rspack_core::ModuleType;
   use swc_ecma_visit::VisitAllWith;
 
@@ -144,7 +144,7 @@ fn test_dependency_scanner() {
     module.hot.accept('a', () => {})
   }
   "#;
-  let ast = parse(code.to_string(), "", &ModuleType::Js).unwrap().inner;
+  let ast = parse_js_code(code.to_string(), &ModuleType::Js).unwrap();
   let mut scanner = DependencyScanner::default();
   ast.visit_all_with(&mut scanner);
   assert!(scanner.dependencies.len() == 1);

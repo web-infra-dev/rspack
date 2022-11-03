@@ -20,9 +20,9 @@ impl VisitMut for InjectRuntimeHelper {
   fn visit_mut_call_expr(&mut self, n: &mut CallExpr) {
     if let Some(box Expr::Ident(ident)) = n.callee.as_expr() {
       // must have helper mark
-      // if !ident.span.has_mark(self.helper_mark) {
-      //   return;
-      // }
+      if !ident.span.has_mark(self.helper_mark) {
+        return;
+      }
 
       let word = ident.sym.as_ref();
       if matches!(
@@ -47,11 +47,11 @@ impl VisitMut for InjectRuntimeHelper {
           prop: MemberProp::Ident(Ident::new("exportStar".into(), DUMMY_SP)),
         }
         .as_callee();
-        //        return;
+        return;
       }
 
       // have some unhandled helper
-      // debug_assert!(false, "have unhandled helper: word = {}", word);
+      debug_assert!(false, "have unhandled helper: word = {}", word);
     }
   }
 }

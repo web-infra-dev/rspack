@@ -1,3 +1,4 @@
+use crate::ast::javascript::Ast as JsAst;
 use crate::{
   Chunk, ChunkUkey, Compilation, Dependency, ErrorSpan, ResolveKind, SharedPluginDriver, Stats,
 };
@@ -5,9 +6,8 @@ use rspack_error::{Error, Result};
 use rspack_loader_runner::Content;
 use rspack_sources::RawSource;
 use std::fmt::Debug;
-use swc_common::Mark;
 use swc_css::ast::Stylesheet;
-use swc_ecma_ast as ast;
+use swc_ecma_ast::Program as SwcProgram;
 
 // #[derive(Debug)]
 // pub struct ParseModuleArgs<'a> {
@@ -62,18 +62,13 @@ pub struct ResolveArgs<'a> {
 pub struct LoadArgs<'a> {
   pub uri: &'a str,
 }
-#[derive(Debug, Clone)]
-pub struct JavascriptAstExtend {
-  pub unresolved_mark: Mark,
-  pub top_level_mark: Mark,
-  pub ast: ast::Program,
-}
+
 /**
  * ast resused in transform hook
  */
 #[derive(Debug, Clone)]
 pub enum TransformAst {
-  JavaScript(ast::Program),
+  JavaScript(SwcProgram),
   Css(Stylesheet),
 }
 
@@ -82,12 +77,12 @@ pub enum TransformAst {
  */
 #[derive(Debug, Clone)]
 pub enum ModuleAst {
-  JavaScript(JavascriptAstExtend),
+  JavaScript(JsAst),
   Css(Stylesheet),
 }
 
 impl ModuleAst {
-  pub fn try_into_javascript(self) -> Result<JavascriptAstExtend> {
+  pub fn try_into_javascript(self) -> Result<JsAst> {
     match self {
       ModuleAst::JavaScript(program) => Ok(program),
       ModuleAst::Css(_) => Err(Error::InternalError("Failed".to_owned())),
@@ -101,7 +96,7 @@ impl ModuleAst {
     }
   }
 
-  pub fn as_javascript(&self) -> Option<&JavascriptAstExtend> {
+  pub fn as_javascript(&self) -> Option<&JsAst> {
     match self {
       ModuleAst::JavaScript(program) => Some(program),
       ModuleAst::Css(_) => None,
@@ -119,12 +114,8 @@ impl ModuleAst {
 impl From<TransformAst> for ModuleAst {
   fn from(ast: TransformAst) -> ModuleAst {
     match ast {
-      TransformAst::Css(_ast) => ModuleAst::Css(_ast),
-      TransformAst::JavaScript(_ast) => ModuleAst::JavaScript(JavascriptAstExtend {
-        unresolved_mark: Mark::root(),
-        top_level_mark: Mark::root(),
-        ast: _ast,
-      }),
+      TransformAst::Css(ast) => ModuleAst::Css(ast),
+      TransformAst::JavaScript(ast) => ModuleAst::JavaScript(JsAst::new(ast)),
     }
   }
 }

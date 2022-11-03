@@ -4,18 +4,17 @@ use hashbrown::hash_map::DefaultHashBuilder;
 use rayon::prelude::*;
 use swc::{config::JsMinifyOptions, BoolOrDataConfig};
 use swc_common::GLOBALS;
-use swc_ecma_visit::VisitAllWith;
 
 use rspack_core::rspack_sources::{
   BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
   SourceMapSource, SourceMapSourceOptions,
 };
 use rspack_core::{
-  get_contenthash, AstOrSource, Compilation, FilenameRenderOptions, GenerationResult,
-  JavascriptAstExtend, ModuleAst, ModuleGraphModule, ModuleType, NormalModule, ParseContext,
-  ParseResult, ParserAndGenerator, Plugin, PluginContext, PluginProcessAssetsOutput,
-  PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, ProcessAssetsArgs,
-  RenderManifestEntry, RenderRuntimeArgs, SourceType, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
+  get_contenthash, AstOrSource, Compilation, FilenameRenderOptions, GenerationResult, ModuleAst,
+  ModuleGraphModule, ModuleType, NormalModule, ParseContext, ParseResult, ParserAndGenerator,
+  Plugin, PluginContext, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
+  PluginRenderRuntimeHookOutput, ProcessAssetsArgs, RenderManifestEntry, RenderRuntimeArgs,
+  SourceType, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;
@@ -89,26 +88,24 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_type,
     )?;
 
-    let (ast, diagnostics) = ast_with_diagnostics.split_into_parts();
+    let (mut ast, diagnostics) = ast_with_diagnostics.split_into_parts();
 
-    let (processed_ast, top_level_mark, unresolved_mark, globals) = run_before_pass(
+    run_before_pass(
       resource_data,
-      ast,
+      &mut ast,
       compiler_options,
       syntax_by_module_type(source.source().to_string().as_str(), module_type),
     )?;
 
-    let mut dep_scanner = DependencyScanner::default();
-    processed_ast.visit_all_with(&mut dep_scanner);
+    let dep_scanner = ast.visit(|program, _context| {
+      let mut dep_scanner = DependencyScanner::default();
+      program.visit_all_with(&mut dep_scanner);
+      dep_scanner
+    });
 
     Ok(
       ParseResult {
-        ast_or_source: AstOrSource::Ast(ModuleAst::JavaScript(JavascriptAstExtend {
-          ast: processed_ast,
-          top_level_mark,
-          unresolved_mark,
-        })),
-        parse_phase_global: Some(globals),
+        ast_or_source: AstOrSource::Ast(ModuleAst::JavaScript(ast)),
         dependencies: dep_scanner.dependencies.into_iter().collect(),
       }
       .with_diagnostic(diagnostics),
@@ -133,11 +130,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       // TODO: this should only return AST for javascript only, It's a fast pass, defer to another pr to solve this.
       // Ok(ast_or_source.to_owned().into())
 
-      let ast = ast_or_source
+      let mut ast = ast_or_source
         .to_owned()
         .try_into_ast()?
         .try_into_javascript()?;
-      let ast = run_after_pass(ast.ast, mgm, compilation)?;
+      run_after_pass(&mut ast, mgm, compilation);
       let output = crate::ast::stringify(&ast, &compilation.options.devtool)?;
 
       if let Some(map) = output.map {

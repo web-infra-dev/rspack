@@ -117,7 +117,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     Ok(
       ParseResult {
-        parse_phase_global: None,
         dependencies: scanner.dependencies,
         ast_or_source: stylesheet.into(),
       }

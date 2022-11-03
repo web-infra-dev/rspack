@@ -16,12 +16,12 @@ use rspack_sources::{
   BoxSource, OriginalSource, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
   WithoutOriginalOptions,
 };
-use swc_common::{Globals, Mark};
 
+use crate::ast::javascript::Ast as JsAst;
 use crate::{
   Compilation, CompilationContext, CompilerContext, CompilerOptions, Context, Dependency,
-  JavascriptAstExtend, LoaderRunnerRunner, ModuleAst, ModuleDependency, ModuleGraph,
-  ModuleGraphConnection, ModuleType, ResolveKind, SourceType,
+  LoaderRunnerRunner, ModuleAst, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleType,
+  ResolveKind, SourceType,
 };
 
 #[derive(Debug)]
@@ -239,11 +239,7 @@ impl From<ModuleAst> for AstOrSource {
 
 impl From<swc_ecma_ast::Program> for AstOrSource {
   fn from(program: swc_ecma_ast::Program) -> Self {
-    AstOrSource::Ast(ModuleAst::JavaScript(JavascriptAstExtend {
-      unresolved_mark: Mark::root(),
-      top_level_mark: Mark::root(),
-      ast: program,
-    }))
+    AstOrSource::Ast(ModuleAst::JavaScript(JsAst::new(program)))
   }
 }
 
@@ -267,19 +263,10 @@ pub struct ParseContext<'a> {
   pub meta: Option<String>,
 }
 
+#[derive(Debug)]
 pub struct ParseResult {
   pub dependencies: Vec<ModuleDependency>,
   pub ast_or_source: AstOrSource,
-  pub parse_phase_global: Option<Globals>,
-}
-impl std::fmt::Debug for ParseResult {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("ParseResult")
-      .field("dependencies", &self.dependencies)
-      .field("ast_or_source", &self.ast_or_source)
-      .field("parse_phase_global", &"...".to_string())
-      .finish()
-  }
 }
 
 pub trait ParserAndGenerator: Send + Sync + Debug {
@@ -295,6 +282,7 @@ pub trait ParserAndGenerator: Send + Sync + Debug {
   ) -> Result<GenerationResult>;
 }
 
+#[derive(Debug)]
 pub struct NormalModule {
   request: String,
   user_request: String,
@@ -310,29 +298,8 @@ pub struct NormalModule {
   #[allow(unused)]
   debug_id: u32,
   cached_source_sizes: DashMap<SourceType, f64>,
-  parse_phase_global: Option<Globals>,
   // FIXME: dirty workaround to support external module
   skip_build: bool,
-}
-
-impl std::fmt::Debug for NormalModule {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("NormalModule")
-      .field("request", &self.request)
-      .field("user_request", &self.user_request)
-      .field("raw_request", &self.raw_request)
-      .field("module_type", &self.module_type)
-      .field("parser_and_generator", &self.parser_and_generator)
-      .field("resource_data", &self.resource_data)
-      .field("original_source", &self.original_source)
-      .field("ast_or_source", &self.ast_or_source)
-      .field("options", &self.options)
-      .field("debug_id", &self.debug_id)
-      .field("cached_source_sizes", &self.cached_source_sizes)
-      .field("parse_phase_global", &"...".to_string())
-      .field("skip_build", &self.skip_build)
-      .finish()
-  }
 }
 
 #[derive(Debug, Default)]
@@ -396,7 +363,6 @@ impl NormalModule {
       options,
       cached_source_sizes: DashMap::new(),
       skip_build: false,
-      parse_phase_global: None,
     }
   }
 
@@ -512,7 +478,6 @@ impl NormalModule {
       ParseResult {
         ast_or_source,
         dependencies,
-        parse_phase_global,
       },
       diagnostics,
     ) = self
@@ -528,7 +493,6 @@ impl NormalModule {
 
     self.original_source = Some(original_source);
     self.ast_or_source = Some(ast_or_source);
-    self.parse_phase_global = parse_phase_global;
 
     Ok(BuildResult { dependencies }.with_diagnostic(diagnostics))
   }
@@ -559,10 +523,6 @@ impl NormalModule {
         self.request
       )))
     }
-  }
-
-  pub fn parse_phase_global(&self) -> Option<&Globals> {
-    self.parse_phase_global.as_ref()
   }
 }
 

@@ -1,5 +1,5 @@
 use crate::utils::{ecma_parse_error_to_rspack_error, get_swc_compiler, syntax_by_module_type};
-use rspack_core::{ModuleType, PATH_START_BYTE_POS_MAP};
+use rspack_core::{ast::javascript::Ast, ModuleType, PATH_START_BYTE_POS_MAP};
 use rspack_error::{errors_to_diagnostics, Error, IntoTWithDiagnosticArray, TWithDiagnosticArray};
 use std::sync::Arc;
 use swc::config::IsModule;
@@ -44,7 +44,7 @@ pub fn parse(
   source_code: String,
   filename: &str,
   module_type: &ModuleType,
-) -> Result<TWithDiagnosticArray<Program>, Error> {
+) -> Result<TWithDiagnosticArray<Ast>, Error> {
   let syntax = syntax_by_module_type(filename, module_type);
   let compiler = get_swc_compiler();
   let fm = compiler
@@ -65,12 +65,48 @@ pub fn parse(
         .into_iter()
         .map(|err| ecma_parse_error_to_rspack_error(err, filename, module_type))
         .collect::<Vec<_>>();
-      Ok(program.with_diagnostic(errors_to_diagnostics(errors)))
+      let ast = Ast::new(program);
+      Ok(ast.with_diagnostic(errors_to_diagnostics(errors)))
     }
     Err(errs) => Err(Error::BatchErrors(
       errs
         .into_iter()
         .map(|err| ecma_parse_error_to_rspack_error(err, filename, module_type))
+        .collect::<Vec<_>>(),
+    )),
+  }
+}
+
+pub fn parse_js_code(js_code: String, module_type: &ModuleType) -> Result<Program, Error> {
+  let syntax = syntax_by_module_type("", module_type);
+  let compiler = get_swc_compiler();
+  let fm = compiler
+    .cm
+    .new_source_file(FileName::Custom("".to_string()), js_code);
+
+  match parse_js(
+    fm,
+    swc_ecma_ast::EsVersion::Es2022,
+    syntax,
+    // TODO: Is this correct to think the code is module by default?
+    IsModule::Bool(true),
+    None,
+  ) {
+    Ok((program, errs)) => {
+      let errors = errs
+        .into_iter()
+        .map(|err| ecma_parse_error_to_rspack_error(err, "", module_type))
+        .collect::<Vec<_>>();
+      if errors.is_empty() {
+        Ok(program)
+      } else {
+        Err(Error::BatchErrors(errors))
+      }
+    }
+    Err(errs) => Err(Error::BatchErrors(
+      errs
+        .into_iter()
+        .map(|err| ecma_parse_error_to_rspack_error(err, "", module_type))
         .collect::<Vec<_>>(),
     )),
   }
