@@ -8,7 +8,6 @@ module.exports = {
     }]
   },
   context: __dirname,
-  mode: "development",
   entry: {
     main: ["./index.js"],
   },

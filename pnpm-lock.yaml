@@ -306,6 +306,7 @@ importers:
       '@rspack/core': workspace:*
       '@rspack/dev-client': workspace:*
       '@rspack/dev-middleware': workspace:*
+      '@rspack/dev-server': workspace:*
       '@types/express': 4.17.14
       '@types/node': 16.11.7
       chokidar: 3.5.3
@@ -317,6 +318,7 @@ importers:
     dependencies:
       '@rspack/dev-client': link:../rspack-dev-client
       '@rspack/dev-middleware': link:../rspack-dev-middleware
+      '@rspack/dev-server': 'link:'
       chokidar: 3.5.3
       express: 4.18.1
       webpack-dev-server: 4.11.1

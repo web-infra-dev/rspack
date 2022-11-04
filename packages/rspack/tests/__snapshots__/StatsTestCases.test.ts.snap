@@ -10,6 +10,9 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "chunks": [
         "main",
       ],
+      "info": {
+        "development": false,
+      },
       "name": "bundle.js",
       "size": 1626,
       "type": "asset",
@@ -161,6 +164,9 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
       "chunks": [
         "main",
       ],
+      "info": {
+        "development": false,
+      },
       "name": "bundle.js",
       "size": 1672,
       "type": "asset",
@@ -325,6 +331,9 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "chunks": [
         "main",
       ],
+      "info": {
+        "development": false,
+      },
       "name": "bundle.js",
       "size": 1735,
       "type": "asset",

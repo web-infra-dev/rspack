@@ -1,7 +1,5 @@
 import { getNormalizedRspackOptions, RspackOptions } from "./config";
 import { Compiler } from "./compiler";
-import type { StatsCompilation } from "@rspack/binding";
-import util from "util";
 import {
 	applyRspackOptionsBaseDefaults,
 	applyRspackOptionsDefaults

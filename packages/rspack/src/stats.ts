@@ -24,10 +24,7 @@ export class Stats {
 		return Stats.jsonToString(obj, options.colors);
 	}
 
-	static jsonToString(
-		obj /* : binding.StatsCompilation */,
-		useColors: boolean
-	) {
+	static jsonToString(obj, useColors: boolean) {
 		const buf = [];
 
 		const defaultColors = {

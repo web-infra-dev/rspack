@@ -1585,9 +1585,9 @@ checksum = "e4a24736216ec316047a1fc4252e27dabb04218aa4a3f37c6e7ddbf1f9782b54"
 
 [[package]]
 name = "nodejs-resolver"
-version = "0.0.46"
+version = "0.0.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30c221735996675ddc31775f54da9804bbc1d177dc86d524832969b74d26e561"
+checksum = "2a19b736764e84f9a3e232eb49202d055e0399762c24cd04491288fbc4424ab6"
 dependencies = [
  "daachorse",
  "dashmap",
@@ -2038,6 +2038,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "radix_fmt"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce082a9940a7ace2ad4a8b7d0b1eac6aa378895f18be598230c5f2284ac05426"
+
+[[package]]
 name = "rand"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2181,6 +2187,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_plugin_json",
  "rspack_plugin_runtime",
+ "rspack_symbol",
  "rspack_test",
  "rspack_tracing",
  "serde",
@@ -2242,6 +2249,7 @@ dependencies = [
  "rspack_error",
  "rspack_loader_runner",
  "rspack_sources",
+ "rspack_symbol",
  "rspack_tracing",
  "serde",
  "sugar_path",
@@ -2423,21 +2431,25 @@ dependencies = [
  "regex",
  "rspack_core",
  "rspack_error",
+ "rspack_symbol",
  "rspack_test",
  "serde",
  "serde_json",
+ "sourcemap",
  "sugar_path",
  "swc",
  "swc_atoms",
  "swc_common",
  "swc_ecma_ast",
  "swc_ecma_lints",
+ "swc_ecma_minifier",
  "swc_ecma_parser",
  "swc_ecma_preset_env",
  "swc_ecma_transforms",
  "swc_ecma_utils",
  "swc_ecma_visit",
  "tracing",
+ "ustr",
 ]
 
 [[package]]
@@ -2484,9 +2496,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64a7799560f8bdfe3d33c5a5b47dbd561ac9d1ae6f93273c45cf1c1868871ba6"
+checksum = "5ebb33c66bc200ea533c39e64321c0b47a64e55e4c51a8d33dff6bcce54a3ac7"
 dependencies = [
  "dashmap",
  "dyn-clone",
@@ -2497,6 +2509,17 @@ dependencies = [
  "serde_json",
  "smol_str",
  "substring",
+]
+
+[[package]]
+name = "rspack_symbol"
+version = "0.1.0"
+dependencies = [
+ "bitflags",
+ "swc_atoms",
+ "swc_common",
+ "swc_ecma_ast",
+ "ustr",
 ]
 
 [[package]]
@@ -3324,9 +3347,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_minifier"
-version = "0.159.55"
+version = "0.159.63"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "669ae7641b41cf68a7fc3e06a2e557e8d5aeac8a1bf3d9ac40c2cce58fe30827"
+checksum = "deb2fecd28585723799105514dc3838eb42c7665a239dff84b9a721788a853f0"
 dependencies = [
  "ahash",
  "arrayvec",
@@ -3335,6 +3358,7 @@ dependencies = [
  "num_cpus",
  "once_cell",
  "parking_lot 0.12.1",
+ "radix_fmt",
  "regex",
  "retain_mut",
  "rustc-hash",
@@ -3823,9 +3847,9 @@ dependencies = [
 
 [[package]]
 name = "swc_timer"
-version = "0.17.12"
+version = "0.17.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c06f8e75728d8e84bd88f51d0712343034ec6a9c51f359a159ffc7c8282eebe"
+checksum = "bb051167c8568445a1917104b55c2ec4db36f458b1864022a066a9b99f14f0dc"
 dependencies = [
  "tracing",
 ]
