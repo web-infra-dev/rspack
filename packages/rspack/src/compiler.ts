@@ -12,7 +12,7 @@ import { RspackOptionsNormalized } from "./config";
 import { Stats } from "./stats";
 import { Asset, Compilation } from "./compilation";
 import { RawSource } from "webpack-sources";
-import { createRawFromSource } from "./utils/createSource";
+import { createRawFromSource, createSourceFromRaw } from "./utils/createSource";
 
 export type EmitAssetCallback = (options: {
 	filename: string;
@@ -191,13 +191,22 @@ class Compiler {
 	 * @returns
 	 */
 	#done(statsJson: binding.StatsCompilation) {}
-	#processAssets(value: string) {
-		return this.compilation.processAssets(value);
+
+	async #processAssets(assets: Record<string, binding.JsCompatSource>) {
+		let iterator = Object.entries(assets).map(([filename, source]) => [
+			filename,
+			createSourceFromRaw(source)
+		]);
+		return this.compilation.hooks.processAssets.promise(
+			Object.fromEntries(iterator)
+		);
 	}
+
 	#compilation(native: binding.JsCompilation) {
 		// TODO: implement this based on the child compiler impl.
 		this.hooks.compilation.call(this.compilation);
 	}
+
 	#newCompilation(native: binding.JsCompilation) {
 		const compilation = new Compilation(this.options, native);
 		this.compilation = compilation;

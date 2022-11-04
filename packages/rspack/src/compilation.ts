@@ -17,8 +17,7 @@ type CompilationAssets = Record<string, Source>;
 const EMPTY_ASSET_INFO = Object.freeze({});
 
 export class Compilation {
-	// FIXME: keep this private
-	inner: JsCompilation;
+	#inner: JsCompilation;
 
 	hooks: {
 		processAssets: tapable.AsyncSeriesHook<Record<string, Source>>;
@@ -37,7 +36,7 @@ export class Compilation {
 		const hash = createHash(this.options.output.hashFunction);
 		this.fullHash = hash.digest(options.output.hashDigest);
 		this.hash = this.fullHash.slice(0, hashDigestLength);
-		this.inner = inner;
+		this.#inner = inner;
 	}
 
 	/**
@@ -46,7 +45,7 @@ export class Compilation {
 	 * Source: [assets](https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L1008-L1009)
 	 */
 	get assets(): Record<string, Source> {
-		const iterator = Object.entries(this.inner.assets).map(
+		const iterator = Object.entries(this.#inner.assets).map(
 			([filename, source]) => {
 				return [filename, createSourceFromRaw(source)];
 			}
@@ -86,7 +85,7 @@ export class Compilation {
 			compatNewSourceOrFunction = createRawFromSource(newSourceOrFunction);
 		}
 
-		this.inner.updateAsset(
+		this.#inner.updateAsset(
 			filename,
 			compatNewSourceOrFunction,
 			assetInfoUpdateOrFunction
@@ -105,7 +104,7 @@ export class Compilation {
 	 * @returns {void}
 	 */
 	emitAsset(filename: string, source: Source, assetInfo: AssetInfo) {
-		this.inner.emitAsset(filename, createRawFromSource(source), assetInfo);
+		this.#inner.emitAsset(filename, createRawFromSource(source), assetInfo);
 	}
 
 	/**
@@ -117,7 +116,7 @@ export class Compilation {
 	 * @return {Readonly<Asset>[]}
 	 */
 	getAssets() {
-		const assets = this.inner.getAssets();
+		const assets = this.#inner.getAssets();
 
 		return assets.map(asset => {
 			const source = createSourceFromRaw(asset.source);
@@ -144,16 +143,6 @@ export class Compilation {
 		return filename;
 	}
 
-	// async processAssets(value: string) {
-	// 	let content: Record<string, number[]> = JSON.parse(value) ?? {};
-	// 	let assets = {};
-	// 	for (const [key, value] of Object.entries(content)) {
-	// 		let buffer = Buffer.from(value);
-	// 		// webpack-sources's type definition is wrong, it actually could accept Buffer type
-	// 		assets[key] = new RawSource(buffer as any);
-	// 	}
-	// 	await this.hooks.processAssets.promise(assets);
-	// }
 	createStats() {
 		return {};
 	}
