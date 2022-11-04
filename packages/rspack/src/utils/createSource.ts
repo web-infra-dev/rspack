@@ -1,8 +1,8 @@
-import type { WebpackSource } from "@rspack/binding";
+import type { JsSource } from "@rspack/binding";
 
 import { RawSource, CompatSource, Source } from "webpack-sources";
 
-function createSourceFromRaw(source: WebpackSource): Source {
+function createSourceFromRaw(source: JsSource): Source {
 	if (source.isRaw) {
 		return new RawSource(
 			// @ts-expect-error: webpack-sources can accept buffer as source, see: https://github.com/webpack/webpack-sources/blob/9f98066311d53a153fdc7c633422a1d086528027/lib/RawSource.js#L12
@@ -28,7 +28,7 @@ function createSourceFromRaw(source: WebpackSource): Source {
 	});
 }
 
-function createRawFromSource(source: Source): WebpackSource {
+function createRawFromSource(source: Source): JsSource {
 	const isBuffer = Buffer.isBuffer(source.source());
 
 	if (source instanceof RawSource) {

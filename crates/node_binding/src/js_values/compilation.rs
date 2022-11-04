@@ -5,7 +5,7 @@ use napi::NapiRaw;
 
 use rspack_core::rspack_sources::SourceExt;
 
-use crate::{Asset, AssetInfo, CompatSource, ToWebpackSource, WebpackSource};
+use crate::{Asset, AssetInfo, CompatSource, JsSource, ToJsSource};
 
 #[napi]
 pub struct RspackCompilation {
@@ -15,13 +15,13 @@ pub struct RspackCompilation {
 #[napi]
 impl RspackCompilation {
   #[napi(
-    ts_args_type = r#"filename: string, newSourceOrFunction: WebpackSource | ((...args: any[]) => any), assetInfoUpdateOrFunction: AssetInfo | ((...args: any[]) => any)"#
+    ts_args_type = r#"filename: string, newSourceOrFunction: JsSource | ((...args: any[]) => any), assetInfoUpdateOrFunction: AssetInfo | ((...args: any[]) => any)"#
   )]
   pub fn update_asset(
     &mut self,
     env: Env,
     filename: String,
-    new_source_or_function: Either<WebpackSource, JsFunction>,
+    new_source_or_function: Either<JsSource, JsFunction>,
     asset_info_update_or_function: Either<AssetInfo, JsFunction>,
   ) -> Result<()> {
     self
@@ -42,7 +42,7 @@ impl RspackCompilation {
               }?;
 
               let compat_source: CompatSource = unsafe {
-                convert_raw_napi_value_to_napi_value!(env, WebpackSource, webpack_source.raw())
+                convert_raw_napi_value_to_napi_value!(env, JsSource, webpack_source.raw())
               }?
               .into();
 
@@ -96,7 +96,7 @@ impl RspackCompilation {
   pub fn emit_asset(
     &mut self,
     filename: String,
-    source: WebpackSource,
+    source: JsSource,
     asset_info: AssetInfo,
   ) -> Result<()> {
     let compat_source: CompatSource = source.into();

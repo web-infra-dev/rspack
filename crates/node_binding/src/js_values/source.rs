@@ -8,7 +8,7 @@ use rspack_core::rspack_sources::{
 };
 
 #[napi(object)]
-pub struct WebpackSource {
+pub struct JsSource {
   /// Whether the underlying data structure is a `RawSource`
   pub is_raw: bool,
   /// Whether the underlying value is a buffer or string
@@ -44,8 +44,8 @@ impl PartialEq for CompatSource {
   }
 }
 
-impl From<WebpackSource> for CompatSource {
-  fn from(source: WebpackSource) -> Self {
+impl From<JsSource> for CompatSource {
+  fn from(source: JsSource) -> Self {
     Self {
       is_raw: source.is_raw,
       is_buffer: source.is_buffer,
@@ -92,12 +92,12 @@ impl Source for CompatSource {
   }
 }
 
-pub trait ToWebpackSource {
-  fn to_webpack_source(&self) -> Result<WebpackSource>;
+pub trait ToJsSource {
+  fn to_webpack_source(&self) -> Result<JsSource>;
 }
 
-impl ToWebpackSource for dyn Source {
-  fn to_webpack_source(&self) -> Result<WebpackSource> {
+impl ToJsSource for dyn Source {
+  fn to_webpack_source(&self) -> Result<JsSource> {
     let to_webpack_map = |source: &Self| {
       let map = source.map(&MapOptions::default());
 
@@ -108,16 +108,14 @@ impl ToWebpackSource for dyn Source {
     };
 
     if let Some(raw_source) = self.as_any().downcast_ref::<RawSource>() {
-      println!("downcast success");
-      Ok(WebpackSource {
+      Ok(JsSource {
         is_raw: true,
         is_buffer: raw_source.is_buffer(),
         source: raw_source.buffer().to_vec().into(),
         map: to_webpack_map(raw_source)?,
       })
     } else {
-      println!("not downcasted");
-      Ok(WebpackSource {
+      Ok(JsSource {
         is_raw: false,
         is_buffer: false,
         source: self.buffer().to_vec().into(),
