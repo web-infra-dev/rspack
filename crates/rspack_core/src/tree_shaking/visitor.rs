@@ -73,6 +73,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     }
   }
 
+  /// Recording `from` has referenced `to`
   pub fn add_reference(&mut self, from: SymbolExt, to: BetterId) {
     if from.id() == &to {
       return;

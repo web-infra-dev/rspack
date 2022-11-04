@@ -635,7 +635,7 @@ impl Compilation {
       let used_symbol_set = collect_reachable_symbol(&analyze_results, ustr(&entry));
       used_symbol.extend(used_symbol_set);
     }
-
+    dbg!(&used_symbol);
     Ok((used_symbol, analyze_results))
   }
 
