@@ -130,7 +130,8 @@ function createCLI() {
 			let command;
 			switch (args) {
 				case "js":
-					command = 'npx prettier "packages/**/*.{ts,js}" --check --write';
+					command =
+						'npx prettier "packages/**/*.{ts,js}" "crates/rspack_plugin_runtime/**/*.{ts,js}" --check --write';
 					break;
 				case "rs":
 					command = "pnpm --filter @rspack/core... build";
