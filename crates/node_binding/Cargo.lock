@@ -1938,6 +1938,7 @@ dependencies = [
  "rspack_symbol",
  "rspack_tracing",
  "serde",
+ "serde_json",
  "sugar_path",
  "swc",
  "swc_atoms",

@@ -74,7 +74,7 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
         "development": false,
       },
       "name": "bundle.js",
-      "size": 3739,
+      "size": 1774,
       "type": "asset",
     },
   ],
@@ -136,7 +136,7 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 2`] = `
 "    Asset      Size  Chunks  Chunk Names
-bundle.js  3.65 KiB    main  main
+bundle.js  1.73 KiB    main  main
 chunk {main} bundle.js (main) 15 bytes [entry]
 [./index.js] 15 bytes {main}
 

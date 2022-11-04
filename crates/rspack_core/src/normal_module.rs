@@ -9,8 +9,9 @@ use std::{
 
 use dashmap::DashMap;
 use hashbrown::HashSet;
+use serde_json::json;
 
-use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_loader_runner::{Content, Loader, ResourceData};
 use rspack_sources::{
   BoxSource, OriginalSource, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
@@ -292,7 +293,7 @@ pub struct NormalModule {
   resource_data: ResourceData,
 
   original_source: Option<Box<dyn Source>>,
-  ast_or_source: Option<AstOrSource>,
+  ast_or_source: NormalModuleAstOrSource,
 
   options: Arc<CompilerOptions>,
   #[allow(unused)]
@@ -300,6 +301,25 @@ pub struct NormalModule {
   cached_source_sizes: DashMap<SourceType, f64>,
   // FIXME: dirty workaround to support external module
   skip_build: bool,
+}
+
+#[derive(Debug)]
+pub enum NormalModuleAstOrSource {
+  Unbuild,
+  BuiltSucceed(AstOrSource),
+  BuiltFailed(String),
+}
+
+impl NormalModuleAstOrSource {
+  pub fn new_built(ast_or_source: AstOrSource, diagnostics: &[Diagnostic]) -> Self {
+    if diagnostics.is_empty() {
+      NormalModuleAstOrSource::BuiltSucceed(ast_or_source)
+    } else {
+      NormalModuleAstOrSource::BuiltFailed(
+        diagnostics.into_iter().map(|d| d.message.clone()).collect(),
+      )
+    }
+  }
 }
 
 #[derive(Debug, Default)]
@@ -357,7 +377,7 @@ impl NormalModule {
       resource_data,
 
       original_source: None,
-      ast_or_source: None,
+      ast_or_source: NormalModuleAstOrSource::Unbuild,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
 
       options,
@@ -410,19 +430,23 @@ impl NormalModule {
   }
 
   pub fn source(&self) -> Option<&dyn Source> {
-    self
-      .ast_or_source()
-      .and_then(|ast_or_source| ast_or_source.as_source().map(|source| source.as_ref()))
+    match self.ast_or_source() {
+      NormalModuleAstOrSource::BuiltSucceed(ast_or_source) => {
+        ast_or_source.as_source().map(|source| source.as_ref())
+      }
+      _ => None,
+    }
   }
 
   pub fn ast(&self) -> Option<&ModuleAst> {
-    self
-      .ast_or_source()
-      .and_then(|ast_or_source| ast_or_source.as_ast())
+    match self.ast_or_source() {
+      NormalModuleAstOrSource::BuiltSucceed(ast_or_source) => ast_or_source.as_ast(),
+      _ => None,
+    }
   }
 
-  pub fn ast_or_source(&self) -> Option<&AstOrSource> {
-    self.ast_or_source.as_ref()
+  pub fn ast_or_source(&self) -> &NormalModuleAstOrSource {
+    &self.ast_or_source
   }
 
   pub fn size(&self, source_type: &SourceType) -> f64 {
@@ -453,7 +477,8 @@ impl NormalModule {
         })?
         .split_into_parts();
 
-      self.ast_or_source = Some(parse_result.ast_or_source);
+      self.ast_or_source =
+        NormalModuleAstOrSource::new_built(parse_result.ast_or_source, &diagnostics);
 
       return Ok(
         BuildResult {
@@ -492,7 +517,7 @@ impl NormalModule {
       .split_into_parts();
 
     self.original_source = Some(original_source);
-    self.ast_or_source = Some(ast_or_source);
+    self.ast_or_source = NormalModuleAstOrSource::new_built(ast_or_source, &diagnostics);
 
     Ok(BuildResult { dependencies }.with_diagnostic(diagnostics))
   }
@@ -502,7 +527,7 @@ impl NormalModule {
     module_graph_module: &ModuleGraphModule,
     compilation: &Compilation,
   ) -> Result<CodeGenerationResult> {
-    if let Some(ast_or_source) = self.ast_or_source() {
+    if let NormalModuleAstOrSource::BuiltSucceed(ast_or_source) = self.ast_or_source() {
       let mut code_generation_result = CodeGenerationResult::default();
 
       for source_type in self.source_types() {
@@ -516,6 +541,18 @@ impl NormalModule {
         code_generation_result.add(*source_type, generation_result);
       }
 
+      Ok(code_generation_result)
+    } else if let NormalModuleAstOrSource::BuiltFailed(error_message) = self.ast_or_source() {
+      let mut code_generation_result = CodeGenerationResult::default();
+      for source_type in self.source_types() {
+        code_generation_result.add(
+          *source_type,
+          AstOrSource::Source(
+            RawSource::from(format!("throw new Error({});\n", json!(error_message))).boxed(),
+          )
+          .into(),
+        );
+      }
       Ok(code_generation_result)
     } else {
       Err(Error::InternalError(format!(
