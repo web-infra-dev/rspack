@@ -51,9 +51,9 @@ function __rspack_require__(moduleId) {
 			module.exports,
 			module,
 			module.exports,
-			execOptions.require.bind(this),
+			execOptions.require.bind(runtime),
 			runtime.__rspack_dynamic_require__ &&
-				runtime.__rspack_dynamic_require__.bind(this),
+				runtime.__rspack_dynamic_require__.bind(runtime),
 			runtime
 		);
 	} catch (error) {

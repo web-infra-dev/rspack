@@ -14,7 +14,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
         "development": false,
       },
       "name": "bundle.js",
-      "size": 1626,
+      "size": 1620,
       "type": "asset",
     },
   ],
@@ -55,7 +55,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
 
 exports[`StatsTestCases should print correct stats for hot+production 2`] = `
 "    Asset      Size  Chunks  Chunk Names
-bundle.js  1.59 KiB    main  main
+bundle.js  1.58 KiB    main  main
 chunk {main} bundle.js (main) 25 bytes [entry]
 [./index.js] 25 bytes {main}"
 `;
@@ -74,7 +74,7 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
         "development": false,
       },
       "name": "bundle.js",
-      "size": 3737,
+      "size": 3743,
       "type": "asset",
     },
   ],
@@ -136,7 +136,7 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 2`] = `
 "    Asset      Size  Chunks  Chunk Names
-bundle.js  3.65 KiB    main  main
+bundle.js  3.66 KiB    main  main
 chunk {main} bundle.js (main) 15 bytes [entry]
 [./index.js] 15 bytes {main}
 
@@ -171,7 +171,7 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
         "development": false,
       },
       "name": "bundle.js",
-      "size": 1672,
+      "size": 1666,
       "type": "asset",
     },
   ],
@@ -250,7 +250,7 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
         "development": false,
       },
       "name": "bundle.js",
-      "size": 1770,
+      "size": 1764,
       "type": "asset",
     },
   ],
@@ -313,7 +313,7 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
 
 exports[`StatsTestCases should print correct stats for parse-error 2`] = `
 "    Asset      Size  Chunks  Chunk Names
-bundle.js  1.73 KiB    main  main
+bundle.js  1.72 KiB    main  main
 chunk {main} bundle.js (main) 28 bytes [entry]
 [./a.js] 14 bytes {main}
 [./index.js] 14 bytes {main}
@@ -341,7 +341,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
         "development": false,
       },
       "name": "bundle.js",
-      "size": 1735,
+      "size": 1729,
       "type": "asset",
     },
   ],
