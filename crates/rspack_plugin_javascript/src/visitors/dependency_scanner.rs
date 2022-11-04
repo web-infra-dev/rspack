@@ -136,18 +136,90 @@ impl VisitAll for DependencyScanner {
 #[test]
 fn test_dependency_scanner() {
   use crate::ast::parse_js_code;
-  use rspack_core::ModuleType;
+  use rspack_core::{ErrorSpan, ModuleType};
   use swc_ecma_visit::VisitAllWith;
 
   let code = r#"
-  if (module.hot) {
-    module.hot.accept('a', () => {})
-  }
+  const a = require('a');
+  exports.b = require('b');
+  module.hot.accept('e', () => {})
+  import f from 'g';
+  import * as h from 'i';
+  import { j } from 'k';
+  import { default as l } from 'm';
   "#;
   let ast = parse_js_code(code.to_string(), &ModuleType::Js).unwrap();
   let mut scanner = DependencyScanner::default();
   ast.visit_all_with(&mut scanner);
-  assert!(scanner.dependencies.len() == 1);
+  let mut iter = scanner.dependencies.into_iter();
+  assert_eq!(
+    iter.next().unwrap(),
+    ModuleDependency {
+      specifier: "a".to_string(),
+      kind: ResolveKind::Require,
+      span: Some(ErrorSpan { start: 13, end: 25 },),
+    }
+  );
+  assert_eq!(
+    iter.next().unwrap(),
+    ModuleDependency {
+      specifier: "b".to_string(),
+      kind: ResolveKind::Require,
+      span: Some(ErrorSpan { start: 41, end: 53 },),
+    },
+  );
+  assert_eq!(
+    iter.next().unwrap(),
+    ModuleDependency {
+      specifier: "e".to_string(),
+      kind: ResolveKind::ModuleHotAccept,
+      span: Some(ErrorSpan { start: 57, end: 89 },),
+    },
+  );
+  assert_eq!(
+    iter.next().unwrap(),
+    ModuleDependency {
+      specifier: "g".to_string(),
+      kind: ResolveKind::Import,
+      span: Some(ErrorSpan {
+        start: 92,
+        end: 110,
+      },),
+    },
+  );
+  assert_eq!(
+    iter.next().unwrap(),
+    ModuleDependency {
+      specifier: "i".to_string(),
+      kind: ResolveKind::Import,
+      span: Some(ErrorSpan {
+        start: 113,
+        end: 136,
+      },),
+    },
+  );
+  assert_eq!(
+    iter.next().unwrap(),
+    ModuleDependency {
+      specifier: "k".to_string(),
+      kind: ResolveKind::Import,
+      span: Some(ErrorSpan {
+        start: 139,
+        end: 161,
+      },),
+    },
+  );
+  assert_eq!(
+    iter.next().unwrap(),
+    ModuleDependency {
+      specifier: "m".to_string(),
+      kind: ResolveKind::Import,
+      span: Some(ErrorSpan {
+        start: 164,
+        end: 197,
+      },),
+    },
+  )
 }
 
 pub fn is_module_hot_accept_call(node: &CallExpr) -> bool {
