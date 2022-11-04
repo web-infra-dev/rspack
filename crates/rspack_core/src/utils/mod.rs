@@ -13,6 +13,9 @@ pub use hooks::*;
 mod identifier;
 pub use identifier::*;
 
+mod source;
+pub use source::*;
+
 mod hash;
 pub use hash::*;
 

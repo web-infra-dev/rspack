@@ -28,13 +28,12 @@ impl RspackCompilation {
     new_source_or_function: Either<WebpackSource, JsFunction>,
     asset_info_update_or_function: Either<AssetInfo, JsFunction>,
   ) -> Result<()> {
-    dbg!("called update asset");
     self
       .inner
       .as_mut()
-      .update_asset(
-        &filename,
-        |js_source| {
+      .update_asset(&filename, |compilation_asset| {
+        {
+          let original_source = &mut compilation_asset.source;
           let new_source = match new_source_or_function {
             Either::A(new_source) => Into::<CompatSource>::into(new_source).boxed(),
             Either::B(new_source_fn) => {
@@ -42,7 +41,7 @@ impl RspackCompilation {
                 call_js_function_with_napi_objects!(
                   env,
                   new_source_fn,
-                  js_source.to_webpack_source()
+                  original_source.to_webpack_source()
                 )
               }?;
 
@@ -54,12 +53,11 @@ impl RspackCompilation {
               compat_source.boxed()
             }
           };
+          *original_source = new_source;
+        }
 
-          *js_source = new_source;
-
-          Ok(())
-        },
-        |js_info| {
+        {
+          let original_info = &mut compilation_asset.info;
           let asset_info = match asset_info_update_or_function {
             Either::A(asset_info) => asset_info.into(),
             Either::B(asset_info_fn) => {
@@ -67,7 +65,7 @@ impl RspackCompilation {
                 call_js_function_with_napi_objects!(
                   env,
                   asset_info_fn,
-                  Into::<AssetInfo>::into(js_info.clone())
+                  Into::<AssetInfo>::into(original_info.clone())
                 )
               }?;
 
@@ -75,11 +73,11 @@ impl RspackCompilation {
             }
           };
 
-          *js_info = asset_info.into();
+          *original_info = asset_info.into();
+        }
 
-          Ok(())
-        },
-      )
+        Ok(())
+      })
       .map_err(|err| err.into())
   }
 
@@ -99,24 +97,24 @@ impl RspackCompilation {
   }
 
   #[napi]
-  pub fn emit_asset(&mut self, options: UpdateAssetOptions) -> Result<()> {
-    // Safety: It is safe as modify for the asset will never move Compilation.
-    let assets = unsafe { &mut self.inner.as_mut().get_unchecked_mut().assets };
+  pub fn emit_asset(
+    &mut self,
+    filename: String,
+    source: WebpackSource,
+    asset_info: AssetInfo,
+  ) -> Result<()> {
+    let compat_source: CompatSource = source.into();
 
-    let asset = assets.get_mut(&options.filename).unwrap();
-    asset.set_source(match options.asset {
-      AssetContent {
-        buffer: Some(buffer),
-        source: None,
-      } => Ok(RawSource::Buffer(buffer.into()).boxed()),
-      AssetContent {
-        buffer: None,
-        source: Some(source),
-      } => Ok(RawSource::Source(source).boxed()),
-      _ => Err(Error::from_reason(
-        "AssetContent can only be string or buffer",
-      )),
-    }?);
+    // Safety: It is safe as modify for the asset will never move Compilation.
+    unsafe {
+      self.inner.as_mut().get_unchecked_mut().emit_asset(
+        filename,
+        rspack_core::CompilationAsset {
+          source: compat_source.boxed(),
+          info: asset_info.into(),
+        },
+      )
+    };
 
     Ok(())
   }

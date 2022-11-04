@@ -22,6 +22,7 @@ use rspack_sources::BoxSource;
 use ustr::{ustr, Ustr};
 
 use crate::{
+  is_source_equal,
   split_chunks::code_splitting,
   tree_shaking::visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
   BuildContext, BundleEntries, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey,
@@ -112,16 +113,14 @@ impl Compilation {
   pub fn update_asset(
     self: Pin<&mut Self>,
     filename: &str,
-    source_updater: impl FnOnce(&mut BoxSource) -> Result<()>,
-    asset_updater: impl FnOnce(&mut AssetInfo) -> Result<()>,
+    updater: impl FnOnce(&mut CompilationAsset) -> Result<()>,
   ) -> Result<()> {
     // Safety: we don't move anything from compilation
     let assets = unsafe { self.map_unchecked_mut(|c| &mut c.assets) }.get_mut();
 
     match assets.get_mut(filename) {
       Some(asset) => {
-        source_updater(&mut asset.source)?;
-        asset_updater(&mut asset.info)?;
+        updater(asset)?;
 
         Ok(())
       }
@@ -135,7 +134,32 @@ impl Compilation {
   }
 
   pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
-    self.assets.insert(filename, asset);
+    if let Some(mut original) = self.assets.remove(&filename) {
+      if !is_source_equal(&original.source, &asset.source) {
+        dbg!(
+          "emit asset",
+          &filename,
+          original.source.source(),
+          &filename,
+          asset.source.source()
+        );
+        self.push_batch_diagnostic(
+          rspack_error::Error::InternalError(format!(
+            "Conflict: Multiple assets emit different content to the same filename {}{}",
+            filename,
+            // TODO: source file name
+            ""
+          ))
+          .into(),
+        );
+        self.assets.insert(filename, asset);
+        return;
+      }
+      original.info = asset.info;
+      self.assets.insert(filename, original);
+    } else {
+      self.assets.insert(filename, asset);
+    }
   }
 
   pub fn assets(&self) -> &CompilationAssets {
