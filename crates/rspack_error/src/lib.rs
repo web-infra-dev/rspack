@@ -1,3 +1,5 @@
+#![feature(anonymous_lifetime_in_impl_trait)]
+
 mod diagnostic;
 mod error;
 pub use diagnostic::*;

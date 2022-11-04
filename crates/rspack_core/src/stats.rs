@@ -1,9 +1,8 @@
-use crate::{Chunk, Compilation, ModuleType, SourceType, StatsOptions, PATH_START_BYTE_POS_MAP};
+use crate::{Chunk, Compilation, ModuleType, SourceType, PATH_START_BYTE_POS_MAP};
 use hashbrown::HashMap;
 use rspack_error::{
   emitter::{
-    ColoredStringDiagnosticDisplay, DiagnosticDisplay, StdioDiagnosticDisplay,
-    StringDiagnosticDisplay,
+    DiagnosticDisplay, DiagnosticDisplayer, StdioDiagnosticDisplay, StringDiagnosticDisplay,
   },
   Result,
 };
@@ -18,20 +17,29 @@ impl<'compilation> Stats<'compilation> {
     Self { compilation }
   }
 
-  pub fn emit_error(&self) -> Result<()> {
-    StdioDiagnosticDisplay::default().emit_batch_diagnostic(
-      &self.compilation.diagnostic,
+  pub fn emit_diagnostics(&self) -> Result<()> {
+    let mut displayer = StdioDiagnosticDisplay::default();
+    displayer.emit_batch_diagnostic(
+      self.compilation.get_warnings(),
+      PATH_START_BYTE_POS_MAP.clone(),
+    )?;
+    displayer.emit_batch_diagnostic(
+      self.compilation.get_errors(),
       PATH_START_BYTE_POS_MAP.clone(),
     )
   }
 
-  pub fn emit_error_string(&self, sorted: bool) -> Result<String> {
-    StringDiagnosticDisplay::default()
-      .with_sorted(sorted)
-      .emit_batch_diagnostic(
-        &self.compilation.diagnostic,
-        PATH_START_BYTE_POS_MAP.clone(),
-      )
+  pub fn emit_diagnostics_string(&self, sorted: bool) -> Result<String> {
+    let mut displayer = StringDiagnosticDisplay::default().with_sorted(sorted);
+    let warnings = displayer.emit_batch_diagnostic(
+      self.compilation.get_warnings(),
+      PATH_START_BYTE_POS_MAP.clone(),
+    )?;
+    let errors = displayer.emit_batch_diagnostic(
+      self.compilation.get_errors(),
+      PATH_START_BYTE_POS_MAP.clone(),
+    )?;
+    Ok(warnings + &errors)
   }
 }
 
@@ -119,7 +127,7 @@ impl<'compilation> Stats<'compilation> {
       .collect();
     modules.sort_by_cached_key(|m| m.name.len()); // TODO: sort by module.depth
 
-    let mut diagnostic_displayer = get_diagnostic_displayer(&self.compilation.options.stats);
+    let mut diagnostic_displayer = DiagnosticDisplayer::new(self.compilation.options.stats.colors);
     let errors: Vec<StatsError> = self
       .compilation
       .get_errors()
@@ -244,14 +252,4 @@ pub struct StatsAssetReference {
 pub struct StatsEntrypoint {
   pub name: String,
   pub assets: Vec<StatsAssetReference>,
-}
-
-fn get_diagnostic_displayer(
-  stats: &StatsOptions,
-) -> Box<dyn DiagnosticDisplay<Output = Result<String>>> {
-  if stats.colors {
-    Box::new(ColoredStringDiagnosticDisplay)
-  } else {
-    Box::new(StringDiagnosticDisplay::default())
-  }
 }

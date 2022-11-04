@@ -1,17 +1,17 @@
 use crate::{DiagnosticKind, Error, TraceableError};
 
-#[derive(Debug, Clone, Default, Copy)]
+#[derive(Debug, Clone, Default, Copy, PartialEq, Eq, Hash)]
 pub enum Severity {
   #[default]
   Error,
   Warn,
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DiagnosticSourceInfo {
   pub(crate) path: String,
   pub(crate) source: String,
 }
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct Diagnostic {
   pub severity: Severity,
   pub message: String,

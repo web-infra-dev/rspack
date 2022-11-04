@@ -30,7 +30,7 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler {
     panic!(
       "Failed to compile in fixtrue {:?}, errors: {:?}",
       fixture_path,
-      stats.emit_error_string(true).unwrap()
+      stats.emit_diagnostics_string(true).unwrap()
     );
   }
 
