@@ -9,7 +9,6 @@ mod inject_runtime_helper;
 use inject_runtime_helper::inject_runtime_helper;
 mod format;
 use format::*;
-use swc_common::pass::Repeat;
 mod swc_visitor;
 mod tree_shaking;
 use crate::utils::get_swc_compiler;
@@ -98,10 +97,7 @@ pub fn run_before_pass(
       swc_visitor::reserved_words(),
       swc_visitor::inject_helpers(),
       // The ordering of these two is important, `expr_simplifier` goes first and `dead_branch_remover` goes second.
-      Repeat::new(swc_visitor::expr_simplifier(
-        unresolved_mark,
-        Default::default()
-      ),),
+      swc_visitor::expr_simplifier(unresolved_mark, Default::default()),
       swc_visitor::dead_branch_remover(unresolved_mark),
     );
     program.fold_with(&mut pass);
