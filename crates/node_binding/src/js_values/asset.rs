@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use napi::bindgen_prelude::*;
 
-use super::JsSource;
+use super::JsCompatSource;
 
 #[napi(object)]
 pub struct AssetContent {
@@ -78,7 +78,7 @@ impl From<AssetInfo> for rspack_core::AssetInfo {
 #[napi(object)]
 pub struct Asset {
   pub name: String,
-  pub source: JsSource,
+  pub source: JsCompatSource,
   pub info: AssetInfo,
 }
 

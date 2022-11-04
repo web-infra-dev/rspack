@@ -191,26 +191,14 @@ class Compiler {
 	 * @returns
 	 */
 	#done(statsJson: binding.StatsCompilation) {}
-	#processAssets(value: string, emitAsset: any) {
-		return this.compilation.processAssets(value, emitAsset);
+	#processAssets(value: string) {
+		return this.compilation.processAssets(value);
 	}
-	#compilation(native: binding.RspackCompilation) {
+	#compilation(native: binding.JsCompilation) {
 		// TODO: implement this based on the child compiler impl.
 		this.hooks.compilation.call(this.compilation);
-
-		// FIXME: remove this
-		console.log(this.compilation.getAssets());
-		console.log(
-			this.compilation.inner.updateAsset(
-				"abc",
-				createRawFromSource(new RawSource("abc")),
-				assetInfo => {
-					console.log(assetInfo);
-				}
-			)
-		);
 	}
-	#newCompilation(native: binding.RspackCompilation) {
+	#newCompilation(native: binding.JsCompilation) {
 		const compilation = new Compilation(this.options, native);
 		this.compilation = compilation;
 		this.hooks.thisCompilation.call(this.compilation);
@@ -431,7 +419,6 @@ class Compiler {
 		const outputPath = compilation.getPath(this.outputPath, {});
 		fs.mkdirSync(outputPath, { recursive: true });
 		const assets = compilation.getAssets();
-		compilation.assets = { ...compilation.assets };
 		asyncLib.forEachLimit(
 			assets,
 			15,

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::pin::Pin;
 
 use napi::bindgen_prelude::*;
@@ -5,23 +6,23 @@ use napi::NapiRaw;
 
 use rspack_core::rspack_sources::SourceExt;
 
-use crate::{Asset, AssetInfo, CompatSource, JsSource, ToJsSource};
+use crate::{Asset, AssetInfo, CompatSource, JsCompatSource, ToJsCompatSource};
 
 #[napi]
-pub struct RspackCompilation {
+pub struct JsCompilation {
   inner: Pin<&'static mut rspack_core::Compilation>,
 }
 
 #[napi]
-impl RspackCompilation {
+impl JsCompilation {
   #[napi(
-    ts_args_type = r#"filename: string, newSourceOrFunction: JsSource | ((...args: any[]) => any), assetInfoUpdateOrFunction: AssetInfo | ((...args: any[]) => any)"#
+    ts_args_type = r#"filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSource) => JsCompatSource), assetInfoUpdateOrFunction: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo)"#
   )]
   pub fn update_asset(
     &mut self,
     env: Env,
     filename: String,
-    new_source_or_function: Either<JsSource, JsFunction>,
+    new_source_or_function: Either<JsCompatSource, JsFunction>,
     asset_info_update_or_function: Either<AssetInfo, JsFunction>,
   ) -> Result<()> {
     self
@@ -33,16 +34,16 @@ impl RspackCompilation {
           let new_source = match new_source_or_function {
             Either::A(new_source) => Into::<CompatSource>::into(new_source).boxed(),
             Either::B(new_source_fn) => {
-              let webpack_source = unsafe {
+              let js_source = unsafe {
                 call_js_function_with_napi_objects!(
                   env,
                   new_source_fn,
-                  original_source.to_webpack_source()
+                  original_source.to_js_compat_source()
                 )
               }?;
 
               let compat_source: CompatSource = unsafe {
-                convert_raw_napi_value_to_napi_value!(env, JsSource, webpack_source.raw())
+                convert_raw_napi_value_to_napi_value!(env, JsCompatSource, js_source.raw())
               }?
               .into();
 
@@ -84,7 +85,7 @@ impl RspackCompilation {
     for (filename, asset) in self.inner.assets() {
       assets.push(Asset {
         name: filename.clone(),
-        source: asset.source.to_webpack_source()?,
+        source: asset.source.to_js_compat_source()?,
         info: asset.info.clone().into(),
       });
     }
@@ -96,7 +97,7 @@ impl RspackCompilation {
   pub fn emit_asset(
     &mut self,
     filename: String,
-    source: JsSource,
+    source: JsCompatSource,
     asset_info: AssetInfo,
   ) -> Result<()> {
     let compat_source: CompatSource = source.into();
@@ -114,9 +115,21 @@ impl RspackCompilation {
 
     Ok(())
   }
+
+  #[napi(getter)]
+  pub fn assets(&self) -> Result<HashMap<String, JsCompatSource>> {
+    let assets = self.inner.assets();
+    let mut js_source = HashMap::<String, JsCompatSource>::with_capacity(assets.len());
+
+    for (filename, asset) in assets {
+      js_source.insert(filename.clone(), asset.source.to_js_compat_source()?);
+    }
+
+    Ok(js_source)
+  }
 }
 
-impl RspackCompilation {
+impl JsCompilation {
   pub fn from_compilation(c: Pin<&'static mut rspack_core::Compilation>) -> Self {
     Self { inner: c }
   }

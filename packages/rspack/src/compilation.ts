@@ -1,10 +1,11 @@
 import * as tapable from "tapable";
-import { RspackCompilation } from "@rspack/binding";
+import { JsCompilation, AssetInfo, JsCompatSource } from "@rspack/binding";
 import { RspackOptionsNormalized } from "./config";
 import { RawSource, Source } from "webpack-sources";
 import { EmitAssetCallback } from "./compiler";
 import { createHash } from "./utils/createHash";
-import { createSourceFromRaw } from "./utils/createSource";
+import { createRawFromSource, createSourceFromRaw } from "./utils/createSource";
+
 export type Asset = {
 	source: Source;
 	name: string;
@@ -13,13 +14,11 @@ export type Asset = {
 export type Assets = Record<string, Asset>;
 const hashDigestLength = 8;
 type CompilationAssets = Record<string, Source>;
-type KnownAssetInfo = Object;
-type AssetInfo = KnownAssetInfo & Record<string, any>;
 const EMPTY_ASSET_INFO = Object.freeze({});
+
 export class Compilation {
 	// FIXME: keep this private
-	inner: RspackCompilation;
-	#emitAssetCallback: EmitAssetCallback;
+	inner: JsCompilation;
 
 	hooks: {
 		processAssets: tapable.AsyncSeriesHook<Record<string, Source>>;
@@ -27,9 +26,8 @@ export class Compilation {
 	fullHash: string;
 	hash: string;
 	options: RspackOptionsNormalized;
-	assets: CompilationAssets;
-	assetsInfo: Map<string, Map<string, Set<string>>>;
-	constructor(options: RspackOptionsNormalized, inner: RspackCompilation) {
+
+	constructor(options: RspackOptionsNormalized, inner: JsCompilation) {
 		this.hooks = {
 			processAssets: new tapable.AsyncSeriesHook<Record<string, Source>>([
 				"assets"
@@ -39,58 +37,85 @@ export class Compilation {
 		const hash = createHash(this.options.output.hashFunction);
 		this.fullHash = hash.digest(options.output.hashDigest);
 		this.hash = this.fullHash.slice(0, hashDigestLength);
-		this.assets = {};
-		this.assetsInfo = new Map();
 		this.inner = inner;
 	}
+
 	/**
-	 * unsafe to call out of processAssets
-	 * @param filename
-	 * @param asset
+	 * Get a map of all assets.
+	 *
+	 * Source: [assets](https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L1008-L1009)
 	 */
-	updateAsset(filename: string, asset: Asset) {
-		this.emitAsset(filename, asset);
+	get assets(): Record<string, Source> {
+		const iterator = Object.entries(this.inner.assets).map(
+			([filename, source]) => {
+				return [filename, createSourceFromRaw(source)];
+			}
+		);
+
+		return Object.fromEntries(iterator);
 	}
+
 	/**
-	 * unsafe to call out of processAssets
-	 * @param filename
-	 * @param asset
+	 * Update an existing asset. Trying to update an asset that doesn't exist will throw an error.
+	 *
+	 * See: [Compilation.updateAsset](https://webpack.js.org/api/compilation-object/#updateasset)
+	 * Source: [updateAsset](https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L4320)
+	 *
+	 * @param {string} file file name
+	 * @param {Source | function(Source): Source} newSourceOrFunction new asset source or function converting old to new
+	 * @param {AssetInfo | function(AssetInfo): AssetInfo} assetInfoUpdateOrFunction new asset info or function converting old to new, FIXME: *AssetInfo* may be undefined in update fn for webpack impl, but still not implemented in rspack
 	 */
-	emitAsset(filename: string, asset: Asset) {
-		if (!this.#emitAssetCallback) {
-			throw new Error("can't call emitAsset out of processAssets hook for now");
-		}
-		this.#emitAssetCallback({
-			filename: filename,
-			asset
-		});
-	}
-	async processAssets(value: string, emitAsset: any) {
-		this.#emitAssetCallback = emitAsset;
-		let content: Record<string, number[]> = JSON.parse(value) ?? {};
-		let assets = {};
-		for (const [key, value] of Object.entries(content)) {
-			let buffer = Buffer.from(value);
-			// webpack-sources's type definition is wrong, it actually could accept Buffer type
-			assets[key] = new RawSource(buffer as any);
-		}
-		await this.hooks.processAssets.promise(assets);
-	}
-	createStats() {
-		return {};
-	}
-	getPath(filename: string, data: Record<string, any> = {}) {
-		if (!data.hash) {
-			data = {
-				hash: this.hash,
-				...data
+	updateAsset(
+		filename: string,
+		newSourceOrFunction: Source | ((source: Source) => Source),
+		assetInfoUpdateOrFunction: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo)
+	) {
+		let compatNewSourceOrFunction:
+			| JsCompatSource
+			| ((source: JsCompatSource) => JsCompatSource);
+
+		if (typeof newSourceOrFunction === "function") {
+			compatNewSourceOrFunction = function newSourceFunction(
+				source: JsCompatSource
+			) {
+				return createRawFromSource(
+					newSourceOrFunction(createSourceFromRaw(source))
+				);
 			};
+		} else {
+			compatNewSourceOrFunction = createRawFromSource(newSourceOrFunction);
 		}
-		return this.getAssetPath(filename, data);
+
+		this.inner.updateAsset(
+			filename,
+			compatNewSourceOrFunction,
+			assetInfoUpdateOrFunction
+		);
 	}
-	getAssetPath(filename, data) {
-		return filename;
+
+	/**
+	 * Emit an not existing asset. Trying to emit an asset that already exists will throw an error.
+	 *
+	 * See: [Compilation.emitAsset](https://webpack.js.org/api/compilation-object/#emitasset)
+	 * Source: [emitAsset](https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L4239)
+	 *
+	 * @param {string} file file name
+	 * @param {Source} source asset source
+	 * @param {AssetInfo} assetInfo extra asset information
+	 * @returns {void}
+	 */
+	emitAsset(filename: string, source: Source, assetInfo: AssetInfo) {
+		this.inner.emitAsset(filename, createRawFromSource(source), assetInfo);
 	}
+
+	/**
+	 * Get an array of Asset
+	 *
+	 * See: [Compilation.getAssets](https://webpack.js.org/api/compilation-object/#getassets)
+	 * Source: [getAssets](https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L4448)
+	 *
+	 * @return {Readonly<Asset>[]}
+	 */
 	getAssets() {
 		const assets = this.inner.getAssets();
 
@@ -102,6 +127,37 @@ export class Compilation {
 			};
 		});
 	}
+
+	// TODO: full alignment
+	getPath(filename: string, data: Record<string, any> = {}) {
+		if (!data.hash) {
+			data = {
+				hash: this.hash,
+				...data
+			};
+		}
+		return this.getAssetPath(filename, data);
+	}
+
+	// TODO: full alignment
+	getAssetPath(filename, data) {
+		return filename;
+	}
+
+	// async processAssets(value: string) {
+	// 	let content: Record<string, number[]> = JSON.parse(value) ?? {};
+	// 	let assets = {};
+	// 	for (const [key, value] of Object.entries(content)) {
+	// 		let buffer = Buffer.from(value);
+	// 		// webpack-sources's type definition is wrong, it actually could accept Buffer type
+	// 		assets[key] = new RawSource(buffer as any);
+	// 	}
+	// 	await this.hooks.processAssets.promise(assets);
+	// }
+	createStats() {
+		return {};
+	}
+
 	seal() {}
 	unseal() {}
 }

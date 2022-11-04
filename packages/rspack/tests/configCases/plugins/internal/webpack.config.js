@@ -1,3 +1,6 @@
+/**
+ * @type {import('@rspack/core').RspackOptions}
+ */
 module.exports = {
 	plugins: [
 		{

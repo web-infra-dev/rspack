@@ -1,7 +1,9 @@
-use napi::{bindgen_prelude::*, Env, JsObject, JsUnknown, NapiRaw, NapiValue};
+use std::collections::HashMap;
+
+use napi::{bindgen_prelude::*, Env, JsUnknown, NapiRaw};
 
 use crate::{
-  js_values::RspackCompilation, threadsafe_function::*, BoxedClosure, PluginCallbacks,
+  js_values::JsCompilation, threadsafe_function::*, JsCompatSource, PluginCallbacks,
   StatsCompilation,
 };
 
@@ -32,40 +34,30 @@ pub fn create_node_adapter_from_plugin_callbacks(
 
           ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
             let (ctx, resolver) = ctx.split_into_parts();
-            let stats_json = unsafe {
-              let raw =
-                napi::bindgen_prelude::ToNapiValue::to_napi_value(ctx.env.raw(), ctx.value)?;
-              JsObject::from_raw_unchecked(ctx.env.raw(), raw)
-            };
-            let result = ctx.callback.call(None, &[stats_json])?;
+
+            let env = ctx.env;
+            let cb = ctx.callback;
+            let result = unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) }?;
 
             resolver.resolve::<()>(result, |_| Ok(()))
           })
         }?;
 
-        let mut process_assets_tsfn: ThreadsafeFunction<(String, BoxedClosure), ()> = {
+        let mut process_assets_tsfn: ThreadsafeFunction<HashMap<String, JsCompatSource>, ()> = {
           let cb = unsafe { process_assets_callback.raw() };
 
           ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
             let (ctx, resolver) = ctx.split_into_parts();
 
-            let (s, emit_asset_cb) = ctx.value;
-            let result = ctx.callback.call(
-              None,
-              &[
-                ctx.env.create_string_from_std(s)?.into_unknown(),
-                ctx
-                  .env
-                  .create_function_from_closure("compilation_emit_asset", emit_asset_cb)?
-                  .into_unknown(),
-              ],
-            )?;
+            let env = ctx.env;
+            let cb = ctx.callback;
+            let result = unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) }?;
 
             resolver.resolve::<()>(result, |_| Ok(()))
           })
         }?;
 
-        let mut this_compilation_tsfn: ThreadsafeFunction<RspackCompilation, ()> = {
+        let mut this_compilation_tsfn: ThreadsafeFunction<JsCompilation, ()> = {
           let cb = unsafe { this_compilation_callback.raw() };
 
           ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
@@ -79,7 +71,7 @@ pub fn create_node_adapter_from_plugin_callbacks(
             let value = unsafe {
               JsUnknown::from_napi_value(
                 env.raw(),
-                RspackCompilation::to_napi_value(env.raw(), value)?,
+                JsCompilation::to_napi_value(env.raw(), value)?,
               )?
             };
 
@@ -89,7 +81,7 @@ pub fn create_node_adapter_from_plugin_callbacks(
           })
         }?;
 
-        let mut compilation_tsfn: ThreadsafeFunction<RspackCompilation, ()> = {
+        let mut compilation_tsfn: ThreadsafeFunction<JsCompilation, ()> = {
           let cb = unsafe { compilation_callback.raw() };
 
           ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
@@ -103,7 +95,7 @@ pub fn create_node_adapter_from_plugin_callbacks(
             let value = unsafe {
               JsUnknown::from_napi_value(
                 env.raw(),
-                RspackCompilation::to_napi_value(env.raw(), value)?,
+                JsCompilation::to_napi_value(env.raw(), value)?,
               )?
             };
 
