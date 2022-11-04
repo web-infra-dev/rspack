@@ -125,3 +125,50 @@ impl PartialEq for SymbolExt {
     self.id == other.id
   }
 }
+
+/// This enum hold a `Id` from `swc` or a simplified member expr with a `Id` and a `JsWord`
+/// This is useful when we want to tree-shake the namespace access property e.g.
+/// assume we have   
+///
+/// **a.js**
+/// ```js
+/// export function a() {}
+/// export function b() {}
+/// ```
+/// **b.js**
+/// ```js
+/// improt * as a from './a.js'
+/// a.a()
+/// ```
+/// In such scenario only `a` from `a.js` is used, `a.b` is unused.
+/// We use [BetterIdOrMemExpr::MemberExpr] to represent namespace access
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub enum IdOrMemExpr {
+  Id(BetterId),
+  MemberExpr { object: BetterId, property: JsWord },
+}
+
+impl IdOrMemExpr {
+  /// Returns `true` if the better id or mem expr is [`Id`].
+  ///
+  /// [`Id`]: BetterIdOrMemExpr::Id
+  #[must_use]
+  pub fn is_id(&self) -> bool {
+    matches!(self, Self::Id(..))
+  }
+
+  /// Returns `true` if the better id or mem expr is [`MemberExpr`].
+  ///
+  /// [`MemberExpr`]: BetterIdOrMemExpr::MemberExpr
+  #[must_use]
+  pub fn is_member_expr(&self) -> bool {
+    matches!(self, Self::MemberExpr { .. })
+  }
+
+  pub fn get_id(&self) -> &BetterId {
+    match self {
+      IdOrMemExpr::Id(id) => id,
+      IdOrMemExpr::MemberExpr { object, .. } => object,
+    }
+  }
+}
