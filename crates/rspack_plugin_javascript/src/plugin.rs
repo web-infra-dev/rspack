@@ -3,6 +3,7 @@ use dashmap::DashMap;
 use hashbrown::hash_map::DefaultHashBuilder;
 use rayon::prelude::*;
 use swc::{config::JsMinifyOptions, BoolOrDataConfig};
+use swc_common::util::take::Take;
 use swc_common::GLOBALS;
 use swc_ecma_minifier::option::terser::{
   TerserCompressorOptions, TerserEcmaVersion, TerserInlineOption,
@@ -86,13 +87,19 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       )));
     }
 
-    let ast_with_diagnostics = crate::ast::parse(
+    let (mut ast, diagnostics) = match crate::ast::parse(
       source.source().to_string(),
       &resource_data.resource_path,
       module_type,
-    )?;
-
-    let (mut ast, diagnostics) = ast_with_diagnostics.split_into_parts();
+    ) {
+      Ok(ast) => (ast, Vec::new()),
+      Err(diagnostics) => (
+        rspack_core::ast::javascript::Ast::new(swc_ecma_ast::Program::Module(
+          swc_ecma_ast::Module::dummy(),
+        )),
+        diagnostics.into(),
+      ),
+    };
 
     run_before_pass(
       resource_data,

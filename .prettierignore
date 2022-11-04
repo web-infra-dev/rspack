@@ -5,4 +5,5 @@ examples/**/*
 webpack-examples/**/*
 packages/rspack/tests/fixtures/**/*
 packages/rspack/tests/statsCases/**/*
+packages/rspack/tests/cases/errors/**/*
 dist/
