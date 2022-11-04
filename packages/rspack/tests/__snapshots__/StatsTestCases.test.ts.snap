@@ -70,6 +70,9 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
       "chunks": [
         "main",
       ],
+      "info": {
+        "development": false,
+      },
       "name": "bundle.js",
       "size": 3737,
       "type": "asset",
@@ -243,6 +246,9 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
       "chunks": [
         "main",
       ],
+      "info": {
+        "development": false,
+      },
       "name": "bundle.js",
       "size": 1770,
       "type": "asset",
