@@ -19,9 +19,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "@types/webpack-sources": "3.2.0"
-  },
   "devDependencies": {
     "@napi-rs/cli": "^2.6.2",
     "why-is-node-running": "2.2.1"

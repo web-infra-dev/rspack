@@ -1,20 +1,13 @@
 import * as tapable from "tapable";
-import { JsCompilation, AssetInfo, JsCompatSource } from "@rspack/binding";
-import { RspackOptionsNormalized } from "./config";
 import { RawSource, Source } from "webpack-sources";
-import { EmitAssetCallback } from "./compiler";
+
+import { JsCompilation, AssetInfo, JsCompatSource } from "@rspack/binding";
+
 import { createHash } from "./utils/createHash";
+import { RspackOptionsNormalized } from "./config";
 import { createRawFromSource, createSourceFromRaw } from "./utils/createSource";
 
-export type Asset = {
-	source: Source;
-	name: string;
-	info: AssetInfo;
-};
-export type Assets = Record<string, Asset>;
 const hashDigestLength = 8;
-type CompilationAssets = Record<string, Source>;
-const EMPTY_ASSET_INFO = Object.freeze({});
 
 export class Compilation {
 	#inner: JsCompilation;
@@ -46,9 +39,7 @@ export class Compilation {
 	 */
 	get assets(): Record<string, Source> {
 		const iterator = Object.entries(this.#inner.assets).map(
-			([filename, source]) => {
-				return [filename, createSourceFromRaw(source)];
-			}
+			([filename, source]) => [filename, createSourceFromRaw(source)]
 		);
 
 		return Object.fromEntries(iterator);

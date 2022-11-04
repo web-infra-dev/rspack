@@ -1,3 +1,5 @@
+const { RawSource, ConcatSource } = require("webpack-sources");
+
 /**
  * @type {import('@rspack/core').RspackOptions}
  */
@@ -11,9 +13,10 @@ module.exports = {
 						"processAssets1",
 						async assets => {
 							for (const [key, value] of Object.entries(assets)) {
-								compilation.updateAsset(key, {
-									source: "//banner;\n" + value.source()
-								});
+								compilation.updateAsset(
+									key,
+									new ConcatSource(new RawSource("//banner;\n"), value)
+								);
 							}
 						}
 					);

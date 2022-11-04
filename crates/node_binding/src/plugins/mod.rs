@@ -95,7 +95,7 @@ impl Plugin for RspackPluginNodeAdapter {
       .map_err(Error::from)?;
 
     rx.await
-      .map_err(|err| Error::InternalError(format!("{:?}", err)))
+      .map_err(|err| Error::InternalError(format!("Failed to call process assets {:?}", err)))
   }
 
   #[tracing::instrument(skip_all)]
@@ -112,7 +112,7 @@ impl Plugin for RspackPluginNodeAdapter {
       )
       .map_err(Error::from)?
       .await
-      .map_err(|err| Error::InternalError(format!("{:?}", err)))?;
+      .map_err(|err| Error::InternalError(format!("Failed to call done {:?}", err)))?;
 
     Ok(())
   }

@@ -16,14 +16,14 @@ pub struct JsCompilation {
 #[napi]
 impl JsCompilation {
   #[napi(
-    ts_args_type = r#"filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSource) => JsCompatSource), assetInfoUpdateOrFunction: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo)"#
+    ts_args_type = r#"filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSource) => JsCompatSource), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo)"#
   )]
   pub fn update_asset(
     &mut self,
     env: Env,
     filename: String,
     new_source_or_function: Either<JsCompatSource, JsFunction>,
-    asset_info_update_or_function: Either<AssetInfo, JsFunction>,
+    asset_info_update_or_function: Option<Either<AssetInfo, JsFunction>>,
   ) -> Result<()> {
     self
       .inner
@@ -55,22 +55,25 @@ impl JsCompilation {
 
         {
           let original_info = &mut compilation_asset.info;
-          let asset_info = match asset_info_update_or_function {
-            Either::A(asset_info) => asset_info.into(),
-            Either::B(asset_info_fn) => {
-              let asset_info = unsafe {
-                call_js_function_with_napi_objects!(
-                  env,
-                  asset_info_fn,
-                  Into::<AssetInfo>::into(original_info.clone())
-                )
-              }?;
 
-              unsafe { convert_raw_napi_value_to_napi_value!(env, AssetInfo, asset_info.raw()) }?
-            }
-          };
+          if let Some(asset_info_update_or_function) = asset_info_update_or_function {
+            let asset_info = match asset_info_update_or_function {
+              Either::A(asset_info) => asset_info.into(),
+              Either::B(asset_info_fn) => {
+                let asset_info = unsafe {
+                  call_js_function_with_napi_objects!(
+                    env,
+                    asset_info_fn,
+                    Into::<AssetInfo>::into(original_info.clone())
+                  )
+                }?;
 
-          *original_info = asset_info.into();
+                unsafe { convert_raw_napi_value_to_napi_value!(env, AssetInfo, asset_info.raw()) }?
+              }
+            };
+
+            *original_info = asset_info.into();
+          }
         }
 
         Ok(())

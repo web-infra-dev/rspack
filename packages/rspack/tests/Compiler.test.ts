@@ -45,8 +45,6 @@ describe("Compiler", () => {
 		// 	}
 		// };
 		c.hooks.compilation.tap("CompilerTest", compilation => {
-			console.log(compilation);
-
 			compilation.bail = true;
 		});
 		c.run((err, stats) => {
