@@ -20,7 +20,9 @@ export class Stats {
 
 	toString(options?: StatsOptions) {
 		options = resolveStatsOptions(options);
-		const obj = this.toJson(options);
+		const obj: any = this.toJson(options);
+		obj.filteredModules = obj.modules.length - 15;
+		obj.modules = obj.modules.slice(0, 15);
 		return Stats.jsonToString(obj, options.colors);
 	}
 
