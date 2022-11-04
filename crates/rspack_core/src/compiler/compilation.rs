@@ -119,17 +119,11 @@ impl Compilation {
     let assets = unsafe { self.map_unchecked_mut(|c| &mut c.assets) }.get_mut();
 
     match assets.get_mut(filename) {
-      Some(asset) => {
-        updater(asset)?;
-
-        Ok(())
-      }
-      None => {
-        return Err(Error::InternalError(format!(
-          "Called Compilation.updateAsset for not existing filename {}",
-          filename
-        )));
-      }
+      Some(asset) => updater(asset),
+      None => Err(Error::InternalError(format!(
+        "Called Compilation.updateAsset for not existing filename {}",
+        filename
+      ))),
     }
   }
 

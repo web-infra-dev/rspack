@@ -6,9 +6,9 @@ use rspack_error::Result;
 use common::*;
 use node::*;
 use rspack_core::{
-  rspack_sources::RawSource, AssetInfo, CompilationAsset, Plugin, PluginContext,
-  PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, RenderManifestArgs,
-  RenderManifestEntry, RenderRuntimeArgs, TargetPlatform, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
+  rspack_sources::RawSource, Plugin, PluginContext, PluginRenderManifestHookOutput,
+  PluginRenderRuntimeHookOutput, RenderManifestArgs, RenderManifestEntry, RenderRuntimeArgs,
+  TargetPlatform, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
 };
 use web::*;
 use web_worker::*;

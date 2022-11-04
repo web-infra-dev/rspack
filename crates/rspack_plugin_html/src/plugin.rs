@@ -8,7 +8,7 @@ use rspack_core::{
   AssetInfo, CompilationAsset, Plugin,
 };
 use serde::Deserialize;
-use std::{fs, path::Path, pin::Pin};
+use std::{fs, path::Path};
 use swc_html::visit::VisitMutWith;
 
 use crate::{

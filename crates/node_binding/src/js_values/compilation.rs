@@ -1,15 +1,11 @@
-use std::collections::HashMap;
 use std::pin::Pin;
 
 use napi::bindgen_prelude::*;
-use napi::{JsBuffer, JsUnknown, NapiRaw};
+use napi::NapiRaw;
 
-use rspack_core::rspack_sources::{BoxSource, RawSource, SourceExt};
+use rspack_core::rspack_sources::SourceExt;
 
-use crate::{
-  Asset, AssetContent, AssetInfo, AssetInfoRelated, CompatSource, ToWebpackSource,
-  UpdateAssetOptions, WebpackSource,
-};
+use crate::{Asset, AssetInfo, CompatSource, ToWebpackSource, WebpackSource};
 
 #[napi]
 pub struct RspackCompilation {
@@ -82,7 +78,7 @@ impl RspackCompilation {
   }
 
   #[napi(ts_return_type = "Readonly<Asset>[]")]
-  pub fn get_assets(&self, env: Env) -> Result<Vec<Asset>> {
+  pub fn get_assets(&self) -> Result<Vec<Asset>> {
     let mut assets = Vec::<Asset>::with_capacity(self.inner.assets.len());
 
     for (filename, asset) in self.inner.assets() {
