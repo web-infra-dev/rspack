@@ -22,6 +22,9 @@ describe("Stats", () => {
 		    {
 		      "chunkNames": [],
 		      "chunks": [],
+		      "info": {
+		        "development": false,
+		      },
 		      "name": "runtime.js",
 		      "size": 14874,
 		      "type": "asset",
@@ -33,6 +36,9 @@ describe("Stats", () => {
 		      "chunks": [
 		        "main",
 		      ],
+		      "info": {
+		        "development": false,
+		      },
 		      "name": "main.js",
 		      "size": 210,
 		      "type": "asset",
