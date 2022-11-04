@@ -1,5 +1,11 @@
 // @ts-nocheck
-import { Compiler, getNormalizedRspackOptions, rspack, webpack } from "../src";
+import { RawSource } from "webpack-sources";
+import {
+	Compiler,
+	getNormalizedRspackOptions,
+	rspack,
+	RspackOptions
+} from "../src";
 import { Stats } from "../src/stats";
 const path = require("path");
 const { createFsFromVolume, Volume } = require("memfs");
@@ -8,7 +14,7 @@ const deprecationTracking = require("./helpers/deprecationTracking");
 
 describe("Compiler", () => {
 	jest.setTimeout(20000);
-	function compile(entry, options, callback) {
+	function compile(entry: string, options, callback) {
 		const noOutputPath = !options.output || !options.output.path;
 
 		options = getNormalizedRspackOptions(options);
@@ -45,6 +51,7 @@ describe("Compiler", () => {
 		// 	}
 		// };
 		c.hooks.compilation.tap("CompilerTest", compilation => {
+			// @ts-ignore
 			compilation.bail = true;
 		});
 		c.run((err, stats) => {
@@ -970,6 +977,189 @@ describe("Compiler", () => {
 			<t> <CLR=35,BOLD>[MyPlugin] Time: X ms</CLR>
 			"
 		`);
+				done();
+			});
+		});
+	});
+
+	describe("compilation", () => {
+		it("should be called", done => {
+			const mockFn = jest.fn();
+			class MyPlugin {
+				apply(compiler: Compiler) {
+					compiler.hooks.compilation.tap("Plugin", compilation => {
+						mockFn();
+					});
+				}
+			}
+			const compiler = rspack({
+				entry: "./d",
+				context: path.join(__dirname, "fixtures"),
+				plugins: [new MyPlugin()]
+			});
+
+			compiler.build(() => {
+				compiler.build(() => {
+					expect(mockFn).toBeCalledTimes(2);
+					done();
+				});
+			});
+		});
+
+		it("should get assets with both `getAssets` and `assets`(getter)", done => {
+			class MyPlugin {
+				apply(compiler: Compiler) {
+					compiler.hooks.compilation.tap("Plugin", compilation => {
+						compilation.hooks.processAssets.tap("Plugin", () => {
+							let list = compilation.getAssets();
+							let map = compilation.assets;
+
+							expect(Object.keys(map)).toHaveLength(list.length);
+
+							list.forEach(a => {
+								const b = map[a.name];
+								expect(a.source.buffer()).toEqual(b.buffer());
+							});
+						});
+					});
+				}
+			}
+
+			const compiler = rspack({
+				entry: "./d",
+				context: path.join(__dirname, "fixtures"),
+				plugins: [new MyPlugin()]
+			});
+
+			compiler.build((_, stats) => {
+				done();
+			});
+		});
+
+		it("should update assets", done => {
+			class MyPlugin {
+				apply(compiler: Compiler) {
+					compiler.hooks.compilation.tap("Plugin", compilation => {
+						compilation.hooks.processAssets.tap("Plugin", () => {
+							const oldSource = compilation.assets["main.js"];
+							expect(oldSource).toBeTruthy();
+							expect(oldSource.source().includes("This is d")).toBeTruthy();
+
+							const updatedSource = new RawSource(
+								`module.exports = "This is the updated d"`
+							);
+							compilation.updateAsset(
+								"main.js",
+								source => {
+									expect(source.buffer()).toEqual(oldSource!.buffer());
+									return updatedSource;
+								},
+								_ => _
+							);
+
+							const newSource = compilation.assets["main.js"];
+							expect(newSource).toBeTruthy();
+							expect(newSource.buffer()).toStrictEqual(updatedSource.buffer());
+						});
+					});
+				}
+			}
+
+			const compiler = rspack({
+				entry: "./d",
+				context: path.join(__dirname, "fixtures"),
+				plugins: [new MyPlugin()]
+			});
+
+			compiler.build((_, stats) => {
+				done();
+			});
+		});
+
+		it.skip("should throw if the asset to be updated is not exist", done => {
+			class MyPlugin {
+				apply(compiler: Compiler) {
+					compiler.hooks.compilation.tap("Plugin", compilation => {
+						compilation.hooks.processAssets.tap("Plugin", () => {
+							compilation.updateAsset(
+								"something-else.js",
+								_ => _,
+								_ => _
+							);
+						});
+					});
+				}
+			}
+
+			const compiler = rspack({
+				entry: "./d",
+				context: path.join(__dirname, "fixtures"),
+				plugins: [new MyPlugin()]
+			});
+
+			compiler.build((err, stats) => {
+				expect(err).toBeTruthy();
+				done();
+			});
+		});
+
+		it("should emit assets correctly", done => {
+			class MyPlugin {
+				apply(compiler: Compiler) {
+					compiler.hooks.compilation.tap("Plugin", compilation => {
+						let assets = compilation.getAssets();
+						expect(assets.length).toBe(0);
+
+						compilation.emitAsset(
+							"dd.js",
+							new RawSource(`module.exports = "This is dd"`)
+						);
+
+						compilation.hooks.processAssets.tap("Plugin", assets => {
+							let names = Object.keys(assets);
+
+							expect(names.length).toBe(3);
+							expect(names.includes("main.js")).toBeTruthy();
+							expect(assets["main.js"].source().includes("This is d"));
+
+							expect(names.includes("dd.js")).toBeTruthy();
+						});
+					});
+				}
+			}
+			const compiler = rspack({
+				entry: "./d",
+				context: path.join(__dirname, "fixtures"),
+				plugins: [new MyPlugin()]
+			});
+
+			compiler.build((_, stats) => {
+				done();
+			});
+		});
+
+		it.skip("should throw if the asset to be emitted is exist", done => {
+			class MyPlugin {
+				apply(compiler: Compiler) {
+					compiler.hooks.compilation.tap("Plugin", compilation => {
+						compilation.hooks.processAssets.tap("Plugin", () => {
+							compilation.emitAsset(
+								"main.js",
+								new RawSource("I'm the right main.js")
+							);
+						});
+					});
+				}
+			}
+
+			const compiler = rspack({
+				entry: "./d",
+				context: path.join(__dirname, "fixtures"),
+				plugins: [new MyPlugin()]
+			});
+
+			compiler.build((err, stats) => {
+				expect(err).toBeTruthy();
 				done();
 			});
 		});

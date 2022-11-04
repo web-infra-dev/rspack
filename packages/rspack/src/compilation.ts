@@ -94,7 +94,15 @@ export class Compilation {
 	 * @param {AssetInfo} assetInfo extra asset information
 	 * @returns {void}
 	 */
-	emitAsset(filename: string, source: Source, assetInfo: AssetInfo) {
+	emitAsset(
+		filename: string,
+		source: Source,
+		assetInfo: AssetInfo = {
+			minimized: false,
+			development: false,
+			related: {}
+		}
+	) {
 		this.#inner.emitAsset(filename, createRawFromSource(source), assetInfo);
 	}
 

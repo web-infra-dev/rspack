@@ -130,13 +130,6 @@ impl Compilation {
   pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
     if let Some(mut original) = self.assets.remove(&filename) {
       if !is_source_equal(&original.source, &asset.source) {
-        dbg!(
-          "emit asset",
-          &filename,
-          original.source.source(),
-          &filename,
-          asset.source.source()
-        );
         self.push_batch_diagnostic(
           rspack_error::Error::InternalError(format!(
             "Conflict: Multiple assets emit different content to the same filename {}{}",
