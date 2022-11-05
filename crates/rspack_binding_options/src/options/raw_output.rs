@@ -75,7 +75,7 @@ impl RawOption<OutputOptions> for RawOutputOptions {
 
     let chunk_filename = self
       .chunk_filename
-      .unwrap_or_else(|| filename.replace(NAME_PLACEHOLDER, &format!("{}.chunk", ID_PLACEHOLDER)));
+      .unwrap_or_else(|| filename.replace(NAME_PLACEHOLDER, ID_PLACEHOLDER));
     let path = generate_path(
       self.path,
       options.context.as_ref().context("should have context")?,

@@ -376,7 +376,6 @@ impl Plugin for CssPlugin {
     let hash = None;
     let chunkhash = None;
     let contenthash = Some(get_contenthash(&source).to_string());
-
     if source.source().is_empty() {
       Ok(Default::default())
     } else {
@@ -401,13 +400,12 @@ impl Plugin for CssPlugin {
           .render(FilenameRenderOptions {
             filename: None,
             extension: Some(".css".to_owned()),
-            id: Some(format!("static/css/{}", args.chunk().id.to_owned())),
+            id: Some(args.chunk().id.to_owned()),
             contenthash,
             chunkhash,
             hash,
           })
       };
-
       Ok(vec![RenderManifestEntry::new(source.boxed(), output_path)])
     }
   }

@@ -18,6 +18,7 @@ pub const HASH_PLACEHOLDER: &str = "[hash]";
 pub const CHUNK_HASH_PLACEHOLDER: &str = "[chunkhash]";
 pub const CONTENT_HASH_PLACEHOLDER: &str = "[contenthash]";
 
+#[derive(Debug)]
 pub struct FilenameRenderOptions {
   pub filename: Option<String>,
   pub extension: Option<String>,
@@ -76,7 +77,6 @@ impl Filename {
 
       filename = filename.replace(&hash_placeholder, &hash[..hash_length]);
     }
-
     filename
   }
 }
