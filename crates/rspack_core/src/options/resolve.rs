@@ -53,11 +53,7 @@ impl Resolve {
       .main_fields
       .unwrap_or_else(|| vec![String::from("module"), String::from("main")]);
     let browser_field = self.browser_field.unwrap_or(true);
-    let condition_names = HashSet::from_iter(
-      self
-        .condition_names
-        .unwrap_or_else(|| vec!["module".to_string(), "import".to_string()]),
-    );
+    let condition_names = HashSet::from_iter(self.condition_names.unwrap_or_else(|| vec![]));
 
     nodejs_resolver::Options {
       extensions,

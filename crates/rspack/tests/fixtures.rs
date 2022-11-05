@@ -30,6 +30,13 @@ fn example(fixture_path: PathBuf) {
   run(fixture_path);
 }
 
+#[test]
+fn eaaaaxample() {
+  let fixture_path: PathBuf =
+    PathBuf::from("/Users/bytedance/rspack/packages/rspack/tests/cases/resolve/dep-condition");
+  run(fixture_path);
+}
+
 #[fixture("tests/tree-shaking/*")]
 fn tree_shaking(fixture_path: PathBuf) {
   tree_shaking_test(&fixture_path).unwrap()

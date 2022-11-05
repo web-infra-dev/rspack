@@ -36,6 +36,7 @@ impl Compiler {
       options.clone(),
       plugins,
       Arc::new(resolver),
+      resolver_factory.clone(),
     )));
     let loader_runner_runner = Arc::new(LoaderRunnerRunner::new(
       options.clone(),

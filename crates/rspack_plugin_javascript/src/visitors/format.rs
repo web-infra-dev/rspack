@@ -154,12 +154,11 @@ impl<'a> RspackModuleFormatTransformer<'a> {
             .module_by_dependency(&require_dep);
 
           if js_module.is_none() {
-            js_module = self
+            let js_module_import = self
               .compilation
               .module_graph
-              .module_by_dependency(&import_dep)
+              .module_by_dependency(&import_dep);
           }
-
           str.value = JsWord::from(js_module?.id.as_str());
           str.raw = Some(Atom::from(format!("\"{}\"", js_module?.id.as_str())));
         };

@@ -34,7 +34,7 @@ export function resolveResolveOptions(resolve: Resolve = {}): ResolvedResolve {
 	const mainFiles = resolve.mainFiles ?? ["index"];
 	const browserField = resolve.browserField ?? true;
 	const alias = resolve.alias ?? {};
-	const conditionNames = resolve.conditionNames ?? ["module", "import"];
+	const conditionNames = resolve.conditionNames ?? [];
 	const tsConfigPath = resolve.tsConfigPath ?? "";
 	return {
 		preferRelative,
