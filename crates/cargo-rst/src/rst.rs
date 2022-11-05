@@ -436,7 +436,7 @@ impl Rst {
             FailedCase::MissingActualFile(_) => unreachable!(),
             FailedCase::MissingExpectedDir(dir) => {
               // Expected dir should not exist
-              fs::remove_dir_all(&dir).expect("Remove dir failed");
+              fs::remove_dir_all(&dir).expect(&format!("Remove {:?} dir failed", dir));
             }
             FailedCase::MissingExpectedFile(file) => {
               // Expected file should not exist
