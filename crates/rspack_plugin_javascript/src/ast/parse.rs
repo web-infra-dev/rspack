@@ -1,6 +1,6 @@
 use crate::utils::{ecma_parse_error_to_rspack_error, get_swc_compiler, syntax_by_module_type};
 use rspack_core::{ast::javascript::Ast, ModuleType, PATH_START_BYTE_POS_MAP};
-use rspack_error::{errors_to_diagnostics, Error, IntoTWithDiagnosticArray, TWithDiagnosticArray};
+use rspack_error::Error;
 use std::sync::Arc;
 use swc::config::IsModule;
 use swc_common::comments::Comments;

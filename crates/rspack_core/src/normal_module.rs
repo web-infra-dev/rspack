@@ -11,7 +11,9 @@ use dashmap::DashMap;
 use hashbrown::HashSet;
 use serde_json::json;
 
-use rspack_error::{Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{
+  Diagnostic, Error, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray,
+};
 use rspack_loader_runner::{Content, Loader, ResourceData};
 use rspack_sources::{
   BoxSource, OriginalSource, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
@@ -312,12 +314,10 @@ pub enum NormalModuleAstOrSource {
 
 impl NormalModuleAstOrSource {
   pub fn new_built(ast_or_source: AstOrSource, diagnostics: &[Diagnostic]) -> Self {
-    if diagnostics.is_empty() {
-      NormalModuleAstOrSource::BuiltSucceed(ast_or_source)
+    if diagnostics.iter().any(|d| d.severity == Severity::Error) {
+      NormalModuleAstOrSource::BuiltFailed(diagnostics.iter().map(|d| d.message.clone()).collect())
     } else {
-      NormalModuleAstOrSource::BuiltFailed(
-        diagnostics.into_iter().map(|d| d.message.clone()).collect(),
-      )
+      NormalModuleAstOrSource::BuiltSucceed(ast_or_source)
     }
   }
 }
@@ -344,7 +344,7 @@ impl CodeGenerationResult {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct BuildResult {
   pub dependencies: Vec<ModuleDependency>,
 }
@@ -491,7 +491,14 @@ impl NormalModule {
     let loader_result = build_context
       .loader_runner_runner
       .run(self.resource_data.clone(), build_context.resolved_loaders)
-      .await?;
+      .await;
+    let loader_result = match loader_result {
+      Ok(r) => r,
+      Err(e) => {
+        self.ast_or_source = NormalModuleAstOrSource::BuiltFailed(e.to_string());
+        return Ok(BuildResult::default().with_diagnostic(e.into()));
+      }
+    };
 
     let original_source = self.create_source(
       &self.resource_data.resource,

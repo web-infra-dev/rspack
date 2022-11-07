@@ -1,6 +1,4 @@
-use std::io;
-
-use thiserror::Error;
+use std::{fmt, io};
 
 use crate::Severity;
 
@@ -54,26 +52,61 @@ impl TraceableError {
   }
 }
 
-#[derive(Error, Debug)]
+impl fmt::Display for TraceableError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    writeln!(f, "{}[{}]: {}", self.severity, self.kind, self.title)?;
+    writeln!(f, "{}", self.error_message)?;
+    writeln!(f, "in {}", self.path)
+  }
+}
+
+#[derive(Debug)]
 pub enum Error {
-  #[error("{0}")]
   InternalError(String),
-
-  #[error("")]
   TraceableError(TraceableError),
-
-  #[error("")]
-  Io {
-    #[from]
-    source: io::Error,
-  },
-  #[error("")]
-  Anyhow {
-    #[from]
-    source: anyhow::Error,
-  },
-  #[error("")]
+  Io { source: io::Error },
+  Anyhow { source: anyhow::Error },
   BatchErrors(Vec<Error>),
+}
+
+impl std::error::Error for Error {
+  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+    match self {
+      Error::InternalError { .. } => None,
+      Error::TraceableError { .. } => None,
+      Error::Io { source, .. } => Some(source as &(dyn std::error::Error + 'static)),
+      Error::Anyhow { source, .. } => Some(source.as_ref()),
+      Error::BatchErrors { .. } => None,
+    }
+  }
+}
+
+impl fmt::Display for Error {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match self {
+      Error::InternalError(v) => write!(f, "{}", v),
+      Error::TraceableError(v) => write!(f, "{}", v),
+      Error::Io { source } => write!(f, "{source}"),
+      Error::Anyhow { source } => write!(f, "{source}"),
+      Error::BatchErrors(errs) => write!(
+        f,
+        "{}",
+        errs.iter().map(|e| e.to_string()).collect::<String>()
+      ),
+    }
+  }
+}
+
+impl From<io::Error> for Error {
+  fn from(source: io::Error) -> Self {
+    Error::Io { source }
+  }
+}
+
+impl From<anyhow::Error> for Error {
+  fn from(source: anyhow::Error) -> Self {
+    Error::Anyhow { source }
+  }
 }
 
 impl Error {
