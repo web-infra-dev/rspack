@@ -91,7 +91,11 @@ impl fmt::Display for Error {
       Error::BatchErrors(errs) => write!(
         f,
         "{}",
-        errs.iter().map(|e| e.to_string()).collect::<String>()
+        errs
+          .iter()
+          .map(|e| e.to_string())
+          .collect::<Vec<String>>()
+          .join("\n")
       ),
     }
   }

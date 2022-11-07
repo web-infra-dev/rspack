@@ -315,7 +315,13 @@ pub enum NormalModuleAstOrSource {
 impl NormalModuleAstOrSource {
   pub fn new_built(ast_or_source: AstOrSource, diagnostics: &[Diagnostic]) -> Self {
     if diagnostics.iter().any(|d| d.severity == Severity::Error) {
-      NormalModuleAstOrSource::BuiltFailed(diagnostics.iter().map(|d| d.message.clone()).collect())
+      NormalModuleAstOrSource::BuiltFailed(
+        diagnostics
+          .iter()
+          .map(|d| d.message.clone())
+          .collect::<Vec<String>>()
+          .join("\n"),
+      )
     } else {
       NormalModuleAstOrSource::BuiltSucceed(ast_or_source)
     }
