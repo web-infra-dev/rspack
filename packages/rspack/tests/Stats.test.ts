@@ -26,7 +26,7 @@ describe("Stats", () => {
 		        "development": false,
 		      },
 		      "name": "runtime.js",
-		      "size": 14868,
+		      "size": 14839,
 		      "type": "asset",
 		    },
 		    {
