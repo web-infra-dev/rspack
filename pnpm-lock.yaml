@@ -121,9 +121,9 @@ importers:
 
   examples/code-splitting:
     specifiers:
-      '@rspack/cli': workspace:*
+      '@rspack/core': workspace:*
     devDependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/core': link:../../packages/rspack
 
   examples/multi-entry:
     specifiers:
