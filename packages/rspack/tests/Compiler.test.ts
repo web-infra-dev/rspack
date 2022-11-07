@@ -1076,16 +1076,22 @@ describe("Compiler", () => {
 			});
 		});
 
-		it.skip("should throw if the asset to be updated is not exist", done => {
+		it("should throw if the asset to be updated is not exist", done => {
 			class MyPlugin {
 				apply(compiler: Compiler) {
 					compiler.hooks.compilation.tap("Plugin", compilation => {
 						compilation.hooks.processAssets.tap("Plugin", () => {
-							compilation.updateAsset(
-								"something-else.js",
-								_ => _,
-								_ => _
-							);
+							// TODO: the error should be more friendly, the current error is
+							// process_assets is not ok, err InternalError(
+							// Failed to call process assets RecvError(())",
+							// )
+							expect(() =>
+								compilation.updateAsset(
+									"something-else.js",
+									new RawSource(`module.exports = "something-else"`),
+									{ minimized: true, development: true, related: {} }
+								)
+							).toThrow();
 						});
 					});
 				}
@@ -1098,7 +1104,6 @@ describe("Compiler", () => {
 			});
 
 			compiler.build((err, stats) => {
-				expect(err).toBeTruthy();
 				done();
 			});
 		});
@@ -1138,14 +1143,14 @@ describe("Compiler", () => {
 			});
 		});
 
-		it.skip("should throw if the asset to be emitted is exist", done => {
+		it("should have error if the asset to be emitted is exist", done => {
 			class MyPlugin {
 				apply(compiler: Compiler) {
 					compiler.hooks.compilation.tap("Plugin", compilation => {
 						compilation.hooks.processAssets.tap("Plugin", () => {
 							compilation.emitAsset(
 								"main.js",
-								new RawSource("I'm the right main.js")
+								new RawSource(`module.exports = "I'm the right main.js"`)
 							);
 						});
 					});
@@ -1159,7 +1164,9 @@ describe("Compiler", () => {
 			});
 
 			compiler.build((err, stats) => {
-				expect(err).toBeTruthy();
+				expect(stats.errors[0].message).toBe(
+					"Conflict: Multiple assets emit different content to the same filename main.js"
+				);
 				done();
 			});
 		});

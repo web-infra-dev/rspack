@@ -51,9 +51,11 @@ export class Compilation {
 	 * See: [Compilation.updateAsset](https://webpack.js.org/api/compilation-object/#updateasset)
 	 * Source: [updateAsset](https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L4320)
 	 *
+	 * FIXME: *AssetInfo* may be undefined in update fn for webpack impl, but still not implemented in rspack
+	 *
 	 * @param {string} file file name
 	 * @param {Source | function(Source): Source} newSourceOrFunction new asset source or function converting old to new
-	 * @param {AssetInfo | function(AssetInfo): AssetInfo} assetInfoUpdateOrFunction new asset info or function converting old to new, FIXME: *AssetInfo* may be undefined in update fn for webpack impl, but still not implemented in rspack
+	 * @param {AssetInfo | function(AssetInfo): AssetInfo} assetInfoUpdateOrFunction new asset info or function converting old to new
 	 */
 	updateAsset(
 		filename: string,
