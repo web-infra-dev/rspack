@@ -18,9 +18,9 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 
 use crate::{
-  helper::{cp, is_detail, is_mute, make_relative_from, no_write},
+  helper::{cp, is_detail, is_mute, make_relative_from},
   record::{self, FailedCase, Record},
-  terminal_inline::pretty_diff,
+  terminal_inline::diff_and_print,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -77,6 +77,9 @@ pub struct FileDiff {
   expected_path: PathBuf,
 
   actual_path: PathBuf,
+  /// This two fields is necessary because the expected content will be override if `UPDATE` is set
+  expected_content: String,
+  actual_content: String,
 }
 
 fn output(f: &mut std::fmt::Formatter<'_>, prefix: &str, msg: &str) -> std::fmt::Result {
@@ -99,15 +102,11 @@ impl Display for TestError {
 
     for kind in self.errors.iter() {
       match &kind {
-        TestErrorKind::Difference(diff) => {
-          let expected_file = std::fs::read_to_string(&diff.expected_path).unwrap();
-          let actual_file = std::fs::read_to_string(&diff.actual_path).unwrap();
-          f.write_str(&format!(
-            "File difference: {}\n{}",
-            diff.expected_path.to_string_lossy().red(),
-            &pretty_diff(expected_file, actual_file)
-          ))
-        }
+        TestErrorKind::Difference(diff) => f.write_str(&format!(
+          "File difference: {}\n{}",
+          diff.expected_path.to_string_lossy().red(),
+          &diff_and_print(&diff.expected_content, &diff.actual_content)
+        )),
         TestErrorKind::MissingExpectedDir(dir) => output(
           f,
           "Directory exists in 'expected' directory, but not found in 'actual' directory: ",
@@ -168,7 +167,7 @@ macro_rules! prt {
   }
 
 #[macro_export]
-macro_rules! prtln {
+macro_rules! println_if_not_mute {
     ($($arg:tt)*) => {{
       if !is_mute() {
         println!($($arg)*);
@@ -234,39 +233,45 @@ impl Rst {
     }
   }
 
+  fn need_update() -> bool {
+    std::env::var("UPDATE").is_ok()
+  }
+
   fn finalize(&self, res: &Result<(), TestError>) {
-    let record_dir = Self::get_record_dir();
-    if !record_dir.exists() {
-      fs::create_dir_all(record_dir.as_path()).unwrap();
-    }
+    // if env `UPDATE` is set, the snapshot will automatically
+    // update
+    let need_update = Self::need_update();
 
     let record_path = self.get_record_path();
 
     if let Err(err) = res {
       // Test failed, we should save the failed record.
-      if !no_write() {
-        if !record_path.exists() {
-          fs::create_dir_all(record_path.parent().unwrap()).unwrap();
-        }
+      if !need_update && !record_path.exists() {
+        fs::create_dir_all(record_path.parent().unwrap()).unwrap();
+      }
 
-        let record = record::Record::new(
-          self,
-          err
-            .errors
-            .iter()
-            .map(|err| match err {
-              TestErrorKind::MissingActualDir(p) => FailedCase::MissingActualDir(p.clone()),
-              TestErrorKind::MissingActualFile(p) => FailedCase::MissingActualFile(p.clone()),
-              TestErrorKind::MissingExpectedDir(p) => FailedCase::MissingExpectedDir(p.clone()),
-              TestErrorKind::MissingExpectedFile(p) => FailedCase::MissingExpectedFile(p.clone()),
-              TestErrorKind::Difference(diff) => FailedCase::Difference {
-                expected_file_path: diff.expected_path.clone(),
-                actual_file_path: diff.actual_path.clone(),
-              },
-            })
-            .collect(),
-        );
+      let record = record::Record::new(
+        self,
+        err
+          .errors
+          .iter()
+          .map(|err| match err {
+            TestErrorKind::MissingActualDir(p) => FailedCase::MissingActualDir(p.clone()),
+            TestErrorKind::MissingActualFile(p) => FailedCase::MissingActualFile(p.clone()),
+            TestErrorKind::MissingExpectedDir(p) => FailedCase::MissingExpectedDir(p.clone()),
+            TestErrorKind::MissingExpectedFile(p) => FailedCase::MissingExpectedFile(p.clone()),
+            TestErrorKind::Difference(diff) => FailedCase::Difference {
+              expected_file_path: diff.expected_path.clone(),
+              actual_file_path: diff.actual_path.clone(),
+            },
+          })
+          .collect(),
+      );
 
+      if Self::need_update() {
+        let rst: Rst = record.into();
+        rst.update_fixture();
+      } else {
         record.save_to_disk();
       }
     }
@@ -293,7 +298,7 @@ impl Rst {
   pub fn assert(&self) {
     let res = self.test();
     if let Err(e) = res {
-      prtln!("{}", e);
+      println_if_not_mute!("{}", e);
       panic!("Fixture test failed");
     }
   }
@@ -357,6 +362,8 @@ impl Rst {
             let diff = FileDiff {
               expected_path: expected_dir.clone(),
               actual_path: actual_dir.clone(),
+              expected_content: expected_str.to_string(),
+              actual_content: actual_str.to_string(),
             };
 
             err.push(TestErrorKind::Difference(diff))
@@ -513,7 +520,7 @@ impl Rst {
 fn update_single_case(dir: &PathBuf) {
   let updates: Arc<Mutex<Vec<PathBuf>>> = Default::default();
   if !dir.exists() {
-    prtln!("No records found, nothing updated");
+    println_if_not_mute!("No records found, nothing updated");
   }
   let failed_files = fs::read_dir(dir)
     .unwrap()
@@ -528,7 +535,7 @@ fn update_single_case(dir: &PathBuf) {
   });
   let updates = updates.lock().unwrap();
   let count = updates.len();
-  prtln!(
+  println_if_not_mute!(
     "Updated {} fixture{}:\n{}",
     count.to_string().green(),
     if count > 1 { "s" } else { "" },
@@ -548,7 +555,7 @@ pub fn assert(p: PathBuf) {
   let res = rst.test();
 
   if let Err(e) = res {
-    prtln!("{}", e);
+    println_if_not_mute!("{}", e);
     panic!("Fixture test failed");
   }
 }

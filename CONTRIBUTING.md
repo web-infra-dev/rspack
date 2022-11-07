@@ -24,7 +24,8 @@ We currently have two sets of test suits, one for rust and one for node.
 
 ### Rust Testing
 
-- cargo test will run all the rust side tests, which includes standalone tests for core functionality and plugins.
+- `cargo test` will run all the rust side tests, which includes standalone tests for core functionality and plugins.
+- `UPDATE=1 cargo test` will automatically update the failed snapshot
 
 ### Node Testing
 
