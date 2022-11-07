@@ -5,7 +5,6 @@ use std::{
   ffi::OsString,
   fmt::Display,
   fs,
-  io::Write,
   path::{self, Path, PathBuf},
   sync::{Arc, Mutex},
 };
@@ -17,12 +16,11 @@ use glob::glob;
 use serde::{Deserialize, Serialize};
 
 use serde_json;
-use similar::TextDiff;
 
 use crate::{
-  helper::{cp, is_detail, is_mute, make_relative_from, no_write},
+  helper::{cp, is_detail, is_mute, make_relative_from},
   record::{self, FailedCase, Record},
-  terminal_inline::{diff_and_print, pretty_diff_printer},
+  terminal_inline::diff_and_print,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -300,7 +298,7 @@ impl Rst {
   pub fn assert(&self) {
     let res = self.test();
     if let Err(e) = res {
-      println!("{}", e);
+      println_if_not_mute!("{}", e);
       panic!("Fixture test failed");
     }
   }
