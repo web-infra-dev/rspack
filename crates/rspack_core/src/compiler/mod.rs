@@ -4,7 +4,10 @@ mod resolver;
 use anyhow::Context;
 pub use compilation::*;
 pub use resolver::*;
-use std::{path::Path, sync::Arc};
+use std::{
+  path::{Path, PathBuf},
+  sync::Arc,
+};
 
 use hashbrown::HashMap;
 use rayon::prelude::*;
@@ -129,18 +132,20 @@ impl Compiler {
     compilation
       .assets()
       .par_iter()
-      .try_for_each(|(filename, asset)| -> anyhow::Result<()> {
-        use std::fs;
-
-        std::fs::create_dir_all(Path::new(&output_path).join(filename).parent().unwrap())?;
-
-        fs::write(
-          Path::new(&output_path).join(filename),
-          asset.get_source().buffer(),
-        )
-        .map_err(|e| e.into())
+      .try_for_each(|(filename, asset)| {
+        let file_path = Path::new(&output_path).join(filename);
+        self.emit_asset(file_path, asset)
       })
       .map_err(|e| e.into())
+  }
+
+  fn emit_asset(&self, file_path: PathBuf, asset: &CompilationAsset) -> anyhow::Result<()> {
+    std::fs::create_dir_all(
+      file_path
+        .parent()
+        .unwrap_or_else(|| panic!("The parent of {} can't found", file_path.display())),
+    )?;
+    std::fs::write(file_path, asset.get_source().buffer()).map_err(|e| e.into())
   }
 
   // TODO: remove this function when we had hash in stats.
@@ -149,11 +154,7 @@ impl Compiler {
     changed_files: std::collections::HashSet<String>,
     removed_files: std::collections::HashSet<String>,
   ) -> Result<(std::collections::HashMap<String, (u8, String)>, Stats)> {
-    fn collect_modules_from_stats(
-      s: &Stats<'_>,
-      changed_files: &std::collections::HashSet<String>,
-      removed_files: &std::collections::HashSet<String>,
-    ) -> HashMap<String, String> {
+    let collect_modules_from_stats = |s: &Stats<'_>| -> HashMap<String, String> {
       let modules = s.compilation.module_graph.module_graph_modules();
       // TODO: use hash;
 
@@ -198,13 +199,13 @@ impl Compiler {
           }
         })
         .collect()
-    }
+    };
 
     let old = self.compilation.get_stats();
-    let old = collect_modules_from_stats(&old, &changed_files, &removed_files);
+    let old = collect_modules_from_stats(&old);
 
     let new_stats = self.build().await?;
-    let new = collect_modules_from_stats(&new_stats, &changed_files, &removed_files);
+    let new = collect_modules_from_stats(&new_stats);
 
     let mut diff = std::collections::HashMap::new();
 

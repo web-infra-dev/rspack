@@ -327,6 +327,7 @@ impl Plugin for JsPlugin {
     // let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
     let chunkhash = None;
     let contenthash = Some(get_contenthash(&source).to_string());
+
     let output_path = if chunk.is_only_initial(&args.compilation.chunk_group_by_ukey) {
       compilation
         .options
