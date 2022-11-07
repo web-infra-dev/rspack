@@ -1,4 +1,4 @@
-import * as test from "./foo.js";
+/* TREE-SHAKING */
+import * as test from './maths.js';
 
-test.bar();
-test.foo();
+console.log(test.xxx.test)
