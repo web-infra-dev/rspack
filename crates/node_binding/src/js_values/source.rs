@@ -69,11 +69,8 @@ impl StreamChunks for CompatSource {
 
 impl Source for CompatSource {
   fn source(&self) -> Cow<str> {
-    if self.is_raw && self.is_buffer {
-      Cow::Owned("".to_owned())
-    } else {
-      String::from_utf8_lossy(&self.source)
-    }
+    // Use UTF-8 lossy for any sources, including `RawSource` as a workaround for not supporting either `Buffer` or `String` in `Source`.
+    String::from_utf8_lossy(&self.source)
   }
 
   fn buffer(&self) -> Cow<[u8]> {
