@@ -364,19 +364,21 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
   fn visit_member_expr(&mut self, node: &MemberExpr) {
     match (&*node.obj, &node.prop) {
+      // a.b
       (Expr::Ident(obj), MemberProp::Ident(prop)) => {
         let id: BetterId = obj.to_id().into();
         let mark = id.ctxt.outer();
         if mark == self.top_level_mark {
+          let member_expr = IdOrMemExpr::MemberExpr {
+            object: id.clone(),
+            property: prop.sym.clone(),
+          };
           match self.current_body_owner_symbol_ext {
             Some(ref body_owner_symbol_ext) if body_owner_symbol_ext.id() != &id => {
-              self.add_reference(body_owner_symbol_ext.clone(), IdOrMemExpr::Id(id));
+              self.add_reference(body_owner_symbol_ext.clone(), member_expr);
             }
             None => {
-              self.used_id_set.insert(IdOrMemExpr::MemberExpr {
-                object: id,
-                property: prop.sym.clone(),
-              });
+              self.used_id_set.insert(member_expr);
             }
             _ => {}
           }
@@ -384,15 +386,31 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       }
       // TODO: Do we need to consider such scenario ?
       // obj[`test`] use a template literal but actually is a pure string lit
+      // obj['prop']
       (
         Expr::Ident(obj),
         MemberProp::Computed(ComputedPropName {
-          expr: box Expr::Lit(Lit::Str(Str { value, raw, .. })),
+          expr: box Expr::Lit(Lit::Str(Str { value, .. })),
           ..
         }),
       ) => {
-        // TODO: handle this as a member expr
-        node.visit_children_with(self);
+        let id: BetterId = obj.to_id().into();
+        let mark = id.ctxt.outer();
+        if mark == self.top_level_mark {
+          let member_expr = IdOrMemExpr::MemberExpr {
+            object: id.clone(),
+            property: value.clone(),
+          };
+          match self.current_body_owner_symbol_ext {
+            Some(ref body_owner_symbol_ext) if body_owner_symbol_ext.id() != &id => {
+              self.add_reference(body_owner_symbol_ext.clone(), member_expr);
+            }
+            None => {
+              self.used_id_set.insert(member_expr);
+            }
+            _ => {}
+          }
+        }
       }
       _ => {
         node.visit_children_with(self);
