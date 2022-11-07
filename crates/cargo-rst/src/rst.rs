@@ -234,40 +234,46 @@ impl Rst {
     }
   }
 
+  fn need_update() -> bool {
+    std::env::var("UPDATE").is_ok()
+  }
+
   fn finalize(&self, res: &Result<(), TestError>) {
-    let record_dir = Self::get_record_dir();
-    if !record_dir.exists() {
-      fs::create_dir_all(record_dir.as_path()).unwrap();
-    }
+    // if env `UPDATE` is set, the snapshot will automatically
+    // update
+    let need_update = Self::need_update();
 
     let record_path = self.get_record_path();
 
     if let Err(err) = res {
       // Test failed, we should save the failed record.
-      if !no_write() {
-        if !record_path.exists() {
-          fs::create_dir_all(record_path.parent().unwrap()).unwrap();
-        }
+      if !need_update && !record_path.exists() {
+        fs::create_dir_all(record_path.parent().unwrap()).unwrap();
+      }
 
-        let record = record::Record::new(
-          self,
-          err
-            .errors
-            .iter()
-            .map(|err| match err {
-              TestErrorKind::MissingActualDir(p) => FailedCase::MissingActualDir(p.clone()),
-              TestErrorKind::MissingActualFile(p) => FailedCase::MissingActualFile(p.clone()),
-              TestErrorKind::MissingExpectedDir(p) => FailedCase::MissingExpectedDir(p.clone()),
-              TestErrorKind::MissingExpectedFile(p) => FailedCase::MissingExpectedFile(p.clone()),
-              TestErrorKind::Difference(diff) => FailedCase::Difference {
-                expected_file_path: diff.expected_path.clone(),
-                actual_file_path: diff.actual_path.clone(),
-              },
-            })
-            .collect(),
-        );
+      let record = record::Record::new(
+        self,
+        err
+          .errors
+          .iter()
+          .map(|err| match err {
+            TestErrorKind::MissingActualDir(p) => FailedCase::MissingActualDir(p.clone()),
+            TestErrorKind::MissingActualFile(p) => FailedCase::MissingActualFile(p.clone()),
+            TestErrorKind::MissingExpectedDir(p) => FailedCase::MissingExpectedDir(p.clone()),
+            TestErrorKind::MissingExpectedFile(p) => FailedCase::MissingExpectedFile(p.clone()),
+            TestErrorKind::Difference(diff) => FailedCase::Difference {
+              expected_file_path: diff.expected_path.clone(),
+              actual_file_path: diff.actual_path.clone(),
+            },
+          })
+          .collect(),
+      );
 
-        record.save_to_disk();
+      if Self::need_update() {
+        let rst: Rst = record.into();
+        rst.update_fixture();
+      } else {
+        // record.save_to_disk();
       }
     }
   }

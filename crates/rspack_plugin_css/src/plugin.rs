@@ -363,7 +363,7 @@ impl Plugin for CssPlugin {
       .into_par_iter()
       .fold(ConcatSource::default, |mut output, cur| {
         if let Some(source) = cur {
-          output.add(RawSource::from("\n\n"));
+          output.add(RawSource::from("\n"));
           output.add(source);
         }
         output
