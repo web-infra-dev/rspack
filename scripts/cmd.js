@@ -93,7 +93,7 @@ function createCLI() {
 					command = `pnpm --filter "@rspack/*" build`;
 					break;
 				case "js-release":
-					command = `pnpm --filter "@rspack/*" build && pnpm --filter @rspack/binding build --release`;
+					command = `pnpm --filter "@rspack/*" build && pnpm --filter @rspack/binding build:release-debuginfo`;
 					break;
 				case "binding":
 					command = "pnpm --filter @rspack/binding build";
