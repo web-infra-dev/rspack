@@ -14,8 +14,7 @@
   ],
   "scripts": {
     "build": "napi build --platform --js false --dts binding.d.ts --config napirs.rc.json",
-    "build:release": "napi build --release --platform --js false --dts binding.d.ts --config napirs.rc.json",
-    "build:release-debuginfo": "napi build --platform --js false --dts binding.d.ts --config napirs.rc.json --cargo-flags='--profile release-debuginfo'"
+    "build:release": "napi build --release --platform --js false --dts binding.d.ts --config napirs.rc.json"
   },
   "keywords": [],
   "author": "",

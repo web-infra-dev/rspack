@@ -14,7 +14,3 @@ debug         = false
 incremental   = true
 lto           = false
 opt-level     = 3
-
-[profile.release-debuginfo]
-inherits  = "release"
-opt-level = 3
