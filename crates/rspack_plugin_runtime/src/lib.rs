@@ -1,5 +1,3 @@
-use std::pin::Pin;
-
 use async_trait::async_trait;
 use rspack_error::Result;
 
@@ -8,7 +6,7 @@ use node::*;
 use rspack_core::{
   rspack_sources::RawSource, AssetInfo, CompilationAsset, Plugin, PluginContext,
   PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, RenderManifestArgs,
-  RenderManifestEntry, RenderRuntimeArgs, TargetPlatform, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
+  RenderRuntimeArgs, TargetPlatform, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
 };
 use web::*;
 use web_worker::*;
@@ -139,20 +137,9 @@ impl Plugin for RuntimePlugin {
   fn render_manifest(
     &self,
     _ctx: PluginContext,
-    args: RenderManifestArgs,
+    _args: RenderManifestArgs,
   ) -> PluginRenderManifestHookOutput {
-    let compilation = args.compilation;
-    //Todo we need add optimize.runtime to ensure runtime generation
-    // if compilation.options.target.platform.is_web() {
-    //   let compilation = args.compilation;
-    //   let runtime = &compilation.runtime;
-    //   Ok(vec![RenderManifestEntry::new(
-    //     runtime.generate(),
-    //     RUNTIME_FILE_NAME.to_string() + ".js",
-    //   )])
-    // } else {
     Ok(vec![])
-    // }
   }
 
   async fn process_assets(
