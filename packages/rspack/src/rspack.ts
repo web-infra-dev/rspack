@@ -44,7 +44,7 @@ function createCompiler(userOptions: RspackOptions) {
 	compiler.hooks.initialize.call();
 	return compiler;
 }
-function rspack(options: RspackOptions, callback: Callback<Stats>): Compiler {
+function rspack(options: RspackOptions, callback?: Callback<Stats>): Compiler {
 	let compiler = createCompiler(options);
 	if (callback) {
 		compiler.run(callback);

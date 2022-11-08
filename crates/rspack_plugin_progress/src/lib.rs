@@ -1,7 +1,7 @@
 use indicatif::{ProgressBar, ProgressStyle};
 use rspack_core::{
   Compilation, DoneArgs, NormalModule, OptimizeChunksArgs, Plugin, PluginBuildEndHookOutput,
-  PluginBuildStartHookOutput, PluginContext, PluginOptimizeChunksOutput, PluginProcessAssetsOutput,
+  PluginContext, PluginMakeHookOutput, PluginOptimizeChunksOutput, PluginProcessAssetsOutput,
   ProcessAssetsArgs,
 };
 use rspack_error::Result;
@@ -51,7 +51,7 @@ impl Plugin for ProgressPlugin {
     "progress"
   }
 
-  fn make(&self, _ctx: PluginContext, _compilation: &Compilation) -> PluginBuildStartHookOutput {
+  fn make(&self, _ctx: PluginContext, _compilation: &Compilation) -> PluginMakeHookOutput {
     self.progress_bar.reset();
     self.modules_count.store(0, SeqCst);
     self.modules_done.store(0, SeqCst);

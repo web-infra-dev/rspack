@@ -6,6 +6,8 @@ use napi::bindgen_prelude::*;
 pub struct PluginCallbacks {
   pub done_callback: JsFunction,
   pub process_assets_callback: JsFunction,
+  pub compilation_callback: JsFunction,
+  pub this_compilation_callback: JsFunction,
 }
 
 impl Debug for PluginCallbacks {
@@ -13,6 +15,8 @@ impl Debug for PluginCallbacks {
     f.debug_struct("PluginCallbacks")
       .field("done_callback", &"done_adapter")
       .field("procss_assets_callback", &"process_assets_adapter")
+      .field("compilation_callback", &"compilation_adapter")
+      .field("this_compilation_callback", &"this_compilation_adapter")
       .finish()
   }
 }

@@ -137,3 +137,10 @@ impl From<napi::Error> for Error {
     Error::InternalError(err.to_string())
   }
 }
+
+#[cfg(feature = "napi")]
+impl From<Error> for napi::Error {
+  fn from(err: Error) -> Self {
+    Self::from_reason(err.to_string())
+  }
+}

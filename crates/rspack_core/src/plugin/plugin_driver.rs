@@ -8,12 +8,12 @@ use rspack_loader_runner::ResourceData;
 use tracing::instrument;
 
 use crate::{
-  ApplyContext, BoxedParserAndGeneratorBuilder, Compilation, CompilerOptions, Content, DoneArgs,
-  FactorizeAndBuildArgs, ModuleType, NormalModule, NormalModuleFactoryContext, OptimizeChunksArgs,
-  Plugin, PluginBuildEndHookOutput, PluginBuildStartHookOutput, PluginContext,
-  PluginFactorizeAndBuildHookOutput, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
-  PluginRenderRuntimeHookOutput, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs,
-  Resolver, Stats,
+  ApplyContext, BoxedParserAndGeneratorBuilder, Compilation, CompilationArgs, CompilerOptions,
+  Content, DoneArgs, FactorizeAndBuildArgs, ModuleType, NormalModule, NormalModuleFactoryContext,
+  OptimizeChunksArgs, Plugin, PluginBuildEndHookOutput, PluginCompilationHookOutput, PluginContext,
+  PluginFactorizeAndBuildHookOutput, PluginMakeHookOutput, PluginProcessAssetsOutput,
+  PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, PluginThisCompilationHookOutput,
+  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, Resolver, Stats, ThisCompilationArgs,
 };
 use rspack_error::{Diagnostic, Result};
 
@@ -46,23 +46,6 @@ impl PluginDriver {
     mut plugins: Vec<Box<dyn Plugin>>,
     resolver: Arc<Resolver>,
   ) -> Self {
-    //   let registered_parser = plugins
-    //     .par_iter_mut()
-    //     .map(|plugin| {
-    //       let mut apply_context = ApplyContext::default();
-    //       plugin
-    //         .apply(PluginContext::with_context(&mut apply_context))
-    //         .unwrap();
-    //       apply_context
-    //     })
-    //     .flat_map(|apply_context| {
-    //       apply_context
-    //         .registered_parser
-    //         .into_iter()
-    //         .collect::<Vec<_>>()
-    //     })
-    //     .collect::<HashMap<ModuleType, BoxedParser>>();
-
     let registered_parser_and_generator_builder = plugins
       .par_iter_mut()
       .map(|plugin| {
@@ -144,6 +127,43 @@ impl PluginDriver {
   //   Ok(module.take_inner())
   // }
 
+  /// Runs a plugin after a compilation has been created.
+  ///
+  /// See: https://webpack.js.org/api/compiler-hooks/#compilation
+  #[instrument(name = "plugin:compilation", skip_all)]
+  pub fn compilation(&mut self, compilation: &mut Compilation) -> PluginCompilationHookOutput {
+    self
+      .plugins
+      .iter_mut()
+      .try_for_each(|plugin| -> Result<()> {
+        plugin.compilation(CompilationArgs { compilation })?;
+        Ok(())
+      })?;
+
+    Ok(())
+  }
+
+  /// Executed while initializing the compilation, right before emitting the compilation event. This hook is not copied to child compilers.
+  ///
+  /// See: https://webpack.js.org/api/compiler-hooks/#thiscompilation
+  #[instrument(name = "plugin:this_compilation", skip_all)]
+  pub fn this_compilation(
+    &mut self,
+    compilation: &mut Compilation,
+  ) -> PluginThisCompilationHookOutput {
+    self
+      .plugins
+      .iter_mut()
+      .try_for_each(|plugin| -> Result<()> {
+        plugin.this_compilation(ThisCompilationArgs {
+          this_compilation: compilation,
+        })?;
+        Ok(())
+      })?;
+
+    Ok(())
+  }
+
   #[instrument(name = "plugin:render_manifest", skip_all)]
   pub fn render_manifest(&self, args: RenderManifestArgs) -> PluginRenderManifestHookOutput {
     let mut assets = vec![];
@@ -201,7 +221,7 @@ impl PluginDriver {
   }
 
   #[instrument(name = "plugin:make", skip_all)]
-  pub fn make(&self, compilation: &Compilation) -> PluginBuildStartHookOutput {
+  pub fn make(&self, compilation: &Compilation) -> PluginMakeHookOutput {
     for plugin in &self.plugins {
       plugin.make(PluginContext::new(), compilation)?;
     }

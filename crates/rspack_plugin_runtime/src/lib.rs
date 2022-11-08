@@ -1,12 +1,14 @@
+use std::pin::Pin;
+
 use async_trait::async_trait;
 use rspack_error::Result;
 
 use common::*;
 use node::*;
 use rspack_core::{
-  rspack_sources::RawSource, AssetInfo, CompilationAsset, Plugin, PluginContext,
-  PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, RenderManifestArgs,
-  RenderManifestEntry, RenderRuntimeArgs, TargetPlatform, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
+  rspack_sources::RawSource, Plugin, PluginContext, PluginRenderManifestHookOutput,
+  PluginRenderRuntimeHookOutput, RenderManifestArgs, RenderManifestEntry, RenderRuntimeArgs,
+  TargetPlatform, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
 };
 use web::*;
 use web_worker::*;
@@ -186,10 +188,18 @@ impl Plugin for RuntimePlugin {
         }
       }
       _ => {
-        compilation.emit_asset(
-          RUNTIME_FILE_NAME.to_string() + ".js",
-          CompilationAsset::new(compilation.runtime.generate(), AssetInfo::default()),
-        );
+        let new_source = compilation.runtime.generate();
+
+        unsafe {
+          Pin::new_unchecked(&mut *compilation).update_asset(
+            &(RUNTIME_FILE_NAME.to_string() + ".js"),
+            |s| {
+              s.source = new_source;
+
+              Ok(())
+            },
+          )?
+        };
       }
     }
 
