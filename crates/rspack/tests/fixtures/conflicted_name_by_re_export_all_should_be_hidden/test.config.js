@@ -4,7 +4,7 @@
 module.exports = {
 	mode: "development",
 	entry: {
-		main: ["./main.js"],
+		main: ["./index.js"],
 	},
 	define: {
 		"process.env.NODE_ENV": "development",

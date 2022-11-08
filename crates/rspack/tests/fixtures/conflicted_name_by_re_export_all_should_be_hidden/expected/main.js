@@ -13,7 +13,7 @@ self["__rspack_runtime__"].__rspack_register__([
         });
         const b = "foo";
     },
-    "./main.js": function(module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
+    "./index.js": function(module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
         "use strict";
         Object.defineProperty(exports, "__esModule", {
             value: true
@@ -22,4 +22,4 @@ self["__rspack_runtime__"].__rspack_register__([
         __rspack_runtime__.exportStar(__rspack_require__("./bar.js"), exports);
     }
 });
-self["__rspack_runtime__"].__rspack_require__("./main.js");
+self["__rspack_runtime__"].__rspack_require__("./index.js");
