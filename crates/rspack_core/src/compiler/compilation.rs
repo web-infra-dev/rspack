@@ -591,7 +591,7 @@ impl Compilation {
       })
   }
   #[instrument(name = "compilation:process_asssets")]
-  async fn process_assets(&mut self, plugin_driver: SharedPluginDriver) {
+  async fn process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     plugin_driver
       .write()
       .await
@@ -601,7 +601,6 @@ impl Compilation {
         eprintln!("process_assets is not ok, err {:#?}", e);
         e
       })
-      .ok();
   }
 
   pub async fn optimize_dependency(
@@ -738,7 +737,7 @@ impl Compilation {
     // generate runtime
     self.runtime = self.render_runtime(plugin_driver.clone()).await;
 
-    self.process_assets(plugin_driver).await;
+    self.process_assets(plugin_driver).await?;
     Ok(())
   }
 }

@@ -6,9 +6,9 @@ use rspack_error::Result;
 use common::*;
 use node::*;
 use rspack_core::{
-  rspack_sources::RawSource, Plugin, PluginContext, PluginRenderManifestHookOutput,
-  PluginRenderRuntimeHookOutput, RenderManifestArgs, RenderManifestEntry, RenderRuntimeArgs,
-  TargetPlatform, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
+  rspack_sources::RawSource, AssetInfo, CompilationAsset, Plugin, PluginContext,
+  PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, RenderManifestArgs,
+  RenderManifestEntry, RenderRuntimeArgs, TargetPlatform, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
 };
 use web::*;
 use web_worker::*;
@@ -143,16 +143,16 @@ impl Plugin for RuntimePlugin {
   ) -> PluginRenderManifestHookOutput {
     let compilation = args.compilation;
     //Todo we need add optimize.runtime to ensure runtime generation
-    if compilation.options.target.platform.is_web() {
-      let compilation = args.compilation;
-      let runtime = &compilation.runtime;
-      Ok(vec![RenderManifestEntry::new(
-        runtime.generate(),
-        RUNTIME_FILE_NAME.to_string() + ".js",
-      )])
-    } else {
-      Ok(vec![])
-    }
+    // if compilation.options.target.platform.is_web() {
+    //   let compilation = args.compilation;
+    //   let runtime = &compilation.runtime;
+    //   Ok(vec![RenderManifestEntry::new(
+    //     runtime.generate(),
+    //     RUNTIME_FILE_NAME.to_string() + ".js",
+    //   )])
+    // } else {
+    Ok(vec![])
+    // }
   }
 
   async fn process_assets(
@@ -188,18 +188,10 @@ impl Plugin for RuntimePlugin {
         }
       }
       _ => {
-        let new_source = compilation.runtime.generate();
-
-        unsafe {
-          Pin::new_unchecked(&mut *compilation).update_asset(
-            &(RUNTIME_FILE_NAME.to_string() + ".js"),
-            |s| {
-              s.source = new_source;
-
-              Ok(())
-            },
-          )?
-        };
+        compilation.emit_asset(
+          RUNTIME_FILE_NAME.to_string() + ".js",
+          CompilationAsset::new(compilation.runtime.generate(), AssetInfo::default()),
+        );
       }
     }
 

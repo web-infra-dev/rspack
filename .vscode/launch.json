@@ -21,7 +21,7 @@
         "--inspect",
         "-r",
         "tsm",
-        "tests/example.test.ts"
+        "tests/example.debug.ts"
       ],
       "cwd": "${workspaceFolder}/packages/rspack"
     }
