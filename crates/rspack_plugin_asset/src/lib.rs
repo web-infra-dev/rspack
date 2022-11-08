@@ -364,6 +364,7 @@ impl Plugin for AssetPlugin {
           .ok_or_else(|| Error::InternalError("Failed to get module".to_owned()))
           // FIXME: use result
           .expect("Failed to get module");
+        panic!("manually panic");
         module.source_types().contains(&SourceType::Asset)
       })
       .map(|mgm| {
