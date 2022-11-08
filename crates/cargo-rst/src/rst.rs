@@ -109,12 +109,12 @@ impl Display for TestError {
         )),
         TestErrorKind::MissingExpectedDir(dir) => output(
           f,
-          "Directory exists in 'expected' directory, but not found in 'actual' directory: ",
+          "Missing expected directory(maybe you create a new snapshot test case but forgot to add a expected snapshot, try to add `expected/main.js` under your new test case directory, or try to refresh the fixture.rs under that crate): ",
           dir.as_path().to_str().unwrap(),
         ),
         TestErrorKind::MissingActualDir(dir) => output(
           f,
-          "Directory exists in 'actual' directory, but not found in 'expected' directory: ",
+          "Missing actual directory: ",
           dir.as_path().to_str().unwrap(),
         ),
         TestErrorKind::MissingActualFile(file) => output(
