@@ -676,7 +676,14 @@ impl Compilation {
           .unwrap()
           .export_map
           .iter()
-          .filter(|(k, v)| k)
+          .filter_map(|(k, v)| {
+            // export * should not reexport default export
+            if k == "default" {
+              None
+            } else {
+              Some((k.clone(), v.clone()))
+            }
+          })
           .collect::<HashMap<JsWord, SymbolRef>>();
         inherit_export_maps.insert(*inherit_export_module, export_module);
       }

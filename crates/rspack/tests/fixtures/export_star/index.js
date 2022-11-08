@@ -1,3 +1,3 @@
 import { c, bar } from "./foo";
-
-c(bar);
+bar.a;
+c();
