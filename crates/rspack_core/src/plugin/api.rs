@@ -1,17 +1,22 @@
 use std::fmt::Debug;
 
-use crate::{
-  BoxModule, Compilation, DoneArgs, FactorizeAndBuildArgs, ModuleType, NormalModule,
-  NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
-  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, TransformAst, TransformResult,
-};
+use hashbrown::HashMap;
+
 use rspack_error::Result;
 use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::{BoxSource, RawSource};
 
+use crate::{
+  BoxModule, Compilation, CompilationArgs, DoneArgs, FactorizeAndBuildArgs, ModuleType,
+  NormalModule, NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
+  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, ThisCompilationArgs, TransformAst,
+  TransformResult,
+};
+
 // use anyhow::{Context, Result};
-use hashbrown::HashMap;
-pub type PluginBuildStartHookOutput = Result<()>;
+pub type PluginCompilationHookOutput = Result<()>;
+pub type PluginThisCompilationHookOutput = Result<()>;
+pub type PluginMakeHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;
 pub type PluginProcessAssetsHookOutput = Result<()>;
 pub type PluginReadResourceOutput = Result<Option<Content>>;
@@ -40,7 +45,15 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  fn make(&self, _ctx: PluginContext, _compilation: &Compilation) -> PluginBuildStartHookOutput {
+  fn compilation(&mut self, _args: CompilationArgs) -> PluginCompilationHookOutput {
+    Ok(())
+  }
+
+  fn this_compilation(&mut self, _args: ThisCompilationArgs) -> PluginThisCompilationHookOutput {
+    Ok(())
+  }
+
+  fn make(&self, _ctx: PluginContext, _compilation: &Compilation) -> PluginMakeHookOutput {
     Ok(())
   }
 

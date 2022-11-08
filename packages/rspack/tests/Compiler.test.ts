@@ -1,5 +1,11 @@
 // @ts-nocheck
-import { Compiler, getNormalizedRspackOptions, rspack, webpack } from "../src";
+import { RawSource } from "webpack-sources";
+import {
+	Compiler,
+	getNormalizedRspackOptions,
+	rspack,
+	RspackOptions
+} from "../src";
 import { Stats } from "../src/stats";
 const path = require("path");
 const { createFsFromVolume, Volume } = require("memfs");
@@ -8,7 +14,7 @@ const deprecationTracking = require("./helpers/deprecationTracking");
 
 describe("Compiler", () => {
 	jest.setTimeout(20000);
-	function compile(entry, options, callback) {
+	function compile(entry: string, options, callback) {
 		const noOutputPath = !options.output || !options.output.path;
 
 		options = getNormalizedRspackOptions(options);
@@ -44,10 +50,10 @@ describe("Compiler", () => {
 		// 		callback(new Error("ENOENT"));
 		// 	}
 		// };
-		c.hooks.compilation.tap(
-			"CompilerTest",
-			compilation => (compilation.bail = true)
-		);
+		c.hooks.compilation.tap("CompilerTest", compilation => {
+			// @ts-ignore
+			compilation.bail = true;
+		});
 		c.run((err, stats) => {
 			if (err) throw err;
 			expect(typeof stats).toBe("object");
@@ -333,7 +339,9 @@ describe("Compiler", () => {
 				bail: true
 			});
 		} catch (err) {
-			expect(err.toString()).toMatchInlineSnapshot();
+			expect(err.toString()).toMatchInlineSnapshot(
+				`"Error: Missing field \`thisCompilationCallback\`"`
+			);
 		}
 	});
 	it.skip("should not emit compilation errors in async (watch)", async () => {
@@ -846,16 +854,16 @@ describe("Compiler", () => {
 			compiler.run((err, stats) => {
 				expect(capture.toString().replace(/[\d.]+ ms/, "X ms"))
 					.toMatchInlineSnapshot(`
-"<-> [MyPlugin] Group
-  <e> [MyPlugin] Error
-  <w> [MyPlugin] Warning
-  <i> [MyPlugin] Info
-      [MyPlugin] Log
-  <-> [MyPlugin] Collapsed group
-        [MyPlugin] Log inside collapsed group
-<t> [MyPlugin] Time: X ms
-"
-`);
+			"<-> [MyPlugin] Group
+			  <e> [MyPlugin] Error
+			  <w> [MyPlugin] Warning
+			  <i> [MyPlugin] Info
+			      [MyPlugin] Log
+			  <-> [MyPlugin] Collapsed group
+			        [MyPlugin] Log inside collapsed group
+			<t> [MyPlugin] Time: X ms
+			"
+		`);
 				done();
 			});
 		});
@@ -877,17 +885,17 @@ describe("Compiler", () => {
 			compiler.run((err, stats) => {
 				expect(capture.toString().replace(/[\d.]+ ms/, "X ms"))
 					.toMatchInlineSnapshot(`
-"<-> [MyPlugin] Group
-  <e> [MyPlugin] Error
-  <w> [MyPlugin] Warning
-  <i> [MyPlugin] Info
-      [MyPlugin] Log
-      [MyPlugin] Debug
-  <-> [MyPlugin] Collapsed group
-        [MyPlugin] Log inside collapsed group
-<t> [MyPlugin] Time: X ms
-"
-`);
+			"<-> [MyPlugin] Group
+			  <e> [MyPlugin] Error
+			  <w> [MyPlugin] Warning
+			  <i> [MyPlugin] Info
+			      [MyPlugin] Log
+			      [MyPlugin] Debug
+			  <-> [MyPlugin] Collapsed group
+			        [MyPlugin] Log inside collapsed group
+			<t> [MyPlugin] Time: X ms
+			"
+		`);
 				done();
 			});
 		});
@@ -927,16 +935,16 @@ describe("Compiler", () => {
 			compiler.run((err, stats) => {
 				expect(escapeAnsi(capture.toStringRaw()).replace(/[\d.]+ ms/, "X ms"))
 					.toMatchInlineSnapshot(`
-"<-> <CLR=36,BOLD>[MyPlugin] Group</CLR>
-  <e> <CLR=31,BOLD>[MyPlugin] Error</CLR>
-  <w> <CLR=33,BOLD>[MyPlugin] Warning</CLR>
-  <i> <CLR=32,BOLD>[MyPlugin] Info</CLR>
-      <CLR=BOLD>[MyPlugin] Log<CLR=22>
-  <-> <CLR=36,BOLD>[MyPlugin] Collapsed group</CLR>
-        <CLR=BOLD>[MyPlugin] Log inside collapsed group<CLR=22>
-<t> <CLR=35,BOLD>[MyPlugin] Time: X ms</CLR>
-"
-`);
+			"<-> <CLR=36,BOLD>[MyPlugin] Group</CLR>
+			  <e> <CLR=31,BOLD>[MyPlugin] Error</CLR>
+			  <w> <CLR=33,BOLD>[MyPlugin] Warning</CLR>
+			  <i> <CLR=32,BOLD>[MyPlugin] Info</CLR>
+			      <CLR=BOLD>[MyPlugin] Log<CLR=22>
+			  <-> <CLR=36,BOLD>[MyPlugin] Collapsed group</CLR>
+			        <CLR=BOLD>[MyPlugin] Log inside collapsed group<CLR=22>
+			<t> <CLR=35,BOLD>[MyPlugin] Time: X ms</CLR>
+			"
+		`);
 				done();
 			});
 		});
@@ -958,17 +966,207 @@ describe("Compiler", () => {
 			compiler.run((err, stats) => {
 				expect(escapeAnsi(capture.toStringRaw()).replace(/[\d.]+ ms/, "X ms"))
 					.toMatchInlineSnapshot(`
-"<-> <CLR=36,BOLD>[MyPlugin] Group</CLR>
-  <e> <CLR=31,BOLD>[MyPlugin] Error</CLR>
-  <w> <CLR=33,BOLD>[MyPlugin] Warning</CLR>
-  <i> <CLR=32,BOLD>[MyPlugin] Info</CLR>
-      <CLR=BOLD>[MyPlugin] Log<CLR=22>
-      [MyPlugin] Debug
-  <-> <CLR=36,BOLD>[MyPlugin] Collapsed group</CLR>
-        <CLR=BOLD>[MyPlugin] Log inside collapsed group<CLR=22>
-<t> <CLR=35,BOLD>[MyPlugin] Time: X ms</CLR>
-"
-`);
+			"<-> <CLR=36,BOLD>[MyPlugin] Group</CLR>
+			  <e> <CLR=31,BOLD>[MyPlugin] Error</CLR>
+			  <w> <CLR=33,BOLD>[MyPlugin] Warning</CLR>
+			  <i> <CLR=32,BOLD>[MyPlugin] Info</CLR>
+			      <CLR=BOLD>[MyPlugin] Log<CLR=22>
+			      [MyPlugin] Debug
+			  <-> <CLR=36,BOLD>[MyPlugin] Collapsed group</CLR>
+			        <CLR=BOLD>[MyPlugin] Log inside collapsed group<CLR=22>
+			<t> <CLR=35,BOLD>[MyPlugin] Time: X ms</CLR>
+			"
+		`);
+				done();
+			});
+		});
+	});
+
+	describe("compilation", () => {
+		it("should be called", done => {
+			const mockFn = jest.fn();
+			class MyPlugin {
+				apply(compiler: Compiler) {
+					compiler.hooks.compilation.tap("Plugin", compilation => {
+						mockFn();
+					});
+				}
+			}
+			const compiler = rspack({
+				entry: "./d",
+				context: path.join(__dirname, "fixtures"),
+				plugins: [new MyPlugin()]
+			});
+
+			compiler.build(() => {
+				compiler.build(() => {
+					expect(mockFn).toBeCalledTimes(2);
+					done();
+				});
+			});
+		});
+
+		it("should get assets with both `getAssets` and `assets`(getter)", done => {
+			class MyPlugin {
+				apply(compiler: Compiler) {
+					compiler.hooks.compilation.tap("Plugin", compilation => {
+						compilation.hooks.processAssets.tap("Plugin", () => {
+							let list = compilation.getAssets();
+							let map = compilation.assets;
+
+							expect(Object.keys(map)).toHaveLength(list.length);
+
+							list.forEach(a => {
+								const b = map[a.name];
+								expect(a.source.buffer()).toEqual(b.buffer());
+							});
+						});
+					});
+				}
+			}
+
+			const compiler = rspack({
+				entry: "./d",
+				context: path.join(__dirname, "fixtures"),
+				plugins: [new MyPlugin()]
+			});
+
+			compiler.build((_, stats) => {
+				done();
+			});
+		});
+
+		it("should update assets", done => {
+			class MyPlugin {
+				apply(compiler: Compiler) {
+					compiler.hooks.compilation.tap("Plugin", compilation => {
+						compilation.hooks.processAssets.tap("Plugin", () => {
+							const oldSource = compilation.assets["main.js"];
+							expect(oldSource).toBeTruthy();
+							expect(oldSource.source().includes("This is d")).toBeTruthy();
+
+							const updatedSource = new RawSource(
+								`module.exports = "This is the updated d"`
+							);
+							compilation.updateAsset(
+								"main.js",
+								source => {
+									expect(source.buffer()).toEqual(oldSource!.buffer());
+									return updatedSource;
+								},
+								_ => _
+							);
+
+							const newSource = compilation.assets["main.js"];
+							expect(newSource).toBeTruthy();
+							expect(newSource.buffer()).toStrictEqual(updatedSource.buffer());
+						});
+					});
+				}
+			}
+
+			const compiler = rspack({
+				entry: "./d",
+				context: path.join(__dirname, "fixtures"),
+				plugins: [new MyPlugin()]
+			});
+
+			compiler.build((_, stats) => {
+				done();
+			});
+		});
+
+		it("should throw if the asset to be updated is not exist", done => {
+			class MyPlugin {
+				apply(compiler: Compiler) {
+					compiler.hooks.compilation.tap("Plugin", compilation => {
+						compilation.hooks.processAssets.tap("Plugin", () => {
+							// TODO: the error should be more friendly, the current error is
+							// process_assets is not ok, err InternalError(
+							// Failed to call process assets RecvError(())",
+							// )
+							expect(() =>
+								compilation.updateAsset(
+									"something-else.js",
+									new RawSource(`module.exports = "something-else"`),
+									{ minimized: true, development: true, related: {} }
+								)
+							).toThrow();
+						});
+					});
+				}
+			}
+
+			const compiler = rspack({
+				entry: "./d",
+				context: path.join(__dirname, "fixtures"),
+				plugins: [new MyPlugin()]
+			});
+
+			compiler.build((err, stats) => {
+				done();
+			});
+		});
+
+		it("should emit assets correctly", done => {
+			class MyPlugin {
+				apply(compiler: Compiler) {
+					compiler.hooks.compilation.tap("Plugin", compilation => {
+						let assets = compilation.getAssets();
+						expect(assets.length).toBe(0);
+
+						compilation.emitAsset(
+							"dd.js",
+							new RawSource(`module.exports = "This is dd"`)
+						);
+
+						compilation.hooks.processAssets.tap("Plugin", assets => {
+							let names = Object.keys(assets);
+
+							expect(names.length).toBe(3);
+							expect(names.includes("main.js")).toBeTruthy();
+							expect(assets["main.js"].source().includes("This is d"));
+
+							expect(names.includes("dd.js")).toBeTruthy();
+						});
+					});
+				}
+			}
+			const compiler = rspack({
+				entry: "./d",
+				context: path.join(__dirname, "fixtures"),
+				plugins: [new MyPlugin()]
+			});
+
+			compiler.build((_, stats) => {
+				done();
+			});
+		});
+
+		it("should have error if the asset to be emitted is exist", done => {
+			class MyPlugin {
+				apply(compiler: Compiler) {
+					compiler.hooks.compilation.tap("Plugin", compilation => {
+						compilation.hooks.processAssets.tap("Plugin", () => {
+							compilation.emitAsset(
+								"main.js",
+								new RawSource(`module.exports = "I'm the right main.js"`)
+							);
+						});
+					});
+				}
+			}
+
+			const compiler = rspack({
+				entry: "./d",
+				context: path.join(__dirname, "fixtures"),
+				plugins: [new MyPlugin()]
+			});
+
+			compiler.build((err, stats) => {
+				expect(stats.errors[0].message).toBe(
+					"Conflict: Multiple assets emit different content to the same filename main.js"
+				);
 				done();
 			});
 		});

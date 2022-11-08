@@ -142,3 +142,13 @@ pub struct OptimizeChunksArgs<'me> {
 pub struct DoneArgs<'s, 'c: 's> {
   pub stats: &'s mut Stats<'c>,
 }
+
+#[derive(Debug)]
+pub struct CompilationArgs<'c> {
+  pub compilation: &'c mut Compilation,
+}
+
+#[derive(Debug)]
+pub struct ThisCompilationArgs<'c> {
+  pub this_compilation: &'c mut Compilation,
+}

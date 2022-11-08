@@ -2,6 +2,7 @@ use std::{
   collections::VecDeque,
   fmt::Debug,
   marker::PhantomPinned,
+  pin::Pin,
   sync::atomic::{AtomicU32, Ordering},
   sync::Arc,
 };
@@ -16,11 +17,12 @@ use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use tokio::sync::mpsc::{error::TryRecvError, UnboundedSender};
 use tracing::instrument;
 
-use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity};
+use rspack_error::{Diagnostic, Error, IntoTWithDiagnosticArray, Result, Severity};
 use rspack_sources::BoxSource;
 use ustr::{ustr, Ustr};
 
 use crate::{
+  is_source_equal,
   split_chunks::code_splitting,
   tree_shaking::visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
   BuildContext, BundleEntries, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey,
@@ -108,8 +110,43 @@ impl Compilation {
       .generate_rspack_execute(namespace, "__rspack_require__", &entry_modules_id)
   }
 
+  pub fn update_asset(
+    self: Pin<&mut Self>,
+    filename: &str,
+    updater: impl FnOnce(&mut CompilationAsset) -> Result<()>,
+  ) -> Result<()> {
+    // Safety: we don't move anything from compilation
+    let assets = unsafe { self.map_unchecked_mut(|c| &mut c.assets) }.get_mut();
+
+    match assets.get_mut(filename) {
+      Some(asset) => updater(asset),
+      None => Err(Error::InternalError(format!(
+        "Called Compilation.updateAsset for not existing filename {}",
+        filename
+      ))),
+    }
+  }
+
   pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
-    self.assets.insert(filename, asset);
+    if let Some(mut original) = self.assets.remove(&filename) {
+      if !is_source_equal(&original.source, &asset.source) {
+        self.push_batch_diagnostic(
+          rspack_error::Error::InternalError(format!(
+            "Conflict: Multiple assets emit different content to the same filename {}{}",
+            filename,
+            // TODO: source file name
+            ""
+          ))
+          .into(),
+        );
+        self.assets.insert(filename, asset);
+        return;
+      }
+      original.info = asset.info;
+      self.assets.insert(filename, original);
+    } else {
+      self.assets.insert(filename, asset);
+    }
   }
 
   pub fn assets(&self) -> &CompilationAssets {

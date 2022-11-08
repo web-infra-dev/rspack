@@ -7,11 +7,6 @@
 		// 	inProgress[url].push(done);
 		// 	return;
 		// }
-		// TODO: should use `url` rather than `content`.
-		if (inProgress[content]) {
-			inProgress[content].push(done);
-			return;
-		}
 		var script, needAttach;
 		if (key !== undefined) {
 			var scripts = document.getElementsByTagName("script");

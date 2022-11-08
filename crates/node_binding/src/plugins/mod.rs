@@ -1,31 +1,31 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::pin::Pin;
 
-use napi::{CallContext, JsUndefined};
 use napi_derive::napi;
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
-use rspack_core::rspack_sources::{RawSource, SourceExt};
 use rspack_core::{
-  Compilation, DoneArgs, Plugin, PluginBuildEndHookOutput, PluginContext,
-  PluginProcessAssetsHookOutput, ProcessAssetsArgs,
+  Compilation, CompilationArgs, DoneArgs, Plugin, PluginBuildEndHookOutput,
+  PluginCompilationHookOutput, PluginContext, PluginProcessAssetsHookOutput,
+  PluginThisCompilationHookOutput, ProcessAssetsArgs, ThisCompilationArgs,
 };
 use rspack_error::Error;
 
-use crate::js_values::StatsCompilation;
 use crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
-use crate::{AssetContent, UpdateAssetOptions};
+
+use crate::{JsCompatSource, JsCompilation, StatsCompilation, ToJsCompatSource};
 
 mod utils;
 pub use utils::*;
 
-pub type BoxedClosure = Box<dyn Fn(CallContext<'_>) -> napi::Result<JsUndefined>>;
-
 pub struct RspackPluginNodeAdapter {
   pub done_tsfn: ThreadsafeFunction<StatsCompilation, ()>,
-  pub process_assets_tsfn: ThreadsafeFunction<(String, BoxedClosure), ()>,
+  pub compilation_tsfn: ThreadsafeFunction<JsCompilation, ()>,
+  pub this_compilation_tsfn: ThreadsafeFunction<JsCompilation, ()>,
+  pub process_assets_tsfn: ThreadsafeFunction<HashMap<String, JsCompatSource>, ()>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -45,58 +45,57 @@ impl Plugin for RspackPluginNodeAdapter {
   fn name(&self) -> &'static str {
     "rspack_plugin_node_adapter"
   }
+
+  #[tracing::instrument(skip_all)]
+  fn compilation(&mut self, args: CompilationArgs) -> PluginCompilationHookOutput {
+    let compilation = JsCompilation::from_compilation(unsafe {
+      Pin::new_unchecked(std::mem::transmute::<
+        &'_ mut Compilation,
+        &'static mut Compilation,
+      >(args.compilation))
+    });
+
+    self
+      .compilation_tsfn
+      .call(compilation, ThreadsafeFunctionCallMode::Blocking)?;
+    Ok(())
+  }
+
+  #[tracing::instrument(skip_all)]
+  fn this_compilation(&mut self, args: ThisCompilationArgs) -> PluginThisCompilationHookOutput {
+    let compilation = JsCompilation::from_compilation(unsafe {
+      Pin::new_unchecked(std::mem::transmute::<
+        &'_ mut Compilation,
+        &'static mut Compilation,
+      >(args.this_compilation))
+    });
+
+    self
+      .this_compilation_tsfn
+      .call(compilation, ThreadsafeFunctionCallMode::Blocking)?;
+    Ok(())
+  }
+
   #[tracing::instrument(skip_all)]
   async fn process_assets(
     &mut self,
     _ctx: PluginContext,
     args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsHookOutput {
-    let assets: HashMap<String, Vec<u8>> = args
-      .compilation
-      .assets
-      .iter()
-      .map(|asset| (asset.0.clone(), asset.1.get_source().buffer().to_vec()))
-      .collect();
+    let mut assets = HashMap::<String, JsCompatSource>::new();
 
-    let rx = {
-      let compilation = args.compilation as *mut Compilation;
+    for (filename, asset) in &args.compilation.assets {
+      let source = asset.source.as_ref().to_js_compat_source()?;
+      assets.insert(filename.clone(), source);
+    }
 
-      let emit_asset = move |call_context: CallContext<'_>| {
-        let options = call_context.get::<UpdateAssetOptions>(0)?;
-
-        // Safety: since the `compilation` will available throughout the build procedure, this operation is always considered safe under the `processAsset` hook.
-        // For developers who use `@rspack/binding` under the hood, exposing a reference to the `emit_asset` fn to user side is strongly not recommended since `compilation` may be dropped.
-        let compilation = unsafe { &mut *compilation.cast::<Compilation>() };
-        let asset = compilation.assets.get_mut(&options.filename).unwrap();
-        asset.set_source(match options.asset {
-          AssetContent {
-            buffer: Some(buffer),
-            source: None,
-          } => RawSource::Buffer(buffer.into()).boxed(),
-          AssetContent {
-            buffer: None,
-            source: Some(source),
-          } => RawSource::Source(source).boxed(),
-          _ => panic!("AssetContent can only be string or buffer"),
-        });
-
-        call_context.env.get_undefined()
-      };
-
-      let value = serde_json::to_string(&assets)
-        .map_err(|_| Error::InternalError("Failed to stringify assets".to_owned()))?;
-
-      self
-        .process_assets_tsfn
-        .call(
-          (value, Box::new(emit_asset) as BoxedClosure),
-          ThreadsafeFunctionCallMode::Blocking,
-        )
-        .map_err(Error::from)?
-    };
+    let rx = self
+      .process_assets_tsfn
+      .call(assets, ThreadsafeFunctionCallMode::Blocking)
+      .map_err(Error::from)?;
 
     rx.await
-      .map_err(|err| Error::InternalError(format!("{:?}", err)))
+      .map_err(|err| Error::InternalError(format!("Failed to call process assets {:?}", err)))
   }
 
   #[tracing::instrument(skip_all)]
@@ -113,7 +112,7 @@ impl Plugin for RspackPluginNodeAdapter {
       )
       .map_err(Error::from)?
       .await
-      .map_err(|err| Error::InternalError(format!("{:?}", err)))?;
+      .map_err(|err| Error::InternalError(format!("Failed to call done {:?}", err)))?;
 
     Ok(())
   }
