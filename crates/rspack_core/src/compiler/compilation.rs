@@ -1,4 +1,5 @@
 use std::{
+  borrow::BorrowMut,
   collections::VecDeque,
   fmt::Debug,
   marker::PhantomPinned,
@@ -9,6 +10,7 @@ use std::{
 
 use futures::{stream::FuturesUnordered, StreamExt};
 use hashbrown::{
+  hash_map::Entry,
   hash_set::Entry::{Occupied, Vacant},
   HashMap, HashSet,
 };
@@ -701,7 +703,7 @@ impl Compilation {
     let mut errors = vec![];
     let mut used_symbol = HashSet::new();
     // Marking used symbol and all reachable export symbol from the used symbol for each module
-    let used_symbol_from_import = mark_used_symbol(
+    let used_symbol_from_import = mark_used_symbol_with(
       &analyze_results,
       VecDeque::from_iter(used_symbol_ref.into_iter()),
       &mut errors,
@@ -875,10 +877,38 @@ fn collect_reachable_symbol(
     }
   };
 
+  // deduplicate reexport in entry module start
+  let mut export_symbol_count_map: HashMap<JsWord, (SymbolRef, usize)> = entry_module_result
+    .export_map
+    .iter()
+    .map(|(symbol_name, symbol_ref)| (symbol_name.clone(), (symbol_ref.clone(), 1)))
+    .collect();
   // All the reexport star symbol should be included in the bundle
-  for (_, extend_map) in entry_module_result.inherit_export_maps.iter() {
-    q.extend(extend_map.values().cloned());
+  // TODO: esbuild will hidden the duplicate reexport, webpack will emit an error
+  // which should we align to?
+  for (_, inherit_map) in entry_module_result.inherit_export_maps.iter() {
+    for (atom, symbol_ref) in inherit_map.iter() {
+      match export_symbol_count_map.entry(atom.clone()) {
+        Entry::Occupied(mut occ) => {
+          occ.borrow_mut().get_mut().1 += 1;
+        }
+        Entry::Vacant(vac) => {
+          vac.insert((symbol_ref.clone(), 1));
+        }
+      };
+    }
   }
+
+  q.extend(export_symbol_count_map.into_iter().filter_map(
+    |(_, v)| {
+      if v.1 == 1 {
+        Some(v.0)
+      } else {
+        None
+      }
+    },
+  ));
+  // deduplicate reexport in entry end
 
   for item in entry_module_result.export_map.values() {
     mark_symbol(
@@ -896,7 +926,7 @@ fn collect_reachable_symbol(
   used_symbol_set
 }
 
-fn mark_used_symbol(
+fn mark_used_symbol_with(
   analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
   mut init_queue: VecDeque<SymbolRef>,
   errors: &mut Vec<Error>,
