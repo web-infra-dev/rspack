@@ -1,14 +1,12 @@
-use std::pin::Pin;
-
 use async_trait::async_trait;
 use rspack_error::Result;
 
 use common::*;
 use node::*;
 use rspack_core::{
-  rspack_sources::RawSource, Plugin, PluginContext, PluginRenderManifestHookOutput,
-  PluginRenderRuntimeHookOutput, RenderManifestArgs, RenderManifestEntry, RenderRuntimeArgs,
-  TargetPlatform, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
+  rspack_sources::RawSource, AssetInfo, CompilationAsset, Plugin, PluginContext,
+  PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, RenderManifestArgs,
+  RenderRuntimeArgs, TargetPlatform, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
 };
 use web::*;
 use web_worker::*;
@@ -139,20 +137,9 @@ impl Plugin for RuntimePlugin {
   fn render_manifest(
     &self,
     _ctx: PluginContext,
-    args: RenderManifestArgs,
+    _args: RenderManifestArgs,
   ) -> PluginRenderManifestHookOutput {
-    let compilation = args.compilation;
-    //Todo we need add optimize.runtime to ensure runtime generation
-    if compilation.options.target.platform.is_web() {
-      let compilation = args.compilation;
-      let runtime = &compilation.runtime;
-      Ok(vec![RenderManifestEntry::new(
-        runtime.generate(),
-        RUNTIME_FILE_NAME.to_string() + ".js",
-      )])
-    } else {
-      Ok(vec![])
-    }
+    Ok(vec![])
   }
 
   async fn process_assets(
@@ -187,19 +174,12 @@ impl Plugin for RuntimePlugin {
           compilation.emit_asset(file.to_string(), source);
         }
       }
-      _ => {
-        let new_source = compilation.runtime.generate();
-
-        unsafe {
-          Pin::new_unchecked(&mut *compilation).update_asset(
-            &(RUNTIME_FILE_NAME.to_string() + ".js"),
-            |s| {
-              s.source = new_source;
-
-              Ok(())
-            },
-          )?
-        };
+      // TODO: align `TargetPlatform::None` with Webpack, see: https://webpack.js.org/configuration/target/#false
+      TargetPlatform::BrowsersList | TargetPlatform::Web | TargetPlatform::None => {
+        compilation.emit_asset(
+          RUNTIME_FILE_NAME.to_string() + ".js",
+          CompilationAsset::new(compilation.runtime.generate(), AssetInfo::default()),
+        );
       }
     }
 

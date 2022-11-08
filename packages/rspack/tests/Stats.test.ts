@@ -49,7 +49,6 @@ describe("Stats", () => {
 		      "entry": true,
 		      "files": [
 		        "main.js",
-		        "runtime.js",
 		      ],
 		      "id": "main",
 		      "initial": true,
@@ -83,7 +82,7 @@ describe("Stats", () => {
 		"     Asset       Size  Chunks  Chunk Names
 		runtime.js   14.4 KiB          
 		   main.js  210 bytes    main  main
-		chunk {main} main.js, runtime.js (main) 55 bytes [entry]
+		chunk {main} main.js (main) 55 bytes [entry]
 		[./fixtures/a.js] 55 bytes {main}"
 	`);
 	});
