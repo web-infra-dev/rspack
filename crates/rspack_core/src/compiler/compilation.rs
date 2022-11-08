@@ -19,14 +19,20 @@ use swc_atoms::JsWord;
 use tokio::sync::mpsc::{error::TryRecvError, UnboundedSender};
 use tracing::instrument;
 
-use rspack_error::{Diagnostic, Error, IntoTWithDiagnosticArray, Result, Severity};
+use rspack_error::{
+  errors_to_diagnostics, Diagnostic, Error, IntoTWithDiagnosticArray, Result, Severity,
+  TWithDiagnosticArray,
+};
 use rspack_sources::BoxSource;
 use ustr::{ustr, Ustr};
 
 use crate::{
-  is_source_equal,
+  is_source_equal, join_string_component,
   split_chunks::code_splitting,
-  tree_shaking::visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
+  tree_shaking::{
+    visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
+    OptimizeDependencyResult,
+  },
   BuildContext, BundleEntries, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey,
   ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint, LoaderRunnerRunner,
   ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModule,
@@ -605,7 +611,7 @@ impl Compilation {
 
   pub async fn optimize_dependency(
     &mut self,
-  ) -> Result<(HashSet<Symbol>, HashMap<Ustr, TreeShakingResult>)> {
+  ) -> Result<TWithDiagnosticArray<OptimizeDependencyResult>> {
     let mut analyze_results = self
       .module_graph
       .module_identifier_to_module_graph_module
@@ -659,20 +665,20 @@ impl Compilation {
     }
 
     // calculate relation of module that has `export * from 'xxxx'`
-    let inherit_export_ref_graph = create_graph(&analyze_results);
+    let inherit_export_ref_graph = create_inherit_graph(&analyze_results);
     // key is the module_id of module that potential have reexport all symbol from other module
     // value is the set which contains several module_id the key related module need to inherit
     let map_of_inherit_map = get_extends_map(&inherit_export_ref_graph);
 
     for (module_id, inherit_export_module_id) in map_of_inherit_map.iter() {
-      // This is just a work around for rustc checker, because we have immutable and mutable borrow in same time.
+      // This is just a work around for rustc checker, because we have immutable and mutable borrow at the same time.
       let mut inherit_export_maps = {
         let main_module = analyze_results.get_mut(module_id).unwrap();
         std::mem::take(&mut main_module.inherit_export_maps)
       };
-      for inherit_export_module in inherit_export_module_id {
+      for inherit_export_module_identifier in inherit_export_module_id {
         let export_module = analyze_results
-          .get(inherit_export_module)
+          .get(inherit_export_module_identifier)
           .unwrap()
           .export_map
           .iter()
@@ -685,30 +691,37 @@ impl Compilation {
             }
           })
           .collect::<HashMap<JsWord, SymbolRef>>();
-        inherit_export_maps.insert(*inherit_export_module, export_module);
+        inherit_export_maps.insert(*inherit_export_module_identifier, export_module);
       }
       analyze_results
         .get_mut(module_id)
         .unwrap()
         .inherit_export_maps = inherit_export_maps;
     }
-
+    let mut errors = vec![];
     let mut used_symbol = HashSet::new();
     // Marking used symbol and all reachable export symbol from the used symbol for each module
     let used_symbol_from_import = mark_used_symbol(
       &analyze_results,
       VecDeque::from_iter(used_symbol_ref.into_iter()),
+      &mut errors,
     );
 
     used_symbol.extend(used_symbol_from_import);
 
     // We considering all export symbol in each entry module as used for now
     for entry in self.entry_modules() {
-      let used_symbol_set = collect_reachable_symbol(&analyze_results, ustr(&entry));
+      let used_symbol_set = collect_reachable_symbol(&analyze_results, ustr(&entry), &mut errors);
       used_symbol.extend(used_symbol_set);
     }
 
-    Ok((used_symbol, analyze_results))
+    Ok(
+      OptimizeDependencyResult {
+        used_symbol,
+        analyze_results,
+      }
+      .with_diagnostic(errors_to_diagnostics(errors)),
+    )
   }
 
   pub async fn done(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
@@ -851,6 +864,7 @@ pub struct AssetInfoRelated {
 fn collect_reachable_symbol(
   analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
   entry_identifier: Ustr,
+  errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
   let mut used_symbol_set = HashSet::new();
   let mut q = VecDeque::new();
@@ -867,11 +881,17 @@ fn collect_reachable_symbol(
   }
 
   for item in entry_module_result.export_map.values() {
-    mark_symbol(item.clone(), &mut used_symbol_set, analyze_map, &mut q);
+    mark_symbol(
+      item.clone(),
+      &mut used_symbol_set,
+      analyze_map,
+      &mut q,
+      errors,
+    );
   }
 
   while let Some(sym_ref) = q.pop_front() {
-    mark_symbol(sym_ref, &mut used_symbol_set, analyze_map, &mut q);
+    mark_symbol(sym_ref, &mut used_symbol_set, analyze_map, &mut q, errors);
   }
   used_symbol_set
 }
@@ -879,6 +899,7 @@ fn collect_reachable_symbol(
 fn mark_used_symbol(
   analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
   mut init_queue: VecDeque<SymbolRef>,
+  errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
   let mut used_symbol_set = HashSet::new();
   let mut visited = HashSet::new();
@@ -889,7 +910,13 @@ fn mark_used_symbol(
     } else {
       visited.insert(sym_ref.clone());
     }
-    mark_symbol(sym_ref, &mut used_symbol_set, analyze_map, &mut init_queue);
+    mark_symbol(
+      sym_ref,
+      &mut used_symbol_set,
+      analyze_map,
+      &mut init_queue,
+      errors,
+    );
   }
   used_symbol_set
 }
@@ -899,6 +926,7 @@ fn mark_symbol(
   used_symbol_set: &mut HashSet<Symbol>,
   analyze_map: &HashMap<Ustr, TreeShakingResult>,
   q: &mut VecDeque<SymbolRef>,
+  errors: &mut Vec<Error>,
 ) {
   match item {
     SymbolRef::Direct(symbol) => match used_symbol_set.entry(symbol) {
@@ -916,20 +944,46 @@ fn mark_symbol(
     },
     SymbolRef::Indirect(indirect_symbol) => {
       let module_result = analyze_map.get(&indirect_symbol.uri).unwrap();
-      let symbol = module_result
-        .export_map
-        .get(&indirect_symbol.id)
-        .or_else(|| {
+      let symbol = match module_result.export_map.get(&indirect_symbol.id) {
+        Some(symbol) => symbol.clone(),
+        None => {
           // TODO: better diagnostic and handle if multiple extends_map has export same symbol
-          for (_, extends_export_map) in module_result.inherit_export_maps.iter() {
+          let mut ret = vec![];
+          for (module_identifier, extends_export_map) in module_result.inherit_export_maps.iter() {
             if let Some(value) = extends_export_map.get(&indirect_symbol.id) {
-              return Some(value);
+              ret.push((module_identifier, value));
             }
           }
-          None
-        })
-        .unwrap();
-      q.push_back(symbol.clone());
+          match ret.len() {
+            0 => {
+              // TODO: Better diagnostic handle if source module does not have the export
+              panic!(
+                "{} did not export `{}`",
+                module_result.module_identifier, indirect_symbol.id
+              )
+            }
+            1 => ret[0].1.clone(),
+            // multiple export candidate in reexport
+            // mark the first symbol_ref as used, align to webpack
+            _ => {
+              // TODO: better traceable diagnostic
+              let mut error_message = format!(
+                "Conflicting star exports for the name '{}' in ",
+                indirect_symbol.id
+              );
+
+              let module_identifier_list = ret
+                .iter()
+                .map(|item| item.0.to_string())
+                .collect::<Vec<_>>();
+              error_message += &join_string_component(module_identifier_list);
+              errors.push(Error::InternalError(error_message));
+              ret[0].1.clone()
+            }
+          }
+        }
+      };
+      q.push_back(symbol);
     }
     SymbolRef::Star(star) => {
       // If a star ref is used. e.g.
@@ -979,7 +1033,7 @@ fn get_reachable(start: Ustr, g: &GraphMap<&Ustr, (), petgraph::Directed>) -> Ha
   reachable_module_id
 }
 
-fn create_graph(
+fn create_inherit_graph(
   analyze_map: &HashMap<Ustr, TreeShakingResult>,
 ) -> GraphMap<&Ustr, (), petgraph::Directed> {
   let mut g = petgraph::graphmap::DiGraphMap::new();

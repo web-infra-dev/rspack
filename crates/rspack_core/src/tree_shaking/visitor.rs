@@ -2,6 +2,7 @@ use std::{collections::VecDeque, hash::Hash};
 
 use bitflags::bitflags;
 use hashbrown::{hash_map::Entry, HashMap, HashSet};
+use indexmap::IndexMap;
 use swc_atoms::JsWord;
 use swc_common::{util::take::Take, Mark, GLOBALS};
 use swc_ecma_ast::*;
@@ -39,7 +40,8 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   /// export * from './test.js'
   /// ```
   /// then inherit_exports_maps become, `{"test.js": {...test_js_export_map} }`
-  pub inherit_export_maps: HashMap<Ustr, HashMap<JsWord, SymbolRef>>,
+  // Use `IndexMap` to keep the insertion order
+  pub inherit_export_maps: IndexMap<Ustr, HashMap<JsWord, SymbolRef>>,
   current_body_owner_symbol_ext: Option<SymbolExt>,
   pub(crate) reference_map: HashMap<SymbolExt, HashSet<IdOrMemExpr>>,
   pub(crate) reachable_import_and_export: HashMap<JsWord, HashSet<SymbolRef>>,
@@ -64,7 +66,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       module_graph: dep_to_module_identifier,
       export_map: HashMap::default(),
       import_map: HashMap::default(),
-      inherit_export_maps: HashMap::default(),
+      inherit_export_maps: IndexMap::default(),
       current_body_owner_symbol_ext: None,
       reference_map: HashMap::default(),
       reachable_import_and_export: HashMap::default(),
@@ -732,10 +734,10 @@ impl<'a> ModuleRefAnalyze<'a> {
 pub struct TreeShakingResult {
   top_level_mark: Mark,
   unresolved_mark: Mark,
-  module_identifier: Ustr,
+  pub module_identifier: Ustr,
   pub export_map: HashMap<JsWord, SymbolRef>,
   pub(crate) import_map: HashMap<BetterId, SymbolRef>,
-  pub inherit_export_maps: HashMap<Ustr, HashMap<JsWord, SymbolRef>>,
+  pub inherit_export_maps: IndexMap<Ustr, HashMap<JsWord, SymbolRef>>,
   // current_region: Option<BetterId>,
   // pub(crate) reference_map: HashMap<BetterId, HashSet<BetterId>>,
   pub(crate) reachable_import_of_export: HashMap<JsWord, HashSet<SymbolRef>>,
