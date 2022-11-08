@@ -287,22 +287,22 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
       "chunks": [
         "main",
       ],
-      "id": "./a.js",
-      "identifier": "<PROJECT_ROOT>/tests/statsCases/parse-error/a.js",
+      "id": "./b.js",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/parse-error/b.js",
       "moduleType": "js",
-      "name": "./a.js",
-      "size": 14,
+      "name": "./b.js",
+      "size": 55,
       "type": "module",
     },
     {
       "chunks": [
         "main",
       ],
-      "id": "./b.js",
-      "identifier": "<PROJECT_ROOT>/tests/statsCases/parse-error/b.js",
+      "id": "./a.js",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/parse-error/a.js",
       "moduleType": "js",
-      "name": "./b.js",
-      "size": 55,
+      "name": "./a.js",
+      "size": 14,
       "type": "module",
     },
     {
@@ -326,8 +326,8 @@ exports[`StatsTestCases should print correct stats for parse-error 2`] = `
 "    Asset     Size  Chunks  Chunk Names
 bundle.js  1.8 KiB    main  main
 chunk {main} bundle.js (main) 83 bytes [entry]
-[./a.js] 14 bytes {main}
 [./b.js] 55 bytes {main}
+[./a.js] 14 bytes {main}
 [./index.js] 14 bytes {main}
 
 error[javascript]: JavaScript parsing error
