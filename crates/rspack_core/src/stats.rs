@@ -125,7 +125,13 @@ impl<'compilation> Stats<'compilation> {
         }
       })
       .collect();
-    modules.sort_by_cached_key(|m| m.name.len()); // TODO: sort by module.depth
+    modules.sort_by(|a, b| {
+      if a.name.len() != b.name.len() {
+        a.name.len().cmp(&b.name.len())
+      } else {
+        a.name.cmp(&b.name)
+      }
+    }); // TODO: sort by module.depth
 
     let mut diagnostic_displayer = DiagnosticDisplayer::new(self.compilation.options.stats.colors);
     let errors: Vec<StatsError> = self
