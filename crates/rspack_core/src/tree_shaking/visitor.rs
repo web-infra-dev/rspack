@@ -12,7 +12,7 @@ use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
 use ustr::{ustr, Ustr};
 
 use crate::{Dependency, ModuleGraph, ResolveKind};
-use rspack_symbol::{BetterId, IndirectTopLevelSymbol, Symbol, SymbolExt, SymbolFlag};
+use rspack_symbol::{BetterId, IdOrMemExpr, IndirectTopLevelSymbol, Symbol, SymbolExt, SymbolFlag};
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SymbolRef {
   Direct(Symbol),
@@ -39,10 +39,10 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   /// list of uri, each uri represent export all named export from specific uri
   pub export_all_list: Vec<Ustr>,
   current_body_owner_symbol_ext: Option<SymbolExt>,
-  pub(crate) reference_map: AHashMap<SymbolExt, AHashSet<BetterId>>,
+  pub(crate) reference_map: AHashMap<SymbolExt, AHashSet<IdOrMemExpr>>,
   pub(crate) reachable_import_and_export: AHashMap<JsWord, AHashSet<SymbolRef>>,
   state: AnalyzeState,
-  pub(crate) used_id_set: AHashSet<BetterId>,
+  pub(crate) used_id_set: AHashSet<IdOrMemExpr>,
   pub(crate) used_symbol_ref: AHashSet<SymbolRef>,
   // This field is used for duplicated export default checking
   pub(crate) export_default_name: Option<JsWord>,
@@ -73,8 +73,8 @@ impl<'a> ModuleRefAnalyze<'a> {
     }
   }
 
-  pub fn add_reference(&mut self, from: SymbolExt, to: BetterId) {
-    if from.id() == &to {
+  pub fn add_reference(&mut self, from: SymbolExt, to: IdOrMemExpr) {
+    if matches!(&to, IdOrMemExpr::Id(to_id) if to_id == from.id()) {
       return;
     }
     match self.reference_map.entry(from) {
@@ -89,36 +89,48 @@ impl<'a> ModuleRefAnalyze<'a> {
 
   /// Collecting all reachable import binding from given start binding
   pub fn get_all_import_or_export(&self, start: BetterId) -> AHashSet<SymbolRef> {
-    let mut seen: AHashSet<BetterId> = AHashSet::default();
-    let mut q: VecDeque<BetterId> = VecDeque::from_iter([start]);
+    let mut seen: AHashSet<IdOrMemExpr> = AHashSet::default();
+    let mut q: VecDeque<IdOrMemExpr> = VecDeque::from_iter([IdOrMemExpr::Id(start)]);
     while let Some(cur) = q.pop_front() {
       if seen.contains(&cur) {
         continue;
       }
-      if let Some(ref_list) = self.reference_map.get(&cur.clone().into()) {
+      let id = cur.get_id();
+      if let Some(ref_list) = self.reference_map.get(&id.clone().into()) {
         q.extend(ref_list.clone());
       }
       seen.insert(cur);
     }
     return seen
       .iter()
-      .filter_map(|id| {
-        let ret =
-          self
-            .import_map
-            .get(id)
-            .cloned()
-            .or_else(|| match self.export_map.get(&id.atom) {
-              Some(sym_ref @ SymbolRef::Direct(sym)) => {
-                if sym.id() == id {
-                  Some(sym_ref.clone())
-                } else {
-                  None
+      .filter_map(|id_or_mem_expr| match id_or_mem_expr {
+        IdOrMemExpr::Id(id) => {
+          let ret =
+            self
+              .import_map
+              .get(id)
+              .cloned()
+              .or_else(|| match self.export_map.get(&id.atom) {
+                Some(sym_ref @ SymbolRef::Direct(sym)) => {
+                  if sym.id() == id {
+                    Some(sym_ref.clone())
+                  } else {
+                    None
+                  }
                 }
-              }
-              _ => None,
-            });
-        ret
+                _ => None,
+              });
+          ret
+        }
+        IdOrMemExpr::MemberExpr { object, property } => {
+          self.import_map.get(object).map(|sym_ref| match sym_ref {
+            SymbolRef::Direct(_) | SymbolRef::Indirect(_) => sym_ref.clone(),
+            SymbolRef::Star(uri) => SymbolRef::Indirect(IndirectTopLevelSymbol {
+              uri: *uri,
+              id: property.clone(),
+            }),
+          })
+        }
       })
       .collect();
   }
@@ -161,17 +173,38 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         if !symbol.flag.contains(SymbolFlag::VAR_DECL) {
           false
         } else {
-          ref_list
-            .iter()
-            .any(|ref_id| self.import_map.contains_key(ref_id))
+          ref_list.iter().any(|ref_id| {
+            self.import_map.contains_key(match ref_id {
+              IdOrMemExpr::Id(id) => id,
+              IdOrMemExpr::MemberExpr { object, .. } => object,
+            })
+          })
         }
       })
-      .map(|(k, _)| k.id().clone());
+      .map(|(k, _)| IdOrMemExpr::Id(k.id().clone()));
     self.used_id_set.extend(side_effect_id_list);
     // all reachable export from used symbol in current module
     for used_id in &self.used_id_set {
-      let reachable_import = self.get_all_import_or_export(used_id.clone());
-      self.used_symbol_ref.extend(reachable_import);
+      match used_id {
+        IdOrMemExpr::Id(id) => {
+          let reachable_import = self.get_all_import_or_export(id.clone());
+          self.used_symbol_ref.extend(reachable_import);
+        }
+        IdOrMemExpr::MemberExpr { object, property } => match self.import_map.get(object) {
+          Some(SymbolRef::Star(uri)) => {
+            self
+              .used_symbol_ref
+              .insert(SymbolRef::Indirect(IndirectTopLevelSymbol {
+                uri: *uri,
+                id: property.clone(),
+              }));
+          }
+          _ => {
+            let reachable_import = self.get_all_import_or_export(object.clone());
+            self.used_symbol_ref.extend(reachable_import);
+          }
+        },
+      }
     }
   }
 
@@ -181,10 +214,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     if mark == self.top_level_mark {
       match self.current_body_owner_symbol_ext {
         Some(ref body_owner_symbol_ext) if body_owner_symbol_ext.id() != &id => {
-          self.add_reference(body_owner_symbol_ext.clone(), id);
+          self.add_reference(body_owner_symbol_ext.clone(), IdOrMemExpr::Id(id));
         }
         None => {
-          self.used_id_set.insert(id);
+          self.used_id_set.insert(IdOrMemExpr::Id(id));
         }
         _ => {}
       }
@@ -329,6 +362,62 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     self.current_body_owner_symbol_ext = before_owner_extend_symbol;
   }
 
+  fn visit_member_expr(&mut self, node: &MemberExpr) {
+    match (&*node.obj, &node.prop) {
+      // a.b
+      (Expr::Ident(obj), MemberProp::Ident(prop)) => {
+        let id: BetterId = obj.to_id().into();
+        let mark = id.ctxt.outer();
+        if mark == self.top_level_mark {
+          let member_expr = IdOrMemExpr::MemberExpr {
+            object: id.clone(),
+            property: prop.sym.clone(),
+          };
+          match self.current_body_owner_symbol_ext {
+            Some(ref body_owner_symbol_ext) if body_owner_symbol_ext.id() != &id => {
+              self.add_reference(body_owner_symbol_ext.clone(), member_expr);
+            }
+            None => {
+              self.used_id_set.insert(member_expr);
+            }
+            _ => {}
+          }
+        }
+      }
+      // TODO: Do we need to consider such scenario ?
+      // obj[`test`] use a template literal but actually is a pure string lit
+      // obj['prop']
+      (
+        Expr::Ident(obj),
+        MemberProp::Computed(ComputedPropName {
+          expr: box Expr::Lit(Lit::Str(Str { value, .. })),
+          ..
+        }),
+      ) => {
+        let id: BetterId = obj.to_id().into();
+        let mark = id.ctxt.outer();
+        if mark == self.top_level_mark {
+          let member_expr = IdOrMemExpr::MemberExpr {
+            object: id.clone(),
+            property: value.clone(),
+          };
+          match self.current_body_owner_symbol_ext {
+            Some(ref body_owner_symbol_ext) if body_owner_symbol_ext.id() != &id => {
+              self.add_reference(body_owner_symbol_ext.clone(), member_expr);
+            }
+            None => {
+              self.used_id_set.insert(member_expr);
+            }
+            _ => {}
+          }
+        }
+      }
+      _ => {
+        node.visit_children_with(self);
+      }
+    }
+  }
+
   fn visit_export_default_decl(&mut self, node: &ExportDefaultDecl) {
     self.state |= AnalyzeState::EXPORT_DEFAULT;
     match &node.decl {
@@ -361,8 +450,14 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         None => {
           let symbol_ext: SymbolExt = if let Some(ident) = &node.ident {
             let symbol_ext = SymbolExt::new(ident.to_id().into(), SymbolFlag::EXPORT_DEFAULT);
-            self.add_reference(BetterId::from(ident.to_id()).into(), symbol_ext.id.clone());
-            self.add_reference(symbol_ext.clone(), default_ident.to_id().into());
+            self.add_reference(
+              BetterId::from(ident.to_id()).into(),
+              IdOrMemExpr::Id(symbol_ext.id.clone()),
+            );
+            self.add_reference(
+              symbol_ext.clone(),
+              IdOrMemExpr::Id(default_ident.to_id().into()),
+            );
             symbol_ext
           } else {
             SymbolExt::new(default_ident.to_id().into(), SymbolFlag::EXPORT_DEFAULT)
@@ -406,8 +501,14 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             // }
             // let result = test();
 
-            self.add_reference(symbol_ext.clone(), default_ident.to_id().into());
-            self.add_reference(BetterId::from(ident.to_id()).into(), symbol_ext.id.clone());
+            self.add_reference(
+              symbol_ext.clone(),
+              IdOrMemExpr::Id(default_ident.to_id().into()),
+            );
+            self.add_reference(
+              BetterId::from(ident.to_id()).into(),
+              IdOrMemExpr::Id(symbol_ext.id.clone()),
+            );
             symbol_ext
           } else {
             SymbolExt::new(default_ident.to_id().into(), SymbolFlag::EXPORT_DEFAULT)

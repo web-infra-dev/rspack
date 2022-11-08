@@ -1,4 +1,5 @@
 #![feature(iter_intersperse)]
+#![feature(box_patterns)]
 
 use std::{fmt, sync::Arc};
 
