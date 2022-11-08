@@ -74,7 +74,7 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
         "development": false,
       },
       "name": "bundle.js",
-      "size": 3739,
+      "size": 1772,
       "type": "asset",
     },
   ],
@@ -136,7 +136,7 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 2`] = `
 "    Asset      Size  Chunks  Chunk Names
-bundle.js  3.65 KiB    main  main
+bundle.js  1.73 KiB    main  main
 chunk {main} bundle.js (main) 15 bytes [entry]
 [./index.js] 15 bytes {main}
 
@@ -250,7 +250,7 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
         "development": false,
       },
       "name": "bundle.js",
-      "size": 1764,
+      "size": 1846,
       "type": "asset",
     },
   ],
@@ -265,7 +265,7 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
       "names": [
         "main",
       ],
-      "size": 28,
+      "size": 83,
       "type": "chunk",
     },
   ],
@@ -298,6 +298,17 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
       "chunks": [
         "main",
       ],
+      "id": "./b.js",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/parse-error/b.js",
+      "moduleType": "js",
+      "name": "./b.js",
+      "size": 55,
+      "type": "module",
+    },
+    {
+      "chunks": [
+        "main",
+      ],
       "id": "./index.js",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/parse-error/index.js",
       "moduleType": "js",
@@ -312,10 +323,11 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for parse-error 2`] = `
-"    Asset      Size  Chunks  Chunk Names
-bundle.js  1.72 KiB    main  main
-chunk {main} bundle.js (main) 28 bytes [entry]
+"    Asset     Size  Chunks  Chunk Names
+bundle.js  1.8 KiB    main  main
+chunk {main} bundle.js (main) 83 bytes [entry]
 [./a.js] 14 bytes {main}
+[./b.js] 55 bytes {main}
 [./index.js] 14 bytes {main}
 
 error[javascript]: JavaScript parsing error

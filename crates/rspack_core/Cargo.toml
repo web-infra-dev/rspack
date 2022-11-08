@@ -25,6 +25,7 @@ rspack_sources = "0.1.11"
 rspack_symbol = { path = "../rspack_symbol" }
 rspack_tracing = { path = "../rspack_tracing" }
 serde = "1"
+serde_json = "1"
 sugar_path = "0.0.8"
 swc = "0.232.56"
 swc_atoms = "0.4.23"
