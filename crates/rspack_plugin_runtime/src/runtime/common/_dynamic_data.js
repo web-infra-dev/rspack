@@ -17,6 +17,7 @@
 
 (function () {
 	runtime.__rspack_has_dynamic_chunk__ = function (chunkId, type) {
+		return true;
 		return Boolean(
 			this.chunkHashData &&
 				this.chunkHashData[type] &&

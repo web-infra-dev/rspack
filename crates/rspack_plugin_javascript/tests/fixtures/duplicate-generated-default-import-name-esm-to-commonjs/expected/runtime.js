@@ -1115,6 +1115,7 @@ function __rspack_register__(chunkIds, modules, callback) {
 
 (function () {
 	runtime.__rspack_has_dynamic_chunk__ = function (chunkId, type) {
+		return true;
 		return Boolean(
 			this.chunkHashData &&
 				this.chunkHashData[type] &&
@@ -1124,15 +1125,7 @@ function __rspack_register__(chunkIds, modules, callback) {
 })();
 (function () {
 	runtime.__rspack_get_dynamic_chunk_url__ = function (chunkId, type) {
-		return (
-			"static/" +
-			type +
-			"/" +
-			chunkId +
-			"" +
-			".chunk." +
-			type
-		);
+		return chunkId + "" + "." + type;
 	};
 })();
 function __rspack_dynamic_require__(chunkIds) {

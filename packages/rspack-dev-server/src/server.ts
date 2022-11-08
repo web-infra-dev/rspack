@@ -212,14 +212,6 @@ export class RspackDevServer {
 		}
 	}
 
-	private initialize() {
-		this.setupApp();
-		this.setupDevMiddleware();
-		this.setupWatchStaticFiles();
-		this.setupMiddlewares();
-		this.createServer();
-	}
-
 	private setupApp() {
 		this.app = express();
 	}
@@ -252,6 +244,15 @@ export class RspackDevServer {
 			middleware: this.middleware
 		});
 
+		// Todo Add options
+		const connectHistoryApiFallback = require("connect-history-api-fallback");
+		middlewares.push({
+			name: "[connect-history-api-fallback]",
+			middleware: connectHistoryApiFallback({
+				verbose: true,
+				logger: console.log.bind(console)
+			})
+		});
 		middlewares.push({
 			name: "express-static",
 			middleware: express.static(this.options.static.directory)

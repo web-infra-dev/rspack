@@ -1,8 +1,9 @@
+import './style/global.less'
 import { ConfigProvider } from '@arco-design/web-react'
 import enUS from '@arco-design/web-react/es/locale/en-US'
 import zhCN from '@arco-design/web-react/es/locale/zh-CN'
 import axios from 'axios'
-import React, { useEffect } from 'react'
+import React, { Suspense, useEffect } from 'react'
 import ReactDOM from 'react-dom'
 import { Provider } from 'react-redux'
 import { BrowserRouter, Route, Switch } from 'react-router-dom'
@@ -12,7 +13,7 @@ import PageLayout from './layout'
 import './mock'
 import Login from './pages/login'
 import rootReducer from './store'
-import './style/global.less'
+
 import changeTheme from './utils/changeTheme'
 import checkLogin from './utils/checkLogin'
 import useStorage from './utils/useStorage'
@@ -64,6 +65,7 @@ function Index() {
 
   return (
     <BrowserRouter>
+    <Suspense fallback={<div>loading....</div>}>
       <ConfigProvider
         locale={getArcoLocale()}
         componentConfig={{
@@ -87,6 +89,7 @@ function Index() {
           </GlobalContext.Provider>
         </Provider>
       </ConfigProvider>
+      </Suspense>
     </BrowserRouter>
   )
 }
