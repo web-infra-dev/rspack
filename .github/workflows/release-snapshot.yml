@@ -45,7 +45,9 @@ jobs:
       - name: release snapshot
         id: release
         run: |
-          make snapshot_ci
+          pnpm version:snapshot $(git rev-parse --short HEAD)
+          ./x build js-release
+          pnpm release:snapshot
           comment=$(./x pkg-version)
           echo "::set-output name=comment::$comment"
       - name: Write a new comment
