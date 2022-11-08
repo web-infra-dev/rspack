@@ -1,5 +1,7 @@
+use rspack_core::Compilation;
 use serde::Deserialize;
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, path::Path, str::FromStr};
+use sugar_path::SugarPath;
 
 use crate::sri::HtmlSriHashFunction;
 
@@ -109,6 +111,34 @@ impl Default for HtmlPluginConfig {
       title: None,
       favicon: None,
       meta: None,
+    }
+  }
+}
+
+impl HtmlPluginConfig {
+  pub fn get_public_path(&self, compilation: &Compilation, asset_name: &str) -> String {
+    let public_path = match &self.public_path {
+      Some(p) => p.clone(),
+      None => match &compilation.options.output.public_path {
+        rspack_core::PublicPath::String(s) => s.clone(),
+        rspack_core::PublicPath::Auto => match Path::new(asset_name).parent() {
+          None => "".to_string(),
+          Some(dirname) => compilation
+            .options
+            .output
+            .path
+            .join(dirname)
+            .resolve()
+            .relative(&compilation.options.output.path)
+            .to_string_lossy()
+            .to_string(),
+        },
+      },
+    };
+    if !public_path.ends_with('/') {
+      public_path + "/"
+    } else {
+      public_path
     }
   }
 }

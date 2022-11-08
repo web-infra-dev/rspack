@@ -235,6 +235,10 @@ mod test {
   fn empty_test() {
     let raw = serde_json::from_str("{}").unwrap();
     let options = normalize_bundle_options(raw).unwrap();
-    assert!(&options.output.path.contains("rspack_binding_options/dist"));
+    assert!(&options
+      .output
+      .path
+      .to_string_lossy()
+      .contains("rspack_binding_options/dist"));
   }
 }
