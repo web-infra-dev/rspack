@@ -174,7 +174,8 @@ impl Plugin for RuntimePlugin {
           compilation.emit_asset(file.to_string(), source);
         }
       }
-      _ => {
+      // TODO: align `TargetPlatform::None` with Webpack, see: https://webpack.js.org/configuration/target/#false
+      TargetPlatform::BrowsersList | TargetPlatform::Web | TargetPlatform::None => {
         compilation.emit_asset(
           RUNTIME_FILE_NAME.to_string() + ".js",
           CompilationAsset::new(compilation.runtime.generate(), AssetInfo::default()),
