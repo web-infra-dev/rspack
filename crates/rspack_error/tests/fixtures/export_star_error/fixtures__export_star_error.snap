@@ -2,5 +2,5 @@
 source: crates/rspack_error/tests/fixtures.rs
 expression: export_star_error
 ---
-Conflicting star exports for the name 'b' in /Users/bytedance/Documents/rspack/rspack/crates/rspack_error/tests/fixtures/export_star_error/foo.js and /Users/bytedance/Documents/rspack/rspack/crates/rspack_error/tests/fixtures/export_star_error/result.js
+Conflicting star exports for the name 'b' in tests/fixtures/export_star_error/foo.js and tests/fixtures/export_star_error/result.js
 

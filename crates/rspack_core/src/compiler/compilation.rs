@@ -3,7 +3,9 @@ use std::{
   collections::VecDeque,
   fmt::Debug,
   marker::PhantomPinned,
+  path::PathBuf,
   pin::Pin,
+  str::FromStr,
   sync::atomic::{AtomicU32, Ordering},
   sync::Arc,
 };
@@ -17,6 +19,7 @@ use hashbrown::{
 use indexmap::IndexSet;
 use petgraph::prelude::GraphMap;
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
+use sugar_path::SugarPath;
 use swc_atoms::JsWord;
 use tokio::sync::mpsc::{error::TryRecvError, UnboundedSender};
 use tracing::instrument;
@@ -1001,10 +1004,23 @@ fn mark_symbol(
                 "Conflicting star exports for the name '{}' in ",
                 indirect_symbol.id
               );
-
+              let cwd = std::env::current_dir();
               let module_identifier_list = ret
                 .iter()
-                .map(|item| item.0.to_string())
+                .map(|(module_identifier, _)| {
+                  // try to use relative path which should have better DX
+                  match cwd {
+                    Ok(ref cwd) => {
+                      let p = PathBuf::from_str(module_identifier.as_str()).unwrap();
+                      p.relative(cwd.as_path())
+                        .as_path()
+                        .to_string_lossy()
+                        .to_string()
+                    }
+                    // if we can't get the cwd, fallback to module identifier
+                    Err(_) => module_identifier.to_string(),
+                  }
+                })
                 .collect::<Vec<_>>();
               error_message += &join_string_component(module_identifier_list);
               errors.push(Error::InternalError(error_message));

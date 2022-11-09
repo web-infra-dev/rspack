@@ -68,7 +68,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       import_map: HashMap::default(),
       inherit_export_maps: IndexMap::default(),
       current_body_owner_symbol_ext: None,
-      reference_map: HashMap::default(),
+      reference_map: HashMap::new(),
       reachable_import_and_export: HashMap::default(),
       state: AnalyzeState::empty(),
       used_id_set: HashSet::default(),
