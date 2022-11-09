@@ -28,6 +28,7 @@ import {
 	StatsOptions
 } from "./stats";
 
+export type Configuration = RspackOptions;
 export interface RspackOptions {
 	name?: string;
 	entry?: Entry;
