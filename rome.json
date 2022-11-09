@@ -1,0 +1,20 @@
+{
+  "linter": {
+    "enabled": false
+  },
+  "formatter": {
+    "enabled": true,
+    "indentSize": 2,
+    "indentStyle": "tab",
+    "lineWidth": 80,
+    "ignore": [
+      "/node_modules",
+      "/dist",
+      "/examples",
+      "webpack-examples",
+      "packages/rspack/tests/fixtures",
+      "packages/rspack/tests/statsCases",
+      "packages/rspack/tests/configCases/errors"
+    ]
+  }
+}

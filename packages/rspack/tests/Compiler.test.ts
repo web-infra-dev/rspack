@@ -50,7 +50,7 @@ describe("Compiler", () => {
 		// 		callback(new Error("ENOENT"));
 		// 	}
 		// };
-		c.hooks.compilation.tap("CompilerTest", compilation => {
+		c.hooks.compilation.tap("CompilerTest", (compilation) => {
 			// @ts-ignore
 			compilation.bail = true;
 		});
@@ -70,7 +70,7 @@ describe("Compiler", () => {
 				throw stats.errors[0];
 			}
 			stats.logs = logs;
-			c.close(err => {
+			c.close((err) => {
 				if (err) return callback(err);
 				callback(stats, files, compilation);
 			});
@@ -78,7 +78,7 @@ describe("Compiler", () => {
 	}
 
 	let compiler: Compiler;
-	afterEach(callback => {
+	afterEach((callback) => {
 		if (compiler) {
 			compiler.close(callback);
 			compiler = undefined;
@@ -87,7 +87,7 @@ describe("Compiler", () => {
 		}
 	});
 
-	it("should compile a single file to deep output", done => {
+	it("should compile a single file to deep output", (done) => {
 		compile(
 			"./a",
 			{
@@ -98,7 +98,7 @@ describe("Compiler", () => {
 			},
 			(stats, files) => {
 				//expect(stats.logs.mkdir).toEqual(["/what", "/what/the"]);
-				let result = stats.errors.some(err =>
+				let result = stats.errors.some((err) =>
 					err.message.includes("failed to resolve")
 				);
 				expect(stats.errors.length).toBe(0);
@@ -107,7 +107,7 @@ describe("Compiler", () => {
 		);
 	});
 
-	it.skip("should compile a single file", done => {
+	it.skip("should compile a single file", (done) => {
 		compile("./c", {}, (stats, files) => {
 			expect(Object.keys(files)).toEqual(["/main.js"]);
 			const bundle = files["/main.js"];
@@ -125,7 +125,7 @@ describe("Compiler", () => {
 		});
 	});
 
-	it.skip("should compile a complex file", done => {
+	it.skip("should compile a complex file", (done) => {
 		compile("./main1", {}, (stats, files) => {
 			expect(Object.keys(files)).toEqual(["/main.js"]);
 			const bundle = files["/main.js"];
@@ -146,7 +146,7 @@ describe("Compiler", () => {
 		});
 	});
 
-	it.skip("should compile a file with transitive dependencies", done => {
+	it.skip("should compile a file with transitive dependencies", (done) => {
 		compile("./abc", {}, (stats, files) => {
 			expect(Object.keys(files)).toEqual(["/main.js"]);
 			const bundle = files["/main.js"];
@@ -169,7 +169,7 @@ describe("Compiler", () => {
 		});
 	});
 
-	it.skip("should compile a file with multiple chunks", done => {
+	it.skip("should compile a file with multiple chunks", (done) => {
 		compile("./chunks", {}, (stats, files) => {
 			expect(stats.chunks).toHaveLength(2);
 			expect(Object.keys(files)).toEqual(["/main.js", "/394.js"]);
@@ -195,7 +195,7 @@ describe("Compiler", () => {
 	});
 
 	// cspell:word asmjs
-	it.skip("should not evaluate constants in asm.js", done => {
+	it.skip("should not evaluate constants in asm.js", (done) => {
 		compile("./asmjs", {}, (stats, files) => {
 			expect(Object.keys(files)).toEqual(["/main.js"]);
 			const bundle = files["/main.js"];
@@ -225,7 +225,7 @@ describe("Compiler", () => {
 				}
 			});
 		});
-		afterEach(callback => {
+		afterEach((callback) => {
 			if (compiler) {
 				compiler.close(callback);
 				compiler = undefined;
@@ -234,7 +234,7 @@ describe("Compiler", () => {
 			}
 		});
 		describe("purgeInputFileSystem", () => {
-			it("invokes purge() if inputFileSystem.purge", done => {
+			it("invokes purge() if inputFileSystem.purge", (done) => {
 				const mockPurge = jest.fn();
 				compiler.inputFileSystem = {
 					purge: mockPurge
@@ -243,7 +243,7 @@ describe("Compiler", () => {
 				expect(mockPurge.mock.calls.length).toBe(1);
 				done();
 			});
-			it("does NOT invoke purge() if !inputFileSystem.purge", done => {
+			it("does NOT invoke purge() if !inputFileSystem.purge", (done) => {
 				const mockPurge = jest.fn();
 				compiler.inputFileSystem = null;
 				compiler.purgeInputFileSystem();
@@ -252,7 +252,7 @@ describe("Compiler", () => {
 			});
 		});
 		describe("isChild", () => {
-			it.skip("returns booleanized this.parentCompilation", done => {
+			it.skip("returns booleanized this.parentCompilation", (done) => {
 				compiler.parentCompilation = "stringyStringString";
 				const response1 = compiler.isChild();
 				expect(response1).toBe(true);
@@ -294,7 +294,7 @@ describe("Compiler", () => {
 			});
 		});
 	});
-	it("should not emit on errors", done => {
+	it("should not emit on errors", (done) => {
 		compiler = rspack({
 			context: __dirname,
 			mode: "production",
@@ -313,7 +313,7 @@ describe("Compiler", () => {
 	});
 	it("should bubble up errors when wrapped in a promise and bail is true", async () => {
 		try {
-			const createCompiler = options => {
+			const createCompiler = (options) => {
 				return new Promise((resolve, reject) => {
 					const c = rspack(options);
 					c.run((err, stats) => {
@@ -345,7 +345,7 @@ describe("Compiler", () => {
 		}
 	});
 	it.skip("should not emit compilation errors in async (watch)", async () => {
-		const createStats = options => {
+		const createStats = (options) => {
 			return new Promise((resolve, reject) => {
 				const webpack = require("..");
 				const c = webpack(options);
@@ -370,7 +370,7 @@ describe("Compiler", () => {
 		expect(stats).toBeInstanceOf(Stats);
 	});
 
-	it.skip("should not emit on errors (watch)", done => {
+	it.skip("should not emit on errors (watch)", (done) => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -390,7 +390,7 @@ describe("Compiler", () => {
 			done();
 		});
 	});
-	it.skip("should not be running twice at a time (run)", done => {
+	it.skip("should not be running twice at a time (run)", (done) => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -409,7 +409,7 @@ describe("Compiler", () => {
 			if (err) return done();
 		});
 	});
-	it.skip("should not be running twice at a time (watch)", done => {
+	it.skip("should not be running twice at a time (watch)", (done) => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -428,7 +428,7 @@ describe("Compiler", () => {
 			if (err) return done();
 		});
 	});
-	it.skip("should not be running twice at a time (run - watch)", done => {
+	it.skip("should not be running twice at a time (run - watch)", (done) => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -447,7 +447,7 @@ describe("Compiler", () => {
 			if (err) return done();
 		});
 	});
-	it.skip("should not be running twice at a time (watch - run)", done => {
+	it.skip("should not be running twice at a time (watch - run)", (done) => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -466,7 +466,7 @@ describe("Compiler", () => {
 			if (err) return done();
 		});
 	});
-	it.skip("should not be running twice at a time (instance cb)", done => {
+	it.skip("should not be running twice at a time (instance cb)", (done) => {
 		const webpack = require("..");
 		compiler = webpack(
 			{
@@ -485,7 +485,7 @@ describe("Compiler", () => {
 			if (err) return done();
 		});
 	});
-	it.skip("should run again correctly after first compilation", done => {
+	it.skip("should run again correctly after first compilation", (done) => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -507,7 +507,7 @@ describe("Compiler", () => {
 			});
 		});
 	});
-	it.skip("should watch again correctly after first compilation", done => {
+	it.skip("should watch again correctly after first compilation", (done) => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -528,7 +528,7 @@ describe("Compiler", () => {
 			});
 		});
 	});
-	it.skip("should run again correctly after first closed watch", done => {
+	it.skip("should run again correctly after first closed watch", (done) => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -568,7 +568,7 @@ describe("Compiler", () => {
 		});
 		expect(compiler.watching).toBe(watching);
 	});
-	it.skip("should watch again correctly after first closed watch", done => {
+	it.skip("should watch again correctly after first closed watch", (done) => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -590,7 +590,7 @@ describe("Compiler", () => {
 			});
 		});
 	});
-	it("should run again correctly inside afterDone hook", done => {
+	it("should run again correctly inside afterDone hook", (done) => {
 		compiler = rspack({
 			context: __dirname,
 			mode: "production",
@@ -613,7 +613,7 @@ describe("Compiler", () => {
 			if (err) return done(err);
 		});
 	});
-	it("should call afterDone hook after other callbacks (run)", done => {
+	it("should call afterDone hook after other callbacks (run)", (done) => {
 		compiler = rspack({
 			context: __dirname,
 			mode: "production",
@@ -636,7 +636,7 @@ describe("Compiler", () => {
 			runCb();
 		});
 	});
-	it("should call afterDone hook after other callbacks (instance cb)", done => {
+	it("should call afterDone hook after other callbacks (instance cb)", (done) => {
 		const instanceCb = jest.fn();
 		compiler = rspack(
 			{
@@ -661,7 +661,7 @@ describe("Compiler", () => {
 			done();
 		});
 	});
-	it.skip("should call afterDone hook after other callbacks (watch)", done => {
+	it.skip("should call afterDone hook after other callbacks (watch)", (done) => {
 		compiler = rspack({
 			context: __dirname,
 			mode: "production",
@@ -693,7 +693,7 @@ describe("Compiler", () => {
 			watching.invalidate(invalidateCb);
 		});
 	});
-	it.skip("should call afterDone hook after other callbacks (watch close)", done => {
+	it.skip("should call afterDone hook after other callbacks (watch close)", (done) => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -726,7 +726,7 @@ describe("Compiler", () => {
 			watch.invalidate(invalidateCb);
 		});
 	});
-	it.skip("should flag watchMode as true in watch", done => {
+	it.skip("should flag watchMode as true in watch", (done) => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -740,7 +740,7 @@ describe("Compiler", () => {
 
 		compiler.outputFileSystem = createFsFromVolume(new Volume());
 
-		const watch = compiler.watch({}, err => {
+		const watch = compiler.watch({}, (err) => {
 			if (err) return done(err);
 			expect(compiler.watchMode).toBeTruthy();
 			watch.close(() => {
@@ -749,7 +749,7 @@ describe("Compiler", () => {
 			});
 		});
 	});
-	it.skip("should use cache on second run call", done => {
+	it.skip("should use cache on second run call", (done) => {
 		const webpack = require("..");
 		compiler = webpack({
 			context: __dirname,
@@ -772,7 +772,7 @@ describe("Compiler", () => {
 			});
 		});
 	});
-	it("should call the failed-hook on error", done => {
+	it("should call the failed-hook on error", (done) => {
 		const failedSpy = jest.fn();
 		compiler = rspack({
 			bail: true,
@@ -814,7 +814,7 @@ describe("Compiler", () => {
 		afterEach(() => {
 			capture.restore();
 		});
-		const escapeAnsi = stringRaw =>
+		const escapeAnsi = (stringRaw) =>
 			stringRaw
 				.replace(/\u001b\[1m\u001b\[([0-9;]*)m/g, "<CLR=$1,BOLD>")
 				.replace(/\u001b\[1m/g, "<CLR=BOLD>")
@@ -837,7 +837,7 @@ describe("Compiler", () => {
 				logger.timeEnd("Time");
 			}
 		}
-		it("should log to the console (verbose)", done => {
+		it("should log to the console (verbose)", (done) => {
 			compiler = rspack({
 				context: path.join(__dirname, "fixtures"),
 				entry: "./a",
@@ -852,8 +852,9 @@ describe("Compiler", () => {
 			});
 			compiler.outputFileSystem = createFsFromVolume(new Volume());
 			compiler.run((err, stats) => {
-				expect(capture.toString().replace(/[\d.]+ ms/, "X ms"))
-					.toMatchInlineSnapshot(`
+				expect(
+					capture.toString().replace(/[\d.]+ ms/, "X ms")
+				).toMatchInlineSnapshot(`
 			"<-> [MyPlugin] Group
 			  <e> [MyPlugin] Error
 			  <w> [MyPlugin] Warning
@@ -867,7 +868,7 @@ describe("Compiler", () => {
 				done();
 			});
 		});
-		it("should log to the console (debug mode)", done => {
+		it("should log to the console (debug mode)", (done) => {
 			compiler = rspack({
 				context: path.join(__dirname, "fixtures"),
 				entry: "./a",
@@ -883,8 +884,9 @@ describe("Compiler", () => {
 			});
 			compiler.outputFileSystem = createFsFromVolume(new Volume());
 			compiler.run((err, stats) => {
-				expect(capture.toString().replace(/[\d.]+ ms/, "X ms"))
-					.toMatchInlineSnapshot(`
+				expect(
+					capture.toString().replace(/[\d.]+ ms/, "X ms")
+				).toMatchInlineSnapshot(`
 			"<-> [MyPlugin] Group
 			  <e> [MyPlugin] Error
 			  <w> [MyPlugin] Warning
@@ -899,7 +901,7 @@ describe("Compiler", () => {
 				done();
 			});
 		});
-		it("should log to the console (none)", done => {
+		it("should log to the console (none)", (done) => {
 			compiler = rspack({
 				context: path.join(__dirname, "fixtures"),
 				entry: "./a",
@@ -918,7 +920,7 @@ describe("Compiler", () => {
 				done();
 			});
 		});
-		it("should log to the console with colors (verbose)", done => {
+		it("should log to the console with colors (verbose)", (done) => {
 			compiler = rspack({
 				context: path.join(__dirname, "fixtures"),
 				entry: "./a",
@@ -933,8 +935,9 @@ describe("Compiler", () => {
 			});
 			compiler.outputFileSystem = createFsFromVolume(new Volume());
 			compiler.run((err, stats) => {
-				expect(escapeAnsi(capture.toStringRaw()).replace(/[\d.]+ ms/, "X ms"))
-					.toMatchInlineSnapshot(`
+				expect(
+					escapeAnsi(capture.toStringRaw()).replace(/[\d.]+ ms/, "X ms")
+				).toMatchInlineSnapshot(`
 			"<-> <CLR=36,BOLD>[MyPlugin] Group</CLR>
 			  <e> <CLR=31,BOLD>[MyPlugin] Error</CLR>
 			  <w> <CLR=33,BOLD>[MyPlugin] Warning</CLR>
@@ -948,7 +951,7 @@ describe("Compiler", () => {
 				done();
 			});
 		});
-		it("should log to the console with colors (debug mode)", done => {
+		it("should log to the console with colors (debug mode)", (done) => {
 			compiler = rspack({
 				context: path.join(__dirname, "fixtures"),
 				entry: "./a",
@@ -964,8 +967,9 @@ describe("Compiler", () => {
 			});
 			compiler.outputFileSystem = createFsFromVolume(new Volume());
 			compiler.run((err, stats) => {
-				expect(escapeAnsi(capture.toStringRaw()).replace(/[\d.]+ ms/, "X ms"))
-					.toMatchInlineSnapshot(`
+				expect(
+					escapeAnsi(capture.toStringRaw()).replace(/[\d.]+ ms/, "X ms")
+				).toMatchInlineSnapshot(`
 			"<-> <CLR=36,BOLD>[MyPlugin] Group</CLR>
 			  <e> <CLR=31,BOLD>[MyPlugin] Error</CLR>
 			  <w> <CLR=33,BOLD>[MyPlugin] Warning</CLR>
@@ -983,11 +987,11 @@ describe("Compiler", () => {
 	});
 
 	describe("compilation", () => {
-		it("should be called", done => {
+		it("should be called", (done) => {
 			const mockFn = jest.fn();
 			class MyPlugin {
 				apply(compiler: Compiler) {
-					compiler.hooks.compilation.tap("Plugin", compilation => {
+					compiler.hooks.compilation.tap("Plugin", (compilation) => {
 						mockFn();
 					});
 				}
@@ -1006,17 +1010,17 @@ describe("Compiler", () => {
 			});
 		});
 
-		it("should get assets with both `getAssets` and `assets`(getter)", done => {
+		it("should get assets with both `getAssets` and `assets`(getter)", (done) => {
 			class MyPlugin {
 				apply(compiler: Compiler) {
-					compiler.hooks.compilation.tap("Plugin", compilation => {
+					compiler.hooks.compilation.tap("Plugin", (compilation) => {
 						compilation.hooks.processAssets.tap("Plugin", () => {
 							let list = compilation.getAssets();
 							let map = compilation.assets;
 
 							expect(Object.keys(map)).toHaveLength(list.length);
 
-							list.forEach(a => {
+							list.forEach((a) => {
 								const b = map[a.name];
 								expect(a.source.buffer()).toEqual(b.buffer());
 							});
@@ -1036,10 +1040,10 @@ describe("Compiler", () => {
 			});
 		});
 
-		it("should update assets", done => {
+		it("should update assets", (done) => {
 			class MyPlugin {
 				apply(compiler: Compiler) {
-					compiler.hooks.compilation.tap("Plugin", compilation => {
+					compiler.hooks.compilation.tap("Plugin", (compilation) => {
 						compilation.hooks.processAssets.tap("Plugin", () => {
 							const oldSource = compilation.assets["main.js"];
 							expect(oldSource).toBeTruthy();
@@ -1050,11 +1054,11 @@ describe("Compiler", () => {
 							);
 							compilation.updateAsset(
 								"main.js",
-								source => {
+								(source) => {
 									expect(source.buffer()).toEqual(oldSource!.buffer());
 									return updatedSource;
 								},
-								_ => _
+								(_) => _
 							);
 
 							const newSource = compilation.assets["main.js"];
@@ -1076,10 +1080,10 @@ describe("Compiler", () => {
 			});
 		});
 
-		it("should throw if the asset to be updated is not exist", done => {
+		it("should throw if the asset to be updated is not exist", (done) => {
 			class MyPlugin {
 				apply(compiler: Compiler) {
-					compiler.hooks.compilation.tap("Plugin", compilation => {
+					compiler.hooks.compilation.tap("Plugin", (compilation) => {
 						compilation.hooks.processAssets.tap("Plugin", () => {
 							// TODO: the error should be more friendly, the current error is
 							// process_assets is not ok, err InternalError(
@@ -1108,10 +1112,10 @@ describe("Compiler", () => {
 			});
 		});
 
-		it("should emit assets correctly", done => {
+		it("should emit assets correctly", (done) => {
 			class MyPlugin {
 				apply(compiler: Compiler) {
-					compiler.hooks.compilation.tap("Plugin", compilation => {
+					compiler.hooks.compilation.tap("Plugin", (compilation) => {
 						let assets = compilation.getAssets();
 						expect(assets.length).toBe(0);
 
@@ -1120,7 +1124,7 @@ describe("Compiler", () => {
 							new RawSource(`module.exports = "This is dd"`)
 						);
 
-						compilation.hooks.processAssets.tap("Plugin", assets => {
+						compilation.hooks.processAssets.tap("Plugin", (assets) => {
 							let names = Object.keys(assets);
 
 							expect(names.length).toBe(3);
@@ -1143,10 +1147,10 @@ describe("Compiler", () => {
 			});
 		});
 
-		it("should have error if the asset to be emitted is exist", done => {
+		it("should have error if the asset to be emitted is exist", (done) => {
 			class MyPlugin {
 				apply(compiler: Compiler) {
-					compiler.hooks.compilation.tap("Plugin", compilation => {
+					compiler.hooks.compilation.tap("Plugin", (compilation) => {
 						compilation.hooks.processAssets.tap("Plugin", () => {
 							compilation.emitAsset(
 								"main.js",

@@ -287,8 +287,7 @@
 								updatedModules
 							);
 							return promises;
-						},
-						[])
+						}, [])
 					).then(function () {
 						return waitForBlockingPromises(function () {
 							if (applyOnUpdate) {

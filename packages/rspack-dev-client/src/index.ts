@@ -9,7 +9,7 @@ import type { Handler } from "./socket";
 function reloadApp(data: string) {
 	// @ts-ignore
 	self.__rspack_runtime__.__rspack_require__.hmrM = () => {
-		return new Promise(resolve => {
+		return new Promise((resolve) => {
 			const { uri, content } = JSON.parse(data);
 			const update = {
 				c: ["main"],

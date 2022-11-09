@@ -39,7 +39,7 @@ function normalizeSourceMap(map, resourceContext) {
 	delete newMap.sourceRoot;
 
 	if (newMap.sources) {
-		newMap.sources = newMap.sources.map(source => {
+		newMap.sources = newMap.sources.map((source) => {
 			const sourceType = getURLType(source);
 
 			// Do no touch `scheme-relative` and `absolute` URLs
@@ -68,7 +68,7 @@ function normalizeSourceMapAfterPostcss(map, resourceContext) {
 
 	newMap.sourceRoot = "";
 
-	newMap.sources = newMap.sources.map(source => {
+	newMap.sources = newMap.sources.map((source) => {
 		if (source.indexOf("<") === 0) {
 			return source;
 		}

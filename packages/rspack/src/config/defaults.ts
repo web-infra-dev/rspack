@@ -23,7 +23,7 @@ export function applyRspackOptionsBaseDefaults(
  * @param {InfrastructureLogging} infrastructureLogging options
  * @returns {void}
  */
-const applyInfrastructureLoggingDefaults = infrastructureLogging => {
+const applyInfrastructureLoggingDefaults = (infrastructureLogging) => {
 	F(infrastructureLogging, "stream", () => process.stderr);
 	const tty =
 		/** @type {any} */ infrastructureLogging.stream.isTTY &&

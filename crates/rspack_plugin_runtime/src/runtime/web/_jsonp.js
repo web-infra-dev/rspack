@@ -14,7 +14,7 @@
 			// var url = __webpack_require__.p + __webpack_require__.hu(chunkId);
 			// create error before stack unwound to get useful stacktrace later
 			var error = new Error();
-			var loadingEnded = event => {
+			var loadingEnded = (event) => {
 				if (waitingUpdateResolves[chunkId]) {
 					waitingUpdateResolves[chunkId] = undefined;
 					var errorType =

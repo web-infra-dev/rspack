@@ -1,13 +1,13 @@
 // copy from https://github.com/webpack/webpack/blob/main/test/helpers/createLazyTestEnv.js to align with webpack test suits
 const STATE_SYM = Object.getOwnPropertySymbols(global).find(
 	Symbol("x").description
-		? s => s.description === "JEST_STATE_SYMBOL"
-		: s => s.toString() === "Symbol(JEST_STATE_SYMBOL)"
+		? (s) => s.description === "JEST_STATE_SYMBOL"
+		: (s) => s.toString() === "Symbol(JEST_STATE_SYMBOL)"
 );
 if (!STATE_SYM) {
 	throw new Error(
 		`Unable to find JEST_STATE_SYMBOL in ${Object.getOwnPropertySymbols(global)
-			.map(s => s.toString())
+			.map((s) => s.toString())
 			.join(", ")}`
 	);
 }
@@ -25,7 +25,7 @@ module.exports = (globalTimeout = 2000, nameSuffix = "") => {
 		if (!fn) return null;
 		let rfn;
 		if (fn.length >= 1) {
-			rfn = done => {
+			rfn = (done) => {
 				fn((...args) => {
 					if (isTest) runTests++;
 					done(...args);
@@ -51,7 +51,7 @@ module.exports = (globalTimeout = 2000, nameSuffix = "") => {
 			it("should run the exported tests", () => {
 				runTests++;
 			});
-			afterAll(done => {
+			afterAll((done) => {
 				for (const dispose of disposables) {
 					dispose();
 				}
@@ -62,7 +62,7 @@ module.exports = (globalTimeout = 2000, nameSuffix = "") => {
 		}
 	);
 	let numberOfTests = 0;
-	const inSuite = fn => {
+	const inSuite = (fn) => {
 		const {
 			currentDescribeBlock: oldCurrentDescribeBlock,
 			currentlyRunningTest: oldCurrentlyRunningTest,
@@ -82,7 +82,7 @@ module.exports = (globalTimeout = 2000, nameSuffix = "") => {
 		state.currentlyRunningTest = oldCurrentlyRunningTest;
 		state.hasStarted = oldHasStarted;
 	};
-	const fixAsyncError = block => {
+	const fixAsyncError = (block) => {
 		// By default jest leaks memory as it stores asyncError
 		// for each "it" call to track the origin test suite
 		// We want to evaluate this early here to avoid leaking memory

@@ -9,7 +9,7 @@ export class ServeCommand implements RspackCommand {
 			["serve [entry..]", "server", "s"],
 			"run the rspack dev server.",
 			commonOptions,
-			async options => {
+			async (options) => {
 				const compiler = await cli.createCompiler(options);
 				const server = new RspackDevServer(compiler);
 				await server.start();

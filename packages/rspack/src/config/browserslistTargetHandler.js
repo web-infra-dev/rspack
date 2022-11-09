@@ -74,14 +74,14 @@ const load = (input, context) => {
  * @param {string[]} browsers supported browsers list
  * @returns {EcmaTargetProperties & PlatformTargetProperties & ApiTargetProperties} target properties
  */
-const resolve = browsers => {
+const resolve = (browsers) => {
 	/**
 	 * Checks all against a version number
 	 * @param {Record<string, number | [number, number]>} versions first supported version
 	 * @returns {boolean} true if supports
 	 */
-	const rawChecker = versions => {
-		return browsers.every(v => {
+	const rawChecker = (versions) => {
+		return browsers.every((v) => {
 			const [name, parsedVersion] = v.split(" ");
 			if (!name) return false;
 			const requiredVersion = versions[name];
@@ -99,8 +99,8 @@ const resolve = browsers => {
 				: +parsedMajor > requiredVersion[0];
 		});
 	};
-	const anyNode = browsers.some(b => /^node /.test(b));
-	const anyBrowser = browsers.some(b => /^(?!node)/.test(b));
+	const anyNode = browsers.some((b) => /^node /.test(b));
+	const anyBrowser = browsers.some((b) => /^(?!node)/.test(b));
 	const browserProperty = !anyBrowser ? false : anyNode ? null : true;
 	const nodeProperty = !anyNode ? false : anyBrowser ? null : true;
 	// Internet Explorer Mobile, Blackberry browser and Opera Mini are very old browsers, they do not support new features

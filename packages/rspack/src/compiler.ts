@@ -127,10 +127,10 @@ class Compiler {
 					}
 				}
 			},
-			childName => {
+			(childName) => {
 				if (typeof name === "function") {
 					if (typeof childName === "function") {
-						return this.getInfrastructureLogger(_ => {
+						return this.getInfrastructureLogger((_) => {
 							if (typeof name === "function") {
 								name = name();
 								if (!name) {
@@ -222,11 +222,11 @@ class Compiler {
 				}
 				this.hooks.afterDone.call(stats);
 			};
-			this.hooks.beforeRun.callAsync(this, err => {
+			this.hooks.beforeRun.callAsync(this, (err) => {
 				if (err) {
 					return finalCallback(err);
 				}
-				this.hooks.run.callAsync(this, err => {
+				this.hooks.run.callAsync(this, (err) => {
 					if (err) {
 						return finalCallback(err);
 					}
@@ -236,7 +236,7 @@ class Compiler {
 							return finalCallback(err);
 						}
 						const stats = new Stats(rawStats);
-						this.hooks.done.callAsync(stats, err => {
+						this.hooks.done.callAsync(stats, (err) => {
 							if (err) {
 								return finalCallback(err);
 							} else {
@@ -318,7 +318,7 @@ class Compiler {
 		let isBuildFinished = true;
 
 		// TODO: should use aggregated
-		watcher.on("change", async changedFilepath => {
+		watcher.on("change", async (changedFilepath) => {
 			// TODO: only build because we lack the snapshot info of file.
 			// TODO: it means there a lot of things to do....
 
@@ -464,7 +464,7 @@ class Compiler {
 					}
 				};
 
-				const doWrite = content => {
+				const doWrite = (content) => {
 					this.outputFileSystem.writeFile(absPath, content, callback);
 				};
 				let content = getContent();

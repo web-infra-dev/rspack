@@ -9,7 +9,7 @@ it("should only map original lines if cheap module options is used", async () =>
 	expect(map.file).toEqual("main.css");
 	expect(map.sourcesContent[0]).toContain("$backgroundColor");
 	const consumer = await new sourceMap.SourceMapConsumer(map);
-	consumer.eachMapping(m => {
+	consumer.eachMapping((m) => {
 		expect(m.generatedColumn).toBe(0);
 		expect(m.originalColumn).toBe(0);
 	});

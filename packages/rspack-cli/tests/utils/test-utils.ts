@@ -17,7 +17,7 @@ const RSPACK_PATH = path.resolve(__dirname, "../../bin/rspack");
 const ENABLE_LOG_COMPILATION = process.env.ENABLE_PIPE || false;
 const isWindows = process.platform === "win32";
 
-const hyphenToUpperCase = name => {
+const hyphenToUpperCase = (name) => {
 	if (!name) {
 		return name;
 	}
@@ -27,7 +27,7 @@ const hyphenToUpperCase = name => {
 	});
 };
 
-const processKill = process => {
+const processKill = (process) => {
 	if (isWindows) {
 		exec("taskkill /pid " + process.pid + " /T /F");
 	} else {
@@ -126,10 +126,10 @@ const runWatch = (
 		);
 
 		process
-			.then(result => {
+			.then((result) => {
 				resolve(result);
 			})
-			.catch(error => {
+			.catch((error) => {
 				reject(error);
 			});
 	});
@@ -150,7 +150,7 @@ const runPromptWithAnswers = (location, args, answers) => {
 	let outputTimeout;
 	let currentAnswer = 0;
 
-	const writeAnswer = output => {
+	const writeAnswer = (output) => {
 		if (!answers) {
 			process.stdin.write(output);
 			process.kill();
@@ -186,7 +186,7 @@ const runPromptWithAnswers = (location, args, answers) => {
 		})
 	);
 
-	return new Promise(resolve => {
+	return new Promise((resolve) => {
 		const obj: Record<string, any> = {};
 
 		let stdoutDone = false;
@@ -204,7 +204,7 @@ const runPromptWithAnswers = (location, args, answers) => {
 		};
 
 		process.stdout.pipe(
-			concat(result => {
+			concat((result) => {
 				stdoutDone = true;
 				obj.stdout = result.toString();
 
@@ -213,7 +213,7 @@ const runPromptWithAnswers = (location, args, answers) => {
 		);
 
 		process.stderr.pipe(
-			concat(result => {
+			concat((result) => {
 				stderrDone = true;
 				obj.stderr = result.toString();
 
@@ -223,26 +223,26 @@ const runPromptWithAnswers = (location, args, answers) => {
 	});
 };
 
-const normalizeVersions = output => {
+const normalizeVersions = (output) => {
 	return output.replace(
 		/(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?/gi,
 		"x.x.x"
 	);
 };
 
-const normalizeCwd = output => {
+const normalizeCwd = (output) => {
 	return output
 		.replace(/\\/g, "/")
 		.replace(new RegExp(process.cwd().replace(/\\/g, "/"), "g"), "<cwd>");
 };
 
-const normalizeError = output => {
+const normalizeError = (output) => {
 	return output
 		.replace(/SyntaxError: .+/, "SyntaxError: <error-message>")
 		.replace(/\s+at .+(}|\)|\d)/gs, "\n    at stack");
 };
 
-const normalizeStdout = stdout => {
+const normalizeStdout = (stdout) => {
 	if (typeof stdout !== "string") {
 		return stdout;
 	}
@@ -259,7 +259,7 @@ const normalizeStdout = stdout => {
 	return normalizedStdout;
 };
 
-const normalizeStderr = stderr => {
+const normalizeStderr = (stderr) => {
 	if (typeof stderr !== "string") {
 		return stderr;
 	}
@@ -295,7 +295,7 @@ const normalizeStderr = stderr => {
 		// Github Actions doesn't' support IPv6 on ubuntu in some cases
 		normalizedStderr = normalizedStderr.split("\n");
 
-		const ipv4MessageIndex = normalizedStderr.findIndex(item =>
+		const ipv4MessageIndex = normalizedStderr.findIndex((item) =>
 			/On Your Network \(IPv4\)/.test(item)
 		);
 
@@ -334,7 +334,7 @@ const readFile = (path, options = {}) =>
 		});
 	});
 
-const readdir = path =>
+const readdir = (path) =>
 	new Promise((resolve, reject) => {
 		fs.readdir(path, (err, stats) => {
 			if (err) {

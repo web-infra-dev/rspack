@@ -41,13 +41,13 @@ export class RspackCLI {
 	}
 	getLogger(): RspackCLILogger {
 		return {
-			error: val =>
+			error: (val) =>
 				console.error(`[rspack-cli] ${this.colors.red(util.format(val))}`),
-			warn: val => console.warn(`[rspack-cli] ${this.colors.yellow(val)}`),
-			info: val => console.info(`[rspack-cli] ${this.colors.cyan(val)}`),
-			success: val => console.log(`[rspack-cli] ${this.colors.green(val)}`),
-			log: val => console.log(`[rspack-cli] ${val}`),
-			raw: val => console.log(val)
+			warn: (val) => console.warn(`[rspack-cli] ${this.colors.yellow(val)}`),
+			info: (val) => console.info(`[rspack-cli] ${this.colors.cyan(val)}`),
+			success: (val) => console.log(`[rspack-cli] ${this.colors.green(val)}`),
+			log: (val) => console.log(`[rspack-cli] ${val}`),
+			raw: (val) => console.log(val)
 		};
 	}
 	async run(argv: string[]) {
@@ -112,7 +112,7 @@ export class RspackCLI {
 				if (options.entry) {
 					console.log("entry:", options.entry);
 					entry = {
-						main: options.entry.map(x => path.resolve(process.cwd(), x))[0] // Fix me when entry supports array
+						main: options.entry.map((x) => path.resolve(process.cwd(), x))[0] // Fix me when entry supports array
 					};
 				} else {
 					entry = {

@@ -11,7 +11,7 @@ export class BuildCommand implements RspackCommand {
 		cli.program.command(
 			["build [entry..]", "$0", "bundle", "b"],
 			"run the rspack build",
-			yargs =>
+			(yargs) =>
 				commonOptions(yargs).options({
 					analyze: {
 						type: "boolean",
@@ -22,7 +22,7 @@ export class BuildCommand implements RspackCommand {
 						describe: "emit stats json"
 					}
 				}),
-			async options => {
+			async (options) => {
 				const logger = cli.getLogger();
 				let createJsonStringifyStream;
 				if (options.json) {
@@ -45,7 +45,7 @@ export class BuildCommand implements RspackCommand {
 						? compiler.options.stats
 						: undefined;
 					if (options.json && createJsonStringifyStream) {
-						const handleWriteError = error => {
+						const handleWriteError = (error) => {
 							logger.error(error);
 							process.exit(2);
 						};

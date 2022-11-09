@@ -9,7 +9,7 @@ it("should only map transformed lines if cheap options is used", async () => {
 	expect(map.file).toEqual("main.css");
 	expect(map.sourcesContent[0]).not.toContain("$backgroundColor");
 	const consumer = await new sourceMap.SourceMapConsumer(map);
-	consumer.eachMapping(m => {
+	consumer.eachMapping((m) => {
 		expect(m.generatedColumn).toBe(0);
 		expect(m.originalColumn).toBe(0);
 	});

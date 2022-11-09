@@ -144,7 +144,7 @@ export class RspackDevServer {
 				return;
 			}
 
-			watcher.on("change", item => {
+			watcher.on("change", (item) => {
 				if (this.webSocketServer) {
 					this.sendMessage(
 						this.webSocketServer.clients,
@@ -171,7 +171,7 @@ export class RspackDevServer {
 		this.createWebsocketServer();
 		this.setupDevMiddleware();
 		this.setupMiddlewares();
-		await new Promise(resolve =>
+		await new Promise((resolve) =>
 			this.server.listen(
 				{
 					port: this.options.port,
@@ -199,14 +199,14 @@ export class RspackDevServer {
 	}
 
 	async stop(): Promise<void> {
-		await Promise.all(this.staticWatchers.map(watcher => watcher.close()));
+		await Promise.all(this.staticWatchers.map((watcher) => watcher.close()));
 		this.middleware = null;
 		this.staticWatchers = [];
 		if (this.server) {
 			this.server.close();
 		}
 		if (this.webSocketServer) {
-			await new Promise(resolve => {
+			await new Promise((resolve) => {
 				this.webSocketServer;
 			});
 		}
@@ -258,7 +258,7 @@ export class RspackDevServer {
 			middleware: express.static(this.options.static.directory)
 		});
 
-		middlewares.forEach(m => {
+		middlewares.forEach((m) => {
 			if (m.path) {
 				this.app.use(m.path, m.middleware);
 			} else {

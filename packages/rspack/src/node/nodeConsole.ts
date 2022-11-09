@@ -103,9 +103,9 @@ export = ({ colors, appendOnly, stream }) => {
 				currentIndent = currentIndent.slice(0, currentIndent.length - 2);
 		},
 		// eslint-disable-next-line node/no-unsupported-features/node-builtins
-		profile: console.profile && (name => console.profile(name)),
+		profile: console.profile && ((name) => console.profile(name)),
 		// eslint-disable-next-line node/no-unsupported-features/node-builtins
-		profileEnd: console.profileEnd && (name => console.profileEnd(name)),
+		profileEnd: console.profileEnd && ((name) => console.profileEnd(name)),
 		clear:
 			!appendOnly &&
 			// eslint-disable-next-line node/no-unsupported-features/node-builtins

@@ -133,7 +133,7 @@ let BatchedHash = undefined;
  * @param {string | typeof Hash} algorithm the algorithm name or a constructor creating a hash
  * @returns {Hash} the hash
  */
-export const createHash = algorithm => {
+export const createHash = (algorithm) => {
 	if (typeof algorithm === "function") {
 		return new BulkUpdateDecorator(() => new algorithm());
 	}

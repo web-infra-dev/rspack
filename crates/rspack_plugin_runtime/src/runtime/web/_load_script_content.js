@@ -47,7 +47,7 @@
 			var doneFns = inProgress[content];
 			delete inProgress[content];
 			script.parentNode && script.parentNode.removeChild(script);
-			doneFns && doneFns.forEach(fn => fn(event));
+			doneFns && doneFns.forEach((fn) => fn(event));
 			if (prev) return prev(event);
 		};
 		var timeout = setTimeout(

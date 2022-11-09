@@ -12,7 +12,7 @@ importers:
       is-ci: 3.0.1
       jest: 29.0.3
       lint-staged: ^12.5.0
-      prettier: 2.5.1
+      rome: ^10.0.0
       ts-jest: 29.0.1
       tsm: 2.2.1
       typescript: 4.8.3
@@ -28,7 +28,7 @@ importers:
       is-ci: 3.0.1
       jest: 29.0.3
       lint-staged: 12.5.0
-      prettier: 2.5.1
+      rome: 10.0.0
       ts-jest: 29.0.1_xqdqigz244m3lt4wgbpk45wbrm
       tsm: 2.2.1
       typescript: 4.8.3
@@ -1782,6 +1782,54 @@ packages:
   /@polka/url/1.0.0-next.21:
     resolution: {integrity: sha512-a5Sab1C4/icpTZVzZc5Ghpz88yQtGOyNqYXcZgOssB2uuAr+wF/MvN6bgtW32q7HHrvBki+BsZ0OuNv6EV3K9g==}
     dev: false
+
+  /@rometools/cli-darwin-arm64/10.0.0:
+    resolution: {integrity: sha512-JT7JccEtKyFDHXy0MxhwHN4Zc94s/kW+0aTczb1ChAoCStfjj5jWzv/yQnm+HFw5Vf3ukAocLsDNRN6d9gQYbQ==}
+    cpu: [arm64]
+    os: [darwin]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@rometools/cli-darwin-x64/10.0.0:
+    resolution: {integrity: sha512-HORYhz8eM3L3XePPNBhU44zFpTVfhpuO4B7fjdfho7z9kwTW22M0fVvuPrxxPauxmin7gHM8lxCD2jHxabg34Q==}
+    cpu: [x64]
+    os: [darwin]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@rometools/cli-linux-arm64/10.0.0:
+    resolution: {integrity: sha512-/L3jxo9RUwJ+uvDvAPCquAw10ccpZDuzADfZff5tHd6Fzv28cAToC3JrN/2miGpur0Fx/NIZIPbAsdI4NWGIRA==}
+    cpu: [arm64]
+    os: [linux]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@rometools/cli-linux-x64/10.0.0:
+    resolution: {integrity: sha512-KC6CDeSR4haRfxmfrvCn8+NzQ7X31pDjFgD+m+PAbSXOeMr/KHmU7eDsjC3d47ORYYkYXqhx9VxHe1w3IEShMg==}
+    cpu: [x64]
+    os: [linux]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@rometools/cli-win32-arm64/10.0.0:
+    resolution: {integrity: sha512-8XWjx7Z1dMp9q4Lvi+ax4+Y8vkbp7JHVdfrTSMQTyUA9ofaW6ah1h9iGPuKic057VTZGX66/KazC5qNTbrlckQ==}
+    cpu: [arm64]
+    os: [win32]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@rometools/cli-win32-x64/10.0.0:
+    resolution: {integrity: sha512-mAf3f32oE919cZ86KVMR/X0VOs+C16jEUyt1ww2UPw/rKUmm0DNfuT6/m4FQW8GEHdCBC8z3zdRVCd05VK7UJg==}
+    cpu: [x64]
+    os: [win32]
+    requiresBuild: true
+    dev: true
+    optional: true
 
   /@sinclair/typebox/0.24.41:
     resolution: {integrity: sha512-TJCgQurls4FipFvHeC+gfAzb+GGstL0TDwYJKQVtTeSvJIznWzP7g3bAd5gEBlr8+bIxqnWS9VGVWREDhmE8jA==}
@@ -7629,12 +7677,6 @@ packages:
       which-pm: 2.0.0
     dev: true
 
-  /prettier/2.5.1:
-    resolution: {integrity: sha512-vBZcPRUR5MZJwoyi3ZoyQlc1rXeEck8KgeC9AwwOn+exuxLxq5toTRDTSaVrXHxelDMHy9zlicw8u66yxoSUFg==}
-    engines: {node: '>=10.13.0'}
-    hasBin: true
-    dev: true
-
   /prettier/2.7.1:
     resolution: {integrity: sha512-ujppO+MkdPqoVINuDFDRLClm7D78qbDt0/NR+wp5FqEZOoTNAjPHWj17QRhu7geIHJfcNhRk1XVQmF8Bp3ye+g==}
     engines: {node: '>=10.13.0'}
@@ -8207,6 +8249,20 @@ packages:
       minimist: 1.2.6
       source-map-support: 0.3.3
     dev: false
+
+  /rome/10.0.0:
+    resolution: {integrity: sha512-dQnIlzgHDt94N4JoFaqe9e2aDAZfdmyGOW4UaefMztDph41mt75Mg0aeJ/C7JgcIOLbp9D4LD+omyUB5YFUUPw==}
+    engines: {node: '>=14.*'}
+    hasBin: true
+    requiresBuild: true
+    optionalDependencies:
+      '@rometools/cli-darwin-arm64': 10.0.0
+      '@rometools/cli-darwin-x64': 10.0.0
+      '@rometools/cli-linux-arm64': 10.0.0
+      '@rometools/cli-linux-x64': 10.0.0
+      '@rometools/cli-win32-arm64': 10.0.0
+      '@rometools/cli-win32-x64': 10.0.0
+    dev: true
 
   /run-parallel/1.2.0:
     resolution: {integrity: sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA==}

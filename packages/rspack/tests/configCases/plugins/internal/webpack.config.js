@@ -8,10 +8,10 @@ module.exports = {
 		{
 			name: "test",
 			apply(compiler) {
-				compiler.hooks.compilation.tap("compilation", compilation => {
+				compiler.hooks.compilation.tap("compilation", (compilation) => {
 					compilation.hooks.processAssets.tapPromise(
 						"processAssets1",
-						async assets => {
+						async (assets) => {
 							for (const [key, value] of Object.entries(assets)) {
 								compilation.updateAsset(
 									key,

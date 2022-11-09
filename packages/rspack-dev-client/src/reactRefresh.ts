@@ -11,7 +11,7 @@ if (process.env.NODE_ENV !== "production") {
 
 	RefreshRuntime.injectIntoGlobalHook(globalThis);
 	globalThis.$RefreshReg$ = () => {};
-	globalThis.$RefreshSig$ = () => type => type;
+	globalThis.$RefreshSig$ = () => (type) => type;
 
 	var queueUpdate = debounce(RefreshRuntime.performReactRefresh, 16);
 

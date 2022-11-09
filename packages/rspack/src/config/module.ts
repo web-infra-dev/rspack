@@ -166,7 +166,7 @@ function composeJsUse(
 		return Buffer.from(JSON.stringify(loaderResultPayload), "utf-8");
 	}
 	loader.displayName = `NodeLoaderAdapter(${uses
-		.map(item => {
+		.map((item) => {
 			assert("loader" in item);
 			return item.loader.displayName || item.loader.name || "unknown-loader";
 		})
@@ -213,7 +213,7 @@ function createRawModuleRuleUsesImpl(
 		return [];
 	}
 
-	const index = uses.findIndex(use => "builtinLoader" in use);
+	const index = uses.findIndex((use) => "builtinLoader" in use);
 	if (index < 0) {
 		return [composeJsUse(uses, options)];
 	}
@@ -250,7 +250,7 @@ export function resolveModuleOptions(
 	module: Module = {},
 	options: ComposeJsUseOptions
 ): ResolvedModule {
-	const rules = (module.rules ?? []).map(rule => ({
+	const rules = (module.rules ?? []).map((rule) => ({
 		...rule,
 		uses: createRawModuleRuleUses(rule.uses || [], options)
 	}));

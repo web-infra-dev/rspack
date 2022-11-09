@@ -8,7 +8,7 @@ expect.addSnapshotSerializer(serializer);
 
 const base = path.resolve(__dirname, "statsCases");
 const outputBase = path.resolve(__dirname, "stats");
-const tests = fs.readdirSync(base).filter(testName => {
+const tests = fs.readdirSync(base).filter((testName) => {
 	return (
 		fs.existsSync(path.resolve(base, testName, "index.js")) ||
 		fs.existsSync(path.resolve(base, testName, "webpack.config.js"))
@@ -20,10 +20,10 @@ function toEval(modName: string) {
 }
 const externalModule = ["uvu", "path", "fs", "expect"];
 describe("StatsTestCases", () => {
-	tests.forEach(testName => {
+	tests.forEach((testName) => {
 		it("should print correct stats for " + testName, async () => {
 			const external = Object.fromEntries(
-				externalModule.map(x => [x, toEval(x)])
+				externalModule.map((x) => [x, toEval(x)])
 			);
 			const context = path.resolve(base, testName);
 			const outputPath = path.resolve(base, testName, "dist");

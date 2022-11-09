@@ -2,7 +2,7 @@ function __rspack_dynamic_require__(chunkIds) {
 	return Promise.all(
 		chunkIds.map(
 			function (chunkId) {
-				return new Promise(resolve => {
+				return new Promise((resolve) => {
 					this.install_chunk(
 						require(this.__rspack_get_dynamic_chunk_url__(chunkId, "js"))
 					);

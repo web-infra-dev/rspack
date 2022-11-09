@@ -50,7 +50,7 @@ export class Stats {
 
 		const colors: any = Object.keys(defaultColors).reduce(
 			(obj, color) => {
-				obj[color] = str => {
+				obj[color] = (str) => {
 					if (useColors) {
 						buf.push(
 							useColors === true || useColors[color] === undefined
@@ -66,11 +66,11 @@ export class Stats {
 				return obj;
 			},
 			{
-				normal: str => buf.push(str)
+				normal: (str) => buf.push(str)
 			}
 		);
 
-		const coloredTime = time => {
+		const coloredTime = (time) => {
 			let times = [800, 400, 200, 100];
 			if (obj.time) {
 				times = [obj.time / 2, obj.time / 4, obj.time / 8, obj.time / 16];
@@ -297,7 +297,7 @@ export class Stats {
 			let outputChunkGroups = obj.namedChunkGroups;
 			if (obj.entrypoints) {
 				outputChunkGroups = Object.keys(outputChunkGroups)
-					.filter(name => !obj.entrypoints[name])
+					.filter((name) => !obj.entrypoints[name])
 					.reduce((result, name) => {
 						result[name] = obj.namedChunkGroups[name];
 						return result;
@@ -321,7 +321,7 @@ export class Stats {
 			}
 		}
 
-		const processModuleAttributes = module => {
+		const processModuleAttributes = (module) => {
 			colors.normal(" ");
 			colors.normal(SizeFormatHelpers.formatSize(module.size));
 			if (module.chunks) {
@@ -768,7 +768,7 @@ export class Stats {
 }
 
 const SizeFormatHelpers = {
-	formatSize: size => {
+	formatSize: (size) => {
 		if (typeof size !== "number" || Number.isNaN(size) === true) {
 			return "unknown size";
 		}

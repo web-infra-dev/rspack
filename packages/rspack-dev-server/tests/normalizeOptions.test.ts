@@ -49,7 +49,7 @@ function matchAdditionEntries(config: RspackOptions) {
 	// some hack for snapshot
 	const value = Object.fromEntries(
 		entires.map(([key, item]) => {
-			const replaced = item.map(entry => {
+			const replaced = item.map((entry) => {
 				const array = entry.replace(/\\/g, "/").split("/");
 				return "<prefix>" + "/" + array.slice(-3).join("/");
 			});

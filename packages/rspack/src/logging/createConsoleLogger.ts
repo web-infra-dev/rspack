@@ -40,7 +40,7 @@ const { LogType } = require("./Logger");
  * @param {FilterItemTypes} item an input item
  * @returns {FilterFunction} filter function
  */
-const filterToFunction = item => {
+const filterToFunction = (item) => {
 	if (typeof item === "string") {
 		const regExp = new RegExp(
 			`[\\\\/]${item.replace(
@@ -49,10 +49,10 @@ const filterToFunction = item => {
 				"\\$&"
 			)}([\\\\/]|$|!|\\?)`
 		);
-		return ident => regExp.test(ident);
+		return (ident) => regExp.test(ident);
 	}
 	if (item && typeof item === "object" && typeof item.test === "function") {
-		return ident => item.test(ident);
+		return (ident) => item.test(ident);
 	}
 	if (typeof item === "function") {
 		return item;
@@ -84,7 +84,9 @@ export = ({ level = "info", debug = false, console }: any) => {
 	const debugFilters =
 		typeof debug === "boolean"
 			? [() => debug]
-			: /** @type {FilterItemTypes[]} */ [].concat(debug).map(filterToFunction);
+			: /** @type {FilterItemTypes[]} */ []
+					.concat(debug)
+					.map(filterToFunction);
 	/** @type {number} */
 	const loglevel = LogLevel[`${level}`] || 0;
 
@@ -106,7 +108,7 @@ export = ({ level = "info", debug = false, console }: any) => {
 				return [];
 			}
 		};
-		const debug = debugFilters.some(f => f(name));
+		const debug = debugFilters.some((f) => f(name));
 		switch (type) {
 			case LogType.debug:
 				if (!debug) return;

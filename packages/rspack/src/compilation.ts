@@ -119,7 +119,7 @@ export class Compilation {
 	getAssets() {
 		const assets = this.#inner.getAssets();
 
-		return assets.map(asset => {
+		return assets.map((asset) => {
 			const source = createSourceFromRaw(asset.source);
 			return {
 				...asset,

@@ -24,7 +24,7 @@ function resolveDefine(define = {}) {
 }
 
 function resolveHtml(html: Builtins["html"]): BuiltinsHtmlPluginConfig[] {
-	return html.map(c => {
+	return html.map((c) => {
 		for (const key in c.meta) {
 			const value = c.meta[key];
 			if (typeof value === "string") {

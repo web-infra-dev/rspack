@@ -67,7 +67,7 @@ function format(objURL: ObjURL): string {
 		 * @param {string} match
 		 * @returns {string}
 		 */
-		match => encodeURIComponent(match)
+		(match) => encodeURIComponent(match)
 	);
 	search = search.replace("#", "%23");
 

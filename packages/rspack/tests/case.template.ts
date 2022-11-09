@@ -12,13 +12,13 @@ export function describeCases(config: { name: string; casePath: string }) {
 	const casesPath = path.resolve(__dirname, config.casePath);
 	let categoriesDir = fs.readdirSync(casesPath);
 	let categories = categoriesDir
-		.filter(x => x !== "dist" || x.includes("."))
-		.map(cat => {
+		.filter((x) => x !== "dist" || x.includes("."))
+		.map((cat) => {
 			return {
 				name: cat,
 				tests: fs
 					.readdirSync(path.resolve(casesPath, cat))
-					.filter(folder => !folder.includes("_"))
+					.filter((folder) => !folder.includes("_"))
 			};
 		});
 	describe(config.name, () => {
@@ -47,7 +47,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 								config = require(configFile);
 							}
 							const externals = Object.fromEntries(
-								externalModule.map(x => [x, x])
+								externalModule.map((x) => [x, x])
 							);
 							const options: RspackOptions = {
 								target: "node",
@@ -72,7 +72,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 								if (statsJson.errors.length > 0) {
 									console.log(
 										`case: ${example}\nerrors:\n`,
-										`${statsJson.errors.map(x => x.message).join("\n")}`
+										`${statsJson.errors.map((x) => x.message).join("\n")}`
 									);
 								}
 								assert(statsJson.errors.length === 0);

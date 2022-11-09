@@ -8,7 +8,7 @@ import { getNormalizedRspackOptions } from "../src";
  * @param {string} str String to quote
  * @returns {string} Escaped string
  */
-const quoteMeta = str => {
+const quoteMeta = (str) => {
 	return str.replace(/[-[\]\\/{}()*+?.^$|]/g, "\\$&");
 };
 
@@ -22,7 +22,7 @@ const escapedCwdRegExp = new RegExp(
 	`${quoteMeta(escapedCwd)}((?:\\\\\\\\)?(?:[a-zA-Z.\\-_]+\\\\\\\\)*)`,
 	"g"
 );
-const normalize = str => {
+const normalize = (str) => {
 	if (cwd.startsWith("/")) {
 		str = str.replace(new RegExp(quoteMeta(cwd), "g"), "<cwd>");
 	} else {
@@ -61,7 +61,7 @@ expect.addSnapshotSerializer({
 	}
 });
 
-const getDefaultConfig = config => {
+const getDefaultConfig = (config) => {
 	config = getNormalizedRspackOptions(config);
 	process.chdir(cwd);
 	return config;
@@ -147,13 +147,13 @@ describe("snapshots", () => {
 		});
 	};
 
-	test("empty config", {}, e =>
+	test("empty config", {}, (e) =>
 		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
-	test("none mode", { mode: "none" }, e =>
+	test("none mode", { mode: "none" }, (e) =>
 		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
-	test("no mode provided", { mode: undefined }, e =>
+	test("no mode provided", { mode: undefined }, (e) =>
 		e.toMatchInlineSnapshot(`
 		- Expected
 		+ Received
@@ -163,7 +163,7 @@ describe("snapshots", () => {
 		+   "mode": "production",
 	`)
 	);
-	test("production", { mode: "production" }, e =>
+	test("production", { mode: "production" }, (e) =>
 		e.toMatchInlineSnapshot(`
 		- Expected
 		+ Received
@@ -173,7 +173,7 @@ describe("snapshots", () => {
 		+   "mode": "production",
 	`)
 	);
-	test("development", { mode: "development" }, e =>
+	test("development", { mode: "development" }, (e) =>
 		e.toMatchInlineSnapshot(`
 		- Expected
 		+ Received
@@ -186,7 +186,7 @@ describe("snapshots", () => {
 	/**
 	 * not support yet
 	 */
-	test("sync wasm", { experiments: { syncWebAssembly: true } }, e =>
+	test("sync wasm", { experiments: { syncWebAssembly: true } }, (e) =>
 		e.toMatchInlineSnapshot(`
 		- Expected
 		+ Received
@@ -200,7 +200,7 @@ describe("snapshots", () => {
 	/**
 	 * not support yet
 	 */
-	test("output module", { experiments: { outputModule: true } }, e =>
+	test("output module", { experiments: { outputModule: true } }, (e) =>
 		e.toMatchInlineSnapshot(`
 		- Expected
 		+ Received
@@ -214,7 +214,7 @@ describe("snapshots", () => {
 	/**
 	 * not support yet
 	 */
-	test("async wasm", { experiments: { asyncWebAssembly: true } }, e =>
+	test("async wasm", { experiments: { asyncWebAssembly: true } }, (e) =>
 		e.toMatchInlineSnapshot(`
 		- Expected
 		+ Received
@@ -228,7 +228,7 @@ describe("snapshots", () => {
 	test(
 		"both wasm",
 		{ experiments: { syncWebAssembly: true, asyncWebAssembly: true } },
-		e =>
+		(e) =>
 			e.toMatchInlineSnapshot(`
 			- Expected
 			+ Received
@@ -240,7 +240,7 @@ describe("snapshots", () => {
 			+   },
 		`)
 	);
-	test("const filename", { output: { filename: "bundle.js" } }, e =>
+	test("const filename", { output: { filename: "bundle.js" } }, (e) =>
 		e.toMatchInlineSnapshot(`
 		- Expected
 		+ Received
@@ -252,7 +252,7 @@ describe("snapshots", () => {
 		+   },
 	`)
 	);
-	test("function filename", { output: { filename: () => "bundle.js" } }, e =>
+	test("function filename", { output: { filename: () => "bundle.js" } }, (e) =>
 		e.toMatchInlineSnapshot(`
 		- Expected
 		+ Received
@@ -264,7 +264,7 @@ describe("snapshots", () => {
 		+   },
 	`)
 	);
-	test("library", { output: { library: ["myLib", "awesome"] } }, e =>
+	test("library", { output: { library: ["myLib", "awesome"] } }, (e) =>
 		e.toMatchInlineSnapshot(`
 		- Expected
 		+ Received
@@ -286,7 +286,7 @@ describe("snapshots", () => {
 				library: ["myLib", "[name]"]
 			}
 		},
-		e =>
+		(e) =>
 			e.toMatchInlineSnapshot(`
 			- Expected
 			+ Received
@@ -311,7 +311,7 @@ describe("snapshots", () => {
 				}
 			}
 		},
-		e =>
+		(e) =>
 			e.toMatchInlineSnapshot(`
 			- Expected
 			+ Received
@@ -342,7 +342,7 @@ describe("snapshots", () => {
 				}
 			}
 		},
-		e =>
+		(e) =>
 			e.toMatchInlineSnapshot(`
 			- Expected
 			+ Received
@@ -374,7 +374,7 @@ describe("snapshots", () => {
 				}
 			}
 		},
-		e =>
+		(e) =>
 			e.toMatchInlineSnapshot(`
 			- Expected
 			+ Received
@@ -395,7 +395,7 @@ describe("snapshots", () => {
 			+   },
 		`)
 	);
-	test("target node", { target: "node" }, e =>
+	test("target node", { target: "node" }, (e) =>
 		e.toMatchInlineSnapshot(`
 		- Expected
 		+ Received
@@ -405,7 +405,7 @@ describe("snapshots", () => {
 		+     "node",
 	`)
 	);
-	test("target webworker", { target: "webworker" }, e =>
+	test("target webworker", { target: "webworker" }, (e) =>
 		e.toMatchInlineSnapshot(`
 		- Expected
 		+ Received
@@ -415,7 +415,7 @@ describe("snapshots", () => {
 		+     "webworker",
 	`)
 	);
-	test("target electron-main", { target: "electron-main" }, e =>
+	test("target electron-main", { target: "electron-main" }, (e) =>
 		e.toMatchInlineSnapshot(`
 		- Expected
 		+ Received
@@ -425,7 +425,7 @@ describe("snapshots", () => {
 		+     "electron-main",
 	`)
 	);
-	test("target electron-main", { target: "electron-preload" }, e =>
+	test("target electron-main", { target: "electron-preload" }, (e) =>
 		e.toMatchInlineSnapshot(`
 		- Expected
 		+ Received
@@ -435,7 +435,7 @@ describe("snapshots", () => {
 		+     "electron-preload",
 	`)
 	);
-	test("records", { recordsPath: "some-path" }, e =>
+	test("records", { recordsPath: "some-path" }, (e) =>
 		e.toMatchInlineSnapshot(`
 		- Expected
 		+ Received
@@ -444,7 +444,7 @@ describe("snapshots", () => {
 		+   "recordsPath": "some-path",
 	`)
 	);
-	test("ecmaVersion", { output: { ecmaVersion: 2020 } }, e =>
+	test("ecmaVersion", { output: { ecmaVersion: 2020 } }, (e) =>
 		e.toMatchInlineSnapshot(`
 		- Expected
 		+ Received
@@ -456,8 +456,11 @@ describe("snapshots", () => {
 		+   },
 	`)
 	);
-	test("single runtimeChunk", { optimization: { runtimeChunk: "single" } }, e =>
-		e.toMatchInlineSnapshot(`
+	test(
+		"single runtimeChunk",
+		{ optimization: { runtimeChunk: "single" } },
+		(e) =>
+			e.toMatchInlineSnapshot(`
 		- Expected
 		+ Received
 
@@ -470,7 +473,7 @@ describe("snapshots", () => {
 	test(
 		"single runtimeChunk",
 		{ optimization: { runtimeChunk: "multiple" } },
-		e =>
+		(e) =>
 			e.toMatchInlineSnapshot(`
 			- Expected
 			+ Received
@@ -481,7 +484,7 @@ describe("snapshots", () => {
 			+   },
 		`)
 	);
-	test("single runtimeChunk", { optimization: { runtimeChunk: true } }, e =>
+	test("single runtimeChunk", { optimization: { runtimeChunk: true } }, (e) =>
 		e.toMatchInlineSnapshot(`
 		- Expected
 		+ Received
@@ -492,7 +495,7 @@ describe("snapshots", () => {
 		+   },
 	`)
 	);
-	test("cache true", { cache: true }, e =>
+	test("cache true", { cache: true }, (e) =>
 		e.toMatchInlineSnapshot(`
 		- Expected
 		+ Received
@@ -501,7 +504,7 @@ describe("snapshots", () => {
 		+   "cache": true,
 	`)
 	);
-	test("cache filesystem", { cache: { type: "filesystem" } }, e =>
+	test("cache filesystem", { cache: { type: "filesystem" } }, (e) =>
 		e.toMatchInlineSnapshot(`
 		- Expected
 		+ Received
@@ -515,7 +518,7 @@ describe("snapshots", () => {
 	test(
 		"cache filesystem development",
 		{ mode: "development", cache: { type: "filesystem" } },
-		e =>
+		(e) =>
 			e.toMatchInlineSnapshot(`
 			- Expected
 			+ Received
@@ -538,7 +541,7 @@ describe("snapshots", () => {
 			amd: false,
 			optimization: { splitChunks: false }
 		},
-		e =>
+		(e) =>
 			e.toMatchInlineSnapshot(`
 			- Expected
 			+ Received
@@ -563,7 +566,7 @@ describe("snapshots", () => {
 				trustedTypes: true
 			}
 		},
-		e =>
+		(e) =>
 			e.toMatchInlineSnapshot(`
 			- Expected
 			+ Received
@@ -577,22 +580,22 @@ describe("snapshots", () => {
 		`)
 	);
 
-	test("stats true", { stats: true }, e =>
+	test("stats true", { stats: true }, (e) =>
 		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 
-	test("stats false", { stats: false }, e =>
+	test("stats false", { stats: false }, (e) =>
 		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 
-	test("stats string", { stats: "minimal" }, e =>
+	test("stats string", { stats: "minimal" }, (e) =>
 		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 
 	test(
 		"browserslist",
 		{ context: path.resolve(__dirname, "fixtures/browserslist") },
-		e =>
+		(e) =>
 			e.toMatchInlineSnapshot(`
 			- Expected
 			+ Received
@@ -618,7 +621,7 @@ describe("snapshots", () => {
 				type: "filesystem"
 			}
 		},
-		e =>
+		(e) =>
 			e.toMatchInlineSnapshot(`
 			- Expected
 			+ Received
@@ -649,7 +652,7 @@ describe("snapshots", () => {
 				enabledWasmLoadingTypes: ["...", "async-node"]
 			}
 		},
-		e =>
+		(e) =>
 			e.toMatchInlineSnapshot(`
 			- Expected
 			+ Received
@@ -676,7 +679,7 @@ describe("snapshots", () => {
 				futureDefaults: true
 			}
 		},
-		e =>
+		(e) =>
 			e.toMatchInlineSnapshot(`
 			- Expected
 			+ Received
@@ -696,7 +699,7 @@ describe("snapshots", () => {
 				futureDefaults: true
 			}
 		},
-		e =>
+		(e) =>
 			e.toMatchInlineSnapshot(`
 			- Expected
 			+ Received

@@ -4,7 +4,7 @@ const { Command, command } = require("commander");
 
 const COMMANDER_VERSION = "2.20.3";
 
-function checkCommandVersion() {
+function checkCommandVersion () {
 	const pkgInfo = require(require.resolve("commander/package.json"));
 	if (pkgInfo.version !== COMMANDER_VERSION) {
 		log.error(
@@ -14,7 +14,7 @@ function checkCommandVersion() {
 	}
 }
 
-function createCLI() {
+function createCLI () {
 	checkCommandVersion();
 
 	const cli = new Command();
@@ -135,7 +135,7 @@ function createCLI() {
 			switch (args) {
 				case "js":
 					command =
-						'npx prettier "packages/**/*.{ts,js}" "crates/rspack_plugin_runtime/**/*.{ts,js}" --check --write';
+						'npx rome format --write --trailing-comma=none packages crates/rspack_plugin_runtime';
 					break;
 				case "rs":
 					command = "pnpm --filter @rspack/core... build";
