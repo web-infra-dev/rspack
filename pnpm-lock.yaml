@@ -115,69 +115,71 @@ importers:
 
   examples/bundle-splitting:
     specifiers:
-      '@rspack/core': workspace:*
+      '@rspack/cli': workspace:*
     devDependencies:
-      '@rspack/core': link:../../packages/rspack
+      '@rspack/cli': link:../../packages/rspack-cli
 
   examples/code-splitting:
     specifiers:
-      '@rspack/core': workspace:*
+      '@rspack/cli': workspace:*
     devDependencies:
-      '@rspack/core': link:../../packages/rspack
+      '@rspack/cli': link:../../packages/rspack-cli
 
   examples/multi-entry:
     specifiers:
-      '@rspack/core': workspace:*
+      '@rspack/cli': workspace:*
     devDependencies:
-      '@rspack/core': link:../../packages/rspack
+      '@rspack/cli': link:../../packages/rspack-cli
 
   examples/postcss:
     specifiers:
-      '@rspack/core': workspace:*
+      '@rspack/cli': workspace:*
     devDependencies:
-      '@rspack/core': link:../../packages/rspack
+      '@rspack/cli': link:../../packages/rspack-cli
 
   examples/react:
     specifiers:
-      '@rspack/core': workspace:*
+      '@rspack/cli': workspace:*
       react: 18.2.0
       react-dom: 18.2.0
+      react-refresh: 0.14.0
     dependencies:
-      '@rspack/core': link:../../packages/rspack
+      '@rspack/cli': link:../../packages/rspack-cli
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
+      react-refresh: 0.14.0
 
   examples/react-refresh:
     specifiers:
-      '@rspack/core': workspace:*
+      '@rspack/cli': workspace:*
       react: 18.0.0
       react-dom: 18.0.0
       react-refresh: 0.13.0
     dependencies:
-      '@rspack/core': link:../../packages/rspack
+      '@rspack/cli': link:../../packages/rspack-cli
       react: 18.0.0
       react-dom: 18.0.0_react@18.0.0
       react-refresh: 0.13.0
 
   examples/react-with-less:
     specifiers:
-      '@rspack/core': workspace:*
+      '@rspack/cli': workspace:*
       '@rspack/plugin-less': workspace:^
       react: 17.0.0
       react-dom: 17.0.0
     dependencies:
-      '@rspack/core': link:../../packages/rspack
+      '@rspack/cli': link:../../packages/rspack-cli
       '@rspack/plugin-less': link:../../packages/rspack-plugin-less
       react: 17.0.0
       react-dom: 17.0.0_react@17.0.0
 
   examples/react-with-sass:
     specifiers:
-      '@rspack/core': workspace:*
+      '@rspack/cli': workspace:*
       react: 17.0.0
       react-dom: 17.0.0
     dependencies:
-      '@rspack/core': link:../../packages/rspack
+      '@rspack/cli': link:../../packages/rspack-cli
       react: 17.0.0
       react-dom: 17.0.0_react@17.0.0
 

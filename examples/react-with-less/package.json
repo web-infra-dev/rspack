@@ -4,12 +4,15 @@
   "description": "",
   "main": "index.js",
   "private": true,
-  "scripts": {},
+  "scripts": {
+    "build": "rspack build",
+    "dev": "rspack serve"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@rspack/core": "workspace:*",
+    "@rspack/cli": "workspace:*",
     "@rspack/plugin-less": "workspace:^",
     "react": "17.0.0",
     "react-dom": "17.0.0"
