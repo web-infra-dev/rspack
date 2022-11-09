@@ -12,7 +12,6 @@ const links = {
 }
 function QuickOperation() {
   const t = useLocale(locale)
-
   return (
     <Card>
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>

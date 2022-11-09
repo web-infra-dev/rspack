@@ -36,6 +36,7 @@ module.exports = {
     progress: {},
     react: {
       development: true,
+      refresh: true,
     }
   },
 };
