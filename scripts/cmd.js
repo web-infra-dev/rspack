@@ -167,7 +167,7 @@ function createCLI () {
 			let commands = [];
 			switch (args) {
 				case "js":
-					commands = ['npx prettier "packages/**/*.{ts,js}" --check'];
+					commands = ['npx rome ci --linter-enabled=false --trailing-comma=none packages/ crates/rspack_plugin_runtime/'];
 					break;
 				case "rs":
 					commands = [
