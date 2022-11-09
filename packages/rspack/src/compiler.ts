@@ -299,9 +299,19 @@ class Compiler {
 		);
 		const begin = Date.now();
 		let rawStats = await util.promisify(this.build.bind(this))();
+
 		let stats = new Stats(rawStats);
+		if (stats.hasErrors()) {
+			console.log(
+				stats.toString({
+					all: false,
+					warnings: true,
+					errors: true,
+					...this.options.stats
+				})
+			);
+		}
 		// TODO: log stats string should move to cli
-		console.log(stats.toString(this.options.stats));
 		console.log("build success, time cost", Date.now() - begin, "ms");
 
 		let pendingChangedFilepaths = new Set<string>();
@@ -333,7 +343,16 @@ class Compiler {
 					(error: any, { diff, stats: rawStats }) => {
 						let stats = new Stats(rawStats);
 						// TODO: log stats string should move to cli
-						console.log(stats.toString(this.options.stats));
+						if (stats.hasErrors()) {
+							console.log(
+								stats.toString({
+									all: false,
+									warnings: true,
+									errors: true,
+									...this.options.stats
+								})
+							);
+						}
 						isBuildFinished = true;
 
 						const hasPending = Boolean(pendingChangedFilepaths.size);
