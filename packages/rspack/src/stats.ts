@@ -4,7 +4,7 @@ import { LogType } from "./logging/Logger";
 
 export type StatsCompilation = Omit<binding.StatsCompilation, "entrypoints"> & {
 	entrypoints: Record<string, binding.StatsEntrypoint>;
-}
+};
 
 export class Stats {
 	// remove this when support delegate compilation to rust side
@@ -12,10 +12,11 @@ export class Stats {
 
 	constructor(statsJson: binding.StatsCompilation) {
 		this.#statsJson = {
-			...statsJson, entrypoints: statsJson.entrypoints.reduce((acc, cur) => {
+			...statsJson,
+			entrypoints: statsJson.entrypoints.reduce((acc, cur) => {
 				acc[cur.name] = cur;
 				return acc;
-			}, {}),
+			}, {})
 		};
 	}
 
@@ -344,7 +345,8 @@ export class Stats {
 			}
 			if (module.assets && module.assets.length) {
 				colors.magenta(
-					` [${module.assets.length} asset${module.assets.length === 1 ? "" : "s"
+					` [${module.assets.length} asset${
+						module.assets.length === 1 ? "" : "s"
 					}]`
 				);
 			}
@@ -778,8 +780,9 @@ const SizeFormatHelpers = {
 		const abbreviations = ["bytes", "KiB", "MiB", "GiB"];
 		const index = Math.floor(Math.log(size) / Math.log(1024));
 
-		return `${+(size / Math.pow(1024, index)).toPrecision(3)} ${abbreviations[index]
-			}`;
+		return `${+(size / Math.pow(1024, index)).toPrecision(3)} ${
+			abbreviations[index]
+		}`;
 	}
 };
 
