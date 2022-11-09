@@ -92,7 +92,6 @@ export class RspackCLI {
 		if (!item.mode) {
 			item.mode = "production";
 		}
-		console.log("mode:", options.mode, item.mode);
 		return item;
 	}
 	async loadConfig(options: RspackCLIOptions): Promise<RspackOptions> {

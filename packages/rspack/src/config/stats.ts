@@ -4,6 +4,9 @@ export type ResolvedStatsOptions = binding.RawStatsOptions;
 
 export interface StatsOptions {
 	colors?: boolean;
+	all?: boolean;
+	warnings?: boolean;
+	errors?: boolean;
 }
 
 export function resolveStatsOptions(

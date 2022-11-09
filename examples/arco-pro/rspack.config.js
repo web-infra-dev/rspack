@@ -57,6 +57,6 @@ module.exports = {
     publicPath: '/'
   },
   infrastructureLogging: {
-    debug:true
+    debug:false
   }
 }
