@@ -2,12 +2,22 @@ import * as binding from "@rspack/binding";
 import { resolveStatsOptions, StatsOptions } from "./config/stats";
 import { LogType } from "./logging/Logger";
 
+export type StatsCompilation = Omit<binding.StatsCompilation, "entrypoints"> & {
+	entrypoints: Record<string, binding.StatsEntrypoint>;
+};
+
 export class Stats {
 	// remove this when support delegate compilation to rust side
-	#statsJson: binding.StatsCompilation;
+	#statsJson: StatsCompilation;
 
 	constructor(statsJson: binding.StatsCompilation) {
-		this.#statsJson = statsJson;
+		this.#statsJson = {
+			...statsJson,
+			entrypoints: statsJson.entrypoints.reduce((acc, cur) => {
+				acc[cur.name] = cur;
+				return acc;
+			}, {})
+		};
 	}
 
 	hasErrors() {
@@ -261,20 +271,20 @@ export class Stats {
 				colors.normal(" =");
 				for (const asset of cg.assets) {
 					colors.normal(" ");
-					colors.green(asset);
+					colors.green(asset.name);
 				}
-				for (const name of Object.keys(cg.childAssets)) {
-					const assets = cg.childAssets[name];
-					if (assets && assets.length > 0) {
-						colors.normal(" ");
-						colors.magenta(`(${name}:`);
-						for (const asset of assets) {
-							colors.normal(" ");
-							colors.green(asset);
-						}
-						colors.magenta(")");
-					}
-				}
+				// for (const name of Object.keys(cg.childAssets)) {
+				// 	const assets = cg.childAssets[name];
+				// 	if (assets && assets.length > 0) {
+				// 		colors.normal(" ");
+				// 		colors.magenta(`(${name}:`);
+				// 		for (const asset of assets) {
+				// 			colors.normal(" ");
+				// 			colors.green(asset);
+				// 		}
+				// 		colors.magenta(")");
+				// 	}
+				// }
 				newline();
 			}
 		};
