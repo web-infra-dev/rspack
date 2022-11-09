@@ -33,8 +33,11 @@ module.exports = {
            template : './index.html',
            publicPath: '/'
          }],
-
     define : {'process.env.NODE_ENV' : JSON.stringify('development')},
+    react: {
+      development: true,
+      refresh: true,
+    }
   },
   module : {
     rules :
@@ -58,5 +61,6 @@ module.exports = {
   },
   infrastructureLogging: {
     debug:false
-  }
+  },
+  
 }
