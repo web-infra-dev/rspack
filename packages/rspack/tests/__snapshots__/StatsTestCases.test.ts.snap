@@ -33,6 +33,21 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "type": "chunk",
     },
   ],
+  "entrypoints": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 1620,
+        },
+      ],
+      "assetsSize": 1620,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
   "errors": [],
   "errorsCount": 0,
   "modules": [
@@ -56,6 +71,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
 exports[`StatsTestCases should print correct stats for hot+production 2`] = `
 "    Asset      Size  Chunks  Chunk Names
 bundle.js  1.58 KiB    main  main
+Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 25 bytes [entry]
 [./index.js] 25 bytes {main}"
 `;
@@ -93,6 +109,21 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
       "type": "chunk",
     },
   ],
+  "entrypoints": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 1772,
+        },
+      ],
+      "assetsSize": 1772,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
   "errors": [
     {
       "formatted": "error[javascript]: JavaScript parsing error
@@ -137,6 +168,7 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 2`] = `
 "    Asset      Size  Chunks  Chunk Names
 bundle.js  1.73 KiB    main  main
+Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 15 bytes [entry]
 [./index.js] 15 bytes {main}
 
@@ -190,6 +222,21 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
       "type": "chunk",
     },
   ],
+  "entrypoints": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 1666,
+        },
+      ],
+      "assetsSize": 1666,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
   "errors": [
     {
       "formatted": "error[internal]: Resolve error
@@ -224,6 +271,7 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
 exports[`StatsTestCases should print correct stats for normal-errors 2`] = `
 "    Asset      Size  Chunks  Chunk Names
 bundle.js  1.63 KiB    main  main
+Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 20 bytes [entry]
 [./index.js] 20 bytes {main}
 
@@ -269,6 +317,21 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
       "type": "chunk",
     },
   ],
+  "entrypoints": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 1846,
+        },
+      ],
+      "assetsSize": 1846,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
   "errors": [
     {
       "formatted": "error[javascript]: JavaScript parsing error
@@ -325,6 +388,7 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
 exports[`StatsTestCases should print correct stats for parse-error 2`] = `
 "    Asset     Size  Chunks  Chunk Names
 bundle.js  1.8 KiB    main  main
+Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 83 bytes [entry]
 [./a.js] 14 bytes {main}
 [./b.js] 55 bytes {main}
@@ -372,6 +436,21 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "type": "chunk",
     },
   ],
+  "entrypoints": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 1729,
+        },
+      ],
+      "assetsSize": 1729,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
   "errors": [],
   "errorsCount": 0,
   "modules": [
@@ -395,6 +474,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
 exports[`StatsTestCases should print correct stats for simple 2`] = `
 "    Asset      Size  Chunks  Chunk Names
 bundle.js  1.69 KiB    main  main
+Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 26 bytes [entry]
 [./index.js] 26 bytes {main}"
 `;

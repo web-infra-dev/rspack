@@ -133,6 +133,84 @@ impl<'compilation> Stats<'compilation> {
       }
     }); // TODO: sort by module.depth
 
+    let mut chunks: Vec<StatsChunk> = self
+      .compilation
+      .chunk_by_ukey
+      .values()
+      .into_iter()
+      .map(|c| {
+        let mut files = Vec::from_iter(c.files.iter().cloned());
+        files.sort();
+        StatsChunk {
+          r#type: "chunk",
+          files,
+          id: c.id.clone(),
+          names: c._name.clone().map(|n| vec![n]).unwrap_or_default(),
+          entry: c.has_entry_module(&self.compilation.chunk_graph),
+          initial: c.can_be_initial(&self.compilation.chunk_group_by_ukey),
+          size: self
+            .compilation
+            .chunk_graph
+            .get_chunk_modules_size(&c.ukey, &self.compilation.module_graph),
+        }
+      })
+      .collect();
+    chunks.sort_by_cached_key(|v| v.id.to_string());
+
+    let mut entrypoints: Vec<StatsEntrypoint> = self
+      .compilation
+      .entrypoints
+      .iter()
+      .map(|(name, ukey)| {
+        let cg = self
+          .compilation
+          .chunk_group_by_ukey
+          .get(ukey)
+          .expect("compilation.chunk_group_by_ukey should have ukey from entrypoint");
+        let mut chunks: Vec<String> = cg
+          .chunks
+          .iter()
+          .map(|c| {
+            self
+              .compilation
+              .chunk_by_ukey
+              .get(c)
+              .expect("compilation.chunk_by_ukey should have ukey from chunk_group")
+          })
+          .map(|c| c.id.clone())
+          .collect();
+        chunks.sort();
+        let mut assets = cg.chunks.iter().fold(Vec::new(), |mut acc, c| {
+          let chunk = self
+            .compilation
+            .chunk_by_ukey
+            .get(c)
+            .expect("compilation.chunk_by_ukey should have ukey from chunk_group");
+          for file in &chunk.files {
+            acc.push(StatsEntrypointAsset {
+              name: file.clone(),
+              size: self
+                .compilation
+                .assets()
+                .get(file)
+                .unwrap()
+                .get_source()
+                .size() as f64,
+            });
+          }
+          acc
+        });
+        assets.sort_by_cached_key(|v| v.name.to_string());
+        StatsEntrypoint {
+          name: name.clone(),
+          chunks,
+          assets_size: assets.iter().fold(0.0, |acc, cur| acc + cur.size),
+          assets,
+        }
+      })
+      .collect();
+    entrypoints.sort_by_cached_key(|e| e.name.to_string());
+
     let mut diagnostic_displayer = DiagnosticDisplayer::new(self.compilation.options.stats.colors);
     let errors: Vec<StatsError> = self
       .compilation
@@ -158,28 +236,8 @@ impl<'compilation> Stats<'compilation> {
     StatsCompilation {
       assets,
       modules,
-      chunks: self
-        .compilation
-        .chunk_by_ukey
-        .values()
-        .into_iter()
-        .map(|c| {
-          let mut files = Vec::from_iter(c.files.iter().cloned());
-          files.sort();
-          StatsChunk {
-            r#type: "chunk",
-            files,
-            id: c.id.clone(),
-            names: c._name.clone().map(|n| vec![n]).unwrap_or_default(),
-            entry: c.has_entry_module(&self.compilation.chunk_graph),
-            initial: c.can_be_initial(&self.compilation.chunk_group_by_ukey),
-            size: self
-              .compilation
-              .chunk_graph
-              .get_chunk_modules_size(&c.ukey, &self.compilation.module_graph),
-          }
-        })
-        .collect(),
+      chunks,
+      entrypoints,
       errors_count: errors.len(),
       errors,
       warnings_count: warnings.len(),
@@ -197,7 +255,7 @@ pub struct StatsCompilation {
   pub errors_count: usize,
   pub warnings: Vec<StatsWarning>,
   pub warnings_count: usize,
-  // pub entrypoints: HashMap<String, StatsEntrypoint>,
+  pub entrypoints: Vec<StatsEntrypoint>,
 }
 
 #[derive(Debug)]
@@ -250,12 +308,15 @@ pub struct StatsChunk {
 }
 
 #[derive(Debug)]
-pub struct StatsAssetReference {
+pub struct StatsEntrypointAsset {
   pub name: String,
+  pub size: f64,
 }
 
 #[derive(Debug)]
 pub struct StatsEntrypoint {
   pub name: String,
-  pub assets: Vec<StatsAssetReference>,
+  pub assets: Vec<StatsEntrypointAsset>,
+  pub chunks: Vec<String>,
+  pub assets_size: f64,
 }

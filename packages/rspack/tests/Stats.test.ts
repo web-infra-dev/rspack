@@ -59,6 +59,21 @@ describe("Stats", () => {
 		      "type": "chunk",
 		    },
 		  ],
+		  "entrypoints": {
+		    "main": {
+		      "assets": [
+		        {
+		          "name": "main.js",
+		          "size": 210,
+		        },
+		      ],
+		      "assetsSize": 210,
+		      "chunks": [
+		        "main",
+		      ],
+		      "name": "main",
+		    },
+		  },
 		  "errors": [],
 		  "errorsCount": 0,
 		  "modules": [
@@ -82,6 +97,7 @@ describe("Stats", () => {
 		"     Asset       Size  Chunks  Chunk Names
 		runtime.js   14.4 KiB          
 		   main.js  210 bytes    main  main
+		Entrypoint main = main.js
 		chunk {main} main.js (main) 55 bytes [entry]
 		[./fixtures/a.js] 55 bytes {main}"
 	`);
