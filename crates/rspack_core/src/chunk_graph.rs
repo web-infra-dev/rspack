@@ -1,14 +1,16 @@
 use hashbrown::{HashMap, HashSet};
 
 use crate::{
-  Chunk, ChunkByUkey, ChunkGroupUkey, ChunkUkey, ModuleGraph, ModuleGraphModule, SourceType,
+  Chunk, ChunkByUkey, ChunkGroupUkey, ChunkUkey, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
+  SourceType,
 };
 
 #[derive(Debug, Default)]
 pub struct ChunkGraph {
-  pub(crate) split_point_module_identifier_to_chunk_ukey: hashbrown::HashMap<String, ChunkUkey>,
+  pub(crate) split_point_module_identifier_to_chunk_ukey:
+    hashbrown::HashMap<ModuleIdentifier, ChunkUkey>,
 
-  chunk_graph_module_by_module_url: HashMap<String, ChunkGraphModule>,
+  chunk_graph_module_by_module_identifier: HashMap<ModuleIdentifier, ChunkGraphModule>,
   chunk_graph_chunk_by_chunk_ukey: HashMap<ChunkUkey, ChunkGraphChunk>,
 }
 
@@ -21,7 +23,7 @@ impl ChunkGraph {
   }
   pub fn add_module(&mut self, module_identifier: String) {
     self
-      .chunk_graph_module_by_module_url
+      .chunk_graph_module_by_module_identifier
       .entry(module_identifier)
       .or_insert_with(ChunkGraphModule::new);
   }
@@ -51,14 +53,14 @@ impl ChunkGraph {
     module_identifier: &str,
   ) -> &mut ChunkGraphModule {
     self
-      .chunk_graph_module_by_module_url
+      .chunk_graph_module_by_module_identifier
       .get_mut(module_identifier)
       .expect("Module should be added before")
   }
 
   pub(crate) fn get_chunk_graph_module(&self, module_identifier: &str) -> &ChunkGraphModule {
     self
-      .chunk_graph_module_by_module_url
+      .chunk_graph_module_by_module_identifier
       .get(module_identifier)
       .expect("Module should be added before")
   }
@@ -113,7 +115,7 @@ impl ChunkGraph {
 
   pub fn get_modules_chunks(&self, module_identifier: &str) -> &HashSet<ChunkUkey> {
     let chunk_graph_module = self
-      .chunk_graph_module_by_module_url
+      .chunk_graph_module_by_module_identifier
       .get(module_identifier)
       .expect("Module should be added before");
     &chunk_graph_module.chunks
