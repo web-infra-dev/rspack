@@ -708,7 +708,6 @@ impl<'a> ModuleRefAnalyze<'a> {
     resolve_kind: ResolveKind,
   ) -> Option<&String> {
     let dep = Dependency {
-      importer: Some(self.module_identifier.to_string()),
       detail: crate::ModuleDependency {
         specifier: src,
         kind: resolve_kind,

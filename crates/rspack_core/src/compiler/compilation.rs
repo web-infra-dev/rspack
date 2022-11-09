@@ -199,7 +199,6 @@ impl Compilation {
         let items = items
           .iter()
           .map(|detail| Dependency {
-            importer: None,
             parent_module_identifier: None,
             detail: ModuleDependency {
               specifier: detail.path.clone(),
@@ -479,7 +478,6 @@ impl Compilation {
             .dependencies
             .into_iter()
             .map(|dep| Dependency {
-              importer: Some(module_identifier.clone()),
               parent_module_identifier: Some(module_identifier.clone()),
               detail: dep,
             })
