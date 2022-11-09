@@ -53,13 +53,13 @@ impl<'a> ModuleRefAnalyze<'a> {
     top_level_mark: Mark,
     unresolved_mark: Mark,
     uri: Ustr,
-    dep_to_module_uri: &'a ModuleGraph,
+    dep_to_module_identifier: &'a ModuleGraph,
   ) -> Self {
     Self {
       top_level_mark,
       unresolved_mark,
       module_identifier: uri,
-      module_graph: dep_to_module_uri,
+      module_graph: dep_to_module_identifier,
       export_map: AHashMap::default(),
       import_map: AHashMap::default(),
       export_all_list: vec![],
@@ -708,7 +708,6 @@ impl<'a> ModuleRefAnalyze<'a> {
     resolve_kind: ResolveKind,
   ) -> Option<&String> {
     let dep = Dependency {
-      importer: Some(self.module_identifier.to_string()),
       detail: crate::ModuleDependency {
         specifier: src,
         kind: resolve_kind,

@@ -14,7 +14,7 @@ use crate::{
 #[derive(Debug)]
 struct EntryData {
   name: String,
-  modules_uri: Vec<String>,
+  module_identifiers: Vec<String>,
   dependencies: Vec<Dependency>,
 }
 #[instrument()]
@@ -56,16 +56,16 @@ impl<'me> CodeSplitter<'me> {
       .entry_dependencies()
       .iter()
       .filter_map(|(name, deps)| {
-        let modules_uri = deps
+        let module_identifiers = deps
           .iter()
           .filter_map(|dep| {
             module_graph
               .module_by_dependency(dep)
-              .map(|module| module.uri.clone())
+              .map(|module| module.module_identifier.clone())
           })
           .collect::<Vec<_>>();
-        (!modules_uri.is_empty()).then_some(EntryData {
-          modules_uri,
+        (!module_identifiers.is_empty()).then_some(EntryData {
+          module_identifiers,
           name: name.to_string(),
           dependencies: deps.clone(),
         })
@@ -76,7 +76,7 @@ impl<'me> CodeSplitter<'me> {
 
     for EntryData {
       name,
-      modules_uri,
+      module_identifiers,
       dependencies,
     } in &entries
     {
@@ -88,11 +88,11 @@ impl<'me> CodeSplitter<'me> {
 
       compilation.chunk_graph.add_chunk(chunk.ukey);
 
-      for module_uri in modules_uri {
+      for module_identifier in module_identifiers {
         compilation
           .chunk_graph
-          .split_point_module_uri_to_chunk_ukey
-          .insert(module_uri.clone(), chunk.ukey);
+          .split_point_module_identifier_to_chunk_ukey
+          .insert(module_identifier.clone(), chunk.ukey);
       }
 
       let mut entrypoint = ChunkGroup::new(ChunkGroupKind::Entrypoint);
@@ -121,16 +121,18 @@ impl<'me> CodeSplitter<'me> {
         let module = module_graph
           .module_by_dependency(dep)
           .ok_or_else(|| anyhow::format_err!("no module found"))?;
-        compilation.chunk_graph.add_module(module.uri.clone());
+        compilation
+          .chunk_graph
+          .add_module(module.module_identifier.clone());
 
         input_entrypoints_and_modules
           .entry(entrypoint.ukey)
           .or_default()
-          .push(module.uri.clone());
+          .push(module.module_identifier.clone());
 
         compilation.chunk_graph.connect_chunk_and_entry_module(
           chunk.ukey,
-          module.uri.clone(),
+          module.module_identifier.clone(),
           entrypoint.ukey,
         );
       }
@@ -155,7 +157,7 @@ impl<'me> CodeSplitter<'me> {
           action: QueueAction::AddAndEnter,
           chunk,
           chunk_group: chunk_group.ukey,
-          module_uri: module,
+          module_identifier: module,
         });
       }
     }
@@ -183,7 +185,7 @@ impl<'me> CodeSplitter<'me> {
         let belong_to_chunks = self
           .compilation
           .chunk_graph
-          .get_modules_chunks(&module.uri)
+          .get_modules_chunks(&module.module_identifier)
           .clone();
 
         let has_superior = belong_to_chunks.iter().any(|maybe_superior_chunk| {
@@ -196,12 +198,12 @@ impl<'me> CodeSplitter<'me> {
           modules_to_be_removed_in_chunk
             .entry(chunk.ukey)
             .or_default()
-            .insert(module.uri.clone());
+            .insert(module.module_identifier.clone());
         }
 
         tracing::trace!(
           "module {} in chunk {:?} has_superior {:?}",
-          module.uri,
+          module.module_identifier,
           chunk.id,
           has_superior
         );
@@ -237,7 +239,7 @@ impl<'me> CodeSplitter<'me> {
     if self
       .compilation
       .chunk_graph
-      .is_module_in_chunk(&item.module_uri, item.chunk)
+      .is_module_in_chunk(&item.module_identifier, item.chunk)
     {
       return;
     }
@@ -245,12 +247,12 @@ impl<'me> CodeSplitter<'me> {
     self
       .compilation
       .chunk_graph
-      .add_module(item.module_uri.clone());
+      .add_module(item.module_identifier.clone());
 
     self
       .compilation
       .chunk_graph
-      .connect_chunk_and_module(item.chunk, item.module_uri.clone());
+      .connect_chunk_and_module(item.chunk, item.module_identifier.clone());
     self.enter_module(item)
   }
 
@@ -264,12 +266,13 @@ impl<'me> CodeSplitter<'me> {
 
     if chunk_group
       .module_pre_order_indices
-      .get(&item.module_uri)
+      .get(&item.module_identifier)
       .is_none()
     {
-      chunk_group
-        .module_pre_order_indices
-        .insert(item.module_uri.clone(), chunk_group.next_pre_order_index);
+      chunk_group.module_pre_order_indices.insert(
+        item.module_identifier.clone(),
+        chunk_group.next_pre_order_index,
+      );
       chunk_group.next_pre_order_index += 1;
     }
 
@@ -277,7 +280,7 @@ impl<'me> CodeSplitter<'me> {
       let mut module = self
         .compilation
         .module_graph
-        .module_by_uri_mut(&item.module_uri)
+        .module_by_uri_mut(&item.module_identifier)
         .expect("No module found");
 
       if module.pre_order_index.is_none() {
@@ -303,19 +306,20 @@ impl<'me> CodeSplitter<'me> {
 
     if chunk_group
       .module_post_order_indices
-      .get(&item.module_uri)
+      .get(&item.module_identifier)
       .is_none()
     {
-      chunk_group
-        .module_post_order_indices
-        .insert(item.module_uri.clone(), chunk_group.next_post_order_index);
+      chunk_group.module_post_order_indices.insert(
+        item.module_identifier.clone(),
+        chunk_group.next_post_order_index,
+      );
       chunk_group.next_post_order_index += 1;
     }
 
     let mut module = self
       .compilation
       .module_graph
-      .module_by_uri_mut(&item.module_uri)
+      .module_by_uri_mut(&item.module_identifier)
       .expect("no module found");
 
     if module.post_order_index.is_none() {
@@ -329,7 +333,7 @@ impl<'me> CodeSplitter<'me> {
     let mgm = self
       .compilation
       .module_graph
-      .module_by_uri(&item.module_uri)
+      .module_by_uri(&item.module_identifier)
       .expect("no module found");
 
     for dep_mgm in mgm
@@ -341,7 +345,7 @@ impl<'me> CodeSplitter<'me> {
         action: QueueAction::AddAndEnter,
         chunk: item.chunk,
         chunk_group: item.chunk_group,
-        module_uri: dep_mgm.uri.clone(),
+        module_identifier: dep_mgm.module_identifier.clone(),
       });
     }
 
@@ -350,20 +354,29 @@ impl<'me> CodeSplitter<'me> {
       .into_iter()
       .rev()
     {
-      let is_already_split_module = self.split_point_modules.contains(&dyn_dep_mgm.uri);
+      let is_already_split_module = self
+        .split_point_modules
+        .contains(&dyn_dep_mgm.module_identifier);
       if is_already_split_module {
         continue;
       } else {
-        self.split_point_modules.insert(dyn_dep_mgm.uri.clone());
+        self
+          .split_point_modules
+          .insert(dyn_dep_mgm.module_identifier.clone());
       }
 
       let chunk = Compilation::add_chunk(
         &mut self.compilation.chunk_by_ukey,
         None,
-        uri_to_chunk_name(
-          &self.compilation.options.context.to_string_lossy(),
-          &dyn_dep_mgm.uri,
-        ),
+        uri_to_chunk_name(&self.compilation.options.context.to_string_lossy(), {
+          let module = self
+            .compilation
+            .module_graph
+            .module_by_identifier(&dyn_dep_mgm.module_identifier)
+            .unwrap();
+
+          &module.resource_resolved_data().resource_path
+        }),
       );
       self.compilation.chunk_graph.add_chunk(chunk.ukey);
       self
@@ -373,8 +386,8 @@ impl<'me> CodeSplitter<'me> {
       self
         .compilation
         .chunk_graph
-        .split_point_module_uri_to_chunk_ukey
-        .insert(dyn_dep_mgm.uri.clone(), chunk.ukey);
+        .split_point_module_identifier_to_chunk_ukey
+        .insert(dyn_dep_mgm.module_identifier.clone(), chunk.ukey);
 
       let mut chunk_group = ChunkGroup::new(ChunkGroupKind::Entrypoint);
 
@@ -394,7 +407,7 @@ impl<'me> CodeSplitter<'me> {
         action: QueueAction::AddAndEnter,
         chunk: chunk.ukey,
         chunk_group: chunk_group.ukey,
-        module_uri: dyn_dep_mgm.uri.clone(),
+        module_identifier: dyn_dep_mgm.module_identifier.clone(),
       });
     }
   }
@@ -405,7 +418,7 @@ struct QueueItem {
   action: QueueAction,
   chunk_group: ChunkGroupUkey,
   chunk: ChunkUkey,
-  module_uri: String,
+  module_identifier: String,
 }
 
 #[derive(Debug, Clone)]

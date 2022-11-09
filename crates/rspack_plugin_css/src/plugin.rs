@@ -320,15 +320,15 @@ impl Plugin for CssPlugin {
         .filter_map(|ukey| args.compilation.chunk_group_by_ukey.get(ukey))
         .map(|chunk_group| {
           let mut modules = modules.clone();
-          modules.sort_by_key(|mgm| chunk_group.module_post_order_index(mgm.uri.as_str()));
+          modules.sort_by_key(|mgm| chunk_group.module_post_order_index(&mgm.module_identifier));
           tracing::trace!(
             "modules for chunk id {}: {:#?} ",
             args.chunk().id,
             modules
               .iter()
               .map(|mgm| (
-                mgm.uri.clone(),
-                chunk_group.module_post_order_index(mgm.uri.as_str())
+                mgm.module_identifier.clone(),
+                chunk_group.module_post_order_index(&mgm.module_identifier)
               ))
               .collect::<Vec<_>>()
           );
