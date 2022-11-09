@@ -86,6 +86,7 @@ function createCLI() {
 		.option("bundle", "build example directory in rust side")
 		.option("webpack", "build webpack-example directory")
 		.option("js", "build all js library")
+		.option("examples", "build all rspack examples")
 		.action(args => {
 			let command;
 			switch (args) {
@@ -107,6 +108,9 @@ function createCLI() {
 					break;
 				case "webpack":
 					command = "cd webpack-examples && node buildAll.js && cd -";
+					break;
+				case "examples":
+					command = 'pnpm --filter "example-*" build';
 					break;
 				default:
 					log.error("invalid args, see `./x build -h` to get more information");

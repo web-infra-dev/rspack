@@ -5,21 +5,16 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "dev": "rspack"
+    "dev": "rspack serve -c test.config.js",
+    "build": "rspack build -c test.config.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@rspack/core": "workspace:*",
+    "@rspack/cli": "workspace:*",
     "react": "18.2.0",
-    "react-dom": "18.2.0"
-  },
-  "rspack": {
-    "entry": {
-      "index": "src/index.js"
-    },
-    "react": {},
-    "svgr": true
+    "react-dom": "18.2.0",
+    "react-refresh": "0.14.0"
   }
 }
