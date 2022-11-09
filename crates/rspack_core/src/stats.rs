@@ -108,7 +108,7 @@ impl<'compilation> Stats<'compilation> {
         let mut chunks: Vec<String> = self
           .compilation
           .chunk_graph
-          .get_chunk_graph_module(&mgm.uri)
+          .get_chunk_graph_module(&mgm.module_identifier)
           .chunks
           .iter()
           .map(|k| self.compilation.chunk_by_ukey.get(k).unwrap().id.clone())

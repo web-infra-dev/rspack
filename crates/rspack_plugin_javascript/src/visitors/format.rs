@@ -130,8 +130,8 @@ impl<'a> RspackModuleFormatTransformer<'a> {
 
           // FIXME: currently uri equals to specifier, but this will be changed later.
           let require_dep = Dependency {
-            importer: Some(self.module.uri.clone()),
-            parent_module_identifier: Some(self.module.uri.clone()),
+            importer: Some(self.module.module_identifier.clone()),
+            parent_module_identifier: Some(self.module.module_identifier.clone()),
             detail: ModuleDependency {
               specifier: specifier.clone(),
               kind: ResolveKind::Require,
@@ -140,8 +140,8 @@ impl<'a> RspackModuleFormatTransformer<'a> {
           };
           // FIXME: No need to say this is a ugly workaround
           let import_dep = Dependency {
-            importer: Some(self.module.uri.clone()),
-            parent_module_identifier: Some(self.module.uri.clone()),
+            importer: Some(self.module.module_identifier.clone()),
+            parent_module_identifier: Some(self.module.module_identifier.clone()),
             detail: ModuleDependency {
               specifier,
               kind: ResolveKind::Import,
@@ -176,8 +176,8 @@ impl<'a> RspackModuleFormatTransformer<'a> {
         // If the import module is not exsit in module graph, we need to leave it as it is
         // FIXME: currently uri equals to specifier, but this will be changed later.
         let dep = Dependency {
-          importer: Some(self.module.uri.clone()),
-          parent_module_identifier: Some(self.module.uri.clone()),
+          importer: Some(self.module.module_identifier.clone()),
+          parent_module_identifier: Some(self.module.module_identifier.clone()),
           detail: ModuleDependency {
             specifier: literal.to_string(),
             kind: ResolveKind::DynamicImport,
@@ -205,10 +205,10 @@ impl<'a> RspackModuleFormatTransformer<'a> {
         .as_arg()];
 
         let mut chunk_ids = {
-          let chunk_group_ukey = self
-            .compilation
-            .chunk_graph
-            .get_module_chunk_group(&js_module.uri, &self.compilation.chunk_by_ukey);
+          let chunk_group_ukey = self.compilation.chunk_graph.get_module_chunk_group(
+            &js_module.module_identifier,
+            &self.compilation.chunk_by_ukey,
+          );
           let chunk_group = self.compilation.chunk_group_by_ukey.get(chunk_group_ukey)?;
           chunk_group
             .chunks
@@ -248,8 +248,8 @@ impl<'a> RspackModuleFormatTransformer<'a> {
       .and_then(|first_arg| first_arg.expr.as_mut_lit())
     {
       let dep = Dependency {
-        importer: Some(self.module.uri.clone()),
-        parent_module_identifier: Some(self.module.uri.clone()),
+        importer: Some(self.module.module_identifier.clone()),
+        parent_module_identifier: Some(self.module.module_identifier.clone()),
         detail: ModuleDependency {
           specifier: str.value.to_string(),
           kind: ResolveKind::ModuleHotAccept,

@@ -97,10 +97,10 @@ impl Compilation {
     let entry_modules_uri = self.chunk_graph.get_chunk_entry_modules(chunk_ukey);
     let entry_modules_id = entry_modules_uri
       .into_iter()
-      .filter_map(|entry_module_uri| {
+      .filter_map(|entry_module_identifier| {
         self
           .module_graph
-          .module_by_uri(entry_module_uri)
+          .module_by_uri(entry_module_identifier)
           .map(|module| &module.id)
       })
       .collect::<Vec<_>>();

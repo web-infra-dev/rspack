@@ -38,7 +38,7 @@ pub struct ModuleGraphModule {
 
   pub id: String,
   // pub exec_order: usize,
-  pub uri: String,
+  // pub uri: String,
   // TODO: change to ModuleIdentifier
   // pub module: NormalModule,
   pub module_identifier: ModuleIdentifier,
@@ -53,7 +53,7 @@ impl ModuleGraphModule {
   pub fn new(
     name: Option<String>,
     id: String,
-    uri: String,
+    // uri: String,
     module_identifier: ModuleIdentifier,
     dependencies: Vec<Dependency>,
     module_type: ModuleType,
@@ -66,7 +66,7 @@ impl ModuleGraphModule {
 
       id,
       // exec_order: usize::MAX,
-      uri,
+      // uri,
       module_identifier,
       all_dependencies: dependencies,
       module_type,

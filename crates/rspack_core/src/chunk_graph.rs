@@ -6,7 +6,7 @@ use crate::{
 
 #[derive(Debug, Default)]
 pub struct ChunkGraph {
-  pub(crate) split_point_module_uri_to_chunk_ukey: hashbrown::HashMap<String, ChunkUkey>,
+  pub(crate) split_point_module_identifier_to_chunk_ukey: hashbrown::HashMap<String, ChunkUkey>,
 
   chunk_graph_module_by_module_url: HashMap<String, ChunkGraphModule>,
   chunk_graph_chunk_by_chunk_ukey: HashMap<ChunkUkey, ChunkGraphChunk>,
@@ -19,19 +19,19 @@ impl ChunkGraph {
       .entry(chunk_ukey)
       .or_insert_with(ChunkGraphChunk::new);
   }
-  pub fn add_module(&mut self, module_uri: String) {
+  pub fn add_module(&mut self, module_identifier: String) {
     self
       .chunk_graph_module_by_module_url
-      .entry(module_uri)
+      .entry(module_identifier)
       .or_insert_with(ChunkGraphModule::new);
   }
 
-  pub fn chunk_by_split_point_module_uri<'a>(
+  pub fn chunk_by_split_point_module_identifier<'a>(
     &self,
     uri: &str,
     chunk_by_ukey: &'a ChunkByUkey,
   ) -> Option<&'a Chunk> {
-    let ukey = self.split_point_module_uri_to_chunk_ukey.get(uri)?;
+    let ukey = self.split_point_module_identifier_to_chunk_ukey.get(uri)?;
     chunk_by_ukey.get(ukey)
   }
 
@@ -41,22 +41,25 @@ impl ChunkGraph {
     chunk_graph_chunk.entry_modules.keys().collect()
   }
 
-  pub fn is_module_in_chunk(&mut self, module_uri: &str, chunk_ukey: ChunkUkey) -> bool {
+  pub fn is_module_in_chunk(&mut self, module_identifier: &str, chunk_ukey: ChunkUkey) -> bool {
     let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(chunk_ukey);
-    chunk_graph_chunk.modules.contains(module_uri)
+    chunk_graph_chunk.modules.contains(module_identifier)
   }
 
-  pub(crate) fn get_chunk_graph_module_mut(&mut self, module_uri: &str) -> &mut ChunkGraphModule {
+  pub(crate) fn get_chunk_graph_module_mut(
+    &mut self,
+    module_identifier: &str,
+  ) -> &mut ChunkGraphModule {
     self
       .chunk_graph_module_by_module_url
-      .get_mut(module_uri)
+      .get_mut(module_identifier)
       .expect("Module should be added before")
   }
 
-  pub(crate) fn get_chunk_graph_module(&self, module_uri: &str) -> &ChunkGraphModule {
+  pub(crate) fn get_chunk_graph_module(&self, module_identifier: &str) -> &ChunkGraphModule {
     self
       .chunk_graph_module_by_module_url
-      .get(module_uri)
+      .get(module_identifier)
       .expect("Module should be added before")
   }
 
@@ -80,49 +83,49 @@ impl ChunkGraph {
   pub(crate) fn connect_chunk_and_entry_module(
     &mut self,
     chunk: ChunkUkey,
-    module_uri: String,
+    module_identifier: String,
     entrypoint: ChunkGroupUkey,
   ) {
-    let chunk_graph_module = self.get_chunk_graph_module_mut(&module_uri);
+    let chunk_graph_module = self.get_chunk_graph_module_mut(&module_identifier);
     chunk_graph_module.entry_in_chunks.insert(chunk);
 
     let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(chunk);
     chunk_graph_chunk
       .entry_modules
-      .insert(module_uri, entrypoint);
+      .insert(module_identifier, entrypoint);
   }
 
-  pub fn disconnect_chunk_and_module(&mut self, chunk: &ChunkUkey, module_uri: &str) {
-    let chunk_graph_module = self.get_chunk_graph_module_mut(module_uri);
+  pub fn disconnect_chunk_and_module(&mut self, chunk: &ChunkUkey, module_identifier: &str) {
+    let chunk_graph_module = self.get_chunk_graph_module_mut(module_identifier);
     chunk_graph_module.chunks.remove(chunk);
 
     let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(*chunk);
-    chunk_graph_chunk.modules.remove(module_uri);
+    chunk_graph_chunk.modules.remove(module_identifier);
   }
 
-  pub fn connect_chunk_and_module(&mut self, chunk: ChunkUkey, module_uri: String) {
-    let chunk_graph_module = self.get_chunk_graph_module_mut(&module_uri);
+  pub fn connect_chunk_and_module(&mut self, chunk: ChunkUkey, module_identifier: String) {
+    let chunk_graph_module = self.get_chunk_graph_module_mut(&module_identifier);
     chunk_graph_module.chunks.insert(chunk);
 
     let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(chunk);
-    chunk_graph_chunk.modules.insert(module_uri);
+    chunk_graph_chunk.modules.insert(module_identifier);
   }
 
-  pub fn get_modules_chunks(&self, module_uri: &str) -> &HashSet<ChunkUkey> {
+  pub fn get_modules_chunks(&self, module_identifier: &str) -> &HashSet<ChunkUkey> {
     let chunk_graph_module = self
       .chunk_graph_module_by_module_url
-      .get(module_uri)
+      .get(module_identifier)
       .expect("Module should be added before");
     &chunk_graph_module.chunks
   }
 
   pub fn get_module_chunk_group<'a>(
     &self,
-    module_uri: &str,
+    module_identifier: &str,
     chunk_by_ukey: &'a ChunkByUkey,
   ) -> &'a ChunkGroupUkey {
     let chunk = self
-      .chunk_by_split_point_module_uri(module_uri, chunk_by_ukey)
+      .chunk_by_split_point_module_identifier(module_identifier, chunk_by_ukey)
       .expect("Chunk should be added before");
     chunk
       .groups

@@ -175,42 +175,51 @@ impl Compiler {
       modules
         .filter_map(|item| {
           use crate::SourceType::*;
-          if !changed_files.contains(&item.uri) && !removed_files.contains(&item.uri) {
-            None
-          } else if item.module_type.is_js_like() {
-            s.compilation
-              .module_graph
-              .module_by_identifier(&item.uri)
-              .map(|module| {
-                // TODO: it soo slowly, should use cache to instead.
-                let code = module.code_generation(item, s.compilation).unwrap();
-                let code = if let Some(code) = code.get(JavaScript) {
-                  code.ast_or_source.as_source().unwrap().source().to_string()
-                } else {
-                  println!("expect get JavaScirpt code");
-                  String::new()
-                };
-                (item.uri.clone(), code)
-              })
-          } else if item.module_type.is_css() {
-            s.compilation
-              .module_graph
-              .module_by_identifier(&item.uri)
-              .map(|module| {
-                // TODO: it soo slowly, should use cache to instead.
-                let code = module.code_generation(item, s.compilation).unwrap();
-                let code = if let Some(code) = code.get(Css) {
-                  // only used for compare between two build
-                  code.ast_or_source.as_source().unwrap().source().to_string()
-                } else {
-                  println!("expect get CSS code");
-                  String::new()
-                };
-                (item.uri.clone(), code)
-              })
-          } else {
-            None
-          }
+
+          s.compilation
+            .module_graph
+            .module_by_identifier(&item.module_identifier)
+            .and_then(|module| {
+              let resource_data = module.resource_resolved_data();
+              let resource_path = &resource_data.resource_path;
+
+              if !changed_files.contains(resource_path) && !removed_files.contains(resource_path) {
+                None
+              } else if item.module_type.is_js_like() {
+                s.compilation
+                  .module_graph
+                  .module_by_identifier(&item.module_identifier)
+                  .map(|module| {
+                    // TODO: it soo slowly, should use cache to instead.
+                    let code = module.code_generation(item, s.compilation).unwrap();
+                    let code = if let Some(code) = code.get(JavaScript) {
+                      code.ast_or_source.as_source().unwrap().source().to_string()
+                    } else {
+                      println!("expect get JavaScirpt code");
+                      String::new()
+                    };
+                    (item.module_identifier.clone(), code)
+                  })
+              } else if item.module_type.is_css() {
+                s.compilation
+                  .module_graph
+                  .module_by_identifier(&item.module_identifier)
+                  .map(|module| {
+                    // TODO: it soo slowly, should use cache to instead.
+                    let code = module.code_generation(item, s.compilation).unwrap();
+                    let code = if let Some(code) = code.get(Css) {
+                      // only used for compare between two build
+                      code.ast_or_source.as_source().unwrap().source().to_string()
+                    } else {
+                      println!("expect get CSS code");
+                      String::new()
+                    };
+                    (item.module_identifier.clone(), code)
+                  })
+              } else {
+                None
+              }
+            })
         })
         .collect()
     };

@@ -376,7 +376,7 @@ impl NormalModuleFactory {
       } else {
         id.to_string_lossy().to_string()
       },
-      uri,
+      // uri,
       module.identifier(),
       vec![],
       self

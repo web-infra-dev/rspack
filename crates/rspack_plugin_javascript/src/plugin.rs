@@ -256,8 +256,7 @@ impl Plugin for JsPlugin {
       module_graph,
     );
 
-    // FIXME: clone is not good
-    ordered_modules.sort_by_key(|m| m.uri.to_owned());
+    ordered_modules.sort_by_key(|m| &m.module_identifier);
 
     let has_inline_runtime = !compilation.options.target.platform.is_web()
       && chunk.is_only_initial(&args.compilation.chunk_group_by_ukey);
