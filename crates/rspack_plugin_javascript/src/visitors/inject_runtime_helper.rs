@@ -3,7 +3,7 @@ use swc_common::{Mark, DUMMY_SP};
 use swc_ecma_ast::*;
 use swc_ecma_transforms::helpers::HELPERS;
 use swc_ecma_utils::ExprFactory;
-use swc_ecma_visit::{as_folder, noop_visit_mut_type, Fold, VisitMut};
+use swc_ecma_visit::{as_folder, noop_visit_mut_type, Fold, VisitMut, VisitMutWith};
 
 pub fn inject_runtime_helper() -> impl Fold {
   let helper_mark = HELPERS.with(|helper| helper.mark());
@@ -36,6 +36,7 @@ impl VisitMut for InjectRuntimeHelper {
           prop: MemberProp::Ident(Ident::new("interopRequire".into(), DUMMY_SP)),
         }
         .as_callee();
+        n.args.visit_mut_children_with(self);
         return;
       }
 
@@ -47,6 +48,7 @@ impl VisitMut for InjectRuntimeHelper {
           prop: MemberProp::Ident(Ident::new("exportStar".into(), DUMMY_SP)),
         }
         .as_callee();
+        n.args.visit_mut_children_with(self);
         return;
       }
 
