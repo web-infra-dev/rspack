@@ -2105,6 +2105,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "sugar_path",
  "swc_atoms",
  "swc_common",
  "swc_html",

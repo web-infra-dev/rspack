@@ -1,4 +1,7 @@
-use std::{path::Path, str::FromStr};
+use std::{
+  path::{Path, PathBuf},
+  str::FromStr,
+};
 
 use anyhow::Context;
 use serde::Deserialize;
@@ -13,16 +16,17 @@ use rspack_core::{
 
 use crate::RawOption;
 
-pub fn generate_path(path: Option<String>, context: &Path) -> String {
+pub fn generate_path(path: Option<String>, context: &Path) -> PathBuf {
   match path {
     Some(path) => {
-      if Path::new(&path).is_absolute() {
+      let path = PathBuf::from(&path);
+      if path.is_absolute() {
         path
       } else {
-        context.join(path).to_string_lossy().to_string()
+        context.join(path)
       }
     }
-    None => context.join("dist").to_string_lossy().to_string(),
+    None => context.join("dist"),
   }
 }
 
