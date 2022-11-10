@@ -878,9 +878,9 @@ type RuntimeKey = String;
 #[derive(Default, Debug)]
 enum RuntimeMode {
   #[default]
-  Empty,
-  SingleEntry,
-  Map,
+  Empty = 0,
+  SingleEntry = 1,
+  Map = 2,
 }
 
 pub fn is_runtime_equal(a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
@@ -913,6 +913,30 @@ pub struct RuntimeSpecMap {
 }
 
 impl RuntimeSpecMap {
+  fn size(&self) -> usize {
+    let mode = self.mode as usize;
+
+    if mode <= 1 {
+      mode
+    } else {
+      self.map.len()
+    }
+  }
+
+  fn get(&self, runtime: &RuntimeSpec) -> Option<&CodeGenerationResult> {
+    match self.mode {
+      RuntimeMode::Empty => None,
+      RuntimeMode::SingleEntry => {
+        if let Some(single_runtime) = self.single_runtime.as_ref() && is_runtime_equal(single_runtime, runtime) {
+          self.single_value.as_ref()
+        } else {
+          None
+        }
+      }
+      RuntimeMode::Map => self.map.get(&get_runtime_key(runtime.clone())),
+    }
+  }
+
   fn set(&mut self, runtime: RuntimeSpec, value: CodeGenerationResult) {
     match self.mode {
       RuntimeMode::Empty => {
@@ -921,7 +945,7 @@ impl RuntimeSpecMap {
         self.single_value = Some(value);
       }
       RuntimeMode::SingleEntry => {
-        if let Some(single_runtime) = self.single_runtime.as_ref() && is_runtime_equal(&single_runtime, &runtime) {
+        if let Some(single_runtime) = self.single_runtime.as_ref() && is_runtime_equal(single_runtime, &runtime) {
           self.single_value = Some(value);
         } else {
           self.mode = RuntimeMode::Map;
@@ -945,7 +969,7 @@ impl RuntimeSpecMap {
         .single_value
         .as_ref()
         .expect("Expected single value exists")],
-      RuntimeMode::Map => self.map.values().map(|v| v).collect(),
+      RuntimeMode::Map => self.map.values().collect(),
     }
   }
 }
@@ -963,25 +987,32 @@ impl CodeGenerationResults {
   ) -> Result<&CodeGenerationResult> {
     if let Some(entry) = self.map.get(module_identifier) {
       if let Some(runtime) = runtime {
-        let results = entry.get_values();
-        if results.len() != 1 {
-          Err(Error::InternalError(format!(
-            "No unique code generation entry for unspecified runtime for {} ",
-            module_identifier,
-          )))
-        } else {
-          results
-            .iter()
-            .next()
-            .map(|v| *v)
-            .ok_or_else(|| Error::InternalError("Expected value exists".to_string()))
-        }
+        entry.get(runtime).ok_or_else(|| {
+          Error::InternalError(format!(
+            "Failed to code generation result for {} with runtime {:?}",
+            module_identifier, runtime
+          ))
+        })
       } else {
+        if entry.size() > 1 {
+          let results = entry.get_values();
+          if results.len() != 1 {
+            return Err(Error::InternalError(format!(
+              "No unique code generation entry for unspecified runtime for {} ",
+              module_identifier,
+            )));
+          }
+
+          return results
+            .first()
+            .copied()
+            .ok_or_else(|| Error::InternalError("Expected value exists".to_string()));
+        }
+
         entry
           .get_values()
-          .iter()
-          .next()
-          .map(|v| *v)
+          .first()
+          .copied()
           .ok_or_else(|| Error::InternalError("Expected value exists".to_string()))
       }
     } else {
