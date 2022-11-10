@@ -355,7 +355,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     match self.export_default_name {
       Some(_) => {
         // TODO: Better diagnostic
-        panic!("Duplicate export default in {}", self.module_identifier)
+        panic!(
+          "Duplicate export default (export_default_expr) in {}",
+          self.module_identifier
+        )
       }
       None => {
         self.export_default_name = Some("default".into());
@@ -440,6 +443,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
   fn visit_class_expr(&mut self, node: &ClassExpr) {
     if self.state.contains(AnalyzeState::EXPORT_DEFAULT) {
+      self.state.remove(AnalyzeState::EXPORT_DEFAULT);
       let default_ident = self.generate_default_ident();
       self.export_map.insert(
         default_ident.sym.clone(),
@@ -451,7 +455,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       let body_owner_extend_symbol: SymbolExt = match self.export_default_name {
         Some(_) => {
           // TODO: Better diagnostic
-          panic!("Duplicate export default in {}", self.module_identifier)
+          panic!(
+            "Duplicate export default(class_expr) in {}",
+            self.module_identifier
+          )
         }
         None => {
           let symbol_ext: SymbolExt = if let Some(ident) = &node.ident {
@@ -486,6 +493,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
   fn visit_fn_expr(&mut self, node: &FnExpr) {
     if self.state.contains(AnalyzeState::EXPORT_DEFAULT) {
+      self.state.remove(AnalyzeState::EXPORT_DEFAULT);
       let default_ident = self.generate_default_ident();
       self.export_map.insert(
         default_ident.sym.clone(),
@@ -497,7 +505,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       let body_owner_extend_symbol: SymbolExt = match self.export_default_name {
         Some(_) => {
           // TODO: Better diagnostic
-          panic!("Duplicate export default in {}", self.module_identifier)
+          panic!(
+            "Duplicate export default(fn_expr) in {}",
+            self.module_identifier
+          )
         }
         None => {
           let symbol_ext: SymbolExt = if let Some(ident) = &node.ident {
