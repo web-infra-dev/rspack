@@ -146,7 +146,7 @@ pub fn create_cache_group_source(
 
   CacheGroupSource {
     key,
-    priority: options.priority,
+    priority: options.priority.into(),
     get_name,
     chunks_filter: Arc::new(move |_chunk| match options.chunks {
       crate::ChunkType::Initial => todo!("Supports initial"),
