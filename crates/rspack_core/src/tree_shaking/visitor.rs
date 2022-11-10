@@ -355,7 +355,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     match self.export_default_name {
       Some(_) => {
         // TODO: Better diagnostic
-        panic!("Duplicate export default")
+        panic!("Duplicate export default in {}", self.module_identifier)
       }
       None => {
         self.export_default_name = Some("default".into());
@@ -451,7 +451,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       let body_owner_extend_symbol: SymbolExt = match self.export_default_name {
         Some(_) => {
           // TODO: Better diagnostic
-          panic!("Duplicate export default")
+          panic!("Duplicate export default in {}", self.module_identifier)
         }
         None => {
           let symbol_ext: SymbolExt = if let Some(ident) = &node.ident {
@@ -497,7 +497,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       let body_owner_extend_symbol: SymbolExt = match self.export_default_name {
         Some(_) => {
           // TODO: Better diagnostic
-          panic!("Duplicate export default")
+          panic!("Duplicate export default in {}", self.module_identifier)
         }
         None => {
           let symbol_ext: SymbolExt = if let Some(ident) = &node.ident {
