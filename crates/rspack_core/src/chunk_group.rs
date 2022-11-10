@@ -24,9 +24,9 @@ impl ChunkGroup {
   pub fn new(kind: ChunkGroupKind, name: Option<String>) -> Self {
     // TODO respect entrypoint `runtime` + `dependOn`
     let runtime = match kind {
-      ChunkGroupKind::Entrypoint => Some(HashSet::from([name
-        .clone()
-        .expect("ChunkGroupKind::Entrypoint name shouldn't be none")])),
+      ChunkGroupKind::Entrypoint => Some(HashSet::from([
+        name.expect("ChunkGroupKind::Entrypoint name shouldn't be none")
+      ])),
       ChunkGroupKind::Normal => None,
     };
     Self {

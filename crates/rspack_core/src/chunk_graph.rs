@@ -235,7 +235,7 @@ impl ChunkGraph {
   ) -> &HashSet<String> {
     let cgm = self.get_chunk_graph_module(module_identifier);
     // TODO
-    &cgm
+    cgm
       .runtime_requirements
       .get("")
       .expect("Module should have runtime requirements")
