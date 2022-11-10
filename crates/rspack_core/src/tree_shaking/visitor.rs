@@ -9,7 +9,7 @@ use swc_ecma_ast::*;
 use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
 use ustr::{ustr, Ustr};
 
-use crate::{Dependency, ModuleGraph, ResolveKind};
+use crate::{Dependency, ModuleGraph, ModuleSyntax, ResolveKind};
 use rspack_symbol::{BetterId, IdOrMemExpr, IndirectTopLevelSymbol, Symbol, SymbolExt, SymbolFlag};
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SymbolRef {
@@ -50,6 +50,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) used_symbol_ref: HashSet<SymbolRef>,
   // This field is used for duplicated export default checking
   pub(crate) export_default_name: Option<JsWord>,
+  module_syntax: ModuleSyntax,
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
@@ -74,6 +75,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       used_id_set: HashSet::default(),
       used_symbol_ref: HashSet::default(),
       export_default_name: None,
+      module_syntax: ModuleSyntax::empty(),
     }
   }
 
@@ -496,6 +498,8 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       node.class.visit_with(self);
     }
   }
+
+  fn visit_call_expr(&mut self, node: &CallExpr) {}
 
   fn visit_fn_expr(&mut self, node: &FnExpr) {
     if self.state.contains(AnalyzeState::EXPORT_DEFAULT) {

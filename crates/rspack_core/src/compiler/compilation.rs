@@ -663,15 +663,15 @@ impl Compilation {
       .module_graph
       .module_identifier_to_module_graph_module
       .par_iter()
-      .filter_map(|(module_identifier, m)| {
+      .filter_map(|(module_identifier, mgm)| {
         let uri_key = ustr(module_identifier);
-        let ast = match m.module_type {
+        let ast = match mgm.module_type {
           crate::ModuleType::Js
           | crate::ModuleType::Jsx
           | crate::ModuleType::Tsx
           | crate::ModuleType::Ts => self
             .module_graph
-            .module_by_identifier(&m.module_identifier)
+            .module_by_identifier(&mgm.module_identifier)
             .and_then(|module| module.ast())
             .unwrap()
             .as_javascript()
