@@ -1,3 +1,4 @@
+use hashbrown::HashSet;
 use rspack_error::{Error, IntoTWithDiagnosticArray};
 use rspack_sources::{RawSource, SourceExt};
 
@@ -72,6 +73,7 @@ impl ParserAndGenerator for ExternalParserAndGenerator {
     Ok(crate::GenerationResult {
       // Safety: We know this value comes from parser, so it is safe here.
       ast_or_source: ast_or_source.to_owned().try_into_source()?.into(),
+      runtime_requirements: HashSet::default(),
     })
   }
 }

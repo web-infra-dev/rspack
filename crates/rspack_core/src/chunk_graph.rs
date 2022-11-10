@@ -2,7 +2,7 @@ use hashbrown::{HashMap, HashSet};
 
 use crate::{
   Chunk, ChunkByUkey, ChunkGroupUkey, ChunkUkey, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
-  SourceType,
+  RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Default)]
@@ -189,12 +189,73 @@ impl ChunkGraph {
             .fold(0.0, |acc, t| acc + module.size(t))
       })
   }
+
+  pub fn get_number_of_module_chunks(&mut self, module_identifier: &ModuleIdentifier) -> usize {
+    let cgm = self.get_chunk_graph_module_mut(module_identifier);
+    cgm.chunks.len()
+  }
+
+  pub fn add_module_runtime_requirements(
+    &mut self,
+    module_identifier: &ModuleIdentifier,
+    runtime: String,
+    runtime_requirements: HashSet<String>,
+  ) {
+    let cgm = self.get_chunk_graph_module_mut(module_identifier);
+    cgm
+      .runtime_requirements
+      .entry(runtime)
+      .and_modify(|set| {
+        set.extend(runtime_requirements.clone());
+      })
+      .or_insert_with(|| runtime_requirements);
+  }
+
+  pub fn add_chunk_runtime_requirements(
+    &mut self,
+    chunk_ukey: &ChunkUkey,
+    runtime_requirements: HashSet<String>,
+  ) {
+    let cgc = self.get_chunk_graph_chunk_mut(*chunk_ukey);
+    cgc.runtime_requirements.extend(runtime_requirements);
+  }
+
+  pub fn add_tree_runtime_requirements(
+    &mut self,
+    chunk_ukey: &ChunkUkey,
+    runtime_requirements: HashSet<String>,
+  ) {
+    self.add_chunk_runtime_requirements(chunk_ukey, runtime_requirements);
+  }
+
+  pub fn get_module_runtime_requirements(
+    &self,
+    module_identifier: &ModuleIdentifier,
+    runtime: &RuntimeSpec,
+  ) -> &HashSet<String> {
+    let cgm = self.get_chunk_graph_module(module_identifier);
+    // TODO
+    &cgm
+      .runtime_requirements
+      .get("")
+      .expect("Module should have runtime requirements")
+  }
+
+  pub fn get_chunk_runtime_requirements(&self, chunk_ukey: &ChunkUkey) -> &HashSet<String> {
+    let cgc = self.get_chunk_graph_chunk(chunk_ukey);
+    &cgc.runtime_requirements
+  }
+
+  pub fn get_tree_runtime_requirements(&self, chunk_ukey: &ChunkUkey) -> &HashSet<String> {
+    self.get_chunk_runtime_requirements(chunk_ukey)
+  }
 }
 
 #[derive(Debug, Default)]
 pub struct ChunkGraphModule {
   pub(crate) entry_in_chunks: HashSet<ChunkUkey>,
   pub(crate) chunks: HashSet<ChunkUkey>,
+  pub(crate) runtime_requirements: HashMap<String, HashSet<String>>,
 }
 
 impl ChunkGraphModule {
@@ -202,6 +263,7 @@ impl ChunkGraphModule {
     Self {
       entry_in_chunks: Default::default(),
       chunks: Default::default(),
+      runtime_requirements: HashMap::default(),
     }
   }
 }
@@ -213,6 +275,7 @@ pub struct ChunkGraphChunk {
   /// use `LinkedHashMap` to keep the ordered from entry array.
   pub(crate) entry_modules: hashlink::LinkedHashMap<String, ChunkGroupUkey>,
   pub(crate) modules: HashSet<String>,
+  pub(crate) runtime_requirements: HashSet<String>,
 }
 
 impl ChunkGraphChunk {
@@ -220,6 +283,7 @@ impl ChunkGraphChunk {
     Self {
       entry_modules: Default::default(),
       modules: Default::default(),
+      runtime_requirements: HashSet::default(),
     }
   }
 }

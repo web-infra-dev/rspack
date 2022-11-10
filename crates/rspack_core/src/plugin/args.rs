@@ -2,6 +2,7 @@ use crate::ast::javascript::Ast as JsAst;
 use crate::{
   Chunk, ChunkUkey, Compilation, Dependency, ErrorSpan, ResolveKind, SharedPluginDriver, Stats,
 };
+use hashbrown::HashSet;
 use rspack_error::{Error, Result};
 use rspack_loader_runner::Content;
 use rspack_sources::RawSource;
@@ -151,4 +152,11 @@ pub struct CompilationArgs<'c> {
 #[derive(Debug)]
 pub struct ThisCompilationArgs<'c> {
   pub this_compilation: &'c mut Compilation,
+}
+
+#[derive(Debug)]
+pub struct AdditionalChunkRuntimeRequirementsArgs<'a> {
+  pub chunk: &'a Chunk,
+  pub runtime_requirements: &'a mut HashSet<String>,
+  // TODO context
 }

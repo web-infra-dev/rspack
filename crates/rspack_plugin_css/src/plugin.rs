@@ -190,6 +190,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     Ok(GenerationResult {
       ast_or_source: result.into(),
+      runtime_requirements: HashSet::default(),
     })
   }
 }

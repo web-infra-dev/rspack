@@ -832,6 +832,88 @@ impl Compilation {
     self.process_assets(plugin_driver).await?;
     Ok(())
   }
+
+  pub fn get_chunk_graph_entries(&self) -> HashSet<ChunkUkey> {
+    let mut entries: HashSet<ChunkUkey> = HashSet::default();
+    for entrypoint_ukey in self.entrypoints.values() {
+      let entrypoint = self
+        .chunk_group_by_ukey
+        .get(entrypoint_ukey)
+        .expect("chunk group not found");
+      entries.insert(entrypoint.get_runtime_chunk());
+    }
+    entries
+  }
+
+  pub async fn process_runtime_requirements(&mut self) -> Result<()> {
+    for module in self.module_graph.modules() {
+      if self
+        .chunk_graph
+        .get_number_of_module_chunks(&module.identifier())
+        > 0
+      {}
+    }
+    tracing::trace!("runtime requirements.modules");
+
+    for (chunk_ukey, chunk) in self.chunk_by_ukey.iter() {
+      let mut set = HashSet::new();
+      for module in self
+        .chunk_graph
+        .get_chunk_modules(chunk_ukey, &self.module_graph)
+      {
+        let runtime_requirements = self
+          .chunk_graph
+          .get_module_runtime_requirements(&module.module_identifier, &chunk.runtime);
+        set.extend(runtime_requirements.clone());
+      }
+
+      self
+        .plugin_driver
+        .read()
+        .await
+        .additional_chunk_runtime_requirements(&AdditionalChunkRuntimeRequirementsArgs {
+          chunk: &chunk,
+          runtime_requirements: &mut set,
+        })?;
+
+      self
+        .chunk_graph
+        .add_chunk_runtime_requirements(chunk_ukey, set);
+    }
+    tracing::trace!("runtime requirements.chunks");
+
+    for entry_ukey in self.get_chunk_graph_entries().iter() {
+      let entry = self
+        .chunk_by_ukey
+        .get(&entry_ukey)
+        .expect("chunk not found by ukey");
+
+      let mut set = HashSet::new();
+
+      for chunk_ukey in entry
+        .get_all_referenced_chunks(&self.chunk_group_by_ukey)
+        .iter()
+      {
+        let runtime_requirements = self.chunk_graph.get_chunk_runtime_requirements(chunk_ukey);
+        set.extend(runtime_requirements.clone());
+      }
+
+      self
+        .plugin_driver
+        .read()
+        .await
+        .additional_tree_runtime_requirements(&AdditionalChunkRuntimeRequirementsArgs {
+          chunk: &entry,
+          runtime_requirements: &mut set,
+        })?;
+
+      self
+        .chunk_graph
+        .add_tree_runtime_requirements(entry_ukey, set);
+    }
+    tracing::trace!("runtime requirements.entries");
+    Ok(())
+  }
 }
 
 pub type CompilationAssets = HashMap<String, CompilationAsset>;

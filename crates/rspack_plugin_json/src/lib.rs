@@ -1,3 +1,4 @@
+use hashbrown::HashSet;
 use json::Error::{
   ExceededDepthLimit, FailedUtf8Parsing, UnexpectedCharacter, UnexpectedEndOfJson, WrongType,
 };
@@ -107,6 +108,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         ))
         .boxed()
         .into(),
+        runtime_requirements: HashSet::default(),
       }),
       _ => Err(Error::InternalError(format!(
         "Unsupported source type {:?} for plugin Json",

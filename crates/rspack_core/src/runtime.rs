@@ -1,4 +1,4 @@
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashSet;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 
 use crate::CodeGenerationResult;
@@ -6,6 +6,8 @@ use crate::CodeGenerationResult;
 pub const RUNTIME_PLACEHOLDER_INSTALLED_MODULES: &str = "{/* __INSTALLED_MODULES__*/}";
 pub const RUNTIME_PLACEHOLDER_RSPACK_EXECUTE: &str = "/* RSPACK_EXECUTE */";
 pub const RUNTIME_PLACEHOLDER_CHUNK_ID: &str = "/* __CHUNK_ID__ */";
+
+pub type RuntimeSpec = HashSet<String>;
 
 #[derive(Clone, Debug, Default)]
 pub struct Runtime {

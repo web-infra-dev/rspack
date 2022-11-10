@@ -13,7 +13,10 @@ use rspack_core::NormalModule;
 mod swc_visitor;
 mod tree_shaking;
 use crate::utils::get_swc_compiler;
-use rspack_core::{ast::javascript::Ast, Compilation, CompilerOptions, ResourceData};
+use hashbrown::HashSet;
+use rspack_core::{
+  ast::javascript::Ast, Compilation, CompilerOptions, ModuleGraphModule, ResourceData,
+};
 use rspack_error::Result;
 use swc::config::ModuleConfig;
 use swc_common::{chain, comments::Comments};
@@ -108,7 +111,12 @@ pub fn run_before_pass(
   Ok(())
 }
 
-pub fn run_after_pass(ast: &mut Ast, module: &NormalModule, compilation: &Compilation) {
+pub fn run_after_pass(
+  ast: &mut Ast,
+  mgm: &ModuleGraphModule,
+  compilation: &Compilation,
+  runtime_requirements: &mut HashSet<String>,
+) {
   let cm = get_swc_compiler().cm.clone();
   ast.transform(|program, context| {
     let unresolved_mark = context.unresolved_mark;
@@ -137,7 +145,7 @@ pub fn run_after_pass(ast: &mut Ast, module: &NormalModule, compilation: &Compil
         comments,
         compilation.options.target.es_version
       ),
-      inject_runtime_helper(),
+      inject_runtime_helper(runtime_requirements),
       swc_visitor::hygiene(false),
       swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
       finalize(module, compilation, unresolved_mark)

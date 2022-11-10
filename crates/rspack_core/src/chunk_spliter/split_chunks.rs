@@ -95,8 +95,9 @@ impl<'me> CodeSplitter<'me> {
           .insert(module_identifier.clone(), chunk.ukey);
       }
 
-      let mut entrypoint = ChunkGroup::new(ChunkGroupKind::Entrypoint);
-
+      let mut entrypoint = ChunkGroup::new(ChunkGroupKind::Entrypoint, Some(name.to_string()));
+      // TODO respect entrypoint `runtime` + `dependOn`
+      entrypoint.set_runtime_chunk(chunk.ukey);
       entrypoint.connect_chunk(chunk);
 
       compilation
@@ -216,6 +217,25 @@ impl<'me> CodeSplitter<'me> {
           .compilation
           .chunk_graph
           .disconnect_chunk_and_module(&chunk, &module);
+      }
+    }
+
+    for chunk_group in self.compilation.chunk_group_by_ukey.values() {
+      if let ChunkGroupKind::Entrypoint = chunk_group.kind {
+        for chunk_ukey in chunk_group.chunks.iter() {
+          self
+            .compilation
+            .chunk_by_ukey
+            .entry(*chunk_ukey)
+            .and_modify(|chunk| {
+              chunk.runtime.extend(
+                chunk_group
+                  .runtime
+                  .clone()
+                  .expect("ChunkGroupKind::Entrypoint should has runtime"),
+              );
+            });
+        }
       }
     }
 
@@ -389,7 +409,7 @@ impl<'me> CodeSplitter<'me> {
         .split_point_module_identifier_to_chunk_ukey
         .insert(dyn_dep_mgm.module_identifier.clone(), chunk.ukey);
 
-      let mut chunk_group = ChunkGroup::new(ChunkGroupKind::Entrypoint);
+      let mut chunk_group = ChunkGroup::new(ChunkGroupKind::Normal, None);
 
       chunk_group.connect_chunk(chunk);
 

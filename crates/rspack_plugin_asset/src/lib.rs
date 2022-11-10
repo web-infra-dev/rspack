@@ -265,6 +265,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         ))
         .boxed()
         .into(),
+        runtime_requirements: HashSet::default(),
       }),
       SourceType::Asset => {
         if parsed_asset_config.is_source() || parsed_asset_config.is_inline() {
@@ -283,6 +284,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             )
             .boxed()
             .into(),
+            runtime_requirements: HashSet::default(),
           })
         }
       }

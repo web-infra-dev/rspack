@@ -172,6 +172,22 @@ pub trait Module: Debug + Send + Sync {
 }
 
 #[derive(Debug, Clone)]
+pub struct GenerationResult {
+  pub ast_or_source: AstOrSource,
+  // TODO: add runtimeSpec
+  pub runtime_requirements: HashSet<String>,
+}
+
+impl From<AstOrSource> for GenerationResult {
+  fn from(ast_or_source: AstOrSource) -> Self {
+    GenerationResult {
+      ast_or_source,
+      runtime_requirements: HashSet::new(),
+    }
+  }
+}
+
+#[derive(Debug, Clone)]
 pub enum AstOrSource {
   Ast(ModuleAst),
   Source(BoxSource),
@@ -320,6 +336,26 @@ impl NormalModuleAstOrSource {
     } else {
       NormalModuleAstOrSource::BuiltSucceed(ast_or_source)
     }
+  }
+}
+
+#[derive(Debug, Default)]
+pub struct CodeGenerationResult {
+  inner: HashMap<SourceType, GenerationResult>,
+}
+
+impl CodeGenerationResult {
+  pub fn inner(&self) -> &HashMap<SourceType, GenerationResult> {
+    &self.inner
+  }
+
+  pub fn get(&self, source_type: SourceType) -> Option<&GenerationResult> {
+    self.inner.get(&source_type)
+  }
+
+  pub(super) fn add(&mut self, source_type: SourceType, generation_result: GenerationResult) {
+    let result = self.inner.insert(source_type, generation_result);
+    debug_assert!(result.is_none());
   }
 }
 
