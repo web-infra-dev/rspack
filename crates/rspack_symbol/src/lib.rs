@@ -36,11 +36,13 @@ impl Symbol {
 pub struct IndirectTopLevelSymbol {
   pub uri: Ustr,
   pub id: JsWord,
+  // who import me?
+  importer: Ustr,
 }
 
 impl IndirectTopLevelSymbol {
-  pub fn new(uri: Ustr, id: JsWord) -> Self {
-    Self { uri, id }
+  pub fn new(uri: Ustr, id: JsWord, importer: Ustr) -> Self {
+    Self { uri, id, importer }
   }
 
   pub fn uri(&self) -> Ustr {
@@ -49,6 +51,10 @@ impl IndirectTopLevelSymbol {
 
   pub fn id(&self) -> &str {
     self.id.as_ref()
+  }
+
+  pub fn importer(&self) -> Ustr {
+    self.importer
   }
 }
 

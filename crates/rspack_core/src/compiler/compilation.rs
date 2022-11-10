@@ -1138,8 +1138,10 @@ fn mark_symbol(
             0 => {
               // TODO: Better diagnostic handle if source module does not have the export
               panic!(
-                "{} did not export `{}`",
-                module_result.module_identifier, indirect_symbol.id
+                "{} did not export `{}`, imported by {}",
+                module_result.module_identifier,
+                indirect_symbol.id,
+                indirect_symbol.importer()
               )
             }
             1 => ret[0].1.clone(),

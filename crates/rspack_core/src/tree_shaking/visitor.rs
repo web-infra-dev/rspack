@@ -129,10 +129,11 @@ impl<'a> ModuleRefAnalyze<'a> {
         IdOrMemExpr::MemberExpr { object, property } => {
           self.import_map.get(object).map(|sym_ref| match sym_ref {
             SymbolRef::Direct(_) | SymbolRef::Indirect(_) => sym_ref.clone(),
-            SymbolRef::Star(uri) => SymbolRef::Indirect(IndirectTopLevelSymbol {
-              uri: *uri,
-              id: property.clone(),
-            }),
+            SymbolRef::Star(uri) => SymbolRef::Indirect(IndirectTopLevelSymbol::new(
+              *uri,
+              property.clone(),
+              self.module_identifier,
+            )),
           })
         }
       })
@@ -198,10 +199,11 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           Some(SymbolRef::Star(uri)) => {
             self
               .used_symbol_ref
-              .insert(SymbolRef::Indirect(IndirectTopLevelSymbol {
-                uri: *uri,
-                id: property.clone(),
-              }));
+              .insert(SymbolRef::Indirect(IndirectTopLevelSymbol::new(
+                *uri,
+                property.clone(),
+                self.module_identifier,
+              )));
           }
           _ => {
             let reachable_import = self.get_all_import_or_export(object.clone());
@@ -253,8 +255,11 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   },
                   None => named.local.sym.clone(),
                 };
-                let symbol_ref =
-                  SymbolRef::Indirect(IndirectTopLevelSymbol::new(resolved_uri_ukey, imported));
+                let symbol_ref = SymbolRef::Indirect(IndirectTopLevelSymbol::new(
+                  resolved_uri_ukey,
+                  imported,
+                  self.module_identifier,
+                ));
                 self.add_import(named.local.to_id().into(), symbol_ref);
               }
               ImportSpecifier::Default(default) => {
@@ -263,6 +268,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   SymbolRef::Indirect(IndirectTopLevelSymbol::new(
                     resolved_uri_ukey,
                     "default".into(),
+                    self.module_identifier,
                   )),
                 );
               }
@@ -665,15 +671,25 @@ impl<'a> ModuleRefAnalyze<'a> {
           ExportSpecifier::Named(named) => {
             // TODO: what if the named binding is a unresolved_binding?
             // TODO: handle `as xxx`
-            let id = match &named.orig {
+            let original = match &named.orig {
               ModuleExportName::Ident(ident) => ident.sym.clone(),
               ModuleExportName::Str(_) => {
                 todo!()
               }
             };
-            let symbol_ref =
-              SymbolRef::Indirect(IndirectTopLevelSymbol::new(resolved_uri_ukey, id.clone()));
-            self.add_export(id, symbol_ref);
+            let exported = match &named.exported {
+              Some(exported) => match exported {
+                ModuleExportName::Ident(ident) => ident.sym.clone(),
+                ModuleExportName::Str(str) => str.value.clone(),
+              },
+              None => original.clone(),
+            };
+            let symbol_ref = SymbolRef::Indirect(IndirectTopLevelSymbol::new(
+              resolved_uri_ukey,
+              original,
+              self.module_identifier,
+            ));
+            self.add_export(exported, symbol_ref);
           }
         });
     } else {
