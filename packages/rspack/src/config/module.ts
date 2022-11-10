@@ -128,6 +128,15 @@ function composeJsUse(
 		// Loader is executed from right to left
 		for (const use of uses) {
 			assert("loader" in use);
+			/**
+			 * support loader as string
+			 */
+			if (typeof use.loader === "string") {
+				let loaderPath = require.resolve(use.loader, {
+					paths: [options.context]
+				});
+				use.loader = require(loaderPath);
+			}
 			const loaderContext = {
 				...loaderContextInternal,
 				source: {
@@ -145,7 +154,6 @@ function composeJsUse(
 				rootContext: options.context,
 				context: path.dirname(loaderContextInternal.resourcePath)
 			};
-
 			let loaderResult: LoaderResult;
 			if (
 				(loaderResult = await Promise.resolve().then(() =>

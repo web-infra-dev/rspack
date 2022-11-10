@@ -1,22 +1,7 @@
 const lessLoader = require('@rspack/plugin-less').default;
 const postcssLoader = require('@rspack/plugin-postcss');
 const path = require('path');
-const { transform } = require('@svgr/core');
-async function svgLoader(loaderContext){
-  const svgCode = loaderContext.source.getCode();
-  const filePath = loaderContext.resourcePath;
-  const componentCode = await transform(svgCode, {}, {
-    filePath,
-    caller: {
-      previousExport: null
-    }
-  })
-  return {
-    content: componentCode,
-    meta: "",
-    map: undefined
-  }
-}
+
 /**
  * @type {import('webpack').Configuration}
  */
@@ -52,7 +37,7 @@ module.exports = {
         type : 'css'
       },
       {test : '.less$', uses : [{loader : lessLoader}], type : 'css'},
-      {test : '.svg$', uses : [{loader : svgLoader}], type : 'jsx'}
+      {test : '.svg$', uses : [{loader : './svg-loader.js'}], type : 'jsx'}
     ]
   },
   resolve : {alias : {'@' : path.resolve(__dirname, 'src')}},
