@@ -94,11 +94,9 @@ export class RspackCLI {
 		}
 		if (typeof item.stats === "undefined") {
 			item.stats = { preset: "normal" };
-		}
-		else if (typeof item.stats === "boolean") {
+		} else if (typeof item.stats === "boolean") {
 			item.stats = item.stats ? { preset: "normal" } : { preset: "none" };
-		}
-		else if (typeof item.stats === "string") {
+		} else if (typeof item.stats === "string") {
 			item.stats = { preset: item.stats };
 		}
 		if (this.colors.isColorSupported && !item.stats.colors) {

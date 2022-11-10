@@ -103,4 +103,16 @@ describe("Stats", () => {
 		[./fixtures/a.js] 55 bytes {main}"
 	`);
 	});
+
+	it("should omit all properties with all false", async () => {
+		const stats = await compile({
+			context: __dirname,
+			entry: "./fixtures/a"
+		});
+		expect(
+			stats.toJson({
+				all: false
+			})
+		).toEqual({});
+	});
 });

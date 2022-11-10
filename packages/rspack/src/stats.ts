@@ -44,7 +44,10 @@ export class Stats {
 		const showErrors = optionOrLocalFallback(options.errors, true);
 		const showErrorsCount = optionOrLocalFallback(options.errorsCount, true);
 		const showWarninigs = optionOrLocalFallback(options.warnings, true);
-		const showWarningsCount = optionOrLocalFallback(options.warningsCount, true);
+		const showWarningsCount = optionOrLocalFallback(
+			options.warningsCount,
+			true
+		);
 
 		let obj: StatsCompilation = {};
 		if (showAssets) {
@@ -394,7 +397,8 @@ export class Stats {
 			}
 			if (module.assets && module.assets.length) {
 				colors.magenta(
-					` [${module.assets.length} asset${module.assets.length === 1 ? "" : "s"
+					` [${module.assets.length} asset${
+						module.assets.length === 1 ? "" : "s"
 					}]`
 				);
 			}
@@ -828,8 +832,9 @@ const SizeFormatHelpers = {
 		const abbreviations = ["bytes", "KiB", "MiB", "GiB"];
 		const index = Math.floor(Math.log(size) / Math.log(1024));
 
-		return `${+(size / Math.pow(1024, index)).toPrecision(3)} ${abbreviations[index]
-			}`;
+		return `${+(size / Math.pow(1024, index)).toPrecision(3)} ${
+			abbreviations[index]
+		}`;
 	}
 };
 
@@ -844,7 +849,8 @@ export const optionsOrFallback = (...args) => {
 };
 
 export function normalizeStatsPreset(options?: StatsOptions): StatsOptionsObj {
-	if (typeof options === "boolean" || typeof options === "string") return presetToOptions(options);
+	if (typeof options === "boolean" || typeof options === "string")
+		return presetToOptions(options);
 	else if (!options) return {};
 	else {
 		let obj = { ...presetToOptions(options.preset), ...options };
@@ -854,8 +860,7 @@ export function normalizeStatsPreset(options?: StatsOptions): StatsOptionsObj {
 }
 
 function presetToOptions(name?: boolean | string): StatsOptionsObj {
-	const pn =
-		(typeof name === "string" && name.toLowerCase()) || name;
+	const pn = (typeof name === "string" && name.toLowerCase()) || name;
 	switch (pn) {
 		case "none":
 			return {
@@ -863,13 +868,13 @@ function presetToOptions(name?: boolean | string): StatsOptionsObj {
 			};
 		case "verbose":
 			return {
-				all: true,
+				all: true
 			};
 		case "errors-only":
 			return {
 				all: false,
 				errors: true,
-				errorsCount: true,
+				errorsCount: true
 				// TODO: moduleTrace: true,
 				// TODO: logging: "error"
 			};
@@ -879,7 +884,7 @@ function presetToOptions(name?: boolean | string): StatsOptionsObj {
 				errors: true,
 				errorsCount: true,
 				warnings: true,
-				warningsCount: true,
+				warningsCount: true
 				// TODO: logging: "warn"
 			};
 		default:

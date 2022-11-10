@@ -15,7 +15,7 @@ export interface StatsOptionsObj {
 	errors?: boolean;
 	errorsCount?: boolean;
 	colors?: boolean;
-};
+}
 
 export type StatsOptions = StatsOptionsObj | boolean | string;
 
@@ -29,6 +29,6 @@ export function resolveStatsOptions(
 	const colors = optionsOrFallback(options.colors, false);
 	return {
 		...options,
-		colors,
+		colors
 	};
 }
