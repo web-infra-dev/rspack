@@ -158,8 +158,10 @@ impl Plugin for HtmlPlugin {
     // We directly emit runtime assets in the hook processAssets of `rspack-plugin-runtime`, which cannot be tracked like how webpack handles this.
     // cc @underfin
     if compilation.options.target.platform.is_web() && let Some(asset) = compilation.assets.get("runtime.js") {
+      let runtime_name = "runtime.js";
+      let runtime_url = config.get_public_path(compilation, runtime_name) + runtime_name;
       let tag = HTMLPluginTag::create_script(
-        "runtime.js",
+        &runtime_url,
         Some(
           HtmlPluginConfigInject::Head
         ),
