@@ -408,8 +408,7 @@ function __rspack_register__(chunkIds, modules, callback) {
 								updatedModules
 							);
 							return promises;
-						},
-						[])
+						}, [])
 					).then(function () {
 						return waitForBlockingPromises(function () {
 							if (applyOnUpdate) {
@@ -577,7 +576,7 @@ function __rspack_register__(chunkIds, modules, callback) {
 			var doneFns = inProgress[content];
 			delete inProgress[content];
 			script.parentNode && script.parentNode.removeChild(script);
-			doneFns && doneFns.forEach(fn => fn(event));
+			doneFns && doneFns.forEach((fn) => fn(event));
 			if (prev) return prev(event);
 		};
 		var timeout = setTimeout(
@@ -608,7 +607,7 @@ function __rspack_register__(chunkIds, modules, callback) {
 			// var url = __webpack_require__.p + __webpack_require__.hu(chunkId);
 			// create error before stack unwound to get useful stacktrace later
 			var error = new Error();
-			var loadingEnded = event => {
+			var loadingEnded = (event) => {
 				if (waitingUpdateResolves[chunkId]) {
 					waitingUpdateResolves[chunkId] = undefined;
 					var errorType =

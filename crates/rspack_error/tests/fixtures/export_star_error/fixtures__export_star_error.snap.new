@@ -1,7 +1,0 @@
----
-source: crates/rspack_error/tests/fixtures.rs
-assertion_line: 38
-expression: export_star_error
----
-Failed to resolve /Users/bytedance/Documents/rspack/rspack/crates/rspack_error/tests/fixtures/export_star_error/index.js
-
