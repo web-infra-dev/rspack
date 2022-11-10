@@ -1,5 +1,17 @@
 # @rspack/binding
 
+## 0.0.8
+
+### Patch Changes
+
+- 589b99bb: bump to 0.0.8
+
+## 0.0.6
+
+### Patch Changes
+
+- e6d0926a: unify version
+
 ## 0.0.5
 
 ### Patch Changes
