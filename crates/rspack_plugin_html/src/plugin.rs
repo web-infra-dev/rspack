@@ -181,7 +181,7 @@ impl Plugin for HtmlPlugin {
     }
 
     let tags = tags.into_iter().map(|(tag, _)| tag).collect::<Vec<_>>();
-    let mut visitor = AssetWriter::new(config, &tags);
+    let mut visitor = AssetWriter::new(config, &tags, &compilation);
     current_ast.visit_mut_with(&mut visitor);
 
     let source = parser.codegen(&mut current_ast)?;

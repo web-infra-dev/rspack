@@ -1,5 +1,6 @@
 use crate::config::{HtmlPluginConfig, HtmlPluginConfigInject, HtmlPluginConfigScriptLoading};
 use itertools::Itertools;
+use rspack_core::Compilation;
 use swc_atoms::JsWord;
 use swc_common::DUMMY_SP;
 use swc_html::ast::{Attribute, Child, Element, Namespace, Text};
@@ -80,14 +81,19 @@ pub struct HtmlPluginAttribute {
 }
 
 #[derive(Debug)]
-pub struct AssetWriter<'a> {
+pub struct AssetWriter<'a, 'c> {
   config: &'a HtmlPluginConfig,
   head_tags: Vec<&'a HTMLPluginTag>,
   body_tags: Vec<&'a HTMLPluginTag>,
+  compilation: &'c Compilation,
 }
 
-impl<'a> AssetWriter<'a> {
-  pub fn new(config: &'a HtmlPluginConfig, tags: &'a [HTMLPluginTag]) -> AssetWriter<'a> {
+impl<'a, 'c> AssetWriter<'a, 'c> {
+  pub fn new(
+    config: &'a HtmlPluginConfig,
+    tags: &'a [HTMLPluginTag],
+    compilation: &'c Compilation,
+  ) -> AssetWriter<'a, 'c> {
     let mut head_tags: Vec<&HTMLPluginTag> = vec![];
     let mut body_tags: Vec<&HTMLPluginTag> = vec![];
     for ele in tags.iter() {
@@ -104,11 +110,12 @@ impl<'a> AssetWriter<'a> {
       config,
       head_tags,
       body_tags,
+      compilation,
     }
   }
 }
 
-impl VisitMut for AssetWriter<'_> {
+impl VisitMut for AssetWriter<'_, '_> {
   fn visit_mut_element(&mut self, n: &mut Element) {
     let head_tags = &self.head_tags;
     let body_tags = &self.body_tags;
@@ -149,11 +156,7 @@ impl VisitMut for AssetWriter<'_> {
 
         // add favicon
         if let Some(favicon) = &self.config.favicon {
-          let favicon_path = if let Some(public_path) = &self.config.public_path {
-            format!("{}{}", public_path, favicon)
-          } else {
-            favicon.to_string()
-          };
+          let favicon_path = self.config.get_public_path(self.compilation, favicon) + favicon;
           n.children.push(Child::Element(Element {
             tag_name: JsWord::from("link"),
             children: vec![],
