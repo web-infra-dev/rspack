@@ -48,14 +48,14 @@ pub fn uri_to_chunk_name(root: &str, uri: &str) -> String {
   name
 }
 
-pub fn parse_to_url(uri: &str) -> fluent_uri::Uri<String> {
-  if !uri.contains(':') {
-    let mut construct_string = String::with_capacity("specifier:".len() + uri.len());
+pub fn parse_to_url(url: &str) -> url::Url {
+  if !url.contains(':') {
+    let mut construct_string = String::with_capacity("specifier:".len() + url.len());
     construct_string += "specifier:";
-    construct_string += uri;
-    fluent_uri::Uri::parse_from(construct_string).unwrap()
+    construct_string += url;
+    url::Url::parse(&construct_string).unwrap()
   } else {
-    fluent_uri::Uri::parse_from(uri.to_string()).unwrap()
+    url::Url::parse(url).unwrap()
   }
 }
 
