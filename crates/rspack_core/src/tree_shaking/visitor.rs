@@ -11,6 +11,8 @@ use ustr::{ustr, Ustr};
 
 use crate::{Dependency, ModuleGraph, ModuleSyntax, ResolveKind};
 use rspack_symbol::{BetterId, IdOrMemExpr, IndirectTopLevelSymbol, Symbol, SymbolExt, SymbolFlag};
+
+use super::utils::{get_dynamic_import_string_literal, is_require_literal_expr};
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SymbolRef {
   Direct(Symbol),
@@ -499,7 +501,15 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     }
   }
 
-  fn visit_call_expr(&mut self, node: &CallExpr) {}
+  fn visit_call_expr(&mut self, node: &CallExpr) {
+    // TODO: module.exports, exports.xxxxx
+    if is_require_literal_expr(node, self.unresolved_mark) {
+      self.module_syntax.insert(ModuleSyntax::COMMONJS);
+    } else if let Some(import_str) = get_dynamic_import_string_literal(node) {
+    } else {
+      node.visit_children_with(self);
+    }
+  }
 
   fn visit_fn_expr(&mut self, node: &FnExpr) {
     if self.state.contains(AnalyzeState::EXPORT_DEFAULT) {

@@ -4,6 +4,7 @@ use ustr::Ustr;
 
 use self::visitor::TreeShakingResult;
 
+pub mod utils;
 pub mod visitor;
 #[derive(Debug)]
 pub struct OptimizeDependencyResult {
