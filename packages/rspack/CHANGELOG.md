@@ -1,5 +1,15 @@
 # @rspack/core
 
+## 0.0.9
+
+### Patch Changes
+
+- Updated dependencies [69becfa5]
+  - @rspack/binding@0.0.9
+  - @rspack/plugin-postcss@0.0.9
+  - @rspack/plugin-less@0.0.9
+  - @rspack/dev-client@0.0.9
+
 ## 0.0.8
 
 ### Patch Changes

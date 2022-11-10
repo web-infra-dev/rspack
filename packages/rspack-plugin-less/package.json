@@ -1,6 +1,6 @@
 {
   "name": "@rspack/plugin-less",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "less plugin for rspack",
   "author": "wangzhenzhuo",
   "main": "dist/index.js",
