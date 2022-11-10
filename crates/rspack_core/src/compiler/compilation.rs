@@ -595,7 +595,7 @@ impl Compilation {
       self.code_generation_results.add(
         module_identifier,
         // FIXME: hardcoded for using `main` as `RuntimeSpec` by default as multiple runtimes have not been supported yet. cc @underfin
-        HashSet::from_iter(["".to_owned()]),
+        HashSet::from_iter(["main".to_owned()]),
         result,
       );
     });
