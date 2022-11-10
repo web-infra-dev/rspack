@@ -1,3 +1,4 @@
+use hashbrown::HashSet;
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
 
@@ -7,7 +8,7 @@ use swc_css_prefixer::{options::Options, prefixer};
 use rspack_core::{
   get_contenthash,
   rspack_sources::{
-    CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
+    BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
     SourceMapSource, SourceMapSourceOptions,
   },
   FilenameRenderOptions, GenerationResult, ModuleType, NormalModule, ParseContext, ParseResult,
@@ -337,22 +338,20 @@ impl Plugin for CssPlugin {
     let sources = ordered_modules
       .par_iter()
       .map(|mgm| {
-        let module = compilation
-          .module_graph
-          .module_by_identifier(&mgm.module_identifier)
-          .ok_or_else(|| Error::InternalError("Failed to get module".to_owned()))
-          // FIXME: use result
-          .expect("Failed to get module");
+        let code_gen_result = compilation
+          .code_generation_results
+          // TODO: use chunk runtime
+          .get(
+            &mgm.module_identifier,
+            Some(&HashSet::from_iter(["main".to_owned()])),
+          )?;
 
-        module.code_generation(compilation).map(|source| {
-          // TODO: this logic is definitely not performant, move to compilation afterwards
-          source
-            .inner()
-            .get(&SourceType::Css)
-            .map(|source| source.ast_or_source.clone().try_into_source().unwrap())
-        })
+        code_gen_result
+          .get(&SourceType::Css)
+          .map(|result| result.ast_or_source.clone().try_into_source())
+          .transpose()
       })
-      .collect::<Result<Vec<_>>>()?
+      .collect::<Result<Vec<Option<BoxSource>>>>()?
       .into_par_iter()
       .fold(ConcatSource::default, |mut output, cur| {
         if let Some(source) = cur {

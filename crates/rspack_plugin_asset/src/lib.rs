@@ -1,6 +1,7 @@
 use std::{ffi::OsStr, path::Path};
 
 use async_trait::async_trait;
+use hashbrown::HashSet;
 use rayon::prelude::*;
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result};
 
@@ -363,57 +364,51 @@ impl Plugin for AssetPlugin {
         module.source_types().contains(&SourceType::Asset)
       })
       .map(|mgm| {
-        // TODO: this logic is definitely not performant, move to compilation afterwards
-        let module = compilation
-          .module_graph
-          .module_by_identifier(&mgm.module_identifier)
-          .ok_or_else(|| Error::InternalError("Failed to get module".to_owned()))
-          // FIXME: use result
-          .expect("Failed to get module");
+        let code_gen_result = compilation
+          .code_generation_results
+          // TODO: use chunk runtime
+          .get(
+            &mgm.module_identifier,
+            Some(&HashSet::from_iter(["main".to_owned()])),
+          )?;
 
-        Ok(
-          module
-            .code_generation(compilation)
-            .map(|source| {
-              source
-                .inner()
-                .get(&SourceType::Asset)
-                .map(|source| source.ast_or_source.clone().try_into_source().unwrap())
-                .map(|asset| {
-                  let contenthash = Some(get_contenthash(&asset).to_string());
-                  let chunkhash = None;
-                  // Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
-                  // let hash = Some(get_hash(compilation).to_string());
-                  let hash = None;
+        let result = code_gen_result
+          .get(&SourceType::Asset)
+          .map(|result| result.ast_or_source.clone().try_into_source())
+          .transpose()?
+          .map(|asset| {
+            let contenthash = Some(get_contenthash(&asset).to_string());
+            let chunkhash = None;
+            // Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
+            // let hash = Some(get_hash(compilation).to_string());
+            let hash = None;
 
-                  let path = Path::new(&mgm.id);
-                  Some(RenderManifestEntry::new(
-                    asset,
-                    args
-                      .compilation
-                      .options
-                      .output
-                      .asset_module_filename
-                      .render(FilenameRenderOptions {
-                        filename: path
-                          .file_stem()
-                          .and_then(OsStr::to_str)
-                          .map(|s| s.to_owned()),
-                        extension: path
-                          .extension()
-                          .and_then(OsStr::to_str)
-                          .map(|str| format!("{}{}", ".", str)),
-                        id: None,
-                        contenthash,
-                        chunkhash,
-                        hash,
-                      }),
-                  ))
-                })
-            })
-            .unwrap() // TODO: remove this unwrap
-            .flatten(),
-        )
+            let path = Path::new(&mgm.id);
+            RenderManifestEntry::new(
+              asset,
+              args
+                .compilation
+                .options
+                .output
+                .asset_module_filename
+                .render(FilenameRenderOptions {
+                  filename: path
+                    .file_stem()
+                    .and_then(OsStr::to_str)
+                    .map(|s| s.to_owned()),
+                  extension: path
+                    .extension()
+                    .and_then(OsStr::to_str)
+                    .map(|str| format!("{}{}", ".", str)),
+                  id: None,
+                  contenthash,
+                  chunkhash,
+                  hash,
+                }),
+            )
+          });
+
+        Ok(result)
       })
       .collect::<Result<Vec<Option<RenderManifestEntry>>>>()?
       .into_par_iter()
