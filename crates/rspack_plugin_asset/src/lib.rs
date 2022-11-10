@@ -192,14 +192,10 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     &self,
     requested_source_type: SourceType,
     ast_or_source: &rspack_core::AstOrSource,
-    mgm: &rspack_core::ModuleGraphModule,
+    module: &rspack_core::NormalModule,
     compilation: &rspack_core::Compilation,
   ) -> Result<rspack_core::GenerationResult> {
     let parsed_asset_config = self.parsed_asset_config.as_ref().unwrap();
-    let module = compilation
-      .module_graph
-      .module_by_identifier(&mgm.module_identifier)
-      .ok_or_else(|| Error::InternalError("Failed to get module".to_owned()))?;
 
     let result = match requested_source_type {
       SourceType::JavaScript => Ok(GenerationResult {
@@ -377,7 +373,7 @@ impl Plugin for AssetPlugin {
 
         Ok(
           module
-            .code_generation(mgm, compilation)
+            .code_generation(compilation)
             .map(|source| {
               source
                 .inner()

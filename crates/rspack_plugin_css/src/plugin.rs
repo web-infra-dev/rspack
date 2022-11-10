@@ -130,16 +130,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
     &self,
     requested_source_type: SourceType,
     ast_or_source: &rspack_core::AstOrSource,
-    mgm: &rspack_core::ModuleGraphModule,
+    module: &rspack_core::NormalModule,
     compilation: &rspack_core::Compilation,
   ) -> Result<rspack_core::GenerationResult> {
-    // Safety: OriginalSource exists in code generation, and CSS AST is also available from parse.
-
-    let module = compilation
-      .module_graph
-      .module_by_identifier(&mgm.module_identifier)
-      .ok_or_else(|| Error::InternalError("Failed to get module".to_owned()))?;
-
     let result = match requested_source_type {
       SourceType::Css => {
         let (code, source_map) = SWC_COMPILER.codegen(
@@ -351,7 +344,7 @@ impl Plugin for CssPlugin {
           // FIXME: use result
           .expect("Failed to get module");
 
-        module.code_generation(mgm, compilation).map(|source| {
+        module.code_generation(compilation).map(|source| {
           // TODO: this logic is definitely not performant, move to compilation afterwards
           source
             .inner()

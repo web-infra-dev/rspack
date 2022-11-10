@@ -16,10 +16,10 @@ use rspack_core::rspack_sources::{
 };
 use rspack_core::{
   get_contenthash, AstOrSource, Compilation, FilenameRenderOptions, GenerationResult, ModuleAst,
-  ModuleGraphModule, ModuleType, NormalModule, ParseContext, ParseResult, ParserAndGenerator,
-  Plugin, PluginContext, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
-  PluginRenderRuntimeHookOutput, ProcessAssetsArgs, RenderManifestEntry, RenderRuntimeArgs,
-  SourceType, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
+  ModuleType, NormalModule, ParseContext, ParseResult, ParserAndGenerator, Plugin, PluginContext,
+  PluginProcessAssetsOutput, PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput,
+  ProcessAssetsArgs, RenderManifestEntry, RenderRuntimeArgs, SourceType,
+  RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;
@@ -129,14 +129,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     &self,
     requested_source_type: SourceType,
     ast_or_source: &AstOrSource,
-    mgm: &ModuleGraphModule,
+    module: &NormalModule,
     compilation: &Compilation,
   ) -> Result<GenerationResult> {
-    let module = compilation
-      .module_graph
-      .module_by_identifier(&mgm.module_identifier)
-      .ok_or_else(|| Error::InternalError("Failed to get module".to_owned()))?;
-
     if matches!(requested_source_type, SourceType::JavaScript) {
       // TODO: this should only return AST for javascript only, It's a fast pass, defer to another pr to solve this.
       // Ok(ast_or_source.to_owned().into())
@@ -145,7 +140,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .to_owned()
         .try_into_ast()?
         .try_into_javascript()?;
-      run_after_pass(&mut ast, mgm, compilation);
+      run_after_pass(&mut ast, module, compilation);
       let output = crate::ast::stringify(&ast, &compilation.options.devtool)?;
 
       if let Some(map) = output.map {
@@ -271,7 +266,7 @@ impl Plugin for JsPlugin {
           // FIXME: use result
           .expect("Failed to get module");
 
-        module.code_generation(mgm, compilation).and_then(|source| {
+        module.code_generation(compilation).and_then(|source| {
           // TODO: this logic is definitely not performant, move to compilation afterwards
           source
             .inner()

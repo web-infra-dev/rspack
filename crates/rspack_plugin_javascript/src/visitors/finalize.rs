@@ -1,12 +1,12 @@
 // use super::hmr::HmrModuleIdReWriter;
 use crate::visitors::RspackModuleFinalizer;
-use rspack_core::{Compilation, ModuleGraphModule};
+use rspack_core::{Compilation, NormalModule};
 use swc_common::{Mark, DUMMY_SP, GLOBALS};
 use swc_ecma_utils::quote_ident;
 use swc_ecma_visit::Fold;
 
 pub fn finalize<'a>(
-  module: &'a ModuleGraphModule,
+  module: &'a NormalModule,
   compilation: &'a Compilation,
   unresolved_mark: Mark,
 ) -> impl Fold + 'a {

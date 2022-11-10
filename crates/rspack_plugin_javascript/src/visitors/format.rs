@@ -2,7 +2,7 @@
 use ast::*;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::{Compilation, Dependency, ModuleDependency, ModuleGraphModule, ResolveKind};
+use rspack_core::{Compilation, Dependency, ModuleDependency, NormalModule, ResolveKind};
 use swc_atoms::{Atom, JsWord};
 use swc_common::{Mark, DUMMY_SP};
 use swc_ecma_utils::{quote_ident, ExprFactory};
@@ -25,7 +25,7 @@ static SWC_HELPERS_REG: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"@swc/helpers/lib/(\w*)\.js$").unwrap());
 
 pub struct RspackModuleFinalizer<'a> {
-  pub module: &'a ModuleGraphModule,
+  pub module: &'a NormalModule,
   pub unresolved_mark: Mark,
   // pub resolved_ids: &'a HashMap<JsWord, ResolvedURI>,
   pub require_ident: Ident,
@@ -61,15 +61,11 @@ pub struct RspackModuleFormatTransformer<'a> {
   require_id: Id,
   unresolved_mark: Mark,
   compilation: &'a Compilation,
-  module: &'a ModuleGraphModule,
+  module: &'a NormalModule,
   // resolved_ids: &'a HashMap<JsWord, ResolvedURI>,
 }
 impl<'a> RspackModuleFormatTransformer<'a> {
-  pub fn new(
-    unresolved_mark: Mark,
-    module: &'a ModuleGraphModule,
-    bundle: &'a Compilation,
-  ) -> Self {
+  pub fn new(unresolved_mark: Mark, module: &'a NormalModule, bundle: &'a Compilation) -> Self {
     Self {
       require_id: quote_ident!(DUMMY_SP.apply_mark(unresolved_mark), "require").to_id(),
       unresolved_mark,
@@ -130,7 +126,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
 
           // FIXME: currently uri equals to specifier, but this will be changed later.
           let require_dep = Dependency {
-            parent_module_identifier: Some(self.module.module_identifier.clone()),
+            parent_module_identifier: Some(self.module.identifier()),
             detail: ModuleDependency {
               specifier: specifier.clone(),
               kind: ResolveKind::Require,
@@ -139,7 +135,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
           };
           // FIXME: No need to say this is a ugly workaround
           let import_dep = Dependency {
-            parent_module_identifier: Some(self.module.module_identifier.clone()),
+            parent_module_identifier: Some(self.module.identifier()),
             detail: ModuleDependency {
               specifier,
               kind: ResolveKind::Import,
@@ -174,7 +170,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
         // If the import module is not exsit in module graph, we need to leave it as it is
         // FIXME: currently uri equals to specifier, but this will be changed later.
         let dep = Dependency {
-          parent_module_identifier: Some(self.module.module_identifier.clone()),
+          parent_module_identifier: Some(self.module.identifier()),
           detail: ModuleDependency {
             specifier: literal.to_string(),
             kind: ResolveKind::DynamicImport,
@@ -245,7 +241,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
       .and_then(|first_arg| first_arg.expr.as_mut_lit())
     {
       let dep = Dependency {
-        parent_module_identifier: Some(self.module.module_identifier.clone()),
+        parent_module_identifier: Some(self.module.identifier()),
         detail: ModuleDependency {
           specifier: str.value.to_string(),
           kind: ResolveKind::ModuleHotAccept,

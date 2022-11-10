@@ -66,7 +66,7 @@ impl ParserAndGenerator for ExternalParserAndGenerator {
     &self,
     _requested_source_type: crate::SourceType,
     ast_or_source: &crate::AstOrSource,
-    _module: &crate::ModuleGraphModule,
+    _module: &crate::NormalModule,
     _compilation: &crate::Compilation,
   ) -> rspack_error::Result<crate::GenerationResult> {
     Ok(crate::GenerationResult {

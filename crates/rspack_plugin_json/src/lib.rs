@@ -91,7 +91,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     &self,
     requested_source_type: SourceType,
     ast_or_source: &rspack_core::AstOrSource,
-    _module: &rspack_core::ModuleGraphModule,
+    _module: &rspack_core::NormalModule,
     _compilation: &rspack_core::Compilation,
   ) -> Result<rspack_core::GenerationResult> {
     match requested_source_type {
