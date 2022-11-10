@@ -1,6 +1,6 @@
 {
   "name": "@rspack/dev-middleware",
-  "version": "1.0.0",
+  "version": "0.0.4",
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
