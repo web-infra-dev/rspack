@@ -31,6 +31,8 @@ mod stats;
 pub use stats::*;
 mod runtime;
 pub use runtime::*;
+mod code_generation_results;
+pub use code_generation_results::*;
 mod entrypoint;
 pub use entrypoint::*;
 mod loader;

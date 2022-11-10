@@ -39,10 +39,11 @@ use crate::{
     OptimizeDependencyResult,
   },
   BuildContext, BundleEntries, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey,
-  ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint, LoaderRunnerRunner,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModule,
-  NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs,
-  RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver, Stats, VisitedModuleIdentity,
+  ChunkUkey, CodeGenerationResult, CodeGenerationResults, CompilerOptions, Dependency, EntryItem,
+  Entrypoint, LoaderRunnerRunner, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg,
+  NormalModule, NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs,
+  RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver, Stats,
+  VisitedModuleIdentity,
 };
 use rspack_symbol::Symbol;
 
@@ -63,10 +64,14 @@ pub struct Compilation {
   pub(crate) loader_runner_runner: Arc<LoaderRunnerRunner>,
   pub(crate) _named_chunk: HashMap<String, ChunkUkey>,
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
-  pub entry_module_identifiers: HashSet<String>,
+  pub entry_module_identifiers: HashSet<ModuleIdentifier>,
   pub used_symbol: HashSet<Symbol>,
   #[cfg(debug_assertions)]
   pub tree_shaking_result: HashMap<Ustr, TreeShakingResult>,
+
+  pub code_generation_results: CodeGenerationResults,
+  pub code_generated_modules: HashSet<ModuleIdentifier>,
+
   // TODO: make compilation safer
   _pin: PhantomPinned,
 }
@@ -99,6 +104,10 @@ impl Compilation {
       used_symbol: HashSet::new(),
       #[cfg(debug_assertions)]
       tree_shaking_result: HashMap::new(),
+
+      code_generation_results: Default::default(),
+      code_generated_modules: Default::default(),
+
       _pin: PhantomPinned,
     }
   }
@@ -566,6 +575,34 @@ impl Compilation {
     })
   }
 
+  fn code_generation(&mut self) -> Result<()> {
+    let results = self
+      .module_graph
+      .module_identifier_to_module
+      .par_iter()
+      .map(|(module_identifier, module)| {
+        module
+          .code_generation(self)
+          .map(|result| (module_identifier.clone(), result))
+      })
+      .collect::<Result<Vec<(ModuleIdentifier, CodeGenerationResult)>>>()?;
+
+    results.into_iter().for_each(|(module_identifier, result)| {
+      self
+        .code_generated_modules
+        .insert(module_identifier.clone());
+
+      self.code_generation_results.add(
+        module_identifier,
+        // FIXME: hardcoded for using `main` as `RuntimeSpec` by default as multiple runtimes have not been supported yet. cc @underfin
+        HashSet::from_iter(["main".to_owned()]),
+        result,
+      );
+    });
+
+    Ok(())
+  }
+
   #[instrument()]
   async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) {
     let chunk_ukey_and_manifest = (self
@@ -785,6 +822,8 @@ impl Compilation {
       sources: vec![],
       context_indent,
     };
+
+    self.code_generation()?;
 
     self.create_chunk_assets(plugin_driver.clone()).await;
     // generate runtime
