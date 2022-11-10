@@ -39,10 +39,11 @@ use crate::{
     OptimizeDependencyResult,
   },
   BuildContext, BundleEntries, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey,
-  ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint, LoaderRunnerRunner,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModule,
-  NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs,
-  RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver, Stats, VisitedModuleIdentity,
+  ChunkUkey, CodeGenerationResult, CompilerOptions, Dependency, EntryItem, Entrypoint,
+  LoaderRunnerRunner, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg,
+  NormalModule, NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs,
+  RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver, Stats,
+  VisitedModuleIdentity,
 };
 use rspack_symbol::Symbol;
 
@@ -63,10 +64,14 @@ pub struct Compilation {
   pub(crate) loader_runner_runner: Arc<LoaderRunnerRunner>,
   pub(crate) _named_chunk: HashMap<String, ChunkUkey>,
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
-  pub entry_module_identifiers: HashSet<String>,
+  pub entry_module_identifiers: HashSet<ModuleIdentifier>,
   pub used_symbol: HashSet<Symbol>,
   #[cfg(debug_assertions)]
   pub tree_shaking_result: HashMap<Ustr, TreeShakingResult>,
+
+  pub code_generation_results: CodeGenerationResults,
+  pub code_generated_modules: HashSet<ModuleIdentifier>,
+
   // TODO: make compilation safer
   _pin: PhantomPinned,
 }
@@ -99,6 +104,10 @@ impl Compilation {
       used_symbol: HashSet::new(),
       #[cfg(debug_assertions)]
       tree_shaking_result: HashMap::new(),
+
+      code_generation_results: Default::default(),
+      code_generated_modules: Default::default(),
+
       _pin: PhantomPinned,
     }
   }
@@ -566,6 +575,15 @@ impl Compilation {
     })
   }
 
+  fn code_generation(&self) {
+    self.module_graph.modules().for_each(|module| {
+      // self
+      // .module_graph
+      // .module_identifier_to_module_graph_module(&module.identifier());
+      // module.code_generation();
+    })
+  }
+
   #[instrument()]
   async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) {
     let chunk_ukey_and_manifest = (self
@@ -830,6 +848,98 @@ impl CompilationAsset {
 
   pub fn set_info(&mut self, info: AssetInfo) {
     self.info = info;
+  }
+}
+
+type RuntimeSpec = HashSet<String>;
+type RuntimeKey = String;
+
+#[derive(Default, Debug)]
+enum RuntimeMode {
+  #[default]
+  Empty,
+  SingleEntry,
+  Map,
+}
+
+pub fn is_runtime_equal(a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
+  if a.len() != b.len() {
+    return false;
+  }
+
+  let mut a: Vec<String> = Vec::from_iter(a.iter().cloned());
+  let mut b: Vec<String> = Vec::from_iter(b.iter().cloned());
+
+  a.sort();
+  b.sort();
+
+  a.into_iter().zip(b.into_iter()).all(|(a, b)| a == b)
+}
+
+pub fn get_runtime_key(runtime: RuntimeSpec) -> String {
+  let mut runtime: Vec<String> = Vec::from_iter(runtime.into_iter());
+  runtime.sort();
+  runtime.join("\n")
+}
+
+#[derive(Default, Debug)]
+pub struct RuntimeSpecMap {
+  mode: RuntimeMode,
+  map: HashMap<RuntimeKey, CodeGenerationResult>,
+
+  single_runtime: Option<RuntimeSpec>,
+  single_value: Option<CodeGenerationResult>,
+}
+
+impl RuntimeSpecMap {
+  fn set(&mut self, runtime: RuntimeSpec, value: CodeGenerationResult) {
+    match self.mode {
+      RuntimeMode::Empty => {
+        self.mode = RuntimeMode::SingleEntry;
+        self.single_runtime = Some(runtime);
+        self.single_value = Some(value);
+      }
+      RuntimeMode::SingleEntry => {
+        if let Some(single_runtime) = self.single_runtime.as_ref() && is_runtime_equal(&single_runtime, &runtime) {
+          self.single_value = Some(value);
+        } else {
+          self.mode = RuntimeMode::Map;
+
+          let single_runtime = self.single_runtime.take().expect("Expected single runtime exists");
+          let single_value = self.single_value.take().expect("Expected single value exists");
+
+          self.map.insert(get_runtime_key(single_runtime), single_value);
+        }
+      }
+      RuntimeMode::Map => {
+        self.map.insert(get_runtime_key(runtime), value);
+      }
+    }
+  }
+}
+
+#[derive(Default, Debug)]
+pub struct CodeGenerationResults {
+  map: HashMap<ModuleIdentifier, RuntimeSpecMap>,
+}
+
+impl CodeGenerationResults {
+  fn add(
+    &mut self,
+    module_identifier: ModuleIdentifier,
+    runtime: RuntimeSpec,
+    result: CodeGenerationResult,
+  ) {
+    match self.map.entry(module_identifier) {
+      hashbrown::hash_map::Entry::Occupied(mut record) => {
+        record.get_mut().set(runtime, result);
+      }
+      hashbrown::hash_map::Entry::Vacant(record) => {
+        let mut spec_map = RuntimeSpecMap::default();
+        spec_map.set(runtime, result);
+        record.insert(spec_map);
+      }
+    };
   }
 }
 
