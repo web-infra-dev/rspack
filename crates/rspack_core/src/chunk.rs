@@ -69,11 +69,11 @@ impl Chunk {
       let group = chunk_group_by_ukey
         .get(&group_ukey)
         .expect("Group should exist");
-      for chunk in group.chunks.iter() {
-        chunks.insert(chunk.clone());
+      for chunk in &group.chunks {
+        chunks.insert(*chunk);
       }
-      for chunk in group.children.iter() {
-        chunks.insert(chunk.clone());
+      for chunk in &group.children {
+        chunks.insert(*chunk);
       }
     }
 

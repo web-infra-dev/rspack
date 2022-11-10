@@ -231,7 +231,7 @@ impl ChunkGraph {
   pub fn get_module_runtime_requirements(
     &self,
     module_identifier: &ModuleIdentifier,
-    runtime: &RuntimeSpec,
+    _runtime: &RuntimeSpec,
   ) -> &HashSet<String> {
     let cgm = self.get_chunk_graph_module(module_identifier);
     // TODO

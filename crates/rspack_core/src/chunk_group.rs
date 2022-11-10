@@ -16,7 +16,7 @@ pub struct ChunkGroup {
   pub(crate) next_post_order_index: usize,
   pub(crate) runtime: Option<RuntimeSpec>,
   // Entrypoint
-  pub(crate) name: Option<String>,
+  // pub(crate) name: Option<String>,
   pub(crate) runtime_chunk: Option<ChunkUkey>,
 }
 
@@ -40,7 +40,7 @@ impl ChunkGroup {
       next_pre_order_index: 0,
       next_post_order_index: 0,
       runtime,
-      name,
+      // name,
       runtime_chunk: None,
     }
   }

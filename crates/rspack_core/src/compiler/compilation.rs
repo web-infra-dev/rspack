@@ -872,7 +872,7 @@ impl Compilation {
         .read()
         .await
         .additional_chunk_runtime_requirements(&AdditionalChunkRuntimeRequirementsArgs {
-          chunk: &chunk,
+          chunk,
           runtime_requirements: &mut set,
         })?;
 
@@ -885,7 +885,7 @@ impl Compilation {
     for entry_ukey in self.get_chunk_graph_entries().iter() {
       let entry = self
         .chunk_by_ukey
-        .get(&entry_ukey)
+        .get(entry_ukey)
         .expect("chunk not found by ukey");
 
       let mut set = HashSet::new();
@@ -903,7 +903,7 @@ impl Compilation {
         .read()
         .await
         .additional_tree_runtime_requirements(&AdditionalChunkRuntimeRequirementsArgs {
-          chunk: &entry,
+          chunk: entry,
           runtime_requirements: &mut set,
         })?;
 
