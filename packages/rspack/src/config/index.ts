@@ -112,3 +112,4 @@ function cloneObject(value: Record<string, any> | undefined) {
 export type { Plugin, LoaderContext };
 export type { WebSocketServerOptions, Dev } from "./devServer";
 export { resolveWatchOption } from "./watch";
+export type { StatsOptions } from "./stats";

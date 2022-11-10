@@ -92,6 +92,16 @@ export class RspackCLI {
 		if (!item.mode) {
 			item.mode = "production";
 		}
+		if (typeof item.stats === "undefined") {
+			item.stats = { preset: "normal" };
+		} else if (typeof item.stats === "boolean") {
+			item.stats = item.stats ? { preset: "normal" } : { preset: "none" };
+		} else if (typeof item.stats === "string") {
+			item.stats = { preset: item.stats };
+		}
+		if (this.colors.isColorSupported && !item.stats.colors) {
+			item.stats.colors = true;
+		}
 		return item;
 	}
 	async loadConfig(options: RspackCLIOptions): Promise<RspackOptions> {
@@ -123,10 +133,6 @@ export class RspackCLI {
 					entry
 				};
 			}
-		}
-		loadedConfig.stats ??= {};
-		if (this.colors.isColorSupported) {
-			loadedConfig.stats.colors = true;
 		}
 		return loadedConfig;
 	}

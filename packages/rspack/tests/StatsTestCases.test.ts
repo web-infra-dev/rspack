@@ -46,15 +46,16 @@ describe("StatsTestCases", () => {
 				...config // we may need to use deepMerge to handle config merge, but we may fix it until we need it
 			};
 			const stats = await util.promisify(rspack)(options);
-			const statsJson = stats.toJson();
+			const statsOptions = { all: true };
+			const statsJson = stats.toJson(statsOptions);
 			// case ends with error should generate errors
 			if (/error$/.test(testName)) {
-				expect(statsJson.errors.length > 0);
+				expect(statsJson.errors!.length > 0);
 			} else {
-				expect(statsJson.errors.length === 0);
+				expect(statsJson.errors!.length === 0);
 			}
 			expect(statsJson).toMatchSnapshot();
-			const statsString = stats.toString({ colors: false });
+			const statsString = stats.toString(statsOptions);
 			expect(statsString).toMatchSnapshot();
 		});
 	});

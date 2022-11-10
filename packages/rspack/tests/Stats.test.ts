@@ -16,7 +16,8 @@ describe("Stats", () => {
 				main: "./fixtures/a"
 			}
 		});
-		expect(stats.toJson()).toMatchInlineSnapshot(`
+		const statsOptions = { all: true };
+		expect(stats.toJson(statsOptions)).toMatchInlineSnapshot(`
 		{
 		  "assets": [
 		    {
@@ -93,7 +94,7 @@ describe("Stats", () => {
 		  "warningsCount": 0,
 		}
 	`);
-		expect(stats.toString({ colors: false })).toMatchInlineSnapshot(`
+		expect(stats.toString(statsOptions)).toMatchInlineSnapshot(`
 		"     Asset       Size  Chunks  Chunk Names
 		runtime.js   14.4 KiB          
 		   main.js  210 bytes    main  main
@@ -101,5 +102,17 @@ describe("Stats", () => {
 		chunk {main} main.js (main) 55 bytes [entry]
 		[./fixtures/a.js] 55 bytes {main}"
 	`);
+	});
+
+	it("should omit all properties with all false", async () => {
+		const stats = await compile({
+			context: __dirname,
+			entry: "./fixtures/a"
+		});
+		expect(
+			stats.toJson({
+				all: false
+			})
+		).toEqual({});
 	});
 });

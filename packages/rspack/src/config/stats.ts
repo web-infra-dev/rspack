@@ -1,25 +1,34 @@
 import * as binding from "@rspack/binding";
+import { normalizeStatsPreset, optionsOrFallback } from "../stats";
 
 export type ResolvedStatsOptions = binding.RawStatsOptions;
 
-export interface StatsOptions {
-	colors?: boolean;
+export interface StatsOptionsObj {
 	all?: boolean;
+	preset?: "normal" | "none" | "verbose" | "errors-only" | "errors-warnings";
+	assets?: boolean;
+	chunks?: boolean;
+	modules?: boolean;
+	entrypoints?: boolean;
 	warnings?: boolean;
+	warningsCount?: boolean;
 	errors?: boolean;
+	errorsCount?: boolean;
+	colors?: boolean;
 }
 
+export type StatsOptions = StatsOptionsObj | boolean | string;
+
+/**
+ * resolve `StatsOptions` to `binding.RawStatsOptions`.
+ */
 export function resolveStatsOptions(
-	options: StatsOptions = {}
+	opts: StatsOptions = {}
 ): ResolvedStatsOptions {
+	const options = normalizeStatsPreset(opts);
 	const colors = optionsOrFallback(options.colors, false);
 	return {
+		...options,
 		colors
 	};
 }
-
-const optionsOrFallback = (...args) => {
-	let optionValues = [];
-	optionValues.push(...args);
-	return optionValues.find(optionValue => optionValue !== undefined);
-};

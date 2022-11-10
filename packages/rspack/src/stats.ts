@@ -1,14 +1,17 @@
 import * as binding from "@rspack/binding";
-import { resolveStatsOptions, StatsOptions } from "./config/stats";
+import { StatsOptions, StatsOptionsObj } from "./config/stats";
 import { LogType } from "./logging/Logger";
 
-export type StatsCompilation = Omit<binding.StatsCompilation, "entrypoints"> & {
+type StatsCompilationInner = Omit<binding.StatsCompilation, "entrypoints"> & {
 	entrypoints: Record<string, binding.StatsEntrypoint>;
+};
+export type StatsCompilation = Partial<StatsCompilationInner> & {
+	filteredModules?: number;
 };
 
 export class Stats {
 	// remove this when support delegate compilation to rust side
-	#statsJson: StatsCompilation;
+	#statsJson: StatsCompilationInner;
 
 	constructor(statsJson: binding.StatsCompilation) {
 		this.#statsJson = {
@@ -24,16 +27,65 @@ export class Stats {
 		return this.#statsJson.errorsCount > 0;
 	}
 
-	toJson(options?: StatsOptions) {
-		return this.#statsJson;
+	hasWarnings() {
+		return this.#statsJson.warningsCount > 0;
 	}
 
-	toString(options?: StatsOptions) {
-		options = resolveStatsOptions(options);
-		const obj: any = this.toJson(options);
-		obj.filteredModules = obj.modules.length - 15;
-		obj.modules = obj.modules.slice(0, 15);
-		return Stats.jsonToString(obj, options.colors);
+	toJson(opts?: StatsOptions, forToString?: boolean) {
+		const options = normalizeStatsPreset(opts);
+		const all = options.all;
+		const optionOrLocalFallback = <V, D>(v: V, def: D) =>
+			v !== undefined ? v : all !== undefined ? all : def;
+
+		const showAssets = optionOrLocalFallback(options.assets, true);
+		const showChunks = optionOrLocalFallback(options.chunks, !forToString);
+		const showModules = optionOrLocalFallback(options.modules, true);
+		const showEntrypoints = optionOrLocalFallback(options.entrypoints, true);
+		const showErrors = optionOrLocalFallback(options.errors, true);
+		const showErrorsCount = optionOrLocalFallback(options.errorsCount, true);
+		const showWarninigs = optionOrLocalFallback(options.warnings, true);
+		const showWarningsCount = optionOrLocalFallback(
+			options.warningsCount,
+			true
+		);
+
+		let obj: StatsCompilation = {};
+		if (showAssets) {
+			obj.assets = this.#statsJson.assets;
+		}
+		if (showChunks) {
+			obj.chunks = this.#statsJson.chunks;
+		}
+		if (showModules) {
+			obj.modules = this.#statsJson.modules;
+		}
+		if (showEntrypoints) {
+			obj.entrypoints = this.#statsJson.entrypoints;
+		}
+		if (showErrors) {
+			obj.errors = this.#statsJson.errors;
+		}
+		if (showErrorsCount) {
+			obj.errorsCount = this.#statsJson.errorsCount;
+		}
+		if (showWarninigs) {
+			obj.warnings = this.#statsJson.warnings;
+		}
+		if (showWarningsCount) {
+			obj.warningsCount = this.#statsJson.warningsCount;
+		}
+		if (obj.modules && forToString) {
+			obj.filteredModules = obj.modules.length - 15;
+			obj.modules = obj.modules.slice(0, 15);
+		}
+		return obj;
+	}
+
+	toString(opts?: StatsOptions) {
+		const options = normalizeStatsPreset(opts);
+		const useColors = optionsOrFallback(options.colors, false);
+		const obj: any = this.toJson(options, true);
+		return Stats.jsonToString(obj, useColors);
 	}
 
 	static jsonToString(obj, useColors: boolean) {
@@ -789,3 +841,53 @@ const SizeFormatHelpers = {
 const formatError = (e: binding.StatsError) => {
 	return e.formatted;
 };
+
+export const optionsOrFallback = (...args) => {
+	let optionValues = [];
+	optionValues.push(...args);
+	return optionValues.find(optionValue => optionValue !== undefined);
+};
+
+export function normalizeStatsPreset(options?: StatsOptions): StatsOptionsObj {
+	if (typeof options === "boolean" || typeof options === "string")
+		return presetToOptions(options);
+	else if (!options) return {};
+	else {
+		let obj = { ...presetToOptions(options.preset), ...options };
+		delete obj.preset;
+		return obj;
+	}
+}
+
+function presetToOptions(name?: boolean | string): StatsOptionsObj {
+	const pn = (typeof name === "string" && name.toLowerCase()) || name;
+	switch (pn) {
+		case "none":
+			return {
+				all: false
+			};
+		case "verbose":
+			return {
+				all: true
+			};
+		case "errors-only":
+			return {
+				all: false,
+				errors: true,
+				errorsCount: true
+				// TODO: moduleTrace: true,
+				// TODO: logging: "error"
+			};
+		case "errors-warnings":
+			return {
+				all: false,
+				errors: true,
+				errorsCount: true,
+				warnings: true,
+				warningsCount: true
+				// TODO: logging: "warn"
+			};
+		default:
+			return {};
+	}
+}
