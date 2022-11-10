@@ -134,10 +134,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     module: &NormalModule,
     compilation: &Compilation,
   ) -> Result<GenerationResult> {
-    let module = compilation
-      .module_graph
-      .module_by_identifier(&mgm.module_identifier)
-      .ok_or_else(|| Error::InternalError("Failed to get module".to_owned()))?;
     let mut runtime_requirements: HashSet<String> = HashSet::default();
 
     if matches!(requested_source_type, SourceType::JavaScript) {
@@ -148,7 +144,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .to_owned()
         .try_into_ast()?
         .try_into_javascript()?;
-      run_after_pass(&mut ast, mgm, compilation, &mut runtime_requirements);
+      run_after_pass(&mut ast, module, compilation, &mut runtime_requirements);
       let output = crate::ast::stringify(&ast, &compilation.options.devtool)?;
 
       if let Some(map) = output.map {

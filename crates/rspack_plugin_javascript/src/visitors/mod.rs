@@ -14,9 +14,7 @@ mod swc_visitor;
 mod tree_shaking;
 use crate::utils::get_swc_compiler;
 use hashbrown::HashSet;
-use rspack_core::{
-  ast::javascript::Ast, Compilation, CompilerOptions, ModuleGraphModule, ResourceData,
-};
+use rspack_core::{ast::javascript::Ast, Compilation, CompilerOptions, ResourceData};
 use rspack_error::Result;
 use swc::config::ModuleConfig;
 use swc_common::{chain, comments::Comments};
@@ -113,7 +111,7 @@ pub fn run_before_pass(
 
 pub fn run_after_pass(
   ast: &mut Ast,
-  mgm: &ModuleGraphModule,
+  module: &NormalModule,
   compilation: &Compilation,
   runtime_requirements: &mut HashSet<String>,
 ) {
