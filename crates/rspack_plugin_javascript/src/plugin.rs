@@ -88,7 +88,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     }
 
     let syntax = syntax_by_module_type(
-      source.source().to_string().as_str(),
+      &source.source(),
       module_type,
       compiler_options.builtins.decorator.is_some(),
     );
