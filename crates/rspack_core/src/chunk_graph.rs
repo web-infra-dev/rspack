@@ -145,7 +145,7 @@ impl ChunkGraph {
     chunk_graph_chunk
       .modules
       .iter()
-      .filter_map(|uri| module_graph.module_by_uri(uri))
+      .filter_map(|uri| module_graph.module_graph_module_by_identifier(uri))
       .collect()
   }
 
@@ -159,7 +159,7 @@ impl ChunkGraph {
     let modules = chunk_graph_chunk
       .modules
       .iter()
-      .filter_map(|uri| module_graph.module_by_uri(uri))
+      .filter_map(|uri| module_graph.module_graph_module_by_identifier(uri))
       .filter(|mgm| {
         module_graph
           .module_by_identifier(&mgm.module_identifier)

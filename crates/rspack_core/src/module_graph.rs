@@ -12,10 +12,14 @@ pub(crate) static DEPENDENCY_ID: AtomicU32 = AtomicU32::new(1);
 
 #[derive(Debug, Clone, Eq)]
 pub struct ModuleGraphConnection {
+  /// The referencing module identifier
   pub original_module_identifier: Option<ModuleIdentifier>,
+  /// The referenced module identifier
   pub module_identifier: ModuleIdentifier,
+  /// The referencing dependency id
   pub dependency_id: u32,
 
+  /// The unique id of this connection
   pub id: u32,
 }
 
@@ -55,13 +59,16 @@ impl ModuleGraphConnection {
 pub struct ModuleGraph {
   dependency_id_to_module_identifier: HashMap<u32, String>,
 
+  /// Module identifier to its module
   pub module_identifier_to_module: HashMap<ModuleIdentifier, NormalModule>,
+  /// Module identifier to its module graph module
   pub module_identifier_to_module_graph_module: HashMap<ModuleIdentifier, ModuleGraphModule>,
 
   dependency_id_to_connection_id: HashMap<u32, u32>,
   dependency_id_to_dependency: HashMap<u32, Dependency>,
   dependency_to_dependency_id: HashMap<Dependency, u32>,
 
+  /// The module graph connections
   pub connections: HashSet<ModuleGraphConnection>,
   connection_id_to_connection: HashMap<u32, ModuleGraphConnection>,
 }
@@ -95,6 +102,7 @@ impl ModuleGraph {
       .insert(dependency_id, resolved_uri);
   }
 
+  /// Uniquely identify a module by its dependency
   pub fn module_by_dependency(&self, dep: &Dependency) -> Option<&ModuleGraphModule> {
     self
       .dependency_to_dependency_id
@@ -107,18 +115,22 @@ impl ModuleGraph {
       })
   }
 
+  /// Get the dependency id of a dependency
   pub fn dependency_id_by_dependency(&self, dep: &Dependency) -> Option<u32> {
     self.dependency_to_dependency_id.get(dep).cloned()
   }
 
+  /// Return an unordered iterator of module graph modules
   pub fn module_graph_modules(&self) -> impl Iterator<Item = &ModuleGraphModule> {
     self.module_identifier_to_module_graph_module.values()
   }
 
+  /// Return an unordered iterator of modules
   pub fn modules(&self) -> impl Iterator<Item = &NormalModule> {
     self.module_identifier_to_module.values()
   }
 
+  /// Add a connection between two module graph modules, if a connection exists, then it will be reused.
   pub fn set_resolved_module(
     &mut self,
     original_module_identifier: Option<ModuleIdentifier>,
@@ -165,21 +177,19 @@ impl ModuleGraph {
     Ok(())
   }
 
-  #[inline]
-  pub fn module_by_uri(&self, uri: &str) -> Option<&ModuleGraphModule> {
-    self.module_identifier_to_module_graph_module.get(uri)
-  }
-
+  /// Uniquely identify a module by its identifier and return the aliased reference
   #[inline]
   pub fn module_by_identifier(&self, identifier: &str) -> Option<&NormalModule> {
     self.module_identifier_to_module.get(identifier)
   }
 
+  /// Uniquely identify a module by its identifier and return the exclusive reference
   #[inline]
   pub fn module_by_identifier_mut(&mut self, identifier: &str) -> Option<&mut NormalModule> {
     self.module_identifier_to_module.get_mut(identifier)
   }
 
+  /// Uniquely identify a module graph module by its module's identifier and return the aliased reference
   #[inline]
   pub fn module_graph_module_by_identifier(&self, identifier: &str) -> Option<&ModuleGraphModule> {
     self
@@ -187,6 +197,7 @@ impl ModuleGraph {
       .get(identifier)
   }
 
+  /// Uniquely identify a module graph module by its module's identifier and return the exclusive reference
   #[inline]
   pub fn module_graph_module_by_identifier_mut(
     &mut self,
@@ -197,11 +208,7 @@ impl ModuleGraph {
       .get_mut(identifier)
   }
 
-  #[inline]
-  pub fn module_by_uri_mut(&mut self, uri: &str) -> Option<&mut ModuleGraphModule> {
-    self.module_identifier_to_module_graph_module.get_mut(uri)
-  }
-
+  /// Uniquely identify a connection by a given dependency
   pub fn connection_by_dependency(&self, dep: &Dependency) -> Option<&ModuleGraphConnection> {
     self
       .dependency_to_dependency_id

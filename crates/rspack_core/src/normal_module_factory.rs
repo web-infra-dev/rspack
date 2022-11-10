@@ -21,19 +21,10 @@ use crate::{
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct Dependency {
+  /// Parent module identifier (Can be used to locate its parent module in module graph)
   pub parent_module_identifier: Option<ModuleIdentifier>,
   pub detail: ModuleDependency,
 }
-
-// impl Dependency {
-//   pub fn new(importer: Option<String>, specifier: String, kind: ResolveKind) -> Self {
-//     Self {
-//       importer,
-//       specifier,
-//       kind,
-//     }
-//   }
-// }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 pub enum ResolveKind {

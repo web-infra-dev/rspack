@@ -256,9 +256,13 @@ pub struct ParseResult {
 }
 
 pub trait ParserAndGenerator: Send + Sync + Debug {
+  /// The source types that the generator can generate (the source types you can make requests for)
   fn source_types(&self) -> &[SourceType];
+  /// Parse the source and return the dependencies and the ast or source
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>>;
+  /// Size of the original source
   fn size(&self, module: &NormalModule, source_type: &SourceType) -> f64;
+  /// Generate source or AST based on the built source or AST
   fn generate(
     &self,
     requested_source_type: SourceType,
@@ -270,14 +274,22 @@ pub trait ParserAndGenerator: Send + Sync + Debug {
 
 #[derive(Debug)]
 pub struct NormalModule {
+  /// Request with loaders from config
   request: String,
+  /// Request intended by user (without loaders from config)
   user_request: String,
+  /// Request without resolving
   raw_request: String,
+  /// The resolved module type of a module
   module_type: ModuleType,
+  /// Affiliated parser and generator to the module type
   parser_and_generator: Box<dyn ParserAndGenerator>,
+  /// Resource data (path, url, etc.)
   resource_data: ResourceData,
 
+  /// Original content of this module, will be available after module build
   original_source: Option<Box<dyn Source>>,
+  /// Built AST or source of this module (passed with loaders)
   ast_or_source: NormalModuleAstOrSource,
 
   options: Arc<CompilerOptions>,
