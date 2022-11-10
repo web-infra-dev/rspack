@@ -14,7 +14,8 @@
   ],
   "scripts": {
     "build": "napi build --platform --js false --dts binding.d.ts --config napirs.rc.json",
-    "build:release": "napi build --release --platform --js false --dts binding.d.ts --config napirs.rc.json"
+    "build:release": "napi build --release --platform --js false --dts binding.d.ts --config napirs.rc.json",
+    "build_linux:release": "napi build --release --platform --js false --dts binding.d.ts --config napirs.rc.json --zig --target x86_64-unknown-linux-gnu --zig-abi-suffix=2.17"
   },
   "keywords": [],
   "author": "",
