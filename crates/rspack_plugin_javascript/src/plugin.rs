@@ -87,8 +87,14 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       )));
     }
 
+    let syntax = syntax_by_module_type(
+      source.source().to_string().as_str(),
+      module_type,
+      compiler_options.builtins.decorator.is_some(),
+    );
     let (mut ast, diagnostics) = match crate::ast::parse(
       source.source().to_string(),
+      syntax,
       &resource_data.resource_path,
       module_type,
     ) {
@@ -101,12 +107,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ),
     };
 
-    run_before_pass(
-      resource_data,
-      &mut ast,
-      compiler_options,
-      syntax_by_module_type(source.source().to_string().as_str(), module_type),
-    )?;
+    run_before_pass(resource_data, &mut ast, compiler_options, syntax)?;
 
     let dep_scanner = ast.visit(|program, _context| {
       let mut dep_scanner = DependencyScanner::default();

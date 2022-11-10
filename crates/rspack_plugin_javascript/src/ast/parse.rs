@@ -48,8 +48,12 @@ pub fn parse_js(
   }
 }
 
-pub fn parse(source_code: String, filename: &str, module_type: &ModuleType) -> Result<Ast, Error> {
-  let syntax = syntax_by_module_type(filename, module_type);
+pub fn parse(
+  source_code: String,
+  syntax: Syntax,
+  filename: &str,
+  module_type: &ModuleType,
+) -> Result<Ast, Error> {
   let compiler = get_swc_compiler();
   let fm = compiler
     .cm
@@ -75,7 +79,7 @@ pub fn parse(source_code: String, filename: &str, module_type: &ModuleType) -> R
 }
 
 pub fn parse_js_code(js_code: String, module_type: &ModuleType) -> Result<Program, Error> {
-  let syntax = syntax_by_module_type("", module_type);
+  let syntax = syntax_by_module_type("", module_type, false);
   let compiler = get_swc_compiler();
   let fm = compiler
     .cm

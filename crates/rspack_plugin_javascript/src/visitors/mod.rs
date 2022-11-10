@@ -45,7 +45,10 @@ pub fn run_before_pass(
       //        EsVersion::Es2022,
       //        &cm
       //      ),
-      Optional::new(swc_visitor::decorator(), syntax.decorators()),
+      Optional::new(
+        swc_visitor::decorator(&options.builtins.decorator),
+        syntax.decorators()
+      ),
       //    swc_visitor::import_assertions(),
       Optional::new(
         swc_visitor::typescript(top_level_mark, comments, &cm),

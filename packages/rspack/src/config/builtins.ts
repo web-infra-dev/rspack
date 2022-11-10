@@ -1,13 +1,21 @@
-import type { RawBuiltins, RawHtmlPluginConfig } from "@rspack/binding";
+import type {
+	RawBuiltins,
+	RawHtmlPluginConfig,
+	RawDecoratorOptions
+} from "@rspack/binding";
 import { loadConfig } from "browserslist";
 
 export type BuiltinsHtmlPluginConfig = Omit<RawHtmlPluginConfig, "meta"> & {
 	meta?: Record<string, string | Record<string, string>>;
 };
 
-export type Builtins = Omit<RawBuiltins, "browserslist" | "html"> & {
+export type Builtins = Omit<
+	RawBuiltins,
+	"browserslist" | "html" | "decorator"
+> & {
 	polyfillBuiltins?: boolean; // polyfill node builtin api
 	html?: Array<BuiltinsHtmlPluginConfig>;
+	decorator?: boolean | Partial<RawDecoratorOptions>;
 };
 
 export type ResolvedBuiltins = Omit<RawBuiltins, "html"> & {
@@ -38,6 +46,27 @@ function resolveHtml(html: Builtins["html"]): BuiltinsHtmlPluginConfig[] {
 	});
 }
 
+function resolveDecorator(
+	decorator: Builtins["decorator"]
+): RawDecoratorOptions | undefined {
+	if (decorator === false) {
+		return undefined;
+	}
+
+	if (decorator === undefined || decorator === true) {
+		decorator = {};
+	}
+
+	return Object.assign(
+		{
+			legacy: true,
+			emitMetadata: true,
+			useDefineForClassFields: true
+		},
+		decorator
+	);
+}
+
 export function resolveBuiltinsOptions(
 	builtins: Builtins,
 	contextPath: string
@@ -46,6 +75,7 @@ export function resolveBuiltinsOptions(
 	return {
 		...builtins,
 		html: resolveHtml(builtins.html || []),
-		browserslist
+		browserslist,
+		decorator: resolveDecorator(builtins.decorator)
 	};
 }
