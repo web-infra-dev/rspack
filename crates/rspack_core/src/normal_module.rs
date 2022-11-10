@@ -275,7 +275,7 @@ pub trait ParserAndGenerator: Send + Sync + Debug {
     &self,
     requested_source_type: SourceType,
     ast_or_source: &AstOrSource,
-    module: &ModuleGraphModule,
+    module: &NormalModule,
     compilation: &Compilation,
   ) -> Result<GenerationResult>;
 }
@@ -530,21 +530,15 @@ impl NormalModule {
     Ok(BuildResult { dependencies }.with_diagnostic(diagnostics))
   }
 
-  pub fn code_generation(
-    &self,
-    module_graph_module: &ModuleGraphModule,
-    compilation: &Compilation,
-  ) -> Result<CodeGenerationResult> {
+  pub fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
     if let NormalModuleAstOrSource::BuiltSucceed(ast_or_source) = self.ast_or_source() {
       let mut code_generation_result = CodeGenerationResult::default();
 
       for source_type in self.source_types() {
-        let generation_result = self.parser_and_generator.generate(
-          *source_type,
-          ast_or_source,
-          module_graph_module,
-          compilation,
-        )?;
+        let generation_result =
+          self
+            .parser_and_generator
+            .generate(*source_type, ast_or_source, self, compilation)?;
 
         code_generation_result.add(*source_type, generation_result);
       }

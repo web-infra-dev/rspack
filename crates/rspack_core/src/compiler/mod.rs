@@ -194,7 +194,7 @@ impl Compiler {
                 None
               } else if item.module_type.is_js_like() {
                 // TODO: it soo slowly, should use cache to instead.
-                let code = module.code_generation(item, s.compilation).unwrap();
+                let code = module.code_generation(s.compilation).unwrap();
                 let code = if let Some(code) = code.get(JavaScript) {
                   code.ast_or_source.as_source().unwrap().source().to_string()
                 } else {
@@ -204,7 +204,7 @@ impl Compiler {
                 Some((item.module_identifier.clone(), code))
               } else if item.module_type.is_css() {
                 // TODO: it soo slowly, should use cache to instead.
-                let code = module.code_generation(item, s.compilation).unwrap();
+                let code = module.code_generation(s.compilation).unwrap();
                 let code = if let Some(code) = code.get(Css) {
                   // only used for compare between two build
                   code.ast_or_source.as_source().unwrap().source().to_string()
