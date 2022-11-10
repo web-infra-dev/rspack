@@ -280,7 +280,7 @@ impl<'me> CodeSplitter<'me> {
       let mut module = self
         .compilation
         .module_graph
-        .module_by_uri_mut(&item.module_identifier)
+        .module_graph_module_by_identifier_mut(&item.module_identifier)
         .expect("No module found");
 
       if module.pre_order_index.is_none() {
@@ -319,7 +319,7 @@ impl<'me> CodeSplitter<'me> {
     let mut module = self
       .compilation
       .module_graph
-      .module_by_uri_mut(&item.module_identifier)
+      .module_graph_module_by_identifier_mut(&item.module_identifier)
       .expect("no module found");
 
     if module.post_order_index.is_none() {
@@ -333,7 +333,7 @@ impl<'me> CodeSplitter<'me> {
     let mgm = self
       .compilation
       .module_graph
-      .module_by_uri(&item.module_identifier)
+      .module_graph_module_by_identifier(&item.module_identifier)
       .expect("no module found");
 
     for dep_mgm in mgm
