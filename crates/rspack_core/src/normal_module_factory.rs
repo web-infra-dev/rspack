@@ -21,8 +21,6 @@ use crate::{
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct Dependency {
-  /// Uri of importer module
-  pub importer: Option<String>,
   pub parent_module_identifier: Option<ModuleIdentifier>,
   pub detail: ModuleDependency,
 }
@@ -151,7 +149,7 @@ impl NormalModuleFactory {
   }
   #[instrument(name = "normal_module_factory:factory_normal_module")]
   pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, NormalModule, u32)>> {
-    let importer = self.dependency.importer.as_deref();
+    let importer = self.dependency.parent_module_identifier.as_deref();
     let specifier = self.dependency.detail.specifier.as_str();
     let kind = self.dependency.detail.kind;
     let resource_data = match resolve(
@@ -368,13 +366,15 @@ impl NormalModuleFactory {
       return Ok(None);
     };
 
+    let id = Path::new(uri.as_str()).relative(&self.context.options.context);
     let mgm = ModuleGraphModule::new(
       self.context.module_name.clone(),
-      Path::new("./")
-        .join(Path::new(uri.as_str()).relative(&self.context.options.context))
-        .to_string_lossy()
-        .to_string(),
-      uri,
+      if !id.starts_with(".") {
+        format!("./{}", id.to_string_lossy())
+      } else {
+        id.to_string_lossy().to_string()
+      },
+      // uri,
       module.identifier(),
       vec![],
       self

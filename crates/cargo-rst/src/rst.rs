@@ -16,11 +16,11 @@ use glob::glob;
 use serde::{Deserialize, Serialize};
 
 use serde_json;
-use similar::ChangeTag;
 
 use crate::{
-  helper::{cp, is_detail, is_mute, make_relative_from, no_write},
+  helper::{cp, is_detail, is_mute, make_relative_from},
   record::{self, FailedCase, Record},
+  terminal_inline::diff_and_print,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -74,12 +74,20 @@ pub enum TestErrorKind {
 #[derive(Debug)]
 pub struct FileDiff {
   /// expected file path
-  path: PathBuf,
+  expected_path: PathBuf,
 
-  /// (expected_index, change_type, line content)
-  diff: Vec<(usize, ChangeTag, String)>,
+  actual_path: PathBuf,
+  /// This two fields is necessary because the expected content will be override if `UPDATE` is set
+  expected_content: String,
+  actual_content: String,
 }
 
+fn output(f: &mut std::fmt::Formatter<'_>, prefix: &str, msg: &str) -> std::fmt::Result {
+  f.write_str(&format!(
+    "{}",
+    format!("- {}: {}\n", prefix.white().on_red(), msg).red()
+  ))
+}
 impl Display for TestError {
   #[allow(clippy::unwrap_in_result)]
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -93,48 +101,29 @@ impl Display for TestError {
     .unwrap();
 
     for kind in self.errors.iter() {
-      let mut output = |prefix: &str, msg: &str| {
-        f.write_str(&format!(
-          "{}",
-          format!("- {}: {}\n", prefix.white().on_red(), msg).red()
-        ))
-      };
-
-      fn color(f: &mut std::fmt::Formatter<'_>, tag: &ChangeTag, s: &str) {
-        f.write_str(&format!(
-          "{}",
-          match tag {
-            ChangeTag::Delete => s.red(),
-            ChangeTag::Insert => s.green(),
-            _ => s.black(),
-          }
-        ))
-        .unwrap();
-      }
-
       match &kind {
-        TestErrorKind::Difference(diff) => {
-          output("File difference", diff.path.as_path().to_str().unwrap()).unwrap();
-          if is_detail() {
-            for (idx, tag, content) in &diff.diff {
-              color(f, tag, &format!("   {} {}| {}\n", tag, idx, content));
-            }
-          }
-          Ok(())
-        }
+        TestErrorKind::Difference(diff) => f.write_str(&format!(
+          "File difference: {}\n{}",
+          diff.expected_path.to_string_lossy().red(),
+          &diff_and_print(&diff.expected_content, &diff.actual_content)
+        )),
         TestErrorKind::MissingExpectedDir(dir) => output(
-          "Directory exists in 'expected' directory, but not found in 'actual' directory: ",
+          f,
+          "Missing expected directory(maybe you create a new snapshot test case but forgot to add a expected snapshot, try to add `expected/main.js` under your new test case directory, or try to refresh the fixture.rs under that crate): ",
           dir.as_path().to_str().unwrap(),
         ),
         TestErrorKind::MissingActualDir(dir) => output(
-          "Directory exists in 'actual' directory, but not found in 'expected' directory: ",
+          f,
+          "Missing actual directory: ",
           dir.as_path().to_str().unwrap(),
         ),
         TestErrorKind::MissingActualFile(file) => output(
+          f,
           "File exists in 'actual' directory, but not found in 'expected' directory: ",
           file.as_path().to_str().unwrap(),
         ),
         TestErrorKind::MissingExpectedFile(file) => output(
+          f,
           "File exists in 'expected' directory, but not found in 'actual' directory: ",
           file.as_path().to_str().unwrap(),
         ),
@@ -178,7 +167,7 @@ macro_rules! prt {
   }
 
 #[macro_export]
-macro_rules! prtln {
+macro_rules! println_if_not_mute {
     ($($arg:tt)*) => {{
       if !is_mute() {
         println!($($arg)*);
@@ -244,53 +233,45 @@ impl Rst {
     }
   }
 
+  fn need_update() -> bool {
+    std::env::var("UPDATE").is_ok()
+  }
+
   fn finalize(&self, res: &Result<(), TestError>) {
-    let record_dir = Self::get_record_dir();
-    if !record_dir.exists() {
-      fs::create_dir_all(record_dir.as_path()).unwrap();
-    }
+    // if env `UPDATE` is set, the snapshot will automatically
+    // update
+    let need_update = Self::need_update();
 
     let record_path = self.get_record_path();
 
     if let Err(err) = res {
       // Test failed, we should save the failed record.
-      if !no_write() {
-        if !record_path.exists() {
-          fs::create_dir_all(record_path.parent().unwrap()).unwrap();
-        }
+      if !need_update && !record_path.exists() {
+        fs::create_dir_all(record_path.parent().unwrap()).unwrap();
+      }
 
-        let record = record::Record::new(
-          self,
-          err
-            .errors
-            .iter()
-            .map(|err| match err {
-              TestErrorKind::MissingActualDir(p) => FailedCase::MissingActualDir(p.clone()),
-              TestErrorKind::MissingActualFile(p) => FailedCase::MissingActualFile(p.clone()),
-              TestErrorKind::MissingExpectedDir(p) => FailedCase::MissingExpectedDir(p.clone()),
-              TestErrorKind::MissingExpectedFile(p) => FailedCase::MissingExpectedFile(p.clone()),
-              TestErrorKind::Difference(diff) => {
-                let mut added = vec![];
-                let mut removed = vec![];
+      let record = record::Record::new(
+        self,
+        err
+          .errors
+          .iter()
+          .map(|err| match err {
+            TestErrorKind::MissingActualDir(p) => FailedCase::MissingActualDir(p.clone()),
+            TestErrorKind::MissingActualFile(p) => FailedCase::MissingActualFile(p.clone()),
+            TestErrorKind::MissingExpectedDir(p) => FailedCase::MissingExpectedDir(p.clone()),
+            TestErrorKind::MissingExpectedFile(p) => FailedCase::MissingExpectedFile(p.clone()),
+            TestErrorKind::Difference(diff) => FailedCase::Difference {
+              expected_file_path: diff.expected_path.clone(),
+              actual_file_path: diff.actual_path.clone(),
+            },
+          })
+          .collect(),
+      );
 
-                for (line, change, _) in &diff.diff {
-                  match change {
-                    ChangeTag::Delete => removed.push(*line),
-                    ChangeTag::Insert => added.push(*line),
-                    _ => {}
-                  }
-                }
-
-                FailedCase::Difference {
-                  expected_file_path: diff.path.clone(),
-                  added,
-                  removed,
-                }
-              }
-            })
-            .collect(),
-        );
-
+      if Self::need_update() {
+        let rst: Rst = record.into();
+        rst.update_fixture();
+      } else {
         record.save_to_disk();
       }
     }
@@ -317,7 +298,7 @@ impl Rst {
   pub fn assert(&self) {
     let res = self.test();
     if let Err(e) = res {
-      prtln!("{}", e);
+      println_if_not_mute!("{}", e);
       panic!("Fixture test failed");
     }
   }
@@ -371,68 +352,22 @@ impl Rst {
         let is_actual_file = actual_dir.is_file();
 
         if is_expect_file && is_actual_file {
-          // file diff
           let expected_buf = fs::read(expected_dir.as_path()).unwrap();
-          let expected_str = String::from_utf8(expected_buf.clone());
+          let expected_str = String::from_utf8_lossy(&expected_buf);
 
           let actual_buf = fs::read(actual_dir.as_path()).unwrap();
-          let actual_str = String::from_utf8(actual_buf.clone());
+          let actual_str = String::from_utf8_lossy(&actual_buf);
 
-          let mut diff = FileDiff {
-            path: expected_dir.clone(),
-            diff: vec![],
-          };
+          if expected_str != actual_str {
+            let diff = FileDiff {
+              expected_path: expected_dir.clone(),
+              actual_path: actual_dir.clone(),
+              expected_content: expected_str.to_string(),
+              actual_content: actual_str.to_string(),
+            };
 
-          match (expected_str, actual_str) {
-            // make text diff
-            (Ok(expected_str), Ok(actual_str)) => {
-              for change in similar::TextDiff::from_lines(
-                expected_str.as_str().trim(),
-                actual_str.as_str().trim(),
-              )
-              .iter_all_changes()
-              {
-                if matches!(change.tag(), ChangeTag::Equal) {
-                  continue;
-                }
-
-                let old_index = change.old_index();
-                diff.diff.push((
-                  old_index.unwrap_or_else(|| change.new_index().unwrap()),
-                  change.tag(),
-                  match old_index {
-                    Some(idx) => expected_str
-                      .split('\n')
-                      .collect::<Vec<&str>>()
-                      .get(idx)
-                      .copied()
-                      .unwrap_or("")
-                      .into(),
-                    None => {
-                      let new_idx = change.new_index().unwrap();
-                      actual_str
-                        .split('\n')
-                        .collect::<Vec<&str>>()
-                        .get(new_idx)
-                        .copied()
-                        .unwrap_or("")
-                        .into()
-                    }
-                  },
-                ))
-              }
-
-              if !diff.diff.is_empty() {
-                err.push(TestErrorKind::Difference(diff));
-              }
-            }
-            _ => {
-              // binary file diff
-              if expected_buf != actual_buf {
-                err.push(TestErrorKind::Difference(diff))
-              }
-            }
-          };
+            err.push(TestErrorKind::Difference(diff))
+          }
         } else if !is_expect_file && !is_actual_file {
           // directory diff
           if let Err(e) = Self::compare(
@@ -501,7 +436,7 @@ impl Rst {
             FailedCase::MissingActualFile(_) => unreachable!(),
             FailedCase::MissingExpectedDir(dir) => {
               // Expected dir should not exist
-              fs::remove_dir_all(&dir).expect("Remove dir failed");
+              fs::remove_dir_all(&dir).unwrap_or_else(|_| panic!("Remove {:?} dir failed", dir));
             }
             FailedCase::MissingExpectedFile(file) => {
               // Expected file should not exist
@@ -585,7 +520,7 @@ impl Rst {
 fn update_single_case(dir: &PathBuf) {
   let updates: Arc<Mutex<Vec<PathBuf>>> = Default::default();
   if !dir.exists() {
-    prtln!("No records found, nothing updated");
+    println_if_not_mute!("No records found, nothing updated");
   }
   let failed_files = fs::read_dir(dir)
     .unwrap()
@@ -600,7 +535,7 @@ fn update_single_case(dir: &PathBuf) {
   });
   let updates = updates.lock().unwrap();
   let count = updates.len();
-  prtln!(
+  println_if_not_mute!(
     "Updated {} fixture{}:\n{}",
     count.to_string().green(),
     if count > 1 { "s" } else { "" },
@@ -620,7 +555,7 @@ pub fn assert(p: PathBuf) {
   let res = rst.test();
 
   if let Err(e) = res {
-    prtln!("{}", e);
+    println_if_not_mute!("{}", e);
     panic!("Fixture test failed");
   }
 }

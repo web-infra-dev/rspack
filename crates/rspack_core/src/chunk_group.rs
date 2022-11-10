@@ -31,10 +31,10 @@ impl ChunkGroup {
     }
   }
 
-  pub fn module_post_order_index(&self, module_uri: &str) -> usize {
+  pub fn module_post_order_index(&self, module_identifier: &str) -> usize {
     *self
       .module_post_order_indices
-      .get(module_uri)
+      .get(module_identifier)
       .expect("module not found")
   }
 

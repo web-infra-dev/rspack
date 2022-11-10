@@ -63,6 +63,19 @@ export class RspackCLI {
 		}
 	}
 	async buildConfig(item: any, options: RspackCLIOptions) {
+		if (options.analyze) {
+			const { BundleAnalyzerPlugin } = await import("webpack-bundle-analyzer");
+			(item.plugins ??= []).push({
+				name: "rspack-bundle-analyzer",
+				apply(compiler) {
+					new BundleAnalyzerPlugin({
+						generateStatsFile: true,
+						// TODO: delete this once runtime refacted.
+						excludeAssets: "runtime.js"
+					}).apply(compiler as any);
+				}
+			});
+		}
 		if (options.mode) {
 			item.mode = options.mode;
 		}
@@ -79,11 +92,10 @@ export class RspackCLI {
 		if (!item.mode) {
 			item.mode = "production";
 		}
-		console.log("mode:", options.mode, item.mode);
 		return item;
 	}
-	async loadConfig(options: RspackCLIOptions) {
-		let loadedConfig;
+	async loadConfig(options: RspackCLIOptions): Promise<RspackOptions> {
+		let loadedConfig: RspackOptions;
 		// if we pass config paras
 		if (options.config) {
 			const resolvedConfigPath = path.resolve(process.cwd(), options.config);
@@ -111,6 +123,10 @@ export class RspackCLI {
 					entry
 				};
 			}
+		}
+		loadedConfig.stats ??= {};
+		if (this.colors.isColorSupported) {
+			loadedConfig.stats.colors = true;
 		}
 		return loadedConfig;
 	}

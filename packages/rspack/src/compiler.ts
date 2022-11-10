@@ -1,21 +1,21 @@
+import path from "path";
+import fs, { stat } from "fs";
+import util from "util";
+
+import * as tapable from "tapable";
+import { SyncHook, SyncBailHook, Callback } from "tapable";
+import asyncLib from "neo-async";
+
 import * as binding from "@rspack/binding";
+
 import { Logger } from "./logging/Logger";
 import { resolveWatchOption } from "./config/watch";
 import type { Watch } from "./config/watch";
-import * as tapable from "tapable";
-import { SyncHook, SyncBailHook, Callback } from "tapable";
-import util from "util";
-import fs, { stat } from "fs";
-import asyncLib from "neo-async";
-import path from "path";
 import { RspackOptionsNormalized } from "./config";
 import { Stats } from "./stats";
-import { Asset, Compilation } from "./compilation";
+import { Compilation } from "./compilation";
+import { createSourceFromRaw } from "./utils/createSource";
 
-export type EmitAssetCallback = (options: {
-	filename: string;
-	asset: Asset;
-}) => void;
 class EntryPlugin {
 	apply() {}
 }
@@ -34,8 +34,10 @@ class Compiler {
 	hooks: {
 		done: tapable.AsyncSeriesHook<Stats>;
 		afterDone: tapable.SyncHook<Stats>;
+		// TODO: CompilationParams
 		compilation: tapable.SyncHook<Compilation>;
-		thisCompilation: tapable.SyncHook<[Compilation, CompilationParams]>;
+		// TODO: CompilationParams
+		thisCompilation: tapable.SyncHook<[Compilation]>;
 		invalid: tapable.SyncHook<[string | null, number]>;
 		compile: tapable.SyncHook<[any]>;
 		initialize: tapable.SyncHook<[]>;
@@ -59,9 +61,14 @@ class Compiler {
 			afterDone: new tapable.SyncHook<Stats>(["stats"]),
 			beforeRun: new tapable.AsyncSeriesHook(["compiler"]),
 			run: new tapable.AsyncSeriesHook(["compiler"]),
-			thisCompilation: new tapable.SyncHook<[Compilation, CompilationParams]>([
-				"compilation",
-				"params"
+			thisCompilation: new tapable.SyncHook<
+				[
+					Compilation
+					// CompilationParams
+				]
+			>([
+				"compilation"
+				// "params"
 			]),
 			compilation: new tapable.SyncHook<Compilation>(["compilation"]),
 			invalid: new SyncHook(["filename", "changeTime"]),
@@ -81,7 +88,16 @@ class Compiler {
 			// @ts-ignored
 			new binding.Rspack(this.options, {
 				doneCallback: this.#done.bind(this),
-				processAssetsCallback: this.#processAssets.bind(this)
+				processAssetsCallback: this.#processAssets.bind(this),
+				// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
+				// We know that the hook `thisCompilation` will not be called from a child compiler(it doesn't matter whether the child compiler is created on the Rust or the Node side).
+				// See webpack's API: https://webpack.js.org/api/compiler-hooks/#thiscompilation
+				// So it is safe to create a new compilation here.
+				thisCompilationCallback: this.#newCompilation.bind(this),
+				// The hook `Compilation` should be called whenever it's a call from the child compiler or normal compiler and
+				// still it does not matter where the child compiler is created(Rust or Node) as calling the hook `compilation` is a required task.
+				// No matter how it will be implemented, it will be copied to the child compiler.
+				compilationCallback: this.#compilation.bind(this)
 			});
 		// @ts-ignored
 		return this._instance;
@@ -173,15 +189,28 @@ class Compiler {
 	 * @returns
 	 */
 	#done(statsJson: binding.StatsCompilation) {}
-	#processAssets(value: string, emitAsset: any) {
-		return this.compilation.processAssets(value, emitAsset);
+
+	async #processAssets(assets: Record<string, binding.JsCompatSource>) {
+		let iterator = Object.entries(assets).map(([filename, source]) => [
+			filename,
+			createSourceFromRaw(source)
+		]);
+		await this.compilation.hooks.processAssets.promise(
+			Object.fromEntries(iterator)
+		);
 	}
-	#newCompilation() {
-		const compilation = new Compilation(this.options);
+
+	#compilation(native: binding.JsCompilation) {
+		// TODO: implement this based on the child compiler impl.
+		this.hooks.compilation.call(this.compilation);
+	}
+
+	#newCompilation(native: binding.JsCompilation) {
+		const compilation = new Compilation(this.options, native);
 		this.compilation = compilation;
-		this.hooks.compilation.call(compilation);
-		return compilation;
+		this.hooks.thisCompilation.call(this.compilation);
 	}
+
 	run(callback) {
 		const doRun = () => {
 			const finalCallback = (err, stats?) => {
@@ -202,7 +231,7 @@ class Compiler {
 						return finalCallback(err);
 					}
 
-					this.unsafe_build((err, rawStats) => {
+					this.build((err, rawStats) => {
 						if (err) {
 							return finalCallback(err);
 						}
@@ -221,8 +250,7 @@ class Compiler {
 		doRun();
 	}
 	// Safety: This method is only valid to call if the previous build task is finished, or there will be data races.
-	unsafe_build(cb: Callback<Error, binding.StatsCompilation>) {
-		const compilation = this.#newCompilation();
+	build(cb: Callback<Error, binding.StatsCompilation>) {
 		const build_cb = this.#instance.unsafe_build.bind(this.#instance) as (
 			cb: Callback<Error, binding.StatsCompilation>
 		) => void;
@@ -235,7 +263,7 @@ class Compiler {
 		});
 	}
 	// Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
-	unsafe_rebuild(
+	rebuild(
 		changedFiles: string[],
 		cb: (
 			error?: Error,
@@ -270,10 +298,20 @@ class Compiler {
 			}
 		);
 		const begin = Date.now();
-		let rawStats = await util.promisify(this.unsafe_build.bind(this))();
+		let rawStats = await util.promisify(this.build.bind(this))();
+
 		let stats = new Stats(rawStats);
+		if (stats.hasErrors()) {
+			console.log(
+				stats.toString({
+					all: false,
+					warnings: true,
+					errors: true,
+					...this.options.stats
+				})
+			);
+		}
 		// TODO: log stats string should move to cli
-		console.log(stats.toString());
 		console.log("build success, time cost", Date.now() - begin, "ms");
 
 		let pendingChangedFilepaths = new Set<string>();
@@ -300,12 +338,21 @@ class Compiler {
 				console.log("hit change and start to build");
 
 				const begin = Date.now();
-				this.unsafe_rebuild(
+				this.rebuild(
 					changedFilepath,
 					(error: any, { diff, stats: rawStats }) => {
 						let stats = new Stats(rawStats);
 						// TODO: log stats string should move to cli
-						console.log(stats.toString());
+						if (stats.hasErrors()) {
+							console.log(
+								stats.toString({
+									all: false,
+									warnings: true,
+									errors: true,
+									...this.options.stats
+								})
+							);
+						}
 						isBuildFinished = true;
 
 						const hasPending = Boolean(pendingChangedFilepaths.size);
@@ -398,7 +445,6 @@ class Compiler {
 		const outputPath = compilation.getPath(this.outputPath, {});
 		fs.mkdirSync(outputPath, { recursive: true });
 		const assets = compilation.getAssets();
-		compilation.assets = { ...compilation.assets };
 		asyncLib.forEachLimit(
 			assets,
 			15,

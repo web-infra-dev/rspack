@@ -4,12 +4,16 @@
   "description": "",
   "main": "index.js",
   "private": true,
+  "build": {
+    "build": "rspack build -c test.config.js",
+    "dev": "rspack serve -c test.config.js"
+  },
   "scripts": {},
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@rspack/core": "workspace:*",
+    "@rspack/cli": "workspace:*",
     "react": "17.0.0",
     "react-dom": "17.0.0"
   }

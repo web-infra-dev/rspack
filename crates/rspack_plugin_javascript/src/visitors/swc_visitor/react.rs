@@ -1,4 +1,4 @@
-use crate::ast::parse;
+use crate::ast::parse_js_code;
 use rspack_core::ModuleType;
 use rspack_core::ReactOptions;
 use std::{path::Path, sync::Arc};
@@ -18,7 +18,7 @@ pub fn react<'a>(
     cm.clone(),
     comments,
     Options {
-      refresh: options.development.and_then(|dev| {
+      refresh: options.refresh.and_then(|dev| {
         if dev {
           Some(swc_ecma_transforms::react::RefreshOptions::default())
         } else {
@@ -96,18 +96,14 @@ impl Fold for ReactHmrFolder {
       return module;
     }
     // TODO: cache the ast
-    let hmr_header_ast = parse(
+    let hmr_header_ast = parse_js_code(
       HMR_HEADER.replace("__SOURCE__", self.id.as_str()),
-      "",
       &ModuleType::Js,
     )
-    .unwrap()
-    .take_inner();
+    .unwrap();
 
     // TODO: cache the ast
-    let hmr_footer_ast = parse(HMR_FOOTER.to_string(), "", &ModuleType::Js)
-      .unwrap()
-      .take_inner();
+    let hmr_footer_ast = parse_js_code(HMR_FOOTER.to_string(), &ModuleType::Js).unwrap();
 
     let mut body = vec![];
     body.append(&mut match hmr_header_ast {

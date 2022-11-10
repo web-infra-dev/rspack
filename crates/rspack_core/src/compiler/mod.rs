@@ -4,7 +4,10 @@ mod resolver;
 use anyhow::Context;
 pub use compilation::*;
 pub use resolver::*;
-use std::{path::Path, sync::Arc};
+use std::{
+  path::{Path, PathBuf},
+  sync::Arc,
+};
 
 use hashbrown::HashMap;
 use rayon::prelude::*;
@@ -58,12 +61,8 @@ impl Compiler {
     }
   }
 
-  pub async fn run(&mut self) -> anyhow::Result<()> {
-    let stats = self.build().await?;
-    if !stats.compilation.diagnostic.is_empty() {
-      let err_msg = stats.emit_error_string(true).unwrap();
-      anyhow::bail!(err_msg)
-    }
+  pub async fn run(&mut self) -> Result<()> {
+    self.build().await?;
     Ok(())
   }
 
@@ -82,6 +81,20 @@ impl Compiler {
       self.plugin_driver.clone(),
       self.loader_runner_runner.clone(),
     );
+
+    // Fake this compilation as *currently* rebuilding does not create a new compilation
+    self
+      .plugin_driver
+      .write()
+      .await
+      .this_compilation(&mut self.compilation)?;
+
+    self
+      .plugin_driver
+      .write()
+      .await
+      .compilation(&mut self.compilation)?;
+
     let deps = self.compilation.entry_dependencies();
     self.compile(deps).await?;
     Ok(self.stats())
@@ -103,11 +116,10 @@ impl Compiler {
     self.compilation.seal(self.plugin_driver.clone()).await?;
 
     // Consume plugin driver diagnostic
-    let mut plugin_driver_diagnostics = self.plugin_driver.read().await.take_diagnostic();
+    let plugin_driver_diagnostics = self.plugin_driver.read().await.take_diagnostic();
     self
       .compilation
-      .diagnostic
-      .append(&mut plugin_driver_diagnostics);
+      .push_batch_diagnostic(plugin_driver_diagnostics);
 
     self.emit_assets(&self.compilation)?;
     self.compilation.done(self.plugin_driver.clone()).await?;
@@ -116,17 +128,11 @@ impl Compiler {
   }
 
   fn stats(&self) -> Stats {
+    let stats = Stats::new(&self.compilation);
     if self.options.__emit_error {
-      use rspack_error::emitter::{DiagnosticDisplay, StdioDiagnosticDisplay};
-      StdioDiagnosticDisplay::default()
-        .emit_batch_diagnostic(
-          &self.compilation.diagnostic,
-          crate::PATH_START_BYTE_POS_MAP.clone(),
-        )
-        .unwrap();
+      stats.emit_diagnostics().unwrap();
     }
-
-    Stats::new(&self.compilation)
+    stats
   }
 
   pub fn emit_assets(&self, compilation: &Compilation) -> Result<()> {
@@ -146,18 +152,20 @@ impl Compiler {
     compilation
       .assets()
       .par_iter()
-      .try_for_each(|(filename, asset)| -> anyhow::Result<()> {
-        use std::fs;
-
-        std::fs::create_dir_all(Path::new(&output_path).join(filename).parent().unwrap())?;
-
-        fs::write(
-          Path::new(&output_path).join(filename),
-          asset.get_source().buffer(),
-        )
-        .map_err(|e| e.into())
+      .try_for_each(|(filename, asset)| {
+        let file_path = Path::new(&output_path).join(filename);
+        self.emit_asset(file_path, asset)
       })
       .map_err(|e| e.into())
+  }
+
+  fn emit_asset(&self, file_path: PathBuf, asset: &CompilationAsset) -> anyhow::Result<()> {
+    std::fs::create_dir_all(
+      file_path
+        .parent()
+        .unwrap_or_else(|| panic!("The parent of {} can't found", file_path.display())),
+    )?;
+    std::fs::write(file_path, asset.get_source().buffer()).map_err(|e| e.into())
   }
 
   // TODO: remove this function when we had hash in stats.
@@ -166,24 +174,24 @@ impl Compiler {
     changed_files: std::collections::HashSet<String>,
     removed_files: std::collections::HashSet<String>,
   ) -> Result<(std::collections::HashMap<String, (u8, String)>, Stats)> {
-    fn collect_modules_from_stats(
-      s: &Stats<'_>,
-      changed_files: &std::collections::HashSet<String>,
-      removed_files: &std::collections::HashSet<String>,
-    ) -> HashMap<String, String> {
+    let collect_modules_from_stats = |s: &Stats<'_>| -> HashMap<String, String> {
       let modules = s.compilation.module_graph.module_graph_modules();
       // TODO: use hash;
 
       modules
         .filter_map(|item| {
           use crate::SourceType::*;
-          if !changed_files.contains(&item.uri) && !removed_files.contains(&item.uri) {
-            None
-          } else if item.module_type.is_js_like() {
-            s.compilation
-              .module_graph
-              .module_by_identifier(&item.uri)
-              .map(|module| {
+
+          s.compilation
+            .module_graph
+            .module_by_identifier(&item.module_identifier)
+            .and_then(|module| {
+              let resource_data = module.resource_resolved_data();
+              let resource_path = &resource_data.resource_path;
+
+              if !changed_files.contains(resource_path) && !removed_files.contains(resource_path) {
+                None
+              } else if item.module_type.is_js_like() {
                 // TODO: it soo slowly, should use cache to instead.
                 let code = module.code_generation(item, s.compilation).unwrap();
                 let code = if let Some(code) = code.get(JavaScript) {
@@ -192,13 +200,8 @@ impl Compiler {
                   println!("expect get JavaScirpt code");
                   String::new()
                 };
-                (item.uri.clone(), code)
-              })
-          } else if item.module_type.is_css() {
-            s.compilation
-              .module_graph
-              .module_by_identifier(&item.uri)
-              .map(|module| {
+                Some((item.module_identifier.clone(), code))
+              } else if item.module_type.is_css() {
                 // TODO: it soo slowly, should use cache to instead.
                 let code = module.code_generation(item, s.compilation).unwrap();
                 let code = if let Some(code) = code.get(Css) {
@@ -208,20 +211,20 @@ impl Compiler {
                   println!("expect get CSS code");
                   String::new()
                 };
-                (item.uri.clone(), code)
-              })
-          } else {
-            None
-          }
+                Some((item.module_identifier.clone(), code))
+              } else {
+                None
+              }
+            })
         })
         .collect()
-    }
+    };
 
     let old = self.compilation.get_stats();
-    let old = collect_modules_from_stats(&old, &changed_files, &removed_files);
+    let old = collect_modules_from_stats(&old);
 
     let new_stats = self.build().await?;
-    let new = collect_modules_from_stats(&new_stats, &changed_files, &removed_files);
+    let new = collect_modules_from_stats(&new_stats);
 
     let mut diff = std::collections::HashMap::new();
 

@@ -1,7 +1,8 @@
-use std::{str::FromStr, string::ParseError};
+use std::{path::PathBuf, str::FromStr, string::ParseError};
+
 #[derive(Debug)]
 pub struct OutputOptions {
-  pub path: String,
+  pub path: PathBuf,
   pub public_path: PublicPath,
   pub asset_module_filename: Filename,
   pub unique_name: String,
@@ -76,19 +77,14 @@ impl Filename {
 
       filename = filename.replace(&hash_placeholder, &hash[..hash_length]);
     }
-
     filename
   }
 }
 
 #[derive(Debug)]
-pub enum PublicPathType {
+pub enum PublicPath {
   String(String),
   Auto,
-}
-#[derive(Debug)]
-pub struct PublicPath {
-  content: PublicPathType,
 }
 
 impl Default for PublicPath {
@@ -101,22 +97,18 @@ impl FromStr for PublicPath {
   type Err = ParseError;
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     if s.eq("auto") {
-      Ok(PublicPath {
-        content: PublicPathType::Auto,
-      })
+      Ok(PublicPath::Auto)
     } else {
-      Ok(PublicPath {
-        content: PublicPathType::String(s.to_string()),
-      })
+      Ok(PublicPath::String(s.to_string()))
     }
   }
 }
 
 impl PublicPath {
   pub fn public_path(&self) -> &str {
-    match &self.content {
-      PublicPathType::String(s) => s,
-      PublicPathType::Auto => "__rspack_auto_public_path__ +",
+    match &self {
+      Self::String(s) => s,
+      Self::Auto => "__rspack_auto_public_path__ +",
     }
   }
 }

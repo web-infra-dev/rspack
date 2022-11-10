@@ -1,6 +1,9 @@
 #[macro_use]
 extern crate napi_derive;
 
+#[macro_use]
+mod macros;
+
 use std::collections::{HashMap, HashSet};
 use std::pin::Pin;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -130,7 +133,7 @@ impl Rspack {
     enable_tracing_by_env();
     Self::prepare_environment(&env, &mut options);
     rspack_tracing::enable_tracing_by_env();
-    tracing::info!("raw_options: {:?}", &options);
+    tracing::info!("raw_options: {:#?}", &options);
     let compiler_options = create_node_adapter_from_plugin_callbacks(env, plugin_callbacks)
       .and_then(|node_adapter| {
         let mut compiler_options =
@@ -160,7 +163,7 @@ impl Rspack {
 
         Ok(compiler_options)
       })?;
-    tracing::info!("normalized_options: {:?}", &compiler_options);
+    tracing::info!("normalized_options: {:#?}", &compiler_options);
 
     let rspack = rspack::rspack(compiler_options, vec![]);
 
@@ -266,18 +269,15 @@ impl Rspack {
   ///
   /// Calling this method under the build or rebuild method might cause a deadlock.
   ///
-  /// **Note** that this method is not safe if you cache the _RspackCompilation_ on the Node side, as it will be invalidated by the next build and accessing a dangling ptr is a UB.
+  /// **Note** that this method is not safe if you cache the _JsCompilation_ on the Node side, as it will be invalidated by the next build and accessing a dangling ptr is a UB.
   #[napi(js_name = "unsafe_last_compilation")]
-  pub fn unsafe_last_compilation<F: Fn(RspackCompilation) -> Result<()>>(
-    &self,
-    f: F,
-  ) -> Result<()> {
+  pub fn unsafe_last_compilation<F: Fn(JsCompilation) -> Result<()>>(&self, f: F) -> Result<()> {
     let handle_last_compilation = |compiler: &mut _| {
       // Safety: compiler is stored in a global hashmap, and compilation is only available in the callback of this function, so it is safe to cast to a static lifetime. See more in the warning part of this method.
       let compiler = unsafe {
         std::mem::transmute::<&'_ mut rspack::Compiler, &'static mut rspack::Compiler>(compiler)
       };
-      f(RspackCompilation::from_compilation(unsafe {
+      f(JsCompilation::from_compilation(unsafe {
         Pin::new_unchecked(&mut compiler.compilation)
       }))
     };

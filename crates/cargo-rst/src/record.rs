@@ -21,8 +21,7 @@ pub enum FailedCase {
   MissingExpectedFile(PathBuf),
   Difference {
     expected_file_path: PathBuf,
-    added: Vec<usize>,
-    removed: Vec<usize>,
+    actual_file_path: PathBuf,
   },
 }
 
@@ -38,6 +37,10 @@ impl Record {
     let cwd = env::current_dir().unwrap();
     let mut p = cwd.clone();
     p.push(".temp");
+
+    if !p.exists() {
+      fs::create_dir_all(p.as_path()).unwrap();
+    }
 
     let relative = make_relative_from(self.config.fixture.as_path(), cwd.as_path());
     let record_path = { relative + ".json" }.replace(path::MAIN_SEPARATOR, "&");

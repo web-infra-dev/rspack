@@ -1,6 +1,7 @@
 mod dependency_scanner;
 pub use dependency_scanner::*;
 mod finalize;
+pub(crate) mod minify;
 use finalize::finalize;
 // mod clear_mark;
 // use clear_mark::clear_mark;
@@ -8,34 +9,33 @@ mod inject_runtime_helper;
 use inject_runtime_helper::inject_runtime_helper;
 mod format;
 use format::*;
-mod pass_global;
-use pass_global::PassGlobal;
-use swc_common::{Globals, Mark};
 mod swc_visitor;
+mod tree_shaking;
 use crate::utils::get_swc_compiler;
-use anyhow::Error;
-use rspack_core::{Compilation, CompilerOptions, ModuleGraphModule, ResourceData};
+use rspack_core::{
+  ast::javascript::Ast, Compilation, CompilerOptions, ModuleGraphModule, ResourceData,
+};
+use rspack_error::Result;
 use swc::config::ModuleConfig;
 use swc_common::{chain, comments::Comments};
-use swc_ecma_ast::Program;
 use swc_ecma_parser::Syntax;
 use swc_ecma_transforms::modules::common_js::Config as CommonjsConfig;
 use swc_ecma_transforms::pass::Optional;
-use swc_ecma_visit::FoldWith;
+use tree_shaking::tree_shaking_visitor;
+use ustr::ustr;
 
 /// return (ast, top_level_mark, unresolved_mark, globals)
 pub fn run_before_pass(
   resource_data: &ResourceData,
-  ast: Program,
+  ast: &mut Ast,
   options: &CompilerOptions,
   syntax: Syntax,
-) -> Result<(Program, Mark, Mark, Globals), Error> {
-  let pass_global = PassGlobal::new();
-  let top_level_mark = pass_global.top_level_mark;
-  let unresolved_mark = pass_global.unresolved_mark;
+) -> Result<()> {
   let cm = get_swc_compiler().cm.clone();
-  let comments = None;
-  let ret = pass_global.try_with_handler(move |handler| {
+  ast.transform_with_handler(cm.clone(), |handler, program, context| {
+    let top_level_mark = context.top_level_mark;
+    let unresolved_mark = context.unresolved_mark;
+    let comments = None;
     let mut pass = chain!(
       swc_visitor::resolver(unresolved_mark, top_level_mark, syntax.typescript()),
       //      swc_visitor::lint(
@@ -100,24 +100,29 @@ pub fn run_before_pass(
       swc_visitor::expr_simplifier(unresolved_mark, Default::default()),
       swc_visitor::dead_branch_remover(unresolved_mark),
     );
-    let ast = ast.fold_with(&mut pass);
-    Ok(ast)
-  });
-  let globals = pass_global.global;
-  ret.map(|ast| (ast, top_level_mark, unresolved_mark, globals))
+    program.fold_with(&mut pass);
+    Ok(())
+  })?;
+  Ok(())
 }
 
-pub fn run_after_pass(
-  ast: Program,
-  mgm: &ModuleGraphModule,
-  compilation: &Compilation,
-) -> Result<Program, Error> {
-  let pass_global = PassGlobal::new();
-  let unresolved_mark = pass_global.unresolved_mark;
+pub fn run_after_pass(ast: &mut Ast, mgm: &ModuleGraphModule, compilation: &Compilation) {
   let cm = get_swc_compiler().cm.clone();
-  let comments = None;
-  pass_global.try_with_handler(|_handler| {
+  ast.transform(|program, context| {
+    let unresolved_mark = context.unresolved_mark;
+    let top_level_mark = context.top_level_mark;
+    let tree_shaking = compilation.options.builtins.tree_shaking;
+    let comments = None;
+
     let mut pass = chain!(
+      Optional::new(
+        tree_shaking_visitor(
+          ustr(&mgm.module_identifier,),
+          &compilation.used_symbol,
+          top_level_mark,
+        ),
+        tree_shaking
+      ),
       swc_visitor::build_module(
         &cm,
         unresolved_mark,
@@ -136,6 +141,6 @@ pub fn run_after_pass(
       finalize(mgm, compilation, unresolved_mark)
     );
 
-    Ok(ast.fold_with(&mut pass))
-  })
+    program.fold_with(&mut pass);
+  });
 }

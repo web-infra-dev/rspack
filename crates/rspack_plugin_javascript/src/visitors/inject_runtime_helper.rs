@@ -3,7 +3,7 @@ use swc_common::{Mark, DUMMY_SP};
 use swc_ecma_ast::*;
 use swc_ecma_transforms::helpers::HELPERS;
 use swc_ecma_utils::ExprFactory;
-use swc_ecma_visit::{as_folder, noop_visit_mut_type, Fold, VisitMut};
+use swc_ecma_visit::{as_folder, noop_visit_mut_type, Fold, VisitMut, VisitMutWith};
 
 pub fn inject_runtime_helper() -> impl Fold {
   let helper_mark = HELPERS.with(|helper| helper.mark());
@@ -20,9 +20,9 @@ impl VisitMut for InjectRuntimeHelper {
   fn visit_mut_call_expr(&mut self, n: &mut CallExpr) {
     if let Some(box Expr::Ident(ident)) = n.callee.as_expr() {
       // must have helper mark
-      // if !ident.span.has_mark(self.helper_mark) {
-      //   return;
-      // }
+      if !ident.span.has_mark(self.helper_mark) {
+        return;
+      }
 
       let word = ident.sym.as_ref();
       if matches!(
@@ -36,6 +36,7 @@ impl VisitMut for InjectRuntimeHelper {
           prop: MemberProp::Ident(Ident::new("interopRequire".into(), DUMMY_SP)),
         }
         .as_callee();
+        n.args.visit_mut_children_with(self);
         return;
       }
 
@@ -47,11 +48,12 @@ impl VisitMut for InjectRuntimeHelper {
           prop: MemberProp::Ident(Ident::new("exportStar".into(), DUMMY_SP)),
         }
         .as_callee();
-        //        return;
+        n.args.visit_mut_children_with(self);
+        return;
       }
 
       // have some unhandled helper
-      // debug_assert!(false, "have unhandled helper: word = {}", word);
+      debug_assert!(false, "have unhandled helper: word = {}", word);
     }
   }
 }

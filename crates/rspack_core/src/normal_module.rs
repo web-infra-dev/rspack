@@ -9,19 +9,22 @@ use std::{
 
 use dashmap::DashMap;
 use hashbrown::HashSet;
+use serde_json::json;
 
-use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{
+  Diagnostic, Error, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray,
+};
 use rspack_loader_runner::{Content, Loader, ResourceData};
 use rspack_sources::{
   BoxSource, OriginalSource, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
   WithoutOriginalOptions,
 };
-use swc_common::{Globals, Mark};
 
+use crate::ast::javascript::Ast as JsAst;
 use crate::{
   Compilation, CompilationContext, CompilerContext, CompilerOptions, Context, Dependency,
-  JavascriptAstExtend, LoaderRunnerRunner, ModuleAst, ModuleDependency, ModuleGraph,
-  ModuleGraphConnection, ModuleType, ResolveKind, SourceType,
+  LoaderRunnerRunner, ModuleAst, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleType,
+  ResolveKind, SourceType,
 };
 
 #[derive(Debug)]
@@ -35,9 +38,6 @@ pub struct ModuleGraphModule {
 
   pub id: String,
   // pub exec_order: usize,
-  pub uri: String,
-  // TODO: change to ModuleIdentifier
-  // pub module: NormalModule,
   pub module_identifier: ModuleIdentifier,
   // TODO remove this since its included in module
   pub module_type: ModuleType,
@@ -50,7 +50,6 @@ impl ModuleGraphModule {
   pub fn new(
     name: Option<String>,
     id: String,
-    uri: String,
     module_identifier: ModuleIdentifier,
     dependencies: Vec<Dependency>,
     module_type: ModuleType,
@@ -63,7 +62,6 @@ impl ModuleGraphModule {
 
       id,
       // exec_order: usize::MAX,
-      uri,
       module_identifier,
       all_dependencies: dependencies,
       module_type,
@@ -239,11 +237,7 @@ impl From<ModuleAst> for AstOrSource {
 
 impl From<swc_ecma_ast::Program> for AstOrSource {
   fn from(program: swc_ecma_ast::Program) -> Self {
-    AstOrSource::Ast(ModuleAst::JavaScript(JavascriptAstExtend {
-      unresolved_mark: Mark::root(),
-      top_level_mark: Mark::root(),
-      ast: program,
-    }))
+    AstOrSource::Ast(ModuleAst::JavaScript(JsAst::new(program)))
   }
 }
 
@@ -267,19 +261,10 @@ pub struct ParseContext<'a> {
   pub meta: Option<String>,
 }
 
+#[derive(Debug)]
 pub struct ParseResult {
   pub dependencies: Vec<ModuleDependency>,
   pub ast_or_source: AstOrSource,
-  pub parse_phase_global: Option<Globals>,
-}
-impl std::fmt::Debug for ParseResult {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("ParseResult")
-      .field("dependencies", &self.dependencies)
-      .field("ast_or_source", &self.ast_or_source)
-      .field("parse_phase_global", &"...".to_string())
-      .finish()
-  }
 }
 
 pub trait ParserAndGenerator: Send + Sync + Debug {
@@ -295,6 +280,7 @@ pub trait ParserAndGenerator: Send + Sync + Debug {
   ) -> Result<GenerationResult>;
 }
 
+#[derive(Debug)]
 pub struct NormalModule {
   request: String,
   user_request: String,
@@ -304,34 +290,36 @@ pub struct NormalModule {
   resource_data: ResourceData,
 
   original_source: Option<Box<dyn Source>>,
-  ast_or_source: Option<AstOrSource>,
+  ast_or_source: NormalModuleAstOrSource,
 
   options: Arc<CompilerOptions>,
   #[allow(unused)]
   debug_id: u32,
   cached_source_sizes: DashMap<SourceType, f64>,
-  parse_phase_global: Option<Globals>,
   // FIXME: dirty workaround to support external module
   skip_build: bool,
 }
 
-impl std::fmt::Debug for NormalModule {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("NormalModule")
-      .field("request", &self.request)
-      .field("user_request", &self.user_request)
-      .field("raw_request", &self.raw_request)
-      .field("module_type", &self.module_type)
-      .field("parser_and_generator", &self.parser_and_generator)
-      .field("resource_data", &self.resource_data)
-      .field("original_source", &self.original_source)
-      .field("ast_or_source", &self.ast_or_source)
-      .field("options", &self.options)
-      .field("debug_id", &self.debug_id)
-      .field("cached_source_sizes", &self.cached_source_sizes)
-      .field("parse_phase_global", &"...".to_string())
-      .field("skip_build", &self.skip_build)
-      .finish()
+#[derive(Debug)]
+pub enum NormalModuleAstOrSource {
+  Unbuild,
+  BuiltSucceed(AstOrSource),
+  BuiltFailed(String),
+}
+
+impl NormalModuleAstOrSource {
+  pub fn new_built(ast_or_source: AstOrSource, diagnostics: &[Diagnostic]) -> Self {
+    if diagnostics.iter().any(|d| d.severity == Severity::Error) {
+      NormalModuleAstOrSource::BuiltFailed(
+        diagnostics
+          .iter()
+          .map(|d| d.message.clone())
+          .collect::<Vec<String>>()
+          .join("\n"),
+      )
+    } else {
+      NormalModuleAstOrSource::BuiltSucceed(ast_or_source)
+    }
   }
 }
 
@@ -357,7 +345,7 @@ impl CodeGenerationResult {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct BuildResult {
   pub dependencies: Vec<ModuleDependency>,
 }
@@ -390,13 +378,12 @@ impl NormalModule {
       resource_data,
 
       original_source: None,
-      ast_or_source: None,
+      ast_or_source: NormalModuleAstOrSource::Unbuild,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
 
       options,
       cached_source_sizes: DashMap::new(),
       skip_build: false,
-      parse_phase_global: None,
     }
   }
 
@@ -444,19 +431,23 @@ impl NormalModule {
   }
 
   pub fn source(&self) -> Option<&dyn Source> {
-    self
-      .ast_or_source()
-      .and_then(|ast_or_source| ast_or_source.as_source().map(|source| source.as_ref()))
+    match self.ast_or_source() {
+      NormalModuleAstOrSource::BuiltSucceed(ast_or_source) => {
+        ast_or_source.as_source().map(|source| source.as_ref())
+      }
+      _ => None,
+    }
   }
 
   pub fn ast(&self) -> Option<&ModuleAst> {
-    self
-      .ast_or_source()
-      .and_then(|ast_or_source| ast_or_source.as_ast())
+    match self.ast_or_source() {
+      NormalModuleAstOrSource::BuiltSucceed(ast_or_source) => ast_or_source.as_ast(),
+      _ => None,
+    }
   }
 
-  pub fn ast_or_source(&self) -> Option<&AstOrSource> {
-    self.ast_or_source.as_ref()
+  pub fn ast_or_source(&self) -> &NormalModuleAstOrSource {
+    &self.ast_or_source
   }
 
   pub fn size(&self, source_type: &SourceType) -> f64 {
@@ -487,7 +478,8 @@ impl NormalModule {
         })?
         .split_into_parts();
 
-      self.ast_or_source = Some(parse_result.ast_or_source);
+      self.ast_or_source =
+        NormalModuleAstOrSource::new_built(parse_result.ast_or_source, &diagnostics);
 
       return Ok(
         BuildResult {
@@ -500,7 +492,14 @@ impl NormalModule {
     let loader_result = build_context
       .loader_runner_runner
       .run(self.resource_data.clone(), build_context.resolved_loaders)
-      .await?;
+      .await;
+    let loader_result = match loader_result {
+      Ok(r) => r,
+      Err(e) => {
+        self.ast_or_source = NormalModuleAstOrSource::BuiltFailed(e.to_string());
+        return Ok(BuildResult::default().with_diagnostic(e.into()));
+      }
+    };
 
     let original_source = self.create_source(
       &self.resource_data.resource,
@@ -512,7 +511,6 @@ impl NormalModule {
       ParseResult {
         ast_or_source,
         dependencies,
-        parse_phase_global,
       },
       diagnostics,
     ) = self
@@ -527,8 +525,7 @@ impl NormalModule {
       .split_into_parts();
 
     self.original_source = Some(original_source);
-    self.ast_or_source = Some(ast_or_source);
-    self.parse_phase_global = parse_phase_global;
+    self.ast_or_source = NormalModuleAstOrSource::new_built(ast_or_source, &diagnostics);
 
     Ok(BuildResult { dependencies }.with_diagnostic(diagnostics))
   }
@@ -538,7 +535,7 @@ impl NormalModule {
     module_graph_module: &ModuleGraphModule,
     compilation: &Compilation,
   ) -> Result<CodeGenerationResult> {
-    if let Some(ast_or_source) = self.ast_or_source() {
+    if let NormalModuleAstOrSource::BuiltSucceed(ast_or_source) = self.ast_or_source() {
       let mut code_generation_result = CodeGenerationResult::default();
 
       for source_type in self.source_types() {
@@ -553,16 +550,24 @@ impl NormalModule {
       }
 
       Ok(code_generation_result)
+    } else if let NormalModuleAstOrSource::BuiltFailed(error_message) = self.ast_or_source() {
+      let mut code_generation_result = CodeGenerationResult::default();
+      for source_type in self.source_types() {
+        code_generation_result.add(
+          *source_type,
+          AstOrSource::Source(
+            RawSource::from(format!("throw new Error({});\n", json!(error_message))).boxed(),
+          )
+          .into(),
+        );
+      }
+      Ok(code_generation_result)
     } else {
       Err(Error::InternalError(format!(
         "Failed to generate code because ast or source is not set for module {}",
         self.request
       )))
     }
-  }
-
-  pub fn parse_phase_global(&self) -> Option<&Globals> {
-    self.parse_phase_global.as_ref()
   }
 }
 

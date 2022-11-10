@@ -85,6 +85,7 @@ fn merge_resolver_options(base: nodejs_resolver::Options, other: Resolve) -> Res
     other.condition_names,
     |base, value| Some(normalize_string_array(&base, value)),
   );
+  let tsconfig = other.tsconfig;
   Resolve {
     alias,
     prefer_relative,
@@ -94,6 +95,7 @@ fn merge_resolver_options(base: nodejs_resolver::Options, other: Resolve) -> Res
     main_files,
     main_fields,
     condition_names,
+    tsconfig,
   }
 }
 

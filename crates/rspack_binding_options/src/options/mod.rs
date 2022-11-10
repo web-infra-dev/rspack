@@ -20,6 +20,7 @@ mod raw_output;
 mod raw_plugins;
 mod raw_resolve;
 mod raw_split_chunks;
+mod raw_stats;
 mod raw_target;
 
 pub use raw_builtins::*;
@@ -34,6 +35,7 @@ pub use raw_output::*;
 pub use raw_plugins::*;
 pub use raw_resolve::*;
 pub use raw_split_chunks::*;
+pub use raw_stats::*;
 pub use raw_target::*;
 
 use self::raw_devtool::RawDevtool;
@@ -86,6 +88,7 @@ pub struct RawOptions {
   #[napi(ts_type = "string")]
   pub devtool: Option<RawDevtool>,
   pub optimization: Option<RawOptimizationOptions>,
+  pub stats: Option<RawStatsOptions>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -108,6 +111,7 @@ pub struct RawOptions {
   pub builtins: Option<RawBuiltins>,
   pub devtool: Option<RawDevtool>,
   pub optimization: Option<RawOptimizationOptions>,
+  pub stats: Option<RawStatsOptions>,
 }
 
 pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<CompilerOptions> {
@@ -186,6 +190,11 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
       }
       Ok(options)
     })?
+    .then(|mut options| {
+      let stats = RawOption::raw_to_compiler_option(raw_options.stats, &options)?;
+      options.stats = Some(stats);
+      Ok(options)
+    })?
     .finish();
 
   Ok(compiler_options)
@@ -226,6 +235,10 @@ mod test {
   fn empty_test() {
     let raw = serde_json::from_str("{}").unwrap();
     let options = normalize_bundle_options(raw).unwrap();
-    assert!(&options.output.path.contains("rspack_binding_options/dist"));
+    assert!(&options
+      .output
+      .path
+      .to_string_lossy()
+      .contains("rspack_binding_options/dist"));
   }
 }

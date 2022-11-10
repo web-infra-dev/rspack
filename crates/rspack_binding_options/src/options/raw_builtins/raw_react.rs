@@ -19,6 +19,7 @@ pub struct RawReactOptions {
   pub development: Option<bool>,
   pub use_builtins: Option<bool>,
   pub use_spread: Option<bool>,
+  pub refresh: Option<bool>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Default, Clone)]
@@ -33,6 +34,7 @@ pub struct RawReactOptions {
   pub development: Option<bool>,
   pub use_builtins: Option<bool>,
   pub use_spread: Option<bool>,
+  pub refresh: Option<bool>,
 }
 
 impl RawOption<ReactOptions> for RawReactOptions {
@@ -59,6 +61,7 @@ impl RawOption<ReactOptions> for RawReactOptions {
       development: self.development,
       use_builtins: self.use_builtins,
       use_spread: self.use_spread,
+      refresh: self.refresh,
     })
   }
 

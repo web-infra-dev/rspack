@@ -219,7 +219,7 @@ impl SplitChunksPlugin {
     cache_group_index: usize,
     selected_chunks: &[&Chunk],
     // selectedChunksKey,
-    module_uri: String,
+    module_identifier: String,
     chunks_info_map: &mut HashMap<String, ChunksInfoItem>,
     // compilation: &mut Compilation,
   ) {
@@ -250,7 +250,7 @@ impl SplitChunksPlugin {
         _reuseable_chunks: Default::default(),
       });
 
-    info.modules.insert(module_uri);
+    info.modules.insert(module_identifier);
     info.chunks.extend(
       selected_chunks
         .iter()
@@ -302,7 +302,9 @@ impl Plugin for SplitChunksPlugin {
       let mut cache_group_index = 0;
       for cache_group_source in cache_group_source_keys {
         let cache_group = self.cache_group_by_key.get(&cache_group_source).unwrap();
-        let combinations = compilation.chunk_graph.get_modules_chunks(&module.uri);
+        let combinations = compilation
+          .chunk_graph
+          .get_modules_chunks(&module.module_identifier);
         if combinations.len() < cache_group.min_chunks {
           tracing::debug!(
             "bailout because of combinations.len() {:?} < {:?} cache_group.min_chunks",
@@ -323,7 +325,7 @@ impl Plugin for SplitChunksPlugin {
           cache_group,
           cache_group_index,
           &selected_chunks,
-          module.uri.clone(),
+          module.module_identifier.clone(),
           &mut chunks_info_map,
           // compilation,
         );
@@ -345,10 +347,10 @@ impl Plugin for SplitChunksPlugin {
         .iter()
         .filter(|chunk_ukey| {
           // Chunks containing at least one related module are used.
-          info.modules.iter().any(|module_uri| {
+          info.modules.iter().any(|module_identifier| {
             compilation
               .chunk_graph
-              .is_module_in_chunk(module_uri, **chunk_ukey)
+              .is_module_in_chunk(module_identifier, **chunk_ukey)
           })
         })
         .collect::<Vec<_>>();
@@ -360,16 +362,16 @@ impl Plugin for SplitChunksPlugin {
           .unwrap();
         used_chunk.split(new_chunk, &mut compilation.chunk_group_by_ukey);
 
-        for module_uri in &info.modules {
+        for module_identifier in &info.modules {
           compilation
             .chunk_graph
-            .disconnect_chunk_and_module(&used_chunk.ukey, module_uri);
+            .disconnect_chunk_and_module(&used_chunk.ukey, module_identifier);
         }
       }
-      for module_uri in info.modules {
+      for module_identifier in info.modules {
         compilation
           .chunk_graph
-          .connect_chunk_and_module(new_chunk_ukey, module_uri);
+          .connect_chunk_and_module(new_chunk_ukey, module_identifier);
       }
     }
 

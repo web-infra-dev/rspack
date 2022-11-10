@@ -5,22 +5,14 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "dev": "rspack"
+    "dev": "rspack serve -c test.config.js",
+    "build": "rspack build -c test.config.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "rspack": {
-    "entry": {
-      "index": "./src/index.tsx"
-    },
-    "react": {
-      "refresh": true
-    },
-    "lazyCompilation": true
-  },
   "dependencies": {
-    "@rspack/core": "workspace:*",
+    "@rspack/cli": "workspace:*",
     "react": "18.0.0",
     "react-dom": "18.0.0",
     "react-refresh": "0.13.0"

@@ -29,7 +29,7 @@ pub trait DiagnosticDisplay {
   type Output;
   fn emit_batch_diagnostic(
     &mut self,
-    diagnostics: &[RspackDiagnostic],
+    diagnostics: impl Iterator<Item = &RspackDiagnostic>,
     path_pos_map: Arc<DashMap<String, u32>>,
   ) -> Self::Output;
   fn emit_diagnostic(
@@ -47,7 +47,7 @@ impl DiagnosticDisplay for StdioDiagnosticDisplay {
 
   fn emit_batch_diagnostic(
     &mut self,
-    diagnostics: &[RspackDiagnostic],
+    diagnostics: impl Iterator<Item = &RspackDiagnostic>,
     path_pos_map: Arc<DashMap<String, u32>>,
   ) -> Self::Output {
     let writer = StandardStream::stderr(ColorChoice::Always);
@@ -113,7 +113,7 @@ impl DiagnosticDisplay for StringDiagnosticDisplay {
 
   fn emit_batch_diagnostic(
     &mut self,
-    diagnostics: &[RspackDiagnostic],
+    diagnostics: impl Iterator<Item = &RspackDiagnostic>,
     path_pos_map: Arc<DashMap<String, u32>>,
   ) -> Self::Output {
     emit_batch_diagnostic(diagnostics, path_pos_map, self)?;
@@ -148,7 +148,7 @@ impl DiagnosticDisplay for ColoredStringDiagnosticDisplay {
 
   fn emit_batch_diagnostic(
     &mut self,
-    diagnostics: &[RspackDiagnostic],
+    diagnostics: impl Iterator<Item = &RspackDiagnostic>,
     path_pos_map: Arc<DashMap<String, u32>>,
   ) -> Self::Output {
     let mut files = SimpleFiles::new();
@@ -174,7 +174,7 @@ impl DiagnosticDisplay for ColoredStringDiagnosticDisplay {
 }
 
 fn emit_batch_diagnostic<T: Write + WriteColor + FlushDiagnostic>(
-  diagnostics: &[RspackDiagnostic],
+  diagnostics: impl Iterator<Item = &RspackDiagnostic>,
   path_pos_map: Arc<DashMap<String, u32>>,
   writer: &mut T,
 ) -> crate::Result<()> {
@@ -242,6 +242,47 @@ impl From<crate::Severity> for Severity {
     match severity {
       crate::Severity::Error => Self::Error,
       crate::Severity::Warn => Self::Warning,
+    }
+  }
+}
+
+pub enum DiagnosticDisplayer {
+  Colored(ColoredStringDiagnosticDisplay),
+  Plain(StringDiagnosticDisplay),
+}
+
+impl DiagnosticDisplayer {
+  pub fn new(colored: bool) -> Self {
+    if colored {
+      Self::Colored(ColoredStringDiagnosticDisplay)
+    } else {
+      Self::Plain(StringDiagnosticDisplay::default())
+    }
+  }
+}
+
+impl DiagnosticDisplay for DiagnosticDisplayer {
+  type Output = crate::Result<String>;
+
+  fn emit_batch_diagnostic(
+    &mut self,
+    diagnostics: impl Iterator<Item = &RspackDiagnostic>,
+    path_pos_map: std::sync::Arc<dashmap::DashMap<String, u32>>,
+  ) -> Self::Output {
+    match self {
+      Self::Colored(d) => d.emit_batch_diagnostic(diagnostics, path_pos_map),
+      Self::Plain(d) => d.emit_batch_diagnostic(diagnostics, path_pos_map),
+    }
+  }
+
+  fn emit_diagnostic(
+    &mut self,
+    diagnostic: &RspackDiagnostic,
+    path_pos_map: std::sync::Arc<dashmap::DashMap<String, u32>>,
+  ) -> Self::Output {
+    match self {
+      Self::Colored(d) => d.emit_diagnostic(diagnostic, path_pos_map),
+      Self::Plain(d) => d.emit_diagnostic(diagnostic, path_pos_map),
     }
   }
 }

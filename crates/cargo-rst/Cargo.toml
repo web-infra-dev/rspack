@@ -16,7 +16,8 @@ colored    = "2.0.0"
 serde      = { version = "1.0.139", features = ["derive"] }
 serde_json = "1.0.82"
 
-similar = "2.1.0"
+console = "0.15.2"
+similar = { version = "2.2.0", features = ["inline"] }
 tokio = { version = "1.21.0", features = [
   "rt",
   "rt-multi-thread",

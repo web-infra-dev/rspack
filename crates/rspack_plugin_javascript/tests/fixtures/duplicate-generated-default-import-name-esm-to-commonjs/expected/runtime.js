@@ -1,26 +1,30 @@
 (function () { // runtime instance
 var runtime = new Object();
-self['__rspack_runtime__'] = runtime;// mount Modules
+self["__rspack_runtime__"] = runtime;
+// mount Modules
 (function () {
-  runtime.installedModules = {/* __INSTALLED_MODULES__*/};
+	runtime.installedModules = {/* __INSTALLED_MODULES__*/};
 })();
 
 // mount Chunks
 (function () {
-  runtime.installedChunks = {};
+	runtime.installedChunks = {};
 })();
 
 // mount ModuleCache
 (function () {
-  runtime.moduleCache = {};
-})();(function () {
-  runtime.checkById = function (obj, prop) {
-    return Object.prototype.hasOwnProperty.call(obj, prop);
-  };
-})();// mount PublicPath
+	runtime.moduleCache = {};
+})();
 (function () {
-  runtime.publicPath = "/";
-})();// The require function
+	runtime.checkById = function (obj, prop) {
+		return Object.prototype.hasOwnProperty.call(obj, prop);
+	};
+})();
+// mount PublicPath
+(function () {
+	runtime.publicPath = "/";
+})();
+// The require function
 function __rspack_require__(moduleId) {
 	var cachedModule = runtime.moduleCache[moduleId];
 	if (cachedModule !== undefined) {
@@ -51,9 +55,9 @@ function __rspack_require__(moduleId) {
 			module.exports,
 			module,
 			module.exports,
-			execOptions.require.bind(this),
+			execOptions.require.bind(runtime),
 			runtime.__rspack_dynamic_require__ &&
-				runtime.__rspack_dynamic_require__.bind(this),
+				runtime.__rspack_dynamic_require__.bind(runtime),
 			runtime
 		);
 	} catch (error) {
@@ -85,33 +89,37 @@ function __rspack_require__(moduleId) {
 })();
 // The register function
 function __rspack_register__(chunkIds, modules, callback) {
-  if (
-    chunkIds.some(
-      function (id) {
-        return this.installedChunks[id] !== 0;
-      }.bind(this)
-    )
-  ) {
-    for (moduleId in modules) {
-      if (this.checkById(modules, moduleId)) {
-        this.installedModules[moduleId] = modules[moduleId];
-      }
-    }
-    if (callback) callback(this.__rspack_require__);
-  }
-  for (var i = 0; i < chunkIds.length; i++) {
-    chunkId = chunkIds[i];
-    if (this.checkById(this.installedChunks, chunkId) && this.installedChunks[chunkId]) {
-      this.installedChunks[chunkId][0]();
-    }
-    this.installedChunks[chunkId] = 0;
-  }
+	if (
+		chunkIds.some(
+			function (id) {
+				return this.installedChunks[id] !== 0;
+			}.bind(this)
+		)
+	) {
+		for (moduleId in modules) {
+			if (this.checkById(modules, moduleId)) {
+				this.installedModules[moduleId] = modules[moduleId];
+			}
+		}
+		if (callback) callback(this.__rspack_require__);
+	}
+	for (var i = 0; i < chunkIds.length; i++) {
+		chunkId = chunkIds[i];
+		if (
+			this.checkById(this.installedChunks, chunkId) &&
+			this.installedChunks[chunkId]
+		) {
+			this.installedChunks[chunkId][0]();
+		}
+		this.installedChunks[chunkId] = 0;
+	}
 }
 
 // mount register function
 (function () {
-  runtime.__rspack_register__ = __rspack_register__;
-})();// hot runtime
+	runtime.__rspack_register__ = __rspack_register__;
+})();
+// hot runtime
 (function () {
 	var currentModuleData = {};
 	var installedModules = runtime.moduleCache;
@@ -529,11 +537,6 @@ function __rspack_register__(chunkIds, modules, callback) {
 		// 	inProgress[url].push(done);
 		// 	return;
 		// }
-		// TODO: should use `url` rather than `content`.
-		if (inProgress[content]) {
-			inProgress[content].push(done);
-			return;
-		}
 		var script, needAttach;
 		if (key !== undefined) {
 			var scripts = document.getElementsByTagName("script");
@@ -1094,132 +1097,172 @@ function __rspack_register__(chunkIds, modules, callback) {
 	};
 })();
 (function () {
-  runtime.installedCssChunks = {};
+	runtime.installedCssChunks = {};
 })();
 
 (function () {
-  runtime.chunkHashData = {
-    js: {"main": "",},
-    css: {}
-  };
+	runtime.chunkHashData = {
+		js: {"main": "",},
+		css: {}
+	};
 })();
 
 (function () {
-  runtime.setChunkHashData = function (chunkId, hash, type) {
-    return this.chunkHashData[type][chunkId] = hash;
-  };
+	runtime.setChunkHashData = function (chunkId, hash, type) {
+		return (this.chunkHashData[type][chunkId] = hash);
+	};
 })();
 
 (function () {
-  runtime.__rspack_has_dynamic_chunk__ = function (chunkId, type) {
-    return Boolean(this.chunkHashData && this.chunkHashData[type] && typeof this.chunkHashData[type][chunkId] !== 'undefined');
-  };
+	runtime.__rspack_has_dynamic_chunk__ = function (chunkId, type) {
+		return true;
+		return Boolean(
+			this.chunkHashData &&
+				this.chunkHashData[type] &&
+				typeof this.chunkHashData[type][chunkId] !== "undefined"
+		);
+	};
 })();
-
 (function () {
-  runtime.__rspack_get_dynamic_chunk_url__ = function (chunkId, type) {
-    return 'static/' + type + '/' + chunkId + "" + '.chunk.' + type;
-  };
+	runtime.__rspack_get_dynamic_chunk_url__ = function (chunkId, type) {
+		return chunkId + "" + "." + type;
+	};
 })();
 function __rspack_dynamic_require__(chunkIds) {
-  return Promise.all(chunkIds.map(function (chunkId) {
-    return Object.keys(this)
-      .filter(function (key) {
-        return key.indexOf('rspack_load_dynamic') > 0;
-      })
-      .reduce(function (promises, key) {
-        this[key](chunkId, promises);
-        return promises;
-      }.bind(this), [])
-  }.bind(this)).reduce(function (prev, cur) {
-    return prev.concat(cur)
-  }, []));
+	return Promise.all(
+		chunkIds
+			.map(
+				function (chunkId) {
+					return Object.keys(this)
+						.filter(function (key) {
+							return key.indexOf("rspack_load_dynamic") > 0;
+						})
+						.reduce(
+							function (promises, key) {
+								this[key](chunkId, promises);
+								return promises;
+							}.bind(this),
+							[]
+						);
+				}.bind(this)
+			)
+			.reduce(function (prev, cur) {
+				return prev.concat(cur);
+			}, [])
+	);
 }
 
 // mount register dynamic require
 (function () {
-  runtime.__rspack_dynamic_require__ = __rspack_dynamic_require__;
-})();var inProgress = {};
+	runtime.__rspack_dynamic_require__ = __rspack_dynamic_require__;
+})();
+var inProgress = {};
 function load_script(url, done, key) {
-  var dataWebpackPrefix = 'rspack-test:';
-  if (inProgress[url]) {
-    inProgress[url].push(done);
-    return;
-  }
-  var script, needAttach;
-  if (key !== undefined) {
-    var scripts = document.getElementsByTagName('script');
-    for (var i = 0; i < scripts.length; i++) {
-      var s = scripts[i];
-      if (s.getAttribute('src') == url || s.getAttribute('data-rspack') == dataWebpackPrefix + key) {
-        script = s;
-        break;
-      }
-    }
-  }
-  if (!script) {
-    needAttach = true;
-    script = document.createElement('script');
+	var dataWebpackPrefix = "rspack-test:";
+	if (inProgress[url]) {
+		inProgress[url].push(done);
+		return;
+	}
+	var script, needAttach;
+	if (key !== undefined) {
+		var scripts = document.getElementsByTagName("script");
+		for (var i = 0; i < scripts.length; i++) {
+			var s = scripts[i];
+			if (
+				s.getAttribute("src") == url ||
+				s.getAttribute("data-rspack") == dataWebpackPrefix + key
+			) {
+				script = s;
+				break;
+			}
+		}
+	}
+	if (!script) {
+		needAttach = true;
+		script = document.createElement("script");
 
-    script.charset = 'utf-8';
-    script.timeout = 120;
-    script.setAttribute('data-rspack', dataWebpackPrefix + key);
-    script.src = url;
-  }
-  inProgress[url] = [done];
-  var onScriptComplete = function (prev, event) {
-    script.onerror = script.onload = null;
-    clearTimeout(timeout);
-    var doneFns = inProgress[url];
-    delete inProgress[url];
-    script.parentNode && script.parentNode.removeChild(script);
-    doneFns &&
-      doneFns.forEach(function (fn) {
-        return fn(event);
-      });
-    if (prev) return prev(event);
-  };
-  var timeout = setTimeout(onScriptComplete.bind(null, undefined, { type: 'timeout', target: script }), 120000);
-  script.onerror = onScriptComplete.bind(null, script.onerror);
-  script.onload = onScriptComplete.bind(null, script.onload);
-  needAttach && document.head.appendChild(script);
+		script.charset = "utf-8";
+		script.timeout = 120;
+		script.setAttribute("data-rspack", dataWebpackPrefix + key);
+		script.src = url;
+	}
+	inProgress[url] = [done];
+	var onScriptComplete = function (prev, event) {
+		script.onerror = script.onload = null;
+		clearTimeout(timeout);
+		var doneFns = inProgress[url];
+		delete inProgress[url];
+		script.parentNode && script.parentNode.removeChild(script);
+		doneFns &&
+			doneFns.forEach(function (fn) {
+				return fn(event);
+			});
+		if (prev) return prev(event);
+	};
+	var timeout = setTimeout(
+		onScriptComplete.bind(null, undefined, { type: "timeout", target: script }),
+		120000
+	);
+	script.onerror = onScriptComplete.bind(null, script.onerror);
+	script.onload = onScriptComplete.bind(null, script.onload);
+	needAttach && document.head.appendChild(script);
 }
 
 function __rspack_load_dynamic_js__(chunkId, promises) {
-  var runtime = this;
-  var installedChunkData = this.checkById(this.installedChunks, chunkId) ? this.installedChunks[chunkId] : undefined;
-  if (installedChunkData !== 0) {
-    if (installedChunkData) {
-      promises.push(installedChunkData[2]);
-    } else {
-      var promise = new Promise(function (resolve, reject) { installedChunkData = this.installedChunks[chunkId] = [resolve, reject]; }.bind(this));
-      promises.push((installedChunkData[2] = promise));
-      var url = this.publicPath + this.__rspack_get_dynamic_chunk_url__(chunkId, 'js');
-      var error = new Error();
-      var loadingEnded = function (event) {
-        if (runtime.checkById(runtime.installedChunks, chunkId)) {
-          installedChunkData = runtime.installedChunks[chunkId];
-          if (installedChunkData !== 0) runtime.installedChunks[chunkId] = undefined;
-          if (installedChunkData) {
-            var errorType = event && (event.type === 'load' ? 'missing' : event.type);
-            var realSrc = event && event.target && event.target.src;
-            error.message = 'Loading chunk ' + chunkId + ' failed.\n(' + errorType + ': ' + realSrc + ')';
-            error.name = 'ChunkLoadError';
-            error.type = errorType;
-            error.request = realSrc;
-            installedChunkData[1](error);
-          }
-        }
-      };
-      load_script(url, loadingEnded, 'chunk-' + chunkId);
-    }
-  }
+	var runtime = this;
+	var installedChunkData = this.checkById(this.installedChunks, chunkId)
+		? this.installedChunks[chunkId]
+		: undefined;
+	if (installedChunkData !== 0) {
+		if (installedChunkData) {
+			promises.push(installedChunkData[2]);
+		} else {
+			var promise = new Promise(
+				function (resolve, reject) {
+					installedChunkData = this.installedChunks[chunkId] = [
+						resolve,
+						reject
+					];
+				}.bind(this)
+			);
+			promises.push((installedChunkData[2] = promise));
+			var url =
+				this.publicPath + this.__rspack_get_dynamic_chunk_url__(chunkId, "js");
+			var error = new Error();
+			var loadingEnded = function (event) {
+				if (runtime.checkById(runtime.installedChunks, chunkId)) {
+					installedChunkData = runtime.installedChunks[chunkId];
+					if (installedChunkData !== 0)
+						runtime.installedChunks[chunkId] = undefined;
+					if (installedChunkData) {
+						var errorType =
+							event && (event.type === "load" ? "missing" : event.type);
+						var realSrc = event && event.target && event.target.src;
+						error.message =
+							"Loading chunk " +
+							chunkId +
+							" failed.\n(" +
+							errorType +
+							": " +
+							realSrc +
+							")";
+						error.name = "ChunkLoadError";
+						error.type = errorType;
+						error.request = realSrc;
+						installedChunkData[1](error);
+					}
+				}
+			};
+			load_script(url, loadingEnded, "chunk-" + chunkId);
+		}
+	}
 }
 
 // mount load dynamic js
 (function () {
-  runtime.__rspack_load_dynamic_js__ = __rspack_load_dynamic_js__;
-})();function load_style(chunkId, href, fullhref, resolve, reject) {
+	runtime.__rspack_load_dynamic_js__ = __rspack_load_dynamic_js__;
+})();
+function load_style(chunkId, href, fullhref, resolve, reject) {
 	var existingLinkTags = document.getElementsByTagName("link");
 	for (var i = 0; i < existingLinkTags.length; i++) {
 		var tag = existingLinkTags[i];

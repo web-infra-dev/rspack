@@ -1,4 +1,4 @@
-import type { Compiler, RspackOptionsNormalized } from "@rspack/core";
+import type { Compiler, Dev, RspackOptionsNormalized } from "@rspack/core";
 import type { Logger } from "./logger";
 import type { Socket } from "net";
 import type { FSWatcher, WatchOptions } from "chokidar";
@@ -10,6 +10,7 @@ import type {
 	ErrorRequestHandler as ExpressErrorRequestHandler
 } from "express";
 import type { Server } from "http";
+import type { ResolvedDev } from "./config";
 
 import chokidar from "chokidar";
 import http from "http";
@@ -18,6 +19,7 @@ import WebpackDevServer from "webpack-dev-server";
 import express from "express";
 import { rdm } from "@rspack/dev-middleware";
 import { createWebsocketServer } from "./ws";
+import { resolveDevOptions } from "./config";
 
 interface Middleware {
 	name?: string;
@@ -33,7 +35,7 @@ type Port = number | string | "auto";
 
 // copy from webpack-dev-server
 export class RspackDevServer {
-	options: RspackOptionsNormalized["devServer"];
+	options: ResolvedDev;
 	logger: Logger;
 	staticWatchers: FSWatcher[];
 	sockets: Socket[];
@@ -51,7 +53,37 @@ export class RspackDevServer {
 		this.listeners = [];
 		this.sockets = [];
 		this.currentHash = "";
-		this.options = compiler.options["devServer"];
+		this.options = this.normalizeOptions(compiler.options.devServer);
+		this.addAdditionEntires();
+	}
+
+	normalizeOptions(dev: Dev = {}) {
+		return resolveDevOptions(dev, this.compiler.options);
+	}
+
+	addAdditionEntires() {
+		const entries: string[] = [];
+
+		if (this.options.hot) {
+			const hotUpdateEntryPath = require.resolve(
+				"@rspack/dev-client/devServer"
+			);
+
+			entries.push(hotUpdateEntryPath);
+
+			if (this.compiler.options.builtins.react?.refresh) {
+				const reactRefreshEntryPath = require.resolve(
+					"@rspack/dev-client/react-refresh"
+				);
+				entries.push(reactRefreshEntryPath);
+			}
+		}
+
+		const devClientEntryPath = require.resolve("@rspack/dev-client");
+		entries.push(devClientEntryPath);
+		for (const key in this.compiler.options.entry) {
+			this.compiler.options.entry[key].unshift(...entries);
+		}
 	}
 
 	static isAbsoluteURL(URL: string): boolean {
@@ -180,14 +212,6 @@ export class RspackDevServer {
 		}
 	}
 
-	private initialize() {
-		this.setupApp();
-		this.setupDevMiddleware();
-		this.setupWatchStaticFiles();
-		this.setupMiddlewares();
-		this.createServer();
-	}
-
 	private setupApp() {
 		this.app = express();
 	}
@@ -220,6 +244,15 @@ export class RspackDevServer {
 			middleware: this.middleware
 		});
 
+		// Todo Add options
+		const connectHistoryApiFallback = require("connect-history-api-fallback");
+		middlewares.push({
+			name: "[connect-history-api-fallback]",
+			middleware: connectHistoryApiFallback({
+				verbose: true,
+				logger: console.log.bind(console)
+			})
+		});
 		middlewares.push({
 			name: "express-static",
 			middleware: express.static(this.options.static.directory)

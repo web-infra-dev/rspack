@@ -1325,9 +1325,9 @@ checksum = "e4a24736216ec316047a1fc4252e27dabb04218aa4a3f37c6e7ddbf1f9782b54"
 
 [[package]]
 name = "nodejs-resolver"
-version = "0.0.43"
+version = "0.0.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d155341d4d99fdb8cbbbb2a52867761ae15639ead11334753844a4c50fb4307a"
+checksum = "2a19b736764e84f9a3e232eb49202d055e0399762c24cd04491288fbc4424ab6"
 dependencies = [
  "daachorse",
  "dashmap",
@@ -1417,9 +1417,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.15.0"
+version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e82dad04139b71a90c080c8463fe0dc7902db5192d939bd0950f074d014339e1"
+checksum = "86f0b0d4bf799edbc74508c1e8bf170ff5f41238e5f8225603ca7caaae2b7860"
 
 [[package]]
 name = "opaque-debug"
@@ -1879,6 +1879,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_plugin_json",
  "rspack_plugin_runtime",
+ "rspack_symbol",
  "rspack_tracing",
  "tokio",
  "tracing",
@@ -1925,6 +1926,7 @@ dependencies = [
  "futures",
  "hashbrown",
  "hashlink",
+ "indexmap",
  "nodejs-resolver",
  "once_cell",
  "petgraph",
@@ -1933,8 +1935,10 @@ dependencies = [
  "rspack_error",
  "rspack_loader_runner",
  "rspack_sources",
+ "rspack_symbol",
  "rspack_tracing",
  "serde",
+ "serde_json",
  "sugar_path",
  "swc",
  "swc_atoms",
@@ -2101,6 +2105,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "sugar_path",
  "swc_atoms",
  "swc_common",
  "swc_html",
@@ -2126,20 +2131,24 @@ dependencies = [
  "regex",
  "rspack_core",
  "rspack_error",
+ "rspack_symbol",
  "serde",
  "serde_json",
+ "sourcemap",
  "sugar_path",
  "swc",
  "swc_atoms",
  "swc_common",
  "swc_ecma_ast",
  "swc_ecma_lints",
+ "swc_ecma_minifier",
  "swc_ecma_parser",
  "swc_ecma_preset_env",
  "swc_ecma_transforms",
  "swc_ecma_utils",
  "swc_ecma_visit",
  "tracing",
+ "ustr",
 ]
 
 [[package]]
@@ -2186,9 +2195,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.1.9"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d851bc6659a4585482a55931d7b6d425b49348b606efe6eb48b8c5c714fd6440"
+checksum = "5ebb33c66bc200ea533c39e64321c0b47a64e55e4c51a8d33dff6bcce54a3ac7"
 dependencies = [
  "dashmap",
  "dyn-clone",
@@ -2198,6 +2207,18 @@ dependencies = [
  "serde",
  "serde_json",
  "smol_str",
+ "substring",
+]
+
+[[package]]
+name = "rspack_symbol"
+version = "0.1.0"
+dependencies = [
+ "bitflags",
+ "swc_atoms",
+ "swc_common",
+ "swc_ecma_ast",
+ "ustr",
 ]
 
 [[package]]
@@ -2300,9 +2321,9 @@ checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
 
 [[package]]
 name = "serde"
-version = "1.0.145"
+version = "1.0.147"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "728eb6351430bccb993660dfffc5a72f91ccc1295abaa8ce19b27ebe4f75568b"
+checksum = "d193d69bae983fc11a79df82342761dfbf28a99fc8d203dca4c3c1b590948965"
 dependencies = [
  "serde_derive",
 ]
@@ -2320,9 +2341,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.145"
+version = "1.0.147"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81fa1584d3d1bcacd84c277a0dfe21f5b0f6accf4a23d04d4c6d61f1af522b4c"
+checksum = "4f1d362ca8fc9c3e3a7484440752472d68a6caa98f1ab81d99b5dfe517cec852"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2331,9 +2352,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.86"
+version = "1.0.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41feea4228a6f1cd09ec7a3593a682276702cd67b5273544757dae23c096f074"
+checksum = "6ce777b7b150d76b9cf60d28b55f5847135a003f7d7350c6be7a773508ce7d45"
 dependencies = [
  "indexmap",
  "itoa",
@@ -2445,9 +2466,9 @@ dependencies = [
 
 [[package]]
 name = "sourcemap"
-version = "6.1.0"
+version = "6.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58ad6f449ac2dc2eaa01e766408b76b55fc0a20c842b63aa11a8448caa72f50b"
+checksum = "c46fdc1838ff49cf692226f5c2b0f5b7538f556863d0eca602984714667ac6e7"
 dependencies = [
  "base64",
  "if_chain",
@@ -2543,6 +2564,15 @@ name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
+
+[[package]]
+name = "substring"
+version = "1.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42ee6433ecef213b2e72f587ef64a2f5943e7cd16fbd82dbe8bc07486c534c86"
+dependencies = [
+ "autocfg",
+]
 
 [[package]]
 name = "sugar_path"

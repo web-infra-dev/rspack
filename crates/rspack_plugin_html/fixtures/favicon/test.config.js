@@ -3,8 +3,7 @@ module.exports = {
 		index: ["./index.js"]
 	},
 	builtins: {
-		html: [
-			{
+		html: [ {
 				favicon: "favicon.ico"
 			}
 		]

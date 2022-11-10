@@ -11,6 +11,11 @@ use rspack::Compiler;
 #[tokio::main]
 pub async fn test_fixture(fixture_path: &Path) -> Compiler {
   enable_tracing_by_env();
+  //avoid interference from previous testing
+  let dist_dir = fixture_path.join("dist");
+  if dist_dir.exists() {
+    std::fs::remove_dir_all(dist_dir.clone()).unwrap();
+  }
   let options: CompilerOptions = RawOptions::from_fixture(fixture_path).to_compiler_options();
   let output_path = options.output.path.clone();
   let mut compiler = rspack::rspack(options, Default::default());
@@ -30,7 +35,7 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler {
     panic!(
       "Failed to compile in fixtrue {:?}, errors: {:?}",
       fixture_path,
-      stats.emit_error_string(true).unwrap()
+      stats.emit_diagnostics_string(true).unwrap()
     );
   }
 

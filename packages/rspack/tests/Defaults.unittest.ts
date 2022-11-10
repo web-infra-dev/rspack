@@ -78,18 +78,7 @@ describe("snapshots", () => {
 		    "html": [],
 		  },
 		  "context": "<cwd>",
-		  "devServer": {
-		    "devMiddleware": {},
-		    "hot": false,
-		    "liveReload": true,
-		    "open": true,
-		    "port": 8080,
-		    "static": {
-		      "directory": "<cwd>/dist",
-		      "watch": {},
-		    },
-		    "webSocketServer": {},
-		  },
+		  "devServer": undefined,
 		  "devtool": "",
 		  "entry": {
 		    "main": [
@@ -128,6 +117,10 @@ describe("snapshots", () => {
 		      "index",
 		    ],
 		    "preferRelative": false,
+		    "tsConfigPath": "",
+		  },
+		  "stats": {
+		    "colors": false,
 		  },
 		  "target": [
 		    "web",
@@ -585,33 +578,15 @@ describe("snapshots", () => {
 	);
 
 	test("stats true", { stats: true }, e =>
-		e.toMatchInlineSnapshot(`
-		- Expected
-		+ Received
-
-		@@ ... @@
-		+   "stats": true,
-	`)
+		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 
 	test("stats false", { stats: false }, e =>
-		e.toMatchInlineSnapshot(`
-		- Expected
-		+ Received
-
-		@@ ... @@
-		+   "stats": false,
-	`)
+		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 
 	test("stats string", { stats: "minimal" }, e =>
-		e.toMatchInlineSnapshot(`
-		- Expected
-		+ Received
-
-		@@ ... @@
-		+   "stats": "minimal",
-	`)
+		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 
 	test(
@@ -630,9 +605,6 @@ describe("snapshots", () => {
 			@@ ... @@
 			-   "context": "<cwd>",
 			+   "context": "<cwd>/tests/fixtures/browserslist",
-			@@ ... @@
-			-       "directory": "<cwd>/dist",
-			+       "directory": "<cwd>/tests/fixtures/browserslist/dist",
 			@@ ... @@
 			-       "<cwd>/src/index.js",
 			+       "<cwd>/tests/fixtures/browserslist/src/index.js",
@@ -657,9 +629,6 @@ describe("snapshots", () => {
 			+     "type": "filesystem",
 			+   },
 			+   "context": "<cwd>/tests/fixtures",
-			@@ ... @@
-			-       "directory": "<cwd>/dist",
-			+       "directory": "<cwd>/tests/fixtures/dist",
 			@@ ... @@
 			-       "<cwd>/src/index.js",
 			+       "<cwd>/tests/fixtures/src/index.js",

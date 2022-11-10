@@ -279,9 +279,11 @@ impl<T: 'static, R> ThreadsafeFunction<T, R> {
   }
 
   /// Unreferencing a threadsafe function, this might be helpful for those tsfns that are not manually dropped.
+  ///
   /// See [napi_unref_threadsafe_function](https://nodejs.org/api/n-api.html#napi_unref_threadsafe_function)
   /// for more information.
-  pub fn unref(&self, env: &Env) -> Result<()> {
+  /// *Note* that in order to make sure to call this on the main thread, so a mutable reference is required.
+  pub fn unref(&mut self, env: &Env) -> Result<()> {
     check_status!(unsafe { sys::napi_unref_threadsafe_function(env.raw(), self.raw_tsfn) })
   }
 }

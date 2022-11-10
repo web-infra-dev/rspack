@@ -8,19 +8,16 @@ module.exports = {
 		html: [
 			{
 				template: "index.html",
-				sri: "sha384",
 				filename: "chunk1.html",
 				chunks: ["chunk1"]
 			},
 			{
 				template: "index.html",
-				sri: "sha256",
 				filename: "chunk2.html",
 				chunks: ["chunk2"]
 			},
 			{
 				template: "index.html",
-				sri: "sha512",
 				filename: "chunk3.html",
 				chunks: ["chunk3"]
 			}

@@ -1,7 +1,5 @@
 import { getNormalizedRspackOptions, RspackOptions } from "./config";
 import { Compiler } from "./compiler";
-import type { StatsCompilation } from "@rspack/binding";
-import util from "util";
 import {
 	applyRspackOptionsBaseDefaults,
 	applyRspackOptionsDefaults
@@ -9,6 +7,7 @@ import {
 import createConsoleLogger from "./logging/createConsoleLogger";
 import nodeConsole from "./node/nodeConsole";
 import { Stats } from "./stats";
+import util from "util";
 
 import { RspackOptionsApply } from "./rspackOptionsApply";
 type Callback<T> = (err: Error, t: T) => void;
@@ -29,7 +28,10 @@ function createCompiler(userOptions: RspackOptions) {
 			})
 	});
 	const logger = compiler.getInfrastructureLogger("config");
-	logger.debug("RawOptions:", userOptions);
+	logger.debug(
+		"RawOptions:",
+		util.inspect(userOptions, { colors: true, depth: null })
+	);
 
 	if (Array.isArray(options.plugins)) {
 		for (const plugin of options.plugins) {
@@ -41,12 +43,15 @@ function createCompiler(userOptions: RspackOptions) {
 		}
 	}
 	applyRspackOptionsDefaults(options);
-	logger.debug("NormalizedOptions:", options);
+	logger.debug(
+		"NormalizedOptions:",
+		util.inspect(options, { colors: true, depth: null })
+	);
 	new RspackOptionsApply().process(options, compiler);
 	compiler.hooks.initialize.call();
 	return compiler;
 }
-function rspack(options: RspackOptions, callback: Callback<Stats>): Compiler {
+function rspack(options: RspackOptions, callback?: Callback<Stats>): Compiler {
 	let compiler = createCompiler(options);
 	if (callback) {
 		compiler.run(callback);

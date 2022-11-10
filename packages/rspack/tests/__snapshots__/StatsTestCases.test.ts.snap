@@ -10,8 +10,11 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "chunks": [
         "main",
       ],
+      "info": {
+        "development": false,
+      },
       "name": "bundle.js",
-      "size": 1626,
+      "size": 1620,
       "type": "asset",
     },
   ],
@@ -30,6 +33,21 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "type": "chunk",
     },
   ],
+  "entrypoints": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 1620,
+        },
+      ],
+      "assetsSize": 1620,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
   "errors": [],
   "errorsCount": 0,
   "modules": [
@@ -52,9 +70,123 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
 
 exports[`StatsTestCases should print correct stats for hot+production 2`] = `
 "    Asset      Size  Chunks  Chunk Names
-bundle.js  1.59 KiB    main  main
+bundle.js  1.58 KiB    main  main
+Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 25 bytes [entry]
 [./index.js] 25 bytes {main}"
+`;
+
+exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 1`] = `
+{
+  "assets": [
+    {
+      "chunkNames": [
+        "main",
+      ],
+      "chunks": [
+        "main",
+      ],
+      "info": {
+        "development": false,
+      },
+      "name": "bundle.js",
+      "size": 1772,
+      "type": "asset",
+    },
+  ],
+  "chunks": [
+    {
+      "entry": true,
+      "files": [
+        "bundle.js",
+      ],
+      "id": "main",
+      "initial": true,
+      "names": [
+        "main",
+      ],
+      "size": 15,
+      "type": "chunk",
+    },
+  ],
+  "entrypoints": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 1772,
+        },
+      ],
+      "assetsSize": 1772,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
+  "errors": [
+    {
+      "formatted": "error[javascript]: JavaScript parsing error
+  ┌─ tests/statsCases/identifier-let-strict-mode/index.js:1:5
+  │
+1 │ let let = let;
+  │     ^^^ \`let\` cannot be used as an identifier in strict mode
+
+",
+      "message": "\`let\` cannot be used as an identifier in strict mode",
+    },
+    {
+      "formatted": "error[javascript]: JavaScript parsing error
+  ┌─ tests/statsCases/identifier-let-strict-mode/index.js:1:11
+  │
+1 │ let let = let;
+  │           ^^^ \`let\` cannot be used as an identifier in strict mode
+
+",
+      "message": "\`let\` cannot be used as an identifier in strict mode",
+    },
+  ],
+  "errorsCount": 2,
+  "modules": [
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "./index.js",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/identifier-let-strict-mode/index.js",
+      "moduleType": "js",
+      "name": "./index.js",
+      "size": 15,
+      "type": "module",
+    },
+  ],
+  "warnings": [],
+  "warningsCount": 0,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 2`] = `
+"    Asset      Size  Chunks  Chunk Names
+bundle.js  1.73 KiB    main  main
+Entrypoint main = bundle.js
+chunk {main} bundle.js (main) 15 bytes [entry]
+[./index.js] 15 bytes {main}
+
+error[javascript]: JavaScript parsing error
+  ┌─ tests/statsCases/identifier-let-strict-mode/index.js:1:5
+  │
+1 │ let let = let;
+  │     ^^^ \`let\` cannot be used as an identifier in strict mode
+
+
+
+error[javascript]: JavaScript parsing error
+  ┌─ tests/statsCases/identifier-let-strict-mode/index.js:1:11
+  │
+1 │ let let = let;
+  │           ^^^ \`let\` cannot be used as an identifier in strict mode
+
+"
 `;
 
 exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
@@ -67,8 +199,11 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
       "chunks": [
         "main",
       ],
+      "info": {
+        "development": false,
+      },
       "name": "bundle.js",
-      "size": 1672,
+      "size": 1666,
       "type": "asset",
     },
   ],
@@ -87,13 +222,28 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
       "type": "chunk",
     },
   ],
+  "entrypoints": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 1666,
+        },
+      ],
+      "assetsSize": 1666,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
   "errors": [
     {
-      "formatted": "[0m[1m[38;5;9merror[internal][0m[1m: Resolve error[0m
-  [0m[34m┌─[0m tests/statsCases/normal-errors/index.js:1:1
-  [0m[34m│[0m
-[0m[34m1[0m [0m[34m│[0m [0m[31mimport "not-exist";[0m
-  [0m[34m│[0m [0m[31m^^^^^^^^^^^^^^^^^^^[0m [0m[31mFailed to resolve not-exist[0m
+      "formatted": "error[internal]: Resolve error
+  ┌─ tests/statsCases/normal-errors/index.js:1:1
+  │
+1 │ import "not-exist";
+  │ ^^^^^^^^^^^^^^^^^^^ Failed to resolve not-exist
 
 ",
       "message": "Failed to resolve not-exist",
@@ -121,14 +271,134 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
 exports[`StatsTestCases should print correct stats for normal-errors 2`] = `
 "    Asset      Size  Chunks  Chunk Names
 bundle.js  1.63 KiB    main  main
+Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 20 bytes [entry]
 [./index.js] 20 bytes {main}
 
-[0m[1m[38;5;9merror[internal][0m[1m: Resolve error[0m
-  [0m[34m┌─[0m tests/statsCases/normal-errors/index.js:1:1
-  [0m[34m│[0m
-[0m[34m1[0m [0m[34m│[0m [0m[31mimport "not-exist";[0m
-  [0m[34m│[0m [0m[31m^^^^^^^^^^^^^^^^^^^[0m [0m[31mFailed to resolve not-exist[0m
+error[internal]: Resolve error
+  ┌─ tests/statsCases/normal-errors/index.js:1:1
+  │
+1 │ import "not-exist";
+  │ ^^^^^^^^^^^^^^^^^^^ Failed to resolve not-exist
+
+"
+`;
+
+exports[`StatsTestCases should print correct stats for parse-error 1`] = `
+{
+  "assets": [
+    {
+      "chunkNames": [
+        "main",
+      ],
+      "chunks": [
+        "main",
+      ],
+      "info": {
+        "development": false,
+      },
+      "name": "bundle.js",
+      "size": 1846,
+      "type": "asset",
+    },
+  ],
+  "chunks": [
+    {
+      "entry": true,
+      "files": [
+        "bundle.js",
+      ],
+      "id": "main",
+      "initial": true,
+      "names": [
+        "main",
+      ],
+      "size": 83,
+      "type": "chunk",
+    },
+  ],
+  "entrypoints": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 1846,
+        },
+      ],
+      "assetsSize": 1846,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
+  "errors": [
+    {
+      "formatted": "error[javascript]: JavaScript parsing error
+  ┌─ tests/statsCases/parse-error/b.js:6:8
+  │
+6 │ parser )
+  │        ^ Expected ';', '}' or <eof>
+
+",
+      "message": "Expected ';', '}' or <eof>",
+    },
+  ],
+  "errorsCount": 1,
+  "modules": [
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "./a.js",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/parse-error/a.js",
+      "moduleType": "js",
+      "name": "./a.js",
+      "size": 14,
+      "type": "module",
+    },
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "./b.js",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/parse-error/b.js",
+      "moduleType": "js",
+      "name": "./b.js",
+      "size": 55,
+      "type": "module",
+    },
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "./index.js",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/parse-error/index.js",
+      "moduleType": "js",
+      "name": "./index.js",
+      "size": 14,
+      "type": "module",
+    },
+  ],
+  "warnings": [],
+  "warningsCount": 0,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for parse-error 2`] = `
+"    Asset     Size  Chunks  Chunk Names
+bundle.js  1.8 KiB    main  main
+Entrypoint main = bundle.js
+chunk {main} bundle.js (main) 83 bytes [entry]
+[./a.js] 14 bytes {main}
+[./b.js] 55 bytes {main}
+[./index.js] 14 bytes {main}
+
+error[javascript]: JavaScript parsing error
+  ┌─ tests/statsCases/parse-error/b.js:6:8
+  │
+6 │ parser )
+  │        ^ Expected ';', '}' or <eof>
 
 "
 `;
@@ -143,8 +413,11 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "chunks": [
         "main",
       ],
+      "info": {
+        "development": false,
+      },
       "name": "bundle.js",
-      "size": 1735,
+      "size": 1729,
       "type": "asset",
     },
   ],
@@ -163,6 +436,21 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "type": "chunk",
     },
   ],
+  "entrypoints": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 1729,
+        },
+      ],
+      "assetsSize": 1729,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
   "errors": [],
   "errorsCount": 0,
   "modules": [
@@ -186,6 +474,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
 exports[`StatsTestCases should print correct stats for simple 2`] = `
 "    Asset      Size  Chunks  Chunk Names
 bundle.js  1.69 KiB    main  main
+Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 26 bytes [entry]
 [./index.js] 26 bytes {main}"
 `;

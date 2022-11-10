@@ -2,8 +2,7 @@ use crate::{Chunk, Compilation, ModuleType, SourceType, PATH_START_BYTE_POS_MAP}
 use hashbrown::HashMap;
 use rspack_error::{
   emitter::{
-    ColoredStringDiagnosticDisplay, DiagnosticDisplay, StdioDiagnosticDisplay,
-    StringDiagnosticDisplay,
+    DiagnosticDisplay, DiagnosticDisplayer, StdioDiagnosticDisplay, StringDiagnosticDisplay,
   },
   Result,
 };
@@ -18,20 +17,29 @@ impl<'compilation> Stats<'compilation> {
     Self { compilation }
   }
 
-  pub fn emit_error(&self) -> Result<()> {
-    StdioDiagnosticDisplay::default().emit_batch_diagnostic(
-      &self.compilation.diagnostic,
+  pub fn emit_diagnostics(&self) -> Result<()> {
+    let mut displayer = StdioDiagnosticDisplay::default();
+    displayer.emit_batch_diagnostic(
+      self.compilation.get_warnings(),
+      PATH_START_BYTE_POS_MAP.clone(),
+    )?;
+    displayer.emit_batch_diagnostic(
+      self.compilation.get_errors(),
       PATH_START_BYTE_POS_MAP.clone(),
     )
   }
 
-  pub fn emit_error_string(&self, sorted: bool) -> Result<String> {
-    StringDiagnosticDisplay::default()
-      .with_sorted(sorted)
-      .emit_batch_diagnostic(
-        &self.compilation.diagnostic,
-        PATH_START_BYTE_POS_MAP.clone(),
-      )
+  pub fn emit_diagnostics_string(&self, sorted: bool) -> Result<String> {
+    let mut displayer = StringDiagnosticDisplay::default().with_sorted(sorted);
+    let warnings = displayer.emit_batch_diagnostic(
+      self.compilation.get_warnings(),
+      PATH_START_BYTE_POS_MAP.clone(),
+    )?;
+    let errors = displayer.emit_batch_diagnostic(
+      self.compilation.get_errors(),
+      PATH_START_BYTE_POS_MAP.clone(),
+    )?;
+    Ok(warnings + &errors)
   }
 }
 
@@ -58,6 +66,9 @@ impl<'compilation> Stats<'compilation> {
             size: asset.get_source().size() as f64,
             chunks: Vec::new(),
             chunk_names: Vec::new(),
+            info: StatsAssetInfo {
+              development: asset.info.development,
+            },
           },
         )
       }));
@@ -97,7 +108,7 @@ impl<'compilation> Stats<'compilation> {
         let mut chunks: Vec<String> = self
           .compilation
           .chunk_graph
-          .get_chunk_graph_module(&mgm.uri)
+          .get_chunk_graph_module(&mgm.module_identifier)
           .chunks
           .iter()
           .map(|k| self.compilation.chunk_by_ukey.get(k).unwrap().id.clone())
@@ -114,9 +125,93 @@ impl<'compilation> Stats<'compilation> {
         }
       })
       .collect();
-    modules.sort_by_cached_key(|m| m.identifier.to_string()); // TODO: sort by module.depth
+    modules.sort_by(|a, b| {
+      if a.name.len() != b.name.len() {
+        a.name.len().cmp(&b.name.len())
+      } else {
+        a.name.cmp(&b.name)
+      }
+    }); // TODO: sort by module.depth
 
-    let mut diagnostic_displayer = ColoredStringDiagnosticDisplay;
+    let mut chunks: Vec<StatsChunk> = self
+      .compilation
+      .chunk_by_ukey
+      .values()
+      .into_iter()
+      .map(|c| {
+        let mut files = Vec::from_iter(c.files.iter().cloned());
+        files.sort();
+        StatsChunk {
+          r#type: "chunk",
+          files,
+          id: c.id.clone(),
+          names: c.name.clone().map(|n| vec![n]).unwrap_or_default(),
+          entry: c.has_entry_module(&self.compilation.chunk_graph),
+          initial: c.can_be_initial(&self.compilation.chunk_group_by_ukey),
+          size: self
+            .compilation
+            .chunk_graph
+            .get_chunk_modules_size(&c.ukey, &self.compilation.module_graph),
+        }
+      })
+      .collect();
+    chunks.sort_by_cached_key(|v| v.id.to_string());
+
+    let mut entrypoints: Vec<StatsEntrypoint> = self
+      .compilation
+      .entrypoints
+      .iter()
+      .map(|(name, ukey)| {
+        let cg = self
+          .compilation
+          .chunk_group_by_ukey
+          .get(ukey)
+          .expect("compilation.chunk_group_by_ukey should have ukey from entrypoint");
+        let mut chunks: Vec<String> = cg
+          .chunks
+          .iter()
+          .map(|c| {
+            self
+              .compilation
+              .chunk_by_ukey
+              .get(c)
+              .expect("compilation.chunk_by_ukey should have ukey from chunk_group")
+          })
+          .map(|c| c.id.clone())
+          .collect();
+        chunks.sort();
+        let mut assets = cg.chunks.iter().fold(Vec::new(), |mut acc, c| {
+          let chunk = self
+            .compilation
+            .chunk_by_ukey
+            .get(c)
+            .expect("compilation.chunk_by_ukey should have ukey from chunk_group");
+          for file in &chunk.files {
+            acc.push(StatsEntrypointAsset {
+              name: file.clone(),
+              size: self
+                .compilation
+                .assets()
+                .get(file)
+                .unwrap()
+                .get_source()
+                .size() as f64,
+            });
+          }
+          acc
+        });
+        assets.sort_by_cached_key(|v| v.name.to_string());
+        StatsEntrypoint {
+          name: name.clone(),
+          chunks,
+          assets_size: assets.iter().fold(0.0, |acc, cur| acc + cur.size),
+          assets,
+        }
+      })
+      .collect();
+    entrypoints.sort_by_cached_key(|e| e.name.to_string());
+
+    let mut diagnostic_displayer = DiagnosticDisplayer::new(self.compilation.options.stats.colors);
     let errors: Vec<StatsError> = self
       .compilation
       .get_errors()
@@ -141,28 +236,8 @@ impl<'compilation> Stats<'compilation> {
     StatsCompilation {
       assets,
       modules,
-      chunks: self
-        .compilation
-        .chunk_by_ukey
-        .values()
-        .into_iter()
-        .map(|c| {
-          let mut files = Vec::from_iter(c.files.iter().cloned());
-          files.sort();
-          StatsChunk {
-            r#type: "chunk",
-            files,
-            id: c.id.clone(),
-            names: c.name.clone().map(|n| vec![n]).unwrap_or_default(),
-            entry: c.has_entry_module(&self.compilation.chunk_graph),
-            initial: c.can_be_initial(&self.compilation.chunk_group_by_ukey),
-            size: self
-              .compilation
-              .chunk_graph
-              .get_chunk_modules_size(&c.ukey, &self.compilation.module_graph),
-          }
-        })
-        .collect(),
+      chunks,
+      entrypoints,
       errors_count: errors.len(),
       errors,
       warnings_count: warnings.len(),
@@ -180,7 +255,7 @@ pub struct StatsCompilation {
   pub errors_count: usize,
   pub warnings: Vec<StatsWarning>,
   pub warnings_count: usize,
-  // pub entrypoints: HashMap<String, StatsEntrypoint>,
+  pub entrypoints: Vec<StatsEntrypoint>,
 }
 
 #[derive(Debug)]
@@ -202,6 +277,12 @@ pub struct StatsAsset {
   pub size: f64,
   pub chunks: Vec<String>,
   pub chunk_names: Vec<String>,
+  pub info: StatsAssetInfo,
+}
+
+#[derive(Debug)]
+pub struct StatsAssetInfo {
+  pub development: bool,
 }
 
 #[derive(Debug)]
@@ -227,12 +308,15 @@ pub struct StatsChunk {
 }
 
 #[derive(Debug)]
-pub struct StatsAssetReference {
+pub struct StatsEntrypointAsset {
   pub name: String,
+  pub size: f64,
 }
 
 #[derive(Debug)]
 pub struct StatsEntrypoint {
   pub name: String,
-  pub assets: Vec<StatsAssetReference>,
+  pub assets: Vec<StatsEntrypointAsset>,
+  pub chunks: Vec<String>,
+  pub assets_size: f64,
 }

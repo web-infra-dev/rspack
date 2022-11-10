@@ -22,8 +22,11 @@ describe("Stats", () => {
 		    {
 		      "chunkNames": [],
 		      "chunks": [],
+		      "info": {
+		        "development": false,
+		      },
 		      "name": "runtime.js",
-		      "size": 11780,
+		      "size": 14734,
 		      "type": "asset",
 		    },
 		    {
@@ -33,6 +36,9 @@ describe("Stats", () => {
 		      "chunks": [
 		        "main",
 		      ],
+		      "info": {
+		        "development": false,
+		      },
 		      "name": "main.js",
 		      "size": 210,
 		      "type": "asset",
@@ -43,7 +49,6 @@ describe("Stats", () => {
 		      "entry": true,
 		      "files": [
 		        "main.js",
-		        "runtime.js",
 		      ],
 		      "id": "main",
 		      "initial": true,
@@ -54,6 +59,21 @@ describe("Stats", () => {
 		      "type": "chunk",
 		    },
 		  ],
+		  "entrypoints": {
+		    "main": {
+		      "assets": [
+		        {
+		          "name": "main.js",
+		          "size": 210,
+		        },
+		      ],
+		      "assetsSize": 210,
+		      "chunks": [
+		        "main",
+		      ],
+		      "name": "main",
+		    },
+		  },
 		  "errors": [],
 		  "errorsCount": 0,
 		  "modules": [
@@ -73,11 +93,12 @@ describe("Stats", () => {
 		  "warningsCount": 0,
 		}
 	`);
-		expect(stats.toString()).toMatchInlineSnapshot(`
+		expect(stats.toString({ colors: false })).toMatchInlineSnapshot(`
 		"     Asset       Size  Chunks  Chunk Names
-		runtime.js   11.5 KiB          
+		runtime.js   14.4 KiB          
 		   main.js  210 bytes    main  main
-		chunk {main} main.js, runtime.js (main) 55 bytes [entry]
+		Entrypoint main = main.js
+		chunk {main} main.js (main) 55 bytes [entry]
 		[./fixtures/a.js] 55 bytes {main}"
 	`);
 	});

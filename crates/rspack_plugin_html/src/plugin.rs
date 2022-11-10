@@ -53,10 +53,6 @@ impl Plugin for HtmlPlugin {
   ) -> rspack_core::PluginProcessAssetsOutput {
     let config = &self.config;
     let compilation = args.compilation;
-    let assets = &compilation.assets;
-
-    let _chunk_graph = &compilation.chunk_graph;
-    let chunk_by_ukey = &compilation.chunk_by_ukey;
 
     let parser = HtmlCompiler::new(config);
     let (content, url) = match &config.template {
@@ -90,10 +86,10 @@ impl Plugin for HtmlPlugin {
 
     let ast_with_diagnostic = parser.parse_file(&url, template_result)?;
 
-    let (mut current_ast, mut diagnostic) = ast_with_diagnostic.split_into_parts();
+    let (mut current_ast, diagnostic) = ast_with_diagnostic.split_into_parts();
 
     if !diagnostic.is_empty() {
-      compilation.diagnostic.append(&mut diagnostic);
+      compilation.push_batch_diagnostic(diagnostic);
     }
     let mut included_assets = compilation
       .entrypoints
@@ -110,8 +106,13 @@ impl Plugin for HtmlPlugin {
         included
       })
       .map(|entry_name| compilation.entrypoint_by_name(entry_name))
-      .flat_map(|entry| entry.get_files(chunk_by_ukey))
-      .map(|asset_name| (asset_name.clone(), assets.get(&asset_name).unwrap()))
+      .flat_map(|entry| entry.get_files(&compilation.chunk_by_ukey))
+      .map(|asset_name| {
+        (
+          asset_name.clone(),
+          compilation.assets.get(&asset_name).unwrap(),
+        )
+      })
       .collect::<Vec<_>>();
 
     // entrypoint.get_files() are unstable, I need to sort it to pass tests.
@@ -120,10 +121,7 @@ impl Plugin for HtmlPlugin {
     let mut tags = vec![];
     for (asset_name, asset) in included_assets {
       if let Some(extension) = Path::new(&asset_name).extension() {
-        let mut asset_uri = asset_name.to_string();
-        if let Some(public_path) = &config.public_path {
-          asset_uri = format!("{}{}", public_path, asset_uri);
-        }
+        let asset_uri = config.get_public_path(compilation, &asset_name) + &asset_name;
         let mut tag: Option<HTMLPluginTag> = None;
         if extension.eq_ignore_ascii_case("css") {
           tag = Some(HTMLPluginTag::create_style(
@@ -152,6 +150,22 @@ impl Plugin for HtmlPlugin {
           tags.push((tag, asset));
         }
       }
+    }
+
+    // FIXME: Runtime Related workaround
+    // This is a really dirty workaround for the *Html-webpack-plugin* implementation.
+    // Webpack uses `RuntimeModule` to link the file to the corresponding entry points, however in the current implementation of Rspack,
+    // We directly emit runtime assets in the hook processAssets of `rspack-plugin-runtime`, which cannot be tracked like how webpack handles this.
+    // cc @underfin
+    if compilation.options.target.platform.is_web() && let Some(asset) = compilation.assets.get("runtime.js") {
+      let tag = HTMLPluginTag::create_script(
+        "runtime.js",
+        Some(
+          HtmlPluginConfigInject::Head
+        ),
+        &config.script_loading,
+      );
+      tags.push((tag, asset));
     }
 
     // if some plugin changes assets in the same stage after this plugin

@@ -3,19 +3,23 @@ use dashmap::DashMap;
 use hashbrown::hash_map::DefaultHashBuilder;
 use rayon::prelude::*;
 use swc::{config::JsMinifyOptions, BoolOrDataConfig};
+use swc_common::util::take::Take;
 use swc_common::GLOBALS;
-use swc_ecma_visit::VisitAllWith;
+use swc_ecma_minifier::option::terser::{
+  TerserCompressorOptions, TerserEcmaVersion, TerserInlineOption,
+};
 
+use crate::visitors::minify::minify as minifier;
 use rspack_core::rspack_sources::{
   BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
   SourceMapSource, SourceMapSourceOptions,
 };
 use rspack_core::{
-  get_contenthash, AstOrSource, Compilation, FilenameRenderOptions, GenerationResult,
-  JavascriptAstExtend, ModuleAst, ModuleGraphModule, ModuleType, NormalModule, ParseContext,
-  ParseResult, ParserAndGenerator, Plugin, PluginContext, PluginProcessAssetsOutput,
-  PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, ProcessAssetsArgs,
-  RenderManifestEntry, RenderRuntimeArgs, SourceType, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
+  get_contenthash, AstOrSource, Compilation, FilenameRenderOptions, GenerationResult, ModuleAst,
+  ModuleGraphModule, ModuleType, NormalModule, ParseContext, ParseResult, ParserAndGenerator,
+  Plugin, PluginContext, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
+  PluginRenderRuntimeHookOutput, ProcessAssetsArgs, RenderManifestEntry, RenderRuntimeArgs,
+  SourceType, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;
@@ -83,32 +87,36 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       )));
     }
 
-    let ast_with_diagnostics = crate::ast::parse(
+    let (mut ast, diagnostics) = match crate::ast::parse(
       source.source().to_string(),
       &resource_data.resource_path,
       module_type,
-    )?;
+    ) {
+      Ok(ast) => (ast, Vec::new()),
+      Err(diagnostics) => (
+        rspack_core::ast::javascript::Ast::new(swc_ecma_ast::Program::Module(
+          swc_ecma_ast::Module::dummy(),
+        )),
+        diagnostics.into(),
+      ),
+    };
 
-    let (ast, diagnostics) = ast_with_diagnostics.split_into_parts();
-
-    let (processed_ast, top_level_mark, unresolved_mark, globals) = run_before_pass(
+    run_before_pass(
       resource_data,
-      ast,
+      &mut ast,
       compiler_options,
       syntax_by_module_type(source.source().to_string().as_str(), module_type),
     )?;
 
-    let mut dep_scanner = DependencyScanner::default();
-    processed_ast.visit_all_with(&mut dep_scanner);
+    let dep_scanner = ast.visit(|program, _context| {
+      let mut dep_scanner = DependencyScanner::default();
+      program.visit_all_with(&mut dep_scanner);
+      dep_scanner
+    });
 
     Ok(
       ParseResult {
-        ast_or_source: AstOrSource::Ast(ModuleAst::JavaScript(JavascriptAstExtend {
-          ast: processed_ast,
-          top_level_mark,
-          unresolved_mark,
-        })),
-        parse_phase_global: Some(globals),
+        ast_or_source: AstOrSource::Ast(ModuleAst::JavaScript(ast)),
         dependencies: dep_scanner.dependencies.into_iter().collect(),
       }
       .with_diagnostic(diagnostics),
@@ -133,11 +141,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       // TODO: this should only return AST for javascript only, It's a fast pass, defer to another pr to solve this.
       // Ok(ast_or_source.to_owned().into())
 
-      let ast = ast_or_source
+      let mut ast = ast_or_source
         .to_owned()
         .try_into_ast()?
         .try_into_javascript()?;
-      let ast = run_after_pass(ast.ast, mgm, compilation)?;
+      run_after_pass(&mut ast, mgm, compilation);
       let output = crate::ast::stringify(&ast, &compilation.options.devtool)?;
 
       if let Some(map) = output.map {
@@ -248,8 +256,7 @@ impl Plugin for JsPlugin {
       module_graph,
     );
 
-    // FIXME: clone is not good
-    ordered_modules.sort_by_key(|m| m.uri.to_owned());
+    ordered_modules.sort_by_key(|m| &m.module_identifier);
 
     let has_inline_runtime = !compilation.options.target.platform.is_web()
       && chunk.is_only_initial(&args.compilation.chunk_group_by_ukey);
@@ -356,8 +363,9 @@ impl Plugin for JsPlugin {
     args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
     let compilation = args.compilation;
-    let minify = &compilation.options.builtins.minify;
-    if !minify {
+    let minify = compilation.options.builtins.minify;
+    let tree_shaking = compilation.options.builtins.tree_shaking;
+    if !minify && !tree_shaking {
       return Ok(());
     }
 
@@ -369,28 +377,26 @@ impl Plugin for JsPlugin {
         filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs")
       })
       .try_for_each(|(filename, original)| -> Result<()> {
+        // In theory, if a js source is minimized it has high possibility has been tree-shaked.
         if original.get_info().minimized {
           return Ok(());
         }
 
         let input = original.get_source().source().to_string();
         let input_source_map = original.get_source().map(&MapOptions::default());
+        let minify_options = get_js_minify_options(
+          !compilation.options.devtool.cheap(),
+          input_source_map.is_some(),
+          tree_shaking,
+          minify,
+        );
         let output = GLOBALS.set(&Default::default(), || {
           swc::try_with_handler(swc_compiler.cm.clone(), Default::default(), |handler| {
             let fm = swc_compiler.cm.new_source_file(
               swc_common::FileName::Custom(filename.to_string()),
               input.clone(),
             );
-            swc_compiler.minify(
-              fm,
-              handler,
-              &JsMinifyOptions {
-                source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
-                inline_sources_content: false, // don't need this since we have inner_source_map in SourceMapSource
-                emit_source_map_columns: !compilation.options.devtool.cheap(),
-                ..Default::default()
-              },
-            )
+            minifier(fm, handler, &minify_options, minify)
           })
         })?;
         let source = if let Some(map) = &output.map {
@@ -414,4 +420,42 @@ impl Plugin for JsPlugin {
 
     Ok(())
   }
+}
+
+fn get_js_minify_options(
+  emit_source_map_columns: bool,
+  has_source_map: bool,
+  tree_shaking: bool,
+  minify: bool,
+) -> JsMinifyOptions {
+  let mut options = JsMinifyOptions {
+    source_map: BoolOrDataConfig::from_bool(has_source_map),
+    inline_sources_content: false, /* don't need this since we have inner_source_map in SourceMapSource */
+    emit_source_map_columns,
+    ..Default::default()
+  };
+  if tree_shaking && !minify {
+    // If user want tree shake the code without minify, we need to disable some option
+    // to avoid swc transform introduce too much noise to the code
+    options.compress = BoolOrDataConfig::from_obj(TerserCompressorOptions {
+      dead_code: Some(true),
+      side_effects: Some(true),
+      unused: Some(true),
+      // TODO: according options target
+      ecma: TerserEcmaVersion::Num(6),
+      inline: Some(TerserInlineOption::Bool(false)),
+      defaults: false,
+      ..Default::default()
+    });
+    options.mangle = BoolOrDataConfig::from_bool(false);
+  } else if tree_shaking {
+    options.compress = BoolOrDataConfig::from_obj(TerserCompressorOptions {
+      dead_code: Some(true),
+      side_effects: Some(true),
+      unused: Some(true),
+      ..Default::default()
+    });
+    options.mangle = BoolOrDataConfig::from_bool(true);
+  }
+  options
 }

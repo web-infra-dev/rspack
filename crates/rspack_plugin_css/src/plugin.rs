@@ -117,7 +117,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     Ok(
       ParseResult {
-        parse_phase_global: None,
         dependencies: scanner.dependencies,
         ast_or_source: stylesheet.into(),
       }
@@ -321,15 +320,15 @@ impl Plugin for CssPlugin {
         .filter_map(|ukey| args.compilation.chunk_group_by_ukey.get(ukey))
         .map(|chunk_group| {
           let mut modules = modules.clone();
-          modules.sort_by_key(|mgm| chunk_group.module_post_order_index(mgm.uri.as_str()));
+          modules.sort_by_key(|mgm| chunk_group.module_post_order_index(&mgm.module_identifier));
           tracing::trace!(
             "modules for chunk id {}: {:#?} ",
             args.chunk().id,
             modules
               .iter()
               .map(|mgm| (
-                mgm.uri.clone(),
-                chunk_group.module_post_order_index(mgm.uri.as_str())
+                mgm.module_identifier.clone(),
+                chunk_group.module_post_order_index(&mgm.module_identifier)
               ))
               .collect::<Vec<_>>()
           );
@@ -377,7 +376,6 @@ impl Plugin for CssPlugin {
     let hash = None;
     let chunkhash = None;
     let contenthash = Some(get_contenthash(&source).to_string());
-
     if source.source().is_empty() {
       Ok(Default::default())
     } else {
@@ -402,13 +400,12 @@ impl Plugin for CssPlugin {
           .render(FilenameRenderOptions {
             filename: None,
             extension: Some(".css".to_owned()),
-            id: Some(format!("static/css/{}", args.chunk().id.to_owned())),
+            id: Some(args.chunk().id.to_owned()),
             contenthash,
             chunkhash,
             hash,
           })
       };
-
       Ok(vec![RenderManifestEntry::new(source.boxed(), output_path)])
     }
   }

@@ -2,6 +2,7 @@ use std::{
   collections::VecDeque,
   fmt::Debug,
   marker::PhantomPinned,
+  pin::Pin,
   sync::atomic::{AtomicU32, Ordering},
   sync::Arc,
 };
@@ -11,29 +12,26 @@ use hashbrown::{
   hash_set::Entry::{Occupied, Vacant},
   HashMap, HashSet,
 };
+use indexmap::IndexSet;
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
-use swc_common::GLOBALS;
 use tokio::sync::mpsc::{error::TryRecvError, UnboundedSender};
 use tracing::instrument;
 
-use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity};
+use rspack_error::{Diagnostic, Error, IntoTWithDiagnosticArray, Result, Severity};
 use rspack_sources::BoxSource;
-use swc_ecma_visit::VisitWith;
 use ustr::{ustr, Ustr};
 
 use crate::{
+  is_source_equal,
   split_chunks::code_splitting,
-  tree_shaking::{
-    symbol::Symbol,
-    visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
-  },
+  tree_shaking::visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
   BuildContext, BundleEntries, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey,
-  ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint, JavascriptAstExtend,
-  LoaderRunnerRunner, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg,
-  NormalModule, NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs,
-  RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver, Stats,
-  VisitedModuleIdentity,
+  ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint, LoaderRunnerRunner,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModule,
+  NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs,
+  RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver, Stats, VisitedModuleIdentity,
 };
+use rspack_symbol::Symbol;
 
 #[derive(Debug)]
 pub struct Compilation {
@@ -47,7 +45,7 @@ pub struct Compilation {
   pub runtime: Runtime,
   pub entrypoints: HashMap<String, ChunkGroupUkey>,
   pub assets: CompilationAssets,
-  pub diagnostic: Vec<Diagnostic>,
+  diagnostics: IndexSet<Diagnostic, hashbrown::hash_map::DefaultHashBuilder>,
   pub(crate) plugin_driver: SharedPluginDriver,
   pub(crate) loader_runner_runner: Arc<LoaderRunnerRunner>,
   pub(crate) _named_chunk: HashMap<String, ChunkUkey>,
@@ -79,7 +77,7 @@ impl Compilation {
       runtime: Default::default(),
       entrypoints: Default::default(),
       assets: Default::default(),
-      diagnostic: vec![],
+      diagnostics: Default::default(),
       plugin_driver,
       loader_runner_runner,
       _named_chunk: Default::default(),
@@ -99,10 +97,10 @@ impl Compilation {
     let entry_modules_uri = self.chunk_graph.get_chunk_entry_modules(chunk_ukey);
     let entry_modules_id = entry_modules_uri
       .into_iter()
-      .filter_map(|entry_module_uri| {
+      .filter_map(|entry_module_identifier| {
         self
           .module_graph
-          .module_by_uri(entry_module_uri)
+          .module_by_uri(entry_module_identifier)
           .map(|module| &module.id)
       })
       .collect::<Vec<_>>();
@@ -112,8 +110,43 @@ impl Compilation {
       .generate_rspack_execute(namespace, "__rspack_require__", &entry_modules_id)
   }
 
+  pub fn update_asset(
+    self: Pin<&mut Self>,
+    filename: &str,
+    updater: impl FnOnce(&mut CompilationAsset) -> Result<()>,
+  ) -> Result<()> {
+    // Safety: we don't move anything from compilation
+    let assets = unsafe { self.map_unchecked_mut(|c| &mut c.assets) }.get_mut();
+
+    match assets.get_mut(filename) {
+      Some(asset) => updater(asset),
+      None => Err(Error::InternalError(format!(
+        "Called Compilation.updateAsset for not existing filename {}",
+        filename
+      ))),
+    }
+  }
+
   pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
-    self.assets.insert(filename, asset);
+    if let Some(mut original) = self.assets.remove(&filename) {
+      if !is_source_equal(&original.source, &asset.source) {
+        self.push_batch_diagnostic(
+          rspack_error::Error::InternalError(format!(
+            "Conflict: Multiple assets emit different content to the same filename {}{}",
+            filename,
+            // TODO: source file name
+            ""
+          ))
+          .into(),
+        );
+        self.assets.insert(filename, asset);
+        return;
+      }
+      original.info = asset.info;
+      self.assets.insert(filename, original);
+    } else {
+      self.assets.insert(filename, asset);
+    }
   }
 
   pub fn assets(&self) -> &CompilationAssets {
@@ -121,23 +154,23 @@ impl Compilation {
   }
 
   pub fn push_diagnostic(&mut self, diagnostic: Diagnostic) {
-    self.diagnostic.push(diagnostic);
+    self.diagnostics.insert(diagnostic);
   }
 
-  pub fn push_batch_diagnostic(&mut self, mut diagnostic: Vec<Diagnostic>) {
-    self.diagnostic.append(&mut diagnostic);
+  pub fn push_batch_diagnostic(&mut self, diagnostics: Vec<Diagnostic>) {
+    self.diagnostics.extend(diagnostics);
   }
 
   pub fn get_errors(&self) -> impl Iterator<Item = &Diagnostic> {
     self
-      .diagnostic
+      .diagnostics
       .iter()
       .filter(|d| matches!(d.severity, Severity::Error))
   }
 
   pub fn get_warnings(&self) -> impl Iterator<Item = &Diagnostic> {
     self
-      .diagnostic
+      .diagnostics
       .iter()
       .filter(|d| matches!(d.severity, Severity::Warn))
   }
@@ -166,7 +199,6 @@ impl Compilation {
         let items = items
           .iter()
           .map(|detail| Dependency {
-            importer: None,
             parent_module_identifier: None,
             detail: ModuleDependency {
               specifier: detail.path.clone(),
@@ -446,7 +478,6 @@ impl Compilation {
             .dependencies
             .into_iter()
             .map(|dep| Dependency {
-              importer: Some(module_identifier.clone()),
               parent_module_identifier: Some(module_identifier.clone()),
               detail: dep,
             })
@@ -558,7 +589,7 @@ impl Compilation {
       })
   }
   #[instrument(name = "compilation:process_asssets")]
-  async fn process_assets(&mut self, plugin_driver: SharedPluginDriver) {
+  async fn process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     plugin_driver
       .write()
       .await
@@ -568,7 +599,6 @@ impl Compilation {
         eprintln!("process_assets is not ok, err {:#?}", e);
         e
       })
-      .ok();
   }
 
   pub async fn optimize_dependency(
@@ -588,6 +618,8 @@ impl Compilation {
             .module_graph
             .module_by_identifier(&m.module_identifier)
             .and_then(|module| module.ast())
+            .unwrap()
+            .as_javascript()
             .unwrap(),
           // Of course this is unsafe, but if we can't get a ast of a javascript module, then panic is ideal.
           _ => {
@@ -595,21 +627,15 @@ impl Compilation {
             return None;
           }
         };
-        let normal_module = self.module_graph.module_by_identifier(&m.module_identifier);
-        let globals = normal_module.and_then(|module| module.parse_phase_global());
-        let JavascriptAstExtend {
-          ast,
-          top_level_mark,
-          unresolved_mark,
-        } = ast.as_javascript().unwrap();
-        let mut analyzer = ModuleRefAnalyze::new(
-          *top_level_mark,
-          *unresolved_mark,
-          uri_key,
-          &self.module_graph,
-        );
-        GLOBALS.set(globals.unwrap(), || {
-          ast.visit_with(&mut analyzer);
+        // let normal_module = self.module_graph.module_by_identifier(&m.module_identifier);
+        //        let ast = ast.as_javascript().unwrap();
+        let analyzer = ast.visit(|program, context| {
+          let top_level_mark = context.top_level_mark;
+          let unresolved_mark = context.unresolved_mark;
+          let mut analyzer =
+            ModuleRefAnalyze::new(top_level_mark, unresolved_mark, uri_key, &self.module_graph);
+          program.visit_with(&mut analyzer);
+          analyzer
         });
         // Keep this debug info until we stabilize the tree-shaking
 
@@ -709,7 +735,7 @@ impl Compilation {
     // generate runtime
     self.runtime = self.render_runtime(plugin_driver.clone()).await;
 
-    self.process_assets(plugin_driver).await;
+    self.process_assets(plugin_driver).await?;
     Ok(())
   }
 }
@@ -834,10 +860,10 @@ fn mark_symbol(
     SymbolRef::Direct(symbol) => match used_symbol_set.entry(symbol) {
       Occupied(_) => {}
       Vacant(vac) => {
-        let module_result = analyze_map.get(&vac.get().uri).unwrap();
+        let module_result = analyze_map.get(&vac.get().uri()).unwrap();
         if let Some(set) = module_result
           .reachable_import_of_export
-          .get(&vac.get().id.atom)
+          .get(&vac.get().id().atom)
         {
           q.extend(set.clone());
         };

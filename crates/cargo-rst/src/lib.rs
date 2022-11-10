@@ -3,6 +3,7 @@ use std::{env, ffi::OsString};
 pub mod helper;
 mod record;
 pub mod rst;
+mod terminal_inline;
 mod update;
 pub use rst::test;
 
