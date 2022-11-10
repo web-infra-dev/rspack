@@ -30,18 +30,18 @@ impl Debug for CacheGroupSource {
 }
 
 pub struct CacheGroupSource {
-  pub key: String,
-  pub priority: isize,
-  pub get_name: Arc<dyn Fn() -> String + Send + Sync>,
-  pub chunks_filter: Arc<dyn Fn(&Chunk) -> bool + Send + Sync>,
-  pub enforce: bool,
-  pub min_chunks: usize,
-  pub max_async_requests: usize,
-  pub max_initial_requests: usize,
-  pub filename: String,
-  pub id_hint: String,
+  pub key: Option<String>,
+  pub priority: Option<isize>,
+  pub get_name: Option<Arc<dyn Fn() -> String + Send + Sync>>,
+  pub chunks_filter: Option<Arc<dyn Fn(&Chunk) -> bool + Send + Sync>>,
+  pub enforce: Option<bool>,
+  pub min_chunks: Option<usize>,
+  pub max_async_requests: Option<usize>,
+  pub max_initial_requests: Option<usize>,
+  pub filename: Option<String>,
+  pub id_hint: Option<String>,
   pub automatic_name_delimiter: String,
-  pub reuse_existing_chunk: bool,
+  pub reuse_existing_chunk: Option<bool>,
   // TODO: supports used_exports
   // pub used_exports: bool,
   pub min_size: SplitChunkSizes,
@@ -141,34 +141,34 @@ impl Debug for ChunkType {
   }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct CacheGroupOptions {
-  pub priority: isize,
-  pub reuse_existing_chunk: bool,
-  pub r#type: SizeType,
-  pub test: Arc<dyn Fn(&ModuleGraphModule) -> bool + Sync + Send>,
-  pub filename: String,
-  pub enforce: bool,
-  pub id_hint: String,
+  pub priority: Option<isize>,
+  pub reuse_existing_chunk: Option<bool>,
+  pub r#type: Option<SizeType>,
+  pub test: Option<Arc<dyn Fn(&ModuleGraphModule) -> bool + Sync + Send>>,
+  pub filename: Option<String>,
+  pub enforce: Option<bool>,
+  pub id_hint: Option<String>,
 
   /// What kind of chunks should be selected.
-  pub chunks: ChunkType,
-  pub automatic_name_delimiter: String,
-  pub max_async_requests: usize,
-  pub max_initial_requests: usize,
-  pub min_chunks: usize,
-  // hide_path_info: bool,
-  pub min_size: usize,
-  pub min_size_reduction: usize,
-  pub enforce_size_threshold: usize,
-  pub min_remaining_size: usize,
-  // layer: String,
-  pub max_size: usize,
-  pub max_async_size: usize,
-  pub max_initial_size: usize,
-  // TODO: supports function
-  pub name: String,
-  // used_exports: bool,
+  pub chunks: Option<ChunkType>,
+  pub automatic_name_delimiter: Option<String>,
+  pub max_async_requests: Option<usize>,
+  pub max_initial_requests: Option<usize>,
+  pub min_chunks: Option<usize>,
+  // hide_path_info: Option<bool>,
+  pub min_size: Option<usize>,
+  pub min_size_reduction: Option<usize>,
+  pub enforce_size_threshold: Option<usize>,
+  pub min_remaining_size: Option<usize>,
+  // layer: Option<String>,
+  pub max_size: Option<usize>,
+  pub max_async_size: Option<usize>,
+  pub max_initial_size: Option<usize>,
+  // TODO: Option<supports> function
+  pub name: Option<String>,
+  // used_exports: Option<bool>,
 }
 
 impl Debug for CacheGroupOptions {
@@ -201,50 +201,29 @@ impl Debug for CacheGroupOptions {
 pub enum SizeType {
   JavaScript,
   Unknown,
+  Css,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SplitChunksOptions {
   pub cache_groups: HashMap<String, CacheGroupOptions>,
   /// What kind of chunks should be selected.
-  pub chunks: ChunkType,
-  pub automatic_name_delimiter: String,
-  pub max_async_requests: usize,
-  pub max_initial_requests: usize,
-  pub default_size_types: Vec<SizeType>,
-  pub min_chunks: usize,
-  // hide_path_info: bool,
-  pub min_size: usize,
-  pub min_size_reduction: usize,
-  pub enforce_size_threshold: usize,
-  pub min_remaining_size: usize,
-  // layer: String,
-  pub max_size: usize,
-  pub max_async_size: usize,
-  pub max_initial_size: usize,
+  pub chunks: Option<ChunkType>,
+  pub automatic_name_delimiter: Option<String>,
+  pub max_async_requests: Option<usize>,
+  pub max_initial_requests: Option<usize>,
+  pub default_size_types: Vec<Option<SizeType>>,
+  pub min_chunks: Option<usize>,
+  // hide_path_info: Option<bool>,
+  pub min_size: Option<usize>,
+  pub min_size_reduction: Option<usize>,
+  pub enforce_size_threshold: Option<usize>,
+  pub min_remaining_size: Option<usize>,
+  // layer: Option<String>,
+  pub max_size: Option<usize>,
+  pub max_async_size: Option<usize>,
+  pub max_initial_size: Option<usize>,
   // TODO: supports function
   // name: String,
   // used_exports: bool,
-}
-
-impl Default for SplitChunksOptions {
-  fn default() -> Self {
-    Self {
-      chunks: ChunkType::Async,
-      automatic_name_delimiter: "~".to_string(),
-      max_async_requests: 30,
-      max_initial_requests: 30,
-      default_size_types: vec![SizeType::JavaScript, SizeType::Unknown],
-      min_chunks: 1,
-      min_size: 20000,
-      min_size_reduction: 20000,
-      enforce_size_threshold: 50000,
-      min_remaining_size: 0,
-      max_size: 0,
-      max_async_size: usize::MAX,
-      max_initial_size: usize::MAX,
-
-      cache_groups: Default::default(),
-    }
-  }
 }

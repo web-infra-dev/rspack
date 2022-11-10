@@ -1,4 +1,4 @@
-it("should exec fn which defined `index.js` success", () => {
+it.only("should exec fn which defined `index.js` success", () => {
 	globalThis.getNumberOne = function () {
 		return 1;
 	};

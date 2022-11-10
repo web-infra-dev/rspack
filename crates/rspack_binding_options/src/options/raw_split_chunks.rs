@@ -58,43 +58,94 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
   #[allow(clippy::field_reassign_with_default)]
   fn to_compiler_option(
     self,
-    _options: &CompilerOptionsBuilder,
+    options: &CompilerOptionsBuilder,
   ) -> anyhow::Result<SplitChunksOptions> {
     let mut defaults = SplitChunksOptions::default();
-    defaults.cache_groups = self
-      .cache_groups
-      .into_iter()
-      .map(|(k, v)| {
-        (
-          k,
-          CacheGroupOptions {
-            name: v.name.clone(),
-            priority: 0,
-            reuse_existing_chunk: false,
-            r#type: SizeType::JavaScript,
-            test: Arc::new(move |module| {
-              let re = regex::Regex::new(&v.test).unwrap();
-              re.is_match(&module.id)
-            }),
-            filename: v.name,
-            enforce: false,
-            id_hint: Default::default(),
-            chunks: ChunkType::All,
-            automatic_name_delimiter: "~".to_string(),
-            max_async_requests: 30,
-            max_initial_requests: 30,
-            min_chunks: 1,
-            min_size: 20000,
-            min_size_reduction: 20000,
-            enforce_size_threshold: 50000,
-            min_remaining_size: 0,
-            max_size: 0,
-            max_async_size: usize::MAX,
-            max_initial_size: usize::MAX,
-          },
-        )
-      })
-      .collect();
+    // TODO: Supports css
+    let is_enable_css = false;
+    let is_production = matches!(options.mode, Some(rspack_core::Mode::Production));
+    let is_development = !is_production;
+    defaults.default_size_types = Some(if is_enable_css {
+      vec![SizeType::JavaScript, SizeType::Css, SizeType::Unknown]
+    } else {
+      vec![SizeType::JavaScript, SizeType::Unknown]
+    });
+    defaults.chunks = Some(ChunkType::Async);
+    defaults.min_chunks = 1;
+    defaults.min_size = if is_production { 20000 } else { 10000 };
+    defaults.min_remaining_size = if is_development { Some(0) } else { None };
+    defaults.enforce_size_threshold = Some(if is_production { 50000 } else { 30000 });
+    defaults.max_async_requests = Some(if is_production { 30 } else { usize::MAX });
+    defaults.max_initial_requests = Some(if is_production { 30 } else { usize::MAX });
+    defaults.automatic_name_delimiter = Some("-".to_string());
+
+    defaults.cache_groups.extend(From::from([
+      (
+        "default".to_string(),
+        CacheGroupOptions {
+          min_chunks: 2.into(),
+          priority: -20.into(),
+          id_hint: "".to_string().into(),
+          ..Default::default()
+        },
+      ),
+      (
+        "defaultVendors".to_string(),
+        CacheGroupOptions {
+          id_hint: "vendors".to_string().into(),
+          reuse_existing_chunk: true.into(),
+          test: Some(
+            Arc::new(|module| {
+              module
+                .resource
+                .map(|r| r.contains("node_modules"))
+                .unwrap_or(false)
+            })
+            .into(),
+          ),
+          priority: -10.into(),
+          ..Default::default()
+        },
+      ),
+    ]));
+
+    defaults.cache_groups.extend(
+      self
+        .cache_groups
+        .into_iter()
+        .map(|(k, v)| {
+          (
+            k,
+            CacheGroupOptions {
+              name: v.name.clone().into(),
+              priority: 0,
+              reuse_existing_chunk: false.into(),
+              r#type: SizeType::JavaScript.into(),
+              test: Arc::new(move |module| {
+                let re = regex::Regex::new(&v.test).unwrap();
+                re.is_match(&module.id)
+              })
+              .into(),
+              filename: v.name.into(),
+              enforce: false.into(),
+              id_hint: Default::default(),
+              chunks: ChunkType::All.into(),
+              automatic_name_delimiter: "~".to_string().into(),
+              max_async_requests: 30,
+              max_initial_requests: 30,
+              min_chunks: 1,
+              min_size: 20000,
+              min_size_reduction: 20000,
+              enforce_size_threshold: 50000,
+              min_remaining_size: 0,
+              max_size: 0,
+              max_async_size: usize::MAX.into(),
+              max_initial_size: usize::MAX.into(),
+            },
+          )
+        })
+        .collect(),
+    );
     Ok(defaults)
   }
 
