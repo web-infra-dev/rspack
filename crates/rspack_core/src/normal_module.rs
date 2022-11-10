@@ -1,5 +1,4 @@
 use std::{
-  collections::HashMap,
   fmt::Debug,
   sync::{
     atomic::{AtomicU32, Ordering},
@@ -20,7 +19,7 @@ use rspack_sources::{
   WithoutOriginalOptions,
 };
 
-use crate::ast::javascript::Ast as JsAst;
+use crate::{ast::javascript::Ast as JsAst, CodeGenerationResult, GenerationResult};
 use crate::{
   Compilation, CompilationContext, CompilerContext, CompilerOptions, Context, Dependency,
   LoaderRunnerRunner, ModuleAst, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleType,
@@ -173,17 +172,6 @@ pub trait Module: Debug + Send + Sync {
 }
 
 #[derive(Debug, Clone)]
-pub struct GenerationResult {
-  pub ast_or_source: AstOrSource,
-}
-
-impl From<AstOrSource> for GenerationResult {
-  fn from(ast_or_source: AstOrSource) -> Self {
-    GenerationResult { ast_or_source }
-  }
-}
-
-#[derive(Debug, Clone)]
 pub enum AstOrSource {
   Ast(ModuleAst),
   Source(BoxSource),
@@ -320,28 +308,6 @@ impl NormalModuleAstOrSource {
     } else {
       NormalModuleAstOrSource::BuiltSucceed(ast_or_source)
     }
-  }
-}
-
-#[derive(Debug, Default)]
-pub struct CodeGenerationResult {
-  inner: HashMap<SourceType, GenerationResult>,
-  // TODO: add runtime requirements
-  // runtime_requirements: Vec<RuntimeRequirements>,
-}
-
-impl CodeGenerationResult {
-  pub fn inner(&self) -> &HashMap<SourceType, GenerationResult> {
-    &self.inner
-  }
-
-  pub fn get(&self, source_type: &SourceType) -> Option<&GenerationResult> {
-    self.inner.get(source_type)
-  }
-
-  pub(super) fn add(&mut self, source_type: SourceType, generation_result: GenerationResult) {
-    let result = self.inner.insert(source_type, generation_result);
-    debug_assert!(result.is_none());
   }
 }
 
