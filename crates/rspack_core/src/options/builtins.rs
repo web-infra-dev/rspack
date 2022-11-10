@@ -18,6 +18,16 @@ pub struct ReactOptions {
 }
 
 #[derive(Debug, Clone, Default)]
+pub struct DecoratorOptions {
+  // https://swc.rs/docs/configuration/compilation#jsctransformlegacydecorator
+  pub legacy: bool,
+  // https://swc.rs/docs/configuration/compilation#jsctransformdecoratormetadata
+  pub emit_metadata: bool,
+  // https://babeljs.io/docs/en/assumptions#setpublicclassfields
+  pub use_define_for_class_fields: bool,
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct Builtins {
   pub minify: bool,
   pub polyfill: bool,
@@ -25,4 +35,5 @@ pub struct Builtins {
   pub define: Define,
   pub tree_shaking: bool,
   pub react: ReactOptions,
+  pub decorator: Option<DecoratorOptions>,
 }

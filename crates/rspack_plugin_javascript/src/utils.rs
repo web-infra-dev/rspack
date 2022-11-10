@@ -28,10 +28,10 @@ pub fn get_swc_compiler() -> Arc<SwcCompiler> {
   SWC_COMPILER.clone()
 }
 
-pub fn syntax_by_ext(ext: &str) -> Syntax {
+fn syntax_by_ext(ext: &str, enable_decorators: bool) -> Syntax {
   match ext == "ts" || ext == "tsx" {
     true => Syntax::Typescript(TsConfig {
-      decorators: false,
+      decorators: enable_decorators,
       tsx: ext == "tsx",
       ..Default::default()
     }),
@@ -41,7 +41,7 @@ pub fn syntax_by_ext(ext: &str) -> Syntax {
       jsx: ext == "jsx",
       export_default_from: true,
       decorators_before_export: true,
-      decorators: true,
+      decorators: enable_decorators,
       fn_bind: true,
       allow_super_outside_method: true,
       ..Default::default()
@@ -49,7 +49,11 @@ pub fn syntax_by_ext(ext: &str) -> Syntax {
   }
 }
 
-pub fn syntax_by_module_type(filename: &str, module_type: &ModuleType) -> Syntax {
+pub fn syntax_by_module_type(
+  filename: &str,
+  module_type: &ModuleType,
+  enable_decorators: bool,
+) -> Syntax {
   match module_type {
     ModuleType::Js | ModuleType::Jsx => Syntax::Es(EsConfig {
       private_in_object: true,
@@ -57,13 +61,13 @@ pub fn syntax_by_module_type(filename: &str, module_type: &ModuleType) -> Syntax
       jsx: matches!(module_type, ModuleType::Jsx),
       export_default_from: true,
       decorators_before_export: true,
-      decorators: true,
+      decorators: enable_decorators,
       fn_bind: true,
       allow_super_outside_method: true,
       ..Default::default()
     }),
     ModuleType::Ts | ModuleType::Tsx => Syntax::Typescript(TsConfig {
-      decorators: false,
+      decorators: enable_decorators,
       tsx: matches!(module_type, ModuleType::Tsx),
       ..Default::default()
     }),
@@ -72,7 +76,7 @@ pub fn syntax_by_module_type(filename: &str, module_type: &ModuleType) -> Syntax
         .extension()
         .and_then(|ext| ext.to_str())
         .unwrap_or("js");
-      syntax_by_ext(ext)
+      syntax_by_ext(ext, enable_decorators)
     }
   }
 }
