@@ -1,0 +1,19 @@
+{
+  "name": "create-rspack",
+  "version": "0.0.2",
+  "description": "",
+  "main": "index.js",
+  "bin": {
+    "create-rspack": "index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "yargs": "17.6.2",
+    "prompts": "2.4.2"
+  }
+}
