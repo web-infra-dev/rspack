@@ -24,7 +24,7 @@
 			) {
 				"use strict";
 				var value = __rspack_require__("./file.js");
-				it("should accept a dependencies and require a new value", done => {
+				it("should accept a dependencies and require a new value", (done) => {
 					expect(value).toBe(1);
 					debugger;
 					module.hot.accept("./file.js", () => {
@@ -53,11 +53,11 @@
 						if (err) return done(err);
 						module.hot
 							.check(options || true)
-							.then(updatedModules => {
+							.then((updatedModules) => {
 								if (!updatedModules) return done(Error("no update available"));
 								if (callback) return callback(stats);
 							})
-							.catch(err => {
+							.catch((err) => {
 								done(err);
 							});
 					};
@@ -200,7 +200,7 @@
 		return Promise.all(
 			chunkIds.map(
 				function (chunkId) {
-					return new Promise(resolve => {
+					return new Promise((resolve) => {
 						this.install_chunk(
 							require(this.__rspack_get_dynamic_chunk_url__(chunkId, "js"))
 						);
@@ -507,8 +507,7 @@
 									updatedModules
 								);
 								return promises;
-							},
-							[])
+							}, [])
 						).then(function () {
 							return waitForBlockingPromises(function () {
 								if (applyOnUpdate) {
@@ -676,7 +675,7 @@
 				var doneFns = inProgress[content];
 				delete inProgress[content];
 				script.parentNode && script.parentNode.removeChild(script);
-				doneFns && doneFns.forEach(fn => fn(event));
+				doneFns && doneFns.forEach((fn) => fn(event));
 				if (prev) return prev(event);
 			};
 			var timeout = setTimeout(
@@ -707,7 +706,7 @@
 				// var url = __webpack_require__.p + __webpack_require__.hu(chunkId);
 				// create error before stack unwound to get useful stacktrace later
 				var error = new Error();
-				var loadingEnded = event => {
+				var loadingEnded = (event) => {
 					if (waitingUpdateResolves[chunkId]) {
 						waitingUpdateResolves[chunkId] = undefined;
 						var errorType =
