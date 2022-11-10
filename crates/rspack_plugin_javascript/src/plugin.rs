@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use dashmap::DashMap;
 use hashbrown::hash_map::DefaultHashBuilder;
+use hashbrown::HashSet;
 use rayon::prelude::*;
 use swc::{config::JsMinifyOptions, BoolOrDataConfig};
 use swc_common::util::take::Take;
@@ -259,33 +260,29 @@ impl Plugin for JsPlugin {
     let mut module_code_array = ordered_modules
       .par_iter()
       .map(|mgm| {
-        let module = compilation
-          .module_graph
-          .module_by_identifier(&mgm.module_identifier)
-          .ok_or_else(|| Error::InternalError("Failed to get module".to_owned()))
-          // FIXME: use result
-          .expect("Failed to get module");
+        let code_gen_result = compilation
+          .code_generation_results
+          // TODO: use chunk runtime
+          .get(
+            &mgm.module_identifier,
+            Some(&HashSet::from_iter(["main".to_owned()])),
+          )?;
 
-        module.code_generation(compilation).and_then(|source| {
-          // TODO: this logic is definitely not performant, move to compilation afterwards
-          source
-            .inner()
-            .get(&SourceType::JavaScript)
-            .map(|source| {
-              let mut module_source = source.ast_or_source.clone().try_into_source().unwrap();
-              if args.compilation.options.devtool.eval()
-                && args.compilation.options.devtool.source_map()
-              {
-                module_source = wrap_eval_source_map(
-                  module_source,
-                  &self.eval_source_map_cache,
-                  args.compilation,
-                )?;
-              }
-              Ok(wrap_module_function(module_source, &mgm.id))
-            })
-            .transpose()
-        })
+        code_gen_result
+          .get(&SourceType::JavaScript)
+          .map(|result| {
+            let mut module_source = result.ast_or_source.clone().try_into_source()?;
+
+            if args.compilation.options.devtool.eval()
+              && args.compilation.options.devtool.source_map()
+            {
+              module_source =
+                wrap_eval_source_map(module_source, &self.eval_source_map_cache, args.compilation)?;
+            }
+
+            Ok(wrap_module_function(module_source, &mgm.id))
+          })
+          .transpose()
       })
       .collect::<Result<Vec<Option<BoxSource>>>>()?;
 

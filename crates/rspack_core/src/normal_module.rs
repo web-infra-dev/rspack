@@ -335,8 +335,8 @@ impl CodeGenerationResult {
     &self.inner
   }
 
-  pub fn get(&self, source_type: SourceType) -> Option<&GenerationResult> {
-    self.inner.get(&source_type)
+  pub fn get(&self, source_type: &SourceType) -> Option<&GenerationResult> {
+    self.inner.get(source_type)
   }
 
   pub(super) fn add(&mut self, source_type: SourceType, generation_result: GenerationResult) {

@@ -575,13 +575,32 @@ impl Compilation {
     })
   }
 
-  fn code_generation(&self) {
-    self.module_graph.modules().for_each(|module| {
-      // self
-      // .module_graph
-      // .module_identifier_to_module_graph_module(&module.identifier());
-      // module.code_generation();
-    })
+  fn code_generation(&mut self) -> Result<()> {
+    let results = self
+      .module_graph
+      .module_identifier_to_module
+      .par_iter()
+      .map(|(module_identifier, module)| {
+        module
+          .code_generation(self)
+          .map(|result| (module_identifier.clone(), result))
+      })
+      .collect::<Result<Vec<(ModuleIdentifier, CodeGenerationResult)>>>()?;
+
+    results.into_iter().for_each(|(module_identifier, result)| {
+      self
+        .code_generated_modules
+        .insert(module_identifier.clone());
+
+      self.code_generation_results.add(
+        module_identifier,
+        // FIXME: hardcoded for using `main` as `RuntimeSpec` by default as multiple runtimes have not been supported yet. cc @underfin
+        HashSet::from_iter(["".to_owned()]),
+        result,
+      );
+    });
+
+    Ok(())
   }
 
   #[instrument()]
@@ -804,6 +823,8 @@ impl Compilation {
       context_indent,
     };
 
+    self.code_generation()?;
+
     self.create_chunk_assets(plugin_driver.clone()).await;
     // generate runtime
     self.runtime = self.render_runtime(plugin_driver.clone()).await;
@@ -916,6 +937,17 @@ impl RuntimeSpecMap {
       }
     }
   }
+
+  fn get_values(&self) -> Vec<&CodeGenerationResult> {
+    match self.mode {
+      RuntimeMode::Empty => vec![],
+      RuntimeMode::SingleEntry => vec![self
+        .single_value
+        .as_ref()
+        .expect("Expected single value exists")],
+      RuntimeMode::Map => self.map.values().map(|v| v).collect(),
+    }
+  }
 }
 
 #[derive(Default, Debug)]
@@ -924,6 +956,43 @@ pub struct CodeGenerationResults {
 }
 
 impl CodeGenerationResults {
+  pub fn get(
+    &self,
+    module_identifier: &ModuleIdentifier,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Result<&CodeGenerationResult> {
+    if let Some(entry) = self.map.get(module_identifier) {
+      if let Some(runtime) = runtime {
+        let results = entry.get_values();
+        if results.len() != 1 {
+          Err(Error::InternalError(format!(
+            "No unique code generation entry for unspecified runtime for {} ",
+            module_identifier,
+          )))
+        } else {
+          results
+            .iter()
+            .next()
+            .map(|v| *v)
+            .ok_or_else(|| Error::InternalError("Expected value exists".to_string()))
+        }
+      } else {
+        entry
+          .get_values()
+          .iter()
+          .next()
+          .map(|v| *v)
+          .ok_or_else(|| Error::InternalError("Expected value exists".to_string()))
+      }
+    } else {
+      Err(Error::InternalError(format!(
+        "No code generation entry for {} (existing entries: {:?})",
+        module_identifier,
+        self.map.keys().collect::<Vec<_>>()
+      )))
+    }
+  }
+
   fn add(
     &mut self,
     module_identifier: ModuleIdentifier,
@@ -942,7 +1011,6 @@ impl CodeGenerationResults {
     };
   }
 }
-
 #[derive(Debug, Default, Clone)]
 pub struct AssetInfo {
   /// if the asset can be long term cached forever (contains a hash)
