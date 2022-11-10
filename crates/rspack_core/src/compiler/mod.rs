@@ -105,12 +105,19 @@ impl Compiler {
     let option = self.options.clone();
     self.compilation.make(deps).await;
     if option.builtins.tree_shaking {
-      let result = self.compilation.optimize_dependency().await?;
-      self.compilation.used_symbol = result.0;
+      let (analyze_result, diagnostics) = self
+        .compilation
+        .optimize_dependency()
+        .await?
+        .split_into_parts();
+      if !diagnostics.is_empty() {
+        self.compilation.push_batch_diagnostic(diagnostics);
+      }
+      self.compilation.used_symbol = analyze_result.used_symbol;
       // This is only used when testing
       #[cfg(debug_assertions)]
       {
-        self.compilation.tree_shaking_result = result.1;
+        self.compilation.tree_shaking_result = analyze_result.analyze_results;
       }
     }
     self.compilation.seal(self.plugin_driver.clone()).await?;

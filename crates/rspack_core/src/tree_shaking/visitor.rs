@@ -1,12 +1,10 @@
 use std::{collections::VecDeque, hash::Hash};
 
 use bitflags::bitflags;
+use hashbrown::{hash_map::Entry, HashMap, HashSet};
+use indexmap::IndexMap;
 use swc_atoms::JsWord;
-use swc_common::{
-  collections::{AHashMap, AHashSet},
-  util::take::Take,
-  Mark, GLOBALS,
-};
+use swc_common::{util::take::Take, Mark, GLOBALS};
 use swc_ecma_ast::*;
 use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
 use ustr::{ustr, Ustr};
@@ -34,16 +32,22 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   unresolved_mark: Mark,
   module_identifier: Ustr,
   module_graph: &'a ModuleGraph,
-  pub(crate) export_map: AHashMap<JsWord, SymbolRef>,
-  pub(crate) import_map: AHashMap<BetterId, SymbolRef>,
-  /// list of uri, each uri represent export all named export from specific uri
-  pub export_all_list: Vec<Ustr>,
+  pub(crate) export_map: HashMap<JsWord, SymbolRef>,
+  pub(crate) import_map: HashMap<BetterId, SymbolRef>,
+  /// key is the module identifier, value is the corresponding export map
+  /// This data structure is used for collecting reexport * from some module. e.g.
+  /// ```js
+  /// export * from './test.js'
+  /// ```
+  /// then inherit_exports_maps become, `{"test.js": {...test_js_export_map} }`
+  // Use `IndexMap` to keep the insertion order
+  pub inherit_export_maps: IndexMap<Ustr, HashMap<JsWord, SymbolRef>>,
   current_body_owner_symbol_ext: Option<SymbolExt>,
-  pub(crate) reference_map: AHashMap<SymbolExt, AHashSet<IdOrMemExpr>>,
-  pub(crate) reachable_import_and_export: AHashMap<JsWord, AHashSet<SymbolRef>>,
+  pub(crate) reference_map: HashMap<SymbolExt, HashSet<IdOrMemExpr>>,
+  pub(crate) reachable_import_and_export: HashMap<JsWord, HashSet<SymbolRef>>,
   state: AnalyzeState,
-  pub(crate) used_id_set: AHashSet<IdOrMemExpr>,
-  pub(crate) used_symbol_ref: AHashSet<SymbolRef>,
+  pub(crate) used_id_set: HashSet<IdOrMemExpr>,
+  pub(crate) used_symbol_ref: HashSet<SymbolRef>,
   // This field is used for duplicated export default checking
   pub(crate) export_default_name: Option<JsWord>,
 }
@@ -60,15 +64,15 @@ impl<'a> ModuleRefAnalyze<'a> {
       unresolved_mark,
       module_identifier: uri,
       module_graph: dep_to_module_identifier,
-      export_map: AHashMap::default(),
-      import_map: AHashMap::default(),
-      export_all_list: vec![],
+      export_map: HashMap::default(),
+      import_map: HashMap::default(),
+      inherit_export_maps: IndexMap::default(),
       current_body_owner_symbol_ext: None,
-      reference_map: AHashMap::default(),
-      reachable_import_and_export: AHashMap::default(),
+      reference_map: HashMap::new(),
+      reachable_import_and_export: HashMap::default(),
       state: AnalyzeState::empty(),
-      used_id_set: AHashSet::default(),
-      used_symbol_ref: AHashSet::default(),
+      used_id_set: HashSet::default(),
+      used_symbol_ref: HashSet::default(),
       export_default_name: None,
     }
   }
@@ -78,18 +82,18 @@ impl<'a> ModuleRefAnalyze<'a> {
       return;
     }
     match self.reference_map.entry(from) {
-      std::collections::hash_map::Entry::Occupied(mut occ) => {
+      Entry::Occupied(mut occ) => {
         occ.get_mut().insert(to);
       }
-      std::collections::hash_map::Entry::Vacant(vac) => {
-        vac.insert(AHashSet::from_iter([to]));
+      Entry::Vacant(vac) => {
+        vac.insert(HashSet::from_iter([to]));
       }
     }
   }
 
   /// Collecting all reachable import binding from given start binding
-  pub fn get_all_import_or_export(&self, start: BetterId) -> AHashSet<SymbolRef> {
-    let mut seen: AHashSet<IdOrMemExpr> = AHashSet::default();
+  pub fn get_all_import_or_export(&self, start: BetterId) -> HashSet<SymbolRef> {
+    let mut seen: HashSet<IdOrMemExpr> = HashSet::default();
     let mut q: VecDeque<IdOrMemExpr> = VecDeque::from_iter([IdOrMemExpr::Id(start)]);
     while let Some(cur) = q.pop_front() {
       if seen.contains(&cur) {
@@ -321,7 +325,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             }
           };
           let resolved_uri_key = ustr(resolved_uri);
-          self.export_all_list.push(resolved_uri_key);
+          self
+            .inherit_export_maps
+            .insert(resolved_uri_key, HashMap::default());
         }
         ModuleDecl::TsImportEquals(_)
         | ModuleDecl::TsExportAssignment(_)
@@ -599,10 +605,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 impl<'a> ModuleRefAnalyze<'a> {
   fn add_export(&mut self, id: JsWord, symbol: SymbolRef) {
     match self.export_map.entry(id) {
-      std::collections::hash_map::Entry::Occupied(_) => {
+      Entry::Occupied(_) => {
         // TODO: should add some Diagnostic
       }
-      std::collections::hash_map::Entry::Vacant(vac) => {
+      Entry::Vacant(vac) => {
         vac.insert(symbol);
       }
     }
@@ -610,10 +616,10 @@ impl<'a> ModuleRefAnalyze<'a> {
 
   fn add_import(&mut self, id: BetterId, symbol: SymbolRef) {
     match self.import_map.entry(id) {
-      std::collections::hash_map::Entry::Occupied(_) => {
+      Entry::Occupied(_) => {
         // TODO: should add some Diagnostic
       }
-      std::collections::hash_map::Entry::Vacant(vac) => {
+      Entry::Vacant(vac) => {
         vac.insert(symbol);
       }
     }
@@ -728,16 +734,15 @@ impl<'a> ModuleRefAnalyze<'a> {
 pub struct TreeShakingResult {
   top_level_mark: Mark,
   unresolved_mark: Mark,
-  module_identifier: Ustr,
-  pub export_map: AHashMap<JsWord, SymbolRef>,
-  pub(crate) import_map: AHashMap<BetterId, SymbolRef>,
-  /// list of uri, each uri represent export all named export from specific uri
-  pub export_all_list: Vec<Ustr>,
+  pub module_identifier: Ustr,
+  pub export_map: HashMap<JsWord, SymbolRef>,
+  pub(crate) import_map: HashMap<BetterId, SymbolRef>,
+  pub inherit_export_maps: IndexMap<Ustr, HashMap<JsWord, SymbolRef>>,
   // current_region: Option<BetterId>,
-  // pub(crate) reference_map: AHashMap<BetterId, AHashSet<BetterId>>,
-  pub(crate) reachable_import_of_export: AHashMap<JsWord, AHashSet<SymbolRef>>,
+  // pub(crate) reference_map: HashMap<BetterId, HashSet<BetterId>>,
+  pub(crate) reachable_import_of_export: HashMap<JsWord, HashSet<SymbolRef>>,
   state: AnalyzeState,
-  pub(crate) used_symbol_ref: AHashSet<SymbolRef>,
+  pub(crate) used_symbol_ref: HashSet<SymbolRef>,
 }
 
 impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
@@ -748,8 +753,8 @@ impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
       module_identifier: std::mem::take(&mut analyze.module_identifier),
       export_map: std::mem::take(&mut analyze.export_map),
       import_map: std::mem::take(&mut analyze.import_map),
-      export_all_list: std::mem::take(&mut analyze.export_all_list),
-      // current_region: std::mem::take(&mut analyze.current_body_owner_extend_symbol),
+      inherit_export_maps: std::mem::take(&mut analyze.inherit_export_maps),
+      // current_region: std::mem::take(&mut analyze.current_body_owner_id),
       // reference_map: std::mem::take(&mut analyze.reference_map),
       reachable_import_of_export: std::mem::take(&mut analyze.reachable_import_and_export),
       state: std::mem::take(&mut analyze.state),

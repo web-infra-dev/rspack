@@ -1,30 +1,43 @@
 use std::{
+  borrow::BorrowMut,
   collections::VecDeque,
   fmt::Debug,
   marker::PhantomPinned,
+  path::PathBuf,
   pin::Pin,
+  str::FromStr,
   sync::atomic::{AtomicU32, Ordering},
   sync::Arc,
 };
 
 use futures::{stream::FuturesUnordered, StreamExt};
 use hashbrown::{
+  hash_map::Entry,
   hash_set::Entry::{Occupied, Vacant},
   HashMap, HashSet,
 };
 use indexmap::IndexSet;
+use petgraph::prelude::GraphMap;
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
+use sugar_path::SugarPath;
+use swc_atoms::JsWord;
 use tokio::sync::mpsc::{error::TryRecvError, UnboundedSender};
 use tracing::instrument;
 
-use rspack_error::{Diagnostic, Error, IntoTWithDiagnosticArray, Result, Severity};
+use rspack_error::{
+  errors_to_diagnostics, Diagnostic, Error, IntoTWithDiagnosticArray, Result, Severity,
+  TWithDiagnosticArray,
+};
 use rspack_sources::BoxSource;
 use ustr::{ustr, Ustr};
 
 use crate::{
-  is_source_equal,
+  is_source_equal, join_string_component,
   split_chunks::code_splitting,
-  tree_shaking::visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
+  tree_shaking::{
+    visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
+    OptimizeDependencyResult,
+  },
   BuildContext, BundleEntries, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey,
   ChunkUkey, CompilerOptions, Dependency, EntryItem, Entrypoint, LoaderRunnerRunner,
   ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModule,
@@ -603,8 +616,8 @@ impl Compilation {
 
   pub async fn optimize_dependency(
     &mut self,
-  ) -> Result<(HashSet<Symbol>, HashMap<Ustr, TreeShakingResult>)> {
-    let analyze_results = self
+  ) -> Result<TWithDiagnosticArray<OptimizeDependencyResult>> {
+    let mut analyze_results = self
       .module_graph
       .module_identifier_to_module_graph_module
       .par_iter()
@@ -656,22 +669,64 @@ impl Compilation {
       used_symbol_ref.extend(analyze_result.used_symbol_ref.clone().into_iter());
     }
 
+    // calculate relation of module that has `export * from 'xxxx'`
+    let inherit_export_ref_graph = create_inherit_graph(&analyze_results);
+    // key is the module_id of module that potential have reexport all symbol from other module
+    // value is the set which contains several module_id the key related module need to inherit
+    let map_of_inherit_map = get_extends_map(&inherit_export_ref_graph);
+
+    for (module_id, inherit_export_module_id) in map_of_inherit_map.iter() {
+      // This is just a work around for rustc checker, because we have immutable and mutable borrow at the same time.
+      let mut inherit_export_maps = {
+        let main_module = analyze_results.get_mut(module_id).unwrap();
+        std::mem::take(&mut main_module.inherit_export_maps)
+      };
+      for inherit_export_module_identifier in inherit_export_module_id {
+        let export_module = analyze_results
+          .get(inherit_export_module_identifier)
+          .unwrap()
+          .export_map
+          .iter()
+          .filter_map(|(k, v)| {
+            // export * should not reexport default export
+            if k == "default" {
+              None
+            } else {
+              Some((k.clone(), v.clone()))
+            }
+          })
+          .collect::<HashMap<JsWord, SymbolRef>>();
+        inherit_export_maps.insert(*inherit_export_module_identifier, export_module);
+      }
+      analyze_results
+        .get_mut(module_id)
+        .unwrap()
+        .inherit_export_maps = inherit_export_maps;
+    }
+    let mut errors = vec![];
     let mut used_symbol = HashSet::new();
     // Marking used symbol and all reachable export symbol from the used symbol for each module
-    let used_symbol_from_import = mark_used_symbol(
+    let used_symbol_from_import = mark_used_symbol_with(
       &analyze_results,
       VecDeque::from_iter(used_symbol_ref.into_iter()),
+      &mut errors,
     );
 
     used_symbol.extend(used_symbol_from_import);
 
     // We considering all export symbol in each entry module as used for now
     for entry in self.entry_modules() {
-      let used_symbol_set = collect_reachable_symbol(&analyze_results, ustr(&entry));
+      let used_symbol_set = collect_reachable_symbol(&analyze_results, ustr(&entry), &mut errors);
       used_symbol.extend(used_symbol_set);
     }
 
-    Ok((used_symbol, analyze_results))
+    Ok(
+      OptimizeDependencyResult {
+        used_symbol,
+        analyze_results,
+      }
+      .with_diagnostic(errors_to_diagnostics(errors)),
+    )
   }
 
   pub async fn done(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
@@ -814,6 +869,7 @@ pub struct AssetInfoRelated {
 fn collect_reachable_symbol(
   analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
   entry_identifier: Ustr,
+  errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
   let mut used_symbol_set = HashSet::new();
   let mut q = VecDeque::new();
@@ -824,28 +880,76 @@ fn collect_reachable_symbol(
     }
   };
 
-  for import_list in entry_module_result.reachable_import_of_export.values() {
-    q.extend(import_list.clone());
+  // deduplicate reexport in entry module start
+  let mut export_symbol_count_map: HashMap<JsWord, (SymbolRef, usize)> = entry_module_result
+    .export_map
+    .iter()
+    .map(|(symbol_name, symbol_ref)| (symbol_name.clone(), (symbol_ref.clone(), 1)))
+    .collect();
+  // All the reexport star symbol should be included in the bundle
+  // TODO: esbuild will hidden the duplicate reexport, webpack will emit an error
+  // which should we align to?
+  for (_, inherit_map) in entry_module_result.inherit_export_maps.iter() {
+    for (atom, symbol_ref) in inherit_map.iter() {
+      match export_symbol_count_map.entry(atom.clone()) {
+        Entry::Occupied(mut occ) => {
+          occ.borrow_mut().get_mut().1 += 1;
+        }
+        Entry::Vacant(vac) => {
+          vac.insert((symbol_ref.clone(), 1));
+        }
+      };
+    }
   }
 
+  q.extend(export_symbol_count_map.into_iter().filter_map(
+    |(_, v)| {
+      if v.1 == 1 {
+        Some(v.0)
+      } else {
+        None
+      }
+    },
+  ));
+  // deduplicate reexport in entry end
+
   for item in entry_module_result.export_map.values() {
-    mark_symbol(item.clone(), &mut used_symbol_set, analyze_map, &mut q);
+    mark_symbol(
+      item.clone(),
+      &mut used_symbol_set,
+      analyze_map,
+      &mut q,
+      errors,
+    );
   }
 
   while let Some(sym_ref) = q.pop_front() {
-    mark_symbol(sym_ref, &mut used_symbol_set, analyze_map, &mut q);
+    mark_symbol(sym_ref, &mut used_symbol_set, analyze_map, &mut q, errors);
   }
   used_symbol_set
 }
 
-fn mark_used_symbol(
+fn mark_used_symbol_with(
   analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
   mut init_queue: VecDeque<SymbolRef>,
+  errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
   let mut used_symbol_set = HashSet::new();
+  let mut visited = HashSet::new();
 
   while let Some(sym_ref) = init_queue.pop_front() {
-    mark_symbol(sym_ref, &mut used_symbol_set, analyze_map, &mut init_queue);
+    if visited.contains(&sym_ref) {
+      continue;
+    } else {
+      visited.insert(sym_ref.clone());
+    }
+    mark_symbol(
+      sym_ref,
+      &mut used_symbol_set,
+      analyze_map,
+      &mut init_queue,
+      errors,
+    );
   }
   used_symbol_set
 }
@@ -855,6 +959,7 @@ fn mark_symbol(
   used_symbol_set: &mut HashSet<Symbol>,
   analyze_map: &HashMap<Ustr, TreeShakingResult>,
   q: &mut VecDeque<SymbolRef>,
+  errors: &mut Vec<Error>,
 ) {
   match item {
     SymbolRef::Direct(symbol) => match used_symbol_set.entry(symbol) {
@@ -865,21 +970,123 @@ fn mark_symbol(
           .reachable_import_of_export
           .get(&vac.get().id().atom)
         {
-          q.extend(set.clone());
+          q.extend(set.iter().cloned());
         };
         vac.insert();
       }
     },
     SymbolRef::Indirect(indirect_symbol) => {
       let module_result = analyze_map.get(&indirect_symbol.uri).unwrap();
-      let symbol = module_result.export_map.get(&indirect_symbol.id).unwrap();
-      q.push_back(symbol.clone());
+      let symbol = match module_result.export_map.get(&indirect_symbol.id) {
+        Some(symbol) => symbol.clone(),
+        None => {
+          // TODO: better diagnostic and handle if multiple extends_map has export same symbol
+          let mut ret = vec![];
+          for (module_identifier, extends_export_map) in module_result.inherit_export_maps.iter() {
+            if let Some(value) = extends_export_map.get(&indirect_symbol.id) {
+              ret.push((module_identifier, value));
+            }
+          }
+          match ret.len() {
+            0 => {
+              // TODO: Better diagnostic handle if source module does not have the export
+              panic!(
+                "{} did not export `{}`",
+                module_result.module_identifier, indirect_symbol.id
+              )
+            }
+            1 => ret[0].1.clone(),
+            // multiple export candidate in reexport
+            // mark the first symbol_ref as used, align to webpack
+            _ => {
+              // TODO: better traceable diagnostic
+              let mut error_message = format!(
+                "Conflicting star exports for the name '{}' in ",
+                indirect_symbol.id
+              );
+              let cwd = std::env::current_dir();
+              let module_identifier_list = ret
+                .iter()
+                .map(|(module_identifier, _)| {
+                  // try to use relative path which should have better DX
+                  match cwd {
+                    Ok(ref cwd) => {
+                      let p = PathBuf::from_str(module_identifier.as_str()).unwrap();
+                      p.relative(cwd.as_path())
+                        .as_path()
+                        .to_string_lossy()
+                        .to_string()
+                    }
+                    // if we can't get the cwd, fallback to module identifier
+                    Err(_) => module_identifier.to_string(),
+                  }
+                })
+                .collect::<Vec<_>>();
+              error_message += &join_string_component(module_identifier_list);
+              errors.push(Error::InternalError(error_message));
+              ret[0].1.clone()
+            }
+          }
+        }
+      };
+      q.push_back(symbol);
     }
     SymbolRef::Star(star) => {
+      // If a star ref is used. e.g.
+      // ```js
+      // import * as all from './test.js'
+      // all
+      // ```
+      // then, all the exports in `test.js` including
+      // export defined in `test.js` and all realted
+      // reexport should be marked as used
       let module_result = analyze_map.get(&star).unwrap();
       for symbol_ref in module_result.export_map.values() {
         q.push_back(symbol_ref.clone());
       }
+
+      for (_, extend_map) in module_result.inherit_export_maps.iter() {
+        q.extend(extend_map.values().cloned());
+      }
     }
   }
+}
+
+fn get_extends_map(
+  export_all_ref_graph: &GraphMap<&Ustr, (), petgraph::Directed>,
+) -> HashMap<Ustr, HashSet<Ustr>> {
+  let mut map = HashMap::new();
+  for node in export_all_ref_graph.nodes() {
+    let reachable_set = get_reachable(*node, export_all_ref_graph);
+    map.insert(*node, reachable_set);
+  }
+  map
+}
+fn get_reachable(start: Ustr, g: &GraphMap<&Ustr, (), petgraph::Directed>) -> HashSet<Ustr> {
+  let mut visited: HashSet<Ustr> = HashSet::new();
+  let mut reachable_module_id = HashSet::new();
+  let mut q = VecDeque::from_iter([start]);
+  while let Some(cur) = q.pop_front() {
+    match visited.entry(cur) {
+      hashbrown::hash_set::Entry::Occupied(_) => continue,
+      hashbrown::hash_set::Entry::Vacant(vac) => vac.insert(),
+    }
+    if cur != start {
+      reachable_module_id.insert(cur);
+    }
+    q.extend(g.neighbors_directed(&cur, petgraph::Direction::Outgoing));
+  }
+  reachable_module_id
+}
+
+fn create_inherit_graph(
+  analyze_map: &HashMap<Ustr, TreeShakingResult>,
+) -> GraphMap<&Ustr, (), petgraph::Directed> {
+  let mut g = petgraph::graphmap::DiGraphMap::new();
+  for (module_id, result) in analyze_map.iter() {
+    for export_all_module_id in result.inherit_export_maps.keys() {
+      g.add_edge(module_id, export_all_module_id, ());
+    }
+  }
+  g
 }

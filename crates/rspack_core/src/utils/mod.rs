@@ -58,3 +58,34 @@ pub fn parse_to_url(uri: &str) -> fluent_uri::Uri<String> {
     fluent_uri::Uri::parse_from(uri.to_string()).unwrap()
   }
 }
+
+/// join string component in a more human readable way
+/// e.g.
+/// ```
+/// use rspack_core::join_string_component;
+/// assert_eq!(
+///   "a, b and c",
+///   join_string_component(vec!["a".to_string(), "b".to_string(), "c".to_string()])
+/// );
+/// assert_eq!(
+///   "a and b",
+///   join_string_component(vec!["a".to_string(), "b".to_string(),])
+/// );
+/// ```
+pub fn join_string_component(mut components: Vec<String>) -> String {
+  match components.len() {
+    0 => "".to_string(),
+    1 => std::mem::take(&mut components[0]),
+    2 => {
+      format!("{} and {}", components[0], components[1])
+    }
+    _ => {
+      let prefix = &components[0..components.len() - 1];
+      format!(
+        "{} and {}",
+        prefix.join(", "),
+        components[components.len() - 1]
+      )
+    }
+  }
+}
