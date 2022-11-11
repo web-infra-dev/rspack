@@ -121,11 +121,10 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
               priority: 0,
               reuse_existing_chunk: false.into(),
               r#type: SizeType::JavaScript.into(),
-              test: Arc::new(move |module| {
+              test: Some(Arc::new(move |module| {
                 let re = regex::Regex::new(&v.test).unwrap();
                 re.is_match(&module.id)
-              })
-              .into(),
+              })),
               filename: v.name.into(),
               enforce: false.into(),
               id_hint: Default::default(),
