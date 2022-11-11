@@ -3,12 +3,11 @@ use std::{ffi::OsStr, path::Path};
 use async_trait::async_trait;
 use hashbrown::HashSet;
 use rayon::prelude::*;
-use rspack_core::GenerateContext;
 use rspack_core::{
   get_contenthash,
   rspack_sources::{RawSource, SourceExt},
-  AssetParserDataUrlOption, AssetParserOptions, FilenameRenderOptions, GenerationResult,
-  NormalModule, ParseContext, ParserAndGenerator, Plugin, PluginContext,
+  AssetParserDataUrlOption, AssetParserOptions, FilenameRenderOptions, GenerateContext,
+  GenerationResult, NormalModule, ParseContext, ParserAndGenerator, Plugin, PluginContext,
   PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, SourceType,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result};

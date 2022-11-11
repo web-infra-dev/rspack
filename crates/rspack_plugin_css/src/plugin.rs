@@ -1,7 +1,6 @@
 use hashbrown::HashSet;
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
-use rspack_core::GenerateContext;
 use swc_css::visit::VisitMutWith;
 use swc_css_prefixer::{options::Options, prefixer};
 
@@ -11,8 +10,8 @@ use rspack_core::{
     BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
     SourceMapSource, SourceMapSourceOptions,
   },
-  FilenameRenderOptions, GenerationResult, ModuleType, NormalModule, ParseContext, ParseResult,
-  ParserAndGenerator, Plugin, RenderManifestEntry, SourceType,
+  FilenameRenderOptions, GenerateContext, GenerationResult, ModuleType, NormalModule, ParseContext,
+  ParseResult, ParserAndGenerator, Plugin, RenderManifestEntry, SourceType,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;

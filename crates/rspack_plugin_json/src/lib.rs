@@ -1,10 +1,9 @@
 use json::Error::{
   ExceededDepthLimit, FailedUtf8Parsing, UnexpectedCharacter, UnexpectedEndOfJson, WrongType,
 };
-use rspack_core::GenerateContext;
 use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
-  NormalModule, ParserAndGenerator, Plugin, SourceType,
+  GenerateContext, NormalModule, ParserAndGenerator, Plugin, SourceType,
 };
 use rspack_error::{
   DiagnosticKind, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, TraceableError,

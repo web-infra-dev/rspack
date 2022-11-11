@@ -15,13 +15,12 @@ use rspack_core::rspack_sources::{
   BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
   SourceMapSource, SourceMapSourceOptions,
 };
-use rspack_core::GenerateContext;
 use rspack_core::{
-  get_contenthash, AstOrSource, FilenameRenderOptions, GenerationResult, ModuleAst, ModuleType,
-  NormalModule, ParseContext, ParseResult, ParserAndGenerator, Plugin, PluginContext,
-  PluginProcessAssetsOutput, PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput,
-  ProcessAssetsArgs, RenderManifestEntry, RenderRuntimeArgs, SourceType,
-  RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
+  get_contenthash, AstOrSource, FilenameRenderOptions, GenerateContext, GenerationResult,
+  ModuleAst, ModuleType, NormalModule, ParseContext, ParseResult, ParserAndGenerator, Plugin,
+  PluginContext, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
+  PluginRenderRuntimeHookOutput, ProcessAssetsArgs, RenderManifestEntry, RenderRuntimeArgs,
+  SourceType, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;
