@@ -109,3 +109,13 @@ jobs:
             ${{ steps.bench_comparison.outputs.comment }}
       - name: Remove Criterion Artifact
         run: rm -rf ./target/criterion
+
+      # # Bundle size bench
+      # - name: Create rspack stats
+      #   run: pnpm --filter example-arco-design-pro run bundle-stats
+      # - name: Send rspack stats to RelativeCI
+      #   uses: relative-ci/agent-action@v2
+      #   with:
+      #     webpackStatsFile: ./examples/arco-pro/rspack-stats.json
+      #     key: ${{ secrets.RELATIVE_CI_KEY }}
+      #     token: ${{ secrets.GITHUB_TOKEN }}
