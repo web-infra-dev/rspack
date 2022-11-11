@@ -205,9 +205,9 @@ impl Compilation {
     name: String,
     id: String,
     chunk_by_ukey: &'chunk mut ChunkByUkey,
-    named_chunk: &mut HashMap<String, ChunkUkey>,
+    named_chunks: &mut HashMap<String, ChunkUkey>,
   ) -> &'chunk mut Chunk {
-    let existed_chunk_ukey = named_chunk.get(&name);
+    let existed_chunk_ukey = named_chunks.get(&name);
     if let Some(chunk_ukey) = existed_chunk_ukey {
       let chunk = chunk_by_ukey
         .get_mut(chunk_ukey)
@@ -216,7 +216,7 @@ impl Compilation {
     } else {
       let chunk = Chunk::new(Some(name.clone()), id);
       let ukey = chunk.ukey;
-      named_chunk.insert(name, chunk.ukey);
+      named_chunks.insert(name, chunk.ukey);
       chunk_by_ukey.entry(ukey).or_insert_with(|| chunk)
     }
   }

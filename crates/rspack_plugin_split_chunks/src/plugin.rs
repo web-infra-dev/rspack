@@ -339,7 +339,7 @@ impl Plugin for SplitChunksPlugin {
         chunk_name.clone(),
         chunk_name.clone(),
         &mut compilation.chunk_by_ukey,
-        &mut compilation.named_chunk,
+        &mut compilation.named_chunks,
       );
       compilation.chunk_graph.add_chunk(new_chunk.ukey);
 
