@@ -212,7 +212,7 @@ pub struct SplitChunksOptions {
   pub automatic_name_delimiter: Option<String>,
   pub max_async_requests: Option<usize>,
   pub max_initial_requests: Option<usize>,
-  pub default_size_types: Vec<Option<SizeType>>,
+  pub default_size_types: Option<Vec<SizeType>>,
   pub min_chunks: Option<usize>,
   // hide_path_info: Option<bool>,
   pub min_size: Option<usize>,
