@@ -135,8 +135,8 @@ impl NormalModuleFactory {
   pub fn calculate_module_type_by_uri(&self, uri: &str) -> Option<ModuleType> {
     // todo currently unreachable module types are temporarily unified with their importers
     let url = parse_to_url(uri);
-    debug_assert_eq!(url.scheme().map(|item| item.as_str()), Some("specifier"));
-    resolve_module_type_by_uri(PathBuf::from(url.path().as_str()))
+    debug_assert_eq!(url.scheme(), "specifier");
+    resolve_module_type_by_uri(url.path())
   }
   #[instrument(name = "normal_module_factory:factory_normal_module")]
   pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, NormalModule, u32)>> {
