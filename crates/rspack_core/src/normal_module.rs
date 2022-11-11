@@ -456,6 +456,7 @@ impl NormalModule {
         })?
         .split_into_parts();
 
+      self.original_source = Some(RawSource::from("").boxed());
       self.ast_or_source =
         NormalModuleAstOrSource::new_built(parse_result.ast_or_source, &diagnostics);
 
