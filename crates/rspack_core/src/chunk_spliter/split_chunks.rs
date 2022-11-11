@@ -84,7 +84,7 @@ impl<'me> CodeSplitter<'me> {
         name.to_string(),
         name.to_string(),
         &mut compilation.chunk_by_ukey,
-        &mut compilation.named_chunk,
+        &mut compilation.named_chunks,
       );
 
       compilation.chunk_graph.add_chunk(chunk.ukey);
