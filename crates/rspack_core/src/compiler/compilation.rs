@@ -62,7 +62,7 @@ pub struct Compilation {
   diagnostics: IndexSet<Diagnostic, hashbrown::hash_map::DefaultHashBuilder>,
   pub(crate) plugin_driver: SharedPluginDriver,
   pub(crate) loader_runner_runner: Arc<LoaderRunnerRunner>,
-  pub(crate) _named_chunk: HashMap<String, ChunkUkey>,
+  pub named_chunk: HashMap<String, ChunkUkey>,
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   pub entry_module_identifiers: HashSet<ModuleIdentifier>,
   pub used_symbol: HashSet<Symbol>,
@@ -98,7 +98,7 @@ impl Compilation {
       diagnostics: Default::default(),
       plugin_driver,
       loader_runner_runner,
-      _named_chunk: Default::default(),
+      named_chunk: Default::default(),
       named_chunk_groups: Default::default(),
       entry_module_identifiers: HashSet::new(),
       used_symbol: HashSet::new(),
@@ -201,12 +201,28 @@ impl Compilation {
     Stats::new(self)
   }
 
-  pub fn add_chunk(
-    chunk_by_ukey: &mut ChunkByUkey,
-    name: Option<String>,
+  pub fn add_named_chunk<'chunk>(
+    name: String,
     id: String,
-  ) -> &mut Chunk {
-    let chunk = Chunk::new(name, id);
+    chunk_by_ukey: &'chunk mut ChunkByUkey,
+    named_chunk: &mut HashMap<String, ChunkUkey>,
+  ) -> &'chunk mut Chunk {
+    let existed_chunk_ukey = named_chunk.get(&name);
+    if let Some(chunk_ukey) = existed_chunk_ukey {
+      let chunk = chunk_by_ukey
+        .get_mut(chunk_ukey)
+        .expect("This should not happen");
+      chunk
+    } else {
+      let chunk = Chunk::new(Some(name.clone()), id);
+      let ukey = chunk.ukey;
+      named_chunk.insert(name, chunk.ukey);
+      chunk_by_ukey.entry(ukey).or_insert_with(|| chunk)
+    }
+  }
+
+  pub fn add_chunk(chunk_by_ukey: &mut ChunkByUkey, id: String) -> &mut Chunk {
+    let chunk = Chunk::new(None, id);
     let ukey = chunk.ukey;
     chunk_by_ukey.insert(chunk.ukey, chunk);
     chunk_by_ukey.get_mut(&ukey).expect("chunk not found")
