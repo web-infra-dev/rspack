@@ -35,7 +35,11 @@ jobs:
       - name: Build
         run: ./x build js-release
       - name: Create rspack stats
-        run: pnpm --filter example-arco-design-pro run bundle-stats
+        run: |
+          cd examples/arco-pro
+          pnpm i
+          pnpm run bundle-stats
+          cd ../..
       - name: Send rspack stats to RelativeCI
         uses: relative-ci/agent-action@v2
         with:
