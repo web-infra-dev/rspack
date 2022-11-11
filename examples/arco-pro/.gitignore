@@ -37,3 +37,5 @@ yarn-error.log*
 *.tsbuildinfo
 
 dist
+/rspack-stats.json
+/webpack-stats.json
