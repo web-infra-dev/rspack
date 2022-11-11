@@ -1,5 +1,12 @@
 # @rspack/cli
 
+## 0.0.9
+
+### Patch Changes
+
+- @rspack/core@0.0.9
+- @rspack/dev-server@0.0.9
+
 ## 0.0.8
 
 ### Patch Changes

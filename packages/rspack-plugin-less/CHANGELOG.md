@@ -1,5 +1,11 @@
 # @rspack/plugin-less
 
+## 0.0.9
+
+### Patch Changes
+
+- @rspack/core@0.0.9
+
 ## 0.0.8
 
 ### Patch Changes

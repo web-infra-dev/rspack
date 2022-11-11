@@ -1,5 +1,11 @@
 # @rspack/binding
 
+## 0.0.9
+
+### Patch Changes
+
+- 69becfa5: linux binary use release binary
+
 ## 0.0.8
 
 ### Patch Changes
