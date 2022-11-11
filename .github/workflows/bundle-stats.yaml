@@ -14,7 +14,26 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      # Bundle size bench
+      - name: Checkout PR Branch
+        uses: actions/checkout@v3
+        with:
+          submodules: false
+      - name: Support longpaths
+        run: git config core.longpaths true
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+          architecture: "arm64"
+      - name: install pnpm
+        run: |
+          npm install -g pnpm
+          pnpm install
+      - name: Install toolchain
+        run: rustup show
+      - name: Build
+        run: ./x build js-release
       - name: Create rspack stats
         run: pnpm --filter example-arco-design-pro run bundle-stats
       - name: Send rspack stats to RelativeCI
