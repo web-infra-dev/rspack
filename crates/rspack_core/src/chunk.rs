@@ -63,20 +63,12 @@ impl Chunk {
     &self,
     chunk_group_by_ukey: &ChunkGroupByUkey,
   ) -> HashSet<ChunkUkey> {
-    let mut chunks = HashSet::new();
-
-    for group_ukey in self.groups.iter() {
-      let group = chunk_group_by_ukey
-        .get(group_ukey)
-        .expect("Group should exist");
-      for chunk in &group.chunks {
-        chunks.insert(*chunk);
-      }
-      for chunk in &group.children {
-        chunks.insert(*chunk);
-      }
-    }
-
-    chunks
+    self
+      .groups
+      .iter()
+      .filter_map(|ukey| chunk_group_by_ukey.get(ukey))
+      .flat_map(|chunk_group| chunk_group.chunks.iter().chain(chunk_group.children.iter()))
+      .cloned()
+      .collect()
   }
 }
