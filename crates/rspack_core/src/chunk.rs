@@ -67,7 +67,7 @@ impl Chunk {
 
     for group_ukey in self.groups.iter() {
       let group = chunk_group_by_ukey
-        .get(&group_ukey)
+        .get(group_ukey)
         .expect("Group should exist");
       for chunk in &group.chunks {
         chunks.insert(*chunk);

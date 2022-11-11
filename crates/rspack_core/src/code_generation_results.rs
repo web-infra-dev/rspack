@@ -1,4 +1,4 @@
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
 
 use rspack_error::{Error, Result};
 
@@ -18,8 +18,7 @@ impl From<AstOrSource> for GenerationResult {
 #[derive(Debug, Default)]
 pub struct CodeGenerationResult {
   inner: HashMap<SourceType, GenerationResult>,
-  // TODO: add runtime requirements
-  // runtime_requirements: Vec<RuntimeRequirements>,
+  pub runtime_requirements: HashSet<String>,
 }
 
 impl CodeGenerationResult {
@@ -39,7 +38,7 @@ impl CodeGenerationResult {
 
 #[derive(Default, Debug)]
 pub struct CodeGenerationResults {
-  map: HashMap<ModuleIdentifier, RuntimeSpecMap>,
+  map: HashMap<ModuleIdentifier, RuntimeSpecMap<CodeGenerationResult>>,
 }
 
 impl CodeGenerationResults {
@@ -103,5 +102,18 @@ impl CodeGenerationResults {
         record.insert(spec_map);
       }
     };
+  }
+
+  pub fn get_runtime_requirements(
+    &self,
+    module_identifier: &ModuleIdentifier,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Result<HashSet<String>> {
+    Ok(
+      self
+        .get(module_identifier, runtime)?
+        .runtime_requirements
+        .clone(),
+    )
   }
 }

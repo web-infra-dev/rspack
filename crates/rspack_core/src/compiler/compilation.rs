@@ -39,11 +39,11 @@ use crate::{
     OptimizeDependencyResult,
   },
   AdditionalChunkRuntimeRequirementsArgs, BuildContext, BundleEntries, Chunk, ChunkByUkey,
-  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, CompilerOptions, Dependency, EntryItem,
-  Entrypoint, LoaderRunnerRunner, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg,
-  NormalModule, NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs,
-  RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver, Stats,
-  VisitedModuleIdentity,
+  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, CodeGenerationResult, CodeGenerationResults,
+  CompilerOptions, Dependency, EntryItem, Entrypoint, LoaderRunnerRunner, ModuleDependency,
+  ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModule, NormalModuleFactory,
+  NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs,
+  ResolveKind, Runtime, SharedPluginDriver, Stats, VisitedModuleIdentity,
 };
 use rspack_symbol::Symbol;
 
@@ -851,7 +851,23 @@ impl Compilation {
         .chunk_graph
         .get_number_of_module_chunks(&module.identifier())
         > 0
-      {}
+      {
+        for runtime in self
+          .chunk_graph
+          .get_module_runtimes(&module.identifier(), &self.chunk_by_ukey)
+          .values()
+        {
+          let runtime_requirements = self
+            .code_generation_results
+            .get_runtime_requirements(&module.identifier(), Some(runtime))?;
+
+          self.chunk_graph.add_module_runtime_requirements(
+            &module.identifier(),
+            runtime,
+            runtime_requirements,
+          )
+        }
+      }
     }
     tracing::trace!("runtime requirements.modules");
 
@@ -861,10 +877,12 @@ impl Compilation {
         .chunk_graph
         .get_chunk_modules(chunk_ukey, &self.module_graph)
       {
-        let runtime_requirements = self
+        if let Some(runtime_requirements) = self
           .chunk_graph
-          .get_module_runtime_requirements(&module.module_identifier, &chunk.runtime);
-        set.extend(runtime_requirements.clone());
+          .get_module_runtime_requirements(&module.module_identifier, &chunk.runtime)
+        {
+          set.extend(runtime_requirements.clone());
+        }
       }
 
       self

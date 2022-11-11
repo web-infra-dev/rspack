@@ -1,14 +1,13 @@
-use hashbrown::HashSet;
 use json::Error::{
   ExceededDepthLimit, FailedUtf8Parsing, UnexpectedCharacter, UnexpectedEndOfJson, WrongType,
 };
-use rspack_error::{
-  DiagnosticKind, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, TraceableError,
-};
-
+use rspack_core::GenerateContext;
 use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
   NormalModule, ParserAndGenerator, Plugin, SourceType,
+};
+use rspack_error::{
+  DiagnosticKind, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, TraceableError,
 };
 
 mod utils;
@@ -90,12 +89,11 @@ impl ParserAndGenerator for JsonParserAndGenerator {
   #[allow(clippy::unwrap_in_result)]
   fn generate(
     &self,
-    requested_source_type: SourceType,
     ast_or_source: &rspack_core::AstOrSource,
     _module: &rspack_core::NormalModule,
-    _compilation: &rspack_core::Compilation,
+    generate_context: &mut GenerateContext,
   ) -> Result<rspack_core::GenerationResult> {
-    match requested_source_type {
+    match generate_context.requested_source_type {
       SourceType::JavaScript => Ok(rspack_core::GenerationResult {
         ast_or_source: RawSource::from(format!(
           r#"module.exports = {};"#,
@@ -108,11 +106,10 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         ))
         .boxed()
         .into(),
-        runtime_requirements: HashSet::default(),
       }),
       _ => Err(Error::InternalError(format!(
         "Unsupported source type {:?} for plugin Json",
-        requested_source_type,
+        generate_context.requested_source_type,
       ))),
     }
   }

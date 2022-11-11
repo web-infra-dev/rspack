@@ -2,7 +2,7 @@ use hashbrown::{HashMap, HashSet};
 
 use crate::{
   Chunk, ChunkByUkey, ChunkGroupUkey, ChunkUkey, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
-  RuntimeSpec, SourceType,
+  RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, SourceType,
 };
 
 #[derive(Debug, Default)]
@@ -198,17 +198,22 @@ impl ChunkGraph {
   pub fn add_module_runtime_requirements(
     &mut self,
     module_identifier: &ModuleIdentifier,
-    runtime: String,
+    runtime: &RuntimeSpec,
     runtime_requirements: HashSet<String>,
   ) {
-    let cgm = self.get_chunk_graph_module_mut(module_identifier);
-    cgm
-      .runtime_requirements
-      .entry(runtime)
-      .and_modify(|set| {
-        set.extend(runtime_requirements.clone());
-      })
-      .or_insert_with(|| runtime_requirements);
+    let mut cgm = self.get_chunk_graph_module_mut(module_identifier);
+
+    if let Some(runtime_requirements_map) = &mut cgm.runtime_requirements {
+      if let Some(value) = runtime_requirements_map.get_mut(runtime) {
+        value.extend(runtime_requirements);
+      } else {
+        runtime_requirements_map.set(runtime.clone(), runtime_requirements);
+      }
+    } else {
+      let mut runtime_requirements_map = RuntimeSpecMap::default();
+      runtime_requirements_map.set(runtime.clone(), runtime_requirements);
+      cgm.runtime_requirements = Some(runtime_requirements_map);
+    }
   }
 
   pub fn add_chunk_runtime_requirements(
@@ -232,13 +237,14 @@ impl ChunkGraph {
     &self,
     module_identifier: &ModuleIdentifier,
     _runtime: &RuntimeSpec,
-  ) -> &HashSet<String> {
+  ) -> Option<&HashSet<String>> {
     let cgm = self.get_chunk_graph_module(module_identifier);
-    // TODO
-    cgm
-      .runtime_requirements
-      .get("")
-      .expect("Module should have runtime requirements")
+    if let Some(runtime_requirements) = &cgm.runtime_requirements {
+      if let Some(runtime_requirements) = runtime_requirements.get(_runtime) {
+        return Some(runtime_requirements);
+      }
+    }
+    None
   }
 
   pub fn get_chunk_runtime_requirements(&self, chunk_ukey: &ChunkUkey) -> &HashSet<String> {
@@ -249,13 +255,27 @@ impl ChunkGraph {
   pub fn get_tree_runtime_requirements(&self, chunk_ukey: &ChunkUkey) -> &HashSet<String> {
     self.get_chunk_runtime_requirements(chunk_ukey)
   }
+
+  pub fn get_module_runtimes(
+    &self,
+    module_identifier: &ModuleIdentifier,
+    chunk_by_ukey: &ChunkByUkey,
+  ) -> RuntimeSpecSet {
+    let cgm = self.get_chunk_graph_module(module_identifier);
+    let mut runtimes = RuntimeSpecSet::default();
+    for chunk_ukey in cgm.chunks.iter() {
+      let chunk = chunk_by_ukey.get(chunk_ukey).expect("Chunk should exist");
+      runtimes.set(chunk.runtime.clone());
+    }
+    runtimes
+  }
 }
 
 #[derive(Debug, Default)]
 pub struct ChunkGraphModule {
   pub(crate) entry_in_chunks: HashSet<ChunkUkey>,
   pub(crate) chunks: HashSet<ChunkUkey>,
-  pub(crate) runtime_requirements: HashMap<String, HashSet<String>>,
+  pub(crate) runtime_requirements: Option<RuntimeSpecMap<HashSet<String>>>,
 }
 
 impl ChunkGraphModule {
@@ -263,7 +283,7 @@ impl ChunkGraphModule {
     Self {
       entry_in_chunks: Default::default(),
       chunks: Default::default(),
-      runtime_requirements: HashMap::default(),
+      runtime_requirements: None,
     }
   }
 }
