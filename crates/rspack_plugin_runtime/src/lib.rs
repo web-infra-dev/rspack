@@ -104,6 +104,10 @@ impl Plugin for RuntimePlugin {
           sources.push(generate_web_dynamic_load_script());
           sources.push(generate_web_dynamic_load_style());
         }
+
+        sources.push(RawSource::from(
+          RUNTIME_PLACEHOLDER_RSPACK_EXECUTE.to_string(),
+        ));
       }
       TargetPlatform::WebWorker => {
         sources.push(generate_web_worker_init_runtime(namespace));
@@ -151,7 +155,10 @@ impl Plugin for RuntimePlugin {
     let platform = &compilation.options.target.platform;
 
     match platform {
-      TargetPlatform::WebWorker | TargetPlatform::Node(_) => {
+      TargetPlatform::WebWorker
+      | TargetPlatform::Node(_)
+      | TargetPlatform::BrowsersList
+      | TargetPlatform::Web => {
         let mut entry_source_array = vec![];
         for chunk in compilation.chunk_by_ukey.values() {
           if chunk.has_entry_module(&compilation.chunk_graph) {
@@ -164,9 +171,20 @@ impl Plugin for RuntimePlugin {
             let mut asset = compilation.assets.remove(js_entry_file).unwrap();
             let ukey = &chunk.ukey.clone();
             let execute_code = compilation.generate_chunk_entry_code(ukey);
-            asset.source = compilation
-              .runtime
-              .generate_with_inline_modules(asset.source, execute_code);
+
+            asset.source = if matches!(
+              platform,
+              TargetPlatform::Node(_) | TargetPlatform::WebWorker
+            ) {
+              compilation
+                .runtime
+                .node_generate_with_inline_modules(asset.source, execute_code)
+            } else {
+              compilation
+                .runtime
+                .web_generate_with_inline_modules(asset.source)
+            };
+
             entry_source_array.push((js_entry_file.to_string(), asset));
           }
         }
@@ -175,7 +193,7 @@ impl Plugin for RuntimePlugin {
         }
       }
       // TODO: align `TargetPlatform::None` with Webpack, see: https://webpack.js.org/configuration/target/#false
-      TargetPlatform::BrowsersList | TargetPlatform::Web | TargetPlatform::None => {
+      TargetPlatform::None => {
         compilation.emit_asset(
           RUNTIME_FILE_NAME.to_string() + ".js",
           CompilationAsset::new(compilation.runtime.generate(), AssetInfo::default()),
