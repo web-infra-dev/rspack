@@ -9,15 +9,19 @@ mod inject_runtime_helper;
 use inject_runtime_helper::inject_runtime_helper;
 mod format;
 use format::*;
+use rspack_core::Devtool;
 use rspack_core::NormalModule;
 use swc_common::pass::{Repeat, Repeated};
+use swc_ecma_ast::EsVersion;
+use swc_ecma_transforms::fixer;
 use swc_ecma_transforms::optimization::simplify::dce::{dce, Config};
 mod swc_visitor;
 mod tree_shaking;
+use crate::ast::stringify;
 use crate::utils::get_swc_compiler;
 use rspack_core::{ast::javascript::Ast, CompilerOptions, GenerateContext, ResourceData};
 use rspack_error::Result;
-use swc::config::ModuleConfig;
+use swc::config::{ModuleConfig, SourceMapsConfig};
 use swc_common::pass::Repeat;
 use swc_common::{chain, comments::Comments};
 use swc_ecma_parser::Syntax;
@@ -26,7 +30,6 @@ use swc_ecma_transforms::optimization::simplify::dce::{dce, Config};
 use swc_ecma_transforms::pass::Optional;
 use tree_shaking::tree_shaking_visitor;
 use ustr::ustr;
-
 /// return (ast, top_level_mark, unresolved_mark, globals)
 pub fn run_before_pass(
   resource_data: &ResourceData,
@@ -107,8 +110,12 @@ pub fn run_before_pass(
       swc_visitor::dead_branch_remover(unresolved_mark),
     );
     program.fold_with(&mut pass);
+
     Ok(())
   })?;
+
+  // let res = stringify(&ast, &Devtool::default()).unwrap();
+  // println!("{}", &res.code);
   Ok(())
 }
 
@@ -163,3 +170,41 @@ pub fn run_after_pass(
     program.fold_with(&mut pass);
   });
 }
+
+// fn print() {
+//   let mut buf = vec![];
+//   {
+//     let mut wr = Box::new(swc_ecma_codegen::text_writer::JsWriter::new(
+//       self.cm.clone(),
+//       "\n",
+//       &mut buf,
+//       if source_map.enabled() {
+//         Some(&mut src_map_buf)
+//       } else {
+//         None
+//       },
+//     )) as Box<dyn WriteJs>;
+
+//     if minify {
+//       wr = Box::new(swc_ecma_codegen::text_writer::omit_trailing_semi(wr));
+//     }
+
+//     let mut emitter = Emitter {
+//       cfg: swc_ecma_codegen::Config {
+//         minify,
+//         target,
+//         ascii_only,
+//         ..Default::default()
+//       },
+//       comments,
+//       cm: self.cm.clone(),
+//       wr,
+//     };
+
+//     node
+//       .emit_with(&mut emitter)
+//       .context("failed to emit module")?;
+//   }
+//   // Invalid utf8 is valid in javascript world.
+//   String::from_utf8(buf).expect("invalid utf8 character detected")
+// }

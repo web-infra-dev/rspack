@@ -691,22 +691,28 @@ impl Compilation {
         let analyzer = ast.visit(|program, context| {
           let top_level_mark = context.top_level_mark;
           let unresolved_mark = context.unresolved_mark;
-          let mut analyzer =
-            ModuleRefAnalyze::new(top_level_mark, unresolved_mark, uri_key, &self.module_graph);
+          let helper_mark = context.helpers.mark();
+          let mut analyzer = ModuleRefAnalyze::new(
+            top_level_mark,
+            unresolved_mark,
+            helper_mark,
+            uri_key,
+            &self.module_graph,
+          );
           program.visit_with(&mut analyzer);
           analyzer
         });
         // Keep this debug info until we stabilize the tree-shaking
 
-        // dbg!(
-        //   &uri_key,
-        //   // &analyzer.export_all_list,
-        //   &analyzer.export_map,
-        //   &analyzer.import_map,
-        //   &analyzer.reference_map,
-        //   &analyzer.reachable_import_and_export,
-        //   &analyzer.used_symbol_ref
-        // );
+        dbg!(
+          &uri_key,
+          // &analyzer.export_all_list,
+          &analyzer.export_map,
+          &analyzer.import_map,
+          &analyzer.reference_map,
+          &analyzer.reachable_import_and_export,
+          &analyzer.used_symbol_ref
+        );
         Some((uri_key, analyzer.into()))
       })
       .collect::<HashMap<Ustr, TreeShakingResult>>();
@@ -774,7 +780,7 @@ impl Compilation {
       );
       used_symbol.extend(used_symbol_set);
     }
-
+    // dbg!(&used_symbol, &bail_out_module_identifiers);
     Ok(
       OptimizeDependencyResult {
         used_symbol,

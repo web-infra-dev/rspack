@@ -42,6 +42,7 @@ bitflags! {
 pub(crate) struct ModuleRefAnalyze<'a> {
   top_level_mark: Mark,
   unresolved_mark: Mark,
+  helper_mark: Mark,
   module_identifier: Ustr,
   module_graph: &'a ModuleGraph,
   pub(crate) export_map: HashMap<JsWord, SymbolRef>,
@@ -70,13 +71,15 @@ impl<'a> ModuleRefAnalyze<'a> {
   pub fn new(
     top_level_mark: Mark,
     unresolved_mark: Mark,
+    helper_mark: Mark,
     uri: Ustr,
     dep_to_module_identifier: &'a ModuleGraph,
   ) -> Self {
-    dbg!(&uri);
+    // dbg!(&uri);
     Self {
       top_level_mark,
       unresolved_mark,
+      helper_mark,
       module_identifier: uri,
       module_graph: dep_to_module_identifier,
       export_map: HashMap::default(),
@@ -500,16 +503,18 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         }
         None => {
           let symbol_ext: SymbolExt = if let Some(ident) = &node.ident {
-            let symbol_ext = SymbolExt::new(ident.to_id().into(), SymbolFlag::EXPORT_DEFAULT);
+            let renamed_symbol_ext =
+              SymbolExt::new(ident.to_id().into(), SymbolFlag::EXPORT_DEFAULT);
+            let default_ident_ext: SymbolExt = BetterId::from(default_ident.to_id()).into();
             self.add_reference(
-              BetterId::from(ident.to_id()).into(),
-              IdOrMemExpr::Id(symbol_ext.id.clone()),
+              default_ident_ext.clone(),
+              IdOrMemExpr::Id(renamed_symbol_ext.id.clone()),
             );
             self.add_reference(
-              symbol_ext.clone(),
-              IdOrMemExpr::Id(default_ident.to_id().into()),
+              renamed_symbol_ext.clone(),
+              IdOrMemExpr::Id(default_ident_ext.id),
             );
-            symbol_ext
+            renamed_symbol_ext
           } else {
             SymbolExt::new(default_ident.to_id().into(), SymbolFlag::EXPORT_DEFAULT)
           };
@@ -599,7 +604,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               IdOrMemExpr::Id(default_ident.to_id().into()),
             );
             self.add_reference(
-              BetterId::from(ident.to_id()).into(),
+              BetterId::from(default_ident.to_id()).into(),
               IdOrMemExpr::Id(symbol_ext.id.clone()),
             );
             symbol_ext
@@ -710,6 +715,12 @@ impl<'a> ModuleRefAnalyze<'a> {
         // TODO: should add some Diagnostic
       }
       Entry::Vacant(vac) => {
+        // if import is a helper injection then we should ignore now tree-shaking with that module
+        if vac.key().ctxt.outer() == self.helper_mark {
+          self
+            .bail_out_module_identifiers
+            .insert(symbol.module_identifier());
+        }
         vac.insert(symbol);
       }
     }
@@ -720,6 +731,12 @@ impl<'a> ModuleRefAnalyze<'a> {
       let resolved_uri = match self.resolve_module_identifier(src, ResolveKind::Import) {
         Some(module_identifier) => module_identifier,
         None => {
+          eprintln!(
+            "Can't resolve import {} in module {} ",
+            // SAFETY: we already know that src is not empty
+            named_export.src.as_ref().unwrap().value,
+            self.module_identifier
+          );
           // TODO: Ignore because helper interference.
           return;
         }
