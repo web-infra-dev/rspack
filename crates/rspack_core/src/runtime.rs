@@ -5,6 +5,7 @@ use crate::CodeGenerationResult;
 
 pub const RUNTIME_PLACEHOLDER_INSTALLED_MODULES: &str = "{/* __INSTALLED_MODULES__*/}";
 pub const RUNTIME_PLACEHOLDER_RSPACK_EXECUTE: &str = "/* RSPACK_EXECUTE */";
+pub const RUNTIME_PLACEHOLDER_CHUNK_ID: &str = "/* __CHUNK_ID__ */";
 
 #[derive(Clone, Debug, Default)]
 pub struct Runtime {
@@ -44,8 +45,15 @@ impl Runtime {
     concat.boxed()
   }
 
-  pub fn web_generate_with_inline_modules(&mut self, modules_code: BoxSource) -> BoxSource {
+  pub fn web_generate_with_inline_modules(
+    &mut self,
+    modules_code: BoxSource,
+    chunk_id: &str,
+  ) -> BoxSource {
     let runtime_source = self.generate().source().to_string();
+    let chunk_id_start = runtime_source.find(RUNTIME_PLACEHOLDER_CHUNK_ID).unwrap();
+    let chunk_id_end = chunk_id_start + RUNTIME_PLACEHOLDER_CHUNK_ID.len();
+
     let execute_code_start = runtime_source
       .find(RUNTIME_PLACEHOLDER_RSPACK_EXECUTE)
       .unwrap();
@@ -53,7 +61,9 @@ impl Runtime {
 
     ConcatSource::new([
       // runtime_source is all runtime code, and it's RawSource, so use RawSource at here is fine.
-      RawSource::from(&runtime_source[0..execute_code_start]).boxed(),
+      RawSource::from(&runtime_source[0..chunk_id_start]).boxed(),
+      RawSource::from(chunk_id).boxed(),
+      RawSource::from(&runtime_source[chunk_id_end..execute_code_start]).boxed(),
       modules_code,
       RawSource::from(&runtime_source[execute_code_end..runtime_source.len()]).boxed(),
     ])
