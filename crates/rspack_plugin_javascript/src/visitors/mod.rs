@@ -10,6 +10,8 @@ use inject_runtime_helper::inject_runtime_helper;
 mod format;
 use format::*;
 use rspack_core::NormalModule;
+use swc_common::pass::{Repeat, Repeated};
+use swc_ecma_transforms::optimization::simplify::dce::{dce, Config};
 mod swc_visitor;
 mod tree_shaking;
 use crate::utils::get_swc_compiler;
