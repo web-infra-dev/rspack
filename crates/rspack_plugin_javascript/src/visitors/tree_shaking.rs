@@ -7,11 +7,11 @@ use swc_atoms::JsWord;
 use swc_ecma_utils::quote_ident;
 use swc_ecma_visit::{noop_fold_type, Fold, FoldWith};
 use ustr::Ustr;
-pub fn tree_shaking_visitor(
+pub fn tree_shaking_visitor<'a>(
   module_id: Ustr,
-  used_symbol_set: &'_ HashSet<Symbol>,
+  used_symbol_set: &'a HashSet<Symbol>,
   top_level_mark: Mark,
-) -> impl Fold + '_ {
+) -> impl Fold + 'a {
   TreeShaker {
     module_id,
     used_symbol_set,

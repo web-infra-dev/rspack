@@ -6,9 +6,6 @@ module.exports = {
 	entry: {
 		main: ["./index.js"]
 	},
-	define: {
-		"process.env.NODE_ENV": "development"
-	},
 	infrastructureLogging: {
 		debug: true
 	},

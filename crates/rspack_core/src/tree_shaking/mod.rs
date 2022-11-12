@@ -10,4 +10,5 @@ pub mod visitor;
 pub struct OptimizeDependencyResult {
   pub used_symbol: HashSet<Symbol>,
   pub analyze_results: HashMap<Ustr, TreeShakingResult>,
+  pub bail_out_module_identifiers: HashSet<Ustr>,
 }

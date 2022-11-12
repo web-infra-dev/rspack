@@ -20,24 +20,28 @@ pub fn get_first_string_lit_arg(e: &CallExpr) -> Option<JsWord> {
   //   }
 }
 
-pub fn is_require_literal_expr(e: &CallExpr, unresolved_mark: Mark) -> bool {
+pub fn get_require_literal(e: &CallExpr, unresolved_mark: Mark) -> Option<JsWord> {
   if e.args.len() == 1 {
-    let first_arg = get_first_string_lit_arg(e);
-
-    first_arg.is_some()
-      && match &e.callee {
-        ident @ Callee::Expr(box Expr::Ident(Ident {
-          sym: js_word!("require"),
-          ..
-        })) => ident
+    if match &e.callee {
+      ident @ Callee::Expr(box Expr::Ident(Ident {
+        sym: js_word!("require"),
+        ..
+      })) => {
+        // dbg!(&ident);
+        ident
           .as_expr()
           .and_then(|expr| expr.as_ident())
           .map(|ident| ident.span.ctxt.outer() == unresolved_mark)
-          .unwrap_or(false),
-        _ => false,
+          .unwrap_or(false)
       }
+      _ => false,
+    } {
+      get_first_string_lit_arg(e)
+    } else {
+      None
+    }
   } else {
-    false
+    None
   }
 }
 

@@ -4,7 +4,7 @@ use bitflags::bitflags;
 use hashbrown::{hash_map::Entry, HashMap, HashSet};
 use indexmap::IndexMap;
 use swc_atoms::JsWord;
-use swc_common::{util::take::Take, Mark, GLOBALS};
+use swc_common::{util::take::Take, Mark, Span, GLOBALS};
 use swc_ecma_ast::*;
 use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
 use ustr::{ustr, Ustr};
@@ -12,13 +12,23 @@ use ustr::{ustr, Ustr};
 use crate::{Dependency, ModuleGraph, ModuleSyntax, ResolveKind};
 use rspack_symbol::{BetterId, IdOrMemExpr, IndirectTopLevelSymbol, Symbol, SymbolExt, SymbolFlag};
 
-use super::utils::{get_dynamic_import_string_literal, is_require_literal_expr};
+use super::utils::{get_dynamic_import_string_literal, get_require_literal};
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SymbolRef {
   Direct(Symbol),
   Indirect(IndirectTopLevelSymbol),
   /// uri
   Star(Ustr),
+}
+
+impl SymbolRef {
+  pub fn module_identifier(&self) -> Ustr {
+    match self {
+      SymbolRef::Direct(d) => d.uri(),
+      SymbolRef::Indirect(i) => i.uri,
+      SymbolRef::Star(s) => *s,
+    }
+  }
 }
 
 bitflags! {
@@ -53,6 +63,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   // This field is used for duplicated export default checking
   pub(crate) export_default_name: Option<JsWord>,
   module_syntax: ModuleSyntax,
+  pub(crate) bail_out_module_identifiers: HashSet<Ustr>,
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
@@ -62,6 +73,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     uri: Ustr,
     dep_to_module_identifier: &'a ModuleGraph,
   ) -> Self {
+    dbg!(&uri);
     Self {
       top_level_mark,
       unresolved_mark,
@@ -78,6 +90,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       used_symbol_ref: HashSet::default(),
       export_default_name: None,
       module_syntax: ModuleSyntax::empty(),
+      bail_out_module_identifiers: HashSet::new(),
     }
   }
 
@@ -157,6 +170,13 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   fn visit_program(&mut self, node: &Program) {
     assert!(GLOBALS.is_set());
     node.visit_children_with(self);
+    // TODO: remove this after we visit commonjs exports
+    if !self.bail_out_module_identifiers.is_empty() {
+      self
+        .bail_out_module_identifiers
+        .insert(self.module_identifier);
+    }
+    // dbg!(&self.bail_out_module_identifiers);
     // calc reachable imports for each export symbol defined in current module
     for (key, symbol) in self.export_map.iter() {
       match symbol {
@@ -345,8 +365,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           // TODO: ignore ts related syntax visit for now
         }
       },
-      ModuleItem::Stmt(_) => {
-        node.visit_children_with(self);
+      ModuleItem::Stmt(stmt) => {
+        // dbg!(&stmt);
+        stmt.visit_children_with(self);
       }
     }
   }
@@ -400,6 +421,13 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               self.used_id_set.insert(member_expr);
             }
             _ => {}
+          }
+        } else {
+          // For commonjs and umd
+          if (&obj.sym == "module" && &prop.sym == "exports") || &obj.sym == "exports" {
+            self
+              .bail_out_module_identifiers
+              .insert(self.module_identifier);
           }
         }
       }
@@ -500,12 +528,40 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       node.class.visit_with(self);
     }
   }
-
+  fn visit_span(&mut self, span: &Span) {}
   fn visit_call_expr(&mut self, node: &CallExpr) {
     // TODO: module.exports, exports.xxxxx
-    if is_require_literal_expr(node, self.unresolved_mark) {
+    if let Some(require_lit) = get_require_literal(node, self.unresolved_mark) {
+      match self
+        .resolve_module_identifier(require_lit.to_string(), ResolveKind::Require)
+        .map(|item| ustr(item))
+      {
+        Some(module_identifier) => {
+          self.bail_out_module_identifiers.insert(module_identifier);
+        }
+        None => {
+          eprintln!(
+            "Can't resolve require {} in {}",
+            require_lit, self.module_identifier
+          );
+        }
+      };
       self.module_syntax.insert(ModuleSyntax::COMMONJS);
     } else if let Some(import_str) = get_dynamic_import_string_literal(node) {
+      match self
+        .resolve_module_identifier(import_str.to_string(), ResolveKind::DynamicImport)
+        .map(|item| ustr(item))
+      {
+        Some(module_identifier) => {
+          self.bail_out_module_identifiers.insert(module_identifier);
+        }
+        None => {
+          eprintln!(
+            "Can't resolve dynamic import {} in {}",
+            import_str, self.module_identifier
+          );
+        }
+      };
     } else {
       node.visit_children_with(self);
     }
@@ -599,6 +655,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         | Pat::Invalid(_)
         | Pat::Expr(_) => {
           // TODO:
+          ele.name.visit_with(self);
           continue;
         }
       };
@@ -618,6 +675,8 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         self.current_body_owner_symbol_ext = Some(symbol_ext);
         init.visit_with(self);
         self.current_body_owner_symbol_ext = before_symbol_ext;
+      } else {
+        ele.init.visit_with(self);
       }
     }
   }
@@ -784,6 +843,7 @@ pub struct TreeShakingResult {
   pub(crate) reachable_import_of_export: HashMap<JsWord, HashSet<SymbolRef>>,
   state: AnalyzeState,
   pub(crate) used_symbol_ref: HashSet<SymbolRef>,
+  pub(crate) bail_out_module_identifiers: HashSet<Ustr>,
 }
 
 impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
@@ -800,6 +860,7 @@ impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
       reachable_import_of_export: std::mem::take(&mut analyze.reachable_import_and_export),
       state: std::mem::take(&mut analyze.state),
       used_symbol_ref: std::mem::take(&mut analyze.used_symbol_ref),
+      bail_out_module_identifiers: std::mem::take(&mut analyze.bail_out_module_identifiers),
     }
   }
 }

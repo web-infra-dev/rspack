@@ -118,6 +118,7 @@ impl Compiler {
         self.compilation.push_batch_diagnostic(diagnostics);
       }
       self.compilation.used_symbol = analyze_result.used_symbol;
+      self.compilation.bailout_module_identifiers = analyze_result.bail_out_module_identifiers;
       // This is only used when testing
       #[cfg(debug_assertions)]
       {

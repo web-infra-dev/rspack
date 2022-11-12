@@ -131,6 +131,9 @@ pub fn run_after_pass(
           top_level_mark,
         ),
         tree_shaking
+          && !compilation
+            .bailout_module_identifiers
+            .contains(&ustr(&mgm.module_identifier))
       ),
       Optional::new(
         Repeat::new(dce(Config::default(), unresolved_mark)),

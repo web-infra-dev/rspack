@@ -1,0 +1,57 @@
+                                                              Asset       Size                                                           Chunks  Chunk Names
+ src_pages_visualization_multi-dimension-data-analysis_index_tsx.js   6.52 MiB  src_pages_visualization_multi-dimension-data-analysis_index_tsx  
+                         src_pages_dashboard_workplace_index_tsx.js   5.34 MiB                          src_pages_dashboard_workplace_index_tsx  
+                 src_pages_visualization_data-analysis_index_tsx.js   5.18 MiB                  src_pages_visualization_data-analysis_index_tsx  
+                                                            main.js      5 MiB                                                             main  main
+                                                           main.css    493 KiB                                                             main  main
+                           src_pages_dashboard_monitor_index_tsx.js   68.6 KiB                            src_pages_dashboard_monitor_index_tsx  
+                           src_pages_list_search-table_index_tsx.js   63.6 KiB                            src_pages_list_search-table_index_tsx  
+                                src_pages_user_setting_index_tsx.js   47.1 KiB                                 src_pages_user_setting_index_tsx  
+                                   src_pages_user_info_index_tsx.js   41.3 KiB                                    src_pages_user_info_index_tsx  
+                                   src_pages_list_card_index_tsx.js   36.4 KiB                                    src_pages_list_card_index_tsx  
+                                                         runtime.js   35.9 KiB                                                                   
+                                  src_pages_form_group_index_tsx.js     33 KiB                                   src_pages_form_group_index_tsx  
+                                   src_pages_form_step_index_tsx.js   24.6 KiB                                    src_pages_form_step_index_tsx  
+                               src_pages_profile_basic_index_tsx.js   23.9 KiB                                src_pages_profile_basic_index_tsx  
+                                     src_pages_welcome_index_tsx.js   16.9 KiB                                      src_pages_welcome_index_tsx  
+                                src_pages_result_error_index_tsx.js   8.17 KiB                                 src_pages_result_error_index_tsx  
+                              src_pages_result_success_index_tsx.js   8.16 KiB                               src_pages_result_success_index_tsx  
+                               src_pages_exception_403_index_tsx.js   4.19 KiB                                src_pages_exception_403_index_tsx  
+                               src_pages_exception_404_index_tsx.js   4.17 KiB                                src_pages_exception_404_index_tsx  
+                               src_pages_exception_500_index_tsx.js   3.84 KiB                                src_pages_exception_500_index_tsx  
+                        src_pages_dashboard_workplace_index_tsx.css   3.72 KiB                          src_pages_dashboard_workplace_index_tsx  
+                                  src_pages_list_card_index_tsx.css   2.75 KiB                                    src_pages_list_card_index_tsx  
+                          src_pages_dashboard_monitor_index_tsx.css    2.3 KiB                            src_pages_dashboard_monitor_index_tsx  
+                src_pages_visualization_data-analysis_index_tsx.css   2.15 KiB                  src_pages_visualization_data-analysis_index_tsx  
+src_pages_visualization_multi-dimension-data-analysis_index_tsx.css   2.09 KiB  src_pages_visualization_multi-dimension-data-analysis_index_tsx  
+                               src_pages_user_setting_index_tsx.css   1.69 KiB                                 src_pages_user_setting_index_tsx  
+                                  src_pages_user_info_index_tsx.css   1.35 KiB                                    src_pages_user_info_index_tsx  
+                          src_pages_list_search-table_index_tsx.css  942 bytes                            src_pages_list_search-table_index_tsx  
+                                  src_pages_form_step_index_tsx.css  627 bytes                                    src_pages_form_step_index_tsx  
+                                 src_pages_form_group_index_tsx.css  465 bytes                                   src_pages_form_group_index_tsx  
+                             src_pages_result_success_index_tsx.css  435 bytes                               src_pages_result_success_index_tsx  
+                               src_pages_result_error_index_tsx.css  409 bytes                                 src_pages_result_error_index_tsx  
+                                                         index.html  394 bytes                                                                   
+                                    src_pages_welcome_index_tsx.css  379 bytes                                      src_pages_welcome_index_tsx  
+                              src_pages_exception_403_index_tsx.css  266 bytes                                src_pages_exception_403_index_tsx  
+                              src_pages_exception_404_index_tsx.css  266 bytes                                src_pages_exception_404_index_tsx  
+                              src_pages_exception_500_index_tsx.css  266 bytes                                src_pages_exception_500_index_tsx  
+                              src_pages_profile_basic_index_tsx.css  221 bytes                                src_pages_profile_basic_index_tsx  
+                                       src_pages_login_index_tsx.js   83 bytes                                        src_pages_login_index_tsx  
+Entrypoint main = main.css main.js
+[./src/index.tsx] 2.38 KiB {main}
+[./src/routes.ts] 4.81 KiB {main}
+[./src/layout.tsx] 11.1 KiB {main}
+[./src/context.tsx] 197 bytes {main}
+[./src/utils/is.ts] 483 bytes {main}
+[./src/mock/user.ts] 1.82 KiB {main}
+[./src/mock/index.ts] 163 bytes {main}
+[./src/settings.json] 124 bytes {main}
+[./src/store/index.ts] 865 bytes {main}
+[./src/assets/logo.svg] 1.38 KiB {main}
+[./src/locale/index.ts] 4.9 KiB {main}
+[./src/style/global.less] 1 bytes {main}
+[./src/utils/clipboard.ts] 1.01 KiB {src_pages_welcome_index_tsx}
+[./src/utils/lazyload.tsx] 769 bytes {main}
+[./src/utils/setupMock.ts] 183 bytes {main}
+    + 3603 hidden modules
