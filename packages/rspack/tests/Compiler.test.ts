@@ -1119,11 +1119,10 @@ describe("Compiler", () => {
 							"dd.js",
 							new RawSource(`module.exports = "This is dd"`)
 						);
-
 						compilation.hooks.processAssets.tap("Plugin", assets => {
 							let names = Object.keys(assets);
 
-							expect(names.length).toBe(3);
+							expect(names.length).toBe(2); // ["main.js", "dd.js"]
 							expect(names.includes("main.js")).toBeTruthy();
 							expect(assets["main.js"].source().includes("This is d"));
 
