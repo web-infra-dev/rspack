@@ -6,7 +6,8 @@ use node::*;
 use rspack_core::{
   rspack_sources::RawSource, AssetInfo, CompilationAsset, Plugin, PluginContext,
   PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, RenderManifestArgs,
-  RenderRuntimeArgs, TargetPlatform, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
+  RenderRuntimeArgs, TargetPlatform, RUNTIME_PLACEHOLDER_CHUNK_ID,
+  RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
 };
 use web::*;
 use web_worker::*;
@@ -90,6 +91,13 @@ impl Plugin for RuntimePlugin {
         sources.push(generate_common_public_path(public_path));
         sources.push(generate_web_rspack_require());
         sources.push(generate_web_rspack_register());
+
+        // TODO: should use `.hmrF = [chunk_id].[hash].hot-update.json`
+        sources.push(RawSource::from(format!(
+          "(function(){{\nruntime.__rspack_require__.chunkId = '{}'}})();",
+          RUNTIME_PLACEHOLDER_CHUNK_ID,
+        )));
+
         {
           // TODO: a switch to control introduce it or not.
           sources.push(generate_web_hot());
@@ -182,7 +190,7 @@ impl Plugin for RuntimePlugin {
             } else {
               compilation
                 .runtime
-                .web_generate_with_inline_modules(asset.source)
+                .web_generate_with_inline_modules(asset.source, &chunk.id)
             };
 
             entry_source_array.push((js_entry_file.to_string(), asset));

@@ -31,7 +31,7 @@ describe("Stats", () => {
 		        "development": false,
 		      },
 		      "name": "main.js",
-		      "size": 14944,
+		      "size": 14980,
 		      "type": "asset",
 		    },
 		  ],
@@ -55,10 +55,10 @@ describe("Stats", () => {
 		      "assets": [
 		        {
 		          "name": "main.js",
-		          "size": 14944,
+		          "size": 14980,
 		        },
 		      ],
-		      "assetsSize": 14944,
+		      "assetsSize": 14980,
 		      "chunks": [
 		        "main",
 		      ],

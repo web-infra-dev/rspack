@@ -64,6 +64,9 @@
         runtime.__rspack_register__ = __rspack_register__;
     })();
     (function() {
+        runtime.__rspack_require__.chunkId = "main";
+    })();
+    (function() {
         var currentModuleData = {};
         var installedModules = runtime.moduleCache;
         var currentChildModule;
