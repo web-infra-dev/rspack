@@ -672,15 +672,20 @@ impl Compilation {
         let uri_key = ustr(module_identifier);
         let ast = match mgm.module_type {
           crate::ModuleType::Js
-          | crate::ModuleType::Jsx
-          | crate::ModuleType::Tsx
-          | crate::ModuleType::Ts => self
-            .module_graph
-            .module_by_identifier(&mgm.module_identifier)
-            .and_then(|module| module.ast())
-            .unwrap()
-            .as_javascript()
-            .unwrap(),
+          | crate::ModuleType::Jsx | crate::ModuleType::Tsx
+          | crate::ModuleType::Ts => match self
+                      .module_graph
+                      .module_by_identifier(&mgm.module_identifier)
+                      .and_then(|module| module.ast())
+                      .unwrap()
+                      .as_javascript() {
+              Some(ast) => {ast},
+              None => {
+                // TODO: diagnostic, this could be none if you enable both hmr and tree-shaking
+                return None;
+              },
+          }
+            ,
           // Of course this is unsafe, but if we can't get a ast of a javascript module, then panic is ideal.
           _ => {
             // Ignore analyzing other module for now
@@ -1144,9 +1149,12 @@ fn mark_symbol(
 ) {
   // We don't need mark the symbol usage if it is from a bailout module because
   // bailout module will skipping tree-shaking anyway
-  // if bailout_module_identifiers.contains_key(&symbol_ref.module_identifier()) {
-  //   return;
-  // }
+  if debug_care_module_id(symbol_ref.module_identifier()) {
+    dbg!(&symbol_ref);
+    // dbg!(&module_result.inherit_export_maps);
+  }
+  let is_bailout_module_identifier =
+    bailout_module_identifiers.contains_key(&symbol_ref.module_identifier());
   match symbol_ref {
     SymbolRef::Direct(symbol) => match used_symbol_set.entry(symbol) {
       Occupied(_) => {}
@@ -1158,13 +1166,22 @@ fn mark_symbol(
         {
           q.extend(set.iter().cloned());
         };
+        // Assume the module name is app.js
+        // ```js
+        // import {myanswer, secret} from './lib'
+        // export {myanswer as m, secret as s}
+        // ```
+        // In such scenario there are two `myanswer` binding would create
+        // one for `app.js`, one for `lib.js`
+        // the binding in `app.js` used for shake the `export {xxx}`
+        // In other words, we need two binding for supporting indirect redirect.
+        if let Some(symbol_ref) = module_result.import_map.get(vac.get().id()) {
+          q.push_back(symbol_ref.clone());
+        }
         vac.insert();
       }
     },
     SymbolRef::Indirect(indirect_symbol) => {
-      if debug_care_module_id(indirect_symbol.uri()) {
-        dbg!(&indirect_symbol);
-      }
       let module_result = match analyze_map.get(&indirect_symbol.uri) {
         Some(module_result) => module_result,
         None => {
@@ -1194,7 +1211,7 @@ fn mark_symbol(
               // TODO: Better diagnostic handle if source module does not have the export
               // let map = analyze_map.get(&module_result.module_identifier).unwrap();
               // dbg!(&map);
-              if !has_bailout_module_identifiers {
+              if !is_bailout_module_identifier && !has_bailout_module_identifiers {
                 eprint!(
                   "{} did not export `{}`, imported by {}",
                   module_result.module_identifier,

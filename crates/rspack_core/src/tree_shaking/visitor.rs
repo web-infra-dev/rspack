@@ -809,9 +809,8 @@ impl<'a> ModuleRefAnalyze<'a> {
           }
           ExportSpecifier::Named(named) => {
             // TODO: what if the named binding is a unresolved_binding?
-            // TODO: handle `as xxx`
-            let id = match &named.orig {
-              ModuleExportName::Ident(ident) => ident.to_id(),
+            let id: BetterId = match &named.orig {
+              ModuleExportName::Ident(ident) => ident.to_id().into(),
               // `export {'a'}` is a syntax error;
               // we know here export has no src,  so this branch should not reachable.
               ModuleExportName::Str(_) => unreachable!(),
@@ -822,10 +821,10 @@ impl<'a> ModuleRefAnalyze<'a> {
                 ModuleExportName::Ident(ident) => ident.sym.clone(),
                 ModuleExportName::Str(str) => str.value.clone(),
               },
-              None => id.0.clone(),
+              None => id.atom.clone(),
             };
-            let symbol_ref =
-              SymbolRef::Direct(Symbol::from_id_and_uri(id.into(), self.module_identifier));
+            let symbol_ref = SymbolRef::Direct(Symbol::from_id_and_uri(id, self.module_identifier));
+
             self.add_export(exported_atom, symbol_ref);
           }
         });

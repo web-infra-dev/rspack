@@ -14,8 +14,13 @@ pub struct OptimizeDependencyResult {
 }
 
 pub static CARE_MODULE_ID: &[&str] = &[
-  "/home/victor/Documents/rspack/rspack/examples/arco-pro/src/layout.tsx",
-  "/home/victor/Documents/rspack/rspack/examples/arco-pro/src/utils/getUrlParams.ts",
+  "",
+  // "/home/victor/Documents/rspack/rspack/examples/arco-pro/src/index.tsx",
+  // "/home/victor/Documents/rspack/rspack/examples/basic/index.js",
+  // "/home/victor/Documents/rspack/rspack/node_modules/react-redux/es/index.js",
+  /* "/home/victor/Documents/rspack/rspack/node_modules/@antv/g-base/esm/index.js",
+   * "/home/victor/Documents/rspack/rspack/node_modules/@antv/g-base/esm/bbox/register.js",
+   * "/home/victor/Documents/rspack/rspack/node_modules/@antv/g-base/esm/bbox/index.js", */
 ];
 
 pub fn debug_care_module_id<T: AsRef<str>>(id: T) -> bool {
