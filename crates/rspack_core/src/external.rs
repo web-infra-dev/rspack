@@ -2,7 +2,7 @@ use rspack_error::{Error, IntoTWithDiagnosticArray};
 use rspack_sources::{RawSource, SourceExt};
 
 use crate::{
-  ApplyContext, ExternalType, FactorizeAndBuildArgs, ModuleType, NormalModule,
+  ApplyContext, ExternalType, FactorizeAndBuildArgs, GenerateContext, ModuleType, NormalModule,
   NormalModuleFactoryContext, ParserAndGenerator, Plugin, PluginContext,
   PluginFactorizeAndBuildHookOutput, SourceType, Target, TargetPlatform,
 };
@@ -64,10 +64,9 @@ impl ParserAndGenerator for ExternalParserAndGenerator {
 
   fn generate(
     &self,
-    _requested_source_type: crate::SourceType,
     ast_or_source: &crate::AstOrSource,
     _module: &crate::NormalModule,
-    _compilation: &crate::Compilation,
+    _generate_context: &mut GenerateContext,
   ) -> rspack_error::Result<crate::GenerationResult> {
     Ok(crate::GenerationResult {
       // Safety: We know this value comes from parser, so it is safe here.

@@ -13,7 +13,7 @@ use rspack_core::NormalModule;
 mod swc_visitor;
 mod tree_shaking;
 use crate::utils::get_swc_compiler;
-use rspack_core::{ast::javascript::Ast, Compilation, CompilerOptions, ResourceData};
+use rspack_core::{ast::javascript::Ast, CompilerOptions, GenerateContext, ResourceData};
 use rspack_error::Result;
 use swc::config::ModuleConfig;
 use swc_common::{chain, comments::Comments};
@@ -108,19 +108,23 @@ pub fn run_before_pass(
   Ok(())
 }
 
-pub fn run_after_pass(ast: &mut Ast, module: &NormalModule, compilation: &Compilation) {
+pub fn run_after_pass(
+  ast: &mut Ast,
+  module: &NormalModule,
+  generate_context: &mut GenerateContext,
+) {
   let cm = get_swc_compiler().cm.clone();
   ast.transform(|program, context| {
     let unresolved_mark = context.unresolved_mark;
     let top_level_mark = context.top_level_mark;
-    let tree_shaking = compilation.options.builtins.tree_shaking;
+    let tree_shaking = generate_context.compilation.options.builtins.tree_shaking;
     let comments = None;
 
     let mut pass = chain!(
       Optional::new(
         tree_shaking_visitor(
           ustr(&module.identifier()),
-          &compilation.used_symbol,
+          &generate_context.compilation.used_symbol,
           top_level_mark,
         ),
         tree_shaking
@@ -135,12 +139,12 @@ pub fn run_after_pass(ast: &mut Ast, module: &NormalModule, compilation: &Compil
           ..Default::default()
         })),
         comments,
-        compilation.options.target.es_version
+        generate_context.compilation.options.target.es_version
       ),
-      inject_runtime_helper(),
+      inject_runtime_helper(generate_context.runtime_requirements),
       swc_visitor::hygiene(false),
       swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
-      finalize(module, compilation, unresolved_mark)
+      finalize(module, generate_context.compilation, unresolved_mark)
     );
 
     program.fold_with(&mut pass);

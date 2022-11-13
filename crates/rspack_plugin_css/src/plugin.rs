@@ -1,7 +1,6 @@
 use hashbrown::HashSet;
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
-
 use swc_css::visit::VisitMutWith;
 use swc_css_prefixer::{options::Options, prefixer};
 
@@ -11,8 +10,8 @@ use rspack_core::{
     BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
     SourceMapSource, SourceMapSourceOptions,
   },
-  FilenameRenderOptions, GenerationResult, ModuleType, NormalModule, ParseContext, ParseResult,
-  ParserAndGenerator, Plugin, RenderManifestEntry, SourceType,
+  FilenameRenderOptions, GenerateContext, GenerationResult, ModuleType, NormalModule, ParseContext,
+  ParseResult, ParserAndGenerator, Plugin, RenderManifestEntry, SourceType,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;
@@ -129,12 +128,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
   #[instrument(name = "css:generate")]
   fn generate(
     &self,
-    requested_source_type: SourceType,
     ast_or_source: &rspack_core::AstOrSource,
     module: &rspack_core::NormalModule,
-    compilation: &rspack_core::Compilation,
+    generate_context: &mut GenerateContext,
   ) -> Result<rspack_core::GenerationResult> {
-    let result = match requested_source_type {
+    let result = match generate_context.requested_source_type {
       SourceType::Css => {
         let (code, source_map) = SWC_COMPILER.codegen(
           ast_or_source
@@ -142,7 +140,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             .expect("Expected AST for CSS generator, please file an issue.")
             .as_css()
             .expect("Expected CSS AST for CSS generation, please file an issue."),
-          compilation,
+          generate_context.compilation,
         )?;
         if let Some(source_map) = source_map {
           let source = SourceMapSource::new(SourceMapSourceOptions {
@@ -184,7 +182,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       ),
       _ => Err(Error::InternalError(format!(
         "Unsupported source type: {:?}",
-        requested_source_type
+        generate_context.requested_source_type
       ))),
     }?;
 

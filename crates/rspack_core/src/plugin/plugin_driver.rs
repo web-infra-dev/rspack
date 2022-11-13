@@ -8,12 +8,14 @@ use rspack_loader_runner::ResourceData;
 use tracing::instrument;
 
 use crate::{
-  ApplyContext, BoxedParserAndGeneratorBuilder, Compilation, CompilationArgs, CompilerOptions,
-  Content, DoneArgs, FactorizeAndBuildArgs, ModuleType, NormalModule, NormalModuleFactoryContext,
-  OptimizeChunksArgs, Plugin, PluginBuildEndHookOutput, PluginCompilationHookOutput, PluginContext,
-  PluginFactorizeAndBuildHookOutput, PluginMakeHookOutput, PluginProcessAssetsOutput,
-  PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, PluginThisCompilationHookOutput,
-  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, Resolver, Stats, ThisCompilationArgs,
+  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxedParserAndGeneratorBuilder,
+  Compilation, CompilationArgs, CompilerOptions, Content, DoneArgs, FactorizeAndBuildArgs,
+  ModuleType, NormalModule, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
+  PluginCompilationHookOutput, PluginContext, PluginFactorizeAndBuildHookOutput,
+  PluginMakeHookOutput, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
+  PluginRenderRuntimeHookOutput, PluginThisCompilationHookOutput, ProcessAssetsArgs,
+  RenderManifestArgs, RenderRuntimeArgs, Resolver, Stats, ThisCompilationArgs,
 };
 use rspack_error::{Diagnostic, Result};
 
@@ -205,6 +207,29 @@ impl PluginDriver {
     }
     Ok(sources)
   }
+
+  #[instrument(name = "plugin:additional_chunk_runtime_requirements")]
+  pub fn additional_chunk_runtime_requirements(
+    &self,
+    args: &AdditionalChunkRuntimeRequirementsArgs,
+  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    for plugin in &self.plugins {
+      plugin.additional_chunk_runtime_requirements(PluginContext::new(), args)?;
+    }
+    Ok(())
+  }
+
+  #[instrument(name = "plugin:additional_tree_runtime_requirements")]
+  pub fn additional_tree_runtime_requirements(
+    &self,
+    args: &AdditionalChunkRuntimeRequirementsArgs,
+  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    for plugin in &self.plugins {
+      plugin.additional_tree_runtime_requirements(PluginContext::new(), args)?;
+    }
+    Ok(())
+  }
+
   #[instrument(name = "plugin:process_assets", skip_all)]
   pub async fn process_assets(&mut self, args: ProcessAssetsArgs<'_>) -> PluginProcessAssetsOutput {
     for plugin in &mut self.plugins {

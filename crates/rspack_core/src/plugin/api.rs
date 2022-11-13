@@ -7,10 +7,10 @@ use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::{BoxSource, RawSource};
 
 use crate::{
-  BoxModule, Compilation, CompilationArgs, DoneArgs, FactorizeAndBuildArgs, ModuleType,
-  NormalModule, NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
-  ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs, ThisCompilationArgs, TransformAst,
-  TransformResult,
+  AdditionalChunkRuntimeRequirementsArgs, BoxModule, Compilation, CompilationArgs, DoneArgs,
+  FactorizeAndBuildArgs, ModuleType, NormalModule, NormalModuleFactoryContext, OptimizeChunksArgs,
+  ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs,
+  ThisCompilationArgs, TransformAst, TransformResult,
 };
 
 // use anyhow::{Context, Result};
@@ -30,6 +30,7 @@ pub type PluginParseOutput = Result<TransformAst>;
 pub type PluginGenerateOutput = Result<Content>;
 pub type PluginProcessAssetsOutput = Result<()>;
 pub type PluginOptimizeChunksOutput = Result<()>;
+pub type PluginAdditionalChunkRuntimeRequirementsOutput = Result<()>;
 // pub type PluginTransformAstHookOutput = Result<ast::Module>;
 
 // pub type PluginTransformHookOutput = Result<TransformResult>;
@@ -90,6 +91,23 @@ pub trait Plugin: Debug + Send + Sync {
   ) -> PluginRenderManifestHookOutput {
     Ok(vec![])
   }
+
+  fn additional_chunk_runtime_requirements(
+    &self,
+    _ctx: PluginContext,
+    _args: &AdditionalChunkRuntimeRequirementsArgs,
+  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    Ok(())
+  }
+
+  fn additional_tree_runtime_requirements(
+    &self,
+    _ctx: PluginContext,
+    _args: &AdditionalChunkRuntimeRequirementsArgs,
+  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    Ok(())
+  }
+
   fn render_runtime(
     &self,
     _ctx: PluginContext,

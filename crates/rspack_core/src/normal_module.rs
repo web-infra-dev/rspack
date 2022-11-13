@@ -255,6 +255,13 @@ pub struct ParseResult {
   pub ast_or_source: AstOrSource,
 }
 
+#[derive(Debug)]
+pub struct GenerateContext<'a> {
+  pub compilation: &'a Compilation,
+  pub runtime_requirements: &'a mut HashSet<String>,
+  pub requested_source_type: SourceType,
+}
+
 pub trait ParserAndGenerator: Send + Sync + Debug {
   /// The source types that the generator can generate (the source types you can make requests for)
   fn source_types(&self) -> &[SourceType];
@@ -265,10 +272,9 @@ pub trait ParserAndGenerator: Send + Sync + Debug {
   /// Generate source or AST based on the built source or AST
   fn generate(
     &self,
-    requested_source_type: SourceType,
     ast_or_source: &AstOrSource,
     module: &NormalModule,
-    compilation: &Compilation,
+    generate_context: &mut GenerateContext,
   ) -> Result<GenerationResult>;
 }
 
@@ -512,16 +518,22 @@ impl NormalModule {
   pub fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
     if let NormalModuleAstOrSource::BuiltSucceed(ast_or_source) = self.ast_or_source() {
       let mut code_generation_result = CodeGenerationResult::default();
-
+      let mut runtime_requirements = HashSet::new();
       for source_type in self.source_types() {
-        let generation_result =
-          self
-            .parser_and_generator
-            .generate(*source_type, ast_or_source, self, compilation)?;
-
+        let generation_result = self.parser_and_generator.generate(
+          ast_or_source,
+          self,
+          &mut GenerateContext {
+            compilation,
+            runtime_requirements: &mut runtime_requirements,
+            requested_source_type: *source_type,
+          },
+        )?;
         code_generation_result.add(*source_type, generation_result);
       }
-
+      code_generation_result
+        .runtime_requirements
+        .extend(runtime_requirements);
       Ok(code_generation_result)
     } else if let NormalModuleAstOrSource::BuiltFailed(error_message) = self.ast_or_source() {
       let mut code_generation_result = CodeGenerationResult::default();

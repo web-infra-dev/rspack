@@ -1,6 +1,6 @@
 use hashbrown::HashSet;
 
-use crate::{ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey};
+use crate::{ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, RuntimeSpec};
 
 #[derive(Debug)]
 pub struct Chunk {
@@ -9,6 +9,7 @@ pub struct Chunk {
   pub id: String,
   pub files: HashSet<String>,
   pub groups: HashSet<ChunkGroupUkey>,
+  pub runtime: RuntimeSpec,
 }
 
 impl Chunk {
@@ -19,6 +20,7 @@ impl Chunk {
       id,
       files: Default::default(),
       groups: Default::default(),
+      runtime: HashSet::default(),
     }
   }
 
@@ -34,6 +36,7 @@ impl Chunk {
       group.chunks.push(new_chunk.ukey);
       new_chunk.add_group(group.ukey);
     });
+    new_chunk.runtime.extend(self.runtime.clone());
   }
 
   pub fn can_be_initial(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> bool {
@@ -54,5 +57,18 @@ impl Chunk {
 
   pub fn has_entry_module(&self, chunk_graph: &ChunkGraph) -> bool {
     !chunk_graph.get_chunk_entry_modules(&self.ukey).is_empty()
+  }
+
+  pub fn get_all_referenced_chunks(
+    &self,
+    chunk_group_by_ukey: &ChunkGroupByUkey,
+  ) -> HashSet<ChunkUkey> {
+    self
+      .groups
+      .iter()
+      .filter_map(|ukey| chunk_group_by_ukey.get(ukey))
+      .flat_map(|chunk_group| chunk_group.chunks.iter().chain(chunk_group.children.iter()))
+      .cloned()
+      .collect()
   }
 }

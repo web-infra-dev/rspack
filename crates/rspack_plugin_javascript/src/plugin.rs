@@ -16,11 +16,11 @@ use rspack_core::rspack_sources::{
   SourceMapSource, SourceMapSourceOptions,
 };
 use rspack_core::{
-  get_contenthash, AstOrSource, Compilation, FilenameRenderOptions, GenerationResult, ModuleAst,
-  ModuleType, NormalModule, ParseContext, ParseResult, ParserAndGenerator, Plugin, PluginContext,
-  PluginProcessAssetsOutput, PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput,
-  ProcessAssetsArgs, RenderManifestEntry, RenderRuntimeArgs, SourceType,
-  RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
+  get_contenthash, AstOrSource, FilenameRenderOptions, GenerateContext, GenerationResult,
+  ModuleAst, ModuleType, NormalModule, ParseContext, ParseResult, ParserAndGenerator, Plugin,
+  PluginContext, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
+  PluginRenderRuntimeHookOutput, ProcessAssetsArgs, RenderManifestEntry, RenderRuntimeArgs,
+  SourceType, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;
@@ -129,12 +129,14 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   #[instrument(name = "js:generate")]
   fn generate(
     &self,
-    requested_source_type: SourceType,
     ast_or_source: &AstOrSource,
     module: &NormalModule,
-    compilation: &Compilation,
+    generate_context: &mut GenerateContext,
   ) -> Result<GenerationResult> {
-    if matches!(requested_source_type, SourceType::JavaScript) {
+    if matches!(
+      generate_context.requested_source_type,
+      SourceType::JavaScript
+    ) {
       // TODO: this should only return AST for javascript only, It's a fast pass, defer to another pr to solve this.
       // Ok(ast_or_source.to_owned().into())
 
@@ -142,8 +144,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .to_owned()
         .try_into_ast()?
         .try_into_javascript()?;
-      run_after_pass(&mut ast, module, compilation);
-      let output = crate::ast::stringify(&ast, &compilation.options.devtool)?;
+      run_after_pass(&mut ast, module, generate_context);
+      let output = crate::ast::stringify(&ast, &generate_context.compilation.options.devtool)?;
 
       if let Some(map) = output.map {
         Ok(GenerationResult {
@@ -182,7 +184,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     } else {
       Err(Error::InternalError(format!(
         "Unsupported source type {:?} for plugin JavaScript",
-        requested_source_type,
+        generate_context.requested_source_type,
       )))
     }
   }
@@ -348,7 +350,7 @@ impl Plugin for JsPlugin {
         .render(FilenameRenderOptions {
           filename: None,
           extension: Some(".js".to_owned()),
-          id: Some(format!("static/js/{}", args.chunk().id.to_owned())),
+          id: Some(args.chunk().id.to_owned()),
           contenthash,
           chunkhash,
           hash,

@@ -1,6 +1,6 @@
 use hashbrown::{HashMap, HashSet};
 
-use crate::{Chunk, ChunkByUkey, ChunkGroupUkey, ChunkUkey};
+use crate::{Chunk, ChunkByUkey, ChunkGroupUkey, ChunkUkey, RuntimeSpec};
 
 #[derive(Debug)]
 pub struct ChunkGroup {
@@ -9,25 +9,39 @@ pub struct ChunkGroup {
   pub(crate) module_pre_order_indices: HashMap<String, usize>,
   pub(crate) module_post_order_indices: HashMap<String, usize>,
   _parents: HashSet<ChunkGroupUkey>,
-  _children: HashSet<ChunkGroupUkey>,
-  kind: ChunkGroupKind,
+  pub(crate) children: HashSet<ChunkGroupUkey>,
+  pub(crate) kind: ChunkGroupKind,
   // ChunkGroupInfo
   pub(crate) next_pre_order_index: usize,
   pub(crate) next_post_order_index: usize,
+  pub(crate) runtime: Option<RuntimeSpec>,
+  // Entrypoint
+  // pub(crate) name: Option<String>,
+  pub(crate) runtime_chunk: Option<ChunkUkey>,
 }
 
 impl ChunkGroup {
-  pub fn new(kind: ChunkGroupKind) -> Self {
+  pub fn new(kind: ChunkGroupKind, name: Option<String>) -> Self {
+    // TODO respect entrypoint `runtime` + `dependOn`
+    let runtime = match kind {
+      ChunkGroupKind::Entrypoint => Some(HashSet::from([
+        name.expect("ChunkGroupKind::Entrypoint name shouldn't be none")
+      ])),
+      ChunkGroupKind::Normal => None,
+    };
     Self {
       ukey: ChunkGroupUkey::new(),
       chunks: vec![],
       module_post_order_indices: Default::default(),
       module_pre_order_indices: Default::default(),
       _parents: Default::default(),
-      _children: Default::default(),
+      children: Default::default(),
       kind,
       next_pre_order_index: 0,
       next_post_order_index: 0,
+      runtime,
+      // name,
+      runtime_chunk: None,
     }
   }
 
@@ -60,6 +74,19 @@ impl ChunkGroup {
 
   pub(crate) fn is_initial(&self) -> bool {
     matches!(self.kind, ChunkGroupKind::Entrypoint)
+  }
+
+  pub fn set_runtime_chunk(&mut self, chunk_ukey: ChunkUkey) {
+    self.runtime_chunk = Some(chunk_ukey);
+  }
+
+  pub fn get_runtime_chunk(&self) -> ChunkUkey {
+    match self.kind {
+      ChunkGroupKind::Entrypoint => self
+        .runtime_chunk
+        .expect("EntryPoint runtime chunk not set"),
+      ChunkGroupKind::Normal => unreachable!("Normal chunk group doesn't have runtime chunk"),
+    }
   }
 }
 

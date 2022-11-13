@@ -38,12 +38,12 @@ use crate::{
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
     OptimizeDependencyResult,
   },
-  BuildContext, BundleEntries, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey,
-  ChunkUkey, CodeGenerationResult, CodeGenerationResults, CompilerOptions, Dependency, EntryItem,
-  Entrypoint, LoaderRunnerRunner, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg,
-  NormalModule, NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs,
-  RenderManifestArgs, RenderRuntimeArgs, ResolveKind, Runtime, SharedPluginDriver, Stats,
-  VisitedModuleIdentity,
+  AdditionalChunkRuntimeRequirementsArgs, BuildContext, BundleEntries, Chunk, ChunkByUkey,
+  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, CodeGenerationResult, CodeGenerationResults,
+  CompilerOptions, Dependency, EntryItem, Entrypoint, LoaderRunnerRunner, ModuleDependency,
+  ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModule, NormalModuleFactory,
+  NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs,
+  ResolveKind, Runtime, SharedPluginDriver, Stats, VisitedModuleIdentity,
 };
 use rspack_symbol::Symbol;
 
@@ -830,6 +830,106 @@ impl Compilation {
     self.runtime = self.render_runtime(plugin_driver.clone()).await;
 
     self.process_assets(plugin_driver).await?;
+    Ok(())
+  }
+
+  pub fn get_chunk_graph_entries(&self) -> HashSet<ChunkUkey> {
+    let mut entries: HashSet<ChunkUkey> = HashSet::default();
+    for entrypoint_ukey in self.entrypoints.values() {
+      let entrypoint = self
+        .chunk_group_by_ukey
+        .get(entrypoint_ukey)
+        .expect("chunk group not found");
+      entries.insert(entrypoint.get_runtime_chunk());
+    }
+    entries
+  }
+
+  pub async fn process_runtime_requirements(&mut self) -> Result<()> {
+    for module in self.module_graph.modules() {
+      if self
+        .chunk_graph
+        .get_number_of_module_chunks(&module.identifier())
+        > 0
+      {
+        for runtime in self
+          .chunk_graph
+          .get_module_runtimes(&module.identifier(), &self.chunk_by_ukey)
+          .values()
+        {
+          let runtime_requirements = self
+            .code_generation_results
+            .get_runtime_requirements(&module.identifier(), Some(runtime))?;
+
+          self.chunk_graph.add_module_runtime_requirements(
+            &module.identifier(),
+            runtime,
+            runtime_requirements,
+          )
+        }
+      }
+    }
+    tracing::trace!("runtime requirements.modules");
+
+    for (chunk_ukey, chunk) in self.chunk_by_ukey.iter() {
+      let mut set = HashSet::new();
+      for module in self
+        .chunk_graph
+        .get_chunk_modules(chunk_ukey, &self.module_graph)
+      {
+        if let Some(runtime_requirements) = self
+          .chunk_graph
+          .get_module_runtime_requirements(&module.module_identifier, &chunk.runtime)
+        {
+          set.extend(runtime_requirements.clone());
+        }
+      }
+
+      self
+        .plugin_driver
+        .read()
+        .await
+        .additional_chunk_runtime_requirements(&AdditionalChunkRuntimeRequirementsArgs {
+          chunk,
+          runtime_requirements: &mut set,
+        })?;
+
+      self
+        .chunk_graph
+        .add_chunk_runtime_requirements(chunk_ukey, set);
+    }
+    tracing::trace!("runtime requirements.chunks");
+
+    for entry_ukey in self.get_chunk_graph_entries().iter() {
+      let entry = self
+        .chunk_by_ukey
+        .get(entry_ukey)
+        .expect("chunk not found by ukey");
+
+      let mut set = HashSet::new();
+
+      for chunk_ukey in entry
+        .get_all_referenced_chunks(&self.chunk_group_by_ukey)
+        .iter()
+      {
+        let runtime_requirements = self.chunk_graph.get_chunk_runtime_requirements(chunk_ukey);
+        set.extend(runtime_requirements.clone());
+      }
+
+      self
+        .plugin_driver
+        .read()
+        .await
+        .additional_tree_runtime_requirements(&AdditionalChunkRuntimeRequirementsArgs {
+          chunk: entry,
+          runtime_requirements: &mut set,
+        })?;
+
+      self
+        .chunk_graph
+        .add_tree_runtime_requirements(entry_ukey, set);
+    }
+    tracing::trace!("runtime requirements.entries");
     Ok(())
   }
 }

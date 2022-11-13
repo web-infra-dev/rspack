@@ -3,15 +3,14 @@ use std::{ffi::OsStr, path::Path};
 use async_trait::async_trait;
 use hashbrown::HashSet;
 use rayon::prelude::*;
-use rspack_error::{Error, IntoTWithDiagnosticArray, Result};
-
 use rspack_core::{
   get_contenthash,
   rspack_sources::{RawSource, SourceExt},
-  AssetParserDataUrlOption, AssetParserOptions, FilenameRenderOptions, GenerationResult,
-  NormalModule, ParseContext, ParserAndGenerator, Plugin, PluginContext,
+  AssetParserDataUrlOption, AssetParserOptions, FilenameRenderOptions, GenerateContext,
+  GenerationResult, NormalModule, ParseContext, ParserAndGenerator, Plugin, PluginContext,
   PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, SourceType,
 };
+use rspack_error::{Error, IntoTWithDiagnosticArray, Result};
 
 #[derive(Debug)]
 pub struct AssetConfig {
@@ -191,14 +190,13 @@ impl ParserAndGenerator for AssetParserAndGenerator {
   #[allow(clippy::unwrap_in_result)]
   fn generate(
     &self,
-    requested_source_type: SourceType,
     ast_or_source: &rspack_core::AstOrSource,
     module: &rspack_core::NormalModule,
-    compilation: &rspack_core::Compilation,
+    generate_context: &mut GenerateContext,
   ) -> Result<rspack_core::GenerationResult> {
     let parsed_asset_config = self.parsed_asset_config.as_ref().unwrap();
 
-    let result = match requested_source_type {
+    let result = match generate_context.requested_source_type {
       SourceType::JavaScript => Ok(GenerationResult {
         ast_or_source: RawSource::from(format!(
           r#"module.exports = {};"#,
@@ -222,34 +220,37 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             let request = module.request();
             let path = Path::new(&request);
 
-            let file_name =
-              compilation
-                .options
-                .output
-                .asset_module_filename
-                .render(FilenameRenderOptions {
-                  filename: Some(
-                    path
-                      .file_stem()
-                      .and_then(OsStr::to_str)
-                      .ok_or_else(|| anyhow::anyhow!("Failed to get filename for asset/resource"))?
-                      .to_owned(),
-                  ),
-                  extension: Some(
-                    path
-                      .extension()
-                      .and_then(OsStr::to_str)
-                      .map(|str| format!("{}{}", ".", str))
-                      .ok_or_else(|| {
-                        anyhow::anyhow!("Failed to get extension for asset/resource")
-                      })?,
-                  ),
-                  id: None,
-                  contenthash: None,
-                  chunkhash: None,
-                  hash: None,
-                });
-            let public_path = compilation.options.output.public_path.public_path();
+            let file_name = generate_context
+              .compilation
+              .options
+              .output
+              .asset_module_filename
+              .render(FilenameRenderOptions {
+                filename: Some(
+                  path
+                    .file_stem()
+                    .and_then(OsStr::to_str)
+                    .ok_or_else(|| anyhow::anyhow!("Failed to get filename for asset/resource"))?
+                    .to_owned(),
+                ),
+                extension: Some(
+                  path
+                    .extension()
+                    .and_then(OsStr::to_str)
+                    .map(|str| format!("{}{}", ".", str))
+                    .ok_or_else(|| anyhow::anyhow!("Failed to get extension for asset/resource"))?,
+                ),
+                id: None,
+                contenthash: None,
+                chunkhash: None,
+                hash: None,
+              });
+            let public_path = generate_context
+              .compilation
+              .options
+              .output
+              .public_path
+              .public_path();
             format!(r#""{}{}""#, public_path, file_name)
           } else if parsed_asset_config.is_source() {
             format!(

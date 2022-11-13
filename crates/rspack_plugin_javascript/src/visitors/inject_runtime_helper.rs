@@ -1,20 +1,26 @@
 use crate::runtime::RSPACK_RUNTIME;
+use hashbrown::HashSet;
+use rspack_core::runtime_globals;
 use swc_common::{Mark, DUMMY_SP};
 use swc_ecma_ast::*;
 use swc_ecma_transforms::helpers::HELPERS;
 use swc_ecma_utils::ExprFactory;
 use swc_ecma_visit::{as_folder, noop_visit_mut_type, Fold, VisitMut, VisitMutWith};
 
-pub fn inject_runtime_helper() -> impl Fold {
+pub fn inject_runtime_helper(runtime_requirements: &mut HashSet<String>) -> impl Fold + '_ {
   let helper_mark = HELPERS.with(|helper| helper.mark());
-  as_folder(InjectRuntimeHelper { helper_mark })
+  as_folder(InjectRuntimeHelper {
+    helper_mark,
+    runtime_requirements,
+  })
 }
 
-struct InjectRuntimeHelper {
+struct InjectRuntimeHelper<'a> {
   helper_mark: Mark,
+  runtime_requirements: &'a mut HashSet<String>,
 }
 
-impl VisitMut for InjectRuntimeHelper {
+impl<'a> VisitMut for InjectRuntimeHelper<'a> {
   noop_visit_mut_type!();
 
   fn visit_mut_call_expr(&mut self, n: &mut CallExpr) {
@@ -29,6 +35,9 @@ impl VisitMut for InjectRuntimeHelper {
         word,
         "_interop_require_default" | "_interop_require_wildcard"
       ) {
+        self
+          .runtime_requirements
+          .insert(runtime_globals::INTEROP_REQUIRE.to_string());
         // TODO try with ast.parse(r#"self["__rspack_runtime__"].interopRequire"#)
         n.callee = MemberExpr {
           span: DUMMY_SP,
@@ -41,6 +50,9 @@ impl VisitMut for InjectRuntimeHelper {
       }
 
       if matches!(word, "_export_star") {
+        self
+          .runtime_requirements
+          .insert(runtime_globals::EXPORT_STAR.to_string());
         // TODO try with ast.parse(r#"self["__rspack_runtime__"].exportStar"#)
         n.callee = MemberExpr {
           span: DUMMY_SP,
