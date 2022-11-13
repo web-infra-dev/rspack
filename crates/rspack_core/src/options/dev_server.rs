@@ -1,4 +1,4 @@
 #[derive(Debug, Default)]
 pub struct DevServerOptions {
-  pub hmr: bool,
+  pub hot: bool,
 }

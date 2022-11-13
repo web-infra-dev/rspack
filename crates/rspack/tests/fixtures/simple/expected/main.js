@@ -120,7 +120,8 @@ function __rspack_register__(chunkIds, modules, callback) {
 	runtime.__rspack_register__ = __rspack_register__;
 })();
 (function(){
-runtime.__rspack_require__.chunkId = 'main'})();// hot runtime
+runtime.__rspack_require__.chunkId = 'main'})();(function(){
+runtime.__rspack_require__.p = '/'})();// hot runtime
 (function () {
 	var currentModuleData = {};
 	var installedModules = runtime.moduleCache;
