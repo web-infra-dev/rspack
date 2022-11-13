@@ -5,7 +5,8 @@ module.exports = {
   builtins: {
     html: [{
       template: './index.html'
-    }]
+    }],
+    minify: false
   },
   context: __dirname,
   entry: {

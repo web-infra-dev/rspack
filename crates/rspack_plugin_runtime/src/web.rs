@@ -39,6 +39,6 @@ pub fn generate_web_jsonp() -> String {
   include_str!("runtime/web/_jsonp.js").to_string()
 }
 
-pub fn generate_web_load_script_content() -> String {
-  include_str!("runtime/web/_load_script_content.js").to_string()
+pub fn generate_web_load_script() -> String {
+  include_str!("runtime/web/_load_script.js").to_string()
 }

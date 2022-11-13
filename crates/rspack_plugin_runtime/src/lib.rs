@@ -4,8 +4,7 @@ use common::*;
 use node::*;
 use rspack_core::{
   runtime_globals, AdditionalChunkRuntimeRequirementsArgs, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeModule, SourceType,
-  TargetPlatform,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, SourceType, TargetPlatform,
 };
 use rspack_error::Result;
 use web::*;
@@ -134,7 +133,7 @@ impl Plugin for RuntimePlugin {
           ),
         );
 
-        // TODO: should use `.hmrF = [chunk_id].[hash].hot-update.json`
+        // TODO: should use `.hmrF = () => [chunk_id].[hash].hot-update.json`
         compilation.add_runtime_module(
           chunk,
           RuntimeModule::new(
@@ -147,6 +146,22 @@ impl Plugin for RuntimePlugin {
                 .ok_or_else(|| anyhow!("chunk should exsit in chunk_by_ukey"))?
                 .id,
             ),
+          ),
+        );
+
+        // TODO: need hash
+        // hu: the filename of hotUpdateChunk.
+        compilation.add_runtime_module(
+          chunk,
+          RuntimeModule::new(
+            ("__rspack_require__.hu").to_string(),
+            r#"
+            (function(){
+              __rspack_require__.hu = function (chunkId) {
+                return '' + chunkId + '.hot-update.js';
+              }
+            })();"#
+              .to_string(),
           ),
         );
 

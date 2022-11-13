@@ -33,7 +33,6 @@
 	});
 
 	runtime.__rspack_require__.hmrC = {};
-	// TODO: useless
 	runtime.__rspack_require__.hmrI = {};
 
 	function createRequire(require, moduleId) {
@@ -150,7 +149,6 @@
 				this._selfInvalidated = true;
 				switch (currentStatus) {
 					case "idle":
-						// TODO: useless
 						currentUpdateApplyHandlers = [];
 						Object.keys(runtime.__rspack_require__.hmrI).forEach(function (
 							key
@@ -268,12 +266,10 @@
 				}
 
 				return setStatus("prepare").then(function () {
-					// var updatedModules = [];
-					// TODO: updatedModule should removed after hash
-					var updatedModules = update.updatedModule;
+					var updatedModules = [];
 					currentUpdateApplyHandlers = [];
+
 					return Promise.all(
-						// TODO: update.c, .r, .m is useless now.
 						Object.keys(runtime.__rspack_require__.hmrC).reduce(function (
 							promises,
 							key

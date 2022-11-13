@@ -2,12 +2,13 @@
 // @ts-ignored
 // @ts-nocheck
 if (module.hot) {
-	var lastHash;
+	// var lastHash;
 	var upToDate = function upToDate() {
+		// TODO: should use hash.
 		// return lastHash.indexOf(__webpack_hash__) >= 0;
 		return false;
 	};
-	var log = require("./log");
+	var log = require("./utils/log");
 	var check = function check() {
 		module.hot
 			.check(true)
@@ -22,9 +23,10 @@ if (module.hot) {
 					return;
 				}
 
-				if (!upToDate()) {
-					// check();
-				}
+				// TODO: add this after hash
+				// if (!upToDate()) {
+				// 	// check();
+				// }
 
 				// require("./log-apply-result")(updatedModules, updatedModules);
 
@@ -48,9 +50,9 @@ if (module.hot) {
 	};
 	self.__rspack_runtime__.hotEmitter =
 		self.__rspack_runtime__.hotEmitter || require("./emitter");
-	//TODO:  var hotEmitter = require("./emitter");
-	self.__rspack_runtime__.hotEmitter.on("hotUpdate", function (currentHash) {
-		lastHash = currentHash;
+	self.__rspack_runtime__.hotEmitter.on("hotUpdate", function (_currentHash) {
+		// TODO: should use hash
+		// lastHash = currentHash;
 		if (!upToDate() && module.hot.status() === "idle") {
 			log("info", "[HMR] Checking for updates on the server...");
 			check();
