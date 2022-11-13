@@ -12,7 +12,10 @@ use ustr::{ustr, Ustr};
 use crate::{Dependency, ModuleGraph, ModuleSyntax, ResolveKind};
 use rspack_symbol::{BetterId, IdOrMemExpr, IndirectTopLevelSymbol, Symbol, SymbolExt, SymbolFlag};
 
-use super::utils::{get_dynamic_import_string_literal, get_require_literal};
+use super::{
+  utils::{get_dynamic_import_string_literal, get_require_literal},
+  BailoutReason,
+};
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SymbolRef {
   Direct(Symbol),
@@ -64,7 +67,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   // This field is used for duplicated export default checking
   pub(crate) export_default_name: Option<JsWord>,
   module_syntax: ModuleSyntax,
-  pub(crate) bail_out_module_identifiers: HashSet<Ustr>,
+  pub(crate) bail_out_module_identifiers: HashMap<Ustr, BailoutReason>,
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
@@ -93,7 +96,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       used_symbol_ref: HashSet::default(),
       export_default_name: None,
       module_syntax: ModuleSyntax::empty(),
-      bail_out_module_identifiers: HashSet::new(),
+      bail_out_module_identifiers: HashMap::new(),
     }
   }
 
@@ -174,10 +177,14 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     assert!(GLOBALS.is_set());
     node.visit_children_with(self);
     // TODO: remove this after we visit commonjs exports
-    if !self.bail_out_module_identifiers.is_empty() {
+    if self
+      .bail_out_module_identifiers
+      .iter()
+      .any(|(k, v)| !matches!(v, BailoutReason::Helper))
+    {
       self
         .bail_out_module_identifiers
-        .insert(self.module_identifier);
+        .insert(self.module_identifier, BailoutReason::ExtendBailout);
     }
     // dbg!(&self.bail_out_module_identifiers);
     // calc reachable imports for each export symbol defined in current module
@@ -430,7 +437,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           if (&obj.sym == "module" && &prop.sym == "exports") || &obj.sym == "exports" {
             self
               .bail_out_module_identifiers
-              .insert(self.module_identifier);
+              .insert(self.module_identifier, BailoutReason::CommonjsExports);
           }
         }
       }
@@ -542,7 +549,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         .map(|item| ustr(item))
       {
         Some(module_identifier) => {
-          self.bail_out_module_identifiers.insert(module_identifier);
+          self
+            .bail_out_module_identifiers
+            .insert(module_identifier, BailoutReason::CommonjsRequire);
         }
         None => {
           eprintln!(
@@ -558,7 +567,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         .map(|item| ustr(item))
       {
         Some(module_identifier) => {
-          self.bail_out_module_identifiers.insert(module_identifier);
+          self
+            .bail_out_module_identifiers
+            .insert(module_identifier, BailoutReason::DynamicImport);
         }
         None => {
           eprintln!(
@@ -660,7 +671,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         | Pat::Invalid(_)
         | Pat::Expr(_) => {
           // TODO:
-          ele.name.visit_with(self);
+          ele.visit_with(self);
           continue;
         }
       };
@@ -719,7 +730,7 @@ impl<'a> ModuleRefAnalyze<'a> {
         if vac.key().ctxt.outer() == self.helper_mark {
           self
             .bail_out_module_identifiers
-            .insert(symbol.module_identifier());
+            .insert(symbol.module_identifier(), BailoutReason::Helper);
         }
         vac.insert(symbol);
       }
@@ -860,7 +871,7 @@ pub struct TreeShakingResult {
   pub(crate) reachable_import_of_export: HashMap<JsWord, HashSet<SymbolRef>>,
   state: AnalyzeState,
   pub(crate) used_symbol_ref: HashSet<SymbolRef>,
-  pub(crate) bail_out_module_identifiers: HashSet<Ustr>,
+  pub(crate) bail_out_module_identifiers: HashMap<Ustr, BailoutReason>,
 }
 
 impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {

@@ -35,8 +35,9 @@ use crate::{
   is_source_equal, join_string_component,
   split_chunks::code_splitting,
   tree_shaking::{
+    debug_care_module_id,
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
-    OptimizeDependencyResult,
+    BailoutReason, OptimizeDependencyResult,
   },
   AdditionalChunkRuntimeRequirementsArgs, BuildContext, BundleEntries, Chunk, ChunkByUkey,
   ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationResult,
@@ -68,7 +69,7 @@ pub struct Compilation {
   /// Collecting all used export symbol
   pub used_symbol: HashSet<Symbol>,
   /// Collecting all module that need to skip in tree-shaking ast modification phase
-  pub bailout_module_identifiers: HashSet<Ustr>,
+  pub bailout_module_identifiers: HashMap<Ustr, BailoutReason>,
   #[cfg(debug_assertions)]
   pub tree_shaking_result: HashMap<Ustr, TreeShakingResult>,
 
@@ -106,7 +107,7 @@ impl Compilation {
       used_symbol: HashSet::new(),
       #[cfg(debug_assertions)]
       tree_shaking_result: HashMap::new(),
-      bailout_module_identifiers: HashSet::new(),
+      bailout_module_identifiers: HashMap::new(),
 
       code_generation_results: Default::default(),
       code_generated_modules: Default::default(),
@@ -704,24 +705,25 @@ impl Compilation {
         });
         // Keep this debug info until we stabilize the tree-shaking
 
-        dbg!(
-          &uri_key,
-          // &analyzer.export_all_list,
-          &analyzer.export_map,
-          &analyzer.import_map,
-          &analyzer.reference_map,
-          &analyzer.reachable_import_and_export,
-          &analyzer.used_symbol_ref
-        );
+        if debug_care_module_id(uri_key) {
+          dbg!(
+            &uri_key,
+            // &analyzer.export_all_list,
+            &analyzer.export_map,
+            &analyzer.import_map,
+            &analyzer.reference_map,
+            &analyzer.reachable_import_and_export,
+            &analyzer.used_symbol_ref
+          );
+        }
         Some((uri_key, analyzer.into()))
       })
       .collect::<HashMap<Ustr, TreeShakingResult>>();
     let mut used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
-    let mut bail_out_module_identifiers = HashSet::default();
+    let mut bail_out_module_identifiers = HashMap::default();
     for analyze_result in analyze_results.values() {
       used_symbol_ref.extend(analyze_result.used_symbol_ref.iter().cloned());
-      bail_out_module_identifiers
-        .extend(analyze_result.bail_out_module_identifiers.iter().cloned());
+      bail_out_module_identifiers.extend(analyze_result.bail_out_module_identifiers.clone());
     }
 
     // calculate relation of module that has `export * from 'xxxx'`
@@ -1036,7 +1038,7 @@ pub struct AssetInfoRelated {
 fn collect_reachable_symbol(
   analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
   entry_identifier: Ustr,
-  bailout_module_identifiers: &HashSet<Ustr>,
+  bailout_module_identifiers: &HashMap<Ustr, BailoutReason>,
   errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
   let mut used_symbol_set = HashSet::new();
@@ -1108,7 +1110,7 @@ fn collect_reachable_symbol(
 fn mark_used_symbol_with(
   analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
   mut init_queue: VecDeque<SymbolRef>,
-  bailout_module_identifiers: &HashSet<Ustr>,
+  bailout_module_identifiers: &HashMap<Ustr, BailoutReason>,
   errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
   let mut used_symbol_set = HashSet::new();
@@ -1137,14 +1139,14 @@ fn mark_symbol(
   used_symbol_set: &mut HashSet<Symbol>,
   analyze_map: &HashMap<Ustr, TreeShakingResult>,
   q: &mut VecDeque<SymbolRef>,
-  bailout_module_identifiers: &HashSet<Ustr>,
+  bailout_module_identifiers: &HashMap<Ustr, BailoutReason>,
   errors: &mut Vec<Error>,
 ) {
   // We don't need mark the symbol usage if it is from a bailout module because
   // bailout module will skipping tree-shaking anyway
-  if bailout_module_identifiers.contains(&symbol_ref.module_identifier()) {
-    return;
-  }
+  // if bailout_module_identifiers.contains_key(&symbol_ref.module_identifier()) {
+  //   return;
+  // }
   match symbol_ref {
     SymbolRef::Direct(symbol) => match used_symbol_set.entry(symbol) {
       Occupied(_) => {}
@@ -1160,6 +1162,9 @@ fn mark_symbol(
       }
     },
     SymbolRef::Indirect(indirect_symbol) => {
+      if debug_care_module_id(indirect_symbol.uri()) {
+        dbg!(&indirect_symbol);
+      }
       let module_result = match analyze_map.get(&indirect_symbol.uri) {
         Some(module_result) => module_result,
         None => {
@@ -1182,7 +1187,7 @@ fn mark_symbol(
               ret.push((module_identifier, value));
             }
             has_bailout_module_identifiers = has_bailout_module_identifiers
-              || bailout_module_identifiers.contains(&module_identifier);
+              || bailout_module_identifiers.contains_key(&module_identifier);
           }
           match ret.len() {
             0 => {
