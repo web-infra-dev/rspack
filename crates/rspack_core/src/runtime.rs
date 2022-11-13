@@ -46,9 +46,15 @@ impl Runtime {
   pub fn web_generate_with_inline_modules(
     &mut self,
     modules_code: BoxSource,
+    execute_code: BoxSource,
     chunk_id: &str,
   ) -> BoxSource {
     let runtime_source = self.generate().source().to_string();
+    let modules_code_start = runtime_source
+      .find(RUNTIME_PLACEHOLDER_INSTALLED_MODULES)
+      .unwrap();
+    let modules_code_end = modules_code_start + RUNTIME_PLACEHOLDER_INSTALLED_MODULES.len();
+
     let chunk_id_start = runtime_source.find(RUNTIME_PLACEHOLDER_CHUNK_ID).unwrap();
     let chunk_id_end = chunk_id_start + RUNTIME_PLACEHOLDER_CHUNK_ID.len();
 
@@ -59,10 +65,14 @@ impl Runtime {
 
     ConcatSource::new([
       // runtime_source is all runtime code, and it's RawSource, so use RawSource at here is fine.
-      RawSource::from(&runtime_source[0..chunk_id_start]).boxed(),
+      RawSource::from(&runtime_source[0..modules_code_start]).boxed(),
+      RawSource::from("{\n").boxed(),
+      modules_code,
+      RawSource::from("}").boxed(),
+      RawSource::from(&runtime_source[modules_code_end..chunk_id_start]).boxed(),
       RawSource::from(chunk_id).boxed(),
       RawSource::from(&runtime_source[chunk_id_end..execute_code_start]).boxed(),
-      modules_code,
+      execute_code,
       RawSource::from(&runtime_source[execute_code_end..runtime_source.len()]).boxed(),
     ])
     .boxed()

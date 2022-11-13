@@ -257,8 +257,7 @@ impl Plugin for JsPlugin {
 
     ordered_modules.sort_by_key(|m| &m.module_identifier);
 
-    let has_inline_runtime = !compilation.options.target.platform.is_web()
-      && chunk.is_only_initial(&args.compilation.chunk_group_by_ukey);
+    let has_inline_runtime = chunk.is_only_initial(&args.compilation.chunk_group_by_ukey);
 
     let mut module_code_array = ordered_modules
       .par_iter()

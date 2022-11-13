@@ -193,9 +193,11 @@ impl Plugin for RuntimePlugin {
                 .runtime
                 .node_generate_with_inline_modules(asset.source, execute_code)
             } else {
-              compilation
-                .runtime
-                .web_generate_with_inline_modules(asset.source, &chunk.id)
+              compilation.runtime.web_generate_with_inline_modules(
+                asset.source,
+                execute_code,
+                &chunk.id,
+              )
             };
 
             entry_source_array.push((js_entry_file.to_string(), asset));
