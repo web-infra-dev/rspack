@@ -31,7 +31,7 @@ describe("Stats", () => {
 		        "development": false,
 		      },
 		      "name": "main.js",
-		      "size": 14980,
+		      "size": 15007,
 		      "type": "asset",
 		    },
 		  ],
@@ -55,10 +55,10 @@ describe("Stats", () => {
 		      "assets": [
 		        {
 		          "name": "main.js",
-		          "size": 14980,
+		          "size": 15007,
 		        },
 		      ],
-		      "assetsSize": 14980,
+		      "assetsSize": 15007,
 		      "chunks": [
 		        "main",
 		      ],
@@ -86,7 +86,7 @@ describe("Stats", () => {
 	`);
 		expect(stats.toString(statsOptions)).toMatchInlineSnapshot(`
 		"  Asset      Size  Chunks  Chunk Names
-		main.js  14.6 KiB    main  main
+		main.js  14.7 KiB    main  main
 		Entrypoint main = main.js
 		chunk {main} main.js (main) 55 bytes [entry]
 		[./fixtures/a.js] 55 bytes {main}"

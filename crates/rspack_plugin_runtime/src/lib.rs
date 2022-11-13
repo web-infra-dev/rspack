@@ -98,8 +98,13 @@ impl Plugin for RuntimePlugin {
           RUNTIME_PLACEHOLDER_CHUNK_ID,
         )));
 
-        {
-          // TODO: a switch to control introduce it or not.
+        // publicPath
+        sources.push(RawSource::from(format!(
+          "(function(){{\nruntime.__rspack_require__.p = '{}'}})();",
+          compilation.options.output.public_path.public_path(),
+        )));
+
+        if compilation.options.dev_server.hot {
           sources.push(generate_web_hot());
           sources.push(generate_web_load_script_content());
           sources.push(generate_web_jsonp());

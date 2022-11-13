@@ -3,12 +3,13 @@ use std::fmt::Debug;
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
 
-use rspack_core::{CompilerOptions, CompilerOptionsBuilder, DevServerOptions};
+use rspack_core::{CompilerOptions, CompilerOptionsBuilder};
 
 use serde::Deserialize;
 
 mod raw_builtins;
 mod raw_context;
+mod raw_dev_server;
 mod raw_devtool;
 mod raw_entry;
 mod raw_external;
@@ -25,6 +26,7 @@ mod raw_target;
 
 pub use raw_builtins::*;
 pub use raw_context::*;
+pub use raw_dev_server::*;
 pub use raw_entry::*;
 pub use raw_external::*;
 pub use raw_external_type::*;
@@ -89,6 +91,7 @@ pub struct RawOptions {
   pub devtool: Option<RawDevtool>,
   pub optimization: Option<RawOptimizationOptions>,
   pub stats: Option<RawStatsOptions>,
+  pub dev_server: Option<RawDevServer>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -112,6 +115,7 @@ pub struct RawOptions {
   pub devtool: Option<RawDevtool>,
   pub optimization: Option<RawOptimizationOptions>,
   pub stats: Option<RawStatsOptions>,
+  pub dev_server: Option<RawDevServer>,
 }
 
 pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<CompilerOptions> {
@@ -157,7 +161,7 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
     })?
     .then(|mut options| {
       // TODO: remove or keep.
-      let dev_server = DevServerOptions { hmr: false };
+      let dev_server = RawOption::raw_to_compiler_option(raw_options.dev_server, &options)?;
       options.dev_server = Some(dev_server);
       Ok(options)
     })?
