@@ -80,10 +80,11 @@ impl<'me> CodeSplitter<'me> {
       dependencies,
     } in &entries
     {
-      let chunk = Compilation::add_chunk(
-        &mut compilation.chunk_by_ukey,
-        Some(name.to_string()),
+      let chunk = Compilation::add_named_chunk(
         name.to_string(),
+        name.to_string(),
+        &mut compilation.chunk_by_ukey,
+        &mut compilation.named_chunks,
       );
 
       compilation.chunk_graph.add_chunk(chunk.ukey);
@@ -387,7 +388,6 @@ impl<'me> CodeSplitter<'me> {
 
       let chunk = Compilation::add_chunk(
         &mut self.compilation.chunk_by_ukey,
-        None,
         uri_to_chunk_name(&self.compilation.options.context.to_string_lossy(), {
           let module = self
             .compilation

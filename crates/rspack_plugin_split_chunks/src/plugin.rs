@@ -335,10 +335,11 @@ impl Plugin for SplitChunksPlugin {
 
     for (key, info) in chunks_info_map.into_iter() {
       let chunk_name = info.name.clone();
-      let new_chunk = Compilation::add_chunk(
-        &mut compilation.chunk_by_ukey,
-        Some(chunk_name.clone()),
+      let new_chunk = Compilation::add_named_chunk(
         chunk_name.clone(),
+        chunk_name.clone(),
+        &mut compilation.chunk_by_ukey,
+        &mut compilation.named_chunks,
       );
       compilation.chunk_graph.add_chunk(new_chunk.ukey);
 
