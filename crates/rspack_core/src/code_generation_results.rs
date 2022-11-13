@@ -38,7 +38,8 @@ impl CodeGenerationResult {
 
 #[derive(Default, Debug)]
 pub struct CodeGenerationResults {
-  map: HashMap<ModuleIdentifier, RuntimeSpecMap<CodeGenerationResult>>,
+  pub module_generation_result_map: HashMap<ModuleIdentifier, CodeGenerationResult>,
+  map: HashMap<ModuleIdentifier, RuntimeSpecMap<ModuleIdentifier>>,
 }
 
 impl CodeGenerationResults {
@@ -49,12 +50,15 @@ impl CodeGenerationResults {
   ) -> Result<&CodeGenerationResult> {
     if let Some(entry) = self.map.get(module_identifier) {
       if let Some(runtime) = runtime {
-        entry.get(runtime).ok_or_else(|| {
-          Error::InternalError(format!(
-            "Failed to code generation result for {} with runtime {:?}",
-            module_identifier, runtime
-          ))
-        })
+        entry
+          .get(runtime)
+          .and_then(|m| self.module_generation_result_map.get(m))
+          .ok_or_else(|| {
+            Error::InternalError(format!(
+              "Failed to code generation result for {} with runtime {:?} \n {:?}",
+              module_identifier, runtime, entry
+            ))
+          })
       } else {
         if entry.size() > 1 {
           let results = entry.get_values();
@@ -68,6 +72,7 @@ impl CodeGenerationResults {
           return results
             .first()
             .copied()
+            .and_then(|m| self.module_generation_result_map.get(m))
             .ok_or_else(|| Error::InternalError("Expected value exists".to_string()));
         }
 
@@ -75,6 +80,7 @@ impl CodeGenerationResults {
           .get_values()
           .first()
           .copied()
+          .and_then(|m| self.module_generation_result_map.get(m))
           .ok_or_else(|| Error::InternalError("Expected value exists".to_string()))
       }
     } else {
@@ -90,7 +96,7 @@ impl CodeGenerationResults {
     &mut self,
     module_identifier: ModuleIdentifier,
     runtime: RuntimeSpec,
-    result: CodeGenerationResult,
+    result: ModuleIdentifier,
   ) {
     match self.map.entry(module_identifier) {
       hashbrown::hash_map::Entry::Occupied(mut record) => {

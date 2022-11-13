@@ -1,6 +1,6 @@
 use hashbrown::HashSet;
 
-use crate::{ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, RuntimeSpec};
+use crate::{ChunkGraph, ChunkGroupByUkey, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, RuntimeSpec};
 
 #[derive(Debug)]
 pub struct Chunk {
@@ -70,5 +70,15 @@ impl Chunk {
       .flat_map(|chunk_group| chunk_group.chunks.iter().chain(chunk_group.children.iter()))
       .cloned()
       .collect()
+  }
+
+  pub fn has_runtime(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> bool {
+    self
+      .groups
+      .iter()
+      .filter_map(|ukey| chunk_group_by_ukey.get(ukey))
+      .any(|group| {
+        group.kind == ChunkGroupKind::Entrypoint && group.get_runtime_chunk() == self.ukey
+      })
   }
 }

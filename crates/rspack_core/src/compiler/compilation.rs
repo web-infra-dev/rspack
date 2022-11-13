@@ -42,8 +42,8 @@ use crate::{
   ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, CodeGenerationResult, CodeGenerationResults,
   CompilerOptions, Dependency, EntryItem, Entrypoint, LoaderRunnerRunner, ModuleDependency,
   ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModule, NormalModuleFactory,
-  NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs,
-  ResolveKind, Runtime, SharedPluginDriver, Stats, VisitedModuleIdentity,
+  NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs, ResolveKind, RuntimeModule,
+  SharedPluginDriver, Stats, VisitedModuleIdentity,
 };
 use rspack_symbol::Symbol;
 
@@ -53,10 +53,10 @@ pub struct Compilation {
   entries: HashMap<String, Vec<EntryItem>>,
   pub(crate) visited_module_id: VisitedModuleIdentity,
   pub module_graph: ModuleGraph,
+  pub runtime_modules: HashMap<String, RuntimeModule>,
   pub chunk_graph: ChunkGraph,
   pub chunk_by_ukey: HashMap<ChunkUkey, Chunk>,
   pub chunk_group_by_ukey: HashMap<ChunkGroupUkey, ChunkGroup>,
-  pub runtime: Runtime,
   pub entrypoints: HashMap<String, ChunkGroupUkey>,
   pub assets: CompilationAssets,
   diagnostics: IndexSet<Diagnostic, hashbrown::hash_map::DefaultHashBuilder>,
@@ -92,7 +92,6 @@ impl Compilation {
       chunk_group_by_ukey: Default::default(),
       entries: HashMap::from_iter(entries),
       chunk_graph: Default::default(),
-      runtime: Default::default(),
       entrypoints: Default::default(),
       assets: Default::default(),
       diagnostics: Default::default(),
@@ -108,28 +107,12 @@ impl Compilation {
       code_generation_results: Default::default(),
       code_generated_modules: Default::default(),
 
+      runtime_modules: HashMap::default(),
       _pin: PhantomPinned,
     }
   }
   pub fn add_entry(&mut self, name: String, detail: EntryItem) {
     self.entries.insert(name, vec![detail]);
-  }
-
-  pub fn generate_chunk_entry_code(&self, chunk_ukey: &ChunkUkey) -> BoxSource {
-    let entry_modules_uri = self.chunk_graph.get_chunk_entry_modules(chunk_ukey);
-    let entry_modules_id = entry_modules_uri
-      .into_iter()
-      .filter_map(|entry_module_identifier| {
-        self
-          .module_graph
-          .module_graph_module_by_identifier(entry_module_identifier)
-          .map(|module| &module.id)
-      })
-      .collect::<Vec<_>>();
-    let namespace = &self.options.output.unique_name;
-    self
-      .runtime
-      .generate_rspack_execute(namespace, "__rspack_require__", &entry_modules_id)
   }
 
   pub fn update_asset(
@@ -608,12 +591,21 @@ impl Compilation {
         .code_generated_modules
         .insert(module_identifier.clone());
 
-      self.code_generation_results.add(
-        module_identifier,
-        // FIXME: hardcoded for using `main` as `RuntimeSpec` by default as multiple runtimes have not been supported yet. cc @underfin
-        HashSet::from_iter(["main".to_owned()]),
-        result,
-      );
+      let runtimes = self
+        .chunk_graph
+        .get_module_runtimes(&module_identifier, &self.chunk_by_ukey);
+
+      self
+        .code_generation_results
+        .module_generation_result_map
+        .insert(module_identifier.clone(), result);
+      for runtime in runtimes.values() {
+        self.code_generation_results.add(
+          module_identifier.clone(),
+          runtime.clone(),
+          module_identifier.clone(),
+        );
+      }
     });
 
     Ok(())
@@ -787,24 +779,6 @@ impl Compilation {
     plugin_driver.write().await.done(stats).await?;
     Ok(())
   }
-  #[instrument(name = "compilation:render_runtime")]
-  pub async fn render_runtime(&self, plugin_driver: SharedPluginDriver) -> Runtime {
-    if let Ok(sources) = plugin_driver
-      .read()
-      .await
-      .render_runtime(RenderRuntimeArgs {
-        sources: vec![],
-        compilation: self,
-      })
-    {
-      Runtime {
-        context_indent: self.runtime.context_indent.clone(),
-        sources,
-      }
-    } else {
-      self.runtime.clone()
-    }
-  }
 
   pub fn entry_modules(&self) -> impl Iterator<Item = String> {
     self.entry_module_identifiers.clone().into_iter()
@@ -825,25 +799,13 @@ impl Compilation {
 
     tracing::trace!("chunk graph {:#?}", self.chunk_graph);
 
-    let context_indent = if matches!(
-      self.options.target.platform,
-      crate::TargetPlatform::Web | crate::TargetPlatform::None
-    ) {
-      String::from("self")
-    } else {
-      String::from("this")
-    };
-
-    self.runtime = Runtime {
-      sources: vec![],
-      context_indent,
-    };
-
     self.code_generation()?;
 
+    self
+      .process_runtime_requirements(plugin_driver.clone())
+      .await?;
+
     self.create_chunk_assets(plugin_driver.clone()).await;
-    // generate runtime
-    self.runtime = self.render_runtime(plugin_driver.clone()).await;
 
     self.process_assets(plugin_driver).await?;
     Ok(())
@@ -861,7 +823,10 @@ impl Compilation {
     entries
   }
 
-  pub async fn process_runtime_requirements(&mut self) -> Result<()> {
+  pub async fn process_runtime_requirements(
+    &mut self,
+    plugin_driver: SharedPluginDriver,
+  ) -> Result<()> {
     for module in self.module_graph.modules() {
       if self
         .chunk_graph
@@ -887,6 +852,7 @@ impl Compilation {
     }
     tracing::trace!("runtime requirements.modules");
 
+    let mut chunk_requirements = HashMap::new();
     for (chunk_ukey, chunk) in self.chunk_by_ukey.iter() {
       let mut set = HashSet::new();
       for module in self
@@ -900,19 +866,21 @@ impl Compilation {
           set.extend(runtime_requirements.clone());
         }
       }
-
-      self
-        .plugin_driver
+      chunk_requirements.insert(*chunk_ukey, set);
+    }
+    for (chunk_ukey, set) in chunk_requirements.iter_mut() {
+      plugin_driver
         .read()
         .await
-        .additional_chunk_runtime_requirements(&AdditionalChunkRuntimeRequirementsArgs {
-          chunk,
-          runtime_requirements: &mut set,
+        .additional_chunk_runtime_requirements(&mut AdditionalChunkRuntimeRequirementsArgs {
+          compilation: self,
+          chunk: chunk_ukey,
+          runtime_requirements: set,
         })?;
 
       self
         .chunk_graph
-        .add_chunk_runtime_requirements(chunk_ukey, set);
+        .add_chunk_runtime_requirements(chunk_ukey, std::mem::take(set));
     }
     tracing::trace!("runtime requirements.chunks");
 
@@ -932,12 +900,12 @@ impl Compilation {
         set.extend(runtime_requirements.clone());
       }
 
-      self
-        .plugin_driver
+      plugin_driver
         .read()
         .await
-        .additional_tree_runtime_requirements(&AdditionalChunkRuntimeRequirementsArgs {
-          chunk: entry,
+        .additional_tree_runtime_requirements(&mut AdditionalChunkRuntimeRequirementsArgs {
+          compilation: self,
+          chunk: entry_ukey,
           runtime_requirements: &mut set,
         })?;
 
@@ -947,6 +915,19 @@ impl Compilation {
     }
     tracing::trace!("runtime requirements.entries");
     Ok(())
+  }
+
+  pub fn add_runtime_module(&mut self, chunk_ukey: &ChunkUkey, module: RuntimeModule) {
+    self.chunk_graph.add_module(module.identifier.clone());
+    self
+      .chunk_graph
+      .connect_chunk_and_module(*chunk_ukey, module.identifier.clone());
+    self
+      .chunk_graph
+      .connect_chunk_and_runtime_module(*chunk_ukey, module.identifier.clone());
+    self
+      .runtime_modules
+      .insert(module.identifier.clone(), module);
   }
 }
 

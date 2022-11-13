@@ -1,4 +1,3 @@
-use hashbrown::HashSet;
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
 use swc_css::visit::VisitMutWith;
@@ -338,11 +337,7 @@ impl Plugin for CssPlugin {
       .map(|mgm| {
         let code_gen_result = compilation
           .code_generation_results
-          // TODO: use chunk runtime
-          .get(
-            &mgm.module_identifier,
-            Some(&HashSet::from_iter(["main".to_owned()])),
-          )?;
+          .get(&mgm.module_identifier, Some(&chunk.runtime))?;
 
         code_gen_result
           .get(&SourceType::Css)

@@ -14,8 +14,8 @@ use crate::{
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
   PluginCompilationHookOutput, PluginContext, PluginFactorizeAndBuildHookOutput,
   PluginMakeHookOutput, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
-  PluginRenderRuntimeHookOutput, PluginThisCompilationHookOutput, ProcessAssetsArgs,
-  RenderManifestArgs, RenderRuntimeArgs, Resolver, Stats, ThisCompilationArgs,
+  PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderManifestArgs, Resolver, Stats,
+  ThisCompilationArgs,
 };
 use rspack_error::{Diagnostic, Result};
 
@@ -190,25 +190,11 @@ impl PluginDriver {
     }
     Ok(None)
   }
-  #[instrument(name = "plugin:render_runtime")]
-  pub fn render_runtime(&self, args: RenderRuntimeArgs) -> PluginRenderRuntimeHookOutput {
-    let mut sources = vec![];
-    for plugin in &self.plugins {
-      tracing::trace!("running render runtime:{}", plugin.name());
-      let args = RenderRuntimeArgs {
-        compilation: args.compilation,
-        sources,
-      };
-      let res = plugin.render_runtime(PluginContext::new(), args)?;
-      sources = res;
-    }
-    Ok(sources)
-  }
 
   #[instrument(name = "plugin:additional_chunk_runtime_requirements")]
   pub fn additional_chunk_runtime_requirements(
     &self,
-    args: &AdditionalChunkRuntimeRequirementsArgs,
+    args: &mut AdditionalChunkRuntimeRequirementsArgs,
   ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
     for plugin in &self.plugins {
       plugin.additional_chunk_runtime_requirements(PluginContext::new(), args)?;
@@ -219,7 +205,7 @@ impl PluginDriver {
   #[instrument(name = "plugin:additional_tree_runtime_requirements")]
   pub fn additional_tree_runtime_requirements(
     &self,
-    args: &AdditionalChunkRuntimeRequirementsArgs,
+    args: &mut AdditionalChunkRuntimeRequirementsArgs,
   ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
     for plugin in &self.plugins {
       plugin.additional_tree_runtime_requirements(PluginContext::new(), args)?;

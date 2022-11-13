@@ -1,4 +1,4 @@
-(function () { // runtime instance
+(function() {// runtime instance
 var runtime = new Object();
 self["__rspack_runtime__"] = runtime;
 // mount Modules
@@ -14,6 +14,7 @@ __rspack_dynamic_require__([
     "b_js"
 ]).then(__rspack_require__.bind(__rspack_require__, "./b.js"));
 },
+
 };
 })();
 
@@ -131,7 +132,7 @@ function __rspack_register__(chunkIds, modules, callback) {
 	runtime.__rspack_register__ = __rspack_register__;
 })();
 (function(){
-runtime.__rspack_require__.chunkId = 'main'})();(function(){
+runtime.__rspack_require__.chunkId = '/* __CHUNK_ID__ */'})();(function(){
 runtime.__rspack_require__.p = '/'})();// hot runtime
 (function () {
 	var currentModuleData = {};
@@ -1115,7 +1116,7 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 
 (function () {
 	runtime.chunkHashData = {
-		js: {"main": "",},
+		js: {"a_js": "","b_js": "",},
 		css: {}
 	};
 })();
@@ -1348,68 +1349,4 @@ function __rspack_load_dynamic_css__(chunkId, promises) {
 (function () {
 	runtime.__rspack_load_dynamic_css__ = __rspack_load_dynamic_css__;
 })();
-(function () {
-	function _getRequireCache(nodeInterop) {
-		if (typeof WeakMap !== "function") return null;
-
-		var cacheBabelInterop = new WeakMap();
-		var cacheNodeInterop = new WeakMap();
-		return (_getRequireCache = function (nodeInterop) {
-			return nodeInterop ? cacheNodeInterop : cacheBabelInterop;
-		})(nodeInterop);
-	}
-
-	runtime.interopRequire = function (obj, nodeInterop) {
-		if (!nodeInterop && obj && obj.__esModule) {
-			return obj;
-		}
-
-		if (
-			obj === null ||
-			(typeof obj !== "object" && typeof obj !== "function")
-		) {
-			return { default: obj };
-		}
-
-		var cache = _getRequireCache(nodeInterop);
-		if (cache && cache.has(obj)) {
-			return cache.get(obj);
-		}
-
-		var newObj = {};
-		var hasPropertyDescriptor =
-			Object.defineProperty && Object.getOwnPropertyDescriptor;
-		for (var key in obj) {
-			if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) {
-				var desc = hasPropertyDescriptor
-					? Object.getOwnPropertyDescriptor(obj, key)
-					: null;
-				if (desc && (desc.get || desc.set)) {
-					Object.defineProperty(newObj, key, desc);
-				} else {
-					newObj[key] = obj[key];
-				}
-			}
-		}
-		newObj.default = obj;
-		if (cache) {
-			cache.set(obj, newObj);
-		}
-		return newObj;
-	};
-})();
-(function () {
-	runtime.exportStar = function (from, to) {
-		Object.keys(from).forEach(function (k) {
-			if (k !== "default" && !Object.prototype.hasOwnProperty.call(to, k))
-				Object.defineProperty(to, k, {
-					enumerable: true,
-					get: function () {
-						return from[k];
-					}
-				});
-		});
-		return from;
-	};
-})();
-self["__rspack_runtime__"].__rspack_require__("./index.js"); })();
+self["__rspack_runtime__"].__rspack_require__("./index.js");})()

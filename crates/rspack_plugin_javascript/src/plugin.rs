@@ -1,27 +1,26 @@
+use crate::runtime::RSPACK_REGISTER;
+use anyhow::anyhow;
 use async_trait::async_trait;
 use dashmap::DashMap;
 use hashbrown::hash_map::DefaultHashBuilder;
-use hashbrown::HashSet;
 use rayon::prelude::*;
+use rspack_core::rspack_sources::{
+  BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
+  SourceMapSourceOptions,
+};
+use rspack_core::{
+  get_contenthash, AstOrSource, ChunkUkey, Compilation, FilenameRenderOptions, GenerateContext,
+  GenerationResult, ModuleAst, ModuleType, NormalModule, ParseContext, ParseResult,
+  ParserAndGenerator, Plugin, PluginContext, PluginProcessAssetsOutput,
+  PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderManifestEntry, SourceType,
+  TargetPlatform, RUNTIME_PLACEHOLDER_INSTALLED_MODULES,
+};
+use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc::{config::JsMinifyOptions, BoolOrDataConfig};
 use swc_common::util::take::Take;
 use swc_common::GLOBALS;
-
-use rspack_core::rspack_sources::{
-  BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
-  SourceMapSource, SourceMapSourceOptions,
-};
-use rspack_core::{
-  get_contenthash, AstOrSource, FilenameRenderOptions, GenerateContext, GenerationResult,
-  ModuleAst, ModuleType, NormalModule, ParseContext, ParseResult, ParserAndGenerator, Plugin,
-  PluginContext, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
-  PluginRenderRuntimeHookOutput, ProcessAssetsArgs, RenderManifestEntry, RenderRuntimeArgs,
-  SourceType, RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
-};
-use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;
 
-use crate::runtime::{generate_commonjs_runtime, RSPACK_REGISTER};
 use crate::utils::{
   get_swc_compiler, get_wrap_chunk_after, get_wrap_chunk_before, syntax_by_module_type,
   wrap_eval_source_map, wrap_module_function,
@@ -38,6 +37,150 @@ impl JsPlugin {
     Self {
       eval_source_map_cache: Default::default(),
     }
+  }
+
+  pub fn generate_chunk_entry_code(
+    &self,
+    compilation: &Compilation,
+    chunk_ukey: &ChunkUkey,
+  ) -> BoxSource {
+    let entry_modules_uri = compilation.chunk_graph.get_chunk_entry_modules(chunk_ukey);
+    let entry_modules_id = entry_modules_uri
+      .into_iter()
+      .filter_map(|entry_module_identifier| {
+        compilation
+          .module_graph
+          .module_graph_module_by_identifier(entry_module_identifier)
+          .map(|module| &module.id)
+      })
+      .collect::<Vec<_>>();
+    let namespace = &compilation.options.output.unique_name;
+    let context_indent = if matches!(
+      compilation.options.target.platform,
+      TargetPlatform::Web | TargetPlatform::None
+    ) {
+      String::from("self")
+    } else {
+      String::from("this")
+    };
+    let sources = entry_modules_id
+      .iter()
+      .map(|id| {
+        RawSource::from(format!(
+          r#"{}["{}"].{}("{}");"#,
+          context_indent, namespace, "__rspack_require__", id
+        ))
+      })
+      .collect::<Vec<_>>();
+    let concat = ConcatSource::new(sources);
+    concat.boxed()
+  }
+
+  pub fn render_main(&self, args: &rspack_core::RenderManifestArgs) -> Result<BoxSource> {
+    let compilation = args.compilation;
+    let chunk = args.chunk();
+
+    let runtime_modules = compilation
+      .chunk_graph
+      .get_chunk_runtime_modules_in_order(&args.chunk_ukey)
+      .iter()
+      .filter_map(|identifier| compilation.runtime_modules.get(identifier))
+      .fold(ConcatSource::default(), |mut output, cur| {
+        output.add(cur.sources.clone());
+        output
+      });
+    let runtime_source = runtime_modules.source().to_string();
+    let modules_code_start = runtime_source
+      .find(RUNTIME_PLACEHOLDER_INSTALLED_MODULES)
+      .ok_or_else(|| anyhow!("runtime placeholder installed modules not found"))?;
+    let modules_code_end = modules_code_start + RUNTIME_PLACEHOLDER_INSTALLED_MODULES.len();
+    let mut sources = ConcatSource::new([
+      // runtime_source is all runtime code, and it's RawSource, so use RawSource at here is fine.
+      RawSource::from(&runtime_source[0..modules_code_start]).boxed(),
+      self.render_chunk_modules(args)?,
+      RawSource::from(&runtime_source[modules_code_end..runtime_source.len()]).boxed(),
+    ]);
+    if chunk.has_entry_module(&args.compilation.chunk_graph) {
+      // TODO: how do we handle multiple entry modules?
+      sources.add(self.generate_chunk_entry_code(compilation, &args.chunk_ukey));
+    }
+    Ok(self.render_iife(sources.boxed()))
+  }
+
+  pub fn render_chunk(&self, args: &rspack_core::RenderManifestArgs) -> Result<BoxSource> {
+    let platform = &args.compilation.options.target.platform;
+    let mut sources = ConcatSource::default();
+    sources.add(get_wrap_chunk_before(
+      &args.compilation.options.output.unique_name,
+      RSPACK_REGISTER,
+      &args.chunk().id.to_owned(),
+      platform,
+    ));
+    sources.add(self.render_chunk_modules(args)?);
+    sources.add(get_wrap_chunk_after(platform));
+    Ok(sources.boxed())
+  }
+
+  pub fn render_iife(&self, content: BoxSource) -> BoxSource {
+    let mut sources = ConcatSource::default();
+    sources.add(RawSource::from("(function() {"));
+    sources.add(content);
+    sources.add(RawSource::from("})()"));
+    sources.boxed()
+  }
+
+  pub fn render_chunk_modules(&self, args: &rspack_core::RenderManifestArgs) -> Result<BoxSource> {
+    let compilation = args.compilation;
+    let module_graph = &compilation.module_graph;
+    let mut ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+      &args.chunk_ukey,
+      SourceType::JavaScript,
+      module_graph,
+    );
+    let chunk = args.chunk();
+
+    ordered_modules.sort_by_key(|m| &m.module_identifier);
+
+    let module_code_array = ordered_modules
+      .par_iter()
+      .map(|mgm| {
+        let code_gen_result = compilation
+          .code_generation_results
+          .get(&mgm.module_identifier, Some(&chunk.runtime))?;
+
+        code_gen_result
+          .get(&SourceType::JavaScript)
+          .map(|result| {
+            let mut module_source = result.ast_or_source.clone().try_into_source()?;
+
+            if args.compilation.options.devtool.eval()
+              && args.compilation.options.devtool.source_map()
+            {
+              module_source =
+                wrap_eval_source_map(module_source, &self.eval_source_map_cache, args.compilation)?;
+            }
+
+            Ok(wrap_module_function(module_source, &mgm.id))
+          })
+          .transpose()
+      })
+      .collect::<Result<Vec<Option<BoxSource>>>>()?;
+
+    let module_sources = module_code_array
+      .into_par_iter()
+      .flatten()
+      .fold(ConcatSource::default, |mut output, cur| {
+        output.add(cur);
+        output
+      })
+      .collect::<Vec<ConcatSource>>();
+
+    let mut sources = ConcatSource::default();
+    sources.add(RawSource::from("{\n"));
+    sources.add(ConcatSource::new(module_sources));
+    sources.add(RawSource::from("\n}"));
+
+    Ok(sources.boxed())
   }
 }
 
@@ -213,111 +356,18 @@ impl Plugin for JsPlugin {
     Ok(())
   }
 
-  fn render_runtime(
-    &self,
-    _ctx: PluginContext,
-    args: RenderRuntimeArgs,
-  ) -> PluginRenderRuntimeHookOutput {
-    let sources = args.sources;
-    let mut codes = generate_commonjs_runtime();
-    let mut execute_code = None;
-    let mut result = Vec::with_capacity(sources.len() + codes.len());
-    for item in sources {
-      if item.source() == RUNTIME_PLACEHOLDER_RSPACK_EXECUTE {
-        execute_code = Some(item);
-        continue;
-      }
-      result.push(item);
-    }
-    result.append(&mut codes);
-    if let Some(code) = execute_code {
-      result.push(code);
-    }
-    Ok(result)
-  }
-
   fn render_manifest(
     &self,
     _ctx: PluginContext,
     args: rspack_core::RenderManifestArgs,
   ) -> PluginRenderManifestHookOutput {
     let compilation = args.compilation;
-    let module_graph = &compilation.module_graph;
-    let namespace = &compilation.options.output.unique_name;
     let chunk = args.chunk();
-    let mut ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
-      &args.chunk_ukey,
-      SourceType::JavaScript,
-      module_graph,
-    );
 
-    ordered_modules.sort_by_key(|m| &m.module_identifier);
-
-    let has_inline_runtime = chunk.is_only_initial(&args.compilation.chunk_group_by_ukey);
-
-    let mut module_code_array = ordered_modules
-      .par_iter()
-      .map(|mgm| {
-        let code_gen_result = compilation
-          .code_generation_results
-          // TODO: use chunk runtime
-          .get(
-            &mgm.module_identifier,
-            Some(&HashSet::from_iter(["main".to_owned()])),
-          )?;
-
-        code_gen_result
-          .get(&SourceType::JavaScript)
-          .map(|result| {
-            let mut module_source = result.ast_or_source.clone().try_into_source()?;
-
-            if args.compilation.options.devtool.eval()
-              && args.compilation.options.devtool.source_map()
-            {
-              module_source =
-                wrap_eval_source_map(module_source, &self.eval_source_map_cache, args.compilation)?;
-            }
-
-            Ok(wrap_module_function(module_source, &mgm.id))
-          })
-          .transpose()
-      })
-      .collect::<Result<Vec<Option<BoxSource>>>>()?;
-
-    if !has_inline_runtime {
-      // insert chunk wrapper
-      module_code_array.insert(
-        0,
-        Some(get_wrap_chunk_before(
-          namespace,
-          RSPACK_REGISTER,
-          &args.chunk().id.to_owned(),
-          &compilation.options.target.platform,
-        )),
-      );
-      module_code_array.push(Some(get_wrap_chunk_after(
-        &compilation.options.target.platform,
-      )));
-    }
-
-    let sources = module_code_array
-      .into_par_iter()
-      .flatten()
-      .chain([{
-        if chunk.has_entry_module(&args.compilation.chunk_graph) && !has_inline_runtime {
-          // TODO: how do we handle multiple entry modules?
-          args.compilation.generate_chunk_entry_code(&args.chunk_ukey)
-        } else {
-          RawSource::from(String::new()).boxed()
-        }
-      }])
-      .fold(ConcatSource::default, |mut output, cur| {
-        output.add(cur);
-        output
-      })
-      .collect::<Vec<ConcatSource>>();
-    let source = CachedSource::new(ConcatSource::new(sources));
-
+    let source = match chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+      true => self.render_main(&args)?,
+      false => self.render_chunk(&args)?,
+    };
     // let hash = Some(get_hash(compilation).to_string());
     let hash = None;
     // let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
@@ -352,7 +402,7 @@ impl Plugin for JsPlugin {
         })
     };
 
-    Ok(vec![RenderManifestEntry::new(source.boxed(), output_path)])
+    Ok(vec![RenderManifestEntry::new(source, output_path)])
   }
 
   async fn process_assets(

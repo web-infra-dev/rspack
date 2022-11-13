@@ -1,7 +1,6 @@
 use std::{ffi::OsStr, path::Path};
 
 use async_trait::async_trait;
-use hashbrown::HashSet;
 use rayon::prelude::*;
 use rspack_core::{
   get_contenthash,
@@ -346,7 +345,7 @@ impl Plugin for AssetPlugin {
     args: RenderManifestArgs,
   ) -> PluginRenderManifestHookOutput {
     let compilation = args.compilation;
-
+    let chunk = args.chunk();
     let module_graph = &compilation.module_graph;
 
     let ordered_modules = compilation
@@ -367,11 +366,7 @@ impl Plugin for AssetPlugin {
       .map(|mgm| {
         let code_gen_result = compilation
           .code_generation_results
-          // TODO: use chunk runtime
-          .get(
-            &mgm.module_identifier,
-            Some(&HashSet::from_iter(["main".to_owned()])),
-          )?;
+          .get(&mgm.module_identifier, Some(&chunk.runtime))?;
 
         let result = code_gen_result
           .get(&SourceType::Asset)

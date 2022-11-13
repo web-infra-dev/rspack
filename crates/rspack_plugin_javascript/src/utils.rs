@@ -176,12 +176,12 @@ pub fn get_wrap_chunk_before(
   match platform {
     TargetPlatform::Node(_) => RawSource::from(format!(
       r#"exports.ids = ["{}"];
-      exports.modules = {{"#,
+      exports.modules = "#,
       chunk_id
     ))
     .boxed(),
     _ => RawSource::from(format!(
-      "self[\"{}\"].{}([\"{}\"], {{\n",
+      "self[\"{}\"].{}([\"{}\"], \n",
       namespace, register, chunk_id
     ))
     .boxed(),
@@ -190,8 +190,8 @@ pub fn get_wrap_chunk_before(
 
 pub fn get_wrap_chunk_after(platform: &TargetPlatform) -> BoxSource {
   match platform {
-    TargetPlatform::Node(_) => RawSource::from("};").boxed(),
-    _ => RawSource::from("});").boxed(),
+    TargetPlatform::Node(_) => RawSource::from(";").boxed(),
+    _ => RawSource::from(");").boxed(),
   }
 }
 

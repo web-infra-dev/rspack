@@ -14,7 +14,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
         "development": false,
       },
       "name": "bundle.js",
-      "size": 1620,
+      "size": 814,
       "type": "asset",
     },
   ],
@@ -38,10 +38,10 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 1620,
+          "size": 814,
         },
       ],
-      "assetsSize": 1620,
+      "assetsSize": 814,
       "chunks": [
         "main",
       ],
@@ -69,8 +69,8 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 2`] = `
-"    Asset      Size  Chunks  Chunk Names
-bundle.js  1.58 KiB    main  main
+"    Asset       Size  Chunks  Chunk Names
+bundle.js  814 bytes    main  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 25 bytes [entry]
 [./index.js] 25 bytes {main}"
@@ -90,7 +90,7 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
         "development": false,
       },
       "name": "bundle.js",
-      "size": 1772,
+      "size": 966,
       "type": "asset",
     },
   ],
@@ -114,10 +114,10 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
       "assets": [
         {
           "name": "bundle.js",
-          "size": 1772,
+          "size": 966,
         },
       ],
-      "assetsSize": 1772,
+      "assetsSize": 966,
       "chunks": [
         "main",
       ],
@@ -166,8 +166,8 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
 `;
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 2`] = `
-"    Asset      Size  Chunks  Chunk Names
-bundle.js  1.73 KiB    main  main
+"    Asset       Size  Chunks  Chunk Names
+bundle.js  966 bytes    main  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 15 bytes [entry]
 [./index.js] 15 bytes {main}
@@ -203,7 +203,7 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
         "development": false,
       },
       "name": "bundle.js",
-      "size": 1666,
+      "size": 860,
       "type": "asset",
     },
   ],
@@ -227,10 +227,10 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 1666,
+          "size": 860,
         },
       ],
-      "assetsSize": 1666,
+      "assetsSize": 860,
       "chunks": [
         "main",
       ],
@@ -269,8 +269,8 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for normal-errors 2`] = `
-"    Asset      Size  Chunks  Chunk Names
-bundle.js  1.63 KiB    main  main
+"    Asset       Size  Chunks  Chunk Names
+bundle.js  860 bytes    main  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 20 bytes [entry]
 [./index.js] 20 bytes {main}
@@ -298,7 +298,7 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
         "development": false,
       },
       "name": "bundle.js",
-      "size": 1846,
+      "size": 1040,
       "type": "asset",
     },
   ],
@@ -322,10 +322,10 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 1846,
+          "size": 1040,
         },
       ],
-      "assetsSize": 1846,
+      "assetsSize": 1040,
       "chunks": [
         "main",
       ],
@@ -386,8 +386,8 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for parse-error 2`] = `
-"    Asset     Size  Chunks  Chunk Names
-bundle.js  1.8 KiB    main  main
+"    Asset      Size  Chunks  Chunk Names
+bundle.js  1.02 KiB    main  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 83 bytes [entry]
 [./a.js] 14 bytes {main}
@@ -417,7 +417,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
         "development": false,
       },
       "name": "bundle.js",
-      "size": 1729,
+      "size": 923,
       "type": "asset",
     },
   ],
@@ -441,10 +441,10 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 1729,
+          "size": 923,
         },
       ],
-      "assetsSize": 1729,
+      "assetsSize": 923,
       "chunks": [
         "main",
       ],
@@ -472,8 +472,8 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for simple 2`] = `
-"    Asset      Size  Chunks  Chunk Names
-bundle.js  1.69 KiB    main  main
+"    Asset       Size  Chunks  Chunk Names
+bundle.js  923 bytes    main  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 26 bytes [entry]
 [./index.js] 26 bytes {main}"

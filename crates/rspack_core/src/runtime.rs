@@ -1,110 +1,9 @@
 use hashbrown::{HashMap, HashSet};
-use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
+use rspack_sources::RawSource;
 
 pub const RUNTIME_PLACEHOLDER_INSTALLED_MODULES: &str = "{/* __INSTALLED_MODULES__*/}";
 pub const RUNTIME_PLACEHOLDER_RSPACK_EXECUTE: &str = "/* RSPACK_EXECUTE */";
 pub const RUNTIME_PLACEHOLDER_CHUNK_ID: &str = "/* __CHUNK_ID__ */";
-
-#[derive(Clone, Debug, Default)]
-pub struct Runtime {
-  pub sources: Vec<RawSource>,
-  pub context_indent: String,
-}
-
-impl Runtime {
-  pub fn generate(&self) -> BoxSource {
-    let mut concat = self.sources.iter().fold(
-      ConcatSource::new([RawSource::from("(function () { ")]),
-      |mut concat, cur| {
-        concat.add(cur.clone());
-        concat
-      },
-    );
-    concat.add(RawSource::from(" })();"));
-    concat.boxed()
-  }
-
-  pub fn generate_rspack_execute(
-    &self,
-    namespace: &str,
-    require_str: &str,
-    ids: &[&String],
-  ) -> BoxSource {
-    let sources = ids
-      .iter()
-      .map(|id| {
-        RawSource::from(format!(
-          r#"{}["{}"].{}("{}");"#,
-          self.context_indent, namespace, require_str, id
-        ))
-      })
-      .collect::<Vec<_>>();
-    let concat = ConcatSource::new(sources);
-    concat.boxed()
-  }
-
-  pub fn web_generate_with_inline_modules(
-    &mut self,
-    modules_code: BoxSource,
-    execute_code: BoxSource,
-    chunk_id: &str,
-  ) -> BoxSource {
-    let runtime_source = self.generate().source().to_string();
-    let modules_code_start = runtime_source
-      .find(RUNTIME_PLACEHOLDER_INSTALLED_MODULES)
-      .unwrap();
-    let modules_code_end = modules_code_start + RUNTIME_PLACEHOLDER_INSTALLED_MODULES.len();
-
-    let chunk_id_start = runtime_source.find(RUNTIME_PLACEHOLDER_CHUNK_ID).unwrap();
-    let chunk_id_end = chunk_id_start + RUNTIME_PLACEHOLDER_CHUNK_ID.len();
-
-    let execute_code_start = runtime_source
-      .find(RUNTIME_PLACEHOLDER_RSPACK_EXECUTE)
-      .unwrap();
-    let execute_code_end = execute_code_start + RUNTIME_PLACEHOLDER_RSPACK_EXECUTE.len();
-
-    ConcatSource::new([
-      // runtime_source is all runtime code, and it's RawSource, so use RawSource at here is fine.
-      RawSource::from(&runtime_source[0..modules_code_start]).boxed(),
-      RawSource::from("{\n").boxed(),
-      modules_code,
-      RawSource::from("}").boxed(),
-      RawSource::from(&runtime_source[modules_code_end..chunk_id_start]).boxed(),
-      RawSource::from(chunk_id).boxed(),
-      RawSource::from(&runtime_source[chunk_id_end..execute_code_start]).boxed(),
-      execute_code,
-      RawSource::from(&runtime_source[execute_code_end..runtime_source.len()]).boxed(),
-    ])
-    .boxed()
-  }
-
-  pub fn node_generate_with_inline_modules(
-    &mut self,
-    modules_code: BoxSource,
-    execute_code: BoxSource,
-  ) -> BoxSource {
-    let runtime_source = self.generate().source().to_string();
-    let modules_code_start = runtime_source
-      .find(RUNTIME_PLACEHOLDER_INSTALLED_MODULES)
-      .unwrap();
-    let modules_code_end = modules_code_start + RUNTIME_PLACEHOLDER_INSTALLED_MODULES.len();
-    let execute_code_start = runtime_source
-      .find(RUNTIME_PLACEHOLDER_RSPACK_EXECUTE)
-      .unwrap();
-    let execute_code_end = execute_code_start + RUNTIME_PLACEHOLDER_RSPACK_EXECUTE.len();
-    ConcatSource::new([
-      // runtime_source is all runtime code, and it's RawSource, so use RawSource at here is fine.
-      RawSource::from(&runtime_source[0..modules_code_start]).boxed(),
-      RawSource::from("{\n").boxed(),
-      modules_code,
-      RawSource::from("}").boxed(),
-      RawSource::from(&runtime_source[modules_code_end..execute_code_start]).boxed(),
-      execute_code,
-      RawSource::from(&runtime_source[execute_code_end..runtime_source.len()]).boxed(),
-    ])
-    .boxed()
-  }
-}
 
 pub type RuntimeSpec = HashSet<String>;
 pub type RuntimeKey = String;
@@ -202,6 +101,7 @@ impl<T> RuntimeSpecMap<T> {
           let single_value = self.single_value.take().expect("Expected single value exists");
 
           self.map.insert(get_runtime_key(single_runtime), single_value);
+          self.map.insert(get_runtime_key(runtime), value);
         }
       }
       RuntimeMode::Map => {
@@ -238,5 +138,20 @@ impl RuntimeSpecSet {
 
   pub fn values(&self) -> Vec<&RuntimeSpec> {
     self.map.values().collect()
+  }
+}
+
+#[derive(Debug)]
+pub struct RuntimeModule {
+  pub identifier: String,
+  pub sources: RawSource,
+}
+
+impl RuntimeModule {
+  pub fn new(identifier: String, sources: String) -> Self {
+    Self {
+      identifier,
+      sources: RawSource::from(sources),
+    }
   }
 }

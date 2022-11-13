@@ -4,13 +4,13 @@ use hashbrown::HashMap;
 
 use rspack_error::Result;
 use rspack_loader_runner::{Content, ResourceData};
-use rspack_sources::{BoxSource, RawSource};
+use rspack_sources::BoxSource;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, BoxModule, Compilation, CompilationArgs, DoneArgs,
   FactorizeAndBuildArgs, ModuleType, NormalModule, NormalModuleFactoryContext, OptimizeChunksArgs,
-  ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderManifestArgs, RenderRuntimeArgs,
-  ThisCompilationArgs, TransformAst, TransformResult,
+  ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderManifestArgs, ThisCompilationArgs,
+  TransformAst, TransformResult,
 };
 
 // use anyhow::{Context, Result};
@@ -24,7 +24,6 @@ pub type PluginLoadHookOutput = Result<Option<Content>>;
 pub type PluginTransformOutput = Result<TransformResult>;
 pub type PluginFactorizeAndBuildHookOutput = Result<Option<(String, NormalModule)>>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
-pub type PluginRenderRuntimeHookOutput = Result<Vec<RawSource>>;
 pub type PluginParseModuleHookOutput = Result<BoxModule>;
 pub type PluginParseOutput = Result<TransformAst>;
 pub type PluginGenerateOutput = Result<Content>;
@@ -98,7 +97,7 @@ pub trait Plugin: Debug + Send + Sync {
   fn additional_chunk_runtime_requirements(
     &self,
     _ctx: PluginContext,
-    _args: &AdditionalChunkRuntimeRequirementsArgs,
+    _args: &mut AdditionalChunkRuntimeRequirementsArgs,
   ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
     Ok(())
   }
@@ -106,18 +105,11 @@ pub trait Plugin: Debug + Send + Sync {
   fn additional_tree_runtime_requirements(
     &self,
     _ctx: PluginContext,
-    _args: &AdditionalChunkRuntimeRequirementsArgs,
+    _args: &mut AdditionalChunkRuntimeRequirementsArgs,
   ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
     Ok(())
   }
 
-  fn render_runtime(
-    &self,
-    _ctx: PluginContext,
-    args: RenderRuntimeArgs,
-  ) -> PluginRenderRuntimeHookOutput {
-    Ok(args.sources)
-  }
   async fn process_assets(
     &mut self,
     _ctx: PluginContext,
