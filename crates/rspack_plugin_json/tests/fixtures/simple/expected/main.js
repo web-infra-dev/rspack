@@ -3,7 +3,22 @@ var runtime = new Object();
 self["__rspack_runtime__"] = runtime;
 // mount Modules
 (function () {
-	runtime.installedModules = {/* __INSTALLED_MODULES__*/};
+	runtime.installedModules = {
+"./index.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+const _jsonJson = __rspack_runtime__.interopRequire(__rspack_require__("./json.json"));
+console.log(_jsonJson.default);
+},
+"./json.json": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
+"use strict";
+module.exports = {
+  "hello": "world"
+}
+;},
+};
 })();
 
 // mount Chunks
@@ -1401,19 +1416,4 @@ function __rspack_load_dynamic_css__(chunkId, promises) {
 		return from;
 	};
 })();
-self["__rspack_runtime__"].__rspack_register__(["main"], {
-"./index.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-const _jsonJson = __rspack_runtime__.interopRequire(__rspack_require__("./json.json"));
-console.log(_jsonJson.default);
-},
-"./json.json": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
-"use strict";
-module.exports = {
-  "hello": "world"
-}
-;},
-});self["__rspack_runtime__"].__rspack_require__("./index.js"); })();
+self["__rspack_runtime__"].__rspack_require__("./index.js"); })();
