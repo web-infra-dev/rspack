@@ -142,7 +142,7 @@ pub fn run_after_pass(
         tree_shaking
           && !compilation
             .bailout_module_identifiers
-            .contains_key(&ustr(&mgm.module_identifier))
+            .contains_key(&ustr(&module.identifier()))
       ),
       Optional::new(
         Repeat::new(dce(Config::default(), unresolved_mark)),
