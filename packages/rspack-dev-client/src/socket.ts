@@ -1,8 +1,7 @@
 import { createWebSocketClient } from "./ws";
 
 export interface Handler {
-	// TODO: remove data after jsonp
-	ok(data: any): void;
+	ok(): void;
 	close(): void;
 	"static-changed"(): void;
 }

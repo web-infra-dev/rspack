@@ -6,6 +6,8 @@ webpack-examples/**/*
 packages/rspack/tests/fixtures/**/*
 packages/rspack/tests/statsCases/**/*
 packages/rspack/tests/configCases/errors/**/*
+packages/rspack/tests/hotCases/**/*
+packages/rspack/tests/js/**/*
 dist/
 
 

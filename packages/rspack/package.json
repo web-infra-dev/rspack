@@ -30,7 +30,9 @@
     "util": "0.12.5",
     "@rspack/plugin-less": "workspace:^",
     "@rspack/plugin-postcss": "workspace:^",
-    "@rspack/plugin-node-polyfill": "workspace:^"
+    "@rspack/plugin-node-polyfill": "workspace:^",
+    "rimraf": "3.0.2",
+    "@types/rimraf": "3.0.2"
   },
   "dependencies": {
     "@rspack/binding": "workspace:*",

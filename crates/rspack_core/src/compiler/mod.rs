@@ -1,4 +1,5 @@
 mod compilation;
+mod hmr;
 mod resolver;
 
 use anyhow::Context;
@@ -99,6 +100,7 @@ impl Compiler {
 
     let deps = self.compilation.entry_dependencies();
     self.compile(deps).await?;
+
     Ok(self.stats())
   }
 
@@ -157,102 +159,18 @@ impl Compiler {
       .par_iter()
       .try_for_each(|(filename, asset)| {
         let file_path = Path::new(&output_path).join(filename);
-        self.emit_asset(file_path, asset)
+        Self::emit_asset(file_path, asset)
       })
       .map_err(|e| e.into())
   }
 
-  fn emit_asset(&self, file_path: PathBuf, asset: &CompilationAsset) -> anyhow::Result<()> {
+  fn emit_asset(file_path: PathBuf, asset: &CompilationAsset) -> anyhow::Result<()> {
     std::fs::create_dir_all(
       file_path
         .parent()
         .unwrap_or_else(|| panic!("The parent of {} can't found", file_path.display())),
     )?;
     std::fs::write(file_path, asset.get_source().buffer()).map_err(|e| e.into())
-  }
-
-  // TODO: remove this function when we had hash in stats.
-  pub async fn rebuild(
-    &mut self,
-    changed_files: std::collections::HashSet<String>,
-    removed_files: std::collections::HashSet<String>,
-  ) -> Result<(std::collections::HashMap<String, (u8, String)>, Stats)> {
-    let collect_modules_from_stats = |s: &Stats<'_>| -> HashMap<String, String> {
-      let modules = s.compilation.module_graph.module_graph_modules();
-      // TODO: use hash;
-
-      modules
-        .filter_map(|item| {
-          use crate::SourceType::*;
-
-          s.compilation
-            .module_graph
-            .module_by_identifier(&item.module_identifier)
-            .and_then(|module| {
-              let resource_data = module.resource_resolved_data();
-              let resource_path = &resource_data.resource_path;
-
-              if !changed_files.contains(resource_path) && !removed_files.contains(resource_path) {
-                None
-              } else if item.module_type.is_js_like() {
-                // TODO: it soo slowly, should use cache to instead.
-                let code = module.code_generation(s.compilation).unwrap();
-                let code = if let Some(code) = code.get(&JavaScript) {
-                  code.ast_or_source.as_source().unwrap().source().to_string()
-                } else {
-                  println!("expect get JavaScirpt code");
-                  String::new()
-                };
-                Some((item.module_identifier.clone(), code))
-              } else if item.module_type.is_css() {
-                // TODO: it soo slowly, should use cache to instead.
-                let code = module.code_generation(s.compilation).unwrap();
-                let code = if let Some(code) = code.get(&Css) {
-                  // only used for compare between two build
-                  code.ast_or_source.as_source().unwrap().source().to_string()
-                } else {
-                  println!("expect get CSS code");
-                  String::new()
-                };
-                Some((item.module_identifier.clone(), code))
-              } else {
-                None
-              }
-            })
-        })
-        .collect()
-    };
-
-    let old = self.compilation.get_stats();
-    let old = collect_modules_from_stats(&old);
-
-    let new_stats = self.build().await?;
-    let new = collect_modules_from_stats(&new_stats);
-
-    let mut diff = std::collections::HashMap::new();
-
-    for (new_uri, new_content) in &new {
-      if !old.contains_key(new_uri) {
-        // added
-        diff.insert(new_uri.to_string(), (2, new_content.to_string()));
-      }
-    }
-
-    for (old_uri, old_content) in old {
-      if let Some(new_content) = new.get(&old_uri) {
-        // changed
-        // TODO: should use module hash.
-        if *new_content != old_content {
-          diff.insert(old_uri, (0, new_content.to_string()));
-        }
-      } else {
-        // deleted
-        diff.insert(old_uri, (1, String::new()));
-      }
-    }
-    // return all diff modules is not a good idea,
-    // maybe a connection between browser client and local server is a better choice.
-    Ok((diff, new_stats))
   }
 }
 

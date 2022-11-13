@@ -4,7 +4,7 @@ extern crate napi_derive;
 #[macro_use]
 mod macros;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicU32, Ordering};
 
@@ -229,34 +229,16 @@ impl Rspack {
       };
 
       callbackify(env, f, async move {
-        let (diff, stats) = compiler
+        let stats = compiler
           .rebuild(
             HashSet::from_iter(changed_files.into_iter()),
             HashSet::from_iter(removed_files.into_iter()),
           )
           .await
-          .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{}", e)))?;
-
-        let diff_stats: HashMap<String, DiffStat> = diff
-          .into_iter()
-          .map(|(uri, stats)| {
-            (
-              uri,
-              DiffStat {
-                kind: DiffStatKind::from(stats.0),
-                content: stats.1,
-              },
-            )
-          })
-          .collect();
+          .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
         let stats: StatsCompilation = stats.to_description().into();
-        // let stats: Stats = _rspack_stats.into();
-        let rebuild_result = RebuildResult {
-          diff: diff_stats,
-          stats: stats,
-        };
         tracing::info!("rebuild success");
-        Ok(rebuild_result)
+        Ok(stats)
       })
     };
 

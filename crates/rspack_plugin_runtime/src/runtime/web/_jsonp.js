@@ -1,17 +1,19 @@
 (function () {
 	var installedChunks = (runtime.__rspack_require__.hmrS_jsonp = runtime
 		.__rspack_require__.hmrS_jsonp || {
-		main: 0
+		[runtime.__rspack_require__.chunkId]: 0
 	});
 
 	var currentUpdatedModulesList;
 	var waitingUpdateResolves = {};
-	function loadUpdateChunk(chunkId, updatedModulesList, content) {
+	function loadUpdateChunk(chunkId, updatedModulesList) {
 		currentUpdatedModulesList = updatedModulesList;
 		return new Promise((resolve, reject) => {
-			waitingUpdateResolves[chunkId] = resolve;
 			// start update chunk loading
-			// var url = __webpack_require__.p + __webpack_require__.hu(chunkId);
+			var url =
+				runtime.__rspack_require__.p + runtime.__rspack_require__.hu(chunkId);
+
+			waitingUpdateResolves[chunkId] = resolve;
 			// create error before stack unwound to get useful stacktrace later
 			var error = new Error();
 			var loadingEnded = event => {
@@ -34,13 +36,15 @@
 					reject(error);
 				}
 			};
-			runtime.__rspack_require__.l(content, loadingEnded);
+			runtime.__rspack_require__.l(url, loadingEnded);
 		});
 	}
 
 	self["hotUpdate"] = (chunkId, moreModules, runtime) => {
 		for (var moduleId in moreModules) {
-			if (__rspack_runtime__.__rspack_require__.o(moreModules, moduleId)) {
+			if (
+				self["__rspack_runtime__"].__rspack_require__.o(moreModules, moduleId)
+			) {
 				currentUpdate[moduleId] = moreModules[moduleId];
 				if (currentUpdatedModulesList) currentUpdatedModulesList.push(moduleId);
 			}
@@ -49,9 +53,22 @@
 		if (waitingUpdateResolves[chunkId]) {
 			waitingUpdateResolves[chunkId]();
 			waitingUpdateResolves[chunkId] = undefined;
-			var tag = document.getElementById("hot-script");
-			tag && tag.parentNode && tag.parentNode.removeChild(tag);
 		}
+	};
+
+	runtime.__rspack_require__.hmrM = function () {
+		if (typeof fetch === "undefined")
+			throw new Error("No browser support: need fetch API");
+		// TODO: should use `hmrF()`
+		var f = runtime.__rspack_require__.chunkId + ".hot-update.json";
+		return fetch(runtime.__rspack_require__.p + f).then(response => {
+			if (response.status === 404) return; // no update available
+			if (!response.ok)
+				throw new Error(
+					"Failed to fetch update manifest " + response.statusText
+				);
+			return response.json();
+		});
 	};
 
 	var currentUpdateChunks;
@@ -472,8 +489,7 @@
 		removedModules,
 		promises,
 		applyHandlers,
-		// updatedModulesList,
-		updatedModules
+		updatedModulesList
 	) {
 		applyHandlers.push(applyHandler);
 		currentUpdateChunks = {};
@@ -488,17 +504,13 @@
 				runtime.__rspack_require__.o(installedChunks, chunkId) &&
 				installedChunks[chunkId] !== undefined
 			) {
-				// TODO: use load script after hash.
-				// promises.push(loadUpdateChunk(chunkId, updatedModulesList));
-				var updatedModulesList = [updatedModules.uri];
-				promises.push(
-					loadUpdateChunk(chunkId, updatedModulesList, updatedModules.content)
-				);
-
+				promises.push(loadUpdateChunk(chunkId, updatedModulesList));
 				currentUpdateChunks[chunkId] = true;
 			} else {
 				currentUpdateChunks[chunkId] = false;
 			}
 		});
+		// TODO:
+		// if (__webpack_require.f) {}
 	};
 })();

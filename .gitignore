@@ -164,6 +164,7 @@ crates/node_binding/binding.d.ts
 .pnpm-store/
 
 !packages/rspack/tests/configCases/target
+packages/rspack/tests/js
 
 # Ignore local integrate debug file
 packages/rspack/tests/*.debug.ts
