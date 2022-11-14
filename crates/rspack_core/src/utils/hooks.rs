@@ -39,11 +39,11 @@ pub async fn resolve(
 
           let message = if let nodejs_resolver::Error::Overflow = error {
             format!(
-              "Can't resolve {:?}, maybe it had cycle alias",
-              args.specifier
+              "Can't resolve {:?} in {importer} , maybe it had cycle alias",
+              args.specifier,
             )
           } else {
-            format!("Failed to resolve {}", args.specifier)
+            format!("Failed to resolve {} in {importer}", args.specifier)
           };
           Error::TraceableError(TraceableError::from_path(
             importer.to_string(),
@@ -53,7 +53,11 @@ pub async fn resolve(
             message,
           ))
         } else {
-          Error::InternalError(format!("Failed to resolve {}", args.specifier))
+          Error::InternalError(format!(
+            "Failed to resolve {} in {}",
+            args.specifier,
+            plugin_driver.options.context.display()
+          ))
         }
       }
     })
