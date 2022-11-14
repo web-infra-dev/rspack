@@ -66,7 +66,7 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
   ) -> Result<()>
   where
     // Pure return value without promise wrapper
-    P: FromNapiValue + Send + 'static,
+    P: FromNapiValue + 'static,
   {
     let raw = unsafe { result.raw() };
 
@@ -78,15 +78,15 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
 
       self.env.execute_tokio_future(
         async move {
-          let p = p
-            .await
-            .map_err(|err| napi::Error::from_reason(format!("Failed to resolve {:?}", err)))?;
+          let p = p.await.map_err(|err| {
+            napi::Error::from_reason(format!("Failed to resolve promise: {:?}", err.to_string()))
+          })?;
 
           let resolved = resolver(p)?;
           self
             .tx
             .send(resolved)
-            .map_err(|_| napi::Error::from_reason(format!("Failed to resolve")))?;
+            .map_err(|_| napi::Error::from_reason(format!("Failed to send resolved value")))?;
 
           Ok(())
         },

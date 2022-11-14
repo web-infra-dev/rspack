@@ -133,14 +133,13 @@ impl PluginDriver {
   ///
   /// See: https://webpack.js.org/api/compiler-hooks/#compilation
   #[instrument(name = "plugin:compilation", skip_all)]
-  pub fn compilation(&mut self, compilation: &mut Compilation) -> PluginCompilationHookOutput {
-    self
-      .plugins
-      .iter_mut()
-      .try_for_each(|plugin| -> Result<()> {
-        plugin.compilation(CompilationArgs { compilation })?;
-        Ok(())
-      })?;
+  pub async fn compilation(
+    &mut self,
+    compilation: &mut Compilation,
+  ) -> PluginCompilationHookOutput {
+    for plugin in &mut self.plugins {
+      plugin.compilation(CompilationArgs { compilation }).await?;
+    }
 
     Ok(())
   }
@@ -149,19 +148,17 @@ impl PluginDriver {
   ///
   /// See: https://webpack.js.org/api/compiler-hooks/#thiscompilation
   #[instrument(name = "plugin:this_compilation", skip_all)]
-  pub fn this_compilation(
+  pub async fn this_compilation(
     &mut self,
     compilation: &mut Compilation,
   ) -> PluginThisCompilationHookOutput {
-    self
-      .plugins
-      .iter_mut()
-      .try_for_each(|plugin| -> Result<()> {
-        plugin.this_compilation(ThisCompilationArgs {
+    for plugin in &mut self.plugins {
+      plugin
+        .this_compilation(ThisCompilationArgs {
           this_compilation: compilation,
-        })?;
-        Ok(())
-      })?;
+        })
+        .await?;
+    }
 
     Ok(())
   }

@@ -87,13 +87,15 @@ impl Compiler {
       .plugin_driver
       .write()
       .await
-      .this_compilation(&mut self.compilation)?;
+      .this_compilation(&mut self.compilation)
+      .await?;
 
     self
       .plugin_driver
       .write()
       .await
-      .compilation(&mut self.compilation)?;
+      .compilation(&mut self.compilation)
+      .await?;
 
     let deps = self.compilation.entry_dependencies();
     self.compile(deps).await?;
