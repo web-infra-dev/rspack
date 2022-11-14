@@ -6,7 +6,7 @@
 #![allow(unused)]
 
 use std::convert::Into;
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::marker::PhantomData;
 use std::os::raw::c_void;
 use std::ptr;
@@ -23,7 +23,7 @@ pub struct ThreadSafeContext<T: 'static, R> {
   pub env: Env,
   pub value: T,
   pub callback: JsFunction,
-  pub tx: tokio::sync::oneshot::Sender<Result<R>>,
+  pub tx: tokio::sync::oneshot::Sender<rspack_error::Result<R>>,
 }
 
 pub struct ThreadSafeCallContext<T: 'static> {
@@ -34,7 +34,7 @@ pub struct ThreadSafeCallContext<T: 'static> {
 
 pub struct ThreadSafeResolver<R> {
   pub env: Env,
-  pub tx: tokio::sync::oneshot::Sender<Result<R>>,
+  pub tx: tokio::sync::oneshot::Sender<rspack_error::Result<R>>,
 }
 
 impl<T: 'static, R> ThreadSafeContext<T, R> {
@@ -84,9 +84,67 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
         |env, r| {
           self
             .tx
-            .send(r.map_err(|err| {
-              // TODO: convert JS error message to rspack_error
-              err
+            .send(r.or_else(|err| {
+              let napi_error = unsafe { ToNapiValue::to_napi_value(env.raw(), err) }?;
+
+              let mut value_ptr = ptr::null_mut();
+
+              check_status!(
+                unsafe {
+                  napi_sys::napi_get_named_property(
+                    env.raw(),
+                    napi_error,
+                    CStr::from_bytes_with_nul_unchecked(b"stack\0").as_ptr(),
+                    &mut value_ptr,
+                  )
+                },
+                "failed to get the value"
+              )?;
+
+              let mut str_len = 0;
+              check_status!(
+                unsafe {
+                  napi_sys::napi_get_value_string_utf8(
+                    env.raw(),
+                    value_ptr,
+                    ptr::null_mut(),
+                    0,
+                    &mut str_len,
+                  )
+                },
+                "failed to get the value"
+              )?;
+
+              str_len += 1;
+              let mut buf = Vec::with_capacity(str_len);
+              let mut copied_len = 0;
+
+              check_status!(
+                unsafe {
+                  napi_sys::napi_get_value_string_utf8(
+                    env.raw(),
+                    value_ptr,
+                    buf.as_mut_ptr(),
+                    str_len,
+                    &mut copied_len,
+                  )
+                },
+                "failed to get the value"
+              )?;
+
+              let mut buf = std::mem::ManuallyDrop::new(buf);
+
+              let buf =
+                unsafe { Vec::from_raw_parts(buf.as_mut_ptr() as *mut u8, copied_len, copied_len) };
+
+              let stack = String::from_utf8(buf).map_err(|err| {
+                rspack_error::Error::InternalError("Failed to convert error to UTF-8".to_owned())
+              })?;
+
+              Err(rspack_error::Error::InternalError(format!(
+                "Error: {}",
+                stack
+              )))
             }))
             .map_err(|_| napi::Error::from_reason(format!("Failed to send resolved value")))
         },
@@ -102,7 +160,7 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
 
     self
       .tx
-      .send(p)
+      .send(p.map_err(rspack_error::Error::from))
       .map_err(|_| napi::Error::from_reason(format!("Failed to resolve")))
   }
 }
@@ -257,12 +315,12 @@ impl<T: 'static, R> ThreadsafeFunction<T, R> {
     &self,
     value: T,
     mode: ThreadsafeFunctionCallMode,
-  ) -> Result<tokio::sync::oneshot::Receiver<Result<R>>> {
+  ) -> Result<tokio::sync::oneshot::Receiver<rspack_error::Result<R>>> {
     if self.aborted.load(Ordering::Acquire) {
       return Err(napi::Error::from_status(Status::Closing));
     }
 
-    let (tx, rx) = tokio::sync::oneshot::channel::<Result<R>>();
+    let (tx, rx) = tokio::sync::oneshot::channel::<rspack_error::Result<R>>();
 
     check_status! {
       unsafe {
@@ -336,7 +394,10 @@ unsafe extern "C" fn call_js_cb<T: 'static, C, R>(
   }
 
   let ctx: &mut C = &mut *context.cast::<C>();
-  let val = Ok(*Box::<(T, tokio::sync::oneshot::Sender<Result<R>>)>::from_raw(data.cast()));
+  let val = Ok(*Box::<(
+    T,
+    tokio::sync::oneshot::Sender<rspack_error::Result<R>>,
+  )>::from_raw(data.cast()));
 
   let mut recv = ptr::null_mut();
   sys::napi_get_undefined(raw_env, &mut recv);
