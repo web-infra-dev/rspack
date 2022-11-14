@@ -654,10 +654,6 @@ impl Compilation {
       .await
       .process_assets(ProcessAssetsArgs { compilation: self })
       .await
-      .map_err(|e| {
-        eprintln!("process_assets is not ok, err {:#?}", e);
-        e
-      })
   }
 
   pub async fn optimize_dependency(

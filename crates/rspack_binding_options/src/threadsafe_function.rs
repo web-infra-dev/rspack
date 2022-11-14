@@ -23,7 +23,7 @@ pub struct ThreadSafeContext<T: 'static, R> {
   pub env: Env,
   pub value: T,
   pub callback: JsFunction,
-  pub tx: tokio::sync::oneshot::Sender<R>,
+  pub tx: tokio::sync::oneshot::Sender<Result<R>>,
 }
 
 pub struct ThreadSafeCallContext<T: 'static> {
@@ -34,7 +34,7 @@ pub struct ThreadSafeCallContext<T: 'static> {
 
 pub struct ThreadSafeResolver<R> {
   pub env: Env,
-  pub tx: tokio::sync::oneshot::Sender<R>,
+  pub tx: tokio::sync::oneshot::Sender<Result<R>>,
 }
 
 impl<T: 'static, R> ThreadSafeContext<T, R> {
@@ -78,19 +78,18 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
 
       self.env.execute_tokio_future(
         async move {
-          let p = p.await.map_err(|err| {
-            napi::Error::from_reason(format!("Failed to resolve promise: {:?}", err.to_string()))
-          })?;
-
-          let resolved = resolver(p)?;
+          let r = p.await.and_then(resolver);
+          Ok(r)
+        },
+        |env, r| {
           self
             .tx
-            .send(resolved)
-            .map_err(|_| napi::Error::from_reason(format!("Failed to send resolved value")))?;
-
-          Ok(())
+            .send(r.map_err(|err| {
+              // TODO: convert JS error message to rspack_error
+              err
+            }))
+            .map_err(|_| napi::Error::from_reason(format!("Failed to send resolved value")))
         },
-        |_, _| Ok(()),
       )?;
 
       return Ok(());
@@ -98,7 +97,7 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
 
     let p = {
       let p = unsafe { P::from_napi_value(self.env.raw(), raw) }?;
-      resolver(p)?
+      resolver(p)
     };
 
     self
@@ -258,12 +257,12 @@ impl<T: 'static, R> ThreadsafeFunction<T, R> {
     &self,
     value: T,
     mode: ThreadsafeFunctionCallMode,
-  ) -> Result<tokio::sync::oneshot::Receiver<R>> {
+  ) -> Result<tokio::sync::oneshot::Receiver<Result<R>>> {
     if self.aborted.load(Ordering::Acquire) {
       return Err(napi::Error::from_status(Status::Closing));
     }
 
-    let (tx, rx) = tokio::sync::oneshot::channel::<R>();
+    let (tx, rx) = tokio::sync::oneshot::channel::<Result<R>>();
 
     check_status! {
       unsafe {
@@ -337,9 +336,7 @@ unsafe extern "C" fn call_js_cb<T: 'static, C, R>(
   }
 
   let ctx: &mut C = &mut *context.cast::<C>();
-  let val = Ok(*Box::<(T, tokio::sync::oneshot::Sender<R>)>::from_raw(
-    data.cast(),
-  ));
+  let val = Ok(*Box::<(T, tokio::sync::oneshot::Sender<Result<R>>)>::from_raw(data.cast()));
 
   let mut recv = ptr::null_mut();
   sys::napi_get_undefined(raw_env, &mut recv);
