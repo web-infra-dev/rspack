@@ -1,3 +1,5 @@
+import type { ResolvedTarget } from "./target";
+
 export type Resolve = {
 	preferRelative?: boolean;
 	extensions?: string[];
@@ -20,7 +22,14 @@ export type ResolvedResolve = {
 	tsConfigPath: string;
 };
 
-export function resolveResolveOptions(resolve: Resolve = {}): ResolvedResolve {
+interface ResolveContext {
+	target: ResolvedTarget;
+}
+
+export function resolveResolveOptions(
+	resolve: Resolve = {},
+	{ target }: ResolveContext
+): ResolvedResolve {
 	const preferRelative = resolve.preferRelative ?? false;
 	const extensions = resolve.extensions ?? [
 		".tsx",
@@ -30,7 +39,11 @@ export function resolveResolveOptions(resolve: Resolve = {}): ResolvedResolve {
 		".json",
 		".d.ts"
 	];
-	const mainFields = resolve.mainFields ?? ["module", "main"];
+	const defaultMainFields = ["module", "main"];
+	if (target.includes("web")) {
+		defaultMainFields.unshift("browser");
+	}
+	const mainFields = resolve.mainFields ?? defaultMainFields;
 	const mainFiles = resolve.mainFiles ?? ["index"];
 	const browserField = resolve.browserField ?? true;
 	const alias = resolve.alias ?? {};
