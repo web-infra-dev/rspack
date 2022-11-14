@@ -42,12 +42,12 @@ function createCompiler(userOptions: RspackOptions) {
 			}
 		}
 	}
-	applyRspackOptionsDefaults(options);
+	applyRspackOptionsDefaults(compiler.options);
 	logger.debug(
 		"NormalizedOptions:",
-		util.inspect(options, { colors: true, depth: null })
+		util.inspect(compiler.options, { colors: true, depth: null })
 	);
-	new RspackOptionsApply().process(options, compiler);
+	new RspackOptionsApply().process(compiler.options, compiler);
 	compiler.hooks.initialize.call();
 	return compiler;
 }

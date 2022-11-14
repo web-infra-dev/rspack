@@ -1,4 +1,3 @@
-import { Compiler } from "../compiler";
 const PolyfilledBuiltinModules = {
 	assert: "assert/",
 	buffer: "buffer/",
@@ -27,13 +26,14 @@ const PolyfilledBuiltinModules = {
 	url: "url/",
 	util: "util/",
 	vm: "vm-browserify",
-	zlib: "browserify-zlib"
+	zlib: "browserify-zlib",
+	fs: "browserify-fs/"
 };
-export class PolyfillBuiltinsPlugin {
-	apply(compiler: Compiler) {
+module.exports = class PolyfillBuiltinsPlugin {
+	apply(compiler) {
 		compiler.options.resolve.alias = {
 			...PolyfilledBuiltinModules,
 			...compiler.options.resolve.alias
 		};
 	}
-}
+};
