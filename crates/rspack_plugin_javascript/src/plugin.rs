@@ -5,8 +5,8 @@ use dashmap::DashMap;
 use hashbrown::hash_map::DefaultHashBuilder;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{
-  BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
-  SourceMapSourceOptions,
+  BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
+  SourceMapSource, SourceMapSourceOptions,
 };
 use rspack_core::{
   get_contenthash, AstOrSource, ChunkUkey, Compilation, FilenameRenderOptions, GenerateContext,
@@ -177,10 +177,10 @@ impl JsPlugin {
 
     let mut sources = ConcatSource::default();
     sources.add(RawSource::from("{\n"));
-    sources.add(ConcatSource::new(module_sources));
+    sources.add(CachedSource::new(ConcatSource::new(module_sources)));
     sources.add(RawSource::from("\n}"));
 
-    Ok(sources.boxed())
+    Ok(CachedSource::new(sources).boxed())
   }
 }
 
