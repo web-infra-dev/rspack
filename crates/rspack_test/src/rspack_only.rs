@@ -9,7 +9,10 @@ use std::path::{Path, PathBuf};
 use rspack::Compiler;
 
 #[tokio::main]
-pub async fn test_fixture(fixture_path: &Path) -> Compiler {
+pub async fn test_fixture<F>(fixture_path: &Path, custom_convert_options: F) -> Compiler
+where
+  F: Fn(CompilerOptions) -> CompilerOptions,
+{
   enable_tracing_by_env();
   //avoid interference from previous testing
   let dist_dir = fixture_path.join("dist");
@@ -17,9 +20,9 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler {
     std::fs::remove_dir_all(dist_dir.clone()).unwrap();
   }
   let options: CompilerOptions = RawOptions::from_fixture(fixture_path).to_compiler_options();
+  let options = custom_convert_options(options);
   let output_path = options.output.path.clone();
   let mut compiler = rspack::rspack(options, Default::default());
-
   let stats: Stats = compiler
     .build()
     .await
@@ -41,4 +44,8 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler {
 
   rst.assert();
   compiler
+}
+
+pub fn options_noop(options: CompilerOptions) -> CompilerOptions {
+  options
 }

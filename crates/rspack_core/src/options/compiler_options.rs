@@ -19,4 +19,6 @@ pub struct CompilerOptions {
   pub external_type: ExternalType,
   pub stats: StatsOptions,
   pub __emit_error: bool,
+  #[cfg(debug_assertions)]
+  pub __wrap_runtime: bool,
 }
