@@ -1,12 +1,16 @@
 use std::{
   collections::{HashMap, HashSet},
+  ops::Sub,
   path::Path,
 };
 
 use rspack_error::Result;
 use rspack_sources::{RawSource, SourceExt};
 
-use crate::{AssetInfo, Chunk, Compilation, CompilationAsset, Compiler, RenderManifestArgs, Stats};
+use crate::{
+  AssetInfo, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler, RenderManifestArgs,
+  RuntimeSpec, Stats,
+};
 
 const HOT_UPDATE_MAIN_FILENAME: &str = "hot-update.json";
 
@@ -58,7 +62,7 @@ impl Compiler {
               if !changed_files.contains(resource_path) && !removed_files.contains(resource_path) {
                 None
               } else if item.module_type.is_js_like() {
-                // TODO: it soo slowly, should use cache to instead.
+                // TODO: should use code_generation_results
                 let code = module.code_generation(compilation).unwrap();
                 let code = if let Some(code) = code.get(&JavaScript) {
                   code.ast_or_source.as_source().unwrap().source().to_string()
@@ -68,7 +72,7 @@ impl Compiler {
                 };
                 Some((item.module_identifier.clone(), code))
               } else if item.module_type.is_css() {
-                // TODO: it soo slowly, should use cache to instead.
+                // TODO: should use code_generation_results
                 let code = module.code_generation(compilation).unwrap();
                 let code = if let Some(code) = code.get(&Css) {
                   // only used for compare between two build
@@ -85,14 +89,22 @@ impl Compiler {
         })
         .collect()
     };
+
     let old_modules = collect_changed_modules(old.compilation);
     // TODO: should use `records`
-    let all_old_runtime = old
-      .compilation
-      .chunk_by_ukey
-      .iter()
-      .map(|(_, chunk)| chunk.id.clone())
-      .collect::<HashSet<_>>();
+
+    let mut all_old_runtime: RuntimeSpec = Default::default();
+    for entrypoint_ukey in old.compilation.entrypoints.values() {
+      if let Some(runtime) = old
+        .compilation
+        .chunk_group_by_ukey
+        .get(entrypoint_ukey)
+        .and_then(|entrypoint| entrypoint.runtime.as_ref())
+      {
+        all_old_runtime.extend(runtime.clone())
+      }
+    }
+
     let mut hot_update_main_content_by_runtime = all_old_runtime
       .iter()
       .map(|id| (id.clone(), HotUpdateContent::new(id)))
@@ -109,9 +121,8 @@ impl Compiler {
       old_chunks.push((chunk.id.clone(), modules));
     }
 
-    // ----
+    // build without stats
     {
-      // build without stats
       self.plugin_driver.read().await.resolver.clear();
 
       self.compilation = Compilation::new(
@@ -129,17 +140,20 @@ impl Compiler {
         .plugin_driver
         .write()
         .await
-        .this_compilation(&mut self.compilation)?;
+        .this_compilation(&mut self.compilation)
+        .await?;
 
       self
         .plugin_driver
         .write()
         .await
-        .compilation(&mut self.compilation)?;
+        .compilation(&mut self.compilation)
+        .await?;
 
       let deps = self.compilation.entry_dependencies();
       self.compile(deps).await?;
     }
+
     // ----
     if hot_update_main_content_by_runtime.is_empty() {
       return Ok(self.stats());
@@ -173,8 +187,8 @@ impl Compiler {
     for (chunk_id, _old_chunk_modules) in &old_chunks {
       let mut new_modules = vec![];
       let mut chunk_id = chunk_id.to_string();
-      let mut _new_runtime = chunk_id.to_string();
-      let mut removed_from_runtime = Some(chunk_id.to_string());
+      let mut new_runtime = all_old_runtime.clone();
+      let mut removed_from_runtime = all_old_runtime.clone();
       let current_chunk = now
         .chunk_by_ukey
         .iter()
@@ -183,11 +197,18 @@ impl Compiler {
 
       if let Some(current_chunk) = current_chunk {
         chunk_id = current_chunk.id.to_string();
-        _new_runtime = if all_old_runtime.contains(&current_chunk.id) {
-          current_chunk.id.to_string()
-        } else {
+        new_runtime = Default::default();
+        // intersectRuntime
+        for old_runtime in &all_old_runtime {
+          if current_chunk.runtime.contains(old_runtime) {
+            new_runtime.insert(old_runtime.clone());
+          }
+        }
+        // ------
+        if new_runtime.is_empty() {
           continue;
-        };
+        }
+
         new_modules = now
           .chunk_graph
           .get_chunk_graph_chunk(&current_chunk.ukey)
@@ -200,20 +221,25 @@ impl Compiler {
           })
           .collect::<Vec<_>>();
 
-        if current_chunk.id == chunk_id {
-          removed_from_runtime = None
-        }
+        // subtractRuntime
+        removed_from_runtime = removed_from_runtime.sub(&new_runtime);
       }
 
-      if let Some(removed) = &removed_from_runtime {
+      for removed in removed_from_runtime {
         if let Some(info) = hot_update_main_content_by_runtime.get_mut(&chunk_id) {
           info.removed_chunk_ids.insert(removed.to_string());
         }
+        // TODO:
+        // for (const module of remainingModules) {}
       }
 
       if !new_modules.is_empty() {
-        let mut hot_update_chunk =
-          Chunk::new(Some("hot_update_chunk".to_string()), chunk_id.to_string());
+        let mut hot_update_chunk = Chunk::new(
+          Some("hot_update_chunk".to_string()),
+          chunk_id.to_string(),
+          ChunkKind::HotUpdate,
+        );
+        hot_update_chunk.runtime = new_runtime;
         let ukey = hot_update_chunk.ukey;
         if let Some(current_chunk) = current_chunk {
           current_chunk
@@ -231,6 +257,7 @@ impl Compiler {
             .connect_chunk_and_module(ukey, module.to_string());
         }
 
+        dbg!("====== hmr rendermainfest ===== ");
         let render_manifest = now
           .plugin_driver
           .read()
@@ -248,13 +275,7 @@ impl Compiler {
             .display()
             .to_string();
           let path = output_path.join(format!("{}.hot-update.js", filename));
-          // TODO: should put into `renderManifest`.
-          let source = format!(
-            "self['hotUpdate'](\n'{}',\n{{ {} }})\n",
-            filename,
-            entry.source.source()
-          );
-          let asset = CompilationAsset::new(RawSource::from(source).boxed(), AssetInfo::default());
+          let asset = CompilationAsset::new(entry.source().clone(), AssetInfo::default());
 
           Compiler::emit_asset(path, &asset)?;
         }

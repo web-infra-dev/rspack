@@ -340,7 +340,9 @@ describe("Compiler", () => {
 				bail: true
 			});
 		} catch (err) {
-			expect(err.toString()).toMatchInlineSnapshot();
+			expect(err.toString()).toMatchInlineSnapshot(
+				`"Error: InternalError("Failed to call process assets RecvError(())")"`
+			);
 		}
 	});
 	it.skip("should not emit compilation errors in async (watch)", async () => {

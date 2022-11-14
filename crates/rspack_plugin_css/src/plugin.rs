@@ -331,7 +331,6 @@ impl Plugin for CssPlugin {
         .next()
         .unwrap_or_else(|| panic!("No groups found"))
     };
-
     let sources = ordered_modules
       .par_iter()
       .map(|mgm| {

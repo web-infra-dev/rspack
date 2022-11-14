@@ -9,9 +9,9 @@ use rspack_core::rspack_sources::{
   SourceMapSource, SourceMapSourceOptions,
 };
 use rspack_core::{
-  get_contenthash, AstOrSource, ChunkUkey, Compilation, FilenameRenderOptions, GenerateContext,
-  GenerationResult, ModuleAst, ModuleType, NormalModule, ParseContext, ParseResult,
-  ParserAndGenerator, Plugin, PluginContext, PluginProcessAssetsOutput,
+  get_contenthash, AstOrSource, ChunkKind, ChunkUkey, Compilation, FilenameRenderOptions,
+  GenerateContext, GenerationResult, ModuleAst, ModuleType, NormalModule, ParseContext,
+  ParseResult, ParserAndGenerator, Plugin, PluginContext, PluginProcessAssetsOutput,
   PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderManifestEntry, SourceType,
   TargetPlatform, RUNTIME_PLACEHOLDER_INSTALLED_MODULES,
 };
@@ -160,7 +160,26 @@ impl JsPlugin {
                 wrap_eval_source_map(module_source, &self.eval_source_map_cache, args.compilation)?;
             }
 
-            Ok(wrap_module_function(module_source, &mgm.id))
+            if mgm.module_type.is_css() && compilation.options.dev_server.hot {
+              // inject css hmr runtime
+              module_source = ConcatSource::new([
+                module_source,
+                RawSource::from(
+                  r#"
+        if (module.hot) {
+          var cssReload = __rspack_require__("/css-hmr")(module.id, {"locals":false});
+          module.hot.dispose(cssReload);
+          module.hot.accept(undefined, cssReload);
+        }
+                "#,
+                )
+                .boxed(),
+              ])
+              .boxed();
+              Ok(wrap_module_function(module_source, &mgm.id))
+            } else {
+              Ok(wrap_module_function(module_source, &mgm.id))
+            }
           })
           .transpose()
       })
@@ -278,14 +297,12 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     ) {
       // TODO: this should only return AST for javascript only, It's a fast pass, defer to another pr to solve this.
       // Ok(ast_or_source.to_owned().into())
-
       let mut ast = ast_or_source
         .to_owned()
         .try_into_ast()?
         .try_into_javascript()?;
       run_after_pass(&mut ast, module, generate_context);
       let output = crate::ast::stringify(&ast, &generate_context.compilation.options.devtool)?;
-
       if let Some(map) = output.map {
         Ok(GenerationResult {
           ast_or_source: SourceMapSource::new(SourceMapSourceOptions {
@@ -363,24 +380,36 @@ impl Plugin for JsPlugin {
   ) -> PluginRenderManifestHookOutput {
     let compilation = args.compilation;
     let chunk = args.chunk();
+    let filename = args.chunk().id.to_owned();
 
-    let source = match chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-      true => self.render_main(&args)?,
-      false => self.render_chunk(&args)?,
+    let is_hot_update_chunk = matches!(chunk.kind, ChunkKind::HotUpdate);
+    let source = if is_hot_update_chunk {
+      let mut source = ConcatSource::default();
+      source.add(RawSource::Source(format!(
+        "self['hotUpdate']('{}', ",
+        filename
+      )));
+      source.add(self.render_chunk_modules(&args)?);
+      source.add(RawSource::Source(");".to_string()));
+      source.boxed()
+    } else if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+      self.render_main(&args)?
+    } else {
+      self.render_chunk(&args)?
     };
+
     // let hash = Some(get_hash(compilation).to_string());
     let hash = None;
     // let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
     let chunkhash = None;
     let contenthash = Some(get_contenthash(&source).to_string());
-
     let output_path = if chunk.is_only_initial(&args.compilation.chunk_group_by_ukey) {
       compilation
         .options
         .output
         .filename
         .render(FilenameRenderOptions {
-          filename: Some(args.chunk().id.to_owned()),
+          filename: Some(filename),
           extension: Some(".js".to_owned()),
           id: None,
           contenthash,

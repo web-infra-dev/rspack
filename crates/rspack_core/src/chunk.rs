@@ -2,6 +2,12 @@ use hashbrown::HashSet;
 
 use crate::{ChunkGraph, ChunkGroupByUkey, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, RuntimeSpec};
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum ChunkKind {
+  HotUpdate,
+  Normal,
+}
+
 #[derive(Debug)]
 pub struct Chunk {
   pub(crate) _name: Option<String>,
@@ -10,10 +16,11 @@ pub struct Chunk {
   pub files: HashSet<String>,
   pub groups: HashSet<ChunkGroupUkey>,
   pub runtime: RuntimeSpec,
+  pub kind: ChunkKind,
 }
 
 impl Chunk {
-  pub fn new(_name: Option<String>, id: String) -> Self {
+  pub fn new(_name: Option<String>, id: String, kind: ChunkKind) -> Self {
     Self {
       _name,
       ukey: ChunkUkey::with_debug_info("Chunk"),
@@ -21,6 +28,7 @@ impl Chunk {
       files: Default::default(),
       groups: Default::default(),
       runtime: HashSet::default(),
+      kind,
     }
   }
 
