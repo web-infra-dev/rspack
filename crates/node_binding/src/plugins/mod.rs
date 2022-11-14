@@ -60,7 +60,6 @@ impl Plugin for RspackPluginNodeAdapter {
       .call(compilation, ThreadsafeFunctionCallMode::Blocking)?
       .await
       .map_err(|err| Error::InternalError(format!("Failed to compilation: {}", err.to_string())))?
-      .map_err(Error::from)
   }
 
   #[tracing::instrument(skip_all)]
@@ -82,7 +81,6 @@ impl Plugin for RspackPluginNodeAdapter {
       .map_err(|err| {
         Error::InternalError(format!("Failed to this_compilation: {}", err.to_string()))
       })?
-      .map_err(Error::from)
   }
 
   #[tracing::instrument(skip_all)]
@@ -108,7 +106,6 @@ impl Plugin for RspackPluginNodeAdapter {
           err.to_string()
         ))
       })?
-      .map_err(Error::from)
   }
 
   #[tracing::instrument(skip_all)]
