@@ -6,7 +6,7 @@ use node::*;
 use rspack_core::{
   runtime_globals, AdditionalChunkRuntimeRequirementsArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeModule, SourceType,
-  TargetPlatform, RUNTIME_PLACEHOLDER_CHUNK_ID,
+  TargetPlatform,
 };
 use web::*;
 use web_worker::*;
@@ -139,7 +139,11 @@ impl Plugin for RuntimePlugin {
             ("__rspack_require__.chunkId").to_string(),
             format!(
               "(function(){{\nruntime.__rspack_require__.chunkId = '{}'}})();",
-              RUNTIME_PLACEHOLDER_CHUNK_ID,
+              compilation
+                .chunk_by_ukey
+                .get(&chunk)
+                .expect("chunk should exsit in chunk_by_ukey")
+                .id,
             ),
           ),
         );
