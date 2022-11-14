@@ -72,66 +72,67 @@ describe("snapshots", () => {
 
 	it("should have the correct base config", () => {
 		expect(baseConfig).toMatchInlineSnapshot(`
-{
-  "builtins": {
-    "browserslist": [],
-    "decorator": {
-      "emitMetadata": true,
-      "legacy": true,
-      "useDefineForClassFields": true,
-    },
-    "html": [],
-  },
-  "context": "<cwd>",
-  "devServer": undefined,
-  "devtool": "",
-  "entry": {
-    "main": [
-      "<cwd>/src/index.js",
-    ],
-  },
-  "externals": {},
-  "externalsType": "",
-  "infrastructureLogging": {},
-  "mode": "none",
-  "module": {
-    "rules": [],
-  },
-  "output": {},
-  "plugins": [],
-  "resolve": {
-    "alias": {},
-    "browserField": true,
-    "conditionNames": [
-      "module",
-      "import",
-    ],
-    "extensions": [
-      ".tsx",
-      ".jsx",
-      ".ts",
-      ".js",
-      ".json",
-      ".d.ts",
-    ],
-    "mainFields": [
-      "module",
-      "main",
-    ],
-    "mainFiles": [
-      "index",
-    ],
-    "preferRelative": false,
-    "tsConfigPath": "",
-  },
-  "stats": {
-    "colors": false,
-  },
-  "target": [
-    "web",
-  ],
-}
-`);
+		{
+		  "builtins": {
+		    "browserslist": [],
+		    "decorator": {
+		      "emitMetadata": true,
+		      "legacy": true,
+		      "useDefineForClassFields": true,
+		    },
+		    "html": [],
+		  },
+		  "context": "<cwd>",
+		  "devServer": undefined,
+		  "devtool": "",
+		  "entry": {
+		    "main": [
+		      "<cwd>/src/index.js",
+		    ],
+		  },
+		  "externals": {},
+		  "externalsType": "",
+		  "infrastructureLogging": {},
+		  "mode": "none",
+		  "module": {
+		    "rules": [],
+		  },
+		  "output": {},
+		  "plugins": [],
+		  "resolve": {
+		    "alias": {},
+		    "browserField": true,
+		    "conditionNames": [
+		      "module",
+		      "import",
+		    ],
+		    "extensions": [
+		      ".tsx",
+		      ".jsx",
+		      ".ts",
+		      ".js",
+		      ".json",
+		      ".d.ts",
+		    ],
+		    "mainFields": [
+		      "browser",
+		      "module",
+		      "main",
+		    ],
+		    "mainFiles": [
+		      "index",
+		    ],
+		    "preferRelative": false,
+		    "tsConfigPath": "",
+		  },
+		  "stats": {
+		    "colors": false,
+		  },
+		  "target": [
+		    "web",
+		  ],
+		}
+	`);
 	});
 
 	const test = (name, options, fn, before, after) => {
@@ -406,6 +407,8 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
+		-       "browser",
+		@@ ... @@
 		-     "web",
 		+     "node",
 	`)
@@ -415,6 +418,8 @@ describe("snapshots", () => {
 		- Expected
 		+ Received
 
+		@@ ... @@
+		-       "browser",
 		@@ ... @@
 		-     "web",
 		+     "webworker",
@@ -426,6 +431,8 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
+		-       "browser",
+		@@ ... @@
 		-     "web",
 		+     "electron-main",
 	`)
@@ -435,6 +442,8 @@ describe("snapshots", () => {
 		- Expected
 		+ Received
 
+		@@ ... @@
+		-       "browser",
 		@@ ... @@
 		-     "web",
 		+     "electron-preload",

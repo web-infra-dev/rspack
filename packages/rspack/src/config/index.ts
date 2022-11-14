@@ -80,7 +80,7 @@ export function getNormalizedRspackOptions(
 	const externalsType = config.externalsType ?? "";
 	const plugins = config.plugins ?? [];
 	const builtins = resolveBuiltinsOptions(config.builtins || {}, context);
-	const resolve = resolveResolveOptions(config.resolve);
+	const resolve = resolveResolveOptions(config.resolve, { target });
 	const devtool = resolveDevtoolOptions(config.devtool);
 	const module = resolveModuleOptions(config.module, { devtool, context });
 	const stats = resolveStatsOptions(config.stats);
