@@ -47,7 +47,7 @@ impl Plugin for RspackPluginNodeAdapter {
   }
 
   #[tracing::instrument(skip_all)]
-  fn compilation(&mut self, args: CompilationArgs) -> PluginCompilationHookOutput {
+  async fn compilation(&mut self, args: CompilationArgs<'_>) -> PluginCompilationHookOutput {
     let compilation = JsCompilation::from_compilation(unsafe {
       Pin::new_unchecked(std::mem::transmute::<
         &'_ mut Compilation,
@@ -57,12 +57,16 @@ impl Plugin for RspackPluginNodeAdapter {
 
     self
       .compilation_tsfn
-      .call(compilation, ThreadsafeFunctionCallMode::Blocking)?;
-    Ok(())
+      .call(compilation, ThreadsafeFunctionCallMode::Blocking)?
+      .await
+      .map_err(|err| Error::InternalError(format!("Failed to compilation: {}", err.to_string())))
   }
 
   #[tracing::instrument(skip_all)]
-  fn this_compilation(&mut self, args: ThisCompilationArgs) -> PluginThisCompilationHookOutput {
+  async fn this_compilation(
+    &mut self,
+    args: ThisCompilationArgs<'_>,
+  ) -> PluginThisCompilationHookOutput {
     let compilation = JsCompilation::from_compilation(unsafe {
       Pin::new_unchecked(std::mem::transmute::<
         &'_ mut Compilation,
@@ -72,8 +76,11 @@ impl Plugin for RspackPluginNodeAdapter {
 
     self
       .this_compilation_tsfn
-      .call(compilation, ThreadsafeFunctionCallMode::Blocking)?;
-    Ok(())
+      .call(compilation, ThreadsafeFunctionCallMode::Blocking)?
+      .await
+      .map_err(|err| {
+        Error::InternalError(format!("Failed to this_compilation: {}", err.to_string()))
+      })
   }
 
   #[tracing::instrument(skip_all)]
@@ -89,13 +96,16 @@ impl Plugin for RspackPluginNodeAdapter {
       assets.insert(filename.clone(), source);
     }
 
-    let rx = self
+    self
       .process_assets_tsfn
-      .call(assets, ThreadsafeFunctionCallMode::Blocking)
-      .map_err(Error::from)?;
-
-    rx.await
-      .map_err(|err| Error::InternalError(format!("Failed to call process assets {:?}", err)))
+      .call(assets, ThreadsafeFunctionCallMode::Blocking)?
+      .await
+      .map_err(|err| {
+        Error::InternalError(format!(
+          "Failed to call process assets: {}",
+          err.to_string()
+        ))
+      })
   }
 
   #[tracing::instrument(skip_all)]
@@ -109,11 +119,8 @@ impl Plugin for RspackPluginNodeAdapter {
       .call(
         args.stats.to_description().into(),
         ThreadsafeFunctionCallMode::Blocking,
-      )
-      .map_err(Error::from)?
+      )?
       .await
-      .map_err(|err| Error::InternalError(format!("Failed to call done {:?}", err)))?;
-
-    Ok(())
+      .map_err(|err| Error::InternalError(format!("Failed to call done: {}", err.to_string())))
   }
 }

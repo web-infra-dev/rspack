@@ -46,11 +46,14 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  fn compilation(&mut self, _args: CompilationArgs) -> PluginCompilationHookOutput {
+  async fn compilation(&mut self, _args: CompilationArgs<'_>) -> PluginCompilationHookOutput {
     Ok(())
   }
 
-  fn this_compilation(&mut self, _args: ThisCompilationArgs) -> PluginThisCompilationHookOutput {
+  async fn this_compilation(
+    &mut self,
+    _args: ThisCompilationArgs<'_>,
+  ) -> PluginThisCompilationHookOutput {
     Ok(())
   }
 

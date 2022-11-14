@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use napi::{bindgen_prelude::*, Env, JsUnknown, NapiRaw};
+use napi::{bindgen_prelude::*, Env, NapiRaw};
 
 use crate::{
   js_values::JsCompilation, threadsafe_function::*, JsCompatSource, PluginCallbacks,
@@ -61,23 +61,13 @@ pub fn create_node_adapter_from_plugin_callbacks(
           let cb = unsafe { this_compilation_callback.raw() };
 
           ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
-            let ThreadSafeContext {
-              env,
-              value,
-              callback,
-              ..
-            } = ctx;
+            let (ctx, resolver) = ctx.split_into_parts();
 
-            let value = unsafe {
-              JsUnknown::from_napi_value(
-                env.raw(),
-                JsCompilation::to_napi_value(env.raw(), value)?,
-              )?
-            };
+            let env = ctx.env;
+            let cb = ctx.callback;
+            let result = unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) }?;
 
-            callback.call(None, &[value])?;
-
-            Ok(())
+            resolver.resolve::<()>(result, |_| Ok(()))
           })
         }?;
 
@@ -85,23 +75,13 @@ pub fn create_node_adapter_from_plugin_callbacks(
           let cb = unsafe { compilation_callback.raw() };
 
           ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
-            let ThreadSafeContext {
-              env,
-              value,
-              callback,
-              ..
-            } = ctx;
+            let (ctx, resolver) = ctx.split_into_parts();
 
-            let value = unsafe {
-              JsUnknown::from_napi_value(
-                env.raw(),
-                JsCompilation::to_napi_value(env.raw(), value)?,
-              )?
-            };
+            let env = ctx.env;
+            let cb = ctx.callback;
+            let result = unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) }?;
 
-            callback.call(None, &[value])?;
-
-            Ok(())
+            resolver.resolve::<()>(result, |_| Ok(()))
           })
         }?;
 
