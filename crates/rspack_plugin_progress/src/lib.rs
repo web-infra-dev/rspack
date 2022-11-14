@@ -77,6 +77,9 @@ impl Plugin for ProgressPlugin {
     self
       .progress_bar
       .set_position((10.0 + 55.0 * percent) as u64);
+    self
+      .progress_bar
+      .set_message(format!("building {}", _module.raw_request()));
     Ok(())
   }
 
