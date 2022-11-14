@@ -1,15 +1,9 @@
 use std::path::PathBuf;
 
-use insta::Settings;
-use rspack_binding_options::RawOptions;
-use rspack_core::tree_shaking::visitor::TreeShakingResult;
-use rspack_core::Compilation;
 use rspack_core::CompilerOptions;
-use rspack_symbol::Symbol;
-use rspack_test::{read_test_config_and_normalize, test_fixture, test_options::RawOptionsExt};
+use rspack_test::{read_test_config_and_normalize, test_fixture};
 use rspack_tracing::enable_tracing_by_env;
 use testing_macros::fixture;
-use ustr::Ustr;
 
 #[fixture("tests/fixtures/*")]
 fn rspack(fixture_path: PathBuf) {

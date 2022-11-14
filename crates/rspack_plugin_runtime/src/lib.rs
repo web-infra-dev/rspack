@@ -30,9 +30,7 @@ pub struct ChunkHash {
 #[derive(Debug)]
 pub struct RuntimePlugin {}
 
-impl RuntimePlugin {
-  fn process_assets_with_less_runtime() {}
-}
+impl RuntimePlugin {}
 
 #[async_trait]
 impl Plugin for RuntimePlugin {
