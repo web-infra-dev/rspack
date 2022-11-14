@@ -94,7 +94,7 @@ jobs:
 
   test-js:
     name: Node binding test
-    runs-on: [self-hosted, rspack-common]
+    runs-on: [self-hosted, rspack-common, ARM64]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -121,7 +121,7 @@ jobs:
 
   bundle-stats:
     name: Bundle stats compare
-    runs-on: [self-hosted, rspack-common]
+    runs-on: [self-hosted, rspack-common, ARM64]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
