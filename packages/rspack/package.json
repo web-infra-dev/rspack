@@ -27,13 +27,14 @@
     "tsm": "^2.2.2",
     "typescript": "4.7.3",
     "uvu": "0.5.6",
-    "util": "0.12.5"
+    "util": "0.12.5",
+    "@rspack/plugin-less": "workspace:^",
+    "@rspack/plugin-postcss": "workspace:^",
+    "@rspack/plugin-node-polyfill": "workspace:^"
   },
   "dependencies": {
     "@rspack/binding": "workspace:*",
     "@rspack/dev-client": "workspace:*",
-    "@rspack/plugin-less": "workspace:^",
-    "@rspack/plugin-postcss": "workspace:^",
     "browserslist": "^4.21.3",
     "chokidar": "3.5.3",
     "tapable": "2.2.1",
