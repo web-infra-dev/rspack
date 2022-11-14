@@ -16,9 +16,11 @@ use crate::utils::get_swc_compiler;
 use rspack_core::{ast::javascript::Ast, CompilerOptions, GenerateContext, ResourceData};
 use rspack_error::Result;
 use swc::config::ModuleConfig;
+use swc_common::pass::Repeat;
 use swc_common::{chain, comments::Comments};
 use swc_ecma_parser::Syntax;
 use swc_ecma_transforms::modules::common_js::Config as CommonjsConfig;
+use swc_ecma_transforms::optimization::simplify::dce::{dce, Config};
 use swc_ecma_transforms::pass::Optional;
 use tree_shaking::tree_shaking_visitor;
 use ustr::ustr;
@@ -118,6 +120,7 @@ pub fn run_after_pass(
     let unresolved_mark = context.unresolved_mark;
     let top_level_mark = context.top_level_mark;
     let tree_shaking = generate_context.compilation.options.builtins.tree_shaking;
+    let minify = generate_context.compilation.options.builtins.minify;
     let comments = None;
 
     let mut pass = chain!(
@@ -128,6 +131,11 @@ pub fn run_after_pass(
           top_level_mark,
         ),
         tree_shaking
+      ),
+      Optional::new(
+        Repeat::new(dce(Config::default(), unresolved_mark)),
+        // extra branch to avoid doing dce twice, (minify will exec dce)
+        tree_shaking && !minify,
       ),
       swc_visitor::build_module(
         &cm,
