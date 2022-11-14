@@ -366,8 +366,7 @@ impl Plugin for JsPlugin {
   ) -> PluginProcessAssetsOutput {
     let compilation = args.compilation;
     let minify = compilation.options.builtins.minify;
-    let tree_shaking = compilation.options.builtins.tree_shaking;
-    if !minify && !tree_shaking {
+    if !minify {
       return Ok(());
     }
 
@@ -386,19 +385,22 @@ impl Plugin for JsPlugin {
 
         let input = original.get_source().source().to_string();
         let input_source_map = original.get_source().map(&MapOptions::default());
-        let minify_options = get_js_minify_options(
-          !compilation.options.devtool.cheap(),
-          input_source_map.is_some(),
-          tree_shaking,
-          minify,
-        );
         let output = GLOBALS.set(&Default::default(), || {
           swc::try_with_handler(swc_compiler.cm.clone(), Default::default(), |handler| {
             let fm = swc_compiler.cm.new_source_file(
               swc_common::FileName::Custom(filename.to_string()),
               input.clone(),
             );
-            minifier(fm, handler, &minify_options, minify)
+            swc_compiler.minify(
+              fm,
+              handler,
+              &JsMinifyOptions {
+                source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
+                inline_sources_content: false, // don't need this since we have inner_source_map in SourceMapSource
+                emit_source_map_columns: !compilation.options.devtool.cheap(),
+                ..Default::default()
+              },
+            )
           })
         })?;
         let source = if let Some(map) = &output.map {
@@ -422,42 +424,4 @@ impl Plugin for JsPlugin {
 
     Ok(())
   }
-}
-
-fn get_js_minify_options(
-  emit_source_map_columns: bool,
-  has_source_map: bool,
-  tree_shaking: bool,
-  minify: bool,
-) -> JsMinifyOptions {
-  let mut options = JsMinifyOptions {
-    source_map: BoolOrDataConfig::from_bool(has_source_map),
-    inline_sources_content: false, /* don't need this since we have inner_source_map in SourceMapSource */
-    emit_source_map_columns,
-    ..Default::default()
-  };
-  if tree_shaking && !minify {
-    // If user want tree shake the code without minify, we need to disable some option
-    // to avoid swc transform introduce too much noise to the code
-    options.compress = BoolOrDataConfig::from_obj(TerserCompressorOptions {
-      dead_code: Some(true),
-      side_effects: Some(true),
-      unused: Some(true),
-      // TODO: according options target
-      ecma: TerserEcmaVersion::Num(6),
-      inline: Some(TerserInlineOption::Bool(false)),
-      defaults: false,
-      ..Default::default()
-    });
-    options.mangle = BoolOrDataConfig::from_bool(false);
-  } else if tree_shaking {
-    options.compress = BoolOrDataConfig::from_obj(TerserCompressorOptions {
-      dead_code: Some(true),
-      side_effects: Some(true),
-      unused: Some(true),
-      ..Default::default()
-    });
-    options.mangle = BoolOrDataConfig::from_bool(true);
-  }
-  options
 }
