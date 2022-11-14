@@ -1,6 +1,5 @@
+use anyhow::anyhow;
 use async_trait::async_trait;
-use rspack_error::Result;
-
 use common::*;
 use node::*;
 use rspack_core::{
@@ -8,6 +7,7 @@ use rspack_core::{
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeModule, SourceType,
   TargetPlatform,
 };
+use rspack_error::Result;
 use web::*;
 use web_worker::*;
 
@@ -141,8 +141,8 @@ impl Plugin for RuntimePlugin {
               "(function(){{\nruntime.__rspack_require__.chunkId = '{}'}})();",
               compilation
                 .chunk_by_ukey
-                .get(&chunk)
-                .expect("chunk should exsit in chunk_by_ukey")
+                .get(chunk)
+                .ok_or_else(|| anyhow!("chunk should exsit in chunk_by_ukey"))?
                 .id,
             ),
           ),
