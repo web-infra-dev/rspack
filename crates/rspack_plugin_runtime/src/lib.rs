@@ -78,7 +78,7 @@ impl Plugin for RuntimePlugin {
           SourceType::Css,
           &compilation.module_graph,
         );
-        if modules.len() > 0 {
+        if !modules.is_empty() {
           dynamic_css.push(ChunkHash {
             name: chunk.id.clone(),
             hash: None,
@@ -159,18 +159,18 @@ impl Plugin for RuntimePlugin {
         if compilation.options.dev_server.hot {
           compilation.add_runtime_module(
             chunk,
-            RuntimeModule::new(("runtime/web/_hot.js").to_string(), generate_web_hot()),
+            RuntimeModule::new(("_hot.js").to_string(), generate_web_hot()),
           );
           compilation.add_runtime_module(
             chunk,
             RuntimeModule::new(
-              ("runtime/web/_load_script_content.js").to_string(),
+              ("_load_script_content.js").to_string(),
               generate_web_load_script_content(),
             ),
           );
           compilation.add_runtime_module(
             chunk,
-            RuntimeModule::new(("runtime/web/_jsonp.js").to_string(), generate_web_jsonp()),
+            RuntimeModule::new(("_jsonp.js").to_string(), generate_web_jsonp()),
           );
         }
 
@@ -178,7 +178,7 @@ impl Plugin for RuntimePlugin {
           compilation.add_runtime_module(
             chunk,
             RuntimeModule::new(
-              "runtime/common/_dynamic_data.js".to_string(),
+              "_dynamic_data.js".to_string(),
               generate_common_dynamic_data(dynamic_js, dynamic_css),
             ),
           );

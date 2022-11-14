@@ -150,7 +150,7 @@ pub struct RuntimeModule {
 impl RuntimeModule {
   pub fn new(identifier: String, sources: String) -> Self {
     Self {
-      identifier,
+      identifier: format!("rspack/runtime/{}", identifier),
       sources: RawSource::from(sources),
     }
   }

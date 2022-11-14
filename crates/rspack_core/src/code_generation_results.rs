@@ -38,6 +38,7 @@ impl CodeGenerationResult {
 
 #[derive(Default, Debug)]
 pub struct CodeGenerationResults {
+  // TODO: This should be a map of ModuleIdentifier to CodeGenerationResult
   pub module_generation_result_map: HashMap<ModuleIdentifier, CodeGenerationResult>,
   map: HashMap<ModuleIdentifier, RuntimeSpecMap<ModuleIdentifier>>,
 }
