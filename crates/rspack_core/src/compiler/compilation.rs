@@ -39,11 +39,11 @@ use crate::{
     OptimizeDependencyResult,
   },
   AdditionalChunkRuntimeRequirementsArgs, BuildContext, BundleEntries, Chunk, ChunkByUkey,
-  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, CodeGenerationResult, CodeGenerationResults,
-  CompilerOptions, Dependency, EntryItem, Entrypoint, LoaderRunnerRunner, ModuleDependency,
-  ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModule, NormalModuleFactory,
-  NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs, ResolveKind, RuntimeModule,
-  SharedPluginDriver, Stats, VisitedModuleIdentity,
+  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationResult,
+  CodeGenerationResults, CompilerOptions, Dependency, EntryItem, Entrypoint, LoaderRunnerRunner,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModule,
+  NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs,
+  ResolveKind, RuntimeModule, SharedPluginDriver, Stats, VisitedModuleIdentity,
 };
 use rspack_symbol::Symbol;
 
@@ -197,7 +197,7 @@ impl Compilation {
         .expect("This should not happen");
       chunk
     } else {
-      let chunk = Chunk::new(Some(name.clone()), id);
+      let chunk = Chunk::new(Some(name.clone()), id, ChunkKind::Normal);
       let ukey = chunk.ukey;
       named_chunks.insert(name, chunk.ukey);
       chunk_by_ukey.entry(ukey).or_insert_with(|| chunk)
@@ -205,7 +205,7 @@ impl Compilation {
   }
 
   pub fn add_chunk(chunk_by_ukey: &mut ChunkByUkey, id: String) -> &mut Chunk {
-    let chunk = Chunk::new(None, id);
+    let chunk = Chunk::new(None, id, ChunkKind::Normal);
     let ukey = chunk.ukey;
     chunk_by_ukey.insert(chunk.ukey, chunk);
     chunk_by_ukey.get_mut(&ukey).expect("chunk not found")

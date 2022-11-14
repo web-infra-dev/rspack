@@ -156,11 +156,11 @@ function __rspack_register__(chunkIds, modules, callback) {
 })();
 (function(){
 runtime.__rspack_require__.chunkId = 'main'})();
-          (function(){
-            runtime.__rspack_require__.hu = function (chunkId) {
-              return '' + chunkId + '.hot-update.js';
-            }
-          })();(function(){
+            (function(){
+              runtime.__rspack_require__.hu = function (chunkId) {
+                return '' + chunkId + '.hot-update.js';
+              }
+            })();(function(){
 runtime.__rspack_require__.p = '/'})();// hot runtime
 (function () {
 	var currentModuleData = {};

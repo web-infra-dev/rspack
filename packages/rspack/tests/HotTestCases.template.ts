@@ -194,7 +194,6 @@ export function describeCases(config: { name: string; target: string }) {
 
 									function _next(callback) {
 										fakeUpdateLoaderOptions.updateIndex++;
-										console.log("======= next next next =========");
 										if (!compiler) {
 											throw Error("can't find compiler");
 										}
@@ -278,7 +277,6 @@ export function describeCases(config: { name: string; target: string }) {
 													_next,
 													jsonStats
 												);
-												console.log("after call");
 												return m.exports;
 											}
 										} else {
@@ -300,7 +298,6 @@ export function describeCases(config: { name: string; target: string }) {
 											done();
 										},
 										error => {
-											console.log(err);
 											done(error);
 										}
 									);

@@ -4,7 +4,8 @@ use common::*;
 use node::*;
 use rspack_core::{
   runtime_globals, AdditionalChunkRuntimeRequirementsArgs, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, SourceType, TargetPlatform,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeModule, SourceType,
+  TargetPlatform,
 };
 use rspack_error::Result;
 use web::*;
@@ -150,14 +151,14 @@ impl Plugin for RuntimePlugin {
         );
 
         // TODO: need hash
-        // hu: the filename of hotUpdateChunk.
+        // hu: get the filename of hotUpdateChunk.
         compilation.add_runtime_module(
           chunk,
           RuntimeModule::new(
             ("__rspack_require__.hu").to_string(),
             r#"
             (function(){
-              __rspack_require__.hu = function (chunkId) {
+              runtime.__rspack_require__.hu = function (chunkId) {
                 return '' + chunkId + '.hot-update.js';
               }
             })();"#
@@ -184,10 +185,7 @@ impl Plugin for RuntimePlugin {
           );
           compilation.add_runtime_module(
             chunk,
-            RuntimeModule::new(
-              ("_load_script_content.js").to_string(),
-              generate_web_load_script_content(),
-            ),
+            RuntimeModule::new(("_load_script.js").to_string(), generate_web_load_script()),
           );
           compilation.add_runtime_module(
             chunk,

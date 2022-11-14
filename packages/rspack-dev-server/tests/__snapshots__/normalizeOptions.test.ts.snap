@@ -4,6 +4,7 @@ exports[`normalize options snapshot additional entires should added 1`] = `
 {
   "main": [
     "<prefix>/rspack-dev-client/dist/devServer.js",
+    "<prefix>/rspack-dev-client/dist/css.js",
     "<prefix>/rspack-dev-client/dist/index.js",
     "<prefix>/something",
   ],
@@ -44,6 +45,7 @@ exports[`normalize options snapshot react-refresh added when react/refresh enabl
 {
   "main": [
     "<prefix>/rspack-dev-client/dist/devServer.js",
+    "<prefix>/rspack-dev-client/dist/css.js",
     "<prefix>/rspack-dev-client/dist/reactRefresh.js",
     "<prefix>/rspack-dev-client/dist/index.js",
     "<prefix>/something",
