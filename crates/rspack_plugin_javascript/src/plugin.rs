@@ -6,11 +6,7 @@ use rayon::prelude::*;
 use swc::{config::JsMinifyOptions, BoolOrDataConfig};
 use swc_common::util::take::Take;
 use swc_common::GLOBALS;
-use swc_ecma_minifier::option::terser::{
-  TerserCompressorOptions, TerserEcmaVersion, TerserInlineOption,
-};
 
-use crate::visitors::minify::minify as minifier;
 use rspack_core::rspack_sources::{
   BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
   SourceMapSource, SourceMapSourceOptions,
