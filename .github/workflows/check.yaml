@@ -82,7 +82,6 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: "16"
-          architecture: "arm64"
       - name: Install toolchain
         run: rustup show
       - name: Run test
