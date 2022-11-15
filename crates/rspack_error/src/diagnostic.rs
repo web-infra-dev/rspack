@@ -7,7 +7,6 @@ pub enum Severity {
   #[default]
   Error,
   Warn,
-  Info,
 }
 
 impl fmt::Display for Severity {
@@ -18,7 +17,6 @@ impl fmt::Display for Severity {
       match self {
         Severity::Error => "error",
         Severity::Warn => "warning",
-        Severity::Info => "info",
       }
     )
   }

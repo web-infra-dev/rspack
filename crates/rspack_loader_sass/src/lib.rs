@@ -338,17 +338,6 @@ impl Logger for RspackLogger {
       ))
       .unwrap();
   }
-
-  fn debug(&self, message: &str, options: &sass_embedded::LoggerDebugOptions) {
-    self
-      .tx
-      .send(sass_log_to_diagnostics(
-        Severity::Info,
-        message,
-        options.span.as_ref(),
-      ))
-      .unwrap();
-  }
 }
 
 #[derive(Debug)]
@@ -555,7 +544,6 @@ fn sass_log_to_diagnostics(
       match severity {
         Severity::Error => "Sass Error",
         Severity::Warn => "Sass Warning",
-        Severity::Info => "Sass Info",
       }.to_string(),
       message.to_string(),
     ).with_kind(DiagnosticKind::Scss).with_severity(severity)).into()
