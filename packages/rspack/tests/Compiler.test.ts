@@ -979,6 +979,63 @@ describe("Compiler", () => {
 				done();
 			});
 		});
+		it("should print error with stack information with async callback", done => {
+			class MyPlugin {
+				apply(compiler: Compiler) {
+					compiler.hooks.compilation.tap("MyPlugin", compilation => {
+						compilation.hooks.processAssets.tapPromise(
+							"MyPlugin",
+							async assets => {
+								throw new Error("Failed to handle process assets from JS");
+							}
+						);
+					});
+				}
+			}
+
+			compiler = rspack({
+				context: path.join(__dirname, "fixtures"),
+				entry: "./a",
+				output: {
+					filename: "bundle.js"
+				},
+				plugins: [new MyPlugin()]
+			});
+
+			compiler.run((err, stats) => {
+				expect(
+					err.message.includes("Failed to handle process assets from JS")
+				).toBeTruthy();
+				done();
+			});
+		});
+
+		// TODO: we don't support sync errors currently
+		it.skip("should print error with stack information with sync callback", done => {
+			class MyPlugin {
+				apply(compiler: Compiler) {
+					compiler.hooks.compilation.tap("MyPlugin", compilation => {
+						throw new Error("Failed to handle process assets from JS");
+					});
+				}
+			}
+
+			compiler = rspack({
+				context: path.join(__dirname, "fixtures"),
+				entry: "./a",
+				output: {
+					filename: "bundle.js"
+				},
+				plugins: [new MyPlugin()]
+			});
+
+			compiler.run((err, stats) => {
+				expect(
+					err.message.includes("Failed to handle process assets from JS")
+				).toBeTruthy();
+				done();
+			});
+		});
 	});
 
 	describe("compilation", () => {
