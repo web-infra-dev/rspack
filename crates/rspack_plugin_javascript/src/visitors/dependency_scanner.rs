@@ -3,7 +3,7 @@ use rspack_core::{ModuleDependency, ResolveKind};
 use swc_atoms::JsWord;
 use swc_common::Span;
 use swc_ecma_ast::{CallExpr, Callee, ExportSpecifier, Expr, ExprOrSpread, Lit, ModuleDecl};
-use swc_ecma_visit::{noop_visit_type, VisitAll, VisitAllWith};
+use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
 
 #[derive(Default)]
 pub struct DependencyScanner {
@@ -115,7 +115,7 @@ impl DependencyScanner {
   }
 }
 
-impl VisitAll for DependencyScanner {
+impl Visit for DependencyScanner {
   noop_visit_type!();
 
   fn visit_module_decl(&mut self, node: &ModuleDecl) {
@@ -123,13 +123,13 @@ impl VisitAll for DependencyScanner {
     if let Err(e) = self.add_export(node) {
       eprintln!("{}", e);
     }
-    node.visit_all_children_with(self);
+    node.visit_children_with(self);
   }
   fn visit_call_expr(&mut self, node: &CallExpr) {
     self.add_module_hot(node);
     self.add_dynamic_import(node);
     self.add_require(node);
-    node.visit_all_children_with(self);
+    node.visit_children_with(self);
   }
 }
 
@@ -137,7 +137,7 @@ impl VisitAll for DependencyScanner {
 fn test_dependency_scanner() {
   use crate::ast::parse_js_code;
   use rspack_core::{ErrorSpan, ModuleType};
-  use swc_ecma_visit::VisitAllWith;
+  use swc_ecma_visit::VisitWith;
 
   let code = r#"
   const a = require('a');
@@ -150,7 +150,7 @@ fn test_dependency_scanner() {
   "#;
   let ast = parse_js_code(code.to_string(), &ModuleType::Js).unwrap();
   let mut scanner = DependencyScanner::default();
-  ast.visit_all_with(&mut scanner);
+  ast.visit_with(&mut scanner);
   let mut iter = scanner.dependencies.into_iter();
   assert_eq!(
     iter.next().unwrap(),

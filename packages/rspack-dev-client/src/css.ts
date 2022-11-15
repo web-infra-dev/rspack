@@ -1,3 +1,4 @@
+// @ts-ignore
 import cssReload from "mini-css-extract-plugin/dist/hmr/hotModuleReplacement.js";
 
 var id = "/css-hmr";
