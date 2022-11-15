@@ -51,7 +51,6 @@ impl CodeGenerationResults {
   ) -> Result<&CodeGenerationResult> {
     if let Some(entry) = self.map.get(module_identifier) {
       if let Some(runtime) = runtime {
-        dbg!(entry, runtime, entry.get(runtime));
         entry
           .get(runtime)
           .and_then(|m| {
