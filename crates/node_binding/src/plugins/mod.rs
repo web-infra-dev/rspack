@@ -59,7 +59,7 @@ impl Plugin for RspackPluginNodeAdapter {
       .compilation_tsfn
       .call(compilation, ThreadsafeFunctionCallMode::Blocking)?
       .await
-      .map_err(|err| Error::InternalError(format!("Failed to compilation: {}", err.to_string())))
+      .map_err(|err| Error::InternalError(format!("Failed to compilation: {}", err.to_string())))?
   }
 
   #[tracing::instrument(skip_all)]
@@ -80,7 +80,7 @@ impl Plugin for RspackPluginNodeAdapter {
       .await
       .map_err(|err| {
         Error::InternalError(format!("Failed to this_compilation: {}", err.to_string()))
-      })
+      })?
   }
 
   #[tracing::instrument(skip_all)]
@@ -105,7 +105,7 @@ impl Plugin for RspackPluginNodeAdapter {
           "Failed to call process assets: {}",
           err.to_string()
         ))
-      })
+      })?
   }
 
   #[tracing::instrument(skip_all)]
@@ -121,6 +121,7 @@ impl Plugin for RspackPluginNodeAdapter {
         ThreadsafeFunctionCallMode::Blocking,
       )?
       .await
-      .map_err(|err| Error::InternalError(format!("Failed to call done: {}", err.to_string())))
+      .map_err(|err| Error::InternalError(format!("Failed to call done: {}", err.to_string())))?
+      .map_err(Error::from)
   }
 }

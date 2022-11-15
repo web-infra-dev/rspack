@@ -311,7 +311,8 @@ describe("Compiler", () => {
 			done();
 		});
 	});
-	it("should bubble up errors when wrapped in a promise and bail is true", async () => {
+	// TODO: support `bail`
+	it.skip("should bubble up errors when wrapped in a promise and bail is true", async () => {
 		try {
 			const createCompiler = options => {
 				return new Promise((resolve, reject) => {
@@ -339,9 +340,7 @@ describe("Compiler", () => {
 				bail: true
 			});
 		} catch (err) {
-			expect(err.toString()).toMatchInlineSnapshot(
-				`"Error: Missing field \`thisCompilationCallback\`"`
-			);
+			expect(err.toString()).toMatchInlineSnapshot();
 		}
 	});
 	it.skip("should not emit compilation errors in async (watch)", async () => {
@@ -980,6 +979,63 @@ describe("Compiler", () => {
 				done();
 			});
 		});
+		it("should print error with stack information with async callback", done => {
+			class MyPlugin {
+				apply(compiler: Compiler) {
+					compiler.hooks.compilation.tap("MyPlugin", compilation => {
+						compilation.hooks.processAssets.tapPromise(
+							"MyPlugin",
+							async assets => {
+								throw new Error("Failed to handle process assets from JS");
+							}
+						);
+					});
+				}
+			}
+
+			compiler = rspack({
+				context: path.join(__dirname, "fixtures"),
+				entry: "./a",
+				output: {
+					filename: "bundle.js"
+				},
+				plugins: [new MyPlugin()]
+			});
+
+			compiler.run((err, stats) => {
+				expect(
+					err.message.includes("Failed to handle process assets from JS")
+				).toBeTruthy();
+				done();
+			});
+		});
+
+		// TODO: we don't support sync errors currently
+		it.skip("should print error with stack information with sync callback", done => {
+			class MyPlugin {
+				apply(compiler: Compiler) {
+					compiler.hooks.compilation.tap("MyPlugin", compilation => {
+						throw new Error("Failed to handle process assets from JS");
+					});
+				}
+			}
+
+			compiler = rspack({
+				context: path.join(__dirname, "fixtures"),
+				entry: "./a",
+				output: {
+					filename: "bundle.js"
+				},
+				plugins: [new MyPlugin()]
+			});
+
+			compiler.run((err, stats) => {
+				expect(
+					err.message.includes("Failed to handle process assets from JS")
+				).toBeTruthy();
+				done();
+			});
+		});
 	});
 
 	describe("compilation", () => {
@@ -1077,21 +1133,24 @@ describe("Compiler", () => {
 		});
 
 		it("should throw if the asset to be updated is not exist", done => {
+			const mockFn = jest.fn();
+
 			class MyPlugin {
 				apply(compiler: Compiler) {
 					compiler.hooks.compilation.tap("Plugin", compilation => {
 						compilation.hooks.processAssets.tap("Plugin", () => {
-							// TODO: the error should be more friendly, the current error is
-							// process_assets is not ok, err InternalError(
-							// Failed to call process assets RecvError(())",
-							// )
-							expect(() =>
+							try {
 								compilation.updateAsset(
 									"something-else.js",
 									new RawSource(`module.exports = "something-else"`),
 									{ minimized: true, development: true, related: {} }
-								)
-							).toThrow();
+								);
+							} catch (err) {
+								mockFn();
+								expect(err).toMatchInlineSnapshot(
+									`[Error: Called Compilation.updateAsset for not existing filename something-else.js]`
+								);
+							}
 						});
 					});
 				}
@@ -1104,6 +1163,8 @@ describe("Compiler", () => {
 			});
 
 			compiler.build((err, stats) => {
+				expect(mockFn).toHaveBeenCalled();
+
 				done();
 			});
 		});

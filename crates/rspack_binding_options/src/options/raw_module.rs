@@ -248,7 +248,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
       .await
       .map_err(|err| {
         rspack_error::Error::InternalError(format!("Failed to call loader: {}", err))
-      })?;
+      })??;
 
     let source_map = loader_result
       .as_ref()
