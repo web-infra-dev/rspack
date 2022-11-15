@@ -1,4 +1,4 @@
-name: check
+name: check-rs
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
       - main
     tags-ignore:
       - "**"
+  pull_request:
     paths: # Only run when changes are made to rust code or root Cargo
       - "crates/**"
       - "Cargo.toml"
