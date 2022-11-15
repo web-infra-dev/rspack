@@ -126,7 +126,12 @@ function __rspack_register__(chunkIds, modules, callback) {
 	runtime.__rspack_register__ = __rspack_register__;
 })();
 (function(){
-runtime.__rspack_require__.chunkId = 'main'})();(function(){
+runtime.__rspack_require__.chunkId = 'main'})();
+            (function(){
+              runtime.__rspack_require__.hu = function (chunkId) {
+                return '' + chunkId + '.hot-update.js';
+              }
+            })();(function(){
 runtime.__rspack_require__.p = '/'})();// hot runtime
 (function () {
 	var currentModuleData = {};
@@ -162,7 +167,6 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 	});
 
 	runtime.__rspack_require__.hmrC = {};
-	// TODO: useless
 	runtime.__rspack_require__.hmrI = {};
 
 	function createRequire(require, moduleId) {
@@ -279,7 +283,6 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 				this._selfInvalidated = true;
 				switch (currentStatus) {
 					case "idle":
-						// TODO: useless
 						currentUpdateApplyHandlers = [];
 						Object.keys(runtime.__rspack_require__.hmrI).forEach(function (
 							key
@@ -397,12 +400,10 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 				}
 
 				return setStatus("prepare").then(function () {
-					// var updatedModules = [];
-					// TODO: updatedModule should removed after hash
-					var updatedModules = update.updatedModule;
+					var updatedModules = [];
 					currentUpdateApplyHandlers = [];
+
 					return Promise.all(
-						// TODO: update.c, .r, .m is useless now.
 						Object.keys(runtime.__rspack_require__.hmrC).reduce(function (
 							promises,
 							key
@@ -540,7 +541,8 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 	var inProgress = {};
 	// data-webpack is not used as build has no uniqueName
 	// loadScript function to load a script via script tag
-	runtime.__rspack_require__.l = (content, done, key, chunkId) => {
+	runtime.__rspack_require__.l = (url, done, key, chunkId) => {
+		// add this after hash
 		// if (inProgress[url]) {
 		// 	inProgress[url].push(done);
 		// 	return;
@@ -550,11 +552,7 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 			var scripts = document.getElementsByTagName("script");
 			for (var i = 0; i < scripts.length; i++) {
 				var s = scripts[i];
-				// if (s.getAttribute("src") == url) {
-				// 	script = s;
-				// 	break;
-				// }
-				if (s.text == content) {
+				if (s.getAttribute("src") == url) {
 					script = s;
 					break;
 				}
@@ -566,24 +564,19 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 
 			script.charset = "utf-8";
 			script.timeout = 120;
-			script.id = "hot-script";
 			// if (__webpack_require__.nc) {
 			// 	script.setAttribute("nonce", __webpack_require__.nc);
 			// }
 
-			// script.src = url;
-			script.text = content;
+			script.src = url;
 		}
-		// inProgress[url] = [done];
-		inProgress[content] = [done];
+		inProgress[url] = [done];
 		var onScriptComplete = (prev, event) => {
 			// avoid mem leaks in IE.
 			script.onerror = script.onload = null;
 			clearTimeout(timeout);
-			// var doneFns = inProgress[url];
-			// delete inProgress[url];
-			var doneFns = inProgress[content];
-			delete inProgress[content];
+			var doneFns = inProgress[url];
+			delete inProgress[url];
 			script.parentNode && script.parentNode.removeChild(script);
 			doneFns && doneFns.forEach(fn => fn(event));
 			if (prev) return prev(event);
@@ -603,17 +596,19 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 (function () {
 	var installedChunks = (runtime.__rspack_require__.hmrS_jsonp = runtime
 		.__rspack_require__.hmrS_jsonp || {
-		main: 0
+		[runtime.__rspack_require__.chunkId]: 0
 	});
 
 	var currentUpdatedModulesList;
 	var waitingUpdateResolves = {};
-	function loadUpdateChunk(chunkId, updatedModulesList, content) {
+	function loadUpdateChunk(chunkId, updatedModulesList) {
 		currentUpdatedModulesList = updatedModulesList;
 		return new Promise((resolve, reject) => {
-			waitingUpdateResolves[chunkId] = resolve;
 			// start update chunk loading
-			// var url = __webpack_require__.p + __webpack_require__.hu(chunkId);
+			var url =
+				runtime.__rspack_require__.p + runtime.__rspack_require__.hu(chunkId);
+
+			waitingUpdateResolves[chunkId] = resolve;
 			// create error before stack unwound to get useful stacktrace later
 			var error = new Error();
 			var loadingEnded = event => {
@@ -636,13 +631,15 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 					reject(error);
 				}
 			};
-			runtime.__rspack_require__.l(content, loadingEnded);
+			runtime.__rspack_require__.l(url, loadingEnded);
 		});
 	}
 
 	self["hotUpdate"] = (chunkId, moreModules, runtime) => {
 		for (var moduleId in moreModules) {
-			if (__rspack_runtime__.__rspack_require__.o(moreModules, moduleId)) {
+			if (
+				self["__rspack_runtime__"].__rspack_require__.o(moreModules, moduleId)
+			) {
 				currentUpdate[moduleId] = moreModules[moduleId];
 				if (currentUpdatedModulesList) currentUpdatedModulesList.push(moduleId);
 			}
@@ -651,9 +648,22 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 		if (waitingUpdateResolves[chunkId]) {
 			waitingUpdateResolves[chunkId]();
 			waitingUpdateResolves[chunkId] = undefined;
-			var tag = document.getElementById("hot-script");
-			tag && tag.parentNode && tag.parentNode.removeChild(tag);
 		}
+	};
+
+	runtime.__rspack_require__.hmrM = function () {
+		if (typeof fetch === "undefined")
+			throw new Error("No browser support: need fetch API");
+		// TODO: should use `hmrF()`
+		var f = runtime.__rspack_require__.chunkId + ".hot-update.json";
+		return fetch(runtime.__rspack_require__.p + f).then(response => {
+			if (response.status === 404) return; // no update available
+			if (!response.ok)
+				throw new Error(
+					"Failed to fetch update manifest " + response.statusText
+				);
+			return response.json();
+		});
 	};
 
 	var currentUpdateChunks;
@@ -1074,8 +1084,7 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 		removedModules,
 		promises,
 		applyHandlers,
-		// updatedModulesList,
-		updatedModules
+		updatedModulesList
 	) {
 		applyHandlers.push(applyHandler);
 		currentUpdateChunks = {};
@@ -1090,18 +1099,14 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 				runtime.__rspack_require__.o(installedChunks, chunkId) &&
 				installedChunks[chunkId] !== undefined
 			) {
-				// TODO: use load script after hash.
-				// promises.push(loadUpdateChunk(chunkId, updatedModulesList));
-				var updatedModulesList = [updatedModules.uri];
-				promises.push(
-					loadUpdateChunk(chunkId, updatedModulesList, updatedModules.content)
-				);
-
+				promises.push(loadUpdateChunk(chunkId, updatedModulesList));
 				currentUpdateChunks[chunkId] = true;
 			} else {
 				currentUpdateChunks[chunkId] = false;
 			}
 		});
+		// TODO:
+		// if (__webpack_require.f) {}
 	};
 })();
 self["__rspack_runtime__"].__rspack_require__("./index.js");})()
