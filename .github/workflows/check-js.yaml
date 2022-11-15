@@ -8,9 +8,7 @@ on:
       - "**"
   pull_request:
 
-  # env:
-  #   TRACE: DEBUG
-
+jobs:
   test-js:
     name: Node binding test
     runs-on: [self-hosted, rspack-common, ARM64]
@@ -38,30 +36,6 @@ on:
           pnpm --filter @rspack/dev-server run test
           pnpm run build:webpack
 
-  bundle-stats:
-    name: Bundle stats compare
-    runs-on: [self-hosted, rspack-common, ARM64]
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: "16"
-          architecture: "arm64"
-      - name: Install dependencies && and build lib
-        run: |
-          node -e "console.log(process.arch)"  
-          pnpm install
-          pnpm run build:cli
-      - name: Create rspack stats
-        run: pnpm --filter example-arco-design-pro compare-bundle-stats
-      - name: Send rspack stats to RelativeCI
-        uses: relative-ci/agent-action@v2
-        with:
-          webpackStatsFile: ./examples/arco-pro/rspack-stats.json
-          key: ${{ secrets.RELATIVE_CI_KEY }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-
   # bundle-stats:
   #   name: Bundle stats compare
   #   runs-on: [self-hosted, rspack-common, ARM64]
@@ -78,7 +52,7 @@ on:
   #         pnpm install
   #         pnpm run build:cli
   #     - name: Create rspack stats
-  #       run: pnpm --filter example-arco-design-pro bundle-stats
+  #       run: pnpm --filter example-arco-design-pro compare-bundle-stats
   #     - name: Send rspack stats to RelativeCI
   #       uses: relative-ci/agent-action@v2
   #       with:
