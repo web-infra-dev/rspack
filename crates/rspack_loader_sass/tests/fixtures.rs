@@ -9,7 +9,7 @@ use rspack_core::{
   LoaderRunnerAdditionalContext, ResourceData,
 };
 use rspack_loader_sass::{SassLoader, SassLoaderOptions};
-use rspack_test::{fixture, test_fixture};
+use rspack_test::{fixture, rspack_only::options_noop, test_fixture};
 use sass_embedded::Url;
 
 // UPDATE_SASS_LOADER_TEST=1 cargo test --package rspack_loader_sass test_fn_name -- --exact --nocapture
@@ -56,6 +56,8 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           external_type: ExternalType::Auto,
           stats: Default::default(),
           __emit_error: false,
+          #[cfg(debug_assertions)]
+          __wrap_runtime: true,
         }),
         resolver_factory: Default::default(),
       },
@@ -81,5 +83,5 @@ async fn rspack_importer() {
 
 #[fixture("tests/fixtures/*")]
 fn sass(fixture_path: PathBuf) {
-  test_fixture(&fixture_path);
+  test_fixture(&fixture_path, options_noop);
 }

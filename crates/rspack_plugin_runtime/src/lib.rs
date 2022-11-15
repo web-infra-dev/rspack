@@ -30,6 +30,8 @@ pub struct ChunkHash {
 #[derive(Debug)]
 pub struct RuntimePlugin {}
 
+impl RuntimePlugin {}
+
 #[async_trait]
 impl Plugin for RuntimePlugin {
   fn name(&self) -> &'static str {

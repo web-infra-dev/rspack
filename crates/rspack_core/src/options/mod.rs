@@ -67,6 +67,11 @@ impl CompilerOptionsBuilder {
       external_type: self.external_type.unwrap(),
       stats: self.stats.unwrap(),
       __emit_error: false,
+      /// Currently we inline the runtime, this could be sometimes annoy, simple test case will
+      /// also generate about 1000+ LOC, which is hard to review
+      /// when you disable the `__wrap_runtime`, bundler will not wrap the runtime code.
+      #[cfg(debug_assertions)]
+      __wrap_runtime: true,
     }
   }
 
