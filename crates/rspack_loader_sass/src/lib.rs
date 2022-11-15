@@ -5,6 +5,7 @@ use std::{
   sync::Arc,
 };
 
+use crossbeam_channel::{unbounded, Sender};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -12,14 +13,17 @@ use rspack_core::{
   rspack_sources::SourceMap, CompilationContext, CompilerContext, Resolve, ResolveResult, Resolver,
   ResolverFactory,
 };
-use rspack_error::{DiagnosticKind, Error, Result, TraceableError};
+use rspack_error::{
+  Diagnostic, DiagnosticKind, Error, IntoTWithDiagnosticArray, Result, Severity,
+  TWithDiagnosticArray, TraceableError,
+};
 use rspack_loader_runner::{Loader, LoaderContext, LoaderResult};
 use sass_embedded::{
   legacy::{
     IndentType, LegacyImporter, LegacyImporterResult, LegacyImporterThis, LegacyOptions,
     LegacyOptionsBuilder, LineFeed, OutputStyle,
   },
-  Exception, Sass, Url,
+  Exception, Logger, Sass, SourceSpan, Url,
 };
 use serde::Deserialize;
 use tokio::sync::Mutex;
@@ -319,6 +323,35 @@ impl LegacyImporter for RspackImporter {
 }
 
 #[derive(Debug)]
+struct RspackLogger {
+  tx: Sender<Vec<Diagnostic>>,
+}
+
+impl Logger for RspackLogger {
+  fn warn(&self, message: &str, options: &sass_embedded::LoggerWarnOptions) {
+    self
+      .tx
+      .send(sass_log_to_diagnostics(
+        Severity::Warn,
+        message,
+        options.span.as_ref(),
+      ))
+      .unwrap();
+  }
+
+  fn debug(&self, message: &str, options: &sass_embedded::LoggerDebugOptions) {
+    self
+      .tx
+      .send(sass_log_to_diagnostics(
+        Severity::Info,
+        message,
+        options.span.as_ref(),
+      ))
+      .unwrap();
+  }
+}
+
+#[derive(Debug)]
 pub struct SassLoader {
   compiler: Mutex<Sass>,
   options: SassLoaderOptions,
@@ -349,6 +382,7 @@ impl SassLoader {
     &self,
     loader_context: &LoaderContext<'_, '_, CompilerContext, CompilationContext>,
     content: String,
+    logger: RspackLogger,
   ) -> LegacyOptions {
     let mut builder = LegacyOptionsBuilder::default()
       .data(
@@ -358,9 +392,7 @@ impl SassLoader {
           content
         },
       )
-      // TODO: switch to loader_context.get_logger("sass-loader") after rspack
-      // logging implemented (https://webpack.js.org/api/loaders/#logging).
-      // .logger(arg)
+      .logger(logger)
       .file(loader_context.resource_path)
       .source_map(
         self
@@ -439,9 +471,11 @@ impl Loader<CompilerContext, CompilationContext> for SassLoader {
   async fn run(
     &self,
     loader_context: &LoaderContext<'_, '_, CompilerContext, CompilationContext>,
-  ) -> Result<Option<LoaderResult>> {
+  ) -> Result<Option<TWithDiagnosticArray<LoaderResult>>> {
     let source = loader_context.source.to_owned();
-    let sass_options = self.get_sass_options(loader_context, source.try_into_string()?);
+    let (tx, rx) = unbounded();
+    let logger = RspackLogger { tx };
+    let sass_options = self.get_sass_options(loader_context, source.try_into_string()?, logger);
     let result = self
       .compiler
       .lock()
@@ -466,11 +500,14 @@ impl Loader<CompilerContext, CompilationContext> for SassLoader {
         Ok(map)
       })
       .transpose()?;
-    Ok(Some(LoaderResult {
-      content: result.css.into(),
-      source_map,
-      meta: None,
-    }))
+    Ok(Some(
+      LoaderResult {
+        content: result.css.into(),
+        source_map,
+        meta: None,
+      }
+      .with_diagnostic(rx.into_iter().flatten().collect_vec()),
+    ))
   }
 
   fn as_any(&self) -> &dyn std::any::Any {
@@ -498,5 +535,31 @@ fn sass_exception_to_error(e: Exception) -> Error {
     ).with_kind(DiagnosticKind::Scss))
   } else {
     Error::InternalError(e.message().to_string())
+  }
+}
+
+fn sass_log_to_diagnostics(
+  severity: Severity,
+  message: &str,
+  span: Option<&SourceSpan>,
+) -> Vec<Diagnostic> {
+  if let Some(span) = span
+    && let Some(url) = &span.url {
+    Error::TraceableError(TraceableError::from_path(url
+        .to_file_path()
+        .unwrap()
+        .to_string_lossy()
+        .to_string(),
+      span.start.offset,
+      span.end.offset,
+      match severity {
+        Severity::Error => "Sass Error",
+        Severity::Warn => "Sass Warning",
+        Severity::Info => "Sass Info",
+      }.to_string(),
+      message.to_string(),
+    ).with_kind(DiagnosticKind::Scss).with_severity(severity)).into()
+  } else {
+    Error::InternalError(message.to_string()).into()
   }
 }

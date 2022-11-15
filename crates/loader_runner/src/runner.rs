@@ -1,4 +1,4 @@
-use rspack_error::Result;
+use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_sources::SourceMap;
 
 use std::fmt::Debug;
@@ -75,8 +75,10 @@ pub trait Loader<T, U>: Sync + Send + Debug {
   ///
   /// 1. If a loader returns an error, the loader runner will stop loading the resource.
   /// 2. If a loader returns a `None`, the result of the loader will be the same as the previous one.
-  async fn run(&self, loader_context: &LoaderContext<'_, '_, T, U>)
-    -> Result<Option<LoaderResult>>;
+  async fn run(
+    &self,
+    loader_context: &LoaderContext<'_, '_, T, U>,
+  ) -> Result<Option<TWithDiagnosticArray<LoaderResult>>>;
 
   fn as_any(&self) -> &dyn std::any::Any;
 
@@ -86,7 +88,7 @@ pub trait Loader<T, U>: Sync + Send + Debug {
 pub type BoxedLoader<T, U> = Box<dyn Loader<T, U>>;
 pub type BoxedRunnerPlugin = Box<dyn LoaderRunnerPlugin>;
 
-pub type LoaderRunnerResult = Result<LoaderResult>;
+pub type LoaderRunnerResult = Result<TWithDiagnosticArray<LoaderResult>>;
 
 pub struct LoaderRunner {
   plugins: Vec<BoxedRunnerPlugin>,
@@ -149,6 +151,7 @@ impl LoaderRunner {
     context: &'context LoaderRunnerAdditionalContext<'_, T, U>,
   ) -> LoaderRunnerResult {
     let mut loader_context = self.get_loader_context(context).await?;
+    let mut diagnostics = Vec::new();
 
     tracing::trace!("Running loaders for resource: {}", loader_context.resource);
 
@@ -156,12 +159,17 @@ impl LoaderRunner {
       tracing::trace!("Running loader: {}", loader.name());
 
       if let Some(loader_result) = loader.run(&loader_context).await? {
+        let (loader_result, ds) = loader_result.split_into_parts();
         loader_context.source = loader_result.content;
         loader_context.source_map = loader_result.source_map;
         loader_context.meta = loader_result.meta;
+        diagnostics.extend(ds);
       }
     }
 
-    Ok(loader_context.into())
+    Ok(TWithDiagnosticArray::new(
+      loader_context.into(),
+      diagnostics,
+    ))
   }
 }

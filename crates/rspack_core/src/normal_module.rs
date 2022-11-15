@@ -474,17 +474,19 @@ impl NormalModule {
       );
     }
 
+    let mut diagnostics = Vec::new();
     let loader_result = build_context
       .loader_runner_runner
       .run(self.resource_data.clone(), build_context.resolved_loaders)
       .await;
-    let loader_result = match loader_result {
-      Ok(r) => r,
+    let (loader_result, ds) = match loader_result {
+      Ok(r) => r.split_into_parts(),
       Err(e) => {
         self.ast_or_source = NormalModuleAstOrSource::BuiltFailed(e.to_string());
         return Ok(BuildResult::default().with_diagnostic(e.into()));
       }
     };
+    diagnostics.extend(ds);
 
     let original_source = self.create_source(
       &self.resource_data.resource,
@@ -497,7 +499,7 @@ impl NormalModule {
         ast_or_source,
         dependencies,
       },
-      diagnostics,
+      ds,
     ) = self
       .parser_and_generator
       .parse(ParseContext {
@@ -508,6 +510,7 @@ impl NormalModule {
         meta: loader_result.meta,
       })?
       .split_into_parts();
+    diagnostics.extend(ds);
 
     self.original_source = Some(original_source);
     self.ast_or_source = NormalModuleAstOrSource::new_built(ast_or_source, &diagnostics);

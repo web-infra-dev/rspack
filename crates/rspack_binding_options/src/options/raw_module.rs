@@ -2,6 +2,8 @@ use std::fmt::Debug;
 
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
+#[cfg(feature = "node-api")]
+use rspack_error::{IntoTWithDiagnosticArray, TWithDiagnosticArray};
 
 use serde::{Deserialize, Serialize};
 
@@ -219,7 +221,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
       rspack_core::CompilerContext,
       rspack_core::CompilationContext,
     >,
-  ) -> Result<Option<rspack_core::LoaderResult>> {
+  ) -> Result<Option<TWithDiagnosticArray<rspack_core::LoaderResult>>> {
     let loader_context = LoaderContext {
       source: loader_context.source.to_owned().into_bytes(),
       source_map: loader_context
@@ -265,6 +267,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
           .meta
           .map(|item| String::from_utf8_lossy(&item).to_string()),
       }
+      .with_empty_diagnostic()
     }))
   }
 

@@ -242,6 +242,7 @@ impl From<crate::Severity> for Severity {
     match severity {
       crate::Severity::Error => Self::Error,
       crate::Severity::Warn => Self::Warning,
+      crate::Severity::Info => Self::Note,
     }
   }
 }

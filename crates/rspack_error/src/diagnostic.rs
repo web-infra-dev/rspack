@@ -7,6 +7,7 @@ pub enum Severity {
   #[default]
   Error,
   Warn,
+  Info,
 }
 
 impl fmt::Display for Severity {
@@ -17,6 +18,7 @@ impl fmt::Display for Severity {
       match self {
         Severity::Error => "error",
         Severity::Warn => "warning",
+        Severity::Info => "info",
       }
     )
   }
@@ -24,9 +26,10 @@ impl fmt::Display for Severity {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DiagnosticSourceInfo {
-  pub(crate) path: String,
-  pub(crate) source: String,
+  pub path: String,
+  pub source: String,
 }
+
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct Diagnostic {
   pub severity: Severity,
@@ -62,6 +65,11 @@ impl Diagnostic {
       title,
       ..Default::default()
     }
+  }
+
+  pub fn with_kind(mut self, kind: DiagnosticKind) -> Self {
+    self.kind = kind;
+    self
   }
 
   pub fn with_source_info(mut self, source: DiagnosticSourceInfo) -> Self {

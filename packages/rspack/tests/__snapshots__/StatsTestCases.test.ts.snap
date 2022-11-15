@@ -589,6 +589,145 @@ disabled backtrace
 "
 `;
 
+exports[`StatsTestCases should print correct stats for sass-warnings 1`] = `
+{
+  "assets": [
+    {
+      "chunkNames": [
+        "main",
+      ],
+      "chunks": [
+        "main",
+      ],
+      "info": {
+        "development": false,
+      },
+      "name": "main.js",
+      "size": 894,
+      "type": "asset",
+    },
+    {
+      "chunkNames": [
+        "main",
+      ],
+      "chunks": [
+        "main",
+      ],
+      "info": {
+        "development": false,
+      },
+      "name": "main.css",
+      "size": 20,
+      "type": "asset",
+    },
+  ],
+  "chunks": [
+    {
+      "entry": true,
+      "files": [
+        "main.css",
+        "main.js",
+      ],
+      "id": "main",
+      "initial": true,
+      "names": [
+        "main",
+      ],
+      "size": 41,
+      "type": "chunk",
+    },
+  ],
+  "entrypoints": {
+    "main": {
+      "assets": [
+        {
+          "name": "main.css",
+          "size": 20,
+        },
+        {
+          "name": "main.js",
+          "size": 894,
+        },
+      ],
+      "assetsSize": 914,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
+  "errors": [],
+  "errorsCount": 0,
+  "modules": [
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "./index.js",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/sass-warnings/index.js",
+      "moduleType": "js",
+      "name": "./index.js",
+      "size": 22,
+      "type": "module",
+    },
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "./index.scss",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/sass-warnings/index.scss",
+      "moduleType": "css",
+      "name": "./index.scss",
+      "size": 1,
+      "type": "module",
+    },
+  ],
+  "warnings": [
+    {
+      "formatted": "warning[scss]: Sass Warning
+  ┌─ tests/statsCases/sass-warnings/index.scss:2:11
+  │
+2 │   width: (12px/4px);
+  │           ^^^^^^^^ Using / for division outside of calc() is deprecated and will be removed in Dart Sass 2.0.0.
+
+Recommendation: math.div(12px, 4px) or calc(12px / 4px)
+
+More info and automated migrator: https://sass-lang.com/d/slash-div
+
+",
+      "message": "Using / for division outside of calc() is deprecated and will be removed in Dart Sass 2.0.0.
+
+Recommendation: math.div(12px, 4px) or calc(12px / 4px)
+
+More info and automated migrator: https://sass-lang.com/d/slash-div",
+    },
+  ],
+  "warningsCount": 1,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for sass-warnings 2`] = `
+"   Asset       Size  Chunks  Chunk Names
+ main.js  894 bytes    main  main
+main.css   20 bytes    main  main
+Entrypoint main = main.css main.js
+chunk {main} main.css, main.js (main) 41 bytes [entry]
+[./index.js] 22 bytes {main}
+[./index.scss] 1 bytes {main}
+
+warning[scss]: Sass Warning
+  ┌─ tests/statsCases/sass-warnings/index.scss:2:11
+  │
+2 │   width: (12px/4px);
+  │           ^^^^^^^^ Using / for division outside of calc() is deprecated and will be removed in Dart Sass 2.0.0.
+
+Recommendation: math.div(12px, 4px) or calc(12px / 4px)
+
+More info and automated migrator: https://sass-lang.com/d/slash-div
+
+"
+`;
+
 exports[`StatsTestCases should print correct stats for simple 1`] = `
 {
   "assets": [
