@@ -86,7 +86,6 @@ impl JsPlugin {
       .iter()
       .filter_map(|identifier| compilation.runtime_modules.get(identifier))
       .fold(ConcatSource::default(), |mut output, cur| {
-        dbg!(&cur.identifier);
         // Adding this debug branch to keep only necessary runtime when tree-shaking test snapshot
         // Currently it have 40LOC with about 1000LOC runtime code in our tree-shaking snapshot, it is hard to review the snapshot
         #[cfg(debug_assertions)]
