@@ -60,8 +60,10 @@ impl Plugin for ProgressPlugin {
     Ok(())
   }
 
-  async fn build_module(&self, _module: &mut NormalModule) -> Result<()> {
-    self.progress_bar.set_message("building");
+  async fn build_module(&self, module: &mut NormalModule) -> Result<()> {
+    self
+      .progress_bar
+      .set_message(format!("building {}", module.raw_request()));
     self.modules_count.fetch_add(1, SeqCst);
     Ok(())
   }
@@ -77,9 +79,6 @@ impl Plugin for ProgressPlugin {
     self
       .progress_bar
       .set_position((10.0 + 55.0 * percent) as u64);
-    self
-      .progress_bar
-      .set_message(format!("building {}", _module.raw_request()));
     Ok(())
   }
 

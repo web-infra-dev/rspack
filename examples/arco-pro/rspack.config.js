@@ -22,7 +22,8 @@ module.exports = {
     react: {
       development: true,
       refresh: true,
-    }
+    },
+    progress: {}
   },
   module : {
     rules :
