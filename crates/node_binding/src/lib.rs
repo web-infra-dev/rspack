@@ -192,7 +192,7 @@ impl Rspack {
         let rspack_stats = compiler
           .build()
           .await
-          .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
+          .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{}", e)))?;
 
         let stats: StatsCompilation = rspack_stats.to_description().into();
         if stats.errors.is_empty() {
@@ -235,7 +235,7 @@ impl Rspack {
             HashSet::from_iter(removed_files.into_iter()),
           )
           .await
-          .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
+          .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{}", e)))?;
 
         let diff_stats: HashMap<String, DiffStat> = diff
           .into_iter()

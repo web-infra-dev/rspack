@@ -98,7 +98,7 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
                     &mut value_ptr,
                   )
                 },
-                "failed to get the value"
+                "failed to get the error message"
               )?;
 
               let mut str_len = 0;
@@ -112,7 +112,7 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
                     &mut str_len,
                   )
                 },
-                "failed to get the value"
+                "failed to get the error message"
               )?;
 
               str_len += 1;
@@ -129,7 +129,7 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
                     &mut copied_len,
                   )
                 },
-                "failed to get the value"
+                "failed to get the error message"
               )?;
 
               let mut buf = std::mem::ManuallyDrop::new(buf);
@@ -137,13 +137,13 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
               let buf =
                 unsafe { Vec::from_raw_parts(buf.as_mut_ptr() as *mut u8, copied_len, copied_len) };
 
-              let stack = String::from_utf8(buf).map_err(|err| {
+              let message = String::from_utf8(buf).map_err(|err| {
                 rspack_error::Error::InternalError("Failed to convert error to UTF-8".to_owned())
               })?;
 
               Err(rspack_error::Error::InternalError(format!(
                 "Error: {}",
-                stack
+                message
               )))
             }))
             .map_err(|_| napi::Error::from_reason(format!("Failed to send resolved value")))
