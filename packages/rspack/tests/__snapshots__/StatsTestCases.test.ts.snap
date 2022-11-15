@@ -417,7 +417,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
         "development": false,
       },
       "name": "bundle.js",
-      "size": 1685,
+      "size": 879,
       "type": "asset",
     },
   ],
@@ -441,10 +441,10 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 1685,
+          "size": 879,
         },
       ],
-      "assetsSize": 1685,
+      "assetsSize": 879,
       "chunks": [
         "main",
       ],
@@ -483,8 +483,8 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-overflow 2`] = `
-"    Asset      Size  Chunks  Chunk Names
-bundle.js  1.65 KiB    main  main
+"    Asset       Size  Chunks  Chunk Names
+bundle.js  879 bytes    main  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 51 bytes [entry]
 [./index.js] 51 bytes {main}
@@ -512,7 +512,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
         "development": false,
       },
       "name": "bundle.js",
-      "size": 1701,
+      "size": 1498,
       "type": "asset",
     },
   ],
@@ -536,10 +536,10 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       "assets": [
         {
           "name": "bundle.js",
-          "size": 1701,
+          "size": 1498,
         },
       ],
-      "assetsSize": 1701,
+      "assetsSize": 1498,
       "chunks": [
         "main",
       ],
@@ -578,7 +578,7 @@ disabled backtrace",
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 2`] = `
 "    Asset      Size  Chunks  Chunk Names
-bundle.js  1.66 KiB    main  main
+bundle.js  1.46 KiB    main  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 39 bytes [entry]
 [./index.js] 39 bytes {main}
