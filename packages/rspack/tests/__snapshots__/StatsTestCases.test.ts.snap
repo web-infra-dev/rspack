@@ -243,10 +243,10 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
   ┌─ tests/statsCases/normal-errors/index.js:1:1
   │
 1 │ import "not-exist";
-  │ ^^^^^^^^^^^^^^^^^^^ Failed to resolve not-exist
+  │ ^^^^^^^^^^^^^^^^^^^ Failed to resolve not-exist in <PROJECT_ROOT>/tests/statsCases/normal-errors/index.js
 
 ",
-      "message": "Failed to resolve not-exist",
+      "message": "Failed to resolve not-exist in <PROJECT_ROOT>/tests/statsCases/normal-errors/index.js",
     },
   ],
   "errorsCount": 1,
@@ -279,7 +279,7 @@ error[internal]: Resolve error
   ┌─ tests/statsCases/normal-errors/index.js:1:1
   │
 1 │ import "not-exist";
-  │ ^^^^^^^^^^^^^^^^^^^ Failed to resolve not-exist
+  │ ^^^^^^^^^^^^^^^^^^^ Failed to resolve not-exist in <PROJECT_ROOT>/tests/statsCases/normal-errors/index.js
 
 "
 `;
@@ -400,6 +400,192 @@ error[javascript]: JavaScript parsing error
 6 │ parser )
   │        ^ Expected ';', '}' or <eof>
 
+"
+`;
+
+exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
+{
+  "assets": [
+    {
+      "chunkNames": [
+        "main",
+      ],
+      "chunks": [
+        "main",
+      ],
+      "info": {
+        "development": false,
+      },
+      "name": "bundle.js",
+      "size": 1685,
+      "type": "asset",
+    },
+  ],
+  "chunks": [
+    {
+      "entry": true,
+      "files": [
+        "bundle.js",
+      ],
+      "id": "main",
+      "initial": true,
+      "names": [
+        "main",
+      ],
+      "size": 51,
+      "type": "chunk",
+    },
+  ],
+  "entrypoints": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 1685,
+        },
+      ],
+      "assetsSize": 1685,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
+  "errors": [
+    {
+      "formatted": "error[internal]: Resolve error
+  ┌─ tests/statsCases/resolve-overflow/index.js:1:1
+  │
+1 │ import { a } from "cycle-alias/a";
+  │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Can't resolve "cycle-alias/a" in <PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js , maybe it had cycle alias
+
+",
+      "message": "Can't resolve "cycle-alias/a" in <PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js , maybe it had cycle alias",
+    },
+  ],
+  "errorsCount": 1,
+  "modules": [
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "./index.js",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+      "moduleType": "js",
+      "name": "./index.js",
+      "size": 51,
+      "type": "module",
+    },
+  ],
+  "warnings": [],
+  "warningsCount": 0,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for resolve-overflow 2`] = `
+"    Asset      Size  Chunks  Chunk Names
+bundle.js  1.65 KiB    main  main
+Entrypoint main = bundle.js
+chunk {main} bundle.js (main) 51 bytes [entry]
+[./index.js] 51 bytes {main}
+
+error[internal]: Resolve error
+  ┌─ tests/statsCases/resolve-overflow/index.js:1:1
+  │
+1 │ import { a } from "cycle-alias/a";
+  │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Can't resolve "cycle-alias/a" in <PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js , maybe it had cycle alias
+
+"
+`;
+
+exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 1`] = `
+{
+  "assets": [
+    {
+      "chunkNames": [
+        "main",
+      ],
+      "chunks": [
+        "main",
+      ],
+      "info": {
+        "development": false,
+      },
+      "name": "bundle.js",
+      "size": 1701,
+      "type": "asset",
+    },
+  ],
+  "chunks": [
+    {
+      "entry": true,
+      "files": [
+        "bundle.js",
+      ],
+      "id": "main",
+      "initial": true,
+      "names": [
+        "main",
+      ],
+      "size": 39,
+      "type": "chunk",
+    },
+  ],
+  "entrypoints": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 1701,
+        },
+      ],
+      "assetsSize": 1701,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
+  "errors": [
+    {
+      "formatted": "Export should be relative path and start with "./", but got ../../index.js
+backtrace:
+disabled backtrace
+",
+      "message": "Export should be relative path and start with "./", but got ../../index.js
+backtrace:
+disabled backtrace",
+    },
+  ],
+  "errorsCount": 1,
+  "modules": [
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "./index.js",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+      "moduleType": "js",
+      "name": "./index.js",
+      "size": 39,
+      "type": "module",
+    },
+  ],
+  "warnings": [],
+  "warningsCount": 0,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 2`] = `
+"    Asset      Size  Chunks  Chunk Names
+bundle.js  1.66 KiB    main  main
+Entrypoint main = bundle.js
+chunk {main} bundle.js (main) 39 bytes [entry]
+[./index.js] 39 bytes {main}
+
+Export should be relative path and start with "./", but got ../../index.js
+backtrace:
+disabled backtrace
 "
 `;
 

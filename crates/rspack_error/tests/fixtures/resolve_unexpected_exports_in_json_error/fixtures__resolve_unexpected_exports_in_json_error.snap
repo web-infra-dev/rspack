@@ -1,8 +1,0 @@
----
-source: crates/rspack_error/tests/fixtures.rs
-expression: resolve_unexpected_exports_in_json_error
----
-Export should be relative path and start with "./", but got ../../index.js
-backtrace:
-disabled backtrace
-
