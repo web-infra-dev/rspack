@@ -86,6 +86,7 @@ impl JsPlugin {
       .iter()
       .filter_map(|identifier| compilation.runtime_modules.get(identifier))
       .fold(ConcatSource::default(), |mut output, cur| {
+        dbg!(&cur.identifier);
         output.add(cur.sources.clone());
         output
       });
