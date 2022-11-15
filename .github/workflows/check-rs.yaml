@@ -1,7 +1,7 @@
-name: check
+name: check-rs
 
 on:
-  push:
+  pull_request:
     branches:
       - main
     tags-ignore:
