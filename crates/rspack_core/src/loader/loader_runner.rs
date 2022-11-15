@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rspack_error::Result;
+use rspack_error::{Result, TWithDiagnosticArray};
 
 pub use rspack_loader_runner::{
   Content, Loader, LoaderContext, LoaderResult, LoaderRunner, LoaderRunnerAdditionalContext,
@@ -51,7 +51,7 @@ impl LoaderRunnerRunner {
     &self,
     resource_data: ResourceData,
     loaders: impl IntoIterator<Item = &dyn Loader<CompilerContext, CompilationContext>>,
-  ) -> Result<LoaderResult> {
+  ) -> Result<TWithDiagnosticArray<LoaderResult>> {
     LoaderRunner::new(
       resource_data,
       vec![Box::new(LoaderRunnerPluginProcessResource::new(

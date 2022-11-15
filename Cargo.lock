@@ -2300,6 +2300,7 @@ name = "rspack_loader_sass"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "crossbeam-channel",
  "itertools",
  "once_cell",
  "regex",

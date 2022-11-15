@@ -52,10 +52,10 @@ macro_rules! run_loader {
     .build()
     .unwrap()
     .block_on(async {
-      let runner_result = runner.run($loader, &LoaderRunnerAdditionalContext {
+      let (runner_result, _) = runner.run($loader, &LoaderRunnerAdditionalContext {
         compiler: &(),
         compilation: &()
-      }).await.unwrap();
+      }).await.unwrap().split_into_parts();
       similar_asserts::assert_eq!(
         runner_result.content,
         $expected
@@ -71,10 +71,10 @@ macro_rules! run_loader {
       .build()
       .unwrap()
       .block_on(async {
-        let runner_result = runner.run($loader, &LoaderRunnerAdditionalContext {
+        let (runner_result, _) = runner.run($loader, &LoaderRunnerAdditionalContext {
           compiler: &(),
           compilation: &()
-        }).await.unwrap();
+        }).await.unwrap().split_into_parts();
         similar_asserts::assert_eq!(
           runner_result.content.try_into_string().unwrap(),
           $expected.to_owned()
@@ -84,7 +84,7 @@ macro_rules! run_loader {
 }
 
 mod fixtures {
-  use rspack_error::Result;
+  use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
   use rspack_loader_runner::*;
 
   #[derive(Debug)]
@@ -99,13 +99,16 @@ mod fixtures {
     async fn run(
       &self,
       loader_context: &LoaderContext<'_, '_, (), ()>,
-    ) -> Result<Option<LoaderResult>> {
+    ) -> Result<Option<TWithDiagnosticArray<LoaderResult>>> {
       let source = loader_context.source.to_owned();
-      Ok(Some(LoaderResult {
-        content: source,
-        source_map: None,
-        meta: None,
-      }))
+      Ok(Some(
+        LoaderResult {
+          content: source,
+          source_map: None,
+          meta: None,
+        }
+        .with_empty_diagnostic(),
+      ))
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
@@ -129,19 +132,22 @@ mod fixtures {
     async fn run(
       &self,
       loader_context: &LoaderContext<'_, '_, (), ()>,
-    ) -> Result<Option<LoaderResult>> {
+    ) -> Result<Option<TWithDiagnosticArray<LoaderResult>>> {
       let source = loader_context.source.to_owned().try_into_string()?;
-      Ok(Some(LoaderResult {
-        meta: None,
-        source_map: None,
-        content: Content::String(format!(
-          r#"{}
+      Ok(Some(
+        LoaderResult {
+          meta: None,
+          source_map: None,
+          content: Content::String(format!(
+            r#"{}
 html {{
   margin: 0;
 }}"#,
-          source
-        )),
-      }))
+            source
+          )),
+        }
+        .with_empty_diagnostic(),
+      ))
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
@@ -165,17 +171,20 @@ html {{
     async fn run(
       &self,
       loader_context: &LoaderContext<'_, '_, (), ()>,
-    ) -> Result<Option<LoaderResult>> {
+    ) -> Result<Option<TWithDiagnosticArray<LoaderResult>>> {
       let source = loader_context.source.to_owned().try_into_string()?;
-      Ok(Some(LoaderResult {
-        meta: None,
-        source_map: None,
-        content: Content::String(format!(
-          r#"{}
+      Ok(Some(
+        LoaderResult {
+          meta: None,
+          source_map: None,
+          content: Content::String(format!(
+            r#"{}
 console.log(2);"#,
-          source.trim()
-        )),
-      }))
+            source.trim()
+          )),
+        }
+        .with_empty_diagnostic(),
+      ))
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
@@ -199,17 +208,20 @@ console.log(2);"#,
     async fn run(
       &self,
       loader_context: &LoaderContext<'_, '_, (), ()>,
-    ) -> Result<Option<LoaderResult>> {
+    ) -> Result<Option<TWithDiagnosticArray<LoaderResult>>> {
       let source = loader_context.source.to_owned().try_into_string()?;
-      Ok(Some(LoaderResult {
-        meta: None,
-        source_map: None,
-        content: Content::String(format!(
-          r#"{}
+      Ok(Some(
+        LoaderResult {
+          meta: None,
+          source_map: None,
+          content: Content::String(format!(
+            r#"{}
 console.log(3);"#,
-          source.trim()
-        )),
-      }))
+            source.trim()
+          )),
+        }
+        .with_empty_diagnostic(),
+      ))
     }
 
     fn as_any(&self) -> &dyn std::any::Any {

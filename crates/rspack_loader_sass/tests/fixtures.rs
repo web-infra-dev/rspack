@@ -19,7 +19,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
   let actual_path = tests_path.join(actual);
 
   let url = Url::from_file_path(&actual_path.to_string_lossy().to_string()).unwrap();
-  let result = LoaderRunner::new(
+  let (result, _) = LoaderRunner::new(
     ResourceData {
       resource: actual_path.to_string_lossy().to_string(),
       resource_path: url.path().to_owned(),
@@ -65,7 +65,8 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
     },
   )
   .await
-  .unwrap();
+  .unwrap()
+  .split_into_parts();
   let result = result.content.try_into_string().unwrap();
 
   if env::var("UPDATE_SASS_LOADER_TEST").is_ok() {
