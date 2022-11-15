@@ -90,7 +90,7 @@ impl ChunkGroup {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ChunkGroupKind {
   Entrypoint,
   Normal,

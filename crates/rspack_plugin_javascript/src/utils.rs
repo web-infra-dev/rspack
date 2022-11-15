@@ -4,7 +4,7 @@ use hashbrown::hash_map::DefaultHashBuilder;
 use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use rspack_core::rspack_sources::{
-  BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt,
+  BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt,
 };
 use rspack_core::{Compilation, ErrorSpan, ModuleType, TargetPlatform};
 use rspack_error::{DiagnosticKind, Error};
@@ -151,7 +151,7 @@ pub fn wrap_module_function(source: BoxSource, module_id: &str) -> BoxSource {
    * {source}
    * },
    */
-  ConcatSource::new([
+  CachedSource::new(ConcatSource::new([
     RawSource::from("\"").boxed(),
     RawSource::from(module_id.to_string()).boxed(),
     RawSource::from("\": ").boxed(),
@@ -163,7 +163,7 @@ pub fn wrap_module_function(source: BoxSource, module_id: &str) -> BoxSource {
     RawSource::from("\"use strict\";\n").boxed(),
     source,
     RawSource::from("},\n").boxed(),
-  ])
+  ]))
   .boxed()
 }
 
@@ -176,12 +176,12 @@ pub fn get_wrap_chunk_before(
   match platform {
     TargetPlatform::Node(_) => RawSource::from(format!(
       r#"exports.ids = ["{}"];
-      exports.modules = {{"#,
+      exports.modules = "#,
       chunk_id
     ))
     .boxed(),
     _ => RawSource::from(format!(
-      "self[\"{}\"].{}([\"{}\"], {{\n",
+      "self[\"{}\"].{}([\"{}\"], \n",
       namespace, register, chunk_id
     ))
     .boxed(),
@@ -190,8 +190,8 @@ pub fn get_wrap_chunk_before(
 
 pub fn get_wrap_chunk_after(platform: &TargetPlatform) -> BoxSource {
   match platform {
-    TargetPlatform::Node(_) => RawSource::from("};").boxed(),
-    _ => RawSource::from("});").boxed(),
+    TargetPlatform::Node(_) => RawSource::from(";").boxed(),
+    _ => RawSource::from(");").boxed(),
   }
 }
 

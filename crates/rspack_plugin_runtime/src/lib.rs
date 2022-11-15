@@ -1,14 +1,13 @@
+use anyhow::anyhow;
 use async_trait::async_trait;
-use rspack_error::Result;
-
 use common::*;
 use node::*;
 use rspack_core::{
-  rspack_sources::RawSource, AssetInfo, CompilationAsset, Plugin, PluginContext,
-  PluginRenderManifestHookOutput, PluginRenderRuntimeHookOutput, RenderManifestArgs,
-  RenderRuntimeArgs, TargetPlatform, RUNTIME_PLACEHOLDER_CHUNK_ID,
-  RUNTIME_PLACEHOLDER_RSPACK_EXECUTE,
+  runtime_globals, AdditionalChunkRuntimeRequirementsArgs, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeModule, SourceType,
+  TargetPlatform,
 };
+use rspack_error::Result;
 use web::*;
 use web_worker::*;
 
@@ -44,14 +43,21 @@ impl Plugin for RuntimePlugin {
     Ok(())
   }
 
-  fn render_runtime(
+  fn additional_tree_runtime_requirements(
     &self,
     _ctx: PluginContext,
-    args: RenderRuntimeArgs,
-  ) -> PluginRenderRuntimeHookOutput {
-    let compilation = args.compilation;
-    let namespace = &compilation.options.output.unique_name;
-    let public_path = compilation.options.output.public_path.public_path();
+    args: &mut AdditionalChunkRuntimeRequirementsArgs,
+  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    let compilation = &mut args.compilation;
+    let chunk = args.chunk;
+    let runtime_requirements = &args.runtime_requirements;
+    let namespace = compilation.options.output.unique_name.clone();
+    let public_path = compilation
+      .options
+      .output
+      .public_path
+      .public_path()
+      .to_string();
 
     //Todo we are not implement hash now，it will be replaced by real value later
     let has_hash = false;
@@ -61,159 +67,267 @@ impl Plugin for RuntimePlugin {
     let mut chunks = compilation.chunk_by_ukey.values().collect::<Vec<_>>();
     chunks.sort_by_key(|c| &c.id);
     for chunk in &chunks {
-      if chunk.has_entry_module(&args.compilation.chunk_graph) {
-        for file in &chunk.files {
-          if file.ends_with(".js") && !file.eq(&(RUNTIME_FILE_NAME.to_string() + ".js")) {
-            dynamic_js.push(ChunkHash {
-              name: chunk.id.clone(),
-              hash: None,
-            });
-          } else if file.ends_with(".css") {
-            dynamic_css.push(ChunkHash {
-              name: chunk.id.clone(),
-              hash: None,
-            });
-          }
+      if !chunk.is_only_initial(&compilation.chunk_group_by_ukey) {
+        dynamic_js.push(ChunkHash {
+          name: chunk.id.clone(),
+          hash: None,
+        });
+
+        let modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+          &chunk.ukey,
+          SourceType::Css,
+          &compilation.module_graph,
+        );
+        if !modules.is_empty() {
+          dynamic_css.push(ChunkHash {
+            name: chunk.id.clone(),
+            hash: None,
+          });
         }
       }
     }
-    // if the complition has dynamic chunk
-    //Todo we need a dynamic chunk tag to judge it
-
-    // common runtime
-    let mut sources = args.sources;
 
     match &compilation.options.target.platform {
       TargetPlatform::Web => {
-        sources.push(generate_common_init_runtime(namespace));
-        sources.push(generate_common_module_and_chunk_data());
-        sources.push(generate_common_check_by_id());
-        sources.push(generate_common_public_path(public_path));
-        sources.push(generate_web_rspack_require());
-        sources.push(generate_web_rspack_register());
+        compilation.add_runtime_module(
+          chunk,
+          RuntimeModule::new(
+            "_init_runtime.js".to_string(),
+            generate_common_init_runtime(&namespace),
+          ),
+        );
+        compilation.add_runtime_module(
+          chunk,
+          RuntimeModule::new(
+            ("_module_and_chunk_data.js").to_string(),
+            generate_common_module_and_chunk_data(),
+          ),
+        );
+        compilation.add_runtime_module(
+          chunk,
+          RuntimeModule::new(
+            ("_check_by_id.js").to_string(),
+            generate_common_check_by_id(),
+          ),
+        );
+        compilation.add_runtime_module(
+          chunk,
+          RuntimeModule::new(
+            ("_public_path.js").to_string(),
+            generate_common_public_path(&public_path),
+          ),
+        );
+        compilation.add_runtime_module(
+          chunk,
+          RuntimeModule::new(
+            ("_rspack_require.js").to_string(),
+            generate_web_rspack_require(),
+          ),
+        );
+        compilation.add_runtime_module(
+          chunk,
+          RuntimeModule::new(
+            ("_rspack_register.js").to_string(),
+            generate_web_rspack_register(),
+          ),
+        );
 
         // TODO: should use `.hmrF = [chunk_id].[hash].hot-update.json`
-        sources.push(RawSource::from(format!(
-          "(function(){{\nruntime.__rspack_require__.chunkId = '{}'}})();",
-          RUNTIME_PLACEHOLDER_CHUNK_ID,
-        )));
+        compilation.add_runtime_module(
+          chunk,
+          RuntimeModule::new(
+            ("__rspack_require__.chunkId").to_string(),
+            format!(
+              "(function(){{\nruntime.__rspack_require__.chunkId = '{}'}})();",
+              compilation
+                .chunk_by_ukey
+                .get(chunk)
+                .ok_or_else(|| anyhow!("chunk should exsit in chunk_by_ukey"))?
+                .id,
+            ),
+          ),
+        );
 
         // publicPath
-        sources.push(RawSource::from(format!(
-          "(function(){{\nruntime.__rspack_require__.p = '{}'}})();",
-          compilation.options.output.public_path.public_path(),
-        )));
+        compilation.add_runtime_module(
+          chunk,
+          RuntimeModule::new(
+            ("__rspack_require__.p").to_string(),
+            format!(
+              "(function(){{\nruntime.__rspack_require__.p = '{}'}})();",
+              compilation.options.output.public_path.public_path(),
+            ),
+          ),
+        );
 
         if compilation.options.dev_server.hot {
-          sources.push(generate_web_hot());
-          sources.push(generate_web_load_script_content());
-          sources.push(generate_web_jsonp());
+          compilation.add_runtime_module(
+            chunk,
+            RuntimeModule::new(("_hot.js").to_string(), generate_web_hot()),
+          );
+          compilation.add_runtime_module(
+            chunk,
+            RuntimeModule::new(
+              ("_load_script_content.js").to_string(),
+              generate_web_load_script_content(),
+            ),
+          );
+          compilation.add_runtime_module(
+            chunk,
+            RuntimeModule::new(("_jsonp.js").to_string(), generate_web_jsonp()),
+          );
         }
 
         if !dynamic_js.is_empty() || !dynamic_css.is_empty() {
-          sources.push(generate_common_dynamic_data(dynamic_js, dynamic_css));
-          sources.push(generate_web_dynamic_get_chunk_url(has_hash));
-          sources.push(generate_web_dynamic_require());
-          sources.push(generate_web_dynamic_load_script());
-          sources.push(generate_web_dynamic_load_style());
+          compilation.add_runtime_module(
+            chunk,
+            RuntimeModule::new(
+              "_dynamic_data.js".to_string(),
+              generate_common_dynamic_data(dynamic_js, dynamic_css),
+            ),
+          );
+          compilation.add_runtime_module(
+            chunk,
+            RuntimeModule::new(
+              "_dynamic_get_chunk_url.js".to_string(),
+              generate_web_dynamic_get_chunk_url(has_hash),
+            ),
+          );
+          compilation.add_runtime_module(
+            chunk,
+            RuntimeModule::new(
+              "_dynamic_require.js".to_string(),
+              generate_web_dynamic_require(),
+            ),
+          );
+          compilation.add_runtime_module(
+            chunk,
+            RuntimeModule::new(
+              "_dynamic_load_script.js".to_string(),
+              generate_web_dynamic_load_script(),
+            ),
+          );
+          compilation.add_runtime_module(
+            chunk,
+            RuntimeModule::new(
+              "_dynamic_load_style.js".to_string(),
+              generate_web_dynamic_load_style(),
+            ),
+          );
         }
-
-        sources.push(RawSource::from(
-          RUNTIME_PLACEHOLDER_RSPACK_EXECUTE.to_string(),
-        ));
       }
       TargetPlatform::WebWorker => {
-        sources.push(generate_web_worker_init_runtime(namespace));
-        sources.push(generate_common_module_and_chunk_data());
-        sources.push(generate_common_check_by_id());
-        sources.push(generate_web_rspack_require());
-        sources.push(RawSource::from(
-          RUNTIME_PLACEHOLDER_RSPACK_EXECUTE.to_string(),
-        ));
+        compilation.add_runtime_module(
+          chunk,
+          RuntimeModule::new(
+            "_init_runtime.js".to_string(),
+            generate_web_worker_init_runtime(&namespace),
+          ),
+        );
+        compilation.add_runtime_module(
+          chunk,
+          RuntimeModule::new(
+            "_init_runtime.js".to_string(),
+            generate_web_worker_init_runtime(&namespace),
+          ),
+        );
+        compilation.add_runtime_module(
+          chunk,
+          RuntimeModule::new(
+            "_module_and_chunk_data.js".to_string(),
+            generate_common_module_and_chunk_data(),
+          ),
+        );
+        compilation.add_runtime_module(
+          chunk,
+          RuntimeModule::new("_check_by_id.js".to_string(), generate_common_check_by_id()),
+        );
+        compilation.add_runtime_module(
+          chunk,
+          RuntimeModule::new(
+            "_rspack_require.js".to_string(),
+            generate_web_rspack_require(),
+          ),
+        );
       }
       TargetPlatform::Node(_) => {
-        sources.push(generate_node_init_runtime(namespace));
-        sources.push(generate_common_module_and_chunk_data());
-        sources.push(generate_common_check_by_id());
-        sources.push(generate_node_rspack_require());
+        compilation.add_runtime_module(
+          chunk,
+          RuntimeModule::new(
+            "_init_runtime.js".to_string(),
+            generate_node_init_runtime(&namespace),
+          ),
+        );
+        compilation.add_runtime_module(
+          chunk,
+          RuntimeModule::new(
+            "_module_and_chunk_data.js".to_string(),
+            generate_common_module_and_chunk_data(),
+          ),
+        );
+        compilation.add_runtime_module(
+          chunk,
+          RuntimeModule::new("_check_by_id.js".to_string(), generate_common_check_by_id()),
+        );
+        compilation.add_runtime_module(
+          chunk,
+          RuntimeModule::new(
+            "_rspack_require.js".to_string(),
+            generate_node_rspack_require(),
+          ),
+        );
         if !dynamic_js.is_empty() || !dynamic_css.is_empty() {
-          sources.push(generate_common_dynamic_data(dynamic_js, dynamic_css));
-          sources.push(generate_node_dynamic_get_chunk_url(has_hash));
-          sources.push(generate_node_load_chunk());
-          sources.push(generate_node_dynamic_require());
+          compilation.add_runtime_module(
+            chunk,
+            RuntimeModule::new(
+              "_dynamic_data.js".to_string(),
+              generate_common_dynamic_data(dynamic_js, dynamic_css),
+            ),
+          );
+          compilation.add_runtime_module(
+            chunk,
+            RuntimeModule::new(
+              "_dynamic_get_chunk_url.js".to_string(),
+              generate_node_dynamic_get_chunk_url(has_hash),
+            ),
+          );
+          compilation.add_runtime_module(
+            chunk,
+            RuntimeModule::new(
+              "_dynamic_load_chunk.js".to_string(),
+              generate_node_load_chunk(),
+            ),
+          );
+          compilation.add_runtime_module(
+            chunk,
+            RuntimeModule::new(
+              "_dynamic_require.js".to_string(),
+              generate_node_dynamic_require(),
+            ),
+          );
         }
-        sources.push(RawSource::from(
-          RUNTIME_PLACEHOLDER_RSPACK_EXECUTE.to_string(),
-        ));
       }
       _ => {}
     }
-    Ok(sources)
-  }
 
-  fn render_manifest(
-    &self,
-    _ctx: PluginContext,
-    _args: RenderManifestArgs,
-  ) -> PluginRenderManifestHookOutput {
-    Ok(vec![])
-  }
+    if runtime_requirements.contains(runtime_globals::INTEROP_REQUIRE) {
+      compilation.add_runtime_module(
+        chunk,
+        RuntimeModule::new(
+          runtime_globals::INTEROP_REQUIRE.to_string(),
+          include_str!("runtime/common/_interop_require.js").to_string(),
+        ),
+      )
+    }
 
-  async fn process_assets(
-    &mut self,
-    _ctx: rspack_core::PluginContext,
-    args: rspack_core::ProcessAssetsArgs<'_>,
-  ) -> rspack_core::PluginProcessAssetsOutput {
-    let compilation = args.compilation;
-    let platform = &compilation.options.target.platform;
-
-    match platform {
-      TargetPlatform::WebWorker
-      | TargetPlatform::Node(_)
-      | TargetPlatform::BrowsersList
-      | TargetPlatform::Web => {
-        let mut entry_source_array = vec![];
-        for chunk in compilation.chunk_by_ukey.values() {
-          if chunk.has_entry_module(&compilation.chunk_graph) {
-            let js_entry_file = chunk
-              .files
-              .iter()
-              .find(|file| file.ends_with(".js"))
-              .unwrap();
-            // will emit_asset back so remove is fine at here.
-            let mut asset = compilation.assets.remove(js_entry_file).unwrap();
-            let ukey = &chunk.ukey.clone();
-            let execute_code = compilation.generate_chunk_entry_code(ukey);
-
-            asset.source = if matches!(
-              platform,
-              TargetPlatform::Node(_) | TargetPlatform::WebWorker
-            ) {
-              compilation
-                .runtime
-                .node_generate_with_inline_modules(asset.source, execute_code)
-            } else {
-              compilation.runtime.web_generate_with_inline_modules(
-                asset.source,
-                execute_code,
-                &chunk.id,
-              )
-            };
-
-            entry_source_array.push((js_entry_file.to_string(), asset));
-          }
-        }
-        for (file, source) in entry_source_array {
-          compilation.emit_asset(file.to_string(), source);
-        }
-      }
-      // TODO: align `TargetPlatform::None` with Webpack, see: https://webpack.js.org/configuration/target/#false
-      TargetPlatform::None => {
-        compilation.emit_asset(
-          RUNTIME_FILE_NAME.to_string() + ".js",
-          CompilationAsset::new(compilation.runtime.generate(), AssetInfo::default()),
-        );
-      }
+    if runtime_requirements.contains(runtime_globals::EXPORT_STAR) {
+      compilation.add_runtime_module(
+        chunk,
+        RuntimeModule::new(
+          runtime_globals::EXPORT_STAR.to_string(),
+          include_str!("runtime/common/_export_star.js").to_string(),
+        ),
+      )
     }
 
     Ok(())

@@ -5,7 +5,6 @@ use crate::{
 use hashbrown::HashSet;
 use rspack_error::{Error, Result};
 use rspack_loader_runner::Content;
-use rspack_sources::RawSource;
 use std::fmt::Debug;
 use swc_css::ast::Stylesheet;
 use swc_ecma_ast::Program as SwcProgram;
@@ -37,12 +36,6 @@ impl<'me> RenderManifestArgs<'me> {
       .get(&self.chunk_ukey)
       .expect("chunk should exsit in chunk_by_ukey")
   }
-}
-
-#[derive(Debug)]
-pub struct RenderRuntimeArgs<'me> {
-  pub sources: Vec<RawSource>,
-  pub compilation: &'me Compilation,
 }
 
 #[derive(Debug, Clone)]
@@ -156,7 +149,8 @@ pub struct ThisCompilationArgs<'c> {
 
 #[derive(Debug)]
 pub struct AdditionalChunkRuntimeRequirementsArgs<'a> {
-  pub chunk: &'a Chunk,
+  pub compilation: &'a mut Compilation,
+  pub chunk: &'a ChunkUkey,
   pub runtime_requirements: &'a mut HashSet<String>,
   // TODO context
 }

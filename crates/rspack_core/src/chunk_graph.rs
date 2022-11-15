@@ -1,4 +1,5 @@
 use hashbrown::{HashMap, HashSet};
+use indexmap::IndexSet;
 
 use crate::{
   Chunk, ChunkByUkey, ChunkGroupUkey, ChunkUkey, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
@@ -113,6 +114,14 @@ impl ChunkGraph {
     chunk_graph_chunk.modules.insert(module_identifier);
   }
 
+  pub fn connect_chunk_and_runtime_module(&mut self, chunk: ChunkUkey, module_identifier: String) {
+    let cgm = self.get_chunk_graph_module_mut(&module_identifier);
+    cgm.runtime_in_chunks.insert(chunk);
+
+    let cgc = self.get_chunk_graph_chunk_mut(chunk);
+    cgc.runtime_modules.insert(module_identifier);
+  }
+
   pub fn get_modules_chunks(&self, module_identifier: &str) -> &HashSet<ChunkUkey> {
     let chunk_graph_module = self
       .chunk_graph_module_by_module_identifier
@@ -190,8 +199,8 @@ impl ChunkGraph {
       })
   }
 
-  pub fn get_number_of_module_chunks(&mut self, module_identifier: &ModuleIdentifier) -> usize {
-    let cgm = self.get_chunk_graph_module_mut(module_identifier);
+  pub fn get_number_of_module_chunks(&self, module_identifier: &ModuleIdentifier) -> usize {
+    let cgm = self.get_chunk_graph_module(module_identifier);
     cgm.chunks.len()
   }
 
@@ -269,6 +278,11 @@ impl ChunkGraph {
     }
     runtimes
   }
+
+  pub fn get_chunk_runtime_modules_in_order(&self, chunk_ukey: &ChunkUkey) -> &IndexSet<String> {
+    let cgc = self.get_chunk_graph_chunk(chunk_ukey);
+    &cgc.runtime_modules
+  }
 }
 
 #[derive(Debug, Default)]
@@ -276,6 +290,7 @@ pub struct ChunkGraphModule {
   pub(crate) entry_in_chunks: HashSet<ChunkUkey>,
   pub(crate) chunks: HashSet<ChunkUkey>,
   pub(crate) runtime_requirements: Option<RuntimeSpecMap<HashSet<String>>>,
+  pub(crate) runtime_in_chunks: HashSet<ChunkUkey>,
 }
 
 impl ChunkGraphModule {
@@ -284,6 +299,7 @@ impl ChunkGraphModule {
       entry_in_chunks: Default::default(),
       chunks: Default::default(),
       runtime_requirements: None,
+      runtime_in_chunks: Default::default(),
     }
   }
 }
@@ -296,6 +312,7 @@ pub struct ChunkGraphChunk {
   pub(crate) entry_modules: hashlink::LinkedHashMap<String, ChunkGroupUkey>,
   pub(crate) modules: HashSet<String>,
   pub(crate) runtime_requirements: HashSet<String>,
+  pub(crate) runtime_modules: IndexSet<String>,
 }
 
 impl ChunkGraphChunk {
@@ -304,6 +321,7 @@ impl ChunkGraphChunk {
       entry_modules: Default::default(),
       modules: Default::default(),
       runtime_requirements: HashSet::default(),
+      runtime_modules: IndexSet::default(),
     }
   }
 }
