@@ -115,12 +115,16 @@ impl CodeGenerationResults {
     &self,
     module_identifier: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
-  ) -> Result<HashSet<String>> {
-    Ok(
-      self
-        .get(module_identifier, runtime)?
-        .runtime_requirements
-        .clone(),
-    )
+  ) -> HashSet<String> {
+    match self.get(module_identifier, runtime) {
+      Ok(result) => result.runtime_requirements.clone(),
+      Err(_) => {
+        print!(
+          "Failed to get runtime requirements for {}",
+          module_identifier
+        );
+        HashSet::new()
+      }
+    }
   }
 }

@@ -199,8 +199,8 @@ impl ChunkGraph {
       })
   }
 
-  pub fn get_number_of_module_chunks(&mut self, module_identifier: &ModuleIdentifier) -> usize {
-    let cgm = self.get_chunk_graph_module_mut(module_identifier);
+  pub fn get_number_of_module_chunks(&self, module_identifier: &ModuleIdentifier) -> usize {
+    let cgm = self.get_chunk_graph_module(module_identifier);
     cgm.chunks.len()
   }
 

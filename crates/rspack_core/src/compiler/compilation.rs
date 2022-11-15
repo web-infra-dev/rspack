@@ -574,6 +574,7 @@ impl Compilation {
     })
   }
 
+  #[instrument(name = "compilation:code_generation")]
   fn code_generation(&mut self) -> Result<()> {
     let results = self
       .module_graph
@@ -823,31 +824,45 @@ impl Compilation {
     entries
   }
 
+  #[instrument(name = "compilation:process_runtime_requirements")]
   pub async fn process_runtime_requirements(
     &mut self,
     plugin_driver: SharedPluginDriver,
   ) -> Result<()> {
-    for module in self.module_graph.modules() {
-      if self
-        .chunk_graph
-        .get_number_of_module_chunks(&module.identifier())
-        > 0
-      {
-        for runtime in self
+    let mut module_runtime_requirements = self
+      .module_graph
+      .module_identifier_to_module
+      .par_iter()
+      .filter_map(|(_, module)| {
+        if self
           .chunk_graph
-          .get_module_runtimes(&module.identifier(), &self.chunk_by_ukey)
-          .values()
+          .get_number_of_module_chunks(&module.identifier())
+          > 0
         {
-          let runtime_requirements = self
-            .code_generation_results
-            .get_runtime_requirements(&module.identifier(), Some(runtime))?;
-
-          self.chunk_graph.add_module_runtime_requirements(
-            &module.identifier(),
-            runtime,
-            runtime_requirements,
-          )
+          let mut module_runtime_requirements: Vec<(HashSet<String>, HashSet<String>)> = vec![];
+          for runtime in self
+            .chunk_graph
+            .get_module_runtimes(&module.identifier(), &self.chunk_by_ukey)
+            .values()
+          {
+            let runtime_requirements = self
+              .code_generation_results
+              .get_runtime_requirements(&module.identifier(), Some(runtime));
+            module_runtime_requirements.push((runtime.clone(), runtime_requirements));
+          }
+          return Some((module.identifier(), module_runtime_requirements));
         }
+        None
+      })
+      .collect::<Vec<_>>();
+
+    for (module_identifier, runtime_requirements) in module_runtime_requirements.iter_mut() {
+      for (runtime, requirements) in runtime_requirements.iter_mut() {
+        self.chunk_graph.add_module_runtime_requirements(
+          module_identifier,
+          runtime,
+          std::mem::take(requirements),
+        )
       }
     }
     tracing::trace!("runtime requirements.modules");
