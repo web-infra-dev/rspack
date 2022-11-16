@@ -11,13 +11,6 @@ pub fn get_first_string_lit_arg(e: &CallExpr) -> Option<JsWord> {
     } => Some(str.value.clone()),
     _ => None,
   })
-  //   match e.args.first().expect("this should never happen") {
-  //     ExprOrSpread { spread: None, expr } => match &**expr {
-  //       Expr::Lit(Lit::Str(str)) => !str.value.is_empty(),
-  //       _ => false,
-  //     },
-  //     _ => false,
-  //   }
 }
 
 pub fn get_require_literal(e: &CallExpr, unresolved_mark: Mark) -> Option<JsWord> {

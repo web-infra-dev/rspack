@@ -36,7 +36,7 @@ impl Symbol {
 pub struct IndirectTopLevelSymbol {
   pub uri: Ustr,
   pub id: JsWord,
-  // who import me?
+  // module identifier of module that import me
   importer: Ustr,
 }
 

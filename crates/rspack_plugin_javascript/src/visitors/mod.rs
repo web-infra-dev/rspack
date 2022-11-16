@@ -108,8 +108,6 @@ pub fn run_before_pass(
     Ok(())
   })?;
 
-  // let res = stringify(&ast, &Devtool::default()).unwrap();
-  // println!("{}", &res.code);
   Ok(())
 }
 
@@ -165,41 +163,3 @@ pub fn run_after_pass(
     program.fold_with(&mut pass);
   });
 }
-
-// fn print() {
-//   let mut buf = vec![];
-//   {
-//     let mut wr = Box::new(swc_ecma_codegen::text_writer::JsWriter::new(
-//       self.cm.clone(),
-//       "\n",
-//       &mut buf,
-//       if source_map.enabled() {
-//         Some(&mut src_map_buf)
-//       } else {
-//         None
-//       },
-//     )) as Box<dyn WriteJs>;
-
-//     if minify {
-//       wr = Box::new(swc_ecma_codegen::text_writer::omit_trailing_semi(wr));
-//     }
-
-//     let mut emitter = Emitter {
-//       cfg: swc_ecma_codegen::Config {
-//         minify,
-//         target,
-//         ascii_only,
-//         ..Default::default()
-//       },
-//       comments,
-//       cm: self.cm.clone(),
-//       wr,
-//     };
-
-//     node
-//       .emit_with(&mut emitter)
-//       .context("failed to emit module")?;
-//   }
-//   // Invalid utf8 is valid in javascript world.
-//   String::from_utf8(buf).expect("invalid utf8 character detected")
-// }

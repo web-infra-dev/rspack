@@ -35,7 +35,6 @@ use crate::{
   is_source_equal, join_string_component,
   split_chunks::code_splitting,
   tree_shaking::{
-    debug_care_module_id,
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
     BailoutReason, OptimizeDependencyResult,
   },
@@ -681,7 +680,7 @@ impl Compilation {
                       .as_javascript() {
               Some(ast) => {ast},
               None => {
-                // TODO: diagnostic, this could be none if you enable both hmr and tree-shaking
+                // FIXME: this could be none if you enable both hmr and tree-shaking, should investigate why 
                 return None;
               },
           }
@@ -689,7 +688,7 @@ impl Compilation {
           // Of course this is unsafe, but if we can't get a ast of a javascript module, then panic is ideal.
           _ => {
             // Ignore analyzing other module for now
-            return None;
+                return None;
           }
         };
         // let normal_module = self.module_graph.module_by_identifier(&m.module_identifier);
@@ -710,17 +709,17 @@ impl Compilation {
         });
         // Keep this debug info until we stabilize the tree-shaking
 
-        if debug_care_module_id(uri_key) {
-          dbg!(
-            &uri_key,
-            // &analyzer.export_all_list,
-            &analyzer.export_map,
-            &analyzer.import_map,
-            &analyzer.reference_map,
-            &analyzer.reachable_import_and_export,
-            &analyzer.used_symbol_ref
-          );
-        }
+        // if debug_care_module_id(uri_key) {
+        //   dbg!(
+        //     &uri_key,
+        //     // &analyzer.export_all_list,
+        //     &analyzer.export_map,
+        //     &analyzer.import_map,
+        //     &analyzer.reference_map,
+        //     &analyzer.reachable_import_and_export,
+        //     &analyzer.used_symbol_ref
+        //   );
+        // }
         Some((uri_key, analyzer.into()))
       })
       .collect::<HashMap<Ustr, TreeShakingResult>>();
@@ -1149,10 +1148,9 @@ fn mark_symbol(
 ) {
   // We don't need mark the symbol usage if it is from a bailout module because
   // bailout module will skipping tree-shaking anyway
-  if debug_care_module_id(symbol_ref.module_identifier()) {
-    dbg!(&symbol_ref);
-    // dbg!(&module_result.inherit_export_maps);
-  }
+  // if debug_care_module_id(symbol_ref.module_identifier()) {
+  //   dbg!(&symbol_ref);
+  // }
   let is_bailout_module_identifier =
     bailout_module_identifiers.contains_key(&symbol_ref.module_identifier());
   match symbol_ref {
