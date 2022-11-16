@@ -11,8 +11,9 @@ export type BuiltinsHtmlPluginConfig = Omit<RawHtmlPluginConfig, "meta"> & {
 
 export type Builtins = Omit<
 	RawBuiltins,
-	"browserslist" | "html" | "decorator"
+	"define" | "browserslist" | "html" | "decorator"
 > & {
+	define?: Record<string, string | undefined>;
 	polyfillBuiltins?: boolean; // polyfill node builtin api
 	html?: Array<BuiltinsHtmlPluginConfig>;
 	decorator?: boolean | Partial<RawDecoratorOptions>;
@@ -23,10 +24,10 @@ export type ResolvedBuiltins = Omit<RawBuiltins, "html"> & {
 	html?: Array<BuiltinsHtmlPluginConfig>;
 };
 
-function resolveDefine(define = {}) {
+function resolveDefine(define: Builtins["define"]): RawBuiltins["define"] {
 	const entries = Object.entries(define).map(([key, value]) => [
 		key,
-		JSON.stringify(value)
+		value === undefined ? "undefined" : value
 	]);
 	return Object.fromEntries(entries);
 }
@@ -74,6 +75,7 @@ export function resolveBuiltinsOptions(
 	const browserslist = loadConfig({ path: contextPath }) || [];
 	return {
 		...builtins,
+		define: resolveDefine(builtins.define || {}),
 		html: resolveHtml(builtins.html || []),
 		browserslist,
 		decorator: resolveDecorator(builtins.decorator)
