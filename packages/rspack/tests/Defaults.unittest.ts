@@ -80,6 +80,7 @@ describe("snapshots", () => {
 		      "legacy": true,
 		      "useDefineForClassFields": true,
 		    },
+		    "define": {},
 		    "html": [],
 		  },
 		  "context": "<cwd>",
