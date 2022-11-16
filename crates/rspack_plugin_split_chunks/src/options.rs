@@ -30,11 +30,17 @@ impl Debug for CacheGroupSource {
 }
 
 pub struct CacheGroupSource {
-  pub key: Option<String>,
+  pub key: String,
   pub priority: Option<isize>,
-  pub get_name: Option<Arc<dyn Fn() -> String + Send + Sync>>,
-  pub chunks_filter: Option<Arc<dyn Fn(&Chunk) -> bool + Send + Sync>>,
+  pub get_name: Option<Arc<dyn Fn(&ModuleGraphModule) -> String + Send + Sync>>,
+  pub chunks_filter: Arc<dyn Fn(&Chunk) -> bool + Send + Sync>,
   pub enforce: Option<bool>,
+  pub min_size: SplitChunkSizes,
+  pub min_size_reduction: SplitChunkSizes,
+  pub min_remaining_size: SplitChunkSizes,
+  pub enforce_size_threshold: SplitChunkSizes,
+  pub max_async_size: SplitChunkSizes,
+  pub max_initial_size: SplitChunkSizes,
   pub min_chunks: Option<usize>,
   pub max_async_requests: Option<usize>,
   pub max_initial_requests: Option<usize>,
@@ -44,18 +50,12 @@ pub struct CacheGroupSource {
   pub reuse_existing_chunk: Option<bool>,
   // TODO: supports used_exports
   // pub used_exports: bool,
-  pub min_size: SplitChunkSizes,
-  pub min_size_reduction: SplitChunkSizes,
-  pub min_remaining_size: SplitChunkSizes,
-  pub enforce_size_threshold: SplitChunkSizes,
-  pub max_async_size: SplitChunkSizes,
-  pub max_initial_size: SplitChunkSizes,
 }
 
 pub struct CacheGroup {
   pub key: String,
   pub priority: isize,
-  pub get_name: Arc<dyn Fn() -> String + Send + Sync>,
+  pub get_name: Arc<dyn Fn(&ModuleGraphModule) -> String + Send + Sync>,
   pub chunks_filter: Arc<dyn Fn(&Chunk) -> bool + Send + Sync>,
   pub min_chunks: usize,
   pub max_async_requests: usize,
@@ -204,7 +204,7 @@ pub enum SizeType {
   Css,
 }
 
-#[derive(Debug, Default)]
+#[derive(Default, Debug)]
 pub struct SplitChunksOptions {
   pub cache_groups: HashMap<String, CacheGroupOptions>,
   /// What kind of chunks should be selected.
@@ -224,6 +224,6 @@ pub struct SplitChunksOptions {
   pub max_async_size: Option<usize>,
   pub max_initial_size: Option<usize>,
   // TODO: supports function
-  // name: String,
+  pub name: Option<String>,
   // used_exports: bool,
 }

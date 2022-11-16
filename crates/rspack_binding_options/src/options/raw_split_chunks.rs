@@ -71,20 +71,20 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
       vec![SizeType::JavaScript, SizeType::Unknown]
     });
     defaults.chunks = Some(ChunkType::Async);
-    defaults.min_chunks = 1;
-    defaults.min_size = if is_production { 20000 } else { 10000 };
+    defaults.min_chunks = 1.into();
+    defaults.min_size = Some(if is_production { 20000 } else { 10000 });
     defaults.min_remaining_size = if is_development { Some(0) } else { None };
     defaults.enforce_size_threshold = Some(if is_production { 50000 } else { 30000 });
     defaults.max_async_requests = Some(if is_production { 30 } else { usize::MAX });
     defaults.max_initial_requests = Some(if is_production { 30 } else { usize::MAX });
     defaults.automatic_name_delimiter = Some("-".to_string());
 
-    defaults.cache_groups.extend(From::from([
+    defaults.cache_groups.extend(HashMap::from([
       (
         "default".to_string(),
         CacheGroupOptions {
           min_chunks: 2.into(),
-          priority: -20.into(),
+          priority: Some(-20),
           id_hint: "".to_string().into(),
           ..Default::default()
         },
@@ -94,57 +94,50 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
         CacheGroupOptions {
           id_hint: "vendors".to_string().into(),
           reuse_existing_chunk: true.into(),
-          test: Some(
-            Arc::new(|module| {
-              module
-                .resource
-                .map(|r| r.contains("node_modules"))
-                .unwrap_or(false)
-            })
-            .into(),
-          ),
-          priority: -10.into(),
+          test: Some(Arc::new(|module| {
+            module
+              // TODO: We need resource path here
+              .module_identifier
+              .contains("node_modules")
+          })),
+          priority: Some(-10),
           ..Default::default()
         },
       ),
     ]));
 
-    defaults.cache_groups.extend(
-      self
-        .cache_groups
-        .into_iter()
-        .map(|(k, v)| {
-          (
-            k,
-            CacheGroupOptions {
-              name: v.name.clone().into(),
-              priority: 0,
-              reuse_existing_chunk: false.into(),
-              r#type: SizeType::JavaScript.into(),
-              test: Some(Arc::new(move |module| {
-                let re = regex::Regex::new(&v.test).unwrap();
-                re.is_match(&module.id)
-              })),
-              filename: v.name.into(),
-              enforce: false.into(),
-              id_hint: Default::default(),
-              chunks: ChunkType::All.into(),
-              automatic_name_delimiter: "~".to_string().into(),
-              max_async_requests: 30,
-              max_initial_requests: 30,
-              min_chunks: 1,
-              min_size: 20000,
-              min_size_reduction: 20000,
-              enforce_size_threshold: 50000,
-              min_remaining_size: 0,
-              max_size: 0,
-              max_async_size: usize::MAX.into(),
-              max_initial_size: usize::MAX.into(),
-            },
-          )
-        })
-        .collect(),
-    );
+    defaults
+      .cache_groups
+      .extend(self.cache_groups.into_iter().map(|(k, v)| {
+        (
+          k,
+          CacheGroupOptions {
+            name: v.name.clone().into(),
+            priority: 0.into(),
+            reuse_existing_chunk: false.into(),
+            r#type: SizeType::JavaScript.into(),
+            test: Some(Arc::new(move |module| {
+              let re = regex::Regex::new(&v.test).unwrap();
+              re.is_match(&module.id)
+            })),
+            filename: v.name.into(),
+            enforce: false.into(),
+            id_hint: Default::default(),
+            chunks: ChunkType::All.into(),
+            automatic_name_delimiter: "~".to_string().into(),
+            max_async_requests: 30.into(),
+            max_initial_requests: 30.into(),
+            min_chunks: 1.into(),
+            min_size: 20000.into(),
+            min_size_reduction: 20000.into(),
+            enforce_size_threshold: 50000.into(),
+            min_remaining_size: 0.into(),
+            max_size: 0.into(),
+            max_async_size: usize::MAX.into(),
+            max_initial_size: usize::MAX.into(),
+          },
+        )
+      }));
     Ok(defaults)
   }
 
