@@ -551,6 +551,10 @@ fn sass_log_to_diagnostics(
       message,
     ).with_kind(DiagnosticKind::Scss).with_severity(severity)).into()
   } else {
-    vec![Diagnostic::warn(title, message, 0, 0).with_kind(DiagnosticKind::Scss)]
+    let f = match severity {
+      Severity::Error => Diagnostic::error,
+      Severity::Warn => Diagnostic::warn,
+    };
+    vec![f(title, message, 0, 0).with_kind(DiagnosticKind::Scss)]
   }
 }
