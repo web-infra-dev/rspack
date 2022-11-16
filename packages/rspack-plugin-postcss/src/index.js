@@ -6,11 +6,13 @@ const {
 	normalizeSourceMapAfterPostcss
 } = require("./utils");
 
+const IS_MODULES = /\.module(s)?\.\w+$/i;
+
 module.exports = async function loader(loaderContext) {
 	// TODO: customize options, until js binding support this functionality
 	// console.log(loaderContext.getOptions());
 	let options = loaderContext.getOptions() ?? {};
-	let enableModules = options.modules;
+	let modulesOptions = options.modules;
 	let pxToRem = options.pxToRem;
 	let useSourceMap =
 		typeof options.sourceMap !== "undefined"
@@ -41,16 +43,31 @@ module.exports = async function loader(loaderContext) {
 			plugins.push(pxtorem(pxToRemConfig));
 		}
 
-		if (enableModules) {
-			plugins.push(
-				cssModules({
-					getJSON(_, json) {
-						if (json) {
-							meta = json;
+		if (modulesOptions) {
+			let auto =
+				typeof modulesOptions === "boolean" ? true : modulesOptions.auto;
+			let isModules;
+			if (typeof auto === "boolean") {
+				isModules = auto && IS_MODULES.test(loaderContext.resourcePath);
+			} else if (auto instanceof RegExp) {
+				isModules = auto.test(loaderContext.resourcePath);
+			} else if (typeof auto === "function") {
+				isModules = auto(loaderContext.resourcePath);
+			}
+			delete modulesOptions.auto;
+
+			if (isModules) {
+				plugins.push(
+					cssModules({
+						...modulesOptions,
+						getJSON(_, json) {
+							if (json) {
+								meta = json;
+							}
 						}
-					}
-				})
-			);
+					})
+				);
+			}
 		}
 
 		if (useSourceMap) {
