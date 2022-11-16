@@ -2,8 +2,8 @@ use rspack_error::{Error, IntoTWithDiagnosticArray};
 use rspack_sources::{RawSource, SourceExt};
 
 use crate::{
-  ApplyContext, ExternalType, FactorizeAndBuildArgs, GenerateContext, ModuleType, NormalModule,
-  NormalModuleFactoryContext, ParserAndGenerator, Plugin, PluginContext,
+  ApplyContext, ExternalType, FactorizeAndBuildArgs, GenerateContext, Module, ModuleType,
+  NormalModule, NormalModuleFactoryContext, ParserAndGenerator, Plugin, PluginContext,
   PluginFactorizeAndBuildHookOutput, SourceType, Target, TargetPlatform,
 };
 
@@ -22,7 +22,7 @@ impl ParserAndGenerator for ExternalParserAndGenerator {
     &[SourceType::JavaScript]
   }
 
-  fn size(&self, _module: &NormalModule, _source_type: &SourceType) -> f64 {
+  fn size(&self, _module: &dyn Module, _source_type: &SourceType) -> f64 {
     // copied from webpack `ExternalModule`
     // roughly for url
     42.0
@@ -65,7 +65,7 @@ impl ParserAndGenerator for ExternalParserAndGenerator {
   fn generate(
     &self,
     ast_or_source: &crate::AstOrSource,
-    _module: &crate::NormalModule,
+    _module: &dyn Module,
     _generate_context: &mut GenerateContext,
   ) -> rspack_error::Result<crate::GenerationResult> {
     Ok(crate::GenerationResult {

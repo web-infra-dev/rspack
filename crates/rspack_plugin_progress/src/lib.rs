@@ -1,6 +1,6 @@
 use indicatif::{ProgressBar, ProgressStyle};
 use rspack_core::{
-  Compilation, DoneArgs, NormalModule, OptimizeChunksArgs, Plugin, PluginBuildEndHookOutput,
+  Compilation, DoneArgs, Module, OptimizeChunksArgs, Plugin, PluginBuildEndHookOutput,
   PluginContext, PluginMakeHookOutput, PluginOptimizeChunksOutput, PluginProcessAssetsOutput,
   ProcessAssetsArgs,
 };
@@ -60,15 +60,17 @@ impl Plugin for ProgressPlugin {
     Ok(())
   }
 
-  async fn build_module(&self, module: &mut NormalModule) -> Result<()> {
-    self
-      .progress_bar
-      .set_message(format!("building {}", module.raw_request()));
+  async fn build_module(&self, module: &mut dyn Module) -> Result<()> {
+    // FIXME: this will be failed if any other kinds of modules are passed in.
+    self.progress_bar.set_message(format!(
+      "building {}",
+      module.as_normal_module().unwrap().raw_request()
+    ));
     self.modules_count.fetch_add(1, SeqCst);
     Ok(())
   }
 
-  async fn succeed_module(&self, _module: &NormalModule) -> Result<()> {
+  async fn succeed_module(&self, _module: &dyn Module) -> Result<()> {
     let previous_modules_done = self.modules_done.fetch_add(1, SeqCst);
     let modules_done = previous_modules_done + 1;
     let percent = (modules_done as f32)

@@ -9,22 +9,21 @@ mod inject_runtime_helper;
 use inject_runtime_helper::inject_runtime_helper;
 mod format;
 use format::*;
-use rspack_core::NormalModule;
+use rspack_core::Module;
+use swc_common::pass::Repeat;
+use swc_ecma_transforms::optimization::simplify::dce::{dce, Config};
 mod swc_visitor;
 mod tree_shaking;
 use crate::utils::get_swc_compiler;
 use rspack_core::{ast::javascript::Ast, CompilerOptions, GenerateContext, ResourceData};
 use rspack_error::Result;
 use swc::config::ModuleConfig;
-use swc_common::pass::Repeat;
 use swc_common::{chain, comments::Comments};
 use swc_ecma_parser::Syntax;
 use swc_ecma_transforms::modules::common_js::Config as CommonjsConfig;
-use swc_ecma_transforms::optimization::simplify::dce::{dce, Config};
 use swc_ecma_transforms::pass::Optional;
 use tree_shaking::tree_shaking_visitor;
 use ustr::ustr;
-
 /// return (ast, top_level_mark, unresolved_mark, globals)
 pub fn run_before_pass(
   resource_data: &ResourceData,
@@ -105,16 +104,14 @@ pub fn run_before_pass(
       swc_visitor::dead_branch_remover(unresolved_mark),
     );
     program.fold_with(&mut pass);
+
     Ok(())
   })?;
+
   Ok(())
 }
 
-pub fn run_after_pass(
-  ast: &mut Ast,
-  module: &NormalModule,
-  generate_context: &mut GenerateContext,
-) {
+pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut GenerateContext) {
   let cm = get_swc_compiler().cm.clone();
   ast.transform(|program, context| {
     let unresolved_mark = context.unresolved_mark;
@@ -131,6 +128,10 @@ pub fn run_after_pass(
           top_level_mark,
         ),
         tree_shaking
+          && !generate_context
+            .compilation
+            .bailout_module_identifiers
+            .contains_key(&ustr(&module.identifier()))
       ),
       Optional::new(
         Repeat::new(dce(Config::default(), unresolved_mark)),

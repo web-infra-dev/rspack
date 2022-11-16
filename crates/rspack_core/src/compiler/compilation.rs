@@ -36,14 +36,14 @@ use crate::{
   split_chunks::code_splitting,
   tree_shaking::{
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
-    OptimizeDependencyResult,
+    BailoutReason, OptimizeDependencyResult,
   },
-  AdditionalChunkRuntimeRequirementsArgs, BuildContext, BundleEntries, Chunk, ChunkByUkey,
-  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationResult,
+  AdditionalChunkRuntimeRequirementsArgs, BoxModule, BuildContext, BundleEntries, Chunk,
+  ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationResult,
   CodeGenerationResults, CompilerOptions, Dependency, EntryItem, Entrypoint, LoaderRunnerRunner,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModule,
-  NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs,
-  ResolveKind, RuntimeModule, SharedPluginDriver, Stats, VisitedModuleIdentity,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModuleFactory,
+  NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs, ResolveKind, RuntimeModule,
+  SharedPluginDriver, Stats, VisitedModuleIdentity,
 };
 use rspack_symbol::Symbol;
 
@@ -65,7 +65,10 @@ pub struct Compilation {
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   pub entry_module_identifiers: HashSet<ModuleIdentifier>,
+  /// Collecting all used export symbol
   pub used_symbol: HashSet<Symbol>,
+  /// Collecting all module that need to skip in tree-shaking ast modification phase
+  pub bailout_module_identifiers: HashMap<Ustr, BailoutReason>,
   #[cfg(debug_assertions)]
   pub tree_shaking_result: HashMap<Ustr, TreeShakingResult>,
 
@@ -103,6 +106,7 @@ impl Compilation {
       used_symbol: HashSet::new(),
       #[cfg(debug_assertions)]
       tree_shaking_result: HashMap::new(),
+      bailout_module_identifiers: HashMap::new(),
 
       code_generation_results: Default::default(),
       code_generated_modules: Default::default(),
@@ -356,7 +360,7 @@ impl Compilation {
                 return;
               };
 
-              self.module_graph.add_module(*module);
+              self.module_graph.add_module(module);
 
               // Gracefully exit
               active_task_count.fetch_sub(1, Ordering::SeqCst);
@@ -403,7 +407,7 @@ impl Compilation {
   fn handle_module_build_and_dependencies(
     &self,
     original_module_identifier: Option<ModuleIdentifier>,
-    mut module: NormalModule,
+    mut module: BoxModule,
     dependency_id: u32,
     active_task_count: Arc<AtomicU32>,
     tx: UnboundedSender<Msg>,
@@ -415,7 +419,8 @@ impl Compilation {
     let module_identifier = module.identifier();
 
     tokio::spawn(async move {
-      let resource_data = module.resource_resolved_data();
+      // FIXME: this will be failed if other kinds of modules are passed in.
+      let resource_data = module.as_normal_module().unwrap().resource_resolved_data();
       let resolved_loaders = match compiler_options
         .module
         .rules
@@ -470,7 +475,12 @@ impl Compilation {
         .flat_map(|module_rule| module_rule.uses.iter().map(Box::as_ref).rev())
         .collect::<Vec<_>>();
 
-      if let Err(e) = plugin_driver.read().await.build_module(&mut module).await {
+      if let Err(e) = plugin_driver
+        .read()
+        .await
+        .build_module(module.as_mut())
+        .await
+      {
         if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module.identifier(), e)) {
           tracing::trace!("fail to send msg {:?}", err);
         }
@@ -485,7 +495,12 @@ impl Compilation {
         .await
       {
         Ok(build_result) => {
-          if let Err(e) = plugin_driver.read().await.succeed_module(&module).await {
+          if let Err(e) = plugin_driver
+            .read()
+            .await
+            .succeed_module(module.as_ref())
+            .await
+          {
             if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module.identifier(), e)) {
               tracing::trace!("fail to send msg {:?}", err);
             }
@@ -518,7 +533,7 @@ impl Compilation {
             (
               original_module_identifier.clone(),
               dependency_id,
-              Box::new(module),
+              module,
               Box::new(deps),
             )
               .with_diagnostic(diagnostics),
@@ -663,23 +678,28 @@ impl Compilation {
       .module_graph
       .module_identifier_to_module_graph_module
       .par_iter()
-      .filter_map(|(module_identifier, m)| {
+      .filter_map(|(module_identifier, mgm)| {
         let uri_key = ustr(module_identifier);
-        let ast = match m.module_type {
+        let ast = match mgm.module_type {
           crate::ModuleType::Js
-          | crate::ModuleType::Jsx
-          | crate::ModuleType::Tsx
-          | crate::ModuleType::Ts => self
-            .module_graph
-            .module_by_identifier(&m.module_identifier)
-            .and_then(|module| module.ast())
-            .unwrap()
-            .as_javascript()
-            .unwrap(),
+          | crate::ModuleType::Jsx | crate::ModuleType::Tsx
+          | crate::ModuleType::Ts => match self
+                      .module_graph
+                      .module_by_identifier(&mgm.module_identifier)
+                      .and_then(|module| module.as_normal_module().and_then(|m| m.ast()))
+                      .unwrap()
+                      .as_javascript() {
+              Some(ast) => {ast},
+              None => {
+                // FIXME: this could be none if you enable both hmr and tree-shaking, should investigate why 
+                return None;
+              },
+          }
+            ,
           // Of course this is unsafe, but if we can't get a ast of a javascript module, then panic is ideal.
           _ => {
             // Ignore analyzing other module for now
-            return None;
+                return None;
           }
         };
         // let normal_module = self.module_graph.module_by_identifier(&m.module_identifier);
@@ -687,28 +707,38 @@ impl Compilation {
         let analyzer = ast.visit(|program, context| {
           let top_level_mark = context.top_level_mark;
           let unresolved_mark = context.unresolved_mark;
-          let mut analyzer =
-            ModuleRefAnalyze::new(top_level_mark, unresolved_mark, uri_key, &self.module_graph);
+          let helper_mark = context.helpers.mark();
+          let mut analyzer = ModuleRefAnalyze::new(
+            top_level_mark,
+            unresolved_mark,
+            helper_mark,
+            uri_key,
+            &self.module_graph,
+          );
           program.visit_with(&mut analyzer);
           analyzer
         });
         // Keep this debug info until we stabilize the tree-shaking
 
-        // dbg!(
-        //   &uri_key,
-        //   // &analyzer.export_all_list,
-        //   &analyzer.export_map,
-        //   &analyzer.import_map,
-        //   &analyzer.reference_map,
-        //   &analyzer.reachable_import_and_export,
-        //   &analyzer.used_symbol_ref
-        // );
+        // if debug_care_module_id(uri_key) {
+        //   dbg!(
+        //     &uri_key,
+        //     // &analyzer.export_all_list,
+        //     &analyzer.export_map,
+        //     &analyzer.import_map,
+        //     &analyzer.reference_map,
+        //     &analyzer.reachable_import_and_export,
+        //     &analyzer.used_symbol_ref
+        //   );
+        // }
         Some((uri_key, analyzer.into()))
       })
       .collect::<HashMap<Ustr, TreeShakingResult>>();
     let mut used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
+    let mut bail_out_module_identifiers = HashMap::default();
     for analyze_result in analyze_results.values() {
-      used_symbol_ref.extend(analyze_result.used_symbol_ref.clone().into_iter());
+      used_symbol_ref.extend(analyze_result.used_symbol_ref.iter().cloned());
+      bail_out_module_identifiers.extend(analyze_result.bail_out_module_identifiers.clone());
     }
 
     // calculate relation of module that has `export * from 'xxxx'`
@@ -751,6 +781,7 @@ impl Compilation {
     let used_symbol_from_import = mark_used_symbol_with(
       &analyze_results,
       VecDeque::from_iter(used_symbol_ref.into_iter()),
+      &bail_out_module_identifiers,
       &mut errors,
     );
 
@@ -758,14 +789,20 @@ impl Compilation {
 
     // We considering all export symbol in each entry module as used for now
     for entry in self.entry_modules() {
-      let used_symbol_set = collect_reachable_symbol(&analyze_results, ustr(&entry), &mut errors);
+      let used_symbol_set = collect_reachable_symbol(
+        &analyze_results,
+        ustr(&entry),
+        &bail_out_module_identifiers,
+        &mut errors,
+      );
       used_symbol.extend(used_symbol_set);
     }
-
+    // dbg!(&used_symbol, &bail_out_module_identifiers);
     Ok(
       OptimizeDependencyResult {
         used_symbol,
         analyze_results,
+        bail_out_module_identifiers,
       }
       .with_diagnostic(errors_to_diagnostics(errors)),
     )
@@ -1016,6 +1053,7 @@ pub struct AssetInfoRelated {
 fn collect_reachable_symbol(
   analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
   entry_identifier: Ustr,
+  bailout_module_identifiers: &HashMap<Ustr, BailoutReason>,
   errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
   let mut used_symbol_set = HashSet::new();
@@ -1066,12 +1104,20 @@ fn collect_reachable_symbol(
       &mut used_symbol_set,
       analyze_map,
       &mut q,
+      bailout_module_identifiers,
       errors,
     );
   }
 
   while let Some(sym_ref) = q.pop_front() {
-    mark_symbol(sym_ref, &mut used_symbol_set, analyze_map, &mut q, errors);
+    mark_symbol(
+      sym_ref,
+      &mut used_symbol_set,
+      analyze_map,
+      &mut q,
+      bailout_module_identifiers,
+      errors,
+    );
   }
   used_symbol_set
 }
@@ -1079,6 +1125,7 @@ fn collect_reachable_symbol(
 fn mark_used_symbol_with(
   analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
   mut init_queue: VecDeque<SymbolRef>,
+  bailout_module_identifiers: &HashMap<Ustr, BailoutReason>,
   errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
   let mut used_symbol_set = HashSet::new();
@@ -1095,6 +1142,7 @@ fn mark_used_symbol_with(
       &mut used_symbol_set,
       analyze_map,
       &mut init_queue,
+      bailout_module_identifiers,
       errors,
     );
   }
@@ -1102,13 +1150,21 @@ fn mark_used_symbol_with(
 }
 
 fn mark_symbol(
-  item: SymbolRef,
+  symbol_ref: SymbolRef,
   used_symbol_set: &mut HashSet<Symbol>,
   analyze_map: &HashMap<Ustr, TreeShakingResult>,
   q: &mut VecDeque<SymbolRef>,
+  bailout_module_identifiers: &HashMap<Ustr, BailoutReason>,
   errors: &mut Vec<Error>,
 ) {
-  match item {
+  // We don't need mark the symbol usage if it is from a bailout module because
+  // bailout module will skipping tree-shaking anyway
+  // if debug_care_module_id(symbol_ref.module_identifier()) {
+  //   dbg!(&symbol_ref);
+  // }
+  let is_bailout_module_identifier =
+    bailout_module_identifiers.contains_key(&symbol_ref.module_identifier());
+  match symbol_ref {
     SymbolRef::Direct(symbol) => match used_symbol_set.entry(symbol) {
       Occupied(_) => {}
       Vacant(vac) => {
@@ -1119,28 +1175,65 @@ fn mark_symbol(
         {
           q.extend(set.iter().cloned());
         };
+        // Assume the module name is app.js
+        // ```js
+        // import {myanswer, secret} from './lib'
+        // export {myanswer as m, secret as s}
+        // ```
+        // In such scenario there are two `myanswer` binding would create
+        // one for `app.js`, one for `lib.js`
+        // the binding in `app.js` used for shake the `export {xxx}`
+        // In other words, we need two binding for supporting indirect redirect.
+        if let Some(symbol_ref) = module_result.import_map.get(vac.get().id()) {
+          q.push_back(symbol_ref.clone());
+        }
         vac.insert();
       }
     },
     SymbolRef::Indirect(indirect_symbol) => {
-      let module_result = analyze_map.get(&indirect_symbol.uri).unwrap();
+      let module_result = match analyze_map.get(&indirect_symbol.uri) {
+        Some(module_result) => module_result,
+        None => {
+          eprintln!(
+            "Can't get optimize dep result for module {}",
+            indirect_symbol.uri,
+          );
+          return;
+        }
+      };
       let symbol = match module_result.export_map.get(&indirect_symbol.id) {
         Some(symbol) => symbol.clone(),
         None => {
           // TODO: better diagnostic and handle if multiple extends_map has export same symbol
           let mut ret = vec![];
+          // Checking if any inherit export map is belong to a bailout module
+          let mut has_bailout_module_identifiers = false;
           for (module_identifier, extends_export_map) in module_result.inherit_export_maps.iter() {
             if let Some(value) = extends_export_map.get(&indirect_symbol.id) {
               ret.push((module_identifier, value));
             }
+            has_bailout_module_identifiers = has_bailout_module_identifiers
+              || bailout_module_identifiers.contains_key(module_identifier);
           }
           match ret.len() {
             0 => {
               // TODO: Better diagnostic handle if source module does not have the export
-              panic!(
-                "{} did not export `{}`",
-                module_result.module_identifier, indirect_symbol.id
-              )
+              // let map = analyze_map.get(&module_result.module_identifier).unwrap();
+              // dbg!(&map);
+              if !is_bailout_module_identifier && !has_bailout_module_identifiers {
+                eprint!(
+                  "{} did not export `{}`, imported by {}",
+                  module_result.module_identifier,
+                  indirect_symbol.id,
+                  indirect_symbol.importer()
+                );
+                return;
+              } else {
+                // TODO: This branch should be remove after we analyze module.exports
+                // If one of inherit module is a bailout module, that most probably means that module has some common js export
+                // which we don't analyze yet, we just pass it. It is alright because we don't modified the ast of bailout module
+                return;
+              }
             }
             1 => ret[0].1.clone(),
             // multiple export candidate in reexport

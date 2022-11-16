@@ -6,7 +6,7 @@ use rspack_core::{
   get_contenthash,
   rspack_sources::{RawSource, SourceExt},
   AssetParserDataUrlOption, AssetParserOptions, FilenameRenderOptions, GenerateContext,
-  GenerationResult, NormalModule, ParseContext, ParserAndGenerator, Plugin, PluginContext,
+  GenerationResult, Module, ParseContext, ParserAndGenerator, Plugin, PluginContext,
   PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, SourceType,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result};
@@ -114,7 +114,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     }
   }
 
-  fn size(&self, module: &NormalModule, source_type: &SourceType) -> f64 {
+  fn size(&self, module: &dyn Module, source_type: &SourceType) -> f64 {
     let original_source_size = module.original_source().map_or(0, |source| source.size()) as f64;
     match source_type {
       SourceType::Asset => original_source_size,
@@ -190,82 +190,84 @@ impl ParserAndGenerator for AssetParserAndGenerator {
   fn generate(
     &self,
     ast_or_source: &rspack_core::AstOrSource,
-    module: &rspack_core::NormalModule,
+    module: &dyn rspack_core::Module,
     generate_context: &mut GenerateContext,
   ) -> Result<rspack_core::GenerationResult> {
     let parsed_asset_config = self.parsed_asset_config.as_ref().unwrap();
 
     let result = match generate_context.requested_source_type {
-      SourceType::JavaScript => Ok(GenerationResult {
-        ast_or_source: RawSource::from(format!(
-          r#"module.exports = {};"#,
-          if parsed_asset_config.is_inline() {
-            format!(
-              r#""data:{};base64,{}""#,
-              mime_guess::MimeGuess::from_path(Path::new(&module.request()))
-                .first()
-                .ok_or_else(|| anyhow::format_err!(
-                  "failed to guess mime type of {}",
-                  module.request()
-                ))?,
-              base64::encode(
-                &ast_or_source
+      SourceType::JavaScript => {
+        let request = module.try_as_normal_module()?.request();
+
+        Ok(GenerationResult {
+          ast_or_source: RawSource::from(format!(
+            r#"module.exports = {};"#,
+            if parsed_asset_config.is_inline() {
+              format!(
+                r#""data:{};base64,{}""#,
+                mime_guess::MimeGuess::from_path(Path::new(request))
+                  .first()
+                  .ok_or_else(|| anyhow::format_err!("failed to guess mime type of {}", request))?,
+                base64::encode(
+                  &ast_or_source
+                    .as_source()
+                    .expect("Expected source for asset generator, please file an issue.")
+                    .buffer()
+                )
+              )
+            } else if parsed_asset_config.is_external() {
+              let path = Path::new(request);
+
+              let file_name = generate_context
+                .compilation
+                .options
+                .output
+                .asset_module_filename
+                .render(FilenameRenderOptions {
+                  filename: Some(
+                    path
+                      .file_stem()
+                      .and_then(OsStr::to_str)
+                      .ok_or_else(|| anyhow::anyhow!("Failed to get filename for asset/resource"))?
+                      .to_owned(),
+                  ),
+                  extension: Some(
+                    path
+                      .extension()
+                      .and_then(OsStr::to_str)
+                      .map(|str| format!("{}{}", ".", str))
+                      .ok_or_else(|| {
+                        anyhow::anyhow!("Failed to get extension for asset/resource")
+                      })?,
+                  ),
+                  id: None,
+                  contenthash: None,
+                  chunkhash: None,
+                  hash: None,
+                });
+              let public_path = generate_context
+                .compilation
+                .options
+                .output
+                .public_path
+                .public_path();
+              format!(r#""{}{}""#, public_path, file_name)
+            } else if parsed_asset_config.is_source() {
+              format!(
+                r"{:?}",
+                ast_or_source
                   .as_source()
                   .expect("Expected source for asset generator, please file an issue.")
-                  .buffer()
+                  .source()
               )
-            )
-          } else if parsed_asset_config.is_external() {
-            let request = module.request();
-            let path = Path::new(&request);
-
-            let file_name = generate_context
-              .compilation
-              .options
-              .output
-              .asset_module_filename
-              .render(FilenameRenderOptions {
-                filename: Some(
-                  path
-                    .file_stem()
-                    .and_then(OsStr::to_str)
-                    .ok_or_else(|| anyhow::anyhow!("Failed to get filename for asset/resource"))?
-                    .to_owned(),
-                ),
-                extension: Some(
-                  path
-                    .extension()
-                    .and_then(OsStr::to_str)
-                    .map(|str| format!("{}{}", ".", str))
-                    .ok_or_else(|| anyhow::anyhow!("Failed to get extension for asset/resource"))?,
-                ),
-                id: None,
-                contenthash: None,
-                chunkhash: None,
-                hash: None,
-              });
-            let public_path = generate_context
-              .compilation
-              .options
-              .output
-              .public_path
-              .public_path();
-            format!(r#""{}{}""#, public_path, file_name)
-          } else if parsed_asset_config.is_source() {
-            format!(
-              r"{:?}",
-              ast_or_source
-                .as_source()
-                .expect("Expected source for asset generator, please file an issue.")
-                .source()
-            )
-          } else {
-            unreachable!()
-          }
-        ))
-        .boxed()
-        .into(),
-      }),
+            } else {
+              unreachable!()
+            }
+          ))
+          .boxed()
+          .into(),
+        })
+      }
       SourceType::Asset => {
         if parsed_asset_config.is_source() || parsed_asset_config.is_inline() {
           Err(Error::InternalError(

@@ -2,13 +2,13 @@ use std::{any::Any, fmt::Debug};
 
 use async_trait::async_trait;
 
-use rspack_error::{Result, TWithDiagnosticArray};
+use rspack_error::{Error, Result, TWithDiagnosticArray};
 use rspack_loader_runner::Loader;
 use rspack_sources::Source;
 
 use crate::{
-  CodeGenerationResult, Compilation, CompilationContext, CompilerContext, CompilerOptions,
-  LoaderRunnerRunner, ModuleDependency, ModuleType, SourceType,
+  CodeGenerationResult, Compilation, CompilationContext, CompilerContext, CompilerOptions, Context,
+  LoaderRunnerRunner, ModuleDependency, ModuleType, NormalModule, SourceType,
 };
 
 pub trait AsAny {
@@ -42,12 +42,16 @@ pub trait Module: Debug + Send + Sync + AsAny {
 
   fn source_types(&self) -> &[SourceType];
 
-  fn original_source(&self) -> &dyn Source;
+  fn original_source(&self) -> Option<&dyn Source>;
 
   fn identifier(&self) -> String;
 
+  fn readable_identifier(&self, _context: &Context) -> String;
+
+  fn size(&self, _source_type: &SourceType) -> f64;
+
   async fn build(
-    &self,
+    &mut self,
     _build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>>;
 
@@ -66,14 +70,26 @@ impl<T: Module + 'static> ModuleExt for T {
 
 pub type BoxModule = Box<dyn Module>;
 
-#[allow(unused)]
-impl dyn Module {
-  fn downcast_ref<T: Module + Any>(&self) -> Option<&T> {
+impl dyn Module + '_ {
+  pub fn downcast_ref<T: Module + Any>(&self) -> Option<&T> {
     self.as_any().downcast_ref::<T>()
   }
 
-  fn downcast_mut<T: Module + Any>(&mut self) -> Option<&mut T> {
+  pub fn downcast_mut<T: Module + Any>(&mut self) -> Option<&mut T> {
     self.as_any_mut().downcast_mut::<T>()
+  }
+
+  pub fn as_normal_module(&self) -> Option<&NormalModule> {
+    self.as_any().downcast_ref::<NormalModule>()
+  }
+
+  pub fn try_as_normal_module(&self) -> Result<&NormalModule> {
+    self.as_normal_module().ok_or_else(|| {
+      Error::InternalError(format!(
+        "Failed to cast module {} to a NormalModule",
+        self.identifier()
+      ))
+    })
   }
 }
 
@@ -81,7 +97,8 @@ impl dyn Module {
 mod test {
   use super::Module;
   use crate::{
-    BuildContext, BuildResult, CodeGenerationResult, Compilation, ModuleExt, ModuleType, SourceType,
+    BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, ModuleExt, ModuleType,
+    SourceType,
   };
 
   use rspack_error::{Result, TWithDiagnosticArray};
@@ -103,7 +120,11 @@ mod test {
       unreachable!()
     }
 
-    fn original_source(&self) -> &dyn Source {
+    fn original_source(&self) -> Option<&dyn Source> {
+      unreachable!()
+    }
+
+    fn size(&self, _source_type: &SourceType) -> f64 {
       unreachable!()
     }
 
@@ -111,8 +132,12 @@ mod test {
       "raw".to_owned()
     }
 
+    fn readable_identifier(&self, _context: &Context) -> String {
+      unreachable!()
+    }
+
     async fn build(
-      &self,
+      &mut self,
       _build_context: BuildContext<'_>,
     ) -> Result<TWithDiagnosticArray<BuildResult>> {
       unreachable!()
@@ -133,7 +158,11 @@ mod test {
       unreachable!()
     }
 
-    fn original_source(&self) -> &dyn Source {
+    fn original_source(&self) -> Option<&dyn Source> {
+      unreachable!()
+    }
+
+    fn size(&self, _source_type: &SourceType) -> f64 {
       unreachable!()
     }
 
@@ -141,8 +170,12 @@ mod test {
       "external".to_owned()
     }
 
+    fn readable_identifier(&self, _context: &Context) -> String {
+      unreachable!()
+    }
+
     async fn build(
-      &self,
+      &mut self,
       _build_context: BuildContext<'_>,
     ) -> Result<TWithDiagnosticArray<BuildResult>> {
       unreachable!()

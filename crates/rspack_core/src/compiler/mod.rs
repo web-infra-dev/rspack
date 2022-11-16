@@ -17,8 +17,8 @@ use tokio::sync::RwLock;
 use tracing::instrument;
 
 use crate::{
-  CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule, ModuleIdentifier,
-  NormalModule, Plugin, PluginDriver, SharedPluginDriver, Stats,
+  BoxModule, CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule, ModuleIdentifier,
+  Plugin, PluginDriver, SharedPluginDriver, Stats,
 };
 
 #[derive(Debug)]
@@ -118,6 +118,7 @@ impl Compiler {
         self.compilation.push_batch_diagnostic(diagnostics);
       }
       self.compilation.used_symbol = analyze_result.used_symbol;
+      self.compilation.bailout_module_identifiers = analyze_result.bail_out_module_identifiers;
       // This is only used when testing
       #[cfg(debug_assertions)]
       {
@@ -177,7 +178,7 @@ impl Compiler {
 pub type ModuleCreatedData = TWithDiagnosticArray<
   Box<(
     ModuleGraphModule,
-    NormalModule,
+    BoxModule,
     Option<ModuleIdentifier>,
     u32,
     Dependency,
@@ -188,7 +189,7 @@ pub type ModuleCreatedData = TWithDiagnosticArray<
 pub type ModuleResolvedData = TWithDiagnosticArray<(
   Option<ModuleIdentifier>,
   u32,
-  Box<NormalModule>,
+  BoxModule,
   Box<Vec<Dependency>>,
 )>;
 

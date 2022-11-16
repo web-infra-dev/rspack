@@ -9,6 +9,7 @@
     "setup": "./x i && ./x build binding",
     "build": "./x build cli",
     "build:cli": "./x build cli",
+    "build:cli-release": "./x build cli-release",
     "build:webpack": "./x build webpack",
     "format:rs": "./x format rs",
     "format:js": "./x format js",
