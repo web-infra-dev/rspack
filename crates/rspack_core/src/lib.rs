@@ -7,6 +7,10 @@ use hashbrown::{HashMap, HashSet};
 
 pub mod ast;
 mod normal_module;
+// mod raw_module;
+// pub use raw_module::*;
+pub mod module;
+pub use module::*;
 pub mod runtime_globals;
 pub use normal_module::*;
 mod plugin;

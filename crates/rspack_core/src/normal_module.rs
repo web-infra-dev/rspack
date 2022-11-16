@@ -13,17 +13,18 @@ use serde_json::json;
 use rspack_error::{
   Diagnostic, Error, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray,
 };
-use rspack_loader_runner::{Content, Loader, ResourceData};
+use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::{
   BoxSource, OriginalSource, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
   WithoutOriginalOptions,
 };
 
-use crate::{ast::javascript::Ast as JsAst, CodeGenerationResult, GenerationResult};
 use crate::{
-  Compilation, CompilationContext, CompilerContext, CompilerOptions, Context, Dependency,
-  LoaderRunnerRunner, ModuleAst, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleType,
-  ResolveKind, SourceType,
+  ast::javascript::Ast as JsAst, BuildContext, BuildResult, CodeGenerationResult, GenerationResult,
+};
+use crate::{
+  Compilation, CompilerOptions, Context, Dependency, ModuleAst, ModuleDependency, ModuleGraph,
+  ModuleGraphConnection, ModuleType, ResolveKind, SourceType,
 };
 
 #[derive(Debug)]
@@ -327,17 +328,6 @@ impl NormalModuleAstOrSource {
       NormalModuleAstOrSource::BuiltSucceed(ast_or_source)
     }
   }
-}
-
-#[derive(Debug, Default)]
-pub struct BuildResult {
-  pub dependencies: Vec<ModuleDependency>,
-}
-
-pub struct BuildContext<'a> {
-  pub loader_runner_runner: &'a LoaderRunnerRunner,
-  pub resolved_loaders: Vec<&'a dyn Loader<CompilerContext, CompilationContext>>,
-  pub compiler_options: &'a CompilerOptions,
 }
 
 pub type ModuleIdentifier = String;
