@@ -270,7 +270,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let dep_scanner = ast.visit(|program, _context| {
       let mut dep_scanner = DependencyScanner::default();
-      program.visit_all_with(&mut dep_scanner);
+      program.visit_with(&mut dep_scanner);
       dep_scanner
     });
 
