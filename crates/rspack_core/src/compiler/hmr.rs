@@ -257,7 +257,6 @@ impl Compiler {
             .connect_chunk_and_module(ukey, module.to_string());
         }
 
-        dbg!("====== hmr rendermainfest ===== ");
         let render_manifest = now
           .plugin_driver
           .read()

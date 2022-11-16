@@ -197,6 +197,7 @@ export function describeCases(config: { name: string; target: string }) {
 										if (!compiler) {
 											throw Error("can't find compiler");
 										}
+										// should delete after removed `rebuild`
 										let changed = [];
 										try {
 											changed = require(changedFiles);
