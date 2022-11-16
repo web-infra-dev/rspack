@@ -319,6 +319,7 @@ impl NormalModuleAstOrSource {
       NormalModuleAstOrSource::BuiltFailed(
         diagnostics
           .iter()
+          .filter(|d| d.severity == Severity::Error)
           .map(|d| d.message.clone())
           .collect::<Vec<String>>()
           .join("\n"),
