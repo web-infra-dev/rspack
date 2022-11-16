@@ -38,12 +38,12 @@ use crate::{
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
     BailoutReason, OptimizeDependencyResult,
   },
-  AdditionalChunkRuntimeRequirementsArgs, BuildContext, BundleEntries, Chunk, ChunkByUkey,
-  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationResult,
+  AdditionalChunkRuntimeRequirementsArgs, BoxModule, BuildContext, BundleEntries, Chunk,
+  ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationResult,
   CodeGenerationResults, CompilerOptions, Dependency, EntryItem, Entrypoint, LoaderRunnerRunner,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModule,
-  NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs,
-  ResolveKind, RuntimeModule, SharedPluginDriver, Stats, VisitedModuleIdentity,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModuleFactory,
+  NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs, ResolveKind, RuntimeModule,
+  SharedPluginDriver, Stats, VisitedModuleIdentity,
 };
 use rspack_symbol::Symbol;
 
@@ -360,7 +360,7 @@ impl Compilation {
                 return;
               };
 
-              self.module_graph.add_module(*module);
+              self.module_graph.add_module(module);
 
               // Gracefully exit
               active_task_count.fetch_sub(1, Ordering::SeqCst);
@@ -407,7 +407,7 @@ impl Compilation {
   fn handle_module_build_and_dependencies(
     &self,
     original_module_identifier: Option<ModuleIdentifier>,
-    mut module: NormalModule,
+    mut module: BoxModule,
     dependency_id: u32,
     active_task_count: Arc<AtomicU32>,
     tx: UnboundedSender<Msg>,
@@ -419,7 +419,8 @@ impl Compilation {
     let module_identifier = module.identifier();
 
     tokio::spawn(async move {
-      let resource_data = module.resource_resolved_data();
+      // FIXME: this will be failed if other kinds of modules are passed in.
+      let resource_data = module.as_normal_module().unwrap().resource_resolved_data();
       let resolved_loaders = match compiler_options
         .module
         .rules
@@ -474,7 +475,12 @@ impl Compilation {
         .flat_map(|module_rule| module_rule.uses.iter().map(Box::as_ref).rev())
         .collect::<Vec<_>>();
 
-      if let Err(e) = plugin_driver.read().await.build_module(&mut module).await {
+      if let Err(e) = plugin_driver
+        .read()
+        .await
+        .build_module(module.as_mut())
+        .await
+      {
         if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module.identifier(), e)) {
           tracing::trace!("fail to send msg {:?}", err);
         }
@@ -489,7 +495,12 @@ impl Compilation {
         .await
       {
         Ok(build_result) => {
-          if let Err(e) = plugin_driver.read().await.succeed_module(&module).await {
+          if let Err(e) = plugin_driver
+            .read()
+            .await
+            .succeed_module(module.as_ref())
+            .await
+          {
             if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module.identifier(), e)) {
               tracing::trace!("fail to send msg {:?}", err);
             }
@@ -522,7 +533,7 @@ impl Compilation {
             (
               original_module_identifier.clone(),
               dependency_id,
-              Box::new(module),
+              module,
               Box::new(deps),
             )
               .with_diagnostic(diagnostics),
@@ -675,7 +686,7 @@ impl Compilation {
           | crate::ModuleType::Ts => match self
                       .module_graph
                       .module_by_identifier(&mgm.module_identifier)
-                      .and_then(|module| module.ast())
+                      .and_then(|module| module.as_normal_module().and_then(|m| m.ast()))
                       .unwrap()
                       .as_javascript() {
               Some(ast) => {ast},

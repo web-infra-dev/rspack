@@ -8,9 +8,9 @@ use rspack_sources::BoxSource;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, BoxModule, Compilation, CompilationArgs, DoneArgs,
-  FactorizeAndBuildArgs, ModuleType, NormalModule, NormalModuleFactoryContext, OptimizeChunksArgs,
-  ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderManifestArgs, ThisCompilationArgs,
-  TransformAst, TransformResult,
+  FactorizeAndBuildArgs, Module, ModuleType, NormalModule, NormalModuleFactoryContext,
+  OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderManifestArgs,
+  ThisCompilationArgs, TransformAst, TransformResult,
 };
 
 // use anyhow::{Context, Result};
@@ -126,11 +126,11 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn build_module(&self, _module: &mut NormalModule) -> Result<()> {
+  async fn build_module(&self, _module: &mut dyn Module) -> Result<()> {
     Ok(())
   }
 
-  async fn succeed_module(&self, _module: &NormalModule) -> Result<()> {
+  async fn succeed_module(&self, _module: &dyn Module) -> Result<()> {
     Ok(())
   }
 }

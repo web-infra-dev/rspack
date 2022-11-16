@@ -9,7 +9,7 @@ mod inject_runtime_helper;
 use inject_runtime_helper::inject_runtime_helper;
 mod format;
 use format::*;
-use rspack_core::NormalModule;
+use rspack_core::Module;
 use swc_common::pass::Repeat;
 use swc_ecma_transforms::optimization::simplify::dce::{dce, Config};
 mod swc_visitor;
@@ -111,11 +111,7 @@ pub fn run_before_pass(
   Ok(())
 }
 
-pub fn run_after_pass(
-  ast: &mut Ast,
-  module: &NormalModule,
-  generate_context: &mut GenerateContext,
-) {
+pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut GenerateContext) {
   let cm = get_swc_compiler().cm.clone();
   ast.transform(|program, context| {
     let unresolved_mark = context.unresolved_mark;

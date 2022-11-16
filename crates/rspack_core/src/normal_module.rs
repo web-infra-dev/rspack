@@ -21,11 +21,12 @@ use rspack_sources::{
 };
 
 use crate::{
-  ast::javascript::Ast as JsAst, BuildContext, BuildResult, CodeGenerationResult, GenerationResult,
+  ast::javascript::Ast as JsAst, BuildContext, BuildResult, CodeGenerationResult, GenerateContext,
+  Module, ParseContext, ParseResult, ParserAndGenerator,
 };
 use crate::{
-  Compilation, CompilerOptions, Context, Dependency, ModuleAst, ModuleDependency, ModuleGraph,
-  ModuleGraphConnection, ModuleType, ResolveKind, SourceType,
+  Compilation, CompilerOptions, Context, Dependency, ModuleAst, ModuleGraph, ModuleGraphConnection,
+  ModuleType, ResolveKind, SourceType,
 };
 
 bitflags! {
@@ -232,43 +233,6 @@ impl From<BoxSource> for AstOrSource {
     AstOrSource::Source(source)
   }
 }
-#[derive(Debug)]
-pub struct ParseContext<'a> {
-  pub source: Box<dyn Source>,
-  pub module_type: &'a ModuleType,
-  pub resource_data: &'a ResourceData,
-  pub compiler_options: &'a CompilerOptions,
-  pub meta: Option<String>,
-}
-
-#[derive(Debug)]
-pub struct ParseResult {
-  pub dependencies: Vec<ModuleDependency>,
-  pub ast_or_source: AstOrSource,
-}
-
-#[derive(Debug)]
-pub struct GenerateContext<'a> {
-  pub compilation: &'a Compilation,
-  pub runtime_requirements: &'a mut HashSet<String>,
-  pub requested_source_type: SourceType,
-}
-
-pub trait ParserAndGenerator: Send + Sync + Debug {
-  /// The source types that the generator can generate (the source types you can make requests for)
-  fn source_types(&self) -> &[SourceType];
-  /// Parse the source and return the dependencies and the ast or source
-  fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>>;
-  /// Size of the original source
-  fn size(&self, module: &NormalModule, source_type: &SourceType) -> f64;
-  /// Generate source or AST based on the built source or AST
-  fn generate(
-    &self,
-    ast_or_source: &AstOrSource,
-    module: &NormalModule,
-    generate_context: &mut GenerateContext,
-  ) -> Result<GenerationResult>;
-}
 
 #[derive(Debug)]
 pub struct NormalModule {
@@ -353,16 +317,6 @@ impl NormalModule {
     }
   }
 
-  #[inline(always)]
-  pub fn module_type(&self) -> ModuleType {
-    self.module_type
-  }
-
-  #[inline(always)]
-  pub fn source_types(&self) -> &[SourceType] {
-    self.parser_and_generator.source_types()
-  }
-
   pub fn resource_resolved_data(&self) -> &ResourceData {
     &self.resource_data
   }
@@ -377,18 +331,6 @@ impl NormalModule {
 
   pub fn raw_request(&self) -> &str {
     &self.raw_request
-  }
-
-  pub fn identifier(&self) -> ModuleIdentifier {
-    self.request.to_owned()
-  }
-
-  pub fn readable_identifier(&self, context: &Context) -> String {
-    context.shorten(&self.user_request)
-  }
-
-  pub fn original_source(&self) -> Option<&dyn Source> {
-    self.original_source.as_deref()
   }
 
   // FIXME: dirty workaround to support external module
@@ -415,8 +357,31 @@ impl NormalModule {
   pub fn ast_or_source(&self) -> &NormalModuleAstOrSource {
     &self.ast_or_source
   }
+}
 
-  pub fn size(&self, source_type: &SourceType) -> f64 {
+#[async_trait::async_trait]
+impl Module for NormalModule {
+  fn module_type(&self) -> ModuleType {
+    self.module_type
+  }
+
+  fn source_types(&self) -> &[SourceType] {
+    self.parser_and_generator.source_types()
+  }
+
+  fn original_source(&self) -> Option<&dyn Source> {
+    self.original_source.as_deref()
+  }
+
+  fn identifier(&self) -> String {
+    self.request.to_owned()
+  }
+
+  fn readable_identifier(&self, context: &Context) -> String {
+    context.shorten(&self.user_request)
+  }
+
+  fn size(&self, source_type: &SourceType) -> f64 {
     if let Some(size_ref) = self.cached_source_sizes.get(source_type) {
       *size_ref
     } else {
@@ -426,7 +391,7 @@ impl NormalModule {
     }
   }
 
-  pub async fn build(
+  async fn build(
     &mut self,
     build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>> {
@@ -500,7 +465,7 @@ impl NormalModule {
     Ok(BuildResult { dependencies }.with_diagnostic(diagnostics))
   }
 
-  pub fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
+  fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
     if let NormalModuleAstOrSource::BuiltSucceed(ast_or_source) = self.ast_or_source() {
       let mut code_generation_result = CodeGenerationResult::default();
       let mut runtime_requirements = HashSet::new();

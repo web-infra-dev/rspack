@@ -395,7 +395,12 @@ impl<'me> CodeSplitter<'me> {
             .module_by_identifier(&dyn_dep_mgm.module_identifier)
             .unwrap();
 
-          &module.resource_resolved_data().resource_path
+          // FIXME: this will be failed if any other kinds of modules are passed in.
+          &module
+            .as_normal_module()
+            .unwrap()
+            .resource_resolved_data()
+            .resource_path
         }),
       );
       self.compilation.chunk_graph.add_chunk(chunk.ukey);

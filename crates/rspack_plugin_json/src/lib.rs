@@ -3,7 +3,7 @@ use json::Error::{
 };
 use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
-  GenerateContext, NormalModule, ParserAndGenerator, Plugin, SourceType,
+  GenerateContext, Module, ParserAndGenerator, Plugin, SourceType,
 };
 use rspack_error::{
   DiagnosticKind, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, TraceableError,
@@ -19,7 +19,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     &[SourceType::JavaScript]
   }
 
-  fn size(&self, module: &NormalModule, _source_type: &SourceType) -> f64 {
+  fn size(&self, module: &dyn Module, _source_type: &SourceType) -> f64 {
     module.original_source().map_or(0, |source| source.size()) as f64
   }
 
@@ -89,7 +89,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
   fn generate(
     &self,
     ast_or_source: &rspack_core::AstOrSource,
-    _module: &rspack_core::NormalModule,
+    _module: &dyn rspack_core::Module,
     generate_context: &mut GenerateContext,
   ) -> Result<rspack_core::GenerationResult> {
     match generate_context.requested_source_type {

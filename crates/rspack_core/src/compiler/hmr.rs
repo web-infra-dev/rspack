@@ -56,7 +56,8 @@ impl Compiler {
             .module_graph
             .module_by_identifier(&item.module_identifier)
             .and_then(|module| {
-              let resource_data = module.resource_resolved_data();
+              // FIXME: resource_resolved_data is only available on `NormalModule`, this will crack if other module kinds are passed in.
+              let resource_data = module.as_normal_module().unwrap().resource_resolved_data();
               let resource_path = &resource_data.resource_path;
 
               if !changed_files.contains(resource_path) && !removed_files.contains(resource_path) {

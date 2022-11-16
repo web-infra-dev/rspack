@@ -9,8 +9,8 @@ use tracing::instrument;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxedParserAndGeneratorBuilder,
-  Compilation, CompilationArgs, CompilerOptions, Content, DoneArgs, FactorizeAndBuildArgs,
-  ModuleType, NormalModule, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
+  Compilation, CompilationArgs, CompilerOptions, Content, DoneArgs, FactorizeAndBuildArgs, Module,
+  ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
   PluginCompilationHookOutput, PluginContext, PluginFactorizeAndBuildHookOutput,
   PluginMakeHookOutput, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
@@ -254,7 +254,7 @@ impl PluginDriver {
   }
 
   #[instrument(name = "plugin:build_module")]
-  pub async fn build_module(&self, module: &mut NormalModule) -> Result<()> {
+  pub async fn build_module(&self, module: &mut dyn Module) -> Result<()> {
     for plugin in &self.plugins {
       plugin.build_module(module).await?;
     }
@@ -262,7 +262,7 @@ impl PluginDriver {
   }
 
   #[instrument(name = "plugin:succeed_module")]
-  pub async fn succeed_module(&self, module: &NormalModule) -> Result<()> {
+  pub async fn succeed_module(&self, module: &dyn Module) -> Result<()> {
     for plugin in &self.plugins {
       plugin.succeed_module(module).await?;
     }
