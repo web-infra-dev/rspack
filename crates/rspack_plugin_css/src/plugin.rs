@@ -9,8 +9,8 @@ use rspack_core::{
     BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
     SourceMapSource, SourceMapSourceOptions,
   },
-  FilenameRenderOptions, GenerateContext, GenerationResult, Module, ModuleType, NormalModule,
-  ParseContext, ParseResult, ParserAndGenerator, Plugin, RenderManifestEntry, SourceType,
+  FilenameRenderOptions, GenerateContext, GenerationResult, Module, ModuleType, ParseContext,
+  ParseResult, ParserAndGenerator, Plugin, RenderManifestEntry, SourceType,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;

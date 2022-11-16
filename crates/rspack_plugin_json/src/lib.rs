@@ -3,7 +3,7 @@ use json::Error::{
 };
 use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
-  GenerateContext, Module, NormalModule, ParserAndGenerator, Plugin, SourceType,
+  GenerateContext, Module, ParserAndGenerator, Plugin, SourceType,
 };
 use rspack_error::{
   DiagnosticKind, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, TraceableError,

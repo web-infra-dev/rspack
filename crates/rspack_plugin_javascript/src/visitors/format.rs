@@ -2,7 +2,7 @@
 use ast::*;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::{Compilation, Dependency, Module, ModuleDependency, NormalModule, ResolveKind};
+use rspack_core::{Compilation, Dependency, Module, ModuleDependency, ResolveKind};
 use swc_atoms::{Atom, JsWord};
 use swc_common::{Mark, DUMMY_SP};
 use swc_ecma_utils::{quote_ident, ExprFactory};

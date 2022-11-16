@@ -10,8 +10,8 @@ use rspack_core::rspack_sources::{
 };
 use rspack_core::{
   get_contenthash, AstOrSource, ChunkKind, ChunkUkey, Compilation, FilenameRenderOptions,
-  GenerateContext, GenerationResult, Module, ModuleAst, ModuleType, NormalModule, ParseContext,
-  ParseResult, ParserAndGenerator, Plugin, PluginContext, PluginProcessAssetsOutput,
+  GenerateContext, GenerationResult, Module, ModuleAst, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, Plugin, PluginContext, PluginProcessAssetsOutput,
   PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderManifestEntry, SourceType,
   TargetPlatform, RUNTIME_PLACEHOLDER_INSTALLED_MODULES,
 };

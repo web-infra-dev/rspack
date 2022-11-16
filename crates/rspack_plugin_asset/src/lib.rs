@@ -6,7 +6,7 @@ use rspack_core::{
   get_contenthash,
   rspack_sources::{RawSource, SourceExt},
   AssetParserDataUrlOption, AssetParserOptions, FilenameRenderOptions, GenerateContext,
-  GenerationResult, Module, NormalModule, ParseContext, ParserAndGenerator, Plugin, PluginContext,
+  GenerationResult, Module, ParseContext, ParserAndGenerator, Plugin, PluginContext,
   PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, SourceType,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result};

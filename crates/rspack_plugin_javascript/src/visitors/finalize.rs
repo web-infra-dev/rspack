@@ -1,6 +1,6 @@
 // use super::hmr::HmrModuleIdReWriter;
 use crate::visitors::RspackModuleFinalizer;
-use rspack_core::{Compilation, Module, NormalModule};
+use rspack_core::{Compilation, Module};
 use swc_common::{Mark, DUMMY_SP, GLOBALS};
 use swc_ecma_utils::quote_ident;
 use swc_ecma_visit::Fold;
