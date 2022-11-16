@@ -153,25 +153,6 @@ impl ModuleGraphModule {
   }
 }
 
-pub trait Module: Debug + Send + Sync {
-  fn module_type(&self) -> ModuleType;
-
-  fn source_types(&self) -> &[SourceType];
-
-  fn original_source(&self) -> &dyn Source;
-
-  fn render(
-    &self,
-    requested_source_type: SourceType,
-    module: &ModuleGraphModule,
-    compilation: &Compilation,
-  ) -> Result<Option<BoxSource>>;
-
-  fn dependencies(&mut self) -> Vec<ModuleDependency> {
-    vec![]
-  }
-}
-
 #[derive(Debug, Clone)]
 pub enum AstOrSource {
   Ast(ModuleAst),
@@ -581,5 +562,3 @@ impl NormalModule {
     Ok(RawSource::from(content.into_bytes()).boxed())
   }
 }
-
-pub type BoxModule = Box<dyn Module>;

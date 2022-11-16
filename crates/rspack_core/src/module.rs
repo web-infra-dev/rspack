@@ -7,8 +7,8 @@ use rspack_loader_runner::Loader;
 use rspack_sources::Source;
 
 use crate::{
-  CompilationContext, CompilerContext, CompilerOptions, LoaderRunnerRunner, ModuleDependency,
-  ModuleType, SourceType,
+  CodeGenerationResult, Compilation, CompilationContext, CompilerContext, CompilerOptions,
+  LoaderRunnerRunner, ModuleDependency, ModuleType, SourceType,
 };
 
 pub trait AsAny {
@@ -48,8 +48,10 @@ pub trait Module: Debug + Send + Sync + AsAny {
 
   async fn build(
     &self,
-    build_context: BuildContext<'_>,
+    _build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>>;
+
+  fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult>;
 }
 
 pub trait ModuleExt {
@@ -61,6 +63,8 @@ impl<T: Module + 'static> ModuleExt for T {
     Box::new(self)
   }
 }
+
+pub type BoxModule = Box<dyn Module>;
 
 #[allow(unused)]
 impl dyn Module {
@@ -76,7 +80,9 @@ impl dyn Module {
 #[cfg(test)]
 mod test {
   use super::Module;
-  use crate::{BuildContext, BuildResult, ModuleExt, ModuleType, SourceType};
+  use crate::{
+    BuildContext, BuildResult, CodeGenerationResult, Compilation, ModuleExt, ModuleType, SourceType,
+  };
 
   use rspack_error::{Result, TWithDiagnosticArray};
   use rspack_sources::Source;
@@ -111,6 +117,10 @@ mod test {
     ) -> Result<TWithDiagnosticArray<BuildResult>> {
       unreachable!()
     }
+
+    fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult> {
+      unreachable!()
+    }
   }
 
   #[async_trait::async_trait]
@@ -135,6 +145,10 @@ mod test {
       &self,
       _build_context: BuildContext<'_>,
     ) -> Result<TWithDiagnosticArray<BuildResult>> {
+      unreachable!()
+    }
+
+    fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult> {
       unreachable!()
     }
   }
