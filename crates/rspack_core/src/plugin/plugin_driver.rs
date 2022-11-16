@@ -8,9 +8,9 @@ use rspack_loader_runner::ResourceData;
 use tracing::instrument;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxModule, BoxedParserAndGeneratorBuilder,
+  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxedParserAndGeneratorBuilder,
   Compilation, CompilationArgs, CompilerOptions, Content, DoneArgs, FactorizeAndBuildArgs, Module,
-  ModuleType, NormalModule, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
+  ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
   PluginCompilationHookOutput, PluginContext, PluginFactorizeAndBuildHookOutput,
   PluginMakeHookOutput, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,

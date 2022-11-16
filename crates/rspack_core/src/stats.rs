@@ -1,4 +1,4 @@
-use crate::{Chunk, Compilation, Module, ModuleType, SourceType, PATH_START_BYTE_POS_MAP};
+use crate::{Chunk, Compilation, ModuleType, SourceType, PATH_START_BYTE_POS_MAP};
 use hashbrown::HashMap;
 use rspack_error::{
   emitter::{

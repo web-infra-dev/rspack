@@ -8,7 +8,7 @@ use rspack_error::Result;
 use rspack_sources::{RawSource, SourceExt};
 
 use crate::{
-  AssetInfo, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler, Module, RenderManifestArgs,
+  AssetInfo, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler, RenderManifestArgs,
   RuntimeSpec, Stats,
 };
 

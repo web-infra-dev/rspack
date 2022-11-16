@@ -4,7 +4,7 @@ use hashbrown::{HashMap, HashSet};
 
 use rspack_error::{Error, Result};
 
-use crate::{BoxModule, Dependency, Module, ModuleGraphModule, ModuleIdentifier, NormalModule};
+use crate::{BoxModule, Dependency, ModuleGraphModule, ModuleIdentifier};
 
 // FIXME: placing this as global id is not acceptable, move it to somewhere else later
 static MODULE_GRAPH_CONNECTION_ID: AtomicU32 = AtomicU32::new(1);

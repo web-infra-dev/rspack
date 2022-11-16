@@ -2,8 +2,8 @@ use hashbrown::{HashMap, HashSet};
 use indexmap::IndexSet;
 
 use crate::{
-  Chunk, ChunkByUkey, ChunkGroupUkey, ChunkUkey, Module, ModuleGraph, ModuleGraphModule,
-  ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, SourceType,
+  Chunk, ChunkByUkey, ChunkGroupUkey, ChunkUkey, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
+  RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, SourceType,
 };
 
 #[derive(Debug, Default)]

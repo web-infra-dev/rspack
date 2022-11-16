@@ -41,9 +41,9 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, BoxModule, BuildContext, BundleEntries, Chunk,
   ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationResult,
   CodeGenerationResults, CompilerOptions, Dependency, EntryItem, Entrypoint, LoaderRunnerRunner,
-  Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModule,
-  NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs,
-  ResolveKind, RuntimeModule, SharedPluginDriver, Stats, VisitedModuleIdentity,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModuleFactory,
+  NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs, ResolveKind, RuntimeModule,
+  SharedPluginDriver, Stats, VisitedModuleIdentity,
 };
 use rspack_symbol::Symbol;
 
