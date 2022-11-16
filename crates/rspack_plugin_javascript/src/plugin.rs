@@ -10,7 +10,7 @@ use rspack_core::rspack_sources::{
 };
 use rspack_core::{
   get_contenthash, AstOrSource, ChunkKind, ChunkUkey, Compilation, FilenameRenderOptions,
-  GenerateContext, GenerationResult, ModuleAst, ModuleType, NormalModule, ParseContext,
+  GenerateContext, GenerationResult, Module, ModuleAst, ModuleType, NormalModule, ParseContext,
   ParseResult, ParserAndGenerator, Plugin, PluginContext, PluginProcessAssetsOutput,
   PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderManifestEntry, SourceType,
   TargetPlatform, RUNTIME_PLACEHOLDER_INSTALLED_MODULES,
@@ -241,7 +241,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     SOURCE_TYPES
   }
 
-  fn size(&self, module: &NormalModule, _source_type: &SourceType) -> f64 {
+  fn size(&self, module: &dyn Module, _source_type: &SourceType) -> f64 {
     module.original_source().map_or(0, |source| source.size()) as f64
   }
 
@@ -304,7 +304,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   fn generate(
     &self,
     ast_or_source: &AstOrSource,
-    module: &NormalModule,
+    module: &dyn Module,
     generate_context: &mut GenerateContext,
   ) -> Result<GenerationResult> {
     if matches!(
@@ -325,7 +325,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             value: output.code,
             source_map: SourceMap::from_json(&map)
               .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
-            name: module.request().to_string(),
+            name: module.try_as_normal_module()?.request().to_string(),
             original_source: {
               Some(
                 // Safety: you can sure that `build` is called before code generation, so that the `original_source` is exist

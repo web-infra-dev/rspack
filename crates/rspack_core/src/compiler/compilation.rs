@@ -41,7 +41,7 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, BuildContext, BundleEntries, Chunk, ChunkByUkey,
   ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationResult,
   CodeGenerationResults, CompilerOptions, Dependency, EntryItem, Entrypoint, LoaderRunnerRunner,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModule,
+  Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModule,
   NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs,
   ResolveKind, RuntimeModule, SharedPluginDriver, Stats, VisitedModuleIdentity,
 };

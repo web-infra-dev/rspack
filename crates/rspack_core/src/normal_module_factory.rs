@@ -14,7 +14,7 @@ use rspack_error::{Diagnostic, Error, Result, TWithDiagnosticArray};
 use tracing::instrument;
 
 use crate::{
-  parse_to_url, resolve, CompilerOptions, FactorizeAndBuildArgs, ModuleGraphModule,
+  parse_to_url, resolve, CompilerOptions, FactorizeAndBuildArgs, Module, ModuleGraphModule,
   ModuleIdentifier, ModuleRule, ModuleType, Msg, NormalModule, ResolveArgs, ResolveResult,
   ResourceData, SharedPluginDriver, DEPENDENCY_ID,
 };

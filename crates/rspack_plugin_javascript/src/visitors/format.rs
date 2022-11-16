@@ -2,7 +2,7 @@
 use ast::*;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::{Compilation, Dependency, ModuleDependency, NormalModule, ResolveKind};
+use rspack_core::{Compilation, Dependency, Module, ModuleDependency, NormalModule, ResolveKind};
 use swc_atoms::{Atom, JsWord};
 use swc_common::{Mark, DUMMY_SP};
 use swc_ecma_utils::{quote_ident, ExprFactory};
@@ -25,7 +25,7 @@ static SWC_HELPERS_REG: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"@swc/helpers/lib/(\w*)\.js$").unwrap());
 
 pub struct RspackModuleFinalizer<'a> {
-  pub module: &'a NormalModule,
+  pub module: &'a dyn Module,
   pub unresolved_mark: Mark,
   // pub resolved_ids: &'a HashMap<JsWord, ResolvedURI>,
   pub require_ident: Ident,
@@ -35,7 +35,7 @@ pub struct RspackModuleFinalizer<'a> {
 }
 
 impl<'a> Fold for RspackModuleFinalizer<'a> {
-  fn fold_module(&mut self, mut module: Module) -> Module {
+  fn fold_module(&mut self, mut module: ast::Module) -> ast::Module {
     module.visit_mut_with(&mut RspackModuleFormatTransformer::new(
       self.unresolved_mark,
       self.module,
@@ -49,7 +49,7 @@ impl<'a> Fold for RspackModuleFinalizer<'a> {
       .map(|stmt| stmt.into())
       .collect();
 
-    Module {
+    ast::Module {
       span: Default::default(),
       body,
       shebang: None,
@@ -61,11 +61,11 @@ pub struct RspackModuleFormatTransformer<'a> {
   require_id: Id,
   unresolved_mark: Mark,
   compilation: &'a Compilation,
-  module: &'a NormalModule,
+  module: &'a dyn Module,
   // resolved_ids: &'a HashMap<JsWord, ResolvedURI>,
 }
 impl<'a> RspackModuleFormatTransformer<'a> {
-  pub fn new(unresolved_mark: Mark, module: &'a NormalModule, bundle: &'a Compilation) -> Self {
+  pub fn new(unresolved_mark: Mark, module: &'a dyn Module, bundle: &'a Compilation) -> Self {
     Self {
       require_id: quote_ident!(DUMMY_SP.apply_mark(unresolved_mark), "require").to_id(),
       unresolved_mark,

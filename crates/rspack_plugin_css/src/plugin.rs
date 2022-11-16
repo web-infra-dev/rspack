@@ -9,8 +9,8 @@ use rspack_core::{
     BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
     SourceMapSource, SourceMapSourceOptions,
   },
-  FilenameRenderOptions, GenerateContext, GenerationResult, ModuleType, NormalModule, ParseContext,
-  ParseResult, ParserAndGenerator, Plugin, RenderManifestEntry, SourceType,
+  FilenameRenderOptions, GenerateContext, GenerationResult, Module, ModuleType, NormalModule,
+  ParseContext, ParseResult, ParserAndGenerator, Plugin, RenderManifestEntry, SourceType,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;
@@ -74,7 +74,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     CSS_MODULE_SOURCE_TYPE_LIST
   }
 
-  fn size(&self, module: &NormalModule, source_type: &SourceType) -> f64 {
+  fn size(&self, module: &dyn Module, source_type: &SourceType) -> f64 {
     match source_type {
       SourceType::JavaScript => {
         // meta + `module.exports = ...`
@@ -128,7 +128,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
   fn generate(
     &self,
     ast_or_source: &rspack_core::AstOrSource,
-    module: &rspack_core::NormalModule,
+    module: &dyn rspack_core::Module,
     generate_context: &mut GenerateContext,
   ) -> Result<rspack_core::GenerationResult> {
     let result = match generate_context.requested_source_type {
@@ -144,7 +144,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         if let Some(source_map) = source_map {
           let source = SourceMapSource::new(SourceMapSourceOptions {
             value: code,
-            name: module.request().to_string(),
+            name: module.try_as_normal_module()?.request().to_string(),
             source_map: SourceMap::from_slice(&source_map)
               .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
             // Safety: original source exists in code generation
