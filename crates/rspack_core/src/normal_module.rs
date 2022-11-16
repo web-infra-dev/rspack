@@ -13,17 +13,18 @@ use serde_json::json;
 use rspack_error::{
   Diagnostic, Error, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray,
 };
-use rspack_loader_runner::{Content, Loader, ResourceData};
+use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::{
   BoxSource, OriginalSource, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
   WithoutOriginalOptions,
 };
 
-use crate::{ast::javascript::Ast as JsAst, CodeGenerationResult, GenerationResult};
 use crate::{
-  Compilation, CompilationContext, CompilerContext, CompilerOptions, Context, Dependency,
-  LoaderRunnerRunner, ModuleAst, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleType,
-  ResolveKind, SourceType,
+  ast::javascript::Ast as JsAst, BuildContext, BuildResult, CodeGenerationResult, GenerationResult,
+};
+use crate::{
+  Compilation, CompilerOptions, Context, Dependency, ModuleAst, ModuleDependency, ModuleGraph,
+  ModuleGraphConnection, ModuleType, ResolveKind, SourceType,
 };
 
 #[derive(Debug)]
@@ -149,25 +150,6 @@ impl ModuleGraphModule {
       .filter(|dep| matches!(dep.detail.kind, ResolveKind::DynamicImport))
       .filter_map(|dep| module_graph.module_by_dependency(dep))
       .collect()
-  }
-}
-
-pub trait Module: Debug + Send + Sync {
-  fn module_type(&self) -> ModuleType;
-
-  fn source_types(&self) -> &[SourceType];
-
-  fn original_source(&self) -> &dyn Source;
-
-  fn render(
-    &self,
-    requested_source_type: SourceType,
-    module: &ModuleGraphModule,
-    compilation: &Compilation,
-  ) -> Result<Option<BoxSource>>;
-
-  fn dependencies(&mut self) -> Vec<ModuleDependency> {
-    vec![]
   }
 }
 
@@ -327,17 +309,6 @@ impl NormalModuleAstOrSource {
       NormalModuleAstOrSource::BuiltSucceed(ast_or_source)
     }
   }
-}
-
-#[derive(Debug, Default)]
-pub struct BuildResult {
-  pub dependencies: Vec<ModuleDependency>,
-}
-
-pub struct BuildContext<'a> {
-  pub loader_runner_runner: &'a LoaderRunnerRunner,
-  pub resolved_loaders: Vec<&'a dyn Loader<CompilerContext, CompilationContext>>,
-  pub compiler_options: &'a CompilerOptions,
 }
 
 pub type ModuleIdentifier = String;
@@ -591,5 +562,3 @@ impl NormalModule {
     Ok(RawSource::from(content.into_bytes()).boxed())
   }
 }
-
-pub type BoxModule = Box<dyn Module>;
