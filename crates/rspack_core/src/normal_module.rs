@@ -6,6 +6,7 @@ use std::{
   },
 };
 
+use bitflags::bitflags;
 use dashmap::DashMap;
 use hashbrown::HashSet;
 use serde_json::json;
@@ -27,6 +28,13 @@ use crate::{
   ModuleGraphConnection, ModuleType, ResolveKind, SourceType,
 };
 
+bitflags! {
+  pub struct ModuleSyntax: u8 {
+    const COMMONJS = 1 << 0;
+    const DYNAMIC_IMPORT = 1 << 1;
+  }
+}
+
 #[derive(Debug)]
 pub struct ModuleGraphModule {
   // Only user defined entry module has name for now.
@@ -44,6 +52,7 @@ pub struct ModuleGraphModule {
   pub all_dependencies: Vec<Dependency>,
   pub(crate) pre_order_index: Option<usize>,
   pub post_order_index: Option<usize>,
+  pub module_syntax: ModuleSyntax,
 }
 
 impl ModuleGraphModule {
@@ -67,6 +76,7 @@ impl ModuleGraphModule {
       module_type,
       pre_order_index: None,
       post_order_index: None,
+      module_syntax: ModuleSyntax::empty(),
     }
   }
 

@@ -8,7 +8,7 @@ use swc_common::{
   errors::Handler,
   BytePos, Mark, SourceFile,
 };
-use swc_ecma_ast::Ident;
+use swc_ecma_ast::{Ident, Program};
 use swc_ecma_minifier::option::{MinifyOptions, TopLevelOptions};
 use swc_ecma_parser::{EsConfig, Syntax};
 use swc_ecma_transforms::{fixer, hygiene, resolver};
@@ -125,7 +125,7 @@ pub fn minify(
 
   let is_mangler_enabled = min_opts.mangle.is_some();
 
-  let module = compiler.run_transform(handler, false, || {
+  let module: Program = compiler.run_transform(handler, false, || {
     let module = module.fold_with(&mut resolver(unresolved_mark, top_level_mark, false));
 
     let mut module = swc_ecma_minifier::optimize(

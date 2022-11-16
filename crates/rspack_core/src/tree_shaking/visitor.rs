@@ -9,14 +9,29 @@ use swc_ecma_ast::*;
 use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
 use ustr::{ustr, Ustr};
 
-use crate::{Dependency, ModuleGraph, ResolveKind};
+use crate::{Dependency, ModuleGraph, ModuleSyntax, ResolveKind};
 use rspack_symbol::{BetterId, IdOrMemExpr, IndirectTopLevelSymbol, Symbol, SymbolExt, SymbolFlag};
+
+use super::{
+  utils::{get_dynamic_import_string_literal, get_require_literal},
+  BailoutReason,
+};
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SymbolRef {
   Direct(Symbol),
   Indirect(IndirectTopLevelSymbol),
   /// uri
   Star(Ustr),
+}
+
+impl SymbolRef {
+  pub fn module_identifier(&self) -> Ustr {
+    match self {
+      SymbolRef::Direct(d) => d.uri(),
+      SymbolRef::Indirect(i) => i.uri,
+      SymbolRef::Star(s) => *s,
+    }
+  }
 }
 
 bitflags! {
@@ -30,6 +45,7 @@ bitflags! {
 pub(crate) struct ModuleRefAnalyze<'a> {
   top_level_mark: Mark,
   unresolved_mark: Mark,
+  helper_mark: Mark,
   module_identifier: Ustr,
   module_graph: &'a ModuleGraph,
   pub(crate) export_map: HashMap<JsWord, SymbolRef>,
@@ -50,18 +66,23 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) used_symbol_ref: HashSet<SymbolRef>,
   // This field is used for duplicated export default checking
   pub(crate) export_default_name: Option<JsWord>,
+  module_syntax: ModuleSyntax,
+  pub(crate) bail_out_module_identifiers: HashMap<Ustr, BailoutReason>,
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
   pub fn new(
     top_level_mark: Mark,
     unresolved_mark: Mark,
+    helper_mark: Mark,
     uri: Ustr,
     dep_to_module_identifier: &'a ModuleGraph,
   ) -> Self {
+    // dbg!(&uri);
     Self {
       top_level_mark,
       unresolved_mark,
+      helper_mark,
       module_identifier: uri,
       module_graph: dep_to_module_identifier,
       export_map: HashMap::default(),
@@ -74,6 +95,8 @@ impl<'a> ModuleRefAnalyze<'a> {
       used_id_set: HashSet::default(),
       used_symbol_ref: HashSet::default(),
       export_default_name: None,
+      module_syntax: ModuleSyntax::empty(),
+      bail_out_module_identifiers: HashMap::new(),
     }
   }
 
@@ -129,10 +152,11 @@ impl<'a> ModuleRefAnalyze<'a> {
         IdOrMemExpr::MemberExpr { object, property } => {
           self.import_map.get(object).map(|sym_ref| match sym_ref {
             SymbolRef::Direct(_) | SymbolRef::Indirect(_) => sym_ref.clone(),
-            SymbolRef::Star(uri) => SymbolRef::Indirect(IndirectTopLevelSymbol {
-              uri: *uri,
-              id: property.clone(),
-            }),
+            SymbolRef::Star(uri) => SymbolRef::Indirect(IndirectTopLevelSymbol::new(
+              *uri,
+              property.clone(),
+              self.module_identifier,
+            )),
           })
         }
       })
@@ -152,6 +176,17 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   fn visit_program(&mut self, node: &Program) {
     assert!(GLOBALS.is_set());
     node.visit_children_with(self);
+    // TODO: remove this after we visit commonjs exports
+    if self
+      .bail_out_module_identifiers
+      .iter()
+      .any(|(_, v)| !matches!(v, BailoutReason::Helper))
+    {
+      self
+        .bail_out_module_identifiers
+        .insert(self.module_identifier, BailoutReason::ExtendBailout);
+    }
+    // dbg!(&self.bail_out_module_identifiers);
     // calc reachable imports for each export symbol defined in current module
     for (key, symbol) in self.export_map.iter() {
       match symbol {
@@ -198,10 +233,11 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           Some(SymbolRef::Star(uri)) => {
             self
               .used_symbol_ref
-              .insert(SymbolRef::Indirect(IndirectTopLevelSymbol {
-                uri: *uri,
-                id: property.clone(),
-              }));
+              .insert(SymbolRef::Indirect(IndirectTopLevelSymbol::new(
+                *uri,
+                property.clone(),
+                self.module_identifier,
+              )));
           }
           _ => {
             let reachable_import = self.get_all_import_or_export(object.clone());
@@ -253,8 +289,11 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   },
                   None => named.local.sym.clone(),
                 };
-                let symbol_ref =
-                  SymbolRef::Indirect(IndirectTopLevelSymbol::new(resolved_uri_ukey, imported));
+                let symbol_ref = SymbolRef::Indirect(IndirectTopLevelSymbol::new(
+                  resolved_uri_ukey,
+                  imported,
+                  self.module_identifier,
+                ));
                 self.add_import(named.local.to_id().into(), symbol_ref);
               }
               ImportSpecifier::Default(default) => {
@@ -263,6 +302,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   SymbolRef::Indirect(IndirectTopLevelSymbol::new(
                     resolved_uri_ukey,
                     "default".into(),
+                    self.module_identifier,
                   )),
                 );
               }
@@ -335,8 +375,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           // TODO: ignore ts related syntax visit for now
         }
       },
-      ModuleItem::Stmt(_) => {
-        node.visit_children_with(self);
+      ModuleItem::Stmt(stmt) => {
+        // dbg!(&stmt);
+        stmt.visit_children_with(self);
       }
     }
   }
@@ -355,7 +396,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     match self.export_default_name {
       Some(_) => {
         // TODO: Better diagnostic
-        panic!("Duplicate export default")
+        panic!(
+          "Duplicate export default (export_default_expr) in {}",
+          self.module_identifier
+        )
       }
       None => {
         self.export_default_name = Some("default".into());
@@ -387,6 +431,13 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               self.used_id_set.insert(member_expr);
             }
             _ => {}
+          }
+        } else {
+          // For commonjs and umd
+          if (&obj.sym == "module" && &prop.sym == "exports") || &obj.sym == "exports" {
+            self
+              .bail_out_module_identifiers
+              .insert(self.module_identifier, BailoutReason::CommonjsExports);
           }
         }
       }
@@ -440,6 +491,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
   fn visit_class_expr(&mut self, node: &ClassExpr) {
     if self.state.contains(AnalyzeState::EXPORT_DEFAULT) {
+      self.state.remove(AnalyzeState::EXPORT_DEFAULT);
       let default_ident = self.generate_default_ident();
       self.export_map.insert(
         default_ident.sym.clone(),
@@ -451,20 +503,25 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       let body_owner_extend_symbol: SymbolExt = match self.export_default_name {
         Some(_) => {
           // TODO: Better diagnostic
-          panic!("Duplicate export default")
+          panic!(
+            "Duplicate export default(class_expr) in {}",
+            self.module_identifier
+          )
         }
         None => {
           let symbol_ext: SymbolExt = if let Some(ident) = &node.ident {
-            let symbol_ext = SymbolExt::new(ident.to_id().into(), SymbolFlag::EXPORT_DEFAULT);
+            let renamed_symbol_ext =
+              SymbolExt::new(ident.to_id().into(), SymbolFlag::EXPORT_DEFAULT);
+            let default_ident_ext: SymbolExt = BetterId::from(default_ident.to_id()).into();
             self.add_reference(
-              BetterId::from(ident.to_id()).into(),
-              IdOrMemExpr::Id(symbol_ext.id.clone()),
+              default_ident_ext.clone(),
+              IdOrMemExpr::Id(renamed_symbol_ext.id.clone()),
             );
             self.add_reference(
-              symbol_ext.clone(),
-              IdOrMemExpr::Id(default_ident.to_id().into()),
+              renamed_symbol_ext.clone(),
+              IdOrMemExpr::Id(default_ident_ext.id),
             );
-            symbol_ext
+            renamed_symbol_ext
           } else {
             SymbolExt::new(default_ident.to_id().into(), SymbolFlag::EXPORT_DEFAULT)
           };
@@ -483,9 +540,52 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       node.class.visit_with(self);
     }
   }
+  // fn visit_span(&mut self, span: &Span) {}
+  fn visit_call_expr(&mut self, node: &CallExpr) {
+    // TODO: module.exports, exports.xxxxx
+    if let Some(require_lit) = get_require_literal(node, self.unresolved_mark) {
+      match self
+        .resolve_module_identifier(require_lit.to_string(), ResolveKind::Require)
+        .map(|item| ustr(item))
+      {
+        Some(module_identifier) => {
+          self
+            .bail_out_module_identifiers
+            .insert(module_identifier, BailoutReason::CommonjsRequire);
+        }
+        None => {
+          eprintln!(
+            "Can't resolve require {} in {}",
+            require_lit, self.module_identifier
+          );
+        }
+      };
+      self.module_syntax.insert(ModuleSyntax::COMMONJS);
+    } else if let Some(import_str) = get_dynamic_import_string_literal(node) {
+      match self
+        .resolve_module_identifier(import_str.to_string(), ResolveKind::DynamicImport)
+        .map(|item| ustr(item))
+      {
+        Some(module_identifier) => {
+          self
+            .bail_out_module_identifiers
+            .insert(module_identifier, BailoutReason::DynamicImport);
+        }
+        None => {
+          eprintln!(
+            "Can't resolve dynamic import {} in {}",
+            import_str, self.module_identifier
+          );
+        }
+      };
+    } else {
+      node.visit_children_with(self);
+    }
+  }
 
   fn visit_fn_expr(&mut self, node: &FnExpr) {
     if self.state.contains(AnalyzeState::EXPORT_DEFAULT) {
+      self.state.remove(AnalyzeState::EXPORT_DEFAULT);
       let default_ident = self.generate_default_ident();
       self.export_map.insert(
         default_ident.sym.clone(),
@@ -497,7 +597,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       let body_owner_extend_symbol: SymbolExt = match self.export_default_name {
         Some(_) => {
           // TODO: Better diagnostic
-          panic!("Duplicate export default")
+          panic!(
+            "Duplicate export default(fn_expr) in {}",
+            self.module_identifier
+          )
         }
         None => {
           let symbol_ext: SymbolExt = if let Some(ident) = &node.ident {
@@ -512,7 +615,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               IdOrMemExpr::Id(default_ident.to_id().into()),
             );
             self.add_reference(
-              BetterId::from(ident.to_id()).into(),
+              BetterId::from(default_ident.to_id()).into(),
               IdOrMemExpr::Id(symbol_ext.id.clone()),
             );
             symbol_ext
@@ -568,6 +671,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         | Pat::Invalid(_)
         | Pat::Expr(_) => {
           // TODO:
+          ele.visit_with(self);
           continue;
         }
       };
@@ -587,6 +691,8 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         self.current_body_owner_symbol_ext = Some(symbol_ext);
         init.visit_with(self);
         self.current_body_owner_symbol_ext = before_symbol_ext;
+      } else {
+        ele.init.visit_with(self);
       }
     }
   }
@@ -620,6 +726,14 @@ impl<'a> ModuleRefAnalyze<'a> {
         // TODO: should add some Diagnostic
       }
       Entry::Vacant(vac) => {
+        // if import is a helper injection then we should ignore now tree-shaking with that module
+        // one more thing, only helper module inserted by swc transfomer will be ignored
+        // e.g. import ext from '@swc/helper/xxx'
+        if vac.key().ctxt.outer() == self.helper_mark {
+          self
+            .bail_out_module_identifiers
+            .insert(symbol.module_identifier(), BailoutReason::Helper);
+        }
         vac.insert(symbol);
       }
     }
@@ -630,6 +744,12 @@ impl<'a> ModuleRefAnalyze<'a> {
       let resolved_uri = match self.resolve_module_identifier(src, ResolveKind::Import) {
         Some(module_identifier) => module_identifier,
         None => {
+          eprintln!(
+            "Can't resolve import {} in module {} ",
+            // SAFETY: we already know that src is not empty
+            named_export.src.as_ref().unwrap().value,
+            self.module_identifier
+          );
           // TODO: Ignore because helper interference.
           return;
         }
@@ -654,15 +774,25 @@ impl<'a> ModuleRefAnalyze<'a> {
           ExportSpecifier::Named(named) => {
             // TODO: what if the named binding is a unresolved_binding?
             // TODO: handle `as xxx`
-            let id = match &named.orig {
+            let original = match &named.orig {
               ModuleExportName::Ident(ident) => ident.sym.clone(),
               ModuleExportName::Str(_) => {
                 todo!()
               }
             };
-            let symbol_ref =
-              SymbolRef::Indirect(IndirectTopLevelSymbol::new(resolved_uri_ukey, id.clone()));
-            self.add_export(id, symbol_ref);
+            let exported = match &named.exported {
+              Some(exported) => match exported {
+                ModuleExportName::Ident(ident) => ident.sym.clone(),
+                ModuleExportName::Str(str) => str.value.clone(),
+              },
+              None => original.clone(),
+            };
+            let symbol_ref = SymbolRef::Indirect(IndirectTopLevelSymbol::new(
+              resolved_uri_ukey,
+              original,
+              self.module_identifier,
+            ));
+            self.add_export(exported, symbol_ref);
           }
         });
     } else {
@@ -681,9 +811,8 @@ impl<'a> ModuleRefAnalyze<'a> {
           }
           ExportSpecifier::Named(named) => {
             // TODO: what if the named binding is a unresolved_binding?
-            // TODO: handle `as xxx`
-            let id = match &named.orig {
-              ModuleExportName::Ident(ident) => ident.to_id(),
+            let id: BetterId = match &named.orig {
+              ModuleExportName::Ident(ident) => ident.to_id().into(),
               // `export {'a'}` is a syntax error;
               // we know here export has no src,  so this branch should not reachable.
               ModuleExportName::Str(_) => unreachable!(),
@@ -694,10 +823,10 @@ impl<'a> ModuleRefAnalyze<'a> {
                 ModuleExportName::Ident(ident) => ident.sym.clone(),
                 ModuleExportName::Str(str) => str.value.clone(),
               },
-              None => id.0.clone(),
+              None => id.atom.clone(),
             };
-            let symbol_ref =
-              SymbolRef::Direct(Symbol::from_id_and_uri(id.into(), self.module_identifier));
+            let symbol_ref = SymbolRef::Direct(Symbol::from_id_and_uri(id, self.module_identifier));
+
             self.add_export(exported_atom, symbol_ref);
           }
         });
@@ -743,6 +872,7 @@ pub struct TreeShakingResult {
   pub(crate) reachable_import_of_export: HashMap<JsWord, HashSet<SymbolRef>>,
   state: AnalyzeState,
   pub(crate) used_symbol_ref: HashSet<SymbolRef>,
+  pub(crate) bail_out_module_identifiers: HashMap<Ustr, BailoutReason>,
 }
 
 impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
@@ -759,6 +889,7 @@ impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
       reachable_import_of_export: std::mem::take(&mut analyze.reachable_import_and_export),
       state: std::mem::take(&mut analyze.state),
       used_symbol_ref: std::mem::take(&mut analyze.used_symbol_ref),
+      bail_out_module_identifiers: std::mem::take(&mut analyze.bail_out_module_identifiers),
     }
   }
 }
