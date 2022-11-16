@@ -13,7 +13,7 @@ pub struct OptimizeDependencyResult {
   pub bail_out_module_identifiers: HashMap<Ustr, BailoutReason>,
 }
 
-pub static CARE_MODULE_ID: &[&str] = &[
+pub static CARED_MODULE_ID: &[&str] = &[
   "",
   // "/home/victor/Documents/rspack/rspack/examples/arco-pro/src/index.tsx",
   // "/home/victor/Documents/rspack/rspack/examples/basic/index.js",
@@ -24,10 +24,10 @@ pub static CARE_MODULE_ID: &[&str] = &[
 ];
 
 pub fn debug_care_module_id<T: AsRef<str>>(id: T) -> bool {
-  if CARE_MODULE_ID.len() == 0 {
+  if CARED_MODULE_ID.is_empty() {
     return true;
   }
-  CARE_MODULE_ID.contains(&id.as_ref())
+  CARED_MODULE_ID.contains(&id.as_ref())
 }
 
 #[derive(Debug, Clone, Copy)]

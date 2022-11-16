@@ -4,7 +4,7 @@ use bitflags::bitflags;
 use hashbrown::{hash_map::Entry, HashMap, HashSet};
 use indexmap::IndexMap;
 use swc_atoms::JsWord;
-use swc_common::{util::take::Take, Mark, Span, GLOBALS};
+use swc_common::{util::take::Take, Mark, GLOBALS};
 use swc_ecma_ast::*;
 use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
 use ustr::{ustr, Ustr};
@@ -180,7 +180,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     if self
       .bail_out_module_identifiers
       .iter()
-      .any(|(k, v)| !matches!(v, BailoutReason::Helper))
+      .any(|(_, v)| !matches!(v, BailoutReason::Helper))
     {
       self
         .bail_out_module_identifiers
@@ -540,7 +540,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       node.class.visit_with(self);
     }
   }
-  fn visit_span(&mut self, span: &Span) {}
+  // fn visit_span(&mut self, span: &Span) {}
   fn visit_call_expr(&mut self, node: &CallExpr) {
     // TODO: module.exports, exports.xxxxx
     if let Some(require_lit) = get_require_literal(node, self.unresolved_mark) {
@@ -727,6 +727,8 @@ impl<'a> ModuleRefAnalyze<'a> {
       }
       Entry::Vacant(vac) => {
         // if import is a helper injection then we should ignore now tree-shaking with that module
+        // one more thing, only helper module inserted by swc transfomer will be ignored
+        // e.g. import ext from '@swc/helper/xxx'
         if vac.key().ctxt.outer() == self.helper_mark {
           self
             .bail_out_module_identifiers

@@ -1204,7 +1204,7 @@ fn mark_symbol(
               ret.push((module_identifier, value));
             }
             has_bailout_module_identifiers = has_bailout_module_identifiers
-              || bailout_module_identifiers.contains_key(&module_identifier);
+              || bailout_module_identifiers.contains_key(module_identifier);
           }
           match ret.len() {
             0 => {
