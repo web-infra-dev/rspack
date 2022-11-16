@@ -1,2 +1,2 @@
-import test from './app'
-test()
+import { render } from './app'
+render()
