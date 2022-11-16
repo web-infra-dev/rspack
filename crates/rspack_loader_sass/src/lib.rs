@@ -532,6 +532,12 @@ fn sass_log_to_diagnostics(
   message: &str,
   span: Option<&SourceSpan>,
 ) -> Vec<Diagnostic> {
+  let title = match severity {
+    Severity::Error => "Sass Error",
+    Severity::Warn => "Sass Warning",
+  }
+  .to_string();
+  let message = message.to_string();
   if let Some(span) = span
     && let Some(url) = &span.url {
     Error::TraceableError(TraceableError::from_path(url
@@ -541,13 +547,14 @@ fn sass_log_to_diagnostics(
         .to_string(),
       span.start.offset,
       span.end.offset,
-      match severity {
-        Severity::Error => "Sass Error",
-        Severity::Warn => "Sass Warning",
-      }.to_string(),
-      message.to_string(),
+      title,
+      message,
     ).with_kind(DiagnosticKind::Scss).with_severity(severity)).into()
   } else {
-    Error::InternalError(message.to_string()).into()
+    let f = match severity {
+      Severity::Error => Diagnostic::error,
+      Severity::Warn => Diagnostic::warn,
+    };
+    vec![f(title, message, 0, 0).with_kind(DiagnosticKind::Scss)]
   }
 }
