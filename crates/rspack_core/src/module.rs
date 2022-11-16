@@ -86,7 +86,7 @@ impl dyn Module + '_ {
   pub fn try_as_normal_module(&self) -> Result<&NormalModule> {
     self.as_normal_module().ok_or_else(|| {
       Error::InternalError(format!(
-        "Failed to case module {} as a NormalModule",
+        "Failed to cast module {} to a NormalModule",
         self.identifier()
       ))
     })
