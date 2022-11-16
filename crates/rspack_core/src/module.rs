@@ -2,13 +2,13 @@ use std::{any::Any, fmt::Debug};
 
 use async_trait::async_trait;
 
-use rspack_error::{Result, TWithDiagnosticArray};
+use rspack_error::{Error, Result, TWithDiagnosticArray};
 use rspack_loader_runner::Loader;
 use rspack_sources::Source;
 
 use crate::{
   CodeGenerationResult, Compilation, CompilationContext, CompilerContext, CompilerOptions,
-  LoaderRunnerRunner, ModuleDependency, ModuleType, SourceType,
+  LoaderRunnerRunner, ModuleDependency, ModuleType, NormalModule, SourceType,
 };
 
 pub trait AsAny {
@@ -42,9 +42,11 @@ pub trait Module: Debug + Send + Sync + AsAny {
 
   fn source_types(&self) -> &[SourceType];
 
-  fn original_source(&self) -> &dyn Source;
+  fn original_source(&self) -> Option<&dyn Source>;
 
   fn identifier(&self) -> String;
+
+  fn size(&self, _source_type: &SourceType) -> f64;
 
   async fn build(
     &self,
@@ -75,6 +77,19 @@ impl dyn Module {
   fn downcast_mut<T: Module + Any>(&mut self) -> Option<&mut T> {
     self.as_any_mut().downcast_mut::<T>()
   }
+
+  fn as_normal_module(&self) -> Option<&NormalModule> {
+    self.as_any().downcast_ref::<NormalModule>()
+  }
+
+  fn try_as_normal_module(&self) -> Result<&NormalModule> {
+    self.as_normal_module().ok_or_else(|| {
+      Error::InternalError(format!(
+        "Failed to case module {} as a NormalModule",
+        self.identifier()
+      ))
+    })
+  }
 }
 
 #[cfg(test)]
@@ -103,7 +118,11 @@ mod test {
       unreachable!()
     }
 
-    fn original_source(&self) -> &dyn Source {
+    fn original_source(&self) -> Option<&dyn Source> {
+      unreachable!()
+    }
+
+    fn size(&self, _source_type: &SourceType) -> f64 {
       unreachable!()
     }
 
@@ -133,7 +152,11 @@ mod test {
       unreachable!()
     }
 
-    fn original_source(&self) -> &dyn Source {
+    fn original_source(&self) -> Option<&dyn Source> {
+      unreachable!()
+    }
+
+    fn size(&self, _source_type: &SourceType) -> f64 {
       unreachable!()
     }
 
