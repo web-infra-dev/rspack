@@ -86,8 +86,24 @@ impl JsPlugin {
       .iter()
       .filter_map(|identifier| compilation.runtime_modules.get(identifier))
       .fold(ConcatSource::default(), |mut output, cur| {
-        output.add(cur.sources.clone());
-        output
+        // Adding this debug branch to keep only necessary runtime when tree-shaking test snapshot
+        // Currently it have 40LOC with about 1000LOC runtime code in our tree-shaking snapshot, it is hard to review the snapshot
+        #[cfg(debug_assertions)]
+        {
+          if !compilation.options.__wrap_runtime {
+            if cur.identifier == "rspack/runtime/_module_and_chunk_data.js" {
+              output.add(cur.sources.clone())
+            }
+          } else {
+            output.add(cur.sources.clone())
+          }
+          output
+        }
+        #[cfg(not(debug_assertions))]
+        {
+          output.add(cur.sources.clone());
+          output
+        }
       });
     let runtime_source = runtime_modules.source().to_string();
     let modules_code_start = runtime_source
@@ -397,7 +413,6 @@ impl Plugin for JsPlugin {
     } else {
       self.render_chunk(&args)?
     };
-
     // let hash = Some(get_hash(compilation).to_string());
     let hash = None;
     // let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());

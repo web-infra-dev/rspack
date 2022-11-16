@@ -1,17 +1,14 @@
 use std::path::PathBuf;
 
 use rspack_core::CompilerOptions;
-use rspack_test::{read_test_config_and_normalize, test_fixture};
+use rspack_test::{read_test_config_and_normalize, rspack_only::options_noop, test_fixture};
 use rspack_tracing::enable_tracing_by_env;
 use testing_macros::fixture;
 
 #[fixture("tests/fixtures/*")]
 fn rspack(fixture_path: PathBuf) {
   enable_tracing_by_env();
-  test_fixture(&fixture_path, |mut options: CompilerOptions| {
-    options.__wrap_runtime = false;
-    options
-  });
+  test_fixture(&fixture_path, options_noop);
 }
 
 #[tokio::main]
