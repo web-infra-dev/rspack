@@ -223,7 +223,7 @@ importers:
       '@rspack/plugin-less': workspace:^
       '@rspack/plugin-node-polyfill': workspace:^
       '@rspack/plugin-postcss': workspace:^
-      '@swc/helpers': ^0.4.12
+      '@swc/helpers': 0.4.13
       '@tmp-sass-embedded/darwin-arm64': 1.54.4
       '@tmp-sass-embedded/darwin-x64': 1.54.4
       '@tmp-sass-embedded/linux-arm64': 1.54.4
@@ -256,6 +256,7 @@ importers:
     dependencies:
       '@rspack/binding': link:../../crates/node_binding
       '@rspack/dev-client': link:../rspack-dev-client
+      '@swc/helpers': 0.4.13
       browserslist: 4.21.3
       chokidar: 3.5.3
       graceful-fs: 4.2.10
@@ -276,7 +277,6 @@ importers:
       '@rspack/plugin-less': link:../rspack-plugin-less
       '@rspack/plugin-node-polyfill': link:../rspack-plugin-node-polyfill
       '@rspack/plugin-postcss': link:../rspack-plugin-postcss
-      '@swc/helpers': 0.4.12
       '@types/jest': 29.0.2
       '@types/node': 18.7.9
       '@types/rimraf': 3.0.2
@@ -3324,11 +3324,11 @@ packages:
       '@swc/core-win32-x64-msvc': 1.3.14
     dev: true
 
-  /@swc/helpers/0.4.12:
-    resolution: {integrity: sha512-R6RmwS9Dld5lNvwKlPn62+piU+WDG1sMfsnfJioXCciyko/gZ0DQ4Mqglhq1iGU1nQ/RcGkAwfMH+elMSkJH3Q==}
+  /@swc/helpers/0.4.13:
+    resolution: {integrity: sha512-WOoZMSqpmUgL72xOeaWcU9IG7C6t5Wh1e8NGpSyBvmN5BSCXleK4/PLS6Oko1i/Lvn/yGYOv62bxlfsDvmRurg==}
     dependencies:
       tslib: 2.4.0
-    dev: true
+    dev: false
 
   /@szmarczak/http-timer/1.1.2:
     resolution: {integrity: sha512-XIB2XbzHTN6ieIjfIMV9hlVcfPU26s2vafYWQcZHWXHOxiaRZYEDKEwdl129Zyg50+foYV2jCgtrqSA6qNuNSA==}

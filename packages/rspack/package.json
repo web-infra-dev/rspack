@@ -43,7 +43,8 @@
     "webpack-sources": "3.2.3",
     "graceful-fs": "4.2.10",
     "neo-async": "2.6.2",
-    "react-refresh": "0.14.0"
+    "react-refresh": "0.14.0",
+    "@swc/helpers": "0.4.13"
   },
   "optionalDependencies": {
     "@tmp-sass-embedded/darwin-arm64": "1.54.4",
