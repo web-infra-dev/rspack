@@ -45,7 +45,9 @@ module.exports = async function loader(loaderContext) {
 
 		if (modulesOptions) {
 			let auto =
-				typeof modulesOptions === "boolean" ? true : modulesOptions.auto;
+				typeof modulesOptions === "boolean"
+					? true
+					: modulesOptions.auto ?? true;
 			let isModules;
 			if (typeof auto === "boolean") {
 				isModules = auto && IS_MODULES.test(loaderContext.resourcePath);
