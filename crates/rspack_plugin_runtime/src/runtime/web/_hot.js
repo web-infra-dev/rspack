@@ -322,7 +322,7 @@
 		currentUpdateApplyHandlers = undefined;
 		var errors = results
 			.map(function (r) {
-				return r.errors;
+				return r.error;
 			})
 			.filter(Boolean);
 

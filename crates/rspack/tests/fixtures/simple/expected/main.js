@@ -456,7 +456,7 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 		currentUpdateApplyHandlers = undefined;
 		var errors = results
 			.map(function (r) {
-				return r.errors;
+				return r.error;
 			})
 			.filter(Boolean);
 
