@@ -4,7 +4,7 @@ use hashbrown::{HashMap, HashSet};
 
 use rspack_error::{Error, Result};
 
-use crate::{Dependency, Module, ModuleGraphModule, ModuleIdentifier, NormalModule};
+use crate::{BoxModule, Dependency, Module, ModuleGraphModule, ModuleIdentifier, NormalModule};
 
 // FIXME: placing this as global id is not acceptable, move it to somewhere else later
 static MODULE_GRAPH_CONNECTION_ID: AtomicU32 = AtomicU32::new(1);
@@ -60,7 +60,7 @@ pub struct ModuleGraph {
   dependency_id_to_module_identifier: HashMap<u32, String>,
 
   /// Module identifier to its module
-  pub module_identifier_to_module: HashMap<ModuleIdentifier, NormalModule>,
+  pub module_identifier_to_module: HashMap<ModuleIdentifier, BoxModule>,
   /// Module identifier to its module graph module
   pub module_identifier_to_module_graph_module: HashMap<ModuleIdentifier, ModuleGraphModule>,
 
@@ -83,7 +83,7 @@ impl ModuleGraph {
     }
   }
 
-  pub fn add_module(&mut self, module: NormalModule) {
+  pub fn add_module(&mut self, module: BoxModule) {
     if let hashbrown::hash_map::Entry::Vacant(val) =
       self.module_identifier_to_module.entry(module.identifier())
     {
@@ -126,7 +126,7 @@ impl ModuleGraph {
   }
 
   /// Return an unordered iterator of modules
-  pub fn modules(&self) -> impl Iterator<Item = &NormalModule> {
+  pub fn modules(&self) -> impl Iterator<Item = &BoxModule> {
     self.module_identifier_to_module.values()
   }
 
@@ -179,13 +179,13 @@ impl ModuleGraph {
 
   /// Uniquely identify a module by its identifier and return the aliased reference
   #[inline]
-  pub fn module_by_identifier(&self, identifier: &str) -> Option<&NormalModule> {
+  pub fn module_by_identifier(&self, identifier: &str) -> Option<&BoxModule> {
     self.module_identifier_to_module.get(identifier)
   }
 
   /// Uniquely identify a module by its identifier and return the exclusive reference
   #[inline]
-  pub fn module_by_identifier_mut(&mut self, identifier: &str) -> Option<&mut NormalModule> {
+  pub fn module_by_identifier_mut(&mut self, identifier: &str) -> Option<&mut BoxModule> {
     self.module_identifier_to_module.get_mut(identifier)
   }
 

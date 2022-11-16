@@ -14,9 +14,9 @@ use rspack_error::{Diagnostic, Error, Result, TWithDiagnosticArray};
 use tracing::instrument;
 
 use crate::{
-  parse_to_url, resolve, CompilerOptions, FactorizeAndBuildArgs, Module, ModuleGraphModule,
-  ModuleIdentifier, ModuleRule, ModuleType, Msg, NormalModule, ResolveArgs, ResolveResult,
-  ResourceData, SharedPluginDriver, DEPENDENCY_ID,
+  parse_to_url, resolve, CompilerOptions, FactorizeAndBuildArgs, Module, ModuleExt,
+  ModuleGraphModule, ModuleIdentifier, ModuleRule, ModuleType, Msg, NormalModule, ResolveArgs,
+  ResolveResult, ResourceData, SharedPluginDriver, DEPENDENCY_ID,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -81,7 +81,7 @@ impl NormalModuleFactory {
           if let Err(err) = self.tx.send(Msg::ModuleCreated(TWithDiagnosticArray::new(
             Box::new((
               mgm,
-              module,
+              module.boxed(),
               original_module_identifier,
               dependency_id,
               // FIXME: redundant
