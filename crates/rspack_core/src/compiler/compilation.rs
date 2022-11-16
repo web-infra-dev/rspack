@@ -686,7 +686,7 @@ impl Compilation {
           | crate::ModuleType::Ts => match self
                       .module_graph
                       .module_by_identifier(&mgm.module_identifier)
-                      .and_then(|module| module.as_normal_module().map(|m| m.ast()).flatten())
+                      .and_then(|module| module.as_normal_module().and_then(|m| m.ast()))
                       .unwrap()
                       .as_javascript() {
               Some(ast) => {ast},
