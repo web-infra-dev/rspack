@@ -83,8 +83,21 @@ impl dyn Module + '_ {
     self.as_any().downcast_ref::<NormalModule>()
   }
 
+  pub fn as_normal_module_mut(&mut self) -> Option<&mut NormalModule> {
+    self.as_any().downcast_mut::<NormalModule>()
+  }
+
   pub fn try_as_normal_module(&self) -> Result<&NormalModule> {
     self.as_normal_module().ok_or_else(|| {
+      Error::InternalError(format!(
+        "Failed to cast module {} to a NormalModule",
+        self.identifier()
+      ))
+    })
+  }
+
+  pub fn try_as_normal_module_mut(&mut self) -> Result<&mut NormalModule> {
+    self.as_normal_module_mut().ok_or_else(|| {
       Error::InternalError(format!(
         "Failed to cast module {} to a NormalModule",
         self.identifier()

@@ -421,6 +421,9 @@ impl Compilation {
     tokio::spawn(async move {
       // FIXME: this will be failed if other kinds of modules are passed in.
       let resource_data = module.as_normal_module().unwrap().resource_resolved_data();
+      // if let Some(module) = module.as_normal_module() {
+      //   todo!()
+      // }
       let resolved_loaders = match compiler_options
         .module
         .rules

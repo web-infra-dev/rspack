@@ -56,36 +56,38 @@ impl Compiler {
             .module_graph
             .module_by_identifier(&item.module_identifier)
             .and_then(|module| {
-              // FIXME: resource_resolved_data is only available on `NormalModule`, this will crack if other module kinds are passed in.
-              let resource_data = module.as_normal_module().unwrap().resource_resolved_data();
-              let resource_path = &resource_data.resource_path;
+              module.as_normal_module().and_then(|normal_module| {
+                let resource_data = normal_module.resource_resolved_data();
+                let resource_path = &resource_data.resource_path;
 
-              if !changed_files.contains(resource_path) && !removed_files.contains(resource_path) {
-                None
-              } else if item.module_type.is_js_like() {
-                // TODO: should use code_generation_results
-                let code = module.code_generation(compilation).unwrap();
-                let code = if let Some(code) = code.get(&JavaScript) {
-                  code.ast_or_source.as_source().unwrap().source().to_string()
+                if !changed_files.contains(resource_path) && !removed_files.contains(resource_path)
+                {
+                  None
+                } else if item.module_type.is_js_like() {
+                  // TODO: should use code_generation_results
+                  let code = module.code_generation(compilation).unwrap();
+                  let code = if let Some(code) = code.get(&JavaScript) {
+                    code.ast_or_source.as_source().unwrap().source().to_string()
+                  } else {
+                    println!("expect get JavaScirpt code");
+                    String::new()
+                  };
+                  Some((item.module_identifier.clone(), code))
+                } else if item.module_type.is_css() {
+                  // TODO: should use code_generation_results
+                  let code = module.code_generation(compilation).unwrap();
+                  let code = if let Some(code) = code.get(&Css) {
+                    // only used for compare between two build
+                    code.ast_or_source.as_source().unwrap().source().to_string()
+                  } else {
+                    println!("expect get CSS code");
+                    String::new()
+                  };
+                  Some((item.module_identifier.clone(), code))
                 } else {
-                  println!("expect get JavaScirpt code");
-                  String::new()
-                };
-                Some((item.module_identifier.clone(), code))
-              } else if item.module_type.is_css() {
-                // TODO: should use code_generation_results
-                let code = module.code_generation(compilation).unwrap();
-                let code = if let Some(code) = code.get(&Css) {
-                  // only used for compare between two build
-                  code.ast_or_source.as_source().unwrap().source().to_string()
-                } else {
-                  println!("expect get CSS code");
-                  String::new()
-                };
-                Some((item.module_identifier.clone(), code))
-              } else {
-                None
-              }
+                  None
+                }
+              })
             })
         })
         .collect()

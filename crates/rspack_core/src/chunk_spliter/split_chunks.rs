@@ -388,20 +388,11 @@ impl<'me> CodeSplitter<'me> {
 
       let chunk = Compilation::add_chunk(
         &mut self.compilation.chunk_by_ukey,
-        uri_to_chunk_name(&self.compilation.options.context.to_string_lossy(), {
-          let module = self
-            .compilation
-            .module_graph
-            .module_by_identifier(&dyn_dep_mgm.module_identifier)
-            .unwrap();
-
-          // FIXME: this will be failed if any other kinds of modules are passed in.
-          &module
-            .as_normal_module()
-            .unwrap()
-            .resource_resolved_data()
-            .resource_path
-        }),
+        uri_to_chunk_name(
+          &self.compilation.options.context.to_string_lossy(),
+          // TODO: change to chunk group name
+          &dyn_dep_mgm.module_identifier,
+        ),
       );
       self.compilation.chunk_graph.add_chunk(chunk.ukey);
       self
