@@ -107,7 +107,7 @@ export class RspackDevServer {
 		return WebpackDevServer.internalIPSync(family);
 	}
 
-	static async getHostname(hostname: Host): Promise<string> {
+	static async getHostname(hostname?: Host): Promise<string> {
 		return WebpackDevServer.getHostname(hostname);
 	}
 
@@ -173,7 +173,7 @@ export class RspackDevServer {
 		this.createWebsocketServer();
 		this.setupDevMiddleware();
 		this.setupMiddlewares();
-		const host = await RspackDevServer.getHostname("local-ip");
+		const host = await RspackDevServer.getHostname(this.options.host);
 		const port = await RspackDevServer.getFreePort(this.options.port, host);
 		await new Promise(resolve =>
 			this.server.listen(
@@ -182,8 +182,11 @@ export class RspackDevServer {
 					host
 				},
 				() => {
-					this.logger.info(`Loopback: http:localhost:${port}`);
-					this.logger.info(`Your Network (IPV4) http://${host}:${port}`);
+					this.logger.info(`Loopback: http://localhost:${port}`);
+					let internalIPv4 = WebpackDevServer.internalIPSync("v4");
+					this.logger.info(
+						`Your Network (IPV4) http://${internalIPv4}:${port}`
+					);
 					resolve({});
 				}
 			)
