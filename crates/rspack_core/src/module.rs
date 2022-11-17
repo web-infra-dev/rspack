@@ -78,33 +78,43 @@ impl dyn Module + '_ {
   pub fn downcast_mut<T: Module + Any>(&mut self) -> Option<&mut T> {
     self.as_any_mut().downcast_mut::<T>()
   }
-
-  pub fn as_normal_module(&self) -> Option<&NormalModule> {
-    self.as_any().downcast_ref::<NormalModule>()
-  }
-
-  pub fn as_normal_module_mut(&mut self) -> Option<&mut NormalModule> {
-    self.as_any().downcast_mut::<NormalModule>()
-  }
-
-  pub fn try_as_normal_module(&self) -> Result<&NormalModule> {
-    self.as_normal_module().ok_or_else(|| {
-      Error::InternalError(format!(
-        "Failed to cast module {} to a NormalModule",
-        self.identifier()
-      ))
-    })
-  }
-
-  pub fn try_as_normal_module_mut(&mut self) -> Result<&mut NormalModule> {
-    self.as_normal_module_mut().ok_or_else(|| {
-      Error::InternalError(format!(
-        "Failed to cast module {} to a NormalModule",
-        self.identifier()
-      ))
-    })
-  }
 }
+
+macro_rules! impl_module_downcast_helpers {
+  ($ty:ty, $ident: ident) => {
+    impl dyn Module + '_ {
+      ::paste::paste! {
+        pub fn [<as_ $ident>](&self) -> Option<& $ty> {
+          self.as_any().downcast_ref::<$ty>()
+        }
+
+        pub fn [<as_ $ident _mut>](&mut self) -> Option<&mut $ty> {
+          self.as_any_mut().downcast_mut::<$ty>()
+        }
+
+        pub fn [<try_as_ $ident>](&self) -> Result<& $ty> {
+          self.[<as_ $ident>]().ok_or_else(|| {
+            Error::InternalError(format!(
+              "Failed to cast module to a {}",
+              stringify!($ty)
+            ))
+          })
+        }
+
+        pub fn [<try_as_ $ident _mut>](&mut self) -> Result<&mut $ty> {
+          self.[<as_ $ident _mut>]().ok_or_else(|| {
+            Error::InternalError(format!(
+              "Failed to cast module to a {}",
+              stringify!($ty)
+            ))
+          })
+        }
+      }
+    }
+  };
+}
+
+impl_module_downcast_helpers!(NormalModule, normal_module);
 
 #[cfg(test)]
 mod test {
