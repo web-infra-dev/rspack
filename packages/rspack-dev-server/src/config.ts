@@ -8,6 +8,7 @@ import path from "node:path";
 import { resolveWatchOption } from "@rspack/core";
 
 export interface ResolvedDev {
+	host: string;
 	port: number;
 	static: {
 		directory: string;
@@ -52,6 +53,7 @@ export function resolveDevOptions(
 	}
 
 	return {
+		host: devConfig.host,
 		port: devConfig.port ? Number(devConfig.port) : undefined,
 		static: {
 			directory,

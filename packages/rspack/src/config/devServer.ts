@@ -9,6 +9,7 @@ export interface WebSocketServerOptions {
 }
 
 export interface Dev {
+	host?: string;
 	port?: number | string;
 	// TODO: static maybe `boolean`, `string`, `object`, `array`
 	static?: {
