@@ -419,59 +419,61 @@ impl Compilation {
     let module_identifier = module.identifier();
 
     tokio::spawn(async move {
-      // FIXME: this will be failed if other kinds of modules are passed in.
-      let resource_data = module.as_normal_module().unwrap().resource_resolved_data();
-      // if let Some(module) = module.as_normal_module() {
-      //   todo!()
-      // }
-      let resolved_loaders = match compiler_options
-        .module
-        .rules
-        .iter()
-        .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
-          if let Some(func) = &module_rule.func__ {
-            match func(resource_data) {
-              Ok(result) => {
-                if result {
-                  return Some(Ok(module_rule));
-                }
+      let resolved_loaders = {
+        if let Some(normal_module) = module.as_normal_module() {
+          let resource_data = normal_module.resource_resolved_data();
 
-                return None
-              },
-              Err(e) => {
-                return Some(Err(e.into()))
+          match compiler_options
+          .module
+          .rules
+          .iter()
+          .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
+            if let Some(func) = &module_rule.func__ {
+              match func(resource_data) {
+                Ok(result) => {
+                  if result {
+                    return Some(Ok(module_rule));
+                  }
+                  return None
+                },
+                Err(e) => {
+                  return Some(Err(e.into()))
+                }
               }
             }
-          }
 
-          // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
-          // See: https://webpack.js.org/configuration/module/#ruletest
-          if let Some(test_rule) = &module_rule.test && test_rule.is_match(&resource_data.resource) {
-            return Some(Ok(module_rule));
-          } else if let Some(resource_rule) = &module_rule.resource && resource_rule.is_match(&resource_data.resource) {
-            return Some(Ok(module_rule));
-          }
-
-          if let Some(resource_query_rule) = &module_rule.resource_query && let Some(resource_query) = &resource_data.resource_query && resource_query_rule.is_match(resource_query) {
-            return Some(Ok(module_rule));
-          }
-
-          None
-        })
-        .collect::<Result<Vec<_>>>() {
-          Ok(result) => result,
-          Err(err) => {
-            // If build error message is failed to send, then we should manually decrease the active task count
-            // Otherwise, it will be gracefully handled by the error message handler.
-            if let Err(err) =
-              tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err))
-            {
-              active_task_count.fetch_sub(1, Ordering::SeqCst);
-              tracing::trace!("fail to send msg {:?}", err)
+            // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
+            // See: https://webpack.js.org/configuration/module/#ruletest
+            if let Some(test_rule) = &module_rule.test && test_rule.is_match(&resource_data.resource) {
+              return Some(Ok(module_rule));
+            } else if let Some(resource_rule) = &module_rule.resource && resource_rule.is_match(&resource_data.resource) {
+              return Some(Ok(module_rule));
             }
-            return
+
+            if let Some(resource_query_rule) = &module_rule.resource_query && let Some(resource_query) = &resource_data.resource_query && resource_query_rule.is_match(resource_query) {
+              return Some(Ok(module_rule));
+            }
+
+            None
+          })
+          .collect::<Result<Vec<_>>>() {
+            Ok(result) => result,
+            Err(err) => {
+              // If build error message is failed to send, then we should manually decrease the active task count
+              // Otherwise, it will be gracefully handled by the error message handler.
+              if let Err(err) =
+                tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err))
+              {
+                active_task_count.fetch_sub(1, Ordering::SeqCst);
+                tracing::trace!("fail to send msg {:?}", err)
+              }
+              return
+            }
           }
-        };
+        } else {
+          vec![]
+        }
+      };
 
       let resolved_loaders = resolved_loaders
         .into_iter()
