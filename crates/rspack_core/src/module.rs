@@ -8,7 +8,7 @@ use rspack_sources::Source;
 
 use crate::{
   CodeGenerationResult, Compilation, CompilationContext, CompilerContext, CompilerOptions, Context,
-  LoaderRunnerRunner, ModuleDependency, ModuleType, NormalModule, SourceType,
+  LoaderRunnerRunner, ModuleDependency, ModuleType, NormalModule, RawModule, SourceType,
 };
 
 pub trait AsAny {
@@ -115,6 +115,7 @@ macro_rules! impl_module_downcast_helpers {
 }
 
 impl_module_downcast_helpers!(NormalModule, normal_module);
+impl_module_downcast_helpers!(RawModule, raw_module);
 
 #[cfg(test)]
 mod test {
