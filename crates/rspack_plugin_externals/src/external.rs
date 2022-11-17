@@ -5,7 +5,7 @@ use rspack_core::{
   AstOrSource, BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, ExternalType,
   Module, ModuleType, SourceType, Target, TargetPlatform,
 };
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 
 static EXTERNAL_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
 
@@ -97,7 +97,12 @@ impl Module for ExternalModule {
 
   fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
-    let source: AstOrSource = self.cached_source.as_ref().unwrap().clone().into();
+    let source: AstOrSource = self
+      .cached_source
+      .as_ref()
+      .ok_or_else(|| Error::InternalError("Source should exist".to_owned()))?
+      .clone()
+      .into();
     cgr.add(SourceType::JavaScript, source);
 
     Ok(cgr)
