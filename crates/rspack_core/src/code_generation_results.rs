@@ -30,8 +30,12 @@ impl CodeGenerationResult {
     self.inner.get(source_type)
   }
 
-  pub(super) fn add(&mut self, source_type: SourceType, generation_result: GenerationResult) {
-    let result = self.inner.insert(source_type, generation_result);
+  pub(super) fn add(
+    &mut self,
+    source_type: SourceType,
+    generation_result: impl Into<GenerationResult>,
+  ) {
+    let result = self.inner.insert(source_type, generation_result.into());
     debug_assert!(result.is_none());
   }
 }

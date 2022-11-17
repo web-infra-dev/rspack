@@ -1,4 +1,5 @@
 use std::{
+  borrow::Cow,
   fmt::Debug,
   sync::{
     atomic::{AtomicU32, Ordering},
@@ -373,12 +374,12 @@ impl Module for NormalModule {
     self.original_source.as_deref()
   }
 
-  fn identifier(&self) -> String {
-    self.request.to_owned()
+  fn identifier(&self) -> Cow<str> {
+    Cow::Borrowed(&self.request)
   }
 
-  fn readable_identifier(&self, context: &Context) -> String {
-    context.shorten(&self.user_request)
+  fn readable_identifier(&self, context: &Context) -> Cow<str> {
+    Cow::Owned(context.shorten(&self.user_request))
   }
 
   fn size(&self, source_type: &SourceType) -> f64 {
@@ -492,8 +493,7 @@ impl Module for NormalModule {
           *source_type,
           AstOrSource::Source(
             RawSource::from(format!("throw new Error({});\n", json!(error_message))).boxed(),
-          )
-          .into(),
+          ),
         );
       }
       Ok(code_generation_result)
