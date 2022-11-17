@@ -37,6 +37,7 @@ use crate::{
   is_source_equal, join_string_component, module_rule_matcher,
   split_chunks::code_splitting,
   tree_shaking::{
+    debug_care_module_id,
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
     BailoutReason, OptimizeDependencyResult,
   },
@@ -748,17 +749,18 @@ impl Compilation {
         });
         // Keep this debug info until we stabilize the tree-shaking
 
-        // if debug_care_module_id(uri_key) {
-        //   dbg!(
-        //     &uri_key,
-        //     // &analyzer.export_all_list,
-        //     &analyzer.export_map,
-        //     &analyzer.import_map,
-        //     &analyzer.reference_map,
-        //     &analyzer.reachable_import_and_export,
-        //     &analyzer.used_symbol_ref
-        //   );
-        // }
+        if debug_care_module_id(uri_key) {
+          dbg!(
+            &uri_key,
+            // &analyzer.export_all_list,
+            &analyzer.export_map,
+            &analyzer.import_map,
+            &analyzer.reference_map,
+            &analyzer.reachable_import_and_export,
+            &analyzer.used_symbol_ref
+          );
+        }
+
         Some((uri_key, analyzer.into()))
       })
       .collect::<HashMap<Ustr, TreeShakingResult>>();
@@ -768,6 +770,7 @@ impl Compilation {
       let forced_side_effects = self
         .entry_module_identifiers
         .contains(analyze_result.module_identifier.as_str());
+      // side_effects: true
       if forced_side_effects || !analyze_result.side_effects_free {
         used_symbol_ref.extend(analyze_result.used_symbol_ref.iter().cloned());
       }

@@ -1,5 +1,5 @@
 use hashbrown::HashSet;
-use swc_common::{Mark, DUMMY_SP, GLOBALS};
+use swc_common::{util::take::Take, Mark, DUMMY_SP, GLOBALS};
 use swc_ecma_ast::*;
 // use swc_ecma_utils::
 use rspack_symbol::{BetterId, Symbol};
@@ -16,6 +16,8 @@ pub fn tree_shaking_visitor(
     module_id,
     used_symbol_set,
     top_level_mark,
+    module_item_index: 0,
+    insert_item_tuple_list: Vec::new(),
   }
 }
 
@@ -34,6 +36,9 @@ struct TreeShaker<'a> {
   module_id: Ustr,
   used_symbol_set: &'a HashSet<Symbol>,
   top_level_mark: Mark,
+  /// First element of tuple is the position of body you want to insert with, the second element is the item you want to insert
+  insert_item_tuple_list: Vec<(usize, ModuleItem)>,
+  module_item_index: usize,
 }
 
 impl<'a> Fold for TreeShaker<'a> {
@@ -41,6 +46,22 @@ impl<'a> Fold for TreeShaker<'a> {
   fn fold_program(&mut self, node: Program) -> Program {
     debug_assert!(GLOBALS.is_set());
     node.fold_with(self)
+  }
+
+  fn fold_module(&mut self, mut node: Module) -> Module {
+    node.body = node
+      .body
+      .into_iter()
+      .enumerate()
+      .map(|(index, item)| {
+        self.module_item_index = index;
+        item.fold_with(self)
+      })
+      .collect();
+    for (position, module_item) in self.insert_item_tuple_list.take().into_iter().rev() {
+      node.body.insert(position, module_item);
+    }
+    node
   }
   fn fold_module_item(&mut self, node: ModuleItem) -> ModuleItem {
     match node {
@@ -74,13 +95,25 @@ impl<'a> Fold for TreeShaker<'a> {
             }
           }
           Decl::Var(var) => {
-            let used = var
+            // assume a is used and b, c is unused
+            // Convert
+            // ```js
+            // export const a = 100, b = 1, c = 3;
+            // ```
+            // To
+            // ```js
+            // export const a = 100;
+            // const b = 1, c = 3;
+            // ```
+            // swc dce will drop `b`, and `c`
+            let (used, unused): (Vec<_>, Vec<_>) = var
               .decls
               .into_iter()
               .map(|decl| match decl.name {
                 Pat::Ident(ident) => {
                   let id: BetterId = ident.to_id().into();
                   let symbol = Symbol::from_id_and_uri(id, self.module_id);
+                  let used = self.used_symbol_set.contains(&symbol);
                   (
                     VarDeclarator {
                       span: decl.span,
@@ -88,7 +121,7 @@ impl<'a> Fold for TreeShaker<'a> {
                       init: decl.init,
                       definite: decl.definite,
                     },
-                    self.used_symbol_set.contains(&symbol),
+                    used,
                   )
                 }
                 Pat::Array(_)
@@ -98,8 +131,18 @@ impl<'a> Fold for TreeShaker<'a> {
                 | Pat::Invalid(_)
                 | Pat::Expr(_) => (decl, true),
               })
-              .filter(|item| item.1)
-              .collect::<Vec<_>>();
+              .partition(|item| item.1);
+            if !unused.is_empty() {
+              self.insert_item_tuple_list.push((
+                self.module_item_index,
+                ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(VarDecl {
+                  span: DUMMY_SP,
+                  kind: var.kind,
+                  declare: var.declare,
+                  decls: unused.into_iter().map(|item| item.0).collect(),
+                })))),
+              ))
+            }
             if used.is_empty() {
               ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }))
             } else {
