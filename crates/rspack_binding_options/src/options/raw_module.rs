@@ -180,12 +180,12 @@ pub struct RawModuleOptions {
 }
 
 #[cfg(feature = "node-api")]
-pub struct NodeLoaderAdapter {
+pub struct JsLoaderAdapter {
   pub loader: JsLoader<LoaderThreadsafeLoaderResult>,
 }
 
 #[cfg(feature = "node-api")]
-impl NodeLoaderAdapter {
+impl JsLoaderAdapter {
   pub fn unref(&mut self, env: &napi::Env) -> anyhow::Result<()> {
     self
       .loader
@@ -195,9 +195,9 @@ impl NodeLoaderAdapter {
 }
 
 #[cfg(feature = "node-api")]
-impl Debug for NodeLoaderAdapter {
+impl Debug for JsLoaderAdapter {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("NodeLoaderAdapter")
+    f.debug_struct("JsLoaderAdapter")
       // TODO: More specific (Loader stage 2)
       .field("loaders", &"..")
       .finish()
@@ -207,10 +207,10 @@ impl Debug for NodeLoaderAdapter {
 #[cfg(feature = "node-api")]
 #[async_trait::async_trait]
 impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationContext>
-  for NodeLoaderAdapter
+  for JsLoaderAdapter
 {
   fn name(&self) -> &'static str {
-    "node-loader-adapter"
+    "js_loader_adapter"
   }
 
   async fn run(
@@ -348,7 +348,7 @@ impl RawOption<ModuleRule> for RawModuleRule {
                       })
                     })
                   })?;
-                return Ok(Box::new(NodeLoaderAdapter { loader }) as BoxedLoader);
+                return Ok(Box::new(JsLoaderAdapter { loader }) as BoxedLoader);
               }
             }
             if let Some(builtin_loader) = rule_use.builtin_loader {

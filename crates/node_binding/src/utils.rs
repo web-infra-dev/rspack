@@ -16,7 +16,7 @@ use crate::threadsafe_function::{
 static CUSTOM_TRACE_SUBSCRIBER: OnceCell<bool> = OnceCell::new();
 
 /// Try to resolve the string value of a given named property
-pub fn get_named_property_value_string<T: NapiRaw>(
+pub(crate) fn get_named_property_value_string<T: NapiRaw>(
   env: Env,
   object: T,
   property_name: &str,

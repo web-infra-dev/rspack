@@ -1,10 +1,10 @@
 #[napi(object)]
-pub struct StatsError {
+pub struct JsStatsError {
   pub message: String,
   pub formatted: String,
 }
 
-impl From<rspack_core::StatsError> for StatsError {
+impl From<rspack_core::StatsError> for JsStatsError {
   fn from(stats: rspack_core::StatsError) -> Self {
     Self {
       message: stats.message,
@@ -14,12 +14,12 @@ impl From<rspack_core::StatsError> for StatsError {
 }
 
 #[napi(object)]
-pub struct StatsWarning {
+pub struct JsStatsWarning {
   pub message: String,
   pub formatted: String,
 }
 
-impl From<rspack_core::StatsWarning> for StatsWarning {
+impl From<rspack_core::StatsWarning> for JsStatsWarning {
   fn from(stats: rspack_core::StatsWarning) -> Self {
     Self {
       message: stats.message,
@@ -29,16 +29,16 @@ impl From<rspack_core::StatsWarning> for StatsWarning {
 }
 
 #[napi(object)]
-pub struct StatsAsset {
+pub struct JsStatsAsset {
   pub r#type: &'static str,
   pub name: String,
   pub size: f64,
   pub chunks: Vec<String>,
   pub chunk_names: Vec<String>,
-  pub info: StatsAssetInfo,
+  pub info: JsStatsAssetInfo,
 }
 
-impl From<rspack_core::StatsAsset> for StatsAsset {
+impl From<rspack_core::StatsAsset> for JsStatsAsset {
   fn from(stats: rspack_core::StatsAsset) -> Self {
     Self {
       r#type: stats.r#type,
@@ -52,11 +52,11 @@ impl From<rspack_core::StatsAsset> for StatsAsset {
 }
 
 #[napi(object)]
-pub struct StatsAssetInfo {
+pub struct JsStatsAssetInfo {
   pub development: bool,
 }
 
-impl From<rspack_core::StatsAssetInfo> for StatsAssetInfo {
+impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
   fn from(stats: rspack_core::StatsAssetInfo) -> Self {
     Self {
       development: stats.development,
@@ -65,7 +65,7 @@ impl From<rspack_core::StatsAssetInfo> for StatsAssetInfo {
 }
 
 #[napi(object)]
-pub struct StatsModule {
+pub struct JsStatsModule {
   pub r#type: &'static str,
   pub module_type: String,
   pub identifier: String,
@@ -75,7 +75,7 @@ pub struct StatsModule {
   pub size: f64,
 }
 
-impl From<rspack_core::StatsModule> for StatsModule {
+impl From<rspack_core::StatsModule> for JsStatsModule {
   fn from(stats: rspack_core::StatsModule) -> Self {
     Self {
       r#type: stats.r#type,
@@ -90,7 +90,7 @@ impl From<rspack_core::StatsModule> for StatsModule {
 }
 
 #[napi(object)]
-pub struct StatsChunk {
+pub struct JsStatsChunk {
   pub r#type: &'static str,
   pub files: Vec<String>,
   pub id: String,
@@ -100,7 +100,7 @@ pub struct StatsChunk {
   pub size: f64,
 }
 
-impl From<rspack_core::StatsChunk> for StatsChunk {
+impl From<rspack_core::StatsChunk> for JsStatsChunk {
   fn from(stats: rspack_core::StatsChunk) -> Self {
     Self {
       r#type: stats.r#type,
@@ -115,12 +115,12 @@ impl From<rspack_core::StatsChunk> for StatsChunk {
 }
 
 #[napi(object)]
-pub struct StatsEntrypointAsset {
+pub struct JsStatsEntrypointAsset {
   pub name: String,
   pub size: f64,
 }
 
-impl From<rspack_core::StatsEntrypointAsset> for StatsEntrypointAsset {
+impl From<rspack_core::StatsEntrypointAsset> for JsStatsEntrypointAsset {
   fn from(stats: rspack_core::StatsEntrypointAsset) -> Self {
     Self {
       name: stats.name,
@@ -130,14 +130,14 @@ impl From<rspack_core::StatsEntrypointAsset> for StatsEntrypointAsset {
 }
 
 #[napi(object)]
-pub struct StatsEntrypoint {
+pub struct JsStatsEntrypoint {
   pub name: String,
-  pub assets: Vec<StatsEntrypointAsset>,
+  pub assets: Vec<JsStatsEntrypointAsset>,
   pub chunks: Vec<String>,
   pub assets_size: f64,
 }
 
-impl From<rspack_core::StatsEntrypoint> for StatsEntrypoint {
+impl From<rspack_core::StatsEntrypoint> for JsStatsEntrypoint {
   fn from(stats: rspack_core::StatsEntrypoint) -> Self {
     Self {
       name: stats.name,
@@ -149,18 +149,18 @@ impl From<rspack_core::StatsEntrypoint> for StatsEntrypoint {
 }
 
 #[napi(object)]
-pub struct StatsCompilation {
-  pub assets: Vec<StatsAsset>,
-  pub modules: Vec<StatsModule>,
-  pub chunks: Vec<StatsChunk>,
-  pub entrypoints: Vec<StatsEntrypoint>,
-  pub errors: Vec<StatsError>,
+pub struct JsStatsCompilation {
+  pub assets: Vec<JsStatsAsset>,
+  pub modules: Vec<JsStatsModule>,
+  pub chunks: Vec<JsStatsChunk>,
+  pub entrypoints: Vec<JsStatsEntrypoint>,
+  pub errors: Vec<JsStatsError>,
   pub errors_count: u32,
-  pub warnings: Vec<StatsWarning>,
+  pub warnings: Vec<JsStatsWarning>,
   pub warnings_count: u32,
 }
 
-impl From<rspack_core::StatsCompilation> for StatsCompilation {
+impl From<rspack_core::StatsCompilation> for JsStatsCompilation {
   fn from(stats: rspack_core::StatsCompilation) -> Self {
     Self {
       assets: stats.assets.into_iter().map(Into::into).collect(),

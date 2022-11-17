@@ -1,44 +1,19 @@
-use std::fmt::Debug;
-
-use napi::bindgen_prelude::*;
-
 use super::JsCompatSource;
 
 #[napi(object)]
-pub struct AssetContent {
-  pub buffer: Option<Buffer>,
-  pub source: Option<String>,
-}
-impl Debug for AssetContent {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("AssetContent")
-      .field("buffer", &"buffer")
-      .field("source", &self.source)
-      .finish()
-  }
-}
-
-#[derive(Debug)]
-#[napi(object)]
-pub struct UpdateAssetOptions {
-  pub asset: AssetContent,
-  pub filename: String,
-}
-
-#[napi(object)]
-pub struct AssetInfoRelated {
+pub struct JsAssetInfoRelated {
   pub source_map: Option<String>,
 }
 
-impl From<AssetInfoRelated> for rspack_core::AssetInfoRelated {
-  fn from(i: AssetInfoRelated) -> Self {
+impl From<JsAssetInfoRelated> for rspack_core::AssetInfoRelated {
+  fn from(i: JsAssetInfoRelated) -> Self {
     Self {
       source_map: i.source_map,
     }
   }
 }
 #[napi(object)]
-pub struct AssetInfo {
+pub struct JsAssetInfo {
   /// if the asset can be long term cached forever (contains a hash)
   // pub immutable: bool,
   /// whether the asset is minimized
@@ -62,11 +37,11 @@ pub struct AssetInfo {
   /// when asset is javascript and an ESM
   // pub javascript_module:
   /// related object to other assets, keyed by type of relation (only points from parent to child)
-  pub related: AssetInfoRelated,
+  pub related: JsAssetInfoRelated,
 }
 
-impl From<AssetInfo> for rspack_core::AssetInfo {
-  fn from(i: AssetInfo) -> Self {
+impl From<JsAssetInfo> for rspack_core::AssetInfo {
+  fn from(i: JsAssetInfo) -> Self {
     Self {
       minimized: i.minimized,
       development: i.development,
@@ -76,13 +51,13 @@ impl From<AssetInfo> for rspack_core::AssetInfo {
 }
 
 #[napi(object)]
-pub struct Asset {
+pub struct JsAsset {
   pub name: String,
   pub source: JsCompatSource,
-  pub info: AssetInfo,
+  pub info: JsAssetInfo,
 }
 
-impl From<rspack_core::AssetInfoRelated> for AssetInfoRelated {
+impl From<rspack_core::AssetInfoRelated> for JsAssetInfoRelated {
   fn from(related: rspack_core::AssetInfoRelated) -> Self {
     Self {
       source_map: related.source_map,
@@ -90,7 +65,7 @@ impl From<rspack_core::AssetInfoRelated> for AssetInfoRelated {
   }
 }
 
-impl From<rspack_core::AssetInfo> for AssetInfo {
+impl From<rspack_core::AssetInfo> for JsAssetInfo {
   fn from(info: rspack_core::AssetInfo) -> Self {
     Self {
       minimized: info.minimized,
