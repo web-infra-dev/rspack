@@ -1,4 +1,4 @@
-use std::{any::Any, fmt::Debug};
+use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
 
@@ -8,7 +8,7 @@ use rspack_sources::Source;
 
 use crate::{
   CodeGenerationResult, Compilation, CompilationContext, CompilerContext, CompilerOptions, Context,
-  LoaderRunnerRunner, ModuleDependency, ModuleType, NormalModule, SourceType,
+  LoaderRunnerRunner, ModuleDependency, ModuleType, NormalModule, RawModule, SourceType,
 };
 
 pub trait AsAny {
@@ -44,9 +44,9 @@ pub trait Module: Debug + Send + Sync + AsAny {
 
   fn original_source(&self) -> Option<&dyn Source>;
 
-  fn identifier(&self) -> String;
+  fn identifier(&self) -> Cow<str>;
 
-  fn readable_identifier(&self, _context: &Context) -> String;
+  fn readable_identifier(&self, _context: &Context) -> Cow<str>;
 
   fn size(&self, _source_type: &SourceType) -> f64;
 
@@ -81,7 +81,7 @@ impl dyn Module + '_ {
 }
 
 macro_rules! impl_module_downcast_helpers {
-  ($ty:ty, $ident: ident) => {
+  ($ty:ty, $ident:ident) => {
     impl dyn Module + '_ {
       ::paste::paste! {
         pub fn [<as_ $ident>](&self) -> Option<& $ty> {
@@ -115,9 +115,12 @@ macro_rules! impl_module_downcast_helpers {
 }
 
 impl_module_downcast_helpers!(NormalModule, normal_module);
+impl_module_downcast_helpers!(RawModule, raw_module);
 
 #[cfg(test)]
 mod test {
+  use std::borrow::Cow;
+
   use super::Module;
   use crate::{
     BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, ModuleExt, ModuleType,
@@ -153,12 +156,12 @@ mod test {
           unreachable!()
         }
 
-        fn identifier(&self) -> String {
-          stringify!($ident).to_string()
+        fn identifier(&self) -> Cow<str> {
+          stringify!($ident).into()
         }
 
-        fn readable_identifier(&self, _context: &Context) -> String {
-          stringify!($ident).to_string()
+        fn readable_identifier(&self, _context: &Context) -> Cow<str> {
+          stringify!($ident).into()
         }
 
         async fn build(

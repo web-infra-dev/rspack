@@ -7,8 +7,8 @@ use hashbrown::{HashMap, HashSet};
 
 pub mod ast;
 mod normal_module;
-// mod raw_module;
-// pub use raw_module::*;
+mod raw_module;
+pub use raw_module::*;
 pub mod module;
 pub mod parser_and_generator;
 pub use module::*;

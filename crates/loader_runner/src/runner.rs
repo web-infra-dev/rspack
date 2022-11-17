@@ -13,9 +13,6 @@ pub struct ResourceData {
   pub resource_path: String,
   pub resource_query: Option<String>,
   pub resource_fragment: Option<String>,
-  /// Does this module which it pointed need to be built,
-  /// It should be removed after `RawModule`
-  pub ignored: bool,
 }
 
 #[derive(Debug)]

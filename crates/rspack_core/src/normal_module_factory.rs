@@ -14,9 +14,9 @@ use rspack_error::{Diagnostic, Error, Result, TWithDiagnosticArray};
 use tracing::instrument;
 
 use crate::{
-  parse_to_url, resolve, CompilerOptions, FactorizeAndBuildArgs, Module, ModuleExt,
-  ModuleGraphModule, ModuleIdentifier, ModuleRule, ModuleType, Msg, NormalModule, ResolveArgs,
-  ResolveResult, ResourceData, SharedPluginDriver, DEPENDENCY_ID,
+  parse_to_url, resolve, BoxModule, CompilerOptions, FactorizeAndBuildArgs, ModuleExt,
+  ModuleGraphModule, ModuleIdentifier, ModuleRule, ModuleType, Msg, NormalModule, RawModule,
+  ResolveArgs, ResolveResult, ResourceData, SharedPluginDriver, DEPENDENCY_ID,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -37,12 +37,7 @@ pub enum ResolveKind {
   ModuleHotAccept,
 }
 
-pub type FactorizeResult = Option<(
-  ModuleGraphModule,
-  NormalModule,
-  Option<ModuleIdentifier>,
-  u32,
-)>;
+pub type FactorizeResult = Option<(ModuleGraphModule, BoxModule, Option<ModuleIdentifier>, u32)>;
 
 #[derive(Debug)]
 pub struct NormalModuleFactory {
@@ -81,7 +76,7 @@ impl NormalModuleFactory {
           if let Err(err) = self.tx.send(Msg::ModuleCreated(TWithDiagnosticArray::new(
             Box::new((
               mgm,
-              module.boxed(),
+              module,
               original_module_identifier,
               dependency_id,
               // FIXME: redundant
@@ -139,7 +134,7 @@ impl NormalModuleFactory {
     resolve_module_type_by_uri(url.path())
   }
   #[instrument(name = "normal_module_factory:factory_normal_module")]
-  pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, NormalModule, u32)>> {
+  pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, BoxModule, u32)>> {
     let importer = self.dependency.parent_module_identifier.as_deref();
     let specifier = self.dependency.detail.specifier.as_str();
     let kind = self.dependency.detail.kind;
@@ -162,12 +157,9 @@ impl NormalModuleFactory {
           resource_path: info.path.to_string_lossy().to_string(),
           resource_query: (!info.query.is_empty()).then_some(info.query),
           resource_fragment: (!info.fragment.is_empty()).then_some(info.fragment),
-          ignored: false,
         }
       }
       ResolveResult::Ignored => {
-        // TODO: return rawModule is a better choice.
-
         // TODO: Duplicate with the head code in the `resolve` function, should remove it.
         let importer = if let Some(importer) = importer {
           Path::new(importer)
@@ -181,13 +173,34 @@ impl NormalModuleFactory {
 
         // TODO: just for identifier tag. should removed after Module::identifier
         let uri = format!("{}/{}", importer.display(), specifier);
-        ResourceData {
-          resource: uri.clone(),
-          resource_path: uri,
-          resource_query: None,
-          resource_fragment: None,
-          ignored: true,
-        }
+
+        let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
+        let module_identifier = format!("ignored|{uri}");
+
+        self
+          .tx
+          .send(Msg::DependencyReference(
+            (self.dependency.clone(), dependency_id),
+            module_identifier.clone(),
+          ))
+          .map_err(|_| {
+            Error::InternalError(format!(
+              "Failed to resolve dependency {:?}",
+              self.dependency
+            ))
+          })?;
+
+        let raw_module = RawModule::new(
+          "/* (ignored) */".to_owned(),
+          module_identifier,
+          format!("{uri} (ignored)"),
+          Default::default(),
+        )
+        .boxed();
+
+        self.context.module_type = Some(raw_module.module_type());
+
+        return Ok(Some((uri, raw_module, dependency_id)));
       }
     };
 
@@ -241,7 +254,7 @@ impl NormalModuleFactory {
       self.context.options.clone(),
     );
 
-    Ok(Some((uri, normal_module, dependency_id)))
+    Ok(Some((uri, Box::new(normal_module), dependency_id)))
   }
 
   pub fn calculate_module_type(
@@ -249,10 +262,6 @@ impl NormalModuleFactory {
     resource_data: &ResourceData,
     default_module_type: Option<ModuleType>,
   ) -> Result<ModuleType> {
-    // TODO: should removed after `RawModule`.
-    if resource_data.ignored {
-      return Ok(ModuleType::Js);
-    }
     // Progressive module type resolution:
     // Stage 1: maintain the resolution logic via file extension
     // TODO: Stage 2:
@@ -350,7 +359,7 @@ impl NormalModuleFactory {
             self.dependency,
           ))
         })?;
-      (uri, module, dependency_id)
+      (uri, Box::new(module) as BoxModule, dependency_id)
     } else if let Some(result) = self.factorize_normal_module().await? {
       result
     } else {
@@ -365,13 +374,14 @@ impl NormalModuleFactory {
       } else {
         id.to_string_lossy().to_string()
       },
-      // uri,
-      module.identifier(),
+      module.identifier().into(),
       vec![],
-      self
-        .context
-        .module_type
-        .ok_or_else(|| Error::InternalError("source type is empty".to_string()))?,
+      self.context.module_type.ok_or_else(|| {
+        Error::InternalError(format!(
+          "Unable to get the module type for module {}, did you forget to configure `Rule.type`? ",
+          module.identifier()
+        ))
+      })?,
     );
 
     Ok(Some((
