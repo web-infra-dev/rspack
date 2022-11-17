@@ -126,7 +126,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
 
           // FIXME: currently uri equals to specifier, but this will be changed later.
           let require_dep = Dependency {
-            parent_module_identifier: Some(self.module.identifier()),
+            parent_module_identifier: Some(self.module.identifier().into()),
             detail: ModuleDependency {
               specifier: specifier.clone(),
               kind: ResolveKind::Require,
@@ -135,7 +135,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
           };
           // FIXME: No need to say this is a ugly workaround
           let import_dep = Dependency {
-            parent_module_identifier: Some(self.module.identifier()),
+            parent_module_identifier: Some(self.module.identifier().into()),
             detail: ModuleDependency {
               specifier,
               kind: ResolveKind::Import,
@@ -170,7 +170,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
         // If the import module is not exsit in module graph, we need to leave it as it is
         // FIXME: currently uri equals to specifier, but this will be changed later.
         let dep = Dependency {
-          parent_module_identifier: Some(self.module.identifier()),
+          parent_module_identifier: Some(self.module.identifier().into()),
           detail: ModuleDependency {
             specifier: literal.to_string(),
             kind: ResolveKind::DynamicImport,
@@ -241,7 +241,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
       .and_then(|first_arg| first_arg.expr.as_mut_lit())
     {
       let dep = Dependency {
-        parent_module_identifier: Some(self.module.identifier()),
+        parent_module_identifier: Some(self.module.identifier().into()),
         detail: ModuleDependency {
           specifier: str.value.to_string(),
           kind: ResolveKind::ModuleHotAccept,

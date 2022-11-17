@@ -117,8 +117,10 @@ impl<'compilation> Stats<'compilation> {
         StatsModule {
           r#type: "module",
           module_type: module.module_type(),
-          identifier,
-          name: module.readable_identifier(&self.compilation.options.context),
+          identifier: identifier.into(),
+          name: module
+            .readable_identifier(&self.compilation.options.context)
+            .into(),
           id: mgm.id.clone(),
           chunks,
           size: module.size(&SourceType::JavaScript),

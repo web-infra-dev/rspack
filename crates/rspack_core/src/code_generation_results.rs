@@ -50,7 +50,7 @@ pub struct CodeGenerationResults {
 impl CodeGenerationResults {
   pub fn get(
     &self,
-    module_identifier: &ModuleIdentifier,
+    module_identifier: &str,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<&CodeGenerationResult> {
     if let Some(entry) = self.map.get(module_identifier) {
@@ -120,7 +120,7 @@ impl CodeGenerationResults {
 
   pub fn get_runtime_requirements(
     &self,
-    module_identifier: &ModuleIdentifier,
+    module_identifier: &str,
     runtime: Option<&RuntimeSpec>,
   ) -> HashSet<String> {
     match self.get(module_identifier, runtime) {

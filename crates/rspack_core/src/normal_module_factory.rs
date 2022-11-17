@@ -366,7 +366,7 @@ impl NormalModuleFactory {
         id.to_string_lossy().to_string()
       },
       // uri,
-      module.identifier(),
+      module.identifier().into(),
       vec![],
       self
         .context

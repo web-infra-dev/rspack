@@ -206,7 +206,7 @@ impl ChunkGraph {
 
   pub fn add_module_runtime_requirements(
     &mut self,
-    module_identifier: &ModuleIdentifier,
+    module_identifier: &str,
     runtime: &RuntimeSpec,
     runtime_requirements: HashSet<String>,
   ) {
@@ -244,7 +244,7 @@ impl ChunkGraph {
 
   pub fn get_module_runtime_requirements(
     &self,
-    module_identifier: &ModuleIdentifier,
+    module_identifier: &str,
     _runtime: &RuntimeSpec,
   ) -> Option<&HashSet<String>> {
     let cgm = self.get_chunk_graph_module(module_identifier);

@@ -77,6 +77,9 @@ impl Module for RawModule {
     let mut cgr = CodeGenerationResult::default();
     let ast_or_source: AstOrSource = self.source.clone().into();
     cgr.add(SourceType::JavaScript, ast_or_source);
+    cgr
+      .runtime_requirements
+      .extend(self.runtime_requirements.iter().cloned());
     Ok(cgr)
   }
 }

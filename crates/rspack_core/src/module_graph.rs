@@ -84,8 +84,9 @@ impl ModuleGraph {
   }
 
   pub fn add_module(&mut self, module: BoxModule) {
-    if let hashbrown::hash_map::Entry::Vacant(val) =
-      self.module_identifier_to_module.entry(module.identifier())
+    if let hashbrown::hash_map::Entry::Vacant(val) = self
+      .module_identifier_to_module
+      .entry(module.identifier().into())
     {
       val.insert(module);
     }
