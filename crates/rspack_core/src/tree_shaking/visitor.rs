@@ -1,4 +1,9 @@
-use std::{collections::VecDeque, hash::Hash};
+use std::{
+  collections::VecDeque,
+  hash::Hash,
+  path::{Path, PathBuf},
+  sync::Arc,
+};
 
 use bitflags::bitflags;
 use hashbrown::{hash_map::Entry, HashMap, HashSet};
@@ -9,7 +14,7 @@ use swc_ecma_ast::*;
 use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
 use ustr::{ustr, Ustr};
 
-use crate::{Dependency, ModuleGraph, ModuleSyntax, ResolveKind};
+use crate::{Dependency, ModuleGraph, ModuleSyntax, ResolveKind, Resolver};
 use rspack_symbol::{BetterId, IdOrMemExpr, IndirectTopLevelSymbol, Symbol, SymbolExt, SymbolFlag};
 
 use super::{
@@ -68,6 +73,8 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) export_default_name: Option<JsWord>,
   module_syntax: ModuleSyntax,
   pub(crate) bail_out_module_identifiers: HashMap<Ustr, BailoutReason>,
+  pub(crate) resolver: &'a Arc<Resolver>,
+  pub(crate) side_effects_free: bool,
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
@@ -77,8 +84,8 @@ impl<'a> ModuleRefAnalyze<'a> {
     helper_mark: Mark,
     uri: Ustr,
     dep_to_module_identifier: &'a ModuleGraph,
+    resolver: &'a Arc<Resolver>,
   ) -> Self {
-    // dbg!(&uri);
     Self {
       top_level_mark,
       unresolved_mark,
@@ -97,6 +104,8 @@ impl<'a> ModuleRefAnalyze<'a> {
       export_default_name: None,
       module_syntax: ModuleSyntax::empty(),
       bail_out_module_identifiers: HashMap::new(),
+      resolver,
+      side_effects_free: true,
     }
   }
 
@@ -186,7 +195,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         .bail_out_module_identifiers
         .insert(self.module_identifier, BailoutReason::ExtendBailout);
     }
-    // dbg!(&self.bail_out_module_identifiers);
     // calc reachable imports for each export symbol defined in current module
     for (key, symbol) in self.export_map.iter() {
       match symbol {
@@ -246,6 +254,35 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         },
       }
     }
+    let side_effects = if let Some(side_effects) = self
+      .module_graph
+      .module_by_identifier(&self.module_identifier)
+      .and_then(|module| module.as_normal_module())
+      .map(|normal_module| &normal_module.resource_resolved_data().resource_path)
+      .map(|p| {
+        let module_path = PathBuf::from(p);
+        self
+          .resolver
+          .0
+          .load_side_effects(module_path.as_path())
+          .ok()
+          .and_then(|item| item.and_then(|item| item.1))
+      }) {
+      match side_effects {
+        Some(side_effects) => match side_effects {
+          nodejs_resolver::SideEffects::Bool(s) => s,
+          nodejs_resolver::SideEffects::Array(_) => {
+            // TODO: more complex expression
+            true
+          }
+        },
+        None => true,
+      }
+    } else {
+      true
+      // TODO: adding some tracing
+    };
+    self.side_effects_free = !side_effects;
   }
 
   fn visit_ident(&mut self, node: &swc_ecma_ast::Ident) {
@@ -873,6 +910,7 @@ pub struct TreeShakingResult {
   state: AnalyzeState,
   pub(crate) used_symbol_ref: HashSet<SymbolRef>,
   pub(crate) bail_out_module_identifiers: HashMap<Ustr, BailoutReason>,
+  pub(crate) side_effects_free: bool,
 }
 
 impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
@@ -890,6 +928,7 @@ impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
       state: std::mem::take(&mut analyze.state),
       used_symbol_ref: std::mem::take(&mut analyze.used_symbol_ref),
       bail_out_module_identifiers: std::mem::take(&mut analyze.bail_out_module_identifiers),
+      side_effects_free: analyze.side_effects_free,
     }
   }
 }

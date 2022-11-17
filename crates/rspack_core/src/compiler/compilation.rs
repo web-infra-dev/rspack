@@ -751,6 +751,7 @@ impl Compilation {
   pub async fn optimize_dependency(
     &mut self,
   ) -> Result<TWithDiagnosticArray<OptimizeDependencyResult>> {
+    let resolver = &self.plugin_driver.read().await.resolver;
     let mut analyze_results = self
       .module_graph
       .module_identifier_to_module_graph_module
@@ -785,12 +786,14 @@ impl Compilation {
           let top_level_mark = context.top_level_mark;
           let unresolved_mark = context.unresolved_mark;
           let helper_mark = context.helpers.mark();
+
           let mut analyzer = ModuleRefAnalyze::new(
             top_level_mark,
             unresolved_mark,
             helper_mark,
             uri_key,
             &self.module_graph,
+            resolver,
           );
           program.visit_with(&mut analyzer);
           analyzer
@@ -814,7 +817,12 @@ impl Compilation {
     let mut used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
     let mut bail_out_module_identifiers = HashMap::default();
     for analyze_result in analyze_results.values() {
-      used_symbol_ref.extend(analyze_result.used_symbol_ref.iter().cloned());
+      let forced_side_effects = self
+        .entry_module_identifiers
+        .contains(analyze_result.module_identifier.as_str());
+      if forced_side_effects || !analyze_result.side_effects_free {
+        used_symbol_ref.extend(analyze_result.used_symbol_ref.iter().cloned());
+      }
       bail_out_module_identifiers.extend(analyze_result.bail_out_module_identifiers.clone());
     }
 
