@@ -327,8 +327,9 @@ impl SplitChunksPlugin {
       .filter(|(_, group_option)| {
         group_option
           .test
-          .clone()
-          .map_or(false, |test| (test)(module))
+          .as_ref()
+          .map_or(true, |test| (test)(module))
+        // TODO: we should also check type chunk type
       })
       // TODO: Supports filter with module type
       .map(|(key, _group_option)| key.clone())
