@@ -28,6 +28,10 @@ mod external;
 pub use external::*;
 mod stats;
 pub use stats::*;
+mod cache;
+pub use cache::*;
+mod snapshot;
+pub use snapshot::*;
 
 #[derive(Debug, Default)]
 pub struct CompilerOptionsBuilder {
@@ -45,6 +49,8 @@ pub struct CompilerOptionsBuilder {
   pub external: Option<Vec<External>>,
   pub external_type: Option<ExternalType>,
   pub stats: Option<StatsOptions>,
+  pub snapshot: Option<SnapshotOptions>,
+  pub cache: Option<CacheOptions>,
 }
 
 impl CompilerOptionsBuilder {
@@ -66,6 +72,8 @@ impl CompilerOptionsBuilder {
       external: self.external.unwrap(),
       external_type: self.external_type.unwrap(),
       stats: self.stats.unwrap(),
+      snapshot: self.snapshot.unwrap(),
+      cache: self.cache.unwrap(),
       __emit_error: false,
     }
   }
