@@ -81,7 +81,7 @@ impl dyn Module + '_ {
 }
 
 macro_rules! impl_module_downcast_helpers {
-  ($ty:ty, $ident: ident) => {
+  ($ty:ty, $ident:ident) => {
     impl dyn Module + '_ {
       ::paste::paste! {
         pub fn [<as_ $ident>](&self) -> Option<& $ty> {
