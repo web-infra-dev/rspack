@@ -78,20 +78,43 @@ impl dyn Module + '_ {
   pub fn downcast_mut<T: Module + Any>(&mut self) -> Option<&mut T> {
     self.as_any_mut().downcast_mut::<T>()
   }
-
-  pub fn as_normal_module(&self) -> Option<&NormalModule> {
-    self.as_any().downcast_ref::<NormalModule>()
-  }
-
-  pub fn try_as_normal_module(&self) -> Result<&NormalModule> {
-    self.as_normal_module().ok_or_else(|| {
-      Error::InternalError(format!(
-        "Failed to cast module {} to a NormalModule",
-        self.identifier()
-      ))
-    })
-  }
 }
+
+macro_rules! impl_module_downcast_helpers {
+  ($ty:ty, $ident: ident) => {
+    impl dyn Module + '_ {
+      ::paste::paste! {
+        pub fn [<as_ $ident>](&self) -> Option<& $ty> {
+          self.as_any().downcast_ref::<$ty>()
+        }
+
+        pub fn [<as_ $ident _mut>](&mut self) -> Option<&mut $ty> {
+          self.as_any_mut().downcast_mut::<$ty>()
+        }
+
+        pub fn [<try_as_ $ident>](&self) -> Result<& $ty> {
+          self.[<as_ $ident>]().ok_or_else(|| {
+            Error::InternalError(format!(
+              "Failed to cast module to a {}",
+              stringify!($ty)
+            ))
+          })
+        }
+
+        pub fn [<try_as_ $ident _mut>](&mut self) -> Result<&mut $ty> {
+          self.[<as_ $ident _mut>]().ok_or_else(|| {
+            Error::InternalError(format!(
+              "Failed to cast module to a {}",
+              stringify!($ty)
+            ))
+          })
+        }
+      }
+    }
+  };
+}
+
+impl_module_downcast_helpers!(NormalModule, normal_module);
 
 #[cfg(test)]
 mod test {
@@ -110,81 +133,50 @@ mod test {
   #[derive(Debug)]
   struct ExternalModule {}
 
-  #[async_trait::async_trait]
-  impl Module for RawModule {
-    fn module_type(&self) -> ModuleType {
-      unreachable!()
-    }
+  macro_rules! impl_noop_trait_module_type {
+    ($ident: ident) => {
+      #[::async_trait::async_trait]
+      impl Module for $ident {
+        fn module_type(&self) -> ModuleType {
+          unreachable!()
+        }
 
-    fn source_types(&self) -> &[SourceType] {
-      unreachable!()
-    }
+        fn source_types(&self) -> &[SourceType] {
+          unreachable!()
+        }
 
-    fn original_source(&self) -> Option<&dyn Source> {
-      unreachable!()
-    }
+        fn original_source(&self) -> Option<&dyn Source> {
+          unreachable!()
+        }
 
-    fn size(&self, _source_type: &SourceType) -> f64 {
-      unreachable!()
-    }
+        fn size(&self, _source_type: &SourceType) -> f64 {
+          unreachable!()
+        }
 
-    fn identifier(&self) -> String {
-      "raw".to_owned()
-    }
+        fn identifier(&self) -> String {
+          stringify!($ident).to_string()
+        }
 
-    fn readable_identifier(&self, _context: &Context) -> String {
-      unreachable!()
-    }
+        fn readable_identifier(&self, _context: &Context) -> String {
+          stringify!($ident).to_string()
+        }
 
-    async fn build(
-      &mut self,
-      _build_context: BuildContext<'_>,
-    ) -> Result<TWithDiagnosticArray<BuildResult>> {
-      unreachable!()
-    }
+        async fn build(
+          &mut self,
+          _build_context: BuildContext<'_>,
+        ) -> Result<TWithDiagnosticArray<BuildResult>> {
+          unreachable!()
+        }
 
-    fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult> {
-      unreachable!()
-    }
+        fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult> {
+          unreachable!()
+        }
+      }
+    };
   }
 
-  #[async_trait::async_trait]
-  impl Module for ExternalModule {
-    fn module_type(&self) -> ModuleType {
-      unreachable!()
-    }
-
-    fn source_types(&self) -> &[SourceType] {
-      unreachable!()
-    }
-
-    fn original_source(&self) -> Option<&dyn Source> {
-      unreachable!()
-    }
-
-    fn size(&self, _source_type: &SourceType) -> f64 {
-      unreachable!()
-    }
-
-    fn identifier(&self) -> String {
-      "external".to_owned()
-    }
-
-    fn readable_identifier(&self, _context: &Context) -> String {
-      unreachable!()
-    }
-
-    async fn build(
-      &mut self,
-      _build_context: BuildContext<'_>,
-    ) -> Result<TWithDiagnosticArray<BuildResult>> {
-      unreachable!()
-    }
-
-    fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult> {
-      unreachable!()
-    }
-  }
+  impl_noop_trait_module_type!(RawModule);
+  impl_noop_trait_module_type!(ExternalModule);
 
   #[test]
   fn should_downcast_successfully() {

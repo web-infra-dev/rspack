@@ -61,11 +61,13 @@ impl Plugin for ProgressPlugin {
   }
 
   async fn build_module(&self, module: &mut dyn Module) -> Result<()> {
-    // FIXME: this will be failed if any other kinds of modules are passed in.
-    self.progress_bar.set_message(format!(
-      "building {}",
-      module.as_normal_module().unwrap().raw_request()
-    ));
+    if let Some(module) = module.as_normal_module() {
+      self
+        .progress_bar
+        .set_message(format!("building {}", module.raw_request()));
+    } else {
+      self.progress_bar.set_message("building");
+    }
     self.modules_count.fetch_add(1, SeqCst);
     Ok(())
   }
