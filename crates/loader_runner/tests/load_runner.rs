@@ -26,7 +26,7 @@ macro_rules! fixtures {
 }
 
 macro_rules! run_loader {
-  (@base, $loader:expr, $resource:tt, $expected:expr) => {{
+  (@base $loader:expr, $resource:tt, $expected:expr) => {{
     use rspack_loader_runner::*;
 
     let resource = "file://".to_owned() + &fixtures!($resource);
@@ -38,14 +38,13 @@ macro_rules! run_loader {
         resource_path: url.path().to_owned(),
         resource_query: url.query().map(|q| q.to_owned()),
         resource_fragment: url.fragment().map(|f| f.to_owned()),
-        ignored: false,
       },
       vec![]
     )
   }};
 
-  (@raw, $loader:expr, $resource:tt, $expected:expr) => {
-    let runner = run_loader!(@base, $loader, $resource, $expected);
+  (@raw $loader:expr, $resource:tt, $expected:expr) => {
+    let runner = run_loader!(@base $loader, $resource, $expected);
 
     tokio::runtime::Builder::new_multi_thread()
     .enable_all()
@@ -64,7 +63,7 @@ macro_rules! run_loader {
   };
 
   ($loader:expr, $resource:tt, $expected:tt) => {
-    let runner = run_loader!(@base, $loader, $resource, $expected);
+    let runner = run_loader!(@base $loader, $resource, $expected);
 
     tokio::runtime::Builder::new_multi_thread()
       .enable_all()
@@ -280,7 +279,7 @@ console.log(3);"#
     let loaders: Vec<&dyn Loader<(), ()>> = vec![&super::fixtures::DirectPassLoader {}];
 
     run_loader!(
-      @raw,
+      @raw
       loaders,
       "file.png",
       expected
