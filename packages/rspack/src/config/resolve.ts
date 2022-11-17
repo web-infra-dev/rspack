@@ -40,9 +40,9 @@ export function resolveResolveOptions(
 		".d.ts"
 	];
 	const defaultMainFields = ["module", "main"];
-	if (target.includes("web")) {
-		defaultMainFields.unshift("browser");
-	}
+	// if (target.includes("web")) {
+	// 	defaultMainFields.unshift("browser");
+	// }
 	const mainFields = resolve.mainFields ?? defaultMainFields;
 	const mainFiles = resolve.mainFiles ?? ["index"];
 	const browserField = resolve.browserField ?? true;
