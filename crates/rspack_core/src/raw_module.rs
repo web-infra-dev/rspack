@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use hashbrown::HashSet;
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use rspack_sources::Source;
+use rspack_sources::{BoxSource, RawSource, Source};
 
 use crate::{
   AstOrSource, BuildContext, BuildResult, CodeGenerationResult, Context, Module, ModuleType,
@@ -11,7 +11,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct RawModule {
-  source: Box<dyn Source>,
+  source: BoxSource,
   identifier: String,
   readable_identifier: String,
   runtime_requirements: HashSet<String>,
@@ -21,13 +21,14 @@ static RAW_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
 
 impl RawModule {
   pub fn new(
-    source: impl Into<Box<dyn Source>>,
+    source: String,
     identifier: String,
     readable_identifier: String,
     runtime_requirements: HashSet<String>,
   ) -> Self {
     Self {
-      source: source.into(),
+      // TODO: useSourceMap, etc...
+      source: Box::new(RawSource::Source(source)),
       identifier,
       readable_identifier,
       runtime_requirements,

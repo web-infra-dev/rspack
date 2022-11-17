@@ -11,11 +11,10 @@ use swc_common::Span;
 use tokio::sync::mpsc::UnboundedSender;
 
 use rspack_error::{Diagnostic, Error, Result, TWithDiagnosticArray};
-use rspack_sources::{RawSource, SourceExt};
 use tracing::instrument;
 
 use crate::{
-  parse_to_url, resolve, BoxModule, CompilerOptions, FactorizeAndBuildArgs, Module,
+  parse_to_url, resolve, BoxModule, CompilerOptions, FactorizeAndBuildArgs, ModuleExt,
   ModuleGraphModule, ModuleIdentifier, ModuleRule, ModuleType, Msg, NormalModule, RawModule,
   ResolveArgs, ResolveResult, ResourceData, SharedPluginDriver, DEPENDENCY_ID,
 };
@@ -161,8 +160,6 @@ impl NormalModuleFactory {
         }
       }
       ResolveResult::Ignored => {
-        // TODO: return rawModule is a better choice.
-
         // TODO: Duplicate with the head code in the `resolve` function, should remove it.
         let importer = if let Some(importer) = importer {
           Path::new(importer)
@@ -176,12 +173,6 @@ impl NormalModuleFactory {
 
         // TODO: just for identifier tag. should removed after Module::identifier
         let uri = format!("{}/{}", importer.display(), specifier);
-        let resource_data = ResourceData {
-          resource: uri.clone(),
-          resource_path: uri.clone(),
-          resource_query: None,
-          resource_fragment: None,
-        };
 
         let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
 
@@ -200,12 +191,13 @@ impl NormalModuleFactory {
 
         return Ok(Some((
           uri.clone(),
-          Box::new(RawModule::new(
-            RawSource::Source("/* (ignored) */".to_owned()).boxed(),
+          RawModule::new(
+            "/* (ignored) */".to_owned(),
             format!("ignored|{uri}"),
             format!("{uri} (ignored)"),
             Default::default(),
-          )),
+          )
+          .boxed(),
           dependency_id,
         )));
       }
@@ -269,10 +261,6 @@ impl NormalModuleFactory {
     resource_data: &ResourceData,
     default_module_type: Option<ModuleType>,
   ) -> Result<ModuleType> {
-    // TODO: should removed after `RawModule`.
-    if resource_data.ignored {
-      return Ok(ModuleType::Js);
-    }
     // Progressive module type resolution:
     // Stage 1: maintain the resolution logic via file extension
     // TODO: Stage 2:
