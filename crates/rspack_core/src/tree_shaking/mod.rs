@@ -14,7 +14,6 @@ pub struct OptimizeDependencyResult {
 }
 
 pub static CARED_MODULE_ID: &[&str] = &[
-  "",
   // "/home/victor/Documents/rspack/rspack/examples/arco-pro/src/index.tsx",
   // "/home/victor/Documents/rspack/rspack/examples/basic/index.js",
   // "/home/victor/Documents/rspack/rspack/node_modules/react-redux/es/index.js",

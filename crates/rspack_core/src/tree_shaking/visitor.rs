@@ -210,26 +210,38 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         SymbolRef::Indirect(_) | SymbolRef::Star(_) => {}
       }
     }
-
     // Any var declaration has reference a symbol from other module, it is marked as used
     // Because the symbol import from other module possibly has side effect
-    let side_effect_id_list = self
+    let side_effect_symbol_list = self
       .reference_map
       .iter()
-      .filter(|(symbol, ref_list)| {
+      .flat_map(|(symbol, ref_list)| {
         if !symbol.flag.contains(SymbolFlag::VAR_DECL) {
-          false
+          vec![]
         } else {
-          ref_list.iter().any(|ref_id| {
-            self.import_map.contains_key(match ref_id {
-              IdOrMemExpr::Id(id) => id,
-              IdOrMemExpr::MemberExpr { object, .. } => object,
+          if symbol
+            .flag
+            .intersection(SymbolFlag::FUNCTION_EXPR | SymbolFlag::ARROW_EXPR)
+            .bits()
+            .count_ones()
+            >= 1
+          {
+            return vec![];
+          }
+          ref_list
+            .iter()
+            .filter_map(|ref_id| {
+              self.import_map.get(match ref_id {
+                IdOrMemExpr::Id(ref id) => id,
+                IdOrMemExpr::MemberExpr { object, .. } => object,
+              })
             })
-          })
+            .cloned()
+            .collect::<Vec<_>>()
         }
       })
-      .map(|(k, _)| IdOrMemExpr::Id(k.id().clone()));
-    self.used_id_set.extend(side_effect_id_list);
+      .collect::<Vec<_>>();
+    self.used_symbol_ref.extend(side_effect_symbol_list);
     // all reachable export from used symbol in current module
     for used_id in &self.used_id_set {
       match used_id {
@@ -413,7 +425,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         }
       },
       ModuleItem::Stmt(stmt) => {
-        // dbg!(&stmt);
         stmt.visit_children_with(self);
       }
     }
@@ -721,6 +732,11 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       }
       if let Some(ref init) = ele.init && lhs.ctxt.outer() == self.top_level_mark {
         let mut symbol_ext = SymbolExt::new(lhs, SymbolFlag::VAR_DECL);
+        match init {
+            box Expr::Fn(_) => symbol_ext.flag.insert(SymbolFlag::FUNCTION_EXPR),
+            box Expr::Arrow(_) => symbol_ext.flag.insert(SymbolFlag::ARROW_EXPR),
+            _ => {}
+        };
         if is_export {
           symbol_ext.flag.insert(SymbolFlag::EXPORT);
         }

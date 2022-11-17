@@ -5,10 +5,12 @@ use swc_ecma_ast::Id;
 use ustr::Ustr;
 
 bitflags! {
-    pub struct SymbolFlag: u32 {
+    pub struct SymbolFlag: u8 {
         const DEFAULT =  1 << 0;
         const EXPORT =  1 << 1;
         const VAR_DECL = 1 << 2;
+        const ARROW_EXPR = 1 << 3;
+        const FUNCTION_EXPR = 1 << 4;
         const EXPORT_DEFAULT = Self::DEFAULT.bits | Self::EXPORT.bits;
     }
 }
