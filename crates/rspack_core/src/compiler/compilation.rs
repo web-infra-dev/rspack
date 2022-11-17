@@ -385,8 +385,8 @@ impl Compilation {
             Msg::ModuleCreationCanceled => {
               active_task_count.fetch_sub(1, Ordering::SeqCst);
             }
-            Msg::DependencyReference(dep, resolved_uri) => {
-              self.module_graph.add_dependency(dep, resolved_uri);
+            Msg::DependencyReference(dep, module_identifier) => {
+              self.module_graph.add_dependency(dep, module_identifier);
             }
             Msg::ModuleCreationErrorEncountered(err) => {
               active_task_count.fetch_sub(1, Ordering::SeqCst);
@@ -404,6 +404,9 @@ impl Compilation {
         }
       }
     });
+
+    // dbg!(&self.module_graph.module_identifier_to_module_graph_module);
+    // dbg!(&self.module_graph.module_identifier_to_module);
 
     tracing::debug!("All task is finished");
     tracing::trace!("module graph {:#?}", self.module_graph);

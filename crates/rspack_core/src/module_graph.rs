@@ -92,7 +92,11 @@ impl ModuleGraph {
     }
   }
 
-  pub fn add_dependency(&mut self, (dep, dependency_id): (Dependency, u32), resolved_uri: String) {
+  pub fn add_dependency(
+    &mut self,
+    (dep, dependency_id): (Dependency, u32),
+    module_identifier: String,
+  ) {
     self
       .dependency_id_to_dependency
       .insert(dependency_id, dep.clone());
@@ -100,7 +104,7 @@ impl ModuleGraph {
 
     self
       .dependency_id_to_module_identifier
-      .insert(dependency_id, resolved_uri);
+      .insert(dependency_id, module_identifier);
   }
 
   /// Uniquely identify a module by its dependency

@@ -195,7 +195,7 @@ pub type ModuleResolvedData = TWithDiagnosticArray<(
 
 #[derive(Debug)]
 pub enum Msg {
-  DependencyReference((Dependency, u32), String),
+  DependencyReference((Dependency, u32), ModuleIdentifier),
   ModuleCreated(ModuleCreatedData),
   ModuleReused(TWithDiagnosticArray<(Option<ModuleIdentifier>, u32, ModuleIdentifier)>),
   ModuleResolved(ModuleResolvedData),

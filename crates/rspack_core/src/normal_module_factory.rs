@@ -175,12 +175,13 @@ impl NormalModuleFactory {
         let uri = format!("{}/{}", importer.display(), specifier);
 
         let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
+        let module_identifier = format!("ignored|{uri}");
 
         self
           .tx
           .send(Msg::DependencyReference(
             (self.dependency.clone(), dependency_id),
-            uri.clone(),
+            module_identifier.clone(),
           ))
           .map_err(|_| {
             Error::InternalError(format!(
@@ -189,17 +190,17 @@ impl NormalModuleFactory {
             ))
           })?;
 
-        return Ok(Some((
-          uri.clone(),
-          RawModule::new(
-            "/* (ignored) */".to_owned(),
-            format!("ignored|{uri}"),
-            format!("{uri} (ignored)"),
-            Default::default(),
-          )
-          .boxed(),
-          dependency_id,
-        )));
+        let raw_module = RawModule::new(
+          "/* (ignored) */".to_owned(),
+          module_identifier,
+          format!("{uri} (ignored)"),
+          Default::default(),
+        )
+        .boxed();
+
+        self.context.module_type = Some(raw_module.module_type());
+
+        return Ok(Some((uri.clone(), raw_module, dependency_id)));
       }
     };
 
@@ -375,10 +376,12 @@ impl NormalModuleFactory {
       },
       module.identifier().into(),
       vec![],
-      self
-        .context
-        .module_type
-        .ok_or_else(|| Error::InternalError("source type is empty".to_string()))?,
+      self.context.module_type.ok_or_else(|| {
+        Error::InternalError(format!(
+          "Unable to get the module type for module {}, did you forget to configure `Rule.type`? ",
+          module.identifier()
+        ))
+      })?,
     );
 
     Ok(Some((
