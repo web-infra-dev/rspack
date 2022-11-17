@@ -829,6 +829,8 @@ impl Compilation {
       bail_out_module_identifiers.extend(analyze_result.bail_out_module_identifiers.clone());
     }
 
+    // dbg!(&used_symbol_ref);
+
     // calculate relation of module that has `export * from 'xxxx'`
     let inherit_export_ref_graph = create_inherit_graph(&analyze_results);
     // key is the module_id of module that potential have reexport all symbol from other module
@@ -1329,7 +1331,6 @@ fn mark_symbol(
   // We don't need mark the symbol usage if it is from a bailout module because
   // bailout module will skipping tree-shaking anyway
   // if debug_care_module_id(symbol_ref.module_identifier()) {
-  //   dbg!(&symbol_ref);
   // }
   let is_bailout_module_identifier =
     bailout_module_identifiers.contains_key(&symbol_ref.module_identifier());

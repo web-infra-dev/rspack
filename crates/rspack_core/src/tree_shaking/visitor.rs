@@ -44,6 +44,7 @@ bitflags! {
   struct AnalyzeState: u8 {
     const EXPORT_DECL = 1 << 0;
     const EXPORT_DEFAULT = 1 << 1;
+    const ASSIGNMENT_LHS = 1 << 2;
   }
 }
 #[derive(Debug)]
@@ -460,12 +461,35 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     self.current_body_owner_symbol_ext = before_owner_extend_symbol;
   }
 
+  fn visit_assign_expr(&mut self, node: &AssignExpr) {
+    // TODO: assign should have body ext too
+    if node.op == op!("=") {
+      // let before_owner_extend_symbol = self.current_body_owner_symbol_ext.clone();
+      self.state.insert(AnalyzeState::ASSIGNMENT_LHS);
+      node.left.visit_with(self);
+      self.state.remove(AnalyzeState::ASSIGNMENT_LHS);
+      node.right.visit_with(self);
+      // self.current_body_owner_symbol_ext = before_owner_extend_symbol;
+    } else {
+      node.visit_children_with(self);
+    }
+  }
+
   fn visit_member_expr(&mut self, node: &MemberExpr) {
     match (&*node.obj, &node.prop) {
       // a.b
       (Expr::Ident(obj), MemberProp::Ident(prop)) => {
+        if self.state.contains(AnalyzeState::ASSIGNMENT_LHS)
+          && (&obj.sym == "module" && &prop.sym == "exports")
+          || &obj.sym == "exports"
+        {
+          self
+            .bail_out_module_identifiers
+            .insert(self.module_identifier, BailoutReason::CommonjsExports);
+        }
         let id: BetterId = obj.to_id().into();
         let mark = id.ctxt.outer();
+
         if mark == self.top_level_mark {
           let member_expr = IdOrMemExpr::MemberExpr {
             object: id.clone(),
@@ -479,13 +503,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               self.used_id_set.insert(member_expr);
             }
             _ => {}
-          }
-        } else {
-          // For commonjs and umd
-          if (&obj.sym == "module" && &prop.sym == "exports") || &obj.sym == "exports" {
-            self
-              .bail_out_module_identifiers
-              .insert(self.module_identifier, BailoutReason::CommonjsExports);
           }
         }
       }
