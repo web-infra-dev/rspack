@@ -397,8 +397,7 @@ impl Module for NormalModule {
     build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>> {
     // FIXME: dirty workaround for external module
-    // FIXME: remove `self.resource_data.ignored` after `RawModule`.
-    if self.skip_build || self.resource_data.ignored {
+    if self.skip_build {
       let (parse_result, diagnostics) = self
         .parser_and_generator
         .parse(ParseContext {

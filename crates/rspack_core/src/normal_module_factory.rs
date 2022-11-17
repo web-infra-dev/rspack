@@ -11,12 +11,13 @@ use swc_common::Span;
 use tokio::sync::mpsc::UnboundedSender;
 
 use rspack_error::{Diagnostic, Error, Result, TWithDiagnosticArray};
+use rspack_sources::{RawSource, SourceExt};
 use tracing::instrument;
 
 use crate::{
-  parse_to_url, resolve, CompilerOptions, FactorizeAndBuildArgs, Module, ModuleExt,
-  ModuleGraphModule, ModuleIdentifier, ModuleRule, ModuleType, Msg, NormalModule, ResolveArgs,
-  ResolveResult, ResourceData, SharedPluginDriver, DEPENDENCY_ID,
+  parse_to_url, resolve, BoxModule, CompilerOptions, FactorizeAndBuildArgs, Module,
+  ModuleGraphModule, ModuleIdentifier, ModuleRule, ModuleType, Msg, NormalModule, RawModule,
+  ResolveArgs, ResolveResult, ResourceData, SharedPluginDriver, DEPENDENCY_ID,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -37,12 +38,7 @@ pub enum ResolveKind {
   ModuleHotAccept,
 }
 
-pub type FactorizeResult = Option<(
-  ModuleGraphModule,
-  NormalModule,
-  Option<ModuleIdentifier>,
-  u32,
-)>;
+pub type FactorizeResult = Option<(ModuleGraphModule, BoxModule, Option<ModuleIdentifier>, u32)>;
 
 #[derive(Debug)]
 pub struct NormalModuleFactory {
@@ -81,7 +77,7 @@ impl NormalModuleFactory {
           if let Err(err) = self.tx.send(Msg::ModuleCreated(TWithDiagnosticArray::new(
             Box::new((
               mgm,
-              module.boxed(),
+              module,
               original_module_identifier,
               dependency_id,
               // FIXME: redundant
@@ -139,7 +135,7 @@ impl NormalModuleFactory {
     resolve_module_type_by_uri(url.path())
   }
   #[instrument(name = "normal_module_factory:factory_normal_module")]
-  pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, NormalModule, u32)>> {
+  pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, BoxModule, u32)>> {
     let importer = self.dependency.parent_module_identifier.as_deref();
     let specifier = self.dependency.detail.specifier.as_str();
     let kind = self.dependency.detail.kind;
@@ -162,7 +158,6 @@ impl NormalModuleFactory {
           resource_path: info.path.to_string_lossy().to_string(),
           resource_query: (!info.query.is_empty()).then_some(info.query),
           resource_fragment: (!info.fragment.is_empty()).then_some(info.fragment),
-          ignored: false,
         }
       }
       ResolveResult::Ignored => {
@@ -181,13 +176,38 @@ impl NormalModuleFactory {
 
         // TODO: just for identifier tag. should removed after Module::identifier
         let uri = format!("{}/{}", importer.display(), specifier);
-        ResourceData {
+        let resource_data = ResourceData {
           resource: uri.clone(),
-          resource_path: uri,
+          resource_path: uri.clone(),
           resource_query: None,
           resource_fragment: None,
-          ignored: true,
-        }
+        };
+
+        let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
+
+        self
+          .tx
+          .send(Msg::DependencyReference(
+            (self.dependency.clone(), dependency_id),
+            uri.clone(),
+          ))
+          .map_err(|_| {
+            Error::InternalError(format!(
+              "Failed to resolve dependency {:?}",
+              self.dependency
+            ))
+          })?;
+
+        return Ok(Some((
+          uri.clone(),
+          Box::new(RawModule::new(
+            RawSource::Source("/* (ignored) */".to_owned()).boxed(),
+            format!("ignored|{uri}"),
+            format!("{uri} (ignored)"),
+            Default::default(),
+          )),
+          dependency_id,
+        )));
       }
     };
 
@@ -241,7 +261,7 @@ impl NormalModuleFactory {
       self.context.options.clone(),
     );
 
-    Ok(Some((uri, normal_module, dependency_id)))
+    Ok(Some((uri, Box::new(normal_module), dependency_id)))
   }
 
   pub fn calculate_module_type(
@@ -350,7 +370,7 @@ impl NormalModuleFactory {
             self.dependency,
           ))
         })?;
-      (uri, module, dependency_id)
+      (uri, Box::new(module) as BoxModule, dependency_id)
     } else if let Some(result) = self.factorize_normal_module().await? {
       result
     } else {
@@ -365,7 +385,6 @@ impl NormalModuleFactory {
       } else {
         id.to_string_lossy().to_string()
       },
-      // uri,
       module.identifier().into(),
       vec![],
       self
