@@ -106,7 +106,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       module_syntax: ModuleSyntax::empty(),
       bail_out_module_identifiers: HashMap::new(),
       resolver,
-      side_effects_free: true,
+      side_effects_free: false,
     }
   }
 
