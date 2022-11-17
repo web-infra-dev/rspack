@@ -14,9 +14,9 @@ use rspack_error::{Diagnostic, Error, Result, TWithDiagnosticArray};
 use tracing::instrument;
 
 use crate::{
-  parse_to_url, resolve, BoxModule, CompilerOptions, FactorizeAndBuildArgs, ModuleExt,
-  ModuleGraphModule, ModuleIdentifier, ModuleRule, ModuleType, Msg, NormalModule, RawModule,
-  ResolveArgs, ResolveResult, ResourceData, SharedPluginDriver, DEPENDENCY_ID,
+  parse_to_url, resolve, BoxModule, CompilerOptions, FactorizeArgs, ModuleExt, ModuleGraphModule,
+  ModuleIdentifier, ModuleRule, ModuleType, Msg, NormalModule, RawModule, ResolveArgs,
+  ResolveResult, ResourceData, SharedPluginDriver, DEPENDENCY_ID,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -326,14 +326,12 @@ impl NormalModuleFactory {
 
   #[instrument(name = "normal_module_factory:factorize")]
   pub async fn factorize(&mut self) -> Result<FactorizeResult> {
-    // TODO: caching in resolve, align to webpack's external module
-    // Here is the corresponding create function in webpack, but instead of using hooks we use procedural functions
     let result = self
       .plugin_driver
       .read()
       .await
-      .factorize_and_build(
-        FactorizeAndBuildArgs {
+      .factorize(
+        FactorizeArgs {
           dependency: &self.dependency,
           plugin_driver: &self.plugin_driver,
         },
@@ -359,7 +357,7 @@ impl NormalModuleFactory {
             self.dependency,
           ))
         })?;
-      (uri, Box::new(module) as BoxModule, dependency_id)
+      (uri, module, dependency_id)
     } else if let Some(result) = self.factorize_normal_module().await? {
       result
     } else {

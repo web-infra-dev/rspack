@@ -9,13 +9,12 @@ use tracing::instrument;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxedParserAndGeneratorBuilder,
-  Compilation, CompilationArgs, CompilerOptions, Content, DoneArgs, FactorizeAndBuildArgs, Module,
+  Compilation, CompilationArgs, CompilerOptions, Content, DoneArgs, FactorizeArgs, Module,
   ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
-  PluginCompilationHookOutput, PluginContext, PluginFactorizeAndBuildHookOutput,
-  PluginMakeHookOutput, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
-  PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderManifestArgs, Resolver, Stats,
-  ThisCompilationArgs,
+  PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput, PluginMakeHookOutput,
+  PluginProcessAssetsOutput, PluginRenderManifestHookOutput, PluginThisCompilationHookOutput,
+  ProcessAssetsArgs, RenderManifestArgs, Resolver, Stats, ThisCompilationArgs,
 };
 use rspack_error::{Diagnostic, Result};
 
@@ -174,15 +173,16 @@ impl PluginDriver {
     Ok(assets)
   }
 
-  pub async fn factorize_and_build(
+  #[instrument(name = "plugin:factorize", skip_all)]
+  pub async fn factorize(
     &self,
-    args: FactorizeAndBuildArgs<'_>,
+    args: FactorizeArgs<'_>,
     job_ctx: &mut NormalModuleFactoryContext,
-  ) -> PluginFactorizeAndBuildHookOutput {
+  ) -> PluginFactorizeHookOutput {
     for plugin in &self.plugins {
       tracing::trace!("running render runtime:{}", plugin.name());
       if let Some(module) = plugin
-        .factorize_and_build(PluginContext::new(), args.clone(), job_ctx)
+        .factorize(PluginContext::new(), args.clone(), job_ctx)
         .await?
       {
         return Ok(Some(module));

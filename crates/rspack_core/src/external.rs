@@ -2,9 +2,9 @@ use rspack_error::{Error, IntoTWithDiagnosticArray};
 use rspack_sources::{RawSource, SourceExt};
 
 use crate::{
-  ApplyContext, ExternalType, FactorizeAndBuildArgs, GenerateContext, Module, ModuleType,
-  NormalModule, NormalModuleFactoryContext, ParserAndGenerator, Plugin, PluginContext,
-  PluginFactorizeAndBuildHookOutput, SourceType, Target, TargetPlatform,
+  ApplyContext, ExternalType, FactorizeArgs, GenerateContext, Module, ModuleType, NormalModule,
+  NormalModuleFactoryContext, ParserAndGenerator, Plugin, PluginContext, PluginFactorizeHookOutput,
+  SourceType, Target, TargetPlatform,
 };
 
 #[derive(Debug)]
@@ -85,15 +85,15 @@ impl Plugin for ExternalPlugin {
     Ok(())
   }
 
-  // Todo The factorize_and_build hook is a temporary solution and will be replaced with the real factorize hook later
+  // Todo The factorize hook is a temporary solution and will be replaced with the real factorize hook later
   // stage 1: we need move building function(parse,loader runner) out of normal module factory
-  // stage 2: Create a new hook that is the same as factory in webpack and change factorize_and_build to that
-  async fn factorize_and_build(
+  // stage 2: Create a new hook that is the same as factory in webpack and change factorize to that
+  async fn factorize(
     &self,
     _ctx: PluginContext,
-    args: FactorizeAndBuildArgs<'_>,
+    args: FactorizeArgs<'_>,
     job_ctx: &mut NormalModuleFactoryContext,
-  ) -> PluginFactorizeAndBuildHookOutput {
+  ) -> PluginFactorizeHookOutput {
     let target = &job_ctx.options.target;
     let external_type = &job_ctx.options.external_type;
     for external_item in &job_ctx.options.external {
