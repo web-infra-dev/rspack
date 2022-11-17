@@ -470,7 +470,7 @@ impl Compilation {
               // If build error message is failed to send, then we should manually decrease the active task count
               // Otherwise, it will be gracefully handled by the error message handler.
               if let Err(err) =
-                tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier.into(), err))
+                tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err))
               {
                 active_task_count.fetch_sub(1, Ordering::SeqCst);
                 tracing::trace!("fail to send msg {:?}", err)
@@ -568,10 +568,7 @@ impl Compilation {
         Err(err) => {
           // If build error message is failed to send, then we should manually decrease the active task count
           // Otherwise, it will be gracefully handled by the error message handler.
-          if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(
-            module_identifier.into(),
-            err,
-          )) {
+          if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err)) {
             active_task_count.fetch_sub(1, Ordering::SeqCst);
             tracing::trace!("fail to send msg {:?}", err);
           }

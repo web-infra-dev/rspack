@@ -200,7 +200,7 @@ impl NormalModuleFactory {
 
         self.context.module_type = Some(raw_module.module_type());
 
-        return Ok(Some((uri.clone(), raw_module, dependency_id)));
+        return Ok(Some((uri, raw_module, dependency_id)));
       }
     };
 
