@@ -5,9 +5,9 @@ pub struct JsChunk {
 
 impl JsChunk {
   pub fn from(chunk: &rspack_core::Chunk) -> Self {
-    Self {
-      files: Vec::from_iter(chunk.files.iter().cloned()),
-    }
+    let mut files = Vec::from_iter(chunk.files.iter().cloned());
+    files.sort();
+    Self { files }
   }
 
   pub fn get_files(&self) -> Vec<String> {
