@@ -344,12 +344,13 @@ impl NormalModuleFactory {
       let (uri, module) = module;
       // TODO: remove this
       let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
+      self.context.module_type = Some(module.module_type());
 
       self
         .tx
         .send(Msg::DependencyReference(
           (self.dependency.clone(), dependency_id),
-          uri.clone(),
+          module.identifier().into_owned(),
         ))
         .map_err(|_| {
           Error::InternalError(format!(

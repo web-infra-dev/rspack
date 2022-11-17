@@ -1872,6 +1872,7 @@ dependencies = [
  "rspack_plugin_asset",
  "rspack_plugin_css",
  "rspack_plugin_devtool",
+ "rspack_plugin_externals",
  "rspack_plugin_html",
  "rspack_plugin_javascript",
  "rspack_plugin_json",
@@ -2084,6 +2085,17 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_externals"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "rspack_core",
+ "rspack_error",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

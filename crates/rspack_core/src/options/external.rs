@@ -14,6 +14,17 @@ pub enum ExternalType {
   Auto,
 }
 
+impl ToString for ExternalType {
+  fn to_string(&self) -> String {
+    match self {
+      ExternalType::NodeCommonjs => "node-commonjs".to_owned(),
+      ExternalType::Window => "window".to_owned(),
+      // TODO: didn't know where this field comes from, should be aligned to webpack in the future
+      ExternalType::Auto => "auto".to_owned(),
+    }
+  }
+}
+
 impl FromStr for ExternalType {
   type Err = anyhow::Error;
 
