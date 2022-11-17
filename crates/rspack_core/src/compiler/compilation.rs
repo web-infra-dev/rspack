@@ -158,6 +158,10 @@ impl Compilation {
     &self.assets
   }
 
+  pub fn entrypoints(&self) -> &HashMap<String, ChunkGroupUkey> {
+    &self.entrypoints
+  }
+
   pub fn push_diagnostic(&mut self, diagnostic: Diagnostic) {
     self.diagnostics.insert(diagnostic);
   }

@@ -1,0 +1,34 @@
+const { ConcatSource } = require("webpack-sources");
+
+/**
+ * @type {import('@rspack/core').RspackOptions}
+ */
+module.exports = {
+	entry: {
+		main: "./index.js"
+	},
+	plugins: [
+		{
+			name: "test",
+			apply(compiler) {
+				compiler.hooks.compilation.tap("compilation", compilation => {
+					compilation.hooks.processAssets.tapPromise(
+						"processAssets1",
+						async assets => {
+							let inspect = new ConcatSource();
+							for (let [n, cg] of compilation.entrypoints) {
+								inspect.add(`entry name: ${n}\n`);
+								for (let c of cg.chunks) {
+									for (let f of c.files) {
+										inspect.add(`  file: ${f}\n`);
+									}
+								}
+							}
+							compilation.emitAsset("inspect.txt", inspect);
+						}
+					);
+				});
+			}
+		}
+	]
+};
