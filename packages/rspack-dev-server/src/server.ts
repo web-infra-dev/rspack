@@ -9,7 +9,7 @@ import type {
 	RequestHandler as ExpressRequestHandler,
 	ErrorRequestHandler as ExpressErrorRequestHandler
 } from "express";
-import type { Server } from "http";
+import { Server } from "http";
 import type { ResolvedDev } from "./config";
 
 import chokidar from "chokidar";
@@ -166,7 +166,6 @@ export class RspackDevServer {
 			this.middleware.invalidate(callback);
 		}
 	}
-
 	async start(): Promise<void> {
 		this.setupApp();
 		this.createServer();
@@ -174,14 +173,17 @@ export class RspackDevServer {
 		this.createWebsocketServer();
 		this.setupDevMiddleware();
 		this.setupMiddlewares();
+		const host = await RspackDevServer.getHostname("local-ip");
+		const port = await RspackDevServer.getFreePort(this.options.port, host);
 		await new Promise(resolve =>
 			this.server.listen(
 				{
-					port: this.options.port,
-					host: "localhost"
+					port,
+					host
 				},
 				() => {
-					console.log(`begin server at http://localhost:${this.options.port}`);
+					this.logger.info(`Loopback: http:localhost:${port}`);
+					this.logger.info(`Your Network (IPV4) http://${host}:${port}`);
 					resolve({});
 				}
 			)

@@ -17,7 +17,7 @@ exports[`normalize options snapshot no options 1`] = `
   "hot": true,
   "liveReload": true,
   "open": true,
-  "port": 8080,
+  "port": undefined,
   "static": {
     "directory": "<PROJECT_ROOT>/dist",
     "watch": {},
