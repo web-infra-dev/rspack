@@ -24,8 +24,6 @@ export function resolveDevOptions(
 	devConfig: Dev,
 	compilerOptions: RspackOptionsNormalized
 ): ResolvedDev {
-	const port = Number(devConfig.port ?? 8080);
-
 	const open = true;
 	const hot = devConfig.hot ?? true;
 	// --- static
@@ -54,7 +52,7 @@ export function resolveDevOptions(
 	}
 
 	return {
-		port,
+		port: devConfig.port ? Number(devConfig.port) : undefined,
 		static: {
 			directory,
 			watch
