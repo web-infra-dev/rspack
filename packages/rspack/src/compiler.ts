@@ -87,17 +87,17 @@ class Compiler {
 			this._instance ||
 			// @ts-ignored
 			new binding.Rspack(this.options, {
-				doneCallback: this.#done.bind(this),
-				processAssetsCallback: this.#processAssets.bind(this),
+				done: this.#done.bind(this),
+				processAssets: this.#processAssets.bind(this),
 				// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
 				// We know that the hook `thisCompilation` will not be called from a child compiler(it doesn't matter whether the child compiler is created on the Rust or the Node side).
 				// See webpack's API: https://webpack.js.org/api/compiler-hooks/#thiscompilation
 				// So it is safe to create a new compilation here.
-				thisCompilationCallback: this.#newCompilation.bind(this),
+				thisCompilation: this.#newCompilation.bind(this),
 				// The hook `Compilation` should be called whenever it's a call from the child compiler or normal compiler and
 				// still it does not matter where the child compiler is created(Rust or Node) as calling the hook `compilation` is a required task.
 				// No matter how it will be implemented, it will be copied to the child compiler.
-				compilationCallback: this.#compilation.bind(this)
+				compilation: this.#compilation.bind(this)
 			});
 		// @ts-ignored
 		return this._instance;
