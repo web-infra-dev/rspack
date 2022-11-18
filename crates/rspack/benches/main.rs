@@ -34,7 +34,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
   generate_bench!(css_heavy, "css-heavy", c, rt);
   generate_bench!(ten_copy_of_threejs, "three", c, rt);
-  generate_bench!(lodash, "lodash", c, rt);
+  generate_bench!(lodash, "lodash-with-simple-css", c, rt);
   generate_bench!(stress, "stress", c, rt);
 }
 criterion_group!(benches, criterion_benchmark);
