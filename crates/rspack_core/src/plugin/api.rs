@@ -8,9 +8,9 @@ use rspack_sources::BoxSource;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, BoxModule, Compilation, CompilationArgs, DoneArgs,
-  FactorizeAndBuildArgs, Module, ModuleType, NormalModule, NormalModuleFactoryContext,
-  OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderManifestArgs,
-  ThisCompilationArgs, TransformAst, TransformResult,
+  FactorizeArgs, Module, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs,
+  ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderManifestArgs, ThisCompilationArgs,
+  TransformAst, TransformResult,
 };
 
 // use anyhow::{Context, Result};
@@ -22,7 +22,8 @@ pub type PluginProcessAssetsHookOutput = Result<()>;
 pub type PluginReadResourceOutput = Result<Option<Content>>;
 pub type PluginLoadHookOutput = Result<Option<Content>>;
 pub type PluginTransformOutput = Result<TransformResult>;
-pub type PluginFactorizeAndBuildHookOutput = Result<Option<(String, NormalModule)>>;
+// FIXME: factorize should only return `BoxModule`, the first string currently is used to generate `id`(moduleIds)
+pub type PluginFactorizeHookOutput = Result<Option<(String, BoxModule)>>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
 pub type PluginParseModuleHookOutput = Result<BoxModule>;
 pub type PluginParseOutput = Result<TransformAst>;
@@ -72,17 +73,17 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(None)
   }
   /**
-   * factorize_and_build hook will generate BoxModule which will be used to generate ModuleGraphModule.
+   * factorize hook will generate BoxModule which will be used to generate ModuleGraphModule.
    * It is used to handle the generation of those modules which are not normal, such as External Module
    * It behaves like a BailHook hook.
-   * NOTICE: The factorize_and_build hook is a temporary solution and will be replaced with the real factorize hook later
+   * NOTICE: The factorize hook is a temporary solution and will be replaced with the real factorize hook later
    */
-  async fn factorize_and_build(
+  async fn factorize(
     &self,
     _ctx: PluginContext,
-    _args: FactorizeAndBuildArgs<'_>,
+    _args: FactorizeArgs<'_>,
     _job_ctx: &mut NormalModuleFactoryContext,
-  ) -> PluginFactorizeAndBuildHookOutput {
+  ) -> PluginFactorizeHookOutput {
     Ok(None)
   }
 

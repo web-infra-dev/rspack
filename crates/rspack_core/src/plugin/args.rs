@@ -39,7 +39,7 @@ impl<'me> RenderManifestArgs<'me> {
 }
 
 #[derive(Debug, Clone)]
-pub struct FactorizeAndBuildArgs<'me> {
+pub struct FactorizeArgs<'me> {
   pub dependency: &'me Dependency,
   pub plugin_driver: &'me SharedPluginDriver,
 }

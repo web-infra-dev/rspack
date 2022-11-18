@@ -1,5 +1,5 @@
 pub use rspack_core::Compiler;
-use rspack_core::{CompilerOptions, ExternalPlugin, Plugin};
+use rspack_core::{CompilerOptions, Plugin};
 use rspack_error::Result;
 use rspack_plugin_asset::AssetConfig;
 use rspack_plugin_devtool::DevtoolPluginOptions;
@@ -13,7 +13,7 @@ pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -
   )));
   plugins.push(Box::new(rspack_plugin_json::JsonPlugin {}));
   plugins.push(Box::new(rspack_plugin_runtime::RuntimePlugin {}));
-  plugins.push(Box::new(ExternalPlugin {}));
+  plugins.push(Box::new(rspack_plugin_externals::ExternalPlugin::default()));
   plugins.append(&mut options.plugins);
   plugins.push(Box::new(rspack_plugin_javascript::JsPlugin::new()));
   plugins.push(Box::new(rspack_plugin_devtool::DevtoolPlugin::new(
