@@ -125,7 +125,7 @@ impl From<Error> for Vec<Diagnostic> {
         message: {
           let backtrace = match Backtrace::capture().status() {
             std::backtrace::BacktraceStatus::Captured => {
-              format!("\nbacktrace:\n{}", source.backtrace().to_string())
+              format!("\nbacktrace:\n{}", source.backtrace())
             }
             _ => "".to_string(),
           };
