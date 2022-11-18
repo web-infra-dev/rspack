@@ -549,12 +549,8 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
   "errors": [
     {
       "formatted": "Export should be relative path and start with "./", but got ../../index.js
-backtrace:
-disabled backtrace
 ",
-      "message": "Export should be relative path and start with "./", but got ../../index.js
-backtrace:
-disabled backtrace",
+      "message": "Export should be relative path and start with "./", but got ../../index.js",
     },
   ],
   "errorsCount": 1,
@@ -584,8 +580,6 @@ chunk {main} bundle.js (main) 39 bytes [entry]
 [./index.js] 39 bytes {main}
 
 Export should be relative path and start with "./", but got ../../index.js
-backtrace:
-disabled backtrace
 "
 `;
 
