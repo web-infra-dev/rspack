@@ -54,12 +54,14 @@ impl From<rspack_core::StatsAsset> for JsStatsAsset {
 #[napi(object)]
 pub struct JsStatsAssetInfo {
   pub development: bool,
+  pub hot_module_replacement: bool,
 }
 
 impl From<rspack_core::StatsAssetInfo> for JsStatsAssetInfo {
   fn from(stats: rspack_core::StatsAssetInfo) -> Self {
     Self {
       development: stats.development,
+      hot_module_replacement: stats.hot_module_replacement,
     }
   }
 }

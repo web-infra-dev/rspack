@@ -5,15 +5,18 @@ import {
 	JsCompilation,
 	JsAssetInfo,
 	JsCompatSource,
-	JsAsset,
-	JsChunkGroup
+	JsAsset
 } from "@rspack/binding";
 
 import { createHash } from "./utils/createHash";
 import { RspackOptionsNormalized } from "./config";
 import { createRawFromSource, createSourceFromRaw } from "./utils/createSource";
+import { ResolvedOutput } from "./config/output";
+import { ChunkGroup } from "./chunk_group";
+import { Compiler } from "./compiler";
 
 const hashDigestLength = 8;
+const EMPTY_ASSET_INFO = {};
 
 export class Compilation {
 	#inner: JsCompilation;
@@ -24,16 +27,20 @@ export class Compilation {
 	fullHash: string;
 	hash: string;
 	options: RspackOptionsNormalized;
+	outputOptions: ResolvedOutput;
+	compiler: Compiler;
 
-	constructor(options: RspackOptionsNormalized, inner: JsCompilation) {
+	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.hooks = {
 			processAssets: new tapable.AsyncSeriesHook<Record<string, Source>>([
 				"assets"
 			])
 		};
-		this.options = options;
+		this.compiler = compiler;
+		this.options = compiler.options;
+		this.outputOptions = compiler.options.output;
 		const hash = createHash(this.options.output.hashFunction);
-		this.fullHash = hash.digest(options.output.hashDigest);
+		this.fullHash = hash.digest(this.options.output.hashDigest);
 		this.hash = this.fullHash.slice(0, hashDigestLength);
 		this.#inner = inner;
 	}
@@ -54,8 +61,13 @@ export class Compilation {
 	/**
 	 * Get a map of all entrypoints.
 	 */
-	get entrypoints(): Map<string, JsChunkGroup> {
-		return new Map(Object.entries(this.#inner.entrypoints));
+	get entrypoints(): Map<string, ChunkGroup> {
+		return new Map(
+			Object.entries(this.#inner.entrypoints).map(([n, e]) => [
+				n,
+				new ChunkGroup(e)
+			])
+		);
 	}
 
 	/**
@@ -117,6 +129,7 @@ export class Compilation {
 		assetInfo: JsAssetInfo = {
 			minimized: false,
 			development: false,
+			hotModuleReplacement: false,
 			related: {}
 		}
 	) {
@@ -143,6 +156,17 @@ export class Compilation {
 		});
 	}
 
+	getAsset(name: string) {
+		const asset = this.#inner.getAsset(name);
+		if (!asset) {
+			return;
+		}
+		return {
+			...asset,
+			source: createSourceFromRaw(asset.source)
+		};
+	}
+
 	// TODO: full alignment
 	getPath(filename: string, data: Record<string, any> = {}) {
 		if (!data.hash) {
@@ -166,3 +190,5 @@ export class Compilation {
 	seal() {}
 	unseal() {}
 }
+
+export type { JsAssetInfo };

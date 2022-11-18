@@ -5,6 +5,7 @@ import util from "util";
 import * as tapable from "tapable";
 import { SyncHook, SyncBailHook, Callback } from "tapable";
 import asyncLib from "neo-async";
+import * as sources from "webpack-sources";
 
 import * as binding from "@rspack/binding";
 
@@ -33,6 +34,7 @@ class Compiler {
 	name: string;
 	inputFileSystem: any;
 	outputFileSystem: any;
+	context: string;
 	hooks: {
 		done: tapable.AsyncSeriesHook<Stats>;
 		afterDone: tapable.SyncHook<Stats>;
@@ -55,8 +57,12 @@ class Compiler {
 		// to workaround some plugin access webpack, we may change dev-server to avoid this hack in the future
 		this.webpack = {
 			EntryPlugin, // modernjs/server use this to inject dev-client
-			HotModuleReplacementPlugin // modernjs/server will auto inject this this plugin not set
+			HotModuleReplacementPlugin, // modernjs/server will auto inject this this plugin not set
+			get sources(): typeof import("webpack-sources") {
+				return require("webpack-sources");
+			}
 		};
+		this.context = context;
 		this.hooks = {
 			initialize: new SyncHook([]),
 			done: new tapable.AsyncSeriesHook<Stats>(["stats"]),
@@ -208,7 +214,7 @@ class Compiler {
 	}
 
 	#newCompilation(native: binding.JsCompilation) {
-		const compilation = new Compilation(this.options, native);
+		const compilation = new Compilation(this, native);
 		this.compilation = compilation;
 		this.hooks.thisCompilation.call(this.compilation);
 	}

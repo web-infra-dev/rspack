@@ -33,7 +33,7 @@ pub struct JsAssetInfo {
   /// when asset is only used for development and doesn't count towards user-facing assets
   pub development: bool,
   /// when asset ships data for updating an existing application (HMR)
-  // pub hot_module_replacement:
+  pub hot_module_replacement: bool,
   /// when asset is javascript and an ESM
   // pub javascript_module:
   /// related object to other assets, keyed by type of relation (only points from parent to child)
@@ -45,6 +45,7 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
     Self {
       minimized: i.minimized,
       development: i.development,
+      hot_module_replacement: i.hot_module_replacement,
       related: i.related.into(),
     }
   }
@@ -70,6 +71,7 @@ impl From<rspack_core::AssetInfo> for JsAssetInfo {
     Self {
       minimized: info.minimized,
       development: info.development,
+      hot_module_replacement: info.hot_module_replacement,
       related: info.related.into(),
     }
   }

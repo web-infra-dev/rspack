@@ -1092,11 +1092,33 @@ pub struct AssetInfo {
   /// when asset is only used for development and doesn't count towards user-facing assets
   pub development: bool,
   /// when asset ships data for updating an existing application (HMR)
-  // pub hot_module_replacement:
+  pub hot_module_replacement: bool,
   /// when asset is javascript and an ESM
   // pub javascript_module:
   /// related object to other assets, keyed by type of relation (only points from parent to child)
   pub related: AssetInfoRelated,
+}
+
+impl AssetInfo {
+  pub fn with_minimized(mut self, v: bool) -> Self {
+    self.minimized = v;
+    self
+  }
+
+  pub fn with_development(mut self, v: bool) -> Self {
+    self.development = v;
+    self
+  }
+
+  pub fn with_hot_module_replacement(mut self, v: bool) -> Self {
+    self.hot_module_replacement = v;
+    self
+  }
+
+  pub fn with_related(mut self, v: AssetInfoRelated) -> Self {
+    self.related = v;
+    self
+  }
 }
 
 #[derive(Debug, Default, Clone)]

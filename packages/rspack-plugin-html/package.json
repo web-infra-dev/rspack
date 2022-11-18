@@ -7,20 +7,29 @@
   "typings": "dist/index.d.ts",
   "scripts": {
     "build": "rm -rf lib/ && tsc",
-    "dev": "tsc -w"
+    "dev": "tsc -w",
+    "test": "jest --runInBand --detectOpenHandles --verbose"
   },
   "keywords": [
     "rspack",
     "html"
   ],
   "license": "ISC",
-  "devDependencies": {
-    "@rspack/core": "workspace:*"
-  },
   "dependencies": {
-    "parse5": "7.1.1"
+    "@rspack/core": "workspace:*",
+    "@types/html-minifier-terser": "7.0.0",
+    "html-minifier-terser": "7.0.0",
+    "parse5": "7.1.1",
+    "tapable": "2.2.1"
   },
-  "peerDependencies": {
-    "@rspack/core": "workspace:*"
+  "devDependencies": {
+    "jest": "29.0.3"
+  },
+  "jest": {
+    "watchPathIgnorePatterns": [
+      "<rootDir>/dist",
+      "<rootDir>/tests/dist"
+    ],
+    "testEnvironment": "node"
   }
 }

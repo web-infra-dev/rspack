@@ -33,9 +33,10 @@ const applyInfrastructureLoggingDefaults = infrastructureLogging => {
 	D(infrastructureLogging, "colors", tty);
 	D(infrastructureLogging, "appendOnly", !tty);
 };
-const applyOutputDefault = (output: ResolvedOutput) => {
+const applyOutputDefaults = (output: ResolvedOutput) => {
 	D(output, "hashFunction", "xxhash64");
 	F(output, "path", () => path.resolve(process.cwd(), "dist"));
+	D(output, "publicPath", "auto");
 	return output;
 };
 export function applyRspackOptionsDefaults(options: RspackOptionsNormalized) {
@@ -48,6 +49,6 @@ export function applyRspackOptionsDefaults(options: RspackOptionsNormalized) {
 	const development = mode === "development";
 	const production = mode === "production" || !mode;
 	F(options, "devtool", () => (development ? "eval" : ""));
-	applyOutputDefault(options.output);
+	applyOutputDefaults(options.output);
 	D(options.builtins, "minify", production);
 }
