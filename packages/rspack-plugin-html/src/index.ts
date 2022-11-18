@@ -1,4 +1,4 @@
-import type { Compiler, Compilation, AssetInfo } from "@rspack/core";
+import type { Compiler, Compilation } from "@rspack/core";
 import type { Options as MinifyOptions } from "html-minifier-terser";
 import assert from "node:assert";
 import path from "node:path";

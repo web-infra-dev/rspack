@@ -29,6 +29,7 @@ describe("Stats", () => {
 		      ],
 		      "info": {
 		        "development": false,
+		        "hotModuleReplacement": false,
 		      },
 		      "name": "main.js",
 		      "size": 9890,
