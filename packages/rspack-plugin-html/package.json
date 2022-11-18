@@ -1,6 +1,6 @@
 {
   "name": "@rspack/plugin-html",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "html plugin for rspack",
   "author": "",
   "main": "dist/index.js",

@@ -1,5 +1,13 @@
 # @rspack/core
 
+## 0.0.10
+
+### Patch Changes
+
+- 062e692d: fix parse url failed
+  - @rspack/binding@0.0.10
+  - @rspack/dev-client@0.0.10
+
 ## 0.0.9
 
 ### Patch Changes

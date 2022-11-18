@@ -1,5 +1,12 @@
 # @rspack/dev-client
 
+## 0.0.10
+
+### Patch Changes
+
+- Updated dependencies [062e692d]
+  - @rspack/core@0.0.10
+
 ## 0.0.9
 
 ### Patch Changes
