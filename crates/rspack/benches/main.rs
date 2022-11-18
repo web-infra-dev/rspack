@@ -31,20 +31,19 @@ fn criterion_benchmark(c: &mut Criterion) {
     .enable_all()
     .build()
     .unwrap();
-  let lodash: PathBuf = concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/../../benchcases/lodash-with-simple-css"
-  )
-  .into();
-  let css_heavy: PathBuf =
-    concat!(env!("CARGO_MANIFEST_DIR"), "/../../benchcases/css-heavy").into();
-  let ten_copy_of_threejs: PathBuf =
-    concat!(env!("CARGO_MANIFEST_DIR"), "/../../benchcases/three").into();
-  c.bench_function("lodash", |b| b.to_async(&rt).iter(|| bench(&lodash)));
-  c.bench_function("css_heavy", |b| b.to_async(&rt).iter(|| bench(&css_heavy)));
-  c.bench_function("ten_copy_of_threejs", |b| {
-    b.to_async(&rt).iter(|| bench(&ten_copy_of_threejs))
-  });
+
+  generate_bench!(css_heavy, "css-heavy", c, rt);
+  generate_bench!(ten_copy_of_threejs, "three", c, rt);
+  generate_bench!(lodash, "lodash", c, rt);
+  generate_bench!(stress, "stress", c, rt);
 }
 criterion_group!(benches, criterion_benchmark);
 criterion_main!(benches);
+
+#[macro_export]
+macro_rules! generate_bench {
+  ($id: ident, $dir: expr, $c: ident, $rt: ident) => {
+    let $id: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/../../benchcases/", $dir).into();
+    $c.bench_function(stringify!($id), |b| b.to_async(&$rt).iter(|| bench(&$id)));
+  };
+}
