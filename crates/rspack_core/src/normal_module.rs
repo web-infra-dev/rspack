@@ -1,6 +1,7 @@
 use std::{
   borrow::Cow,
   fmt::Debug,
+  hash::Hash,
   sync::{
     atomic::{AtomicU32, Ordering},
     Arc,
@@ -472,13 +473,13 @@ impl Module for NormalModule {
   }
 }
 
-impl std::cmp::PartialEq for NormalModule {
+impl PartialEq for NormalModule {
   fn eq(&self, other: &Self) -> bool {
     self.identifier() == other.identifier()
   }
 }
 
-impl std::cmp::Eq for NormalModule {}
+impl Eq for NormalModule {}
 
 impl NormalModule {
   fn create_source(
@@ -502,5 +503,12 @@ impl NormalModule {
       return Ok(OriginalSource::new(content, uri).boxed());
     }
     Ok(RawSource::from(content.into_bytes()).boxed())
+  }
+}
+
+impl Hash for NormalModule {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    "__rspack_internal__NormalModule".hash(state);
+    self.identifier().hash(state);
   }
 }
