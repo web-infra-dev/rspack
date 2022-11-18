@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::hash::Hash;
 
 use hashbrown::HashSet;
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -84,3 +85,18 @@ impl Module for RawModule {
     Ok(cgr)
   }
 }
+
+impl Hash for RawModule {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    "__rspack_internal__RawModule".hash(state);
+    self.identifier().hash(state);
+  }
+}
+
+impl PartialEq for RawModule {
+  fn eq(&self, other: &Self) -> bool {
+    self.identifier() == other.identifier()
+  }
+}
+
+impl Eq for RawModule {}

@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::hash::Hash;
 
 use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
@@ -107,3 +108,18 @@ impl Module for ExternalModule {
     Ok(cgr)
   }
 }
+
+impl Hash for ExternalModule {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    "__rspack_internal__ExternalModule".hash(state);
+    self.identifier().hash(state);
+  }
+}
+
+impl PartialEq for ExternalModule {
+  fn eq(&self, other: &Self) -> bool {
+    self.identifier() == other.identifier()
+  }
+}
+
+impl Eq for ExternalModule {}
