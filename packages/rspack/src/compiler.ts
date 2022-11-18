@@ -24,6 +24,8 @@ class HotModuleReplacementPlugin {
 }
 type CompilationParams = Record<string, any>;
 class Compiler {
+	#_instance: binding.Rspack;
+
 	webpack: any;
 	compilation: Compilation;
 	infrastructureLogger: any;
@@ -81,12 +83,12 @@ class Compiler {
 	 * Lazy initialize instance so it could access the changed options
 	 */
 	get #instance() {
-		// @ts-ignored
-		this._instance =
-			// @ts-ignored
-			this._instance ||
-			// @ts-ignored
-			new binding.Rspack(this.options, {
+		// @ts-ignore TODO: fix this
+		const options: binding.RawOptions = this.options;
+
+		this.#_instance =
+			this.#_instance ||
+			new binding.Rspack(options, {
 				done: this.#done.bind(this),
 				processAssets: this.#processAssets.bind(this),
 				// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
@@ -99,8 +101,8 @@ class Compiler {
 				// No matter how it will be implemented, it will be copied to the child compiler.
 				compilation: this.#compilation.bind(this)
 			});
-		// @ts-ignored
-		return this._instance;
+
+		return this.#_instance;
 	}
 	getInfrastructureLogger(name: string | Function) {
 		if (!name) {
