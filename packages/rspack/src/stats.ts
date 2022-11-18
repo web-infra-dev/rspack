@@ -2,8 +2,8 @@ import * as binding from "@rspack/binding";
 import { StatsOptions, StatsOptionsObj } from "./config/stats";
 import { LogType } from "./logging/Logger";
 
-type StatsCompilationInner = Omit<binding.StatsCompilation, "entrypoints"> & {
-	entrypoints: Record<string, binding.StatsEntrypoint>;
+type StatsCompilationInner = Omit<binding.JsStatsCompilation, "entrypoints"> & {
+	entrypoints: Record<string, binding.JsStatsEntrypoint>;
 };
 export type StatsCompilation = Partial<StatsCompilationInner> & {
 	filteredModules?: number;
@@ -13,7 +13,7 @@ export class Stats {
 	// remove this when support delegate compilation to rust side
 	#statsJson: StatsCompilationInner;
 
-	constructor(statsJson: binding.StatsCompilation) {
+	constructor(statsJson: binding.JsStatsCompilation) {
 		this.#statsJson = {
 			...statsJson,
 			entrypoints: statsJson.entrypoints.reduce((acc, cur) => {
@@ -838,7 +838,7 @@ const SizeFormatHelpers = {
 	}
 };
 
-const formatError = (e: binding.StatsError) => {
+const formatError = (e: binding.JsStatsError) => {
 	return e.formatted;
 };
 

@@ -188,7 +188,7 @@ class Compiler {
 	 * @param value
 	 * @returns
 	 */
-	#done(statsJson: binding.StatsCompilation) {}
+	#done(statsJson: binding.JsStatsCompilation) {}
 
 	async #processAssets(assets: Record<string, binding.JsCompatSource>) {
 		let iterator = Object.entries(assets).map(([filename, source]) => [
@@ -250,9 +250,9 @@ class Compiler {
 		doRun();
 	}
 	// Safety: This method is only valid to call if the previous build task is finished, or there will be data races.
-	build(cb: Callback<Error, binding.StatsCompilation>) {
+	build(cb: Callback<Error, binding.JsStatsCompilation>) {
 		const build_cb = this.#instance.unsafe_build.bind(this.#instance) as (
-			cb: Callback<Error, binding.StatsCompilation>
+			cb: Callback<Error, binding.JsStatsCompilation>
 		) => void;
 		build_cb((err, stats) => {
 			if (err) {
@@ -265,7 +265,7 @@ class Compiler {
 	// Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
 	rebuild(
 		changedFiles: string[],
-		cb: (error?: Error, stats?: binding.StatsCompilation) => void
+		cb: (error?: Error, stats?: binding.JsStatsCompilation) => void
 	) {
 		const rebuild_cb = this.#instance.unsafe_rebuild.bind(this.#instance) as (
 			changed: string[],
