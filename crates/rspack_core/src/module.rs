@@ -38,7 +38,7 @@ pub struct BuildResult {
 
 #[async_trait]
 pub trait Module: Debug + Send + Sync + AsAny {
-  fn module_type(&self) -> ModuleType;
+  fn module_type(&self) -> &ModuleType;
 
   fn source_types(&self) -> &[SourceType];
 
@@ -140,7 +140,7 @@ mod test {
     ($ident: ident) => {
       #[::async_trait::async_trait]
       impl Module for $ident {
-        fn module_type(&self) -> ModuleType {
+        fn module_type(&self) -> &ModuleType {
           unreachable!()
         }
 

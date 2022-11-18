@@ -354,8 +354,8 @@ impl NormalModule {
 
 #[async_trait::async_trait]
 impl Module for NormalModule {
-  fn module_type(&self) -> ModuleType {
-    self.module_type
+  fn module_type(&self) -> &ModuleType {
+    &self.module_type
   }
 
   fn source_types(&self) -> &[SourceType] {

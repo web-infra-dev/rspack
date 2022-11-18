@@ -198,7 +198,7 @@ impl NormalModuleFactory {
         )
         .boxed();
 
-        self.context.module_type = Some(raw_module.module_type());
+        self.context.module_type = Some(*raw_module.module_type());
 
         return Ok(Some((uri, raw_module, dependency_id)));
       }
@@ -344,7 +344,7 @@ impl NormalModuleFactory {
       let (uri, module) = module;
       // TODO: remove this
       let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
-      self.context.module_type = Some(module.module_type());
+      self.context.module_type = Some(*module.module_type());
 
       self
         .tx

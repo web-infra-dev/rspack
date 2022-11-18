@@ -116,7 +116,7 @@ impl<'compilation> Stats<'compilation> {
         chunks.sort();
         StatsModule {
           r#type: "module",
-          module_type: module.module_type(),
+          module_type: *module.module_type(),
           identifier: identifier.into(),
           name: module
             .readable_identifier(&self.compilation.options.context)

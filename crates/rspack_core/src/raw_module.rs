@@ -38,8 +38,8 @@ impl RawModule {
 
 #[async_trait::async_trait]
 impl Module for RawModule {
-  fn module_type(&self) -> ModuleType {
-    ModuleType::Js
+  fn module_type(&self) -> &ModuleType {
+    &ModuleType::Js
   }
 
   fn source_types(&self) -> &[SourceType] {
