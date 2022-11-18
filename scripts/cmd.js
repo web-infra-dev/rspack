@@ -4,7 +4,7 @@ const { Command, command } = require("commander");
 
 const COMMANDER_VERSION = "2.20.3";
 
-function checkCommandVersion () {
+function checkCommandVersion() {
 	const pkgInfo = require(require.resolve("commander/package.json"));
 	if (pkgInfo.version !== COMMANDER_VERSION) {
 		log.error(
@@ -14,7 +14,7 @@ function checkCommandVersion () {
 	}
 }
 
-function createCLI () {
+function createCLI() {
 	checkCommandVersion();
 
 	const cli = new Command();
@@ -94,7 +94,7 @@ function createCLI () {
 					command = `pnpm --filter "@rspack/*" build`;
 					break;
 				case "js-release":
-					command = `pnpm --filter "@rspack/*" build && pnpm --filter @rspack/binding build --release`;
+					command = `pnpm --filter "@rspack/*" build && pnpm --filter @rspack/binding build:release:all`;
 					break;
 				case "binding":
 					command = "pnpm --filter @rspack/binding build";
