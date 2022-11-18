@@ -44,6 +44,16 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: release snapshot
         id: release
+        if: ${{!contains(github.event.comment.body , '!snapshot-all')}}
+        run: |
+          pnpm version:snapshot $(git rev-parse --short HEAD)
+          ./x build js-release
+          pnpm release:snapshot
+          comment=$(./x pkg-version)
+          echo "::set-output name=comment::$comment"
+      - name: release snapshot for all platform
+        id: release-all-platform
+        if: ${{contains(github.event.comment.body, '!snapshot-all')}}
         run: |
           pnpm version:snapshot $(git rev-parse --short HEAD)
           ./x build js-release
