@@ -47,8 +47,7 @@ impl Module for ExternalModule {
   fn identifier(&self) -> Cow<str> {
     Cow::Owned(format!(
       "external {} {}",
-      self.external_type.to_string(),
-      self.specifier
+      self.external_type, self.specifier
     ))
   }
 

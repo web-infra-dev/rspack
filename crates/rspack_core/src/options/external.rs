@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, fmt::Display, str::FromStr};
 
 #[derive(Debug)]
 pub enum External {
@@ -14,13 +14,13 @@ pub enum ExternalType {
   Auto,
 }
 
-impl ToString for ExternalType {
-  fn to_string(&self) -> String {
+impl Display for ExternalType {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
-      ExternalType::NodeCommonjs => "node-commonjs".to_owned(),
-      ExternalType::Window => "window".to_owned(),
+      ExternalType::NodeCommonjs => write!(f, "node-commonjs"),
+      ExternalType::Window => write!(f, "window"),
       // TODO: didn't know where this field comes from, should be aligned to webpack in the future
-      ExternalType::Auto => "auto".to_owned(),
+      ExternalType::Auto => write!(f, "auto"),
     }
   }
 }
