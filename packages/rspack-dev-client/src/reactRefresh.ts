@@ -17,9 +17,9 @@ if (process.env.NODE_ENV !== "production") {
 
 	var id = "/react-refresh";
 	// @ts-ignored
-	__rspack_runtime__.installedModules[id] =
+	__webpack_require__.c[id] =
 		// @ts-ignored
-		__rspack_runtime__.installedModules[id] ||
+		__webpack_require__.c[id] ||
 		function (module, exports) {
 			module.exports = {
 				queueUpdate,

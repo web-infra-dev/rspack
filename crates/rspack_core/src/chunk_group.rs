@@ -8,7 +8,7 @@ pub struct ChunkGroup {
   pub chunks: Vec<ChunkUkey>,
   pub(crate) module_pre_order_indices: HashMap<String, usize>,
   pub(crate) module_post_order_indices: HashMap<String, usize>,
-  _parents: HashSet<ChunkGroupUkey>,
+  pub(crate) parents: HashSet<ChunkGroupUkey>,
   pub(crate) children: HashSet<ChunkGroupUkey>,
   pub(crate) kind: ChunkGroupKind,
   // ChunkGroupInfo
@@ -34,7 +34,7 @@ impl ChunkGroup {
       chunks: vec![],
       module_post_order_indices: Default::default(),
       module_pre_order_indices: Default::default(),
-      _parents: Default::default(),
+      parents: Default::default(),
       children: Default::default(),
       kind,
       next_pre_order_index: 0,

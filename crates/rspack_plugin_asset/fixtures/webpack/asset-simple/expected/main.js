@@ -1,26 +1,23 @@
-(function() {// runtime instance
-var runtime = new Object();
-self["__rspack_runtime__"] = runtime;
-// mount Modules
-(function () {
-	runtime.installedModules = {
-"./images/file.jpg": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
+(function() {// var __webpack_modules__ = ({});
+// replace here to modules
+var __webpack_modules__ = {
+"./images/file.jpg": function (module, exports, __webpack_require__) {
 "use strict";
 module.exports = "data:image/jpeg;base64,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";},
-"./images/file.png": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
+"./images/file.png": function (module, exports, __webpack_require__) {
 "use strict";
 module.exports = "/assets/file.png";},
-"./images/file.svg": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
+"./images/file.svg": function (module, exports, __webpack_require__) {
 "use strict";
 module.exports = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgNjAwIj48dGl0bGU+aWNvbi1zcXVhcmUtc21hbGw8L3RpdGxlPjxwYXRoIGZpbGw9IiNGRkYiIGQ9Ik0zMDAgLjFMNTY1IDE1MHYyOTkuOUwzMDAgNTk5LjggMzUgNDQ5LjlWMTUweiIvPjxwYXRoIGZpbGw9IiM4RUQ2RkIiIGQ9Ik01MTcuNyA0MzkuNUwzMDguOCA1NTcuOHYtOTJMNDM5IDM5NC4xbDc4LjcgNDUuNHptMTQuMy0xMi45VjE3OS40bC03Ni40IDQ0LjF2MTU5bDc2LjQgNDQuMXpNODEuNSA0MzkuNWwyMDguOSAxMTguMnYtOTJsLTEzMC4yLTcxLjYtNzguNyA0NS40em0tMTQuMy0xMi45VjE3OS40bDc2LjQgNDQuMXYxNTlsLTc2LjQgNDQuMXptOC45LTI2My4yTDI5MC40IDQyLjJ2ODlsLTEzNy4zIDc1LjUtMS4xLjYtNzUuOS00My45em00NDYuOSAwTDMwOC44IDQyLjJ2ODlMNDQ2IDIwNi44bDEuMS42IDc1LjktNDR6Ii8+PHBhdGggZmlsbD0iIzFDNzhDMCIgZD0iTTI5MC40IDQ0NC44TDE2MiAzNzQuMVYyMzQuMmwxMjguNCA3NC4xdjEzNi41em0xOC40IDBsMTI4LjQtNzAuNnYtMTQwbC0xMjguNCA3NC4xdjEzNi41ek0yOTkuNiAzMDN6bS0xMjktODVsMTI5LTcwLjlMNDI4LjUgMjE4bC0xMjguOSA3NC40LTEyOS03NC40eiIvPjwvc3ZnPgo=";},
-"./index.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
+"./index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _filePng = __rspack_runtime__.interopRequire(__rspack_require__("./images/file.png"));
-const _fileJpg = __rspack_runtime__.interopRequire(__rspack_require__("./images/file.jpg"));
-const _fileSvg = __rspack_runtime__.interopRequire(__rspack_require__("./images/file.svg"));
+const _filePng = __webpack_require__.interopRequire(__webpack_require__("./images/file.png"));
+const _fileJpg = __webpack_require__.interopRequire(__webpack_require__("./images/file.jpg"));
+const _fileSvg = __webpack_require__.interopRequire(__webpack_require__("./images/file.svg"));
 const container = document.createElement("div");
 Object.assign(container.style, {
     display: "flex",
@@ -49,132 +46,61 @@ function createImageElement(title, src) {
 },
 
 };
-})();
+// The module cache
+var __webpack_module_cache__ = {};
 
-// mount Chunks
-(function () {
-	runtime.installedChunks = {};
-})();
-
-// mount ModuleCache
-(function () {
-	runtime.moduleCache = {};
-})();
-(function () {
-	runtime.checkById = function (obj, prop) {
-		return Object.prototype.hasOwnProperty.call(obj, prop);
-	};
-})();
-// mount PublicPath
-(function () {
-	runtime.publicPath = "/";
-})();
 // The require function
-function __rspack_require__(moduleId) {
-	var cachedModule = runtime.moduleCache[moduleId];
+function __webpack_require__(moduleId) {
+	// Check if module is in cache
+	var cachedModule = __webpack_module_cache__[moduleId];
 	if (cachedModule !== undefined) {
 		return cachedModule.exports;
 	}
-
 	// Create a new module (and put it into the cache)
-	var module = (runtime.moduleCache[moduleId] = {
+	var module = (__webpack_module_cache__[moduleId] = {
 		// no module.id needed
 		// no module.loaded needed
 		exports: {}
 	});
 
-	// TODO: should use runtime generator
-	//---- hot require
-	try {
-		var execOptions = {
-			id: moduleId,
-			module: module,
-			factory: runtime.installedModules[moduleId],
-			require: __rspack_require__
-		};
-		module = execOptions.module;
-		__rspack_require__.i.forEach(function (handler) {
-			handler(execOptions);
-		});
-		execOptions.factory.call(
-			module.exports,
-			module,
-			module.exports,
-			execOptions.require.bind(runtime),
-			runtime.__rspack_dynamic_require__ &&
-				runtime.__rspack_dynamic_require__.bind(runtime),
-			runtime
-		);
-	} catch (error) {
-		module.error = error;
-		throw error;
-	}
+	// Execute the module function
+	var execOptions = {
+		id: moduleId,
+		module: module,
+		factory: __webpack_modules__[moduleId],
+		require: __webpack_require__
+	};
+	__webpack_require__.i.forEach(function (handler) {
+		handler(execOptions);
+	});
+	module = execOptions.module;
+	execOptions.factory.call(
+		module.exports,
+		module,
+		module.exports,
+		execOptions.require
+	);
 
-	//------ other
-	// this.installedModules[moduleId](
-	// 	module,
-	// 	module.exports,
-	// 	this.__rspack_require__.bind(this),
-	// 	this.__rspack_dynamic_require__ &&
-	// 		this.__rspack_dynamic_require__.bind(this),
-	//  runtime,
-	// );
-
+	// Return the exports of the module
 	return module.exports;
 }
 
-// mount require function
-(function () {
-	runtime.__rspack_require__ = __rspack_require__;
-	// module execution interceptor
-	runtime.__rspack_require__.i = [];
-	// hasOwnProperty shorthand
-	runtime.__rspack_require__.o = (obj, prop) =>
-		Object.prototype.hasOwnProperty.call(obj, prop);
-})();
-// The register function
-function __rspack_register__(chunkIds, modules, callback) {
-	if (
-		chunkIds.some(
-			function (id) {
-				return this.installedChunks[id] !== 0;
-			}.bind(this)
-		)
-	) {
-		for (moduleId in modules) {
-			if (this.checkById(modules, moduleId)) {
-				this.installedModules[moduleId] = modules[moduleId];
-			}
-		}
-		if (callback) callback(this.__rspack_require__);
-	}
-	for (var i = 0; i < chunkIds.length; i++) {
-		chunkId = chunkIds[i];
-		if (
-			this.checkById(this.installedChunks, chunkId) &&
-			this.installedChunks[chunkId]
-		) {
-			this.installedChunks[chunkId][0]();
-		}
-		this.installedChunks[chunkId] = 0;
-	}
-}
-
-// mount register function
-(function () {
-	runtime.__rspack_register__ = __rspack_register__;
-})();
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+// expose the module cache
+__webpack_require__.c = __webpack_module_cache__;
+// expose the module execution interceptor
+__webpack_require__.i = [];
 (function(){
-runtime.__rspack_require__.chunkId = 'main'})();
+__webpack_require__.chunkId = 'main'})();
             (function(){
-              runtime.__rspack_require__.hu = function (chunkId) {
+              __webpack_require__.hu = function (chunkId) {
                 return '' + chunkId + '.hot-update.js';
               }
-            })();(function(){
-runtime.__rspack_require__.p = '/'})();// hot runtime
+            })();// hot runtime
 (function () {
 	var currentModuleData = {};
-	var installedModules = runtime.moduleCache;
+	var installedModules = __webpack_require__.c;
 
 	// module and require creation
 	var currentChildModule;
@@ -194,8 +120,8 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 	var currentUpdateApplyHandlers;
 	var queuedInvalidatedModules;
 
-	runtime.__rspack_require__.hmrD = currentModuleData;
-	runtime.__rspack_require__.i.push(function (options) {
+	__webpack_require__.hmrD = currentModuleData;
+	__webpack_require__.i.push(function (options) {
 		var module = options.module;
 		var require = createRequire(options.require, options.id);
 		module.hot = createModuleHotObject(options.id, module);
@@ -205,8 +131,8 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 		options.require = require;
 	});
 
-	runtime.__rspack_require__.hmrC = {};
-	runtime.__rspack_require__.hmrI = {};
+	__webpack_require__.hmrC = {};
+	__webpack_require__.hmrI = {};
 
 	function createRequire(require, moduleId) {
 		var me = installedModules[moduleId];
@@ -277,7 +203,7 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 			_requireSelf: function () {
 				currentParents = me.parents.slice();
 				currentChildModule = _main ? undefined : moduleId;
-				runtime.__rspack_require__(moduleId);
+				__webpack_require__(moduleId);
 			},
 			active: true,
 			accept: function (dep, callback, errorHandler) {
@@ -323,10 +249,8 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 				switch (currentStatus) {
 					case "idle":
 						currentUpdateApplyHandlers = [];
-						Object.keys(runtime.__rspack_require__.hmrI).forEach(function (
-							key
-						) {
-							runtime.__rspack_require__.hmrI[key](
+						Object.keys(__webpack_require__.hmrI).forEach(function (key) {
+							__webpack_require__.hmrI[key](
 								moduleId,
 								currentUpdateApplyHandlers
 							);
@@ -334,10 +258,8 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 						setStatus("ready");
 						break;
 					case "ready":
-						Object.keys(runtime.__rspack_require__.hmrI).forEach(function (
-							key
-						) {
-							runtime.__rspack_require__.hmrI[key](
+						Object.keys(__webpack_require__.hmrI).forEach(function (key) {
+							__webpack_require__.hmrI[key](
 								moduleId,
 								currentUpdateApplyHandlers
 							);
@@ -428,7 +350,7 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 			throw new Error("check() is only allowed in idle status");
 		}
 		return setStatus("check")
-			.then(runtime.__rspack_require__.hmrM)
+			.then(__webpack_require__.hmrM)
 			.then(function (update) {
 				if (!update) {
 					return setStatus(applyInvalidatedModules() ? "ready" : "idle").then(
@@ -443,11 +365,11 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 					currentUpdateApplyHandlers = [];
 
 					return Promise.all(
-						Object.keys(runtime.__rspack_require__.hmrC).reduce(function (
+						Object.keys(__webpack_require__.hmrC).reduce(function (
 							promises,
 							key
 						) {
-							runtime.__rspack_require__.hmrC[key](
+							__webpack_require__.hmrC[key](
 								update.c,
 								update.r,
 								update.m,
@@ -563,12 +485,9 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 			if (!currentUpdateApplyHandlers) {
 				currentUpdateApplyHandlers = [];
 			}
-			Object.keys(runtime.__rspack_require__.hmrI).forEach(function (key) {
+			Object.keys(__webpack_require__.hmrI).forEach(function (key) {
 				queuedInvalidatedModules.forEach(function (moduleId) {
-					runtime.__rspack_require__.hmrI[key](
-						moduleId,
-						currentUpdateApplyHandlers
-					);
+					__webpack_require__.hmrI[key](moduleId, currentUpdateApplyHandlers);
 				});
 			});
 			queuedInvalidatedModules = undefined;
@@ -576,67 +495,11 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 		}
 	}
 })();
-(() => {
-	var inProgress = {};
-	// data-webpack is not used as build has no uniqueName
-	// loadScript function to load a script via script tag
-	runtime.__rspack_require__.l = (url, done, key, chunkId) => {
-		// add this after hash
-		// if (inProgress[url]) {
-		// 	inProgress[url].push(done);
-		// 	return;
-		// }
-		var script, needAttach;
-		if (key !== undefined) {
-			var scripts = document.getElementsByTagName("script");
-			for (var i = 0; i < scripts.length; i++) {
-				var s = scripts[i];
-				if (s.getAttribute("src") == url) {
-					script = s;
-					break;
-				}
-			}
-		}
-		if (!script) {
-			needAttach = true;
-			script = document.createElement("script");
-
-			script.charset = "utf-8";
-			script.timeout = 120;
-			// if (__webpack_require__.nc) {
-			// 	script.setAttribute("nonce", __webpack_require__.nc);
-			// }
-
-			script.src = url;
-		}
-		inProgress[url] = [done];
-		var onScriptComplete = (prev, event) => {
-			// avoid mem leaks in IE.
-			script.onerror = script.onload = null;
-			clearTimeout(timeout);
-			var doneFns = inProgress[url];
-			delete inProgress[url];
-			script.parentNode && script.parentNode.removeChild(script);
-			doneFns && doneFns.forEach(fn => fn(event));
-			if (prev) return prev(event);
-		};
-		var timeout = setTimeout(
-			onScriptComplete.bind(null, undefined, {
-				type: "timeout",
-				target: script
-			}),
-			120000
-		);
-		script.onerror = onScriptComplete.bind(null, script.onerror);
-		script.onload = onScriptComplete.bind(null, script.onload);
-		needAttach && document.head.appendChild(script);
-	};
-})();
 (function () {
-	var installedChunks = (runtime.__rspack_require__.hmrS_jsonp = runtime
-		.__rspack_require__.hmrS_jsonp || {
-		[runtime.__rspack_require__.chunkId]: 0
-	});
+	var installedChunks = (__webpack_require__.hmrS_jsonp =
+		__webpack_require__.hmrS_jsonp || {
+			[__webpack_require__.chunkId]: 0
+		});
 
 	var currentUpdatedModulesList;
 	var waitingUpdateResolves = {};
@@ -644,8 +507,7 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 		currentUpdatedModulesList = updatedModulesList;
 		return new Promise((resolve, reject) => {
 			// start update chunk loading
-			var url =
-				runtime.__rspack_require__.p + runtime.__rspack_require__.hu(chunkId);
+			var url = __webpack_require__.p + __webpack_require__.hu(chunkId);
 
 			waitingUpdateResolves[chunkId] = resolve;
 			// create error before stack unwound to get useful stacktrace later
@@ -670,15 +532,13 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 					reject(error);
 				}
 			};
-			runtime.__rspack_require__.l(url, loadingEnded);
+			__webpack_require__.l(url, loadingEnded);
 		});
 	}
 
 	self["hotUpdate"] = (chunkId, moreModules, runtime) => {
 		for (var moduleId in moreModules) {
-			if (
-				self["__rspack_runtime__"].__rspack_require__.o(moreModules, moduleId)
-			) {
+			if (__webpack_require__.o(moreModules, moduleId)) {
 				currentUpdate[moduleId] = moreModules[moduleId];
 				if (currentUpdatedModulesList) currentUpdatedModulesList.push(moduleId);
 			}
@@ -690,12 +550,12 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 		}
 	};
 
-	runtime.__rspack_require__.hmrM = function () {
+	__webpack_require__.hmrM = function () {
 		if (typeof fetch === "undefined")
 			throw new Error("No browser support: need fetch API");
 		// TODO: should use `hmrF()`
-		var f = runtime.__rspack_require__.chunkId + ".hot-update.json";
-		return fetch(runtime.__rspack_require__.p + f).then(response => {
+		var f = __webpack_require__.chunkId + ".hot-update.json";
+		return fetch(__webpack_require__.p + f).then(response => {
 			if (response.status === 404) return; // no update available
 			if (!response.ok)
 				throw new Error(
@@ -724,7 +584,7 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 				var queueItem = queue.pop();
 				var moduleId = queueItem.id;
 				var chain = queueItem.chain;
-				var module = runtime.moduleCache[moduleId];
+				var module = __webpack_require__.c[moduleId];
 				if (
 					!module ||
 					(module.hot._selfAccepted && !module.hot._selfInvalidated)
@@ -750,7 +610,7 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 
 				for (var i = 0; i < module.parents.length; i++) {
 					var parentId = module.parents[i];
-					var parent = runtime.moduleCache[parentId];
+					var parent = __webpack_require__.c[parentId];
 					if (!parent) {
 						continue;
 					}
@@ -807,7 +667,7 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 		};
 
 		for (var moduleId in currentUpdate) {
-			if (runtime.__rspack_require__.o(currentUpdate, moduleId)) {
+			if (__webpack_require__.o(currentUpdate, moduleId)) {
 				var newModuleFactory = currentUpdate[moduleId];
 				var result;
 				if (newModuleFactory) {
@@ -873,12 +733,7 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 					appliedUpdate[moduleId] = newModuleFactory;
 					addAllToSet(outdatedModules, result.outdatedModules);
 					for (moduleId in result.outdatedDependencies) {
-						if (
-							runtime.__rspack_require__.o(
-								result.outdatedDependencies,
-								moduleId
-							)
-						) {
+						if (__webpack_require__.o(result.outdatedDependencies, moduleId)) {
 							if (!outdatedDependencies[moduleId])
 								outdatedDependencies[moduleId] = [];
 							addAllToSet(
@@ -899,7 +754,7 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 		var outdatedSelfAcceptedModules = [];
 		for (var j = 0; j < outdatedModules.length; j++) {
 			var outdatedModuleId = outdatedModules[j];
-			var module = runtime.moduleCache[outdatedModuleId];
+			var module = __webpack_require__.c[outdatedModuleId];
 			if (
 				module &&
 				(module.hot._selfAccepted || module.hot._main) &&
@@ -928,7 +783,7 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 				var queue = outdatedModules.slice();
 				while (queue.length > 0) {
 					var moduleId = queue.pop();
-					var module = runtime.moduleCache[moduleId];
+					var module = __webpack_require__.c[moduleId];
 					if (!module) continue;
 
 					var data = {};
@@ -938,16 +793,16 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 					for (j = 0; j < disposeHandlers.length; j++) {
 						disposeHandlers[j].call(null, data);
 					}
-					runtime.__rspack_require__.hmrD[moduleId] = data;
+					__webpack_require__.hmrD[moduleId] = data;
 
 					module.hot.active = false;
 
-					delete runtime.moduleCache[moduleId];
+					delete __webpack_require__.c[moduleId];
 
 					delete outdatedDependencies[moduleId];
 
 					for (j = 0; j < module.children.length; j++) {
-						var child = runtime.moduleCache[module.children[j]];
+						var child = __webpack_require__.c[module.children[j]];
 						if (!child) continue;
 						idx = child.parents.indexOf(moduleId);
 						if (idx >= 0) {
@@ -958,10 +813,8 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 
 				var dependency;
 				for (var outdatedModuleId in outdatedDependencies) {
-					if (
-						runtime.__rspack_require__.o(outdatedDependencies, outdatedModuleId)
-					) {
-						module = runtime.moduleCache[outdatedModuleId];
+					if (__webpack_require__.o(outdatedDependencies, outdatedModuleId)) {
+						module = __webpack_require__.c[outdatedModuleId];
 						if (module) {
 							moduleOutdatedDependencies =
 								outdatedDependencies[outdatedModuleId];
@@ -977,23 +830,21 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 			apply: function (reportError) {
 				// insert new code
 				for (var updateModuleId in appliedUpdate) {
-					if (runtime.__rspack_require__.o(appliedUpdate, updateModuleId)) {
-						runtime.installedModules[updateModuleId] =
+					if (__webpack_require__.o(appliedUpdate, updateModuleId)) {
+						__webpack_require__.m[updateModuleId] =
 							appliedUpdate[updateModuleId];
 					}
 				}
 
 				// run new runtime modules
 				for (var i = 0; i < currentUpdateRuntime.length; i++) {
-					currentUpdateRuntime[i](runtime.__rspack_require__);
+					currentUpdateRuntime[i](__webpack_require__);
 				}
 
 				// call accept handlers
 				for (var outdatedModuleId in outdatedDependencies) {
-					if (
-						runtime.__rspack_require__.o(outdatedDependencies, outdatedModuleId)
-					) {
-						var module = runtime.moduleCache[outdatedModuleId];
+					if (__webpack_require__.o(outdatedDependencies, outdatedModuleId)) {
+						var module = __webpack_require__.c[outdatedModuleId];
 						if (module) {
 							moduleOutdatedDependencies =
 								outdatedDependencies[outdatedModuleId];
@@ -1068,7 +919,7 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 							try {
 								item.errorHandler(err, {
 									moduleId: moduleId,
-									module: runtime.moduleCache[moduleId]
+									module: __webpack_require__.c[moduleId]
 								});
 							} catch (err2) {
 								if (options.onErrored) {
@@ -1104,20 +955,20 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 		};
 	}
 
-	runtime.__rspack_require__.hmrI.jsonp = function (moduleId, applyHandlers) {
+	__webpack_require__.hmrI.jsonp = function (moduleId, applyHandlers) {
 		if (!currentUpdate) {
 			currentUpdate = {};
 			currentUpdateRuntime = [];
 			currentUpdateRemovedChunks = [];
 			applyHandlers.push(applyHandler);
 		}
-		if (!runtime.__rspack_require__.o(currentUpdate, moduleId)) {
-			currentUpdate[moduleId] = runtime.installedModules[moduleId];
+		if (!__webpack_require__.o(currentUpdate, moduleId)) {
+			currentUpdate[moduleId] = __webpack_require__.m[moduleId];
 		}
 	};
 
 	// TODO: fetch is not needed
-	runtime.__rspack_require__.hmrC.jsonp = function (
+	__webpack_require__.hmrC.jsonp = function (
 		chunkIds,
 		removedChunks,
 		removedModules,
@@ -1135,7 +986,7 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 		currentUpdateRuntime = [];
 		chunkIds.forEach(function (chunkId) {
 			if (
-				runtime.__rspack_require__.o(installedChunks, chunkId) &&
+				__webpack_require__.o(installedChunks, chunkId) &&
 				installedChunks[chunkId] !== undefined
 			) {
 				promises.push(loadUpdateChunk(chunkId, updatedModulesList));
@@ -1159,7 +1010,7 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 		})(nodeInterop);
 	}
 
-	runtime.interopRequire = function (obj, nodeInterop) {
+	__webpack_require__.interopRequire = function (obj, nodeInterop) {
 		if (!nodeInterop && obj && obj.__esModule) {
 			return obj;
 		}
@@ -1198,4 +1049,70 @@ runtime.__rspack_require__.p = '/'})();// hot runtime
 		return newObj;
 	};
 })();
-self["__rspack_runtime__"].__rspack_require__("./index.js");})()
+(function () {
+	var inProgress = {};
+	var dataWebpackPrefix = "webpack:";
+	// loadScript function to load a script via script tag
+	__webpack_require__.l = function loadScript(url, done, key, chunkId) {
+		// TODO add this after hash
+		// if (inProgress[url]) {
+		// 	inProgress[url].push(done);
+		// 	return;
+		// }
+		var script, needAttach;
+		if (key !== undefined) {
+			var scripts = document.getElementsByTagName("script");
+			for (var i = 0; i < scripts.length; i++) {
+				var s = scripts[i];
+				if (
+					s.getAttribute("src") == url ||
+					s.getAttribute("data-webpack") == dataWebpackPrefix + key
+				) {
+					script = s;
+					break;
+				}
+			}
+		}
+		if (!script) {
+			needAttach = true;
+			script = document.createElement("script");
+
+			script.charset = "utf-8";
+			script.timeout = 120;
+			script.setAttribute("data-webpack", dataWebpackPrefix + key);
+			script.src = url;
+		}
+		inProgress[url] = [done];
+		var onScriptComplete = function (prev, event) {
+			script.onerror = script.onload = null;
+			clearTimeout(timeout);
+			var doneFns = inProgress[url];
+			delete inProgress[url];
+			script.parentNode && script.parentNode.removeChild(script);
+			doneFns &&
+				doneFns.forEach(function (fn) {
+					return fn(event);
+				});
+			if (prev) return prev(event);
+		};
+		var timeout = setTimeout(
+			onScriptComplete.bind(null, undefined, {
+				type: "timeout",
+				target: script
+			}),
+			120000
+		);
+		script.onerror = onScriptComplete.bind(null, script.onerror);
+		script.onload = onScriptComplete.bind(null, script.onload);
+		needAttach && document.head.appendChild(script);
+	};
+})();
+(function () {
+	__webpack_require__.o = function (obj, prop) {
+		return Object.prototype.hasOwnProperty.call(obj, prop);
+	};
+})();
+(function () {
+	__webpack_require__.p = "/";
+})();
+__webpack_require__("./index.js");})()

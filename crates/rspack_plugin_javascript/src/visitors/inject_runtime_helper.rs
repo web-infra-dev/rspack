@@ -1,4 +1,3 @@
-use crate::runtime::RSPACK_RUNTIME;
 use hashbrown::HashSet;
 use rspack_core::runtime_globals;
 use swc_common::{Mark, DUMMY_SP};
@@ -41,7 +40,10 @@ impl<'a> VisitMut for InjectRuntimeHelper<'a> {
         // TODO try with ast.parse(r#"self["__rspack_runtime__"].interopRequire"#)
         n.callee = MemberExpr {
           span: DUMMY_SP,
-          obj: Box::new(Expr::Ident(Ident::new(RSPACK_RUNTIME.into(), DUMMY_SP))),
+          obj: Box::new(Expr::Ident(Ident::new(
+            runtime_globals::REQUIRE.into(),
+            DUMMY_SP,
+          ))),
           prop: MemberProp::Ident(Ident::new("interopRequire".into(), DUMMY_SP)),
         }
         .as_callee();
@@ -56,7 +58,10 @@ impl<'a> VisitMut for InjectRuntimeHelper<'a> {
         // TODO try with ast.parse(r#"self["__rspack_runtime__"].exportStar"#)
         n.callee = MemberExpr {
           span: DUMMY_SP,
-          obj: Box::new(Expr::Ident(Ident::new(RSPACK_RUNTIME.into(), DUMMY_SP))),
+          obj: Box::new(Expr::Ident(Ident::new(
+            runtime_globals::REQUIRE.into(),
+            DUMMY_SP,
+          ))),
           prop: MemberProp::Ident(Ident::new("exportStar".into(), DUMMY_SP)),
         }
         .as_callee();

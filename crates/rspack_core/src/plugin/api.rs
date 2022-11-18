@@ -111,6 +111,14 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
+  fn runtime_requirements_in_tree(
+    &self,
+    _ctx: PluginContext,
+    _args: &mut AdditionalChunkRuntimeRequirementsArgs,
+  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    Ok(())
+  }
+
   async fn process_assets(
     &mut self,
     _ctx: PluginContext,

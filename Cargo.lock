@@ -2494,6 +2494,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "hashbrown",
+ "itertools",
  "rspack_core",
  "rspack_error",
 ]

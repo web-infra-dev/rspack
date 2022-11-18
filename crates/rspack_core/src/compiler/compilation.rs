@@ -1,3 +1,12 @@
+use futures::{stream::FuturesUnordered, StreamExt};
+use hashbrown::{
+  hash_map::Entry,
+  hash_set::Entry::{Occupied, Vacant},
+  HashMap, HashSet,
+};
+use indexmap::IndexSet;
+use petgraph::prelude::GraphMap;
+use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use std::{
   borrow::BorrowMut,
   collections::VecDeque,
@@ -9,16 +18,6 @@ use std::{
   sync::atomic::{AtomicU32, Ordering},
   sync::Arc,
 };
-
-use futures::{stream::FuturesUnordered, StreamExt};
-use hashbrown::{
-  hash_map::Entry,
-  hash_set::Entry::{Occupied, Vacant},
-  HashMap, HashSet,
-};
-use indexmap::IndexSet;
-use petgraph::prelude::GraphMap;
-use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use sugar_path::SugarPath;
 use swc_atoms::JsWord;
 use tokio::sync::mpsc::{error::TryRecvError, UnboundedSender};
@@ -53,7 +52,7 @@ pub struct Compilation {
   entries: HashMap<String, Vec<EntryItem>>,
   pub(crate) visited_module_id: VisitedModuleIdentity,
   pub module_graph: ModuleGraph,
-  pub runtime_modules: HashMap<String, RuntimeModule>,
+  pub runtime_modules: HashMap<String, Box<dyn RuntimeModule>>,
   pub chunk_graph: ChunkGraph,
   pub chunk_by_ukey: HashMap<ChunkUkey, Chunk>,
   pub chunk_group_by_ukey: HashMap<ChunkGroupUkey, ChunkGroup>,
@@ -862,6 +861,8 @@ impl Compilation {
       .process_runtime_requirements(plugin_driver.clone())
       .await?;
 
+    // self.create_hash();
+
     self.create_chunk_assets(plugin_driver.clone()).await;
 
     self.process_assets(plugin_driver).await?;
@@ -980,6 +981,14 @@ impl Compilation {
           runtime_requirements: &mut set,
         })?;
 
+      plugin_driver.read().await.runtime_requirements_in_tree(
+        &mut AdditionalChunkRuntimeRequirementsArgs {
+          compilation: self,
+          chunk: entry_ukey,
+          runtime_requirements: &mut set,
+        },
+      )?;
+
       self
         .chunk_graph
         .add_tree_runtime_requirements(entry_ukey, set);
@@ -988,17 +997,38 @@ impl Compilation {
     Ok(())
   }
 
-  pub fn add_runtime_module(&mut self, chunk_ukey: &ChunkUkey, module: RuntimeModule) {
-    self.chunk_graph.add_module(module.identifier.clone());
+  // #[instrument()]
+  // pub fn create_hash(&mut self) {
+  //   for (chunk_ukey, chunk) in self.chunk_by_ukey.iter_mut() {
+  //     // let hasher = DefaultHasher::new();
+  //     for mgm in self
+  //       .chunk_graph
+  //       .get_chunk_modules(chunk_ukey, &self.module_graph)
+  //     {
+  //       if let Some(_module) = self
+  //         .module_graph
+  //         .module_by_identifier(&mgm.module_identifier)
+  //       {
+  //         // TODO
+  //         // hasher.write(module.hash(state));
+  //       }
+  //     }
+  //     chunk.hash = "11111111111111111111111".to_string();
+  //   }
+  // }
+
+  pub fn add_runtime_module(&mut self, chunk_ukey: &ChunkUkey, mut module: Box<dyn RuntimeModule>) {
+    module.attach(*chunk_ukey);
+    self.chunk_graph.add_module(module.identifier().to_string());
     self
       .chunk_graph
-      .connect_chunk_and_module(*chunk_ukey, module.identifier.clone());
+      .connect_chunk_and_module(*chunk_ukey, module.identifier().to_string());
     self
       .chunk_graph
-      .connect_chunk_and_runtime_module(*chunk_ukey, module.identifier.clone());
+      .connect_chunk_and_runtime_module(*chunk_ukey, module.identifier().to_string());
     self
       .runtime_modules
-      .insert(module.identifier.clone(), module);
+      .insert(module.identifier().to_string(), module);
   }
 }
 

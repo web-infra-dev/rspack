@@ -9,7 +9,7 @@
 		})(nodeInterop);
 	}
 
-	runtime.interopRequire = function (obj, nodeInterop) {
+	__webpack_require__.interopRequire = function (obj, nodeInterop) {
 		if (!nodeInterop && obj && obj.__esModule) {
 			return obj;
 		}

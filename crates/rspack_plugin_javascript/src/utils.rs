@@ -1,4 +1,3 @@
-use crate::{RSPACK_DYNAMIC_IMPORT, RSPACK_REQUIRE, RSPACK_RUNTIME};
 use dashmap::DashMap;
 use hashbrown::hash_map::DefaultHashBuilder;
 use once_cell::sync::Lazy;
@@ -6,7 +5,7 @@ use pathdiff::diff_paths;
 use rspack_core::rspack_sources::{
   BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt,
 };
-use rspack_core::{Compilation, ErrorSpan, ModuleType, TargetPlatform};
+use rspack_core::{runtime_globals, Compilation, ErrorSpan, ModuleType};
 use rspack_error::{DiagnosticKind, Error};
 use serde_json::json;
 use std::path::Path;
@@ -156,8 +155,8 @@ pub fn wrap_module_function(source: BoxSource, module_id: &str) -> BoxSource {
     RawSource::from(module_id.to_string()).boxed(),
     RawSource::from("\": ").boxed(),
     RawSource::from(format!(
-      "function (module, exports, {}, {}, {}) {{\n",
-      RSPACK_REQUIRE, RSPACK_DYNAMIC_IMPORT, RSPACK_RUNTIME
+      "function (module, exports, {}) {{\n",
+      runtime_globals::REQUIRE
     ))
     .boxed(),
     RawSource::from("\"use strict\";\n").boxed(),
@@ -165,34 +164,6 @@ pub fn wrap_module_function(source: BoxSource, module_id: &str) -> BoxSource {
     RawSource::from("},\n").boxed(),
   ]))
   .boxed()
-}
-
-pub fn get_wrap_chunk_before(
-  namespace: &str,
-  register: &str,
-  chunk_id: &str,
-  platform: &TargetPlatform,
-) -> BoxSource {
-  match platform {
-    TargetPlatform::Node(_) => RawSource::from(format!(
-      r#"exports.ids = ["{}"];
-      exports.modules = "#,
-      chunk_id
-    ))
-    .boxed(),
-    _ => RawSource::from(format!(
-      "self[\"{}\"].{}([\"{}\"], \n",
-      namespace, register, chunk_id
-    ))
-    .boxed(),
-  }
-}
-
-pub fn get_wrap_chunk_after(platform: &TargetPlatform) -> BoxSource {
-  match platform {
-    TargetPlatform::Node(_) => RawSource::from(";").boxed(),
-    _ => RawSource::from(");").boxed(),
-  }
 }
 
 pub fn ecma_parse_error_to_rspack_error(

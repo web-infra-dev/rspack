@@ -1,7 +1,7 @@
 // hot runtime
 (function () {
 	var currentModuleData = {};
-	var installedModules = runtime.moduleCache;
+	var installedModules = __webpack_require__.c;
 
 	// module and require creation
 	var currentChildModule;
@@ -21,8 +21,8 @@
 	var currentUpdateApplyHandlers;
 	var queuedInvalidatedModules;
 
-	runtime.__rspack_require__.hmrD = currentModuleData;
-	runtime.__rspack_require__.i.push(function (options) {
+	__webpack_require__.hmrD = currentModuleData;
+	__webpack_require__.i.push(function (options) {
 		var module = options.module;
 		var require = createRequire(options.require, options.id);
 		module.hot = createModuleHotObject(options.id, module);
@@ -32,8 +32,8 @@
 		options.require = require;
 	});
 
-	runtime.__rspack_require__.hmrC = {};
-	runtime.__rspack_require__.hmrI = {};
+	__webpack_require__.hmrC = {};
+	__webpack_require__.hmrI = {};
 
 	function createRequire(require, moduleId) {
 		var me = installedModules[moduleId];
@@ -104,7 +104,7 @@
 			_requireSelf: function () {
 				currentParents = me.parents.slice();
 				currentChildModule = _main ? undefined : moduleId;
-				runtime.__rspack_require__(moduleId);
+				__webpack_require__(moduleId);
 			},
 			active: true,
 			accept: function (dep, callback, errorHandler) {
@@ -150,10 +150,8 @@
 				switch (currentStatus) {
 					case "idle":
 						currentUpdateApplyHandlers = [];
-						Object.keys(runtime.__rspack_require__.hmrI).forEach(function (
-							key
-						) {
-							runtime.__rspack_require__.hmrI[key](
+						Object.keys(__webpack_require__.hmrI).forEach(function (key) {
+							__webpack_require__.hmrI[key](
 								moduleId,
 								currentUpdateApplyHandlers
 							);
@@ -161,10 +159,8 @@
 						setStatus("ready");
 						break;
 					case "ready":
-						Object.keys(runtime.__rspack_require__.hmrI).forEach(function (
-							key
-						) {
-							runtime.__rspack_require__.hmrI[key](
+						Object.keys(__webpack_require__.hmrI).forEach(function (key) {
+							__webpack_require__.hmrI[key](
 								moduleId,
 								currentUpdateApplyHandlers
 							);
@@ -255,7 +251,7 @@
 			throw new Error("check() is only allowed in idle status");
 		}
 		return setStatus("check")
-			.then(runtime.__rspack_require__.hmrM)
+			.then(__webpack_require__.hmrM)
 			.then(function (update) {
 				if (!update) {
 					return setStatus(applyInvalidatedModules() ? "ready" : "idle").then(
@@ -270,11 +266,11 @@
 					currentUpdateApplyHandlers = [];
 
 					return Promise.all(
-						Object.keys(runtime.__rspack_require__.hmrC).reduce(function (
+						Object.keys(__webpack_require__.hmrC).reduce(function (
 							promises,
 							key
 						) {
-							runtime.__rspack_require__.hmrC[key](
+							__webpack_require__.hmrC[key](
 								update.c,
 								update.r,
 								update.m,
@@ -390,12 +386,9 @@
 			if (!currentUpdateApplyHandlers) {
 				currentUpdateApplyHandlers = [];
 			}
-			Object.keys(runtime.__rspack_require__.hmrI).forEach(function (key) {
+			Object.keys(__webpack_require__.hmrI).forEach(function (key) {
 				queuedInvalidatedModules.forEach(function (moduleId) {
-					runtime.__rspack_require__.hmrI[key](
-						moduleId,
-						currentUpdateApplyHandlers
-					);
+					__webpack_require__.hmrI[key](moduleId, currentUpdateApplyHandlers);
 				});
 			});
 			queuedInvalidatedModules = undefined;

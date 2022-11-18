@@ -1,7 +1,7 @@
-(function() {// mount Modules
-(function () {
-	runtime.installedModules = {
-"./app.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
+(function() {// var __webpack_modules__ = ({});
+// replace here to modules
+var __webpack_modules__ = {
+"./app.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -10,24 +10,24 @@ Object.defineProperty(exports, "Provider", {
     enumerable: true,
     get: ()=>_lib.default
 });
-const _lib = __rspack_runtime__.interopRequire(__rspack_require__("./lib.js"));
+const _lib = __webpack_require__.interopRequire(__webpack_require__("./lib.js"));
 },
-"./foo.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
+"./foo.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-__rspack_runtime__.exportStar(__rspack_require__("./app.js"), exports);
+__webpack_require__.exportStar(__webpack_require__("./app.js"), exports);
 },
-"./index.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
+"./index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _foo = __rspack_require__("./foo.js");
+const _foo = __webpack_require__("./foo.js");
 _foo.Provider;
 },
-"./lib.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
+"./lib.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -41,15 +41,49 @@ const _default = Provider;
 },
 
 };
-})();
+// The module cache
+var __webpack_module_cache__ = {};
 
-// mount Chunks
-(function () {
-	runtime.installedChunks = {};
-})();
+// The require function
+function __webpack_require__(moduleId) {
+	// Check if module is in cache
+	var cachedModule = __webpack_module_cache__[moduleId];
+	if (cachedModule !== undefined) {
+		return cachedModule.exports;
+	}
+	// Create a new module (and put it into the cache)
+	var module = (__webpack_module_cache__[moduleId] = {
+		// no module.id needed
+		// no module.loaded needed
+		exports: {}
+	});
 
-// mount ModuleCache
-(function () {
-	runtime.moduleCache = {};
-})();
-self["__rspack_runtime__"].__rspack_require__("./index.js");})()
+	// Execute the module function
+	var execOptions = {
+		id: moduleId,
+		module: module,
+		factory: __webpack_modules__[moduleId],
+		require: __webpack_require__
+	};
+	__webpack_require__.i.forEach(function (handler) {
+		handler(execOptions);
+	});
+	module = execOptions.module;
+	execOptions.factory.call(
+		module.exports,
+		module,
+		module.exports,
+		execOptions.require
+	);
+
+	// Return the exports of the module
+	return module.exports;
+}
+
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+// expose the module cache
+__webpack_require__.c = __webpack_module_cache__;
+// expose the module execution interceptor
+__webpack_require__.i = [];
+__webpack_require__("./index.js");})()
