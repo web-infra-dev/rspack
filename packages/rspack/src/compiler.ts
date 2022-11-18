@@ -298,6 +298,7 @@ class Compiler {
 		let rawStats = await util.promisify(this.build.bind(this))();
 
 		let stats = new Stats(rawStats);
+		await this.hooks.done.promise(stats);
 		// TODO: log stats string should move to cli
 		console.log(stats.toString(this.options.stats));
 		console.log("build success, time cost", Date.now() - begin, "ms");
@@ -350,6 +351,11 @@ class Compiler {
 							client.send(JSON.stringify({ type: "ok" }));
 						}
 					}
+					this.hooks.done.callAsync(stats, err => {
+						if (err) {
+							throw err;
+						}
+					});
 					console.log("rebuild success, time cost", Date.now() - begin, "ms");
 				});
 			};
