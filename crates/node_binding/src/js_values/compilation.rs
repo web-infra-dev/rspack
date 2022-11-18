@@ -6,7 +6,7 @@ use napi::NapiRaw;
 
 use rspack_core::rspack_sources::SourceExt;
 
-use crate::{Asset, AssetInfo, CompatSource, JsCompatSource, ToJsCompatSource};
+use crate::{Asset, AssetInfo, CompatSource, JsChunkGroup, JsCompatSource, ToJsCompatSource};
 
 #[napi]
 pub struct JsCompilation {
@@ -129,6 +129,20 @@ impl JsCompilation {
     }
 
     Ok(js_source)
+  }
+
+  #[napi(getter)]
+  pub fn entrypoints(&self) -> HashMap<String, JsChunkGroup> {
+    let entrypoints = self.inner.entrypoints();
+    entrypoints
+      .iter()
+      .map(|(n, _)| {
+        (
+          n.clone(),
+          JsChunkGroup::from_chunk_group(self.inner.entrypoint_by_name(n), &self.inner),
+        )
+      })
+      .collect()
   }
 }
 

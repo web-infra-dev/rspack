@@ -382,6 +382,15 @@ importers:
       tsm: 2.2.2
       typescript: 4.7.4
 
+  packages/rspack-plugin-html:
+    specifiers:
+      '@rspack/core': workspace:*
+      parse5: 7.1.1
+    dependencies:
+      parse5: 7.1.1
+    devDependencies:
+      '@rspack/core': link:../rspack
+
   packages/rspack-plugin-less:
     specifiers:
       '@rspack/core': workspace:*
@@ -6746,7 +6755,6 @@ packages:
   /entities/4.4.0:
     resolution: {integrity: sha512-oYp7156SP8LkeGD0GF85ad1X9Ai79WtRsZ2gxJqtBuzH+98YUV6jkHEKlZkMbcrjJjIVJNIDP/3WL9wQkoPbWA==}
     engines: {node: '>=0.12'}
-    dev: true
 
   /envinfo/7.8.1:
     resolution: {integrity: sha512-/o+BXHmB7ocbHEAs6F2EnG0ogybVVUdkRunTT2glZU9XAaGmhqskrvKwqXuDfNjEO0LZKWdejEEpnq8aM0tOaw==}
@@ -9954,6 +9962,12 @@ packages:
 
   /parse-svg-path/0.1.2:
     resolution: {integrity: sha512-JyPSBnkTJ0AI8GGJLfMXvKq42cj5c006fnLz6fXy6zfoVjJizi8BNTpu8on8ziI1cKy9d9DGNuY17Ce7wuejpQ==}
+    dev: false
+
+  /parse5/7.1.1:
+    resolution: {integrity: sha512-kwpuwzB+px5WUg9pyK0IcK/shltJN5/OVhQagxhCQNtT9Y9QRZqNY2e1cmbu/paRh5LMnz/oVTVLBpjFmMZhSg==}
+    dependencies:
+      entities: 4.4.0
     dev: false
 
   /parseurl/1.3.3:

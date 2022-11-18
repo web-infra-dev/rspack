@@ -1,7 +1,12 @@
 import * as tapable from "tapable";
 import { RawSource, Source } from "webpack-sources";
 
-import { JsCompilation, AssetInfo, JsCompatSource } from "@rspack/binding";
+import {
+	JsCompilation,
+	AssetInfo,
+	JsCompatSource,
+	JsChunkGroup
+} from "@rspack/binding";
 
 import { createHash } from "./utils/createHash";
 import { RspackOptionsNormalized } from "./config";
@@ -43,6 +48,13 @@ export class Compilation {
 		);
 
 		return Object.fromEntries(iterator);
+	}
+
+	/**
+	 * Get a map of all entrypoints.
+	 */
+	get entrypoints(): Map<string, JsChunkGroup> {
+		return new Map(Object.entries(this.#inner.entrypoints));
 	}
 
 	/**

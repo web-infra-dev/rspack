@@ -1,0 +1,1 @@
+# @rspack/plugin-html

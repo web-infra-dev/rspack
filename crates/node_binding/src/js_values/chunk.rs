@@ -1,0 +1,16 @@
+#[napi(object)]
+pub struct JsChunk {
+  pub files: Vec<String>,
+}
+
+impl JsChunk {
+  pub fn from(chunk: &rspack_core::Chunk) -> Self {
+    let mut files = Vec::from_iter(chunk.files.iter().cloned());
+    files.sort();
+    Self { files }
+  }
+
+  pub fn get_files(&self) -> Vec<String> {
+    self.files.clone()
+  }
+}
