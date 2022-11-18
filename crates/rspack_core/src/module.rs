@@ -322,4 +322,18 @@ mod test {
     let hash3 = format!("{:x}", state3.finish());
     assert_ne!(hash1, hash3);
   }
+
+  #[test]
+  fn eq_should_work() {
+    let e1 = ExternalModule("e");
+    let e2 = ExternalModule("e");
+
+    assert_eq!(e1, e2);
+    assert_eq!(&e1.boxed(), &e2.boxed());
+
+    let r1 = RawModule("r1");
+    let r2 = RawModule("r2");
+    assert_ne!(r1, r2);
+    assert_ne!(&r1.boxed(), &r2.boxed());
+  }
 }
