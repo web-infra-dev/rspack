@@ -2008,7 +2008,6 @@ dependencies = [
  "backtrace",
  "dashmap",
  "futures",
- "itertools",
  "mimalloc-rust",
  "napi",
  "napi-build",
