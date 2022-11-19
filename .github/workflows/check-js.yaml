@@ -30,6 +30,7 @@ jobs:
           pnpm run format-ci:toml
           pnpm run lint:js
           pnpm run build:cli
+          pnpm --filter @rspack/plugin-html run build
       - name: binding test
         run: |
           pnpm --filter @rspack/core run test
