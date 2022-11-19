@@ -6,9 +6,14 @@ import fs from "node:fs";
 import chunkSorter from "./chunkSorter";
 import * as template from "./template";
 import { getHtmlRspackPluginHooks } from "./hooks";
-import { HtmlTagArray, htmlTagObjectToString } from "./html-tags";
+import {
+	HtmlTagArray,
+	htmlTagObjectToString,
+	createHtmlTagObject
+} from "./html-tags";
 
 export type { HtmlRspackPluginHooks } from "./hooks";
+export { defaultTemplateCompiler } from "./template";
 
 export interface Options {
 	/**
@@ -218,7 +223,7 @@ export interface Assets {
  */
 export interface TemplateParameter {
 	compilation: Compilation;
-	htmlRspackPlugin: {
+	htmlWebpackPlugin: {
 		tags: {
 			headTags: HtmlTagObject[];
 			bodyTags: HtmlTagObject[];
@@ -232,7 +237,7 @@ export interface TemplateParameter {
 		};
 		options: Options;
 	};
-	rspackConfig: any;
+	webpackConfig: any;
 }
 
 export default class HtmlRspackPlugin {
@@ -242,6 +247,10 @@ export default class HtmlRspackPlugin {
 	constructor(options?: Options) {
 		this.userOptions = options || {};
 	}
+
+	static getHooks = getHtmlRspackPluginHooks;
+
+	static createHtmlTagObject = createHtmlTagObject;
 
 	apply(compiler: Compiler) {
 		// Wait for configuration preset plugions to apply all configure webpack defaults
@@ -353,8 +362,8 @@ function templateParametersGenerator(
 ): TemplateParameter {
 	return {
 		compilation: compilation,
-		rspackConfig: compilation.options,
-		htmlRspackPlugin: {
+		webpackConfig: compilation.options,
+		htmlWebpackPlugin: {
 			tags: assetTags,
 			files: assets,
 			options: options
@@ -502,7 +511,10 @@ function hookIntoCompiler(
 					return fs.promises
 						.readFile(options.template, "utf-8")
 						.then(content =>
-							options.templateCompiler.compile(content, compileOptions)
+							options.templateCompiler.compile(content, {
+								filename: options.template,
+								...compileOptions
+							})
 						)
 						.then(compiled =>
 							template.evaluate(compiled, htmlPublicPath, options.template)
@@ -568,7 +580,7 @@ function hookIntoCompiler(
 						// TODO:
 						// compilation.errors.push(prettyError(err, compiler.context).toString());
 						// return options.showErrors ? prettyError(err, compiler.context).toHtml() : 'ERROR';
-						return `ERROR: ${err.message}`;
+						return `ERROR: ${err.message}\n${err.stack}`;
 					})
 					.then(html => {
 						// TODO:
@@ -838,7 +850,6 @@ function hookIntoCompiler(
 			)
 			.then(rawSource => {
 				const basename = path.basename(filename);
-				console.log("827", basename);
 				// compilation.fileDependencies.add(filename);
 				compilation.emitAsset(basename, rawSource);
 				return basename;
@@ -849,7 +860,7 @@ function hookIntoCompiler(
 		if (template === "auto") {
 			template = path.resolve(context, "src/index.ejs");
 			if (!fs.existsSync(template)) {
-				template = path.join(__dirname, "default_index.ejs");
+				template = path.join(__dirname, "../default_index.ejs");
 			}
 		}
 		return path.resolve(context, template);

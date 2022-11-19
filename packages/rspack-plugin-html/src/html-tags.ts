@@ -35,6 +35,46 @@ export function htmlTagObjectToString(
 }
 
 /**
+ * All html tag elements which must not contain innerHTML
+ * @see https://www.w3.org/TR/html5/syntax.html#void-elements
+ */
+const voidTags = [
+	"area",
+	"base",
+	"br",
+	"col",
+	"embed",
+	"hr",
+	"img",
+	"input",
+	"keygen",
+	"link",
+	"meta",
+	"param",
+	"source",
+	"track",
+	"wbr"
+];
+
+/**
+ * Static helper to create a tag object to be get injected into the dom
+ */
+export function createHtmlTagObject(
+	tagName: string,
+	attributes: { [attributeName: string]: string | boolean | null | undefined },
+	innerHTML: string,
+	meta: { [attributeName: string]: string | boolean | null | undefined }
+) {
+	return {
+		tagName: tagName,
+		voidTag: voidTags.indexOf(tagName) !== -1,
+		attributes: attributes || {},
+		meta: meta || {},
+		innerHTML: innerHTML
+	};
+}
+
+/**
  * The `HtmlTagArray Array with a custom `.toString()` method.
  *
  * This allows the following:
