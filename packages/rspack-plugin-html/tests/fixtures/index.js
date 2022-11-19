@@ -2,8 +2,6 @@
 
 require("./common");
 
-require.ensure([], function () {
-	require("./async");
-});
+(async () => await import("./async"))();
 
 document.body.innerHTML = document.body.innerHTML + "<p>index.js</p>";

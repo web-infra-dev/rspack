@@ -4,14 +4,14 @@ import HTMLRspackPlugin, { HtmlTagObject } from "./index";
 
 const htmlRspackPluginHooksMap = new WeakMap<
 	Compilation,
-	HTMLRspackPluginHooks
+	HtmlRspackPluginHooks
 >();
 
-export type HTMLRspackPluginHooks = ReturnType<
+export type HtmlRspackPluginHooks = ReturnType<
 	typeof createHtmlRspackPluginHooks
 >;
 
-export function getHtmlWebpackPluginHooks(compilation: Compilation) {
+export function getHtmlRspackPluginHooks(compilation: Compilation) {
 	let hooks = htmlRspackPluginHooksMap.get(compilation);
 	// Setup the hooks only once
 	if (hooks === undefined) {

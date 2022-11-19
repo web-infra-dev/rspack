@@ -2,13 +2,13 @@ import type { Compiler, Compilation } from "@rspack/core";
 import type { Options as MinifyOptions } from "html-minifier-terser";
 import assert from "node:assert";
 import path from "node:path";
-import fs from "node:fs/promises";
+import fs from "node:fs";
 import chunkSorter from "./chunkSorter";
 import * as template from "./template";
-import { getHtmlWebpackPluginHooks } from "./hooks";
+import { getHtmlRspackPluginHooks } from "./hooks";
 import { HtmlTagArray, htmlTagObjectToString } from "./html-tags";
 
-export type { HTMLRspackPluginHooks } from "./hooks";
+export type { HtmlRspackPluginHooks } from "./hooks";
 
 export interface Options {
 	/**
@@ -110,6 +110,10 @@ export interface Options {
 		  }) => string | Promise<string>)
 		| Promise<string>;
 	/**
+	 * Compile template to js code.
+	 */
+	templateCompiler?: template.TemplateCompiler;
+	/**
 	 * Allows to overwrite the parameters used in the template
 	 */
 	templateParameters?:
@@ -161,7 +165,7 @@ type TemplateFunction = (
 ) => string | Promise<string>;
 
 /**
- * A tag element according to the htmlWebpackPlugin object notation
+ * A tag element according to the HtmlRspackPlugin object notation
  */
 export interface HtmlTagObject {
 	/**
@@ -214,7 +218,7 @@ export interface Assets {
  */
 export interface TemplateParameter {
 	compilation: Compilation;
-	htmlWebpackPlugin: {
+	htmlRspackPlugin: {
 		tags: {
 			headTags: HtmlTagObject[];
 			bodyTags: HtmlTagObject[];
@@ -228,10 +232,10 @@ export interface TemplateParameter {
 		};
 		options: Options;
 	};
-	webpackConfig: any;
+	rspackConfig: any;
 }
 
-export default class HTMLRspackPlugin {
+export default class HtmlRspackPlugin {
 	userOptions: Options;
 	options: ProcessedOptions;
 
@@ -248,6 +252,7 @@ export default class HTMLRspackPlugin {
 			const defaultOptions: ProcessedOptions = {
 				template: "auto",
 				templateContent: false,
+				templateCompiler: template.defaultTemplateCompiler,
 				templateParameters: templateParametersGenerator,
 				filename: "index.html",
 				publicPath:
@@ -348,8 +353,8 @@ function templateParametersGenerator(
 ): TemplateParameter {
 	return {
 		compilation: compilation,
-		webpackConfig: compilation.options,
-		htmlWebpackPlugin: {
+		rspackConfig: compilation.options,
+		htmlRspackPlugin: {
 			tags: assetTags,
 			files: assets,
 			options: options
@@ -360,7 +365,7 @@ function templateParametersGenerator(
 function hookIntoCompiler(
 	compiler: Compiler,
 	options: ProcessedOptions,
-	plugin: HTMLRspackPlugin
+	plugin: HtmlRspackPlugin
 ) {
 	const webpack = compiler.webpack;
 	options.template = getFullTemplatePath(options.template, compiler.context);
@@ -392,13 +397,13 @@ function hookIntoCompiler(
 		};
 	}
 
-	compiler.hooks.thisCompilation.tap("HtmlWebpackPlugin", compilation => {
+	compiler.hooks.thisCompilation.tap("HtmlRspackPlugin", compilation => {
 		compilation.hooks.processAssets.tapAsync(
 			{
-				name: "HtmlWebpackPlugin"
+				name: "HtmlRspackPlugin"
 				// TODO: stage
 			},
-			async (compilationAssets, callback) => {
+			(compilationAssets, callback) => {
 				// Get all entry point names for this html file
 				const entryNames = Array.from(compilation.entrypoints.keys());
 				const filteredEntryNames = filterChunks(
@@ -435,7 +440,7 @@ function hookIntoCompiler(
 					assets.publicPath
 				).then(faviconPath => {
 					assets.favicon = faviconPath;
-					return getHtmlWebpackPluginHooks(
+					return getHtmlRspackPluginHooks(
 						compilation
 					).beforeAssetTagGeneration.promise({
 						assets: assets,
@@ -448,7 +453,7 @@ function hookIntoCompiler(
 				const assetTagGroupsPromise = assetsPromise
 					// And allow third-party-plugin authors to reorder and change the assetTags before they are grouped
 					.then(({ assets }) =>
-						getHtmlWebpackPluginHooks(compilation).alterAssetTags.promise({
+						getHtmlRspackPluginHooks(compilation).alterAssetTags.promise({
 							assetTags: {
 								scripts: generatedScriptTags(assets.js),
 								styles: generateStyleTags(assets.css),
@@ -474,7 +479,7 @@ function hookIntoCompiler(
 						// Group assets to `head` and `body` tag arrays
 						const assetGroups = generateAssetGroups(assetTags, scriptTarget);
 						// Allow third-party-plugin authors to reorder and change the assetTags once they are grouped
-						return getHtmlWebpackPluginHooks(
+						return getHtmlRspackPluginHooks(
 							compilation
 						).alterAssetTagGroups.promise({
 							headTags: assetGroups.headTags,
@@ -493,7 +498,15 @@ function hookIntoCompiler(
 					}
 					// Once everything is compiled evaluate the html factory
 					// and replace it with its content
-					return template.compile(options.template).then(template.evaluate);
+					const compileOptions = options.templateCompiler.options;
+					return fs.promises
+						.readFile(options.template, "utf-8")
+						.then(content =>
+							options.templateCompiler.compile(content, compileOptions)
+						)
+						.then(compiled =>
+							template.evaluate(compiled, htmlPublicPath, options.template)
+						);
 				});
 
 				const templateExectutionPromise = Promise.all([
@@ -529,7 +542,7 @@ function hookIntoCompiler(
 							plugin: plugin,
 							outputName: options.filename
 						};
-						return getHtmlWebpackPluginHooks(
+						return getHtmlRspackPluginHooks(
 							compilation
 						).afterTemplateExecution.promise(pluginArgs);
 					})
@@ -545,7 +558,7 @@ function hookIntoCompiler(
 							plugin: plugin,
 							outputName: options.filename
 						};
-						return getHtmlWebpackPluginHooks(compilation)
+						return getHtmlRspackPluginHooks(compilation)
 							.beforeEmit.promise(pluginArgs)
 							.then(result => result.html);
 					})
@@ -568,7 +581,7 @@ function hookIntoCompiler(
 						return options.filename;
 					})
 					.then(finalOutputName =>
-						getHtmlWebpackPluginHooks(compilation)
+						getHtmlRspackPluginHooks(compilation)
 							.afterEmit.promise({
 								outputName: finalOutputName,
 								plugin: plugin
@@ -815,16 +828,17 @@ function hookIntoCompiler(
 
 	function addFileToAssets(filename: string, compilation: Compilation) {
 		filename = path.resolve(compilation.compiler.context, filename);
-		return fs
+		return fs.promises
 			.readFile(filename)
 			.then(source => new webpack.sources.RawSource(source, false))
 			.catch(() =>
 				Promise.reject(
-					new Error("HtmlWebpackPlugin: could not load file " + filename)
+					new Error("HtmlRspackPlugin: could not load file " + filename)
 				)
 			)
 			.then(rawSource => {
 				const basename = path.basename(filename);
+				console.log("827", basename);
 				// compilation.fileDependencies.add(filename);
 				compilation.emitAsset(basename, rawSource);
 				return basename;
@@ -832,6 +846,12 @@ function hookIntoCompiler(
 	}
 
 	function getFullTemplatePath(template: string, context: string): string {
+		if (template === "auto") {
+			template = path.resolve(context, "src/index.ejs");
+			if (!fs.existsSync(template)) {
+				template = path.join(__dirname, "default_index.ejs");
+			}
+		}
 		return path.resolve(context, template);
 	}
 
