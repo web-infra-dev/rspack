@@ -34,6 +34,7 @@ jobs:
         run: |
           pnpm --filter @rspack/core run test
           pnpm --filter @rspack/dev-server run test
+          pnpm --filter @rspack/plugin-html run test
           pnpm run build:webpack
 
   # bundle-stats:
