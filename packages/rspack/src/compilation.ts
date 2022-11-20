@@ -1,7 +1,13 @@
 import * as tapable from "tapable";
 import { RawSource, Source } from "webpack-sources";
 
-import { JsCompilation, AssetInfo, JsCompatSource } from "@rspack/binding";
+import {
+	JsCompilation,
+	JsAssetInfo,
+	JsCompatSource,
+	JsAsset,
+	JsChunkGroup
+} from "@rspack/binding";
 
 import { createHash } from "./utils/createHash";
 import { RspackOptionsNormalized } from "./config";
@@ -46,6 +52,13 @@ export class Compilation {
 	}
 
 	/**
+	 * Get a map of all entrypoints.
+	 */
+	get entrypoints(): Map<string, JsChunkGroup> {
+		return new Map(Object.entries(this.#inner.entrypoints));
+	}
+
+	/**
 	 * Update an existing asset. Trying to update an asset that doesn't exist will throw an error.
 	 *
 	 * See: [Compilation.updateAsset](https://webpack.js.org/api/compilation-object/#updateasset)
@@ -55,12 +68,14 @@ export class Compilation {
 	 *
 	 * @param {string} file file name
 	 * @param {Source | function(Source): Source} newSourceOrFunction new asset source or function converting old to new
-	 * @param {AssetInfo | function(AssetInfo): AssetInfo} assetInfoUpdateOrFunction new asset info or function converting old to new
+	 * @param {JsAssetInfo | function(JsAssetInfo): JsAssetInfo} assetInfoUpdateOrFunction new asset info or function converting old to new
 	 */
 	updateAsset(
 		filename: string,
 		newSourceOrFunction: Source | ((source: Source) => Source),
-		assetInfoUpdateOrFunction: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo)
+		assetInfoUpdateOrFunction:
+			| JsAssetInfo
+			| ((assetInfo: JsAssetInfo) => JsAssetInfo)
 	) {
 		let compatNewSourceOrFunction:
 			| JsCompatSource
@@ -93,13 +108,13 @@ export class Compilation {
 	 *
 	 * @param {string} file file name
 	 * @param {Source} source asset source
-	 * @param {AssetInfo} assetInfo extra asset information
+	 * @param {JsAssetInfo} assetInfo extra asset information
 	 * @returns {void}
 	 */
 	emitAsset(
 		filename: string,
 		source: Source,
-		assetInfo: AssetInfo = {
+		assetInfo: JsAssetInfo = {
 			minimized: false,
 			development: false,
 			related: {}
@@ -114,7 +129,7 @@ export class Compilation {
 	 * See: [Compilation.getAssets](https://webpack.js.org/api/compilation-object/#getassets)
 	 * Source: [getAssets](https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L4448)
 	 *
-	 * @return {Readonly<Asset>[]}
+	 * @return {Readonly<JsAsset>[]}
 	 */
 	getAssets() {
 		const assets = this.#inner.getAssets();

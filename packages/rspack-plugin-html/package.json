@@ -1,0 +1,26 @@
+{
+  "name": "@rspack/plugin-html",
+  "version": "0.0.10",
+  "description": "html plugin for rspack",
+  "author": "",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
+  "scripts": {
+    "build": "rm -rf lib/ && tsc",
+    "dev": "tsc -w"
+  },
+  "keywords": [
+    "rspack",
+    "html"
+  ],
+  "license": "ISC",
+  "devDependencies": {
+    "@rspack/core": "workspace:*"
+  },
+  "dependencies": {
+    "parse5": "7.1.1"
+  },
+  "peerDependencies": {
+    "@rspack/core": "workspace:*"
+  }
+}

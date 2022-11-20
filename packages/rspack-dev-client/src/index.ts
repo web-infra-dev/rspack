@@ -3,7 +3,6 @@ import createSocketURL from "./createSocketURL";
 import parseURL from "./parseURL.js";
 import type { Handler } from "./socket";
 import reloadApp from "./utils/reloadApp";
-// const parsedResourceQuery = parseURL(document.location.toString());
 
 const status = {
 	currentHash: ""
@@ -30,6 +29,7 @@ const onSocketMessage: Handler = {
 	}
 };
 
-// const socketURL = createSocketURL(parsedResourceQuery as any);
+const parsedResourceQuery = parseURL(location.search);
+const socketURL = createSocketURL(parsedResourceQuery as any);
 
-socket(`ws://${location.host}/ws`, onSocketMessage);
+socket(socketURL, onSocketMessage);

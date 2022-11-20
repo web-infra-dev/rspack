@@ -30,6 +30,10 @@ impl Ukey {
   pub fn with_debug_info(info: &'static str) -> Self {
     Self(Self::gen_ukey(), Some(info))
   }
+
+  pub fn ukey(&self) -> usize {
+    self.0
+  }
 }
 
 impl Hash for Ukey {

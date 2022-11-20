@@ -1,6 +1,7 @@
 use std::{
   borrow::Cow,
   fmt::Debug,
+  hash::Hash,
   sync::{
     atomic::{AtomicU32, Ordering},
     Arc,
@@ -259,8 +260,6 @@ pub struct NormalModule {
   #[allow(unused)]
   debug_id: u32,
   cached_source_sizes: DashMap<SourceType, f64>,
-  // FIXME: dirty workaround to support external module
-  skip_build: bool,
 }
 
 #[derive(Debug)]
@@ -314,7 +313,6 @@ impl NormalModule {
 
       options,
       cached_source_sizes: DashMap::new(),
-      skip_build: false,
     }
   }
 
@@ -332,11 +330,6 @@ impl NormalModule {
 
   pub fn raw_request(&self) -> &str {
     &self.raw_request
-  }
-
-  // FIXME: dirty workaround to support external module
-  pub fn set_skip_build(&mut self, skip_build: bool) {
-    self.skip_build = skip_build;
   }
 
   pub fn source(&self) -> Option<&dyn Source> {
@@ -362,8 +355,8 @@ impl NormalModule {
 
 #[async_trait::async_trait]
 impl Module for NormalModule {
-  fn module_type(&self) -> ModuleType {
-    self.module_type
+  fn module_type(&self) -> &ModuleType {
+    &self.module_type
   }
 
   fn source_types(&self) -> &[SourceType] {
@@ -396,31 +389,6 @@ impl Module for NormalModule {
     &mut self,
     build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>> {
-    // FIXME: dirty workaround for external module
-    if self.skip_build {
-      let (parse_result, diagnostics) = self
-        .parser_and_generator
-        .parse(ParseContext {
-          source: RawSource::from("").boxed(),
-          module_type: &self.module_type,
-          resource_data: &self.resource_data,
-          compiler_options: build_context.compiler_options,
-          meta: None,
-        })?
-        .split_into_parts();
-
-      self.original_source = Some(RawSource::from("").boxed());
-      self.ast_or_source =
-        NormalModuleAstOrSource::new_built(parse_result.ast_or_source, &diagnostics);
-
-      return Ok(
-        BuildResult {
-          dependencies: parse_result.dependencies,
-        }
-        .with_diagnostic(diagnostics),
-      );
-    }
-
     let mut diagnostics = Vec::new();
     let loader_result = build_context
       .loader_runner_runner
@@ -516,13 +484,13 @@ impl Module for NormalModule {
   }
 }
 
-impl std::cmp::PartialEq for NormalModule {
+impl PartialEq for NormalModule {
   fn eq(&self, other: &Self) -> bool {
     self.identifier() == other.identifier()
   }
 }
 
-impl std::cmp::Eq for NormalModule {}
+impl Eq for NormalModule {}
 
 impl NormalModule {
   fn create_source(
@@ -546,5 +514,12 @@ impl NormalModule {
       return Ok(OriginalSource::new(content, uri).boxed());
     }
     Ok(RawSource::from(content.into_bytes()).boxed())
+  }
+}
+
+impl Hash for NormalModule {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    "__rspack_internal__NormalModule".hash(state);
+    self.identifier().hash(state);
   }
 }

@@ -18,6 +18,7 @@
     "lint:js": "./x lint js",
     "lint:rs": "./x lint rs",
     "release:binding": "pnpm --filter @rspack/binding run build:release",
+    "binding": "pnpm --filter @rspack/binding run build",
     "version:snapshot": "changeset version --snapshot",
     "release:snapshot": "changeset publish --tag snapshot --no-git-tag --no-git-checks",
     "release": "changeset publish --no-git-checks",

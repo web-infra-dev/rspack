@@ -24,6 +24,8 @@ class HotModuleReplacementPlugin {
 }
 type CompilationParams = Record<string, any>;
 class Compiler {
+	#_instance: binding.Rspack;
+
 	webpack: any;
 	compilation: Compilation;
 	infrastructureLogger: any;
@@ -81,26 +83,26 @@ class Compiler {
 	 * Lazy initialize instance so it could access the changed options
 	 */
 	get #instance() {
-		// @ts-ignored
-		this._instance =
-			// @ts-ignored
-			this._instance ||
-			// @ts-ignored
-			new binding.Rspack(this.options, {
-				doneCallback: this.#done.bind(this),
-				processAssetsCallback: this.#processAssets.bind(this),
+		// @ts-ignore TODO: fix this
+		const options: binding.RawOptions = this.options;
+
+		this.#_instance =
+			this.#_instance ||
+			new binding.Rspack(options, {
+				done: this.#done.bind(this),
+				processAssets: this.#processAssets.bind(this),
 				// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
 				// We know that the hook `thisCompilation` will not be called from a child compiler(it doesn't matter whether the child compiler is created on the Rust or the Node side).
 				// See webpack's API: https://webpack.js.org/api/compiler-hooks/#thiscompilation
 				// So it is safe to create a new compilation here.
-				thisCompilationCallback: this.#newCompilation.bind(this),
+				thisCompilation: this.#newCompilation.bind(this),
 				// The hook `Compilation` should be called whenever it's a call from the child compiler or normal compiler and
 				// still it does not matter where the child compiler is created(Rust or Node) as calling the hook `compilation` is a required task.
 				// No matter how it will be implemented, it will be copied to the child compiler.
-				compilationCallback: this.#compilation.bind(this)
+				compilation: this.#compilation.bind(this)
 			});
-		// @ts-ignored
-		return this._instance;
+
+		return this.#_instance;
 	}
 	getInfrastructureLogger(name: string | Function) {
 		if (!name) {
@@ -188,7 +190,7 @@ class Compiler {
 	 * @param value
 	 * @returns
 	 */
-	#done(statsJson: binding.StatsCompilation) {}
+	#done(statsJson: binding.JsStatsCompilation) {}
 
 	async #processAssets(assets: Record<string, binding.JsCompatSource>) {
 		let iterator = Object.entries(assets).map(([filename, source]) => [
@@ -250,9 +252,9 @@ class Compiler {
 		doRun();
 	}
 	// Safety: This method is only valid to call if the previous build task is finished, or there will be data races.
-	build(cb: Callback<Error, binding.StatsCompilation>) {
+	build(cb: Callback<Error, binding.JsStatsCompilation>) {
 		const build_cb = this.#instance.unsafe_build.bind(this.#instance) as (
-			cb: Callback<Error, binding.StatsCompilation>
+			cb: Callback<Error, binding.JsStatsCompilation>
 		) => void;
 		build_cb((err, stats) => {
 			if (err) {
@@ -265,7 +267,7 @@ class Compiler {
 	// Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
 	rebuild(
 		changedFiles: string[],
-		cb: (error?: Error, stats?: binding.StatsCompilation) => void
+		cb: (error?: Error, stats?: binding.JsStatsCompilation) => void
 	) {
 		const rebuild_cb = this.#instance.unsafe_rebuild.bind(this.#instance) as (
 			changed: string[],
@@ -298,6 +300,7 @@ class Compiler {
 		let rawStats = await util.promisify(this.build.bind(this))();
 
 		let stats = new Stats(rawStats);
+		await this.hooks.done.promise(stats);
 		// TODO: log stats string should move to cli
 		console.log(stats.toString(this.options.stats));
 		console.log("build success, time cost", Date.now() - begin, "ms");
@@ -350,6 +353,11 @@ class Compiler {
 							client.send(JSON.stringify({ type: "ok" }));
 						}
 					}
+					this.hooks.done.callAsync(stats, err => {
+						if (err) {
+							throw err;
+						}
+					});
 					console.log("rebuild success, time cost", Date.now() - begin, "ms");
 				});
 			};

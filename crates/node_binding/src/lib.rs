@@ -13,8 +13,6 @@ use napi::bindgen_prelude::*;
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
 
-use rspack_tracing::enable_tracing_by_env;
-
 mod js_values;
 mod plugins;
 mod utils;
@@ -125,44 +123,43 @@ pub struct Rspack {
 #[napi]
 impl Rspack {
   #[napi(constructor)]
-  pub fn new(
-    env: Env,
-    mut options: RawOptions,
-    plugin_callbacks: Option<PluginCallbacks>,
-  ) -> Result<Self> {
-    enable_tracing_by_env();
-    Self::prepare_environment(&env, &mut options);
+  pub fn new(env: Env, mut options: RawOptions, js_hooks: Option<JsHooks>) -> Result<Self> {
     rspack_tracing::enable_tracing_by_env();
+    Self::prepare_environment(&env, &mut options);
     tracing::info!("raw_options: {:#?}", &options);
-    let compiler_options = create_node_adapter_from_plugin_callbacks(env, plugin_callbacks)
-      .and_then(|node_adapter| {
-        let mut compiler_options =
-          normalize_bundle_options(options).map_err(|e| Error::from_reason(format!("{:?}", e)))?;
 
-        if let Some(node_adapter) = node_adapter {
-          compiler_options
-            .plugins
-            .push(Box::new(node_adapter) as Box<dyn rspack_core::Plugin>);
-        }
+    let compiler_options = {
+      let mut options =
+        normalize_bundle_options(options).map_err(|e| Error::from_reason(format!("{}", e)))?;
 
-        compiler_options
-          .module
-          .rules
-          .iter_mut()
-          .try_for_each(|rule| {
-            rule.uses.iter_mut().try_for_each(|loader| {
-              let casted = loader.as_any_mut();
-              if let Some(adapter) = casted.downcast_mut::<NodeLoaderAdapter>() {
-                adapter.unref(&env)
-              } else {
-                Ok(())
-              }
-            })
+      if let Some(hooks_adapter) = js_hooks
+        .map(|js_hooks| JsHooksAdapter::from_js_hooks(env, js_hooks))
+        .transpose()?
+      {
+        options
+          .plugins
+          .push(Box::new(hooks_adapter) as Box<dyn rspack_core::Plugin>);
+      };
+
+      options
+        .module
+        .rules
+        .iter_mut()
+        .try_for_each(|rule| {
+          rule.uses.iter_mut().try_for_each(|loader| {
+            let casted = loader.as_any_mut();
+            if let Some(adapter) = casted.downcast_mut::<JsLoaderAdapter>() {
+              adapter.unref(&env)
+            } else {
+              Ok(())
+            }
           })
-          .map_err(|e| Error::from_reason(format!("failed to unref tsfn {:?}", e)))?;
+        })
+        .map_err(|e| Error::from_reason(format!("failed to unref tsfn {:?}", e)))?;
 
-        Ok(compiler_options)
-      })?;
+      options
+    };
+
     tracing::info!("normalized_options: {:#?}", &compiler_options);
 
     let rspack = rspack::rspack(compiler_options, vec![]);
@@ -179,7 +176,7 @@ impl Rspack {
   /// Calling this method recursively might cause a deadlock.
   #[napi(
     js_name = "unsafe_build",
-    ts_args_type = "callback: (err: null | Error, result: StatsCompilation) => void"
+    ts_args_type = "callback: (err: null | Error, result: JsStatsCompilation) => void"
   )]
   pub fn build(&self, env: Env, f: JsFunction) -> Result<()> {
     let handle_build = |compiler: &mut _| {
@@ -194,7 +191,7 @@ impl Rspack {
           .await
           .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{}", e)))?;
 
-        let stats: StatsCompilation = rspack_stats.to_description().into();
+        let stats: JsStatsCompilation = rspack_stats.to_description().into();
         if stats.errors.is_empty() {
           tracing::info!("build success");
         } else {
@@ -236,7 +233,7 @@ impl Rspack {
           )
           .await
           .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
-        let stats: StatsCompilation = stats.to_description().into();
+        let stats: JsStatsCompilation = stats.to_description().into();
         tracing::info!("rebuild success");
         Ok(stats)
       })
@@ -315,7 +312,7 @@ fn init() {
 
   set_hook(Box::new(|panic_info| {
     let backtrace = Backtrace::new();
-    println!("Panic: {:?}\nBacktrace: {:?}", panic_info, backtrace);
+    println!("Panic: {:?}\nBacktrace: \n{:?}", panic_info, backtrace);
     std::process::exit(1)
   }));
 }

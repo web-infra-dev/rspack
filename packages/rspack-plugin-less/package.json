@@ -1,12 +1,13 @@
 {
   "name": "@rspack/plugin-less",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "less plugin for rspack",
   "author": "wangzhenzhuo",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc"
+    "build": "rm -rf lib/ && tsc",
+    "dev": "tsc -w"
   },
   "keywords": [
     "rspack",

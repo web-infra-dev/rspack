@@ -6,7 +6,7 @@ use napi::NapiRaw;
 
 use rspack_core::rspack_sources::SourceExt;
 
-use crate::{Asset, AssetInfo, CompatSource, JsCompatSource, ToJsCompatSource};
+use crate::{CompatSource, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, ToJsCompatSource};
 
 #[napi]
 pub struct JsCompilation {
@@ -16,14 +16,14 @@ pub struct JsCompilation {
 #[napi]
 impl JsCompilation {
   #[napi(
-    ts_args_type = r#"filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSource) => JsCompatSource), assetInfoUpdateOrFunction?: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo)"#
+    ts_args_type = r#"filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSource) => JsCompatSource), assetInfoUpdateOrFunction?: JsAssetInfo | ((assetInfo: JsAssetInfo) => JsAssetInfo)"#
   )]
   pub fn update_asset(
     &mut self,
     env: Env,
     filename: String,
     new_source_or_function: Either<JsCompatSource, JsFunction>,
-    asset_info_update_or_function: Option<Either<AssetInfo, JsFunction>>,
+    asset_info_update_or_function: Option<Either<JsAssetInfo, JsFunction>>,
   ) -> Result<()> {
     self
       .inner
@@ -64,11 +64,13 @@ impl JsCompilation {
                   call_js_function_with_napi_objects!(
                     env,
                     asset_info_fn,
-                    Into::<AssetInfo>::into(original_info.clone())
+                    Into::<JsAssetInfo>::into(original_info.clone())
                   )
                 }?;
 
-                unsafe { convert_raw_napi_value_to_napi_value!(env, AssetInfo, asset_info.raw()) }?
+                unsafe {
+                  convert_raw_napi_value_to_napi_value!(env, JsAssetInfo, asset_info.raw())
+                }?
               }
             };
 
@@ -81,12 +83,12 @@ impl JsCompilation {
       .map_err(|err| err.into())
   }
 
-  #[napi(ts_return_type = "Readonly<Asset>[]")]
-  pub fn get_assets(&self) -> Result<Vec<Asset>> {
-    let mut assets = Vec::<Asset>::with_capacity(self.inner.assets.len());
+  #[napi(ts_return_type = "Readonly<JsAsset>[]")]
+  pub fn get_assets(&self) -> Result<Vec<JsAsset>> {
+    let mut assets = Vec::<JsAsset>::with_capacity(self.inner.assets.len());
 
     for (filename, asset) in self.inner.assets() {
-      assets.push(Asset {
+      assets.push(JsAsset {
         name: filename.clone(),
         source: asset.source.to_js_compat_source()?,
         info: asset.info.clone().into(),
@@ -101,7 +103,7 @@ impl JsCompilation {
     &mut self,
     filename: String,
     source: JsCompatSource,
-    asset_info: AssetInfo,
+    asset_info: JsAssetInfo,
   ) -> Result<()> {
     let compat_source: CompatSource = source.into();
 
@@ -130,10 +132,24 @@ impl JsCompilation {
 
     Ok(js_source)
   }
+
+  #[napi(getter)]
+  pub fn entrypoints(&self) -> HashMap<String, JsChunkGroup> {
+    let entrypoints = self.inner.entrypoints();
+    entrypoints
+      .iter()
+      .map(|(n, _)| {
+        (
+          n.clone(),
+          JsChunkGroup::from_chunk_group(self.inner.entrypoint_by_name(n), &self.inner),
+        )
+      })
+      .collect()
+  }
 }
 
 impl JsCompilation {
-  pub fn from_compilation(c: Pin<&'static mut rspack_core::Compilation>) -> Self {
-    Self { inner: c }
+  pub fn from_compilation(inner: Pin<&'static mut rspack_core::Compilation>) -> Self {
+    Self { inner }
   }
 }

@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{backtrace::Backtrace, fmt};
 
 use crate::{DiagnosticKind, Error, TraceableError};
 
@@ -122,7 +122,15 @@ impl From<Error> for Vec<Diagnostic> {
       Error::Anyhow { source } => Diagnostic {
         kind,
         severity,
-        message: format!("{}\nbacktrace:\n{}", source, source.backtrace()),
+        message: {
+          let backtrace = match Backtrace::capture().status() {
+            std::backtrace::BacktraceStatus::Captured => {
+              format!("\nbacktrace:\n{}", source.backtrace())
+            }
+            _ => "".to_string(),
+          };
+          format!("{}{}", source, backtrace)
+        },
         ..Default::default()
       },
       Error::BatchErrors(diagnostics) => {
