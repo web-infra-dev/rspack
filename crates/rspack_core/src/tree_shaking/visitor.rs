@@ -125,9 +125,12 @@ impl<'a> ModuleRefAnalyze<'a> {
   }
 
   /// Collecting all reachable import binding from given start binding
-  pub fn get_all_import_or_export(&self, start: BetterId) -> HashSet<SymbolRef> {
+  /// when a export has been used from other module, we need to get all
+  /// reachable import and export(defined in the same module)
+  /// in rest of scenario we only count binding imported from other module.
+  pub fn get_all_import_or_export(&self, start: BetterId, only_import: bool) -> HashSet<SymbolRef> {
     let mut seen: HashSet<IdOrMemExpr> = HashSet::default();
-    let mut q: VecDeque<IdOrMemExpr> = VecDeque::from_iter([IdOrMemExpr::Id(start)]);
+    let mut q: VecDeque<IdOrMemExpr> = VecDeque::from_iter([IdOrMemExpr::Id(start.clone())]);
     while let Some(cur) = q.pop_front() {
       if seen.contains(&cur) {
         continue;
@@ -138,16 +141,16 @@ impl<'a> ModuleRefAnalyze<'a> {
       }
       seen.insert(cur);
     }
+    // dbg!(&start, &seen, &self.reference_map);
     return seen
       .iter()
       .filter_map(|id_or_mem_expr| match id_or_mem_expr {
         IdOrMemExpr::Id(id) => {
-          let ret =
-            self
-              .import_map
-              .get(id)
-              .cloned()
-              .or_else(|| match self.export_map.get(&id.atom) {
+          let ret = self.import_map.get(id).cloned().or_else(|| {
+            if only_import {
+              None
+            } else {
+              match self.export_map.get(&id.atom) {
                 Some(sym_ref @ SymbolRef::Direct(sym)) => {
                   if sym.id() == id {
                     Some(sym_ref.clone())
@@ -156,7 +159,9 @@ impl<'a> ModuleRefAnalyze<'a> {
                   }
                 }
                 _ => None,
-              });
+              }
+            }
+          });
           ret
         }
         IdOrMemExpr::MemberExpr { object, property } => {
@@ -201,10 +206,11 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       match symbol {
         // At this time uri of symbol will always equal to `self.module_identifier`
         SymbolRef::Direct(symbol) => {
-          let reachable_import = self.get_all_import_or_export(symbol.id().clone());
+          let reachable_import_and_export =
+            self.get_all_import_or_export(symbol.id().clone(), false);
           self
             .reachable_import_and_export
-            .insert(key.clone(), reachable_import);
+            .insert(key.clone(), reachable_import_and_export);
         }
         // ignore any indrect symbol, because it will not generate binding, the reachable exports will
         // be calculated in the module where it is defined
@@ -217,6 +223,8 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       .reference_map
       .iter()
       .flat_map(|(symbol, ref_list)| {
+        // it class decl, fn decl is lazy they don't immediately generate side effects unless they are called,
+        // Or constructed. The init of var decl will evaluate except rhs is function expr or arrow expr.
         if !symbol.flag.contains(SymbolFlag::VAR_DECL) {
           vec![]
         } else {
@@ -232,8 +240,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           ref_list
             .iter()
             .filter_map(|ref_id| {
+              // Only used id imported from other module would generate a side effects.
               self.import_map.get(match ref_id {
                 IdOrMemExpr::Id(ref id) => id,
+                // TODO: inspect namespace access
                 IdOrMemExpr::MemberExpr { object, .. } => object,
               })
             })
@@ -243,11 +253,12 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       })
       .collect::<Vec<_>>();
     self.used_symbol_ref.extend(side_effect_symbol_list);
+    dbg!(&self.used_id_set);
     // all reachable export from used symbol in current module
     for used_id in &self.used_id_set {
       match used_id {
         IdOrMemExpr::Id(id) => {
-          let reachable_import = self.get_all_import_or_export(id.clone());
+          let reachable_import = self.get_all_import_or_export(id.clone(), true);
           self.used_symbol_ref.extend(reachable_import);
         }
         IdOrMemExpr::MemberExpr { object, property } => match self.import_map.get(object) {
@@ -261,7 +272,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               )));
           }
           _ => {
-            let reachable_import = self.get_all_import_or_export(object.clone());
+            let reachable_import = self.get_all_import_or_export(object.clone(), true);
             self.used_symbol_ref.extend(reachable_import);
           }
         },

@@ -11,11 +11,8 @@ Object.defineProperty(exports, "app", {
     get: ()=>app
 });
 const _lib = __webpack_require__("./lib.js");
-var app = function() {
-    _lib.result;
-};
-(0, _lib.something)('app4');
-(0, _lib.something)('app3');
+function app() {}
+app.prototype.result = _lib.result;
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -30,18 +27,16 @@ const _app = __webpack_require__("./app.js");
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    result: ()=>result,
-    something: ()=>something
+Object.defineProperty(exports, "result", {
+    enumerable: true,
+    get: ()=>result
 });
+const secret = "888";
 const result = 20000;
-const something = function() {};
+const something = function() {
+    secret;
+};
+something();
 },
 
 };
