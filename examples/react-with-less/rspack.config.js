@@ -1,5 +1,7 @@
 const lessLoader = require('@rspack/plugin-less').default;
+const path = require('path');
 module.exports = {
+  context: __dirname,
   mode : 'development',
   entry : {
     main : ['./src/index.jsx'],
@@ -12,5 +14,8 @@ module.exports = {
   },
   module : {
     rules : [{test : '.less$', uses : [{loader : lessLoader}], type : 'css'}]
+  },
+  output: {
+    path: path.resolve(__dirname,'dist')
   }
 };

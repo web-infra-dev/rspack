@@ -189,11 +189,13 @@ importers:
     specifiers:
       '@rspack/cli': workspace:*
       '@rspack/plugin-less': workspace:^
+      normalize.css: 8.0.1
       react: 17.0.0
       react-dom: 17.0.0
     dependencies:
       '@rspack/cli': link:../../packages/rspack-cli
       '@rspack/plugin-less': link:../../packages/rspack-plugin-less
+      normalize.css: 8.0.1
       react: 17.0.0
       react-dom: 17.0.0_react@17.0.0
 
@@ -9701,6 +9703,10 @@ packages:
     resolution: {integrity: sha512-9UZCFRHQdNrfTpGg8+1INIg93B6zE0aXMVFkw1WFwvO4SlZywU6aLg5Of0Ap/PgcbSw4LNxvMWXMeugwMCX0AA==}
     engines: {node: '>=8'}
     dev: true
+
+  /normalize.css/8.0.1:
+    resolution: {integrity: sha512-qizSNPO93t1YUuUhP22btGOo3chcvDFqFaj2TRybP0DMxkHOCTYwp3n34fel4a31ORXy4m1Xq0Gyqpb5m33qIg==}
+    dev: false
 
   /npm-run-path/4.0.1:
     resolution: {integrity: sha512-S48WzZW777zhNIrn7gxOlISNAqi9ZC/uQFnRdbeIHhZhCA6UqpkOT8T1G7BvfdgP4Er8gF4sUbaS0i7QvIfCWw==}
