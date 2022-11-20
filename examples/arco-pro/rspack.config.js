@@ -30,15 +30,14 @@ module.exports = {
     rules:
       [
         {
-          test: 'module.less$',
+          test: '.less$',
           uses:
             [
+              { loader: postcssLoader, options: { modules: true } },
               { loader: lessLoader },
-              { loader: postcssLoader, options: { modules: true } }
             ],
           type: 'css'
         },
-        { test: '.less$', uses: [{ loader: lessLoader }], type: 'css' },
         { test: '.svg$', uses: [{ loader: './svg-loader.js' }], type: 'jsx' }
       ]
   },
@@ -49,5 +48,4 @@ module.exports = {
   infrastructureLogging: {
     debug: false
   },
-
 }
