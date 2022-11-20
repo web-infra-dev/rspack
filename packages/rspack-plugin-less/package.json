@@ -1,6 +1,6 @@
 {
   "name": "@rspack/plugin-less",
-  "version": "0.0.10",
+  "version": "0.0.10-3",
   "description": "less plugin for rspack",
   "author": "wangzhenzhuo",
   "main": "dist/index.js",
@@ -22,7 +22,8 @@
   "dependencies": {
     "klona": "2.0.5",
     "less": "4.1.2",
-    "tslib": "^2.3.1"
+    "tslib": "^2.3.1",
+    "enhanced-resolve": "5.10.0"
   },
   "peerDependencies": {
     "@rspack/core": "workspace:*"

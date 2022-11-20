@@ -1,5 +1,6 @@
 import type { LoaderContext } from "@rspack/core";
 import path from "path";
+import { create } from "enhanced-resolve";
 import LessAliasesPlugin from "./alias-plugin";
 import { normalizeSourceMap } from "./utils";
 const MODULE_REQUEST_REGEX = /^[^?]*~/;
@@ -15,6 +16,10 @@ export interface Options {
 
 export default async function lessLoader(loaderContext: LoaderContext) {
 	let meta = "";
+	const enhancedResolver = create.sync({
+		extensions: [".less", ".css", ".sass", ".scss", ".js"],
+		preferRelative: true
+	});
 	const options: Options = loaderContext.getOptions() ?? {};
 	const lessOptions = options.lessOptions ?? {};
 	const useSourceMap =
@@ -36,14 +41,18 @@ export default async function lessLoader(loaderContext: LoaderContext) {
 					? `${await options.additionalData(data, loaderContext)}`
 					: `${options.additionalData}\n${data}`;
 		}
-		const resolver = (id, dir) => {
+		const resolver = (id, dir): string => {
 			let request = id;
 			// convert '~a/b/c' to 'a/b/c'
 			// from https://github.com/webpack-contrib/less-loader/blob/master/src/utils.js#L73
 			if (MODULE_REQUEST_REGEX.test(id)) {
 				request = request.replace(MODULE_REQUEST_REGEX, "");
 			}
-			return require.resolve(request, { paths: [dir] });
+			try {
+				return enhancedResolver(dir, request) as string;
+			} catch (err) {
+				throw err;
+			}
 		};
 		const final_options = {
 			filename: loaderContext.resourcePath,

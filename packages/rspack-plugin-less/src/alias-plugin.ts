@@ -36,7 +36,7 @@ export default class LessAliasesPlugin {
 				const rebasedContents = await rebaseUrls(
 					resolved,
 					this.stdinDir,
-					this.config.css_resolve
+					this.config.resolve
 				);
 				const contents = rebasedContents.contents
 					? rebasedContents.contents
