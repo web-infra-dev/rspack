@@ -186,7 +186,7 @@ impl JsPlugin {
                 RawSource::from(
                   r#"
         if (module.hot) {
-          var cssReload = __rspack_require__("/css-hmr")(module.id, {"locals":false});
+          var cssReload = __webpack_require__("/css-hmr")(module.id, {"locals":false});
           module.hot.dispose(cssReload);
           module.hot.accept(undefined, cssReload);
         }
