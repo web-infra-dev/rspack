@@ -10,12 +10,7 @@
   "dependencies": {
     "@rspack/binding": "workspace:*",
     "postcss-modules": "^5.0.0",
-    "postcss-pxtorem": "^6.0.0"
-  },
-  "peerDependencies": {
-    "postcss": "^7.0.0 || ^8.0.1"
-  },
-  "devDependencies": {
+    "postcss-pxtorem": "^6.0.0",
     "postcss": "^8.4.16"
   },
   "author": "",

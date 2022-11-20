@@ -472,10 +472,9 @@ importers:
       postcss-pxtorem: ^6.0.0
     dependencies:
       '@rspack/binding': link:../../crates/node_binding
+      postcss: 8.4.16
       postcss-modules: 5.0.0_postcss@8.4.16
       postcss-pxtorem: 6.0.0_postcss@8.4.16
-    devDependencies:
-      postcss: 8.4.16
 
   webpack-examples:
     specifiers:
