@@ -213,6 +213,17 @@ impl PluginDriver {
     Ok(())
   }
 
+  #[instrument(name = "plugin:runtime_requirements_in_tree")]
+  pub fn runtime_requirements_in_tree(
+    &self,
+    args: &mut AdditionalChunkRuntimeRequirementsArgs,
+  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    for plugin in &self.plugins {
+      plugin.runtime_requirements_in_tree(PluginContext::new(), args)?;
+    }
+    Ok(())
+  }
+
   #[instrument(name = "plugin:process_assets", skip_all)]
   pub async fn process_assets(&mut self, args: ProcessAssetsArgs<'_>) -> PluginProcessAssetsOutput {
     for plugin in &mut self.plugins {

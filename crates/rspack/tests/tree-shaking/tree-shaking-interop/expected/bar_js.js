@@ -1,6 +1,5 @@
-self["__rspack_runtime__"].__rspack_register__(["bar_js"], 
-{
-"./bar.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["bar_js"], {
+"./bar.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -12,4 +11,4 @@ Object.defineProperty(exports, "default", {
 function test() {}
 },
 
-});
+}]);

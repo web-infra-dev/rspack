@@ -1,9 +1,8 @@
 use hashbrown::{HashMap, HashSet};
-use rspack_sources::RawSource;
+use rspack_sources::{BoxSource, CachedSource, RawSource, SourceExt};
+use std::fmt::Debug;
 
-pub const RUNTIME_PLACEHOLDER_INSTALLED_MODULES: &str = "{/* __INSTALLED_MODULES__*/}";
-pub const RUNTIME_PLACEHOLDER_RSPACK_EXECUTE: &str = "/* RSPACK_EXECUTE */";
-pub const RUNTIME_PLACEHOLDER_CHUNK_ID: &str = "/* __CHUNK_ID__ */";
+use crate::{ChunkUkey, Compilation};
 
 pub type RuntimeSpec = HashSet<String>;
 pub type RuntimeKey = String;
@@ -141,17 +140,45 @@ impl RuntimeSpecSet {
   }
 }
 
+pub trait RuntimeModule: Debug + Send + Sync {
+  fn identifier(&self) -> &str;
+  fn generate(&self, compilation: &Compilation) -> BoxSource;
+  fn attach(&mut self, _chunk: ChunkUkey) {}
+}
+
+pub trait RuntimeModuleExt {
+  fn boxed(self) -> Box<dyn RuntimeModule>;
+}
+
+impl<T: RuntimeModule + 'static> RuntimeModuleExt for T {
+  fn boxed(self) -> Box<dyn RuntimeModule> {
+    Box::new(self)
+  }
+}
+
 #[derive(Debug)]
-pub struct RuntimeModule {
+pub struct NormalRuntimeModule {
   pub identifier: String,
   pub sources: RawSource,
 }
 
-impl RuntimeModule {
+impl NormalRuntimeModule {
   pub fn new(identifier: String, sources: String) -> Self {
     Self {
       identifier: format!("rspack/runtime/{}", identifier),
       sources: RawSource::from(sources),
     }
   }
+}
+
+impl RuntimeModule for NormalRuntimeModule {
+  fn identifier(&self) -> &str {
+    &self.identifier
+  }
+
+  fn generate(&self, _compilation: &Compilation) -> BoxSource {
+    CachedSource::new(self.sources.clone()).boxed()
+  }
+
+  fn attach(&mut self, _chunk: ChunkUkey) {}
 }

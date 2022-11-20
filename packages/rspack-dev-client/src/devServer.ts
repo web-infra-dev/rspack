@@ -48,9 +48,8 @@ if (module.hot) {
 				}
 			});
 	};
-	self.__rspack_runtime__.hotEmitter =
-		self.__rspack_runtime__.hotEmitter || require("./emitter");
-	self.__rspack_runtime__.hotEmitter.on("hotUpdate", function (_currentHash) {
+	self.hotEmitter = self.hotEmitter || require("./emitter");
+	self.hotEmitter.on("hotUpdate", function (_currentHash) {
 		// TODO: should use hash
 		// lastHash = currentHash;
 		if (!upToDate() && module.hot.status() === "idle") {

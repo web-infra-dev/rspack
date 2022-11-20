@@ -42,7 +42,7 @@ function reloadApp(
 		console.log("App hot update...");
 
 		// @ts-ignore
-		self.__rspack_runtime__.hotEmitter.emit("hotUpdate");
+		self.hotEmitter.emit("hotUpdate");
 
 		// TODO: revert it after hash
 		// if (typeof self !== "undefined" && self.window) {

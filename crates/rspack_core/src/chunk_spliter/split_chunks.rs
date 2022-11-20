@@ -406,6 +406,13 @@ impl<'me> CodeSplitter<'me> {
         .insert(dyn_dep_mgm.module_identifier.clone(), chunk.ukey);
 
       let mut chunk_group = ChunkGroup::new(ChunkGroupKind::Normal, None);
+      let item_chunk_group = self
+        .compilation
+        .chunk_group_by_ukey
+        .get_mut(&item.chunk_group)
+        .expect("chunk group not found");
+      item_chunk_group.children.insert(chunk_group.ukey);
+      chunk_group.parents.insert(item_chunk_group.ukey);
 
       chunk_group.connect_chunk(chunk);
 

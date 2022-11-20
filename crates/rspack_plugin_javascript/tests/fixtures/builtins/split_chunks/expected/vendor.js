@@ -1,8 +1,7 @@
-self["__rspack_runtime__"].__rspack_register__(["vendor"], 
-{
-"./foo.js": function (module, exports, __rspack_require__, __rspack_dynamic_require__, __rspack_runtime__) {
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["vendor"], {
+"./foo.js": function (module, exports, __webpack_require__) {
 "use strict";
 console.log('foo.js');
 },
 
-});
+}]);

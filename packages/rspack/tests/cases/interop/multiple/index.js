@@ -3,7 +3,6 @@ import b from "./b";
 const fs = require("fs");
 
 it("should exports __esModule", function () {
-	debugger;
 	expect(exports.__esModule).toBe(true);
 });
 
@@ -14,6 +13,6 @@ it("should have interop", function () {
 
 it("should interop helper inject once", function () {
 	const content = fs.readFileSync(__filename, "utf-8");
-	const keyStr = content.match(/runtime\.interopRequire/);
+	const keyStr = content.match(/__webpack_require__\.interopRequire/);
 	expect(keyStr && keyStr.length).toBe(1);
 });

@@ -4,7 +4,6 @@ use swc_css::visit::VisitMutWith;
 use swc_css_prefixer::{options::Options, prefixer};
 
 use rspack_core::{
-  get_contenthash,
   rspack_sources::{
     BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
     SourceMapSource, SourceMapSourceOptions,
@@ -359,7 +358,7 @@ impl Plugin for CssPlugin {
     // let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
     let hash = None;
     let chunkhash = None;
-    let contenthash = Some(get_contenthash(&source).to_string());
+    let contenthash = None;
     if source.source().is_empty() {
       Ok(Default::default())
     } else {

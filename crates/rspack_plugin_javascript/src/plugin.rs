@@ -1,4 +1,3 @@
-use crate::runtime::RSPACK_REGISTER;
 use anyhow::anyhow;
 use async_trait::async_trait;
 use dashmap::DashMap;
@@ -9,11 +8,11 @@ use rspack_core::rspack_sources::{
   SourceMapSource, SourceMapSourceOptions,
 };
 use rspack_core::{
-  get_contenthash, AstOrSource, ChunkKind, ChunkUkey, Compilation, FilenameRenderOptions,
+  runtime_globals, AstOrSource, ChunkKind, ChunkUkey, Compilation, FilenameRenderOptions,
   GenerateContext, GenerationResult, Module, ModuleAst, ModuleType, ParseContext, ParseResult,
   ParserAndGenerator, Plugin, PluginContext, PluginProcessAssetsOutput,
   PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderManifestEntry, SourceType,
-  TargetPlatform, RUNTIME_PLACEHOLDER_INSTALLED_MODULES,
+  TargetPlatform,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc::{config::JsMinifyOptions, BoolOrDataConfig};
@@ -22,10 +21,11 @@ use swc_common::GLOBALS;
 use tracing::instrument;
 
 use crate::utils::{
-  get_swc_compiler, get_wrap_chunk_after, get_wrap_chunk_before, syntax_by_module_type,
-  wrap_eval_source_map, wrap_module_function,
+  get_swc_compiler, syntax_by_module_type, wrap_eval_source_map, wrap_module_function,
 };
 use crate::visitors::{run_after_pass, run_before_pass, DependencyScanner};
+
+pub const RUNTIME_PLACEHOLDER_INSTALLED_MODULES: &str = "__INSTALLED_MODULES__";
 
 #[derive(Debug)]
 pub struct JsPlugin {
@@ -54,23 +54,10 @@ impl JsPlugin {
           .map(|module| &module.id)
       })
       .collect::<Vec<_>>();
-    let namespace = &compilation.options.output.unique_name;
-    let context_indent = if matches!(
-      compilation.options.target.platform,
-      TargetPlatform::Web | TargetPlatform::None
-    ) {
-      String::from("self")
-    } else {
-      String::from("this")
-    };
+    // let namespace = &compilation.options.output.unique_name;
     let sources = entry_modules_id
       .iter()
-      .map(|id| {
-        RawSource::from(format!(
-          r#"{}["{}"].{}("{}");"#,
-          context_indent, namespace, "__rspack_require__", id
-        ))
-      })
+      .map(|id| RawSource::from(format!(r#"{}("{}");"#, runtime_globals::REQUIRE, id)))
       .collect::<Vec<_>>();
     let concat = ConcatSource::new(sources);
     concat.boxed()
@@ -91,17 +78,17 @@ impl JsPlugin {
         #[cfg(debug_assertions)]
         {
           if !compilation.options.__wrap_runtime {
-            if cur.identifier == "rspack/runtime/_module_and_chunk_data.js" {
-              output.add(cur.sources.clone())
+            if cur.identifier() == "rspack/runtime/_rspack_require.js" {
+              output.add(cur.generate(compilation).clone())
             }
           } else {
-            output.add(cur.sources.clone())
+            output.add(cur.generate(compilation).clone())
           }
           output
         }
         #[cfg(not(debug_assertions))]
         {
-          output.add(cur.sources.clone());
+          output.add(cur.generate(compilation).clone());
           output
         }
       });
@@ -124,16 +111,32 @@ impl JsPlugin {
   }
 
   pub fn render_chunk(&self, args: &rspack_core::RenderManifestArgs) -> Result<BoxSource> {
-    let platform = &args.compilation.options.target.platform;
+    match args.compilation.options.target.platform {
+      TargetPlatform::Node(_) => self.render_node_chunk(args),
+      _ => self.render_web_chunk(args),
+    }
+  }
+
+  pub fn render_node_chunk(&self, args: &rspack_core::RenderManifestArgs) -> Result<BoxSource> {
     let mut sources = ConcatSource::default();
-    sources.add(get_wrap_chunk_before(
-      &args.compilation.options.output.unique_name,
-      RSPACK_REGISTER,
-      &args.chunk().id.to_owned(),
-      platform,
-    ));
+    sources.add(RawSource::from(format!(
+      r#"exports.ids = ["{}"];
+      exports.modules = "#,
+      &args.chunk().id.to_owned()
+    )));
     sources.add(self.render_chunk_modules(args)?);
-    sources.add(get_wrap_chunk_after(platform));
+    sources.add(RawSource::from(";"));
+    Ok(sources.boxed())
+  }
+
+  pub fn render_web_chunk(&self, args: &rspack_core::RenderManifestArgs) -> Result<BoxSource> {
+    let mut sources = ConcatSource::default();
+    sources.add(RawSource::from(format!(
+      r#"(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["{}"], "#,
+      &args.chunk().id.to_owned(),
+    )));
+    sources.add(self.render_chunk_modules(args)?);
+    sources.add(RawSource::from("]);"));
     Ok(sources.boxed())
   }
 
@@ -183,7 +186,7 @@ impl JsPlugin {
                 RawSource::from(
                   r#"
         if (module.hot) {
-          var cssReload = __rspack_require__("/css-hmr")(module.id, {"locals":false});
+          var cssReload = __webpack_require__("/css-hmr")(module.id, {"locals":false});
           module.hot.dispose(cssReload);
           module.hot.accept(undefined, cssReload);
         }
@@ -417,7 +420,8 @@ impl Plugin for JsPlugin {
     let hash = None;
     // let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
     let chunkhash = None;
-    let contenthash = Some(get_contenthash(&source).to_string());
+    let contenthash = None;
+
     let output_path = if chunk.is_only_initial(&args.compilation.chunk_group_by_ukey) {
       compilation
         .options

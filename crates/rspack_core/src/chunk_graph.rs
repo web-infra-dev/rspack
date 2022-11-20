@@ -2,8 +2,8 @@ use hashbrown::{HashMap, HashSet};
 use indexmap::IndexSet;
 
 use crate::{
-  Chunk, ChunkByUkey, ChunkGroupUkey, ChunkUkey, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
-  RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, SourceType,
+  Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, ModuleGraph, ModuleGraphModule,
+  ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, SourceType,
 };
 
 #[derive(Debug, Default)]
@@ -204,6 +204,11 @@ impl ChunkGraph {
     cgm.chunks.len()
   }
 
+  pub fn get_number_of_entry_modules(&self, chunk: &ChunkUkey) -> usize {
+    let cgc = self.get_chunk_graph_chunk(chunk);
+    cgc.entry_modules.len()
+  }
+
   pub fn add_module_runtime_requirements(
     &mut self,
     module_identifier: &str,
@@ -283,6 +288,60 @@ impl ChunkGraph {
     let cgc = self.get_chunk_graph_chunk(chunk_ukey);
     &cgc.runtime_modules
   }
+
+  pub fn set_module_hashes(
+    &mut self,
+    module_identifier: &ModuleIdentifier,
+    runtime: &RuntimeSpec,
+    hash: String,
+  ) {
+    let cgm = self.get_chunk_graph_module_mut(module_identifier);
+
+    if let Some(runtime_spec_map) = &mut cgm.hashes {
+      if let Some(value) = runtime_spec_map.get(runtime) {
+        unreachable!("Hash for runtime already set: {}", value);
+      } else {
+        runtime_spec_map.set(runtime.clone(), hash);
+      }
+    } else {
+      let mut runtime_spec_map = RuntimeSpecMap::default();
+      runtime_spec_map.set(runtime.clone(), hash);
+      cgm.hashes = Some(runtime_spec_map);
+    }
+  }
+
+  pub fn get_module_hash(
+    &mut self,
+    module_identifier: &ModuleIdentifier,
+    runtime: &RuntimeSpec,
+  ) -> Option<&String> {
+    let cgm = self.get_chunk_graph_module(module_identifier);
+    if let Some(runtime_spec_map) = &cgm.hashes {
+      if let Some(value) = runtime_spec_map.get(runtime) {
+        return Some(value);
+      }
+    }
+    None
+  }
+
+  pub fn get_chunk_condition_map<F: Fn(&ChunkUkey, &ChunkGraph, &ModuleGraph) -> bool>(
+    &self,
+    chunk_ukey: &ChunkUkey,
+    chunk_by_ukey: &ChunkByUkey,
+    chunk_group_by_ukey: &ChunkGroupByUkey,
+    module_graph: &ModuleGraph,
+    filter: F,
+  ) -> HashMap<String, bool> {
+    let mut map = HashMap::new();
+
+    let chunk = chunk_by_ukey.get(chunk_ukey).expect("Chunk should exist");
+    for c in chunk.get_all_referenced_chunks(chunk_group_by_ukey).iter() {
+      let chunk = chunk_by_ukey.get(c).expect("Chunk should exist");
+      map.insert(chunk.id.clone(), filter(c, self, module_graph));
+    }
+
+    map
+  }
 }
 
 #[derive(Debug, Default)]
@@ -291,6 +350,7 @@ pub struct ChunkGraphModule {
   pub(crate) chunks: HashSet<ChunkUkey>,
   pub(crate) runtime_requirements: Option<RuntimeSpecMap<HashSet<String>>>,
   pub(crate) runtime_in_chunks: HashSet<ChunkUkey>,
+  pub(crate) hashes: Option<RuntimeSpecMap<String>>,
 }
 
 impl ChunkGraphModule {
@@ -300,6 +360,7 @@ impl ChunkGraphModule {
       chunks: Default::default(),
       runtime_requirements: None,
       runtime_in_chunks: Default::default(),
+      hashes: None,
     }
   }
 }

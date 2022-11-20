@@ -2,7 +2,9 @@
 use ast::*;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::{Compilation, Dependency, Module, ModuleDependency, ResolveKind};
+use rspack_core::{
+  runtime_globals, Compilation, Dependency, Module, ModuleDependency, ResolveKind,
+};
 use swc_atoms::{Atom, JsWord};
 use swc_common::{Mark, DUMMY_SP};
 use swc_ecma_utils::{quote_ident, ExprFactory};
@@ -10,7 +12,6 @@ use swc_ecma_visit::{Fold, VisitMut, VisitMutWith};
 use tracing::instrument;
 
 use crate::utils::{is_dynamic_import_literal_expr, is_require_literal_expr};
-use crate::{RSPACK_DYNAMIC_IMPORT, RSPACK_REQUIRE};
 
 use super::is_module_hot_accept_call;
 use {
@@ -75,7 +76,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
   }
 
   fn get_rspack_import_callee(&self) -> Callee {
-    Ident::new(RSPACK_REQUIRE.into(), DUMMY_SP).as_callee()
+    Ident::new(runtime_globals::REQUIRE.into(), DUMMY_SP).as_callee()
   }
 
   fn get_rspack_dynamic_import_callee(&self, chunk_ids: Vec<&str>) -> Callee {
@@ -83,7 +84,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
       span: DUMMY_SP,
       obj: Box::new(swc_ecma_ast::Expr::Call(CallExpr {
         span: DUMMY_SP,
-        callee: Ident::new(RSPACK_DYNAMIC_IMPORT.into(), DUMMY_SP).as_callee(),
+        callee: Ident::new(runtime_globals::ENSURE_CHUNK.into(), DUMMY_SP).as_callee(),
         args: vec![Expr::Array(ArrayLit {
           span: DUMMY_SP,
           elems: chunk_ids
@@ -184,12 +185,15 @@ impl<'a> RspackModuleFormatTransformer<'a> {
           span: DUMMY_SP,
           callee: MemberExpr {
             span: DUMMY_SP,
-            obj: Box::new(Expr::Ident(Ident::new(RSPACK_REQUIRE.into(), DUMMY_SP))),
+            obj: Box::new(Expr::Ident(Ident::new(
+              runtime_globals::REQUIRE.into(),
+              DUMMY_SP,
+            ))),
             prop: MemberProp::Ident(Ident::new("bind".into(), DUMMY_SP)),
           }
           .as_callee(),
           args: vec![
-            Ident::new(RSPACK_REQUIRE.into(), DUMMY_SP).as_arg(),
+            Ident::new(runtime_globals::REQUIRE.into(), DUMMY_SP).as_arg(),
             // Ident::new(RSPACK_REQUIRE.into(), DUMMY_SP),
             Lit::Str(js_module_id.into()).as_arg(),
           ],

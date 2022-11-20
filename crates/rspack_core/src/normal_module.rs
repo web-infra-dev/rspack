@@ -23,12 +23,10 @@ use rspack_sources::{
 };
 
 use crate::{
-  ast::javascript::Ast as JsAst, BuildContext, BuildResult, CodeGenerationResult, GenerateContext,
-  Module, ParseContext, ParseResult, ParserAndGenerator,
-};
-use crate::{
-  Compilation, CompilerOptions, Context, Dependency, ModuleAst, ModuleGraph, ModuleGraphConnection,
-  ModuleType, ResolveKind, SourceType,
+  ast::javascript::Ast as JsAst, BuildContext, BuildResult, CodeGenerationResult, Compilation,
+  CompilerOptions, Context, Dependency, GenerateContext, Module, ModuleAst, ModuleGraph,
+  ModuleGraphConnection, ModuleType, ParseContext, ParseResult, ParserAndGenerator, ResolveKind,
+  SourceType,
 };
 
 bitflags! {
