@@ -11,6 +11,7 @@ use std::{
   borrow::BorrowMut,
   collections::VecDeque,
   fmt::Debug,
+  hash::{Hash, Hasher},
   marker::PhantomPinned,
   path::PathBuf,
   pin::Pin,
@@ -22,6 +23,7 @@ use sugar_path::SugarPath;
 use swc_atoms::JsWord;
 use tokio::sync::mpsc::{error::TryRecvError, UnboundedSender};
 use tracing::instrument;
+use xxhash_rust::xxh3::Xxh3;
 
 use rspack_error::{
   errors_to_diagnostics, Diagnostic, Error, IntoTWithDiagnosticArray, Result, Severity,
@@ -861,7 +863,7 @@ impl Compilation {
       .process_runtime_requirements(plugin_driver.clone())
       .await?;
 
-    // self.create_hash();
+    self.create_hash();
 
     self.create_chunk_assets(plugin_driver.clone()).await;
 
@@ -997,25 +999,24 @@ impl Compilation {
     Ok(())
   }
 
-  // #[instrument()]
-  // pub fn create_hash(&mut self) {
-  //   for (chunk_ukey, chunk) in self.chunk_by_ukey.iter_mut() {
-  //     // let hasher = DefaultHasher::new();
-  //     for mgm in self
-  //       .chunk_graph
-  //       .get_chunk_modules(chunk_ukey, &self.module_graph)
-  //     {
-  //       if let Some(_module) = self
-  //         .module_graph
-  //         .module_by_identifier(&mgm.module_identifier)
-  //       {
-  //         // TODO
-  //         // hasher.write(module.hash(state));
-  //       }
-  //     }
-  //     chunk.hash = "11111111111111111111111".to_string();
-  //   }
-  // }
+  #[instrument()]
+  pub fn create_hash(&mut self) {
+    for (chunk_ukey, chunk) in self.chunk_by_ukey.iter_mut() {
+      let mut state = Xxh3::new();
+      for mgm in self
+        .chunk_graph
+        .get_chunk_modules(chunk_ukey, &self.module_graph)
+      {
+        if let Some(module) = self
+          .module_graph
+          .module_by_identifier(&mgm.module_identifier)
+        {
+          module.hash(&mut state);
+        }
+      }
+      chunk.hash = format!("{:x}", state.finish());
+    }
+  }
 
   pub fn add_runtime_module(&mut self, chunk_ukey: &ChunkUkey, mut module: Box<dyn RuntimeModule>) {
     module.attach(*chunk_ukey);

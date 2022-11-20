@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeModule,
+  ChunkUkey, Compilation, FilenameRenderOptions, RuntimeModule,
 };
 use std::collections::HashMap;
 
@@ -39,15 +39,18 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                   .options
                   .output
                   .chunk_filename
-                  .gen_hash(chunk.hash.to_string()),
+                  .render(FilenameRenderOptions {
+                    filename: chunk.name.clone(),
+                    extension: Some(format!(".{}", self.content_type)),
+                    id: Some(chunk.id.clone()),
+                    contenthash: Some(chunk.hash.clone()),
+                    chunkhash: Some(chunk.hash.clone()),
+                    hash: Some(chunk.hash.clone()),
+                  }),
               );
             }
           }
-          Some(format!(
-            "'' + chunkId + '.' + {}[chunkId] + '.{}'",
-            stringify_map(&async_chunks_map),
-            self.content_type
-          ))
+          Some(format!("{}[chunkId]", stringify_map(&async_chunks_map)))
         }
         None => None,
       },
