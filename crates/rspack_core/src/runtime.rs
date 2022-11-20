@@ -143,7 +143,7 @@ impl RuntimeSpecSet {
 pub trait RuntimeModule: Debug + Send + Sync {
   fn identifier(&self) -> &str;
   fn generate(&self, compilation: &Compilation) -> BoxSource;
-  fn attach(&mut self, chunk: ChunkUkey);
+  fn attach(&mut self, _chunk: ChunkUkey) {}
 }
 
 pub trait RuntimeModuleExt {

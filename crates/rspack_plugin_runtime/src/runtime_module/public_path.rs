@@ -1,6 +1,6 @@
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, PublicPath, RuntimeModule,
+  Compilation, PublicPath, RuntimeModule,
 };
 
 #[derive(Debug, Default)]
@@ -23,6 +23,4 @@ impl RuntimeModule for PublicPathRuntimeModule {
       PublicPath::Auto => RawSource::from("".to_string()).boxed(),
     }
   }
-
-  fn attach(&mut self, _chunk: ChunkUkey) {}
 }

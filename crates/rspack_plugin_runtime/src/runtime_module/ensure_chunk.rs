@@ -1,6 +1,6 @@
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeModule,
+  Compilation, RuntimeModule,
 };
 
 #[derive(Debug, Default)]
@@ -28,6 +28,4 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
     })
     .boxed()
   }
-
-  fn attach(&mut self, _chunk: ChunkUkey) {}
 }

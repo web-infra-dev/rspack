@@ -1,6 +1,6 @@
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeModule,
+  Compilation, RuntimeModule,
 };
 
 #[derive(Debug, Default)]
@@ -14,6 +14,4 @@ impl RuntimeModule for LoadScriptRuntimeModule {
   fn generate(&self, _compilation: &Compilation) -> BoxSource {
     RawSource::from(include_str!("runtime/load_script.js").to_string()).boxed()
   }
-
-  fn attach(&mut self, _chunk: ChunkUkey) {}
 }
