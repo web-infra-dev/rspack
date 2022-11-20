@@ -83,7 +83,6 @@ export function describeCases(config: { name: string; casePath: string }) {
 						// this will run the compiled test code to test against itself, a genius idea from webpack
 						it(`${example} should load the compiled test`, async () => {
 							const context = {};
-							debugger;
 							vm.createContext(context);
 							const code = fs.readFileSync(bundlePath, "utf-8");
 							const fn = vm.runInThisContext(
