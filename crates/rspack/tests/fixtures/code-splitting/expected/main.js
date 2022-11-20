@@ -1186,7 +1186,7 @@ __webpack_require__.chunkId = 'main'})();
 })();
 (function () {
 	// This function allow to reference async chunks
-	__webpack_require__.u = chunkId => {
+	__webpack_require__.u = function (chunkId) {
 		// return url for filenames based on template
 		return {"a_js": "a_js.js","b_js": "b_js.js",}[chunkId];
 	};
