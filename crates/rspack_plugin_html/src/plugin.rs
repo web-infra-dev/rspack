@@ -153,7 +153,7 @@ impl Plugin for HtmlPlugin {
 
     // FIXME: Runtime Related workaround
     // This is a really dirty workaround for the *Html-webpack-plugin* implementation.
-    // Webpack uses `NormalRuntimeModule` to link the file to the corresponding entry points, however in the current implementation of Rspack,
+    // Webpack uses `RuntimeModule` to link the file to the corresponding entry points, however in the current implementation of Rspack,
     // We directly emit runtime assets in the hook processAssets of `rspack-plugin-runtime`, which cannot be tracked like how webpack handles this.
     // cc @underfin
     if compilation.options.target.platform.is_web() && let Some(asset) = compilation.assets.get("runtime.js") {
