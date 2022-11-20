@@ -38,7 +38,7 @@ impl Resolve {
     let external_cache = Some(cache);
     let description_file = String::from("package.json");
     let extensions = self.extensions.unwrap_or_else(|| {
-      vec![".tsx", ".jsx", ".ts", ".js", ".mjs", ".json", ".d.ts"]
+      vec![".tsx", ".jsx", ".ts", ".js", ".mjs", ".json"]
         .into_iter()
         .map(|s| s.to_string())
         .collect()
