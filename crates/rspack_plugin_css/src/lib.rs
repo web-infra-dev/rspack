@@ -169,7 +169,9 @@ pub fn css_parse_error_to_diagnostic(error: Error, path: &str) -> Vec<Diagnostic
     "Css parsing error".to_string(),
     message.to_string(),
   )
-  .with_kind(DiagnosticKind::Css);
+  .with_kind(DiagnosticKind::Css)
+  // css error tolerate, use `Warning` for recoverable css error
+  .with_severity(rspack_error::Severity::Warn);
   //Use this `Error` convertion could avoid eagerly clone source file.
   <Vec<Diagnostic>>::from(rspack_error::Error::TraceableError(traceable_error))
 }
