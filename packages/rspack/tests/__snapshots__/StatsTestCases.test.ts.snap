@@ -1,5 +1,118 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`StatsTestCases should print correct stats for filename 1`] = `
+{
+  "assets": [
+    {
+      "chunkNames": [
+        "main",
+      ],
+      "chunks": [
+        "main",
+      ],
+      "info": {
+        "development": false,
+      },
+      "name": "main.b69cea.js",
+      "size": 854,
+      "type": "asset",
+    },
+    {
+      "chunkNames": [],
+      "chunks": [
+        "dynamic_js",
+      ],
+      "info": {
+        "development": false,
+      },
+      "name": "dynamic_js.a3cd02.js",
+      "size": 265,
+      "type": "asset",
+    },
+  ],
+  "chunks": [
+    {
+      "entry": false,
+      "files": [
+        "dynamic_js.a3cd02.js",
+      ],
+      "id": "dynamic_js",
+      "initial": false,
+      "names": [],
+      "size": 32,
+      "type": "chunk",
+    },
+    {
+      "entry": true,
+      "files": [
+        "main.b69cea.js",
+      ],
+      "id": "main",
+      "initial": true,
+      "names": [
+        "main",
+      ],
+      "size": 38,
+      "type": "chunk",
+    },
+  ],
+  "entrypoints": {
+    "main": {
+      "assets": [
+        {
+          "name": "main.b69cea.js",
+          "size": 854,
+        },
+      ],
+      "assetsSize": 854,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
+  "errors": [],
+  "errorsCount": 0,
+  "modules": [
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "./index.js",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/filename/index.js",
+      "moduleType": "js",
+      "name": "./index.js",
+      "size": 38,
+      "type": "module",
+    },
+    {
+      "chunks": [
+        "dynamic_js",
+      ],
+      "id": "./dynamic.js",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/filename/dynamic.js",
+      "moduleType": "js",
+      "name": "./dynamic.js",
+      "size": 32,
+      "type": "module",
+    },
+  ],
+  "warnings": [],
+  "warningsCount": 0,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for filename 2`] = `
+"               Asset       Size      Chunks  Chunk Names
+      main.b69cea.js  854 bytes        main  main
+dynamic_js.a3cd02.js  265 bytes  dynamic_js  
+Entrypoint main = main.b69cea.js
+chunk {dynamic_js} dynamic_js.a3cd02.js 32 bytes
+chunk {main} main.b69cea.js (main) 38 bytes [entry]
+[./index.js] 38 bytes {main}
+[./dynamic.js] 32 bytes {dynamic_js}"
+`;
+
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
 {
   "assets": [
