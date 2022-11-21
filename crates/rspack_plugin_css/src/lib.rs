@@ -6,7 +6,8 @@ pub mod visitors;
 
 use once_cell::sync::Lazy;
 
-use rspack_core::{Compilation, ErrorSpan, PATH_START_BYTE_POS_MAP};
+use rspack_core::rspack_sources::{self, SourceExt};
+use rspack_core::{ErrorSpan, PATH_START_BYTE_POS_MAP};
 use rspack_error::{
   Diagnostic, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
@@ -15,6 +16,7 @@ use swc_common::{input::SourceFileInput, sync::Lrc, FileName, FilePathMapping, S
 
 use std::sync::Arc;
 
+use swc_css::minifier;
 use swc_css::parser::{lexer::Lexer, parser::ParserConfig};
 use swc_css::{ast::Stylesheet, parser::parser::Parser};
 use swc_css::{
@@ -65,30 +67,32 @@ impl SwcCssCompiler {
   pub fn codegen(
     &self,
     ast: &Stylesheet,
-    compilation: &Compilation,
+    gen_source_map: SwcCssSourceMapGenConfig,
+  ) -> Result<(String, Option<Vec<u8>>)> {
+    self.codegen_impl(ast, gen_source_map, false)
+  }
+
+  fn codegen_impl(
+    &self,
+    ast: &Stylesheet,
+    gen_source_map: SwcCssSourceMapGenConfig,
+    minify: bool,
   ) -> Result<(String, Option<Vec<u8>>)> {
     let mut output = String::new();
-    let mut src_map_buf: Option<Vec<_>> = compilation.options.devtool.source_map().then(Vec::new);
+    let mut src_map_buf: Option<Vec<_>> = gen_source_map.enable.then(Vec::new);
     let wr = BasicCssWriter::new(
       &mut output,
       src_map_buf.as_mut(),
       BasicCssWriterConfig::default(),
     );
 
-    let mut gen = CodeGenerator::new(wr, CodegenConfig { minify: false });
+    let mut gen = CodeGenerator::new(wr, CodegenConfig { minify });
     gen
       .emit(ast)
       .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?;
 
     if let Some(src_map_buf) = &mut src_map_buf {
-      let map = CM.build_source_map_with_config(
-        src_map_buf,
-        None,
-        SwcCssSourceMapGenConfig {
-          emit_columns: !compilation.options.devtool.cheap(),
-          inline_sources_content: !compilation.options.devtool.no_sources(),
-        },
-      );
+      let map = CM.build_source_map_with_config(src_map_buf, None, gen_source_map);
       let mut raw_map = Vec::new();
       map
         .to_writer(&mut raw_map)
@@ -98,11 +102,41 @@ impl SwcCssCompiler {
       Ok((output, None))
     }
   }
+
+  pub fn minify(
+    &self,
+    filename: &str,
+    input_source: String,
+    input_source_map: Option<rspack_sources::SourceMap>,
+    gen_source_map: SwcCssSourceMapGenConfig,
+  ) -> Result<rspack_sources::BoxSource> {
+    let parsed = self.parse_file(filename, input_source.clone())?;
+    // ignore errors since css in webpack is tolerant, and diagnostics already reported in parse.
+    let (mut ast, _) = parsed.split_into_parts();
+    minifier::minify(&mut ast, minifier::options::MinifyOptions::default());
+    let (code, source_map) = self.codegen_impl(&ast, gen_source_map, true)?;
+    if let Some(source_map) = source_map {
+      let source = rspack_sources::SourceMapSource::new(rspack_sources::SourceMapSourceOptions {
+        value: code,
+        name: filename,
+        source_map: rspack_sources::SourceMap::from_slice(&source_map)
+          .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
+        original_source: Some(input_source),
+        inner_source_map: input_source_map,
+        remove_original_source: true,
+      })
+      .boxed();
+      Ok(source)
+    } else {
+      Ok(rspack_sources::RawSource::from(code).boxed())
+    }
+  }
 }
 
-struct SwcCssSourceMapGenConfig {
-  emit_columns: bool,
-  inline_sources_content: bool,
+pub struct SwcCssSourceMapGenConfig {
+  pub enable: bool,
+  pub emit_columns: bool,
+  pub inline_sources_content: bool,
 }
 
 impl SourceMapGenConfig for SwcCssSourceMapGenConfig {
