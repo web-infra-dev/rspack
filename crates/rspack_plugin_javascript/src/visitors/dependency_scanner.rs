@@ -1,12 +1,12 @@
 use linked_hash_set::LinkedHashSet;
 use rspack_core::{ModuleDependency, ResolveKind};
 use swc_atoms::JsWord;
-use swc_common::{Mark, Span};
+use swc_common::{Mark, Span, SyntaxContext};
 use swc_ecma_ast::{CallExpr, Callee, ExportSpecifier, Expr, ExprOrSpread, Lit, ModuleDecl};
 use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
 
 pub struct DependencyScanner {
-  pub unresolved_mark: Mark,
+  pub unresolved_ctxt: SyntaxContext,
   pub dependencies: LinkedHashSet<ModuleDependency>,
   // pub dyn_dependencies: HashSet<DynImportDesc>,
 }
@@ -29,7 +29,7 @@ impl DependencyScanner {
   fn add_require(&mut self, call_expr: &CallExpr) {
     if let Callee::Expr(expr) = &call_expr.callee {
       if let Expr::Ident(ident) = &**expr {
-        if "require".eq(&ident.sym) && ident.span.ctxt().outer() == self.unresolved_mark {
+        if "require".eq(&ident.sym) && ident.span.ctxt == self.unresolved_ctxt {
           {
             if call_expr.args.len() != 1 {
               return;
@@ -134,7 +134,7 @@ impl Visit for DependencyScanner {
 impl DependencyScanner {
   pub fn new(unresolved_mark: Mark) -> Self {
     Self {
-      unresolved_mark,
+      unresolved_ctxt: SyntaxContext::empty().apply_mark(unresolved_mark),
       dependencies: Default::default(),
     }
   }
@@ -144,7 +144,7 @@ impl DependencyScanner {
 fn test_dependency_scanner() {
   use crate::ast::parse_js_code;
   use rspack_core::{ErrorSpan, ModuleType};
-  use swc_ecma_visit::VisitWith;
+  use swc_ecma_visit::{VisitMutWith, VisitWith};
 
   let code = r#"
   const a = require('a');
@@ -155,9 +155,12 @@ fn test_dependency_scanner() {
   import { j } from 'k';
   import { default as l } from 'm';
   "#;
-  let ast = parse_js_code(code.to_string(), &ModuleType::Js).unwrap();
+  let mut ast = parse_js_code(code.to_string(), &ModuleType::Js).unwrap();
   let dependencies = swc_common::GLOBALS.set(&Default::default(), || {
-    let mut scanner = DependencyScanner::new(Default::default());
+    let unresolved_mark = Mark::new();
+    let mut resolver = swc_ecma_transforms::resolver(unresolved_mark, Mark::new(), false);
+    ast.visit_mut_with(&mut resolver);
+    let mut scanner = DependencyScanner::new(unresolved_mark);
     ast.visit_with(&mut scanner);
     scanner.dependencies
   });
