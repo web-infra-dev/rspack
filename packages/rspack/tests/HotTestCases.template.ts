@@ -6,18 +6,21 @@ import checkArrayExpectation from "./checkArrayExpectation";
 import createLazyTestEnv from "./helpers/createLazyTestEnv";
 import { Compiler, rspack, Stats } from "@rspack/core";
 
-const casesPath = path.join(__dirname, "hotCases");
-const categories = fs
-	.readdirSync(casesPath)
-	.filter(dir => fs.statSync(path.join(casesPath, dir)).isDirectory())
-	.map(cat => ({
-		name: cat,
-		tests: fs
-			.readdirSync(path.join(casesPath, cat))
-			.filter(folder => folder.indexOf("_") < 0)
-	}));
-
-export function describeCases(config: { name: string; target: string }) {
+export function describeCases(config: {
+	name: string;
+	target: string;
+	casesPath: string;
+}) {
+	const casesPath = path.join(__dirname, config.casesPath);
+	const categories = fs
+		.readdirSync(casesPath)
+		.filter(dir => fs.statSync(path.join(casesPath, dir)).isDirectory())
+		.map(cat => ({
+			name: cat,
+			tests: fs
+				.readdirSync(path.join(casesPath, cat))
+				.filter(folder => folder.indexOf("_") < 0)
+		}));
 	describe(config.name, () => {
 		categories.forEach(category => {
 			describe(category.name, () => {

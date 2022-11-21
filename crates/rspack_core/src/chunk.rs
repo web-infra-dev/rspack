@@ -13,7 +13,7 @@ pub enum ChunkKind {
 
 #[derive(Debug)]
 pub struct Chunk {
-  pub(crate) _name: Option<String>,
+  pub name: Option<String>,
   pub ukey: ChunkUkey,
   pub id: String,
   pub files: HashSet<String>,
@@ -24,9 +24,9 @@ pub struct Chunk {
 }
 
 impl Chunk {
-  pub fn new(_name: Option<String>, id: String, kind: ChunkKind) -> Self {
+  pub fn new(name: Option<String>, id: String, kind: ChunkKind) -> Self {
     Self {
-      _name,
+      name,
       ukey: ChunkUkey::with_debug_info("Chunk"),
       id,
       files: Default::default(),

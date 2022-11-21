@@ -28,7 +28,7 @@
 		}
 	};
 
-	module.exports = __webpack_require__;
+	// module.exports = __webpack_require__;
 	__webpack_require__.C = installChunk;
 
 	// no HMR

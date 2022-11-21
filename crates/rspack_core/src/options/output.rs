@@ -79,18 +79,6 @@ impl Filename {
     }
     filename
   }
-
-  pub fn gen_hash(&self, hash: String) -> String {
-    let filename = self.template.clone();
-    match filename.contains(HASH_PLACEHOLDER) {
-      true => {
-        let hash_placeholder = get_hash_placeholder(&filename, HASH_PLACEHOLDER);
-        let hash_length: usize = get_hash_length(&hash_placeholder, HASH_PLACEHOLDER);
-        hash[..hash_length].to_string()
-      }
-      false => "".to_string(),
-    }
-  }
 }
 
 #[derive(Debug)]

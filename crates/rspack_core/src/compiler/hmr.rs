@@ -1,11 +1,13 @@
 use std::{
   collections::{HashMap, HashSet},
+  hash::{Hash, Hasher},
   ops::Sub,
   path::Path,
 };
 
 use rspack_error::Result;
 use rspack_sources::{RawSource, SourceExt};
+use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
   AssetInfo, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler, RenderManifestArgs,
@@ -237,8 +239,9 @@ impl Compiler {
       }
 
       if !new_modules.is_empty() {
+        let mut state = Xxh3::new();
         let mut hot_update_chunk = Chunk::new(
-          Some("hot_update_chunk".to_string()),
+          Some(chunk_id.to_string()),
           chunk_id.to_string(),
           ChunkKind::HotUpdate,
         );
@@ -254,10 +257,16 @@ impl Compiler {
         now.chunk_by_ukey.insert(ukey, hot_update_chunk);
         now.chunk_graph.add_chunk(ukey);
 
-        for module in new_modules {
+        for module_identifier in new_modules {
+          if let Some(module) = now.module_graph.module_by_identifier(&module_identifier) {
+            module.hash(&mut state);
+          }
           now
             .chunk_graph
-            .connect_chunk_and_module(ukey, module.to_string());
+            .connect_chunk_and_module(ukey, module_identifier.to_string());
+        }
+        if let Some(chunk) = now.chunk_by_ukey.get_mut(&ukey) {
+          chunk.hash = format!("{:x}", state.finish());
         }
 
         let render_manifest = now

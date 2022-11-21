@@ -417,10 +417,10 @@ impl Plugin for JsPlugin {
       self.render_chunk(&args)?
     };
     // let hash = Some(get_hash(compilation).to_string());
-    let hash = None;
+    // let hash = None;
     // let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
-    let chunkhash = None;
-    let contenthash = None;
+    // let chunkhash = None;
+    // let contenthash = Some(chunk.hash.clone());
 
     let output_path = if chunk.is_only_initial(&args.compilation.chunk_group_by_ukey) {
       compilation
@@ -428,12 +428,12 @@ impl Plugin for JsPlugin {
         .output
         .filename
         .render(FilenameRenderOptions {
-          filename: Some(filename),
+          filename: chunk.name.clone(),
           extension: Some(".js".to_owned()),
-          id: None,
-          contenthash,
-          chunkhash,
-          hash,
+          id: Some(chunk.id.to_string()),
+          contenthash: Some(chunk.hash.clone()),
+          chunkhash: Some(chunk.hash.clone()),
+          hash: Some(chunk.hash.clone()),
         })
     } else {
       compilation
@@ -441,12 +441,12 @@ impl Plugin for JsPlugin {
         .output
         .chunk_filename
         .render(FilenameRenderOptions {
-          filename: None,
+          filename: chunk.name.clone(),
           extension: Some(".js".to_owned()),
-          id: Some(args.chunk().id.to_owned()),
-          contenthash,
-          chunkhash,
-          hash,
+          id: Some(chunk.id.to_owned()),
+          contenthash: Some(chunk.hash.clone()),
+          chunkhash: Some(chunk.hash.clone()),
+          hash: Some(chunk.hash.clone()),
         })
     };
 

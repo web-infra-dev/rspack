@@ -63,19 +63,9 @@ pub struct RawOutputOptions {
 
 impl RawOption<OutputOptions> for RawOutputOptions {
   fn to_compiler_option(self, options: &CompilerOptionsBuilder) -> anyhow::Result<OutputOptions> {
-    // let is_prod = matches!(mode, Mode::Production);
-    let filename = self.filename.unwrap_or(format!(
-      "{}{}{}",
-      NAME_PLACEHOLDER,
-      // todo need add hash
-      // if is_prod {
-      //   CONTENT_PLACEHOLDER
-      // } else {
-      //   HASH_PLACEHOLDER
-      // },
-      "",
-      EXT_PLACEHOLDER
-    ));
+    let filename = self
+      .filename
+      .unwrap_or(format!("{}{}", NAME_PLACEHOLDER, EXT_PLACEHOLDER));
 
     let chunk_filename = self
       .chunk_filename
