@@ -29,7 +29,7 @@ impl DependencyScanner {
   fn add_require(&mut self, call_expr: &CallExpr) {
     if let Callee::Expr(expr) = &call_expr.callee {
       if let Expr::Ident(ident) = &**expr {
-        if "require".eq(&ident.sym) {
+        if "require".eq(&ident.sym) && ident.span.ctxt().outer() == self.unresolved_mark {
           {
             if call_expr.args.len() != 1 {
               return;
