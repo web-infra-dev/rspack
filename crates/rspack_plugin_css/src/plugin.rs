@@ -109,14 +109,14 @@ impl CssParserAndGenerator {
 
   pub(crate) fn get_modules_in_order<'module>(
     chunk: &Chunk,
-    modules: Vec<&'module (dyn Module + 'module)>,
+    modules: Vec<&'module dyn Module>,
     compilation: &Compilation,
   ) -> Vec<&'module (dyn Module + 'module)> {
     if modules.is_empty() {
       return modules;
     };
 
-    let modules_list = modules;
+    // let modules_list = modules;
 
     // Get ordered list of modules per chunk group
     // Lists are in reverse order to allow to use Array.pop()
@@ -126,7 +126,7 @@ impl CssParserAndGenerator {
       .iter()
       .filter_map(|ukey| compilation.chunk_group_by_ukey.get(ukey))
       .map(|chunk_group| {
-        let sorted_modules = modules_list
+        let sorted_modules = modules
           .clone()
           .into_iter()
           .map(|module| {
@@ -135,6 +135,8 @@ impl CssParserAndGenerator {
               chunk_group.module_post_order_index(&module.identifier()),
             )
           })
+          .collect::<Vec<_>>()
+          .into_iter()
           .sorted_by(|a, b| {
             // TODO: Align with .sort((a, b) => b.index - a.index)
             if b.1 > a.1 {
@@ -150,7 +152,7 @@ impl CssParserAndGenerator {
         let mut list = Vec::with_capacity(sorted_modules.len());
         let mut set = HashSet::with_capacity(sorted_modules.len());
         for item in sorted_modules {
-          list.push(item.0.clone());
+          list.push(item.0);
           set.insert(item.0);
         }
 

@@ -179,17 +179,19 @@ impl ChunkGraph {
     modules
   }
 
-  pub fn get_chunk_modules_iterable_by_source_type<'module, 'me: 'module>(
-    &'me self,
+  pub fn get_chunk_modules_iterable_by_source_type<'module>(
+    &self,
     chunk: &ChunkUkey,
     source_type: SourceType,
     module_graph: &'module ModuleGraph,
-  ) -> impl Iterator<Item = &'module dyn Module> + 'module {
-    let chunk_graph_chunk = self.get_chunk_graph_chunk(chunk);
-    chunk_graph_chunk
+  ) -> impl Iterator<Item = &'module dyn Module> {
+    self
+      .get_chunk_graph_chunk(chunk)
       .modules
       .iter()
       .filter_map(|uri| module_graph.module_by_identifier(uri))
+      .collect::<Vec<_>>()
+      .into_iter()
       .filter(move |module| module.source_types().contains(&source_type))
       .map(|m| m.as_ref())
   }
