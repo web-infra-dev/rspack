@@ -2,11 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 it("build error module should have 'throw error'", () => {
-	try {
-		require("./index.css");
-	} catch (e) {
-		expect(e.message.includes("Undefined variable.")).toBe(true);
-	}
+	require("./index.css");
 
 	const js = fs.readFileSync(path.resolve(__dirname, "main.js"), "utf-8");
 	const cssStub = /".\/index.css":.*\n\"use strict\";\n(.*)/.exec(js)[1];
