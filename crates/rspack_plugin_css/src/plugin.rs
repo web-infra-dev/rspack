@@ -132,13 +132,18 @@ impl ParserAndGenerator for CssParserAndGenerator {
   ) -> Result<rspack_core::GenerationResult> {
     let result = match generate_context.requested_source_type {
       SourceType::Css => {
+        let devtool = &generate_context.compilation.options.devtool;
         let (code, source_map) = SWC_COMPILER.codegen(
           ast_or_source
             .as_ast()
             .expect("Expected AST for CSS generator, please file an issue.")
             .as_css()
             .expect("Expected CSS AST for CSS generation, please file an issue."),
-          generate_context.compilation,
+          crate::SwcCssSourceMapGenConfig {
+            enable: devtool.source_map(),
+            inline_sources_content: !devtool.no_sources(),
+            emit_columns: !devtool.cheap(),
+          },
         )?;
         if let Some(source_map) = source_map {
           let source = SourceMapSource::new(SourceMapSourceOptions {
@@ -190,6 +195,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
   }
 }
 
+#[async_trait::async_trait]
 impl Plugin for CssPlugin {
   fn name(&self) -> &'static str {
     "css"
@@ -391,5 +397,45 @@ impl Plugin for CssPlugin {
       };
       Ok(vec![RenderManifestEntry::new(source.boxed(), output_path)])
     }
+  }
+
+  async fn process_assets(
+    &mut self,
+    _ctx: rspack_core::PluginContext,
+    args: rspack_core::ProcessAssetsArgs<'_>,
+  ) -> rspack_core::PluginProcessAssetsOutput {
+    let compilation = args.compilation;
+    let minify = compilation.options.builtins.minify;
+    if !minify {
+      return Ok(());
+    }
+
+    compilation
+      .assets
+      .par_iter_mut()
+      .filter(|(filename, _)| filename.ends_with(".css"))
+      .try_for_each(|(filename, original)| -> Result<()> {
+        if original.get_info().minimized {
+          return Ok(());
+        }
+
+        let input = original.get_source().source().to_string();
+        let input_source_map = original.get_source().map(&MapOptions::default());
+        let minimized_source = SWC_COMPILER.minify(
+          filename,
+          input,
+          input_source_map,
+          crate::SwcCssSourceMapGenConfig {
+            enable: compilation.options.devtool.source_map(),
+            inline_sources_content: !compilation.options.devtool.no_sources(),
+            emit_columns: !compilation.options.devtool.cheap(),
+          },
+        )?;
+        original.set_source(minimized_source);
+        original.get_info_mut().minimized = true;
+        Ok(())
+      })?;
+
+    Ok(())
   }
 }

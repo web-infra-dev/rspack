@@ -611,7 +611,7 @@ exports[`StatsTestCases should print correct stats for sass-warnings 1`] = `
         "development": false,
       },
       "name": "main.css",
-      "size": 20,
+      "size": 11,
       "type": "asset",
     },
   ],
@@ -636,14 +636,14 @@ exports[`StatsTestCases should print correct stats for sass-warnings 1`] = `
       "assets": [
         {
           "name": "main.css",
-          "size": 20,
+          "size": 11,
         },
         {
           "name": "main.js",
           "size": 535,
         },
       ],
-      "assetsSize": 555,
+      "assetsSize": 546,
       "chunks": [
         "main",
       ],
@@ -703,7 +703,7 @@ More info and automated migrator: https://sass-lang.com/d/slash-div",
 exports[`StatsTestCases should print correct stats for sass-warnings 2`] = `
 "   Asset       Size  Chunks  Chunk Names
  main.js  535 bytes    main  main
-main.css   20 bytes    main  main
+main.css   11 bytes    main  main
 Entrypoint main = main.css main.js
 chunk {main} main.css, main.js (main) 41 bytes [entry]
 [./index.js] 22 bytes {main}

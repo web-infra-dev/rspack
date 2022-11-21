@@ -2050,6 +2050,7 @@ name = "rspack_plugin_css"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "better_scoped_tls",
  "dashmap",
  "hashbrown",
@@ -2761,6 +2762,7 @@ checksum = "7698d7713f95afc0f99fe3e5c475bfb30415f9294b85f0303513832a962db76b"
 dependencies = [
  "swc_css_ast",
  "swc_css_codegen",
+ "swc_css_minifier",
  "swc_css_parser",
  "swc_css_utils",
  "swc_css_visit",
