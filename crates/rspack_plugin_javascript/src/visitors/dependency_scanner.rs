@@ -156,9 +156,12 @@ fn test_dependency_scanner() {
   import { default as l } from 'm';
   "#;
   let ast = parse_js_code(code.to_string(), &ModuleType::Js).unwrap();
-  let mut scanner = DependencyScanner::default();
-  ast.visit_with(&mut scanner);
-  let mut iter = scanner.dependencies.into_iter();
+  let dependencies = swc_common::GLOBALS.set(&Default::default(), || {
+    let mut scanner = DependencyScanner::new(Default::default());
+    ast.visit_with(&mut scanner);
+    scanner.dependencies
+  });
+  let mut iter = dependencies.into_iter();
   assert_eq!(
     iter.next().unwrap(),
     ModuleDependency {
