@@ -42,3 +42,9 @@ pub enum CacheOptions {
   Memory(MemoryCacheOptions),
   FileSystem(FileSystemCacheOptions),
 }
+
+impl Default for CacheOptions {
+  fn default() -> Self {
+    CacheOptions::Disabled
+  }
+}

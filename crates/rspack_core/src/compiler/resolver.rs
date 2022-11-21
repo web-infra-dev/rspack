@@ -4,13 +4,13 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ResolveResult {
   Info(ResolveInfo),
   Ignored,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ResolveInfo {
   pub path: PathBuf,
   pub query: String,

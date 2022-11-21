@@ -14,8 +14,8 @@ use tokio::sync::RwLock;
 use tracing::instrument;
 
 use crate::{
-  BoxModule, CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule, ModuleIdentifier,
-  Plugin, PluginDriver, SharedPluginDriver, Stats,
+  cache::Cache, BoxModule, CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule,
+  ModuleIdentifier, Plugin, PluginDriver, SharedPluginDriver, Stats,
 };
 
 #[derive(Debug)]
@@ -24,6 +24,7 @@ pub struct Compiler {
   pub compilation: Compilation,
   pub plugin_driver: SharedPluginDriver,
   pub loader_runner_runner: Arc<LoaderRunnerRunner>,
+  pub cache: Cache,
 }
 
 impl Compiler {
@@ -47,7 +48,7 @@ impl Compiler {
     Self {
       options: options.clone(),
       compilation: Compilation::new(
-        options,
+        options.clone(),
         Default::default(),
         Default::default(),
         Default::default(),
@@ -56,6 +57,7 @@ impl Compiler {
       ),
       plugin_driver,
       loader_runner_runner,
+      cache: Cache::new(options),
     }
   }
 
