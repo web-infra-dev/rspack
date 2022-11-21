@@ -1,12 +1,12 @@
 use linked_hash_set::LinkedHashSet;
 use rspack_core::{ModuleDependency, ResolveKind};
 use swc_atoms::JsWord;
-use swc_common::Span;
+use swc_common::{Mark, Span};
 use swc_ecma_ast::{CallExpr, Callee, ExportSpecifier, Expr, ExprOrSpread, Lit, ModuleDecl};
 use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
 
-#[derive(Default)]
 pub struct DependencyScanner {
+  pub unresolved_mark: Mark,
   pub dependencies: LinkedHashSet<ModuleDependency>,
   // pub dyn_dependencies: HashSet<DynImportDesc>,
 }
@@ -29,8 +29,6 @@ impl DependencyScanner {
   fn add_require(&mut self, call_expr: &CallExpr) {
     if let Callee::Expr(expr) = &call_expr.callee {
       if let Expr::Ident(ident) = &**expr {
-        // TODO: This might not be correct.
-        // Consider what if user overwirte `require` function.
         if "require".eq(&ident.sym) {
           {
             if call_expr.args.len() != 1 {
@@ -130,6 +128,15 @@ impl Visit for DependencyScanner {
     self.add_dynamic_import(node);
     self.add_require(node);
     node.visit_children_with(self);
+  }
+}
+
+impl DependencyScanner {
+  pub fn new(unresolved_mark: Mark) -> Self {
+    Self {
+      unresolved_mark,
+      dependencies: Default::default(),
+    }
   }
 }
 
