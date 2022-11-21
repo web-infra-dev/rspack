@@ -266,7 +266,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     }
 
     let syntax = syntax_by_module_type(
-      &source.source(),
+      &resource_data.resource_path,
       module_type,
       compiler_options.builtins.decorator.is_some(),
     );

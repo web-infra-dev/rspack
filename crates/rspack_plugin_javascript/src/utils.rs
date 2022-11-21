@@ -27,11 +27,16 @@ pub fn get_swc_compiler() -> Arc<SwcCompiler> {
   SWC_COMPILER.clone()
 }
 
-fn syntax_by_ext(ext: &str, enable_decorators: bool) -> Syntax {
+fn syntax_by_ext(filename: &str, enable_decorators: bool) -> Syntax {
+  let ext = Path::new(filename)
+    .extension()
+    .and_then(|ext| ext.to_str())
+    .unwrap_or("js");
   match ext == "ts" || ext == "tsx" {
     true => Syntax::Typescript(TsConfig {
       decorators: enable_decorators,
       tsx: ext == "tsx",
+      dts: filename.ends_with(".d.ts") || filename.ends_with(".d.tsx"),
       ..Default::default()
     }),
     false => Syntax::Es(EsConfig {
@@ -68,15 +73,10 @@ pub fn syntax_by_module_type(
     ModuleType::Ts | ModuleType::Tsx => Syntax::Typescript(TsConfig {
       decorators: enable_decorators,
       tsx: matches!(module_type, ModuleType::Tsx),
+      dts: filename.ends_with(".d.ts") || filename.ends_with(".d.tsx"),
       ..Default::default()
     }),
-    _ => {
-      let ext = Path::new(filename)
-        .extension()
-        .and_then(|ext| ext.to_str())
-        .unwrap_or("js");
-      syntax_by_ext(ext, enable_decorators)
-    }
+    _ => syntax_by_ext(filename, enable_decorators),
   }
 }
 

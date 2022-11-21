@@ -54,6 +54,13 @@ pub fn parse(
   filename: &str,
   module_type: &ModuleType,
 ) -> Result<Ast, Error> {
+  let source_code = if syntax.dts() {
+    // dts build result must be empty
+    "".to_string()
+  } else {
+    source_code
+  };
+
   let compiler = get_swc_compiler();
   let fm = compiler
     .cm
