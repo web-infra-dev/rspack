@@ -121,6 +121,18 @@ impl JsCompilation {
     Ok(())
   }
 
+  #[napi]
+  pub fn delete_asset(&mut self, filename: String) {
+    // Safety: It is safe as modify for the asset will never move Compilation.
+    unsafe {
+      self
+        .inner
+        .as_mut()
+        .get_unchecked_mut()
+        .delete_asset(&filename);
+    };
+  }
+
   #[napi(getter)]
   pub fn assets(&self) -> Result<HashMap<String, JsCompatSource>> {
     let assets = self.inner.assets();
