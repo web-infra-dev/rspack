@@ -4,6 +4,6 @@ describe("HotTestCases", () => {
 	describeCases({
 		name: "web",
 		target: "web",
-		casesPath: 'hotCases'
+		casesPath: "hotCases"
 	});
 });
