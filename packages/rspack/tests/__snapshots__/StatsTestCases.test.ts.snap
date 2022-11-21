@@ -12,6 +12,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       ],
       "info": {
         "development": false,
+        "hotModuleReplacement": false,
       },
       "name": "main.xxxx.js",
       "size": 854,
@@ -24,6 +25,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       ],
       "info": {
         "development": false,
+        "hotModuleReplacement": false,
       },
       "name": "dynamic_js.xxxx.js",
       "size": 265,
