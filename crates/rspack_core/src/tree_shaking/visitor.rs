@@ -141,53 +141,6 @@ impl<'a> ModuleRefAnalyze<'a> {
     }
   }
 
-  fn get_assignment_target(&self, node: &Expr) -> Id {
-    match node {
-      Expr::Ident(ident) => ident.to_id(),
-
-      Expr::Paren(ParenExpr { expr, .. }) => self.get_assignment_target(expr),
-
-      Expr::Member(MemberExpr { obj, .. }) => self.get_assignment_target(obj),
-      Expr::SuperProp(..)
-      | Expr::New(..)
-      | Expr::Call(..)
-      | Expr::MetaProp(..)
-      | Expr::Update(..)
-      | Expr::Unary(..)
-      | Expr::Await(..)
-      | Expr::Bin(..)
-      | Expr::Cond(..)
-      | Expr::Yield(..)
-      | Expr::Arrow(..)
-      | Expr::Assign(..)
-      | Expr::Seq(..)
-      | Expr::OptChain(..)
-      | Expr::PrivateName(..)
-      | Expr::JSXMember(_)
-      | Expr::JSXNamespacedName(_)
-      | Expr::JSXEmpty(_)
-      | Expr::JSXElement(_)
-      | Expr::JSXFragment(_)
-      | Expr::TsTypeAssertion(_)
-      | Expr::TsConstAssertion(_)
-      | Expr::TsNonNull(_)
-      | Expr::TsAs(_)
-      | Expr::TsInstantiation(_)
-      | Expr::TsSatisfaction(_)
-      | Expr::Invalid(_)
-      | Expr::This(..)
-      | Expr::Lit(..)
-      | Expr::Array(..)
-      | Expr::Object(..)
-      | Expr::Fn(..)
-      | Expr::Class(..)
-      | Expr::Tpl(..)
-      | Expr::TaggedTpl(..) => {
-        unimplemented!("{:?}, {}", node, self.module_identifier)
-      }
-    }
-  }
-
   /// Collecting all reachable import binding from given start binding
   /// when a export has been used from other module, we need to get all
   /// reachable import and export(defined in the same module)
@@ -314,6 +267,27 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             .cloned()
             .collect::<Vec<_>>()
         }
+      })
+      .collect::<Vec<_>>();
+    self.used_symbol_ref.extend(side_effect_symbol_list);
+    let side_effect_symbol_list = self
+      .assign_reference_map
+      .iter()
+      .flat_map(|(_, ref_list)| {
+        // it class decl, fn decl is lazy they don't immediately generate side effects unless they are called,
+        // Or constructed. The init of var decl will evaluate except rhs is function expr or arrow expr.
+        ref_list
+          .iter()
+          .filter_map(|ref_id| {
+            // Only used id imported from other module would generate a side effects.
+            self.import_map.get(match ref_id {
+              IdOrMemExpr::Id(ref id) => id,
+              // TODO: inspect namespace access
+              IdOrMemExpr::MemberExpr { object, .. } => object,
+            })
+          })
+          .cloned()
+          .collect::<Vec<_>>()
       })
       .collect::<Vec<_>>();
     self.used_symbol_ref.extend(side_effect_symbol_list);
@@ -551,6 +525,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     } else {
       None
     };
+    let valid_assign_target = target.is_some();
     if let Some(target) = target {
       self.current_body_owner_symbol_ext = Some(SymbolExt {
         id: target.into(),
@@ -561,7 +536,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     self.state.insert(AnalyzeState::ASSIGNMENT_LHS);
     node.left.visit_with(self);
     self.state.remove(AnalyzeState::ASSIGNMENT_LHS);
-    self.state.remove(AnalyzeState::ASSIGNMENT_RHS);
+    if valid_assign_target {
+      self.state.insert(AnalyzeState::ASSIGNMENT_RHS);
+    }
     node.right.visit_with(self);
     self.state.remove(AnalyzeState::ASSIGNMENT_RHS);
     self.current_body_owner_symbol_ext = before_owner_extend_symbol;

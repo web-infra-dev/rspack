@@ -819,12 +819,14 @@ impl Compilation {
       .collect::<HashMap<Ustr, TreeShakingResult>>();
     let mut used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
     let mut bail_out_module_identifiers = HashMap::default();
+    let mut evaluated_module_identifiers = HashSet::new();
     for analyze_result in analyze_results.values() {
       let forced_side_effects = self
         .entry_module_identifiers
         .contains(analyze_result.module_identifier.as_str());
       // side_effects: true
       if forced_side_effects || !analyze_result.side_effects_free {
+        evaluated_module_identifiers.insert(analyze_result.module_identifier);
         used_symbol_ref.extend(analyze_result.used_symbol_ref.iter().cloned());
       }
       bail_out_module_identifiers.extend(analyze_result.bail_out_module_identifiers.clone());
@@ -873,6 +875,7 @@ impl Compilation {
       &analyze_results,
       VecDeque::from_iter(used_symbol_ref.into_iter()),
       &bail_out_module_identifiers,
+      &mut evaluated_module_identifiers,
       &mut errors,
     );
 
@@ -884,6 +887,7 @@ impl Compilation {
         &analyze_results,
         ustr(&entry),
         &bail_out_module_identifiers,
+        &mut evaluated_module_identifiers,
         &mut errors,
       );
       used_symbol.extend(used_symbol_set);
@@ -1226,6 +1230,7 @@ fn collect_reachable_symbol(
   analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
   entry_identifier: Ustr,
   bailout_module_identifiers: &HashMap<Ustr, BailoutReason>,
+  evaluated_module_identifiers: &mut HashSet<Ustr>,
   errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
   let mut used_symbol_set = HashSet::new();
@@ -1277,6 +1282,7 @@ fn collect_reachable_symbol(
       analyze_map,
       &mut q,
       bailout_module_identifiers,
+      evaluated_module_identifiers,
       errors,
     );
   }
@@ -1288,6 +1294,7 @@ fn collect_reachable_symbol(
       analyze_map,
       &mut q,
       bailout_module_identifiers,
+      evaluated_module_identifiers,
       errors,
     );
   }
@@ -1298,6 +1305,7 @@ fn mark_used_symbol_with(
   analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
   mut init_queue: VecDeque<SymbolRef>,
   bailout_module_identifiers: &HashMap<Ustr, BailoutReason>,
+  evaluated_module_identifiers: &mut HashSet<Ustr>,
   errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
   let mut used_symbol_set = HashSet::new();
@@ -1315,6 +1323,7 @@ fn mark_used_symbol_with(
       analyze_map,
       &mut init_queue,
       bailout_module_identifiers,
+      evaluated_module_identifiers,
       errors,
     );
   }
@@ -1327,6 +1336,7 @@ fn mark_symbol(
   analyze_map: &HashMap<Ustr, TreeShakingResult>,
   q: &mut VecDeque<SymbolRef>,
   bailout_module_identifiers: &HashMap<Ustr, BailoutReason>,
+  evaluated_module_identifiers: &mut HashSet<Ustr>,
   errors: &mut Vec<Error>,
 ) {
   // We don't need mark the symbol usage if it is from a bailout module because
@@ -1357,6 +1367,10 @@ fn mark_symbol(
         // In other words, we need two binding for supporting indirect redirect.
         if let Some(symbol_ref) = module_result.import_map.get(vac.get().id()) {
           q.push_back(symbol_ref.clone());
+        }
+        if !evaluated_module_identifiers.contains(&vac.get().uri()) {
+          evaluated_module_identifiers.insert(vac.get().uri());
+          q.extend(module_result.used_symbol_ref.clone());
         }
         vac.insert();
       }
