@@ -6,5 +6,7 @@ version = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+derivative  = "2.2.0"
+hashbrown   = { version = "0.12.1", features = ["rayon", "serde", "ahash"] }
 rspack_core = { path = "../rspack_core" }
 tracing     = "0.1.34"
