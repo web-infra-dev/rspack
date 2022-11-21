@@ -37,7 +37,10 @@ impl Plugin for JsonPChunkLoadingPlugin {
       runtime_requirements.insert(runtime_globals::PUBLIC_PATH.to_string());
       runtime_requirements.insert(runtime_globals::LOAD_SCRIPT.to_string());
       runtime_requirements.insert(runtime_globals::GET_CHUNK_SCRIPT_FILENAME.to_string());
-      compilation.add_runtime_module(chunk, JsonpChunkLoadingRuntimeModule::default().boxed());
+      compilation.add_runtime_module(
+        chunk,
+        JsonpChunkLoadingRuntimeModule::new(runtime_requirements.clone()).boxed(),
+      );
     }
 
     Ok(())
