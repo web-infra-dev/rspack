@@ -484,6 +484,7 @@ impl Plugin for CssPlugin {
     // let hash = None;
     // let chunkhash = None;
     // let contenthash = Some(chunk.hash.clone());
+    let hash = Some(chunk.get_render_hash());
     if source.source().is_empty() {
       Ok(Default::default())
     } else {
@@ -496,9 +497,9 @@ impl Plugin for CssPlugin {
             filename: chunk.name.clone(),
             extension: Some(".css".to_owned()),
             id: Some(chunk.id.to_owned()),
-            contenthash: Some(chunk.hash.clone()),
-            chunkhash: Some(chunk.hash.clone()),
-            hash: Some(chunk.hash.clone()),
+            contenthash: hash.clone(),
+            chunkhash: hash.clone(),
+            hash,
           })
       } else {
         compilation
@@ -509,9 +510,9 @@ impl Plugin for CssPlugin {
             filename: chunk.name.clone(),
             extension: Some(".css".to_owned()),
             id: Some(chunk.id.to_owned()),
-            contenthash: Some(chunk.hash.clone()),
-            chunkhash: Some(chunk.hash.clone()),
-            hash: Some(chunk.hash.clone()),
+            contenthash: hash.clone(),
+            chunkhash: hash.clone(),
+            hash,
           })
       };
       Ok(vec![RenderManifestEntry::new(source.boxed(), output_path)])

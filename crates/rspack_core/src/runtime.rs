@@ -1,8 +1,7 @@
+use crate::{ChunkUkey, Compilation};
 use hashbrown::{HashMap, HashSet};
 use rspack_sources::{BoxSource, CachedSource, RawSource, SourceExt};
-use std::fmt::Debug;
-
-use crate::{ChunkUkey, Compilation};
+use std::{fmt::Debug, hash::Hash};
 
 pub type RuntimeSpec = HashSet<String>;
 pub type RuntimeKey = String;
@@ -144,6 +143,10 @@ pub trait RuntimeModule: Debug + Send + Sync {
   fn identifier(&self) -> &str;
   fn generate(&self, compilation: &Compilation) -> BoxSource;
   fn attach(&mut self, _chunk: ChunkUkey) {}
+  fn hash(&self, compilation: &Compilation, mut state: &mut dyn std::hash::Hasher) {
+    self.identifier().hash(&mut state);
+    self.generate(compilation).source().hash(&mut state);
+  }
 }
 
 pub trait RuntimeModuleExt {
@@ -179,6 +182,4 @@ impl RuntimeModule for NormalRuntimeModule {
   fn generate(&self, _compilation: &Compilation) -> BoxSource {
     CachedSource::new(self.sources.clone()).boxed()
   }
-
-  fn attach(&mut self, _chunk: ChunkUkey) {}
 }

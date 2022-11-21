@@ -1013,7 +1013,6 @@ impl Compilation {
   #[instrument()]
   pub fn create_hash(&mut self) {
     for (chunk_ukey, chunk) in self.chunk_by_ukey.iter_mut() {
-      let mut state = Xxh3::new();
       for mgm in self
         .chunk_graph
         .get_chunk_modules(chunk_ukey, &self.module_graph)
@@ -1022,11 +1021,29 @@ impl Compilation {
           .module_graph
           .module_by_identifier(&mgm.module_identifier)
         {
-          module.hash(&mut state);
+          module.hash(&mut chunk.hash);
         }
       }
-      chunk.hash = format!("{:x}", state.finish());
     }
+    tracing::trace!("hash chunks");
+
+    for entry_ukey in self.get_chunk_graph_entries().iter() {
+      let mut hasher = Xxh3::new();
+      for identifier in self
+        .chunk_graph
+        .get_chunk_runtime_modules_in_order(entry_ukey)
+      {
+        if let Some(module) = self.runtime_modules.get(identifier) {
+          module.hash(self, &mut hasher);
+        }
+      }
+      let entry = self
+        .chunk_by_ukey
+        .get_mut(entry_ukey)
+        .expect("chunk not found by ukey");
+      format!("{:x}", hasher.finish()).hash(&mut entry.hash);
+    }
+    tracing::trace!("hash runtime chunks");
   }
 
   pub fn add_runtime_module(&mut self, chunk_ukey: &ChunkUkey, mut module: Box<dyn RuntimeModule>) {
