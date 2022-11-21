@@ -59,10 +59,6 @@
 		}
 	};
 
-	__webpack_require__.O.j = function (chunkId) {
-		installedChunks[chunkId] === 0;
-	};
-
 	// install a JSONP callback for chunk loading
 	var webpackJsonpCallback = function (parentChunkLoadingFunction, data) {
 		var [chunkIds, moreModules, runtime] = data;
