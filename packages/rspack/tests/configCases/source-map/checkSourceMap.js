@@ -35,7 +35,7 @@ export default async function checkSourceMap(out, outCodeMap, toSearch) {
 		const inSource = toSearch[id];
 		recordCheck(
 			source === inSource,
-			`expected source: ${inSource}@${outLine}:${outColumn}, observed source: ${source}@${line}:${column}`
+			`expected source: ${inSource}, observed source: ${source}@${line}:${column}, {out_source}@${outLine}:${outColumn}.`
 		);
 
 		const inCode = map.sourceContentFor(source);
