@@ -286,7 +286,10 @@ impl Compiler {
             .display()
             .to_string();
           let path = output_path.join(format!("{}.hot-update.js", filename));
-          let asset = CompilationAsset::new(entry.source().clone(), AssetInfo::default());
+          let asset = CompilationAsset::new(
+            entry.source().clone(),
+            AssetInfo::default().with_hot_module_replacement(true),
+          );
 
           Compiler::emit_asset(path, &asset)?;
         }
@@ -317,7 +320,7 @@ impl Compiler {
             .to_string(),
           )
           .boxed(),
-          AssetInfo::default(),
+          AssetInfo::default().with_hot_module_replacement(true),
         ),
       )?;
     }

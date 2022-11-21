@@ -18,10 +18,8 @@ module.exports = {
 							let inspect = new ConcatSource();
 							for (let [n, cg] of compilation.entrypoints) {
 								inspect.add(`entry name: ${n}\n`);
-								for (let c of cg.chunks) {
-									for (let f of c.files) {
-										inspect.add(`  file: ${f}\n`);
-									}
+								for (let file of cg.getFiles()) {
+									inspect.add(`  file: ${file}\n`);
 								}
 							}
 							compilation.emitAsset("inspect.txt", inspect);

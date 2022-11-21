@@ -12,6 +12,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       ],
       "info": {
         "development": false,
+        "hotModuleReplacement": false,
       },
       "name": "main.xxxx.js",
       "size": 854,
@@ -24,6 +25,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       ],
       "info": {
         "development": false,
+        "hotModuleReplacement": false,
       },
       "name": "dynamic_js.xxxx.js",
       "size": 265,
@@ -125,6 +127,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       ],
       "info": {
         "development": false,
+        "hotModuleReplacement": false,
       },
       "name": "bundle.js",
       "size": 358,
@@ -201,6 +204,7 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
       ],
       "info": {
         "development": false,
+        "hotModuleReplacement": false,
       },
       "name": "bundle.js",
       "size": 510,
@@ -314,6 +318,7 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
       ],
       "info": {
         "development": false,
+        "hotModuleReplacement": false,
       },
       "name": "bundle.js",
       "size": 404,
@@ -409,6 +414,7 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
       ],
       "info": {
         "development": false,
+        "hotModuleReplacement": false,
       },
       "name": "bundle.js",
       "size": 576,
@@ -528,6 +534,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       ],
       "info": {
         "development": false,
+        "hotModuleReplacement": false,
       },
       "name": "bundle.js",
       "size": 423,
@@ -623,6 +630,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       ],
       "info": {
         "development": false,
+        "hotModuleReplacement": false,
       },
       "name": "bundle.js",
       "size": 1042,
@@ -708,6 +716,7 @@ exports[`StatsTestCases should print correct stats for sass-warnings 1`] = `
       ],
       "info": {
         "development": false,
+        "hotModuleReplacement": false,
       },
       "name": "main.js",
       "size": 535,
@@ -722,6 +731,7 @@ exports[`StatsTestCases should print correct stats for sass-warnings 1`] = `
       ],
       "info": {
         "development": false,
+        "hotModuleReplacement": false,
       },
       "name": "main.css",
       "size": 11,
@@ -847,6 +857,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       ],
       "info": {
         "development": false,
+        "hotModuleReplacement": false,
       },
       "name": "bundle.js",
       "size": 467,

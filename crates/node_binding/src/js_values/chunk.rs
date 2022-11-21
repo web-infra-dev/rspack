@@ -9,8 +9,4 @@ impl JsChunk {
     files.sort();
     Self { files }
   }
-
-  pub fn get_files(&self) -> Vec<String> {
-    self.files.clone()
-  }
 }

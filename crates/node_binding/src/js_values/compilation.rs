@@ -99,6 +99,18 @@ impl JsCompilation {
   }
 
   #[napi]
+  pub fn get_asset(&self, name: String) -> Result<Option<JsAsset>> {
+    match self.inner.assets.get(&name) {
+      Some(asset) => Ok(Some(JsAsset {
+        name,
+        source: asset.source.to_js_compat_source()?,
+        info: asset.info.clone().into(),
+      })),
+      None => Ok(None),
+    }
+  }
+
+  #[napi]
   pub fn emit_asset(
     &mut self,
     filename: String,

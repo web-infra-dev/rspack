@@ -68,6 +68,7 @@ impl<'compilation> Stats<'compilation> {
             chunk_names: Vec::new(),
             info: StatsAssetInfo {
               development: asset.info.development,
+              hot_module_replacement: asset.info.hot_module_replacement,
             },
           },
         )
@@ -285,6 +286,7 @@ pub struct StatsAsset {
 #[derive(Debug)]
 pub struct StatsAssetInfo {
   pub development: bool,
+  pub hot_module_replacement: bool,
 }
 
 #[derive(Debug)]

@@ -1145,7 +1145,12 @@ describe("Compiler", () => {
 								compilation.updateAsset(
 									"something-else.js",
 									new RawSource(`module.exports = "something-else"`),
-									{ minimized: true, development: true, related: {} }
+									{
+										minimized: true,
+										development: true,
+										related: {},
+										hotModuleReplacement: false
+									}
 								);
 							} catch (err) {
 								mockFn();
