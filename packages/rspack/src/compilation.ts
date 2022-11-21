@@ -123,6 +123,10 @@ export class Compilation {
 		this.#inner.emitAsset(filename, createRawFromSource(source), assetInfo);
 	}
 
+	deleteAsset(filename: string) {
+		this.#inner.deleteAsset(filename);
+	}
+
 	/**
 	 * Get an array of Asset
 	 *

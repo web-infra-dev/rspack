@@ -159,6 +159,17 @@ impl Compilation {
     }
   }
 
+  pub fn delete_asset(&mut self, filename: &str) {
+    if let Some(asset) = self.assets.remove(filename) {
+      if let Some(source_map) = asset.info.related.source_map {
+        self.delete_asset(&source_map);
+      }
+      self.chunk_by_ukey.iter_mut().for_each(|(_, chunk)| {
+        chunk.files.remove(filename);
+      });
+    }
+  }
+
   pub fn assets(&self) -> &CompilationAssets {
     &self.assets
   }
