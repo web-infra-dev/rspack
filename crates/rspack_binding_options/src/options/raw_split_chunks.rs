@@ -1,6 +1,6 @@
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
-use rspack_core::CompilerOptionsBuilder;
+use rspack_core::{CompilerOptionsBuilder, ModuleType, SourceType};
 use rspack_plugin_split_chunks::{CacheGroupOptions, ChunkType, SizeType, SplitChunksOptions};
 use serde::Deserialize;
 use std::{collections::HashMap, sync::Arc};
@@ -12,7 +12,7 @@ use crate::RawOption;
 #[cfg(feature = "node-api")]
 #[napi(object)]
 pub struct RawSplitChunksOptions {
-  pub cache_groups: HashMap<String, RawCacheGroupOptions>,
+  pub cache_groups: Option<HashMap<String, RawCacheGroupOptions>>,
   /// What kind of chunks should be selected.
   pub chunks: Option<String>,
   //   pub automatic_name_delimiter: String,
@@ -35,7 +35,7 @@ pub struct RawSplitChunksOptions {
 #[serde(rename_all = "camelCase")]
 #[cfg(not(feature = "node-api"))]
 pub struct RawSplitChunksOptions {
-  pub cache_groups: HashMap<String, RawCacheGroupOptions>,
+  pub cache_groups: Option<HashMap<String, RawCacheGroupOptions>>,
   /// What kind of chunks should be selected.
   pub chunks: Option<String>,
   //   pub automatic_name_delimiter: String,
@@ -72,9 +72,9 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
     });
     defaults.chunks = Some(ChunkType::Async);
     defaults.min_chunks = 1.into();
-    defaults.min_size = Some(if is_production { 20000 } else { 10000 });
-    defaults.min_remaining_size = if is_development { Some(0) } else { None };
-    defaults.enforce_size_threshold = Some(if is_production { 50000 } else { 30000 });
+    defaults.min_size = Some(if is_production { 20000f64 } else { 10000f64 });
+    defaults.min_remaining_size = if is_development { Some(0f64) } else { None };
+    defaults.enforce_size_threshold = Some(if is_production { 50000f64 } else { 30000f64 });
     defaults.max_async_requests = Some(if is_production { 30 } else { usize::MAX });
     defaults.max_initial_requests = Some(if is_production { 30 } else { usize::MAX });
     defaults.automatic_name_delimiter = Some("-".to_string());
@@ -83,24 +83,29 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
       (
         "default".to_string(),
         CacheGroupOptions {
+          // TODO: we should not manually set the name
+          name: Some("default".to_string()),
           min_chunks: 2.into(),
           priority: Some(-20),
           id_hint: "".to_string().into(),
+          // TODO: reuseExistingChunk
           ..Default::default()
         },
       ),
       (
         "defaultVendors".to_string(),
         CacheGroupOptions {
+          // TODO: we should not manually set the name
+          name: Some("defaultVendors".to_string()),
           id_hint: "vendors".to_string().into(),
           reuse_existing_chunk: true.into(),
           test: Some(Arc::new(|module| {
             module
-              // TODO: We need resource path here
-              .module_identifier
-              .contains("node_modules")
+              .name_for_condition()
+              .map_or(false, |name| name.contains("node_modules"))
           })),
           priority: Some(-10),
+          // TODO: reuseExistingChunk
           ..Default::default()
         },
       ),
@@ -108,42 +113,48 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
 
     defaults
       .cache_groups
-      .extend(self.cache_groups.into_iter().map(|(k, v)| {
-        (
-          k,
-          CacheGroupOptions {
-            name: v.name.clone().into(),
-            priority: 0.into(),
-            reuse_existing_chunk: false.into(),
-            r#type: SizeType::JavaScript.into(),
-            test: Some(Arc::new(move |module| {
-              let re = regex::Regex::new(&v.test).unwrap();
-              re.is_match(&module.id)
-            })),
-            filename: v.name.into(),
-            enforce: false.into(),
-            id_hint: Default::default(),
-            chunks: ChunkType::All.into(),
-            automatic_name_delimiter: "~".to_string().into(),
-            max_async_requests: 30.into(),
-            max_initial_requests: 30.into(),
-            min_chunks: 1.into(),
-            min_size: 20000.into(),
-            min_size_reduction: 20000.into(),
-            enforce_size_threshold: 50000.into(),
-            min_remaining_size: 0.into(),
-            max_size: 0.into(),
-            max_async_size: usize::MAX.into(),
-            max_initial_size: usize::MAX.into(),
-          },
-        )
-      }));
+      .extend(
+        self
+          .cache_groups
+          .unwrap_or_default()
+          .into_iter()
+          .map(|(k, v)| {
+            (
+              k,
+              CacheGroupOptions {
+                name: v.name.clone().into(),
+                priority: 0.into(),
+                reuse_existing_chunk: false.into(),
+                r#type: Some(ModuleType::Js),
+                test: Some(Arc::new(move |module| {
+                  let re = regex::Regex::new(&v.test).unwrap();
+                  re.is_match(&module.identifier())
+                })),
+                filename: v.name.into(),
+                enforce: false.into(),
+                id_hint: Default::default(),
+                chunks: ChunkType::All.into(),
+                automatic_name_delimiter: "~".to_string().into(),
+                max_async_requests: 30.into(),
+                max_initial_requests: 30.into(),
+                min_chunks: 1.into(),
+                min_size: 20000f64.into(),
+                min_size_reduction: 20000f64.into(),
+                enforce_size_threshold: 50000f64.into(),
+                min_remaining_size: 0f64.into(),
+                max_size: 0f64.into(),
+                max_async_size: f64::MAX.into(),
+                max_initial_size: f64::MAX.into(),
+              },
+            )
+          }),
+      );
     Ok(defaults)
   }
 
   fn fallback_value(_options: &CompilerOptionsBuilder) -> Self {
     RawSplitChunksOptions {
-      cache_groups: HashMap::new(),
+      cache_groups: None,
       chunks: None,
     }
   }

@@ -1,3 +1,5 @@
+use hashbrown::HashSet;
+use itertools::Itertools;
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
 use swc_css::visit::VisitMutWith;
@@ -9,8 +11,9 @@ use rspack_core::{
     BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
     SourceMapSource, SourceMapSourceOptions,
   },
-  FilenameRenderOptions, GenerateContext, GenerationResult, Module, ModuleType, ParseContext,
-  ParseResult, ParserAndGenerator, Plugin, RenderManifestEntry, SourceType,
+  Chunk, ChunkGraph, Compilation, FilenameRenderOptions, GenerateContext, GenerationResult, Module,
+  ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, Plugin,
+  RenderManifestEntry, SourceType,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;
@@ -66,6 +69,222 @@ impl CssParserAndGenerator {
     } else {
       None
     }
+  }
+
+  pub(crate) fn get_ordered_chunk_css_modules<'module>(
+    chunk: &Chunk,
+    chunk_graph: &ChunkGraph,
+    module_graph: &'module ModuleGraph,
+    compilation: &Compilation,
+  ) -> Vec<&'module dyn Module> {
+    let mut css_modules = chunk_graph
+      .get_chunk_modules_iterable_by_source_type(&chunk.ukey, SourceType::Css, module_graph)
+      .collect::<Vec<_>>();
+    css_modules.sort_by_key(|module| module.identifier());
+
+    let css_modules = Self::get_modules_in_order(chunk, css_modules, compilation);
+
+    css_modules
+    // return [
+    // 	...this.getModulesInOrder(
+    // 		chunk,
+    // 		chunkGraph.getOrderedChunkModulesIterableBySourceType(
+    // 			chunk,
+    // 			"css-import",
+    // 			compareModulesByIdentifier
+    // 		),
+    // 		compilation
+    // 	),
+    // 	...this.getModulesInOrder(
+    // 		chunk,
+    // 		chunkGraph.getOrderedChunkModulesIterableBySourceType(
+    // 			chunk,
+    // 			"css",
+    // 			compareModulesByIdentifier
+    // 		),
+    // 		compilation
+    // 	)
+    // ];
+  }
+
+  pub(crate) fn get_modules_in_order<'module>(
+    chunk: &Chunk,
+    modules: Vec<&'module (dyn Module + 'module)>,
+    compilation: &Compilation,
+  ) -> Vec<&'module (dyn Module + 'module)> {
+    if modules.is_empty() {
+      return modules;
+    };
+
+    let modules_list = modules;
+
+    // Get ordered list of modules per chunk group
+    // Lists are in reverse order to allow to use Array.pop()
+
+    let mut modules_by_chunk_group = chunk
+      .groups
+      .iter()
+      .filter_map(|ukey| compilation.chunk_group_by_ukey.get(ukey))
+      .map(|chunk_group| {
+        let sorted_modules = modules_list
+          .clone()
+          .into_iter()
+          .map(|module| {
+            (
+              module,
+              chunk_group.module_post_order_index(&module.identifier()),
+            )
+          })
+          .sorted_by(|a, b| {
+            // TODO: Align with .sort((a, b) => b.index - a.index)
+            if b.1 > a.1 {
+              std::cmp::Ordering::Less
+            } else if b.1 < a.1 {
+              std::cmp::Ordering::Greater
+            } else {
+              std::cmp::Ordering::Equal
+            }
+          })
+          // .map(|item| item.0)
+          .collect::<Vec<_>>();
+        let mut list = Vec::with_capacity(sorted_modules.len());
+        let mut set = HashSet::with_capacity(sorted_modules.len());
+        for item in sorted_modules {
+          list.push(item.0.clone());
+          set.insert(item.0);
+        }
+
+        SortedModules {
+          list: Default::default(),
+          set: Default::default(),
+        }
+      })
+      .collect::<Vec<_>>();
+
+    if modules_by_chunk_group.len() == 1 {
+      return modules_by_chunk_group[0].list.clone();
+    };
+
+    // TODO: Align with
+    // const compareModuleLists = ({ list: a }, { list: b }) => {
+    // 	if (a.length === 0) {
+    // 		return b.length === 0 ? 0 : 1;
+    // 	} else {
+    // 		if (b.length === 0) return -1;
+    // 		return compareModulesByIdentifier(a[a.length - 1], b[b.length - 1]);
+    // 	}
+    // };
+
+    modules_by_chunk_group.sort_by(
+      |SortedModules { list: a, .. }, SortedModules { list: b, .. }| {
+        if a.len() == 0 {
+          if b.len() == 0 {
+            std::cmp::Ordering::Equal
+          } else {
+            std::cmp::Ordering::Greater
+          }
+        } else {
+          if b.len() == 0 {
+            std::cmp::Ordering::Less
+          } else {
+            // FIXME: we should compareModulesByIdentifier here
+            std::cmp::Ordering::Greater
+          }
+        }
+      },
+    );
+
+    let mut final_modules = vec![];
+
+    loop {
+      let mut failed_modules: HashSet<&dyn Module> = HashSet::default();
+      let list = &modules_by_chunk_group[0].list;
+      if list.len() == 0 {
+        // done, everything empty
+        break;
+      }
+      let mut selected_module = list.last().unwrap();
+      let mut has_failed = None;
+      'outer: loop {
+        for SortedModules { set, list } in &modules_by_chunk_group {
+          if list.len() == 0 {
+            continue;
+          }
+          let last_module = list.last().unwrap();
+          if last_module != selected_module {
+            continue;
+          }
+          if !set.contains(selected_module) {
+            continue;
+          }
+          failed_modules.insert(*selected_module);
+          if failed_modules.contains(last_module) {
+            // There is a conflict, try other alternatives
+            has_failed = Some(last_module);
+            continue;
+          }
+          selected_module = last_module;
+          has_failed = None;
+          continue 'outer;
+        }
+        break;
+      }
+      if let Some(has_failed) = has_failed {
+        // There is a not resolve-able conflict with the selectedModule
+        // TODO: we should emit a warning here
+        // 		if (compilation) {
+        // 			// TODO print better warning
+        // 			compilation.warnings.push(
+        // 				new Error(
+        // 					`chunk ${
+        // 						chunk.name || chunk.id
+        // 					}\nConflicting order between ${hasFailed.readableIdentifier(
+        // 						compilation.requestShortener
+        // 					)} and ${selectedModule.readableIdentifier(
+        // 						compilation.requestShortener
+        // 					)}`
+        // 				)
+        // 			);
+        // 		}
+
+        selected_module = has_failed;
+      }
+      // Insert the selected module into the final modules list
+      final_modules.push(*selected_module);
+      // Remove the selected module from all lists
+      // for SortedModules { set, list } in &mut modules_by_chunk_group {
+      //   let last_module = list.last().unwrap();
+      //   if last_module == selected_module {
+      //     list.pop();
+      //     set.remove(selected_module);
+      //   } else if has_failed.is_some() && set.contains(selected_module) {
+      //     let idx = list.iter().position(|m| m == selected_module);
+      //     if let Some(idx) = idx {
+      //       list.remove(idx);
+      //     }
+      //   }
+      // }
+      // 	TODO: modulesByChunkGroup.sort(compareModuleLists)
+      modules_by_chunk_group.sort_by(
+        |SortedModules { list: a, .. }, SortedModules { list: b, .. }| {
+          if a.len() == 0 {
+            if b.len() == 0 {
+              std::cmp::Ordering::Equal
+            } else {
+              std::cmp::Ordering::Greater
+            }
+          } else {
+            if b.len() == 0 {
+              std::cmp::Ordering::Less
+            } else {
+              // FIXME: we should compareModulesByIdentifier here
+              std::cmp::Ordering::Greater
+            }
+          }
+        },
+      );
+    }
+    final_modules
   }
 }
 
@@ -393,4 +612,9 @@ impl Plugin for CssPlugin {
       Ok(vec![RenderManifestEntry::new(source.boxed(), output_path)])
     }
   }
+}
+
+struct SortedModules<'me> {
+  pub list: Vec<&'me dyn Module>,
+  pub set: HashSet<&'me dyn Module>,
 }

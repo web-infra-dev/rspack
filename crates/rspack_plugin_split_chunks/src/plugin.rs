@@ -1,21 +1,23 @@
 #![allow(unused_variables)]
 
 use std::{
-  clone,
   collections::{HashMap, HashSet},
   fmt::Debug,
   sync::Arc,
 };
 
-use rspack_core::{Chunk, ChunkGroupByUkey, ChunkUkey, Compilation, ModuleGraphModule, Plugin};
+use rspack_core::{
+  Chunk, ChunkGroupByUkey, ChunkUkey, Compilation, Module, ModuleGraph, ModuleGraphModule,
+  ModuleType, Plugin, SourceType,
+};
 
 use crate::{
-  CacheGroup, CacheGroupOptions, CacheGroupSource, ChunkType, SizeType, SplitChunkSizes,
-  SplitChunksOptions,
+  CacheGroup, CacheGroupOptions, CacheGroupSource, ChunkFilter, ChunkType, GetName,
+  NormalizedOptions, SizeType, SplitChunkSizes, SplitChunksOptions,
 };
 
 pub fn create_cache_group(
-  options: &SplitChunksPluginOptions,
+  options: &NormalizedOptions,
   group_source: &CacheGroupSource,
 ) -> CacheGroup {
   let min_size = {
@@ -65,8 +67,10 @@ pub fn create_cache_group(
   CacheGroup {
     key: group_source.key.clone(),
     priority: group_source.priority.unwrap_or(0),
-    chunks_filter,
-    min_size,
+    chunks_filter: chunks_filter
+      .clone()
+      .unwrap_or_else(|| options.chunk_filter.clone()),
+    min_size: min_size.clone(),
     min_size_reduction,
     min_remaining_size,
     enforce_size_threshold,
@@ -102,55 +106,23 @@ pub fn create_cache_group(
     filename: group_source
       .filename
       .clone()
-      .unwrap_or(options.filename.clone().unwrap()),
+      .map(|v| Some(v))
+      .unwrap_or_else(|| options.filename.clone()),
     id_hint: group_source
       .id_hint
       .clone()
       .unwrap_or_else(|| group_source.key.clone()),
     reuse_existing_chunk: group_source.reuse_existing_chunk.unwrap_or_default(),
+    validate_size: min_size.values().any(|size| size > &0f64),
   }
 }
 
 #[derive(Debug)]
 pub struct SplitChunksPlugin {
   raw_options: SplitChunksOptions,
-  options: SplitChunksPluginOptions,
+  options: NormalizedOptions,
   _cache_group_source_by_key: HashMap<String, CacheGroupSource>,
   cache_group_by_key: HashMap<String, CacheGroup>,
-}
-
-pub struct SplitChunksPluginOptions {
-  default_size_types: Vec<SizeType>,
-  pub min_size: SplitChunkSizes,
-  pub min_size_reduction: SplitChunkSizes,
-  pub min_remaining_size: SplitChunkSizes,
-  pub enforce_size_threshold: SplitChunkSizes,
-  pub max_async_size: SplitChunkSizes,
-  pub max_initial_size: SplitChunkSizes,
-  pub min_chunks: usize,
-  pub max_async_requests: usize,
-  pub max_initial_requests: usize,
-  pub filename: Option<String>,
-  pub get_name: Arc<dyn Fn(&ModuleGraphModule) -> String + Send + Sync>,
-}
-
-impl Debug for SplitChunksPluginOptions {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("SplitChunksPluginOptions")
-      .field("default_size_types", &self.default_size_types)
-      .field("min_size", &self.min_size)
-      .field("min_size_reduction", &self.min_size_reduction)
-      .field("min_remaining_size", &self.min_remaining_size)
-      .field("enforce_size_threshold", &self.enforce_size_threshold)
-      .field("max_async_size", &self.max_async_size)
-      .field("max_initial_size", &self.max_initial_size)
-      .field("min_chunks", &self.min_chunks)
-      .field("max_async_requests", &self.max_async_requests)
-      .field("max_initial_requests", &self.max_initial_requests)
-      .field("filename", &self.filename)
-      .field("get_name", &"Fn")
-      .finish()
-  }
 }
 
 pub fn create_cache_group_source(
@@ -163,25 +135,20 @@ pub fn create_cache_group_source(
   let max_size = normalize_sizes(options.max_size, &default_size_types);
 
   let get_name = options.name.map(|name| {
-    Arc::new(move |m: &ModuleGraphModule| name.clone())
-      as Arc<dyn Fn(&ModuleGraphModule) -> String + Send + Sync>
+    Arc::new(move |m: &dyn Module| name.clone()) as Arc<dyn Fn(&dyn Module) -> String + Send + Sync>
   });
 
   CacheGroupSource {
     key,
     priority: options.priority.clone(),
     get_name: get_name,
-    chunks_filter: Arc::new(move |_chunk| {
-      options
-        .chunks
-        .clone()
-        .map(|chunk_type| match chunk_type {
-          crate::ChunkType::Initial => todo!("Supports initial"),
-          crate::ChunkType::Async => todo!("Supports async"),
-          crate::ChunkType::All => true,
-          // crate::ChunkType::Custom(_) => todo!(),
-        })
-        .unwrap_or_default()
+    chunks_filter: options.chunks.clone().map(|chunks| {
+      let f: ChunkFilter = Arc::new(move |chunk, chunk_group_by_ukey| match chunks {
+        ChunkType::Initial => chunk.can_be_initial(chunk_group_by_ukey),
+        ChunkType::Async => !chunk.can_be_initial(chunk_group_by_ukey),
+        ChunkType::All => true,
+      });
+      f
     }),
     enforce: options.enforce,
     min_size: min_size.clone(),
@@ -204,30 +171,31 @@ pub fn create_cache_group_source(
     max_initial_requests: options.max_initial_requests,
     filename: options.filename.clone(),
     id_hint: options.id_hint.clone(),
-    automatic_name_delimiter: options.automatic_name_delimiter.clone().unwrap(),
+    automatic_name_delimiter: options
+      .automatic_name_delimiter
+      .clone()
+      .unwrap_or_else(|| "~".to_string()),
     reuse_existing_chunk: options.reuse_existing_chunk,
     // used_exports: options.used_exports,
   }
 }
 
-fn normalize_sizes(
-  value: Option<usize>,
+fn normalize_sizes<T: Clone>(
+  value: Option<T>,
   default_size_types: &[SizeType],
-) -> HashMap<SizeType, usize> {
+) -> HashMap<SizeType, T> {
   value
     .map(|value| {
       default_size_types
         .iter()
-        .map(|size_type| (*size_type, value))
+        .cloned()
+        .map(|size_type| (size_type, value.clone()))
         .collect::<HashMap<_, _>>()
     })
     .unwrap_or_default()
 }
 
-fn merge_sizes(
-  mut a: HashMap<SizeType, usize>,
-  b: HashMap<SizeType, usize>,
-) -> HashMap<SizeType, usize> {
+fn merge_sizes(mut a: HashMap<SizeType, f64>, b: HashMap<SizeType, f64>) -> HashMap<SizeType, f64> {
   a.extend(b);
   a
 }
@@ -251,10 +219,10 @@ impl SplitChunksPlugin {
 
     let get_name = {
       let name = options.name.clone();
-      Arc::new(move |module: &ModuleGraphModule| name.clone().unwrap())
-        as Arc<dyn Fn(&ModuleGraphModule) -> String + Send + Sync>
+      let get_name: GetName = Arc::new(move |module: &dyn Module| name.clone().unwrap());
+      get_name
     };
-    let normalized_options = SplitChunksPluginOptions {
+    let normalized_options = NormalizedOptions {
       default_size_types: default_size_types.clone(),
       min_size: min_size.clone(),
       min_size_reduction,
@@ -276,6 +244,13 @@ impl SplitChunksPlugin {
       max_initial_requests: options.min_chunks.unwrap_or(1),
       filename: None,
       get_name: get_name,
+      chunk_filter: {
+        let chunks = options.chunks.clone();
+        Arc::new(move |chunk, chunk_group_by_ukey| {
+          let chunk_type = chunks.as_ref().unwrap_or(&ChunkType::Async);
+          chunk_type.is_selected(chunk, chunk_group_by_ukey)
+        })
+      },
     };
 
     let cache_group_source_by_key = {
@@ -302,6 +277,11 @@ impl SplitChunksPlugin {
     }
     .collect::<HashMap<_, _>>();
 
+    tracing::debug!(
+      "created cache groups: {:#?}",
+      cache_group_by_key.keys().collect::<Vec<_>>()
+    );
+
     Self {
       options: normalized_options,
       _cache_group_source_by_key: cache_group_source_by_key,
@@ -319,17 +299,22 @@ impl SplitChunksPlugin {
       .is_selected(chunk, chunk_group_by_ukey)
   }
 
-  fn get_cache_groups(&self, module: &ModuleGraphModule) -> Vec<String> {
+  fn get_cache_groups(&self, module: &dyn Module) -> Vec<String> {
     self
       .raw_options
       .cache_groups
       .iter()
       .filter(|(_, group_option)| {
+        // Align with
         group_option
           .test
           .as_ref()
           .map_or(true, |test| (test)(module))
-        // TODO: we should also check type chunk type
+          && group_option
+            .r#type
+            .as_ref()
+            .map_or(true, |ty| ty == module.module_type())
+        // TODO: check module layer
       })
       // TODO: Supports filter with module type
       .map(|(key, _group_option)| key.clone())
@@ -343,11 +328,17 @@ impl SplitChunksPlugin {
     selected_chunks: &[&Chunk],
     // selectedChunksKey,
     module_identifier: String,
-    module_graph_module: &ModuleGraphModule,
+    module_graph_module: &dyn Module,
     chunks_info_map: &mut HashMap<String, ChunksInfoItem>,
     // compilation: &mut Compilation,
   ) {
     if selected_chunks.len() < cache_group.min_chunks {
+      tracing::debug!(
+        "[Bailout-Module]: {}, because selected_chunks.len({:?}) < cache_group.min_chunks({:?})",
+        module_identifier,
+        selected_chunks.len(),
+        cache_group.min_chunks
+      );
       return;
     }
 
@@ -366,10 +357,10 @@ impl SplitChunksPlugin {
       .entry(key)
       .or_insert_with(|| ChunksInfoItem {
         modules: Default::default(),
-        _cache_group: cache_group.key.clone(),
+        cache_group: cache_group.key.clone(),
         _cache_group_index: cache_group_index,
         name,
-        _sizes: Default::default(),
+        sizes: Default::default(),
         chunks: Default::default(),
         _reuseable_chunks: Default::default(),
       });
@@ -387,10 +378,10 @@ impl SplitChunksPlugin {
 struct ChunksInfoItem {
   // Sortable Module Set
   pub modules: HashSet<String>,
-  pub _cache_group: String,
+  pub cache_group: String,
   pub _cache_group_index: usize,
   pub name: String,
-  pub _sizes: SplitChunkSizes,
+  pub sizes: SplitChunkSizes,
   pub chunks: HashSet<ChunkUkey>,
   pub _reuseable_chunks: HashSet<ChunkUkey>,
   // bigint | Chunk
@@ -416,56 +407,128 @@ impl Plugin for SplitChunksPlugin {
     //   .collect::<Vec<_>>();
     let mut chunks_info_map: HashMap<String, ChunksInfoItem> = Default::default();
 
-    for module in compilation.module_graph.module_graph_modules() {
-      let cache_group_source_keys = self.get_cache_groups(module);
+    for module in compilation.module_graph.modules() {
+      let cache_group_source_keys = self.get_cache_groups(module.as_ref());
       if cache_group_source_keys.is_empty() {
+        tracing::debug!(
+          "[Bailout-Module]: '{}', because {}",
+          module.identifier(),
+          "no cache group matched"
+        );
         continue;
       }
-      tracing::debug!("cache_group_source_keys {:?}", cache_group_source_keys);
+      tracing::debug!(
+        "Module({}) witch matched groups {:?}",
+        module.identifier(),
+        cache_group_source_keys
+      );
 
       let mut cache_group_index = 0;
       for cache_group_source in cache_group_source_keys {
         let cache_group = self.cache_group_by_key.get(&cache_group_source).unwrap();
-        let combinations = compilation
+        let combs = vec![compilation
           .chunk_graph
-          .get_modules_chunks(&module.module_identifier);
-        if combinations.len() < cache_group.min_chunks {
+          .get_modules_chunks(&module.identifier())];
+
+        for combinations in combs {
+          if combinations.len() < cache_group.min_chunks {
+            tracing::debug!(
+              "[Bailout-CacheGroup]: '{}', because of combinations({:?}) < cache_group.min_chunks({:?})",
+              cache_group.key,
+              combinations.len(),
+              cache_group.min_chunks
+            );
+            continue;
+          }
+
+          let selected_chunks = combinations
+            .iter()
+            .filter_map(|c| compilation.chunk_by_ukey.get(c))
+            .filter(|c| (cache_group.chunks_filter)(c, &compilation.chunk_group_by_ukey))
+            .collect::<Vec<_>>();
+
           tracing::debug!(
-            "bailout because of combinations.len() {:?} < {:?} cache_group.min_chunks",
-            combinations.len(),
-            cache_group.min_chunks
+            "Split Module({}) with selected_chunks {:?} into group {}",
+            module.identifier(),
+            selected_chunks.iter().map(|c| c.ukey).collect::<Vec<_>>(),
+            cache_group.key,
           );
-          continue;
+          self.add_module_to_chunks_info_map(
+            cache_group,
+            cache_group_index,
+            &selected_chunks,
+            module.identifier().to_string(),
+            module.as_ref(),
+            &mut chunks_info_map,
+            // compilation,
+          );
         }
 
-        let selected_chunks = combinations
-          .iter()
-          .filter_map(|c| compilation.chunk_by_ukey.get(c))
-          .filter(|c| (cache_group.chunks_filter)(c))
-          .collect::<Vec<_>>();
-
-        tracing::debug!("selected_chunks {:?}", selected_chunks);
-        self.add_module_to_chunks_info_map(
-          cache_group,
-          cache_group_index,
-          &selected_chunks,
-          module.module_identifier.clone(),
-          &module,
-          &mut chunks_info_map,
-          // compilation,
-        );
         cache_group_index += 1;
       }
     }
 
+    fn remove_modules_with_source_type(
+      info: &mut ChunksInfoItem,
+      source_types: &[SourceType],
+      module_graph: &mut ModuleGraph,
+    ) {
+      info.modules.retain(|module_identifier| {
+        let module = module_graph
+          .module_by_identifier(module_identifier)
+          .expect("module should exist");
+        let types = module.source_types();
+        if source_types.into_iter().any(|ty| types.contains(ty)) {
+          info.sizes.iter_mut().for_each(|(ty, size)| {
+            *size = *size - module.size(ty);
+          });
+          true
+        } else {
+          false
+        }
+      });
+    }
+
+    fn remove_min_size_violating_modules(
+      info: &mut ChunksInfoItem,
+      min_size: usize,
+      cache_group_by_key: &HashMap<String, CacheGroup>,
+      module_graph: &mut ModuleGraph,
+    ) -> bool {
+      let cache_group = cache_group_by_key
+        .get(&info.cache_group)
+        .expect("cache_group should exists");
+      if !cache_group.validate_size {
+        return false;
+      };
+      let violating_sizes = get_violating_min_sizes(&info.sizes, &cache_group.min_size);
+      if let Some(violating_sizes) = violating_sizes {
+        remove_modules_with_source_type(info, &violating_sizes, module_graph);
+        info.modules.len() == 0
+      } else {
+        false
+      }
+    }
+
+    // TODO: Filter items were size < minSize
+    // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/optimize/SplitChunksPlugin.js#L1280
+    for (key, info) in chunks_info_map.iter() {}
+
     for (key, info) in chunks_info_map.into_iter() {
       let chunk_name = info.name.clone();
+      let is_chunk_existing = compilation.named_chunks.get(&chunk_name).is_some();
       let new_chunk = Compilation::add_named_chunk(
         chunk_name.clone(),
         chunk_name.clone(),
         &mut compilation.chunk_by_ukey,
         &mut compilation.named_chunks,
       );
+      if is_chunk_existing {
+        tracing::debug!("Reuse a existing Chunk({})", chunk_name);
+      } else {
+        tracing::debug!("Create a new Chunk({})", chunk_name);
+      }
+
       compilation.chunk_graph.add_chunk(new_chunk.ukey);
 
       let used_chunks = &info
@@ -480,6 +543,13 @@ impl Plugin for SplitChunksPlugin {
           })
         })
         .collect::<Vec<_>>();
+
+      if used_chunks.len() != info.chunks.len() {
+        tracing::debug!(
+          "Drop {:?} unused chunks",
+          info.chunks.len() - used_chunks.len(),
+        );
+      }
       let new_chunk_ukey = new_chunk.ukey;
       for used_chunk in used_chunks {
         let [new_chunk, used_chunk] = compilation
@@ -503,4 +573,22 @@ impl Plugin for SplitChunksPlugin {
 
     Ok(())
   }
+}
+
+fn get_violating_min_sizes(
+  sizes: &SplitChunkSizes,
+  min_size: &SplitChunkSizes,
+) -> Option<Vec<SourceType>> {
+  let mut list: Option<Vec<SourceType>> = None;
+  for key in min_size.keys() {
+    let size = sizes.get(key).unwrap_or(&0f64);
+    if size == &0f64 {
+      continue;
+    };
+    let min_size = min_size.get(key).unwrap_or(&0f64);
+    if size < min_size {
+      list.get_or_insert_default().push(key.clone());
+    }
+  }
+  list
 }
