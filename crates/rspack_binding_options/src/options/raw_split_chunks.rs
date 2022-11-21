@@ -1,6 +1,6 @@
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
-use rspack_core::{CompilerOptionsBuilder, ModuleType, SourceType};
+use rspack_core::{CompilerOptionsBuilder, ModuleType};
 use rspack_plugin_split_chunks::{CacheGroupOptions, ChunkType, SizeType, SplitChunksOptions};
 use serde::Deserialize;
 use std::{collections::HashMap, sync::Arc};

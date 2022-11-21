@@ -1,4 +1,7 @@
 #![allow(unused_variables)]
+#![allow(dead_code)]
+#![allow(clippy::obfuscated_if_else)]
+#![allow(clippy::comparison_chain)]
 
 use std::{
   collections::{HashMap, HashSet},
@@ -7,8 +10,7 @@ use std::{
 };
 
 use rspack_core::{
-  Chunk, ChunkGroupByUkey, ChunkUkey, Compilation, Module, ModuleGraph, ModuleGraphModule,
-  ModuleType, Plugin, SourceType,
+  Chunk, ChunkGroupByUkey, ChunkUkey, Compilation, Module, ModuleGraph, Plugin, SourceType,
 };
 
 use crate::{
@@ -106,7 +108,7 @@ pub fn create_cache_group(
     filename: group_source
       .filename
       .clone()
-      .map(|v| Some(v))
+      .map(Some)
       .unwrap_or_else(|| options.filename.clone()),
     id_hint: group_source
       .id_hint
@@ -130,9 +132,9 @@ pub fn create_cache_group_source(
   key: String,
   default_size_types: &[SizeType],
 ) -> CacheGroupSource {
-  let min_size = normalize_sizes(options.min_size, &default_size_types);
-  let min_size_reduction = normalize_sizes(options.min_size_reduction, &default_size_types);
-  let max_size = normalize_sizes(options.max_size, &default_size_types);
+  let min_size = normalize_sizes(options.min_size, default_size_types);
+  let min_size_reduction = normalize_sizes(options.min_size_reduction, default_size_types);
+  let max_size = normalize_sizes(options.max_size, default_size_types);
 
   let get_name = options.name.map(|name| {
     Arc::new(move |m: &dyn Module| name.clone()) as Arc<dyn Fn(&dyn Module) -> String + Send + Sync>
@@ -140,9 +142,9 @@ pub fn create_cache_group_source(
 
   CacheGroupSource {
     key,
-    priority: options.priority.clone(),
-    get_name: get_name,
-    chunks_filter: options.chunks.clone().map(|chunks| {
+    priority: options.priority,
+    get_name,
+    chunks_filter: options.chunks.map(|chunks| {
       let f: ChunkFilter = Arc::new(move |chunk, chunk_group_by_ukey| match chunks {
         ChunkType::Initial => chunk.can_be_initial(chunk_group_by_ukey),
         ChunkType::Async => !chunk.can_be_initial(chunk_group_by_ukey),
@@ -154,16 +156,16 @@ pub fn create_cache_group_source(
     min_size: min_size.clone(),
     min_size_reduction,
     min_remaining_size: merge_sizes(
-      normalize_sizes(options.min_remaining_size, &default_size_types),
+      normalize_sizes(options.min_remaining_size, default_size_types),
       min_size,
     ),
-    enforce_size_threshold: normalize_sizes(options.enforce_size_threshold, &default_size_types),
+    enforce_size_threshold: normalize_sizes(options.enforce_size_threshold, default_size_types),
     max_async_size: merge_sizes(
-      normalize_sizes(options.max_async_size, &default_size_types),
+      normalize_sizes(options.max_async_size, default_size_types),
       max_size.clone(),
     ),
     max_initial_size: merge_sizes(
-      normalize_sizes(options.max_initial_size, &default_size_types),
+      normalize_sizes(options.max_initial_size, default_size_types),
       max_size,
     ),
     min_chunks: options.min_chunks,
@@ -243,9 +245,9 @@ impl SplitChunksPlugin {
       max_async_requests: options.min_chunks.unwrap_or(1),
       max_initial_requests: options.min_chunks.unwrap_or(1),
       filename: None,
-      get_name: get_name,
+      get_name,
       chunk_filter: {
-        let chunks = options.chunks.clone();
+        let chunks = options.chunks;
         Arc::new(move |chunk, chunk_group_by_ukey| {
           let chunk_type = chunks.as_ref().unwrap_or(&ChunkType::Async);
           chunk_type.is_selected(chunk, chunk_group_by_ukey)
@@ -294,7 +296,6 @@ impl SplitChunksPlugin {
     self
       .raw_options
       .chunks
-      .clone()
       .unwrap_or(ChunkType::All)
       .is_selected(chunk, chunk_group_by_ukey)
   }
@@ -479,10 +480,11 @@ impl Plugin for SplitChunksPlugin {
           .module_by_identifier(module_identifier)
           .expect("module should exist");
         let types = module.source_types();
-        if source_types.into_iter().any(|ty| types.contains(ty)) {
-          info.sizes.iter_mut().for_each(|(ty, size)| {
-            *size = *size - module.size(ty);
-          });
+        if source_types.iter().any(|ty| types.contains(ty)) {
+          info
+            .sizes
+            .iter_mut()
+            .for_each(|(ty, size)| *size -= module.size(ty));
           true
         } else {
           false
@@ -504,7 +506,7 @@ impl Plugin for SplitChunksPlugin {
       let violating_sizes = get_violating_min_sizes(&info.sizes, &cache_group.min_size);
       if let Some(violating_sizes) = violating_sizes {
         remove_modules_with_source_type(info, &violating_sizes, module_graph);
-        info.modules.len() == 0
+        info.modules.is_empty()
       } else {
         false
       }
@@ -518,9 +520,7 @@ impl Plugin for SplitChunksPlugin {
         info,
         &self.cache_group_by_key,
         &mut compilation.module_graph,
-      ) {
-        to_be_removed.insert(key.clone());
-      } else if !check_min_size_reduction(
+      ) || !check_min_size_reduction(
         &info.sizes,
         &self
           .cache_group_by_key
@@ -613,7 +613,7 @@ fn get_violating_min_sizes(
     };
     let min_size = min_size.get(key).unwrap_or(&0f64);
     if size < min_size {
-      list.get_or_insert_default().push(key.clone());
+      list.get_or_insert_default().push(*key);
     }
   }
   list

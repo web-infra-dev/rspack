@@ -1,3 +1,4 @@
+#![allow(clippy::comparison_chain)]
 use std::{borrow::Cow, cmp};
 
 use hashbrown::HashSet;
@@ -120,7 +121,7 @@ impl CssPlugin {
     loop {
       let mut failed_modules: HashSet<Cow<str>> = HashSet::default();
       let list = modules_by_chunk_group[0].list.clone();
-      if list.len() == 0 {
+      if list.is_empty() {
         // done, everything empty
         break;
       }
@@ -128,7 +129,7 @@ impl CssPlugin {
       let mut has_failed = None;
       'outer: loop {
         for SortedModules { set, list } in &modules_by_chunk_group {
-          if list.len() == 0 {
+          if list.is_empty() {
             continue;
           }
           let last_module = list.last().unwrap().clone();
@@ -566,28 +567,16 @@ struct SortedModules<'me> {
 fn compare_module_lists(a: &SortedModules, b: &SortedModules) -> cmp::Ordering {
   let a = &a.list;
   let b = &b.list;
-  if a.len() == 0 {
-    if b.len() == 0 {
-      return cmp::Ordering::Equal;
+  if a.is_empty() {
+    if b.is_empty() {
+      cmp::Ordering::Equal
     } else {
-      return cmp::Ordering::Greater;
+      cmp::Ordering::Greater
     }
-  } else {
-    if b.len() == 0 {
-      return cmp::Ordering::Less;
-    } else {
-      return compare_modules_by_identifier(a.last().unwrap(), b.last().unwrap());
-    }
-  }
-}
-
-fn ordering_from_js_sort_result(num: i64) -> cmp::Ordering {
-  if num < 0 {
+  } else if b.is_empty() {
     cmp::Ordering::Less
-  } else if num > 0 {
-    cmp::Ordering::Greater
   } else {
-    cmp::Ordering::Equal
+    compare_modules_by_identifier(a.last().unwrap(), b.last().unwrap())
   }
 }
 

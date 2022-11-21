@@ -1,7 +1,7 @@
-use std::{collections::HashMap, fmt::Debug, sync::Arc};
+use std::{collections::HashMap, fmt::Debug};
 
 use derivative::Derivative;
-use rspack_core::{Chunk, ChunkGroupByUkey, ModuleGraphModule, ModuleType, SourceType};
+use rspack_core::{Chunk, ChunkGroupByUkey, ModuleType, SourceType};
 
 use crate::{ChunkFilter, GetName, TestFn};
 
@@ -42,7 +42,7 @@ pub struct CacheGroup {
   #[derivative(Debug = "ignore")]
   pub get_name: GetName,
   #[derivative(Debug = "ignore")]
-  pub chunks_filter: Arc<dyn Fn(&Chunk, &ChunkGroupByUkey) -> bool + Send + Sync>,
+  pub chunks_filter: ChunkFilter,
   pub min_chunks: usize,
   pub max_async_requests: usize,
   pub max_initial_requests: usize,
@@ -179,5 +179,5 @@ pub struct NormalizedOptions {
   #[derivative(Debug = "ignore")]
   pub get_name: GetName,
   #[derivative(Debug = "ignore")]
-  pub chunk_filter: Arc<dyn Fn(&Chunk, &ChunkGroupByUkey) -> bool + Send + Sync>,
+  pub chunk_filter: ChunkFilter,
 }
