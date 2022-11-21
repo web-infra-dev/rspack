@@ -120,7 +120,7 @@ impl DiagnosticDisplay for StringDiagnosticDisplay {
     if self.sorted {
       self.diagnostic_vector.sort();
     }
-    Ok(self.diagnostic_vector.join(""))
+    Ok(self.diagnostic_vector.drain(..).collect())
   }
 
   fn emit_diagnostic(
