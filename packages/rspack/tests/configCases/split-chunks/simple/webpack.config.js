@@ -13,7 +13,7 @@ module.exports = {
 				vendor: {
 					chunks: "all",
 					name: "vendor",
-					test: "a"
+					test: "a.js"
 				}
 			}
 		}

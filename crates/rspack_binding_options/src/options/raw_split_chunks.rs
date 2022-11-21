@@ -128,7 +128,9 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
                 r#type: Some(ModuleType::Js),
                 test: Some(Arc::new(move |module| {
                   let re = regex::Regex::new(&v.test).unwrap();
-                  re.is_match(&module.identifier())
+                  module
+                    .name_for_condition()
+                    .map_or(false, |name| re.is_match(&name))
                 })),
                 filename: v.name.into(),
                 enforce: false.into(),
