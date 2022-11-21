@@ -263,6 +263,7 @@ export class RspackDevServer {
 		});
 		middlewares.push({
 			name: "express-static",
+			path: this.compiler.options.output.publicPath ?? "/",
 			middleware: express.static(this.options.static.directory)
 		});
 
