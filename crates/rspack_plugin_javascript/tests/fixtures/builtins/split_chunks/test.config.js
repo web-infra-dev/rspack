@@ -5,7 +5,7 @@ module.exports = {
 	optimization: {
 		splitChunks: {
 			cacheGroups: {
-				vendor: {
+				custom: {
 					chunks: "all",
 					name: "vendor",
 					test: "foo"

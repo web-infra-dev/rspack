@@ -2,8 +2,8 @@ use hashbrown::{HashMap, HashSet};
 use indexmap::IndexSet;
 
 use crate::{
-  Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, ModuleGraph, ModuleGraphModule,
-  ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, SourceType,
+  Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Module, ModuleGraph,
+  ModuleGraphModule, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, SourceType,
 };
 
 #[derive(Debug, Default)]
@@ -177,6 +177,21 @@ impl ChunkGraph {
       })
       .collect::<Vec<_>>();
     modules
+  }
+
+  pub fn get_chunk_modules_iterable_by_source_type<'module, 'me: 'module>(
+    &'me self,
+    chunk: &ChunkUkey,
+    source_type: SourceType,
+    module_graph: &'module ModuleGraph,
+  ) -> impl Iterator<Item = &'module dyn Module> + 'module {
+    let chunk_graph_chunk = self.get_chunk_graph_chunk(chunk);
+    chunk_graph_chunk
+      .modules
+      .iter()
+      .filter_map(|uri| module_graph.module_by_identifier(uri))
+      .filter(move |module| module.source_types().contains(&source_type))
+      .map(|m| m.as_ref())
   }
 
   pub fn get_chunk_modules_size<'module>(

@@ -1,3 +1,7 @@
+use std::{borrow::Cow, cmp};
+
+use hashbrown::HashSet;
+use itertools::Itertools;
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
 use swc_css::visit::VisitMutWith;
@@ -8,8 +12,9 @@ use rspack_core::{
     BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
     SourceMapSource, SourceMapSourceOptions,
   },
-  FilenameRenderOptions, GenerateContext, GenerationResult, Module, ModuleType, ParseContext,
-  ParseResult, ParserAndGenerator, Plugin, RenderManifestEntry, SourceType,
+  Chunk, ChunkGraph, Compilation, FilenameRenderOptions, GenerateContext, GenerationResult, Module,
+  ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, Plugin,
+  RenderManifestEntry, SourceType,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;
@@ -39,6 +44,152 @@ pub struct CssConfig {
 impl CssPlugin {
   pub fn new(config: CssConfig) -> Self {
     Self { config }
+  }
+
+  pub(crate) fn get_ordered_chunk_css_modules<'module>(
+    chunk: &Chunk,
+    chunk_graph: &'module ChunkGraph,
+    module_graph: &'module ModuleGraph,
+    compilation: &Compilation,
+  ) -> Vec<Cow<'module, str>> {
+    // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/css/CssModulesPlugin.js#L368
+    let mut css_modules = chunk_graph
+      .get_chunk_modules_iterable_by_source_type(&chunk.ukey, SourceType::Css, module_graph)
+      .collect::<Vec<_>>();
+    css_modules.sort_by_key(|module| module.identifier());
+
+    let css_modules: Vec<Cow<'module, str>> =
+      Self::get_modules_in_order(chunk, css_modules, compilation);
+
+    css_modules
+  }
+
+  pub(crate) fn get_modules_in_order<'module>(
+    chunk: &Chunk,
+    modules: Vec<&'module dyn Module>,
+    compilation: &Compilation,
+  ) -> Vec<Cow<'module, str>> {
+    // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/css/CssModulesPlugin.js#L269
+    if modules.is_empty() {
+      return vec![];
+    };
+
+    let modules_list = modules.into_iter().map(|m| m.identifier()).collect_vec();
+
+    // Get ordered list of modules per chunk group
+    // Lists are in reverse order to allow to use Array.pop()
+    let mut modules_by_chunk_group = chunk
+      .groups
+      .iter()
+      .filter_map(|ukey| compilation.chunk_group_by_ukey.get(ukey))
+      .map(|chunk_group| {
+        let sorted_modules = modules_list
+          .clone()
+          .into_iter()
+          .map(|module_id| {
+            let order = chunk_group.module_post_order_index(&module_id);
+            (module_id, order)
+          })
+          .sorted_by(|a, b| {
+            if b.1 > a.1 {
+              std::cmp::Ordering::Less
+            } else if b.1 < a.1 {
+              std::cmp::Ordering::Greater
+            } else {
+              std::cmp::Ordering::Equal
+            }
+          })
+          .map(|item| item.0)
+          .collect::<Vec<_>>();
+
+        SortedModules {
+          set: sorted_modules.clone().into_iter().collect(),
+          list: sorted_modules,
+        }
+      })
+      .collect::<Vec<_>>();
+
+    if modules_by_chunk_group.len() == 1 {
+      return modules_by_chunk_group[0].list.clone();
+    };
+
+    modules_by_chunk_group.sort_by(compare_module_lists);
+
+    let mut final_modules: Vec<Cow<'module, str>> = vec![];
+
+    loop {
+      let mut failed_modules: HashSet<Cow<str>> = HashSet::default();
+      let list = modules_by_chunk_group[0].list.clone();
+      if list.len() == 0 {
+        // done, everything empty
+        break;
+      }
+      let mut selected_module = list.last().unwrap().clone();
+      let mut has_failed = None;
+      'outer: loop {
+        for SortedModules { set, list } in &modules_by_chunk_group {
+          if list.len() == 0 {
+            continue;
+          }
+          let last_module = list.last().unwrap().clone();
+          if last_module != selected_module {
+            continue;
+          }
+          if !set.contains(&selected_module) {
+            continue;
+          }
+          failed_modules.insert(selected_module.clone());
+          if failed_modules.contains(&last_module) {
+            // There is a conflict, try other alternatives
+            has_failed = Some(last_module);
+            continue;
+          }
+          selected_module = last_module;
+          has_failed = None;
+          continue 'outer;
+        }
+        break;
+      }
+      if let Some(has_failed) = has_failed.clone() {
+        // There is a not resolve-able conflict with the selectedModule
+        // TODO: we should emit a warning here
+        tracing::warn!("Conflicting order between");
+        // 		if (compilation) {
+        // 			// TODO print better warning
+        // 			compilation.warnings.push(
+        // 				new Error(
+        // 					`chunk ${
+        // 						chunk.name || chunk.id
+        // 					}\nConflicting order between ${hasFailed.readableIdentifier(
+        // 						compilation.requestShortener
+        // 					)} and ${selectedModule.readableIdentifier(
+        // 						compilation.requestShortener
+        // 					)}`
+        // 				)
+        // 			);
+        // 		}
+
+        selected_module = has_failed;
+      }
+      // Insert the selected module into the final modules list
+      final_modules.push(selected_module.clone());
+      // Remove the selected module from all lists
+      for SortedModules { set, list } in &mut modules_by_chunk_group {
+        let last_module = list.last().unwrap();
+        if last_module == &selected_module {
+          list.pop();
+          set.remove(&selected_module);
+        } else if has_failed.is_some() && set.contains(&selected_module) {
+          let idx = list.iter().position(|m| m == &selected_module);
+          if let Some(idx) = idx {
+            list.remove(idx);
+          }
+        }
+      }
+
+      modules_by_chunk_group.sort_by(compare_module_lists);
+    }
+    final_modules
   }
 }
 
@@ -296,52 +447,19 @@ impl Plugin for CssPlugin {
     // let module_graph = &compilation.module_graph;
     let chunk = args.chunk();
 
-    let modules = args
-      .compilation
-      .chunk_graph
-      .get_chunk_modules_by_source_type(
-        &chunk.ukey,
-        SourceType::Css,
-        &args.compilation.module_graph,
-      );
+    let ordered_modules = Self::get_ordered_chunk_css_modules(
+      chunk,
+      &compilation.chunk_graph,
+      &compilation.module_graph,
+      compilation,
+    );
 
-    let ordered_modules = {
-      if chunk.groups.len() > 1 {
-        panic!("TODO: Supports multiple ChunkGroup");
-      }
-
-      let groups = chunk
-        .groups
-        .iter()
-        .filter_map(|ukey| args.compilation.chunk_group_by_ukey.get(ukey))
-        .map(|chunk_group| {
-          let mut modules = modules.clone();
-          modules.sort_by_key(|mgm| chunk_group.module_post_order_index(&mgm.module_identifier));
-          tracing::trace!(
-            "modules for chunk id {}: {:#?} ",
-            args.chunk().id,
-            modules
-              .iter()
-              .map(|mgm| (
-                mgm.module_identifier.clone(),
-                chunk_group.module_post_order_index(&mgm.module_identifier)
-              ))
-              .collect::<Vec<_>>()
-          );
-          modules
-        });
-
-      groups
-        .into_iter()
-        .next()
-        .unwrap_or_else(|| panic!("No groups found"))
-    };
     let sources = ordered_modules
       .par_iter()
-      .map(|mgm| {
+      .map(|module_id| {
         let code_gen_result = compilation
           .code_generation_results
-          .get(&mgm.module_identifier, Some(&chunk.runtime))?;
+          .get(module_id, Some(&chunk.runtime))?;
 
         code_gen_result
           .get(&SourceType::Css)
@@ -437,5 +555,48 @@ impl Plugin for CssPlugin {
       })?;
 
     Ok(())
+  }
+}
+
+struct SortedModules<'me> {
+  pub list: Vec<Cow<'me, str>>,
+  pub set: HashSet<Cow<'me, str>>,
+}
+
+fn compare_module_lists(a: &SortedModules, b: &SortedModules) -> cmp::Ordering {
+  let a = &a.list;
+  let b = &b.list;
+  if a.len() == 0 {
+    if b.len() == 0 {
+      return cmp::Ordering::Equal;
+    } else {
+      return cmp::Ordering::Greater;
+    }
+  } else {
+    if b.len() == 0 {
+      return cmp::Ordering::Less;
+    } else {
+      return compare_modules_by_identifier(a.last().unwrap(), b.last().unwrap());
+    }
+  }
+}
+
+fn ordering_from_js_sort_result(num: i64) -> cmp::Ordering {
+  if num < 0 {
+    cmp::Ordering::Less
+  } else if num > 0 {
+    cmp::Ordering::Greater
+  } else {
+    cmp::Ordering::Equal
+  }
+}
+
+fn compare_modules_by_identifier(a_id: &str, b_id: &str) -> cmp::Ordering {
+  if a_id < b_id {
+    cmp::Ordering::Less
+  } else if a_id > b_id {
+    cmp::Ordering::Greater
+  } else {
+    cmp::Ordering::Equal
   }
 }

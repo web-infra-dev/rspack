@@ -27,10 +27,11 @@ pub fn enable_tracing_by_env() {
       .with(fmt::layer().pretty().with_file(false))
       .with(
         tracing_subscriber::filter::Targets::new().with_targets(vec![
-          ("rspack_core", Level::TRACE),
-          ("rspack", Level::TRACE),
-          ("rspack_node", Level::TRACE),
-          ("rspack_plugin_javascript", Level::TRACE),
+          // ("rspack_core", Level::TRACE),
+          // ("rspack", Level::TRACE),
+          // ("rspack_node", Level::TRACE),
+          // ("rspack_plugin_javascript", Level::TRACE),
+          ("rspack_plugin_split_chunks", Level::TRACE),
         ]),
       )
       // Using TRACE=[TRACE|DEBUG|INFO|WARN|ERROR] to set max trace level.
@@ -55,11 +56,12 @@ pub fn enable_tracing_by_env_with_chrome_layer() -> Option<FlushGuard> {
       .with(chrome_layer.with_filter(FilterEvent {}))
       .with(
         tracing_subscriber::filter::Targets::new().with_targets(vec![
-          ("rspack_core", Level::TRACE),
-          ("rspack", Level::TRACE),
-          ("rspack_node", Level::TRACE),
-          ("rspack_plugin_javascript", Level::TRACE),
-          ("warp", Level::TRACE),
+          // ("rspack_core", Level::TRACE),
+          // ("rspack", Level::TRACE),
+          // ("rspack_node", Level::TRACE),
+          // ("rspack_plugin_javascript", Level::TRACE),
+          // ("warp", Level::TRACE),
+          ("rspack_plugin_split_chunks", Level::TRACE),
         ]),
       )
       // Using TRACE=[TRACE|DEBUG|INFO|WARN|ERROR] to set max trace level.
