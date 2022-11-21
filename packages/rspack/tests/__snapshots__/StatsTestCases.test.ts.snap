@@ -13,7 +13,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "info": {
         "development": false,
       },
-      "name": "main.b69cea.js",
+      "name": "main.xxxx.js",
       "size": 854,
       "type": "asset",
     },
@@ -25,7 +25,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "info": {
         "development": false,
       },
-      "name": "dynamic_js.a3cd02.js",
+      "name": "dynamic_js.xxxx.js",
       "size": 265,
       "type": "asset",
     },
@@ -34,7 +34,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
     {
       "entry": false,
       "files": [
-        "dynamic_js.a3cd02.js",
+        "dynamic_js.xxxx.js",
       ],
       "id": "dynamic_js",
       "initial": false,
@@ -45,7 +45,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
     {
       "entry": true,
       "files": [
-        "main.b69cea.js",
+        "main.xxxx.js",
       ],
       "id": "main",
       "initial": true,
@@ -60,7 +60,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
     "main": {
       "assets": [
         {
-          "name": "main.b69cea.js",
+          "name": "main.xxxx.js",
           "size": 854,
         },
       ],
@@ -103,12 +103,12 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for filename 2`] = `
-"               Asset       Size      Chunks  Chunk Names
-      main.b69cea.js  854 bytes        main  main
-dynamic_js.a3cd02.js  265 bytes  dynamic_js  
-Entrypoint main = main.b69cea.js
-chunk {dynamic_js} dynamic_js.a3cd02.js 32 bytes
-chunk {main} main.b69cea.js (main) 38 bytes [entry]
+"             Asset       Size      Chunks  Chunk Names
+      main.xxxx.js  854 bytes        main  main
+dynamic_js.xxxx.js  265 bytes  dynamic_js  
+Entrypoint main = main.xxxx.js
+chunk {dynamic_js} dynamic_js.xxxx.js 32 bytes
+chunk {main} main.xxxx.js (main) 38 bytes [entry]
 [./index.js] 38 bytes {main}
 [./dynamic.js] 32 bytes {dynamic_js}"
 `;
