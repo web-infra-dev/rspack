@@ -31,12 +31,7 @@ Object.defineProperty(exports, "result", {
     enumerable: true,
     get: ()=>result
 });
-const secret = "888";
 const result = 20000;
-const something = function() {
-    secret;
-};
-something();
 },
 
 };

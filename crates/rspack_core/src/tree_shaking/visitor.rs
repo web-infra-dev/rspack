@@ -45,6 +45,7 @@ bitflags! {
     const EXPORT_DECL = 1 << 0;
     const EXPORT_DEFAULT = 1 << 1;
     const ASSIGNMENT_LHS = 1 << 2;
+    const ASSIGNMENT_RHS = 1 << 3;
   }
 }
 #[derive(Debug)]
@@ -65,7 +66,11 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   // Use `IndexMap` to keep the insertion order
   pub inherit_export_maps: IndexMap<Ustr, HashMap<JsWord, SymbolRef>>,
   current_body_owner_symbol_ext: Option<SymbolExt>,
-  pub(crate) reference_map: HashMap<SymbolExt, HashSet<IdOrMemExpr>>,
+  pub(crate) decl_reference_map: HashMap<SymbolExt, HashSet<IdOrMemExpr>>,
+  /// ```js
+  /// The method
+  /// ```
+  pub(crate) assign_reference_map: HashMap<SymbolExt, HashSet<IdOrMemExpr>>,
   pub(crate) reachable_import_and_export: HashMap<JsWord, HashSet<SymbolRef>>,
   state: AnalyzeState,
   pub(crate) used_id_set: HashSet<IdOrMemExpr>,
@@ -97,7 +102,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       import_map: HashMap::default(),
       inherit_export_maps: IndexMap::default(),
       current_body_owner_symbol_ext: None,
-      reference_map: HashMap::new(),
+      decl_reference_map: HashMap::new(),
       reachable_import_and_export: HashMap::default(),
       state: AnalyzeState::empty(),
       used_id_set: HashSet::default(),
@@ -107,6 +112,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       bail_out_module_identifiers: HashMap::new(),
       resolver,
       side_effects_free: false,
+      assign_reference_map: HashMap::new(),
     }
   }
 
@@ -114,12 +120,70 @@ impl<'a> ModuleRefAnalyze<'a> {
     if matches!(&to, IdOrMemExpr::Id(to_id) if to_id == from.id()) {
       return;
     }
-    match self.reference_map.entry(from) {
-      Entry::Occupied(mut occ) => {
-        occ.get_mut().insert(to);
+    if !self.state.contains(AnalyzeState::ASSIGNMENT_RHS) {
+      match self.decl_reference_map.entry(from) {
+        Entry::Occupied(mut occ) => {
+          occ.get_mut().insert(to);
+        }
+        Entry::Vacant(vac) => {
+          vac.insert(HashSet::from_iter([to]));
+        }
       }
-      Entry::Vacant(vac) => {
-        vac.insert(HashSet::from_iter([to]));
+    } else {
+      match self.assign_reference_map.entry(from) {
+        Entry::Occupied(mut occ) => {
+          occ.get_mut().insert(to);
+        }
+        Entry::Vacant(vac) => {
+          vac.insert(HashSet::from_iter([to]));
+        }
+      }
+    }
+  }
+
+  fn get_assignment_target(&self, node: &Expr) -> Id {
+    match node {
+      Expr::Ident(ident) => ident.to_id(),
+
+      Expr::Paren(ParenExpr { expr, .. }) => self.get_assignment_target(expr),
+
+      Expr::Member(MemberExpr { obj, .. }) => self.get_assignment_target(obj),
+      Expr::SuperProp(..)
+      | Expr::New(..)
+      | Expr::Call(..)
+      | Expr::MetaProp(..)
+      | Expr::Update(..)
+      | Expr::Unary(..)
+      | Expr::Await(..)
+      | Expr::Bin(..)
+      | Expr::Cond(..)
+      | Expr::Yield(..)
+      | Expr::Arrow(..)
+      | Expr::Assign(..)
+      | Expr::Seq(..)
+      | Expr::OptChain(..)
+      | Expr::PrivateName(..)
+      | Expr::JSXMember(_)
+      | Expr::JSXNamespacedName(_)
+      | Expr::JSXEmpty(_)
+      | Expr::JSXElement(_)
+      | Expr::JSXFragment(_)
+      | Expr::TsTypeAssertion(_)
+      | Expr::TsConstAssertion(_)
+      | Expr::TsNonNull(_)
+      | Expr::TsAs(_)
+      | Expr::TsInstantiation(_)
+      | Expr::TsSatisfaction(_)
+      | Expr::Invalid(_)
+      | Expr::This(..)
+      | Expr::Lit(..)
+      | Expr::Array(..)
+      | Expr::Object(..)
+      | Expr::Fn(..)
+      | Expr::Class(..)
+      | Expr::Tpl(..)
+      | Expr::TaggedTpl(..) => {
+        unimplemented!("{:?}, {}", node, self.module_identifier)
       }
     }
   }
@@ -136,7 +200,7 @@ impl<'a> ModuleRefAnalyze<'a> {
         continue;
       }
       let id = cur.get_id();
-      if let Some(ref_list) = self.reference_map.get(&id.clone().into()) {
+      if let Some(ref_list) = self.decl_reference_map.get(&id.clone().into()) {
         q.extend(ref_list.clone());
       }
       seen.insert(cur);
@@ -220,7 +284,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     // Any var declaration has reference a symbol from other module, it is marked as used
     // Because the symbol import from other module possibly has side effect
     let side_effect_symbol_list = self
-      .reference_map
+      .decl_reference_map
       .iter()
       .flat_map(|(symbol, ref_list)| {
         // it class decl, fn decl is lazy they don't immediately generate side effects unless they are called,
@@ -253,7 +317,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       })
       .collect::<Vec<_>>();
     self.used_symbol_ref.extend(side_effect_symbol_list);
-    dbg!(&self.used_id_set);
+    // dbg!(&self.used_id_set);
     // all reachable export from used symbol in current module
     for used_id in &self.used_id_set {
       match used_id {
@@ -474,16 +538,33 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
   fn visit_assign_expr(&mut self, node: &AssignExpr) {
     // TODO: assign should have body ext too
-    if node.op == op!("=") {
-      // let before_owner_extend_symbol = self.current_body_owner_symbol_ext.clone();
-      self.state.insert(AnalyzeState::ASSIGNMENT_LHS);
-      node.left.visit_with(self);
-      self.state.remove(AnalyzeState::ASSIGNMENT_LHS);
-      node.right.visit_with(self);
-      // self.current_body_owner_symbol_ext = before_owner_extend_symbol;
+    let before_owner_extend_symbol = self.current_body_owner_symbol_ext.clone();
+    let target = if before_owner_extend_symbol.is_none() {
+      let target = first_ident_of_assign_lhs(node);
+      target.and_then(|target| {
+        if target.1.outer() == self.top_level_mark {
+          Some(target)
+        } else {
+          None
+        }
+      })
     } else {
-      node.visit_children_with(self);
+      None
+    };
+    if let Some(target) = target {
+      self.current_body_owner_symbol_ext = Some(SymbolExt {
+        id: target.into(),
+        flag: SymbolFlag::empty(),
+      });
     }
+
+    self.state.insert(AnalyzeState::ASSIGNMENT_LHS);
+    node.left.visit_with(self);
+    self.state.remove(AnalyzeState::ASSIGNMENT_LHS);
+    self.state.remove(AnalyzeState::ASSIGNMENT_RHS);
+    node.right.visit_with(self);
+    self.state.remove(AnalyzeState::ASSIGNMENT_RHS);
+    self.current_body_owner_symbol_ext = before_owner_extend_symbol;
   }
 
   fn visit_member_expr(&mut self, node: &MemberExpr) {
@@ -973,6 +1054,27 @@ impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
       used_symbol_ref: std::mem::take(&mut analyze.used_symbol_ref),
       bail_out_module_identifiers: std::mem::take(&mut analyze.bail_out_module_identifiers),
       side_effects_free: analyze.side_effects_free,
+    }
+  }
+}
+
+fn first_ident_of_assign_lhs(node: &AssignExpr) -> Option<Id> {
+  let mut visitor = FirstIdentVisitor::default();
+  node.left.visit_with(&mut visitor);
+  visitor.id
+}
+
+#[derive(Default)]
+struct FirstIdentVisitor {
+  id: Option<Id>,
+}
+
+impl Visit for FirstIdentVisitor {
+  noop_visit_type!();
+
+  fn visit_ident(&mut self, node: &Ident) {
+    if self.id.is_none() {
+      self.id = Some(node.to_id());
     }
   }
 }

@@ -755,7 +755,8 @@ impl Compilation {
             // &analyzer.export_all_list,
             &analyzer.export_map,
             &analyzer.import_map,
-            &analyzer.reference_map,
+            &analyzer.decl_reference_map,
+            &analyzer.assign_reference_map,
             &analyzer.reachable_import_and_export,
             &analyzer.used_symbol_ref
           );

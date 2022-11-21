@@ -14,6 +14,7 @@ pub struct OptimizeDependencyResult {
 }
 
 pub static CARED_MODULE_ID: &[&str] = &[
+  ""
   // "/home/victor/Documents/rspack/rspack/examples/basic/index.js",
   // "/home/victor/Documents/rspack/rspack/node_modules/lodash-es/lodash.js",
   // "/home/victor/Documents/rspack/rspack/node_modules/lodash-es/add.js",
