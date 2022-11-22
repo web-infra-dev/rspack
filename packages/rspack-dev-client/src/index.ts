@@ -16,7 +16,6 @@ const options = {
 // TODO: change `options` by the result of `parsedResourceQuery`.
 
 const onSocketMessage: Handler = {
-	// TODO: remove data after jsonp
 	ok: function (): void {
 		reloadApp(options, status);
 	},
