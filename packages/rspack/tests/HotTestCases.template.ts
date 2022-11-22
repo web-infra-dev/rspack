@@ -10,6 +10,7 @@ export function describeCases(config: {
 	name: string;
 	target: string;
 	casesPath: string;
+	hot: boolean;
 }) {
 	const casesPath = path.join(__dirname, config.casesPath);
 	const categories = fs
@@ -65,14 +66,14 @@ export function describeCases(config: {
 								const fakeUpdateLoaderOptions = {
 									updateIndex: 0
 								};
-
 								const configPath = path.join(testDirectory, "rspack.config.js");
 								const options = getOptions(
 									configPath,
 									testDirectory,
 									outputDirectory,
 									fakeUpdateLoaderOptions,
-									config.target
+									config.target,
+									config.hot
 								);
 								compiler = rspack(options);
 								compiler.build((err, rawStats) => {
@@ -156,6 +157,12 @@ export function describeCases(config: {
 													setAttribute(name, value) {
 														this._attrs[name] = value;
 													},
+													getAttribute(name) {
+														return this._attrs[name];
+													},
+													removeAttribute(name) {
+														delete this._attrs[name];
+													},
 													parentNode: {
 														removeChild(node) {
 															// ok
@@ -164,11 +171,23 @@ export function describeCases(config: {
 												};
 											},
 											head: {
+												children: [],
 												appendChild(element: any) {
+													this.children.push(element);
 													if (element._type === "script") {
 														Promise.resolve().then(() => {
 															_require(urlToRelativePath(element.src));
+															if (element.onload) {
+																element.onload({
+																	type: "load",
+																	target: element
+																});
+															}
 														});
+													} else {
+														if (element.onload) {
+															element.onload({ type: "load", target: element });
+														}
 													}
 												}
 											},
@@ -176,8 +195,10 @@ export function describeCases(config: {
 												if (name === "head") {
 													return [this.head];
 												}
-												if (name === "script") {
-													return [];
+												if (name === "script" || name === "link") {
+													return this.head.children.filter(
+														i => i._type === name
+													);
 												}
 												throw Error("No supported");
 											}
@@ -328,7 +349,8 @@ function getOptions(
 	testDirectory: string,
 	outputDirectory: string,
 	fakeUpdateLoaderOptions: any,
-	target: string
+	target: string,
+	hot: boolean
 ): Record<string, string> {
 	let options: any = {};
 	if (fs.existsSync(configPath)) {
@@ -386,5 +408,10 @@ function getOptions(
 	if (!options.plugins) {
 		options.plugins = [];
 	}
+
+	options.devServer = {
+		...options.devServer,
+		hot
+	};
 	return options;
 }

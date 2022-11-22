@@ -1048,16 +1048,14 @@ impl Compilation {
 
   pub fn add_runtime_module(&mut self, chunk_ukey: &ChunkUkey, mut module: Box<dyn RuntimeModule>) {
     module.attach(*chunk_ukey);
-    self.chunk_graph.add_module(module.identifier().to_string());
+    self.chunk_graph.add_module(module.identifier());
     self
       .chunk_graph
-      .connect_chunk_and_module(*chunk_ukey, module.identifier().to_string());
+      .connect_chunk_and_module(*chunk_ukey, module.identifier());
     self
       .chunk_graph
-      .connect_chunk_and_runtime_module(*chunk_ukey, module.identifier().to_string());
-    self
-      .runtime_modules
-      .insert(module.identifier().to_string(), module);
+      .connect_chunk_and_runtime_module(*chunk_ukey, module.identifier());
+    self.runtime_modules.insert(module.identifier(), module);
   }
 }
 

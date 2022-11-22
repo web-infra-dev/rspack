@@ -6,11 +6,14 @@ use anyhow::anyhow;
 use async_trait::async_trait;
 use rspack_core::{
   runtime_globals, AdditionalChunkRuntimeRequirementsArgs, NormalRuntimeModule, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeModuleExt, TargetPlatform,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeModuleExt, SourceType,
+  TargetPlatform,
 };
 use rspack_error::Result;
 use web::*;
 
+mod css_modules;
+pub use css_modules::CssModulesPlugin;
 mod array_push_callback_chunk_format;
 pub use array_push_callback_chunk_format::ArrayPushCallbackChunkFormatPlugin;
 mod common_js_chunk_loading;
@@ -177,7 +180,21 @@ impl Plugin for RuntimePlugin {
         }
         runtime_globals::GET_CHUNK_SCRIPT_FILENAME => compilation.add_runtime_module(
           chunk,
-          GetChunkFilenameRuntimeModule::new("js".to_string()).boxed(),
+          GetChunkFilenameRuntimeModule::new(
+            "js".to_string(),
+            SourceType::JavaScript,
+            runtime_globals::GET_CHUNK_SCRIPT_FILENAME.to_string(),
+          )
+          .boxed(),
+        ),
+        runtime_globals::GET_CHUNK_CSS_FILENAME => compilation.add_runtime_module(
+          chunk,
+          GetChunkFilenameRuntimeModule::new(
+            "css".to_string(),
+            SourceType::Css,
+            runtime_globals::GET_CHUNK_CSS_FILENAME.to_string(),
+          )
+          .boxed(),
         ),
         runtime_globals::LOAD_SCRIPT => {
           compilation.add_runtime_module(chunk, LoadScriptRuntimeModule::default().boxed())

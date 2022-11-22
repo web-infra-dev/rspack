@@ -140,7 +140,7 @@ impl RuntimeSpecSet {
 }
 
 pub trait RuntimeModule: Debug + Send + Sync {
-  fn identifier(&self) -> &str;
+  fn identifier(&self) -> String;
   fn generate(&self, compilation: &Compilation) -> BoxSource;
   fn attach(&mut self, _chunk: ChunkUkey) {}
   fn hash(&self, compilation: &Compilation, mut state: &mut dyn std::hash::Hasher) {
@@ -175,8 +175,8 @@ impl NormalRuntimeModule {
 }
 
 impl RuntimeModule for NormalRuntimeModule {
-  fn identifier(&self) -> &str {
-    &self.identifier
+  fn identifier(&self) -> String {
+    self.identifier.clone()
   }
 
   fn generate(&self, _compilation: &Compilation) -> BoxSource {

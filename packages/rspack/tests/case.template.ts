@@ -82,6 +82,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 										`${statsJson.errors!.map(x => x.message).join("\n")}`
 									);
 								}
+								console.log(statsJson.errors);
 								assert(statsJson.errors!.length === 0);
 							}
 						});

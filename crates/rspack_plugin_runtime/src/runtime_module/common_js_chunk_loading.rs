@@ -10,8 +10,8 @@ pub struct CommonJsChunkLoadingRuntimeModule {
 }
 
 impl RuntimeModule for CommonJsChunkLoadingRuntimeModule {
-  fn identifier(&self) -> &str {
-    "webpack/runtime/common_js_chunk_loading"
+  fn identifier(&self) -> String {
+    "webpack/runtime/common_js_chunk_loading".to_string()
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
