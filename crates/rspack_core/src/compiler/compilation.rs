@@ -137,7 +137,7 @@ impl Compilation {
     }
   }
 
-  pub fn emit_asset(&mut self, mut filename: String, asset: CompilationAsset) {
+  pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
     tracing::trace!("Emit asset {}", filename);
     if let Some(mut original) = self.assets.remove(&filename) {
       let is_source_equal = is_source_equal(&original.source, &asset.source);
