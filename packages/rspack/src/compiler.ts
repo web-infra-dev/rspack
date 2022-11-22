@@ -292,7 +292,7 @@ class Compiler {
 	// TODO: use ws to send message to client temporary.
 	// TODO: we should use `Stats` which got from `hooks.done`
 	// TODO: in `dev-server`
-	async watch(watchOptions?: Watch, ws?: any): Promise<Watching> {
+	async watch(watchOptions?: Watch): Promise<Watching> {
 		const options = resolveWatchOption(watchOptions);
 		let logger = this.getInfrastructureLogger("watch");
 		const watcher = (await import("chokidar")).default.watch(
@@ -353,12 +353,6 @@ class Compiler {
 						throw error;
 					}
 
-					// send Message
-					if (ws) {
-						for (const client of ws.clients) {
-							client.send(JSON.stringify({ type: "ok" }));
-						}
-					}
 					this.hooks.done.callAsync(stats, err => {
 						if (err) {
 							throw err;

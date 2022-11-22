@@ -8,7 +8,7 @@ export interface Output {
 	hashFunction?: string;
 }
 
-// TODO: fix it
+// TODO: removed optional
 export interface ResolvedOutput {
 	path?: string;
 	publicPath?: string;

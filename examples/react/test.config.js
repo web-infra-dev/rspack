@@ -4,7 +4,7 @@ module.exports = {
     main : ['./src/index.js'],
   },
   output : {
-    // publicPath : 'http://localhost:3000',
+    publicPath : '/',
     // filename: '[name].[contenthash:8][ext]',
   },
   devServer: {

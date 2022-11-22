@@ -9,9 +9,7 @@ export type RspackDevMiddleware = ExpressRequestHandler & {
 
 export function rdm(
 	compiler: Compiler,
-	options: RspackOptionsNormalized["devServer"]["devMiddleware"],
-	// TODO: remove after done hooks completed
-	ws: any
+	options: RspackOptionsNormalized["devServer"]["devMiddleware"]
 ): RspackDevMiddleware {
 	// @ts-ignore
 	const instance: RspackDevMiddleware = wrapper();
@@ -22,7 +20,7 @@ export function rdm(
 		// TODO:
 	};
 
-	const watching = compiler.watch({}, ws);
+	const watching = compiler.watch({});
 	return instance;
 }
 
