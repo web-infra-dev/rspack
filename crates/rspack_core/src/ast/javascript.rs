@@ -1,5 +1,5 @@
 use anyhow::Error;
-use std::sync::Arc;
+use std::{hash::Hash, sync::Arc};
 use swc_common::{errors::Handler, sync::Lrc, util::take::Take, Globals, Mark, SourceMap, GLOBALS};
 use swc_ecma_ast::{Module, Program as SwcProgram};
 use swc_ecma_transforms::helpers::Helpers;
@@ -9,7 +9,7 @@ use swc_ecma_visit::{Fold, FoldWith, Visit, VisitAll, VisitAllWith, VisitWith};
 ///
 /// Use this to avoid using `use swc_ecma_visit::*`
 /// and save changes in self
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct Program(SwcProgram);
 
 impl Program {
@@ -78,6 +78,14 @@ impl std::fmt::Debug for Context {
 pub struct Ast {
   program: Program,
   context: Arc<Context>,
+}
+
+impl Hash for Ast {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.program.hash(state);
+    // TODO: De we need to implement Hash for `context`?
+    // self.context.hash(state);
+  }
 }
 
 impl Ast {
