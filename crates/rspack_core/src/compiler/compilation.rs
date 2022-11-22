@@ -733,8 +733,8 @@ impl Compilation {
                       .module_graph
                       .module_by_identifier(&mgm.module_identifier)
                       .and_then(|module| module.as_normal_module().and_then(|m| m.ast()))
-                      .unwrap()
-                      .as_javascript() {
+                      // A module can missing its AST if the module is failed to build
+                      .and_then(|ast|ast.as_javascript()) {
               Some(ast) => {ast},
               None => {
                 // FIXME: this could be none if you enable both hmr and tree-shaking, should investigate why 
