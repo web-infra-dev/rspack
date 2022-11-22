@@ -1,9 +1,13 @@
-use hashbrown::HashSet;
-
 use crate::{
   ChunkGraph, ChunkGroupByUkey, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, ModuleGraph,
   RuntimeSpec, SourceType,
 };
+use hashbrown::HashSet;
+use std::{
+  fmt::{Debug, Formatter, Result},
+  hash::Hasher,
+};
+use xxhash_rust::xxh3::Xxh3;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ChunkKind {
@@ -11,7 +15,6 @@ pub enum ChunkKind {
   Normal,
 }
 
-#[derive(Debug)]
 pub struct Chunk {
   pub name: Option<String>,
   pub ukey: ChunkUkey,
@@ -20,7 +23,21 @@ pub struct Chunk {
   pub groups: HashSet<ChunkGroupUkey>,
   pub runtime: RuntimeSpec,
   pub kind: ChunkKind,
-  pub hash: String,
+  pub hash: Xxh3,
+}
+
+impl Debug for Chunk {
+  fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+    f.debug_struct("Chunk")
+      .field("name", &self.name)
+      .field("ukey", &self.ukey)
+      .field("id", &self.id)
+      .field("files", &self.files)
+      .field("groups", &self.groups)
+      .field("runtime", &self.runtime)
+      .field("kind", &self.kind)
+      .finish()
+  }
 }
 
 impl Chunk {
@@ -216,6 +233,10 @@ impl Chunk {
     }
 
     chunks
+  }
+
+  pub fn get_render_hash(&self) -> String {
+    format!("{:x}", self.hash.finish())
   }
 }
 

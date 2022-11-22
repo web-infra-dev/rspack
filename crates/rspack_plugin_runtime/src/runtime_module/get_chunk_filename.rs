@@ -33,6 +33,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           let mut async_chunks_map = HashMap::new();
           for async_chunk in async_chunks.iter() {
             if let Some(chunk) = compilation.chunk_by_ukey.get(async_chunk) {
+              let hash = Some(chunk.get_render_hash());
               async_chunks_map.insert(
                 chunk.id.clone(),
                 compilation
@@ -43,9 +44,9 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                     filename: chunk.name.clone(),
                     extension: Some(format!(".{}", self.content_type)),
                     id: Some(chunk.id.clone()),
-                    contenthash: Some(chunk.hash.clone()),
-                    chunkhash: Some(chunk.hash.clone()),
-                    hash: Some(chunk.hash.clone()),
+                    contenthash: hash.clone(),
+                    chunkhash: hash.clone(),
+                    hash,
                   }),
               );
             }
