@@ -1120,6 +1120,13 @@ __webpack_require__.chunkId = 'main'})();
 	};
 })();
 (function () {
+        // This function allow to reference async chunks
+        __webpack_require__.k = function (chunkId) {
+          // return url for filenames based on template
+          return {}[chunkId];
+        };
+      })();
+(function () {
 	var inProgress = {};
 	var dataWebpackPrefix = "webpack:";
 	// loadScript function to load a script via script tag
@@ -1186,10 +1193,10 @@ __webpack_require__.chunkId = 'main'})();
 	__webpack_require__.p = "/";
 })();
 (function () {
-	// This function allow to reference async chunks
-	__webpack_require__.u = function (chunkId) {
-		// return url for filenames based on template
-		return {"a_js": "a_js.js","b_js": "b_js.js",}[chunkId];
-	};
-})();
+        // This function allow to reference async chunks
+        __webpack_require__.u = function (chunkId) {
+          // return url for filenames based on template
+          return {"a_js": "a_js.js","b_js": "b_js.js",}[chunkId];
+        };
+      })();
 __webpack_require__("./index.js");})()

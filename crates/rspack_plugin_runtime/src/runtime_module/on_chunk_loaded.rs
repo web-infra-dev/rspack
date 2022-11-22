@@ -7,8 +7,8 @@ use rspack_core::{
 pub struct OnChunkLoadedRuntimeModule {}
 
 impl RuntimeModule for OnChunkLoadedRuntimeModule {
-  fn identifier(&self) -> &str {
-    "webpack/runtime/on_chunk_loaded"
+  fn identifier(&self) -> String {
+    "webpack/runtime/on_chunk_loaded".to_string()
   }
 
   fn generate(&self, _compilation: &Compilation) -> BoxSource {

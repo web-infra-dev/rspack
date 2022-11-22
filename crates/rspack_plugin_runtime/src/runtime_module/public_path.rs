@@ -7,8 +7,8 @@ use rspack_core::{
 pub struct PublicPathRuntimeModule {}
 
 impl RuntimeModule for PublicPathRuntimeModule {
-  fn identifier(&self) -> &str {
-    "webpack/runtime/public_path"
+  fn identifier(&self) -> String {
+    "webpack/runtime/public_path".to_string()
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {

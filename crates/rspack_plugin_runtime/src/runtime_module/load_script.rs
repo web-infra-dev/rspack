@@ -7,8 +7,8 @@ use rspack_core::{
 pub struct LoadScriptRuntimeModule {}
 
 impl RuntimeModule for LoadScriptRuntimeModule {
-  fn identifier(&self) -> &str {
-    "webpack/runtime/load_script"
+  fn identifier(&self) -> String {
+    "webpack/runtime/load_script".to_string()
   }
 
   fn generate(&self, _compilation: &Compilation) -> BoxSource {

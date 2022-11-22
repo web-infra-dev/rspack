@@ -2,62 +2,10 @@
 	// object to store loaded and loading chunks
 	// undefined = chunk not loaded, null = chunk preloaded/prefetched
 	// [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
-	var installedChunks = { "runtime~index": 0, index: 0 };
+	var installedChunks = INSTALLED_CHUNKS_WITH_CSS;
 
 	var uniqueName = "webpack";
-	var loadCssChunkData = function (target, link, chunkId) {
-		var data,
-			token = "",
-			token2,
-			exports = {},
-			exportsWithId = [],
-			exportsWithDashes = [],
-			i = 0,
-			cc = 1;
-		try {
-			if (!link) link = loadStylesheet(chunkId);
-			data = link.sheet.cssRules;
-			data = data[data.length - 1].style;
-		} catch (e) {
-			data = getComputedStyle(document.head);
-		}
-		data = data.getPropertyValue("--webpack-" + uniqueName + "-" + chunkId);
-		if (!data) return [];
-		for (; cc; i++) {
-			cc = data.charCodeAt(i);
-			if (cc == 40) {
-				token2 = token;
-				token = "";
-			} else if (cc == 41) {
-				exports[token2.replace(/^_/, "")] = token.replace(/^_/, "");
-				token = "";
-			} else if (cc == 47 || cc == 37) {
-				token = token.replace(/^_/, "");
-				exports[token] = token;
-				exportsWithId.push(token);
-				if (cc == 37) exportsWithDashes.push(token);
-				token = "";
-			} else if (!cc || cc == 44) {
-				token = token.replace(/^_/, "");
-				exportsWithId.forEach(
-					x => (exports[x] = uniqueName + "-" + token + "-" + exports[x])
-				);
-				exportsWithDashes.forEach(x => (exports[x] = "--" + exports[x]));
-				__webpack_require__.r(exports);
-				target[token] = ((exports, module) => {
-					module.exports = exports;
-				}).bind(null, exports);
-				token = "";
-				exports = {};
-				exportsWithId.length = 0;
-			} else if (cc == 92) {
-				token += data[++i];
-			} else {
-				token += data[i];
-			}
-		}
-		installedChunks[chunkId] = 0;
-	};
+	// loadCssChunkData is unnecessary
 	var loadingAttribute = "data-webpack-loading";
 	var loadStylesheet = function (chunkId, url, done) {
 		var link,
@@ -121,7 +69,7 @@
 			if (installedChunkData) {
 				promises.push(installedChunkData[2]);
 			} else {
-				if ("demo_b_js" == chunkId) {
+				if (CSS_MATCHER) {
 					// setup Promise in chunk cache
 					var promise = new Promise(function (resolve, reject) {
 						installedChunkData = installedChunks[chunkId] = [resolve, reject];
@@ -154,7 +102,7 @@
 									error.request = realSrc;
 									installedChunkData[1](error);
 								} else {
-									loadCssChunkData(__webpack_require__.m, link, chunkId);
+									// loadCssChunkData(__webpack_require__.m, link, chunkId);
 									installedChunkData[0]();
 								}
 							}

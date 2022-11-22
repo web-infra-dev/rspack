@@ -15,9 +15,9 @@ pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -
   plugins.push(Box::new(
     rspack_plugin_runtime::ArrayPushCallbackChunkFormatPlugin {},
   ));
-
   match &options.target.platform {
     TargetPlatform::Web => {
+      plugins.push(Box::new(rspack_plugin_runtime::CssModulesPlugin {}));
       plugins.push(Box::new(rspack_plugin_runtime::JsonPChunkLoadingPlugin {}));
     }
     TargetPlatform::Node(_) => {

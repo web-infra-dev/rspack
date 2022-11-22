@@ -17,8 +17,8 @@ impl EnsureChunkRuntimeModule {
 }
 
 impl RuntimeModule for EnsureChunkRuntimeModule {
-  fn identifier(&self) -> &str {
-    "webpack/runtime/ensure_chunk"
+  fn identifier(&self) -> String {
+    "webpack/runtime/ensure_chunk".to_string()
   }
 
   fn generate(&self, _compilation: &Compilation) -> BoxSource {

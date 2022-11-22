@@ -7,8 +7,8 @@ use rspack_core::{
 pub struct HasOwnPropertyRuntimeModule {}
 
 impl RuntimeModule for HasOwnPropertyRuntimeModule {
-  fn identifier(&self) -> &str {
-    "webpack/runtime/has_own_property"
+  fn identifier(&self) -> String {
+    "webpack/runtime/has_own_property".to_string()
   }
 
   fn generate(&self, _compilation: &Compilation) -> BoxSource {

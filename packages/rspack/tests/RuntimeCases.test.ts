@@ -5,7 +5,8 @@ describe("RuntimeTestCases", () => {
 	describeCasesForJsonp({
 		name: "RuntimeTestCases jsonp",
 		target: "web",
-		casesPath: "runtimeCases"
+		casesPath: "runtimeCases",
+		hot: false
 	});
 
 	describeCasesForNode({

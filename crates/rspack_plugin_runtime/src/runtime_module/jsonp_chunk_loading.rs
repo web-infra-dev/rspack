@@ -21,8 +21,8 @@ impl JsonpChunkLoadingRuntimeModule {
 }
 
 impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
-  fn identifier(&self) -> &str {
-    "webpack/runtime/jsonp_chunk_loading"
+  fn identifier(&self) -> String {
+    "webpack/runtime/jsonp_chunk_loading".to_string()
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
