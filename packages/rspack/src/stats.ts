@@ -1,4 +1,5 @@
 import * as binding from "@rspack/binding";
+import { Compilation } from ".";
 import { StatsOptions, StatsOptionsObj } from "./config/stats";
 import { LogType } from "./logging/Logger";
 
@@ -12,8 +13,9 @@ export type StatsCompilation = Partial<StatsCompilationInner> & {
 export class Stats {
 	// remove this when support delegate compilation to rust side
 	#statsJson: StatsCompilationInner;
+	compilation: Compilation;
 
-	constructor(statsJson: binding.JsStatsCompilation) {
+	constructor(statsJson: binding.JsStatsCompilation, compilation: Compilation) {
 		this.#statsJson = {
 			...statsJson,
 			entrypoints: statsJson.entrypoints.reduce((acc, cur) => {
@@ -21,6 +23,7 @@ export class Stats {
 				return acc;
 			}, {})
 		};
+		this.compilation = compilation;
 	}
 
 	hasErrors() {

@@ -49,6 +49,7 @@ class Compiler {
 		beforeRun: tapable.AsyncSeriesHook<[Compiler]>;
 		run: tapable.AsyncSeriesHook<[Compiler]>;
 		failed: tapable.SyncHook<[Error]>;
+		watchRun: tapable.AsyncSeriesHook<[Compiler]>;
 	};
 	options: RspackOptionsNormalized;
 
@@ -82,7 +83,8 @@ class Compiler {
 			invalid: new SyncHook(["filename", "changeTime"]),
 			compile: new SyncHook(["params"]),
 			infrastructureLog: new SyncBailHook(["origin", "type", "args"]),
-			failed: new SyncHook(["error"])
+			failed: new SyncHook(["error"]),
+			watchRun: new tapable.AsyncSeriesHook(["compiler"])
 		};
 	}
 	/**
@@ -243,7 +245,7 @@ class Compiler {
 						if (err) {
 							return finalCallback(err);
 						}
-						const stats = new Stats(rawStats);
+						const stats = new Stats(rawStats, this.compilation);
 						this.hooks.done.callAsync(stats, err => {
 							if (err) {
 								return finalCallback(err);
@@ -305,7 +307,7 @@ class Compiler {
 		const begin = Date.now();
 		let rawStats = await util.promisify(this.build.bind(this))();
 
-		let stats = new Stats(rawStats);
+		let stats = new Stats(rawStats, this.compilation);
 		await this.hooks.done.promise(stats);
 		// TODO: log stats string should move to cli
 		console.log(stats.toString(this.options.stats));
@@ -336,7 +338,7 @@ class Compiler {
 
 				const begin = Date.now();
 				this.rebuild(changedFilepath, (error: any, rawStats) => {
-					let stats = new Stats(rawStats);
+					let stats = new Stats(rawStats, this.compilation);
 					// TODO: log stats string should move to cli
 					console.log(stats.toString(this.options.stats));
 					isBuildFinished = true;
