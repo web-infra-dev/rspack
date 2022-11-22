@@ -240,7 +240,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     }
   }
 
-  #[instrument(name = "css:parse")]
+  #[instrument(name = "css:parse", skip_all)]
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
     let ParseContext { source, meta, .. } = parse_context;
 
@@ -275,7 +275,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
   }
 
   #[allow(clippy::unwrap_in_result)]
-  #[instrument(name = "css:generate")]
+  #[instrument(name = "css:generate", skip_all)]
   fn generate(
     &self,
     ast_or_source: &rspack_core::AstOrSource,

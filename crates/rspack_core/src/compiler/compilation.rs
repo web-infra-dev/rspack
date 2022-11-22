@@ -138,8 +138,15 @@ impl Compilation {
   }
 
   pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
+    tracing::trace!("Emit asset {}", filename);
     if let Some(mut original) = self.assets.remove(&filename) {
-      if !is_source_equal(&original.source, &asset.source) {
+      let is_source_equal = is_source_equal(&original.source, &asset.source);
+      if !is_source_equal {
+        tracing::error!(
+          "Emit Duplicate Filename({}), is_source_equal: {:?}",
+          filename,
+          is_source_equal
+        );
         self.push_batch_diagnostic(
           rspack_error::Error::InternalError(format!(
             "Conflict: Multiple assets emit different content to the same filename {}{}",
@@ -253,7 +260,7 @@ impl Compilation {
       .collect()
   }
 
-  #[instrument(name = "compilation:make")]
+  #[instrument(name = "compilation:make", skip_all)]
   pub async fn make(&mut self, entry_deps: HashMap<String, Vec<Dependency>>) {
     if let Some(e) = self.plugin_driver.clone().read().await.make(self).err() {
       self.push_batch_diagnostic(e.into());
@@ -421,11 +428,7 @@ impl Compilation {
       }
     });
 
-    // dbg!(&self.module_graph.module_identifier_to_module_graph_module);
-    // dbg!(&self.module_graph.module_identifier_to_module);
-
     tracing::debug!("All task is finished");
-    tracing::trace!("module graph {:#?}", self.module_graph);
   }
 
   fn handle_module_build_and_dependencies(
@@ -662,7 +665,7 @@ impl Compilation {
     Ok(())
   }
 
-  #[instrument()]
+  #[instrument(skip_all)]
   async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) {
     let chunk_ukey_and_manifest = (self
       .chunk_by_ukey
@@ -675,6 +678,14 @@ impl Compilation {
             chunk_ukey: chunk.ukey,
             compilation: self,
           });
+
+        if let Ok(manifest) = &manifest {
+          tracing::debug!(
+            "For Chunk({}), collected assets: {:?}",
+            chunk.id,
+            manifest.iter().map(|m| m.filename()).collect::<Vec<_>>()
+          );
+        };
         (chunk.ukey, manifest)
       })
       .collect::<FuturesUnordered<_>>())
@@ -697,7 +708,7 @@ impl Compilation {
         });
       })
   }
-  #[instrument(name = "compilation:process_asssets")]
+  #[instrument(name = "compilation:process_asssets", skip_all)]
   async fn process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     plugin_driver
       .write()
@@ -860,13 +871,11 @@ impl Compilation {
       .get(ukey)
       .expect("entrypoint not found by ukey")
   }
-  #[instrument(name = "compilation:seal")]
+  #[instrument(name = "compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     code_splitting(self)?;
 
     plugin_driver.write().await.optimize_chunks(self)?;
-
-    tracing::trace!("chunk graph {:#?}", self.chunk_graph);
 
     self.code_generation()?;
 
@@ -894,7 +903,7 @@ impl Compilation {
     entries
   }
 
-  #[instrument(name = "compilation:process_runtime_requirements")]
+  #[instrument(name = "compilation:process_runtime_requirements", skip_all)]
   pub async fn process_runtime_requirements(
     &mut self,
     plugin_driver: SharedPluginDriver,
@@ -1010,7 +1019,7 @@ impl Compilation {
     Ok(())
   }
 
-  #[instrument()]
+  #[instrument(skip_all)]
   pub fn create_hash(&mut self) {
     for (chunk_ukey, chunk) in self.chunk_by_ukey.iter_mut() {
       for mgm in self

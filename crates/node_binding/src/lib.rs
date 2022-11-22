@@ -195,7 +195,7 @@ impl Rspack {
         if stats.errors.is_empty() {
           tracing::info!("build success");
         } else {
-          tracing::info!("build failed");
+          tracing::info!("build failed {:#?}", stats.errors);
         }
 
         Ok(stats)

@@ -17,7 +17,7 @@ struct EntryData {
   module_identifiers: Vec<String>,
   dependencies: Vec<Dependency>,
 }
-#[instrument()]
+#[instrument(skip_all)]
 pub fn code_splitting(compilation: &mut Compilation) -> Result<()> {
   CodeSplitter::new(compilation).split()?;
   Ok(())
