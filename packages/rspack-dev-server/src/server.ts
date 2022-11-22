@@ -166,7 +166,9 @@ export class RspackDevServer {
 			this.middleware.invalidate(callback);
 		}
 	}
+
 	async start(): Promise<void> {
+		this.setupHooks();
 		this.setupApp();
 		this.createServer();
 		this.setupWatchStaticFiles();
@@ -215,7 +217,10 @@ export class RspackDevServer {
 		}
 		if (this.webSocketServer) {
 			await new Promise(resolve => {
-				this.webSocketServer;
+				this.webSocketServer.implementation.close(() => {
+					resolve(void 0);
+				});
+				for (const client of this.webSocketServer.clients) client.terminate();
 			});
 		}
 	}
@@ -232,11 +237,7 @@ export class RspackDevServer {
 	}
 
 	private setupDevMiddleware() {
-		this.middleware = rdm(
-			this.compiler,
-			this.options.devMiddleware,
-			this.webSocketServer
-		);
+		this.middleware = rdm(this.compiler, this.options.devMiddleware);
 	}
 
 	private createWebsocketServer() {
@@ -278,5 +279,14 @@ export class RspackDevServer {
 
 	private createServer() {
 		this.server = http.createServer(this.app);
+	}
+
+	private setupHooks() {
+		this.compiler.hooks.done.tap("dev-server", stats => {
+			// send Message
+			if (this.webSocketServer) {
+				this.sendMessage(this.webSocketServer.clients, "ok"); // TODO: send hash
+			}
+		});
 	}
 }
