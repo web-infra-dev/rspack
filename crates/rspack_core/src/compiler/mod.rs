@@ -5,10 +5,7 @@ mod resolver;
 use anyhow::Context;
 pub use compilation::*;
 pub use resolver::*;
-use std::{
-  path::{Path, PathBuf},
-  sync::Arc,
-};
+use std::{path::Path, sync::Arc};
 
 use hashbrown::HashMap;
 use rayon::prelude::*;
@@ -159,7 +156,6 @@ impl Compiler {
       .assets()
       .par_iter()
       .try_for_each(|(filename, asset)| self.emit_asset(&output_path, filename, asset))
-      .map_err(|e| e.into())
   }
 
   fn emit_asset(&self, output_path: &Path, filename: &str, asset: &CompilationAsset) -> Result<()> {
@@ -169,8 +165,7 @@ impl Compiler {
         .parent()
         .unwrap_or_else(|| panic!("The parent of {} can't found", file_path.display())),
     )?;
-    std::fs::write(file_path, asset.get_source().buffer())
-      .map_err(|e| rspack_error::Error::from(e))?;
+    std::fs::write(file_path, asset.get_source().buffer()).map_err(rspack_error::Error::from)?;
     self.compilation.emitted_assets.insert(filename.to_string());
     Ok(())
   }
