@@ -3,13 +3,13 @@ import type { Logger } from "./logger";
 import type { Socket } from "net";
 import type { FSWatcher, WatchOptions } from "chokidar";
 import type { WebSocketServer, ClientConnection } from "./ws";
-import type { RspackDevMiddleware } from "@rspack/dev-middleware";
 import type {
 	Application,
 	RequestHandler as ExpressRequestHandler,
 	ErrorRequestHandler as ExpressErrorRequestHandler
 } from "express";
-import { Server } from "http";
+import type { DevMiddleware } from "@rspack/dev-middleware";
+import type { Server } from "http";
 import type { ResolvedDev } from "./config";
 
 import chokidar from "chokidar";
@@ -17,7 +17,8 @@ import http from "http";
 import { createLogger } from "./logger";
 import WebpackDevServer from "webpack-dev-server";
 import express from "express";
-import { rdm } from "@rspack/dev-middleware";
+
+import rdm from "@rspack/dev-middleware";
 import { createWebsocketServer } from "./ws";
 import { resolveDevOptions } from "./config";
 
@@ -43,7 +44,7 @@ export class RspackDevServer {
 	server: Server;
 	private listeners: Listener[];
 	private currentHash: string;
-	private middleware: RspackDevMiddleware | undefined;
+	private middleware: DevMiddleware | undefined;
 	// TODO: now only support 'ws'
 	webSocketServer: WebSocketServer | undefined;
 
@@ -250,6 +251,7 @@ export class RspackDevServer {
 	}
 
 	private setupDevMiddleware() {
+		// @ts-ignored
 		this.middleware = rdm(this.compiler, this.options.devMiddleware);
 	}
 

@@ -84,7 +84,7 @@ export function describeCases(config: {
 										return done(Error("cant find stats"));
 									}
 
-									const stats = new Stats(rawStats);
+									const stats = new Stats(rawStats, compiler!.compilation);
 									const jsonStats = stats.toJson();
 									if (
 										checkArrayExpectation(
@@ -233,10 +233,13 @@ export function describeCases(config: {
 											if (err) {
 												return callback(err);
 											}
-											if (!stats) {
+											if (!rawStats) {
 												return callback(Error("stats is undefined in rebuild"));
 											}
-											const jsonStats = new Stats(rawStats).toJson();
+											const jsonStats = new Stats(
+												rawStats,
+												compiler!.compilation
+											).toJson();
 											if (
 												checkArrayExpectation(
 													testDirectory,

@@ -347,9 +347,11 @@ importers:
     specifiers:
       '@rspack/core': workspace:*
       express: 4.18.1
+      webpack-dev-middleware: 6.0.0
     dependencies:
       '@rspack/core': link:../rspack
       express: 4.18.1
+      webpack-dev-middleware: 6.0.0
 
   packages/rspack-dev-server:
     specifiers:
@@ -9364,8 +9366,8 @@ packages:
     engines: {node: '>= 0.6'}
     dev: false
 
-  /memfs/3.4.7:
-    resolution: {integrity: sha512-ygaiUSNalBX85388uskeCyhSAoOSgzBbtVCr9jA2RROssFL9Q19/ZXFqS+2Th2sr1ewNIWgFdLzLC3Yl1Zv+lw==}
+  /memfs/3.4.12:
+    resolution: {integrity: sha512-BcjuQn6vfqP+k100e0E9m61Hyqa//Brp+I3f0OBmN0ATHlFA8vx3Lt8z57R3u2bPqe3WGDBC+nF72fTH7isyEw==}
     engines: {node: '>= 4.0.0'}
     dependencies:
       fs-monkey: 1.0.3
@@ -12420,7 +12422,7 @@ packages:
       webpack: ^4.0.0 || ^5.0.0
     dependencies:
       colorette: 2.0.19
-      memfs: 3.4.7
+      memfs: 3.4.12
       mime-types: 2.1.35
       range-parser: 1.2.1
       schema-utils: 4.0.0
@@ -12433,11 +12435,24 @@ packages:
       webpack: ^4.0.0 || ^5.0.0
     dependencies:
       colorette: 2.0.19
-      memfs: 3.4.7
+      memfs: 3.4.12
       mime-types: 2.1.35
       range-parser: 1.2.1
       schema-utils: 4.0.0
       webpack: 5.74.0
+    dev: false
+
+  /webpack-dev-middleware/6.0.0:
+    resolution: {integrity: sha512-A7jSXBifCJsJqUCVISlcbx9pkmCuP0KriMRcOJ13pOb6/xMXZvh4/ygeJeSArjRd50IT5IVbBFuejGDA/zWrNQ==}
+    engines: {node: '>= 14.15.0'}
+    peerDependencies:
+      webpack: ^5.0.0
+    dependencies:
+      colorette: 2.0.19
+      memfs: 3.4.12
+      mime-types: 2.1.35
+      range-parser: 1.2.1
+      schema-utils: 4.0.0
     dev: false
 
   /webpack-dev-server/4.11.1:
