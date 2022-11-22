@@ -110,7 +110,9 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         ASSET_MODULE_SOURCE_TYPE_LIST
       }
     } else {
-      panic!("Failed to read source types for asset module")
+      // If module is failed to build, then the `parsed_asset_config` is not set.
+      // Align with webpacks's asset module: https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/asset/AssetGenerator.js#L386
+      ASSET_MODULE_SOURCE_TYPE_LIST
     }
   }
 

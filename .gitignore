@@ -167,7 +167,7 @@ crates/node_binding/binding.d.ts
 packages/rspack/tests/js
 
 # Ignore local integrate debug file
-packages/rspack/tests/*.debug.ts
+packages/rspack/tests/*.debug.[tj]s
 
 # Benchmark 
 /github/
