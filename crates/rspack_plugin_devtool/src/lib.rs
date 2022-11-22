@@ -55,7 +55,7 @@ impl Plugin for DevtoolPlugin {
     "devtool"
   }
 
-  #[instrument]
+  #[instrument(skip_all)]
   async fn process_assets(
     &mut self,
     _ctx: PluginContext,

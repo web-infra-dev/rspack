@@ -248,7 +248,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     module.original_source().map_or(0, |source| source.size()) as f64
   }
 
-  #[instrument(name = "js:parse")]
+  #[instrument(name = "js:parse", skip_all)]
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
     let ParseContext {
       source,
@@ -303,7 +303,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   }
 
   #[allow(clippy::unwrap_in_result)]
-  #[instrument(name = "js:generate")]
+  #[instrument(name = "js:generate", skip_all)]
   fn generate(
     &self,
     ast_or_source: &AstOrSource,

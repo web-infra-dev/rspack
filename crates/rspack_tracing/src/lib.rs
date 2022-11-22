@@ -24,7 +24,7 @@ pub fn enable_tracing_by_env() {
   if is_enable_tracing && !IS_TRACING_ENABLED.swap(true, std::sync::atomic::Ordering::SeqCst) {
     use tracing_subscriber::{fmt, prelude::*, EnvFilter};
     tracing_subscriber::registry()
-      .with(fmt::layer().pretty().with_file(false))
+      .with(fmt::layer().pretty().with_file(true))
       .with(
         tracing_subscriber::filter::Targets::new().with_targets(vec![
           ("rspack_core", Level::TRACE),
@@ -42,7 +42,7 @@ pub fn enable_tracing_by_env() {
 }
 
 pub fn enable_tracing_by_env_with_chrome_layer() -> Option<FlushGuard> {
-  let is_enable_tracing = std::env::var("TRACE").map_or(false, |x| {
+  let is_enable_tracing = std::env::var("TRACE").map_or(true, |x| {
     matches!(x.as_str(), "TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR")
   });
   if is_enable_tracing && !IS_TRACING_ENABLED.swap(true, std::sync::atomic::Ordering::SeqCst) {

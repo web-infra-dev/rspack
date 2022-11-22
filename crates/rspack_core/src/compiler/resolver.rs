@@ -174,7 +174,7 @@ impl Resolver {
     self.0.clear_entries();
   }
 
-  #[instrument(name = "nodejs_resolver")]
+  #[instrument(name = "nodejs_resolver", skip_all)]
   pub fn resolve(&self, path: &Path, request: &str) -> nodejs_resolver::RResult<ResolveResult> {
     self
       .0

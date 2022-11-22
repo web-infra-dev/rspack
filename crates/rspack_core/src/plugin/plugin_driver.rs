@@ -84,7 +84,7 @@ impl PluginDriver {
   /// Warning:
   /// Webpack does not expose this as the documented API, even though you can reach this with `NormalModule.getCompilationHooks(compilation)`.
   /// For the most of time, you would not need this.
-  #[instrument(name = "plugin:read_resource")]
+  #[instrument(name = "plugin:read_resource", skip_all)]
   pub async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
     for plugin in &self.plugins {
       let result = plugin.read_resource(resource_data).await?;
@@ -191,7 +191,7 @@ impl PluginDriver {
     Ok(None)
   }
 
-  #[instrument(name = "plugin:additional_chunk_runtime_requirements")]
+  #[instrument(name = "plugin:additional_chunk_runtime_requirements", skip_all)]
   pub fn additional_chunk_runtime_requirements(
     &self,
     args: &mut AdditionalChunkRuntimeRequirementsArgs,
@@ -202,7 +202,7 @@ impl PluginDriver {
     Ok(())
   }
 
-  #[instrument(name = "plugin:additional_tree_runtime_requirements")]
+  #[instrument(name = "plugin:additional_tree_runtime_requirements", skip_all)]
   pub fn additional_tree_runtime_requirements(
     &self,
     args: &mut AdditionalChunkRuntimeRequirementsArgs,
@@ -213,7 +213,7 @@ impl PluginDriver {
     Ok(())
   }
 
-  #[instrument(name = "plugin:runtime_requirements_in_tree")]
+  #[instrument(name = "plugin:runtime_requirements_in_tree", skip_all)]
   pub fn runtime_requirements_in_tree(
     &self,
     args: &mut AdditionalChunkRuntimeRequirementsArgs,
@@ -256,7 +256,7 @@ impl PluginDriver {
     }
     Ok(())
   }
-  #[instrument(name = "plugin:optimize_chunks")]
+  #[instrument(name = "plugin:optimize_chunks", skip_all)]
   pub fn optimize_chunks(&mut self, compilation: &mut Compilation) -> Result<()> {
     for plugin in &mut self.plugins {
       plugin.optimize_chunks(PluginContext::new(), OptimizeChunksArgs { compilation })?;
@@ -264,7 +264,7 @@ impl PluginDriver {
     Ok(())
   }
 
-  #[instrument(name = "plugin:build_module")]
+  #[instrument(name = "plugin:build_module", skip_all)]
   pub async fn build_module(&self, module: &mut dyn Module) -> Result<()> {
     for plugin in &self.plugins {
       plugin.build_module(module).await?;
@@ -272,7 +272,7 @@ impl PluginDriver {
     Ok(())
   }
 
-  #[instrument(name = "plugin:succeed_module")]
+  #[instrument(name = "plugin:succeed_module", skip_all)]
   pub async fn succeed_module(&self, module: &dyn Module) -> Result<()> {
     for plugin in &self.plugins {
       plugin.succeed_module(module).await?;

@@ -67,7 +67,7 @@ impl Compiler {
     Ok(())
   }
 
-  #[instrument(name = "build")]
+  #[instrument(name = "build", skip_all)]
   pub async fn build(&mut self) -> Result<Stats> {
     // TODO: clear the outdate cache entires in resolver,
     // TODO: maybe it's better to use external entries.
@@ -104,7 +104,7 @@ impl Compiler {
     Ok(self.stats())
   }
 
-  #[instrument(name = "compile")]
+  #[instrument(name = "compile", skip_all)]
   async fn compile(&mut self, deps: HashMap<String, Vec<Dependency>>) -> Result<()> {
     let option = self.options.clone();
     self.compilation.make(deps).await;

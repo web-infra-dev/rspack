@@ -65,7 +65,7 @@ impl NormalModuleFactory {
       diagnostic: vec![],
     }
   }
-  #[instrument(name = "normal_module_factory:create")]
+  #[instrument(name = "normal_module_factory:create", skip_all)]
   /// set `is_entry` true if you are trying to create a new module factory with a module identifier which is an entry
   pub async fn create(mut self, is_entry: bool) {
     match self.factorize().await {
@@ -133,7 +133,7 @@ impl NormalModuleFactory {
     debug_assert_eq!(url.scheme(), "specifier");
     resolve_module_type_by_uri(url.path())
   }
-  #[instrument(name = "normal_module_factory:factory_normal_module")]
+  #[instrument(name = "normal_module_factory:factory_normal_module", skip_all)]
   pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, BoxModule, u32)>> {
     let importer = self.dependency.parent_module_identifier.as_deref();
     let specifier = self.dependency.detail.specifier.as_str();
@@ -324,7 +324,7 @@ impl NormalModuleFactory {
     )
   }
 
-  #[instrument(name = "normal_module_factory:factorize")]
+  #[instrument(name = "normal_module_factory:factorize", skip_all)]
   pub async fn factorize(&mut self) -> Result<FactorizeResult> {
     let result = self
       .plugin_driver

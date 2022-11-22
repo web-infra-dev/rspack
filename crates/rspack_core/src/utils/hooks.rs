@@ -3,7 +3,7 @@ use rspack_error::{Error, Result, TraceableError};
 use std::path::Path;
 use tracing::instrument;
 
-#[instrument(name = "resolve")]
+#[instrument(name = "resolve", skip_all)]
 pub async fn resolve(
   args: ResolveArgs<'_>,
   plugin_driver: &SharedPluginDriver,
