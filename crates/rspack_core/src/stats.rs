@@ -70,6 +70,7 @@ impl<'compilation> Stats<'compilation> {
               development: asset.info.development,
               hot_module_replacement: asset.info.hot_module_replacement,
             },
+            emitted: self.compilation.emitted_assets.contains(name),
           },
         )
       }));
@@ -281,6 +282,7 @@ pub struct StatsAsset {
   pub chunks: Vec<String>,
   pub chunk_names: Vec<String>,
   pub info: StatsAssetInfo,
+  pub emitted: bool,
 }
 
 #[derive(Debug)]

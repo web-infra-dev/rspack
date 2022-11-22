@@ -10,6 +10,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "chunks": [
         "main",
       ],
+      "emitted": true,
       "info": {
         "development": false,
         "hotModuleReplacement": false,
@@ -23,6 +24,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "chunks": [
         "dynamic_js",
       ],
+      "emitted": true,
       "info": {
         "development": false,
         "hotModuleReplacement": false,
@@ -105,9 +107,9 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for filename 2`] = `
-"             Asset       Size      Chunks  Chunk Names
-      main.xxxx.js  854 bytes        main  main
-dynamic_js.xxxx.js  265 bytes  dynamic_js  
+"             Asset       Size      Chunks             Chunk Names
+      main.xxxx.js  854 bytes        main  [emitted]  main
+dynamic_js.xxxx.js  265 bytes  dynamic_js  [emitted]  
 Entrypoint main = main.xxxx.js
 chunk {dynamic_js} dynamic_js.xxxx.js 32 bytes
 chunk {main} main.xxxx.js (main) 38 bytes [entry]
@@ -125,6 +127,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "chunks": [
         "main",
       ],
+      "emitted": true,
       "info": {
         "development": false,
         "hotModuleReplacement": false,
@@ -185,8 +188,8 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 2`] = `
-"    Asset       Size  Chunks  Chunk Names
-bundle.js  358 bytes    main  main
+"    Asset       Size  Chunks             Chunk Names
+bundle.js  358 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 25 bytes [entry]
 [./index.js] 25 bytes {main}"
@@ -202,6 +205,7 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
       "chunks": [
         "main",
       ],
+      "emitted": true,
       "info": {
         "development": false,
         "hotModuleReplacement": false,
@@ -283,8 +287,8 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
 `;
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 2`] = `
-"    Asset       Size  Chunks  Chunk Names
-bundle.js  510 bytes    main  main
+"    Asset       Size  Chunks             Chunk Names
+bundle.js  510 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 15 bytes [entry]
 [./index.js] 15 bytes {main}
@@ -316,6 +320,7 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
       "chunks": [
         "main",
       ],
+      "emitted": true,
       "info": {
         "development": false,
         "hotModuleReplacement": false,
@@ -387,8 +392,8 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for normal-errors 2`] = `
-"    Asset       Size  Chunks  Chunk Names
-bundle.js  404 bytes    main  main
+"    Asset       Size  Chunks             Chunk Names
+bundle.js  404 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 20 bytes [entry]
 [./index.js] 20 bytes {main}
@@ -412,6 +417,7 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
       "chunks": [
         "main",
       ],
+      "emitted": true,
       "info": {
         "development": false,
         "hotModuleReplacement": false,
@@ -505,8 +511,8 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for parse-error 2`] = `
-"    Asset       Size  Chunks  Chunk Names
-bundle.js  576 bytes    main  main
+"    Asset       Size  Chunks             Chunk Names
+bundle.js  576 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 83 bytes [entry]
 [./a.js] 14 bytes {main}
@@ -532,6 +538,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       "chunks": [
         "main",
       ],
+      "emitted": true,
       "info": {
         "development": false,
         "hotModuleReplacement": false,
@@ -603,8 +610,8 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-overflow 2`] = `
-"    Asset       Size  Chunks  Chunk Names
-bundle.js  423 bytes    main  main
+"    Asset       Size  Chunks             Chunk Names
+bundle.js  423 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 51 bytes [entry]
 [./index.js] 51 bytes {main}
@@ -628,6 +635,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       "chunks": [
         "main",
       ],
+      "emitted": true,
       "info": {
         "development": false,
         "hotModuleReplacement": false,
@@ -694,8 +702,8 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 2`] = `
-"    Asset      Size  Chunks  Chunk Names
-bundle.js  1.02 KiB    main  main
+"    Asset      Size  Chunks             Chunk Names
+bundle.js  1.02 KiB    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 39 bytes [entry]
 [./index.js] 39 bytes {main}
@@ -714,6 +722,7 @@ exports[`StatsTestCases should print correct stats for sass-warnings 1`] = `
       "chunks": [
         "main",
       ],
+      "emitted": true,
       "info": {
         "development": false,
         "hotModuleReplacement": false,
@@ -729,6 +738,7 @@ exports[`StatsTestCases should print correct stats for sass-warnings 1`] = `
       "chunks": [
         "main",
       ],
+      "emitted": true,
       "info": {
         "development": false,
         "hotModuleReplacement": false,
@@ -824,9 +834,9 @@ More info and automated migrator: https://sass-lang.com/d/slash-div",
 `;
 
 exports[`StatsTestCases should print correct stats for sass-warnings 2`] = `
-"   Asset       Size  Chunks  Chunk Names
- main.js  535 bytes    main  main
-main.css   11 bytes    main  main
+"   Asset       Size  Chunks             Chunk Names
+ main.js  535 bytes    main  [emitted]  main
+main.css   11 bytes    main  [emitted]  main
 Entrypoint main = main.css main.js
 chunk {main} main.css, main.js (main) 41 bytes [entry]
 [./index.js] 22 bytes {main}
@@ -855,6 +865,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "chunks": [
         "main",
       ],
+      "emitted": true,
       "info": {
         "development": false,
         "hotModuleReplacement": false,
@@ -915,8 +926,8 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for simple 2`] = `
-"    Asset       Size  Chunks  Chunk Names
-bundle.js  467 bytes    main  main
+"    Asset       Size  Chunks             Chunk Names
+bundle.js  467 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 26 bytes [entry]
 [./index.js] 26 bytes {main}"

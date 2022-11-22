@@ -163,9 +163,7 @@ impl Compiler {
       return Ok(self.stats());
     }
 
-    let now = &mut self.compilation;
-
-    let now_modules = collect_changed_modules(now);
+    let now_modules = collect_changed_modules(&mut self.compilation);
 
     let mut updated_modules: HashMap<String, String> = Default::default();
     let mut completely_removed_modules: HashSet<String> = Default::default();
@@ -183,7 +181,11 @@ impl Compiler {
     }
 
     // ----
-    let output_path = now.options.context.join(&now.options.output.path);
+    let output_path = self
+      .compilation
+      .options
+      .context
+      .join(&self.compilation.options.output.path);
 
     // TODO: hash
     // if old.hash == now.hash { return  } else { // xxxx}
@@ -193,7 +195,8 @@ impl Compiler {
       let mut chunk_id = chunk_id.to_string();
       let mut new_runtime = all_old_runtime.clone();
       let mut removed_from_runtime = all_old_runtime.clone();
-      let current_chunk = now
+      let current_chunk = self
+        .compilation
         .chunk_by_ukey
         .iter()
         .find(|(_, chunk)| chunk.id.eq(&chunk_id))
@@ -213,7 +216,8 @@ impl Compiler {
           continue;
         }
 
-        new_modules = now
+        new_modules = self
+          .compilation
           .chunk_graph
           .get_chunk_graph_chunk(&current_chunk.ukey)
           .modules
@@ -253,26 +257,35 @@ impl Compiler {
         }
 
         for module_identifier in new_modules.iter() {
-          if let Some(module) = now.module_graph.module_by_identifier(module_identifier) {
+          if let Some(module) = self
+            .compilation
+            .module_graph
+            .module_by_identifier(module_identifier)
+          {
             module.hash(&mut hot_update_chunk.hash);
           }
         }
 
-        now.chunk_by_ukey.insert(ukey, hot_update_chunk);
-        now.chunk_graph.add_chunk(ukey);
+        self
+          .compilation
+          .chunk_by_ukey
+          .insert(ukey, hot_update_chunk);
+        self.compilation.chunk_graph.add_chunk(ukey);
 
         for module_identifier in new_modules.iter() {
-          now
+          self
+            .compilation
             .chunk_graph
             .connect_chunk_and_module(ukey, module_identifier.to_string());
         }
 
-        let render_manifest = now
+        let render_manifest = self
+          .compilation
           .plugin_driver
           .read()
           .await
           .render_manifest(RenderManifestArgs {
-            compilation: now,
+            compilation: &self.compilation,
             chunk_ukey: ukey,
           })
           .unwrap();
@@ -283,13 +296,12 @@ impl Compiler {
             .with_extension("")
             .display()
             .to_string();
-          let path = output_path.join(format!("{}.hot-update.js", filename));
           let asset = CompilationAsset::new(
             entry.source().clone(),
             AssetInfo::default().with_hot_module_replacement(true),
           );
 
-          Compiler::emit_asset(path, &asset)?;
+          self.emit_asset(&output_path, &(filename + ".hot-update.js"), &asset)?;
         }
 
         if let Some(info) = hot_update_main_content_by_runtime.get_mut(&chunk_id) {
@@ -302,12 +314,12 @@ impl Compiler {
       completely_removed_modules.into_iter().collect();
 
     for (_, content) in hot_update_main_content_by_runtime {
-      let file_path = output_path.join(&content.filename);
       let c: Vec<String> = content.updated_chunk_ids.into_iter().collect();
       let r: Vec<String> = content.removed_chunk_ids.into_iter().collect();
       let m: Vec<String> = completely_removed_modules_array.clone();
-      Compiler::emit_asset(
-        file_path,
+      self.emit_asset(
+        &output_path,
+        &content.filename,
         &CompilationAsset::new(
           RawSource::Source(
             serde_json::json!({

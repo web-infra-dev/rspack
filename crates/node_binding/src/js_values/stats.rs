@@ -37,6 +37,7 @@ pub struct JsStatsAsset {
   pub chunks: Vec<String>,
   pub chunk_names: Vec<String>,
   pub info: JsStatsAssetInfo,
+  pub emitted: bool,
 }
 
 impl From<rspack_core::StatsAsset> for JsStatsAsset {
@@ -48,6 +49,7 @@ impl From<rspack_core::StatsAsset> for JsStatsAsset {
       chunks: stats.chunks,
       chunk_names: stats.chunk_names,
       info: stats.info.into(),
+      emitted: stats.emitted,
     }
   }
 }
