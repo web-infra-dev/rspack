@@ -27,6 +27,7 @@ describe("Stats", () => {
 		      "chunks": [
 		        "main",
 		      ],
+		      "emitted": true,
 		      "info": {
 		        "development": false,
 		        "hotModuleReplacement": false,
@@ -86,8 +87,8 @@ describe("Stats", () => {
 		}
 	`);
 		expect(stats.toString(statsOptions)).toMatchInlineSnapshot(`
-		"  Asset      Size  Chunks  Chunk Names
-		main.js  9.65 KiB    main  main
+		"  Asset      Size  Chunks             Chunk Names
+		main.js  9.65 KiB    main  [emitted]  main
 		Entrypoint main = main.js
 		chunk {main} main.js (main) 55 bytes [entry]
 		[./fixtures/a.js] 55 bytes {main}"

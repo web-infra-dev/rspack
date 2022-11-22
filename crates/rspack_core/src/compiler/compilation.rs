@@ -1,3 +1,4 @@
+use dashmap::DashSet;
 use futures::{stream::FuturesUnordered, StreamExt};
 use hashbrown::{
   hash_map::Entry,
@@ -60,6 +61,7 @@ pub struct Compilation {
   pub chunk_group_by_ukey: HashMap<ChunkGroupUkey, ChunkGroup>,
   pub entrypoints: HashMap<String, ChunkGroupUkey>,
   pub assets: CompilationAssets,
+  pub emitted_assets: DashSet<String, hashbrown::hash_map::DefaultHashBuilder>,
   diagnostics: IndexSet<Diagnostic, hashbrown::hash_map::DefaultHashBuilder>,
   pub(crate) plugin_driver: SharedPluginDriver,
   pub(crate) loader_runner_runner: Arc<LoaderRunnerRunner>,
@@ -98,6 +100,7 @@ impl Compilation {
       chunk_graph: Default::default(),
       entrypoints: Default::default(),
       assets: Default::default(),
+      emitted_assets: Default::default(),
       diagnostics: Default::default(),
       plugin_driver,
       loader_runner_runner,
