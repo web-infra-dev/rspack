@@ -278,7 +278,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
               .first()
               .ok_or_else(|| anyhow::format_err!("failed to guess mime type of {}", request))?,
             base64::encode(
-              &ast_or_source
+              ast_or_source
                 .as_source()
                 .expect("Expected source for asset generator, please file an issue.")
                 .buffer()
@@ -287,8 +287,8 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         } else if parsed_asset_config.is_external() {
           self.generate_external_content(
             request,
-            &ast_or_source,
-            &generate_context,
+            ast_or_source,
+            generate_context,
             module.identifier().to_string(),
           )?
         } else if parsed_asset_config.is_source() {
