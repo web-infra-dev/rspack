@@ -69,7 +69,7 @@ pub enum TransformAst {
 /**
  *  AST used in first class Module
  */
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub enum ModuleAst {
   JavaScript(JsAst),
   Css(Stylesheet),

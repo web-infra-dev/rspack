@@ -164,7 +164,7 @@ impl ModuleGraphModule {
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub enum AstOrSource {
   Ast(ModuleAst),
   Source(BoxSource),
