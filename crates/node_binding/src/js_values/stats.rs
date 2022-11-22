@@ -1,4 +1,5 @@
 #[napi(object)]
+#[derive(Debug)]
 pub struct JsStatsError {
   pub message: String,
   pub formatted: String,

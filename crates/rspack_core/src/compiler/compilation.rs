@@ -137,9 +137,16 @@ impl Compilation {
     }
   }
 
-  pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
+  pub fn emit_asset(&mut self, mut filename: String, asset: CompilationAsset) {
+    tracing::trace!("Emit asset {}", filename);
     if let Some(mut original) = self.assets.remove(&filename) {
-      if !is_source_equal(&original.source, &asset.source) {
+      let is_source_equal = is_source_equal(&original.source, &asset.source);
+      if !is_source_equal {
+        tracing::error!(
+          "Emit Duplicate Filename({}), is_source_equal: {:?}",
+          filename,
+          is_source_equal
+        );
         self.push_batch_diagnostic(
           rspack_error::Error::InternalError(format!(
             "Conflict: Multiple assets emit different content to the same filename {}{}",
@@ -671,6 +678,14 @@ impl Compilation {
             chunk_ukey: chunk.ukey,
             compilation: self,
           });
+
+        if let Ok(manifest) = &manifest {
+          tracing::debug!(
+            "For Chunk({}), collected assets: {:?}",
+            chunk.id,
+            manifest.iter().map(|m| m.filename()).collect::<Vec<_>>()
+          );
+        };
         (chunk.ukey, manifest)
       })
       .collect::<FuturesUnordered<_>>())

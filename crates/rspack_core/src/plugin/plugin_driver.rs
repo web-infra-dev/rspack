@@ -167,6 +167,15 @@ impl PluginDriver {
     let mut assets = vec![];
     self.plugins.iter().try_for_each(|plugin| -> Result<()> {
       let res = plugin.render_manifest(PluginContext::new(), args.clone())?;
+      tracing::trace!(
+        "For Chunk({}), Plugin({}) generate files {:?}",
+        args.chunk().id,
+        plugin.name(),
+        res
+          .iter()
+          .map(|manifest| manifest.filename())
+          .collect::<Vec<_>>()
+      );
       assets.extend(res);
       Ok(())
     })?;
