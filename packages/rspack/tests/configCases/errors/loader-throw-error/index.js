@@ -1,4 +1,4 @@
-it("should include loader error", () => {
+it("should include loader thrown error", () => {
   let errored = false;
 	try {
 		require("./lib");
