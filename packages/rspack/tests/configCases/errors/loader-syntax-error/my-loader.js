@@ -1,3 +1,3 @@
 module.exports = function (context) {
-	throw new Error("Failed to load");
+  const error: string = "error"
 };
