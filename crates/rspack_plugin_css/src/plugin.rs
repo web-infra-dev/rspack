@@ -14,7 +14,7 @@ use rspack_core::{
     SourceMapSource, SourceMapSourceOptions,
   },
   Chunk, ChunkGraph, Compilation, FilenameRenderOptions, GenerateContext, GenerationResult, Module,
-  ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, Plugin,
+  ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, PathData, Plugin,
   RenderManifestEntry, SourceType,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -515,7 +515,14 @@ impl Plugin for CssPlugin {
             hash,
           })
       };
-      Ok(vec![RenderManifestEntry::new(source.boxed(), output_path)])
+      let path_data = PathData {
+        chunk_ukey: args.chunk_ukey,
+      };
+      Ok(vec![RenderManifestEntry::new(
+        source.boxed(),
+        output_path,
+        path_data,
+      )])
     }
   }
 

@@ -13,7 +13,7 @@ use rspack_core::{
   get_contenthash,
   rspack_sources::{RawSource, SourceExt},
   AssetParserDataUrlOption, AssetParserOptions, AstOrSource, FilenameRenderOptions,
-  GenerateContext, GenerationResult, Module, ParseContext, ParserAndGenerator, Plugin,
+  GenerateContext, GenerationResult, Module, ParseContext, ParserAndGenerator, PathData, Plugin,
   PluginContext, PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry,
   SourceType,
 };
@@ -474,6 +474,9 @@ impl Plugin for AssetPlugin {
                   chunkhash,
                   hash,
                 }),
+              PathData {
+                chunk_ukey: args.chunk_ukey,
+              },
             )
           });
 

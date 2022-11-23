@@ -2,7 +2,6 @@ use std::{
   collections::{HashMap, HashSet},
   hash::Hash,
   ops::Sub,
-  path::Path,
 };
 
 use rspack_error::Result;
@@ -291,17 +290,18 @@ impl Compiler {
           .unwrap();
 
         for entry in render_manifest {
-          // remove extensions;
-          let filename = Path::new(entry.filename())
-            .with_extension("")
-            .display()
-            .to_string();
           let asset = CompilationAsset::new(
             entry.source().clone(),
             AssetInfo::default().with_hot_module_replacement(true),
           );
 
-          self.emit_asset(&output_path, &(filename + ".hot-update.js"), &asset)?;
+          // TODO: should use `get_path_info` to get filename.
+          let chunk = self
+            .compilation
+            .chunk_by_ukey
+            .get(&entry.path_options.chunk_ukey);
+          let id = chunk.map_or(String::new(), |c| c.id.to_string());
+          self.emit_asset(&output_path, &(id + ".hot-update.js"), &asset)?;
         }
 
         if let Some(info) = hot_update_main_content_by_runtime.get_mut(&chunk_id) {
