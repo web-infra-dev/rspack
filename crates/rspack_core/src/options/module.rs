@@ -17,15 +17,30 @@ pub struct ParserOptions {
 
 type ModuleRuleFunc = Box<dyn Fn(&ResourceData) -> anyhow::Result<bool> + Send + Sync>;
 
+#[derive(Debug)]
+pub enum ModuleRuleCondition {
+  String(String),
+  Regexp(regex::Regex),
+  // TODO: support logical conditions
+  // LogicalConditions
+}
+
 #[derive(Default)]
 pub struct ModuleRule {
-  pub test: Option<regex::Regex>,
-  pub resource: Option<regex::Regex>,
-  pub resource_query: Option<regex::Regex>,
+  /// A condition matcher matching an absolute path.
+  /// - String: To match the input must start with the provided string. I. e. an absolute directory path, or absolute path to the file.
+  /// - Regexp: It's tested with the input.
+  pub test: Option<ModuleRuleCondition>,
+  /// A condition matcher matching an absolute path.
+  /// See `test` above
+  pub resource: Option<ModuleRuleCondition>,
+  /// A condition matcher against the resource query.
+  pub resource_query: Option<ModuleRuleCondition>,
+  /// The `ModuleType` to use for the matched resource.
   pub module_type: Option<ModuleType>,
-  // For loader experimental
-  pub func__: Option<ModuleRuleFunc>,
   pub uses: Vec<BoxedLoader>,
+  /// Internal matching method, not intended to be used by the user. (Loader experimental)
+  pub func__: Option<ModuleRuleFunc>,
 }
 
 impl Debug for ModuleRule {

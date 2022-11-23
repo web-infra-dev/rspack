@@ -14,9 +14,9 @@ use rspack_error::{Diagnostic, Error, Result, TWithDiagnosticArray};
 use tracing::instrument;
 
 use crate::{
-  parse_to_url, resolve, BoxModule, CompilerOptions, FactorizeArgs, ModuleExt, ModuleGraphModule,
-  ModuleIdentifier, ModuleRule, ModuleType, Msg, NormalModule, RawModule, ResolveArgs,
-  ResolveResult, ResourceData, SharedPluginDriver, DEPENDENCY_ID,
+  module_rule_matcher, parse_to_url, resolve, BoxModule, CompilerOptions, FactorizeArgs, ModuleExt,
+  ModuleGraphModule, ModuleIdentifier, ModuleRule, ModuleType, Msg, NormalModule, RawModule,
+  ResolveArgs, ResolveResult, ResourceData, SharedPluginDriver, DEPENDENCY_ID,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -276,35 +276,7 @@ impl NormalModuleFactory {
       .rules
       .iter()
       .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
-        if let Some(func) = &module_rule.func__ {
-          match func(resource_data) {
-            Ok(result) => {
-              if result {
-                return Some(Ok(module_rule));
-              }
-
-              return None
-            },
-            Err(e) => {
-              return Some(Err(e.into()))
-            }
-          }
-        }
-
-        // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
-        // See: https://webpack.js.org/configuration/module/#ruletest
-        if let Some(test_rule) = &module_rule.test && test_rule.is_match(&resource_data.resource) {
-          return Some(Ok(module_rule));
-        } else if let Some(resource_rule) = &module_rule.resource && resource_rule.is_match(&resource_data.resource) {
-          return Some(Ok(module_rule));
-        }
-
-        if let Some(resource_query_rule) = &module_rule.resource_query && let Some(resource_query) = &resource_data.resource_query && resource_query_rule.is_match(resource_query) {
-          return Some(Ok(module_rule));
-        }
-
-
-        None
+        module_rule_matcher(module_rule, resource_data)
       })
       .collect::<Result<Vec<_>>>()?
       .into_iter()
@@ -312,7 +284,6 @@ impl NormalModuleFactory {
         if module_rule.module_type.is_some() {
           resolved_module_type = module_rule.module_type;
         };
-
       });
 
     resolved_module_type.ok_or_else(|| {

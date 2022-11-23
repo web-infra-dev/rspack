@@ -22,6 +22,9 @@ pub use hash::*;
 mod tree_shaking;
 pub use tree_shaking::*;
 
+mod module_rules;
+pub use module_rules::*;
+
 pub static PATH_START_BYTE_POS_MAP: Lazy<Arc<DashMap<String, u32>>> =
   Lazy::new(|| Arc::new(DashMap::new()));
 
