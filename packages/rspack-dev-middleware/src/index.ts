@@ -1,4 +1,4 @@
-// import type { Compiler, RspackOptionsNormalized } from "@rspack/core";
+import type { Compiler } from "@rspack/core";
 import type { RequestHandler as ExpressRequestHandler } from "express";
 // // import { ready } from "webpack-dev-middleware/dist/utils/ready";
 
@@ -31,4 +31,14 @@ export type DevMiddleware = ExpressRequestHandler & {
 // }
 
 import wdm from "webpack-dev-middleware";
-export default wdm;
+
+const rdm: typeof wdm = (compiler, options) => {
+	if (!options) {
+		options = {};
+	}
+	options.writeToDisk = false;
+	options.outputFileSystem = require("fs");
+	return wdm(compiler, options);
+};
+
+export default rdm;
