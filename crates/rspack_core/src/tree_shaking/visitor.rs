@@ -6,8 +6,10 @@ use std::{
 };
 
 use bitflags::bitflags;
+use globset::{Glob, GlobSetBuilder};
 use hashbrown::{hash_map::Entry, HashMap, HashSet};
 use indexmap::IndexMap;
+use sugar_path::SugarPath;
 use swc_atoms::JsWord;
 use swc_common::{util::take::Take, Mark, GLOBALS};
 use swc_ecma_ast::*;
@@ -316,34 +318,8 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         },
       }
     }
-    let side_effects = if let Some(side_effects) = self
-      .module_graph
-      .module_by_identifier(&self.module_identifier)
-      .and_then(|module| module.as_normal_module())
-      .map(|normal_module| &normal_module.resource_resolved_data().resource_path)
-      .map(|p| {
-        let module_path = PathBuf::from(p);
-        self
-          .resolver
-          .0
-          .load_side_effects(module_path.as_path())
-          .ok()
-          .and_then(|item| item.and_then(|item| item.1))
-      }) {
-      match side_effects {
-        Some(side_effects) => match side_effects {
-          nodejs_resolver::SideEffects::Bool(s) => s,
-          nodejs_resolver::SideEffects::Array(_) => {
-            // TODO: more complex expression
-            true
-          }
-        },
-        None => true,
-      }
-    } else {
-      true
-      // TODO: adding some tracing
-    };
+
+    let side_effects = self.get_side_effects().unwrap_or(true);
     self.side_effects_free = !side_effects;
   }
 
@@ -842,6 +818,43 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       }
       Decl::Class(_) | Decl::Fn(_) | Decl::Var(_) => {
         node.visit_children_with(self);
+      }
+    }
+  }
+}
+
+impl<'a> ModuleRefAnalyze<'a> {
+  fn get_side_effects(&mut self) -> Option<bool> {
+    let resource_path = self
+      .module_graph
+      .module_by_identifier(&self.module_identifier)
+      .and_then(|module| module.as_normal_module())
+      .map(|normal_module| &normal_module.resource_resolved_data().resource_path)?;
+    // self.resolver.0.resolve(path, request);
+    let module_path = PathBuf::from(resource_path);
+    let (mut package_json_path, side_effects) = self
+      .resolver
+      .0
+      .load_side_effects(module_path.as_path())
+      .ok()??;
+    let side_effects = side_effects?;
+
+    package_json_path.pop();
+    let package_path = package_json_path;
+
+    match side_effects {
+      nodejs_resolver::SideEffects::Bool(s) => Some(s),
+      nodejs_resolver::SideEffects::Array(arr) => {
+        // TODO: Cache
+        let mut builder = GlobSetBuilder::new();
+        for glob in arr.iter() {
+          builder.add(Glob::new(glob).ok()?);
+        }
+        let matcher = builder.build().ok()?;
+        let relative_path = module_path.relative(package_path);
+        let side_effects = Some(matcher.is_match(relative_path));
+        dbg!(&side_effects);
+        side_effects
       }
     }
   }

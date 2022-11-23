@@ -15,7 +15,7 @@ async fn main() {
   let manifest_dir = PathBuf::from(env!("CARGO_WORKSPACE_DIR"));
   // let bundle_dir = manifest_dir.join("tests/fixtures/postcss/pxtorem");
   let bundle_dir: PathBuf =
-    manifest_dir.join("crates/rspack/tests/tree-shaking/assign-with-side-effects");
+    manifest_dir.join("crates/rspack/tests/tree-shaking/array-side-effects");
   println!("{:?}", bundle_dir);
   let mut options = read_test_config_and_normalize(&bundle_dir);
   options.__emit_error = true;
