@@ -7,8 +7,8 @@ use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::BoxSource;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, BoxModule, Compilation, CompilationArgs, DoneArgs,
-  FactorizeArgs, Module, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs,
+  AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkUkey, Compilation, CompilationArgs,
+  DoneArgs, FactorizeArgs, Module, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs,
   ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderManifestArgs, ThisCompilationArgs,
   TransformAst, TransformResult,
 };
@@ -152,10 +152,15 @@ pub trait Plugin: Debug + Send + Sync {
 // }
 
 #[derive(Debug)]
+pub struct PathData {
+  pub chunk_ukey: ChunkUkey,
+}
+
+#[derive(Debug)]
 pub struct RenderManifestEntry {
   pub(crate) source: BoxSource,
   filename: String,
-  // pathOptions÷: PathData;
+  pub(crate) path_options: PathData,
   // info?: AssetInfo;
   // pub identifier: String,
   // hash?: string;
@@ -163,8 +168,12 @@ pub struct RenderManifestEntry {
 }
 
 impl RenderManifestEntry {
-  pub fn new(source: BoxSource, filename: String) -> Self {
-    Self { source, filename }
+  pub fn new(source: BoxSource, filename: String, path_options: PathData) -> Self {
+    Self {
+      source,
+      filename,
+      path_options,
+    }
   }
 
   pub fn source(&self) -> &BoxSource {

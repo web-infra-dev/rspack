@@ -10,7 +10,7 @@ use rspack_core::rspack_sources::{
 use rspack_core::{
   runtime_globals, AstOrSource, ChunkKind, ChunkUkey, Compilation, FilenameRenderOptions,
   GenerateContext, GenerationResult, Module, ModuleAst, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, Plugin, PluginContext, PluginProcessAssetsOutput,
+  ParserAndGenerator, PathData, Plugin, PluginContext, PluginProcessAssetsOutput,
   PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderManifestEntry, SourceType,
   TargetPlatform,
 };
@@ -450,8 +450,14 @@ impl Plugin for JsPlugin {
           hash,
         })
     };
-
-    Ok(vec![RenderManifestEntry::new(source, output_path)])
+    let path_options = PathData {
+      chunk_ukey: args.chunk_ukey,
+    };
+    Ok(vec![RenderManifestEntry::new(
+      source,
+      output_path,
+      path_options,
+    )])
   }
 
   async fn process_assets(
