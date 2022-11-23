@@ -1,8 +1,8 @@
 import { Colorette } from "colorette";
 import { RspackCLI } from "./rspack-cli";
-import { WebpackOptionsNormalized } from "webpack";
+import type { WebpackOptionsNormalized } from "webpack";
 export type { Configuration } from "@rspack/core";
-import { Configuration as DevServerConfig } from "webpack-dev-server";
+import type { Configuration as DevServerConfig } from "webpack-dev-server";
 export interface IRspackCLI {
 	runRspack(): Promise<void>;
 }

@@ -20,16 +20,16 @@
     "concat-stream": "^2.0.0",
     "execa": "^5.0.0",
     "internal-ip": "6.2.0",
-    "source-map-support": "^0.5.19"
+    "source-map-support": "^0.5.19",
+    "webpack": "5.74.0",
+    "webpack-dev-server": "4.11.1"
   },
   "dependencies": {
     "@discoveryjs/json-ext": "^0.5.7",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "workspace:*",
     "colorette": "2.0.19",
-    "webpack": "5.74.0",
     "webpack-bundle-analyzer": "4.6.1",
-    "webpack-dev-server": "4.11.1",
     "yargs": "17.5.1"
   }
 }
