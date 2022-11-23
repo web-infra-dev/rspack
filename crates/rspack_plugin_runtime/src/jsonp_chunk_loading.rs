@@ -31,18 +31,42 @@ impl Plugin for JsonPChunkLoadingPlugin {
     let chunk = args.chunk;
     let runtime_requirements = &mut args.runtime_requirements;
 
-    if runtime_requirements.contains(runtime_globals::ENSURE_CHUNK_HANDLERS) {
-      runtime_requirements.insert(runtime_globals::MODULE_FACTORIES_ADD_ONLY.to_string());
-      runtime_requirements.insert(runtime_globals::HAS_OWN_PROPERTY.to_string());
-      runtime_requirements.insert(runtime_globals::PUBLIC_PATH.to_string());
-      runtime_requirements.insert(runtime_globals::LOAD_SCRIPT.to_string());
-      runtime_requirements.insert(runtime_globals::GET_CHUNK_SCRIPT_FILENAME.to_string());
-      compilation.add_runtime_module(
-        chunk,
-        JsonpChunkLoadingRuntimeModule::new(runtime_requirements.clone()).boxed(),
-      );
-    }
+    let mut has_jsonp_chunk_loading = false;
+    for runtime_requirement in runtime_requirements.clone().iter() {
+      match runtime_requirement.as_str() {
+        runtime_globals::ENSURE_CHUNK_HANDLERS => {
+          has_jsonp_chunk_loading = true;
+          runtime_requirements.insert(runtime_globals::PUBLIC_PATH.to_string());
+          runtime_requirements.insert(runtime_globals::LOAD_SCRIPT.to_string());
+          runtime_requirements.insert(runtime_globals::GET_CHUNK_SCRIPT_FILENAME.to_string());
+        }
+        runtime_globals::HMR_DOWNLOAD_UPDATE_HANDLERS => {
+          has_jsonp_chunk_loading = true;
+          runtime_requirements.insert(runtime_globals::PUBLIC_PATH.to_string());
+          runtime_requirements.insert(runtime_globals::LOAD_SCRIPT.to_string());
+          runtime_requirements
+            .insert(runtime_globals::GET_CHUNK_UPDATE_SCRIPT_FILENAME.to_string());
+          runtime_requirements.insert(runtime_globals::MODULE_CACHE.to_string());
+          runtime_requirements.insert(runtime_globals::HMR_MODULE_DATA.to_string());
+          runtime_requirements.insert(runtime_globals::MODULE_FACTORIES_ADD_ONLY.to_string());
+        }
+        runtime_globals::HMR_DOWNLOAD_MANIFEST => {
+          has_jsonp_chunk_loading = true;
+          runtime_requirements.insert(runtime_globals::PUBLIC_PATH.to_string());
+          runtime_requirements.insert(runtime_globals::GET_UPDATE_MANIFEST_FILENAME.to_string());
+        }
+        _ => {}
+      }
 
+      if has_jsonp_chunk_loading {
+        runtime_requirements.insert(runtime_globals::MODULE_FACTORIES_ADD_ONLY.to_string());
+        runtime_requirements.insert(runtime_globals::HAS_OWN_PROPERTY.to_string());
+        compilation.add_runtime_module(
+          chunk,
+          JsonpChunkLoadingRuntimeModule::new(runtime_requirements.clone()).boxed(),
+        );
+      }
+    }
     Ok(())
   }
 }

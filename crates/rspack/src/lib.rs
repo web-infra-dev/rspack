@@ -15,6 +15,12 @@ pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -
   plugins.push(Box::new(
     rspack_plugin_runtime::ArrayPushCallbackChunkFormatPlugin {},
   ));
+  plugins.push(Box::new(rspack_plugin_runtime::RuntimePlugin {}));
+  if options.dev_server.hot {
+    plugins.push(Box::new(
+      rspack_plugin_runtime::HotModuleReplacementPlugin {},
+    ));
+  }
   match &options.target.platform {
     TargetPlatform::Web => {
       plugins.push(Box::new(rspack_plugin_runtime::CssModulesPlugin {}));
@@ -27,8 +33,9 @@ pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -
     }
     _ => {}
   };
-
-  plugins.push(Box::new(rspack_plugin_runtime::RuntimePlugin {}));
+  plugins.push(Box::new(
+    rspack_plugin_runtime::BasicRuntimeRequirementPlugin {},
+  ));
   plugins.push(Box::new(rspack_plugin_externals::ExternalPlugin::default()));
   plugins.append(&mut options.plugins);
   plugins.push(Box::new(rspack_plugin_javascript::JsPlugin::new()));

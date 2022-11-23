@@ -81,3 +81,33 @@ pub const MODULE_FACTORIES: &str = "__webpack_require__.m";
  * interceptor for module executions
  */
 pub const INTERCEPT_MODULE_EXECUTION: &str = "__webpack_require__.i";
+
+/**
+ * function downloading the update manifest
+ */
+pub const HMR_DOWNLOAD_MANIFEST: &str = "__webpack_require__.hmrM";
+
+/**
+ * array with handler functions to download chunk updates
+ */
+pub const HMR_DOWNLOAD_UPDATE_HANDLERS: &str = "__webpack_require__.hmrC";
+
+/**
+ * the filename of the HMR manifest
+ */
+pub const GET_UPDATE_MANIFEST_FILENAME: &str = "__webpack_require__.hmrF";
+
+/**
+ * the filename of the script part of the hot update chunk
+ */
+pub const GET_CHUNK_UPDATE_SCRIPT_FILENAME: &str = "__webpack_require__.hu";
+
+/**
+ * the filename of the css part of the hot update chunk
+ */
+pub const GET_CHUNK_UPDATE_CSS_FILENAME: &str = "__webpack_require__.hk";
+
+/**
+ * object with all hmr module data for all modules
+ */
+pub const HMR_MODULE_DATA: &str = "__webpack_require__.hmrD";

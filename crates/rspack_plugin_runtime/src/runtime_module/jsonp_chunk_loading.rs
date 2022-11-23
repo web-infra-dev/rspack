@@ -35,13 +35,50 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     // );
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation);
     let mut source = ConcatSource::default();
-    source.add(RawSource::from(
-      include_str!("runtime/jsonp_chunk_loading.js")
-        .to_string()
-        .replace("INSTALLED_CHUNKS", &stringify_chunks(&initial_chunks, 0))
-        // TODO
-        .replace("JS_MATCHER", "chunkId"),
-    ));
+    source.add(RawSource::from("(function() {\n"));
+
+    // object to store loaded and loading chunks
+    // undefined = chunk not loaded, null = chunk preloaded/prefetched
+    // [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
+    source.add(RawSource::from(format!(
+      "var installedChunks = {};\n",
+      &stringify_chunks(&initial_chunks, 0)
+    )));
+
+    if self
+      .runtime_requirements
+      .contains(runtime_globals::ENSURE_CHUNK_HANDLERS)
+    {
+      source.add(RawSource::from(
+        include_str!("runtime/jsonp_chunk_loading.js")
+          .to_string()
+          // TODO
+          .replace("JS_MATCHER", "chunkId"),
+      ));
+    }
+
+    if self
+      .runtime_requirements
+      .contains(runtime_globals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+    {
+      source.add(RawSource::from(
+        include_str!("runtime/jsonp_chunk_loading_with_hmr.js").to_string(),
+      ));
+      source.add(RawSource::from(
+        include_str!("runtime/javascript_hot_module_replacement.js")
+          .to_string()
+          .replace("$key$", "jsonp"),
+      ));
+    }
+
+    if self
+      .runtime_requirements
+      .contains(runtime_globals::HMR_DOWNLOAD_MANIFEST)
+    {
+      source.add(RawSource::from(
+        include_str!("runtime/jsonp_chunk_loading_with_hmr_manifest.js").to_string(),
+      ));
+    }
 
     if self
       .runtime_requirements
@@ -51,6 +88,8 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         include_str!("runtime/jsonp_chunk_loading_with_on_chunk_load.js").to_string(),
       ));
     }
+
+    source.add(RawSource::from("\n})();\n"));
 
     source.boxed()
   }

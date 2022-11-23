@@ -1,4 +1,5 @@
-(function() {// var __webpack_modules__ = ({});
+(function() {
+// var __webpack_modules__ = ({});
 // replace here to modules
 var __webpack_modules__ = {
 "./foo.js": function (module, exports, __webpack_require__) {
@@ -76,4 +77,5 @@ __webpack_require__.m = __webpack_modules__;
 __webpack_require__.c = __webpack_module_cache__;
 // expose the module execution interceptor
 __webpack_require__.i = [];
-__webpack_require__("./index.js");})()
+__webpack_require__("./index.js");
+})();

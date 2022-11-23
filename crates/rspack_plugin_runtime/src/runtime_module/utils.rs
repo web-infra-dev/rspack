@@ -1,5 +1,5 @@
 use hashbrown::HashSet;
-use rspack_core::{ChunkUkey, Compilation};
+use rspack_core::{ChunkUkey, Compilation, SourceType};
 
 // pub fn condition_map_to_string(map: &HashMap<String, bool>, _value: String) -> String {
 //   let positive_items = map
@@ -29,18 +29,26 @@ pub fn get_initial_chunk_ids(
   match chunk {
     Some(chunk_ukey) => match compilation.chunk_by_ukey.get(&chunk_ukey) {
       Some(chunk) => {
-        let chunks = chunk.get_all_initial_chunks(&compilation.chunk_group_by_ukey);
-        let js_chunks = chunks
+        let js_chunks = chunk
+          .get_all_initial_chunks(&compilation.chunk_group_by_ukey)
           .iter()
-          .filter_map(|chunk| compilation.chunk_by_ukey.get(chunk))
-          .flat_map(|chunk| {
-            chunk
-              .files
-              .iter()
-              .filter(|file| file.ends_with(".js"))
-              .collect::<Vec<_>>()
+          .filter(|chunk_ukey| {
+            !compilation
+              .chunk_graph
+              .get_chunk_modules_by_source_type(
+                chunk_ukey,
+                SourceType::JavaScript,
+                &compilation.module_graph,
+              )
+              .is_empty()
           })
-          .cloned()
+          .map(|chunk_ukey| {
+            let chunk = compilation
+              .chunk_by_ukey
+              .get(chunk_ukey)
+              .expect("Chunk not found");
+            chunk.id.clone()
+          })
           .collect::<HashSet<_>>();
         js_chunks
       }
