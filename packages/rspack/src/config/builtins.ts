@@ -4,6 +4,7 @@ import type {
 	RawDecoratorOptions
 } from "@rspack/binding";
 import { loadConfig } from "browserslist";
+import { Dev } from "./devServer";
 
 export type BuiltinsHtmlPluginConfig = Omit<RawHtmlPluginConfig, "meta"> & {
 	meta?: Record<string, string | Record<string, string>>;

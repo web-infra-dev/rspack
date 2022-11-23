@@ -24,7 +24,7 @@ describe("normalize options snapshot", () => {
 		});
 	});
 
-	it("react-refresh added when react/refresh enabled", () => {
+	it("react-refresh client added when react/refresh enabled", () => {
 		matchAdditionEntries({
 			entry: ["something"],
 			builtins: {
@@ -33,6 +33,19 @@ describe("normalize options snapshot", () => {
 				}
 			}
 		});
+	});
+
+	it("react.development and react.refresh should be true in default when hot enabled", () => {
+		const compiler = createCompiler({
+			devServer: {
+				hot: true
+			}
+		});
+		new RspackDevServer(compiler);
+		expect({
+			builtins: compiler.options.builtins,
+			devServer: compiler.options.devServer
+		}).toMatchSnapshot();
 	});
 });
 

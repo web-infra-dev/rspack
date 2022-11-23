@@ -54,11 +54,24 @@ export class RspackDevServer {
 		this.sockets = [];
 		this.currentHash = "";
 		this.options = this.normalizeOptions(compiler.options.devServer);
+		this.rewriteCompilerOptions();
 		this.addAdditionEntires();
 	}
 
 	normalizeOptions(dev: Dev = {}) {
 		return resolveDevOptions(dev, this.compiler.options);
+	}
+
+	rewriteCompilerOptions() {
+		if (!this.compiler.options.builtins.react) {
+			this.compiler.options.builtins.react = {};
+		}
+		this.compiler.options.builtins.react.development =
+			this.compiler.options.builtins.react.development ?? true;
+		if (this.options.hot) {
+			this.compiler.options.builtins.react.refresh =
+				this.compiler.options.builtins.react.refresh ?? true;
+		}
 	}
 
 	addAdditionEntires() {
