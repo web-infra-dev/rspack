@@ -276,7 +276,10 @@ impl NormalModuleFactory {
       .rules
       .iter()
       .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
-        module_rule_matcher(module_rule, resource_data)
+        match module_rule_matcher(module_rule, resource_data) {
+          Ok(val) => val.then_some(Ok(module_rule)),
+          Err(err) => Some(Err(err)),
+        }
       })
       .collect::<Result<Vec<_>>>()?
       .into_iter()

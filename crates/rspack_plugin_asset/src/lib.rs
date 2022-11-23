@@ -130,7 +130,7 @@ impl AssetParserAndGenerator {
 
   fn generate_external_content(
     &self,
-    request: &str,
+    resource_path: &str,
     ast_or_source: &AstOrSource,
     generate_context: &mut GenerateContext,
     module_id: String,
@@ -147,7 +147,7 @@ impl AssetParserAndGenerator {
       .render(FilenameRenderOptions {
         filename: Some(name),
         extension: Some(
-          Path::new(request)
+          Path::new(resource_path)
             .extension()
             .and_then(OsStr::to_str)
             .map(|str| format!("{}{}", ".", str))
@@ -270,14 +270,15 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
     let result = match generate_context.requested_source_type {
       SourceType::JavaScript => {
-        let request = module.try_as_normal_module()?.request();
+        let module = module.try_as_normal_module()?;
+        let resource_path = &module.resource_resolved_data().resource_path;
 
         let exported_content = if parsed_asset_config.is_inline() {
           format!(
             r#""data:{};base64,{}""#,
-            mime_guess::MimeGuess::from_path(Path::new(request))
+            mime_guess::MimeGuess::from_path(Path::new(resource_path))
               .first()
-              .ok_or_else(|| anyhow::format_err!("failed to guess mime type of {}", request))?,
+              .ok_or_else(|| anyhow::format_err!("failed to guess mime type of {resource_path}"))?,
             base64::encode(
               ast_or_source
                 .as_source()
@@ -287,7 +288,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           )
         } else if parsed_asset_config.is_external() {
           self.generate_external_content(
-            request,
+            resource_path,
             ast_or_source,
             generate_context,
             module.identifier().to_string(),

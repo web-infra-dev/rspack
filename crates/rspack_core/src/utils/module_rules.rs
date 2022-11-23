@@ -12,34 +12,45 @@ fn module_rule_matcher_condition(condition: &ModuleRuleCondition, data: &str) ->
 }
 
 /// Match the `ModuleRule` against the given `ResourceData`, and return the matching `ModuleRule` if matched.
-pub fn module_rule_matcher<'r>(
-  module_rule: &'r ModuleRule,
-  resource_data: &ResourceData,
-) -> Option<Result<&'r ModuleRule>> {
+pub fn module_rule_matcher(module_rule: &ModuleRule, resource_data: &ResourceData) -> Result<bool> {
+  // Internal function to match the condition against the given `data`.
   if let Some(func) = &module_rule.func__ {
     match func(resource_data) {
-      Ok(result) => {
-        if result {
-          return Some(Ok(module_rule));
-        }
-
-        return None;
-      }
-      Err(e) => return Some(Err(e.into())),
+      Ok(result) => return Ok(result),
+      Err(e) => return Err(e.into()),
     }
+  }
+
+  if module_rule.test.is_none()
+    && module_rule.resource.is_none()
+    && module_rule.resource_query.is_none()
+  {
+    return Err(rspack_error::Error::InternalError(
+      "ModuleRule must have at least one condition".to_owned(),
+    ));
   }
 
   // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
   // See: https://webpack.js.org/configuration/module/#ruletest
-  if let Some(test_rule) = &module_rule.test && module_rule_matcher_condition(test_rule,&resource_data.resource) {
-    return Some(Ok(module_rule));
-  } else if let Some(resource_rule) = &module_rule.resource && module_rule_matcher_condition(resource_rule,&resource_data.resource) {
-    return Some(Ok(module_rule));
+  if let Some(test_rule) = &module_rule.test {
+    if !module_rule_matcher_condition(test_rule, &resource_data.resource) {
+      return Ok(false);
+    }
+  } else if let Some(resource_rule) = &module_rule.resource {
+    if !module_rule_matcher_condition(resource_rule, &resource_data.resource) {
+      return Ok(false);
+    }
   }
 
-  if let Some(resource_query_rule) = &module_rule.resource_query && let Some(resource_query) = &resource_data.resource_query && module_rule_matcher_condition(resource_query_rule,resource_query) {
-    return Some(Ok(module_rule));
+  if let Some(resource_query_rule) = &module_rule.resource_query {
+    if let Some(resource_query) = &resource_data.resource_query {
+      if !module_rule_matcher_condition(resource_query_rule, resource_query) {
+        return Ok(false);
+      }
+    } else {
+      return Ok(false);
+    }
   }
 
-  None
+  Ok(true)
 }
