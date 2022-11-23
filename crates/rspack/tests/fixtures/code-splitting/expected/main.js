@@ -508,7 +508,7 @@ __webpack_require__.i = [];
 })();
 (function() {
 var installedChunks = {"main": 0,};
-__webpack_require__.f.j = function(chunkId, promises) {
+__webpack_require__.f.j = function (chunkId, promises) {
 	// JSONP chunk loading for javascript
 	var installedChunkData = __webpack_require__.o(installedChunks, chunkId)
 		? installedChunks[chunkId]
@@ -534,8 +534,7 @@ __webpack_require__.f.j = function(chunkId, promises) {
 				var loadingEnded = function (event) {
 					if (__webpack_require__.o(installedChunks, chunkId)) {
 						installedChunkData = installedChunks[chunkId];
-						if (installedChunkData !== 0)
-							installedChunks[chunkId] = undefined;
+						if (installedChunkData !== 0) installedChunks[chunkId] = undefined;
 						if (installedChunkData) {
 							var errorType =
 								event && (event.type === "load" ? "missing" : event.type);
@@ -602,14 +601,14 @@ var currentUpdatedModulesList;
 var waitingUpdateResolves = {};
 function loadUpdateChunk(chunkId, updatedModulesList) {
 	currentUpdatedModulesList = updatedModulesList;
-	return new Promise(function(resolve, reject) {
+	return new Promise(function (resolve, reject) {
 		// start update chunk loading
 		var url = __webpack_require__.p + __webpack_require__.hu(chunkId);
 
 		waitingUpdateResolves[chunkId] = resolve;
 		// create error before stack unwound to get useful stacktrace later
 		var error = new Error();
-		var loadingEnded = function(event) {
+		var loadingEnded = function (event) {
 			if (waitingUpdateResolves[chunkId]) {
 				waitingUpdateResolves[chunkId] = undefined;
 				var errorType =
@@ -633,7 +632,7 @@ function loadUpdateChunk(chunkId, updatedModulesList) {
 	});
 }
 
-self["hotUpdate"] = function(chunkId, moreModules, runtime) {
+self["hotUpdate"] = function (chunkId, moreModules, runtime) {
 	for (var moduleId in moreModules) {
 		if (__webpack_require__.o(moreModules, moduleId)) {
 			currentUpdate[moduleId] = moreModules[moduleId];
@@ -772,9 +771,7 @@ function applyHandler(options) {
 					if (options.onDeclined) options.onDeclined(result);
 					if (!options.ignoreDeclined)
 						abortError = new Error(
-							"Aborted because of self decline: " +
-								result.moduleId +
-								chainInfo
+							"Aborted because of self decline: " + result.moduleId + chainInfo
 						);
 					break;
 				case "declined":
@@ -898,8 +895,7 @@ function applyHandler(options) {
 				if (__webpack_require__.o(outdatedDependencies, outdatedModuleId)) {
 					module = __webpack_require__.c[outdatedModuleId];
 					if (module) {
-						moduleOutdatedDependencies =
-							outdatedDependencies[outdatedModuleId];
+						moduleOutdatedDependencies = outdatedDependencies[outdatedModuleId];
 						for (j = 0; j < moduleOutdatedDependencies.length; j++) {
 							dependency = moduleOutdatedDependencies[j];
 							idx = module.children.indexOf(dependency);
@@ -913,8 +909,7 @@ function applyHandler(options) {
 			// insert new code
 			for (var updateModuleId in appliedUpdate) {
 				if (__webpack_require__.o(appliedUpdate, updateModuleId)) {
-					__webpack_require__.m[updateModuleId] =
-						appliedUpdate[updateModuleId];
+					__webpack_require__.m[updateModuleId] = appliedUpdate[updateModuleId];
 				}
 			}
 
@@ -928,17 +923,14 @@ function applyHandler(options) {
 				if (__webpack_require__.o(outdatedDependencies, outdatedModuleId)) {
 					var module = __webpack_require__.c[outdatedModuleId];
 					if (module) {
-						moduleOutdatedDependencies =
-							outdatedDependencies[outdatedModuleId];
+						moduleOutdatedDependencies = outdatedDependencies[outdatedModuleId];
 						var callbacks = [];
 						var errorHandlers = [];
 						var dependenciesForCallbacks = [];
 						for (var j = 0; j < moduleOutdatedDependencies.length; j++) {
 							var dependency = moduleOutdatedDependencies[j];
-							var acceptCallback =
-								module.hot._acceptedDependencies[dependency];
-							var errorHandler =
-								module.hot._acceptedErrorHandlers[dependency];
+							var acceptCallback = module.hot._acceptedDependencies[dependency];
+							var errorHandler = module.hot._acceptedErrorHandlers[dependency];
 							if (acceptCallback) {
 								if (callbacks.indexOf(acceptCallback) !== -1) continue;
 								callbacks.push(acceptCallback);
@@ -1092,31 +1084,36 @@ __webpack_require__.hmrC.jsonp = function (
 __webpack_require__.hmrM = function () {
 	if (typeof fetch === "undefined")
 		throw new Error("No browser support: need fetch API");
-	return fetch(__webpack_require__.p + __webpack_require__.hmrF()).then(function(response) {
-		if (response.status === 404) return; // no update available
-		if (!response.ok)
-			throw new Error(
-				"Failed to fetch update manifest " + response.statusText
-			);
-		return response.json();
-	});
-};(function () {
+	return fetch(__webpack_require__.p + __webpack_require__.hmrF()).then(
+		function (response) {
+			if (response.status === 404) return; // no update available
+			if (!response.ok)
+				throw new Error(
+					"Failed to fetch update manifest " + response.statusText
+				);
+			return response.json();
+		}
+	);
+};
+(function () {
 	__webpack_require__.O.j = function (chunkId) {
 		installedChunks[chunkId] === 0;
 	};
 })();
 
 })();
-(function() {
-    // TODO: + __webpack_require__.h()
+(function () {
+	// TODO: + __webpack_require__.h()
 	__webpack_require__.hmrF = function () {
-        return "main" + ".hot-update.json";
-    } 
-})();(function(){
-    __webpack_require__.hu = function (chunkId) {
-      return '' + chunkId + '.hot-update.js';
-    }
-})();(function () {
+		return "main" + ".hot-update.json";
+	};
+})();
+(function () {
+	__webpack_require__.hu = function (chunkId) {
+		return "" + chunkId + ".hot-update.js";
+	};
+})();
+(function () {
         // This function allow to reference async chunks
         __webpack_require__.k = function (chunkId) {
           // return url for filenames based on template

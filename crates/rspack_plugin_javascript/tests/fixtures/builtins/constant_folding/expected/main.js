@@ -460,14 +460,14 @@ var currentUpdatedModulesList;
 var waitingUpdateResolves = {};
 function loadUpdateChunk(chunkId, updatedModulesList) {
 	currentUpdatedModulesList = updatedModulesList;
-	return new Promise(function(resolve, reject) {
+	return new Promise(function (resolve, reject) {
 		// start update chunk loading
 		var url = __webpack_require__.p + __webpack_require__.hu(chunkId);
 
 		waitingUpdateResolves[chunkId] = resolve;
 		// create error before stack unwound to get useful stacktrace later
 		var error = new Error();
-		var loadingEnded = function(event) {
+		var loadingEnded = function (event) {
 			if (waitingUpdateResolves[chunkId]) {
 				waitingUpdateResolves[chunkId] = undefined;
 				var errorType =
@@ -491,7 +491,7 @@ function loadUpdateChunk(chunkId, updatedModulesList) {
 	});
 }
 
-self["hotUpdate"] = function(chunkId, moreModules, runtime) {
+self["hotUpdate"] = function (chunkId, moreModules, runtime) {
 	for (var moduleId in moreModules) {
 		if (__webpack_require__.o(moreModules, moduleId)) {
 			currentUpdate[moduleId] = moreModules[moduleId];
@@ -630,9 +630,7 @@ function applyHandler(options) {
 					if (options.onDeclined) options.onDeclined(result);
 					if (!options.ignoreDeclined)
 						abortError = new Error(
-							"Aborted because of self decline: " +
-								result.moduleId +
-								chainInfo
+							"Aborted because of self decline: " + result.moduleId + chainInfo
 						);
 					break;
 				case "declined":
@@ -756,8 +754,7 @@ function applyHandler(options) {
 				if (__webpack_require__.o(outdatedDependencies, outdatedModuleId)) {
 					module = __webpack_require__.c[outdatedModuleId];
 					if (module) {
-						moduleOutdatedDependencies =
-							outdatedDependencies[outdatedModuleId];
+						moduleOutdatedDependencies = outdatedDependencies[outdatedModuleId];
 						for (j = 0; j < moduleOutdatedDependencies.length; j++) {
 							dependency = moduleOutdatedDependencies[j];
 							idx = module.children.indexOf(dependency);
@@ -771,8 +768,7 @@ function applyHandler(options) {
 			// insert new code
 			for (var updateModuleId in appliedUpdate) {
 				if (__webpack_require__.o(appliedUpdate, updateModuleId)) {
-					__webpack_require__.m[updateModuleId] =
-						appliedUpdate[updateModuleId];
+					__webpack_require__.m[updateModuleId] = appliedUpdate[updateModuleId];
 				}
 			}
 
@@ -786,17 +782,14 @@ function applyHandler(options) {
 				if (__webpack_require__.o(outdatedDependencies, outdatedModuleId)) {
 					var module = __webpack_require__.c[outdatedModuleId];
 					if (module) {
-						moduleOutdatedDependencies =
-							outdatedDependencies[outdatedModuleId];
+						moduleOutdatedDependencies = outdatedDependencies[outdatedModuleId];
 						var callbacks = [];
 						var errorHandlers = [];
 						var dependenciesForCallbacks = [];
 						for (var j = 0; j < moduleOutdatedDependencies.length; j++) {
 							var dependency = moduleOutdatedDependencies[j];
-							var acceptCallback =
-								module.hot._acceptedDependencies[dependency];
-							var errorHandler =
-								module.hot._acceptedErrorHandlers[dependency];
+							var acceptCallback = module.hot._acceptedDependencies[dependency];
+							var errorHandler = module.hot._acceptedErrorHandlers[dependency];
 							if (acceptCallback) {
 								if (callbacks.indexOf(acceptCallback) !== -1) continue;
 								callbacks.push(acceptCallback);
@@ -950,26 +943,31 @@ __webpack_require__.hmrC.jsonp = function (
 __webpack_require__.hmrM = function () {
 	if (typeof fetch === "undefined")
 		throw new Error("No browser support: need fetch API");
-	return fetch(__webpack_require__.p + __webpack_require__.hmrF()).then(function(response) {
-		if (response.status === 404) return; // no update available
-		if (!response.ok)
-			throw new Error(
-				"Failed to fetch update manifest " + response.statusText
-			);
-		return response.json();
-	});
+	return fetch(__webpack_require__.p + __webpack_require__.hmrF()).then(
+		function (response) {
+			if (response.status === 404) return; // no update available
+			if (!response.ok)
+				throw new Error(
+					"Failed to fetch update manifest " + response.statusText
+				);
+			return response.json();
+		}
+	);
 };
+
 })();
-(function() {
-    // TODO: + __webpack_require__.h()
+(function () {
+	// TODO: + __webpack_require__.h()
 	__webpack_require__.hmrF = function () {
-        return "main" + ".hot-update.json";
-    } 
-})();(function(){
-    __webpack_require__.hu = function (chunkId) {
-      return '' + chunkId + '.hot-update.js';
-    }
-})();(function () {
+		return "main" + ".hot-update.json";
+	};
+})();
+(function () {
+	__webpack_require__.hu = function (chunkId) {
+		return "" + chunkId + ".hot-update.js";
+	};
+})();
+(function () {
 	var inProgress = {};
 	var dataWebpackPrefix = "webpack:";
 	// loadScript function to load a script via script tag
