@@ -1,8 +1,8 @@
 import INLINE_SVG from "./large.svg?inline";
 import RESOURCE_SVG from "./logo.svg";
 
-import RESOURCE_PNG from "./large.png?inline";
-import RESOURCE_PNG_2 from "./logo.png";
+import RESOURCE_PNG from "./logo.png?inline";
+import RESOURCE_PNG_2 from "./large.png";
 
 const RESOURCE_REGEX = /^\/assets\/[^/.]+\.svg$/;
 
