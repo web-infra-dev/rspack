@@ -12,7 +12,7 @@ module.exports = {
   module: {
     rules: [
       {
-        test: ".less$",
+        test: /\.less$/,
         type: "asset"
       }
     ]
