@@ -33,11 +33,11 @@ pub fn module_rule_matcher(module_rule: &ModuleRule, resource_data: &ResourceDat
   // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
   // See: https://webpack.js.org/configuration/module/#ruletest
   if let Some(test_rule) = &module_rule.test {
-    if !module_rule_matcher_condition(test_rule, &resource_data.resource) {
+    if !module_rule_matcher_condition(test_rule, &resource_data.resource_path) {
       return Ok(false);
     }
   } else if let Some(resource_rule) = &module_rule.resource {
-    if !module_rule_matcher_condition(resource_rule, &resource_data.resource) {
+    if !module_rule_matcher_condition(resource_rule, &resource_data.resource_path) {
       return Ok(false);
     }
   }

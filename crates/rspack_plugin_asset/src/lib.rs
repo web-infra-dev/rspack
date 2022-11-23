@@ -436,6 +436,14 @@ impl Plugin for AssetPlugin {
           .code_generation_results
           .get(&mgm.module_identifier, Some(&chunk.runtime))?;
 
+        let module = compilation
+          .module_graph
+          .module_by_identifier(&mgm.module_identifier)
+          .ok_or_else(|| Error::InternalError("Failed to get module".to_owned()))
+          .expect("Failed to get module")
+          .as_normal_module()
+          .expect("Normal module expected");
+
         let result = code_gen_result
           .get(&SourceType::Asset)
           .map(|result| result.ast_or_source.clone().try_into_source())
@@ -457,7 +465,7 @@ impl Plugin for AssetPlugin {
 
             let hash = None;
 
-            let path = Path::new(&mgm.id);
+            let path = Path::new(&module.resource_resolved_data().resource_path);
             RenderManifestEntry::new(
               source,
               args
