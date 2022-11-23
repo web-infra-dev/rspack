@@ -35,6 +35,7 @@ pub struct ModuleRule {
   /// See `test` above
   pub resource: Option<ModuleRuleCondition>,
   /// A condition matcher against the resource query.
+  /// TODO: align with webpack's `?` prefixed `resourceQuery`
   pub resource_query: Option<ModuleRuleCondition>,
   /// The `ModuleType` to use for the matched resource.
   pub module_type: Option<ModuleType>,
