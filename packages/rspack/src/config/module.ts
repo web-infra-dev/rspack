@@ -5,6 +5,7 @@ import type {
 } from "@rspack/binding";
 import assert from "node:assert";
 import path from "node:path";
+import { isNil } from "../utils";
 import { ResolvedContext } from "./context";
 import { isUseSourceMap, ResolvedDevtool } from "./devtool";
 
@@ -286,11 +287,13 @@ export function resolveModuleOptions(
 ): ResolvedModule {
 	const rules = (module.rules ?? []).map(rule => ({
 		...rule,
-		test: rule.test ? resolveModuleRuleCondition(rule.test) : null,
-		resource: rule.resource ? resolveModuleRuleCondition(rule.resource) : null,
-		resourceQuery: rule.resourceQuery
-			? resolveModuleRuleCondition(rule.resourceQuery)
-			: null,
+		test: isNil(rule.test) ? null : resolveModuleRuleCondition(rule.test),
+		resource: isNil(rule.resource)
+			? null
+			: resolveModuleRuleCondition(rule.resource),
+		resourceQuery: isNil(rule.resourceQuery)
+			? null
+			: resolveModuleRuleCondition(rule.resourceQuery),
 		uses: createRawModuleRuleUses(rule.uses || [], options)
 	}));
 	return {
