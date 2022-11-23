@@ -56,7 +56,9 @@ export function describeCases(config: { name: string; casePath: string }) {
 									main: "./"
 								},
 								mode: "development",
-
+								devServer: {
+									hot: false
+								},
 								infrastructureLogging: {
 									debug: false
 								},
