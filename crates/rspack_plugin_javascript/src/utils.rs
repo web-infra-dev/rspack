@@ -109,7 +109,7 @@ pub fn get_callexpr_literal_args(e: &CallExpr) -> String {
   }
 }
 
-pub fn is_require_literal_expr(e: &CallExpr, ctxt2: &SyntaxContext) -> bool {
+pub fn is_require_literal_expr(e: &CallExpr, unresolved_ctxt: &SyntaxContext) -> bool {
   if e.args.len() == 1 {
     let res = !get_callexpr_literal_args(e).is_empty();
 
@@ -122,7 +122,7 @@ pub fn is_require_literal_expr(e: &CallExpr, ctxt2: &SyntaxContext) -> bool {
               sym: js_word!("require"),
               span: Span { ctxt, .. },
               ..
-            }) if ctxt == ctxt2
+            }) if ctxt == unresolved_ctxt
           )
         }
         _ => false,
