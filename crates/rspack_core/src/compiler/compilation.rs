@@ -780,6 +780,7 @@ impl Compilation {
       bail_out_module_identifiers.extend(analyze_result.bail_out_module_identifiers.clone());
     }
 
+    let evaluated_module_identifiers_check_point = evaluated_module_identifiers.clone();
     // dbg!(&used_symbol_ref);
 
     // calculate relation of module that has `export * from 'xxxx'`
@@ -839,6 +840,28 @@ impl Compilation {
         &mut errors,
       );
       used_symbol.extend(used_symbol_set);
+    }
+
+    // TODO: SideEffects: only
+    let used_export_module_identifiers = evaluated_module_identifiers
+      .difference(&evaluated_module_identifiers_check_point)
+      .collect::<HashSet<_>>();
+
+    for result in analyze_results.values() {
+      if !self
+        .entry_module_identifiers
+        .contains(result.module_identifier.as_str())
+        && result.side_effects_free
+        && !used_export_module_identifiers.contains(&result.module_identifier)
+        && result.inherit_export_maps.len() == 0
+      {
+        dbg!(&result.module_identifier);
+        self
+          .module_graph
+          .module_graph_module_by_identifier_mut(result.module_identifier.as_str())
+          .unwrap()
+          .used = false;
+      }
     }
     // dbg!(&used_symbol, &bail_out_module_identifiers);
     Ok(
