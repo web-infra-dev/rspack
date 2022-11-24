@@ -3,6 +3,7 @@ it("should pass the resource to the loader", () => {
 	let result = require("./a?resourcequery#resourcefragment");
 	expect(result).toEqual({
 		resource: path.join(__dirname, "../a.js?resourcequery#resourcefragment"),
-		prev: 'module.exports = "a";'
+		// Formatted by prettier
+		prev: 'module.exports = "a";\n'
 	});
 });

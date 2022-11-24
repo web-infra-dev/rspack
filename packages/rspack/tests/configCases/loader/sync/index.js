@@ -1,4 +1,4 @@
-it("should allow combinations of async and sync loaders with `this.async`s or `this.callback`s", function () {
+it("should allow combinations of async and sync loaders with `Promise`s or direct returns", function () {
 	expect(require("./a?case-1")).toBe("a");
 	expect(require("./a?case-2")).toBe("a");
 	expect(require("./a?case-3")).toBe("a");

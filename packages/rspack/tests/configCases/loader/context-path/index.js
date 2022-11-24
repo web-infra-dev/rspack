@@ -3,6 +3,7 @@ it("should pass the path to the loader", () => {
 	let result = require("./a");
 	expect(result).toEqual({
 		resourcePath: path.join(__dirname, "../a.js"),
-		prev: 'module.exports = "a";'
+		// Formatted by prettier
+		prev: 'module.exports = "a";\n'
 	});
 });

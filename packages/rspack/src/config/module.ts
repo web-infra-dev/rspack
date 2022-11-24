@@ -94,11 +94,6 @@ const toBuffer = (bufLike: string | Buffer): Buffer => {
 	throw new Error("Buffer or string expected");
 };
 
-interface LoaderThreadsafeContext {
-	id: number;
-	p: LoaderContextInternal;
-}
-
 export interface ComposeJsUseOptions {
 	devtool: ResolvedDevtool;
 	context: ResolvedContext;
