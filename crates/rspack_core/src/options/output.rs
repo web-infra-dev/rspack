@@ -104,15 +104,6 @@ impl FromStr for PublicPath {
   }
 }
 
-impl PublicPath {
-  pub fn public_path(&self) -> &str {
-    match &self {
-      Self::String(s) => s,
-      Self::Auto => "__rspack_auto_public_path__ +",
-    }
-  }
-}
-
 fn get_hash_placeholder(filename: &str, placeholder: &str) -> String {
   let filename_split = filename.split('.');
 
