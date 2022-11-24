@@ -6,8 +6,8 @@ use rspack_core::{
   runtime_globals, Compilation, Dependency, Module, ModuleDependency, ResolveKind,
 };
 use swc_atoms::{Atom, JsWord};
-use swc_common::{Mark, DUMMY_SP};
-use swc_ecma_utils::{quote_ident, ExprFactory};
+use swc_common::{Mark, SyntaxContext, DUMMY_SP};
+use swc_ecma_utils::ExprFactory;
 use swc_ecma_visit::{Fold, VisitMut, VisitMutWith};
 use tracing::instrument;
 
@@ -29,8 +29,6 @@ pub struct RspackModuleFinalizer<'a> {
   pub module: &'a dyn Module,
   pub unresolved_mark: Mark,
   // pub resolved_ids: &'a HashMap<JsWord, ResolvedURI>,
-  pub require_ident: Ident,
-  pub module_ident: Ident,
   // pub entry_flag: bool,
   pub compilation: &'a Compilation,
 }
@@ -59,24 +57,18 @@ impl<'a> Fold for RspackModuleFinalizer<'a> {
 }
 
 pub struct RspackModuleFormatTransformer<'a> {
-  require_id: Id,
-  unresolved_mark: Mark,
   compilation: &'a Compilation,
   module: &'a dyn Module,
-  // resolved_ids: &'a HashMap<JsWord, ResolvedURI>,
+  unresolved_ctxt: SyntaxContext,
 }
+
 impl<'a> RspackModuleFormatTransformer<'a> {
   pub fn new(unresolved_mark: Mark, module: &'a dyn Module, bundle: &'a Compilation) -> Self {
     Self {
-      require_id: quote_ident!(DUMMY_SP.apply_mark(unresolved_mark), "require").to_id(),
-      unresolved_mark,
+      unresolved_ctxt: SyntaxContext::empty().apply_mark(unresolved_mark),
       module,
       compilation: bundle,
     }
-  }
-
-  fn get_rspack_import_callee(&self) -> Callee {
-    Ident::new(runtime_globals::REQUIRE.into(), DUMMY_SP).as_callee()
   }
 
   fn get_rspack_dynamic_import_callee(&self, chunk_ids: Vec<&str>) -> Callee {
@@ -102,7 +94,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
   }
 
   fn rewrite_static_import(&mut self, n: &mut CallExpr) -> Option<()> {
-    if is_require_literal_expr(n, self.unresolved_mark, &self.require_id) {
+    if is_require_literal_expr(n, &self.unresolved_ctxt) {
       if let Callee::Expr(box Expr::Ident(_ident)) = &mut n.callee {
         if let ExprOrSpread {
           spread: None,
@@ -158,7 +150,6 @@ impl<'a> RspackModuleFormatTransformer<'a> {
           str.value = JsWord::from(js_module?.id.as_str());
           str.raw = Some(Atom::from(format!("\"{}\"", js_module?.id.as_str())));
         };
-        n.callee = self.get_rspack_import_callee();
       }
     }
     Some(())
@@ -273,5 +264,11 @@ impl<'a> VisitMut for RspackModuleFormatTransformer<'a> {
       self.rewrite_static_import(n);
     }
     n.visit_mut_children_with(self);
+  }
+
+  fn visit_mut_ident(&mut self, ident: &mut Ident) {
+    if "require".eq(&ident.sym) && ident.span.ctxt == self.unresolved_ctxt {
+      ident.sym = runtime_globals::REQUIRE.into();
+    }
   }
 }

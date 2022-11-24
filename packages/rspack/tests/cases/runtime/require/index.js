@@ -29,3 +29,8 @@ it("modules required by custom module runtimes should not be included", () => {
 	// This keeps the dependencies of the custom runtime from being included
 	expect(eval("__webpack_require__.m")["./error.js"]).toBeFalsy();
 });
+
+it("should transform typeof require indent", () => {
+	const { testTypeofRequire } = require("./typeof-require");
+	expect(testTypeofRequire()).toBe(true);
+});

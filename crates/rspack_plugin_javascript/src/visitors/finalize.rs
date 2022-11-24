@@ -1,8 +1,7 @@
 // use super::hmr::HmrModuleIdReWriter;
 use crate::visitors::RspackModuleFinalizer;
 use rspack_core::{Compilation, Module};
-use swc_common::{Mark, DUMMY_SP, GLOBALS};
-use swc_ecma_utils::quote_ident;
+use swc_common::{Mark, GLOBALS};
 use swc_ecma_visit::Fold;
 
 pub fn finalize<'a>(
@@ -18,8 +17,6 @@ pub fn finalize<'a>(
   RspackModuleFinalizer {
     module,
     unresolved_mark,
-    require_ident: quote_ident!(DUMMY_SP.apply_mark(unresolved_mark), "__rspack_require__"),
-    module_ident: quote_ident!(DUMMY_SP.apply_mark(unresolved_mark), "module"),
     // entry_flag,
     compilation,
   }

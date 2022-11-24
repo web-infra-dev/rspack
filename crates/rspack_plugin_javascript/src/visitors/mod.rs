@@ -151,9 +151,9 @@ pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut
         generate_context.compilation.options.target.es_version
       ),
       inject_runtime_helper(generate_context.runtime_requirements),
+      finalize(module, generate_context.compilation, unresolved_mark),
       swc_visitor::hygiene(false),
       swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
-      finalize(module, generate_context.compilation, unresolved_mark)
     );
 
     program.fold_with(&mut pass);
