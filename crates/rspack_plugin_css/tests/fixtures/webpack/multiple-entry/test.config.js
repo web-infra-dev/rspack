@@ -1,6 +1,10 @@
 module.exports = {
 	entry: {
-		"main-one": ["./index-one.js"],
-		"main-two": ["./index-two.js"]
+		"main-one": {
+			import: ["./index-one.js"]
+		},
+		"main-two": {
+			import: ["./index-two.js"]
+		}
 	}
 };

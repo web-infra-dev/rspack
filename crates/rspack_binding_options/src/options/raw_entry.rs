@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 #[napi(object)]
 pub struct RawEntryItem {
   pub import: Vec<String>,
-  pub runtime: String,
+  pub runtime: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Serialize)]
@@ -16,5 +16,5 @@ pub struct RawEntryItem {
 #[cfg(not(feature = "node-api"))]
 pub struct RawEntryItem {
   pub import: Vec<String>,
-  pub runtime: String,
+  pub runtime: Option<String>,
 }

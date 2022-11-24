@@ -131,20 +131,24 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
       Ok(options)
     })?
     .then(|mut options| {
-      options.entry = raw_options.entry.map(|item| {
-        item
-          .into_iter()
-          .map(|(key, value)| {
-            (
-              key,
-              EntryItem {
-                runtime: value.runtime,
-                import: value.import,
-              },
-            )
-          })
-          .collect::<HashMap<String, EntryItem>>()
-      });
+      let entry = raw_options
+        .entry
+        .map(|item| {
+          item
+            .into_iter()
+            .map(|(key, value)| {
+              (
+                key,
+                EntryItem {
+                  runtime: value.runtime,
+                  import: value.import,
+                },
+              )
+            })
+            .collect::<HashMap<String, EntryItem>>()
+        })
+        .unwrap_or_default();
+      options.entry = Some(entry);
       Ok(options)
     })?
     .then(|mut options| {

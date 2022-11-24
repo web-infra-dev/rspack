@@ -1,4 +1,4 @@
-use rspack_binding_options::{normalize_bundle_options, RawOptions};
+use rspack_binding_options::{normalize_bundle_options, RawEntryItem, RawOptions};
 use rspack_core::CompilerOptions;
 
 use std::{
@@ -36,7 +36,10 @@ impl RawOptionsExt for RawOptions {
       RawOptions {
         entry: Some(HashMap::from([(
           "main".to_string(),
-          vec![fixture_path.join("index.js").to_str().unwrap().to_string()],
+          RawEntryItem {
+            import: vec![fixture_path.join("index.js").to_str().unwrap().to_string()],
+            runtime: None,
+          },
         )])),
         ..Default::default()
       }

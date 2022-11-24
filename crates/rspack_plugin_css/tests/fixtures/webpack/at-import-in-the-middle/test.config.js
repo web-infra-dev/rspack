@@ -1,5 +1,7 @@
 module.exports = {
 	entry: {
-		main: ["./index.css"]
+		main: {
+			import: ["./index.css"]
+		}
 	}
 };

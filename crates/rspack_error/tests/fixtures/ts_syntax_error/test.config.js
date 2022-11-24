@@ -1,5 +1,7 @@
 module.exports = {
 	entry: {
-		main: ["./index.ts"]
+		main: {
+			import: ["./index.ts"]
+		}
 	}
 };

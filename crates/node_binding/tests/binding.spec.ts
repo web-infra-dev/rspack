@@ -7,7 +7,11 @@ import { RawOptions } from '../binding.d'
 describe('binding', () => {
   it('work', async () => {
     const options: RawOptions = {
-      entries: { main: path.resolve(__dirname, './index.js') },
+      entries: {
+        main: {
+          import: path.resolve(__dirname, './index.js')
+        }
+      },
       // entryFilename: path.resolve(__dirname, 'dist/main.js'),
     }
     const instance = binding.newRspack(JSON.stringify(options))
