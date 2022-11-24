@@ -1,6 +1,3 @@
 export function testTypeofRequire() {
-	if (typeof require !== "undefined") {
-		return true;
-	}
-	return false;
+	return typeof require !== "undefined";
 }
