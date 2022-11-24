@@ -19,8 +19,9 @@ pub const ID_PLACEHOLDER: &str = "[id]";
 pub const HASH_PLACEHOLDER: &str = "[hash]";
 pub const CHUNK_HASH_PLACEHOLDER: &str = "[chunkhash]";
 pub const CONTENT_HASH_PLACEHOLDER: &str = "[contenthash]";
+pub const QUERY_PLACEHOLDER: &str = "[query]";
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct FilenameRenderOptions {
   pub filename: Option<String>,
   pub extension: Option<String>,
@@ -28,6 +29,7 @@ pub struct FilenameRenderOptions {
   pub contenthash: Option<String>,
   pub chunkhash: Option<String>,
   pub hash: Option<String>,
+  pub query: Option<String>,
 }
 #[derive(Debug)]
 pub struct Filename {
@@ -78,6 +80,10 @@ impl Filename {
       let hash_length: usize = get_hash_length(&hash_placeholder, HASH_PLACEHOLDER);
 
       filename = filename.replace(&hash_placeholder, &hash[..hash_length]);
+    }
+
+    if let Some(query) = options.query {
+      filename = filename.replace(QUERY_PLACEHOLDER, &query);
     }
     filename
   }

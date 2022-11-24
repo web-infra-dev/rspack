@@ -436,6 +436,7 @@ impl Plugin for JsPlugin {
       contenthash: hash.clone(),
       chunkhash: hash.clone(),
       hash,
+      ..Default::default()
     });
 
     let path_options = PathData {

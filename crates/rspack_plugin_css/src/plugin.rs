@@ -502,6 +502,7 @@ impl Plugin for CssPlugin {
         contenthash: hash.clone(),
         chunkhash: hash.clone(),
         hash,
+        ..Default::default()
       });
 
       let path_data = PathData {

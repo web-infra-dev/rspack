@@ -11,7 +11,8 @@ use napi_derive::napi;
 
 use rspack_core::{
   CompilerOptionsBuilder, Filename, OutputOptions, PublicPath, CHUNK_HASH_PLACEHOLDER,
-  CONTENT_HASH_PLACEHOLDER, ID_PLACEHOLDER, NAME_PLACEHOLDER,
+  CONTENT_HASH_PLACEHOLDER, EXT_PLACEHOLDER, HASH_PLACEHOLDER, ID_PLACEHOLDER, NAME_PLACEHOLDER,
+  QUERY_PLACEHOLDER,
 };
 
 use crate::RawOption;
@@ -128,9 +129,12 @@ impl RawOption<OutputOptions> for RawOutputOptions {
       .unique_name
       .unwrap_or_else(|| String::from("__rspack_runtime__"));
     let public_path = self.public_path.unwrap_or_else(|| String::from("/"));
-    let asset_module_filename = self
-      .asset_module_filename
-      .unwrap_or_else(|| format!("assets/{}", filename));
+    let asset_module_filename = self.asset_module_filename.unwrap_or_else(|| {
+      format!(
+        "{}{}{}",
+        HASH_PLACEHOLDER, EXT_PLACEHOLDER, QUERY_PLACEHOLDER
+      )
+    });
     Ok(OutputOptions {
       path,
       asset_module_filename: Filename::from_str(&asset_module_filename)?,
