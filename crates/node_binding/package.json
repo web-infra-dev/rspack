@@ -13,8 +13,8 @@
     "*.node"
   ],
   "scripts": {
-    "build": "napi build --platform --js false --dts binding.d.ts --config napirs.rc.json",
-    "build:release:all": "pnpm build:release && pnpm build:release:x64 && pnpm build:release:linux",
+    "build:debug": "napi build --platform --js false --dts binding.d.ts --config napirs.rc.json",
+    "build:release:all": "run-p build:release build:release:x64 build:release:linux",
     "build:release": "napi build --release --platform --js false --dts binding.d.ts --config napirs.rc.json",
     "build:release:x64": "napi build --release --platform --js false --dts binding.d.ts --config napirs.rc.json --target x86_64-apple-darwin",
     "build:release:linux": "napi build --release --platform --js false --dts binding.d.ts --config napirs.rc.json --zig --target x86_64-unknown-linux-gnu --zig-abi-suffix=2.17"
@@ -24,6 +24,7 @@
   "license": "ISC",
   "devDependencies": {
     "@napi-rs/cli": "^2.6.2",
-    "why-is-node-running": "2.2.1"
+    "why-is-node-running": "2.2.1",
+    "npm-run-all": "4.1.5"
   }
 }
