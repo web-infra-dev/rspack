@@ -132,8 +132,8 @@ function composeJsUse(
 		const payload: LoaderContextInternal = JSON.parse(data.toString("utf-8"));
 
 		let content: string | Buffer = Buffer.from(payload.source);
-		let sourceMap: string | SourceMap | null = payload.sourceMap;
-		let additionalData: AdditionalData = {};
+		let sourceMap: string | SourceMap | undefined = payload.sourceMap;
+		let additionalData: AdditionalData | undefined;
 
 		// Loader is executed from right to left
 		for (const use of uses) {
@@ -276,7 +276,9 @@ function composeJsUse(
 
 		const loaderResultPayload: LoaderResultInternal = {
 			content: [...toBuffer(content)],
-			additionalData: [...toBuffer(JSON.stringify(additionalData))]
+			// TODO: Support `SourceMap`
+			// TODO: Use `None` for the rust side
+			additionalData: [...toBuffer(JSON.stringify(additionalData || {}))]
 		};
 
 		return Buffer.from(JSON.stringify(loaderResultPayload), "utf-8");
