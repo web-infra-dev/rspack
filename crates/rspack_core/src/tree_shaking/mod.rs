@@ -1,5 +1,5 @@
 use hashbrown::{HashMap, HashSet};
-use rspack_symbol::Symbol;
+use rspack_symbol::{IndirectTopLevelSymbol, Symbol};
 use ustr::Ustr;
 
 use self::visitor::TreeShakingResult;
@@ -9,6 +9,7 @@ pub mod visitor;
 #[derive(Debug)]
 pub struct OptimizeDependencyResult {
   pub used_symbol: HashSet<Symbol>,
+  pub used_indirect_symbol: HashSet<IndirectTopLevelSymbol>,
   pub analyze_results: HashMap<Ustr, TreeShakingResult>,
   pub bail_out_module_identifiers: HashMap<Ustr, BailoutReason>,
 }

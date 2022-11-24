@@ -48,7 +48,7 @@ use crate::{
   NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs,
   ResolveKind, RuntimeModule, SharedPluginDriver, Stats, VisitedModuleIdentity,
 };
-use rspack_symbol::Symbol;
+use rspack_symbol::{IndirectTopLevelSymbol, Symbol};
 
 #[derive(Debug)]
 pub struct EntryData {
@@ -77,6 +77,7 @@ pub struct Compilation {
   pub entry_module_identifiers: HashSet<ModuleIdentifier>,
   /// Collecting all used export symbol
   pub used_symbol: HashSet<Symbol>,
+  pub used_indirect_symbol: HashSet<IndirectTopLevelSymbol>,
   /// Collecting all module that need to skip in tree-shaking ast modification phase
   pub bailout_module_identifiers: HashMap<Ustr, BailoutReason>,
   #[cfg(debug_assertions)]
@@ -123,6 +124,7 @@ impl Compilation {
       code_generated_modules: Default::default(),
 
       _pin: PhantomPinned,
+      used_indirect_symbol: HashSet::default(),
     }
   }
   pub fn add_entry(&mut self, name: String, detail: EntryItem) {
@@ -832,7 +834,6 @@ impl Compilation {
       bail_out_module_identifiers.extend(analyze_result.bail_out_module_identifiers.clone());
     }
 
-    let evaluated_module_identifiers_check_point = evaluated_module_identifiers.clone();
     // dbg!(&used_symbol_ref);
 
     // calculate relation of module that has `export * from 'xxxx'`
@@ -871,12 +872,16 @@ impl Compilation {
     }
     let mut errors = vec![];
     let mut used_symbol = HashSet::new();
+    let mut used_indirect_symbol: HashSet<IndirectTopLevelSymbol> = HashSet::new();
+    let mut used_export_module_identifiers: HashSet<Ustr> = HashSet::new();
     // Marking used symbol and all reachable export symbol from the used symbol for each module
     let used_symbol_from_import = mark_used_symbol_with(
       &analyze_results,
       VecDeque::from_iter(used_symbol_ref.into_iter()),
       &bail_out_module_identifiers,
       &mut evaluated_module_identifiers,
+      &mut used_indirect_symbol,
+      &mut used_export_module_identifiers,
       &mut errors,
     );
 
@@ -887,22 +892,22 @@ impl Compilation {
       let used_symbol_set = collect_reachable_symbol(
         &analyze_results,
         ustr(&entry),
+        &mut used_indirect_symbol,
         &bail_out_module_identifiers,
         &mut evaluated_module_identifiers,
+        &mut used_export_module_identifiers,
         &mut errors,
       );
       used_symbol.extend(used_symbol_set);
     }
 
     // TODO: SideEffects: only
-    let used_export_module_identifiers = evaluated_module_identifiers
-      .difference(&evaluated_module_identifiers_check_point)
-      .collect::<HashSet<_>>();
 
     for result in analyze_results.values() {
-      if !self
-        .entry_module_identifiers
-        .contains(result.module_identifier.as_str())
+      if !bail_out_module_identifiers.contains_key(&result.module_identifier)
+        && !self
+          .entry_module_identifiers
+          .contains(result.module_identifier.as_str())
         && result.side_effects_free
         && !used_export_module_identifiers.contains(&result.module_identifier)
         && result.inherit_export_maps.len() == 0
@@ -934,12 +939,13 @@ impl Compilation {
         }
       }
     }
-    // dbg!(&used_symbol, &bail_out_module_identifiers);
+    dbg!(&used_symbol, &used_indirect_symbol);
     Ok(
       OptimizeDependencyResult {
         used_symbol,
         analyze_results,
         bail_out_module_identifiers,
+        used_indirect_symbol,
       }
       .with_diagnostic(errors_to_diagnostics(errors)),
     )
@@ -1252,8 +1258,10 @@ pub struct AssetInfoRelated {
 fn collect_reachable_symbol(
   analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
   entry_identifier: Ustr,
+  used_indirect_symbol: &mut HashSet<IndirectTopLevelSymbol>,
   bailout_module_identifiers: &HashMap<Ustr, BailoutReason>,
   evaluated_module_identifiers: &mut HashSet<Ustr>,
+  used_export_module_identifiers: &mut HashSet<Ustr>,
   errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
   let mut used_symbol_set = HashSet::new();
@@ -1302,10 +1310,12 @@ fn collect_reachable_symbol(
     mark_symbol(
       item.clone(),
       &mut used_symbol_set,
+      used_indirect_symbol,
       analyze_map,
       &mut q,
       bailout_module_identifiers,
       evaluated_module_identifiers,
+      used_export_module_identifiers,
       errors,
     );
   }
@@ -1314,10 +1324,12 @@ fn collect_reachable_symbol(
     mark_symbol(
       sym_ref,
       &mut used_symbol_set,
+      used_indirect_symbol,
       analyze_map,
       &mut q,
       bailout_module_identifiers,
       evaluated_module_identifiers,
+      used_export_module_identifiers,
       errors,
     );
   }
@@ -1329,6 +1341,8 @@ fn mark_used_symbol_with(
   mut init_queue: VecDeque<SymbolRef>,
   bailout_module_identifiers: &HashMap<Ustr, BailoutReason>,
   evaluated_module_identifiers: &mut HashSet<Ustr>,
+  used_indirect_symbol_set: &mut HashSet<IndirectTopLevelSymbol>,
+  used_export_module_identifiers: &mut HashSet<Ustr>,
   errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
   let mut used_symbol_set = HashSet::new();
@@ -1343,10 +1357,12 @@ fn mark_used_symbol_with(
     mark_symbol(
       sym_ref,
       &mut used_symbol_set,
+      used_indirect_symbol_set,
       analyze_map,
       &mut init_queue,
       bailout_module_identifiers,
       evaluated_module_identifiers,
+      used_export_module_identifiers,
       errors,
     );
   }
@@ -1356,10 +1372,12 @@ fn mark_used_symbol_with(
 fn mark_symbol(
   symbol_ref: SymbolRef,
   used_symbol_set: &mut HashSet<Symbol>,
+  used_indirect_symbol_set: &mut HashSet<IndirectTopLevelSymbol>,
   analyze_map: &HashMap<Ustr, TreeShakingResult>,
   q: &mut VecDeque<SymbolRef>,
   bailout_module_identifiers: &HashMap<Ustr, BailoutReason>,
   evaluated_module_identifiers: &mut HashSet<Ustr>,
+  used_export_module_identifiers: &mut HashSet<Ustr>,
   errors: &mut Vec<Error>,
 ) {
   // We don't need mark the symbol usage if it is from a bailout module because
@@ -1368,6 +1386,15 @@ fn mark_symbol(
   // }
   let is_bailout_module_identifier =
     bailout_module_identifiers.contains_key(&symbol_ref.module_identifier());
+  match &symbol_ref {
+    SymbolRef::Direct(symbol) => {
+      used_export_module_identifiers.insert(symbol.uri());
+    }
+    SymbolRef::Indirect(indirect) => {
+      used_export_module_identifiers.insert(indirect.uri());
+    }
+    SymbolRef::Star(_) => {}
+  };
   match symbol_ref {
     SymbolRef::Direct(symbol) => match used_symbol_set.entry(symbol) {
       Occupied(_) => {}
@@ -1399,6 +1426,7 @@ fn mark_symbol(
       }
     },
     SymbolRef::Indirect(indirect_symbol) => {
+      used_indirect_symbol_set.insert(indirect_symbol.clone());
       let module_result = match analyze_map.get(&indirect_symbol.uri) {
         Some(module_result) => module_result,
         None => {
