@@ -22,7 +22,7 @@ module.exports = {
 		rules: [
 			{
 				test: resolve("index.js"),
-				uses: [
+				use: [
 					{
 						loader: testLoader
 					}

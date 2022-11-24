@@ -38,8 +38,8 @@ pub struct ModuleRule {
   /// TODO: align with webpack's `?` prefixed `resourceQuery`
   pub resource_query: Option<ModuleRuleCondition>,
   /// The `ModuleType` to use for the matched resource.
-  pub module_type: Option<ModuleType>,
-  pub uses: Vec<BoxedLoader>,
+  pub r#type: Option<ModuleType>,
+  pub r#use: Vec<BoxedLoader>,
   /// Internal matching method, not intended to be used by the user. (Loader experimental)
   pub func__: Option<ModuleRuleFunc>,
 }
@@ -50,9 +50,9 @@ impl Debug for ModuleRule {
       .field("test", &self.test)
       .field("resource", &self.resource)
       .field("resource_query", &self.resource_query)
-      .field("module_type", &self.module_type)
+      .field("type", &self.r#type)
       .field("func__", &self.func__.as_ref().map(|_| ".."))
-      .field("uses", &self.uses)
+      .field("use", &self.r#use)
       .finish()
   }
 }

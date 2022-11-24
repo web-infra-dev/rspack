@@ -19,7 +19,7 @@ module.exports = {
 		rules: [
 			{
 				test: /index\.js/,
-				uses: [
+				use: [
 					{
 						loader: testLoader
 					}

@@ -284,8 +284,8 @@ impl NormalModuleFactory {
       .collect::<Result<Vec<_>>>()?
       .into_iter()
       .for_each(|module_rule| {
-        if module_rule.module_type.is_some() {
-          resolved_module_type = module_rule.module_type;
+        if module_rule.r#type.is_some() {
+          resolved_module_type = module_rule.r#type;
         };
       });
 

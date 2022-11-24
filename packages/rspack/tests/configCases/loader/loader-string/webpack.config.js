@@ -7,7 +7,7 @@ module.exports = {
 		rules: [
 			{
 				test: /lib\.js/,
-				uses: [
+				use: [
 					{
 						loader: "./my-loader.js"
 					}

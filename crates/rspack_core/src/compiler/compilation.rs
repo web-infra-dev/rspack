@@ -483,7 +483,7 @@ impl Compilation {
 
       let resolved_loaders = resolved_loaders
         .into_iter()
-        .flat_map(|module_rule| module_rule.uses.iter().map(Box::as_ref).rev())
+        .flat_map(|module_rule| module_rule.r#use.iter().map(Box::as_ref).rev())
         .collect::<Vec<_>>();
 
       if let Err(e) = plugin_driver

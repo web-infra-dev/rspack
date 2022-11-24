@@ -4,7 +4,7 @@ module.exports = {
 		rules: [
 			{
 				test: /\.module\.css$/,
-				uses: [
+				use: [
 					{
 						loader: postcssLoader,
 						options: {
@@ -15,7 +15,7 @@ module.exports = {
 			},
 			{
 				test: /\.css$/,
-				uses: [
+				use: [
 					{
 						loader: postcssLoader
 					}

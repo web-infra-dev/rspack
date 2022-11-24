@@ -15,7 +15,7 @@ export interface ModuleRule {
 	test?: string | RegExp;
 	resource?: string | RegExp;
 	resourceQuery?: string | RegExp;
-	uses?: ModuleRuleUse[];
+	use?: ModuleRuleUse[];
 	type?: RawModuleRule["type"];
 }
 
@@ -28,7 +28,7 @@ interface ResolvedModuleRule {
 	test?: RawModuleRule["test"];
 	resource?: RawModuleRule["resource"];
 	resourceQuery?: RawModuleRule["resourceQuery"];
-	uses?: RawModuleRuleUse[];
+	use?: RawModuleRuleUse[];
 	type?: RawModuleRule["type"];
 }
 
@@ -287,7 +287,7 @@ export function resolveModuleOptions(
 		resourceQuery: isNil(rule.resourceQuery)
 			? null
 			: resolveModuleRuleCondition(rule.resourceQuery),
-		uses: createRawModuleRuleUses(rule.uses || [], options)
+		use: createRawModuleRuleUses(rule.use || [], options)
 	}));
 	return {
 		parser: module.parser,
