@@ -54,6 +54,7 @@ pub struct ModuleGraphModule {
   pub(crate) pre_order_index: Option<usize>,
   pub post_order_index: Option<usize>,
   pub module_syntax: ModuleSyntax,
+  pub used: bool,
 }
 
 impl ModuleGraphModule {
@@ -78,6 +79,7 @@ impl ModuleGraphModule {
       pre_order_index: None,
       post_order_index: None,
       module_syntax: ModuleSyntax::empty(),
+      used: true,
     }
   }
 

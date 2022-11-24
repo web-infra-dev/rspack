@@ -211,6 +211,7 @@ impl JsPlugin {
 
     let module_code_array = ordered_modules
       .par_iter()
+      .filter(|mgm| mgm.used)
       .map(|mgm| {
         let code_gen_result = compilation
           .code_generation_results
