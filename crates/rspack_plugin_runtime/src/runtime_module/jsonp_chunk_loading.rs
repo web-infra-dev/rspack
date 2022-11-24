@@ -51,7 +51,6 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     {
       source.add(RawSource::from(
         include_str!("runtime/jsonp_chunk_loading.js")
-          .to_string()
           // TODO
           .replace("JS_MATCHER", "chunkId"),
       ));
@@ -65,9 +64,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         include_str!("runtime/jsonp_chunk_loading_with_hmr.js").to_string(),
       ));
       source.add(RawSource::from(
-        include_str!("runtime/javascript_hot_module_replacement.js")
-          .to_string()
-          .replace("$key$", "jsonp"),
+        include_str!("runtime/javascript_hot_module_replacement.js").replace("$key$", "jsonp"),
       ));
     }
 

@@ -1,6 +1,6 @@
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeModule,
+  ChunkUkey, Compilation, RuntimeModule, RuntimeSpec,
 };
 
 #[derive(Debug, Default)]
@@ -10,7 +10,11 @@ pub struct GetMainFilenameRuntimeModule {
 
 impl RuntimeModule for GetMainFilenameRuntimeModule {
   fn identifier(&self) -> String {
-    "webpack/runtime/get_main_filename".to_string()
+    if let Some(chunk_ukey) = self.chunk {
+      format!("webpack/runtime/get_main_filename/{:?}", chunk_ukey)
+    } else {
+      unreachable!("should attach chunk for get_main_filename")
+    }
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
@@ -21,8 +25,7 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
         .expect("Chunk not found");
       RawSource::from(
         include_str!("runtime/get_update_manifest_filename.js")
-          .to_string()
-          .replace("$CHUNK_ID$", &chunk.id),
+          .replace("$CHUNK_ID$", &stringify_runtime(&chunk.runtime)),
       )
       .boxed()
     } else {
@@ -33,4 +36,9 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
   fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk);
   }
+}
+
+#[inline]
+fn stringify_runtime(runtime: &RuntimeSpec) -> String {
+  Vec::from_iter(runtime.iter().map(|s| s.as_str())).join("_")
 }

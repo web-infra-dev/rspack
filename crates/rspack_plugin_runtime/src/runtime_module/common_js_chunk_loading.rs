@@ -18,7 +18,6 @@ impl RuntimeModule for CommonJsChunkLoadingRuntimeModule {
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation);
     RawSource::from(
       include_str!("runtime/common_js_chunk_loading.js")
-        .to_string()
         .replace("INSTALLED_CHUNKS", &stringify_chunks(&initial_chunks, 1))
         // TODO
         .replace("JS_MATCHER", "chunkId"),
