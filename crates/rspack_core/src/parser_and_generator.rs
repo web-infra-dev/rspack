@@ -17,7 +17,7 @@ pub struct ParseContext<'a> {
   pub module_type: &'a ModuleType,
   pub resource_data: &'a ResourceData,
   pub compiler_options: &'a CompilerOptions,
-  pub meta: Option<String>,
+  pub additional_data: Option<String>,
 }
 
 #[derive(Debug)]

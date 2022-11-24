@@ -315,8 +315,8 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
       rspack_core::LoaderResult {
         content: rspack_core::Content::from(loader_result.content),
         source_map,
-        meta: loader_result
-          .meta
+        additional_data: loader_result
+          .additional_data
           .map(|item| String::from_utf8_lossy(&item).to_string()),
       }
       .with_empty_diagnostic()
@@ -348,7 +348,7 @@ pub struct LoaderContext {
 pub struct LoaderResult {
   pub content: Vec<u8>,
   pub source_map: Option<Vec<u8>>,
-  pub meta: Option<Vec<u8>>,
+  pub additional_data: Option<Vec<u8>>,
 }
 
 pub type LoaderThreadsafeLoaderResult = Option<LoaderResult>;

@@ -91,8 +91,11 @@ class Compiler {
 	 * Lazy initialize instance so it could access the changed options
 	 */
 	get #instance() {
-		// @ts-ignore TODO: fix this
-		const options: binding.RawOptions = this.options;
+		const options: binding.RawOptions = {
+			...this.options,
+			// @ts-ignore: TODO: fix this
+			entry: this.options.entry
+		};
 
 		this.#_instance =
 			this.#_instance ||

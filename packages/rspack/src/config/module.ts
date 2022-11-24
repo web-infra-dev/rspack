@@ -47,19 +47,14 @@ interface LoaderContextInternal {
 	resourceFragment: string | null;
 }
 
-interface LoaderResult {
-	content: Buffer | string;
-	meta: Buffer | string;
-}
-
-interface LoaderThreadsafeResult {
-	id: number;
-	p: LoaderResultInternal | null | undefined;
-}
+// interface LoaderResult {
+// 	content: Buffer | string;
+// 	meta: Buffer | string;
+// }
 
 interface LoaderResultInternal {
 	content: number[];
-	meta: number[];
+	additionalData: number[];
 }
 
 export interface LoaderContext
@@ -71,10 +66,18 @@ export interface LoaderContext
 		| "resourceFragment"
 		| "sourceMap"
 	> {
-	source: {
-		getCode(): string;
-		getBuffer(): Buffer;
-	};
+	async(): (
+		err: Error | null,
+		content: string | Buffer,
+		sourceMap?: string | SourceMap,
+		additionalData?: AdditionalData
+	) => void;
+	callback(
+		err: Error | null,
+		content: string | Buffer,
+		sourceMap?: string | SourceMap,
+		additionalData?: AdditionalData
+	): void;
 	useSourceMap: boolean;
 	rootContext: string;
 	context: string;
@@ -101,6 +104,27 @@ export interface ComposeJsUseOptions {
 	context: ResolvedContext;
 }
 
+export interface SourceMap {
+	version: number;
+	sources: string[];
+	mappings: string;
+	file?: string;
+	sourceRoot?: string;
+	sourcesContent?: string[];
+	names?: string[];
+}
+
+export interface AdditionalData {
+	[index: string]: any;
+	// webpackAST: object;
+}
+
+export interface LoaderResult {
+	content: string | Buffer;
+	sourceMap?: string | SourceMap;
+	additionalData?: AdditionalData;
+}
+
 function composeJsUse(
 	uses: ModuleRuleUse[],
 	options: ComposeJsUseOptions
@@ -112,17 +136,10 @@ function composeJsUse(
 	async function loader(data: Buffer): Promise<Buffer> {
 		const payload: LoaderContextInternal = JSON.parse(data.toString("utf-8"));
 
-		const loaderContextInternal: LoaderContextInternal = {
-			source: payload.source,
-			sourceMap: payload.sourceMap,
-			resourcePath: payload.resourcePath,
-			resourceQuery: payload.resourceQuery,
-			resource: payload.resource,
-			resourceFragment: payload.resourceFragment
-		};
+		let content: string | Buffer = Buffer.from(payload.source);
+		let sourceMap: string | SourceMap | null = payload.sourceMap;
+		let additionalData: AdditionalData = {};
 
-		let sourceBuffer = Buffer.from(loaderContextInternal.source);
-		let meta = Buffer.from("");
 		// Loader is executed from right to left
 		for (const use of uses) {
 			assert("loader" in use);
@@ -135,42 +152,68 @@ function composeJsUse(
 				});
 				use.loader = require(loaderPath);
 			}
-			const loaderContext = {
-				...loaderContextInternal,
-				source: {
-					getCode(): string {
-						return sourceBuffer.toString("utf-8");
-					},
-					getBuffer(): Buffer {
-						return sourceBuffer;
-					}
-				},
-				getOptions() {
-					return use.options;
-				},
-				useSourceMap: isUseSourceMap(options.devtool),
-				rootContext: options.context,
-				context: path.dirname(loaderContextInternal.resourcePath)
-			};
+
 			let loaderResult: LoaderResult;
-			if (
-				(loaderResult = await Promise.resolve().then(() =>
-					use.loader.apply(loaderContext, [loaderContext])
-				))
-			) {
-				const content = loaderResult.content;
-				meta = meta.length > 0 ? meta : toBuffer(loaderResult.meta);
-				sourceBuffer = toBuffer(content);
+
+			const p = new Promise<LoaderResult>((resolve, reject) => {
+				function callback(
+					err: Error | null,
+					content: string | Buffer,
+					sourceMap?: string | SourceMap,
+					additionalData?: AdditionalData
+				) {
+					if (err) {
+						reject(err);
+						return;
+					}
+
+					resolve({
+						content,
+						sourceMap,
+						additionalData
+					});
+				}
+
+				const loaderContext: LoaderContext = {
+					sourceMap: payload.sourceMap,
+					resourcePath: payload.resourcePath,
+					resourceQuery: payload.resourceQuery,
+					resource: payload.resource,
+					resourceFragment: payload.resourceFragment,
+					getOptions() {
+						return use.options;
+					},
+					async() {
+						return callback;
+					},
+					callback,
+					useSourceMap: isUseSourceMap(options.devtool),
+					rootContext: options.context,
+					context: path.dirname(payload.resourcePath)
+				};
+
+				use.loader.apply(loaderContext, [
+					use.loader.raw ? content : content.toString("utf-8"),
+					sourceMap,
+					additionalData
+				]);
+			});
+
+			if ((loaderResult = await p)) {
+				additionalData = loaderResult.additionalData || additionalData;
+				content = loaderResult.content || content;
+				sourceMap = loaderResult.sourceMap || sourceMap;
 			}
 		}
 
 		const loaderResultPayload: LoaderResultInternal = {
-			content: [...sourceBuffer],
-			meta: [...meta]
+			content: [...toBuffer(content)],
+			additionalData: [...toBuffer(JSON.stringify(additionalData))]
 		};
 
 		return Buffer.from(JSON.stringify(loaderResultPayload), "utf-8");
 	}
+
 	loader.displayName = `NodeLoaderAdapter(${uses
 		.map(item => {
 			assert("loader" in item);
@@ -182,12 +225,15 @@ function composeJsUse(
 	};
 }
 
-interface JsLoader {
-	(this: LoaderContext, loaderContext: LoaderContext):
-		| Promise<LoaderResult | void>
-		| LoaderResult
-		| void;
+export interface Loader {
+	(
+		this: LoaderContext,
+		content: string | Buffer,
+		sourceMap?: string | SourceMap,
+		additionalData?: AdditionalData
+	): void;
 	displayName?: string;
+	raw?: boolean;
 }
 
 type BuiltinLoader = string;
@@ -199,7 +245,7 @@ type ModuleRuleUse =
 			name?: string;
 	  }
 	| {
-			loader: JsLoader;
+			loader: Loader;
 			options?: unknown;
 			name?: string;
 	  };

@@ -1,6 +1,7 @@
-import type { LoaderContext } from "@rspack/core";
+import type { LoaderContext, Loader } from "@rspack/core";
 import path from "path";
 import { create } from "enhanced-resolve";
+import assert from "node:assert";
 import LessAliasesPlugin from "./alias-plugin";
 import { normalizeSourceMap } from "./utils";
 const MODULE_REQUEST_REGEX = /^[^?]*~/;
@@ -14,18 +15,21 @@ export interface Options {
 		| ((content: string, loaderContext: LoaderContext) => Promise<string>);
 }
 
-export default async function lessLoader(loaderContext: LoaderContext) {
+const lessLoader: Loader = async function (content) {
+	assert(typeof content === "string");
+
+	const callback = this.async();
 	let meta = "";
 	const enhancedResolver = create.sync({
 		extensions: [".less", ".css", ".sass", ".scss", ".js"],
 		preferRelative: true
 	});
-	const options: Options = loaderContext.getOptions() ?? {};
+	const options: Options = this.getOptions() ?? {};
 	const lessOptions = options.lessOptions ?? {};
 	const useSourceMap =
 		typeof options.sourceMap === "boolean"
 			? options.sourceMap
-			: loaderContext.useSourceMap;
+			: this.useSourceMap;
 
 	if (useSourceMap) {
 		lessOptions.sourceMap = {
@@ -34,11 +38,11 @@ export default async function lessLoader(loaderContext: LoaderContext) {
 	}
 
 	try {
-		let data = loaderContext.source.getCode();
+		let data = content;
 		if (typeof options.additionalData !== "undefined") {
 			data =
 				typeof options.additionalData === "function"
-					? `${await options.additionalData(data, loaderContext)}`
+					? `${await options.additionalData(data, this)}`
 					: `${options.additionalData}\n${data}`;
 		}
 		const resolver = (id, dir): string => {
@@ -55,18 +59,18 @@ export default async function lessLoader(loaderContext: LoaderContext) {
 			}
 		};
 		const final_options = {
-			filename: loaderContext.resourcePath,
+			filename: this.resourcePath,
 			...lessOptions,
 			paths: [
 				...(lessOptions?.paths || ["node_modules"]),
-				path.dirname(loaderContext.resourcePath)
+				path.dirname(this.resourcePath)
 			],
 			plugins: [
 				new LessAliasesPlugin({
 					config: {
 						resolve: resolver
 					},
-					stdinDir: path.dirname(loaderContext.resourcePath)
+					stdinDir: path.dirname(this.resourcePath)
 				})
 			],
 			relativeUrls: true
@@ -87,14 +91,12 @@ export default async function lessLoader(loaderContext: LoaderContext) {
 			map = normalizeSourceMap(map);
 		}
 
-		return {
-			content: result.css,
-			meta: meta ? Buffer.from(JSON.stringify(meta)) : "",
-			sourceMap: map
-		};
+		callback(null, result.css, map);
 	} catch (error) {
-		console.log(loaderContext.resourcePath);
+		console.log(this.resourcePath);
 		console.log(error);
-		throw error;
+		callback(error, "");
 	}
-}
+};
+
+export default lessLoader;
