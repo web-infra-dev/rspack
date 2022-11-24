@@ -1,4 +1,5 @@
-const path = require("path")
+const path = require("path");
+
 /**
  * @type {import('@rspack/core').RspackOptions}
  */
@@ -7,7 +8,15 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				test: path.join(__dirname, "lib.js"),
+				test: path.join(__dirname, "a.js"),
+				use: [
+					{
+						loader: "./my-loader.js"
+					}
+				]
+			},
+			{
+				test: path.join(__dirname, "b.js"),
 				use: [
 					{
 						loader: "./my-loader.js"

@@ -206,13 +206,18 @@ function composeJsUse(
 				 * support loader as string
 				 */
 				if (typeof use.loader === "string") {
-					let loaderPath = require.resolve(use.loader, {
-						paths: [options.context]
-					});
-					use.loader = require(loaderPath);
+					try {
+						let loaderPath = require.resolve(use.loader, {
+							paths: [options.context]
+						});
+						use.loader = require(loaderPath);
+					} catch (err) {
+						reject(err);
+						return;
+					}
 				}
 
-				let result: Promise<LoaderResult> | LoaderResult | undefined =
+				let result: Promise<string | Buffer> | string | Buffer | undefined =
 					undefined;
 				try {
 					result = use.loader.apply(loaderContext, [
@@ -232,10 +237,18 @@ function composeJsUse(
 						}
 						if (isPromiseLike(result)) {
 							return result.then(function (result) {
-								resolve(result);
+								resolve({
+									content: result,
+									sourceMap,
+									additionalData
+								});
 							}, reject);
 						}
-						return resolve(result);
+						return resolve({
+							content: result,
+							sourceMap,
+							additionalData
+						});
 					}
 				} catch (err) {
 					if (isError) {
@@ -247,11 +260,12 @@ function composeJsUse(
 						// for better debugging we print the error on the console
 						if (typeof err === "object" && err.stack) console.error(err.stack);
 						else console.error(err);
+						reject(err);
 						return;
 					}
 					isDone = true;
 					reportedError = true;
-					callback(err, "");
+					reject(err);
 				}
 			});
 
@@ -383,17 +397,30 @@ export function resolveModuleOptions(
 	module: Module = {},
 	options: ComposeJsUseOptions
 ): ResolvedModule {
-	const rules = (module.rules ?? []).map(rule => ({
-		...rule,
-		test: isNil(rule.test) ? null : resolveModuleRuleCondition(rule.test),
-		resource: isNil(rule.resource)
-			? null
-			: resolveModuleRuleCondition(rule.resource),
-		resourceQuery: isNil(rule.resourceQuery)
-			? null
-			: resolveModuleRuleCondition(rule.resourceQuery),
-		use: createRawModuleRuleUses(rule.use || [], options)
-	}));
+	const rules = (module.rules ?? []).map(rule => {
+		// FIXME: use error handler instead of throwing
+		if ((rule as any)?.loader) {
+			throw new Error("`Rule.loader` is not supported, use `Rule.use` instead");
+		}
+
+		if ((rule as any)?.uses) {
+			throw new Error(
+				"`Rule.uses` is deprecated for aligning with webpack, use `Rule.use` instead"
+			);
+		}
+
+		return {
+			...rule,
+			test: isNil(rule.test) ? null : resolveModuleRuleCondition(rule.test),
+			resource: isNil(rule.resource)
+				? null
+				: resolveModuleRuleCondition(rule.resource),
+			resourceQuery: isNil(rule.resourceQuery)
+				? null
+				: resolveModuleRuleCondition(rule.resourceQuery),
+			use: createRawModuleRuleUses(rule.use || [], options)
+		};
+	});
 	return {
 		parser: module.parser,
 		rules

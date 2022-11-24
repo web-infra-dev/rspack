@@ -82,6 +82,7 @@ macro_rules! run_loader {
   };
 }
 
+#[cfg(test)]
 mod fixtures {
   use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
   use rspack_loader_runner::*;
@@ -104,7 +105,7 @@ mod fixtures {
         LoaderResult {
           content: source,
           source_map: None,
-          meta: None,
+          additional_data: None,
         }
         .with_empty_diagnostic(),
       ))
@@ -135,7 +136,7 @@ mod fixtures {
       let source = loader_context.source.to_owned().try_into_string()?;
       Ok(Some(
         LoaderResult {
-          meta: None,
+          additional_data: None,
           source_map: None,
           content: Content::String(format!(
             r#"{}
@@ -174,12 +175,12 @@ html {{
       let source = loader_context.source.to_owned().try_into_string()?;
       Ok(Some(
         LoaderResult {
-          meta: None,
+          additional_data: None,
           source_map: None,
           content: Content::String(format!(
             r#"{}
 console.log(2);"#,
-            source.trim()
+            source
           )),
         }
         .with_empty_diagnostic(),
@@ -211,12 +212,12 @@ console.log(2);"#,
       let source = loader_context.source.to_owned().try_into_string()?;
       Ok(Some(
         LoaderResult {
-          meta: None,
+          additional_data: None,
           source_map: None,
           content: Content::String(format!(
             r#"{}
 console.log(3);"#,
-            source.trim()
+            source
           )),
         }
         .with_empty_diagnostic(),
