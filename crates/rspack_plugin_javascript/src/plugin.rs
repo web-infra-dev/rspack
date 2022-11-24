@@ -21,7 +21,8 @@ use swc_common::GLOBALS;
 use tracing::instrument;
 
 use crate::utils::{
-  get_swc_compiler, syntax_by_module_type, wrap_eval_source_map, wrap_module_function,
+  get_chunk_filename_template, get_swc_compiler, syntax_by_module_type, wrap_eval_source_map,
+  wrap_module_function,
 };
 use crate::visitors::{run_after_pass, run_before_pass, DependencyScanner};
 
@@ -421,35 +422,22 @@ impl Plugin for JsPlugin {
     // let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
     // let chunkhash = None;
     // let contenthash = Some(chunk.hash.clone());
+    let filename_template = get_chunk_filename_template(
+      chunk,
+      &compilation.options.output,
+      &compilation.chunk_group_by_ukey,
+    );
     let hash = Some(chunk.get_render_hash());
 
-    let output_path = if chunk.is_only_initial(&args.compilation.chunk_group_by_ukey) {
-      compilation
-        .options
-        .output
-        .filename
-        .render(FilenameRenderOptions {
-          filename: chunk.name.clone(),
-          extension: Some(".js".to_owned()),
-          id: Some(chunk.id.to_string()),
-          contenthash: hash.clone(),
-          chunkhash: hash.clone(),
-          hash,
-        })
-    } else {
-      compilation
-        .options
-        .output
-        .chunk_filename
-        .render(FilenameRenderOptions {
-          filename: chunk.name.clone(),
-          extension: Some(".js".to_owned()),
-          id: Some(chunk.id.to_owned()),
-          contenthash: hash.clone(),
-          chunkhash: hash.clone(),
-          hash,
-        })
-    };
+    let output_path = filename_template.render(FilenameRenderOptions {
+      filename: chunk.name.clone(),
+      extension: Some(".js".to_owned()),
+      id: Some(chunk.id.to_string()),
+      contenthash: hash.clone(),
+      chunkhash: hash.clone(),
+      hash,
+    });
+
     let path_options = PathData {
       chunk_ukey: args.chunk_ukey,
     };

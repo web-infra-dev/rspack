@@ -386,13 +386,19 @@ impl<'me> CodeSplitter<'me> {
           .insert(dyn_dep_mgm.module_identifier.clone());
       }
 
-      let chunk = Compilation::add_chunk(
-        &mut self.compilation.chunk_by_ukey,
+      let chunk = Compilation::add_named_chunk(
         uri_to_chunk_name(
           &self.compilation.options.context.to_string_lossy(),
           // TODO: change to chunk group name
           &dyn_dep_mgm.module_identifier,
         ),
+        uri_to_chunk_name(
+          &self.compilation.options.context.to_string_lossy(),
+          // TODO: change to chunk group name
+          &dyn_dep_mgm.module_identifier,
+        ),
+        &mut self.compilation.chunk_by_ukey,
+        &mut self.compilation.named_chunks,
       );
       self.compilation.chunk_graph.add_chunk(chunk.ukey);
       self
