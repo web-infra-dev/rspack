@@ -1,7 +1,8 @@
 import type {
 	RawModuleRuleUse,
 	RawModuleRule,
-	RawModuleRuleCondition
+	RawModuleRuleCondition,
+	RawModuleOptions
 } from "@rspack/binding";
 import assert from "node:assert";
 import path from "node:path";
@@ -20,11 +21,7 @@ export interface ModuleRule {
 
 export interface Module {
 	rules?: ModuleRule[];
-	parser?: {
-		dataUrlCondition?: {
-			maxSize?: number;
-		};
-	};
+	parser?: RawModuleOptions["parser"];
 }
 
 interface ResolvedModuleRule {
@@ -37,11 +34,7 @@ interface ResolvedModuleRule {
 
 export interface ResolvedModule {
 	rules: ResolvedModuleRule[];
-	parser?: {
-		dataUrlCondition: {
-			maxSize: number;
-		};
-	};
+	parser?: RawModuleOptions["parser"];
 }
 
 interface LoaderContextInternal {
@@ -297,6 +290,7 @@ export function resolveModuleOptions(
 		uses: createRawModuleRuleUses(rule.uses || [], options)
 	}));
 	return {
+		parser: module.parser,
 		rules
 	};
 }
