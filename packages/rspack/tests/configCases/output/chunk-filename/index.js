@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-it("chunks/async-two_js.js should exist", function (done) {
+it("chunks/async-two_js.js should exist", async function () {
 	import("./two");
 	expect(
 		fs

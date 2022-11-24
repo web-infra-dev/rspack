@@ -9,6 +9,8 @@ pub struct OutputOptions {
   //todo we are not going to support file_name & chunk_file_name as function in the near feature
   pub filename: Filename,
   pub chunk_filename: Filename,
+  pub css_filename: Filename,
+  pub css_chunk_filename: Filename,
 }
 
 pub const NAME_PLACEHOLDER: &str = "[name]";

@@ -237,6 +237,7 @@ pub fn wrap_eval_source_map(
   }
 }
 
+#[allow(clippy::if_same_then_else)]
 pub(crate) fn get_chunk_filename_template<'filename>(
   chunk: &Chunk,
   output_options: &'filename OutputOptions,

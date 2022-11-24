@@ -2293,6 +2293,7 @@ dependencies = [
  "rspack_binding_options",
  "rspack_core",
  "rspack_test",
+ "rspack_tracing",
  "sugar_path",
  "termcolor",
  "thiserror",

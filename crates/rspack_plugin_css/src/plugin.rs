@@ -22,6 +22,7 @@ use tracing::instrument;
 
 use crate::{
   pxtorem::{option::PxToRemOption, px_to_rem::px_to_rem},
+  utils::get_chunk_filename_template,
   visitors::DependencyScanner,
   SWC_COMPILER,
 };
@@ -488,33 +489,21 @@ impl Plugin for CssPlugin {
     if source.source().is_empty() {
       Ok(Default::default())
     } else {
-      let output_path = if chunk.has_entry_module(&args.compilation.chunk_graph) {
-        compilation
-          .options
-          .output
-          .filename
-          .render(FilenameRenderOptions {
-            filename: chunk.name.clone(),
-            extension: Some(".css".to_owned()),
-            id: Some(chunk.id.to_owned()),
-            contenthash: hash.clone(),
-            chunkhash: hash.clone(),
-            hash,
-          })
-      } else {
-        compilation
-          .options
-          .output
-          .chunk_filename
-          .render(FilenameRenderOptions {
-            filename: chunk.name.clone(),
-            extension: Some(".css".to_owned()),
-            id: Some(chunk.id.to_owned()),
-            contenthash: hash.clone(),
-            chunkhash: hash.clone(),
-            hash,
-          })
-      };
+      let filename_template = get_chunk_filename_template(
+        chunk,
+        &args.compilation.options.output,
+        &args.compilation.chunk_group_by_ukey,
+      );
+
+      let output_path = filename_template.render(FilenameRenderOptions {
+        filename: chunk.name.clone(),
+        extension: Some(".css".to_owned()),
+        id: Some(chunk.id.to_owned()),
+        contenthash: hash.clone(),
+        chunkhash: hash.clone(),
+        hash,
+      });
+
       let path_data = PathData {
         chunk_ukey: args.chunk_ukey,
       };
