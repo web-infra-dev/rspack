@@ -72,14 +72,66 @@ impl Debug for RawModuleRuleUse {
   }
 }
 
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+#[cfg(feature = "node-api")]
+#[napi(object)]
+pub struct RawModuleRuleCondition {
+  /// Condition can be either a `string` or `Regexp`.
+  #[napi(ts_type = r#""string" | "regexp""#)]
+  pub r#type: String,
+  /// Based on the condition type, the value can be either a `string` or `Regexp`.
+  ///  - "string": The value will be matched against the string.
+  ///  - "regexp": The value will be matched against the raw regexp source from JS side.
+  pub matcher: Option<String>,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+#[cfg(not(feature = "node-api"))]
+pub struct RawModuleRuleCondition {
+  pub r#type: String,
+  pub matcher: Option<String>,
+}
+
+impl TryFrom<RawModuleRuleCondition> for rspack_core::ModuleRuleCondition {
+  type Error = anyhow::Error;
+
+  fn try_from(x: RawModuleRuleCondition) -> std::result::Result<Self, Self::Error> {
+    let matcher = x
+      .matcher
+      .ok_or_else(|| anyhow::anyhow!("Matcher is required."))?;
+
+    let result = match x.r#type.as_str() {
+      "string" => Self::String(matcher),
+      "regexp" => Self::Regexp(regex::Regex::new(&matcher)?),
+      _ => {
+        anyhow::bail!(
+          "Failed to resolve the condition type {}. Expected type is either `string` or `regexp`.",
+          x.r#type
+        );
+      }
+    };
+
+    Ok(result)
+  }
+}
+
 #[derive(Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 #[cfg(feature = "node-api")]
 #[napi(object)]
 pub struct RawModuleRule {
-  pub test: Option<String>,
-  pub resource: Option<String>,
-  pub resource_query: Option<String>,
+  /// A condition matcher matching an absolute path.
+  /// - String: To match the input must start with the provided string. I. e. an absolute directory path, or absolute path to the file.
+  /// - Regexp: It's tested with the input.
+  pub test: Option<RawModuleRuleCondition>,
+  /// A condition matcher matching an absolute path.
+  /// See `test` above
+  pub resource: Option<RawModuleRuleCondition>,
+  /// A condition matcher against the resource query.
+  /// TODO: align with webpack's `?` prefixed `resourceQuery`
+  pub resource_query: Option<RawModuleRuleCondition>,
   // Loader experimental
   #[serde(skip_deserializing)]
   pub func__: Option<JsFunction>,
@@ -95,9 +147,9 @@ pub struct RawModuleRule {
 #[serde(rename_all = "camelCase")]
 #[cfg(not(feature = "node-api"))]
 pub struct RawModuleRule {
-  pub test: Option<String>,
-  pub resource: Option<String>,
-  pub resource_query: Option<String>,
+  pub test: Option<RawModuleRuleCondition>,
+  pub resource: Option<RawModuleRuleCondition>,
+  pub resource_query: Option<RawModuleRuleCondition>,
   // Loader experimental
   #[serde(skip_deserializing)]
   pub func__: Option<()>,
@@ -299,22 +351,7 @@ pub struct LoaderResult {
   pub meta: Option<Vec<u8>>,
 }
 
-type LoaderThreadsafeLoaderContext = LoaderContext;
 pub type LoaderThreadsafeLoaderResult = Option<LoaderResult>;
-
-#[derive(Serialize, Deserialize, Debug)]
-struct LoaderThreadsafeResult {
-  id: u32,
-  // payload
-  p: LoaderThreadsafeLoaderResult,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct LoaderThreadsafeContext {
-  id: u32,
-  // payload
-  p: LoaderThreadsafeLoaderContext,
-}
 
 impl RawOption<ModuleRule> for RawModuleRule {
   fn to_compiler_option(self, _options: &CompilerOptionsBuilder) -> anyhow::Result<ModuleRule> {
@@ -398,15 +435,9 @@ impl RawOption<ModuleRule> for RawModuleRule {
     // let module_rule_tsfn: &'static Option<ModuleRuleFunc> = Box::leak(func);
 
     Ok(ModuleRule {
-      test: self.test.map(|reg| regex::Regex::new(&reg)).transpose()?,
-      resource_query: self
-        .resource_query
-        .map(|reg| regex::Regex::new(&reg))
-        .transpose()?,
-      resource: self
-        .resource
-        .map(|reg| regex::Regex::new(&reg))
-        .transpose()?,
+      test: self.test.map(|raw| raw.try_into()).transpose()?,
+      resource_query: self.resource_query.map(|raw| raw.try_into()).transpose()?,
+      resource: self.resource.map(|raw| raw.try_into()).transpose()?,
       uses,
       module_type,
       // Loader experimental

@@ -7,12 +7,8 @@ module.exports = {
 		rules: [
 			{
 				test: /\.svg$/,
-				uses: [
-					{
-						loader: "./my-loader.js",
-            type: "asset"
-					}
-				]
+				resourceQuery: /inline/,
+				type: "asset/inline"
 			}
 		]
 	}

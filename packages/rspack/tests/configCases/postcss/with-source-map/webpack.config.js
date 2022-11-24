@@ -4,7 +4,7 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				test: ".module.css$",
+				test: /\.module\.css$/,
 				uses: [
 					{
 						loader: postcssLoader,
@@ -15,7 +15,7 @@ module.exports = {
 				]
 			},
 			{
-				test: ".css$",
+				test: /\.css$/,
 				uses: [
 					{
 						loader: postcssLoader

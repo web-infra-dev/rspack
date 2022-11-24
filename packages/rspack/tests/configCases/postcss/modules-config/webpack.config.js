@@ -1,9 +1,12 @@
+const path = require("path");
 const postcssLoader = require("@rspack/plugin-postcss");
+const resolve = filename => path.resolve(__dirname, filename);
+
 module.exports = {
 	module: {
 		rules: [
 			{
-				test: "modules-true.module.css$",
+				test: resolve("modules-true.module.css"),
 				uses: [
 					{
 						loader: postcssLoader,
@@ -14,7 +17,7 @@ module.exports = {
 				]
 			},
 			{
-				test: "modules-false.module.css$",
+				test: resolve("modules-false.module.css"),
 				uses: [
 					{
 						loader: postcssLoader,
@@ -25,7 +28,7 @@ module.exports = {
 				]
 			},
 			{
-				test: "auto-true.module.css$",
+				test: resolve("auto-true.module.css"),
 				uses: [
 					{
 						loader: postcssLoader,
@@ -38,7 +41,7 @@ module.exports = {
 				]
 			},
 			{
-				test: "auto-false.module.css$",
+				test: resolve("auto-false.module.css"),
 				uses: [
 					{
 						loader: postcssLoader,
@@ -51,7 +54,7 @@ module.exports = {
 				]
 			},
 			{
-				test: "auto-regex.css$",
+				test: resolve("auto-regex.css"),
 				uses: [
 					{
 						loader: postcssLoader,
@@ -64,7 +67,7 @@ module.exports = {
 				]
 			},
 			{
-				test: "auto-function.css$",
+				test: resolve("auto-function.css"),
 				uses: [
 					{
 						loader: postcssLoader,
@@ -79,7 +82,7 @@ module.exports = {
 				]
 			},
 			{
-				test: "generateScopedName.module.css$",
+				test: resolve("generateScopedName.module.css"),
 				uses: [
 					{
 						loader: postcssLoader,
@@ -92,7 +95,7 @@ module.exports = {
 				]
 			},
 			{
-				test: "localsConvention.module.css$",
+				test: resolve("localsConvention.module.css"),
 				uses: [
 					{
 						loader: postcssLoader,

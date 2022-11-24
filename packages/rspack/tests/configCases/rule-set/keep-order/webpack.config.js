@@ -1,3 +1,6 @@
+const path = require("path");
+const resolve = filename => path.resolve(__dirname, filename);
+
 async function testLoader(context) {
 	const head = `
 	globalThis.mockFn = jest.fn();
@@ -18,7 +21,7 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				test: "index.js",
+				test: resolve("index.js"),
 				uses: [
 					{
 						loader: testLoader

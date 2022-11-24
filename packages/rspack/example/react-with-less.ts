@@ -19,7 +19,7 @@ const rspack = new Rspack({
 	module: {
 		rules: [
 			{
-				test: "module.less$",
+				test: /\.module\.less$/,
 				uses: [
 					{ loader: lessLoader },
 					{
@@ -32,7 +32,7 @@ const rspack = new Rspack({
 				type: "css"
 			},
 			{
-				test: ".less$",
+				test: /\.less$/,
 				uses: [{ loader: lessLoader }],
 				type: "css"
 			}

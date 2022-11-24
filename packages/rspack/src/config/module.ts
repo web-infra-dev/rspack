@@ -1,14 +1,19 @@
-import type { RawModuleRuleUse, RawModuleRule } from "@rspack/binding";
+import type {
+	RawModuleRuleUse,
+	RawModuleRule,
+	RawModuleRuleCondition
+} from "@rspack/binding";
 import assert from "node:assert";
 import path from "node:path";
+import { isNil } from "../utils";
 import { ResolvedContext } from "./context";
 import { isUseSourceMap, ResolvedDevtool } from "./devtool";
 
 export interface ModuleRule {
 	name?: string;
-	test?: RawModuleRule["test"];
-	resource?: RawModuleRule["resource"];
-	resourceQuery?: RawModuleRule["resourceQuery"];
+	test?: string | RegExp;
+	resource?: string | RegExp;
+	resourceQuery?: string | RegExp;
 	uses?: ModuleRuleUse[];
 	type?: RawModuleRule["type"];
 }
@@ -254,12 +259,41 @@ function createNativeUse(use: ModuleRuleUse): RawModuleRuleUse {
 	};
 }
 
+function resolveModuleRuleCondition(
+	condition: string | RegExp
+): RawModuleRuleCondition {
+	if (typeof condition === "string") {
+		return {
+			type: "string",
+			matcher: condition
+		};
+	}
+
+	if (condition instanceof RegExp) {
+		return {
+			type: "regexp",
+			matcher: condition.source
+		};
+	}
+
+	throw new Error(
+		`Unsupported condition type ${typeof condition}, value: ${condition}`
+	);
+}
+
 export function resolveModuleOptions(
 	module: Module = {},
 	options: ComposeJsUseOptions
 ): ResolvedModule {
 	const rules = (module.rules ?? []).map(rule => ({
 		...rule,
+		test: isNil(rule.test) ? null : resolveModuleRuleCondition(rule.test),
+		resource: isNil(rule.resource)
+			? null
+			: resolveModuleRuleCondition(rule.resource),
+		resourceQuery: isNil(rule.resourceQuery)
+			? null
+			: resolveModuleRuleCondition(rule.resourceQuery),
 		uses: createRawModuleRuleUses(rule.uses || [], options)
 	}));
 	return {

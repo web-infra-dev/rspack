@@ -13,15 +13,6 @@ async function main() {
   if (fs.existsSync(configPath)) {
     config = require(configPath);
   }
-  // dirty hack to compatible webpack-examples
-  let rules = config?.module?.rules;
-  if (rules) {
-    for (const rule of rules) {
-      if (rule.test && rule.test instanceof RegExp) {
-        rule.test = rulte.test.toString();
-      }
-    }
-  }
   try{
     await rspack({ ...defaultEntry, ...config });
   }catch(err){

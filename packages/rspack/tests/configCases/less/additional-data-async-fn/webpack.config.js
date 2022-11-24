@@ -4,7 +4,7 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				test: ".less$",
+				test: /\.less$/,
 				uses: [
 					{
 						loader: lessLoader,

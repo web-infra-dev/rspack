@@ -392,7 +392,7 @@ function getOptions(
 		options.module.rules = [];
 	}
 	options.module.rules.push({
-		test: ".js",
+		test: /\.js/,
 		uses: [
 			{
 				loader: require(path.join(
