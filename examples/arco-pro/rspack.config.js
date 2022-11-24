@@ -12,7 +12,7 @@ module.exports = {
   devServer: {
     port: 5555
   },
-  devtool: 'source-map',
+  devtool: false,
   builtins: {
     html: [{
       template: './index.html',
@@ -30,7 +30,7 @@ module.exports = {
     rules:
       [
         {
-          test: '.less$',
+          test: /\.less$/,
           uses:
             [
               { loader: postcssLoader, options: { modules: true } },
@@ -38,7 +38,7 @@ module.exports = {
             ],
           type: 'css'
         },
-        { test: '.svg$', uses: [{ loader: './svg-loader.js' }], type: 'jsx' }
+        { test: /\.svg$/, uses: [{ loader: './svg-loader.js' }], type: 'jsx' }
       ]
   },
   resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
