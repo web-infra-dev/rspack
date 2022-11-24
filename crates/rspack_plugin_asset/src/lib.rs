@@ -12,10 +12,10 @@ use rayon::prelude::*;
 use rspack_core::{
   get_contenthash,
   rspack_sources::{RawSource, SourceExt},
-  AssetParserDataUrlOption, AssetParserOptions, AstOrSource, FilenameRenderOptions,
-  GenerateContext, GenerationResult, Module, ParseContext, ParserAndGenerator, PathData, Plugin,
-  PluginContext, PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry,
-  SourceType,
+  runtime_globals, AssetParserDataUrlOption, AssetParserOptions, AstOrSource,
+  FilenameRenderOptions, GenerateContext, GenerationResult, Module, ParseContext,
+  ParserAndGenerator, PathData, Plugin, PluginContext, PluginRenderManifestHookOutput,
+  RenderManifestArgs, RenderManifestEntry, SourceType,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result};
 
@@ -132,7 +132,7 @@ impl AssetParserAndGenerator {
     &self,
     request: &str,
     ast_or_source: &AstOrSource,
-    generate_context: &GenerateContext,
+    generate_context: &mut GenerateContext,
     module_id: String,
   ) -> Result<String> {
     let name = filename_without_ext_by_hash(self.hash_for_ast_or_source(ast_or_source));
@@ -158,13 +158,14 @@ impl AssetParserAndGenerator {
         chunkhash: None,
         hash: None,
       });
-    let public_path = generate_context
-      .compilation
-      .options
-      .output
-      .public_path
-      .public_path();
-    Ok(format!(r#""{}{}""#, public_path, file_name))
+    generate_context
+      .runtime_requirements
+      .insert(runtime_globals::PUBLIC_PATH.to_string());
+    Ok(format!(
+      r#"{} + "{}""#,
+      runtime_globals::PUBLIC_PATH,
+      file_name
+    ))
   }
 }
 
