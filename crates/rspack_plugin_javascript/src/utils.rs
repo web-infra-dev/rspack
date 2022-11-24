@@ -12,8 +12,8 @@ use std::path::Path;
 use std::sync::Arc;
 use swc::Compiler as SwcCompiler;
 use swc_atoms::js_word;
-use swc_common::{FilePathMapping, Mark, SourceMap, Span, Spanned, DUMMY_SP};
-use swc_ecma_ast::{CallExpr, Callee, Expr, ExprOrSpread, Id, Ident, Lit, Str};
+use swc_common::{FilePathMapping, SourceMap, Span, Spanned, SyntaxContext, DUMMY_SP};
+use swc_ecma_ast::{CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit, Str};
 use swc_ecma_parser::Syntax;
 use swc_ecma_parser::{EsConfig, TsConfig};
 
@@ -109,7 +109,7 @@ pub fn get_callexpr_literal_args(e: &CallExpr) -> String {
   }
 }
 
-pub fn is_require_literal_expr(e: &CallExpr, _unresolved_mark: Mark, _require_id: &Id) -> bool {
+pub fn is_require_literal_expr(e: &CallExpr, ctxt2: &SyntaxContext) -> bool {
   if e.args.len() == 1 {
     let res = !get_callexpr_literal_args(e).is_empty();
 
@@ -120,9 +120,9 @@ pub fn is_require_literal_expr(e: &CallExpr, _unresolved_mark: Mark, _require_id
             &**callee,
             Expr::Ident(Ident {
               sym: js_word!("require"),
-              span: Span { .. },
+              span: Span { ctxt, .. },
               ..
-            })
+            }) if ctxt == ctxt2
           )
         }
         _ => false,
