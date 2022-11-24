@@ -5,7 +5,7 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "build": "rspack build",
+    "build": "rspack build -c rspack.config.js",
     "dev": "rspack serve"
   },
   "keywords": [],
@@ -17,5 +17,8 @@
     "react": "17.0.0",
     "react-dom": "17.0.0",
     "normalize.css": "8.0.1"
+  },
+  "devDependencies": {
+    "@rspack/plugin-less": "workspace:*"
   }
 }

@@ -1,14 +1,13 @@
 {
-  "name": "example-react-example-sass",
+  "name": "examples-react-example-sass",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "private": true,
-  "build": {
-    "build": "rspack build -c test.config.js",
-    "dev": "rspack serve -c test.config.js"
+  "scripts": {
+    "build": "NODE_ENV=production ./node_modules/@rspack/cli/bin/rspack build -c rspack.config.js",
+    "dev": "rspack serve"
   },
-  "scripts": {},
   "keywords": [],
   "author": "",
   "license": "ISC",
