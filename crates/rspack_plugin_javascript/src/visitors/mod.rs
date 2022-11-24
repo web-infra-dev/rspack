@@ -123,8 +123,10 @@ pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut
     let mut pass = chain!(
       Optional::new(
         tree_shaking_visitor(
+          &generate_context.compilation.module_graph,
           ustr(&module.identifier()),
           &generate_context.compilation.used_symbol,
+          &generate_context.compilation.used_indirect_symbol,
           top_level_mark,
         ),
         tree_shaking

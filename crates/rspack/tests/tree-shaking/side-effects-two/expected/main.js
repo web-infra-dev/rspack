@@ -1,6 +1,39 @@
-// var __webpack_modules__ = ({});
+(function() {// var __webpack_modules__ = ({});
 // replace here to modules
-var __webpack_modules__ = __INSTALLED_MODULES__;
+var __webpack_modules__ = {
+"./app.js": function (module, exports, __webpack_require__) {
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "something", {
+    enumerable: true,
+    get: ()=>_lib.default
+});
+const _lib = __webpack_require__.interopRequire(__webpack_require__("./lib.js"));
+__webpack_require__("./src/a.js");
+},
+"./index.js": function (module, exports, __webpack_require__) {
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+const _app = __webpack_require__("./app.js");
+(0, _app.something)();
+},
+"./lib.js": function (module, exports, __webpack_require__) {
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "default", {
+    enumerable: true,
+    get: ()=>_default
+});
+function _default() {}
+},
+
+};
 // The module cache
 var __webpack_module_cache__ = {};
 
@@ -29,9 +62,6 @@ function __webpack_require__(moduleId) {
 		handler(execOptions);
 	});
 	module = execOptions.module;
-	if (!execOptions.factory) {
-		console.log(moduleId);
-	}
 	execOptions.factory.call(
 		module.exports,
 		module,
@@ -49,3 +79,4 @@ __webpack_require__.m = __webpack_modules__;
 __webpack_require__.c = __webpack_module_cache__;
 // expose the module execution interceptor
 __webpack_require__.i = [];
+__webpack_require__("./index.js");})()

@@ -2,7 +2,7 @@ use bitflags::bitflags;
 use swc_atoms::JsWord;
 use swc_common::SyntaxContext;
 use swc_ecma_ast::Id;
-use ustr::Ustr;
+use ustr::{ustr, Ustr};
 
 bitflags! {
     pub struct SymbolFlag: u8 {
@@ -34,17 +34,38 @@ impl Symbol {
   }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Eq)]
 pub struct IndirectTopLevelSymbol {
   pub uri: Ustr,
   pub id: JsWord,
-  // module identifier of module that import me
+  // module identifier of module that import me, only used for debugging
   importer: Ustr,
+}
+
+impl std::hash::Hash for IndirectTopLevelSymbol {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.uri.hash(state);
+    self.id.hash(state);
+  }
+}
+impl std::cmp::PartialEq for IndirectTopLevelSymbol {
+  fn eq(&self, other: &Self) -> bool {
+    self.uri == other.uri && self.id == other.id
+  }
 }
 
 impl IndirectTopLevelSymbol {
   pub fn new(uri: Ustr, id: JsWord, importer: Ustr) -> Self {
     Self { uri, id, importer }
+  }
+
+  pub fn from_uri_and_id(uri: Ustr, id: JsWord) -> IndirectTopLevelSymbol {
+    // Because importer don't affect hash result so empty `Ustr` is alright here.
+    IndirectTopLevelSymbol {
+      uri,
+      id,
+      importer: ustr(""),
+    }
   }
 
   pub fn uri(&self) -> Ustr {
