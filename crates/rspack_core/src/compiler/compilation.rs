@@ -1308,10 +1308,10 @@ fn mark_symbol(
       let module_result = match analyze_map.get(&indirect_symbol.uri) {
         Some(module_result) => module_result,
         None => {
-          eprintln!(
-            "Can't get optimize dep result for module {}",
-            indirect_symbol.uri,
-          );
+          // eprintln!(
+          //   "Can't get optimize dep result for module {}",
+          //   indirect_symbol.uri,
+          // );
           return;
         }
       };
