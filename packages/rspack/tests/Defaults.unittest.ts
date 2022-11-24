@@ -96,6 +96,7 @@ describe("snapshots", () => {
 		  "infrastructureLogging": {},
 		  "mode": "none",
 		  "module": {
+		    "parser": undefined,
 		    "rules": [],
 		  },
 		  "output": {},
