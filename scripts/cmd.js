@@ -104,11 +104,11 @@ function createCLI() {
 					break;
 				case "cli:release":
 					command =
-						"pnpm --filter @rspack/cli... build && pnpm --filter @rspack/binding build:release ";
+						"pnpm --filter @rspack/binding build:release && pnpm --filter @rspack/cli... build";
 					break;
 				case "cli":
 					command =
-						"pnpm --filter @rspack/cli... build && pnpm --filter @rspack/binding build ";
+						"pnpm --filter @rspack/binding build:debug && pnpm --filter @rspack/cli... build";
 					break;
 				case "bundle":
 					command = "cargo run --package rspack --example bundle";
