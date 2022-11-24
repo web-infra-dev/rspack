@@ -14,9 +14,7 @@ impl RuntimeModule for PublicPathRuntimeModule {
   fn generate(&self, compilation: &Compilation) -> BoxSource {
     match &compilation.options.output.public_path {
       PublicPath::String(str) => RawSource::from(
-        include_str!("runtime/public_path.js")
-          .to_string()
-          .replace("__PUBLIC_PATH_PLACEHOLDER__", str),
+        include_str!("runtime/public_path.js").replace("__PUBLIC_PATH_PLACEHOLDER__", str),
       )
       .boxed(),
       // TODO

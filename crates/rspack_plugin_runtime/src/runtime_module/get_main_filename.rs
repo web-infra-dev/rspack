@@ -25,8 +25,7 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
         .expect("Chunk not found");
       RawSource::from(
         include_str!("runtime/get_update_manifest_filename.js")
-          .to_string()
-          .replace("$CHUNK_ID$", &stringify_runtime(chunk.runtime.clone())),
+          .replace("$CHUNK_ID$", &stringify_runtime(&chunk.runtime)),
       )
       .boxed()
     } else {
@@ -40,6 +39,6 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
 }
 
 #[inline]
-fn stringify_runtime(runtime: RuntimeSpec) -> String {
-  Vec::from_iter(runtime.into_iter()).join("_")
+fn stringify_runtime(runtime: &RuntimeSpec) -> String {
+  Vec::from_iter(runtime.iter().map(|s| s.as_str())).join("_")
 }

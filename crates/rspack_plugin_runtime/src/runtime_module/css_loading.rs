@@ -54,7 +54,6 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       }
       RawSource::from(
         include_str!("runtime/css_loading.js")
-          .to_string()
           .replace(
             "INSTALLED_CHUNKS_WITH_CSS",
             &stringify_chunks(&initial_chunk_ids_with_css, 0),
