@@ -8,18 +8,19 @@ const {
 
 const IS_MODULES = /\.module(s)?\.\w+$/i;
 
-module.exports = async function loader(loaderContext) {
+module.exports = async function loader(content) {
+	const callback = this.async();
 	// TODO: customize options, until js binding support this functionality
-	// console.log(loaderContext.getOptions());
-	let options = loaderContext.getOptions() ?? {};
+	// console.log(this.getOptions());
+	let options = this.getOptions() ?? {};
 	let modulesOptions = options.modules;
 	let pxToRem = options.pxToRem;
 	let useSourceMap =
 		typeof options.sourceMap !== "undefined"
 			? options.sourceMap
-			: loaderContext.useSourceMap;
+			: this.useSourceMap;
 	try {
-		let meta = "";
+		let additionalData;
 		let plugins = [];
 		let enablePxToRem = false;
 		let pxToRemConfig = {
@@ -27,8 +28,8 @@ module.exports = async function loader(loaderContext) {
 			propList: ["*"]
 		};
 		let processOptions = {
-			from: loaderContext.resourcePath,
-			to: loaderContext.resourcePath
+			from: this.resourcePath,
+			to: this.resourcePath
 		};
 
 		if (pxToRem) {
@@ -50,11 +51,11 @@ module.exports = async function loader(loaderContext) {
 					: modulesOptions.auto ?? true;
 			let isModules;
 			if (typeof auto === "boolean") {
-				isModules = auto && IS_MODULES.test(loaderContext.resourcePath);
+				isModules = auto && IS_MODULES.test(this.resourcePath);
 			} else if (auto instanceof RegExp) {
-				isModules = auto.test(loaderContext.resourcePath);
+				isModules = auto.test(this.resourcePath);
 			} else if (typeof auto === "function") {
-				isModules = auto(loaderContext.resourcePath);
+				isModules = auto(this.resourcePath);
 			}
 			delete modulesOptions.auto;
 
@@ -64,7 +65,7 @@ module.exports = async function loader(loaderContext) {
 						...modulesOptions,
 						getJSON(_, json) {
 							if (json) {
-								meta = json;
+								additionalData = json;
 							}
 						}
 					})
@@ -78,30 +79,23 @@ module.exports = async function loader(loaderContext) {
 				annotation: false
 			};
 		}
-		if (loaderContext.sourceMap && processOptions.map) {
+		if (this.sourceMap && processOptions.map) {
 			processOptions.map.prev = normalizeSourceMap(
-				loaderContext.sourceMap,
-				loaderContext.context
+				this.sourceMap,
+				this.context
 			);
 		}
 
 		let root = new Processor(plugins);
-		let res = await root.process(
-			loaderContext.source.getCode(),
-			processOptions
-		);
+		let res = await root.process(content, processOptions);
 		let map = res.map ? res.map.toJSON() : undefined;
 
 		if (map && useSourceMap) {
-			map = normalizeSourceMapAfterPostcss(map, loaderContext.context);
+			map = normalizeSourceMapAfterPostcss(map, this.context);
 		}
 
-		return {
-			content: res.css,
-			meta: meta ? Buffer.from(JSON.stringify(meta)) : "",
-			sourceMap: map
-		};
+		callback(null, res.css, map, additionalData);
 	} catch (err) {
-		throw new Error(err);
+		callback(err, "");
 	}
 };

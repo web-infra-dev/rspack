@@ -6,7 +6,7 @@ import type {
 } from "@rspack/binding";
 import assert from "node:assert";
 import path from "node:path";
-import { isNil } from "../utils";
+import { isNil, isPromiseLike } from "../utils";
 import { ResolvedContext } from "./context";
 import { isUseSourceMap, ResolvedDevtool } from "./devtool";
 
@@ -143,26 +143,30 @@ function composeJsUse(
 		// Loader is executed from right to left
 		for (const use of uses) {
 			assert("loader" in use);
-			/**
-			 * support loader as string
-			 */
-			if (typeof use.loader === "string") {
-				let loaderPath = require.resolve(use.loader, {
-					paths: [options.context]
-				});
-				use.loader = require(loaderPath);
-			}
-
 			let loaderResult: LoaderResult;
 
 			const p = new Promise<LoaderResult>((resolve, reject) => {
+				let isDone = false;
+				// Whether a `callback` or `async` is called
+				let isSync = true;
+				let isError = false; // internal error
+				let reportedError = false;
+
 				function callback(
 					err: Error | null,
 					content: string | Buffer,
 					sourceMap?: string | SourceMap,
 					additionalData?: AdditionalData
 				) {
+					if (isDone) {
+						if (reportedError) return; // ignore
+						err = new Error("callback(): The callback was already called.");
+					}
+					isSync = false;
+					isDone = true;
+
 					if (err) {
+						isError = true;
 						reject(err);
 						return;
 					}
@@ -177,13 +181,19 @@ function composeJsUse(
 				const loaderContext: LoaderContext = {
 					sourceMap: payload.sourceMap,
 					resourcePath: payload.resourcePath,
-					resourceQuery: payload.resourceQuery,
 					resource: payload.resource,
-					resourceFragment: payload.resourceFragment,
+					// Return an empty string if there is no query or fragment
+					resourceQuery: payload.resourceQuery || "",
+					resourceFragment: payload.resourceFragment || "",
 					getOptions() {
 						return use.options;
 					},
 					async() {
+						if (isDone) {
+							if (reportedError) return; // ignore
+							reject(new Error("async(): The callback was already called."));
+						}
+						isSync = false;
 						return callback;
 					},
 					callback,
@@ -192,15 +202,64 @@ function composeJsUse(
 					context: path.dirname(payload.resourcePath)
 				};
 
-				use.loader.apply(loaderContext, [
-					use.loader.raw ? content : content.toString("utf-8"),
-					sourceMap,
-					additionalData
-				]);
+				/**
+				 * support loader as string
+				 */
+				if (typeof use.loader === "string") {
+					let loaderPath = require.resolve(use.loader, {
+						paths: [options.context]
+					});
+					use.loader = require(loaderPath);
+				}
+
+				let result: Promise<LoaderResult> | LoaderResult | undefined =
+					undefined;
+				try {
+					result = use.loader.apply(loaderContext, [
+						use.loader.raw ? content : content.toString("utf-8"),
+						sourceMap,
+						additionalData
+					]);
+					if (isSync) {
+						isDone = true;
+						if (result === undefined) {
+							resolve({
+								content,
+								sourceMap,
+								additionalData
+							});
+							return;
+						}
+						if (isPromiseLike(result)) {
+							return result.then(function (result) {
+								resolve(result);
+							}, reject);
+						}
+						return resolve(result);
+					}
+				} catch (err) {
+					if (isError) {
+						reject(err);
+						return;
+					}
+					if (isDone) {
+						// loader is already "done", so we cannot use the callback function
+						// for better debugging we print the error on the console
+						if (typeof err === "object" && err.stack) console.error(err.stack);
+						else console.error(err);
+						return;
+					}
+					isDone = true;
+					reportedError = true;
+					callback(err, "");
+				}
 			});
 
 			if ((loaderResult = await p)) {
-				additionalData = loaderResult.additionalData || additionalData;
+				additionalData =
+					(typeof loaderResult.additionalData === "string"
+						? JSON.parse(loaderResult.additionalData)
+						: loaderResult.additionalData) || additionalData;
 				content = loaderResult.content || content;
 				sourceMap = loaderResult.sourceMap || sourceMap;
 			}

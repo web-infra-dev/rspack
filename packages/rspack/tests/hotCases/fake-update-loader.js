@@ -1,9 +1,5 @@
-module.exports = function (context) {
+module.exports = function (content) {
   var idx = this.getOptions().updateIndex;
-  var items = context.source.getCode().split(/---+\r?\n/g);
-  return {
-		content: items[idx] || items[items.length - 1],
-		meta: "",
-		sourceMap: "{}"
-	};
+  var items = content.split(/---+\r?\n/g);
+  this.callback(null, items[idx] || items[items.length - 1])
 }
