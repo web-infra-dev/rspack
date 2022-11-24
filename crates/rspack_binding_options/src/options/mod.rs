@@ -1,9 +1,9 @@
-use std::fmt::Debug;
+use std::{collections::HashMap, fmt::Debug};
 
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
 
-use rspack_core::{CompilerOptions, CompilerOptionsBuilder};
+use rspack_core::{CompilerOptions, CompilerOptionsBuilder, EntryItem};
 
 use serde::Deserialize;
 
@@ -66,8 +66,7 @@ pub trait RawOption<T> {
 #[cfg(feature = "node-api")]
 #[napi(object)]
 pub struct RawOptions {
-  #[napi(ts_type = "Record<string, string>")]
-  pub entry: Option<RawEntry>,
+  pub entry: Option<HashMap<String, RawEntryItem>>,
   #[napi(ts_type = "string")]
   pub mode: Option<RawMode>,
   #[napi(ts_type = "string[]")]
@@ -98,7 +97,7 @@ pub struct RawOptions {
 #[serde(rename_all = "camelCase")]
 #[cfg(not(feature = "node-api"))]
 pub struct RawOptions {
-  pub entry: Option<RawEntry>,
+  pub entry: Option<HashMap<String, RawEntryItem>>,
   pub mode: Option<RawMode>,
   pub target: Option<RawTarget>,
   pub externals: Option<RawExternal>,
@@ -132,8 +131,20 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
       Ok(options)
     })?
     .then(|mut options| {
-      let entry = RawOption::raw_to_compiler_option(raw_options.entry, &options)?;
-      options.entry = Some(entry);
+      options.entry = raw_options.entry.map(|item| {
+        item
+          .into_iter()
+          .map(|(key, value)| {
+            (
+              key,
+              EntryItem {
+                runtime: value.runtime,
+                import: value.import,
+              },
+            )
+          })
+          .collect::<HashMap<String, EntryItem>>()
+      });
       Ok(options)
     })?
     .then(|mut options| {

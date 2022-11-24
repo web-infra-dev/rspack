@@ -1,20 +1,20 @@
-use super::RawOption;
-use rspack_core::{BundleEntries, CompilerOptionsBuilder};
-use std::collections::HashMap;
+#[cfg(feature = "node-api")]
+use napi_derive::napi;
+use serde::{Deserialize, Serialize};
 
-pub type RawEntry = HashMap<String, Vec<String>>;
+#[derive(Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+#[cfg(feature = "node-api")]
+#[napi(object)]
+pub struct RawEntryItem {
+  pub import: Vec<String>,
+  pub runtime: String,
+}
 
-impl RawOption<BundleEntries> for RawEntry {
-  fn to_compiler_option(self, _options: &CompilerOptionsBuilder) -> anyhow::Result<BundleEntries> {
-    Ok(
-      self
-        .into_iter()
-        .map(|(name, arr)| (name, arr.into_iter().map(|src| src.into()).collect()))
-        .collect(),
-    )
-  }
-
-  fn fallback_value(_options: &CompilerOptionsBuilder) -> Self {
-    Default::default()
-  }
+#[derive(Deserialize, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+#[cfg(not(feature = "node-api"))]
+pub struct RawEntryItem {
+  pub import: Vec<String>,
+  pub runtime: String,
 }
