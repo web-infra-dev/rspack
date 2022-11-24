@@ -64,6 +64,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                     contenthash: hash.clone(),
                     chunkhash: hash.clone(),
                     hash,
+                    ..Default::default()
                   }),
               );
             }
