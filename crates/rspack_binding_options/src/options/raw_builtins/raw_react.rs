@@ -61,7 +61,6 @@ impl RawOption<ReactOptions> for RawReactOptions {
       development: self.development,
       use_builtins: self.use_builtins,
       use_spread: self.use_spread,
-      refresh: self.refresh,
     })
   }
 

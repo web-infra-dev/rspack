@@ -17,7 +17,6 @@ import http from "http";
 import { createLogger } from "./logger";
 import WebpackDevServer from "webpack-dev-server";
 import express from "express";
-
 import rdm from "@rspack/dev-middleware";
 import { createWebsocketServer } from "./ws";
 import { resolveDevOptions } from "./config";
@@ -64,15 +63,14 @@ export class RspackDevServer {
 	}
 
 	rewriteCompilerOptions() {
+		this.compiler.options.devServer = this.options;
 		if (!this.compiler.options.builtins.react) {
 			this.compiler.options.builtins.react = {};
 		}
-		this.compiler.options.builtins.react.development =
-			this.compiler.options.builtins.react.development ?? true;
-		if (this.options.hot) {
-			this.compiler.options.builtins.react.refresh =
-				this.compiler.options.builtins.react.refresh ?? true;
+		if (this.compiler.options.builtins.react?.development !== true) {
+			this.logger.warn('The value of react.development is not being as expected and has been automatically changed to true.')
 		}
+		this.compiler.options.builtins.react.development = true;
 	}
 
 	addAdditionEntires() {
@@ -88,12 +86,10 @@ export class RspackDevServer {
 
 			entries.push(cssHotEntryPath);
 
-			if (this.compiler.options.builtins.react?.refresh) {
-				const reactRefreshEntryPath = require.resolve(
-					"@rspack/dev-client/react-refresh"
-				);
-				entries.push(reactRefreshEntryPath);
-			}
+			const reactRefreshEntryPath = require.resolve(
+				"@rspack/dev-client/react-refresh"
+			);
+			entries.push(reactRefreshEntryPath);
 		}
 
 		const devClientEntryPath = require.resolve("@rspack/dev-client");
@@ -175,7 +171,7 @@ export class RspackDevServer {
 		this.staticWatchers.push(watcher);
 	}
 
-	invalidate(callback = () => {}): void {
+	invalidate(callback = () => { }): void {
 		if (this.middleware) {
 			this.middleware.invalidate(callback);
 		}

@@ -12,6 +12,27 @@ exports[`normalize options snapshot additional entires should added 1`] = `
 }
 `;
 
+exports[`normalize options snapshot default client when hot disabled 1`] = `
+{
+  "main": [
+    "<prefix>/rspack-dev-client/dist/index.js",
+    "<prefix>/something",
+  ],
+}
+`;
+
+exports[`normalize options snapshot default client when hot enabled 1`] = `
+{
+  "main": [
+    "<prefix>/rspack-dev-client/dist/devServer.js",
+    "<prefix>/rspack-dev-client/dist/css.js",
+    "<prefix>/rspack-dev-client/dist/reactRefresh.js",
+    "<prefix>/rspack-dev-client/dist/index.js",
+    "<prefix>/something",
+  ],
+}
+`;
+
 exports[`normalize options snapshot no options 1`] = `
 {
   "devMiddleware": {},
@@ -41,40 +62,5 @@ exports[`normalize options snapshot port string 1`] = `
     "watch": {},
   },
   "webSocketServer": {},
-}
-`;
-
-exports[`normalize options snapshot react.development and react.refresh should be true in default when hot enabled 1`] = `
-{
-  "builtins": {
-    "browserslist": [],
-    "decorator": {
-      "emitMetadata": true,
-      "legacy": true,
-      "useDefineForClassFields": true,
-    },
-    "define": {},
-    "html": [],
-    "minify": true,
-    "react": {
-      "development": true,
-      "refresh": true,
-    },
-  },
-  "devServer": {
-    "hot": true,
-  },
-}
-`;
-
-exports[`normalize options snapshot react-refresh client added when react/refresh enabled 1`] = `
-{
-  "main": [
-    "<prefix>/rspack-dev-client/dist/devServer.js",
-    "<prefix>/rspack-dev-client/dist/css.js",
-    "<prefix>/rspack-dev-client/dist/reactRefresh.js",
-    "<prefix>/rspack-dev-client/dist/index.js",
-    "<prefix>/something",
-  ],
 }
 `;

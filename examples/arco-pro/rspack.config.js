@@ -10,7 +10,8 @@ module.exports = {
   context: __dirname,
   entry: { main: './src/index.tsx' },
   devServer: {
-    port: 5555
+    port: 5555,
+    hot: false
   },
   devtool: false,
   builtins: {
@@ -20,8 +21,7 @@ module.exports = {
     }],
     define: { 'process.env.NODE_ENV': JSON.stringify('development') },
     react: {
-      development: true,
-      refresh: true,
+      development: false,
     },
     progress: {},
     treeShaking: true,

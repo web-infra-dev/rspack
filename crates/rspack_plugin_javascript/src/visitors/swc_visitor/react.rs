@@ -1,6 +1,6 @@
 use crate::ast::parse_js_code;
+use rspack_core::CompilerOptions;
 use rspack_core::ModuleType;
-use rspack_core::ReactOptions;
 use std::{path::Path, sync::Arc};
 use sugar_path::SugarPath;
 use swc_common::{comments::SingleThreadedComments, Mark, SourceMap};
@@ -12,19 +12,19 @@ pub fn react<'a>(
   top_level_mark: Mark,
   comments: Option<&'a SingleThreadedComments>,
   cm: &Arc<SourceMap>,
-  options: &ReactOptions,
+  compiler_options: &CompilerOptions,
 ) -> impl Fold + 'a {
+  let options = &compiler_options.builtins.react;
+  let enable_refresh = compiler_options.dev_server.hot;
   swc_react(
     cm.clone(),
     comments,
     Options {
-      refresh: options.refresh.and_then(|dev| {
-        if dev {
-          Some(swc_ecma_transforms::react::RefreshOptions::default())
-        } else {
-          None
-        }
-      }),
+      refresh: if enable_refresh {
+        Some(swc_ecma_transforms::react::RefreshOptions::default())
+      } else {
+        None
+      },
       runtime: options.runtime,
       import_source: options.import_source.clone(),
       pragma: options.pragma.clone(),
