@@ -99,18 +99,29 @@ impl From<Error> for Vec<Diagnostic> {
         ..
       }) => {
         let source = if let Some(source) = source {
-          source
+          Some(source)
         } else {
-          std::fs::read_to_string(&path).unwrap()
+          std::fs::read_to_string(&path).ok()
         };
-        Diagnostic {
-          message: error_message,
-          source_info: Some(DiagnosticSourceInfo { source, path }),
-          start,
-          end,
-          title,
-          kind,
-          severity,
+        match source {
+          Some(source) => Diagnostic {
+            message: error_message,
+            source_info: Some(DiagnosticSourceInfo { source, path }),
+            start,
+            end,
+            title,
+            kind,
+            severity,
+          },
+          // Fallback to internal diagnostic
+          None => Diagnostic {
+            message: error_message,
+            source_info: None,
+            start: 0,
+            end: 0,
+            severity,
+            ..Default::default()
+          },
         }
       }
       Error::Io { source } => Diagnostic {
