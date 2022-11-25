@@ -60,11 +60,7 @@ interface LoaderResultInternal {
 export interface LoaderContext
 	extends Pick<
 		LoaderContextInternal,
-		| "resource"
-		| "resourcePath"
-		| "resourceQuery"
-		| "resourceFragment"
-		| "sourceMap"
+		"resource" | "resourcePath" | "resourceQuery" | "resourceFragment"
 	> {
 	async(): (
 		err: Error | null,
@@ -78,7 +74,7 @@ export interface LoaderContext
 		sourceMap?: string | SourceMap,
 		additionalData?: AdditionalData
 	): void;
-	useSourceMap: boolean;
+	sourceMap: boolean;
 	rootContext: string;
 	context: string;
 	getOptions: () => unknown;
@@ -174,7 +170,7 @@ function composeJsUse(
 				}
 
 				const loaderContext: LoaderContext = {
-					sourceMap: payload.sourceMap,
+					sourceMap: isUseSourceMap(options.devtool),
 					resourcePath: payload.resourcePath,
 					resource: payload.resource,
 					// Return an empty string if there is no query or fragment
@@ -192,7 +188,6 @@ function composeJsUse(
 						return callback;
 					},
 					callback,
-					useSourceMap: isUseSourceMap(options.devtool),
 					rootContext: options.context,
 					context: path.dirname(payload.resourcePath)
 				};

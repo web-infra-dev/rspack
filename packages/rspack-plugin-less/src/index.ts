@@ -19,7 +19,6 @@ const lessLoader: Loader = async function (content) {
 	assert(typeof content === "string");
 
 	const callback = this.async();
-	let meta = "";
 	const enhancedResolver = create.sync({
 		extensions: [".less", ".css", ".sass", ".scss", ".js"],
 		preferRelative: true
@@ -27,9 +26,7 @@ const lessLoader: Loader = async function (content) {
 	const options: Options = this.getOptions() ?? {};
 	const lessOptions = options.lessOptions ?? {};
 	const useSourceMap =
-		typeof options.sourceMap === "boolean"
-			? options.sourceMap
-			: this.useSourceMap;
+		typeof options.sourceMap === "boolean" ? options.sourceMap : this.sourceMap;
 
 	if (useSourceMap) {
 		lessOptions.sourceMap = {
