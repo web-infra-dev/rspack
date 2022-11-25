@@ -6,7 +6,7 @@ module.exports = {
 		rules: [
 			{
 				test: /\.s[ac]ss$/i,
-				uses: [{ builtinLoader: "sass-loader" }],
+				use: [{ builtinLoader: "sass-loader" }],
 				type: "css"
 			}
 		]

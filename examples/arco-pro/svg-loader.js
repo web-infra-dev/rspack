@@ -1,16 +1,14 @@
 const { transform } = require('@svgr/core');
-module.exports = async function svgLoader(loaderContext){
-  const svgCode = loaderContext.source.getCode();
-  const filePath = loaderContext.resourcePath;
-  const componentCode = await transform(svgCode, {}, {
+module.exports = function svgLoader(content){
+  const callback = this.async();
+  const filePath = this.resourcePath;
+
+  transform(content, {}, {
     filePath,
     caller: {
       previousExport: null
     }
+  }).then((componentCode) => {
+    callback(null, componentCode);
   })
-  return {
-    content: componentCode,
-    meta: "",
-    map: undefined
-  }
 }

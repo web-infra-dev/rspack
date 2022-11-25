@@ -1,17 +1,12 @@
 const path = require("path");
 const resolve = filename => path.resolve(__dirname, filename);
 
-async function testLoader(context) {
+function testLoader(content) {
 	const head = `
 	globalThis.mockFn = jest.fn();
 	mockFn();
 	`;
-	const code = context.source.getCode();
-	return {
-		content: head + "\n" + code,
-		meta: "",
-		sourceMap: "{}"
-	};
+	this.callback(null, head + "\n" + content);
 }
 
 module.exports = {
@@ -22,7 +17,7 @@ module.exports = {
 		rules: [
 			{
 				test: resolve("index.js"),
-				uses: [
+				use: [
 					{
 						loader: testLoader
 					}

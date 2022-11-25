@@ -420,7 +420,7 @@ impl Module for NormalModule {
         module_type: &self.module_type,
         resource_data: &self.resource_data,
         compiler_options: build_context.compiler_options,
-        meta: loader_result.meta,
+        additional_data: loader_result.additional_data,
       })?
       .split_into_parts();
     diagnostics.extend(ds);

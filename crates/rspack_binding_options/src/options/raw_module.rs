@@ -136,7 +136,7 @@ pub struct RawModuleRule {
   #[serde(skip_deserializing)]
   pub func__: Option<JsFunction>,
   #[serde(skip_deserializing)]
-  pub uses: Option<Vec<RawModuleRuleUse>>,
+  pub r#use: Option<Vec<RawModuleRuleUse>>,
   #[napi(
     ts_type = r#""js" | "jsx" | "ts" | "tsx" | "css" | "json" | "asset" | "asset/resource" | "asset/source" | "asset/inline""#
   )]
@@ -153,7 +153,7 @@ pub struct RawModuleRule {
   // Loader experimental
   #[serde(skip_deserializing)]
   pub func__: Option<()>,
-  pub uses: Option<Vec<RawModuleRuleUse>>,
+  pub r#use: Option<Vec<RawModuleRuleUse>>,
   pub r#type: Option<String>,
 }
 
@@ -164,7 +164,7 @@ impl Debug for RawModuleRule {
       .field("resource", &self.resource)
       .field("resource_query", &self.resource_query)
       .field("type", &self.r#type)
-      .field("uses", &self.uses)
+      .field("use", &self.r#use)
       .finish()
   }
 }
@@ -315,8 +315,8 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
       rspack_core::LoaderResult {
         content: rspack_core::Content::from(loader_result.content),
         source_map,
-        meta: loader_result
-          .meta
+        additional_data: loader_result
+          .additional_data
           .map(|item| String::from_utf8_lossy(&item).to_string()),
       }
       .with_empty_diagnostic()
@@ -348,7 +348,7 @@ pub struct LoaderContext {
 pub struct LoaderResult {
   pub content: Vec<u8>,
   pub source_map: Option<Vec<u8>>,
-  pub meta: Option<Vec<u8>>,
+  pub additional_data: Option<Vec<u8>>,
 }
 
 pub type LoaderThreadsafeLoaderResult = Option<LoaderResult>;
@@ -357,7 +357,7 @@ impl RawOption<ModuleRule> for RawModuleRule {
   fn to_compiler_option(self, _options: &CompilerOptionsBuilder) -> anyhow::Result<ModuleRule> {
     // Even this part is using the plural version of loader, it's recommended to use singular version from js side to reduce overhead (This behavior maybe changed later for advanced usage).
     let uses = self
-      .uses
+      .r#use
       .map(|uses| {
         uses
           .into_iter()
@@ -391,7 +391,7 @@ impl RawOption<ModuleRule> for RawModuleRule {
             if let Some(builtin_loader) = rule_use.builtin_loader {
               return Ok(get_builtin_loader(&builtin_loader, rule_use.options.as_deref()));
             }
-            panic!("`loader` field or `builtin_loader` field in `uses` must not be `None` at the same time.");
+            panic!("`loader` field or `builtin_loader` field in `use` must not be `None` at the same time.");
           })
           .collect::<anyhow::Result<Vec<_>>>()
       })
@@ -438,8 +438,8 @@ impl RawOption<ModuleRule> for RawModuleRule {
       test: self.test.map(|raw| raw.try_into()).transpose()?,
       resource_query: self.resource_query.map(|raw| raw.try_into()).transpose()?,
       resource: self.resource.map(|raw| raw.try_into()).transpose()?,
-      uses,
-      module_type,
+      r#use: uses,
+      r#type: module_type,
       // Loader experimental
       func__: None,
     })

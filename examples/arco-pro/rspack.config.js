@@ -31,14 +31,14 @@ module.exports = {
       [
         {
           test: /\.less$/,
-          uses:
+          use:
             [
               { loader: postcssLoader, options: { modules: true } },
               { loader: lessLoader },
             ],
           type: 'css'
         },
-        { test: /\.svg$/, uses: [{ loader: './svg-loader.js' }], type: 'jsx' }
+        { test: /\.svg$/, use: [{ loader: './svg-loader.js' }], type: 'jsx' }
       ]
   },
   resolve: { alias: { '@': path.resolve(__dirname, 'src') } },

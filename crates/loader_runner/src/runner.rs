@@ -41,14 +41,14 @@ pub struct LoaderContext<'a, 'context, T, U> {
 
   pub source_map: Option<SourceMap>,
 
-  pub meta: Option<String>,
+  pub additional_data: Option<String>,
 }
 
 #[derive(Debug)]
 pub struct LoaderResult {
   pub content: Content,
   pub source_map: Option<SourceMap>,
-  pub meta: Option<String>,
+  pub additional_data: Option<String>,
 }
 
 impl<T, U> From<LoaderContext<'_, '_, T, U>> for LoaderResult {
@@ -56,7 +56,7 @@ impl<T, U> From<LoaderContext<'_, '_, T, U>> for LoaderResult {
     Self {
       content: loader_context.source,
       source_map: loader_context.source_map,
-      meta: loader_context.meta,
+      additional_data: loader_context.additional_data,
     }
   }
 }
@@ -136,7 +136,7 @@ impl LoaderRunner {
       compiler_context: context.compiler,
       compilation_context: context.compilation,
       source_map: None,
-      meta: None,
+      additional_data: None,
     };
 
     Ok(loader_context)
@@ -159,7 +159,7 @@ impl LoaderRunner {
         let (loader_result, ds) = loader_result.split_into_parts();
         loader_context.source = loader_result.content;
         loader_context.source_map = loader_result.source_map;
-        loader_context.meta = loader_result.meta;
+        loader_context.additional_data = loader_result.additional_data;
         diagnostics.extend(ds);
       }
     }

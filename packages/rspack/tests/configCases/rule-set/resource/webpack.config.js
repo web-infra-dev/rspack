@@ -10,7 +10,7 @@ module.exports = {
 		rules: [
 			{
 				resource: /lib\.js/,
-				uses: [
+				use: [
 					{
 						loader: "./loader-2.js"
 					}
@@ -18,7 +18,7 @@ module.exports = {
 			},
 			{
 				resource: resolve("lib.js"),
-				uses: [
+				use: [
 					{
 						loader: "./loader-1.js"
 					}

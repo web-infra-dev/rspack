@@ -493,7 +493,7 @@ impl Loader<CompilerContext, CompilationContext> for SassLoader {
       LoaderResult {
         content: result.css.into(),
         source_map,
-        meta: None,
+        additional_data: None,
       }
       .with_diagnostic(rx.into_iter().flatten().collect_vec()),
     ))

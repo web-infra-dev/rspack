@@ -7,7 +7,7 @@ module.exports = {
 		rules: [
 			{
 				test: /\.svg$/,
-				uses: [
+				use: [
 					{
 						loader: "./my-loader.js",
             type: "asset"

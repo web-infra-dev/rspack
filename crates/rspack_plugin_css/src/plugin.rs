@@ -243,7 +243,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
   #[instrument(name = "css:parse", skip_all)]
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
-    let ParseContext { source, meta, .. } = parse_context;
+    let ParseContext {
+      source,
+      additional_data,
+      ..
+    } = parse_context;
 
     let content = source.source().to_string();
     let TWithDiagnosticArray {
@@ -261,7 +265,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       stylesheet.visit_mut_with(&mut px_to_rem(config));
     }
 
-    self.meta = meta.and_then(|data| if data.is_empty() { None } else { Some(data) });
+    self.meta = additional_data.and_then(|data| if data.is_empty() { None } else { Some(data) });
 
     let mut scanner = DependencyScanner::default();
     stylesheet.visit_mut_with(&mut scanner);

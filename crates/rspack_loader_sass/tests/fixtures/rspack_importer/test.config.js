@@ -9,7 +9,7 @@ module.exports = {
 					type: "regexp",
 					matcher: "\\.s[ac]ss$"
 				},
-				uses: [{ builtinLoader: "sass-loader" }],
+				use: [{ builtinLoader: "sass-loader" }],
 				type: "css"
 			}
 		]

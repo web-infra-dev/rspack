@@ -3,7 +3,7 @@ module.exports = {
 		rules: [
 			{
 				test: /\.s[ac]ss$/i,
-				uses: [
+				use: [
 					{
 						builtinLoader: "sass-loader",
 						options: {

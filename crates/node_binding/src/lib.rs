@@ -146,7 +146,7 @@ impl Rspack {
         .rules
         .iter_mut()
         .try_for_each(|rule| {
-          rule.uses.iter_mut().try_for_each(|loader| {
+          rule.r#use.iter_mut().try_for_each(|loader| {
             let casted = loader.as_any_mut();
             if let Some(adapter) = casted.downcast_mut::<JsLoaderAdapter>() {
               adapter.unref(&env)
@@ -285,7 +285,7 @@ impl Rspack {
     {
       if let Some(module) = options.module.as_mut() {
         for rule in &mut module.rules {
-          if let Some(uses) = rule.uses.as_mut() {
+          if let Some(uses) = rule.r#use.as_mut() {
             for item in uses {
               if let Some(loader) = item.loader.as_ref() {
                 // let (env_ptr, loader_ptr) = unsafe { (env.raw(), loader.raw()) };

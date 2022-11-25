@@ -9,7 +9,13 @@ import type {
 	ResolvedExternalType
 } from "./external";
 import type { Mode, ResolvedMode } from "./mode";
-import type { Module, ResolvedModule, LoaderContext } from "./module";
+import type {
+	Module,
+	ResolvedModule,
+	LoaderContext,
+	Loader,
+	SourceMap
+} from "./module";
 import type { Plugin } from "./plugin";
 import type { ResolvedTarget, Target } from "./target";
 import type { Output, ResolvedOutput } from "./output";
@@ -109,7 +115,7 @@ export function getNormalizedRspackOptions(
 function cloneObject(value: Record<string, any> | undefined) {
 	return { ...value };
 }
-export type { Plugin, LoaderContext };
+export type { Plugin, LoaderContext, Loader, SourceMap };
 export type { WebSocketServerOptions, Dev } from "./devServer";
 export { resolveWatchOption } from "./watch";
 export type { StatsOptions } from "./stats";

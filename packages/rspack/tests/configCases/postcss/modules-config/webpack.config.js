@@ -7,7 +7,7 @@ module.exports = {
 		rules: [
 			{
 				test: resolve("modules-true.module.css"),
-				uses: [
+				use: [
 					{
 						loader: postcssLoader,
 						options: {
@@ -18,7 +18,7 @@ module.exports = {
 			},
 			{
 				test: resolve("modules-false.module.css"),
-				uses: [
+				use: [
 					{
 						loader: postcssLoader,
 						options: {
@@ -29,7 +29,7 @@ module.exports = {
 			},
 			{
 				test: resolve("auto-true.module.css"),
-				uses: [
+				use: [
 					{
 						loader: postcssLoader,
 						options: {
@@ -42,7 +42,7 @@ module.exports = {
 			},
 			{
 				test: resolve("auto-false.module.css"),
-				uses: [
+				use: [
 					{
 						loader: postcssLoader,
 						options: {
@@ -55,7 +55,7 @@ module.exports = {
 			},
 			{
 				test: resolve("auto-regex.css"),
-				uses: [
+				use: [
 					{
 						loader: postcssLoader,
 						options: {
@@ -68,7 +68,7 @@ module.exports = {
 			},
 			{
 				test: resolve("auto-function.css"),
-				uses: [
+				use: [
 					{
 						loader: postcssLoader,
 						options: {
@@ -83,7 +83,7 @@ module.exports = {
 			},
 			{
 				test: resolve("generateScopedName.module.css"),
-				uses: [
+				use: [
 					{
 						loader: postcssLoader,
 						options: {
@@ -96,7 +96,7 @@ module.exports = {
 			},
 			{
 				test: resolve("localsConvention.module.css"),
-				uses: [
+				use: [
 					{
 						loader: postcssLoader,
 						options: {

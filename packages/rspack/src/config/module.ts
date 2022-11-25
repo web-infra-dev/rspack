@@ -6,7 +6,7 @@ import type {
 } from "@rspack/binding";
 import assert from "node:assert";
 import path from "node:path";
-import { isNil } from "../utils";
+import { isNil, isPromiseLike } from "../utils";
 import { ResolvedContext } from "./context";
 import { isUseSourceMap, ResolvedDevtool } from "./devtool";
 
@@ -15,7 +15,7 @@ export interface ModuleRule {
 	test?: string | RegExp;
 	resource?: string | RegExp;
 	resourceQuery?: string | RegExp;
-	uses?: ModuleRuleUse[];
+	use?: ModuleRuleUse[];
 	type?: RawModuleRule["type"];
 }
 
@@ -28,7 +28,7 @@ interface ResolvedModuleRule {
 	test?: RawModuleRule["test"];
 	resource?: RawModuleRule["resource"];
 	resourceQuery?: RawModuleRule["resourceQuery"];
-	uses?: RawModuleRuleUse[];
+	use?: RawModuleRuleUse[];
 	type?: RawModuleRule["type"];
 }
 
@@ -47,35 +47,34 @@ interface LoaderContextInternal {
 	resourceFragment: string | null;
 }
 
-interface LoaderResult {
-	content: Buffer | string;
-	meta: Buffer | string;
-}
-
-interface LoaderThreadsafeResult {
-	id: number;
-	p: LoaderResultInternal | null | undefined;
-}
+// interface LoaderResult {
+// 	content: Buffer | string;
+// 	meta: Buffer | string;
+// }
 
 interface LoaderResultInternal {
 	content: number[];
-	meta: number[];
+	additionalData: number[];
 }
 
 export interface LoaderContext
 	extends Pick<
 		LoaderContextInternal,
-		| "resource"
-		| "resourcePath"
-		| "resourceQuery"
-		| "resourceFragment"
-		| "sourceMap"
+		"resource" | "resourcePath" | "resourceQuery" | "resourceFragment"
 	> {
-	source: {
-		getCode(): string;
-		getBuffer(): Buffer;
-	};
-	useSourceMap: boolean;
+	async(): (
+		err: Error | null,
+		content: string | Buffer,
+		sourceMap?: string | SourceMap,
+		additionalData?: AdditionalData
+	) => void;
+	callback(
+		err: Error | null,
+		content: string | Buffer,
+		sourceMap?: string | SourceMap,
+		additionalData?: AdditionalData
+	): void;
+	sourceMap: boolean;
 	rootContext: string;
 	context: string;
 	getOptions: () => unknown;
@@ -91,14 +90,30 @@ const toBuffer = (bufLike: string | Buffer): Buffer => {
 	throw new Error("Buffer or string expected");
 };
 
-interface LoaderThreadsafeContext {
-	id: number;
-	p: LoaderContextInternal;
-}
-
 export interface ComposeJsUseOptions {
 	devtool: ResolvedDevtool;
 	context: ResolvedContext;
+}
+
+export interface SourceMap {
+	version: number;
+	sources: string[];
+	mappings: string;
+	file?: string;
+	sourceRoot?: string;
+	sourcesContent?: string[];
+	names?: string[];
+}
+
+export interface AdditionalData {
+	[index: string]: any;
+	// webpackAST: object;
+}
+
+export interface LoaderResult {
+	content: string | Buffer;
+	sourceMap?: string | SourceMap;
+	additionalData?: AdditionalData;
 }
 
 function composeJsUse(
@@ -112,65 +127,158 @@ function composeJsUse(
 	async function loader(data: Buffer): Promise<Buffer> {
 		const payload: LoaderContextInternal = JSON.parse(data.toString("utf-8"));
 
-		const loaderContextInternal: LoaderContextInternal = {
-			source: payload.source,
-			sourceMap: payload.sourceMap,
-			resourcePath: payload.resourcePath,
-			resourceQuery: payload.resourceQuery,
-			resource: payload.resource,
-			resourceFragment: payload.resourceFragment
-		};
+		let content: string | Buffer = Buffer.from(payload.source);
+		let sourceMap: string | SourceMap | undefined = payload.sourceMap;
+		let additionalData: AdditionalData | undefined;
 
-		let sourceBuffer = Buffer.from(loaderContextInternal.source);
-		let meta = Buffer.from("");
 		// Loader is executed from right to left
 		for (const use of uses) {
 			assert("loader" in use);
-			/**
-			 * support loader as string
-			 */
-			if (typeof use.loader === "string") {
-				let loaderPath = require.resolve(use.loader, {
-					paths: [options.context]
-				});
-				use.loader = require(loaderPath);
-			}
-			const loaderContext = {
-				...loaderContextInternal,
-				source: {
-					getCode(): string {
-						return sourceBuffer.toString("utf-8");
-					},
-					getBuffer(): Buffer {
-						return sourceBuffer;
-					}
-				},
-				getOptions() {
-					return use.options;
-				},
-				useSourceMap: isUseSourceMap(options.devtool),
-				rootContext: options.context,
-				context: path.dirname(loaderContextInternal.resourcePath)
-			};
 			let loaderResult: LoaderResult;
-			if (
-				(loaderResult = await Promise.resolve().then(() =>
-					use.loader.apply(loaderContext, [loaderContext])
-				))
-			) {
-				const content = loaderResult.content;
-				meta = meta.length > 0 ? meta : toBuffer(loaderResult.meta);
-				sourceBuffer = toBuffer(content);
+
+			const p = new Promise<LoaderResult>((resolve, reject) => {
+				let isDone = false;
+				// Whether a `callback` or `async` is called
+				let isSync = true;
+				let isError = false; // internal error
+				let reportedError = false;
+
+				function callback(
+					err: Error | null,
+					content: string | Buffer,
+					sourceMap?: string | SourceMap,
+					additionalData?: AdditionalData
+				) {
+					if (isDone) {
+						if (reportedError) return; // ignore
+						err = new Error("callback(): The callback was already called.");
+					}
+					isSync = false;
+					isDone = true;
+
+					if (err) {
+						isError = true;
+						reject(err);
+						return;
+					}
+
+					resolve({
+						content,
+						sourceMap,
+						additionalData
+					});
+				}
+
+				const loaderContext: LoaderContext = {
+					sourceMap: isUseSourceMap(options.devtool),
+					resourcePath: payload.resourcePath,
+					resource: payload.resource,
+					// Return an empty string if there is no query or fragment
+					resourceQuery: payload.resourceQuery || "",
+					resourceFragment: payload.resourceFragment || "",
+					getOptions() {
+						return use.options;
+					},
+					async() {
+						if (isDone) {
+							if (reportedError) return; // ignore
+							reject(new Error("async(): The callback was already called."));
+						}
+						isSync = false;
+						return callback;
+					},
+					callback,
+					rootContext: options.context,
+					context: path.dirname(payload.resourcePath)
+				};
+
+				/**
+				 * support loader as string
+				 */
+				if (typeof use.loader === "string") {
+					try {
+						let loaderPath = require.resolve(use.loader, {
+							paths: [options.context]
+						});
+						use.loader = require(loaderPath);
+					} catch (err) {
+						reject(err);
+						return;
+					}
+				}
+
+				let result: Promise<string | Buffer> | string | Buffer | undefined =
+					undefined;
+				try {
+					result = use.loader.apply(loaderContext, [
+						use.loader.raw ? content : content.toString("utf-8"),
+						sourceMap,
+						additionalData
+					]);
+					if (isSync) {
+						isDone = true;
+						if (result === undefined) {
+							resolve({
+								content,
+								sourceMap,
+								additionalData
+							});
+							return;
+						}
+						if (isPromiseLike(result)) {
+							return result.then(function (result) {
+								resolve({
+									content: result,
+									sourceMap,
+									additionalData
+								});
+							}, reject);
+						}
+						return resolve({
+							content: result,
+							sourceMap,
+							additionalData
+						});
+					}
+				} catch (err) {
+					if (isError) {
+						reject(err);
+						return;
+					}
+					if (isDone) {
+						// loader is already "done", so we cannot use the callback function
+						// for better debugging we print the error on the console
+						if (typeof err === "object" && err.stack) console.error(err.stack);
+						else console.error(err);
+						reject(err);
+						return;
+					}
+					isDone = true;
+					reportedError = true;
+					reject(err);
+				}
+			});
+
+			if ((loaderResult = await p)) {
+				additionalData =
+					(typeof loaderResult.additionalData === "string"
+						? JSON.parse(loaderResult.additionalData)
+						: loaderResult.additionalData) || additionalData;
+				content = loaderResult.content || content;
+				sourceMap = loaderResult.sourceMap || sourceMap;
 			}
 		}
 
 		const loaderResultPayload: LoaderResultInternal = {
-			content: [...sourceBuffer],
-			meta: [...meta]
+			content: [...toBuffer(content)],
+			// TODO: Support `SourceMap`
+			// TODO: Use `None` for the rust side
+			additionalData: [...toBuffer(JSON.stringify(additionalData || {}))]
 		};
 
 		return Buffer.from(JSON.stringify(loaderResultPayload), "utf-8");
 	}
+
 	loader.displayName = `NodeLoaderAdapter(${uses
 		.map(item => {
 			assert("loader" in item);
@@ -182,12 +290,15 @@ function composeJsUse(
 	};
 }
 
-interface JsLoader {
-	(this: LoaderContext, loaderContext: LoaderContext):
-		| Promise<LoaderResult | void>
-		| LoaderResult
-		| void;
+export interface Loader {
+	(
+		this: LoaderContext,
+		content: string | Buffer,
+		sourceMap?: string | SourceMap,
+		additionalData?: AdditionalData
+	): void;
 	displayName?: string;
+	raw?: boolean;
 }
 
 type BuiltinLoader = string;
@@ -199,7 +310,7 @@ type ModuleRuleUse =
 			name?: string;
 	  }
 	| {
-			loader: JsLoader;
+			loader: Loader;
 			options?: unknown;
 			name?: string;
 	  };
@@ -278,17 +389,30 @@ export function resolveModuleOptions(
 	module: Module = {},
 	options: ComposeJsUseOptions
 ): ResolvedModule {
-	const rules = (module.rules ?? []).map(rule => ({
-		...rule,
-		test: isNil(rule.test) ? null : resolveModuleRuleCondition(rule.test),
-		resource: isNil(rule.resource)
-			? null
-			: resolveModuleRuleCondition(rule.resource),
-		resourceQuery: isNil(rule.resourceQuery)
-			? null
-			: resolveModuleRuleCondition(rule.resourceQuery),
-		uses: createRawModuleRuleUses(rule.uses || [], options)
-	}));
+	const rules = (module.rules ?? []).map(rule => {
+		// FIXME: use error handler instead of throwing
+		if ((rule as any)?.loader) {
+			throw new Error("`Rule.loader` is not supported, use `Rule.use` instead");
+		}
+
+		if ((rule as any)?.uses) {
+			throw new Error(
+				"`Rule.uses` is deprecated for aligning with webpack, use `Rule.use` instead"
+			);
+		}
+
+		return {
+			...rule,
+			test: isNil(rule.test) ? null : resolveModuleRuleCondition(rule.test),
+			resource: isNil(rule.resource)
+				? null
+				: resolveModuleRuleCondition(rule.resource),
+			resourceQuery: isNil(rule.resourceQuery)
+				? null
+				: resolveModuleRuleCondition(rule.resourceQuery),
+			use: createRawModuleRuleUses(rule.use || [], options)
+		};
+	});
 	return {
 		parser: module.parser,
 		rules

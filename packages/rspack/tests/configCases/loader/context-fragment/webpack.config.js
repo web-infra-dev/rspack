@@ -1,5 +1,4 @@
 const path = require("path");
-const resolve = filename => path.resolve(__dirname, filename);
 
 /**
  * @type {import('@rspack/core').RspackOptions}
@@ -9,18 +8,18 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				test: /lib\.js/,
-				uses: [
+				test: path.join(__dirname, "a.js"),
+				use: [
 					{
-						loader: "./loader-2.js"
+						loader: "./my-loader.js"
 					}
 				]
 			},
 			{
-				test: resolve("lib.js"),
-				uses: [
+				test: path.join(__dirname, "b.js"),
+				use: [
 					{
-						loader: "./loader-1.js"
+						loader: "./my-loader.js"
 					}
 				]
 			}
