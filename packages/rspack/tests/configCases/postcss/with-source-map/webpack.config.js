@@ -4,21 +4,13 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				test: /\.module\.css$/,
+				test: /\.css$/,
 				use: [
 					{
 						loader: postcssLoader,
 						options: {
-							modules: true
+							pxToRem: true
 						}
-					}
-				]
-			},
-			{
-				test: /\.css$/,
-				use: [
-					{
-						loader: postcssLoader
 					}
 				]
 			}
