@@ -1,9 +1,4 @@
-use std::{
-  collections::VecDeque,
-  hash::Hash,
-  path::{Path, PathBuf},
-  sync::Arc,
-};
+use std::{collections::VecDeque, hash::Hash, path::PathBuf, sync::Arc};
 
 use bitflags::bitflags;
 use globset::{Glob, GlobSetBuilder};
@@ -149,7 +144,7 @@ impl<'a> ModuleRefAnalyze<'a> {
   /// in rest of scenario we only count binding imported from other module.
   pub fn get_all_import_or_export(&self, start: BetterId, only_import: bool) -> HashSet<SymbolRef> {
     let mut seen: HashSet<IdOrMemExpr> = HashSet::default();
-    let mut q: VecDeque<IdOrMemExpr> = VecDeque::from_iter([IdOrMemExpr::Id(start.clone())]);
+    let mut q: VecDeque<IdOrMemExpr> = VecDeque::from_iter([IdOrMemExpr::Id(start)]);
     while let Some(cur) = q.pop_front() {
       if seen.contains(&cur) {
         continue;
