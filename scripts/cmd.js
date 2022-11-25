@@ -4,7 +4,7 @@ const { Command, command } = require("commander");
 
 const COMMANDER_VERSION = "2.20.3";
 
-function checkCommandVersion () {
+function checkCommandVersion() {
 	const pkgInfo = require(require.resolve("commander/package.json"));
 	if (pkgInfo.version !== COMMANDER_VERSION) {
 		log.error(
@@ -14,7 +14,7 @@ function checkCommandVersion () {
 	}
 }
 
-function createCLI () {
+function createCLI() {
 	checkCommandVersion();
 
 	const cli = new Command();
@@ -94,18 +94,21 @@ function createCLI () {
 					command = `pnpm --filter "@rspack/*" build`;
 					break;
 				case "js-release":
-					command = `pnpm --filter "@rspack/*" build && pnpm --filter @rspack/binding build --release`;
+					command = `pnpm --filter @rspack/binding build:release && pnpm --filter "@rspack/*" build`;
+					break;
+				case "js-release-all":
+					command = `pnpm --filter @rspack/binding build:release:all && pnpm --filter "@rspack/*" build`;
 					break;
 				case "binding":
-					command = "pnpm --filter @rspack/binding build";
+					command = "pnpm --filter @rspack/binding build:debug";
 					break;
 				case "cli:release":
 					command =
-						"pnpm --filter @rspack/cli... build && pnpm --filter @rspack/binding build --release ";
+						"pnpm --filter @rspack/binding build:release && pnpm --filter @rspack/cli... build";
 					break;
 				case "cli":
 					command =
-						"pnpm --filter @rspack/cli... build && pnpm --filter @rspack/binding build ";
+						"pnpm --filter @rspack/binding build:debug && pnpm --filter @rspack/cli... build";
 					break;
 				case "bundle":
 					command = "cargo run --package rspack --example bundle";

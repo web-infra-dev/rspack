@@ -6,7 +6,7 @@ jobs:
   release:
     name: release-snapshot
     if: github.event.issue.pull_request && contains(github.event.comment.body, '!snapshot')
-    runs-on: [self-hosted, rspack-common, macOS]
+    runs-on: [self-hosted, rspack-common, macOS, ARM64]
     steps:
       - name: Get PR SHA
         id: sha

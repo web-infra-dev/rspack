@@ -42,7 +42,7 @@ sync_bnpm:
 	@bnpm sync create-rspack
 snapshot_ci:
 	@pnpm version:snapshot
-	@./x build js-release
+	@./x build js-release-all
 	@pnpm release:snapshot
 release-snapshot:
 	@make snapshot_ci
