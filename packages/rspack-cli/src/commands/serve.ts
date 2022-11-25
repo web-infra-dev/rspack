@@ -2,7 +2,7 @@ import type { RspackCLI } from "../rspack-cli";
 import { RspackDevServer } from "@rspack/dev-server";
 import { RspackCommand } from "../types";
 import { commonOptions } from "../utils/options";
-import { createCompiler } from "@rspack/core";
+
 export class ServeCommand implements RspackCommand {
 	async apply(cli: RspackCLI): Promise<void> {
 		cli.program.command(

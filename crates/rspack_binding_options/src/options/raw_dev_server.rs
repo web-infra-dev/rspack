@@ -25,7 +25,7 @@ impl RawOption<DevServerOptions> for RawDevServer {
     _options: &CompilerOptionsBuilder,
   ) -> anyhow::Result<DevServerOptions> {
     Ok(DevServerOptions {
-      hot: self.hot.unwrap_or(true),
+      hot: self.hot.unwrap_or(false),
     })
   }
 

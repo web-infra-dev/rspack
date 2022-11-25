@@ -2,7 +2,6 @@ import type { RspackOptions } from "@rspack/core";
 import { RspackDevServer } from "@rspack/dev-server";
 import { createCompiler } from "@rspack/core";
 import serializer from "jest-serializer-path";
-import os from "os";
 expect.addSnapshotSerializer(serializer);
 
 describe("normalize options snapshot", () => {
@@ -24,35 +23,56 @@ describe("normalize options snapshot", () => {
 		});
 	});
 
-	it("react-refresh client added when react/refresh enabled", () => {
+	it("default client when hot enabled", () => {
 		matchAdditionEntries({
 			entry: ["something"],
-			builtins: {
-				react: {
-					refresh: true
-				}
+			devServer: {
+				hot: true
 			}
 		});
 	});
 
-	it("react.development and react.refresh should be true in default when hot enabled", () => {
+	it("default client when hot disabled", () => {
+		matchAdditionEntries({
+			entry: ["something"],
+			devServer: {
+				hot: false
+			}
+		});
+	});
+
+	it("react.development should be true in default when hot enabled", () => {
 		const compiler = createCompiler({
 			devServer: {
 				hot: true
 			}
 		});
 		new RspackDevServer(compiler);
-		expect({
-			builtins: compiler.options.builtins,
-			devServer: compiler.options.devServer
-		}).toMatchSnapshot();
+		expect(compiler.options.builtins.react?.development).toBe(true);
+		expect(compiler.options.devServer?.hot).toBe(true);
+	});
+
+	it("react.development should be true in default when hot enabled 2", () => {
+		const compiler = createCompiler({
+			devServer: {
+				hot: true
+			},
+			builtins: {
+				react: {
+					development: false
+				}
+			}
+		});
+		new RspackDevServer(compiler);
+		expect(compiler.options.builtins.react?.development).toBe(true);
+		expect(compiler.options.devServer?.hot).toBe(true);
 	});
 });
 
 function match(config: RspackOptions) {
 	const compiler = createCompiler(config);
 	const server = new RspackDevServer(compiler);
-	expect(server.options).toMatchSnapshot();
+	expect(compiler.options.devServer).toMatchSnapshot();
 }
 
 function matchAdditionEntries(config: RspackOptions) {
