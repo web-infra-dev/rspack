@@ -4,8 +4,8 @@ import type {
 	RawModuleRuleCondition,
 	RawModuleOptions
 } from "@rspack/binding";
-import assert from "node:assert";
-import path from "node:path";
+import assert from "assert";
+import path from "path";
 import { isNil, isPromiseLike } from "../utils";
 import { ResolvedContext } from "./context";
 import { isUseSourceMap, ResolvedDevtool } from "./devtool";

@@ -1,8 +1,8 @@
 import type { Compiler, Compilation } from "@rspack/core";
 import type { Options as MinifyOptions } from "html-minifier-terser";
-import assert from "node:assert";
-import path from "node:path";
-import fs from "node:fs";
+import assert from "assert";
+import path from "path";
+import fs from "fs";
 import chunkSorter from "./chunkSorter";
 import * as template from "./template";
 import { getHtmlRspackPluginHooks } from "./hooks";

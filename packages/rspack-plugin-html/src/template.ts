@@ -1,4 +1,4 @@
-import vm from "node:vm";
+import vm from "vm";
 
 /**
  * compile template to js code.

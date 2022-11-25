@@ -4,7 +4,7 @@ import type {
 	RspackOptionsNormalized
 } from "@rspack/core";
 import type { WatchOptions } from "chokidar";
-import path from "node:path";
+import path from "path";
 import { resolveWatchOption } from "@rspack/core";
 
 export interface ResolvedDev {
