@@ -910,7 +910,7 @@ impl Compilation {
           .contains(result.module_identifier.as_str())
         && result.side_effects_free
         && !used_export_module_identifiers.contains(&result.module_identifier)
-        && result.inherit_export_maps.len() == 0
+        && result.inherit_export_maps.is_empty()
       {
         dbg!(&result.module_identifier);
         self
