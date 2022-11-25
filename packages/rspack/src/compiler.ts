@@ -18,10 +18,10 @@ import { Compilation } from "./compilation";
 import { createSourceFromRaw } from "./utils/createSource";
 
 class EntryPlugin {
-	apply() { }
+	apply() {}
 }
 class HotModuleReplacementPlugin {
-	apply() { }
+	apply() {}
 }
 type CompilationParams = Record<string, any>;
 class Compiler {
@@ -197,7 +197,7 @@ class Compiler {
 	 * @param value
 	 * @returns
 	 */
-	#done(statsJson: binding.JsStatsCompilation) { }
+	#done(statsJson: binding.JsStatsCompilation) {}
 
 	async #processAssets(assets: Record<string, binding.JsCompatSource>) {
 		let iterator = Object.entries(assets).map(([filename, source]) => [
