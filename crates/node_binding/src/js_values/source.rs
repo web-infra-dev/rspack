@@ -99,7 +99,7 @@ impl ToJsCompatSource for dyn Source {
       let map = source.map(&MapOptions::default());
 
       map
-        .map(|m| m.to_json().map(|inner| inner.as_bytes().to_vec().into()))
+        .map(|m| m.to_json().map(|inner| inner.into_bytes().into()))
         .transpose()
         .map_err(|err| napi::Error::from_reason(err.to_string()))
     };

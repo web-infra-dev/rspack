@@ -9,5 +9,6 @@ function loader(content, sourceMap, meta) {
 
 	this.callback(null, content, null, meta);
 }
+loader.displayName = "string-loader";
 
 module.exports = loader;

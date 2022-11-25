@@ -9,6 +9,7 @@ function loader(content, sourceMap, meta) {
 
 	this.callback(null, content, null, meta);
 }
+loader.displayName = "raw-loader";
 loader.raw = true;
 
 module.exports = loader;

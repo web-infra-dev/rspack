@@ -29,7 +29,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
     "rspack_plugin_js_hooks_adapter"
   }
 
-  #[tracing::instrument(skip_all)]
+  #[tracing::instrument(name = "js_hooks_adapter::compilation", skip_all)]
   async fn compilation(
     &mut self,
     args: rspack_core::CompilationArgs<'_>,
@@ -43,7 +43,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
 
     self
       .compilation_tsfn
-      .call(compilation, ThreadsafeFunctionCallMode::Blocking)?
+      .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)?
       .await
       .map_err(|err| {
         Error::InternalError(internal_error!(format!(
@@ -53,7 +53,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       })?
   }
 
-  #[tracing::instrument(skip_all)]
+  #[tracing::instrument(name = "js_hooks_adapter::this_compilation", skip_all)]
   async fn this_compilation(
     &mut self,
     args: rspack_core::ThisCompilationArgs<'_>,
@@ -67,7 +67,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
 
     self
       .this_compilation_tsfn
-      .call(compilation, ThreadsafeFunctionCallMode::Blocking)?
+      .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)?
       .await
       .map_err(|err| {
         Error::InternalError(internal_error!(format!(
@@ -77,7 +77,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       })?
   }
 
-  #[tracing::instrument(skip_all)]
+  #[tracing::instrument(name = "js_hooks_adapter::process_assets", skip_all)]
   async fn process_assets(
     &mut self,
     _ctx: rspack_core::PluginContext,
@@ -86,7 +86,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
     // Directly calling hook processAssets without converting assets to JsAssets, instead, we use APIs to get `Source` lazily on the Node side.
     self
       .process_assets_tsfn
-      .call((), ThreadsafeFunctionCallMode::Blocking)?
+      .call((), ThreadsafeFunctionCallMode::NonBlocking)?
       .await
       .map_err(|err| {
         Error::InternalError(internal_error!(format!(
@@ -96,7 +96,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       })?
   }
 
-  #[tracing::instrument(skip_all)]
+  #[tracing::instrument(name = "js_hooks_adapter::done", skip_all)]
   async fn done<'s, 'c>(
     &mut self,
     _ctx: rspack_core::PluginContext,
@@ -106,7 +106,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .done_tsfn
       .call(
         args.stats.to_description().into(),
-        ThreadsafeFunctionCallMode::Blocking,
+        ThreadsafeFunctionCallMode::NonBlocking,
       )?
       .await
       .map_err(|err| {
