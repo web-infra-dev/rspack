@@ -141,12 +141,9 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
                 rspack_error::Error::InternalError("Failed to convert error to UTF-8".to_owned())
               })?;
 
-              Err(rspack_error::Error::InternalError(format!(
-                "Error: {}",
-                message
-              )))
+              Err(rspack_error::Error::InternalError(message))
             }))
-            .map_err(|_| napi::Error::from_reason(format!("Failed to send resolved value")))
+            .map_err(|_| napi::Error::from_reason("Failed to send resolved value".to_owned()))
         },
       )?;
 
