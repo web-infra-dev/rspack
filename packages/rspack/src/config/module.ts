@@ -211,7 +211,7 @@ function composeJsUse(
 					undefined;
 				try {
 					result = use.loader.apply(loaderContext, [
-						use.loader.raw ? content : content.toString("utf-8"),
+						use.loader.raw ? Buffer.from(content) : content.toString("utf-8"),
 						sourceMap,
 						additionalData
 					]);
