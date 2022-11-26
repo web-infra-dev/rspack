@@ -18,10 +18,10 @@ import { Compilation } from "./compilation";
 import { createSourceFromRaw } from "./utils/createSource";
 
 class EntryPlugin {
-	apply() { }
+	apply() {}
 }
 class HotModuleReplacementPlugin {
-	apply() { }
+	apply() {}
 }
 type CompilationParams = Record<string, any>;
 class Compiler {
@@ -92,27 +92,26 @@ class Compiler {
 	 */
 	get #instance() {
 		if (this.#_instance) {
-			return this.#_instance
+			return this.#_instance;
 		} else {
 			const options: binding.RawOptions = {
 				...this.options,
 				// @ts-ignore: TODO: fix this
 				entry: this.options.entry
 			};
-			this.#_instance =
-				new binding.Rspack(options, {
-					done: this.#done.bind(this),
-					processAssets: this.#processAssets.bind(this),
-					// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
-					// We know that the hook `thisCompilation` will not be called from a child compiler(it doesn't matter whether the child compiler is created on the Rust or the Node side).
-					// See webpack's API: https://webpack.js.org/api/compiler-hooks/#thiscompilation
-					// So it is safe to create a new compilation here.
-					thisCompilation: this.#newCompilation.bind(this),
-					// The hook `Compilation` should be called whenever it's a call from the child compiler or normal compiler and
-					// still it does not matter where the child compiler is created(Rust or Node) as calling the hook `compilation` is a required task.
-					// No matter how it will be implemented, it will be copied to the child compiler.
-					compilation: this.#compilation.bind(this)
-				});
+			this.#_instance = new binding.Rspack(options, {
+				done: this.#done.bind(this),
+				processAssets: this.#processAssets.bind(this),
+				// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
+				// We know that the hook `thisCompilation` will not be called from a child compiler(it doesn't matter whether the child compiler is created on the Rust or the Node side).
+				// See webpack's API: https://webpack.js.org/api/compiler-hooks/#thiscompilation
+				// So it is safe to create a new compilation here.
+				thisCompilation: this.#newCompilation.bind(this),
+				// The hook `Compilation` should be called whenever it's a call from the child compiler or normal compiler and
+				// still it does not matter where the child compiler is created(Rust or Node) as calling the hook `compilation` is a required task.
+				// No matter how it will be implemented, it will be copied to the child compiler.
+				compilation: this.#compilation.bind(this)
+			});
 			return this.#_instance;
 		}
 	}
@@ -203,7 +202,7 @@ class Compiler {
 	 * @param value
 	 * @returns
 	 */
-	#done(statsJson: binding.JsStatsCompilation) { }
+	#done(statsJson: binding.JsStatsCompilation) {}
 
 	async #processAssets(assets: Record<string, binding.JsCompatSource>) {
 		let iterator = Object.entries(assets).map(([filename, source]) => [

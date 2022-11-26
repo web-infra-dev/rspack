@@ -68,7 +68,9 @@ export class RspackDevServer {
 			this.compiler.options.builtins.react = {};
 		}
 		if (this.compiler.options.builtins.react?.development !== true) {
-			this.logger.warn('The value of react.development is not being as expected and has been automatically changed to true.')
+			this.logger.warn(
+				"The value of react.development is not being as expected and has been automatically changed to true."
+			);
 		}
 		this.compiler.options.builtins.react.development = true;
 	}
@@ -171,7 +173,7 @@ export class RspackDevServer {
 		this.staticWatchers.push(watcher);
 	}
 
-	invalidate(callback = () => { }): void {
+	invalidate(callback = () => {}): void {
 		if (this.middleware) {
 			this.middleware.invalidate(callback);
 		}

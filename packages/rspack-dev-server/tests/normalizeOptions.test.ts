@@ -39,7 +39,7 @@ describe("normalize options snapshot", () => {
 				hot: false
 			}
 		});
-	})
+	});
 
 	it("react.development should be true in default when hot enabled", () => {
 		const compiler = createCompiler({
@@ -51,7 +51,6 @@ describe("normalize options snapshot", () => {
 		expect(compiler.options.builtins.react?.development).toBe(true);
 		expect(compiler.options.devServer?.hot).toBe(true);
 	});
-
 
 	it("react.development should be true in default when hot enabled 2", () => {
 		const compiler = createCompiler({
@@ -68,7 +67,6 @@ describe("normalize options snapshot", () => {
 		expect(compiler.options.builtins.react?.development).toBe(true);
 		expect(compiler.options.devServer?.hot).toBe(true);
 	});
-
 });
 
 function match(config: RspackOptions) {

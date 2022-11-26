@@ -11,7 +11,7 @@ module.exports = {
   entry: { main: './src/index.tsx' },
   devServer: {
     port: 5555,
-    hot: false
+    hot: false,
   },
   devtool: false,
   builtins: {
@@ -21,7 +21,7 @@ module.exports = {
     }],
     define: { 'process.env.NODE_ENV': JSON.stringify('development') },
     react: {
-      development: false,
+      development: true,
     },
     progress: {},
     treeShaking: true,
