@@ -822,10 +822,13 @@ impl Compilation {
     let mut used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
     let mut bail_out_module_identifiers = HashMap::default();
     let mut evaluated_module_identifiers = HashSet::new();
+    let side_effects = self.options.builtins.side_effects;
     for analyze_result in analyze_results.values() {
-      let forced_side_effects = self
-        .entry_module_identifiers
-        .contains(analyze_result.module_identifier.as_str());
+      // if `side_effects` is false, then force every analyze_results is have side_effects
+      let forced_side_effects = !side_effects
+        || self
+          .entry_module_identifiers
+          .contains(analyze_result.module_identifier.as_str());
       // side_effects: true
       if forced_side_effects || !analyze_result.side_effects_free {
         evaluated_module_identifiers.insert(analyze_result.module_identifier);
@@ -903,43 +906,46 @@ impl Compilation {
 
     // TODO: SideEffects: only
 
-    for result in analyze_results.values() {
-      if !bail_out_module_identifiers.contains_key(&result.module_identifier)
-        && !self
-          .entry_module_identifiers
-          .contains(result.module_identifier.as_str())
-        && result.side_effects_free
-        && !used_export_module_identifiers.contains(&result.module_identifier)
-        && result.inherit_export_maps.is_empty()
-      {
-        dbg!(&result.module_identifier);
-        self
-          .module_graph
-          .module_graph_module_by_identifier_mut(result.module_identifier.as_str())
-          .unwrap()
-          .used = false;
+    if side_effects {
+      for result in analyze_results.values() {
+        if !bail_out_module_identifiers.contains_key(&result.module_identifier)
+          && !self
+            .entry_module_identifiers
+            .contains(result.module_identifier.as_str())
+          && result.side_effects_free
+          && !used_export_module_identifiers.contains(&result.module_identifier)
+          && result.inherit_export_maps.is_empty()
+        {
+          dbg!(&result.module_identifier);
+          self
+            .module_graph
+            .module_graph_module_by_identifier_mut(result.module_identifier.as_str())
+            .unwrap()
+            .used = false;
+        }
       }
-    }
 
-    // All lazy imported module will be treadted as entry module, which means
-    // Its export symbol will be marked as used
-    for (module_id, reason) in bail_out_module_identifiers.iter() {
-      match reason {
-        BailoutReason::Helper | BailoutReason::CommonjsRequire | BailoutReason::CommonjsExports => {
-        }
-        BailoutReason::ExtendBailout => {}
-        BailoutReason::DynamicImport => {
-          let used_symbol_set = collect_reachable_symbol(
-            &analyze_results,
-            *module_id,
-            &bail_out_module_identifiers,
-            &mut errors,
-          );
-          used_symbol.extend(used_symbol_set);
+      // All lazy imported module will be treadted as entry module, which means
+      // Its export symbol will be marked as used
+      for (module_id, reason) in bail_out_module_identifiers.iter() {
+        match reason {
+          BailoutReason::Helper
+          | BailoutReason::CommonjsRequire
+          | BailoutReason::CommonjsExports => {}
+          BailoutReason::ExtendBailout => {}
+          BailoutReason::DynamicImport => {
+            let used_symbol_set = collect_reachable_symbol(
+              &analyze_results,
+              *module_id,
+              &bail_out_module_identifiers,
+              &mut errors,
+            );
+            used_symbol.extend(used_symbol_set);
+          }
         }
       }
+      dbg!(&used_symbol, &used_indirect_symbol);
     }
-    dbg!(&used_symbol, &used_indirect_symbol);
     Ok(
       OptimizeDependencyResult {
         used_symbol,
