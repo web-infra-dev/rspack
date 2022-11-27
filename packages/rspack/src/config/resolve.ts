@@ -19,7 +19,7 @@ export type ResolvedResolve = {
 	browserField: boolean;
 	conditionNames: string[];
 	alias: Record<string, string>;
-	tsConfigPath: string;
+	tsConfigPath: string | undefined;
 };
 
 interface ResolveContext {
@@ -48,7 +48,7 @@ export function resolveResolveOptions(
 	const browserField = resolve.browserField ?? true;
 	const alias = resolve.alias ?? {};
 	const conditionNames = resolve.conditionNames ?? ["module", "import"];
-	const tsConfigPath = resolve.tsConfigPath ?? "";
+	const tsConfigPath = resolve.tsConfigPath;
 	return {
 		preferRelative,
 		extensions,

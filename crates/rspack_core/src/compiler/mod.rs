@@ -32,7 +32,7 @@ impl Compiler {
     let options = Arc::new(options);
 
     let resolver_factory = Arc::new(ResolverFactory::new(options.resolve.clone()));
-    let resolver = resolver_factory.get(Default::default());
+    let resolver = resolver_factory.get(options.resolve.clone());
     let plugin_driver = Arc::new(RwLock::new(PluginDriver::new(
       options.clone(),
       plugins,
