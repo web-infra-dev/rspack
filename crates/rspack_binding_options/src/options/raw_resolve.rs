@@ -23,7 +23,7 @@ pub struct RawResolveOptions {
   #[napi(ts_type = "Record<string, string | false>")]
   pub alias: Option<HashMap<String, AliasValue>>,
   pub symlinks: Option<bool>,
-  pub tsconfig: Option<String>,
+  pub ts_config_path: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -39,7 +39,7 @@ pub struct RawResolveOptions {
   #[serde(serialize_with = "ordered_map")]
   pub alias: Option<HashMap<String, AliasValue>>,
   pub symlinks: Option<bool>,
-  pub tsconfig: Option<String>,
+  pub ts_config_path: Option<String>,
 }
 
 impl RawOption<Resolve> for RawResolveOptions {
@@ -76,7 +76,7 @@ impl RawOption<Resolve> for RawResolveOptions {
     } else {
       None
     };
-    let tsconfig = self.tsconfig.map(std::path::PathBuf::from);
+    let tsconfig = self.ts_config_path.map(std::path::PathBuf::from);
     Ok(Resolve {
       prefer_relative,
       extensions,
