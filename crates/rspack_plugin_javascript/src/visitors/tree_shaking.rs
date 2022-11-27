@@ -82,7 +82,7 @@ impl<'a> Fold for TreeShaker<'a> {
             .module_graph_module_by_identifier(module_identifier.as_str())
             .unwrap();
           if !mgm.used {
-            return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }));
+            ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }))
           } else {
             ModuleItem::ModuleDecl(module_decl)
           }
@@ -353,7 +353,7 @@ impl<'a> Fold for TreeShaker<'a> {
             .module_graph_module_by_identifier(module_identifier.as_str())
             .unwrap();
           if !mgm.used {
-            return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }));
+            ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }))
           } else {
             ModuleItem::ModuleDecl(module_decl)
           }

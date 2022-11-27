@@ -1369,6 +1369,7 @@ fn mark_used_symbol_with(
   used_symbol_set
 }
 
+#[allow(clippy::too_many_arguments)]
 fn mark_symbol(
   symbol_ref: SymbolRef,
   used_symbol_set: &mut HashSet<Symbol>,
