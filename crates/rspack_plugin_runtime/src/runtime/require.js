@@ -29,9 +29,6 @@ function __webpack_require__(moduleId) {
 		handler(execOptions);
 	});
 	module = execOptions.module;
-	if (!execOptions.factory) {
-		console.log(moduleId);
-	}
 	execOptions.factory.call(
 		module.exports,
 		module,
