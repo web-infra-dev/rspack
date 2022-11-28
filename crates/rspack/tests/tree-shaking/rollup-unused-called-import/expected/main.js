@@ -11,6 +11,7 @@ Object.defineProperty(exports, "default", {
     enumerable: true,
     get: ()=>_default
 });
+const _dead = __webpack_require__.interopRequire(__webpack_require__("./dead.js"));
 function _default() {
     return "foo";
 }

@@ -25,6 +25,7 @@ _export(exports, {
     render: ()=>render,
     default: ()=>result
 });
+const _lib = __webpack_require__("./lib.js");
 function render() {}
 function result() {}
 },

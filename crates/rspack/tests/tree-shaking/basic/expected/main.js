@@ -25,6 +25,10 @@ if (module.hot?.accept) module.hot.accept((module1)=>{
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+const _app = __webpack_require__.interopRequire(__webpack_require__("./app.js"));
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 "use strict";
