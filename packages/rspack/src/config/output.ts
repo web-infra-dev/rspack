@@ -6,6 +6,8 @@ export interface Output {
 	chunkFilename?: string;
 	uniqueName?: string;
 	hashFunction?: string;
+	cssFilename?: string,
+	cssChunkFilename?: string,
 }
 
 // TODO: removed optional
