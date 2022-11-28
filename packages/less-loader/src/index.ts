@@ -1,4 +1,3 @@
-import type { LoaderContext, Loader } from "@rspack/core";
 import path from "path";
 import { create } from "enhanced-resolve";
 import assert from "node:assert";
@@ -11,11 +10,11 @@ export interface Options {
 	sourceMap?: boolean;
 	additionalData?:
 		| string
-		| ((content: string, loaderContext: LoaderContext) => string)
-		| ((content: string, loaderContext: LoaderContext) => Promise<string>);
+		| ((content: string, loaderContext: any) => string)
+		| ((content: string, loaderContext: any) => Promise<string>);
 }
 
-const lessLoader: Loader = async function (content) {
+const lessLoader = async function (content) {
 	assert(typeof content === "string");
 
 	const callback = this.async();

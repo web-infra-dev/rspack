@@ -223,7 +223,6 @@ importers:
 
   packages/less-loader:
     specifiers:
-      '@rspack/core': workspace:*
       '@types/jest': ^27.0.1
       '@types/less': ^3.0.3
       enhanced-resolve: 5.10.0
@@ -236,7 +235,6 @@ importers:
       less: 4.1.2
       tslib: 2.4.0
     devDependencies:
-      '@rspack/core': link:../rspack
       '@types/jest': 27.5.2
       '@types/less': 3.0.3
 
