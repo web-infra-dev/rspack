@@ -24,9 +24,13 @@ impl RawOptionsExt for RawOptions {
       let output = Command::new("node")
         .arg(script_path)
         .arg(pkg_path.to_string_lossy().to_string())
+        .current_dir(fixture_path.to_string_lossy().to_string())
         .output()
         .unwrap();
       let config = String::from_utf8(output.stdout).unwrap();
+      if config.is_empty() {
+        panic!("get project config failed, please check {:?}", pkg_path);
+      }
       let options: RawOptions = serde_json::from_str(&config).unwrap();
       options
     } else {

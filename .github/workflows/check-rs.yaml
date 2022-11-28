@@ -89,6 +89,11 @@ jobs:
           node-version: "16"
       - name: Install toolchain
         run: rustup show
+      - name: Install dependencies && and build lib
+        run: |
+          node -e "console.log(process.arch)"
+          pnpm install
+          pnpm run build:cli
       - name: Run test
         # We need to install sass first to enable sass-loader
         run: |

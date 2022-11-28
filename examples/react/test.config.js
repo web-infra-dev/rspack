@@ -16,10 +16,7 @@ module.exports = {
   module : {
     rules : [
       {
-        test : {
-          type: "regexp",
-          matcher: '\\.less$'
-        },
+        test : /\.less$/,
         type : 'css'
       }, 
     ],
