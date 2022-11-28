@@ -1,5 +1,5 @@
-const lessLoader = require('@rspack/plugin-less').default;
-const postcssLoader = require('@rspack/plugin-postcss');
+const lessLoader = require('@rspack/less-loader');
+const postcssLoader = require('@rspack/postcss-loader');
 const path = require('path');
 
 /**

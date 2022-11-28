@@ -96,4 +96,4 @@ const lessLoader: Loader = async function (content) {
 	}
 };
 
-export default lessLoader;
+module.exports = lessLoader;

@@ -55,8 +55,8 @@ importers:
       '@loadable/component': ^5.15.2
       '@pmmmwh/react-refresh-webpack-plugin': ^0.5.9
       '@rspack/cli': workspace:*
-      '@rspack/plugin-less': workspace:*
-      '@rspack/plugin-postcss': workspace:*
+      '@rspack/less-loader': workspace:*
+      '@rspack/postcss-loader': workspace:*
       '@svgr/core': 6.5.1
       '@svgr/webpack': ^6.5.1
       '@swc/core': ^1.3.14
@@ -118,8 +118,8 @@ importers:
     devDependencies:
       '@pmmmwh/react-refresh-webpack-plugin': 0.5.9_webpack@5.74.0
       '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/plugin-less': link:../../packages/rspack-plugin-less
-      '@rspack/plugin-postcss': link:../../packages/rspack-plugin-postcss
+      '@rspack/less-loader': link:../../packages/less-loader
+      '@rspack/postcss-loader': link:../../packages/postcss-loader
       '@svgr/core': 6.5.1
       '@svgr/webpack': 6.5.1
       '@swc/core': 1.3.14
@@ -192,13 +192,13 @@ importers:
   examples/react-with-less:
     specifiers:
       '@rspack/cli': workspace:*
-      '@rspack/plugin-less': workspace:^
+      '@rspack/less-loader': workspace:^
       normalize.css: 8.0.1
       react: 17.0.0
       react-dom: 17.0.0
     dependencies:
       '@rspack/cli': link:../../packages/rspack-cli
-      '@rspack/plugin-less': link:../../packages/rspack-plugin-less
+      '@rspack/less-loader': link:../../packages/less-loader
       normalize.css: 8.0.1
       react: 17.0.0
       react-dom: 17.0.0_react@17.0.0
@@ -221,14 +221,45 @@ importers:
       prompts: 2.4.2
       yargs: 17.6.2
 
+  packages/less-loader:
+    specifiers:
+      '@rspack/core': workspace:*
+      '@types/jest': ^27.0.1
+      '@types/less': ^3.0.3
+      enhanced-resolve: 5.10.0
+      klona: 2.0.5
+      less: 4.1.2
+      tslib: ^2.3.1
+    dependencies:
+      enhanced-resolve: 5.10.0
+      klona: 2.0.5
+      less: 4.1.2
+      tslib: 2.4.0
+    devDependencies:
+      '@rspack/core': link:../rspack
+      '@types/jest': 27.5.2
+      '@types/less': 3.0.3
+
+  packages/postcss-loader:
+    specifiers:
+      '@rspack/binding': workspace:*
+      postcss: ^8.4.16
+      postcss-modules: ^5.0.0
+      postcss-pxtorem: ^6.0.0
+    dependencies:
+      '@rspack/binding': link:../../crates/node_binding
+      postcss: 8.4.16
+      postcss-modules: 5.0.0_postcss@8.4.16
+      postcss-pxtorem: 6.0.0_postcss@8.4.16
+
   packages/rspack:
     specifiers:
       '@rspack/binding': workspace:*
       '@rspack/core': workspace:*
       '@rspack/dev-client': workspace:*
-      '@rspack/plugin-less': workspace:^
+      '@rspack/less-loader': workspace:^
       '@rspack/plugin-node-polyfill': workspace:^
-      '@rspack/plugin-postcss': workspace:^
+      '@rspack/postcss-loader': workspace:^
       '@swc/helpers': 0.4.13
       '@tmp-sass-embedded/darwin-arm64': 1.54.4
       '@tmp-sass-embedded/darwin-x64': 1.54.4
@@ -280,9 +311,9 @@ importers:
       '@tmp-sass-embedded/win32-x64': 1.54.4
     devDependencies:
       '@rspack/core': 'link:'
-      '@rspack/plugin-less': link:../rspack-plugin-less
+      '@rspack/less-loader': link:../less-loader
       '@rspack/plugin-node-polyfill': link:../rspack-plugin-node-polyfill
-      '@rspack/plugin-postcss': link:../rspack-plugin-postcss
+      '@rspack/postcss-loader': link:../postcss-loader
       '@types/jest': 29.0.2
       '@types/node': 18.7.9
       '@types/rimraf': 3.0.2
@@ -419,25 +450,6 @@ importers:
       loader-runner: 4.3.0
       pug: 3.0.2
 
-  packages/rspack-plugin-less:
-    specifiers:
-      '@rspack/core': workspace:*
-      '@types/jest': ^27.0.1
-      '@types/less': ^3.0.3
-      enhanced-resolve: 5.10.0
-      klona: 2.0.5
-      less: 4.1.2
-      tslib: ^2.3.1
-    dependencies:
-      enhanced-resolve: 5.10.0
-      klona: 2.0.5
-      less: 4.1.2
-      tslib: 2.4.0
-    devDependencies:
-      '@rspack/core': link:../rspack
-      '@types/jest': 27.5.2
-      '@types/less': 3.0.3
-
   packages/rspack-plugin-node-polyfill:
     specifiers:
       assert: ^2.0.0
@@ -493,18 +505,6 @@ importers:
       url: 0.11.0
       util: 0.12.5
       vm-browserify: 1.1.2
-
-  packages/rspack-plugin-postcss:
-    specifiers:
-      '@rspack/binding': workspace:*
-      postcss: ^8.4.16
-      postcss-modules: ^5.0.0
-      postcss-pxtorem: ^6.0.0
-    dependencies:
-      '@rspack/binding': link:../../crates/node_binding
-      postcss: 8.4.16
-      postcss-modules: 5.0.0_postcss@8.4.16
-      postcss-pxtorem: 6.0.0_postcss@8.4.16
 
   webpack-examples:
     specifiers:

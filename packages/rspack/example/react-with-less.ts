@@ -1,7 +1,7 @@
 import path from "path";
 import { Rspack } from "../src";
-import lessLoader from "@rspack/plugin-less";
-import postcssLoader from "@rspack/plugin-postcss";
+import lessLoader from "@rspack/less-loader";
+import postcssLoader from "@rspack/postcss-loader";
 
 const context = path.resolve(__dirname, "../../../examples/react-with-less");
 

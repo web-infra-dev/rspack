@@ -1,4 +1,4 @@
-const lessLoader = require("@rspack/plugin-less").default;
+const lessLoader = require("@rspack/less-loader");
 
 module.exports = {
 	devtool: "source-map",
