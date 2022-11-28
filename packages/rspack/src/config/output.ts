@@ -6,8 +6,8 @@ export interface Output {
 	chunkFilename?: string;
 	uniqueName?: string;
 	hashFunction?: string;
-	cssFilename?: string,
-	cssChunkFilename?: string,
+	cssFilename?: string;
+	cssChunkFilename?: string;
 }
 
 // TODO: removed optional
@@ -22,8 +22,8 @@ export interface ResolvedOutput {
 	hashDigestLength?: string;
 	hashDigest?: string;
 	hashSalt?: string;
-	cssFilename?: string,
-	cssChunkFilename?: string,
+	cssFilename?: string;
+	cssChunkFilename?: string;
 }
 
 export function resolveOutputOptions(output: Output = {}): ResolvedOutput {
