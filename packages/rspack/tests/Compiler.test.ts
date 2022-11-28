@@ -27,6 +27,7 @@ describe("Compiler", () => {
 		options.optimization = {
 			minimize: false
 		};
+		options.cache = true;
 		const logs = {
 			mkdir: [],
 			writeFile: []
