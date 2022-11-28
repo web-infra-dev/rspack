@@ -217,12 +217,6 @@ impl<'a> Fold for TreeShaker<'a> {
                       );
                       self.used_indirect_symbol_set.contains(&symbol)
                     };
-                    dbg!(
-                      &src.value.to_string(),
-                      &ResolveKind::Import,
-                      module_identifier,
-                      ret
-                    );
                     ret
                   }
                   ModuleExportName::Str(_) => {
