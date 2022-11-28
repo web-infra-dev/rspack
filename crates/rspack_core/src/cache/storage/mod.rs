@@ -6,7 +6,7 @@ mod none;
 use memory::MemoryStorage;
 use none::NoneStorage;
 
-pub trait Storage<Item>: Debug {
+pub trait Storage<Item>: Debug + Send + Sync {
   fn get(&self, id: &str) -> Option<Item>;
   fn set(&mut self, id: String, data: Item);
   // fn begin_idle(&self);
@@ -16,7 +16,7 @@ pub trait Storage<Item>: Debug {
 
 pub fn new_storage<Item>(options: &CacheOptions) -> Box<dyn Storage<Item>>
 where
-  Item: Debug + Clone + 'static,
+  Item: Debug + Clone + Send + Sync + 'static,
 {
   match options {
     CacheOptions::Disabled => Box::new(NoneStorage::new()),

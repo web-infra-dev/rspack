@@ -24,7 +24,7 @@ pub struct Compiler {
   pub compilation: Compilation,
   pub plugin_driver: SharedPluginDriver,
   pub loader_runner_runner: Arc<LoaderRunnerRunner>,
-  pub cache: Cache,
+  pub cache: Arc<Cache>,
 }
 
 impl Compiler {
@@ -44,20 +44,22 @@ impl Compiler {
       resolver_factory,
       plugin_driver.clone(),
     ));
+    let cache = Arc::new(Cache::new(options.clone()));
 
     Self {
       options: options.clone(),
       compilation: Compilation::new(
-        options.clone(),
+        options,
         Default::default(),
         Default::default(),
         Default::default(),
         plugin_driver.clone(),
         loader_runner_runner.clone(),
+        cache.clone(),
       ),
       plugin_driver,
       loader_runner_runner,
-      cache: Cache::new(options),
+      cache,
     }
   }
 
@@ -80,6 +82,7 @@ impl Compiler {
       Default::default(),
       self.plugin_driver.clone(),
       self.loader_runner_runner.clone(),
+      self.cache.clone(),
     );
 
     // Fake this compilation as *currently* rebuilding does not create a new compilation

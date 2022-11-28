@@ -34,6 +34,7 @@ use rspack_sources::BoxSource;
 use ustr::{ustr, Ustr};
 
 use crate::{
+  cache::Cache,
   is_source_equal, join_string_component, module_rule_matcher,
   split_chunks::code_splitting,
   tree_shaking::{
@@ -84,6 +85,7 @@ pub struct Compilation {
 
   pub code_generation_results: CodeGenerationResults,
   pub code_generated_modules: HashSet<ModuleIdentifier>,
+  pub cache: Arc<Cache>,
 
   // TODO: make compilation safer
   _pin: PhantomPinned,
@@ -96,6 +98,7 @@ impl Compilation {
     module_graph: ModuleGraph,
     plugin_driver: SharedPluginDriver,
     loader_runner_runner: Arc<LoaderRunnerRunner>,
+    cache: Arc<Cache>,
   ) -> Self {
     Self {
       options,
@@ -122,6 +125,7 @@ impl Compilation {
       code_generation_results: Default::default(),
       code_generated_modules: Default::default(),
 
+      cache,
       _pin: PhantomPinned,
       used_indirect_symbol: HashSet::default(),
     }
@@ -338,6 +342,7 @@ impl Compilation {
           dep,
           tx.clone(),
           self.plugin_driver.clone(),
+          self.cache.clone(),
         );
         tokio::task::spawn(async move { normal_module_factory.create(true).await });
       })
@@ -499,6 +504,7 @@ impl Compilation {
     let compiler_options = self.options.clone();
     let loader_runner_runner = self.loader_runner_runner.clone();
     let plugin_driver = self.plugin_driver.clone();
+    let cache = self.cache.clone();
 
     let module_identifier = module.identifier().into_owned();
 
@@ -596,6 +602,7 @@ impl Compilation {
             tx.clone(),
             plugin_driver.clone(),
             compiler_options.clone(),
+            cache.clone(),
           );
 
           // If build error message is failed to send, then we should manually decrease the active task count
@@ -639,6 +646,7 @@ impl Compilation {
     tx: UnboundedSender<Msg>,
     plugin_driver: SharedPluginDriver,
     compiler_options: Arc<CompilerOptions>,
+    cache: Arc<Cache>,
   ) {
     dependencies.into_iter().for_each(|dep| {
       let normal_module_factory = NormalModuleFactory::new(
@@ -652,6 +660,7 @@ impl Compilation {
         dep,
         tx.clone(),
         plugin_driver.clone(),
+        cache.clone(),
       );
 
       tokio::task::spawn(async move {

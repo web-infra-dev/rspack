@@ -16,7 +16,7 @@ impl<Item> MemoryStorage<Item> {
 
 impl<Item> Storage<Item> for MemoryStorage<Item>
 where
-  Item: Clone + std::fmt::Debug,
+  Item: Clone + std::fmt::Debug + Send + Sync,
 {
   fn get(&self, id: &str) -> Option<Item> {
     self.data.get(id).cloned()

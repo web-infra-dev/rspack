@@ -136,6 +136,7 @@ impl Compiler {
         Default::default(),
         self.plugin_driver.clone(),
         self.loader_runner_runner.clone(),
+        self.cache.clone(),
       );
 
       // Fake this compilation as *currently* rebuilding does not create a new compilation

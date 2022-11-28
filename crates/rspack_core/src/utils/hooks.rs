@@ -1,4 +1,4 @@
-use crate::{NormalModuleFactoryContext, ResolveArgs, ResolveResult, SharedPluginDriver};
+use crate::{ResolveArgs, ResolveResult, SharedPluginDriver};
 use rspack_error::{Error, Result, TraceableError};
 use std::path::Path;
 use tracing::instrument;
@@ -7,7 +7,7 @@ use tracing::instrument;
 pub async fn resolve(
   args: ResolveArgs<'_>,
   plugin_driver: &SharedPluginDriver,
-  _job_context: &mut NormalModuleFactoryContext,
+  //  _job_context: &mut NormalModuleFactoryContext,
 ) -> Result<ResolveResult> {
   let plugin_driver = plugin_driver.read().await;
   let base_dir = if let Some(importer) = args.importer {

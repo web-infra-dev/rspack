@@ -10,7 +10,7 @@ use storage::new_storage;
 
 #[derive(Debug)]
 pub struct Cache {
-  pub snapshot_manager: Arc<SnapshotManager>,
+  snapshot_manager: Arc<SnapshotManager>,
   pub resolve_module_occasion: ResolveModuleOccasion,
 }
 

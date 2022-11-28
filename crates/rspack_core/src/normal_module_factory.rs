@@ -14,7 +14,7 @@ use rspack_error::{Diagnostic, Error, Result, TWithDiagnosticArray};
 use tracing::instrument;
 
 use crate::{
-  module_rule_matcher, resolve, BoxModule, CompilerOptions, FactorizeArgs, ModuleExt,
+  cache::Cache, module_rule_matcher, resolve, BoxModule, CompilerOptions, FactorizeArgs, ModuleExt,
   ModuleGraphModule, ModuleIdentifier, ModuleRule, ModuleType, Msg, NormalModule, RawModule,
   ResolveArgs, ResolveResult, ResourceData, SharedPluginDriver, DEPENDENCY_ID,
 };
@@ -46,6 +46,7 @@ pub struct NormalModuleFactory {
   tx: UnboundedSender<Msg>,
   plugin_driver: SharedPluginDriver,
   diagnostic: Vec<Diagnostic>,
+  cache: Arc<Cache>,
 }
 
 impl NormalModuleFactory {
@@ -54,6 +55,7 @@ impl NormalModuleFactory {
     dependency: Dependency,
     tx: UnboundedSender<Msg>,
     plugin_driver: SharedPluginDriver,
+    cache: Arc<Cache>,
   ) -> Self {
     context.active_task_count.fetch_add(1, Ordering::SeqCst);
 
@@ -63,6 +65,7 @@ impl NormalModuleFactory {
       tx,
       plugin_driver,
       diagnostic: vec![],
+      cache,
     }
   }
   #[instrument(name = "normal_module_factory:create", skip_all)]
@@ -140,18 +143,19 @@ impl NormalModuleFactory {
     let importer = self.dependency.parent_module_identifier.as_deref();
     let specifier = self.dependency.detail.specifier.as_str();
     let kind = self.dependency.detail.kind;
-    let resource_data = match resolve(
-      ResolveArgs {
-        importer,
-        specifier,
-        kind,
-        span: self.dependency.detail.span,
-      },
-      &self.plugin_driver,
-      &mut self.context,
-    )
-    .await?
-    {
+    let resolve_args = ResolveArgs {
+      importer,
+      specifier,
+      kind,
+      span: self.dependency.detail.span,
+    };
+    let plugin_driver = self.plugin_driver.clone();
+    let resource_data = self
+      .cache
+      .resolve_module_occasion
+      .use_cache(resolve_args, |args| Box::pin(resolve(args, &plugin_driver)))
+      .await?;
+    let resource_data = match resource_data {
       ResolveResult::Info(info) => {
         let uri = info.join();
         ResourceData {
