@@ -24,7 +24,7 @@ module.exports = {
       refresh: true,
     },
     progress: {},
-    treeShaking: true,
+    treeShaking: false,
   },
   module: {
     rules:
