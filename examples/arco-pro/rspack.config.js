@@ -20,12 +20,11 @@ module.exports = {
     }],
     define: { 'process.env.NODE_ENV': JSON.stringify('development') },
     react: {
-      // development: true,
-      // refresh: true,
+      development: true,
+      refresh: true,
     },
     progress: {},
     treeShaking: true,
-    sideEffects: true,
   },
   module: {
     rules:

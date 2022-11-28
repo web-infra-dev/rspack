@@ -178,7 +178,7 @@ impl<'a> Fold for TreeShaker<'a> {
             }
           }
           Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
-            unreachable!("Javascript ast don't have these kinds")
+            unreachable!("Javascript don't have these kinds asts")
           }
         },
         ModuleDecl::ExportNamed(mut named) => {
