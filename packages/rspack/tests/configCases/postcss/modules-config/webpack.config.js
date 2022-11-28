@@ -1,5 +1,5 @@
 const path = require("path");
-const postcssLoader = require("@rspack/plugin-postcss");
+const postcssLoader = require("@rspack/postcss-loader");
 const resolve = filename => path.resolve(__dirname, filename);
 
 module.exports = {

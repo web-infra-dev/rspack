@@ -1,4 +1,4 @@
-const lessLoader = require('@rspack/plugin-less').default;
+const lessLoader = require('@rspack/less-loader');
 const path = require('path');
 module.exports = {
   context: __dirname,

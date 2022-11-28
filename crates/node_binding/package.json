@@ -14,6 +14,7 @@
   ],
   "scripts": {
     "build:debug": "napi build --platform --js false --dts binding.d.ts --config napirs.rc.json",
+    "build:debug:x64": "napi build --platform --js false --dts binding.d.ts --config napirs.rc.json --target x86_64-apple-darwin",
     "build:release:all": "run-p build:release build:release:x64 build:release:linux",
     "build:release": "napi build --release --platform --js false --dts binding.d.ts --config napirs.rc.json",
     "build:release:x64": "napi build --release --platform --js false --dts binding.d.ts --config napirs.rc.json --target x86_64-apple-darwin",

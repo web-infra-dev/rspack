@@ -1,4 +1,4 @@
-const postcssLoader = require("@rspack/plugin-postcss");
+const postcssLoader = require("@rspack/postcss-loader");
 module.exports = {
 	devtool: "source-map",
 	module: {

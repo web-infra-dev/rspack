@@ -13,7 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "@rspack/cli": "workspace:*",
-    "@rspack/plugin-less": "workspace:^",
+    "@rspack/less-loader": "workspace:^",
     "react": "17.0.0",
     "react-dom": "17.0.0",
     "normalize.css": "8.0.1"

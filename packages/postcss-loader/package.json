@@ -1,5 +1,5 @@
 {
-  "name": "@rspack/plugin-postcss",
+  "name": "@rspack/postcss-loader",
   "version": "0.0.10",
   "description": "",
   "main": "src/index.js",

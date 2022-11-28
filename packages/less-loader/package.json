@@ -1,5 +1,5 @@
 {
-  "name": "@rspack/plugin-less",
+  "name": "@rspack/less-loader",
   "version": "0.0.10-3",
   "description": "less plugin for rspack",
   "author": "wangzhenzhuo",
@@ -15,7 +15,6 @@
   ],
   "license": "ISC",
   "devDependencies": {
-    "@rspack/core": "workspace:*",
     "@types/jest": "^27.0.1",
     "@types/less": "^3.0.3"
   },
@@ -24,8 +23,5 @@
     "less": "4.1.2",
     "tslib": "^2.3.1",
     "enhanced-resolve": "5.10.0"
-  },
-  "peerDependencies": {
-    "@rspack/core": "workspace:*"
   }
 }
