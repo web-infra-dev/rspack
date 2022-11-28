@@ -37,7 +37,6 @@ use crate::{
   is_source_equal, join_string_component, module_rule_matcher,
   split_chunks::code_splitting,
   tree_shaking::{
-    debug_care_module_id,
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
     BailoutReason, OptimizeDependencyResult,
   },
