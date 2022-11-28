@@ -1,6 +1,8 @@
 module.exports = {
 	entry: {
-		main: ["./index.js"]
+		main: {
+			import: ["./index.js"]
+		}
 	},
 	builtins: {
 		postcss: {

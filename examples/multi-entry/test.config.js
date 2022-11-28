@@ -1,8 +1,12 @@
 module.exports = {
   mode: "development",
   entry: {
-    index: ["./index.js"],
-    second: ["./second.js"],
+    index: {
+      import: ["./index.js"],
+    },
+    second: {
+      import: ["./second.js"],
+    },
   },
   output: {
     publicPath: "http://localhost:3000",

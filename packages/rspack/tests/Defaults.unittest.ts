@@ -87,9 +87,12 @@ describe("snapshots", () => {
 		  "devServer": undefined,
 		  "devtool": "",
 		  "entry": {
-		    "main": [
-		      "<cwd>/src/index.js",
-		    ],
+		    "main": {
+		      "import": [
+		        "<cwd>/src/index.js",
+		      ],
+		      "runtime": "main",
+		    },
 		  },
 		  "externals": {},
 		  "externalsType": "",
@@ -622,8 +625,8 @@ describe("snapshots", () => {
 			-   "context": "<cwd>",
 			+   "context": "<cwd>/tests/fixtures/browserslist",
 			@@ ... @@
-			-       "<cwd>/src/index.js",
-			+       "<cwd>/tests/fixtures/browserslist/src/index.js",
+			-         "<cwd>/src/index.js",
+			+         "<cwd>/tests/fixtures/browserslist/src/index.js",
 		`)
 	);
 
@@ -646,8 +649,8 @@ describe("snapshots", () => {
 			+   },
 			+   "context": "<cwd>/tests/fixtures",
 			@@ ... @@
-			-       "<cwd>/src/index.js",
-			+       "<cwd>/tests/fixtures/src/index.js",
+			-         "<cwd>/src/index.js",
+			+         "<cwd>/tests/fixtures/src/index.js",
 		`),
 		() => {
 			process.chdir(path.resolve(__dirname, "fixtures"));

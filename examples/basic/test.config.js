@@ -10,7 +10,9 @@ module.exports = {
   },
   context: __dirname,
   entry: {
-    main: ["./index.js"],
+    main: {
+      import: ["./index.js"],
+    }
   },
   define: {
     "process.env.NODE_ENV": "'development'",

@@ -4,7 +4,9 @@
 module.exports = {
 	mode: "development",
 	entry: {
-		main: ["./index.js"]
+		main: {
+			import: ["./index.js"]
+		}
 	},
 	infrastructureLogging: {
 		debug: true

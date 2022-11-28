@@ -52,7 +52,7 @@ use rspack_symbol::Symbol;
 #[derive(Debug)]
 pub struct Compilation {
   pub options: Arc<CompilerOptions>,
-  entries: HashMap<String, Vec<EntryItem>>,
+  entries: BundleEntries,
   pub(crate) visited_module_id: VisitedModuleIdentity,
   pub module_graph: ModuleGraph,
   pub runtime_modules: HashMap<String, Box<dyn RuntimeModule>>,
@@ -96,7 +96,7 @@ impl Compilation {
       module_graph,
       chunk_by_ukey: Default::default(),
       chunk_group_by_ukey: Default::default(),
-      entries: HashMap::from_iter(entries),
+      entries,
       chunk_graph: Default::default(),
       entrypoints: Default::default(),
       assets: Default::default(),
@@ -120,7 +120,7 @@ impl Compilation {
     }
   }
   pub fn add_entry(&mut self, name: String, detail: EntryItem) {
-    self.entries.insert(name, vec![detail]);
+    self.entries.insert(name, detail);
   }
 
   pub fn update_asset(
@@ -248,11 +248,12 @@ impl Compilation {
       .map(|(name, items)| {
         let name = name.clone();
         let items = items
+          .import
           .iter()
           .map(|detail| Dependency {
             parent_module_identifier: None,
             detail: ModuleDependency {
-              specifier: detail.path.clone(),
+              specifier: detail.clone(),
               kind: ResolveKind::Import,
               span: None,
             },

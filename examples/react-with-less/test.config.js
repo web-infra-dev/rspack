@@ -1,7 +1,9 @@
 module.exports = {
   mode: "development",
   entry: {
-    main: ["./src/index.jsx"],
+    main: {
+      import: ["./src/index.jsx"],
+    }
   },
   define: {
     "process.env.NODE_ENV": "'development'",

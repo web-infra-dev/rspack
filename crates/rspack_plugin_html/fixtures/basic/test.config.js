@@ -1,6 +1,8 @@
 module.exports = {
 	entry: {
-		index: ["./index.js"]
+		index: {
+			import: ["./index.js"]
+		}
 	},
 	builtins: {
 		html: [{}]

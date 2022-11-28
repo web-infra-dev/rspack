@@ -99,7 +99,7 @@ export class RspackDevServer {
 		const devClientEntryPath = require.resolve("@rspack/dev-client");
 		entries.push(devClientEntryPath);
 		for (const key in this.compiler.options.entry) {
-			this.compiler.options.entry[key].unshift(...entries);
+			this.compiler.options.entry[key].import.unshift(...entries);
 		}
 	}
 
