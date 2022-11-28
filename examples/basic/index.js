@@ -1,2 +1,2 @@
-import { add } from 'lodash-es'
-add()
+import { render } from './app'
+render()

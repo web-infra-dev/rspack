@@ -803,18 +803,18 @@ impl Compilation {
         });
         // Keep this debug info until we stabilize the tree-shaking
 
-        if debug_care_module_id(uri_key) {
-          dbg!(
-            &uri_key,
-            // &analyzer.export_all_list,
-            &analyzer.export_map,
-            &analyzer.import_map,
-            &analyzer.decl_reference_map,
-            &analyzer.assign_reference_map,
-            &analyzer.reachable_import_and_export,
-            &analyzer.used_symbol_ref
-          );
-        }
+        // if debug_care_module_id(uri_key) {
+        //   dbg!(
+        //     &uri_key,
+        //     // &analyzer.export_all_list,
+        //     &analyzer.export_map,
+        //     &analyzer.import_map,
+        //     &analyzer.decl_reference_map,
+        //     &analyzer.assign_reference_map,
+        //     &analyzer.reachable_import_and_export,
+        //     &analyzer.used_symbol_ref
+        //   );
+        // }
 
         Some((uri_key, analyzer.into()))
       })
@@ -822,10 +822,10 @@ impl Compilation {
     let mut used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
     let mut bail_out_module_identifiers = HashMap::default();
     let mut evaluated_module_identifiers = HashSet::new();
-    let side_effects = self.options.builtins.side_effects;
+    let side_effects_analyze = self.options.builtins.side_effects;
     for analyze_result in analyze_results.values() {
       // if `side_effects` is false, then force every analyze_results is have side_effects
-      let forced_side_effects = !side_effects
+      let forced_side_effects = !side_effects_analyze
         || self
           .entry_module_identifiers
           .contains(analyze_result.module_identifier.as_str());
@@ -904,9 +904,7 @@ impl Compilation {
       used_symbol.extend(used_symbol_set);
     }
 
-    // TODO: SideEffects: only
-
-    if side_effects {
+    if side_effects_analyze {
       for result in analyze_results.values() {
         if !bail_out_module_identifiers.contains_key(&result.module_identifier)
           && !self
@@ -916,7 +914,7 @@ impl Compilation {
           && !used_export_module_identifiers.contains(&result.module_identifier)
           && result.inherit_export_maps.is_empty()
         {
-          dbg!(&result.module_identifier);
+          // dbg!(&result.module_identifier);
           self
             .module_graph
             .module_graph_module_by_identifier_mut(result.module_identifier.as_str())
@@ -944,7 +942,7 @@ impl Compilation {
           }
         }
       }
-      dbg!(&used_symbol, &used_indirect_symbol);
+      // dbg!(&used_symbol, &used_indirect_symbol);
     }
     Ok(
       OptimizeDependencyResult {

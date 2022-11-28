@@ -6,8 +6,7 @@ module.exports = {
     html: [{
       template: './index.html'
     }],
-    minify: false,
-    treeShaking: true
+    minify: false
   },
   context: __dirname,
   entry: {
