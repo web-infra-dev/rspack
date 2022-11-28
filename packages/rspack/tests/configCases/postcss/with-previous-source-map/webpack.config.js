@@ -4,15 +4,19 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				test: /\.css$/,
+				test: /\.scss$/,
 				use: [
 					{
 						loader: postcssLoader,
 						options: {
 							pxToRem: true
 						}
+					},
+					{
+						builtinLoader: "sass-loader"
 					}
-				]
+				],
+				type: "css"
 			}
 		]
 	}

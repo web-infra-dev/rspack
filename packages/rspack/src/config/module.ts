@@ -54,6 +54,7 @@ interface LoaderContextInternal {
 
 interface LoaderResultInternal {
 	content: number[];
+	sourceMap: number[];
 	additionalData: number[];
 }
 
@@ -271,7 +272,13 @@ function composeJsUse(
 
 		const loaderResultPayload: LoaderResultInternal = {
 			content: [...toBuffer(content)],
-			// TODO: Support `SourceMap`
+			sourceMap: [
+				...toBuffer(
+					typeof sourceMap === "string"
+						? sourceMap
+						: JSON.stringify(sourceMap || {})
+				)
+			],
 			// TODO: Use `None` for the rust side
 			additionalData: [...toBuffer(JSON.stringify(additionalData || {}))]
 		};
