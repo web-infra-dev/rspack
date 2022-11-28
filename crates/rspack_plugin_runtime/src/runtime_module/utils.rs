@@ -25,23 +25,15 @@ use rspack_core::{ChunkUkey, Compilation, SourceType};
 pub fn get_initial_chunk_ids(
   chunk: Option<ChunkUkey>,
   compilation: &Compilation,
+  filter_fn: impl Fn(&ChunkUkey, &Compilation) -> bool,
 ) -> HashSet<String> {
   match chunk {
     Some(chunk_ukey) => match compilation.chunk_by_ukey.get(&chunk_ukey) {
       Some(chunk) => {
-        let js_chunks = chunk
+        let mut js_chunks = chunk
           .get_all_initial_chunks(&compilation.chunk_group_by_ukey)
           .iter()
-          .filter(|chunk_ukey| {
-            !compilation
-              .chunk_graph
-              .get_chunk_modules_by_source_type(
-                chunk_ukey,
-                SourceType::JavaScript,
-                &compilation.module_graph,
-              )
-              .is_empty()
-          })
+          .filter(|key| !(chunk_ukey.eq(key) || filter_fn(key, compilation)))
           .map(|chunk_ukey| {
             let chunk = compilation
               .chunk_by_ukey
@@ -50,6 +42,7 @@ pub fn get_initial_chunk_ids(
             chunk.id.clone()
           })
           .collect::<HashSet<_>>();
+        js_chunks.insert(chunk.id.clone());
         js_chunks
       }
       None => HashSet::default(),
@@ -68,4 +61,23 @@ pub fn stringify_chunks(chunks: &HashSet<String>, value: u8) -> String {
       prev + format!(r#""{}": {},"#, cur, value).as_str()
     })
   )
+}
+
+pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
+  if compilation
+    .chunk_graph
+    .get_number_of_entry_modules(chunk_ukey)
+    > 0
+  {
+    return true;
+  }
+
+  !compilation
+    .chunk_graph
+    .get_chunk_modules_by_source_type(
+      chunk_ukey,
+      SourceType::JavaScript,
+      &compilation.module_graph,
+    )
+    .is_empty()
 }

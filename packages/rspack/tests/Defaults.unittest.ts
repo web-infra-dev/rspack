@@ -91,7 +91,7 @@ describe("snapshots", () => {
 		      "import": [
 		        "<cwd>/src/index.js",
 		      ],
-		      "runtime": "main",
+		      "runtime": undefined,
 		    },
 		  },
 		  "externals": {},

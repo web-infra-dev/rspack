@@ -42,12 +42,19 @@ use crate::{
   },
   AdditionalChunkRuntimeRequirementsArgs, BoxModule, BuildContext, BundleEntries, Chunk,
   ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationResult,
-  CodeGenerationResults, CompilerOptions, Dependency, EntryItem, Entrypoint, LoaderRunnerRunner,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModuleFactory,
-  NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs, ResolveKind, RuntimeModule,
-  SharedPluginDriver, Stats, VisitedModuleIdentity,
+  CodeGenerationResults, CompilerOptions, Dependency, EntryItem, EntryOptions, Entrypoint,
+  LoaderRunnerRunner, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg,
+  NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs,
+  ResolveKind, RuntimeModule, SharedPluginDriver, Stats, VisitedModuleIdentity,
 };
 use rspack_symbol::Symbol;
+
+#[derive(Debug)]
+pub struct EntryData {
+  pub name: String,
+  pub dependencies: Vec<Dependency>,
+  pub options: EntryOptions,
+}
 
 #[derive(Debug)]
 pub struct Compilation {
@@ -240,14 +247,14 @@ impl Compilation {
     chunk_by_ukey.insert(chunk.ukey, chunk);
     chunk_by_ukey.get_mut(&ukey).expect("chunk not found")
   }
-  #[instrument(name = "entry_deps")]
-  pub fn entry_dependencies(&self) -> HashMap<String, Vec<Dependency>> {
+
+  #[instrument(name = "entry_data")]
+  pub fn entry_data(&self) -> HashMap<String, EntryData> {
     self
       .entries
       .iter()
-      .map(|(name, items)| {
-        let name = name.clone();
-        let items = items
+      .map(|(name, item)| {
+        let dependencies = item
           .import
           .iter()
           .map(|detail| Dependency {
@@ -259,7 +266,53 @@ impl Compilation {
             },
           })
           .collect();
-        (name, items)
+        (
+          name.clone(),
+          EntryData {
+            dependencies,
+            name: name.clone(),
+            options: EntryOptions {
+              runtime: item.runtime.clone(),
+            },
+          },
+        )
+      })
+      .filter(|(_, item)| {
+        item
+          .dependencies
+          .iter()
+          .filter_map(|dep| {
+            self
+              .module_graph
+              .module_by_dependency(dep)
+              .map(|module| module.module_identifier.clone())
+          })
+          .next()
+          .is_some()
+      })
+      .collect()
+  }
+
+  #[instrument(name = "entry_dependencies")]
+  pub fn entry_dependencies(&self) -> HashMap<String, Vec<Dependency>> {
+    self
+      .entries
+      .iter()
+      .map(|(name, item)| {
+        let name = name.clone();
+        let dependencies = item
+          .import
+          .iter()
+          .map(|detail| Dependency {
+            parent_module_identifier: None,
+            detail: ModuleDependency {
+              specifier: detail.clone(),
+              kind: ResolveKind::Import,
+              span: None,
+            },
+          })
+          .collect();
+        (name, dependencies)
       })
       .collect()
   }

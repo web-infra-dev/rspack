@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use std::collections::{HashMap, HashSet};
 
 // use crate::{
@@ -8,15 +9,9 @@ use rspack_error::Result;
 use tracing::instrument;
 
 use crate::{
-  uri_to_chunk_name, ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation, Dependency,
+  uri_to_chunk_name, ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation,
 };
 
-#[derive(Debug)]
-struct EntryData {
-  name: String,
-  module_identifiers: Vec<String>,
-  dependencies: Vec<Dependency>,
-}
 #[instrument(skip_all)]
 pub fn code_splitting(compilation: &mut Compilation) -> Result<()> {
   CodeSplitter::new(compilation).split()?;
@@ -52,34 +47,21 @@ impl<'me> CodeSplitter<'me> {
     let compilation = &mut self.compilation;
     let module_graph = &compilation.module_graph;
 
-    let entries = compilation
-      .entry_dependencies()
-      .iter()
-      .filter_map(|(name, deps)| {
-        let module_identifiers = deps
-          .iter()
-          .filter_map(|dep| {
-            module_graph
-              .module_by_dependency(dep)
-              .map(|module| module.module_identifier.clone())
-          })
-          .collect::<Vec<_>>();
-        (!module_identifiers.is_empty()).then_some(EntryData {
-          module_identifiers,
-          name: name.to_string(),
-          dependencies: deps.clone(),
-        })
-      })
-      .collect::<Vec<_>>();
+    let entries = compilation.entry_data();
 
     let mut input_entrypoints_and_modules: HashMap<ChunkGroupUkey, Vec<String>> = HashMap::new();
 
-    for EntryData {
-      name,
-      module_identifiers,
-      dependencies,
-    } in &entries
-    {
+    for (name, entry_data) in entries.iter() {
+      let options = &entry_data.options;
+      let dependencies = &entry_data.dependencies;
+      let module_identifiers = dependencies
+        .iter()
+        .filter_map(|dep| {
+          module_graph
+            .module_by_dependency(dep)
+            .map(|module| module.module_identifier.clone())
+        })
+        .collect::<Vec<_>>();
       let chunk = Compilation::add_named_chunk(
         name.to_string(),
         name.to_string(),
@@ -97,8 +79,10 @@ impl<'me> CodeSplitter<'me> {
       }
 
       let mut entrypoint = ChunkGroup::new(ChunkGroupKind::Entrypoint, Some(name.to_string()));
-      // TODO respect entrypoint `runtime` + `dependOn`
-      entrypoint.set_runtime_chunk(chunk.ukey);
+      if options.runtime.is_none() {
+        entrypoint.set_runtime_chunk(chunk.ukey);
+      }
+      entrypoint.set_entry_point_chunk(chunk.ukey);
       entrypoint.connect_chunk(chunk);
 
       compilation
@@ -119,7 +103,7 @@ impl<'me> CodeSplitter<'me> {
           .ok_or_else(|| anyhow::format_err!("no chunk group found"))?
       };
 
-      for dep in dependencies {
+      for dep in dependencies.iter() {
         let module = module_graph
           .module_by_dependency(dep)
           .ok_or_else(|| anyhow::format_err!("no module found"))?;
@@ -139,6 +123,42 @@ impl<'me> CodeSplitter<'me> {
         );
       }
     }
+
+    for (name, entry_data) in entries.iter() {
+      let options = &entry_data.options;
+
+      if let Some(runtime) = &options.runtime {
+        let ukey = compilation
+          .entrypoints
+          .get(name)
+          .ok_or_else(|| anyhow!("no entrypoints found"))?;
+
+        let entry_point = compilation
+          .chunk_group_by_ukey
+          .get_mut(ukey)
+          .ok_or_else(|| anyhow!("no chunk group found"))?;
+
+        let chunk = match compilation.named_chunks.get(runtime) {
+          Some(ukey) => compilation
+            .chunk_by_ukey
+            .get_mut(ukey)
+            .ok_or_else(|| anyhow!("no chunk found"))?,
+          None => {
+            let chunk = Compilation::add_named_chunk(
+              runtime.to_string(),
+              runtime.to_string(),
+              &mut compilation.chunk_by_ukey,
+              &mut compilation.named_chunks,
+            );
+            compilation.chunk_graph.add_chunk(chunk.ukey);
+            chunk
+          }
+        };
+
+        entry_point.unshift_chunk(chunk);
+        entry_point.set_runtime_chunk(chunk.ukey);
+      }
+    }
     Ok(input_entrypoints_and_modules)
   }
 
@@ -153,7 +173,7 @@ impl<'me> CodeSplitter<'me> {
         .ok_or_else(|| anyhow::format_err!("no chunk group found"))?;
       // We could assume that the chunk group is an entrypoint and must have one chunk, which is entry chunk.
       // TODO: we need a better and safe way to ensure this.
-      let chunk = chunk_group.chunks[0];
+      let chunk = chunk_group.get_entry_point_chunk();
       for module in modules {
         self.queue.push(QueueItem {
           action: QueueAction::AddAndEnter,

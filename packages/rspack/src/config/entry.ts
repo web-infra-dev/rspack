@@ -81,7 +81,6 @@ function normalizeEntryItem(
 		import: Array.isArray(entryItem.import)
 			? entryItem.import
 			: [entryItem.import],
-		runtime:
-			typeof entryItem.runtime !== "string" ? entryName : entryItem.runtime
+		runtime: entryItem.runtime === false ? undefined : entryItem.runtime
 	};
 }
