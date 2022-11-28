@@ -122,8 +122,8 @@ impl JsPlugin {
       &args.chunk().id.to_owned(),
     )));
     sources.add(self.render_chunk_modules(args)?);
-    sources.add(RawSource::from(","));
     if chunk.has_entry_module(&args.compilation.chunk_graph) {
+      sources.add(RawSource::from(","));
       sources.add(RawSource::from(format!(
         "function({}) {{\n",
         runtime_globals::REQUIRE

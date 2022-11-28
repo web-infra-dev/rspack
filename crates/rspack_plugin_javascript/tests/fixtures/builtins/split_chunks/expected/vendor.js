@@ -4,4 +4,4 @@
 console.log('foo.js');
 },
 
-},]);
+}]);

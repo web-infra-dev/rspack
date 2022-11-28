@@ -11,4 +11,4 @@ Object.defineProperty(exports, "default", {
 function test() {}
 },
 
-},]);
+}]);

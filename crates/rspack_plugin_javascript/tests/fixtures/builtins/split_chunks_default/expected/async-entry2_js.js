@@ -24,4 +24,4 @@ const _default = 'foo';
 console.log('shared.js');
 },
 
-},]);
+}]);
