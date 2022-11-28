@@ -1,5 +1,6 @@
 use rspack_binding_options::{normalize_bundle_options, RawEntryItem, RawOptions};
 use rspack_core::CompilerOptions;
+use std::process::Command;
 
 use std::{
   collections::HashMap,
@@ -15,22 +16,18 @@ impl RawOptionsExt for RawOptions {
   fn from_fixture(fixture_path: &Path) -> Self {
     let pkg_path = fixture_path.join("test.config.js");
     let mut options = if pkg_path.exists() {
-      let pkg_content = std::fs::read_to_string(pkg_path).unwrap();
       let manifest_dir = PathBuf::from(env!("CARGO_WORKSPACE_DIR"));
-      let dirname = manifest_dir
-        .join(fixture_path)
+      let script_path = manifest_dir
+        .join("scripts/calc_normalized_rspack_options.js")
         .to_string_lossy()
         .to_string();
-      let head = format!(
-        "{}\"{}\"",
-        "var module = {exports: {}}; var __dirname =", &dirname
-      );
-      const TAIL: &str = "JSON.stringify(module.exports)";
-      let qjs_context = quick_js::Context::new().unwrap();
-      let value = qjs_context
-        .eval(&format!("{head}\n{pkg_content}\n{TAIL}"))
+      let output = Command::new("node")
+        .arg(script_path)
+        .arg(pkg_path.to_string_lossy().to_string())
+        .output()
         .unwrap();
-      let options: RawOptions = serde_json::from_str(&value.into_string().unwrap()).unwrap();
+      let config = String::from_utf8(output.stdout).unwrap();
+      let options: RawOptions = serde_json::from_str(&config).unwrap();
       options
     } else {
       RawOptions {
