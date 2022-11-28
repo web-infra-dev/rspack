@@ -116,7 +116,6 @@ mod test_tree_shaking {
       })
     } else {
       Syntax::Es(EsConfig {
-        private_in_object: true,
         import_assertions: true,
         jsx: ext == "jsx",
         export_default_from: true,

@@ -1,7 +1,6 @@
 mod dependency_scanner;
 pub use dependency_scanner::*;
 mod finalize;
-pub(crate) mod minify;
 use finalize::finalize;
 // mod clear_mark;
 // use clear_mark::clear_mark;
@@ -81,7 +80,6 @@ pub fn run_before_pass(
       // enable if configurable
       // swc_visitor::json_parse(min_cost),
       swc_visitor::paren_remover(comments.map(|v| v as &dyn Comments)),
-      Optional::new(swc_visitor::private_in_object(), syntax.private_in_object()),
       swc_visitor::compat(
         if options.target.platform.is_browsers_list() {
           Some((
