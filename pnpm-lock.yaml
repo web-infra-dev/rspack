@@ -138,9 +138,6 @@ importers:
   examples/basic:
     specifiers:
       '@rspack/cli': workspace:*
-      lodash-es: ^4.17.21
-    dependencies:
-      lodash-es: 4.17.21
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
 
