@@ -22,6 +22,8 @@ export interface ResolvedOutput {
 	hashDigestLength?: string;
 	hashDigest?: string;
 	hashSalt?: string;
+	cssFilename?: string,
+	cssChunkFilename?: string,
 }
 
 export function resolveOutputOptions(output: Output = {}): ResolvedOutput {
