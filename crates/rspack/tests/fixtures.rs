@@ -26,7 +26,7 @@ fn example(fixture_path: PathBuf) {
   run(fixture_path);
 }
 
-#[fixture("tests/tree-shaking/*")]
+#[fixture("tests/tree-shaking/*", exclude("node_modules"))]
 fn tree_shaking(fixture_path: PathBuf) {
   test_fixture(&fixture_path, |options: CompilerOptions| {
     add_entry_runtime(options)
