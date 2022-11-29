@@ -25,6 +25,7 @@ module.exports = {
     },
     progress: {},
     treeShaking: true,
+    sideEffects: true
   },
   module: {
     rules:

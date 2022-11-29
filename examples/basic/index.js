@@ -1,2 +1,4 @@
-import { render } from './app'
-render()
+import { myanswer, aaa } from './app'
+myanswer()
+
+aaa

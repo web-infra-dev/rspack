@@ -6,7 +6,9 @@ module.exports = {
     html: [{
       template: './index.html'
     }],
-    minify: false
+    minify: false,
+    treeShaking: true,
+    sideEffects: true
   },
   context: __dirname,
   entry: {

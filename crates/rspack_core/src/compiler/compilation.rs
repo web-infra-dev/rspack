@@ -818,6 +818,7 @@ impl Compilation {
         Some((uri_key, analyzer.into()))
       })
       .collect::<HashMap<Ustr, TreeShakingResult>>();
+
     let mut used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
     let mut bail_out_module_identifiers = HashMap::default();
     let mut evaluated_module_identifiers = HashSet::new();
@@ -911,9 +912,8 @@ impl Compilation {
             .contains(result.module_identifier.as_str())
           && result.side_effects_free
           && !used_export_module_identifiers.contains(&result.module_identifier)
-          && result.inherit_export_maps.is_empty()
+        // && result.inherit_export_maps.is_empty()
         {
-          // dbg!(&result.module_identifier);
           self
             .module_graph
             .module_graph_module_by_identifier_mut(result.module_identifier.as_str())
@@ -1454,6 +1454,13 @@ fn mark_symbol(
             }
             has_bailout_module_identifiers = has_bailout_module_identifiers
               || bailout_module_identifiers.contains_key(module_identifier);
+          }
+
+          // FIXME: this is just a workaround for dependency replacement
+          // dbg!(&ret, indirect_symbol.uri());
+          if ret.len() > 0 && !evaluated_module_identifiers.contains(&indirect_symbol.uri) {
+            q.extend(module_result.used_symbol_ref.clone());
+            evaluated_module_identifiers.insert(indirect_symbol.uri());
           }
           match ret.len() {
             0 => {
