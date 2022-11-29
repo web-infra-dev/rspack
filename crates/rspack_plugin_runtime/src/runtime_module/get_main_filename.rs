@@ -10,11 +10,7 @@ pub struct GetMainFilenameRuntimeModule {
 
 impl RuntimeModule for GetMainFilenameRuntimeModule {
   fn identifier(&self) -> String {
-    if let Some(chunk_ukey) = self.chunk {
-      format!("webpack/runtime/get_main_filename/{:?}", chunk_ukey)
-    } else {
-      unreachable!("should attach chunk for get_main_filename")
-    }
+    "webpack/runtime/get_main_filename".to_string()
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {

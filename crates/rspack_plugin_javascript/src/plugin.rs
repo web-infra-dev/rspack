@@ -72,9 +72,8 @@ impl JsPlugin {
       .chunk_graph
       .get_chunk_runtime_modules_in_order(&args.chunk_ukey)
       .iter()
-      .filter_map(|identifier| compilation.runtime_modules.get(identifier))
       .fold(ConcatSource::default(), |mut output, cur| {
-        output.add(cur.generate(compilation).clone());
+        output.add(cur.generate(compilation));
         output
       });
     let runtime_source = runtime_modules.source().to_string();
