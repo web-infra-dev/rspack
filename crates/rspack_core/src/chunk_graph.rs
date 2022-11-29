@@ -123,7 +123,7 @@ impl ChunkGraph {
     cgm.runtime_in_chunks.insert(chunk);
 
     let cgc = self.get_chunk_graph_chunk_mut(chunk);
-    if cgc
+    if !cgc
       .runtime_modules
       .iter()
       .any(|m| m.identifier() == module.identifier())
