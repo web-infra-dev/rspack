@@ -38,6 +38,7 @@ use crate::{
   split_chunks::code_splitting,
   tree_shaking::{
     debug_care_module_id,
+    symbol_normalization::SymbolRefNormalization,
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
     BailoutReason, OptimizeDependencyResult,
   },
@@ -767,14 +768,19 @@ impl Compilation {
         Some((uri_key, analyzer.into()))
       })
       .collect::<HashMap<Ustr, TreeShakingResult>>();
+    let normalize_symbol_ref = SymbolRefNormalization::new(
+      analyze_results,
+      &self.entry_module_identifiers,
+      &mut self.module_graph,
+    );
     Ok(
       OptimizeDependencyResult {
-        used_symbol,
-        analyze_results,
-        bail_out_module_identifiers,
-        used_indirect_symbol,
+        used_symbol: normalize_symbol_ref.used_symbol_set,
+        analyze_results: normalize_symbol_ref.analyze_results,
+        bail_out_module_identifiers: normalize_symbol_ref.bailout_module_identifiers,
+        used_indirect_symbol: normalize_symbol_ref.used_indirect_symbol_set,
       }
-      .with_diagnostic(errors_to_diagnostics(errors)),
+      .with_diagnostic(errors_to_diagnostics(normalize_symbol_ref.errors)),
     )
   }
 
