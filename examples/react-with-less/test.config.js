@@ -14,7 +14,10 @@ module.exports = {
   module: {
     rules: [
       {
-        test : /\.less$/,
+        test : {
+          type: "regexp",
+          matcher: '\\.less$'
+        },
         type: "asset"
       }
     ]

@@ -11,7 +11,10 @@ module.exports = {
   module: {
     rules: [
       {
-        test : /\.s[ac]ss$/,
+        test : {
+          type: "regexp",
+          matcher: '\\.s[ac]ss$'
+        },
         use: [{ builtinLoader: "sass-loader" }],
         type: "css",
       },
