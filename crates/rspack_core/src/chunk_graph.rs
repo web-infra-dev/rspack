@@ -123,7 +123,14 @@ impl ChunkGraph {
     cgm.runtime_in_chunks.insert(chunk);
 
     let cgc = self.get_chunk_graph_chunk_mut(chunk);
-    cgc.runtime_modules.push(module);
+    if cgc
+      .runtime_modules
+      .iter()
+      .find(|m| m.identifier() == module.identifier())
+      .is_none()
+    {
+      cgc.runtime_modules.push(module);
+    }
   }
 
   pub fn get_modules_chunks(&self, module_identifier: &str) -> &HashSet<ChunkUkey> {
