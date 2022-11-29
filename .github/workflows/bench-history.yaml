@@ -22,6 +22,10 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install toolchain
         run: rustup show
+      - name: Install dependencies && and build lib
+        run: |
+          pnpm install
+          pnpm run build:cli
       - name: Run benchmark
         run: cargo bench --bench main -- --output-format bencher | tee output.txt
 
