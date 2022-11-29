@@ -126,8 +126,7 @@ impl ChunkGraph {
     if cgc
       .runtime_modules
       .iter()
-      .find(|m| m.identifier() == module.identifier())
-      .is_none()
+      .any(|m| m.identifier() == module.identifier())
     {
       cgc.runtime_modules.push(module);
     }
