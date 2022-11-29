@@ -1,4 +1,4 @@
-import type { Compiler, Compilation } from "@rspack/core";
+import type { Compiler, Compilation, Plugin } from "@rspack/core";
 import type { Options as MinifyOptions } from "html-minifier-terser";
 import assert from "assert";
 import path from "path";
@@ -240,7 +240,9 @@ export interface TemplateParameter {
 	webpackConfig: any;
 }
 
-export default class HtmlRspackPlugin {
+export default class HtmlRspackPlugin implements Plugin {
+	name = "HtmlRspackPlugin";
+
 	userOptions: Options;
 	options: ProcessedOptions;
 
