@@ -5,6 +5,8 @@ use rspack_core::{
   runtime_globals, ChunkUkey, Compilation, RuntimeModule,
 };
 
+use super::utils::chunk_has_js;
+
 #[derive(Debug, Default)]
 pub struct JsonpChunkLoadingRuntimeModule {
   chunk: Option<ChunkUkey>,
@@ -33,7 +35,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     //   &compilation.module_graph,
     //   chunk_hash_js,
     // );
-    let initial_chunks = get_initial_chunk_ids(self.chunk, compilation);
+    let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
     let mut source = ConcatSource::default();
     source.add(RawSource::from("(function() {\n"));
 
@@ -45,10 +47,11 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       &stringify_chunks(&initial_chunks, 0)
     )));
 
-    if self
+    let with_loading = self
       .runtime_requirements
-      .contains(runtime_globals::ENSURE_CHUNK_HANDLERS)
-    {
+      .contains(runtime_globals::ENSURE_CHUNK_HANDLERS);
+
+    if with_loading {
       source.add(RawSource::from(
         include_str!("runtime/jsonp_chunk_loading.js")
           // TODO
@@ -83,6 +86,16 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     {
       source.add(RawSource::from(
         include_str!("runtime/jsonp_chunk_loading_with_on_chunk_load.js").to_string(),
+      ));
+    }
+
+    if self
+      .runtime_requirements
+      .contains(runtime_globals::CHUNK_CALLBACK)
+      || with_loading
+    {
+      source.add(RawSource::from(
+        include_str!("runtime/jsonp_chunk_loading_with_callback.js").to_string(),
       ));
     }
 

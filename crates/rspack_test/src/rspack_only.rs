@@ -49,3 +49,10 @@ where
 pub fn options_noop(options: CompilerOptions) -> CompilerOptions {
   options
 }
+
+pub fn add_entry_runtime(mut options: CompilerOptions) -> CompilerOptions {
+  for (_, entry) in options.entry.iter_mut() {
+    entry.runtime = Some("runtime".to_string());
+  }
+  options
+}

@@ -4,6 +4,8 @@ use rspack_core::{
   ChunkUkey, Compilation, RuntimeModule,
 };
 
+use super::utils::chunk_has_js;
+
 #[derive(Debug, Default)]
 pub struct CommonJsChunkLoadingRuntimeModule {
   chunk: Option<ChunkUkey>,
@@ -15,7 +17,7 @@ impl RuntimeModule for CommonJsChunkLoadingRuntimeModule {
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
-    let initial_chunks = get_initial_chunk_ids(self.chunk, compilation);
+    let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
     RawSource::from(
       include_str!("runtime/common_js_chunk_loading.js")
         .replace("INSTALLED_CHUNKS", &stringify_chunks(&initial_chunks, 1))

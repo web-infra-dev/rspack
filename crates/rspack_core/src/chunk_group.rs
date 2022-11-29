@@ -18,6 +18,7 @@ pub struct ChunkGroup {
   // Entrypoint
   // pub(crate) name: Option<String>,
   pub(crate) runtime_chunk: Option<ChunkUkey>,
+  pub(crate) entry_point_chunk: Option<ChunkUkey>,
 }
 
 impl ChunkGroup {
@@ -42,6 +43,7 @@ impl ChunkGroup {
       runtime,
       // name,
       runtime_chunk: None,
+      entry_point_chunk: None,
     }
   }
 
@@ -72,6 +74,11 @@ impl ChunkGroup {
     chunk.add_group(self.ukey);
   }
 
+  pub fn unshift_chunk(&mut self, chunk: &mut Chunk) {
+    self.chunks.insert(0, chunk.ukey);
+    chunk.add_group(self.ukey);
+  }
+
   pub(crate) fn is_initial(&self) -> bool {
     matches!(self.kind, ChunkGroupKind::Entrypoint)
   }
@@ -84,6 +91,19 @@ impl ChunkGroup {
     match self.kind {
       ChunkGroupKind::Entrypoint => self
         .runtime_chunk
+        .expect("EntryPoint runtime chunk not set"),
+      ChunkGroupKind::Normal => unreachable!("Normal chunk group doesn't have runtime chunk"),
+    }
+  }
+
+  pub fn set_entry_point_chunk(&mut self, chunk_ukey: ChunkUkey) {
+    self.entry_point_chunk = Some(chunk_ukey);
+  }
+
+  pub fn get_entry_point_chunk(&self) -> ChunkUkey {
+    match self.kind {
+      ChunkGroupKind::Entrypoint => self
+        .entry_point_chunk
         .expect("EntryPoint runtime chunk not set"),
       ChunkGroupKind::Normal => unreachable!("Normal chunk group doesn't have runtime chunk"),
     }

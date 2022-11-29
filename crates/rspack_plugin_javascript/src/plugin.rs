@@ -74,24 +74,8 @@ impl JsPlugin {
       .iter()
       .filter_map(|identifier| compilation.runtime_modules.get(identifier))
       .fold(ConcatSource::default(), |mut output, cur| {
-        // Adding this debug branch to keep only necessary runtime when tree-shaking test snapshot
-        // Currently it have 40LOC with about 1000LOC runtime code in our tree-shaking snapshot, it is hard to review the snapshot
-        #[cfg(debug_assertions)]
-        {
-          if !compilation.options.__wrap_runtime {
-            if cur.identifier() == "rspack/runtime/_rspack_require.js" {
-              output.add(cur.generate(compilation).clone())
-            }
-          } else {
-            output.add(cur.generate(compilation).clone())
-          }
-          output
-        }
-        #[cfg(not(debug_assertions))]
-        {
-          output.add(cur.generate(compilation).clone());
-          output
-        }
+        output.add(cur.generate(compilation).clone());
+        output
       });
     let runtime_source = runtime_modules.source().to_string();
     let modules_code_start = runtime_source
@@ -131,12 +115,22 @@ impl JsPlugin {
   }
 
   pub fn render_web_chunk(&self, args: &rspack_core::RenderManifestArgs) -> Result<BoxSource> {
+    let chunk = args.chunk();
     let mut sources = ConcatSource::default();
     sources.add(RawSource::from(format!(
       r#"(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["{}"], "#,
       &args.chunk().id.to_owned(),
     )));
     sources.add(self.render_chunk_modules(args)?);
+    if chunk.has_entry_module(&args.compilation.chunk_graph) {
+      sources.add(RawSource::from(","));
+      sources.add(RawSource::from(format!(
+        "function({}) {{\n",
+        runtime_globals::REQUIRE
+      )));
+      sources.add(self.generate_chunk_entry_code(args.compilation, &args.chunk_ukey));
+      sources.add(RawSource::from("\n}\n"));
+    }
     sources.add(RawSource::from("]);"));
     Ok(sources.boxed())
   }
