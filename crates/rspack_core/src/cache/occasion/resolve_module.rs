@@ -29,7 +29,7 @@ impl ResolveModuleOccasion {
   where
     F: Fn(ResolveArgs<'a>) -> BoxFuture<'a, Result<ResolveResult>>,
   {
-    let id = format!("{:?}|{:?}", args.importer, args.span);
+    let id = format!("{}|{}", args.importer.unwrap_or(""), args.specifier);
     {
       // read
       let storage = self.storage.read().await;
@@ -48,9 +48,15 @@ impl ResolveModuleOccasion {
 
     // run generator and save to cache
     let data = generator(args).await?;
+    let file_paths = if let ResolveResult::Info(ref info) = data {
+      vec![info.path.to_string_lossy().to_string()]
+    } else {
+      vec![]
+    };
+    //    let file_paths = vec![id.clone()];
     let snapshot = self
       .snapshot_manager
-      .create_snapshot(vec![id.clone()], |option| &option.resolve)
+      .create_snapshot(file_paths, |option| &option.resolve)
       .await?;
     self
       .storage

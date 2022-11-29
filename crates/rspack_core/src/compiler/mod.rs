@@ -70,6 +70,7 @@ impl Compiler {
 
   #[instrument(name = "build", skip_all)]
   pub async fn build(&mut self) -> Result<Stats> {
+    self.cache.end_idle().await;
     // TODO: clear the outdate cache entires in resolver,
     // TODO: maybe it's better to use external entries.
     self.plugin_driver.read().await.resolver.clear();
@@ -102,7 +103,7 @@ impl Compiler {
 
     let deps = self.compilation.entry_dependencies();
     self.compile(deps).await?;
-
+    self.cache.begin_idle().await;
     Ok(self.stats())
   }
 
