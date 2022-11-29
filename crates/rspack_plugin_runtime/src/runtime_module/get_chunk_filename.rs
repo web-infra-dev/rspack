@@ -26,7 +26,7 @@ impl GetChunkFilenameRuntimeModule {
 
 impl RuntimeModule for GetChunkFilenameRuntimeModule {
   fn identifier(&self) -> String {
-    format!("webpack/runtime/get_chunk_filename/{}", self.content_type)
+    "webpack/runtime/get_chunk_filename".to_string()
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {

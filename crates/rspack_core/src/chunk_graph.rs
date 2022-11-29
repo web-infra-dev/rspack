@@ -1,9 +1,9 @@
 use hashbrown::{HashMap, HashSet};
-use indexmap::IndexSet;
 
 use crate::{
   Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Module, ModuleGraph,
-  ModuleGraphModule, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, SourceType,
+  ModuleGraphModule, ModuleIdentifier, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
+  SourceType,
 };
 
 #[derive(Debug, Default)]
@@ -114,12 +114,16 @@ impl ChunkGraph {
     chunk_graph_chunk.modules.insert(module_identifier);
   }
 
-  pub fn connect_chunk_and_runtime_module(&mut self, chunk: ChunkUkey, module_identifier: String) {
-    let cgm = self.get_chunk_graph_module_mut(&module_identifier);
+  pub fn connect_chunk_and_runtime_module(
+    &mut self,
+    chunk: ChunkUkey,
+    module: Box<dyn RuntimeModule>,
+  ) {
+    let cgm = self.get_chunk_graph_module_mut(&module.identifier());
     cgm.runtime_in_chunks.insert(chunk);
 
     let cgc = self.get_chunk_graph_chunk_mut(chunk);
-    cgc.runtime_modules.insert(module_identifier);
+    cgc.runtime_modules.push(module);
   }
 
   pub fn get_modules_chunks(&self, module_identifier: &str) -> &HashSet<ChunkUkey> {
@@ -299,7 +303,10 @@ impl ChunkGraph {
     runtimes
   }
 
-  pub fn get_chunk_runtime_modules_in_order(&self, chunk_ukey: &ChunkUkey) -> &IndexSet<String> {
+  pub fn get_chunk_runtime_modules_in_order(
+    &self,
+    chunk_ukey: &ChunkUkey,
+  ) -> &Vec<Box<dyn RuntimeModule>> {
     let cgc = self.get_chunk_graph_chunk(chunk_ukey);
     &cgc.runtime_modules
   }
@@ -388,7 +395,7 @@ pub struct ChunkGraphChunk {
   pub(crate) entry_modules: hashlink::LinkedHashMap<String, ChunkGroupUkey>,
   pub(crate) modules: HashSet<String>,
   pub(crate) runtime_requirements: HashSet<String>,
-  pub(crate) runtime_modules: IndexSet<String>,
+  pub(crate) runtime_modules: Vec<Box<dyn RuntimeModule>>,
 }
 
 impl ChunkGraphChunk {
@@ -397,7 +404,7 @@ impl ChunkGraphChunk {
       entry_modules: Default::default(),
       modules: Default::default(),
       runtime_requirements: HashSet::default(),
-      runtime_modules: IndexSet::default(),
+      runtime_modules: Default::default(),
     }
   }
 }

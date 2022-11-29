@@ -62,7 +62,6 @@ pub struct Compilation {
   entries: BundleEntries,
   pub(crate) visited_module_id: VisitedModuleIdentity,
   pub module_graph: ModuleGraph,
-  pub runtime_modules: HashMap<String, Box<dyn RuntimeModule>>,
   pub chunk_graph: ChunkGraph,
   pub chunk_by_ukey: HashMap<ChunkUkey, Chunk>,
   pub chunk_group_by_ukey: HashMap<ChunkGroupUkey, ChunkGroup>,
@@ -122,7 +121,6 @@ impl Compilation {
       code_generation_results: Default::default(),
       code_generated_modules: Default::default(),
 
-      runtime_modules: HashMap::default(),
       _pin: PhantomPinned,
     }
   }
@@ -1071,13 +1069,11 @@ impl Compilation {
 
     for entry_ukey in self.get_chunk_graph_entries().iter() {
       let mut hasher = Xxh3::new();
-      for identifier in self
+      for module in self
         .chunk_graph
         .get_chunk_runtime_modules_in_order(entry_ukey)
       {
-        if let Some(module) = self.runtime_modules.get(identifier) {
-          module.hash(self, &mut hasher);
-        }
+        module.hash(self, &mut hasher);
       }
       let entry = self
         .chunk_by_ukey
@@ -1096,8 +1092,7 @@ impl Compilation {
       .connect_chunk_and_module(*chunk_ukey, module.identifier());
     self
       .chunk_graph
-      .connect_chunk_and_runtime_module(*chunk_ukey, module.identifier());
-    self.runtime_modules.insert(module.identifier(), module);
+      .connect_chunk_and_runtime_module(*chunk_ukey, module);
   }
 }
 
