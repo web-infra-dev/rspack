@@ -43,7 +43,6 @@ fn syntax_by_ext(filename: &str, enable_decorators: bool) -> Syntax {
       ..Default::default()
     }),
     false => Syntax::Es(EsConfig {
-      private_in_object: true,
       import_assertions: true,
       jsx: ext == "jsx",
       export_default_from: true,
@@ -63,7 +62,6 @@ pub fn syntax_by_module_type(
 ) -> Syntax {
   match module_type {
     ModuleType::Js | ModuleType::Jsx => Syntax::Es(EsConfig {
-      private_in_object: true,
       import_assertions: true,
       jsx: matches!(module_type, ModuleType::Jsx),
       export_default_from: true,

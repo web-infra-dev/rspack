@@ -6,7 +6,7 @@ const path = require('path');
  * @type {import('webpack').Configuration}
  */
 module.exports = {
-  mode: 'development',
+  mode: 'production',
   context: __dirname,
   entry: { main: './src/index.tsx' },
   devServer: {
@@ -18,13 +18,13 @@ module.exports = {
       template: './index.html',
       publicPath: '/'
     }],
-    define: { 'process.env.NODE_ENV': JSON.stringify('development') },
+    define: { 'process.env.NODE_ENV': JSON.stringify('production') },
     react: {
       development: true,
       refresh: true,
     },
     progress: {},
-    treeShaking: true,
+    treeShaking: false,
   },
   module: {
     rules:
