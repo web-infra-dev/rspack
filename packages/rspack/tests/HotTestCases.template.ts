@@ -66,7 +66,10 @@ export function describeCases(config: {
 								const fakeUpdateLoaderOptions = {
 									updateIndex: 0
 								};
-								const configPath = path.join(testDirectory, "rspack.config.js");
+								const configPath = path.join(
+									testDirectory,
+									"webpack.config.js"
+								);
 								const options = getOptions(
 									configPath,
 									testDirectory,
@@ -357,7 +360,7 @@ function getOptions(
 ): Record<string, string> {
 	let options: any = {};
 	if (fs.existsSync(configPath)) {
-		options = require(configPath);
+		Object.assign(options, require(configPath));
 	}
 	if (!options.mode) {
 		options.mode = "development";

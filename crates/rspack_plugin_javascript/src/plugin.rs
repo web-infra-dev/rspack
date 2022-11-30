@@ -102,14 +102,69 @@ impl JsPlugin {
   }
 
   pub fn render_node_chunk(&self, args: &rspack_core::RenderManifestArgs) -> Result<BoxSource> {
+    let chunk = args.chunk();
     let mut sources = ConcatSource::default();
     sources.add(RawSource::from(format!(
       r#"exports.ids = ["{}"];
       exports.modules = "#,
-      &args.chunk().id.to_owned()
+      &chunk.id.to_owned()
     )));
     sources.add(self.render_chunk_modules(args)?);
     sources.add(RawSource::from(";"));
+    if chunk.has_entry_module(&args.compilation.chunk_graph) {
+      let entry_point = {
+        let entry_points = args
+          .compilation
+          .chunk_graph
+          .get_chunk_entry_modules_with_chunk_group(&chunk.ukey);
+
+        let entry_point_ukey = entry_points
+          .iter()
+          .next()
+          .ok_or_else(|| anyhow!("should has entry point ukey"))?;
+
+        args
+          .compilation
+          .chunk_group_by_ukey
+          .get(entry_point_ukey)
+          .ok_or_else(|| anyhow!("should has entry point"))?
+      };
+
+      let runtime_chunk_filename = {
+        let runtime_chunk = args
+          .compilation
+          .chunk_by_ukey
+          .get(&entry_point.get_runtime_chunk())
+          .ok_or_else(|| anyhow!("should has runtime chunk"))?;
+
+        let hash = Some(runtime_chunk.get_render_hash());
+        args
+          .compilation
+          .options
+          .output
+          .chunk_filename
+          .render(FilenameRenderOptions {
+            filename: runtime_chunk.name.clone(),
+            extension: Some(".js".to_string()),
+            id: Some(runtime_chunk.id.clone()),
+            contenthash: hash.clone(),
+            chunkhash: hash.clone(),
+            hash,
+            ..Default::default()
+          })
+      };
+
+      sources.add(RawSource::from(format!(
+        "\nvar {} = require('./{}')",
+        runtime_globals::REQUIRE,
+        runtime_chunk_filename
+      )));
+      sources.add(RawSource::from(format!(
+        "\n{}(exports)\n",
+        runtime_globals::EXTERNAL_INSTALL_CHUNK,
+      )));
+      sources.add(self.generate_chunk_entry_code(args.compilation, &args.chunk_ukey));
+    }
     Ok(sources.boxed())
   }
 

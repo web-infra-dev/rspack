@@ -1,4 +1,4 @@
-use crate::runtime_module::JsonpChunkLoadingRuntimeModule;
+use crate::runtime_module::{HasOwnPropertyRuntimeModule, JsonpChunkLoadingRuntimeModule};
 use async_trait::async_trait;
 use rspack_core::{
   runtime_globals, AdditionalChunkRuntimeRequirementsArgs, Plugin,
@@ -7,12 +7,12 @@ use rspack_core::{
 use rspack_error::Result;
 
 #[derive(Debug)]
-pub struct JsonPChunkLoadingPlugin {}
+pub struct JsonpChunkLoadingPlugin {}
 
 #[async_trait]
-impl Plugin for JsonPChunkLoadingPlugin {
+impl Plugin for JsonpChunkLoadingPlugin {
   fn name(&self) -> &'static str {
-    "JsonPChunkLoadingPlugin"
+    "JsonpChunkLoadingPlugin"
   }
 
   fn apply(
@@ -54,6 +54,11 @@ impl Plugin for JsonPChunkLoadingPlugin {
           has_jsonp_chunk_loading = true;
           runtime_requirements.insert(runtime_globals::PUBLIC_PATH.to_string());
           runtime_requirements.insert(runtime_globals::GET_UPDATE_MANIFEST_FILENAME.to_string());
+        }
+        runtime_globals::ON_CHUNKS_LOADED => {
+          has_jsonp_chunk_loading = true;
+          // workaround for runtime modules sorting
+          compilation.add_runtime_module(chunk, HasOwnPropertyRuntimeModule::default().boxed())
         }
         _ => {}
       }

@@ -7,7 +7,9 @@ use rspack_core::{
 use rspack_error::Result;
 
 mod basic_runtime_requirements;
+mod common_js_chunk_format;
 pub use basic_runtime_requirements::BasicRuntimeRequirementPlugin;
+pub use common_js_chunk_format::CommonJsChunkFormatPlugin;
 mod hot_module_replacement;
 pub use hot_module_replacement::HotModuleReplacementPlugin;
 mod css_modules;
@@ -17,7 +19,7 @@ pub use array_push_callback_chunk_format::ArrayPushCallbackChunkFormatPlugin;
 mod common_js_chunk_loading;
 pub use common_js_chunk_loading::CommonJsChunkLoadingPlugin;
 mod jsonp_chunk_loading;
-pub use jsonp_chunk_loading::JsonPChunkLoadingPlugin;
+pub use jsonp_chunk_loading::JsonpChunkLoadingPlugin;
 mod runtime_module;
 
 #[derive(Debug)]
