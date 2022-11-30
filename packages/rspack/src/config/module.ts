@@ -40,7 +40,8 @@ export interface ResolvedModule {
 interface LoaderContextInternal {
 	// TODO: It's not a good way to do this, we should split the `source` into a separate type and avoid using `serde_json`, but it's a temporary solution.
 	source: number[];
-	sourceMap: string | null;
+	sourceMap: string | undefined | null;
+	additionalData: AdditionalData | undefined | null;
 	resource: string;
 	resourcePath: string;
 	resourceQuery: string | null;
@@ -272,15 +273,18 @@ function composeJsUse(
 
 		const loaderResultPayload: LoaderResultInternal = {
 			content: [...toBuffer(content)],
-			sourceMap: [
-				...toBuffer(
-					typeof sourceMap === "string"
-						? sourceMap
-						: JSON.stringify(sourceMap || {})
-				)
-			],
-			// TODO: Use `None` for the rust side
-			additionalData: [...toBuffer(JSON.stringify(additionalData || {}))]
+			sourceMap: !isNil(sourceMap)
+				? [
+						...toBuffer(
+							typeof sourceMap === "string"
+								? sourceMap
+								: JSON.stringify(sourceMap)
+						)
+				  ]
+				: sourceMap,
+			additionalData: !isNil(additionalData)
+				? [...toBuffer(JSON.stringify(additionalData))]
+				: additionalData
 		};
 
 		return Buffer.from(JSON.stringify(loaderResultPayload), "utf-8");
