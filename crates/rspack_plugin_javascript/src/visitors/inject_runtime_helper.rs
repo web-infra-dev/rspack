@@ -1,10 +1,10 @@
 use hashbrown::HashSet;
 use rspack_core::runtime_globals;
-use swc_common::{Mark, DUMMY_SP};
-use swc_ecma_ast::*;
-use swc_ecma_transforms::helpers::HELPERS;
-use swc_ecma_utils::ExprFactory;
-use swc_ecma_visit::{as_folder, noop_visit_mut_type, Fold, VisitMut, VisitMutWith};
+use swc_core::common::{Mark, DUMMY_SP};
+use swc_core::ecma::ast::*;
+use swc_core::ecma::transforms::base::helpers::HELPERS;
+use swc_core::ecma::utils::ExprFactory;
+use swc_core::ecma::visit::{as_folder, noop_visit_mut_type, Fold, VisitMut, VisitMutWith};
 
 pub fn inject_runtime_helper(runtime_requirements: &mut HashSet<String>) -> impl Fold + '_ {
   let helper_mark = HELPERS.with(|helper| helper.mark());

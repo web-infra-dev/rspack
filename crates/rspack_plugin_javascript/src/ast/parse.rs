@@ -2,11 +2,13 @@ use crate::utils::{ecma_parse_error_to_rspack_error, get_swc_compiler, syntax_by
 use rspack_core::{ast::javascript::Ast, ModuleType, PATH_START_BYTE_POS_MAP};
 use rspack_error::Error;
 use std::sync::Arc;
-use swc::config::IsModule;
-use swc_common::comments::Comments;
-use swc_common::{FileName, SourceFile};
-use swc_ecma_ast::{EsVersion, Program};
-use swc_ecma_parser::{parse_file_as_module, parse_file_as_program, parse_file_as_script, Syntax};
+use swc_core::base::config::IsModule;
+use swc_core::common::comments::Comments;
+use swc_core::common::{FileName, SourceFile};
+use swc_core::ecma::ast::{EsVersion, Program};
+use swc_core::ecma::parser::{
+  self, parse_file_as_module, parse_file_as_program, parse_file_as_script, Syntax,
+};
 
 /// Why this helper function design like this?
 /// 1. `swc_ecma_parser` could return ast with some errors which are recoverable
@@ -21,7 +23,7 @@ pub fn parse_js(
   syntax: Syntax,
   is_module: IsModule,
   comments: Option<&dyn Comments>,
-) -> Result<Program, Vec<swc_ecma_parser::error::Error>> {
+) -> Result<Program, Vec<parser::error::Error>> {
   let mut errors = vec![];
   let program_result = match is_module {
     IsModule::Bool(true) => {

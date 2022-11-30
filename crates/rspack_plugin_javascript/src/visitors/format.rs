@@ -1,25 +1,23 @@
 // use crate::{cjs_runtime_helper, Bundle, ModuleGraph, Platform, ResolvedURI};
-use ast::*;
+use atoms::{Atom, JsWord};
+use common::{Mark, SyntaxContext, DUMMY_SP};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
   runtime_globals, Compilation, Dependency, Module, ModuleDependency, ResolveKind,
 };
-use swc_atoms::{Atom, JsWord};
-use swc_common::{Mark, SyntaxContext, DUMMY_SP};
-use swc_ecma_utils::ExprFactory;
-use swc_ecma_visit::{Fold, VisitMut, VisitMutWith};
+use swc_core::ecma::utils::ExprFactory;
 use tracing::instrument;
+use visit::{Fold, VisitMut, VisitMutWith};
 
 use crate::utils::{is_dynamic_import_literal_expr, is_require_literal_expr};
 
 use super::is_module_hot_accept_call;
 use {
-  swc_atoms,
-  swc_common,
-  swc_ecma_ast as ast,
-  // swc_ecma_utils::{self},
-  swc_ecma_visit::{self, noop_visit_mut_type},
+  swc_core::common,
+  swc_core::ecma::ast::*,
+  swc_core::ecma::atoms,
+  swc_core::ecma::visit::{self, noop_visit_mut_type},
 };
 
 static SWC_HELPERS_REG: Lazy<Regex> =
@@ -34,7 +32,10 @@ pub struct RspackModuleFinalizer<'a> {
 }
 
 impl<'a> Fold for RspackModuleFinalizer<'a> {
-  fn fold_module(&mut self, mut module: ast::Module) -> ast::Module {
+  fn fold_module(
+    &mut self,
+    mut module: swc_core::ecma::ast::Module,
+  ) -> swc_core::ecma::ast::Module {
     module.visit_mut_with(&mut RspackModuleFormatTransformer::new(
       self.unresolved_mark,
       self.module,
@@ -48,7 +49,7 @@ impl<'a> Fold for RspackModuleFinalizer<'a> {
       .map(|stmt| stmt.into())
       .collect();
 
-    ast::Module {
+    swc_core::ecma::ast::Module {
       span: Default::default(),
       body,
       shebang: None,
@@ -74,7 +75,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
   fn get_rspack_dynamic_import_callee(&self, chunk_ids: Vec<&str>) -> Callee {
     MemberExpr {
       span: DUMMY_SP,
-      obj: Box::new(swc_ecma_ast::Expr::Call(CallExpr {
+      obj: Box::new(Expr::Call(CallExpr {
         span: DUMMY_SP,
         callee: Ident::new(runtime_globals::ENSURE_CHUNK.into(), DUMMY_SP).as_callee(),
         args: vec![Expr::Array(ArrayLit {

@@ -1,7 +1,7 @@
 pub mod css_assets;
 
 use rspack_core::{ModuleDependency, ResolveKind};
-use swc_common::util::take::Take;
+use swc_core::common::util::take::Take;
 use swc_css::{
   ast::{AtRulePrelude, Rule, Stylesheet, UrlValue},
   visit::{VisitMut, VisitMutWith},

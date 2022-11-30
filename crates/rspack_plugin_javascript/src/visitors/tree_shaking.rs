@@ -1,11 +1,11 @@
 use hashbrown::HashSet;
-use swc_common::{Mark, DUMMY_SP, GLOBALS};
-use swc_ecma_ast::*;
+use swc_core::common::{Mark, DUMMY_SP, GLOBALS};
+use swc_core::ecma::ast::*;
 // use swc_ecma_utils::
 use rspack_symbol::{BetterId, Symbol};
-use swc_atoms::JsWord;
-use swc_ecma_utils::quote_ident;
-use swc_ecma_visit::{noop_fold_type, Fold, FoldWith};
+use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::utils::quote_ident;
+use swc_core::ecma::visit::{noop_fold_type, Fold, FoldWith};
 use ustr::Ustr;
 pub fn tree_shaking_visitor(
   module_id: Ustr,

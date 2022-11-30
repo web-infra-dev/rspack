@@ -1,5 +1,5 @@
-use swc_atoms::JsWord;
-use swc_common::DUMMY_SP;
+use swc_core::common::DUMMY_SP;
+use swc_core::ecma::atoms::JsWord;
 use swc_html::ast::{Attribute, Element, Namespace};
 
 use super::asset::{HTMLPluginTag, HtmlPluginAttribute};

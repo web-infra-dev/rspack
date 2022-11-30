@@ -1,6 +1,6 @@
-use swc_atoms::{js_word, JsWord};
-use swc_common::Mark;
-use swc_ecma_ast::{CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit};
+use swc_core::common::Mark;
+use swc_core::ecma::ast::{CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit};
+use swc_core::ecma::atoms::{js_word, JsWord};
 
 pub fn get_first_string_lit_arg(e: &CallExpr) -> Option<JsWord> {
   // we check the length at the begin of [is_require_literal_expr]

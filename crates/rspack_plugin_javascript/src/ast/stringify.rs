@@ -1,9 +1,9 @@
 use crate::utils::get_swc_compiler;
 use rspack_core::{ast::javascript::Ast, Devtool};
 use rspack_error::Result;
-use swc::config::SourceMapsConfig;
-use swc::TransformOutput;
-use swc_ecma_ast::EsVersion;
+use swc_core::base::config::SourceMapsConfig;
+use swc_core::base::TransformOutput;
+use swc_core::ecma::ast::EsVersion;
 
 pub fn stringify(ast: &Ast, devtool: &Devtool) -> Result<TransformOutput> {
   ast

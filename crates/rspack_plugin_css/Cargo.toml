@@ -25,8 +25,7 @@ rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 serde = "1.0.144"
 serde_json = "1.0.85"
-swc_atoms = { workspace = true }
-swc_common = { workspace = true, features = ["concurrent"] }
+swc_core = { workspace = true }
 swc_css = { workspace = true, features = ["swc_css_minifier"] }
 swc_css_prefixer = { workspace = true }
 tokio = { version = "1.21.0", features = [

@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use swc_common::{FileName, FilePathMapping, SourceMap};
+use swc_core::common::{FileName, FilePathMapping, SourceMap};
 use swc_css::{
   ast::Stylesheet,
   codegen::writer::basic::{BasicCssWriter, BasicCssWriterConfig},

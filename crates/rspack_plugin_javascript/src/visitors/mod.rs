@@ -9,18 +9,19 @@ use inject_runtime_helper::inject_runtime_helper;
 mod format;
 use format::*;
 use rspack_core::Module;
-use swc_common::pass::Repeat;
-use swc_ecma_transforms::optimization::simplify::dce::{dce, Config};
+use swc_core::common::pass::Repeat;
+
+use swc_core::ecma::transforms::optimization::simplify::dce::{dce, Config};
 mod swc_visitor;
 mod tree_shaking;
 use crate::utils::get_swc_compiler;
 use rspack_core::{ast::javascript::Ast, CompilerOptions, GenerateContext, ResourceData};
 use rspack_error::Result;
-use swc::config::ModuleConfig;
-use swc_common::{chain, comments::Comments};
-use swc_ecma_parser::Syntax;
-use swc_ecma_transforms::modules::common_js::Config as CommonjsConfig;
-use swc_ecma_transforms::pass::Optional;
+use swc_core::base::config::ModuleConfig;
+use swc_core::common::{chain, comments::Comments};
+use swc_core::ecma::parser::Syntax;
+use swc_core::ecma::transforms::base::pass::Optional;
+use swc_core::ecma::transforms::module::common_js::Config as CommonjsConfig;
 use tree_shaking::tree_shaking_visitor;
 use ustr::ustr;
 /// return (ast, top_level_mark, unresolved_mark, globals)

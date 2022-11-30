@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use swc_ecma_transforms::react::Runtime;
+use swc_core::ecma::transforms::react::Runtime;
 
 pub type Define = HashMap<String, String>;
 
