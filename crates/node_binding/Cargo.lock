@@ -2005,6 +2005,7 @@ dependencies = [
  "rspack_loader_runner",
  "sass-embedded",
  "serde",
+ "str_indices",
  "tokio",
  "tracing",
  "tracing-subscriber",

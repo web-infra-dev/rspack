@@ -2324,6 +2324,7 @@ dependencies = [
  "rspack_test",
  "sass-embedded",
  "serde",
+ "str_indices",
  "tokio",
  "tracing",
  "tracing-subscriber",
