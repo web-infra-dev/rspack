@@ -528,7 +528,7 @@ fn sass_log_to_diagnostics(
     Severity::Error => "Sass Error",
     Severity::Warn => "Sass Warning",
   };
-  if let Some(span) = span && let Some(e) = make_traceable_error(&title, message, span) {
+  if let Some(span) = span && let Some(e) = make_traceable_error(title, message, span) {
     Error::TraceableError(e.with_kind(DiagnosticKind::Scss).with_severity(severity)).into()
   } else {
     let f = match severity {
