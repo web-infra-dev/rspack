@@ -1458,7 +1458,7 @@ fn mark_symbol(
 
           // FIXME: this is just a workaround for dependency replacement
           // dbg!(&ret, indirect_symbol.uri());
-          if ret.len() > 0 && !evaluated_module_identifiers.contains(&indirect_symbol.uri) {
+          if !ret.is_empty() && !evaluated_module_identifiers.contains(&indirect_symbol.uri) {
             q.extend(module_result.used_symbol_ref.clone());
             evaluated_module_identifiers.insert(indirect_symbol.uri());
           }

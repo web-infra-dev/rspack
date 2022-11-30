@@ -847,8 +847,7 @@ impl<'a> ModuleRefAnalyze<'a> {
         }
         let matcher = builder.build().ok()?;
         let relative_path = module_path.relative(package_path);
-        let side_effects = Some(matcher.is_match(relative_path));
-        side_effects
+        Some(matcher.is_match(relative_path))
       }
     }
   }
