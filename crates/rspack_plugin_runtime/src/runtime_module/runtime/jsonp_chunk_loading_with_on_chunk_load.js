@@ -1,5 +1,3 @@
-(function () {
-	__webpack_require__.O.j = function (chunkId) {
-		installedChunks[chunkId] === 0;
-	};
-})();
+__webpack_require__.O.j = function (chunkId) {
+	installedChunks[chunkId] === 0;
+};

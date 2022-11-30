@@ -111,3 +111,14 @@ pub const GET_CHUNK_UPDATE_CSS_FILENAME: &str = "__webpack_require__.hk";
  * object with all hmr module data for all modules
  */
 pub const HMR_MODULE_DATA: &str = "__webpack_require__.hmrD";
+
+/**
+ * the prefix for storing state of runtime modules when hmr is enabled
+ */
+pub const HMR_RUNTIME_STATE_PREFIX: &str = "__webpack_require__.hmrS";
+
+/**
+ * method to install a chunk that was loaded somehow
+ * Signature: ({ id, ids, modules, runtime }) => void
+ */
+pub const EXTERNAL_INSTALL_CHUNK: &str = "__webpack_require__.C";
