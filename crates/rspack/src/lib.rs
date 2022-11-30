@@ -30,7 +30,9 @@ pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -
         rspack_plugin_runtime::CommonJsChunkLoadingPlugin {},
       ));
     }
-    _ => {}
+    _ => {
+      plugins.push(Box::new(rspack_plugin_runtime::RuntimePlugin {}));
+    }
   };
   if options.dev_server.hot {
     plugins.push(Box::new(
