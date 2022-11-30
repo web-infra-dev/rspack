@@ -191,9 +191,9 @@ dependencies = [
 
 [[package]]
 name = "browserslist-rs"
-version = "0.11.0"
+version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c689fb4e42bd511c1927856b078d8a582690f5be196199d1c9005b9d4feae8c"
+checksum = "421478dde88feb4281328dea29dbf6d2b57bc19a8968214fc3694c8c574bc47f"
 dependencies = [
  "ahash",
  "anyhow",
@@ -1650,9 +1650,9 @@ checksum = "925383efa346730478fb4838dbe9137d2a47675ad789c546d150a6e1dd4ab31c"
 
 [[package]]
 name = "preset_env_base"
-version = "0.3.2"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "371fa3d5cd3a90724d8e8ad1e3201854dded11e79b5365dabd5e1e389274d001"
+checksum = "97cc85a18e7f8246f3ccdd764d1f51fa3c910293942f84483a1cf1647df47198"
 dependencies = [
  "ahash",
  "anyhow",
@@ -2256,9 +2256,7 @@ name = "rspack_symbol"
 version = "0.1.0"
 dependencies = [
  "bitflags",
- "swc_atoms",
- "swc_common",
- "swc_ecma_ast",
+ "swc_core",
  "ustr",
 ]
 
@@ -2660,9 +2658,9 @@ dependencies = [
 
 [[package]]
 name = "swc"
-version = "0.232.118"
+version = "0.232.120"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1581d3b77c9c4b29c2cc43bc6719c003858103222125e44342cf428ee9859130"
+checksum = "d39a1ab2b8662d22a06eac015f6c89da2a08979e46ced1eed4832efd27d87163"
 dependencies = [
  "ahash",
  "anyhow",
@@ -2791,9 +2789,9 @@ dependencies = [
 
 [[package]]
 name = "swc_core"
-version = "0.43.38"
+version = "0.43.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "393075ddc0fd56dbb681079b939fa126c9d4fea5f6354308883898b4f0beab5f"
+checksum = "3f4849f4922b4a6f1da20e20ae978c32336cea9d8be172eb947e8f7161cdf27e"
 dependencies = [
  "swc",
  "swc_atoms",
@@ -3102,9 +3100,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_preset_env"
-version = "0.174.64"
+version = "0.174.66"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a322edd2bd77bc5f28c304d94a1aef2a53eaefba873b8df33bb84be92d6bef5"
+checksum = "e11c10567f6be24310106417a5708a6f35c8c4c68ccfe48c8bbcb9f2b966e675"
 dependencies = [
  "ahash",
  "anyhow",
@@ -4144,8 +4142,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc7652e3f6c4706c8d9cd54832c4a4ccb9b5336e2c3bd154d5cccfbf1c1f5f7d"
 dependencies = [
  "cfg-if",
- "serde",
- "serde_json",
  "wasm-bindgen-macro",
 ]
 
