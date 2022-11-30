@@ -78,7 +78,7 @@ export class BuildCommand implements RspackCommand {
 					}
 				};
 				console.time("build");
-				const compiler = await cli.createCompiler(options);
+				const compiler = await cli.createCompiler(options, "production");
 				compiler.run((err, Stats) => {
 					callback(err, Stats);
 					console.timeEnd("build");
