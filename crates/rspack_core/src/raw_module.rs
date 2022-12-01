@@ -69,6 +69,7 @@ impl Module for RawModule {
   ) -> Result<TWithDiagnosticArray<BuildResult>> {
     Ok(
       BuildResult {
+        cacheable: true,
         dependencies: vec![],
       }
       .with_empty_diagnostic(),

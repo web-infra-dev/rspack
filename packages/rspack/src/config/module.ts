@@ -46,6 +46,7 @@ interface LoaderContextInternal {
 	resourcePath: string;
 	resourceQuery: string | null;
 	resourceFragment: string | null;
+	cacheable: boolean;
 }
 
 // interface LoaderResult {
@@ -54,6 +55,7 @@ interface LoaderContextInternal {
 // }
 
 interface LoaderResultInternal {
+	cacheable: boolean;
 	content: number[];
 	sourceMap: number[];
 	additionalData: number[];
@@ -76,6 +78,7 @@ export interface LoaderContext
 		sourceMap?: string | SourceMap,
 		additionalData?: AdditionalData
 	): void;
+	cacheable(cacheable: boolean): void;
 	sourceMap: boolean;
 	rootContext: string;
 	context: string;
@@ -113,6 +116,7 @@ export interface AdditionalData {
 }
 
 export interface LoaderResult {
+	cacheable: boolean;
 	content: string | Buffer;
 	sourceMap?: string | SourceMap;
 	additionalData?: AdditionalData;
@@ -129,6 +133,7 @@ function composeJsUse(
 	async function loader(data: Buffer): Promise<Buffer> {
 		const payload: LoaderContextInternal = JSON.parse(data.toString("utf-8"));
 
+		let cacheable: boolean = payload.cacheable;
 		let content: string | Buffer = Buffer.from(payload.source);
 		let sourceMap: string | SourceMap | undefined = payload.sourceMap;
 		let additionalData: AdditionalData | undefined;
@@ -165,6 +170,7 @@ function composeJsUse(
 					}
 
 					resolve({
+						cacheable,
 						content,
 						sourceMap,
 						additionalData
@@ -180,6 +186,9 @@ function composeJsUse(
 					resourceFragment: payload.resourceFragment || "",
 					getOptions() {
 						return use.options;
+					},
+					cacheable(value) {
+						cacheable = value;
 					},
 					async() {
 						if (isDone) {
@@ -223,7 +232,8 @@ function composeJsUse(
 							resolve({
 								content,
 								sourceMap,
-								additionalData
+								additionalData,
+								cacheable
 							});
 							return;
 						}
@@ -232,14 +242,16 @@ function composeJsUse(
 								resolve({
 									content: result,
 									sourceMap,
-									additionalData
+									additionalData,
+									cacheable
 								});
 							}, reject);
 						}
 						return resolve({
 							content: result,
 							sourceMap,
-							additionalData
+							additionalData,
+							cacheable
 						});
 					}
 				} catch (err) {
@@ -268,10 +280,12 @@ function composeJsUse(
 						: loaderResult.additionalData) || additionalData;
 				content = loaderResult.content || content;
 				sourceMap = loaderResult.sourceMap || sourceMap;
+				cacheable = loaderResult.cacheable || cacheable;
 			}
 		}
 
 		const loaderResultPayload: LoaderResultInternal = {
+			cacheable: cacheable,
 			content: [...toBuffer(content)],
 			sourceMap: !isNil(sourceMap)
 				? [

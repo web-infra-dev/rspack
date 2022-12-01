@@ -42,10 +42,13 @@ pub struct LoaderContext<'a, 'context, T, U> {
   pub source_map: Option<SourceMap>,
 
   pub additional_data: Option<String>,
+
+  pub cacheable: bool,
 }
 
 #[derive(Debug)]
 pub struct LoaderResult {
+  pub cacheable: bool,
   pub content: Content,
   pub source_map: Option<SourceMap>,
   pub additional_data: Option<String>,
@@ -54,6 +57,7 @@ pub struct LoaderResult {
 impl<T, U> From<LoaderContext<'_, '_, T, U>> for LoaderResult {
   fn from(loader_context: LoaderContext<'_, '_, T, U>) -> Self {
     Self {
+      cacheable: loader_context.cacheable,
       content: loader_context.source,
       source_map: loader_context.source_map,
       additional_data: loader_context.additional_data,
@@ -128,6 +132,7 @@ impl LoaderRunner {
     let content = self.process_resource().await?;
 
     let loader_context = LoaderContext {
+      cacheable: true,
       source: content,
       resource: &self.resource_data.resource,
       resource_path: &self.resource_data.resource_path,
@@ -157,6 +162,7 @@ impl LoaderRunner {
 
       if let Some(loader_result) = loader.run(&loader_context).await? {
         let (loader_result, ds) = loader_result.split_into_parts();
+        loader_context.cacheable = loader_result.cacheable;
         loader_context.source = loader_result.content;
         loader_context.source_map = loader_result.source_map;
         loader_context.additional_data = loader_result.additional_data;

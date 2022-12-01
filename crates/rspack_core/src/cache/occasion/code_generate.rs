@@ -29,7 +29,7 @@ impl CodeGenerateOccasion {
     let id = module.identifier().as_ref().to_string();
     if let Some(module) = module.as_normal_module() {
       // only cache normal module
-      // TODO cache all normal type
+      // TODO cache all module type
       if matches!(module.ast_or_source(), NormalModuleAstOrSource::Unbuild) {
         let storage = self.storage.read().await;
         if let Some(data) = storage.get(&id) {

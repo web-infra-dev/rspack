@@ -36,6 +36,7 @@ impl BuildModuleOccasion {
     let id = module.identifier().as_ref().to_string();
     if module.as_normal_module().is_some() {
       // normal module
+      // TODO cache all module type
       let storage = self.storage.read().await;
       if let Some((snapshot, data)) = storage.get(&id) {
         let valid = self
@@ -47,13 +48,12 @@ impl BuildModuleOccasion {
           return Ok(data);
         }
       };
-
       need_cache = true;
     }
 
     // run generator and save to cache
     let data = generator(module).await?;
-    if need_cache {
+    if need_cache && data.inner.cacheable {
       let snapshot = self
         .snapshot_manager
         // TODO replace id with source file path or just cache normal module

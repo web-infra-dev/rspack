@@ -286,6 +286,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
       resource_path: loader_context.resource_path.to_owned(),
       resource_fragment: loader_context.resource_fragment.map(|r| r.to_owned()),
       resource_query: loader_context.resource_query.map(|r| r.to_owned()),
+      cacheable: loader_context.cacheable,
     };
 
     let result = serde_json::to_vec(&loader_context).map_err(|err| {
@@ -313,6 +314,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
 
     Ok(loader_result.map(|loader_result| {
       rspack_core::LoaderResult {
+        cacheable: loader_result.cacheable,
         content: rspack_core::Content::from(loader_result.content),
         source_map,
         additional_data: loader_result
@@ -341,11 +343,13 @@ pub struct LoaderContext {
   pub resource_path: String,
   pub resource_query: Option<String>,
   pub resource_fragment: Option<String>,
+  pub cacheable: bool,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct LoaderResult {
+  pub cacheable: bool,
   pub content: Vec<u8>,
   pub source_map: Option<Vec<u8>>,
   pub additional_data: Option<Vec<u8>>,
