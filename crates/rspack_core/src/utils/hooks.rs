@@ -36,7 +36,6 @@ pub async fn resolve(
       _ => {
         if let Some(importer) = args.importer {
           let span = args.span.unwrap_or_default();
-
           let message = if let nodejs_resolver::Error::Overflow = error {
             format!(
               "Can't resolve {:?} in {importer} , maybe it had cycle alias",
