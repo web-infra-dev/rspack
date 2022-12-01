@@ -10,6 +10,7 @@ import { rspack, RspackOptions, createCompiler } from "@rspack/core";
 const defaultConfig = "rspack.config.js";
 const defaultEntry = "src/index.js";
 type Callback<T> = <T>(err: Error, res?: T) => void;
+type RspackEnv = "development" | "production";
 export class RspackCLI {
 	colors: RspackCLIColors;
 	program: yargs.Argv<{}>;
@@ -17,9 +18,9 @@ export class RspackCLI {
 		this.colors = this.createColors();
 		this.program = yargs();
 	}
-	async createCompiler(options: RspackCLIOptions) {
+	async createCompiler(options: RspackCLIOptions, rspackEnv: RspackEnv) {
 		let config = await this.loadConfig(options);
-		config = await this.buildConfig(config, options);
+		config = await this.buildConfig(config, options, rspackEnv);
 		const compiler = createCompiler(config);
 		return compiler;
 	}
@@ -62,7 +63,14 @@ export class RspackCLI {
 			command.apply(this);
 		}
 	}
-	async buildConfig(item: any, options: RspackCLIOptions) {
+	async buildConfig(
+		item: any,
+		options: RspackCLIOptions,
+		rspackEnv: RspackEnv
+	) {
+		const isEnvProduction = rspackEnv === "production";
+		const isEnvDevelopment = rspackEnv === "development";
+
 		if (options.analyze) {
 			const { BundleAnalyzerPlugin } = await import("webpack-bundle-analyzer");
 			(item.plugins ??= []).push({
@@ -76,22 +84,32 @@ export class RspackCLI {
 				}
 			});
 		}
+		// auto set default mode if user config don't set it
+		if (!item.mode) {
+			item.mode = rspackEnv ?? "none";
+		}
+		// user parameters always has highest priority than default mode and config mode
 		if (options.mode) {
 			item.mode = options.mode;
 		}
-		if (
-			!item.mode &&
-			process.env &&
-			process.env.NODE_ENV &&
-			(process.env.NODE_ENV === "development" ||
-				process.env.NODE_ENV === "production" ||
-				process.env.NODE_ENV === "none")
-		) {
-			item.mode = process.env.NODE_ENV;
+
+		// false is also a valid value for sourcemap, so don't override it
+		console.log(item);
+		if (typeof item.devtool === "undefined") {
+			item.devtool = isEnvProduction ? "source-map" : "cheap-module-source-map";
 		}
-		if (!item.mode) {
-			item.mode = "production";
-		}
+		console.log("after", item);
+		item.builtins = {
+			...item.builtins,
+			define: item.builtins.define ?? {
+				"process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV)
+			},
+			minify: item.builtins?.minify ?? isEnvProduction
+		};
+		item.output = {
+			...item.output,
+			publicPath: item.output?.path ?? "/"
+		};
 		if (typeof item.stats === "undefined") {
 			item.stats = { preset: "normal" };
 		} else if (typeof item.stats === "boolean") {
