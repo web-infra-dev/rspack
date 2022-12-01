@@ -1,7 +1,4 @@
 module.exports = {
-  output: {
-    path: './dist',
-  },
 	module: {
 		rules: [
 			{
@@ -12,4 +9,4 @@ module.exports = {
 		]
 	},
 	stats: "errors-warnings"
-}
+};

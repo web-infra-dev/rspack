@@ -26,6 +26,7 @@ use sass_embedded::{
   Exception, Logger, Sass, SourceSpan, Url,
 };
 use serde::Deserialize;
+use str_indices::utf16;
 use tokio::sync::Mutex;
 
 static IS_SPECIAL_MODULE_IMPORT: Lazy<Regex> = Lazy::new(|| Regex::new(r"^~[^/]+$").unwrap());
@@ -511,17 +512,8 @@ impl Loader<CompilerContext, CompilationContext> for SassLoader {
 fn sass_exception_to_error(e: Exception) -> Error {
   if let Some(span) = e.span()
     && let Some(message) = e.sass_message()
-    && let Some(url) = &span.url {
-    Error::TraceableError(TraceableError::from_path(url
-        .to_file_path()
-        .unwrap()
-        .to_string_lossy()
-        .to_string(),
-      span.start.offset,
-      span.end.offset,
-      "Sass Error".to_string(),
-      message.to_string(),
-    ).with_kind(DiagnosticKind::Scss))
+    && let Some(e) = make_traceable_error("Sass Error", message, span) {
+    Error::TraceableError(e.with_kind(DiagnosticKind::Scss))
   } else {
     Error::InternalError(e.message().to_string())
   }
@@ -535,26 +527,32 @@ fn sass_log_to_diagnostics(
   let title = match severity {
     Severity::Error => "Sass Error",
     Severity::Warn => "Sass Warning",
-  }
-  .to_string();
-  let message = message.to_string();
-  if let Some(span) = span
-    && let Some(url) = &span.url {
-    Error::TraceableError(TraceableError::from_path(url
-        .to_file_path()
-        .unwrap()
-        .to_string_lossy()
-        .to_string(),
-      span.start.offset,
-      span.end.offset,
-      title,
-      message,
-    ).with_kind(DiagnosticKind::Scss).with_severity(severity)).into()
+  };
+  if let Some(span) = span && let Some(e) = make_traceable_error(title, message, span) {
+    Error::TraceableError(e.with_kind(DiagnosticKind::Scss).with_severity(severity)).into()
   } else {
     let f = match severity {
       Severity::Error => Diagnostic::error,
       Severity::Warn => Diagnostic::warn,
     };
-    vec![f(title, message, 0, 0).with_kind(DiagnosticKind::Scss)]
+    vec![f(title.to_string(), message.to_string(), 0, 0).with_kind(DiagnosticKind::Scss)]
   }
+}
+
+fn make_traceable_error(title: &str, message: &str, span: &SourceSpan) -> Option<TraceableError> {
+  span
+    .url
+    .as_ref()
+    .map(|url| url.to_file_path().unwrap().to_string_lossy().to_string())
+    .and_then(|path| {
+      std::fs::read_to_string(&path)
+        .ok()
+        .map(|source| (path, source))
+    })
+    .map(|(path, source)| {
+      let start = utf16::to_byte_idx(&source, span.start.offset);
+      let end = utf16::to_byte_idx(&source, span.end.offset);
+      TraceableError::from_path(path, start, end, title.to_string(), message.to_string())
+        .with_source(source)
+    })
 }
