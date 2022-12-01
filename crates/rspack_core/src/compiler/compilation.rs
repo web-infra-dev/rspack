@@ -875,7 +875,7 @@ impl Compilation {
       used_symbol.extend(used_symbol_set);
     }
 
-    // All import module will be treadted as entry module, which means
+    // All lazy imported module will be treadted as entry module, which means
     // Its export symbol will be marked as used
     for (module_id, reason) in bail_out_module_identifiers.iter() {
       match reason {
