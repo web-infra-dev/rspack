@@ -64,6 +64,7 @@ export class RspackDevServer {
 	}
 
 	rewriteCompilerOptions() {
+		this.compiler.options.devServer = this.options;
 		if (!this.compiler.options.builtins.react) {
 			this.compiler.options.builtins.react = {};
 		}
