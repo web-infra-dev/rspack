@@ -20,7 +20,8 @@
     "concat-stream": "^2.0.0",
     "execa": "^5.0.0",
     "internal-ip": "6.2.0",
-    "source-map-support": "^0.5.19"
+    "source-map-support": "^0.5.19",
+    "ts-node": "10.9.1"
   },
   "dependencies": {
     "@discoveryjs/json-ext": "^0.5.7",
