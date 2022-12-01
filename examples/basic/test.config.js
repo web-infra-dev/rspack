@@ -1,4 +1,3 @@
-const path = require('path');
 /**
  * @type {import('webpack').Configuration}
  */
@@ -7,6 +6,7 @@ module.exports = {
     html: [{
       template: './index.html'
     }],
+    minify: false
   },
   context: __dirname,
   entry: {
@@ -19,8 +19,5 @@ module.exports = {
   },
   infrastructureLogging: {
     debug: false
-  },
-  output: {
-    path: path.resolve(__dirname, 'dist')
   }
 };
