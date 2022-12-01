@@ -874,6 +874,25 @@ impl Compilation {
       );
       used_symbol.extend(used_symbol_set);
     }
+
+    // All lazy imported module will be treadted as entry module, which means
+    // Its export symbol will be marked as used
+    for (module_id, reason) in bail_out_module_identifiers.iter() {
+      match reason {
+        BailoutReason::Helper | BailoutReason::CommonjsRequire | BailoutReason::CommonjsExports => {
+        }
+        BailoutReason::ExtendBailout => {}
+        BailoutReason::DynamicImport => {
+          let used_symbol_set = collect_reachable_symbol(
+            &analyze_results,
+            *module_id,
+            &bail_out_module_identifiers,
+            &mut errors,
+          );
+          used_symbol.extend(used_symbol_set);
+        }
+      }
+    }
     // dbg!(&used_symbol, &bail_out_module_identifiers);
     Ok(
       OptimizeDependencyResult {
