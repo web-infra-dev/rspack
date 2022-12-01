@@ -21,7 +21,6 @@ swc                 = { version = "0.233.6" }
 swc_atoms           = { version = "0.4.25" }
 swc_common          = { version = "0.29.19" }
 swc_css             = { version = "0.141.5" }
-swc_css_prefixer    = { version = "0.139.5" }
 swc_ecma_ast        = { version = "0.95.3" }
 swc_ecma_codegen    = { version = "0.128.4" }
 swc_ecma_transforms = { version = "0.199.4" }
