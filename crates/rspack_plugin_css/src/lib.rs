@@ -2,6 +2,7 @@
 
 pub mod plugin;
 pub mod pxtorem;
+mod utils;
 pub mod visitors;
 
 use once_cell::sync::Lazy;
@@ -41,8 +42,12 @@ impl SwcCssCompiler {
     Self {}
   }
 
-  pub fn parse_file(&self, path: &str, source: String) -> Result<TWithDiagnosticArray<Stylesheet>> {
-    let config: ParserConfig = Default::default();
+  pub fn parse_file(
+    &self,
+    path: &str,
+    source: String,
+    config: ParserConfig,
+  ) -> Result<TWithDiagnosticArray<Stylesheet>> {
     let cm = CM.clone();
     // let (handler, errors) = self::string_errors::new_handler(cm.clone(), treat_err_as_bug);
     // let result = swc_common::GLOBALS.set(&swc_common::Globals::new(), || op(cm, handler));
@@ -110,7 +115,7 @@ impl SwcCssCompiler {
     input_source_map: Option<rspack_sources::SourceMap>,
     gen_source_map: SwcCssSourceMapGenConfig,
   ) -> Result<rspack_sources::BoxSource> {
-    let parsed = self.parse_file(filename, input_source.clone())?;
+    let parsed = self.parse_file(filename, input_source.clone(), Default::default())?;
     // ignore errors since css in webpack is tolerant, and diagnostics already reported in parse.
     let (mut ast, _) = parsed.split_into_parts();
     minifier::minify(&mut ast, minifier::options::MinifyOptions::default());

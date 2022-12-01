@@ -406,6 +406,7 @@ impl RawOption<ModuleRule> for RawModuleRule {
         "ts" => Ok(ModuleType::Ts),
         "tsx" => Ok(ModuleType::Tsx),
         "css" => Ok(ModuleType::Css),
+        "css/module" => Ok(ModuleType::CssModule),
         "json" => Ok(ModuleType::Json),
         "asset" => Ok(ModuleType::Asset),
         "asset/source" => Ok(ModuleType::AssetSource),

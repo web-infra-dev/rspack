@@ -75,8 +75,9 @@ pub(super) fn normalize_builtin(
   let css_config = builtins.css.clone().unwrap_or_default();
   let postcss_config = builtins.postcss.clone().unwrap_or_default();
   plugins.push(Box::new(rspack_plugin_css::CssPlugin::new(CssConfig {
-    preset_env: css_config.preset_env,
+    preset_env: css_config.preset_env.unwrap_or_default(),
     postcss: postcss_config.into(),
+    modules: css_config.modules.unwrap_or_default(),
   })));
   if let Some(progress_config) = builtins.progress.clone() {
     plugins.push(Box::new(ProgressPlugin::new(ProgressPluginConfig {

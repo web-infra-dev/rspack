@@ -73,7 +73,7 @@ impl Compiler {
                     String::new()
                   };
                   Some((item.module_identifier.clone(), code))
-                } else if item.module_type.is_css() {
+                } else if item.module_type.is_css_like() {
                   // TODO: should use code_generation_results
                   let code = module.code_generation(compilation).unwrap();
                   let code = if let Some(code) = code.get(&Css) {
