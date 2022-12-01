@@ -47,7 +47,7 @@ use crate::{
   NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs,
   ResolveKind, RuntimeModule, SharedPluginDriver, Stats, VisitedModuleIdentity,
 };
-use rspack_symbol::Symbol;
+use rspack_symbol::{IndirectTopLevelSymbol, Symbol};
 
 #[derive(Debug)]
 pub struct EntryData {
@@ -76,6 +76,7 @@ pub struct Compilation {
   pub entry_module_identifiers: HashSet<ModuleIdentifier>,
   /// Collecting all used export symbol
   pub used_symbol: HashSet<Symbol>,
+  pub used_indirect_symbol: HashSet<IndirectTopLevelSymbol>,
   /// Collecting all module that need to skip in tree-shaking ast modification phase
   pub bailout_module_identifiers: HashMap<Ustr, BailoutReason>,
   #[cfg(debug_assertions)]
@@ -122,6 +123,7 @@ impl Compilation {
       code_generated_modules: Default::default(),
 
       _pin: PhantomPinned,
+      used_indirect_symbol: HashSet::default(),
     }
   }
   pub fn add_entry(&mut self, name: String, detail: EntryItem) {
@@ -751,6 +753,7 @@ impl Compilation {
   pub async fn optimize_dependency(
     &mut self,
   ) -> Result<TWithDiagnosticArray<OptimizeDependencyResult>> {
+    let resolver = &self.plugin_driver.read().await.resolver;
     let mut analyze_results = self
       .module_graph
       .module_identifier_to_module_graph_module
@@ -785,12 +788,14 @@ impl Compilation {
           let top_level_mark = context.top_level_mark;
           let unresolved_mark = context.unresolved_mark;
           let helper_mark = context.helpers.mark();
+
           let mut analyzer = ModuleRefAnalyze::new(
             top_level_mark,
             unresolved_mark,
             helper_mark,
             uri_key,
             &self.module_graph,
+            resolver,
           );
           program.visit_with(&mut analyzer);
           analyzer
@@ -803,20 +808,36 @@ impl Compilation {
         //     // &analyzer.export_all_list,
         //     &analyzer.export_map,
         //     &analyzer.import_map,
-        //     &analyzer.reference_map,
+        //     &analyzer.decl_reference_map,
+        //     &analyzer.assign_reference_map,
         //     &analyzer.reachable_import_and_export,
         //     &analyzer.used_symbol_ref
         //   );
         // }
+
         Some((uri_key, analyzer.into()))
       })
       .collect::<HashMap<Ustr, TreeShakingResult>>();
+
     let mut used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
     let mut bail_out_module_identifiers = HashMap::default();
+    let mut evaluated_module_identifiers = HashSet::new();
+    let side_effects_analyze = self.options.builtins.side_effects;
     for analyze_result in analyze_results.values() {
-      used_symbol_ref.extend(analyze_result.used_symbol_ref.iter().cloned());
+      // if `side_effects` is false, then force every analyze_results is have side_effects
+      let forced_side_effects = !side_effects_analyze
+        || self
+          .entry_module_identifiers
+          .contains(analyze_result.module_identifier.as_str());
+      // side_effects: true
+      if forced_side_effects || !analyze_result.side_effects_free {
+        evaluated_module_identifiers.insert(analyze_result.module_identifier);
+        used_symbol_ref.extend(analyze_result.used_symbol_ref.iter().cloned());
+      }
       bail_out_module_identifiers.extend(analyze_result.bail_out_module_identifiers.clone());
     }
+
+    // dbg!(&used_symbol_ref);
 
     // calculate relation of module that has `export * from 'xxxx'`
     let inherit_export_ref_graph = create_inherit_graph(&analyze_results);
@@ -854,11 +875,16 @@ impl Compilation {
     }
     let mut errors = vec![];
     let mut used_symbol = HashSet::new();
+    let mut used_indirect_symbol: HashSet<IndirectTopLevelSymbol> = HashSet::new();
+    let mut used_export_module_identifiers: HashSet<Ustr> = HashSet::new();
     // Marking used symbol and all reachable export symbol from the used symbol for each module
     let used_symbol_from_import = mark_used_symbol_with(
       &analyze_results,
       VecDeque::from_iter(used_symbol_ref.into_iter()),
       &bail_out_module_identifiers,
+      &mut evaluated_module_identifiers,
+      &mut used_indirect_symbol,
+      &mut used_export_module_identifiers,
       &mut errors,
     );
 
@@ -869,7 +895,10 @@ impl Compilation {
       let used_symbol_set = collect_reachable_symbol(
         &analyze_results,
         ustr(&entry),
+        &mut used_indirect_symbol,
         &bail_out_module_identifiers,
+        &mut evaluated_module_identifiers,
+        &mut used_export_module_identifiers,
         &mut errors,
       );
       used_symbol.extend(used_symbol_set);
@@ -886,19 +915,43 @@ impl Compilation {
           let used_symbol_set = collect_reachable_symbol(
             &analyze_results,
             *module_id,
+            &mut used_indirect_symbol,
             &bail_out_module_identifiers,
+            &mut evaluated_module_identifiers,
+            &mut used_export_module_identifiers,
             &mut errors,
           );
           used_symbol.extend(used_symbol_set);
         }
       }
     }
-    // dbg!(&used_symbol, &bail_out_module_identifiers);
+
+    if side_effects_analyze {
+      for result in analyze_results.values() {
+        if !bail_out_module_identifiers.contains_key(&result.module_identifier)
+          && !self
+            .entry_module_identifiers
+            .contains(result.module_identifier.as_str())
+          && result.side_effects_free
+          && !used_export_module_identifiers.contains(&result.module_identifier)
+        // && result.inherit_export_maps.is_empty()
+        {
+          self
+            .module_graph
+            .module_graph_module_by_identifier_mut(result.module_identifier.as_str())
+            .unwrap()
+            .used = false;
+        }
+      }
+
+      // dbg!(&used_symbol, &used_indirect_symbol);
+    }
     Ok(
       OptimizeDependencyResult {
         used_symbol,
         analyze_results,
         bail_out_module_identifiers,
+        used_indirect_symbol,
       }
       .with_diagnostic(errors_to_diagnostics(errors)),
     )
@@ -1211,7 +1264,10 @@ pub struct AssetInfoRelated {
 fn collect_reachable_symbol(
   analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
   entry_identifier: Ustr,
+  used_indirect_symbol: &mut HashSet<IndirectTopLevelSymbol>,
   bailout_module_identifiers: &HashMap<Ustr, BailoutReason>,
+  evaluated_module_identifiers: &mut HashSet<Ustr>,
+  used_export_module_identifiers: &mut HashSet<Ustr>,
   errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
   let mut used_symbol_set = HashSet::new();
@@ -1260,9 +1316,12 @@ fn collect_reachable_symbol(
     mark_symbol(
       item.clone(),
       &mut used_symbol_set,
+      used_indirect_symbol,
       analyze_map,
       &mut q,
       bailout_module_identifiers,
+      evaluated_module_identifiers,
+      used_export_module_identifiers,
       errors,
     );
   }
@@ -1271,9 +1330,12 @@ fn collect_reachable_symbol(
     mark_symbol(
       sym_ref,
       &mut used_symbol_set,
+      used_indirect_symbol,
       analyze_map,
       &mut q,
       bailout_module_identifiers,
+      evaluated_module_identifiers,
+      used_export_module_identifiers,
       errors,
     );
   }
@@ -1284,6 +1346,9 @@ fn mark_used_symbol_with(
   analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
   mut init_queue: VecDeque<SymbolRef>,
   bailout_module_identifiers: &HashMap<Ustr, BailoutReason>,
+  evaluated_module_identifiers: &mut HashSet<Ustr>,
+  used_indirect_symbol_set: &mut HashSet<IndirectTopLevelSymbol>,
+  used_export_module_identifiers: &mut HashSet<Ustr>,
   errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
   let mut used_symbol_set = HashSet::new();
@@ -1298,30 +1363,45 @@ fn mark_used_symbol_with(
     mark_symbol(
       sym_ref,
       &mut used_symbol_set,
+      used_indirect_symbol_set,
       analyze_map,
       &mut init_queue,
       bailout_module_identifiers,
+      evaluated_module_identifiers,
+      used_export_module_identifiers,
       errors,
     );
   }
   used_symbol_set
 }
 
+#[allow(clippy::too_many_arguments)]
 fn mark_symbol(
   symbol_ref: SymbolRef,
   used_symbol_set: &mut HashSet<Symbol>,
+  used_indirect_symbol_set: &mut HashSet<IndirectTopLevelSymbol>,
   analyze_map: &HashMap<Ustr, TreeShakingResult>,
   q: &mut VecDeque<SymbolRef>,
   bailout_module_identifiers: &HashMap<Ustr, BailoutReason>,
+  evaluated_module_identifiers: &mut HashSet<Ustr>,
+  used_export_module_identifiers: &mut HashSet<Ustr>,
   errors: &mut Vec<Error>,
 ) {
   // We don't need mark the symbol usage if it is from a bailout module because
   // bailout module will skipping tree-shaking anyway
   // if debug_care_module_id(symbol_ref.module_identifier()) {
-  //   dbg!(&symbol_ref);
   // }
   let is_bailout_module_identifier =
     bailout_module_identifiers.contains_key(&symbol_ref.module_identifier());
+  match &symbol_ref {
+    SymbolRef::Direct(symbol) => {
+      used_export_module_identifiers.insert(symbol.uri());
+    }
+    SymbolRef::Indirect(indirect) => {
+      used_export_module_identifiers.insert(indirect.uri());
+    }
+    SymbolRef::Star(_) => {}
+  };
   match symbol_ref {
     SymbolRef::Direct(symbol) => match used_symbol_set.entry(symbol) {
       Occupied(_) => {}
@@ -1345,10 +1425,15 @@ fn mark_symbol(
         if let Some(symbol_ref) = module_result.import_map.get(vac.get().id()) {
           q.push_back(symbol_ref.clone());
         }
+        if !evaluated_module_identifiers.contains(&vac.get().uri()) {
+          evaluated_module_identifiers.insert(vac.get().uri());
+          q.extend(module_result.used_symbol_ref.clone());
+        }
         vac.insert();
       }
     },
     SymbolRef::Indirect(indirect_symbol) => {
+      used_indirect_symbol_set.insert(indirect_symbol.clone());
       let module_result = match analyze_map.get(&indirect_symbol.uri) {
         Some(module_result) => module_result,
         None => {
@@ -1372,6 +1457,13 @@ fn mark_symbol(
             }
             has_bailout_module_identifiers = has_bailout_module_identifiers
               || bailout_module_identifiers.contains_key(module_identifier);
+          }
+
+          // FIXME: this is just a workaround for dependency replacement
+          // dbg!(&ret, indirect_symbol.uri());
+          if !ret.is_empty() && !evaluated_module_identifiers.contains(&indirect_symbol.uri) {
+            q.extend(module_result.used_symbol_ref.clone());
+            evaluated_module_identifiers.insert(indirect_symbol.uri());
           }
           match ret.len() {
             0 => {

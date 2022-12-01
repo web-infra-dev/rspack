@@ -1,15 +1,17 @@
-use std::{collections::VecDeque, hash::Hash};
+use std::{collections::VecDeque, hash::Hash, path::PathBuf, sync::Arc};
 
 use bitflags::bitflags;
+use globset::{Glob, GlobSetBuilder};
 use hashbrown::{hash_map::Entry, HashMap, HashSet};
 use indexmap::IndexMap;
+use sugar_path::SugarPath;
 use swc_atoms::JsWord;
 use swc_common::{util::take::Take, Mark, GLOBALS};
 use swc_ecma_ast::*;
 use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
 use ustr::{ustr, Ustr};
 
-use crate::{Dependency, ModuleGraph, ModuleSyntax, ResolveKind};
+use crate::{Dependency, ModuleGraph, ModuleSyntax, ResolveKind, Resolver};
 use rspack_symbol::{BetterId, IdOrMemExpr, IndirectTopLevelSymbol, Symbol, SymbolExt, SymbolFlag};
 
 use super::{
@@ -39,6 +41,8 @@ bitflags! {
   struct AnalyzeState: u8 {
     const EXPORT_DECL = 1 << 0;
     const EXPORT_DEFAULT = 1 << 1;
+    const ASSIGNMENT_LHS = 1 << 2;
+    const ASSIGNMENT_RHS = 1 << 3;
   }
 }
 #[derive(Debug)]
@@ -59,7 +63,11 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   // Use `IndexMap` to keep the insertion order
   pub inherit_export_maps: IndexMap<Ustr, HashMap<JsWord, SymbolRef>>,
   current_body_owner_symbol_ext: Option<SymbolExt>,
-  pub(crate) reference_map: HashMap<SymbolExt, HashSet<IdOrMemExpr>>,
+  pub(crate) decl_reference_map: HashMap<SymbolExt, HashSet<IdOrMemExpr>>,
+  /// ```js
+  /// The method
+  /// ```
+  pub(crate) assign_reference_map: HashMap<SymbolExt, HashSet<IdOrMemExpr>>,
   pub(crate) reachable_import_and_export: HashMap<JsWord, HashSet<SymbolRef>>,
   state: AnalyzeState,
   pub(crate) used_id_set: HashSet<IdOrMemExpr>,
@@ -68,6 +76,8 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) export_default_name: Option<JsWord>,
   module_syntax: ModuleSyntax,
   pub(crate) bail_out_module_identifiers: HashMap<Ustr, BailoutReason>,
+  pub(crate) resolver: &'a Arc<Resolver>,
+  pub(crate) side_effects_free: bool,
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
@@ -77,8 +87,8 @@ impl<'a> ModuleRefAnalyze<'a> {
     helper_mark: Mark,
     uri: Ustr,
     dep_to_module_identifier: &'a ModuleGraph,
+    resolver: &'a Arc<Resolver>,
   ) -> Self {
-    // dbg!(&uri);
     Self {
       top_level_mark,
       unresolved_mark,
@@ -89,7 +99,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       import_map: HashMap::default(),
       inherit_export_maps: IndexMap::default(),
       current_body_owner_symbol_ext: None,
-      reference_map: HashMap::new(),
+      decl_reference_map: HashMap::new(),
       reachable_import_and_export: HashMap::default(),
       state: AnalyzeState::empty(),
       used_id_set: HashSet::default(),
@@ -97,6 +107,9 @@ impl<'a> ModuleRefAnalyze<'a> {
       export_default_name: None,
       module_syntax: ModuleSyntax::empty(),
       bail_out_module_identifiers: HashMap::new(),
+      resolver,
+      side_effects_free: false,
+      assign_reference_map: HashMap::new(),
     }
   }
 
@@ -104,18 +117,32 @@ impl<'a> ModuleRefAnalyze<'a> {
     if matches!(&to, IdOrMemExpr::Id(to_id) if to_id == from.id()) {
       return;
     }
-    match self.reference_map.entry(from) {
-      Entry::Occupied(mut occ) => {
-        occ.get_mut().insert(to);
+    if !self.state.contains(AnalyzeState::ASSIGNMENT_RHS) {
+      match self.decl_reference_map.entry(from) {
+        Entry::Occupied(mut occ) => {
+          occ.get_mut().insert(to);
+        }
+        Entry::Vacant(vac) => {
+          vac.insert(HashSet::from_iter([to]));
+        }
       }
-      Entry::Vacant(vac) => {
-        vac.insert(HashSet::from_iter([to]));
+    } else {
+      match self.assign_reference_map.entry(from) {
+        Entry::Occupied(mut occ) => {
+          occ.get_mut().insert(to);
+        }
+        Entry::Vacant(vac) => {
+          vac.insert(HashSet::from_iter([to]));
+        }
       }
     }
   }
 
   /// Collecting all reachable import binding from given start binding
-  pub fn get_all_import_or_export(&self, start: BetterId) -> HashSet<SymbolRef> {
+  /// when a export has been used from other module, we need to get all
+  /// reachable import and export(defined in the same module)
+  /// in rest of scenario we only count binding imported from other module.
+  pub fn get_all_import_or_export(&self, start: BetterId, only_import: bool) -> HashSet<SymbolRef> {
     let mut seen: HashSet<IdOrMemExpr> = HashSet::default();
     let mut q: VecDeque<IdOrMemExpr> = VecDeque::from_iter([IdOrMemExpr::Id(start)]);
     while let Some(cur) = q.pop_front() {
@@ -123,21 +150,21 @@ impl<'a> ModuleRefAnalyze<'a> {
         continue;
       }
       let id = cur.get_id();
-      if let Some(ref_list) = self.reference_map.get(&id.clone().into()) {
+      if let Some(ref_list) = self.decl_reference_map.get(&id.clone().into()) {
         q.extend(ref_list.clone());
       }
       seen.insert(cur);
     }
+    // dbg!(&start, &seen, &self.reference_map);
     return seen
       .iter()
       .filter_map(|id_or_mem_expr| match id_or_mem_expr {
         IdOrMemExpr::Id(id) => {
-          let ret =
-            self
-              .import_map
-              .get(id)
-              .cloned()
-              .or_else(|| match self.export_map.get(&id.atom) {
+          let ret = self.import_map.get(id).cloned().or_else(|| {
+            if only_import {
+              None
+            } else {
+              match self.export_map.get(&id.atom) {
                 Some(sym_ref @ SymbolRef::Direct(sym)) => {
                   if sym.id() == id {
                     Some(sym_ref.clone())
@@ -146,7 +173,9 @@ impl<'a> ModuleRefAnalyze<'a> {
                   }
                 }
                 _ => None,
-              });
+              }
+            }
+          });
           ret
         }
         IdOrMemExpr::MemberExpr { object, property } => {
@@ -186,47 +215,85 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         .bail_out_module_identifiers
         .insert(self.module_identifier, BailoutReason::ExtendBailout);
     }
-    // dbg!(&self.bail_out_module_identifiers);
     // calc reachable imports for each export symbol defined in current module
     for (key, symbol) in self.export_map.iter() {
       match symbol {
         // At this time uri of symbol will always equal to `self.module_identifier`
         SymbolRef::Direct(symbol) => {
-          let reachable_import = self.get_all_import_or_export(symbol.id().clone());
+          let reachable_import_and_export =
+            self.get_all_import_or_export(symbol.id().clone(), false);
           self
             .reachable_import_and_export
-            .insert(key.clone(), reachable_import);
+            .insert(key.clone(), reachable_import_and_export);
         }
         // ignore any indrect symbol, because it will not generate binding, the reachable exports will
         // be calculated in the module where it is defined
         SymbolRef::Indirect(_) | SymbolRef::Star(_) => {}
       }
     }
-
     // Any var declaration has reference a symbol from other module, it is marked as used
     // Because the symbol import from other module possibly has side effect
-    let side_effect_id_list = self
-      .reference_map
+    let side_effect_symbol_list = self
+      .decl_reference_map
       .iter()
-      .filter(|(symbol, ref_list)| {
+      .flat_map(|(symbol, ref_list)| {
+        // it class decl, fn decl is lazy they don't immediately generate side effects unless they are called,
+        // Or constructed. The init of var decl will evaluate except rhs is function expr or arrow expr.
         if !symbol.flag.contains(SymbolFlag::VAR_DECL) {
-          false
+          vec![]
         } else {
-          ref_list.iter().any(|ref_id| {
-            self.import_map.contains_key(match ref_id {
-              IdOrMemExpr::Id(id) => id,
+          if symbol
+            .flag
+            .intersection(SymbolFlag::FUNCTION_EXPR | SymbolFlag::ARROW_EXPR)
+            .bits()
+            .count_ones()
+            >= 1
+          {
+            return vec![];
+          }
+          ref_list
+            .iter()
+            .filter_map(|ref_id| {
+              // Only used id imported from other module would generate a side effects.
+              self.import_map.get(match ref_id {
+                IdOrMemExpr::Id(ref id) => id,
+                // TODO: inspect namespace access
+                IdOrMemExpr::MemberExpr { object, .. } => object,
+              })
+            })
+            .cloned()
+            .collect::<Vec<_>>()
+        }
+      })
+      .collect::<Vec<_>>();
+    self.used_symbol_ref.extend(side_effect_symbol_list);
+    let side_effect_symbol_list = self
+      .assign_reference_map
+      .iter()
+      .flat_map(|(_, ref_list)| {
+        // it class decl, fn decl is lazy they don't immediately generate side effects unless they are called,
+        // Or constructed. The init of var decl will evaluate except rhs is function expr or arrow expr.
+        ref_list
+          .iter()
+          .filter_map(|ref_id| {
+            // Only used id imported from other module would generate a side effects.
+            self.import_map.get(match ref_id {
+              IdOrMemExpr::Id(ref id) => id,
+              // TODO: inspect namespace access
               IdOrMemExpr::MemberExpr { object, .. } => object,
             })
           })
-        }
+          .cloned()
+          .collect::<Vec<_>>()
       })
-      .map(|(k, _)| IdOrMemExpr::Id(k.id().clone()));
-    self.used_id_set.extend(side_effect_id_list);
+      .collect::<Vec<_>>();
+    self.used_symbol_ref.extend(side_effect_symbol_list);
+    // dbg!(&self.used_id_set);
     // all reachable export from used symbol in current module
     for used_id in &self.used_id_set {
       match used_id {
         IdOrMemExpr::Id(id) => {
-          let reachable_import = self.get_all_import_or_export(id.clone());
+          let reachable_import = self.get_all_import_or_export(id.clone(), true);
           self.used_symbol_ref.extend(reachable_import);
         }
         IdOrMemExpr::MemberExpr { object, property } => match self.import_map.get(object) {
@@ -240,12 +307,15 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               )));
           }
           _ => {
-            let reachable_import = self.get_all_import_or_export(object.clone());
+            let reachable_import = self.get_all_import_or_export(object.clone(), true);
             self.used_symbol_ref.extend(reachable_import);
           }
         },
       }
     }
+
+    let side_effects = self.get_side_effects().unwrap_or(true);
+    self.side_effects_free = !side_effects;
   }
 
   fn visit_ident(&mut self, node: &swc_ecma_ast::Ident) {
@@ -376,7 +446,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         }
       },
       ModuleItem::Stmt(stmt) => {
-        // dbg!(&stmt);
         stmt.visit_children_with(self);
       }
     }
@@ -412,12 +481,55 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     self.current_body_owner_symbol_ext = before_owner_extend_symbol;
   }
 
+  fn visit_assign_expr(&mut self, node: &AssignExpr) {
+    // TODO: assign should have body ext too
+    let before_owner_extend_symbol = self.current_body_owner_symbol_ext.clone();
+    let target = if before_owner_extend_symbol.is_none() {
+      let target = first_ident_of_assign_lhs(node);
+      target.and_then(|target| {
+        if target.1.outer() == self.top_level_mark {
+          Some(target)
+        } else {
+          None
+        }
+      })
+    } else {
+      None
+    };
+    let valid_assign_target = target.is_some();
+    if let Some(target) = target {
+      self.current_body_owner_symbol_ext = Some(SymbolExt {
+        id: target.into(),
+        flag: SymbolFlag::empty(),
+      });
+    }
+
+    self.state.insert(AnalyzeState::ASSIGNMENT_LHS);
+    node.left.visit_with(self);
+    self.state.remove(AnalyzeState::ASSIGNMENT_LHS);
+    if valid_assign_target {
+      self.state.insert(AnalyzeState::ASSIGNMENT_RHS);
+    }
+    node.right.visit_with(self);
+    self.state.remove(AnalyzeState::ASSIGNMENT_RHS);
+    self.current_body_owner_symbol_ext = before_owner_extend_symbol;
+  }
+
   fn visit_member_expr(&mut self, node: &MemberExpr) {
     match (&*node.obj, &node.prop) {
       // a.b
       (Expr::Ident(obj), MemberProp::Ident(prop)) => {
+        if self.state.contains(AnalyzeState::ASSIGNMENT_LHS)
+          && (&obj.sym == "module" && &prop.sym == "exports")
+          || &obj.sym == "exports"
+        {
+          self
+            .bail_out_module_identifiers
+            .insert(self.module_identifier, BailoutReason::CommonjsExports);
+        }
         let id: BetterId = obj.to_id().into();
         let mark = id.ctxt.outer();
+
         if mark == self.top_level_mark {
           let member_expr = IdOrMemExpr::MemberExpr {
             object: id.clone(),
@@ -431,13 +543,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               self.used_id_set.insert(member_expr);
             }
             _ => {}
-          }
-        } else {
-          // For commonjs and umd
-          if (&obj.sym == "module" && &prop.sym == "exports") || &obj.sym == "exports" {
-            self
-              .bail_out_module_identifiers
-              .insert(self.module_identifier, BailoutReason::CommonjsExports);
           }
         }
       }
@@ -684,6 +789,11 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       }
       if let Some(ref init) = ele.init && lhs.ctxt.outer() == self.top_level_mark {
         let mut symbol_ext = SymbolExt::new(lhs, SymbolFlag::VAR_DECL);
+        match init {
+            box Expr::Fn(_) => symbol_ext.flag.insert(SymbolFlag::FUNCTION_EXPR),
+            box Expr::Arrow(_) => symbol_ext.flag.insert(SymbolFlag::ARROW_EXPR),
+            _ => {}
+        };
         if is_export {
           symbol_ext.flag.insert(SymbolFlag::EXPORT);
         }
@@ -703,6 +813,41 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       }
       Decl::Class(_) | Decl::Fn(_) | Decl::Var(_) => {
         node.visit_children_with(self);
+      }
+    }
+  }
+}
+
+impl<'a> ModuleRefAnalyze<'a> {
+  fn get_side_effects(&mut self) -> Option<bool> {
+    let resource_path = self
+      .module_graph
+      .module_by_identifier(&self.module_identifier)
+      .and_then(|module| module.as_normal_module())
+      .map(|normal_module| &normal_module.resource_resolved_data().resource_path)?;
+    // self.resolver.0.resolve(path, request);
+    let module_path = PathBuf::from(resource_path);
+    let (mut package_json_path, side_effects) = self
+      .resolver
+      .0
+      .load_side_effects(module_path.as_path())
+      .ok()??;
+    let side_effects = side_effects?;
+
+    package_json_path.pop();
+    let package_path = package_json_path;
+
+    match side_effects {
+      nodejs_resolver::SideEffects::Bool(s) => Some(s),
+      nodejs_resolver::SideEffects::Array(arr) => {
+        // TODO: Cache
+        let mut builder = GlobSetBuilder::new();
+        for glob in arr.iter() {
+          builder.add(Glob::new(glob).ok()?);
+        }
+        let matcher = builder.build().ok()?;
+        let relative_path = module_path.relative(package_path);
+        Some(matcher.is_match(relative_path))
       }
     }
   }
@@ -873,6 +1018,7 @@ pub struct TreeShakingResult {
   state: AnalyzeState,
   pub(crate) used_symbol_ref: HashSet<SymbolRef>,
   pub(crate) bail_out_module_identifiers: HashMap<Ustr, BailoutReason>,
+  pub(crate) side_effects_free: bool,
 }
 
 impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
@@ -890,6 +1036,28 @@ impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
       state: std::mem::take(&mut analyze.state),
       used_symbol_ref: std::mem::take(&mut analyze.used_symbol_ref),
       bail_out_module_identifiers: std::mem::take(&mut analyze.bail_out_module_identifiers),
+      side_effects_free: analyze.side_effects_free,
+    }
+  }
+}
+
+fn first_ident_of_assign_lhs(node: &AssignExpr) -> Option<Id> {
+  let mut visitor = FirstIdentVisitor::default();
+  node.left.visit_with(&mut visitor);
+  visitor.id
+}
+
+#[derive(Default)]
+struct FirstIdentVisitor {
+  id: Option<Id>,
+}
+
+impl Visit for FirstIdentVisitor {
+  noop_visit_type!();
+
+  fn visit_ident(&mut self, node: &Ident) {
+    if self.id.is_none() {
+      self.id = Some(node.to_id());
     }
   }
 }
