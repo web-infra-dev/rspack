@@ -26,7 +26,7 @@ fn criterion_benchmark(c: &mut Criterion) {
   let sh = Shell::new().unwrap();
   println!("{:?}", sh.current_dir());
   sh.change_dir(PathBuf::from(env!("CARGO_WORKSPACE_DIR")));
-  cmd!(sh, "make copy/three").run().unwrap();
+  cmd!(sh, "cargo xtask copy_three").run().unwrap();
   let rt = tokio::runtime::Builder::new_multi_thread()
     .enable_all()
     .build()

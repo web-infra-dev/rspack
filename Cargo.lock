@@ -4631,6 +4631,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "88301b56c26dd9bf5c43d858538f82d6f3f7764767defbc5d34e59459901c41a"
 
 [[package]]
+name = "xtask"
+version = "0.1.0"
+dependencies = [
+ "xshell",
+]
+
+[[package]]
 name = "xxhash-rust"
 version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
