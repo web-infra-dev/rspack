@@ -101,11 +101,24 @@ export class RspackCLI {
 		console.log("after", item);
 		item.builtins = {
 			...item.builtins,
-			define: item.builtins.define ?? {
-				"process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV)
-			},
 			minify: item.builtins?.minify ?? isEnvProduction
 		};
+
+		// Tells webpack to set process.env.NODE_ENV to a given string value.
+		// optimization.nodeEnv uses DefinePlugin unless set to false.
+		// optimization.nodeEnv defaults to mode if set, else falls back to 'production'.
+		// See doc: https://webpack.js.org/configuration/optimization/#optimizationnodeenv
+		// See source: https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/WebpackOptionsApply.js#L563
+
+		// When mode is set to 'none', optimization.nodeEnv defaults to false.
+		if (item.mode !== "none") {
+			item.builtins.define = {
+				// User defined `process.env.NODE_ENV` always has highest priority than default define
+				"process.env.NODE_ENV": JSON.stringify(item.mode),
+				...item.builtins.define
+			};
+		}
+
 		item.output = {
 			...item.output,
 			publicPath: item.output?.path ?? "/"
