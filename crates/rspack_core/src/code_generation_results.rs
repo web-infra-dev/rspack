@@ -15,7 +15,7 @@ impl From<AstOrSource> for GenerationResult {
   }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct CodeGenerationResult {
   inner: HashMap<SourceType, GenerationResult>,
   pub runtime_requirements: HashSet<String>,

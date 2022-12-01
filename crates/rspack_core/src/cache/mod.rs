@@ -5,7 +5,7 @@ use tokio::sync::Mutex;
 mod occasion;
 mod snapshot;
 mod storage;
-use occasion::ResolveModuleOccasion;
+use occasion::{BuildModuleOccasion, CodeGenerateOccasion, ResolveModuleOccasion};
 use snapshot::SnapshotManager;
 use storage::new_storage;
 
@@ -14,6 +14,8 @@ pub struct Cache {
   is_idle: Mutex<bool>,
   snapshot_manager: Arc<SnapshotManager>,
   pub resolve_module_occasion: ResolveModuleOccasion,
+  pub build_module_occasion: BuildModuleOccasion,
+  pub code_generate_occasion: CodeGenerateOccasion,
 }
 
 impl Cache {
@@ -24,8 +26,13 @@ impl Cache {
       snapshot_manager: snapshot_manager.clone(),
       resolve_module_occasion: ResolveModuleOccasion::new(
         new_storage(&options.cache),
+        snapshot_manager.clone(),
+      ),
+      build_module_occasion: BuildModuleOccasion::new(
+        new_storage(&options.cache),
         snapshot_manager,
       ),
+      code_generate_occasion: CodeGenerateOccasion::new(new_storage(&options.cache)),
     }
   }
 

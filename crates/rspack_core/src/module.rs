@@ -56,7 +56,7 @@ pub struct BuildContext<'a> {
   pub compiler_options: &'a CompilerOptions,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct BuildResult {
   pub dependencies: Vec<ModuleDependency>,
 }

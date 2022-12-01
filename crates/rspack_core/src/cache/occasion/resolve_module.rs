@@ -10,7 +10,6 @@ use tokio::sync::RwLock;
 
 type Storage = dyn storage::Storage<(Snapshot, ResolveResult)>;
 
-// TODO consider multi thread
 #[derive(Debug)]
 pub struct ResolveModuleOccasion {
   storage: RwLock<Box<Storage>>,
