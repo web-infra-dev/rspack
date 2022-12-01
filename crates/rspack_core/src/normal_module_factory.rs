@@ -14,7 +14,7 @@ use rspack_error::{Diagnostic, Error, Result, TWithDiagnosticArray};
 use tracing::instrument;
 
 use crate::{
-  module_rule_matcher, parse_to_url, resolve, BoxModule, CompilerOptions, FactorizeArgs, ModuleExt,
+  module_rule_matcher, resolve, BoxModule, CompilerOptions, FactorizeArgs, ModuleExt,
   ModuleGraphModule, ModuleIdentifier, ModuleRule, ModuleType, Msg, NormalModule, RawModule,
   ResolveArgs, ResolveResult, ResourceData, SharedPluginDriver, DEPENDENCY_ID,
 };
@@ -127,12 +127,14 @@ impl NormalModuleFactory {
     }
   }
 
-  pub fn calculate_module_type_by_uri(&self, uri: &str) -> Option<ModuleType> {
+  pub fn calculate_module_type_by_resource(
+    &self,
+    resource_data: &ResourceData,
+  ) -> Option<ModuleType> {
     // todo currently unreachable module types are temporarily unified with their importers
-    let url = parse_to_url(uri);
-    debug_assert_eq!(url.scheme(), "specifier");
-    resolve_module_type_by_uri(url.path())
+    resolve_module_type_by_uri(&resource_data.resource_path)
   }
+
   #[instrument(name = "normal_module_factory:factory_normal_module", skip_all)]
   pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, BoxModule, u32)>> {
     let importer = self.dependency.parent_module_identifier.as_deref();
@@ -208,7 +210,7 @@ impl NormalModuleFactory {
     tracing::trace!("resolved uri {:?}", uri);
 
     if self.context.module_type.is_none() {
-      self.context.module_type = self.calculate_module_type_by_uri(&uri);
+      self.context.module_type = self.calculate_module_type_by_resource(&resource_data);
     }
 
     let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
