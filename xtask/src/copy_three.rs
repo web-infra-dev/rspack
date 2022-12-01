@@ -1,4 +1,4 @@
-use std::{fmt::format, fs::File, io::Write, path::PathBuf};
+use std::{fs::File, io::Write, path::PathBuf};
 
 use xshell::{cmd, Shell};
 
