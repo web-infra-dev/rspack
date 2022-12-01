@@ -9,6 +9,7 @@ on:
   pull_request:
     paths: # Only run when changes are made to rust code or root Cargo
       - "crates/**"
+      - "examples/**"
       - "Cargo.toml"
       - "Cargo.lock"
       - "rust-toolchain.toml"
