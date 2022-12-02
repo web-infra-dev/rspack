@@ -117,7 +117,7 @@ impl LoaderRunner {
       }
     }
 
-    let result = tokio::fs::read(&self.resource_data.resource_path).await?;
+    let result = std::fs::read(&self.resource_data.resource_path)?;
     Ok(Content::from(result))
   }
 
