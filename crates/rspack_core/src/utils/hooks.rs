@@ -22,42 +22,52 @@ pub async fn resolve(
     args.importer,
     args.specifier
   );
-  plugin_driver
-    .resolver
-    .resolve(base_dir, args.specifier)
-    .map_err(|error| match error {
-      nodejs_resolver::Error::Io(error) => Error::Io { source: error },
-      nodejs_resolver::Error::UnexpectedJson((json_path, error)) => Error::Anyhow {
-        source: anyhow::Error::msg(format!("{:?} in {:?}", error, json_path)),
-      },
-      nodejs_resolver::Error::UnexpectedValue(error) => Error::Anyhow {
-        source: anyhow::Error::msg(error),
-      },
-      _ => {
-        if let Some(importer) = args.importer {
-          let span = args.span.unwrap_or_default();
-          let message = if let nodejs_resolver::Error::Overflow = error {
-            format!(
-              "Can't resolve {:?} in {importer} , maybe it had cycle alias",
-              args.specifier,
-            )
+
+  let importer = args.importer.map(|x| x.to_owned());
+  let specifier = args.specifier.to_owned();
+  let resolver = plugin_driver.resolver.clone();
+  let context = plugin_driver.options.context.clone();
+  let base_dir = base_dir.to_owned();
+
+  tokio::task::spawn_blocking(move || {
+    resolver
+      .resolve(&base_dir, &specifier)
+      .map_err(|error| match error {
+        nodejs_resolver::Error::Io(error) => Error::Io { source: error },
+        nodejs_resolver::Error::UnexpectedJson((json_path, error)) => Error::Anyhow {
+          source: anyhow::Error::msg(format!("{:?} in {:?}", error, json_path)),
+        },
+        nodejs_resolver::Error::UnexpectedValue(error) => Error::Anyhow {
+          source: anyhow::Error::msg(error),
+        },
+        _ => {
+          if let Some(importer) = importer {
+            let span = args.span.unwrap_or_default();
+            let message = if let nodejs_resolver::Error::Overflow = error {
+              format!(
+                "Can't resolve {:?} in {importer} , maybe it had cycle alias",
+                specifier,
+              )
+            } else {
+              format!("Failed to resolve {} in {importer}", specifier)
+            };
+            Error::TraceableError(TraceableError::from_path(
+              importer.to_string(),
+              span.start as usize,
+              span.end as usize,
+              "Resolve error".to_string(),
+              message,
+            ))
           } else {
-            format!("Failed to resolve {} in {importer}", args.specifier)
-          };
-          Error::TraceableError(TraceableError::from_path(
-            importer.to_string(),
-            span.start as usize,
-            span.end as usize,
-            "Resolve error".to_string(),
-            message,
-          ))
-        } else {
-          Error::InternalError(format!(
-            "Failed to resolve {} in {}",
-            args.specifier,
-            plugin_driver.options.context.display()
-          ))
+            Error::InternalError(format!(
+              "Failed to resolve {} in {}",
+              specifier,
+              context.display()
+            ))
+          }
         }
-      }
-    })
+      })
+  })
+  .await
+  .map_err(anyhow::Error::from)?
 }
