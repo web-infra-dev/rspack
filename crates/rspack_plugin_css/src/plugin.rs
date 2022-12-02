@@ -9,6 +9,7 @@ use swc_css::visit::VisitMutWith;
 use swc_css_prefixer::{options::Options, prefixer};
 
 use rspack_core::{
+  get_css_chunk_filename_template,
   rspack_sources::{
     BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
     SourceMapSource, SourceMapSourceOptions,
@@ -22,7 +23,6 @@ use tracing::instrument;
 
 use crate::{
   pxtorem::{option::PxToRemOption, px_to_rem::px_to_rem},
-  utils::get_chunk_filename_template,
   visitors::DependencyScanner,
   SWC_COMPILER,
 };
@@ -493,7 +493,7 @@ impl Plugin for CssPlugin {
     if source.source().is_empty() {
       Ok(Default::default())
     } else {
-      let filename_template = get_chunk_filename_template(
+      let filename_template = get_css_chunk_filename_template(
         chunk,
         &args.compilation.options.output,
         &args.compilation.chunk_group_by_ukey,

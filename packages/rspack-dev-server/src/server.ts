@@ -84,10 +84,6 @@ export class RspackDevServer {
 			);
 			entries.push(hotUpdateEntryPath);
 
-			const cssHotEntryPath = require.resolve("@rspack/dev-client/css");
-
-			entries.push(cssHotEntryPath);
-
 			if (this.compiler.options.builtins.react?.refresh) {
 				const reactRefreshEntryPath = require.resolve(
 					"@rspack/dev-client/react-refresh"

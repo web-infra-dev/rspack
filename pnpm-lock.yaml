@@ -365,13 +365,11 @@ importers:
     specifiers:
       '@types/node': 16.11.7
       events: 3.3.0
-      mini-css-extract-plugin: 2.6.1
       react-refresh: 0.14.0
       typescript: ^4.7.4
       ws: 8.8.1
     dependencies:
       events: 3.3.0
-      mini-css-extract-plugin: 2.6.1
       ws: 8.8.1
     devDependencies:
       '@types/node': 16.11.7
@@ -9614,15 +9612,6 @@ packages:
       prop-types: 15.8.1
       react: 17.0.2
       tiny-warning: 1.0.3
-    dev: false
-
-  /mini-css-extract-plugin/2.6.1:
-    resolution: {integrity: sha512-wd+SD57/K6DiV7jIR34P+s3uckTRuQvx0tKPcvjFlrEylk6P4mQ2KSWk1hblj1Kxaqok7LogKOieygXqBczNlg==}
-    engines: {node: '>= 12.13.0'}
-    peerDependencies:
-      webpack: ^5.0.0
-    dependencies:
-      schema-utils: 4.0.0
     dev: false
 
   /mini-css-extract-plugin/2.6.1_webpack@5.74.0:

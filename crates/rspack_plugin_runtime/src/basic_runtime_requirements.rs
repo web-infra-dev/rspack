@@ -71,6 +71,7 @@ impl Plugin for BasicRuntimeRequirementPlugin {
             "js".to_string(),
             SourceType::JavaScript,
             runtime_globals::GET_CHUNK_SCRIPT_FILENAME.to_string(),
+            false,
           )
           .boxed(),
         ),
@@ -80,6 +81,7 @@ impl Plugin for BasicRuntimeRequirementPlugin {
             "css".to_string(),
             SourceType::Css,
             runtime_globals::GET_CHUNK_CSS_FILENAME.to_string(),
+            runtime_requirements.contains(runtime_globals::HMR_DOWNLOAD_UPDATE_HANDLERS),
           )
           .boxed(),
         ),

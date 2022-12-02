@@ -1,25 +1,34 @@
-use itertools::Itertools;
+use hashbrown::HashMap;
 use rspack_core::{
+  get_css_chunk_filename_template, get_js_chunk_filename_template,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, FilenameRenderOptions, RuntimeModule, SourceType,
 };
-use std::collections::HashMap;
 
-#[derive(Debug, Default)]
+use super::utils::stringify_map;
+
+#[derive(Debug)]
 pub struct GetChunkFilenameRuntimeModule {
   chunk: Option<ChunkUkey>,
   content_type: String,
   source_type: SourceType,
   global: String,
+  all_chunks: bool,
 }
 
 impl GetChunkFilenameRuntimeModule {
-  pub fn new(content_type: String, source_type: SourceType, global: String) -> Self {
+  pub fn new(
+    content_type: String,
+    source_type: SourceType,
+    global: String,
+    all_chunks: bool,
+  ) -> Self {
     Self {
       chunk: None,
       content_type,
       source_type,
       global,
+      all_chunks,
     }
   }
 }
@@ -33,31 +42,40 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     let url = match self.chunk {
       Some(chunk) => match compilation.chunk_by_ukey.get(&chunk) {
         Some(chunk) => {
-          let all_async_chunks = chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey);
-          let async_chunks = all_async_chunks
-            .iter()
-            .filter(|chunk_ukey| {
-              !compilation
-                .chunk_graph
-                .get_chunk_modules_by_source_type(
-                  chunk_ukey,
-                  self.source_type,
-                  &compilation.module_graph,
-                )
-                .is_empty()
-            })
-            .collect::<Vec<_>>();
-          let mut async_chunks_map = HashMap::new();
-          for async_chunk in async_chunks.iter() {
-            if let Some(chunk) = compilation.chunk_by_ukey.get(async_chunk) {
-              let hash = Some(chunk.get_render_hash());
-              async_chunks_map.insert(
-                chunk.id.clone(),
-                compilation
-                  .options
-                  .output
-                  .chunk_filename
-                  .render(FilenameRenderOptions {
+          let chunks = match self.all_chunks {
+            true => chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey),
+            false => chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey),
+          };
+
+          let mut chunks_map = HashMap::new();
+          for chunk_ukey in chunks.iter() {
+            if !compilation
+              .chunk_graph
+              .get_chunk_modules_by_source_type(
+                chunk_ukey,
+                self.source_type,
+                &compilation.module_graph,
+              )
+              .is_empty()
+            {
+              if let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) {
+                let filename_template = match self.source_type {
+                  SourceType::JavaScript => get_js_chunk_filename_template(
+                    chunk,
+                    &compilation.options.output,
+                    &compilation.chunk_group_by_ukey,
+                  ),
+                  SourceType::Css => get_css_chunk_filename_template(
+                    chunk,
+                    &compilation.options.output,
+                    &compilation.chunk_group_by_ukey,
+                  ),
+                  _ => unreachable!(),
+                };
+                let hash = Some(chunk.get_render_hash());
+                chunks_map.insert(
+                  chunk.id.clone(),
+                  filename_template.render(FilenameRenderOptions {
                     filename: chunk.name.clone(),
                     extension: Some(format!(".{}", self.content_type)),
                     id: Some(chunk.id.clone()),
@@ -66,10 +84,11 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                     hash,
                     ..Default::default()
                   }),
-              );
+                );
+              }
             }
           }
-          Some(format!("{}[chunkId]", stringify_map(&async_chunks_map)))
+          Some(format!("{}[chunkId]", stringify_map(&chunks_map)))
         }
         None => None,
       },
@@ -78,7 +97,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
 
     RawSource::from(format!(
       "(function () {{
-        // This function allow to reference async chunks
+        // This function allow to reference chunks
         {} = function (chunkId) {{
           // return url for filenames based on template
           return {};
@@ -93,19 +112,4 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
   fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk);
   }
-}
-
-pub fn stringify_map(map: &HashMap<String, String>) -> String {
-  format!(
-    r#"{{{}}}"#,
-    map.keys().sorted().fold(String::new(), |prev, cur| {
-      prev
-        + format!(
-          r#""{}": "{}","#,
-          cur,
-          map.get(cur).expect("get key from map")
-        )
-        .as_str()
-    })
-  )
 }
