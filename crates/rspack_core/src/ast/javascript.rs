@@ -1,7 +1,7 @@
 use anyhow::Error;
 use std::{hash::Hash, sync::Arc};
 use swc_common::{errors::Handler, sync::Lrc, util::take::Take, Globals, Mark, SourceMap, GLOBALS};
-use swc_ecma_ast::{Module, Program as SwcProgram};
+use swc_ecma_ast::{Module, ModuleItem, Program as SwcProgram};
 use swc_ecma_transforms::helpers::Helpers;
 use swc_ecma_visit::{Fold, FoldWith, Visit, VisitAll, VisitAllWith, VisitWith};
 
@@ -33,6 +33,7 @@ impl Program {
 
 /// Swc transform context
 pub struct Context {
+  pub is_esm: bool,
   pub globals: Globals,
   pub helpers: Helpers,
   pub top_level_mark: Mark,
@@ -42,24 +43,19 @@ pub struct Context {
 }
 
 impl Context {
-  pub fn new() -> Self {
+  pub fn new(is_esm: bool) -> Self {
     let globals: Globals = Default::default();
     // generate preset mark & helpers
     let (top_level_mark, unresolved_mark, helpers) =
       GLOBALS.set(&globals, || (Mark::new(), Mark::new(), Helpers::new(true)));
 
     Self {
+      is_esm,
       globals,
       helpers,
       top_level_mark,
       unresolved_mark,
     }
-  }
-}
-
-impl Default for Context {
-  fn default() -> Self {
-    Context::new()
   }
 }
 
@@ -90,9 +86,16 @@ impl Hash for Ast {
 
 impl Ast {
   pub fn new(program: SwcProgram) -> Self {
+    let is_esm = match program {
+      SwcProgram::Module(ref module) => module
+        .body
+        .iter()
+        .any(|item| matches!(item, ModuleItem::ModuleDecl(_))),
+      SwcProgram::Script(_) => false,
+    };
     Self {
       program: Program(program),
-      context: Arc::new(Context::new()),
+      context: Arc::new(Context::new(is_esm)),
     }
   }
 

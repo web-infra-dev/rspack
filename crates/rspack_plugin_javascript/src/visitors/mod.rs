@@ -144,7 +144,7 @@ pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut
         Some(ModuleConfig::CommonJs(CommonjsConfig {
           ignore_dynamic: true,
           strict_mode: false,
-          no_interop: false,
+          no_interop: !context.is_esm,
           ..Default::default()
         })),
         comments,
