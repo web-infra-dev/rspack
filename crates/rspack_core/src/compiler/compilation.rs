@@ -503,43 +503,6 @@ impl Compilation {
     let module_identifier = module.identifier().into_owned();
 
     tokio::spawn(async move {
-      let resolved_loaders = {
-        if let Some(normal_module) = module.as_normal_module() {
-          let resource_data = normal_module.resource_resolved_data();
-
-          match compiler_options
-            .module
-            .rules
-            .iter()
-            .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
-              match module_rule_matcher(module_rule, resource_data) {
-                Ok(val) => val.then_some(Ok(module_rule)),
-                Err(err) => Some(Err(err)),
-              }
-            })
-            .collect::<Result<Vec<_>>>()
-          {
-            Ok(result) => result,
-            Err(err) => {
-              // If build error message is failed to send, then we should manually decrease the active task count
-              // Otherwise, it will be gracefully handled by the error message handler.
-              if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err)) {
-                active_task_count.fetch_sub(1, Ordering::SeqCst);
-                tracing::trace!("fail to send msg {:?}", err)
-              }
-              return;
-            }
-          }
-        } else {
-          vec![]
-        }
-      };
-
-      let resolved_loaders = resolved_loaders
-        .into_iter()
-        .flat_map(|module_rule| module_rule.r#use.iter().map(Box::as_ref).rev())
-        .collect::<Vec<_>>();
-
       if let Err(e) = plugin_driver
         .read()
         .await
@@ -554,14 +517,76 @@ impl Compilation {
         }
       }
 
-      match module
-        .build(BuildContext {
-          resolved_loaders,
-          loader_runner_runner: &loader_runner_runner,
-          compiler_options: &compiler_options,
-        })
-        .await
-      {
+      let tx2 = tx.clone();
+      let compiler_options2 = compiler_options.clone();
+      let loader_runner_runner = loader_runner_runner.clone();
+      let active_task_count2 = active_task_count.clone();
+      let (btx, brx) = tokio::sync::oneshot::channel();
+
+      rayon::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+          .enable_all()
+          .build()
+          .unwrap();
+        rt.block_on(async move {
+          // let local = tokio::task::LocalSet::new();
+          // local.spawn_local(async move {
+          //   dbg!("running");
+          let resolved_loaders = {
+            if let Some(normal_module) = module.as_normal_module() {
+              let resource_data = normal_module.resource_resolved_data();
+
+              match compiler_options
+                .module
+                .rules
+                .iter()
+                .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
+                  match module_rule_matcher(module_rule, resource_data) {
+                    Ok(val) => val.then_some(Ok(module_rule)),
+                    Err(err) => Some(Err(err)),
+                  }
+                })
+                .collect::<Result<Vec<_>>>()
+              {
+                Ok(result) => result,
+                Err(err) => {
+                  // If build error message is failed to send, then we should manually decrease the active task count
+                  // Otherwise, it will be gracefully handled by the error message handler.
+                  if let Err(err) =
+                    tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err))
+                  {
+                    active_task_count.fetch_sub(1, Ordering::SeqCst);
+                    tracing::trace!("fail to send msg {:?}", err)
+                  }
+                  return;
+                }
+              }
+            } else {
+              vec![]
+            }
+          };
+
+          let resolved_loaders = resolved_loaders
+            .into_iter()
+            .flat_map(|module_rule| module_rule.r#use.iter().map(Box::as_ref).rev())
+            .collect::<Vec<_>>();
+
+          let res = module
+            .build(BuildContext {
+              resolved_loaders,
+              loader_runner_runner: &loader_runner_runner,
+              compiler_options: &compiler_options,
+            })
+            .await;
+          btx.send((res, module)).unwrap();
+          // });
+        });
+      });
+
+      let (build_result, module) = brx.await.unwrap();
+      let module_identifier = module.identifier();
+
+      match build_result {
         Ok(build_result) => {
           if let Err(e) = plugin_driver
             .read()
@@ -569,15 +594,13 @@ impl Compilation {
             .succeed_module(module.as_ref())
             .await
           {
-            if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(
+            if let Err(err) = tx2.send(Msg::ModuleBuiltErrorEncountered(
               module.identifier().into(),
               e,
             )) {
               tracing::trace!("fail to send msg {:?}", err);
             }
           }
-
-          let module_identifier = module.identifier();
 
           let (build_result, diagnostics) = build_result.split_into_parts();
 
@@ -592,15 +615,15 @@ impl Compilation {
 
           Compilation::process_module_dependencies(
             deps.clone(),
-            active_task_count.clone(),
-            tx.clone(),
+            active_task_count2.clone(),
+            tx2.clone(),
             plugin_driver.clone(),
-            compiler_options.clone(),
+            compiler_options2,
           );
 
           // If build error message is failed to send, then we should manually decrease the active task count
           // Otherwise, it will be gracefully handled by the error message handler.
-          if let Err(err) = tx.send(Msg::ModuleResolved(
+          if let Err(err) = tx2.send(Msg::ModuleResolved(
             (
               original_module_identifier.clone(),
               dependency_id,
@@ -609,7 +632,7 @@ impl Compilation {
             )
               .with_diagnostic(diagnostics),
           )) {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
+            active_task_count2.fetch_sub(1, Ordering::SeqCst);
             tracing::trace!("fail to send msg {:?}", err);
 
             // Manually add return here to prevent the following code from being executed in the future
@@ -620,8 +643,11 @@ impl Compilation {
         Err(err) => {
           // If build error message is failed to send, then we should manually decrease the active task count
           // Otherwise, it will be gracefully handled by the error message handler.
-          if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err)) {
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
+          if let Err(err) = tx2.send(Msg::ModuleBuiltErrorEncountered(
+            module_identifier.into_owned(),
+            err,
+          )) {
+            active_task_count2.fetch_sub(1, Ordering::SeqCst);
             tracing::trace!("fail to send msg {:?}", err);
           }
 
