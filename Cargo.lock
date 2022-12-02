@@ -2270,7 +2270,7 @@ dependencies = [
  "rspack_tracing",
  "serde",
  "serde_json",
- "sugar_path 0.0.8",
+ "sugar_path",
  "swc",
  "swc_atoms",
  "swc_common",
@@ -2302,7 +2302,7 @@ dependencies = [
  "rspack_core",
  "rspack_test",
  "rspack_tracing",
- "sugar_path 0.0.8",
+ "sugar_path",
  "termcolor",
  "thiserror",
  "tokio",
@@ -2388,7 +2388,7 @@ dependencies = [
  "rspack_test",
  "serde",
  "serde_json",
- "sugar_path 0.0.9",
+ "sugar_path",
  "swc_atoms",
  "swc_common",
  "swc_css",
@@ -2442,7 +2442,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "sugar_path 0.0.8",
+ "sugar_path",
  "swc_atoms",
  "swc_common",
  "swc_html",
@@ -2473,7 +2473,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sourcemap",
- "sugar_path 0.0.8",
+ "sugar_path",
  "swc",
  "swc_atoms",
  "swc_common",
@@ -2981,15 +2981,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42ee6433ecef213b2e72f587ef64a2f5943e7cd16fbd82dbe8bc07486c534c86"
 dependencies = [
  "autocfg",
-]
-
-[[package]]
-name = "sugar_path"
-version = "0.0.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75d1267e748484e6afc4e8ad838c62d11a2ee1dce160d4bebb2b9b388e1ca6ed"
-dependencies = [
- "once_cell",
 ]
 
 [[package]]
