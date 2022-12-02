@@ -171,7 +171,7 @@ export class RspackDevServer {
 		this.staticWatchers.push(watcher);
 	}
 
-	invalidate(callback = () => { }): void {
+	invalidate(callback = () => {}): void {
 		if (this.middleware) {
 			this.middleware.invalidate(callback);
 		}
