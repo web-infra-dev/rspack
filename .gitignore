@@ -179,6 +179,9 @@ profile.json
 # esbuild trace
 esbuild.trace
 
+# esbuild cpuprofile
+esbuild.cpuprofile
+
 
 # this node_modules is used for tree-shaking snapshot
 !crates/rspack/tests/tree-shaking/node_modules

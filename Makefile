@@ -26,6 +26,10 @@ esbuild_trace:
 	./node_modules/esbuild/bin/esbuild --bundle benchcases/three/src/entry.js --outfile=/dev/null --trace=esbuild.trace
 	go tool trace esbuild.trace
 
+esbuild_cpuprofile:
+	./node_modules/esbuild/bin/esbuild --bundle benchcases/three/src/entry.js --outfile=/dev/null --cpuprofile=esbuild.cpuprofile
+	go tool pprof -http=:1234 esbuild.cpuprofile
+
 rspack_trace:
 	TRACE=TRACE cargo run -F tracing --release --bin bench
 
