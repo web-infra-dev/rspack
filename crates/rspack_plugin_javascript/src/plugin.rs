@@ -8,11 +8,11 @@ use rspack_core::rspack_sources::{
   SourceMapSource, SourceMapSourceOptions,
 };
 use rspack_core::{
-  runtime_globals, AstOrSource, ChunkKind, ChunkUkey, Compilation, FilenameRenderOptions,
-  GenerateContext, GenerationResult, Module, ModuleAst, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, PathData, Plugin, PluginContext, PluginProcessAssetsOutput,
-  PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderManifestEntry, SourceType,
-  TargetPlatform,
+  get_js_chunk_filename_template, runtime_globals, AstOrSource, ChunkKind, ChunkUkey, Compilation,
+  FilenameRenderOptions, GenerateContext, GenerationResult, Module, ModuleAst, ModuleType,
+  ParseContext, ParseResult, ParserAndGenerator, PathData, Plugin, PluginContext,
+  PluginProcessAssetsOutput, PluginRenderManifestHookOutput, ProcessAssetsArgs,
+  RenderManifestEntry, SourceType, TargetPlatform,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc::{config::JsMinifyOptions, BoolOrDataConfig};
@@ -21,8 +21,7 @@ use swc_common::GLOBALS;
 use tracing::instrument;
 
 use crate::utils::{
-  get_chunk_filename_template, get_swc_compiler, syntax_by_module_type, wrap_eval_source_map,
-  wrap_module_function,
+  get_swc_compiler, syntax_by_module_type, wrap_eval_source_map, wrap_module_function,
 };
 use crate::visitors::{run_after_pass, run_before_pass, DependencyScanner};
 
@@ -235,12 +234,10 @@ impl JsPlugin {
                 module_source,
                 RawSource::from(
                   r#"
-        if (module.hot) {
-          var cssReload = __webpack_require__("/css-hmr")(module.id, {"locals":false});
-          module.hot.dispose(cssReload);
-          module.hot.accept(undefined, cssReload);
-        }
-                "#,
+            if (module.hot) {
+              module.hot.accept();
+            }
+                    "#,
                 )
                 .boxed(),
               ])
@@ -471,7 +468,7 @@ impl Plugin for JsPlugin {
     // let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
     // let chunkhash = None;
     // let contenthash = Some(chunk.hash.clone());
-    let filename_template = get_chunk_filename_template(
+    let filename_template = get_js_chunk_filename_template(
       chunk,
       &compilation.options.output,
       &compilation.chunk_group_by_ukey,

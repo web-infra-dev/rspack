@@ -1,4 +1,5 @@
-use hashbrown::HashSet;
+use hashbrown::{HashMap, HashSet};
+use itertools::Itertools;
 use rspack_core::{ChunkUkey, Compilation, SourceType};
 
 // pub fn condition_map_to_string(map: &HashMap<String, bool>, _value: String) -> String {
@@ -80,4 +81,19 @@ pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
       &compilation.module_graph,
     )
     .is_empty()
+}
+
+pub fn stringify_map(map: &HashMap<String, String>) -> String {
+  format!(
+    r#"{{{}}}"#,
+    map.keys().sorted().fold(String::new(), |prev, cur| {
+      prev
+        + format!(
+          r#""{}": "{}","#,
+          cur,
+          map.get(cur).expect("get key from map")
+        )
+        .as_str()
+    })
+  )
 }

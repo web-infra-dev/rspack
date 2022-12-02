@@ -28,7 +28,6 @@ use swc_css::{
 };
 
 pub use plugin::CssPlugin;
-mod utils;
 
 static SWC_COMPILER: Lazy<Arc<SwcCssCompiler>> = Lazy::new(|| Arc::new(SwcCssCompiler::new()));
 

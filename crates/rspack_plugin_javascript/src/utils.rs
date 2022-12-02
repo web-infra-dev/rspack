@@ -5,10 +5,7 @@ use pathdiff::diff_paths;
 use rspack_core::rspack_sources::{
   BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt,
 };
-use rspack_core::{
-  runtime_globals, Chunk, ChunkGroupByUkey, ChunkKind, Compilation, ErrorSpan, Filename,
-  ModuleType, OutputOptions,
-};
+use rspack_core::{runtime_globals, Compilation, ErrorSpan, ModuleType};
 use rspack_error::{DiagnosticKind, Error};
 use serde_json::json;
 use std::path::Path;
@@ -232,23 +229,5 @@ pub fn wrap_eval_source_map(
     Ok(result)
   } else {
     Ok(module_source)
-  }
-}
-
-#[allow(clippy::if_same_then_else)]
-pub(crate) fn get_chunk_filename_template<'filename>(
-  chunk: &Chunk,
-  output_options: &'filename OutputOptions,
-  chunk_group_by_ukey: &ChunkGroupByUkey,
-) -> &'filename Filename {
-  // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/javascript/JavascriptModulesPlugin.js#L480
-  if chunk.can_be_initial(chunk_group_by_ukey) {
-    &output_options.filename
-  } else if matches!(chunk.kind, ChunkKind::HotUpdate) {
-    // TODO: Should return output_options.hotUpdateChunkFilename
-    // See https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/javascript/JavascriptModulesPlugin.js#L484
-    &output_options.chunk_filename
-  } else {
-    &output_options.chunk_filename
   }
 }
