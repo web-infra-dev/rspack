@@ -1,5 +1,5 @@
 use dashmap::DashSet;
-use futures::{future::join_all, stream::FuturesUnordered, StreamExt};
+use futures::{stream::FuturesUnordered, StreamExt};
 use hashbrown::{
   hash_map::Entry,
   hash_set::Entry::{Occupied, Vacant},
@@ -648,22 +648,17 @@ impl Compilation {
 
   #[instrument(name = "compilation:code_generation")]
   async fn code_generation(&mut self) -> Result<()> {
-    let mut tasks: Vec<_> = vec![];
-    for (module_identifier, module) in &self.module_graph.module_identifier_to_module {
-      tasks.push(async {
+    let results = self
+      .module_graph
+      .module_identifier_to_module
+      .par_iter()
+      .map(|(module_identifier, module)| {
         self
           .cache
           .code_generate_occasion
-          .use_cache(module, |_module| {
-            Box::pin(async { module.code_generation(self) })
-          })
-          .await
+          .use_cache(module, |module| module.code_generation(self))
           .map(|result| (module_identifier.clone(), result))
       })
-    }
-    let results = join_all(tasks)
-      .await
-      .into_iter()
       .collect::<Result<Vec<(ModuleIdentifier, CodeGenerationResult)>>>()?;
 
     results.into_iter().for_each(|(module_identifier, result)| {

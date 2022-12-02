@@ -12,14 +12,14 @@ type Storage = dyn storage::Storage<(Snapshot, TWithDiagnosticArray<BuildResult>
 
 #[derive(Debug)]
 pub struct BuildModuleOccasion {
-  storage: RwLock<Box<Storage>>,
+  storage: Option<RwLock<Box<Storage>>>,
   snapshot_manager: Arc<SnapshotManager>,
 }
 
 impl BuildModuleOccasion {
-  pub fn new(storage: Box<Storage>, snapshot_manager: Arc<SnapshotManager>) -> Self {
+  pub fn new(storage: Option<Box<Storage>>, snapshot_manager: Arc<SnapshotManager>) -> Self {
     Self {
-      storage: RwLock::new(storage),
+      storage: storage.map(RwLock::new),
       snapshot_manager,
     }
   }
@@ -32,12 +32,18 @@ impl BuildModuleOccasion {
   where
     F: Fn(&'a mut BoxModule) -> BoxFuture<'a, Result<TWithDiagnosticArray<BuildResult>>>,
   {
+    let storage = match &self.storage {
+      Some(s) => s,
+      // no cache return directly
+      None => return generator(module).await,
+    };
+
     let mut need_cache = false;
-    let id = module.identifier().as_ref().to_string();
+    let id: String = module.identifier().into();
     if module.as_normal_module().is_some() {
       // normal module
       // TODO cache all module type
-      let storage = self.storage.read().await;
+      let storage = storage.read().await;
       if let Some((snapshot, data)) = storage.get(&id) {
         let valid = self
           .snapshot_manager
@@ -59,11 +65,7 @@ impl BuildModuleOccasion {
         // TODO replace id with source file path or just cache normal module
         .create_snapshot(vec![id.clone()], |option| &option.module)
         .await?;
-      self
-        .storage
-        .write()
-        .await
-        .set(id.clone(), (snapshot, data.clone()));
+      storage.write().await.set(id, (snapshot, data.clone()));
     }
     Ok(data)
   }

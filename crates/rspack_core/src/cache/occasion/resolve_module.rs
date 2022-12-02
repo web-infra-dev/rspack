@@ -12,14 +12,14 @@ type Storage = dyn storage::Storage<(Snapshot, ResolveResult)>;
 
 #[derive(Debug)]
 pub struct ResolveModuleOccasion {
-  storage: RwLock<Box<Storage>>,
+  storage: Option<RwLock<Box<Storage>>>,
   snapshot_manager: Arc<SnapshotManager>,
 }
 
 impl ResolveModuleOccasion {
-  pub fn new(storage: Box<Storage>, snapshot_manager: Arc<SnapshotManager>) -> Self {
+  pub fn new(storage: Option<Box<Storage>>, snapshot_manager: Arc<SnapshotManager>) -> Self {
     Self {
-      storage: RwLock::new(storage),
+      storage: storage.map(RwLock::new),
       snapshot_manager,
     }
   }
@@ -28,10 +28,16 @@ impl ResolveModuleOccasion {
   where
     F: Fn(ResolveArgs<'a>) -> BoxFuture<'a, Result<ResolveResult>>,
   {
+    let storage = match &self.storage {
+      Some(s) => s,
+      // no cache return directly
+      None => return generator(args).await,
+    };
+
     let id = format!("{}|{}", args.importer.unwrap_or(""), args.specifier);
     {
       // read
-      let storage = self.storage.read().await;
+      let storage = storage.read().await;
       if let Some((snapshot, data)) = storage.get(&id) {
         let valid = self
           .snapshot_manager
@@ -57,8 +63,7 @@ impl ResolveModuleOccasion {
       .snapshot_manager
       .create_snapshot(file_paths, |option| &option.resolve)
       .await?;
-    self
-      .storage
+    storage
       .write()
       .await
       .set(id.clone(), (snapshot, data.clone()));

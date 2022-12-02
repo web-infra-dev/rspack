@@ -1,37 +1,43 @@
 use crate::{cache::storage, BoxModule, CodeGenerationResult, NormalModuleAstOrSource};
-use futures::future::BoxFuture;
 use rspack_error::Result;
-use tokio::sync::RwLock;
+use std::sync::RwLock;
 
 type Storage = dyn storage::Storage<CodeGenerationResult>;
 
 #[derive(Debug)]
 pub struct CodeGenerateOccasion {
-  storage: RwLock<Box<Storage>>,
+  storage: Option<RwLock<Box<Storage>>>,
 }
 
 impl CodeGenerateOccasion {
-  pub fn new(storage: Box<Storage>) -> Self {
+  pub fn new(storage: Option<Box<Storage>>) -> Self {
     Self {
-      storage: RwLock::new(storage),
+      storage: storage.map(RwLock::new),
     }
   }
 
-  pub async fn use_cache<'a, F>(
+  #[allow(clippy::unwrap_in_result)]
+  pub fn use_cache<'a, F>(
     &self,
     module: &'a BoxModule,
     generator: F,
   ) -> Result<CodeGenerationResult>
   where
-    F: Fn(&'a BoxModule) -> BoxFuture<'a, Result<CodeGenerationResult>>,
+    F: Fn(&'a BoxModule) -> Result<CodeGenerationResult>,
   {
+    let storage = match &self.storage {
+      Some(s) => s,
+      // no cache return directly
+      None => return generator(module),
+    };
+
     let mut need_cache = false;
-    let id = module.identifier().as_ref().to_string();
+    let id: String = module.identifier().into();
     if let Some(module) = module.as_normal_module() {
       // only cache normal module
       // TODO cache all module type
       if matches!(module.ast_or_source(), NormalModuleAstOrSource::Unbuild) {
-        let storage = self.storage.read().await;
+        let storage = storage.read().unwrap();
         if let Some(data) = storage.get(&id) {
           return Ok(data);
         }
@@ -42,9 +48,9 @@ impl CodeGenerateOccasion {
     }
 
     // run generator and save to cache
-    let data = generator(module).await?;
+    let data = generator(module)?;
     if need_cache {
-      self.storage.write().await.set(id.clone(), data.clone());
+      storage.write().unwrap().set(id, data.clone());
     }
     Ok(data)
   }

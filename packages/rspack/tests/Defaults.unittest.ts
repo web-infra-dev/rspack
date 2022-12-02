@@ -199,6 +199,9 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
+		-     "cacheType": "memory",
+		+     "cacheType": "",
+		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "production",
 	`)
@@ -208,6 +211,9 @@ describe("snapshots", () => {
 		- Expected
 		+ Received
 
+		@@ ... @@
+		-     "cacheType": "memory",
+		+     "cacheType": "",
 		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "production",

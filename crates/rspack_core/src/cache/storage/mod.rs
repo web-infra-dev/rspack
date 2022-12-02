@@ -2,9 +2,7 @@ use crate::CacheOptions;
 use std::fmt::Debug;
 
 mod memory;
-mod none;
 use memory::MemoryStorage;
-use none::NoneStorage;
 
 pub trait Storage<Item>: Debug + Send + Sync {
   fn get(&self, id: &str) -> Option<Item>;
@@ -14,12 +12,12 @@ pub trait Storage<Item>: Debug + Send + Sync {
   // fn clear(&self);
 }
 
-pub fn new_storage<Item>(options: &CacheOptions) -> Box<dyn Storage<Item>>
+pub fn new_storage<Item>(options: &CacheOptions) -> Option<Box<dyn Storage<Item>>>
 where
   Item: Debug + Clone + Send + Sync + 'static,
 {
   match options {
-    CacheOptions::Disabled => Box::new(NoneStorage::new()),
-    _ => Box::new(MemoryStorage::new()),
+    CacheOptions::Disabled => None,
+    _ => Some(Box::new(MemoryStorage::new())),
   }
 }

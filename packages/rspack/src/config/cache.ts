@@ -19,7 +19,7 @@ export type Cache =
 
 export type ResolvedCache = RawCacheOptions;
 
-export function resolveCacheOptions(cache: Cache = true): ResolvedCache {
+export function resolveCacheOptions(cache: Cache): ResolvedCache {
 	const result = {
 		cacheType: "",
 		maxGenerations: 0,

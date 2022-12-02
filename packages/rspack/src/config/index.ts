@@ -100,7 +100,9 @@ export function getNormalizedRspackOptions(
 	const stats = resolveStatsOptions(config.stats);
 	const devServer = config.devServer;
 	const snapshot = resolveSnapshotOptions(config.snapshot);
-	const cache = resolveCacheOptions(config.cache);
+	const cache = resolveCacheOptions(
+		config.cache ?? (mode === "production" ? false : true)
+	);
 
 	return {
 		...config,
