@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use swc_atoms::JsWord;
+use swc_atoms::Atom;
 use swc_common::DUMMY_SP;
 use swc_css::{
   ast::{ComponentValue, Declaration, DeclarationOrAtRule, StyleBlock, Token},
@@ -63,7 +63,7 @@ pub struct PxToRem {
   has_wild: bool,
   pub match_list: MatchList,
   all_match: bool,
-  map_stack: Vec<HashMap<JsWord, u32>>,
+  map_stack: Vec<HashMap<Atom, u32>>,
   skip_mutate_length: bool,
   /// Flag to mark if declaration has been mutated
   mutated: bool,
@@ -225,7 +225,7 @@ impl VisitMut for PxToRem {
     // There is no easy way we could do the same thing in `swc_css`, except we made the trade off to perf which is we could codegen each prop and value of declaration
     // That means we almost codegen twice for each css file when postcss plugin is enable.
 
-    let mut map: std::collections::HashMap<JsWord, u32> = HashMap::default();
+    let mut map: std::collections::HashMap<Atom, u32> = HashMap::default();
     // prescan
     for ele in n.value.iter_mut() {
       match ele {
@@ -346,12 +346,12 @@ impl VisitMut for PxToRem {
                 self.mutated = true;
                 *unit = "rem".into();
                 *value = self.normalized_num(*value);
-                *raw_unit = unit.clone();
+                *raw_unit = Atom::from(unit.to_string());
                 *raw_value = value.to_string().into();
               } else if *value == 0f64 {
                 self.mutated = true;
                 *unit = "".into();
-                *raw_unit = unit.clone();
+                *raw_unit = Atom::from(unit.to_string());
               }
             }
           }
@@ -387,13 +387,15 @@ pub fn px_to_rem(option: PxToRemOption) -> impl VisitMut {
   PxToRem::from(option)
 }
 
-fn get_decl_name(n: &Declaration) -> JsWord {
+fn get_decl_name(n: &Declaration) -> Atom {
   match &n.name {
-    swc_css::ast::DeclarationName::Ident(indent) => {
-      indent.raw.clone().unwrap_or_else(|| indent.value.clone())
-    }
-    swc_css::ast::DeclarationName::DashedIdent(indent) => {
-      indent.raw.clone().unwrap_or_else(|| indent.value.clone())
-    }
+    swc_css::ast::DeclarationName::Ident(indent) => indent
+      .raw
+      .clone()
+      .unwrap_or_else(|| Atom::from(indent.value.to_string())),
+    swc_css::ast::DeclarationName::DashedIdent(indent) => indent
+      .raw
+      .clone()
+      .unwrap_or_else(|| Atom::from(indent.value.to_string())),
   }
 }
