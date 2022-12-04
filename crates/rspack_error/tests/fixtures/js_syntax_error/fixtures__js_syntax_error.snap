@@ -18,6 +18,6 @@ error[javascript]: JavaScript parsing error
   ┌─ tests/fixtures/js_syntax_error/index.js:6:1
   │
 6 │ }
-  │ ^ Unexpected token `}`. Expected this, import, async, function, [ for array literal, { for object literal, @ for decorator, function, class, null, true, false, number, bigint, string, regexp, ` for template literal, (, or an identifier
+  │ ^ Expression expected
 
 
