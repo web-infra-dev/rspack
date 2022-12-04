@@ -52,4 +52,4 @@ ustr = "0.9.0"
 xxhash-rust = { version = "0.8.5", features = ["xxh3"] }
 
 [dev-dependencies]
-swc_ecma_parser = "0.122.20"
+swc_ecma_parser = { workspace = true }

@@ -1,3 +1,4 @@
+#![recursion_limit = "256"]
 use std::path::PathBuf;
 
 use rspack_test::read_test_config_and_normalize;

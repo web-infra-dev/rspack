@@ -1,3 +1,4 @@
+#![recursion_limit = "256"]
 pub use rspack_core::Compiler;
 use rspack_core::{CompilerOptions, Plugin, TargetPlatform};
 use rspack_error::Result;

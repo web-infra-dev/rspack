@@ -2275,9 +2275,9 @@ dependencies = [
  "swc_atoms",
  "swc_common",
  "swc_css",
- "swc_ecma_ast 0.95.3",
+ "swc_ecma_ast",
  "swc_ecma_codegen",
- "swc_ecma_parser 0.122.30",
+ "swc_ecma_parser",
  "swc_ecma_transforms",
  "swc_ecma_visit",
  "tokio",
@@ -2476,10 +2476,10 @@ dependencies = [
  "swc",
  "swc_atoms",
  "swc_common",
- "swc_ecma_ast 0.95.3",
+ "swc_ecma_ast",
  "swc_ecma_lints",
  "swc_ecma_minifier",
- "swc_ecma_parser 0.123.4",
+ "swc_ecma_parser",
  "swc_ecma_preset_env",
  "swc_ecma_transforms",
  "swc_ecma_utils",
@@ -2558,7 +2558,7 @@ dependencies = [
  "bitflags",
  "swc_atoms",
  "swc_common",
- "swc_ecma_ast 0.95.3",
+ "swc_ecma_ast",
  "ustr",
 ]
 
@@ -3045,13 +3045,13 @@ dependencies = [
  "swc_cached",
  "swc_common",
  "swc_config",
- "swc_ecma_ast 0.95.3",
+ "swc_ecma_ast",
  "swc_ecma_codegen",
  "swc_ecma_ext_transforms",
  "swc_ecma_lints",
  "swc_ecma_loader",
  "swc_ecma_minifier",
- "swc_ecma_parser 0.123.4",
+ "swc_ecma_parser",
  "swc_ecma_preset_env",
  "swc_ecma_transforms",
  "swc_ecma_transforms_base",
@@ -3283,23 +3283,6 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_ast"
-version = "0.94.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7823e863bebbcbcabba5d5781dd8cedcf1acb35a770a871c914855b43783e17"
-dependencies = [
- "bitflags",
- "is-macro",
- "num-bigint",
- "scoped-tls",
- "serde",
- "string_enum",
- "swc_atoms",
- "swc_common",
- "unicode-id",
-]
-
-[[package]]
-name = "swc_ecma_ast"
 version = "0.95.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "420947496193d5d7f47999ea2d438a3a41e1042393520e28dfb978655f5cacc8"
@@ -3329,7 +3312,7 @@ dependencies = [
  "sourcemap",
  "swc_atoms",
  "swc_common",
- "swc_ecma_ast 0.95.3",
+ "swc_ecma_ast",
  "swc_ecma_codegen_macros",
  "tracing",
 ]
@@ -3356,7 +3339,7 @@ dependencies = [
  "phf",
  "swc_atoms",
  "swc_common",
- "swc_ecma_ast 0.95.3",
+ "swc_ecma_ast",
  "swc_ecma_utils",
  "swc_ecma_visit",
 ]
@@ -3377,7 +3360,7 @@ dependencies = [
  "swc_atoms",
  "swc_common",
  "swc_config",
- "swc_ecma_ast 0.95.3",
+ "swc_ecma_ast",
  "swc_ecma_utils",
  "swc_ecma_visit",
 ]
@@ -3427,34 +3410,15 @@ dependencies = [
  "swc_cached",
  "swc_common",
  "swc_config",
- "swc_ecma_ast 0.95.3",
+ "swc_ecma_ast",
  "swc_ecma_codegen",
- "swc_ecma_parser 0.123.4",
+ "swc_ecma_parser",
  "swc_ecma_transforms_base",
  "swc_ecma_transforms_optimization",
  "swc_ecma_utils",
  "swc_ecma_visit",
  "swc_timer",
  "tracing",
-]
-
-[[package]]
-name = "swc_ecma_parser"
-version = "0.122.30"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c50af5890df5e6e52daf153779af65d262184270e6a57f86f4a6a40a949ea088"
-dependencies = [
- "either",
- "enum_kind",
- "lexical",
- "num-bigint",
- "serde",
- "smallvec",
- "swc_atoms",
- "swc_common",
- "swc_ecma_ast 0.94.21",
- "tracing",
- "typed-arena",
 ]
 
 [[package]]
@@ -3471,7 +3435,7 @@ dependencies = [
  "smallvec",
  "swc_atoms",
  "swc_common",
- "swc_ecma_ast 0.95.3",
+ "swc_ecma_ast",
  "tracing",
  "typed-arena",
 ]
@@ -3495,7 +3459,7 @@ dependencies = [
  "string_enum",
  "swc_atoms",
  "swc_common",
- "swc_ecma_ast 0.95.3",
+ "swc_ecma_ast",
  "swc_ecma_transforms",
  "swc_ecma_utils",
  "swc_ecma_visit",
@@ -3509,7 +3473,7 @@ checksum = "4818124e16e72710d694fa6cb0080e6f4fd454e19163f2b90e7aa8ab7ce26003"
 dependencies = [
  "swc_atoms",
  "swc_common",
- "swc_ecma_ast 0.95.3",
+ "swc_ecma_ast",
  "swc_ecma_transforms_base",
  "swc_ecma_transforms_compat",
  "swc_ecma_transforms_module",
@@ -3536,8 +3500,8 @@ dependencies = [
  "smallvec",
  "swc_atoms",
  "swc_common",
- "swc_ecma_ast 0.95.3",
- "swc_ecma_parser 0.123.4",
+ "swc_ecma_ast",
+ "swc_ecma_parser",
  "swc_ecma_utils",
  "swc_ecma_visit",
  "tracing",
@@ -3551,7 +3515,7 @@ checksum = "07694265ee0d668743e973289365f2a1f69d49c07d71531893cc3f17bc6b6cc0"
 dependencies = [
  "swc_atoms",
  "swc_common",
- "swc_ecma_ast 0.95.3",
+ "swc_ecma_ast",
  "swc_ecma_transforms_base",
  "swc_ecma_utils",
  "swc_ecma_visit",
@@ -3573,7 +3537,7 @@ dependencies = [
  "swc_atoms",
  "swc_common",
  "swc_config",
- "swc_ecma_ast 0.95.3",
+ "swc_ecma_ast",
  "swc_ecma_transforms_base",
  "swc_ecma_transforms_classes",
  "swc_ecma_transforms_macros",
@@ -3615,9 +3579,9 @@ dependencies = [
  "swc_atoms",
  "swc_cached",
  "swc_common",
- "swc_ecma_ast 0.95.3",
+ "swc_ecma_ast",
  "swc_ecma_loader",
- "swc_ecma_parser 0.123.4",
+ "swc_ecma_parser",
  "swc_ecma_transforms_base",
  "swc_ecma_utils",
  "swc_ecma_visit",
@@ -3639,8 +3603,8 @@ dependencies = [
  "serde_json",
  "swc_atoms",
  "swc_common",
- "swc_ecma_ast 0.95.3",
- "swc_ecma_parser 0.123.4",
+ "swc_ecma_ast",
+ "swc_ecma_parser",
  "swc_ecma_transforms_base",
  "swc_ecma_transforms_macros",
  "swc_ecma_utils",
@@ -3660,7 +3624,7 @@ dependencies = [
  "smallvec",
  "swc_atoms",
  "swc_common",
- "swc_ecma_ast 0.95.3",
+ "swc_ecma_ast",
  "swc_ecma_transforms_base",
  "swc_ecma_transforms_classes",
  "swc_ecma_transforms_macros",
@@ -3686,8 +3650,8 @@ dependencies = [
  "swc_atoms",
  "swc_common",
  "swc_config",
- "swc_ecma_ast 0.95.3",
- "swc_ecma_parser 0.123.4",
+ "swc_ecma_ast",
+ "swc_ecma_parser",
  "swc_ecma_transforms_base",
  "swc_ecma_transforms_macros",
  "swc_ecma_utils",
@@ -3703,7 +3667,7 @@ dependencies = [
  "serde",
  "swc_atoms",
  "swc_common",
- "swc_ecma_ast 0.95.3",
+ "swc_ecma_ast",
  "swc_ecma_transforms_base",
  "swc_ecma_transforms_react",
  "swc_ecma_utils",
@@ -3721,7 +3685,7 @@ dependencies = [
  "once_cell",
  "swc_atoms",
  "swc_common",
- "swc_ecma_ast 0.95.3",
+ "swc_ecma_ast",
  "swc_ecma_visit",
  "tracing",
  "unicode-id",
@@ -3736,7 +3700,7 @@ dependencies = [
  "num-bigint",
  "swc_atoms",
  "swc_common",
- "swc_ecma_ast 0.95.3",
+ "swc_ecma_ast",
  "swc_visit",
  "tracing",
 ]
@@ -3848,10 +3812,10 @@ dependencies = [
  "swc_css_codegen",
  "swc_css_minifier",
  "swc_css_parser",
- "swc_ecma_ast 0.95.3",
+ "swc_ecma_ast",
  "swc_ecma_codegen",
  "swc_ecma_minifier",
- "swc_ecma_parser 0.123.4",
+ "swc_ecma_parser",
  "swc_ecma_transforms_base",
  "swc_ecma_visit",
  "swc_html_ast",
