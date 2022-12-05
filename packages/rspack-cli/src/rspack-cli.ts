@@ -149,7 +149,6 @@ export class RspackCLI {
 			} else {
 				let entry: Record<string, string> = {};
 				if (options.entry) {
-					console.log("entry:", options.entry);
 					entry = {
 						main: options.entry.map(x => path.resolve(process.cwd(), x))[0] // Fix me when entry supports array
 					};

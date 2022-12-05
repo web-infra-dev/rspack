@@ -258,6 +258,7 @@ export class RspackDevServer {
 	}
 
 	private setupMiddlewares() {
+		const options = this.options;
 		const middlewares: Middleware[] = [];
 		middlewares.push({
 			name: "rdm",
@@ -273,6 +274,47 @@ export class RspackDevServer {
 				logger: console.log.bind(console)
 			})
 		});
+
+		if (typeof options.proxy !== "undefined") {
+			const { createProxyMiddleware } = require("http-proxy-middleware");
+			function getProxyMiddleware(proxyConfig) {
+				if (proxyConfig.target) {
+					const context = proxyConfig.context || proxyConfig.path;
+					return createProxyMiddleware(context, proxyConfig);
+				}
+				if (proxyConfig.router) {
+					return createProxyMiddleware(proxyConfig);
+				}
+			}
+			console.log("proxy:", options.proxy);
+			options.proxy.forEach(proxyConfig => {
+				const handler = async (req, res, next) => {
+					let proxyMiddleware = getProxyMiddleware(proxyConfig);
+					const isByPassFuncDefined = typeof proxyConfig.bypass === "function";
+					const bypassUrl = isByPassFuncDefined
+						? await proxyConfig.bypass(req, res, proxyConfig)
+						: null;
+					if (typeof bypassUrl === "boolean") {
+						req.url = null;
+						next();
+					} else if (typeof bypassUrl === "string") {
+						req.url = bypassUrl;
+					} else if (proxyMiddleware) {
+						return proxyMiddleware(req, res, next);
+					} else {
+						next();
+					}
+				};
+				middlewares.push({
+					name: "http-proxy-middleware",
+					middleware: handler
+				});
+				middlewares.push({
+					name: "http-proxy-middleware-error-handler",
+					middleware: (error, req, res, next) => handler(req, res, next)
+				});
+			});
+		}
 		middlewares.push({
 			name: "express-static",
 			path: this.compiler.options.output.publicPath ?? "/",

@@ -6,6 +6,7 @@ import type {
 import type { WatchOptions } from "chokidar";
 import path from "path";
 import { resolveWatchOption } from "@rspack/core";
+import { ProxyOptions } from "@rspack/core/src/config/devServer";
 
 export interface ResolvedDev {
 	host: string;
@@ -19,6 +20,7 @@ export interface ResolvedDev {
 	open: boolean;
 	liveReload: boolean;
 	webSocketServer: false | WebSocketServerOptions;
+	proxy: ProxyOptions;
 }
 
 export function resolveDevOptions(
@@ -26,6 +28,7 @@ export function resolveDevOptions(
 	compilerOptions: RspackOptionsNormalized
 ): ResolvedDev {
 	const open = true;
+	const proxy = devConfig.proxy;
 	const hot = devConfig.hot ?? true;
 	// --- static
 	const directory =
@@ -63,6 +66,7 @@ export function resolveDevOptions(
 		open,
 		hot,
 		liveReload,
-		webSocketServer
+		webSocketServer,
+		proxy
 	};
 }

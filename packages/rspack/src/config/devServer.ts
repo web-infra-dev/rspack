@@ -7,7 +7,7 @@ export interface WebSocketServerOptions {
 	prefix?: string;
 	path?: string;
 }
-
+export type ProxyOptions = any;
 export interface Dev {
 	host?: string;
 	port?: number | string;
@@ -16,6 +16,7 @@ export interface Dev {
 		directory?: string;
 		watch?: boolean | WatchOptions;
 	};
+	proxy?: ProxyOptions;
 	devMiddleware?: {};
 	hot?: boolean;
 	open?: boolean;
