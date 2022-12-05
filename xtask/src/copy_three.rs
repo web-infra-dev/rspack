@@ -43,7 +43,11 @@ pub fn copy_three(num: usize) {
   // test.config.js
   let test_config_file = r#"
 module.exports = {
-    mode: 'development',
+    mode: 'production',
+    devtools: 'source-map', 
+    builtins: {
+      minify: true
+    },
     entry: {
         index: {
             import: ['./src/entry.js']
