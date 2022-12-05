@@ -22,7 +22,7 @@ pub fn css_modules_exports_to_string(
     let content = elements
       .iter()
       .map(|element| match element {
-        CssClassName::Local { name } | CssClassName::Global { name } => &name,
+        CssClassName::Local { name } | CssClassName::Global { name } => name,
         CssClassName::Import { .. } => "TODO",
       })
       .collect::<Vec<_>>()
