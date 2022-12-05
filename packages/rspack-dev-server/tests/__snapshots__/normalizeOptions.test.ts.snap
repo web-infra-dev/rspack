@@ -19,6 +19,7 @@ exports[`normalize options snapshot no options 1`] = `
   "liveReload": true,
   "open": true,
   "port": undefined,
+  "proxy": undefined,
   "static": {
     "directory": "<PROJECT_ROOT>/dist",
     "watch": {},
@@ -35,6 +36,7 @@ exports[`normalize options snapshot port string 1`] = `
   "liveReload": true,
   "open": true,
   "port": 9000,
+  "proxy": undefined,
   "static": {
     "directory": "<PROJECT_ROOT>/dist",
     "watch": {},

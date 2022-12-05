@@ -26,6 +26,7 @@ export interface RspackCLIOptions {
 	mode?: string;
 	watch?: boolean;
 	analyze?: boolean;
+	argv?: Record<string, any>;
 }
 
 export interface RspackCommand {

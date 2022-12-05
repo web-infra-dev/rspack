@@ -134,7 +134,12 @@ export class RspackCLI {
 		return item;
 	}
 	async loadConfig(options: RspackCLIOptions): Promise<RspackOptions> {
-		let loadedConfig: RspackOptions;
+		let loadedConfig:
+			| RspackOptions
+			| ((
+					env: Record<string, any>,
+					argv: Record<string, any>
+			  ) => RspackOptions);
 		// if we pass config paras
 		if (options.config) {
 			const resolvedConfigPath = path.resolve(process.cwd(), options.config);
@@ -161,6 +166,9 @@ export class RspackCLI {
 					entry
 				};
 			}
+		}
+		if (typeof loadedConfig === "function") {
+			loadedConfig = loadedConfig(options.argv?.env, options.argv);
 		}
 		return loadedConfig;
 	}
