@@ -19,14 +19,11 @@ pub fn get_require_literal(e: &CallExpr, unresolved_mark: Mark) -> Option<JsWord
       ident @ Callee::Expr(box Expr::Ident(Ident {
         sym: js_word!("require"),
         ..
-      })) => {
-        // dbg!(&ident);
-        ident
-          .as_expr()
-          .and_then(|expr| expr.as_ident())
-          .map(|ident| ident.span.ctxt.outer() == unresolved_mark)
-          .unwrap_or(false)
-      }
+      })) => ident
+        .as_expr()
+        .and_then(|expr| expr.as_ident())
+        .map(|ident| ident.span.ctxt.outer() == unresolved_mark)
+        .unwrap_or(false),
       _ => false,
     } {
       get_first_string_lit_arg(e)

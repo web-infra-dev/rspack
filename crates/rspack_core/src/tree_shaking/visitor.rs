@@ -155,7 +155,6 @@ impl<'a> ModuleRefAnalyze<'a> {
       }
       seen.insert(cur);
     }
-    // dbg!(&start, &seen, &self.reference_map);
     return seen
       .iter()
       .filter_map(|id_or_mem_expr| match id_or_mem_expr {
@@ -288,7 +287,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       })
       .collect::<Vec<_>>();
     self.used_symbol_ref.extend(side_effect_symbol_list);
-    // dbg!(&self.used_id_set);
     // all reachable export from used symbol in current module
     for used_id in &self.used_id_set {
       match used_id {

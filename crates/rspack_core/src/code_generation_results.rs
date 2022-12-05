@@ -53,10 +53,7 @@ impl CodeGenerationResults {
       if let Some(runtime) = runtime {
         entry
           .get(runtime)
-          .and_then(|m| {
-            // dbg!(self.module_generation_result_map.contains_key(m));
-            self.module_generation_result_map.get(m)
-          })
+          .and_then(|m| self.module_generation_result_map.get(m))
           .ok_or_else(|| {
             Error::InternalError(format!(
               "Failed to code generation result for {} with runtime {:?} \n {:?}",

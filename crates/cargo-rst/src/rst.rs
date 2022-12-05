@@ -501,7 +501,6 @@ impl Rst {
   pub fn update_all_cases() {
     let workspace_dir =
       std::env::var("CARGO_WORKSPACE_DIR").expect("Can't get CARGO_WORKSPACE_DIR");
-    // dbg!(&minifest);
     for entry in
       glob(&format!("{}crates/*/.temp", workspace_dir)).expect("Failed to read glob pattern")
     {

@@ -803,7 +803,6 @@ impl Compilation {
         // Keep this debug info until we stabilize the tree-shaking
 
         // if debug_care_module_id(uri_key) {
-        //   dbg!(
         //     &uri_key,
         //     // &analyzer.export_all_list,
         //     &analyzer.export_map,
@@ -836,8 +835,6 @@ impl Compilation {
       }
       bail_out_module_identifiers.extend(analyze_result.bail_out_module_identifiers.clone());
     }
-
-    // dbg!(&used_symbol_ref);
 
     // calculate relation of module that has `export * from 'xxxx'`
     let inherit_export_ref_graph = create_inherit_graph(&analyze_results);
@@ -943,8 +940,6 @@ impl Compilation {
             .used = false;
         }
       }
-
-      // dbg!(&used_symbol, &used_indirect_symbol);
     }
     Ok(
       OptimizeDependencyResult {
@@ -1460,7 +1455,6 @@ fn mark_symbol(
           }
 
           // FIXME: this is just a workaround for dependency replacement
-          // dbg!(&ret, indirect_symbol.uri());
           if !ret.is_empty() && !evaluated_module_identifiers.contains(&indirect_symbol.uri) {
             q.extend(module_result.used_symbol_ref.clone());
             evaluated_module_identifiers.insert(indirect_symbol.uri());
@@ -1469,7 +1463,6 @@ fn mark_symbol(
             0 => {
               // TODO: Better diagnostic handle if source module does not have the export
               // let map = analyze_map.get(&module_result.module_identifier).unwrap();
-              // dbg!(&map);
               if !is_bailout_module_identifier && !has_bailout_module_identifiers {
                 eprint!(
                   "{} did not export `{}`, imported by {}",
