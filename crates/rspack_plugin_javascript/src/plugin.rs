@@ -229,7 +229,6 @@ impl JsPlugin {
             }
 
             if mgm.module_type.is_css_like() && compilation.options.dev_server.hot {
-              let locals = mgm.module_type == ModuleType::CssModule;
               // inject css hmr runtime
               module_source = ConcatSource::new([
                 module_source,
