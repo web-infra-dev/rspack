@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "Node binding for rspack",
   "main": "binding.js",
   "types": "binding.d.ts",
