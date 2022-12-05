@@ -52,9 +52,9 @@ jobs:
   #       run: |
   #         node -e "console.log(process.arch)"
   #         pnpm install
-  #         pnpm run build:cli
+  #         pnpm run build:cli-release
   #     - name: Create rspack stats
-  #       run: pnpm --filter example-arco-design-pro compare-bundle-stats
+  #       run: pnpm --filter example-arco-design-pro bundle-stats
   #     - name: Send rspack stats to RelativeCI
   #       uses: relative-ci/agent-action@v2
   #       with:
