@@ -24,6 +24,8 @@ async fn bench(cur_dir: &PathBuf) {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
+  let mut group = c.benchmark_group("criterion_benchmark");
+  group.sample_size(100);
   let sh = Shell::new().unwrap();
   println!("{:?}", sh.current_dir());
   sh.change_dir(PathBuf::from(env!("CARGO_WORKSPACE_DIR")));
@@ -32,20 +34,36 @@ fn criterion_benchmark(c: &mut Criterion) {
     .enable_all()
     .build()
     .unwrap();
-  let lodash: PathBuf = concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/../../benchcases/lodash-with-simple-css"
-  )
-  .into();
-  let css_heavy: PathBuf =
-    concat!(env!("CARGO_MANIFEST_DIR"), "/../../benchcases/css-heavy").into();
-  let ten_copy_of_threejs: PathBuf =
-    concat!(env!("CARGO_MANIFEST_DIR"), "/../../benchcases/three").into();
-  c.bench_function("lodash", |b| b.to_async(&rt).iter(|| bench(&lodash)));
-  c.bench_function("css_heavy", |b| b.to_async(&rt).iter(|| bench(&css_heavy)));
-  c.bench_function("ten_copy_of_threejs", |b| {
-    b.to_async(&rt).iter(|| bench(&ten_copy_of_threejs))
-  });
+  generate_bench!(css_heavy, "css-heavy", group, rt);
+  generate_bench!(ten_copy_of_threejs, "three", group, rt);
+  generate_bench!(lodash, "lodash-with-simple-css", group, rt);
+  group.finish();
+
+  // High cost benchmark
+  // sample count reduce to 50
+  let mut group = c.benchmark_group("high_cost_benchmark");
+  group.sample_size(50);
+  let sh = Shell::new().unwrap();
+  println!("{:?}", sh.current_dir());
+  sh.change_dir(PathBuf::from(env!("CARGO_WORKSPACE_DIR")));
+  cmd!(sh, "cargo xtask three_production_config")
+    .run()
+    .unwrap();
+  let rt = tokio::runtime::Builder::new_multi_thread()
+    .enable_all()
+    .build()
+    .unwrap();
+  generate_bench!(ten_copy_of_threejs_production, "three", group, rt);
+  group.finish()
 }
+
 criterion_group!(benches, criterion_benchmark);
 criterion_main!(benches);
+
+#[macro_export]
+macro_rules! generate_bench {
+  ($id: ident, $dir: expr, $c: ident, $rt: ident) => {
+    let $id: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/../../benchcases/", $dir).into();
+    $c.bench_function(stringify!($id), |b| b.to_async(&$rt).iter(|| bench(&$id)));
+  };
+}
