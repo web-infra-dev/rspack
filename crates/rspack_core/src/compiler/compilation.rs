@@ -21,7 +21,7 @@ use std::{
   sync::Arc,
 };
 use sugar_path::SugarPath;
-use swc_atoms::JsWord;
+use swc_core::ecma::atoms::JsWord;
 use tokio::sync::mpsc::{error::TryRecvError, UnboundedSender};
 use tracing::instrument;
 use xxhash_rust::xxh3::Xxh3;

@@ -10,12 +10,12 @@ use rspack_error::{DiagnosticKind, Error};
 use serde_json::json;
 use std::path::Path;
 use std::sync::Arc;
-use swc::Compiler as SwcCompiler;
-use swc_atoms::js_word;
-use swc_common::{FilePathMapping, SourceMap, Span, Spanned, SyntaxContext, DUMMY_SP};
-use swc_ecma_ast::{CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit, Str};
-use swc_ecma_parser::Syntax;
-use swc_ecma_parser::{EsConfig, TsConfig};
+use swc_core::base::Compiler as SwcCompiler;
+use swc_core::common::{FilePathMapping, SourceMap, Span, Spanned, SyntaxContext, DUMMY_SP};
+use swc_core::ecma::ast::{CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit, Str};
+use swc_core::ecma::atoms::js_word;
+use swc_core::ecma::parser::Syntax;
+use swc_core::ecma::parser::{EsConfig, TsConfig};
 
 static SWC_COMPILER: Lazy<Arc<SwcCompiler>> = Lazy::new(|| {
   let cm = Arc::new(SourceMap::new(FilePathMapping::empty()));
@@ -165,7 +165,7 @@ pub fn wrap_module_function(source: BoxSource, module_id: &str) -> BoxSource {
 }
 
 pub fn ecma_parse_error_to_rspack_error(
-  error: swc_ecma_parser::error::Error,
+  error: swc_core::ecma::parser::error::Error,
   path: &str,
   module_type: &ModuleType,
 ) -> Error {

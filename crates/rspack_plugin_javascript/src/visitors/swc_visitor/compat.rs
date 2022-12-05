@@ -1,8 +1,11 @@
 use either::Either;
-use swc_common::{chain, comments::SingleThreadedComments, pass::Optional, Mark};
-use swc_ecma_ast::EsVersion;
-use swc_ecma_transforms::{compat, feature::FeatureFlag, pass::noop, Assumptions};
-use swc_ecma_visit::Fold;
+use swc_core::common::{chain, comments::SingleThreadedComments, pass::Optional, Mark};
+use swc_core::ecma::ast::EsVersion;
+use swc_core::ecma::transforms::base::{feature::FeatureFlag, pass::noop, Assumptions};
+use swc_core::ecma::transforms::compat;
+use swc_core::ecma::visit::Fold;
+
+use swc_core::ecma::preset_env as swc_ecma_preset_env;
 
 type BrowserConfig = (Vec<String>, bool);
 

@@ -5,10 +5,14 @@ use globset::{Glob, GlobSetBuilder};
 use hashbrown::{hash_map::Entry, HashMap, HashSet};
 use indexmap::IndexMap;
 use sugar_path::SugarPath;
-use swc_atoms::JsWord;
-use swc_common::{util::take::Take, Mark, GLOBALS};
-use swc_ecma_ast::*;
-use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
+use swc_core::common::{util::take::Take, Mark, GLOBALS};
+use swc_core::ecma::ast::*;
+use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
+// use swc_atoms::JsWord;
+// use swc_common::{util::take::Take, Mark, GLOBALS};
+// use swc_ecma_ast::*;
+// use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
 use ustr::{ustr, Ustr};
 
 use crate::{Dependency, ModuleGraph, ModuleSyntax, ResolveKind, Resolver};
@@ -318,7 +322,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     self.side_effects_free = !side_effects;
   }
 
-  fn visit_ident(&mut self, node: &swc_ecma_ast::Ident) {
+  fn visit_ident(&mut self, node: &Ident) {
     let id: BetterId = node.to_id().into();
     let mark = id.ctxt.outer();
     if mark == self.top_level_mark {

@@ -3,10 +3,11 @@ use rspack_core::ModuleType;
 use rspack_core::ReactOptions;
 use std::{path::Path, sync::Arc};
 use sugar_path::SugarPath;
-use swc_common::{comments::SingleThreadedComments, Mark, SourceMap};
-use swc_ecma_ast::{CallExpr, Callee, Expr, Module, Program};
-use swc_ecma_transforms::react::{react as swc_react, Options};
-use swc_ecma_visit::{Fold, Visit, VisitWith};
+use swc_core::common::{comments::SingleThreadedComments, Mark, SourceMap};
+use swc_core::ecma::ast::{CallExpr, Callee, Expr, Module, Program};
+use swc_core::ecma::transforms::react::RefreshOptions;
+use swc_core::ecma::transforms::react::{react as swc_react, Options};
+use swc_core::ecma::visit::{Fold, Visit, VisitWith};
 
 pub fn react<'a>(
   top_level_mark: Mark,
@@ -20,7 +21,7 @@ pub fn react<'a>(
     Options {
       refresh: options.refresh.and_then(|dev| {
         if dev {
-          Some(swc_ecma_transforms::react::RefreshOptions::default())
+          Some(RefreshOptions::default())
         } else {
           None
         }

@@ -1,9 +1,9 @@
 use linked_hash_set::LinkedHashSet;
 use rspack_core::{ModuleDependency, ResolveKind};
-use swc_atoms::JsWord;
-use swc_common::{Mark, Span, SyntaxContext};
-use swc_ecma_ast::{CallExpr, Callee, ExportSpecifier, Expr, ExprOrSpread, Lit, ModuleDecl};
-use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
+use swc_core::common::{Mark, Span, SyntaxContext};
+use swc_core::ecma::ast::{CallExpr, Callee, ExportSpecifier, Expr, ExprOrSpread, Lit, ModuleDecl};
+use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 pub struct DependencyScanner {
   pub unresolved_ctxt: SyntaxContext,
@@ -144,7 +144,7 @@ impl DependencyScanner {
 fn test_dependency_scanner() {
   use crate::ast::parse_js_code;
   use rspack_core::{ErrorSpan, ModuleType};
-  use swc_ecma_visit::{VisitMutWith, VisitWith};
+  use swc_core::ecma::visit::{VisitMutWith, VisitWith};
 
   let code = r#"
   const a = require('a');
@@ -156,9 +156,10 @@ fn test_dependency_scanner() {
   import { default as l } from 'm';
   "#;
   let mut ast = parse_js_code(code.to_string(), &ModuleType::Js).unwrap();
-  let dependencies = swc_common::GLOBALS.set(&Default::default(), || {
+  let dependencies = swc_core::common::GLOBALS.set(&Default::default(), || {
     let unresolved_mark = Mark::new();
-    let mut resolver = swc_ecma_transforms::resolver(unresolved_mark, Mark::new(), false);
+    let mut resolver =
+      swc_core::ecma::transforms::base::resolver(unresolved_mark, Mark::new(), false);
     ast.visit_mut_with(&mut resolver);
     let mut scanner = DependencyScanner::new(unresolved_mark);
     ast.visit_with(&mut scanner);

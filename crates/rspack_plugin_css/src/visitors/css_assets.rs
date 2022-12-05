@@ -1,4 +1,4 @@
-use swc_atoms::{Atom, JsWord};
+use swc_core::ecma::atoms::{Atom, JsWord};
 use swc_css::ast::{Url, UrlValue};
 use swc_css::visit::VisitMut;
 

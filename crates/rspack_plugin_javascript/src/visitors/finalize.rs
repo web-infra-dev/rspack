@@ -1,8 +1,8 @@
 // use super::hmr::HmrModuleIdReWriter;
 use crate::visitors::RspackModuleFinalizer;
 use rspack_core::{Compilation, Module};
-use swc_common::{Mark, GLOBALS};
-use swc_ecma_visit::Fold;
+use swc_core::common::{Mark, GLOBALS};
+use swc_core::ecma::visit::Fold;
 
 pub fn finalize<'a>(
   module: &'a dyn Module,

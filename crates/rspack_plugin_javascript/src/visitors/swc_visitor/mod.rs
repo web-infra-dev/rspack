@@ -1,5 +1,5 @@
-mod lint;
-pub use lint::lint;
+// mod lint;
+// pub use lint::lint;
 
 mod decorator;
 pub use decorator::decorator;
@@ -22,15 +22,15 @@ pub use build_module::build_module;
 mod hygiene;
 pub use hygiene::hygiene;
 
-pub use swc_ecma_transforms::compat::es2022::private_in_object;
-pub use swc_ecma_transforms::compat::reserved_words::reserved_words;
-pub use swc_ecma_transforms::fixer::{fixer, paren_remover};
-pub use swc_ecma_transforms::helpers::inject_helpers;
-pub use swc_ecma_transforms::optimization::const_modules;
-pub use swc_ecma_transforms::optimization::json_parse;
-pub use swc_ecma_transforms::optimization::simplifier;
-pub use swc_ecma_transforms::optimization::simplify::dead_branch_remover;
-pub use swc_ecma_transforms::optimization::simplify::expr_simplifier;
-pub use swc_ecma_transforms::proposals::export_default_from;
-pub use swc_ecma_transforms::proposals::import_assertions;
-pub use swc_ecma_transforms::resolver;
+pub use swc_core::ecma::transforms::base::fixer::{fixer, paren_remover};
+pub use swc_core::ecma::transforms::base::helpers::inject_helpers;
+pub use swc_core::ecma::transforms::base::resolver;
+pub use swc_core::ecma::transforms::compat::es2022::private_in_object;
+pub use swc_core::ecma::transforms::compat::reserved_words::reserved_words;
+pub use swc_core::ecma::transforms::optimization::const_modules;
+pub use swc_core::ecma::transforms::optimization::json_parse;
+pub use swc_core::ecma::transforms::optimization::simplifier;
+pub use swc_core::ecma::transforms::optimization::simplify::dead_branch_remover;
+pub use swc_core::ecma::transforms::optimization::simplify::expr_simplifier;
+pub use swc_core::ecma::transforms::proposal::export_default_from;
+pub use swc_core::ecma::transforms::proposal::import_assertions;

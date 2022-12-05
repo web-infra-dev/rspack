@@ -1,9 +1,13 @@
 use std::sync::Arc;
-use swc::config::ModuleConfig;
-use swc_common::{comments::SingleThreadedComments, Mark, SourceMap};
-use swc_ecma_ast::EsVersion;
-use swc_ecma_transforms::feature::{enable_available_feature_from_es_version, FeatureFlag};
-use swc_ecma_visit::Fold;
+use swc_core::base::config::ModuleConfig;
+use swc_core::common::FileName;
+use swc_core::common::{comments::SingleThreadedComments, Mark, SourceMap};
+use swc_core::ecma::ast::EsVersion;
+use swc_core::ecma::transforms::base::feature::{
+  enable_available_feature_from_es_version, FeatureFlag,
+};
+// use swc_core::ecma::transforms::base::{enable_available_feature_from_es_version, FeatureFlag};
+use swc_core::ecma::visit::Fold;
 
 pub fn build_module<'a>(
   cm: &Arc<SourceMap>,
@@ -22,7 +26,7 @@ pub fn build_module<'a>(
     comments,
     Default::default(),
     Default::default(),
-    &swc_common::FileName::Custom("".to_string()),
+    &FileName::Custom("".to_string()),
     unresolved_mark,
     module,
     feature_flag,

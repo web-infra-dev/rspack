@@ -1,8 +1,8 @@
 use std::sync::Arc;
-use swc_common::{Mark, SourceMap, SyntaxContext};
-use swc_ecma_ast::{EsVersion, Program};
+use swc_core::common::{Mark, SourceMap, SyntaxContext};
+use swc_core::ecma::ast::{EsVersion, Program};
+use swc_core::ecma::Fold;
 use swc_ecma_lints::rules::{all, lint_to_fold, LintParams};
-use swc_ecma_visit::Fold;
 
 pub fn lint(
   ast: &Program,

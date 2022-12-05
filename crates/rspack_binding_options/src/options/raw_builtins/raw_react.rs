@@ -2,7 +2,7 @@
 use napi_derive::napi;
 use rspack_core::ReactOptions;
 use serde::{Deserialize, Serialize};
-use swc_ecma_transforms::react::Runtime;
+use swc_core::ecma::transforms::react::Runtime;
 
 use crate::RawOption;
 

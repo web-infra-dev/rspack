@@ -1,12 +1,12 @@
 use hashbrown::HashSet;
 use rspack_core::{Dependency, ModuleDependency, ModuleGraph, ResolveKind};
-use swc_common::{util::take::Take, Mark, DUMMY_SP, GLOBALS};
-use swc_ecma_ast::*;
+use swc_core::common::{Mark, DUMMY_SP, GLOBALS};
+use swc_core::ecma::ast::*;
 // use swc_ecma_utils::
 use rspack_symbol::{BetterId, IndirectTopLevelSymbol, Symbol};
-use swc_atoms::JsWord;
-use swc_ecma_utils::quote_ident;
-use swc_ecma_visit::{noop_fold_type, Fold, FoldWith};
+use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::utils::quote_ident;
+use swc_core::ecma::visit::{noop_fold_type, Fold, FoldWith};
 use ustr::{ustr, Ustr};
 pub fn tree_shaking_visitor<'a>(
   module_graph: &'a ModuleGraph,
@@ -65,7 +65,10 @@ impl<'a> Fold for TreeShaker<'a> {
         item.fold_with(self)
       })
       .collect();
-    for (position, module_item) in self.insert_item_tuple_list.take().into_iter().rev() {
+    for (position, module_item) in std::mem::take(&mut self.insert_item_tuple_list)
+      .into_iter()
+      .rev()
+    {
       node.body.insert(position, module_item);
     }
     node

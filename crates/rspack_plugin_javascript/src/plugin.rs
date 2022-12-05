@@ -15,9 +15,12 @@ use rspack_core::{
   RenderManifestEntry, SourceType, TargetPlatform,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use swc::{config::JsMinifyOptions, BoolOrDataConfig};
-use swc_common::util::take::Take;
-use swc_common::GLOBALS;
+use swc_core::base::try_with_handler;
+use swc_core::base::{config::JsMinifyOptions, BoolOrDataConfig};
+use swc_core::common::util::take::Take;
+use swc_core::common::FileName;
+use swc_core::common::GLOBALS;
+use swc_core::ecma::ast;
 use tracing::instrument;
 
 use crate::utils::{
@@ -324,9 +327,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     ) {
       Ok(ast) => (ast, Vec::new()),
       Err(diagnostics) => (
-        rspack_core::ast::javascript::Ast::new(swc_ecma_ast::Program::Module(
-          swc_ecma_ast::Module::dummy(),
-        )),
+        rspack_core::ast::javascript::Ast::new(ast::Program::Module(ast::Module::dummy())),
         diagnostics.into(),
       ),
     };
@@ -521,11 +522,10 @@ impl Plugin for JsPlugin {
         let input = original.get_source().source().to_string();
         let input_source_map = original.get_source().map(&MapOptions::default());
         let output = GLOBALS.set(&Default::default(), || {
-          swc::try_with_handler(swc_compiler.cm.clone(), Default::default(), |handler| {
-            let fm = swc_compiler.cm.new_source_file(
-              swc_common::FileName::Custom(filename.to_string()),
-              input.clone(),
-            );
+          try_with_handler(swc_compiler.cm.clone(), Default::default(), |handler| {
+            let fm = swc_compiler
+              .cm
+              .new_source_file(FileName::Custom(filename.to_string()), input.clone());
             swc_compiler.minify(
               fm,
               handler,

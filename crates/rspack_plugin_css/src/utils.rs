@@ -1,6 +1,6 @@
 use indexmap::IndexMap;
 use rspack_error::Result;
-use swc_atoms::JsWord;
+use swc_core::ecma::atoms::JsWord;
 use swc_css::modules::CssClassName;
 
 pub struct ModulesTransformConfig {
@@ -22,7 +22,7 @@ pub fn css_modules_exports_to_string(
     let content = elements
       .iter()
       .map(|element| match element {
-        CssClassName::Local { name } | CssClassName::Global { name } => &**name,
+        CssClassName::Local { name } | CssClassName::Global { name } => &name,
         CssClassName::Import { .. } => "TODO",
       })
       .collect::<Vec<_>>()
