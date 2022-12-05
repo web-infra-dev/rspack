@@ -1,5 +1,13 @@
 # @rspack/core
 
+## 0.0.11
+
+### Patch Changes
+
+- 2eca9ade: add ~ alias support
+  - @rspack/binding@0.0.11
+  - @rspack/dev-client@0.0.11
+
 ## 0.0.10
 
 ### Patch Changes
