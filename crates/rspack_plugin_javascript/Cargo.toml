@@ -26,7 +26,7 @@ rspack_symbol = { path = "../rspack_symbol" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sourcemap = "6.2.0"
-sugar_path = "0.0.8"
+sugar_path = "0.0.9"
 swc = { workspace = true }
 swc_atoms = { workspace = true }
 swc_common = { workspace = true, features = ["concurrent"] }

@@ -68,6 +68,7 @@ pub enum SourceType {
 pub enum ModuleType {
   Json,
   Css,
+  CssModule,
   Js,
   Jsx,
   Tsx,
@@ -79,8 +80,8 @@ pub enum ModuleType {
 }
 
 impl ModuleType {
-  pub fn is_css(&self) -> bool {
-    matches!(self, Self::Css)
+  pub fn is_css_like(&self) -> bool {
+    matches!(self, Self::Css | Self::CssModule)
   }
 
   pub fn is_js_like(&self) -> bool {
@@ -112,6 +113,7 @@ impl fmt::Display for ModuleType {
         ModuleType::Ts => "ts",
         ModuleType::Tsx => "tsx",
         ModuleType::Css => "css",
+        ModuleType::CssModule => "css/module",
         ModuleType::Json => "json",
         ModuleType::Asset => "asset",
         ModuleType::AssetSource => "asset/source",

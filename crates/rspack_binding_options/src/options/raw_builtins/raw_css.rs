@@ -16,7 +16,9 @@ pub struct RawCssPluginConfig {
   /// ```
   /// The preset_env will finally pass into [`browserslist::resolve`](https://docs.rs/browserslist-rs/latest/browserslist/fn.resolve.html).
   /// For detailed configuration, see https://docs.rs/browserslist-rs/latest/browserslist/
-  pub preset_env: Vec<String>,
+  pub preset_env: Option<Vec<String>>,
+
+  pub modules: Option<bool>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Default, Clone)]
@@ -31,5 +33,7 @@ pub struct RawCssPluginConfig {
   /// ```
   /// The preset_env will finally pass into [`browserslist::resolve`](https://docs.rs/browserslist-rs/latest/browserslist/fn.resolve.html).
   /// For detailed configuration, see https://docs.rs/browserslist-rs/latest/browserslist/
-  pub preset_env: Vec<String>,
+  pub preset_env: Option<Vec<String>>,
+
+  pub modules: Option<bool>,
 }

@@ -1,12 +1,17 @@
 #![allow(clippy::comparison_chain)]
+use std::path::Path;
 use std::{borrow::Cow, cmp};
 
 use hashbrown::HashSet;
+use indexmap::IndexMap;
 use itertools::Itertools;
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
+use sugar_path::SugarPath;
+use swc_atoms::JsWord;
+use swc_css::parser::parser::ParserConfig;
+use swc_css::prefixer::{options::Options, prefixer};
 use swc_css::visit::VisitMutWith;
-use swc_css_prefixer::{options::Options, prefixer};
 
 use rspack_core::{
   get_css_chunk_filename_template,
@@ -21,6 +26,7 @@ use rspack_core::{
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;
 
+use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
 use crate::{
   pxtorem::{option::PxToRemOption, px_to_rem::px_to_rem},
   visitors::DependencyScanner,
@@ -41,6 +47,7 @@ pub struct PostcssConfig {
 pub struct CssConfig {
   pub preset_env: Vec<String>,
   pub postcss: PostcssConfig,
+  pub modules: bool,
 }
 
 impl CssPlugin {
@@ -246,14 +253,24 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let ParseContext {
       source,
       additional_data,
-      ..
+      module_type,
+      resource_data,
+      compiler_options,
     } = parse_context;
 
     let content = source.source().to_string();
+    let css_modules = matches!(module_type, ModuleType::CssModule);
     let TWithDiagnosticArray {
       inner: mut stylesheet,
-      diagnostic,
-    } = SWC_COMPILER.parse_file(&parse_context.resource_data.resource_path, content)?;
+      mut diagnostic,
+    } = SWC_COMPILER.parse_file(
+      &parse_context.resource_data.resource_path,
+      content,
+      ParserConfig {
+        css_modules,
+        ..Default::default()
+      },
+    )?;
 
     if let Some(query) = self.get_query() {
       stylesheet.visit_mut_with(&mut prefixer(Options {
@@ -265,7 +282,44 @@ impl ParserAndGenerator for CssParserAndGenerator {
       stylesheet.visit_mut_with(&mut px_to_rem(config));
     }
 
-    self.meta = additional_data.and_then(|data| if data.is_empty() { None } else { Some(data) });
+    let (_imports, exports) = if self.config.modules {
+      let imports = swc_css::modules::imports::analyze_imports(&stylesheet);
+      let result = swc_css::modules::compile(
+        &mut stylesheet,
+        ModulesTransformConfig {
+          suffix: format!(
+            "-{}",
+            Path::new(&resource_data.resource_path)
+              .relative(&compiler_options.context)
+              .display()
+          ),
+        },
+      );
+      let mut exports: IndexMap<JsWord, _> = result.renamed.into_iter().collect();
+      exports.sort_keys();
+      (imports, exports)
+    } else {
+      Default::default()
+    };
+
+    self.meta = if let Some(additional_data) = additional_data && !additional_data.is_empty() {
+      if !exports.is_empty() {
+        // TODO: remove this once native css modules can fully replace postcss css modules.
+        diagnostic.push(rspack_error::Diagnostic::warn(
+          "CSS Modules config".to_string(),
+          "You're using native CSS Modules and postcss CSS Modules at the same time, rspack will use CSS Modules's exports first.".to_string(),
+          0,
+          0,
+        ));
+        Some(css_modules_exports_to_string(exports)?)
+      } else {
+        Some(additional_data)
+      }
+    } else if !exports.is_empty() {
+      Some(css_modules_exports_to_string(exports)?)
+    } else {
+      None
+    };
 
     let mut scanner = DependencyScanner::default();
     stylesheet.visit_mut_with(&mut scanner);
@@ -335,7 +389,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           self
             .meta
             .clone()
-            .map(|item| format!("module.exports = {};", item))
+            .map(|item| format!("module.exports = {};\n", item))
             .unwrap_or_else(|| "".to_string()),
         )
         .boxed(),
@@ -372,7 +426,10 @@ impl Plugin for CssPlugin {
 
     ctx
       .context
-      .register_parser_and_generator_builder(ModuleType::Css, Box::new(builder));
+      .register_parser_and_generator_builder(ModuleType::Css, Box::new(builder.clone()));
+    ctx
+      .context
+      .register_parser_and_generator_builder(ModuleType::CssModule, Box::new(builder));
 
     Ok(())
   }

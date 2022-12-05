@@ -228,16 +228,15 @@ impl JsPlugin {
                 wrap_eval_source_map(module_source, &self.eval_source_map_cache, args.compilation)?;
             }
 
-            if mgm.module_type.is_css() && compilation.options.dev_server.hot {
+            if mgm.module_type.is_css_like() && compilation.options.dev_server.hot {
               // inject css hmr runtime
               module_source = ConcatSource::new([
                 module_source,
                 RawSource::from(
-                  r#"
-            if (module.hot) {
-              module.hot.accept();
-            }
-                    "#,
+                  r#"if (module.hot) {
+  module.hot.accept();
+}
+"#,
                 )
                 .boxed(),
               ])
