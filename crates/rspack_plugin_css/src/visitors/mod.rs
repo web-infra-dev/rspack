@@ -23,7 +23,7 @@ impl VisitMut for DependencyScanner {
         Rule::AtRule(at_rule) => {
           if let Some(box AtRulePrelude::ImportPrelude(prelude)) = &at_rule.prelude {
             let (kind, href_string) = match &prelude.href {
-              box swc_css::ast::ImportPreludeHref::Url(url) => {
+              box swc_css::ast::ImportHref::Url(url) => {
                 let href_string = url
                   .value
                   .as_ref()
@@ -34,9 +34,7 @@ impl VisitMut for DependencyScanner {
                   .unwrap_or_default();
                 (ResolveKind::UrlToken, href_string)
               }
-              box swc_css::ast::ImportPreludeHref::Str(str) => {
-                (ResolveKind::AtImport, str.value.clone())
-              }
+              box swc_css::ast::ImportHref::Str(str) => (ResolveKind::AtImport, str.value.clone()),
             };
             // TODO: This just naive checking for http:// and https://, but it's not enough.
             // Because any scheme is valid in `ImportPreludeHref::Url`, like `url(chrome://xxxx)`

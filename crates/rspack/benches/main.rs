@@ -1,3 +1,4 @@
+#![recursion_limit = "256"]
 use criterion::{criterion_group, criterion_main, Criterion};
 use xshell::{cmd, Shell};
 
