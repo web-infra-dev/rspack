@@ -1,10 +1,10 @@
 use std::sync::Arc;
-use swc_common::{comments::SingleThreadedComments, Mark, SourceMap};
-use swc_ecma_transforms::{
+use swc_core::common::{comments::SingleThreadedComments, Mark, SourceMap};
+use swc_core::ecma::transforms::{
   react::{default_pragma, default_pragma_frag},
   typescript::{self, TsEnumConfig, TsImportExportAssignConfig},
 };
-use swc_ecma_visit::Fold;
+use swc_core::ecma::visit::Fold;
 
 pub fn typescript<'a>(
   top_level_mark: Mark,

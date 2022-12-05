@@ -1,6 +1,5 @@
 use std::collections::HashMap;
-use swc_atoms::Atom;
-use swc_common::DUMMY_SP;
+use swc_core::{common::DUMMY_SP, ecma::atoms::Atom};
 use swc_css::{
   ast::{ComponentValue, Declaration, DeclarationOrAtRule, StyleBlock, Token},
   codegen::{

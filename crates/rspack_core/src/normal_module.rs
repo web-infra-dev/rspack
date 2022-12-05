@@ -21,6 +21,7 @@ use rspack_sources::{
   BoxSource, OriginalSource, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
   WithoutOriginalOptions,
 };
+use swc_core::ecma::ast;
 
 use crate::{
   ast::javascript::Ast as JsAst, BuildContext, BuildResult, CodeGenerationResult, Compilation,
@@ -218,8 +219,8 @@ impl From<ModuleAst> for AstOrSource {
   }
 }
 
-impl From<swc_ecma_ast::Program> for AstOrSource {
-  fn from(program: swc_ecma_ast::Program) -> Self {
+impl From<ast::Program> for AstOrSource {
+  fn from(program: ast::Program) -> Self {
     AstOrSource::Ast(ModuleAst::JavaScript(JsAst::new(program)))
   }
 }

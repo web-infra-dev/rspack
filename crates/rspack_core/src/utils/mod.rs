@@ -19,9 +19,6 @@ pub use source::*;
 mod hash;
 pub use hash::*;
 
-mod tree_shaking;
-pub use tree_shaking::*;
-
 mod module_rules;
 pub use module_rules::*;
 

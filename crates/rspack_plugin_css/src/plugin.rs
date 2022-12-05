@@ -8,7 +8,7 @@ use itertools::Itertools;
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
 use sugar_path::SugarPath;
-use swc_atoms::JsWord;
+use swc_core::ecma::atoms::JsWord;
 use swc_css::parser::parser::ParserConfig;
 use swc_css::prefixer::{options::Options, prefixer};
 use swc_css::visit::VisitMutWith;

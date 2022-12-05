@@ -21,7 +21,6 @@ serde             = { version = "1", features = ["derive"] }
 serde_json        = "1"
 sha2              = "0.10.2"
 sugar_path        = "0.0.9"
-swc_atoms         = { workspace = true }
-swc_common        = { workspace = true, features = ["concurrent"] }
+swc_core          = { workspace = true }
 swc_html          = { workspace = true }
 swc_html_minifier = { workspace = true }

@@ -1,8 +1,7 @@
 use crate::config::{HtmlPluginConfig, HtmlPluginConfigInject, HtmlPluginConfigScriptLoading};
 use itertools::Itertools;
 use rspack_core::Compilation;
-use swc_atoms::JsWord;
-use swc_common::DUMMY_SP;
+use swc_core::{common::DUMMY_SP, ecma::atoms::JsWord};
 use swc_html::ast::{Attribute, Child, Element, Namespace, Text};
 use swc_html::visit::{VisitMut, VisitMutWith};
 

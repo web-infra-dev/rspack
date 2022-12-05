@@ -1,6 +1,6 @@
 use rspack_core::DecoratorOptions;
-use swc_ecma_transforms::proposals::decorators;
-use swc_ecma_visit::Fold;
+use swc_core::ecma::transforms::proposal::decorators;
+use swc_core::ecma::visit::Fold;
 
 pub fn decorator(option: &Option<DecoratorOptions>) -> impl Fold {
   let config = match option {

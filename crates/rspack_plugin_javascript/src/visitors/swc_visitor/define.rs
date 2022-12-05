@@ -1,9 +1,9 @@
 use rspack_core::Define;
 use std::sync::Arc;
-use swc::config::GlobalPassOption;
-use swc_atoms::JsWord;
-use swc_common::{errors::Handler, SourceMap};
-use swc_ecma_visit::Fold;
+use swc_core::base::config::GlobalPassOption;
+use swc_core::common::{errors::Handler, SourceMap};
+use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::visit::Fold;
 
 pub fn define(opts: &Define, handler: &Handler, cm: &Arc<SourceMap>) -> impl Fold {
   let mut global_opts: GlobalPassOption = Default::default();

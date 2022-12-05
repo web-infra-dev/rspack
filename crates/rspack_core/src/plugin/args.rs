@@ -6,8 +6,8 @@ use hashbrown::HashSet;
 use rspack_error::{Error, Result};
 use rspack_loader_runner::Content;
 use std::fmt::Debug;
+use swc_core::ecma::ast::Program as SwcProgram;
 use swc_css::ast::Stylesheet;
-use swc_ecma_ast::Program as SwcProgram;
 
 // #[derive(Debug)]
 // pub struct ParseModuleArgs<'a> {

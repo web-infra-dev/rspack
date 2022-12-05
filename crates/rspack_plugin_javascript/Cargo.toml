@@ -27,19 +27,29 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sourcemap = "6.2.0"
 sugar_path = "0.0.9"
-swc = { workspace = true }
-swc_atoms = { workspace = true }
-swc_common = { workspace = true, features = ["concurrent"] }
-swc_ecma_ast = { workspace = true }
-swc_ecma_lints = { workspace = true }
-swc_ecma_minifier = { workspace = true }
-swc_ecma_parser = { workspace = true }
-swc_ecma_preset_env = { workspace = true }
-swc_ecma_transforms = { workspace = true, features = [
-  "swc_ecma_transforms_module",
-  "swc_ecma_transforms_react",
+swc_core = { workspace = true, features = [
+  "__parser",
+  "__utils",
+  "ecma_preset_env",
+  "ecma_transforms_optimization",
+  "ecma_transforms_module",
+  "ecma_transforms_compat",
+  "ecma_transforms_proposal",
+  "ecma_transforms_typescript",
 ] }
-swc_ecma_utils = { workspace = true }
-swc_ecma_visit = { workspace = true }
+# swc = { workspace = true }
+# swc_atoms = { workspace = true }
+# swc_common = { workspace = true, features = ["concurrent"] }
+# swc_ecma_ast = { workspace = true }
+# swc_ecma_lints = { workspace = true }
+# swc_ecma_minifier = { workspace = true }
+# swc_ecma_parser = { workspace = true }
+# swc_ecma_preset_env = { workspace = true }
+# swc_ecma_transforms = { workspace = true, features = [
+#   "swc_ecma_transforms_module",
+#   "swc_ecma_transforms_react",
+# ] }
+# swc_ecma_utils = { workspace = true }
+# swc_ecma_visit = { workspace = true }
 tracing = "0.1.34"
-ustr = "0.9.0"
+ustr    = "0.9.0"

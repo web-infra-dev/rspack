@@ -12,8 +12,10 @@ use rspack_core::{ErrorSpan, PATH_START_BYTE_POS_MAP};
 use rspack_error::{
   Diagnostic, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
-use swc_common::source_map::SourceMapGenConfig;
-use swc_common::{input::SourceFileInput, sync::Lrc, FileName, FilePathMapping, SourceMap};
+use swc_core::common::{
+  input::SourceFileInput, source_map::SourceMapGenConfig, sync::Lrc, FileName, FilePathMapping,
+  SourceMap,
+};
 
 use std::sync::Arc;
 

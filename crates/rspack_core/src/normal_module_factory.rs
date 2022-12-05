@@ -7,7 +7,7 @@ use std::{
 };
 
 use sugar_path::SugarPath;
-use swc_common::Span;
+use swc_core::common::Span;
 use tokio::sync::mpsc::UnboundedSender;
 
 use rspack_error::{Diagnostic, Error, Result, TWithDiagnosticArray};

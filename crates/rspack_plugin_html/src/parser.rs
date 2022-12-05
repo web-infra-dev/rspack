@@ -2,7 +2,7 @@ use rspack_core::{ErrorSpan, PATH_START_BYTE_POS_MAP};
 use rspack_error::{
   Diagnostic, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
-use swc_common::{sync::Lrc, FileName, FilePathMapping, SourceMap};
+use swc_core::common::{sync::Lrc, FileName, FilePathMapping, SourceMap};
 use swc_html::{
   ast::Document,
   codegen::{

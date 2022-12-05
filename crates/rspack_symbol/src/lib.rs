@@ -1,7 +1,7 @@
 use bitflags::bitflags;
-use swc_atoms::JsWord;
-use swc_common::SyntaxContext;
-use swc_ecma_ast::Id;
+use swc_core::common::SyntaxContext;
+use swc_core::ecma::ast::Id;
+use swc_core::ecma::atoms::JsWord;
 use ustr::{ustr, Ustr};
 
 bitflags! {

@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use swc_ecma_ast::EsVersion;
+use swc_core::ecma::ast::EsVersion;
 
 #[derive(Debug, Clone)]
 pub enum TargetPlatform {

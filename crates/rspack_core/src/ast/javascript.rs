@@ -1,9 +1,13 @@
 use anyhow::Error;
 use std::{hash::Hash, sync::Arc};
-use swc_common::{errors::Handler, sync::Lrc, util::take::Take, Globals, Mark, SourceMap, GLOBALS};
-use swc_ecma_ast::{Module, ModuleItem, Program as SwcProgram};
-use swc_ecma_transforms::helpers::Helpers;
-use swc_ecma_visit::{Fold, FoldWith, Visit, VisitAll, VisitAllWith, VisitWith};
+use swc_core::base::try_with_handler;
+use swc_core::common::{
+  errors::Handler, sync::Lrc, util::take::Take, Globals, Mark, SourceMap, GLOBALS,
+};
+use swc_core::ecma::ast::{Module, ModuleItem, Program as SwcProgram};
+use swc_core::ecma::transforms::base::helpers;
+use swc_core::ecma::transforms::base::helpers::Helpers;
+use swc_core::ecma::visit::{Fold, FoldWith, Visit, VisitAll, VisitAllWith, VisitWith};
 
 /// Program is a wrapper for SwcProgram
 ///
@@ -105,7 +109,7 @@ impl Ast {
   {
     let Self { program, context } = self;
     GLOBALS.set(&context.globals, || {
-      swc_ecma_transforms::helpers::HELPERS.set(&context.helpers, || f(program, context))
+      helpers::HELPERS.set(&context.helpers, || f(program, context))
     })
   }
 
@@ -114,7 +118,7 @@ impl Ast {
     F: FnOnce(&Handler, &mut Program, &Context) -> Result<R, Error>,
   {
     self.transform(|program, context| {
-      swc::try_with_handler(cm, Default::default(), |handler| {
+      try_with_handler(cm, Default::default(), |handler| {
         f(handler, program, context)
       })
     })
@@ -126,7 +130,7 @@ impl Ast {
   {
     let Self { program, context } = self;
     GLOBALS.set(&context.globals, || {
-      swc_ecma_transforms::helpers::HELPERS.set(&context.helpers, || f(program, context))
+      helpers::HELPERS.set(&context.helpers, || f(program, context))
     })
   }
 }

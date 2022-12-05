@@ -1,25 +1,20 @@
 // use crate::{cjs_runtime_helper, Bundle, ModuleGraph, Platform, ResolvedURI};
-use ast::*;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
   runtime_globals, Compilation, Dependency, Module, ModuleDependency, ResolveKind,
 };
-use swc_atoms::{Atom, JsWord};
-use swc_common::{Mark, SyntaxContext, DUMMY_SP};
-use swc_ecma_utils::ExprFactory;
-use swc_ecma_visit::{Fold, VisitMut, VisitMutWith};
+use swc_core::ecma::utils::ExprFactory;
 use tracing::instrument;
 
 use crate::utils::{is_dynamic_import_literal_expr, is_require_literal_expr};
 
 use super::is_module_hot_accept_call;
 use {
-  swc_atoms,
-  swc_common,
-  swc_ecma_ast as ast,
-  // swc_ecma_utils::{self},
-  swc_ecma_visit::{self, noop_visit_mut_type},
+  swc_core::common::{Mark, SyntaxContext, DUMMY_SP},
+  swc_core::ecma::ast::{self, *},
+  swc_core::ecma::atoms::{Atom, JsWord},
+  swc_core::ecma::visit::{noop_visit_mut_type, Fold, VisitMut, VisitMutWith},
 };
 
 static SWC_HELPERS_REG: Lazy<Regex> =
@@ -74,7 +69,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
   fn get_rspack_dynamic_import_callee(&self, chunk_ids: Vec<&str>) -> Callee {
     MemberExpr {
       span: DUMMY_SP,
-      obj: Box::new(swc_ecma_ast::Expr::Call(CallExpr {
+      obj: Box::new(ast::Expr::Call(CallExpr {
         span: DUMMY_SP,
         callee: Ident::new(runtime_globals::ENSURE_CHUNK.into(), DUMMY_SP).as_callee(),
         args: vec![Expr::Array(ArrayLit {
