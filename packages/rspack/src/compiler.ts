@@ -308,8 +308,6 @@ class Compiler {
 
 		let stats = new Stats(rawStats, this.compilation);
 		await this.hooks.done.promise(stats);
-		// TODO: log stats string should move to cli
-		console.log(stats.toString(this.options.stats));
 		console.log("build success, time cost", Date.now() - begin, "ms");
 
 		let pendingChangedFilepaths = new Set<string>();
@@ -338,8 +336,6 @@ class Compiler {
 				const begin = Date.now();
 				this.rebuild(changedFilepath, (error: any, rawStats) => {
 					let stats = new Stats(rawStats, this.compilation);
-					// TODO: log stats string should move to cli
-					console.log(stats.toString(this.options.stats));
 					isBuildFinished = true;
 
 					const hasPending = Boolean(pendingChangedFilepaths.size);
