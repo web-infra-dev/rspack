@@ -70,3 +70,25 @@ module.exports = {
   let mut file = File::create(webpack_config_path).unwrap();
   file.write_all(webpack_config_file.as_bytes()).unwrap();
 }
+
+pub fn three_production_config() {
+  let root_dir = PathBuf::from(env!("CARGO_WORKSPACE_DIR"));
+  // test.config.js
+  let test_config_file = r#"
+module.exports = {
+    mode: 'production',
+    devtool: 'source-map', 
+    builtins: {
+      minify: true
+    },
+    entry: {
+        index: {
+            import: ['./src/entry.js']
+        }
+    }
+};
+  "#;
+  let test_config_path = root_dir.join("benchcases/three/test.config.js");
+  let mut file = File::create(test_config_path).unwrap();
+  file.write_all(test_config_file.as_bytes()).unwrap();
+}
