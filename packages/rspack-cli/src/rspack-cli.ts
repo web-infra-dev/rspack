@@ -94,11 +94,9 @@ export class RspackCLI {
 		}
 
 		// false is also a valid value for sourcemap, so don't override it
-		console.log(item);
 		if (typeof item.devtool === "undefined") {
 			item.devtool = isEnvProduction ? "source-map" : "cheap-module-source-map";
 		}
-		console.log("after", item);
 		item.builtins = {
 			...item.builtins,
 			minify: item.builtins?.minify ?? isEnvProduction
