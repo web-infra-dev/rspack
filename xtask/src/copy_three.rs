@@ -44,7 +44,7 @@ pub fn copy_three(num: usize) {
   let test_config_file = r#"
 module.exports = {
     mode: 'production',
-    devtools: 'source-map', 
+    devtool: 'source-map', 
     builtins: {
       minify: true
     },
