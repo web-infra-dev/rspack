@@ -1,4 +1,4 @@
-it("basic", () => {
+it("css modules with css preprocessers", () => {
 	const style = require("./index.css");
 	expect(style).toEqual({
 		class: "class-index.css lessClass-less-file.less ",

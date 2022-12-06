@@ -1,4 +1,4 @@
-it("basic", () => {
+it("css modules dedupe", () => {
 	const style = require("./source.css");
 	expect(style).toEqual({
 		backButton:
