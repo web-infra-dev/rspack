@@ -82,7 +82,7 @@ impl<'a> Fold for TreeShaker<'a> {
             .unwrap();
           let mgm = self
             .module_graph
-            .module_graph_module_by_identifier(module_identifier.as_str())
+            .module_graph_module_by_identifier(&module_identifier)
             .unwrap();
           if !mgm.used {
             ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }))
@@ -192,7 +192,7 @@ impl<'a> Fold for TreeShaker<'a> {
               .unwrap();
             let mgm = self
               .module_graph
-              .module_graph_module_by_identifier(module_identifier.as_str())
+              .module_graph_module_by_identifier(&module_identifier)
               .unwrap();
             if !mgm.used {
               return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }));
@@ -342,7 +342,7 @@ impl<'a> Fold for TreeShaker<'a> {
             .unwrap();
           let mgm = self
             .module_graph
-            .module_graph_module_by_identifier(module_identifier.as_str())
+            .module_graph_module_by_identifier(&module_identifier)
             .unwrap();
           if !mgm.used {
             ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }))
@@ -373,7 +373,7 @@ impl<'a> TreeShaker<'a> {
         kind: resolve_kind,
         span: None,
       },
-      parent_module_identifier: Some(self.module_identifier.to_string()),
+      parent_module_identifier: Some(self.module_identifier),
     };
     self
       .module_graph

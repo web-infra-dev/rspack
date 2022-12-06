@@ -8,8 +8,8 @@ use rspack_error::Result;
 use rspack_sources::{RawSource, SourceExt};
 
 use crate::{
-  AssetInfo, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler, RenderManifestArgs,
-  RuntimeSpec, Stats,
+  AssetInfo, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler, ModuleIdentifier,
+  RenderManifestArgs, RuntimeSpec, Stats,
 };
 
 const HOT_UPDATE_MAIN_FILENAME: &str = "hot-update.json";
@@ -22,7 +22,7 @@ fn get_hot_update_main_filename(chunk_name: &str) -> String {
 struct HotUpdateContent {
   updated_chunk_ids: HashSet<String>,
   removed_chunk_ids: HashSet<String>,
-  _removed_modules: HashSet<String>,
+  _removed_modules: HashSet<ModuleIdentifier>,
   // TODO: should [chunk-name].[hash].hot-update.json
   filename: String,
 }
@@ -44,7 +44,7 @@ impl Compiler {
     removed_files: std::collections::HashSet<String>,
   ) -> Result<Stats> {
     let old = self.compilation.get_stats();
-    let collect_changed_modules = |compilation: &Compilation| -> HashMap<String, String> {
+    let collect_changed_modules = |compilation: &Compilation| -> HashMap<ModuleIdentifier, String> {
       let modules = compilation.module_graph.module_graph_modules();
       // TODO: use hash;
 
@@ -116,7 +116,7 @@ impl Compiler {
       .map(|id| (id.clone(), HotUpdateContent::new(id)))
       .collect::<HashMap<String, HotUpdateContent>>();
 
-    let mut old_chunks: Vec<(String, hashbrown::HashSet<String>)> = vec![];
+    let mut old_chunks: Vec<(String, hashbrown::HashSet<ModuleIdentifier>)> = vec![];
     for (ukey, chunk) in &old.compilation.chunk_by_ukey {
       let modules = old
         .compilation
@@ -170,18 +170,18 @@ impl Compiler {
 
     let now_modules = collect_changed_modules(&mut self.compilation);
 
-    let mut updated_modules: HashMap<String, String> = Default::default();
-    let mut completely_removed_modules: HashSet<String> = Default::default();
+    let mut updated_modules: HashMap<ModuleIdentifier, String> = Default::default();
+    let mut completely_removed_modules: HashSet<ModuleIdentifier> = Default::default();
 
     for (old_uri, old_content) in &old_modules {
       if let Some(now_content) = now_modules.get(old_uri) {
         // updated
         if now_content != old_content {
-          updated_modules.insert(old_uri.to_string(), now_content.to_string());
+          updated_modules.insert(*old_uri, now_content.to_string());
         }
       } else {
         // deleted
-        completely_removed_modules.insert(old_uri.to_string());
+        completely_removed_modules.insert(*old_uri);
       }
     }
 
@@ -227,11 +227,7 @@ impl Compiler {
           .get_chunk_graph_chunk(&current_chunk.ukey)
           .modules
           .iter()
-          .filter_map(|module| {
-            updated_modules
-              .contains_key(module)
-              .then_some(module.to_string())
-          })
+          .filter_map(|module| updated_modules.contains_key(module).then_some(*module))
           .collect::<Vec<_>>();
 
         // subtractRuntime
@@ -281,7 +277,7 @@ impl Compiler {
           self
             .compilation
             .chunk_graph
-            .connect_chunk_and_module(ukey, module_identifier.to_string());
+            .connect_chunk_and_module(ukey, *module_identifier);
         }
 
         let render_manifest = self
@@ -316,13 +312,16 @@ impl Compiler {
       }
     }
 
-    let completely_removed_modules_array: Vec<String> =
+    let completely_removed_modules_array: Vec<ModuleIdentifier> =
       completely_removed_modules.into_iter().collect();
 
     for (_, content) in hot_update_main_content_by_runtime {
       let c: Vec<String> = content.updated_chunk_ids.into_iter().collect();
       let r: Vec<String> = content.removed_chunk_ids.into_iter().collect();
-      let m: Vec<String> = completely_removed_modules_array.clone();
+      let m: Vec<String> = completely_removed_modules_array
+        .iter()
+        .map(|x| x.to_owned())
+        .collect();
       self.emit_asset(
         &output_path,
         &content.filename,

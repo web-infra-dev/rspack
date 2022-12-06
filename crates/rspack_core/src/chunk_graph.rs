@@ -1,4 +1,5 @@
 use hashbrown::{HashMap, HashSet};
+use ustr::Ustr;
 
 use crate::{
   Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Module, ModuleGraph,
@@ -22,7 +23,7 @@ impl ChunkGraph {
       .entry(chunk_ukey)
       .or_insert_with(ChunkGraphChunk::new);
   }
-  pub fn add_module(&mut self, module_identifier: String) {
+  pub fn add_module(&mut self, module_identifier: ModuleIdentifier) {
     self
       .chunk_graph_module_by_module_identifier
       .entry(module_identifier)
@@ -31,14 +32,16 @@ impl ChunkGraph {
 
   pub fn chunk_by_split_point_module_identifier<'a>(
     &self,
-    uri: &str,
+    module_identifier: &ModuleIdentifier,
     chunk_by_ukey: &'a ChunkByUkey,
   ) -> Option<&'a Chunk> {
-    let ukey = self.split_point_module_identifier_to_chunk_ukey.get(uri)?;
+    let ukey = self
+      .split_point_module_identifier_to_chunk_ukey
+      .get(module_identifier)?;
     chunk_by_ukey.get(ukey)
   }
 
-  pub fn get_chunk_entry_modules(&self, chunk_ukey: &ChunkUkey) -> Vec<&String> {
+  pub fn get_chunk_entry_modules(&self, chunk_ukey: &ChunkUkey) -> Vec<&ModuleIdentifier> {
     let chunk_graph_chunk = self.get_chunk_graph_chunk(chunk_ukey);
 
     chunk_graph_chunk.entry_modules.keys().collect()
@@ -57,14 +60,18 @@ impl ChunkGraph {
       .collect()
   }
 
-  pub fn is_module_in_chunk(&mut self, module_identifier: &str, chunk_ukey: ChunkUkey) -> bool {
+  pub fn is_module_in_chunk(
+    &mut self,
+    module_identifier: &ModuleIdentifier,
+    chunk_ukey: ChunkUkey,
+  ) -> bool {
     let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(chunk_ukey);
     chunk_graph_chunk.modules.contains(module_identifier)
   }
 
   pub(crate) fn get_chunk_graph_module_mut(
     &mut self,
-    module_identifier: &str,
+    module_identifier: &ModuleIdentifier,
   ) -> &mut ChunkGraphModule {
     self
       .chunk_graph_module_by_module_identifier
@@ -72,7 +79,10 @@ impl ChunkGraph {
       .expect("Module should be added before")
   }
 
-  pub(crate) fn get_chunk_graph_module(&self, module_identifier: &str) -> &ChunkGraphModule {
+  pub(crate) fn get_chunk_graph_module(
+    &self,
+    module_identifier: &ModuleIdentifier,
+  ) -> &ChunkGraphModule {
     self
       .chunk_graph_module_by_module_identifier
       .get(module_identifier)
@@ -99,7 +109,7 @@ impl ChunkGraph {
   pub(crate) fn connect_chunk_and_entry_module(
     &mut self,
     chunk: ChunkUkey,
-    module_identifier: String,
+    module_identifier: ModuleIdentifier,
     entrypoint: ChunkGroupUkey,
   ) {
     let chunk_graph_module = self.get_chunk_graph_module_mut(&module_identifier);
@@ -111,7 +121,11 @@ impl ChunkGraph {
       .insert(module_identifier, entrypoint);
   }
 
-  pub fn disconnect_chunk_and_module(&mut self, chunk: &ChunkUkey, module_identifier: &str) {
+  pub fn disconnect_chunk_and_module(
+    &mut self,
+    chunk: &ChunkUkey,
+    module_identifier: &ModuleIdentifier,
+  ) {
     let chunk_graph_module = self.get_chunk_graph_module_mut(module_identifier);
     chunk_graph_module.chunks.remove(chunk);
 
@@ -119,7 +133,11 @@ impl ChunkGraph {
     chunk_graph_chunk.modules.remove(module_identifier);
   }
 
-  pub fn connect_chunk_and_module(&mut self, chunk: ChunkUkey, module_identifier: String) {
+  pub fn connect_chunk_and_module(
+    &mut self,
+    chunk: ChunkUkey,
+    module_identifier: ModuleIdentifier,
+  ) {
     let chunk_graph_module = self.get_chunk_graph_module_mut(&module_identifier);
     chunk_graph_module.chunks.insert(chunk);
 
@@ -132,7 +150,7 @@ impl ChunkGraph {
     chunk: ChunkUkey,
     module: Box<dyn RuntimeModule>,
   ) {
-    let cgm = self.get_chunk_graph_module_mut(&module.identifier());
+    let cgm = self.get_chunk_graph_module_mut(&Ustr::from(&module.identifier()));
     cgm.runtime_in_chunks.insert(chunk);
 
     let cgc = self.get_chunk_graph_chunk_mut(chunk);
@@ -145,7 +163,7 @@ impl ChunkGraph {
     }
   }
 
-  pub fn get_modules_chunks(&self, module_identifier: &str) -> &HashSet<ChunkUkey> {
+  pub fn get_modules_chunks(&self, module_identifier: &ModuleIdentifier) -> &HashSet<ChunkUkey> {
     let chunk_graph_module = self
       .chunk_graph_module_by_module_identifier
       .get(module_identifier)
@@ -155,7 +173,7 @@ impl ChunkGraph {
 
   pub fn get_module_chunk_group<'a>(
     &self,
-    module_identifier: &str,
+    module_identifier: &ModuleIdentifier,
     chunk_by_ukey: &'a ChunkByUkey,
   ) -> &'a ChunkGroupUkey {
     let chunk = self
@@ -249,7 +267,7 @@ impl ChunkGraph {
 
   pub fn add_module_runtime_requirements(
     &mut self,
-    module_identifier: &str,
+    module_identifier: &ModuleIdentifier,
     runtime: &RuntimeSpec,
     runtime_requirements: HashSet<String>,
   ) {
@@ -287,7 +305,7 @@ impl ChunkGraph {
 
   pub fn get_module_runtime_requirements(
     &self,
-    module_identifier: &str,
+    module_identifier: &ModuleIdentifier,
     _runtime: &RuntimeSpec,
   ) -> Option<&HashSet<String>> {
     let cgm = self.get_chunk_graph_module(module_identifier);
@@ -411,8 +429,8 @@ pub struct ChunkGraphChunk {
   /// URI of modules => ChunkGroupUkey
   ///
   /// use `LinkedHashMap` to keep the ordered from entry array.
-  pub(crate) entry_modules: hashlink::LinkedHashMap<String, ChunkGroupUkey>,
-  pub(crate) modules: HashSet<String>,
+  pub(crate) entry_modules: hashlink::LinkedHashMap<ModuleIdentifier, ChunkGroupUkey>,
+  pub(crate) modules: HashSet<ModuleIdentifier>,
   pub(crate) runtime_requirements: HashSet<String>,
   pub(crate) runtime_modules: Vec<Box<dyn RuntimeModule>>,
 }

@@ -360,7 +360,7 @@ impl Compilation {
 
               match self
                 .visited_module_id
-                .entry((module_identifier.clone().into(), dependency.detail.clone()))
+                .entry((module_identifier, dependency.detail.clone()))
               {
                 Occupied(_) => {
                   if let Err(err) = tx.send(Msg::ModuleReused(
@@ -506,7 +506,7 @@ impl Compilation {
     let plugin_driver = self.plugin_driver.clone();
     let cache = self.cache.clone();
 
-    let module_identifier = module.identifier().into_owned();
+    let module_identifier = module.identifier();
 
     tokio::spawn(async move {
       let build_result = cache
@@ -816,7 +816,7 @@ impl Compilation {
       let forced_side_effects = !side_effects_analyze
         || self
           .entry_module_identifiers
-          .contains(analyze_result.module_identifier.as_str());
+          .contains(&analyze_result.module_identifier);
       // side_effects: true
       if forced_side_effects || !analyze_result.side_effects_free {
         evaluated_module_identifiers.insert(analyze_result.module_identifier);
@@ -919,14 +919,14 @@ impl Compilation {
         if !bail_out_module_identifiers.contains_key(&result.module_identifier)
           && !self
             .entry_module_identifiers
-            .contains(result.module_identifier.as_str())
+            .contains(&result.module_identifier)
           && result.side_effects_free
           && !used_export_module_identifiers.contains(&result.module_identifier)
         // && result.inherit_export_maps.is_empty()
         {
           self
             .module_graph
-            .module_graph_module_by_identifier_mut(result.module_identifier.as_str())
+            .module_graph_module_by_identifier_mut(&result.module_identifier)
             .unwrap()
             .used = false;
         }
@@ -951,7 +951,7 @@ impl Compilation {
     Ok(())
   }
 
-  pub fn entry_modules(&self) -> impl Iterator<Item = String> {
+  pub fn entry_modules(&self) -> impl Iterator<Item = Ustr> {
     self.entry_module_identifiers.clone().into_iter()
   }
 
@@ -1146,10 +1146,10 @@ impl Compilation {
 
   pub fn add_runtime_module(&mut self, chunk_ukey: &ChunkUkey, mut module: Box<dyn RuntimeModule>) {
     module.attach(*chunk_ukey);
-    self.chunk_graph.add_module(module.identifier());
+    self.chunk_graph.add_module(ustr(&module.identifier()));
     self
       .chunk_graph
-      .connect_chunk_and_module(*chunk_ukey, module.identifier());
+      .connect_chunk_and_module(*chunk_ukey, ustr(&module.identifier()));
     self
       .chunk_graph
       .connect_chunk_and_runtime_module(*chunk_ukey, module);

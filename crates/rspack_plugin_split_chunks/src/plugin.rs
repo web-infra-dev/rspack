@@ -10,7 +10,8 @@ use std::{
 };
 
 use rspack_core::{
-  Chunk, ChunkGroupByUkey, ChunkUkey, Compilation, Module, ModuleGraph, Plugin, SourceType,
+  Chunk, ChunkGroupByUkey, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier, Plugin,
+  SourceType,
 };
 
 use crate::{
@@ -328,7 +329,7 @@ impl SplitChunksPlugin {
     cache_group_index: usize,
     selected_chunks: &[&Chunk],
     // selectedChunksKey,
-    module_identifier: String,
+    module_identifier: ModuleIdentifier,
     module_graph_module: &dyn Module,
     chunks_info_map: &mut HashMap<String, ChunksInfoItem>,
     // compilation: &mut Compilation,
@@ -379,7 +380,7 @@ impl SplitChunksPlugin {
 #[derive(Debug)]
 struct ChunksInfoItem {
   // Sortable Module Set
-  pub modules: HashSet<String>,
+  pub modules: HashSet<ModuleIdentifier>,
   pub cache_group: String,
   pub _cache_group_index: usize,
   pub name: String,
@@ -459,7 +460,7 @@ impl Plugin for SplitChunksPlugin {
             cache_group,
             cache_group_index,
             &selected_chunks,
-            module.identifier().to_string(),
+            module.identifier(),
             module.as_ref(),
             &mut chunks_info_map,
             // compilation,

@@ -10,6 +10,7 @@ use tracing::instrument;
 
 use crate::{
   uri_to_chunk_name, ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation,
+  ModuleIdentifier,
 };
 
 #[instrument(skip_all)]
@@ -25,7 +26,7 @@ struct CodeSplitter<'me> {
   queue: Vec<QueueItem>,
   queue_delayed: Vec<QueueItem>,
   chunk_relation_graph: petgraph::graphmap::DiGraphMap<ChunkUkey, ()>,
-  split_point_modules: HashSet<String>,
+  split_point_modules: HashSet<ModuleIdentifier>,
 }
 
 impl<'me> CodeSplitter<'me> {
@@ -43,13 +44,14 @@ impl<'me> CodeSplitter<'me> {
 
   fn prepare_input_entrypoints_and_modules(
     &mut self,
-  ) -> Result<HashMap<ChunkGroupUkey, Vec<String>>> {
+  ) -> Result<HashMap<ChunkGroupUkey, Vec<ModuleIdentifier>>> {
     let compilation = &mut self.compilation;
     let module_graph = &compilation.module_graph;
 
     let entries = compilation.entry_data();
 
-    let mut input_entrypoints_and_modules: HashMap<ChunkGroupUkey, Vec<String>> = HashMap::new();
+    let mut input_entrypoints_and_modules: HashMap<ChunkGroupUkey, Vec<ModuleIdentifier>> =
+      HashMap::new();
 
     for (name, entry_data) in entries.iter() {
       let options = &entry_data.options;
@@ -196,7 +198,8 @@ impl<'me> CodeSplitter<'me> {
 
     // Optmize to remove duplicated module which is safe
 
-    let mut modules_to_be_removed_in_chunk = HashMap::new() as HashMap<ChunkUkey, HashSet<String>>;
+    let mut modules_to_be_removed_in_chunk =
+      HashMap::new() as HashMap<ChunkUkey, HashSet<ModuleIdentifier>>;
 
     for chunk in self.compilation.chunk_by_ukey.values() {
       for module in self
@@ -220,7 +223,7 @@ impl<'me> CodeSplitter<'me> {
           modules_to_be_removed_in_chunk
             .entry(chunk.ukey)
             .or_default()
-            .insert(module.module_identifier.clone());
+            .insert(module.module_identifier);
         }
 
         tracing::trace!(
@@ -403,7 +406,7 @@ impl<'me> CodeSplitter<'me> {
       } else {
         self
           .split_point_modules
-          .insert(dyn_dep_mgm.module_identifier.clone());
+          .insert(dyn_dep_mgm.module_identifier);
       }
 
       let chunk = Compilation::add_named_chunk(
@@ -467,7 +470,7 @@ struct QueueItem {
   action: QueueAction,
   chunk_group: ChunkGroupUkey,
   chunk: ChunkUkey,
-  module_identifier: String,
+  module_identifier: ModuleIdentifier,
 }
 
 #[derive(Debug, Clone)]

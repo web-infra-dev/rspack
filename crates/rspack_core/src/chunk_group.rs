@@ -1,13 +1,13 @@
 use hashbrown::{HashMap, HashSet};
 
-use crate::{Chunk, ChunkByUkey, ChunkGroupUkey, ChunkUkey, RuntimeSpec};
+use crate::{Chunk, ChunkByUkey, ChunkGroupUkey, ChunkUkey, ModuleIdentifier, RuntimeSpec};
 
 #[derive(Debug)]
 pub struct ChunkGroup {
   pub ukey: ChunkGroupUkey,
   pub chunks: Vec<ChunkUkey>,
-  pub(crate) module_pre_order_indices: HashMap<String, usize>,
-  pub(crate) module_post_order_indices: HashMap<String, usize>,
+  pub(crate) module_pre_order_indices: HashMap<ModuleIdentifier, usize>,
+  pub(crate) module_post_order_indices: HashMap<ModuleIdentifier, usize>,
   pub(crate) parents: HashSet<ChunkGroupUkey>,
   pub(crate) children: HashSet<ChunkGroupUkey>,
   pub(crate) kind: ChunkGroupKind,
@@ -47,7 +47,7 @@ impl ChunkGroup {
     }
   }
 
-  pub fn module_post_order_index(&self, module_identifier: &str) -> usize {
+  pub fn module_post_order_index(&self, module_identifier: &ModuleIdentifier) -> usize {
     *self
       .module_post_order_indices
       .get(module_identifier)

@@ -9,7 +9,8 @@ use rspack_sources::Source;
 
 use crate::{
   CodeGenerationResult, Compilation, CompilationContext, CompilerContext, CompilerOptions, Context,
-  LoaderRunnerRunner, ModuleDependency, ModuleType, NormalModule, RawModule, SourceType,
+  Identifiable, Identifier, LoaderRunnerRunner, ModuleDependency, ModuleType, NormalModule,
+  RawModule, SourceType,
 };
 
 pub trait AsAny {
@@ -62,15 +63,15 @@ pub struct BuildResult {
   pub dependencies: Vec<ModuleDependency>,
 }
 
+pub type ModuleIdentifier = Identifier;
+
 #[async_trait]
-pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq {
+pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   fn module_type(&self) -> &ModuleType;
 
   fn source_types(&self) -> &[SourceType];
 
   fn original_source(&self) -> Option<&dyn Source>;
-
-  fn identifier(&self) -> Cow<str>;
 
   fn readable_identifier(&self, _context: &Context) -> Cow<str>;
 
@@ -105,6 +106,12 @@ impl<T: Module + 'static> ModuleExt for T {
 
 pub type BoxModule = Box<dyn Module>;
 
+impl Identifiable for Box<dyn Module> {
+  fn identifier(&self) -> Identifier {
+    self.as_ref().identifier()
+  }
+}
+
 #[async_trait::async_trait]
 impl Module for Box<dyn Module> {
   fn module_type(&self) -> &ModuleType {
@@ -117,10 +124,6 @@ impl Module for Box<dyn Module> {
 
   fn original_source(&self) -> Option<&dyn Source> {
     self.as_ref().original_source()
-  }
-
-  fn identifier(&self) -> Cow<str> {
-    self.as_ref().identifier()
   }
 
   fn readable_identifier(&self, context: &Context) -> Cow<str> {
@@ -211,8 +214,8 @@ mod test {
 
   use super::Module;
   use crate::{
-    BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, ModuleExt, ModuleType,
-    SourceType,
+    BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, Identifiable,
+    Identifier, ModuleExt, ModuleType, SourceType,
   };
 
   use rspack_error::{Result, TWithDiagnosticArray};
@@ -250,6 +253,12 @@ mod test {
 
   macro_rules! impl_noop_trait_module_type {
     ($ident: ident) => {
+      impl Identifiable for $ident {
+        fn identifier(&self) -> Identifier {
+          (stringify!($ident).to_owned() + &self.0).into()
+        }
+      }
+
       #[::async_trait::async_trait]
       impl Module for $ident {
         fn module_type(&self) -> &ModuleType {
@@ -266,10 +275,6 @@ mod test {
 
         fn size(&self, _source_type: &SourceType) -> f64 {
           unreachable!()
-        }
-
-        fn identifier(&self) -> Cow<str> {
-          (stringify!($ident).to_owned() + &self.0).into()
         }
 
         fn readable_identifier(&self, _context: &Context) -> Cow<str> {
