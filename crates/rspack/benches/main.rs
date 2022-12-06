@@ -42,7 +42,7 @@ fn criterion_benchmark(c: &mut Criterion) {
   // High cost benchmark
   // sample count reduce to 50
   let mut group = c.benchmark_group("high_cost_benchmark");
-  group.sample_size(50);
+  group.sample_size(30);
   let sh = Shell::new().unwrap();
   println!("{:?}", sh.current_dir());
   sh.change_dir(PathBuf::from(env!("CARGO_WORKSPACE_DIR")));
