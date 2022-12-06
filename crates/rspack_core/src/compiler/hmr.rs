@@ -75,7 +75,7 @@ impl Compiler {
                     println!("expect get JavaScirpt code");
                     String::new()
                   };
-                  Some((item.module_identifier.clone(), code))
+                  Some((item.module_identifier, code))
                 } else if item.module_type.is_css_like() {
                   // TODO: should use code_generation_results
                   let code = module.code_generation(compilation).unwrap();
@@ -86,7 +86,7 @@ impl Compiler {
                     println!("expect get CSS code");
                     String::new()
                   };
-                  Some((item.module_identifier.clone(), code))
+                  Some((item.module_identifier, code))
                 } else {
                   None
                 }

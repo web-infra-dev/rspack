@@ -134,21 +134,21 @@ impl CssPlugin {
         // done, everything empty
         break;
       }
-      let mut selected_module = list.last().unwrap().clone();
+      let mut selected_module = *list.last().unwrap();
       let mut has_failed = None;
       'outer: loop {
         for SortedModules { set, list } in &modules_by_chunk_group {
           if list.is_empty() {
             continue;
           }
-          let last_module = list.last().unwrap().clone();
+          let last_module = *list.last().unwrap();
           if last_module != selected_module {
             continue;
           }
           if !set.contains(&selected_module) {
             continue;
           }
-          failed_modules.insert(selected_module.clone());
+          failed_modules.insert(selected_module);
           if failed_modules.contains(&last_module) {
             // There is a conflict, try other alternatives
             has_failed = Some(last_module);
@@ -160,7 +160,7 @@ impl CssPlugin {
         }
         break;
       }
-      if let Some(has_failed) = has_failed.clone() {
+      if let Some(has_failed) = has_failed {
         // There is a not resolve-able conflict with the selectedModule
         // TODO: we should emit a warning here
         tracing::warn!("Conflicting order between");

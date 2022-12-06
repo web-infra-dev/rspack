@@ -77,16 +77,15 @@ impl ModuleGraph {
   pub fn add_module_graph_module(&mut self, module_graph_module: ModuleGraphModule) {
     if let hashbrown::hash_map::Entry::Vacant(val) = self
       .module_identifier_to_module_graph_module
-      .entry(module_graph_module.module_identifier.clone())
+      .entry(module_graph_module.module_identifier)
     {
       val.insert(module_graph_module);
     }
   }
 
   pub fn add_module(&mut self, module: BoxModule) {
-    if let hashbrown::hash_map::Entry::Vacant(val) = self
-      .module_identifier_to_module
-      .entry(module.identifier().into())
+    if let hashbrown::hash_map::Entry::Vacant(val) =
+      self.module_identifier_to_module.entry(module.identifier())
     {
       val.insert(module);
     }
@@ -142,11 +141,8 @@ impl ModuleGraph {
     dependency_id: u32,
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
-    let new_connection = ModuleGraphConnection::new(
-      original_module_identifier.clone(),
-      dependency_id,
-      module_identifier.clone(),
-    );
+    let new_connection =
+      ModuleGraphConnection::new(original_module_identifier, dependency_id, module_identifier);
 
     let connection_id = if let Some(connection) = self.connections.get(&new_connection) {
       connection.id

@@ -354,7 +354,7 @@ impl NormalModuleFactory {
       } else {
         id.to_string_lossy().to_string()
       },
-      module.identifier().into(),
+      module.identifier(),
       vec![],
       self.context.module_type.ok_or_else(|| {
         Error::InternalError(format!(
@@ -367,7 +367,7 @@ impl NormalModuleFactory {
     Ok(Some((
       mgm,
       module,
-      self.dependency.parent_module_identifier.clone(),
+      self.dependency.parent_module_identifier,
       dependency_id,
     )))
   }

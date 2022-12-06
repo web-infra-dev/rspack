@@ -289,7 +289,7 @@ impl Compilation {
             self
               .module_graph
               .module_by_dependency(dep)
-              .map(|module| module.module_identifier.clone())
+              .map(|module| module.module_identifier)
           })
           .next()
           .is_some()
@@ -364,11 +364,7 @@ impl Compilation {
               {
                 Occupied(_) => {
                   if let Err(err) = tx.send(Msg::ModuleReused(
-                    (
-                      original_module_identifier,
-                      dependency_id,
-                      module_identifier.into(),
-                    )
+                    (original_module_identifier, dependency_id, module_identifier)
                       .with_diagnostic(module_with_diagnostic.diagnostic),
                   )) {
                     tracing::trace!("fail to send msg {:?}", err)
@@ -381,9 +377,7 @@ impl Compilation {
               }
 
               if is_entry {
-                self
-                  .entry_module_identifiers
-                  .insert(module_identifier.into());
+                self.entry_module_identifiers.insert(module_identifier);
               }
 
               self.handle_module_build_and_dependencies(
@@ -403,7 +397,7 @@ impl Compilation {
               if let Err(err) = self.module_graph.set_resolved_module(
                 original_module_identifier,
                 dependency_id,
-                module_identifier.clone(),
+                module_identifier,
               ) {
                 // If build error message is failed to send, then we should manually decrease the active task count
                 // Otherwise, it will be gracefully handled by the error message handler.
@@ -435,14 +429,13 @@ impl Compilation {
               if let Err(err) = self.module_graph.set_resolved_module(
                 original_module_identifier,
                 dependency_id,
-                module.identifier().into(),
+                module.identifier(),
               ) {
                 // If build error message is failed to send, then we should manually decrease the active task count
                 // Otherwise, it will be gracefully handled by the error message handler.
-                if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(
-                  module.identifier().into(),
-                  err,
-                )) {
+                if let Err(err) =
+                  tx.send(Msg::ModuleBuiltErrorEncountered(module.identifier(), err))
+                {
                   active_task_count.fetch_sub(1, Ordering::SeqCst);
                   tracing::trace!("fail to send msg {:?}", err)
                 }
@@ -568,7 +561,7 @@ impl Compilation {
             .dependencies
             .into_iter()
             .map(|dep| Dependency {
-              parent_module_identifier: Some(module_identifier.clone().into()),
+              parent_module_identifier: Some(module_identifier),
               detail: dep,
             })
             .collect::<Vec<_>>();
@@ -586,7 +579,7 @@ impl Compilation {
           // Otherwise, it will be gracefully handled by the error message handler.
           if let Err(err) = tx.send(Msg::ModuleResolved(
             (
-              original_module_identifier.clone(),
+              original_module_identifier,
               dependency_id,
               module,
               Box::new(deps),
@@ -657,14 +650,12 @@ impl Compilation {
           .cache
           .code_generate_occasion
           .use_cache(module, |module| module.code_generation(self))
-          .map(|result| (module_identifier.clone(), result))
+          .map(|result| (*module_identifier, result))
       })
       .collect::<Result<Vec<(ModuleIdentifier, CodeGenerationResult)>>>()?;
 
     results.into_iter().for_each(|(module_identifier, result)| {
-      self
-        .code_generated_modules
-        .insert(module_identifier.clone());
+      self.code_generated_modules.insert(module_identifier);
 
       let runtimes = self
         .chunk_graph
@@ -673,13 +664,11 @@ impl Compilation {
       self
         .code_generation_results
         .module_generation_result_map
-        .insert(module_identifier.clone(), result);
+        .insert(module_identifier, result);
       for runtime in runtimes.values() {
-        self.code_generation_results.add(
-          module_identifier.clone(),
-          runtime.clone(),
-          module_identifier.clone(),
-        );
+        self
+          .code_generation_results
+          .add(module_identifier, runtime.clone(), module_identifier);
       }
     });
 
@@ -1006,13 +995,13 @@ impl Compilation {
       .filter_map(|(_, module)| {
         if self
           .chunk_graph
-          .get_number_of_module_chunks(&module.identifier().into())
+          .get_number_of_module_chunks(&module.identifier())
           > 0
         {
           let mut module_runtime_requirements: Vec<(HashSet<String>, HashSet<String>)> = vec![];
           for runtime in self
             .chunk_graph
-            .get_module_runtimes(&module.identifier().into(), &self.chunk_by_ukey)
+            .get_module_runtimes(&module.identifier(), &self.chunk_by_ukey)
             .values()
           {
             let runtime_requirements = self

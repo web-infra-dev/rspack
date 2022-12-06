@@ -40,7 +40,7 @@ impl RawModule {
 
 impl Identifiable for RawModule {
   fn identifier(&self) -> Ustr {
-    self.identifier.into()
+    self.identifier
   }
 }
 
