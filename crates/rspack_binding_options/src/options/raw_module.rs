@@ -126,6 +126,8 @@ pub struct RawModuleRule {
   /// - String: To match the input must start with the provided string. I. e. an absolute directory path, or absolute path to the file.
   /// - Regexp: It's tested with the input.
   pub test: Option<RawModuleRuleCondition>,
+  pub include: Option<Vec<RawModuleRuleCondition>>,
+  pub exclude: Option<Vec<RawModuleRuleCondition>>,
   /// A condition matcher matching an absolute path.
   /// See `test` above
   pub resource: Option<RawModuleRuleCondition>,
@@ -148,6 +150,8 @@ pub struct RawModuleRule {
 #[cfg(not(feature = "node-api"))]
 pub struct RawModuleRule {
   pub test: Option<RawModuleRuleCondition>,
+  pub include: Option<Vec<RawModuleRuleCondition>>,
+  pub exclude: Option<Vec<RawModuleRuleCondition>>,
   pub resource: Option<RawModuleRuleCondition>,
   pub resource_query: Option<RawModuleRuleCondition>,
   // Loader experimental
@@ -161,6 +165,8 @@ impl Debug for RawModuleRule {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("RawModuleRule")
       .field("test", &self.test)
+      .field("include", &self.include)
+      .field("exclude", &self.exclude)
       .field("resource", &self.resource)
       .field("resource_query", &self.resource_query)
       .field("type", &self.r#type)
@@ -441,6 +447,14 @@ impl RawOption<ModuleRule> for RawModuleRule {
 
     Ok(ModuleRule {
       test: self.test.map(|raw| raw.try_into()).transpose()?,
+      include: self
+        .include
+        .map(|raw| raw.into_iter().map(|f| f.try_into()).collect())
+        .transpose()?,
+      exclude: self
+        .exclude
+        .map(|raw| raw.into_iter().map(|f| f.try_into()).collect())
+        .transpose()?,
       resource_query: self.resource_query.map(|raw| raw.try_into()).transpose()?,
       resource: self.resource.map(|raw| raw.try_into()).transpose()?,
       r#use: uses,

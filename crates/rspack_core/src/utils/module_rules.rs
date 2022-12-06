@@ -24,6 +24,8 @@ pub fn module_rule_matcher(module_rule: &ModuleRule, resource_data: &ResourceDat
   if module_rule.test.is_none()
     && module_rule.resource.is_none()
     && module_rule.resource_query.is_none()
+    && module_rule.include.is_none()
+    && module_rule.exclude.is_none()
   {
     return Err(rspack_error::Error::InternalError(
       "ModuleRule must have at least one condition".to_owned(),
@@ -38,6 +40,24 @@ pub fn module_rule_matcher(module_rule: &ModuleRule, resource_data: &ResourceDat
     }
   } else if let Some(resource_rule) = &module_rule.resource {
     if !module_rule_matcher_condition(resource_rule, &resource_data.resource_path) {
+      return Ok(false);
+    }
+  }
+
+  if let Some(include_rule) = &module_rule.include {
+    if include_rule
+      .iter()
+      .all(|rule| !module_rule_matcher_condition(rule, &resource_data.resource_path))
+    {
+      return Ok(false);
+    }
+  }
+
+  if let Some(exclude_rule) = &module_rule.exclude {
+    if exclude_rule
+      .iter()
+      .any(|rule| module_rule_matcher_condition(rule, &resource_data.resource_path))
+    {
       return Ok(false);
     }
   }

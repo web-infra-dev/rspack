@@ -31,6 +31,8 @@ pub struct ModuleRule {
   /// - String: To match the input must start with the provided string. I. e. an absolute directory path, or absolute path to the file.
   /// - Regexp: It's tested with the input.
   pub test: Option<ModuleRuleCondition>,
+  pub include: Option<Vec<ModuleRuleCondition>>,
+  pub exclude: Option<Vec<ModuleRuleCondition>>,
   /// A condition matcher matching an absolute path.
   /// See `test` above
   pub resource: Option<ModuleRuleCondition>,
@@ -48,6 +50,8 @@ impl Debug for ModuleRule {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("ModuleRule")
       .field("test", &self.test)
+      .field("include", &self.include)
+      .field("exclude", &self.exclude)
       .field("resource", &self.resource)
       .field("resource_query", &self.resource_query)
       .field("type", &self.r#type)
