@@ -21,6 +21,41 @@ pub use raw_react::*;
 
 use serde::Deserialize;
 
+#[derive(Debug, Deserialize)]
+#[cfg(feature = "node-api")]
+#[napi(object)]
+pub struct Minification {
+  pub passes: Option<u32>,
+  pub enable: Option<bool>,
+}
+
+#[cfg(feature = "node-api")]
+impl Default for Minification {
+  fn default() -> Self {
+    Minification {
+      passes: None,
+      enable: None,
+    }
+  }
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg(not(feature = "node-api"))]
+pub struct Minification {
+  pub passes: Option<u32>,
+  pub enable: Option<bool>,
+}
+
+#[cfg(not(feature = "node-api"))]
+impl Default for Minification {
+  fn default() -> Self {
+    Minification {
+      passes: None,
+      enable: None,
+    }
+  }
+}
+
 #[derive(Debug, Deserialize, Default)]
 #[cfg(feature = "node-api")]
 #[napi(object)]
@@ -29,7 +64,8 @@ pub struct RawBuiltins {
   pub html: Option<Vec<RawHtmlPluginConfig>>,
   pub css: Option<RawCssPluginConfig>,
   pub postcss: Option<RawPostCssConfig>,
-  pub minify: Option<bool>,
+  #[napi(ts_type = "Record<string, any> | bool")]
+  pub minify: Option<Minification>,
   pub polyfill: Option<bool>,
   pub browserslist: Option<Vec<String>>,
   #[napi(ts_type = "Record<string, string>")]
@@ -48,7 +84,7 @@ pub struct RawBuiltins {
   pub html: Option<Vec<RawHtmlPluginConfig>>,
   pub css: Option<RawCssPluginConfig>,
   pub postcss: Option<RawPostCssConfig>,
-  pub minify: Option<bool>,
+  pub minify: Option<Minification>,
   pub polyfill: Option<bool>,
   pub browserslist: Option<Vec<String>>,
   pub define: Option<Define>,
@@ -89,7 +125,11 @@ pub(super) fn normalize_builtin(
     browserslist: builtins.browserslist.unwrap_or_default(),
     minify: builtins
       .minify
-      .unwrap_or(matches!(options.mode, Some(Mode::Production))),
+      .map(Into::into)
+      .unwrap_or(rspack_core::Minification {
+        enable: matches!(options.mode, Some(Mode::Production)),
+        ..Default::default()
+      }),
     polyfill: builtins.polyfill.unwrap_or(true),
     define: builtins.define.unwrap_or_default(),
     tree_shaking: builtins.tree_shaking.unwrap_or_default(),
@@ -108,6 +148,16 @@ impl Into<PostcssConfig> for RawPostCssConfig {
   fn into(self) -> PostcssConfig {
     PostcssConfig {
       pxtorem: self.pxtorem.map(|item| item.into()),
+    }
+  }
+}
+
+impl Into<rspack_core::Minification> for Minification {
+  fn into(self) -> rspack_core::Minification {
+    rspack_core::Minification {
+      // this is used for production mode, turn off the minification
+      enable: self.enable.unwrap_or(true),
+      passes: self.passes.unwrap_or(1) as usize,
     }
   }
 }

@@ -29,7 +29,7 @@ pub struct DecoratorOptions {
 
 #[derive(Debug, Clone, Default)]
 pub struct Builtins {
-  pub minify: bool,
+  pub minify: Minification,
   pub polyfill: bool,
   pub browserslist: Vec<String>,
   pub define: Define,
@@ -37,4 +37,10 @@ pub struct Builtins {
   pub side_effects: bool,
   pub react: ReactOptions,
   pub decorator: Option<DecoratorOptions>,
+}
+
+#[derive(Debug, Clone, Default, Copy)]
+pub struct Minification {
+  pub enable: bool,
+  pub passes: usize,
 }

@@ -36,6 +36,7 @@ swc_core = { workspace = true, features = [
   "ecma_transforms_compat",
   "ecma_transforms_proposal",
   "ecma_transforms_typescript",
+  "ecma_minifier",
 ] }
 # swc = { workspace = true }
 # swc_atoms = { workspace = true }

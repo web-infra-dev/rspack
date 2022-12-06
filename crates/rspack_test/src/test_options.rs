@@ -52,7 +52,7 @@ impl RawOptionsExt for RawOptions {
       options.builtins = Some(Default::default())
     };
     if let Some(ref mut raw_builtins) = options.builtins && raw_builtins.minify.is_none() {
-        raw_builtins.minify = Some(false);
+        raw_builtins.minify = Some(Default::default());
     };
 
     // target default set es_version to es2022
