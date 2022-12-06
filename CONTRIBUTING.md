@@ -27,7 +27,7 @@
 ### Step
 1. Making sure you have logged into npm
 2. Building packages `./x build js-release-all`.
-3. `pnpm bump`
+3. `pnpm bump` (for stable release) or `pnpm version:snapshot` (for snapshot release)
 4. `pnpm release`
 
 ## Testing
