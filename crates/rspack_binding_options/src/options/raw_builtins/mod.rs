@@ -21,7 +21,7 @@ pub use raw_react::*;
 
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize)]
 #[cfg(feature = "node-api")]
 #[napi(object)]
 pub struct Minification {
@@ -29,7 +29,7 @@ pub struct Minification {
   pub enable: Option<bool>,
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize)]
 #[cfg(not(feature = "node-api"))]
 pub struct Minification {
   pub passes: Option<u32>,
@@ -44,7 +44,6 @@ pub struct RawBuiltins {
   pub html: Option<Vec<RawHtmlPluginConfig>>,
   pub css: Option<RawCssPluginConfig>,
   pub postcss: Option<RawPostCssConfig>,
-  #[napi(ts_type = "Record<string, any> | bool")]
   pub minify: Option<Minification>,
   pub polyfill: Option<bool>,
   pub browserslist: Option<Vec<String>>,
@@ -80,6 +79,7 @@ pub(super) fn normalize_builtin(
   plugins: &mut Vec<Box<dyn Plugin>>,
   options: &CompilerOptionsBuilder,
 ) -> Result<Builtins, anyhow::Error> {
+  dbg!(&builtins);
   if let Some(configs) = builtins.html {
     for config in configs {
       plugins.push(Box::new(rspack_plugin_html::HtmlPlugin::new(
@@ -101,14 +101,14 @@ pub(super) fn normalize_builtin(
     })));
   }
 
-  Ok(Builtins {
+  let ret = Builtins {
     browserslist: builtins.browserslist.unwrap_or_default(),
     minify: builtins
       .minify
       .map(Into::into)
       .unwrap_or(rspack_core::Minification {
         enable: matches!(options.mode, Some(Mode::Production)),
-        ..Default::default()
+        passes: 1,
       }),
     polyfill: builtins.polyfill.unwrap_or(true),
     define: builtins.define.unwrap_or_default(),
@@ -116,7 +116,9 @@ pub(super) fn normalize_builtin(
     side_effects: builtins.side_effects.unwrap_or_default(),
     react: RawOption::raw_to_compiler_option(builtins.react, options)?,
     decorator: transform_to_decorator_options(builtins.decorator),
-  })
+  };
+  dbg!(&ret);
+  Ok(ret)
 }
 
 #[allow(clippy::from_over_into)]

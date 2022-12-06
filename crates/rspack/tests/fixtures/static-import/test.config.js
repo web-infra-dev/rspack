@@ -7,12 +7,5 @@ module.exports = {
 		main: {
 			import: ["./index.js"]
 		}
-	},
-	infrastructureLogging: {
-		debug: true
-	},
-	builtins: {
-		treeShaking: true,
-		sideEffects: true
 	}
 };
