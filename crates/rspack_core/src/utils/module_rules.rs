@@ -45,18 +45,20 @@ pub fn module_rule_matcher(module_rule: &ModuleRule, resource_data: &ResourceDat
   }
 
   if let Some(include_rule) = &module_rule.include {
-    for rule in include_rule {
-      if module_rule_matcher_condition(rule, &resource_data.resource_path) {
-        return Ok(true);
-      }
+    if include_rule
+      .iter()
+      .all(|rule| !module_rule_matcher_condition(rule, &resource_data.resource_path))
+    {
+      return Ok(false);
     }
   }
 
   if let Some(exclude_rule) = &module_rule.exclude {
-    for rule in exclude_rule {
-      if module_rule_matcher_condition(rule, &resource_data.resource_path) {
-        return Ok(false);
-      }
+    if exclude_rule
+      .iter()
+      .any(|rule| module_rule_matcher_condition(rule, &resource_data.resource_path))
+    {
+      return Ok(false);
     }
   }
 
