@@ -274,7 +274,12 @@ export class RspackDevServer {
 				logger: console.log.bind(console)
 			})
 		});
-
+		/**
+		 * supports three kinds of proxy configuration
+		 * {context: 'xxxx', target: 'yyy}
+		 * {['xxx']: { target: 'yyy}}
+		 * [{context: 'xxx',target:'yyy'}, {context: 'aaa', target: 'zzzz'}]
+		 */
 		if (typeof options.proxy !== "undefined") {
 			const { createProxyMiddleware } = require("http-proxy-middleware");
 			function getProxyMiddleware(proxyConfig) {
@@ -284,6 +289,42 @@ export class RspackDevServer {
 				}
 				if (proxyConfig.router) {
 					return createProxyMiddleware(proxyConfig);
+				}
+			}
+			if (!Array.isArray(options.proxy)) {
+				if (
+					Object.prototype.hasOwnProperty.call(options.proxy, "target") ||
+					Object.prototype.hasOwnProperty.call(options.proxy, "router")
+				) {
+					options.proxy = [options.proxy];
+				} else {
+					options.proxy = Object.keys(options.proxy).map(context => {
+						let proxyOptions;
+						// For backwards compatibility reasons.
+						const correctedContext = context
+							.replace(/^\*$/, "**")
+							.replace(/\/\*$/, "");
+
+						if (
+							typeof (/** @type {ProxyConfigMap} */ options.proxy[context]) ===
+							"string"
+						) {
+							proxyOptions = {
+								context: correctedContext,
+								target:
+									/** @type {ProxyConfigMap} */
+									options.proxy[context]
+							};
+						} else {
+							proxyOptions = {
+								// @ts-ignore
+								.../** @type {ProxyConfigMap} */ options.proxy[context]
+							};
+							proxyOptions.context = correctedContext;
+						}
+
+						return proxyOptions;
+					});
 				}
 			}
 			options.proxy.forEach(proxyConfig => {

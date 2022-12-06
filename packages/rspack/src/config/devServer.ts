@@ -11,10 +11,13 @@ export interface WebSocketServerOptions {
 	path?: string;
 }
 type Bypass = (req: Request, res: Response, proxyConfig: ProxyOptions) => void;
-export type ProxyOptions = HttpProxyMiddlewareOptions & { bypass?: Bypass } & {
+export type ProxyOptionsItem = HttpProxyMiddlewareOptions & {
+	bypass?: Bypass;
+} & {
 	context?: HttpProxyMiddlewareOptionsFilter | undefined;
 	path?: HttpProxyMiddlewareOptionsFilter | undefined;
 };
+export type ProxyOptions = ProxyOptionsItem | ProxyOptionsItem[];
 export interface Dev {
 	host?: string;
 	port?: number | string;
