@@ -136,7 +136,7 @@ pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut
       Optional::new(
         Repeat::new(dce(Config::default(), unresolved_mark)),
         // extra branch to avoid doing dce twice, (minify will exec dce)
-        tree_shaking && !minify,
+        tree_shaking && !minify.enable,
       ),
       swc_visitor::build_module(
         &cm,

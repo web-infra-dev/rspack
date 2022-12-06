@@ -1,4 +1,5 @@
 module.exports = {
+	mode: "development",
 	entry: {
 		"main-one": {
 			import: ["./index-one.js"]

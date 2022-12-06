@@ -21,6 +21,7 @@ use swc_core::common::util::take::Take;
 use swc_core::common::FileName;
 use swc_core::common::GLOBALS;
 use swc_core::ecma::ast;
+use swc_core::ecma::minifier::option::terser::TerserCompressorOptions;
 use tracing::instrument;
 
 use crate::utils::{
@@ -502,7 +503,7 @@ impl Plugin for JsPlugin {
   ) -> PluginProcessAssetsOutput {
     let compilation = args.compilation;
     let minify = compilation.options.builtins.minify;
-    if !minify {
+    if !minify.enable {
       return Ok(());
     }
 
@@ -530,6 +531,10 @@ impl Plugin for JsPlugin {
               fm,
               handler,
               &JsMinifyOptions {
+                compress: BoolOrDataConfig::from_obj(TerserCompressorOptions {
+                  passes: minify.passes,
+                  ..Default::default()
+                }),
                 source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
                 inline_sources_content: false, // don't need this since we have inner_source_map in SourceMapSource
                 emit_source_map_columns: !compilation.options.devtool.cheap(),

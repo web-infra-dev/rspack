@@ -6,7 +6,6 @@ module.exports = {
     html: [{
       template: './index.html'
     }],
-    minify: false,
     treeShaking: true,
     sideEffects: true
   },

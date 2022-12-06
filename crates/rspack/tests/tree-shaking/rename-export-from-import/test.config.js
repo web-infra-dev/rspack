@@ -2,9 +2,10 @@
  * @type {import('webpack').Configuration}
  */
 module.exports = {
+	mode: "development",
 	builtins: {
-    treeShaking: true
-  },
+		treeShaking: true
+	},
 	context: __dirname,
 	entry: {
 		main: {

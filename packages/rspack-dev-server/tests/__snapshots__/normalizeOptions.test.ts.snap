@@ -56,7 +56,10 @@ exports[`normalize options snapshot react.development and react.refresh should b
     },
     "define": {},
     "html": [],
-    "minify": true,
+    "minify": {
+      "enable": true,
+      "passes": 1,
+    },
     "react": {
       "development": true,
       "refresh": true,
