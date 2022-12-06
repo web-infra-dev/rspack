@@ -21,7 +21,7 @@ pub use raw_react::*;
 
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 #[cfg(feature = "node-api")]
 #[napi(object)]
 pub struct Minification {
@@ -29,31 +29,11 @@ pub struct Minification {
   pub enable: Option<bool>,
 }
 
-#[cfg(feature = "node-api")]
-impl Default for Minification {
-  fn default() -> Self {
-    Minification {
-      passes: None,
-      enable: None,
-    }
-  }
-}
-
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 #[cfg(not(feature = "node-api"))]
 pub struct Minification {
   pub passes: Option<u32>,
   pub enable: Option<bool>,
-}
-
-#[cfg(not(feature = "node-api"))]
-impl Default for Minification {
-  fn default() -> Self {
-    Minification {
-      passes: None,
-      enable: None,
-    }
-  }
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -152,6 +132,8 @@ impl Into<PostcssConfig> for RawPostCssConfig {
   }
 }
 
+#[allow(clippy::from_over_into)]
+/// Reason is the same as above
 impl Into<rspack_core::Minification> for Minification {
   fn into(self) -> rspack_core::Minification {
     rspack_core::Minification {
