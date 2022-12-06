@@ -1,5 +1,8 @@
 import type { WatchOptions } from "chokidar";
-
+import type {
+	Options as HttpProxyMiddlewareOptions,
+	Filter as HttpProxyMiddlewareOptionsFilter
+} from "http-proxy-middleware";
 export interface WebSocketServerOptions {
 	protocol?: string;
 	host?: string;
@@ -7,7 +10,14 @@ export interface WebSocketServerOptions {
 	prefix?: string;
 	path?: string;
 }
-
+type Bypass = (req: Request, res: Response, proxyConfig: ProxyOptions) => void;
+export type ProxyOptionsItem = HttpProxyMiddlewareOptions & {
+	bypass?: Bypass;
+} & {
+	context?: HttpProxyMiddlewareOptionsFilter | undefined;
+	path?: HttpProxyMiddlewareOptionsFilter | undefined;
+};
+export type ProxyOptions = ProxyOptionsItem | ProxyOptionsItem[];
 export interface Dev {
 	host?: string;
 	port?: number | string;
@@ -16,6 +26,7 @@ export interface Dev {
 		directory?: string;
 		watch?: boolean | WatchOptions;
 	};
+	proxy?: ProxyOptions;
 	devMiddleware?: {};
 	hot?: boolean;
 	open?: boolean;

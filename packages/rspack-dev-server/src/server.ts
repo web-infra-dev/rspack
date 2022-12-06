@@ -258,6 +258,7 @@ export class RspackDevServer {
 	}
 
 	private setupMiddlewares() {
+		const options = this.options;
 		const middlewares: Middleware[] = [];
 		middlewares.push({
 			name: "rdm",
@@ -273,6 +274,87 @@ export class RspackDevServer {
 				logger: console.log.bind(console)
 			})
 		});
+		/**
+		 * supports three kinds of proxy configuration
+		 * {context: 'xxxx', target: 'yyy}
+		 * {['xxx']: { target: 'yyy}}
+		 * [{context: 'xxx',target:'yyy'}, {context: 'aaa', target: 'zzzz'}]
+		 */
+		if (typeof options.proxy !== "undefined") {
+			const { createProxyMiddleware } = require("http-proxy-middleware");
+			function getProxyMiddleware(proxyConfig) {
+				if (proxyConfig.target) {
+					const context = proxyConfig.context || proxyConfig.path;
+					return createProxyMiddleware(context, proxyConfig);
+				}
+				if (proxyConfig.router) {
+					return createProxyMiddleware(proxyConfig);
+				}
+			}
+			if (!Array.isArray(options.proxy)) {
+				if (
+					Object.prototype.hasOwnProperty.call(options.proxy, "target") ||
+					Object.prototype.hasOwnProperty.call(options.proxy, "router")
+				) {
+					options.proxy = [options.proxy];
+				} else {
+					options.proxy = Object.keys(options.proxy).map(context => {
+						let proxyOptions;
+						// For backwards compatibility reasons.
+						const correctedContext = context
+							.replace(/^\*$/, "**")
+							.replace(/\/\*$/, "");
+
+						if (
+							typeof (/** @type {ProxyConfigMap} */ options.proxy[context]) ===
+							"string"
+						) {
+							proxyOptions = {
+								context: correctedContext,
+								target:
+									/** @type {ProxyConfigMap} */
+									options.proxy[context]
+							};
+						} else {
+							proxyOptions = {
+								// @ts-ignore
+								.../** @type {ProxyConfigMap} */ options.proxy[context]
+							};
+							proxyOptions.context = correctedContext;
+						}
+
+						return proxyOptions;
+					});
+				}
+			}
+			options.proxy.forEach(proxyConfig => {
+				const handler = async (req, res, next) => {
+					let proxyMiddleware = getProxyMiddleware(proxyConfig);
+					const isByPassFuncDefined = typeof proxyConfig.bypass === "function";
+					const bypassUrl = isByPassFuncDefined
+						? await proxyConfig.bypass(req, res, proxyConfig)
+						: null;
+					if (typeof bypassUrl === "boolean") {
+						req.url = null;
+						next();
+					} else if (typeof bypassUrl === "string") {
+						req.url = bypassUrl;
+					} else if (proxyMiddleware) {
+						return proxyMiddleware(req, res, next);
+					} else {
+						next();
+					}
+				};
+				middlewares.push({
+					name: "http-proxy-middleware",
+					middleware: handler
+				});
+				middlewares.push({
+					name: "http-proxy-middleware-error-handler",
+					middleware: (error, req, res, next) => handler(req, res, next)
+				});
+			});
+		}
 		middlewares.push({
 			name: "express-static",
 			path: this.compiler.options.output.publicPath ?? "/",

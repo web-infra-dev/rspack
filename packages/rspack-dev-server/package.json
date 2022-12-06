@@ -27,7 +27,8 @@
     "@rspack/dev-middleware": "workspace:*",
     "@rspack/dev-server": "workspace:*",
     "webpack-dev-server": "4.11.1",
-    "connect-history-api-fallback": "2.0.0"
+    "connect-history-api-fallback": "2.0.0",
+    "http-proxy-middleware": "2.0.6"
   },
   "peerDependencies": {
     "@rspack/core": "*"
