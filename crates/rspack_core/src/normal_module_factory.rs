@@ -182,7 +182,7 @@ impl NormalModuleFactory {
         let uri = format!("{}/{}", importer.display(), specifier);
 
         let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
-        let module_identifier = Ustr::from("ignored|{uri}");
+        let module_identifier = Ustr::from(&format!("ignored|{uri}"));
 
         self
           .tx
