@@ -119,7 +119,7 @@ export class RspackCLI {
 
 		item.output = {
 			...item.output,
-			publicPath: item.output?.path ?? "/"
+			publicPath: item.output?.publicPath ?? "/"
 		};
 		if (typeof item.stats === "undefined") {
 			item.stats = { preset: "normal" };
