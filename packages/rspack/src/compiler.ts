@@ -331,7 +331,7 @@ class Compiler {
 			const rebuildWithFilepaths = (changedFilepath: string[]) => {
 				// Rebuild finished, we can start to rebuild again
 				isBuildFinished = false;
-				console.log("hit change and start to build");
+				console.log("hit change and start to build:", changedFilepath);
 
 				const begin = Date.now();
 				this.rebuild(changedFilepath, (error: any, rawStats) => {
