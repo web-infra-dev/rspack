@@ -79,7 +79,7 @@ module.exports = {
     mode: 'production',
     devtool: 'source-map', 
     builtins: {
-      minify: true
+      minify: {}
     },
     entry: {
         index: {
