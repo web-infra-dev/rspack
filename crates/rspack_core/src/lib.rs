@@ -6,6 +6,7 @@ use std::{fmt, sync::Arc};
 use hashbrown::{HashMap, HashSet};
 
 pub mod ast;
+pub mod cache;
 mod normal_module;
 mod raw_module;
 pub use raw_module::*;

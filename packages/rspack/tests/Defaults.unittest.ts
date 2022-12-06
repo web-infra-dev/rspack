@@ -83,6 +83,17 @@ describe("snapshots", () => {
 		    "define": {},
 		    "html": [],
 		  },
+		  "cache": {
+		    "buildDependencies": [],
+		    "cacheDirectory": "",
+		    "cacheLocation": "",
+		    "cacheType": "memory",
+		    "maxAge": 0,
+		    "maxGenerations": 0,
+		    "name": "",
+		    "profile": false,
+		    "version": "",
+		  },
 		  "context": "<cwd>",
 		  "devServer": undefined,
 		  "devtool": "",
@@ -130,6 +141,24 @@ describe("snapshots", () => {
 		    "preferRelative": false,
 		    "tsConfigPath": undefined,
 		  },
+		  "snapshot": {
+		    "buildDependencies": {
+		      "hash": false,
+		      "timestamp": true,
+		    },
+		    "module": {
+		      "hash": false,
+		      "timestamp": true,
+		    },
+		    "resolve": {
+		      "hash": false,
+		      "timestamp": true,
+		    },
+		    "resolveBuildDependencies": {
+		      "hash": false,
+		      "timestamp": true,
+		    },
+		  },
 		  "stats": {
 		    "colors": false,
 		  },
@@ -170,6 +199,9 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
+		-     "cacheType": "memory",
+		+     "cacheType": "",
+		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "production",
 	`)
@@ -179,6 +211,9 @@ describe("snapshots", () => {
 		- Expected
 		+ Received
 
+		@@ ... @@
+		-     "cacheType": "memory",
+		+     "cacheType": "",
 		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "production",
@@ -512,13 +547,7 @@ describe("snapshots", () => {
 	`)
 	);
 	test("cache true", { cache: true }, e =>
-		e.toMatchInlineSnapshot(`
-		- Expected
-		+ Received
-
-		@@ ... @@
-		+   "cache": true,
-	`)
+		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 	test("cache filesystem", { cache: { type: "filesystem" } }, e =>
 		e.toMatchInlineSnapshot(`
@@ -526,9 +555,10 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		+   "cache": Object {
+		-     "cacheType": "memory",
+		+     "cacheType": "filesystem",
+		@@ ... @@
 		+     "type": "filesystem",
-		+   },
 	`)
 	);
 	test(
@@ -540,9 +570,10 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			+   "cache": Object {
+			-     "cacheType": "memory",
+			+     "cacheType": "filesystem",
+			@@ ... @@
 			+     "type": "filesystem",
-			+   },
 			@@ ... @@
 			-   "mode": "none",
 			+   "mode": "development",
@@ -565,7 +596,8 @@ describe("snapshots", () => {
 			@@ ... @@
 			+   "amd": false,
 			@@ ... @@
-			+   "cache": false,
+			-     "cacheType": "memory",
+			+     "cacheType": "",
 			@@ ... @@
 			+   },
 			+   "node": false,
@@ -643,10 +675,12 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-   "context": "<cwd>",
-			+   "cache": Object {
+			-     "cacheType": "memory",
+			+     "cacheType": "filesystem",
+			@@ ... @@
 			+     "type": "filesystem",
-			+   },
+			@@ ... @@
+			-   "context": "<cwd>",
 			+   "context": "<cwd>/tests/fixtures",
 			@@ ... @@
 			-         "<cwd>/src/index.js",

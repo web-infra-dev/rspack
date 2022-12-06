@@ -14,8 +14,8 @@ use tokio::sync::RwLock;
 use tracing::instrument;
 
 use crate::{
-  BoxModule, CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule, ModuleIdentifier,
-  Plugin, PluginDriver, SharedPluginDriver, Stats,
+  cache::Cache, BoxModule, CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule,
+  ModuleIdentifier, Plugin, PluginDriver, SharedPluginDriver, Stats,
 };
 
 #[derive(Debug)]
@@ -24,6 +24,7 @@ pub struct Compiler {
   pub compilation: Compilation,
   pub plugin_driver: SharedPluginDriver,
   pub loader_runner_runner: Arc<LoaderRunnerRunner>,
+  pub cache: Arc<Cache>,
 }
 
 impl Compiler {
@@ -43,6 +44,7 @@ impl Compiler {
       resolver_factory,
       plugin_driver.clone(),
     ));
+    let cache = Arc::new(Cache::new(options.clone()));
 
     Self {
       options: options.clone(),
@@ -53,9 +55,11 @@ impl Compiler {
         Default::default(),
         plugin_driver.clone(),
         loader_runner_runner.clone(),
+        cache.clone(),
       ),
       plugin_driver,
       loader_runner_runner,
+      cache,
     }
   }
 
@@ -66,6 +70,7 @@ impl Compiler {
 
   #[instrument(name = "build", skip_all)]
   pub async fn build(&mut self) -> Result<Stats> {
+    self.cache.end_idle().await;
     // TODO: clear the outdate cache entires in resolver,
     // TODO: maybe it's better to use external entries.
     self.plugin_driver.read().await.resolver.clear();
@@ -78,6 +83,7 @@ impl Compiler {
       Default::default(),
       self.plugin_driver.clone(),
       self.loader_runner_runner.clone(),
+      self.cache.clone(),
     );
 
     // Fake this compilation as *currently* rebuilding does not create a new compilation
@@ -97,7 +103,7 @@ impl Compiler {
 
     let deps = self.compilation.entry_dependencies();
     self.compile(deps).await?;
-
+    self.cache.begin_idle().await;
     Ok(self.stats())
   }
 

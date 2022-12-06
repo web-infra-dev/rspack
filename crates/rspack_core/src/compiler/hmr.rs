@@ -64,8 +64,11 @@ impl Compiler {
                 {
                   None
                 } else if item.module_type.is_js_like() {
-                  // TODO: should use code_generation_results
-                  let code = module.code_generation(compilation).unwrap();
+                  let code = compilation
+                    .code_generation_results
+                    .module_generation_result_map
+                    .get(&item.module_identifier)
+                    .unwrap();
                   let code = if let Some(code) = code.get(&JavaScript) {
                     code.ast_or_source.as_source().unwrap().source().to_string()
                   } else {
@@ -126,6 +129,7 @@ impl Compiler {
 
     // build without stats
     {
+      self.cache.end_idle().await;
       self.plugin_driver.read().await.resolver.clear();
 
       self.compilation = Compilation::new(
@@ -136,6 +140,7 @@ impl Compiler {
         Default::default(),
         self.plugin_driver.clone(),
         self.loader_runner_runner.clone(),
+        self.cache.clone(),
       );
 
       // Fake this compilation as *currently* rebuilding does not create a new compilation
@@ -155,6 +160,7 @@ impl Compiler {
 
       let deps = self.compilation.entry_dependencies();
       self.compile(deps).await?;
+      self.cache.begin_idle().await;
     }
 
     // ----

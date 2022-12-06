@@ -431,7 +431,13 @@ impl Module for NormalModule {
     self.original_source = Some(original_source);
     self.ast_or_source = NormalModuleAstOrSource::new_built(ast_or_source, &diagnostics);
 
-    Ok(BuildResult { dependencies }.with_diagnostic(diagnostics))
+    Ok(
+      BuildResult {
+        cacheable: loader_result.cacheable,
+        dependencies,
+      }
+      .with_diagnostic(diagnostics),
+    )
   }
 
   fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {

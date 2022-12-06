@@ -1,3 +1,4 @@
+use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
 // use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
@@ -11,6 +12,12 @@ pub fn get_contenthash<T: Source + Hash>(source: &T) -> u64 {
   let mut xxh3 = Xxh3::new();
   source.hash(&mut xxh3);
   xxh3.finish()
+}
+
+pub fn calc_hash<T: Hash>(t: &T) -> u64 {
+  let mut s = DefaultHasher::new();
+  t.hash(&mut s);
+  s.finish()
 }
 
 // pub fn get_chunkhash(

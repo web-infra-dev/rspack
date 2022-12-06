@@ -34,6 +34,7 @@ use rspack_sources::BoxSource;
 use ustr::{ustr, Ustr};
 
 use crate::{
+  cache::Cache,
   is_source_equal, join_string_component, module_rule_matcher,
   split_chunks::code_splitting,
   tree_shaking::{
@@ -84,6 +85,7 @@ pub struct Compilation {
 
   pub code_generation_results: CodeGenerationResults,
   pub code_generated_modules: HashSet<ModuleIdentifier>,
+  pub cache: Arc<Cache>,
 
   // TODO: make compilation safer
   _pin: PhantomPinned,
@@ -96,6 +98,7 @@ impl Compilation {
     module_graph: ModuleGraph,
     plugin_driver: SharedPluginDriver,
     loader_runner_runner: Arc<LoaderRunnerRunner>,
+    cache: Arc<Cache>,
   ) -> Self {
     Self {
       options,
@@ -122,6 +125,7 @@ impl Compilation {
       code_generation_results: Default::default(),
       code_generated_modules: Default::default(),
 
+      cache,
       _pin: PhantomPinned,
       used_indirect_symbol: HashSet::default(),
     }
@@ -338,6 +342,7 @@ impl Compilation {
           dep,
           tx.clone(),
           self.plugin_driver.clone(),
+          self.cache.clone(),
         );
         tokio::task::spawn(async move { normal_module_factory.create(true).await });
       })
@@ -499,84 +504,62 @@ impl Compilation {
     let compiler_options = self.options.clone();
     let loader_runner_runner = self.loader_runner_runner.clone();
     let plugin_driver = self.plugin_driver.clone();
+    let cache = self.cache.clone();
 
     let module_identifier = module.identifier().into_owned();
 
     tokio::spawn(async move {
-      let resolved_loaders = {
-        if let Some(normal_module) = module.as_normal_module() {
-          let resource_data = normal_module.resource_resolved_data();
+      let build_result = cache
+        .build_module_occasion
+        .use_cache(&mut module, |module| {
+          Box::pin(async {
+            let resolved_loaders = if let Some(normal_module) = module.as_normal_module() {
+              let resource_data = normal_module.resource_resolved_data();
 
-          match compiler_options
-            .module
-            .rules
-            .iter()
-            .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
-              match module_rule_matcher(module_rule, resource_data) {
-                Ok(val) => val.then_some(Ok(module_rule)),
-                Err(err) => Some(Err(err)),
-              }
-            })
-            .collect::<Result<Vec<_>>>()
-          {
-            Ok(result) => result,
-            Err(err) => {
-              // If build error message is failed to send, then we should manually decrease the active task count
-              // Otherwise, it will be gracefully handled by the error message handler.
-              if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err)) {
-                active_task_count.fetch_sub(1, Ordering::SeqCst);
-                tracing::trace!("fail to send msg {:?}", err)
-              }
-              return;
-            }
-          }
-        } else {
-          vec![]
-        }
-      };
+              compiler_options
+                .as_ref()
+                .module
+                .rules
+                .iter()
+                .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
+                  match module_rule_matcher(module_rule, resource_data) {
+                    Ok(val) => val.then_some(Ok(module_rule)),
+                    Err(err) => Some(Err(err)),
+                  }
+                })
+                .collect::<Result<Vec<_>>>()?
+            } else {
+              vec![]
+            };
 
-      let resolved_loaders = resolved_loaders
-        .into_iter()
-        .flat_map(|module_rule| module_rule.r#use.iter().map(Box::as_ref).rev())
-        .collect::<Vec<_>>();
+            let resolved_loaders = resolved_loaders
+              .into_iter()
+              .flat_map(|module_rule| module_rule.r#use.iter().map(Box::as_ref).rev())
+              .collect::<Vec<_>>();
 
-      if let Err(e) = plugin_driver
-        .read()
-        .await
-        .build_module(module.as_mut())
-        .await
-      {
-        if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(
-          module.identifier().into(),
-          e,
-        )) {
-          tracing::trace!("fail to send msg {:?}", err);
-        }
-      }
+            plugin_driver
+              .read()
+              .await
+              .build_module(module.as_mut())
+              .await?;
 
-      match module
-        .build(BuildContext {
-          resolved_loaders,
-          loader_runner_runner: &loader_runner_runner,
-          compiler_options: &compiler_options,
+            let result = module
+              .build(BuildContext {
+                resolved_loaders,
+                loader_runner_runner: &loader_runner_runner,
+                compiler_options: &compiler_options,
+              })
+              .await;
+
+            plugin_driver.read().await.succeed_module(module).await?;
+
+            result
+          })
         })
-        .await
-      {
-        Ok(build_result) => {
-          if let Err(e) = plugin_driver
-            .read()
-            .await
-            .succeed_module(module.as_ref())
-            .await
-          {
-            if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(
-              module.identifier().into(),
-              e,
-            )) {
-              tracing::trace!("fail to send msg {:?}", err);
-            }
-          }
+        .await;
 
+      match build_result {
+        Ok(build_result) => {
           let module_identifier = module.identifier();
 
           let (build_result, diagnostics) = build_result.split_into_parts();
@@ -596,6 +579,7 @@ impl Compilation {
             tx.clone(),
             plugin_driver.clone(),
             compiler_options.clone(),
+            cache.clone(),
           );
 
           // If build error message is failed to send, then we should manually decrease the active task count
@@ -639,6 +623,7 @@ impl Compilation {
     tx: UnboundedSender<Msg>,
     plugin_driver: SharedPluginDriver,
     compiler_options: Arc<CompilerOptions>,
+    cache: Arc<Cache>,
   ) {
     dependencies.into_iter().for_each(|dep| {
       let normal_module_factory = NormalModuleFactory::new(
@@ -652,6 +637,7 @@ impl Compilation {
         dep,
         tx.clone(),
         plugin_driver.clone(),
+        cache.clone(),
       );
 
       tokio::task::spawn(async move {
@@ -661,14 +647,16 @@ impl Compilation {
   }
 
   #[instrument(name = "compilation:code_generation")]
-  fn code_generation(&mut self) -> Result<()> {
+  async fn code_generation(&mut self) -> Result<()> {
     let results = self
       .module_graph
       .module_identifier_to_module
       .par_iter()
       .map(|(module_identifier, module)| {
-        module
-          .code_generation(self)
+        self
+          .cache
+          .code_generate_occasion
+          .use_cache(module, |module| module.code_generation(self))
           .map(|result| (module_identifier.clone(), result))
       })
       .collect::<Result<Vec<(ModuleIdentifier, CodeGenerationResult)>>>()?;
@@ -980,7 +968,7 @@ impl Compilation {
 
     plugin_driver.write().await.optimize_chunks(self)?;
 
-    self.code_generation()?;
+    self.code_generation().await?;
 
     self
       .process_runtime_requirements(plugin_driver.clone())

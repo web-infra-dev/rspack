@@ -8,6 +8,7 @@ use rspack_core::{CompilerOptions, CompilerOptionsBuilder, EntryItem};
 use serde::Deserialize;
 
 mod raw_builtins;
+mod raw_cache;
 mod raw_context;
 mod raw_dev_server;
 mod raw_devtool;
@@ -20,11 +21,13 @@ mod raw_optimization;
 mod raw_output;
 mod raw_plugins;
 mod raw_resolve;
+mod raw_snapshot;
 mod raw_split_chunks;
 mod raw_stats;
 mod raw_target;
 
 pub use raw_builtins::*;
+pub use raw_cache::*;
 pub use raw_context::*;
 pub use raw_dev_server::*;
 pub use raw_entry::*;
@@ -36,6 +39,7 @@ pub use raw_optimization::*;
 pub use raw_output::*;
 pub use raw_plugins::*;
 pub use raw_resolve::*;
+pub use raw_snapshot::*;
 pub use raw_split_chunks::*;
 pub use raw_stats::*;
 pub use raw_target::*;
@@ -91,6 +95,8 @@ pub struct RawOptions {
   pub optimization: Option<RawOptimizationOptions>,
   pub stats: Option<RawStatsOptions>,
   pub dev_server: Option<RawDevServer>,
+  pub snapshot: Option<RawSnapshotOptions>,
+  pub cache: Option<RawCacheOptions>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -115,6 +121,8 @@ pub struct RawOptions {
   pub optimization: Option<RawOptimizationOptions>,
   pub stats: Option<RawStatsOptions>,
   pub dev_server: Option<RawDevServer>,
+  pub snapshot: Option<RawSnapshotOptions>,
+  pub cache: Option<RawCacheOptions>,
 }
 
 pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<CompilerOptions> {
@@ -212,6 +220,16 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
     .then(|mut options| {
       let stats = RawOption::raw_to_compiler_option(raw_options.stats, &options)?;
       options.stats = Some(stats);
+      Ok(options)
+    })?
+    .then(|mut options| {
+      let snapshot = RawOption::raw_to_compiler_option(raw_options.snapshot, &options)?;
+      options.snapshot = Some(snapshot);
+      Ok(options)
+    })?
+    .then(|mut options| {
+      let cache = RawOption::raw_to_compiler_option(raw_options.cache, &options)?;
+      options.cache = Some(cache);
       Ok(options)
     })?
     .finish();

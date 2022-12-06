@@ -36,6 +36,15 @@ impl<T: std::fmt::Debug> TWithDiagnosticArray<T> {
   }
 }
 
+impl<T: Clone + std::fmt::Debug> Clone for TWithDiagnosticArray<T> {
+  fn clone(&self) -> Self {
+    Self {
+      inner: self.inner.clone(),
+      diagnostic: self.diagnostic.clone(),
+    }
+  }
+}
+
 // Helper trait to make `TWithDiagnosticArray` convertion more easily.
 pub trait IntoTWithDiagnosticArray {
   fn with_diagnostic(self, diagnostic: Vec<Diagnostic>) -> TWithDiagnosticArray<Self>

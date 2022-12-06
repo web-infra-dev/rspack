@@ -21,12 +21,16 @@ import type { ResolvedTarget, Target } from "./target";
 import type { Output, ResolvedOutput } from "./output";
 import type { Resolve, ResolvedResolve } from "./resolve";
 import type { Builtins, ResolvedBuiltins } from "./builtins";
+import type { Snapshot, ResolvedSnapshot } from "./snapshot";
+import type { Cache, ResolvedCache } from "./cache";
 import { Devtool, ResolvedDevtool, resolveDevtoolOptions } from "./devtool";
 import { resolveTargetOptions } from "./target";
 import { resolveOutputOptions } from "./output";
 import { resolveModuleOptions } from "./module";
 import { resolveBuiltinsOptions } from "./builtins";
 import { resolveResolveOptions } from "./resolve";
+import { resolveSnapshotOptions } from "./snapshot";
+import { resolveCacheOptions } from "./cache";
 import { InfrastructureLogging } from "./RspackOptions";
 import {
 	ResolvedStatsOptions,
@@ -52,6 +56,8 @@ export interface RspackOptions {
 	devtool?: Devtool;
 	infrastructureLogging?: InfrastructureLogging;
 	stats?: StatsOptions;
+	snapshot?: Snapshot;
+	cache?: Cache;
 }
 export interface RspackOptionsNormalized {
 	name?: string;
@@ -70,6 +76,8 @@ export interface RspackOptionsNormalized {
 	devtool: ResolvedDevtool;
 	infrastructureLogging: InfrastructureLogging;
 	stats: ResolvedStatsOptions;
+	snapshot: ResolvedSnapshot;
+	cache: ResolvedCache;
 }
 
 export function getNormalizedRspackOptions(
@@ -91,6 +99,10 @@ export function getNormalizedRspackOptions(
 	const module = resolveModuleOptions(config.module, { devtool, context });
 	const stats = resolveStatsOptions(config.stats);
 	const devServer = config.devServer;
+	const snapshot = resolveSnapshotOptions(config.snapshot);
+	const cache = resolveCacheOptions(
+		config.cache ?? (mode === "production" ? false : true)
+	);
 
 	return {
 		...config,
@@ -108,7 +120,9 @@ export function getNormalizedRspackOptions(
 		resolve,
 		devtool,
 		infrastructureLogging: cloneObject(config.infrastructureLogging),
-		stats
+		stats,
+		snapshot,
+		cache
 	};
 }
 
