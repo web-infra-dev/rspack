@@ -237,7 +237,8 @@ impl JsPlugin {
               module_source = ConcatSource::new([
                 module_source,
                 RawSource::from(
-                  r#"if (module.hot) {
+                  r#"
+if (module.hot) {
   module.hot.accept();
 }
 "#,

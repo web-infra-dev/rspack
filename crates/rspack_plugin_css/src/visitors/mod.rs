@@ -1,66 +1,75 @@
-pub mod css_assets;
+use itertools::Itertools;
+use rspack_core::ModuleDependency;
+use swc_css::ast::{ImportHref, ImportPrelude, Stylesheet, Url, UrlValue};
+use swc_css::visit::{Visit, VisitWith};
 
-use rspack_core::{ModuleDependency, ResolveKind};
-use swc_core::common::util::take::Take;
-
-use swc_css::{
-  ast::{AtRulePrelude, Rule, Stylesheet, UrlValue},
-  visit::{VisitMut, VisitMutWith},
-};
-
-#[derive(Debug, Default)]
-pub struct DependencyScanner {
-  pub dependencies: Vec<ModuleDependency>,
+pub fn analyze_dependencies(ss: &Stylesheet) -> Vec<ModuleDependency> {
+  let mut v = Analyzer {
+    deps: Default::default(),
+  };
+  ss.visit_with(&mut v);
+  v.deps = v.deps.into_iter().unique().collect();
+  v.deps
 }
 
-impl VisitMut for DependencyScanner {
-  fn visit_mut_stylesheet(&mut self, n: &mut Stylesheet) {
-    n.visit_mut_children_with(self);
-    n.rules = n
-      .rules
-      .take()
-      .into_iter()
-      .filter(|rule| match rule {
-        Rule::AtRule(at_rule) => {
-          if let Some(box AtRulePrelude::ImportPrelude(prelude)) = &at_rule.prelude {
-            let (kind, href_string) = match &prelude.href {
-              box swc_css::ast::ImportHref::Url(url) => {
-                let href_string = url
-                  .value
-                  .as_ref()
-                  .map(|box value| match value {
-                    UrlValue::Str(str) => str.value.clone(),
-                    UrlValue::Raw(raw) => raw.value.clone(),
-                  })
-                  .unwrap_or_default();
-                (ResolveKind::UrlToken, href_string)
-              }
-              box swc_css::ast::ImportHref::Str(str) => (ResolveKind::AtImport, str.value.clone()),
-            };
-            // TODO: This just naive checking for http:// and https://, but it's not enough.
-            // Because any scheme is valid in `ImportPreludeHref::Url`, like `url(chrome://xxxx)`
-            // We need to find a better way to handle this.
-            if href_string.starts_with("http://") || href_string.starts_with("https://") {
-              return true;
+struct Analyzer {
+  deps: Vec<ModuleDependency>,
+}
+
+impl Visit for Analyzer {
+  fn visit_import_prelude(&mut self, n: &ImportPrelude) {
+    n.visit_children_with(self);
+
+    match &*n.href {
+      ImportHref::Url(u) => {
+        if let Some(s) = &u.value {
+          match &**s {
+            UrlValue::Str(s) => {
+              self.deps.push(ModuleDependency {
+                specifier: s.value.to_string(),
+                kind: rspack_core::ResolveKind::AtImportUrl,
+                span: Some(n.span.into()),
+              });
             }
-            match kind {
-              ResolveKind::AtImport | ResolveKind::UrlToken => {}
-              _ => {
-                unreachable!("ResolveKind in CssPlugin could either be `AtImport` or `UrlToken`")
-              }
-            };
-            self.dependencies.push(ModuleDependency {
-              specifier: href_string.to_string(),
-              kind,
-              span: Some(prelude.span.into()),
-            });
-            false
-          } else {
-            true
+            UrlValue::Raw(v) => {
+              self.deps.push(ModuleDependency {
+                specifier: v.value.to_string(),
+                kind: rspack_core::ResolveKind::AtImportUrl,
+                span: Some(n.span.into()),
+              });
+            }
           }
         }
-        _ => true,
-      })
-      .collect();
+      }
+      ImportHref::Str(s) => {
+        self.deps.push(ModuleDependency {
+          specifier: s.value.to_string(),
+          kind: rspack_core::ResolveKind::AtImport,
+          span: Some(n.span.into()),
+        });
+      }
+    }
+  }
+
+  fn visit_url(&mut self, u: &Url) {
+    u.visit_children_with(self);
+
+    match &u.value {
+      Some(box UrlValue::Str(s)) => {
+        self.deps.push(ModuleDependency {
+          specifier: s.value.to_string(),
+          kind: rspack_core::ResolveKind::UrlToken,
+          span: Some(u.span.into()),
+        });
+      }
+      Some(box UrlValue::Raw(r)) => {
+        self.deps.push(ModuleDependency {
+          specifier: r.value.to_string(),
+          kind: rspack_core::ResolveKind::UrlToken,
+          span: Some(u.span.into()),
+        });
+      }
+      None => {}
+    };
   }
 }

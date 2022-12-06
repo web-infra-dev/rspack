@@ -7,9 +7,10 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
-use rspack_core::ModuleIdentifier;
+use rspack_core::{ModuleIdentifier, ModuleDependency};
 use sugar_path::SugarPath;
 use swc_core::ecma::atoms::JsWord;
+use swc_css::modules::CssClassName;
 use swc_css::parser::parser::ParserConfig;
 use swc_css::prefixer::{options::Options, prefixer};
 use swc_css::visit::VisitMutWith;
@@ -30,7 +31,7 @@ use tracing::instrument;
 use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
 use crate::{
   pxtorem::{option::PxToRemOption, px_to_rem::px_to_rem},
-  visitors::DependencyScanner,
+  visitors::analyze_dependencies,
   SWC_COMPILER,
 };
 
@@ -210,11 +211,16 @@ pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
 pub struct CssParserAndGenerator {
   config: CssConfig,
   meta: Option<String>,
+  exports: Option<IndexMap<JsWord, Vec<CssClassName>>>,
 }
 
 impl CssParserAndGenerator {
   pub fn new(config: CssConfig) -> Self {
-    Self { config, meta: None }
+    Self {
+      config,
+      meta: None,
+      exports: None,
+    }
   }
 
   pub fn get_query(&self) -> Option<Query> {
@@ -263,7 +269,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let css_modules = matches!(module_type, ModuleType::CssModule);
     let TWithDiagnosticArray {
       inner: mut stylesheet,
-      mut diagnostic,
+      diagnostic,
     } = SWC_COMPILER.parse_file(
       &parse_context.resource_data.resource_path,
       content,
@@ -283,7 +289,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       stylesheet.visit_mut_with(&mut px_to_rem(config));
     }
 
-    let (_imports, exports) = if self.config.modules {
+    let locals = if self.config.modules {
       let imports = swc_css::modules::imports::analyze_imports(&stylesheet);
       let result = swc_css::modules::compile(
         &mut stylesheet,
@@ -298,36 +304,29 @@ impl ParserAndGenerator for CssParserAndGenerator {
       );
       let mut exports: IndexMap<JsWord, _> = result.renamed.into_iter().collect();
       exports.sort_keys();
-      (imports, exports)
-    } else {
-      Default::default()
-    };
-
-    self.meta = if let Some(additional_data) = additional_data && !additional_data.is_empty() {
-      if !exports.is_empty() {
-        // TODO: remove this once native css modules can fully replace postcss css modules.
-        diagnostic.push(rspack_error::Diagnostic::warn(
-          "CSS Modules config".to_string(),
-          "You're using native CSS Modules and postcss CSS Modules at the same time, rspack will use CSS Modules's exports first.".to_string(),
-          0,
-          0,
-        ));
-        Some(css_modules_exports_to_string(exports)?)
-      } else {
-        Some(additional_data)
-      }
-    } else if !exports.is_empty() {
-      Some(css_modules_exports_to_string(exports)?)
+      Some((imports, exports))
     } else {
       None
     };
 
-    let mut scanner = DependencyScanner::default();
-    stylesheet.visit_mut_with(&mut scanner);
+    let mut dependencies = analyze_dependencies(&stylesheet);
+    let dependencies = if let Some((imports, _)) = &locals && !imports.is_empty() {
+      dependencies.extend(imports.iter().map(|import| ModuleDependency {
+        specifier: import.to_string(),
+        kind: rspack_core::ResolveKind::AtImport,
+        span: None,
+      }));
+      dependencies.into_iter().unique().collect()
+    } else {
+      dependencies
+    };
+
+    self.meta = additional_data.and_then(|data| if data.is_empty() { None } else { Some(data) });
+    self.exports = locals.map(|(_, exports)| exports);
 
     Ok(
       ParseResult {
-        dependencies: scanner.dependencies,
+        dependencies,
         ast_or_source: stylesheet.into(),
       }
       .with_diagnostic(diagnostic),
@@ -386,13 +385,16 @@ impl ParserAndGenerator for CssParserAndGenerator {
       }
       // This is just a temporary solution for css-modules
       SourceType::JavaScript => Ok(
-        RawSource::from(
-          self
-            .meta
-            .clone()
-            .map(|item| format!("module.exports = {};\n", item))
-            .unwrap_or_else(|| "".to_string()),
-        )
+        RawSource::from(if let Some(meta) = &self.meta {
+          format!("module.exports = {};\n", meta)
+        } else if let Some(exports) = &self.exports {
+          format!(
+            "module.exports = {};\n",
+            css_modules_exports_to_string(exports, module, &generate_context.compilation)?
+          )
+        } else {
+          "".to_string()
+        })
         .boxed(),
       ),
       _ => Err(Error::InternalError(format!(
@@ -422,6 +424,7 @@ impl Plugin for CssPlugin {
       Box::new(CssParserAndGenerator {
         config: config.clone(),
         meta: None,
+        exports: None,
       }) as Box<dyn ParserAndGenerator>
     };
 
