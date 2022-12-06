@@ -9,7 +9,15 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				exclude: [/lib\.js/, resolve("index.js")],
+				exclude: /lib\.js/,
+				use: [
+					{
+						loader: "./loader.js"
+					}
+				]
+			},
+			{
+				exclude: resolve("index.js"),
 				use: [
 					{
 						loader: "./loader.js"
