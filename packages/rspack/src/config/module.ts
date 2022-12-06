@@ -10,11 +10,15 @@ import { isNil, isPromiseLike } from "../utils";
 import { ResolvedContext } from "./context";
 import { isUseSourceMap, ResolvedDevtool } from "./devtool";
 
+export type Condition = string | RegExp;
+
 export interface ModuleRule {
 	name?: string;
-	test?: string | RegExp;
-	resource?: string | RegExp;
-	resourceQuery?: string | RegExp;
+	test?: Condition;
+	include?: Condition | Condition[];
+	exclude?: Condition | Condition[];
+	resource?: Condition;
+	resourceQuery?: Condition;
 	use?: ModuleRuleUse[];
 	type?: RawModuleRule["type"];
 }
@@ -26,6 +30,8 @@ export interface Module {
 
 interface ResolvedModuleRule {
 	test?: RawModuleRule["test"];
+	include?: RawModuleRule["include"];
+	exclude?: RawModuleRule["exclude"];
 	resource?: RawModuleRule["resource"];
 	resourceQuery?: RawModuleRule["resourceQuery"];
 	use?: RawModuleRuleUse[];
@@ -388,7 +394,7 @@ function createNativeUse(use: ModuleRuleUse): RawModuleRuleUse {
 }
 
 function resolveModuleRuleCondition(
-	condition: string | RegExp
+	condition: Condition
 ): RawModuleRuleCondition {
 	if (typeof condition === "string") {
 		return {
@@ -407,6 +413,12 @@ function resolveModuleRuleCondition(
 	throw new Error(
 		`Unsupported condition type ${typeof condition}, value: ${condition}`
 	);
+}
+
+function resolveModuleRuleConditions(
+	conditions: Condition[]
+): RawModuleRuleCondition[] {
+	return conditions.map(resolveModuleRuleCondition);
 }
 
 export function resolveModuleOptions(
@@ -428,6 +440,16 @@ export function resolveModuleOptions(
 		return {
 			...rule,
 			test: isNil(rule.test) ? null : resolveModuleRuleCondition(rule.test),
+			include: isNil(rule.include)
+				? null
+				: Array.isArray(rule.include)
+				? resolveModuleRuleConditions(rule.include)
+				: [resolveModuleRuleCondition(rule.include)],
+			exclude: isNil(rule.exclude)
+				? null
+				: Array.isArray(rule.exclude)
+				? resolveModuleRuleConditions(rule.exclude)
+				: [resolveModuleRuleCondition(rule.exclude)],
 			resource: isNil(rule.resource)
 				? null
 				: resolveModuleRuleCondition(rule.resource),
