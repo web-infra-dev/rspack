@@ -18,6 +18,18 @@
 - Open rspack project.
 - Run `cargo build` to see that is everthing ok.
 
+## Release 
+### Prerequisite
+1. Making sure you have permission to access organization `@rspack` in npmjs.com
+2. `Zig` compiler, you could install it by running `brew install zig` on Macos, for other OS, please refer https://ziglang.org/learn/getting-started/#installing-zig
+3. Installing `Linux` target toolchain (for now, only two target macos and linux  are fairly enough), install it with command `rustup target add x86_64-unknown-linux-gnu`.
+
+### Step
+1. Making sure you have logged into npm
+2. Building packages `./x build js-release-all`.
+3. `pnpm bump`
+4. `pnpm release`
+
 ## Testing
 
 We currently have two sets of test suits, one for rust and one for node.
@@ -72,3 +84,4 @@ WARNING: We have hacked `@iarna/toml/stringify.js` to make the output match our 
 ##### check_rust_dependency.js
 
 This script will print the duplicate dependencies in `cargo.toml` for all crates.
+
