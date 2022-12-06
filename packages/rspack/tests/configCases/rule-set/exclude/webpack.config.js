@@ -1,4 +1,5 @@
 const path = require("path");
+const resolve = filename => path.resolve(__dirname, filename);
 
 /**
  * @type {import('@rspack/core').RspackOptions}
@@ -8,7 +9,7 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				exclude: [/lib\.js/, /index\.js/],
+				exclude: [/lib\.js/, resolve("index.js")],
 				use: [
 					{
 						loader: "./loader.js"
