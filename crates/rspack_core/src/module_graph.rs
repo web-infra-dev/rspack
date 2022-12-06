@@ -57,7 +57,7 @@ impl ModuleGraphConnection {
 
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
-  dependency_id_to_module_identifier: HashMap<u32, String>,
+  dependency_id_to_module_identifier: HashMap<u32, ModuleIdentifier>,
 
   /// Module identifier to its module
   pub module_identifier_to_module: HashMap<ModuleIdentifier, BoxModule>,
@@ -77,16 +77,15 @@ impl ModuleGraph {
   pub fn add_module_graph_module(&mut self, module_graph_module: ModuleGraphModule) {
     if let hashbrown::hash_map::Entry::Vacant(val) = self
       .module_identifier_to_module_graph_module
-      .entry(module_graph_module.module_identifier.clone())
+      .entry(module_graph_module.module_identifier)
     {
       val.insert(module_graph_module);
     }
   }
 
   pub fn add_module(&mut self, module: BoxModule) {
-    if let hashbrown::hash_map::Entry::Vacant(val) = self
-      .module_identifier_to_module
-      .entry(module.identifier().into())
+    if let hashbrown::hash_map::Entry::Vacant(val) =
+      self.module_identifier_to_module.entry(module.identifier())
     {
       val.insert(module);
     }
@@ -95,7 +94,7 @@ impl ModuleGraph {
   pub fn add_dependency(
     &mut self,
     (dep, dependency_id): (Dependency, u32),
-    module_identifier: String,
+    module_identifier: ModuleIdentifier,
   ) {
     self
       .dependency_id_to_dependency
@@ -142,11 +141,8 @@ impl ModuleGraph {
     dependency_id: u32,
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
-    let new_connection = ModuleGraphConnection::new(
-      original_module_identifier.clone(),
-      dependency_id,
-      module_identifier.clone(),
-    );
+    let new_connection =
+      ModuleGraphConnection::new(original_module_identifier, dependency_id, module_identifier);
 
     let connection_id = if let Some(connection) = self.connections.get(&new_connection) {
       connection.id
@@ -184,19 +180,25 @@ impl ModuleGraph {
 
   /// Uniquely identify a module by its identifier and return the aliased reference
   #[inline]
-  pub fn module_by_identifier(&self, identifier: &str) -> Option<&BoxModule> {
+  pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
     self.module_identifier_to_module.get(identifier)
   }
 
   /// Uniquely identify a module by its identifier and return the exclusive reference
   #[inline]
-  pub fn module_by_identifier_mut(&mut self, identifier: &str) -> Option<&mut BoxModule> {
+  pub fn module_by_identifier_mut(
+    &mut self,
+    identifier: &ModuleIdentifier,
+  ) -> Option<&mut BoxModule> {
     self.module_identifier_to_module.get_mut(identifier)
   }
 
   /// Uniquely identify a module graph module by its module's identifier and return the aliased reference
   #[inline]
-  pub fn module_graph_module_by_identifier(&self, identifier: &str) -> Option<&ModuleGraphModule> {
+  pub fn module_graph_module_by_identifier(
+    &self,
+    identifier: &ModuleIdentifier,
+  ) -> Option<&ModuleGraphModule> {
     self
       .module_identifier_to_module_graph_module
       .get(identifier)
@@ -206,7 +208,7 @@ impl ModuleGraph {
   #[inline]
   pub fn module_graph_module_by_identifier_mut(
     &mut self,
-    identifier: &str,
+    identifier: &ModuleIdentifier,
   ) -> Option<&mut ModuleGraphModule> {
     self
       .module_identifier_to_module_graph_module

@@ -13,7 +13,7 @@ use rspack_core::{
   get_contenthash,
   rspack_sources::{RawSource, SourceExt},
   runtime_globals, AssetParserDataUrlOption, AssetParserOptions, AstOrSource,
-  FilenameRenderOptions, GenerateContext, GenerationResult, Module, ParseContext,
+  FilenameRenderOptions, GenerateContext, GenerationResult, Module, ModuleIdentifier, ParseContext,
   ParserAndGenerator, PathData, Plugin, PluginContext, PluginRenderManifestHookOutput,
   RenderManifestArgs, RenderManifestEntry, SourceType,
 };
@@ -26,7 +26,7 @@ pub struct AssetConfig {
 #[derive(Debug)]
 pub struct AssetPlugin {
   config: AssetConfig,
-  module_id_to_filename_without_ext: Arc<DashMap<String, String>>,
+  module_id_to_filename_without_ext: Arc<DashMap<ModuleIdentifier, String>>,
 }
 impl AssetPlugin {
   pub fn new(config: AssetConfig) -> AssetPlugin {
@@ -78,7 +78,7 @@ impl CanonicalizedDataUrlOption {
 pub struct AssetParserAndGenerator {
   data_url: DataUrlOption,
   parsed_asset_config: Option<CanonicalizedDataUrlOption>,
-  module_id_to_filename: Arc<DashMap<String, String>>,
+  module_id_to_filename: Arc<DashMap<ModuleIdentifier, String>>,
 }
 
 impl AssetParserAndGenerator {
@@ -116,7 +116,7 @@ impl AssetParserAndGenerator {
 
   pub(crate) fn into_with_module_id_to_filename_without_ext(
     mut self,
-    module_id_to_filename_without_ext: Arc<DashMap<String, String>>,
+    module_id_to_filename_without_ext: Arc<DashMap<ModuleIdentifier, String>>,
   ) -> Self {
     self.module_id_to_filename = module_id_to_filename_without_ext;
     self
@@ -267,7 +267,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
     self
       .module_id_to_filename
-      .insert(module.identifier().to_string(), asset_filename.clone());
+      .insert(module.identifier(), asset_filename.clone());
 
     let result = match generate_context.requested_source_type {
       SourceType::JavaScript => {

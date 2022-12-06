@@ -10,6 +10,7 @@ use tracing::instrument;
 
 use crate::{
   uri_to_chunk_name, ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation,
+  ModuleIdentifier,
 };
 
 #[instrument(skip_all)]
@@ -25,7 +26,7 @@ struct CodeSplitter<'me> {
   queue: Vec<QueueItem>,
   queue_delayed: Vec<QueueItem>,
   chunk_relation_graph: petgraph::graphmap::DiGraphMap<ChunkUkey, ()>,
-  split_point_modules: HashSet<String>,
+  split_point_modules: HashSet<ModuleIdentifier>,
 }
 
 impl<'me> CodeSplitter<'me> {
@@ -43,13 +44,14 @@ impl<'me> CodeSplitter<'me> {
 
   fn prepare_input_entrypoints_and_modules(
     &mut self,
-  ) -> Result<HashMap<ChunkGroupUkey, Vec<String>>> {
+  ) -> Result<HashMap<ChunkGroupUkey, Vec<ModuleIdentifier>>> {
     let compilation = &mut self.compilation;
     let module_graph = &compilation.module_graph;
 
     let entries = compilation.entry_data();
 
-    let mut input_entrypoints_and_modules: HashMap<ChunkGroupUkey, Vec<String>> = HashMap::new();
+    let mut input_entrypoints_and_modules: HashMap<ChunkGroupUkey, Vec<ModuleIdentifier>> =
+      HashMap::new();
 
     for (name, entry_data) in entries.iter() {
       let options = &entry_data.options;
@@ -59,7 +61,7 @@ impl<'me> CodeSplitter<'me> {
         .filter_map(|dep| {
           module_graph
             .module_by_dependency(dep)
-            .map(|module| module.module_identifier.clone())
+            .map(|module| module.module_identifier)
         })
         .collect::<Vec<_>>();
       let chunk = Compilation::add_named_chunk(
@@ -75,7 +77,7 @@ impl<'me> CodeSplitter<'me> {
         compilation
           .chunk_graph
           .split_point_module_identifier_to_chunk_ukey
-          .insert(module_identifier.clone(), chunk.ukey);
+          .insert(module_identifier, chunk.ukey);
       }
 
       let mut entrypoint = ChunkGroup::new(ChunkGroupKind::Entrypoint, Some(name.to_string()));
@@ -107,18 +109,16 @@ impl<'me> CodeSplitter<'me> {
         let module = module_graph
           .module_by_dependency(dep)
           .ok_or_else(|| anyhow::format_err!("no module found"))?;
-        compilation
-          .chunk_graph
-          .add_module(module.module_identifier.clone());
+        compilation.chunk_graph.add_module(module.module_identifier);
 
         input_entrypoints_and_modules
           .entry(entrypoint.ukey)
           .or_default()
-          .push(module.module_identifier.clone());
+          .push(module.module_identifier);
 
         compilation.chunk_graph.connect_chunk_and_entry_module(
           chunk.ukey,
-          module.module_identifier.clone(),
+          module.module_identifier,
           entrypoint.ukey,
         );
       }
@@ -196,7 +196,8 @@ impl<'me> CodeSplitter<'me> {
 
     // Optmize to remove duplicated module which is safe
 
-    let mut modules_to_be_removed_in_chunk = HashMap::new() as HashMap<ChunkUkey, HashSet<String>>;
+    let mut modules_to_be_removed_in_chunk =
+      HashMap::new() as HashMap<ChunkUkey, HashSet<ModuleIdentifier>>;
 
     for chunk in self.compilation.chunk_by_ukey.values() {
       for module in self
@@ -220,7 +221,7 @@ impl<'me> CodeSplitter<'me> {
           modules_to_be_removed_in_chunk
             .entry(chunk.ukey)
             .or_default()
-            .insert(module.module_identifier.clone());
+            .insert(module.module_identifier);
         }
 
         tracing::trace!(
@@ -288,12 +289,12 @@ impl<'me> CodeSplitter<'me> {
     self
       .compilation
       .chunk_graph
-      .add_module(item.module_identifier.clone());
+      .add_module(item.module_identifier);
 
     self
       .compilation
       .chunk_graph
-      .connect_chunk_and_module(item.chunk, item.module_identifier.clone());
+      .connect_chunk_and_module(item.chunk, item.module_identifier);
     self.enter_module(item)
   }
 
@@ -310,10 +311,9 @@ impl<'me> CodeSplitter<'me> {
       .get(&item.module_identifier)
       .is_none()
     {
-      chunk_group.module_pre_order_indices.insert(
-        item.module_identifier.clone(),
-        chunk_group.next_pre_order_index,
-      );
+      chunk_group
+        .module_pre_order_indices
+        .insert(item.module_identifier, chunk_group.next_pre_order_index);
       chunk_group.next_pre_order_index += 1;
     }
 
@@ -350,10 +350,9 @@ impl<'me> CodeSplitter<'me> {
       .get(&item.module_identifier)
       .is_none()
     {
-      chunk_group.module_post_order_indices.insert(
-        item.module_identifier.clone(),
-        chunk_group.next_post_order_index,
-      );
+      chunk_group
+        .module_post_order_indices
+        .insert(item.module_identifier, chunk_group.next_post_order_index);
       chunk_group.next_post_order_index += 1;
     }
 
@@ -386,7 +385,7 @@ impl<'me> CodeSplitter<'me> {
         action: QueueAction::AddAndEnter,
         chunk: item.chunk,
         chunk_group: item.chunk_group,
-        module_identifier: dep_mgm.module_identifier.clone(),
+        module_identifier: dep_mgm.module_identifier,
       });
     }
 
@@ -403,7 +402,7 @@ impl<'me> CodeSplitter<'me> {
       } else {
         self
           .split_point_modules
-          .insert(dyn_dep_mgm.module_identifier.clone());
+          .insert(dyn_dep_mgm.module_identifier);
       }
 
       let chunk = Compilation::add_named_chunk(
@@ -429,7 +428,7 @@ impl<'me> CodeSplitter<'me> {
         .compilation
         .chunk_graph
         .split_point_module_identifier_to_chunk_ukey
-        .insert(dyn_dep_mgm.module_identifier.clone(), chunk.ukey);
+        .insert(dyn_dep_mgm.module_identifier, chunk.ukey);
 
       let mut chunk_group = ChunkGroup::new(ChunkGroupKind::Normal, None);
       let item_chunk_group = self
@@ -456,7 +455,7 @@ impl<'me> CodeSplitter<'me> {
         action: QueueAction::AddAndEnter,
         chunk: chunk.ukey,
         chunk_group: chunk_group.ukey,
-        module_identifier: dyn_dep_mgm.module_identifier.clone(),
+        module_identifier: dyn_dep_mgm.module_identifier,
       });
     }
   }
@@ -467,7 +466,7 @@ struct QueueItem {
   action: QueueAction,
   chunk_group: ChunkGroupUkey,
   chunk: ChunkUkey,
-  module_identifier: String,
+  module_identifier: ModuleIdentifier,
 }
 
 #[derive(Debug, Clone)]

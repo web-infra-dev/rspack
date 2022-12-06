@@ -39,7 +39,7 @@ impl BuildModuleOccasion {
     };
 
     let mut need_cache = false;
-    let id: String = module.identifier().into();
+    let id: String = module.identifier().to_owned();
     if module.as_normal_module().is_some() {
       // normal module
       // TODO cache all module type

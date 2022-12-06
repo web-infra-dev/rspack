@@ -350,7 +350,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               return;
             }
           };
-          let resolved_uri_ukey = ustr(resolved_uri);
+          let resolved_uri_ukey = *resolved_uri;
           import
             .specifiers
             .iter()
@@ -986,18 +986,14 @@ impl<'a> ModuleRefAnalyze<'a> {
   /// For simplicity, this function will assume the importer is always `self.module_identifier`
   /// # Panic
   /// This function will panic if can't find
-  fn resolve_module_identifier(
-    &mut self,
-    src: String,
-    resolve_kind: ResolveKind,
-  ) -> Option<&String> {
+  fn resolve_module_identifier(&mut self, src: String, resolve_kind: ResolveKind) -> Option<&Ustr> {
     let dep = Dependency {
       detail: crate::ModuleDependency {
         specifier: src,
         kind: resolve_kind,
         span: None,
       },
-      parent_module_identifier: Some(self.module_identifier.to_string()),
+      parent_module_identifier: Some(self.module_identifier),
     };
     self
       .module_graph

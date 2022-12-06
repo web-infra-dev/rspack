@@ -289,7 +289,7 @@ impl Compilation {
             self
               .module_graph
               .module_by_dependency(dep)
-              .map(|module| module.module_identifier.clone())
+              .map(|module| module.module_identifier)
           })
           .next()
           .is_some()
@@ -360,15 +360,11 @@ impl Compilation {
 
               match self
                 .visited_module_id
-                .entry((module_identifier.clone().into(), dependency.detail.clone()))
+                .entry((module_identifier, dependency.detail.clone()))
               {
                 Occupied(_) => {
                   if let Err(err) = tx.send(Msg::ModuleReused(
-                    (
-                      original_module_identifier,
-                      dependency_id,
-                      module_identifier.into(),
-                    )
+                    (original_module_identifier, dependency_id, module_identifier)
                       .with_diagnostic(module_with_diagnostic.diagnostic),
                   )) {
                     tracing::trace!("fail to send msg {:?}", err)
@@ -381,9 +377,7 @@ impl Compilation {
               }
 
               if is_entry {
-                self
-                  .entry_module_identifiers
-                  .insert(module_identifier.into());
+                self.entry_module_identifiers.insert(module_identifier);
               }
 
               self.handle_module_build_and_dependencies(
@@ -403,7 +397,7 @@ impl Compilation {
               if let Err(err) = self.module_graph.set_resolved_module(
                 original_module_identifier,
                 dependency_id,
-                module_identifier.clone(),
+                module_identifier,
               ) {
                 // If build error message is failed to send, then we should manually decrease the active task count
                 // Otherwise, it will be gracefully handled by the error message handler.
@@ -435,14 +429,13 @@ impl Compilation {
               if let Err(err) = self.module_graph.set_resolved_module(
                 original_module_identifier,
                 dependency_id,
-                module.identifier().into(),
+                module.identifier(),
               ) {
                 // If build error message is failed to send, then we should manually decrease the active task count
                 // Otherwise, it will be gracefully handled by the error message handler.
-                if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(
-                  module.identifier().into(),
-                  err,
-                )) {
+                if let Err(err) =
+                  tx.send(Msg::ModuleBuiltErrorEncountered(module.identifier(), err))
+                {
                   active_task_count.fetch_sub(1, Ordering::SeqCst);
                   tracing::trace!("fail to send msg {:?}", err)
                 }
@@ -506,7 +499,7 @@ impl Compilation {
     let plugin_driver = self.plugin_driver.clone();
     let cache = self.cache.clone();
 
-    let module_identifier = module.identifier().into_owned();
+    let module_identifier = module.identifier();
 
     tokio::spawn(async move {
       let build_result = cache
@@ -568,7 +561,7 @@ impl Compilation {
             .dependencies
             .into_iter()
             .map(|dep| Dependency {
-              parent_module_identifier: Some(module_identifier.clone().into()),
+              parent_module_identifier: Some(module_identifier),
               detail: dep,
             })
             .collect::<Vec<_>>();
@@ -586,7 +579,7 @@ impl Compilation {
           // Otherwise, it will be gracefully handled by the error message handler.
           if let Err(err) = tx.send(Msg::ModuleResolved(
             (
-              original_module_identifier.clone(),
+              original_module_identifier,
               dependency_id,
               module,
               Box::new(deps),
@@ -657,14 +650,12 @@ impl Compilation {
           .cache
           .code_generate_occasion
           .use_cache(module, |module| module.code_generation(self))
-          .map(|result| (module_identifier.clone(), result))
+          .map(|result| (*module_identifier, result))
       })
       .collect::<Result<Vec<(ModuleIdentifier, CodeGenerationResult)>>>()?;
 
     results.into_iter().for_each(|(module_identifier, result)| {
-      self
-        .code_generated_modules
-        .insert(module_identifier.clone());
+      self.code_generated_modules.insert(module_identifier);
 
       let runtimes = self
         .chunk_graph
@@ -673,13 +664,11 @@ impl Compilation {
       self
         .code_generation_results
         .module_generation_result_map
-        .insert(module_identifier.clone(), result);
+        .insert(module_identifier, result);
       for runtime in runtimes.values() {
-        self.code_generation_results.add(
-          module_identifier.clone(),
-          runtime.clone(),
-          module_identifier.clone(),
-        );
+        self
+          .code_generation_results
+          .add(module_identifier, runtime.clone(), module_identifier);
       }
     });
 
@@ -816,7 +805,7 @@ impl Compilation {
       let forced_side_effects = !side_effects_analyze
         || self
           .entry_module_identifiers
-          .contains(analyze_result.module_identifier.as_str());
+          .contains(&analyze_result.module_identifier);
       // side_effects: true
       if forced_side_effects || !analyze_result.side_effects_free {
         evaluated_module_identifiers.insert(analyze_result.module_identifier);
@@ -919,14 +908,14 @@ impl Compilation {
         if !bail_out_module_identifiers.contains_key(&result.module_identifier)
           && !self
             .entry_module_identifiers
-            .contains(result.module_identifier.as_str())
+            .contains(&result.module_identifier)
           && result.side_effects_free
           && !used_export_module_identifiers.contains(&result.module_identifier)
         // && result.inherit_export_maps.is_empty()
         {
           self
             .module_graph
-            .module_graph_module_by_identifier_mut(result.module_identifier.as_str())
+            .module_graph_module_by_identifier_mut(&result.module_identifier)
             .unwrap()
             .used = false;
         }
@@ -951,7 +940,7 @@ impl Compilation {
     Ok(())
   }
 
-  pub fn entry_modules(&self) -> impl Iterator<Item = String> {
+  pub fn entry_modules(&self) -> impl Iterator<Item = Ustr> {
     self.entry_module_identifiers.clone().into_iter()
   }
 
@@ -1006,13 +995,13 @@ impl Compilation {
       .filter_map(|(_, module)| {
         if self
           .chunk_graph
-          .get_number_of_module_chunks(&module.identifier().into())
+          .get_number_of_module_chunks(&module.identifier())
           > 0
         {
           let mut module_runtime_requirements: Vec<(HashSet<String>, HashSet<String>)> = vec![];
           for runtime in self
             .chunk_graph
-            .get_module_runtimes(&module.identifier().into(), &self.chunk_by_ukey)
+            .get_module_runtimes(&module.identifier(), &self.chunk_by_ukey)
             .values()
           {
             let runtime_requirements = self
@@ -1146,10 +1135,10 @@ impl Compilation {
 
   pub fn add_runtime_module(&mut self, chunk_ukey: &ChunkUkey, mut module: Box<dyn RuntimeModule>) {
     module.attach(*chunk_ukey);
-    self.chunk_graph.add_module(module.identifier());
+    self.chunk_graph.add_module(ustr(&module.identifier()));
     self
       .chunk_graph
-      .connect_chunk_and_module(*chunk_ukey, module.identifier());
+      .connect_chunk_and_module(*chunk_ukey, ustr(&module.identifier()));
     self
       .chunk_graph
       .connect_chunk_and_runtime_module(*chunk_ukey, module);

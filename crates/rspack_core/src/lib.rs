@@ -10,7 +10,9 @@ pub mod cache;
 mod normal_module;
 mod raw_module;
 pub use raw_module::*;
+pub mod identifier;
 pub mod module;
+pub use identifier::*;
 pub mod parser_and_generator;
 pub use module::*;
 pub use parser_and_generator::*;
@@ -151,7 +153,7 @@ impl TryFrom<&str> for ModuleType {
   }
 }
 
-pub(crate) type VisitedModuleIdentity = HashSet<(String, ModuleDependency)>;
+pub(crate) type VisitedModuleIdentity = HashSet<(ModuleIdentifier, ModuleDependency)>;
 
 pub(crate) type ChunkByUkey = HashMap<ChunkUkey, Chunk>;
 pub type ChunkGroupByUkey = HashMap<ChunkGroupUkey, ChunkGroup>;

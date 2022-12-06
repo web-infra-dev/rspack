@@ -119,7 +119,7 @@ impl<'compilation> Stats<'compilation> {
         StatsModule {
           r#type: "module",
           module_type: *module.module_type(),
-          identifier: identifier.into(),
+          identifier: identifier.to_owned(),
           name: module
             .readable_identifier(&self.compilation.options.context)
             .into(),

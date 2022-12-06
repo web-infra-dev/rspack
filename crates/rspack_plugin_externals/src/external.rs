@@ -4,7 +4,7 @@ use std::hash::Hash;
 use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
   AstOrSource, BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, ExternalType,
-  Module, ModuleType, SourceType, Target, TargetPlatform,
+  Identifiable, Identifier, Module, ModuleType, SourceType, Target, TargetPlatform,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 
@@ -31,6 +31,13 @@ impl ExternalModule {
   }
 }
 
+impl Identifiable for ExternalModule {
+  fn identifier(&self) -> Identifier {
+    let id = format!("external {} {}", self.external_type, self.specifier);
+    Identifier::from(&id)
+  }
+}
+
 #[async_trait::async_trait]
 impl Module for ExternalModule {
   fn module_type(&self) -> &ModuleType {
@@ -43,13 +50,6 @@ impl Module for ExternalModule {
 
   fn original_source(&self) -> Option<&dyn Source> {
     None
-  }
-
-  fn identifier(&self) -> Cow<str> {
-    Cow::Owned(format!(
-      "external {} {}",
-      self.external_type, self.specifier
-    ))
   }
 
   fn readable_identifier(&self, _context: &Context) -> Cow<str> {

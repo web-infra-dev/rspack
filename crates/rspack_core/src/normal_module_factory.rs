@@ -12,6 +12,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use rspack_error::{Diagnostic, Error, Result, TWithDiagnosticArray};
 use tracing::instrument;
+use ustr::Ustr;
 
 use crate::{
   cache::Cache, module_rule_matcher, resolve, BoxModule, CompilerOptions, FactorizeArgs, ModuleExt,
@@ -181,13 +182,13 @@ impl NormalModuleFactory {
         let uri = format!("{}/{}", importer.display(), specifier);
 
         let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
-        let module_identifier = format!("ignored|{uri}");
+        let module_identifier = Ustr::from(&format!("ignored|{uri}"));
 
         self
           .tx
           .send(Msg::DependencyReference(
             (self.dependency.clone(), dependency_id),
-            module_identifier.clone(),
+            module_identifier,
           ))
           .map_err(|_| {
             Error::InternalError(format!(
@@ -223,7 +224,7 @@ impl NormalModuleFactory {
       .tx
       .send(Msg::DependencyReference(
         (self.dependency.clone(), dependency_id),
-        uri.clone(),
+        Ustr::from(&uri),
       ))
       .map_err(|_| {
         Error::InternalError(format!(
@@ -330,7 +331,7 @@ impl NormalModuleFactory {
         .tx
         .send(Msg::DependencyReference(
           (self.dependency.clone(), dependency_id),
-          module.identifier().into_owned(),
+          module.identifier(),
         ))
         .map_err(|_| {
           Error::InternalError(format!(
@@ -353,7 +354,7 @@ impl NormalModuleFactory {
       } else {
         id.to_string_lossy().to_string()
       },
-      module.identifier().into(),
+      module.identifier(),
       vec![],
       self.context.module_type.ok_or_else(|| {
         Error::InternalError(format!(
@@ -366,7 +367,7 @@ impl NormalModuleFactory {
     Ok(Some((
       mgm,
       module,
-      self.dependency.parent_module_identifier.clone(),
+      self.dependency.parent_module_identifier,
       dependency_id,
     )))
   }

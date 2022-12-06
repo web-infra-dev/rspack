@@ -12,6 +12,8 @@ use bitflags::bitflags;
 use dashmap::DashMap;
 use hashbrown::HashSet;
 use serde_json::json;
+use swc_core::ecma::ast;
+use ustr::ustr;
 
 use rspack_error::{
   Diagnostic, Error, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray,
@@ -21,13 +23,12 @@ use rspack_sources::{
   BoxSource, OriginalSource, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
   WithoutOriginalOptions,
 };
-use swc_core::ecma::ast;
 
 use crate::{
-  ast::javascript::Ast as JsAst, BuildContext, BuildResult, CodeGenerationResult, Compilation,
-  CompilerOptions, Context, Dependency, GenerateContext, Module, ModuleAst, ModuleGraph,
-  ModuleGraphConnection, ModuleType, ParseContext, ParseResult, ParserAndGenerator, ResolveKind,
-  SourceType,
+  ast::javascript::Ast as JsAst, identifier::Identifiable, BuildContext, BuildResult,
+  CodeGenerationResult, Compilation, CompilerOptions, Context, Dependency, GenerateContext, Module,
+  ModuleAst, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext,
+  ParseResult, ParserAndGenerator, ResolveKind, SourceType,
 };
 
 bitflags! {
@@ -287,7 +288,6 @@ impl NormalModuleAstOrSource {
   }
 }
 
-pub type ModuleIdentifier = String;
 pub static DEBUG_ID: AtomicU32 = AtomicU32::new(1);
 
 impl NormalModule {
@@ -354,6 +354,12 @@ impl NormalModule {
   }
 }
 
+impl Identifiable for NormalModule {
+  fn identifier(&self) -> ModuleIdentifier {
+    ustr(&self.request)
+  }
+}
+
 #[async_trait::async_trait]
 impl Module for NormalModule {
   fn module_type(&self) -> &ModuleType {
@@ -366,10 +372,6 @@ impl Module for NormalModule {
 
   fn original_source(&self) -> Option<&dyn Source> {
     self.original_source.as_deref()
-  }
-
-  fn identifier(&self) -> Cow<str> {
-    Cow::Borrowed(&self.request)
   }
 
   fn readable_identifier(&self, context: &Context) -> Cow<str> {

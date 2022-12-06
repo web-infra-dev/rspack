@@ -1,12 +1,13 @@
 #![allow(clippy::comparison_chain)]
+use std::cmp;
 use std::path::Path;
-use std::{borrow::Cow, cmp};
 
 use hashbrown::HashSet;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
+use rspack_core::ModuleIdentifier;
 use sugar_path::SugarPath;
 use swc_core::ecma::atoms::JsWord;
 use swc_css::parser::parser::ParserConfig;
@@ -60,14 +61,14 @@ impl CssPlugin {
     chunk_graph: &'module ChunkGraph,
     module_graph: &'module ModuleGraph,
     compilation: &Compilation,
-  ) -> Vec<Cow<'module, str>> {
+  ) -> Vec<ModuleIdentifier> {
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/css/CssModulesPlugin.js#L368
     let mut css_modules = chunk_graph
       .get_chunk_modules_iterable_by_source_type(&chunk.ukey, SourceType::Css, module_graph)
       .collect::<Vec<_>>();
     css_modules.sort_by_key(|module| module.identifier());
 
-    let css_modules: Vec<Cow<'module, str>> =
+    let css_modules: Vec<ModuleIdentifier> =
       Self::get_modules_in_order(chunk, css_modules, compilation);
 
     css_modules
@@ -77,7 +78,7 @@ impl CssPlugin {
     chunk: &Chunk,
     modules: Vec<&'module dyn Module>,
     compilation: &Compilation,
-  ) -> Vec<Cow<'module, str>> {
+  ) -> Vec<ModuleIdentifier> {
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/css/CssModulesPlugin.js#L269
     if modules.is_empty() {
       return vec![];
@@ -109,7 +110,7 @@ impl CssPlugin {
             }
           })
           .map(|item| item.0)
-          .collect::<Vec<_>>();
+          .collect_vec();
 
         SortedModules {
           set: sorted_modules.clone().into_iter().collect(),
@@ -124,30 +125,30 @@ impl CssPlugin {
 
     modules_by_chunk_group.sort_by(compare_module_lists);
 
-    let mut final_modules: Vec<Cow<'module, str>> = vec![];
+    let mut final_modules: Vec<ModuleIdentifier> = vec![];
 
     loop {
-      let mut failed_modules: HashSet<Cow<str>> = HashSet::default();
+      let mut failed_modules: HashSet<ModuleIdentifier> = HashSet::default();
       let list = modules_by_chunk_group[0].list.clone();
       if list.is_empty() {
         // done, everything empty
         break;
       }
-      let mut selected_module = list.last().unwrap().clone();
+      let mut selected_module = *list.last().unwrap();
       let mut has_failed = None;
       'outer: loop {
         for SortedModules { set, list } in &modules_by_chunk_group {
           if list.is_empty() {
             continue;
           }
-          let last_module = list.last().unwrap().clone();
+          let last_module = *list.last().unwrap();
           if last_module != selected_module {
             continue;
           }
           if !set.contains(&selected_module) {
             continue;
           }
-          failed_modules.insert(selected_module.clone());
+          failed_modules.insert(selected_module);
           if failed_modules.contains(&last_module) {
             // There is a conflict, try other alternatives
             has_failed = Some(last_module);
@@ -159,7 +160,7 @@ impl CssPlugin {
         }
         break;
       }
-      if let Some(has_failed) = has_failed.clone() {
+      if let Some(has_failed) = has_failed {
         // There is a not resolve-able conflict with the selectedModule
         // TODO: we should emit a warning here
         tracing::warn!("Conflicting order between");
@@ -181,7 +182,7 @@ impl CssPlugin {
         selected_module = has_failed;
       }
       // Insert the selected module into the final modules list
-      final_modules.push(selected_module.clone());
+      final_modules.push(selected_module);
       // Remove the selected module from all lists
       for SortedModules { set, list } in &mut modules_by_chunk_group {
         let last_module = list.last().unwrap();
@@ -618,9 +619,9 @@ impl Plugin for CssPlugin {
   }
 }
 
-struct SortedModules<'me> {
-  pub list: Vec<Cow<'me, str>>,
-  pub set: HashSet<Cow<'me, str>>,
+struct SortedModules {
+  pub list: Vec<ModuleIdentifier>,
+  pub set: HashSet<ModuleIdentifier>,
 }
 
 fn compare_module_lists(a: &SortedModules, b: &SortedModules) -> cmp::Ordering {
