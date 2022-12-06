@@ -286,7 +286,6 @@ export class RspackDevServer {
 					return createProxyMiddleware(proxyConfig);
 				}
 			}
-			console.log("proxy:", options.proxy);
 			options.proxy.forEach(proxyConfig => {
 				const handler = async (req, res, next) => {
 					let proxyMiddleware = getProxyMiddleware(proxyConfig);

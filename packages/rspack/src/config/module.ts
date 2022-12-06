@@ -340,8 +340,6 @@ function createRawModuleRuleUsesImpl(
 	if (!uses.length) {
 		return [];
 	}
-	console.log("uses:");
-
 	const index = uses.findIndex(use => "builtinLoader" in use);
 	if (index < 0) {
 		return [composeJsUse(uses, options)];
