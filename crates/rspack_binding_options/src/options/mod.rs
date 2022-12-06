@@ -126,7 +126,6 @@ pub struct RawOptions {
 }
 
 pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<CompilerOptions> {
-  dbg!(&raw_options.mode);
   // normalize_options should ensuring orderliness.
   let compiler_options = CompilerOptionsBuilder::default()
     .then(|mut options| {

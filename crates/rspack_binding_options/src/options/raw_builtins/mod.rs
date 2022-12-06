@@ -79,7 +79,6 @@ pub(super) fn normalize_builtin(
   plugins: &mut Vec<Box<dyn Plugin>>,
   options: &CompilerOptionsBuilder,
 ) -> Result<Builtins, anyhow::Error> {
-  dbg!(&builtins);
   if let Some(configs) = builtins.html {
     for config in configs {
       plugins.push(Box::new(rspack_plugin_html::HtmlPlugin::new(
@@ -117,7 +116,6 @@ pub(super) fn normalize_builtin(
     react: RawOption::raw_to_compiler_option(builtins.react, options)?,
     decorator: transform_to_decorator_options(builtins.decorator),
   };
-  dbg!(&ret);
   Ok(ret)
 }
 
