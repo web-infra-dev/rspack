@@ -3,7 +3,6 @@ use std::cmp;
 use std::path::Path;
 use std::str::FromStr;
 use std::string::ParseError;
-use std::{borrow::Cow, cmp};
 
 use anyhow::bail;
 use bitflags::bitflags;
@@ -12,7 +11,7 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
-use rspack_core::{ModuleIdentifier, ModuleDependency, Filename, Mode, ModuleDependency};
+use rspack_core::{Filename, Mode, ModuleDependency, ModuleIdentifier};
 use sugar_path::SugarPath;
 use swc_core::ecma::atoms::JsWord;
 use swc_css::modules::CssClassName;
@@ -492,7 +491,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           css_modules_exports_to_string(
             exports,
             module,
-            &generate_context.compilation,
+            generate_context.compilation,
             &self.config.modules.locals_convention,
           )?
         } else if let Some(meta) = &self.meta {

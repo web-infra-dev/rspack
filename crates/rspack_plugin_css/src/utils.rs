@@ -64,7 +64,7 @@ pub fn css_modules_exports_to_string(
         CssClassName::Import { name, from } => {
           let name = serde_json::to_string(name).unwrap();
           let from = Dependency {
-            parent_module_identifier: Some(module.identifier().into()),
+            parent_module_identifier: Some(module.identifier()),
             detail: ModuleDependency {
               specifier: from.to_string(),
               kind: ResolveKind::AtImport,
