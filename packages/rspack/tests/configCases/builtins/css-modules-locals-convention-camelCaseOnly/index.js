@@ -1,4 +1,4 @@
-it("css modules composes", () => {
+it("css modules localsConvention with camelCaseOnly", () => {
 	const style = require("./index.css");
 	expect(style).toEqual({
 		btnInfoIsDisabled: "/index.css__btn-info_is-disabled ",

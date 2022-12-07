@@ -299,6 +299,9 @@ impl CssPlugin {
 pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
   &[SourceType::JavaScript, SourceType::Css];
 
+pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
+  &[SourceType::JavaScript];
+
 #[derive(Debug)]
 pub struct CssParserAndGenerator {
   config: CssConfig,
@@ -329,7 +332,11 @@ impl CssParserAndGenerator {
 
 impl ParserAndGenerator for CssParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
-    CSS_MODULE_SOURCE_TYPE_LIST
+    if self.config.modules.exports_only {
+      CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST
+    } else {
+      CSS_MODULE_SOURCE_TYPE_LIST
+    }
   }
 
   fn size(&self, module: &dyn Module, source_type: &SourceType) -> f64 {

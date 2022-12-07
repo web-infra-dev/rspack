@@ -1,4 +1,4 @@
-it("css modules composes", () => {
+it("css modules localIdentName with path", () => {
 	const style = require("./index.css");
 	expect(style).toEqual({
 		"#": "/index__# ",

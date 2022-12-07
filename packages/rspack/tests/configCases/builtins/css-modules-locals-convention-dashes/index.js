@@ -1,4 +1,4 @@
-it("css modules composes", () => {
+it("css modules localsConvention with dashes", () => {
 	const style = require("./index.css");
 	expect(style).toEqual({
 		"btn--info_is-disabled_1": "/index.css__btn--info_is-disabled_1 ",
