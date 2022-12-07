@@ -19,7 +19,7 @@ export type Builtins = Omit<
 	polyfillBuiltins?: boolean; // polyfill node builtin api
 	html?: Array<BuiltinsHtmlPluginConfig>;
 	decorator?: boolean | Partial<RawDecoratorOptions>;
-	minify?: boolean | Partial<Minification>
+	minify?: boolean | Partial<Minification>;
 };
 
 export type ResolvedBuiltins = Omit<RawBuiltins, "html"> & {
@@ -73,7 +73,7 @@ function resolveDecorator(
 
 export function resolveBuiltinsOptions(
 	builtins: Builtins,
-	{ contextPath, isProduction }: { contextPath: string, isProduction: boolean }
+	{ contextPath, isProduction }: { contextPath: string; isProduction: boolean }
 ): ResolvedBuiltins {
 	const browserslist = loadConfig({ path: contextPath }) || [];
 	return {
@@ -86,23 +86,26 @@ export function resolveBuiltinsOptions(
 	};
 }
 
-export function resolveMinify(builtins: Builtins, isProduction: boolean): Minification {
+export function resolveMinify(
+	builtins: Builtins,
+	isProduction: boolean
+): Minification {
 	if (builtins.minify) {
 		if (typeof builtins.minify === "boolean") {
 			return {
 				enable: builtins.minify,
 				passes: 1
-			}
+			};
 		} else {
 			return {
 				...builtins.minify,
 				enable: true
-			}
+			};
 		}
 	} else {
 		return {
 			enable: isProduction,
 			passes: 1
-		}
+		};
 	}
 }
