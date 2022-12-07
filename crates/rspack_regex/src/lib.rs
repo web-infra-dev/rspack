@@ -1,4 +1,3 @@
-#![feature(box_patterns)]
 use regress::{Match, Matches, Regex};
 
 use swc_core::ecma::ast::Regex as SwcRegex;
