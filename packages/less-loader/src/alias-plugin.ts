@@ -31,21 +31,29 @@ export default class LessAliasesPlugin {
 				this.stdinDir = options.stdinDir;
 			}
 
-			async loadFile(filename: string, currentDirectory: string) {
-				const resolved = getResolve(filename, currentDirectory);
-				const rebasedContents = await rebaseUrls(
-					resolved,
-					this.stdinDir,
-					this.config.resolve
-				);
-				const contents = rebasedContents.contents
-					? rebasedContents.contents
-					: fs.readFileSync(resolved, "utf8");
-
-				return {
-					filename: resolved,
-					contents: contents
-				};
+			async loadFile(filename: string, ...args) {
+				let resolved;
+				let currentDirectory = args[0];
+				try {
+					// we need to use less's internal loadFile logic to be compatible with less-loader
+					return await super.loadFile(filename, ...args);
+				} catch (err) {
+					console.log("xxx", err);
+					resolved = getResolve(filename, currentDirectory);
+					console.log("resolved:", resolved);
+					const rebasedContents = await rebaseUrls(
+						resolved,
+						this.stdinDir,
+						this.config.resolve
+					);
+					const contents = rebasedContents.contents
+						? rebasedContents.contents
+						: fs.readFileSync(resolved, "utf8");
+					return {
+						filename: resolved,
+						contents: contents
+					};
+				}
 			}
 		}
 		pluginManager.addFileManager(
