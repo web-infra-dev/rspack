@@ -45,8 +45,8 @@ use crate::{
   ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationResult,
   CodeGenerationResults, CompilerOptions, Dependency, EntryItem, EntryOptions, Entrypoint,
   LoaderRunnerRunner, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg,
-  NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs,
-  ResolveKind, RuntimeModule, SharedPluginDriver, Stats, VisitedModuleIdentity,
+  NormalModuleFactory, NormalModuleFactoryContext, OwnedResolveArgs, ProcessAssetsArgs,
+  RenderManifestArgs, ResolveKind, RuntimeModule, SharedPluginDriver, Stats, VisitedModuleIdentity,
 };
 use rspack_symbol::{IndirectTopLevelSymbol, Symbol};
 
@@ -329,6 +329,19 @@ impl Compilation {
     let active_task_count: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
 
+    let resolver = self.plugin_driver.read().await.resolver.clone();
+    let (resolving_tx, mut resolving_rx) = tokio::sync::mpsc::unbounded_channel::<(
+      OwnedResolveArgs,
+      tokio::sync::oneshot::Sender<nodejs_resolver::RResult<crate::ResolveResult>>,
+    )>();
+
+    let resolver_thread = std::thread::spawn(move || {
+      while let Some((task, result_tx)) = resolving_rx.blocking_recv() {
+        let result = resolver.resolve(&task.path, &task.request);
+        result_tx.send(result).unwrap();
+      }
+    });
+
     entry_deps.into_iter().for_each(|(_, deps)| {
       deps.into_iter().for_each(|dep| {
         let normal_module_factory = NormalModuleFactory::new(
@@ -338,6 +351,7 @@ impl Compilation {
             module_type: None,
             side_effects: None,
             options: self.options.clone(),
+            resolving_tx: resolving_tx.clone(),
           },
           dep,
           tx.clone(),
@@ -386,6 +400,7 @@ impl Compilation {
                 dependency_id,
                 active_task_count.clone(),
                 tx.clone(),
+                resolving_tx.clone(),
               );
               // After module created we add module graph module into module graph
               self.module_graph.add_module_graph_module(mgm);
@@ -483,6 +498,9 @@ impl Compilation {
       }
     });
 
+    drop(resolving_tx);
+    resolver_thread.join().unwrap();
+
     tracing::debug!("All task is finished");
   }
 
@@ -493,6 +511,10 @@ impl Compilation {
     dependency_id: u32,
     active_task_count: Arc<AtomicU32>,
     tx: UnboundedSender<Msg>,
+    resolving_tx: tokio::sync::mpsc::UnboundedSender<(
+      crate::OwnedResolveArgs,
+      tokio::sync::oneshot::Sender<nodejs_resolver::RResult<crate::ResolveResult>>,
+    )>,
   ) {
     let compiler_options = self.options.clone();
     let loader_runner_runner = self.loader_runner_runner.clone();
@@ -573,6 +595,7 @@ impl Compilation {
             plugin_driver.clone(),
             compiler_options.clone(),
             cache.clone(),
+            resolving_tx.clone(),
           );
 
           // If build error message is failed to send, then we should manually decrease the active task count
@@ -617,6 +640,10 @@ impl Compilation {
     plugin_driver: SharedPluginDriver,
     compiler_options: Arc<CompilerOptions>,
     cache: Arc<Cache>,
+    resolving_tx: tokio::sync::mpsc::UnboundedSender<(
+      crate::OwnedResolveArgs,
+      tokio::sync::oneshot::Sender<nodejs_resolver::RResult<crate::ResolveResult>>,
+    )>,
   ) {
     dependencies.into_iter().for_each(|dep| {
       let normal_module_factory = NormalModuleFactory::new(
@@ -626,6 +653,7 @@ impl Compilation {
           active_task_count: active_task_count.clone(),
           side_effects: None,
           options: compiler_options.clone(),
+          resolving_tx: resolving_tx.clone(),
         },
         dep,
         tx.clone(),

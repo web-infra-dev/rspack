@@ -154,7 +154,13 @@ impl NormalModuleFactory {
     let resource_data = self
       .cache
       .resolve_module_occasion
-      .use_cache(resolve_args, |args| Box::pin(resolve(args, &plugin_driver)))
+      .use_cache(resolve_args, |args| {
+        Box::pin(resolve(
+          args,
+          &plugin_driver,
+          self.context.resolving_tx.clone(),
+        ))
+      })
       .await?;
     let resource_data = match resource_data {
       ResolveResult::Info(info) => {
@@ -404,6 +410,10 @@ pub struct NormalModuleFactoryContext {
   pub module_type: Option<ModuleType>,
   pub side_effects: Option<bool>,
   pub options: Arc<CompilerOptions>,
+  pub resolving_tx: tokio::sync::mpsc::UnboundedSender<(
+    crate::OwnedResolveArgs,
+    tokio::sync::oneshot::Sender<nodejs_resolver::RResult<crate::ResolveResult>>,
+  )>,
 }
 
 #[derive(Debug, Clone, Eq)]
