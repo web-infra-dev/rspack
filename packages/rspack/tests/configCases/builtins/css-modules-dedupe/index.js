@@ -2,8 +2,8 @@ it("css modules dedupe", () => {
 	const style = require("./source.css");
 	expect(style).toEqual({
 		backButton:
-			"backButton-source.css secondaryButton-buttons/secondary-button.css button-buttons/button.css ",
+			"/source.css__backButton buttons/secondary-button.css__secondaryButton buttons/button.css__button ",
 		nextButton:
-			"nextButton-source.css primaryButton-buttons/primary-button.css button-buttons/button.css "
+			"/source.css__nextButton buttons/primary-button.css__primaryButton buttons/button.css__button "
 	});
 });

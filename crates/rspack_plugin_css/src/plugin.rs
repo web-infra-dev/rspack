@@ -1,13 +1,18 @@
 #![allow(clippy::comparison_chain)]
 use std::cmp;
 use std::path::Path;
+use std::str::FromStr;
+use std::string::ParseError;
+use std::{borrow::Cow, cmp};
 
+use anyhow::bail;
+use bitflags::bitflags;
 use hashbrown::HashSet;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
-use rspack_core::{ModuleIdentifier, ModuleDependency};
+use rspack_core::{ModuleIdentifier, ModuleDependency, Filename, Mode, ModuleDependency};
 use sugar_path::SugarPath;
 use swc_core::ecma::atoms::JsWord;
 use swc_css::modules::CssClassName;
@@ -25,7 +30,7 @@ use rspack_core::{
   ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, PathData, Plugin,
   RenderManifestEntry, SourceType,
 };
-use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;
 
 use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
@@ -35,7 +40,7 @@ use crate::{
   SWC_COMPILER,
 };
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct CssPlugin {
   config: CssConfig,
 }
@@ -45,11 +50,98 @@ pub struct PostcssConfig {
   pub pxtorem: Option<PxToRemOption>,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
+pub struct ModulesConfig {
+  pub locals_convention: LocalsConvention,
+  pub local_ident_name: LocalIdentName,
+  pub exports_only: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct LocalIdentName(Filename);
+
+impl LocalIdentName {
+  pub fn with_mode(mode: Option<Mode>) -> Self {
+    if matches!(mode, Some(Mode::Production)) {
+      LocalIdentName::from_str("[hash]").unwrap()
+    } else {
+      LocalIdentName::from_str("[path][name][ext]__[local]").unwrap()
+    }
+  }
+
+  pub fn render(&self, options: LocalIdentNameRenderOptions) -> String {
+    let mut s = self.0.render(options.filename_options);
+    if let Some(local) = options.local {
+      s = s.replace("[local]", &local);
+    }
+    s
+  }
+}
+
+impl FromStr for LocalIdentName {
+  type Err = ParseError;
+
+  fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+    Ok(Self(Filename::from_str(s)?))
+  }
+}
+
+pub struct LocalIdentNameRenderOptions {
+  pub filename_options: FilenameRenderOptions,
+  pub local: Option<String>,
+}
+
+bitflags! {
+  struct LocalsConventionFlags: u8 {
+    const ASIS = 0b00000001;
+    const CAMELCASE = 0b00000010;
+    const DASHES = 0b00000100;
+  }
+}
+
+#[derive(Debug, Clone)]
+pub struct LocalsConvention(LocalsConventionFlags);
+
+impl LocalsConvention {
+  pub fn as_is(&self) -> bool {
+    self.0.contains(LocalsConventionFlags::ASIS)
+  }
+
+  pub fn camel_case(&self) -> bool {
+    self.0.contains(LocalsConventionFlags::CAMELCASE)
+  }
+
+  pub fn dashes(&self) -> bool {
+    self.0.contains(LocalsConventionFlags::DASHES)
+  }
+}
+
+impl FromStr for LocalsConvention {
+  type Err = anyhow::Error;
+
+  fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+    Ok(match s {
+      "asIs" => Self(LocalsConventionFlags::ASIS),
+      "camelCase" => Self(LocalsConventionFlags::ASIS | LocalsConventionFlags::CAMELCASE),
+      "camelCaseOnly" => Self(LocalsConventionFlags::CAMELCASE),
+      "dashes" => Self(LocalsConventionFlags::ASIS | LocalsConventionFlags::DASHES),
+      "dashesOnly" => Self(LocalsConventionFlags::DASHES),
+      _ => bail!("css modules exportsLocalsConvention error"),
+    })
+  }
+}
+
+impl Default for LocalsConvention {
+  fn default() -> Self {
+    Self(LocalsConventionFlags::ASIS)
+  }
+}
+
+#[derive(Debug, Clone)]
 pub struct CssConfig {
   pub preset_env: Vec<String>,
   pub postcss: PostcssConfig,
-  pub modules: bool,
+  pub modules: ModulesConfig,
 }
 
 impl CssPlugin {
@@ -269,7 +361,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let css_modules = matches!(module_type, ModuleType::CssModule);
     let TWithDiagnosticArray {
       inner: mut stylesheet,
-      diagnostic,
+      mut diagnostic,
     } = SWC_COMPILER.parse_file(
       &parse_context.resource_data.resource_path,
       content,
@@ -289,17 +381,18 @@ impl ParserAndGenerator for CssParserAndGenerator {
       stylesheet.visit_mut_with(&mut px_to_rem(config));
     }
 
-    let locals = if self.config.modules {
+    let locals = if css_modules {
       let imports = swc_css::modules::imports::analyze_imports(&stylesheet);
+      let path = Path::new(&resource_data.resource_path).relative(&compiler_options.context);
       let result = swc_css::modules::compile(
         &mut stylesheet,
         ModulesTransformConfig {
-          suffix: format!(
-            "-{}",
-            Path::new(&resource_data.resource_path)
-              .relative(&compiler_options.context)
-              .display()
-          ),
+          name: path.file_stem().map(|n| n.to_string_lossy().to_string()),
+          path: path.parent().map(|p| p.to_string_lossy().to_string() + "/"),
+          ext: path
+            .extension()
+            .map(|e| format!("{}{}", ".", e.to_string_lossy())),
+          local_name_ident: &self.config.modules.local_ident_name,
         },
       );
       let mut exports: IndexMap<JsWord, _> = result.renamed.into_iter().collect();
@@ -323,6 +416,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     self.meta = additional_data.and_then(|data| if data.is_empty() { None } else { Some(data) });
     self.exports = locals.map(|(_, exports)| exports);
+
+    if self.meta.is_some() && self.exports.is_some() {
+      diagnostic.push(Diagnostic::warn("CSS Modules".to_string(), format!("file: {} is using `postcss.modules` and `builtins.css.modules` to process css modules at the same time, rspack will use `builtins.css.modules`'s result.", resource_data.resource_path), 0, 0));
+    }
 
     Ok(
       ParseResult {
@@ -383,15 +480,16 @@ impl ParserAndGenerator for CssParserAndGenerator {
           Ok(RawSource::from(code).boxed())
         }
       }
-      // This is just a temporary solution for css-modules
       SourceType::JavaScript => Ok(
-        RawSource::from(if let Some(meta) = &self.meta {
+        RawSource::from(if let Some(exports) = &self.exports {
+          css_modules_exports_to_string(
+            exports,
+            module,
+            &generate_context.compilation,
+            &self.config.modules.locals_convention,
+          )?
+        } else if let Some(meta) = &self.meta {
           format!("module.exports = {};\n", meta)
-        } else if let Some(exports) = &self.exports {
-          format!(
-            "module.exports = {};\n",
-            css_modules_exports_to_string(exports, module, &generate_context.compilation)?
-          )
         } else {
           "".to_string()
         })

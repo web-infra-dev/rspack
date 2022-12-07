@@ -1,9 +1,4 @@
 module.exports = {
-	builtins: {
-		css: {
-			modules: true
-		}
-	},
 	module: {
 		rules: [
 			{

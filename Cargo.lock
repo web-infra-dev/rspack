@@ -2384,6 +2384,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_test",
+ "sugar_path",
  "testing_macros",
  "tokio",
  "tracing",
@@ -2396,8 +2397,10 @@ dependencies = [
  "anyhow",
  "async-trait",
  "better_scoped_tls",
+ "bitflags",
  "dashmap",
  "hashbrown",
+ "heck",
  "hrx-parser",
  "indexmap",
  "insta",
@@ -2418,6 +2421,7 @@ dependencies = [
  "swc_css",
  "tokio",
  "tracing",
+ "xxhash-rust",
 ]
 
 [[package]]

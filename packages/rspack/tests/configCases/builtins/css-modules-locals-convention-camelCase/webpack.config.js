@@ -1,4 +1,11 @@
 module.exports = {
+	builtins: {
+		css: {
+			modules: {
+				localsConvention: "camelCase"
+			}
+		}
+	},
 	module: {
 		rules: [
 			{

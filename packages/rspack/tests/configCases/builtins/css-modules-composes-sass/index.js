@@ -1,6 +1,6 @@
 it("css modules in scss", () => {
 	const style = require("./index.scss");
 	expect(style).toEqual({
-		bar: "bar-index.scss foo-foo.scss "
+		bar: "/index.scss__bar /foo.scss__foo "
 	});
 });
