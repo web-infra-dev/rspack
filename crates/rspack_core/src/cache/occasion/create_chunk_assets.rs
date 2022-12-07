@@ -1,0 +1,62 @@
+use crate::{cache::storage, Chunk, Compilation, NormalModuleAstOrSource, RenderManifestEntry};
+use futures::future::BoxFuture;
+use rspack_error::Result;
+use tokio::sync::RwLock;
+
+type Storage = dyn storage::Storage<Vec<RenderManifestEntry>>;
+
+#[derive(Debug)]
+pub struct CreateChunkAssetsOccasion {
+  storage: Option<RwLock<Box<Storage>>>,
+}
+
+impl CreateChunkAssetsOccasion {
+  pub fn new(storage: Option<Box<Storage>>) -> Self {
+    Self {
+      storage: storage.map(RwLock::new),
+    }
+  }
+
+  pub async fn use_cache<'a, F>(
+    &self,
+    compilation: &Compilation,
+    chunk: &Chunk,
+    generator: F,
+  ) -> Result<Vec<RenderManifestEntry>>
+  where
+    F: Fn() -> BoxFuture<'a, Result<Vec<RenderManifestEntry>>>,
+  {
+    let storage = match &self.storage {
+      Some(s) => s,
+      // no cache return directly
+      None => return generator().await,
+    };
+
+    let chunk_id = chunk.id.clone();
+    let modules = &compilation
+      .chunk_graph
+      .get_chunk_graph_chunk(&chunk.ukey)
+      .modules;
+    let is_cache_valid = modules.into_iter().all(|module_id| {
+      compilation
+        .module_graph
+        .module_by_identifier(module_id)
+        .and_then(|m| m.as_normal_module())
+        .map(|m| matches!(m.ast_or_source(), NormalModuleAstOrSource::Unbuild))
+        .is_some()
+    });
+
+    if is_cache_valid {
+      // read
+      let storage = storage.read().await;
+      if let Some(data) = storage.get(&chunk_id) {
+        return Ok(data);
+      }
+    }
+    // run generator and save to cache
+    let data = generator().await?;
+    // TODO sometime may not run save
+    storage.write().await.set(chunk_id, data.clone());
+    Ok(data)
+  }
+}

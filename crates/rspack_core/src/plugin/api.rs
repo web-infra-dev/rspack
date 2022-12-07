@@ -160,12 +160,12 @@ pub trait Plugin: Debug + Send + Sync {
 //   String(String),
 // }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PathData {
   pub chunk_ukey: ChunkUkey,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RenderManifestEntry {
   pub(crate) source: BoxSource,
   filename: String,
