@@ -22,13 +22,14 @@
 ### Prerequisite
 1. Making sure you have permission to access organization `@rspack` in npmjs.com
 2. `Zig` compiler, you could install it by running `brew install zig` on Macos, for other OS, please refer https://ziglang.org/learn/getting-started/#installing-zig
-3. Installing `Linux` target toolchain (for now, only two target macos and linux  are fairly enough), install `linux` target with command `rustup target add x86_64-unknown-linux-gnu`.
+3. Installing `Linux` target toolchain (for now, only two target Macos and linux  are fairly enough), install `linux` target with command `rustup target add x86_64-unknown-linux-gnu`, if you are using Macos with arm architecture, you also need to run `rustup target add x86_64-apple-darwin`.
 
 ### Step
 1. Making sure you have logged into npm
 2. Building packages `./x build js-release-all`.
-3. `pnpm bump` (for stable release) or `pnpm version:snapshot` (for snapshot release)
-4. `pnpm release`
+3. `pnpm changeset`
+4. `pnpm bump` (for stable release) or `pnpm version:snapshot` (for snapshot release)
+5. `pnpm release`
 
 ## Testing
 
