@@ -92,9 +92,9 @@ pub struct LocalIdentNameRenderOptions {
 
 bitflags! {
   struct LocalsConventionFlags: u8 {
-    const ASIS = 0b00000001;
-    const CAMELCASE = 0b00000010;
-    const DASHES = 0b00000100;
+    const ASIS = 1 << 0;
+    const CAMELCASE = 1 << 1;
+    const DASHES = 1 << 2;
   }
 }
 
@@ -408,7 +408,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       None
     };
 
-    let mut dependencies = analyze_dependencies(&stylesheet);
+    let mut dependencies = analyze_dependencies(&mut stylesheet);
     let dependencies = if let Some((imports, _)) = &locals && !imports.is_empty() {
       dependencies.extend(imports.iter().map(|import| ModuleDependency {
         specifier: import.to_string(),
