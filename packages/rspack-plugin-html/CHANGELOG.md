@@ -1,5 +1,11 @@
 # @rspack/plugin-html
 
+## 0.0.12
+
+### Patch Changes
+
+- @rspack/core@0.0.12
+
 ## 0.0.11
 
 ### Patch Changes
