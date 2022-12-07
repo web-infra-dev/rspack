@@ -94,11 +94,14 @@ export function resolveMinify(builtins: Builtins, isProduction: boolean): Minifi
 				passes: 1
 			}
 		} else {
-			return builtins.minify
+			return {
+				...builtins.minify,
+				enable: true
+			}
 		}
 	} else {
 		return {
-			enable: false,
+			enable: isProduction,
 			passes: 1
 		}
 	}
