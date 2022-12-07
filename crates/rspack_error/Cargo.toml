@@ -9,7 +9,7 @@ version = "0.1.0"
 napi = ["dep:napi"]
 
 [dependencies]
-anyhow             = "1.0.61"
+anyhow             = { version = "1.0.61", features = ["backtrace"] }
 codespan-reporting = "0.11.1"
 dashmap            = "5.3.4"
 json               = "0.12.4"
