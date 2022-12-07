@@ -50,8 +50,4 @@ export function applyRspackOptionsDefaults(options: RspackOptionsNormalized) {
 	const production = mode === "production" || !mode;
 	F(options, "devtool", () => (development ? "eval" : ""));
 	applyOutputDefaults(options.output);
-	D(options.builtins, "minify", {
-		enable: production,
-		passes: 1
-	});
 }
