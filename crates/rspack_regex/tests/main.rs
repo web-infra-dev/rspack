@@ -23,7 +23,8 @@ mod test_regex {
   #[test]
   fn test_basic() {
     // should not panic
-    let _ = RspackRegex::with_flags("test\\\\", "").unwrap();
+
+    assert!(RspackRegex::with_flags("test\\\\", "").is_ok());
   }
   #[test]
   fn test_js_regex() {
