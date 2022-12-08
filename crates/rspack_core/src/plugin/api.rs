@@ -143,7 +143,7 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  fn module_ids(&mut self, modules: &mut Compilation) -> Result<()> {
+  fn module_ids(&mut self, _modules: &mut Compilation) -> Result<()> {
     Ok(())
   }
 }

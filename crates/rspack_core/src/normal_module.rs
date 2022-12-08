@@ -25,8 +25,8 @@ use rspack_sources::{
 };
 
 use crate::{
-  ast::javascript::Ast as JsAst, chunk_graph, contextify, identifier::Identifiable, BuildContext,
-  BuildResult, ChunkGraph, CodeGenerationResult, Compilation, CompilerOptions, Context, Dependency,
+  ast::javascript::Ast as JsAst, contextify, identifier::Identifiable, BuildContext, BuildResult,
+  ChunkGraph, CodeGenerationResult, Compilation, CompilerOptions, Context, Dependency,
   GenerateContext, LibIdentOptions, Module, ModuleAst, ModuleGraph, ModuleGraphConnection,
   ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator, ResolveKind,
   SourceType,
@@ -62,7 +62,6 @@ pub struct ModuleGraphModule {
 impl ModuleGraphModule {
   pub fn new(
     name: Option<String>,
-    id: String,
     module_identifier: ModuleIdentifier,
     dependencies: Vec<Dependency>,
     module_type: ModuleType,
@@ -83,11 +82,12 @@ impl ModuleGraphModule {
     }
   }
 
-  pub fn id<'chunk_graph>(
-    &self,
-    chunk_graph: &'chunk_graph ChunkGraph,
-  ) -> &'chunk_graph Option<String> {
-    chunk_graph.get_module_id(&self.module_identifier)
+  pub fn id<'chunk_graph>(&self, chunk_graph: &'chunk_graph ChunkGraph) -> &'chunk_graph str {
+    chunk_graph
+      .get_module_id(&self.module_identifier)
+      .as_ref()
+      .expect("module id not found")
+      .as_str()
   }
 
   pub fn add_incoming_connection(&mut self, connection_id: u32) {

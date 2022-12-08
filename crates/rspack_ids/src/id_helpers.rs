@@ -11,6 +11,8 @@ use std::{
   hash::{Hash, Hasher},
 };
 
+#[allow(clippy::type_complexity)]
+#[allow(clippy::collapsible_else_if)]
 pub fn get_used_module_ids_and_modules(
   compilation: &Compilation,
   filter: Option<Box<dyn Fn(&BoxModule) -> bool>>,
@@ -42,7 +44,7 @@ pub fn get_used_module_ids_and_modules(
 }
 
 pub fn get_short_module_name(module: &BoxModule, context: &str) -> String {
-  let lib_ident = module.lib_ident(rspack_core::LibIdentOptions { context: context });
+  let lib_ident = module.lib_ident(rspack_core::LibIdentOptions { context });
   if let Some(lib_ident) = lib_ident {
     return avoid_number(&lib_ident).to_string();
   };
@@ -157,6 +159,7 @@ pub fn assign_names<T: Copy>(
   unnamed_items
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn assign_deterministic_ids<T: Copy>(
   mut items: Vec<T>,
   get_name: impl Fn(T) -> String,
@@ -171,7 +174,7 @@ pub fn assign_deterministic_ids<T: Copy>(
 
   let optimal_range = usize::min(items.len() * 20 + extra_space, usize::MAX);
   let mut i = 0;
-  debug_assert!(ranges.len() > 0);
+  debug_assert!(!ranges.is_empty());
   let mut range = ranges[i];
   while range < optimal_range {
     i += 1;
@@ -233,27 +236,4 @@ pub fn compare_modules_by_pre_order_index_or_identifier(
   } else {
     cmp
   }
-}
-
-fn get_hash_number(s: impl Hash, mut len: usize) -> String {
-  let digest = get_hash(s, usize::MAX).chars().collect::<Vec<_>>();
-  let mut result = 0usize;
-  let mut i = 0;
-  while i < digest.len() {
-    let char_code = digest[i];
-    if char_code < char::from_u32(58).unwrap() {
-      result = result * 10 + (char_code as usize - 48);
-      len -= 1;
-      if len < 1 {
-        return result.to_string();
-      }
-    }
-    i += 1;
-  }
-
-  println!("len: {}, digest: {}", len, digest.len());
-
-  unreachable!("TODO: better get_hash_number")
-
-  // return ((result * 10 + 1) * usize::pow(10, u32::max((len - 1) as u32, 0))).to_string();
 }

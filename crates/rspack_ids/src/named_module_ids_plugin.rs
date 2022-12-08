@@ -33,7 +33,7 @@ impl Plugin for NamedModuleIdsPlugin {
       |m, name| chunk_graph.set_module_id(&m.identifier(), name),
     );
 
-    if unnamed_modules.len() > 0 {
+    if !unnamed_modules.is_empty() {
       assign_ascending_module_ids(&used_ids, unnamed_modules, chunk_graph)
     }
     Ok(())

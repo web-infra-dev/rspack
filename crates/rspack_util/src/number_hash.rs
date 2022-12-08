@@ -4,6 +4,7 @@ const COUNT: usize = 4usize;
 // const arr: [usize; 5] = [0usize; 5];
 const PRIMES: [usize; 4] = [3usize, 7usize, 17usize, 19usize];
 
+#[allow(clippy::assign_op_pattern)]
 pub fn get_number_hash(s: &str, range: usize) -> usize {
   let str = s.chars().collect::<Vec<_>>();
   let mut arr: [usize; 5] = [0; 5];

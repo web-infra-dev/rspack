@@ -39,13 +39,20 @@ impl Plugin for DeterministicModuleIdsPlugin {
           return false;
         }
         chunk_graph.set_module_id(&module.identifier(), id);
-        return true;
+        true
       },
       &[usize::pow(10, max_length)],
       if fixed_length { 0 } else { 10 },
       used_ids_len,
       salt,
     );
+    if fail_on_conflict && conflicts > 0 {
+      // TODO: better error msg
+      panic!(
+        "Assigning deterministic module ids has lead to conflicts {}",
+        conflicts
+      );
+    }
     Ok(())
   }
 }

@@ -6,7 +6,6 @@ use std::{
   },
 };
 
-use sugar_path::SugarPath;
 use swc_core::common::Span;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -320,7 +319,7 @@ impl NormalModuleFactory {
       )
       .await?;
 
-    let (uri, module, dependency_id) = if let Some(module) = result {
+    let (_uri, module, dependency_id) = if let Some(module) = result {
       // module
       let (uri, module) = module;
       // TODO: remove this
@@ -346,14 +345,8 @@ impl NormalModuleFactory {
       return Ok(None);
     };
 
-    let id = Path::new(uri.as_str()).relative(&self.context.options.context);
     let mgm = ModuleGraphModule::new(
       self.context.module_name.clone(),
-      if !id.starts_with(".") {
-        format!("./{}", id.to_string_lossy())
-      } else {
-        id.to_string_lossy().to_string()
-      },
       module.identifier(),
       vec![],
       self.context.module_type.ok_or_else(|| {

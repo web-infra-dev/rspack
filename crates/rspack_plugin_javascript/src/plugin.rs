@@ -55,7 +55,7 @@ impl JsPlugin {
         compilation
           .module_graph
           .module_graph_module_by_identifier(entry_module_identifier)
-          .map(|module| module.id(&compilation.chunk_graph).as_ref().unwrap())
+          .map(|module| module.id(&compilation.chunk_graph))
       })
       .collect::<Vec<_>>();
     // let namespace = &compilation.options.output.unique_name;
@@ -248,12 +248,12 @@ if (module.hot) {
               .boxed();
               Ok(wrap_module_function(
                 module_source,
-                &mgm.id(&compilation.chunk_graph).as_ref().unwrap(),
+                mgm.id(&compilation.chunk_graph),
               ))
             } else {
               Ok(wrap_module_function(
                 module_source,
-                &mgm.id(&compilation.chunk_graph).as_ref().unwrap(),
+                mgm.id(&compilation.chunk_graph),
               ))
             }
           })
