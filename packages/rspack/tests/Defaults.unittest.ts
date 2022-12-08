@@ -117,6 +117,9 @@ describe("snapshots", () => {
 		    "parser": undefined,
 		    "rules": [],
 		  },
+		  "optimization": {
+		    "moduleIds": "named",
+		  },
 		  "output": {},
 		  "plugins": [],
 		  "resolve": {
@@ -211,6 +214,9 @@ describe("snapshots", () => {
 		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "production",
+		@@ ... @@
+		-     "moduleIds": "named",
+		+     "moduleIds": "deterministic",
 	`)
 	);
 	test("production", { mode: "production" }, e =>
@@ -227,6 +233,9 @@ describe("snapshots", () => {
 		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "production",
+		@@ ... @@
+		-     "moduleIds": "named",
+		+     "moduleIds": "deterministic",
 	`)
 	);
 	test("development", { mode: "development" }, e =>
@@ -521,40 +530,15 @@ describe("snapshots", () => {
 	`)
 	);
 	test("single runtimeChunk", { optimization: { runtimeChunk: "single" } }, e =>
-		e.toMatchInlineSnapshot(`
-		- Expected
-		+ Received
-
-		@@ ... @@
-		+   "optimization": Object {
-		+     "runtimeChunk": "single",
-		+   },
-	`)
+		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 	test(
 		"single runtimeChunk",
 		{ optimization: { runtimeChunk: "multiple" } },
-		e =>
-			e.toMatchInlineSnapshot(`
-			- Expected
-			+ Received
-
-			@@ ... @@
-			+   "optimization": Object {
-			+     "runtimeChunk": "multiple",
-			+   },
-		`)
+		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 	test("single runtimeChunk", { optimization: { runtimeChunk: true } }, e =>
-		e.toMatchInlineSnapshot(`
-		- Expected
-		+ Received
-
-		@@ ... @@
-		+   "optimization": Object {
-		+     "runtimeChunk": true,
-		+   },
-	`)
+		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 	test("cache true", { cache: true }, e =>
 		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
@@ -609,10 +593,7 @@ describe("snapshots", () => {
 			-     "cacheType": "memory",
 			+     "cacheType": "",
 			@@ ... @@
-			+   },
 			+   "node": false,
-			+   "optimization": Object {
-			+     "splitChunks": false,
 		`)
 	);
 

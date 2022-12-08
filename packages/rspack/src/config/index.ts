@@ -37,7 +37,11 @@ import {
 	resolveStatsOptions,
 	StatsOptions
 } from "./stats";
-import { Optimization, ResolvedOptimization, resolveOptimizationOptions } from "./optimization";
+import {
+	Optimization,
+	ResolvedOptimization,
+	resolveOptimizationOptions
+} from "./optimization";
 
 export type Configuration = RspackOptions;
 export interface RspackOptions {
@@ -109,7 +113,10 @@ export function getNormalizedRspackOptions(
 	const cache = resolveCacheOptions(
 		config.cache ?? (mode === "production" ? false : true)
 	);
-	const optimization = resolveOptimizationOptions(config.optimization ?? {}, mode)
+	const optimization = resolveOptimizationOptions(
+		config.optimization ?? {},
+		mode
+	);
 
 	return {
 		...config,
