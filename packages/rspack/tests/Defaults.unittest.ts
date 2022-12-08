@@ -109,6 +109,9 @@ describe("snapshots", () => {
 		      "runtime": undefined,
 		    },
 		  },
+		  "experiments": {
+		    "lazyCompilation": false,
+		  },
 		  "externals": {},
 		  "externalsType": "",
 		  "infrastructureLogging": {},
@@ -252,58 +255,24 @@ describe("snapshots", () => {
 	 * not support yet
 	 */
 	test("sync wasm", { experiments: { syncWebAssembly: true } }, e =>
-		e.toMatchInlineSnapshot(`
-		- Expected
-		+ Received
-
-		@@ ... @@
-		+   "experiments": Object {
-		+     "syncWebAssembly": true,
-		+   },
-	`)
+		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 	/**
 	 * not support yet
 	 */
 	test("output module", { experiments: { outputModule: true } }, e =>
-		e.toMatchInlineSnapshot(`
-		- Expected
-		+ Received
-
-		@@ ... @@
-		+   "experiments": Object {
-		+     "outputModule": true,
-		+   },
-	`)
+		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 	/**
 	 * not support yet
 	 */
 	test("async wasm", { experiments: { asyncWebAssembly: true } }, e =>
-		e.toMatchInlineSnapshot(`
-		- Expected
-		+ Received
-
-		@@ ... @@
-		+   "experiments": Object {
-		+     "asyncWebAssembly": true,
-		+   },
-	`)
+		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 	test(
 		"both wasm",
 		{ experiments: { syncWebAssembly: true, asyncWebAssembly: true } },
-		e =>
-			e.toMatchInlineSnapshot(`
-			- Expected
-			+ Received
-
-			@@ ... @@
-			+   "experiments": Object {
-			+     "asyncWebAssembly": true,
-			+     "syncWebAssembly": true,
-			+   },
-		`)
+		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 	test("const filename", { output: { filename: "bundle.js" } }, e =>
 		e.toMatchInlineSnapshot(`
@@ -720,16 +689,7 @@ describe("snapshots", () => {
 				futureDefaults: true
 			}
 		},
-		e =>
-			e.toMatchInlineSnapshot(`
-			- Expected
-			+ Received
-
-			@@ ... @@
-			+   "experiments": Object {
-			+     "futureDefaults": true,
-			+   },
-		`)
+		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 
 	test(
@@ -740,17 +700,7 @@ describe("snapshots", () => {
 				futureDefaults: true
 			}
 		},
-		e =>
-			e.toMatchInlineSnapshot(`
-			- Expected
-			+ Received
-
-			@@ ... @@
-			+   "experiments": Object {
-			+     "css": false,
-			+     "futureDefaults": true,
-			+   },
-		`)
+		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 });
 export {};
