@@ -1,15 +1,20 @@
 #![allow(clippy::comparison_chain)]
 use std::cmp;
 use std::path::Path;
+use std::str::FromStr;
+use std::string::ParseError;
 
+use anyhow::bail;
+use bitflags::bitflags;
 use hashbrown::HashSet;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
-use rspack_core::ModuleIdentifier;
+use rspack_core::{Filename, Mode, ModuleDependency, ModuleIdentifier};
 use sugar_path::SugarPath;
 use swc_core::ecma::atoms::JsWord;
+use swc_css::modules::CssClassName;
 use swc_css::parser::parser::ParserConfig;
 use swc_css::prefixer::{options::Options, prefixer};
 use swc_css::visit::VisitMutWith;
@@ -24,17 +29,17 @@ use rspack_core::{
   ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, PathData, Plugin,
   RenderManifestEntry, SourceType,
 };
-use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use tracing::instrument;
 
 use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
 use crate::{
   pxtorem::{option::PxToRemOption, px_to_rem::px_to_rem},
-  visitors::DependencyScanner,
+  visitors::analyze_dependencies,
   SWC_COMPILER,
 };
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct CssPlugin {
   config: CssConfig,
 }
@@ -44,11 +49,98 @@ pub struct PostcssConfig {
   pub pxtorem: Option<PxToRemOption>,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
+pub struct ModulesConfig {
+  pub locals_convention: LocalsConvention,
+  pub local_ident_name: LocalIdentName,
+  pub exports_only: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct LocalIdentName(Filename);
+
+impl LocalIdentName {
+  pub fn with_mode(mode: Option<Mode>) -> Self {
+    if matches!(mode, Some(Mode::Production)) {
+      LocalIdentName::from_str("[hash]").unwrap()
+    } else {
+      LocalIdentName::from_str("[path][name][ext]__[local]").unwrap()
+    }
+  }
+
+  pub fn render(&self, options: LocalIdentNameRenderOptions) -> String {
+    let mut s = self.0.render(options.filename_options);
+    if let Some(local) = options.local {
+      s = s.replace("[local]", &local);
+    }
+    s
+  }
+}
+
+impl FromStr for LocalIdentName {
+  type Err = ParseError;
+
+  fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+    Ok(Self(Filename::from_str(s)?))
+  }
+}
+
+pub struct LocalIdentNameRenderOptions {
+  pub filename_options: FilenameRenderOptions,
+  pub local: Option<String>,
+}
+
+bitflags! {
+  struct LocalsConventionFlags: u8 {
+    const ASIS = 1 << 0;
+    const CAMELCASE = 1 << 1;
+    const DASHES = 1 << 2;
+  }
+}
+
+#[derive(Debug, Clone)]
+pub struct LocalsConvention(LocalsConventionFlags);
+
+impl LocalsConvention {
+  pub fn as_is(&self) -> bool {
+    self.0.contains(LocalsConventionFlags::ASIS)
+  }
+
+  pub fn camel_case(&self) -> bool {
+    self.0.contains(LocalsConventionFlags::CAMELCASE)
+  }
+
+  pub fn dashes(&self) -> bool {
+    self.0.contains(LocalsConventionFlags::DASHES)
+  }
+}
+
+impl FromStr for LocalsConvention {
+  type Err = anyhow::Error;
+
+  fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+    Ok(match s {
+      "asIs" => Self(LocalsConventionFlags::ASIS),
+      "camelCase" => Self(LocalsConventionFlags::ASIS | LocalsConventionFlags::CAMELCASE),
+      "camelCaseOnly" => Self(LocalsConventionFlags::CAMELCASE),
+      "dashes" => Self(LocalsConventionFlags::ASIS | LocalsConventionFlags::DASHES),
+      "dashesOnly" => Self(LocalsConventionFlags::DASHES),
+      _ => bail!("css modules exportsLocalsConvention error"),
+    })
+  }
+}
+
+impl Default for LocalsConvention {
+  fn default() -> Self {
+    Self(LocalsConventionFlags::ASIS)
+  }
+}
+
+#[derive(Debug, Clone)]
 pub struct CssConfig {
   pub preset_env: Vec<String>,
   pub postcss: PostcssConfig,
-  pub modules: bool,
+  pub modules: ModulesConfig,
 }
 
 impl CssPlugin {
@@ -206,15 +298,23 @@ impl CssPlugin {
 pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
   &[SourceType::JavaScript, SourceType::Css];
 
+pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
+  &[SourceType::JavaScript];
+
 #[derive(Debug)]
 pub struct CssParserAndGenerator {
   config: CssConfig,
   meta: Option<String>,
+  exports: Option<IndexMap<JsWord, Vec<CssClassName>>>,
 }
 
 impl CssParserAndGenerator {
   pub fn new(config: CssConfig) -> Self {
-    Self { config, meta: None }
+    Self {
+      config,
+      meta: None,
+      exports: None,
+    }
   }
 
   pub fn get_query(&self) -> Option<Query> {
@@ -231,7 +331,11 @@ impl CssParserAndGenerator {
 
 impl ParserAndGenerator for CssParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
-    CSS_MODULE_SOURCE_TYPE_LIST
+    if self.config.modules.exports_only {
+      CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST
+    } else {
+      CSS_MODULE_SOURCE_TYPE_LIST
+    }
   }
 
   fn size(&self, module: &dyn Module, source_type: &SourceType) -> f64 {
@@ -283,51 +387,49 @@ impl ParserAndGenerator for CssParserAndGenerator {
       stylesheet.visit_mut_with(&mut px_to_rem(config));
     }
 
-    let (_imports, exports) = if self.config.modules {
+    let locals = if css_modules {
       let imports = swc_css::modules::imports::analyze_imports(&stylesheet);
+      let path = Path::new(&resource_data.resource_path).relative(&compiler_options.context);
       let result = swc_css::modules::compile(
         &mut stylesheet,
         ModulesTransformConfig {
-          suffix: format!(
-            "-{}",
-            Path::new(&resource_data.resource_path)
-              .relative(&compiler_options.context)
-              .display()
-          ),
+          name: path.file_stem().map(|n| n.to_string_lossy().to_string()),
+          path: path.parent().map(|p| p.to_string_lossy().to_string() + "/"),
+          ext: path
+            .extension()
+            .map(|e| format!("{}{}", ".", e.to_string_lossy())),
+          local_name_ident: &self.config.modules.local_ident_name,
         },
       );
       let mut exports: IndexMap<JsWord, _> = result.renamed.into_iter().collect();
       exports.sort_keys();
-      (imports, exports)
-    } else {
-      Default::default()
-    };
-
-    self.meta = if let Some(additional_data) = additional_data && !additional_data.is_empty() {
-      if !exports.is_empty() {
-        // TODO: remove this once native css modules can fully replace postcss css modules.
-        diagnostic.push(rspack_error::Diagnostic::warn(
-          "CSS Modules config".to_string(),
-          "You're using native CSS Modules and postcss CSS Modules at the same time, rspack will use CSS Modules's exports first.".to_string(),
-          0,
-          0,
-        ));
-        Some(css_modules_exports_to_string(exports)?)
-      } else {
-        Some(additional_data)
-      }
-    } else if !exports.is_empty() {
-      Some(css_modules_exports_to_string(exports)?)
+      Some((imports, exports))
     } else {
       None
     };
 
-    let mut scanner = DependencyScanner::default();
-    stylesheet.visit_mut_with(&mut scanner);
+    let mut dependencies = analyze_dependencies(&mut stylesheet);
+    let dependencies = if let Some((imports, _)) = &locals && !imports.is_empty() {
+      dependencies.extend(imports.iter().map(|import| ModuleDependency {
+        specifier: import.to_string(),
+        kind: rspack_core::ResolveKind::AtImport,
+        span: None,
+      }));
+      dependencies.into_iter().unique().collect()
+    } else {
+      dependencies
+    };
+
+    self.meta = additional_data.and_then(|data| if data.is_empty() { None } else { Some(data) });
+    self.exports = locals.map(|(_, exports)| exports);
+
+    if self.meta.is_some() && self.exports.is_some() {
+      diagnostic.push(Diagnostic::warn("CSS Modules".to_string(), format!("file: {} is using `postcss.modules` and `builtins.css.modules` to process css modules at the same time, rspack will use `builtins.css.modules`'s result.", resource_data.resource_path), 0, 0));
+    }
 
     Ok(
       ParseResult {
-        dependencies: scanner.dependencies,
+        dependencies,
         ast_or_source: stylesheet.into(),
       }
       .with_diagnostic(diagnostic),
@@ -384,15 +486,19 @@ impl ParserAndGenerator for CssParserAndGenerator {
           Ok(RawSource::from(code).boxed())
         }
       }
-      // This is just a temporary solution for css-modules
       SourceType::JavaScript => Ok(
-        RawSource::from(
-          self
-            .meta
-            .clone()
-            .map(|item| format!("module.exports = {};\n", item))
-            .unwrap_or_else(|| "".to_string()),
-        )
+        RawSource::from(if let Some(exports) = &self.exports {
+          css_modules_exports_to_string(
+            exports,
+            module,
+            generate_context.compilation,
+            &self.config.modules.locals_convention,
+          )?
+        } else if let Some(meta) = &self.meta {
+          format!("module.exports = {};\n", meta)
+        } else {
+          "".to_string()
+        })
         .boxed(),
       ),
       _ => Err(Error::InternalError(format!(
@@ -422,6 +528,7 @@ impl Plugin for CssPlugin {
       Box::new(CssParserAndGenerator {
         config: config.clone(),
         meta: None,
+        exports: None,
       }) as Box<dyn ParserAndGenerator>
     };
 

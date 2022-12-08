@@ -18,6 +18,7 @@ use rspack_core::{
   RenderManifestArgs, RenderManifestEntry, SourceType,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result};
+use sugar_path::SugarPath;
 
 #[derive(Debug)]
 pub struct AssetConfig {
@@ -252,6 +253,12 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
     let asset_filename = asset_filename_template.render(FilenameRenderOptions {
       filename: None,
+      path: module.as_normal_module().map(|m| {
+        Path::new(&m.resource_resolved_data().resource_path)
+          .relative(&generate_context.compilation.options.context)
+          .to_string_lossy()
+          .to_string()
+      }),
       extension: module.as_normal_module().and_then(|m| {
         Path::new(&m.resource_resolved_data().resource_path)
           .extension()
@@ -454,7 +461,8 @@ impl Plugin for AssetPlugin {
 
             let hash = None;
 
-            let path = Path::new(&module.resource_resolved_data().resource_path);
+            let path = Path::new(&module.resource_resolved_data().resource_path)
+              .relative(&compilation.options.context);
             RenderManifestEntry::new(
               source,
               asset_filename.unwrap_or_else(|| {
@@ -465,12 +473,13 @@ impl Plugin for AssetPlugin {
                   .asset_module_filename
                   .render(FilenameRenderOptions {
                     filename: Some(
-                      Path::new(&module.resource_resolved_data().resource_path)
+                      path
                         .file_stem()
                         .map(|s| s.to_string_lossy())
                         .unwrap()
                         .to_string(),
                     ),
+                    path: path.parent().map(|p| p.to_string_lossy().to_string() + "/"),
                     extension: path
                       .extension()
                       .and_then(OsStr::to_str)

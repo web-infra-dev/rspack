@@ -10,7 +10,13 @@ it("verify es6 (esmodule) bundle source map", async () => {
 	const fs = require("fs");
 	const source = fs.readFileSync(__filename + ".map", "utf-8");
 	const map = JSON.parse(source);
-	expect(map.sources).toContain("index.js");
+	expect(map.sources).toEqual([
+		"../checkSourceMap.js",
+		"a.js",
+		"b-dir/b.js",
+		"b-dir/c-dir/c.js",
+		"index.js"
+	]);
 	expect(map.file).toEqual("main.js");
 	const out = fs.readFileSync(__filename, "utf-8");
 	expect(

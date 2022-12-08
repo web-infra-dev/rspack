@@ -2,7 +2,7 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				test: /\.module\.css$/,
+				test: /\.css$/,
 				type: "css/module"
 			}
 		]

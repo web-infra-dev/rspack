@@ -1,7 +1,9 @@
+use std::str::FromStr;
+
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
 use rspack_core::{Builtins, CompilerOptionsBuilder, Define, Mode, Plugin};
-use rspack_plugin_css::plugin::{CssConfig, PostcssConfig};
+use rspack_plugin_css::plugin::{CssConfig, LocalIdentName, LocalsConvention, PostcssConfig};
 use rspack_plugin_progress::{ProgressPlugin, ProgressPluginConfig};
 
 mod raw_css;
@@ -92,7 +94,27 @@ pub(super) fn normalize_builtin(
   plugins.push(Box::new(rspack_plugin_css::CssPlugin::new(CssConfig {
     preset_env: css_config.preset_env.unwrap_or_default(),
     postcss: postcss_config.into(),
-    modules: css_config.modules.unwrap_or_default(),
+    modules: if let Some(m) = css_config.modules {
+      rspack_plugin_css::plugin::ModulesConfig {
+        locals_convention: m
+          .locals_convention
+          .map(|s| LocalsConvention::from_str(&s))
+          .transpose()?
+          .unwrap_or_default(),
+        local_ident_name: m
+          .local_ident_name
+          .map(|n| LocalIdentName::from_str(&n))
+          .transpose()?
+          .unwrap_or_else(|| LocalIdentName::with_mode(options.mode)),
+        exports_only: m.exports_only.unwrap_or_default(),
+      }
+    } else {
+      rspack_plugin_css::plugin::ModulesConfig {
+        local_ident_name: LocalIdentName::with_mode(options.mode),
+        locals_convention: LocalsConvention::from_str("asIs").unwrap(),
+        exports_only: false,
+      }
+    },
   })));
   if let Some(progress_config) = builtins.progress.clone() {
     plugins.push(Box::new(ProgressPlugin::new(ProgressPluginConfig {

@@ -18,7 +18,7 @@ pub struct RawCssPluginConfig {
   /// For detailed configuration, see https://docs.rs/browserslist-rs/latest/browserslist/
   pub preset_env: Option<Vec<String>>,
 
-  pub modules: Option<bool>,
+  pub modules: Option<RawCssModulesConfig>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Default, Clone)]
@@ -35,5 +35,24 @@ pub struct RawCssPluginConfig {
   /// For detailed configuration, see https://docs.rs/browserslist-rs/latest/browserslist/
   pub preset_env: Option<Vec<String>>,
 
-  pub modules: Option<bool>,
+  pub modules: Option<RawCssModulesConfig>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Default, Clone)]
+#[cfg(feature = "node-api")]
+#[napi(object)]
+#[serde(rename_all = "camelCase")]
+pub struct RawCssModulesConfig {
+  pub locals_convention: Option<String>,
+  pub local_ident_name: Option<String>,
+  pub exports_only: Option<bool>,
+}
+
+#[derive(Deserialize, Debug, Serialize, Default, Clone)]
+#[cfg(not(feature = "node-api"))]
+#[serde(rename_all = "camelCase")]
+pub struct RawCssModulesConfig {
+  pub locals_convention: Option<String>,
+  pub local_ident_name: Option<String>,
+  pub exports_only: Option<bool>,
 }

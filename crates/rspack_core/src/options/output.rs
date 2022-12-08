@@ -16,6 +16,7 @@ pub struct OutputOptions {
 }
 
 pub const NAME_PLACEHOLDER: &str = "[name]";
+pub const PATH_PLACEHOLDER: &str = "[path]";
 pub const EXT_PLACEHOLDER: &str = "[ext]";
 pub const ID_PLACEHOLDER: &str = "[id]";
 pub const HASH_PLACEHOLDER: &str = "[hash]";
@@ -26,6 +27,7 @@ pub const QUERY_PLACEHOLDER: &str = "[query]";
 #[derive(Debug, Default)]
 pub struct FilenameRenderOptions {
   pub filename: Option<String>,
+  pub path: Option<String>,
   pub extension: Option<String>,
   pub id: Option<String>,
   pub contenthash: Option<String>,
@@ -33,7 +35,7 @@ pub struct FilenameRenderOptions {
   pub hash: Option<String>,
   pub query: Option<String>,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Filename {
   template: String,
 }
@@ -53,6 +55,10 @@ impl Filename {
     let mut filename = self.template.clone();
     if let Some(name) = options.filename {
       filename = filename.replace(NAME_PLACEHOLDER, &name);
+    }
+
+    if let Some(path) = options.path {
+      filename = filename.replace(PATH_PLACEHOLDER, &path);
     }
 
     if let Some(ext) = options.extension {

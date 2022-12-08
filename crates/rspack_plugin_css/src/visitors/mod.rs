@@ -1,5 +1,3 @@
-pub mod css_assets;
-
 use rspack_core::{ModuleDependency, ResolveKind};
 use swc_core::common::util::take::Take;
 
@@ -8,8 +6,16 @@ use swc_css::{
   visit::{VisitMut, VisitMutWith},
 };
 
+pub fn analyze_dependencies(ss: &mut Stylesheet) -> Vec<ModuleDependency> {
+  let mut v = DependencyScanner {
+    dependencies: Default::default(),
+  };
+  ss.visit_mut_with(&mut v);
+  v.dependencies
+}
+
 #[derive(Debug, Default)]
-pub struct DependencyScanner {
+struct DependencyScanner {
   pub dependencies: Vec<ModuleDependency>,
 }
 

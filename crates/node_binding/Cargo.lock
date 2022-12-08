@@ -2103,6 +2103,7 @@ dependencies = [
  "rayon",
  "rspack_core",
  "rspack_error",
+ "sugar_path",
  "tokio",
  "tracing",
 ]
@@ -2114,8 +2115,10 @@ dependencies = [
  "anyhow",
  "async-trait",
  "better_scoped_tls",
+ "bitflags",
  "dashmap",
  "hashbrown",
+ "heck",
  "hrx-parser",
  "indexmap",
  "itertools",
@@ -2133,6 +2136,7 @@ dependencies = [
  "swc_css",
  "tokio",
  "tracing",
+ "xxhash-rust",
 ]
 
 [[package]]

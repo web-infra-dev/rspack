@@ -2,7 +2,8 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				test: /\.module\.css$/,
+				test: /\.scss$/,
+				use: [{ builtinLoader: "sass-loader" }],
 				type: "css/module"
 			}
 		]
