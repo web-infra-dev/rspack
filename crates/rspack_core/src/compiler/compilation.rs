@@ -63,6 +63,7 @@ pub struct Compilation {
   entries: BundleEntries,
   pub(crate) visited_module_id: VisitedModuleIdentity,
   pub module_graph: ModuleGraph,
+  pub runtime_modules: HashMap<String, Box<dyn RuntimeModule>>,
   pub chunk_graph: ChunkGraph,
   pub chunk_by_ukey: HashMap<ChunkUkey, Chunk>,
   pub chunk_group_by_ukey: HashMap<ChunkGroupUkey, ChunkGroup>,
@@ -89,6 +90,8 @@ pub struct Compilation {
 
   // TODO: make compilation safer
   _pin: PhantomPinned,
+  // lazy compilation visit module
+  pub lazy_visit_modules: std::collections::HashSet<String>,
 }
 impl Compilation {
   pub fn new(
@@ -104,6 +107,7 @@ impl Compilation {
       options,
       visited_module_id,
       module_graph,
+      runtime_modules: Default::default(),
       chunk_by_ukey: Default::default(),
       chunk_group_by_ukey: Default::default(),
       entries,
@@ -128,6 +132,7 @@ impl Compilation {
       cache,
       _pin: PhantomPinned,
       used_indirect_symbol: HashSet::default(),
+      lazy_visit_modules: Default::default(),
     }
   }
   pub fn add_entry(&mut self, name: String, detail: EntryItem) {
@@ -265,7 +270,7 @@ impl Compilation {
             parent_module_identifier: None,
             detail: ModuleDependency {
               specifier: detail.clone(),
-              kind: ResolveKind::Import,
+              kind: ResolveKind::Entry,
               span: None,
             },
           })
@@ -311,7 +316,7 @@ impl Compilation {
             parent_module_identifier: None,
             detail: ModuleDependency {
               specifier: detail.clone(),
-              kind: ResolveKind::Import,
+              kind: ResolveKind::Entry,
               span: None,
             },
           })
@@ -338,6 +343,7 @@ impl Compilation {
             module_type: None,
             side_effects: None,
             options: self.options.clone(),
+            lazy_visit_modules: self.lazy_visit_modules.clone(),
           },
           dep,
           tx.clone(),
@@ -498,7 +504,7 @@ impl Compilation {
     let loader_runner_runner = self.loader_runner_runner.clone();
     let plugin_driver = self.plugin_driver.clone();
     let cache = self.cache.clone();
-
+    let lazy_visit_modules = self.lazy_visit_modules.clone();
     let module_identifier = module.identifier();
 
     tokio::spawn(async move {
@@ -573,6 +579,7 @@ impl Compilation {
             plugin_driver.clone(),
             compiler_options.clone(),
             cache.clone(),
+            lazy_visit_modules,
           );
 
           // If build error message is failed to send, then we should manually decrease the active task count
@@ -617,6 +624,7 @@ impl Compilation {
     plugin_driver: SharedPluginDriver,
     compiler_options: Arc<CompilerOptions>,
     cache: Arc<Cache>,
+    lazy_visit_modules: std::collections::HashSet<String>,
   ) {
     dependencies.into_iter().for_each(|dep| {
       let normal_module_factory = NormalModuleFactory::new(
@@ -626,6 +634,7 @@ impl Compilation {
           active_task_count: active_task_count.clone(),
           side_effects: None,
           options: compiler_options.clone(),
+          lazy_visit_modules: lazy_visit_modules.clone(),
         },
         dep,
         tx.clone(),
@@ -1120,11 +1129,13 @@ impl Compilation {
 
     for entry_ukey in self.get_chunk_graph_entries().iter() {
       let mut hasher = Xxh3::new();
-      for module in self
+      for identifier in self
         .chunk_graph
         .get_chunk_runtime_modules_in_order(entry_ukey)
       {
-        module.hash(self, &mut hasher);
+        if let Some(module) = self.runtime_modules.get(identifier) {
+          module.hash(self, &mut hasher);
+        }
       }
       let entry = self
         .chunk_by_ukey
@@ -1136,14 +1147,25 @@ impl Compilation {
   }
 
   pub fn add_runtime_module(&mut self, chunk_ukey: &ChunkUkey, mut module: Box<dyn RuntimeModule>) {
+    // add chunk runtime to perfix module identifier to avoid multiple entry runtime modules conflict
+    let chunk = self
+      .chunk_by_ukey
+      .get(chunk_ukey)
+      .expect("chunk not found by ukey");
+    let runtime_module_identifier = format!("{:?}/{}", chunk.runtime, module.identifier());
     module.attach(*chunk_ukey);
-    self.chunk_graph.add_module(ustr(&module.identifier()));
     self
       .chunk_graph
-      .connect_chunk_and_module(*chunk_ukey, ustr(&module.identifier()));
+      .add_module(ustr(&runtime_module_identifier));
     self
       .chunk_graph
-      .connect_chunk_and_runtime_module(*chunk_ukey, module);
+      .connect_chunk_and_module(*chunk_ukey, ustr(&runtime_module_identifier));
+    self
+      .chunk_graph
+      .connect_chunk_and_runtime_module(*chunk_ukey, runtime_module_identifier.clone());
+    self
+      .runtime_modules
+      .insert(runtime_module_identifier, module);
   }
 }
 

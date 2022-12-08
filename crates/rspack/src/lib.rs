@@ -43,6 +43,9 @@ pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -
   plugins.push(Box::new(
     rspack_plugin_runtime::BasicRuntimeRequirementPlugin {},
   ));
+  if options.experiments.lazy_compilation {
+    plugins.push(Box::new(rspack_plugin_runtime::LazyCompilationPlugin {}));
+  }
   plugins.push(Box::new(rspack_plugin_externals::ExternalPlugin::default()));
   plugins.append(&mut options.plugins);
   plugins.push(Box::new(rspack_plugin_javascript::JsPlugin::new()));

@@ -285,6 +285,11 @@ class Compiler {
 			if (err) {
 				cb(err);
 			} else {
+				this.hooks.done.callAsync(new Stats(stats, this.compilation), err => {
+					if (err) {
+						throw err;
+					}
+				});
 				cb(null, stats);
 			}
 		});
@@ -335,7 +340,6 @@ class Compiler {
 
 				const begin = Date.now();
 				this.rebuild(changedFilepath, (error: any, rawStats) => {
-					let stats = new Stats(rawStats, this.compilation);
 					isBuildFinished = true;
 
 					const hasPending = Boolean(pendingChangedFilepaths.size);
@@ -350,11 +354,6 @@ class Compiler {
 						throw error;
 					}
 
-					this.hooks.done.callAsync(stats, err => {
-						if (err) {
-							throw err;
-						}
-					});
 					console.log("rebuild success, time cost", Date.now() - begin, "ms");
 				});
 			};

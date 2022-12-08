@@ -13,6 +13,7 @@ mod raw_context;
 mod raw_dev_server;
 mod raw_devtool;
 mod raw_entry;
+mod raw_experiments;
 mod raw_external;
 mod raw_external_type;
 mod raw_mode;
@@ -31,6 +32,7 @@ pub use raw_cache::*;
 pub use raw_context::*;
 pub use raw_dev_server::*;
 pub use raw_entry::*;
+pub use raw_experiments::*;
 pub use raw_external::*;
 pub use raw_external_type::*;
 pub use raw_mode::*;
@@ -97,6 +99,7 @@ pub struct RawOptions {
   pub dev_server: Option<RawDevServer>,
   pub snapshot: Option<RawSnapshotOptions>,
   pub cache: Option<RawCacheOptions>,
+  pub experiments: Option<RawExperiments>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -123,6 +126,7 @@ pub struct RawOptions {
   pub dev_server: Option<RawDevServer>,
   pub snapshot: Option<RawSnapshotOptions>,
   pub cache: Option<RawCacheOptions>,
+  pub experiments: Option<RawExperiments>,
 }
 
 pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<CompilerOptions> {
@@ -244,6 +248,11 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
     .then(|mut options| {
       let cache = RawOption::raw_to_compiler_option(raw_options.cache, &options)?;
       options.cache = Some(cache);
+      Ok(options)
+    })?
+    .then(|mut options| {
+      let experiments = RawOption::raw_to_compiler_option(raw_options.experiments, &options)?;
+      options.experiments = Some(experiments);
       Ok(options)
     })?
     .finish();

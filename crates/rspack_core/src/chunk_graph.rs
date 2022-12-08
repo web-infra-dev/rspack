@@ -3,8 +3,7 @@ use ustr::Ustr;
 
 use crate::{
   Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Module, ModuleGraph,
-  ModuleGraphModule, ModuleIdentifier, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
-  SourceType,
+  ModuleGraphModule, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, SourceType,
 };
 
 #[derive(Debug, Default)]
@@ -145,21 +144,13 @@ impl ChunkGraph {
     chunk_graph_chunk.modules.insert(module_identifier);
   }
 
-  pub fn connect_chunk_and_runtime_module(
-    &mut self,
-    chunk: ChunkUkey,
-    module: Box<dyn RuntimeModule>,
-  ) {
-    let cgm = self.get_chunk_graph_module_mut(&Ustr::from(&module.identifier()));
+  pub fn connect_chunk_and_runtime_module(&mut self, chunk: ChunkUkey, identifier: String) {
+    let cgm = self.get_chunk_graph_module_mut(&Ustr::from(&identifier));
     cgm.runtime_in_chunks.insert(chunk);
 
     let cgc = self.get_chunk_graph_chunk_mut(chunk);
-    if !cgc
-      .runtime_modules
-      .iter()
-      .any(|m| m.identifier() == module.identifier())
-    {
-      cgc.runtime_modules.push(module);
+    if !cgc.runtime_modules.contains(&identifier) {
+      cgc.runtime_modules.push(identifier);
     }
   }
 
@@ -340,10 +331,7 @@ impl ChunkGraph {
     runtimes
   }
 
-  pub fn get_chunk_runtime_modules_in_order(
-    &self,
-    chunk_ukey: &ChunkUkey,
-  ) -> &Vec<Box<dyn RuntimeModule>> {
+  pub fn get_chunk_runtime_modules_in_order(&self, chunk_ukey: &ChunkUkey) -> &Vec<String> {
     let cgc = self.get_chunk_graph_chunk(chunk_ukey);
     &cgc.runtime_modules
   }
@@ -444,7 +432,7 @@ pub struct ChunkGraphChunk {
   pub(crate) entry_modules: hashlink::LinkedHashMap<ModuleIdentifier, ChunkGroupUkey>,
   pub(crate) modules: HashSet<ModuleIdentifier>,
   pub(crate) runtime_requirements: HashSet<String>,
-  pub(crate) runtime_modules: Vec<Box<dyn RuntimeModule>>,
+  pub(crate) runtime_modules: Vec<String>,
 }
 
 impl ChunkGraphChunk {

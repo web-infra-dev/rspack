@@ -14,9 +14,10 @@ use tracing::instrument;
 use ustr::Ustr;
 
 use crate::{
-  cache::Cache, module_rule_matcher, resolve, BoxModule, CompilerOptions, FactorizeArgs, ModuleExt,
-  ModuleGraphModule, ModuleIdentifier, ModuleRule, ModuleType, Msg, NormalModule, RawModule,
-  ResolveArgs, ResolveResult, ResourceData, SharedPluginDriver, DEPENDENCY_ID,
+  cache::Cache, module_rule_matcher, resolve, BoxModule, CompilerOptions, FactorizeArgs,
+  Identifiable, ModuleArgs, ModuleExt, ModuleGraphModule, ModuleIdentifier, ModuleRule, ModuleType,
+  Msg, NormalModule, RawModule, ResolveArgs, ResolveResult, ResourceData, SharedPluginDriver,
+  DEPENDENCY_ID,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -28,6 +29,7 @@ pub struct Dependency {
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 pub enum ResolveKind {
+  Entry,
   Import,
   Require,
   DynamicImport,
@@ -260,6 +262,20 @@ impl NormalModuleFactory {
       self.context.options.clone(),
     );
 
+    if let Some(module) = self
+      .plugin_driver
+      .read()
+      .await
+      .module(ModuleArgs {
+        kind,
+        indentfiler: normal_module.identifier(),
+        lazy_visit_modules: self.context.lazy_visit_modules.clone(),
+      })
+      .await?
+    {
+      return Ok(Some((uri, module, dependency_id)));
+    }
+
     Ok(Some((uri, Box::new(normal_module), dependency_id)))
   }
 
@@ -397,6 +413,7 @@ pub struct NormalModuleFactoryContext {
   pub module_type: Option<ModuleType>,
   pub side_effects: Option<bool>,
   pub options: Arc<CompilerOptions>,
+  pub lazy_visit_modules: std::collections::HashSet<String>,
 }
 
 #[derive(Debug, Clone, Eq)]

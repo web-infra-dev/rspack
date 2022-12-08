@@ -88,7 +88,10 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
               }
             }
           }
-          Some(format!("{}[chunkId]", stringify_map(&chunks_map)))
+          match chunks_map.is_empty() {
+            false => Some(format!("{}[chunkId]", stringify_map(&chunks_map))),
+            true => None,
+          }
         }
         None => None,
       },
