@@ -82,6 +82,10 @@ describe("snapshots", () => {
 		    },
 		    "define": {},
 		    "html": [],
+		    "minify": {
+		      "enable": false,
+		      "passes": 1,
+		    },
 		  },
 		  "cache": {
 		    "buildDependencies": [],
@@ -199,6 +203,9 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
+		-       "enable": false,
+		+       "enable": true,
+		@@ ... @@
 		-     "cacheType": "memory",
 		+     "cacheType": "",
 		@@ ... @@
@@ -211,6 +218,9 @@ describe("snapshots", () => {
 		- Expected
 		+ Received
 
+		@@ ... @@
+		-       "enable": false,
+		+       "enable": true,
 		@@ ... @@
 		-     "cacheType": "memory",
 		+     "cacheType": "",

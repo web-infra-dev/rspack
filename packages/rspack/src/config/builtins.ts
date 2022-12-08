@@ -1,7 +1,8 @@
 import type {
 	RawBuiltins,
 	RawHtmlPluginConfig,
-	RawDecoratorOptions
+	RawDecoratorOptions,
+	Minification
 } from "@rspack/binding";
 import { loadConfig } from "browserslist";
 import { Dev } from "./devServer";
@@ -12,12 +13,13 @@ export type BuiltinsHtmlPluginConfig = Omit<RawHtmlPluginConfig, "meta"> & {
 
 export type Builtins = Omit<
 	RawBuiltins,
-	"define" | "browserslist" | "html" | "decorator"
+	"define" | "browserslist" | "html" | "decorator" | "minify"
 > & {
 	define?: Record<string, string | undefined>;
 	polyfillBuiltins?: boolean; // polyfill node builtin api
 	html?: Array<BuiltinsHtmlPluginConfig>;
 	decorator?: boolean | Partial<RawDecoratorOptions>;
+	minify?: boolean | Partial<Minification>;
 };
 
 export type ResolvedBuiltins = Omit<RawBuiltins, "html"> & {
@@ -71,7 +73,7 @@ function resolveDecorator(
 
 export function resolveBuiltinsOptions(
 	builtins: Builtins,
-	contextPath: string
+	{ contextPath, isProduction }: { contextPath: string; isProduction: boolean }
 ): ResolvedBuiltins {
 	const browserslist = loadConfig({ path: contextPath }) || [];
 	return {
@@ -79,6 +81,31 @@ export function resolveBuiltinsOptions(
 		define: resolveDefine(builtins.define || {}),
 		html: resolveHtml(builtins.html || []),
 		browserslist,
-		decorator: resolveDecorator(builtins.decorator)
+		decorator: resolveDecorator(builtins.decorator),
+		minify: resolveMinify(builtins, isProduction)
 	};
+}
+
+export function resolveMinify(
+	builtins: Builtins,
+	isProduction: boolean
+): Minification {
+	if (builtins.minify) {
+		if (typeof builtins.minify === "boolean") {
+			return {
+				enable: builtins.minify,
+				passes: 1
+			};
+		} else {
+			return {
+				...builtins.minify,
+				enable: true
+			};
+		}
+	} else {
+		return {
+			enable: isProduction,
+			passes: 1
+		};
+	}
 }
