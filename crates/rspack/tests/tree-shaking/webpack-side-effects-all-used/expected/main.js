@@ -1,5 +1,5 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./../node_modules/pmodule/a.js": function (module, exports, __webpack_require__) {
+"../node_modules/pmodule/a.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -8,11 +8,11 @@ Object.defineProperty(exports, "a", {
     enumerable: true,
     get: ()=>a
 });
-const _tracker = __webpack_require__("./../node_modules/pmodule/tracker.js");
+const _tracker = __webpack_require__("../node_modules/pmodule/tracker.js");
 var a = "a";
 (0, _tracker.track)("a.js");
 },
-"./../node_modules/pmodule/b.js": function (module, exports, __webpack_require__) {
+"../node_modules/pmodule/b.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -27,12 +27,12 @@ _export(exports, {
     x: ()=>x,
     z: ()=>_c.z
 });
-const _c = __webpack_require__("./../node_modules/pmodule/c.js");
-const _tracker = __webpack_require__("./../node_modules/pmodule/tracker.js");
+const _c = __webpack_require__("../node_modules/pmodule/c.js");
+const _tracker = __webpack_require__("../node_modules/pmodule/tracker.js");
 var x = "x";
 (0, _tracker.track)("b.js");
 },
-"./../node_modules/pmodule/c.js": function (module, exports, __webpack_require__) {
+"../node_modules/pmodule/c.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -41,11 +41,11 @@ Object.defineProperty(exports, "z", {
     enumerable: true,
     get: ()=>z
 });
-const _tracker = __webpack_require__("./../node_modules/pmodule/tracker.js");
+const _tracker = __webpack_require__("../node_modules/pmodule/tracker.js");
 var z = "z";
 (0, _tracker.track)("c.js");
 },
-"./../node_modules/pmodule/index.js": function (module, exports, __webpack_require__) {
+"../node_modules/pmodule/index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -61,13 +61,13 @@ _export(exports, {
     z: ()=>_b.z,
     default: ()=>_default
 });
-__webpack_require__.exportStar(__webpack_require__("./../node_modules/pmodule/a.js"), exports);
-const _b = __webpack_require__("./../node_modules/pmodule/b.js");
-const _tracker = __webpack_require__("./../node_modules/pmodule/tracker.js");
+__webpack_require__.exportStar(__webpack_require__("../node_modules/pmodule/a.js"), exports);
+const _b = __webpack_require__("../node_modules/pmodule/b.js");
+const _tracker = __webpack_require__("../node_modules/pmodule/tracker.js");
 (0, _tracker.track)("index.js");
 const _default = "def";
 },
-"./../node_modules/pmodule/tracker.js": function (module, exports, __webpack_require__) {
+"../node_modules/pmodule/tracker.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -93,8 +93,8 @@ var log = [];
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _tracker = __webpack_require__("./../node_modules/pmodule/tracker.js");
-const _pmodule = __webpack_require__.interopRequire(__webpack_require__("./../node_modules/pmodule/index.js"));
+const _tracker = __webpack_require__("../node_modules/pmodule/tracker.js");
+const _pmodule = __webpack_require__.interopRequire(__webpack_require__("../node_modules/pmodule/index.js"));
 _pmodule.default.should.be.eql("def");
 _pmodule.a.should.be.eql("a");
 _pmodule.x.should.be.eql("x");
