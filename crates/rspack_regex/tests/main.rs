@@ -14,7 +14,7 @@ use swc_core::{
 };
 
 #[cfg(test)]
-mod test_super {
+mod test_regex {
 
   use rspack_regex::RspackRegex;
 
@@ -27,11 +27,15 @@ mod test_super {
   }
   #[test]
   fn test_js_regex() {
-    // should not panic
-    regex_assert("assert_regex(/test.*/,'testaaaaaaa')");
+    regex_assert("assert_match(/test.*/,'testaaaaaaa')");
+    regex_assert("assert_none_match(/test.*/,'tesaaaaaaa')");
   }
 }
 
+enum AssertType {
+  False,
+  True,
+}
 fn regex_assert(code: &str) {
   let cm = Arc::new(SourceMap::new(FilePathMapping::empty()));
   let fm = cm.new_source_file(FileName::Anon, code.to_string());
@@ -49,8 +53,12 @@ fn regex_assert(code: &str) {
         let t = callee
           .as_expr()
           .and_then(|expr| expr.as_ident())
-          .map(|ident| &ident.sym == "assert_regex");
-        assert_eq!(t, Some(true));
+          .map(|ident| match ident.sym.as_ref() {
+            "assert_match" => AssertType::True,
+            "assert_none_match" => AssertType::False,
+            _ => unimplemented!("unsupported assert function"),
+          })
+          .unwrap();
         let regex = &args[0];
         let string = &args[1];
         let string_lit = match string.expr.as_lit() {
@@ -59,8 +67,10 @@ fn regex_assert(code: &str) {
         };
         if let Some(Lit::Regex(reg)) = regex.expr.as_lit() {
           let rspack_reg = RspackRegex::try_from(reg.clone()).unwrap();
-
-          assert!(rspack_reg.find(&string_lit).is_some());
+          match t {
+            AssertType::False => assert!(rspack_reg.find(&string_lit).is_none()),
+            AssertType::True => assert!(rspack_reg.find(&string_lit).is_some()),
+          }
         } else {
           unreachable!()
         }
