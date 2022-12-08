@@ -58,6 +58,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           stats: Default::default(),
           cache: Default::default(),
           snapshot: Default::default(),
+          module_ids: rspack_core::ModuleIds::Named,
           __emit_error: false,
         }),
         resolver_factory: Default::default(),

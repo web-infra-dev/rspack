@@ -2,7 +2,8 @@ use std::path::Path;
 
 use sugar_path::SugarPath;
 
-pub fn contextify(context: &Path, request: &str) -> String {
+pub fn contextify(context: impl AsRef<Path>, request: &str) -> String {
+  let context = context.as_ref();
   request
     .split('!')
     .map(|r| absolute_to_request(context, r))

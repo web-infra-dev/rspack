@@ -25,10 +25,11 @@ use rspack_sources::{
 };
 
 use crate::{
-  ast::javascript::Ast as JsAst, identifier::Identifiable, BuildContext, BuildResult,
-  CodeGenerationResult, Compilation, CompilerOptions, Context, Dependency, GenerateContext, Module,
-  ModuleAst, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext,
-  ParseResult, ParserAndGenerator, ResolveKind, SourceType,
+  ast::javascript::Ast as JsAst, chunk_graph, contextify, identifier::Identifiable, BuildContext,
+  BuildResult, ChunkGraph, CodeGenerationResult, Compilation, CompilerOptions, Context, Dependency,
+  GenerateContext, LibIdentOptions, Module, ModuleAst, ModuleGraph, ModuleGraphConnection,
+  ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator, ResolveKind,
+  SourceType,
 };
 
 bitflags! {
@@ -47,7 +48,6 @@ pub struct ModuleGraphModule {
   pub outgoing_connections: HashSet<u32>,
   pub incoming_connections: HashSet<u32>,
 
-  pub id: String,
   // pub exec_order: usize,
   pub module_identifier: ModuleIdentifier,
   // TODO remove this since its included in module
@@ -72,8 +72,6 @@ impl ModuleGraphModule {
 
       outgoing_connections: Default::default(),
       incoming_connections: Default::default(),
-
-      id,
       // exec_order: usize::MAX,
       module_identifier,
       all_dependencies: dependencies,
@@ -83,6 +81,13 @@ impl ModuleGraphModule {
       module_syntax: ModuleSyntax::empty(),
       used: true,
     }
+  }
+
+  pub fn id<'chunk_graph>(
+    &self,
+    chunk_graph: &'chunk_graph ChunkGraph,
+  ) -> &'chunk_graph Option<String> {
+    chunk_graph.get_module_id(&self.module_identifier)
   }
 
   pub fn add_incoming_connection(&mut self, connection_id: u32) {
@@ -490,6 +495,11 @@ impl Module for NormalModule {
     } else {
       Some(resource.into())
     }
+  }
+
+  fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<str>> {
+    // Align with https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/NormalModule.js#L362
+    Some(Cow::Owned(contextify(options.context, self.user_request())))
   }
 }
 

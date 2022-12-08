@@ -56,6 +56,15 @@ pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -
       public_path: None,
     },
   )));
+  match options.module_ids {
+    rspack_core::ModuleIds::Named => {
+      plugins.push(Box::new(rspack_ids::NamedModuleIdsPlugin {}));
+    }
+    rspack_core::ModuleIds::Deterministic => {
+      plugins.push(Box::new(rspack_ids::DeterministicModuleIdsPlugin {}));
+    }
+  }
+
   Compiler::new(options, plugins)
 }
 

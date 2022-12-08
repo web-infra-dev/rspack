@@ -33,6 +33,7 @@
     "crates/node_binding/Cargo.toml"
   ],
   "cSpell.words": [
+    "contextify",
     "Ctxt",
     "Deque",
     "ecma",

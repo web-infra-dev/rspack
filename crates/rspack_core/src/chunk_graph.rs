@@ -401,10 +401,21 @@ impl ChunkGraph {
 
     map
   }
+
+  pub fn get_module_id(&self, module_identifier: &ModuleIdentifier) -> &Option<String> {
+    let cgm = self.get_chunk_graph_module(module_identifier);
+    &cgm.id
+  }
+
+  pub fn set_module_id(&mut self, module_identifier: &ModuleIdentifier, id: String) {
+    let cgm = self.get_chunk_graph_module_mut(module_identifier);
+    cgm.id = Some(id);
+  }
 }
 
 #[derive(Debug, Default)]
 pub struct ChunkGraphModule {
+  pub id: Option<String>,
   pub(crate) entry_in_chunks: HashSet<ChunkUkey>,
   pub(crate) chunks: HashSet<ChunkUkey>,
   pub(crate) runtime_requirements: Option<RuntimeSpecMap<HashSet<String>>>,
@@ -415,6 +426,7 @@ pub struct ChunkGraphModule {
 impl ChunkGraphModule {
   pub fn new() -> Self {
     Self {
+      id: None,
       entry_in_chunks: Default::default(),
       chunks: Default::default(),
       runtime_requirements: None,

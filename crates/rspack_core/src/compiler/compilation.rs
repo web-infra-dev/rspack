@@ -957,6 +957,8 @@ impl Compilation {
 
     plugin_driver.write().await.optimize_chunks(self)?;
 
+    plugin_driver.write().await.module_ids(self)?;
+
     self.code_generation().await?;
 
     self

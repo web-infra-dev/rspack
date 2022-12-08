@@ -37,6 +37,7 @@ import {
 	resolveStatsOptions,
 	StatsOptions
 } from "./stats";
+import { Optimization, ResolvedOptimization, resolveOptimizationOptions } from "./optimization";
 
 export type Configuration = RspackOptions;
 export interface RspackOptions {
@@ -58,6 +59,7 @@ export interface RspackOptions {
 	stats?: StatsOptions;
 	snapshot?: Snapshot;
 	cache?: Cache;
+	optimization?: Optimization;
 }
 export interface RspackOptionsNormalized {
 	name?: string;
@@ -78,6 +80,7 @@ export interface RspackOptionsNormalized {
 	stats: ResolvedStatsOptions;
 	snapshot: ResolvedSnapshot;
 	cache: ResolvedCache;
+	optimization?: ResolvedOptimization;
 }
 
 export function getNormalizedRspackOptions(
@@ -106,6 +109,7 @@ export function getNormalizedRspackOptions(
 	const cache = resolveCacheOptions(
 		config.cache ?? (mode === "production" ? false : true)
 	);
+	const optimization = resolveOptimizationOptions(config.optimization ?? {}, mode)
 
 	return {
 		...config,
@@ -125,7 +129,8 @@ export function getNormalizedRspackOptions(
 		infrastructureLogging: cloneObject(config.infrastructureLogging),
 		stats,
 		snapshot,
-		cache
+		cache,
+		optimization
 	};
 }
 

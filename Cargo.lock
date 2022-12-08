@@ -2234,6 +2234,7 @@ dependencies = [
  "rspack_binding_options",
  "rspack_core",
  "rspack_error",
+ "rspack_ids",
  "rspack_loader_sass",
  "rspack_plugin_asset",
  "rspack_plugin_css",
@@ -2339,6 +2340,15 @@ dependencies = [
  "termcolor",
  "thiserror",
  "tokio",
+]
+
+[[package]]
+name = "rspack_ids"
+version = "0.1.0"
+dependencies = [
+ "rspack_core",
+ "rspack_error",
+ "rspack_util",
 ]
 
 [[package]]
@@ -2614,6 +2624,15 @@ dependencies = [
  "tracing",
  "tracing-chrome",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "rspack_util"
+version = "0.1.0"
+dependencies = [
+ "once_cell",
+ "regex",
+ "sugar_path",
 ]
 
 [[package]]

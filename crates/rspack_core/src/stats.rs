@@ -123,7 +123,7 @@ impl<'compilation> Stats<'compilation> {
           name: module
             .readable_identifier(&self.compilation.options.context)
             .into(),
-          id: mgm.id.clone(),
+          id: mgm.id(&self.compilation.chunk_graph).clone().unwrap(),
           chunks,
           size: module.size(&SourceType::JavaScript),
         }

@@ -11,6 +11,7 @@ use crate::RawSplitChunksOptions;
 #[napi(object)]
 pub struct RawOptimizationOptions {
   pub split_chunks: Option<RawSplitChunksOptions>,
+  pub module_ids: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -18,4 +19,5 @@ pub struct RawOptimizationOptions {
 #[cfg(not(feature = "node-api"))]
 pub struct RawOptimizationOptions {
   pub split_chunks: Option<RawSplitChunksOptions>,
+  pub module_ids: Option<String>,
 }
