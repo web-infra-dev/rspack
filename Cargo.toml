@@ -12,7 +12,7 @@ incremental = true
 codegen-units = 1
 debug         = false
 incremental   = true
-lto           = false
+lto           = "fat"
 opt-level     = 3
 
 
