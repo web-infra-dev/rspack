@@ -3,6 +3,7 @@ import fs from "graceful-fs";
 
 import { NodeTargetPlugin } from "./node/NodeTargetPlugin";
 import { ResolveSwcPlugin } from "./web/ResolveSwcPlugin";
+import { cleverMerge } from "./util/cleverMerge";
 export class RspackOptionsApply {
 	constructor() {}
 	process(options: RspackOptionsNormalized, compiler: Compiler) {
@@ -23,5 +24,24 @@ export class RspackOptionsApply {
 			}
 		}
 		new ResolveSwcPlugin().apply(compiler);
+
+		if (!compiler.inputFileSystem) {
+			throw new Error("No input filesystem provided");
+		}
+		compiler.resolverFactory.hooks.resolveOptions
+			.for("normal")
+			.tap("RspackOptionsApply", resolveOptions => {
+				resolveOptions = cleverMerge(options.resolve, resolveOptions);
+				resolveOptions.fileSystem = compiler.inputFileSystem;
+				return resolveOptions;
+			});
+		compiler.resolverFactory.hooks.resolveOptions
+			.for("context")
+			.tap("RspackOptionsApply", resolveOptions => {
+				resolveOptions = cleverMerge(options.resolve, resolveOptions);
+				resolveOptions.fileSystem = compiler.inputFileSystem;
+				resolveOptions.resolveToContext = true;
+				return resolveOptions;
+			});
 	}
 }

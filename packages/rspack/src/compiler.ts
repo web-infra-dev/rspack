@@ -15,7 +15,8 @@ import type { Watch } from "./config/watch";
 import { RspackOptionsNormalized } from "./config";
 import { Stats } from "./stats";
 import { Compilation } from "./compilation";
-import { createSourceFromRaw } from "./utils/createSource";
+import { createSourceFromRaw } from "./util/createSource";
+import ResolverFactory from "./ResolverFactory";
 
 class EntryPlugin {
 	apply() {}
@@ -29,6 +30,7 @@ class Compiler {
 
 	webpack: any;
 	compilation: Compilation;
+	resolverFactory: ResolverFactory;
 	infrastructureLogger: any;
 	outputPath: string;
 	name: string;
@@ -64,6 +66,7 @@ class Compiler {
 			}
 		};
 		this.context = context;
+		this.resolverFactory = new ResolverFactory();
 		this.hooks = {
 			initialize: new SyncHook([]),
 			done: new tapable.AsyncSeriesHook<Stats>(["stats"]),

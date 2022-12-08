@@ -5,7 +5,7 @@
 
 "use strict";
 
-const Hash = require("../hash");
+const Hash = require(".");
 const MAX_SHORT_STRING = require("./wasm-hash").MAX_SHORT_STRING;
 
 class BatchedHash extends Hash {

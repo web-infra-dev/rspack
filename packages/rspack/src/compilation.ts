@@ -1,5 +1,6 @@
 import * as tapable from "tapable";
 import { RawSource, Source } from "webpack-sources";
+import { Resolver } from "enhanced-resolve";
 
 import {
 	JsCompilation,
@@ -9,10 +10,11 @@ import {
 } from "@rspack/binding";
 
 import { RspackOptionsNormalized } from "./config";
-import { createRawFromSource, createSourceFromRaw } from "./utils/createSource";
+import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
 import { ResolvedOutput } from "./config/output";
 import { ChunkGroup } from "./chunk_group";
 import { Compiler } from "./compiler";
+import ResolverFactory from "./ResolverFactory";
 
 const hashDigestLength = 8;
 const EMPTY_ASSET_INFO = {};
@@ -26,6 +28,7 @@ export class Compilation {
 	options: RspackOptionsNormalized;
 	outputOptions: ResolvedOutput;
 	compiler: Compiler;
+	resolverFactory: ResolverFactory;
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.hooks = {

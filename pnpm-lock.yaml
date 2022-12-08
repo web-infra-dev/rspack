@@ -291,11 +291,13 @@ importers:
       '@types/ws': 8.5.3
       browserslist: ^4.21.3
       chokidar: 3.5.3
+      enhanced-resolve: 5.10.0
       graceful-fs: 4.2.10
       jest-serializer-path: ^0.1.15
       neo-async: 2.6.2
       react-refresh: 0.14.0
       rimraf: 3.0.2
+      schema-utils: ^4.0.0
       sinon: 14.0.0
       source-map: ^0.7.4
       tapable: 2.2.1
@@ -311,9 +313,11 @@ importers:
       '@swc/helpers': 0.4.13
       browserslist: 4.21.3
       chokidar: 3.5.3
+      enhanced-resolve: 5.10.0
       graceful-fs: 4.2.10
       neo-async: 2.6.2
       react-refresh: 0.14.0
+      schema-utils: 4.0.0
       tapable: 2.2.1
       webpack-sources: 3.2.3
     optionalDependencies:

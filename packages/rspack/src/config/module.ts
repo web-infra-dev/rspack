@@ -8,7 +8,10 @@ import type {
 } from "@rspack/binding";
 import assert from "assert";
 import path from "path";
-import { isNil, isPromiseLike } from "../utils";
+import { Compiler } from "../compiler";
+import { Logger } from "../logging/Logger";
+import { ResolveOptions } from "../ResolverFactory";
+import { isNil, isPromiseLike } from "../util";
 import { ResolvedContext } from "./context";
 import { isUseSourceMap, ResolvedDevtool } from "./devtool";
 
@@ -61,6 +64,7 @@ export interface LoaderContext
 		LoaderContextInternal,
 		"resource" | "resourcePath" | "resourceQuery" | "resourceFragment"
 	> {
+	version: 2;
 	async(): (
 		err: Error | null,
 		content: string | Buffer,
@@ -77,7 +81,15 @@ export interface LoaderContext
 	sourceMap: boolean;
 	rootContext: string;
 	context: string;
-	getOptions: () => unknown;
+	getOptions(schema?: any): unknown;
+	getResolve(
+		options: ResolveOptions
+	): (context: any, request: any, callback: any) => Promise<any>;
+	getLogger(name: string): Logger;
+	addDependency(file: string): void;
+	addContextDependency(context: string): void;
+	addMissingDependency(missing: string): void;
+	clearDependencies(): void;
 }
 
 const toBuffer = (bufLike: string | Buffer): Buffer => {
@@ -90,9 +102,12 @@ const toBuffer = (bufLike: string | Buffer): Buffer => {
 	throw new Error("Buffer or string expected");
 };
 
+export type GetCompiler = () => Compiler;
+
 export interface ComposeJsUseOptions {
 	devtool: ResolvedDevtool;
 	context: ResolvedContext;
+	getCompiler: GetCompiler;
 }
 
 export interface SourceMap {
@@ -126,6 +141,9 @@ function composeJsUse(
 	}
 
 	async function loader(data: JsLoaderContext): Promise<JsLoaderResult> {
+		const compiler = options.getCompiler();
+		const resolver = compiler.resolverFactory.get("normal");
+
 		let cacheable: boolean = data.cacheable;
 		let content: string | Buffer = data.content;
 		let sourceMap: string | SourceMap | undefined =
@@ -173,15 +191,84 @@ function composeJsUse(
 					});
 				}
 
+				const getResolveContext = () => {
+					return {
+						fileDependencies: {
+							add: d => loaderContext.addDependency(d)
+						},
+						contextDependencies: {
+							add: d => loaderContext.addContextDependency(d)
+						},
+						missingDependencies: {
+							add: d => loaderContext.addMissingDependency(d)
+						}
+					};
+				};
+
 				const loaderContext: LoaderContext = {
+					version: 2,
 					sourceMap: isUseSourceMap(options.devtool),
 					resourcePath: data.resourcePath,
 					resource: data.resource,
 					// Return an empty string if there is no query or fragment
 					resourceQuery: data.resourceQuery || "",
 					resourceFragment: data.resourceFragment || "",
-					getOptions() {
-						return use.options;
+					getOptions(schema) {
+						let { options } = use;
+
+						if (options === null || options === undefined) {
+							options = {};
+						}
+
+						if (schema) {
+							let name = "Loader";
+							let baseDataPath = "options";
+							let match;
+							if (schema.title && (match = /^(.+) (.+)$/.exec(schema.title))) {
+								[, name, baseDataPath] = match;
+							}
+							const { validate } = require("schema-utils");
+							validate(schema, options, {
+								name,
+								baseDataPath
+							});
+						}
+
+						return options;
+					},
+					getResolve(options) {
+						const child = options ? resolver.withOptions(options) : resolver;
+						return (context, request, callback) => {
+							if (callback) {
+								child.resolve(
+									{},
+									context,
+									request,
+									getResolveContext(),
+									callback
+								);
+							} else {
+								return new Promise((resolve, reject) => {
+									child.resolve(
+										{},
+										context,
+										request,
+										getResolveContext(),
+										(err, result) => {
+											if (err) reject(err);
+											else resolve(result);
+										}
+									);
+								});
+							}
+						};
+					},
+					getLogger(name) {
+						return compiler.getInfrastructureLogger(() =>
+							[name, data.resource]
+								.filter(Boolean)
+								.join("|")
+						);
 					},
 					cacheable(value) {
 						cacheable = value;
@@ -196,26 +283,33 @@ function composeJsUse(
 					},
 					callback,
 					rootContext: options.context,
-					context: path.dirname(data.resourcePath)
+					context: path.dirname(data.resourcePath),
+
+					// Mock, we don't need to implement these since the dev-server use 'chokidar'
+					// to watch files under 'options.context'.
+					addDependency(file: string) {},
+					addContextDependency(context: string) {},
+					addMissingDependency(missing: string) {},
+					clearDependencies() {}
 				};
 
 				/**
 				 * support loader as string
 				 */
-				let loader: Loader | undefined;
-				if (typeof use.loader === "string") {
-					try {
-						let loaderPath = require.resolve(use.loader, {
-							paths: [options.context]
-						});
-						loader = require(loaderPath);
-					} catch (err) {
-						reject(err);
-						return;
-					}
-				} else {
-					loader = use.loader;
-				}
+				 let loader: Loader | undefined;
+				 if (typeof use.loader === "string") {
+					 try {
+						 let loaderPath = require.resolve(use.loader, {
+							 paths: [options.context]
+						 });
+						 loader = require(loaderPath);
+					 } catch (err) {
+						 reject(err);
+						 return;
+					 }
+				 } else {
+					 loader = use.loader;
+				 }
 
 				let result: Promise<string | Buffer> | string | Buffer | undefined =
 					undefined;
