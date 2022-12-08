@@ -45,6 +45,7 @@ pub struct RawOutputOptions {
   pub css_filename: Option<String>,
   pub css_chunk_filename: Option<String>,
   pub unique_name: Option<String>,
+  pub library: Option<String>,
   /* pub entry_filename: Option<String>,
    * pub source_map: Option<String>, */
 }
@@ -62,6 +63,7 @@ pub struct RawOutputOptions {
   pub css_filename: Option<String>,
   pub css_chunk_filename: Option<String>,
   pub unique_name: Option<String>,
+  pub library: Option<String>,
   /* pub entry_filename: Option<String>,
    * pub source_map: Option<String>, */
 }
@@ -135,6 +137,7 @@ impl RawOption<OutputOptions> for RawOutputOptions {
         HASH_PLACEHOLDER, EXT_PLACEHOLDER, QUERY_PLACEHOLDER
       )
     });
+    let library = self.library;
     Ok(OutputOptions {
       path,
       asset_module_filename: Filename::from_str(&asset_module_filename)?,
@@ -144,6 +147,7 @@ impl RawOption<OutputOptions> for RawOutputOptions {
       css_chunk_filename: Filename::from_str(&css_chunk_filename)?,
       unique_name,
       public_path: PublicPath::from_str(&public_path)?,
+      library,
     })
   }
 
