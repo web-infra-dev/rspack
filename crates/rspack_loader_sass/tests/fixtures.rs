@@ -47,6 +47,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
             unique_name: Default::default(),
             css_chunk_filename: rspack_core::Filename::from_str("").unwrap(),
             css_filename: rspack_core::Filename::from_str("").unwrap(),
+            library: None,
           },
           target: rspack_core::Target::new(&vec![String::from("web")]).unwrap(),
           resolve: rspack_core::Resolve::default(),
