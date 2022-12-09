@@ -1514,7 +1514,9 @@ fn mark_symbol(
                 })
                 .collect::<Vec<_>>();
               error_message += &join_string_component(module_identifier_list);
-              errors.push(Error::InternalError(internal_error!(error_message)));
+              errors.push(Error::InternalError(
+                internal_error!(error_message).with_severity(Severity::Warn),
+              ));
               ret[0].1.clone()
             }
           }

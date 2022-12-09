@@ -6,7 +6,7 @@ use napi::{Env, NapiRaw, Result};
 
 use async_trait::async_trait;
 
-use rspack_error::Error;
+use rspack_error::{internal_error, Error, InternalError};
 
 use crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use crate::{JsCompatSource, JsCompilation, JsHooks, JsStatsCompilation, ToJsCompatSource};
@@ -46,7 +46,12 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .compilation_tsfn
       .call(compilation, ThreadsafeFunctionCallMode::Blocking)?
       .await
-      .map_err(|err| Error::InternalError(format!("Failed to compilation: {}", err.to_string())))?
+      .map_err(|err| {
+        Error::InternalError(internal_error!(format!(
+          "Failed to compilation: {}",
+          err.to_string()
+        )))
+      })?
   }
 
   #[tracing::instrument(skip_all)]
@@ -66,7 +71,10 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call(compilation, ThreadsafeFunctionCallMode::Blocking)?
       .await
       .map_err(|err| {
-        Error::InternalError(format!("Failed to this_compilation: {}", err.to_string()))
+        Error::InternalError(internal_error!(format!(
+          "Failed to this_compilation: {}",
+          err.to_string()
+        )))
       })?
   }
 
@@ -88,10 +96,10 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call(assets, ThreadsafeFunctionCallMode::Blocking)?
       .await
       .map_err(|err| {
-        Error::InternalError(format!(
+        Error::InternalError(internal_error!(format!(
           "Failed to call process assets: {}",
           err.to_string()
-        ))
+        )))
       })?
   }
 
@@ -108,7 +116,12 @@ impl rspack_core::Plugin for JsHooksAdapter {
         ThreadsafeFunctionCallMode::Blocking,
       )?
       .await
-      .map_err(|err| Error::InternalError(format!("Failed to call done: {}", err.to_string())))?
+      .map_err(|err| {
+        Error::InternalError(internal_error!(format!(
+          "Failed to call done: {}",
+          err.to_string()
+        )))
+      })?
       .map_err(Error::from)
   }
 }

@@ -12,10 +12,6 @@ macro_rules! internal_error {
   };
 }
 #[derive(Debug, Default)]
-/// ## Warning
-/// For a [TraceableError], the path is required.
-/// Because if the source code is missing when you construct a [TraceableError], we could read it from file system later
-/// when convert it into [crate::Diagnostic], but the reverse will not working.
 pub struct InternalError {
   pub error_message: String,
   pub severity: Severity,

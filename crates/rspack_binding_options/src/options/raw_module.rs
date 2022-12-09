@@ -287,7 +287,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
         .clone()
         .map(|v| v.to_json())
         .transpose()
-        .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
+        .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?,
       resource: loader_context.resource.to_owned(),
       resource_path: loader_context.resource_path.to_owned(),
       resource_fragment: loader_context.resource_fragment.map(|r| r.to_owned()),
@@ -296,7 +296,10 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
     };
 
     let result = serde_json::to_vec(&loader_context).map_err(|err| {
-      rspack_error::Error::InternalError(format!("Failed to serialize loader context: {}", err))
+      rspack_error::Error::InternalError(internal_error!(format!(
+        "Failed to serialize loader context: {}",
+        err
+      )))
     })?;
 
     let loader_result = self
@@ -308,7 +311,10 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
       .map_err(rspack_error::Error::from)?
       .await
       .map_err(|err| {
-        rspack_error::Error::InternalError(format!("Failed to call loader: {}", err))
+        rspack_error::Error::InternalError(internal_error!(format!(
+          "Failed to call loader: {}",
+          err
+        )))
       })??;
 
     let source_map = loader_result
@@ -316,7 +322,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
       .and_then(|r| r.source_map.as_ref())
       .map(|s| rspack_core::rspack_sources::SourceMap::from_slice(s))
       .transpose()
-      .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?;
+      .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?;
 
     Ok(loader_result.map(|loader_result| {
       rspack_core::LoaderResult {

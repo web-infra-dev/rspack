@@ -1155,9 +1155,10 @@ describe("Compiler", () => {
 								);
 							} catch (err) {
 								mockFn();
-								expect(err).toMatchInlineSnapshot(
-									`[Error: Called Compilation.updateAsset for not existing filename something-else.js]`
-								);
+								expect(err).toMatchInlineSnapshot(`
+[Error: error[internal]: Called Compilation.updateAsset for not existing filename something-else.js
+]
+`);
 							}
 						});
 					});
