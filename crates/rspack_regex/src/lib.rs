@@ -1,4 +1,5 @@
 use regress::{Match, Matches, Regex};
+use rspack_error::{internal_error, Error, InternalError};
 
 use swc_core::ecma::ast::Regex as SwcRegex;
 
@@ -14,23 +15,29 @@ impl RspackRegex {
     self.0.find_iter(text)
   }
 
-  pub fn with_flags(expr: &str, flags: &str) -> Result<Self, rspack_error::Error> {
+  pub fn with_flags(expr: &str, flags: &str) -> Result<Self, Error> {
     Regex::with_flags(expr, flags)
       .map(RspackRegex)
       .map_err(|_| {
-        rspack_error::Error::InternalError(format!("Can't construct regex `/{}/{}`", expr, flags))
+        Error::InternalError(internal_error!(format!(
+          "Can't construct regex `/{}/{}`",
+          expr, flags
+        )))
       })
   }
 
-  pub fn new(expr: &str) -> Result<Self, rspack_error::Error> {
+  pub fn new(expr: &str) -> Result<Self, Error> {
     Regex::with_flags(expr, "").map(RspackRegex).map_err(|_| {
-      rspack_error::Error::InternalError(format!("Can't construct regex `/{}/{}`", expr, ""))
+      Error::InternalError(internal_error!(format!(
+        "Can't construct regex `/{}/{}`",
+        expr, ""
+      )))
     })
   }
 }
 
 impl TryFrom<SwcRegex> for RspackRegex {
-  type Error = rspack_error::Error;
+  type Error = Error;
 
   fn try_from(value: SwcRegex) -> Result<Self, Self::Error> {
     RspackRegex::with_flags(value.exp.as_ref(), value.flags.as_ref())
