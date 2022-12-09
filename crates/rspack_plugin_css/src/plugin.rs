@@ -188,9 +188,13 @@ impl CssPlugin {
         let sorted_modules = modules_list
           .clone()
           .into_iter()
-          .map(|module_id| {
+          .filter_map(|module_id| {
             let order = chunk_group.module_post_order_index(&module_id);
-            (module_id, order)
+            if let Some(order) = order {
+              Some((module_id, order))
+            } else {
+              None
+            }
           })
           .sorted_by(|a, b| {
             if b.1 > a.1 {
@@ -277,8 +281,8 @@ impl CssPlugin {
       final_modules.push(selected_module);
       // Remove the selected module from all lists
       for SortedModules { set, list } in &mut modules_by_chunk_group {
-        let last_module = list.last().unwrap();
-        if last_module == &selected_module {
+        let last_module = list.last();
+        if last_module.map_or(false, |last_module| last_module == &selected_module) {
           list.pop();
           set.remove(&selected_module);
         } else if has_failed.is_some() && set.contains(&selected_module) {

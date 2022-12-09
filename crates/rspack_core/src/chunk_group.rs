@@ -47,11 +47,12 @@ impl ChunkGroup {
     }
   }
 
-  pub fn module_post_order_index(&self, module_identifier: &ModuleIdentifier) -> usize {
-    *self
+  pub fn module_post_order_index(&self, module_identifier: &ModuleIdentifier) -> Option<usize> {
+    // A module could split into another ChunkGroup, which doesn't have the module_post_order_indices of the module
+    self
       .module_post_order_indices
       .get(module_identifier)
-      .expect("module not found")
+      .copied()
   }
 
   pub fn get_files(&self, chunk_by_ukey: &ChunkByUkey) -> HashSet<String> {
