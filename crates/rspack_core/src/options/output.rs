@@ -13,6 +13,7 @@ pub struct OutputOptions {
   pub chunk_filename: Filename,
   pub css_filename: Filename,
   pub css_chunk_filename: Filename,
+  pub library: Option<String>,
 }
 
 pub const NAME_PLACEHOLDER: &str = "[name]";
