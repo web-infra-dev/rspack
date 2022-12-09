@@ -1,15 +1,15 @@
 use super::Storage;
-use hashbrown::HashMap;
+use dashmap::DashMap;
 
 #[derive(Debug)]
 pub struct MemoryStorage<Item> {
-  data: HashMap<String, Item>,
+  data: DashMap<String, Item>,
 }
 
 impl<Item> MemoryStorage<Item> {
   pub fn new() -> Self {
     Self {
-      data: HashMap::new(),
+      data: DashMap::new(),
     }
   }
 }
@@ -19,9 +19,9 @@ where
   Item: Clone + std::fmt::Debug + Send + Sync,
 {
   fn get(&self, id: &str) -> Option<Item> {
-    self.data.get(id).cloned()
+    self.data.get(id).map(|item| item.clone())
   }
-  fn set(&mut self, id: String, data: Item) {
+  fn set(&self, id: String, data: Item) {
     self.data.insert(id, data);
   }
 }

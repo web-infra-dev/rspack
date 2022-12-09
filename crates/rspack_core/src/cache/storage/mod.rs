@@ -6,7 +6,7 @@ use memory::MemoryStorage;
 
 pub trait Storage<Item>: Debug + Send + Sync {
   fn get(&self, id: &str) -> Option<Item>;
-  fn set(&mut self, id: String, data: Item);
+  fn set(&self, id: String, data: Item);
   // fn begin_idle(&self);
   // fn end_idle(&self);
   // fn clear(&self);

@@ -1,20 +1,17 @@
 use crate::{cache::storage, Chunk, Compilation, NormalModuleAstOrSource, RenderManifestEntry};
 use futures::future::BoxFuture;
 use rspack_error::Result;
-use tokio::sync::RwLock;
 
 type Storage = dyn storage::Storage<Vec<RenderManifestEntry>>;
 
 #[derive(Debug)]
 pub struct CreateChunkAssetsOccasion {
-  storage: Option<RwLock<Box<Storage>>>,
+  storage: Option<Box<Storage>>,
 }
 
 impl CreateChunkAssetsOccasion {
   pub fn new(storage: Option<Box<Storage>>) -> Self {
-    Self {
-      storage: storage.map(RwLock::new),
-    }
+    Self { storage }
   }
 
   pub async fn use_cache<'a, F>(
@@ -48,7 +45,6 @@ impl CreateChunkAssetsOccasion {
 
     if is_cache_valid {
       // read
-      let storage = storage.read().await;
       if let Some(data) = storage.get(&chunk_id) {
         return Ok(data);
       }
@@ -56,7 +52,7 @@ impl CreateChunkAssetsOccasion {
     // run generator and save to cache
     let data = generator().await?;
     // TODO sometime may not run save
-    storage.write().await.set(chunk_id, data.clone());
+    storage.set(chunk_id, data.clone());
     Ok(data)
   }
 }
