@@ -29,8 +29,6 @@ use crate::utils::{
 };
 use crate::visitors::{run_after_pass, run_before_pass, DependencyScanner};
 
-pub const RUNTIME_PLACEHOLDER_INSTALLED_MODULES: &str = "__INSTALLED_MODULES__";
-
 #[derive(Debug)]
 pub struct JsPlugin {
   eval_source_map_cache: DashMap<Box<dyn Source>, Box<dyn Source>, DefaultHashBuilder>,
@@ -73,30 +71,100 @@ impl JsPlugin {
     concat.boxed()
   }
 
+  pub fn render_require(&self, args: &rspack_core::RenderManifestArgs) -> BoxSource {
+    let runtime_requirements = args
+      .compilation
+      .chunk_graph
+      .get_chunk_runtime_requirements(&args.chunk_ukey);
+
+    let mut sources = ConcatSource::default();
+
+    sources.add(RawSource::from(
+      r#"// Check if module is in cache
+        var cachedModule = __webpack_module_cache__[moduleId];
+        if (cachedModule !== undefined) {
+          return cachedModule.exports;
+        }
+        // Create a new module (and put it into the cache)
+        var module = (__webpack_module_cache__[moduleId] = {
+          // no module.id needed
+          // no module.loaded needed
+          exports: {}
+        });
+        // Execute the module function
+      "#,
+    ));
+
+    if runtime_requirements.contains(runtime_globals::INTERCEPT_MODULE_EXECUTION) {
+      sources.add(RawSource::from(
+        r#"var execOptions = { id: moduleId, module: module, factory: __webpack_modules__[moduleId], require: __webpack_require__ };
+        __webpack_require__.i.forEach(function(handler) { handler(execOptions); });
+        module = execOptions.module;
+        execOptions.factory.call(module.exports, module, module.exports, execOptions.require);"#,
+      ));
+    } else {
+      sources.add(RawSource::from(
+        "__webpack_modules__[moduleId](module, module.exports, __webpack_require__);\n",
+      ));
+    }
+
+    sources.add(RawSource::from(
+      "// Return the exports of the module\n return module.exports;\n",
+    ));
+
+    sources.boxed()
+  }
+
+  pub fn render_bootstrap(&self, args: &rspack_core::RenderManifestArgs) -> BoxSource {
+    let runtime_requirements = args
+      .compilation
+      .chunk_graph
+      .get_chunk_runtime_requirements(&args.chunk_ukey);
+
+    let module_factories = runtime_requirements.contains(runtime_globals::MODULE_FACTORIES);
+
+    let mut sources = ConcatSource::default();
+
+    sources.add(RawSource::from(
+      "// The module cache\n var __webpack_module_cache__ = {};\n",
+    ));
+    sources.add(RawSource::from(
+      "function __webpack_require__(moduleId) {\n",
+    ));
+    sources.add(self.render_require(args));
+    sources.add(RawSource::from("\n}\n"));
+
+    if module_factories || runtime_requirements.contains(runtime_globals::MODULE_FACTORIES_ADD_ONLY)
+    {
+      sources.add(RawSource::from(
+        "// expose the modules object (__webpack_modules__)\n __webpack_require__.m = __webpack_modules__;\n",
+      ));
+    }
+
+    if runtime_requirements.contains(runtime_globals::MODULE_CACHE) {
+      sources.add(RawSource::from(
+        "// expose the module cache\n __webpack_require__.c = __webpack_module_cache__;\n",
+      ));
+    }
+
+    if runtime_requirements.contains(runtime_globals::INTERCEPT_MODULE_EXECUTION) {
+      sources.add(RawSource::from(
+        "// expose the module execution interceptor\n __webpack_require__.i = [];\n",
+      ));
+    }
+
+    sources.boxed()
+  }
+
   pub fn render_main(&self, args: &rspack_core::RenderManifestArgs) -> Result<BoxSource> {
     let compilation = args.compilation;
     let chunk = args.chunk();
-
-    let runtime_modules = compilation
-      .chunk_graph
-      .get_chunk_runtime_modules_in_order(&args.chunk_ukey)
-      .iter()
-      .filter_map(|identifier| compilation.runtime_modules.get(identifier))
-      .fold(ConcatSource::default(), |mut output, cur| {
-        output.add(cur.generate(compilation));
-        output
-      });
-    let runtime_source = runtime_modules.source().to_string();
-    let modules_code_start = runtime_source
-      .find(RUNTIME_PLACEHOLDER_INSTALLED_MODULES)
-      .ok_or_else(|| anyhow!("runtime placeholder installed modules not found"))?;
-    let modules_code_end = modules_code_start + RUNTIME_PLACEHOLDER_INSTALLED_MODULES.len();
-    let mut sources = ConcatSource::new([
-      // runtime_source is all runtime code, and it's RawSource, so use RawSource at here is fine.
-      RawSource::from(&runtime_source[0..modules_code_start]).boxed(),
-      self.render_chunk_modules(args)?,
-      RawSource::from(&runtime_source[modules_code_end..runtime_source.len()]).boxed(),
-    ]);
+    let mut sources = ConcatSource::default();
+    sources.add(RawSource::from("var __webpack_modules__ = "));
+    sources.add(self.render_chunk_modules(args)?);
+    sources.add(RawSource::from("\n"));
+    sources.add(self.render_bootstrap(args));
+    sources.add(self.render_runtime_modules(args)?);
     if chunk.has_entry_module(&args.compilation.chunk_graph) {
       // TODO: how do we handle multiple entry modules?
       sources.add(self.generate_chunk_entry_code(compilation, &args.chunk_ukey));
@@ -218,27 +286,38 @@ impl JsPlugin {
     &self,
     args: &rspack_core::RenderManifestArgs,
   ) -> Result<BoxSource> {
-    let runtime_modules = args
-      .compilation
-      .chunk_graph
-      .get_chunk_runtime_modules_in_order(&args.chunk_ukey);
-    let mut sources = ConcatSource::default();
-
-    if runtime_modules.is_empty() {
-      return Ok(sources.boxed());
+    let runtime_modules_sources = self.render_runtime_modules(args)?;
+    if runtime_modules_sources.source().is_empty() {
+      return Ok(runtime_modules_sources);
     }
 
+    let mut sources = ConcatSource::default();
     sources.add(RawSource::from(format!(
       "function({}) {{\n",
       runtime_globals::REQUIRE
     )));
-    runtime_modules
+    sources.add(runtime_modules_sources);
+    sources.add(RawSource::from("\n}\n"));
+    Ok(sources.boxed())
+  }
+
+  pub fn render_runtime_modules(
+    &self,
+    args: &rspack_core::RenderManifestArgs,
+  ) -> Result<BoxSource> {
+    let mut sources = ConcatSource::default();
+    args
+      .compilation
+      .chunk_graph
+      .get_chunk_runtime_modules_in_order(&args.chunk_ukey)
       .iter()
       .filter_map(|identifier| args.compilation.runtime_modules.get(identifier))
       .for_each(|module| {
+        sources.add(RawSource::from(format!("// {}\n", module.identifier())));
+        sources.add(RawSource::from("(function() {\n"));
         sources.add(module.generate(args.compilation));
+        sources.add(RawSource::from("\n})();\n"));
       });
-    sources.add(RawSource::from("\n}\n"));
     Ok(sources.boxed())
   }
 

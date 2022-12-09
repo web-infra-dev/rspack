@@ -36,7 +36,6 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
       .contains(runtime_globals::EXTERNAL_INSTALL_CHUNK);
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
     let mut source = ConcatSource::default();
-    source.add(RawSource::from("(function() {\n"));
 
     if with_hmr {
       source.add(RawSource::from(format!(
@@ -102,8 +101,6 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
         include_str!("runtime/require_chunk_loading_with_external_install_chunk.js").to_string(),
       ));
     }
-
-    source.add(RawSource::from("\n})();\n"));
 
     source.boxed()
   }

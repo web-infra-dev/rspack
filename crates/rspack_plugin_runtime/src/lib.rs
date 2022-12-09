@@ -1,8 +1,8 @@
 use crate::runtime_module::{EnsureChunkRuntimeModule, OnChunkLoadedRuntimeModule};
 use async_trait::async_trait;
 use rspack_core::{
-  runtime_globals, AdditionalChunkRuntimeRequirementsArgs, NormalRuntimeModule, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeModuleExt, TargetPlatform,
+  runtime_globals, AdditionalChunkRuntimeRequirementsArgs, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeModuleExt,
 };
 use rspack_error::Result;
 
@@ -59,25 +59,6 @@ impl Plugin for RuntimePlugin {
         runtime_requirements.insert(runtime_globals::ENSURE_CHUNK.to_string());
       }
     }
-
-    compilation.add_runtime_module(
-      chunk,
-      NormalRuntimeModule::new(
-        ("_rspack_require.js").to_string(),
-        include_str!("runtime/require.js").to_string().replace(
-          "GLOBAL",
-          if matches!(
-            compilation.options.target.platform,
-            TargetPlatform::Web | TargetPlatform::None
-          ) {
-            "self"
-          } else {
-            "this"
-          },
-        ),
-      )
-      .boxed(),
-    );
 
     // workaround for jsonp_chunk_loading can scan `ENSURE_CHUNK` to add additional runtime_requirements
     if runtime_requirements.contains(runtime_globals::ENSURE_CHUNK) {
