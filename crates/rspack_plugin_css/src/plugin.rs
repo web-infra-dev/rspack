@@ -190,11 +190,7 @@ impl CssPlugin {
           .into_iter()
           .filter_map(|module_id| {
             let order = chunk_group.module_post_order_index(&module_id);
-            if let Some(order) = order {
-              Some((module_id, order))
-            } else {
-              None
-            }
+            order.map(|order| (module_id, order))
           })
           .sorted_by(|a, b| {
             if b.1 > a.1 {
