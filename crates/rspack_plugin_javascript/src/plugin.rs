@@ -61,7 +61,13 @@ impl JsPlugin {
     // let namespace = &compilation.options.output.unique_name;
     let sources = entry_modules_id
       .iter()
-      .map(|id| RawSource::from(format!(r#"{}("{}");"#, runtime_globals::REQUIRE, id)))
+      .map(|id| {
+        if let Some(library) = &compilation.options.output.library && !library.is_empty() {
+          RawSource::from(format!(r#"{} = {}("{}");"#, library, runtime_globals::REQUIRE, id))
+        } else {
+          RawSource::from(format!(r#"{}("{}");"#, runtime_globals::REQUIRE, id))
+        }
+      })
       .collect::<Vec<_>>();
     let concat = ConcatSource::new(sources);
     concat.boxed()
@@ -94,7 +100,7 @@ impl JsPlugin {
       // TODO: how do we handle multiple entry modules?
       sources.add(self.generate_chunk_entry_code(compilation, &args.chunk_ukey));
     }
-    Ok(self.render_iife(sources.boxed()))
+    Ok(self.render_iife(sources.boxed(), args))
   }
 
   pub fn render_chunk(&self, args: &rspack_core::RenderManifestArgs) -> Result<BoxSource> {
@@ -192,8 +198,15 @@ impl JsPlugin {
     Ok(sources.boxed())
   }
 
-  pub fn render_iife(&self, content: BoxSource) -> BoxSource {
+  pub fn render_iife(
+    &self,
+    content: BoxSource,
+    args: &rspack_core::RenderManifestArgs,
+  ) -> BoxSource {
     let mut sources = ConcatSource::default();
+    if let Some(library) = &args.compilation.options.output.library && !library.is_empty() {
+      sources.add(RawSource::from(format!("var {};\n", library)));
+    }
     sources.add(RawSource::from("(function() {\n"));
     sources.add(content);
     sources.add(RawSource::from("\n})();\n"));
