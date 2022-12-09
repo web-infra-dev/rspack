@@ -51,6 +51,7 @@ pub struct CompilerOptionsBuilder {
   pub stats: Option<StatsOptions>,
   pub snapshot: Option<SnapshotOptions>,
   pub cache: Option<CacheOptions>,
+  pub module_ids: Option<ModuleIds>,
 }
 
 impl CompilerOptionsBuilder {
@@ -75,6 +76,7 @@ impl CompilerOptionsBuilder {
       snapshot: self.snapshot.unwrap(),
       cache: self.cache.unwrap(),
       __emit_error: false,
+      module_ids: self.module_ids.unwrap(),
     }
   }
 

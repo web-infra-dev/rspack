@@ -3,7 +3,7 @@ use std::{collections::HashMap, fmt::Debug};
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
 
-use rspack_core::{CompilerOptions, CompilerOptionsBuilder, EntryItem};
+use rspack_core::{CompilerOptions, CompilerOptionsBuilder, EntryItem, ModuleIds};
 
 use serde::Deserialize;
 
@@ -135,7 +135,21 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
     })?
     .then(|mut options| {
       let mode = RawOption::raw_to_compiler_option(raw_options.mode, &options)?;
+      let module_ids = raw_options
+        .optimization
+        .as_ref()
+        .and_then(|o| o.module_ids.as_ref())
+        .map(|value| match value.as_str() {
+          "named" => ModuleIds::Named,
+          "deterministic" => ModuleIds::Deterministic,
+          _ => unimplemented!(),
+        })
+        .unwrap_or_else(|| match mode {
+          rspack_core::Mode::Development => ModuleIds::Named,
+          rspack_core::Mode::Production => ModuleIds::Deterministic,
+        });
       options.mode = Some(mode);
+      options.module_ids = Some(module_ids);
       Ok(options)
     })?
     .then(|mut options| {

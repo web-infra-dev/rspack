@@ -227,4 +227,10 @@ impl ModuleGraph {
   pub fn connection_by_connection_id(&self, connection_id: u32) -> Option<&ModuleGraphConnection> {
     self.connection_id_to_connection.get(&connection_id)
   }
+
+  pub fn get_pre_order_index(&self, module_identifier: &ModuleIdentifier) -> Option<usize> {
+    self
+      .module_graph_module_by_identifier(module_identifier)
+      .and_then(|mgm| mgm.pre_order_index)
+  }
 }

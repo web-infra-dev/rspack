@@ -141,9 +141,9 @@ impl<'a> RspackModuleFormatTransformer<'a> {
               .module_graph
               .module_by_dependency(&import_dep)
           }
-
-          str.value = JsWord::from(js_module?.id.as_str());
-          str.raw = Some(Atom::from(format!("\"{}\"", js_module?.id.as_str())));
+          let module_id = js_module?.id(&self.compilation.chunk_graph);
+          str.value = JsWord::from(module_id);
+          str.raw = Some(Atom::from(format!("\"{}\"", module_id)));
         };
       }
     }
@@ -166,7 +166,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
         };
 
         let js_module = self.compilation.module_graph.module_by_dependency(&dep)?;
-        let js_module_id = js_module.id.as_str();
+        let js_module_id = js_module.id(&self.compilation.chunk_graph);
         let args = vec![Expr::Call(CallExpr {
           span: DUMMY_SP,
           callee: MemberExpr {
@@ -239,8 +239,9 @@ impl<'a> RspackModuleFormatTransformer<'a> {
         },
       };
       if let Some(module) = self.compilation.module_graph.module_by_dependency(&dep) {
-        str.value = JsWord::from(module.id.as_str());
-        str.raw = Some(Atom::from(format!("\"{}\"", module.id.as_str())));
+        let module_id = module.id(&self.compilation.chunk_graph);
+        str.value = JsWord::from(module_id);
+        str.raw = Some(Atom::from(format!("\"{}\"", module_id)));
       }
     }
   }

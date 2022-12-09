@@ -288,4 +288,12 @@ impl PluginDriver {
     }
     Ok(())
   }
+
+  #[instrument(name = "plugin:module_ids", skip_all)]
+  pub fn module_ids(&mut self, compilation: &mut Compilation) -> Result<()> {
+    for plugin in &mut self.plugins {
+      plugin.module_ids(compilation)?;
+    }
+    Ok(())
+  }
 }

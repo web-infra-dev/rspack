@@ -4,7 +4,8 @@ use std::hash::Hash;
 use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
   AstOrSource, BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, ExternalType,
-  Identifiable, Identifier, Module, ModuleType, SourceType, Target, TargetPlatform,
+  Identifiable, Identifier, LibIdentOptions, Module, ModuleType, SourceType, Target,
+  TargetPlatform,
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 
@@ -17,16 +18,24 @@ pub struct ExternalModule {
   target: Target,
 
   cached_source: Option<Box<dyn Source>>,
+  /// Request intended by user (without loaders from config)
+  user_request: String,
 }
 
 impl ExternalModule {
-  pub fn new(specifier: String, external_type: ExternalType, target: Target) -> Self {
+  pub fn new(
+    specifier: String,
+    external_type: ExternalType,
+    target: Target,
+    user_request: String,
+  ) -> Self {
     Self {
       specifier,
       external_type,
       target,
 
       cached_source: None,
+      user_request,
     }
   }
 }
@@ -106,6 +115,10 @@ impl Module for ExternalModule {
     cgr.add(SourceType::JavaScript, source);
 
     Ok(cgr)
+  }
+
+  fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
+    Some(Cow::Borrowed(self.user_request.as_str()))
   }
 }
 

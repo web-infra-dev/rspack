@@ -92,6 +92,11 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   fn update_hash(&self, state: &mut dyn std::hash::Hasher) {
     self.dyn_hash(state);
   }
+
+  fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<str>> {
+    // Align with https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L845
+    None
+  }
 }
 
 pub trait ModuleExt {
@@ -347,4 +352,8 @@ mod test {
     assert_ne!(r1, r2);
     assert_ne!(&r1.boxed(), &r2.boxed());
   }
+}
+
+pub struct LibIdentOptions<'me> {
+  pub context: &'me str,
 }

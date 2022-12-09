@@ -22,4 +22,11 @@ pub struct CompilerOptions {
   pub snapshot: SnapshotOptions,
   pub cache: CacheOptions,
   pub __emit_error: bool,
+  pub module_ids: ModuleIds,
+}
+
+#[derive(Debug)]
+pub enum ModuleIds {
+  Named,
+  Deterministic,
 }

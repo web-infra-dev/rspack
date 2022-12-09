@@ -75,7 +75,7 @@ pub fn css_modules_exports_to_string(
             .module_graph
             .module_by_dependency(&from)
             .expect("should have css from module");
-          let from = serde_json::to_string(&from.id).unwrap();
+          let from = serde_json::to_string(from.id(&compilation.chunk_graph)).unwrap();
           format!("{REQUIRE}({from})[{name}]")
         }
       })
