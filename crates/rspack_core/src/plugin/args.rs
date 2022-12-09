@@ -4,7 +4,7 @@ use crate::{
   SharedPluginDriver, Stats,
 };
 use hashbrown::HashSet;
-use rspack_error::{Error, Result};
+use rspack_error::{internal_error, Error, InternalError, Result};
 use rspack_loader_runner::Content;
 use std::fmt::Debug;
 use swc_core::ecma::ast::Program as SwcProgram;
@@ -88,14 +88,14 @@ impl ModuleAst {
   pub fn try_into_javascript(self) -> Result<JsAst> {
     match self {
       ModuleAst::JavaScript(program) => Ok(program),
-      ModuleAst::Css(_) => Err(Error::InternalError("Failed".to_owned())),
+      ModuleAst::Css(_) => Err(Error::InternalError(internal_error!("Failed".to_owned()))),
     }
   }
 
   pub fn try_into_css(self) -> Result<Stylesheet> {
     match self {
       ModuleAst::Css(stylesheet) => Ok(stylesheet),
-      ModuleAst::JavaScript(_) => Err(Error::InternalError("Failed".to_owned())),
+      ModuleAst::JavaScript(_) => Err(Error::InternalError(internal_error!("Failed".to_owned()))),
     }
   }
 

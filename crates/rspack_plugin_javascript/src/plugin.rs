@@ -14,7 +14,9 @@ use rspack_core::{
   PluginProcessAssetsOutput, PluginRenderManifestHookOutput, ProcessAssetsArgs,
   RenderManifestEntry, SourceType, TargetPlatform,
 };
-use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{
+  internal_error, Error, InternalError, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+};
 use swc_core::base::try_with_handler;
 use swc_core::base::{config::JsMinifyOptions, BoolOrDataConfig};
 use swc_core::common::util::take::Take;
@@ -437,10 +439,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     } = parse_context;
 
     if !module_type.is_js_like() {
-      return Err(Error::InternalError(format!(
+      return Err(Error::InternalError(internal_error!(format!(
         "`module_type` {:?} not supported for `JsParser`",
         module_type
-      )));
+      ))));
     }
 
     let syntax = syntax_by_module_type(
@@ -503,7 +505,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           ast_or_source: SourceMapSource::new(SourceMapSourceOptions {
             value: output.code,
             source_map: SourceMap::from_json(&map)
-              .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
+              .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?,
             name: module.try_as_normal_module()?.request().to_string(),
             original_source: {
               Some(
@@ -533,10 +535,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         })
       }
     } else {
-      Err(Error::InternalError(format!(
+      Err(Error::InternalError(internal_error!(format!(
         "Unsupported source type {:?} for plugin JavaScript",
         generate_context.requested_source_type,
-      )))
+      ))))
     }
   }
 }
@@ -678,7 +680,7 @@ impl Plugin for JsPlugin {
             value: output.code,
             name: format!("<{filename}>"), // match with swc FileName::Custom...
             source_map: SourceMap::from_json(map)
-              .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
+              .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?,
             original_source: Some(input),
             inner_source_map: input_source_map,
             remove_original_source: true,

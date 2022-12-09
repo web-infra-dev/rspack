@@ -10,7 +10,8 @@ use once_cell::sync::Lazy;
 use rspack_core::rspack_sources::{self, SourceExt};
 use rspack_core::{ErrorSpan, PATH_START_BYTE_POS_MAP};
 use rspack_error::{
-  Diagnostic, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+  internal_error, Diagnostic, DiagnosticKind, InternalError, IntoTWithDiagnosticArray, Result,
+  TWithDiagnosticArray,
 };
 use swc_core::common::{
   input::SourceFileInput, source_map::SourceMapGenConfig, sync::Lrc, FileName, FilePathMapping,
@@ -67,7 +68,9 @@ impl SwcCssCompiler {
       .flat_map(|error| css_parse_error_to_diagnostic(error, path))
       .collect();
     stylesheet
-      .map_err(|_| rspack_error::Error::InternalError("Css parsing failed".to_string()))
+      .map_err(|_| {
+        rspack_error::Error::InternalError(internal_error!("Css parsing failed".to_string()))
+      })
       .map(|stylesheet| stylesheet.with_diagnostic(diagnostics))
   }
 
@@ -96,14 +99,14 @@ impl SwcCssCompiler {
     let mut gen = CodeGenerator::new(wr, CodegenConfig { minify });
     gen
       .emit(ast)
-      .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?;
+      .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?;
 
     if let Some(src_map_buf) = &mut src_map_buf {
       let map = CM.build_source_map_with_config(src_map_buf, None, gen_source_map);
       let mut raw_map = Vec::new();
       map
         .to_writer(&mut raw_map)
-        .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?;
+        .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?;
       Ok((output, Some(raw_map)))
     } else {
       Ok((output, None))
@@ -127,7 +130,7 @@ impl SwcCssCompiler {
         value: code,
         name: filename,
         source_map: rspack_sources::SourceMap::from_slice(&source_map)
-          .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
+          .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?,
         original_source: Some(input_source),
         inner_source_map: input_source_map,
         remove_original_source: true,

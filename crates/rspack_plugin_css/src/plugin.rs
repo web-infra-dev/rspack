@@ -29,7 +29,10 @@ use rspack_core::{
   ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, PathData, Plugin,
   RenderManifestEntry, SourceType,
 };
-use rspack_error::{Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{
+  internal_error, Diagnostic, Error, InternalError, IntoTWithDiagnosticArray, Result,
+  TWithDiagnosticArray,
+};
 use tracing::instrument;
 
 use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
@@ -464,7 +467,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             value: code,
             name: module.try_as_normal_module()?.request().to_string(),
             source_map: SourceMap::from_slice(&source_map)
-              .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?,
+              .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?,
             // Safety: original source exists in code generation
             original_source: Some(
               module
@@ -501,10 +504,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
         })
         .boxed(),
       ),
-      _ => Err(Error::InternalError(format!(
+      _ => Err(Error::InternalError(internal_error!(format!(
         "Unsupported source type: {:?}",
         generate_context.requested_source_type
-      ))),
+      )))),
     }?;
 
     Ok(GenerationResult {

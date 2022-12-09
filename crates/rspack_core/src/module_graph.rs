@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 use hashbrown::{HashMap, HashSet};
 
-use rspack_error::{Error, Result};
+use rspack_error::{internal_error, Error, InternalError, Result};
 
 use crate::{BoxModule, Dependency, ModuleGraphModule, ModuleIdentifier};
 
@@ -161,10 +161,10 @@ impl ModuleGraph {
       let mgm = self
         .module_graph_module_by_identifier_mut(&module_identifier)
         .ok_or_else(|| {
-          Error::InternalError(format!(
+          Error::InternalError(internal_error!(format!(
             "Failed to set resolved module: Module linked to module identifier {} cannot be found",
             module_identifier
-          ))
+          )))
         })?;
 
       mgm.add_incoming_connection(connection_id);

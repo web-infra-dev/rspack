@@ -1,6 +1,6 @@
 use hashbrown::{HashMap, HashSet};
 
-use rspack_error::{Error, Result};
+use rspack_error::{internal_error, Error, InternalError, Result};
 
 use crate::{AstOrSource, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, SourceType};
 
@@ -58,26 +58,28 @@ impl CodeGenerationResults {
             self.module_generation_result_map.get(m)
           })
           .ok_or_else(|| {
-            Error::InternalError(format!(
+            Error::InternalError(internal_error!(format!(
               "Failed to code generation result for {} with runtime {:?} \n {:?}",
               module_identifier, runtime, entry
-            ))
+            )))
           })
       } else {
         if entry.size() > 1 {
           let results = entry.get_values();
           if results.len() != 1 {
-            return Err(Error::InternalError(format!(
+            return Err(Error::InternalError(internal_error!(format!(
               "No unique code generation entry for unspecified runtime for {} ",
               module_identifier,
-            )));
+            ))));
           }
 
           return results
             .first()
             .copied()
             .and_then(|m| self.module_generation_result_map.get(m))
-            .ok_or_else(|| Error::InternalError("Expected value exists".to_string()));
+            .ok_or_else(|| {
+              Error::InternalError(internal_error!("Expected value exists".to_string()))
+            });
         }
 
         entry
@@ -85,14 +87,14 @@ impl CodeGenerationResults {
           .first()
           .copied()
           .and_then(|m| self.module_generation_result_map.get(m))
-          .ok_or_else(|| Error::InternalError("Expected value exists".to_string()))
+          .ok_or_else(|| Error::InternalError(internal_error!("Expected value exists".to_string())))
       }
     } else {
-      Err(Error::InternalError(format!(
+      Err(Error::InternalError(internal_error!(format!(
         "No code generation entry for {} (existing entries: {:?})",
         module_identifier,
         self.map.keys().collect::<Vec<_>>()
-      )))
+      ))))
     }
   }
 

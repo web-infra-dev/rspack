@@ -1,5 +1,5 @@
 use crate::{ResolveArgs, ResolveResult, SharedPluginDriver};
-use rspack_error::{Error, Result, TraceableError};
+use rspack_error::{internal_error, Error, InternalError, Result, TraceableError};
 use std::path::Path;
 use tracing::instrument;
 
@@ -52,11 +52,11 @@ pub async fn resolve(
             message,
           ))
         } else {
-          Error::InternalError(format!(
+          Error::InternalError(internal_error!(format!(
             "Failed to resolve {} in {}",
             args.specifier,
             plugin_driver.options.context.display()
-          ))
+          )))
         }
       }
     })

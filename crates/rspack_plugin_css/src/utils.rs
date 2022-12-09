@@ -8,7 +8,7 @@ use indexmap::IndexMap;
 use rspack_core::{
   runtime_globals::REQUIRE, Compilation, Dependency, ModuleDependency, ResolveKind,
 };
-use rspack_error::Result;
+use rspack_error::{internal_error, InternalError, Result};
 use swc_core::ecma::atoms::JsWord;
 use swc_css::modules::CssClassName;
 use xxhash_rust::xxh3::Xxh3;
@@ -88,7 +88,7 @@ pub fn css_modules_exports_to_string(
         serde_json::to_string(&key).unwrap(),
         content,
       )
-      .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?;
+      .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?;
     }
     if locals_convention.camel_case() {
       writeln!(
@@ -97,7 +97,7 @@ pub fn css_modules_exports_to_string(
         serde_json::to_string(&key.to_lower_camel_case()).unwrap(),
         content,
       )
-      .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?;
+      .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?;
     }
     if locals_convention.dashes() {
       writeln!(
@@ -106,7 +106,7 @@ pub fn css_modules_exports_to_string(
         serde_json::to_string(&key.to_kebab_case()).unwrap(),
         content,
       )
-      .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?;
+      .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?;
     }
   }
   code += "};\n";

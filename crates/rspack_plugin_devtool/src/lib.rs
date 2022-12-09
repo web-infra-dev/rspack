@@ -7,7 +7,7 @@ use rspack_core::{
   rspack_sources::{ConcatSource, MapOptions, RawSource, SourceExt},
   AssetInfo, CompilationAsset, Plugin, PluginContext, PluginProcessAssetsOutput, ProcessAssetsArgs,
 };
-use rspack_error::Result;
+use rspack_error::{internal_error, InternalError, Result};
 use tracing::instrument;
 
 static IS_CSS_FILE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\.css($|\?)").unwrap());
@@ -99,7 +99,7 @@ impl Plugin for DevtoolPlugin {
             let mut map_buffer = Vec::new();
             map
               .to_writer(&mut map_buffer)
-              .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?;
+              .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?;
             Ok((filename.to_owned(), map_buffer))
           })
       })

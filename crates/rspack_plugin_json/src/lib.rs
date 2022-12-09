@@ -6,7 +6,8 @@ use rspack_core::{
   GenerateContext, Module, ParserAndGenerator, Plugin, SourceType,
 };
 use rspack_error::{
-  DiagnosticKind, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, TraceableError,
+  internal_error, DiagnosticKind, Error, InternalError, IntoTWithDiagnosticArray, Result,
+  TWithDiagnosticArray, TraceableError,
 };
 
 mod utils;
@@ -56,7 +57,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           )
         }
         ExceededDepthLimit | WrongType(_) | FailedUtf8Parsing => {
-          Error::InternalError(format!("{}", e))
+          Error::InternalError(internal_error!(format!("{}", e)))
         }
         UnexpectedEndOfJson => {
           // End offset of json file
@@ -106,10 +107,10 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         .boxed()
         .into(),
       }),
-      _ => Err(Error::InternalError(format!(
+      _ => Err(Error::InternalError(internal_error!(format!(
         "Unsupported source type {:?} for plugin Json",
         generate_context.requested_source_type,
-      ))),
+      )))),
     }
   }
 }
