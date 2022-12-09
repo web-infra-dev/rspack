@@ -1,6 +1,7 @@
 use crate::ast::javascript::Ast as JsAst;
 use crate::{
-  Chunk, ChunkUkey, Compilation, Dependency, ErrorSpan, ResolveKind, SharedPluginDriver, Stats,
+  Chunk, ChunkUkey, Compilation, Dependency, ErrorSpan, ModuleIdentifier, ResolveKind,
+  SharedPluginDriver, Stats,
 };
 use hashbrown::HashSet;
 use rspack_error::{Error, Result};
@@ -42,6 +43,14 @@ impl<'me> RenderManifestArgs<'me> {
 pub struct FactorizeArgs<'me> {
   pub dependency: &'me Dependency,
   pub plugin_driver: &'me SharedPluginDriver,
+}
+
+#[derive(Debug, Clone)]
+pub struct ModuleArgs {
+  pub indentfiler: ModuleIdentifier,
+  pub kind: ResolveKind,
+  // lazy compilation visit module
+  pub lazy_visit_modules: std::collections::HashSet<String>,
 }
 
 #[derive(Debug, Clone)]

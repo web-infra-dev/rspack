@@ -81,6 +81,7 @@ impl JsPlugin {
       .chunk_graph
       .get_chunk_runtime_modules_in_order(&args.chunk_ukey)
       .iter()
+      .filter_map(|identifier| compilation.runtime_modules.get(identifier))
       .fold(ConcatSource::default(), |mut output, cur| {
         output.add(cur.generate(compilation));
         output
@@ -211,6 +212,34 @@ impl JsPlugin {
     sources.add(content);
     sources.add(RawSource::from("\n})();\n"));
     sources.boxed()
+  }
+
+  pub fn render_chunk_runtime_modules(
+    &self,
+    args: &rspack_core::RenderManifestArgs,
+  ) -> Result<BoxSource> {
+    let runtime_modules = args
+      .compilation
+      .chunk_graph
+      .get_chunk_runtime_modules_in_order(&args.chunk_ukey);
+    let mut sources = ConcatSource::default();
+
+    if runtime_modules.is_empty() {
+      return Ok(sources.boxed());
+    }
+
+    sources.add(RawSource::from(format!(
+      "function({}) {{\n",
+      runtime_globals::REQUIRE
+    )));
+    runtime_modules
+      .iter()
+      .filter_map(|identifier| args.compilation.runtime_modules.get(identifier))
+      .for_each(|module| {
+        sources.add(module.generate(args.compilation));
+      });
+    sources.add(RawSource::from("\n}\n"));
+    Ok(sources.boxed())
   }
 
   pub fn render_chunk_modules(&self, args: &rspack_core::RenderManifestArgs) -> Result<BoxSource> {
@@ -477,6 +506,8 @@ impl Plugin for JsPlugin {
         filename
       )));
       source.add(self.render_chunk_modules(&args)?);
+      source.add(RawSource::Source(",".to_string()));
+      source.add(self.render_chunk_runtime_modules(&args)?);
       source.add(RawSource::Source(");".to_string()));
       source.boxed()
     } else if chunk.has_runtime(&compilation.chunk_group_by_ukey) {

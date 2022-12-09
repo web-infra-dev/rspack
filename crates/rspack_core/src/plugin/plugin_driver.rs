@@ -10,11 +10,12 @@ use tracing::instrument;
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxedParserAndGeneratorBuilder,
   Compilation, CompilationArgs, CompilerOptions, Content, DoneArgs, FactorizeArgs, Module,
-  ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
+  ModuleArgs, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
   PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput, PluginMakeHookOutput,
-  PluginProcessAssetsOutput, PluginRenderManifestHookOutput, PluginThisCompilationHookOutput,
-  ProcessAssetsArgs, RenderManifestArgs, Resolver, Stats, ThisCompilationArgs,
+  PluginModuleHookOutput, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
+  PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderManifestArgs, Resolver, Stats,
+  ThisCompilationArgs,
 };
 use rspack_error::{Diagnostic, Result};
 
@@ -194,6 +195,17 @@ impl PluginDriver {
         .factorize(PluginContext::new(), args.clone(), job_ctx)
         .await?
       {
+        return Ok(Some(module));
+      }
+    }
+    Ok(None)
+  }
+
+  #[instrument(name = "plugin:module", skip_all)]
+  pub async fn module(&self, args: ModuleArgs) -> PluginModuleHookOutput {
+    for plugin in &self.plugins {
+      tracing::trace!("running render runtime:{}", plugin.name());
+      if let Some(module) = plugin.module(PluginContext::new(), &args).await? {
         return Ok(Some(module));
       }
     }

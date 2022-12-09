@@ -42,6 +42,8 @@ import {
 	ResolvedOptimization,
 	resolveOptimizationOptions
 } from "./optimization";
+import { RawExperiments } from "@rspack/binding";
+import { resolveExperiments } from "./experiments";
 
 export type Configuration = RspackOptions;
 export interface RspackOptions {
@@ -64,6 +66,7 @@ export interface RspackOptions {
 	snapshot?: Snapshot;
 	cache?: Cache;
 	optimization?: Optimization;
+	experiments?: RawExperiments;
 }
 export interface RspackOptionsNormalized {
 	name?: string;
@@ -85,6 +88,7 @@ export interface RspackOptionsNormalized {
 	snapshot: ResolvedSnapshot;
 	cache: ResolvedCache;
 	optimization?: ResolvedOptimization;
+	experiments: RawExperiments;
 }
 
 export function getNormalizedRspackOptions(
@@ -117,6 +121,7 @@ export function getNormalizedRspackOptions(
 		config.optimization ?? {},
 		mode
 	);
+	const experiments = resolveExperiments(config.experiments);
 
 	return {
 		...config,
@@ -137,7 +142,8 @@ export function getNormalizedRspackOptions(
 		stats,
 		snapshot,
 		cache,
-		optimization
+		optimization,
+		experiments
 	};
 }
 

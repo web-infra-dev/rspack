@@ -11,7 +11,7 @@ import type {
 import type { DevMiddleware } from "@rspack/dev-middleware";
 import type { Server } from "http";
 import type { ResolvedDev } from "./config";
-
+import fs from "fs";
 import chokidar from "chokidar";
 import http from "http";
 import { createLogger } from "./logger";
@@ -264,6 +264,26 @@ export class RspackDevServer {
 			name: "rdm",
 			middleware: this.middleware
 		});
+
+		if (this.compiler.options.experiments.lazyCompilation) {
+			middlewares.push({
+				middleware: (req, res, next) => {
+					if (req.url.indexOf("/lazy-compilation-web/") > -1) {
+						const path = req.url.replace("/lazy-compilation-web/", "");
+						if (fs.existsSync(path)) {
+							this.compiler.rebuild([path], (error, stats) => {
+								if (error) {
+									throw error;
+								}
+								res.write("");
+								res.end();
+								console.log("lazy compiler success");
+							});
+						}
+					}
+				}
+			});
+		}
 
 		// Todo Add options
 		const connectHistoryApiFallback = require("connect-history-api-fallback");

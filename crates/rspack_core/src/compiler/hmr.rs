@@ -1,9 +1,6 @@
-use std::{
-  collections::{HashMap, HashSet},
-  hash::Hash,
-  ops::Sub,
-};
+use std::{collections::HashSet, hash::Hash, ops::Sub};
 
+use hashbrown::HashMap;
 use rspack_error::Result;
 use rspack_sources::{RawSource, SourceExt};
 
@@ -44,11 +41,16 @@ impl Compiler {
     removed_files: std::collections::HashSet<String>,
   ) -> Result<Stats> {
     let old = self.compilation.get_stats();
-    let collect_changed_modules = |compilation: &Compilation| -> HashMap<ModuleIdentifier, String> {
-      let modules = compilation.module_graph.module_graph_modules();
+    let collect_changed_modules = |compilation: &Compilation| -> (
+      HashMap<ModuleIdentifier, String>,
+      Vec<ModuleIdentifier>,
+      HashMap<String, String>,
+    ) {
       // TODO: use hash;
 
-      modules
+      let changed_modules = compilation
+        .module_graph
+        .module_graph_modules()
         .filter_map(|item| {
           use crate::SourceType::*;
 
@@ -56,47 +58,62 @@ impl Compiler {
             .module_graph
             .module_by_identifier(&item.module_identifier)
             .and_then(|module| {
-              module.as_normal_module().and_then(|normal_module| {
-                let resource_data = normal_module.resource_resolved_data();
-                let resource_path = &resource_data.resource_path;
-
-                if !changed_files.contains(resource_path) && !removed_files.contains(resource_path)
-                {
-                  None
-                } else if item.module_type.is_js_like() {
-                  let code = compilation
-                    .code_generation_results
-                    .module_generation_result_map
-                    .get(&item.module_identifier)
-                    .unwrap();
-                  let code = if let Some(code) = code.get(&JavaScript) {
-                    code.ast_or_source.as_source().unwrap().source().to_string()
-                  } else {
-                    println!("expect get JavaScirpt code");
-                    String::new()
-                  };
-                  Some((item.module_identifier, code))
-                } else if item.module_type.is_css_like() {
-                  // TODO: should use code_generation_results
-                  let code = module.code_generation(compilation).unwrap();
-                  let code = if let Some(code) = code.get(&Css) {
-                    // only used for compare between two build
-                    code.ast_or_source.as_source().unwrap().source().to_string()
-                  } else {
-                    println!("expect get CSS code");
-                    String::new()
-                  };
-                  Some((item.module_identifier, code))
+              let identifier = module.identifier().to_string();
+              if !changed_files.contains(&identifier) && !removed_files.contains(&identifier) {
+                None
+              } else if item.module_type.is_js_like() {
+                let code = compilation
+                  .code_generation_results
+                  .module_generation_result_map
+                  .get(&item.module_identifier)
+                  .unwrap();
+                let code = if let Some(code) = code.get(&JavaScript) {
+                  code.ast_or_source.as_source().unwrap().source().to_string()
                 } else {
-                  None
-                }
-              })
+                  println!("expect get JavaScirpt code");
+                  String::new()
+                };
+                Some((item.module_identifier, code))
+              } else if item.module_type.is_css_like() {
+                // TODO: should use code_generation_results
+                let code = module.code_generation(compilation).unwrap();
+                let code = if let Some(code) = code.get(&Css) {
+                  // only used for compare between two build
+                  code.ast_or_source.as_source().unwrap().source().to_string()
+                } else {
+                  println!("expect get CSS code");
+                  String::new()
+                };
+                Some((item.module_identifier, code))
+              } else {
+                None
+              }
             })
         })
-        .collect()
+        .collect();
+
+      let all_modules = compilation
+        .module_graph
+        .module_graph_modules()
+        .map(|item| item.module_identifier)
+        .collect();
+
+      let old_runtime_modules = compilation
+        .runtime_modules
+        .iter()
+        .map(|(identifier, module)| {
+          (
+            identifier.clone(),
+            module.generate(compilation).source().to_string(),
+          )
+        })
+        .collect();
+
+      (changed_modules, all_modules, old_runtime_modules)
     };
 
-    let old_modules = collect_changed_modules(old.compilation);
+    let (old_changed_modules, old_all_modules, old_runtime_modules) =
+      collect_changed_modules(old.compilation);
     // TODO: should use `records`
 
     let mut all_old_runtime: RuntimeSpec = Default::default();
@@ -142,6 +159,7 @@ impl Compiler {
         self.loader_runner_runner.clone(),
         self.cache.clone(),
       );
+      self.compilation.lazy_visit_modules = changed_files.clone();
 
       // Fake this compilation as *currently* rebuilding does not create a new compilation
       self
@@ -168,22 +186,46 @@ impl Compiler {
       return Ok(self.stats());
     }
 
-    let now_modules = collect_changed_modules(&mut self.compilation);
+    let (now_changed_modules, now_all_modules, now_runtime_modules) =
+      collect_changed_modules(&mut self.compilation);
 
-    let mut updated_modules: HashMap<ModuleIdentifier, String> = Default::default();
+    let mut updated_modules: HashSet<ModuleIdentifier> = Default::default();
+    let mut updated_runtime_modules: HashSet<String> = Default::default();
     let mut completely_removed_modules: HashSet<ModuleIdentifier> = Default::default();
 
-    for (old_uri, old_content) in &old_modules {
-      if let Some(now_content) = now_modules.get(old_uri) {
+    for (old_uri, old_content) in &old_changed_modules {
+      if let Some(now_content) = now_changed_modules.get(old_uri) {
         // updated
         if now_content != old_content {
-          updated_modules.insert(*old_uri, now_content.to_string());
+          updated_modules.insert(*old_uri);
         }
       } else {
         // deleted
         completely_removed_modules.insert(*old_uri);
       }
     }
+    for identifier in &now_all_modules {
+      if !old_all_modules.contains(identifier) {
+        // added
+        updated_modules.insert(*identifier);
+      }
+    }
+
+    for (identifier, old_runtime_module_content) in &old_runtime_modules {
+      if let Some(new_runtime_module_content) = now_runtime_modules.get(identifier) {
+        // updated
+        if new_runtime_module_content != old_runtime_module_content {
+          updated_runtime_modules.insert(identifier.clone());
+        }
+      }
+    }
+    for (identifier, _) in &now_runtime_modules {
+      if !old_runtime_modules.contains_key(identifier) {
+        // added
+        updated_runtime_modules.insert(identifier.clone());
+      }
+    }
+    println!("updated_runtime_modules{:?}", updated_runtime_modules);
 
     // ----
     let output_path = self
@@ -197,6 +239,7 @@ impl Compiler {
 
     for (chunk_id, _old_chunk_modules) in &old_chunks {
       let mut new_modules = vec![];
+      let mut new_runtime_modules = vec![];
       let mut chunk_id = chunk_id.to_string();
       let mut new_runtime = all_old_runtime.clone();
       let mut removed_from_runtime = all_old_runtime.clone();
@@ -227,7 +270,19 @@ impl Compiler {
           .get_chunk_graph_chunk(&current_chunk.ukey)
           .modules
           .iter()
-          .filter_map(|module| updated_modules.contains_key(module).then_some(*module))
+          .filter_map(|module| updated_modules.contains(module).then_some(*module))
+          .collect::<Vec<_>>();
+
+        new_runtime_modules = self
+          .compilation
+          .chunk_graph
+          .get_chunk_runtime_modules_in_order(&current_chunk.ukey)
+          .iter()
+          .filter_map(|module| {
+            updated_runtime_modules
+              .contains(module)
+              .then_some(module.to_string())
+          })
           .collect::<Vec<_>>();
 
         // subtractRuntime
@@ -242,7 +297,7 @@ impl Compiler {
         // for (const module of remainingModules) {}
       }
 
-      if !new_modules.is_empty() {
+      if !new_modules.is_empty() || !new_runtime_modules.is_empty() {
         let mut hot_update_chunk = Chunk::new(
           Some(chunk_id.to_string()),
           chunk_id.to_string(),
@@ -278,6 +333,13 @@ impl Compiler {
             .compilation
             .chunk_graph
             .connect_chunk_and_module(ukey, *module_identifier);
+        }
+
+        for runtime_module in new_runtime_modules {
+          self
+            .compilation
+            .chunk_graph
+            .connect_chunk_and_runtime_module(ukey, runtime_module);
         }
 
         let render_manifest = self

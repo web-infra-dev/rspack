@@ -6,6 +6,8 @@ use rspack_core::{
 };
 use rspack_error::Result;
 
+mod lazy_compilation;
+pub use lazy_compilation::LazyCompilationPlugin;
 mod basic_runtime_requirements;
 mod common_js_chunk_format;
 pub use basic_runtime_requirements::BasicRuntimeRequirementPlugin;

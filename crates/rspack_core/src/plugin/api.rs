@@ -8,9 +8,9 @@ use rspack_sources::BoxSource;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkUkey, Compilation, CompilationArgs,
-  DoneArgs, FactorizeArgs, Module, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs,
-  ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderManifestArgs, ThisCompilationArgs,
-  TransformAst, TransformResult,
+  DoneArgs, FactorizeArgs, Module, ModuleArgs, ModuleType, NormalModuleFactoryContext,
+  OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderManifestArgs,
+  ThisCompilationArgs, TransformAst, TransformResult,
 };
 
 // use anyhow::{Context, Result};
@@ -24,6 +24,7 @@ pub type PluginLoadHookOutput = Result<Option<Content>>;
 pub type PluginTransformOutput = Result<TransformResult>;
 // FIXME: factorize should only return `BoxModule`, the first string currently is used to generate `id`(moduleIds)
 pub type PluginFactorizeHookOutput = Result<Option<(String, BoxModule)>>;
+pub type PluginModuleHookOutput = Result<Option<BoxModule>>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
 pub type PluginParseModuleHookOutput = Result<BoxModule>;
 pub type PluginParseOutput = Result<TransformAst>;
@@ -84,6 +85,10 @@ pub trait Plugin: Debug + Send + Sync {
     _args: FactorizeArgs<'_>,
     _job_ctx: &mut NormalModuleFactoryContext,
   ) -> PluginFactorizeHookOutput {
+    Ok(None)
+  }
+
+  async fn module(&self, _ctx: PluginContext, _args: &ModuleArgs) -> PluginModuleHookOutput {
     Ok(None)
   }
 
