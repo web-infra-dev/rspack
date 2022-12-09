@@ -2311,16 +2311,17 @@ dependencies = [
 [[package]]
 name = "rspack_sources"
 version = "0.1.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f16d7b2e658af146b2e90b58854d70ffa58dad98d342c3a14dd8a6552275d36d"
+source = "git+https://github.com/speedy-js/rspack-sources?branch=chore/iter2#c8af55f69cba26ee45b2fdfcba8ddd74859426ae"
 dependencies = [
  "dashmap",
  "dyn-clone",
  "hashbrown",
+ "memchr",
  "once_cell",
  "parking_lot 0.12.1",
  "serde",
  "serde_json",
+ "smallvec",
  "smol_str",
  "substring",
 ]
@@ -2563,9 +2564,9 @@ dependencies = [
 
 [[package]]
 name = "smallvec"
-version = "1.9.0"
+version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fd0db749597d91ff862fd1d55ea87f7855a744a8425a64695b6fca237d1dad1"
+checksum = "a507befe795404456341dfab10cef66ead4c041f62b8b11bbb92bffe5d0953e0"
 
 [[package]]
 name = "smawk"

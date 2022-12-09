@@ -10,11 +10,10 @@ incremental = true
 
 [profile.release]
 codegen-units = 1
-debug         = false
+debug         = 1
 incremental   = true
 lto           = false
 opt-level     = 3
-
 
 [workspace.dependencies]
 swc_core          = { version = "0.50.2", default-features = false }
