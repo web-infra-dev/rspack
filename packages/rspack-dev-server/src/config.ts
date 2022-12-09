@@ -33,7 +33,7 @@ export function resolveDevOptions(
 	// --- static
 	const directory =
 		devConfig.static?.directory ??
-		path.resolve(compilerOptions.context, "dist");
+		path.resolve(compilerOptions.context, compilerOptions.output.path);
 	let watch: false | WatchOptions = {};
 	if (devConfig.static?.watch === false) {
 		watch = false;
