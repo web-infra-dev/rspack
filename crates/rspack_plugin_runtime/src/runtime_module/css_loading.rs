@@ -73,8 +73,6 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       }
 
       let mut source = ConcatSource::default();
-      source.add(RawSource::from("(function() {\n"));
-
       // object to store loaded and loading chunks
       // undefined = chunk not loaded, null = chunk preloaded/prefetched
       // [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
@@ -98,8 +96,6 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           include_str!("runtime/css_loading_with_hmr.js").to_string(),
         ));
       }
-
-      source.add(RawSource::from("\n})();\n"));
       source.boxed()
     } else {
       unreachable!("should attach chunk for css_loading")

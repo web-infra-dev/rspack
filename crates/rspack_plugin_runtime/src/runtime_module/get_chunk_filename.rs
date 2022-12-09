@@ -99,13 +99,12 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     };
 
     RawSource::from(format!(
-      "(function () {{
-        // This function allow to reference chunks
+      "// This function allow to reference chunks
         {} = function (chunkId) {{
           // return url for filenames based on template
           return {};
         }};
-      }})();\n",
+      ",
       self.global,
       url.unwrap_or_else(|| format!("'' + chunkId + '.{}'", self.content_type))
     ))
