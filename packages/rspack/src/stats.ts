@@ -776,19 +776,18 @@ export class Stats {
 
 		if (obj.warnings) {
 			for (const warning of obj.warnings) {
-				console.log(warning)
-				// newline();
-				// // formatted warning already have color.
+				newline();
+				// formatted warning already have color.
 				colors.normal(formatError(warning));
-				// newline();
+				newline();
 			}
 		}
 		if (obj.errors) {
 			for (const error of obj.errors) {
-				// newline();
-				// // formatted error already have color.
-				// colors.normal(formatError(error));
-				// newline();
+				newline();
+				// formatted error already have color.
+				colors.normal(formatError(error));
+				newline();
 			}
 		}
 		if (obj.children) {
