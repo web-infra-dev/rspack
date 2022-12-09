@@ -3,14 +3,14 @@ use std::fmt::Debug;
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
 #[cfg(feature = "node-api")]
-use rspack_error::{IntoTWithDiagnosticArray, TWithDiagnosticArray};
+use rspack_error::{
+  internal_error, InternalError, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+};
 
 use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "node-api")]
 use napi::{bindgen_prelude::*, JsFunction, NapiRaw};
-#[cfg(feature = "node-api")]
-use rspack_error::Result;
 
 use rspack_core::{
   AssetParserDataUrlOption, AssetParserOptions, BoxedLoader, CompilerOptionsBuilder, ModuleOptions,
