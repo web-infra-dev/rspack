@@ -142,7 +142,7 @@ export function getNormalizedRspackOptions(
 		stats,
 		snapshot,
 		cache,
-		optimization
+		optimization,
 		experiments
 	};
 }
