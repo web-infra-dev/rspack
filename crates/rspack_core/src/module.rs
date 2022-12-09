@@ -3,7 +3,7 @@ use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
 
-use rspack_error::{Error, Result, TWithDiagnosticArray};
+use rspack_error::{internal_error, Error, InternalError, Result, TWithDiagnosticArray};
 use rspack_loader_runner::Loader;
 use rspack_sources::Source;
 
@@ -189,19 +189,19 @@ macro_rules! impl_module_downcast_helpers {
 
         pub fn [<try_as_ $ident>](&self) -> Result<& $ty> {
           self.[<as_ $ident>]().ok_or_else(|| {
-            Error::InternalError(format!(
+            Error::InternalError(internal_error!(format!(
               "Failed to cast module to a {}",
               stringify!($ty)
-            ))
+            )))
           })
         }
 
         pub fn [<try_as_ $ident _mut>](&mut self) -> Result<&mut $ty> {
           self.[<as_ $ident _mut>]().ok_or_else(|| {
-            Error::InternalError(format!(
+            Error::InternalError(internal_error!(format!(
               "Failed to cast module to a {}",
               stringify!($ty)
-            ))
+            )))
           })
         }
       }

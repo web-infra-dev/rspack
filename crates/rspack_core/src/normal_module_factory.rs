@@ -9,7 +9,9 @@ use std::{
 use swc_core::common::Span;
 use tokio::sync::mpsc::UnboundedSender;
 
-use rspack_error::{Diagnostic, Error, Result, TWithDiagnosticArray};
+use rspack_error::{
+  internal_error, Diagnostic, Error, InternalError, Result, TWithDiagnosticArray,
+};
 use tracing::instrument;
 use ustr::Ustr;
 
@@ -192,10 +194,10 @@ impl NormalModuleFactory {
             module_identifier,
           ))
           .map_err(|_| {
-            Error::InternalError(format!(
+            Error::InternalError(internal_error!(format!(
               "Failed to resolve dependency {:?}",
               self.dependency
-            ))
+            )))
           })?;
 
         let raw_module = RawModule::new(
@@ -228,10 +230,10 @@ impl NormalModuleFactory {
         Ustr::from(&uri),
       ))
       .map_err(|_| {
-        Error::InternalError(format!(
+        Error::InternalError(internal_error!(format!(
           "Failed to resolve dependency {:?}",
           self.dependency
-        ))
+        )))
       })?;
 
     let resolved_module_type =
@@ -244,10 +246,10 @@ impl NormalModuleFactory {
       .registered_parser_and_generator_builder
       .get(&resolved_module_type)
       .ok_or_else(|| {
-        Error::InternalError(format!(
+        Error::InternalError(internal_error!(format!(
           "Parser and generator builder for module type {:?} is not registered",
           resolved_module_type
-        ))
+        )))
       })?();
 
     self.context.module_type = Some(resolved_module_type);
@@ -312,10 +314,10 @@ impl NormalModuleFactory {
       });
 
     resolved_module_type.ok_or_else(|| {
-        Error::InternalError(format!(
+        Error::InternalError(internal_error!(format!(
           "Unable to determine the module type of {}. Make sure to specify the `type` property in the module rule.",
           resource_data.resource
-        ))
+        )))
       },
     )
   }
@@ -349,10 +351,10 @@ impl NormalModuleFactory {
           module.identifier(),
         ))
         .map_err(|_| {
-          Error::InternalError(format!(
+          Error::InternalError(internal_error!(format!(
             "Failed to resolve dependency {:?}",
             self.dependency,
-          ))
+          )))
         })?;
       (uri, module, dependency_id)
     } else if let Some(result) = self.factorize_normal_module().await? {
@@ -366,10 +368,10 @@ impl NormalModuleFactory {
       module.identifier(),
       vec![],
       self.context.module_type.ok_or_else(|| {
-        Error::InternalError(format!(
+        Error::InternalError(internal_error!(format!(
           "Unable to get the module type for module {}, did you forget to configure `Rule.type`? ",
           module.identifier()
-        ))
+        )))
       })?,
     );
 

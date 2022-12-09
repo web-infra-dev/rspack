@@ -17,7 +17,7 @@ use rspack_core::{
   ParserAndGenerator, PathData, Plugin, PluginContext, PluginRenderManifestHookOutput,
   RenderManifestArgs, RenderManifestEntry, SourceType,
 };
-use rspack_error::{Error, IntoTWithDiagnosticArray, Result};
+use rspack_error::{internal_error, Error, InternalError, IntoTWithDiagnosticArray, Result};
 use sugar_path::SugarPath;
 
 #[derive(Debug)]
@@ -316,9 +316,9 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       }
       SourceType::Asset => {
         if parsed_asset_config.is_source() || parsed_asset_config.is_inline() {
-          Err(Error::InternalError(
-            "Inline or Source asset does not have source type `asset`".to_string(),
-          ))
+          Err(Error::InternalError(internal_error!(
+            "Inline or Source asset does not have source type `asset`".to_string()
+          )))
         } else {
           // Safety: This is safe because we returned the source in parser.
           Ok(GenerationResult {
@@ -334,10 +334,10 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           })
         }
       }
-      t => Err(Error::InternalError(format!(
+      t => Err(Error::InternalError(internal_error!(format!(
         "Unsupported source type {:?} for plugin JavaScript",
         t
-      ))),
+      )))),
     };
 
     result
@@ -429,7 +429,7 @@ impl Plugin for AssetPlugin {
         let module = compilation
           .module_graph
           .module_by_identifier(&mgm.module_identifier)
-          .ok_or_else(|| Error::InternalError("Failed to get module".to_owned()))
+          .ok_or_else(|| Error::InternalError(internal_error!("Failed to get module".to_owned())))
           // FIXME: use result
           .expect("Failed to get module");
         module.source_types().contains(&SourceType::Asset)
@@ -442,7 +442,7 @@ impl Plugin for AssetPlugin {
         let module = compilation
           .module_graph
           .module_by_identifier(&mgm.module_identifier)
-          .ok_or_else(|| Error::InternalError("Failed to get module".to_owned()))
+          .ok_or_else(|| Error::InternalError(internal_error!("Failed to get module".to_owned())))
           .expect("Failed to get module")
           .as_normal_module()
           .expect("Normal module expected");

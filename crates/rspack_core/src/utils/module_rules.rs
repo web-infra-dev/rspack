@@ -1,4 +1,4 @@
-use rspack_error::Result;
+use rspack_error::{internal_error, InternalError, Result};
 use rspack_loader_runner::ResourceData;
 
 use crate::{ModuleRule, ModuleRuleCondition};
@@ -27,9 +27,9 @@ pub fn module_rule_matcher(module_rule: &ModuleRule, resource_data: &ResourceDat
     && module_rule.include.is_none()
     && module_rule.exclude.is_none()
   {
-    return Err(rspack_error::Error::InternalError(
-      "ModuleRule must have at least one condition".to_owned(),
-    ));
+    return Err(rspack_error::Error::InternalError(internal_error!(
+      "ModuleRule must have at least one condition".to_owned()
+    )));
   }
 
   // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.

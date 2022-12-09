@@ -27,8 +27,8 @@ use tracing::instrument;
 use xxhash_rust::xxh3::Xxh3;
 
 use rspack_error::{
-  errors_to_diagnostics, Diagnostic, Error, IntoTWithDiagnosticArray, Result, Severity,
-  TWithDiagnosticArray,
+  errors_to_diagnostics, internal_error, Diagnostic, Error, InternalError,
+  IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray,
 };
 use rspack_sources::BoxSource;
 use ustr::{ustr, Ustr};
@@ -149,10 +149,10 @@ impl Compilation {
 
     match assets.get_mut(filename) {
       Some(asset) => updater(asset),
-      None => Err(Error::InternalError(format!(
+      None => Err(Error::InternalError(internal_error!(format!(
         "Called Compilation.updateAsset for not existing filename {}",
         filename
-      ))),
+      )))),
     }
   }
 
@@ -167,12 +167,12 @@ impl Compilation {
           is_source_equal
         );
         self.push_batch_diagnostic(
-          rspack_error::Error::InternalError(format!(
+          rspack_error::Error::InternalError(internal_error!(format!(
             "Conflict: Multiple assets emit different content to the same filename {}{}",
             filename,
             // TODO: source file name
             ""
-          ))
+          )))
           .into(),
         );
         self.assets.insert(filename, asset);
@@ -1514,7 +1514,9 @@ fn mark_symbol(
                 })
                 .collect::<Vec<_>>();
               error_message += &join_string_component(module_identifier_list);
-              errors.push(Error::InternalError(error_message));
+              errors.push(Error::InternalError(
+                internal_error!(error_message).with_severity(Severity::Warn),
+              ));
               ret[0].1.clone()
             }
           }

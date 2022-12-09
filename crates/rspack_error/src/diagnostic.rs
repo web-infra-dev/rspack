@@ -81,12 +81,12 @@ impl From<Error> for Vec<Diagnostic> {
     let kind = err.kind();
     let severity = err.severity();
     let diagnostic = match err {
-      Error::InternalError(message) => Diagnostic {
-        message,
+      Error::InternalError(err) => Diagnostic {
+        message: format!("{}", err),
         source_info: None,
         start: 0,
         end: 0,
-        severity,
+        severity: err.severity,
         ..Default::default()
       },
       Error::TraceableError(TraceableError {

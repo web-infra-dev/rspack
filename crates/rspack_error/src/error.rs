@@ -2,6 +2,34 @@ use std::{fmt, io};
 
 use crate::Severity;
 
+#[macro_export]
+macro_rules! internal_error {
+  ($str:expr) => {
+    InternalError {
+      error_message: $str,
+      ..Default::default()
+    }
+  };
+}
+#[derive(Debug, Default)]
+pub struct InternalError {
+  pub error_message: String,
+  pub severity: Severity,
+}
+
+impl InternalError {
+  pub fn with_severity(mut self, severity: Severity) -> Self {
+    self.severity = severity;
+    self
+  }
+}
+
+impl fmt::Display for InternalError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    writeln!(f, "{}[internal]: {}", self.severity, self.error_message)
+  }
+}
+
 #[derive(Debug)]
 /// ## Warning
 /// For a [TraceableError], the path is required.
@@ -62,7 +90,7 @@ impl fmt::Display for TraceableError {
 
 #[derive(Debug)]
 pub enum Error {
-  InternalError(String),
+  InternalError(InternalError),
   TraceableError(TraceableError),
   Io { source: io::Error },
   Anyhow { source: anyhow::Error },
@@ -84,7 +112,7 @@ impl std::error::Error for Error {
 impl fmt::Display for Error {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self {
-      Error::InternalError(v) => write!(f, "{}", v),
+      Error::InternalError(e) => write!(f, "{}", e),
       Error::TraceableError(v) => write!(f, "{}", v),
       Error::Io { source } => write!(f, "{source}"),
       Error::Anyhow { source } => write!(f, "{source}"),
@@ -171,7 +199,7 @@ impl std::fmt::Display for DiagnosticKind {
 #[cfg(feature = "napi")]
 impl From<napi::Error> for Error {
   fn from(err: napi::Error) -> Self {
-    Error::InternalError(err.to_string())
+    Error::InternalError(internal_error!(err.to_string()))
   }
 }
 

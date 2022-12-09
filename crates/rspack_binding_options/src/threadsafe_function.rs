@@ -16,6 +16,7 @@ use std::sync::Arc;
 use napi::bindgen_prelude::{FromNapiValue, Promise, ToNapiValue};
 use napi::{check_status, sys, Env, JsUnknown, NapiRaw, Result, Status};
 use napi::{JsError, JsFunction, NapiValue};
+use rspack_error::{internal_error, InternalError};
 
 /// ThreadSafeFunction Context object
 /// the `value` is the value passed to `call` method
@@ -138,10 +139,12 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
                 unsafe { Vec::from_raw_parts(buf.as_mut_ptr() as *mut u8, copied_len, copied_len) };
 
               let message = String::from_utf8(buf).map_err(|err| {
-                rspack_error::Error::InternalError("Failed to convert error to UTF-8".to_owned())
+                rspack_error::Error::InternalError(internal_error!(
+                  "Failed to convert error to UTF-8".to_owned()
+                ))
               })?;
 
-              Err(rspack_error::Error::InternalError(message))
+              Err(rspack_error::Error::InternalError(internal_error!(message)))
             }))
             .map_err(|_| napi::Error::from_reason("Failed to send resolved value".to_owned()))
         },

@@ -14,8 +14,8 @@ use rspack_core::{
   ResolverFactory,
 };
 use rspack_error::{
-  Diagnostic, DiagnosticKind, Error, IntoTWithDiagnosticArray, Result, Severity,
-  TWithDiagnosticArray, TraceableError,
+  internal_error, Diagnostic, DiagnosticKind, Error, InternalError, IntoTWithDiagnosticArray,
+  Result, Severity, TWithDiagnosticArray, TraceableError,
 };
 use rspack_loader_runner::{Loader, LoaderContext, LoaderResult};
 use sass_embedded::{
@@ -476,7 +476,7 @@ impl Loader<CompilerContext, CompilationContext> for SassLoader {
       .map
       .map(|map| -> Result<SourceMap> {
         let mut map = SourceMap::from_slice(&map)
-          .map_err(|e| rspack_error::Error::InternalError(e.to_string()))?;
+          .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?;
         for source in map.sources_mut() {
           if source.starts_with("file:") {
             *source = Url::parse(source)
@@ -516,7 +516,7 @@ fn sass_exception_to_error(e: Exception) -> Error {
     && let Some(e) = make_traceable_error("Sass Error", message, span) {
     Error::TraceableError(e.with_kind(DiagnosticKind::Scss))
   } else {
-    Error::InternalError(e.message().to_string())
+    Error::InternalError(internal_error!(e.message().to_string()))
   }
 }
 
