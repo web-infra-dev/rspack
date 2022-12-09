@@ -2188,6 +2188,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3f87b73ce11b1619a3c6332f45341e0047173771e8b8b73f87bfeefb7b56244"
 
 [[package]]
+name = "regress"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0a92ff21fe8026ce3f2627faaf43606f0b67b014dbc9ccf027181a804f75d92e"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "relative-path"
 version = "1.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2568,6 +2577,15 @@ dependencies = [
  "hashbrown",
  "rspack_core",
  "tracing",
+]
+
+[[package]]
+name = "rspack_regex"
+version = "0.1.0"
+dependencies = [
+ "regress",
+ "rspack_error",
+ "swc_core",
 ]
 
 [[package]]

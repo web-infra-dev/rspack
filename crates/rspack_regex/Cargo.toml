@@ -1,0 +1,22 @@
+[package]
+edition = "2021"
+name    = "rspack_regex"
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+regress      = "0.4.1"
+rspack_error = { version = "0.1.0", path = "../rspack_error" }
+swc_core     = { workspace = true, features = ["ecma_ast"] }
+[dev-dependencies]
+
+swc_core = { workspace = true, features = [
+  "ecma_ast",
+  "__base",
+  "__visit",
+  "__common",
+  "__parser",
+  "__utils",
+  "ecma_preset_env",
+] }
