@@ -400,8 +400,7 @@ export class Stats {
 			}
 			if (module.assets && module.assets.length) {
 				colors.magenta(
-					` [${module.assets.length} asset${
-						module.assets.length === 1 ? "" : "s"
+					` [${module.assets.length} asset${module.assets.length === 1 ? "" : "s"
 					}]`
 				);
 			}
@@ -777,18 +776,19 @@ export class Stats {
 
 		if (obj.warnings) {
 			for (const warning of obj.warnings) {
-				newline();
-				// formatted warning already have color.
+				console.log(warning)
+				// newline();
+				// // formatted warning already have color.
 				colors.normal(formatError(warning));
-				newline();
+				// newline();
 			}
 		}
 		if (obj.errors) {
 			for (const error of obj.errors) {
-				newline();
-				// formatted error already have color.
-				colors.normal(formatError(error));
-				newline();
+				// newline();
+				// // formatted error already have color.
+				// colors.normal(formatError(error));
+				// newline();
 			}
 		}
 		if (obj.children) {
@@ -835,9 +835,8 @@ const SizeFormatHelpers = {
 		const abbreviations = ["bytes", "KiB", "MiB", "GiB"];
 		const index = Math.floor(Math.log(size) / Math.log(1024));
 
-		return `${+(size / Math.pow(1024, index)).toPrecision(3)} ${
-			abbreviations[index]
-		}`;
+		return `${+(size / Math.pow(1024, index)).toPrecision(3)} ${abbreviations[index]
+			}`;
 	}
 };
 

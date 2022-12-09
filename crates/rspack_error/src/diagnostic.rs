@@ -82,7 +82,7 @@ impl From<Error> for Vec<Diagnostic> {
     let severity = err.severity();
     let diagnostic = match err {
       Error::InternalError(err) => Diagnostic {
-        message: err.error_message,
+        message: format!("{}", err),
         source_info: None,
         start: 0,
         end: 0,

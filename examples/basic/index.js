@@ -1,4 +1,4 @@
-import { myanswer, aaa } from './app'
-myanswer()
+import { b } from './bar.js'
 
-aaa
+
+b;

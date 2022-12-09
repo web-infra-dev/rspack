@@ -231,7 +231,11 @@ fn emit_diagnostic<T: Write + WriteColor>(
 
     term::emit(writer, &config, files, &diagnostic).unwrap();
   } else {
-    writer.set_color(ColorSpec::new().set_fg(Some(Color::Red)))?;
+    let color = match diagnostic.severity {
+      crate::Severity::Error => Color::Red,
+      crate::Severity::Warn => Color::Yellow,
+    };
+    writer.set_color(ColorSpec::new().set_fg(Some(color)))?;
     writeln!(writer, "{}", diagnostic.message)?;
   }
   Ok(())
