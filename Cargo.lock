@@ -2634,7 +2634,7 @@ dependencies = [
 [[package]]
 name = "rspack_sources"
 version = "0.1.13"
-source = "git+https://github.com/speedy-js/rspack-sources?branch=chore/iter2#c8af55f69cba26ee45b2fdfcba8ddd74859426ae"
+source = "git+https://github.com/speedy-js/rspack-sources?branch=chore/iter2#d877318f0216dcd53f5be3c75b5468de20d23657"
 dependencies = [
  "dashmap",
  "dyn-clone",
