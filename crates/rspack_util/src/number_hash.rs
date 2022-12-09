@@ -1,3 +1,10 @@
+/*
+  MIT License http://www.opensource.org/licenses/mit-license.php
+  Author Tobias Koppers @sokra
+*/
+
+// Port from https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/util/numberHash.js
+
 const SAFE_LIMIT: usize = 2147483648usize;
 const SAFE_PART: usize = SAFE_LIMIT - 1usize;
 const COUNT: usize = 4usize;
@@ -44,6 +51,7 @@ pub fn get_number_hash(s: &str, range: usize) -> usize {
       sum1 = (sum1 + arr[j]) % SAFE_PART;
       j += 1;
     }
+    let mut j = 0;
     while j < COUNT {
       sum2 = (sum2 + arr[j]) % range_ext;
       j += 1;
