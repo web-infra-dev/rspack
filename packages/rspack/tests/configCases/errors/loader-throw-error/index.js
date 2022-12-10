@@ -4,7 +4,7 @@ it("should include loader thrown error", () => {
 		require("./lib");
 	} catch (e) {
     errored = true;
-		// expect(e.message).toContain("Failed to load");
+		expect(e.message).toContain("Failed to load");
 	}
   expect(errored).toBeTruthy()
 });

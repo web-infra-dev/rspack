@@ -99,7 +99,7 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
                     &mut value_ptr,
                   )
                 },
-                "failed to get the error message"
+                "failed to get the named property of the underlying error message"
               )?;
 
               let mut str_len = 0;
@@ -113,7 +113,7 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
                     &mut str_len,
                   )
                 },
-                "failed to get the error message"
+                "failed to get the length of the underlying error message"
               )?;
 
               str_len += 1;
@@ -130,7 +130,7 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
                     &mut copied_len,
                   )
                 },
-                "failed to get the error message"
+                "failed to get the value of the underlying error message"
               )?;
 
               let mut buf = std::mem::ManuallyDrop::new(buf);

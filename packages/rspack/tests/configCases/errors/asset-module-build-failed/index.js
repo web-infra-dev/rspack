@@ -4,7 +4,7 @@ it("should throw if a module is failed to build", () => {
     require("./logo.svg");
   } catch(err) {
     errored = true
-    // expect(err.message).toContain("Failed to load")
+    expect(err.message).toContain("Failed to load")
   }
   expect(errored).toBeTruthy()
 });
