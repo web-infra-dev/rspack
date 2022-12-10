@@ -31,6 +31,7 @@
     "@rspack/less-loader": "workspace:^",
     "@rspack/postcss-loader": "workspace:^",
     "@rspack/plugin-node-polyfill": "workspace:^",
+    "@rspack/plugin-minify": "workspace:^",
     "rimraf": "3.0.2",
     "@types/rimraf": "3.0.2"
   },

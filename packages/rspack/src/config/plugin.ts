@@ -1,6 +1,6 @@
 import { Compiler } from "..";
 
-export interface Plugin {
+export interface PluginInstance {
 	name: string;
 	apply(compiler: Compiler): void;
 }

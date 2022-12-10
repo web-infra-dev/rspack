@@ -16,7 +16,7 @@ import type {
 	Loader,
 	SourceMap
 } from "./module";
-import type { Plugin } from "./plugin";
+import type { PluginInstance } from "./plugin";
 import type { ResolvedTarget, Target } from "./target";
 import type { Output, ResolvedOutput } from "./output";
 import type { Resolve, ResolvedResolve } from "./resolve";
@@ -50,7 +50,7 @@ export interface RspackOptions {
 	name?: string;
 	entry?: Entry;
 	context?: Context;
-	plugins?: Plugin[];
+	plugins?: PluginInstance[];
 	devServer?: Dev;
 	module?: Module;
 	target?: Target;
@@ -72,7 +72,7 @@ export interface RspackOptionsNormalized {
 	name?: string;
 	entry: ResolvedEntry;
 	context: ResolvedContext;
-	plugins: Plugin[];
+	plugins: PluginInstance[];
 	devServer?: Dev;
 	module: ResolvedModule;
 	target: ResolvedTarget;
@@ -150,7 +150,7 @@ export function getNormalizedRspackOptions(
 function cloneObject(value: Record<string, any> | undefined) {
 	return { ...value };
 }
-export type { Plugin, LoaderContext, Loader, SourceMap };
+export type { PluginInstance as Plugin, LoaderContext, Loader, SourceMap };
 export type { WebSocketServerOptions, Dev } from "./devServer";
 export { resolveWatchOption } from "./watch";
 export type { StatsOptions } from "./stats";
