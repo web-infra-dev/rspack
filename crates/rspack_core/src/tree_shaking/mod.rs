@@ -14,7 +14,7 @@ pub struct OptimizeDependencyResult {
   pub bail_out_module_identifiers: HashMap<Ustr, BailoutReason>,
 }
 
-pub static CARED_MODULE_ID: &[&str] = &[""];
+pub static CARED_MODULE_ID: &[&str] = &[];
 
 pub fn debug_care_module_id<T: AsRef<str>>(id: T) -> bool {
   if CARED_MODULE_ID.is_empty() {

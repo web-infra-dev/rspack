@@ -38,6 +38,7 @@ use crate::{
   is_source_equal, join_string_component, module_rule_matcher,
   split_chunks::code_splitting,
   tree_shaking::{
+    debug_care_module_id,
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
     BailoutReason, OptimizeDependencyResult,
   },
@@ -902,10 +903,9 @@ impl Compilation {
     // Its export symbol will be marked as used
     for (module_id, reason) in bail_out_module_identifiers.iter() {
       match reason {
-        BailoutReason::Helper | BailoutReason::CommonjsRequire | BailoutReason::CommonjsExports => {
-        }
+        BailoutReason::Helper | BailoutReason::CommonjsExports => {}
         BailoutReason::ExtendBailout => {}
-        BailoutReason::DynamicImport => {
+        BailoutReason::DynamicImport | BailoutReason::CommonjsRequire => {
           let used_symbol_set = collect_reachable_symbol(
             &analyze_results,
             *module_id,
