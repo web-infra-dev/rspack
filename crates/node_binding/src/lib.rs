@@ -311,6 +311,16 @@ fn init() {
   use backtrace::Backtrace;
   use std::panic::set_hook;
 
+  #[cfg(debug_assertions)]
+  {
+    use mimalloc_rust::raw::runtime_options::*;
+
+    unsafe {
+      mi_option_enable(mi_option_show_stats);
+      mi_option_enable(mi_option_verbose);
+    }
+  }
+
   set_hook(Box::new(|panic_info| {
     let backtrace = Backtrace::new();
     println!("Panic: {:?}\nBacktrace: \n{:?}", panic_info, backtrace);
