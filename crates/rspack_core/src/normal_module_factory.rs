@@ -144,6 +144,7 @@ impl NormalModuleFactory {
 
   #[instrument(name = "normal_module_factory:factory_normal_module", skip_all)]
   pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, BoxModule, u32)>> {
+    // TODO: `importer` should use `NormalModule::context || options.context`;
     let importer = self.dependency.parent_module_identifier.as_deref();
     let specifier = self.dependency.detail.specifier.as_str();
     let kind = self.dependency.detail.kind;
