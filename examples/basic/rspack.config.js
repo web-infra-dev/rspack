@@ -1,3 +1,4 @@
+const path = require('path');
 /**
  * @type {import('webpack').Configuration}
  */
@@ -21,5 +22,14 @@ module.exports = {
   },
   infrastructureLogging: {
     debug: false
+  },
+  builtins: {
+    minify: false
+  },
+  output: {
+    path: path.resolve(__dirname, 'dist')
+  },
+  infrastructureLogging: {
+    debug: true
   }
 };

@@ -12,6 +12,7 @@ import util from "util";
 import { RspackOptionsApply } from "./rspackOptionsApply";
 type Callback<T> = (err: Error, t: T) => void;
 function createCompiler(userOptions: RspackOptions) {
+	console.log("user:", userOptions);
 	const options = getNormalizedRspackOptions(userOptions);
 	applyRspackOptionsBaseDefaults(options);
 	const compiler = new Compiler(options.context, options);
