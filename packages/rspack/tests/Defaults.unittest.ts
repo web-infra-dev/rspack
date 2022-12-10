@@ -121,6 +121,8 @@ describe("snapshots", () => {
 		    "rules": [],
 		  },
 		  "optimization": {
+		    "minimize": undefined,
+		    "minimizer": undefined,
 		    "moduleIds": "named",
 		  },
 		  "output": {},

@@ -12,6 +12,16 @@ export class RspackOptionsApply {
 		if (compiler.options.target.includes("node")) {
 			new NodeTargetPlugin().apply(compiler);
 		}
+		// after we migrate minify to minimze, we could remove it
+		if (options.optimization.minimize || options.builtins.minify) {
+			if (options.optimization.minimizer) {
+				for (const minimizer of options.optimization.minimizer) {
+					if (minimizer !== "...") {
+						minimizer.apply(compiler);
+					}
+				}
+			}
+		}
 		new ResolveSwcPlugin().apply(compiler);
 	}
 }
