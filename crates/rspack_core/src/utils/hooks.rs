@@ -11,9 +11,16 @@ pub async fn resolve(
 ) -> Result<ResolveResult> {
   let plugin_driver = plugin_driver.read().await;
   let base_dir = if let Some(importer) = args.importer {
-    Path::new(importer)
-      .parent()
-      .ok_or_else(|| anyhow::format_err!("parent() failed for {:?}", importer))?
+    {
+      // TODO: delete this fn after use `normalModule.context` rather than `importer`
+      if let Some(index) = importer.find('?') {
+        Path::new(&importer[0..index])
+      } else {
+        Path::new(importer)
+      }
+    }
+    .parent()
+    .ok_or_else(|| anyhow::format_err!("parent() failed for {:?}", importer))?
   } else {
     &plugin_driver.options.context
   };

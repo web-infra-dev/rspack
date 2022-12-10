@@ -25,7 +25,6 @@
   "exports": {
     ".": "./dist/index.js",
     "./devServer": "./dist/devServer.js",
-    "./react-refresh": "./dist/reactRefresh.js",
-    "./css": "./dist/css.js"
+    "./react-refresh": "./dist/reactRefresh.js"
   }
 }

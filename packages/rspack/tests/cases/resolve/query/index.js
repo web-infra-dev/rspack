@@ -1,4 +1,7 @@
 it("should make different modules for query", function () {
+	var d = require("./file?path=/t");
+	expect(d).toBe("file2");
+
 	var a = require("./empty");
 	var b = require("./empty?1");
 	var c = require("./empty?2");
