@@ -91,9 +91,9 @@ export function resolveMinify(
 	isProduction: boolean
 ): Minification {
 	if (builtins.minify) {
-		if (typeof builtins.minify === "boolean") {
+		if (builtins.minify === true) {
 			return {
-				enable: builtins.minify,
+				enable: true,
 				passes: 1
 			};
 		} else {
@@ -102,6 +102,11 @@ export function resolveMinify(
 				enable: true
 			};
 		}
+	} else if (builtins.minify === false) {
+		return {
+			enable: false,
+			passes: 1
+		};
 	} else {
 		return {
 			enable: isProduction,
