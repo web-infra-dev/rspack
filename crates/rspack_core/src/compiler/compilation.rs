@@ -38,6 +38,7 @@ use crate::{
   is_source_equal, join_string_component, module_rule_matcher,
   split_chunks::code_splitting,
   tree_shaking::{
+    debug_care_module_id,
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
     BailoutReason, OptimizeDependencyResult,
   },
@@ -756,8 +757,7 @@ impl Compilation {
       .filter_map(|(module_identifier, mgm)| {
         let uri_key = ustr(module_identifier);
         let ast = match mgm.module_type {
-          crate::ModuleType::Js
-          | crate::ModuleType::Jsx | crate::ModuleType::Tsx
+          crate::ModuleType::Js | crate::ModuleType::Jsx | crate::ModuleType::Tsx
           | crate::ModuleType::Ts => match self
                       .module_graph
                       .module_by_identifier(&mgm.module_identifier)
@@ -797,18 +797,18 @@ impl Compilation {
         });
         // Keep this debug info until we stabilize the tree-shaking
 
-        // if debug_care_module_id(uri_key) {
-        //   dbg!(
-        //     &uri_key,
-        //     // &analyzer.export_all_list,
-        //     &analyzer.export_map,
-        //     &analyzer.import_map,
-        //     &analyzer.decl_reference_map,
-        //     &analyzer.assign_reference_map,
-        //     &analyzer.reachable_import_and_export,
-        //     &analyzer.used_symbol_ref
-        //   );
-        // }
+        if debug_care_module_id(uri_key) {
+          dbg!(
+            &uri_key,
+            // &analyzer.export_all_list,
+            &analyzer.export_map,
+            &analyzer.import_map,
+            &analyzer.decl_reference_map,
+            &analyzer.assign_reference_map,
+            &analyzer.reachable_import_and_export,
+            &analyzer.used_symbol_ref
+          );
+        }
 
         Some((uri_key, analyzer.into()))
       })
@@ -903,9 +903,9 @@ impl Compilation {
     // Its export symbol will be marked as used
     for (module_id, reason) in bail_out_module_identifiers.iter() {
       match reason {
-        BailoutReason::Helper | BailoutReason::CommonjsExports => {}
+        BailoutReason::CommonjsExports => {}
         BailoutReason::ExtendBailout => {}
-        BailoutReason::DynamicImport | BailoutReason::CommonjsRequire => {
+        BailoutReason::DynamicImport | BailoutReason::Helper | BailoutReason::CommonjsRequire => {
           let used_symbol_set = collect_reachable_symbol(
             &analyze_results,
             *module_id,
@@ -1290,7 +1290,9 @@ fn collect_reachable_symbol(
   let entry_module_result = match analyze_map.get(&entry_identifier) {
     Some(result) => result,
     None => {
-      panic!("Can't get analyze result from entry_identifier");
+      // TODO: checking if it is none js type
+      return HashSet::new();
+      // panic!("Can't get analyze result from entry_identifier {}", entry_identifier);
     }
   };
 
@@ -1402,6 +1404,9 @@ fn mark_symbol(
   used_export_module_identifiers: &mut HashSet<Ustr>,
   errors: &mut Vec<Error>,
 ) {
+  if debug_care_module_id(symbol_ref.module_identifier()) {
+    dbg!(&symbol_ref);
+  }
   // We don't need mark the symbol usage if it is from a bailout module because
   // bailout module will skipping tree-shaking anyway
   // if debug_care_module_id(symbol_ref.module_identifier()) {
@@ -1486,12 +1491,15 @@ fn mark_symbol(
               // let map = analyze_map.get(&module_result.module_identifier).unwrap();
               // dbg!(&map);
               if !is_bailout_module_identifier && !has_bailout_module_identifiers {
-                eprint!(
+                let error_message = format!(
                   "{} did not export `{}`, imported by {}",
                   module_result.module_identifier,
                   indirect_symbol.id,
                   indirect_symbol.importer()
                 );
+                errors.push(Error::InternalError(
+                  internal_error!(error_message).with_severity(Severity::Warn),
+                ));
                 return;
               } else {
                 // TODO: This branch should be remove after we analyze module.exports

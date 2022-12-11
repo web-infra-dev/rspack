@@ -56,6 +56,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   helper_mark: Mark,
   module_identifier: Ustr,
   module_graph: &'a ModuleGraph,
+  /// Value of `export_map` must have type [SymbolRef::Direct]
   pub(crate) export_map: HashMap<JsWord, SymbolRef>,
   pub(crate) import_map: HashMap<BetterId, SymbolRef>,
   /// key is the module identifier, value is the corresponding export map
@@ -117,12 +118,20 @@ impl<'a> ModuleRefAnalyze<'a> {
     }
   }
 
-  pub fn add_reference(&mut self, from: SymbolExt, to: IdOrMemExpr) {
-    if matches!(&to, IdOrMemExpr::Id(to_id) if to_id == from.id()) {
+  /// Some times we want to insert the reference anyway, even if `from == to`
+  /// e.g.
+  /// ```js
+  /// import xxx from 'xxx'
+  /// xxx.test = aaa;
+  /// ```
+  pub fn add_reference(&mut self, from: SymbolExt, to: IdOrMemExpr, force_insert: bool) {
+    if matches!(&to, IdOrMemExpr::Id(to_id) if to_id == from.id()) && !force_insert {
       return;
     }
-    if !self.state.contains(AnalyzeState::ASSIGNMENT_RHS) {
-      match self.decl_reference_map.entry(from) {
+    if self.state.contains(AnalyzeState::ASSIGNMENT_RHS)
+      || self.state.contains(AnalyzeState::ASSIGNMENT_LHS)
+    {
+      match self.assign_reference_map.entry(from) {
         Entry::Occupied(mut occ) => {
           occ.get_mut().insert(to);
         }
@@ -131,7 +140,7 @@ impl<'a> ModuleRefAnalyze<'a> {
         }
       }
     } else {
-      match self.assign_reference_map.entry(from) {
+      match self.decl_reference_map.entry(from) {
         Entry::Occupied(mut occ) => {
           occ.get_mut().insert(to);
         }
@@ -243,9 +252,16 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       .flat_map(|(symbol, ref_list)| {
         // it class decl, fn decl is lazy they don't immediately generate side effects unless they are called,
         // Or constructed. The init of var decl will evaluate except rhs is function expr or arrow expr.
-        if !symbol.flag.contains(SymbolFlag::VAR_DECL) {
+        if !symbol.flag.contains(SymbolFlag::VAR_DECL)
+          && !symbol.flag.contains(SymbolFlag::EXPORT_DEFAULT)
+        {
           vec![]
         } else {
+          // like
+          // ```js
+          // export var a = function () {}
+          // ```
+          // a is still lazy
           if symbol
             .flag
             .intersection(SymbolFlag::FUNCTION_EXPR | SymbolFlag::ARROW_EXPR)
@@ -257,15 +273,20 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           }
           ref_list
             .iter()
-            .filter_map(|ref_id| {
+            .flat_map(|ref_id| {
               // Only used id imported from other module would generate a side effects.
-              self.import_map.get(match ref_id {
+              let id = match ref_id {
                 IdOrMemExpr::Id(ref id) => id,
                 // TODO: inspect namespace access
                 IdOrMemExpr::MemberExpr { object, .. } => object,
-              })
+              };
+              // dbg!(&id);
+              let ret = self.import_map.get(id);
+              match ret {
+                Some(ret) => HashSet::from_iter([ret.clone()]),
+                None => self.get_all_import_or_export(id.clone(), true),
+              }
             })
-            .cloned()
             .collect::<Vec<_>>()
         }
       })
@@ -279,15 +300,19 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         // Or constructed. The init of var decl will evaluate except rhs is function expr or arrow expr.
         ref_list
           .iter()
-          .filter_map(|ref_id| {
+          .flat_map(|ref_id| {
             // Only used id imported from other module would generate a side effects.
-            self.import_map.get(match ref_id {
+            let id = match ref_id {
               IdOrMemExpr::Id(ref id) => id,
               // TODO: inspect namespace access
               IdOrMemExpr::MemberExpr { object, .. } => object,
-            })
+            };
+            let ret = self.import_map.get(id);
+            match ret {
+              Some(ret) => HashSet::from_iter([ret.clone()]),
+              None => self.get_all_import_or_export(id.clone(), true),
+            }
           })
-          .cloned()
           .collect::<Vec<_>>()
       })
       .collect::<Vec<_>>();
@@ -325,10 +350,15 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   fn visit_ident(&mut self, node: &Ident) {
     let id: BetterId = node.to_id().into();
     let mark = id.ctxt.outer();
+    // dbg!(
+    //   self.module_identifier,
+    //   &self.current_body_owner_symbol_ext,
+    //   &id
+    // );
     if mark == self.top_level_mark {
       match self.current_body_owner_symbol_ext {
         Some(ref body_owner_symbol_ext) if body_owner_symbol_ext.id() != &id => {
-          self.add_reference(body_owner_symbol_ext.clone(), IdOrMemExpr::Id(id));
+          self.add_reference(body_owner_symbol_ext.clone(), IdOrMemExpr::Id(id), false);
         }
         None => {
           self.used_id_set.insert(IdOrMemExpr::Id(id));
@@ -479,7 +509,12 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       }
     }
     let mut symbol_ext: SymbolExt = default_ident.into();
-    symbol_ext.flag |= SymbolFlag::EXPORT_DEFAULT;
+    symbol_ext.flag.insert(SymbolFlag::EXPORT_DEFAULT);
+    match node.expr {
+      box Expr::Fn(_) => symbol_ext.flag.insert(SymbolFlag::FUNCTION_EXPR),
+      box Expr::Arrow(_) => symbol_ext.flag.insert(SymbolFlag::ARROW_EXPR),
+      _ => {}
+    };
     self.current_body_owner_symbol_ext = Some(symbol_ext);
     node.visit_children_with(self);
     self.current_body_owner_symbol_ext = before_owner_extend_symbol;
@@ -540,8 +575,12 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             property: prop.sym.clone(),
           };
           match self.current_body_owner_symbol_ext {
-            Some(ref body_owner_symbol_ext) if body_owner_symbol_ext.id() != &id => {
-              self.add_reference(body_owner_symbol_ext.clone(), member_expr);
+            Some(ref body_owner_symbol_ext) => {
+              if body_owner_symbol_ext.id() != &id {
+                self.add_reference(body_owner_symbol_ext.clone(), member_expr, false);
+              } else if self.state.contains(AnalyzeState::ASSIGNMENT_LHS) {
+                self.add_reference(body_owner_symbol_ext.clone(), member_expr, true);
+              }
             }
             None => {
               self.used_id_set.insert(member_expr);
@@ -569,7 +608,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           };
           match self.current_body_owner_symbol_ext {
             Some(ref body_owner_symbol_ext) if body_owner_symbol_ext.id() != &id => {
-              self.add_reference(body_owner_symbol_ext.clone(), member_expr);
+              self.add_reference(body_owner_symbol_ext.clone(), member_expr, false);
             }
             None => {
               self.used_id_set.insert(member_expr);
@@ -625,10 +664,12 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             self.add_reference(
               default_ident_ext.clone(),
               IdOrMemExpr::Id(renamed_symbol_ext.id.clone()),
+              false,
             );
             self.add_reference(
               renamed_symbol_ext.clone(),
               IdOrMemExpr::Id(default_ident_ext.id),
+              false,
             );
             renamed_symbol_ext
           } else {
@@ -722,10 +763,12 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             self.add_reference(
               symbol_ext.clone(),
               IdOrMemExpr::Id(default_ident.to_id().into()),
+              false,
             );
             self.add_reference(
               BetterId::from(default_ident.to_id()).into(),
               IdOrMemExpr::Id(symbol_ext.id.clone()),
+              false,
             );
             symbol_ext
           } else {
