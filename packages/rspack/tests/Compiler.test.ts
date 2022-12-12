@@ -1090,8 +1090,8 @@ describe("Compiler", () => {
 				plugins: [new MyPlugin()]
 			});
 
-			compiler.build((_, stats) => {
-				done();
+			compiler.build((err, stats) => {
+				done(err);
 			});
 		});
 
@@ -1130,8 +1130,8 @@ describe("Compiler", () => {
 				plugins: [new MyPlugin()]
 			});
 
-			compiler.build((_, stats) => {
-				done();
+			compiler.build((err, stats) => {
+				done(err);
 			});
 		});
 
@@ -1174,7 +1174,7 @@ describe("Compiler", () => {
 			compiler.build((err, stats) => {
 				expect(mockFn).toHaveBeenCalled();
 
-				done();
+				done(err);
 			});
 		});
 
@@ -1207,8 +1207,8 @@ describe("Compiler", () => {
 				plugins: [new MyPlugin()]
 			});
 
-			compiler.build((_, stats) => {
-				done();
+			compiler.build((err, stats) => {
+				done(err);
 			});
 		});
 

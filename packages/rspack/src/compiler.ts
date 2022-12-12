@@ -199,13 +199,32 @@ class Compiler {
 	 */
 	#done(statsJson: binding.JsStatsCompilation) {}
 
-	async #processAssets(assets: Record<string, binding.JsCompatSource>) {
-		let iterator = Object.entries(assets).map(([filename, source]) => [
-			filename,
-			createSourceFromRaw(source)
-		]);
+	async #processAssets() {
 		await this.compilation.hooks.processAssets.promise(
-			Object.fromEntries(iterator)
+			new Proxy(
+				{},
+				{
+					get: (_, property) => {
+						return this.compilation.__internal__getAssetSource(
+							property as string
+						);
+					},
+					has: (_, property) => {
+						return this.compilation.__internal__hasAsset(property as string);
+					},
+					ownKeys: _ => {
+						return this.compilation.__internal__getAssetFilenames();
+					},
+					getOwnPropertyDescriptor() {
+						// To work with `Object.keys`, you should mark the property as enumerable.
+						// See: https://262.ecma-international.org/7.0/#sec-enumerableownnames
+						return {
+							enumerable: true,
+							configurable: true
+						};
+					}
+				}
+			)
 		);
 	}
 

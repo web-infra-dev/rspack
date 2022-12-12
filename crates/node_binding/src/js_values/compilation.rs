@@ -121,6 +121,22 @@ impl JsCompilation {
   }
 
   #[napi]
+  pub fn get_asset_filenames(&self) -> Result<Vec<String>> {
+    let filenames = self
+      .inner
+      .assets
+      .iter()
+      .map(|(name, _)| name.clone())
+      .collect();
+    Ok(filenames)
+  }
+
+  #[napi]
+  pub fn has_asset(&self, name: String) -> Result<bool> {
+    Ok(self.inner.assets.get(&name).is_some())
+  }
+
+  #[napi]
   pub fn emit_asset(
     &mut self,
     filename: String,
