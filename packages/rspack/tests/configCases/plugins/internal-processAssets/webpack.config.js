@@ -1,3 +1,4 @@
+const assert = require("assert");
 const { RawSource, ConcatSource } = require("webpack-sources");
 
 /**
@@ -18,6 +19,16 @@ module.exports = {
 									new ConcatSource(new RawSource("//banner;\n"), value)
 								);
 							}
+						}
+					);
+
+					compilation.hooks.processAssets.tapPromise(
+						"processAssets2",
+						async assets => {
+							assert((Object.keys(assets).length = 1));
+							assert((Object.getOwnPropertyNames(assets).length = 1));
+							assert((Reflect.ownKeys(assets).length = 1));
+							assert("main.js" in assets);
 						}
 					);
 				});
