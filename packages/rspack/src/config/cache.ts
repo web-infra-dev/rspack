@@ -21,7 +21,7 @@ export type ResolvedCache = RawCacheOptions;
 
 export function resolveCacheOptions(cache: Cache): ResolvedCache {
 	const result = {
-		cacheType: "",
+		type: "",
 		maxGenerations: 0,
 		maxAge: 0,
 		profile: false,
@@ -37,7 +37,7 @@ export function resolveCacheOptions(cache: Cache): ResolvedCache {
 	}
 
 	if (cache === true) {
-		return { ...result, cacheType: "memory" };
+		return { ...result, type: "memory" };
 	}
 
 	if (cache.type === "memory") {
@@ -48,7 +48,6 @@ export function resolveCacheOptions(cache: Cache): ResolvedCache {
 
 	return {
 		...result,
-		...cache,
-		cacheType: cache.type
+		...cache
 	};
 }

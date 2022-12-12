@@ -14,7 +14,7 @@ use crate::RawOption;
 #[cfg(feature = "node-api")]
 #[napi(object)]
 pub struct RawCacheOptions {
-  pub cache_type: String,
+  pub r#type: String,
   pub max_generations: u32,
   pub max_age: u32,
   pub profile: bool,
@@ -29,7 +29,7 @@ pub struct RawCacheOptions {
 #[serde(rename_all = "camelCase")]
 #[cfg(not(feature = "node-api"))]
 pub struct RawCacheOptions {
-  pub cache_type: String,
+  pub r#type: String,
   pub max_generations: u32,
   pub max_age: u32,
   pub profile: bool,
@@ -43,7 +43,7 @@ pub struct RawCacheOptions {
 impl RawOption<CacheOptions> for RawCacheOptions {
   fn to_compiler_option(self, _options: &CompilerOptionsBuilder) -> anyhow::Result<CacheOptions> {
     let Self {
-      cache_type,
+      r#type,
       max_generations,
       max_age,
       profile,
@@ -54,7 +54,7 @@ impl RawOption<CacheOptions> for RawCacheOptions {
       version,
     } = self;
 
-    Ok(match cache_type.as_str() {
+    Ok(match r#type.as_str() {
       "memory" => CacheOptions::Memory(MemoryCacheOptions { max_generations }),
       "filesystem" => CacheOptions::FileSystem(FileSystemCacheOptions {
         max_age,
