@@ -6,20 +6,19 @@ use crate::{
 use futures::future::BoxFuture;
 use rspack_error::{Result, TWithDiagnosticArray};
 use std::sync::Arc;
-use tokio::sync::RwLock;
 
 type Storage = dyn storage::Storage<(Snapshot, TWithDiagnosticArray<BuildResult>)>;
 
 #[derive(Debug)]
 pub struct BuildModuleOccasion {
-  storage: Option<RwLock<Box<Storage>>>,
+  storage: Option<Box<Storage>>,
   snapshot_manager: Arc<SnapshotManager>,
 }
 
 impl BuildModuleOccasion {
   pub fn new(storage: Option<Box<Storage>>, snapshot_manager: Arc<SnapshotManager>) -> Self {
     Self {
-      storage: storage.map(RwLock::new),
+      storage,
       snapshot_manager,
     }
   }
@@ -43,7 +42,6 @@ impl BuildModuleOccasion {
     if module.as_normal_module().is_some() {
       // normal module
       // TODO cache all module type
-      let storage = storage.read().await;
       if let Some((snapshot, data)) = storage.get(&id) {
         let valid = self
           .snapshot_manager
@@ -65,7 +63,7 @@ impl BuildModuleOccasion {
         // TODO replace id with source file path or just cache normal module
         .create_snapshot(vec![id.clone()], |option| &option.module)
         .await?;
-      storage.write().await.set(id, (snapshot, data.clone()));
+      storage.set(id, (snapshot, data.clone()));
     }
     Ok(data)
   }

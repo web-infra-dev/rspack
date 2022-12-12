@@ -5,7 +5,9 @@ use tokio::sync::Mutex;
 mod occasion;
 mod snapshot;
 mod storage;
-use occasion::{BuildModuleOccasion, CodeGenerateOccasion, ResolveModuleOccasion};
+use occasion::{
+  BuildModuleOccasion, CodeGenerateOccasion, CreateChunkAssetsOccasion, ResolveModuleOccasion,
+};
 use snapshot::SnapshotManager;
 use storage::new_storage;
 
@@ -16,6 +18,7 @@ pub struct Cache {
   pub resolve_module_occasion: ResolveModuleOccasion,
   pub build_module_occasion: BuildModuleOccasion,
   pub code_generate_occasion: CodeGenerateOccasion,
+  pub create_chunk_assets_occasion: CreateChunkAssetsOccasion,
 }
 
 impl Cache {
@@ -33,6 +36,7 @@ impl Cache {
         snapshot_manager,
       ),
       code_generate_occasion: CodeGenerateOccasion::new(new_storage(&options.cache)),
+      create_chunk_assets_occasion: CreateChunkAssetsOccasion::new(new_storage(&options.cache)),
     }
   }
 

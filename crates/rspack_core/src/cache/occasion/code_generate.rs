@@ -1,19 +1,16 @@
 use crate::{cache::storage, BoxModule, CodeGenerationResult, NormalModuleAstOrSource};
 use rspack_error::Result;
-use std::sync::RwLock;
 
 type Storage = dyn storage::Storage<CodeGenerationResult>;
 
 #[derive(Debug)]
 pub struct CodeGenerateOccasion {
-  storage: Option<RwLock<Box<Storage>>>,
+  storage: Option<Box<Storage>>,
 }
 
 impl CodeGenerateOccasion {
   pub fn new(storage: Option<Box<Storage>>) -> Self {
-    Self {
-      storage: storage.map(RwLock::new),
-    }
+    Self { storage }
   }
 
   #[allow(clippy::unwrap_in_result)]
@@ -37,7 +34,6 @@ impl CodeGenerateOccasion {
       // only cache normal module
       // TODO cache all module type
       if matches!(module.ast_or_source(), NormalModuleAstOrSource::Unbuild) {
-        let storage = storage.read().unwrap();
         if let Some(data) = storage.get(&id) {
           return Ok(data);
         }
@@ -50,7 +46,7 @@ impl CodeGenerateOccasion {
     // run generator and save to cache
     let data = generator(module)?;
     if need_cache {
-      storage.write().unwrap().set(id, data.clone());
+      storage.set(id, data.clone());
     }
     Ok(data)
   }
