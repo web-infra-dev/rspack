@@ -13,8 +13,10 @@ pub struct OptimizeDependencyResult {
   pub analyze_results: HashMap<Ustr, TreeShakingResult>,
   pub bail_out_module_identifiers: HashMap<Ustr, BailoutReason>,
 }
-const DISABLE_ANALYZE_LOGGING: bool = true;
+const DISABLE_ANALYZE_LOGGING: bool = false;
 pub static CARED_MODULE_ID: &[&str] = &[
+  // "/Users/bytedance/Documents/bytedance/monorepo/common/temp/node_modules/.pnpm/@universe-design+react@2.20.4_kmhvk2unyuwyyku4khnxoqgdjq/node_modules/@universe-design/react/es/index.js",
+  // "/Users/bytedance/Documents/bytedance/monorepo/common/temp/node_modules/.pnpm/@universe-design+react@2.20.4_kmhvk2unyuwyyku4khnxoqgdjq/node_modules/@universe-design/react/es/switch"
   // "common/temp/node_modules/.pnpm/@universe-design+react@2.20.4_kmhvk2unyuwyyku4khnxoqgdjq/node_modules/@universe-design/react/es/badge/SVGTextBadge.js",
   // "common/temp/node_modules/.pnpm/@universe-design+react@2.20.4_kmhvk2unyuwyyku4khnxoqgdjq/node_modules/@universe-design/react/es/badge/utils.js"
   // "/Users/bytedance/Documents/bytedance/monorepo/common/temp/node_modules/.pnpm/antd@4.6.6_wcqkhtmu7mswc6yz4uyexck3ty/node_modules/antd/es/layout/index.js",

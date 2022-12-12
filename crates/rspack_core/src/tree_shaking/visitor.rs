@@ -198,6 +198,7 @@ impl<'a> ModuleRefAnalyze<'a> {
               *uri,
               property.clone(),
               self.module_identifier,
+              rspack_symbol::IndirectType::Default,
             )),
           })
         }
@@ -333,6 +334,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                 *uri,
                 property.clone(),
                 self.module_identifier,
+                rspack_symbol::IndirectType::Default,
               )));
           }
           _ => {
@@ -397,6 +399,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   resolved_uri_ukey,
                   imported,
                   self.module_identifier,
+                  rspack_symbol::IndirectType::Default,
                 ));
                 self.add_import(named.local.to_id().into(), symbol_ref);
               }
@@ -407,6 +410,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                     resolved_uri_ukey,
                     "default".into(),
                     self.module_identifier,
+                    rspack_symbol::IndirectType::Default,
                   )),
                 );
               }
@@ -982,6 +986,7 @@ impl<'a> ModuleRefAnalyze<'a> {
               resolved_uri_ukey,
               original,
               self.module_identifier,
+              rspack_symbol::IndirectType::ReExport,
             ));
             self.add_export(exported, symbol_ref);
           }
