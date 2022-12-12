@@ -13,7 +13,7 @@ pub struct OptimizeDependencyResult {
   pub analyze_results: HashMap<Ustr, TreeShakingResult>,
   pub bail_out_module_identifiers: HashMap<Ustr, BailoutReason>,
 }
-const DISABLE_ANALYZE_LOGGING: bool = false;
+const DISABLE_ANALYZE_LOGGING: bool = true;
 pub static CARED_MODULE_ID: &[&str] = &[
   // "common/temp/node_modules/.pnpm/@universe-design+react@2.20.4_kmhvk2unyuwyyku4khnxoqgdjq/node_modules/@universe-design/react/es/badge/SVGTextBadge.js",
   // "common/temp/node_modules/.pnpm/@universe-design+react@2.20.4_kmhvk2unyuwyyku4khnxoqgdjq/node_modules/@universe-design/react/es/badge/utils.js"
