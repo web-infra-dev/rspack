@@ -151,6 +151,7 @@ impl Compiler {
     stats
   }
 
+  #[instrument(name = "emit_assets", skip_all)]
   pub fn emit_assets(&self, compilation: &Compilation) -> Result<()> {
     let output_path = self.options.context.join(&self.options.output.path);
     if !output_path.exists() {
@@ -165,6 +166,7 @@ impl Compiler {
       .try_for_each(|(filename, asset)| self.emit_asset(&output_path, filename, asset))
   }
 
+  #[instrument(name = "emit_asset", skip_all)]
   fn emit_asset(&self, output_path: &Path, filename: &str, asset: &CompilationAsset) -> Result<()> {
     let file_path = Path::new(&output_path).join(filename);
     std::fs::create_dir_all(

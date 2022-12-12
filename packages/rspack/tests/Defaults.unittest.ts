@@ -91,11 +91,11 @@ describe("snapshots", () => {
 		    "buildDependencies": [],
 		    "cacheDirectory": "",
 		    "cacheLocation": "",
-		    "cacheType": "memory",
 		    "maxAge": 0,
 		    "maxGenerations": 0,
 		    "name": "",
 		    "profile": false,
+		    "type": "memory",
 		    "version": "",
 		  },
 		  "context": "<cwd>",
@@ -212,8 +212,8 @@ describe("snapshots", () => {
 		-       "enable": false,
 		+       "enable": true,
 		@@ ... @@
-		-     "cacheType": "memory",
-		+     "cacheType": "",
+		-     "type": "memory",
+		+     "type": "",
 		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "production",
@@ -231,8 +231,8 @@ describe("snapshots", () => {
 		-       "enable": false,
 		+       "enable": true,
 		@@ ... @@
-		-     "cacheType": "memory",
-		+     "cacheType": "",
+		-     "type": "memory",
+		+     "type": "",
 		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "production",
@@ -518,9 +518,7 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-     "cacheType": "memory",
-		+     "cacheType": "filesystem",
-		@@ ... @@
+		-     "type": "memory",
 		+     "type": "filesystem",
 	`)
 	);
@@ -533,9 +531,7 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-     "cacheType": "memory",
-			+     "cacheType": "filesystem",
-			@@ ... @@
+			-     "type": "memory",
 			+     "type": "filesystem",
 			@@ ... @@
 			-   "mode": "none",
@@ -559,8 +555,8 @@ describe("snapshots", () => {
 			@@ ... @@
 			+   "amd": false,
 			@@ ... @@
-			-     "cacheType": "memory",
-			+     "cacheType": "",
+			-     "type": "memory",
+			+     "type": "",
 			@@ ... @@
 			+   "node": false,
 		`)
@@ -635,9 +631,7 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-     "cacheType": "memory",
-			+     "cacheType": "filesystem",
-			@@ ... @@
+			-     "type": "memory",
 			+     "type": "filesystem",
 			@@ ... @@
 			-   "context": "<cwd>",

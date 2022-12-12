@@ -18,6 +18,20 @@ async fn main() {
   println!("{:?}", bundle_dir);
   let mut options = read_test_config_and_normalize(&bundle_dir);
   options.__emit_error = true;
+  #[cfg(feature = "hmr")]
+  {
+    use rspack_core::{CacheOptions, MemoryCacheOptions, Minification};
+    // options.devtool = Default::default();
+    options.builtins.minify = Minification {
+      enable: false,
+      passes: 0,
+    };
+    options.cache = CacheOptions::Memory(MemoryCacheOptions { max_generations: 0 });
+    options.snapshot.resolve_build_dependencies.timestamp = true;
+    options.snapshot.build_dependencies.timestamp = true;
+    options.snapshot.resolve.timestamp = true;
+    options.snapshot.module.timestamp = true;
+  }
 
   let start = Instant::now();
   // println!("{:?}", options);
@@ -28,6 +42,27 @@ async fn main() {
     .await
     .unwrap_or_else(|e| panic!("{:?}, failed to compile in fixtrue {:?}", e, bundle_dir));
   println!("{:?}", start.elapsed());
+  #[cfg(feature = "hmr")]
+  {
+    let entry_js_path = bundle_dir.join("src/entry.js");
+    let index_js_content = std::fs::read_to_string(&entry_js_path).unwrap();
+    // change file
+    std::fs::write(&entry_js_path, index_js_content.clone() + "\n //").unwrap();
+    let start = Instant::now();
+    compiler.build().await.unwrap();
+    println!("{:?}", start.elapsed());
+    // remove a import
+    std::fs::write(&entry_js_path, "//".to_string() + &index_js_content.clone()).unwrap();
+    let start = Instant::now();
+    compiler.build().await.unwrap();
+    println!("{:?}", start.elapsed());
+    // recovery file
+    std::fs::write(&entry_js_path, index_js_content).unwrap();
+    let start = Instant::now();
+    compiler.build().await.unwrap();
+    println!("{:?}", start.elapsed());
+  }
+
   #[cfg(feature = "tracing")]
   {
     if let Some(guard) = guard {
