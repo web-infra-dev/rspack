@@ -3,7 +3,7 @@ use crate::{
   cache::storage,
   BoxModule, BuildResult,
 };
-use futures::future::BoxFuture;
+use futures::Future;
 use rspack_error::{Result, TWithDiagnosticArray};
 use std::sync::Arc;
 
@@ -23,13 +23,14 @@ impl BuildModuleOccasion {
     }
   }
 
-  pub async fn use_cache<'a, F>(
+  pub async fn use_cache<'a, G, F>(
     &self,
     module: &'a mut BoxModule,
-    generator: F,
+    generator: G,
   ) -> Result<TWithDiagnosticArray<BuildResult>>
   where
-    F: Fn(&'a mut BoxModule) -> BoxFuture<'a, Result<TWithDiagnosticArray<BuildResult>>>,
+    G: Fn(&'a mut BoxModule) -> F,
+    F: Future<Output = Result<TWithDiagnosticArray<BuildResult>>>,
   {
     let storage = match &self.storage {
       Some(s) => s,

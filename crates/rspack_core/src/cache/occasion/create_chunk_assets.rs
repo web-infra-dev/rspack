@@ -1,5 +1,5 @@
 use crate::{cache::storage, Chunk, Compilation, NormalModuleAstOrSource, RenderManifestEntry};
-use futures::future::BoxFuture;
+use futures::Future;
 use rspack_error::Result;
 
 type Storage = dyn storage::Storage<Vec<RenderManifestEntry>>;
@@ -14,14 +14,15 @@ impl CreateChunkAssetsOccasion {
     Self { storage }
   }
 
-  pub async fn use_cache<'a, F>(
+  pub async fn use_cache<'a, G, F>(
     &self,
     compilation: &Compilation,
     chunk: &Chunk,
-    generator: F,
+    generator: G,
   ) -> Result<Vec<RenderManifestEntry>>
   where
-    F: Fn() -> BoxFuture<'a, Result<Vec<RenderManifestEntry>>>,
+    G: Fn() -> F,
+    F: Future<Output = Result<Vec<RenderManifestEntry>>>,
   {
     let storage = match &self.storage {
       Some(s) => s,

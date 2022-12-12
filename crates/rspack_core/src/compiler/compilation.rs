@@ -510,50 +510,48 @@ impl Compilation {
     tokio::spawn(async move {
       let build_result = cache
         .build_module_occasion
-        .use_cache(&mut module, |module| {
-          Box::pin(async {
-            let resolved_loaders = if let Some(normal_module) = module.as_normal_module() {
-              let resource_data = normal_module.resource_resolved_data();
+        .use_cache(&mut module, |module| async {
+          let resolved_loaders = if let Some(normal_module) = module.as_normal_module() {
+            let resource_data = normal_module.resource_resolved_data();
 
-              compiler_options
-                .as_ref()
-                .module
-                .rules
-                .iter()
-                .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
-                  match module_rule_matcher(module_rule, resource_data) {
-                    Ok(val) => val.then_some(Ok(module_rule)),
-                    Err(err) => Some(Err(err)),
-                  }
-                })
-                .collect::<Result<Vec<_>>>()?
-            } else {
-              vec![]
-            };
-
-            let resolved_loaders = resolved_loaders
-              .into_iter()
-              .flat_map(|module_rule| module_rule.r#use.iter().map(Box::as_ref).rev())
-              .collect::<Vec<_>>();
-
-            plugin_driver
-              .read()
-              .await
-              .build_module(module.as_mut())
-              .await?;
-
-            let result = module
-              .build(BuildContext {
-                resolved_loaders,
-                loader_runner_runner: &loader_runner_runner,
-                compiler_options: &compiler_options,
+            compiler_options
+              .as_ref()
+              .module
+              .rules
+              .iter()
+              .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
+                match module_rule_matcher(module_rule, resource_data) {
+                  Ok(val) => val.then_some(Ok(module_rule)),
+                  Err(err) => Some(Err(err)),
+                }
               })
-              .await;
+              .collect::<Result<Vec<_>>>()?
+          } else {
+            vec![]
+          };
 
-            plugin_driver.read().await.succeed_module(module).await?;
+          let resolved_loaders = resolved_loaders
+            .into_iter()
+            .flat_map(|module_rule| module_rule.r#use.iter().map(Box::as_ref).rev())
+            .collect::<Vec<_>>();
 
-            result
-          })
+          plugin_driver
+            .read()
+            .await
+            .build_module(module.as_mut())
+            .await?;
+
+          let result = module
+            .build(BuildContext {
+              resolved_loaders,
+              loader_runner_runner: &loader_runner_runner,
+              compiler_options: &compiler_options,
+            })
+            .await;
+
+          plugin_driver.read().await.succeed_module(module).await?;
+
+          result
         })
         .await;
 
@@ -693,16 +691,14 @@ impl Compilation {
         let manifest = self
           .cache
           .create_chunk_assets_occasion
-          .use_cache(self, chunk, || {
-            Box::pin(async {
-              plugin_driver
-                .read()
-                .await
-                .render_manifest(RenderManifestArgs {
-                  chunk_ukey: chunk.ukey,
-                  compilation: self,
-                })
-            })
+          .use_cache(self, chunk, || async {
+            plugin_driver
+              .read()
+              .await
+              .render_manifest(RenderManifestArgs {
+                chunk_ukey: chunk.ukey,
+                compilation: self,
+              })
           })
           .await;
 
