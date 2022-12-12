@@ -146,10 +146,10 @@ impl CodeGenerationResults {
     let mut hash = Xxh3::default();
     for (source_type, generation_result) in code_generation_result.inner() {
       source_type.hash(&mut hash);
+      if let Some(source) = generation_result.ast_or_source.as_source() {
+        source.hash(&mut hash);
+      }
       generation_result
-        .ast_or_source
-        .as_source()
-        .map(|s| s.hash(&mut hash));
     }
     hash.finish()
   }
