@@ -585,7 +585,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             None => {
               self.used_id_set.insert(member_expr);
             }
-            _ => {}
           }
         }
       }
