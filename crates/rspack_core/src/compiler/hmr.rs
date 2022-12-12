@@ -42,55 +42,26 @@ impl Compiler {
   ) -> Result<Stats> {
     let old = self.compilation.get_stats();
     let collect_changed_modules = |compilation: &Compilation| -> (
-      HashMap<ModuleIdentifier, String>,
+      HashMap<ModuleIdentifier, u64>,
       Vec<ModuleIdentifier>,
       HashMap<String, String>,
     ) {
-      // TODO: use hash;
-
-      let changed_modules = compilation
-        .module_graph
-        .module_graph_modules()
-        .filter_map(|item| {
-          use crate::SourceType::*;
-
-          compilation
-            .module_graph
-            .module_by_identifier(&item.module_identifier)
-            .and_then(|module| {
-              let identifier = module.identifier().to_string();
-              if !changed_files.contains(&identifier) && !removed_files.contains(&identifier) {
-                None
-              } else if item.module_type.is_js_like() {
-                let code = compilation
-                  .code_generation_results
-                  .module_generation_result_map
-                  .get(&item.module_identifier)
-                  .unwrap();
-                let code = if let Some(code) = code.get(&JavaScript) {
-                  code.ast_or_source.as_source().unwrap().source().to_string()
-                } else {
-                  println!("expect get JavaScirpt code");
-                  String::new()
-                };
-                Some((item.module_identifier, code))
-              } else if item.module_type.is_css_like() {
-                // TODO: should use code_generation_results
-                let code = module.code_generation(compilation).unwrap();
-                let code = if let Some(code) = code.get(&Css) {
-                  // only used for compare between two build
-                  code.ast_or_source.as_source().unwrap().source().to_string()
-                } else {
-                  println!("expect get CSS code");
-                  String::new()
-                };
-                Some((item.module_identifier, code))
-              } else {
-                None
-              }
-            })
-        })
-        .collect();
+      let mut changed_modules = HashMap::new();
+      for (ukey, chunk) in &compilation.chunk_by_ukey {
+        compilation
+          .chunk_graph
+          .get_chunk_modules(ukey, &compilation.module_graph)
+          .iter()
+          .for_each(|item| {
+            let identifier = item.module_identifier.to_string();
+            if changed_files.contains(&identifier) || removed_files.contains(&identifier) {
+              let hash = compilation
+                .code_generation_results
+                .get_hash(&item.module_identifier, Some(&chunk.runtime));
+              changed_modules.insert(item.module_identifier, hash);
+            }
+          });
+      }
 
       let all_modules = compilation
         .module_graph
@@ -193,10 +164,10 @@ impl Compiler {
     let mut updated_runtime_modules: HashSet<String> = Default::default();
     let mut completely_removed_modules: HashSet<ModuleIdentifier> = Default::default();
 
-    for (old_uri, old_content) in &old_changed_modules {
-      if let Some(now_content) = now_changed_modules.get(old_uri) {
+    for (old_uri, old_hash) in &old_changed_modules {
+      if let Some(now_hash) = now_changed_modules.get(old_uri) {
         // updated
-        if now_content != old_content {
+        if now_hash != old_hash {
           updated_modules.insert(*old_uri);
         }
       } else {
