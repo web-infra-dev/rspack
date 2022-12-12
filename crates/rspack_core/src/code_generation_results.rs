@@ -149,7 +149,6 @@ impl CodeGenerationResults {
       if let Some(source) = generation_result.ast_or_source.as_source() {
         source.hash(&mut hash);
       }
-      generation_result
     }
     hash.finish()
   }
