@@ -1,6 +1,8 @@
 use hashbrown::{HashMap, HashSet};
+use std::hash::{Hash, Hasher};
 
 use rspack_error::{internal_error, Error, InternalError, Result};
+use xxhash_rust::xxh3::Xxh3;
 
 use crate::{AstOrSource, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, SourceType};
 
@@ -131,5 +133,24 @@ impl CodeGenerationResults {
         HashSet::new()
       }
     }
+  }
+
+  pub fn get_hash(
+    &self,
+    module_identifier: &ModuleIdentifier,
+    runtime: Option<&RuntimeSpec>,
+  ) -> u64 {
+    let code_generation_result = self
+      .get(module_identifier, runtime)
+      .expect("should have code generation result");
+    let mut hash = Xxh3::default();
+    for (source_type, generation_result) in code_generation_result.inner() {
+      source_type.hash(&mut hash);
+      generation_result
+        .ast_or_source
+        .as_source()
+        .map(|s| s.hash(&mut hash));
+    }
+    hash.finish()
   }
 }
