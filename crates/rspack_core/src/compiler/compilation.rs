@@ -1120,10 +1120,12 @@ impl Compilation {
 
   #[instrument(skip_all)]
   pub fn create_hash(&mut self) {
-    for (chunk_ukey, chunk) in self.chunk_by_ukey.iter_mut() {
+    let mut chunks = self.chunk_by_ukey.values_mut().collect::<Vec<_>>();
+    chunks.sort_by_key(|chunk| chunk.ukey);
+    for chunk in chunks.iter_mut() {
       for mgm in self
         .chunk_graph
-        .get_chunk_modules(chunk_ukey, &self.module_graph)
+        .get_ordered_chunk_modules(&chunk.ukey, &self.module_graph)
       {
         if let Some(module) = self
           .module_graph
