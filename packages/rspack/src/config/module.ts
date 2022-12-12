@@ -3,17 +3,40 @@ import type {
 	RawModuleRule,
 	RawModuleRuleCondition,
 	RawModuleOptions,
+	JsAssetInfo,
 	JsLoaderContext,
-	JsLoaderResult
+	JsLoaderResult,
 } from "@rspack/binding";
 import assert from "assert";
+import { ResolveRequest } from "enhanced-resolve";
 import path from "path";
+import {
+	OriginalSource,
+	RawSource,
+	Source,
+	SourceMapSource
+} from "webpack-sources";
 import { Compiler } from "../compiler";
 import { Logger } from "../logging/Logger";
-import { ResolveOptions } from "../ResolverFactory";
+import {
+	ResolveOptions,
+	Resolver,
+	ResolverWithOptions
+} from "../ResolverFactory";
 import { isNil, isPromiseLike } from "../util";
+import { createHash } from "../util/createHash";
+import { createRawFromSource } from "../util/createSource";
+import Hash from "../util/hash";
+import { absolutify, contextify, makePathsRelative } from "../util/identifier";
+import { memoize } from "../util/memoize";
 import { ResolvedContext } from "./context";
-import { isUseSourceMap, ResolvedDevtool } from "./devtool";
+import {
+	isUseSimpleSourceMap,
+	isUseSourceMap,
+	ResolvedDevtool
+} from "./devtool";
+import { ResolvedMode } from "./mode";
+import { ResolvedTarget } from "./target";
 
 export type Condition = string | RegExp;
 
@@ -81,15 +104,43 @@ export interface LoaderContext
 	sourceMap: boolean;
 	rootContext: string;
 	context: string;
+	loaderIndex: number;
+	mode: ResolvedMode;
+	hot?: boolean;
 	getOptions(schema?: any): unknown;
+	resolve(
+		context: string,
+		request: string,
+		callback: (
+			arg0: null | Error,
+			arg1?: string | false,
+			arg2?: ResolveRequest
+		) => void
+	): void;
 	getResolve(
 		options: ResolveOptions
 	): (context: any, request: any, callback: any) => Promise<any>;
 	getLogger(name: string): Logger;
+	emitError(error: Error): void;
+	emitWarning(warning: Error): void;
+	emitFile(
+		name: string,
+		content: string | Buffer,
+		sourceMap?: string,
+		assetInfo?: JsAssetInfo
+	): void;
 	addDependency(file: string): void;
 	addContextDependency(context: string): void;
 	addMissingDependency(missing: string): void;
 	clearDependencies(): void;
+	fs: any;
+	utils: {
+		absolutify: (context: string, request: string) => string;
+		contextify: (context: string, request: string) => string;
+		createHash: (algorithm?: string) => Hash;
+	};
+	query: unknown;
+	data: unknown;
 }
 
 const toBuffer = (bufLike: string | Buffer): Buffer => {
@@ -134,7 +185,8 @@ export interface LoaderResult {
 
 function composeJsUse(
 	uses: ModuleRuleUse[],
-	options: ComposeJsUseOptions
+	options: ComposeJsUseOptions,
+	allUses: ModuleRuleUse[]
 ): RawModuleRuleUse | null {
 	if (!uses.length) {
 		return null;
@@ -143,6 +195,7 @@ function composeJsUse(
 	async function loader(data: JsLoaderContext): Promise<JsLoaderResult> {
 		const compiler = options.getCompiler();
 		const resolver = compiler.resolverFactory.get("normal");
+		const moduleContext = path.dirname(data.resourcePath);
 
 		let cacheable: boolean = data.cacheable;
 		let content: string | Buffer = data.content;
@@ -155,6 +208,8 @@ function composeJsUse(
 		// Loader is executed from right to left
 		for (const use of uses) {
 			assert("loader" in use);
+			const loaderIndex = allUses.indexOf(use);
+
 			let loaderResult: LoaderResult;
 
 			const p = new Promise<LoaderResult>((resolve, reject) => {
@@ -205,6 +260,36 @@ function composeJsUse(
 					};
 				};
 
+				const getAbsolutify = memoize(() =>
+					absolutify.bindCache(compiler.root)
+				);
+				const getAbsolutifyInContext = memoize(() =>
+					absolutify.bindContextCache(moduleContext, compiler.root)
+				);
+				const getContextify = memoize(() =>
+					contextify.bindCache(compiler.root)
+				);
+				const getContextifyInContext = memoize(() =>
+					contextify.bindContextCache(moduleContext, compiler.root)
+				);
+				const utils = {
+					absolutify: (context, request) => {
+						return context === moduleContext
+							? getAbsolutifyInContext()(request)
+							: getAbsolutify()(context, request);
+					},
+					contextify: (context, request) => {
+						return context === moduleContext
+							? getContextifyInContext()(request)
+							: getContextify()(context, request);
+					},
+					createHash: type => {
+						return createHash(
+							type || compiler.compilation.outputOptions.hashFunction
+						);
+					}
+				};
+
 				const loaderContext: LoaderContext = {
 					version: 2,
 					sourceMap: isUseSourceMap(options.devtool),
@@ -213,6 +298,9 @@ function composeJsUse(
 					// Return an empty string if there is no query or fragment
 					resourceQuery: data.resourceQuery || "",
 					resourceFragment: data.resourceFragment || "",
+					loaderIndex,
+					mode: compiler.options.mode,
+					hot: compiler.options.devServer.hot,
 					getOptions(schema) {
 						let { options } = use;
 
@@ -235,6 +323,23 @@ function composeJsUse(
 						}
 
 						return options;
+					},
+					get query() {
+						return use.options && typeof use.options === "object"
+							? use.options
+							: use.query;
+					},
+					get data() {
+						return use.data;
+					},
+					resolve(context, request, callback) {
+						resolver.resolve(
+							{},
+							context,
+							request,
+							getResolveContext(),
+							callback
+						);
 					},
 					getResolve(options) {
 						const child = options ? resolver.withOptions(options) : resolver;
@@ -283,7 +388,62 @@ function composeJsUse(
 					},
 					callback,
 					rootContext: options.context,
-					context: path.dirname(data.resourcePath),
+					context: moduleContext,
+					emitError(error) {
+						const title = "Module Error";
+						const message =
+							error instanceof Error
+								? `${error.message}${error.stack ? `\n${error.stack}` : ""}`
+								: error;
+						compiler.compilation.pushDiagnostic(
+							"error",
+							title,
+							`${message}\n(from: ${use.loader})`
+						);
+					},
+					emitWarning(warning) {
+						const title = "Module Warning";
+						const message =
+							warning instanceof Error
+								? `${warning.message}${
+										warning.stack ? `\n${warning.stack}` : ""
+								  }`
+								: warning;
+						compiler.compilation.pushDiagnostic(
+							"warning",
+							title,
+							`${message}\n(from: ${use.loader})`
+						);
+					},
+					emitFile(name, content, sourceMap?, assetInfo?) {
+						let source: Source;
+						if (sourceMap) {
+							if (
+								typeof sourceMap === "string" &&
+								(loaderContext.sourceMap ||
+									isUseSimpleSourceMap(options.devtool))
+							) {
+								source = new OriginalSource(
+									content,
+									makePathsRelative(moduleContext, sourceMap, compiler)
+								);
+							}
+
+							if (this.useSourceMap) {
+								source = new SourceMapSource(
+									content as any, // webpack-sources type declaration is wrong
+									name,
+									makePathsRelative(moduleContext, sourceMap, compiler) as any // webpack-sources type declaration is wrong
+								);
+							}
+						} else {
+							source = new RawSource(content as any); // webpack-sources type declaration is wrong
+						}
+
+						compiler.compilation.emitAsset(name, source, assetInfo);
+					},
+					fs: compiler.inputFileSystem,
+					utils,
 
 					// Mock, we don't need to implement these since the dev-server use 'chokidar'
 					// to watch files under 'options.context'.
@@ -441,33 +601,37 @@ type ModuleRuleUse =
 			loader: Loader | string;
 			options?: unknown;
 			name?: string;
+			query?: string;
+			data?: unknown;
 	  };
 
 export function createRawModuleRuleUses(
 	uses: ModuleRuleUse[],
 	options: ComposeJsUseOptions
 ): RawModuleRuleUse[] {
-	return createRawModuleRuleUsesImpl([...uses].reverse(), options);
+	const allUses = [...uses].reverse();
+	return createRawModuleRuleUsesImpl(allUses, options, allUses);
 }
 
 function createRawModuleRuleUsesImpl(
 	uses: ModuleRuleUse[],
-	options: ComposeJsUseOptions
+	options: ComposeJsUseOptions,
+	allUses: ModuleRuleUse[]
 ): RawModuleRuleUse[] {
 	if (!uses.length) {
 		return [];
 	}
 	const index = uses.findIndex(use => "builtinLoader" in use);
 	if (index < 0) {
-		return [composeJsUse(uses, options)];
+		return [composeJsUse(uses, options, allUses)];
 	}
 
 	const before = uses.slice(0, index);
 	const after = uses.slice(index + 1);
 	return [
-		composeJsUse(before, options),
+		composeJsUse(before, options, allUses),
 		createNativeUse(uses[index]),
-		...createRawModuleRuleUsesImpl(after, options)
+		...createRawModuleRuleUsesImpl(after, options, allUses)
 	].filter((item): item is RawModuleRuleUse => Boolean(item));
 }
 

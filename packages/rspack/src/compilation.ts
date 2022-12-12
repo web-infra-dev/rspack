@@ -176,6 +176,14 @@ export class Compilation {
 		};
 	}
 
+	pushDiagnostic(
+		severity: "error" | "warning",
+		title: string,
+		message: string
+	) {
+		this.#inner.pushDiagnostic(severity, title, message);
+	}
+
 	// TODO: full alignment
 	getPath(filename: string, data: Record<string, any> = {}) {
 		if (!data.hash) {

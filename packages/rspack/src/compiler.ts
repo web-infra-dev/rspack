@@ -30,6 +30,7 @@ class Compiler {
 
 	webpack: any;
 	compilation: Compilation;
+	root: Compiler;
 	resolverFactory: ResolverFactory;
 	infrastructureLogger: any;
 	outputPath: string;
@@ -65,6 +66,7 @@ class Compiler {
 				return require("webpack-sources");
 			}
 		};
+		this.root = this;
 		this.context = context;
 		this.resolverFactory = new ResolverFactory();
 		this.hooks = {
