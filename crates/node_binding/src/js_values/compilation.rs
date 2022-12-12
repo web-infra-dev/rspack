@@ -122,18 +122,13 @@ impl JsCompilation {
 
   #[napi]
   pub fn get_asset_filenames(&self) -> Result<Vec<String>> {
-    let filenames = self
-      .inner
-      .assets
-      .iter()
-      .map(|(name, _)| name.clone())
-      .collect();
+    let filenames = self.inner.assets.keys().cloned().collect();
     Ok(filenames)
   }
 
   #[napi]
   pub fn has_asset(&self, name: String) -> Result<bool> {
-    Ok(self.inner.assets.get(&name).is_some())
+    Ok(self.inner.assets.contains_key(&name))
   }
 
   #[napi]
