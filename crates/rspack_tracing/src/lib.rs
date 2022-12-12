@@ -28,6 +28,7 @@ pub fn enable_tracing_by_env() {
         fmt::layer()
           .pretty()
           .with_file(true)
+          // To keep track of the closing point of spans
           .with_span_events(FmtSpan::CLOSE),
       )
       .with(
