@@ -8,6 +8,8 @@ mod inject_runtime_helper;
 use inject_runtime_helper::inject_runtime_helper;
 mod format;
 use format::*;
+mod module_variables;
+use module_variables::*;
 use rspack_core::Module;
 use swc_core::common::pass::Repeat;
 use swc_core::ecma::transforms::optimization::simplify::dce::{dce, Config};
@@ -149,6 +151,12 @@ pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut
         })),
         comments,
         generate_context.compilation.options.target.es_version
+      ),
+      module_variables(
+        module,
+        unresolved_mark,
+        top_level_mark,
+        generate_context.compilation
       ),
       inject_runtime_helper(generate_context.runtime_requirements),
       finalize(module, generate_context.compilation, unresolved_mark),
