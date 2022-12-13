@@ -196,7 +196,6 @@ impl Compiler {
         updated_runtime_modules.insert(identifier.clone());
       }
     }
-    println!("updated_runtime_modules{:?}", updated_runtime_modules);
 
     // ----
     let output_path = self

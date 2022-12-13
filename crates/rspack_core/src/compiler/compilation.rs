@@ -87,7 +87,7 @@ pub struct Compilation {
   pub code_generation_results: CodeGenerationResults,
   pub code_generated_modules: HashSet<ModuleIdentifier>,
   pub cache: Arc<Cache>,
-
+  pub hash: String,
   // TODO: make compilation safer
   _pin: PhantomPinned,
   // lazy compilation visit module
@@ -130,6 +130,7 @@ impl Compilation {
       code_generated_modules: Default::default(),
 
       cache,
+      hash: Default::default(),
       _pin: PhantomPinned,
       used_indirect_symbol: HashSet::default(),
       lazy_visit_modules: Default::default(),
@@ -1119,6 +1120,7 @@ impl Compilation {
 
   #[instrument(skip_all)]
   pub fn create_hash(&mut self) {
+    let mut compilation_hasher = Xxh3::new();
     let mut chunks = self.chunk_by_ukey.values_mut().collect::<Vec<_>>();
     chunks.sort_by_key(|chunk| chunk.ukey);
     for chunk in chunks.iter_mut() {
@@ -1131,6 +1133,7 @@ impl Compilation {
           .module_by_identifier(&mgm.module_identifier)
         {
           module.hash(&mut chunk.hash);
+          module.hash(&mut compilation_hasher);
         }
       }
     }
@@ -1144,6 +1147,7 @@ impl Compilation {
       {
         if let Some(module) = self.runtime_modules.get(identifier) {
           module.hash(self, &mut hasher);
+          module.hash(self, &mut compilation_hasher);
         }
       }
       let entry = self
@@ -1153,6 +1157,7 @@ impl Compilation {
       format!("{:x}", hasher.finish()).hash(&mut entry.hash);
     }
     tracing::trace!("hash runtime chunks");
+    self.hash = format!("{:x}", compilation_hasher.finish());
   }
 
   pub fn add_runtime_module(&mut self, chunk_ukey: &ChunkUkey, mut module: Box<dyn RuntimeModule>) {
