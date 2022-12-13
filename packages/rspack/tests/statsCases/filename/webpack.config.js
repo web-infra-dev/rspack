@@ -1,6 +1,6 @@
 module.exports = {
 	output: {
-		filename: "[id].xxxx.js",
-		chunkFilename: "[id].xxxx.js"
+		filename: "[id].[hash].js",
+		chunkFilename: "[id].[hash].js"
 	}
 };

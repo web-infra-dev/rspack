@@ -46,8 +46,8 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
         "development": false,
         "hotModuleReplacement": false,
       },
-      "name": "main.xxxx.js",
-      "size": 1321,
+      "name": "main.549f05.js",
+      "size": 1323,
       "type": "asset",
     },
     {
@@ -60,7 +60,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
         "development": false,
         "hotModuleReplacement": false,
       },
-      "name": "dynamic_js.xxxx.js",
+      "name": "dynamic_js.fb77ce.js",
       "size": 218,
       "type": "asset",
     },
@@ -69,7 +69,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
     {
       "entry": false,
       "files": [
-        "dynamic_js.xxxx.js",
+        "dynamic_js.fb77ce.js",
       ],
       "id": "dynamic_js",
       "initial": false,
@@ -80,7 +80,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
     {
       "entry": true,
       "files": [
-        "main.xxxx.js",
+        "main.549f05.js",
       ],
       "id": "main",
       "initial": true,
@@ -95,11 +95,11 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
     "main": {
       "assets": [
         {
-          "name": "main.xxxx.js",
-          "size": 1321,
+          "name": "main.549f05.js",
+          "size": 1323,
         },
       ],
-      "assetsSize": 1321,
+      "assetsSize": 1323,
       "chunks": [
         "main",
       ],
@@ -108,7 +108,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "43657cde39b00269",
+  "hash": "ac2020b3324ec09d",
   "modules": [
     {
       "chunks": [
@@ -160,13 +160,13 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for filename 2`] = `
-"Hash: 43657cde39b00269
-             Asset       Size      Chunks             Chunk Names
-      main.xxxx.js   1.29 KiB        main  [emitted]  main
-dynamic_js.xxxx.js  218 bytes  dynamic_js  [emitted]  
-Entrypoint main = main.xxxx.js
-chunk {dynamic_js} dynamic_js.xxxx.js 32 bytes
-chunk {main} main.xxxx.js (main) 38 bytes [entry]
+"Hash: ac2020b3324ec09d
+               Asset       Size      Chunks             Chunk Names
+      main.549f05.js   1.29 KiB        main  [emitted]  main
+dynamic_js.fb77ce.js  218 bytes  dynamic_js  [emitted]  
+Entrypoint main = main.549f05.js
+chunk {dynamic_js} dynamic_js.fb77ce.js 32 bytes
+chunk {main} main.549f05.js (main) 38 bytes [entry]
 [10] ./index.js 38 bytes {main}
     
 [426] ./dynamic.js 32 bytes {dynamic_js}
