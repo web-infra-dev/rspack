@@ -902,10 +902,9 @@ impl Compilation {
     // Its export symbol will be marked as used
     for (module_id, reason) in bail_out_module_identifiers.iter() {
       match reason {
-        BailoutReason::Helper | BailoutReason::CommonjsRequire | BailoutReason::CommonjsExports => {
-        }
+        BailoutReason::Helper | BailoutReason::CommonjsExports => {}
         BailoutReason::ExtendBailout => {}
-        BailoutReason::DynamicImport => {
+        BailoutReason::DynamicImport | BailoutReason::CommonjsRequire => {
           let used_symbol_set = collect_reachable_symbol(
             &analyze_results,
             *module_id,
