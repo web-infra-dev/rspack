@@ -1,6 +1,7 @@
 use crate::runtime_module::{
-  GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetMainFilenameRuntimeModule,
-  HasOwnPropertyRuntimeModule, LoadScriptRuntimeModule, PublicPathRuntimeModule,
+  GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
+  GetMainFilenameRuntimeModule, HasOwnPropertyRuntimeModule, LoadScriptRuntimeModule,
+  PublicPathRuntimeModule,
 };
 use async_trait::async_trait;
 use rspack_core::{
@@ -101,6 +102,9 @@ impl Plugin for BasicRuntimeRequirementPlugin {
         }
         runtime_globals::HAS_OWN_PROPERTY => {
           compilation.add_runtime_module(chunk, HasOwnPropertyRuntimeModule::default().boxed())
+        }
+        runtime_globals::GET_FULL_HASH => {
+          compilation.add_runtime_module(chunk, GetFullHashRuntimeModule::default().boxed())
         }
         _ => {}
       }

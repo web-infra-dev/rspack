@@ -1,4 +1,5 @@
-use rspack_core::{Compilation, Module};
+use rspack_core::{runtime_globals, Compilation, Module};
+use swc_core::{common::DUMMY_SP, ecma::utils::ExprFactory};
 use {
   swc_core::common::Mark,
   swc_core::ecma::ast::*,
@@ -6,6 +7,8 @@ use {
   swc_core::ecma::utils::{quote_ident, quote_str},
   swc_core::ecma::visit::{as_folder, Fold},
 };
+
+pub static WEBPACK_HASH: &str = "__webpack_hash__";
 
 pub fn module_variables<'a>(
   module: &'a dyn Module,
@@ -22,5 +25,14 @@ pub fn module_variables<'a>(
       ));
     }
   }
+  defs.push((
+    Box::new(Expr::Ident(quote_ident!(WEBPACK_HASH))),
+    Box::new(Expr::Call(CallExpr {
+      span: DUMMY_SP,
+      callee: Expr::Ident(quote_ident!(runtime_globals::GET_FULL_HASH)).as_callee(),
+      args: vec![],
+      type_args: None,
+    })),
+  ));
   as_folder(globals_defs(defs, unresolved_mark, top_level_mark))
 }

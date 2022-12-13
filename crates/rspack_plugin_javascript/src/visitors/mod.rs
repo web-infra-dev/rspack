@@ -152,13 +152,13 @@ pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut
         comments,
         generate_context.compilation.options.target.es_version
       ),
+      inject_runtime_helper(unresolved_mark, generate_context.runtime_requirements),
       module_variables(
         module,
         unresolved_mark,
         top_level_mark,
-        generate_context.compilation
+        generate_context.compilation,
       ),
-      inject_runtime_helper(generate_context.runtime_requirements),
       finalize(module, generate_context.compilation, unresolved_mark),
       swc_visitor::hygiene(false),
       swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),

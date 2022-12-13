@@ -122,3 +122,8 @@ pub const HMR_RUNTIME_STATE_PREFIX: &str = "__webpack_require__.hmrS";
  * Signature: ({ id, ids, modules, runtime }) => void
  */
 pub const EXTERNAL_INSTALL_CHUNK: &str = "__webpack_require__.C";
+
+/**
+ * the webpack hash
+ */
+pub const GET_FULL_HASH: &str = "__webpack_require__.h";
