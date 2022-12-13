@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fmt::Debug;
 use std::pin::Pin;
 
@@ -9,13 +8,13 @@ use async_trait::async_trait;
 use rspack_error::{internal_error, Error, InternalError};
 
 use crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
-use crate::{JsCompatSource, JsCompilation, JsHooks, JsStatsCompilation, ToJsCompatSource};
+use crate::{JsCompilation, JsHooks, JsStatsCompilation};
 
 pub struct JsHooksAdapter {
   pub done_tsfn: ThreadsafeFunction<JsStatsCompilation, ()>,
   pub compilation_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub this_compilation_tsfn: ThreadsafeFunction<JsCompilation, ()>,
-  pub process_assets_tsfn: ThreadsafeFunction<HashMap<String, JsCompatSource>, ()>,
+  pub process_assets_tsfn: ThreadsafeFunction<(), ()>,
 }
 
 impl Debug for JsHooksAdapter {
@@ -82,18 +81,12 @@ impl rspack_core::Plugin for JsHooksAdapter {
   async fn process_assets(
     &mut self,
     _ctx: rspack_core::PluginContext,
-    args: rspack_core::ProcessAssetsArgs<'_>,
+    _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {
-    let mut assets = HashMap::<String, JsCompatSource>::new();
-
-    for (filename, asset) in &args.compilation.assets {
-      let source = asset.source.as_ref().to_js_compat_source()?;
-      assets.insert(filename.clone(), source);
-    }
-
+    // Directly calling hook processAssets without converting assets to JsAssets, instead, we use APIs to get `Source` lazily on the Node side.
     self
       .process_assets_tsfn
-      .call(assets, ThreadsafeFunctionCallMode::Blocking)?
+      .call((), ThreadsafeFunctionCallMode::Blocking)?
       .await
       .map_err(|err| {
         Error::InternalError(internal_error!(format!(
@@ -159,7 +152,7 @@ impl JsHooksAdapter {
       })
     }?;
 
-    let mut process_assets_tsfn: ThreadsafeFunction<HashMap<String, JsCompatSource>, ()> = {
+    let mut process_assets_tsfn: ThreadsafeFunction<(), ()> = {
       let cb = unsafe { process_assets.raw() };
 
       ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {

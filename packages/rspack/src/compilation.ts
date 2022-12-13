@@ -187,6 +187,39 @@ export class Compilation {
 		return filename;
 	}
 
+	/**
+	 * Get the `Source` of an given asset filename.
+	 *
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__getAssetSource(filename: string): Source | null {
+		return createSourceFromRaw(this.#inner.getAssetSource(filename));
+	}
+
+	/**
+	 * Get a list of asset filenames.
+	 *
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__getAssetFilenames(): string[] {
+		return this.#inner.getAssetFilenames();
+	}
+
+	/**
+	 * Test if an asset exists.
+	 *
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__hasAsset(name: string): boolean {
+		return this.#inner.hasAsset(name);
+	}
+
 	createStats() {
 		return {};
 	}

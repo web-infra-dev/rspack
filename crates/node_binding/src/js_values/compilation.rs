@@ -111,6 +111,27 @@ impl JsCompilation {
   }
 
   #[napi]
+  pub fn get_asset_source(&self, name: String) -> Result<Option<JsCompatSource>> {
+    self
+      .inner
+      .assets
+      .get(&name)
+      .map(|v| v.source.to_js_compat_source())
+      .transpose()
+  }
+
+  #[napi]
+  pub fn get_asset_filenames(&self) -> Result<Vec<String>> {
+    let filenames = self.inner.assets.keys().cloned().collect();
+    Ok(filenames)
+  }
+
+  #[napi]
+  pub fn has_asset(&self, name: String) -> Result<bool> {
+    Ok(self.inner.assets.contains_key(&name))
+  }
+
+  #[napi]
   pub fn emit_asset(
     &mut self,
     filename: String,
