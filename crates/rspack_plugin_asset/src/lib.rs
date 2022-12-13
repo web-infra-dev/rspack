@@ -252,7 +252,10 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     let hash = hash_value_to_string(self.hash_for_ast_or_source(ast_or_source));
 
     let asset_filename = asset_filename_template.render(FilenameRenderOptions {
-      filename: None,
+      filename: module.as_normal_module().and_then(|m| {
+        let p = Path::new(&m.resource_resolved_data().resource_path);
+        p.file_stem().map(|s| s.to_string_lossy().to_string())
+      }),
       path: module.as_normal_module().map(|m| {
         Path::new(&m.resource_resolved_data().resource_path)
           .relative(&generate_context.compilation.options.context)
