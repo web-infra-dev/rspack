@@ -236,6 +236,13 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         SymbolRef::Direct(symbol) => {
           let reachable_import_and_export =
             self.get_all_import_or_export(symbol.id().clone(), false);
+          if key != &symbol.id().atom {
+            // export {xxx as xxx}
+            self.reachable_import_and_export.insert(
+              symbol.id().atom.clone(),
+              reachable_import_and_export.clone(),
+            );
+          }
           self
             .reachable_import_and_export
             .insert(key.clone(), reachable_import_and_export);
@@ -493,7 +500,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     let before_owner_extend_symbol = self.current_body_owner_symbol_ext.clone();
     let default_ident: BetterId = self.generate_default_ident().to_id().into();
 
-    self.export_map.insert(
+    self.add_export(
       default_ident.atom.clone(),
       SymbolRef::Direct(Symbol::from_id_and_uri(
         default_ident.clone(),
@@ -644,7 +651,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     if self.state.contains(AnalyzeState::EXPORT_DEFAULT) {
       self.state.remove(AnalyzeState::EXPORT_DEFAULT);
       let default_ident = self.generate_default_ident();
-      self.export_map.insert(
+      self.add_export(
         default_ident.sym.clone(),
         SymbolRef::Direct(Symbol::from_id_and_uri(
           default_ident.to_id().into(),
@@ -740,7 +747,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     if self.state.contains(AnalyzeState::EXPORT_DEFAULT) {
       self.state.remove(AnalyzeState::EXPORT_DEFAULT);
       let default_ident = self.generate_default_ident();
-      self.export_map.insert(
+      self.add_export(
         default_ident.sym.clone(),
         SymbolRef::Direct(Symbol::from_id_and_uri(
           default_ident.to_id().into(),
