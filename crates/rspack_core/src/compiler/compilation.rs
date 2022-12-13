@@ -19,7 +19,6 @@ use std::{
   str::FromStr,
   sync::atomic::{AtomicU32, Ordering},
   sync::Arc,
-  time::Instant,
 };
 use sugar_path::SugarPath;
 use swc_core::ecma::atoms::JsWord;
@@ -1284,6 +1283,7 @@ pub struct AssetInfoRelated {
   pub source_map: Option<String>,
 }
 
+#[allow(clippy::too_many_arguments)]
 fn collect_reachable_symbol(
   analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
   entry_identifier: Ustr,
@@ -1373,6 +1373,7 @@ fn collect_reachable_symbol(
   used_symbol_set
 }
 
+#[allow(clippy::too_many_arguments)]
 fn mark_used_symbol_with(
   analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
   mut init_queue: VecDeque<SymbolRef>,
@@ -1506,18 +1507,17 @@ fn mark_symbol(
               if is_first_result {
                 let tuple = (indirect_symbol.uri, *module_identifier);
                 if !traced_tuple.contains(&tuple) {
-                  let start = Instant::now();
-                  let ways = algo::all_simple_paths::<Vec<_>, _>(
-                    &inherit_extend_graph,
-                    indirect_symbol.uri,
-                    *module_identifier,
-                    0,
-                    None,
-                  )
-                  .collect::<Vec<_>>();
-                  // dbg!(start.elapsed());
-                  used_export_module_identifiers.extend(ways.into_iter().flatten());
-                  // dbg!(&ways);
+                  used_export_module_identifiers.extend(
+                    algo::all_simple_paths::<Vec<_>, _>(
+                      &inherit_extend_graph,
+                      indirect_symbol.uri,
+                      *module_identifier,
+                      0,
+                      None,
+                    )
+                    .into_iter()
+                    .flatten(),
+                  );
                   traced_tuple.insert(tuple);
                 }
                 is_first_result = false;
