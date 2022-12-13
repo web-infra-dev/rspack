@@ -34,6 +34,8 @@ mod snapshot;
 pub use snapshot::*;
 mod experiments;
 pub use experiments::*;
+mod node;
+pub use node::*;
 
 #[derive(Debug, Default)]
 pub struct CompilerOptionsBuilder {
@@ -55,6 +57,7 @@ pub struct CompilerOptionsBuilder {
   pub cache: Option<CacheOptions>,
   pub module_ids: Option<ModuleIds>,
   pub experiments: Option<Experiments>,
+  pub node: Option<NodeOption>,
 }
 
 impl CompilerOptionsBuilder {
@@ -79,6 +82,7 @@ impl CompilerOptionsBuilder {
       snapshot: self.snapshot.unwrap(),
       cache: self.cache.unwrap(),
       experiments: self.experiments.unwrap(),
+      node: self.node.unwrap(),
       __emit_error: false,
       module_ids: self.module_ids.unwrap(),
     }

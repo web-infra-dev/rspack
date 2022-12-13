@@ -18,6 +18,7 @@ mod raw_external;
 mod raw_external_type;
 mod raw_mode;
 mod raw_module;
+mod raw_node;
 mod raw_optimization;
 mod raw_output;
 mod raw_plugins;
@@ -37,6 +38,7 @@ pub use raw_external::*;
 pub use raw_external_type::*;
 pub use raw_mode::*;
 pub use raw_module::*;
+pub use raw_node::*;
 pub use raw_optimization::*;
 pub use raw_output::*;
 pub use raw_plugins::*;
@@ -100,6 +102,7 @@ pub struct RawOptions {
   pub snapshot: Option<RawSnapshotOptions>,
   pub cache: Option<RawCacheOptions>,
   pub experiments: Option<RawExperiments>,
+  pub node: Option<RawNodeOption>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -127,6 +130,7 @@ pub struct RawOptions {
   pub snapshot: Option<RawSnapshotOptions>,
   pub cache: Option<RawCacheOptions>,
   pub experiments: Option<RawExperiments>,
+  pub node: Option<RawNodeOption>,
 }
 
 pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<CompilerOptions> {
@@ -253,6 +257,11 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
     .then(|mut options| {
       let experiments = RawOption::raw_to_compiler_option(raw_options.experiments, &options)?;
       options.experiments = Some(experiments);
+      Ok(options)
+    })?
+    .then(|mut options| {
+      let node = RawOption::raw_to_compiler_option(raw_options.node, &options)?;
+      options.node = Some(node);
       Ok(options)
     })?
     .finish();
