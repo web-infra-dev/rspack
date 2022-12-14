@@ -37,7 +37,6 @@ module.exports = class RspackMinifyPlugin {
 					}
 				}
 			);
-			console.log("result:", result);
 			return result;
 		}
 	}
