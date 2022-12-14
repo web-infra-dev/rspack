@@ -61,6 +61,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           snapshot: Default::default(),
           module_ids: rspack_core::ModuleIds::Named,
           experiments: Default::default(),
+          node: Default::default(),
           __emit_error: false,
         }),
         resolver_factory: Default::default(),

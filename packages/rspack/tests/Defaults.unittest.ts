@@ -120,6 +120,7 @@ describe("snapshots", () => {
 		    "parser": undefined,
 		    "rules": [],
 		  },
+		  "node": {},
 		  "optimization": {
 		    "minimize": undefined,
 		    "minimizer": undefined,
@@ -564,7 +565,10 @@ describe("snapshots", () => {
 			-     "cacheType": "memory",
 			+     "cacheType": "",
 			@@ ... @@
-			+   "node": false,
+			-   "node": Object {},
+			+   "node": Object {
+			+     "dirname": undefined,
+			+   },
 		`)
 	);
 
