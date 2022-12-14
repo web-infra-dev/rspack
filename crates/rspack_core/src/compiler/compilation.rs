@@ -797,18 +797,18 @@ impl Compilation {
         });
         // Keep this debug info until we stabilize the tree-shaking
 
-        if debug_care_module_id(uri_key) {
-          dbg!(
-            &uri_key,
-            // &analyzer.export_all_list,
-            &analyzer.export_map,
-            &analyzer.import_map,
-            &analyzer.decl_reference_map,
-            &analyzer.assign_reference_map,
-            &analyzer.reachable_import_and_export,
-            &analyzer.used_symbol_ref
-          );
-        }
+        // if debug_care_module_id(uri_key) {
+        //   dbg!(
+        //     &uri_key,
+        //     // &analyzer.export_all_list,
+        //     &analyzer.export_map,
+        //     &analyzer.import_map,
+        //     &analyzer.decl_reference_map,
+        //     &analyzer.assign_reference_map,
+        //     &analyzer.reachable_import_and_export,
+        //     &analyzer.used_symbol_ref
+        //   );
+        // }
 
         Some((uri_key, analyzer.into()))
       })
@@ -1425,9 +1425,9 @@ fn mark_symbol(
   traced_tuple: &mut HashSet<(Ustr, Ustr)>,
   errors: &mut Vec<Error>,
 ) {
-  if debug_care_module_id(symbol_ref.module_identifier()) {
-    dbg!(&symbol_ref);
-  }
+  // if debug_care_module_id(symbol_ref.module_identifier()) {
+  //   dbg!(&symbol_ref);
+  // }
   // We don't need mark the symbol usage if it is from a bailout module because
   // bailout module will skipping tree-shaking anyway
   // if debug_care_module_id(symbol_ref.module_identifier()) {
