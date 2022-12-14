@@ -14,8 +14,8 @@ use tokio::sync::RwLock;
 use tracing::instrument;
 
 use crate::{
-  cache::Cache, BoxModule, CompilerOptions, Dependency, LoaderRunnerRunner, ModuleGraphModule,
-  ModuleIdentifier, Plugin, PluginDriver, SharedPluginDriver, Stats,
+  cache::Cache, fast_set, BoxModule, CompilerOptions, Dependency, LoaderRunnerRunner,
+  ModuleGraphModule, ModuleIdentifier, Plugin, PluginDriver, SharedPluginDriver, Stats,
 };
 
 #[derive(Debug)]
@@ -75,15 +75,18 @@ impl Compiler {
     // TODO: maybe it's better to use external entries.
     self.plugin_driver.read().await.resolver.clear();
 
-    self.compilation = Compilation::new(
-      // TODO: use Arc<T> instead
-      self.options.clone(),
-      self.options.entry.clone(),
-      Default::default(),
-      Default::default(),
-      self.plugin_driver.clone(),
-      self.loader_runner_runner.clone(),
-      self.cache.clone(),
+    fast_set(
+      &mut self.compilation,
+      Compilation::new(
+        // TODO: use Arc<T> instead
+        self.options.clone(),
+        self.options.entry.clone(),
+        Default::default(),
+        Default::default(),
+        self.plugin_driver.clone(),
+        self.loader_runner_runner.clone(),
+        self.cache.clone(),
+      ),
     );
 
     // Fake this compilation as *currently* rebuilding does not create a new compilation
