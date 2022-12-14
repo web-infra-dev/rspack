@@ -19,8 +19,9 @@ pub type PluginMakeHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;
 pub type PluginProcessAssetsHookOutput = Result<()>;
 pub type PluginReadResourceOutput = Result<Option<Content>>;
-// FIXME: factorize should only return `BoxModule`, the first string currently is used to generate `id`(moduleIds)
-pub type PluginFactorizeHookOutput = Result<Option<(String, BoxModule)>>;
+pub type PluginLoadHookOutput = Result<Option<Content>>;
+// pub type PluginTransformOutput = Result<TransformResult>;
+pub type PluginFactorizeHookOutput = Result<Option<BoxModule>>;
 pub type PluginModuleHookOutput = Result<Option<BoxModule>>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
 pub type PluginRenderChunkHookOutput = Result<Option<BoxSource>>;

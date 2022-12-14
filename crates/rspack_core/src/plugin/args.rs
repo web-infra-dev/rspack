@@ -7,6 +7,9 @@ use crate::{
 use hashbrown::HashSet;
 use rspack_error::{internal_error, Error, Result};
 use std::fmt::Debug;
+use std::path::Path;
+use swc_core::ecma::ast::Program as SwcProgram;
+use swc_css::ast::Stylesheet;
 
 // #[derive(Debug)]
 // pub struct ParseModuleArgs<'a> {
@@ -53,6 +56,7 @@ pub struct ModuleArgs {
 
 #[derive(Debug, Clone)]
 pub struct ResolveArgs<'a> {
+  pub context: Option<&'a Path>,
   pub importer: Option<&'a str>,
   pub specifier: &'a str,
   pub kind: ResolveKind,

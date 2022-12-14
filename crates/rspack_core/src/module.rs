@@ -1,4 +1,5 @@
 use std::hash::Hash;
+use std::path::Path;
 use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
@@ -77,6 +78,10 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   fn readable_identifier(&self, _context: &Context) -> Cow<str>;
 
   fn size(&self, _source_type: &SourceType) -> f64;
+
+  fn context(&self) -> Option<&Path> {
+    None
+  }
 
   async fn build(
     &mut self,

@@ -14,6 +14,7 @@ use std::{
   fmt::Debug,
   hash::{Hash, Hasher},
   marker::PhantomPinned,
+  path::PathBuf,
   pin::Pin,
   sync::atomic::{AtomicU32, Ordering},
   sync::Arc,
@@ -337,6 +338,8 @@ impl Compilation {
       deps.into_iter().for_each(|dep| {
         let normal_module_factory = NormalModuleFactory::new(
           NormalModuleFactoryContext {
+            importer: None,
+            context: None,
             module_name: None,
             active_task_count: active_task_count.clone(),
             module_type: None,
@@ -578,6 +581,12 @@ impl Compilation {
             .collect::<Vec<_>>();
 
           Compilation::process_module_dependencies(
+            module
+              .as_normal_module()
+              .map(|module| module.resource_resolved_data().resource_path.to_owned()),
+            module
+              .as_normal_module()
+              .and_then(|module| module.context().map(|p| p.to_owned())),
             deps.clone(),
             active_task_count.clone(),
             tx.clone(),
@@ -625,6 +634,8 @@ impl Compilation {
 
   #[allow(clippy::too_many_arguments)]
   fn process_module_dependencies(
+    importer: Option<String>,
+    context: Option<PathBuf>,
     dependencies: Vec<Dependency>,
     active_task_count: Arc<AtomicU32>,
     tx: UnboundedSender<Msg>,
@@ -637,6 +648,8 @@ impl Compilation {
     dependencies.into_iter().for_each(|dep| {
       let normal_module_factory = NormalModuleFactory::new(
         NormalModuleFactoryContext {
+          importer: importer.clone(),
+          context: context.clone(),
           module_name: None,
           module_type: None,
           active_task_count: active_task_count.clone(),

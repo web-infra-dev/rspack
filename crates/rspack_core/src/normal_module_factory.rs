@@ -143,16 +143,16 @@ impl NormalModuleFactory {
   pub async fn factorize_normal_module(
     &mut self,
     resolve_options: Option<Resolve>,
-  ) -> Result<Option<(String, BoxModule, u32)>> {
-    // TODO: `importer` should use `NormalModule::context || options.context`;
-    let importer = self.dependency.parent_module_identifier.as_deref();
+  ) -> Result<Option<(BoxModule, u32)>> {
+    let context = self.context.context.as_deref();
     let specifier = self.dependency.detail.specifier.as_str();
     let kind = self.dependency.detail.kind;
     if should_skip_resolve(specifier) {
       return Ok(None);
     }
     let resolve_args = ResolveArgs {
-      importer,
+      context,
+      importer: self.context.importer.as_deref(),
       specifier,
       kind,
       span: self.dependency.detail.span,
@@ -175,22 +175,9 @@ impl NormalModuleFactory {
         }
       }
       ResolveResult::Ignored => {
-        // TODO: Duplicate with the head code in the `resolve` function, should remove it.
-        let importer = if let Some(importer) = importer {
-          Path::new(importer)
-            .parent()
-            .ok_or_else(|| anyhow::format_err!("parent() failed for {:?}", importer))?
-            .to_path_buf()
-        } else {
-          PathBuf::from(self.context.options.context.as_path())
-        };
-        // ----
-
-        // TODO: just for identifier tag. should removed after Module::identifier
-        let uri = format!("{}/{}", importer.display(), specifier);
-
+        let context = context.unwrap_or(&self.context.options.context);
         let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
-        let module_identifier = Ustr::from(&format!("ignored|{uri}"));
+        let module_identifier = Ustr::from(&format!("ignored|{}|{specifier}", context.display()));
 
         self
           .tx
@@ -208,14 +195,14 @@ impl NormalModuleFactory {
         let raw_module = RawModule::new(
           "/* (ignored) */".to_owned(),
           module_identifier,
-          format!("{uri} (ignored)"),
+          format!("{specifier} (ignored)"),
           Default::default(),
         )
         .boxed();
 
         self.context.module_type = Some(*raw_module.module_type());
 
-        return Ok(Some((uri, raw_module, dependency_id)));
+        return Ok(Some((raw_module, dependency_id)));
       }
     };
 
@@ -227,19 +214,6 @@ impl NormalModuleFactory {
     }
 
     let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
-
-    self
-      .tx
-      .send(Msg::DependencyReference(
-        (self.dependency.clone(), dependency_id),
-        Ustr::from(&uri),
-      ))
-      .map_err(|_| {
-        Error::InternalError(internal_error!(format!(
-          "Failed to resolve dependency {:?}",
-          self.dependency
-        )))
-      })?;
 
     let resolved_module_rules = self.calculate_module_rules(&resource_data)?;
     let resolved_module_type = self.calculate_module_type(
@@ -275,6 +249,19 @@ impl NormalModuleFactory {
       self.context.options.clone(),
     );
 
+    self
+      .tx
+      .send(Msg::DependencyReference(
+        (self.dependency.clone(), dependency_id),
+        normal_module.identifier(),
+      ))
+      .map_err(|_| {
+        Error::InternalError(internal_error!(format!(
+          "Failed to resolve dependency {:?}",
+          self.dependency
+        )))
+      })?;
+
     if let Some(module) = self
       .plugin_driver
       .read()
@@ -286,10 +273,10 @@ impl NormalModuleFactory {
       })
       .await?
     {
-      return Ok(Some((uri, module, dependency_id)));
+      return Ok(Some((module, dependency_id)));
     }
 
-    Ok(Some((uri, Box::new(normal_module), dependency_id)))
+    Ok(Some((Box::new(normal_module), dependency_id)))
   }
 
   fn calculate_module_rules(&self, resource_data: &ResourceData) -> Result<Vec<&ModuleRule>> {
@@ -361,9 +348,7 @@ impl NormalModuleFactory {
       )
       .await?;
 
-    let (_uri, module, dependency_id) = if let Some(module) = result {
-      // module
-      let (uri, module) = module;
+    let (module, dependency_id) = if let Some(module) = result {
       // TODO: remove this
       let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
       self.context.module_type = Some(*module.module_type());
@@ -380,7 +365,7 @@ impl NormalModuleFactory {
             self.dependency,
           )))
         })?;
-      (uri, module, dependency_id)
+      (module, dependency_id)
     } else if let Some(result) = self.factorize_normal_module(resolve_options).await? {
       result
     } else {
@@ -442,6 +427,9 @@ pub fn resolve_module_type_by_uri<T: AsRef<Path>>(uri: T) -> Option<ModuleType> 
 #[derive(Debug, Clone)]
 pub struct NormalModuleFactoryContext {
   pub module_name: Option<String>,
+  pub importer: Option<String>,
+  /// Context of the current resolving module
+  pub context: Option<PathBuf>,
   pub(crate) active_task_count: Arc<AtomicU32>,
   pub module_type: Option<ModuleType>,
   pub side_effects: Option<bool>,

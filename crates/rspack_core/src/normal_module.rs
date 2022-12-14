@@ -2,6 +2,7 @@ use std::{
   borrow::Cow,
   fmt::Debug,
   hash::Hash,
+  path::Path,
   sync::{
     atomic::{AtomicU32, Ordering},
     Arc,
@@ -430,6 +431,10 @@ impl Module for NormalModule {
 
   fn readable_identifier(&self, context: &Context) -> Cow<str> {
     Cow::Owned(context.shorten(&self.user_request))
+  }
+
+  fn context(&self) -> Option<&Path> {
+    Path::new(&self.resource_resolved_data().resource_path).parent()
   }
 
   fn size(&self, source_type: &SourceType) -> f64 {

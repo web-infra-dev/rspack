@@ -5,7 +5,7 @@ use crate::{
 };
 use futures::Future;
 use rspack_error::Result;
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 type Storage = dyn storage::Storage<(Snapshot, ResolveResult)>;
 
@@ -38,7 +38,11 @@ impl ResolveModuleOccasion {
       None => return generator(args).await,
     };
 
-    let id = format!("{}|{}", args.importer.unwrap_or(""), args.specifier);
+    let id = format!(
+      "{}|{}",
+      args.context.unwrap_or(&Path::new("")).display(),
+      args.specifier
+    );
     {
       // read
       if let Some((snapshot, data)) = storage.get(&id) {
