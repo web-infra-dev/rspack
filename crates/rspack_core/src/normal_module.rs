@@ -410,7 +410,7 @@ impl NormalModule {
 
 impl Identifiable for NormalModule {
   fn identifier(&self) -> ModuleIdentifier {
-    ustr(&self.request)
+    ustr(&format!("{}|{}", self.module_type, &self.request))
   }
 }
 
