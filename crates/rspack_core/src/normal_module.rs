@@ -544,7 +544,6 @@ impl NormalModule {
 impl Hash for NormalModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     "__rspack_internal__NormalModule".hash(state);
-    self.identifier().hash(state);
     if let Some(original_source) = &self.original_source {
       original_source.hash(state);
     }
