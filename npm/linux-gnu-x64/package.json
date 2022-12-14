@@ -1,0 +1,35 @@
+{
+  "name": "@rspack/binding-linux-gnu-64",
+  "version": "0.12.0",
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "main": "codespan-napi.darwin-x64.node",
+  "files": [
+    "codespan-napi.darwin-x64.node"
+  ],
+  "description": "Template project for writing node package with napi-rs",
+  "keywords": [
+    "napi-rs",
+    "NAPI",
+    "N-API",
+    "Rust",
+    "node-addon",
+    "node-addon-api"
+  ],
+  "author": {
+    "name": "IWANABETHATGUY"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">= 10"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "repository": "git@github.com:IWANABETHATGUY/codespan-napi.git"
+}
