@@ -94,6 +94,7 @@ impl Hash for RawModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     "__rspack_internal__RawModule".hash(state);
     self.identifier().hash(state);
+    self.source.hash(state);
   }
 }
 
