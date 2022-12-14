@@ -6,7 +6,7 @@ use hashbrown::{
   HashMap, HashSet,
 };
 use indexmap::IndexSet;
-use petgraph::prelude::GraphMap;
+use petgraph::{algo, prelude::GraphMap, Directed};
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use std::{
   borrow::BorrowMut,
@@ -48,7 +48,7 @@ use crate::{
   NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs,
   ResolveKind, RuntimeModule, SharedPluginDriver, Stats, VisitedModuleIdentity,
 };
-use rspack_symbol::{IndirectTopLevelSymbol, Symbol};
+use rspack_symbol::{IndirectTopLevelSymbol, IndirectType, Symbol};
 
 #[derive(Debug)]
 pub struct EntryData {
@@ -756,8 +756,7 @@ impl Compilation {
       .filter_map(|(module_identifier, mgm)| {
         let uri_key = ustr(module_identifier);
         let ast = match mgm.module_type {
-          crate::ModuleType::Js
-          | crate::ModuleType::Jsx | crate::ModuleType::Tsx
+          crate::ModuleType::Js | crate::ModuleType::Jsx | crate::ModuleType::Tsx
           | crate::ModuleType::Ts => match self
                       .module_graph
                       .module_by_identifier(&mgm.module_identifier)
@@ -835,7 +834,7 @@ impl Compilation {
     // dbg!(&used_symbol_ref);
 
     // calculate relation of module that has `export * from 'xxxx'`
-    let inherit_export_ref_graph = create_inherit_graph(&analyze_results);
+    let inherit_export_ref_graph = { create_inherit_graph(&analyze_results) };
     // key is the module_id of module that potential have reexport all symbol from other module
     // value is the set which contains several module_id the key related module need to inherit
     let map_of_inherit_map = get_extends_map(&inherit_export_ref_graph);
@@ -872,6 +871,7 @@ impl Compilation {
     let mut used_symbol = HashSet::new();
     let mut used_indirect_symbol: HashSet<IndirectTopLevelSymbol> = HashSet::new();
     let mut used_export_module_identifiers: HashSet<Ustr> = HashSet::new();
+    let mut traced_tuple = HashSet::new();
     // Marking used symbol and all reachable export symbol from the used symbol for each module
     let used_symbol_from_import = mark_used_symbol_with(
       &analyze_results,
@@ -880,6 +880,8 @@ impl Compilation {
       &mut evaluated_module_identifiers,
       &mut used_indirect_symbol,
       &mut used_export_module_identifiers,
+      &inherit_export_ref_graph,
+      &mut traced_tuple,
       &mut errors,
     );
 
@@ -894,6 +896,8 @@ impl Compilation {
         &bail_out_module_identifiers,
         &mut evaluated_module_identifiers,
         &mut used_export_module_identifiers,
+        &inherit_export_ref_graph,
+        &mut traced_tuple,
         &mut errors,
       );
       used_symbol.extend(used_symbol_set);
@@ -903,9 +907,9 @@ impl Compilation {
     // Its export symbol will be marked as used
     for (module_id, reason) in bail_out_module_identifiers.iter() {
       match reason {
-        BailoutReason::Helper | BailoutReason::CommonjsExports => {}
+        BailoutReason::CommonjsExports => {}
         BailoutReason::ExtendBailout => {}
-        BailoutReason::DynamicImport | BailoutReason::CommonjsRequire => {
+        BailoutReason::DynamicImport | BailoutReason::Helper | BailoutReason::CommonjsRequire => {
           let used_symbol_set = collect_reachable_symbol(
             &analyze_results,
             *module_id,
@@ -913,6 +917,8 @@ impl Compilation {
             &bail_out_module_identifiers,
             &mut evaluated_module_identifiers,
             &mut used_export_module_identifiers,
+            &inherit_export_ref_graph,
+            &mut traced_tuple,
             &mut errors,
           );
           used_symbol.extend(used_symbol_set);
@@ -1276,6 +1282,7 @@ pub struct AssetInfoRelated {
   pub source_map: Option<String>,
 }
 
+#[allow(clippy::too_many_arguments)]
 fn collect_reachable_symbol(
   analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
   entry_identifier: Ustr,
@@ -1283,6 +1290,8 @@ fn collect_reachable_symbol(
   bailout_module_identifiers: &HashMap<Ustr, BailoutReason>,
   evaluated_module_identifiers: &mut HashSet<Ustr>,
   used_export_module_identifiers: &mut HashSet<Ustr>,
+  inherit_extend_graph: &GraphMap<Ustr, (), Directed>,
+  traced_tuple: &mut HashSet<(Ustr, Ustr)>,
   errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
   let mut used_symbol_set = HashSet::new();
@@ -1290,7 +1299,9 @@ fn collect_reachable_symbol(
   let entry_module_result = match analyze_map.get(&entry_identifier) {
     Some(result) => result,
     None => {
-      panic!("Can't get analyze result from entry_identifier");
+      // TODO: checking if it is none js type
+      return HashSet::new();
+      // panic!("Can't get analyze result from entry_identifier {}", entry_identifier);
     }
   };
 
@@ -1337,6 +1348,8 @@ fn collect_reachable_symbol(
       bailout_module_identifiers,
       evaluated_module_identifiers,
       used_export_module_identifiers,
+      inherit_extend_graph,
+      traced_tuple,
       errors,
     );
   }
@@ -1351,12 +1364,15 @@ fn collect_reachable_symbol(
       bailout_module_identifiers,
       evaluated_module_identifiers,
       used_export_module_identifiers,
+      inherit_extend_graph,
+      traced_tuple,
       errors,
     );
   }
   used_symbol_set
 }
 
+#[allow(clippy::too_many_arguments)]
 fn mark_used_symbol_with(
   analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
   mut init_queue: VecDeque<SymbolRef>,
@@ -1364,6 +1380,8 @@ fn mark_used_symbol_with(
   evaluated_module_identifiers: &mut HashSet<Ustr>,
   used_indirect_symbol_set: &mut HashSet<IndirectTopLevelSymbol>,
   used_export_module_identifiers: &mut HashSet<Ustr>,
+  inherit_extend_graph: &GraphMap<Ustr, (), Directed>,
+  traced_tuple: &mut HashSet<(Ustr, Ustr)>,
   errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
   let mut used_symbol_set = HashSet::new();
@@ -1384,6 +1402,8 @@ fn mark_used_symbol_with(
       bailout_module_identifiers,
       evaluated_module_identifiers,
       used_export_module_identifiers,
+      inherit_extend_graph,
+      traced_tuple,
       errors,
     );
   }
@@ -1400,8 +1420,13 @@ fn mark_symbol(
   bailout_module_identifiers: &HashMap<Ustr, BailoutReason>,
   evaluated_module_identifiers: &mut HashSet<Ustr>,
   used_export_module_identifiers: &mut HashSet<Ustr>,
+  inherit_extend_graph: &GraphMap<Ustr, (), Directed>,
+  traced_tuple: &mut HashSet<(Ustr, Ustr)>,
   errors: &mut Vec<Error>,
 ) {
+  // if debug_care_module_id(symbol_ref.module_identifier()) {
+  //   dbg!(&symbol_ref);
+  // }
   // We don't need mark the symbol usage if it is from a bailout module because
   // bailout module will skipping tree-shaking anyway
   // if debug_care_module_id(symbol_ref.module_identifier()) {
@@ -1448,6 +1473,14 @@ fn mark_symbol(
       }
     },
     SymbolRef::Indirect(indirect_symbol) => {
+      let importer = indirect_symbol.importer();
+      if indirect_symbol.ty == IndirectType::ReExport
+        && !evaluated_module_identifiers.contains(&importer)
+      {
+        evaluated_module_identifiers.insert(importer);
+        let module_result = analyze_map.get(&importer).unwrap();
+        q.extend(module_result.used_symbol_ref.clone());
+      }
       used_indirect_symbol_set.insert(indirect_symbol.clone());
       let module_result = match analyze_map.get(&indirect_symbol.uri) {
         Some(module_result) => module_result,
@@ -1466,9 +1499,28 @@ fn mark_symbol(
           let mut ret = vec![];
           // Checking if any inherit export map is belong to a bailout module
           let mut has_bailout_module_identifiers = false;
+          let mut is_first_result = true;
           for (module_identifier, extends_export_map) in module_result.inherit_export_maps.iter() {
             if let Some(value) = extends_export_map.get(&indirect_symbol.id) {
               ret.push((module_identifier, value));
+              if is_first_result {
+                let tuple = (indirect_symbol.uri, *module_identifier);
+                if !traced_tuple.contains(&tuple) {
+                  used_export_module_identifiers.extend(
+                    algo::all_simple_paths::<Vec<_>, _>(
+                      &inherit_extend_graph,
+                      indirect_symbol.uri,
+                      *module_identifier,
+                      0,
+                      None,
+                    )
+                    .into_iter()
+                    .flatten(),
+                  );
+                  traced_tuple.insert(tuple);
+                }
+                is_first_result = false;
+              }
             }
             has_bailout_module_identifiers = has_bailout_module_identifiers
               || bailout_module_identifiers.contains_key(module_identifier);
@@ -1486,12 +1538,15 @@ fn mark_symbol(
               // let map = analyze_map.get(&module_result.module_identifier).unwrap();
               // dbg!(&map);
               if !is_bailout_module_identifier && !has_bailout_module_identifiers {
-                eprint!(
+                let error_message = format!(
                   "{} did not export `{}`, imported by {}",
                   module_result.module_identifier,
                   indirect_symbol.id,
                   indirect_symbol.importer()
                 );
+                errors.push(Error::InternalError(
+                  internal_error!(error_message).with_severity(Severity::Warn),
+                ));
                 return;
               } else {
                 // TODO: This branch should be remove after we analyze module.exports
@@ -1560,16 +1615,16 @@ fn mark_symbol(
 }
 
 fn get_extends_map(
-  export_all_ref_graph: &GraphMap<&Ustr, (), petgraph::Directed>,
+  export_all_ref_graph: &GraphMap<Ustr, (), petgraph::Directed>,
 ) -> HashMap<Ustr, HashSet<Ustr>> {
   let mut map = HashMap::new();
   for node in export_all_ref_graph.nodes() {
-    let reachable_set = get_reachable(*node, export_all_ref_graph);
-    map.insert(*node, reachable_set);
+    let reachable_set = get_reachable(node, export_all_ref_graph);
+    map.insert(node, reachable_set);
   }
   map
 }
-fn get_reachable(start: Ustr, g: &GraphMap<&Ustr, (), petgraph::Directed>) -> HashSet<Ustr> {
+fn get_reachable(start: Ustr, g: &GraphMap<Ustr, (), petgraph::Directed>) -> HashSet<Ustr> {
   let mut visited: HashSet<Ustr> = HashSet::new();
   let mut reachable_module_id = HashSet::new();
   let mut q = VecDeque::from_iter([start]);
@@ -1581,18 +1636,18 @@ fn get_reachable(start: Ustr, g: &GraphMap<&Ustr, (), petgraph::Directed>) -> Ha
     if cur != start {
       reachable_module_id.insert(cur);
     }
-    q.extend(g.neighbors_directed(&cur, petgraph::Direction::Outgoing));
+    q.extend(g.neighbors_directed(cur, petgraph::Direction::Outgoing));
   }
   reachable_module_id
 }
 
 fn create_inherit_graph(
   analyze_map: &HashMap<Ustr, TreeShakingResult>,
-) -> GraphMap<&Ustr, (), petgraph::Directed> {
+) -> GraphMap<Ustr, (), petgraph::Directed> {
   let mut g = petgraph::graphmap::DiGraphMap::new();
   for (module_id, result) in analyze_map.iter() {
     for export_all_module_id in result.inherit_export_maps.keys() {
-      g.add_edge(module_id, export_all_module_id, ());
+      g.add_edge(*module_id, *export_all_module_id, ());
     }
   }
   g

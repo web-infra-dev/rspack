@@ -13,14 +13,19 @@ pub struct OptimizeDependencyResult {
   pub analyze_results: HashMap<Ustr, TreeShakingResult>,
   pub bail_out_module_identifiers: HashMap<Ustr, BailoutReason>,
 }
-
+const DISABLE_ANALYZE_LOGGING: bool = true;
 pub static CARED_MODULE_ID: &[&str] = &[];
 
 pub fn debug_care_module_id<T: AsRef<str>>(id: T) -> bool {
+  if !DISABLE_ANALYZE_LOGGING {
+    return false;
+  }
   if CARED_MODULE_ID.is_empty() {
     return true;
   }
-  CARED_MODULE_ID.contains(&id.as_ref())
+  CARED_MODULE_ID
+    .iter()
+    .any(|module_id| id.as_ref().contains(module_id))
 }
 
 #[derive(Debug, Clone, Copy)]

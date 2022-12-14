@@ -34,10 +34,18 @@ impl Symbol {
   }
 }
 
+#[derive(Debug, Clone, Default, Eq, PartialEq)]
+pub enum IndirectType {
+  #[default]
+  Default,
+  ReExport,
+}
+
 #[derive(Debug, Clone, Eq)]
 pub struct IndirectTopLevelSymbol {
   pub uri: Ustr,
   pub id: JsWord,
+  pub ty: IndirectType,
   // module identifier of module that import me, only used for debugging
   importer: Ustr,
 }
@@ -55,8 +63,13 @@ impl std::cmp::PartialEq for IndirectTopLevelSymbol {
 }
 
 impl IndirectTopLevelSymbol {
-  pub fn new(uri: Ustr, id: JsWord, importer: Ustr) -> Self {
-    Self { uri, id, importer }
+  pub fn new(uri: Ustr, id: JsWord, importer: Ustr, ty: IndirectType) -> Self {
+    Self {
+      uri,
+      id,
+      importer,
+      ty,
+    }
   }
 
   pub fn from_uri_and_id(uri: Ustr, id: JsWord) -> IndirectTopLevelSymbol {
@@ -65,6 +78,7 @@ impl IndirectTopLevelSymbol {
       uri,
       id,
       importer: ustr(""),
+      ty: Default::default(),
     }
   }
 
