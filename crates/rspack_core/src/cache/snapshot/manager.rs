@@ -17,7 +17,6 @@ pub struct SnapshotManager {
   update_time_cache: DashMap<String, SystemTime>,
   /// cache file hash
   hash_cache: DashMap<String, u64>,
-  // update_time_and_hash_cache: DashMap<String, (Option<SystemTime>, Option<u64>)>,
 }
 
 impl SnapshotManager {
