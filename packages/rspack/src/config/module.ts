@@ -286,7 +286,13 @@ function composeJsUse(
 		return {
 			cacheable: cacheable,
 			content: toBuffer(content),
-			sourceMap: sourceMap ? toBuffer(JSON.stringify(sourceMap)) : undefined,
+			sourceMap: sourceMap
+				? toBuffer(
+						typeof sourceMap === "string"
+							? sourceMap
+							: JSON.stringify(sourceMap)
+				  )
+				: undefined,
 			additionalData: additionalData
 				? toBuffer(JSON.stringify(additionalData))
 				: undefined
