@@ -96,3 +96,5 @@ module.exports = async function loader(content, sourceMap) {
 		callback(err, "");
 	}
 };
+
+module.exports.displayName = "postcssLoader";

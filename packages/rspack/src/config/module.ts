@@ -2,7 +2,9 @@ import type {
 	RawModuleRuleUse,
 	RawModuleRule,
 	RawModuleRuleCondition,
-	RawModuleOptions
+	RawModuleOptions,
+	JsLoaderContext,
+	JsLoaderResult
 } from "@rspack/binding";
 import assert from "assert";
 import path from "path";
@@ -54,19 +56,6 @@ interface LoaderContextInternal {
 	resourceFragment: string | null;
 	cacheable: boolean;
 }
-
-// interface LoaderResult {
-// 	content: Buffer | string;
-// 	meta: Buffer | string;
-// }
-
-interface LoaderResultInternal {
-	cacheable: boolean;
-	content: number[];
-	sourceMap: number[];
-	additionalData: number[];
-}
-
 export interface LoaderContext
 	extends Pick<
 		LoaderContextInternal,
@@ -136,13 +125,14 @@ function composeJsUse(
 		return null;
 	}
 
-	async function loader(data: Buffer): Promise<Buffer> {
-		const payload: LoaderContextInternal = JSON.parse(data.toString("utf-8"));
-
-		let cacheable: boolean = payload.cacheable;
-		let content: string | Buffer = Buffer.from(payload.source);
-		let sourceMap: string | SourceMap | undefined = payload.sourceMap;
-		let additionalData: AdditionalData | undefined;
+	async function loader(data: JsLoaderContext): Promise<JsLoaderResult> {
+		let cacheable: boolean = data.cacheable;
+		let content: string | Buffer = data.content;
+		let sourceMap: string | SourceMap | undefined =
+			data.sourceMap?.toString("utf-8");
+		let additionalData: AdditionalData | undefined = data.additionalData
+			? JSON.parse(data.additionalData.toString("utf-8"))
+			: undefined;
 
 		// Loader is executed from right to left
 		for (const use of uses) {
@@ -185,11 +175,11 @@ function composeJsUse(
 
 				const loaderContext: LoaderContext = {
 					sourceMap: isUseSourceMap(options.devtool),
-					resourcePath: payload.resourcePath,
-					resource: payload.resource,
+					resourcePath: data.resourcePath,
+					resource: data.resource,
 					// Return an empty string if there is no query or fragment
-					resourceQuery: payload.resourceQuery || "",
-					resourceFragment: payload.resourceFragment || "",
+					resourceQuery: data.resourceQuery || "",
+					resourceFragment: data.resourceFragment || "",
 					getOptions() {
 						return use.options;
 					},
@@ -206,29 +196,32 @@ function composeJsUse(
 					},
 					callback,
 					rootContext: options.context,
-					context: path.dirname(payload.resourcePath)
+					context: path.dirname(data.resourcePath)
 				};
 
 				/**
 				 * support loader as string
 				 */
+				let loader: Loader | undefined;
 				if (typeof use.loader === "string") {
 					try {
 						let loaderPath = require.resolve(use.loader, {
 							paths: [options.context]
 						});
-						use.loader = require(loaderPath);
+						loader = require(loaderPath);
 					} catch (err) {
 						reject(err);
 						return;
 					}
+				} else {
+					loader = use.loader;
 				}
 
 				let result: Promise<string | Buffer> | string | Buffer | undefined =
 					undefined;
 				try {
-					result = use.loader.apply(loaderContext, [
-						use.loader.raw ? Buffer.from(content) : content.toString("utf-8"),
+					result = loader.apply(loaderContext, [
+						loader.raw ? Buffer.from(content) : content.toString("utf-8"),
 						sourceMap,
 						additionalData
 					]);
@@ -290,30 +283,39 @@ function composeJsUse(
 			}
 		}
 
-		const loaderResultPayload: LoaderResultInternal = {
+		return {
 			cacheable: cacheable,
-			content: [...toBuffer(content)],
-			sourceMap: !isNil(sourceMap)
-				? [
-						...toBuffer(
-							typeof sourceMap === "string"
-								? sourceMap
-								: JSON.stringify(sourceMap)
-						)
-				  ]
-				: sourceMap,
-			additionalData: !isNil(additionalData)
-				? [...toBuffer(JSON.stringify(additionalData))]
-				: additionalData
+			content: toBuffer(content),
+			sourceMap: sourceMap
+				? toBuffer(
+						typeof sourceMap === "string"
+							? sourceMap
+							: JSON.stringify(sourceMap)
+				  )
+				: undefined,
+			additionalData: additionalData
+				? toBuffer(JSON.stringify(additionalData))
+				: undefined
 		};
-
-		return Buffer.from(JSON.stringify(loaderResultPayload), "utf-8");
 	}
 
 	loader.displayName = `NodeLoaderAdapter(${uses
 		.map(item => {
 			assert("loader" in item);
-			return item.loader.displayName || item.loader.name || "unknown-loader";
+			let loader: Loader | null;
+			if (typeof item.loader === "string") {
+				try {
+					const path = require.resolve(item.loader, {
+						paths: [options.context]
+					});
+					loader = require(path);
+				} catch (e) {
+					loader = null;
+				}
+			} else {
+				loader = item.loader;
+			}
+			return loader?.displayName || loader?.name || "unknown-loader";
 		})
 		.join(" -> ")})`;
 	return {
@@ -341,7 +343,8 @@ type ModuleRuleUse =
 			name?: string;
 	  }
 	| {
-			loader: Loader;
+			// String represents a path to the loader
+			loader: Loader | string;
 			options?: unknown;
 			name?: string;
 	  };

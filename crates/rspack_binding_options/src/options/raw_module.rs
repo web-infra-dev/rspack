@@ -1,26 +1,29 @@
 use std::fmt::Debug;
 
 #[cfg(feature = "node-api")]
+use napi::{bindgen_prelude::*, JsFunction, NapiRaw};
+#[cfg(feature = "node-api")]
 use napi_derive::napi;
+#[cfg(feature = "node-api")]
+use rspack_binding_macros::call_js_function_with_napi_objects;
 #[cfg(feature = "node-api")]
 use rspack_error::{
   internal_error, InternalError, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
 
-use serde::{Deserialize, Serialize};
-
-#[cfg(feature = "node-api")]
-use napi::{bindgen_prelude::*, JsFunction, NapiRaw};
+use serde::Deserialize;
 
 use rspack_core::{
   AssetParserDataUrlOption, AssetParserOptions, BoxedLoader, CompilerOptionsBuilder, ModuleOptions,
   ModuleRule, ModuleType, ParserOptions,
 };
 
+#[cfg(feature = "node-api")]
+use crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use crate::RawOption;
 
 #[cfg(feature = "node-api")]
-type JsLoader<R> = crate::threadsafe_function::ThreadsafeFunction<Vec<u8>, R>;
+type JsLoader<R> = ThreadsafeFunction<JsLoaderContext, R>;
 // type ModuleRuleFunc = ThreadsafeFunction<Vec<u8>, ErrorStrategy::CalleeHandled>;
 
 fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxedLoader {
@@ -240,6 +243,7 @@ pub struct RawModuleOptions {
 #[cfg(feature = "node-api")]
 pub struct JsLoaderAdapter {
   pub loader: JsLoader<LoaderThreadsafeLoaderResult>,
+  pub name: String,
 }
 
 #[cfg(feature = "node-api")]
@@ -256,8 +260,7 @@ impl JsLoaderAdapter {
 impl Debug for JsLoaderAdapter {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("JsLoaderAdapter")
-      // TODO: More specific (Loader stage 2)
-      .field("loaders", &"..")
+      .field("loaders", &self.name)
       .finish()
   }
 }
@@ -271,6 +274,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
     "js_loader_adapter"
   }
 
+  #[tracing::instrument(name = "js_loader_adapter::run", fields(name = &self.name, resource = &loader_context.resource), skip(self, loader_context))]
   async fn run(
     &self,
     loader_context: &rspack_core::LoaderContext<
@@ -280,14 +284,19 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
       rspack_core::CompilationContext,
     >,
   ) -> Result<Option<TWithDiagnosticArray<rspack_core::LoaderResult>>> {
-    let loader_context = LoaderContext {
-      source: loader_context.source.to_owned().into_bytes(),
+    let loader_context = JsLoaderContext {
+      content: loader_context.source.to_owned().into_bytes().into(),
+      additional_data: loader_context
+        .additional_data
+        .to_owned()
+        .map(|v| v.into_bytes().into()),
       source_map: loader_context
         .source_map
         .clone()
         .map(|v| v.to_json())
         .transpose()
-        .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?,
+        .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?
+        .map(|v| v.into_bytes().into()),
       resource: loader_context.resource.to_owned(),
       resource_path: loader_context.resource_path.to_owned(),
       resource_fragment: loader_context.resource_fragment.map(|r| r.to_owned()),
@@ -295,19 +304,9 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
       cacheable: loader_context.cacheable,
     };
 
-    let result = serde_json::to_vec(&loader_context).map_err(|err| {
-      rspack_error::Error::InternalError(internal_error!(format!(
-        "Failed to serialize loader context: {}",
-        err
-      )))
-    })?;
-
     let loader_result = self
       .loader
-      .call(
-        result,
-        crate::threadsafe_function::ThreadsafeFunctionCallMode::Blocking,
-      )
+      .call(loader_context, ThreadsafeFunctionCallMode::NonBlocking)
       .map_err(rspack_error::Error::from)?
       .await
       .map_err(|err| {
@@ -327,7 +326,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
     Ok(loader_result.map(|loader_result| {
       rspack_core::LoaderResult {
         cacheable: loader_result.cacheable,
-        content: rspack_core::Content::from(loader_result.content),
+        content: rspack_core::Content::from(Into::<Vec<u8>>::into(loader_result.content)),
         source_map,
         additional_data: loader_result
           .additional_data
@@ -346,11 +345,12 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
   }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct LoaderContext {
-  pub source: Vec<u8>,
-  pub source_map: Option<String>,
+#[cfg(feature = "node-api")]
+#[napi(object)]
+pub struct JsLoaderContext {
+  pub content: Buffer,
+  pub additional_data: Option<Buffer>,
+  pub source_map: Option<Buffer>,
   pub resource: String,
   pub resource_path: String,
   pub resource_query: Option<String>,
@@ -358,16 +358,17 @@ pub struct LoaderContext {
   pub cacheable: bool,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct LoaderResult {
+#[cfg(feature = "node-api")]
+#[napi(object)]
+pub struct JsLoaderResult {
+  pub content: Buffer,
+  pub source_map: Option<Buffer>,
+  pub additional_data: Option<Buffer>,
   pub cacheable: bool,
-  pub content: Vec<u8>,
-  pub source_map: Option<Vec<u8>>,
-  pub additional_data: Option<Vec<u8>>,
 }
 
-pub type LoaderThreadsafeLoaderResult = Option<LoaderResult>;
+#[cfg(feature = "node-api")]
+pub type LoaderThreadsafeLoaderResult = Option<JsLoaderResult>;
 
 impl RawOption<ModuleRule> for RawModuleRule {
   fn to_compiler_option(self, _options: &CompilerOptionsBuilder) -> anyhow::Result<ModuleRule> {
@@ -386,22 +387,32 @@ impl RawOption<ModuleRule> for RawModuleRule {
 
                 let loader = crate::NAPI_ENV.with(|env| {
                   let env = env.borrow().expect("Failed to get env, did you forget to call it from node?");
-                    crate::threadsafe_function::ThreadsafeFunction::<Vec<u8>,LoaderThreadsafeLoaderResult>::create(
+                    ThreadsafeFunction::<JsLoaderContext,LoaderThreadsafeLoaderResult>::create(
                     env,
                     js_loader,
                     0,
                     |ctx| {
                       let (ctx, resolver) = ctx.split_into_parts();
 
-                      let buf= ctx.env.create_buffer_with_data(ctx.value)?.into_raw();
-                      let result = ctx.callback.call(None, &[buf])?;
+                      let env = ctx.env;
+                      let cb = ctx.callback;
+                      let resource = ctx.value.resource.clone();
 
-                      resolver.resolve::<Buffer>(result, |p| {
-                        serde_json::from_slice::<LoaderThreadsafeLoaderResult>(p.as_ref()).map_err(|err| err.into())
+                      let result = tracing::span!(tracing::Level::INFO, "loader_sync_call", resource = &resource).in_scope(|| {
+                        unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) }
+                      })?;
+
+                      let resolve_start = std::time::Instant::now();
+                      resolver.resolve::<Option<JsLoaderResult>>(result, move |r| {
+                        tracing::trace!("Finish resolving loader result for {}, took {}ms", resource, resolve_start.elapsed().as_millis());
+                        Ok(r)
                       })
                     })
                   })?;
-                return Ok(Box::new(JsLoaderAdapter { loader }) as BoxedLoader);
+                return Ok(Box::new(JsLoaderAdapter {
+                    loader,
+                    name: rule_use.__loader_name.unwrap_or_else(|| "unknown-loaders".to_owned())
+                  }) as BoxedLoader);
               }
             }
             if let Some(builtin_loader) = rule_use.builtin_loader {

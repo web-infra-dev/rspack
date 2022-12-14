@@ -12,10 +12,10 @@ macro_rules! convert_napi_object_to_js_unknown {
 /// Convert a raw napi pointer to a given napi value
 #[macro_export]
 macro_rules! convert_raw_napi_value_to_napi_value {
-  ($env:ident, $t:ty, $val:expr) => {{
+  ($env:ident, $ty:ty, $val:expr) => {{
     use napi::bindgen_prelude::FromNapiValue;
 
-    <$t>::from_napi_value($env.raw(), $val)
+    <$ty>::from_napi_value($env.raw(), $val)
   }};
 }
 
@@ -24,7 +24,7 @@ macro_rules! call_js_function_with_napi_objects {
   ($env:ident, $fn:ident, $($object:expr),*) => {{
     $fn.call(None, &[
       $(
-        convert_napi_object_to_js_unknown!($env, $object)?
+        $crate::convert_napi_object_to_js_unknown!($env, $object)?
       ),*
     ])
   }};

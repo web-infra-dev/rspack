@@ -16,6 +16,7 @@ use crate::threadsafe_function::{
 static CUSTOM_TRACE_SUBSCRIBER: OnceCell<bool> = OnceCell::new();
 
 /// Try to resolve the string value of a given named property
+#[allow(unused)]
 pub(crate) fn get_named_property_value_string<T: NapiRaw>(
   env: Env,
   object: T,
@@ -128,7 +129,7 @@ where
   napi::bindgen_prelude::spawn(async move {
     let res = fut.await;
     tsfn
-      .call(res, ThreadsafeFunctionCallMode::Blocking)
+      .call(res, ThreadsafeFunctionCallMode::NonBlocking)
       .expect("Failed to call JS callback");
   });
 

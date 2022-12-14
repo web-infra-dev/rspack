@@ -2,7 +2,7 @@ use std::sync::atomic::AtomicBool;
 
 use tracing::Level;
 use tracing_chrome::FlushGuard;
-use tracing_subscriber::layer::Filter;
+use tracing_subscriber::{fmt::format::FmtSpan, layer::Filter};
 // use tracing_chrome::FlushGuard;
 
 static IS_TRACING_ENABLED: AtomicBool = AtomicBool::new(false);
@@ -24,7 +24,13 @@ pub fn enable_tracing_by_env() {
   if is_enable_tracing && !IS_TRACING_ENABLED.swap(true, std::sync::atomic::Ordering::SeqCst) {
     use tracing_subscriber::{fmt, prelude::*, EnvFilter};
     tracing_subscriber::registry()
-      .with(fmt::layer().pretty().with_file(true))
+      .with(
+        fmt::layer()
+          .pretty()
+          .with_file(true)
+          // To keep track of the closing point of spans
+          .with_span_events(FmtSpan::CLOSE),
+      )
       .with(
         tracing_subscriber::filter::Targets::new().with_targets(vec![
           ("rspack_core", Level::TRACE),
@@ -32,6 +38,7 @@ pub fn enable_tracing_by_env() {
           ("rspack_node", Level::TRACE),
           ("rspack_plugin_javascript", Level::TRACE),
           ("rspack_plugin_split_chunks", Level::TRACE),
+          ("rspack_binding_options", Level::TRACE),
         ]),
       )
       // Using TRACE=[TRACE|DEBUG|INFO|WARN|ERROR] to set max trace level.
@@ -62,6 +69,7 @@ pub fn enable_tracing_by_env_with_chrome_layer() -> Option<FlushGuard> {
           ("rspack_plugin_javascript", Level::TRACE),
           ("warp", Level::TRACE),
           ("rspack_plugin_split_chunks", Level::TRACE),
+          ("rspack_binding_options", Level::TRACE),
         ]),
       )
       // Using TRACE=[TRACE|DEBUG|INFO|WARN|ERROR] to set max trace level.

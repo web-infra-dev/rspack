@@ -3,7 +3,7 @@
 extern crate napi_derive;
 
 #[macro_use]
-mod macros;
+extern crate rspack_binding_macros;
 
 use std::collections::HashSet;
 use std::pin::Pin;
@@ -126,6 +126,7 @@ impl Rspack {
   #[napi(constructor)]
   pub fn new(env: Env, mut options: RawOptions, js_hooks: Option<JsHooks>) -> Result<Self> {
     rspack_tracing::enable_tracing_by_env();
+    // crate::init_custom_trace_subscriber(env);
     Self::prepare_environment(&env, &mut options);
     tracing::info!("raw_options: {:#?}", &options);
 
@@ -282,21 +283,17 @@ impl Rspack {
   fn prepare_environment(env: &Env, options: &mut RawOptions) {
     NAPI_ENV.with(|napi_env| *napi_env.borrow_mut() = Some(env.raw()));
 
-    #[cfg(debug_assertions)]
-    {
-      if let Some(module) = options.module.as_mut() {
-        for rule in &mut module.rules {
-          if let Some(uses) = rule.r#use.as_mut() {
-            for item in uses {
-              if let Some(loader) = item.loader.as_ref() {
-                // let (env_ptr, loader_ptr) = unsafe { (env.raw(), loader.raw()) };
-                if let Ok(display_name) =
-                  get_named_property_value_string(*env, loader, "displayName")
-                {
-                  item.__loader_name = Some(display_name);
-                } else if let Ok(name) = get_named_property_value_string(*env, loader, "name") {
-                  item.__loader_name = Some(name);
-                }
+    if let Some(module) = options.module.as_mut() {
+      for rule in &mut module.rules {
+        if let Some(uses) = rule.r#use.as_mut() {
+          for item in uses {
+            if let Some(loader) = item.loader.as_ref() {
+              // let (env_ptr, loader_ptr) = unsafe { (env.raw(), loader.raw()) };
+              if let Ok(display_name) = get_named_property_value_string(*env, loader, "displayName")
+              {
+                item.__loader_name = Some(display_name);
+              } else if let Ok(name) = get_named_property_value_string(*env, loader, "name") {
+                item.__loader_name = Some(name);
               }
             }
           }

@@ -258,7 +258,7 @@ impl Compilation {
     chunk_by_ukey.get_mut(&ukey).expect("chunk not found")
   }
 
-  #[instrument(name = "entry_data")]
+  #[instrument(name = "entry_data", skip(self))]
   pub fn entry_data(&self) -> HashMap<String, EntryData> {
     self
       .entries
@@ -303,7 +303,7 @@ impl Compilation {
       .collect()
   }
 
-  #[instrument(name = "entry_dependencies")]
+  #[instrument(name = "entry_dependencies", skip(self))]
   pub fn entry_dependencies(&self) -> HashMap<String, Vec<Dependency>> {
     self
       .entries
@@ -647,7 +647,7 @@ impl Compilation {
     })
   }
 
-  #[instrument(name = "compilation:code_generation")]
+  #[instrument(name = "compilation:code_generation", skip(self))]
   async fn code_generation(&mut self) -> Result<()> {
     let results = self
       .module_graph

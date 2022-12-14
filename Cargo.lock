@@ -2268,6 +2268,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_binding_macros"
+version = "0.1.0"
+dependencies = [
+ "napi",
+]
+
+[[package]]
 name = "rspack_binding_options"
 version = "0.1.0"
 dependencies = [
@@ -2280,6 +2287,7 @@ dependencies = [
  "napi-sys",
  "once_cell",
  "regex",
+ "rspack_binding_macros",
  "rspack_core",
  "rspack_error",
  "rspack_loader_sass",
@@ -2291,6 +2299,7 @@ dependencies = [
  "serde_json",
  "swc_core",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -4333,13 +4342,13 @@ dependencies = [
 
 [[package]]
 name = "tracing-chrome"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1ac1f6a3a47e9c755e65ef974653c978da2246487a16044a8ee1d9a0a67257c"
+checksum = "865016457701971958e047b9f61add5bba70d7a7b084a13c9e54f9bb4f19d3a6"
 dependencies = [
- "crossbeam",
+ "crossbeam-channel",
  "json",
- "tracing",
+ "tracing-core",
  "tracing-subscriber",
 ]
 
