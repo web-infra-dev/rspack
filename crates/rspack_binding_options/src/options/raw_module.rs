@@ -260,7 +260,6 @@ impl JsLoaderAdapter {
 impl Debug for JsLoaderAdapter {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("JsLoaderAdapter")
-      // TODO: More specific (Loader stage 2)
       .field("loaders", &self.name)
       .finish()
   }
