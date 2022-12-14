@@ -1,0 +1,19 @@
+{
+  "name": "@rspack/binding-darwin-x64",
+  "version": "0.0.12",
+  "description": "Node binding for rspack",
+  "main": "rspack.darwin-x64.node",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "*.node"
+  ],
+  "license": "MIT",
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "x64"
+  ]
+}

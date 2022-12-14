@@ -10,5 +10,11 @@
     "*.node"
   ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ]
 }
