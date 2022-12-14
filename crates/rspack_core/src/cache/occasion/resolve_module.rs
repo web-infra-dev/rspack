@@ -3,7 +3,7 @@ use crate::{
   cache::storage,
   ResolveArgs, ResolveResult,
 };
-use futures::future::BoxFuture;
+use futures::Future;
 use rspack_error::Result;
 use std::sync::Arc;
 
@@ -23,9 +23,14 @@ impl ResolveModuleOccasion {
     }
   }
 
-  pub async fn use_cache<'a, F>(&self, args: ResolveArgs<'a>, generator: F) -> Result<ResolveResult>
+  pub async fn use_cache<'a, G, F>(
+    &self,
+    args: ResolveArgs<'a>,
+    generator: G,
+  ) -> Result<ResolveResult>
   where
-    F: Fn(ResolveArgs<'a>) -> BoxFuture<'a, Result<ResolveResult>>,
+    G: Fn(ResolveArgs<'a>) -> F,
+    F: Future<Output = Result<ResolveResult>>,
   {
     let storage = match &self.storage {
       Some(s) => s,

@@ -14,13 +14,13 @@ impl CodeGenerateOccasion {
   }
 
   #[allow(clippy::unwrap_in_result)]
-  pub fn use_cache<'a, F>(
+  pub fn use_cache<'a, G>(
     &self,
     module: &'a BoxModule,
-    generator: F,
+    generator: G,
   ) -> Result<CodeGenerationResult>
   where
-    F: Fn(&'a BoxModule) -> Result<CodeGenerationResult>,
+    G: Fn(&'a BoxModule) -> Result<CodeGenerationResult>,
   {
     let storage = match &self.storage {
       Some(s) => s,

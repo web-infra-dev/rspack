@@ -31,7 +31,7 @@ esbuild_cpuprofile:
 	go tool pprof -http=:1234 esbuild.cpuprofile
 
 rspack_trace:
-	TRACE=TRACE cargo run -F tracing --release --bin bench
+	TRACE=TRACE cargo run -F tracing -F hmr --release --bin bench
 
 
 sync_bnpm:

@@ -158,7 +158,7 @@ impl NormalModuleFactory {
     let resource_data = self
       .cache
       .resolve_module_occasion
-      .use_cache(resolve_args, |args| Box::pin(resolve(args, &plugin_driver)))
+      .use_cache(resolve_args, |args| resolve(args, &plugin_driver))
       .await?;
     let resource_data = match resource_data {
       ResolveResult::Info(info) => {
