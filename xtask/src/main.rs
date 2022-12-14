@@ -1,6 +1,7 @@
 mod copy_three;
 use std::env::args;
 
+#[allow(clippy::dbg_macro)]
 fn main() {
   let args = args().into_iter().skip(1).collect::<Vec<_>>();
   // dbg!(&args);
