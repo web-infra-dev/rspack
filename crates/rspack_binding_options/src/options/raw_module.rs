@@ -2,9 +2,10 @@ use std::fmt::Debug;
 
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
-use rspack_error::{internal_error, InternalError};
 #[cfg(feature = "node-api")]
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{
+  internal_error, InternalError, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+};
 
 use serde::{Deserialize, Serialize};
 
