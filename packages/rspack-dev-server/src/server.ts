@@ -8,7 +8,7 @@ import type {
 	RequestHandler as ExpressRequestHandler,
 	ErrorRequestHandler as ExpressErrorRequestHandler
 } from "express";
-import type { DevMiddleware } from "@rspack/dev-middleware";
+import { DevMiddleware, getRspackMemoryAssets } from "@rspack/dev-middleware";
 import type { Server } from "http";
 import type { ResolvedDev } from "./config";
 import fs from "fs";
@@ -400,6 +400,11 @@ export class RspackDevServer {
 			this.compiler.options.output.publicPath === "auto"
 				? ""
 				: this.compiler.options.output.publicPath;
+		middlewares.push({
+			name: "rspack-memory-assets",
+			path: publicPath,
+			middleware: getRspackMemoryAssets(this.compiler)
+		});
 		middlewares.push({
 			name: "express-static",
 			path: publicPath,

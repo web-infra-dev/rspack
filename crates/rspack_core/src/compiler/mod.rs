@@ -141,7 +141,10 @@ impl Compiler {
       .compilation
       .push_batch_diagnostic(plugin_driver_diagnostics);
 
-    self.emit_assets(&self.compilation)?;
+    if !self.compilation.options.builtins.no_emit_assets {
+      self.emit_assets(&self.compilation)?;
+    }
+
     self.compilation.done(self.plugin_driver.clone()).await?;
 
     Ok(())

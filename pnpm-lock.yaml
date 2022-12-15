@@ -419,12 +419,17 @@ importers:
   packages/rspack-dev-middleware:
     specifiers:
       '@rspack/core': workspace:*
+      '@types/mime-types': 2.1.1
       express: 4.18.1
+      mime-types: 2.1.35
       webpack-dev-middleware: 6.0.0
     dependencies:
       '@rspack/core': link:../rspack
       express: 4.18.1
+      mime-types: 2.1.35
       webpack-dev-middleware: 6.0.0
+    devDependencies:
+      '@types/mime-types': 2.1.1
 
   packages/rspack-dev-server:
     specifiers:
@@ -4648,6 +4653,10 @@ packages:
 
   /@types/lodash/4.14.189:
     resolution: {integrity: sha512-kb9/98N6X8gyME9Cf7YaqIMvYGnBSWqEci6tiettE6iJWH1XdJz/PO8LB0GtLCG7x8dU3KWhZT+lA1a35127tA==}
+    dev: true
+
+  /@types/mime-types/2.1.1:
+    resolution: {integrity: sha512-vXOTGVSLR2jMw440moWTC7H19iUyLtP3Z1YTj7cSsubOICinjMxFeb/V57v9QdyyPGbbWolUFSSmSiRSn94tFw==}
     dev: true
 
   /@types/mime/3.0.1:

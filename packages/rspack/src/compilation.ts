@@ -210,7 +210,11 @@ export class Compilation {
 	 * @internal
 	 */
 	__internal__getAssetSource(filename: string): Source | null {
-		return createSourceFromRaw(this.#inner.getAssetSource(filename));
+		const rawSource = this.#inner.getAssetSource(filename);
+		if (!rawSource) {
+			return null;
+		}
+		return createSourceFromRaw(rawSource);
 	}
 
 	/**
