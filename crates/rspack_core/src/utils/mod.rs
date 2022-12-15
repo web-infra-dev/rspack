@@ -22,6 +22,9 @@ pub use hash::*;
 mod module_rules;
 pub use module_rules::*;
 
+mod fast_set;
+pub use fast_set::*;
+
 pub static PATH_START_BYTE_POS_MAP: Lazy<Arc<DashMap<String, u32>>> =
   Lazy::new(|| Arc::new(DashMap::new()));
 

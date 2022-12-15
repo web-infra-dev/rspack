@@ -5,7 +5,7 @@ use rspack_error::Result;
 use rspack_sources::{RawSource, SourceExt};
 
 use crate::{
-  AssetInfo, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler, ModuleIdentifier,
+  fast_set, AssetInfo, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler, ModuleIdentifier,
   RenderManifestArgs, RuntimeSpec, Stats,
 };
 
@@ -120,15 +120,18 @@ impl Compiler {
       self.cache.end_idle().await;
       self.plugin_driver.read().await.resolver.clear();
 
-      self.compilation = Compilation::new(
-        // TODO: use Arc<T> instead
-        self.options.clone(),
-        self.options.entry.clone(),
-        Default::default(),
-        Default::default(),
-        self.plugin_driver.clone(),
-        self.loader_runner_runner.clone(),
-        self.cache.clone(),
+      fast_set(
+        &mut self.compilation,
+        Compilation::new(
+          // TODO: use Arc<T> instead
+          self.options.clone(),
+          self.options.entry.clone(),
+          Default::default(),
+          Default::default(),
+          self.plugin_driver.clone(),
+          self.loader_runner_runner.clone(),
+          self.cache.clone(),
+        ),
       );
       self.compilation.lazy_visit_modules = changed_files.clone();
 
