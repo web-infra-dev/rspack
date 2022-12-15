@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "Node binding for rspack",
   "main": "binding.js",
   "types": "binding.d.ts",
@@ -28,8 +28,8 @@
     "npm-run-all": "4.1.5"
   },
   "optionalDependencies": {
-    "@rspack/binding-darwin-arm64": "0.0.12",
-    "@rspack/binding-darwin-x64": "0.0.12",
-    "@rspack/binding-linux-gnu-x64": "0.0.12"
+    "@rspack/binding-darwin-arm64": "0.0.13",
+    "@rspack/binding-darwin-x64": "0.0.13",
+    "@rspack/binding-linux-gnu-x64": "0.0.13"
   }
 }
