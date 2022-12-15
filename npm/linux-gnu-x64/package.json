@@ -1,5 +1,5 @@
 {
-  "name": "@rspack/binding-linux-gnu-x64",
+  "name": "@rspack/binding-linux-x64-gnu",
   "version": "0.0.12",
   "description": "Node binding for rspack",
   "main": "rspack.linux-x64-gnu.node",
