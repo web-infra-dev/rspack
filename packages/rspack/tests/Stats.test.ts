@@ -17,6 +17,7 @@ describe("Stats", () => {
 			}
 		});
 		const statsOptions = { all: true };
+		expect(typeof stats.hash).toBe("string");
 		expect(stats.toJson(statsOptions)).toMatchInlineSnapshot(`
 		{
 		  "assets": [
