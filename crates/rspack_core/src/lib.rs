@@ -73,7 +73,11 @@ pub enum ModuleType {
   Css,
   CssModule,
   Js,
+  JsDynamic,
+  JsEsm,
   Jsx,
+  JsxDynamic,
+  JsxEsm,
   Tsx,
   Ts,
   AssetInline,
@@ -112,12 +116,21 @@ impl fmt::Display for ModuleType {
       "{}",
       match self {
         ModuleType::Js => "js",
+        ModuleType::JsEsm => "js/esm",
+        ModuleType::JsDynamic => "js/dynamic",
+
         ModuleType::Jsx => "jsx",
+        ModuleType::JsxEsm => "jsx/esm",
+        ModuleType::JsxDynamic => "jsx/dynamic",
+
         ModuleType::Ts => "ts",
         ModuleType::Tsx => "tsx",
+
         ModuleType::Css => "css",
         ModuleType::CssModule => "css/module",
+
         ModuleType::Json => "json",
+
         ModuleType::Asset => "asset",
         ModuleType::AssetSource => "asset/source",
         ModuleType::AssetResource => "asset/resource",
@@ -128,17 +141,32 @@ impl fmt::Display for ModuleType {
 }
 
 impl TryFrom<&str> for ModuleType {
-  type Error = ();
+  type Error = rspack_error::Error;
 
   fn try_from(value: &str) -> Result<Self, Self::Error> {
     match value {
-      "json" => Ok(Self::Json),
-      "css" => Ok(Self::Css),
+      // TODO: change to esm
       "mjs" => Ok(Self::Js),
-      "js" => Ok(Self::Js),
-      "jsx" => Ok(Self::Jsx),
-      "tsx" => Ok(Self::Tsx),
+      "js" | "javascript" | "js/auto" | "javascript/auto" => Ok(Self::Js),
+      "js/dynamic" | "javascript/dynamic" => Ok(Self::JsDynamic),
+      "js/esm" | "javascript/esm" => Ok(Self::JsEsm),
+
+      "jsx" | "javascriptx" | "jsx/auto" | "javascriptx/auto" => Ok(Self::Jsx),
+      "jsx/dynamic" | "javascriptx/dynamic" => Ok(Self::JsxDynamic),
+      "jsx/esm" | "javascriptx/esm" => Ok(Self::JsxEsm),
+
       "ts" => Ok(Self::Ts),
+      "tsx" => Ok(Self::Tsx),
+
+      "css" => Ok(Self::Css),
+      "css/module" => Ok(Self::CssModule),
+
+      "json" => Ok(Self::Json),
+
+      "asset" => Ok(Self::Asset),
+      "asset/resource" => Ok(Self::AssetResource),
+      "asset/source" => Ok(Self::AssetSource),
+      "asset/inline" => Ok(Self::AssetInline),
 
       // default
       "png" => Ok(Self::Asset),
@@ -148,7 +176,12 @@ impl TryFrom<&str> for ModuleType {
       "txt" => Ok(Self::AssetSource),
       // TODO: get module_type from module
       "scss" | "sass" => Ok(Self::Css),
-      _ => Err(()),
+      _ => {
+        use rspack_error::{internal_error, InternalError};
+        Err(rspack_error::Error::InternalError(internal_error!(
+          format!("invalid module type: {}", value)
+        )))
+      }
     }
   }
 }

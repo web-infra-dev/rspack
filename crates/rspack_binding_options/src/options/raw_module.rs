@@ -15,7 +15,7 @@ use serde::Deserialize;
 
 use rspack_core::{
   AssetParserDataUrlOption, AssetParserOptions, BoxedLoader, CompilerOptionsBuilder, ModuleOptions,
-  ModuleRule, ModuleType, ParserOptions,
+  ModuleRule, ParserOptions,
 };
 
 #[cfg(feature = "node-api")]
@@ -425,23 +425,7 @@ impl RawOption<ModuleRule> for RawModuleRule {
       .transpose()?
       .unwrap_or_default();
 
-    let module_type = self
-      .r#type
-      .map(|t| match t.as_str() {
-        "js" => Ok(ModuleType::Js),
-        "jsx" => Ok(ModuleType::Jsx),
-        "ts" => Ok(ModuleType::Ts),
-        "tsx" => Ok(ModuleType::Tsx),
-        "css" => Ok(ModuleType::Css),
-        "css/module" => Ok(ModuleType::CssModule),
-        "json" => Ok(ModuleType::Json),
-        "asset" => Ok(ModuleType::Asset),
-        "asset/source" => Ok(ModuleType::AssetSource),
-        "asset/resource" => Ok(ModuleType::AssetResource),
-        "asset/inline" => Ok(ModuleType::AssetInline),
-        _ => Err(anyhow::format_err!("Unsupported module type: {}", t)),
-      })
-      .transpose()?;
+    let module_type = self.r#type.map(|t| (&*t).try_into()).transpose()?;
 
     // let func = Box::new(
     //   self
