@@ -49,7 +49,7 @@ pub fn enable_tracing_by_env() {
 }
 
 pub fn enable_tracing_by_env_with_chrome_layer() -> Option<FlushGuard> {
-  let is_enable_tracing = std::env::var("TRACE").map_or(true, |x| {
+  let is_enable_tracing = std::env::var("TRACE").map_or(false, |x| {
     matches!(x.as_str(), "TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR")
   });
   if is_enable_tracing && !IS_TRACING_ENABLED.swap(true, std::sync::atomic::Ordering::SeqCst) {
