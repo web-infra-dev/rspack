@@ -1,5 +1,12 @@
 # create-rspack
 
+## 0.0.10
+
+### Patch Changes
+
+- bump version
+- 11e87c61: fix less resolve bug
+
 ## 0.0.9
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @rspack/binding
 
+## 0.0.14
+
+### Patch Changes
+
+- bump version
+- 11e87c61: fix less resolve bug
+
 ## 0.0.13
 
 ### Patch Changes

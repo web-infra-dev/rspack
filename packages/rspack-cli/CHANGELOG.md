@@ -1,5 +1,16 @@
 # @rspack/cli
 
+## 0.0.14
+
+### Patch Changes
+
+- bump version
+- 11e87c61: fix less resolve bug
+- Updated dependencies
+- Updated dependencies [11e87c61]
+  - @rspack/core@0.0.14
+  - @rspack/dev-server@0.0.14
+
 ## 0.0.13
 
 ### Patch Changes
