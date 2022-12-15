@@ -37,7 +37,11 @@ module.exports = {
             ],
           type: 'css'
         },
-        { test: /\.svg$/, use: [{ loader: './svg-loader.js' }], type: 'jsx' }
+        { test: /\.svg$/, use: [{ loader: './svg-loader.js' }], type: 'jsx' },
+        {
+          test: /.js$/,
+          type: 'jsx',
+        }
       ]
   },
   resolve: { alias: { '@': path.resolve(__dirname, 'src') } },

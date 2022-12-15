@@ -2,7 +2,7 @@ import type { RspackOptions } from "@rspack/core";
 import { RspackDevServer } from "@rspack/dev-server";
 import { createCompiler } from "@rspack/core";
 import serializer from "jest-serializer-path";
-import os from "os";
+
 expect.addSnapshotSerializer(serializer);
 
 describe("normalize options snapshot", () => {

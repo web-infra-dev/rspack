@@ -80,17 +80,17 @@ export class RspackDevServer {
 		const entries: string[] = [];
 
 		if (this.options.hot) {
-			const hotUpdateEntryPath = require.resolve(
-				"@rspack/dev-client/devServer"
-			);
-			entries.push(hotUpdateEntryPath);
-
 			if (this.compiler.options.builtins.react?.refresh) {
 				const reactRefreshEntryPath = require.resolve(
 					"@rspack/dev-client/react-refresh"
 				);
 				entries.push(reactRefreshEntryPath);
 			}
+
+			const hotUpdateEntryPath = require.resolve(
+				"@rspack/dev-client/devServer"
+			);
+			entries.push(hotUpdateEntryPath);
 		}
 
 		const devClientEntryPath = require.resolve("@rspack/dev-client");
@@ -172,7 +172,7 @@ export class RspackDevServer {
 		this.staticWatchers.push(watcher);
 	}
 
-	invalidate(callback = () => {}): void {
+	invalidate(callback = () => { }): void {
 		if (this.middleware) {
 			this.middleware.invalidate(callback);
 		}

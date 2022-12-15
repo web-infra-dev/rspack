@@ -57,7 +57,7 @@ pub fn run_before_pass(
       ),
       Optional::new(
         swc_visitor::react(top_level_mark, comments, &cm, &options.builtins.react),
-        syntax.jsx()
+        syntax.jsx() || true
       ),
       Optional::new(
         {
@@ -65,7 +65,7 @@ pub fn run_before_pass(
           let uri = resource_data.resource.as_str();
           swc_visitor::fold_react_refresh(context, uri)
         },
-        !resource_data.resource.contains("node_modules")
+        !resource_data.resource.contains("node_modules") || true
       ),
       // enable if configurable
       // swc_visitor::const_modules(cm, globals),
