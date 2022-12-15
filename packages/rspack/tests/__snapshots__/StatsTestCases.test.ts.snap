@@ -47,7 +47,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "main.xxxx.js",
-      "size": 4396,
+      "size": 9322,
       "type": "asset",
     },
     {
@@ -63,7 +63,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "dynamic_js.xxxx.js",
-      "size": 254,
+      "size": 218,
       "type": "asset",
     },
   ],
@@ -100,10 +100,10 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "assets": [
         {
           "name": "main.xxxx.js",
-          "size": 4396,
+          "size": 9322,
         },
       ],
-      "assetsSize": 4396,
+      "assetsSize": 9322,
       "chunks": [
         "main",
       ],
@@ -143,8 +143,8 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
 
 exports[`StatsTestCases should print correct stats for filename 2`] = `
 "             Asset       Size      Chunks             Chunk Names
-      main.xxxx.js   4.29 KiB        main  [emitted]  main
-dynamic_js.xxxx.js  254 bytes  dynamic_js  [emitted]  dynamic_js
+      main.xxxx.js    9.1 KiB        main  [emitted]  main
+dynamic_js.xxxx.js  218 bytes  dynamic_js  [emitted]  dynamic_js
 Entrypoint main = main.xxxx.js
 chunk {dynamic_js} dynamic_js.xxxx.js (dynamic_js) 32 bytes
 chunk {main} main.xxxx.js (main) 38 bytes [entry]
@@ -168,7 +168,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 4252,
+      "size": 8912,
       "type": "asset",
     },
   ],
@@ -192,10 +192,10 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 4252,
+          "size": 8912,
         },
       ],
-      "assetsSize": 4252,
+      "assetsSize": 8912,
       "chunks": [
         "main",
       ],
@@ -223,8 +223,8 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 2`] = `
-"    Asset      Size  Chunks             Chunk Names
-bundle.js  4.15 KiB    main  [emitted]  main
+"    Asset     Size  Chunks             Chunk Names
+bundle.js  8.7 KiB    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 25 bytes [entry]
 [10] ./index.js 25 bytes {main}"
@@ -357,7 +357,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 4311,
+      "size": 8971,
       "type": "asset",
     },
   ],
@@ -381,10 +381,10 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 4311,
+          "size": 8971,
         },
       ],
-      "assetsSize": 4311,
+      "assetsSize": 8971,
       "chunks": [
         "main",
       ],
@@ -424,7 +424,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
 
 exports[`StatsTestCases should print correct stats for resolve-overflow 2`] = `
 "    Asset      Size  Chunks             Chunk Names
-bundle.js  4.21 KiB    main  [emitted]  main
+bundle.js  8.76 KiB    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 51 bytes [entry]
 [10] ./index.js 51 bytes {main}
@@ -454,7 +454,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 4931,
+      "size": 9591,
       "type": "asset",
     },
   ],
@@ -478,10 +478,10 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       "assets": [
         {
           "name": "bundle.js",
-          "size": 4931,
+          "size": 9591,
         },
       ],
-      "assetsSize": 4931,
+      "assetsSize": 9591,
       "chunks": [
         "main",
       ],
@@ -516,7 +516,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 2`] = `
 "    Asset      Size  Chunks             Chunk Names
-bundle.js  4.82 KiB    main  [emitted]  main
+bundle.js  9.37 KiB    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 39 bytes [entry]
 [10] ./index.js 39 bytes {main}
@@ -584,7 +584,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 4361,
+      "size": 9021,
       "type": "asset",
     },
   ],
@@ -608,10 +608,10 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 4361,
+          "size": 9021,
         },
       ],
-      "assetsSize": 4361,
+      "assetsSize": 9021,
       "chunks": [
         "main",
       ],
@@ -640,7 +640,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
 
 exports[`StatsTestCases should print correct stats for simple 2`] = `
 "    Asset      Size  Chunks             Chunk Names
-bundle.js  4.26 KiB    main  [emitted]  main
+bundle.js  8.81 KiB    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 26 bytes [entry]
 [10] ./index.js 26 bytes {main}"

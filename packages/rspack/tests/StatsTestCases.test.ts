@@ -33,7 +33,7 @@ describe("StatsTestCases", () => {
 				config = require(configPath);
 			}
 			const options: RspackOptions = {
-				target: ["webworker"], // FIXME when target=commonjs supported
+				target: "node",
 				context: path.resolve(base, testName),
 				entry: {
 					main: "./index"

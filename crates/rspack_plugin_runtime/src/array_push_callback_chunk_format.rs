@@ -64,11 +64,7 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
     _ctx: PluginContext,
     args: &RenderChunkArgs,
   ) -> PluginRenderChunkHookOutput {
-    let chunk = args
-      .compilation
-      .chunk_by_ukey
-      .get(args.chunk_ukey)
-      .expect("chunk not found");
+    let chunk = args.chunk();
     let runtime_modules = args
       .compilation
       .chunk_graph

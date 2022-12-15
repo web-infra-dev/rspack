@@ -30,7 +30,7 @@ export function describeCases(config: {
 					const filterPath = path.join(testDirectory, "test.filter.js");
 					if (fs.existsSync(filterPath) && !require(filterPath)(config)) {
 						describe.skip(testName, () => {
-							it("filtered", () => { });
+							it("filtered", () => {});
 						});
 						return;
 					}
@@ -228,7 +228,7 @@ export function describeCases(config: {
 										let changed = [];
 										try {
 											changed = require(changedFiles);
-										} catch (err) { }
+										} catch (err) {}
 										if (changed.length === 0) {
 											throw Error("can not found changed files");
 										}
