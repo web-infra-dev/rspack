@@ -1,18 +1,16 @@
-use anyhow::anyhow;
 use async_trait::async_trait;
-use dashmap::DashMap;
-use hashbrown::hash_map::DefaultHashBuilder;
+
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{
-  BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
-  SourceMapSource, SourceMapSourceOptions,
+  BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
+  SourceMapSourceOptions,
 };
 use rspack_core::{
-  get_js_chunk_filename_template, runtime_globals, AstOrSource, ChunkKind, ChunkUkey, Compilation,
-  FilenameRenderOptions, GenerateContext, GenerationResult, Module, ModuleAst, ModuleType,
-  ParseContext, ParseResult, ParserAndGenerator, PathData, Plugin, PluginContext,
-  PluginProcessAssetsOutput, PluginRenderManifestHookOutput, ProcessAssetsArgs,
-  RenderManifestEntry, SourceType, TargetPlatform,
+  get_js_chunk_filename_template, runtime_globals, AstOrSource, ChunkKind, FilenameRenderOptions,
+  GenerateContext, GenerationResult, Module, ModuleAst, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, PathData, Plugin, PluginContext, PluginProcessAssetsOutput,
+  PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderChunkArgs, RenderManifestEntry,
+  SourceType,
 };
 use rspack_error::{
   internal_error, Error, InternalError, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
@@ -26,51 +24,20 @@ use swc_core::ecma::ast;
 use swc_core::ecma::minifier::option::terser::TerserCompressorOptions;
 use tracing::instrument;
 
-use crate::utils::{
-  get_swc_compiler, syntax_by_module_type, wrap_eval_source_map, wrap_module_function,
-};
+use crate::runtime::{generate_chunk_entry_code, render_chunk_modules, render_runtime_modules};
+use crate::utils::{get_swc_compiler, syntax_by_module_type};
 use crate::visitors::{run_after_pass, run_before_pass, DependencyScanner};
 
 #[derive(Debug)]
 pub struct JsPlugin {
-  eval_source_map_cache: DashMap<Box<dyn Source>, Box<dyn Source>, DefaultHashBuilder>,
+  // eval_source_map_cache: DashMap<Box<dyn Source>, Box<dyn Source>, DefaultHashBuilder>,
 }
 
 impl JsPlugin {
   pub fn new() -> Self {
     Self {
-      eval_source_map_cache: Default::default(),
+      // eval_source_map_cache: Default::default(),
     }
-  }
-
-  pub fn generate_chunk_entry_code(
-    &self,
-    compilation: &Compilation,
-    chunk_ukey: &ChunkUkey,
-  ) -> BoxSource {
-    let entry_modules_uri = compilation.chunk_graph.get_chunk_entry_modules(chunk_ukey);
-    let entry_modules_id = entry_modules_uri
-      .into_iter()
-      .filter_map(|entry_module_identifier| {
-        compilation
-          .module_graph
-          .module_graph_module_by_identifier(entry_module_identifier)
-          .map(|module| module.id(&compilation.chunk_graph))
-      })
-      .collect::<Vec<_>>();
-    // let namespace = &compilation.options.output.unique_name;
-    let sources = entry_modules_id
-      .iter()
-      .map(|id| {
-        if let Some(library) = &compilation.options.output.library && !library.is_empty() {
-          RawSource::from(format!(r#"{} = {}("{}");"#, library, runtime_globals::REQUIRE, id))
-        } else {
-          RawSource::from(format!(r#"{}("{}");"#, runtime_globals::REQUIRE, id))
-        }
-      })
-      .collect::<Vec<_>>();
-    let concat = ConcatSource::new(sources);
-    concat.boxed()
   }
 
   pub fn render_require(&self, args: &rspack_core::RenderManifestArgs) -> BoxSource {
@@ -163,110 +130,33 @@ impl JsPlugin {
     let chunk = args.chunk();
     let mut sources = ConcatSource::default();
     sources.add(RawSource::from("var __webpack_modules__ = "));
-    sources.add(self.render_chunk_modules(args)?);
+    sources.add(render_chunk_modules(compilation, &args.chunk_ukey)?);
     sources.add(RawSource::from("\n"));
     sources.add(self.render_bootstrap(args));
-    sources.add(self.render_runtime_modules(args)?);
-    if chunk.has_entry_module(&args.compilation.chunk_graph) {
+    sources.add(render_runtime_modules(compilation, &args.chunk_ukey)?);
+    if chunk.has_entry_module(&compilation.chunk_graph) {
       // TODO: how do we handle multiple entry modules?
-      sources.add(self.generate_chunk_entry_code(compilation, &args.chunk_ukey));
+      sources.add(generate_chunk_entry_code(compilation, &args.chunk_ukey));
     }
     Ok(self.render_iife(sources.boxed(), args))
   }
 
-  pub fn render_chunk(&self, args: &rspack_core::RenderManifestArgs) -> Result<BoxSource> {
-    match args.compilation.options.target.platform {
-      TargetPlatform::Node(_) => self.render_node_chunk(args),
-      _ => self.render_web_chunk(args),
-    }
-  }
-
-  pub fn render_node_chunk(&self, args: &rspack_core::RenderManifestArgs) -> Result<BoxSource> {
-    let chunk = args.chunk();
-    let mut sources = ConcatSource::default();
-    sources.add(RawSource::from(format!(
-      r#"exports.ids = ["{}"];
-      exports.modules = "#,
-      &chunk.id.to_owned()
-    )));
-    sources.add(self.render_chunk_modules(args)?);
-    sources.add(RawSource::from(";"));
-    if chunk.has_entry_module(&args.compilation.chunk_graph) {
-      let entry_point = {
-        let entry_points = args
-          .compilation
-          .chunk_graph
-          .get_chunk_entry_modules_with_chunk_group(&chunk.ukey);
-
-        let entry_point_ukey = entry_points
-          .iter()
-          .next()
-          .ok_or_else(|| anyhow!("should has entry point ukey"))?;
-
-        args
-          .compilation
-          .chunk_group_by_ukey
-          .get(entry_point_ukey)
-          .ok_or_else(|| anyhow!("should has entry point"))?
-      };
-
-      let runtime_chunk_filename = {
-        let runtime_chunk = args
-          .compilation
-          .chunk_by_ukey
-          .get(&entry_point.get_runtime_chunk())
-          .ok_or_else(|| anyhow!("should has runtime chunk"))?;
-
-        let hash = Some(runtime_chunk.get_render_hash());
-        args
-          .compilation
-          .options
-          .output
-          .chunk_filename
-          .render(FilenameRenderOptions {
-            filename: runtime_chunk.name.clone(),
-            extension: Some(".js".to_string()),
-            id: Some(runtime_chunk.id.clone()),
-            contenthash: hash.clone(),
-            chunkhash: hash.clone(),
-            hash,
-            ..Default::default()
-          })
-      };
-
-      sources.add(RawSource::from(format!(
-        "\nvar {} = require('./{}')",
-        runtime_globals::REQUIRE,
-        runtime_chunk_filename
-      )));
-      sources.add(RawSource::from(format!(
-        "\n{}(exports)\n",
-        runtime_globals::EXTERNAL_INSTALL_CHUNK,
-      )));
-      sources.add(self.generate_chunk_entry_code(args.compilation, &args.chunk_ukey));
-    }
-    Ok(sources.boxed())
-  }
-
-  pub fn render_web_chunk(&self, args: &rspack_core::RenderManifestArgs) -> Result<BoxSource> {
-    let chunk = args.chunk();
-    let mut sources = ConcatSource::default();
-    sources.add(RawSource::from(format!(
-      r#"(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["{}"], "#,
-      &args.chunk().id.to_owned(),
-    )));
-    sources.add(self.render_chunk_modules(args)?);
-    if chunk.has_entry_module(&args.compilation.chunk_graph) {
-      sources.add(RawSource::from(","));
-      sources.add(RawSource::from(format!(
-        "function({}) {{\n",
-        runtime_globals::REQUIRE
-      )));
-      sources.add(self.generate_chunk_entry_code(args.compilation, &args.chunk_ukey));
-      sources.add(RawSource::from("\n}\n"));
-    }
-    sources.add(RawSource::from("]);"));
-    Ok(sources.boxed())
+  pub async fn render_chunk(
+    &self,
+    args: &rspack_core::RenderManifestArgs<'_>,
+  ) -> Result<BoxSource> {
+    let source = args
+      .compilation
+      .plugin_driver
+      .clone()
+      .read()
+      .await
+      .render_chunk(RenderChunkArgs {
+        compilation: args.compilation,
+        chunk_ukey: &args.chunk_ukey,
+      })?
+      .expect("should has a render_chunk plugin");
+    Ok(source)
   }
 
   pub fn render_iife(
@@ -282,123 +172,6 @@ impl JsPlugin {
     sources.add(content);
     sources.add(RawSource::from("\n})();\n"));
     sources.boxed()
-  }
-
-  pub fn render_chunk_runtime_modules(
-    &self,
-    args: &rspack_core::RenderManifestArgs,
-  ) -> Result<BoxSource> {
-    let runtime_modules_sources = self.render_runtime_modules(args)?;
-    if runtime_modules_sources.source().is_empty() {
-      return Ok(runtime_modules_sources);
-    }
-
-    let mut sources = ConcatSource::default();
-    sources.add(RawSource::from(format!(
-      "function({}) {{\n",
-      runtime_globals::REQUIRE
-    )));
-    sources.add(runtime_modules_sources);
-    sources.add(RawSource::from("\n}\n"));
-    Ok(sources.boxed())
-  }
-
-  pub fn render_runtime_modules(
-    &self,
-    args: &rspack_core::RenderManifestArgs,
-  ) -> Result<BoxSource> {
-    let mut sources = ConcatSource::default();
-    args
-      .compilation
-      .chunk_graph
-      .get_chunk_runtime_modules_in_order(&args.chunk_ukey)
-      .iter()
-      .filter_map(|identifier| args.compilation.runtime_modules.get(identifier))
-      .for_each(|module| {
-        sources.add(RawSource::from(format!("// {}\n", module.identifier())));
-        sources.add(RawSource::from("(function() {\n"));
-        sources.add(module.generate(args.compilation));
-        sources.add(RawSource::from("\n})();\n"));
-      });
-    Ok(sources.boxed())
-  }
-
-  pub fn render_chunk_modules(&self, args: &rspack_core::RenderManifestArgs) -> Result<BoxSource> {
-    let compilation = args.compilation;
-    let module_graph = &compilation.module_graph;
-    let mut ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
-      &args.chunk_ukey,
-      SourceType::JavaScript,
-      module_graph,
-    );
-    let chunk = args.chunk();
-
-    ordered_modules.sort_by_key(|m| &m.module_identifier);
-
-    let module_code_array = ordered_modules
-      .par_iter()
-      .filter(|mgm| mgm.used)
-      .map(|mgm| {
-        let code_gen_result = compilation
-          .code_generation_results
-          .get(&mgm.module_identifier, Some(&chunk.runtime))?;
-
-        code_gen_result
-          .get(&SourceType::JavaScript)
-          .map(|result| {
-            let mut module_source = result.ast_or_source.clone().try_into_source()?;
-
-            if args.compilation.options.devtool.eval()
-              && args.compilation.options.devtool.source_map()
-            {
-              module_source =
-                wrap_eval_source_map(module_source, &self.eval_source_map_cache, args.compilation)?;
-            }
-
-            if mgm.module_type.is_css_like() && compilation.options.dev_server.hot {
-              // inject css hmr runtime
-              module_source = ConcatSource::new([
-                module_source,
-                RawSource::from(
-                  r#"
-if (module.hot) {
-  module.hot.accept();
-}
-"#,
-                )
-                .boxed(),
-              ])
-              .boxed();
-              Ok(wrap_module_function(
-                module_source,
-                mgm.id(&compilation.chunk_graph),
-              ))
-            } else {
-              Ok(wrap_module_function(
-                module_source,
-                mgm.id(&compilation.chunk_graph),
-              ))
-            }
-          })
-          .transpose()
-      })
-      .collect::<Result<Vec<Option<BoxSource>>>>()?;
-
-    let module_sources = module_code_array
-      .into_par_iter()
-      .flatten()
-      .fold(ConcatSource::default, |mut output, cur| {
-        output.add(cur);
-        output
-      })
-      .collect::<Vec<ConcatSource>>();
-
-    let mut sources = ConcatSource::default();
-    sources.add(RawSource::from("{\n"));
-    sources.add(CachedSource::new(ConcatSource::new(module_sources)));
-    sources.add(RawSource::from("\n}"));
-
-    Ok(CachedSource::new(sources).boxed())
   }
 }
 
@@ -570,31 +343,19 @@ impl Plugin for JsPlugin {
     Ok(())
   }
 
-  fn render_manifest(
+  async fn render_manifest(
     &self,
     _ctx: PluginContext,
-    args: rspack_core::RenderManifestArgs,
+    args: rspack_core::RenderManifestArgs<'_>,
   ) -> PluginRenderManifestHookOutput {
     let compilation = args.compilation;
     let chunk = args.chunk();
-    let filename = args.chunk().id.to_owned();
-
-    let is_hot_update_chunk = matches!(chunk.kind, ChunkKind::HotUpdate);
-    let source = if is_hot_update_chunk {
-      let mut source = ConcatSource::default();
-      source.add(RawSource::Source(format!(
-        "self['hotUpdate']('{}', ",
-        filename
-      )));
-      source.add(self.render_chunk_modules(&args)?);
-      source.add(RawSource::Source(",".to_string()));
-      source.add(self.render_chunk_runtime_modules(&args)?);
-      source.add(RawSource::Source(");".to_string()));
-      source.boxed()
+    let source = if matches!(chunk.kind, ChunkKind::HotUpdate) {
+      self.render_chunk(&args).await?
     } else if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
       self.render_main(&args)?
     } else {
-      self.render_chunk(&args)?
+      self.render_chunk(&args).await?
     };
     // let hash = Some(get_hash(compilation).to_string());
     // let hash = None;

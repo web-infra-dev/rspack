@@ -1,10 +1,16 @@
 use anyhow::anyhow;
 use async_trait::async_trait;
+use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  runtime_globals, AdditionalChunkRuntimeRequirementsArgs, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
+  runtime_globals, AdditionalChunkRuntimeRequirementsArgs, ChunkKind, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginRenderChunkHookOutput,
+  RenderChunkArgs,
 };
 use rspack_error::Result;
+use rspack_plugin_javascript::runtime::{
+  generate_chunk_entry_code, render_chunk_modules, render_chunk_runtime_modules,
+  render_runtime_modules,
+};
 
 #[derive(Debug)]
 pub struct ArrayPushCallbackChunkFormatPlugin {}
@@ -51,5 +57,62 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
     runtime_requirements.insert(runtime_globals::CHUNK_CALLBACK.to_string());
 
     Ok(())
+  }
+
+  fn render_chunk(
+    &self,
+    _ctx: PluginContext,
+    args: &RenderChunkArgs,
+  ) -> PluginRenderChunkHookOutput {
+    let chunk = args
+      .compilation
+      .chunk_by_ukey
+      .get(args.chunk_ukey)
+      .expect("chunk not found");
+    let runtime_modules = args
+      .compilation
+      .chunk_graph
+      .get_chunk_runtime_modules_in_order(args.chunk_ukey);
+    let mut source = ConcatSource::default();
+
+    if matches!(chunk.kind, ChunkKind::HotUpdate) {
+      source.add(RawSource::Source(format!(
+        "self['hotUpdate']('{}', ",
+        chunk.id.to_owned()
+      )));
+      source.add(render_chunk_modules(args.compilation, args.chunk_ukey)?);
+      if !runtime_modules.is_empty() {
+        source.add(RawSource::Source(",".to_string()));
+        source.add(render_chunk_runtime_modules(
+          args.compilation,
+          args.chunk_ukey,
+        )?);
+      }
+      source.add(RawSource::Source(");".to_string()));
+    } else {
+      source.add(RawSource::from(format!(
+        r#"(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["{}"], "#,
+        &chunk.id.to_owned(),
+      )));
+      source.add(render_chunk_modules(args.compilation, args.chunk_ukey)?);
+      let has_entry = chunk.has_entry_module(&args.compilation.chunk_graph);
+      if has_entry || !runtime_modules.is_empty() {
+        source.add(RawSource::from(","));
+        source.add(RawSource::from(format!(
+          "function({}) {{\n",
+          runtime_globals::REQUIRE
+        )));
+        if !runtime_modules.is_empty() {
+          source.add(render_runtime_modules(args.compilation, args.chunk_ukey)?);
+        }
+        if has_entry {
+          source.add(generate_chunk_entry_code(args.compilation, args.chunk_ukey));
+        }
+        source.add(RawSource::from("\n}\n"));
+      }
+      source.add(RawSource::from("]);"));
+    }
+
+    Ok(Some(source.boxed()))
   }
 }

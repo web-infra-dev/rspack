@@ -612,10 +612,10 @@ impl Plugin for CssPlugin {
   //   Ok(TransformAst::Css(stylesheet))
   // }
 
-  fn render_manifest(
+  async fn render_manifest(
     &self,
     _ctx: rspack_core::PluginContext,
-    args: rspack_core::RenderManifestArgs,
+    args: rspack_core::RenderManifestArgs<'_>,
   ) -> rspack_core::PluginRenderManifestHookOutput {
     let compilation = args.compilation;
     // let module_graph = &compilation.module_graph;

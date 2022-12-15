@@ -324,6 +324,7 @@ impl Compiler {
             compilation: &self.compilation,
             chunk_ukey: ukey,
           })
+          .await
           .unwrap();
 
         for entry in render_manifest {

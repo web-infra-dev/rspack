@@ -2576,6 +2576,7 @@ dependencies = [
  "itertools",
  "rspack_core",
  "rspack_error",
+ "rspack_plugin_javascript",
 ]
 
 [[package]]

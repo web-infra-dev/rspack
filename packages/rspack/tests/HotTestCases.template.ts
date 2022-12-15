@@ -30,7 +30,7 @@ export function describeCases(config: {
 					const filterPath = path.join(testDirectory, "test.filter.js");
 					if (fs.existsSync(filterPath) && !require(filterPath)(config)) {
 						describe.skip(testName, () => {
-							it("filtered", () => {});
+							it("filtered", () => { });
 						});
 						return;
 					}
@@ -228,7 +228,7 @@ export function describeCases(config: {
 										let changed = [];
 										try {
 											changed = require(changedFiles);
-										} catch (err) {}
+										} catch (err) { }
 										if (changed.length === 0) {
 											throw Error("can not found changed files");
 										}
@@ -314,10 +314,18 @@ export function describeCases(config: {
 											return require(module);
 										}
 									}
-									const promise = Promise.resolve();
+									let promise = Promise.resolve();
 									const info = stats.toJson({});
-									for (const file of info.entrypoints?.main.assets ?? []) {
-										_require("./" + file.name);
+									if (config.target === "web") {
+										for (const file of info.entrypoints!.main.assets)
+											_require(`./${file.name}`);
+									} else {
+										const assets = info.entrypoints!.main.assets;
+										const result = _require(
+											`./${assets[assets.length - 1].name}`
+										);
+										if (typeof result === "object" && "then" in result)
+											promise = promise.then(() => result);
 									}
 									promise.then(
 										() => {
@@ -329,6 +337,7 @@ export function describeCases(config: {
 											done();
 										},
 										error => {
+											console.log(err);
 											done(error);
 										}
 									);

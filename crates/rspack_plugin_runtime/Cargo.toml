@@ -6,9 +6,10 @@ version = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow       = "1"
-async-trait  = "0.1.53"
-hashbrown    = { version = "0.12.1", features = ["rayon", "serde", "ahash"] }
-itertools    = "0.10.1"
-rspack_core  = { path = "../rspack_core" }
-rspack_error = { path = "../rspack_error" }
+anyhow                   = "1"
+async-trait              = "0.1.53"
+hashbrown                = { version = "0.12.1", features = ["rayon", "serde", "ahash"] }
+itertools                = "0.10.1"
+rspack_core              = { path = "../rspack_core" }
+rspack_error             = { path = "../rspack_error" }
+rspack_plugin_javascript = { path = "../rspack_plugin_javascript" }

@@ -13,9 +13,9 @@ use crate::{
   ModuleArgs, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
   PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput, PluginMakeHookOutput,
-  PluginModuleHookOutput, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
-  PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderManifestArgs, Resolver, Stats,
-  ThisCompilationArgs,
+  PluginModuleHookOutput, PluginProcessAssetsOutput, PluginRenderChunkHookOutput,
+  PluginRenderManifestHookOutput, PluginThisCompilationHookOutput, ProcessAssetsArgs,
+  RenderChunkArgs, RenderManifestArgs, Resolver, Stats, ThisCompilationArgs,
 };
 use rspack_error::{Diagnostic, Result};
 
@@ -164,10 +164,15 @@ impl PluginDriver {
   }
 
   #[instrument(name = "plugin:render_manifest", skip_all)]
-  pub fn render_manifest(&self, args: RenderManifestArgs) -> PluginRenderManifestHookOutput {
+  pub async fn render_manifest(
+    &self,
+    args: RenderManifestArgs<'_>,
+  ) -> PluginRenderManifestHookOutput {
     let mut assets = vec![];
-    self.plugins.iter().try_for_each(|plugin| -> Result<()> {
-      let res = plugin.render_manifest(PluginContext::new(), args.clone())?;
+    for plugin in &self.plugins {
+      let res = plugin
+        .render_manifest(PluginContext::new(), args.clone())
+        .await?;
       tracing::trace!(
         "For Chunk({}), Plugin({}) generate files {:?}",
         args.chunk().id,
@@ -178,9 +183,17 @@ impl PluginDriver {
           .collect::<Vec<_>>()
       );
       assets.extend(res);
-      Ok(())
-    })?;
+    }
     Ok(assets)
+  }
+
+  pub fn render_chunk(&self, args: RenderChunkArgs) -> PluginRenderChunkHookOutput {
+    for plugin in &self.plugins {
+      if let Some(source) = plugin.render_chunk(PluginContext::new(), &args)? {
+        return Ok(Some(source));
+      }
+    }
+    Ok(None)
   }
 
   #[instrument(name = "plugin:factorize", skip_all)]

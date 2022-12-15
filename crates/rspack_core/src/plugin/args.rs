@@ -163,3 +163,9 @@ pub struct AdditionalChunkRuntimeRequirementsArgs<'a> {
   pub runtime_requirements: &'a mut HashSet<String>,
   // TODO context
 }
+
+#[derive(Debug)]
+pub struct RenderChunkArgs<'a> {
+  pub compilation: &'a Compilation,
+  pub chunk_ukey: &'a ChunkUkey,
+}

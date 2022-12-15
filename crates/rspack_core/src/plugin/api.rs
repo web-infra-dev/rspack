@@ -2,16 +2,15 @@ use std::fmt::Debug;
 
 use hashbrown::HashMap;
 
-use rspack_error::Result;
-use rspack_loader_runner::{Content, ResourceData};
-use rspack_sources::BoxSource;
-
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkUkey, Compilation, CompilationArgs,
   DoneArgs, FactorizeArgs, Module, ModuleArgs, ModuleType, NormalModuleFactoryContext,
-  OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderManifestArgs,
-  ThisCompilationArgs, TransformAst, TransformResult,
+  OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderChunkArgs,
+  RenderManifestArgs, ThisCompilationArgs, TransformAst, TransformResult,
 };
+use rspack_error::Result;
+use rspack_loader_runner::{Content, ResourceData};
+use rspack_sources::BoxSource;
 
 // use anyhow::{Context, Result};
 pub type PluginCompilationHookOutput = Result<()>;
@@ -26,6 +25,7 @@ pub type PluginTransformOutput = Result<TransformResult>;
 pub type PluginFactorizeHookOutput = Result<Option<(String, BoxModule)>>;
 pub type PluginModuleHookOutput = Result<Option<BoxModule>>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
+pub type PluginRenderChunkHookOutput = Result<Option<BoxSource>>;
 pub type PluginParseModuleHookOutput = Result<BoxModule>;
 pub type PluginParseOutput = Result<TransformAst>;
 pub type PluginGenerateOutput = Result<Content>;
@@ -92,12 +92,20 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(None)
   }
 
-  fn render_manifest(
+  async fn render_manifest(
     &self,
     _ctx: PluginContext,
-    _args: RenderManifestArgs,
+    _args: RenderManifestArgs<'_>,
   ) -> PluginRenderManifestHookOutput {
     Ok(vec![])
+  }
+
+  fn render_chunk(
+    &self,
+    _ctx: PluginContext,
+    _args: &RenderChunkArgs,
+  ) -> PluginRenderChunkHookOutput {
+    Ok(None)
   }
 
   fn additional_chunk_runtime_requirements(
