@@ -413,10 +413,10 @@ impl Plugin for AssetPlugin {
     Ok(())
   }
 
-  fn render_manifest(
+  async fn render_manifest(
     &self,
     _ctx: PluginContext,
-    args: RenderManifestArgs,
+    args: RenderManifestArgs<'_>,
   ) -> PluginRenderManifestHookOutput {
     let compilation = args.compilation;
     let chunk = args.chunk();

@@ -6,9 +6,9 @@
 mod plugin;
 pub use plugin::*;
 mod ast;
+pub mod runtime;
 pub mod utils;
 pub mod visitors;
-
 // static JS_HELPERS: Lazy<Helpers> = Lazy::new(Helpers::default);
 
 // use typemap::{Key, TypeMap};

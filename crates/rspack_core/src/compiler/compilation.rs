@@ -71,7 +71,7 @@ pub struct Compilation {
   pub assets: CompilationAssets,
   pub emitted_assets: DashSet<String, hashbrown::hash_map::DefaultHashBuilder>,
   diagnostics: IndexSet<Diagnostic, hashbrown::hash_map::DefaultHashBuilder>,
-  pub(crate) plugin_driver: SharedPluginDriver,
+  pub plugin_driver: SharedPluginDriver,
   pub(crate) loader_runner_runner: Arc<LoaderRunnerRunner>,
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
@@ -700,6 +700,7 @@ impl Compilation {
                 chunk_ukey: chunk.ukey,
                 compilation: self,
               })
+              .await
           })
           .await;
 

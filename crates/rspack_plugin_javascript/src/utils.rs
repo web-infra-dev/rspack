@@ -1,5 +1,3 @@
-use dashmap::DashMap;
-use hashbrown::hash_map::DefaultHashBuilder;
 use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use rspack_core::rspack_sources::{
@@ -192,12 +190,12 @@ pub fn ecma_parse_error_to_rspack_error(
 
 pub fn wrap_eval_source_map(
   module_source: BoxSource,
-  cache: &DashMap<BoxSource, BoxSource, DefaultHashBuilder>,
+  // cache: &DashMap<BoxSource, BoxSource, DefaultHashBuilder>,
   compilation: &Compilation,
 ) -> rspack_error::Result<BoxSource> {
-  if let Some(cached) = cache.get(&module_source) {
-    return Ok(cached.clone());
-  }
+  // if let Some(cached) = cache.get(&module_source) {
+  //   return Ok(cached.clone());
+  // }
   if let Some(mut map) = module_source.map(&MapOptions::new(compilation.options.devtool.cheap())) {
     for source in map.sources_mut() {
       let uri = if source.starts_with('<') && source.ends_with('>') {
@@ -225,7 +223,7 @@ pub fn wrap_eval_source_map(
       format!("\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}");
     let content = module_source.source().to_string();
     let result = RawSource::from(format!("eval({});", json!(content + &footer))).boxed();
-    cache.insert(module_source, result.clone());
+    // cache.insert(module_source, result.clone());
     Ok(result)
   } else {
     Ok(module_source)

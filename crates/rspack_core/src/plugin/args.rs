@@ -163,3 +163,19 @@ pub struct AdditionalChunkRuntimeRequirementsArgs<'a> {
   pub runtime_requirements: &'a mut HashSet<String>,
   // TODO context
 }
+
+#[derive(Debug)]
+pub struct RenderChunkArgs<'a> {
+  pub compilation: &'a Compilation,
+  pub chunk_ukey: &'a ChunkUkey,
+}
+
+impl<'me> RenderChunkArgs<'me> {
+  pub fn chunk(&self) -> &Chunk {
+    self
+      .compilation
+      .chunk_by_ukey
+      .get(self.chunk_ukey)
+      .expect("chunk should exsit in chunk_by_ukey")
+  }
+}
