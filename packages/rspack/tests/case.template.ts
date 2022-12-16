@@ -68,6 +68,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 								output: {
 									// @ts-ignore
 									...config.output,
+									publicPath: "/",
 									path: outputPath
 								}
 							};

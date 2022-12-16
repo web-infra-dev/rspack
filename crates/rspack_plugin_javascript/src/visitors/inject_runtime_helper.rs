@@ -1,3 +1,4 @@
+use super::module_variables::WEBPACK_PUBLIC_PATH;
 use crate::visitors::module_variables::WEBPACK_HASH;
 use hashbrown::HashSet;
 use rspack_core::runtime_globals;
@@ -29,10 +30,17 @@ impl<'a> VisitMut for InjectRuntimeHelper<'a> {
   noop_visit_mut_type!();
 
   fn visit_mut_ident(&mut self, n: &mut Ident) {
-    if WEBPACK_HASH.eq(&n.sym) && n.span.has_mark(self.unresolved_mark) {
-      self
-        .runtime_requirements
-        .insert(runtime_globals::GET_FULL_HASH.to_string());
+    if n.span.has_mark(self.unresolved_mark) {
+      if WEBPACK_HASH.eq(&n.sym) {
+        self
+          .runtime_requirements
+          .insert(runtime_globals::GET_FULL_HASH.to_string());
+      }
+      if WEBPACK_PUBLIC_PATH.eq(&n.sym) {
+        self
+          .runtime_requirements
+          .insert(runtime_globals::PUBLIC_PATH.to_string());
+      }
     }
   }
 
