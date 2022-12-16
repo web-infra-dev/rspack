@@ -56,7 +56,7 @@ pub fn enable_tracing_by_env_with_chrome_layer() -> Option<FlushGuard> {
     use tracing_chrome::ChromeLayerBuilder;
     use tracing_subscriber::{prelude::*, EnvFilter};
 
-    let (chrome_layer, guard) = ChromeLayerBuilder::new().build();
+    let (chrome_layer, guard) = ChromeLayerBuilder::new().include_args(true).build();
     // If we don't do this. chrome_layer will collect nothing.
     // std::mem::forget(guard);
     tracing_subscriber::registry()

@@ -28,6 +28,7 @@ use sass_embedded::{
 use serde::Deserialize;
 use str_indices::utf16;
 use tokio::sync::Mutex;
+use tracing::instrument;
 
 static IS_SPECIAL_MODULE_IMPORT: Lazy<Regex> = Lazy::new(|| Regex::new(r"^~[^/]+$").unwrap());
 static IS_NATIVE_WIN32_PATH: Lazy<Regex> =
@@ -457,7 +458,7 @@ impl Loader<CompilerContext, CompilationContext> for SassLoader {
   fn name(&self) -> &'static str {
     "sass-loader"
   }
-
+  #[instrument("sass-loader", skip_self)]
   async fn run(
     &self,
     loader_context: &LoaderContext<'_, '_, CompilerContext, CompilationContext>,
