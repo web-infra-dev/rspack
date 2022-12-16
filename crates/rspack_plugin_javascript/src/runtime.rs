@@ -47,7 +47,8 @@ pub fn render_chunk_modules(
           if compilation.options.devtool.eval() && compilation.options.devtool.source_map() {
             module_source = wrap_eval_source_map(module_source, compilation)?;
           }
-
+          MODULE_RENDER_CACHE.insert(origin_source, module_source.clone());
+          // css or js same content isn't cacheable
           if mgm.module_type.is_css_like() && compilation.options.dev_server.hot {
             // inject css hmr runtime
             module_source = ConcatSource::new([
@@ -63,7 +64,7 @@ if (module.hot) {
             ])
             .boxed();
           }
-          MODULE_RENDER_CACHE.insert(origin_source, module_source.clone());
+          // module id isn't cacheable
           Ok(wrap_module_function(
             module_source,
             mgm.id(&compilation.chunk_graph),
