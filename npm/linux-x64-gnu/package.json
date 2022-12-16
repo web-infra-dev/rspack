@@ -1,0 +1,20 @@
+{
+  "name": "@rspack/binding-linux-x64-gnu",
+  "version": "0.0.15",
+  "description": "Node binding for rspack",
+  "main": "rspack.linux-x64-gnu.node",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "*.node"
+  ],
+  "author": "",
+  "license": "MIT",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ]
+}

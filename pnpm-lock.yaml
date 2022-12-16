@@ -39,8 +39,15 @@ importers:
   crates/node_binding:
     specifiers:
       '@napi-rs/cli': ^2.6.2
+      '@rspack/binding-darwin-arm64': workspace:^
+      '@rspack/binding-darwin-x64': workspace:^
+      '@rspack/binding-linux-x64-gnu': workspace:^
       npm-run-all: 4.1.5
       why-is-node-running: 2.2.1
+    optionalDependencies:
+      '@rspack/binding-darwin-arm64': link:../../npm/darwin-arm64
+      '@rspack/binding-darwin-x64': link:../../npm/darwin-x64
+      '@rspack/binding-linux-x64-gnu': link:../../npm/linux-x64-gnu
     devDependencies:
       '@napi-rs/cli': 2.11.4
       npm-run-all: 4.1.5
@@ -212,6 +219,15 @@ importers:
       '@rspack/cli': link:../../packages/rspack-cli
       react: 17.0.0
       react-dom: 17.0.0_react@17.0.0
+
+  npm/darwin-arm64:
+    specifiers: {}
+
+  npm/darwin-x64:
+    specifiers: {}
+
+  npm/linux-x64-gnu:
+    specifiers: {}
 
   packages/create-rspack:
     specifiers:

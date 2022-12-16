@@ -43,6 +43,9 @@ sync_bnpm:
 	@bnpm sync @rspack/plugin-postcss
 	@bnpm sync @rspack/cli
 	@bnpm sync @rspack/binding
+	@bnpm sync @rspack/binding-darwin-arm64
+	@bnpm sync @rspack/binding-darwin-x64
+	@bnpm sync @rspack/binding-linux-x64-gnu
 	@bnpm sync create-rspack
 snapshot_ci:
 	@pnpm version:snapshot

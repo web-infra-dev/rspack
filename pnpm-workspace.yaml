@@ -1,5 +1,6 @@
 packages:
   - "packages/*"
+  - "npm/*"
   - "crates/node_binding"
   - "examples/*"
   - "!examples/three"
