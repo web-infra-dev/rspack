@@ -26,6 +26,10 @@ export class Stats {
 		this.compilation = compilation;
 	}
 
+	get hash() {
+		return this.compilation.hash;
+	}
+
 	hasErrors() {
 		return this.#statsJson.errorsCount > 0;
 	}

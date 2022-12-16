@@ -8,7 +8,6 @@ import {
 	JsAsset
 } from "@rspack/binding";
 
-import { createHash } from "./utils/createHash";
 import { RspackOptionsNormalized } from "./config";
 import { createRawFromSource, createSourceFromRaw } from "./utils/createSource";
 import { ResolvedOutput } from "./config/output";
@@ -24,8 +23,6 @@ export class Compilation {
 	hooks: {
 		processAssets: tapable.AsyncSeriesHook<Record<string, Source>>;
 	};
-	fullHash: string;
-	hash: string;
 	options: RspackOptionsNormalized;
 	outputOptions: ResolvedOutput;
 	compiler: Compiler;
@@ -39,10 +36,15 @@ export class Compilation {
 		this.compiler = compiler;
 		this.options = compiler.options;
 		this.outputOptions = compiler.options.output;
-		const hash = createHash(this.options.output.hashFunction);
-		this.fullHash = hash.digest(this.options.output.hashDigest);
-		this.hash = this.fullHash.slice(0, hashDigestLength);
 		this.#inner = inner;
+	}
+
+	get hash() {
+		return this.#inner.hash;
+	}
+
+	get fullHash() {
+		return this.#inner.hash;
 	}
 
 	/**

@@ -191,6 +191,11 @@ impl JsCompilation {
       })
       .collect()
   }
+
+  #[napi(getter)]
+  pub fn hash(&self) -> String {
+    self.inner.hash.to_string()
+  }
 }
 
 impl JsCompilation {
