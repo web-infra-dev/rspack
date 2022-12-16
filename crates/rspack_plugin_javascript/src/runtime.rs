@@ -112,8 +112,7 @@ pub fn generate_chunk_entry_code(compilation: &Compilation, chunk_ukey: &ChunkUk
         }
     })
     .collect::<Vec<_>>();
-  let concat = ConcatSource::new(sources);
-  concat.boxed()
+  CachedSource::new(ConcatSource::new(sources)).boxed()
 }
 
 pub fn render_chunk_runtime_modules(

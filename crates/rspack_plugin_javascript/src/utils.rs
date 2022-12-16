@@ -219,7 +219,7 @@ pub fn wrap_eval_source_map(
       format!("\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}");
     let content = module_source.source().to_string();
     let result = RawSource::from(format!("eval({});", json!(content + &footer))).boxed();
-    Ok(ConcatSource::new([result]).boxed())
+    Ok(CachedSource::new(result).boxed())
   } else {
     Ok(module_source)
   }
