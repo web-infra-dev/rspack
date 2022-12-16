@@ -60,6 +60,7 @@ pub struct BuildContext<'a> {
 #[derive(Debug, Default, Clone)]
 pub struct BuildResult {
   pub cacheable: bool,
+  pub build_dependencies: Vec<String>,
   pub dependencies: Vec<ModuleDependency>,
 }
 

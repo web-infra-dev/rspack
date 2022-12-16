@@ -128,17 +128,17 @@ export class Compilation {
 	 * @param {JsAssetInfo} assetInfo extra asset information
 	 * @returns {void}
 	 */
-	emitAsset(
-		filename: string,
-		source: Source,
-		assetInfo: JsAssetInfo = {
-			minimized: false,
-			development: false,
-			hotModuleReplacement: false,
-			related: {}
-		}
-	) {
-		this.#inner.emitAsset(filename, createRawFromSource(source), assetInfo);
+	emitAsset(filename: string, source: Source, assetInfo: JsAssetInfo) {
+		const info = Object.assign(
+			{
+				minimized: false,
+				development: false,
+				hotModuleReplacement: false,
+				related: {}
+			},
+			assetInfo
+		);
+		this.#inner.emitAsset(filename, createRawFromSource(source), info);
 	}
 
 	deleteAsset(filename: string) {

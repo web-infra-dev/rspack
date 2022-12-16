@@ -44,20 +44,51 @@ pub struct LoaderContext<'a, 'context, T, U> {
   pub additional_data: Option<String>,
 
   pub cacheable: bool,
+
+  pub build_dependencies: Vec<String>,
 }
 
 #[derive(Debug)]
 pub struct LoaderResult {
   pub cacheable: bool,
+  pub build_dependencies: Vec<String>,
   pub content: Content,
   pub source_map: Option<SourceMap>,
   pub additional_data: Option<String>,
+}
+
+impl LoaderResult {
+  pub fn new(content: Content, source_map: Option<SourceMap>) -> Self {
+    Self {
+      cacheable: true,
+      build_dependencies: Default::default(),
+      content,
+      source_map,
+      additional_data: Default::default(),
+    }
+  }
+
+  pub fn cacheable(mut self, v: bool) -> Self {
+    self.cacheable = v;
+    self
+  }
+
+  pub fn build_dependency(mut self, v: String) -> Self {
+    self.build_dependencies.push(v);
+    self
+  }
+
+  pub fn additional_data(mut self, v: String) -> Self {
+    self.additional_data = Some(v);
+    self
+  }
 }
 
 impl<T, U> From<LoaderContext<'_, '_, T, U>> for LoaderResult {
   fn from(loader_context: LoaderContext<'_, '_, T, U>) -> Self {
     Self {
       cacheable: loader_context.cacheable,
+      build_dependencies: loader_context.build_dependencies,
       content: loader_context.source,
       source_map: loader_context.source_map,
       additional_data: loader_context.additional_data,
@@ -133,6 +164,7 @@ impl LoaderRunner {
 
     let loader_context = LoaderContext {
       cacheable: true,
+      build_dependencies: vec![],
       source: content,
       resource: &self.resource_data.resource,
       resource_path: &self.resource_data.resource_path,

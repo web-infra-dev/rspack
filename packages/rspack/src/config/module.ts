@@ -81,6 +81,7 @@ interface LoaderContextInternal {
 	resourceQuery: string | null;
 	resourceFragment: string | null;
 	cacheable: boolean;
+	buildDependencies: string[];
 }
 export interface LoaderContext
 	extends Pick<
@@ -133,6 +134,7 @@ export interface LoaderContext
 	addContextDependency(context: string): void;
 	addMissingDependency(missing: string): void;
 	clearDependencies(): void;
+	addBuildDependency(file: string): void;
 	fs: any;
 	utils: {
 		absolutify: (context: string, request: string) => string;
@@ -178,6 +180,7 @@ export interface AdditionalData {
 
 export interface LoaderResult {
 	cacheable: boolean;
+	buildDependencies?: string[];
 	content: string | Buffer;
 	sourceMap?: string | SourceMap;
 	additionalData?: AdditionalData;
@@ -198,6 +201,7 @@ function composeJsUse(
 		const moduleContext = path.dirname(data.resourcePath);
 
 		let cacheable: boolean = data.cacheable;
+		let buildDependencies = data.buildDependencies;
 		let content: string | Buffer = data.content;
 		let sourceMap: string | SourceMap | undefined =
 			data.sourceMap?.toString("utf-8");
@@ -444,12 +448,15 @@ function composeJsUse(
 					},
 					fs: compiler.inputFileSystem,
 					utils,
+					addBuildDependency(file) {
+						buildDependencies.push(file);
+					},
 
 					// Mock, we don't need to implement these since the dev-server use 'chokidar'
 					// to watch files under 'options.context'.
-					addDependency(file: string) {},
-					addContextDependency(context: string) {},
-					addMissingDependency(missing: string) {},
+					addDependency(file) {},
+					addContextDependency(context) {},
+					addMissingDependency(missing) {},
 					clearDependencies() {}
 				};
 
@@ -484,6 +491,7 @@ function composeJsUse(
 						if (result === undefined) {
 							resolve({
 								content,
+								buildDependencies,
 								sourceMap,
 								additionalData,
 								cacheable
@@ -494,6 +502,7 @@ function composeJsUse(
 							return result.then(function (result) {
 								resolve({
 									content: result,
+									buildDependencies,
 									sourceMap,
 									additionalData,
 									cacheable
@@ -502,6 +511,7 @@ function composeJsUse(
 						}
 						return resolve({
 							content: result,
+							buildDependencies,
 							sourceMap,
 							additionalData,
 							cacheable
@@ -531,6 +541,7 @@ function composeJsUse(
 					(typeof loaderResult.additionalData === "string"
 						? JSON.parse(loaderResult.additionalData)
 						: loaderResult.additionalData) ?? additionalData;
+				buildDependencies = loaderResult.buildDependencies ?? buildDependencies;
 				content = loaderResult.content ?? content;
 				sourceMap = loaderResult.sourceMap ?? sourceMap;
 				cacheable = loaderResult.cacheable ?? cacheable;
@@ -539,6 +550,7 @@ function composeJsUse(
 
 		return {
 			cacheable: cacheable,
+			buildDependencies: buildDependencies,
 			content: toBuffer(content),
 			sourceMap: sourceMap
 				? toBuffer(

@@ -46,6 +46,7 @@ impl Module for LazyCompilationProxyModule {
       BuildResult {
         cacheable: true,
         dependencies: vec![],
+        build_dependencies: vec![],
       }
       .with_empty_diagnostic(),
     )
