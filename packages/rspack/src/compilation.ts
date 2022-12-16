@@ -19,6 +19,8 @@ import ResolverFactory from "./ResolverFactory";
 const hashDigestLength = 8;
 const EMPTY_ASSET_INFO = {};
 
+export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
+
 export class Compilation {
 	#inner: JsCompilation;
 
@@ -128,7 +130,7 @@ export class Compilation {
 	 * @param {JsAssetInfo} assetInfo extra asset information
 	 * @returns {void}
 	 */
-	emitAsset(filename: string, source: Source, assetInfo: JsAssetInfo) {
+	emitAsset(filename: string, source: Source, assetInfo?: AssetInfo) {
 		const info = Object.assign(
 			{
 				minimized: false,
