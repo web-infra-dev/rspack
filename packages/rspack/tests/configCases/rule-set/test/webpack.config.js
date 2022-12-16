@@ -23,6 +23,14 @@ module.exports = {
 						loader: "./loader-1.js"
 					}
 				]
+			},
+			{
+				test: /\.module\.less$/,
+				type: "css/module"
+			},
+			{
+				test: /(?<!module).less$/,
+				type: "css"
 			}
 		]
 	}

@@ -1,6 +1,6 @@
-use std::fmt::Debug;
-
 use crate::{BoxedLoader, ModuleType, ResourceData};
+use rspack_regex::RspackRegex;
+use std::fmt::Debug;
 
 #[derive(Debug, Clone, Default)]
 pub struct AssetParserDataUrlOption {
@@ -20,7 +20,7 @@ type ModuleRuleFunc = Box<dyn Fn(&ResourceData) -> anyhow::Result<bool> + Send +
 #[derive(Debug)]
 pub enum ModuleRuleCondition {
   String(String),
-  Regexp(regex::Regex),
+  Regexp(RspackRegex),
   // TODO: support logical conditions
   // LogicalConditions
 }

@@ -4,11 +4,15 @@ use rspack_error::{internal_error, Error, InternalError};
 use swc_core::ecma::ast::Regex as SwcRegex;
 
 /// Using wrapper because I want to implement the `TryFrom` Trait
+#[derive(Debug)]
 pub struct RspackRegex(Regex);
 
 impl RspackRegex {
   pub fn find(&self, str: &str) -> Option<Match> {
     self.0.find(str)
+  }
+  pub fn test(&self, str: &str) -> bool {
+    self.find(str).is_some()
   }
 
   pub fn find_iter<'r, 't>(&'r self, text: &'t str) -> Matches<'r, 't> {
