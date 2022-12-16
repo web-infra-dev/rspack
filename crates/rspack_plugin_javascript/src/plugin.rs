@@ -2,8 +2,8 @@ use async_trait::async_trait;
 
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{
-  BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
-  SourceMapSourceOptions,
+  BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
+  SourceMapSource, SourceMapSourceOptions,
 };
 use rspack_core::{
   get_js_chunk_filename_template, runtime_globals, AstOrSource, ChunkKind, FilenameRenderOptions,
@@ -29,15 +29,11 @@ use crate::utils::{get_swc_compiler, syntax_by_module_type};
 use crate::visitors::{run_after_pass, run_before_pass, DependencyScanner};
 
 #[derive(Debug)]
-pub struct JsPlugin {
-  // eval_source_map_cache: DashMap<Box<dyn Source>, Box<dyn Source>, DefaultHashBuilder>,
-}
+pub struct JsPlugin {}
 
 impl JsPlugin {
   pub fn new() -> Self {
-    Self {
-      // eval_source_map_cache: Default::default(),
-    }
+    Self {}
   }
 
   pub fn render_require(&self, args: &rspack_core::RenderManifestArgs) -> BoxSource {
@@ -81,7 +77,7 @@ impl JsPlugin {
       "// Return the exports of the module\n return module.exports;\n",
     ));
 
-    sources.boxed()
+    CachedSource::new(sources).boxed()
   }
 
   pub fn render_bootstrap(&self, args: &rspack_core::RenderManifestArgs) -> BoxSource {
@@ -122,7 +118,7 @@ impl JsPlugin {
       ));
     }
 
-    sources.boxed()
+    CachedSource::new(sources).boxed()
   }
 
   pub fn render_main(&self, args: &rspack_core::RenderManifestArgs) -> Result<BoxSource> {
@@ -138,7 +134,7 @@ impl JsPlugin {
       // TODO: how do we handle multiple entry modules?
       sources.add(generate_chunk_entry_code(compilation, &args.chunk_ukey));
     }
-    Ok(self.render_iife(sources.boxed(), args))
+    Ok(self.render_iife(CachedSource::new(sources).boxed(), args))
   }
 
   pub async fn render_chunk(

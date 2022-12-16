@@ -1,8 +1,12 @@
 use crate::utils::{wrap_eval_source_map, wrap_module_function};
+use dashmap::DashMap;
+use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, CachedSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{runtime_globals, ChunkUkey, Compilation, SourceType};
 use rspack_error::Result;
+
+static MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(DashMap::default);
 
 pub fn render_chunk_modules(
   compilation: &Compilation,
@@ -32,8 +36,14 @@ pub fn render_chunk_modules(
       code_gen_result
         .get(&SourceType::JavaScript)
         .map(|result| {
-          let mut module_source = result.ast_or_source.clone().try_into_source()?;
-
+          let origin_source = result.ast_or_source.clone().try_into_source()?;
+          if let Some(cached) = MODULE_RENDER_CACHE.get(&origin_source) {
+            return Ok(wrap_module_function(
+              cached.value().clone(),
+              mgm.id(&compilation.chunk_graph),
+            ));
+          }
+          let mut module_source = CachedSource::new(origin_source.clone()).boxed();
           if compilation.options.devtool.eval() && compilation.options.devtool.source_map() {
             module_source = wrap_eval_source_map(module_source, compilation)?;
           }
@@ -52,16 +62,12 @@ if (module.hot) {
               .boxed(),
             ])
             .boxed();
-            Ok(wrap_module_function(
-              module_source,
-              mgm.id(&compilation.chunk_graph),
-            ))
-          } else {
-            Ok(wrap_module_function(
-              module_source,
-              mgm.id(&compilation.chunk_graph),
-            ))
           }
+          MODULE_RENDER_CACHE.insert(origin_source, module_source.clone());
+          Ok(wrap_module_function(
+            module_source,
+            mgm.id(&compilation.chunk_graph),
+          ))
         })
         .transpose()
     })
@@ -126,7 +132,7 @@ pub fn render_chunk_runtime_modules(
   )));
   sources.add(runtime_modules_sources);
   sources.add(RawSource::from("\n}\n"));
-  Ok(sources.boxed())
+  Ok(CachedSource::new(sources).boxed())
 }
 
 pub fn render_runtime_modules(
@@ -145,5 +151,5 @@ pub fn render_runtime_modules(
       sources.add(module.generate(compilation));
       sources.add(RawSource::from("\n})();\n"));
     });
-  Ok(sources.boxed())
+  Ok(CachedSource::new(sources).boxed())
 }
