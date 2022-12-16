@@ -14,13 +14,10 @@ use std::{
   fmt::Debug,
   hash::{Hash, Hasher},
   marker::PhantomPinned,
-  path::PathBuf,
   pin::Pin,
-  str::FromStr,
   sync::atomic::{AtomicU32, Ordering},
   sync::Arc,
 };
-use sugar_path::SugarPath;
 use swc_core::ecma::atoms::JsWord;
 use tokio::sync::mpsc::{error::TryRecvError, UnboundedSender};
 use tracing::instrument;
@@ -1630,7 +1627,7 @@ fn mark_symbol(
               let module_identifier_list = ret
                 .iter()
                 .map(|(module_identifier, _)| {
-                  contextify(options.context.clone(), &module_identifier)
+                  contextify(options.context.clone(), module_identifier)
                 })
                 .collect::<Vec<_>>();
               error_message += &join_string_component(module_identifier_list);
