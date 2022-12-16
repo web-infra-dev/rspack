@@ -1,5 +1,11 @@
 # @rspack/plugin-node-polyfill
 
+## 0.0.15
+
+### Patch Changes
+
+- bump version
+
 ## 0.0.14
 
 ### Patch Changes

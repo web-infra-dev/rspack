@@ -1,5 +1,14 @@
 # @rspack/cli
 
+## 0.0.15
+
+### Patch Changes
+
+- bump version
+- Updated dependencies
+  - @rspack/core@0.0.15
+  - @rspack/dev-server@0.0.15
+
 ## 0.0.14
 
 ### Patch Changes
