@@ -36,18 +36,17 @@ pub fn render_chunk_modules(
       code_gen_result
         .get(&SourceType::JavaScript)
         .map(|result| {
-          let origin_source = result.ast_or_source.clone().try_into_source()?;
-          if let Some(cached) = MODULE_RENDER_CACHE.get(&origin_source) {
-            return Ok(wrap_module_function(
-              cached.value().clone(),
-              mgm.id(&compilation.chunk_graph),
-            ));
-          }
-          let mut module_source = CachedSource::new(origin_source.clone()).boxed();
+          let mut module_source =
+            CachedSource::new(result.ast_or_source.clone().try_into_source()?).boxed();
           if compilation.options.devtool.eval() && compilation.options.devtool.source_map() {
-            module_source = wrap_eval_source_map(module_source, compilation)?;
+            let origin_source = module_source.clone();
+            if let Some(cached) = MODULE_RENDER_CACHE.get(&origin_source) {
+              module_source = cached.value().clone();
+            } else {
+              module_source = wrap_eval_source_map(module_source, compilation)?;
+              MODULE_RENDER_CACHE.insert(origin_source, module_source.clone());
+            }
           }
-          MODULE_RENDER_CACHE.insert(origin_source, module_source.clone());
           // css or js same content isn't cacheable
           if mgm.module_type.is_css_like() && compilation.options.dev_server.hot {
             // inject css hmr runtime
