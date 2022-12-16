@@ -197,7 +197,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     module.original_source().map_or(0, |source| source.size()) as f64
   }
 
-  #[instrument(name = "js:parse", skip_all)]
+  #[instrument(name = "js:parse", fields(name = &parse_context.resource_data.resource_path),skip_all)]
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
     let ParseContext {
       source,
