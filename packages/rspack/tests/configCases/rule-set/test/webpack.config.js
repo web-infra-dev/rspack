@@ -30,13 +30,6 @@ module.exports = {
 			},
 			{
 				test: /(?<!module).less$/,
-				use: [
-					{
-						loader: function (x) {
-							console.log("x:", x);
-						}
-					}
-				],
 				type: "css"
 			}
 		]
