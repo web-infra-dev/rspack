@@ -17,6 +17,7 @@
     "@rspack/less-loader": "workspace:^",
     "@rspack/plugin-node-polyfill": "workspace:^",
     "@rspack/postcss-loader": "workspace:^",
+    "@rspack/plugin-minify": "workspace:^",
     "@swc/helpers": "^0.4.12",
     "@types/jest": "29.0.2",
     "@types/node": "^18.6.3",

@@ -5,7 +5,7 @@ import type {
 	RawModuleOptions,
 	JsAssetInfo,
 	JsLoaderContext,
-	JsLoaderResult,
+	JsLoaderResult
 } from "@rspack/binding";
 import assert from "assert";
 import { ResolveRequest } from "enhanced-resolve";
@@ -374,9 +374,7 @@ function composeJsUse(
 					},
 					getLogger(name) {
 						return compiler.getInfrastructureLogger(() =>
-							[name, data.resource]
-								.filter(Boolean)
-								.join("|")
+							[name, data.resource].filter(Boolean).join("|")
 						);
 					},
 					cacheable(value) {
@@ -463,20 +461,20 @@ function composeJsUse(
 				/**
 				 * support loader as string
 				 */
-				 let loader: Loader | undefined;
-				 if (typeof use.loader === "string") {
-					 try {
-						 let loaderPath = require.resolve(use.loader, {
-							 paths: [options.context]
-						 });
-						 loader = require(loaderPath);
-					 } catch (err) {
-						 reject(err);
-						 return;
-					 }
-				 } else {
-					 loader = use.loader;
-				 }
+				let loader: Loader | undefined;
+				if (typeof use.loader === "string") {
+					try {
+						let loaderPath = require.resolve(use.loader, {
+							paths: [options.context]
+						});
+						loader = require(loaderPath);
+					} catch (err) {
+						reject(err);
+						return;
+					}
+				} else {
+					loader = use.loader;
+				}
 
 				let result: Promise<string | Buffer> | string | Buffer | undefined =
 					undefined;

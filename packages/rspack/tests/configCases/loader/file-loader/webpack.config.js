@@ -4,7 +4,7 @@ module.exports = {
 		rules: [
 			{
 				test: /\.png$/,
-				use: [{ loader: "file-loader" }],
+				use: [{ loader: "file-loader", options: { esModule: false } }],
 				type: "js"
 			}
 		]
