@@ -47,7 +47,7 @@ importers:
     optionalDependencies:
       '@rspack/binding-darwin-arm64': link:../../npm/darwin-arm64
       '@rspack/binding-darwin-x64': link:../../npm/darwin-x64
-      '@rspack/binding-linux-x64-gnu': link:../../npm/linux-gnu-x64
+      '@rspack/binding-linux-x64-gnu': link:../../npm/linux-x64-gnu
     devDependencies:
       '@napi-rs/cli': 2.11.4
       npm-run-all: 4.1.5
@@ -226,7 +226,7 @@ importers:
   npm/darwin-x64:
     specifiers: {}
 
-  npm/linux-gnu-x64:
+  npm/linux-x64-gnu:
     specifiers: {}
 
   packages/create-rspack:
