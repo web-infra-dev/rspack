@@ -6,17 +6,15 @@ use napi::{bindgen_prelude::*, JsFunction, NapiRaw};
 use napi_derive::napi;
 #[cfg(feature = "node-api")]
 use rspack_binding_macros::call_js_function_with_napi_objects;
-#[cfg(feature = "node-api")]
-use rspack_error::{
-  internal_error, InternalError, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-};
-
-use serde::Deserialize;
-
 use rspack_core::{
   AssetParserDataUrlOption, AssetParserOptions, BoxedLoader, CompilerOptionsBuilder, ModuleOptions,
   ModuleRule, ParserOptions,
 };
+#[cfg(feature = "node-api")]
+use rspack_error::{
+  internal_error, InternalError, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+};
+use serde::Deserialize;
 
 #[cfg(feature = "node-api")]
 use crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
@@ -107,7 +105,7 @@ impl TryFrom<RawModuleRuleCondition> for rspack_core::ModuleRuleCondition {
 
     let result = match x.r#type.as_str() {
       "string" => Self::String(matcher),
-      "regexp" => Self::Regexp(regex::Regex::new(&matcher)?),
+      "regexp" => Self::Regexp(rspack_regex::RspackRegex::new(&matcher)?),
       _ => {
         anyhow::bail!(
           "Failed to resolve the condition type {}. Expected type is either `string` or `regexp`.",

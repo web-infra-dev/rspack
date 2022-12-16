@@ -23,6 +23,21 @@ module.exports = {
 						loader: "./loader-1.js"
 					}
 				]
+			},
+			{
+				test: /\.module\.less$/,
+				type: "css/module"
+			},
+			{
+				test: /(?<!module).less$/,
+				use: [
+					{
+						loader: function (x) {
+							console.log("x:", x);
+						}
+					}
+				],
+				type: "css"
 			}
 		]
 	}
