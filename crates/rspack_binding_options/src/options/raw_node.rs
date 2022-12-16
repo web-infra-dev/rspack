@@ -1,4 +1,4 @@
-use rspack_core::{CompilerOptionsBuilder, NodeOption};
+use rspack_core::{CompilerOptionsBuilder, NodeOption, TargetPlatform};
 use serde::Deserialize;
 
 #[cfg(feature = "node-api")]
@@ -22,9 +22,16 @@ pub struct RawNodeOption {
 }
 
 impl RawOption<NodeOption> for RawNodeOption {
-  fn to_compiler_option(self, _options: &CompilerOptionsBuilder) -> anyhow::Result<NodeOption> {
+  fn to_compiler_option(self, options: &CompilerOptionsBuilder) -> anyhow::Result<NodeOption> {
     Ok(NodeOption {
-      dirname: self.dirname.unwrap_or_else(|| "false".to_string()),
+      dirname: self.dirname.unwrap_or_else(|| {
+        if let Some(target) = &options.target {
+          if matches!(target.platform, TargetPlatform::Web) {
+            return "mock".to_string();
+          }
+        }
+        "false".to_string()
+      }),
     })
   }
 
