@@ -14,7 +14,8 @@ import type {
 	ResolvedModule,
 	LoaderContext,
 	Loader,
-	SourceMap
+	SourceMap,
+	GetCompiler
 } from "./module";
 import type { PluginInstance } from "./plugin";
 import type { ResolvedTarget, Target } from "./target";
@@ -95,7 +96,8 @@ export interface RspackOptionsNormalized {
 }
 
 export function getNormalizedRspackOptions(
-	config: RspackOptions
+	config: RspackOptions,
+	getCompiler: GetCompiler
 ): RspackOptionsNormalized {
 	const context = config.context ?? process.cwd();
 	const mode = config.mode ?? "production";
@@ -113,7 +115,11 @@ export function getNormalizedRspackOptions(
 	});
 	const resolve = resolveResolveOptions(config.resolve, { target });
 	const devtool = resolveDevtoolOptions(config.devtool);
-	const module = resolveModuleOptions(config.module, { devtool, context });
+	const module = resolveModuleOptions(config.module, {
+		devtool,
+		context,
+		getCompiler
+	});
 	const stats = resolveStatsOptions(config.stats);
 	const devServer = config.devServer;
 	const snapshot = resolveSnapshotOptions(config.snapshot);

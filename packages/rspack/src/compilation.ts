@@ -1,5 +1,6 @@
 import * as tapable from "tapable";
 import { RawSource, Source } from "webpack-sources";
+import { Resolver } from "enhanced-resolve";
 
 import {
 	JsCompilation,
@@ -9,13 +10,16 @@ import {
 } from "@rspack/binding";
 
 import { RspackOptionsNormalized } from "./config";
-import { createRawFromSource, createSourceFromRaw } from "./utils/createSource";
+import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
 import { ResolvedOutput } from "./config/output";
 import { ChunkGroup } from "./chunk_group";
 import { Compiler } from "./compiler";
+import ResolverFactory from "./ResolverFactory";
 
 const hashDigestLength = 8;
 const EMPTY_ASSET_INFO = {};
+
+export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 
 export class Compilation {
 	#inner: JsCompilation;
@@ -26,6 +30,7 @@ export class Compilation {
 	options: RspackOptionsNormalized;
 	outputOptions: ResolvedOutput;
 	compiler: Compiler;
+	resolverFactory: ResolverFactory;
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.hooks = {
@@ -125,17 +130,17 @@ export class Compilation {
 	 * @param {JsAssetInfo} assetInfo extra asset information
 	 * @returns {void}
 	 */
-	emitAsset(
-		filename: string,
-		source: Source,
-		assetInfo: JsAssetInfo = {
-			minimized: false,
-			development: false,
-			hotModuleReplacement: false,
-			related: {}
-		}
-	) {
-		this.#inner.emitAsset(filename, createRawFromSource(source), assetInfo);
+	emitAsset(filename: string, source: Source, assetInfo?: AssetInfo) {
+		const info = Object.assign(
+			{
+				minimized: false,
+				development: false,
+				hotModuleReplacement: false,
+				related: {}
+			},
+			assetInfo
+		);
+		this.#inner.emitAsset(filename, createRawFromSource(source), info);
 	}
 
 	deleteAsset(filename: string) {
@@ -171,6 +176,14 @@ export class Compilation {
 			...asset,
 			source: createSourceFromRaw(asset.source)
 		};
+	}
+
+	pushDiagnostic(
+		severity: "error" | "warning",
+		title: string,
+		message: string
+	) {
+		this.#inner.pushDiagnostic(severity, title, message);
 	}
 
 	// TODO: full alignment

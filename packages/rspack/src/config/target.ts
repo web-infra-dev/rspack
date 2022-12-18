@@ -1,4 +1,4 @@
-import { memoize } from "../utils/memoize";
+import { memoize } from "../util/memoize";
 type TargetItem =
 	| "web"
 	| "webworker"

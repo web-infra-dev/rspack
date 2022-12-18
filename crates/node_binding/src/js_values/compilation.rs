@@ -196,6 +196,22 @@ impl JsCompilation {
   pub fn hash(&self) -> String {
     self.inner.hash.to_string()
   }
+
+  #[napi(ts_args_type = r#"severity: "error" | "warning", title: string, message: string"#)]
+  pub fn push_diagnostic(&mut self, severity: String, title: String, message: String) {
+    let diagnostic = match severity.as_str() {
+      "warning" => rspack_error::Diagnostic::warn(title, message, 0, 0),
+      _ => rspack_error::Diagnostic::error(title, message, 0, 0),
+    };
+    // Safety: It is safe as modify for the asset will never move Compilation.
+    unsafe {
+      self
+        .inner
+        .as_mut()
+        .get_unchecked_mut()
+        .push_diagnostic(diagnostic);
+    };
+  }
 }
 
 impl JsCompilation {

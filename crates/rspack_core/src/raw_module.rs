@@ -73,6 +73,7 @@ impl Module for RawModule {
     Ok(
       BuildResult {
         cacheable: true,
+        build_dependencies: vec![],
         dependencies: vec![],
       }
       .with_empty_diagnostic(),

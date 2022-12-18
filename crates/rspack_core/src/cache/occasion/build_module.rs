@@ -59,10 +59,13 @@ impl BuildModuleOccasion {
     // run generator and save to cache
     let data = generator(module).await?;
     if need_cache && data.inner.cacheable {
+      let mut paths = data.inner.build_dependencies.clone();
+      paths.push(id.clone());
+
       let snapshot = self
         .snapshot_manager
         // TODO replace id with source file path or just cache normal module
-        .create_snapshot(vec![id.clone()], |option| &option.module)
+        .create_snapshot(paths, |option| &option.module)
         .await?;
       storage.set(id, (snapshot, data.clone()));
     }

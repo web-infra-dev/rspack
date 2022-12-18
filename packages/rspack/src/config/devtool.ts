@@ -39,3 +39,7 @@ export function isUseSourceMap(devtool: ResolvedDevtool): boolean {
 		(devtool.includes("module") || !devtool.includes("cheap"))
 	);
 }
+
+export function isUseSimpleSourceMap(devtool: ResolvedDevtool): boolean {
+	return devtool.includes("source-map") && !isUseSourceMap(devtool);
+}

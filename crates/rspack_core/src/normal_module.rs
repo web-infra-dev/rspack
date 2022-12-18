@@ -446,6 +446,7 @@ impl Module for NormalModule {
     Ok(
       BuildResult {
         cacheable: loader_result.cacheable,
+        build_dependencies: vec![],
         dependencies,
       }
       .with_diagnostic(diagnostics),

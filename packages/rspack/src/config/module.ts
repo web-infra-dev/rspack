@@ -3,14 +3,40 @@ import type {
 	RawModuleRule,
 	RawModuleRuleCondition,
 	RawModuleOptions,
+	JsAssetInfo,
 	JsLoaderContext,
 	JsLoaderResult
 } from "@rspack/binding";
 import assert from "assert";
+import { ResolveRequest } from "enhanced-resolve";
 import path from "path";
-import { isNil, isPromiseLike } from "../utils";
+import {
+	OriginalSource,
+	RawSource,
+	Source,
+	SourceMapSource
+} from "webpack-sources";
+import { Compiler } from "../compiler";
+import { Logger } from "../logging/Logger";
+import {
+	ResolveOptions,
+	Resolver,
+	ResolverWithOptions
+} from "../ResolverFactory";
+import { isNil, isPromiseLike } from "../util";
+import { createHash } from "../util/createHash";
+import { createRawFromSource } from "../util/createSource";
+import Hash from "../util/hash";
+import { absolutify, contextify, makePathsRelative } from "../util/identifier";
+import { memoize } from "../util/memoize";
 import { ResolvedContext } from "./context";
-import { isUseSourceMap, ResolvedDevtool } from "./devtool";
+import {
+	isUseSimpleSourceMap,
+	isUseSourceMap,
+	ResolvedDevtool
+} from "./devtool";
+import { ResolvedMode } from "./mode";
+import { ResolvedTarget } from "./target";
 
 export type Condition = string | RegExp;
 
@@ -55,12 +81,14 @@ interface LoaderContextInternal {
 	resourceQuery: string | null;
 	resourceFragment: string | null;
 	cacheable: boolean;
+	buildDependencies: string[];
 }
 export interface LoaderContext
 	extends Pick<
 		LoaderContextInternal,
 		"resource" | "resourcePath" | "resourceQuery" | "resourceFragment"
 	> {
+	version: 2;
 	async(): (
 		err: Error | null,
 		content: string | Buffer,
@@ -77,7 +105,44 @@ export interface LoaderContext
 	sourceMap: boolean;
 	rootContext: string;
 	context: string;
-	getOptions: () => unknown;
+	loaderIndex: number;
+	mode: ResolvedMode;
+	hot?: boolean;
+	getOptions(schema?: any): unknown;
+	resolve(
+		context: string,
+		request: string,
+		callback: (
+			arg0: null | Error,
+			arg1?: string | false,
+			arg2?: ResolveRequest
+		) => void
+	): void;
+	getResolve(
+		options: ResolveOptions
+	): (context: any, request: any, callback: any) => Promise<any>;
+	getLogger(name: string): Logger;
+	emitError(error: Error): void;
+	emitWarning(warning: Error): void;
+	emitFile(
+		name: string,
+		content: string | Buffer,
+		sourceMap?: string,
+		assetInfo?: JsAssetInfo
+	): void;
+	addDependency(file: string): void;
+	addContextDependency(context: string): void;
+	addMissingDependency(missing: string): void;
+	clearDependencies(): void;
+	addBuildDependency(file: string): void;
+	fs: any;
+	utils: {
+		absolutify: (context: string, request: string) => string;
+		contextify: (context: string, request: string) => string;
+		createHash: (algorithm?: string) => Hash;
+	};
+	query: unknown;
+	data: unknown;
 }
 
 const toBuffer = (bufLike: string | Buffer): Buffer => {
@@ -90,9 +155,12 @@ const toBuffer = (bufLike: string | Buffer): Buffer => {
 	throw new Error("Buffer or string expected");
 };
 
+export type GetCompiler = () => Compiler;
+
 export interface ComposeJsUseOptions {
 	devtool: ResolvedDevtool;
 	context: ResolvedContext;
+	getCompiler: GetCompiler;
 }
 
 export interface SourceMap {
@@ -112,6 +180,7 @@ export interface AdditionalData {
 
 export interface LoaderResult {
 	cacheable: boolean;
+	buildDependencies?: string[];
 	content: string | Buffer;
 	sourceMap?: string | SourceMap;
 	additionalData?: AdditionalData;
@@ -119,14 +188,20 @@ export interface LoaderResult {
 
 function composeJsUse(
 	uses: ModuleRuleUse[],
-	options: ComposeJsUseOptions
+	options: ComposeJsUseOptions,
+	allUses: ModuleRuleUse[]
 ): RawModuleRuleUse | null {
 	if (!uses.length) {
 		return null;
 	}
 
 	async function loader(data: JsLoaderContext): Promise<JsLoaderResult> {
+		const compiler = options.getCompiler();
+		const resolver = compiler.resolverFactory.get("normal");
+		const moduleContext = path.dirname(data.resourcePath);
+
 		let cacheable: boolean = data.cacheable;
+		let buildDependencies = data.buildDependencies;
 		let content: string | Buffer = data.content;
 		let sourceMap: string | SourceMap | undefined =
 			data.sourceMap?.toString("utf-8");
@@ -137,6 +212,8 @@ function composeJsUse(
 		// Loader is executed from right to left
 		for (const use of uses) {
 			assert("loader" in use);
+			const loaderIndex = allUses.indexOf(use);
+
 			let loaderResult: LoaderResult;
 
 			const p = new Promise<LoaderResult>((resolve, reject) => {
@@ -173,15 +250,132 @@ function composeJsUse(
 					});
 				}
 
+				const getResolveContext = () => {
+					return {
+						fileDependencies: {
+							add: d => loaderContext.addDependency(d)
+						},
+						contextDependencies: {
+							add: d => loaderContext.addContextDependency(d)
+						},
+						missingDependencies: {
+							add: d => loaderContext.addMissingDependency(d)
+						}
+					};
+				};
+
+				const getAbsolutify = memoize(() =>
+					absolutify.bindCache(compiler.root)
+				);
+				const getAbsolutifyInContext = memoize(() =>
+					absolutify.bindContextCache(moduleContext, compiler.root)
+				);
+				const getContextify = memoize(() =>
+					contextify.bindCache(compiler.root)
+				);
+				const getContextifyInContext = memoize(() =>
+					contextify.bindContextCache(moduleContext, compiler.root)
+				);
+				const utils = {
+					absolutify: (context, request) => {
+						return context === moduleContext
+							? getAbsolutifyInContext()(request)
+							: getAbsolutify()(context, request);
+					},
+					contextify: (context, request) => {
+						return context === moduleContext
+							? getContextifyInContext()(request)
+							: getContextify()(context, request);
+					},
+					createHash: type => {
+						return createHash(
+							type || compiler.compilation.outputOptions.hashFunction
+						);
+					}
+				};
+
 				const loaderContext: LoaderContext = {
+					version: 2,
 					sourceMap: isUseSourceMap(options.devtool),
 					resourcePath: data.resourcePath,
 					resource: data.resource,
 					// Return an empty string if there is no query or fragment
 					resourceQuery: data.resourceQuery || "",
 					resourceFragment: data.resourceFragment || "",
-					getOptions() {
-						return use.options;
+					loaderIndex,
+					mode: compiler.options.mode,
+					hot: compiler.options.devServer.hot,
+					getOptions(schema) {
+						let { options } = use;
+
+						if (options === null || options === undefined) {
+							options = {};
+						}
+
+						if (schema) {
+							let name = "Loader";
+							let baseDataPath = "options";
+							let match;
+							if (schema.title && (match = /^(.+) (.+)$/.exec(schema.title))) {
+								[, name, baseDataPath] = match;
+							}
+							const { validate } = require("schema-utils");
+							validate(schema, options, {
+								name,
+								baseDataPath
+							});
+						}
+
+						return options;
+					},
+					get query() {
+						return use.options && typeof use.options === "object"
+							? use.options
+							: use.query;
+					},
+					get data() {
+						return use.data;
+					},
+					resolve(context, request, callback) {
+						resolver.resolve(
+							{},
+							context,
+							request,
+							getResolveContext(),
+							callback
+						);
+					},
+					getResolve(options) {
+						const child = options ? resolver.withOptions(options) : resolver;
+						return (context, request, callback) => {
+							if (callback) {
+								child.resolve(
+									{},
+									context,
+									request,
+									getResolveContext(),
+									callback
+								);
+							} else {
+								return new Promise((resolve, reject) => {
+									child.resolve(
+										{},
+										context,
+										request,
+										getResolveContext(),
+										(err, result) => {
+											if (err) reject(err);
+											else resolve(result);
+										}
+									);
+								});
+							}
+						};
+					},
+					getLogger(name) {
+						return compiler.getInfrastructureLogger(() =>
+							[name, data.resource].filter(Boolean).join("|")
+						);
 					},
 					cacheable(value) {
 						cacheable = value;
@@ -196,7 +390,72 @@ function composeJsUse(
 					},
 					callback,
 					rootContext: options.context,
-					context: path.dirname(data.resourcePath)
+					context: moduleContext,
+					emitError(error) {
+						const title = "Module Error";
+						const message =
+							error instanceof Error
+								? `${error.message}${error.stack ? `\n${error.stack}` : ""}`
+								: error;
+						compiler.compilation.pushDiagnostic(
+							"error",
+							title,
+							`${message}\n(from: ${use.loader})`
+						);
+					},
+					emitWarning(warning) {
+						const title = "Module Warning";
+						const message =
+							warning instanceof Error
+								? `${warning.message}${
+										warning.stack ? `\n${warning.stack}` : ""
+								  }`
+								: warning;
+						compiler.compilation.pushDiagnostic(
+							"warning",
+							title,
+							`${message}\n(from: ${use.loader})`
+						);
+					},
+					emitFile(name, content, sourceMap?, assetInfo?) {
+						let source: Source;
+						if (sourceMap) {
+							if (
+								typeof sourceMap === "string" &&
+								(loaderContext.sourceMap ||
+									isUseSimpleSourceMap(options.devtool))
+							) {
+								source = new OriginalSource(
+									content,
+									makePathsRelative(moduleContext, sourceMap, compiler)
+								);
+							}
+
+							if (this.useSourceMap) {
+								source = new SourceMapSource(
+									content as any, // webpack-sources type declaration is wrong
+									name,
+									makePathsRelative(moduleContext, sourceMap, compiler) as any // webpack-sources type declaration is wrong
+								);
+							}
+						} else {
+							source = new RawSource(content as any); // webpack-sources type declaration is wrong
+						}
+
+						compiler.compilation.emitAsset(name, source, assetInfo);
+					},
+					fs: compiler.inputFileSystem,
+					utils,
+					addBuildDependency(file) {
+						buildDependencies.push(file);
+					},
+
+					// Mock, we don't need to implement these since the dev-server use 'chokidar'
+					// to watch files under 'options.context'.
+					addDependency(file) {},
+					addContextDependency(context) {},
+					addMissingDependency(missing) {},
+					clearDependencies() {}
 				};
 
 				/**
@@ -230,6 +489,7 @@ function composeJsUse(
 						if (result === undefined) {
 							resolve({
 								content,
+								buildDependencies,
 								sourceMap,
 								additionalData,
 								cacheable
@@ -240,6 +500,7 @@ function composeJsUse(
 							return result.then(function (result) {
 								resolve({
 									content: result,
+									buildDependencies,
 									sourceMap,
 									additionalData,
 									cacheable
@@ -248,6 +509,7 @@ function composeJsUse(
 						}
 						return resolve({
 							content: result,
+							buildDependencies,
 							sourceMap,
 							additionalData,
 							cacheable
@@ -277,6 +539,7 @@ function composeJsUse(
 					(typeof loaderResult.additionalData === "string"
 						? JSON.parse(loaderResult.additionalData)
 						: loaderResult.additionalData) ?? additionalData;
+				buildDependencies = loaderResult.buildDependencies ?? buildDependencies;
 				content = loaderResult.content ?? content;
 				sourceMap = loaderResult.sourceMap ?? sourceMap;
 				cacheable = loaderResult.cacheable ?? cacheable;
@@ -285,6 +548,7 @@ function composeJsUse(
 
 		return {
 			cacheable: cacheable,
+			buildDependencies: buildDependencies,
 			content: toBuffer(content),
 			sourceMap: sourceMap
 				? toBuffer(
@@ -347,33 +611,37 @@ type ModuleRuleUse =
 			loader: Loader | string;
 			options?: unknown;
 			name?: string;
+			query?: string;
+			data?: unknown;
 	  };
 
 export function createRawModuleRuleUses(
 	uses: ModuleRuleUse[],
 	options: ComposeJsUseOptions
 ): RawModuleRuleUse[] {
-	return createRawModuleRuleUsesImpl([...uses].reverse(), options);
+	const allUses = [...uses].reverse();
+	return createRawModuleRuleUsesImpl(allUses, options, allUses);
 }
 
 function createRawModuleRuleUsesImpl(
 	uses: ModuleRuleUse[],
-	options: ComposeJsUseOptions
+	options: ComposeJsUseOptions,
+	allUses: ModuleRuleUse[]
 ): RawModuleRuleUse[] {
 	if (!uses.length) {
 		return [];
 	}
 	const index = uses.findIndex(use => "builtinLoader" in use);
 	if (index < 0) {
-		return [composeJsUse(uses, options)];
+		return [composeJsUse(uses, options, allUses)];
 	}
 
 	const before = uses.slice(0, index);
 	const after = uses.slice(index + 1);
 	return [
-		composeJsUse(before, options),
+		composeJsUse(before, options, allUses),
 		createNativeUse(uses[index]),
-		...createRawModuleRuleUsesImpl(after, options)
+		...createRawModuleRuleUsesImpl(after, options, allUses)
 	].filter((item): item is RawModuleRuleUse => Boolean(item));
 }
 

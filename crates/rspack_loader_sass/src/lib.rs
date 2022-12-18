@@ -492,13 +492,8 @@ impl Loader<CompilerContext, CompilationContext> for SassLoader {
       })
       .transpose()?;
     Ok(Some(
-      LoaderResult {
-        cacheable: true,
-        content: result.css.into(),
-        source_map,
-        additional_data: None,
-      }
-      .with_diagnostic(rx.into_iter().flatten().collect_vec()),
+      LoaderResult::new(result.css.into(), source_map)
+        .with_diagnostic(rx.into_iter().flatten().collect_vec()),
     ))
   }
 

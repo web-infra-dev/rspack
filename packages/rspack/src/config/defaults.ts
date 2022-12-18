@@ -146,7 +146,7 @@ export function applyRspackOptionsDefaults(options: RspackOptionsNormalized) {
 	const { mode, context } = options;
 	const development = mode === "development";
 	const production = mode === "production" || !mode;
-	F(options, "devtool", () => (development ? "eval" : ""));
+	F(options, "devtool", () => (development ? "eval-cheap-source-map" : ""));
 	applyOutputDefaults(options.output, context);
 	applyOptimizationDefaults(options.optimization, {
 		development,

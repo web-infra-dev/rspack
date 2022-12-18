@@ -300,6 +300,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
       resource_fragment: loader_context.resource_fragment.map(|r| r.to_owned()),
       resource_query: loader_context.resource_query.map(|r| r.to_owned()),
       cacheable: loader_context.cacheable,
+      build_dependencies: loader_context.build_dependencies.clone(),
     };
 
     let loader_result = self
@@ -324,6 +325,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
     Ok(loader_result.map(|loader_result| {
       rspack_core::LoaderResult {
         cacheable: loader_result.cacheable,
+        build_dependencies: loader_result.build_dependencies,
         content: rspack_core::Content::from(Into::<Vec<u8>>::into(loader_result.content)),
         source_map,
         additional_data: loader_result
@@ -354,12 +356,14 @@ pub struct JsLoaderContext {
   pub resource_query: Option<String>,
   pub resource_fragment: Option<String>,
   pub cacheable: bool,
+  pub build_dependencies: Vec<String>,
 }
 
 #[cfg(feature = "node-api")]
 #[napi(object)]
 pub struct JsLoaderResult {
   pub content: Buffer,
+  pub build_dependencies: Vec<String>,
   pub source_map: Option<Buffer>,
   pub additional_data: Option<Buffer>,
   pub cacheable: bool,

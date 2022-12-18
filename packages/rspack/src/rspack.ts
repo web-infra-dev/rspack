@@ -4,30 +4,22 @@ import {
 	applyRspackOptionsBaseDefaults,
 	applyRspackOptionsDefaults
 } from "./config/defaults";
-import createConsoleLogger from "./logging/createConsoleLogger";
-import nodeConsole from "./node/nodeConsole";
 import { Stats } from "./stats";
 import util from "util";
 
 import { RspackOptionsApply } from "./rspackOptionsApply";
+import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
 type Callback<T> = (err: Error, t: T) => void;
 function createCompiler(userOptions: RspackOptions) {
 	// console.log("user:", userOptions);
-	const options = getNormalizedRspackOptions(userOptions);
+	const options = getNormalizedRspackOptions(userOptions, () => compiler);
 	applyRspackOptionsBaseDefaults(options);
 	const compiler = new Compiler(options.context, options);
-	const { infrastructureLogging } = options;
-	compiler.infrastructureLogger = createConsoleLogger({
-		level: infrastructureLogging.level || "info",
-		debug: infrastructureLogging.debug || false,
-		console:
-			infrastructureLogging.console ||
-			nodeConsole({
-				colors: infrastructureLogging.colors,
-				appendOnly: infrastructureLogging.appendOnly,
-				stream: infrastructureLogging.stream
-			})
-	});
+
+	new NodeEnvironmentPlugin({
+		infrastructureLogging: options.infrastructureLogging
+	}).apply(compiler);
+
 	const logger = compiler.getInfrastructureLogger("config");
 	logger.debug(
 		"RawOptions:",
@@ -43,6 +35,7 @@ function createCompiler(userOptions: RspackOptions) {
 			}
 		}
 	}
+
 	applyRspackOptionsDefaults(compiler.options);
 	logger.debug(
 		"NormalizedOptions:",
