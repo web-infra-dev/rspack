@@ -276,10 +276,10 @@ function composeJsUse(
 				additionalData =
 					(typeof loaderResult.additionalData === "string"
 						? JSON.parse(loaderResult.additionalData)
-						: loaderResult.additionalData) || additionalData;
-				content = loaderResult.content || content;
-				sourceMap = loaderResult.sourceMap || sourceMap;
-				cacheable = loaderResult.cacheable || cacheable;
+						: loaderResult.additionalData) ?? additionalData;
+				content = loaderResult.content ?? content;
+				sourceMap = loaderResult.sourceMap ?? sourceMap;
+				cacheable = loaderResult.cacheable ?? cacheable;
 			}
 		}
 
