@@ -1,5 +1,17 @@
 # create-rspack
 
+## 0.0.13
+
+### Patch Changes
+
+- upgrade
+
+## 0.0.12
+
+### Patch Changes
+
+- support optional dependency
+
 ## 0.0.11
 
 ### Patch Changes

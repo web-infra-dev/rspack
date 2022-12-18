@@ -1,5 +1,27 @@
 # rspack-dev-server
 
+## 0.0.17
+
+### Patch Changes
+
+- upgrade
+- Updated dependencies
+  - @rspack/core@0.0.17
+  - @rspack/dev-client@0.0.17
+  - @rspack/dev-middleware@0.0.17
+  - @rspack/dev-server@0.0.17
+
+## 0.0.16
+
+### Patch Changes
+
+- support optional dependency
+- Updated dependencies
+  - @rspack/core@0.0.16
+  - @rspack/dev-client@0.0.16
+  - @rspack/dev-middleware@0.0.16
+  - @rspack/dev-server@0.0.16
+
 ## 0.0.15
 
 ### Patch Changes
