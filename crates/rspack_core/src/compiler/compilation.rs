@@ -943,11 +943,11 @@ impl Compilation {
           }
         };
         let used = used_export_module_identifiers.contains(&analyze_result.module_identifier);
-        // bail_out_module_identifiers.contains_key(&analyze_result.module_identifier)
         //   || self.entry_module_identifiers.contains(&module_identifier)
         //   || !analyze_result.side_effects_free
         //   || ;
         if !used
+          && !bail_out_module_identifiers.contains_key(&analyze_result.module_identifier)
           && analyze_result.side_effects_free
           && !self.entry_module_identifiers.contains(&module_identifier)
         {
