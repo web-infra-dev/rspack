@@ -174,17 +174,6 @@ fn emit_diagnostic<T: Write + WriteColor>(
   files: &mut SimpleFiles<String, String>,
 ) -> crate::Result<()> {
   if let Some(info) = &diagnostic.source_info {
-    // Since `Span` of `swc` started with 1 and span of diagnostic started with 0
-    // So we need to subtract 1 to `start_relative_sourcemap`;
-    let start_relative_sourcemap = 0;
-    let start = diagnostic
-      .start
-      .checked_sub(start_relative_sourcemap)
-      .unwrap_or(diagnostic.start);
-    let end = diagnostic
-      .end
-      .checked_sub(start_relative_sourcemap)
-      .unwrap_or(diagnostic.end);
     let file_path = Path::new(&info.path);
     let relative_path = file_path.relative(&pwd);
     let relative_path = relative_path.as_os_str().to_string_lossy().to_string();
@@ -195,9 +184,11 @@ fn emit_diagnostic<T: Write + WriteColor>(
       // enough energy to matain error code either in the future, so I use
       // this field to represent diagnostic kind, looks pretty neat.
       .with_code(diagnostic.kind.to_string())
-      .with_labels(vec![
-        Label::primary(file_id, start..end).with_message(&diagnostic.message)
-      ]);
+      .with_labels(vec![Label::primary(
+        file_id,
+        diagnostic.start..diagnostic.end,
+      )
+      .with_message(&diagnostic.message)]);
 
     let config = codespan_reporting::term::Config::default();
 
