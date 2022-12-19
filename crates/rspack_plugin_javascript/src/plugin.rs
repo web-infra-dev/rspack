@@ -12,20 +12,15 @@ use rspack_core::{
   PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderChunkArgs, RenderManifestEntry,
   SourceType,
 };
-use rspack_error::{
-  internal_error, Error, InternalError, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-};
-use swc_core::base::try_with_handler;
+use rspack_error::{internal_error, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_core::base::{config::JsMinifyOptions, BoolOrDataConfig};
 use swc_core::common::util::take::Take;
-use swc_core::common::FileName;
-use swc_core::common::GLOBALS;
 use swc_core::ecma::ast;
 use swc_core::ecma::minifier::option::terser::TerserCompressorOptions;
 use tracing::instrument;
 
 use crate::runtime::{generate_chunk_entry_code, render_chunk_modules, render_runtime_modules};
-use crate::utils::{get_swc_compiler, syntax_by_module_type};
+use crate::utils::syntax_by_module_type;
 use crate::visitors::{run_after_pass, run_before_pass, DependencyScanner};
 
 #[derive(Debug)]
@@ -227,7 +222,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     ) {
       Ok(ast) => (ast, Vec::new()),
       Err(diagnostics) => (
-        rspack_core::ast::javascript::Ast::new(ast::Program::Module(ast::Module::dummy())),
+        rspack_core::ast::javascript::Ast::new(
+          ast::Program::Module(ast::Module::dummy()),
+          Default::default(),
+        ),
         diagnostics.into(),
       ),
     };
@@ -396,7 +394,6 @@ impl Plugin for JsPlugin {
       return Ok(());
     }
 
-    let swc_compiler = get_swc_compiler();
     compilation
       .assets
       .par_iter_mut()
@@ -411,31 +408,20 @@ impl Plugin for JsPlugin {
 
         let input = original.get_source().source().to_string();
         let input_source_map = original.get_source().map(&MapOptions::default());
-        let output = GLOBALS.set(&Default::default(), || {
-          try_with_handler(swc_compiler.cm.clone(), Default::default(), |handler| {
-            let fm = swc_compiler
-              .cm
-              .new_source_file(FileName::Custom(filename.to_string()), input.clone());
-            swc_compiler.minify(
-              fm,
-              handler,
-              &JsMinifyOptions {
-                compress: BoolOrDataConfig::from_obj(TerserCompressorOptions {
-                  passes: minify.passes,
-                  ..Default::default()
-                }),
-                source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
-                inline_sources_content: false, // don't need this since we have inner_source_map in SourceMapSource
-                emit_source_map_columns: !compilation.options.devtool.cheap(),
-                ..Default::default()
-              },
-            )
-          })
-        })?;
+        let output = crate::ast::minify(&JsMinifyOptions {
+          compress: BoolOrDataConfig::from_obj(TerserCompressorOptions {
+            passes: minify.passes,
+            ..Default::default()
+          }),
+          source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
+          inline_sources_content: false, // don't need this since we have inner_source_map in SourceMapSource
+          emit_source_map_columns: !compilation.options.devtool.cheap(),
+          ..Default::default()
+        }, input.clone(), filename)?;
         let source = if let Some(map) = &output.map {
           SourceMapSource::new(SourceMapSourceOptions {
             value: output.code,
-            name: format!("<{filename}>"), // match with swc FileName::Custom...
+            name: filename,
             source_map: SourceMap::from_json(map)
               .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?,
             original_source: Some(input),

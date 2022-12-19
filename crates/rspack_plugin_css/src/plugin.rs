@@ -3,6 +3,7 @@ use std::cmp;
 use std::path::Path;
 use std::str::FromStr;
 use std::string::ParseError;
+use std::sync::Arc;
 
 use anyhow::bail;
 use bitflags::bitflags;
@@ -11,7 +12,7 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
-use rspack_core::{Filename, Mode, ModuleDependency, ModuleIdentifier};
+use rspack_core::{AstOrSource, Filename, Mode, ModuleAst, ModuleDependency, ModuleIdentifier};
 use sugar_path::SugarPath;
 use swc_core::ecma::atoms::JsWord;
 use swc_css::modules::CssClassName;
@@ -20,6 +21,7 @@ use swc_css::prefixer::{options::Options, prefixer};
 use swc_css::visit::VisitMutWith;
 
 use rspack_core::{
+  ast::css::Ast as CssAst,
   get_css_chunk_filename_template,
   rspack_sources::{
     BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
@@ -30,8 +32,7 @@ use rspack_core::{
   RenderManifestEntry, SourceType,
 };
 use rspack_error::{
-  internal_error, Diagnostic, Error, InternalError, IntoTWithDiagnosticArray, Result,
-  TWithDiagnosticArray,
+  internal_error, Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
 use tracing::instrument;
 
@@ -366,12 +367,14 @@ impl ParserAndGenerator for CssParserAndGenerator {
       compiler_options,
     } = parse_context;
 
+    let cm: Arc<swc_core::common::SourceMap> = Default::default();
     let content = source.source().to_string();
     let css_modules = matches!(module_type, ModuleType::CssModule);
     let TWithDiagnosticArray {
       inner: mut stylesheet,
       mut diagnostic,
     } = SWC_COMPILER.parse_file(
+      cm.clone(),
       &parse_context.resource_data.resource_path,
       content,
       ParserConfig {
@@ -433,7 +436,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     Ok(
       ParseResult {
         dependencies,
-        ast_or_source: stylesheet.into(),
+        ast_or_source: AstOrSource::Ast(ModuleAst::Css(CssAst::new(stylesheet, cm))),
       }
       .with_diagnostic(diagnostic),
     )
@@ -450,12 +453,16 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let result = match generate_context.requested_source_type {
       SourceType::Css => {
         let devtool = &generate_context.compilation.options.devtool;
+        let ast = ast_or_source
+          .as_ast()
+          .expect("Expected AST for CSS generator, please file an issue.")
+          .as_css()
+          .expect("Expected CSS AST for CSS generation, please file an issue.");
+        let cm = ast.get_context().source_map.clone();
+        let stylesheet = ast.get_root();
         let (code, source_map) = SWC_COMPILER.codegen(
-          ast_or_source
-            .as_ast()
-            .expect("Expected AST for CSS generator, please file an issue.")
-            .as_css()
-            .expect("Expected CSS AST for CSS generation, please file an issue."),
+          cm,
+          stylesheet,
           crate::SwcCssSourceMapGenConfig {
             enable: devtool.source_map(),
             inline_sources_content: !devtool.no_sources(),
@@ -544,73 +551,6 @@ impl Plugin for CssPlugin {
 
     Ok(())
   }
-
-  // fn reuse_ast(&self) -> bool {
-  //   true
-  // }
-
-  // fn transform_include(&self, uri: &str) -> bool {
-  //   let extension = Path::new(uri).extension().unwrap().to_string_lossy();
-  //   extension == "css"
-  // }
-
-  // fn transform(
-  //   &self,
-  //   _ctx: rspack_core::PluginContext<&mut NormalModuleFactoryContext>,
-  //   args: rspack_core::TransformArgs,
-  // ) -> rspack_core::PluginTransformOutput {
-  //   if let Some(TransformAst::Css(mut ast)) = args.ast {
-  //     if let Some(query) = self.get_query() {
-  //       ast.visit_mut_with(&mut prefixer(Options {
-  //         env: Some(Targets::Query(query)),
-  //       }));
-  //     }
-  //     Ok({
-  //       TransformResult {
-  //         content: None,
-  //         ast: Some(TransformAst::Css(ast)),
-  //       }
-  //     })
-  //   } else {
-  //     Ok({
-  //       TransformResult {
-  //         content: None,
-  //         ast: args.ast,
-  //       }
-  //     })
-  //   }
-  // }
-  // fn transform(
-  //   &self,
-  //   _ctx: rspack_core::PluginContext<&mut NormalModuleFactoryContext>,
-  //   args: rspack_core::TransformArgs,
-  // ) -> rspack_core::PluginTransformOutput {
-  //   if let Some(TransformAst::Css(mut ast)) = args.ast {
-  //     ast.visit_mut_with(&mut prefixer());
-  //     Ok({
-  //       TransformResult {
-  //         content: None,
-  //         ast: Some(TransformAst::Css(ast)),
-  //       }
-  //     })
-  //   } else {
-  //     Ok({
-  //       TransformResult {
-  //         content: None,
-  //         ast: args.ast,
-  //       }
-  //     })
-  //   }
-  // }
-
-  // fn parse(&self, uri: &str, content: &Content) -> rspack_core::PluginParseOutput {
-  //   let content = content
-  //     .to_owned()
-  //     .try_into_string()
-  //     .context("Unable to serialize content as string which is required by plugin css")?;
-  //   let stylesheet = SWC_COMPILER.parse_file(uri, content)?;
-  //   Ok(TransformAst::Css(stylesheet))
-  // }
 
   async fn render_manifest(
     &self,

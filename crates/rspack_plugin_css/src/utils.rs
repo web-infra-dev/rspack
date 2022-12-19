@@ -8,7 +8,7 @@ use indexmap::IndexMap;
 use rspack_core::{
   runtime_globals::REQUIRE, Compilation, Dependency, ModuleDependency, ResolveKind,
 };
-use rspack_error::{internal_error, InternalError, Result};
+use rspack_error::{internal_error, Result};
 use swc_core::ecma::atoms::JsWord;
 use swc_css::modules::CssClassName;
 use xxhash_rust::xxh3::Xxh3;

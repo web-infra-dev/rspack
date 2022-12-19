@@ -10,12 +10,11 @@ use once_cell::sync::Lazy;
 use rspack_core::rspack_sources::{self, SourceExt};
 use rspack_core::{ErrorSpan, PATH_START_BYTE_POS_MAP};
 use rspack_error::{
-  internal_error, Diagnostic, DiagnosticKind, InternalError, IntoTWithDiagnosticArray, Result,
+  internal_error, Diagnostic, DiagnosticKind, IntoTWithDiagnosticArray, Result,
   TWithDiagnosticArray,
 };
 use swc_core::common::{
-  input::SourceFileInput, source_map::SourceMapGenConfig, sync::Lrc, FileName, FilePathMapping,
-  SourceMap,
+  input::SourceFileInput, source_map::SourceMapGenConfig, FileName, SourceMap,
 };
 
 use std::sync::Arc;
@@ -38,8 +37,6 @@ static SWC_COMPILER: Lazy<Arc<SwcCssCompiler>> = Lazy::new(|| Arc::new(SwcCssCom
 #[derive(Default)]
 pub struct SwcCssCompiler {}
 
-static CM: Lazy<Lrc<SourceMap>> = Lazy::new(|| Lrc::new(SourceMap::new(FilePathMapping::empty())));
-
 impl SwcCssCompiler {
   pub fn new() -> Self {
     Self {}
@@ -47,11 +44,11 @@ impl SwcCssCompiler {
 
   pub fn parse_file(
     &self,
+    cm: Arc<SourceMap>,
     path: &str,
     source: String,
     config: ParserConfig,
   ) -> Result<TWithDiagnosticArray<Stylesheet>> {
-    let cm = CM.clone();
     // let (handler, errors) = self::string_errors::new_handler(cm.clone(), treat_err_as_bug);
     // let result = swc_common::GLOBALS.set(&swc_common::Globals::new(), || op(cm, handler));
 
@@ -76,14 +73,16 @@ impl SwcCssCompiler {
 
   pub fn codegen(
     &self,
+    cm: Arc<SourceMap>,
     ast: &Stylesheet,
     gen_source_map: SwcCssSourceMapGenConfig,
   ) -> Result<(String, Option<Vec<u8>>)> {
-    self.codegen_impl(ast, gen_source_map, false)
+    self.codegen_impl(cm, ast, gen_source_map, false)
   }
 
   fn codegen_impl(
     &self,
+    cm: Arc<SourceMap>,
     ast: &Stylesheet,
     gen_source_map: SwcCssSourceMapGenConfig,
     minify: bool,
@@ -102,7 +101,7 @@ impl SwcCssCompiler {
       .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?;
 
     if let Some(src_map_buf) = &mut src_map_buf {
-      let map = CM.build_source_map_with_config(src_map_buf, None, gen_source_map);
+      let map = cm.build_source_map_with_config(src_map_buf, None, gen_source_map);
       let mut raw_map = Vec::new();
       map
         .to_writer(&mut raw_map)
@@ -120,11 +119,17 @@ impl SwcCssCompiler {
     input_source_map: Option<rspack_sources::SourceMap>,
     gen_source_map: SwcCssSourceMapGenConfig,
   ) -> Result<rspack_sources::BoxSource> {
-    let parsed = self.parse_file(filename, input_source.clone(), Default::default())?;
+    let cm: Arc<SourceMap> = Default::default();
+    let parsed = self.parse_file(
+      cm.clone(),
+      filename,
+      input_source.clone(),
+      Default::default(),
+    )?;
     // ignore errors since css in webpack is tolerant, and diagnostics already reported in parse.
     let (mut ast, _) = parsed.split_into_parts();
     minifier::minify(&mut ast, minifier::options::MinifyOptions::default());
-    let (code, source_map) = self.codegen_impl(&ast, gen_source_map, true)?;
+    let (code, source_map) = self.codegen_impl(cm.clone(), &ast, gen_source_map, true)?;
     if let Some(source_map) = source_map {
       let source = rspack_sources::SourceMapSource::new(rspack_sources::SourceMapSourceOptions {
         value: code,

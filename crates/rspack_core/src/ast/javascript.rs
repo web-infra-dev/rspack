@@ -43,11 +43,11 @@ pub struct Context {
   pub top_level_mark: Mark,
   pub unresolved_mark: Mark,
   //  comments: swcComments,
-  //  source_map: swcSourceMap
+  pub source_map: Arc<SourceMap>,
 }
 
 impl Context {
-  pub fn new(is_esm: bool) -> Self {
+  pub fn new(is_esm: bool, source_map: Arc<SourceMap>) -> Self {
     let globals: Globals = Default::default();
     // generate preset mark & helpers
     let (top_level_mark, unresolved_mark, helpers) =
@@ -59,6 +59,7 @@ impl Context {
       helpers,
       top_level_mark,
       unresolved_mark,
+      source_map,
     }
   }
 }
@@ -89,7 +90,7 @@ impl Hash for Ast {
 }
 
 impl Ast {
-  pub fn new(program: SwcProgram) -> Self {
+  pub fn new(program: SwcProgram, source_map: Arc<SourceMap>) -> Self {
     let is_esm = match program {
       SwcProgram::Module(ref module) => module
         .body
@@ -99,8 +100,12 @@ impl Ast {
     };
     Self {
       program: Program(program),
-      context: Arc::new(Context::new(is_esm)),
+      context: Arc::new(Context::new(is_esm, source_map)),
     }
+  }
+
+  pub fn get_context(&self) -> &Context {
+    &self.context
   }
 
   pub fn transform<F, R>(&mut self, f: F) -> R

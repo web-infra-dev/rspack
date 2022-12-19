@@ -1,5 +1,5 @@
 use regress::{Match, Matches, Regex};
-use rspack_error::{internal_error, Error, InternalError};
+use rspack_error::{internal_error, Error};
 
 use swc_core::ecma::ast::Regex as SwcRegex;
 

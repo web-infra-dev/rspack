@@ -7,9 +7,7 @@ use rspack_core::{
   Identifiable, Identifier, LibIdentOptions, Module, ModuleType, SourceType, Target,
   TargetPlatform,
 };
-use rspack_error::{
-  internal_error, Error, InternalError, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-};
+use rspack_error::{internal_error, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 
 static EXTERNAL_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
 

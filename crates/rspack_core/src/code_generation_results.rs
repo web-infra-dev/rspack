@@ -1,7 +1,7 @@
 use hashbrown::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 
-use rspack_error::{internal_error, Error, InternalError, Result};
+use rspack_error::{internal_error, Error, Result};
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::{AstOrSource, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, SourceType};

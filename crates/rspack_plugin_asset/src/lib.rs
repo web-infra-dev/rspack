@@ -17,7 +17,7 @@ use rspack_core::{
   ParserAndGenerator, PathData, Plugin, PluginContext, PluginRenderManifestHookOutput,
   RenderManifestArgs, RenderManifestEntry, SourceType,
 };
-use rspack_error::{internal_error, Error, InternalError, IntoTWithDiagnosticArray, Result};
+use rspack_error::{internal_error, Error, IntoTWithDiagnosticArray, Result};
 use sugar_path::SugarPath;
 
 #[derive(Debug)]
