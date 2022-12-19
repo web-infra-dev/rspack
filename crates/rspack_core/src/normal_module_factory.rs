@@ -361,7 +361,6 @@ impl NormalModuleFactory {
     } else {
       return Ok(None);
     };
-
     let mgm = ModuleGraphModule::new(
       self.context.module_name.clone(),
       module.identifier(),
@@ -372,6 +371,7 @@ impl NormalModuleFactory {
           module.identifier()
         )))
       })?,
+      !self.context.options.builtins.side_effects,
     );
 
     Ok(Some((

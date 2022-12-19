@@ -1,7 +1,4 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"../node_modules/side-effects-module/index.js": function (module, exports, __webpack_require__) {
-"use strict";
-},
 "./app.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
