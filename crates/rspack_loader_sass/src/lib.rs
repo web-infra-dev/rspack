@@ -14,8 +14,8 @@ use rspack_core::{
   ResolverFactory,
 };
 use rspack_error::{
-  internal_error, Diagnostic, DiagnosticKind, Error, InternalError, IntoTWithDiagnosticArray,
-  Result, Severity, TWithDiagnosticArray, TraceableError,
+  internal_error, Diagnostic, DiagnosticKind, Error, IntoTWithDiagnosticArray, Result, Severity,
+  TWithDiagnosticArray, TraceableError,
 };
 use rspack_loader_runner::{Loader, LoaderContext, LoaderResult};
 use sass_embedded::{

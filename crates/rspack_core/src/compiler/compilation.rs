@@ -27,8 +27,8 @@ use tracing::instrument;
 use xxhash_rust::xxh3::Xxh3;
 
 use rspack_error::{
-  errors_to_diagnostics, internal_error, Diagnostic, Error, InternalError,
-  IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray,
+  errors_to_diagnostics, internal_error, Diagnostic, Error, IntoTWithDiagnosticArray, Result,
+  Severity, TWithDiagnosticArray,
 };
 use rspack_sources::BoxSource;
 use ustr::{ustr, Ustr};

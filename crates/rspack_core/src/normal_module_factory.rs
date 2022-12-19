@@ -9,9 +9,7 @@ use std::{
 use swc_core::common::Span;
 use tokio::sync::mpsc::UnboundedSender;
 
-use rspack_error::{
-  internal_error, Diagnostic, Error, InternalError, Result, TWithDiagnosticArray,
-};
+use rspack_error::{internal_error, Diagnostic, Error, Result, TWithDiagnosticArray};
 use tracing::instrument;
 use ustr::Ustr;
 

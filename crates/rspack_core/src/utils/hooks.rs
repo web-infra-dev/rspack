@@ -1,5 +1,5 @@
 use crate::{ResolveArgs, ResolveResult, SharedPluginDriver};
-use rspack_error::{internal_error, Error, InternalError, Result, TraceableError};
+use rspack_error::{internal_error, Error, Result, TraceableError};
 use std::path::Path;
 use tracing::instrument;
 

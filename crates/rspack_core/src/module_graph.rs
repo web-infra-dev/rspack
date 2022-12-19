@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 use hashbrown::{HashMap, HashSet};
 
-use rspack_error::{internal_error, Error, InternalError, Result};
+use rspack_error::{internal_error, Error, Result};
 
 use crate::{BoxModule, Dependency, ModuleGraphModule, ModuleIdentifier};
 

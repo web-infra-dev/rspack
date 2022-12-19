@@ -3,7 +3,7 @@ use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
 
-use rspack_error::{internal_error, Error, InternalError, Result, TWithDiagnosticArray};
+use rspack_error::{internal_error, Error, Result, TWithDiagnosticArray};
 use rspack_loader_runner::Loader;
 use rspack_sources::Source;
 

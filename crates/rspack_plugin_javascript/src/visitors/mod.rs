@@ -15,7 +15,6 @@ use swc_core::common::pass::Repeat;
 use swc_core::ecma::transforms::optimization::simplify::dce::{dce, Config};
 mod swc_visitor;
 mod tree_shaking;
-use crate::utils::get_swc_compiler;
 use rspack_core::{ast::javascript::Ast, CompilerOptions, GenerateContext, ResourceData};
 use rspack_error::Result;
 use swc_core::base::config::ModuleConfig;
@@ -32,7 +31,7 @@ pub fn run_before_pass(
   options: &CompilerOptions,
   syntax: Syntax,
 ) -> Result<()> {
-  let cm = get_swc_compiler().cm.clone();
+  let cm = ast.get_context().source_map.clone();
   ast.transform_with_handler(cm.clone(), |handler, program, context| {
     let top_level_mark = context.top_level_mark;
     let unresolved_mark = context.unresolved_mark;
@@ -112,7 +111,7 @@ pub fn run_before_pass(
 }
 
 pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut GenerateContext) {
-  let cm = get_swc_compiler().cm.clone();
+  let cm = ast.get_context().source_map.clone();
   ast.transform(|program, context| {
     let unresolved_mark = context.unresolved_mark;
     let top_level_mark = context.top_level_mark;

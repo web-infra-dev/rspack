@@ -6,7 +6,7 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkUkey, Compilation, CompilationArgs,
   DoneArgs, FactorizeArgs, Module, ModuleArgs, ModuleType, NormalModuleFactoryContext,
   OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderChunkArgs,
-  RenderManifestArgs, ThisCompilationArgs, TransformAst, TransformResult,
+  RenderManifestArgs, ThisCompilationArgs,
 };
 use rspack_error::Result;
 use rspack_loader_runner::{Content, ResourceData};
@@ -19,24 +19,14 @@ pub type PluginMakeHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;
 pub type PluginProcessAssetsHookOutput = Result<()>;
 pub type PluginReadResourceOutput = Result<Option<Content>>;
-pub type PluginLoadHookOutput = Result<Option<Content>>;
-pub type PluginTransformOutput = Result<TransformResult>;
 // FIXME: factorize should only return `BoxModule`, the first string currently is used to generate `id`(moduleIds)
 pub type PluginFactorizeHookOutput = Result<Option<(String, BoxModule)>>;
 pub type PluginModuleHookOutput = Result<Option<BoxModule>>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
 pub type PluginRenderChunkHookOutput = Result<Option<BoxSource>>;
-pub type PluginParseModuleHookOutput = Result<BoxModule>;
-pub type PluginParseOutput = Result<TransformAst>;
-pub type PluginGenerateOutput = Result<Content>;
 pub type PluginProcessAssetsOutput = Result<()>;
 pub type PluginOptimizeChunksOutput = Result<()>;
 pub type PluginAdditionalChunkRuntimeRequirementsOutput = Result<()>;
-// pub type PluginTransformAstHookOutput = Result<ast::Module>;
-
-// pub type PluginTransformHookOutput = Result<TransformResult>;
-// pub type PluginTapGeneratedChunkHookOutput = Result<()>;
-// pub type PluginRenderChunkHookOutput = Result<OutputChunk>;
 
 #[async_trait::async_trait]
 pub trait Plugin: Debug + Send + Sync {

@@ -3,10 +3,8 @@ use codespan_reporting::diagnostic::{Diagnostic, Label, Severity};
 use codespan_reporting::files::SimpleFiles;
 use codespan_reporting::term;
 use codespan_reporting::term::termcolor::{ColorChoice, StandardStream};
-use dashmap::DashMap;
 use std::io::Write;
 use std::path::Path;
-use std::sync::Arc;
 use sugar_path::SugarPath;
 use termcolor::{Buffer, Color, ColorSpec, StandardStreamLock, WriteColor};
 
@@ -30,13 +28,8 @@ pub trait DiagnosticDisplay {
   fn emit_batch_diagnostic(
     &mut self,
     diagnostics: impl Iterator<Item = &RspackDiagnostic>,
-    path_pos_map: Arc<DashMap<String, u32>>,
   ) -> Self::Output;
-  fn emit_diagnostic(
-    &mut self,
-    diagnostic: &RspackDiagnostic,
-    path_pos_map: Arc<DashMap<String, u32>>,
-  ) -> Self::Output;
+  fn emit_diagnostic(&mut self, diagnostic: &RspackDiagnostic) -> Self::Output;
 }
 
 #[derive(Default)]
@@ -48,23 +41,18 @@ impl DiagnosticDisplay for StdioDiagnosticDisplay {
   fn emit_batch_diagnostic(
     &mut self,
     diagnostics: impl Iterator<Item = &RspackDiagnostic>,
-    path_pos_map: Arc<DashMap<String, u32>>,
   ) -> Self::Output {
     let writer = StandardStream::stderr(ColorChoice::Always);
     let mut lock_writer = writer.lock();
-    emit_batch_diagnostic(diagnostics, path_pos_map, &mut lock_writer)
+    emit_batch_diagnostic(diagnostics, &mut lock_writer)
   }
 
-  fn emit_diagnostic(
-    &mut self,
-    diagnostic: &RspackDiagnostic,
-    path_pos_map: Arc<DashMap<String, u32>>,
-  ) -> Self::Output {
+  fn emit_diagnostic(&mut self, diagnostic: &RspackDiagnostic) -> Self::Output {
     let writer = StandardStream::stderr(ColorChoice::Always);
     let mut lock_writer = writer.lock();
     let mut files = SimpleFiles::new();
     let pwd = std::env::current_dir()?;
-    emit_diagnostic(diagnostic, path_pos_map, &mut lock_writer, &pwd, &mut files)
+    emit_diagnostic(diagnostic, &mut lock_writer, &pwd, &mut files)
   }
 }
 
@@ -114,23 +102,18 @@ impl DiagnosticDisplay for StringDiagnosticDisplay {
   fn emit_batch_diagnostic(
     &mut self,
     diagnostics: impl Iterator<Item = &RspackDiagnostic>,
-    path_pos_map: Arc<DashMap<String, u32>>,
   ) -> Self::Output {
-    emit_batch_diagnostic(diagnostics, path_pos_map, self)?;
+    emit_batch_diagnostic(diagnostics, self)?;
     if self.sorted {
       self.diagnostic_vector.sort();
     }
     Ok(self.diagnostic_vector.drain(..).collect())
   }
 
-  fn emit_diagnostic(
-    &mut self,
-    diagnostic: &RspackDiagnostic,
-    path_pos_map: Arc<DashMap<String, u32>>,
-  ) -> Self::Output {
+  fn emit_diagnostic(&mut self, diagnostic: &RspackDiagnostic) -> Self::Output {
     let mut files = SimpleFiles::new();
     let pwd = std::env::current_dir()?;
-    emit_diagnostic(diagnostic, path_pos_map, self, &pwd, &mut files)?;
+    emit_diagnostic(diagnostic, self, &pwd, &mut files)?;
     self.flush_diagnostic();
     Ok(
       self
@@ -149,40 +132,34 @@ impl DiagnosticDisplay for ColoredStringDiagnosticDisplay {
   fn emit_batch_diagnostic(
     &mut self,
     diagnostics: impl Iterator<Item = &RspackDiagnostic>,
-    path_pos_map: Arc<DashMap<String, u32>>,
   ) -> Self::Output {
     let mut files = SimpleFiles::new();
     let pwd = std::env::current_dir()?;
     let mut buf = Buffer::ansi();
     for d in diagnostics {
-      emit_diagnostic(d, path_pos_map.clone(), &mut buf, &pwd, &mut files)?;
+      emit_diagnostic(d, &mut buf, &pwd, &mut files)?;
     }
     Ok(String::from_utf8_lossy(buf.as_slice()).to_string())
   }
 
-  fn emit_diagnostic(
-    &mut self,
-    diagnostic: &RspackDiagnostic,
-    path_pos_map: Arc<DashMap<String, u32>>,
-  ) -> Self::Output {
+  fn emit_diagnostic(&mut self, diagnostic: &RspackDiagnostic) -> Self::Output {
     let mut files = SimpleFiles::new();
     let pwd = std::env::current_dir()?;
     let mut buf = Buffer::ansi();
-    emit_diagnostic(diagnostic, path_pos_map, &mut buf, &pwd, &mut files)?;
+    emit_diagnostic(diagnostic, &mut buf, &pwd, &mut files)?;
     Ok(String::from_utf8_lossy(buf.as_slice()).to_string())
   }
 }
 
 fn emit_batch_diagnostic<T: Write + WriteColor + FlushDiagnostic>(
   diagnostics: impl Iterator<Item = &RspackDiagnostic>,
-  path_pos_map: Arc<DashMap<String, u32>>,
   writer: &mut T,
 ) -> crate::Result<()> {
   let mut files = SimpleFiles::new();
   let pwd = std::env::current_dir()?;
 
   for diagnostic in diagnostics {
-    emit_diagnostic(diagnostic, path_pos_map.clone(), writer, &pwd, &mut files)?;
+    emit_diagnostic(diagnostic, writer, &pwd, &mut files)?;
     // `codespan_reporting` will not write the diagnostic message in a whole,
     // we need to insert some helper flag for sorting
     writer.flush_diagnostic();
@@ -192,27 +169,11 @@ fn emit_batch_diagnostic<T: Write + WriteColor + FlushDiagnostic>(
 
 fn emit_diagnostic<T: Write + WriteColor>(
   diagnostic: &RspackDiagnostic,
-  path_pos_map: Arc<DashMap<String, u32>>,
   writer: &mut T,
   pwd: impl AsRef<Path>,
   files: &mut SimpleFiles<String, String>,
 ) -> crate::Result<()> {
   if let Some(info) = &diagnostic.source_info {
-    // Since `Span` of `swc` started with 1 and span of diagnostic started with 0
-    // So we need to subtract 1 to `start_relative_sourcemap`;
-    let start_relative_sourcemap = path_pos_map
-      .get(&info.path)
-      .map(|v| *v)
-      .unwrap_or(0)
-      .saturating_sub(1) as usize;
-    let start = diagnostic
-      .start
-      .checked_sub(start_relative_sourcemap)
-      .unwrap_or(diagnostic.start);
-    let end = diagnostic
-      .end
-      .checked_sub(start_relative_sourcemap)
-      .unwrap_or(diagnostic.end);
     let file_path = Path::new(&info.path);
     let relative_path = file_path.relative(&pwd);
     let relative_path = relative_path.as_os_str().to_string_lossy().to_string();
@@ -223,9 +184,11 @@ fn emit_diagnostic<T: Write + WriteColor>(
       // enough energy to matain error code either in the future, so I use
       // this field to represent diagnostic kind, looks pretty neat.
       .with_code(diagnostic.kind.to_string())
-      .with_labels(vec![
-        Label::primary(file_id, start..end).with_message(&diagnostic.message)
-      ]);
+      .with_labels(vec![Label::primary(
+        file_id,
+        diagnostic.start..diagnostic.end,
+      )
+      .with_message(&diagnostic.message)]);
 
     let config = codespan_reporting::term::Config::default();
 
@@ -271,22 +234,17 @@ impl DiagnosticDisplay for DiagnosticDisplayer {
   fn emit_batch_diagnostic(
     &mut self,
     diagnostics: impl Iterator<Item = &RspackDiagnostic>,
-    path_pos_map: std::sync::Arc<dashmap::DashMap<String, u32>>,
   ) -> Self::Output {
     match self {
-      Self::Colored(d) => d.emit_batch_diagnostic(diagnostics, path_pos_map),
-      Self::Plain(d) => d.emit_batch_diagnostic(diagnostics, path_pos_map),
+      Self::Colored(d) => d.emit_batch_diagnostic(diagnostics),
+      Self::Plain(d) => d.emit_batch_diagnostic(diagnostics),
     }
   }
 
-  fn emit_diagnostic(
-    &mut self,
-    diagnostic: &RspackDiagnostic,
-    path_pos_map: std::sync::Arc<dashmap::DashMap<String, u32>>,
-  ) -> Self::Output {
+  fn emit_diagnostic(&mut self, diagnostic: &RspackDiagnostic) -> Self::Output {
     match self {
-      Self::Colored(d) => d.emit_diagnostic(diagnostic, path_pos_map),
-      Self::Plain(d) => d.emit_diagnostic(diagnostic, path_pos_map),
+      Self::Colored(d) => d.emit_diagnostic(diagnostic),
+      Self::Plain(d) => d.emit_diagnostic(diagnostic),
     }
   }
 }

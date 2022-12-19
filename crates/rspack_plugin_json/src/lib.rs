@@ -6,8 +6,8 @@ use rspack_core::{
   GenerateContext, Module, ParserAndGenerator, Plugin, SourceType,
 };
 use rspack_error::{
-  internal_error, DiagnosticKind, Error, InternalError, IntoTWithDiagnosticArray, Result,
-  TWithDiagnosticArray, TraceableError,
+  internal_error, DiagnosticKind, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+  TraceableError,
 };
 
 mod utils;

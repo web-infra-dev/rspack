@@ -1,5 +1,5 @@
-use crate::utils::{ecma_parse_error_to_rspack_error, get_swc_compiler, syntax_by_module_type};
-use rspack_core::{ast::javascript::Ast, ModuleType, PATH_START_BYTE_POS_MAP};
+use crate::utils::{ecma_parse_error_to_rspack_error, syntax_by_module_type};
+use rspack_core::{ast::javascript::Ast, ModuleType};
 use rspack_error::Error;
 use std::sync::Arc;
 use swc_core::base::config::IsModule;
@@ -63,11 +63,8 @@ pub fn parse(
     source_code
   };
 
-  let compiler = get_swc_compiler();
-  let fm = compiler
-    .cm
-    .new_source_file(FileName::Custom(filename.to_string()), source_code);
-  PATH_START_BYTE_POS_MAP.insert(filename.to_string(), fm.start_pos.0);
+  let cm: Arc<swc_core::common::SourceMap> = Default::default();
+  let fm = cm.new_source_file(FileName::Custom(filename.to_string()), source_code);
 
   match parse_js(
     fm,
@@ -77,7 +74,7 @@ pub fn parse(
     IsModule::Bool(true),
     None,
   ) {
-    Ok(program) => Ok(Ast::new(program)),
+    Ok(program) => Ok(Ast::new(program, cm)),
     Err(errs) => Err(Error::BatchErrors(
       errs
         .into_iter()
@@ -88,11 +85,10 @@ pub fn parse(
 }
 
 pub fn parse_js_code(js_code: String, module_type: &ModuleType) -> Result<Program, Error> {
-  let syntax = syntax_by_module_type("", module_type, false);
-  let compiler = get_swc_compiler();
-  let fm = compiler
-    .cm
-    .new_source_file(FileName::Custom("".to_string()), js_code);
+  let filename = "".to_string();
+  let syntax = syntax_by_module_type(&filename, module_type, false);
+  let cm: Arc<swc_core::common::SourceMap> = Default::default();
+  let fm = cm.new_source_file(FileName::Custom(filename), js_code);
 
   match parse_js(
     fm,

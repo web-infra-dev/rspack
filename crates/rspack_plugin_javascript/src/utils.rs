@@ -1,29 +1,16 @@
-use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use rspack_core::rspack_sources::{
   BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt,
 };
 use rspack_core::{runtime_globals, Compilation, ErrorSpan, ModuleType};
-use rspack_error::{internal_error, DiagnosticKind, Error, InternalError};
+use rspack_error::{internal_error, DiagnosticKind, Error};
 use serde_json::json;
 use std::path::Path;
-use std::sync::Arc;
-use swc_core::base::Compiler as SwcCompiler;
-use swc_core::common::{FilePathMapping, SourceMap, Span, Spanned, SyntaxContext, DUMMY_SP};
+use swc_core::common::{Span, Spanned, SyntaxContext, DUMMY_SP};
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit, Str};
 use swc_core::ecma::atoms::js_word;
 use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::parser::{EsConfig, TsConfig};
-
-static SWC_COMPILER: Lazy<Arc<SwcCompiler>> = Lazy::new(|| {
-  let cm = Arc::new(SourceMap::new(FilePathMapping::empty()));
-
-  Arc::new(SwcCompiler::new(cm))
-});
-
-pub fn get_swc_compiler() -> Arc<SwcCompiler> {
-  SWC_COMPILER.clone()
-}
 
 fn syntax_by_ext(filename: &str, enable_decorators: bool) -> Syntax {
   let ext = Path::new(filename)

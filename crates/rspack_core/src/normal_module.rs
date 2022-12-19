@@ -12,11 +12,10 @@ use bitflags::bitflags;
 use dashmap::DashMap;
 use hashbrown::HashSet;
 use serde_json::json;
-use swc_core::ecma::ast;
 use ustr::ustr;
 
 use rspack_error::{
-  internal_error, Diagnostic, Error, InternalError, IntoTWithDiagnosticArray, Result, Severity,
+  internal_error, Diagnostic, Error, IntoTWithDiagnosticArray, Result, Severity,
   TWithDiagnosticArray,
 };
 use rspack_loader_runner::{Content, ResourceData};
@@ -26,11 +25,10 @@ use rspack_sources::{
 };
 
 use crate::{
-  ast::javascript::Ast as JsAst, contextify, identifier::Identifiable, BuildContext, BuildResult,
-  ChunkGraph, CodeGenerationResult, Compilation, CompilerOptions, Context, Dependency,
-  GenerateContext, LibIdentOptions, Module, ModuleAst, ModuleGraph, ModuleGraphConnection,
-  ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator, ResolveKind,
-  SourceType,
+  contextify, identifier::Identifiable, BuildContext, BuildResult, ChunkGraph,
+  CodeGenerationResult, Compilation, CompilerOptions, Context, Dependency, GenerateContext,
+  LibIdentOptions, Module, ModuleAst, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
+  ModuleType, ParseContext, ParseResult, ParserAndGenerator, ResolveKind, SourceType,
 };
 
 bitflags! {
@@ -227,18 +225,6 @@ impl AstOrSource {
 impl From<ModuleAst> for AstOrSource {
   fn from(ast: ModuleAst) -> Self {
     AstOrSource::Ast(ast)
-  }
-}
-
-impl From<ast::Program> for AstOrSource {
-  fn from(program: ast::Program) -> Self {
-    AstOrSource::Ast(ModuleAst::JavaScript(JsAst::new(program)))
-  }
-}
-
-impl From<swc_css::ast::Stylesheet> for AstOrSource {
-  fn from(style_sheet: swc_css::ast::Stylesheet) -> Self {
-    AstOrSource::Ast(ModuleAst::Css(style_sheet))
   }
 }
 

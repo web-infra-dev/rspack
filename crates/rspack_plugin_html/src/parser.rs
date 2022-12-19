@@ -1,4 +1,4 @@
-use rspack_core::{ErrorSpan, PATH_START_BYTE_POS_MAP};
+use rspack_core::ErrorSpan;
 use rspack_error::{
   Diagnostic, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
@@ -28,8 +28,6 @@ impl<'a> HtmlCompiler<'a> {
   pub fn parse_file(&self, path: &str, source: String) -> Result<TWithDiagnosticArray<Document>> {
     let cm = Lrc::new(SourceMap::new(FilePathMapping::empty()));
     let fm = cm.new_source_file(FileName::Custom(path.to_string()), source);
-
-    PATH_START_BYTE_POS_MAP.insert(path.to_string(), fm.start_pos.0);
 
     let mut errors = vec![];
     let document = parse_file_as_document(fm.as_ref(), ParserConfig::default(), &mut errors);

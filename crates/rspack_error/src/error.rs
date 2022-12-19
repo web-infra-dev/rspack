@@ -5,7 +5,7 @@ use crate::Severity;
 #[macro_export]
 macro_rules! internal_error {
   ($str:expr) => {
-    InternalError {
+    $crate::InternalError {
       error_message: $str,
       ..Default::default()
     }
