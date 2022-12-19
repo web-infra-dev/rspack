@@ -8,7 +8,7 @@ pub mod visitors;
 use once_cell::sync::Lazy;
 
 use rspack_core::rspack_sources::{self, SourceExt};
-use rspack_core::{ErrorSpan, PATH_START_BYTE_POS_MAP};
+use rspack_core::ErrorSpan;
 use rspack_error::{
   internal_error, Diagnostic, DiagnosticKind, IntoTWithDiagnosticArray, Result,
   TWithDiagnosticArray,
@@ -55,7 +55,6 @@ impl SwcCssCompiler {
     // let fm = cm.load_file(Path::new(path))?;
     let fm = cm.new_source_file(FileName::Custom(path.to_string()), source);
 
-    PATH_START_BYTE_POS_MAP.insert(path.to_string(), fm.start_pos.0);
     let lexer = Lexer::new(SourceFileInput::from(&*fm), config);
     let mut parser = Parser::new(lexer, config);
     let stylesheet = parser.parse_all();
@@ -129,7 +128,7 @@ impl SwcCssCompiler {
     // ignore errors since css in webpack is tolerant, and diagnostics already reported in parse.
     let (mut ast, _) = parsed.split_into_parts();
     minifier::minify(&mut ast, minifier::options::MinifyOptions::default());
-    let (code, source_map) = self.codegen_impl(cm.clone(), &ast, gen_source_map, true)?;
+    let (code, source_map) = self.codegen_impl(cm, &ast, gen_source_map, true)?;
     if let Some(source_map) = source_map {
       let source = rspack_sources::SourceMapSource::new(rspack_sources::SourceMapSourceOptions {
         value: code,

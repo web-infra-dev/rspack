@@ -11,9 +11,7 @@ use rspack_core::{
   ModuleRule, ParserOptions,
 };
 #[cfg(feature = "node-api")]
-use rspack_error::{
-  internal_error, InternalError, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-};
+use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use serde::Deserialize;
 
 #[cfg(feature = "node-api")]

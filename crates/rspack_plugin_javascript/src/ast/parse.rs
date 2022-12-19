@@ -1,5 +1,5 @@
 use crate::utils::{ecma_parse_error_to_rspack_error, syntax_by_module_type};
-use rspack_core::{ast::javascript::Ast, ModuleType, PATH_START_BYTE_POS_MAP};
+use rspack_core::{ast::javascript::Ast, ModuleType};
 use rspack_error::Error;
 use std::sync::Arc;
 use swc_core::base::config::IsModule;
@@ -65,7 +65,6 @@ pub fn parse(
 
   let cm: Arc<swc_core::common::SourceMap> = Default::default();
   let fm = cm.new_source_file(FileName::Custom(filename.to_string()), source_code);
-  PATH_START_BYTE_POS_MAP.insert(filename.to_string(), fm.start_pos.0);
 
   match parse_js(
     fm,

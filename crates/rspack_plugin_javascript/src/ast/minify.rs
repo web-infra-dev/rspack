@@ -104,7 +104,7 @@ pub fn minify(opts: &JsMinifyOptions, input: String, filename: &str) -> Result<T
       let comments = SingleThreadedComments::default();
 
       let module = parse_js(
-        fm.clone(),
+        fm,
         target,
         Syntax::Es(EsConfig {
           jsx: true,

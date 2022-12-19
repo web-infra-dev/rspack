@@ -20,24 +20,22 @@ use swc_core::{
 };
 
 pub fn stringify(ast: &Ast, devtool: &Devtool) -> Result<TransformOutput> {
-  ast
-    .visit(|program, context| {
-      print(
-        program.get_inner_program(),
-        context.source_map.clone(),
-        EsVersion::Es2022,
-        SourceMapConfig {
-          enable: devtool.source_map(),
-          inline_sources_content: !devtool.no_sources(),
-          emit_columns: !devtool.cheap(),
-          names: Default::default(),
-        },
-        false,
-        None,
-        false,
-      )
-    })
-    .map_err(|e| e.into())
+  ast.visit(|program, context| {
+    print(
+      program.get_inner_program(),
+      context.source_map.clone(),
+      EsVersion::Es2022,
+      SourceMapConfig {
+        enable: devtool.source_map(),
+        inline_sources_content: !devtool.no_sources(),
+        emit_columns: !devtool.cheap(),
+        names: Default::default(),
+      },
+      false,
+      None,
+      false,
+    )
+  })
 }
 
 pub fn print(

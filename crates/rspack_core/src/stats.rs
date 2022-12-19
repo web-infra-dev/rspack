@@ -1,4 +1,4 @@
-use crate::{Chunk, Compilation, ModuleType, SourceType, PATH_START_BYTE_POS_MAP};
+use crate::{Chunk, Compilation, ModuleType, SourceType};
 use hashbrown::HashMap;
 use rspack_error::{
   emitter::{
@@ -19,26 +19,14 @@ impl<'compilation> Stats<'compilation> {
 
   pub fn emit_diagnostics(&self) -> Result<()> {
     let mut displayer = StdioDiagnosticDisplay::default();
-    displayer.emit_batch_diagnostic(
-      self.compilation.get_warnings(),
-      PATH_START_BYTE_POS_MAP.clone(),
-    )?;
-    displayer.emit_batch_diagnostic(
-      self.compilation.get_errors(),
-      PATH_START_BYTE_POS_MAP.clone(),
-    )
+    displayer.emit_batch_diagnostic(self.compilation.get_warnings())?;
+    displayer.emit_batch_diagnostic(self.compilation.get_errors())
   }
 
   pub fn emit_diagnostics_string(&self, sorted: bool) -> Result<String> {
     let mut displayer = StringDiagnosticDisplay::default().with_sorted(sorted);
-    let warnings = displayer.emit_batch_diagnostic(
-      self.compilation.get_warnings(),
-      PATH_START_BYTE_POS_MAP.clone(),
-    )?;
-    let errors = displayer.emit_batch_diagnostic(
-      self.compilation.get_errors(),
-      PATH_START_BYTE_POS_MAP.clone(),
-    )?;
+    let warnings = displayer.emit_batch_diagnostic(self.compilation.get_warnings())?;
+    let errors = displayer.emit_batch_diagnostic(self.compilation.get_errors())?;
     Ok(warnings + &errors)
   }
 }
@@ -221,9 +209,7 @@ impl<'compilation> Stats<'compilation> {
       .get_errors()
       .map(|d| StatsError {
         message: d.message.clone(),
-        formatted: diagnostic_displayer
-          .emit_diagnostic(d, PATH_START_BYTE_POS_MAP.clone())
-          .unwrap(),
+        formatted: diagnostic_displayer.emit_diagnostic(d).unwrap(),
       })
       .collect();
     let warnings: Vec<StatsWarning> = self
@@ -231,9 +217,7 @@ impl<'compilation> Stats<'compilation> {
       .get_warnings()
       .map(|d| StatsWarning {
         message: d.message.clone(),
-        formatted: diagnostic_displayer
-          .emit_diagnostic(d, PATH_START_BYTE_POS_MAP.clone())
-          .unwrap(),
+        formatted: diagnostic_displayer.emit_diagnostic(d).unwrap(),
       })
       .collect();
 

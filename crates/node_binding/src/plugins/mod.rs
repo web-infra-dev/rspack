@@ -5,7 +5,7 @@ use napi::{Env, NapiRaw, Result};
 
 use async_trait::async_trait;
 
-use rspack_error::{internal_error, Error, InternalError};
+use rspack_error::{internal_error, Error};
 
 use crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use crate::{JsCompilation, JsHooks, JsStatsCompilation};

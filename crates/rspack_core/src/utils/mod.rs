@@ -1,10 +1,5 @@
-use std::{
-  path::{Component, Path},
-  sync::Arc,
-};
+use std::path::{Component, Path};
 
-use dashmap::DashMap;
-use once_cell::sync::Lazy;
 use sugar_path::SugarPath;
 
 mod hooks;
@@ -24,9 +19,6 @@ pub use module_rules::*;
 
 mod fast_set;
 pub use fast_set::*;
-
-pub static PATH_START_BYTE_POS_MAP: Lazy<Arc<DashMap<String, u32>>> =
-  Lazy::new(|| Arc::new(DashMap::new()));
 
 pub fn uri_to_chunk_name(root: &str, uri: &str) -> String {
   let path = Path::new(uri);
