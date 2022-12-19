@@ -304,7 +304,7 @@ function composeJsUse(
 					resourceFragment: data.resourceFragment || "",
 					loaderIndex,
 					mode: compiler.options.mode,
-					hot: compiler.options.devServer.hot,
+					hot: compiler.options.devServer?.hot,
 					getOptions(schema) {
 						let { options } = use;
 
