@@ -20,6 +20,7 @@ impl From<AstOrSource> for GenerationResult {
 #[derive(Debug, Default, Clone)]
 pub struct CodeGenerationResult {
   inner: HashMap<SourceType, GenerationResult>,
+  /// [definition in webpack](https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L75)
   pub data: HashMap<String, String>,
   pub runtime_requirements: HashSet<String>,
 }
