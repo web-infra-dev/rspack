@@ -279,6 +279,10 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       .module_id_to_filename
       .insert(module.identifier(), asset_filename.clone());
 
+    generate_context
+      .data
+      .insert("filename".to_string(), asset_filename.clone());
+
     let result = match generate_context.requested_source_type {
       SourceType::JavaScript => {
         let module = module.try_as_normal_module()?;

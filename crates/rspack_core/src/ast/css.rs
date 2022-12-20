@@ -46,4 +46,8 @@ impl Ast {
   pub fn get_root(&self) -> &SwcStylesheet {
     &self.root
   }
+
+  pub fn get_root_mut(&mut self) -> &mut SwcStylesheet {
+    &mut self.root
+  }
 }

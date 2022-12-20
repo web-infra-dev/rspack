@@ -10,7 +10,7 @@ use std::{
 
 use bitflags::bitflags;
 use dashmap::DashMap;
-use hashbrown::HashSet;
+use hashbrown::{HashMap, HashSet};
 use serde_json::json;
 use ustr::ustr;
 
@@ -259,6 +259,8 @@ pub struct NormalModule {
   #[allow(unused)]
   debug_id: u32,
   cached_source_sizes: DashMap<SourceType, f64>,
+
+  code_generation_dependencies: Option<Vec<Dependency>>,
 }
 
 #[derive(Debug)]
@@ -311,6 +313,7 @@ impl NormalModule {
 
       options,
       cached_source_sizes: DashMap::new(),
+      code_generation_dependencies: None,
     }
   }
 
@@ -408,6 +411,7 @@ impl Module for NormalModule {
       loader_result.content,
       loader_result.source_map,
     )?;
+    let mut code_generation_dependencies = Vec::new();
 
     let (
       ParseResult {
@@ -423,12 +427,22 @@ impl Module for NormalModule {
         resource_data: &self.resource_data,
         compiler_options: build_context.compiler_options,
         additional_data: loader_result.additional_data,
+        code_generation_dependencies: &mut code_generation_dependencies,
       })?
       .split_into_parts();
     diagnostics.extend(ds);
 
     self.original_source = Some(original_source);
     self.ast_or_source = NormalModuleAstOrSource::new_built(ast_or_source, &diagnostics);
+    self.code_generation_dependencies = Some(
+      code_generation_dependencies
+        .into_iter()
+        .map(|d| Dependency {
+          parent_module_identifier: Some(self.identifier()),
+          detail: d,
+        })
+        .collect(),
+    );
 
     Ok(
       BuildResult {
@@ -443,6 +457,7 @@ impl Module for NormalModule {
   fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
     if let NormalModuleAstOrSource::BuiltSucceed(ast_or_source) = self.ast_or_source() {
       let mut code_generation_result = CodeGenerationResult::default();
+      let mut data = HashMap::new();
       let mut runtime_requirements = HashSet::new();
       for source_type in self.source_types() {
         let generation_result = self.parser_and_generator.generate(
@@ -451,11 +466,14 @@ impl Module for NormalModule {
           &mut GenerateContext {
             compilation,
             runtime_requirements: &mut runtime_requirements,
+            data: &mut data,
             requested_source_type: *source_type,
+            code_generation_results: &compilation.code_generation_results,
           },
         )?;
         code_generation_result.add(*source_type, generation_result);
       }
+      code_generation_result.data.extend(data);
       code_generation_result
         .runtime_requirements
         .extend(runtime_requirements);
@@ -493,6 +511,14 @@ impl Module for NormalModule {
   fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<str>> {
     // Align with https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/NormalModule.js#L362
     Some(Cow::Owned(contextify(options.context, self.user_request())))
+  }
+
+  fn get_code_generation_dependencies(&self) -> Option<&[Dependency]> {
+    if let Some(deps) = self.code_generation_dependencies.as_deref() && !deps.is_empty() {
+      Some(deps)
+    } else {
+      None
+    }
   }
 }
 

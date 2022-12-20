@@ -9,8 +9,8 @@ use rspack_sources::Source;
 
 use crate::{
   CodeGenerationResult, Compilation, CompilationContext, CompilerContext, CompilerOptions, Context,
-  Identifiable, Identifier, LoaderRunnerRunner, ModuleDependency, ModuleType, NormalModule,
-  RawModule, SourceType,
+  Dependency, Identifiable, Identifier, LoaderRunnerRunner, ModuleDependency, ModuleType,
+  NormalModule, RawModule, SourceType,
 };
 
 pub trait AsAny {
@@ -98,6 +98,10 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
     // Align with https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L845
     None
   }
+
+  fn get_code_generation_dependencies(&self) -> Option<&[Dependency]> {
+    None
+  }
 }
 
 pub trait ModuleExt {
@@ -149,6 +153,14 @@ impl Module for Box<dyn Module> {
 
   fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
     self.as_ref().code_generation(compilation)
+  }
+
+  fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<str>> {
+    self.as_ref().lib_ident(options)
+  }
+
+  fn get_code_generation_dependencies(&self) -> Option<&[Dependency]> {
+    self.as_ref().get_code_generation_dependencies()
   }
 }
 

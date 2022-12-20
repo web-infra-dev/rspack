@@ -44,7 +44,7 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, BoxModule, BuildContext, BundleEntries, Chunk,
   ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationResult,
   CodeGenerationResults, CompilerOptions, Dependency, EntryItem, EntryOptions, Entrypoint,
-  LoaderRunnerRunner, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg,
+  LoaderRunnerRunner, Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg,
   NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs,
   ResolveKind, RuntimeModule, SharedPluginDriver, Stats, VisitedModuleIdentity,
 };
@@ -649,36 +649,53 @@ impl Compilation {
 
   #[instrument(name = "compilation:code_generation", skip(self))]
   async fn code_generation(&mut self) -> Result<()> {
-    let results = self
-      .module_graph
-      .module_identifier_to_module
-      .par_iter()
-      .map(|(module_identifier, module)| {
-        self
-          .cache
-          .code_generate_occasion
-          .use_cache(module, |module| module.code_generation(self))
-          .map(|result| (*module_identifier, result))
-      })
-      .collect::<Result<Vec<(ModuleIdentifier, CodeGenerationResult)>>>()?;
+    fn run_iteration(
+      compilation: &mut Compilation,
+      filter_op: impl Fn(&(&ModuleIdentifier, &Box<dyn Module>)) -> bool + Sync + Send,
+    ) -> Result<()> {
+      let results = compilation
+        .module_graph
+        .module_identifier_to_module
+        .par_iter()
+        .filter(filter_op)
+        .map(|(module_identifier, module)| {
+          compilation
+            .cache
+            .code_generate_occasion
+            .use_cache(module, |module| module.code_generation(compilation))
+            .map(|result| (*module_identifier, result))
+        })
+        .collect::<Result<Vec<(ModuleIdentifier, CodeGenerationResult)>>>()?;
 
-    results.into_iter().for_each(|(module_identifier, result)| {
-      self.code_generated_modules.insert(module_identifier);
+      results.into_iter().for_each(|(module_identifier, result)| {
+        compilation.code_generated_modules.insert(module_identifier);
 
-      let runtimes = self
-        .chunk_graph
-        .get_module_runtimes(&module_identifier, &self.chunk_by_ukey);
+        let runtimes = compilation
+          .chunk_graph
+          .get_module_runtimes(&module_identifier, &compilation.chunk_by_ukey);
 
-      self
-        .code_generation_results
-        .module_generation_result_map
-        .insert(module_identifier, result);
-      for runtime in runtimes.values() {
-        self
+        compilation
           .code_generation_results
-          .add(module_identifier, runtime.clone(), module_identifier);
-      }
-    });
+          .module_generation_result_map
+          .insert(module_identifier, result);
+        for runtime in runtimes.values() {
+          compilation.code_generation_results.add(
+            module_identifier,
+            runtime.clone(),
+            module_identifier,
+          );
+        }
+      });
+      Ok(())
+    }
+
+    run_iteration(self, |(_, module)| {
+      module.get_code_generation_dependencies().is_none()
+    })?;
+
+    run_iteration(self, |(_, module)| {
+      module.get_code_generation_dependencies().is_some()
+    })?;
 
     Ok(())
   }
