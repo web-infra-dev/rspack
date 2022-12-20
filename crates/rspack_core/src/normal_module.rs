@@ -64,6 +64,7 @@ impl ModuleGraphModule {
     module_identifier: ModuleIdentifier,
     dependencies: Vec<Dependency>,
     module_type: ModuleType,
+    default_used: bool,
   ) -> Self {
     Self {
       name,
@@ -77,7 +78,7 @@ impl ModuleGraphModule {
       pre_order_index: None,
       post_order_index: None,
       module_syntax: ModuleSyntax::empty(),
-      used: true,
+      used: default_used,
     }
   }
 

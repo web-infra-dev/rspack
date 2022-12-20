@@ -924,20 +924,58 @@ impl Compilation {
     }
 
     if side_effects_analyze {
-      for result in analyze_results.values() {
-        if !bail_out_module_identifiers.contains_key(&result.module_identifier)
-          && !self
-            .entry_module_identifiers
-            .contains(&result.module_identifier)
-          && result.side_effects_free
-          && !used_export_module_identifiers.contains(&result.module_identifier)
-        // && result.inherit_export_maps.is_empty()
+      // pruning
+      let mut visited: HashSet<Ustr> =
+        HashSet::from_iter(self.entry_module_identifiers.iter().cloned());
+      let mut q = VecDeque::from_iter(visited.iter().cloned());
+      while let Some(module_identifier) = q.pop_front() {
+        let result = analyze_results.get(&module_identifier);
+        let analyze_result = match result {
+          Some(result) => result,
+          None => {
+            // These are none js like module, we need to keep it.
+            let mgm = self
+              .module_graph
+              .module_graph_module_by_identifier_mut(&module_identifier)
+              .unwrap();
+            mgm.used = true;
+            continue;
+          }
+        };
+        let used = used_export_module_identifiers.contains(&analyze_result.module_identifier);
+        //   || self.entry_module_identifiers.contains(&module_identifier)
+        //   || !analyze_result.side_effects_free
+        //   || ;
+        if !used
+          && !bail_out_module_identifiers.contains_key(&analyze_result.module_identifier)
+          && analyze_result.side_effects_free
+          && !self.entry_module_identifiers.contains(&module_identifier)
         {
-          self
+          continue;
+        }
+
+        let mgm = self
+          .module_graph
+          .module_graph_module_by_identifier_mut(&module_identifier)
+          .unwrap();
+        mgm.used = true;
+        let mgm = self
+          .module_graph
+          .module_graph_module_by_identifier(&module_identifier)
+          .unwrap();
+        for dep in mgm.all_dependencies.iter() {
+          let module_ident = self
             .module_graph
-            .module_graph_module_by_identifier_mut(&result.module_identifier)
+            .module_by_dependency(dep)
             .unwrap()
-            .used = false;
+            .module_identifier;
+          match visited.entry(module_ident) {
+            Occupied(_) => continue,
+            Vacant(vac) => {
+              q.push_back(*vac.get());
+              vac.insert();
+            }
+          }
         }
       }
 
