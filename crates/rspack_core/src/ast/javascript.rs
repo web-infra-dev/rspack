@@ -138,4 +138,8 @@ impl Ast {
       helpers::HELPERS.set(&context.helpers, || f(program, context))
     })
   }
+
+  pub fn is_script(&self) -> bool {
+    self.program.0.is_script()
+  }
 }

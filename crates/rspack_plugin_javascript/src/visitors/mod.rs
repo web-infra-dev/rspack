@@ -11,6 +11,7 @@ use format::*;
 mod module_variables;
 use module_variables::*;
 use rspack_core::Module;
+use swc_core::common::comments::SingleThreadedComments;
 use swc_core::common::pass::Repeat;
 use swc_core::ecma::transforms::optimization::simplify::dce::{dce, Config};
 mod swc_visitor;
@@ -31,6 +32,7 @@ pub fn run_before_pass(
   options: &CompilerOptions,
   syntax: Syntax,
 ) -> Result<()> {
+  let is_module = !ast.is_script();
   let cm = ast.get_context().source_map.clone();
   ast.transform_with_handler(cm.clone(), |handler, program, context| {
     let top_level_mark = context.top_level_mark;
@@ -97,7 +99,7 @@ pub fn run_before_pass(
         syntax.typescript()
       ),
       swc_visitor::reserved_words(),
-      swc_visitor::inject_helpers(),
+      Optional::new(swc_visitor::inject_helpers(), is_module),
       // The ordering of these two is important, `expr_simplifier` goes first and `dead_branch_remover` goes second.
       swc_visitor::expr_simplifier(unresolved_mark, Default::default()),
       swc_visitor::dead_branch_remover(unresolved_mark),
@@ -117,7 +119,7 @@ pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut
     let top_level_mark = context.top_level_mark;
     let tree_shaking = generate_context.compilation.options.builtins.tree_shaking;
     let minify = generate_context.compilation.options.builtins.minify;
-    let comments = None;
+    let comments: Option<&SingleThreadedComments> = None;
 
     let mut pass = chain!(
       Optional::new(
@@ -139,18 +141,18 @@ pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut
         // extra branch to avoid doing dce twice, (minify will exec dce)
         tree_shaking && !minify.enable,
       ),
-      swc_visitor::build_module(
-        &cm,
-        unresolved_mark,
-        Some(ModuleConfig::CommonJs(CommonjsConfig {
-          ignore_dynamic: true,
-          strict_mode: false,
-          no_interop: !context.is_esm,
-          ..Default::default()
-        })),
-        comments,
-        generate_context.compilation.options.target.es_version
-      ),
+      // swc_visitor::build_module(
+      //   &cm,
+      //   unresolved_mark,
+      //   Some(ModuleConfig::CommonJs(CommonjsConfig {
+      //     ignore_dynamic: true,
+      //     strict_mode: false,
+      //     no_interop: !context.is_esm,
+      //     ..Default::default()
+      //   })),
+      //   comments,
+      //   generate_context.compilation.options.target.es_version
+      // ),
       inject_runtime_helper(unresolved_mark, generate_context.runtime_requirements),
       module_variables(
         module,
@@ -159,8 +161,8 @@ pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut
         generate_context.compilation,
       ),
       finalize(module, generate_context.compilation, unresolved_mark),
-      swc_visitor::hygiene(false),
-      swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
+      // swc_visitor::hygiene(false),
+      // swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
     );
 
     program.fold_with(&mut pass);

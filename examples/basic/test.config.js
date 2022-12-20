@@ -8,8 +8,8 @@ module.exports = {
     html: [{
       template: './index.html'
     }],
-    treeShaking: true,
-    sideEffects: true
+    treeShaking: false,
+    sideEffects: false
   },
   context: __dirname,
   entry: {
@@ -22,5 +22,6 @@ module.exports = {
   },
   infrastructureLogging: {
     debug: false
-  }
+  },
+  target: ['web', 'es5']
 };
