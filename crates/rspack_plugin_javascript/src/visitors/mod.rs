@@ -141,18 +141,18 @@ pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut
         // extra branch to avoid doing dce twice, (minify will exec dce)
         tree_shaking && !minify.enable,
       ),
-      // swc_visitor::build_module(
-      //   &cm,
-      //   unresolved_mark,
-      //   Some(ModuleConfig::CommonJs(CommonjsConfig {
-      //     ignore_dynamic: true,
-      //     strict_mode: false,
-      //     no_interop: !context.is_esm,
-      //     ..Default::default()
-      //   })),
-      //   comments,
-      //   generate_context.compilation.options.target.es_version
-      // ),
+      swc_visitor::build_module(
+        &cm,
+        unresolved_mark,
+        Some(ModuleConfig::CommonJs(CommonjsConfig {
+          ignore_dynamic: true,
+          strict_mode: false,
+          no_interop: !context.is_esm,
+          ..Default::default()
+        })),
+        comments,
+        generate_context.compilation.options.target.es_version
+      ),
       inject_runtime_helper(unresolved_mark, generate_context.runtime_requirements),
       module_variables(
         module,
@@ -161,8 +161,8 @@ pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut
         generate_context.compilation,
       ),
       finalize(module, generate_context.compilation, unresolved_mark),
-      // swc_visitor::hygiene(false),
-      // swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
+      swc_visitor::hygiene(false),
+      swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
     );
 
     program.fold_with(&mut pass);

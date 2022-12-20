@@ -12,6 +12,7 @@ pub fn render_chunk_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
 ) -> Result<BoxSource> {
+  compilation.chunk_graph;
   let module_graph = &compilation.module_graph;
   let mut ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
     chunk_ukey,
