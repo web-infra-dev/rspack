@@ -79,7 +79,20 @@ impl<'a> Fold for TreeShaker<'a> {
         ModuleDecl::Import(ref import) => {
           let module_identifier = self
             .resolve_module_identifier(import.src.value.to_string(), ResolveKind::Import)
-            .unwrap();
+            .unwrap_or_else(|| {
+              // FIXME: This is just a hack because of an unstable bug panic here.
+              panic!(
+                "Failed to resolve {:?},",
+                Dependency {
+                  detail: ModuleDependency {
+                    specifier: import.src.value.to_string(),
+                    kind: ResolveKind::Import,
+                    span: None,
+                  },
+                  parent_module_identifier: Some(self.module_identifier),
+                }
+              )
+            });
           let mgm = self
             .module_graph
             .module_graph_module_by_identifier(&module_identifier)
