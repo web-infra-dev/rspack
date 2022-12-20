@@ -1,5 +1,13 @@
 # @rspack/dev-client
 
+## 0.0.18
+
+### Patch Changes
+
+- bump version
+- Updated dependencies
+  - @rspack/core@0.0.18
+
 ## 0.0.17
 
 ### Patch Changes

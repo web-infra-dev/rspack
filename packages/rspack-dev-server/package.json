@@ -1,7 +1,7 @@
 {
   "name": "@rspack/dev-server",
   "description": "",
-  "version": "0.0.17",
+  "version": "0.0.18",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
