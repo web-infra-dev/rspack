@@ -71,7 +71,7 @@ pub fn parse(
     ast::EsVersion::Es2022,
     syntax,
     // TODO: Is this correct to think the code is module by default?
-    IsModule::Unknown,
+    IsModule::Bool(true),
     None,
   ) {
     Ok(program) => Ok(Ast::new(program, cm)),
@@ -95,7 +95,7 @@ pub fn parse_js_code(js_code: String, module_type: &ModuleType) -> Result<Progra
     ast::EsVersion::Es2022,
     syntax,
     // TODO: Is this correct to think the code is module by default?
-    IsModule::Unknown,
+    IsModule::Bool(true),
     None,
   ) {
     Ok(program) => Ok(program),

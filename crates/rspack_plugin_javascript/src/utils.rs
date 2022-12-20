@@ -142,7 +142,7 @@ pub fn wrap_module_function(source: BoxSource, module_id: &str) -> BoxSource {
       runtime_globals::REQUIRE
     ))
     .boxed(),
-    RawSource::from("\"use strict\";\n").boxed(),
+    // RawSource::from("\"use strict\";\n").boxed(),
     source,
     RawSource::from("},\n").boxed(),
   ]))
