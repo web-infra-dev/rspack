@@ -1,4 +1,1 @@
-import { myanswer, aaa } from './app'
-myanswer()
-
-aaa
+var global = window;
