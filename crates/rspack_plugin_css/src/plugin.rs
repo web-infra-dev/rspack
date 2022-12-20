@@ -37,6 +37,7 @@ use rspack_error::{
 use tracing::instrument;
 
 use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
+use crate::visitors::rewrite_url;
 use crate::{
   pxtorem::{option::PxToRemOption, px_to_rem::px_to_rem},
   visitors::analyze_dependencies,
@@ -365,6 +366,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       module_type,
       resource_data,
       compiler_options,
+      code_generation_dependencies,
     } = parse_context;
 
     let cm: Arc<swc_core::common::SourceMap> = Default::default();
@@ -414,7 +416,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
       None
     };
 
-    let mut dependencies = analyze_dependencies(&mut stylesheet);
+    let mut dependencies = analyze_dependencies(
+      &mut stylesheet,
+      code_generation_dependencies,
+      &mut diagnostic,
+    );
     let dependencies = if let Some((imports, _)) = &locals && !imports.is_empty() {
       dependencies.extend(imports.iter().map(|import| ModuleDependency {
         specifier: import.to_string(),
@@ -453,13 +459,15 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let result = match generate_context.requested_source_type {
       SourceType::Css => {
         let devtool = &generate_context.compilation.options.devtool;
-        let ast = ast_or_source
-          .as_ast()
+        let mut ast = ast_or_source
+          .to_owned()
+          .try_into_ast()
           .expect("Expected AST for CSS generator, please file an issue.")
-          .as_css()
+          .try_into_css()
           .expect("Expected CSS AST for CSS generation, please file an issue.");
         let cm = ast.get_context().source_map.clone();
-        let stylesheet = ast.get_root();
+        let stylesheet = ast.get_root_mut();
+        rewrite_url(stylesheet, module, generate_context.compilation);
         let (code, source_map) = SWC_COMPILER.codegen(
           cm,
           stylesheet,

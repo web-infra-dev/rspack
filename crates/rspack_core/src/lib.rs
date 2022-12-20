@@ -1,5 +1,6 @@
 #![feature(iter_intersperse)]
 #![feature(box_patterns)]
+#![feature(anonymous_lifetime_in_impl_trait)]
 
 use std::{fmt, sync::Arc};
 

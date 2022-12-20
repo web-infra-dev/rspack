@@ -1,14 +1,14 @@
 use std::fmt::Debug;
 
-use hashbrown::HashSet;
+use hashbrown::{HashMap, HashSet};
 
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::ResourceData;
 use rspack_sources::Source;
 
 use crate::{
-  AstOrSource, Compilation, CompilerOptions, GenerationResult, Module, ModuleDependency,
-  ModuleType, SourceType,
+  AstOrSource, CodeGenerationResults, Compilation, CompilerOptions, GenerationResult, Module,
+  ModuleDependency, ModuleType, SourceType,
 };
 
 #[derive(Debug)]
@@ -18,6 +18,7 @@ pub struct ParseContext<'a> {
   pub resource_data: &'a ResourceData,
   pub compiler_options: &'a CompilerOptions,
   pub additional_data: Option<String>,
+  pub code_generation_dependencies: &'a mut Vec<ModuleDependency>,
 }
 
 #[derive(Debug)]
@@ -30,7 +31,9 @@ pub struct ParseResult {
 pub struct GenerateContext<'a> {
   pub compilation: &'a Compilation,
   pub runtime_requirements: &'a mut HashSet<String>,
+  pub data: &'a mut HashMap<String, String>,
   pub requested_source_type: SourceType,
+  pub code_generation_results: &'a CodeGenerationResults,
 }
 
 pub trait ParserAndGenerator: Send + Sync + Debug {

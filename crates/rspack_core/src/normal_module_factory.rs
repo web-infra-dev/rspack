@@ -34,7 +34,6 @@ pub enum ResolveKind {
   Require,
   DynamicImport,
   AtImport,
-  AtImportUrl,
   UrlToken,
   ModuleHotAccept,
 }
