@@ -139,7 +139,7 @@ export function describeCases(config: {
 													json: async () => JSON.parse(buffer.toString("utf-8"))
 												};
 											} catch (err) {
-												if (err.code === "ENOENT") {
+												if ((err as any).code === "ENOENT") {
 													return {
 														status: 404,
 														ok: false
@@ -153,21 +153,21 @@ export function describeCases(config: {
 											_require(urlToRelativePath(url));
 										},
 										document: {
-											createElement(type) {
+											createElement(type: any) {
 												return {
 													_type: type,
-													_attrs: {},
-													setAttribute(name, value) {
+													_attrs: {} as any,
+													setAttribute(name: any, value: any) {
 														this._attrs[name] = value;
 													},
-													getAttribute(name) {
+													getAttribute(name: any) {
 														return this._attrs[name];
 													},
-													removeAttribute(name) {
+													removeAttribute(name: any) {
 														delete this._attrs[name];
 													},
 													parentNode: {
-														removeChild(node) {
+														removeChild(node: any) {
 															// ok
 														}
 													}
@@ -176,7 +176,7 @@ export function describeCases(config: {
 											head: {
 												children: [],
 												appendChild(element: any) {
-													this.children.push(element);
+													(this.children as any).push(element);
 													if (element._type === "script") {
 														Promise.resolve().then(() => {
 															_require(urlToRelativePath(element.src));
@@ -200,7 +200,7 @@ export function describeCases(config: {
 												}
 												if (name === "script" || name === "link") {
 													return this.head.children.filter(
-														i => i._type === name
+														(i: any) => i._type === name
 													);
 												}
 												throw Error("No supported");
@@ -219,7 +219,7 @@ export function describeCases(config: {
 										}
 									};
 
-									function _next(callback) {
+									function _next(callback: any) {
 										fakeUpdateLoaderOptions.updateIndex++;
 										if (!compiler) {
 											throw Error("can't find compiler");

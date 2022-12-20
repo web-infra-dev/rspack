@@ -1,3 +1,4 @@
+/// <reference path = "./global.d.ts"/>
 import * as util from "util";
 import { rspack, RspackOptions } from "../src";
 import serializer from "jest-serializer-path";
@@ -17,6 +18,9 @@ describe("Stats", () => {
 			}
 		});
 		const statsOptions = { all: true };
+		if (!stats) {
+			throw Error("stats should not undefined");
+		}
 		expect(typeof stats.hash).toBe("string");
 		expect(stats.toJson(statsOptions)).toMatchInlineSnapshot(`
 		{
@@ -101,6 +105,9 @@ describe("Stats", () => {
 			context: __dirname,
 			entry: "./fixtures/a"
 		});
+		if (!stats) {
+			throw Error("stats should not undefined");
+		}
 		expect(
 			stats.toJson({
 				all: false

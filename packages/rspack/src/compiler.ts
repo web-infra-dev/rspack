@@ -26,21 +26,21 @@ class HotModuleReplacementPlugin {
 }
 type CompilationParams = Record<string, any>;
 class Compiler {
-	#_instance: binding.Rspack;
+	#_instance!: binding.Rspack;
 
 	webpack: any;
-	compilation: Compilation;
+	compilation!: Compilation;
 	root: Compiler;
 	resolverFactory: ResolverFactory;
 	infrastructureLogger: any;
-	outputPath: string;
-	name: string;
+	outputPath: string | undefined;
+	name: string | undefined;
 	inputFileSystem: any;
 	outputFileSystem: any;
 	context: string;
 	hooks: {
 		done: tapable.AsyncSeriesHook<Stats>;
-		afterDone: tapable.SyncHook<Stats>;
+		afterDone: tapable.SyncHook<Stats | undefined>;
 		// TODO: CompilationParams
 		compilation: tapable.SyncHook<Compilation>;
 		// TODO: CompilationParams
@@ -123,7 +123,7 @@ class Compiler {
 			);
 		}
 		return new Logger(
-			(type, args) => {
+			(type: any, args: any[]) => {
 				if (typeof name === "function") {
 					name = name();
 					if (!name) {
@@ -141,10 +141,10 @@ class Compiler {
 					}
 				}
 			},
-			childName => {
+			(childName: any) => {
 				if (typeof name === "function") {
 					if (typeof childName === "function") {
-						return this.getInfrastructureLogger(_ => {
+						return this.getInfrastructureLogger((_name: any) => {
 							if (typeof name === "function") {
 								name = name();
 								if (!name) {
@@ -244,9 +244,9 @@ class Compiler {
 		this.hooks.thisCompilation.call(this.compilation);
 	}
 
-	run(callback) {
+	run(callback: (err?: Error, stats?: Stats) => void) {
 		const doRun = () => {
-			const finalCallback = (err, stats?) => {
+			const finalCallback = (err?: Error, stats?: Stats) => {
 				if (err) {
 					this.hooks.failed.call(err);
 				}
@@ -268,12 +268,15 @@ class Compiler {
 						if (err) {
 							return finalCallback(err);
 						}
+						if (!rawStats) {
+							throw Error("rawStats is undefined");
+						}
 						const stats = new Stats(rawStats, this.compilation);
 						this.hooks.done.callAsync(stats, err => {
 							if (err) {
 								return finalCallback(err);
 							} else {
-								return finalCallback(null, stats);
+								return finalCallback(undefined, stats);
 							}
 						});
 					});
@@ -300,21 +303,20 @@ class Compiler {
 		changedFiles: string[],
 		cb: (error?: Error, stats?: binding.JsStatsCompilation) => void
 	) {
-		const rebuild_cb = this.#instance.unsafe_rebuild.bind(this.#instance) as (
-			changed: string[],
-			removed: string[],
-			cb: Callback<Error, any>
-		) => void;
+		const rebuild_cb = this.#instance.unsafe_rebuild.bind(this.#instance);
 		rebuild_cb(changedFiles, [], (err, stats) => {
 			if (err) {
 				cb(err);
 			} else {
+				if (!stats) {
+					throw Error("stats should not undefined");
+				}
 				this.hooks.done.callAsync(new Stats(stats, this.compilation), err => {
 					if (err) {
 						throw err;
 					}
 				});
-				cb(null, stats);
+				cb(undefined, stats);
 			}
 		});
 	}
@@ -334,7 +336,9 @@ class Compiler {
 		);
 		const begin = Date.now();
 		let rawStats = await util.promisify(this.build.bind(this))();
-
+		if (!rawStats) {
+			throw Error("rawStats is undefined");
+		}
 		let stats = new Stats(rawStats, this.compilation);
 		await this.hooks.done.promise(stats);
 		console.log("build success, time cost", Date.now() - begin, "ms");
@@ -399,10 +403,13 @@ class Compiler {
 	/**
 	 * @todo
 	 */
-	close(callback) {
+	close(callback: any) {
 		callback();
 	}
-	emitAssets(compilation: Compilation, callback) {
+	emitAssets(compilation: Compilation) {
+		if (!this.outputPath) {
+			throw Error("outputPath is undefined");
+		}
 		const outputPath = compilation.getPath(this.outputPath, {});
 		fs.mkdirSync(outputPath, { recursive: true });
 		const assets = compilation.getAssets();
@@ -425,7 +432,7 @@ class Compiler {
 					}
 				};
 
-				const doWrite = content => {
+				const doWrite = (content: Buffer) => {
 					this.outputFileSystem.writeFile(absPath, content, callback);
 				};
 				let content = getContent();

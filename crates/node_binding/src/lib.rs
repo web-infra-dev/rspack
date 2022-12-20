@@ -211,7 +211,7 @@ impl Rspack {
   /// Calling this method recursively will cause a deadlock.
   #[napi(
     js_name = "unsafe_rebuild",
-    ts_args_type = "callback: (err: null | Error, result: Record<string, {content: string, kind: number}>) => void"
+    ts_args_type = "changedFiles: string[], removedFiles: string[], callback: (err: null | Error, result: JsStatsCompilation) => void"
   )]
   pub fn rebuild(
     &self,

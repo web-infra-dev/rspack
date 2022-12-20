@@ -1,4 +1,5 @@
 import type { RawCacheOptions } from "@rspack/binding";
+import os from "os";
 
 export type Cache =
 	| boolean
@@ -41,6 +42,8 @@ export function resolveCacheOptions(cache: Cache): ResolvedCache {
 	}
 
 	if (cache.type === "memory") {
+		// @ts-ignore
+		// FIXME: should fix ts-ignored
 		cache.maxGenerations = isFinite(cache.maxGenerations)
 			? cache.maxGenerations
 			: 0;

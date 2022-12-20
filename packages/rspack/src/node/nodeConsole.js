@@ -6,7 +6,7 @@
 const util = require("util");
 const truncateArgs = require("../logging/truncateArgs");
 
-export = ({ colors, appendOnly, stream }) => {
+module.exports = ({ colors, appendOnly, stream }) => {
 	let currentStatusMessage = undefined;
 	let hasStatusMessage = false;
 	let currentIndent = "";

@@ -25,7 +25,7 @@ interface ResolveEntryContext {
 }
 
 export function resolveEntryOptions(
-	options: Entry,
+	options: Entry | undefined,
 	context: ResolveEntryContext
 ): ResolvedEntry {
 	if (typeof options === "undefined" || options === null) {

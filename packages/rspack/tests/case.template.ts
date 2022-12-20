@@ -73,6 +73,9 @@ export function describeCases(config: { name: string; casePath: string }) {
 								}
 							};
 							const stats = await util.promisify(rspack)(options);
+							if (!stats) {
+								throw Error("stats should not undefined");
+							}
 							const statsJson = stats.toJson();
 							if (category.name === "errors") {
 								assert(statsJson.errors!.length > 0);
@@ -109,7 +112,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 							};
 							fn.call(
 								m.exports,
-								function (p) {
+								function (p: string) {
 									return p && p.startsWith(".")
 										? require(path.resolve(outputPath, p))
 										: require(p);

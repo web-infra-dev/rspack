@@ -21,7 +21,7 @@ export class Stats {
 			entrypoints: statsJson.entrypoints.reduce((acc, cur) => {
 				acc[cur.name] = cur;
 				return acc;
-			}, {})
+			}, {} as Record<string, binding.JsStatsEntrypoint>)
 		};
 		this.compilation = compilation;
 	}
@@ -95,10 +95,10 @@ export class Stats {
 		return Stats.jsonToString(obj, useColors);
 	}
 
-	static jsonToString(obj, useColors: boolean) {
+	static jsonToString(obj: any, useColors: boolean): any {
 		const buf = [];
 
-		const defaultColors = {
+		const defaultColors: Record<string, string> = {
 			bold: "\u001b[1m",
 			yellow: "\u001b[1m\u001b[33m",
 			red: "\u001b[1m\u001b[31m",
@@ -108,8 +108,8 @@ export class Stats {
 		};
 
 		const colors: any = Object.keys(defaultColors).reduce(
-			(obj, color) => {
-				obj[color] = str => {
+			(obj: Record<string, (str: string) => void>, color) => {
+				obj[color] = (str: string) => {
 					if (useColors) {
 						buf.push(
 							useColors === true || useColors[color] === undefined
@@ -125,11 +125,11 @@ export class Stats {
 				return obj;
 			},
 			{
-				normal: str => buf.push(str)
+				normal: (str: string) => buf.push(str)
 			}
 		);
 
-		const coloredTime = time => {
+		const coloredTime = (time: number) => {
 			let times = [800, 400, 200, 100];
 			if (obj.time) {
 				times = [obj.time / 2, obj.time / 4, obj.time / 8, obj.time / 16];
@@ -143,11 +143,19 @@ export class Stats {
 
 		const newline = () => buf.push("\n");
 
-		const getText = (arr, row, col) => {
+		const getText = (
+			arr: { value: string; color: any }[][],
+			row: number,
+			col: number
+		) => {
 			return arr[row][col].value;
 		};
 
-		const table = (array, align, splitter?: string) => {
+		const table = (
+			array: { value: string; color: any }[][],
+			align: string,
+			splitter?: string
+		) => {
 			const rows = array.length;
 			const cols = array[0].length;
 			const colSizes = new Array(cols);
@@ -184,7 +192,7 @@ export class Stats {
 			}
 		};
 
-		const getAssetColor = (asset, defaultColor) => {
+		const getAssetColor = (asset: any, defaultColor: string) => {
 			if (asset.isOverSizeLimit) {
 				return colors.yellow;
 			}
@@ -318,7 +326,7 @@ export class Stats {
 			newline();
 		}
 
-		const processChunkGroups = (namedGroups, prefix) => {
+		const processChunkGroups = (namedGroups: any, prefix: string) => {
 			for (const name of Object.keys(namedGroups)) {
 				const cg = namedGroups[name];
 				colors.normal(`${prefix} `);
@@ -360,12 +368,12 @@ export class Stats {
 					.reduce((result, name) => {
 						result[name] = obj.namedChunkGroups[name];
 						return result;
-					}, {});
+					}, {} as Record<string, string>);
 			}
 			processChunkGroups(outputChunkGroups, "Chunk Group");
 		}
 
-		const modulesByIdentifier = {};
+		const modulesByIdentifier: any = {};
 		if (obj.modules) {
 			for (const module of obj.modules) {
 				modulesByIdentifier[`$${module.identifier}`] = module;
@@ -380,7 +388,7 @@ export class Stats {
 			}
 		}
 
-		const processModuleAttributes = module => {
+		const processModuleAttributes = (module: any) => {
 			colors.normal(" ");
 			colors.normal(SizeFormatHelpers.formatSize(module.size));
 			if (module.chunks) {
@@ -425,7 +433,7 @@ export class Stats {
 			}
 		};
 
-		const processModuleContent = (module, prefix) => {
+		const processModuleContent = (module: any, prefix: string) => {
 			if (Array.isArray(module.providedExports)) {
 				colors.normal(prefix);
 				if (module.providedExports.length === 0) {
@@ -536,7 +544,7 @@ export class Stats {
 			}
 		};
 
-		const processModulesList = (obj, prefix) => {
+		const processModulesList = (obj: any, prefix: string) => {
 			if (obj.modules) {
 				let maxModuleId = 0;
 				for (const module of obj.modules) {
@@ -827,7 +835,7 @@ export class Stats {
 }
 
 const SizeFormatHelpers = {
-	formatSize: size => {
+	formatSize: (size: number) => {
 		if (typeof size !== "number" || Number.isNaN(size) === true) {
 			return "unknown size";
 		}
@@ -849,7 +857,7 @@ const formatError = (e: binding.JsStatsError) => {
 	return e.formatted;
 };
 
-export const optionsOrFallback = (...args) => {
+export const optionsOrFallback = (...args: any[]) => {
 	let optionValues = [];
 	optionValues.push(...args);
 	return optionValues.find(optionValue => optionValue !== undefined);

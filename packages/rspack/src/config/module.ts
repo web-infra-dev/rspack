@@ -253,13 +253,13 @@ function composeJsUse(
 				const getResolveContext = () => {
 					return {
 						fileDependencies: {
-							add: d => loaderContext.addDependency(d)
+							add: (d: string) => loaderContext.addDependency(d)
 						},
 						contextDependencies: {
-							add: d => loaderContext.addContextDependency(d)
+							add: (d: string) => loaderContext.addContextDependency(d)
 						},
 						missingDependencies: {
-							add: d => loaderContext.addMissingDependency(d)
+							add: (d: string) => loaderContext.addMissingDependency(d)
 						}
 					};
 				};
@@ -277,17 +277,17 @@ function composeJsUse(
 					contextify.bindContextCache(moduleContext, compiler.root)
 				);
 				const utils = {
-					absolutify: (context, request) => {
+					absolutify: (context: string, request: string) => {
 						return context === moduleContext
 							? getAbsolutifyInContext()(request)
 							: getAbsolutify()(context, request);
 					},
-					contextify: (context, request) => {
+					contextify: (context: string, request: string) => {
 						return context === moduleContext
 							? getContextifyInContext()(request)
 							: getContextify()(context, request);
 					},
-					createHash: type => {
+					createHash: (type?: string) => {
 						return createHash(
 							type || compiler.compilation.outputOptions.hashFunction
 						);
@@ -345,6 +345,7 @@ function composeJsUse(
 							callback
 						);
 					},
+					// @ts-ignore
 					getResolve(options) {
 						const child = options ? resolver.withOptions(options) : resolver;
 						return (context, request, callback) => {
@@ -380,6 +381,7 @@ function composeJsUse(
 					cacheable(value) {
 						cacheable = value;
 					},
+					// @ts-ignore
 					async() {
 						if (isDone) {
 							if (reportedError) return; // ignore
@@ -418,7 +420,7 @@ function composeJsUse(
 						);
 					},
 					emitFile(name, content, sourceMap?, assetInfo?) {
-						let source: Source;
+						let source: Source | undefined;
 						if (sourceMap) {
 							if (
 								typeof sourceMap === "string" &&
@@ -431,6 +433,7 @@ function composeJsUse(
 								);
 							}
 
+							// @ts-ignore
 							if (this.useSourceMap) {
 								source = new SourceMapSource(
 									content as any, // webpack-sources type declaration is wrong
@@ -440,6 +443,9 @@ function composeJsUse(
 							}
 						} else {
 							source = new RawSource(content as any); // webpack-sources type declaration is wrong
+						}
+						if (!source) {
+							throw Error("source is undefined");
 						}
 
 						compiler.compilation.emitAsset(name, source, assetInfo);
@@ -479,6 +485,10 @@ function composeJsUse(
 				let result: Promise<string | Buffer> | string | Buffer | undefined =
 					undefined;
 				try {
+					if (!loader) {
+						reject(Error("loader is undefined"));
+						return;
+					}
 					result = loader.apply(loaderContext, [
 						loader.raw ? Buffer.from(content) : content.toString("utf-8"),
 						sourceMap,
@@ -523,7 +533,7 @@ function composeJsUse(
 					if (isDone) {
 						// loader is already "done", so we cannot use the callback function
 						// for better debugging we print the error on the console
-						if (typeof err === "object" && err.stack) console.error(err.stack);
+						if (err instanceof Error && err.stack) console.error(err.stack);
 						else console.error(err);
 						reject(err);
 						return;
@@ -593,7 +603,7 @@ export interface Loader {
 		content: string | Buffer,
 		sourceMap?: string | SourceMap,
 		additionalData?: AdditionalData
-	): void;
+	): any;
 	displayName?: string;
 	raw?: boolean;
 }
@@ -633,7 +643,12 @@ function createRawModuleRuleUsesImpl(
 	}
 	const index = uses.findIndex(use => "builtinLoader" in use);
 	if (index < 0) {
-		return [composeJsUse(uses, options, allUses)];
+		const compose = composeJsUse(uses, options, allUses);
+		if (!compose) {
+			throw Error("compose is undefined");
+		} else {
+			return [compose];
+		}
 	}
 
 	const before = uses.slice(0, index);
@@ -710,22 +725,24 @@ export function resolveModuleOptions(
 
 		return {
 			...rule,
-			test: isNil(rule.test) ? null : resolveModuleRuleCondition(rule.test),
+			test: isNil(rule.test)
+				? undefined
+				: resolveModuleRuleCondition(rule.test),
 			include: isNil(rule.include)
-				? null
+				? undefined
 				: Array.isArray(rule.include)
 				? resolveModuleRuleConditions(rule.include)
 				: [resolveModuleRuleCondition(rule.include)],
 			exclude: isNil(rule.exclude)
-				? null
+				? undefined
 				: Array.isArray(rule.exclude)
 				? resolveModuleRuleConditions(rule.exclude)
 				: [resolveModuleRuleCondition(rule.exclude)],
 			resource: isNil(rule.resource)
-				? null
+				? undefined
 				: resolveModuleRuleCondition(rule.resource),
 			resourceQuery: isNil(rule.resourceQuery)
-				? null
+				? undefined
 				: resolveModuleRuleCondition(rule.resourceQuery),
 			use: createRawModuleRuleUses(rule.use || [], options)
 		};

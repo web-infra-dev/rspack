@@ -9,7 +9,7 @@ import util from "util";
 
 import { RspackOptionsApply } from "./rspackOptionsApply";
 import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
-type Callback<T> = (err: Error, t: T) => void;
+type Callback<T> = (err?: Error, t?: T) => void;
 function createCompiler(userOptions: RspackOptions) {
 	// console.log("user:", userOptions);
 	const options = getNormalizedRspackOptions(userOptions, () => compiler);

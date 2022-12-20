@@ -28,6 +28,9 @@ export type ResolvedBuiltins = Omit<RawBuiltins, "html"> & {
 };
 
 function resolveDefine(define: Builtins["define"]): RawBuiltins["define"] {
+	if (!define) {
+		return {};
+	}
 	const entries = Object.entries(define).map(([key, value]) => [
 		key,
 		value === undefined ? "undefined" : value
@@ -36,6 +39,9 @@ function resolveDefine(define: Builtins["define"]): RawBuiltins["define"] {
 }
 
 function resolveHtml(html: Builtins["html"]): BuiltinsHtmlPluginConfig[] {
+	if (!html) {
+		throw Error("html is undefined");
+	}
 	return html.map(c => {
 		for (const key in c.meta) {
 			const value = c.meta[key];

@@ -7,9 +7,27 @@ export interface Optimization {
 }
 
 export interface ResolvedOptimization {
-	moduleIds: "named" | "deterministic";
+	moduleIds?: "named" | "deterministic" | "natural";
 	minimize?: boolean;
 	minimizer?: ("..." | PluginInstance)[];
+	removeAvailableModules?: boolean;
+	removeEmptyChunks?: boolean;
+	mergeDuplicateChunks?: boolean;
+	flagIncludedChunks?: boolean;
+	chunkIds?: "deterministic" | "natural" | "named";
+	sideEffects?: true | "flag";
+	providedExports?: boolean;
+	usedExports?: boolean;
+	innerGraph?: boolean;
+	mangleExports?: boolean;
+	concatenateModules?: boolean;
+	runtimeChunk?: boolean;
+	emitOnErrors?: boolean;
+	checkWasmTypes?: boolean;
+	mangleWasmImports?: boolean;
+	portableRecords?: boolean;
+	realContentHash?: boolean;
+	nodeEnv?: false | "production" | "development";
 }
 export function resolveOptimizationOptions(
 	op: Optimization,

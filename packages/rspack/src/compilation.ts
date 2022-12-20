@@ -30,7 +30,7 @@ export class Compilation {
 	options: RspackOptionsNormalized;
 	outputOptions: ResolvedOutput;
 	compiler: Compiler;
-	resolverFactory: ResolverFactory;
+	// resolverFactory: ResolverFactory;
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.hooks = {
@@ -198,7 +198,7 @@ export class Compilation {
 	}
 
 	// TODO: full alignment
-	getAssetPath(filename, data) {
+	getAssetPath(filename: string, _data: Record<string, string>) {
 		return filename;
 	}
 
@@ -210,7 +210,11 @@ export class Compilation {
 	 * @internal
 	 */
 	__internal__getAssetSource(filename: string): Source | null {
-		return createSourceFromRaw(this.#inner.getAssetSource(filename));
+		const assetSource = this.#inner.getAssetSource(filename);
+		if (!assetSource) {
+			throw Error("assetSource should not be undefined");
+		}
+		return createSourceFromRaw(assetSource);
 	}
 
 	/**

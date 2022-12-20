@@ -1,3 +1,4 @@
+/// <reference path = "./global.d.ts"/>
 import path from "path";
 import fs from "fs";
 import util from "util";
@@ -47,6 +48,9 @@ describe("StatsTestCases", () => {
 			};
 			const stats = await util.promisify(rspack)(options);
 			const statsOptions = options.stats ?? { all: true };
+			if (!stats) {
+				throw Error("stats should not undefined");
+			}
 			const statsJson = stats.toJson(statsOptions);
 			// case ends with error should generate errors
 			if (/error$/.test(testName)) {

@@ -30,6 +30,7 @@ const A = <T, P extends keyof T>(
 			if (item === "...") {
 				if (newArray === undefined) {
 					newArray = value.slice(0, i);
+					// @ts-ignore
 					obj[prop] = newArray;
 				}
 				const items = factory();
@@ -51,30 +52,32 @@ export function applyRspackOptionsBaseDefaults(
 	applyInfrastructureLoggingDefaults(options.infrastructureLogging);
 }
 
-/**
- * @param {InfrastructureLogging} infrastructureLogging options
- * @returns {void}
- */
-const applyInfrastructureLoggingDefaults = infrastructureLogging => {
+const applyInfrastructureLoggingDefaults = (
+	infrastructureLogging: RspackOptionsNormalized["infrastructureLogging"]
+): void => {
 	F(infrastructureLogging, "stream", () => process.stderr);
 	const tty =
-		/** @type {any} */ infrastructureLogging.stream.isTTY &&
+		//@ts-ignore
+		/** @type {any} */ infrastructureLogging.stream?.isTTY &&
 		process.env.TERM !== "dumb";
 	D(infrastructureLogging, "level", "info");
 	D(infrastructureLogging, "debug", false);
 	D(infrastructureLogging, "colors", tty);
 	D(infrastructureLogging, "appendOnly", !tty);
 };
-const applyOutputDefaults = (output: ResolvedOutput, context) => {
+const applyOutputDefaults = (output: ResolvedOutput, context: string) => {
 	D(output, "hashFunction", "xxhash64");
 	F(output, "path", () => path.resolve(context, "dist"));
 	D(output, "publicPath", "auto");
 	return output;
 };
 const applyOptimizationDefaults = (
-	optimization,
-	{ production, development, css, records }
+	optimization: RspackOptionsNormalized["optimization"],
+	{ production, development, css, records }: Record<string, boolean>
 ) => {
+	if (!optimization) {
+		optimization = {};
+	}
 	D(optimization, "removeAvailableModules", false);
 	D(optimization, "removeEmptyChunks", true);
 	D(optimization, "mergeDuplicateChunks", true);
@@ -107,35 +110,36 @@ const applyOptimizationDefaults = (
 		if (development) return "development";
 		return false;
 	});
-	const { splitChunks } = optimization;
-	if (splitChunks) {
-		A(splitChunks, "defaultSizeTypes", () =>
-			css ? ["javascript", "css", "unknown"] : ["javascript", "unknown"]
-		);
-		D(splitChunks, "hidePathInfo", production);
-		D(splitChunks, "chunks", "async");
-		D(splitChunks, "usedExports", optimization.usedExports === true);
-		D(splitChunks, "minChunks", 1);
-		F(splitChunks, "minSize", () => (production ? 20000 : 10000));
-		F(splitChunks, "minRemainingSize", () => (development ? 0 : undefined));
-		F(splitChunks, "enforceSizeThreshold", () => (production ? 50000 : 30000));
-		F(splitChunks, "maxAsyncRequests", () => (production ? 30 : Infinity));
-		F(splitChunks, "maxInitialRequests", () => (production ? 30 : Infinity));
-		D(splitChunks, "automaticNameDelimiter", "-");
-		const { cacheGroups } = splitChunks;
-		F(cacheGroups, "default", () => ({
-			idHint: "",
-			reuseExistingChunk: true,
-			minChunks: 2,
-			priority: -20
-		}));
-		F(cacheGroups, "defaultVendors", () => ({
-			idHint: "vendors",
-			reuseExistingChunk: true,
-			test: NODE_MODULES_REGEXP,
-			priority: -10
-		}));
-	}
+	// TODO: recover `optimization.splitChunks` lately.
+	// const { splitChunks } = optimization;
+	// if (splitChunks) {
+	// 	A(splitChunks, "defaultSizeTypes", () =>
+	// 		css ? ["javascript", "css", "unknown"] : ["javascript", "unknown"]
+	// 	);
+	// 	D(splitChunks, "hidePathInfo", production);
+	// 	D(splitChunks, "chunks", "async");
+	// 	D(splitChunks, "usedExports", optimization.usedExports === true);
+	// 	D(splitChunks, "minChunks", 1);
+	// 	F(splitChunks, "minSize", () => (production ? 20000 : 10000));
+	// 	F(splitChunks, "minRemainingSize", () => (development ? 0 : undefined));
+	// 	F(splitChunks, "enforceSizeThreshold", () => (production ? 50000 : 30000));
+	// 	F(splitChunks, "maxAsyncRequests", () => (production ? 30 : Infinity));
+	// 	F(splitChunks, "maxInitialRequests", () => (production ? 30 : Infinity));
+	// 	D(splitChunks, "automaticNameDelimiter", "-");
+	// 	const { cacheGroups } = splitChunks;
+	// 	F(cacheGroups, "default", () => ({
+	// 		idHint: "",
+	// 		reuseExistingChunk: true,
+	// 		minChunks: 2,
+	// 		priority: -20
+	// 	}));
+	// 	F(cacheGroups, "defaultVendors", () => ({
+	// 		idHint: "vendors",
+	// 		reuseExistingChunk: true,
+	// 		test: NODE_MODULES_REGEXP,
+	// 		priority: -10
+	// 	}));
+	// }
 };
 export function applyRspackOptionsDefaults(options: RspackOptionsNormalized) {
 	F(options, "context", () => process.cwd());
@@ -144,8 +148,8 @@ export function applyRspackOptionsDefaults(options: RspackOptionsNormalized) {
 		return getDefaultTarget(options.context);
 	});
 	const { mode, context } = options;
-	const development = mode === "development";
-	const production = mode === "production" || !mode;
+	const development: boolean = mode === "development";
+	const production: boolean = mode === "production" || !mode;
 	F(options, "devtool", () => (development ? "eval-cheap-source-map" : ""));
 	applyOutputDefaults(options.output, context);
 	applyOptimizationDefaults(options.optimization, {

@@ -20,11 +20,7 @@ function reloadApp(
 	//   return;
 	// }
 
-	/**
-	 * @param {Window} rootWindow
-	 * @param {number} intervalId
-	 */
-	function applyReload(rootWindow, intervalId) {
+	function applyReload(rootWindow: Window, intervalId: number) {
 		clearInterval(intervalId);
 
 		console.log("App updated. Reloading...");

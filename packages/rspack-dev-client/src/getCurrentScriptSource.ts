@@ -1,4 +1,4 @@
-function getCurrentScriptSource(): string {
+function getCurrentScriptSource(): string | null {
 	if (document.currentScript) {
 		return document.currentScript.getAttribute("src");
 	}

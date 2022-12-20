@@ -19,7 +19,7 @@ let currentDefaultLogger = createConsoleLogger(currentDefaultLoggerOptions);
  * @param {string} name name of the logger
  * @returns {Logger} a logger
  */
-export const getLogger = name => {
+const getLogger = name => {
 	return new Logger(
 		(type, args) => {
 			if (exports.hooks.log.call(name, type, args) === undefined) {
@@ -34,11 +34,13 @@ export const getLogger = name => {
  * @param {createConsoleLogger.LoggerOptions} options new options, merge with old options
  * @returns {void}
  */
-export const configureDefaultLogger = options => {
+const configureDefaultLogger = options => {
 	Object.assign(currentDefaultLoggerOptions, options);
 	currentDefaultLogger = createConsoleLogger(currentDefaultLoggerOptions);
 };
 
-export const hooks = {
+const hooks = {
 	log: new SyncBailHook(["origin", "type", "args"])
 };
+
+module.exports = { hooks, configureDefaultLogger, getLogger };

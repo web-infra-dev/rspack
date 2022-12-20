@@ -77,4 +77,4 @@ const truncateArgs = (args, maxLength) => {
 	});
 };
 
-export { truncateArgs };
+module.exports = { truncateArgs };
