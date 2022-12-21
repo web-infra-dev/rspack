@@ -145,6 +145,9 @@ impl NormalModuleFactory {
     let importer = self.dependency.parent_module_identifier.as_deref();
     let specifier = self.dependency.detail.specifier.as_str();
     let kind = self.dependency.detail.kind;
+    if should_skip_resolve(specifier) {
+      return Ok(None);
+    }
     let resolve_args = ResolveArgs {
       importer,
       specifier,
@@ -397,6 +400,10 @@ impl NormalModuleFactory {
   //     normal_module_factory.create().await;
   //   });
   // }
+}
+
+pub fn should_skip_resolve(s: &str) -> bool {
+  s.starts_with("data:") || s.starts_with("http://") || s.starts_with("https://")
 }
 
 pub fn resolve_module_type_by_uri<T: AsRef<Path>>(uri: T) -> Option<ModuleType> {
