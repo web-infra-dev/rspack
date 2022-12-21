@@ -955,15 +955,18 @@ impl Compilation {
             let mgm = self
               .module_graph
               .module_graph_module_by_identifier_mut(&module_identifier)
-              .unwrap();
+              .unwrap_or_else(|| {
+                panic!(
+                  "Failed to get mgm by module identifier {}",
+                  module_identifier
+                )
+              });
             mgm.used = true;
             continue;
           }
         };
         let used = used_export_module_identifiers.contains(&analyze_result.module_identifier);
-        //   || self.entry_module_identifiers.contains(&module_identifier)
-        //   || !analyze_result.side_effects_free
-        //   || ;
+
         if !used
           && !bail_out_module_identifiers.contains_key(&analyze_result.module_identifier)
           && analyze_result.side_effects_free
@@ -975,7 +978,12 @@ impl Compilation {
         let mgm = self
           .module_graph
           .module_graph_module_by_identifier_mut(&module_identifier)
-          .unwrap();
+          .unwrap_or_else(|| {
+            panic!(
+              "Failed to get mgm by module identifier {}",
+              module_identifier
+            )
+          });
         mgm.used = true;
         let mgm = self
           .module_graph
@@ -985,7 +993,7 @@ impl Compilation {
           let module_ident = self
             .module_graph
             .module_by_dependency(dep)
-            .unwrap()
+            .unwrap_or_else(|| panic!("Failed to resolve {:?}", dep))
             .module_identifier;
           match visited.entry(module_ident) {
             Occupied(_) => continue,
