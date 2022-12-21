@@ -2,6 +2,7 @@
  * @type {import('webpack').Configuration}
  */
 module.exports = {
+  mode: 'development',
   context: __dirname,
   builtins: {
     html: [{
