@@ -14,13 +14,10 @@ use std::{
   fmt::Debug,
   hash::{Hash, Hasher},
   marker::PhantomPinned,
-  path::PathBuf,
   pin::Pin,
-  str::FromStr,
   sync::atomic::{AtomicU32, Ordering},
   sync::Arc,
 };
-use sugar_path::SugarPath;
 use swc_core::ecma::atoms::JsWord;
 use tokio::sync::mpsc::{error::TryRecvError, UnboundedSender};
 use tracing::instrument;
@@ -35,7 +32,8 @@ use ustr::{ustr, Ustr};
 
 use crate::{
   cache::Cache,
-  is_source_equal, join_string_component, module_rule_matcher,
+  contextify, is_source_equal, join_string_component, module_rule_matcher,
+  resolve_module_type_by_uri,
   split_chunks::code_splitting,
   tree_shaking::{
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
@@ -896,6 +894,7 @@ impl Compilation {
       &mut used_export_module_identifiers,
       &inherit_export_ref_graph,
       &mut traced_tuple,
+      &self.options,
       &mut errors,
     );
 
@@ -912,6 +911,7 @@ impl Compilation {
         &mut used_export_module_identifiers,
         &inherit_export_ref_graph,
         &mut traced_tuple,
+        &self.options,
         &mut errors,
       );
       used_symbol.extend(used_symbol_set);
@@ -933,6 +933,7 @@ impl Compilation {
             &mut used_export_module_identifiers,
             &inherit_export_ref_graph,
             &mut traced_tuple,
+            &self.options,
             &mut errors,
           );
           used_symbol.extend(used_symbol_set);
@@ -1344,6 +1345,7 @@ fn collect_reachable_symbol(
   used_export_module_identifiers: &mut HashSet<Ustr>,
   inherit_extend_graph: &GraphMap<Ustr, (), Directed>,
   traced_tuple: &mut HashSet<(Ustr, Ustr)>,
+  options: &Arc<CompilerOptions>,
   errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
   let mut used_symbol_set = HashSet::new();
@@ -1402,6 +1404,7 @@ fn collect_reachable_symbol(
       used_export_module_identifiers,
       inherit_extend_graph,
       traced_tuple,
+      options,
       errors,
     );
   }
@@ -1418,6 +1421,7 @@ fn collect_reachable_symbol(
       used_export_module_identifiers,
       inherit_extend_graph,
       traced_tuple,
+      options,
       errors,
     );
   }
@@ -1434,6 +1438,7 @@ fn mark_used_symbol_with(
   used_export_module_identifiers: &mut HashSet<Ustr>,
   inherit_extend_graph: &GraphMap<Ustr, (), Directed>,
   traced_tuple: &mut HashSet<(Ustr, Ustr)>,
+  options: &Arc<CompilerOptions>,
   errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
   let mut used_symbol_set = HashSet::new();
@@ -1456,6 +1461,7 @@ fn mark_used_symbol_with(
       used_export_module_identifiers,
       inherit_extend_graph,
       traced_tuple,
+      options,
       errors,
     );
   }
@@ -1474,6 +1480,7 @@ fn mark_symbol(
   used_export_module_identifiers: &mut HashSet<Ustr>,
   inherit_extend_graph: &GraphMap<Ustr, (), Directed>,
   traced_tuple: &mut HashSet<(Ustr, Ustr)>,
+  options: &Arc<CompilerOptions>,
   errors: &mut Vec<Error>,
 ) {
   // if debug_care_module_id(symbol_ref.module_identifier()) {
@@ -1616,22 +1623,11 @@ fn mark_symbol(
                 "Conflicting star exports for the name '{}' in ",
                 indirect_symbol.id
               );
-              let cwd = std::env::current_dir();
+              // let cwd = std::env::current_dir();
               let module_identifier_list = ret
                 .iter()
                 .map(|(module_identifier, _)| {
-                  // try to use relative path which should have better DX
-                  match cwd {
-                    Ok(ref cwd) => {
-                      let p = PathBuf::from_str(module_identifier.as_str()).unwrap();
-                      p.relative(cwd.as_path())
-                        .as_path()
-                        .to_string_lossy()
-                        .to_string()
-                    }
-                    // if we can't get the cwd, fallback to module identifier
-                    Err(_) => module_identifier.to_string(),
-                  }
+                  contextify(options.context.clone(), module_identifier)
                 })
                 .collect::<Vec<_>>();
               error_message += &join_string_component(module_identifier_list);
@@ -1645,7 +1641,7 @@ fn mark_symbol(
       };
       q.push_back(symbol);
     }
-    SymbolRef::Star(star) => {
+    SymbolRef::Star(src) => {
       // If a star ref is used. e.g.
       // ```js
       // import * as all from './test.js'
@@ -1654,12 +1650,44 @@ fn mark_symbol(
       // then, all the exports in `test.js` including
       // export defined in `test.js` and all realted
       // reexport should be marked as used
-      let module_result = analyze_map.get(&star).unwrap();
-      for symbol_ref in module_result.export_map.values() {
+
+      let analyze_refsult = match analyze_map.get(&src) {
+        Some(analyze_result) => analyze_result,
+        None => {
+          match resolve_module_type_by_uri(src.as_str()) {
+            Some(module_type) => match module_type {
+              crate::ModuleType::Js
+              | crate::ModuleType::JsDynamic
+              | crate::ModuleType::JsEsm
+              | crate::ModuleType::Jsx
+              | crate::ModuleType::JsxDynamic
+              | crate::ModuleType::JsxEsm
+              | crate::ModuleType::Tsx
+              | crate::ModuleType::Ts => {
+                let error_message = format!("Can't get analyze result of {}", src);
+                errors.push(Error::InternalError(
+                  internal_error!(error_message).with_severity(Severity::Warn),
+                ));
+              }
+              _ => {
+                // Ignore result module type
+              }
+            },
+            None => {
+              let error_message = format!("Can't get analyze result of {}", src);
+              errors.push(Error::InternalError(
+                internal_error!(error_message).with_severity(Severity::Warn),
+              ));
+            }
+          };
+          return;
+        }
+      };
+      for symbol_ref in analyze_refsult.export_map.values() {
         q.push_back(symbol_ref.clone());
       }
 
-      for (_, extend_map) in module_result.inherit_export_maps.iter() {
+      for (_, extend_map) in analyze_refsult.inherit_export_maps.iter() {
         q.extend(extend_map.values().cloned());
       }
     }
