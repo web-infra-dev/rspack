@@ -17,7 +17,7 @@ opt-level     = 3
 
 
 [workspace.dependencies]
-swc_core          = { version = "0.48.22", default-features = false }
+swc_core          = { version = "0.50.2", default-features = false }
 swc_css           = { version = "0.141.5" }
 swc_html          = { version = "0.97.7" }
 swc_html_minifier = { version = "0.94.7" }
