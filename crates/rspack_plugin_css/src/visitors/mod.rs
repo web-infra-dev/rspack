@@ -150,7 +150,7 @@ struct RewriteUrl<'a> {
 }
 
 impl RewriteUrl<'_> {
-  pub fn get_target_url(&mut self, specifier: String) -> String {
+  pub fn get_target_url(&mut self, specifier: String) -> Option<String> {
     let from = Dependency {
       parent_module_identifier: Some(self.module.identifier()),
       detail: ModuleDependency {
@@ -159,18 +159,16 @@ impl RewriteUrl<'_> {
         span: None,
       },
     };
-    let from = self
-      .compilation
-      .module_graph
-      .module_by_dependency(&from)
-      .expect("should have css from module");
-    let result = self
+    let from = self.compilation.module_graph.module_by_dependency(&from)?;
+    // .expect("should have css from module");
+
+    self
       .compilation
       .code_generation_results
       .module_generation_result_map
       .get(&from.module_identifier)
-      .unwrap();
-    result.data.get("filename").unwrap().to_string()
+      .and_then(|result| result.data.get("filename"))
+      .map(|value| value.to_string())
   }
 }
 
@@ -178,15 +176,19 @@ impl VisitMut for RewriteUrl<'_> {
   fn visit_mut_url(&mut self, url: &mut Url) {
     match url.value {
       Some(box UrlValue::Str(ref mut s)) => {
-        if !s.value.starts_with("http://") && !s.value.starts_with("https://") {
-          let target = self.get_target_url(s.value.to_string());
+        if rspack_core::should_skip_resolve(&s.value) {
+          return;
+        }
+        if let Some(target) = self.get_target_url(s.value.to_string()) {
           s.raw = Some(Atom::from(target.clone()));
           s.value = target.into();
         }
       }
       Some(box UrlValue::Raw(ref mut s)) => {
-        if !s.value.starts_with("http://") && !s.value.starts_with("https://") {
-          let target = self.get_target_url(s.value.to_string());
+        if rspack_core::should_skip_resolve(&s.value) {
+          return;
+        }
+        if let Some(target) = self.get_target_url(s.value.to_string()) {
           s.raw = Some(Atom::from(target.clone()));
           s.value = target.into();
         }

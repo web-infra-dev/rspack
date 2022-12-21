@@ -17,8 +17,7 @@ impl RuntimeModule for PublicPathRuntimeModule {
         include_str!("runtime/public_path.js").replace("__PUBLIC_PATH_PLACEHOLDER__", str),
       )
       .boxed(),
-      // TODO
-      PublicPath::Auto => RawSource::from("".to_string()).boxed(),
+      PublicPath::Auto => RawSource::from(include_str!("runtime/public_path_auto.js")).boxed(),
     }
   }
 }
