@@ -953,6 +953,7 @@ impl Compilation {
           &mut used_export_module_identifiers,
           &inherit_export_ref_graph,
           &mut traced_tuple,
+          &self.options,
           &mut errors,
         );
         used_symbol.extend(used_symbol_set);
