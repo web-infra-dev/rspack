@@ -1,2 +1,7 @@
+import {bbb} from './bbb'
 export * from './aaa'
-export * from './bbb'
+
+var Index = function() {}
+Index.prototype.bbb = bbb;
+
+export default Index;
