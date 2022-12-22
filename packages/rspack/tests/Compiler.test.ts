@@ -346,11 +346,10 @@ describe("Compiler", () => {
 			);
 		}
 	});
-	it.skip("should not emit compilation errors in async (watch)", async () => {
+	it("should not emit compilation errors in async (watch)", async () => {
 		const createStats = options => {
 			return new Promise((resolve, reject) => {
-				const webpack = require("..");
-				const c = webpack(options);
+				const c = rspack(options);
 				c.outputFileSystem = createFsFromVolume(new Volume());
 				const watching = c.watch({}, (err, stats) => {
 					watching.close(() => {
@@ -365,21 +364,20 @@ describe("Compiler", () => {
 			mode: "production",
 			entry: "./missing-file",
 			output: {
-				path: "/directory",
+				// path: "/directory",
 				filename: "bundle.js"
 			}
 		});
 		expect(stats).toBeInstanceOf(Stats);
 	});
 
-	it.skip("should not emit on errors (watch)", done => {
-		const webpack = require("..");
-		compiler = webpack({
+	it("should not emit on errors (watch)", done => {
+		compiler = rspack({
 			context: __dirname,
 			mode: "production",
 			entry: "./missing",
 			output: {
-				path: "/directory",
+				// path: "/directory",
 				filename: "bundle.js"
 			}
 		});
