@@ -16,7 +16,7 @@ use serde::Deserialize;
 
 #[cfg(feature = "node-api")]
 use crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
-use crate::RawOption;
+use crate::{RawOption, RawResolveOptions};
 
 #[cfg(feature = "node-api")]
 type JsLoader<R> = ThreadsafeFunction<JsLoaderContext, R>;
@@ -142,6 +142,7 @@ pub struct RawModuleRule {
     ts_type = r#""js" | "jsx" | "ts" | "tsx" | "css" | "json" | "asset" | "asset/resource" | "asset/source" | "asset/inline""#
   )]
   pub r#type: Option<String>,
+  pub resolve: Option<RawResolveOptions>,
 }
 
 #[derive(Deserialize, Default)]
@@ -158,6 +159,7 @@ pub struct RawModuleRule {
   pub func__: Option<()>,
   pub r#use: Option<Vec<RawModuleRuleUse>>,
   pub r#type: Option<String>,
+  pub resolve: Option<RawResolveOptions>,
 }
 
 impl Debug for RawModuleRule {
@@ -460,6 +462,10 @@ impl RawOption<ModuleRule> for RawModuleRule {
       resource: self.resource.map(|raw| raw.try_into()).transpose()?,
       r#use: uses,
       r#type: module_type,
+      resolve: self
+        .resolve
+        .map(|raw| raw.to_compiler_option(_options))
+        .transpose()?,
       // Loader experimental
       func__: None,
     })

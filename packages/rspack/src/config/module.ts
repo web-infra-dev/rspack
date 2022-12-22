@@ -36,6 +36,7 @@ import {
 	ResolvedDevtool
 } from "./devtool";
 import { ResolvedMode } from "./mode";
+import { Resolve, resolveResolveOptions } from "./resolve";
 import { ResolvedTarget } from "./target";
 
 export type Condition = string | RegExp;
@@ -49,6 +50,7 @@ export interface ModuleRule {
 	resourceQuery?: Condition;
 	use?: ModuleRuleUse[];
 	type?: RawModuleRule["type"];
+	resolve?: Resolve;
 }
 
 export interface Module {
@@ -160,6 +162,7 @@ export type GetCompiler = () => Compiler;
 export interface ComposeJsUseOptions {
 	devtool: ResolvedDevtool;
 	context: ResolvedContext;
+	target: ResolvedTarget;
 	getCompiler: GetCompiler;
 }
 
@@ -727,7 +730,10 @@ export function resolveModuleOptions(
 			resourceQuery: isNil(rule.resourceQuery)
 				? null
 				: resolveModuleRuleCondition(rule.resourceQuery),
-			use: createRawModuleRuleUses(rule.use || [], options)
+			use: createRawModuleRuleUses(rule.use || [], options),
+			resolve: isNil(rule.resolve)
+				? null
+				: resolveResolveOptions(rule.resolve, options)
 		};
 	});
 	return {

@@ -28,7 +28,7 @@ use crate::{
   contextify, identifier::Identifiable, BuildContext, BuildResult, ChunkGraph,
   CodeGenerationResult, Compilation, CompilerOptions, Context, Dependency, GenerateContext,
   LibIdentOptions, Module, ModuleAst, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
-  ModuleType, ParseContext, ParseResult, ParserAndGenerator, ResolveKind, SourceType,
+  ModuleType, ParseContext, ParseResult, ParserAndGenerator, Resolve, ResolveKind, SourceType,
 };
 
 bitflags! {
@@ -255,6 +255,8 @@ pub struct NormalModule {
   /// Built AST or source of this module (passed with loaders)
   ast_or_source: NormalModuleAstOrSource,
 
+  resolve_options: Option<Resolve>,
+
   options: Arc<CompilerOptions>,
   #[allow(unused)]
   debug_id: u32,
@@ -290,6 +292,7 @@ impl NormalModuleAstOrSource {
 pub static DEBUG_ID: AtomicU32 = AtomicU32::new(1);
 
 impl NormalModule {
+  #[allow(clippy::too_many_arguments)]
   pub fn new(
     request: String,
     user_request: String,
@@ -297,6 +300,7 @@ impl NormalModule {
     module_type: impl Into<ModuleType>,
     parser_and_generator: Box<dyn ParserAndGenerator>,
     resource_data: ResourceData,
+    resolve_options: Option<Resolve>,
     options: Arc<CompilerOptions>,
   ) -> Self {
     Self {
@@ -306,6 +310,7 @@ impl NormalModule {
       module_type: module_type.into(),
       parser_and_generator,
       resource_data,
+      resolve_options,
 
       original_source: None,
       ast_or_source: NormalModuleAstOrSource::Unbuild,
@@ -519,6 +524,15 @@ impl Module for NormalModule {
     } else {
       None
     }
+  }
+
+  fn get_resolve_options(&self) -> Option<&Resolve> {
+    Some(
+      self
+        .resolve_options
+        .as_ref()
+        .unwrap_or(&self.options.resolve),
+    )
   }
 }
 

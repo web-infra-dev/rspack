@@ -61,7 +61,7 @@ impl Visit for Analyzer<'_> {
       }),
       ImportHref::Str(s) => Some(s.value.to_string()),
     };
-    if let Some(specifier) = specifier && !specifier.starts_with("http://") && !specifier.starts_with("https://") {
+    if let Some(specifier) = specifier && is_url_requestable(&specifier) {
       let specifier = replace_module_request_prefix(specifier, self.diagnostics);
       self.deps.push(ModuleDependency {
         specifier,
@@ -78,7 +78,7 @@ impl Visit for Analyzer<'_> {
       UrlValue::Str(s) => s.value.to_string(),
       UrlValue::Raw(r) => r.value.to_string(),
     });
-    if let Some(specifier) = specifier && !specifier.starts_with("http://") && !specifier.starts_with("https://") {
+    if let Some(specifier) = specifier && is_url_requestable(&specifier) {
       let specifier = replace_module_request_prefix(specifier, self.diagnostics);
       let dep = ModuleDependency {
         specifier,
@@ -118,13 +118,7 @@ impl VisitMut for RemoveAtImport {
               }
               box swc_css::ast::ImportHref::Str(str) => str.value.clone(),
             };
-            // TODO: This just naive checking for http:// and https://, but it's not enough.
-            // Because any scheme is valid in `ImportPreludeHref::Url`, like `url(chrome://xxxx)`
-            // We need to find a better way to handle this.
-            if href_string.starts_with("http://") || href_string.starts_with("https://") {
-              return true;
-            }
-            false
+            !is_url_requestable(&href_string)
           } else {
             true
           }
@@ -160,7 +154,6 @@ impl RewriteUrl<'_> {
       },
     };
     let from = self.compilation.module_graph.module_by_dependency(&from)?;
-    // .expect("should have css from module");
 
     self
       .compilation
@@ -176,7 +169,7 @@ impl VisitMut for RewriteUrl<'_> {
   fn visit_mut_url(&mut self, url: &mut Url) {
     match url.value {
       Some(box UrlValue::Str(ref mut s)) => {
-        if rspack_core::should_skip_resolve(&s.value) {
+        if !is_url_requestable(&s.value) {
           return;
         }
         if let Some(target) = self.get_target_url(s.value.to_string()) {
@@ -185,7 +178,7 @@ impl VisitMut for RewriteUrl<'_> {
         }
       }
       Some(box UrlValue::Raw(ref mut s)) => {
-        if rspack_core::should_skip_resolve(&s.value) {
+        if !is_url_requestable(&s.value) {
           return;
         }
         if let Some(target) = self.get_target_url(s.value.to_string()) {
@@ -196,4 +189,8 @@ impl VisitMut for RewriteUrl<'_> {
       None => {}
     }
   }
+}
+
+fn is_url_requestable(url: &str) -> bool {
+  !url.starts_with('#') && !rspack_core::should_skip_resolve(url)
 }

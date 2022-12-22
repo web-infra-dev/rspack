@@ -10,7 +10,7 @@ use rspack_sources::Source;
 use crate::{
   CodeGenerationResult, Compilation, CompilationContext, CompilerContext, CompilerOptions, Context,
   Dependency, Identifiable, Identifier, LoaderRunnerRunner, ModuleDependency, ModuleType,
-  NormalModule, RawModule, SourceType,
+  NormalModule, RawModule, Resolve, SourceType,
 };
 
 pub trait AsAny {
@@ -102,6 +102,10 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   fn get_code_generation_dependencies(&self) -> Option<&[Dependency]> {
     None
   }
+
+  fn get_resolve_options(&self) -> Option<&Resolve> {
+    None
+  }
 }
 
 pub trait ModuleExt {
@@ -161,6 +165,10 @@ impl Module for Box<dyn Module> {
 
   fn get_code_generation_dependencies(&self) -> Option<&[Dependency]> {
     self.as_ref().get_code_generation_dependencies()
+  }
+
+  fn get_resolve_options(&self) -> Option<&Resolve> {
+    self.as_ref().get_resolve_options()
   }
 }
 

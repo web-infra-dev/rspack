@@ -1,7 +1,7 @@
 use crate::ast::css::Ast as CssAst;
 use crate::ast::javascript::Ast as JsAst;
 use crate::{
-  Chunk, ChunkUkey, Compilation, Dependency, ErrorSpan, ModuleIdentifier, ResolveKind,
+  Chunk, ChunkUkey, Compilation, Dependency, ErrorSpan, ModuleIdentifier, Resolve, ResolveKind,
   SharedPluginDriver, Stats,
 };
 use hashbrown::HashSet;
@@ -57,6 +57,7 @@ pub struct ResolveArgs<'a> {
   pub specifier: &'a str,
   pub kind: ResolveKind,
   pub span: Option<ErrorSpan>,
+  pub resolve_options: Option<Resolve>,
 }
 
 #[derive(Debug, Clone)]

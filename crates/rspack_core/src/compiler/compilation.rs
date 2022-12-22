@@ -43,7 +43,7 @@ use crate::{
   ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationResult,
   CodeGenerationResults, CompilerOptions, Dependency, EntryItem, EntryOptions, Entrypoint,
   LoaderRunnerRunner, Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg,
-  NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs,
+  NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs, Resolve,
   ResolveKind, RuntimeModule, SharedPluginDriver, Stats, VisitedModuleIdentity,
 };
 use rspack_symbol::{IndirectTopLevelSymbol, IndirectType, Symbol};
@@ -349,7 +349,7 @@ impl Compilation {
           self.plugin_driver.clone(),
           self.cache.clone(),
         );
-        tokio::task::spawn(async move { normal_module_factory.create(true).await });
+        tokio::task::spawn(async move { normal_module_factory.create(true, None).await });
       })
     });
 
@@ -574,6 +574,7 @@ impl Compilation {
             active_task_count.clone(),
             tx.clone(),
             plugin_driver.clone(),
+            module.get_resolve_options().map(ToOwned::to_owned),
             compiler_options.clone(),
             cache.clone(),
             lazy_visit_modules,
@@ -614,11 +615,13 @@ impl Compilation {
     });
   }
 
+  #[allow(clippy::too_many_arguments)]
   fn process_module_dependencies(
     dependencies: Vec<Dependency>,
     active_task_count: Arc<AtomicU32>,
     tx: UnboundedSender<Msg>,
     plugin_driver: SharedPluginDriver,
+    resolve_options: Option<Resolve>,
     compiler_options: Arc<CompilerOptions>,
     cache: Arc<Cache>,
     lazy_visit_modules: std::collections::HashSet<String>,
@@ -639,8 +642,9 @@ impl Compilation {
         cache.clone(),
       );
 
+      let resolve_options = resolve_options.clone();
       tokio::task::spawn(async move {
-        normal_module_factory.create(false).await;
+        normal_module_factory.create(false, resolve_options).await;
       });
     })
   }
