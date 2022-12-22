@@ -55,8 +55,14 @@ export class Stats {
 			options.warningsCount,
 			true
 		);
+		const showHash = optionOrLocalFallback(options.hash, false);
 
 		let obj: StatsCompilation = {};
+
+		if (showHash) {
+			obj.hash = this.#statsJson.hash;
+		}
+
 		if (showAssets) {
 			obj.assets = this.#statsJson.assets;
 		}
