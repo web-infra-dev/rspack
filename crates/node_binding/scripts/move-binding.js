@@ -2,6 +2,7 @@ const path = require("path");
 const fs = require("fs");
 
 console.log(__dirname);
+
 let abslute_path_binding_list = fs
 	.readdirSync(".")
 	.filter(p => {
