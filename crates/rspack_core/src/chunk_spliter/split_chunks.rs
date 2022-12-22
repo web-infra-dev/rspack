@@ -108,7 +108,7 @@ impl<'me> CodeSplitter<'me> {
       for dep in dependencies.iter() {
         let module = module_graph
           .module_by_dependency(dep)
-          .ok_or_else(|| anyhow::format_err!("no module found"))?;
+          .ok_or_else(|| anyhow::format_err!("no module found: {:?}", &dep))?;
         compilation.chunk_graph.add_module(module.module_identifier);
 
         input_entrypoints_and_modules
@@ -322,7 +322,7 @@ impl<'me> CodeSplitter<'me> {
         .compilation
         .module_graph
         .module_graph_module_by_identifier_mut(&item.module_identifier)
-        .expect("No module found");
+        .unwrap_or_else(|| panic!("No module found {:?}", &item.module_identifier));
 
       if module.pre_order_index.is_none() {
         module.pre_order_index = Some(self.next_free_module_pre_order_index);
@@ -360,7 +360,7 @@ impl<'me> CodeSplitter<'me> {
       .compilation
       .module_graph
       .module_graph_module_by_identifier_mut(&item.module_identifier)
-      .expect("no module found");
+      .unwrap_or_else(|| panic!("no module found: {:?}", &item.module_identifier));
 
     if module.post_order_index.is_none() {
       module.post_order_index = Some(self.next_free_module_post_order_index);
@@ -374,7 +374,7 @@ impl<'me> CodeSplitter<'me> {
       .compilation
       .module_graph
       .module_graph_module_by_identifier(&item.module_identifier)
-      .expect("no module found");
+      .unwrap_or_else(|| panic!("no module found: {:?}", &item.module_identifier));
 
     for dep_mgm in mgm
       .depended_modules(&self.compilation.module_graph)
