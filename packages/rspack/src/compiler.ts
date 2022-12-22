@@ -8,8 +8,9 @@ import asyncLib from "neo-async";
 import * as sources from "webpack-sources";
 import type { FSWatcher } from "chokidar";
 
+import Watching from "./watching";
 import * as binding from "@rspack/binding";
-
+import chokidar from "chokidar";
 import { Logger } from "./logging/Logger";
 import { resolveWatchOption } from "./config/watch";
 import type { Watch } from "./config/watch";
@@ -20,10 +21,10 @@ import { createSourceFromRaw } from "./util/createSource";
 import ResolverFactory from "./ResolverFactory";
 
 class EntryPlugin {
-	apply() {}
+	apply() { }
 }
 class HotModuleReplacementPlugin {
-	apply() {}
+	apply() { }
 }
 type CompilationParams = Record<string, any>;
 class Compiler {
@@ -204,7 +205,7 @@ class Compiler {
 	 * @param value
 	 * @returns
 	 */
-	#done(statsJson: binding.JsStatsCompilation) {}
+	#done(statsJson: binding.JsStatsCompilation) { }
 
 	async #processAssets() {
 		await this.compilation.hooks.processAssets.promise(
@@ -321,76 +322,17 @@ class Compiler {
 		});
 	}
 
-	async watch(watchOptions?: Watch): Promise<Watching> {
+	watch(
+		watchOptions?: Watch,
+		handler?: (error: Error, stats: Stats) => void
+	): Watching {
 		const options = resolveWatchOption(watchOptions);
-		let logger = this.getInfrastructureLogger("watch");
-		const watcher = (await import("chokidar")).default.watch(
-			this.options.context,
-			{
-				ignoreInitial: true,
-				...options
-			}
-		);
-		this.watcher = watcher;
-		const begin = Date.now();
-		let rawStats = await util.promisify(this.build.bind(this))();
-
-		let stats = new Stats(rawStats, this.compilation);
-		await this.hooks.done.promise(stats);
-		logger.log("build success, time cost", Date.now() - begin, "ms");
-
-		let pendingChangedFilepaths = new Set<string>();
-		let isBuildFinished = true;
-
-		// TODO: should use aggregated
-		watcher.on("change", async changedFilepath => {
-			// TODO: only build because we lack the snapshot info of file.
-			// TODO: it means there a lot of things to do....
-
-			// store the changed file path, it may or may not be consumed right now
-			if (!isBuildFinished) {
-				pendingChangedFilepaths.add(changedFilepath);
-				console.log(
-					"hit change but rebuild is not finished, caching files: ",
-					pendingChangedFilepaths
-				);
-				return;
-			}
-
-			const rebuildWithFilepaths = (changedFilepath: string[]) => {
-				// Rebuild finished, we can start to rebuild again
-				isBuildFinished = false;
-				console.log("hit change and start to build:", changedFilepath);
-
-				const begin = Date.now();
-				this.rebuild(changedFilepath, (error: any, rawStats) => {
-					isBuildFinished = true;
-
-					const hasPending = Boolean(pendingChangedFilepaths.size);
-
-					// If we have any pending task left, we should rebuild again with the pending files
-					if (hasPending) {
-						const pending = [...pendingChangedFilepaths];
-						pendingChangedFilepaths.clear();
-						rebuildWithFilepaths(pending);
-					}
-					if (error) {
-						throw error;
-					}
-
-					console.log("rebuild success, time cost", Date.now() - begin, "ms");
-				});
-			};
-
-			rebuildWithFilepaths([...pendingChangedFilepaths, changedFilepath]);
+		const watcher = chokidar.watch(this.options.context, {
+			ignoreInitial: true,
+			...options
 		});
-
-		return {
-			close(callback) {
-				watcher.close().then(callback);
-			},
-			invalidate() {}
-		};
+		const watching = new Watching(this, watcher, handler);
+		return watching;
 	}
 
 	purgeInputFileSystem() {
@@ -435,11 +377,6 @@ class Compiler {
 			}
 		);
 	}
-}
-
-export interface Watching {
-	close(callback: () => void): void;
-	invalidate(): void;
 }
 
 export { Compiler };
