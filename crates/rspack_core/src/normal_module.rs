@@ -527,12 +527,7 @@ impl Module for NormalModule {
   }
 
   fn get_resolve_options(&self) -> Option<&Resolve> {
-    Some(
-      self
-        .resolve_options
-        .as_ref()
-        .unwrap_or(&self.options.resolve),
-    )
+    self.resolve_options.as_ref()
   }
 }
 
