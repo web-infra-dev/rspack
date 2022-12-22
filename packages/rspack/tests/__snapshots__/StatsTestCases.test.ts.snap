@@ -15,15 +15,13 @@ exports[`StatsTestCases should print correct stats for char-based-offset-error-s
     },
   ],
   "errorsCount": 1,
-  "hash": "a1730acac3406c72",
   "warnings": [],
   "warningsCount": 0,
 }
 `;
 
 exports[`StatsTestCases should print correct stats for char-based-offset-error-span 2`] = `
-"Hash: a1730acac3406c72
-
+"
 error[scss]: Sass Error
   ┌─ tests/statsCases/char-based-offset-error-span/index.scss:5:10
   │
@@ -261,15 +259,13 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
     },
   ],
   "errorsCount": 2,
-  "hash": "9becc7fd13fb84ff",
   "warnings": [],
   "warningsCount": 0,
 }
 `;
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 2`] = `
-"Hash: 9becc7fd13fb84ff
-
+"
 error[javascript]: JavaScript parsing error
   ┌─ tests/statsCases/identifier-let-strict-mode/index.js:1:5
   │
@@ -302,15 +298,13 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
     },
   ],
   "errorsCount": 1,
-  "hash": "c94c40e8f5075a68",
   "warnings": [],
   "warningsCount": 0,
 }
 `;
 
 exports[`StatsTestCases should print correct stats for normal-errors 2`] = `
-"Hash: c94c40e8f5075a68
-
+"
 error[internal]: Resolve error
   ┌─ tests/statsCases/normal-errors/index.js:1:1
   │
@@ -335,15 +329,13 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
     },
   ],
   "errorsCount": 1,
-  "hash": "92aad58a7f138df9",
   "warnings": [],
   "warningsCount": 0,
 }
 `;
 
 exports[`StatsTestCases should print correct stats for parse-error 2`] = `
-"Hash: 92aad58a7f138df9
-
+"
 error[javascript]: JavaScript parsing error
   ┌─ tests/statsCases/parse-error/b.js:6:8
   │
@@ -545,7 +537,6 @@ exports[`StatsTestCases should print correct stats for sass-warnings 1`] = `
 {
   "errors": [],
   "errorsCount": 0,
-  "hash": "2832da5cb640c01f",
   "warnings": [
     {
       "formatted": "warning[scss]: Sass Warning
@@ -571,8 +562,7 @@ More info and automated migrator: https://sass-lang.com/d/slash-div",
 `;
 
 exports[`StatsTestCases should print correct stats for sass-warnings 2`] = `
-"Hash: 2832da5cb640c01f
-
+"
 warning[scss]: Sass Warning
   ┌─ tests/statsCases/sass-warnings/index.scss:2:11
   │

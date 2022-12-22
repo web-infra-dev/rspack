@@ -107,8 +107,6 @@ describe("Stats", () => {
 			stats.toJson({
 				all: false
 			})
-		).toEqual({
-			hash: "b226d3ceb57b990"
-		});
+		).toEqual({});
 	});
 });

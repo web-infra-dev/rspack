@@ -55,10 +55,13 @@ export class Stats {
 			options.warningsCount,
 			true
 		);
+		const showHash = optionOrLocalFallback(options.hash, false);
 
 		let obj: StatsCompilation = {};
 
-		obj.hash = this.#statsJson.hash;
+		if (showHash) {
+			obj.hash = this.#statsJson.hash;
+		}
 
 		if (showAssets) {
 			obj.assets = this.#statsJson.assets;
@@ -196,7 +199,6 @@ export class Stats {
 		};
 
 		if (obj.hash) {
-			// todo: a little ugly
 			colors.normal("Hash: ");
 			colors.bold(obj.hash);
 			newline();
