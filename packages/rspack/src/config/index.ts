@@ -118,6 +118,7 @@ export function getNormalizedRspackOptions(
 	const module = resolveModuleOptions(config.module, {
 		devtool,
 		context,
+		target,
 		getCompiler
 	});
 	const stats = resolveStatsOptions(config.stats);

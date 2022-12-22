@@ -1,4 +1,4 @@
-use crate::{BoxedLoader, ModuleType, ResourceData};
+use crate::{BoxedLoader, ModuleType, Resolve, ResourceData};
 use rspack_regex::RspackRegex;
 use std::fmt::Debug;
 
@@ -42,6 +42,7 @@ pub struct ModuleRule {
   /// The `ModuleType` to use for the matched resource.
   pub r#type: Option<ModuleType>,
   pub r#use: Vec<BoxedLoader>,
+  pub resolve: Option<Resolve>,
   /// Internal matching method, not intended to be used by the user. (Loader experimental)
   pub func__: Option<ModuleRuleFunc>,
 }
@@ -55,6 +56,7 @@ impl Debug for ModuleRule {
       .field("resource", &self.resource)
       .field("resource_query", &self.resource_query)
       .field("type", &self.r#type)
+      .field("resolve", &self.resolve)
       .field("func__", &self.func__.as_ref().map(|_| ".."))
       .field("use", &self.r#use)
       .finish()

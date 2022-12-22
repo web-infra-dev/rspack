@@ -1,6 +1,6 @@
 use crate::{ResolveArgs, ResolveResult, SharedPluginDriver};
 use rspack_error::{internal_error, Error, Result, TraceableError};
-use std::path::Path;
+use std::{path::Path, sync::Arc};
 use tracing::instrument;
 
 #[instrument(name = "resolve", skip_all)]
@@ -29,8 +29,11 @@ pub async fn resolve(
     args.importer,
     args.specifier
   );
-  plugin_driver
-    .resolver
+  let resolver = args
+    .resolve_options
+    .map(|resolve_options| Arc::new(plugin_driver.resolver_factory.get(resolve_options)))
+    .unwrap_or_else(|| Arc::clone(&plugin_driver.resolver));
+  resolver
     .resolve(base_dir, args.specifier)
     .map_err(|error| match error {
       nodejs_resolver::Error::Io(error) => Error::Io { source: error },

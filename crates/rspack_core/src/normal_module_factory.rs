@@ -16,8 +16,8 @@ use ustr::Ustr;
 use crate::{
   cache::Cache, module_rule_matcher, resolve, BoxModule, CompilerOptions, FactorizeArgs,
   Identifiable, ModuleArgs, ModuleExt, ModuleGraphModule, ModuleIdentifier, ModuleRule, ModuleType,
-  Msg, NormalModule, RawModule, ResolveArgs, ResolveResult, ResourceData, SharedPluginDriver,
-  DEPENDENCY_ID,
+  Msg, NormalModule, RawModule, Resolve, ResolveArgs, ResolveResult, ResourceData,
+  SharedPluginDriver, DEPENDENCY_ID,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -71,8 +71,8 @@ impl NormalModuleFactory {
   }
   #[instrument(name = "normal_module_factory:create", skip_all)]
   /// set `is_entry` true if you are trying to create a new module factory with a module identifier which is an entry
-  pub async fn create(mut self, is_entry: bool) {
-    match self.factorize().await {
+  pub async fn create(mut self, is_entry: bool, resolve_options: Option<Resolve>) {
+    match self.factorize(resolve_options).await {
       Ok(maybe_module) => {
         if let Some((mgm, module, original_module_identifier, dependency_id)) = maybe_module {
           let diagnostic = std::mem::take(&mut self.diagnostic);
@@ -140,7 +140,10 @@ impl NormalModuleFactory {
   }
 
   #[instrument(name = "normal_module_factory:factory_normal_module", skip_all)]
-  pub async fn factorize_normal_module(&mut self) -> Result<Option<(String, BoxModule, u32)>> {
+  pub async fn factorize_normal_module(
+    &mut self,
+    resolve_options: Option<Resolve>,
+  ) -> Result<Option<(String, BoxModule, u32)>> {
     // TODO: `importer` should use `NormalModule::context || options.context`;
     let importer = self.dependency.parent_module_identifier.as_deref();
     let specifier = self.dependency.detail.specifier.as_str();
@@ -153,6 +156,7 @@ impl NormalModuleFactory {
       specifier,
       kind,
       span: self.dependency.detail.span,
+      resolve_options,
     };
     let plugin_driver = self.plugin_driver.clone();
     let resource_data = self
@@ -237,8 +241,13 @@ impl NormalModuleFactory {
         )))
       })?;
 
-    let resolved_module_type =
-      self.calculate_module_type(&resource_data, self.context.module_type)?;
+    let resolved_module_rules = self.calculate_module_rules(&resource_data)?;
+    let resolved_module_type = self.calculate_module_type(
+      &resolved_module_rules,
+      &resource_data,
+      self.context.module_type,
+    )?;
+    let resolved_resolve_options = self.calculate_resolve_options(&resolved_module_rules);
 
     let resolved_parser_and_generator = self
       .plugin_driver
@@ -262,6 +271,7 @@ impl NormalModuleFactory {
       resolved_module_type,
       resolved_parser_and_generator,
       resource_data,
+      resolved_resolve_options,
       self.context.options.clone(),
     );
 
@@ -282,18 +292,7 @@ impl NormalModuleFactory {
     Ok(Some((uri, Box::new(normal_module), dependency_id)))
   }
 
-  pub fn calculate_module_type(
-    &self,
-    resource_data: &ResourceData,
-    default_module_type: Option<ModuleType>,
-  ) -> Result<ModuleType> {
-    // Progressive module type resolution:
-    // Stage 1: maintain the resolution logic via file extension
-    // TODO: Stage 2:
-    //           1. remove all extension based module type resolution, and let `module.rules[number].type` to handle this(everything is based on its config)
-    //           2. set default module type to `Js`, it equals to `javascript/auto` in webpack.
-    let mut resolved_module_type = default_module_type;
-
+  fn calculate_module_rules(&self, resource_data: &ResourceData) -> Result<Vec<&ModuleRule>> {
     self
       .context
       .options
@@ -306,13 +305,37 @@ impl NormalModuleFactory {
           Err(err) => Some(Err(err)),
         }
       })
-      .collect::<Result<Vec<_>>>()?
-      .into_iter()
-      .for_each(|module_rule| {
-        if module_rule.r#type.is_some() {
-          resolved_module_type = module_rule.r#type;
-        };
-      });
+      .collect::<Result<Vec<_>>>()
+  }
+
+  fn calculate_resolve_options(&self, module_rules: &[&ModuleRule]) -> Option<Resolve> {
+    let mut resolved = None;
+    module_rules.iter().for_each(|rule| {
+      if let Some(resolve) = rule.resolve.to_owned() {
+        resolved = Some(resolve);
+      }
+    });
+    resolved
+  }
+
+  pub fn calculate_module_type(
+    &self,
+    module_rules: &[&ModuleRule],
+    resource_data: &ResourceData,
+    default_module_type: Option<ModuleType>,
+  ) -> Result<ModuleType> {
+    // Progressive module type resolution:
+    // Stage 1: maintain the resolution logic via file extension
+    // TODO: Stage 2:
+    //           1. remove all extension based module type resolution, and let `module.rules[number].type` to handle this(everything is based on its config)
+    //           2. set default module type to `Js`, it equals to `javascript/auto` in webpack.
+    let mut resolved_module_type = default_module_type;
+
+    module_rules.iter().for_each(|module_rule| {
+      if module_rule.r#type.is_some() {
+        resolved_module_type = module_rule.r#type;
+      };
+    });
 
     resolved_module_type.ok_or_else(|| {
         Error::InternalError(internal_error!(format!(
@@ -324,7 +347,7 @@ impl NormalModuleFactory {
   }
 
   #[instrument(name = "normal_module_factory:factorize", skip_all)]
-  pub async fn factorize(&mut self) -> Result<FactorizeResult> {
+  pub async fn factorize(&mut self, resolve_options: Option<Resolve>) -> Result<FactorizeResult> {
     let result = self
       .plugin_driver
       .read()
@@ -358,7 +381,7 @@ impl NormalModuleFactory {
           )))
         })?;
       (uri, module, dependency_id)
-    } else if let Some(result) = self.factorize_normal_module().await? {
+    } else if let Some(result) = self.factorize_normal_module(resolve_options).await? {
       result
     } else {
       return Ok(None);
@@ -403,7 +426,10 @@ impl NormalModuleFactory {
 }
 
 pub fn should_skip_resolve(s: &str) -> bool {
-  s.starts_with("data:") || s.starts_with("http://") || s.starts_with("https://")
+  s.starts_with("data:")
+    || s.starts_with("http://")
+    || s.starts_with("https://")
+    || s.starts_with("//")
 }
 
 pub fn resolve_module_type_by_uri<T: AsRef<Path>>(uri: T) -> Option<ModuleType> {
