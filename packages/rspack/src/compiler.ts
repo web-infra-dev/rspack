@@ -319,9 +319,6 @@ class Compiler {
 		});
 	}
 
-	// TODO: use ws to send message to client temporary.
-	// TODO: we should use `Stats` which got from `hooks.done`
-	// TODO: in `dev-server`
 	async watch(watchOptions?: Watch): Promise<Watching> {
 		const options = resolveWatchOption(watchOptions);
 		let logger = this.getInfrastructureLogger("watch");
@@ -386,9 +383,10 @@ class Compiler {
 		});
 
 		return {
-			async close() {
-				await watcher.close();
-			}
+			close(callback) {
+				watcher.close().then(callback);
+			},
+			invalidate() {}
 		};
 	}
 	purgeInputFileSystem() {
@@ -436,7 +434,8 @@ class Compiler {
 }
 
 export interface Watching {
-	close(): Promise<void>;
+	close(callback: () => void): void;
+	invalidate(): void;
 }
 
 export { Compiler };
