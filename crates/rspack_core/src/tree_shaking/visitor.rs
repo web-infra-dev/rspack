@@ -219,16 +219,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   fn visit_program(&mut self, node: &Program) {
     assert!(GLOBALS.is_set());
     node.visit_children_with(self);
-    // TODO: remove this after we visit commonjs exports
-    // if self
-    //   .bail_out_module_identifiers
-    //   .iter()
-    //   .any(|(_, v)| !matches!(v, BailoutFlog::Helper))
-    // {
-    //   self
-    //     .bail_out_module_identifiers
-    //     .insert(self.module_identifier, BailoutFlog::ExtendBailout);
-    // }
     // calc reachable imports for each export symbol defined in current module
     for (key, symbol) in self.export_map.iter() {
       match symbol {

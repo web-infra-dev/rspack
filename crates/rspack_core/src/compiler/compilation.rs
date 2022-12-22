@@ -934,7 +934,6 @@ impl Compilation {
 
     // All lazy imported module will be treadted as entry module, which means
     // Its export symbol will be marked as used
-    dbg!(&bail_out_module_identifiers);
     for (module_id, reason) in bail_out_module_identifiers.iter() {
       if reason
         .intersection(
