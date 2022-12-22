@@ -386,9 +386,10 @@ class Compiler {
 		});
 
 		return {
-			async close() {
-				await watcher.close();
-			}
+			close(callback) {
+				watcher.close().then(callback);
+			},
+			invalidate() {}
 		};
 	}
 
@@ -437,7 +438,8 @@ class Compiler {
 }
 
 export interface Watching {
-	close(): Promise<void>;
+	close(callback: () => void): void;
+	invalidate(): void;
 }
 
 export { Compiler };
