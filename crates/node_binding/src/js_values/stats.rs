@@ -163,6 +163,7 @@ pub struct JsStatsCompilation {
   pub errors_count: u32,
   pub warnings: Vec<JsStatsWarning>,
   pub warnings_count: u32,
+  pub hash: String,
 }
 
 impl From<rspack_core::StatsCompilation> for JsStatsCompilation {
@@ -176,6 +177,7 @@ impl From<rspack_core::StatsCompilation> for JsStatsCompilation {
       errors_count: stats.errors_count as u32,
       warnings: stats.warnings.into_iter().map(Into::into).collect(),
       warnings_count: stats.warnings_count as u32,
+      hash: stats.hash,
     }
   }
 }

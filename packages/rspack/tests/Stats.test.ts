@@ -70,6 +70,7 @@ describe("Stats", () => {
 		  },
 		  "errors": [],
 		  "errorsCount": 0,
+		  "hash": "b226d3ceb57b990",
 		  "modules": [
 		    {
 		      "chunks": [
@@ -88,7 +89,8 @@ describe("Stats", () => {
 		}
 	`);
 		expect(stats.toString(statsOptions)).toMatchInlineSnapshot(`
-		"  Asset      Size  Chunks             Chunk Names
+		"Hash: b226d3ceb57b990
+		  Asset      Size  Chunks             Chunk Names
 		main.js  11.9 KiB    main  [emitted]  main
 		Entrypoint main = main.js
 		chunk {main} main.js (main) 55 bytes [entry]
@@ -105,6 +107,8 @@ describe("Stats", () => {
 			stats.toJson({
 				all: false
 			})
-		).toEqual({});
+		).toEqual({
+			hash: "b226d3ceb57b990"
+		});
 	});
 });

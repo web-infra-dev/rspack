@@ -57,6 +57,9 @@ export class Stats {
 		);
 
 		let obj: StatsCompilation = {};
+
+		obj.hash = this.#statsJson.hash;
+
 		if (showAssets) {
 			obj.assets = this.#statsJson.assets;
 		}
@@ -193,6 +196,7 @@ export class Stats {
 		};
 
 		if (obj.hash) {
+			// todo: a little ugly
 			colors.normal("Hash: ");
 			colors.bold(obj.hash);
 			newline();

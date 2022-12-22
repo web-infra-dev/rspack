@@ -221,6 +221,8 @@ impl<'compilation> Stats<'compilation> {
       })
       .collect();
 
+    let hash = self.compilation.hash.to_owned();
+
     StatsCompilation {
       assets,
       modules,
@@ -230,6 +232,7 @@ impl<'compilation> Stats<'compilation> {
       errors,
       warnings_count: warnings.len(),
       warnings,
+      hash,
     }
   }
 }
@@ -244,6 +247,7 @@ pub struct StatsCompilation {
   pub warnings: Vec<StatsWarning>,
   pub warnings_count: usize,
   pub entrypoints: Vec<StatsEntrypoint>,
+  pub hash: String,
 }
 
 #[derive(Debug)]
