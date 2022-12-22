@@ -375,9 +375,13 @@ export class RspackDevServer {
 				});
 			});
 		}
+		const publicPath =
+			this.compiler.options.output.publicPath === "auto"
+				? ""
+				: this.compiler.options.output.publicPath;
 		middlewares.push({
 			name: "express-static",
-			path: this.compiler.options.output.publicPath ?? "/",
+			path: publicPath,
 			middleware: express.static(this.options.static.directory)
 		});
 
