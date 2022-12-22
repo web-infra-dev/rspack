@@ -37,7 +37,7 @@ use crate::{
   split_chunks::code_splitting,
   tree_shaking::{
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
-    BailoutReason, OptimizeDependencyResult,
+    BailoutFlog, OptimizeDependencyResult,
   },
   AdditionalChunkRuntimeRequirementsArgs, BoxModule, BuildContext, BundleEntries, Chunk,
   ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationResult,
@@ -78,7 +78,7 @@ pub struct Compilation {
   pub used_symbol: HashSet<Symbol>,
   pub used_indirect_symbol: HashSet<IndirectTopLevelSymbol>,
   /// Collecting all module that need to skip in tree-shaking ast modification phase
-  pub bailout_module_identifiers: HashMap<Ustr, BailoutReason>,
+  pub bailout_module_identifiers: HashMap<Ustr, BailoutFlog>,
   #[cfg(debug_assertions)]
   pub tree_shaking_result: HashMap<Ustr, TreeShakingResult>,
 
@@ -844,13 +844,24 @@ impl Compilation {
         evaluated_module_identifiers.insert(analyze_result.module_identifier);
         used_symbol_ref.extend(analyze_result.used_symbol_ref.iter().cloned());
       }
-      bail_out_module_identifiers.extend(analyze_result.bail_out_module_identifiers.clone());
+      // merge bailout module identifier
+      for (k, &v) in analyze_result.bail_out_module_identifiers.iter() {
+        match bail_out_module_identifiers.entry(*k) {
+          Entry::Occupied(mut occ) => {
+            *occ.get_mut() |= v;
+          }
+          Entry::Vacant(vac) => {
+            vac.insert(v);
+          }
+        }
+      }
+      // bail_out_module_identifiers.extend(analyze_result.bail_out_module_identifiers.clone());
     }
 
     // dbg!(&used_symbol_ref);
 
     // calculate relation of module that has `export * from 'xxxx'`
-    let inherit_export_ref_graph = { create_inherit_graph(&analyze_results) };
+    let inherit_export_ref_graph = create_inherit_graph(&analyze_results);
     // key is the module_id of module that potential have reexport all symbol from other module
     // value is the set which contains several module_id the key related module need to inherit
     let map_of_inherit_map = get_extends_map(&inherit_export_ref_graph);
@@ -923,26 +934,29 @@ impl Compilation {
 
     // All lazy imported module will be treadted as entry module, which means
     // Its export symbol will be marked as used
+    dbg!(&bail_out_module_identifiers);
     for (module_id, reason) in bail_out_module_identifiers.iter() {
-      match reason {
-        BailoutReason::CommonjsExports => {}
-        BailoutReason::ExtendBailout => {}
-        BailoutReason::DynamicImport | BailoutReason::Helper | BailoutReason::CommonjsRequire => {
-          let used_symbol_set = collect_reachable_symbol(
-            &analyze_results,
-            *module_id,
-            &mut used_indirect_symbol,
-            &bail_out_module_identifiers,
-            &mut evaluated_module_identifiers,
-            &mut used_export_module_identifiers,
-            &inherit_export_ref_graph,
-            &mut traced_tuple,
-            &self.options,
-            &mut errors,
-          );
-          used_symbol.extend(used_symbol_set);
-        }
-      }
+      if reason
+        .intersection(
+          BailoutFlog::DYNAMIC_IMPORT | BailoutFlog::HELPER | BailoutFlog::COMMONJS_REQUIRE,
+        )
+        .bits()
+        .count_ones()
+        >= 1
+      {
+        let used_symbol_set = collect_reachable_symbol(
+          &analyze_results,
+          *module_id,
+          &mut used_indirect_symbol,
+          &bail_out_module_identifiers,
+          &mut evaluated_module_identifiers,
+          &mut used_export_module_identifiers,
+          &inherit_export_ref_graph,
+          &mut traced_tuple,
+          &mut errors,
+        );
+        used_symbol.extend(used_symbol_set);
+      };
     }
 
     if side_effects_analyze {
@@ -1352,7 +1366,7 @@ fn collect_reachable_symbol(
   analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
   entry_identifier: Ustr,
   used_indirect_symbol: &mut HashSet<IndirectTopLevelSymbol>,
-  bailout_module_identifiers: &HashMap<Ustr, BailoutReason>,
+  bailout_module_identifiers: &HashMap<Ustr, BailoutFlog>,
   evaluated_module_identifiers: &mut HashSet<Ustr>,
   used_export_module_identifiers: &mut HashSet<Ustr>,
   inherit_extend_graph: &GraphMap<Ustr, (), Directed>,
@@ -1444,7 +1458,7 @@ fn collect_reachable_symbol(
 fn mark_used_symbol_with(
   analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
   mut init_queue: VecDeque<SymbolRef>,
-  bailout_module_identifiers: &HashMap<Ustr, BailoutReason>,
+  bailout_module_identifiers: &HashMap<Ustr, BailoutFlog>,
   evaluated_module_identifiers: &mut HashSet<Ustr>,
   used_indirect_symbol_set: &mut HashSet<IndirectTopLevelSymbol>,
   used_export_module_identifiers: &mut HashSet<Ustr>,
@@ -1487,7 +1501,7 @@ fn mark_symbol(
   used_indirect_symbol_set: &mut HashSet<IndirectTopLevelSymbol>,
   analyze_map: &HashMap<Ustr, TreeShakingResult>,
   q: &mut VecDeque<SymbolRef>,
-  bailout_module_identifiers: &HashMap<Ustr, BailoutReason>,
+  bailout_module_identifiers: &HashMap<Ustr, BailoutFlog>,
   evaluated_module_identifiers: &mut HashSet<Ustr>,
   used_export_module_identifiers: &mut HashSet<Ustr>,
   inherit_extend_graph: &GraphMap<Ustr, (), Directed>,

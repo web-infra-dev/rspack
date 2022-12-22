@@ -20,7 +20,7 @@ use rspack_symbol::{BetterId, IdOrMemExpr, IndirectTopLevelSymbol, Symbol, Symbo
 
 use super::{
   utils::{get_dynamic_import_string_literal, get_require_literal},
-  BailoutReason,
+  BailoutFlog,
 };
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SymbolRef {
@@ -80,7 +80,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   // This field is used for duplicated export default checking
   pub(crate) export_default_name: Option<JsWord>,
   module_syntax: ModuleSyntax,
-  pub(crate) bail_out_module_identifiers: HashMap<Ustr, BailoutReason>,
+  pub(crate) bail_out_module_identifiers: HashMap<Ustr, BailoutFlog>,
   pub(crate) resolver: &'a Arc<Resolver>,
   pub(crate) side_effects_free: bool,
 }
@@ -220,15 +220,15 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     assert!(GLOBALS.is_set());
     node.visit_children_with(self);
     // TODO: remove this after we visit commonjs exports
-    if self
-      .bail_out_module_identifiers
-      .iter()
-      .any(|(_, v)| !matches!(v, BailoutReason::Helper))
-    {
-      self
-        .bail_out_module_identifiers
-        .insert(self.module_identifier, BailoutReason::ExtendBailout);
-    }
+    // if self
+    //   .bail_out_module_identifiers
+    //   .iter()
+    //   .any(|(_, v)| !matches!(v, BailoutFlog::Helper))
+    // {
+    //   self
+    //     .bail_out_module_identifiers
+    //     .insert(self.module_identifier, BailoutFlog::ExtendBailout);
+    // }
     // calc reachable imports for each export symbol defined in current module
     for (key, symbol) in self.export_map.iter() {
       match symbol {
@@ -573,9 +573,17 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           && (&obj.sym == "module" && &prop.sym == "exports")
           || &obj.sym == "exports"
         {
-          self
+          match self
             .bail_out_module_identifiers
-            .insert(self.module_identifier, BailoutReason::CommonjsExports);
+            .entry(self.module_identifier)
+          {
+            Entry::Occupied(mut occ) => {
+              *occ.get_mut() |= BailoutFlog::COMMONJS_EXPORTS;
+            }
+            Entry::Vacant(vac) => {
+              vac.insert(BailoutFlog::COMMONJS_EXPORTS);
+            }
+          }
         }
         let id: BetterId = obj.to_id().into();
         let mark = id.ctxt.outer();
@@ -690,7 +698,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         }
       };
       let before_owner_extend_symbol = self.current_body_owner_symbol_ext.clone();
-
       self.current_body_owner_symbol_ext = Some(body_owner_extend_symbol);
       node.class.visit_with(self);
       self.current_body_owner_symbol_ext = before_owner_extend_symbol;
@@ -709,9 +716,14 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         .map(|item| ustr(item))
       {
         Some(module_identifier) => {
-          self
-            .bail_out_module_identifiers
-            .insert(module_identifier, BailoutReason::CommonjsRequire);
+          match self.bail_out_module_identifiers.entry(module_identifier) {
+            Entry::Occupied(mut occ) => {
+              *occ.get_mut() |= BailoutFlog::COMMONJS_REQUIRE;
+            }
+            Entry::Vacant(vac) => {
+              vac.insert(BailoutFlog::COMMONJS_REQUIRE);
+            }
+          }
         }
         None => {
           eprintln!(
@@ -727,9 +739,14 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         .map(|item| ustr(item))
       {
         Some(module_identifier) => {
-          self
-            .bail_out_module_identifiers
-            .insert(module_identifier, BailoutReason::DynamicImport);
+          match self.bail_out_module_identifiers.entry(module_identifier) {
+            Entry::Occupied(mut occ) => {
+              *occ.get_mut() |= BailoutFlog::DYNAMIC_IMPORT;
+            }
+            Entry::Vacant(vac) => {
+              vac.insert(BailoutFlog::DYNAMIC_IMPORT);
+            }
+          }
         }
         None => {
           eprintln!(
@@ -932,9 +949,17 @@ impl<'a> ModuleRefAnalyze<'a> {
         // one more thing, only helper module inserted by swc transfomer will be ignored
         // e.g. import ext from '@swc/helper/xxx'
         if vac.key().ctxt.outer() == self.helper_mark {
-          self
+          match self
             .bail_out_module_identifiers
-            .insert(symbol.module_identifier(), BailoutReason::Helper);
+            .entry(symbol.module_identifier())
+          {
+            Entry::Occupied(mut occ) => {
+              *occ.get_mut() |= BailoutFlog::HELPER;
+            }
+            Entry::Vacant(vac) => {
+              vac.insert(BailoutFlog::HELPER);
+            }
+          }
         }
         vac.insert(symbol);
       }
@@ -1071,7 +1096,7 @@ pub struct TreeShakingResult {
   pub(crate) reachable_import_of_export: HashMap<JsWord, HashSet<SymbolRef>>,
   state: AnalyzeState,
   pub(crate) used_symbol_ref: HashSet<SymbolRef>,
-  pub(crate) bail_out_module_identifiers: HashMap<Ustr, BailoutReason>,
+  pub(crate) bail_out_module_identifiers: HashMap<Ustr, BailoutFlog>,
   pub(crate) side_effects_free: bool,
 }
 
