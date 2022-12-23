@@ -39,9 +39,9 @@ importers:
   crates/node_binding:
     specifiers:
       '@napi-rs/cli': ^2.6.2
-      '@rspack/binding-darwin-arm64': workspace:^
-      '@rspack/binding-darwin-x64': workspace:^
-      '@rspack/binding-linux-x64-gnu': workspace:^
+      '@rspack/binding-darwin-arm64': workspace:*
+      '@rspack/binding-darwin-x64': workspace:*
+      '@rspack/binding-linux-x64-gnu': workspace:*
       npm-run-all: 4.1.5
       why-is-node-running: 2.2.1
     optionalDependencies:
