@@ -64,7 +64,7 @@ impl Plugin for BasicRuntimeRequirementPlugin {
     for runtime_requirement in sorted_runtime_requirement.iter() {
       match runtime_requirement.as_str() {
         runtime_globals::PUBLIC_PATH => {
-          compilation.add_runtime_module(chunk, PublicPathRuntimeModule::default().boxed())
+          compilation.add_runtime_module(chunk, PublicPathRuntimeModule { chunk: *chunk }.boxed())
         }
         runtime_globals::GET_CHUNK_SCRIPT_FILENAME => compilation.add_runtime_module(
           chunk,
