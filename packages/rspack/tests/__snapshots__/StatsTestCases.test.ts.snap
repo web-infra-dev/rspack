@@ -131,6 +131,8 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       ],
       "id": "426",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/filename/dynamic.js",
+      "issuer": "<PROJECT_ROOT>/tests/statsCases/filename/index.js",
+      "issuerName": "./index.js",
       "moduleType": "js",
       "name": "./dynamic.js",
       "size": 32,

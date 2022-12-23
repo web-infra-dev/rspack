@@ -95,6 +95,7 @@ impl<'compilation> Stats<'compilation> {
           .module_graph
           .module_graph_module_by_identifier(&identifier)
           .unwrap();
+        let issuer = mgm.get_issuer();
         let mut chunks: Vec<String> = self
           .compilation
           .chunk_graph
@@ -114,6 +115,13 @@ impl<'compilation> Stats<'compilation> {
           id: mgm.id(&self.compilation.chunk_graph).to_string(),
           chunks,
           size: module.size(&SourceType::JavaScript),
+          issuer: issuer.identifier().map(|i| i.to_string()),
+          issuer_name: issuer
+            .readable_identifier(
+              &self.compilation.module_graph,
+              &self.compilation.options.context,
+            )
+            .map(|i| i.to_string()),
         }
       })
       .collect();
@@ -288,6 +296,8 @@ pub struct StatsModule {
   pub id: String,
   pub chunks: Vec<String>,
   pub size: f64,
+  pub issuer: Option<String>,
+  pub issuer_name: Option<String>,
 }
 
 #[derive(Debug)]

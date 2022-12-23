@@ -78,6 +78,8 @@ pub struct JsStatsModule {
   pub id: String,
   pub chunks: Vec<String>,
   pub size: f64,
+  pub issuer: Option<String>,
+  pub issuer_name: Option<String>,
 }
 
 impl From<rspack_core::StatsModule> for JsStatsModule {
@@ -90,6 +92,8 @@ impl From<rspack_core::StatsModule> for JsStatsModule {
       module_type: stats.module_type.to_string(),
       identifier: stats.identifier,
       id: stats.id,
+      issuer: stats.issuer,
+      issuer_name: stats.issuer_name,
     }
   }
 }
