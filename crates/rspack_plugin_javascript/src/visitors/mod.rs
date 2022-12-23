@@ -112,6 +112,7 @@ pub fn run_before_pass(
 
 pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut GenerateContext) {
   let cm = ast.get_context().source_map.clone();
+
   ast.transform(|program, context| {
     let unresolved_mark = context.unresolved_mark;
     let top_level_mark = context.top_level_mark;
@@ -129,10 +130,6 @@ pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut
           top_level_mark,
         ),
         tree_shaking
-          && !generate_context
-            .compilation
-            .bailout_module_identifiers
-            .contains_key(&ustr(&module.identifier()))
       ),
       Optional::new(
         Repeat::new(dce(Config::default(), unresolved_mark)),

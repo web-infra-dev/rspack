@@ -1,3 +1,4 @@
+use bitflags;
 use hashbrown::{HashMap, HashSet};
 use rspack_symbol::{IndirectTopLevelSymbol, Symbol};
 use ustr::Ustr;
@@ -11,7 +12,7 @@ pub struct OptimizeDependencyResult {
   pub used_symbol: HashSet<Symbol>,
   pub used_indirect_symbol: HashSet<IndirectTopLevelSymbol>,
   pub analyze_results: HashMap<Ustr, TreeShakingResult>,
-  pub bail_out_module_identifiers: HashMap<Ustr, BailoutReason>,
+  pub bail_out_module_identifiers: HashMap<Ustr, BailoutFlog>,
 }
 const DISABLE_ANALYZE_LOGGING: bool = true;
 pub static CARED_MODULE_ID: &[&str] = &[];
@@ -28,12 +29,11 @@ pub fn debug_care_module_id<T: AsRef<str>>(id: T) -> bool {
     .any(|module_id| id.as_ref().contains(module_id))
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum BailoutReason {
-  Helper,
-  CommonjsRequire,
-  CommonjsExports,
-  DynamicImport,
-  /// TODO: remove this reason after we visit commonjs
-  ExtendBailout,
+bitflags::bitflags! {
+  pub struct BailoutFlog: u8 {
+      const HELPER = 1 << 0;
+      const COMMONJS_REQUIRE = 1 << 1;
+      const COMMONJS_EXPORTS = 1 << 2;
+      const DYNAMIC_IMPORT = 1 << 3;
+  }
 }
