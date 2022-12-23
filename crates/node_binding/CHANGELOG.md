@@ -1,5 +1,12 @@
 # @rspack/binding
 
+## 0.0.19
+
+### Patch Changes
+
+- db66ae2e: feat: add hash as return value of stats.toJson
+- 882093b8: support module.resolve
+
 ## 0.0.18
 
 ### Patch Changes

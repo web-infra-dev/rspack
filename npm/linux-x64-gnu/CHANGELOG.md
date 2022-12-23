@@ -1,5 +1,11 @@
 # @rspack/binding-linux-x64-gnu
 
+## 0.0.19
+
+### Patch Changes
+
+- 882093b8: support module.resolve
+
 ## 0.0.18
 
 ### Patch Changes
