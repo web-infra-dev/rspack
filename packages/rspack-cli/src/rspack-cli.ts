@@ -19,6 +19,11 @@ export class RspackCLI {
 		this.program = yargs();
 	}
 	async createCompiler(options: RspackCLIOptions, rspackEnv: RspackEnv) {
+		if (typeof options.nodeEnv === "string") {
+			process.env.NODE_ENV = options.nodeEnv;
+		} else {
+			process.env.NODE_ENV = rspackEnv;
+		}
 		let config = await this.loadConfig(options);
 		config = await this.buildConfig(config, options, rspackEnv);
 		const compiler = createCompiler(config);
