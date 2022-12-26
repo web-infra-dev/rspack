@@ -24,7 +24,6 @@ export class BuildCommand implements RspackCommand {
 				}),
 			async options => {
 				const logger = cli.getLogger();
-				const env = normalizeEnv(options);
 				let createJsonStringifyStream;
 				if (options.json) {
 					const jsonExt = await import("@discoveryjs/json-ext");
@@ -79,7 +78,7 @@ export class BuildCommand implements RspackCommand {
 					}
 				};
 				console.time("build");
-				let rspackOptions = { ...options, env, argv: { ...options, env } };
+				let rspackOptions = { ...options, argv: { ...options } };
 
 				const compiler = await cli.createCompiler(rspackOptions, "production");
 				compiler.run((err, Stats) => {

@@ -9,13 +9,10 @@ export class ServeCommand implements RspackCommand {
 			"run the rspack dev server.",
 			commonOptions,
 			async options => {
-				const env = normalizeEnv(options);
 				const rspackOptions = {
 					...options,
-					env,
 					argv: {
-						...options,
-						env
+						...options
 					}
 				};
 				const compiler = await cli.createCompiler(rspackOptions, "development");

@@ -7,6 +7,7 @@ import { RspackCLIColors, RspackCLILogger, RspackCLIOptions } from "./types";
 import { BuildCommand } from "./commands/build";
 import { ServeCommand } from "./commands/serve";
 import { rspack, RspackOptions, createCompiler } from "@rspack/core";
+import { normalizeEnv } from "./utils/options";
 const defaultConfig = "rspack.config.js";
 const defaultEntry = "src/index.js";
 type Callback<T> = <T>(err: Error, res?: T) => void;
@@ -59,6 +60,7 @@ export class RspackCLI {
 	async run(argv: string[]) {
 		this.program.usage("[options]");
 		this.program.scriptName("rspack");
+		this.program.middleware(normalizeEnv);
 		this.registerCommands();
 		await this.program.parseAsync(hideBin(argv));
 	}

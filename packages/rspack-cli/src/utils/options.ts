@@ -74,5 +74,5 @@ export function normalizeEnv(argv) {
 		return previous;
 	}
 	const envObj = ((argv.env as string[]) ?? []).reduce(parseValue, {});
-	return envObj;
+	argv.env = envObj;
 }
