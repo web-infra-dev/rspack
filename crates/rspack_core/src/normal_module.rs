@@ -38,6 +38,41 @@ bitflags! {
   }
 }
 
+#[derive(Debug, Clone)]
+pub enum ModuleIssuer {
+  Unset,
+  None,
+  Some(ModuleIdentifier),
+}
+
+impl ModuleIssuer {
+  pub fn from_identifier(identifier: Option<ModuleIdentifier>) -> Self {
+    match identifier {
+      Some(id) => Self::Some(id),
+      None => Self::None,
+    }
+  }
+
+  pub fn identifier(&self) -> Option<&ModuleIdentifier> {
+    match self {
+      ModuleIssuer::Some(id) => Some(id),
+      _ => None,
+    }
+  }
+
+  pub fn readable_identifier<'a>(
+    &self,
+    module_graph: &'a ModuleGraph,
+    context: &Context,
+  ) -> Option<Cow<'a, str>> {
+    if let Some(id) = self.identifier() && let Some(issuer) = module_graph.module_by_identifier(id) {
+      Some(issuer.readable_identifier(context))
+    } else {
+      None
+    }
+  }
+}
+
 #[derive(Debug)]
 pub struct ModuleGraphModule {
   // Only user defined entry module has name for now.
@@ -46,6 +81,8 @@ pub struct ModuleGraphModule {
   // edges from module to module
   pub outgoing_connections: HashSet<u32>,
   pub incoming_connections: HashSet<u32>,
+
+  issuer: ModuleIssuer,
 
   // pub exec_order: usize,
   pub module_identifier: ModuleIdentifier,
@@ -71,6 +108,8 @@ impl ModuleGraphModule {
 
       outgoing_connections: Default::default(),
       incoming_connections: Default::default(),
+
+      issuer: ModuleIssuer::Unset,
       // exec_order: usize::MAX,
       module_identifier,
       all_dependencies: dependencies,
@@ -170,6 +209,16 @@ impl ModuleGraphModule {
       .filter(|dep| matches!(dep.detail.kind, ResolveKind::DynamicImport))
       .filter_map(|dep| module_graph.module_by_dependency(dep))
       .collect()
+  }
+
+  pub fn set_issuer_if_unset(&mut self, issuer: Option<ModuleIdentifier>) {
+    if matches!(self.issuer, ModuleIssuer::Unset) {
+      self.issuer = ModuleIssuer::from_identifier(issuer);
+    }
+  }
+
+  pub fn get_issuer(&self) -> &ModuleIssuer {
+    &self.issuer
   }
 }
 

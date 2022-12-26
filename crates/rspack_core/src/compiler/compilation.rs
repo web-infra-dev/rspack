@@ -358,8 +358,14 @@ impl Compilation {
         match rx.try_recv() {
           Ok(item) => match item {
             Msg::ModuleCreated(module_with_diagnostic) => {
-              let (mgm, module, original_module_identifier, dependency_id, dependency, is_entry) =
-                *module_with_diagnostic.inner;
+              let (
+                mut mgm,
+                module,
+                original_module_identifier,
+                dependency_id,
+                dependency,
+                is_entry,
+              ) = *module_with_diagnostic.inner;
 
               let module_identifier = module.identifier();
 
@@ -384,6 +390,8 @@ impl Compilation {
               if is_entry {
                 self.entry_module_identifiers.insert(module_identifier);
               }
+
+              mgm.set_issuer_if_unset(original_module_identifier);
 
               self.handle_module_build_and_dependencies(
                 original_module_identifier,
