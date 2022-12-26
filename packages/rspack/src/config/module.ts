@@ -262,7 +262,7 @@ function composeJsUse(
 						additionalData,
 						fileDependencies,
 						contextDependencies,
-						missingDependencies,
+						missingDependencies
 					});
 				}
 
@@ -466,13 +466,13 @@ function composeJsUse(
 						buildDependencies.push(file);
 					},
 					addDependency(file) {
-						fileDependencies.push(file)
+						fileDependencies.push(file);
 					},
 					addContextDependency(context) {
-						contextDependencies.push(context)
+						contextDependencies.push(context);
 					},
 					addMissingDependency(missing) {
-						missingDependencies.push(missing)
+						missingDependencies.push(missing);
 					},
 					clearDependencies() {
 						fileDependencies.length = 0;
@@ -487,7 +487,7 @@ function composeJsUse(
 					},
 					getMissingDependencies() {
 						return missingDependencies.slice();
-					},
+					}
 				};
 
 				/**
@@ -527,7 +527,7 @@ function composeJsUse(
 								cacheable,
 								fileDependencies,
 								contextDependencies,
-								missingDependencies,
+								missingDependencies
 							});
 							return;
 						}
@@ -541,7 +541,7 @@ function composeJsUse(
 									cacheable,
 									fileDependencies,
 									contextDependencies,
-									missingDependencies,
+									missingDependencies
 								});
 							}, reject);
 						}
@@ -553,7 +553,7 @@ function composeJsUse(
 							cacheable,
 							fileDependencies,
 							contextDependencies,
-							missingDependencies,
+							missingDependencies
 						});
 					}
 				} catch (err) {
@@ -588,7 +588,7 @@ function composeJsUse(
 				compiler.watcher.add([
 					...loaderResult.fileDependencies,
 					...loaderResult.contextDependencies,
-					...loaderResult.missingDependencies,
+					...loaderResult.missingDependencies
 				]);
 			}
 		}
