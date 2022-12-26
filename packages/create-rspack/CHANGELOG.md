@@ -1,5 +1,11 @@
 # create-rspack
 
+## 0.0.17
+
+### Patch Changes
+
+- fix watch
+
 ## 0.0.16
 
 ### Patch Changes

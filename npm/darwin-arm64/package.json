@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding-darwin-arm64",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "description": "Node binding for rspack",
   "main": "rspack.darwin-arm64.node",
   "publishConfig": {
