@@ -6,6 +6,7 @@ import * as tapable from "tapable";
 import { SyncHook, SyncBailHook, Callback } from "tapable";
 import asyncLib from "neo-async";
 import * as sources from "webpack-sources";
+import type { FSWatcher } from "chokidar";
 
 import * as binding from "@rspack/binding";
 
@@ -33,6 +34,7 @@ class Compiler {
 	root: Compiler;
 	resolverFactory: ResolverFactory;
 	infrastructureLogger: any;
+	watcher: FSWatcher;
 	outputPath: string;
 	name: string;
 	inputFileSystem: any;
@@ -332,6 +334,7 @@ class Compiler {
 				...options
 			}
 		);
+		this.watcher = watcher;
 		const begin = Date.now();
 		let rawStats = await util.promisify(this.build.bind(this))();
 
