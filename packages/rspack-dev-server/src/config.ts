@@ -10,7 +10,7 @@ import { ProxyOptions } from "@rspack/core/src/config/devServer";
 
 export interface ResolvedDev {
 	host: string;
-	port: number;
+	port: number | string;
 	static: {
 		directory: string;
 		watch: false | WatchOptions;

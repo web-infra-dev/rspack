@@ -165,6 +165,7 @@ crates/node_binding/binding.d.ts
 
 !packages/rspack/tests/configCases/target
 packages/rspack/tests/js
+packages/rspack-dev-server/.test-temp
 
 # Ignore local integrate debug file
 packages/rspack/tests/*.debug.[tj]s

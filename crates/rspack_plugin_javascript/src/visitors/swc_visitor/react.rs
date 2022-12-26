@@ -1,4 +1,5 @@
 use crate::ast::parse_js_code;
+use once_cell::sync::Lazy;
 use rspack_core::ModuleType;
 use rspack_core::ReactOptions;
 use std::{path::Path, sync::Arc};
@@ -82,6 +83,9 @@ module.hot.accept();
 RefreshRuntime.queueUpdate();
 "#;
 
+static HMR_FOOTER_AST: Lazy<Program> =
+  Lazy::new(|| parse_js_code(HMR_FOOTER.to_string(), &ModuleType::Js).unwrap());
+
 pub struct ReactHmrFolder {
   pub id: String,
 }
@@ -103,19 +107,15 @@ impl Fold for ReactHmrFolder {
     )
     .unwrap();
 
-    // TODO: cache the ast
-    let hmr_footer_ast = parse_js_code(HMR_FOOTER.to_string(), &ModuleType::Js).unwrap();
-
     let mut body = vec![];
     body.append(&mut match hmr_header_ast {
       Program::Module(m) => m.body,
       _ => vec![],
     });
     body.append(&mut module.body);
-    body.append(&mut match hmr_footer_ast {
-      Program::Module(m) => m.body,
-      _ => vec![],
-    });
+    if let Some(m) = HMR_FOOTER_AST.as_module() {
+      body.append(&mut m.body.clone());
+    }
 
     Module { body, ..module }
   }

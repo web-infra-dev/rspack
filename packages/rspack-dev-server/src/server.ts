@@ -64,6 +64,7 @@ export class RspackDevServer {
 	}
 
 	rewriteCompilerOptions() {
+		this.compiler.options.devServer = this.options;
 		if (!this.compiler.options.builtins.react) {
 			this.compiler.options.builtins.react = {};
 		}
@@ -187,6 +188,7 @@ export class RspackDevServer {
 		this.setupMiddlewares();
 		const host = await RspackDevServer.getHostname(this.options.host);
 		const port = await RspackDevServer.getFreePort(this.options.port, host);
+		this.options.port = port;
 		await new Promise(resolve =>
 			this.server.listen(
 				{
