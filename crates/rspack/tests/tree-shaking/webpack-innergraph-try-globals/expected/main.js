@@ -9,7 +9,6 @@ expect(_module.ok).toBe(true);
 expect(_module.ok2).toBe(true);
 },
 "./index.js": function (module, exports, __webpack_require__) {
-"use strict";
 it("should not threat globals as pure", ()=>{
     __webpack_require__("./import-module.js");
 });

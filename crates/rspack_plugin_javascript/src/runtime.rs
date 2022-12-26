@@ -1,4 +1,4 @@
-use crate::utils::{wrap_eval_source_map, wrap_module_function};
+use crate::utils::wrap_eval_source_map;
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
@@ -64,8 +64,17 @@ if (module.hot) {
             .boxed();
           }
           // module id isn't cacheable
-          Ok(wrap_module_function(
+          let strict = match compilation
+            .module_graph
+            .module_by_identifier(&mgm.module_identifier)
+            .and_then(|m| m.as_normal_module())
+          {
+            Some(normal_module) => normal_module.build_info.strict,
+            None => false,
+          };
+          Ok(render_module(
             module_source,
+            strict,
             mgm.id(&compilation.chunk_graph),
           ))
         })
@@ -88,6 +97,25 @@ if (module.hot) {
   sources.add(RawSource::from("\n}"));
 
   Ok(CachedSource::new(sources).boxed())
+}
+
+pub fn render_module(source: BoxSource, strict: bool, module_id: &str) -> BoxSource {
+  let mut sources = ConcatSource::new([
+    RawSource::from("\""),
+    RawSource::from(module_id.to_string()),
+    RawSource::from("\": "),
+    RawSource::from(format!(
+      "function (module, exports, {}) {{\n",
+      runtime_globals::REQUIRE
+    )),
+  ]);
+  if strict {
+    sources.add(RawSource::from("\"use strict\";\n"));
+  }
+  sources.add(source);
+  sources.add(RawSource::from("},\n"));
+
+  CachedSource::new(sources).boxed()
 }
 
 pub fn generate_chunk_entry_code(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> BoxSource {

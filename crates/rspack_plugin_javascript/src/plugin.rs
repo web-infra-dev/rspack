@@ -230,7 +230,13 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ),
     };
 
-    run_before_pass(resource_data, &mut ast, compiler_options, syntax)?;
+    run_before_pass(
+      resource_data,
+      &mut ast,
+      compiler_options,
+      syntax,
+      parse_context.build_info,
+    )?;
 
     let dep_scanner = ast.visit(|program, context| {
       let mut dep_scanner = DependencyScanner::new(context.unresolved_mark);

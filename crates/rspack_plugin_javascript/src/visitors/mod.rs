@@ -6,11 +6,13 @@ use finalize::finalize;
 // use clear_mark::clear_mark;
 mod inject_runtime_helper;
 use inject_runtime_helper::inject_runtime_helper;
+mod strict;
+use strict::strict_mode;
 mod format;
 use format::*;
 mod module_variables;
 use module_variables::*;
-use rspack_core::Module;
+use rspack_core::{BuildInfo, Module};
 use swc_core::common::pass::Repeat;
 use swc_core::ecma::transforms::optimization::simplify::dce::{dce, Config};
 mod swc_visitor;
@@ -30,6 +32,7 @@ pub fn run_before_pass(
   ast: &mut Ast,
   options: &CompilerOptions,
   syntax: Syntax,
+  build_info: &mut BuildInfo,
 ) -> Result<()> {
   let cm = ast.get_context().source_map.clone();
   ast.transform_with_handler(cm.clone(), |handler, program, context| {
@@ -101,6 +104,7 @@ pub fn run_before_pass(
       // The ordering of these two is important, `expr_simplifier` goes first and `dead_branch_remover` goes second.
       swc_visitor::expr_simplifier(unresolved_mark, Default::default()),
       swc_visitor::dead_branch_remover(unresolved_mark),
+      strict_mode(build_info, context),
     );
     program.fold_with(&mut pass);
 
@@ -141,6 +145,7 @@ pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut
         unresolved_mark,
         Some(ModuleConfig::CommonJs(CommonjsConfig {
           ignore_dynamic: true,
+          // here will remove `use strict`
           strict_mode: false,
           no_interop: !context.is_esm,
           ..Default::default()

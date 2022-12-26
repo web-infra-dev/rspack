@@ -8,7 +8,6 @@ __webpack_require__("./b.js");
 console.log('a');
 },
 "./b.js": function (module, exports, __webpack_require__) {
-"use strict";
 console.log('b');
 },
 "./index.js": function (module, exports, __webpack_require__) {

@@ -15,11 +15,9 @@ const a = "a";
 exports.test = 30;
 },
 "./b.js": function (module, exports, __webpack_require__) {
-"use strict";
 module.exports = a = "b";
 },
 "./foo.js": function (module, exports, __webpack_require__) {
-"use strict";
 if (process.env.NODE_ENV !== "production") {
     const res = __webpack_require__("./a.js");
     module.exports = res;

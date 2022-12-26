@@ -7,8 +7,8 @@ use rspack_loader_runner::ResourceData;
 use rspack_sources::Source;
 
 use crate::{
-  AstOrSource, CodeGenerationResults, Compilation, CompilerOptions, GenerationResult, Module,
-  ModuleDependency, ModuleType, SourceType,
+  AstOrSource, BuildInfo, CodeGenerationResults, Compilation, CompilerOptions, GenerationResult,
+  Module, ModuleDependency, ModuleType, SourceType,
 };
 
 #[derive(Debug)]
@@ -19,6 +19,7 @@ pub struct ParseContext<'a> {
   pub compiler_options: &'a CompilerOptions,
   pub additional_data: Option<String>,
   pub code_generation_dependencies: &'a mut Vec<ModuleDependency>,
+  pub build_info: &'a mut BuildInfo,
 }
 
 #[derive(Debug)]

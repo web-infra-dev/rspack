@@ -34,7 +34,7 @@ describe("Stats", () => {
 		        "hotModuleReplacement": false,
 		      },
 		      "name": "main.js",
-		      "size": 12163,
+		      "size": 12150,
 		      "type": "asset",
 		    },
 		  ],
@@ -58,10 +58,10 @@ describe("Stats", () => {
 		      "assets": [
 		        {
 		          "name": "main.js",
-		          "size": 12163,
+		          "size": 12150,
 		        },
 		      ],
-		      "assetsSize": 12163,
+		      "assetsSize": 12150,
 		      "chunks": [
 		        "main",
 		      ],

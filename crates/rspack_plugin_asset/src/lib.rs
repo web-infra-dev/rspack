@@ -206,8 +206,10 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     &mut self,
     parse_context: rspack_core::ParseContext,
   ) -> Result<rspack_error::TWithDiagnosticArray<rspack_core::ParseResult>> {
-    let ParseContext { source, .. } = parse_context;
-
+    let ParseContext {
+      source, build_info, ..
+    } = parse_context;
+    build_info.strict = true;
     let size = source.size();
 
     self.parsed_asset_config = match &self.data_url {

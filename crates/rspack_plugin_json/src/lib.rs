@@ -31,8 +31,10 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     let rspack_core::ParseContext {
       source: box_source,
       resource_data,
+      build_info,
       ..
     } = parse_context;
+    build_info.strict = true;
     let source = box_source.source();
 
     json::parse(&source).map_err(|e| {
