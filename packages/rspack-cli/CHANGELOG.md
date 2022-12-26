@@ -1,5 +1,14 @@
 # @rspack/cli
 
+## 0.0.20
+
+### Patch Changes
+
+- fix load extra css chunk
+- Updated dependencies
+  - @rspack/core@0.0.20
+  - @rspack/dev-server@0.0.20
+
 ## 0.0.19
 
 ### Patch Changes
