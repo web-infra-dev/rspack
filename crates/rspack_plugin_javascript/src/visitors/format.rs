@@ -4,7 +4,7 @@ use regex::Regex;
 use rspack_core::{
   runtime_globals, Compilation, Dependency, Module, ModuleDependency, ResolveKind,
 };
-use swc_core::ecma::utils::ExprFactory;
+use swc_core::ecma::utils::{quote_ident, ExprFactory};
 use tracing::instrument;
 
 use crate::utils::{is_dynamic_import_literal_expr, is_require_literal_expr};
@@ -67,20 +67,49 @@ impl<'a> RspackModuleFormatTransformer<'a> {
   }
 
   fn get_rspack_dynamic_import_callee(&self, chunk_ids: Vec<&str>) -> Callee {
+    if chunk_ids.len() == 1 {
+      return MemberExpr {
+        span: DUMMY_SP,
+        obj: Box::new(ast::Expr::Call(CallExpr {
+          span: DUMMY_SP,
+          callee: Ident::new(runtime_globals::ENSURE_CHUNK.into(), DUMMY_SP).as_callee(),
+          args: vec![Expr::Lit(Lit::Str(
+            chunk_ids
+              .first()
+              .expect("should have a chunk")
+              .to_string()
+              .into(),
+          ))
+          .as_arg()],
+          type_args: None,
+        })),
+        prop: MemberProp::Ident(Ident::new("then".into(), DUMMY_SP)),
+      }
+      .as_callee();
+    }
     MemberExpr {
       span: DUMMY_SP,
       obj: Box::new(ast::Expr::Call(CallExpr {
         span: DUMMY_SP,
-        callee: Ident::new(runtime_globals::ENSURE_CHUNK.into(), DUMMY_SP).as_callee(),
+        callee: quote_ident!("Promise.all").as_callee(),
         args: vec![Expr::Array(ArrayLit {
           span: DUMMY_SP,
           elems: chunk_ids
             .iter()
-            .map(|chunk_id| Some(Lit::Str(chunk_id.to_string().into()).as_arg()))
+            .map(|chunk_id| {
+              Some(
+                Expr::Call(CallExpr {
+                  span: DUMMY_SP,
+                  callee: Ident::new(runtime_globals::ENSURE_CHUNK.into(), DUMMY_SP).as_callee(),
+                  args: vec![Expr::Lit(Lit::Str(chunk_id.to_string().into())).as_arg()],
+                  type_args: None,
+                })
+                .as_arg(),
+              )
+            })
             .collect::<Vec<Option<ExprOrSpread>>>(),
         })
         .as_arg()],
-
         type_args: None,
       })),
       prop: MemberProp::Ident(Ident::new("then".into(), DUMMY_SP)),
