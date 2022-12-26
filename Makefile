@@ -51,6 +51,11 @@ snapshot_ci:
 	@pnpm version:snapshot
 	@./x build js-release-all
 	@pnpm release:snapshot
+release:
+	@pnpm bump
+	@./x build js-release-all
+	@pnpm release
+	@make sync_bnpm
 release-snapshot:
 	@make snapshot_ci
 	@make sync_bnpm

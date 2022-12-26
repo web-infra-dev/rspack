@@ -1,5 +1,11 @@
 # create-rspack
 
+## 0.0.15
+
+### Patch Changes
+
+- 882093b8: support module.resolve
+
 ## 0.0.14
 
 ### Patch Changes

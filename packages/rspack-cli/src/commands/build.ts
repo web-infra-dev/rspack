@@ -3,7 +3,7 @@ import * as util from "util";
 import * as fs from "fs";
 import type { RspackCLI } from "../rspack-cli";
 import { RspackCommand } from "../types";
-import { commonOptions } from "../utils/options";
+import { commonOptions, normalizeEnv } from "../utils/options";
 import { Stats } from "@rspack/core/src/stats";
 
 export class BuildCommand implements RspackCommand {
@@ -78,8 +78,8 @@ export class BuildCommand implements RspackCommand {
 					}
 				};
 				console.time("build");
-				const rspackOptions = { ...options };
-				rspackOptions.argv = options;
+				let rspackOptions = { ...options, argv: { ...options } };
+
 				const compiler = await cli.createCompiler(rspackOptions, "production");
 				compiler.run((err, Stats) => {
 					callback(err, Stats);

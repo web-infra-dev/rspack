@@ -1,5 +1,14 @@
 # @rspack/dev-client
 
+## 0.0.19
+
+### Patch Changes
+
+- 882093b8: support module.resolve
+- Updated dependencies [db66ae2e]
+- Updated dependencies [882093b8]
+  - @rspack/core@0.0.19
+
 ## 0.0.18
 
 ### Patch Changes
