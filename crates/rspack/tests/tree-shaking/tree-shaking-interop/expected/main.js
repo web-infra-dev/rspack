@@ -8,9 +8,7 @@ Object.defineProperty(exports, "a", {
     enumerable: true,
     get: ()=>a
 });
-__webpack_require__.e([
-    "bar_js"
-]).then(__webpack_require__.bind(__webpack_require__, "./bar.js")).then((mod)=>{
+__webpack_require__.e("bar_js").then(__webpack_require__.bind(__webpack_require__, "./bar.js")).then((mod)=>{
     console.log(mod);
 });
 const a = "a";
