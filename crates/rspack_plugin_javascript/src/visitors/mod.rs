@@ -12,7 +12,7 @@ mod format;
 use format::*;
 mod module_variables;
 use module_variables::*;
-use rspack_core::{BuildInfo, Module};
+use rspack_core::{BuildInfo, Module, ModuleType};
 use swc_core::common::pass::Repeat;
 use swc_core::ecma::transforms::optimization::simplify::dce::{dce, Config};
 mod swc_visitor;
@@ -33,8 +33,12 @@ pub fn run_before_pass(
   options: &CompilerOptions,
   syntax: Syntax,
   build_info: &mut BuildInfo,
+  module_type: &ModuleType,
 ) -> Result<()> {
   let cm = ast.get_context().source_map.clone();
+  // TODO: should use react-loader to get exclude/include
+  let out_of_node_modules = !resource_data.resource.contains("node_modules");
+  let should_transform_by_react = out_of_node_modules && module_type.is_jsx_like();
   ast.transform_with_handler(cm.clone(), |handler, program, context| {
     let top_level_mark = context.top_level_mark;
     let unresolved_mark = context.unresolved_mark;
@@ -59,7 +63,7 @@ pub fn run_before_pass(
       ),
       Optional::new(
         swc_visitor::react(top_level_mark, comments, &cm, &options.builtins.react),
-        syntax.jsx()
+        should_transform_by_react
       ),
       Optional::new(
         {
@@ -67,7 +71,7 @@ pub fn run_before_pass(
           let uri = resource_data.resource.as_str();
           swc_visitor::fold_react_refresh(context, uri)
         },
-        !resource_data.resource.contains("node_modules")
+        should_transform_by_react
       ),
       // enable if configurable
       // swc_visitor::const_modules(cm, globals),

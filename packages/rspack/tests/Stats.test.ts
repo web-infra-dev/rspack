@@ -34,7 +34,7 @@ describe("Stats", () => {
 		        "hotModuleReplacement": false,
 		      },
 		      "name": "main.js",
-		      "size": 12150,
+		      "size": 215,
 		      "type": "asset",
 		    },
 		  ],
@@ -58,10 +58,10 @@ describe("Stats", () => {
 		      "assets": [
 		        {
 		          "name": "main.js",
-		          "size": 12150,
+		          "size": 215,
 		        },
 		      ],
-		      "assetsSize": 12150,
+		      "assetsSize": 215,
 		      "chunks": [
 		        "main",
 		      ],
@@ -70,7 +70,7 @@ describe("Stats", () => {
 		  },
 		  "errors": [],
 		  "errorsCount": 0,
-		  "hash": "58af7dab24a0fba6",
+		  "hash": "9f3a9462bb595239",
 		  "modules": [
 		    {
 		      "chunks": [
@@ -89,9 +89,9 @@ describe("Stats", () => {
 		}
 	`);
 		expect(stats.toString(statsOptions)).toMatchInlineSnapshot(`
-		"Hash: 58af7dab24a0fba6
-		  Asset      Size  Chunks             Chunk Names
-		main.js  11.9 KiB    main  [emitted]  main
+		"Hash: 9f3a9462bb595239
+		  Asset       Size  Chunks             Chunk Names
+		main.js  215 bytes    main  [emitted]  main
 		Entrypoint main = main.js
 		chunk {main} main.js (main) 55 bytes [entry]
 		[876] ./fixtures/a.js 55 bytes {main}"

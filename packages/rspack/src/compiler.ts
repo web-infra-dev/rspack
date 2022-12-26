@@ -321,9 +321,6 @@ class Compiler {
 		});
 	}
 
-	// TODO: use ws to send message to client temporary.
-	// TODO: we should use `Stats` which got from `hooks.done`
-	// TODO: in `dev-server`
 	async watch(watchOptions?: Watch): Promise<Watching> {
 		const options = resolveWatchOption(watchOptions);
 		let logger = this.getInfrastructureLogger("watch");
@@ -340,7 +337,7 @@ class Compiler {
 
 		let stats = new Stats(rawStats, this.compilation);
 		await this.hooks.done.promise(stats);
-		console.log("build success, time cost", Date.now() - begin, "ms");
+		logger.log("build success, time cost", Date.now() - begin, "ms");
 
 		let pendingChangedFilepaths = new Set<string>();
 		let isBuildFinished = true;

@@ -236,6 +236,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       compiler_options,
       syntax,
       parse_context.build_info,
+      module_type,
     )?;
 
     let dep_scanner = ast.visit(|program, context| {
