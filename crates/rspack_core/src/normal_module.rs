@@ -284,6 +284,11 @@ impl From<BoxSource> for AstOrSource {
   }
 }
 
+#[derive(Debug, Default)]
+pub struct BuildInfo {
+  pub strict: bool,
+}
+
 #[derive(Debug)]
 pub struct NormalModule {
   /// Request with loaders from config
@@ -312,6 +317,8 @@ pub struct NormalModule {
   cached_source_sizes: DashMap<SourceType, f64>,
 
   code_generation_dependencies: Option<Vec<Dependency>>,
+
+  pub build_info: BuildInfo,
 }
 
 #[derive(Debug)]
@@ -368,6 +375,7 @@ impl NormalModule {
       options,
       cached_source_sizes: DashMap::new(),
       code_generation_dependencies: None,
+      build_info: Default::default(),
     }
   }
 
@@ -482,6 +490,7 @@ impl Module for NormalModule {
         compiler_options: build_context.compiler_options,
         additional_data: loader_result.additional_data,
         code_generation_dependencies: &mut code_generation_dependencies,
+        build_info: &mut self.build_info,
       })?
       .split_into_parts();
     diagnostics.extend(ds);

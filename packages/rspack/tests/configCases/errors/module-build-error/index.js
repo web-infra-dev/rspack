@@ -9,7 +9,7 @@ it("build error module should have 'throw error'", () => {
 	}
 		
 	const output = fs.readFileSync(path.resolve(__dirname, "main.js"), "utf-8");
-	let scssCode = /".\/index.scss":.*\n\"use strict\";\n(.*)/.exec(
+	let scssCode = /".\/index.scss":.*\n(.*)/.exec(
 		output
 	)[1];
 	expect(scssCode.includes("throw new Error")).toBe(true);

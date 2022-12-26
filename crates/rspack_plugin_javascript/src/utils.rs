@@ -1,8 +1,8 @@
 use pathdiff::diff_paths;
 use rspack_core::rspack_sources::{
-  BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt,
+  BoxSource, CachedSource, MapOptions, RawSource, Source, SourceExt,
 };
-use rspack_core::{runtime_globals, Compilation, ErrorSpan, ModuleType};
+use rspack_core::{Compilation, ErrorSpan, ModuleType};
 use rspack_error::{internal_error, DiagnosticKind, Error};
 use serde_json::json;
 use std::path::Path;
@@ -123,29 +123,6 @@ pub fn is_dynamic_import_literal_expr(e: &CallExpr) -> bool {
   } else {
     false
   }
-}
-
-pub fn wrap_module_function(source: BoxSource, module_id: &str) -> BoxSource {
-  /***
-   * generate wrapper module:
-   * {module_id}: function(module, exports, __rspack_require__, __rspack_dynamic_require__) {
-   * "use strict";
-   * {source}
-   * },
-   */
-  CachedSource::new(ConcatSource::new([
-    RawSource::from("\"").boxed(),
-    RawSource::from(module_id.to_string()).boxed(),
-    RawSource::from("\": ").boxed(),
-    RawSource::from(format!(
-      "function (module, exports, {}) {{\n",
-      runtime_globals::REQUIRE
-    ))
-    .boxed(),
-    source,
-    RawSource::from("},\n").boxed(),
-  ]))
-  .boxed()
 }
 
 pub fn ecma_parse_error_to_rspack_error(

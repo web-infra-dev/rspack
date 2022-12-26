@@ -47,7 +47,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "main.xxxx.js",
-      "size": 9320,
+      "size": 9307,
       "type": "asset",
     },
     {
@@ -100,10 +100,10 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "assets": [
         {
           "name": "main.xxxx.js",
-          "size": 9320,
+          "size": 9307,
         },
       ],
-      "assetsSize": 9320,
+      "assetsSize": 9307,
       "chunks": [
         "main",
       ],
@@ -147,7 +147,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
 exports[`StatsTestCases should print correct stats for filename 2`] = `
 "Hash: 8c0a3e20ea6b5e7a
              Asset       Size      Chunks             Chunk Names
-      main.xxxx.js    9.1 KiB        main  [emitted]  main
+      main.xxxx.js   9.09 KiB        main  [emitted]  main
 dynamic_js.xxxx.js  218 bytes  dynamic_js  [emitted]  dynamic_js
 Entrypoint main = main.xxxx.js
 chunk {dynamic_js} dynamic_js.xxxx.js (dynamic_js) 32 bytes
@@ -172,7 +172,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 8912,
+      "size": 8899,
       "type": "asset",
     },
   ],
@@ -196,10 +196,10 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 8912,
+          "size": 8899,
         },
       ],
-      "assetsSize": 8912,
+      "assetsSize": 8899,
       "chunks": [
         "main",
       ],
@@ -229,8 +229,8 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
 
 exports[`StatsTestCases should print correct stats for hot+production 2`] = `
 "Hash: 1a7c8fd0bc8ded89
-    Asset     Size  Chunks             Chunk Names
-bundle.js  8.7 KiB    main  [emitted]  main
+    Asset      Size  Chunks             Chunk Names
+bundle.js  8.69 KiB    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 25 bytes [entry]
 [10] ./index.js 25 bytes {main}"
