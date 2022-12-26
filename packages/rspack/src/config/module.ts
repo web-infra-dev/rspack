@@ -585,7 +585,7 @@ function composeJsUse(
 				sourceMap = loaderResult.sourceMap ?? sourceMap;
 				cacheable = loaderResult.cacheable ?? cacheable;
 
-				compiler.watcher.add([
+				compiler.watcher?.add([
 					...loaderResult.fileDependencies,
 					...loaderResult.contextDependencies,
 					...loaderResult.missingDependencies
