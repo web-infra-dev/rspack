@@ -1,5 +1,11 @@
 # create-rspack
 
+## 0.0.16
+
+### Patch Changes
+
+- fix load extra css chunk
+
 ## 0.0.15
 
 ### Patch Changes

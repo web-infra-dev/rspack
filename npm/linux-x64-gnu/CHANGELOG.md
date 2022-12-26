@@ -1,5 +1,11 @@
 # @rspack/binding-linux-x64-gnu
 
+## 0.0.20
+
+### Patch Changes
+
+- fix load extra css chunk
+
 ## 0.0.19
 
 ### Patch Changes

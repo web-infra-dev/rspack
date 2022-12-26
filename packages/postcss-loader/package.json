@@ -1,6 +1,6 @@
 {
   "name": "@rspack/postcss-loader",
-  "version": "0.0.19",
+  "version": "0.0.20",
   "description": "",
   "main": "src/index.js",
   "scripts": {
