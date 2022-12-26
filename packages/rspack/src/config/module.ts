@@ -136,6 +136,9 @@ export interface LoaderContext
 	addContextDependency(context: string): void;
 	addMissingDependency(missing: string): void;
 	clearDependencies(): void;
+	getDependencies(): string[];
+	getContextDependencies(): string[];
+	getMissingDependencies(): string[];
 	addBuildDependency(file: string): void;
 	fs: any;
 	utils: {
@@ -187,6 +190,9 @@ export interface LoaderResult {
 	content: string | Buffer;
 	sourceMap?: string | SourceMap;
 	additionalData?: AdditionalData;
+	fileDependencies: string[];
+	contextDependencies: string[];
+	missingDependencies: string[];
 }
 
 function composeJsUse(
@@ -226,6 +232,10 @@ function composeJsUse(
 				let isError = false; // internal error
 				let reportedError = false;
 
+				const fileDependencies = [];
+				const contextDependencies = [];
+				const missingDependencies = [];
+
 				function callback(
 					err: Error | null,
 					content: string | Buffer,
@@ -249,7 +259,10 @@ function composeJsUse(
 						cacheable,
 						content,
 						sourceMap,
-						additionalData
+						additionalData,
+						fileDependencies,
+						contextDependencies,
+						missingDependencies
 					});
 				}
 
@@ -452,13 +465,29 @@ function composeJsUse(
 					addBuildDependency(file) {
 						buildDependencies.push(file);
 					},
-
-					// Mock, we don't need to implement these since the dev-server use 'chokidar'
-					// to watch files under 'options.context'.
-					addDependency(file) {},
-					addContextDependency(context) {},
-					addMissingDependency(missing) {},
-					clearDependencies() {}
+					addDependency(file) {
+						fileDependencies.push(file);
+					},
+					addContextDependency(context) {
+						contextDependencies.push(context);
+					},
+					addMissingDependency(missing) {
+						missingDependencies.push(missing);
+					},
+					clearDependencies() {
+						fileDependencies.length = 0;
+						contextDependencies.length = 0;
+						missingDependencies.length = 0;
+					},
+					getDependencies() {
+						return fileDependencies.slice();
+					},
+					getContextDependencies() {
+						return contextDependencies.slice();
+					},
+					getMissingDependencies() {
+						return missingDependencies.slice();
+					}
 				};
 
 				/**
@@ -495,7 +524,10 @@ function composeJsUse(
 								buildDependencies,
 								sourceMap,
 								additionalData,
-								cacheable
+								cacheable,
+								fileDependencies,
+								contextDependencies,
+								missingDependencies
 							});
 							return;
 						}
@@ -506,7 +538,10 @@ function composeJsUse(
 									buildDependencies,
 									sourceMap,
 									additionalData,
-									cacheable
+									cacheable,
+									fileDependencies,
+									contextDependencies,
+									missingDependencies
 								});
 							}, reject);
 						}
@@ -515,7 +550,10 @@ function composeJsUse(
 							buildDependencies,
 							sourceMap,
 							additionalData,
-							cacheable
+							cacheable,
+							fileDependencies,
+							contextDependencies,
+							missingDependencies
 						});
 					}
 				} catch (err) {
@@ -546,6 +584,12 @@ function composeJsUse(
 				content = loaderResult.content ?? content;
 				sourceMap = loaderResult.sourceMap ?? sourceMap;
 				cacheable = loaderResult.cacheable ?? cacheable;
+
+				compiler.watcher?.add([
+					...loaderResult.fileDependencies,
+					...loaderResult.contextDependencies,
+					...loaderResult.missingDependencies
+				]);
 			}
 		}
 
