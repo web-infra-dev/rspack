@@ -21,10 +21,10 @@ import { createSourceFromRaw } from "./util/createSource";
 import ResolverFactory from "./ResolverFactory";
 
 class EntryPlugin {
-	apply() { }
+	apply() {}
 }
 class HotModuleReplacementPlugin {
-	apply() { }
+	apply() {}
 }
 type CompilationParams = Record<string, any>;
 class Compiler {
@@ -205,7 +205,7 @@ class Compiler {
 	 * @param value
 	 * @returns
 	 */
-	#done(statsJson: binding.JsStatsCompilation) { }
+	#done(statsJson: binding.JsStatsCompilation) {}
 
 	async #processAssets() {
 		await this.compilation.hooks.processAssets.promise(
@@ -340,10 +340,12 @@ class Compiler {
 			this.inputFileSystem.purge();
 		}
 	}
+
 	/**
 	 * @todo
 	 */
 	close(callback) {
+		this.#_instance = null;
 		callback();
 	}
 	emitAssets(compilation: Compilation, callback) {

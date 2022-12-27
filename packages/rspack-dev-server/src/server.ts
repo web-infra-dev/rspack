@@ -225,15 +225,30 @@ export class RspackDevServer {
 	}
 
 	async stop(): Promise<void> {
+		this.compiler.close(() => {});
 		await Promise.all(this.staticWatchers.map(watcher => watcher.close()));
-		this.middleware = null;
 		this.staticWatchers = [];
+
+		if (this.middleware) {
+			await new Promise((resolve, reject) => {
+				this.middleware.close((error: Error) => {
+					if (error) {
+						reject(error);
+						return;
+					}
+					resolve(undefined);
+				});
+			});
+		}
+		this.middleware = null;
+
 		if (this.server) {
 			this.server.close();
 		}
 		if (this.webSocketServer) {
 			await new Promise(resolve => {
 				this.webSocketServer.implementation.close(() => {
+					this.webSocketServer = null;
 					resolve(void 0);
 				});
 				for (const client of this.webSocketServer.clients) client.terminate();

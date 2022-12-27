@@ -1,7 +1,7 @@
 import { RspackDevServer } from "@rspack/dev-server";
 import { createCompiler } from "@rspack/core";
 import { initFixture, installDeps } from "../helpers/tempDir";
-import { editFile } from "../helpers/emitFile";
+import { editFile, waitingForBuild } from "../helpers/emitFile";
 import path from "path";
 import runBrowser from "../helpers/runBrowser";
 import type { Browser, Page } from "puppeteer";
@@ -124,6 +124,8 @@ describe("reload and hot should works", () => {
 		});
 		let server = new RspackDevServer(compiler);
 		await server.start();
+		await waitingForBuild(server.options.port);
+		console.log("=== before goto page ===");
 		let { browser, page } = await runBrowser();
 
 		await page.goto(`http://localhost:${server.options.port}`);
@@ -165,6 +167,9 @@ describe("reload and hot should works", () => {
 		});
 		server = new RspackDevServer(compiler);
 		await server.start();
+		await waitingForBuild(server.options.port);
+		console.log("=== before goto page ===");
+
 		({ browser, page } = await runBrowser());
 		const consoleMessages: string[] = [];
 		page.on("console", message => {
