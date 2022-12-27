@@ -38,17 +38,12 @@ pub enum ResolveKind {
   ModuleHotAccept,
 }
 
-pub type FactorizeResult = Option<(
-  BoxModule,
-  // Temporary Dependency Id
-  u32,
-)>;
+pub type FactorizeResult = BoxModule;
 
 #[derive(Debug)]
 pub struct NormalModuleFactory {
   context: NormalModuleFactoryContext,
   dependency: Dependency,
-  tx: UnboundedSender<Msg>,
   plugin_driver: SharedPluginDriver,
   diagnostic: Vec<Diagnostic>,
   cache: Arc<Cache>,
@@ -58,16 +53,12 @@ impl NormalModuleFactory {
   pub fn new(
     context: NormalModuleFactoryContext,
     dependency: Dependency,
-    tx: UnboundedSender<Msg>,
     plugin_driver: SharedPluginDriver,
     cache: Arc<Cache>,
   ) -> Self {
-    context.active_task_count.fetch_add(1, Ordering::SeqCst);
-
     Self {
       context,
       dependency,
-      tx,
       plugin_driver,
       diagnostic: vec![],
       cache,
@@ -75,8 +66,12 @@ impl NormalModuleFactory {
   }
   #[instrument(name = "normal_module_factory:create", skip_all)]
   /// set `is_entry` true if you are trying to create a new module factory with a module identifier which is an entry
-  pub async fn create(mut self, is_entry: bool, resolve_options: Option<Resolve>) -> Result {
-    self.factorize(resolve_options).await.map(|result| {})
+  pub async fn create(
+    mut self,
+    is_entry: bool,
+    resolve_options: Option<Resolve>,
+  ) -> Result<(FactorizeResult, NormalModuleFactoryContext)> {
+    (self.factorize(resolve_options).await, self.context)
   }
 
   pub fn calculate_module_type_by_resource(
@@ -91,7 +86,7 @@ impl NormalModuleFactory {
   pub async fn factorize_normal_module(
     &mut self,
     resolve_options: Option<Resolve>,
-  ) -> Result<Option<(BoxModule, u32)>> {
+  ) -> Result<Option<BoxModule>> {
     // TODO: `importer` should use `NormalModule::context || options.context`;
     let importer = self.dependency.parent_module_identifier.as_deref();
     let specifier = self.dependency.detail.specifier.as_str();
@@ -138,21 +133,8 @@ impl NormalModuleFactory {
         let uri = format!("{}/{}", importer.display(), specifier);
 
         let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
+
         let module_identifier = Ustr::from(&format!("ignored|{uri}"));
-
-        self
-          .tx
-          .send(Msg::DependencyReference(
-            (self.dependency.clone(), dependency_id),
-            module_identifier,
-          ))
-          .map_err(|_| {
-            Error::InternalError(internal_error!(format!(
-              "Failed to resolve dependency {:?}",
-              self.dependency
-            )))
-          })?;
-
         let raw_module = RawModule::new(
           "/* (ignored) */".to_owned(),
           module_identifier,
@@ -163,7 +145,7 @@ impl NormalModuleFactory {
 
         self.context.module_type = Some(*raw_module.module_type());
 
-        return Ok(Some((uri, raw_module, dependency_id)));
+        return Ok(Some(raw_module));
       }
     };
 
@@ -175,19 +157,6 @@ impl NormalModuleFactory {
     }
 
     let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
-
-    self
-      .tx
-      .send(Msg::DependencyReference(
-        (self.dependency.clone(), dependency_id),
-        Ustr::from(&uri),
-      ))
-      .map_err(|_| {
-        Error::InternalError(internal_error!(format!(
-          "Failed to resolve dependency {:?}",
-          self.dependency
-        )))
-      })?;
 
     let resolved_module_rules = self.calculate_module_rules(&resource_data)?;
     let resolved_module_type = self.calculate_module_type(
@@ -234,10 +203,10 @@ impl NormalModuleFactory {
       })
       .await?
     {
-      return Ok(Some((uri, module, dependency_id)));
+      return Ok(Some(module));
     }
 
-    Ok(Some((uri, Box::new(normal_module), dependency_id)))
+    Ok(Some(Box::new(normal_module)))
   }
 
   fn calculate_module_rules(&self, resource_data: &ResourceData) -> Result<Vec<&ModuleRule>> {
@@ -310,29 +279,17 @@ impl NormalModuleFactory {
       .await?;
 
     if let Some(module) = result {
-      let dependency_id = DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
       self.context.module_type = Some(*module.module_type());
-
-      self
-        .tx
-        .send(Msg::DependencyReference(
-          (self.dependency.clone(), dependency_id),
-          module.identifier(),
-        ))
-        .map_err(|_| {
-          Error::InternalError(internal_error!(format!(
-            "Failed to resolve dependency {:?}",
-            self.dependency,
-          )))
-        })?;
-      return (module, dependency_id);
+      return Ok(module);
     }
 
     if let Some(result) = self.factorize_normal_module(resolve_options).await? {
-      return result;
+      return Ok(result);
     }
 
-    Ok(None)
+    Err(internal_error!(
+      "Failed to factorize module, neither hook nor factorize method returns".to_owned()
+    ))
   }
 }
 

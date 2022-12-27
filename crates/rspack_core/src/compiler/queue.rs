@@ -1,7 +1,11 @@
-use rspack_error::{Diagnostic, Result};
+use std::sync::Arc;
+
+use rspack_error::{internal_error, Diagnostic, Error, Result};
 
 use crate::{
-  Dependency, Module, ModuleGraphModule, ModuleIdentifier, NormalModuleFactory, WorkerQueue,
+  cache::Cache, CompilerOptions, Dependency, Module, ModuleGraphModule, ModuleIdentifier,
+  ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve, SharedPluginDriver,
+  WorkerQueue,
 };
 
 pub enum TaskResult {
@@ -16,38 +20,58 @@ pub trait WorkerTask {
 }
 
 pub struct FactorizeContext {
-  original_module_identifier: Option<ModuleIdentifier>,
-  dependencies: Vec<Dependency>,
+  pub original_module_identifier: Option<ModuleIdentifier>,
+  pub dependencies: Vec<Dependency>,
+
+  pub is_entry: bool,
+  pub module_name: Option<String>,
+  pub module_type: Option<ModuleType>,
+  pub side_effects: Option<bool>,
+  pub resolve_options: Option<Resolve>,
+  pub options: Arc<CompilerOptions>,
+  pub lazy_visit_modules: std::collections::HashSet<String>,
+  pub plugin_driver: SharedPluginDriver,
+  pub cache: Arc<Cache>,
 }
 
 pub struct FactorizeResult {
   module: Box<dyn Module>,
   module_graph_module: ModuleGraphModule,
-  dependencies: Vec<Dependency>,
-  diagnostics: Vec<Diagnostic>,
 }
 
 #[async_trait::async_trait]
 impl WorkerTask for FactorizeContext {
   async fn run(self) -> Result<TaskResult> {
-    NormalModuleFactory::new();
-    // let mgm = ModuleGraphModule::new(
-    //   self.context.module_name.clone(),
-    //   module.identifier(),
-    //   vec![],
-    //   self.context.module_type.ok_or_else(|| {
-    //     Error::InternalError(internal_error!(format!(
-    //       "Unable to get the module type for module {}, did you forget to configure `Rule.type`? ",
-    //       module.identifier()
-    //     )))
-    //   })?,
-    //   !self.context.options.builtins.side_effects,
-    // );
+    let factory = NormalModuleFactory::new(
+      NormalModuleFactoryContext {
+        module_name: self.module_name,
+        module_type: self.module_type,
+        side_effects: self.side_effects,
+        options: self.options,
+        lazy_visit_modules: self.lazy_visit_modules,
+      },
+      self.dependencies[0],
+      self.plugin_driver,
+      self.cache,
+    );
+
+    let (module, context) = factory.create(self.is_entry, self.resolve_options).await?;
+    let mgm = ModuleGraphModule::new(
+      context.module_name.clone(),
+      module.identifier(),
+      vec![],
+      context.module_type.ok_or_else(|| {
+        Error::InternalError(internal_error!(format!(
+          "Unable to get the module type for module {}, did you forget to configure `Rule.type`? ",
+          module.identifier()
+        )))
+      })?,
+      !self.context.options.builtins.side_effects,
+    );
+
     Ok(TaskResult::Factorize(FactorizeResult {
-      module: todo!(),
-      module_graph_module: todo!(),
-      dependencies: vec![],
-      diagnostics: vec![],
+      module,
+      module_graph_module: mgm,
     }))
   }
 }

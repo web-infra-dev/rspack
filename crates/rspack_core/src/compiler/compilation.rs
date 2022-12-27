@@ -365,9 +365,13 @@ impl Compilation {
         if let Some(task) = factorize_queue.get_task() {
           tokio::spawn({
             let result_tx = result_tx.clone();
+            let active_task_count = active_task_count.clone();
+            active_task_count.fetch_add(1, Ordering::SeqCst);
+
             async move {
               let result = task.run().await;
-              result_tx.send(result)
+              result_tx.send(result);
+              active_task_count.fetch_sub(1, Ordering::SeqCst);
             }
           });
         }
@@ -375,9 +379,13 @@ impl Compilation {
         if let Some(task) = build_queue.get_task() {
           tokio::spawn({
             let result_tx = result_tx.clone();
+            let active_task_count = active_task_count.clone();
+            active_task_count.fetch_add(1, Ordering::SeqCst);
+
             async move {
               let result = task.run().await;
               result_tx.send(result);
+              active_task_count.fetch_sub(1, Ordering::SeqCst);
             }
           });
         }
@@ -385,9 +393,13 @@ impl Compilation {
         if let Some(task) = add_queue.get_task() {
           tokio::spawn({
             let result_tx = result_tx.clone();
+            let active_task_count = active_task_count.clone();
+            active_task_count.fetch_add(1, Ordering::SeqCst);
+
             async move {
               let result = task.run().await;
               result_tx.send(result);
+              active_task_count.fetch_sub(1, Ordering::SeqCst);
             }
           });
         }
