@@ -73,6 +73,10 @@ export class RspackDevServer {
 		if (this.options.hot) {
 			this.compiler.options.builtins.react.refresh =
 				this.compiler.options.builtins.react.refresh ?? true;
+		} else if (this.compiler.options.builtins.react.refresh) {
+			this.logger.warn(
+				"[Builtins] react.refresh need react.development and devServer.hot enabled."
+			);
 		}
 	}
 
