@@ -269,7 +269,9 @@ function composeJsUse(
 				const getResolveContext = () => {
 					return {
 						fileDependencies: {
-							add: d => loaderContext.addDependency(d)
+							add: d => {
+								// FIXME: This will cause build hang, so we skip it
+							}
 						},
 						contextDependencies: {
 							add: d => loaderContext.addContextDependency(d)
@@ -584,8 +586,8 @@ function composeJsUse(
 				content = loaderResult.content ?? content;
 				sourceMap = loaderResult.sourceMap ?? sourceMap;
 				cacheable = loaderResult.cacheable ?? cacheable;
-
 				compiler.watcher?.add([
+					data.resourcePath,
 					...loaderResult.fileDependencies,
 					...loaderResult.contextDependencies,
 					...loaderResult.missingDependencies
