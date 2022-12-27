@@ -13,6 +13,7 @@ export function resolveWatchOption(watch: Watch = {}): ResolvedWatch {
 		"**/.git/**"
 	];
 	return {
+		...watch,
 		ignored
 	};
 }
