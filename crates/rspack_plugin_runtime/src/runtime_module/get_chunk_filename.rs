@@ -79,7 +79,13 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                     filename: chunk.name.clone(),
                     extension: Some(format!(".{}", self.content_type)),
                     id: Some(chunk.id.clone()),
-                    contenthash: hash.clone(),
+                    contenthash: Some(
+                      chunk
+                        .content_hash
+                        .get(&self.source_type)
+                        .expect("should have chunk content hash")
+                        .clone(),
+                    ),
                     chunkhash: hash.clone(),
                     hash,
                     ..Default::default()

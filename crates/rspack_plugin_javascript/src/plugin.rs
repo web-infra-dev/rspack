@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{
   BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
@@ -13,11 +12,13 @@ use rspack_core::{
   SourceType,
 };
 use rspack_error::{internal_error, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use std::hash::{Hash, Hasher};
 use swc_core::base::{config::JsMinifyOptions, BoolOrDataConfig};
 use swc_core::common::util::take::Take;
 use swc_core::ecma::ast;
 use swc_core::ecma::minifier::option::terser::TerserCompressorOptions;
 use tracing::instrument;
+use xxhash_rust::xxh3::Xxh3;
 
 use crate::runtime::{generate_chunk_entry_code, render_chunk_modules, render_runtime_modules};
 use crate::utils::syntax_by_module_type;
@@ -344,6 +345,48 @@ impl Plugin for JsPlugin {
     Ok(())
   }
 
+  async fn content_hash(
+    &self,
+    _ctx: rspack_core::PluginContext,
+    args: &mut rspack_core::ContentHashArgs<'_>,
+  ) -> rspack_core::PluginContentHashHookOutput {
+    let compilation = &mut args.compilation;
+
+    let mut hasher = Xxh3::default();
+
+    let ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+      &args.chunk_ukey,
+      SourceType::JavaScript,
+      &compilation.module_graph,
+    );
+    for mgm in ordered_modules {
+      if let Some(module) = compilation
+        .module_graph
+        .module_by_identifier(&mgm.module_identifier)
+      {
+        module.hash(&mut hasher);
+      }
+    }
+
+    for runtime_module_identifier in compilation
+      .chunk_graph
+      .get_chunk_runtime_modules_in_order(&args.chunk_ukey)
+    {
+      if let Some(module) = compilation.runtime_modules.get(runtime_module_identifier) {
+        module.hash(compilation, &mut hasher);
+      }
+    }
+
+    let chunk = compilation
+      .chunk_by_ukey
+      .get_mut(&args.chunk_ukey)
+      .expect("should have chunk");
+    chunk
+      .content_hash
+      .insert(SourceType::JavaScript, format!("{:x}", hasher.finish()));
+    Ok(())
+  }
+
   async fn render_manifest(
     &self,
     _ctx: PluginContext,
@@ -374,7 +417,13 @@ impl Plugin for JsPlugin {
       filename: chunk.name.clone(),
       extension: Some(".js".to_owned()),
       id: Some(chunk.id.to_string()),
-      contenthash: hash.clone(),
+      contenthash: Some(
+        chunk
+          .content_hash
+          .get(&SourceType::JavaScript)
+          .expect("should have chunk javascript content hash")
+          .clone(),
+      ),
       chunkhash: hash.clone(),
       hash,
       ..Default::default()

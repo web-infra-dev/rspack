@@ -2,7 +2,7 @@ use crate::{
   ChunkGraph, ChunkGroupByUkey, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, ModuleGraph,
   RuntimeSpec, SourceType,
 };
-use hashbrown::HashSet;
+use hashbrown::{HashMap, HashSet};
 use std::{
   fmt::{Debug, Formatter, Result},
   hash::Hasher,
@@ -24,6 +24,7 @@ pub struct Chunk {
   pub runtime: RuntimeSpec,
   pub kind: ChunkKind,
   pub hash: Xxh3,
+  pub content_hash: HashMap<SourceType, String>,
 }
 
 impl Debug for Chunk {
@@ -51,6 +52,7 @@ impl Chunk {
       runtime: HashSet::default(),
       kind,
       hash: Default::default(),
+      content_hash: HashMap::default(),
     }
   }
 

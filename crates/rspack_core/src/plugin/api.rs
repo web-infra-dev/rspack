@@ -4,9 +4,9 @@ use hashbrown::HashMap;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkUkey, Compilation, CompilationArgs,
-  DoneArgs, FactorizeArgs, Module, ModuleArgs, ModuleType, NormalModuleFactoryContext,
-  OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderChunkArgs,
-  RenderManifestArgs, ThisCompilationArgs,
+  ContentHashArgs, DoneArgs, FactorizeArgs, Module, ModuleArgs, ModuleType,
+  NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
+  ProcessAssetsArgs, RenderChunkArgs, RenderManifestArgs, ThisCompilationArgs,
 };
 use rspack_error::Result;
 use rspack_loader_runner::{Content, ResourceData};
@@ -22,6 +22,7 @@ pub type PluginReadResourceOutput = Result<Option<Content>>;
 // FIXME: factorize should only return `BoxModule`, the first string currently is used to generate `id`(moduleIds)
 pub type PluginFactorizeHookOutput = Result<Option<(String, BoxModule)>>;
 pub type PluginModuleHookOutput = Result<Option<BoxModule>>;
+pub type PluginContentHashHookOutput = Result<()>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
 pub type PluginRenderChunkHookOutput = Result<Option<BoxSource>>;
 pub type PluginProcessAssetsOutput = Result<()>;
@@ -80,6 +81,14 @@ pub trait Plugin: Debug + Send + Sync {
 
   async fn module(&self, _ctx: PluginContext, _args: &ModuleArgs) -> PluginModuleHookOutput {
     Ok(None)
+  }
+
+  async fn content_hash(
+    &self,
+    _ctx: PluginContext,
+    _args: &mut ContentHashArgs<'_>,
+  ) -> PluginContentHashHookOutput {
+    Ok(())
   }
 
   async fn render_manifest(

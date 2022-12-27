@@ -9,13 +9,14 @@ use tracing::instrument;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxedParserAndGeneratorBuilder,
-  Compilation, CompilationArgs, CompilerOptions, Content, DoneArgs, FactorizeArgs, Module,
-  ModuleArgs, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
+  Compilation, CompilationArgs, CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs,
+  Module, ModuleArgs, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
-  PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput, PluginMakeHookOutput,
-  PluginModuleHookOutput, PluginProcessAssetsOutput, PluginRenderChunkHookOutput,
-  PluginRenderManifestHookOutput, PluginThisCompilationHookOutput, ProcessAssetsArgs,
-  RenderChunkArgs, RenderManifestArgs, Resolver, ResolverFactory, Stats, ThisCompilationArgs,
+  PluginCompilationHookOutput, PluginContentHashHookOutput, PluginContext,
+  PluginFactorizeHookOutput, PluginMakeHookOutput, PluginModuleHookOutput,
+  PluginProcessAssetsOutput, PluginRenderChunkHookOutput, PluginRenderManifestHookOutput,
+  PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderChunkArgs, RenderManifestArgs,
+  Resolver, ResolverFactory, Stats, ThisCompilationArgs,
 };
 use rspack_error::{Diagnostic, Result};
 
@@ -163,6 +164,14 @@ impl PluginDriver {
         .await?;
     }
 
+    Ok(())
+  }
+
+  #[instrument(name = "plugin:this_compilation", skip_all)]
+  pub async fn content_hash(&self, args: &mut ContentHashArgs<'_>) -> PluginContentHashHookOutput {
+    for plugin in &self.plugins {
+      plugin.content_hash(PluginContext::new(), args).await?;
+    }
     Ok(())
   }
 
