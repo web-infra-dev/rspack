@@ -383,11 +383,12 @@ describe("Compiler", () => {
 		});
 		compiler.outputFileSystem = createFsFromVolume(new Volume());
 		const watching = compiler.watch({}, (err, stats) => {
-			watching.close();
-			if (err) return done(err);
-			if (compiler.outputFileSystem.existsSync("/bundle.js"))
-				return done(new Error("Bundle should not be created on error"));
-			done();
+			watching.close(() => {
+				if (err) return done(err);
+				if (compiler.outputFileSystem.existsSync("/bundle.js"))
+					return done(new Error("Bundle should not be created on error"));
+				done();
+			});
 		});
 	});
 	it.skip("should not be running twice at a time (run)", done => {
