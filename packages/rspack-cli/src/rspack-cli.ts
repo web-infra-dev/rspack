@@ -84,7 +84,7 @@ export class RspackCLI {
 				name: "rspack-bundle-analyzer",
 				apply(compiler) {
 					new BundleAnalyzerPlugin({
-						generateStatsFile: true,
+						generateStatsFile: true
 					}).apply(compiler as any);
 				}
 			});
