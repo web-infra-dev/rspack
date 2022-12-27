@@ -298,10 +298,13 @@ impl Compiler {
             module.hash(&mut hot_update_chunk.hash);
           }
         }
-        hot_update_chunk.content_hash.insert(
-          crate::SourceType::JavaScript,
-          format!("{:x}", hot_update_chunk.hash.finish()),
-        );
+        let hash = format!("{:x}", hot_update_chunk.hash.finish());
+        hot_update_chunk
+          .content_hash
+          .insert(crate::SourceType::JavaScript, hash.clone());
+        hot_update_chunk
+          .content_hash
+          .insert(crate::SourceType::Css, hash);
 
         self
           .compilation
