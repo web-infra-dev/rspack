@@ -36,10 +36,6 @@ impl<'compilation> Stats<'compilation> {
     let mut compilation_file_to_chunks: HashMap<&String, Vec<&Chunk>> = HashMap::new();
     for (_, chunk) in &self.compilation.chunk_by_ukey {
       for file in &chunk.files {
-        // TODO: avoid runtime.js in every chunk.files, delete this once runtime refacted.
-        if file == "runtime.js" {
-          continue;
-        }
         let chunks = compilation_file_to_chunks.entry(file).or_default();
         chunks.push(chunk);
       }
