@@ -5,7 +5,7 @@ import { editFile } from "../helpers/emitFile";
 import path from "path";
 import runBrowser from "../helpers/runBrowser";
 import type { Browser, Page } from "puppeteer";
-
+import fs from "fs";
 // FIXME: A concurrency problem occurs when executing on ci
 // describe("reload and hot should works", () => {
 // 	let browser: Browser;
@@ -124,15 +124,21 @@ describe("reload and hot should works", () => {
 		});
 		let server = new RspackDevServer(compiler);
 		await server.start();
-		let launched = await runBrowser();
-		let { browser, page } = launched;
+		let { browser, page } = await runBrowser();
 
 		await page.goto(`http://localhost:${server.options.port}`);
 		await page.click(".test-button");
 		expect(await getText(page, ".test-button-content")).toBe("1");
 		expect(await getText(page, ".placeholder")).toBe("__PLACE_HOLDER__");
-		await editFile(path.resolve(tempDir, "./app.jsx"), code =>
+
+		const appFilePath = path.resolve(tempDir, "./app.jsx");
+		await editFile(appFilePath, code =>
 			code.replace("__PLACE_HOLDER__", "update")
+		);
+		console.log(
+			"after emit file: ",
+			appFilePath,
+			fs.readFileSync(appFilePath, "utf-8")
 		);
 		expect(await getText(page, ".test-button-content")).toBe("0");
 		await page.click(".test-button");
@@ -144,9 +150,9 @@ describe("reload and hot should works", () => {
 		expect((await getComputedStyle(page, "body")).backgroundColor).toBe(
 			"rgba(255, 0, 0, 0)"
 		);
-		console.log("=== first end ===");
 		await server.stop();
 		await browser.close();
+		console.log("=== first end ===");
 
 		// hot should works;
 		console.log("=== second start ===");
@@ -159,8 +165,7 @@ describe("reload and hot should works", () => {
 		});
 		server = new RspackDevServer(compiler);
 		await server.start();
-		launched = await runBrowser();
-		({ browser, page } = launched);
+		({ browser, page } = await runBrowser());
 		const consoleMessages: string[] = [];
 		page.on("console", message => {
 			const text = message.text();
@@ -182,6 +187,8 @@ describe("reload and hot should works", () => {
 		);
 		expect(await getText(page, ".test-button-content")).toBe("1");
 		expect(consoleMessages).toContain("App hot update...");
+		await server.stop();
+		await browser.close();
 		console.log("=== second end ===");
 	});
 });

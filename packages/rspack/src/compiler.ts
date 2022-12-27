@@ -391,6 +391,7 @@ class Compiler {
 			}
 		};
 	}
+
 	purgeInputFileSystem() {
 		if (this.inputFileSystem && this.inputFileSystem.purge) {
 			this.inputFileSystem.purge();
