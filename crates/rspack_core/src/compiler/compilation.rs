@@ -1240,7 +1240,7 @@ impl Compilation {
         .chunk_by_ukey
         .keys()
         .filter(|key| !runtime_chunks.contains(key))
-        .map(|key| key.clone())
+        .copied()
         .collect::<Vec<_>>();
       chunks.extend(runtime_chunks);
       chunks

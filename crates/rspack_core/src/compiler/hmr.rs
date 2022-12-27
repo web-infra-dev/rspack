@@ -1,4 +1,8 @@
-use std::{collections::HashSet, hash::Hash, ops::Sub};
+use std::{
+  collections::HashSet,
+  hash::{Hash, Hasher},
+  ops::Sub,
+};
 
 use hashbrown::HashMap;
 use rspack_error::Result;
@@ -294,6 +298,10 @@ impl Compiler {
             module.hash(&mut hot_update_chunk.hash);
           }
         }
+        hot_update_chunk.content_hash.insert(
+          crate::SourceType::JavaScript,
+          format!("{:x}", hot_update_chunk.hash.finish()),
+        );
 
         self
           .compilation
