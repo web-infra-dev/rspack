@@ -1,5 +1,27 @@
 # rspack-dev-server
 
+## 0.0.21
+
+### Patch Changes
+
+- fix watch
+- Updated dependencies
+  - @rspack/core@0.0.21
+  - @rspack/dev-client@0.0.21
+  - @rspack/dev-middleware@0.0.21
+  - @rspack/dev-server@0.0.21
+
+## 0.0.20
+
+### Patch Changes
+
+- fix load extra css chunk
+- Updated dependencies
+  - @rspack/core@0.0.20
+  - @rspack/dev-client@0.0.20
+  - @rspack/dev-middleware@0.0.20
+  - @rspack/dev-server@0.0.20
+
 ## 0.0.19
 
 ### Patch Changes
