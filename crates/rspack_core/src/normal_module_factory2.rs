@@ -70,8 +70,12 @@ impl NormalModuleFactory {
     mut self,
     is_entry: bool,
     resolve_options: Option<Resolve>,
-  ) -> Result<(FactorizeResult, NormalModuleFactoryContext)> {
-    (self.factorize(resolve_options).await, self.context)
+  ) -> Result<(FactorizeResult, NormalModuleFactoryContext, Dependency)> {
+    Ok((
+      self.factorize(resolve_options).await?,
+      self.context,
+      self.dependency,
+    ))
   }
 
   pub fn calculate_module_type_by_resource(

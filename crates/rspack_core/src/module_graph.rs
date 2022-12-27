@@ -91,19 +91,18 @@ impl ModuleGraph {
     }
   }
 
-  pub fn add_dependency(
-    &mut self,
-    (dep, dependency_id): (Dependency, u32),
-    module_identifier: ModuleIdentifier,
-  ) {
-    self
-      .dependency_id_to_dependency
-      .insert(dependency_id, dep.clone());
-    self.dependency_to_dependency_id.insert(dep, dependency_id);
+  pub fn add_dependency(&mut self, dep: Dependency, module_identifier: ModuleIdentifier) -> u32 {
+    static NEXT_DEPENDENCY_ID: AtomicU32 = AtomicU32::new(0);
+
+    let id = NEXT_DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
+    self.dependency_id_to_dependency.insert(id, dep.clone());
+    self.dependency_to_dependency_id.insert(dep, id);
 
     self
       .dependency_id_to_module_identifier
-      .insert(dependency_id, module_identifier);
+      .insert(id, module_identifier);
+
+    id
   }
 
   /// Uniquely identify a module by its dependency
