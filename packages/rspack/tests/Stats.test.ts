@@ -78,8 +78,12 @@ describe("Stats", () => {
 		      ],
 		      "id": "876",
 		      "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
+		      "issuerPath": [],
 		      "moduleType": "js",
 		      "name": "./fixtures/a.js",
+		      "reasons": [
+		        {},
+		      ],
 		      "size": 55,
 		      "type": "module",
 		    },
@@ -94,7 +98,8 @@ describe("Stats", () => {
 		main.js  215 bytes    main  [emitted]  main
 		Entrypoint main = main.js
 		chunk {main} main.js (main) 55 bytes [entry]
-		[876] ./fixtures/a.js 55 bytes {main}"
+		[876] ./fixtures/a.js 55 bytes {main}
+		    "
 	`);
 	});
 

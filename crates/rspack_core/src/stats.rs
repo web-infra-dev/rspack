@@ -1,4 +1,4 @@
-use crate::{Chunk, Compilation, ModuleType, SourceType};
+use crate::{BoxModule, Chunk, Compilation, ModuleType, SourceType};
 use hashbrown::HashMap;
 use rspack_error::{
   emitter::{
@@ -32,7 +32,7 @@ impl<'compilation> Stats<'compilation> {
 }
 
 impl<'compilation> Stats<'compilation> {
-  pub fn to_description(&self) -> StatsCompilation {
+  pub fn to_description(&self) -> Result<StatsCompilation> {
     let mut compilation_file_to_chunks: HashMap<&String, Vec<&Chunk>> = HashMap::new();
     for (_, chunk) in &self.compilation.chunk_by_ukey {
       for file in &chunk.files {
@@ -91,7 +91,41 @@ impl<'compilation> Stats<'compilation> {
           .module_graph
           .module_graph_module_by_identifier(&identifier)
           .unwrap();
-        let issuer = mgm.get_issuer();
+
+        let issuer = self.compilation.module_graph.get_issuer(module);
+        let (issuer_name, issuer_id) = issuer
+          .map(|i| get_stats_module_name_and_id(i, self.compilation))
+          .unzip();
+        let mut issuer_path = Vec::new();
+        let mut current_issuer = issuer;
+        while let Some(i) = current_issuer {
+          let (name, id) = get_stats_module_name_and_id(i, self.compilation);
+          issuer_path.push(StatsModuleIssuer {
+            identifier: i.identifier().to_string(),
+            name,
+            id,
+          });
+          current_issuer = self.compilation.module_graph.get_issuer(i);
+        }
+        issuer_path.reverse();
+
+        let mut reasons: Vec<StatsModuleReason> = mgm
+          .incoming_connections_unordered(&self.compilation.module_graph)?
+          .map(|connection| {
+            let (module_name, module_id) = connection
+              .original_module_identifier
+              .and_then(|i| self.compilation.module_graph.module_by_identifier(&i))
+              .map(|m| get_stats_module_name_and_id(m, self.compilation))
+              .unzip();
+            StatsModuleReason {
+              module_identifier: connection.original_module_identifier.map(|i| i.to_string()),
+              module_name,
+              module_id,
+            }
+          })
+          .collect();
+        reasons.sort_by(|a, b| a.module_identifier.cmp(&b.module_identifier));
+
         let mut chunks: Vec<String> = self
           .compilation
           .chunk_graph
@@ -101,7 +135,8 @@ impl<'compilation> Stats<'compilation> {
           .map(|k| self.compilation.chunk_by_ukey.get(k).unwrap().id.clone())
           .collect();
         chunks.sort();
-        StatsModule {
+
+        Ok(StatsModule {
           r#type: "module",
           module_type: *module.module_type(),
           identifier: identifier.to_owned(),
@@ -111,16 +146,14 @@ impl<'compilation> Stats<'compilation> {
           id: mgm.id(&self.compilation.chunk_graph).to_string(),
           chunks,
           size: module.size(&SourceType::JavaScript),
-          issuer: issuer.identifier().map(|i| i.to_string()),
-          issuer_name: issuer
-            .readable_identifier(
-              &self.compilation.module_graph,
-              &self.compilation.options.context,
-            )
-            .map(|i| i.to_string()),
-        }
+          issuer: issuer.map(|i| i.identifier().to_string()),
+          issuer_name,
+          issuer_id,
+          issuer_path,
+          reasons,
+        })
       })
-      .collect();
+      .collect::<Result<_>>()?;
     modules.sort_by(|a, b| {
       if a.name.len() != b.name.len() {
         a.name.len().cmp(&b.name.len())
@@ -227,7 +260,7 @@ impl<'compilation> Stats<'compilation> {
 
     let hash = self.compilation.hash.to_owned();
 
-    StatsCompilation {
+    Ok(StatsCompilation {
       assets,
       modules,
       chunks,
@@ -237,8 +270,19 @@ impl<'compilation> Stats<'compilation> {
       warnings_count: warnings.len(),
       warnings,
       hash,
-    }
+    })
   }
+}
+
+fn get_stats_module_name_and_id(module: &BoxModule, compilation: &Compilation) -> (String, String) {
+  let identifier = module.identifier();
+  let mgm = compilation
+    .module_graph
+    .module_graph_module_by_identifier(&identifier)
+    .unwrap();
+  let name = module.readable_identifier(&compilation.options.context);
+  let id = mgm.id(&compilation.chunk_graph);
+  (name.to_string(), id.to_string())
 }
 
 #[derive(Debug)]
@@ -294,6 +338,9 @@ pub struct StatsModule {
   pub size: f64,
   pub issuer: Option<String>,
   pub issuer_name: Option<String>,
+  pub issuer_id: Option<String>,
+  pub issuer_path: Vec<StatsModuleIssuer>,
+  pub reasons: Vec<StatsModuleReason>,
 }
 
 #[derive(Debug)]
@@ -319,4 +366,18 @@ pub struct StatsEntrypoint {
   pub assets: Vec<StatsEntrypointAsset>,
   pub chunks: Vec<String>,
   pub assets_size: f64,
+}
+
+#[derive(Debug)]
+pub struct StatsModuleIssuer {
+  pub identifier: String,
+  pub name: String,
+  pub id: String,
+}
+
+#[derive(Debug)]
+pub struct StatsModuleReason {
+  pub module_identifier: Option<String>,
+  pub module_name: Option<String>,
+  pub module_id: Option<String>,
 }

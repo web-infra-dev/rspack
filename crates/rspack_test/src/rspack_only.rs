@@ -34,7 +34,7 @@ where
     .build()
     .unwrap();
 
-  if !stats.to_description().errors.is_empty() {
+  if !stats.to_description().unwrap().errors.is_empty() {
     panic!(
       "Failed to compile in fixtrue {:?}, errors: {:?}",
       fixture_path,

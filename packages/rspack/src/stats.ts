@@ -489,7 +489,7 @@ export class Stats {
 						colors.cyan(reason.userRequest);
 						colors.normal(" ");
 					}
-					if (reason.moduleId !== null) {
+					if (reason.moduleId) {
 						colors.normal("[");
 						colors.normal(reason.moduleId);
 						colors.normal("]");

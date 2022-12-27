@@ -233,4 +233,10 @@ impl ModuleGraph {
       .module_graph_module_by_identifier(module_identifier)
       .and_then(|mgm| mgm.pre_order_index)
   }
+
+  pub fn get_issuer(&self, module: &BoxModule) -> Option<&BoxModule> {
+    self
+      .module_graph_module_by_identifier(&module.identifier())
+      .and_then(|mgm| mgm.get_issuer().get_module(self))
+  }
 }
