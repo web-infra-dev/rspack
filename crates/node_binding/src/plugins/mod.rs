@@ -105,7 +105,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
     self
       .done_tsfn
       .call(
-        args.stats.to_description().into(),
+        args.stats.to_description()?.into(),
         ThreadsafeFunctionCallMode::NonBlocking,
       )?
       .await

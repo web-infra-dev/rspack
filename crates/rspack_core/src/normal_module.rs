@@ -25,7 +25,7 @@ use rspack_sources::{
 };
 
 use crate::{
-  contextify, identifier::Identifiable, BuildContext, BuildResult, ChunkGraph,
+  contextify, identifier::Identifiable, BoxModule, BuildContext, BuildResult, ChunkGraph,
   CodeGenerationResult, Compilation, CompilerOptions, Context, Dependency, GenerateContext,
   LibIdentOptions, Module, ModuleAst, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
   ModuleType, ParseContext, ParseResult, ParserAndGenerator, Resolve, ResolveKind, SourceType,
@@ -60,13 +60,9 @@ impl ModuleIssuer {
     }
   }
 
-  pub fn readable_identifier<'a>(
-    &self,
-    module_graph: &'a ModuleGraph,
-    context: &Context,
-  ) -> Option<Cow<'a, str>> {
-    if let Some(id) = self.identifier() && let Some(issuer) = module_graph.module_by_identifier(id) {
-      Some(issuer.readable_identifier(context))
+  pub fn get_module<'a>(&self, module_graph: &'a ModuleGraph) -> Option<&'a BoxModule> {
+    if let Some(id) = self.identifier() && let Some(module) = module_graph.module_by_identifier(id) {
+      Some(module)
     } else {
       None
     }

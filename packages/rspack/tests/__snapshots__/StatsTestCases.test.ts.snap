@@ -120,8 +120,12 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       ],
       "id": "10",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/filename/index.js",
+      "issuerPath": [],
       "moduleType": "js",
       "name": "./index.js",
+      "reasons": [
+        {},
+      ],
       "size": 38,
       "type": "module",
     },
@@ -132,9 +136,24 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "id": "426",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/filename/dynamic.js",
       "issuer": "<PROJECT_ROOT>/tests/statsCases/filename/index.js",
+      "issuerId": "10",
       "issuerName": "./index.js",
+      "issuerPath": [
+        {
+          "id": "10",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/filename/index.js",
+          "name": "./index.js",
+        },
+      ],
       "moduleType": "js",
       "name": "./dynamic.js",
+      "reasons": [
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/filename/index.js",
+          "moduleName": "./index.js",
+        },
+      ],
       "size": 32,
       "type": "module",
     },
@@ -153,7 +172,9 @@ Entrypoint main = main.xxxx.js
 chunk {dynamic_js} dynamic_js.xxxx.js (dynamic_js) 32 bytes
 chunk {main} main.xxxx.js (main) 38 bytes [entry]
 [10] ./index.js 38 bytes {main}
-[426] ./dynamic.js 32 bytes {dynamic_js}"
+    
+[426] ./dynamic.js 32 bytes {dynamic_js}
+    [10]"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
@@ -216,8 +237,12 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       ],
       "id": "10",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/hot+production/index.js",
+      "issuerPath": [],
       "moduleType": "js",
       "name": "./index.js",
+      "reasons": [
+        {},
+      ],
       "size": 25,
       "type": "module",
     },
@@ -233,7 +258,8 @@ exports[`StatsTestCases should print correct stats for hot+production 2`] = `
 bundle.js  8.69 KiB    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 25 bytes [entry]
-[10] ./index.js 25 bytes {main}"
+[10] ./index.js 25 bytes {main}
+    "
 `;
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 1`] = `
@@ -418,8 +444,12 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       ],
       "id": "10",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+      "issuerPath": [],
       "moduleType": "js",
       "name": "./index.js",
+      "reasons": [
+        {},
+      ],
       "size": 51,
       "type": "module",
     },
@@ -436,6 +466,7 @@ bundle.js  269 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 51 bytes [entry]
 [10] ./index.js 51 bytes {main}
+    
 
 error[internal]: Resolve error
   ┌─ tests/statsCases/resolve-overflow/index.js:1:1
@@ -512,8 +543,12 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       ],
       "id": "10",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+      "issuerPath": [],
       "moduleType": "js",
       "name": "./index.js",
+      "reasons": [
+        {},
+      ],
       "size": 39,
       "type": "module",
     },
@@ -530,6 +565,7 @@ bundle.js  889 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 39 bytes [entry]
 [10] ./index.js 39 bytes {main}
+    
 
 Export should be relative path and start with "./", but got ../../index.js
 "
@@ -638,8 +674,12 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       ],
       "id": "10",
       "identifier": "<PROJECT_ROOT>/tests/statsCases/simple/index.js",
+      "issuerPath": [],
       "moduleType": "js",
       "name": "./index.js",
+      "reasons": [
+        {},
+      ],
       "size": 26,
       "type": "module",
     },
@@ -655,5 +695,6 @@ exports[`StatsTestCases should print correct stats for simple 2`] = `
 bundle.js  319 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 26 bytes [entry]
-[10] ./index.js 26 bytes {main}"
+[10] ./index.js 26 bytes {main}
+    "
 `;

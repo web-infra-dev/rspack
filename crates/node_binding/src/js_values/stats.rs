@@ -80,6 +80,9 @@ pub struct JsStatsModule {
   pub size: f64,
   pub issuer: Option<String>,
   pub issuer_name: Option<String>,
+  pub issuer_id: Option<String>,
+  pub issuer_path: Vec<JsStatsModuleIssuer>,
+  pub reasons: Vec<JsStatsModuleReason>,
 }
 
 impl From<rspack_core::StatsModule> for JsStatsModule {
@@ -94,6 +97,43 @@ impl From<rspack_core::StatsModule> for JsStatsModule {
       id: stats.id,
       issuer: stats.issuer,
       issuer_name: stats.issuer_name,
+      issuer_id: stats.issuer_id,
+      issuer_path: stats.issuer_path.into_iter().map(Into::into).collect(),
+      reasons: stats.reasons.into_iter().map(Into::into).collect(),
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsStatsModuleIssuer {
+  pub identifier: String,
+  pub name: String,
+  pub id: String,
+}
+
+impl From<rspack_core::StatsModuleIssuer> for JsStatsModuleIssuer {
+  fn from(stats: rspack_core::StatsModuleIssuer) -> Self {
+    Self {
+      identifier: stats.identifier,
+      name: stats.name,
+      id: stats.id,
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsStatsModuleReason {
+  pub module_identifier: Option<String>,
+  pub module_name: Option<String>,
+  pub module_id: Option<String>,
+}
+
+impl From<rspack_core::StatsModuleReason> for JsStatsModuleReason {
+  fn from(stats: rspack_core::StatsModuleReason) -> Self {
+    Self {
+      module_identifier: stats.module_identifier,
+      module_name: stats.module_name,
+      module_id: stats.module_id,
     }
   }
 }

@@ -192,7 +192,11 @@ impl Rspack {
           .await
           .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{}", e)))?;
 
-        let stats: JsStatsCompilation = rspack_stats.to_description().into();
+        let stats: JsStatsCompilation = rspack_stats
+          .to_description()
+          .map_err(|e| Error::new(napi::Status::GenericFailure, e.to_string()))?
+          .into();
+
         if stats.errors.is_empty() {
           tracing::info!("build success");
         } else {
@@ -234,7 +238,10 @@ impl Rspack {
           )
           .await
           .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
-        let stats: JsStatsCompilation = stats.to_description().into();
+        let stats: JsStatsCompilation = stats
+          .to_description()
+          .map_err(|e| Error::new(napi::Status::GenericFailure, e.to_string()))?
+          .into();
         tracing::info!("rebuild success");
         Ok(stats)
       })
