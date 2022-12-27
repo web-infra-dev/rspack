@@ -98,12 +98,12 @@ impl<'compilation> Stats<'compilation> {
 
         let issuer = self.compilation.module_graph.get_issuer(module);
         let (issuer_name, issuer_id) = issuer
-          .map(|i| get_stats_module_name_and_id(i, &self.compilation))
+          .map(|i| get_stats_module_name_and_id(i, self.compilation))
           .unzip();
         let mut issuer_path = Vec::new();
         let mut current_issuer = issuer;
         while let Some(i) = current_issuer {
-          let (name, id) = get_stats_module_name_and_id(i, &self.compilation);
+          let (name, id) = get_stats_module_name_and_id(i, self.compilation);
           issuer_path.push(StatsModuleIssuer {
             identifier: i.identifier().to_string(),
             name,
@@ -119,7 +119,7 @@ impl<'compilation> Stats<'compilation> {
             let (module_name, module_id) = connection
               .original_module_identifier
               .and_then(|i| self.compilation.module_graph.module_by_identifier(&i))
-              .map(|m| get_stats_module_name_and_id(m, &self.compilation))
+              .map(|m| get_stats_module_name_and_id(m, self.compilation))
               .unzip();
             StatsModuleReason {
               module_identifier: connection.original_module_identifier.map(|i| i.to_string()),
