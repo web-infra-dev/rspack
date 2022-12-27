@@ -39,13 +39,14 @@ use crate::{
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
     BailoutFlog, OptimizeDependencyResult,
   },
-  AdditionalChunkRuntimeRequirementsArgs, BoxModule, BuildContext, BundleEntries, Chunk,
-  ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationResult,
-  CodeGenerationResults, CompilerOptions, ContentHashArgs, Dependency, EntryItem, EntryOptions,
-  Entrypoint, LoaderRunnerRunner, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  ModuleRule, Msg, NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs,
-  RenderManifestArgs, Resolve, ResolveKind, RuntimeModule, SharedPluginDriver, Stats,
-  VisitedModuleIdentity,
+  AddQueue, AdditionalChunkRuntimeRequirementsArgs, BoxModule, BuildContext, BuildQueue,
+  BundleEntries, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey,
+  CodeGenerationResult, CodeGenerationResults, CompilerOptions, Dependency, EntryItem,
+  EntryOptions, Entrypoint, FactorizeContext, FactorizeQueue, LoaderRunnerRunner, Module,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg, NormalModuleFactory,
+  NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs, Resolve, ResolveKind,
+  RuntimeModule, SharedPluginDriver, Stats, TaskResult, VisitedModuleIdentity, WorkerQueue,
+  WorkerTask,
 };
 use rspack_symbol::{IndirectTopLevelSymbol, IndirectType, Symbol};
 
@@ -331,8 +332,13 @@ impl Compilation {
     if let Some(e) = self.plugin_driver.clone().read().await.make(self).err() {
       self.push_batch_diagnostic(e.into());
     }
-    let active_task_count: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
+
+    let active_task_count: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
+    let (result_tx, mut result_rx) = tokio::sync::mpsc::unbounded_channel::<Result<TaskResult>>();
+    let factorize_queue = Arc::new(FactorizeQueue::new());
+    let add_queue = Arc::new(AddQueue::new());
+    let build_queue = Arc::new(BuildQueue::new());
 
     entry_deps.into_iter().for_each(|(_, deps)| {
       deps.into_iter().for_each(|dep| {
@@ -356,6 +362,57 @@ impl Compilation {
 
     tokio::task::block_in_place(|| {
       loop {
+        if let Some(task) = factorize_queue.get_task() {
+          tokio::spawn({
+            let result_tx = result_tx.clone();
+            async move {
+              let result = task.run().await;
+              result_tx.send(result)
+            }
+          });
+        }
+
+        if let Some(task) = build_queue.get_task() {
+          tokio::spawn({
+            let result_tx = result_tx.clone();
+            async move {
+              let result = task.run().await;
+              result_tx.send(result);
+            }
+          });
+        }
+
+        if let Some(task) = add_queue.get_task() {
+          tokio::spawn({
+            let result_tx = result_tx.clone();
+            async move {
+              let result = task.run().await;
+              result_tx.send(result);
+            }
+          });
+        }
+
+        match result_rx.try_recv() {
+          Ok(item) => match item {
+            Ok(TaskResult::Factorize(task_result)) => {
+              // factorize_queue.task_done(task_result);
+            }
+            Ok(TaskResult::Build(task_result)) => {}
+            Ok(TaskResult::Add(task_result)) => {}
+            Err(err) => {
+              self.push_batch_diagnostic(err.into());
+            }
+          },
+          Err(TryRecvError::Disconnected) => {
+            break;
+          }
+          Err(TryRecvError::Empty) => {
+            if active_task_count.load(Ordering::SeqCst) == 0 {
+              break;
+            }
+          }
+        }
+
         match rx.try_recv() {
           Ok(item) => match item {
             Msg::ModuleCreated(module_with_diagnostic) => {
@@ -500,6 +557,18 @@ impl Compilation {
     });
 
     tracing::debug!("All task is finished");
+  }
+
+  fn handle_module_creation(
+    &self,
+    queue: &FactorizeQueue,
+    original_module_identifier: Option<ModuleIdentifier>,
+    dependencies: Vec<Dependency>,
+  ) {
+    queue.add_task(FactorizeContext {
+      original_module_identifier,
+      dependencies,
+    });
   }
 
   fn handle_module_build_and_dependencies(

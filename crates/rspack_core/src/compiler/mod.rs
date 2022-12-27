@@ -1,9 +1,11 @@
 mod compilation;
 mod hmr;
+mod queue;
 mod resolver;
 
 use anyhow::Context;
 pub use compilation::*;
+pub use queue::*;
 pub use resolver::*;
 use std::{path::Path, sync::Arc};
 
