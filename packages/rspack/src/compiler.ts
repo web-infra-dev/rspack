@@ -346,6 +346,13 @@ class Compiler {
 	 */
 	close(callback) {
 		this.#_instance = null;
+		if (this.watching) {
+			// When there is still an active watching, close this first
+			this.watching.close(() => {
+				this.close(callback);
+			});
+			return;
+		}
 		callback();
 	}
 	emitAssets(compilation: Compilation, callback) {

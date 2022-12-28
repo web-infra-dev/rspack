@@ -5,6 +5,7 @@ const path = require("path");
 
 it("should detect changes for loader fileDependency which out of context", function () {
 	const less = fs.readFileSync(path.resolve(__dirname, "bundle.css"), "utf-8");
+	console.log(less);
 	const step = /step: (.*);/.exec(less)[1];
 	expect(step).toBe(WATCH_STEP);
 });
