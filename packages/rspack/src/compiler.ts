@@ -35,7 +35,7 @@ class Compiler {
 	root: Compiler;
 	resolverFactory: ResolverFactory;
 	infrastructureLogger: any;
-	watcher: FSWatcher;
+	watching: Watching;
 	outputPath: string;
 	name: string;
 	inputFileSystem: any;
@@ -331,8 +331,8 @@ class Compiler {
 			ignoreInitial: true,
 			...options
 		});
-		const watching = new Watching(this, watcher, handler);
-		return watching;
+		this.watching = new Watching(this, watcher, handler);
+		return this.watching;
 	}
 
 	purgeInputFileSystem() {

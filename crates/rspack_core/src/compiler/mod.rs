@@ -108,6 +108,43 @@ impl Compiler {
     let deps = self.compilation.entry_dependencies();
     self.compile(deps).await?;
     self.cache.begin_idle().await;
+    // {
+    //   self.cache.end_idle().await;
+    //   self.plugin_driver.read().await.resolver.clear();
+
+    //   fast_set(
+    //     &mut self.compilation,
+    //     Compilation::new(
+    //       // TODO: use Arc<T> instead
+    //       self.options.clone(),
+    //       self.options.entry.clone(),
+    //       Default::default(),
+    //       Default::default(),
+    //       self.plugin_driver.clone(),
+    //       self.loader_runner_runner.clone(),
+    //       self.cache.clone(),
+    //     ),
+    //   );
+
+    //   // Fake this compilation as *currently* rebuilding does not create a new compilation
+    //   self
+    //     .plugin_driver
+    //     .write()
+    //     .await
+    //     .this_compilation(&mut self.compilation)
+    //     .await?;
+
+    //   self
+    //     .plugin_driver
+    //     .write()
+    //     .await
+    //     .compilation(&mut self.compilation)
+    //     .await?;
+
+    //   let deps = self.compilation.entry_dependencies();
+    //   self.compile(deps).await?;
+    //   self.cache.begin_idle().await;
+    // }
     Ok(self.stats())
   }
 
