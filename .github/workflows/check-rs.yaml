@@ -14,6 +14,7 @@ on:
       - "Cargo.lock"
       - "rust-toolchain.toml"
       - "rustfmt.toml"
+      - "clippy.toml"
 # env:
 #   TRACE: DEBUG
 
