@@ -672,12 +672,6 @@ impl Compilation {
       }
     });
 
-    // self
-    //   .module_graph
-    //   .module_identifier_to_module
-    //   .keys()
-    //   .for_each(|key| self.chunk_graph.add_module(*key));
-
     tracing::debug!("All task is finished");
   }
 
