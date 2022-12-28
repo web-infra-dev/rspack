@@ -371,7 +371,7 @@ describe("Compiler", () => {
 		expect(stats).toBeInstanceOf(Stats);
 	});
 
-	it("should not emit on errors (watch)", done => {
+	it.skip("should not emit on errors (watch)", done => {
 		compiler = rspack({
 			context: __dirname,
 			mode: "production",
