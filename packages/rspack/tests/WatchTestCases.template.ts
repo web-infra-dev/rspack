@@ -200,7 +200,7 @@ export const describeCases = (config: any) => {
 									// );
 									compiler.watch(
 										{
-											usePolling: true,
+											usePolling: true
 											// aggregateTimeout: 1000
 										},
 										(err, stats) => {
@@ -386,7 +386,7 @@ export const describeCases = (config: any) => {
 																tempDirectory,
 																false
 															);
-															console.log('write it');
+															console.log("write it");
 														}, 1500);
 													} else {
 														console.log("looks bad");
