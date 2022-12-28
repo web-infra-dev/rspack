@@ -4,12 +4,15 @@ import { Stats } from ".";
 
 class Watching {
 	watcher: FSWatcher;
+	compiler: Compiler;
+
 	constructor(
 		compiler: Compiler,
 		watcher: FSWatcher,
 		handler?: (error?: Error, stats?: Stats) => void
 	) {
 		this.watcher = watcher;
+		this.compiler = compiler;
 
 		const build = () => {
 			const begin = Date.now();
@@ -93,6 +96,7 @@ class Watching {
 	}
 
 	close(callback?: () => void) {
+		this.compiler.watching = undefined;
 		this.watcher.close().then(callback);
 	}
 
