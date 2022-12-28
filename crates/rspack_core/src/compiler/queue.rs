@@ -4,9 +4,9 @@ use rspack_error::{internal_error, Diagnostic, Error, Result};
 
 use crate::{
   cache::Cache, module_rule_matcher, BuildContext, BuildResult, Compilation, CompilerOptions,
-  Dependency, LoaderRunnerRunner, Module, ModuleGraphModule, ModuleIdentifier, ModuleRule,
-  ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve, SharedPluginDriver,
-  WorkerQueue,
+  Dependency, LoaderRunnerRunner, Module, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
+  ModuleRule, ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve,
+  SharedPluginDriver, WorkerQueue,
 };
 
 #[derive(Debug)]
@@ -112,17 +112,12 @@ impl AddTask {
       .visited_module_id
       .contains(&(module_identifier, self.dependencies[0].detail.clone()))
     {
-      for dependency in self.dependencies {
-        let dep_id = compilation
-          .module_graph
-          .add_dependency(dependency, module_identifier);
-
-        compilation.module_graph.set_resolved_module(
-          self.original_module_identifier,
-          dep_id,
-          module_identifier,
-        )?;
-      }
+      Self::set_resolved_module(
+        &mut compilation.module_graph,
+        self.original_module_identifier,
+        self.dependencies,
+        module_identifier,
+      )?;
 
       return Ok(TaskResult::Add(AddTaskResult::ModuleReused(self.module)));
     }
@@ -135,17 +130,12 @@ impl AddTask {
       .module_graph
       .add_module_graph_module(*self.module_graph_module);
 
-    for dependency in self.dependencies {
-      let dep_id = compilation
-        .module_graph
-        .add_dependency(dependency, module_identifier);
-
-      compilation.module_graph.set_resolved_module(
-        self.original_module_identifier,
-        dep_id,
-        module_identifier,
-      )?;
-    }
+    Self::set_resolved_module(
+      &mut compilation.module_graph,
+      self.original_module_identifier,
+      self.dependencies,
+      module_identifier,
+    )?;
 
     if self.is_entry {
       compilation
@@ -158,17 +148,19 @@ impl AddTask {
 }
 
 impl AddTask {
-  // fn set_resolved_module(
-  //   &mut self,
-  //   module_graph: &mut ModuleGraph,
-  //   module_identifier: ModuleIdentifier,
-  // ) {
-  //   for dependency in self.dependencies {
-  //     let dep_id = module_graph.add_dependency(dependency, module_identifier);
+  fn set_resolved_module(
+    module_graph: &mut ModuleGraph,
+    original_module_identifier: Option<ModuleIdentifier>,
+    dependencies: Vec<Dependency>,
+    module_identifier: ModuleIdentifier,
+  ) -> Result<()> {
+    for dependency in dependencies {
+      let dep_id = module_graph.add_dependency(dependency, module_identifier);
+      module_graph.set_resolved_module(original_module_identifier, dep_id, module_identifier)?;
+    }
 
-  //     module_graph.set_resolved_module(self.original_module_identifier, dep_id, module_identifier);
-  //   }
-  // }
+    Ok(())
+  }
 }
 
 pub type AddQueue = WorkerQueue<AddTask>;
