@@ -1,3 +1,2 @@
 allow-dbg-in-tests    = true
 allow-unwrap-in-tests = true
-unwrap-used           = true # https://rust-lang.github.io/rust-clippy/master/#unwrap_used

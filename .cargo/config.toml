@@ -11,4 +11,5 @@ xtask = "run --package xtask --"
 rustflags = [
   "-Dclippy::unwrap_in_result", # https://rust-lang.github.io/rust-clippy/master/index.html#unwrap_in_result
   "-Wclippy::dbg_macro",
+  "-Wclippy::unwrap_used",      # https://rust-lang.github.io/rust-clippy/master/#unwrap_used
 ]
