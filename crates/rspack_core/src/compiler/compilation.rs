@@ -474,40 +474,56 @@ impl Compilation {
                   tracing::trace!("Module reused: {}, skipping build", module.identifier());
                 }
               },
-              Ok(TaskResult::Build(task_result)) => {
-                let BuildTaskResult {
+              Ok(TaskResult::Build(task_result)) => match task_result {
+                BuildTaskResult::BuildSuccess {
                   module,
                   build_result,
                   diagnostics,
-                } = task_result;
+                } => {
+                  tracing::trace!("Module built: {}", module.identifier());
 
-                tracing::trace!("Module built: {}", module.identifier());
+                  self.push_batch_diagnostic(diagnostics);
+                  let dependencies = build_result
+                    .dependencies
+                    .into_iter()
+                    .map(|dep| Dependency {
+                      parent_module_identifier: Some(module.identifier()),
+                      detail: dep,
+                    })
+                    .collect::<Vec<_>>();
 
-                self.push_batch_diagnostic(diagnostics);
-                let dependencies = build_result
-                  .dependencies
-                  .into_iter()
-                  .map(|dep| Dependency {
-                    parent_module_identifier: Some(module.identifier()),
-                    detail: dep,
-                  })
-                  .collect::<Vec<_>>();
+                  {
+                    let mgm = self
+                      .module_graph
+                      .module_graph_module_by_identifier_mut(&module.identifier())
+                      .expect("Failed to get mgm");
+                    mgm.all_dependencies = dependencies.clone();
+                  }
 
-                {
-                  let mgm = self
-                    .module_graph
-                    .module_graph_module_by_identifier_mut(&module.identifier())
-                    .expect("Failed to get mgm");
-                  mgm.all_dependencies = dependencies.clone();
+                  process_dependencies_queue.add_task(ProcessDependenciesTask {
+                    dependencies,
+                    original_module_identifier: Some(module.identifier()),
+                    resolve_options: module.get_resolve_options().map(ToOwned::to_owned),
+                  });
+                  self.module_graph.add_module(module);
                 }
-
-                process_dependencies_queue.add_task(ProcessDependenciesTask {
-                  dependencies,
-                  original_module_identifier: Some(module.identifier()),
-                  resolve_options: module.get_resolve_options().map(ToOwned::to_owned),
-                });
-                self.module_graph.add_module(module);
-              }
+                BuildTaskResult::BuildWithError {
+                  module,
+                  diagnostics,
+                } => {
+                  tracing::trace!("Module built with error: {}", module.identifier());
+                  let module_identifier = module.identifier();
+                  self
+                    .module_graph
+                    .module_identifier_to_module
+                    .remove(&module_identifier);
+                  self
+                    .module_graph
+                    .module_identifier_to_module_graph_module
+                    .remove(&module_identifier);
+                  self.push_batch_diagnostic(diagnostics);
+                }
+              },
               Ok(TaskResult::ProcessDependencies(task_result)) => {
                 tracing::trace!(
                   "Processing dependencies of {} finished",
