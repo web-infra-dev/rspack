@@ -290,9 +290,9 @@ impl NormalModuleFactory {
       return Ok(result);
     }
 
-    Err(internal_error!(
+    Err(Error::InternalError(internal_error!(
       "Failed to factorize module, neither hook nor factorize method returns".to_owned()
-    ))
+    )))
   }
 }
 

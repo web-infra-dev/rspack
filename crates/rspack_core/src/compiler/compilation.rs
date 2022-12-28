@@ -330,16 +330,16 @@ impl Compilation {
   }
 
   #[instrument(name = "compilation:make", skip_all)]
-  pub async fn make<'a>(&'a mut self, entry_deps: HashMap<String, Vec<Dependency>>) {
+  pub async fn make(&mut self, entry_deps: HashMap<String, Vec<Dependency>>) {
     if let Some(e) = self.plugin_driver.clone().read().await.make(self).err() {
       self.push_batch_diagnostic(e.into());
     }
-    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
+    // let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
 
     let active_task_count: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
     let (result_tx, mut result_rx) = tokio::sync::mpsc::unbounded_channel::<Result<TaskResult>>();
     let mut factorize_queue = FactorizeQueue::new();
-    let mut add_queue = AddQueue::<'a>::new();
+    let mut add_queue = AddQueue::new();
     let mut build_queue = BuildQueue::new();
     let mut process_dependencies_queue = ProcessDependenciesQueue::new();
 
@@ -407,7 +407,7 @@ impl Compilation {
         if let Some(task) = add_queue.get_task() {
           active_task_count.fetch_add(1, Ordering::SeqCst);
 
-          let result = task.run(&mut self);
+          let result = task.run(self);
           result_tx.send(result);
           active_task_count.fetch_sub(1, Ordering::SeqCst);
         }
@@ -459,6 +459,7 @@ impl Compilation {
             }
             Ok(TaskResult::Add(task_result)) => match task_result {
               AddTaskResult::ModuleAdded(module) => {
+                tracing::trace!("Module added: {}", module.identifier());
                 build_queue.add_task(BuildTask {
                   module,
                   loader_runner_runner: self.loader_runner_runner.clone(),
@@ -466,7 +467,6 @@ impl Compilation {
                   plugin_driver: self.plugin_driver.clone(),
                   cache: self.cache.clone(),
                 });
-                tracing::trace!("Module added: {}", module.identifier());
               }
               AddTaskResult::ModuleReused(module) => {
                 tracing::trace!("Module reused: {}, skipping build", module.identifier());

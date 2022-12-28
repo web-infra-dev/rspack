@@ -61,7 +61,7 @@ impl WorkerTask for FactorizeTask {
     );
 
     let (module, context, dependency) = factory.create(self.resolve_options).await?;
-    let mgm = ModuleGraphModule::new(
+    let mut mgm = ModuleGraphModule::new(
       context.module_name.clone(),
       module.identifier(),
       self.dependencies.clone(),
@@ -88,12 +88,12 @@ impl WorkerTask for FactorizeTask {
 
 pub type FactorizeQueue = WorkerQueue<FactorizeTask>;
 
-pub struct AddTask<'m> {
-  original_module_identifier: Option<ModuleIdentifier>,
-  module: Box<dyn Module>,
-  module_graph_module: Box<ModuleGraphModule>,
-  dependencies: Vec<Dependency>,
-  is_entry: bool,
+pub struct AddTask {
+  pub original_module_identifier: Option<ModuleIdentifier>,
+  pub module: Box<dyn Module>,
+  pub module_graph_module: Box<ModuleGraphModule>,
+  pub dependencies: Vec<Dependency>,
+  pub is_entry: bool,
 }
 
 pub enum AddTaskResult {
@@ -101,7 +101,7 @@ pub enum AddTaskResult {
   ModuleAdded(Box<dyn Module>),
 }
 
-impl AddTask<'_> {
+impl AddTask {
   pub fn run(mut self, compilation: &mut Compilation) -> Result<TaskResult> {
     let module_identifier = self.module.identifier();
 
@@ -109,22 +109,41 @@ impl AddTask<'_> {
       .module_graph
       .module_exists(&self.module.identifier())
     {
-      self.set_resolved_module(module_identifier);
+      for dependency in self.dependencies {
+        let dep_id = compilation
+          .module_graph
+          .add_dependency(dependency, module_identifier);
+
+        compilation.module_graph.set_resolved_module(
+          self.original_module_identifier,
+          dep_id,
+          module_identifier,
+        )?;
+      }
 
       return Ok(TaskResult::Add(AddTaskResult::ModuleReused(self.module)));
     }
 
-    self.module_graph_module.all_dependencies = self.dependencies;
+    self.module_graph_module.all_dependencies = self.dependencies.clone();
 
     compilation
       .module_graph
       .add_module_graph_module(*self.module_graph_module);
 
-    self.set_resolved_module(&mut compilation.module_graph, module_identifier);
+    for dependency in self.dependencies {
+      let dep_id = compilation
+        .module_graph
+        .add_dependency(dependency, module_identifier);
+
+      compilation.module_graph.set_resolved_module(
+        self.original_module_identifier,
+        dep_id,
+        module_identifier,
+      )?;
+    }
 
     if self.is_entry {
-      self
-        .compilation
+      compilation
         .entry_module_identifiers
         .insert(module_identifier);
     }
@@ -133,21 +152,21 @@ impl AddTask<'_> {
   }
 }
 
-impl AddTask<'_> {
-  fn set_resolved_module(
-    &mut self,
-    module_graph: &mut ModuleGraph,
-    module_identifier: ModuleIdentifier,
-  ) {
-    for dependency in self.dependencies {
-      let dep_id = module_graph.add_dependency(dependency, module_identifier);
+impl AddTask {
+  // fn set_resolved_module(
+  //   &mut self,
+  //   module_graph: &mut ModuleGraph,
+  //   module_identifier: ModuleIdentifier,
+  // ) {
+  //   for dependency in self.dependencies {
+  //     let dep_id = module_graph.add_dependency(dependency, module_identifier);
 
-      module_graph.set_resolved_module(self.original_module_identifier, dep_id, module_identifier);
-    }
-  }
+  //     module_graph.set_resolved_module(self.original_module_identifier, dep_id, module_identifier);
+  //   }
+  // }
 }
 
-pub type AddQueue<'m> = WorkerQueue<AddTask<'m>>;
+pub type AddQueue = WorkerQueue<AddTask>;
 
 pub struct BuildTask {
   pub module: Box<dyn Module>,
@@ -167,7 +186,7 @@ pub struct BuildTaskResult {
 #[async_trait::async_trait]
 impl WorkerTask for BuildTask {
   async fn run(self) -> Result<TaskResult> {
-    let module = self.module;
+    let mut module = self.module;
     let compiler_options = self.compiler_options;
     let loader_runner_runner = self.loader_runner_runner;
     let cache = self.cache;
@@ -223,7 +242,7 @@ impl WorkerTask for BuildTask {
     let (build_result, diagnostics) = build_result.split_into_parts();
 
     Ok(TaskResult::Build(BuildTaskResult {
-      module: self.module,
+      module,
       build_result,
       diagnostics,
     }))
