@@ -27,7 +27,7 @@ class Watching {
 					console.log("build success, time cost", Date.now() - begin, "ms");
 				});
 			});
-		}
+		};
 
 		watcher.on("ready", build);
 

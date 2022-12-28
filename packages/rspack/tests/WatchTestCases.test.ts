@@ -1,5 +1,6 @@
 import { describeCases } from "./WatchTestCases.template";
 
 describeCases({
-  name: "WatchTestCases"
+	name: "WatchTestCases",
+	casePath: "watchCases"
 });

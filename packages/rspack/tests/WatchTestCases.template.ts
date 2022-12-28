@@ -43,11 +43,11 @@ function copyDiff(src, dest, initial) {
 export const describeCases = (config: any) => {
 	describe(config.name, () => {
 		if (process.env.NO_WATCH_TESTS) {
-			it.skip("long running tests excluded", () => { });
+			it.skip("long running tests excluded", () => {});
 			return;
 		}
 
-		const casesPath = path.join(__dirname, "watchCases");
+		const casesPath = path.join(__dirname, config.casePath);
 		let categories = fs.readdirSync(casesPath).map(cat => {
 			return {
 				name: cat,
@@ -58,7 +58,7 @@ export const describeCases = (config: any) => {
 						const testDirectory = path.join(casesPath, cat, testName);
 						const filterPath = path.join(testDirectory, "test.filter.js");
 						if (fs.existsSync(filterPath) && !require(filterPath)(config)) {
-							describe.skip(testName, () => it("filtered", () => { }));
+							describe.skip(testName, () => it("filtered", () => {}));
 							return false;
 						}
 						return true;
@@ -133,7 +133,11 @@ export const describeCases = (config: any) => {
 								}
 								const applyConfig = (options, idx) => {
 									if (!options.mode) options.mode = "development";
-									if (!options.context) options.context = tempDirectory;
+									if (!options.context) {
+										options.context = tempDirectory;
+									} else if (!path.isAbsolute(options.context)) {
+										options.context = path.join(tempDirectory, options.context);
+									}
 									if (!options.entry) options.entry = "./index.js";
 									// TODO: shoud be `if (!options.target) options.target = "async-node";`
 									if (!options.target) options.target = "node";
@@ -211,14 +215,14 @@ export const describeCases = (config: any) => {
 												return compilationFinished(
 													new Error(
 														"Compilation changed but no change was issued " +
-														lastHash +
-														" != " +
-														stats.hash +
-														" (run " +
-														runIdx +
-														")\n" +
-														"Triggering change: " +
-														triggeringFilename
+															lastHash +
+															" != " +
+															stats.hash +
+															" (run " +
+															runIdx +
+															")\n" +
+															"Triggering change: " +
+															triggeringFilename
 													)
 												);
 											}
@@ -297,19 +301,19 @@ export const describeCases = (config: any) => {
 													) {
 														fn = vm.runInNewContext(
 															"(function(require, module, exports, __dirname, __filename, it, WATCH_STEP, STATS_JSON, STATE, expect, window, self) {" +
-															'function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }' +
-															content +
-															"\n})",
+																'function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }' +
+																content +
+																"\n})",
 															globalContext,
 															p
 														);
 													} else {
 														fn = vm.runInThisContext(
 															"(function(require, module, exports, __dirname, __filename, it, WATCH_STEP, STATS_JSON, STATE, expect) {" +
-															"global.expect = expect;" +
-															'function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }' +
-															content +
-															"\n})",
+																"global.expect = expect;" +
+																'function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }' +
+																content +
+																"\n})",
 															p
 														);
 													}
@@ -391,7 +395,7 @@ export const describeCases = (config: any) => {
 																done
 															)
 														) {
-															compiler.close(() => { });
+															compiler.close(() => {});
 															return;
 														}
 														compiler.close(done);
