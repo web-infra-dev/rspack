@@ -37,6 +37,7 @@ pub struct Builtins {
   pub side_effects: bool,
   pub react: ReactOptions,
   pub decorator: Option<DecoratorOptions>,
+  pub no_emit_assets: bool,
 }
 
 #[derive(Debug, Clone, Default, Copy)]

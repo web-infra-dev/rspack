@@ -379,6 +379,14 @@ class Compiler {
 			}
 		);
 	}
+
+	getAsset(name: string) {
+		let source = this.compilation.__internal__getAssetSource(name);
+		if (!source) {
+			return null;
+		}
+		return source.buffer();
+	}
 }
 
 export { Compiler };
