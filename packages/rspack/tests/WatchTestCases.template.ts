@@ -140,7 +140,14 @@ export const describeCases = (config: any) => {
 									}
 									if (!options.entry) options.entry = "./index.js";
 									// TODO: shoud be `if (!options.target) options.target = "async-node";`
-									if (!options.target) options.target = "node";
+									if (!options.target) {
+										options.target = "node";
+										options.externals = {
+											fs: "fs",
+											path: "path"
+										};
+										options.externalsType = "node-commonjs";
+									}
 									if (!options.output) options.output = {};
 									if (!options.output.path)
 										options.output.path = outputDirectory;
@@ -372,12 +379,10 @@ export const describeCases = (config: any) => {
 												"should compile the next step",
 												done => {
 													runIdx++;
-													console.log(runIdx, runs.length);
 													if (runIdx < runs.length) {
 														run = runs[runIdx];
 														waitMode = true;
 														setTimeout(() => {
-															console.log("looks good");
 															waitMode = false;
 															compilationFinished = done;
 															currentWatchStepModule.step = run.name;
@@ -386,10 +391,8 @@ export const describeCases = (config: any) => {
 																tempDirectory,
 																false
 															);
-															console.log("write it");
 														}, 1500);
 													} else {
-														console.log("looks bad");
 														const deprecations = deprecationTracker();
 														if (
 															checkArrayExpectation(
@@ -400,7 +403,6 @@ export const describeCases = (config: any) => {
 																done
 															)
 														) {
-															console.log("looks checkArrayExpectation");
 															compiler.close(() => {});
 															return;
 														}

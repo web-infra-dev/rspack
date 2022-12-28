@@ -14,10 +14,5 @@ module.exports = {
 			}
 		]
 	},
-	externals: {
-		fs: "fs",
-		path: "path"
-	},
-	externalsType: "node-commonjs",
 	cache: false // FIXME: build cache validate bug which needs fileDependencies on rust side
 };
