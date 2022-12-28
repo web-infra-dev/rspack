@@ -1,10 +1,8 @@
-export type Watch = {
-	ignored?: string[];
-};
+import type { WatchOptions } from "chokidar";
 
-export type ResolvedWatch = {
-	ignored: string[];
-};
+export type Watch = WatchOptions;
+
+export type ResolvedWatch = WatchOptions;
 
 export function resolveWatchOption(watch: Watch = {}): ResolvedWatch {
 	const ignored = watch.ignored ?? [
