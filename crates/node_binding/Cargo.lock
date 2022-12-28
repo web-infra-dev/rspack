@@ -2246,6 +2246,7 @@ dependencies = [
  "swc_core",
  "tracing",
  "ustr",
+ "xxhash-rust",
 ]
 
 [[package]]

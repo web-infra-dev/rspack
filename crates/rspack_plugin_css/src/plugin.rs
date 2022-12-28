@@ -1,10 +1,4 @@
 #![allow(clippy::comparison_chain)]
-use std::cmp;
-use std::path::Path;
-use std::str::FromStr;
-use std::string::ParseError;
-use std::sync::Arc;
-
 use anyhow::bail;
 use bitflags::bitflags;
 use hashbrown::HashSet;
@@ -13,12 +7,19 @@ use itertools::Itertools;
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
 use rspack_core::{AstOrSource, Filename, Mode, ModuleAst, ModuleDependency, ModuleIdentifier};
+use std::cmp;
+use std::hash::{Hash, Hasher};
+use std::path::Path;
+use std::str::FromStr;
+use std::string::ParseError;
+use std::sync::Arc;
 use sugar_path::SugarPath;
 use swc_core::ecma::atoms::JsWord;
 use swc_css::modules::CssClassName;
 use swc_css::parser::parser::ParserConfig;
 use swc_css::prefixer::{options::Options, prefixer};
 use swc_css::visit::VisitMutWith;
+use xxhash_rust::xxh3::Xxh3;
 
 use rspack_core::{
   ast::css::Ast as CssAst,
@@ -561,6 +562,44 @@ impl Plugin for CssPlugin {
     Ok(())
   }
 
+  async fn content_hash(
+    &self,
+    _ctx: rspack_core::PluginContext,
+    args: &mut rspack_core::ContentHashArgs<'_>,
+  ) -> rspack_core::PluginContentHashHookOutput {
+    let compilation = &mut args.compilation;
+    let chunk = compilation
+      .chunk_by_ukey
+      .get(&args.chunk_ukey)
+      .expect("should have chunk");
+    let ordered_modules = Self::get_ordered_chunk_css_modules(
+      chunk,
+      &compilation.chunk_graph,
+      &compilation.module_graph,
+      compilation,
+    );
+    let mut hasher = Xxh3::default();
+    for module_identifier in ordered_modules {
+      if let Some(module) = compilation
+        .module_graph
+        .module_by_identifier(&module_identifier)
+      {
+        module.hash(&mut hasher);
+      }
+    }
+
+    {
+      let chunk = compilation
+        .chunk_by_ukey
+        .get_mut(&args.chunk_ukey)
+        .expect("should have chunk");
+      chunk
+        .content_hash
+        .insert(SourceType::Css, format!("{:x}", hasher.finish()));
+    }
+    Ok(())
+  }
+
   async fn render_manifest(
     &self,
     _ctx: rspack_core::PluginContext,
@@ -620,7 +659,13 @@ impl Plugin for CssPlugin {
         filename: chunk.name.clone(),
         extension: Some(".css".to_owned()),
         id: Some(chunk.id.to_owned()),
-        contenthash: hash.clone(),
+        contenthash: Some(
+          chunk
+            .content_hash
+            .get(&SourceType::Css)
+            .expect("should have chunk css content hash")
+            .clone(),
+        ),
         chunkhash: hash.clone(),
         hash,
         ..Default::default()

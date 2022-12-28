@@ -41,10 +41,11 @@ use crate::{
   },
   AdditionalChunkRuntimeRequirementsArgs, BoxModule, BuildContext, BundleEntries, Chunk,
   ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationResult,
-  CodeGenerationResults, CompilerOptions, Dependency, EntryItem, EntryOptions, Entrypoint,
-  LoaderRunnerRunner, Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, Msg,
-  NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, RenderManifestArgs, Resolve,
-  ResolveKind, RuntimeModule, SharedPluginDriver, Stats, VisitedModuleIdentity,
+  CodeGenerationResults, CompilerOptions, ContentHashArgs, Dependency, EntryItem, EntryOptions,
+  Entrypoint, LoaderRunnerRunner, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  ModuleRule, Msg, NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs,
+  RenderManifestArgs, Resolve, ResolveKind, RuntimeModule, SharedPluginDriver, Stats,
+  VisitedModuleIdentity,
 };
 use rspack_symbol::{IndirectTopLevelSymbol, IndirectType, Symbol};
 
@@ -1075,7 +1076,7 @@ impl Compilation {
       .process_runtime_requirements(plugin_driver.clone())
       .await?;
 
-    self.create_hash();
+    self.create_hash(plugin_driver.clone()).await?;
 
     self.create_chunk_assets(plugin_driver.clone()).await;
 
@@ -1211,8 +1212,8 @@ impl Compilation {
     Ok(())
   }
 
-  #[instrument(skip_all)]
-  pub fn create_hash(&mut self) {
+  #[instrument(name = "compilation:create_hash", skip_all)]
+  pub async fn create_hash(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let mut compilation_hasher = Xxh3::new();
     let mut chunks = self.chunk_by_ukey.values_mut().collect::<Vec<_>>();
     chunks.sort_by_key(|chunk| chunk.ukey);
@@ -1231,6 +1232,30 @@ impl Compilation {
       }
     }
     tracing::trace!("hash chunks");
+
+    let content_hash_chunks = {
+      // runtime chunks should be hashed after all other chunks
+      let runtime_chunks = self.get_chunk_graph_entries();
+      let mut chunks = self
+        .chunk_by_ukey
+        .keys()
+        .filter(|key| !runtime_chunks.contains(key))
+        .copied()
+        .collect::<Vec<_>>();
+      chunks.extend(runtime_chunks);
+      chunks
+    };
+    for chunk_ukey in content_hash_chunks {
+      plugin_driver
+        .read()
+        .await
+        .content_hash(&mut ContentHashArgs {
+          chunk_ukey,
+          compilation: self,
+        })
+        .await?;
+    }
+    tracing::trace!("calculate chunks content hash");
 
     for entry_ukey in self.get_chunk_graph_entries().iter() {
       let mut hasher = Xxh3::new();
@@ -1251,6 +1276,7 @@ impl Compilation {
     }
     tracing::trace!("hash runtime chunks");
     self.hash = format!("{:x}", compilation_hasher.finish());
+    Ok(())
   }
 
   pub fn add_runtime_module(&mut self, chunk_ukey: &ChunkUkey, mut module: Box<dyn RuntimeModule>) {
