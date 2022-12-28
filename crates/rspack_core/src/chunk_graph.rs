@@ -75,7 +75,10 @@ impl ChunkGraph {
     self
       .chunk_graph_module_by_module_identifier
       .get_mut(module_identifier)
-      .expect("Module should be added before")
+      .expect(&format!(
+        "Module {} should be added before",
+        module_identifier
+      ))
   }
 
   pub(crate) fn get_chunk_graph_module(
@@ -85,7 +88,10 @@ impl ChunkGraph {
     self
       .chunk_graph_module_by_module_identifier
       .get(module_identifier)
-      .expect("Module should be added before")
+      .expect(&format!(
+        "Module {} should be added before",
+        module_identifier
+      ))
   }
 
   pub(crate) fn get_chunk_graph_chunk_mut(

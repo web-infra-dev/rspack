@@ -215,7 +215,6 @@ impl PluginDriver {
     job_ctx: &mut NormalModuleFactoryContext,
   ) -> PluginFactorizeHookOutput {
     for plugin in &self.plugins {
-      tracing::trace!("running render runtime:{}", plugin.name());
       if let Some(module) = plugin
         .factorize(PluginContext::new(), args.clone(), job_ctx)
         .await?

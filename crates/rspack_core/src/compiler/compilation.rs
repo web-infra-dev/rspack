@@ -338,6 +338,7 @@ impl Compilation {
 
     let active_task_count: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
     let (result_tx, mut result_rx) = tokio::sync::mpsc::unbounded_channel::<Result<TaskResult>>();
+    let mut visited_modules = HashSet::<ModuleIdentifier>::new();
     let mut factorize_queue = FactorizeQueue::new();
     let mut add_queue = AddQueue::new();
     let mut build_queue = BuildQueue::new();
@@ -384,8 +385,7 @@ impl Compilation {
 
             async move {
               let result = task.run().await;
-              result_tx.send(result);
-              active_task_count.fetch_sub(1, Ordering::SeqCst);
+              result_tx.send(result).unwrap();
             }
           });
         }
@@ -398,8 +398,7 @@ impl Compilation {
 
             async move {
               let result = task.run().await;
-              result_tx.send(result);
-              active_task_count.fetch_sub(1, Ordering::SeqCst);
+              result_tx.send(result).unwrap();
             }
           });
         }
@@ -407,105 +406,114 @@ impl Compilation {
         if let Some(task) = add_queue.get_task() {
           active_task_count.fetch_add(1, Ordering::SeqCst);
 
-          let result = task.run(self);
-          result_tx.send(result);
-          active_task_count.fetch_sub(1, Ordering::SeqCst);
+          let result = task.run(self, &mut visited_modules);
+          result_tx.send(result).unwrap();
         }
 
         if let Some(task) = process_dependencies_queue.get_task() {
           active_task_count.fetch_add(1, Ordering::SeqCst);
 
-          self.handle_module_creation(
-            &mut factorize_queue,
-            task.original_module_identifier,
-            task.dependencies,
-            false,
-            None,
-            None,
-            None,
-            task.resolve_options,
-            self.lazy_visit_modules.clone(),
-          );
+          task.dependencies.into_iter().for_each(|dep| {
+            self.handle_module_creation(
+              &mut factorize_queue,
+              task.original_module_identifier,
+              vec![dep],
+              false,
+              None,
+              None,
+              None,
+              task.resolve_options.clone(),
+              self.lazy_visit_modules.clone(),
+            );
+          });
 
-          result_tx.send(Ok(TaskResult::ProcessDependencies(
-            ProcessDependenciesResult {
-              module_identifier: task
-                .original_module_identifier
-                .expect("Original module identifier expected"),
-            },
-          )));
-
-          active_task_count.fetch_sub(1, Ordering::SeqCst);
+          result_tx
+            .send(Ok(TaskResult::ProcessDependencies(
+              ProcessDependenciesResult {
+                module_identifier: task
+                  .original_module_identifier
+                  .expect("Original module identifier expected"),
+              },
+            )))
+            .unwrap();
         }
 
         match result_rx.try_recv() {
-          Ok(item) => match item {
-            Ok(TaskResult::Factorize(task_result)) => {
-              let FactorizeTaskResult {
-                is_entry,
-                original_module_identifier,
-                dependencies,
-                module,
-                module_graph_module,
-              } = task_result;
-
-              add_queue.add_task(AddTask {
-                original_module_identifier,
-                module,
-                module_graph_module,
-                dependencies,
-                is_entry,
-              });
-            }
-            Ok(TaskResult::Add(task_result)) => match task_result {
-              AddTaskResult::ModuleAdded(module) => {
-                tracing::trace!("Module added: {}", module.identifier());
-                build_queue.add_task(BuildTask {
+          Ok(item) => {
+            match item {
+              Ok(TaskResult::Factorize(task_result)) => {
+                let FactorizeTaskResult {
+                  is_entry,
+                  original_module_identifier,
+                  dependencies,
                   module,
-                  loader_runner_runner: self.loader_runner_runner.clone(),
-                  compiler_options: self.options.clone(),
-                  plugin_driver: self.plugin_driver.clone(),
-                  cache: self.cache.clone(),
+                  module_graph_module,
+                } = task_result;
+
+                tracing::trace!("Module created: {}", module.identifier());
+
+                add_queue.add_task(AddTask {
+                  original_module_identifier,
+                  module,
+                  module_graph_module,
+                  dependencies,
+                  is_entry,
                 });
               }
-              AddTaskResult::ModuleReused(module) => {
-                tracing::trace!("Module reused: {}, skipping build", module.identifier());
+              Ok(TaskResult::Add(task_result)) => match task_result {
+                AddTaskResult::ModuleAdded(module) => {
+                  tracing::trace!("Module added: {}", module.identifier());
+                  build_queue.add_task(BuildTask {
+                    module,
+                    loader_runner_runner: self.loader_runner_runner.clone(),
+                    compiler_options: self.options.clone(),
+                    plugin_driver: self.plugin_driver.clone(),
+                    cache: self.cache.clone(),
+                  });
+                }
+                AddTaskResult::ModuleReused(module) => {
+                  tracing::trace!("Module reused: {}, skipping build", module.identifier());
+                }
+              },
+              Ok(TaskResult::Build(task_result)) => {
+                let BuildTaskResult {
+                  module,
+                  build_result,
+                  diagnostics,
+                } = task_result;
+
+                tracing::trace!("Module built: {}", module.identifier());
+
+                self.push_batch_diagnostic(diagnostics);
+                let dependencies = build_result
+                  .dependencies
+                  .into_iter()
+                  .map(|dep| Dependency {
+                    parent_module_identifier: Some(module.identifier()),
+                    detail: dep,
+                  })
+                  .collect();
+
+                process_dependencies_queue.add_task(ProcessDependenciesTask {
+                  dependencies,
+                  original_module_identifier: Some(module.identifier()),
+                  resolve_options: module.get_resolve_options().map(ToOwned::to_owned),
+                });
+                self.module_graph.add_module(module);
               }
-            },
-            Ok(TaskResult::Build(task_result)) => {
-              let BuildTaskResult {
-                module,
-                build_result,
-                diagnostics,
-              } = task_result;
+              Ok(TaskResult::ProcessDependencies(task_result)) => {
+                tracing::trace!(
+                  "Processing dependencies of {} finished",
+                  task_result.module_identifier
+                );
+              }
+              Err(err) => {
+                self.push_batch_diagnostic(err.into());
+              }
+            }
 
-              self.push_batch_diagnostic(diagnostics);
-              let dependencies = build_result
-                .dependencies
-                .into_iter()
-                .map(|dep| Dependency {
-                  parent_module_identifier: Some(module.identifier()),
-                  detail: dep,
-                })
-                .collect();
-
-              process_dependencies_queue.add_task(ProcessDependenciesTask {
-                dependencies,
-                original_module_identifier: Some(module.identifier()),
-                resolve_options: module.get_resolve_options().map(ToOwned::to_owned),
-              });
-              self.module_graph.add_module(module);
-            }
-            Ok(TaskResult::ProcessDependencies(task_result)) => {
-              tracing::trace!(
-                "Processing dependencies of {} finished",
-                task_result.module_identifier
-              );
-            }
-            Err(err) => {
-              self.push_batch_diagnostic(err.into());
-            }
-          },
+            active_task_count.fetch_sub(1, Ordering::SeqCst);
+          }
           Err(TryRecvError::Disconnected) => {
             break;
           }

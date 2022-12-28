@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use hashbrown::HashSet;
 use rspack_error::{internal_error, Diagnostic, Error, Result};
 
 use crate::{
@@ -9,6 +10,7 @@ use crate::{
   Resolve, SharedPluginDriver, WorkerQueue,
 };
 
+#[derive(Debug)]
 pub enum TaskResult {
   Factorize(FactorizeTaskResult),
   Add(AddTaskResult),
@@ -36,6 +38,7 @@ pub struct FactorizeTask {
   pub cache: Arc<Cache>,
 }
 
+#[derive(Debug)]
 pub struct FactorizeTaskResult {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub module: Box<dyn Module>,
@@ -96,19 +99,21 @@ pub struct AddTask {
   pub is_entry: bool,
 }
 
+#[derive(Debug)]
 pub enum AddTaskResult {
   ModuleReused(Box<dyn Module>),
   ModuleAdded(Box<dyn Module>),
 }
 
 impl AddTask {
-  pub fn run(mut self, compilation: &mut Compilation) -> Result<TaskResult> {
+  pub fn run(
+    mut self,
+    compilation: &mut Compilation,
+    visited_modules: &mut HashSet<ModuleIdentifier>,
+  ) -> Result<TaskResult> {
     let module_identifier = self.module.identifier();
 
-    if compilation
-      .module_graph
-      .module_exists(&self.module.identifier())
-    {
+    if visited_modules.contains(&module_identifier) {
       for dependency in self.dependencies {
         let dep_id = compilation
           .module_graph
@@ -124,6 +129,7 @@ impl AddTask {
       return Ok(TaskResult::Add(AddTaskResult::ModuleReused(self.module)));
     }
 
+    visited_modules.insert(module_identifier);
     self.module_graph_module.all_dependencies = self.dependencies.clone();
 
     compilation
@@ -177,6 +183,7 @@ pub struct BuildTask {
   pub cache: Arc<Cache>,
 }
 
+#[derive(Debug)]
 pub struct BuildTaskResult {
   pub module: Box<dyn Module>,
   pub build_result: BuildResult,
@@ -257,6 +264,7 @@ pub struct ProcessDependenciesTask {
   pub resolve_options: Option<Resolve>,
 }
 
+#[derive(Debug)]
 pub struct ProcessDependenciesResult {
   pub module_identifier: ModuleIdentifier,
 }

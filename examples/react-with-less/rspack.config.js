@@ -13,7 +13,7 @@ module.exports = {
     html : [{}],
   },
   module : {
-    rules : [{test : '.less$', uses : [{loader : lessLoader}], type : 'css'}]
+    rules : [{test : /.less$/, use : [{loader : lessLoader}], type : 'css'}]
   },
   output: {
     path: path.resolve(__dirname,'dist')

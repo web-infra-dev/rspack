@@ -125,7 +125,8 @@ pub struct Rspack {
 impl Rspack {
   #[napi(constructor)]
   pub fn new(env: Env, mut options: RawOptions, js_hooks: Option<JsHooks>) -> Result<Self> {
-    init_custom_trace_subscriber(env).expect("failed to add trace hook");
+    // init_custom_trace_subscriber(env).expect("failed to add trace hook");
+    rspack_tracing::enable_tracing_by_env();
     Self::prepare_environment(&env, &mut options);
     tracing::info!("raw_options: {:#?}", &options);
 

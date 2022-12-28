@@ -22,7 +22,7 @@ module.exports = {
       refresh: true,
     },
     progress: {},
-    treeShaking: true,
+    treeShaking: false,
     sideEffects: true
   },
   module: {
