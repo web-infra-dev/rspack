@@ -11,12 +11,17 @@ impl<T> WorkerQueue<T> {
     }
   }
 
-  pub fn add_task(&self, task: T) -> usize {
+  pub fn add_task(&mut self, task: T) -> usize {
     self.inner.push_back(task);
     self.inner.len()
   }
 
-  pub fn get_task(&self) -> Option<T> {
+  pub fn add_tasks(&mut self, tasks: impl IntoIterator<Item = T>) -> usize {
+    self.inner.extend(tasks.into_iter());
+    self.inner.len()
+  }
+
+  pub fn get_task(&mut self) -> Option<T> {
     self.inner.pop_front()
   }
 

@@ -68,7 +68,6 @@ impl NormalModuleFactory {
   /// set `is_entry` true if you are trying to create a new module factory with a module identifier which is an entry
   pub async fn create(
     mut self,
-    is_entry: bool,
     resolve_options: Option<Resolve>,
   ) -> Result<(FactorizeResult, NormalModuleFactoryContext, Dependency)> {
     Ok((

@@ -3,8 +3,9 @@ use std::sync::Arc;
 use rspack_error::{internal_error, Diagnostic, Error, Result};
 
 use crate::{
-  cache::Cache, BoxModule, CompilerOptions, Dependency, LoaderRunnerRunner, Module, ModuleGraph,
-  ModuleGraphModule, ModuleIdentifier, ModuleType, NormalModuleFactory, NormalModuleFactoryContext,
+  cache::Cache, module_rule_matcher, BoxModule, BuildContext, BuildResult, Compilation,
+  CompilerOptions, Dependency, LoaderRunnerRunner, Module, ModuleGraph, ModuleGraphModule,
+  ModuleIdentifier, ModuleRule, ModuleType, NormalModuleFactory, NormalModuleFactoryContext,
   Resolve, SharedPluginDriver, WorkerQueue,
 };
 
@@ -18,10 +19,6 @@ pub enum TaskResult {
 #[async_trait::async_trait]
 pub trait WorkerTask {
   async fn run(self) -> Result<TaskResult>;
-}
-
-pub trait WorkerTaskSync {
-  fn run(self) -> Result<TaskResult>;
 }
 
 pub struct FactorizeTask {
@@ -44,6 +41,7 @@ pub struct FactorizeTaskResult {
   pub module: Box<dyn Module>,
   pub module_graph_module: Box<ModuleGraphModule>,
   pub dependencies: Vec<Dependency>,
+  pub is_entry: bool,
 }
 
 #[async_trait::async_trait]
@@ -62,7 +60,7 @@ impl WorkerTask for FactorizeTask {
       self.cache,
     );
 
-    let (module, context, dependency) = factory.create(self.is_entry, self.resolve_options).await?;
+    let (module, context, dependency) = factory.create(self.resolve_options).await?;
     let mgm = ModuleGraphModule::new(
       context.module_name.clone(),
       module.identifier(),
@@ -76,7 +74,10 @@ impl WorkerTask for FactorizeTask {
       !context.options.builtins.side_effects,
     );
 
+    mgm.set_issuer_if_unset(self.original_module_identifier);
+
     Ok(TaskResult::Factorize(FactorizeTaskResult {
+      is_entry: self.is_entry,
       original_module_identifier: self.original_module_identifier,
       module,
       module_graph_module: Box::new(mgm),
@@ -92,8 +93,7 @@ pub struct AddTask<'m> {
   module: Box<dyn Module>,
   module_graph_module: Box<ModuleGraphModule>,
   dependencies: Vec<Dependency>,
-
-  module_graph: &'m mut ModuleGraph,
+  is_entry: bool,
 }
 
 pub enum AddTaskResult {
@@ -101,38 +101,48 @@ pub enum AddTaskResult {
   ModuleAdded(Box<dyn Module>),
 }
 
-impl WorkerTaskSync for AddTask<'_> {
-  fn run(self) -> Result<TaskResult> {
+impl AddTask<'_> {
+  pub fn run(mut self, compilation: &mut Compilation) -> Result<TaskResult> {
     let module_identifier = self.module.identifier();
 
-    if self.module_graph.module_exists(&self.module.identifier()) {
+    if compilation
+      .module_graph
+      .module_exists(&self.module.identifier())
+    {
       self.set_resolved_module(module_identifier);
 
       return Ok(TaskResult::Add(AddTaskResult::ModuleReused(self.module)));
     }
 
-    self
+    self.module_graph_module.all_dependencies = self.dependencies;
+
+    compilation
       .module_graph
       .add_module_graph_module(*self.module_graph_module);
 
-    self.set_resolved_module(module_identifier);
+    self.set_resolved_module(&mut compilation.module_graph, module_identifier);
+
+    if self.is_entry {
+      self
+        .compilation
+        .entry_module_identifiers
+        .insert(module_identifier);
+    }
 
     Ok(TaskResult::Add(AddTaskResult::ModuleAdded(self.module)))
   }
 }
 
 impl AddTask<'_> {
-  fn set_resolved_module(&mut self, module_identifier: ModuleIdentifier) {
-    for dependency in &self.dependencies {
-      let dep_id = self
-        .module_graph
-        .add_dependency(dependency, module_identifier);
+  fn set_resolved_module(
+    &mut self,
+    module_graph: &mut ModuleGraph,
+    module_identifier: ModuleIdentifier,
+  ) {
+    for dependency in self.dependencies {
+      let dep_id = module_graph.add_dependency(dependency, module_identifier);
 
-      self.module_graph.set_resolved_module(
-        self.original_module_identifier,
-        dep_id,
-        module_identifier,
-      );
+      module_graph.set_resolved_module(self.original_module_identifier, dep_id, module_identifier);
     }
   }
 }
@@ -144,27 +154,92 @@ pub struct BuildTask {
 
   pub loader_runner_runner: Arc<LoaderRunnerRunner>,
   pub compiler_options: Arc<CompilerOptions>,
+  pub plugin_driver: SharedPluginDriver,
   pub cache: Arc<Cache>,
 }
 
 pub struct BuildTaskResult {
   pub module: Box<dyn Module>,
+  pub build_result: BuildResult,
+  pub diagnostics: Vec<Diagnostic>,
 }
 
 #[async_trait::async_trait]
 impl WorkerTask for BuildTask {
   async fn run(self) -> Result<TaskResult> {
-    self.module.build();
+    let module = self.module;
+    let compiler_options = self.compiler_options;
+    let loader_runner_runner = self.loader_runner_runner;
+    let cache = self.cache;
+    let plugin_driver = self.plugin_driver;
+
+    let build_result = cache
+      .build_module_occasion
+      .use_cache(&mut module, |module| async {
+        let resolved_loaders = if let Some(normal_module) = module.as_normal_module() {
+          let resource_data = normal_module.resource_resolved_data();
+
+          compiler_options
+            .as_ref()
+            .module
+            .rules
+            .iter()
+            .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
+              match module_rule_matcher(module_rule, resource_data) {
+                Ok(val) => val.then_some(Ok(module_rule)),
+                Err(err) => Some(Err(err)),
+              }
+            })
+            .collect::<Result<Vec<_>>>()?
+        } else {
+          vec![]
+        };
+
+        let resolved_loaders = resolved_loaders
+          .into_iter()
+          .flat_map(|module_rule| module_rule.r#use.iter().map(Box::as_ref).rev())
+          .collect::<Vec<_>>();
+
+        plugin_driver
+          .read()
+          .await
+          .build_module(module.as_mut())
+          .await?;
+
+        let result = module
+          .build(BuildContext {
+            resolved_loaders,
+            loader_runner_runner: &loader_runner_runner,
+            compiler_options: &compiler_options,
+          })
+          .await;
+
+        plugin_driver.read().await.succeed_module(module).await?;
+
+        result
+      })
+      .await?;
+
+    let (build_result, diagnostics) = build_result.split_into_parts();
+
     Ok(TaskResult::Build(BuildTaskResult {
       module: self.module,
+      build_result,
+      diagnostics,
     }))
   }
 }
 
 pub type BuildQueue = WorkerQueue<BuildTask>;
 
-pub struct ProcessDependenciesTask {}
+pub struct ProcessDependenciesTask {
+  pub original_module_identifier: Option<ModuleIdentifier>,
+  pub dependencies: Vec<Dependency>,
+  pub resolve_options: Option<Resolve>,
+}
 
-pub struct ProcessDependenciesResult {}
+pub struct ProcessDependenciesResult {
+  pub module_identifier: ModuleIdentifier,
+}
 
 pub type ProcessDependenciesQueue = WorkerQueue<ProcessDependenciesTask>;
