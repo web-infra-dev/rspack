@@ -672,6 +672,19 @@ impl Compilation {
       }
     });
 
+    println!(
+      "{:#?}",
+      self.module_graph.module_identifier_to_module_graph_module
+    );
+    println!(
+      "modules {:#?}",
+      self
+        .module_graph
+        .module_identifier_to_module
+        .keys()
+        .collect::<Vec<_>>()
+    );
+
     tracing::debug!("All task is finished");
   }
 

@@ -67,7 +67,7 @@ impl WorkerTask for FactorizeTask {
     let mut mgm = ModuleGraphModule::new(
       context.module_name.clone(),
       module.identifier(),
-      self.dependencies.clone(),
+      vec![],
       context.module_type.ok_or_else(|| {
         Error::InternalError(internal_error!(format!(
           "Unable to get the module type for module {}, did you forget to configure `Rule.type`? ",
@@ -106,11 +106,7 @@ pub enum AddTaskResult {
 }
 
 impl AddTask {
-  pub fn run(
-    mut self,
-    compilation: &mut Compilation,
-    // visited_modules: &mut VisitedModuleIdentity,
-  ) -> Result<TaskResult> {
+  pub fn run(self, compilation: &mut Compilation) -> Result<TaskResult> {
     let module_identifier = self.module.identifier();
 
     if compilation
@@ -210,7 +206,6 @@ impl WorkerTask for BuildTask {
           let resource_data = normal_module.resource_resolved_data();
 
           compiler_options
-            .as_ref()
             .module
             .rules
             .iter()
@@ -248,15 +243,23 @@ impl WorkerTask for BuildTask {
 
         result
       })
-      .await?;
+      .await;
 
-    let (build_result, diagnostics) = build_result.split_into_parts();
-
-    Ok(TaskResult::Build(BuildTaskResult {
-      module,
-      build_result,
-      diagnostics,
-    }))
+    match build_result {
+      Ok(build_result) => {
+        let (build_result, diagnostics) = build_result.split_into_parts();
+        Ok(TaskResult::Build(BuildTaskResult {
+          module,
+          build_result,
+          diagnostics,
+        }))
+      }
+      Err(err) => Ok(TaskResult::Build(BuildTaskResult {
+        module,
+        build_result: Default::default(),
+        diagnostics: err.into(),
+      })),
+    }
   }
 }
 
