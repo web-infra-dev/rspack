@@ -9,6 +9,9 @@ impl RawOption<Context> for RawContext {
   }
 
   fn fallback_value(_options: &CompilerOptionsBuilder) -> Self {
-    std::env::current_dir().unwrap().display().to_string()
+    std::env::current_dir()
+      .expect("current_dir should exist")
+      .display()
+      .to_string()
   }
 }

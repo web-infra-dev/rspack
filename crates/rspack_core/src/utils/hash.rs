@@ -46,7 +46,7 @@ pub fn calc_hash<T: Hash>(t: &T) -> u64 {
 //     })
 //     .collect::<Result<Vec<_>>>();
 
-//   get_modules_hash(all_modules.as_ref().unwrap())
+//   get_modules_hash(all_modules.as_ref().expect("TODO:"))
 // }
 
 // pub fn get_hash(compilation: &Compilation) -> u64 {
@@ -70,7 +70,7 @@ pub fn calc_hash<T: Hash>(t: &T) -> u64 {
 //     })
 //     .collect::<Result<Vec<_>>>();
 
-//   get_modules_hash(all_modules.as_ref().unwrap())
+//   get_modules_hash(all_modules.as_ref().expect("TODO:"))
 // }
 
 // fn get_modules_hash(sources: &[Option<BoxSource>]) -> u64 {

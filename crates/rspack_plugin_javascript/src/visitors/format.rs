@@ -18,7 +18,7 @@ use {
 };
 
 static SWC_HELPERS_REG: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"@swc/helpers/lib/(\w*)\.js$").unwrap());
+  Lazy::new(|| Regex::new(r"@swc/helpers/lib/(\w*)\.js$").expect("TODO:"));
 
 pub struct RspackModuleFinalizer<'a> {
   pub module: &'a dyn Module,

@@ -15,7 +15,7 @@ impl RawOptionsExt for RawOptions {
   fn from_fixture(fixture_path: &Path) -> Self {
     let pkg_path = fixture_path.join("test.config.js");
     let mut options = if pkg_path.exists() {
-      let pkg_content = std::fs::read_to_string(pkg_path).unwrap();
+      let pkg_content = std::fs::read_to_string(pkg_path).expect("TODO:");
       let manifest_dir = PathBuf::from(env!("CARGO_WORKSPACE_DIR"));
       let dirname = manifest_dir
         .join(fixture_path)
@@ -26,18 +26,23 @@ impl RawOptionsExt for RawOptions {
         "var module = {exports: {}}; var __dirname =", &dirname
       );
       const TAIL: &str = "JSON.stringify(module.exports)";
-      let qjs_context = quick_js::Context::new().unwrap();
+      let qjs_context = quick_js::Context::new().expect("TODO:");
       let value = qjs_context
         .eval(&format!("{head}\n{pkg_content}\n{TAIL}"))
-        .unwrap();
-      let options: RawOptions = serde_json::from_str(&value.into_string().unwrap()).unwrap();
+        .expect("TODO:");
+      let options: RawOptions =
+        serde_json::from_str(&value.into_string().expect("TODO:")).expect("TODO:");
       options
     } else {
       RawOptions {
         entry: Some(HashMap::from([(
           "main".to_string(),
           RawEntryItem {
-            import: vec![fixture_path.join("index.js").to_str().unwrap().to_string()],
+            import: vec![fixture_path
+              .join("index.js")
+              .to_str()
+              .expect("TODO:")
+              .to_string()],
             runtime: None,
           },
         )])),
@@ -45,7 +50,7 @@ impl RawOptionsExt for RawOptions {
       }
     };
     if options.context.is_none() {
-      options.context = Some(fixture_path.to_str().unwrap().to_string());
+      options.context = Some(fixture_path.to_str().expect("TODO:").to_string());
     }
     // set builtins.minify default to false
     if options.builtins.is_none() {
@@ -66,7 +71,7 @@ impl RawOptionsExt for RawOptions {
   }
 
   fn to_compiler_options(self) -> CompilerOptions {
-    normalize_bundle_options(self).unwrap()
+    normalize_bundle_options(self).expect("TODO:")
   }
 }
 

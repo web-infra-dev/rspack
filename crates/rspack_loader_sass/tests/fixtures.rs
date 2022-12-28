@@ -18,7 +18,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
   let expected_path = tests_path.join(expected);
   let actual_path = tests_path.join(actual);
 
-  let url = Url::from_file_path(&actual_path.to_string_lossy().to_string()).unwrap();
+  let url = Url::from_file_path(&actual_path.to_string_lossy().to_string()).expect("TODO:");
   let (result, _) = LoaderRunner::new(
     ResourceData {
       resource: actual_path.to_string_lossy().to_string(),
@@ -41,15 +41,15 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           output: rspack_core::OutputOptions {
             path: Default::default(),
             public_path: Default::default(),
-            filename: rspack_core::Filename::from_str("").unwrap(),
-            asset_module_filename: rspack_core::Filename::from_str("").unwrap(),
-            chunk_filename: rspack_core::Filename::from_str("").unwrap(),
+            filename: rspack_core::Filename::from_str("").expect("TODO:"),
+            asset_module_filename: rspack_core::Filename::from_str("").expect("TODO:"),
+            chunk_filename: rspack_core::Filename::from_str("").expect("TODO:"),
             unique_name: Default::default(),
-            css_chunk_filename: rspack_core::Filename::from_str("").unwrap(),
-            css_filename: rspack_core::Filename::from_str("").unwrap(),
+            css_chunk_filename: rspack_core::Filename::from_str("").expect("TODO:"),
+            css_filename: rspack_core::Filename::from_str("").expect("TODO:"),
             library: None,
           },
-          target: rspack_core::Target::new(&vec![String::from("web")]).unwrap(),
+          target: rspack_core::Target::new(&vec![String::from("web")]).expect("TODO:"),
           resolve: rspack_core::Resolve::default(),
           builtins: Default::default(),
           plugins: Default::default(),
@@ -70,14 +70,14 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
     },
   )
   .await
-  .unwrap()
+  .expect("TODO:")
   .split_into_parts();
-  let result = result.content.try_into_string().unwrap();
+  let result = result.content.try_into_string().expect("TODO:");
 
   if env::var("UPDATE_SASS_LOADER_TEST").is_ok() {
-    fs::write(expected_path, result).unwrap();
+    fs::write(expected_path, result).expect("TODO:");
   } else {
-    let expected = fs::read_to_string(expected_path).unwrap();
+    let expected = fs::read_to_string(expected_path).expect("TODO:");
     assert_eq!(result, expected);
   }
 }

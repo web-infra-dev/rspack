@@ -247,7 +247,7 @@ impl ChunkGraph {
       .fold(0.0, |acc, m| {
         let module = module_graph
           .module_by_identifier(&m.module_identifier)
-          .unwrap();
+          .unwrap_or_else(|| panic!("Module({}) does not exist", m.module_identifier));
         acc
           + module
             .source_types()

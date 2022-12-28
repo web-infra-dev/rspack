@@ -67,25 +67,27 @@ impl CompilerOptionsBuilder {
   /// Otherwise, this function will panic during the runtime
   pub fn finish(self) -> CompilerOptions {
     CompilerOptions {
-      entry: self.entry.unwrap(),
-      context: self.context.unwrap(),
-      dev_server: self.dev_server.unwrap(),
-      output: self.output.unwrap(),
-      target: self.target.unwrap(),
-      resolve: self.resolve.unwrap(),
-      builtins: self.builtins.unwrap(),
-      plugins: self.plugins.unwrap(),
-      module: self.module.unwrap(),
-      devtool: self.devtool.unwrap(),
-      external: self.external.unwrap(),
-      external_type: self.external_type.unwrap(),
-      stats: self.stats.unwrap(),
-      snapshot: self.snapshot.unwrap(),
-      cache: self.cache.unwrap(),
-      experiments: self.experiments.unwrap(),
-      node: self.node.unwrap(),
+      entry: self.entry.expect("build options.entry failed"),
+      context: self.context.expect("build options.context failed"),
+      dev_server: self.dev_server.expect("build options.dev_server failed"),
+      output: self.output.expect("build options.output failed"),
+      target: self.target.expect("build options.target failed"),
+      resolve: self.resolve.expect("build options.resolve failed"),
+      builtins: self.builtins.expect("build options.builtins failed"),
+      plugins: self.plugins.expect("build options.plugins failed"),
+      module: self.module.expect("build options.module failed"),
+      devtool: self.devtool.expect("build options.devtool failed"),
+      external: self.external.expect("build options.external failed"),
+      external_type: self
+        .external_type
+        .expect("build options.external_type failed"),
+      stats: self.stats.expect("build options.stats failed"),
+      snapshot: self.snapshot.expect("build options.snapshot failed"),
+      cache: self.cache.expect("build options.cache failed"),
+      experiments: self.experiments.expect("build options.experiments failed"),
+      node: self.node.expect("build options.node failed"),
       __emit_error: false,
-      module_ids: self.module_ids.unwrap(),
+      module_ids: self.module_ids.expect("build options.module_ids failed"),
     }
   }
 

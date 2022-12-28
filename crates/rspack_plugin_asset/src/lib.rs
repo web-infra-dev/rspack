@@ -244,7 +244,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     module: &dyn rspack_core::Module,
     generate_context: &mut GenerateContext,
   ) -> Result<rspack_core::GenerationResult> {
-    let parsed_asset_config = self.parsed_asset_config.as_ref().unwrap();
+    let parsed_asset_config = self.parsed_asset_config.as_ref().expect("TODO:");
 
     let asset_filename_template = &generate_context
       .compilation
@@ -485,7 +485,7 @@ impl Plugin for AssetPlugin {
                       path
                         .file_stem()
                         .map(|s| s.to_string_lossy())
-                        .unwrap()
+                        .expect("TODO:")
                         .to_string(),
                     ),
                     path: path.parent().map(|p| p.to_string_lossy().to_string() + "/"),

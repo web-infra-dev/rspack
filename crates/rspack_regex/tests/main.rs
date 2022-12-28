@@ -48,7 +48,7 @@ fn regex_assert(code: &str) {
       None,
       &mut vec![],
     )
-    .unwrap();
+    .expect("TODO:");
     match e {
       box Expr::Call(CallExpr { callee, args, .. }) => {
         let t = callee
@@ -59,7 +59,7 @@ fn regex_assert(code: &str) {
             "assert_none_match" => AssertType::False,
             _ => unimplemented!("unsupported assert function"),
           })
-          .unwrap();
+          .expect("TODO:");
         let regex = &args[0];
         let string = &args[1];
         let string_lit = match string.expr.as_lit() {
@@ -67,7 +67,7 @@ fn regex_assert(code: &str) {
           _ => unreachable!(),
         };
         if let Some(Lit::Regex(reg)) = regex.expr.as_lit() {
-          let rspack_reg = RspackRegex::try_from(reg.clone()).unwrap();
+          let rspack_reg = RspackRegex::try_from(reg.clone()).expect("TODO:");
           match t {
             AssertType::False => assert!(rspack_reg.find(&string_lit).is_none()),
             AssertType::True => assert!(rspack_reg.find(&string_lit).is_some()),

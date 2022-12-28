@@ -106,7 +106,7 @@ pub enum PublicPath {
 
 impl Default for PublicPath {
   fn default() -> Self {
-    Self::from_str("/").unwrap()
+    Self::from_str("/").expect("TODO:")
   }
 }
 
@@ -141,7 +141,7 @@ fn get_hash_length(placeholder_with_length: &str, placeholder: &str) -> usize {
   if start_index < end_index {
     let hash_length_string = String::from(&placeholder_with_length[start_index + 1..end_index]);
     if !hash_length_string.is_empty() && is_string_numeric(&hash_length_string) {
-      hash_length = hash_length_string.parse().unwrap()
+      hash_length = hash_length_string.parse().expect("TODO:")
     }
   }
 

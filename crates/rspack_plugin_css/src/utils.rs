@@ -59,10 +59,10 @@ pub fn css_modules_exports_to_string(
       .iter()
       .map(|element| match element {
         CssClassName::Local { name } | CssClassName::Global { name } => {
-          serde_json::to_string(&format!("{name} ")).unwrap()
+          serde_json::to_string(&format!("{name} ")).expect("TODO:")
         }
         CssClassName::Import { name, from } => {
-          let name = serde_json::to_string(name).unwrap();
+          let name = serde_json::to_string(name).expect("TODO:");
           let from = Dependency {
             parent_module_identifier: Some(module.identifier()),
             detail: ModuleDependency {
@@ -75,7 +75,7 @@ pub fn css_modules_exports_to_string(
             .module_graph
             .module_by_dependency(&from)
             .expect("should have css from module");
-          let from = serde_json::to_string(from.id(&compilation.chunk_graph)).unwrap();
+          let from = serde_json::to_string(from.id(&compilation.chunk_graph)).expect("TODO:");
           format!("{REQUIRE}({from})[{name}]")
         }
       })
@@ -85,7 +85,7 @@ pub fn css_modules_exports_to_string(
       writeln!(
         code,
         "  {}: {},",
-        serde_json::to_string(&key).unwrap(),
+        serde_json::to_string(&key).expect("TODO:"),
         content,
       )
       .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?;
@@ -94,7 +94,7 @@ pub fn css_modules_exports_to_string(
       writeln!(
         code,
         "  {}: {},",
-        serde_json::to_string(&key.to_lower_camel_case()).unwrap(),
+        serde_json::to_string(&key.to_lower_camel_case()).expect("TODO:"),
         content,
       )
       .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?;
@@ -103,7 +103,7 @@ pub fn css_modules_exports_to_string(
       writeln!(
         code,
         "  {}: {},",
-        serde_json::to_string(&key.to_kebab_case()).unwrap(),
+        serde_json::to_string(&key.to_kebab_case()).expect("TODO:"),
         content,
       )
       .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?;

@@ -64,7 +64,7 @@ pub fn minify(opts: &JsMinifyOptions, input: String, filename: &str) -> Result<T
             _ => (SourceMapsConfig::Bool(false), None),
           }))
         })
-        .unwrap()?;
+        .expect("TODO:")?;
 
       let mut min_opts = MinifyOptions {
         compress: opts

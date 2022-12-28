@@ -437,7 +437,9 @@ impl Compilation {
                 let mut module_graph_module = self
                   .module_graph
                   .module_graph_module_by_identifier_mut(&module.identifier())
-                  .unwrap();
+                  .unwrap_or_else(|| {
+                    panic!("ModuleGraphModule({}) not found", module.identifier())
+                  });
                 module_graph_module.all_dependencies = *deps;
               }
               if let Err(err) = self.module_graph.set_resolved_module(
@@ -748,17 +750,23 @@ impl Compilation {
     chunk_ukey_and_manifest
       .into_iter()
       .for_each(|(chunk_ukey, manifest)| {
-        manifest.unwrap().into_iter().for_each(|file_manifest| {
-          let current_chunk = self.chunk_by_ukey.get_mut(&chunk_ukey).unwrap();
-          current_chunk
-            .files
-            .insert(file_manifest.filename().to_string());
+        manifest
+          .expect("TODO: we should return this error rathen expect")
+          .into_iter()
+          .for_each(|file_manifest| {
+            let current_chunk = self
+              .chunk_by_ukey
+              .get_mut(&chunk_ukey)
+              .unwrap_or_else(|| panic!("chunk({:?}) should be in chunk_by_ukey", chunk_ukey,));
+            current_chunk
+              .files
+              .insert(file_manifest.filename().to_string());
 
-          self.emit_asset(
-            file_manifest.filename().to_string(),
-            CompilationAsset::new(file_manifest.source, AssetInfo::default()),
-          );
-        });
+            self.emit_asset(
+              file_manifest.filename().to_string(),
+              CompilationAsset::new(file_manifest.source, AssetInfo::default()),
+            );
+          });
       })
   }
   #[instrument(name = "compilation:process_asssets", skip_all)]
@@ -802,7 +810,7 @@ impl Compilation {
           }
         };
         // let normal_module = self.module_graph.module_by_identifier(&m.module_identifier);
-        //        let ast = ast.as_javascript().unwrap();
+        //        let ast = ast.as_javascript().expect("TODO:");
         let analyzer = ast.visit(|program, context| {
           let top_level_mark = context.top_level_mark;
           let unresolved_mark = context.unresolved_mark;
@@ -878,13 +886,18 @@ impl Compilation {
     for (module_id, inherit_export_module_id) in map_of_inherit_map.iter() {
       // This is just a work around for rustc checker, because we have immutable and mutable borrow at the same time.
       let mut inherit_export_maps = {
-        let main_module = analyze_results.get_mut(module_id).unwrap();
+        let main_module = analyze_results.get_mut(module_id).expect("TODO:");
         std::mem::take(&mut main_module.inherit_export_maps)
       };
       for inherit_export_module_identifier in inherit_export_module_id {
         let export_module = analyze_results
           .get(inherit_export_module_identifier)
-          .unwrap()
+          .unwrap_or_else(|| {
+            panic!(
+              "inherit_export_module_identifier not found: {:?}",
+              inherit_export_module_identifier
+            )
+          })
           .export_map
           .iter()
           .filter_map(|(k, v)| {
@@ -900,7 +913,7 @@ impl Compilation {
       }
       analyze_results
         .get_mut(module_id)
-        .unwrap()
+        .unwrap_or_else(|| panic!("Module({:?}) not found", module_id))
         .inherit_export_maps = inherit_export_maps;
     }
     let mut errors = vec![];
@@ -1015,7 +1028,12 @@ impl Compilation {
         let mgm = self
           .module_graph
           .module_graph_module_by_identifier(&module_identifier)
-          .unwrap();
+          .unwrap_or_else(|| {
+            panic!(
+              "Failed to get ModuleGraphModule by module identifier {}",
+              module_identifier
+            )
+          });
         for dep in mgm.all_dependencies.iter() {
           let module_ident = self
             .module_graph
@@ -1565,7 +1583,7 @@ fn mark_symbol(
     SymbolRef::Direct(symbol) => match used_symbol_set.entry(symbol) {
       Occupied(_) => {}
       Vacant(vac) => {
-        let module_result = analyze_map.get(&vac.get().uri()).unwrap();
+        let module_result = analyze_map.get(&vac.get().uri()).expect("TODO:");
         if let Some(set) = module_result
           .reachable_import_of_export
           .get(&vac.get().id().atom)
@@ -1597,7 +1615,7 @@ fn mark_symbol(
         && !evaluated_module_identifiers.contains(&importer)
       {
         evaluated_module_identifiers.insert(importer);
-        let module_result = analyze_map.get(&importer).unwrap();
+        let module_result = analyze_map.get(&importer).expect("TODO:");
         q.extend(module_result.used_symbol_ref.clone());
       }
       used_indirect_symbol_set.insert(indirect_symbol.clone());
@@ -1654,7 +1672,7 @@ fn mark_symbol(
           match ret.len() {
             0 => {
               // TODO: Better diagnostic handle if source module does not have the export
-              // let map = analyze_map.get(&module_result.module_identifier).unwrap();
+              // let map = analyze_map.get(&module_result.module_identifier).expect("TODO:");
               // dbg!(&map);
               if !is_bailout_module_identifier && !has_bailout_module_identifiers {
                 let error_message = format!(

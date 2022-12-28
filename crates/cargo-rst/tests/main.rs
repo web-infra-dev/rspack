@@ -27,7 +27,7 @@ fn main() {
   prepare();
 
   // Integration test, current_dir is project root dir
-  let cwd = env::current_dir().unwrap();
+  let cwd = env::current_dir().expect("TODO:");
 
   // Test all fixtures, all should failed
   let mut all = cwd.clone();
@@ -61,14 +61,14 @@ fn main() {
 }
 
 fn prepare() {
-  let mut template = env::current_dir().unwrap();
+  let mut template = env::current_dir().expect("TODO:");
 
   let mut target = template.clone();
   template.push("tests/templates");
   target.push("tests/fixtures");
   let res = copy(&template, &target);
-  println!("cwd: {}", env::current_dir().unwrap().display());
-  res.unwrap();
+  println!("cwd: {}", env::current_dir().expect("TODO:").display());
+  res.expect("TODO:");
 }
 
 fn copy(orig: &Path, dest: &Path) -> io::Result<()> {
@@ -81,7 +81,7 @@ fn copy(orig: &Path, dest: &Path) -> io::Result<()> {
 
     let next = PathBuf::from(orig);
     let dest = PathBuf::from(dest);
-    for dir in fs::read_dir(orig).unwrap().flatten() {
+    for dir in fs::read_dir(orig).expect("TODO:").flatten() {
       let mut next = next.clone();
       let name = dir.file_name();
       next.push(name.clone());

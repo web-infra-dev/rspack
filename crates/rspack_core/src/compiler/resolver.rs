@@ -134,15 +134,21 @@ fn test_merge_resolver_options() {
     ..Default::default()
   };
   let options = merge_resolver_options(base.to_inner_options(Default::default()), another);
-  assert_eq!(options.extensions.unwrap(), to_string(vec!["a1", "b1"]));
-  assert!(options.prefer_relative.unwrap());
-  assert!(!options.symlinks.unwrap());
-  assert_eq!(options.main_files.unwrap(), vec!["d1", "e", "d", "e", "f"]);
   assert_eq!(
-    options.main_fields.unwrap(),
+    options.extensions.expect("should be Ok"),
+    to_string(vec!["a1", "b1"])
+  );
+  assert!(options.prefer_relative.expect("should be Ok"));
+  assert!(!options.symlinks.expect("should be Ok"));
+  assert_eq!(
+    options.main_files.expect("should be Ok"),
+    vec!["d1", "e", "d", "e", "f"]
+  );
+  assert_eq!(
+    options.main_fields.expect("should be Ok"),
     vec!["g", "h", "i", "h", "g", "h", "i"]
   );
-  assert_eq!(options.condition_names.unwrap().len(), 3);
+  assert_eq!(options.condition_names.expect("should be Ok").len(), 3);
 }
 
 #[test]

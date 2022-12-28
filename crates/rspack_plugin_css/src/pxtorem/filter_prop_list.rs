@@ -1,15 +1,15 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
 
-static EXACT_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[^*!]+$").unwrap());
+static EXACT_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[^*!]+$").expect("TODO:"));
 
-static CONTAIN_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\*.+\*$").unwrap());
-static ENDS_WITH_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\*[^*]+$").unwrap());
-static STARTS_WITH_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[^*!]+\*$").unwrap());
-static NOT_EXACT: Lazy<Regex> = Lazy::new(|| Regex::new(r"^![^*].*$").unwrap());
-static NOT_CONTAIN_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^!\*.+\*$").unwrap());
-static NOT_ENDS_WITH_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^!\*[^*]+$").unwrap());
-static NOT_STARTS_WITH_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^![^*]+\*").unwrap());
+static CONTAIN_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\*.+\*$").expect("TODO:"));
+static ENDS_WITH_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\*[^*]+$").expect("TODO:"));
+static STARTS_WITH_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[^*!]+\*$").expect("TODO:"));
+static NOT_EXACT: Lazy<Regex> = Lazy::new(|| Regex::new(r"^![^*].*$").expect("TODO:"));
+static NOT_CONTAIN_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^!\*.+\*$").expect("TODO:"));
+static NOT_ENDS_WITH_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^!\*[^*]+$").expect("TODO:"));
+static NOT_STARTS_WITH_REG: Lazy<Regex> = Lazy::new(|| Regex::new(r"^![^*]+\*").expect("TODO:"));
 
 pub fn exact(list: &[String]) -> Vec<String> {
   list

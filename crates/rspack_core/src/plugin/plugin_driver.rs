@@ -57,7 +57,7 @@ impl PluginDriver {
         let mut apply_context = ApplyContext::default();
         plugin
           .apply(PluginContext::with_context(&mut apply_context))
-          .unwrap();
+          .expect("TODO:");
         apply_context
       })
       .flat_map(|apply_context| {
@@ -80,7 +80,7 @@ impl PluginDriver {
   }
 
   pub fn take_diagnostic(&self) -> Vec<Diagnostic> {
-    let mut diagnostic = self.diagnostics.lock().unwrap();
+    let mut diagnostic = self.diagnostics.lock().expect("TODO:");
     std::mem::take(&mut diagnostic)
   }
 
@@ -127,7 +127,7 @@ impl PluginDriver {
   //   let mut module = parser.parse(module_type, args)?;
   //   // Collecting coverable parse error
   //   if !module.diagnostic.is_empty() {
-  //     let mut diagnostic = self.diagnostics.lock().unwrap();
+  //     let mut diagnostic = self.diagnostics.lock().expect("TODO:");
   //     diagnostic.append(&mut module.diagnostic);
   //   }
   //   Ok(module.take_inner())

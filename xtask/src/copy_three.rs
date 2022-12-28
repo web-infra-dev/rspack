@@ -10,11 +10,13 @@ use xshell::{cmd, Shell};
 // echo "module.exports = {mode: 'development',entry: {index: ['./benchcases/three/src/entry.js']},devtool: 'eval',cache: {type: 'filesystem'}}" > benchcases/three/webpack.config.js
 
 pub fn copy_three(num: usize) {
-  let sh = Shell::new().unwrap();
+  let sh = Shell::new().expect("TODO:");
   println!("{:?}", sh.current_dir());
   sh.change_dir(PathBuf::from(env!("CARGO_WORKSPACE_DIR")));
 
-  cmd!(sh, "mkdir -p benchcases/three/src").run().unwrap();
+  cmd!(sh, "mkdir -p benchcases/three/src")
+    .run()
+    .expect("TODO:");
   for i in 1..=num {
     let ii = i.to_string();
     // let res = format!("");
@@ -23,7 +25,7 @@ pub fn copy_three(num: usize) {
       "cp -r examples/.three/src benchcases/three/src/copy{ii}"
     )
     .run()
-    .unwrap();
+    .expect("TODO:");
   }
 
   // entry.js
@@ -37,8 +39,8 @@ pub fn copy_three(num: usize) {
   }
   let root_dir = PathBuf::from(env!("CARGO_WORKSPACE_DIR"));
   let entry_file = root_dir.join("benchcases/three/src/entry.js");
-  let mut file = File::create(entry_file).unwrap();
-  file.write_all(entry.as_bytes()).unwrap();
+  let mut file = File::create(entry_file).expect("TODO:");
+  file.write_all(entry.as_bytes()).expect("TODO:");
 
   // test.config.js
   let test_config_file = r#"
@@ -52,8 +54,8 @@ module.exports = {
 };
   "#;
   let test_config_path = root_dir.join("benchcases/three/test.config.js");
-  let mut file = File::create(test_config_path).unwrap();
-  file.write_all(test_config_file.as_bytes()).unwrap();
+  let mut file = File::create(test_config_path).expect("TODO:");
+  file.write_all(test_config_file.as_bytes()).expect("TODO:");
 
   // webpack.config.js
   let webpack_config_file = r#"
@@ -67,8 +69,10 @@ module.exports = {
 }
     "#;
   let webpack_config_path = root_dir.join("benchcases/three/webpack.config.js");
-  let mut file = File::create(webpack_config_path).unwrap();
-  file.write_all(webpack_config_file.as_bytes()).unwrap();
+  let mut file = File::create(webpack_config_path).expect("TODO:");
+  file
+    .write_all(webpack_config_file.as_bytes())
+    .expect("TODO:");
 }
 
 pub fn three_production_config() {
@@ -89,6 +93,6 @@ module.exports = {
 };
   "#;
   let test_config_path = root_dir.join("benchcases/three/test.config.js");
-  let mut file = File::create(test_config_path).unwrap();
-  file.write_all(test_config_file.as_bytes()).unwrap();
+  let mut file = File::create(test_config_path).expect("TODO:");
+  file.write_all(test_config_file.as_bytes()).expect("TODO:");
 }

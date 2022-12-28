@@ -127,7 +127,8 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
                 reuse_existing_chunk: false.into(),
                 r#type: Some(ModuleType::Js),
                 test: Some(Arc::new(move |module| {
-                  let re = regex::Regex::new(&v.test).unwrap();
+                  let re = regex::Regex::new(&v.test)
+                    .unwrap_or_else(|_| panic!("Invalid regex: {}", v.test));
                   module
                     .name_for_condition()
                     .map_or(false, |name| re.is_match(&name))

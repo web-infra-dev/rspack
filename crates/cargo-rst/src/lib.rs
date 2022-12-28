@@ -49,10 +49,11 @@ struct TestCmd {
   cargo_options: Vec<String>,
 }
 
+#[allow(clippy::unwrap_used)]
 pub fn setup(args: &Vec<OsString>) {
   let cli = Cli::parse_from(args);
 
-  match &cli.commands.unwrap() {
+  match &cli.commands.expect("TODO:") {
     Commands::Update { path } => {
       update(path.clone());
     }
@@ -76,7 +77,7 @@ pub fn setup(args: &Vec<OsString>) {
       proc.arg("--");
       proc.arg("-q");
 
-      proc.status().unwrap();
+      proc.status().expect("TODO:");
     }
   };
 }

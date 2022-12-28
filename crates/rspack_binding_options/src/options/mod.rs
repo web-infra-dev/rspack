@@ -302,8 +302,8 @@ mod test {
 
   #[test]
   fn empty_test() {
-    let raw = serde_json::from_str("{}").unwrap();
-    let options = normalize_bundle_options(raw).unwrap();
+    let raw = serde_json::from_str("{}").expect("TODO:");
+    let options = normalize_bundle_options(raw).expect("TODO:");
     assert!(&options
       .output
       .path

@@ -202,7 +202,7 @@ impl VisitMut for PxToRem {
             BasicCssWriterConfig::default(),
           );
           let mut gen = CodeGenerator::new(wr, CodegenConfig { minify: false });
-          gen.emit(&rule.prelude).unwrap();
+          gen.emit(&rule.prelude).expect("TODO:");
           if !self.black_listed_selector(&selector_string) {
             rule.visit_mut_with(self);
           }
@@ -256,7 +256,7 @@ impl VisitMut for PxToRem {
           self.visit_mut_declaration(decl);
           if !self.replace && self.mutated {
             // SAFETY: if `self.replace = false` we must save the snapshot of the declaration
-            let mut snapshot = snapshot.unwrap();
+            let mut snapshot = snapshot.expect("TODO:");
             std::mem::swap(decl, &mut snapshot);
             // Now, snapshot save the mutated version of declaration
             snapshot_and_index_list.push((
@@ -278,7 +278,7 @@ impl VisitMut for PxToRem {
 
           if !self.replace && self.mutated {
             // SAFETY: if `self.replace = false` we must save the snapshot of the declaration
-            let mut snapshot = snapshot.unwrap();
+            let mut snapshot = snapshot.expect("TODO:");
             std::mem::swap(decl, &mut snapshot);
             // Now, snapshot save the mutated version of declaration
             snapshot_and_index_list.push((
@@ -314,9 +314,9 @@ impl VisitMut for PxToRem {
   }
 
   fn visit_mut_declaration(&mut self, n: &mut swc_css::ast::Declaration) {
-    let map = self.map_stack.last().unwrap();
+    let map = self.map_stack.last().expect("TODO:");
     let name = get_decl_name(n);
-    let frequency = *map.get(&name).unwrap();
+    let frequency = *map.get(&name).expect("TODO:");
 
     if !self.is_match(&name) {
       return;

@@ -10,7 +10,7 @@ use rspack_core::{
 use rspack_error::{internal_error, Result};
 use tracing::instrument;
 
-static IS_CSS_FILE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\.css($|\?)").unwrap());
+static IS_CSS_FILE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\.css($|\?)").expect("TODO:"));
 
 #[derive(Debug)]
 pub struct DevtoolPluginOptions {
@@ -117,7 +117,7 @@ impl Plugin for DevtoolPlugin {
         let current_source_mapping_url_comment = current_source_mapping_url_comment
           .expect("DevToolPlugin: append can't be false when inline is true.");
         let base64 = base64::encode(&map_buffer);
-        let mut asset = args.compilation.assets.remove(&filename).unwrap();
+        let mut asset = args.compilation.assets.remove(&filename).expect("TODO:");
         asset.source = ConcatSource::new([
           asset.source,
           RawSource::from(current_source_mapping_url_comment.replace(
@@ -136,7 +136,7 @@ impl Plugin for DevtoolPlugin {
           } else {
             source_map_filename.clone()
           };
-          let mut asset = args.compilation.assets.remove(&filename).unwrap();
+          let mut asset = args.compilation.assets.remove(&filename).expect("TODO:");
           asset.source = ConcatSource::new([
             asset.source,
             RawSource::from(current_source_mapping_url_comment.replace("[url]", &source_map_url))

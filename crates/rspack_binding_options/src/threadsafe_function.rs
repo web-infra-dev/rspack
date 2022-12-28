@@ -407,7 +407,8 @@ unsafe extern "C" fn call_js_cb<T: 'static, C, R>(
     (ctx)(ThreadSafeContext {
       env: Env::from_raw(raw_env),
       value,
-      callback: JsFunction::from_raw(raw_env, js_callback).unwrap(), // TODO: unwrap
+      callback: JsFunction::from_raw(raw_env, js_callback)
+        .unwrap_or_else(|_| panic!("Threadsafe function callback is not a function")),
       tx,
     })
   });

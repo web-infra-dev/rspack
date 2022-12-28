@@ -68,9 +68,9 @@ pub struct LocalIdentName(Filename);
 impl LocalIdentName {
   pub fn with_mode(mode: Option<Mode>) -> Self {
     if matches!(mode, Some(Mode::Production)) {
-      LocalIdentName::from_str("[hash]").unwrap()
+      LocalIdentName::from_str("[hash]").expect("TODO:")
     } else {
-      LocalIdentName::from_str("[path][name][ext]__[local]").unwrap()
+      LocalIdentName::from_str("[path][name][ext]__[local]").expect("TODO:")
     }
   }
 
@@ -232,14 +232,14 @@ impl CssPlugin {
         // done, everything empty
         break;
       }
-      let mut selected_module = *list.last().unwrap();
+      let mut selected_module = *list.last().expect("TODO:");
       let mut has_failed = None;
       'outer: loop {
         for SortedModules { set, list } in &modules_by_chunk_group {
           if list.is_empty() {
             continue;
           }
-          let last_module = *list.last().unwrap();
+          let last_module = *list.last().expect("TODO:");
           if last_module != selected_module {
             continue;
           }
@@ -740,7 +740,7 @@ fn compare_module_lists(a: &SortedModules, b: &SortedModules) -> cmp::Ordering {
   } else if b.is_empty() {
     cmp::Ordering::Less
   } else {
-    compare_modules_by_identifier(a.last().unwrap(), b.last().unwrap())
+    compare_modules_by_identifier(a.last().expect("TODO:"), b.last().expect("TODO:"))
   }
 }
 
