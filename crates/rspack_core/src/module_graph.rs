@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use hashbrown::{HashMap, HashSet};
 
@@ -7,8 +7,7 @@ use rspack_error::{internal_error, Error, Result};
 use crate::{BoxModule, Dependency, ModuleGraphModule, ModuleIdentifier};
 
 // FIXME: placing this as global id is not acceptable, move it to somewhere else later
-static MODULE_GRAPH_CONNECTION_ID: AtomicU32 = AtomicU32::new(1);
-pub(crate) static DEPENDENCY_ID: AtomicU32 = AtomicU32::new(1);
+static MODULE_GRAPH_CONNECTION_ID: AtomicUsize = AtomicUsize::new(1);
 
 #[derive(Debug, Clone, Eq)]
 pub struct ModuleGraphConnection {
@@ -17,10 +16,10 @@ pub struct ModuleGraphConnection {
   /// The referenced module identifier
   pub module_identifier: ModuleIdentifier,
   /// The referencing dependency id
-  pub dependency_id: u32,
+  pub dependency_id: usize,
 
   /// The unique id of this connection
-  pub id: u32,
+  pub id: usize,
 }
 
 impl std::hash::Hash for ModuleGraphConnection {
@@ -42,7 +41,7 @@ impl std::cmp::PartialEq for ModuleGraphConnection {
 impl ModuleGraphConnection {
   pub fn new(
     original_module_identifier: Option<ModuleIdentifier>,
-    dependency_id: u32,
+    dependency_id: usize,
     module_identifier: ModuleIdentifier,
   ) -> Self {
     Self {
@@ -57,20 +56,20 @@ impl ModuleGraphConnection {
 
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
-  dependency_id_to_module_identifier: HashMap<u32, ModuleIdentifier>,
+  dependency_id_to_module_identifier: HashMap<usize, ModuleIdentifier>,
 
   /// Module identifier to its module
   pub module_identifier_to_module: HashMap<ModuleIdentifier, BoxModule>,
   /// Module identifier to its module graph module
   pub module_identifier_to_module_graph_module: HashMap<ModuleIdentifier, ModuleGraphModule>,
 
-  dependency_id_to_connection_id: HashMap<u32, u32>,
-  dependency_id_to_dependency: HashMap<u32, Dependency>,
-  dependency_to_dependency_id: HashMap<Dependency, u32>,
+  dependency_id_to_connection_id: HashMap<usize, usize>,
+  dependency_id_to_dependency: HashMap<usize, Dependency>,
+  dependency_to_dependency_id: HashMap<Dependency, usize>,
 
   /// The module graph connections
   pub connections: HashSet<ModuleGraphConnection>,
-  connection_id_to_connection: HashMap<u32, ModuleGraphConnection>,
+  connection_id_to_connection: HashMap<usize, ModuleGraphConnection>,
 }
 
 impl ModuleGraph {
@@ -91,8 +90,8 @@ impl ModuleGraph {
     }
   }
 
-  pub fn add_dependency(&mut self, dep: Dependency, module_identifier: ModuleIdentifier) -> u32 {
-    static NEXT_DEPENDENCY_ID: AtomicU32 = AtomicU32::new(0);
+  pub fn add_dependency(&mut self, dep: Dependency, module_identifier: ModuleIdentifier) -> usize {
+    static NEXT_DEPENDENCY_ID: AtomicUsize = AtomicUsize::new(0);
 
     let id = NEXT_DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
     self.dependency_id_to_dependency.insert(id, dep.clone());
@@ -119,7 +118,7 @@ impl ModuleGraph {
   }
 
   /// Get the dependency id of a dependency
-  pub fn dependency_id_by_dependency(&self, dep: &Dependency) -> Option<u32> {
+  pub fn dependency_id_by_dependency(&self, dep: &Dependency) -> Option<usize> {
     self.dependency_to_dependency_id.get(dep).cloned()
   }
 
@@ -137,7 +136,7 @@ impl ModuleGraph {
   pub fn set_resolved_module(
     &mut self,
     original_module_identifier: Option<ModuleIdentifier>,
-    dependency_id: u32,
+    dependency_id: usize,
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
     let new_connection =
@@ -223,7 +222,10 @@ impl ModuleGraph {
       .and_then(|id| self.connection_id_to_connection.get(id))
   }
 
-  pub fn connection_by_connection_id(&self, connection_id: u32) -> Option<&ModuleGraphConnection> {
+  pub fn connection_by_connection_id(
+    &self,
+    connection_id: usize,
+  ) -> Option<&ModuleGraphConnection> {
     self.connection_id_to_connection.get(&connection_id)
   }
 

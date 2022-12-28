@@ -11,13 +11,13 @@ use std::{path::Path, sync::Arc};
 
 use hashbrown::HashMap;
 use rayon::prelude::*;
-use rspack_error::{Error, Result, TWithDiagnosticArray};
+use rspack_error::{Error, Result};
 use tokio::sync::RwLock;
 use tracing::instrument;
 
 use crate::{
-  cache::Cache, fast_set, BoxModule, CompilerOptions, Dependency, LoaderRunnerRunner,
-  ModuleGraphModule, ModuleIdentifier, Plugin, PluginDriver, SharedPluginDriver, Stats,
+  cache::Cache, fast_set, CompilerOptions, Dependency, LoaderRunnerRunner, Plugin, PluginDriver,
+  SharedPluginDriver, Stats,
 };
 
 #[derive(Debug)]
@@ -187,33 +187,4 @@ impl Compiler {
     self.compilation.emitted_assets.insert(filename.to_string());
     Ok(())
   }
-}
-
-pub type ModuleCreatedData = TWithDiagnosticArray<
-  Box<(
-    ModuleGraphModule,
-    BoxModule,
-    Option<ModuleIdentifier>,
-    u32,
-    Dependency,
-    bool,
-  )>,
->;
-
-pub type ModuleResolvedData = TWithDiagnosticArray<(
-  Option<ModuleIdentifier>,
-  u32,
-  BoxModule,
-  Box<Vec<Dependency>>,
-)>;
-
-#[derive(Debug)]
-pub enum Msg {
-  DependencyReference((Dependency, u32), ModuleIdentifier),
-  ModuleCreated(ModuleCreatedData),
-  ModuleReused(TWithDiagnosticArray<(Option<ModuleIdentifier>, u32, ModuleIdentifier)>),
-  ModuleResolved(ModuleResolvedData),
-  ModuleBuiltErrorEncountered(ModuleIdentifier, Error),
-  ModuleCreationCanceled,
-  ModuleCreationErrorEncountered(Error),
 }

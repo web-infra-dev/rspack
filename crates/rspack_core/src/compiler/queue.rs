@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
-use hashbrown::HashSet;
 use rspack_error::{internal_error, Diagnostic, Error, Result};
 
 use crate::{
-  cache::Cache, module_rule_matcher, BoxModule, BuildContext, BuildResult, Compilation,
-  CompilerOptions, Dependency, LoaderRunnerRunner, Module, ModuleGraph, ModuleGraphModule,
-  ModuleIdentifier, ModuleRule, ModuleType, NormalModuleFactory, NormalModuleFactoryContext,
-  Resolve, SharedPluginDriver, VisitedModuleIdentity, WorkerQueue,
+  cache::Cache, module_rule_matcher, BuildContext, BuildResult, Compilation, CompilerOptions,
+  Dependency, LoaderRunnerRunner, Module, ModuleGraphModule, ModuleIdentifier, ModuleRule,
+  ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve, SharedPluginDriver,
+  WorkerQueue,
 };
 
 #[derive(Debug)]
@@ -63,7 +62,7 @@ impl WorkerTask for FactorizeTask {
       self.cache,
     );
 
-    let (module, context, dependency) = factory.create(self.resolve_options).await?;
+    let (module, context) = factory.create(self.resolve_options).await?;
     let mut mgm = ModuleGraphModule::new(
       context.module_name.clone(),
       module.identifier(),

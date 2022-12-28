@@ -19,7 +19,7 @@ use std::{
   sync::Arc,
 };
 use swc_core::ecma::atoms::JsWord;
-use tokio::sync::mpsc::{error::TryRecvError, UnboundedSender};
+use tokio::sync::mpsc::error::TryRecvError;
 use tracing::instrument;
 use xxhash_rust::xxh3::Xxh3;
 
@@ -32,23 +32,20 @@ use ustr::{ustr, Ustr};
 
 use crate::{
   cache::Cache,
-  contextify, is_source_equal, join_string_component, module_rule_matcher,
-  resolve_module_type_by_uri,
+  contextify, is_source_equal, join_string_component, resolve_module_type_by_uri,
   split_chunks::code_splitting,
   tree_shaking::{
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
     BailoutFlog, OptimizeDependencyResult,
   },
-  AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxModule,
-  BuildContext, BuildQueue, BuildTask, BuildTaskResult, BundleEntries, Chunk, ChunkByUkey,
-  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CodeGenerationResult,
-  CodeGenerationResults, CompilerOptions, ContentHashArgs, Dependency, EntryItem, EntryOptions,
-  Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult, LoaderRunnerRunner, Module,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleRule, ModuleType, Msg,
-  NormalModuleFactory, NormalModuleFactoryContext, ProcessAssetsArgs, ProcessDependenciesQueue,
-  ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolveKind,
-  RuntimeModule, SharedPluginDriver, Stats, TaskResult, VisitedModuleIdentity, WorkerQueue,
-  WorkerTask,
+  AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BuildQueue, BuildTask,
+  BuildTaskResult, BundleEntries, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey,
+  ChunkKind, ChunkUkey, CodeGenerationResult, CodeGenerationResults, CompilerOptions,
+  ContentHashArgs, Dependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask,
+  FactorizeTaskResult, LoaderRunnerRunner, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  ModuleType, ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult,
+  ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolveKind, RuntimeModule,
+  SharedPluginDriver, Stats, TaskResult, VisitedModuleIdentity, WorkerTask,
 };
 use rspack_symbol::{IndirectTopLevelSymbol, IndirectType, Symbol};
 
@@ -334,7 +331,6 @@ impl Compilation {
     if let Some(e) = self.plugin_driver.clone().read().await.make(self).err() {
       self.push_batch_diagnostic(e.into());
     }
-    // let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
 
     let active_task_count: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
     let (result_tx, mut result_rx) = tokio::sync::mpsc::unbounded_channel::<Result<TaskResult>>();
@@ -356,354 +352,188 @@ impl Compilation {
           None,
           self.lazy_visit_modules.clone(),
         )
-        // let normal_module_factory = NormalModuleFactory::new(
-        //   NormalModuleFactoryContext {
-        //     module_name: None,
-        //     active_task_count: active_task_count.clone(),
-        //     module_type: None,
-        //     side_effects: None,
-        //     options: self.options.clone(),
-        //     lazy_visit_modules: self.lazy_visit_modules.clone(),
-        //   },
-        //   dep,
-        //   tx.clone(),
-        //   self.plugin_driver.clone(),
-        //   self.cache.clone(),
-        // );
-        // tokio::task::spawn(async move { normal_module_factory.create(true, None).await });
       })
     });
 
-    tokio::task::block_in_place(|| {
-      loop {
-        if let Some(task) = factorize_queue.get_task() {
-          tokio::spawn({
-            let result_tx = result_tx.clone();
-            let active_task_count = active_task_count.clone();
-            active_task_count.fetch_add(1, Ordering::SeqCst);
-
-            async move {
-              let result = task.run().await;
-              result_tx.send(result).unwrap();
-            }
-          });
-        }
-
-        if let Some(task) = build_queue.get_task() {
-          tokio::spawn({
-            let result_tx = result_tx.clone();
-            let active_task_count = active_task_count.clone();
-            active_task_count.fetch_add(1, Ordering::SeqCst);
-
-            async move {
-              let result = task.run().await;
-              result_tx.send(result).unwrap();
-            }
-          });
-        }
-
-        if let Some(task) = add_queue.get_task() {
+    tokio::task::block_in_place(|| loop {
+      if let Some(task) = factorize_queue.get_task() {
+        tokio::spawn({
+          let result_tx = result_tx.clone();
+          let active_task_count = active_task_count.clone();
           active_task_count.fetch_add(1, Ordering::SeqCst);
 
-          let result = task.run(self);
-          result_tx.send(result).unwrap();
-        }
+          async move {
+            let result = task.run().await;
+            result_tx
+              .send(result)
+              .expect("Failed to send factorize result");
+          }
+        });
+      }
 
-        if let Some(task) = process_dependencies_queue.get_task() {
+      if let Some(task) = build_queue.get_task() {
+        tokio::spawn({
+          let result_tx = result_tx.clone();
+          let active_task_count = active_task_count.clone();
           active_task_count.fetch_add(1, Ordering::SeqCst);
 
-          task.dependencies.into_iter().for_each(|dep| {
-            self.handle_module_creation(
-              &mut factorize_queue,
-              task.original_module_identifier,
-              vec![dep],
-              false,
-              None,
-              None,
-              None,
-              task.resolve_options.clone(),
-              self.lazy_visit_modules.clone(),
-            );
-          });
+          async move {
+            let result = task.run().await;
+            result_tx.send(result).expect("Failed to send build result");
+          }
+        });
+      }
 
-          result_tx
-            .send(Ok(TaskResult::ProcessDependencies(
-              ProcessDependenciesResult {
-                module_identifier: task
-                  .original_module_identifier
-                  .expect("Original module identifier expected"),
-              },
-            )))
-            .unwrap();
-        }
+      if let Some(task) = add_queue.get_task() {
+        active_task_count.fetch_add(1, Ordering::SeqCst);
 
-        match result_rx.try_recv() {
-          Ok(item) => {
-            match item {
-              Ok(TaskResult::Factorize(task_result)) => {
-                let FactorizeTaskResult {
-                  is_entry,
-                  original_module_identifier,
-                  dependencies,
+        let result = task.run(self);
+        result_tx.send(result).expect("Failed to send add result");
+      }
+
+      if let Some(task) = process_dependencies_queue.get_task() {
+        active_task_count.fetch_add(1, Ordering::SeqCst);
+
+        task.dependencies.into_iter().for_each(|dep| {
+          self.handle_module_creation(
+            &mut factorize_queue,
+            task.original_module_identifier,
+            vec![dep],
+            false,
+            None,
+            None,
+            None,
+            task.resolve_options.clone(),
+            self.lazy_visit_modules.clone(),
+          );
+        });
+
+        result_tx
+          .send(Ok(TaskResult::ProcessDependencies(
+            ProcessDependenciesResult {
+              module_identifier: task
+                .original_module_identifier
+                .expect("Original module identifier expected"),
+            },
+          )))
+          .expect("Failed to send process dependencies result");
+      }
+
+      match result_rx.try_recv() {
+        Ok(item) => {
+          match item {
+            Ok(TaskResult::Factorize(task_result)) => {
+              let FactorizeTaskResult {
+                is_entry,
+                original_module_identifier,
+                dependencies,
+                module,
+                module_graph_module,
+              } = task_result;
+
+              tracing::trace!("Module created: {}", module.identifier());
+
+              add_queue.add_task(AddTask {
+                original_module_identifier,
+                module,
+                module_graph_module,
+                dependencies,
+                is_entry,
+              });
+            }
+            Ok(TaskResult::Add(task_result)) => match task_result {
+              AddTaskResult::ModuleAdded(module) => {
+                tracing::trace!("Module added: {}", module.identifier());
+                build_queue.add_task(BuildTask {
                   module,
-                  module_graph_module,
-                } = task_result;
-
-                tracing::trace!("Module created: {}", module.identifier());
-
-                add_queue.add_task(AddTask {
-                  original_module_identifier,
-                  module,
-                  module_graph_module,
-                  dependencies,
-                  is_entry,
+                  loader_runner_runner: self.loader_runner_runner.clone(),
+                  compiler_options: self.options.clone(),
+                  plugin_driver: self.plugin_driver.clone(),
+                  cache: self.cache.clone(),
                 });
               }
-              Ok(TaskResult::Add(task_result)) => match task_result {
-                AddTaskResult::ModuleAdded(module) => {
-                  tracing::trace!("Module added: {}", module.identifier());
-                  build_queue.add_task(BuildTask {
-                    module,
-                    loader_runner_runner: self.loader_runner_runner.clone(),
-                    compiler_options: self.options.clone(),
-                    plugin_driver: self.plugin_driver.clone(),
-                    cache: self.cache.clone(),
-                  });
-                }
-                AddTaskResult::ModuleReused(module) => {
-                  tracing::trace!("Module reused: {}, skipping build", module.identifier());
-                }
-              },
-              Ok(TaskResult::Build(task_result)) => match task_result {
-                BuildTaskResult::BuildSuccess {
-                  module,
-                  build_result,
-                  diagnostics,
-                } => {
-                  tracing::trace!("Module built: {}", module.identifier());
-
-                  self.push_batch_diagnostic(diagnostics);
-                  let dependencies = build_result
-                    .dependencies
-                    .into_iter()
-                    .map(|dep| Dependency {
-                      parent_module_identifier: Some(module.identifier()),
-                      detail: dep,
-                    })
-                    .collect::<Vec<_>>();
-
-                  {
-                    let mgm = self
-                      .module_graph
-                      .module_graph_module_by_identifier_mut(&module.identifier())
-                      .expect("Failed to get mgm");
-                    mgm.all_dependencies = dependencies.clone();
-                  }
-
-                  process_dependencies_queue.add_task(ProcessDependenciesTask {
-                    dependencies,
-                    original_module_identifier: Some(module.identifier()),
-                    resolve_options: module.get_resolve_options().map(ToOwned::to_owned),
-                  });
-                  self.module_graph.add_module(module);
-                }
-                BuildTaskResult::BuildWithError {
-                  module,
-                  diagnostics,
-                } => {
-                  tracing::trace!("Module built with error: {}", module.identifier());
-                  let module_identifier = module.identifier();
-                  self
-                    .module_graph
-                    .module_identifier_to_module
-                    .remove(&module_identifier);
-                  self
-                    .module_graph
-                    .module_identifier_to_module_graph_module
-                    .remove(&module_identifier);
-                  self.push_batch_diagnostic(diagnostics);
-                }
-              },
-              Ok(TaskResult::ProcessDependencies(task_result)) => {
-                tracing::trace!(
-                  "Processing dependencies of {} finished",
-                  task_result.module_identifier
-                );
+              AddTaskResult::ModuleReused(module) => {
+                tracing::trace!("Module reused: {}, skipping build", module.identifier());
               }
-              Err(err) => {
-                self.push_batch_diagnostic(err.into());
+            },
+            Ok(TaskResult::Build(task_result)) => match task_result {
+              BuildTaskResult::BuildSuccess {
+                module,
+                build_result,
+                diagnostics,
+              } => {
+                tracing::trace!("Module built: {}", module.identifier());
+
+                self.push_batch_diagnostic(diagnostics);
+                let dependencies = build_result
+                  .dependencies
+                  .into_iter()
+                  .map(|dep| Dependency {
+                    parent_module_identifier: Some(module.identifier()),
+                    detail: dep,
+                  })
+                  .collect::<Vec<_>>();
+
+                {
+                  let mgm = self
+                    .module_graph
+                    .module_graph_module_by_identifier_mut(&module.identifier())
+                    .expect("Failed to get mgm");
+                  mgm.all_dependencies = dependencies.clone();
+                }
+
+                process_dependencies_queue.add_task(ProcessDependenciesTask {
+                  dependencies,
+                  original_module_identifier: Some(module.identifier()),
+                  resolve_options: module.get_resolve_options().map(ToOwned::to_owned),
+                });
+                self.module_graph.add_module(module);
               }
+              BuildTaskResult::BuildWithError {
+                module,
+                diagnostics,
+              } => {
+                tracing::trace!("Module built with error: {}", module.identifier());
+                let module_identifier = module.identifier();
+                self
+                  .module_graph
+                  .module_identifier_to_module
+                  .remove(&module_identifier);
+                self
+                  .module_graph
+                  .module_identifier_to_module_graph_module
+                  .remove(&module_identifier);
+                self.push_batch_diagnostic(diagnostics);
+              }
+            },
+            Ok(TaskResult::ProcessDependencies(task_result)) => {
+              tracing::trace!(
+                "Processing dependencies of {} finished",
+                task_result.module_identifier
+              );
             }
-
-            active_task_count.fetch_sub(1, Ordering::SeqCst);
+            Err(err) => {
+              self.push_batch_diagnostic(err.into());
+            }
           }
-          Err(TryRecvError::Disconnected) => {
+
+          active_task_count.fetch_sub(1, Ordering::SeqCst);
+        }
+        Err(TryRecvError::Disconnected) => {
+          break;
+        }
+        Err(TryRecvError::Empty) => {
+          if active_task_count.load(Ordering::SeqCst) == 0 {
             break;
           }
-          Err(TryRecvError::Empty) => {
-            if active_task_count.load(Ordering::SeqCst) == 0 {
-              break;
-            }
-          }
         }
-
-        // match rx.try_recv() {
-        //   Ok(item) => match item {
-        //     Msg::ModuleCreated(module_with_diagnostic) => {
-        //       let (
-        //         mut mgm,
-        //         module,
-        //         original_module_identifier,
-        //         dependency_id,
-        //         dependency,
-        //         is_entry,
-        //       ) = *module_with_diagnostic.inner;
-
-        //       let module_identifier = module.identifier();
-
-        //       match self
-        //         .visited_module_id
-        //         .entry((module_identifier, dependency.detail.clone()))
-        //       {
-        //         Occupied(_) => {
-        //           if let Err(err) = tx.send(Msg::ModuleReused(
-        //             (original_module_identifier, dependency_id, module_identifier)
-        //               .with_diagnostic(module_with_diagnostic.diagnostic),
-        //           )) {
-        //             tracing::trace!("fail to send msg {:?}", err)
-        //           }
-        //           continue;
-        //         }
-        //         Vacant(vac) => {
-        //           vac.insert();
-        //         }
-        //       }
-
-        //       if is_entry {
-        //         self.entry_module_identifiers.insert(module_identifier);
-        //       }
-
-        //       mgm.set_issuer_if_unset(original_module_identifier);
-
-        //       self.handle_module_build_and_dependencies(
-        //         original_module_identifier,
-        //         module,
-        //         dependency_id,
-        //         active_task_count.clone(),
-        //         tx.clone(),
-        //       );
-        //       // After module created we add module graph module into module graph
-        //       self.module_graph.add_module_graph_module(mgm);
-        //     }
-        //     Msg::ModuleReused(result_with_diagnostics) => {
-        //       let (original_module_identifier, dependency_id, module_identifier) =
-        //         result_with_diagnostics.inner;
-        //       self.push_batch_diagnostic(result_with_diagnostics.diagnostic);
-        //       if let Err(err) = self.module_graph.set_resolved_module(
-        //         original_module_identifier,
-        //         dependency_id,
-        //         module_identifier,
-        //       ) {
-        //         // If build error message is failed to send, then we should manually decrease the active task count
-        //         // Otherwise, it will be gracefully handled by the error message handler.
-        //         if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err))
-        //         {
-        //           active_task_count.fetch_sub(1, Ordering::SeqCst);
-        //           tracing::trace!("fail to send msg {:?}", err);
-        //         }
-
-        //         // Early bail out if task is failed to finish
-        //         return;
-        //       };
-
-        //       // Gracefully exit
-        //       active_task_count.fetch_sub(1, Ordering::SeqCst);
-        //     }
-        //     Msg::ModuleResolved(result_with_diagnostics) => {
-        //       let (original_module_identifier, dependency_id, module, deps) =
-        //         result_with_diagnostics.inner;
-        //       self.push_batch_diagnostic(result_with_diagnostics.diagnostic);
-
-        //       {
-        //         let mut module_graph_module = self
-        //           .module_graph
-        //           .module_graph_module_by_identifier_mut(&module.identifier())
-        //           .unwrap();
-        //         module_graph_module.all_dependencies = *deps;
-        //       }
-        //       if let Err(err) = self.module_graph.set_resolved_module(
-        //         original_module_identifier,
-        //         dependency_id,
-        //         module.identifier(),
-        //       ) {
-        //         // If build error message is failed to send, then we should manually decrease the active task count
-        //         // Otherwise, it will be gracefully handled by the error message handler.
-        //         if let Err(err) =
-        //           tx.send(Msg::ModuleBuiltErrorEncountered(module.identifier(), err))
-        //         {
-        //           active_task_count.fetch_sub(1, Ordering::SeqCst);
-        //           tracing::trace!("fail to send msg {:?}", err)
-        //         }
-        //         // Early bail out if task is failed to finish
-        //         return;
-        //       };
-
-        //       self.module_graph.add_module(module);
-
-        //       // Gracefully exit
-        //       active_task_count.fetch_sub(1, Ordering::SeqCst);
-        //     }
-        //     Msg::ModuleBuiltErrorEncountered(module_identifier, err) => {
-        //       self
-        //         .module_graph
-        //         .module_identifier_to_module
-        //         .remove(&module_identifier);
-        //       self
-        //         .module_graph
-        //         .module_identifier_to_module_graph_module
-        //         .remove(&module_identifier);
-        //       self.push_batch_diagnostic(err.into());
-        //       active_task_count.fetch_sub(1, Ordering::SeqCst);
-        //     }
-        //     Msg::ModuleCreationCanceled => {
-        //       active_task_count.fetch_sub(1, Ordering::SeqCst);
-        //     }
-        //     Msg::DependencyReference(dep, module_identifier) => {
-        //       self.module_graph.add_dependency(dep, module_identifier);
-        //     }
-        //     Msg::ModuleCreationErrorEncountered(err) => {
-        //       active_task_count.fetch_sub(1, Ordering::SeqCst);
-        //       self.push_batch_diagnostic(err.into());
-        //     }
-        //   },
-        //   Err(TryRecvError::Disconnected) => {
-        //     break;
-        //   }
-        //   Err(TryRecvError::Empty) => {
-        //     if active_task_count.load(Ordering::SeqCst) == 0 {
-        //       break;
-        //     }
-        //   }
-        // }
       }
     });
-
-    println!(
-      "{:#?}",
-      self.module_graph.module_identifier_to_module_graph_module
-    );
-    println!(
-      "modules {:#?}",
-      self
-        .module_graph
-        .module_identifier_to_module
-        .keys()
-        .collect::<Vec<_>>()
-    );
 
     tracing::debug!("All task is finished");
   }
 
+  #[allow(clippy::too_many_arguments)]
   fn handle_module_creation(
     &self,
     queue: &mut FactorizeQueue,
@@ -730,164 +560,6 @@ impl Compilation {
       cache: self.cache.clone(),
     });
   }
-
-  // fn handle_module_build_and_dependencies(
-  //   &self,
-  //   original_module_identifier: Option<ModuleIdentifier>,
-  //   mut module: BoxModule,
-  //   dependency_id: u32,
-  //   active_task_count: Arc<AtomicU32>,
-  //   tx: UnboundedSender<Msg>,
-  // ) {
-  //   let compiler_options = self.options.clone();
-  //   let loader_runner_runner = self.loader_runner_runner.clone();
-  //   let plugin_driver = self.plugin_driver.clone();
-  //   let cache = self.cache.clone();
-  //   let lazy_visit_modules = self.lazy_visit_modules.clone();
-  //   let module_identifier = module.identifier();
-
-  //   tokio::spawn(async move {
-  //     let build_result = cache
-  //       .build_module_occasion
-  //       .use_cache(&mut module, |module| async {
-  //         let resolved_loaders = if let Some(normal_module) = module.as_normal_module() {
-  //           let resource_data = normal_module.resource_resolved_data();
-
-  //           compiler_options
-  //             .as_ref()
-  //             .module
-  //             .rules
-  //             .iter()
-  //             .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
-  //               match module_rule_matcher(module_rule, resource_data) {
-  //                 Ok(val) => val.then_some(Ok(module_rule)),
-  //                 Err(err) => Some(Err(err)),
-  //               }
-  //             })
-  //             .collect::<Result<Vec<_>>>()?
-  //         } else {
-  //           vec![]
-  //         };
-
-  //         let resolved_loaders = resolved_loaders
-  //           .into_iter()
-  //           .flat_map(|module_rule| module_rule.r#use.iter().map(Box::as_ref).rev())
-  //           .collect::<Vec<_>>();
-
-  //         plugin_driver
-  //           .read()
-  //           .await
-  //           .build_module(module.as_mut())
-  //           .await?;
-
-  //         let result = module
-  //           .build(BuildContext {
-  //             resolved_loaders,
-  //             loader_runner_runner: &loader_runner_runner,
-  //             compiler_options: &compiler_options,
-  //           })
-  //           .await;
-
-  //         plugin_driver.read().await.succeed_module(module).await?;
-
-  //         result
-  //       })
-  //       .await;
-
-  //     match build_result {
-  //       Ok(build_result) => {
-  //         let module_identifier = module.identifier();
-
-  //         let (build_result, diagnostics) = build_result.split_into_parts();
-
-  //         let deps = build_result
-  //           .dependencies
-  //           .into_iter()
-  //           .map(|dep| Dependency {
-  //             parent_module_identifier: Some(module_identifier),
-  //             detail: dep,
-  //           })
-  //           .collect::<Vec<_>>();
-
-  //         Compilation::process_module_dependencies(
-  //           deps.clone(),
-  //           active_task_count.clone(),
-  //           tx.clone(),
-  //           plugin_driver.clone(),
-  //           module.get_resolve_options().map(ToOwned::to_owned),
-  //           compiler_options.clone(),
-  //           cache.clone(),
-  //           lazy_visit_modules,
-  //         );
-
-  //         // If build error message is failed to send, then we should manually decrease the active task count
-  //         // Otherwise, it will be gracefully handled by the error message handler.
-  //         if let Err(err) = tx.send(Msg::ModuleResolved(
-  //           (
-  //             original_module_identifier,
-  //             dependency_id,
-  //             module,
-  //             Box::new(deps),
-  //           )
-  //             .with_diagnostic(diagnostics),
-  //         )) {
-  //           active_task_count.fetch_sub(1, Ordering::SeqCst);
-  //           tracing::trace!("fail to send msg {:?}", err);
-
-  //           // Manually add return here to prevent the following code from being executed in the future
-  //           #[allow(clippy::needless_return)]
-  //           return;
-  //         };
-  //       }
-  //       Err(err) => {
-  //         // If build error message is failed to send, then we should manually decrease the active task count
-  //         // Otherwise, it will be gracefully handled by the error message handler.
-  //         if let Err(err) = tx.send(Msg::ModuleBuiltErrorEncountered(module_identifier, err)) {
-  //           active_task_count.fetch_sub(1, Ordering::SeqCst);
-  //           tracing::trace!("fail to send msg {:?}", err);
-  //         }
-
-  //         // Manually add return here to prevent the following code from being executed in the future
-  //         #[allow(clippy::needless_return)]
-  //         return;
-  //       }
-  //     }
-  //   });
-  // }
-
-  // #[allow(clippy::too_many_arguments)]
-  // fn process_module_dependencies(
-  //   dependencies: Vec<Dependency>,
-  //   active_task_count: Arc<AtomicU32>,
-  //   tx: UnboundedSender<Msg>,
-  //   plugin_driver: SharedPluginDriver,
-  //   resolve_options: Option<Resolve>,
-  //   compiler_options: Arc<CompilerOptions>,
-  //   cache: Arc<Cache>,
-  //   lazy_visit_modules: std::collections::HashSet<String>,
-  // ) {
-  //   dependencies.into_iter().for_each(|dep| {
-  //     let normal_module_factory = NormalModuleFactory::new(
-  //       NormalModuleFactoryContext {
-  //         module_name: None,
-  //         module_type: None,
-  //         side_effects: None,
-  //         options: compiler_options.clone(),
-  //         lazy_visit_modules: lazy_visit_modules.clone(),
-  //         active_task_count: active_task_count.clone(),
-  //       },
-  //       dep,
-  //       tx.clone(),
-  //       plugin_driver.clone(),
-  //       cache.clone(),
-  //     );
-
-  //     let resolve_options = resolve_options.clone();
-  //     tokio::task::spawn(async move {
-  //       normal_module_factory.create(false, resolve_options).await;
-  //     });
-  //   })
-  // }
 
   #[instrument(name = "compilation:code_generation", skip(self))]
   async fn code_generation(&mut self) -> Result<()> {
