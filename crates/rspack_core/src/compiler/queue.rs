@@ -7,7 +7,7 @@ use crate::{
   cache::Cache, module_rule_matcher, BoxModule, BuildContext, BuildResult, Compilation,
   CompilerOptions, Dependency, LoaderRunnerRunner, Module, ModuleGraph, ModuleGraphModule,
   ModuleIdentifier, ModuleRule, ModuleType, NormalModuleFactory, NormalModuleFactoryContext,
-  Resolve, SharedPluginDriver, WorkerQueue,
+  Resolve, SharedPluginDriver, VisitedModuleIdentity, WorkerQueue,
 };
 
 #[derive(Debug)]
@@ -109,11 +109,14 @@ impl AddTask {
   pub fn run(
     mut self,
     compilation: &mut Compilation,
-    visited_modules: &mut HashSet<ModuleIdentifier>,
+    // visited_modules: &mut VisitedModuleIdentity,
   ) -> Result<TaskResult> {
     let module_identifier = self.module.identifier();
 
-    if visited_modules.contains(&module_identifier) {
+    if compilation
+      .visited_module_id
+      .contains(&(module_identifier, self.dependencies[0].detail.clone()))
+    {
       for dependency in self.dependencies {
         let dep_id = compilation
           .module_graph
@@ -129,8 +132,9 @@ impl AddTask {
       return Ok(TaskResult::Add(AddTaskResult::ModuleReused(self.module)));
     }
 
-    visited_modules.insert(module_identifier);
-    self.module_graph_module.all_dependencies = self.dependencies.clone();
+    compilation
+      .visited_module_id
+      .insert((module_identifier, self.dependencies[0].detail.clone()));
 
     compilation
       .module_graph

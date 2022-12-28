@@ -338,7 +338,6 @@ impl Compilation {
 
     let active_task_count: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
     let (result_tx, mut result_rx) = tokio::sync::mpsc::unbounded_channel::<Result<TaskResult>>();
-    let mut visited_modules = HashSet::<ModuleIdentifier>::new();
     let mut factorize_queue = FactorizeQueue::new();
     let mut add_queue = AddQueue::new();
     let mut build_queue = BuildQueue::new();
@@ -406,7 +405,7 @@ impl Compilation {
         if let Some(task) = add_queue.get_task() {
           active_task_count.fetch_add(1, Ordering::SeqCst);
 
-          let result = task.run(self, &mut visited_modules);
+          let result = task.run(self);
           result_tx.send(result).unwrap();
         }
 
@@ -492,7 +491,15 @@ impl Compilation {
                     parent_module_identifier: Some(module.identifier()),
                     detail: dep,
                   })
-                  .collect();
+                  .collect::<Vec<_>>();
+
+                {
+                  let mgm = self
+                    .module_graph
+                    .module_graph_module_by_identifier_mut(&module.identifier())
+                    .expect("Failed to get mgm");
+                  mgm.all_dependencies = dependencies.clone();
+                }
 
                 process_dependencies_queue.add_task(ProcessDependenciesTask {
                   dependencies,
@@ -664,6 +671,12 @@ impl Compilation {
         // }
       }
     });
+
+    // self
+    //   .module_graph
+    //   .module_identifier_to_module
+    //   .keys()
+    //   .for_each(|key| self.chunk_graph.add_module(*key));
 
     tracing::debug!("All task is finished");
   }
