@@ -30,12 +30,14 @@ use str_indices::utf16;
 use tokio::sync::Mutex;
 use tracing::instrument;
 
-static IS_SPECIAL_MODULE_IMPORT: Lazy<Regex> = Lazy::new(|| Regex::new(r"^~[^/]+$").unwrap());
+static IS_SPECIAL_MODULE_IMPORT: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^~[^/]+$").expect("TODO:"));
 static IS_NATIVE_WIN32_PATH: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"(?i)^[a-z]:[/\\]|^\\\\").unwrap());
-static MODULE_REQUEST: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[^?]*~").unwrap());
-static IS_MODULE_IMPORT: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^~([^/]+|[^/]+/|@[^/]+[/][^/]+|@[^/]+/?|@[^/]+[/][^/]+/)$").unwrap());
+  Lazy::new(|| Regex::new(r"(?i)^[a-z]:[/\\]|^\\\\").expect("TODO:"));
+static MODULE_REQUEST: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[^?]*~").expect("TODO:"));
+static IS_MODULE_IMPORT: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"^~([^/]+|[^/]+/|@[^/]+[/][^/]+|@[^/]+/?|@[^/]+[/][^/]+/)$").expect("TODO:")
+});
 
 fn get_os() -> &'static str {
   match env::consts::OS {
@@ -234,14 +236,14 @@ fn get_possible_requests(
     "".to_owned()
   } else {
     // SAFETY: `unwrap` is ok since `None` is checked in if branch.
-    format!("{}/", dirname.unwrap().display())
+    format!("{}/", dirname.expect("TODO:").display())
   };
   let basename = request_path
     .file_name()
     .ok_or_else(|| Exception::new("The path of sass's dependency should have file name"))?
     .to_string_lossy();
   // SAFETY: `unwrap` is ok since `request_path` has file name is checked before.
-  let basename_without_ext = request_path.file_stem().unwrap().to_string_lossy();
+  let basename_without_ext = request_path.file_stem().expect("TODO:").to_string_lossy();
 
   let mut requests = Vec::new();
   if from_import {
@@ -338,7 +340,7 @@ impl Logger for RspackLogger {
         message,
         options.span.as_ref(),
       ))
-      .unwrap();
+      .expect("TODO:");
   }
 }
 
@@ -363,7 +365,7 @@ impl SassLoader {
               get_arch(),
             )
           })
-          .unwrap(),
+          .expect("TODO:"),
       ),
       options,
     }
@@ -413,12 +415,12 @@ impl SassLoader {
           }),
       );
 
-    let mut include_paths = vec![env::current_dir().unwrap()];
+    let mut include_paths = vec![env::current_dir().expect("TODO:")];
     include_paths.extend(self.options.sass_options.include_paths.iter().map(|path| {
       if path.is_absolute() {
         path.to_owned()
       } else {
-        env::current_dir().unwrap().join(path)
+        env::current_dir().expect("TODO:").join(path)
       }
     }));
     builder = builder.include_paths(&include_paths);
@@ -481,9 +483,9 @@ impl Loader<CompilerContext, CompilationContext> for SassLoader {
         for source in map.sources_mut() {
           if source.starts_with("file:") {
             *source = Url::parse(source)
-              .unwrap()
+              .expect("TODO:")
               .to_file_path()
-              .unwrap()
+              .expect("TODO:")
               .display()
               .to_string();
           }
@@ -540,7 +542,13 @@ fn make_traceable_error(title: &str, message: &str, span: &SourceSpan) -> Option
   span
     .url
     .as_ref()
-    .map(|url| url.to_file_path().unwrap().to_string_lossy().to_string())
+    .map(|url| {
+      url
+        .to_file_path()
+        .expect("TODO:")
+        .to_string_lossy()
+        .to_string()
+    })
     .and_then(|path| {
       std::fs::read_to_string(&path)
         .ok()

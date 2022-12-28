@@ -45,21 +45,21 @@ async fn main() {
   #[cfg(feature = "hmr")]
   {
     let entry_js_path = bundle_dir.join("src/entry.js");
-    let index_js_content = std::fs::read_to_string(&entry_js_path).unwrap();
+    let index_js_content = std::fs::read_to_string(&entry_js_path).expect("TODO:");
     // change file
-    std::fs::write(&entry_js_path, index_js_content.clone() + "\n //").unwrap();
+    std::fs::write(&entry_js_path, index_js_content.clone() + "\n //").expect("TODO:");
     let start = Instant::now();
-    compiler.build().await.unwrap();
+    compiler.build().await.expect("TODO:");
     println!("{:?}", start.elapsed());
     // remove a import
-    std::fs::write(&entry_js_path, "//".to_string() + &index_js_content.clone()).unwrap();
+    std::fs::write(&entry_js_path, "//".to_string() + &index_js_content.clone()).expect("TODO:");
     let start = Instant::now();
-    compiler.build().await.unwrap();
+    compiler.build().await.expect("TODO:");
     println!("{:?}", start.elapsed());
     // recovery file
-    std::fs::write(&entry_js_path, index_js_content).unwrap();
+    std::fs::write(&entry_js_path, index_js_content).expect("TODO:");
     let start = Instant::now();
-    compiler.build().await.unwrap();
+    compiler.build().await.expect("TODO:");
     println!("{:?}", start.elapsed());
   }
 

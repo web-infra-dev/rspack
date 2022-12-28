@@ -13,16 +13,16 @@ fn main() {
         .thread_name("my-custom-name")
         .thread_stack_size(3 * 1024 * 1024)
         .build()
-        .unwrap();
+        .expect("TODO:");
       runtime.block_on(async { test().await });
     });
     vec.push(handle);
   }
 
   for handle in vec {
-    handle.join().unwrap();
+    handle.join().expect("TODO:");
   }
-  // let manifest_dir = PathBuf::from(&std::env::var("CARGO_MANIFEST_DIR").unwrap());
+  // let manifest_dir = PathBuf::from(&std::env::var("CARGO_MANIFEST_DIR").expect("TODO:"));
   // let bundle_dir = manifest_dir.join("tests/fixtures/webpack/at-charset");
   // // manifest_dir = man
   // println!("{:?}", manifest_dir);
@@ -39,7 +39,7 @@ fn main() {
 }
 
 async fn test() {
-  let manifest_dir = PathBuf::from(&std::env::var("CARGO_MANIFEST_DIR").unwrap());
+  let manifest_dir = PathBuf::from(&std::env::var("CARGO_MANIFEST_DIR").expect("TODO:"));
   let bundle_dir = manifest_dir.join("tests/fixtures/webpack/at-charset");
   // manifest_dir = manifest_dir.join("../../examples/bench");
   println!("{:?}", manifest_dir);

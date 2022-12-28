@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 #[fixture("tests/fixtures/**/*.config.js")]
 fn js(config_path: PathBuf) {
-  let fixture_path = config_path.parent().unwrap();
+  let fixture_path = config_path.parent().expect("TODO:");
   test_fixture(fixture_path, |options: CompilerOptions| {
     add_entry_runtime(options)
   });

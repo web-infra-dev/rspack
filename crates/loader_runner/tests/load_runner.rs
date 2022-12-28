@@ -2,9 +2,9 @@ macro_rules! fixtures {
   () => {{
     use std::path::PathBuf;
 
-    let mut cur_dir = PathBuf::from(&std::env::var("CARGO_MANIFEST_DIR").unwrap());
+    let mut cur_dir = PathBuf::from(&std::env::var("CARGO_MANIFEST_DIR").expect("TODO:"));
     cur_dir = cur_dir.join("./tests/fixtures");
-    cur_dir = cur_dir.canonicalize().unwrap();
+    cur_dir = cur_dir.canonicalize().expect("TODO:");
 
     cur_dir
   }};
@@ -15,10 +15,10 @@ macro_rules! fixtures {
     let resource = cur_dir
       .join($resource)
       .canonicalize()
-      .unwrap()
+      .expect("TODO:")
       .as_os_str()
       .to_str()
-      .unwrap()
+      .expect("TODO:")
       .to_owned();
 
     resource
@@ -31,7 +31,7 @@ macro_rules! run_loader {
 
     let resource = "file://".to_owned() + &fixtures!($resource);
 
-    let url = url::Url::parse(&resource).unwrap();
+    let url = url::Url::parse(&resource).expect("TODO:");
     LoaderRunner::new(
       ResourceData {
         resource: resource.to_owned(),
@@ -49,12 +49,12 @@ macro_rules! run_loader {
     tokio::runtime::Builder::new_multi_thread()
     .enable_all()
     .build()
-    .unwrap()
+    .expect("TODO:")
     .block_on(async {
       let (runner_result, _) = runner.run($loader, &LoaderRunnerAdditionalContext {
         compiler: &(),
         compilation: &()
-      }).await.unwrap().split_into_parts();
+      }).await.expect("TODO:").split_into_parts();
       similar_asserts::assert_eq!(
         runner_result.content,
         $expected
@@ -68,14 +68,14 @@ macro_rules! run_loader {
     tokio::runtime::Builder::new_multi_thread()
       .enable_all()
       .build()
-      .unwrap()
+      .expect("TODO:")
       .block_on(async {
         let (runner_result, _) = runner.run($loader, &LoaderRunnerAdditionalContext {
           compiler: &(),
           compilation: &()
-        }).await.unwrap().split_into_parts();
+        }).await.expect("TODO:").split_into_parts();
         similar_asserts::assert_eq!(
-          runner_result.content.try_into_string().unwrap(),
+          runner_result.content.try_into_string().expect("TODO:"),
           $expected.to_owned()
         );
       });
@@ -284,7 +284,7 @@ console.log(3);"#
   fn should_work_with_binary_formatted_files() {
     use rspack_loader_runner::*;
 
-    let expected = Content::from(std::fs::read(&fixtures!("file.png")).unwrap());
+    let expected = Content::from(std::fs::read(&fixtures!("file.png")).expect("TODO:"));
     let loaders: Vec<&dyn Loader<(), ()>> = vec![&super::fixtures::DirectPassLoader {}];
 
     run_loader!(

@@ -84,7 +84,7 @@ RefreshRuntime.queueUpdate();
 "#;
 
 static HMR_FOOTER_AST: Lazy<Program> =
-  Lazy::new(|| parse_js_code(HMR_FOOTER.to_string(), &ModuleType::Js).unwrap());
+  Lazy::new(|| parse_js_code(HMR_FOOTER.to_string(), &ModuleType::Js).expect("TODO:"));
 
 pub struct ReactHmrFolder {
   pub id: String,
@@ -105,7 +105,7 @@ impl Fold for ReactHmrFolder {
       HMR_HEADER.replace("__SOURCE__", self.id.as_str()),
       &ModuleType::Js,
     )
-    .unwrap();
+    .expect("TODO:");
 
     let mut body = vec![];
     body.append(&mut match hmr_header_ast {

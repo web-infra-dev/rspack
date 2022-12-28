@@ -26,14 +26,14 @@ async fn bench(cur_dir: &PathBuf) {
 fn criterion_benchmark(c: &mut Criterion) {
   let mut group = c.benchmark_group("criterion_benchmark");
   group.sample_size(100);
-  let sh = Shell::new().unwrap();
+  let sh = Shell::new().expect("TODO:");
   println!("{:?}", sh.current_dir());
   sh.change_dir(PathBuf::from(env!("CARGO_WORKSPACE_DIR")));
-  cmd!(sh, "cargo xtask copy_three").run().unwrap();
+  cmd!(sh, "cargo xtask copy_three").run().expect("TODO:");
   let rt = tokio::runtime::Builder::new_multi_thread()
     .enable_all()
     .build()
-    .unwrap();
+    .expect("TODO:");
   generate_bench!(css_heavy, "css-heavy", group, rt);
   generate_bench!(ten_copy_of_threejs, "three", group, rt);
   generate_bench!(lodash, "lodash-with-simple-css", group, rt);
@@ -43,16 +43,16 @@ fn criterion_benchmark(c: &mut Criterion) {
   // sample count reduce to 50
   let mut group = c.benchmark_group("high_cost_benchmark");
   group.sample_size(30);
-  let sh = Shell::new().unwrap();
+  let sh = Shell::new().expect("TODO:");
   println!("{:?}", sh.current_dir());
   sh.change_dir(PathBuf::from(env!("CARGO_WORKSPACE_DIR")));
   cmd!(sh, "cargo xtask three_production_config")
     .run()
-    .unwrap();
+    .expect("TODO:");
   let rt = tokio::runtime::Builder::new_multi_thread()
     .enable_all()
     .build()
-    .unwrap();
+    .expect("TODO:");
   generate_bench!(ten_copy_of_threejs_production, "three", group, rt);
   group.finish()
 }

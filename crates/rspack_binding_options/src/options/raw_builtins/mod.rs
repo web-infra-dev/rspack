@@ -111,7 +111,7 @@ pub(super) fn normalize_builtin(
     } else {
       rspack_plugin_css::plugin::ModulesConfig {
         local_ident_name: LocalIdentName::with_mode(options.mode),
-        locals_convention: LocalsConvention::from_str("asIs").unwrap(),
+        locals_convention: LocalsConvention::from_str("asIs").expect("invalid LocalsConvention"),
         exports_only: false,
       }
     },

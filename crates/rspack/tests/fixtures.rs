@@ -18,7 +18,7 @@ async fn run(context: PathBuf) {
   let mut options = read_test_config_and_normalize(&context);
   options.__emit_error = true;
   let mut compiler = rspack::rspack(options, vec![]);
-  compiler.run().await.unwrap();
+  compiler.run().await.expect("TODO:");
 }
 
 #[fixture("../../examples/*")]

@@ -7,8 +7,8 @@ pub fn for_each_dir<F>(p: &Path, f: F)
 where
   F: Fn(&Path),
 {
-  for dir in fs::read_dir(p).unwrap() {
-    let dir = dir.unwrap();
+  for dir in fs::read_dir(p).expect("TODO:") {
+    let dir = dir.expect("TODO:");
     let mut p = PathBuf::from(p);
     p.push(dir.path());
 
@@ -44,18 +44,22 @@ pub fn make_relative_from(path: &Path, base: &Path) -> String {
     };
   }
 
-  path_iter.collect::<PathBuf>().to_str().unwrap().into()
+  path_iter
+    .collect::<PathBuf>()
+    .to_str()
+    .expect("TODO:")
+    .into()
 }
 
 // Recursively copy orig dir to target dir
 pub fn cp(orig: &Path, target: &Path) {
   if orig.is_dir() {
-    fs::create_dir_all(target).unwrap();
-    for dir in fs::read_dir(orig).unwrap() {
-      let dir = dir.unwrap().path();
-      cp(&dir, &target.join(dir.file_name().unwrap()));
+    fs::create_dir_all(target).expect("TODO:");
+    for dir in fs::read_dir(orig).expect("TODO:") {
+      let dir = dir.expect("TODO:").path();
+      cp(&dir, &target.join(dir.file_name().expect("TODO:")));
     }
   } else {
-    fs::copy(orig, target).unwrap();
+    fs::copy(orig, target).expect("TODO:");
   }
 }

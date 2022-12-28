@@ -98,7 +98,7 @@ impl Display for TestError {
       )
       .red(),
     )
-    .unwrap();
+    .expect("TODO:");
 
     for kind in self.errors.iter() {
       match &kind {
@@ -110,22 +110,22 @@ impl Display for TestError {
         TestErrorKind::MissingExpectedDir(dir) => output(
           f,
           "Missing expected directory(maybe you create a new snapshot test case but forgot to add a expected snapshot, try to add `expected/main.js` under your new test case directory, or try to refresh the fixture.rs under that crate): ",
-          dir.as_path().to_str().unwrap(),
+          dir.as_path().to_str().expect("TODO:"),
         ),
         TestErrorKind::MissingActualDir(dir) => output(
           f,
           "Missing actual directory: ",
-          dir.as_path().to_str().unwrap(),
+          dir.as_path().to_str().expect("TODO:"),
         ),
         TestErrorKind::MissingActualFile(file) => output(
           f,
           "File exists in 'actual' directory, but not found in 'expected' directory: ",
-          file.as_path().to_str().unwrap(),
+          file.as_path().to_str().expect("TODO:"),
         ),
         TestErrorKind::MissingExpectedFile(file) => output(
           f,
           "File exists in 'expected' directory, but not found in 'actual' directory: ",
-          file.as_path().to_str().unwrap(),
+          file.as_path().to_str().expect("TODO:"),
         ),
       }?;
     }
@@ -203,7 +203,7 @@ impl Rst {
     let mut path_buf = root.clone();
     path_buf.push(".temp");
 
-    let json_path = self.fixture.to_str().unwrap().to_string() + ".json";
+    let json_path = self.fixture.to_str().expect("TODO:").to_string() + ".json";
     let json_path = Path::new(&json_path);
 
     path_buf.push(make_relative_from(json_path, &root).replace(path::MAIN_SEPARATOR, "&"));
@@ -222,13 +222,13 @@ impl Rst {
   fn expected_2_actual(&self, expected: &Path) -> PathBuf {
     expected
       .to_str()
-      .unwrap()
+      .expect("TODO:")
       .replace(&self.expected, &self.actual)
       .into()
   }
 
   fn validate(&self) {
-    if self.fixture.to_str().unwrap() == "" {
+    if self.fixture.to_str().expect("TODO:") == "" {
       panic!("Fixture path must be specified, maybe you forget to call RstBuilder::default().fixture(\"...\")");
     }
   }
@@ -247,7 +247,7 @@ impl Rst {
     if let Err(err) = res {
       // Test failed, we should save the failed record.
       if !need_update && !record_path.exists() {
-        fs::create_dir_all(record_path.parent().unwrap()).unwrap();
+        fs::create_dir_all(record_path.parent().expect("TODO:")).expect("TODO:");
       }
 
       let record = record::Record::new(
@@ -284,7 +284,7 @@ impl Rst {
     self.validate();
 
     let res = Self::compare(
-      self.fixture.to_str().unwrap().into(),
+      self.fixture.to_str().expect("TODO:").into(),
       &self.mode,
       &self.get_actual_path(),
       &self.get_expected_path(),
@@ -327,16 +327,16 @@ impl Rst {
 
     let actual_dirs: Vec<OsString> = actual_base
       .read_dir()
-      .unwrap()
-      .map(|p| p.unwrap().file_name())
+      .expect("TODO:")
+      .map(|p| p.expect("TODO:").file_name())
       .collect();
 
     let actual_dirs: HashSet<OsString> = HashSet::from_iter(actual_dirs);
 
     let expected_dirs: Vec<OsString> = expected_base
       .read_dir()
-      .unwrap()
-      .map(|p| p.unwrap().file_name())
+      .expect("TODO:")
+      .map(|p| p.expect("TODO:").file_name())
       .collect();
     let expected_dirs: HashSet<OsString> = HashSet::from_iter(expected_dirs);
 
@@ -352,10 +352,10 @@ impl Rst {
         let is_actual_file = actual_dir.is_file();
 
         if is_expect_file && is_actual_file {
-          let expected_buf = fs::read(expected_dir.as_path()).unwrap();
+          let expected_buf = fs::read(expected_dir.as_path()).expect("TODO:");
           let expected_str = String::from_utf8_lossy(&expected_buf);
 
-          let actual_buf = fs::read(actual_dir.as_path()).unwrap();
+          let actual_buf = fs::read(actual_dir.as_path()).expect("TODO:");
           let actual_str = String::from_utf8_lossy(&actual_buf);
 
           if expected_str != actual_str {
@@ -424,7 +424,7 @@ impl Rst {
     let expected_dir = self.get_expected_path();
 
     if !actual_dir.exists() {
-      fs::create_dir_all(actual_dir.as_path()).unwrap();
+      fs::create_dir_all(actual_dir.as_path()).expect("TODO:");
     }
 
     match (&self.errors, &self.mode) {
@@ -445,7 +445,8 @@ impl Rst {
             FailedCase::Difference {
               expected_file_path, ..
             } => {
-              let actual_content = fs::read(self.expected_2_actual(expected_file_path)).unwrap();
+              let actual_content =
+                fs::read(self.expected_2_actual(expected_file_path)).expect("TODO:");
               fs::write(expected_file_path, actual_content).unwrap_or_else(|_| {
                 panic!(
                   "Copy file from actual into expected file failed\n{}\n",
@@ -462,13 +463,13 @@ impl Rst {
         // Remove old expected directory
         if expected_dir.exists() {
           for dir in fs::read_dir(&expected_dir)
-            .unwrap()
-            .map(|d| d.unwrap().path())
+            .expect("TODO:")
+            .map(|d| d.expect("TODO:").path())
           {
             if dir.is_dir() {
-              fs::remove_dir_all(dir).unwrap();
+              fs::remove_dir_all(dir).expect("TODO:");
             } else {
-              fs::remove_file(dir).unwrap();
+              fs::remove_file(dir).expect("TODO:");
             }
           }
         }
@@ -478,11 +479,11 @@ impl Rst {
         // update record
         let failed_path = self.get_record_path();
         if failed_path.exists() {
-          fs::remove_file(failed_path.as_path()).unwrap();
+          fs::remove_file(failed_path.as_path()).expect("TODO:");
           // Remove when fix all records
           let record_dir = Self::get_record_dir();
 
-          let failed_count = fs::read_dir(record_dir.as_path()).unwrap().count();
+          let failed_count = fs::read_dir(record_dir.as_path()).expect("TODO:").count();
           if failed_count == 0 {
             match fs::remove_dir(record_dir.as_path()) {
               Ok(_) => {}
@@ -509,7 +510,7 @@ impl Rst {
         Ok(entry) => {
           update_single_case(&entry);
           // remove temp dir that store diff info
-          std::fs::remove_dir_all(entry).unwrap();
+          std::fs::remove_dir_all(entry).expect("TODO:");
         }
         Err(e) => println!("{:?}", e),
       }
@@ -523,17 +524,18 @@ fn update_single_case(dir: &PathBuf) {
     println_if_not_mute!("No records found, nothing updated");
   }
   let failed_files = fs::read_dir(dir)
-    .unwrap()
-    .map(|dir| dir.unwrap().path())
+    .expect("TODO:")
+    .map(|dir| dir.expect("TODO:").path())
     .collect::<Vec<_>>();
   failed_files.iter().for_each(|failed_path| {
-    let record = serde_json::from_slice::<Record>(&fs::read(&failed_path).unwrap()).unwrap();
+    let record =
+      serde_json::from_slice::<Record>(&fs::read(&failed_path).expect("TODO:")).expect("TODO:");
     let rst: Rst = record.into();
     rst.update_fixture();
 
-    updates.clone().lock().unwrap().push(rst.fixture);
+    updates.clone().lock().expect("TODO:").push(rst.fixture);
   });
-  let updates = updates.lock().unwrap();
+  let updates = updates.lock().expect("TODO:");
   let count = updates.len();
   println_if_not_mute!(
     "Updated {} fixture{}:\n{}",
@@ -546,12 +548,12 @@ fn update_single_case(dir: &PathBuf) {
 }
 
 pub fn test(p: PathBuf) -> Result<(), TestError> {
-  let rst = RstBuilder::default().fixture(p).build().unwrap();
+  let rst = RstBuilder::default().fixture(p).build().expect("TODO:");
   rst.test()
 }
 
 pub fn assert(p: PathBuf) {
-  let rst = RstBuilder::default().fixture(p).build().unwrap();
+  let rst = RstBuilder::default().fixture(p).build().expect("TODO:");
   let res = rst.test();
 
   if let Err(e) = res {
@@ -579,7 +581,7 @@ pub fn assert(p: PathBuf) {
 //   fn different() {
 //     env::set_var("RST_MUTE", "1");
 
-//     let cwd = env::current_dir().unwrap();
+//     let cwd = env::current_dir().expect("TODO:");
 
 //     /*
 //      * A file in the expect dir, but not in the actual dir
@@ -590,7 +592,7 @@ pub fn assert(p: PathBuf) {
 //     let test_res = RstBuilder::default()
 //       .fixture(p.clone())
 //       .build()
-//       .unwrap()
+//       .expect("TODO:")
 //       .test();
 
 //     assert!(test_res.is_err());
@@ -616,7 +618,7 @@ pub fn assert(p: PathBuf) {
 //     let test_res = RstBuilder::default()
 //       .fixture(p.clone())
 //       .build()
-//       .unwrap()
+//       .expect("TODO:")
 //       .test();
 //     assert!(test_res.is_err());
 
@@ -638,7 +640,7 @@ pub fn assert(p: PathBuf) {
 //     let test_res = RstBuilder::default()
 //       .fixture(p.clone())
 //       .build()
-//       .unwrap()
+//       .expect("TODO:")
 //       .test();
 //     assert!(test_res.is_err());
 
@@ -669,10 +671,10 @@ pub fn assert(p: PathBuf) {
 //       return;
 //     }
 
-//     let cwd = env::current_dir().unwrap();
+//     let cwd = env::current_dir().expect("TODO:");
 //     let mut p = cwd.clone();
 //     p.push("fixtures/update/a");
-//     let rst = RstBuilder::default().fixture(p.clone()).build().unwrap();
+//     let rst = RstBuilder::default().fixture(p.clone()).build().expect("TODO:");
 
 //     // fail because the expected dir is missing
 //     assert!(rst.test().is_err());
@@ -681,7 +683,7 @@ pub fn assert(p: PathBuf) {
 //     assert!(rst.test().is_ok());
 
 //     // recover for next time testing
-//     fs::remove_dir_all(p.as_path().join("expected")).unwrap();
+//     fs::remove_dir_all(p.as_path().join("expected")).expect("TODO:");
 
 //     let mut p = cwd;
 //     p.push("fixtures/update/update_all");
@@ -691,7 +693,7 @@ pub fn assert(p: PathBuf) {
 //         .fixture(PathBuf::from(dir))
 //         .mode(Mode::Strict)
 //         .build()
-//         .unwrap();
+//         .expect("TODO:");
 
 //       assert!(rst.test().is_err());
 //     });

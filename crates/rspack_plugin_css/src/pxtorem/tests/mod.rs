@@ -34,7 +34,8 @@ fn valid() {
 fn transform(source: &str, config_file: Option<&String>) -> String {
   let cm = SourceMap::new(FilePathMapping::empty());
   let fm = cm.new_source_file(FileName::Custom("test.css".to_owned()), source.to_owned());
-  let mut stylesheet = parse_file::<Stylesheet>(&fm, ParserConfig::default(), &mut vec![]).unwrap();
+  let mut stylesheet =
+    parse_file::<Stylesheet>(&fm, ParserConfig::default(), &mut vec![]).expect("TODO:");
 
   let mut output = String::new();
   let wr = BasicCssWriter::new(
@@ -43,12 +44,12 @@ fn transform(source: &str, config_file: Option<&String>) -> String {
     BasicCssWriterConfig::default(),
   );
   let config: PxToRemOption = config_file
-    .map(|file| serde_json::from_str(file).unwrap())
+    .map(|file| serde_json::from_str(file).expect("TODO:"))
     .unwrap_or_default();
   let mut gen = CodeGenerator::new(wr, CodegenConfig { minify: false });
 
   stylesheet.visit_mut_with(&mut px_to_rem(config));
-  gen.emit(&stylesheet).unwrap();
+  gen.emit(&stylesheet).expect("TODO:");
 
   output
 }
@@ -62,7 +63,7 @@ struct TestUnit {
 
 fn normalize(source: &str) -> Vec<TestUnit> {
   let mut res = vec![];
-  let archive = hrx_parser::parse(source).unwrap();
+  let archive = hrx_parser::parse(source).expect("TODO:");
   let mut i = 0;
   while i < archive.entries.len() {
     let entry = &archive.entries[i];
@@ -102,11 +103,11 @@ fn convert_entry_to_unit(entry: &Entry) -> Option<TestUnit> {
 
 fn get_snapshot_result(input: &str, expected: &str, actual: &str) -> String {
   let mut result = String::new();
-  writeln!(result, "# Input").unwrap();
-  writeln!(result, "{}", input).unwrap();
-  writeln!(result, "# Expected").unwrap();
-  writeln!(result, "{}", expected).unwrap();
-  writeln!(result, "# Actual").unwrap();
-  writeln!(result, "{}", actual).unwrap();
+  writeln!(result, "# Input").expect("should success");
+  writeln!(result, "{}", input).expect("should success");
+  writeln!(result, "# Expected").expect("should success");
+  writeln!(result, "{}", expected).expect("should success");
+  writeln!(result, "# Actual").expect("should success");
+  writeln!(result, "{}", actual).expect("should success");
   result
 }

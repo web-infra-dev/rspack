@@ -17,7 +17,7 @@ where
   //avoid interference from previous testing
   let dist_dir = fixture_path.join("dist");
   if dist_dir.exists() {
-    std::fs::remove_dir_all(dist_dir.clone()).unwrap();
+    std::fs::remove_dir_all(dist_dir.clone()).expect("TODO:");
   }
   let options: CompilerOptions = RawOptions::from_fixture(fixture_path).to_compiler_options();
   let options = custom_convert_options(options);
@@ -32,13 +32,13 @@ where
     .fixture(PathBuf::from(fixture_path))
     .actual(output_name)
     .build()
-    .unwrap();
+    .expect("TODO:");
 
-  if !stats.to_description().unwrap().errors.is_empty() {
+  if !stats.to_description().expect("TODO:").errors.is_empty() {
     panic!(
       "Failed to compile in fixtrue {:?}, errors: {:?}",
       fixture_path,
-      stats.emit_diagnostics_string(true).unwrap()
+      stats.emit_diagnostics_string(true).expect("TODO:")
     );
   }
 

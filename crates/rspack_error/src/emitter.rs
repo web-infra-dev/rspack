@@ -192,7 +192,7 @@ fn emit_diagnostic<T: Write + WriteColor>(
 
     let config = codespan_reporting::term::Config::default();
 
-    term::emit(writer, &config, files, &diagnostic).unwrap();
+    term::emit(writer, &config, files, &diagnostic).expect("TODO:");
   } else {
     let color = match diagnostic.severity {
       crate::Severity::Error => Color::Red,

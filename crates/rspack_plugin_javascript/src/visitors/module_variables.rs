@@ -40,7 +40,7 @@ pub fn module_variables<'a>(
           "warn-mock" => "/".to_string(),
           "true" => Path::new(resource_resolved_data.resource_path.as_str())
             .parent()
-            .unwrap()
+            .expect("TODO:")
             .relative(&compilation.options.context.as_ref())
             .to_string_lossy()
             .to_string(),

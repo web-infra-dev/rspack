@@ -336,7 +336,7 @@ impl Compiler {
             chunk_ukey: ukey,
           })
           .await
-          .unwrap();
+          .expect("render_manifest failed in rebuild");
 
         for entry in render_manifest {
           let asset = CompilationAsset::new(

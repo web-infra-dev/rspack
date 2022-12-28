@@ -31,21 +31,21 @@ fn custom(fixture_path: PathBuf) {
     let dirname = fixture_path
       .components()
       .last()
-      .unwrap()
+      .expect("TODO:")
       .as_os_str()
       .to_str()
-      .unwrap()
+      .expect("TODO:")
       .to_owned();
     settings.bind(|| {
       insta::assert_snapshot!(
         dirname.as_str(),
-        stats.emit_diagnostics_string(false).unwrap(),
+        stats.emit_diagnostics_string(false).expect("TODO:"),
         dirname.as_str()
       );
     });
     Ok(())
   })
-  .unwrap();
+  .expect("TODO:");
 }
 
 /// In concurrent scenario the file resolve order can't be guaranteed.
@@ -56,19 +56,19 @@ fn out_of_order(fixture_path: PathBuf) {
     let dirname = fixture_path
       .components()
       .last()
-      .unwrap()
+      .expect("TODO:")
       .as_os_str()
       .to_str()
-      .unwrap()
+      .expect("TODO:")
       .to_owned();
     settings.bind(|| {
       insta::assert_snapshot!(
         dirname.as_str(),
-        stats.emit_diagnostics_string(true).unwrap(),
+        stats.emit_diagnostics_string(true).expect("TODO:"),
         dirname.as_str()
       );
     });
     Ok(())
   })
-  .unwrap();
+  .expect("TODO:");
 }

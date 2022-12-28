@@ -6,7 +6,7 @@ use std::{
 use crate::rst::Rst;
 
 fn get_record_dir() -> PathBuf {
-  let mut p = env::current_dir().unwrap();
+  let mut p = env::current_dir().expect("TODO:");
   p.push(".temp");
   p
 }
@@ -18,7 +18,7 @@ pub fn update(fixture: Option<String>) {
     let mut records_dir = get_record_dir();
 
     if path.is_relative() {
-      let mut p = env::current_dir().unwrap();
+      let mut p = env::current_dir().expect("TODO:");
 
       p.push(path);
 
@@ -27,15 +27,17 @@ pub fn update(fixture: Option<String>) {
         return;
       }
 
-      records_dir
-        .push({ path.to_str().unwrap().to_string() + ".json" }.replace(path::MAIN_SEPARATOR, "&"));
+      records_dir.push(
+        { path.to_str().expect("TODO:").to_string() + ".json" }.replace(path::MAIN_SEPARATOR, "&"),
+      );
     } else {
       if !path.exists() {
         println!("Fixture not found");
         return;
       }
-      records_dir
-        .push({ path.to_str().unwrap().to_string() + ".json" }.replace(path::MAIN_SEPARATOR, "&"));
+      records_dir.push(
+        { path.to_str().expect("TODO:").to_string() + ".json" }.replace(path::MAIN_SEPARATOR, "&"),
+      );
     };
 
     let rst = Rst::from_path(path);

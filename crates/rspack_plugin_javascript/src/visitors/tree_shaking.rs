@@ -96,7 +96,7 @@ impl<'a> Fold for TreeShaker<'a> {
           let mgm = self
             .module_graph
             .module_graph_module_by_identifier(&module_identifier)
-            .unwrap();
+            .expect("TODO:");
           if !mgm.used {
             ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }))
           } else {
@@ -202,11 +202,11 @@ impl<'a> Fold for TreeShaker<'a> {
             let before_legnth = named.specifiers.len();
             let module_identifier = self
               .resolve_module_identifier(src.value.to_string(), ResolveKind::Import)
-              .unwrap();
+              .expect("TODO:");
             let mgm = self
               .module_graph
               .module_graph_module_by_identifier(&module_identifier)
-              .unwrap();
+              .expect("TODO:");
             if !mgm.used {
               return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }));
             }
@@ -352,11 +352,11 @@ impl<'a> Fold for TreeShaker<'a> {
         ModuleDecl::ExportAll(ref export_all) => {
           let module_identifier = self
             .resolve_module_identifier(export_all.src.value.to_string(), ResolveKind::Import)
-            .unwrap();
+            .expect("TODO:");
           let mgm = self
             .module_graph
             .module_graph_module_by_identifier(&module_identifier)
-            .unwrap();
+            .expect("TODO:");
           if !mgm.used {
             ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }))
           } else {

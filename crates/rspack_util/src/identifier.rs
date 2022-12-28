@@ -4,9 +4,11 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use sugar_path::{AsPath, SugarPath};
 
-static SEGMENTS_SPLIT_REGEXP: Lazy<Regex> = Lazy::new(|| Regex::new(r"([|!])").unwrap());
-static WINDOWS_ABS_PATH_REGEXP: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[a-zA-Z]:[/\\]").unwrap());
-static WINDOWS_PATH_SEPARATOR_REGEXP: Lazy<Regex> = Lazy::new(|| Regex::new(r"[/\\]").unwrap());
+static SEGMENTS_SPLIT_REGEXP: Lazy<Regex> = Lazy::new(|| Regex::new(r"([|!])").expect("TODO:"));
+static WINDOWS_ABS_PATH_REGEXP: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^[a-zA-Z]:[/\\]").expect("TODO:"));
+static WINDOWS_PATH_SEPARATOR_REGEXP: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"[/\\]").expect("TODO:"));
 pub fn make_paths_relative(context: &str, identifier: &str) -> String {
   SEGMENTS_SPLIT_REGEXP
     .split(identifier)

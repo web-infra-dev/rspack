@@ -14,7 +14,14 @@ impl JsChunkGroup {
       chunks: cg
         .chunks
         .iter()
-        .map(|k| JsChunk::from(compilation.chunk_by_ukey.get(k).unwrap()))
+        .map(|k| {
+          JsChunk::from(compilation.chunk_by_ukey.get(k).unwrap_or_else(|| {
+            panic!(
+              "Could not find Chunk({:?}) belong to ChunkGroup: {:?}",
+              k, cg
+            )
+          }))
+        })
         .collect(),
     }
   }

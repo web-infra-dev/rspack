@@ -9,7 +9,7 @@ use swc_css::{
   visit::{Visit, VisitMut, VisitMutWith, VisitWith},
 };
 
-static IS_MODULE_REQUEST: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[^?]*~").unwrap());
+static IS_MODULE_REQUEST: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[^?]*~").expect("TODO:"));
 
 pub fn analyze_dependencies(
   ss: &mut Stylesheet,

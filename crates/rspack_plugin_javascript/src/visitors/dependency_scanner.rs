@@ -34,7 +34,7 @@ impl DependencyScanner {
             if call_expr.args.len() != 1 {
               return;
             }
-            let src = match call_expr.args.first().unwrap() {
+            let src = match call_expr.args.first().expect("TODO:") {
               ExprOrSpread { spread: None, expr } => match &**expr {
                 Expr::Lit(Lit::Str(s)) => s,
                 _ => return,
@@ -93,7 +93,11 @@ impl DependencyScanner {
             }
             ExportSpecifier::Namespace(_s) => {
               // export * as name from './other'
-              let source = node.src.as_ref().map(|str| str.value.clone()).unwrap();
+              let source = node
+                .src
+                .as_ref()
+                .map(|str| str.value.clone())
+                .expect("TODO:");
               self.add_dependency(source, ResolveKind::Import, node.span);
             }
             ExportSpecifier::Default(_) => {
@@ -155,7 +159,7 @@ fn test_dependency_scanner() {
   import { j } from 'k';
   import { default as l } from 'm';
   "#;
-  let mut ast = parse_js_code(code.to_string(), &ModuleType::Js).unwrap();
+  let mut ast = parse_js_code(code.to_string(), &ModuleType::Js).expect("TODO:");
   let dependencies = swc_core::common::GLOBALS.set(&Default::default(), || {
     let unresolved_mark = Mark::new();
     let mut resolver =
@@ -167,7 +171,7 @@ fn test_dependency_scanner() {
   });
   let mut iter = dependencies.into_iter();
   assert_eq!(
-    iter.next().unwrap(),
+    iter.next().expect("TODO:"),
     ModuleDependency {
       specifier: "a".to_string(),
       kind: ResolveKind::Require,
@@ -175,7 +179,7 @@ fn test_dependency_scanner() {
     }
   );
   assert_eq!(
-    iter.next().unwrap(),
+    iter.next().expect("TODO:"),
     ModuleDependency {
       specifier: "b".to_string(),
       kind: ResolveKind::Require,
@@ -183,7 +187,7 @@ fn test_dependency_scanner() {
     },
   );
   assert_eq!(
-    iter.next().unwrap(),
+    iter.next().expect("TODO:"),
     ModuleDependency {
       specifier: "e".to_string(),
       kind: ResolveKind::ModuleHotAccept,
@@ -191,7 +195,7 @@ fn test_dependency_scanner() {
     },
   );
   assert_eq!(
-    iter.next().unwrap(),
+    iter.next().expect("TODO:"),
     ModuleDependency {
       specifier: "g".to_string(),
       kind: ResolveKind::Import,
@@ -202,7 +206,7 @@ fn test_dependency_scanner() {
     },
   );
   assert_eq!(
-    iter.next().unwrap(),
+    iter.next().expect("TODO:"),
     ModuleDependency {
       specifier: "i".to_string(),
       kind: ResolveKind::Import,
@@ -213,7 +217,7 @@ fn test_dependency_scanner() {
     },
   );
   assert_eq!(
-    iter.next().unwrap(),
+    iter.next().expect("TODO:"),
     ModuleDependency {
       specifier: "k".to_string(),
       kind: ResolveKind::Import,
@@ -224,7 +228,7 @@ fn test_dependency_scanner() {
     },
   );
   assert_eq!(
-    iter.next().unwrap(),
+    iter.next().expect("TODO:"),
     ModuleDependency {
       specifier: "m".to_string(),
       kind: ResolveKind::Import,

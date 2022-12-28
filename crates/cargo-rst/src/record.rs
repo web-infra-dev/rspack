@@ -34,12 +34,12 @@ impl Record {
   }
 
   pub fn save_to_disk(&self) {
-    let cwd = env::current_dir().unwrap();
+    let cwd = env::current_dir().expect("TODO:");
     let mut p = cwd.clone();
     p.push(".temp");
 
     if !p.exists() {
-      fs::create_dir_all(p.as_path()).unwrap();
+      fs::create_dir_all(p.as_path()).expect("TODO:");
     }
 
     let relative = make_relative_from(self.config.fixture.as_path(), cwd.as_path());
@@ -47,11 +47,11 @@ impl Record {
 
     p.push(record_path);
 
-    fs::write(p, self.serialize()).unwrap();
+    fs::write(p, self.serialize()).expect("TODO:");
   }
 
   pub fn serialize(&self) -> String {
-    serde_json::to_string_pretty(self).unwrap()
+    serde_json::to_string_pretty(self).expect("TODO:")
   }
 }
 
@@ -62,10 +62,10 @@ where
   /// from relative path
   fn from(p: T) -> Self {
     let relative_fixture = p.as_ref();
-    let relative_fixture = { relative_fixture.to_str().unwrap().to_string() + ".json" }
+    let relative_fixture = { relative_fixture.to_str().expect("TODO:").to_string() + ".json" }
       .replace(path::MAIN_SEPARATOR, "&");
 
-    let mut record_path = env::current_dir().unwrap();
+    let mut record_path = env::current_dir().expect("TODO:");
     record_path.push(".temp");
     record_path.push(&relative_fixture);
 
@@ -74,7 +74,7 @@ where
       panic!();
     }
 
-    serde_json::from_slice(fs::read(record_path).unwrap().as_slice()).unwrap()
+    serde_json::from_slice(fs::read(record_path).expect("TODO:").as_slice()).expect("TODO:")
   }
 }
 

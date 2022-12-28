@@ -77,7 +77,7 @@ impl<'compilation> Stats<'compilation> {
     let mut assets: Vec<StatsAsset> = assets.into_values().collect();
     assets.sort_by(|a, b| {
       // SAFETY: size should not be NAN.
-      b.size.partial_cmp(&a.size).unwrap()
+      b.size.partial_cmp(&a.size).expect("TODO:")
     });
 
     let mut modules: Vec<StatsModule> = self
@@ -90,7 +90,12 @@ impl<'compilation> Stats<'compilation> {
           .compilation
           .module_graph
           .module_graph_module_by_identifier(&identifier)
-          .unwrap();
+          .unwrap_or_else(|| {
+            panic!(
+              "Could not find ModuleGraphModule by identifier: {:?}",
+              identifier
+            )
+          });
 
         let issuer = self.compilation.module_graph.get_issuer(module);
         let (issuer_name, issuer_id) = issuer
@@ -132,7 +137,15 @@ impl<'compilation> Stats<'compilation> {
           .get_chunk_graph_module(&mgm.module_identifier)
           .chunks
           .iter()
-          .map(|k| self.compilation.chunk_by_ukey.get(k).unwrap().id.clone())
+          .map(|k| {
+            self
+              .compilation
+              .chunk_by_ukey
+              .get(k)
+              .unwrap_or_else(|| panic!("Could not find chunk by ukey: {:?}", k))
+              .id
+              .clone()
+          })
           .collect();
         chunks.sort();
 
@@ -222,7 +235,7 @@ impl<'compilation> Stats<'compilation> {
                 .compilation
                 .assets()
                 .get(file)
-                .unwrap()
+                .unwrap_or_else(|| panic!("Could not find asset by name: {:?}", file))
                 .get_source()
                 .size() as f64,
             });
@@ -246,7 +259,7 @@ impl<'compilation> Stats<'compilation> {
       .get_errors()
       .map(|d| StatsError {
         message: d.message.clone(),
-        formatted: diagnostic_displayer.emit_diagnostic(d).unwrap(),
+        formatted: diagnostic_displayer.emit_diagnostic(d).expect("TODO:"),
       })
       .collect();
     let warnings: Vec<StatsWarning> = self
@@ -254,7 +267,7 @@ impl<'compilation> Stats<'compilation> {
       .get_warnings()
       .map(|d| StatsWarning {
         message: d.message.clone(),
-        formatted: diagnostic_displayer.emit_diagnostic(d).unwrap(),
+        formatted: diagnostic_displayer.emit_diagnostic(d).expect("TODO:"),
       })
       .collect();
 
@@ -279,7 +292,12 @@ fn get_stats_module_name_and_id(module: &BoxModule, compilation: &Compilation) -
   let mgm = compilation
     .module_graph
     .module_graph_module_by_identifier(&identifier)
-    .unwrap();
+    .unwrap_or_else(|| {
+      panic!(
+        "module_graph.module_graph_module_by_identifier({:?}) failed",
+        identifier
+      )
+    });
   let name = module.readable_identifier(&compilation.options.context);
   let id = mgm.id(&compilation.chunk_graph);
   (name.to_string(), id.to_string())

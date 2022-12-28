@@ -20,7 +20,7 @@ pub fn pretty_diff_printer<'a>(diff: &'a TextDiff<'a, 'a, 'a, str>) -> String {
 
   for (idx, group) in diff.grouped_ops(3).iter().enumerate() {
     if idx > 0 {
-      writeln!(output, "{:-^1$}", "-", 80).unwrap();
+      writeln!(output, "{:-^1$}", "-", 80).expect("TODO:");
     }
     for op in group {
       for change in diff.iter_inline_changes(op) {
@@ -36,16 +36,16 @@ pub fn pretty_diff_printer<'a>(diff: &'a TextDiff<'a, 'a, 'a, str>) -> String {
           style(Line(change.new_index())).dim(),
           s.apply_to(sign).bold(),
         )
-        .unwrap();
+        .expect("TODO:");
         for (emphasized, value) in change.iter_strings_lossy() {
           if emphasized {
-            write!(output, "{}", s.apply_to(value).underlined().on_black()).unwrap();
+            write!(output, "{}", s.apply_to(value).underlined().on_black()).expect("TODO:");
           } else {
-            write!(output, "{}", s.apply_to(value)).unwrap();
+            write!(output, "{}", s.apply_to(value)).expect("TODO:");
           }
         }
         if change.missing_newline() {
-          writeln!(output).unwrap()
+          writeln!(output).expect("TODO:")
         }
       }
     }

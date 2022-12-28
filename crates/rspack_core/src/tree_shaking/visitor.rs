@@ -964,7 +964,7 @@ impl<'a> ModuleRefAnalyze<'a> {
           eprintln!(
             "Can't resolve import {} in module {} ",
             // SAFETY: we already know that src is not empty
-            named_export.src.as_ref().unwrap().value,
+            named_export.src.as_ref().expect("TODO:").value,
             self.module_identifier
           );
           // TODO: Ignore because helper interference.

@@ -41,7 +41,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       match e {
         UnexpectedCharacter { ch, line, column } => {
           let rope = ropey::Rope::from_str(&source);
-          let line_offset = rope.try_line_to_byte(line - 1).unwrap();
+          let line_offset = rope.try_line_to_byte(line - 1).expect("TODO:");
           let start_offset = source[line_offset..]
             .chars()
             .take(column)

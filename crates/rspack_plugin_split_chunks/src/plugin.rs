@@ -222,7 +222,7 @@ impl SplitChunksPlugin {
 
     let get_name = {
       let name = options.name.clone();
-      let get_name: GetName = Arc::new(move |module: &dyn Module| name.clone().unwrap());
+      let get_name: GetName = Arc::new(move |module: &dyn Module| name.clone().expect("TODO:"));
       get_name
     };
     let normalized_options = NormalizedOptions {
@@ -428,7 +428,10 @@ impl Plugin for SplitChunksPlugin {
 
       let mut cache_group_index = 0;
       for cache_group_source in cache_group_source_keys {
-        let cache_group = self.cache_group_by_key.get(&cache_group_source).unwrap();
+        let cache_group = self
+          .cache_group_by_key
+          .get(&cache_group_source)
+          .expect("TODO:");
         let combs = vec![compilation
           .chunk_graph
           .get_modules_chunks(&module.identifier())];
@@ -526,7 +529,7 @@ impl Plugin for SplitChunksPlugin {
         &self
           .cache_group_by_key
           .get(&info.cache_group)
-          .unwrap()
+          .expect("TODO:")
           .min_size_reduction,
         info.chunks.len(),
       ) {
@@ -582,7 +585,7 @@ impl Plugin for SplitChunksPlugin {
         let [new_chunk, used_chunk] = compilation
           .chunk_by_ukey
           .get_many_mut([&new_chunk_ukey, used_chunk])
-          .unwrap();
+          .expect("TODO:");
         used_chunk.split(new_chunk, &mut compilation.chunk_group_by_ukey);
 
         for module_identifier in &info.modules {

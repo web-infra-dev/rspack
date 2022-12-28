@@ -448,7 +448,11 @@ impl<'me> CodeSplitter<'me> {
           .chunk_group_by_ukey
           .insert(ukey, chunk_group);
 
-        self.compilation.chunk_group_by_ukey.get(&ukey).unwrap()
+        self
+          .compilation
+          .chunk_group_by_ukey
+          .get(&ukey)
+          .unwrap_or_else(|| panic!("chunk group not found: {:?}", ukey))
       };
 
       self.queue_delayed.push(QueueItem {

@@ -3,7 +3,7 @@ use std::{path::PathBuf, time::Instant};
 use rspack_test::read_test_config_and_normalize;
 #[tokio::main]
 async fn main() {
-  let manifest_dir = PathBuf::from(&std::env::var("PWD").unwrap());
+  let manifest_dir = PathBuf::from(&std::env::var("PWD").expect("TODO:"));
   // let bundle_dir = manifest_dir.join("tests/fixtures/postcss/pxtorem");
   let bundle_dir: PathBuf = manifest_dir.join("benchcases/lodash-with-simple-css");
   println!("{:?}", bundle_dir);

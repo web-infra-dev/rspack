@@ -16,7 +16,7 @@ fn transform(source: &str, config_file: Option<&String>) -> String {
   for _ in 0..100 {
     let start = Instant::now();
     let mut stylesheet =
-      parse_file::<Stylesheet>(&fm, ParserConfig::default(), &mut vec![]).unwrap();
+      parse_file::<Stylesheet>(&fm, ParserConfig::default(), &mut vec![]).expect("TODO:");
     let mut output = String::new();
     let _wr = BasicCssWriter::new(
       &mut output,
@@ -24,7 +24,7 @@ fn transform(source: &str, config_file: Option<&String>) -> String {
       BasicCssWriterConfig::default(),
     );
     let config: PxToRemOption = config_file
-      .map(|file| serde_json::from_str(file).unwrap())
+      .map(|file| serde_json::from_str(file).expect("TODO:"))
       .unwrap_or_default();
     // dbg!(&config);
     // let mut gen = CodeGenerator::new(wr, CodegenConfig { minify: false });
@@ -32,7 +32,7 @@ fn transform(source: &str, config_file: Option<&String>) -> String {
     stylesheet.visit_mut_with(&mut px_to_rem(config));
     println!("transform: {:?}", start.elapsed());
   }
-  // gen.emit(&stylesheet).unwrap();
+  // gen.emit(&stylesheet).expect("TODO:");
 
   String::new()
 }

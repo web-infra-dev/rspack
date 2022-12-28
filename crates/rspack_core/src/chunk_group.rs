@@ -62,7 +62,12 @@ impl ChunkGroup {
       .flat_map(|chunk_ukey| {
         chunk_by_ukey
           .get(chunk_ukey)
-          .unwrap()
+          .unwrap_or_else(|| {
+            panic!(
+              "Chunk({:?}) not found in ChunkGroup: {:?}",
+              chunk_ukey, self
+            )
+          })
           .files
           .iter()
           .map(|file| file.to_string())

@@ -150,7 +150,7 @@ impl Compiler {
   fn stats(&self) -> Stats {
     let stats = Stats::new(&self.compilation);
     if self.options.__emit_error {
-      stats.emit_diagnostics().unwrap();
+      stats.emit_diagnostics().expect("TODO:");
     }
     stats
   }
