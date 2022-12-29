@@ -32,6 +32,8 @@ mod module_graph;
 pub use module_graph::*;
 mod chunk;
 pub use chunk::*;
+mod dependency;
+pub use dependency::*;
 mod utils;
 use tokio::sync::RwLock;
 pub use utils::*;
