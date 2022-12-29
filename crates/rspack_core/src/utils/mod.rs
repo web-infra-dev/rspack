@@ -20,6 +20,9 @@ pub use module_rules::*;
 mod fast_set;
 pub use fast_set::*;
 
+mod queue;
+pub use queue::*;
+
 pub fn uri_to_chunk_name(root: &str, uri: &str) -> String {
   let path = Path::new(uri);
   let mut relatived = Path::new(path).relative(root);

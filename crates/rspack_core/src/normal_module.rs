@@ -3,7 +3,7 @@ use std::{
   fmt::Debug,
   hash::Hash,
   sync::{
-    atomic::{AtomicU32, Ordering},
+    atomic::{AtomicUsize, Ordering},
     Arc,
   },
 };
@@ -75,8 +75,8 @@ pub struct ModuleGraphModule {
   pub name: Option<String>,
 
   // edges from module to module
-  pub outgoing_connections: HashSet<u32>,
-  pub incoming_connections: HashSet<u32>,
+  pub outgoing_connections: HashSet<usize>,
+  pub incoming_connections: HashSet<usize>,
 
   issuer: ModuleIssuer,
 
@@ -125,11 +125,11 @@ impl ModuleGraphModule {
       .as_str()
   }
 
-  pub fn add_incoming_connection(&mut self, connection_id: u32) {
+  pub fn add_incoming_connection(&mut self, connection_id: usize) {
     self.incoming_connections.insert(connection_id);
   }
 
-  pub fn add_outgoing_connection(&mut self, connection_id: u32) {
+  pub fn add_outgoing_connection(&mut self, connection_id: usize) {
     self.outgoing_connections.insert(connection_id);
   }
 
@@ -309,7 +309,7 @@ pub struct NormalModule {
 
   options: Arc<CompilerOptions>,
   #[allow(unused)]
-  debug_id: u32,
+  debug_id: usize,
   cached_source_sizes: DashMap<SourceType, f64>,
 
   code_generation_dependencies: Option<Vec<Dependency>>,
@@ -341,7 +341,7 @@ impl NormalModuleAstOrSource {
   }
 }
 
-pub static DEBUG_ID: AtomicU32 = AtomicU32::new(1);
+pub static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl NormalModule {
   #[allow(clippy::too_many_arguments)]
