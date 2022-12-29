@@ -416,7 +416,7 @@ impl Plugin for JsPlugin {
     let output_path = filename_template.render(FilenameRenderOptions {
       filename: chunk.name.clone(),
       extension: Some(".js".to_owned()),
-      id: Some(chunk.id.to_string()),
+      id: chunk.id.clone(),
       contenthash: Some(
         chunk
           .content_hash

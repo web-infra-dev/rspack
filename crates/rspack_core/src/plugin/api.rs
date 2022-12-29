@@ -157,6 +157,10 @@ pub trait Plugin: Debug + Send + Sync {
   fn module_ids(&mut self, _modules: &mut Compilation) -> Result<()> {
     Ok(())
   }
+
+  fn chunk_ids(&mut self, _compilation: &mut Compilation) -> Result<()> {
+    Ok(())
+  }
 }
 
 // #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -2,8 +2,9 @@ use hashbrown::{HashMap, HashSet};
 use ustr::Ustr;
 
 use crate::{
-  Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Module, ModuleGraph,
-  ModuleGraphModule, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, SourceType,
+  find_module_graph_roots, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Module,
+  ModuleGraph, ModuleGraphModule, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
+  SourceType,
 };
 
 #[derive(Debug, Default)]
@@ -394,7 +395,7 @@ impl ChunkGraph {
     let chunk = chunk_by_ukey.get(chunk_ukey).expect("Chunk should exist");
     for c in chunk.get_all_referenced_chunks(chunk_group_by_ukey).iter() {
       let chunk = chunk_by_ukey.get(c).expect("Chunk should exist");
-      map.insert(chunk.id.clone(), filter(c, self, module_graph));
+      map.insert(chunk.expect_id().to_string(), filter(c, self, module_graph));
     }
 
     map
@@ -408,6 +409,23 @@ impl ChunkGraph {
   pub fn set_module_id(&mut self, module_identifier: &ModuleIdentifier, id: String) {
     let cgm = self.get_chunk_graph_module_mut(module_identifier);
     cgm.id = Some(id);
+  }
+
+  pub fn get_chunk_root_modules(
+    &self,
+    chunk: &ChunkUkey,
+    module_graph: &ModuleGraph,
+  ) -> Vec<ModuleIdentifier> {
+    let cgc = self.get_chunk_graph_chunk(chunk);
+
+    let mut modules = find_module_graph_roots(
+      cgc.modules.iter().cloned().collect::<Vec<_>>(),
+      module_graph,
+    );
+
+    modules.sort();
+
+    modules
   }
 }
 

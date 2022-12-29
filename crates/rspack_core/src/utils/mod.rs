@@ -1,5 +1,6 @@
 use std::path::{Component, Path};
 
+use hashbrown::HashSet;
 use sugar_path::SugarPath;
 
 mod hooks;
@@ -20,6 +21,7 @@ pub use module_rules::*;
 mod fast_set;
 pub use fast_set::*;
 
+use crate::{ModuleGraph, ModuleIdentifier};
 mod queue;
 pub use queue::*;
 
@@ -96,4 +98,47 @@ pub fn join_string_component(mut components: Vec<String>) -> String {
       )
     }
   }
+}
+
+pub fn find_module_graph_roots(
+  modules: Vec<ModuleIdentifier>,
+  module_graph: &ModuleGraph,
+) -> Vec<ModuleIdentifier> {
+  let mut roots = vec![];
+  let mut graph = petgraph::graphmap::DiGraphMap::new();
+  let mut queue = modules.into_iter().collect::<Vec<_>>();
+  let mut visited = HashSet::new();
+  while let Some(module) = queue.pop() {
+    let module = module_graph
+      .module_by_identifier(&module)
+      .expect("module not found");
+    if visited.contains(&module.identifier()) {
+      continue;
+    } else {
+      visited.insert(module.identifier())
+    };
+    let connections = module_graph.get_outgoing_connections(module);
+    for connection in connections {
+      if let Some(from) = &connection.original_module_identifier {
+        graph.add_edge(from, &connection.module_identifier, ());
+      } else {
+        graph.add_node(&connection.module_identifier);
+      }
+      queue.push(connection.module_identifier);
+    }
+  }
+
+  graph
+    .nodes()
+    .into_iter()
+    .filter(|from| {
+      graph
+        .neighbors_directed(*from, petgraph::Direction::Incoming)
+        .count()
+        == 0
+    })
+    .for_each(|from| {
+      roots.push(*from);
+    });
+  roots
 }

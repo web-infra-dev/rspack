@@ -18,7 +18,9 @@ pub enum ChunkKind {
 pub struct Chunk {
   pub name: Option<String>,
   pub ukey: ChunkUkey,
-  pub id: String,
+  pub id: Option<String>,
+  pub ids: Vec<String>,
+  pub id_name_hints: HashSet<String>,
   pub files: HashSet<String>,
   pub groups: HashSet<ChunkGroupUkey>,
   pub runtime: RuntimeSpec,
@@ -42,11 +44,13 @@ impl Debug for Chunk {
 }
 
 impl Chunk {
-  pub fn new(name: Option<String>, id: String, kind: ChunkKind) -> Self {
+  pub fn new(name: Option<String>, id: Option<String>, kind: ChunkKind) -> Self {
     Self {
       name,
       ukey: ChunkUkey::with_debug_info("Chunk"),
       id,
+      ids: vec![],
+      id_name_hints: Default::default(),
       files: Default::default(),
       groups: Default::default(),
       runtime: HashSet::default(),
@@ -239,6 +243,13 @@ impl Chunk {
 
   pub fn get_render_hash(&self) -> String {
     format!("{:x}", self.hash.finish())
+  }
+
+  pub fn expect_id(&self) -> &str {
+    self
+      .id
+      .as_ref()
+      .expect("Should set id before calling expect_id")
   }
 }
 

@@ -64,7 +64,7 @@ impl Plugin for CommonJsChunkFormatPlugin {
     let mut sources = ConcatSource::default();
     sources.add(RawSource::from(format!(
       "exports.ids = ['{}'];\n",
-      &chunk.id.to_owned()
+      &chunk.expect_id().to_string()
     )));
     sources.add(RawSource::from("exports.modules = "));
     sources.add(render_chunk_modules(args.compilation, args.chunk_ukey)?);
@@ -118,7 +118,7 @@ impl Plugin for CommonJsChunkFormatPlugin {
           .render(FilenameRenderOptions {
             filename: runtime_chunk.name.clone(),
             extension: Some(".js".to_string()),
-            id: Some(runtime_chunk.id.clone()),
+            id: runtime_chunk.id.clone(),
             contenthash: hash.clone(),
             chunkhash: hash.clone(),
             hash,

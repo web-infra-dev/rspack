@@ -549,7 +549,6 @@ impl Plugin for SplitChunksPlugin {
       let is_chunk_existing = compilation.named_chunks.get(&chunk_name).is_some();
       let new_chunk = Compilation::add_named_chunk(
         chunk_name.clone(),
-        chunk_name.clone(),
         &mut compilation.chunk_by_ukey,
         &mut compilation.named_chunks,
       );
