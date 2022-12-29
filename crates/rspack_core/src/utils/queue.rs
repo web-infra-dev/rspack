@@ -18,7 +18,7 @@ impl<T> WorkerQueue<T> {
   }
 
   pub fn add_tasks(&mut self, tasks: impl IntoIterator<Item = T>) -> usize {
-    self.inner.extend(tasks.into_iter());
+    self.inner.extend(tasks);
     self.inner.len()
   }
 
