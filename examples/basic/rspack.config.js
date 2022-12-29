@@ -7,6 +7,7 @@ module.exports = (env) => {
   return {
     context: __dirname,
     builtins: {
+      noEmitAssets:false,
       html: [{
         template: './index.html'
       }],
@@ -23,10 +24,7 @@ module.exports = (env) => {
       "process.env.NODE_ENV": "'development'",
     },
     infrastructureLogging: {
-      debug: false
-    },
-    builtins: {
-      minify: false
+      debug: true
     },
     output: {
       path: path.resolve(__dirname, 'dist')
