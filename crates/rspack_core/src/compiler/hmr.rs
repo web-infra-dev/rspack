@@ -97,9 +97,9 @@ impl Compiler {
         .compilation
         .chunk_group_by_ukey
         .get(entrypoint_ukey)
-        .and_then(|entrypoint| entrypoint.runtime.as_ref())
+        .map(|entrypoint| entrypoint.runtime.clone())
       {
-        all_old_runtime.extend(runtime.clone())
+        all_old_runtime.extend(runtime);
       }
     }
 
@@ -280,7 +280,7 @@ impl Compiler {
           Some(chunk_id.to_string()),
           ChunkKind::HotUpdate,
         );
-        hot_update_chunk.runtime = new_runtime;
+        hot_update_chunk.runtime = new_runtime.clone();
         let ukey = hot_update_chunk.ukey;
         if let Some(current_chunk) = current_chunk {
           current_chunk
@@ -353,9 +353,11 @@ impl Compiler {
           self.emit_asset(&output_path, &(id + ".hot-update.js"), &asset)?;
         }
 
-        if let Some(info) = hot_update_main_content_by_runtime.get_mut(&chunk_id) {
-          info.updated_chunk_ids.insert(chunk_id.to_string());
-        }
+        new_runtime.iter().for_each(|runtime| {
+          if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime) {
+            info.updated_chunk_ids.insert(chunk_id.to_string());
+          }
+        });
       }
     }
 

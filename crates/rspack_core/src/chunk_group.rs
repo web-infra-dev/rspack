@@ -14,7 +14,7 @@ pub struct ChunkGroup {
   // ChunkGroupInfo
   pub(crate) next_pre_order_index: usize,
   pub(crate) next_post_order_index: usize,
-  pub(crate) runtime: Option<RuntimeSpec>,
+  pub(crate) runtime: RuntimeSpec,
   // Entrypoint
   // pub(crate) name: Option<String>,
   pub(crate) runtime_chunk: Option<ChunkUkey>,
@@ -22,14 +22,7 @@ pub struct ChunkGroup {
 }
 
 impl ChunkGroup {
-  pub fn new(kind: ChunkGroupKind, name: Option<String>) -> Self {
-    // TODO respect entrypoint `runtime` + `dependOn`
-    let runtime = match kind {
-      ChunkGroupKind::Entrypoint => Some(HashSet::from([
-        name.expect("ChunkGroupKind::Entrypoint name shouldn't be none")
-      ])),
-      ChunkGroupKind::Normal => None,
-    };
+  pub fn new(kind: ChunkGroupKind, runtime: RuntimeSpec, _name: Option<String>) -> Self {
     Self {
       ukey: ChunkGroupUkey::new(),
       chunks: vec![],

@@ -1,5 +1,6 @@
 use anyhow::anyhow;
-use std::collections::{HashMap, HashSet};
+use hashbrown::HashSet;
+use std::collections::HashMap;
 
 // use crate::{
 //     BundleOptions, Chunk, ChunkGraph, ChunkIdAlgo, ChunkKind, JsModuleKind, ModuleGraphContainer,
@@ -79,7 +80,11 @@ impl<'me> CodeSplitter<'me> {
           .insert(module_identifier, chunk.ukey);
       }
 
-      let mut entrypoint = ChunkGroup::new(ChunkGroupKind::Entrypoint, Some(name.to_string()));
+      let mut entrypoint = ChunkGroup::new(
+        ChunkGroupKind::Entrypoint,
+        HashSet::from([name.to_string()]),
+        Some(name.to_string()),
+      );
       if options.runtime.is_none() {
         entrypoint.set_runtime_chunk(chunk.ukey);
       }
@@ -241,21 +246,14 @@ impl<'me> CodeSplitter<'me> {
     }
 
     for chunk_group in self.compilation.chunk_group_by_ukey.values() {
-      if let ChunkGroupKind::Entrypoint = chunk_group.kind {
-        for chunk_ukey in chunk_group.chunks.iter() {
-          self
-            .compilation
-            .chunk_by_ukey
-            .entry(*chunk_ukey)
-            .and_modify(|chunk| {
-              chunk.runtime.extend(
-                chunk_group
-                  .runtime
-                  .clone()
-                  .expect("ChunkGroupKind::Entrypoint should has runtime"),
-              );
-            });
-        }
+      for chunk_ukey in chunk_group.chunks.iter() {
+        self
+          .compilation
+          .chunk_by_ukey
+          .entry(*chunk_ukey)
+          .and_modify(|chunk| {
+            chunk.runtime.extend(chunk_group.runtime.clone());
+          });
       }
     }
 
@@ -423,12 +421,16 @@ impl<'me> CodeSplitter<'me> {
         .split_point_module_identifier_to_chunk_ukey
         .insert(dyn_dep_mgm.module_identifier, chunk.ukey);
 
-      let mut chunk_group = ChunkGroup::new(ChunkGroupKind::Normal, None);
       let item_chunk_group = self
         .compilation
         .chunk_group_by_ukey
         .get_mut(&item.chunk_group)
         .expect("chunk group not found");
+      let mut chunk_group = ChunkGroup::new(
+        ChunkGroupKind::Normal,
+        item_chunk_group.runtime.clone(),
+        None,
+      );
       item_chunk_group.children.insert(chunk_group.ukey);
       chunk_group.parents.insert(item_chunk_group.ukey);
 
