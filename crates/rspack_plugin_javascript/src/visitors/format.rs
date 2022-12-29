@@ -66,57 +66,6 @@ impl<'a> RspackModuleFormatTransformer<'a> {
     }
   }
 
-  fn get_rspack_dynamic_import_callee(&self, chunk_ids: Vec<&str>) -> Callee {
-    if chunk_ids.len() == 1 {
-      return MemberExpr {
-        span: DUMMY_SP,
-        obj: Box::new(ast::Expr::Call(CallExpr {
-          span: DUMMY_SP,
-          callee: Ident::new(runtime_globals::ENSURE_CHUNK.into(), DUMMY_SP).as_callee(),
-          args: vec![Expr::Lit(Lit::Str(
-            chunk_ids
-              .first()
-              .expect("should have a chunk")
-              .to_string()
-              .into(),
-          ))
-          .as_arg()],
-          type_args: None,
-        })),
-        prop: MemberProp::Ident(Ident::new("then".into(), DUMMY_SP)),
-      }
-      .as_callee();
-    }
-    MemberExpr {
-      span: DUMMY_SP,
-      obj: Box::new(ast::Expr::Call(CallExpr {
-        span: DUMMY_SP,
-        callee: quote_ident!("Promise.all").as_callee(),
-        args: vec![Expr::Array(ArrayLit {
-          span: DUMMY_SP,
-          elems: chunk_ids
-            .iter()
-            .map(|chunk_id| {
-              Some(
-                Expr::Call(CallExpr {
-                  span: DUMMY_SP,
-                  callee: Ident::new(runtime_globals::ENSURE_CHUNK.into(), DUMMY_SP).as_callee(),
-                  args: vec![Expr::Lit(Lit::Str(chunk_id.to_string().into())).as_arg()],
-                  type_args: None,
-                })
-                .as_arg(),
-              )
-            })
-            .collect::<Vec<Option<ExprOrSpread>>>(),
-        })
-        .as_arg()],
-        type_args: None,
-      })),
-      prop: MemberProp::Ident(Ident::new("then".into(), DUMMY_SP)),
-    }
-    .as_callee()
-  }
-
   fn rewrite_static_import(&mut self, n: &mut CallExpr) -> Option<()> {
     if is_require_literal_expr(n, &self.unresolved_ctxt) {
       if let Callee::Expr(box Expr::Ident(_ident)) = &mut n.callee {
@@ -196,25 +145,6 @@ impl<'a> RspackModuleFormatTransformer<'a> {
 
         let js_module = self.compilation.module_graph.module_by_dependency(&dep)?;
         let js_module_id = js_module.id(&self.compilation.chunk_graph);
-        let args = vec![Expr::Call(CallExpr {
-          span: DUMMY_SP,
-          callee: MemberExpr {
-            span: DUMMY_SP,
-            obj: Box::new(Expr::Ident(Ident::new(
-              runtime_globals::REQUIRE.into(),
-              DUMMY_SP,
-            ))),
-            prop: MemberProp::Ident(Ident::new("bind".into(), DUMMY_SP)),
-          }
-          .as_callee(),
-          args: vec![
-            Ident::new(runtime_globals::REQUIRE.into(), DUMMY_SP).as_arg(),
-            // Ident::new(RSPACK_REQUIRE.into(), DUMMY_SP),
-            Lit::Str(js_module_id.into()).as_arg(),
-          ],
-          type_args: None,
-        })
-        .as_arg()];
 
         let mut chunk_ids = {
           let chunk_group_ukey = self.compilation.chunk_graph.get_module_chunk_group(
@@ -237,17 +167,121 @@ impl<'a> RspackModuleFormatTransformer<'a> {
         };
         chunk_ids.sort();
 
-        n.callee = self.get_rspack_dynamic_import_callee(chunk_ids);
-        // n.callee = if self.compilation.options.chunk_loading.is_jsonp() {
-        // n.callee = if true {
-        //   cjs_runtime_helper!(jsonp, rs.dynamic_require)
-        // } else if false {
-        //   // } else if self.compilation.options.platform == Platform::Node {
-        //   cjs_runtime_helper!(dynamic_node, rs.dynamic_require)
-        // } else {
-        //   cjs_runtime_helper!(dynamic_browser, rs.dynamic_require)
-        // };
-        n.args = args;
+        if chunk_ids.len() == 1 {
+          n.callee = MemberExpr {
+            span: DUMMY_SP,
+            obj: Box::new(Expr::Call(CallExpr {
+              span: DUMMY_SP,
+              callee: MemberExpr {
+                span: DUMMY_SP,
+                obj: Box::new(Expr::Call(CallExpr {
+                  span: DUMMY_SP,
+                  callee: Ident::new(runtime_globals::ENSURE_CHUNK.into(), DUMMY_SP).as_callee(),
+                  args: vec![Expr::Lit(Lit::Str(chunk_ids.first()?.to_string().into())).as_arg()],
+                  type_args: None,
+                })),
+                prop: MemberProp::Ident(Ident::new("then".into(), DUMMY_SP)),
+              }
+              .as_callee(),
+              args: vec![CallExpr {
+                span: DUMMY_SP,
+                callee: MemberExpr {
+                  span: DUMMY_SP,
+                  obj: Box::new(Expr::Ident(Ident::new(
+                    runtime_globals::REQUIRE.into(),
+                    DUMMY_SP,
+                  ))),
+                  prop: MemberProp::Ident(Ident::new("bind".into(), DUMMY_SP)),
+                }
+                .as_callee(),
+                args: vec![
+                  Ident::new(runtime_globals::REQUIRE.into(), DUMMY_SP).as_arg(),
+                  Lit::Str(js_module_id.into()).as_arg(),
+                ],
+                type_args: None,
+              }
+              .as_arg()],
+              type_args: None,
+            })),
+            prop: MemberProp::Ident(Ident::new("then".into(), DUMMY_SP)),
+          }
+          .as_callee();
+          n.args = vec![MemberExpr {
+            span: DUMMY_SP,
+            obj: Box::new(Expr::Ident(Ident::new(
+              runtime_globals::REQUIRE.into(),
+              DUMMY_SP,
+            ))),
+            prop: MemberProp::Ident(Ident::new("interopRequire".into(), DUMMY_SP)),
+          }
+          .as_arg()];
+        } else {
+          n.callee = quote_ident!("Promise.all").as_callee();
+          n.args = vec![Expr::Array(ArrayLit {
+            span: DUMMY_SP,
+            elems: chunk_ids
+              .iter()
+              .map(|chunk_id| {
+                Some(
+                  Expr::Call(CallExpr {
+                    span: DUMMY_SP,
+                    callee: MemberExpr {
+                      span: DUMMY_SP,
+                      obj: Box::new(Expr::Call(CallExpr {
+                        span: DUMMY_SP,
+                        callee: MemberExpr {
+                          span: DUMMY_SP,
+                          obj: Box::new(Expr::Call(CallExpr {
+                            span: DUMMY_SP,
+                            callee: Ident::new(runtime_globals::ENSURE_CHUNK.into(), DUMMY_SP)
+                              .as_callee(),
+                            args: vec![Expr::Lit(Lit::Str(chunk_id.to_string().into())).as_arg()],
+                            type_args: None,
+                          })),
+                          prop: MemberProp::Ident(Ident::new("then".into(), DUMMY_SP)),
+                        }
+                        .as_callee(),
+                        args: vec![CallExpr {
+                          span: DUMMY_SP,
+                          callee: MemberExpr {
+                            span: DUMMY_SP,
+                            obj: Box::new(Expr::Ident(Ident::new(
+                              runtime_globals::REQUIRE.into(),
+                              DUMMY_SP,
+                            ))),
+                            prop: MemberProp::Ident(Ident::new("bind".into(), DUMMY_SP)),
+                          }
+                          .as_callee(),
+                          args: vec![
+                            Ident::new(runtime_globals::REQUIRE.into(), DUMMY_SP).as_arg(),
+                            Lit::Str(js_module_id.into()).as_arg(),
+                          ],
+                          type_args: None,
+                        }
+                        .as_arg()],
+                        type_args: None,
+                      })),
+                      prop: MemberProp::Ident(Ident::new("then".into(), DUMMY_SP)),
+                    }
+                    .as_callee(),
+                    args: vec![MemberExpr {
+                      span: DUMMY_SP,
+                      obj: Box::new(Expr::Ident(Ident::new(
+                        runtime_globals::REQUIRE.into(),
+                        DUMMY_SP,
+                      ))),
+                      prop: MemberProp::Ident(Ident::new("interopRequire".into(), DUMMY_SP)),
+                    }
+                    .as_arg()],
+                    type_args: None,
+                  })
+                  .as_arg(),
+                )
+              })
+              .collect::<Vec<Option<ExprOrSpread>>>(),
+          })
+          .as_arg()];
+        };
       };
     }
     Some(())

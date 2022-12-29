@@ -1,4 +1,5 @@
 use super::module_variables::WEBPACK_PUBLIC_PATH;
+use crate::utils::is_dynamic_import_literal_expr;
 use crate::visitors::module_variables::WEBPACK_HASH;
 use hashbrown::HashSet;
 use rspack_core::runtime_globals;
@@ -46,6 +47,12 @@ impl<'a> VisitMut for InjectRuntimeHelper<'a> {
 
   fn visit_mut_call_expr(&mut self, n: &mut CallExpr) {
     n.visit_mut_children_with(self);
+    // dynamic import is used `interopRequire` runtime
+    if is_dynamic_import_literal_expr(n) {
+      self
+        .runtime_requirements
+        .insert(runtime_globals::INTEROP_REQUIRE.to_string());
+    }
     if let Some(box Expr::Ident(ident)) = n.callee.as_expr() {
       // must have helper mark
       if !ident.span.has_mark(self.helper_mark) {
@@ -60,7 +67,6 @@ impl<'a> VisitMut for InjectRuntimeHelper<'a> {
         self
           .runtime_requirements
           .insert(runtime_globals::INTEROP_REQUIRE.to_string());
-        // TODO try with ast.parse(r#"self["__rspack_runtime__"].interopRequire"#)
         n.callee = MemberExpr {
           span: DUMMY_SP,
           obj: Box::new(Expr::Ident(Ident::new(
