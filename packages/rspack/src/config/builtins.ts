@@ -63,8 +63,7 @@ function resolveDecorator(
 	return Object.assign(
 		{
 			legacy: true,
-			emitMetadata: true,
-			useDefineForClassFields: true
+			emitMetadata: true
 		},
 		decorator
 	);
