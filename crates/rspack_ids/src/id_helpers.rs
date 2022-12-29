@@ -1,6 +1,5 @@
 use rspack_core::{
-  module, BoxModule, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation, ModuleGraph,
-  ModuleIdentifier,
+  BoxModule, Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleGraph, ModuleIdentifier,
 };
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
@@ -305,7 +304,7 @@ pub fn get_long_chunk_name(
 
   let short_module_names = modules
     .iter()
-    .map(|m| request_to_id(&&get_short_module_name(m, context)))
+    .map(|m| request_to_id(&get_short_module_name(m, context)))
     .collect::<Vec<_>>();
 
   let long_module_names = modules
@@ -325,8 +324,8 @@ pub fn get_long_chunk_name(
 }
 
 fn request_to_id(request: &str) -> String {
-  let regex1 = regex::Regex::new(r"^(\.\.?\\/)+").unwrap();
-  let regex2 = regex::Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").unwrap();
+  let regex1 = regex::Regex::new(r"^(\.\.?\\/)+").expect("Invalid regex");
+  let regex2 = regex::Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("Invalid regex");
 
   regex2
     .replace_all(&regex1.replace(request, ""), "_")

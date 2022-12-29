@@ -107,7 +107,9 @@ pub fn find_module_graph_roots(
   let mut queue = modules.into_iter().collect::<Vec<_>>();
   let mut visited = HashSet::new();
   while let Some(module) = queue.pop() {
-    let module = module_graph.module_by_identifier(&module).unwrap();
+    let module = module_graph
+      .module_by_identifier(&module)
+      .expect("module not found");
     if visited.contains(&module.identifier()) {
       continue;
     } else {
@@ -120,7 +122,7 @@ pub fn find_module_graph_roots(
       } else {
         graph.add_node(&connection.module_identifier);
       }
-      queue.push(connection.module_identifier.clone());
+      queue.push(connection.module_identifier);
     }
   }
 
@@ -134,7 +136,7 @@ pub fn find_module_graph_roots(
         == 0
     })
     .for_each(|from| {
-      roots.push(from.clone());
+      roots.push(*from);
     });
   roots
 }
