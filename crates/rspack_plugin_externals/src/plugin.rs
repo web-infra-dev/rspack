@@ -39,7 +39,7 @@ impl Plugin for ExternalPlugin {
               target.to_owned(),
               args.dependency.detail.specifier.clone(),
             );
-            return Ok(Some((specifier.to_owned(), external_module.boxed())));
+            return Ok(Some(external_module.boxed()));
           }
         }
         _ => {

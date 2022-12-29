@@ -129,46 +129,46 @@ impl Identifiable for Box<dyn Module> {
 #[async_trait::async_trait]
 impl Module for Box<dyn Module> {
   fn module_type(&self) -> &ModuleType {
-    self.as_ref().module_type()
+    (**self).module_type()
   }
 
   fn source_types(&self) -> &[SourceType] {
-    self.as_ref().source_types()
+    (**self).source_types()
   }
 
   fn original_source(&self) -> Option<&dyn Source> {
-    self.as_ref().original_source()
+    (**self).original_source()
   }
 
   fn readable_identifier(&self, context: &Context) -> Cow<str> {
-    self.as_ref().readable_identifier(context)
+    (**self).readable_identifier(context)
   }
 
   fn size(&self, source_type: &SourceType) -> f64 {
-    self.as_ref().size(source_type)
+    (**self).size(source_type)
   }
 
   async fn build(
     &mut self,
     build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>> {
-    self.as_mut().build(build_context).await
+    (**self).build(build_context).await
   }
 
   fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
-    self.as_ref().code_generation(compilation)
+    (**self).code_generation(compilation)
   }
 
   fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<str>> {
-    self.as_ref().lib_ident(options)
+    (**self).lib_ident(options)
   }
 
   fn get_code_generation_dependencies(&self) -> Option<&[Dependency]> {
-    self.as_ref().get_code_generation_dependencies()
+    (**self).get_code_generation_dependencies()
   }
 
   fn get_resolve_options(&self) -> Option<&Resolve> {
-    self.as_ref().get_resolve_options()
+    (**self).get_resolve_options()
   }
 }
 

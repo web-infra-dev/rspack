@@ -22,6 +22,8 @@ mod fast_set;
 pub use fast_set::*;
 
 use crate::{ModuleGraph, ModuleIdentifier};
+mod queue;
+pub use queue::*;
 
 pub fn uri_to_chunk_name(root: &str, uri: &str) -> String {
   let path = Path::new(uri);
