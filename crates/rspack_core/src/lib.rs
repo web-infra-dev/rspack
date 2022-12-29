@@ -20,8 +20,6 @@ pub use module::*;
 pub use parser_and_generator::*;
 pub mod runtime_globals;
 pub use normal_module::*;
-mod queue;
-pub use queue::*;
 mod plugin;
 pub use plugin::*;
 mod normal_module_factory;
