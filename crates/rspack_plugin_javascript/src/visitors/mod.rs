@@ -38,8 +38,7 @@ pub fn run_before_pass(
 ) -> Result<()> {
   let cm = ast.get_context().source_map.clone();
   // TODO: should use react-loader to get exclude/include
-  let out_of_node_modules = !resource_data.resource.contains("node_modules");
-  let should_transform_by_react = out_of_node_modules && module_type.is_jsx_like();
+  let should_transform_by_react = module_type.is_jsx_like();
   ast.transform_with_handler(cm.clone(), |handler, program, context| {
     let top_level_mark = context.top_level_mark;
     let unresolved_mark = context.unresolved_mark;
