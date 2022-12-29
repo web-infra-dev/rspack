@@ -52,7 +52,6 @@ exports[`normalize options snapshot react.development and react.refresh should b
     "decorator": {
       "emitMetadata": true,
       "legacy": true,
-      "useDefineForClassFields": true,
     },
     "define": {},
     "html": [],

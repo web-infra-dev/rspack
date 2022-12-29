@@ -23,8 +23,6 @@ pub struct DecoratorOptions {
   pub legacy: bool,
   // https://swc.rs/docs/configuration/compilation#jsctransformdecoratormetadata
   pub emit_metadata: bool,
-  // https://babeljs.io/docs/en/assumptions#setpublicclassfields
-  pub use_define_for_class_fields: bool,
 }
 
 #[derive(Debug, Clone, Default)]

@@ -78,7 +78,6 @@ describe("snapshots", () => {
 		    "decorator": {
 		      "emitMetadata": true,
 		      "legacy": true,
-		      "useDefineForClassFields": true,
 		    },
 		    "define": {},
 		    "html": [],

@@ -14,6 +14,7 @@ mod module_variables;
 use module_variables::*;
 use rspack_core::{BuildInfo, Module, ModuleType};
 use swc_core::common::pass::Repeat;
+use swc_core::ecma::transforms::base::Assumptions;
 use swc_core::ecma::transforms::optimization::simplify::dce::{dce, Config};
 mod swc_visitor;
 mod tree_shaking;
@@ -43,6 +44,13 @@ pub fn run_before_pass(
     let top_level_mark = context.top_level_mark;
     let unresolved_mark = context.unresolved_mark;
     let comments = None;
+
+    let mut assumptions = Assumptions::default();
+    if syntax.typescript() {
+      assumptions.set_class_methods = true;
+      assumptions.set_public_class_fields = true;
+    }
+
     let mut pass = chain!(
       swc_visitor::resolver(unresolved_mark, top_level_mark, syntax.typescript()),
       //      swc_visitor::lint(
@@ -53,12 +61,12 @@ pub fn run_before_pass(
       //        &cm
       //      ),
       Optional::new(
-        swc_visitor::decorator(&options.builtins.decorator),
+        swc_visitor::decorator(assumptions, &options.builtins.decorator),
         syntax.decorators()
       ),
       //    swc_visitor::import_assertions(),
       Optional::new(
-        swc_visitor::typescript(top_level_mark, comments, &cm),
+        swc_visitor::typescript(assumptions, top_level_mark, comments, &cm),
         syntax.typescript()
       ),
       Optional::new(
@@ -98,6 +106,7 @@ pub fn run_before_pass(
           None
         },
         options.target.es_version,
+        assumptions,
         top_level_mark,
         unresolved_mark,
         comments,

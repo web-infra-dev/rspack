@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use swc_core::common::{comments::SingleThreadedComments, Mark, SourceMap};
+use swc_core::ecma::transforms::base::Assumptions;
 use swc_core::ecma::transforms::{
   react::{default_pragma, default_pragma_frag},
   typescript::{self, TsEnumConfig, TsImportExportAssignConfig},
@@ -7,6 +8,7 @@ use swc_core::ecma::transforms::{
 use swc_core::ecma::visit::Fold;
 
 pub fn typescript<'a>(
+  assumptions: Assumptions,
   top_level_mark: Mark,
   comments: Option<&'a SingleThreadedComments>,
   cm: &Arc<SourceMap>,
@@ -28,9 +30,9 @@ pub fn typescript<'a>(
       pragma_frag: Some(default_pragma_frag()),
       ts_enum_config: TsEnumConfig {
         treat_const_enum_as_enum: false,
-        ts_enum_is_readonly: false,
+        ts_enum_is_readonly: assumptions.ts_enum_is_readonly,
       },
-      use_define_for_class_fields: true,
+      use_define_for_class_fields: !assumptions.set_public_class_fields,
       import_export_assign_config: TsImportExportAssignConfig::Classic,
       ..Default::default()
     },

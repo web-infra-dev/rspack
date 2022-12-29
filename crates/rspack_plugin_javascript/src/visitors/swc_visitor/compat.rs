@@ -140,17 +140,12 @@ fn compat_by_es_version(
 pub fn compat(
   browser_config: Option<BrowserConfig>,
   es_version: Option<EsVersion>,
+  assumptions: Assumptions,
   top_level_mark: Mark,
   unresolved_mark: Mark,
   comments: Option<&SingleThreadedComments>,
   is_typescript: bool,
 ) -> impl Fold + '_ {
-  let mut assumptions = Assumptions::default();
-  if is_typescript {
-    assumptions.set_class_methods = true;
-    assumptions.set_public_class_fields = true;
-  };
-
   chain!(
     compat_by_browser_list(browser_config, top_level_mark, assumptions, comments),
     compat_by_es_version(
