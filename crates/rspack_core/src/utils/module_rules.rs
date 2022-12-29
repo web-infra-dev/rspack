@@ -7,7 +7,7 @@ use crate::{ModuleRule, ModuleRuleCondition};
 fn module_rule_matcher_condition(condition: &ModuleRuleCondition, data: &str) -> bool {
   match condition {
     ModuleRuleCondition::String(s) => data.starts_with(s),
-    ModuleRuleCondition::Regexp(r) => r.test(data),
+    ModuleRuleCondition::Regexp(r) => r.test(&data),
   }
 }
 
@@ -35,29 +35,30 @@ pub fn module_rule_matcher(module_rule: &ModuleRule, resource_data: &ResourceDat
   // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
   // See: https://webpack.js.org/configuration/module/#ruletest
   if let Some(test_rule) = &module_rule.test {
-    if !module_rule_matcher_condition(test_rule, &resource_data.resource_path) {
+    if !module_rule_matcher_condition(test_rule, &resource_data.resource_path.to_string_lossy()) {
       return Ok(false);
     }
   } else if let Some(resource_rule) = &module_rule.resource {
-    if !module_rule_matcher_condition(resource_rule, &resource_data.resource_path) {
+    if !module_rule_matcher_condition(
+      resource_rule,
+      &resource_data.resource_path.to_string_lossy(),
+    ) {
       return Ok(false);
     }
   }
 
   if let Some(include_rule) = &module_rule.include {
-    if include_rule
-      .iter()
-      .all(|rule| !module_rule_matcher_condition(rule, &resource_data.resource_path))
-    {
+    if include_rule.iter().all(|rule| {
+      !module_rule_matcher_condition(rule, &resource_data.resource_path.to_string_lossy())
+    }) {
       return Ok(false);
     }
   }
 
   if let Some(exclude_rule) = &module_rule.exclude {
-    if exclude_rule
-      .iter()
-      .any(|rule| module_rule_matcher_condition(rule, &resource_data.resource_path))
-    {
+    if exclude_rule.iter().any(|rule| {
+      module_rule_matcher_condition(rule, &resource_data.resource_path.to_string_lossy())
+    }) {
       return Ok(false);
     }
   }

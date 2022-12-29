@@ -14,6 +14,7 @@ use std::{
   fmt::Debug,
   hash::{Hash, Hasher},
   marker::PhantomPinned,
+  path::PathBuf,
   pin::Pin,
   sync::atomic::{AtomicU32, Ordering},
   sync::Arc,
@@ -92,7 +93,12 @@ pub struct Compilation {
   // lazy compilation visit module
   pub lazy_visit_modules: std::collections::HashSet<String>,
   pub used_chunk_ids: HashSet<String>,
+
+  pub file_dependencies: HashSet<PathBuf>,
+  pub context_dependencies: HashSet<PathBuf>,
+  pub missing_dependencies: HashSet<PathBuf>,
 }
+
 impl Compilation {
   pub fn new(
     options: Arc<CompilerOptions>,
@@ -135,8 +141,13 @@ impl Compilation {
       used_indirect_symbol: HashSet::default(),
       lazy_visit_modules: Default::default(),
       used_chunk_ids: Default::default(),
+
+      file_dependencies: Default::default(),
+      context_dependencies: Default::default(),
+      missing_dependencies: Default::default(),
     }
   }
+
   pub fn add_entry(&mut self, name: String, detail: EntryItem) {
     self.entries.insert(name, detail);
   }
@@ -425,15 +436,19 @@ impl Compilation {
                 is_entry,
                 original_module_identifier,
                 dependencies,
-                module,
+                factory_result,
                 module_graph_module,
               } = task_result;
 
-              tracing::trace!("Module created: {}", module.identifier());
+              tracing::trace!("Module created: {}", factory_result.module.identifier());
+
+              self
+                .file_dependencies
+                .extend(factory_result.file_dependencies);
 
               add_queue.add_task(AddTask {
                 original_module_identifier,
-                module,
+                module: factory_result.module,
                 module_graph_module,
                 dependencies,
                 is_entry,

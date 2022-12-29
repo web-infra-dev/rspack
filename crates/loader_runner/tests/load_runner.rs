@@ -35,7 +35,7 @@ macro_rules! run_loader {
     LoaderRunner::new(
       ResourceData {
         resource: resource.to_owned(),
-        resource_path: url.path().to_owned(),
+        resource_path: url.to_file_path().unwrap(),
         resource_query: url.query().map(|q| q.to_owned()),
         resource_fragment: url.fragment().map(|f| f.to_owned()),
       },

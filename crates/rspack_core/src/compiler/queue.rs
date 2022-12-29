@@ -4,9 +4,9 @@ use rspack_error::{internal_error, Diagnostic, Error, Result};
 
 use crate::{
   cache::Cache, module_rule_matcher, BuildContext, BuildResult, Compilation, CompilerOptions,
-  Dependency, LoaderRunnerRunner, Module, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
-  ModuleRule, ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve,
-  SharedPluginDriver, WorkerQueue,
+  Dependency, FactorizeResult, LoaderRunnerRunner, Module, ModuleGraph, ModuleGraphModule,
+  ModuleIdentifier, ModuleRule, ModuleType, NormalModuleFactory, NormalModuleFactoryContext,
+  Resolve, SharedPluginDriver, WorkerQueue,
 };
 
 #[derive(Debug)]
@@ -40,7 +40,7 @@ pub struct FactorizeTask {
 #[derive(Debug)]
 pub struct FactorizeTaskResult {
   pub original_module_identifier: Option<ModuleIdentifier>,
-  pub module: Box<dyn Module>,
+  pub factory_result: FactorizeResult,
   pub module_graph_module: Box<ModuleGraphModule>,
   pub dependencies: Vec<Dependency>,
   pub is_entry: bool,
@@ -62,15 +62,15 @@ impl WorkerTask for FactorizeTask {
       self.cache,
     );
 
-    let (module, context) = factory.create(self.resolve_options).await?;
+    let (result, context) = factory.create(self.resolve_options).await?;
     let mut mgm = ModuleGraphModule::new(
       context.module_name.clone(),
-      module.identifier(),
+      result.module.identifier(),
       vec![],
       context.module_type.ok_or_else(|| {
         Error::InternalError(internal_error!(format!(
           "Unable to get the module type for module {}, did you forget to configure `Rule.type`? ",
-          module.identifier()
+          result.module.identifier()
         )))
       })?,
       !context.options.builtins.side_effects,
@@ -81,7 +81,7 @@ impl WorkerTask for FactorizeTask {
     Ok(TaskResult::Factorize(FactorizeTaskResult {
       is_entry: self.is_entry,
       original_module_identifier: self.original_module_identifier,
-      module,
+      factory_result: result,
       module_graph_module: Box::new(mgm),
       dependencies: self.dependencies,
     }))

@@ -1,7 +1,10 @@
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_sources::SourceMap;
 
-use std::fmt::Debug;
+use std::{
+  fmt::Debug,
+  path::{Path, PathBuf},
+};
 
 use crate::{Content, LoaderRunnerPlugin};
 
@@ -10,7 +13,7 @@ type Source = Content;
 #[derive(Debug, Clone)]
 pub struct ResourceData {
   pub resource: String,
-  pub resource_path: String,
+  pub resource_path: PathBuf,
   pub resource_query: Option<String>,
   pub resource_fragment: Option<String>,
 }
@@ -25,7 +28,7 @@ pub struct LoaderContext<'a, 'context, T, U> {
   /// The resource part of the request.
   ///
   /// E.g. /abc/resource.js
-  pub resource_path: &'a str,
+  pub resource_path: &'a Path,
   /// The query of the request
   ///
   /// E.g. query=1

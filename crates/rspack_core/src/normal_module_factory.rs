@@ -3,6 +3,7 @@ use std::{
   sync::Arc,
 };
 
+use hashbrown::HashSet;
 use swc_core::common::Span;
 
 use rspack_error::{internal_error, Error, Result};
@@ -33,7 +34,54 @@ pub enum ResolveKind {
   ModuleHotAccept,
 }
 
-pub type FactorizeResult = BoxModule;
+#[derive(Debug)]
+pub struct FactorizeResult {
+  pub module: BoxModule,
+  pub file_dependencies: HashSet<PathBuf>,
+  pub context_dependencies: HashSet<PathBuf>,
+  pub missing_dependencies: HashSet<PathBuf>,
+}
+
+impl FactorizeResult {
+  pub fn new(module: BoxModule) -> Self {
+    Self {
+      module,
+      file_dependencies: Default::default(),
+      context_dependencies: Default::default(),
+      missing_dependencies: Default::default(),
+    }
+  }
+
+  pub fn with_file_dependency(mut self, file: PathBuf) -> Self {
+    self.file_dependencies.insert(file);
+    self
+  }
+
+  pub fn with_file_dependencies(mut self, files: impl IntoIterator<Item = PathBuf>) -> Self {
+    self.file_dependencies.extend(files);
+    self
+  }
+
+  pub fn with_context_dependency(mut self, context: PathBuf) -> Self {
+    self.context_dependencies.insert(context);
+    self
+  }
+
+  pub fn with_context_dependencies(mut self, contexts: impl IntoIterator<Item = PathBuf>) -> Self {
+    self.context_dependencies.extend(contexts);
+    self
+  }
+
+  pub fn with_missing_dependency(mut self, missing: PathBuf) -> Self {
+    self.missing_dependencies.insert(missing);
+    self
+  }
+
+  pub fn with_missing_dependencies(mut self, missings: impl IntoIterator<Item = PathBuf>) -> Self {
+    self.missing_dependencies.extend(missings);
+    self
+  }
+}
 
 #[derive(Debug)]
 pub struct NormalModuleFactory {
@@ -57,8 +105,9 @@ impl NormalModuleFactory {
       cache,
     }
   }
-  #[instrument(name = "normal_module_factory:create", skip_all)]
+
   /// set `is_entry` true if you are trying to create a new module factory with a module identifier which is an entry
+  #[instrument(name = "normal_module_factory:create", skip_all)]
   pub async fn create(
     mut self,
     resolve_options: Option<Resolve>,
@@ -78,7 +127,7 @@ impl NormalModuleFactory {
   pub async fn factorize_normal_module(
     &mut self,
     resolve_options: Option<Resolve>,
-  ) -> Result<Option<BoxModule>> {
+  ) -> Result<Option<FactorizeResult>> {
     // TODO: `importer` should use `NormalModule::context || options.context`;
     let importer = self.dependency.parent_module_identifier.as_deref();
     let specifier = self.dependency.detail.specifier.as_str();
@@ -104,7 +153,7 @@ impl NormalModuleFactory {
         let uri = info.join();
         ResourceData {
           resource: uri,
-          resource_path: info.path.to_string_lossy().to_string(),
+          resource_path: info.path,
           resource_query: (!info.query.is_empty()).then_some(info.query),
           resource_fragment: (!info.fragment.is_empty()).then_some(info.fragment),
         }
@@ -135,7 +184,7 @@ impl NormalModuleFactory {
 
         self.context.module_type = Some(*raw_module.module_type());
 
-        return Ok(Some(raw_module));
+        return Ok(Some(FactorizeResult::new(raw_module)));
       }
     };
 
@@ -169,6 +218,8 @@ impl NormalModuleFactory {
 
     self.context.module_type = Some(resolved_module_type);
 
+    let file_dependency = resource_data.resource_path.clone();
+
     let normal_module = NormalModule::new(
       uri.clone(),
       uri.clone(),
@@ -180,7 +231,7 @@ impl NormalModuleFactory {
       self.context.options.clone(),
     );
 
-    if let Some(module) = self
+    let module = if let Some(module) = self
       .plugin_driver
       .read()
       .await
@@ -191,10 +242,14 @@ impl NormalModuleFactory {
       })
       .await?
     {
-      return Ok(Some(module));
-    }
+      module
+    } else {
+      Box::new(normal_module)
+    };
 
-    Ok(Some(Box::new(normal_module)))
+    Ok(Some(
+      FactorizeResult::new(module).with_file_dependency(file_dependency),
+    ))
   }
 
   fn calculate_module_rules(&self, resource_data: &ResourceData) -> Result<Vec<&ModuleRule>> {
@@ -266,9 +321,9 @@ impl NormalModuleFactory {
       )
       .await?;
 
-    if let Some(module) = result {
-      self.context.module_type = Some(*module.module_type());
-      return Ok(module);
+    if let Some(result) = result {
+      self.context.module_type = Some(*result.module.module_type());
+      return Ok(result);
     }
 
     if let Some(result) = self.factorize_normal_module(resolve_options).await? {

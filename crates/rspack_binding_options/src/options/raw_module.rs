@@ -301,7 +301,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
         .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?
         .map(|v| v.into_bytes().into()),
       resource: loader_context.resource.to_owned(),
-      resource_path: loader_context.resource_path.to_owned(),
+      resource_path: loader_context.resource_path.to_string_lossy().to_string(),
       resource_fragment: loader_context.resource_fragment.map(|r| r.to_owned()),
       resource_query: loader_context.resource_query.map(|r| r.to_owned()),
       cacheable: loader_context.cacheable,

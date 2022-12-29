@@ -12,18 +12,21 @@ use swc_core::ecma::atoms::js_word;
 use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::parser::{EsConfig, TsConfig};
 
-fn syntax_by_ext(filename: &str, enable_decorators: bool) -> Syntax {
-  let ext = Path::new(filename)
+fn syntax_by_ext(filename: &Path, enable_decorators: bool) -> Syntax {
+  let ext = filename
     .extension()
     .and_then(|ext| ext.to_str())
     .unwrap_or("js");
   match ext == "ts" || ext == "tsx" {
-    true => Syntax::Typescript(TsConfig {
-      decorators: enable_decorators,
-      tsx: ext == "tsx",
-      dts: filename.ends_with(".d.ts") || filename.ends_with(".d.tsx"),
-      ..Default::default()
-    }),
+    true => {
+      let filename = filename.to_string_lossy();
+      Syntax::Typescript(TsConfig {
+        decorators: enable_decorators,
+        tsx: ext == "tsx",
+        dts: filename.ends_with(".d.ts") || filename.ends_with(".d.tsx"),
+        ..Default::default()
+      })
+    }
     false => Syntax::Es(EsConfig {
       import_assertions: true,
       jsx: ext == "jsx",
@@ -38,7 +41,7 @@ fn syntax_by_ext(filename: &str, enable_decorators: bool) -> Syntax {
 }
 
 pub fn syntax_by_module_type(
-  filename: &str,
+  filename: &Path,
   module_type: &ModuleType,
   enable_decorators: bool,
 ) -> Syntax {
@@ -53,12 +56,15 @@ pub fn syntax_by_module_type(
       allow_super_outside_method: true,
       ..Default::default()
     }),
-    ModuleType::Ts | ModuleType::Tsx => Syntax::Typescript(TsConfig {
-      decorators: enable_decorators,
-      tsx: matches!(module_type, ModuleType::Tsx),
-      dts: filename.ends_with(".d.ts") || filename.ends_with(".d.tsx"),
-      ..Default::default()
-    }),
+    ModuleType::Ts | ModuleType::Tsx => {
+      let filename = filename.to_string_lossy();
+      Syntax::Typescript(TsConfig {
+        decorators: enable_decorators,
+        tsx: matches!(module_type, ModuleType::Tsx),
+        dts: filename.ends_with(".d.ts") || filename.ends_with(".d.tsx"),
+        ..Default::default()
+      })
+    }
     _ => syntax_by_ext(filename, enable_decorators),
   }
 }

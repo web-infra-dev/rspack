@@ -39,7 +39,7 @@ impl BuildModuleOccasion {
     };
 
     let mut need_cache = false;
-    let id: String = module.identifier().to_owned();
+    let id = module.identifier().to_owned();
     if module.as_normal_module().is_some() {
       // normal module
       // TODO cache all module type
@@ -59,8 +59,13 @@ impl BuildModuleOccasion {
     // run generator and save to cache
     let data = generator(module).await?;
     if need_cache && data.inner.cacheable {
-      let mut paths = data.inner.build_dependencies.clone();
-      paths.push(id.clone());
+      let mut paths: Vec<&str> = data
+        .inner
+        .build_dependencies
+        .iter()
+        .map(|i| i.as_str())
+        .collect();
+      paths.push(&id);
 
       let snapshot = self
         .snapshot_manager

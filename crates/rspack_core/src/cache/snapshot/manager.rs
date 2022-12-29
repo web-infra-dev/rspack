@@ -28,7 +28,7 @@ impl SnapshotManager {
     }
   }
 
-  pub async fn create_snapshot<F>(&self, file_paths: Vec<String>, f: F) -> Result<Snapshot>
+  pub async fn create_snapshot<F>(&self, file_paths: Vec<&str>, f: F) -> Result<Snapshot>
   where
     F: FnOnce(&SnapshotOptions) -> &SnapshotStrategy,
   {
@@ -37,22 +37,22 @@ impl SnapshotManager {
     let mut file_update_times = HashMap::with_capacity(file_paths.len());
     let mut file_hashs = HashMap::with_capacity(file_paths.len());
     if strategy.timestamp {
-      for path in &file_paths {
-        file_update_times.insert(path.clone(), SystemTime::now());
+      for &path in &file_paths {
+        file_update_times.insert(path.to_owned(), SystemTime::now());
       }
     }
     if strategy.hash {
       let hash_cache = &self.hash_cache;
-      for path in &file_paths {
+      for &path in &file_paths {
         let hash = match hash_cache.get(path) {
           Some(hash) => *hash,
           None => {
             let res = calc_hash(&tokio::fs::read(path).await?);
-            hash_cache.insert(path.clone(), res);
+            hash_cache.insert(path.to_owned(), res);
             res
           }
         };
-        file_hashs.insert(path.clone(), hash);
+        file_hashs.insert(path.to_owned(), hash);
       }
     }
 
