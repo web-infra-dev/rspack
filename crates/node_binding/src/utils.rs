@@ -80,7 +80,15 @@ pub fn init_custom_trace_subscriber(
   // trace_out_file_path: Option<String>,
 ) -> Result<()> {
   CUSTOM_TRACE_SUBSCRIBER.get_or_init(|| {
-    let guard = rspack_tracing::enable_tracing_by_env_with_chrome_layer();
+    let layer = std::env::var("layer").unwrap_or("logger".to_string());
+    let guard = match layer.as_str() {
+      "chrome" => rspack_tracing::enable_tracing_by_env_with_chrome_layer(),
+      "logger" => {
+        rspack_tracing::enable_tracing_by_env();
+        None
+      }
+      _ => panic!("not supported layer type:{}", layer),
+    };
     if let Some(guard) = guard {
       env
         .add_env_cleanup_hook(guard, |flush_guard| {
