@@ -177,14 +177,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
                 obj: Box::new(Expr::Call(CallExpr {
                   span: DUMMY_SP,
                   callee: Ident::new(runtime_globals::ENSURE_CHUNK.into(), DUMMY_SP).as_callee(),
-                  args: vec![Expr::Lit(Lit::Str(
-                    chunk_ids
-                      .first()
-                      .expect("should have a chunk")
-                      .to_string()
-                      .into(),
-                  ))
-                  .as_arg()],
+                  args: vec![Expr::Lit(Lit::Str(chunk_ids.first()?.to_string().into())).as_arg()],
                   type_args: None,
                 })),
                 prop: MemberProp::Ident(Ident::new("then".into(), DUMMY_SP)),
@@ -213,7 +206,6 @@ impl<'a> RspackModuleFormatTransformer<'a> {
             prop: MemberProp::Ident(Ident::new("then".into(), DUMMY_SP)),
           }
           .as_callee();
-
           n.args = vec![MemberExpr {
             span: DUMMY_SP,
             obj: Box::new(Expr::Ident(Ident::new(

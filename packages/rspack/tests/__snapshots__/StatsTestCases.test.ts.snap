@@ -47,7 +47,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "main.xxxx.js",
-      "size": 717,
+      "size": 1321,
       "type": "asset",
     },
     {
@@ -100,10 +100,10 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "assets": [
         {
           "name": "main.xxxx.js",
-          "size": 717,
+          "size": 1321,
         },
       ],
-      "assetsSize": 717,
+      "assetsSize": 1321,
       "chunks": [
         "main",
       ],
@@ -112,7 +112,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "45e1de4c436a8814",
+  "hash": "43657cde39b00269",
   "modules": [
     {
       "chunks": [
@@ -164,9 +164,9 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for filename 2`] = `
-"Hash: 45e1de4c436a8814
+"Hash: 43657cde39b00269
              Asset       Size      Chunks             Chunk Names
-      main.xxxx.js  717 bytes        main  [emitted]  main
+      main.xxxx.js   1.29 KiB        main  [emitted]  main
 dynamic_js.xxxx.js  218 bytes  dynamic_js  [emitted]  dynamic_js
 Entrypoint main = main.xxxx.js
 chunk {dynamic_js} dynamic_js.xxxx.js (dynamic_js) 32 bytes
