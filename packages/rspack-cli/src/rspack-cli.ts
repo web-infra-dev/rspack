@@ -104,7 +104,7 @@ export class RspackCLI {
 		}
 		item.builtins = {
 			...item.builtins,
-			minify: item.builtins?.minify ?? isEnvProduction
+			minify: item.builtins?.minify ?? item.mode === "production"
 		};
 
 		// no emit assets when run dev server, it will use node_binding api get file content
