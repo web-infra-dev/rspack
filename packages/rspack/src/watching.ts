@@ -3,17 +3,19 @@ import type { FSWatcher } from "chokidar";
 import { Stats } from ".";
 
 class Watching {
-	wather: FSWatcher;
+	watcher: FSWatcher;
+	compiler: Compiler;
+
 	constructor(
 		compiler: Compiler,
 		watcher: FSWatcher,
 		handler?: (error?: Error, stats?: Stats) => void
 	) {
-		this.wather = watcher;
+		this.watcher = watcher;
+		this.compiler = compiler;
 
-		const begin = Date.now();
-
-		watcher.on("ready", () => {
+		const build = () => {
+			const begin = Date.now();
 			compiler.build((error, rawStats) => {
 				if (error && handler) {
 					return handler(error);
@@ -28,7 +30,9 @@ class Watching {
 					console.log("build success, time cost", Date.now() - begin, "ms");
 				});
 			});
-		});
+		};
+
+		watcher.on("ready", build);
 
 		let pendingChangedFilepaths = new Set<string>();
 		let isBuildFinished = true;
@@ -79,12 +83,21 @@ class Watching {
 				});
 			};
 
-			rebuildWithFilepaths([...pendingChangedFilepaths, changedFilepath]);
+			if (compiler.options.devServer) {
+				rebuildWithFilepaths([...pendingChangedFilepaths, changedFilepath]);
+			} else {
+				build();
+			}
 		});
 	}
 
+	watch(paths: string[]) {
+		this.watcher.add(paths);
+	}
+
 	close(callback?: () => void) {
-		this.wather.close().then(callback);
+		this.compiler.watching = undefined;
+		this.watcher.close().then(callback);
 	}
 
 	invalidate() {}

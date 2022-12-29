@@ -35,7 +35,7 @@ class Compiler {
 	root: Compiler;
 	resolverFactory: ResolverFactory;
 	infrastructureLogger: any;
-	watcher: FSWatcher;
+	watching: Watching;
 	outputPath: string;
 	name: string;
 	inputFileSystem: any;
@@ -331,8 +331,8 @@ class Compiler {
 			ignoreInitial: true,
 			...options
 		});
-		const watching = new Watching(this, watcher, handler);
-		return watching;
+		this.watching = new Watching(this, watcher, handler);
+		return this.watching;
 	}
 
 	purgeInputFileSystem() {
@@ -346,6 +346,13 @@ class Compiler {
 	 */
 	close(callback) {
 		this.#_instance = null;
+		if (this.watching) {
+			// When there is still an active watching, close this first
+			this.watching.close(() => {
+				this.close(callback);
+			});
+			return;
+		}
 		callback();
 	}
 	emitAssets(compilation: Compilation, callback) {

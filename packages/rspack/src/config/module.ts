@@ -267,17 +267,22 @@ function composeJsUse(
 				}
 
 				const getResolveContext = () => {
+					// FIXME: resolve's fileDependencies will includes lots of dir, '/', etc.
 					return {
 						fileDependencies: {
 							add: d => {
-								// FIXME: This will cause build hang, so we skip it
+								// loaderContext.addDependency(d)
 							}
 						},
 						contextDependencies: {
-							add: d => loaderContext.addContextDependency(d)
+							add: d => {
+								// loaderContext.addContextDependency(d)
+							}
 						},
 						missingDependencies: {
-							add: d => loaderContext.addMissingDependency(d)
+							add: d => {
+								// loaderContext.addMissingDependency(d)
+							}
 						}
 					};
 				};
@@ -586,7 +591,8 @@ function composeJsUse(
 				content = loaderResult.content ?? content;
 				sourceMap = loaderResult.sourceMap ?? sourceMap;
 				cacheable = loaderResult.cacheable ?? cacheable;
-				compiler.watcher?.add([
+
+				compiler.watching?.watch([
 					data.resourcePath,
 					...loaderResult.fileDependencies,
 					...loaderResult.contextDependencies,
