@@ -359,7 +359,6 @@ impl Compilation {
       if let Some(task) = factorize_queue.get_task() {
         tokio::spawn({
           let result_tx = result_tx.clone();
-          let active_task_count = active_task_count.clone();
           active_task_count.fetch_add(1, Ordering::SeqCst);
 
           async move {
@@ -374,7 +373,6 @@ impl Compilation {
       if let Some(task) = build_queue.get_task() {
         tokio::spawn({
           let result_tx = result_tx.clone();
-          let active_task_count = active_task_count.clone();
           active_task_count.fetch_add(1, Ordering::SeqCst);
 
           async move {
@@ -386,7 +384,6 @@ impl Compilation {
 
       if let Some(task) = add_queue.get_task() {
         active_task_count.fetch_add(1, Ordering::SeqCst);
-
         let result = task.run(self);
         result_tx.send(result).expect("Failed to send add result");
       }
