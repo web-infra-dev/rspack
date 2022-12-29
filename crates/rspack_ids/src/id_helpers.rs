@@ -1,4 +1,7 @@
-use rspack_core::{BoxModule, ChunkGraph, Compilation, ModuleGraph, ModuleIdentifier};
+use rspack_core::{
+  module, BoxModule, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation, ModuleGraph,
+  ModuleIdentifier,
+};
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
   identifier::make_paths_relative,
@@ -235,5 +238,145 @@ pub fn compare_modules_by_pre_order_index_or_identifier(
     compare_ids(&a.identifier(), &b.identifier())
   } else {
     cmp
+  }
+}
+
+pub fn get_short_chunk_name(
+  chunk: &Chunk,
+  chunk_graph: &ChunkGraph,
+  context: &str,
+  delimiter: &str,
+  module_graph: &ModuleGraph,
+) -> String {
+  let modules = chunk_graph
+    .get_chunk_root_modules(&chunk.ukey, module_graph)
+    .iter()
+    .map(|id| {
+      module_graph
+        .module_by_identifier(id)
+        .expect("Module not found")
+    })
+    .collect::<Vec<_>>();
+
+  let short_module_names = modules
+    .iter()
+    .map(|module| get_short_module_name(module, context))
+    .collect::<Vec<_>>();
+
+  let mut id_name_hints = chunk.id_name_hints.iter().cloned().collect::<Vec<_>>();
+  id_name_hints.sort();
+
+  id_name_hints.extend(short_module_names);
+
+  let chunk_name = id_name_hints.join(delimiter);
+
+  shorten_long_string(chunk_name, delimiter)
+}
+
+fn shorten_long_string(string: String, delimiter: &str) -> String {
+  if string.len() < 100 {
+    string
+  } else {
+    format!(
+      "{}{}{}",
+      &string[..(100 - 6 - delimiter.len())],
+      delimiter,
+      get_hash(&string, 6)
+    )
+  }
+}
+
+pub fn get_long_chunk_name(
+  chunk: &Chunk,
+  chunk_graph: &ChunkGraph,
+  context: &str,
+  delimiter: &str,
+  module_graph: &ModuleGraph,
+) -> String {
+  let modules = chunk_graph
+    .get_chunk_root_modules(&chunk.ukey, module_graph)
+    .iter()
+    .map(|id| {
+      module_graph
+        .module_by_identifier(id)
+        .expect("Module not found")
+    })
+    .collect::<Vec<_>>();
+
+  let short_module_names = modules
+    .iter()
+    .map(|m| request_to_id(&&get_short_module_name(m, context)))
+    .collect::<Vec<_>>();
+
+  let long_module_names = modules
+    .iter()
+    .map(|m| request_to_id(&get_long_module_name("", m, context)))
+    .collect::<Vec<_>>();
+  let mut id_name_hints = chunk.id_name_hints.iter().cloned().collect::<Vec<_>>();
+  id_name_hints.sort();
+
+  let chunk_name = {
+    id_name_hints.extend(short_module_names);
+    id_name_hints.extend(long_module_names);
+    id_name_hints.join(delimiter)
+  };
+
+  shorten_long_string(chunk_name, delimiter)
+}
+
+fn request_to_id(request: &str) -> String {
+  let regex1 = regex::Regex::new(r"^(\.\.?\\/)+").unwrap();
+  let regex2 = regex::Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").unwrap();
+
+  regex2
+    .replace_all(&regex1.replace(request, ""), "_")
+    .to_string()
+}
+
+pub fn get_used_chunk_ids(compilation: &Compilation) -> HashSet<String> {
+  let mut used_ids = compilation
+    .used_chunk_ids
+    .iter()
+    .cloned()
+    .collect::<HashSet<_>>();
+  for chunk in compilation.chunk_by_ukey.values() {
+    if let Some(id) = &chunk.id {
+      used_ids.insert(id.clone());
+    }
+  }
+  used_ids
+}
+
+pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], compilation: &mut Compilation) {
+  let used_ids = get_used_chunk_ids(compilation);
+
+  let mut next_id = 0;
+  if !used_ids.is_empty() {
+    for chunk in chunks {
+      let chunk = compilation
+        .chunk_by_ukey
+        .get_mut(chunk)
+        .expect("Chunk not found");
+      if chunk.id.is_none() {
+        while used_ids.contains(&next_id.to_string()) {
+          next_id += 1;
+        }
+        chunk.id = Some(next_id.to_string());
+        chunk.ids = vec![next_id.to_string()];
+        next_id += 1;
+      }
+    }
+  } else {
+    for chunk in chunks {
+      let chunk = compilation
+        .chunk_by_ukey
+        .get_mut(chunk)
+        .expect("Chunk not found");
+      if chunk.id.is_none() {
+        chunk.id = Some(next_id.to_string());
+        chunk.ids = vec![next_id.to_string()];
+        next_id += 1;
+      }
+    }
   }
 }

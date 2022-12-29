@@ -68,6 +68,8 @@ pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -
     }
   }
 
+  plugins.push(Box::new(rspack_ids::NamedChunkIdsPlugin::new(None, None)));
+
   Compiler::new(options, plugins)
 }
 

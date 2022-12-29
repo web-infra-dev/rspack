@@ -66,7 +66,6 @@ impl<'me> CodeSplitter<'me> {
         .collect::<Vec<_>>();
       let chunk = Compilation::add_named_chunk(
         name.to_string(),
-        name.to_string(),
         &mut compilation.chunk_by_ukey,
         &mut compilation.named_chunks,
       );
@@ -145,7 +144,6 @@ impl<'me> CodeSplitter<'me> {
             .ok_or_else(|| anyhow!("no chunk found"))?,
           None => {
             let chunk = Compilation::add_named_chunk(
-              runtime.to_string(),
               runtime.to_string(),
               &mut compilation.chunk_by_ukey,
               &mut compilation.named_chunks,
@@ -406,11 +404,6 @@ impl<'me> CodeSplitter<'me> {
       }
 
       let chunk = Compilation::add_named_chunk(
-        uri_to_chunk_name(
-          &self.compilation.options.context.to_string_lossy(),
-          // TODO: change to chunk group name
-          &dyn_dep_mgm.module_identifier,
-        ),
         uri_to_chunk_name(
           &self.compilation.options.context.to_string_lossy(),
           // TODO: change to chunk group name

@@ -239,4 +239,17 @@ impl ModuleGraph {
       .module_graph_module_by_identifier(&module.identifier())
       .and_then(|mgm| mgm.get_issuer().get_module(self))
   }
+
+  pub fn get_outgoing_connections(&self, module: &BoxModule) -> HashSet<&ModuleGraphConnection> {
+    self
+      .module_graph_module_by_identifier(&module.identifier())
+      .map(|mgm| {
+        mgm
+          .outgoing_connections
+          .iter()
+          .filter_map(|id| self.connection_by_connection_id(*id))
+          .collect()
+      })
+      .unwrap_or_default()
+  }
 }

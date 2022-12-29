@@ -74,11 +74,11 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                 };
                 let hash = Some(chunk.get_render_hash());
                 chunks_map.insert(
-                  chunk.id.clone(),
+                  chunk.expect_id().to_string(),
                   filename_template.render(FilenameRenderOptions {
                     filename: chunk.name.clone(),
                     extension: Some(format!(".{}", self.content_type)),
-                    id: Some(chunk.id.clone()),
+                    id: chunk.id.clone(),
                     contenthash: Some(
                       chunk
                         .content_hash

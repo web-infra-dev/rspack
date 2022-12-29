@@ -55,7 +55,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
             .chunk_by_ukey
             .get(chunk_ukey)
             .expect("Chunk not found");
-          async_chunk_ids_with_css.insert(chunk.id.clone());
+          async_chunk_ids_with_css.insert(chunk.expect_id().to_string());
         }
       }
 
@@ -84,7 +84,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
             .chunk_by_ukey
             .get(chunk_ukey)
             .expect("Chunk not found");
-          initial_chunk_ids_with_css.insert(chunk.id.clone());
+          initial_chunk_ids_with_css.insert(chunk.expect_id().to_string());
         }
       }
 

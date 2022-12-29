@@ -231,7 +231,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
                 .chunk_by_ukey
                 .get(chunk_ukey)
                 .unwrap_or_else(|| panic!("chunk should exist"));
-              chunk.id.as_str()
+              chunk.expect_id()
             })
             .collect::<Vec<_>>()
         };

@@ -658,7 +658,7 @@ impl Plugin for CssPlugin {
       let output_path = filename_template.render(FilenameRenderOptions {
         filename: chunk.name.clone(),
         extension: Some(".css".to_owned()),
-        id: Some(chunk.id.to_owned()),
+        id: chunk.id.to_owned(),
         contenthash: Some(
           chunk
             .content_hash

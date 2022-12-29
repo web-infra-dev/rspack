@@ -186,7 +186,7 @@ impl PluginDriver {
         .render_manifest(PluginContext::new(), args.clone())
         .await?;
       tracing::trace!(
-        "For Chunk({}), Plugin({}) generate files {:?}",
+        "For Chunk({:?}), Plugin({}) generate files {:?}",
         args.chunk().id,
         plugin.name(),
         res
@@ -330,6 +330,14 @@ impl PluginDriver {
   pub fn module_ids(&mut self, compilation: &mut Compilation) -> Result<()> {
     for plugin in &mut self.plugins {
       plugin.module_ids(compilation)?;
+    }
+    Ok(())
+  }
+
+  #[instrument(name = "plugin:chunk_ids", skip_all)]
+  pub fn chunk_ids(&mut self, compilation: &mut Compilation) -> Result<()> {
+    for plugin in &mut self.plugins {
+      plugin.chunk_ids(compilation)?;
     }
     Ok(())
   }

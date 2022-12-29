@@ -74,7 +74,7 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
     if matches!(chunk.kind, ChunkKind::HotUpdate) {
       source.add(RawSource::Source(format!(
         "self['hotUpdate']('{}', ",
-        chunk.id.to_owned()
+        chunk.expect_id()
       )));
       source.add(render_chunk_modules(args.compilation, args.chunk_ukey)?);
       if !runtime_modules.is_empty() {
@@ -88,7 +88,7 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
     } else {
       source.add(RawSource::from(format!(
         r#"(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["{}"], "#,
-        &chunk.id.to_owned(),
+        chunk.expect_id(),
       )));
       source.add(render_chunk_modules(args.compilation, args.chunk_ukey)?);
       let has_entry = chunk.has_entry_module(&args.compilation.chunk_graph);

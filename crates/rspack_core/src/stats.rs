@@ -65,7 +65,10 @@ impl<'compilation> Stats<'compilation> {
     }
     for (name, asset) in &mut assets {
       if let Some(chunks) = compilation_file_to_chunks.get(name) {
-        asset.chunks = chunks.iter().map(|chunk| chunk.id.clone()).collect();
+        asset.chunks = chunks
+          .iter()
+          .map(|chunk| chunk.id.clone().expect("Chunk should have id"))
+          .collect();
         asset.chunks.sort();
         asset.chunk_names = chunks
           .iter()
@@ -143,8 +146,8 @@ impl<'compilation> Stats<'compilation> {
               .chunk_by_ukey
               .get(k)
               .unwrap_or_else(|| panic!("Could not find chunk by ukey: {:?}", k))
-              .id
-              .clone()
+              .expect_id()
+              .to_string()
           })
           .collect();
         chunks.sort();
@@ -186,7 +189,7 @@ impl<'compilation> Stats<'compilation> {
         StatsChunk {
           r#type: "chunk",
           files,
-          id: c.id.clone(),
+          id: c.expect_id().to_string(),
           names: c.name.clone().map(|n| vec![n]).unwrap_or_default(),
           entry: c.has_entry_module(&self.compilation.chunk_graph),
           initial: c.can_be_initial(&self.compilation.chunk_group_by_ukey),
@@ -219,7 +222,7 @@ impl<'compilation> Stats<'compilation> {
               .get(c)
               .expect("compilation.chunk_by_ukey should have ukey from chunk_group")
           })
-          .map(|c| c.id.clone())
+          .map(|c| c.expect_id().to_string())
           .collect();
         chunks.sort();
         let mut assets = cg.chunks.iter().fold(Vec::new(), |mut acc, c| {

@@ -116,7 +116,7 @@ impl Compiler {
         .get_chunk_graph_chunk(ukey)
         .modules
         .clone();
-      old_chunks.push((chunk.id.clone(), modules));
+      old_chunks.push((chunk.expect_id().to_string(), modules));
     }
 
     // build without stats
@@ -224,11 +224,11 @@ impl Compiler {
         .compilation
         .chunk_by_ukey
         .iter()
-        .find(|(_, chunk)| chunk.id.eq(&chunk_id))
+        .find(|(_, chunk)| chunk.expect_id().eq(&chunk_id))
         .map(|(_, chunk)| chunk);
 
       if let Some(current_chunk) = current_chunk {
-        chunk_id = current_chunk.id.to_string();
+        chunk_id = current_chunk.expect_id().to_string();
         new_runtime = Default::default();
         // intersectRuntime
         for old_runtime in &all_old_runtime {
@@ -277,7 +277,7 @@ impl Compiler {
       if !new_modules.is_empty() || !new_runtime_modules.is_empty() {
         let mut hot_update_chunk = Chunk::new(
           Some(chunk_id.to_string()),
-          chunk_id.to_string(),
+          Some(chunk_id.to_string()),
           ChunkKind::HotUpdate,
         );
         hot_update_chunk.runtime = new_runtime;
@@ -349,7 +349,7 @@ impl Compiler {
             .compilation
             .chunk_by_ukey
             .get(&entry.path_options.chunk_ukey);
-          let id = chunk.map_or(String::new(), |c| c.id.to_string());
+          let id = chunk.map_or(String::new(), |c| c.expect_id().to_string());
           self.emit_asset(&output_path, &(id + ".hot-update.js"), &asset)?;
         }
 

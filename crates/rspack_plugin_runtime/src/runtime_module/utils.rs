@@ -40,10 +40,10 @@ pub fn get_initial_chunk_ids(
               .chunk_by_ukey
               .get(chunk_ukey)
               .expect("Chunk not found");
-            chunk.id.clone()
+            chunk.expect_id().to_string()
           })
           .collect::<HashSet<_>>();
-        js_chunks.insert(chunk.id.clone());
+        js_chunks.insert(chunk.expect_id().to_string());
         js_chunks
       }
       None => HashSet::default(),

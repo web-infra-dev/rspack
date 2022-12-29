@@ -91,6 +91,7 @@ pub struct Compilation {
   _pin: PhantomPinned,
   // lazy compilation visit module
   pub lazy_visit_modules: std::collections::HashSet<String>,
+  pub used_chunk_ids: HashSet<String>,
 }
 impl Compilation {
   pub fn new(
@@ -133,6 +134,7 @@ impl Compilation {
       _pin: PhantomPinned,
       used_indirect_symbol: HashSet::default(),
       lazy_visit_modules: Default::default(),
+      used_chunk_ids: Default::default(),
     }
   }
   pub fn add_entry(&mut self, name: String, detail: EntryItem) {
@@ -232,7 +234,6 @@ impl Compilation {
 
   pub fn add_named_chunk<'chunk>(
     name: String,
-    id: String,
     chunk_by_ukey: &'chunk mut ChunkByUkey,
     named_chunks: &mut HashMap<String, ChunkUkey>,
   ) -> &'chunk mut Chunk {
@@ -243,15 +244,15 @@ impl Compilation {
         .expect("This should not happen");
       chunk
     } else {
-      let chunk = Chunk::new(Some(name.clone()), id, ChunkKind::Normal);
+      let chunk = Chunk::new(Some(name.clone()), None, ChunkKind::Normal);
       let ukey = chunk.ukey;
       named_chunks.insert(name, chunk.ukey);
       chunk_by_ukey.entry(ukey).or_insert_with(|| chunk)
     }
   }
 
-  pub fn add_chunk(chunk_by_ukey: &mut ChunkByUkey, id: String) -> &mut Chunk {
-    let chunk = Chunk::new(None, id, ChunkKind::Normal);
+  pub fn add_chunk(chunk_by_ukey: &mut ChunkByUkey) -> &mut Chunk {
+    let chunk = Chunk::new(None, None, ChunkKind::Normal);
     let ukey = chunk.ukey;
     chunk_by_ukey.insert(chunk.ukey, chunk);
     chunk_by_ukey.get_mut(&ukey).expect("chunk not found")
@@ -736,7 +737,7 @@ impl Compilation {
 
         if let Ok(manifest) = &manifest {
           tracing::debug!(
-            "For Chunk({}), collected assets: {:?}",
+            "For Chunk({:?}), collected assets: {:?}",
             chunk.id,
             manifest.iter().map(|m| m.filename()).collect::<Vec<_>>()
           );
@@ -1087,6 +1088,7 @@ impl Compilation {
     plugin_driver.write().await.optimize_chunks(self)?;
 
     plugin_driver.write().await.module_ids(self)?;
+    plugin_driver.write().await.chunk_ids(self)?;
 
     self.code_generation().await?;
 

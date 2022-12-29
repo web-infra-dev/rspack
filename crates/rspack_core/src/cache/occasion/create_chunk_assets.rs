@@ -30,7 +30,7 @@ impl CreateChunkAssetsOccasion {
       None => return generator().await,
     };
 
-    let chunk_id = chunk.id.clone();
+    let chunk_id = chunk.expect_id().to_string();
     let modules = &compilation
       .chunk_graph
       .get_chunk_graph_chunk(&chunk.ukey)
