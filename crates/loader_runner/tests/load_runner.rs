@@ -104,7 +104,10 @@ mod fixtures {
       Ok(Some(
         LoaderResult {
           cacheable: true,
-          build_dependencies: vec![],
+          file_dependencies: Default::default(),
+          context_dependencies: Default::default(),
+          missing_dependencies: Default::default(),
+          build_dependencies: Default::default(),
           content: source,
           source_map: None,
           additional_data: None,
@@ -139,7 +142,10 @@ mod fixtures {
       Ok(Some(
         LoaderResult {
           cacheable: true,
-          build_dependencies: vec![],
+          file_dependencies: Default::default(),
+          context_dependencies: Default::default(),
+          missing_dependencies: Default::default(),
+          build_dependencies: Default::default(),
           additional_data: None,
           source_map: None,
           content: Content::String(format!(
@@ -180,7 +186,10 @@ html {{
       Ok(Some(
         LoaderResult {
           cacheable: true,
-          build_dependencies: vec![],
+          file_dependencies: Default::default(),
+          context_dependencies: Default::default(),
+          missing_dependencies: Default::default(),
+          build_dependencies: Default::default(),
           additional_data: None,
           source_map: None,
           content: Content::String(format!(
@@ -219,7 +228,10 @@ console.log(2);"#,
       Ok(Some(
         LoaderResult {
           cacheable: true,
-          build_dependencies: vec![],
+          file_dependencies: Default::default(),
+          context_dependencies: Default::default(),
+          missing_dependencies: Default::default(),
+          build_dependencies: Default::default(),
           additional_data: None,
           source_map: None,
           content: Content::String(format!(

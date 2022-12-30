@@ -1,7 +1,7 @@
 use crate::{
   cache::snapshot::{Snapshot, SnapshotManager},
   cache::storage,
-  Compilation, ResolveArgs, ResolveResult,
+  ResolveArgs, ResolveResult,
 };
 use futures::Future;
 use rspack_error::Result;
@@ -56,16 +56,14 @@ impl ResolveModuleOccasion {
 
     // run generator and save to cache
     let data = generator(args).await?;
-    let paths = Vec::new();
-    let resolved_path = if let ResolveResult::Info(ref info) = data {
-      Some(info.path.to_string_lossy().to_string())
-    } else {
-      None
-    };
+    let mut paths = Vec::new();
+    if let ResolveResult::Info(info) = &data {
+      paths.push(info.path.as_path());
+    }
 
     let snapshot = self
       .snapshot_manager
-      .create_snapshot(paths, |option| &option.resolve)
+      .create_snapshot(&paths, |option| &option.resolve)
       .await?;
     storage.set(id.clone(), (snapshot, data.clone()));
     Ok(data)

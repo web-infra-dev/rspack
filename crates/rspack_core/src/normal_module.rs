@@ -2,6 +2,7 @@ use std::{
   borrow::Cow,
   fmt::Debug,
   hash::Hash,
+  path::PathBuf,
   sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
@@ -10,7 +11,8 @@ use std::{
 
 use bitflags::bitflags;
 use dashmap::DashMap;
-use hashbrown::{HashMap, HashSet};
+use hashbrown::{hash_map::DefaultHashBuilder, HashMap, HashSet};
+use indexmap::IndexSet;
 use serde_json::json;
 use ustr::ustr;
 
@@ -283,6 +285,10 @@ impl From<BoxSource> for AstOrSource {
 #[derive(Debug, Default)]
 pub struct BuildInfo {
   pub strict: bool,
+  pub file_dependencies: IndexSet<PathBuf, DefaultHashBuilder>,
+  pub context_dependencies: IndexSet<PathBuf, DefaultHashBuilder>,
+  pub missing_dependencies: IndexSet<PathBuf, DefaultHashBuilder>,
+  pub build_dependencies: IndexSet<PathBuf, DefaultHashBuilder>,
 }
 
 #[derive(Debug)]
@@ -506,7 +512,10 @@ impl Module for NormalModule {
     Ok(
       BuildResult {
         cacheable: loader_result.cacheable,
-        build_dependencies: vec![],
+        file_dependencies: loader_result.file_dependencies,
+        context_dependencies: loader_result.context_dependencies,
+        missing_dependencies: loader_result.missing_dependencies,
+        build_dependencies: loader_result.build_dependencies,
         dependencies,
       }
       .with_diagnostic(diagnostics),

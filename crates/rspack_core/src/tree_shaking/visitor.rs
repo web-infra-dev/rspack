@@ -163,7 +163,7 @@ impl<'a> ModuleRefAnalyze<'a> {
         continue;
       }
       let id = cur.get_id();
-      if let Some(ref_list) = self.decl_reference_map.get(&id.clone().into()) {
+      if let Some(ref_list) = self.decl_reference_map.get(&SymbolExt::from(id.clone())) {
         q.extend(ref_list.clone());
       }
       seen.insert(cur);

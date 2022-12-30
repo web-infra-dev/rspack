@@ -10,7 +10,7 @@ rspack_test = { path = "../rspack_test" }
 
 [dependencies]
 anyhow       = "1"
-hashbrown    = "0.12.1"
+hashbrown    = "0.13.1"
 json         = "0.12.4"
 ropey        = "1.5.0"
 rspack_core  = { path = "../rspack_core" }

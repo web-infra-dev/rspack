@@ -7,6 +7,6 @@ version = "0.1.0"
 
 [dependencies]
 derivative  = "2.2.0"
-hashbrown   = { version = "0.12.1", features = ["rayon", "serde", "ahash"] }
+hashbrown   = { version = "0.13.1", features = ["rayon", "serde", "ahash"] }
 rspack_core = { path = "../rspack_core" }
 tracing     = "0.1.34"

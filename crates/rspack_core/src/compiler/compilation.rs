@@ -1,7 +1,7 @@
 use dashmap::DashSet;
 use futures::{stream::FuturesUnordered, StreamExt};
 use hashbrown::{
-  hash_map::Entry,
+  hash_map::{DefaultHashBuilder, Entry},
   hash_set::Entry::{Occupied, Vacant},
   HashMap, HashSet,
 };
@@ -94,9 +94,10 @@ pub struct Compilation {
   pub lazy_visit_modules: std::collections::HashSet<String>,
   pub used_chunk_ids: HashSet<String>,
 
-  pub file_dependencies: HashSet<PathBuf>,
-  pub context_dependencies: HashSet<PathBuf>,
-  pub missing_dependencies: HashSet<PathBuf>,
+  pub file_dependencies: IndexSet<PathBuf, DefaultHashBuilder>,
+  pub context_dependencies: IndexSet<PathBuf, DefaultHashBuilder>,
+  pub missing_dependencies: IndexSet<PathBuf, DefaultHashBuilder>,
+  pub build_dependencies: IndexSet<PathBuf, DefaultHashBuilder>,
 }
 
 impl Compilation {
@@ -145,6 +146,7 @@ impl Compilation {
       file_dependencies: Default::default(),
       context_dependencies: Default::default(),
       missing_dependencies: Default::default(),
+      build_dependencies: Default::default(),
     }
   }
 
@@ -445,6 +447,12 @@ impl Compilation {
               self
                 .file_dependencies
                 .extend(factory_result.file_dependencies);
+              self
+                .context_dependencies
+                .extend(factory_result.context_dependencies);
+              self
+                .missing_dependencies
+                .extend(factory_result.missing_dependencies);
 
               add_queue.add_task(AddTask {
                 original_module_identifier,
@@ -478,6 +486,20 @@ impl Compilation {
                 tracing::trace!("Module built: {}", module.identifier());
 
                 self.push_batch_diagnostic(diagnostics);
+
+                self
+                  .file_dependencies
+                  .extend(build_result.file_dependencies);
+                self
+                  .context_dependencies
+                  .extend(build_result.context_dependencies);
+                self
+                  .missing_dependencies
+                  .extend(build_result.missing_dependencies);
+                self
+                  .build_dependencies
+                  .extend(build_result.build_dependencies);
+
                 let dependencies = build_result
                   .dependencies
                   .into_iter()
@@ -1172,7 +1194,7 @@ impl Compilation {
       let mut chunks = self
         .chunk_by_ukey
         .keys()
-        .filter(|key| !runtime_chunks.contains(key))
+        .filter(|key| !runtime_chunks.contains(*key))
         .copied()
         .collect::<Vec<_>>();
       chunks.extend(runtime_chunks);

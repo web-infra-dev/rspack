@@ -7,7 +7,7 @@ use crate::{ModuleRule, ModuleRuleCondition};
 fn module_rule_matcher_condition(condition: &ModuleRuleCondition, data: &str) -> bool {
   match condition {
     ModuleRuleCondition::String(s) => data.starts_with(s),
-    ModuleRuleCondition::Regexp(r) => r.test(&data),
+    ModuleRuleCondition::Regexp(r) => r.test(data),
   }
 }
 

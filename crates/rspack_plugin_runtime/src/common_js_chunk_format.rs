@@ -98,7 +98,7 @@ impl Plugin for CommonJsChunkFormatPlugin {
         args
           .compilation
           .chunk_group_by_ukey
-          .get(entry_point_ukey)
+          .get(*entry_point_ukey)
           .ok_or_else(|| anyhow!("should has entry point"))?
       };
 

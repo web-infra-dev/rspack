@@ -202,6 +202,22 @@ export class Compilation {
 		return filename;
 	}
 
+	get fileDependencies() {
+		return this.#inner.fileDependencies;
+	}
+
+	get contextDependencies() {
+		return this.#inner.contextDependencies;
+	}
+
+	get missingDependencies() {
+		return this.#inner.missingDependencies;
+	}
+
+	get buildDependencies() {
+		return this.#inner.buildDependencies;
+	}
+
 	/**
 	 * Get the `Source` of an given asset filename.
 	 *

@@ -1,3 +1,4 @@
+use hashbrown::{hash_map::DefaultHashBuilder, HashSet};
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_sources::SourceMap;
 
@@ -48,13 +49,19 @@ pub struct LoaderContext<'a, 'context, T, U> {
 
   pub cacheable: bool,
 
-  pub build_dependencies: Vec<String>,
+  pub file_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
+  pub context_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
+  pub missing_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
+  pub build_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
 }
 
 #[derive(Debug)]
 pub struct LoaderResult {
   pub cacheable: bool,
-  pub build_dependencies: Vec<String>,
+  pub file_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
+  pub context_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
+  pub missing_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
+  pub build_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
   pub content: Content,
   pub source_map: Option<SourceMap>,
   pub additional_data: Option<String>,
@@ -64,6 +71,9 @@ impl LoaderResult {
   pub fn new(content: Content, source_map: Option<SourceMap>) -> Self {
     Self {
       cacheable: true,
+      file_dependencies: Default::default(),
+      context_dependencies: Default::default(),
+      missing_dependencies: Default::default(),
       build_dependencies: Default::default(),
       content,
       source_map,
@@ -76,8 +86,23 @@ impl LoaderResult {
     self
   }
 
-  pub fn build_dependency(mut self, v: String) -> Self {
-    self.build_dependencies.push(v);
+  pub fn file_dependency(mut self, v: PathBuf) -> Self {
+    self.file_dependencies.insert(v);
+    self
+  }
+
+  pub fn context_dependency(mut self, v: PathBuf) -> Self {
+    self.context_dependencies.insert(v);
+    self
+  }
+
+  pub fn missing_dependency(mut self, v: PathBuf) -> Self {
+    self.missing_dependencies.insert(v);
+    self
+  }
+
+  pub fn build_dependency(mut self, v: PathBuf) -> Self {
+    self.build_dependencies.insert(v);
     self
   }
 
@@ -91,6 +116,9 @@ impl<T, U> From<LoaderContext<'_, '_, T, U>> for LoaderResult {
   fn from(loader_context: LoaderContext<'_, '_, T, U>) -> Self {
     Self {
       cacheable: loader_context.cacheable,
+      file_dependencies: loader_context.file_dependencies,
+      context_dependencies: loader_context.context_dependencies,
+      missing_dependencies: loader_context.missing_dependencies,
       build_dependencies: loader_context.build_dependencies,
       content: loader_context.source,
       source_map: loader_context.source_map,
@@ -165,9 +193,16 @@ impl LoaderRunner {
   ) -> Result<LoaderContext<'_, 'context, T, U>> {
     let content = self.process_resource().await?;
 
+    // TODO: FileUriPlugin
+    let mut file_dependencies: HashSet<PathBuf, DefaultHashBuilder> = Default::default();
+    file_dependencies.insert(self.resource_data.resource_path.clone());
+
     let loader_context = LoaderContext {
       cacheable: true,
-      build_dependencies: vec![],
+      file_dependencies,
+      context_dependencies: Default::default(),
+      missing_dependencies: Default::default(),
+      build_dependencies: Default::default(),
       source: content,
       resource: &self.resource_data.resource,
       resource_path: &self.resource_data.resource_path,
@@ -201,6 +236,10 @@ impl LoaderRunner {
         loader_context.source = loader_result.content;
         loader_context.source_map = loader_result.source_map;
         loader_context.additional_data = loader_result.additional_data;
+        loader_context.file_dependencies = loader_result.file_dependencies;
+        loader_context.context_dependencies = loader_result.context_dependencies;
+        loader_context.missing_dependencies = loader_result.missing_dependencies;
+        loader_context.build_dependencies = loader_result.build_dependencies;
         diagnostics.extend(ds);
       }
     }

@@ -5,7 +5,7 @@ use crate::{
 };
 use futures::Future;
 use rspack_error::{Result, TWithDiagnosticArray};
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 type Storage = dyn storage::Storage<(Snapshot, TWithDiagnosticArray<BuildResult>)>;
 
@@ -59,18 +59,15 @@ impl BuildModuleOccasion {
     // run generator and save to cache
     let data = generator(module).await?;
     if need_cache && data.inner.cacheable {
-      let mut paths: Vec<&str> = data
-        .inner
-        .build_dependencies
-        .iter()
-        .map(|i| i.as_str())
-        .collect();
-      paths.push(&id);
+      let mut paths: Vec<&Path> = Vec::new();
+      paths.extend(data.inner.file_dependencies.iter().map(|i| i.as_path()));
+      paths.extend(data.inner.context_dependencies.iter().map(|i| i.as_path()));
+      paths.extend(data.inner.missing_dependencies.iter().map(|i| i.as_path()));
+      paths.extend(data.inner.build_dependencies.iter().map(|i| i.as_path()));
 
       let snapshot = self
         .snapshot_manager
-        // TODO replace id with source file path or just cache normal module
-        .create_snapshot(paths, |option| &option.module)
+        .create_snapshot(&paths, |option| &option.module)
         .await?;
       storage.set(id, (snapshot, data.clone()));
     }

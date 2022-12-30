@@ -73,7 +73,10 @@ impl Module for RawModule {
     Ok(
       BuildResult {
         cacheable: true,
-        build_dependencies: vec![],
+        file_dependencies: Default::default(),
+        context_dependencies: Default::default(),
+        missing_dependencies: Default::default(),
+        build_dependencies: Default::default(),
         dependencies: vec![],
       }
       .with_empty_diagnostic(),

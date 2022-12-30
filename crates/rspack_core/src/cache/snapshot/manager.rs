@@ -3,7 +3,10 @@ use crate::{calc_hash, SnapshotOptions, SnapshotStrategy};
 use dashmap::DashMap;
 use hashbrown::HashMap;
 use rspack_error::Result;
-use std::time::SystemTime;
+use std::{
+  path::{Path, PathBuf},
+  time::SystemTime,
+};
 
 /// SnapshotManager is a tools to create or check snapshot
 ///
@@ -14,9 +17,9 @@ pub struct SnapshotManager {
   /// global snapshot options
   options: SnapshotOptions,
   /// cache file update time
-  update_time_cache: DashMap<String, SystemTime>,
+  update_time_cache: DashMap<PathBuf, SystemTime>,
   /// cache file hash
-  hash_cache: DashMap<String, u64>,
+  hash_cache: DashMap<PathBuf, u64>,
 }
 
 impl SnapshotManager {
@@ -28,22 +31,22 @@ impl SnapshotManager {
     }
   }
 
-  pub async fn create_snapshot<F>(&self, file_paths: Vec<&str>, f: F) -> Result<Snapshot>
+  pub async fn create_snapshot<F>(&self, paths: &[&Path], f: F) -> Result<Snapshot>
   where
     F: FnOnce(&SnapshotOptions) -> &SnapshotStrategy,
   {
     // TODO file_paths deduplication && calc immutable path
     let strategy = f(&self.options);
-    let mut file_update_times = HashMap::with_capacity(file_paths.len());
-    let mut file_hashs = HashMap::with_capacity(file_paths.len());
+    let mut file_update_times = HashMap::with_capacity(paths.len());
+    let mut file_hashs = HashMap::with_capacity(paths.len());
     if strategy.timestamp {
-      for &path in &file_paths {
+      for &path in paths {
         file_update_times.insert(path.to_owned(), SystemTime::now());
       }
     }
     if strategy.hash {
       let hash_cache = &self.hash_cache;
-      for &path in &file_paths {
+      for &path in paths {
         let hash = match hash_cache.get(path) {
           Some(hash) => *hash,
           None => {

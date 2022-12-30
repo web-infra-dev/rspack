@@ -3,7 +3,7 @@ use std::{
   sync::Arc,
 };
 
-use hashbrown::HashSet;
+use hashbrown::{hash_map::DefaultHashBuilder, HashSet};
 use swc_core::common::Span;
 
 use rspack_error::{internal_error, Error, Result};
@@ -37,9 +37,9 @@ pub enum ResolveKind {
 #[derive(Debug)]
 pub struct FactorizeResult {
   pub module: BoxModule,
-  pub file_dependencies: HashSet<PathBuf>,
-  pub context_dependencies: HashSet<PathBuf>,
-  pub missing_dependencies: HashSet<PathBuf>,
+  pub file_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
+  pub context_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
+  pub missing_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
 }
 
 impl FactorizeResult {
