@@ -17,7 +17,7 @@ export function resolveOptimizationOptions(
 ): ResolvedOptimization {
 	return {
 		moduleIds:
-			op.moduleIds ?? mode === "production" ? "deterministic" : "named",
+			op.moduleIds ?? (mode === "production" ? "deterministic" : "named"),
 		minimize: op.minimize,
 		minimizer: op.minimizer
 	};
