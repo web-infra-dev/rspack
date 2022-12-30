@@ -108,10 +108,7 @@ impl AddTask {
   pub fn run(self, compilation: &mut Compilation) -> Result<TaskResult> {
     let module_identifier = self.module.identifier();
 
-    if compilation
-      .visited_module_id
-      .contains(&(module_identifier, self.dependencies[0].detail.clone()))
-    {
+    if compilation.visited_module_id.contains(&module_identifier) {
       Self::set_resolved_module(
         &mut compilation.module_graph,
         self.original_module_identifier,
@@ -122,9 +119,7 @@ impl AddTask {
       return Ok(TaskResult::Add(AddTaskResult::ModuleReused(self.module)));
     }
 
-    compilation
-      .visited_module_id
-      .insert((module_identifier, self.dependencies[0].detail.clone()));
+    compilation.visited_module_id.insert(module_identifier);
 
     compilation
       .module_graph
