@@ -4,7 +4,7 @@ use hashbrown::HashMap;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkUkey, Compilation, CompilationArgs,
-  ContentHashArgs, DoneArgs, FactorizeArgs, Module, ModuleArgs, ModuleType,
+  ContentHashArgs, DoneArgs, FactorizeArgs, FactorizeResult, Module, ModuleArgs, ModuleType,
   NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
   ProcessAssetsArgs, RenderChunkArgs, RenderManifestArgs, ThisCompilationArgs,
 };
@@ -19,7 +19,7 @@ pub type PluginMakeHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;
 pub type PluginProcessAssetsHookOutput = Result<()>;
 pub type PluginReadResourceOutput = Result<Option<Content>>;
-pub type PluginFactorizeHookOutput = Result<Option<BoxModule>>;
+pub type PluginFactorizeHookOutput = Result<Option<FactorizeResult>>;
 pub type PluginModuleHookOutput = Result<Option<BoxModule>>;
 pub type PluginContentHashHookOutput = Result<()>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;

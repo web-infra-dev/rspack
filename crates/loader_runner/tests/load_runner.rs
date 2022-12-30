@@ -35,7 +35,7 @@ macro_rules! run_loader {
     LoaderRunner::new(
       ResourceData {
         resource: resource.to_owned(),
-        resource_path: url.path().to_owned(),
+        resource_path: url.to_file_path().unwrap(),
         resource_query: url.query().map(|q| q.to_owned()),
         resource_fragment: url.fragment().map(|f| f.to_owned()),
       },
@@ -104,7 +104,10 @@ mod fixtures {
       Ok(Some(
         LoaderResult {
           cacheable: true,
-          build_dependencies: vec![],
+          file_dependencies: Default::default(),
+          context_dependencies: Default::default(),
+          missing_dependencies: Default::default(),
+          build_dependencies: Default::default(),
           content: source,
           source_map: None,
           additional_data: None,
@@ -139,7 +142,10 @@ mod fixtures {
       Ok(Some(
         LoaderResult {
           cacheable: true,
-          build_dependencies: vec![],
+          file_dependencies: Default::default(),
+          context_dependencies: Default::default(),
+          missing_dependencies: Default::default(),
+          build_dependencies: Default::default(),
           additional_data: None,
           source_map: None,
           content: Content::String(format!(
@@ -180,7 +186,10 @@ html {{
       Ok(Some(
         LoaderResult {
           cacheable: true,
-          build_dependencies: vec![],
+          file_dependencies: Default::default(),
+          context_dependencies: Default::default(),
+          missing_dependencies: Default::default(),
+          build_dependencies: Default::default(),
           additional_data: None,
           source_map: None,
           content: Content::String(format!(
@@ -219,7 +228,10 @@ console.log(2);"#,
       Ok(Some(
         LoaderResult {
           cacheable: true,
-          build_dependencies: vec![],
+          file_dependencies: Default::default(),
+          context_dependencies: Default::default(),
+          missing_dependencies: Default::default(),
+          build_dependencies: Default::default(),
           additional_data: None,
           source_map: None,
           content: Content::String(format!(

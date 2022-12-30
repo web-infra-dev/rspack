@@ -1,6 +1,7 @@
 use crate::utils::{ecma_parse_error_to_rspack_error, syntax_by_module_type};
 use rspack_core::{ast::javascript::Ast, ModuleType};
 use rspack_error::Error;
+use std::path::Path;
 use std::sync::Arc;
 use swc_core::base::config::IsModule;
 use swc_core::common::comments::Comments;
@@ -86,7 +87,7 @@ pub fn parse(
 
 pub fn parse_js_code(js_code: String, module_type: &ModuleType) -> Result<Program, Error> {
   let filename = "".to_string();
-  let syntax = syntax_by_module_type(&filename, module_type, false);
+  let syntax = syntax_by_module_type(Path::new(&filename), module_type, false);
   let cm: Arc<swc_core::common::SourceMap> = Default::default();
   let fm = cm.new_source_file(FileName::Custom(filename), js_code);
 

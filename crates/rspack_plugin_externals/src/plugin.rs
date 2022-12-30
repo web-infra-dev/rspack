@@ -1,6 +1,6 @@
 use rspack_core::{
-  ApplyContext, External, FactorizeArgs, ModuleExt, NormalModuleFactoryContext, Plugin,
-  PluginContext, PluginFactorizeHookOutput,
+  ApplyContext, External, FactorizeArgs, FactorizeResult, ModuleExt, NormalModuleFactoryContext,
+  Plugin, PluginContext, PluginFactorizeHookOutput,
 };
 use rspack_error::Result;
 
@@ -39,7 +39,7 @@ impl Plugin for ExternalPlugin {
               target.to_owned(),
               args.dependency.detail.specifier.clone(),
             );
-            return Ok(Some(external_module.boxed()));
+            return Ok(Some(FactorizeResult::new(external_module.boxed())));
           }
         }
         _ => {

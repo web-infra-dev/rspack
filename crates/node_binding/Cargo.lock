@@ -2063,6 +2063,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "hashbrown",
  "rspack_error",
  "rspack_sources",
  "tokio",

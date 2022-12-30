@@ -197,6 +197,46 @@ impl JsCompilation {
     self.inner.hash.to_string()
   }
 
+  #[napi(getter)]
+  pub fn file_dependencies(&self) -> Vec<String> {
+    self
+      .inner
+      .file_dependencies
+      .iter()
+      .map(|i| i.to_string_lossy().to_string())
+      .collect()
+  }
+
+  #[napi(getter)]
+  pub fn context_dependencies(&self) -> Vec<String> {
+    self
+      .inner
+      .context_dependencies
+      .iter()
+      .map(|i| i.to_string_lossy().to_string())
+      .collect()
+  }
+
+  #[napi(getter)]
+  pub fn missing_dependencies(&self) -> Vec<String> {
+    self
+      .inner
+      .missing_dependencies
+      .iter()
+      .map(|i| i.to_string_lossy().to_string())
+      .collect()
+  }
+
+  #[napi(getter)]
+  pub fn build_dependencies(&self) -> Vec<String> {
+    self
+      .inner
+      .build_dependencies
+      .iter()
+      .map(|i| i.to_string_lossy().to_string())
+      .collect()
+  }
+
   #[napi(ts_args_type = r#"severity: "error" | "warning", title: string, message: string"#)]
   pub fn push_diagnostic(&mut self, severity: String, title: String, message: String) {
     let diagnostic = match severity.as_str() {

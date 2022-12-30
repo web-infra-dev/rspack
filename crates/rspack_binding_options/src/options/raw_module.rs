@@ -301,11 +301,30 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
         .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?
         .map(|v| v.into_bytes().into()),
       resource: loader_context.resource.to_owned(),
-      resource_path: loader_context.resource_path.to_owned(),
+      resource_path: loader_context.resource_path.to_string_lossy().to_string(),
       resource_fragment: loader_context.resource_fragment.map(|r| r.to_owned()),
       resource_query: loader_context.resource_query.map(|r| r.to_owned()),
       cacheable: loader_context.cacheable,
-      build_dependencies: loader_context.build_dependencies.clone(),
+      file_dependencies: loader_context
+        .file_dependencies
+        .iter()
+        .map(|i| i.to_string_lossy().to_string())
+        .collect(),
+      context_dependencies: loader_context
+        .context_dependencies
+        .iter()
+        .map(|i| i.to_string_lossy().to_string())
+        .collect(),
+      missing_dependencies: loader_context
+        .missing_dependencies
+        .iter()
+        .map(|i| i.to_string_lossy().to_string())
+        .collect(),
+      build_dependencies: loader_context
+        .build_dependencies
+        .iter()
+        .map(|i| i.to_string_lossy().to_string())
+        .collect(),
     };
 
     let loader_result = self
@@ -330,7 +349,26 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
     Ok(loader_result.map(|loader_result| {
       rspack_core::LoaderResult {
         cacheable: loader_result.cacheable,
-        build_dependencies: loader_result.build_dependencies,
+        file_dependencies: loader_result
+          .file_dependencies
+          .into_iter()
+          .map(|i| std::path::PathBuf::from(i))
+          .collect(),
+        context_dependencies: loader_result
+          .context_dependencies
+          .into_iter()
+          .map(|i| std::path::PathBuf::from(i))
+          .collect(),
+        missing_dependencies: loader_result
+          .missing_dependencies
+          .into_iter()
+          .map(|i| std::path::PathBuf::from(i))
+          .collect(),
+        build_dependencies: loader_result
+          .build_dependencies
+          .into_iter()
+          .map(|i| std::path::PathBuf::from(i))
+          .collect(),
         content: rspack_core::Content::from(Into::<Vec<u8>>::into(loader_result.content)),
         source_map,
         additional_data: loader_result
@@ -361,6 +399,9 @@ pub struct JsLoaderContext {
   pub resource_query: Option<String>,
   pub resource_fragment: Option<String>,
   pub cacheable: bool,
+  pub file_dependencies: Vec<String>,
+  pub context_dependencies: Vec<String>,
+  pub missing_dependencies: Vec<String>,
   pub build_dependencies: Vec<String>,
 }
 
@@ -368,6 +409,9 @@ pub struct JsLoaderContext {
 #[napi(object)]
 pub struct JsLoaderResult {
   pub content: Buffer,
+  pub file_dependencies: Vec<String>,
+  pub context_dependencies: Vec<String>,
+  pub missing_dependencies: Vec<String>,
   pub build_dependencies: Vec<String>,
   pub source_map: Option<Buffer>,
   pub additional_data: Option<Buffer>,

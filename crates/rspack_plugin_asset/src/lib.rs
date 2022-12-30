@@ -295,7 +295,10 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             r#""data:{};base64,{}""#,
             mime_guess::MimeGuess::from_path(Path::new(resource_path))
               .first()
-              .ok_or_else(|| anyhow::format_err!("failed to guess mime type of {resource_path}"))?,
+              .ok_or_else(|| anyhow::format_err!(
+                "failed to guess mime type of {}",
+                resource_path.display()
+              ))?,
             base64::encode(
               ast_or_source
                 .as_source()

@@ -379,7 +379,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       mut diagnostic,
     } = SWC_COMPILER.parse_file(
       cm.clone(),
-      &parse_context.resource_data.resource_path,
+      &parse_context.resource_data.resource_path.to_string_lossy(),
       content,
       ParserConfig {
         css_modules,
@@ -438,7 +438,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     self.exports = locals.map(|(_, exports)| exports);
 
     if self.meta.is_some() && self.exports.is_some() {
-      diagnostic.push(Diagnostic::warn("CSS Modules".to_string(), format!("file: {} is using `postcss.modules` and `builtins.css.modules` to process css modules at the same time, rspack will use `builtins.css.modules`'s result.", resource_data.resource_path), 0, 0));
+      diagnostic.push(Diagnostic::warn("CSS Modules".to_string(), format!("file: {} is using `postcss.modules` and `builtins.css.modules` to process css modules at the same time, rspack will use `builtins.css.modules`'s result.", resource_data.resource_path.display()), 0, 0));
     }
 
     Ok(

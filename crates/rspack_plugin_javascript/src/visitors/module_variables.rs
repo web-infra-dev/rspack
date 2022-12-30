@@ -1,4 +1,3 @@
-use std::path::Path;
 use sugar_path::SugarPath;
 
 use rspack_core::{runtime_globals, Compilation, Module};
@@ -38,7 +37,8 @@ pub fn module_variables<'a>(
         Box::new(Expr::Lit(Lit::Str(quote_str!(match dirname {
           "mock" => "/".to_string(),
           "warn-mock" => "/".to_string(),
-          "true" => Path::new(resource_resolved_data.resource_path.as_str())
+          "true" => resource_resolved_data
+            .resource_path
             .parent()
             .expect("TODO:")
             .relative(&compilation.options.context.as_ref())

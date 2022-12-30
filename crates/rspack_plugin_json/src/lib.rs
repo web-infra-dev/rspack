@@ -48,7 +48,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
             .fold(line_offset, |acc, cur| acc + cur.len_utf8());
           Error::TraceableError(
             TraceableError::from_path(
-              resource_data.resource_path.to_owned(),
+              resource_data.resource_path.to_string_lossy().to_string(),
               // one character offset
               start_offset,
               start_offset + 1,
@@ -66,7 +66,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           let offset = source.len();
           Error::TraceableError(
             TraceableError::from_path(
-              resource_data.resource_path.to_owned(),
+              resource_data.resource_path.to_string_lossy().to_string(),
               offset,
               offset,
               "Json parsing error".to_string(),

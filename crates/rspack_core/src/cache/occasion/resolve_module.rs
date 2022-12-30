@@ -56,15 +56,14 @@ impl ResolveModuleOccasion {
 
     // run generator and save to cache
     let data = generator(args).await?;
-    let file_paths = if let ResolveResult::Info(ref info) = data {
-      vec![info.path.to_string_lossy().to_string()]
-    } else {
-      vec![]
-    };
-    //    let file_paths = vec![id.clone()];
+    let mut paths = Vec::new();
+    if let ResolveResult::Info(info) = &data {
+      paths.push(info.path.as_path());
+    }
+
     let snapshot = self
       .snapshot_manager
-      .create_snapshot(file_paths, |option| &option.resolve)
+      .create_snapshot(&paths, |option| &option.resolve)
       .await?;
     storage.set(id.clone(), (snapshot, data.clone()));
     Ok(data)

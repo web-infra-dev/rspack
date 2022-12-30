@@ -73,21 +73,9 @@ export interface ResolvedModule {
 	parser?: RawModuleOptions["parser"];
 }
 
-interface LoaderContextInternal {
-	// TODO: It's not a good way to do this, we should split the `source` into a separate type and avoid using `serde_json`, but it's a temporary solution.
-	source: number[];
-	sourceMap: string | undefined | null;
-	additionalData: AdditionalData | undefined | null;
-	resource: string;
-	resourcePath: string;
-	resourceQuery: string | null;
-	resourceFragment: string | null;
-	cacheable: boolean;
-	buildDependencies: string[];
-}
 export interface LoaderContext
 	extends Pick<
-		LoaderContextInternal,
+		JsLoaderContext,
 		"resource" | "resourcePath" | "resourceQuery" | "resourceFragment"
 	> {
 	version: 2;
@@ -186,13 +174,13 @@ export interface AdditionalData {
 
 export interface LoaderResult {
 	cacheable: boolean;
-	buildDependencies?: string[];
 	content: string | Buffer;
 	sourceMap?: string | SourceMap;
 	additionalData?: AdditionalData;
 	fileDependencies: string[];
 	contextDependencies: string[];
 	missingDependencies: string[];
+	buildDependencies: string[];
 }
 
 function composeJsUse(
@@ -210,7 +198,6 @@ function composeJsUse(
 		const moduleContext = path.dirname(data.resourcePath);
 
 		let cacheable: boolean = data.cacheable;
-		let buildDependencies = data.buildDependencies;
 		let content: string | Buffer = data.content;
 		let sourceMap: string | SourceMap | undefined =
 			data.sourceMap?.toString("utf-8");
@@ -235,6 +222,7 @@ function composeJsUse(
 				const fileDependencies = [];
 				const contextDependencies = [];
 				const missingDependencies = [];
+				const buildDependencies = [];
 
 				function callback(
 					err: Error | null,
@@ -262,7 +250,8 @@ function composeJsUse(
 						additionalData,
 						fileDependencies,
 						contextDependencies,
-						missingDependencies
+						missingDependencies,
+						buildDependencies
 					});
 				}
 
@@ -587,23 +576,23 @@ function composeJsUse(
 					(typeof loaderResult.additionalData === "string"
 						? JSON.parse(loaderResult.additionalData)
 						: loaderResult.additionalData) ?? additionalData;
-				buildDependencies = loaderResult.buildDependencies ?? buildDependencies;
 				content = loaderResult.content ?? content;
 				sourceMap = loaderResult.sourceMap ?? sourceMap;
 				cacheable = loaderResult.cacheable ?? cacheable;
 
-				compiler.watching?.watch([
-					data.resourcePath,
-					...loaderResult.fileDependencies,
-					...loaderResult.contextDependencies,
-					...loaderResult.missingDependencies
-				]);
+				data.fileDependencies.push(...loaderResult.fileDependencies);
+				data.contextDependencies.push(...loaderResult.contextDependencies);
+				data.missingDependencies.push(...loaderResult.missingDependencies);
+				data.buildDependencies.push(...loaderResult.buildDependencies);
 			}
 		}
 
 		return {
 			cacheable: cacheable,
-			buildDependencies: buildDependencies,
+			fileDependencies: data.fileDependencies,
+			contextDependencies: data.contextDependencies,
+			missingDependencies: data.missingDependencies,
+			buildDependencies: data.buildDependencies,
 			content: toBuffer(content),
 			sourceMap: sourceMap
 				? toBuffer(

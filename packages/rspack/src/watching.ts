@@ -27,6 +27,11 @@ class Watching {
 					if (handler) {
 						handler(undefined, stats);
 					}
+					this.watch([
+						...this.compiler.compilation.fileDependencies,
+						...this.compiler.compilation.contextDependencies,
+						...this.compiler.compilation.missingDependencies
+					]);
 					console.log("build success, time cost", Date.now() - begin, "ms");
 				});
 			});
@@ -78,6 +83,11 @@ class Watching {
 					if (handler) {
 						handler(undefined, stats);
 					}
+					this.watch([
+						...this.compiler.compilation.fileDependencies,
+						...this.compiler.compilation.contextDependencies,
+						...this.compiler.compilation.missingDependencies
+					]);
 
 					console.log("rebuild success, time cost", Date.now() - begin, "ms");
 				});
