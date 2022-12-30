@@ -11,7 +11,7 @@ crossbeam = "0.8.1"
 dashmap = "5.0.0"
 futures = "0.3.21"
 globset = "0.4.9"
-hashbrown = { version = "0.13.1", features = ["rayon", "serde", "ahash"] }
+hashbrown = { version = "0.12.3", features = ["rayon", "serde", "ahash"] }
 hashlink = "0.8.1"
 indexmap = "1.9.1"
 nodejs-resolver = "0.0.58"

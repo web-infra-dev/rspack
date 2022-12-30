@@ -1194,7 +1194,7 @@ impl Compilation {
       let mut chunks = self
         .chunk_by_ukey
         .keys()
-        .filter(|key| !runtime_chunks.contains(*key))
+        .filter(|key| !runtime_chunks.contains(key))
         .copied()
         .collect::<Vec<_>>();
       chunks.extend(runtime_chunks);

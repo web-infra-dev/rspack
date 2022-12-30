@@ -52,32 +52,32 @@ impl FactorizeResult {
     }
   }
 
-  pub fn with_file_dependency(mut self, file: PathBuf) -> Self {
+  pub fn file_dependency(mut self, file: PathBuf) -> Self {
     self.file_dependencies.insert(file);
     self
   }
 
-  pub fn with_file_dependencies(mut self, files: impl IntoIterator<Item = PathBuf>) -> Self {
+  pub fn file_dependencies(mut self, files: impl IntoIterator<Item = PathBuf>) -> Self {
     self.file_dependencies.extend(files);
     self
   }
 
-  pub fn with_context_dependency(mut self, context: PathBuf) -> Self {
+  pub fn context_dependency(mut self, context: PathBuf) -> Self {
     self.context_dependencies.insert(context);
     self
   }
 
-  pub fn with_context_dependencies(mut self, contexts: impl IntoIterator<Item = PathBuf>) -> Self {
+  pub fn context_dependencies(mut self, contexts: impl IntoIterator<Item = PathBuf>) -> Self {
     self.context_dependencies.extend(contexts);
     self
   }
 
-  pub fn with_missing_dependency(mut self, missing: PathBuf) -> Self {
+  pub fn missing_dependency(mut self, missing: PathBuf) -> Self {
     self.missing_dependencies.insert(missing);
     self
   }
 
-  pub fn with_missing_dependencies(mut self, missings: impl IntoIterator<Item = PathBuf>) -> Self {
+  pub fn missing_dependencies(mut self, missings: impl IntoIterator<Item = PathBuf>) -> Self {
     self.missing_dependencies.extend(missings);
     self
   }
@@ -248,7 +248,7 @@ impl NormalModuleFactory {
     };
 
     Ok(Some(
-      FactorizeResult::new(module).with_file_dependency(file_dependency),
+      FactorizeResult::new(module).file_dependency(file_dependency),
     ))
   }
 
