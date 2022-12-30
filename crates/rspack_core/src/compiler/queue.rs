@@ -178,7 +178,7 @@ pub struct BuildTask {
 pub enum BuildTaskResult {
   BuildSuccess {
     module: Box<dyn Module>,
-    build_result: BuildResult,
+    build_result: Box<BuildResult>,
     diagnostics: Vec<Diagnostic>,
   },
   BuildWithError {
@@ -247,7 +247,7 @@ impl WorkerTask for BuildTask {
         let (build_result, diagnostics) = build_result.split_into_parts();
         Ok(TaskResult::Build(BuildTaskResult::BuildSuccess {
           module,
-          build_result,
+          build_result: Box::new(build_result),
           diagnostics,
         }))
       }
