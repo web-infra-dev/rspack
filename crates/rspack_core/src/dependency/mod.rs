@@ -1,1 +1,35 @@
-// trait Dependency {}
+mod commonjs;
+pub use commonjs::*;
+
+use std::{any::Any, fmt::Debug};
+
+use crate::{AsAny, DynHash, ModuleIdentifier};
+
+pub trait Dependency: AsAny + DynHash + Debug {
+  fn parent_module_identifier(&self) -> Option<&ModuleIdentifier>;
+  fn as_module_dependency(&self) -> Option<&dyn ModuleDependency> {
+    None
+  }
+}
+
+pub enum ModuleDependencyCategory {
+  ESM,
+  CommonJS,
+  Other(String),
+}
+
+pub trait ModuleDependency: Dependency {
+  fn request(&self) -> &str;
+  fn user_request(&self) -> &str;
+  fn category(&self) -> ModuleDependencyCategory;
+}
+
+impl dyn Dependency + '_ {
+  pub fn downcast_ref<D: Any>(&self) -> Option<&D> {
+    self.as_any().downcast_ref::<D>()
+  }
+
+  pub fn downcast_mut<D: Any>(&mut self) -> Option<&mut D> {
+    self.as_any_mut().downcast_mut::<D>()
+  }
+}
