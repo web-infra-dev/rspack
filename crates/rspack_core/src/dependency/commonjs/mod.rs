@@ -1,2 +1,2 @@
-mod require_dependency;
-pub use require_dependency::*;
+mod cjs_dependency;
+pub use cjs_dependency::*;

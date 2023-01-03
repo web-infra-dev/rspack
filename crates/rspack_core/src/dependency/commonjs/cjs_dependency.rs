@@ -1,16 +1,16 @@
 use crate::{
   dependency::{Dependency, ModuleDependency, ModuleDependencyCategory},
-  AsAny, ModuleIdentifier,
+  ModuleIdentifier,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub struct CommonJsRequireDependency {
+pub struct CommonJSDependency {
   parent_module_identifier: Option<ModuleIdentifier>,
   request: String,
   user_request: String,
 }
 
-impl CommonJsRequireDependency {
+impl CommonJSDependency {
   pub fn new(
     parent_module_identifier: Option<ModuleIdentifier>,
     request: String,
@@ -24,7 +24,7 @@ impl CommonJsRequireDependency {
   }
 }
 
-impl Dependency for CommonJsRequireDependency {
+impl Dependency for CommonJSDependency {
   fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
     self.parent_module_identifier.as_ref()
   }
@@ -34,7 +34,7 @@ impl Dependency for CommonJsRequireDependency {
   }
 }
 
-impl ModuleDependency for CommonJsRequireDependency {
+impl ModuleDependency for CommonJSDependency {
   fn request(&self) -> &str {
     &self.request
   }

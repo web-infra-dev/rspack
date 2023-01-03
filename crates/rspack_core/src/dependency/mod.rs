@@ -1,5 +1,10 @@
+mod code_generatable;
+pub use code_generatable::*;
+
 mod commonjs;
 pub use commonjs::*;
+mod esm;
+pub use esm::*;
 
 use std::{any::Any, fmt::Debug};
 
@@ -17,7 +22,7 @@ pub trait Dependency: AsAny + DynHash + DynClone + Debug {
 pub enum ModuleDependencyCategory {
   ESM,
   CommonJS,
-  Other(String),
+  URL,
 }
 
 pub trait ModuleDependency: Dependency {
