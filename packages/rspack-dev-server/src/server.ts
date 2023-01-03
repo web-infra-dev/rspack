@@ -292,7 +292,7 @@ export class RspackDevServer {
 					if (req.url.indexOf("/lazy-compilation-web/") > -1) {
 						const path = req.url.replace("/lazy-compilation-web/", "");
 						if (fs.existsSync(path)) {
-							this.compiler.rebuild([path], (error, stats) => {
+							this.compiler.rebuild(new Set([path]), new Set(), (error, stats) => {
 								if (error) {
 									throw error;
 								}

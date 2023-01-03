@@ -1,17 +1,9 @@
-import type { WatchOptions } from "chokidar";
+import * as watchpack from "watchpack";
 
-export type Watch = WatchOptions;
+export type WatchOptions = watchpack.WatchOptions;
 
-export type ResolvedWatch = WatchOptions;
+export type ResolvedWatch = watchpack.WatchOptions;
 
-export function resolveWatchOption(watch: Watch = {}): ResolvedWatch {
-	const ignored = watch.ignored ?? [
-		"**/dist/**",
-		"**/node_modules/**",
-		"**/.git/**"
-	];
-	return {
-		...watch,
-		ignored
-	};
+export function resolveWatchOption() {
+
 }

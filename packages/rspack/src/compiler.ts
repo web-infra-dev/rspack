@@ -1,24 +1,19 @@
 import path from "path";
-import fs, { stat } from "fs";
-import util from "util";
+import fs from "fs";
 
 import * as tapable from "tapable";
 import { SyncHook, SyncBailHook, Callback } from "tapable";
 import asyncLib from "neo-async";
-import * as sources from "webpack-sources";
-import type { FSWatcher } from "chokidar";
 
 import Watching from "./watching";
 import * as binding from "@rspack/binding";
-import chokidar from "chokidar";
 import { Logger } from "./logging/Logger";
-import { resolveWatchOption } from "./config/watch";
-import type { Watch } from "./config/watch";
+import type { WatchOptions } from "./config/watch";
 import { RspackOptionsNormalized } from "./config";
 import { Stats } from "./stats";
 import { Compilation } from "./compilation";
-import { createSourceFromRaw } from "./util/createSource";
 import ResolverFactory from "./ResolverFactory";
+import { WatchFileSystem } from "./util/fs";
 
 class EntryPlugin {
 	apply() {}
@@ -40,6 +35,9 @@ class Compiler {
 	name: string;
 	inputFileSystem: any;
 	outputFileSystem: any;
+	watchFileSystem: WatchFileSystem;
+	intermediateFileSystem: any;
+	watchMode: boolean;
 	context: string;
 	hooks: {
 		done: tapable.AsyncSeriesHook<Stats>;
@@ -300,7 +298,8 @@ class Compiler {
 	}
 	// Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
 	rebuild(
-		changedFiles: string[],
+		modifiedFiles: ReadonlySet<string>,
+		removedFiles: ReadonlySet<string>,
 		cb: (error?: Error, stats?: binding.JsStatsCompilation) => void
 	) {
 		const rebuild_cb = this.#instance.unsafe_rebuild.bind(this.#instance) as (
@@ -308,30 +307,21 @@ class Compiler {
 			removed: string[],
 			cb: Callback<Error, any>
 		) => void;
-		rebuild_cb(changedFiles, [], (err, stats) => {
+		rebuild_cb([...modifiedFiles], [...removedFiles], (err, stats) => {
 			if (err) {
 				cb(err);
 			} else {
-				this.hooks.done.callAsync(new Stats(stats, this.compilation), err => {
-					if (err) {
-						throw err;
-					}
-				});
 				cb(null, stats);
 			}
 		});
 	}
 
 	watch(
-		watchOptions?: Watch,
-		handler?: (error: Error, stats: Stats) => void
+		watchOptions: WatchOptions,
+		handler: (error: Error, stats: Stats) => void
 	): Watching {
-		const options = resolveWatchOption(watchOptions);
-		const watcher = chokidar.watch(this.options.context, {
-			ignoreInitial: true,
-			...options
-		});
-		this.watching = new Watching(this, watcher, handler);
+		this.watchMode = true;
+		this.watching = new Watching(this, watchOptions, handler);
 		return this.watching;
 	}
 

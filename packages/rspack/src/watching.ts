@@ -1,116 +1,173 @@
+import * as binding from '@rspack/binding';
 import type { Compiler } from ".";
-import type { FSWatcher } from "chokidar";
 import { Stats } from ".";
+import { WatchOptions } from "./config/watch";
+import { FileSystemInfoEntry, Watcher } from "./util/fs";
 
 class Watching {
-	watcher: FSWatcher;
+	watcher?: Watcher;
+	pausedWatcher?: Watcher;
 	compiler: Compiler;
+	handler: (error?: Error, stats?: Stats) => void;
+	watchOptions: WatchOptions;
+	lastWatcherStartTime: number;
+	running: boolean;
+	#initial: boolean;
+	#closed: boolean;
+	#collectedChangedFiles?: Set<string>;
+	#collectedRemovedFiles?: Set<string>;
 
 	constructor(
 		compiler: Compiler,
-		watcher: FSWatcher,
-		handler?: (error?: Error, stats?: Stats) => void
+		watchOptions: WatchOptions,
+		handler: (error?: Error, stats?: Stats) => void
 	) {
-		this.watcher = watcher;
 		this.compiler = compiler;
+		this.running = false;
+		this.#initial = true;
+		this.#closed = false;
+		this.watchOptions = watchOptions;
+		this.handler = handler;
 
-		const build = () => {
-			const begin = Date.now();
-			compiler.build((error, rawStats) => {
-				if (error && handler) {
-					return handler(error);
-				} else if (error) {
-					throw error;
-				}
-				const stats = new Stats(rawStats, compiler.compilation);
-				compiler.hooks.done.callAsync(stats, () => {
-					if (handler) {
-						handler(undefined, stats);
-					}
-					this.watch([
-						...this.compiler.compilation.fileDependencies,
-						...this.compiler.compilation.contextDependencies,
-						...this.compiler.compilation.missingDependencies
-					]);
-					console.log("build success, time cost", Date.now() - begin, "ms");
-				});
-			});
-		};
-
-		watcher.on("ready", build);
-
-		let pendingChangedFilepaths = new Set<string>();
-		let isBuildFinished = true;
-
-		// TODO: should use aggregated
-		watcher.on("change", async changedFilepath => {
-			// TODO: only build because we lack the snapshot info of file.
-			// TODO: it means there a lot of things to do....
-
-			// store the changed file path, it may or may not be consumed right now
-			if (!isBuildFinished) {
-				pendingChangedFilepaths.add(changedFilepath);
-				console.log(
-					"hit change but rebuild is not finished, caching files: ",
-					pendingChangedFilepaths
-				);
-				return;
-			}
-
-			const rebuildWithFilepaths = (changedFilepath: string[]) => {
-				// Rebuild finished, we can start to rebuild again
-				isBuildFinished = false;
-				console.log("hit change and start to build:", changedFilepath);
-
-				const begin = Date.now();
-				compiler.rebuild(changedFilepath, (error, rawStats) => {
-					isBuildFinished = true;
-
-					const hasPending = Boolean(pendingChangedFilepaths.size);
-
-					// If we have any pending task left, we should rebuild again with the pending files
-					if (hasPending) {
-						const pending = [...pendingChangedFilepaths];
-						pendingChangedFilepaths.clear();
-						rebuildWithFilepaths(pending);
-					}
-					if (error && handler) {
-						return handler(error);
-					} else if (error) {
-						throw error;
-					}
-					const stats = new Stats(rawStats, compiler.compilation);
-					if (handler) {
-						handler(undefined, stats);
-					}
-					this.watch([
-						...this.compiler.compilation.fileDependencies,
-						...this.compiler.compilation.contextDependencies,
-						...this.compiler.compilation.missingDependencies
-					]);
-
-					console.log("rebuild success, time cost", Date.now() - begin, "ms");
-				});
-			};
-
-			if (compiler.options.devServer) {
-				rebuildWithFilepaths([...pendingChangedFilepaths, changedFilepath]);
-			} else {
-				build();
-			}
-		});
+		process.nextTick(() => {
+			if (this.#initial) this.#invalidate();
+			this.#initial = false;
+		})
 	}
 
-	watch(paths: string[]) {
-		this.watcher.add(paths);
+	watch(files: Iterable<string>, dirs: Iterable<string>, missing: Iterable<string>) {
+		this.pausedWatcher = null;
+		this.watcher = this.compiler.watchFileSystem.watch(
+			files,
+			dirs,
+			missing,
+			this.lastWatcherStartTime,
+			this.watchOptions,
+			(
+				err,
+				fileTimeInfoEntries,
+				contextTimeInfoEntries,
+				changedFiles,
+				removedFiles
+			) => {
+				if (err) {
+					return this.handler(err);
+				}
+				this.#invalidate(
+					fileTimeInfoEntries,
+					contextTimeInfoEntries,
+					changedFiles,
+					removedFiles
+				);
+			},
+			() => {}
+		);
 	}
 
 	close(callback?: () => void) {
+		this.#closed = true;
+		if (this.watcher) {
+			this.watcher.close();
+			this.watcher = null;
+		}
+		if (this.pausedWatcher) {
+			this.pausedWatcher.close();
+			this.pausedWatcher = null;
+		}
 		this.compiler.watching = undefined;
-		this.watcher.close().then(callback);
+		this.compiler.watchMode = false;
+		callback();
 	}
 
-	invalidate() {}
+	invalidate() {
+		this.#invalidate();
+	}
+
+	#invalidate(
+		fileTimeInfoEntries?: Map<string, FileSystemInfoEntry | "ignore">,
+		contextTimeInfoEntries?: Map<string, FileSystemInfoEntry | "ignore">,
+		changedFiles?: Set<string>,
+		removedFiles?: Set<string>,
+	) {
+		if (this.running) {
+			this.#mergeWithCollected(changedFiles, removedFiles);
+			console.log(
+				"hit change but rebuild is not finished, pending files: ",
+				[...this.#collectedChangedFiles, ...this.#collectedRemovedFiles]
+			);
+			return;
+		}
+		this.#go(changedFiles, removedFiles);
+	}
+
+	#go(changedFiles?: ReadonlySet<string>, removedFiles?: ReadonlySet<string>) {
+		this.running = true;
+		if (this.watcher) {
+			this.pausedWatcher = this.watcher;
+			this.lastWatcherStartTime = Date.now();
+			this.watcher.pause();
+			this.watcher = null;
+		} else if (!this.lastWatcherStartTime) {
+			this.lastWatcherStartTime = Date.now();
+		}
+		const compile = (this.compiler.options.devServer && !this.#initial)
+			? (changes, removals, cb) => this.compiler.rebuild(changes, removals, cb)
+			: (_a, _b, cb) => this.compiler.build(cb);
+		const begin = Date.now();
+		this.compiler.hooks.watchRun.callAsync(this.compiler, err => {
+			if (err) this.#done(err);
+			compile(changedFiles, removedFiles, (err, rawStats) => {
+				this.#done(err, rawStats);
+				console.log("rebuild success, time cost", Date.now() - begin, "ms");
+			});
+		});
+	}
+
+	#done(error?: Error, rawStats?: binding.JsStatsCompilation) {
+		this.running = false;
+		if (error) {
+			return this.handler(error);
+		}
+		const stats = new Stats(rawStats, this.compiler.compilation);
+		this.handler(undefined, stats);
+		this.compiler.hooks.done.callAsync(stats, () => {
+			const hasPending = this.#collectedChangedFiles || this.#collectedRemovedFiles;
+			// If we have any pending task left, we should rebuild again with the pending files
+			if (hasPending) {
+				const pendingChengedFiles = this.#collectedChangedFiles;
+				const pendingRemovedFiles = this.#collectedRemovedFiles;
+				this.#collectedChangedFiles = undefined;
+				this.#collectedRemovedFiles = undefined;
+				this.#go(pendingChengedFiles, pendingRemovedFiles);
+			}
+			process.nextTick(() => {
+				if (!this.#closed) {
+					this.watch(
+						this.compiler.compilation.fileDependencies,
+						this.compiler.compilation.contextDependencies,
+						this.compiler.compilation.missingDependencies
+					);
+				}
+			});
+		});
+	}
+
+	#mergeWithCollected(changedFiles: ReadonlySet<string>, removedFiles: ReadonlySet<string>) {
+		if (!changedFiles) return;
+		if (!this.#collectedChangedFiles) {
+			this.#collectedChangedFiles = new Set(changedFiles);
+			this.#collectedRemovedFiles = new Set(removedFiles);
+		} else {
+			for (const file of changedFiles) {
+				this.#collectedChangedFiles.add(file);
+				this.#collectedRemovedFiles.delete(file);
+			}
+			for (const file of removedFiles) {
+				this.#collectedChangedFiles.delete(file);
+				this.#collectedRemovedFiles.add(file);
+			}
+		}
+	}
 }
 
 export default Watching;

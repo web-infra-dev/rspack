@@ -232,7 +232,7 @@ export function describeCases(config: {
 										if (changed.length === 0) {
 											throw Error("can not found changed files");
 										}
-										compiler.rebuild(changed, (err, rawStats) => {
+										compiler.rebuild(new Set(changed), new Set(), (err, rawStats) => {
 											if (err) {
 												return callback(err);
 											}
