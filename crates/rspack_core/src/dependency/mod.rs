@@ -3,9 +3,11 @@ pub use commonjs::*;
 
 use std::{any::Any, fmt::Debug};
 
+use dyn_clone::{clone_trait_object, DynClone};
+
 use crate::{AsAny, DynHash, ModuleIdentifier};
 
-pub trait Dependency: AsAny + DynHash + Debug {
+pub trait Dependency: AsAny + DynHash + DynClone + Debug {
   fn parent_module_identifier(&self) -> Option<&ModuleIdentifier>;
   fn as_module_dependency(&self) -> Option<&dyn ModuleDependency> {
     None
@@ -33,3 +35,6 @@ impl dyn Dependency + '_ {
     self.as_any_mut().downcast_mut::<D>()
   }
 }
+
+clone_trait_object!(Dependency);
+clone_trait_object!(ModuleDependency);

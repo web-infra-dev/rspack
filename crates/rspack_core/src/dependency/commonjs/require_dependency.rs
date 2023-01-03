@@ -3,7 +3,7 @@ use crate::{
   AsAny, ModuleIdentifier,
 };
 
-#[derive(Debug, Hash, PartialEq, Eq)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct CommonJsRequireDependency {
   parent_module_identifier: Option<ModuleIdentifier>,
   request: String,
