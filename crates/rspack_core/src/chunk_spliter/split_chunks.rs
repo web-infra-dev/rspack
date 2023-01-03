@@ -9,10 +9,7 @@ use std::collections::HashMap;
 use rspack_error::Result;
 use tracing::instrument;
 
-use crate::{
-  uri_to_chunk_name, ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation,
-  ModuleIdentifier,
-};
+use crate::{ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier};
 
 #[instrument(skip_all)]
 pub fn code_splitting(compilation: &mut Compilation) -> Result<()> {
