@@ -9,7 +9,6 @@ use sugar_path::SugarPath;
 use swc_core::common::{util::take::Take, Mark, GLOBALS};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::atoms::JsWord;
-use swc_core::ecma::utils;
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 // use swc_atoms::JsWord;
@@ -251,7 +250,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       .decl_reference_map
       .iter()
       .flat_map(|(symbol, ref_list)| {
-        dbg!(&symbol);
         // it class decl, fn decl is lazy they don't immediately generate side effects unless they are called,
         // Or constructed. The init of var decl will evaluate except rhs is function expr or arrow expr.
         if !symbol.flag.contains(SymbolFlag::VAR_DECL)
@@ -299,7 +297,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       })
       .collect::<Vec<_>>();
     self.used_symbol_ref.extend(side_effect_symbol_list);
-    dbg!(&self.used_symbol_ref);
     let side_effect_symbol_list = self
       .assign_reference_map
       .iter()
