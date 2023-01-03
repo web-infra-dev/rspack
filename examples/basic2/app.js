@@ -1,9 +1,7 @@
 import { answer } from "./answer"
 
 
-export default function() {
-	answer
-};
+export default answer;
 
 
 

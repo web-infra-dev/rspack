@@ -12,6 +12,7 @@ bitflags! {
         const ARROW_EXPR = 1 << 3;
         const FUNCTION_EXPR = 1 << 4;
         const CLASS_EXPR = 1 << 5;
+        const ALIAS = 1 << 6;
         const EXPORT_DEFAULT = Self::DEFAULT.bits | Self::EXPORT.bits;
     }
 }

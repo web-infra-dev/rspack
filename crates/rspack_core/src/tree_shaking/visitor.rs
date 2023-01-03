@@ -247,7 +247,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     }
     // Any var declaration has reference a symbol from other module, it is marked as used
     // Because the symbol import from other module possibly has side effect
-    // dbg!(&self.decl_reference_map);
     let side_effect_symbol_list = self
       .decl_reference_map
       .iter()
@@ -268,7 +267,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           if symbol
             .flag
             .intersection(
-              SymbolFlag::FUNCTION_EXPR | SymbolFlag::ARROW_EXPR | SymbolFlag::CLASS_EXPR,
+              SymbolFlag::FUNCTION_EXPR
+                | SymbolFlag::ARROW_EXPR
+                | SymbolFlag::CLASS_EXPR
+                | SymbolFlag::ALIAS,
             )
             .bits()
             .count_ones()
@@ -522,6 +524,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     match node.expr {
       box Expr::Fn(_) => symbol_ext.flag.insert(SymbolFlag::FUNCTION_EXPR),
       box Expr::Arrow(_) => symbol_ext.flag.insert(SymbolFlag::ARROW_EXPR),
+      box Expr::Ident(_) => symbol_ext.flag.insert(SymbolFlag::ALIAS),
       _ => {}
     };
     self.current_body_owner_symbol_ext = Some(symbol_ext);

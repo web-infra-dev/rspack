@@ -48,12 +48,7 @@ const exportDefaultUsed = __webpack_exports_info__.default.used;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: ()=>_default
-});
 __webpack_require__.exportStar(__webpack_require__("./package1/script2.js"), exports);
-const _default = 1;
 },
 "./package1/script2.js": function (module, exports, __webpack_require__) {
 "use strict";
