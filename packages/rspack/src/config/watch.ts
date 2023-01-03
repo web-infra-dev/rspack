@@ -4,6 +4,4 @@ export type WatchOptions = watchpack.WatchOptions;
 
 export type ResolvedWatch = watchpack.WatchOptions;
 
-export function resolveWatchOption() {
-
-}
+export function resolveWatchOption() {}

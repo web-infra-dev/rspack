@@ -1,4 +1,4 @@
-import * as binding from '@rspack/binding';
+import * as binding from "@rspack/binding";
 import type { Compiler } from ".";
 import { Stats } from ".";
 import { WatchOptions } from "./config/watch";
@@ -32,10 +32,14 @@ class Watching {
 		process.nextTick(() => {
 			if (this.#initial) this.#invalidate();
 			this.#initial = false;
-		})
+		});
 	}
 
-	watch(files: Iterable<string>, dirs: Iterable<string>, missing: Iterable<string>) {
+	watch(
+		files: Iterable<string>,
+		dirs: Iterable<string>,
+		missing: Iterable<string>
+	) {
 		this.pausedWatcher = null;
 		this.watcher = this.compiler.watchFileSystem.watch(
 			files,
@@ -87,14 +91,14 @@ class Watching {
 		fileTimeInfoEntries?: Map<string, FileSystemInfoEntry | "ignore">,
 		contextTimeInfoEntries?: Map<string, FileSystemInfoEntry | "ignore">,
 		changedFiles?: Set<string>,
-		removedFiles?: Set<string>,
+		removedFiles?: Set<string>
 	) {
 		if (this.running) {
 			this.#mergeWithCollected(changedFiles, removedFiles);
-			console.log(
-				"hit change but rebuild is not finished, pending files: ",
-				[...this.#collectedChangedFiles, ...this.#collectedRemovedFiles]
-			);
+			console.log("hit change but rebuild is not finished, pending files: ", [
+				...this.#collectedChangedFiles,
+				...this.#collectedRemovedFiles
+			]);
 			return;
 		}
 		this.#go(changedFiles, removedFiles);
@@ -110,9 +114,11 @@ class Watching {
 		} else if (!this.lastWatcherStartTime) {
 			this.lastWatcherStartTime = Date.now();
 		}
-		const compile = (this.compiler.options.devServer && !this.#initial)
-			? (changes, removals, cb) => this.compiler.rebuild(changes, removals, cb)
-			: (_a, _b, cb) => this.compiler.build(cb);
+		const compile =
+			this.compiler.options.devServer && !this.#initial
+				? (changes, removals, cb) =>
+						this.compiler.rebuild(changes, removals, cb)
+				: (_a, _b, cb) => this.compiler.build(cb);
 		const begin = Date.now();
 		this.compiler.hooks.watchRun.callAsync(this.compiler, err => {
 			if (err) this.#done(err);
@@ -131,7 +137,8 @@ class Watching {
 		const stats = new Stats(rawStats, this.compiler.compilation);
 		this.handler(undefined, stats);
 		this.compiler.hooks.done.callAsync(stats, () => {
-			const hasPending = this.#collectedChangedFiles || this.#collectedRemovedFiles;
+			const hasPending =
+				this.#collectedChangedFiles || this.#collectedRemovedFiles;
 			// If we have any pending task left, we should rebuild again with the pending files
 			if (hasPending) {
 				const pendingChengedFiles = this.#collectedChangedFiles;
@@ -152,7 +159,10 @@ class Watching {
 		});
 	}
 
-	#mergeWithCollected(changedFiles: ReadonlySet<string>, removedFiles: ReadonlySet<string>) {
+	#mergeWithCollected(
+		changedFiles: ReadonlySet<string>,
+		removedFiles: ReadonlySet<string>
+	) {
 		if (!changedFiles) return;
 		if (!this.#collectedChangedFiles) {
 			this.#collectedChangedFiles = new Set(changedFiles);

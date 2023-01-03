@@ -232,43 +232,49 @@ export function describeCases(config: {
 										if (changed.length === 0) {
 											throw Error("can not found changed files");
 										}
-										compiler.rebuild(new Set(changed), new Set(), (err, rawStats) => {
-											if (err) {
-												return callback(err);
+										compiler.rebuild(
+											new Set(changed),
+											new Set(),
+											(err, rawStats) => {
+												if (err) {
+													return callback(err);
+												}
+												if (!rawStats) {
+													return callback(
+														Error("stats is undefined in rebuild")
+													);
+												}
+												const jsonStats = new Stats(
+													rawStats,
+													compiler!.compilation
+												).toJson();
+												if (
+													checkArrayExpectation(
+														testDirectory,
+														jsonStats,
+														"error",
+														"errors" + fakeUpdateLoaderOptions.updateIndex,
+														"Error",
+														callback
+													)
+												) {
+													return;
+												}
+												if (
+													checkArrayExpectation(
+														testDirectory,
+														jsonStats,
+														"warning",
+														"warnings" + fakeUpdateLoaderOptions.updateIndex,
+														"Warning",
+														callback
+													)
+												) {
+													return;
+												}
+												callback(null, jsonStats);
 											}
-											if (!rawStats) {
-												return callback(Error("stats is undefined in rebuild"));
-											}
-											const jsonStats = new Stats(
-												rawStats,
-												compiler!.compilation
-											).toJson();
-											if (
-												checkArrayExpectation(
-													testDirectory,
-													jsonStats,
-													"error",
-													"errors" + fakeUpdateLoaderOptions.updateIndex,
-													"Error",
-													callback
-												)
-											) {
-												return;
-											}
-											if (
-												checkArrayExpectation(
-													testDirectory,
-													jsonStats,
-													"warning",
-													"warnings" + fakeUpdateLoaderOptions.updateIndex,
-													"Warning",
-													callback
-												)
-											) {
-												return;
-											}
-											callback(null, jsonStats);
-										});
+										);
 									}
 									function _require(module: string) {
 										if (module.startsWith("./")) {
