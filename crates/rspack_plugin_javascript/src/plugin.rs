@@ -414,7 +414,8 @@ impl Plugin for JsPlugin {
     let hash = Some(chunk.get_render_hash());
 
     let output_path = filename_template.render(FilenameRenderOptions {
-      filename: chunk.name.clone(),
+      // See https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/TemplatedPathPlugin.js#L214
+      name: chunk.name_for_filename_template(),
       extension: Some(".js".to_owned()),
       id: chunk.id.clone(),
       contenthash: Some(

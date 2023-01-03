@@ -259,7 +259,7 @@ pub fn get_short_chunk_name(
 
   let short_module_names = modules
     .iter()
-    .map(|module| get_short_module_name(module, context))
+    .map(|module| request_to_id(&get_short_module_name(module, context)))
     .collect::<Vec<_>>();
 
   let mut id_name_hints = chunk.id_name_hints.iter().cloned().collect::<Vec<_>>();

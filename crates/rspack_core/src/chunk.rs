@@ -251,6 +251,14 @@ impl Chunk {
       .as_ref()
       .expect("Should set id before calling expect_id")
   }
+
+  pub fn name_for_filename_template(&self) -> Option<String> {
+    if self.name.is_some() {
+      self.name.clone()
+    } else {
+      self.id.clone()
+    }
+  }
 }
 
 pub fn chunk_hash_js<'a>(

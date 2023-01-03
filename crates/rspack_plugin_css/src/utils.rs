@@ -28,7 +28,7 @@ impl swc_css::modules::TransformConfig for ModulesTransformConfig<'_> {
       .local_name_ident
       .render(LocalIdentNameRenderOptions {
         filename_options: rspack_core::FilenameRenderOptions {
-          filename: self.name.clone(),
+          name: self.name.clone(),
           path: self.path.clone(),
           extension: self.ext.clone(),
           hash: Some({

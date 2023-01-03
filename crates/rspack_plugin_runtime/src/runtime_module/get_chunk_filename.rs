@@ -76,7 +76,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                 chunks_map.insert(
                   chunk.expect_id().to_string(),
                   filename_template.render(FilenameRenderOptions {
-                    filename: chunk.name.clone(),
+                    name: chunk.name_for_filename_template(),
                     extension: Some(format!(".{}", self.content_type)),
                     id: chunk.id.clone(),
                     contenthash: Some(

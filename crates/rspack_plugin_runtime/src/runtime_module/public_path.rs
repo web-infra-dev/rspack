@@ -34,7 +34,7 @@ impl RuntimeModule for PublicPathRuntimeModule {
         );
         let hash = Some(chunk.get_render_hash());
         let filename = filename.render(FilenameRenderOptions {
-          filename: chunk.name.clone(),
+          name: chunk.name_for_filename_template(),
           extension: Some(".js".to_string()),
           id: chunk.id.clone(),
           contenthash: hash.clone(),

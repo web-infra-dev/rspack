@@ -254,7 +254,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     let hash = hash_value_to_string(self.hash_for_ast_or_source(ast_or_source));
 
     let asset_filename = asset_filename_template.render(FilenameRenderOptions {
-      filename: module.as_normal_module().and_then(|m| {
+      name: module.as_normal_module().and_then(|m| {
         let p = Path::new(&m.resource_resolved_data().resource_path);
         p.file_stem().map(|s| s.to_string_lossy().to_string())
       }),
@@ -484,7 +484,7 @@ impl Plugin for AssetPlugin {
                   .output
                   .asset_module_filename
                   .render(FilenameRenderOptions {
-                    filename: Some(
+                    name: Some(
                       path
                         .file_stem()
                         .map(|s| s.to_string_lossy())
