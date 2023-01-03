@@ -748,13 +748,13 @@ impl Compilation {
         if debug_care_module_id(uri_key) {
           dbg!(
             &uri_key,
-            // &analyzer.export_all_list,
-            &analyzer.export_map,
-            &analyzer.import_map,
-            &analyzer.decl_reference_map,
-            &analyzer.assign_reference_map,
-            &analyzer.reachable_import_and_export,
-            &analyzer.used_symbol_ref
+            //   // &analyzer.export_all_list,
+            //   &analyzer.export_map,
+            //   &analyzer.import_map,
+            //   &analyzer.decl_reference_map,
+            //   &analyzer.assign_reference_map,
+            //   &analyzer.reachable_import_and_export,
+            //   &analyzer.used_symbol_ref
           );
         }
 

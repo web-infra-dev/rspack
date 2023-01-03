@@ -10,7 +10,7 @@ const _script1 = __webpack_require__("./package2/script.js");
 it("should load module correctly", ()=>{
     __webpack_require__("./module.js");
 });
-if (process.env.NODE_ENV === "production") it("default export should be unused", ()=>{
+it("default export should be unused", ()=>{
     expect(_script.exportDefaultUsed).toBe(false);
     expect(_script2.exportDefaultUsed).toBe(false);
 });
@@ -69,14 +69,6 @@ const exportDefaultUsed = __webpack_exports_info__.default.used;
 },
 "./package1/script3.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: ()=>_default
-});
-const _default = 1;
 },
 "./package2/script.js": function (module, exports, __webpack_require__) {
 "use strict";

@@ -247,10 +247,12 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     }
     // Any var declaration has reference a symbol from other module, it is marked as used
     // Because the symbol import from other module possibly has side effect
+    // dbg!(&self.decl_reference_map);
     let side_effect_symbol_list = self
       .decl_reference_map
       .iter()
       .flat_map(|(symbol, ref_list)| {
+        dbg!(&symbol);
         // it class decl, fn decl is lazy they don't immediately generate side effects unless they are called,
         // Or constructed. The init of var decl will evaluate except rhs is function expr or arrow expr.
         if !symbol.flag.contains(SymbolFlag::VAR_DECL)
@@ -265,7 +267,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           // a is still lazy
           if symbol
             .flag
-            .intersection(SymbolFlag::FUNCTION_EXPR | SymbolFlag::ARROW_EXPR)
+            .intersection(
+              SymbolFlag::FUNCTION_EXPR | SymbolFlag::ARROW_EXPR | SymbolFlag::CLASS_EXPR,
+            )
             .bits()
             .count_ones()
             >= 1
@@ -293,6 +297,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       })
       .collect::<Vec<_>>();
     self.used_symbol_ref.extend(side_effect_symbol_list);
+    dbg!(&self.used_symbol_ref);
     let side_effect_symbol_list = self
       .assign_reference_map
       .iter()
@@ -668,9 +673,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           )
         }
         None => {
+          let symbol_flag = SymbolFlag::EXPORT_DEFAULT | SymbolFlag::CLASS_EXPR;
           let symbol_ext: SymbolExt = if let Some(ident) = &node.ident {
-            let renamed_symbol_ext =
-              SymbolExt::new(ident.to_id().into(), SymbolFlag::EXPORT_DEFAULT);
+            let renamed_symbol_ext = SymbolExt::new(ident.to_id().into(), symbol_flag);
             let default_ident_ext: SymbolExt = BetterId::from(default_ident.to_id()).into();
             self.add_reference(
               default_ident_ext.clone(),
@@ -684,7 +689,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             );
             renamed_symbol_ext
           } else {
-            SymbolExt::new(default_ident.to_id().into(), SymbolFlag::EXPORT_DEFAULT)
+            SymbolExt::new(default_ident.to_id().into(), symbol_flag)
           };
           self.export_default_name = Some(symbol_ext.id().atom.clone());
           symbol_ext
@@ -773,12 +778,15 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           )
         }
         None => {
+          let symbol_flag = SymbolFlag::EXPORT_DEFAULT | SymbolFlag::FUNCTION_EXPR;
           let symbol_ext: SymbolExt = if let Some(ident) = &node.ident {
-            let symbol_ext = SymbolExt::new(ident.to_id().into(), SymbolFlag::EXPORT_DEFAULT);
+            let symbol_ext = SymbolExt::new(ident.to_id().into(), symbol_flag);
             // considering default export has bind to new symbol e.g.
+            // ```js
             // export default function test() {
             // }
             // let result = test();
+            // ``
 
             self.add_reference(
               symbol_ext.clone(),
@@ -792,7 +800,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             );
             symbol_ext
           } else {
-            SymbolExt::new(default_ident.to_id().into(), SymbolFlag::EXPORT_DEFAULT)
+            SymbolExt::new(default_ident.to_id().into(), symbol_flag)
           };
           self.export_default_name = Some(symbol_ext.id().atom.clone());
           symbol_ext
