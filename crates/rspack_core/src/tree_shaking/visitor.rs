@@ -9,6 +9,7 @@ use sugar_path::SugarPath;
 use swc_core::common::{util::take::Take, Mark, GLOBALS};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::utils;
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 // use swc_atoms::JsWord;

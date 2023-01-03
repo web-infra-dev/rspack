@@ -14,11 +14,11 @@ pub struct OptimizeDependencyResult {
   pub analyze_results: IdentifierMap<TreeShakingResult>,
   pub bail_out_module_identifiers: IdentifierMap<BailoutFlog>,
 }
-const DISABLE_ANALYZE_LOGGING: bool = true;
+const ANALYZE_LOGGING: bool = true;
 pub static CARED_MODULE_ID: &[&str] = &[];
 
 pub fn debug_care_module_id<T: AsRef<str>>(id: T) -> bool {
-  if !DISABLE_ANALYZE_LOGGING {
+  if !ANALYZE_LOGGING {
     return false;
   }
   if CARED_MODULE_ID.is_empty() {

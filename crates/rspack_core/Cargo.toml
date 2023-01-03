@@ -35,6 +35,7 @@ swc_core = { workspace = true, features = [
   "__base",
   "__ecma",
   "__visit",
+  "__utils",
   "__ecma_transforms",
   "ecma_ast",
   "ecma_codegen",
