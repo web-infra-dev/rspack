@@ -91,7 +91,7 @@ export interface LoaderContext
 		sourceMap?: string | SourceMap,
 		additionalData?: AdditionalData
 	): void;
-	cacheable(cacheable: boolean): void;
+	cacheable(cacheable?: boolean): void;
 	sourceMap: boolean;
 	rootContext: string;
 	context: string;
@@ -389,7 +389,7 @@ function composeJsUse(
 							[name, data.resource].filter(Boolean).join("|")
 						);
 					},
-					cacheable(value) {
+					cacheable(value = true) {
 						cacheable = value;
 					},
 					async() {
