@@ -78,6 +78,10 @@ pub fn find_module_graph_roots(
   modules: Vec<ModuleIdentifier>,
   module_graph: &ModuleGraph,
 ) -> Vec<ModuleIdentifier> {
+  // early exit when there is only a single item
+  if modules.len() <= 1 {
+    return modules;
+  }
   let mut roots = vec![];
   let mut graph = petgraph::graphmap::DiGraphMap::new();
   let mut queue = modules.into_iter().collect::<Vec<_>>();

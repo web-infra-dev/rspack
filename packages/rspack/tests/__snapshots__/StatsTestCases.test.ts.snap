@@ -51,9 +51,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "type": "asset",
     },
     {
-      "chunkNames": [
-        "dynamic_js",
-      ],
+      "chunkNames": [],
       "chunks": [
         "dynamic_js",
       ],
@@ -75,9 +73,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       ],
       "id": "dynamic_js",
       "initial": false,
-      "names": [
-        "dynamic_js",
-      ],
+      "names": [],
       "size": 32,
       "type": "chunk",
     },
@@ -167,9 +163,9 @@ exports[`StatsTestCases should print correct stats for filename 2`] = `
 "Hash: 43657cde39b00269
              Asset       Size      Chunks             Chunk Names
       main.xxxx.js   1.29 KiB        main  [emitted]  main
-dynamic_js.xxxx.js  218 bytes  dynamic_js  [emitted]  dynamic_js
+dynamic_js.xxxx.js  218 bytes  dynamic_js  [emitted]  
 Entrypoint main = main.xxxx.js
-chunk {dynamic_js} dynamic_js.xxxx.js (dynamic_js) 32 bytes
+chunk {dynamic_js} dynamic_js.xxxx.js 32 bytes
 chunk {main} main.xxxx.js (main) 38 bytes [entry]
 [10] ./index.js 38 bytes {main}
     
