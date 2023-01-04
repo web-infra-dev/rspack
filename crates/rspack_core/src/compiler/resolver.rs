@@ -27,6 +27,7 @@ impl ResolveInfo {
 pub struct ResolverFactory {
   cache: Arc<nodejs_resolver::Cache>,
   base_options: Resolve,
+  resolvers: dashmap::DashMap<Resolve, Arc<Resolver>>,
 }
 
 impl Default for ResolverFactory {
@@ -40,18 +41,25 @@ impl ResolverFactory {
     Self {
       cache: Arc::new(nodejs_resolver::Cache::default()),
       base_options,
+      resolvers: Default::default(),
     }
   }
 
-  pub fn get(&self, options: Resolve) -> Resolver {
-    let base = self
-      .base_options
-      .clone()
-      .to_inner_options(self.cache.clone());
-    let options = merge_resolver_options(base, options);
-    Resolver(nodejs_resolver::Resolver::new(
-      options.to_inner_options(self.cache.clone()),
-    ))
+  pub fn get(&self, options: Resolve) -> Arc<Resolver> {
+    if let Some(r) = self.resolvers.get(&options) {
+      r.clone()
+    } else {
+      let base = self
+        .base_options
+        .clone()
+        .to_inner_options(self.cache.clone());
+      let merged_options = merge_resolver_options(base, options.clone());
+      let resolver = Arc::new(Resolver(nodejs_resolver::Resolver::new(
+        merged_options.to_inner_options(self.cache.clone()),
+      )));
+      self.resolvers.insert(options, resolver.clone());
+      resolver
+    }
   }
 }
 

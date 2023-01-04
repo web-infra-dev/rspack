@@ -130,10 +130,7 @@ describe("snapshots", () => {
 		  "resolve": {
 		    "alias": {},
 		    "browserField": true,
-		    "conditionNames": [
-		      "module",
-		      "import",
-		    ],
+		    "conditionNames": undefined,
 		    "extensions": [
 		      ".tsx",
 		      ".jsx",

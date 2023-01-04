@@ -17,18 +17,18 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "myanswer", {
     enumerable: true,
-    get: ()=>_lib.myanswer
+    get: ()=>_libJs.myanswer
 });
-const _lib = __webpack_require__("./lib.js");
+const _libJs = __webpack_require__("./lib.js");
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _app = __webpack_require__("./app.js");
+const _appJs = __webpack_require__("./app.js");
 __webpack_require__("./answer.js");
-(0, _app.myanswer)();
+(0, _appJs.myanswer)();
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 "use strict";

@@ -31,8 +31,8 @@ if (process.env.NODE_ENV !== "production") {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _foo = __webpack_require__.interopRequire(__webpack_require__("./foo.js"));
-(0, _foo.default)();
+const _fooJs = __webpack_require__.interopRequire(__webpack_require__("./foo.js"));
+(0, _fooJs.default)();
 },
 
 },function(__webpack_require__) {

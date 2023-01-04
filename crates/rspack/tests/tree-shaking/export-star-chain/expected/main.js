@@ -13,17 +13,17 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "Something", {
     enumerable: true,
-    get: ()=>_layout.Something
+    get: ()=>_layoutJs.Something
 });
-const _layout = __webpack_require__("./Layout.js");
+const _layoutJs = __webpack_require__("./Layout.js");
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _export = __webpack_require__("./export.js");
-_export.Something;
+const _exportJs = __webpack_require__("./export.js");
+_exportJs.Something;
 },
 "./something/Something.js": function (module, exports, __webpack_require__) {
 "use strict";

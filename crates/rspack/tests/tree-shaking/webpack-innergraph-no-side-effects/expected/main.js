@@ -19,8 +19,8 @@ _export(exports, {
     default: ()=>_default,
     test: ()=>test
 });
-const _package = __webpack_require__("./package/index.js");
-const _default = _package.a;
+const _indexJs = __webpack_require__("./package/index.js");
+const _default = _indexJs.a;
 function test() {}
 },
 "./package/index.js": function (module, exports, __webpack_require__) {

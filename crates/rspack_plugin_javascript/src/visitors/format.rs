@@ -17,7 +17,7 @@ use {
   swc_core::ecma::visit::{noop_visit_mut_type, Fold, VisitMut, VisitMutWith},
 };
 
-static SWC_HELPERS_REG: Lazy<Regex> =
+pub static SWC_HELPERS_REG: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"@swc/helpers/lib/(\w*)\.js$").expect("TODO:"));
 
 pub struct RspackModuleFinalizer<'a> {
@@ -320,7 +320,7 @@ impl<'a> VisitMut for RspackModuleFormatTransformer<'a> {
       // transform "require('react')" into "__rspack_require__('chunks/react.js')"
       self.rewrite_dyn_import(n);
     } else {
-      self.rewrite_static_import(n);
+      // self.rewrite_static_import(n);
     }
     n.visit_mut_children_with(self);
   }

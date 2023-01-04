@@ -4,35 +4,35 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _module = __webpack_require__("./module.js");
+const _moduleJs = __webpack_require__("./module.js");
 it("should be able to handle circular referenced", ()=>{
-    expect((0, _module.x)()).toEqual([
-        _module.y,
-        _module.z
+    expect((0, _moduleJs.x)()).toEqual([
+        _moduleJs.y,
+        _moduleJs.z
     ]);
-    const [_a, b, c, d] = (0, _module.a)();
+    const [_a, b, c, d] = (0, _moduleJs.a)();
     expect(b()).toEqual([
-        _module.a,
+        _moduleJs.a,
         b,
         c,
         d
     ]);
     expect(c()).toEqual([
-        _module.a,
+        _moduleJs.a,
         b,
         c,
         d
     ]);
     expect(d()).toEqual([
-        _module.a,
+        _moduleJs.a,
         b,
         c,
         d
     ]);
-    const [f2, f4] = (0, _module.f3)();
+    const [f2, f4] = (0, _moduleJs.f3)();
     const [f1, _f3] = f2();
-    expect(_f3).toBe(_module.f3);
-    expect((0, _module.f3)()).toEqual(f1());
+    expect(_f3).toBe(_moduleJs.f3);
+    expect((0, _moduleJs.f3)()).toEqual(f1());
     expect(f2()).toEqual(f4());
 });
 },

@@ -19,9 +19,9 @@ Object.defineProperty(exports, "default", {
     enumerable: true,
     get: ()=>a
 });
-const _something = __webpack_require__("./Something.js");
+const _somethingJs = __webpack_require__("./Something.js");
 var a = function test() {
-    _something.something;
+    _somethingJs.something;
 };
 },
 "./index.js": function (module, exports, __webpack_require__) {
@@ -29,8 +29,8 @@ var a = function test() {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _export = __webpack_require__.interopRequire(__webpack_require__("./export.js"));
-_export.default;
+const _exportJs = __webpack_require__.interopRequire(__webpack_require__("./export.js"));
+_exportJs.default;
 },
 
 },function(__webpack_require__) {

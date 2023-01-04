@@ -18,17 +18,17 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "Sider", {
     enumerable: true,
-    get: ()=>_something.default
+    get: ()=>_somethingJs.default
 });
-const _something = __webpack_require__.interopRequire(__webpack_require__("./Something.js"));
+const _somethingJs = __webpack_require__.interopRequire(__webpack_require__("./Something.js"));
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _export = __webpack_require__("./export.js");
-(0, _export.Sider)();
+const _exportJs = __webpack_require__("./export.js");
+(0, _exportJs.Sider)();
 },
 
 },function(__webpack_require__) {

@@ -12,9 +12,9 @@ function _export(target, all) {
 }
 _export(exports, {
     b: ()=>b,
-    bar: ()=>_foo
+    bar: ()=>_fooJs
 });
-const _foo = __webpack_require__.interopRequire(__webpack_require__("./foo.js"));
+const _fooJs = __webpack_require__.interopRequire(__webpack_require__("./foo.js"));
 __webpack_require__.exportStar(__webpack_require__("./result.js"), exports);
 function b() {}
 },
@@ -43,9 +43,9 @@ const foo = 3;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _foo = __webpack_require__("./foo.js");
-_foo.bar.a;
-(0, _foo.c)();
+const _fooJs = __webpack_require__("./foo.js");
+_fooJs.bar.a;
+(0, _fooJs.c)();
 },
 "./result.js": function (module, exports, __webpack_require__) {
 "use strict";

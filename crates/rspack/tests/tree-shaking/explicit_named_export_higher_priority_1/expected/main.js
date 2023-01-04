@@ -19,8 +19,8 @@ const a = 'foo';
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _foo = __webpack_require__("./foo.js");
-console.log(_foo.a);
+const _fooJs = __webpack_require__("./foo.js");
+console.log(_fooJs.a);
 },
 
 },function(__webpack_require__) {

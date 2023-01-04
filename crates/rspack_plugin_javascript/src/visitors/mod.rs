@@ -25,8 +25,13 @@ use swc_core::common::{chain, comments::Comments};
 use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::transforms::base::pass::Optional;
 use swc_core::ecma::transforms::module::common_js::Config as CommonjsConfig;
+use swc_core::ecma::visit::as_folder;
 use tree_shaking::tree_shaking_visitor;
 use ustr::ustr;
+
+use crate::visitors::rewrite::RewriteModuleUrl;
+mod rewrite;
+
 /// return (ast, top_level_mark, unresolved_mark, globals)
 pub fn run_before_pass(
   resource_data: &ResourceData,
@@ -152,6 +157,11 @@ pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut
         // extra branch to avoid doing dce twice, (minify will exec dce)
         tree_shaking && !minify.enable,
       ),
+      as_folder(RewriteModuleUrl::new(
+        unresolved_mark,
+        module,
+        generate_context.compilation,
+      )),
       swc_visitor::build_module(
         &cm,
         unresolved_mark,

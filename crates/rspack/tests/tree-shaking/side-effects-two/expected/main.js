@@ -6,17 +6,17 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "something", {
     enumerable: true,
-    get: ()=>_lib.default
+    get: ()=>_libJs.default
 });
-const _lib = __webpack_require__.interopRequire(__webpack_require__("./lib.js"));
+const _libJs = __webpack_require__.interopRequire(__webpack_require__("./lib.js"));
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _app = __webpack_require__("./app.js");
-(0, _app.something)();
+const _appJs = __webpack_require__("./app.js");
+(0, _appJs.something)();
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 "use strict";

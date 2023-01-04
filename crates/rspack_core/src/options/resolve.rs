@@ -2,7 +2,7 @@ use std::{collections::HashSet, path::PathBuf, sync::Arc};
 
 pub type AliasMap = nodejs_resolver::AliasMap;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
 pub struct Resolve {
   /// Tried detect file with this extension.
   pub extensions: Option<Vec<String>>,

@@ -17,17 +17,17 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "Select", {
     enumerable: true,
-    get: ()=>_bar.default
+    get: ()=>_barJs.default
 });
-const _bar = __webpack_require__.interopRequire(__webpack_require__("./bar.js"));
+const _barJs = __webpack_require__.interopRequire(__webpack_require__("./bar.js"));
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _foo = __webpack_require__("./foo.js");
-(0, _foo.Select)();
+const _fooJs = __webpack_require__("./foo.js");
+(0, _fooJs.Select)();
 },
 
 },function(__webpack_require__) {

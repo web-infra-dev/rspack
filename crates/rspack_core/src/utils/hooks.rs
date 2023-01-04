@@ -1,6 +1,6 @@
-use crate::{ResolveArgs, ResolveResult, SharedPluginDriver};
+use crate::{Resolve, ResolveArgs, ResolveKind, ResolveResult, SharedPluginDriver};
 use rspack_error::{internal_error, Error, Result, TraceableError};
-use std::{path::Path, sync::Arc};
+use std::path::Path;
 use tracing::instrument;
 
 #[instrument(name = "resolve", skip_all)]
@@ -29,45 +29,69 @@ pub async fn resolve(
     args.importer,
     args.specifier
   );
-  let resolver = args
-    .resolve_options
-    .map(|resolve_options| Arc::new(plugin_driver.resolver_factory.get(resolve_options)))
-    .unwrap_or_else(|| Arc::clone(&plugin_driver.resolver));
-  resolver
-    .resolve(base_dir, args.specifier)
-    .map_err(|error| match error {
-      nodejs_resolver::Error::Io(error) => Error::Io { source: error },
-      nodejs_resolver::Error::UnexpectedJson((json_path, error)) => Error::Anyhow {
-        source: anyhow::Error::msg(format!("{:?} in {:?}", error, json_path)),
-      },
-      nodejs_resolver::Error::UnexpectedValue(error) => Error::Anyhow {
-        source: anyhow::Error::msg(error),
-      },
-      _ => {
-        if let Some(importer) = args.importer {
-          let span = args.span.unwrap_or_default();
-          let message = if let nodejs_resolver::Error::Overflow = error {
-            format!(
-              "Can't resolve {:?} in {importer} , maybe it had cycle alias",
-              args.specifier,
-            )
-          } else {
-            format!("Failed to resolve {} in {importer}", args.specifier)
-          };
-          Error::TraceableError(TraceableError::from_path(
-            importer.to_string(),
-            span.start as usize,
-            span.end as usize,
-            "Resolve error".to_string(),
-            message,
-          ))
-        } else {
-          Error::InternalError(internal_error!(format!(
-            "Failed to resolve {} in {}",
+
+  let result = if let Some(options) = args.resolve_options {
+    plugin_driver
+      .resolver_factory
+      .get(options)
+      .resolve(base_dir, args.specifier)
+  } else if plugin_driver.options.resolve.condition_names.is_none() {
+    let is_esm = matches!(args.kind, ResolveKind::Import | ResolveKind::DynamicImport);
+    let condition_names = if is_esm {
+      vec![
+        String::from("module"),
+        String::from("import"),
+        String::from("default"),
+      ]
+    } else {
+      vec![String::from("require"), String::from("default")]
+    };
+    let options = Resolve {
+      condition_names: Some(condition_names),
+      ..plugin_driver.options.resolve.clone()
+    };
+    // TODO: should cache `get`
+    plugin_driver
+      .resolver_factory
+      .get(options)
+      .resolve(base_dir, args.specifier)
+  } else {
+    plugin_driver.resolver.resolve(base_dir, args.specifier)
+  };
+
+  result.map_err(|error| match error {
+    nodejs_resolver::Error::Io(error) => Error::Io { source: error },
+    nodejs_resolver::Error::UnexpectedJson((json_path, error)) => Error::Anyhow {
+      source: anyhow::Error::msg(format!("{:?} in {:?}", error, json_path)),
+    },
+    nodejs_resolver::Error::UnexpectedValue(error) => Error::Anyhow {
+      source: anyhow::Error::msg(error),
+    },
+    _ => {
+      if let Some(importer) = args.importer {
+        let span = args.span.unwrap_or_default();
+        let message = if let nodejs_resolver::Error::Overflow = error {
+          format!(
+            "Can't resolve {:?} in {importer} , maybe it had cycle alias",
             args.specifier,
-            plugin_driver.options.context.display()
-          )))
-        }
+          )
+        } else {
+          format!("Failed to resolve {} in {importer}", args.specifier)
+        };
+        Error::TraceableError(TraceableError::from_path(
+          importer.to_string(),
+          span.start as usize,
+          span.end as usize,
+          "Resolve error".to_string(),
+          message,
+        ))
+      } else {
+        Error::InternalError(internal_error!(format!(
+          "Failed to resolve {} in {}",
+          args.specifier,
+          plugin_driver.options.context.display()
+        )))
       }
-    })
+    }
+  })
 }
