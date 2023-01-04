@@ -56,7 +56,7 @@ impl DiagnosticDisplay for StdioDiagnosticDisplay {
   }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 pub struct StringDiagnosticDisplay {
   string_buffer: Vec<String>,
   sorted: bool,
@@ -124,6 +124,7 @@ impl DiagnosticDisplay for StringDiagnosticDisplay {
   }
 }
 
+#[derive(Debug, Clone)]
 pub struct ColoredStringDiagnosticDisplay;
 
 impl DiagnosticDisplay for ColoredStringDiagnosticDisplay {
@@ -213,6 +214,7 @@ impl From<crate::Severity> for Severity {
   }
 }
 
+#[derive(Debug, Clone)]
 pub enum DiagnosticDisplayer {
   Colored(ColoredStringDiagnosticDisplay),
   Plain(StringDiagnosticDisplay),

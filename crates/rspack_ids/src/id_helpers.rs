@@ -262,7 +262,7 @@ pub fn get_short_chunk_name(
       let name = get_short_module_name(module, context);
       let id = request_to_id(&name);
 
-      println!("name: {:?}, id: {:?}", name, id);
+      // println!("name: {:?}, id: {:?}", name, id);
       id
     })
     .collect::<Vec<_>>();

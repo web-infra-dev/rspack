@@ -295,7 +295,7 @@ export class RspackDevServer {
 							this.compiler.rebuild(
 								new Set([path]),
 								new Set(),
-								(error, stats) => {
+								(error) => {
 									if (error) {
 										throw error;
 									}

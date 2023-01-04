@@ -8,10 +8,10 @@ use async_trait::async_trait;
 use rspack_error::{internal_error, Error};
 
 use crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
-use crate::{JsCompilation, JsHooks, JsStatsCompilation};
+use crate::{JsCompilation, JsHooks};
 
 pub struct JsHooksAdapter {
-  pub done_tsfn: ThreadsafeFunction<JsStatsCompilation, ()>,
+  // pub done_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub compilation_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub this_compilation_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub process_assets_tsfn: ThreadsafeFunction<(), ()>,
@@ -96,33 +96,40 @@ impl rspack_core::Plugin for JsHooksAdapter {
       })?
   }
 
-  #[tracing::instrument(name = "js_hooks_adapter::done", skip_all)]
-  async fn done<'s, 'c>(
-    &mut self,
-    _ctx: rspack_core::PluginContext,
-    args: rspack_core::DoneArgs<'s, 'c>,
-  ) -> rspack_core::PluginBuildEndHookOutput {
-    self
-      .done_tsfn
-      .call(
-        args.stats.to_description()?.into(),
-        ThreadsafeFunctionCallMode::NonBlocking,
-      )?
-      .await
-      .map_err(|err| {
-        Error::InternalError(internal_error!(format!(
-          "Failed to call done: {}",
-          err.to_string()
-        )))
-      })?
-      .map_err(Error::from)
-  }
+  // #[tracing::instrument(name = "js_hooks_adapter::done", skip_all)]
+  // async fn done<'s, 'c>(
+  //   &mut self,
+  //   _ctx: rspack_core::PluginContext,
+  //   args: rspack_core::DoneArgs<'s, 'c>,
+  // ) -> rspack_core::PluginBuildEndHookOutput {
+  //   let compilation = JsCompilation::from_compilation(unsafe {
+  //     Pin::new_unchecked(std::mem::transmute::<
+  //       &'_ mut rspack_core::Compilation,
+  //       &'static mut rspack_core::Compilation,
+  //     >(args.stats.compilation))
+  //   });
+
+  //   self
+  //     .done_tsfn
+  //     .call(
+  //       compilation,
+  //       ThreadsafeFunctionCallMode::NonBlocking,
+  //     )?
+  //     .await
+  //     .map_err(|err| {
+  //       Error::InternalError(internal_error!(format!(
+  //         "Failed to call done: {}",
+  //         err.to_string()
+  //       )))
+  //     })?
+  //     .map_err(Error::from)
+  // }
 }
 
 impl JsHooksAdapter {
   pub fn from_js_hooks(env: Env, js_hooks: JsHooks) -> Result<Self> {
     let JsHooks {
-      done,
+      // done,
       process_assets,
       this_compilation,
       compilation,
@@ -138,19 +145,19 @@ impl JsHooksAdapter {
     // In practice:
     // The creation of callback `this_compilation` is placed before the callback `compilation` because we want the JS hooks `this_compilation` to be called before the JS hooks `compilation`.
 
-    let mut done_tsfn: ThreadsafeFunction<JsStatsCompilation, ()> = {
-      let cb = unsafe { done.raw() };
+    // let mut done_tsfn: ThreadsafeFunction<JsCompilation, ()> = {
+    //   let cb = unsafe { done.raw() };
 
-      ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
-        let (ctx, resolver) = ctx.split_into_parts();
+    //   ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
+    //     let (ctx, resolver) = ctx.split_into_parts();
 
-        let env = ctx.env;
-        let cb = ctx.callback;
-        let result = unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) }?;
+    //     let env = ctx.env;
+    //     let cb = ctx.callback;
+    //     let result = unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) }?;
 
-        resolver.resolve::<()>(result, |_| Ok(()))
-      })
-    }?;
+    //     resolver.resolve::<()>(result, |_| Ok(()))
+    //   })
+    // }?;
 
     let mut process_assets_tsfn: ThreadsafeFunction<(), ()> = {
       let cb = unsafe { process_assets.raw() };
@@ -195,13 +202,13 @@ impl JsHooksAdapter {
     }?;
 
     // See the comment in `threadsafe_function.rs`
-    done_tsfn.unref(&env)?;
+    // done_tsfn.unref(&env)?;
     process_assets_tsfn.unref(&env)?;
     compilation_tsfn.unref(&env)?;
     this_compilation_tsfn.unref(&env)?;
 
     Ok(JsHooksAdapter {
-      done_tsfn,
+      // done_tsfn,
       process_assets_tsfn,
       compilation_tsfn,
       this_compilation_tsfn,

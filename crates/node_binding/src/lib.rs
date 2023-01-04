@@ -178,7 +178,7 @@ impl Rspack {
   /// Calling this method recursively might cause a deadlock.
   #[napi(
     js_name = "unsafe_build",
-    ts_args_type = "callback: (err: null | Error, result: JsStatsCompilation) => void"
+    ts_args_type = "callback: (err: null | Error) => void"
   )]
   pub fn build(&self, env: Env, f: JsFunction) -> Result<()> {
     let handle_build = |compiler: &mut _| {
@@ -188,23 +188,23 @@ impl Rspack {
       };
 
       callbackify(env, f, async move {
-        let rspack_stats = compiler
+        let _ = compiler
           .build()
           .await
           .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{}", e)))?;
 
-        let stats: JsStatsCompilation = rspack_stats
-          .to_description()
-          .map_err(|e| Error::new(napi::Status::GenericFailure, e.to_string()))?
-          .into();
+        // let stats: JsStatsCompilation = rspack_stats
+        //   .to_description()
+        //   .map_err(|e| Error::new(napi::Status::GenericFailure, e.to_string()))?
+        //   .into();
 
-        if stats.errors.is_empty() {
-          tracing::info!("build success");
-        } else {
-          tracing::info!("build failed {:#?}", stats.errors);
-        }
+        // if stats.errors.is_empty() {
+        //   tracing::info!("build success");
+        // } else {
+        //   tracing::info!("build failed {:#?}", stats.errors);
+        // }
 
-        Ok(stats)
+        Ok(())
       })
     };
     unsafe { COMPILERS.borrow_mut(&self.id, handle_build) }
@@ -216,7 +216,7 @@ impl Rspack {
   /// Calling this method recursively will cause a deadlock.
   #[napi(
     js_name = "unsafe_rebuild",
-    ts_args_type = "callback: (err: null | Error, result: Record<string, {content: string, kind: number}>) => void"
+    ts_args_type = "changed_files: string[], removed_files: string[], callback: (err: null | Error) => void"
   )]
   pub fn rebuild(
     &self,
@@ -232,19 +232,19 @@ impl Rspack {
       };
 
       callbackify(env, f, async move {
-        let stats = compiler
+        let _ = compiler
           .rebuild(
             HashSet::from_iter(changed_files.into_iter()),
             HashSet::from_iter(removed_files.into_iter()),
           )
           .await
           .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
-        let stats: JsStatsCompilation = stats
-          .to_description()
-          .map_err(|e| Error::new(napi::Status::GenericFailure, e.to_string()))?
-          .into();
+        // let stats: JsStatsCompilation = stats
+        //   .to_description()
+        //   .map_err(|e| Error::new(napi::Status::GenericFailure, e.to_string()))?
+        //   .into();
         tracing::info!("rebuild success");
-        Ok(stats)
+        Ok(())
       })
     };
 
