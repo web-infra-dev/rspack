@@ -7,13 +7,24 @@ use rspack_core::{
 
 #[derive(Debug, Default)]
 pub struct PublicPathRuntimeModule {
-  // FIXME: maybe it unnecessary
-  pub chunk: ChunkUkey,
+  chunk: ChunkUkey,
+}
+
+impl PublicPathRuntimeModule {
+  pub fn new() -> Self {
+    Self {
+      chunk: Default::default(),
+    }
+  }
 }
 
 impl RuntimeModule for PublicPathRuntimeModule {
   fn identifier(&self) -> String {
     "webpack/runtime/public_path".to_string()
+  }
+
+  fn attach(&mut self, chunk: ChunkUkey) {
+    self.chunk = chunk;
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
@@ -26,7 +37,7 @@ impl RuntimeModule for PublicPathRuntimeModule {
         let chunk = compilation
           .chunk_by_ukey
           .get(&self.chunk)
-          .expect("Chunk not found");
+          .expect("Chunk is not found, make sure you had attach chunkUkey successfully.");
         let filename = get_js_chunk_filename_template(
           chunk,
           &compilation.options.output,
