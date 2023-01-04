@@ -17,7 +17,7 @@ async fn bench(cur_dir: &PathBuf) {
   let options = read_test_config_and_normalize(cur_dir);
   let mut compiler = rspack::rspack(options, Default::default());
 
-  let _stats = compiler
+  compiler
     .build()
     .await
     .unwrap_or_else(|_| panic!("failed to compile in fixtrue {:?}", cur_dir));
