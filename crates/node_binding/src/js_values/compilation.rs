@@ -5,17 +5,10 @@ use napi::bindgen_prelude::*;
 use napi::NapiRaw;
 
 use rspack_core::rspack_sources::SourceExt;
-use rspack_core::Stats;
 
-use crate::{CompatSource, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, ToJsCompatSource};
-
-use super::JsStatsAsset;
-use super::JsStatsChunk;
-use super::JsStatsCompilation;
-use super::JsStatsEntrypoint;
-use super::JsStatsError;
-use super::JsStatsModule;
-use super::JsStatsWarning;
+use crate::{
+  CompatSource, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsStats, ToJsCompatSource,
+};
 
 #[napi]
 pub struct JsCompilation {
@@ -264,109 +257,14 @@ impl JsCompilation {
 
   #[napi]
   pub fn get_stats(&self, reference: Reference<JsCompilation>, env: Env) -> Result<JsStats> {
-    Ok(JsStats {
-      inner: reference.share_with(env, |compilation| Ok(compilation.inner.get_stats()))?,
-    })
-  }
-
-  #[napi]
-  pub fn get_stats_old(&self) -> JsStatsCompilation {
-    self
-      .inner
-      .get_stats()
-      .to_description()
-      .unwrap()
-      .clone()
-      .into()
+    Ok(JsStats::new(reference.share_with(env, |compilation| {
+      Ok(compilation.inner.get_stats())
+    })?))
   }
 }
 
 impl JsCompilation {
   pub fn from_compilation(inner: Pin<&'static mut rspack_core::Compilation>) -> Self {
     Self { inner }
-  }
-}
-
-#[napi]
-pub struct JsStats {
-  inner: SharedReference<JsCompilation, Stats<'static>>,
-}
-
-#[napi]
-impl JsStats {
-  #[napi]
-  pub fn get_assets(&self) -> Vec<JsStatsAsset> {
-    self
-      .inner
-      .get_assets()
-      .into_iter()
-      .map(Into::into)
-      .collect()
-  }
-
-  #[napi]
-  pub fn get_modules(&self) -> Vec<JsStatsModule> {
-    self
-      .inner
-      .get_modules()
-      .unwrap()
-      .into_iter()
-      .map(Into::into)
-      .collect()
-  }
-
-  #[napi]
-  pub fn get_chunks(&self) -> Vec<JsStatsChunk> {
-    self
-      .inner
-      .get_chunks()
-      .into_iter()
-      .map(Into::into)
-      .collect()
-  }
-
-  #[napi]
-  pub fn get_entrypoints(&self) -> Vec<JsStatsEntrypoint> {
-    self
-      .inner
-      .get_entrypoints()
-      .into_iter()
-      .map(Into::into)
-      .collect()
-  }
-
-  #[napi]
-  pub fn get_errors(&self) -> Vec<JsStatsError> {
-    self
-      .inner
-      .get_errors()
-      .into_iter()
-      .map(Into::into)
-      .collect()
-  }
-
-  #[napi]
-  pub fn get_errors_count(&self) -> u32 {
-    self.get_errors().len() as u32
-  }
-
-  #[napi]
-  pub fn get_warnings(&self) -> Vec<JsStatsWarning> {
-    self
-      .inner
-      .get_warnings()
-      .into_iter()
-      .map(Into::into)
-      .collect()
-  }
-
-  #[napi]
-  pub fn get_warnings_count(&self) -> u32 {
-    self.get_warnings().len() as u32
-  }
-
-  #[napi]
-  pub fn get_hash(&self) -> String {
-    self.inner.get_hash()
   }
 }

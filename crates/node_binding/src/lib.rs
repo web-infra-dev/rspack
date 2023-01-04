@@ -188,22 +188,11 @@ impl Rspack {
       };
 
       callbackify(env, f, async move {
-        let _ = compiler
+        compiler
           .build()
           .await
           .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{}", e)))?;
-
-        // let stats: JsStatsCompilation = rspack_stats
-        //   .to_description()
-        //   .map_err(|e| Error::new(napi::Status::GenericFailure, e.to_string()))?
-        //   .into();
-
-        // if stats.errors.is_empty() {
-        //   tracing::info!("build success");
-        // } else {
-        //   tracing::info!("build failed {:#?}", stats.errors);
-        // }
-
+        tracing::info!("build ok");
         Ok(())
       })
     };
@@ -232,18 +221,14 @@ impl Rspack {
       };
 
       callbackify(env, f, async move {
-        let _ = compiler
+        compiler
           .rebuild(
             HashSet::from_iter(changed_files.into_iter()),
             HashSet::from_iter(removed_files.into_iter()),
           )
           .await
           .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
-        // let stats: JsStatsCompilation = stats
-        //   .to_description()
-        //   .map_err(|e| Error::new(napi::Status::GenericFailure, e.to_string()))?
-        //   .into();
-        tracing::info!("rebuild success");
+        tracing::info!("rebuild ok");
         Ok(())
       })
     };

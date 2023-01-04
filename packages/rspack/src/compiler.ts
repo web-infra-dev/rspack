@@ -266,7 +266,7 @@ class Compiler {
 						return finalCallback(err);
 					}
 
-					this.build((err) => {
+					this.build(err => {
 						if (err) {
 							return finalCallback(err);
 						}
@@ -288,7 +288,7 @@ class Compiler {
 	build(cb: (error?: Error) => void) {
 		const unsafe_build = this.#instance.unsafe_build;
 		const build_cb = unsafe_build.bind(this.#instance) as typeof unsafe_build;
-		build_cb((err) => {
+		build_cb(err => {
 			if (err) {
 				cb(err);
 			} else {
@@ -303,8 +303,10 @@ class Compiler {
 		cb: (error?: Error) => void
 	) {
 		const unsafe_rebuild = this.#instance.unsafe_rebuild;
-		const rebuild_cb = unsafe_rebuild.bind(this.#instance) as typeof unsafe_rebuild;
-		rebuild_cb([...modifiedFiles], [...removedFiles], (err) => {
+		const rebuild_cb = unsafe_rebuild.bind(
+			this.#instance
+		) as typeof unsafe_rebuild;
+		rebuild_cb([...modifiedFiles], [...removedFiles], err => {
 			if (err) {
 				cb(err);
 			} else {

@@ -121,24 +121,18 @@ class Watching {
 		const begin = Date.now();
 		this.compiler.hooks.watchRun.callAsync(this.compiler, err => {
 			if (err) this.#done(err);
-			compile(changedFiles, removedFiles, (err) => {
-				this.#done(err, this.compiler.compilation);
+			compile(changedFiles, removedFiles, err => {
+				this.#done(err);
 				console.log("rebuild success, time cost", Date.now() - begin, "ms");
 			});
 		});
 	}
 
-	#done(error?: Error, compilation?: Compilation) {
+	#done(error?: Error) {
 		this.running = false;
 		if (error) {
 			return this.handler(error);
 		}
-		console.time('get stats old');
-		const rawStats = this.compiler.compilation.getStatsOld();
-		console.timeEnd('get stats old');
-		console.time('get stats new');
-		const newStats = this.compiler.compilation.getStats();
-		console.timeEnd('get stats new');
 		const stats = new Stats(this.compiler.compilation);
 		this.handler(undefined, stats);
 		this.compiler.hooks.done.callAsync(stats, () => {

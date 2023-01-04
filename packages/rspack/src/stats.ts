@@ -24,11 +24,11 @@ export class Stats {
 	}
 
 	hasErrors() {
-		return this.#inner.getErrorsCount() > 0;
+		return this.#inner.getErrors().length > 0;
 	}
 
 	hasWarnings() {
-		return this.#inner.getWarningsCount() > 0;
+		return this.#inner.getWarnings().length > 0;
 	}
 
 	toJson(opts?: StatsOptions, forToString?: boolean) {
@@ -74,13 +74,13 @@ export class Stats {
 			obj.errors = this.#inner.getErrors();
 		}
 		if (showErrorsCount) {
-			obj.errorsCount = this.#inner.getErrorsCount();
+			obj.errorsCount = (obj.errors ?? this.#inner.getErrors()).length;
 		}
 		if (showWarninigs) {
 			obj.warnings = this.#inner.getWarnings();
 		}
 		if (showWarningsCount) {
-			obj.warningsCount = this.#inner.getWarningsCount();
+			obj.warningsCount = (obj.warnings ?? this.#inner.getWarnings()).length;
 		}
 		if (obj.modules && forToString) {
 			obj.filteredModules = obj.modules.length - 15;
@@ -405,7 +405,8 @@ export class Stats {
 			}
 			if (module.assets && module.assets.length) {
 				colors.magenta(
-					` [${module.assets.length} asset${module.assets.length === 1 ? "" : "s"
+					` [${module.assets.length} asset${
+						module.assets.length === 1 ? "" : "s"
 					}]`
 				);
 			}
@@ -839,8 +840,9 @@ const SizeFormatHelpers = {
 		const abbreviations = ["bytes", "KiB", "MiB", "GiB"];
 		const index = Math.floor(Math.log(size) / Math.log(1024));
 
-		return `${+(size / Math.pow(1024, index)).toPrecision(3)} ${abbreviations[index]
-			}`;
+		return `${+(size / Math.pow(1024, index)).toPrecision(3)} ${
+			abbreviations[index]
+		}`;
 	}
 };
 

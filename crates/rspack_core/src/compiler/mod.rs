@@ -17,7 +17,7 @@ use tracing::instrument;
 
 use crate::{
   cache::Cache, fast_set, CompilerOptions, Dependency, LoaderRunnerRunner, Plugin, PluginDriver,
-  SharedPluginDriver, Stats,
+  SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -72,7 +72,7 @@ impl Compiler {
   }
 
   #[instrument(name = "build", skip_all)]
-  pub async fn build(&mut self) -> Result<Stats> {
+  pub async fn build(&mut self) -> Result<()> {
     self.cache.end_idle().await;
     // TODO: clear the outdate cache entires in resolver,
     // TODO: maybe it's better to use external entries.
@@ -110,7 +110,18 @@ impl Compiler {
     let deps = self.compilation.entry_dependencies();
     self.compile(deps).await?;
     self.cache.begin_idle().await;
-    Ok(self.stats())
+
+    #[cfg(debug_assertions)]
+    {
+      if self.options.__emit_error {
+        let stats = crate::Stats::new(&self.compilation);
+        stats
+          .emit_diagnostics()
+          .expect("failed to emit diagnostics");
+      }
+    }
+
+    Ok(())
   }
 
   #[instrument(name = "compile", skip_all)]
@@ -150,14 +161,6 @@ impl Compiler {
     self.compilation.done(self.plugin_driver.clone()).await?;
 
     Ok(())
-  }
-
-  fn stats(&self) -> Stats {
-    let stats = Stats::new(&self.compilation);
-    if self.options.__emit_error {
-      stats.emit_diagnostics().expect("TODO:");
-    }
-    stats
   }
 
   #[instrument(name = "emit_assets", skip_all)]

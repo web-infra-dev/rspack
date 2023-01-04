@@ -220,11 +220,7 @@ export class Compilation {
 	}
 
 	getStats() {
-		return new Stats(this)
-	}
-
-	getStatsOld() {
-		return this.#inner.getStatsOld()
+		return new Stats(this);
 	}
 
 	/**
@@ -268,8 +264,8 @@ export class Compilation {
 		return this.#inner;
 	}
 
-	seal() { }
-	unseal() { }
+	seal() {}
+	unseal() {}
 }
 
 export type { JsAssetInfo };
