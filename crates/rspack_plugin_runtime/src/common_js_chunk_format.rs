@@ -116,7 +116,7 @@ impl Plugin for CommonJsChunkFormatPlugin {
           .output
           .chunk_filename
           .render(FilenameRenderOptions {
-            filename: runtime_chunk.name.clone(),
+            name: runtime_chunk.name_for_filename_template(),
             extension: Some(".js".to_string()),
             id: runtime_chunk.id.clone(),
             contenthash: hash.clone(),

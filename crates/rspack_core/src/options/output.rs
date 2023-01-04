@@ -27,7 +27,7 @@ pub const QUERY_PLACEHOLDER: &str = "[query]";
 
 #[derive(Debug, Default)]
 pub struct FilenameRenderOptions {
-  pub filename: Option<String>,
+  pub name: Option<String>,
   pub path: Option<String>,
   pub extension: Option<String>,
   pub id: Option<String>,
@@ -54,7 +54,7 @@ impl FromStr for Filename {
 impl Filename {
   pub fn render(&self, options: FilenameRenderOptions) -> String {
     let mut filename = self.template.clone();
-    if let Some(name) = options.filename {
+    if let Some(name) = options.name {
       filename = filename.replace(NAME_PLACEHOLDER, &name);
     }
 

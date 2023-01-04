@@ -256,10 +256,15 @@ pub fn get_short_chunk_name(
         .expect("Module not found")
     })
     .collect::<Vec<_>>();
-
   let short_module_names = modules
     .iter()
-    .map(|module| get_short_module_name(module, context))
+    .map(|module| {
+      let name = get_short_module_name(module, context);
+      let id = request_to_id(&name);
+
+      println!("name: {:?}, id: {:?}", name, id);
+      id
+    })
     .collect::<Vec<_>>();
 
   let mut id_name_hints = chunk.id_name_hints.iter().cloned().collect::<Vec<_>>();
@@ -324,7 +329,7 @@ pub fn get_long_chunk_name(
 }
 
 fn request_to_id(request: &str) -> String {
-  let regex1 = regex::Regex::new(r"^(\.\.?\\/)+").expect("Invalid regex");
+  let regex1 = regex::Regex::new(r"^(\.\.?/)+").expect("Invalid regex");
   let regex2 = regex::Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("Invalid regex");
 
   regex2

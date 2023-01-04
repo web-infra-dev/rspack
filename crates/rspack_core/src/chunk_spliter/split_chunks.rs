@@ -9,10 +9,7 @@ use std::collections::HashMap;
 use rspack_error::Result;
 use tracing::instrument;
 
-use crate::{
-  uri_to_chunk_name, ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation,
-  ModuleIdentifier,
-};
+use crate::{ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier};
 
 #[instrument(skip_all)]
 pub fn code_splitting(compilation: &mut Compilation) -> Result<()> {
@@ -401,15 +398,7 @@ impl<'me> CodeSplitter<'me> {
           .insert(dyn_dep_mgm.module_identifier);
       }
 
-      let chunk = Compilation::add_named_chunk(
-        uri_to_chunk_name(
-          &self.compilation.options.context.to_string_lossy(),
-          // TODO: change to chunk group name
-          &dyn_dep_mgm.module_identifier,
-        ),
-        &mut self.compilation.chunk_by_ukey,
-        &mut self.compilation.named_chunks,
-      );
+      let chunk = Compilation::add_chunk(&mut self.compilation.chunk_by_ukey);
       self.compilation.chunk_graph.add_chunk(chunk.ukey);
       self
         .chunk_relation_graph
