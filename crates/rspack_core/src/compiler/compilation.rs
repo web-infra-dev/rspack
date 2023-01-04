@@ -8,7 +8,10 @@ use hashbrown::{
 use hashlink::LinkedHashSet;
 use indexmap::{IndexMap, IndexSet};
 use petgraph::{algo, prelude::GraphMap, Directed};
-use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
+use rayon::{
+  iter::Inspect,
+  prelude::{IntoParallelRefIterator, ParallelIterator},
+};
 use std::{
   borrow::BorrowMut,
   collections::VecDeque,
@@ -19,6 +22,7 @@ use std::{
   pin::Pin,
   sync::atomic::{AtomicU32, Ordering},
   sync::Arc,
+  time::Instant,
 };
 use swc_core::ecma::atoms::JsWord;
 use tokio::sync::mpsc::error::TryRecvError;
@@ -1722,12 +1726,32 @@ fn mark_symbol(
           return;
         }
       };
+      evaluated_module_identifiers.insert(src);
+      used_export_module_identifiers.insert(src);
+
       for symbol_ref in analyze_refsult.export_map.values() {
         q.push_back(symbol_ref.clone());
       }
 
       for (_, extend_map) in analyze_refsult.inherit_export_maps.iter() {
-        q.extend(extend_map.values().cloned());
+        for s in extend_map.values() {
+          q.push_back(s.clone());
+          let tuple = (src, s.module_identifier());
+          if !traced_tuple.contains(&tuple) {
+            used_export_module_identifiers.extend(
+              algo::all_simple_paths::<Vec<_>, _>(
+                &inherit_extend_graph,
+                src,
+                s.module_identifier(),
+                0,
+                None,
+              )
+              .into_iter()
+              .flatten(),
+            );
+            traced_tuple.insert(tuple);
+          }
+        }
       }
     }
   }
