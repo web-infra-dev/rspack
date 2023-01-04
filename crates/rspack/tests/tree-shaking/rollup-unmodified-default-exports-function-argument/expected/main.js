@@ -27,9 +27,9 @@ function bar() {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _foo = __webpack_require__.interopRequire(__webpack_require__("./foo.js"));
-var answer = (0, _foo.default)();
-(0, _foo.bar)();
+const _fooJs = __webpack_require__.interopRequire(__webpack_require__("./foo.js"));
+var answer = (0, _fooJs.default)();
+(0, _fooJs.bar)();
 console.log(answer);
 },
 

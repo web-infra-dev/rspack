@@ -8,20 +8,20 @@ Object.defineProperty(exports, "app", {
     enumerable: true,
     get: ()=>app
 });
-const _lib = __webpack_require__("./lib.js");
+const _libJs = __webpack_require__("./lib.js");
 var app = function() {
-    _lib.result;
+    _libJs.result;
 };
-(0, _lib.something)('app4');
-(0, _lib.something)('app3');
+(0, _libJs.something)('app4');
+(0, _libJs.something)('app3');
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _app = __webpack_require__("./app.js");
-(0, _app.app)();
+const _appJs = __webpack_require__("./app.js");
+(0, _appJs.app)();
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 "use strict";

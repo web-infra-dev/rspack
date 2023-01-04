@@ -106,10 +106,10 @@ pub struct SassOptions {
 #[derive(Debug)]
 struct RspackImporter {
   include_paths: Vec<PathBuf>,
-  sass_module_resolve: Resolver,
-  sass_import_resolve: Resolver,
-  rspack_module_resolve: Resolver,
-  rspack_import_resolve: Resolver,
+  sass_module_resolve: Arc<Resolver>,
+  sass_import_resolve: Arc<Resolver>,
+  rspack_module_resolve: Arc<Resolver>,
+  rspack_import_resolve: Arc<Resolver>,
 }
 
 impl RspackImporter {

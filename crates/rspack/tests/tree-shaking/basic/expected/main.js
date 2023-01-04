@@ -15,9 +15,9 @@ const answer = 103330;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _lib = __webpack_require__("./lib.js");
+const _libJs = __webpack_require__("./lib.js");
 setTimeout(()=>{
-    console.log(_lib.myanswer);
+    console.log(_libJs.myanswer);
 }, 1000);
 if (module.hot?.accept) module.hot.accept((module1)=>{
     console.log("xxx:", module1);
@@ -28,7 +28,7 @@ if (module.hot?.accept) module.hot.accept((module1)=>{
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _app = __webpack_require__.interopRequire(__webpack_require__("./app.js"));
+const _appJs = __webpack_require__.interopRequire(__webpack_require__("./app.js"));
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -39,8 +39,8 @@ Object.defineProperty(exports, "myanswer", {
     enumerable: true,
     get: ()=>myanswer
 });
-const _answer = __webpack_require__("./answer.js");
-const myanswer = _answer.answer;
+const _answerJs = __webpack_require__("./answer.js");
+const myanswer = _answerJs.answer;
 },
 
 },function(__webpack_require__) {

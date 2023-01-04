@@ -25,7 +25,7 @@ _export(exports, {
     render: ()=>render,
     default: ()=>result
 });
-const _lib = __webpack_require__("./lib.js");
+const _libJs = __webpack_require__("./lib.js");
 function render() {}
 function result() {}
 },
@@ -34,8 +34,8 @@ function result() {}
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _app = __webpack_require__.interopRequire(__webpack_require__("./app.js"));
-(0, _app.render)(_app.default);
+const _appJs = __webpack_require__.interopRequire(__webpack_require__("./app.js"));
+(0, _appJs.render)(_appJs.default);
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -52,9 +52,9 @@ _export(exports, {
     secret: ()=>secret,
     myanswer: ()=>myanswer
 });
-const _answer = __webpack_require__("./answer.js");
+const _answerJs = __webpack_require__("./answer.js");
 const secret = "888";
-const myanswer = _answer.answer;
+const myanswer = _answerJs.answer;
 },
 
 },function(__webpack_require__) {

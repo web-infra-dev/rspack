@@ -6,9 +6,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "Provider", {
     enumerable: true,
-    get: ()=>_lib.default
+    get: ()=>_libJs.default
 });
-const _lib = __webpack_require__.interopRequire(__webpack_require__("./lib.js"));
+const _libJs = __webpack_require__.interopRequire(__webpack_require__("./lib.js"));
 },
 "./foo.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -22,8 +22,8 @@ __webpack_require__.exportStar(__webpack_require__("./app.js"), exports);
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _foo = __webpack_require__("./foo.js");
-_foo.Provider;
+const _fooJs = __webpack_require__("./foo.js");
+_fooJs.Provider;
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 "use strict";

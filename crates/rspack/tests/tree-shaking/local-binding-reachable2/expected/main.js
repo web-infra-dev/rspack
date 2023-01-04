@@ -21,9 +21,9 @@ Object.defineProperty(exports, "Something", {
     enumerable: true,
     get: ()=>Something
 });
-const _layout = __webpack_require__("./Layout.js");
+const _layoutJs = __webpack_require__("./Layout.js");
 class Test {
-    test = _layout.defaults.test + 20000;
+    test = _layoutJs.defaults.test + 20000;
 }
 new Test();
 var Something = 333;
@@ -33,8 +33,8 @@ var Something = 333;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _export = __webpack_require__("./export.js");
-(0, _export.Something)();
+const _exportJs = __webpack_require__("./export.js");
+(0, _exportJs.Something)();
 },
 
 },function(__webpack_require__) {

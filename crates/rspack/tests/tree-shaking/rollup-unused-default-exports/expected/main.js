@@ -22,8 +22,8 @@ mutate(foo);
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _foo = __webpack_require__("./foo.js");
-assert.equal(_foo.foo.value, 2);
+const _fooJs = __webpack_require__("./foo.js");
+assert.equal(_fooJs.foo.value, 2);
 },
 
 },function(__webpack_require__) {

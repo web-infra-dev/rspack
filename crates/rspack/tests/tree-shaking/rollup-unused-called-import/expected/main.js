@@ -11,7 +11,7 @@ Object.defineProperty(exports, "default", {
     enumerable: true,
     get: ()=>_default
 });
-const _dead = __webpack_require__.interopRequire(__webpack_require__("./dead.js"));
+const _deadJs = __webpack_require__.interopRequire(__webpack_require__("./dead.js"));
 function _default() {
     return "foo";
 }
@@ -21,8 +21,8 @@ function _default() {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _foo = __webpack_require__.interopRequire(__webpack_require__("./foo.js"));
-assert.equal((0, _foo.default)(), "foo");
+const _fooJs = __webpack_require__.interopRequire(__webpack_require__("./foo.js"));
+assert.equal((0, _fooJs.default)(), "foo");
 },
 
 },function(__webpack_require__) {

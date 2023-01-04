@@ -39,7 +39,7 @@ impl Compiler {
     let plugin_driver = Arc::new(RwLock::new(PluginDriver::new(
       options.clone(),
       plugins,
-      Arc::new(resolver),
+      resolver,
       resolver_factory.clone(),
     )));
     let loader_runner_runner = Arc::new(LoaderRunnerRunner::new(
