@@ -207,8 +207,7 @@ export const describeCases = (config: any) => {
 									// );
 									compiler.watch(
 										{
-											usePolling: true
-											// aggregateTimeout: 1000
+											aggregateTimeout: 1000
 										},
 										(err, stats) => {
 											if (err) return compilationFinished(err);

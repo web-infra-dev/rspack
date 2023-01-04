@@ -5,7 +5,6 @@ import type {
 } from "@rspack/core";
 import type { WatchOptions } from "chokidar";
 import path from "path";
-import { resolveWatchOption } from "@rspack/core";
 import { ProxyOptions } from "@rspack/core/src/config/devServer";
 
 export interface ResolvedDev {
@@ -23,6 +22,18 @@ export interface ResolvedDev {
 	proxy: ProxyOptions;
 }
 
+function resolveStaticWatchOptions(watch: WatchOptions = {}) {
+	const ignored = watch.ignored ?? [
+		"**/dist/**",
+		"**/node_modules/**",
+		"**/.git/**"
+	];
+	return {
+		...watch,
+		ignored
+	};
+}
+
 export function resolveDevOptions(
 	devConfig: Dev,
 	compilerOptions: RspackOptionsNormalized
@@ -38,7 +49,7 @@ export function resolveDevOptions(
 	if (devConfig.static?.watch === false) {
 		watch = false;
 	} else if (devConfig.static?.watch === true) {
-		watch = resolveWatchOption({});
+		watch = resolveStaticWatchOptions({});
 	} else if (devConfig.static?.watch) {
 		watch = devConfig.static?.watch;
 	}
