@@ -137,9 +137,13 @@ impl Compiler {
       if !diagnostics.is_empty() {
         self.compilation.push_batch_diagnostic(diagnostics);
       }
+      dbg!(&analyze_result.used_symbol.len());
+      dbg!(&analyze_result.bail_out_module_identifiers.len());
+      dbg!(&analyze_result.used_indirect_symbol.len());
       self.compilation.used_symbol = analyze_result.used_symbol;
       self.compilation.bailout_module_identifiers = analyze_result.bail_out_module_identifiers;
       self.compilation.used_indirect_symbol = analyze_result.used_indirect_symbol;
+
       // This is only used when testing
       #[cfg(debug_assertions)]
       {

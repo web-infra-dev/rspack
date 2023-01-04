@@ -917,6 +917,7 @@ impl Compilation {
       };
     }
 
+    // dbg!(&used_export_module_identifiers);
     if side_effects_analyze {
       // pruning
       let mut visited: HashSet<Ustr> =
@@ -943,12 +944,20 @@ impl Compilation {
         };
         let used = used_export_module_identifiers.contains(&analyze_result.module_identifier);
 
+        // dbg!(
+        //   &module_identifier,
+        //   used,
+        //   bail_out_module_identifiers.contains_key(&analyze_result.module_identifier),
+        //   analyze_result.side_effects_free,
+        //   self.entry_module_identifiers.contains(&module_identifier)
+        // );
         if !used
           && !bail_out_module_identifiers.contains_key(&analyze_result.module_identifier)
           && analyze_result.side_effects_free
           && !self.entry_module_identifiers.contains(&module_identifier)
         {
           continue;
+        } else {
         }
 
         let mgm = self
@@ -1498,8 +1507,8 @@ fn mark_symbol(
   options: &Arc<CompilerOptions>,
   errors: &mut Vec<Error>,
 ) {
+  // dbg!(&symbol_ref);
   // if debug_care_module_id(symbol_ref.module_identifier()) {
-  //   dbg!(&symbol_ref);
   // }
   // We don't need mark the symbol usage if it is from a bailout module because
   // bailout module will skipping tree-shaking anyway
@@ -1514,7 +1523,7 @@ fn mark_symbol(
     SymbolRef::Indirect(indirect) => {
       used_export_module_identifiers.insert(indirect.uri());
     }
-    SymbolRef::Star(_) => {}
+    _ => {}
   };
   match symbol_ref {
     SymbolRef::Direct(symbol) => match used_symbol_set.entry(symbol) {
