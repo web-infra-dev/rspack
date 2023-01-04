@@ -102,8 +102,6 @@ class Compiler {
 		this.#_instance =
 			this.#_instance ||
 			new binding.Rspack(options, {
-				// TODO: add it back
-				// done: this.#done.bind(this),
 				processAssets: this.#processAssets.bind(this),
 				// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
 				// We know that the hook `thisCompilation` will not be called from a child compiler(it doesn't matter whether the child compiler is created on the Rust or the Node side).
@@ -198,13 +196,6 @@ class Compiler {
 			}
 		);
 	}
-	/**
-	 * @todo remove it in the future
-	 * @param err
-	 * @param value
-	 * @returns
-	 */
-	#done(statsJson: binding.JsStatsCompilation) {}
 
 	async #processAssets() {
 		await this.compilation.hooks.processAssets.promise(
