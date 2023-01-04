@@ -3,6 +3,7 @@ use std::{collections::VecDeque, hash::Hash, path::PathBuf, sync::Arc};
 use bitflags::bitflags;
 use globset::{Glob, GlobSetBuilder};
 use hashbrown::{hash_map::Entry, HashMap, HashSet};
+use hashlink::LinkedHashMap;
 use indexmap::IndexMap;
 use sugar_path::SugarPath;
 use swc_core::common::{util::take::Take, Mark, GLOBALS};
@@ -66,7 +67,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   /// ```
   /// then inherit_exports_maps become, `{"test.js": {...test_js_export_map} }`
   // Use `IndexMap` to keep the insertion order
-  pub inherit_export_maps: IndexMap<Ustr, HashMap<JsWord, SymbolRef>>,
+  pub inherit_export_maps: LinkedHashMap<Ustr, HashMap<JsWord, SymbolRef>>,
   current_body_owner_symbol_ext: Option<SymbolExt>,
   pub(crate) decl_reference_map: HashMap<SymbolExt, HashSet<IdOrMemExpr>>,
   /// ```js
@@ -102,7 +103,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       module_graph: dep_to_module_identifier,
       export_map: HashMap::default(),
       import_map: HashMap::default(),
-      inherit_export_maps: IndexMap::default(),
+      inherit_export_maps: LinkedHashMap::default(),
       current_body_owner_symbol_ext: None,
       decl_reference_map: HashMap::new(),
       reachable_import_and_export: HashMap::default(),
@@ -1080,7 +1081,7 @@ pub struct TreeShakingResult {
   pub module_identifier: Ustr,
   pub export_map: HashMap<JsWord, SymbolRef>,
   pub(crate) import_map: HashMap<BetterId, SymbolRef>,
-  pub inherit_export_maps: IndexMap<Ustr, HashMap<JsWord, SymbolRef>>,
+  pub inherit_export_maps: LinkedHashMap<Ustr, HashMap<JsWord, SymbolRef>>,
   // current_region: Option<BetterId>,
   // pub(crate) reference_map: HashMap<BetterId, HashSet<BetterId>>,
   pub(crate) reachable_import_of_export: HashMap<JsWord, HashSet<SymbolRef>>,

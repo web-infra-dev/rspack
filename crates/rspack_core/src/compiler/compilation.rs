@@ -5,7 +5,8 @@ use hashbrown::{
   hash_set::Entry::{Occupied, Vacant},
   HashMap, HashSet,
 };
-use indexmap::IndexSet;
+use hashlink::LinkedHashSet;
+use indexmap::{IndexMap, IndexSet};
 use petgraph::{algo, prelude::GraphMap, Directed};
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use std::{
@@ -819,12 +820,14 @@ impl Compilation {
     // value is the set which contains several module_id the key related module need to inherit
     let map_of_inherit_map = get_extends_map(&inherit_export_ref_graph);
 
+    // dbg!(&map_of_inherit_map);
     for (module_id, inherit_export_module_id) in map_of_inherit_map.iter() {
       // This is just a work around for rustc checker, because we have immutable and mutable borrow at the same time.
       let mut inherit_export_maps = {
         let main_module = analyze_results.get_mut(module_id).expect("TODO:");
         std::mem::take(&mut main_module.inherit_export_maps)
       };
+      // dbg!(&inherit_export_maps);
       for inherit_export_module_identifier in inherit_export_module_id {
         let export_module = analyze_results
           .get(inherit_export_module_identifier)
@@ -845,7 +848,14 @@ impl Compilation {
             }
           })
           .collect::<HashMap<JsWord, SymbolRef>>();
-        inherit_export_maps.insert(*inherit_export_module_identifier, export_module);
+        match inherit_export_maps.entry(*inherit_export_module_identifier) {
+          hashlink::lru_cache::Entry::Occupied(mut occ) => {
+            *occ.borrow_mut().get_mut() = export_module;
+          }
+          hashlink::lru_cache::Entry::Vacant(vac) => {
+            vac.insert(export_module);
+          }
+        }
       }
       analyze_results
         .get_mut(module_id)
@@ -857,6 +867,7 @@ impl Compilation {
     let mut used_indirect_symbol: HashSet<IndirectTopLevelSymbol> = HashSet::new();
     let mut used_export_module_identifiers: HashSet<Ustr> = HashSet::new();
     let mut traced_tuple = HashSet::new();
+    // dbg!(&used_symbol_ref.len());
     // Marking used symbol and all reachable export symbol from the used symbol for each module
     let used_symbol_from_import = mark_used_symbol_with(
       &analyze_results,
@@ -1583,7 +1594,9 @@ fn mark_symbol(
           // Checking if any inherit export map is belong to a bailout module
           let mut has_bailout_module_identifiers = false;
           let mut is_first_result = true;
+          // dbg!(&module_result.inherit_export_maps);
           for (module_identifier, extends_export_map) in module_result.inherit_export_maps.iter() {
+            // dbg!(&module_identifier);
             if let Some(value) = extends_export_map.get(&indirect_symbol.id) {
               ret.push((module_identifier, value));
               if is_first_result {
@@ -1658,6 +1671,8 @@ fn mark_symbol(
               errors.push(Error::InternalError(
                 internal_error!(error_message).with_severity(Severity::Warn),
               ));
+              // ret.sort_by(|a, b| a.1.module_identifier().cmp(&b.1.module_identifier()));
+              // dbg!(&ret);
               ret[0].1.clone()
             }
           }
@@ -1720,7 +1735,7 @@ fn mark_symbol(
 
 fn get_extends_map(
   export_all_ref_graph: &GraphMap<Ustr, (), petgraph::Directed>,
-) -> HashMap<Ustr, HashSet<Ustr>> {
+) -> HashMap<Ustr, LinkedHashSet<Ustr>> {
   let mut map = HashMap::new();
   for node in export_all_ref_graph.nodes() {
     let reachable_set = get_reachable(node, export_all_ref_graph);
@@ -1728,9 +1743,9 @@ fn get_extends_map(
   }
   map
 }
-fn get_reachable(start: Ustr, g: &GraphMap<Ustr, (), petgraph::Directed>) -> HashSet<Ustr> {
+fn get_reachable(start: Ustr, g: &GraphMap<Ustr, (), petgraph::Directed>) -> LinkedHashSet<Ustr> {
   let mut visited: HashSet<Ustr> = HashSet::new();
-  let mut reachable_module_id = HashSet::new();
+  let mut reachable_module_id = LinkedHashSet::new();
   let mut q = VecDeque::from_iter([start]);
   while let Some(cur) = q.pop_front() {
     match visited.entry(cur) {
