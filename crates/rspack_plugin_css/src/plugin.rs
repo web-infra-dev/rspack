@@ -369,6 +369,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       compiler_options,
       code_generation_dependencies,
       build_info,
+      ..
     } = parse_context;
     build_info.strict = true;
     let cm: Arc<swc_core::common::SourceMap> = Default::default();

@@ -1,16 +1,21 @@
+use rspack_error::Result;
+
 use crate::{
-  dependency::{Dependency, ModuleDependency, ModuleDependencyCategory},
+  dependency::{
+    CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, DependencyCategory,
+    ModuleDependency,
+  },
   ModuleIdentifier,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub struct CommonJSDependency {
+struct EsmImportDependency {
   parent_module_identifier: Option<ModuleIdentifier>,
   request: String,
   user_request: String,
 }
 
-impl CommonJSDependency {
+impl EsmImportDependency {
   pub fn new(
     parent_module_identifier: Option<ModuleIdentifier>,
     request: String,
@@ -24,17 +29,19 @@ impl CommonJSDependency {
   }
 }
 
-impl Dependency for CommonJSDependency {
+impl Dependency for EsmImportDependency {
   fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
     self.parent_module_identifier.as_ref()
   }
 
-  fn as_module_dependency(&self) -> Option<&dyn ModuleDependency> {
-    Some(self)
+  fn category(&self) -> &DependencyCategory {
+    &DependencyCategory::Esm
   }
 }
 
-impl ModuleDependency for CommonJSDependency {
+// impl_module_dependency_cast!(EsmImportDependency);
+
+impl ModuleDependency for EsmImportDependency {
   fn request(&self) -> &str {
     &self.request
   }
@@ -42,8 +49,13 @@ impl ModuleDependency for CommonJSDependency {
   fn user_request(&self) -> &str {
     &self.user_request
   }
+}
 
-  fn category(&self) -> ModuleDependencyCategory {
-    ModuleDependencyCategory::CommonJS
+impl CodeGeneratable for EsmImportDependency {
+  fn generate(
+    &self,
+    code_generatable_context: CodeGeneratableContext,
+  ) -> Result<CodeGeneratableResult> {
+    todo!()
   }
 }

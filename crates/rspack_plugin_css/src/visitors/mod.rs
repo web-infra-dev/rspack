@@ -1,6 +1,8 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::{Compilation, Dependency, Module, ModuleDependency, ResolveKind};
+use rspack_core::{
+  Compilation, CssUrlDependency, Dependency, Module, ModuleDependency, ResolveKind,
+};
 use rspack_error::{Diagnostic, DiagnosticKind};
 use swc_core::{common::util::take::Take, ecma::atoms::Atom};
 
@@ -28,8 +30,8 @@ pub fn analyze_dependencies(
 
 #[derive(Debug)]
 struct Analyzer<'a> {
-  deps: Vec<ModuleDependency>,
-  code_generation_dependencies: &'a mut Vec<ModuleDependency>,
+  deps: Vec<Box<dyn ModuleDependency>>,
+  code_generation_dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
   diagnostics: &'a mut Vec<Diagnostic>,
 }
 
@@ -80,11 +82,8 @@ impl Visit for Analyzer<'_> {
     });
     if let Some(specifier) = specifier && is_url_requestable(&specifier) {
       let specifier = replace_module_request_prefix(specifier, self.diagnostics);
-      let dep = ModuleDependency {
-        specifier,
-        kind: ResolveKind::UrlToken,
-        span: Some(u.span.into()),
-      };
+      // TODO: add span
+      let dep = CssUrlDependency::new(specifier);
       self.deps.push(dep.clone());
       self.code_generation_dependencies.push(dep);
     }

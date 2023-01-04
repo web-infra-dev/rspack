@@ -11,28 +11,29 @@ use tracing::instrument;
 use ustr::Ustr;
 
 use crate::{
-  cache::Cache, module_rule_matcher, resolve, BoxModule, CompilerOptions, FactorizeArgs,
-  Identifiable, ModuleArgs, ModuleExt, ModuleIdentifier, ModuleRule, ModuleType, NormalModule,
-  RawModule, Resolve, ResolveArgs, ResolveResult, ResourceData, SharedPluginDriver,
+  cache::Cache, module_rule_matcher, resolve, BoxModule, CompilerOptions, Dependency,
+  FactorizeArgs, Identifiable, ModuleArgs, ModuleDependency, ModuleExt, ModuleIdentifier,
+  ModuleRule, ModuleType, NormalModule, RawModule, Resolve, ResolveArgs, ResolveResult,
+  ResourceData, SharedPluginDriver,
 };
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
-pub struct Dependency {
-  /// Parent module identifier (Can be used to locate its parent module in module graph)
-  pub parent_module_identifier: Option<ModuleIdentifier>,
-  pub detail: ModuleDependency,
-}
+// #[derive(Debug, Hash, PartialEq, Eq, Clone)]
+// pub struct Dependency {
+//   /// Parent module identifier (Can be used to locate its parent module in module graph)
+//   pub parent_module_identifier: Option<ModuleIdentifier>,
+//   pub detail: ModuleDependency,
+// }
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
-pub enum ResolveKind {
-  Entry,
-  Import,
-  Require,
-  DynamicImport,
-  AtImport,
-  UrlToken,
-  ModuleHotAccept,
-}
+// #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
+// pub enum ResolveKind {
+//   Entry,
+//   Import,
+//   Require,
+//   DynamicImport,
+//   AtImport,
+//   UrlToken,
+//   ModuleHotAccept,
+// }
 
 #[derive(Debug)]
 pub struct FactorizeResult {
@@ -86,7 +87,7 @@ impl FactorizeResult {
 #[derive(Debug)]
 pub struct NormalModuleFactory {
   context: NormalModuleFactoryContext,
-  dependency: Dependency,
+  dependency: Box<dyn ModuleDependency>,
   plugin_driver: SharedPluginDriver,
   cache: Arc<Cache>,
 }
@@ -94,7 +95,7 @@ pub struct NormalModuleFactory {
 impl NormalModuleFactory {
   pub fn new(
     context: NormalModuleFactoryContext,
-    dependency: Dependency,
+    dependency: Box<dyn ModuleDependency>,
     plugin_driver: SharedPluginDriver,
     cache: Arc<Cache>,
   ) -> Self {
@@ -129,17 +130,22 @@ impl NormalModuleFactory {
     resolve_options: Option<Resolve>,
   ) -> Result<Option<FactorizeResult>> {
     // TODO: `importer` should use `NormalModule::context || options.context`;
-    let importer = self.dependency.parent_module_identifier.as_deref();
-    let specifier = self.dependency.detail.specifier.as_str();
-    let kind = self.dependency.detail.kind;
+    let importer = self
+      .dependency
+      .parent_module_identifier()
+      .map(|i| i.as_str());
+    let specifier = self.dependency.request();
     if should_skip_resolve(specifier) {
       return Ok(None);
     }
     let resolve_args = ResolveArgs {
       importer,
       specifier,
-      kind,
-      span: self.dependency.detail.span,
+      dependency_type: *self.dependency.dependency_type(),
+      dependency_category: *self.dependency.category(),
+      // TODO: Add back span support
+      // span: self.dependency.detail.span,
+      span: None,
       resolve_options,
     };
     let plugin_driver = self.plugin_driver.clone();
@@ -223,7 +229,7 @@ impl NormalModuleFactory {
     let normal_module = NormalModule::new(
       uri.clone(),
       uri.clone(),
-      self.dependency.detail.specifier.to_owned(),
+      self.dependency.request().to_owned(),
       resolved_module_type,
       resolved_parser_and_generator,
       resource_data,
@@ -236,7 +242,7 @@ impl NormalModuleFactory {
       .read()
       .await
       .module(ModuleArgs {
-        kind,
+        dependency_type: *self.dependency.dependency_type(),
         indentfiler: normal_module.identifier(),
         lazy_visit_modules: self.context.lazy_visit_modules.clone(),
       })
@@ -314,7 +320,7 @@ impl NormalModuleFactory {
       .await
       .factorize(
         FactorizeArgs {
-          dependency: &self.dependency,
+          dependency: &*self.dependency,
           plugin_driver: &self.plugin_driver,
         },
         &mut self.context,
@@ -359,32 +365,32 @@ pub struct NormalModuleFactoryContext {
   pub lazy_visit_modules: std::collections::HashSet<String>,
 }
 
-#[derive(Debug, Clone, Eq)]
-pub struct ModuleDependency {
-  pub specifier: String,
-  /// `./a.js` in `import './a.js'` is specifier
-  pub kind: ResolveKind,
-  pub span: Option<ErrorSpan>,
-}
+// #[derive(Debug, Clone, Eq)]
+// pub struct ModuleDependency {
+//   pub specifier: String,
+//   /// `./a.js` in `import './a.js'` is specifier
+//   pub kind: ResolveKind,
+//   pub span: Option<ErrorSpan>,
+// }
 
-/// # WARNING
-/// Don't update the manual implementation of `Hash` of [ModuleDependency]
-/// Current implementation strong rely on the field of `specifier` and `kind`
-impl std::hash::Hash for ModuleDependency {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.specifier.hash(state);
-    self.kind.hash(state);
-  }
-}
-/// # WARNING
-/// Don't update the manual implementation of `PartialEq` of [ModuleDependency]
-/// Current implementation strong rely on the field of `specifier` and `kind`
-impl PartialEq for ModuleDependency {
-  fn eq(&self, other: &Self) -> bool {
-    self.specifier == other.specifier && self.kind == other.kind
-  }
-}
-
+// /// # WARNING
+// /// Don't update the manual implementation of `Hash` of [ModuleDependency]
+// /// Current implementation strong rely on the field of `specifier` and `kind`
+// impl std::hash::Hash for ModuleDependency {
+//   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+//     self.specifier.hash(state);
+//     self.kind.hash(state);
+//   }
+// }
+// /// # WARNING
+// /// Don't update the manual implementation of `PartialEq` of [ModuleDependency]
+// /// Current implementation strong rely on the field of `specifier` and `kind`
+// impl PartialEq for ModuleDependency {
+//   fn eq(&self, other: &Self) -> bool {
+//     self.specifier == other.specifier && self.kind == other.kind
+//   }
+// }
+// TODO: add back
 /// Using `u32` instead of `usize` to reduce memory usage,
 /// `u32` is 4 bytes on 64bit machine, comare to `usize` which is 8 bytes.
 /// Rspan aka `Rspack span`, just avoiding conflict with span in other crate

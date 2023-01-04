@@ -1,12 +1,20 @@
 use linked_hash_set::LinkedHashSet;
-use rspack_core::{ModuleDependency, ResolveKind};
+use rspack_core::{ModuleDependency, ModuleIdentifier, ResolveKind};
+use swc_core::common::pass::AstNodePath;
 use swc_core::common::{Mark, Span, SyntaxContext};
 use swc_core::ecma::ast::{CallExpr, Callee, ExportSpecifier, Expr, ExprOrSpread, Lit, ModuleDecl};
 use swc_core::ecma::atoms::JsWord;
-use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
+use swc_core::ecma::visit::{
+  noop_visit_type, AstParentKind, AstParentNodeRef, Visit, VisitAstPath, VisitWith, VisitWithPath,
+};
+
+pub fn as_parent_path(ast_path: &AstNodePath<AstParentNodeRef<'_>>) -> Vec<AstParentKind> {
+  ast_path.iter().map(|n| n.kind()).collect()
+}
+
 pub struct DependencyScanner {
   pub unresolved_ctxt: SyntaxContext,
-  pub dependencies: LinkedHashSet<ModuleDependency>,
+  pub dependencies: LinkedHashSet<Box<dyn Dependency>>,
   // pub dyn_dependencies: HashSet<DynImportDesc>,
 }
 
@@ -116,21 +124,31 @@ impl DependencyScanner {
   }
 }
 
-impl Visit for DependencyScanner {
-  noop_visit_type!();
+impl VisitAstPath for DependencyScanner {
+  // noop_visit_type!();
 
-  fn visit_module_decl(&mut self, node: &ModuleDecl) {
+  fn visit_module_decl<'ast: 'r, 'r>(
+    &mut self,
+    node: &'ast ModuleDecl,
+    ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
+  ) {
+    dbg!(as_parent_path(ast_path));
     self.add_import(node);
     if let Err(e) = self.add_export(node) {
       eprintln!("{}", e);
     }
-    node.visit_children_with(self);
+    node.visit_children_with_path(self, ast_path);
   }
-  fn visit_call_expr(&mut self, node: &CallExpr) {
+  fn visit_call_expr<'ast: 'r, 'r>(
+    &mut self,
+    node: &'ast CallExpr,
+    ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
+  ) {
+    dbg!(as_parent_path(ast_path));
     self.add_module_hot(node);
     self.add_dynamic_import(node);
     self.add_require(node);
-    node.visit_children_with(self);
+    node.visit_children_with_path(self, ast_path);
   }
 }
 

@@ -18,9 +18,13 @@ pub use module_rules::*;
 mod fast_set;
 pub use fast_set::*;
 
-use crate::{ModuleGraph, ModuleIdentifier};
 mod queue;
 pub use queue::*;
+
+mod ext;
+pub use ext::*;
+
+use crate::{ModuleGraph, ModuleIdentifier};
 
 pub fn parse_to_url(url: &str) -> url::Url {
   if !url.contains(':') {

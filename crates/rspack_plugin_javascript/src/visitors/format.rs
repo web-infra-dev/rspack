@@ -5,6 +5,7 @@ use rspack_core::{
   runtime_globals, Compilation, Dependency, Module, ModuleDependency, ResolveKind,
 };
 use swc_core::ecma::utils::{quote_ident, ExprFactory};
+use swc_core::quote;
 use tracing::instrument;
 
 use crate::utils::{is_dynamic_import_literal_expr, is_require_literal_expr};

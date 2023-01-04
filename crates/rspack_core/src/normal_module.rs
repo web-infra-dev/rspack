@@ -28,9 +28,10 @@ use rspack_sources::{
 
 use crate::{
   contextify, identifier::Identifiable, BoxModule, BuildContext, BuildResult, ChunkGraph,
-  CodeGenerationResult, Compilation, CompilerOptions, Context, Dependency, GenerateContext,
-  LibIdentOptions, Module, ModuleAst, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
-  ModuleType, ParseContext, ParseResult, ParserAndGenerator, Resolve, ResolveKind, SourceType,
+  CodeGenerationResult, Compilation, CompilerOptions, Context, Dependency, DependencyType,
+  GenerateContext, LibIdentOptions, Module, ModuleAst, ModuleDependency, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, Resolve, SourceType,
 };
 
 bitflags! {
@@ -86,7 +87,7 @@ pub struct ModuleGraphModule {
   pub module_identifier: ModuleIdentifier,
   // TODO remove this since its included in module
   pub module_type: ModuleType,
-  pub all_dependencies: Vec<Dependency>,
+  pub all_dependencies: Vec<Box<dyn ModuleDependency>>,
   pub(crate) pre_order_index: Option<usize>,
   pub post_order_index: Option<usize>,
   pub module_syntax: ModuleSyntax,
@@ -97,7 +98,6 @@ impl ModuleGraphModule {
   pub fn new(
     name: Option<String>,
     module_identifier: ModuleIdentifier,
-    dependencies: Vec<Dependency>,
     module_type: ModuleType,
     default_used: bool,
   ) -> Self {
@@ -110,7 +110,7 @@ impl ModuleGraphModule {
       issuer: ModuleIssuer::Unset,
       // exec_order: usize::MAX,
       module_identifier,
-      all_dependencies: dependencies,
+      all_dependencies: Default::default(),
       module_type,
       pre_order_index: None,
       post_order_index: None,
@@ -192,8 +192,8 @@ impl ModuleGraphModule {
     self
       .all_dependencies
       .iter()
-      .filter(|dep| !matches!(dep.detail.kind, ResolveKind::DynamicImport))
-      .filter_map(|dep| module_graph.module_by_dependency(dep))
+      .filter(|dep| !matches!(dep.dependency_type(), &DependencyType::DynamicImport))
+      .filter_map(|dep| module_graph.module_by_dependency(&**dep))
       .collect()
   }
 
@@ -204,8 +204,8 @@ impl ModuleGraphModule {
     self
       .all_dependencies
       .iter()
-      .filter(|dep| matches!(dep.detail.kind, ResolveKind::DynamicImport))
-      .filter_map(|dep| module_graph.module_by_dependency(dep))
+      .filter(|dep| matches!(dep.dependency_type(), &DependencyType::DynamicImport))
+      .filter_map(|dep| module_graph.module_by_dependency(&**dep))
       .collect()
   }
 
@@ -318,7 +318,7 @@ pub struct NormalModule {
   debug_id: usize,
   cached_source_sizes: DashMap<SourceType, f64>,
 
-  code_generation_dependencies: Option<Vec<Dependency>>,
+  code_generation_dependencies: Option<Vec<Box<dyn Dependency>>>,
 
   pub build_info: BuildInfo,
 }
@@ -475,7 +475,7 @@ impl Module for NormalModule {
       loader_result.content,
       loader_result.source_map,
     )?;
-    let mut code_generation_dependencies = Vec::new();
+    let mut code_generation_dependencies: Vec<Box<dyn ModuleDependency>> = Vec::new();
 
     let (
       ParseResult {
@@ -487,6 +487,7 @@ impl Module for NormalModule {
       .parser_and_generator
       .parse(ParseContext {
         source: original_source.clone(),
+        module_identifier: self.identifier(),
         module_type: &self.module_type,
         resource_data: &self.resource_data,
         compiler_options: build_context.compiler_options,
@@ -502,11 +503,11 @@ impl Module for NormalModule {
     self.code_generation_dependencies = Some(
       code_generation_dependencies
         .into_iter()
-        .map(|d| Dependency {
-          parent_module_identifier: Some(self.identifier()),
-          detail: d,
+        .map(|mut d| {
+          d.set_parent_module_identifier(Some(self.identifier()));
+          d as Box<dyn Dependency>
         })
-        .collect(),
+        .collect::<Vec<_>>(),
     );
 
     Ok(
@@ -581,7 +582,7 @@ impl Module for NormalModule {
     Some(Cow::Owned(contextify(options.context, self.user_request())))
   }
 
-  fn get_code_generation_dependencies(&self) -> Option<&[Dependency]> {
+  fn get_code_generation_dependencies(&self) -> Option<&[Box<dyn Dependency>]> {
     if let Some(deps) = self.code_generation_dependencies.as_deref() && !deps.is_empty() {
       Some(deps)
     } else {

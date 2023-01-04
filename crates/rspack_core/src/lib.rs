@@ -2,6 +2,8 @@
 #![feature(box_patterns)]
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(unzip_option)]
+#![feature(trait_upcasting)]
+#![feature(box_syntax)]
 
 use std::{fmt, sync::Arc};
 
@@ -33,7 +35,7 @@ pub use module_graph::*;
 mod chunk;
 pub use chunk::*;
 mod dependency;
-// pub use dependency::*;
+pub use dependency::*;
 mod utils;
 use tokio::sync::RwLock;
 pub use utils::*;
@@ -190,7 +192,8 @@ impl TryFrom<&str> for ModuleType {
   }
 }
 
-pub(crate) type VisitedModuleIdentity = HashSet<(ModuleIdentifier, ModuleDependency)>;
+// TODO: use module identifier only later, (ModuleIdentifier, DependencyCategory, Specifier)
+pub(crate) type VisitedModuleIdentity = HashSet<(ModuleIdentifier, DependencyCategory, String)>;
 
 pub(crate) type ChunkByUkey = HashMap<ChunkUkey, Chunk>;
 pub type ChunkGroupByUkey = HashMap<ChunkGroupUkey, ChunkGroup>;

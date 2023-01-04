@@ -1,2 +1,4 @@
-mod esm_dependency;
-pub use esm_dependency::*;
+mod import;
+pub use import::*;
+mod dynamic_import;
+pub use dynamic_import::*;

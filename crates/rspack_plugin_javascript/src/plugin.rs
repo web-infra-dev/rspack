@@ -234,6 +234,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
     let ParseContext {
       source,
+      module_identifier,
       module_type,
       resource_data,
       compiler_options,
@@ -278,8 +279,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     )?;
 
     let dep_scanner = ast.visit(|program, context| {
-      let mut dep_scanner = DependencyScanner::new(context.unresolved_mark);
-      program.visit_with(&mut dep_scanner);
+      let mut dep_scanner = DependencyScanner::new(context.unresolved_mark, module_identifier);
+      program.visit_with_path(&mut dep_scanner, &mut Default::default());
       dep_scanner
     });
 

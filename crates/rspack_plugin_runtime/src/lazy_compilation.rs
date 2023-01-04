@@ -1,8 +1,8 @@
 use async_trait::async_trait;
 use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
-  runtime_globals, ApplyContext, AstOrSource, Compilation, Module, ModuleArgs, ModuleType, Plugin,
-  PluginContext, PluginModuleHookOutput, ResolveKind, SourceType,
+  runtime_globals, ApplyContext, AstOrSource, Compilation, DependencyType, Module, ModuleArgs,
+  ModuleType, Plugin, PluginContext, PluginModuleHookOutput, ResolveKind, SourceType,
 };
 use rspack_core::{
   BuildContext, BuildResult, CodeGenerationResult, Context, Identifiable, ModuleIdentifier,
@@ -116,7 +116,10 @@ impl Plugin for LazyCompilationPlugin {
     {
       return Ok(None);
     }
-    if args.kind == ResolveKind::DynamicImport || args.kind == ResolveKind::Entry {
+    if matches!(
+      args.dependency_type,
+      DependencyType::DynamicImport | DependencyType::Entry
+    ) {
       return Ok(Some(Box::new(LazyCompilationProxyModule {
         module_identifier: args.indentfiler,
       })));

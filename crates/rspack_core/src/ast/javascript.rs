@@ -1,13 +1,17 @@
 use anyhow::Error;
 use std::{hash::Hash, sync::Arc};
 use swc_core::base::try_with_handler;
+use swc_core::common::pass::AstNodePath;
 use swc_core::common::{
   errors::Handler, sync::Lrc, util::take::Take, Globals, Mark, SourceMap, GLOBALS,
 };
 use swc_core::ecma::ast::{Module, ModuleItem, Program as SwcProgram};
 use swc_core::ecma::transforms::base::helpers;
 use swc_core::ecma::transforms::base::helpers::Helpers;
-use swc_core::ecma::visit::{Fold, FoldWith, Visit, VisitAll, VisitAllWith, VisitWith};
+use swc_core::ecma::visit::{
+  AstParentNodeRef, Fold, FoldWith, Visit, VisitAll, VisitAllWith, VisitAstPath, VisitWith,
+  VisitWithPath,
+};
 
 /// Program is a wrapper for SwcProgram
 ///
@@ -24,6 +28,16 @@ impl Program {
 
   pub fn visit_with<V: ?Sized + Visit>(&self, v: &mut V) {
     self.0.visit_with(v)
+  }
+
+  pub fn visit_with_path<'ast, 'r, V: ?Sized + VisitAstPath>(
+    &'ast self,
+    v: &mut V,
+    ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
+  ) where
+    'ast: 'r,
+  {
+    self.0.visit_with_path(v, ast_path)
   }
 
   pub fn visit_all_with<V: ?Sized + VisitAll>(&self, v: &mut V) {

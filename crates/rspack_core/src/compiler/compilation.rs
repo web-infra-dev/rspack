@@ -43,10 +43,10 @@ use crate::{
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BuildQueue, BuildTask,
   BuildTaskResult, BundleEntries, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey,
   ChunkKind, ChunkUkey, CodeGenerationResult, CodeGenerationResults, CompilerOptions,
-  ContentHashArgs, Dependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask,
-  FactorizeTaskResult, LoaderRunnerRunner, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  ModuleType, ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult,
-  ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolveKind, RuntimeModule,
+  ContentHashArgs, Dependency, EntryDependency, EntryItem, EntryOptions, Entrypoint,
+  FactorizeQueue, FactorizeTask, FactorizeTaskResult, LoaderRunnerRunner, Module, ModuleDependency,
+  ModuleGraph, ModuleIdentifier, ModuleType, ProcessAssetsArgs, ProcessDependenciesQueue,
+  ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, RuntimeModule,
   SharedPluginDriver, Stats, TaskResult, VisitedModuleIdentity, WorkerTask,
 };
 use rspack_symbol::{IndirectTopLevelSymbol, IndirectType, Symbol};
@@ -54,7 +54,7 @@ use rspack_symbol::{IndirectTopLevelSymbol, IndirectType, Symbol};
 #[derive(Debug)]
 pub struct EntryData {
   pub name: String,
-  pub dependencies: Vec<Dependency>,
+  pub dependencies: Vec<Box<dyn ModuleDependency>>,
   pub options: EntryOptions,
 }
 
@@ -281,14 +281,7 @@ impl Compilation {
         let dependencies = item
           .import
           .iter()
-          .map(|detail| Dependency {
-            parent_module_identifier: None,
-            detail: ModuleDependency {
-              specifier: detail.clone(),
-              kind: ResolveKind::Entry,
-              span: None,
-            },
-          })
+          .map(|detail| box EntryDependency::new(detail.clone()) as Box<dyn ModuleDependency>)
           .collect();
         (
           name.clone(),
@@ -308,7 +301,7 @@ impl Compilation {
           .filter_map(|dep| {
             self
               .module_graph
-              .module_by_dependency(dep)
+              .module_by_dependency(&**dep)
               .map(|module| module.module_identifier)
           })
           .next()
@@ -318,7 +311,7 @@ impl Compilation {
   }
 
   #[instrument(name = "entry_dependencies", skip(self))]
-  pub fn entry_dependencies(&self) -> HashMap<String, Vec<Dependency>> {
+  pub fn entry_dependencies(&self) -> HashMap<String, Vec<Box<dyn ModuleDependency>>> {
     self
       .entries
       .iter()
@@ -327,14 +320,7 @@ impl Compilation {
         let dependencies = item
           .import
           .iter()
-          .map(|detail| Dependency {
-            parent_module_identifier: None,
-            detail: ModuleDependency {
-              specifier: detail.clone(),
-              kind: ResolveKind::Entry,
-              span: None,
-            },
-          })
+          .map(|detail| box EntryDependency::new(detail.clone()) as Box<dyn ModuleDependency>)
           .collect();
         (name, dependencies)
       })
@@ -342,7 +328,7 @@ impl Compilation {
   }
 
   #[instrument(name = "compilation:make", skip_all)]
-  pub async fn make(&mut self, entry_deps: HashMap<String, Vec<Dependency>>) {
+  pub async fn make(&mut self, entry_deps: HashMap<String, Vec<Box<dyn ModuleDependency>>>) {
     if let Some(e) = self.plugin_driver.clone().read().await.make(self).err() {
       self.push_batch_diagnostic(e.into());
     }
@@ -501,14 +487,7 @@ impl Compilation {
                   .build_dependencies
                   .extend(build_result.build_dependencies);
 
-                let dependencies = build_result
-                  .dependencies
-                  .into_iter()
-                  .map(|dep| Dependency {
-                    parent_module_identifier: Some(module.identifier()),
-                    detail: dep,
-                  })
-                  .collect::<Vec<_>>();
+                let dependencies = build_result.dependencies;
 
                 {
                   let mgm = self
@@ -574,7 +553,7 @@ impl Compilation {
     &self,
     queue: &mut FactorizeQueue,
     original_module_identifier: Option<ModuleIdentifier>,
-    dependencies: Vec<Dependency>,
+    dependencies: Vec<Box<dyn ModuleDependency>>,
     is_entry: bool,
     module_name: Option<String>,
     module_type: Option<ModuleType>,
@@ -981,7 +960,7 @@ impl Compilation {
         for dep in mgm.all_dependencies.iter() {
           let module_ident = self
             .module_graph
-            .module_by_dependency(dep)
+            .module_by_dependency(&**dep)
             .unwrap_or_else(|| panic!("Failed to resolve {:?}", dep))
             .module_identifier;
           match visited.entry(module_ident) {
