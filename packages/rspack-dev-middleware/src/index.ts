@@ -12,7 +12,6 @@ const rdm: typeof wdm = (compiler, options) => {
 		options = {};
 	}
 	options.writeToDisk = false;
-	options.outputFileSystem = require("fs");
 	return wdm(compiler, options);
 };
 
