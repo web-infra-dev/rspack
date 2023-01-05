@@ -2167,7 +2167,6 @@ dependencies = [
  "serde_json",
  "sugar_path",
  "swc_core",
- "swc_css",
  "tokio",
  "tracing",
  "xxhash-rust",
@@ -2884,8 +2883,10 @@ dependencies = [
  "swc_css_ast 0.132.1",
  "swc_css_codegen 0.142.1",
  "swc_css_compat",
- "swc_css_modules 0.19.1",
+ "swc_css_minifier 0.107.1",
+ "swc_css_modules",
  "swc_css_parser 0.141.1",
+ "swc_css_prefixer",
  "swc_css_utils 0.129.1",
  "swc_css_visit 0.131.1",
  "swc_ecma_ast",
@@ -2914,10 +2915,7 @@ checksum = "63772ea10f02f9adade9440e9ab1db399829388b0cf60093db176ade7391cb81"
 dependencies = [
  "swc_css_ast 0.128.3",
  "swc_css_codegen 0.138.5",
- "swc_css_minifier",
- "swc_css_modules 0.14.5",
  "swc_css_parser 0.137.5",
- "swc_css_prefixer",
  "swc_css_utils 0.125.3",
  "swc_css_visit 0.127.3",
 ]
@@ -3027,19 +3025,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "swc_css_modules"
-version = "0.14.5"
+name = "swc_css_minifier"
+version = "0.107.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af22ea54dbc32c3a3b3e36b33c02f844b56bd67b2133a180af06e3707be6b580"
+checksum = "c0c5e1f4ebf1325b903fe37ace4c6b9ee81941d85ea98d2670981e6c8bb158e3"
 dependencies = [
- "rustc-hash",
  "serde",
  "swc_atoms",
  "swc_common",
- "swc_css_ast 0.128.3",
- "swc_css_codegen 0.138.5",
- "swc_css_parser 0.137.5",
- "swc_css_visit 0.127.3",
+ "swc_css_ast 0.132.1",
+ "swc_css_utils 0.129.1",
+ "swc_css_visit 0.131.1",
 ]
 
 [[package]]
@@ -3088,9 +3084,9 @@ dependencies = [
 
 [[package]]
 name = "swc_css_prefixer"
-version = "0.139.5"
+version = "0.143.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3e1852ed0453d928ec16c71b94bef3a11e75a3e3993f8e774691859a7d3fa2c"
+checksum = "b6a91aab5ab4455f74f46b4f521bbb2458c41264b8ed3aed0279d99dbcab8ff9"
 dependencies = [
  "once_cell",
  "preset_env_base",
@@ -3098,9 +3094,9 @@ dependencies = [
  "serde_json",
  "swc_atoms",
  "swc_common",
- "swc_css_ast 0.128.3",
- "swc_css_utils 0.125.3",
- "swc_css_visit 0.127.3",
+ "swc_css_ast 0.132.1",
+ "swc_css_utils 0.129.1",
+ "swc_css_visit 0.131.1",
 ]
 
 [[package]]
@@ -3725,7 +3721,7 @@ dependencies = [
  "swc_common",
  "swc_css_ast 0.128.3",
  "swc_css_codegen 0.138.5",
- "swc_css_minifier",
+ "swc_css_minifier 0.103.5",
  "swc_css_parser 0.137.5",
  "swc_ecma_ast",
  "swc_ecma_codegen",

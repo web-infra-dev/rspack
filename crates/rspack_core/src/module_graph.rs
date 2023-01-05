@@ -61,9 +61,9 @@ pub struct ModuleGraph {
   dependency_id_to_module_identifier: HashMap<usize, ModuleIdentifier>,
 
   /// Module identifier to its module
-  pub module_identifier_to_module: HashMap<ModuleIdentifier, BoxModule>,
+  pub(crate) module_identifier_to_module: HashMap<ModuleIdentifier, BoxModule>,
   /// Module identifier to its module graph module
-  pub module_identifier_to_module_graph_module: HashMap<ModuleIdentifier, ModuleGraphModule>,
+  pub(crate) module_identifier_to_module_graph_module: HashMap<ModuleIdentifier, ModuleGraphModule>,
 
   dependency_id_to_connection_id: HashMap<usize, usize>,
   connection_id_to_dependency_id: HashMap<usize, usize>,
@@ -71,7 +71,7 @@ pub struct ModuleGraph {
   dependency_to_dependency_id: HashMap<Box<dyn ModuleDependency>, usize>,
 
   /// The module graph connections
-  pub connections: HashSet<ModuleGraphConnection>,
+  connections: HashSet<ModuleGraphConnection>,
   connection_id_to_connection: HashMap<usize, ModuleGraphConnection>,
 }
 

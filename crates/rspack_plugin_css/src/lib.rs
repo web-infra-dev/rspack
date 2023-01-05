@@ -20,10 +20,10 @@ use swc_core::common::{
 
 use std::sync::Arc;
 
-use swc_css::minifier;
-use swc_css::parser::{lexer::Lexer, parser::ParserConfig};
-use swc_css::{ast::Stylesheet, parser::parser::Parser};
-use swc_css::{
+use swc_core::css::minifier;
+use swc_core::css::parser::{lexer::Lexer, parser::ParserConfig};
+use swc_core::css::{ast::Stylesheet, parser::parser::Parser};
+use swc_core::css::{
   codegen::{
     writer::basic::{BasicCssWriter, BasicCssWriterConfig},
     CodeGenerator, CodegenConfig, Emit,

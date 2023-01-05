@@ -3,7 +3,6 @@
 #![feature(box_syntax)]
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(unzip_option)]
-#![feature(trait_upcasting)]
 
 use std::{fmt, sync::Arc};
 

@@ -29,11 +29,10 @@ impl DependencyScanner {
   fn add_import(&mut self, module_decl: &ModuleDecl, ast_path: &AstNodePath<AstParentNodeRef<'_>>) {
     if let ModuleDecl::Import(import_decl) = module_decl {
       let source = import_decl.src.value.clone();
-      let parent_path = as_parent_path(ast_path);
       self.add_dependency(box EsmImportDependency::new(
         source,
         Some(import_decl.span.into()),
-        parent_path,
+        as_parent_path(ast_path),
       ));
     }
   }
@@ -53,11 +52,10 @@ impl DependencyScanner {
               _ => return,
             };
             let source = src.value.clone();
-            let parent_path = as_parent_path(ast_path);
             self.add_dependency(box CommonJSRequireDependency::new(
               source,
               Some(call_expr.span.into()),
-              parent_path,
+              as_parent_path(ast_path),
             ));
             // self.add_dependency(source.clone(), ResolveKind::Require, call_expr.span);
           }
@@ -70,11 +68,10 @@ impl DependencyScanner {
       if let Some(dyn_imported) = node.args.get(0) {
         if dyn_imported.spread.is_none() {
           if let Expr::Lit(Lit::Str(imported)) = dyn_imported.expr.as_ref() {
-            let parent_path = as_parent_path(ast_path);
             self.add_dependency(box EsmDynamicImportDependency::new(
               imported.value.clone(),
               Some(node.span.into()),
-              parent_path,
+              as_parent_path(ast_path),
             ));
             // self.add_dependency(
             //   imported.value.clone(),
@@ -98,11 +95,10 @@ impl DependencyScanner {
       .get(0)
       .and_then(|first_arg| first_arg.expr.as_lit())
     {
-      let parent_path = as_parent_path(ast_path);
       self.add_dependency(box ModuleHotAcceptDependency::new(
         str.value.clone(),
         Some(node.span.into()),
-        parent_path,
+        as_parent_path(ast_path),
       ));
       // self.add_dependency(str.value.clone(), ResolveKind::ModuleHotAccept, node.span)
     }
@@ -121,11 +117,10 @@ impl DependencyScanner {
               if let Some(source_node) = &node.src {
                 // export { name } from './other'
                 // TODO: this should ignore from code generation or use a new dependency instead
-                let parent_path = as_parent_path(ast_path);
                 self.add_dependency(box EsmImportDependency::new(
                   source_node.value.clone(),
                   Some(node.span.into()),
-                  parent_path,
+                  as_parent_path(ast_path),
                 ));
                 // self.add_dependency(source, ResolveKind::Import, node.span);
               }
@@ -138,11 +133,10 @@ impl DependencyScanner {
                 .map(|str| str.value.clone())
                 .expect("TODO:");
               // TODO: this should ignore from code generation or use a new dependency instead
-              let parent_path = as_parent_path(ast_path);
               self.add_dependency(box EsmImportDependency::new(
                 source,
                 Some(node.span.into()),
-                parent_path,
+                as_parent_path(ast_path),
               ));
               // self.add_dependency(source, ResolveKind::Import, node.span);
             }
@@ -156,11 +150,10 @@ impl DependencyScanner {
       ModuleDecl::ExportAll(node) => {
         // export * from './other'
         // TODO: this should ignore from code generation or use a new dependency instead
-        let parent_path = as_parent_path(ast_path);
         self.add_dependency(box EsmImportDependency::new(
           node.src.value.clone(),
           Some(node.span.into()),
-          parent_path,
+          as_parent_path(ast_path),
         ));
         // self.add_dependency(node.src.value.clone(), ResolveKind::Import, node.span);
       }

@@ -9,8 +9,8 @@ use rspack_core::{
   runtime_globals::REQUIRE, Compilation, Dependency, DependencyType, ModuleDependency,
 };
 use rspack_error::{internal_error, Result};
+use swc_core::css::modules::CssClassName;
 use swc_core::ecma::atoms::JsWord;
-use swc_css::modules::CssClassName;
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::plugin::{LocalIdentName, LocalIdentNameRenderOptions, LocalsConvention};
@@ -22,7 +22,7 @@ pub struct ModulesTransformConfig<'l> {
   pub local_name_ident: &'l LocalIdentName,
 }
 
-impl swc_css::modules::TransformConfig for ModulesTransformConfig<'_> {
+impl swc_core::css::modules::TransformConfig for ModulesTransformConfig<'_> {
   fn new_name_for(&self, local: &JsWord) -> JsWord {
     self
       .local_name_ident

@@ -318,7 +318,7 @@ pub struct NormalModule {
   debug_id: usize,
   cached_source_sizes: DashMap<SourceType, f64>,
 
-  code_generation_dependencies: Option<Vec<Box<dyn Dependency>>>,
+  code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
 
   pub build_info: BuildInfo,
 }
@@ -505,7 +505,7 @@ impl Module for NormalModule {
         .into_iter()
         .map(|mut d| {
           d.set_parent_module_identifier(Some(self.identifier()));
-          d as Box<dyn Dependency>
+          d
         })
         .collect::<Vec<_>>(),
     );
@@ -582,7 +582,7 @@ impl Module for NormalModule {
     Some(Cow::Owned(contextify(options.context, self.user_request())))
   }
 
-  fn get_code_generation_dependencies(&self) -> Option<&[Box<dyn Dependency>]> {
+  fn get_code_generation_dependencies(&self) -> Option<&[Box<dyn ModuleDependency>]> {
     if let Some(deps) = self.code_generation_dependencies.as_deref() && !deps.is_empty() {
       Some(deps)
     } else {

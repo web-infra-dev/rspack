@@ -1,7 +1,7 @@
 use std::{fmt, hash::Hash, sync::Arc};
 
 use swc_core::common::SourceMap;
-use swc_css::ast::Stylesheet as SwcStylesheet;
+use swc_core::css::ast::Stylesheet as SwcStylesheet;
 
 pub struct Context {
   pub source_map: Arc<SourceMap>,

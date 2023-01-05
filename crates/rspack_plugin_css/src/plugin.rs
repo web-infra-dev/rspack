@@ -16,11 +16,15 @@ use std::str::FromStr;
 use std::string::ParseError;
 use std::sync::Arc;
 use sugar_path::SugarPath;
-use swc_core::ecma::atoms::JsWord;
-use swc_css::modules::CssClassName;
-use swc_css::parser::parser::ParserConfig;
-use swc_css::prefixer::{options::Options, prefixer};
-use swc_css::visit::VisitMutWith;
+use swc_core::{
+  css::{
+    modules::CssClassName,
+    parser::parser::ParserConfig,
+    prefixer::{options::Options, prefixer},
+    visit::VisitMutWith,
+  },
+  ecma::atoms::JsWord,
+};
 use xxhash_rust::xxh3::Xxh3;
 
 use rspack_core::{
@@ -402,9 +406,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
     }
 
     let locals = if css_modules {
-      let imports = swc_css::modules::imports::analyze_imports(&stylesheet);
+      let imports = swc_core::css::modules::imports::analyze_imports(&stylesheet);
       let path = Path::new(&resource_data.resource_path).relative(&compiler_options.context);
-      let result = swc_css::modules::compile(
+      let result = swc_core::css::modules::compile(
         &mut stylesheet,
         ModulesTransformConfig {
           name: path.file_stem().map(|n| n.to_string_lossy().to_string()),

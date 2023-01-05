@@ -29,8 +29,18 @@ rspack_error = { path = "../rspack_error" }
 serde = "1.0.144"
 serde_json = "1.0.85"
 sugar_path = "0.0.9"
-swc_core = { workspace = true }
-swc_css = { workspace = true, features = ["minifier", "modules", "prefixer"] }
+swc_core = { workspace = true, features = [
+  "css_ast",
+  "css_codegen",
+  "css_parser",
+  "css_utils",
+  "css_visit",
+  "css_visit_path",
+  "css_compat",
+  "css_modules",
+  "css_prefixer",
+  "css_minifier",
+] }
 tokio = { version = "1.21.0", features = [
   "rt",
   "rt-multi-thread",
