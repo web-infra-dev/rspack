@@ -50,8 +50,8 @@ fn total_size(sizes: &SplitChunkSizes) -> f64 {
 }
 
 fn compare_modules(a: &[&ModuleIdentifier], b: &[&ModuleIdentifier]) -> Ordering {
-  let mut a_i = a.into_iter();
-  let mut b_i = b.into_iter();
+  let mut a_i = a.iter();
+  let mut b_i = b.iter();
   loop {
     let a_item = a_i.next();
     let b_item = b_i.next();
@@ -64,7 +64,10 @@ fn compare_modules(a: &[&ModuleIdentifier], b: &[&ModuleIdentifier]) -> Ordering
     } else if b_item.is_none() {
       return Ordering::Greater;
     }
-    let res = compare_ids(a_item.unwrap(), b_item.unwrap());
+    let res = compare_ids(
+      a_item.expect("Should be Some"),
+      b_item.expect("Should be Some"),
+    );
     if res != Ordering::Equal {
       return res;
     }
@@ -73,7 +76,7 @@ fn compare_modules(a: &[&ModuleIdentifier], b: &[&ModuleIdentifier]) -> Ordering
 
 pub(crate) fn check_min_size(sizes: &SplitChunkSizes, min_size: &SplitChunkSizes) -> bool {
   for key in sizes.keys() {
-    let size = sizes.get(key).unwrap();
+    let size = sizes.get(key).expect("key should exist");
     if size == &0f64 {
       continue;
     }

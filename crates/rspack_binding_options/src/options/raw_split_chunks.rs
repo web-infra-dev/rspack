@@ -1,7 +1,7 @@
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
-use rspack_core::{CompilerOptionsBuilder, Module, ModuleType};
-use rspack_plugin_split_chunks::{CacheGroupOptions, ChunkType, SizeType, SplitChunksOptions};
+use rspack_core::{CompilerOptionsBuilder, ModuleType};
+use rspack_plugin_split_chunks::{CacheGroupOptions, ChunkType, SplitChunksOptions, TestFn};
 use serde::Deserialize;
 use std::{collections::HashMap, sync::Arc};
 
@@ -58,7 +58,7 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
   #[allow(clippy::field_reassign_with_default)]
   fn to_compiler_option(
     self,
-    options: &CompilerOptionsBuilder,
+    _options: &CompilerOptionsBuilder,
   ) -> anyhow::Result<SplitChunksOptions> {
     let mut defaults = SplitChunksOptions::default();
 
@@ -73,12 +73,12 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
             (
               k,
               CacheGroupOptions {
-                name: v.name.clone().into(),
+                name: v.name.clone(),
                 priority: 0.into(),
                 reuse_existing_chunk: false.into(),
                 r#type: Some(ModuleType::Js),
                 test: v.test.clone().map(|test| {
-                  let f: Arc<dyn Fn(&dyn Module) -> bool + Sync + Send> = Arc::new(move |module| {
+                  let f: TestFn = Arc::new(move |module| {
                     let re = rspack_regex::RspackRegex::new(&test)
                       .unwrap_or_else(|_| panic!("Invalid regex: {}", &test));
                     module
@@ -87,7 +87,7 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
                   });
                   f
                 }),
-                filename: v.name.into(),
+                filename: v.name,
                 enforce: false.into(),
                 id_hint: Default::default(),
                 chunks: ChunkType::All.into(),

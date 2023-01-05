@@ -259,7 +259,7 @@ impl SplitChunksPlugin {
           let chunks = options
             .fallback_cache_group
             .as_ref()
-            .map(|f| f.chunks.clone())
+            .map(|f| f.chunks)
             .unwrap_or_else(|| options.chunks);
           Arc::new(move |chunk, chunk_group_by_ukey| {
             let chunk_type = chunks.as_ref().unwrap_or(&ChunkType::All);
@@ -296,7 +296,7 @@ impl SplitChunksPlugin {
               .unwrap_or_default(),
             &default_size_types,
           ),
-          min_size.clone(),
+          min_size,
         ),
         automatic_name_delimiter: options
           .fallback_cache_group
@@ -374,6 +374,8 @@ impl SplitChunksPlugin {
       .collect()
   }
 
+  #[allow(clippy::format_in_format_args)]
+  #[allow(clippy::too_many_arguments)]
   fn add_module_to_chunks_info_map(
     &self,
     cache_group: &CacheGroup,
@@ -428,7 +430,7 @@ impl SplitChunksPlugin {
         .collect::<HashSet<_>>();
 
       for group in queue {
-        let group = chunk_group_by_ukey.get(&group).unwrap();
+        let group = chunk_group_by_ukey.get(&group).expect("group should exist");
         if existing_chunk.is_in_group(&group.ukey) {
           continue;
         }
@@ -510,6 +512,9 @@ impl Plugin for SplitChunksPlugin {
   }
 
   #[allow(clippy::unwrap_in_result)]
+  #[allow(clippy::if_same_then_else)]
+  #[allow(clippy::collapsible_else_if)]
+  #[allow(unused)]
   fn optimize_chunks(
     &mut self,
     _ctx: rspack_core::PluginContext,
@@ -658,9 +663,10 @@ impl Plugin for SplitChunksPlugin {
       );
     });
 
-    while chunks_info_map.len() > 0 {
+    while !chunks_info_map.is_empty() {
       let mut chunks_info_map_iter = chunks_info_map.iter();
-      let (best_entry_key, mut best_entry) = chunks_info_map_iter.next().unwrap();
+      let (best_entry_key, mut best_entry) =
+        chunks_info_map_iter.next().expect("item should exist");
       let mut best_entry_key = best_entry_key.clone();
       for (key, info) in chunks_info_map_iter {
         if compare_entries(best_entry, info, &self.cache_group_by_key) < 0f64 {
@@ -669,7 +675,9 @@ impl Plugin for SplitChunksPlugin {
         }
       }
 
-      let mut item = chunks_info_map.remove(&best_entry_key).unwrap();
+      let mut item = chunks_info_map
+        .remove(&best_entry_key)
+        .expect("item should exist");
 
       let mut chunk_name = item.name.clone();
       let mut new_chunk: Option<ChunkUkey> = None;
@@ -678,7 +686,10 @@ impl Plugin for SplitChunksPlugin {
       if let Some(chunk_name) = chunk_name.clone() {
         let chunk_by_name = compilation.named_chunks.get(&chunk_name);
         if let Some(chunk_by_name) = chunk_by_name {
-          let chunk = compilation.chunk_by_ukey.get_mut(&chunk_by_name).unwrap();
+          let chunk = compilation
+            .chunk_by_ukey
+            .get_mut(chunk_by_name)
+            .expect("chunk should exist");
           let old_size = item.chunks.len();
           item.chunks.remove(&chunk.ukey);
           is_existing_chunk = item.chunks.len() != old_size;
@@ -704,7 +715,10 @@ impl Plugin for SplitChunksPlugin {
             }
           }
 
-          let chunk = compilation.chunk_by_ukey.get(chunk).unwrap();
+          let chunk = compilation
+            .chunk_by_ukey
+            .get(chunk)
+            .expect("chunk should exist");
           if new_chunk.is_none()
             || new_chunk
               .and_then(|ukey| compilation.chunk_by_ukey.get(&ukey))
@@ -759,7 +773,10 @@ impl Plugin for SplitChunksPlugin {
             .eq(&usize::MAX))
       {
         for chunk in used_chunks.clone() {
-          let chunk = compilation.chunk_by_ukey.get(&chunk).unwrap();
+          let chunk = compilation
+            .chunk_by_ukey
+            .get(&chunk)
+            .expect("Chunk not found");
           let max_requests = if chunk.is_only_initial(&compilation.chunk_group_by_ukey) {
             item
               .cache_group(&self.cache_group_by_key)
@@ -800,7 +817,7 @@ impl Plugin for SplitChunksPlugin {
       // => readd all modules to the queue, as things could have been changed
       if used_chunks.len() < item.chunks.len() {
         if is_existing_chunk {
-          used_chunks.insert(*new_chunk.as_ref().unwrap());
+          used_chunks.insert(*new_chunk.as_ref().expect("New chunk not found"));
         }
         if used_chunks.len() >= item.cache_group(&self.cache_group_by_key).min_chunks {
           let chunk_arr = used_chunks
@@ -812,11 +829,11 @@ impl Plugin for SplitChunksPlugin {
               item.cache_group(&self.cache_group_by_key),
               item.cache_group_index,
               &chunk_arr,
-              module.clone(),
+              *module,
               compilation
                 .module_graph
-                .module_by_identifier(&module)
-                .unwrap(),
+                .module_by_identifier(module)
+                .expect("Module not found"),
               &mut chunks_info_map,
               &compilation.named_chunks,
               &compilation.chunk_by_ukey, // compilation,
@@ -863,7 +880,10 @@ impl Plugin for SplitChunksPlugin {
         }
       }
 
-      let new_chunk = compilation.chunk_by_ukey.get_mut(&new_chunk_ukey).unwrap();
+      let new_chunk = compilation
+        .chunk_by_ukey
+        .get_mut(&new_chunk_ukey)
+        .expect("Chunk should exist");
       let new_chunk_ukey = new_chunk.ukey;
       new_chunk.chunk_reasons.push(if is_reused_with_all_modules {
         "reused as split chunk".to_string()
@@ -881,8 +901,6 @@ impl Plugin for SplitChunksPlugin {
           .push(format!("(name: {})", chunk_name));
       }
 
-      std::mem::drop(new_chunk);
-
       // new_chunk.id_name_hints.insert(info)
 
       if !is_reused_with_all_modules {
@@ -892,10 +910,13 @@ impl Plugin for SplitChunksPlugin {
           // Add module to new chunk
           compilation
             .chunk_graph
-            .connect_chunk_and_module(new_chunk_ukey, module_identifier.clone());
+            .connect_chunk_and_module(new_chunk_ukey, *module_identifier);
           // Remove module from used chunks
           for used_chunk in &used_chunks {
-            let used_chunk = compilation.chunk_by_ukey.get(used_chunk).unwrap();
+            let used_chunk = compilation
+              .chunk_by_ukey
+              .get(used_chunk)
+              .expect("Chunk should exist");
             for module_identifier in &item.modules {
               compilation
                 .chunk_graph
@@ -907,7 +928,10 @@ impl Plugin for SplitChunksPlugin {
         // Remove all modules from used chunks
         for module_identifier in &item.modules {
           for used_chunk in &used_chunks {
-            let used_chunk = compilation.chunk_by_ukey.get(used_chunk).unwrap();
+            let used_chunk = compilation
+              .chunk_by_ukey
+              .get(used_chunk)
+              .expect("Chunk should exist");
             for module_identifier in &item.modules {
               compilation
                 .chunk_graph
@@ -917,24 +941,22 @@ impl Plugin for SplitChunksPlugin {
         }
       }
 
-      let mut maxSizeQueueMap: HashMap<ChunkUkey, MaxSizeQueueItem> = Default::default();
+      let mut max_size_queue_map: HashMap<ChunkUkey, MaxSizeQueueItem> = Default::default();
 
-      if item
+      if !item
         .cache_group(&self.cache_group_by_key)
         .max_async_size
-        .len()
-        > 0
-        || item
+        .is_empty()
+        || !item
           .cache_group(&self.cache_group_by_key)
           .max_initial_size
-          .len()
-          > 0
+          .is_empty()
       {
-        let oldMaxSizeSettings = maxSizeQueueMap.remove(&new_chunk_ukey);
-        maxSizeQueueMap.insert(
+        let old_max_size_settings = max_size_queue_map.remove(&new_chunk_ukey);
+        max_size_queue_map.insert(
           new_chunk_ukey,
           MaxSizeQueueItem {
-            min_size: oldMaxSizeSettings
+            min_size: old_max_size_settings
               .as_ref()
               .map(|old| {
                 combine_sizes(
@@ -946,7 +968,7 @@ impl Plugin for SplitChunksPlugin {
                 )
               })
               .unwrap_or_else(|| item.cache_group(&self.cache_group_by_key).min_size.clone()),
-            max_async_size: oldMaxSizeSettings
+            max_async_size: old_max_size_settings
               .as_ref()
               .map(|old| {
                 combine_sizes(
@@ -961,7 +983,7 @@ impl Plugin for SplitChunksPlugin {
                   .max_async_size
                   .clone()
               }),
-            max_initial_size: oldMaxSizeSettings
+            max_initial_size: old_max_size_settings
               .as_ref()
               .map(|old| {
                 combine_sizes(
@@ -976,7 +998,7 @@ impl Plugin for SplitChunksPlugin {
                   .max_initial_size
                   .clone()
               }),
-            keys: oldMaxSizeSettings
+            keys: old_max_size_settings
               .map(|mut old| {
                 old
                   .keys
@@ -1003,16 +1025,16 @@ impl Plugin for SplitChunksPlugin {
             let module = compilation
               .module_graph
               .module_by_identifier(module)
-              .unwrap();
+              .expect("module should exist");
             for key in module.source_types() {
-              let sizes = info.sizes.get_mut(key).unwrap();
+              let sizes = info.sizes.get_mut(key).expect("size should exist");
               *sizes -= module.size(key);
             }
             updated = true;
           }
 
           if updated {
-            if info.modules.len() == 0 {
+            if info.modules.is_empty() {
               to_be_deleted.insert(key.to_string());
               continue;
             }
@@ -1085,7 +1107,9 @@ fn check_min_size_reduction(
 fn get_requests(chunk: &Chunk, chunk_group_by_ukey: &ChunkGroupByUkey) -> usize {
   let mut requests = 0;
   for group in &chunk.groups {
-    let group = chunk_group_by_ukey.get(group).unwrap();
+    let group = chunk_group_by_ukey
+      .get(group)
+      .expect("ChunkGroup not found");
     requests = usize::max(requests, group.chunks.len())
   }
   requests

@@ -9,10 +9,9 @@ mod options;
 pub use options::*;
 use rspack_core::{Chunk, ChunkGroupByUkey, Module};
 
-pub(crate) type TestFn = Arc<dyn Fn(&dyn Module) -> bool + Sync + Send>;
+pub type TestFn = Arc<dyn Fn(&dyn Module) -> bool + Sync + Send>;
 pub(crate) type GetName = Arc<dyn Fn(&dyn Module) -> Option<String> + Sync + Send>;
 pub(crate) type ChunkFilter = Arc<dyn Fn(&Chunk, &ChunkGroupByUkey) -> bool + Send + Sync>;
 
 mod utils;
-pub(crate) use utils::*;
 pub(crate) type CacheGroupByKey = HashMap<String, CacheGroup>;
