@@ -189,7 +189,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 8899,
+      "size": 8975,
       "type": "asset",
     },
   ],
@@ -213,10 +213,10 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 8899,
+          "size": 8975,
         },
       ],
-      "assetsSize": 8899,
+      "assetsSize": 8975,
       "chunks": [
         "main",
       ],
@@ -225,7 +225,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "1a7c8fd0bc8ded89",
+  "hash": "b2d2acdcac55273c",
   "modules": [
     {
       "chunks": [
@@ -249,9 +249,9 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 2`] = `
-"Hash: 1a7c8fd0bc8ded89
+"Hash: b2d2acdcac55273c
     Asset      Size  Chunks             Chunk Names
-bundle.js  8.69 KiB    main  [emitted]  main
+bundle.js  8.76 KiB    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 25 bytes [entry]
 [10] ./index.js 25 bytes {main}

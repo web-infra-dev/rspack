@@ -14,6 +14,7 @@ pub struct OutputOptions {
   pub css_filename: Filename,
   pub css_chunk_filename: Filename,
   pub library: Option<String>,
+  pub strict_module_error_handling: Option<bool>,
 }
 
 pub const NAME_PLACEHOLDER: &str = "[name]";

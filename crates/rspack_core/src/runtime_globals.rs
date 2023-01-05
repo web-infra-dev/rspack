@@ -4,6 +4,11 @@ pub const EXPORT_STAR: &str = "exportStar";
 // port from webpack RuntimeGlobals
 
 /**
+ * the internal module object
+ */
+pub const MODULE_ID: &str = "module.id";
+
+/**
  * the internal require function
  */
 pub const REQUIRE: &str = "__webpack_require__";

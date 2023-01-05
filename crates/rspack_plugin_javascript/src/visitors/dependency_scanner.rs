@@ -4,7 +4,6 @@ use swc_core::common::{Mark, Span, SyntaxContext};
 use swc_core::ecma::ast::{CallExpr, Callee, ExportSpecifier, Expr, ExprOrSpread, Lit, ModuleDecl};
 use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
-
 pub struct DependencyScanner {
   pub unresolved_ctxt: SyntaxContext,
   pub dependencies: LinkedHashSet<ModuleDependency>,
@@ -65,7 +64,7 @@ impl DependencyScanner {
   }
 
   fn add_module_hot(&mut self, node: &CallExpr) {
-    if !is_module_hot_accept_call(node) {
+    if !is_module_hot_accept_call(node) && !is_module_hot_decline_call(node) {
       return;
     }
 
@@ -258,6 +257,37 @@ pub fn is_module_hot_accept_call(node: &CallExpr) -> bool {
         .prop
         .as_ident()
         .and_then(|ident| "accept".eq(&ident.sym).then_some(&member.obj))
+    })
+    .and_then(|obj| obj.as_member())
+    .and_then(|member| {
+      member
+        .prop
+        .as_ident()
+        .and_then(|ident| "hot".eq(&ident.sym).then_some(&member.obj))
+    })
+    .and_then(|obj| obj.as_ident())
+    .map(|ident| "module".eq(&ident.sym))
+    .unwrap_or_default()
+}
+
+pub fn is_module_hot_decline_call(node: &CallExpr) -> bool {
+  node
+    .callee
+    .as_expr()
+    .and_then(|expr| {
+      // let target = swc_ecma_utils::member_expr!(DUMMY_SP, module.hot.accept);
+      // target.eq_ignore_span(expr)
+
+      expr.as_member()
+    })
+    .and_then(|member| {
+      // TODO: `swc_visitor::resolver` had make `target.eq_ignore_span(expr)`
+      //  return false.
+      // TODO: Delete following code when find a good way
+      member
+        .prop
+        .as_ident()
+        .and_then(|ident| "decline".eq(&ident.sym).then_some(&member.obj))
     })
     .and_then(|obj| obj.as_member())
     .and_then(|member| {

@@ -48,6 +48,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
             css_chunk_filename: rspack_core::Filename::from_str("").expect("TODO:"),
             css_filename: rspack_core::Filename::from_str("").expect("TODO:"),
             library: None,
+            strict_module_error_handling: None,
           },
           target: rspack_core::Target::new(&vec![String::from("web")]).expect("TODO:"),
           resolve: rspack_core::Resolve::default(),

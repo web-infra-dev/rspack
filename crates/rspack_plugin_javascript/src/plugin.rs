@@ -38,35 +38,74 @@ impl JsPlugin {
       .chunk_graph
       .get_chunk_runtime_requirements(&args.chunk_ukey);
 
+    let strict_module_error_handling = args
+      .compilation
+      .options
+      .output
+      .strict_module_error_handling
+      .is_some();
     let mut sources = ConcatSource::default();
 
     sources.add(RawSource::from(
       r#"// Check if module is in cache
         var cachedModule = __webpack_module_cache__[moduleId];
         if (cachedModule !== undefined) {
-          return cachedModule.exports;
-        }
-        // Create a new module (and put it into the cache)
-        var module = (__webpack_module_cache__[moduleId] = {
-          // no module.id needed
-          // no module.loaded needed
+      "#,
+    ));
+
+    if strict_module_error_handling {
+      sources.add(RawSource::from(
+        "if (cachedModule.error !== undefined) throw cachedModule.error;",
+      ));
+    }
+
+    sources.add(RawSource::from(
+      r#"return cachedModule.exports;
+      }
+      // Create a new module (and put it into the cache)
+      var module = (__webpack_module_cache__[moduleId] = {
+      "#,
+    ));
+
+    if runtime_requirements.contains(runtime_globals::INTERCEPT_MODULE_EXECUTION) {
+      sources.add(RawSource::from("id: moduleId,"));
+    }
+
+    sources.add(RawSource::from(
+      r#"// no module.loaded needed
           exports: {}
         });
         // Execute the module function
       "#,
     ));
 
-    if runtime_requirements.contains(runtime_globals::INTERCEPT_MODULE_EXECUTION) {
-      sources.add(RawSource::from(
+    let module_execution = match runtime_requirements
+      .contains(runtime_globals::INTERCEPT_MODULE_EXECUTION)
+    {
+      true => RawSource::from(
         r#"var execOptions = { id: moduleId, module: module, factory: __webpack_modules__[moduleId], require: __webpack_require__ };
-        __webpack_require__.i.forEach(function(handler) { handler(execOptions); });
-        module = execOptions.module;
-        execOptions.factory.call(module.exports, module, module.exports, execOptions.require);"#,
+            __webpack_require__.i.forEach(function(handler) { handler(execOptions); });
+            module = execOptions.module;
+            execOptions.factory.call(module.exports, module, module.exports, execOptions.require);
+            "#,
+      ),
+      false => RawSource::from(
+        "__webpack_modules__[moduleId](module, module.exports, __webpack_require__);\n",
+      ),
+    };
+
+    if strict_module_error_handling {
+      sources.add(RawSource::from("try {\n"));
+      sources.add(module_execution);
+      sources.add(RawSource::from(
+        r#"} catch (e) {
+            module.error = e;
+            throw e;
+          }
+          "#,
       ));
     } else {
-      sources.add(RawSource::from(
-        "__webpack_modules__[moduleId](module, module.exports, __webpack_require__);\n",
-      ));
+      sources.add(module_execution);
     }
 
     sources.add(RawSource::from(
