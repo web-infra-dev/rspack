@@ -6,20 +6,24 @@ use bitflags::bitflags;
 use globset::{Glob, GlobSetBuilder};
 use hashlink::LinkedHashMap;
 use rspack_symbol::{BetterId, IdOrMemExpr, IndirectTopLevelSymbol, Symbol, SymbolExt, SymbolFlag};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
 use swc_core::common::{util::take::Take, Mark, GLOBALS};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
-
 // use swc_atoms::JsWord;
 // use swc_common::{util::take::Take, Mark, GLOBALS};
 // use swc_ecma_ast::*;
 // use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
+use ustr::{ustr, Ustr};
+
 use super::{
   utils::{get_dynamic_import_string_literal, get_require_literal},
   BailoutFlog,
+};
+use crate::{
+  module_rule_matcher_condition, CompilerOptions, Dependency, ModuleGraph, ModuleSyntax,
+  ResolveKind, Resolver,
 };
 use crate::{
   Dependency, DependencyType, IdentifierLinkedMap, IdentifierMap, ModuleGraph, ModuleIdentifier,
@@ -88,6 +92,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlog>,
   pub(crate) resolver: &'a Arc<Resolver>,
   pub(crate) side_effects_free: bool,
+  pub(crate) options: &'a Arc<CompilerOptions>,
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
@@ -98,6 +103,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     uri: ModuleIdentifier,
     dep_to_module_identifier: &'a ModuleGraph,
     resolver: &'a Arc<Resolver>,
+    options: &'a Arc<CompilerOptions>,
   ) -> Self {
     Self {
       top_level_mark,
@@ -120,6 +126,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       resolver,
       side_effects_free: false,
       immediate_evaluate_reference_map: HashMap::default(),
+      options,
     }
   }
 
@@ -936,7 +943,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     package_json_path.pop();
     let package_path = package_json_path;
 
-    match side_effects {
+    let mut side_effects = match side_effects {
       nodejs_resolver::SideEffects::Bool(s) => Some(s),
       nodejs_resolver::SideEffects::Array(arr) => {
         // TODO: Cache
@@ -948,7 +955,28 @@ impl<'a> ModuleRefAnalyze<'a> {
         let relative_path = module_path.relative(package_path);
         Some(matcher.is_match(relative_path))
       }
+    };
+
+    // sideEffects in module.rule has high priority
+    for rule in self.options.module.rules.iter() {
+      let module_side_effects = match rule.side_effects {
+        Some(s) => s,
+        None => continue,
+      };
+      match rule.test {
+        Some(ref test_rule) => {
+          if !module_rule_matcher_condition(test_rule, &resource_path.to_string_lossy()) {
+            continue;
+          }
+        }
+        None => {
+          continue;
+        }
+      }
+      side_effects = Some(module_side_effects);
+      break;
     }
+    side_effects
   }
 }
 

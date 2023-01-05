@@ -135,6 +135,7 @@ pub struct RawModuleRule {
   /// A condition matcher against the resource query.
   /// TODO: align with webpack's `?` prefixed `resourceQuery`
   pub resource_query: Option<RawModuleRuleCondition>,
+  pub side_effects: Option<bool>,
   #[serde(skip_deserializing)]
   pub r#use: Option<Vec<RawModuleRuleUse>>,
   #[napi(
@@ -158,6 +159,7 @@ pub struct RawModuleRule {
   pub exclude: Option<Vec<RawModuleRuleCondition>>,
   pub resource: Option<RawModuleRuleCondition>,
   pub resource_query: Option<RawModuleRuleCondition>,
+  pub side_effects: Option<bool>,
   pub r#use: Option<Vec<RawModuleRuleUse>>,
   pub r#type: Option<String>,
   pub parser: Option<RawModuleRuleParser>,
@@ -239,6 +241,7 @@ impl Debug for RawModuleRule {
       .field("resource", &self.resource)
       .field("resource_query", &self.resource_query)
       .field("type", &self.r#type)
+      .field("side_effects", &self.side_effects)
       .field("use", &self.r#use)
       .finish()
   }
@@ -567,6 +570,8 @@ impl RawOption<ModuleRule> for RawModuleRule {
         .resolve
         .map(|raw| raw.to_compiler_option(options))
         .transpose()?,
+      side_effects: self.side_effects,
+      // side_effects: raw.
       // Loader experimental
       func__: None,
     })

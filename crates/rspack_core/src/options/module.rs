@@ -47,6 +47,7 @@ pub struct ModuleRule {
   /// A condition matcher against the resource query.
   /// TODO: align with webpack's `?` prefixed `resourceQuery`
   pub resource_query: Option<ModuleRuleCondition>,
+  pub side_effects: Option<bool>,
   /// The `ModuleType` to use for the matched resource.
   pub r#type: Option<ModuleType>,
   pub r#use: Vec<BoxedLoader>,
@@ -71,6 +72,7 @@ impl Debug for ModuleRule {
       .field("generator", &self.generator)
       .field("func__", &self.func__.as_ref().map(|_| ".."))
       .field("use", &self.r#use)
+      .field("side_effects", &self.side_effects)
       .finish()
   }
 }

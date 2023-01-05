@@ -2,11 +2,12 @@
  * @type {import('webpack').Configuration}
  */
 module.exports = {
+  mode: 'development',
   context: __dirname,
   builtins: {
-    html: [{
-      template: './index.html'
-    }],
+    // html: [{
+    //   template: './index.html'
+    // }],
     treeShaking: true,
     sideEffects: true
   },
@@ -15,9 +16,9 @@ module.exports = {
       {
         test: {
           type: "regexp",
-          matcher: ".js$",
+          matcher: "a.js$",
         },
-        sideEffects: true
+        sideEffects: false
       }
     ],
   },
