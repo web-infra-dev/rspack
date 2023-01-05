@@ -39,18 +39,25 @@ pub async fn resolve(
     let is_esm = matches!(args.kind, ResolveKind::Import | ResolveKind::DynamicImport);
     let condition_names = if is_esm {
       vec![
-        String::from("module"),
         String::from("import"),
-        String::from("default"),
+        String::from("module"),
+        String::from("webpack"),
+        String::from("development"),
+        String::from("browser"),
       ]
     } else {
-      vec![String::from("require"), String::from("default")]
+      vec![
+        String::from("require"),
+        String::from("module"),
+        String::from("webpack"),
+        String::from("development"),
+        String::from("browser"),
+      ]
     };
     let options = Resolve {
       condition_names: Some(condition_names),
       ..plugin_driver.options.resolve.clone()
     };
-    // TODO: should cache `get`
     plugin_driver
       .resolver_factory
       .get(options)
