@@ -1,0 +1,19 @@
+{
+  "name": "@rspack/binding-win32-x64-msvc",
+  "version": "0.0.21",
+  "description": "Node binding for rspack",
+  "main": "rspack.darwin-arm64.node",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "*.node"
+  ],
+  "license": "MIT",
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64"
+  ]
+}
