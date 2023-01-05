@@ -2,7 +2,7 @@ use crate::runtime_module::utils::{get_initial_chunk_ids, stringify_chunks};
 use hashbrown::HashSet;
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  runtime_globals, ChunkUkey, Compilation, RuntimeModule,
+  runtime_globals, ChunkUkey, Compilation, RuntimeModule, RUNTIME_MODULE_STAGE_ATTACH,
 };
 
 use super::utils::chunk_has_js;
@@ -102,5 +102,9 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
 
   fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk);
+  }
+
+  fn stage(&self) -> u8 {
+    RUNTIME_MODULE_STAGE_ATTACH
   }
 }

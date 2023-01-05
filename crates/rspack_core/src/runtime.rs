@@ -147,7 +147,15 @@ pub trait RuntimeModule: Debug + Send + Sync {
     self.identifier().hash(&mut state);
     self.generate(compilation).source().hash(&mut state);
   }
+  fn stage(&self) -> u8 {
+    0
+  }
 }
+
+/**
+ * Runtime modules which attach to handlers of other runtime modules
+ */
+pub const RUNTIME_MODULE_STAGE_ATTACH: u8 = 10;
 
 pub trait RuntimeModuleExt {
   fn boxed(self) -> Box<dyn RuntimeModule>;
