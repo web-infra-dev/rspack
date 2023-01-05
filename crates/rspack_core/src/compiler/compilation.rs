@@ -928,7 +928,6 @@ impl Compilation {
       };
     }
 
-    // dbg!(&used_export_module_identifiers);
     if side_effects_analyze {
       // pruning
       let mut visited: HashSet<Ustr> =
@@ -955,20 +954,12 @@ impl Compilation {
         };
         let used = used_export_module_identifiers.contains(&analyze_result.module_identifier);
 
-        // dbg!(
-        //   &module_identifier,
-        //   used,
-        //   bail_out_module_identifiers.contains_key(&analyze_result.module_identifier),
-        //   analyze_result.side_effects_free,
-        //   self.entry_module_identifiers.contains(&module_identifier)
-        // );
         if !used
           && !bail_out_module_identifiers.contains_key(&analyze_result.module_identifier)
           && analyze_result.side_effects_free
           && !self.entry_module_identifiers.contains(&module_identifier)
         {
           continue;
-        } else {
         }
 
         let mgm = self
@@ -1518,13 +1509,11 @@ fn mark_symbol(
   options: &Arc<CompilerOptions>,
   errors: &mut Vec<Error>,
 ) {
-  // dbg!(&symbol_ref);
   // if debug_care_module_id(symbol_ref.module_identifier()) {
+  // dbg!(&symbol_ref);
   // }
   // We don't need mark the symbol usage if it is from a bailout module because
   // bailout module will skipping tree-shaking anyway
-  // if debug_care_module_id(symbol_ref.module_identifier()) {
-  // }
   let is_bailout_module_identifier =
     bailout_module_identifiers.contains_key(&symbol_ref.module_identifier());
   match &symbol_ref {
@@ -1594,9 +1583,7 @@ fn mark_symbol(
           // Checking if any inherit export map is belong to a bailout module
           let mut has_bailout_module_identifiers = false;
           let mut is_first_result = true;
-          // dbg!(&module_result.inherit_export_maps);
           for (module_identifier, extends_export_map) in module_result.inherit_export_maps.iter() {
-            // dbg!(&module_identifier);
             if let Some(value) = extends_export_map.get(&indirect_symbol.id) {
               ret.push((module_identifier, value));
               if is_first_result {
@@ -1623,7 +1610,6 @@ fn mark_symbol(
           }
 
           // FIXME: this is just a workaround for dependency replacement
-          // dbg!(&ret, indirect_symbol.uri());
           if !ret.is_empty() && !evaluated_module_identifiers.contains(&indirect_symbol.uri) {
             q.extend(module_result.used_symbol_ref.clone());
             evaluated_module_identifiers.insert(indirect_symbol.uri());
@@ -1671,8 +1657,6 @@ fn mark_symbol(
               errors.push(Error::InternalError(
                 internal_error!(error_message).with_severity(Severity::Warn),
               ));
-              // ret.sort_by(|a, b| a.1.module_identifier().cmp(&b.1.module_identifier()));
-              // dbg!(&ret);
               ret[0].1.clone()
             }
           }
