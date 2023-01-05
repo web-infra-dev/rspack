@@ -366,6 +366,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let ParseContext {
       source,
       additional_data,
+      module_identifier,
       module_type,
       resource_data,
       compiler_options,
@@ -437,7 +438,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
       dependencies.into_iter().unique().collect()
     } else {
       dependencies
-    };
+    }.into_iter().map(|mut dep| {
+      dep.set_parent_module_identifier(Some(module_identifier));
+      dep
+    }).collect();
 
     self.meta = additional_data.and_then(|data| if data.is_empty() { None } else { Some(data) });
     self.exports = locals.map(|(_, exports)| exports);

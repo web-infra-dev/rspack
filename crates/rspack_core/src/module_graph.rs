@@ -112,7 +112,10 @@ impl ModuleGraph {
   }
 
   /// Uniquely identify a module by its dependency
-  pub fn module_by_dependency(&self, dep: &dyn ModuleDependency) -> Option<&ModuleGraphModule> {
+  pub fn module_by_dependency(
+    &self,
+    dep: &Box<dyn ModuleDependency>,
+  ) -> Option<&ModuleGraphModule> {
     self
       .dependency_to_dependency_id
       .get(dep)
@@ -125,7 +128,7 @@ impl ModuleGraph {
   }
 
   /// Get the dependency id of a dependency
-  pub fn dependency_id_by_dependency(&self, dep: &dyn ModuleDependency) -> Option<usize> {
+  pub fn dependency_id_by_dependency(&self, dep: &Box<dyn ModuleDependency>) -> Option<usize> {
     self.dependency_to_dependency_id.get(dep).cloned()
   }
 
@@ -227,7 +230,7 @@ impl ModuleGraph {
   /// Uniquely identify a connection by a given dependency
   pub fn connection_by_dependency(
     &self,
-    dep: &dyn ModuleDependency,
+    dep: &Box<dyn ModuleDependency>,
   ) -> Option<&ModuleGraphConnection> {
     self
       .dependency_to_dependency_id
@@ -239,15 +242,18 @@ impl ModuleGraph {
   pub fn dependency_by_connection(
     &self,
     connection: &ModuleGraphConnection,
-  ) -> Option<&dyn ModuleDependency> {
+  ) -> Option<&Box<dyn ModuleDependency>> {
     self.dependency_by_connection_id(connection.id)
   }
 
-  pub fn dependency_by_connection_id(&self, connection_id: usize) -> Option<&dyn ModuleDependency> {
+  pub fn dependency_by_connection_id(
+    &self,
+    connection_id: usize,
+  ) -> Option<&Box<dyn ModuleDependency>> {
     self
       .connection_id_to_dependency_id
       .get(&connection_id)
-      .and_then(|id| self.dependency_id_to_dependency.get(id).map(|dep| &**dep))
+      .and_then(|id| self.dependency_id_to_dependency.get(id))
   }
 
   pub fn connection_by_connection_id(

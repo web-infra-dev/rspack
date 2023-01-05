@@ -193,7 +193,7 @@ impl ModuleGraphModule {
       .dependencies
       .iter()
       .filter(|dep| !matches!(dep.dependency_type(), &DependencyType::DynamicImport))
-      .filter_map(|dep| module_graph.module_by_dependency(&**dep))
+      .filter_map(|dep| module_graph.module_by_dependency(dep))
       .collect()
   }
 
@@ -205,7 +205,7 @@ impl ModuleGraphModule {
       .dependencies
       .iter()
       .filter(|dep| matches!(dep.dependency_type(), &DependencyType::DynamicImport))
-      .filter_map(|dep| module_graph.module_by_dependency(&**dep))
+      .filter_map(|dep| module_graph.module_by_dependency(dep))
       .collect()
   }
 

@@ -301,7 +301,7 @@ impl Compilation {
           .filter_map(|dep| {
             self
               .module_graph
-              .module_by_dependency(&**dep)
+              .module_by_dependency(dep)
               .map(|module| module.module_identifier)
           })
           .next()
@@ -960,7 +960,7 @@ impl Compilation {
         for dep in mgm.dependencies.iter() {
           let module_ident = self
             .module_graph
-            .module_by_dependency(&**dep)
+            .module_by_dependency(dep)
             .unwrap_or_else(|| panic!("Failed to resolve {:?}", dep))
             .module_identifier;
           match visited.entry(module_ident) {
