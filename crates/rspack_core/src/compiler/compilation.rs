@@ -820,14 +820,12 @@ impl Compilation {
     // value is the set which contains several module_id the key related module need to inherit
     let map_of_inherit_map = get_extends_map(&inherit_export_ref_graph);
 
-    // dbg!(&map_of_inherit_map);
     for (module_id, inherit_export_module_id) in map_of_inherit_map.iter() {
       // This is just a work around for rustc checker, because we have immutable and mutable borrow at the same time.
       let mut inherit_export_maps = {
         let main_module = analyze_results.get_mut(module_id).expect("TODO:");
         std::mem::take(&mut main_module.inherit_export_maps)
       };
-      // dbg!(&inherit_export_maps);
       for inherit_export_module_identifier in inherit_export_module_id {
         let export_module = analyze_results
           .get(inherit_export_module_identifier)
@@ -867,7 +865,6 @@ impl Compilation {
     let mut used_indirect_symbol: HashSet<IndirectTopLevelSymbol> = HashSet::new();
     let mut used_export_module_identifiers: HashSet<Ustr> = HashSet::new();
     let mut traced_tuple = HashSet::new();
-    // dbg!(&used_symbol_ref.len());
     // Marking used symbol and all reachable export symbol from the used symbol for each module
     let used_symbol_from_import = mark_used_symbol_with(
       &analyze_results,
