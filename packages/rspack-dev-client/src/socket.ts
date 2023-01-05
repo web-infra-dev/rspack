@@ -1,4 +1,5 @@
-import { createWebSocketClient } from "./ws";
+import WebSocketClient from "webpack-dev-server/client/clients/WebSocketClient";
+import { log } from "webpack-dev-server/client/utils/log";
 
 export interface Handler {
 	ok(): void;
@@ -6,15 +7,25 @@ export interface Handler {
 	"static-changed"(): void;
 }
 
+// @ts-ignore
+const __webpack_dev_server_client__ = __webpack_require__("/ws-client");
+const Client =
+	typeof __webpack_dev_server_client__ !== "undefined"
+		? typeof __webpack_dev_server_client__.default !== "undefined"
+			? __webpack_dev_server_client__.default
+			: __webpack_dev_server_client__
+		: WebSocketClient;
+
 let retries = 0;
 let maxRetries = 10;
+export let client = null;
 
 const socket = function initSocket(
 	url: string,
 	handlers: Handler,
 	reconnect?: number
 ) {
-	let client = createWebSocketClient(url);
+	let client = new Client(url);
 	client.onOpen(() => {
 		retries = 0;
 
@@ -35,7 +46,7 @@ const socket = function initSocket(
 
 			retries += 1;
 
-			console.info("Trying to reconnect...");
+			log.info("Trying to reconnect...");
 
 			setTimeout(() => {
 				socket(url, handlers, reconnect);

@@ -1,23 +1,20 @@
 import type { WatchOptions } from "chokidar";
-import type {
-	Options as HttpProxyMiddlewareOptions,
-	Filter as HttpProxyMiddlewareOptionsFilter
-} from "http-proxy-middleware";
+import WebpackDevServer from "webpack-dev-server";
+
 export interface WebSocketServerOptions {
 	protocol?: string;
 	host?: string;
-	port?: number;
+	port?: number | string;
 	prefix?: string;
 	path?: string;
 }
-type Bypass = (req: Request, res: Response, proxyConfig: ProxyOptions) => void;
-export type ProxyOptionsItem = HttpProxyMiddlewareOptions & {
-	bypass?: Bypass;
-} & {
-	context?: HttpProxyMiddlewareOptionsFilter | undefined;
-	path?: HttpProxyMiddlewareOptionsFilter | undefined;
-};
-export type ProxyOptions = ProxyOptionsItem | ProxyOptionsItem[];
+
+export type ProxyOptions =
+	| WebpackDevServer.ProxyConfigMap
+	| WebpackDevServer.ProxyConfigArrayItem
+	| WebpackDevServer.ProxyConfigArray;
+export type ClientOptions = WebpackDevServer.ClientConfiguration | boolean;
+
 export interface Dev {
 	host?: string;
 	port?: number | string;
@@ -31,6 +28,14 @@ export interface Dev {
 	hot?: boolean;
 	open?: boolean;
 	liveReload?: boolean;
-	// TODO: only support ws.
-	webSocketServer?: boolean | WebSocketServerOptions;
+	webSocketServer?:
+		| false
+		| "sockjs"
+		| "ws"
+		| {
+				type?: "sockjs" | "ws" | string | Function;
+				options?: WebSocketServerOptions;
+		  }
+		| Function;
+	client?: ClientOptions;
 }
