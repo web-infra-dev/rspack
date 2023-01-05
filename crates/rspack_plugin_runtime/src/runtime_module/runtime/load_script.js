@@ -1,5 +1,5 @@
 var inProgress = {};
-var dataWebpackPrefix = "webpack:";
+// var dataWebpackPrefix = "webpack:";
 // loadScript function to load a script via script tag
 __webpack_require__.l = function loadScript(url, done, key, chunkId) {
 	// TODO add this after hash
@@ -13,8 +13,8 @@ __webpack_require__.l = function loadScript(url, done, key, chunkId) {
 		for (var i = 0; i < scripts.length; i++) {
 			var s = scripts[i];
 			if (
-				s.getAttribute("src") == url ||
-				s.getAttribute("data-webpack") == dataWebpackPrefix + key
+				s.getAttribute("src") == url
+				// || s.getAttribute("data-webpack") == dataWebpackPrefix + key
 			) {
 				script = s;
 				break;
@@ -27,7 +27,7 @@ __webpack_require__.l = function loadScript(url, done, key, chunkId) {
 
 		script.charset = "utf-8";
 		script.timeout = 120;
-		script.setAttribute("data-webpack", dataWebpackPrefix + key);
+		// script.setAttribute("data-webpack", dataWebpackPrefix + key);
 		script.src = url;
 	}
 	inProgress[url] = [done];

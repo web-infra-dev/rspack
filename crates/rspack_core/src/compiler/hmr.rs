@@ -1,10 +1,9 @@
 use std::{
-  collections::HashSet,
   hash::{Hash, Hasher},
   ops::Sub,
 };
 
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
 use rspack_error::Result;
 use rspack_sources::{RawSource, SourceExt};
 
@@ -42,36 +41,36 @@ impl Compiler {
   pub async fn rebuild(
     &mut self,
     changed_files: std::collections::HashSet<String>,
-    removed_files: std::collections::HashSet<String>,
+    _removed_files: std::collections::HashSet<String>,
   ) -> Result<()> {
     let old = self.compilation.get_stats();
     let collect_changed_modules = |compilation: &Compilation| -> (
       HashMap<ModuleIdentifier, u64>,
-      Vec<ModuleIdentifier>,
       HashMap<String, String>,
+      HashMap<ModuleIdentifier, String>,
     ) {
-      let mut changed_modules = HashMap::new();
+      let mut all_modules = HashMap::new();
+      let mut module_id_map = HashMap::new();
       for (ukey, chunk) in &compilation.chunk_by_ukey {
         compilation
           .chunk_graph
           .get_chunk_modules(ukey, &compilation.module_graph)
           .iter()
           .for_each(|item| {
-            let identifier = item.module_identifier.to_string();
-            if changed_files.contains(&identifier) || removed_files.contains(&identifier) {
-              let hash = compilation
-                .code_generation_results
-                .get_hash(&item.module_identifier, Some(&chunk.runtime));
-              changed_modules.insert(item.module_identifier, hash);
-            }
+            let hash = compilation
+              .code_generation_results
+              .get_hash(&item.module_identifier, Some(&chunk.runtime));
+            all_modules.insert(item.module_identifier, hash);
+            module_id_map.insert(
+              item.module_identifier,
+              compilation
+                .chunk_graph
+                .get_module_id(&item.module_identifier)
+                .clone()
+                .expect("should has module id"),
+            );
           });
       }
-
-      let all_modules = compilation
-        .module_graph
-        .module_graph_modules()
-        .map(|item| item.module_identifier)
-        .collect();
 
       let old_runtime_modules = compilation
         .runtime_modules
@@ -84,10 +83,10 @@ impl Compiler {
         })
         .collect();
 
-      (changed_modules, all_modules, old_runtime_modules)
+      (all_modules, old_runtime_modules, module_id_map)
     };
 
-    let (old_changed_modules, old_all_modules, old_runtime_modules) =
+    let (old_all_modules, old_runtime_modules, old_module_id_map) =
       collect_changed_modules(old.compilation);
     // TODO: should use `records`
 
@@ -108,7 +107,7 @@ impl Compiler {
       .map(|id| (id.clone(), HotUpdateContent::new(id)))
       .collect::<HashMap<String, HotUpdateContent>>();
 
-    let mut old_chunks: Vec<(String, hashbrown::HashSet<ModuleIdentifier>)> = vec![];
+    let mut old_chunks: Vec<(String, HashSet<ModuleIdentifier>, RuntimeSpec)> = vec![];
     for (ukey, chunk) in &old.compilation.chunk_by_ukey {
       let modules = old
         .compilation
@@ -116,7 +115,11 @@ impl Compiler {
         .get_chunk_graph_chunk(ukey)
         .modules
         .clone();
-      old_chunks.push((chunk.expect_id().to_string(), modules));
+      old_chunks.push((
+        chunk.expect_id().to_string(),
+        modules,
+        chunk.runtime.clone(),
+      ));
     }
 
     // build without stats
@@ -164,26 +167,30 @@ impl Compiler {
       return Ok(());
     }
 
-    let (now_changed_modules, now_all_modules, now_runtime_modules) =
-      collect_changed_modules(&mut self.compilation);
+    let (now_all_modules, now_runtime_modules, _) = collect_changed_modules(&mut self.compilation);
 
     let mut updated_modules: HashSet<ModuleIdentifier> = Default::default();
     let mut updated_runtime_modules: HashSet<String> = Default::default();
-    let mut completely_removed_modules: HashSet<ModuleIdentifier> = Default::default();
+    let mut completely_removed_modules: HashSet<String> = Default::default();
 
-    for (old_uri, old_hash) in &old_changed_modules {
-      if let Some(now_hash) = now_changed_modules.get(old_uri) {
+    for (old_uri, old_hash) in &old_all_modules {
+      if let Some(now_hash) = now_all_modules.get(old_uri) {
         // updated
         if now_hash != old_hash {
           updated_modules.insert(*old_uri);
         }
       } else {
         // deleted
-        completely_removed_modules.insert(*old_uri);
+        completely_removed_modules.insert(
+          old_module_id_map
+            .get(old_uri)
+            .expect("should have module id")
+            .clone(),
+        );
       }
     }
-    for identifier in &now_all_modules {
-      if !old_all_modules.contains(identifier) {
+    for (identifier, _) in &now_all_modules {
+      if !old_all_modules.contains_key(identifier) {
         // added
         updated_modules.insert(*identifier);
       }
@@ -214,7 +221,7 @@ impl Compiler {
     // TODO: hash
     // if old.hash == now.hash { return  } else { // xxxx}
 
-    for (chunk_id, _old_chunk_modules) in &old_chunks {
+    for (chunk_id, _old_chunk_modules, old_runtime) in &old_chunks {
       let mut new_modules = vec![];
       let mut new_runtime_modules = vec![];
       let mut chunk_id = chunk_id.to_string();
@@ -264,11 +271,14 @@ impl Compiler {
 
         // subtractRuntime
         removed_from_runtime = removed_from_runtime.sub(&new_runtime);
+      } else {
+        removed_from_runtime = old_runtime.clone();
+        // new_runtime = old_runtime.clone();
       }
 
       for removed in removed_from_runtime {
-        if let Some(info) = hot_update_main_content_by_runtime.get_mut(&chunk_id) {
-          info.removed_chunk_ids.insert(removed.to_string());
+        if let Some(info) = hot_update_main_content_by_runtime.get_mut(&removed) {
+          info.removed_chunk_ids.insert(chunk_id.to_string());
         }
         // TODO:
         // for (const module of remainingModules) {}
@@ -361,7 +371,7 @@ impl Compiler {
       }
     }
 
-    let completely_removed_modules_array: Vec<ModuleIdentifier> =
+    let completely_removed_modules_array: Vec<String> =
       completely_removed_modules.into_iter().collect();
 
     for (_, content) in hot_update_main_content_by_runtime {

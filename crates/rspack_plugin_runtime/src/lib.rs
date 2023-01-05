@@ -1,3 +1,5 @@
+#![feature(get_mut_unchecked)]
+
 use crate::runtime_module::{EnsureChunkRuntimeModule, OnChunkLoadedRuntimeModule};
 use async_trait::async_trait;
 use rspack_core::{

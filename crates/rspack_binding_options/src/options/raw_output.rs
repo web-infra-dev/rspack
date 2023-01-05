@@ -46,6 +46,7 @@ pub struct RawOutputOptions {
   pub css_chunk_filename: Option<String>,
   pub unique_name: Option<String>,
   pub library: Option<String>,
+  pub strict_module_error_handling: Option<bool>,
   /* pub entry_filename: Option<String>,
    * pub source_map: Option<String>, */
 }
@@ -64,6 +65,7 @@ pub struct RawOutputOptions {
   pub css_chunk_filename: Option<String>,
   pub unique_name: Option<String>,
   pub library: Option<String>,
+  pub strict_module_error_handling: Option<bool>,
   /* pub entry_filename: Option<String>,
    * pub source_map: Option<String>, */
 }
@@ -148,6 +150,7 @@ impl RawOption<OutputOptions> for RawOutputOptions {
       unique_name,
       public_path: PublicPath::from_str(&public_path)?,
       library,
+      strict_module_error_handling: self.strict_module_error_handling,
     })
   }
 

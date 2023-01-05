@@ -53,7 +53,7 @@ function createRequire(require, moduleId) {
 				me.children.push(request);
 			}
 		} else {
-			console.log(
+			console.warn(
 				"[HMR] unexpected require(" +
 					request +
 					") from disposed module " +

@@ -9,7 +9,7 @@ use tracing::instrument;
 
 use crate::utils::{is_dynamic_import_literal_expr, is_require_literal_expr};
 
-use super::is_module_hot_accept_call;
+use super::{is_module_hot_accept_call, is_module_hot_decline_call};
 use {
   swc_core::common::{Mark, SyntaxContext, DUMMY_SP},
   swc_core::ecma::ast::{self, *},
@@ -288,6 +288,60 @@ impl<'a> RspackModuleFormatTransformer<'a> {
   }
 
   fn rewrite_module_hot_accept_import(&mut self, n: &mut CallExpr) {
+    let mut accpet_module_id: String = Default::default();
+    if let Some(Lit::Str(str)) = n
+      .args
+      .get_mut(0)
+      .and_then(|first_arg| first_arg.expr.as_mut_lit())
+    {
+      let dep = Dependency {
+        parent_module_identifier: Some(self.module.identifier()),
+        detail: ModuleDependency {
+          specifier: str.value.to_string(),
+          kind: ResolveKind::ModuleHotAccept,
+          span: Some(n.span.into()),
+        },
+      };
+      if let Some(module) = self.compilation.module_graph.module_by_dependency(&dep) {
+        let module_id = module.id(&self.compilation.chunk_graph);
+        str.value = JsWord::from(module_id);
+        str.raw = Some(Atom::from(format!("\"{}\"", module_id)));
+        accpet_module_id = module_id.to_string();
+      }
+    }
+
+    // TODO: add assign expr with module require
+    // module.hot.accept without callback
+    if !accpet_module_id.is_empty() && n.args.len() == 1 {
+      n.args.push(
+        FnExpr {
+          ident: None,
+          function: Box::new(Function {
+            span: DUMMY_SP,
+            decorators: Default::default(),
+            is_async: false,
+            is_generator: false,
+            params: vec![],
+            body: Some(BlockStmt {
+              span: DUMMY_SP,
+              stmts: vec![CallExpr {
+                span: DUMMY_SP,
+                callee: Ident::new(runtime_globals::REQUIRE.into(), DUMMY_SP).as_callee(),
+                args: vec![Lit::Str(accpet_module_id.into()).as_arg()],
+                type_args: None,
+              }
+              .into_stmt()],
+            }),
+            type_params: None,
+            return_type: None,
+          }),
+        }
+        .as_arg(),
+      );
+    }
+  }
+
+  fn rewrite_module_hot_decline_import(&mut self, n: &mut CallExpr) {
     if let Some(Lit::Str(str)) = n
       .args
       .get_mut(0)
@@ -316,6 +370,8 @@ impl<'a> VisitMut for RspackModuleFormatTransformer<'a> {
   fn visit_mut_call_expr(&mut self, n: &mut CallExpr) {
     if is_module_hot_accept_call(n) {
       self.rewrite_module_hot_accept_import(n);
+    } else if is_module_hot_decline_call(n) {
+      self.rewrite_module_hot_decline_import(n);
     } else if n.callee.is_import() {
       // transform "require('react')" into "__rspack_require__('chunks/react.js')"
       self.rewrite_dyn_import(n);

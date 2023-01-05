@@ -31,6 +31,8 @@ impl Plugin for HotModuleReplacementPlugin {
     let chunk = args.chunk;
     let runtime_requirements = &mut args.runtime_requirements;
 
+    // TODO: the hmr runtime is depend on module.id, but webpack not add it.
+    runtime_requirements.insert(runtime_globals::MODULE_ID.to_string());
     runtime_requirements.insert(runtime_globals::HMR_DOWNLOAD_MANIFEST.to_string());
     runtime_requirements.insert(runtime_globals::HMR_DOWNLOAD_UPDATE_HANDLERS.to_string());
     runtime_requirements.insert(runtime_globals::INTERCEPT_MODULE_EXECUTION.to_string());
