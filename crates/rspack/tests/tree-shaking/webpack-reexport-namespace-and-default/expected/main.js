@@ -4,18 +4,18 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _script = __webpack_require__("./package1/script.js");
-const _script2 = __webpack_require__("./package1/script2.js");
-const _script1 = __webpack_require__("./package2/script.js");
+const _scriptJs = __webpack_require__("./package1/script.js");
+const _script2Js = __webpack_require__("./package1/script2.js");
+const _scriptJs1 = __webpack_require__("./package2/script.js");
 it("should load module correctly", ()=>{
     __webpack_require__("./module.js");
 });
 it("default export should be unused", ()=>{
-    expect(_script.exportDefaultUsed).toBe(false);
-    expect(_script2.exportDefaultUsed).toBe(false);
+    expect(_scriptJs.exportDefaultUsed).toBe(false);
+    expect(_script2Js.exportDefaultUsed).toBe(false);
 });
 it("default export should be used", ()=>{
-    expect(_script1.exportDefaultUsed).toBe(true);
+    expect(_scriptJs1.exportDefaultUsed).toBe(true);
 });
 },
 "./module.js": function (module, exports, __webpack_require__) {
@@ -27,9 +27,9 @@ Object.defineProperty(exports, "mod", {
     enumerable: true,
     get: ()=>mod
 });
-const _script = __webpack_require__.interopRequire(__webpack_require__("./package1/script.js"));
-const _script1 = __webpack_require__.interopRequire(__webpack_require__("./package2/script.js"));
-const mod = _script1.default;
+const _scriptJs = __webpack_require__.interopRequire(__webpack_require__("./package1/script.js"));
+const _scriptJs1 = __webpack_require__.interopRequire(__webpack_require__("./package2/script.js"));
+const mod = _scriptJs1.default;
 },
 "./package1/script.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -40,7 +40,7 @@ Object.defineProperty(exports, "exportDefaultUsed", {
     enumerable: true,
     get: ()=>exportDefaultUsed
 });
-const _script1 = __webpack_require__.interopRequire(__webpack_require__.exportStar(__webpack_require__("./package1/script1.js"), exports));
+const _script1Js = __webpack_require__.interopRequire(__webpack_require__.exportStar(__webpack_require__("./package1/script1.js"), exports));
 const exportDefaultUsed = __webpack_exports_info__.default.used;
 },
 "./package1/script1.js": function (module, exports, __webpack_require__) {
@@ -59,7 +59,7 @@ Object.defineProperty(exports, "exportDefaultUsed", {
     enumerable: true,
     get: ()=>exportDefaultUsed
 });
-const _script3 = __webpack_require__.interopRequire(__webpack_require__.exportStar(__webpack_require__("./package1/script3.js"), exports));
+const _script3Js = __webpack_require__.interopRequire(__webpack_require__.exportStar(__webpack_require__("./package1/script3.js"), exports));
 const exportDefaultUsed = __webpack_exports_info__.default.used;
 },
 "./package1/script3.js": function (module, exports, __webpack_require__) {
@@ -80,8 +80,8 @@ _export(exports, {
     default: ()=>_default,
     exportDefaultUsed: ()=>exportDefaultUsed
 });
-const _script1 = __webpack_require__.interopRequire(__webpack_require__.exportStar(__webpack_require__("./package2/script1.js"), exports));
-const _default = _script1.default;
+const _script1Js = __webpack_require__.interopRequire(__webpack_require__.exportStar(__webpack_require__("./package2/script1.js"), exports));
+const _default = _script1Js.default;
 const exportDefaultUsed = __webpack_exports_info__.default.used;
 },
 "./package2/script1.js": function (module, exports, __webpack_require__) {

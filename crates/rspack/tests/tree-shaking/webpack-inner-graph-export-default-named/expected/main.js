@@ -8,9 +8,9 @@ Object.defineProperty(exports, "default", {
     enumerable: true,
     get: ()=>abc
 });
-const _depA = __webpack_require__("./dep.jsa");
+const _depJsa = __webpack_require__("./dep.jsa");
 function abc() {
-    return _depA.x;
+    return _depJsa.x;
 }
 },
 "./b.js": function (module, exports, __webpack_require__) {
@@ -18,16 +18,16 @@ function abc() {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _depB = __webpack_require__("./dep.jsb");
+const _depJsb = __webpack_require__("./dep.jsb");
 },
 "./c.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _depC = __webpack_require__("./dep.jsc");
+const _depJsc = __webpack_require__("./dep.jsc");
 function abc() {
-    return _depC.x;
+    return _depJsc.x;
 }
 abc();
 },
@@ -40,10 +40,10 @@ Object.defineProperty(exports, "default", {
     enumerable: true,
     get: ()=>def
 });
-const _depD = __webpack_require__("./dep.jsd");
+const _depJsd = __webpack_require__("./dep.jsd");
 class def {
     method() {
-        return _depD.x;
+        return _depJsd.x;
     }
 }
 },
@@ -146,17 +146,17 @@ const _default = __webpack_exports_info__.x.used;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _depE = __webpack_require__("./dep.jse");
+const _depJse = __webpack_require__("./dep.jse");
 },
 "./f.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _depF = __webpack_require__("./dep.jsf");
+const _depJsf = __webpack_require__("./dep.jsf");
 class def {
     method() {
-        return _depF.x;
+        return _depJsf.x;
     }
 }
 new def().method();
@@ -166,41 +166,41 @@ new def().method();
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _a = __webpack_require__.interopRequire(__webpack_require__("./a.js"));
+const _aJs = __webpack_require__.interopRequire(__webpack_require__("./a.js"));
 __webpack_require__("./b.js");
 __webpack_require__("./c.js");
-const _d = __webpack_require__.interopRequire(__webpack_require__("./d.js"));
+const _dJs = __webpack_require__.interopRequire(__webpack_require__("./d.js"));
 __webpack_require__("./e.js");
 __webpack_require__("./f.js");
-const _depA = __webpack_require__.interopRequire(__webpack_require__("./dep.jsa"));
-const _depB = __webpack_require__.interopRequire(__webpack_require__("./dep.jsb"));
-const _depC = __webpack_require__.interopRequire(__webpack_require__("./dep.jsc"));
-const _depD = __webpack_require__.interopRequire(__webpack_require__("./dep.jsd"));
-const _depE = __webpack_require__.interopRequire(__webpack_require__("./dep.jse"));
-const _depF = __webpack_require__.interopRequire(__webpack_require__("./dep.jsf"));
+const _depJsa = __webpack_require__.interopRequire(__webpack_require__("./dep.jsa"));
+const _depJsb = __webpack_require__.interopRequire(__webpack_require__("./dep.jsb"));
+const _depJsc = __webpack_require__.interopRequire(__webpack_require__("./dep.jsc"));
+const _depJsd = __webpack_require__.interopRequire(__webpack_require__("./dep.jsd"));
+const _depJse = __webpack_require__.interopRequire(__webpack_require__("./dep.jse"));
+const _depJsf = __webpack_require__.interopRequire(__webpack_require__("./dep.jsf"));
 it("should generate valid code", ()=>{
-    expect((0, _a.default)()).toBe("x");
-    expect(new _d.default().method()).toBe("x");
+    expect((0, _aJs.default)()).toBe("x");
+    expect(new _dJs.default().method()).toBe("x");
 });
 it("a should be used", ()=>{
-    expect(_depA.default).toBe(true);
+    expect(_depJsa.default).toBe(true);
 });
 if (process.env.NODE_ENV === "production") it("b should be unused", ()=>{
-    expect(_depB.default).toBe(false);
+    expect(_depJsb.default).toBe(false);
 });
 it("c should be used", ()=>{
-    expect(_depC.default).toBe(true);
+    expect(_depJsc.default).toBe(true);
 });
 if (process.env.NODE_ENV === "production") {
     it("d should be used", ()=>{
-        expect(_depD.default).toBe(true);
+        expect(_depJsd.default).toBe(true);
     });
     it("e should be unused", ()=>{
-        expect(_depE.default).toBe(false);
+        expect(_depJse.default).toBe(false);
     });
 }
 it("f should be used", ()=>{
-    expect(_depF.default).toBe(true);
+    expect(_depJsf.default).toBe(true);
 });
 },
 
