@@ -49,9 +49,6 @@ pub enum DependencyCategory {
   CssImport,
 }
 
-pub type JsAstPath = Vec<swc_core::ecma::visit::AstParentKind>;
-pub type CssAstPath = Vec<swc_core::css::visit::AstParentKind>;
-
 pub trait Dependency:
   CodeGeneratable + AsModuleDependency + AsAny + DynHash + DynClone + DynEq + Send + Sync + Debug
 {

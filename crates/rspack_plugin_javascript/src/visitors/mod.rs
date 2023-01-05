@@ -134,13 +134,6 @@ pub fn run_before_pass(
 pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut GenerateContext) {
   let cm = ast.get_context().source_map.clone();
 
-  println!(
-    "\n\nbefore transform\n\n {}\n\n",
-    crate::ast::stringify(&ast, &generate_context.compilation.options.devtool)
-      .unwrap()
-      .code
-  );
-
   ast.transform(|program, context| {
     let unresolved_mark = context.unresolved_mark;
     let top_level_mark = context.top_level_mark;
@@ -148,7 +141,7 @@ pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut
     let minify = generate_context.compilation.options.builtins.minify;
     let comments = None;
 
-    // TODO: in next PR
+    // TODO: add back in next PR
     // Run dependencies' code generation first
     // {
     //   let (root_visitors, visitors) =
@@ -219,11 +212,4 @@ pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut
 
     program.fold_with(&mut pass);
   });
-
-  println!(
-    "\n\nafter transform\n\n {}\n\n",
-    crate::ast::stringify(&ast, &generate_context.compilation.options.devtool)
-      .unwrap()
-      .code
-  );
 }

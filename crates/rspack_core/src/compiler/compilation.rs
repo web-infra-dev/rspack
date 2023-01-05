@@ -545,7 +545,7 @@ impl Compilation {
       }
     });
 
-    dbg!(&self.module_graph.module_identifier_to_module_graph_module);
+    // dbg!(&self.module_graph.module_identifier_to_module_graph_module);
 
     tracing::debug!("All task is finished");
   }

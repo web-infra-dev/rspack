@@ -1,15 +1,12 @@
 use linked_hash_set::LinkedHashSet;
 use rspack_core::{
   CommonJSRequireDependency, EsmDynamicImportDependency, EsmImportDependency, ModuleDependency,
-  ModuleHotAcceptDependency, ModuleIdentifier,
+  ModuleHotAcceptDependency,
 };
 use swc_core::common::pass::AstNodePath;
-use swc_core::common::{Mark, Span, SyntaxContext};
+use swc_core::common::{Mark, SyntaxContext};
 use swc_core::ecma::ast::{CallExpr, Callee, ExportSpecifier, Expr, ExprOrSpread, Lit, ModuleDecl};
-use swc_core::ecma::atoms::JsWord;
-use swc_core::ecma::visit::{
-  noop_visit_type, AstParentKind, AstParentNodeRef, Visit, VisitAstPath, VisitWith, VisitWithPath,
-};
+use swc_core::ecma::visit::{AstParentKind, AstParentNodeRef, VisitAstPath, VisitWithPath};
 
 pub fn as_parent_path(ast_path: &AstNodePath<AstParentNodeRef<'_>>) -> Vec<AstParentKind> {
   ast_path.iter().map(|n| n.kind()).collect()
@@ -73,11 +70,6 @@ impl DependencyScanner {
               Some(node.span.into()),
               as_parent_path(ast_path),
             ));
-            // self.add_dependency(
-            //   imported.value.clone(),
-            //   ResolveKind::DynamicImport,
-            //   node.span,
-            // );
           }
         }
       }
@@ -100,7 +92,6 @@ impl DependencyScanner {
         Some(node.span.into()),
         as_parent_path(ast_path),
       ));
-      // self.add_dependency(str.value.clone(), ResolveKind::ModuleHotAccept, node.span)
     }
   }
 
@@ -122,7 +113,6 @@ impl DependencyScanner {
                   Some(node.span.into()),
                   as_parent_path(ast_path),
                 ));
-                // self.add_dependency(source, ResolveKind::Import, node.span);
               }
             }
             ExportSpecifier::Namespace(_s) => {
@@ -138,7 +128,6 @@ impl DependencyScanner {
                 Some(node.span.into()),
                 as_parent_path(ast_path),
               ));
-              // self.add_dependency(source, ResolveKind::Import, node.span);
             }
             ExportSpecifier::Default(_) => {
               // export v from 'mod';
@@ -155,7 +144,6 @@ impl DependencyScanner {
           Some(node.span.into()),
           as_parent_path(ast_path),
         ));
-        // self.add_dependency(node.src.value.clone(), ResolveKind::Import, node.span);
       }
       _ => {}
     }
@@ -164,8 +152,6 @@ impl DependencyScanner {
 }
 
 impl VisitAstPath for DependencyScanner {
-  // noop_visit_type!();
-
   fn visit_module_decl<'ast: 'r, 'r>(
     &mut self,
     node: &'ast ModuleDecl,

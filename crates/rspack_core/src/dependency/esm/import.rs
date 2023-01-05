@@ -21,6 +21,7 @@ pub struct EsmImportDependency {
   dependency_type: &'static DependencyType,
 
   span: Option<ErrorSpan>,
+  #[allow(unused)]
   ast_path: JsAstPath,
 }
 

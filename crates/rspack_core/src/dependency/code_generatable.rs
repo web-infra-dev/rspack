@@ -1,4 +1,4 @@
-use crate::{Compilation, CssAstPath, JsAstPath, Module};
+use crate::{Compilation, Module};
 
 pub struct CodeGeneratableContext<'a> {
   pub compilation: &'a Compilation,
@@ -9,6 +9,9 @@ pub struct CodeGeneratableContext<'a> {
 pub trait CodeGeneratable {
   fn generate(&self, _code_generatable_context: &CodeGeneratableContext) -> CodeGeneratableResult;
 }
+
+pub type JsAstPath = Vec<swc_core::ecma::visit::AstParentKind>;
+pub type CssAstPath = Vec<swc_core::css::visit::AstParentKind>;
 
 pub enum CodeGeneratableAstPath {
   JavaScript(JsAstPath),

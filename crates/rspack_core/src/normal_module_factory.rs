@@ -12,9 +12,8 @@ use ustr::Ustr;
 
 use crate::{
   cache::Cache, module_rule_matcher, resolve, BoxModule, CompilerOptions, Dependency,
-  FactorizeArgs, Identifiable, ModuleArgs, ModuleDependency, ModuleExt, ModuleIdentifier,
-  ModuleRule, ModuleType, NormalModule, RawModule, Resolve, ResolveArgs, ResolveResult,
-  ResourceData, SharedPluginDriver,
+  FactorizeArgs, Identifiable, ModuleArgs, ModuleDependency, ModuleExt, ModuleRule, ModuleType,
+  NormalModule, RawModule, Resolve, ResolveArgs, ResolveResult, ResourceData, SharedPluginDriver,
 };
 
 // #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -143,9 +142,7 @@ impl NormalModuleFactory {
       specifier,
       dependency_type: *self.dependency.dependency_type(),
       dependency_category: *self.dependency.category(),
-      // TODO: Add back span support
-      // span: self.dependency.detail.span,
-      span: None,
+      span: self.dependency.span().cloned(),
       resolve_options,
     };
     let plugin_driver = self.plugin_driver.clone();

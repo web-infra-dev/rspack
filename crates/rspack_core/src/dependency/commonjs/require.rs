@@ -10,19 +10,36 @@ use crate::{
   DependencyType, ErrorSpan, JsAstPath, ModuleIdentifier,
 };
 
-#[derive(Derivative)]
-#[derivative(Debug, Hash, PartialEq, Eq, Clone)]
+#[derive(Debug, Eq, Clone)]
 pub struct CommonJSRequireDependency {
   parent_module_identifier: Option<ModuleIdentifier>,
   request: JsWord,
   // user_request: String,
-  #[derivative(PartialEq = "ignore")]
-  #[derivative(Hash = "ignore")]
+  category: &'static DependencyCategory,
+  dependency_type: &'static DependencyType,
   span: Option<ErrorSpan>,
-
-  #[derivative(PartialEq = "ignore")]
-  #[derivative(Hash = "ignore")]
+  #[allow(unused)]
   ast_path: JsAstPath,
+}
+
+// Do not edit this, as it is used to uniquely identify the dependency.
+impl PartialEq for CommonJSRequireDependency {
+  fn eq(&self, other: &Self) -> bool {
+    self.parent_module_identifier == other.parent_module_identifier
+      && self.request == other.request
+      && self.category == other.category
+      && self.dependency_type == other.dependency_type
+  }
+}
+
+// Do not edit this, as it is used to uniquely identify the dependency.
+impl std::hash::Hash for CommonJSRequireDependency {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.parent_module_identifier.hash(state);
+    self.request.hash(state);
+    self.category.hash(state);
+    self.dependency_type.hash(state);
+  }
 }
 
 impl CommonJSRequireDependency {
@@ -31,6 +48,8 @@ impl CommonJSRequireDependency {
       parent_module_identifier: None,
       request,
       // user_request,
+      category: &DependencyCategory::CommonJS,
+      dependency_type: &DependencyType::CjsRequire,
       span,
       ast_path,
     }

@@ -45,8 +45,7 @@ use rspack_error::{
 use tracing::instrument;
 
 use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
-use crate::visitors::analyze_imports_with_path;
-// use crate::visitors::rewrite_url;
+use crate::visitors::{analyze_imports_with_path, rewrite_url};
 use crate::{
   pxtorem::{option::PxToRemOption, px_to_rem::px_to_rem},
   visitors::analyze_dependencies,
@@ -481,8 +480,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           .expect("Expected CSS AST for CSS generation, please file an issue.");
         let cm = ast.get_context().source_map.clone();
         let stylesheet = ast.get_root_mut();
-        // TODO: rewrite url
-        // rewrite_url(stylesheet, module, generate_context.compilation);
+        rewrite_url(stylesheet, module, generate_context.compilation);
         let (code, source_map) = SWC_COMPILER.codegen(
           cm,
           stylesheet,
