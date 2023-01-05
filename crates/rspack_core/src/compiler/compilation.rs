@@ -323,6 +323,7 @@ impl Compilation {
 
   #[instrument(name = "compilation:make", skip_all)]
   pub async fn make(&mut self, entry_deps: HashMap<String, Vec<Box<dyn ModuleDependency>>>) {
+    dbg!(&self.options.module.rules);
     if let Some(e) = self.plugin_driver.clone().read().await.make(self).err() {
       self.push_batch_diagnostic(e.into());
     }
