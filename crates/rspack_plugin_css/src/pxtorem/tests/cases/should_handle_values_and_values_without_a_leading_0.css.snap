@@ -1,7 +1,6 @@
 ---
 source: crates/rspack_plugin_css/src/pxtorem/tests/mod.rs
-assertion_line: 29
-expression: should_handle_<_1_values_and_values_without_a_leading_0.css
+expression: should_handle_values_and_values_without_a_leading_0.css
 ---
 # Input
 .rule { margin: 0.5rem .5px -0.2px -.2em }
