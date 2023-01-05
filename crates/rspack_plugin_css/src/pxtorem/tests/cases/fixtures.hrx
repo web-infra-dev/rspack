@@ -22,7 +22,7 @@ h1 { margin: 0 0 20px; font-size: 2rem; line-height: 1.2; letter-spacing: 0.0625
 <===> .expected
 :root { --rem-14px: 0.875rem; } .rule { font-size: var(--rem-14px); }
 
-<===> should handle < 1 values and values without a leading 0.css
+<===> should handle values and values without a leading 0.css
 .rule { margin: 0.5rem .5px -0.2px -.2em }
 <===> .config
 {
