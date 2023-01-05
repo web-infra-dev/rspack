@@ -150,7 +150,9 @@ impl ChunkGraph {
     cgm.runtime_in_chunks.insert(chunk);
 
     let cgc = self.get_chunk_graph_chunk_mut(chunk);
-    cgc.runtime_modules.insert(identifier);
+    if !cgc.runtime_modules.contains(&identifier) {
+      cgc.runtime_modules.push(identifier);
+    }
   }
 
   pub fn get_modules_chunks(&self, module_identifier: &ModuleIdentifier) -> &HashSet<ChunkUkey> {
@@ -340,7 +342,7 @@ impl ChunkGraph {
     runtimes
   }
 
-  pub fn get_chunk_runtime_modules_in_order(&self, chunk_ukey: &ChunkUkey) -> &HashSet<String> {
+  pub fn get_chunk_runtime_modules_in_order(&self, chunk_ukey: &ChunkUkey) -> &Vec<String> {
     let cgc = self.get_chunk_graph_chunk(chunk_ukey);
     &cgc.runtime_modules
   }
@@ -458,7 +460,7 @@ pub struct ChunkGraphChunk {
   pub(crate) entry_modules: hashlink::LinkedHashMap<ModuleIdentifier, ChunkGroupUkey>,
   pub(crate) modules: HashSet<ModuleIdentifier>,
   pub(crate) runtime_requirements: HashSet<String>,
-  pub(crate) runtime_modules: HashSet<String>,
+  pub(crate) runtime_modules: Vec<String>,
 }
 
 impl ChunkGraphChunk {
