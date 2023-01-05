@@ -76,10 +76,7 @@ impl Dependency for Box<dyn Dependency> {
 }
 
 impl CodeGeneratable for Box<dyn Dependency> {
-  fn generate(
-    &self,
-    code_generatable_context: CodeGeneratableContext,
-  ) -> rspack_error::Result<CodeGeneratableResult> {
+  fn generate(&self, code_generatable_context: &CodeGeneratableContext) -> CodeGeneratableResult {
     (**self).generate(code_generatable_context)
   }
 }
@@ -143,10 +140,7 @@ impl Dependency for Box<dyn ModuleDependency> {
 }
 
 impl CodeGeneratable for Box<dyn ModuleDependency> {
-  fn generate(
-    &self,
-    code_generatable_context: CodeGeneratableContext,
-  ) -> rspack_error::Result<CodeGeneratableResult> {
+  fn generate(&self, code_generatable_context: &CodeGeneratableContext) -> CodeGeneratableResult {
     (**self).generate(code_generatable_context)
   }
 }

@@ -66,10 +66,7 @@ impl ModuleDependency for CssImportDependency {
 }
 
 impl CodeGeneratable for CssImportDependency {
-  fn generate(
-    &self,
-    _code_generatable_context: CodeGeneratableContext,
-  ) -> Result<CodeGeneratableResult> {
+  fn generate(&self, _code_generatable_context: &CodeGeneratableContext) -> CodeGeneratableResult {
     todo!()
   }
 }

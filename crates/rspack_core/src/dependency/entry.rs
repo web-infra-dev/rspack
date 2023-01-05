@@ -45,10 +45,7 @@ impl ModuleDependency for EntryDependency {
 }
 
 impl CodeGeneratable for EntryDependency {
-  fn generate(
-    &self,
-    _code_generatable_context: CodeGeneratableContext,
-  ) -> Result<CodeGeneratableResult> {
-    Ok(CodeGeneratableResult { visitors: vec![] })
+  fn generate(&self, _code_generatable_context: &CodeGeneratableContext) -> CodeGeneratableResult {
+    CodeGeneratableResult { visitors: vec![] }
   }
 }

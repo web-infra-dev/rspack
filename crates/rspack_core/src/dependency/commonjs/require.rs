@@ -70,10 +70,7 @@ impl ModuleDependency for CommonJSRequireDependency {
 }
 
 impl CodeGeneratable for CommonJSRequireDependency {
-  fn generate(
-    &self,
-    _code_generatable_context: CodeGeneratableContext,
-  ) -> rspack_error::Result<CodeGeneratableResult> {
+  fn generate(&self, _code_generatable_context: &CodeGeneratableContext) -> CodeGeneratableResult {
     todo!()
   }
 }

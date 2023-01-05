@@ -1,7 +1,5 @@
 use derivative::Derivative;
 
-use rspack_error::Result;
-
 use crate::{
   CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, CssAstPath, Dependency,
   DependencyCategory, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
@@ -66,10 +64,7 @@ impl ModuleDependency for CssUrlDependency {
 }
 
 impl CodeGeneratable for CssUrlDependency {
-  fn generate(
-    &self,
-    _code_generatable_context: CodeGeneratableContext,
-  ) -> Result<CodeGeneratableResult> {
+  fn generate(&self, _code_generatable_context: &CodeGeneratableContext) -> CodeGeneratableResult {
     todo!()
   }
 }
