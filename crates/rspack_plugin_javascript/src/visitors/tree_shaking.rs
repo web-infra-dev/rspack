@@ -78,14 +78,14 @@ impl<'a> Fold for TreeShaker<'a> {
       ModuleItem::ModuleDecl(module_decl) => match module_decl {
         ModuleDecl::Import(ref import) => {
           let module_identifier = self
-            .resolve_module_identifier(import.src.value.to_string(), DependencyType::Import)
+            .resolve_module_identifier(import.src.value.to_string(), DependencyType::EsmImport)
             .unwrap_or_else(|| {
               // FIXME: This is just a hack because of an unstable bug panic here.
               panic!(
                 "Failed to resolve dependency where `parent_module_identifier` is {:?}, `request` is {:?} and `dependency_type` is {:?}",
                 self.module_identifier,
                 import.src.value.to_string(),
-                DependencyType::Import
+                DependencyType::EsmImport
               )
             });
           let mgm = self
@@ -196,7 +196,7 @@ impl<'a> Fold for TreeShaker<'a> {
           if let Some(ref src) = named.src {
             let before_legnth = named.specifiers.len();
             let module_identifier = self
-              .resolve_module_identifier(src.value.to_string(), DependencyType::Import)
+              .resolve_module_identifier(src.value.to_string(), DependencyType::EsmImport)
               .expect("TODO:");
             let mgm = self
               .module_graph
@@ -346,7 +346,7 @@ impl<'a> Fold for TreeShaker<'a> {
         }
         ModuleDecl::ExportAll(ref export_all) => {
           let module_identifier = self
-            .resolve_module_identifier(export_all.src.value.to_string(), DependencyType::Import)
+            .resolve_module_identifier(export_all.src.value.to_string(), DependencyType::EsmImport)
             .expect("TODO:");
           let mgm = self
             .module_graph

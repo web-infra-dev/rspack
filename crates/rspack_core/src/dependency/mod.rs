@@ -26,7 +26,7 @@ pub enum DependencyType {
   Unknown,
   Entry,
   // Harmony import
-  Import,
+  EsmImport,
   // import()
   DynamicImport,
   // cjs require
@@ -72,6 +72,18 @@ pub trait Dependency:
 impl Dependency for Box<dyn Dependency> {
   fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
     (**self).parent_module_identifier()
+  }
+
+  fn set_parent_module_identifier(&mut self, module_identifier: Option<ModuleIdentifier>) {
+    (**self).set_parent_module_identifier(module_identifier)
+  }
+
+  fn category(&self) -> &DependencyCategory {
+    (**self).category()
+  }
+
+  fn dependency_type(&self) -> &DependencyType {
+    (**self).dependency_type()
   }
 }
 
@@ -136,6 +148,18 @@ impl ModuleDependency for Box<dyn ModuleDependency> {
 impl Dependency for Box<dyn ModuleDependency> {
   fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
     (**self).parent_module_identifier()
+  }
+
+  fn set_parent_module_identifier(&mut self, module_identifier: Option<ModuleIdentifier>) {
+    (**self).set_parent_module_identifier(module_identifier)
+  }
+
+  fn category(&self) -> &DependencyCategory {
+    (**self).category()
+  }
+
+  fn dependency_type(&self) -> &DependencyType {
+    (**self).dependency_type()
   }
 }
 

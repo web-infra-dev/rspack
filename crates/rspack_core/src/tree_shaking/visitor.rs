@@ -373,7 +373,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       ModuleItem::ModuleDecl(decl) => match decl {
         ModuleDecl::Import(import) => {
           let src: String = import.src.value.to_string();
-          let resolved_uri = match self.resolve_module_identifier(src, DependencyType::Import) {
+          let resolved_uri = match self.resolve_module_identifier(src, DependencyType::EsmImport) {
             Some(module_identifier) => module_identifier,
             None => {
               // TODO: Ignore for now because swc helper interference.
@@ -462,7 +462,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
         ModuleDecl::ExportAll(export_all) => {
           let resolved_uri = match self
-            .resolve_module_identifier(export_all.src.value.to_string(), DependencyType::Import)
+            .resolve_module_identifier(export_all.src.value.to_string(), DependencyType::EsmImport)
           {
             Some(module_identifier) => module_identifier,
             None => {
@@ -959,7 +959,7 @@ impl<'a> ModuleRefAnalyze<'a> {
   fn analyze_named_export(&mut self, named_export: &NamedExport) {
     let src: Option<String> = named_export.src.as_ref().map(|src| src.value.to_string());
     if let Some(src) = src {
-      let resolved_uri = match self.resolve_module_identifier(src, DependencyType::Import) {
+      let resolved_uri = match self.resolve_module_identifier(src, DependencyType::EsmImport) {
         Some(module_identifier) => module_identifier,
         None => {
           eprintln!(

@@ -1,15 +1,13 @@
 use crate::{Compilation, CssAstPath, JsAstPath, Module};
 
 pub struct CodeGeneratableContext<'a> {
-  compilation: &'a Compilation,
-  module: &'a dyn Module,
+  pub compilation: &'a Compilation,
+  /// Current referenced module
+  pub module: &'a dyn Module,
 }
 
 pub trait CodeGeneratable {
-  fn generate<'s: 'cx, 'cx>(
-    &'s self,
-    _code_generatable_context: &'cx CodeGeneratableContext,
-  ) -> CodeGeneratableResult<'s>;
+  fn generate(&self, _code_generatable_context: &CodeGeneratableContext) -> CodeGeneratableResult;
 }
 
 pub enum CodeGeneratableAstPath {
@@ -29,33 +27,40 @@ impl From<CssAstPath> for CodeGeneratableAstPath {
   }
 }
 
-pub type CodeGeneratableJavaScriptVisitorBuilder<'v> =
-  Box<dyn Fn() -> Box<dyn swc_core::ecma::visit::VisitMut + Send + Sync + 'v>>;
+pub type CodeGeneratableJavaScriptVisitor<'v> =
+  Box<dyn swc_core::ecma::visit::VisitMut + Send + Sync + 'v>;
+
+pub trait JavaScriptVisitorBuilder {
+  fn create(&self) -> CodeGeneratableJavaScriptVisitor;
+}
 
 pub type CodeGeneratableCssVisitorBuilder<'v> =
-  Box<dyn Fn() -> Box<dyn swc_core::css::visit::VisitMut + Send + Sync + 'v>>;
+  Box<dyn swc_core::css::visit::VisitMut + Send + Sync + 'v>;
 
-pub enum CodeGeneratableVisitorBuilder<'b> {
-  JavaScript(CodeGeneratableJavaScriptVisitorBuilder<'b>),
-  Css(CodeGeneratableCssVisitorBuilder<'b>),
+pub trait CssVisitorBuilder {
+  fn create(&self) -> CodeGeneratableCssVisitorBuilder;
 }
 
-pub type CodeGeneratableJavaScriptVisitors<'v> =
-  Vec<(JsAstPath, CodeGeneratableJavaScriptVisitorBuilder<'v>)>;
+pub enum CodeGeneratableVisitorBuilder {
+  JavaScript(Box<dyn JavaScriptVisitorBuilder>),
+  Css(Box<dyn CssVisitorBuilder>),
+}
 
-pub type CodeGeneratableCssVisitors<'v> = Vec<(CssAstPath, CodeGeneratableCssVisitorBuilder<'v>)>;
+pub type CodeGeneratableJavaScriptVisitors = Vec<(JsAstPath, Box<dyn JavaScriptVisitorBuilder>)>;
+
+pub type CodeGeneratableCssVisitors = Vec<(CssAstPath, Box<dyn CssVisitorBuilder>)>;
 
 #[derive(Default)]
-pub struct CodeGeneratableResult<'b> {
-  pub visitors: Vec<(CodeGeneratableAstPath, CodeGeneratableVisitorBuilder<'b>)>,
+pub struct CodeGeneratableResult {
+  pub visitors: Vec<(CodeGeneratableAstPath, CodeGeneratableVisitorBuilder)>,
 }
 
-impl<'b> CodeGeneratableResult<'b> {
+impl CodeGeneratableResult {
   /// Convert the code generatable visitors into JavaScript visitors.
   ///
   /// Safety:
   /// It's only safe to be used if all visitors are JavaScript visitors, or it will panic.
-  pub fn into_javascript(self) -> CodeGeneratableJavaScriptVisitors<'b> {
+  pub fn into_javascript(self) -> CodeGeneratableJavaScriptVisitors {
     self.visitors.into_iter().map(
       |(ast_path, builder)| {
         if let CodeGeneratableAstPath::JavaScript(ast_path) = ast_path && let CodeGeneratableVisitorBuilder::JavaScript(builder) = builder {
@@ -71,7 +76,7 @@ impl<'b> CodeGeneratableResult<'b> {
   ///
   /// Safety:
   /// It's only safe to be used if all visitors are Css visitors, or it will panic.
-  pub fn into_css(self) -> CodeGeneratableCssVisitors<'b> {
+  pub fn into_css(self) -> CodeGeneratableCssVisitors {
     self.visitors.into_iter().map(
       |(ast_path, builder)| {
         if let CodeGeneratableAstPath::Css(ast_path) = ast_path && let CodeGeneratableVisitorBuilder::Css(builder) = builder {
@@ -108,6 +113,12 @@ macro_rules! create_javascript_visitor {
             $name: T,
         }
 
+        impl<T: Fn(&mut swc_core::ecma::ast::$ty) + Send + Sync> $crate::JavaScriptVisitorBuilder for Box<Visitor<T>> {
+          fn create(&self) -> $crate::CodeGeneratableJavaScriptVisitor {
+            Box::new(&**self)
+          }
+        }
+
         impl<'a, T: Fn(&mut swc_core::ecma::ast::$ty) + Send + Sync> swc_core::ecma::visit::VisitMut
             for &'a Visitor<T>
         {
@@ -117,12 +128,12 @@ macro_rules! create_javascript_visitor {
         }
 
         (
-            $crate::CodeGeneratableAstPath::from($ast_path.clone()),
-            $crate::CodeGeneratableVisitorBuilder::JavaScript(box || {
-              box Visitor {
+            $crate::CodeGeneratableAstPath::from($ast_path),
+            $crate::CodeGeneratableVisitorBuilder::JavaScript(
+              box box Visitor {
                 $name: move |$arg: &mut swc_core::ecma::ast::$ty| $b,
-              } as Box<dyn swc_core::ecma::visit::VisitMut + Send + Sync>
-            }),
+              } as Box<dyn $crate::JavaScriptVisitorBuilder>
+            ),
         )
     }};
     (visit_mut_program($arg:ident: &mut Program) $b:block) => {{

@@ -134,6 +134,13 @@ pub fn run_before_pass(
 pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut GenerateContext) {
   let cm = ast.get_context().source_map.clone();
 
+  println!(
+    "\n\nbefore transform\n\n {}\n\n",
+    crate::ast::stringify(&ast, &generate_context.compilation.options.devtool)
+      .unwrap()
+      .code
+  );
+
   ast.transform(|program, context| {
     let unresolved_mark = context.unresolved_mark;
     let top_level_mark = context.top_level_mark;
@@ -141,23 +148,26 @@ pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut
     let minify = generate_context.compilation.options.builtins.minify;
     let comments = None;
 
-    let (root_visitors, visitors) =
-      collect_dependency_code_generation_visitors(module, &generate_context.compilation);
+    // Run dependencies' code generation first
+    {
+      let (root_visitors, visitors) =
+        collect_dependency_code_generation_visitors(module, &generate_context.compilation);
 
-    if !visitors.is_empty() {
-      program.visit_mut_with_path(
-        &mut ApplyVisitors::new(
-          visitors
-            .iter()
-            .map(|(ast_path, visitor)| (ast_path, visitor))
-            .collect(),
-        ),
-        &mut Default::default(),
-      );
-    }
+      if !visitors.is_empty() {
+        program.visit_mut_with_path(
+          &mut ApplyVisitors::new(
+            visitors
+              .iter()
+              .map(|(ast_path, visitor)| (ast_path, &**visitor))
+              .collect(),
+          ),
+          &mut Default::default(),
+        );
+      }
 
-    for (_, root_visitor) in root_visitors {
-      program.visit_mut_with(&mut root_visitor());
+      for (_, root_visitor) in root_visitors {
+        program.visit_mut_with(&mut root_visitor.create());
+      }
     }
 
     let mut pass = chain!(
@@ -208,4 +218,11 @@ pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut
 
     program.fold_with(&mut pass);
   });
+
+  println!(
+    "\n\nafter transform\n\n {}\n\n",
+    crate::ast::stringify(&ast, &generate_context.compilation.options.devtool)
+      .unwrap()
+      .code
+  );
 }

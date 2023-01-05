@@ -12,19 +12,36 @@ use crate::{
   DependencyType, ErrorSpan, JsAstPath, ModuleIdentifier,
 };
 
-#[derive(Derivative)]
-#[derivative(Debug, Hash, PartialEq, Eq, Clone)]
+#[derive(Debug, Eq, Clone)]
 pub struct EsmImportDependency {
   parent_module_identifier: Option<ModuleIdentifier>,
   request: JsWord,
   // user_request: String,
-  #[derivative(PartialEq = "ignore")]
-  #[derivative(Hash = "ignore")]
-  span: Option<ErrorSpan>,
+  category: &'static DependencyCategory,
+  dependency_type: &'static DependencyType,
 
-  #[derivative(PartialEq = "ignore")]
-  #[derivative(Hash = "ignore")]
+  span: Option<ErrorSpan>,
   ast_path: JsAstPath,
+}
+
+// Do not edit this, as it is used to uniquely identify the dependency.
+impl PartialEq for EsmImportDependency {
+  fn eq(&self, other: &Self) -> bool {
+    self.parent_module_identifier == other.parent_module_identifier
+      && self.request == other.request
+      && self.category == other.category
+      && self.dependency_type == other.dependency_type
+  }
+}
+
+// Do not edit this, as it is used to uniquely identify the dependency.
+impl std::hash::Hash for EsmImportDependency {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.parent_module_identifier.hash(state);
+    self.request.hash(state);
+    self.category.hash(state);
+    self.dependency_type.hash(state);
+  }
 }
 
 impl EsmImportDependency {
@@ -33,6 +50,8 @@ impl EsmImportDependency {
       parent_module_identifier: None,
       request,
       // user_request,
+      category: &DependencyCategory::Esm,
+      dependency_type: &DependencyType::EsmImport,
       span,
       ast_path,
     }
@@ -49,11 +68,11 @@ impl Dependency for EsmImportDependency {
   }
 
   fn category(&self) -> &DependencyCategory {
-    &DependencyCategory::Esm
+    &self.category
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::Import
+    &self.dependency_type
   }
 }
 
@@ -75,10 +94,7 @@ static SWC_HELPERS_REG: once_cell::sync::Lazy<regex::Regex> =
   once_cell::sync::Lazy::new(|| regex::Regex::new(r"@swc/helpers/lib/(\w*)\.js$").expect("TODO:"));
 
 impl CodeGeneratable for EsmImportDependency {
-  fn generate<'s: 'cx, 'cx>(
-    &'s self,
-    code_generatable_context: &'cx CodeGeneratableContext,
-  ) -> CodeGeneratableResult<'s> {
+  fn generate(&self, code_generatable_context: &CodeGeneratableContext) -> CodeGeneratableResult {
     let CodeGeneratableContext {
       compilation,
       module,
@@ -86,43 +102,24 @@ impl CodeGeneratable for EsmImportDependency {
 
     let mut code_gen = CodeGeneratableResult::default();
 
-    let v = create_javascript_visitor!(&self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
-        if let Callee::Expr(box Expr::Ident(_ident)) = &mut n.callee {
-          if let Some(ExprOrSpread {
-            spread: None,
-            expr: box Expr::Lit(Lit::Str(str)),
-          }) = n.args.first_mut()
-          {
-            // swc will automatically replace @swc/helpers/src/xx.mjs with @swc/helpers/lib/xx.js when it transform code to commonjs
-            // so we need replace it to original specifier to find module
-            // this is a temporary solution
-            let specifier = match SWC_HELPERS_REG.captures(&str.value) {
-              Some(cap) => match cap.get(1) {
-                Some(cap) => format!(r#"@swc/helpers/src/{}.mjs"#, cap.as_str()),
-                None => str.value.to_string(),
-              },
-              None => str.value.to_string(),
-            };
+    let target_mgm = compilation
+      .module_graph
+      .module_graph_module_by_identifier(&module.identifier())
+      .and_then(|mgm| {
+        mgm.dependencies.iter().find_map(|dep| {
+          if dep.request() == self.request() && dep.dependency_type() == self.dependency_type() {
+            compilation.module_graph.module_by_dependency(dep)
+          } else {
+            None
+          }
+        })
+      })
+      .expect("Failed to get module graph module");
 
-            let target_mgm = compilation.module_graph
-              .module_graph_module_by_identifier(&module.identifier())
-              .and_then(|mgm| {
-                mgm.dependencies.iter().find_map(|dep| {
-                  if dep.request() == self.request() && dep.dependency_type() == self.dependency_type() {
-                    compilation
-                      .module_graph
-                      .module_by_dependency(dep)
-                  } else {
-                    None
-                  }
-                })
-              }).expect("Failed to get module graph module");
+    let module_id = target_mgm.id(&compilation.chunk_graph).to_string();
 
-            let module_id = target_mgm.id(&compilation.chunk_graph);
-            str.value = JsWord::from(module_id);
-            str.raw = Some(Atom::from(format!("\"{}\"", module_id)));
-          };
-      }
+    let v = create_javascript_visitor!(&self.ast_path, visit_mut_module_decl(n: &mut ModuleDecl) {
+        println!("visit_mut_module_decl: {:?}", n);
     });
 
     code_gen.visitors.push(v);

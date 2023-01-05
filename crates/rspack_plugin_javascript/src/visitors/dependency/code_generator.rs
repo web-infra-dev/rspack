@@ -9,8 +9,8 @@ use swc_core::{
 };
 
 use rspack_core::{
-  CodeGeneratableContext, CodeGeneratableJavaScriptVisitorBuilder,
-  CodeGeneratableJavaScriptVisitors, Compilation, JsAstPath, Module,
+  CodeGeneratableContext, CodeGeneratableJavaScriptVisitors, Compilation, JavaScriptVisitorBuilder,
+  JsAstPath, Module,
 };
 
 /// Collect dependency code generation visitors from dependencies of the module passed in.
@@ -35,12 +35,12 @@ pub fn collect_dependency_code_generation_visitors(
 
   let context = CodeGeneratableContext {
     compilation,
-    module
+    module,
   };
 
   dependencies
     .iter()
-    .map(|dependency| dependency.generate(&context)
+    .map(|dependency| dependency.generate(&context))
     .for_each(|code_gen| {
       let js_visitors = code_gen.into_javascript();
       js_visitors.into_iter().for_each(|(ast_path, builder)| {
@@ -55,11 +55,12 @@ pub fn collect_dependency_code_generation_visitors(
   (root_visitors, visitors)
 }
 
+// Temporarily referenced from https://github.com/vercel/turbo/blob/daaeabfb502d3b1f6c1acfae31d0d2cf8a740463/crates/turbopack-ecmascript/src/path_visitor.rs
 // Invariant: Each [AstPath] in `visitors` contains a value at position `index`.
 pub struct ApplyVisitors<'a, 'b> {
   /// `VisitMut` should be shallow. In other words, it should not visit
   /// children of the node.
-  visitors: Cow<'b, [(&'a JsAstPath, &'a CodeGeneratableJavaScriptVisitorBuilder)]>,
+  visitors: Cow<'b, [(&'a JsAstPath, &'a dyn JavaScriptVisitorBuilder)]>,
 
   index: usize,
 }
@@ -67,10 +68,10 @@ pub struct ApplyVisitors<'a, 'b> {
 /// Do two binary searches to find the sub-slice that has `path[index] == kind`.
 /// Returns None if no item matches that. `visitors` need to be sorted by path.
 fn find_range<'a, 'b>(
-  visitors: &'b [(&'a JsAstPath, &'a CodeGeneratableJavaScriptVisitorBuilder)],
+  visitors: &'b [(&'a JsAstPath, &'a dyn JavaScriptVisitorBuilder)],
   kind: &AstParentKind,
   index: usize,
-) -> Option<&'b [(&'a JsAstPath, &'a CodeGeneratableJavaScriptVisitorBuilder)]> {
+) -> Option<&'b [(&'a JsAstPath, &'a dyn JavaScriptVisitorBuilder)]> {
   // Precondition: visitors is never empty
   let start = if visitors.first().unwrap().0[index] >= *kind {
     // Fast path: It's likely that the whole range is selected
@@ -96,9 +97,7 @@ fn find_range<'a, 'b>(
 
 impl<'a, 'b> ApplyVisitors<'a, 'b> {
   /// `visitors` must have an non-empty [AstPath].
-  pub fn new(
-    mut visitors: Vec<(&'a JsAstPath, &'a CodeGeneratableJavaScriptVisitorBuilder)>,
-  ) -> Self {
+  pub fn new(mut visitors: Vec<(&'a JsAstPath, &'a dyn JavaScriptVisitorBuilder)>) -> Self {
     assert!(!visitors.is_empty());
     visitors.sort_by_key(|(path, _)| *path);
     Self {
@@ -140,7 +139,7 @@ impl<'a, 'b> ApplyVisitors<'a, 'b> {
             );
           }
           for (_, visitor) in visitors[..nested_visitors_start].iter() {
-            n.visit_mut_with(&mut visitor());
+            n.visit_mut_with(&mut visitor.create());
           }
           return;
         } else {
@@ -175,4 +174,153 @@ impl VisitMutAstPath for ApplyVisitors<'_, '_> {
   method!(visit_mut_call_expr, CallExpr);
   method!(visit_mut_lit, Lit);
   method!(visit_mut_str, Str);
+}
+
+// Temporarily referenced from https://github.com/vercel/turbo/blob/daaeabfb502d3b1f6c1acfae31d0d2cf8a740463/crates/turbopack-ecmascript/src/path_visitor.rs
+#[cfg(test)]
+mod tests {
+  use std::sync::Arc;
+
+  use swc_core::{
+    common::{errors::HANDLER, sync::Lrc, FileName, FilePathMapping, Mark, SourceFile, SourceMap},
+    ecma::{
+      ast::*,
+      codegen::{text_writer::JsWriter, Emitter},
+      parser::parse_file_as_module,
+      transforms::base::resolver,
+      visit::{fields::*, AstParentKind, VisitMut, VisitMutWith, VisitMutWithPath},
+    },
+  };
+
+  use super::{ApplyVisitors, JavaScriptVisitorBuilder};
+
+  fn parse(fm: &SourceFile) -> Module {
+    let mut m = parse_file_as_module(
+      fm,
+      Default::default(),
+      EsVersion::latest(),
+      None,
+      &mut vec![],
+    )
+    .map_err(|err| HANDLER.with(|handler| err.into_diagnostic(handler).emit()))
+    .unwrap();
+
+    let unresolved_mark = Mark::new();
+    let top_level_mark = Mark::new();
+    m.visit_mut_with(&mut resolver(unresolved_mark, top_level_mark, false));
+
+    m
+  }
+
+  struct StrReplacer<'a> {
+    from: &'a str,
+    to: &'a str,
+  }
+
+  impl JavaScriptVisitorBuilder for Box<StrReplacer<'_>> {
+    fn create<'a>(&'a self) -> Box<dyn VisitMut + Send + Sync + 'a> {
+      box &**self
+    }
+  }
+
+  impl VisitMut for &'_ StrReplacer<'_> {
+    fn visit_mut_str(&mut self, s: &mut Str) {
+      s.value = s.value.replace(self.from, self.to).into();
+      s.raw = None;
+    }
+  }
+
+  fn replacer(from: &'static str, to: &'static str) -> impl JavaScriptVisitorBuilder {
+    box StrReplacer { from, to }
+  }
+
+  fn to_js(m: &Module, cm: &Arc<SourceMap>) -> String {
+    let mut bytes = Vec::new();
+    let mut emitter = Emitter {
+      cfg: swc_core::ecma::codegen::Config {
+        minify: true,
+        ..Default::default()
+      },
+      cm: cm.clone(),
+      comments: None,
+      wr: JsWriter::new(cm.clone(), "\n", &mut bytes, None),
+    };
+
+    emitter.emit_module(m).unwrap();
+
+    String::from_utf8(bytes).unwrap()
+  }
+
+  #[test]
+  fn path_visitor() {
+    swc_core::common::GLOBALS.set(&swc_core::common::Globals::new(), || {
+      let cm = Lrc::new(SourceMap::new(FilePathMapping::empty()));
+      let fm = cm.new_source_file(FileName::Anon, "('foo', 'bar', ['baz']);".into());
+
+      let m = parse(&fm);
+
+      let module_kind = AstParentKind::Module(ModuleField::Body(0));
+      let module_item_kind = AstParentKind::ModuleItem(ModuleItemField::Stmt);
+      let stmt_kind = AstParentKind::Stmt(StmtField::Expr);
+      let expr_stmt_kind = AstParentKind::ExprStmt(ExprStmtField::Expr);
+      let expr_kind = AstParentKind::Expr(ExprField::Paren);
+      let paren_kind = AstParentKind::ParenExpr(ParenExprField::Expr);
+      let expr2_kind = AstParentKind::Expr(ExprField::Seq);
+      let seq_kind = AstParentKind::SeqExpr(SeqExprField::Exprs(1));
+      let expr3_kind = AstParentKind::Expr(ExprField::Lit);
+      let lit_kind = AstParentKind::Lit(LitField::Str);
+
+      {
+        let path = vec![
+          module_kind,
+          module_item_kind,
+          stmt_kind,
+          expr_stmt_kind,
+          expr_kind,
+          paren_kind,
+          expr2_kind,
+          seq_kind,
+          expr3_kind,
+          lit_kind,
+        ];
+        let bar_replacer = replacer("bar", "bar-success");
+
+        let mut m = m.clone();
+        m.visit_mut_with_path(
+          &mut ApplyVisitors::new(vec![(&path, &bar_replacer)]),
+          &mut Default::default(),
+        );
+
+        let s = to_js(&m, &cm);
+        assert_eq!(s, r#"("foo","bar-success",["baz"]);"#);
+      }
+
+      {
+        let wrong_path = vec![
+          module_kind,
+          module_item_kind,
+          stmt_kind,
+          expr_stmt_kind,
+          // expr_kind,
+          paren_kind,
+          expr2_kind,
+          seq_kind,
+          expr3_kind,
+          lit_kind,
+        ];
+        let bar_replacer = replacer("bar", "bar-success");
+
+        let mut m = m.clone();
+        m.visit_mut_with_path(
+          &mut ApplyVisitors::new(vec![(&wrong_path, &bar_replacer)]),
+          &mut Default::default(),
+        );
+
+        let s = to_js(&m, &cm);
+        assert!(!s.contains("bar-success"));
+      }
+
+      drop(m);
+    });
+  }
 }
