@@ -1,4 +1,4 @@
-use crate::runtime_module::{HasOwnPropertyRuntimeModule, JsonpChunkLoadingRuntimeModule};
+use crate::runtime_module::JsonpChunkLoadingRuntimeModule;
 use async_trait::async_trait;
 use rspack_core::{
   runtime_globals, AdditionalChunkRuntimeRequirementsArgs, Plugin,
@@ -57,8 +57,6 @@ impl Plugin for JsonpChunkLoadingPlugin {
         }
         runtime_globals::ON_CHUNKS_LOADED => {
           has_jsonp_chunk_loading = true;
-          // workaround for runtime modules sorting
-          compilation.add_runtime_module(chunk, HasOwnPropertyRuntimeModule::default().boxed())
         }
         _ => {}
       }

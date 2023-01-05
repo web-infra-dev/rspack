@@ -3,7 +3,7 @@ use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, CachedSource, ConcatSource, RawSource, SourceExt};
-use rspack_core::{runtime_globals, ChunkUkey, Compilation, SourceType};
+use rspack_core::{runtime_globals, ChunkUkey, Compilation, RuntimeModule, SourceType};
 use rspack_error::Result;
 
 static MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(DashMap::default);
@@ -167,16 +167,18 @@ pub fn render_runtime_modules(
   chunk_ukey: &ChunkUkey,
 ) -> Result<BoxSource> {
   let mut sources = ConcatSource::default();
-  compilation
+  let mut runtime_modules: Vec<&Box<dyn RuntimeModule>> = compilation
     .chunk_graph
     .get_chunk_runtime_modules_in_order(chunk_ukey)
     .iter()
     .filter_map(|identifier| compilation.runtime_modules.get(identifier))
-    .for_each(|module| {
-      sources.add(RawSource::from(format!("// {}\n", module.identifier())));
-      sources.add(RawSource::from("(function() {\n"));
-      sources.add(module.generate(compilation));
-      sources.add(RawSource::from("\n})();\n"));
-    });
+    .collect();
+  runtime_modules.sort_by_key(|a| a.stage());
+  runtime_modules.iter().for_each(|module| {
+    sources.add(RawSource::from(format!("// {}\n", module.identifier())));
+    sources.add(RawSource::from("(function() {\n"));
+    sources.add(module.generate(compilation));
+    sources.add(RawSource::from("\n})();\n"));
+  });
   Ok(CachedSource::new(sources).boxed())
 }
