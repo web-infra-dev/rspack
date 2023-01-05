@@ -176,7 +176,7 @@ export type OptimizationSplitChunksSizes =
 
 
 export function resolveSplitChunksOptions(op?: OptimizationSplitChunksOptions): undefined | RawSplitChunksOptions {
-    if (op == null) {
+    if (!op || op == null) {
         return undefined
     } else {
         op.cacheGroups ??= {}

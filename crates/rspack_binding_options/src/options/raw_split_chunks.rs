@@ -128,7 +128,7 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawCacheGroupOptions {
-  pub priority: i32,
+  pub priority: Option<i32>,
   //   pub reuse_existing_chunk: bool,
   //   pub r#type: SizeType,
   pub test: Option<String>,
@@ -158,7 +158,7 @@ pub struct RawCacheGroupOptions {
 #[serde(rename_all = "camelCase")]
 #[cfg(not(feature = "node-api"))]
 pub struct RawCacheGroupOptions {
-  pub priority: i32,
+  pub priority: Option<i32>,
   //   pub reuse_existing_chunk: bool,
   //   pub r#type: SizeType,
   pub test: Option<String>,

@@ -29,9 +29,11 @@ pub(crate) fn compare_entries(
     return diff_size_reduce;
   }
   // 4. by cache group index
-  let index_diff = b.cache_group_index - a.cache_group_index;
-  if index_diff > 0 {
-    return index_diff as f64;
+  if b.cache_group_index >= a.cache_group_index {
+    let index_diff = b.cache_group_index - a.cache_group_index;
+    if index_diff > 0 {
+      return index_diff as f64;
+    }
   }
   // 5. by number of modules (to be able to compare by identifier)
   let mut modules_a = a.modules.iter().collect::<Vec<_>>();

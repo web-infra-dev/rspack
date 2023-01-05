@@ -124,6 +124,7 @@ describe("snapshots", () => {
 		    "minimize": undefined,
 		    "minimizer": undefined,
 		    "moduleIds": "named",
+		    "splitChunks": undefined,
 		  },
 		  "output": {},
 		  "plugins": [],
