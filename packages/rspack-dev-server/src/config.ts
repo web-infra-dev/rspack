@@ -1,11 +1,20 @@
-import type {
-	Dev,
-	WebSocketServerOptions,
-	RspackOptionsNormalized
-} from "@rspack/core";
+import type { Dev, RspackOptionsNormalized } from "@rspack/core";
 import type { WatchOptions } from "chokidar";
 import path from "path";
-import { ProxyOptions } from "@rspack/core/src/config/devServer";
+import { ProxyOptions, ClientOptions } from "@rspack/core/src/config/devServer";
+
+type WebSocketServerConfiguration =
+	| false
+	| {
+			type: "sockjs" | "ws" | string | Function;
+			options: {
+				protocol?: string;
+				host?: string;
+				port?: number;
+				prefix?: string;
+				path?: string;
+			};
+	  };
 
 export interface ResolvedDev {
 	host: string;
@@ -18,8 +27,9 @@ export interface ResolvedDev {
 	hot: boolean;
 	open: boolean;
 	liveReload: boolean;
-	webSocketServer: false | WebSocketServerOptions;
+	webSocketServer: WebSocketServerConfiguration;
 	proxy: ProxyOptions;
+	client: ClientOptions;
 }
 
 function resolveStaticWatchOptions(watch: WatchOptions = {}) {
@@ -35,40 +45,119 @@ function resolveStaticWatchOptions(watch: WatchOptions = {}) {
 }
 
 export function resolveDevOptions(
-	devConfig: Dev,
+	options: Dev,
 	compilerOptions: RspackOptionsNormalized
 ): ResolvedDev {
 	const open = true;
-	const proxy = devConfig.proxy;
-	const hot = devConfig.hot ?? true;
+	const proxy = options.proxy;
+	const hot = options.hot ?? true;
 	// --- static
 	const directory =
-		devConfig.static?.directory ??
+		options.static?.directory ??
 		path.resolve(compilerOptions.context, compilerOptions.output.path);
 	let watch: false | WatchOptions = {};
-	if (devConfig.static?.watch === false) {
+	if (options.static?.watch === false) {
 		watch = false;
-	} else if (devConfig.static?.watch === true) {
+	} else if (options.static?.watch === true) {
 		watch = resolveStaticWatchOptions({});
-	} else if (devConfig.static?.watch) {
-		watch = devConfig.static?.watch;
+	} else if (options.static?.watch) {
+		watch = options.static?.watch;
 	}
 	// ---
-	const devMiddleware = devConfig.devMiddleware ?? {};
-	const liveReload = devConfig.liveReload ?? true;
+	const devMiddleware = options.devMiddleware ?? {};
+	const liveReload = options.liveReload ?? true;
 
-	let webSocketServer: false | WebSocketServerOptions = {};
-	if (devConfig.webSocketServer === false) {
+	if (
+		typeof options.client === "undefined" ||
+		(typeof options.client === "object" && options.client !== null)
+	) {
+		if (!options.client) {
+			options.client = {};
+		}
+
+		if (typeof options.client.webSocketURL === "undefined") {
+			options.client.webSocketURL = {};
+		} else if (typeof options.client.webSocketURL === "string") {
+			const parsedURL = new URL(options.client.webSocketURL);
+			options.client.webSocketURL = {
+				protocol: parsedURL.protocol,
+				hostname: parsedURL.hostname,
+				port: parsedURL.port.length > 0 ? Number(parsedURL.port) : "",
+				pathname: parsedURL.pathname,
+				username: parsedURL.username,
+				password: parsedURL.password
+			};
+		} else if (typeof options.client.webSocketURL.port === "string") {
+			options.client.webSocketURL.port = Number(
+				options.client.webSocketURL.port
+			);
+		}
+
+		// Enable client overlay by default
+		if (typeof options.client.overlay === "undefined") {
+			options.client.overlay = true;
+		} else if (typeof options.client.overlay !== "boolean") {
+			options.client.overlay = {
+				errors: true,
+				warnings: true,
+				...options.client.overlay
+			};
+		}
+
+		if (typeof options.client.reconnect === "undefined") {
+			options.client.reconnect = 10;
+		} else if (options.client.reconnect === true) {
+			options.client.reconnect = Infinity;
+		} else if (options.client.reconnect === false) {
+			options.client.reconnect = 0;
+		}
+
+		// Respect infrastructureLogging.level
+		if (typeof options.client.logging === "undefined") {
+			options.client.logging = compilerOptions.infrastructureLogging
+				? compilerOptions.infrastructureLogging.level
+				: "info";
+		}
+	}
+
+	const defaultWebSocketServerType = "ws";
+	const defaultWebSocketServerOptions = { path: "/ws" };
+
+	let webSocketServer: WebSocketServerConfiguration;
+
+	if (typeof options.webSocketServer === "undefined") {
+		webSocketServer = {
+			type: defaultWebSocketServerType,
+			options: defaultWebSocketServerOptions
+		};
+	} else if (
+		typeof options.webSocketServer === "boolean" &&
+		!options.webSocketServer
+	) {
 		webSocketServer = false;
-	} else if (devConfig.webSocketServer === true) {
-		webSocketServer = {};
-	} else if (devConfig.webSocketServer) {
-		webSocketServer = devConfig.webSocketServer;
+	} else if (
+		typeof options.webSocketServer === "string" ||
+		typeof options.webSocketServer === "function"
+	) {
+		webSocketServer = {
+			type: options.webSocketServer,
+			options: defaultWebSocketServerOptions
+		};
+	} else {
+		const { port } = options.webSocketServer.options;
+		webSocketServer = {
+			type: options.webSocketServer.type || defaultWebSocketServerType,
+			options: {
+				...defaultWebSocketServerOptions,
+				...options.webSocketServer.options,
+				port: typeof port === "string" ? Number(port) : port
+			}
+		};
 	}
 
 	return {
-		host: devConfig.host,
-		port: devConfig.port ? Number(devConfig.port) : undefined,
+		host: options.host,
+		port: options.port ? Number(options.port) : undefined,
 		static: {
 			directory,
 			watch
@@ -78,6 +167,7 @@ export function resolveDevOptions(
 		hot,
 		liveReload,
 		webSocketServer,
-		proxy
+		proxy,
+		client: options.client
 	};
 }
