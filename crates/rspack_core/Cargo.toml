@@ -9,6 +9,7 @@ async-trait = "0.1.53"
 bitflags = "1.3.2"
 crossbeam = "0.8.1"
 dashmap = "5.0.0"
+derivative = "2.2.0"
 dyn-clone = "1.0.10"
 futures = "0.3.21"
 globset = "0.4.9"
@@ -46,6 +47,14 @@ swc_core = { workspace = true, features = [
   "swc_ecma_codegen",
   "swc_ecma_visit",
   "ecma_visit_path",
+  "css_ast",
+  "css_codegen",
+  "css_parser",
+  "css_utils",
+  "css_visit",
+  "css_visit_path",
+  "css_compat",
+  "css_modules",
 ] }
 swc_css = { workspace = true }
 tokio = { version = "1.21.0", features = [

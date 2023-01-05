@@ -1,29 +1,29 @@
 use derivative::Derivative;
 
-use rspack_error::Result;
+use swc_core::ecma::atoms::JsWord;
 
 use crate::{
-  CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, CssAstPath, Dependency,
-  DependencyCategory, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
+  CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, DependencyCategory,
+  DependencyType, ErrorSpan, JsAstPath, ModuleDependency, ModuleIdentifier,
 };
 
 #[derive(Derivative)]
 #[derivative(Debug, Hash, PartialEq, Eq, Clone)]
-pub struct CssUrlDependency {
+pub struct ModuleHotAcceptDependency {
   parent_module_identifier: Option<ModuleIdentifier>,
-  request: String,
-
+  request: JsWord,
+  // user_request: String,
   #[derivative(PartialEq = "ignore")]
   #[derivative(Hash = "ignore")]
   span: Option<ErrorSpan>,
 
   #[derivative(PartialEq = "ignore")]
   #[derivative(Hash = "ignore")]
-  ast_path: CssAstPath,
+  ast_path: JsAstPath,
 }
 
-impl CssUrlDependency {
-  pub fn new(request: String, span: Option<ErrorSpan>, ast_path: CssAstPath) -> Self {
+impl ModuleHotAcceptDependency {
+  pub fn new(request: JsWord, span: Option<ErrorSpan>, ast_path: JsAstPath) -> Self {
     Self {
       parent_module_identifier: None,
       request,
@@ -33,31 +33,31 @@ impl CssUrlDependency {
   }
 }
 
-impl Dependency for CssUrlDependency {
+impl Dependency for ModuleHotAcceptDependency {
   fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
     self.parent_module_identifier.as_ref()
   }
 
-  fn set_parent_module_identifier(&mut self, identifier: Option<ModuleIdentifier>) {
-    self.parent_module_identifier = identifier;
+  fn set_parent_module_identifier(&mut self, module_identifier: Option<ModuleIdentifier>) {
+    self.parent_module_identifier = module_identifier;
   }
 
   fn category(&self) -> &DependencyCategory {
-    &DependencyCategory::Url
+    &DependencyCategory::CommonJS
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::CssUrl
+    &DependencyType::ModuleHotAccept
   }
 }
 
-impl ModuleDependency for CssUrlDependency {
+impl ModuleDependency for ModuleHotAcceptDependency {
   fn request(&self) -> &str {
-    &self.request
+    &*self.request
   }
 
   fn user_request(&self) -> &str {
-    &self.request
+    &*self.request
   }
 
   fn span(&self) -> Option<&ErrorSpan> {
@@ -65,11 +65,11 @@ impl ModuleDependency for CssUrlDependency {
   }
 }
 
-impl CodeGeneratable for CssUrlDependency {
+impl CodeGeneratable for ModuleHotAcceptDependency {
   fn generate(
     &self,
     _code_generatable_context: CodeGeneratableContext,
-  ) -> Result<CodeGeneratableResult> {
+  ) -> rspack_error::Result<CodeGeneratableResult> {
     todo!()
   }
 }

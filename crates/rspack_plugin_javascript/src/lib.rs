@@ -1,4 +1,5 @@
 #![feature(box_patterns)]
+#![feature(box_syntax)]
 #![allow(dead_code)]
 
 // use once_cell::sync::Lazy;

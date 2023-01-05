@@ -87,7 +87,7 @@ pub struct ModuleGraphModule {
   pub module_identifier: ModuleIdentifier,
   // TODO remove this since its included in module
   pub module_type: ModuleType,
-  pub all_dependencies: Vec<Box<dyn ModuleDependency>>,
+  pub dependencies: Vec<Box<dyn ModuleDependency>>,
   pub(crate) pre_order_index: Option<usize>,
   pub post_order_index: Option<usize>,
   pub module_syntax: ModuleSyntax,
@@ -110,7 +110,7 @@ impl ModuleGraphModule {
       issuer: ModuleIssuer::Unset,
       // exec_order: usize::MAX,
       module_identifier,
-      all_dependencies: Default::default(),
+      dependencies: Default::default(),
       module_type,
       pre_order_index: None,
       post_order_index: None,
@@ -181,7 +181,7 @@ impl ModuleGraphModule {
     Ok(result)
   }
 
-  // pub fn all_dependencies(&mut self) -> Vec<&ModuleDependency> {
+  // pub fn dependencies(&mut self) -> Vec<&ModuleDependency> {
   //   self
   //     .outgoing_connections_unordered()
   //     .map(|conn| &conn.dependency)
@@ -190,7 +190,7 @@ impl ModuleGraphModule {
 
   pub fn depended_modules<'a>(&self, module_graph: &'a ModuleGraph) -> Vec<&'a ModuleGraphModule> {
     self
-      .all_dependencies
+      .dependencies
       .iter()
       .filter(|dep| !matches!(dep.dependency_type(), &DependencyType::DynamicImport))
       .filter_map(|dep| module_graph.module_by_dependency(&**dep))
@@ -202,7 +202,7 @@ impl ModuleGraphModule {
     module_graph: &'a ModuleGraph,
   ) -> Vec<&'a ModuleGraphModule> {
     self
-      .all_dependencies
+      .dependencies
       .iter()
       .filter(|dep| matches!(dep.dependency_type(), &DependencyType::DynamicImport))
       .filter_map(|dep| module_graph.module_by_dependency(&**dep))

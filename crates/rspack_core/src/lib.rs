@@ -1,9 +1,9 @@
 #![feature(iter_intersperse)]
 #![feature(box_patterns)]
+#![feature(box_syntax)]
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(unzip_option)]
 #![feature(trait_upcasting)]
-#![feature(box_syntax)]
 
 use std::{fmt, sync::Arc};
 

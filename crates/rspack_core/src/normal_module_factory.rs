@@ -390,7 +390,7 @@ pub struct NormalModuleFactoryContext {
 //     self.specifier == other.specifier && self.kind == other.kind
 //   }
 // }
-// TODO: add back
+
 /// Using `u32` instead of `usize` to reduce memory usage,
 /// `u32` is 4 bytes on 64bit machine, comare to `usize` which is 8 bytes.
 /// Rspan aka `Rspack span`, just avoiding conflict with span in other crate

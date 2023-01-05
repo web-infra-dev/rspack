@@ -30,14 +30,14 @@ impl Plugin for ExternalPlugin {
     for external_item in &job_ctx.options.external {
       match external_item {
         External::Object(eh) => {
-          let specifier = args.dependency.detail.specifier.as_str();
+          let specifier = args.dependency.request();
 
           if let Some(value) = eh.get(specifier) {
             let external_module = ExternalModule::new(
               value.to_owned(),
               external_type.to_owned(),
               target.to_owned(),
-              args.dependency.detail.specifier.clone(),
+              specifier.to_string(),
             );
             return Ok(Some(FactorizeResult::new(external_module.boxed())));
           }

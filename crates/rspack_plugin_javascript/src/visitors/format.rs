@@ -1,9 +1,7 @@
 // use crate::{cjs_runtime_helper, Bundle, ModuleGraph, Platform, ResolvedURI};
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::{
-  runtime_globals, Compilation, Dependency, Module, ModuleDependency, ResolveKind,
-};
+use rspack_core::{runtime_globals, Compilation, Dependency, Module, ModuleDependency};
 use swc_core::ecma::utils::{quote_ident, ExprFactory};
 use swc_core::quote;
 use tracing::instrument;
@@ -31,11 +29,12 @@ pub struct RspackModuleFinalizer<'a> {
 
 impl<'a> Fold for RspackModuleFinalizer<'a> {
   fn fold_module(&mut self, mut module: ast::Module) -> ast::Module {
-    module.visit_mut_with(&mut RspackModuleFormatTransformer::new(
-      self.unresolved_mark,
-      self.module,
-      self.compilation,
-    ));
+    // TODO: should use dependency's code generation
+    // module.visit_mut_with(&mut RspackModuleFormatTransformer::new(
+    //   self.unresolved_mark,
+    //   self.module,
+    //   self.compilation,
+    // ));
 
     let body = module
       .body
@@ -52,20 +51,20 @@ impl<'a> Fold for RspackModuleFinalizer<'a> {
   }
 }
 
-pub struct RspackModuleFormatTransformer<'a> {
-  compilation: &'a Compilation,
-  module: &'a dyn Module,
-  unresolved_ctxt: SyntaxContext,
-}
+// pub struct RspackModuleFormatTransformer<'a> {
+//   compilation: &'a Compilation,
+//   module: &'a dyn Module,
+//   unresolved_ctxt: SyntaxContext,
+// }
 
-impl<'a> RspackModuleFormatTransformer<'a> {
-  pub fn new(unresolved_mark: Mark, module: &'a dyn Module, bundle: &'a Compilation) -> Self {
-    Self {
-      unresolved_ctxt: SyntaxContext::empty().apply_mark(unresolved_mark),
-      module,
-      compilation: bundle,
-    }
-  }
+// impl<'a> RspackModuleFormatTransformer<'a> {
+//   pub fn new(unresolved_mark: Mark, module: &'a dyn Module, bundle: &'a Compilation) -> Self {
+//     Self {
+//       unresolved_ctxt: SyntaxContext::empty().apply_mark(unresolved_mark),
+//       module,
+//       compilation: bundle,
+//     }
+//   }
 
   fn rewrite_static_import(&mut self, n: &mut CallExpr) -> Option<()> {
     if is_require_literal_expr(n, &self.unresolved_ctxt) {
@@ -91,82 +90,82 @@ impl<'a> RspackModuleFormatTransformer<'a> {
           //   .module_by_identifier(&self.module.uri)
           //   .expect("Module not found");
 
-          // FIXME: currently uri equals to specifier, but this will be changed later.
-          let require_dep = Dependency {
-            parent_module_identifier: Some(self.module.identifier()),
-            detail: ModuleDependency {
-              specifier: specifier.clone(),
-              kind: ResolveKind::Require,
-              span: Some(n.span.into()),
-            },
-          };
-          // FIXME: No need to say this is a ugly workaround
-          let import_dep = Dependency {
-            parent_module_identifier: Some(self.module.identifier()),
-            detail: ModuleDependency {
-              specifier,
-              kind: ResolveKind::Import,
-              span: Some(n.span.into()),
-            },
-          };
-          let mut js_module = self
-            .compilation
-            .module_graph
-            .module_by_dependency(&require_dep);
+//           // FIXME: currently uri equals to specifier, but this will be changed later.
+//           let require_dep = Dependency {
+//             parent_module_identifier: Some(self.module.identifier()),
+//             detail: ModuleDependency {
+//               specifier: specifier.clone(),
+//               kind: ResolveKind::Require,
+//               span: Some(n.span.into()),
+//             },
+//           };
+//           // FIXME: No need to say this is a ugly workaround
+//           let import_dep = Dependency {
+//             parent_module_identifier: Some(self.module.identifier()),
+//             detail: ModuleDependency {
+//               specifier,
+//               kind: ResolveKind::Import,
+//               span: Some(n.span.into()),
+//             },
+//           };
+//           let mut js_module = self
+//             .compilation
+//             .module_graph
+//             .module_by_dependency(&require_dep);
 
-          if js_module.is_none() {
-            js_module = self
-              .compilation
-              .module_graph
-              .module_by_dependency(&import_dep)
-          }
-          let module_id = js_module?.id(&self.compilation.chunk_graph);
-          str.value = JsWord::from(module_id);
-          str.raw = Some(Atom::from(format!("\"{}\"", module_id)));
-        };
-      }
-    }
-    Some(())
-  }
+//           if js_module.is_none() {
+//             js_module = self
+//               .compilation
+//               .module_graph
+//               .module_by_dependency(&import_dep)
+//           }
+//           let module_id = js_module?.id(&self.compilation.chunk_graph);
+//           str.value = JsWord::from(module_id);
+//           str.raw = Some(Atom::from(format!("\"{}\"", module_id)));
+//         };
+//       }
+//     }
+//     Some(())
+//   }
 
-  #[instrument(skip_all)]
-  fn rewrite_dyn_import(&mut self, n: &mut CallExpr) -> Option<()> {
-    if is_dynamic_import_literal_expr(n) {
-      if let Lit::Str(Str { value: literal, .. }) = n.args.first()?.expr.as_lit()? {
-        // If the import module is not exsit in module graph, we need to leave it as it is
-        // FIXME: currently uri equals to specifier, but this will be changed later.
-        let dep = Dependency {
-          parent_module_identifier: Some(self.module.identifier()),
-          detail: ModuleDependency {
-            specifier: literal.to_string(),
-            kind: ResolveKind::DynamicImport,
-            span: Some(n.span.into()),
-          },
-        };
+//   #[instrument(skip_all)]
+//   fn rewrite_dyn_import(&mut self, n: &mut CallExpr) -> Option<()> {
+//     if is_dynamic_import_literal_expr(n) {
+//       if let Lit::Str(Str { value: literal, .. }) = n.args.first()?.expr.as_lit()? {
+//         // If the import module is not exsit in module graph, we need to leave it as it is
+//         // FIXME: currently uri equals to specifier, but this will be changed later.
+//         let dep = Dependency {
+//           parent_module_identifier: Some(self.module.identifier()),
+//           detail: ModuleDependency {
+//             specifier: literal.to_string(),
+//             kind: ResolveKind::DynamicImport,
+//             span: Some(n.span.into()),
+//           },
+//         };
 
         let js_module = self.compilation.module_graph.module_by_dependency(&dep)?;
         let js_module_id = js_module.id(&self.compilation.chunk_graph);
 
-        let mut chunk_ids = {
-          let chunk_group_ukey = self.compilation.chunk_graph.get_module_chunk_group(
-            &js_module.module_identifier,
-            &self.compilation.chunk_by_ukey,
-          );
-          let chunk_group = self.compilation.chunk_group_by_ukey.get(chunk_group_ukey)?;
-          chunk_group
-            .chunks
-            .iter()
-            .map(|chunk_ukey| {
-              let chunk = self
-                .compilation
-                .chunk_by_ukey
-                .get(chunk_ukey)
-                .unwrap_or_else(|| panic!("chunk should exist"));
-              chunk.expect_id()
-            })
-            .collect::<Vec<_>>()
-        };
-        chunk_ids.sort();
+//         let mut chunk_ids = {
+//           let chunk_group_ukey = self.compilation.chunk_graph.get_module_chunk_group(
+//             &js_module.module_identifier,
+//             &self.compilation.chunk_by_ukey,
+//           );
+//           let chunk_group = self.compilation.chunk_group_by_ukey.get(chunk_group_ukey)?;
+//           chunk_group
+//             .chunks
+//             .iter()
+//             .map(|chunk_ukey| {
+//               let chunk = self
+//                 .compilation
+//                 .chunk_by_ukey
+//                 .get(chunk_ukey)
+//                 .unwrap_or_else(|| panic!("chunk should exist"));
+//               chunk.expect_id()
+//             })
+//             .collect::<Vec<_>>()
+//         };
+//         chunk_ids.sort();
 
         if chunk_ids.len() == 1 {
           n.callee = MemberExpr {
@@ -365,8 +364,8 @@ impl<'a> RspackModuleFormatTransformer<'a> {
   }
 }
 
-impl<'a> VisitMut for RspackModuleFormatTransformer<'a> {
-  noop_visit_mut_type!();
+// impl<'a> VisitMut for RspackModuleFormatTransformer<'a> {
+//   noop_visit_mut_type!();
 
   fn visit_mut_call_expr(&mut self, n: &mut CallExpr) {
     if is_module_hot_accept_call(n) {
@@ -377,14 +376,25 @@ impl<'a> VisitMut for RspackModuleFormatTransformer<'a> {
       // transform "require('react')" into "__rspack_require__('chunks/react.js')"
       self.rewrite_dyn_import(n);
     } else {
-      // self.rewrite_static_import(n);
+      self.rewrite_static_import(n);
     }
     n.visit_mut_children_with(self);
   }
+//   fn visit_mut_call_expr(&mut self, n: &mut CallExpr) {
+//     if is_module_hot_accept_call(n) {
+//       self.rewrite_module_hot_accept_import(n);
+//     } else if n.callee.is_import() {
+//       // transform "require('react')" into "__rspack_require__('chunks/react.js')"
+//       self.rewrite_dyn_import(n);
+//     } else {
+//       self.rewrite_static_import(n);
+//     }
+//     n.visit_mut_children_with(self);
+//   }
 
-  fn visit_mut_ident(&mut self, ident: &mut Ident) {
-    if "require".eq(&ident.sym) && ident.span.ctxt == self.unresolved_ctxt {
-      ident.sym = runtime_globals::REQUIRE.into();
-    }
-  }
-}
+//   fn visit_mut_ident(&mut self, ident: &mut Ident) {
+//     if "require".eq(&ident.sym) && ident.span.ctxt == self.unresolved_ctxt {
+//       ident.sym = runtime_globals::REQUIRE.into();
+//     }
+//   }
+// }

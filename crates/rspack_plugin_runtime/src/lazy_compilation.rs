@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
   runtime_globals, ApplyContext, AstOrSource, Compilation, DependencyType, Module, ModuleArgs,
-  ModuleType, Plugin, PluginContext, PluginModuleHookOutput, ResolveKind, SourceType,
+  ModuleType, Plugin, PluginContext, PluginModuleHookOutput, SourceType,
 };
 use rspack_core::{
   BuildContext, BuildResult, CodeGenerationResult, Context, Identifiable, ModuleIdentifier,

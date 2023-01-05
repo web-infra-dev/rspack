@@ -1,7 +1,7 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  Compilation, CssUrlDependency, Dependency, Module, ModuleDependency, ResolveKind,
+  Compilation, CssImportDependency, CssUrlDependency, Dependency, Module, ModuleDependency,
 };
 use rspack_error::{Diagnostic, DiagnosticKind};
 use swc_core::{common::util::take::Take, ecma::atoms::Atom};
@@ -15,9 +15,9 @@ static IS_MODULE_REQUEST: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[^?]*~").expe
 
 pub fn analyze_dependencies(
   ss: &mut Stylesheet,
-  code_generation_dependencies: &mut Vec<ModuleDependency>,
+  code_generation_dependencies: &mut Vec<Box<dyn ModuleDependency>>,
   diagnostics: &mut Vec<Diagnostic>,
-) -> Vec<ModuleDependency> {
+) -> Vec<Box<dyn ModuleDependency>> {
   let mut v = Analyzer {
     deps: Vec::new(),
     code_generation_dependencies,
@@ -65,11 +65,13 @@ impl Visit for Analyzer<'_> {
     };
     if let Some(specifier) = specifier && is_url_requestable(&specifier) {
       let specifier = replace_module_request_prefix(specifier, self.diagnostics);
-      self.deps.push(ModuleDependency {
-        specifier,
-        kind: ResolveKind::AtImport,
-        span: Some(n.span.into()),
-      });
+      // TODO: add path
+      self.deps.push(box CssImportDependency::new(specifier, Some(n.span.into()), vec![]));
+      // self.deps.push(ModuleDependency {
+      //   specifier,
+      //   kind: ResolveKind::AtImport,
+      //   span: Some(n.span.into()),
+      // });
     }
   }
 
@@ -82,8 +84,8 @@ impl Visit for Analyzer<'_> {
     });
     if let Some(specifier) = specifier && is_url_requestable(&specifier) {
       let specifier = replace_module_request_prefix(specifier, self.diagnostics);
-      // TODO: add span
-      let dep = CssUrlDependency::new(specifier);
+      // TODO: add path
+      let dep = box CssUrlDependency::new(specifier, Some(u.span.into()), vec![]);
       self.deps.push(dep.clone());
       self.code_generation_dependencies.push(dep);
     }
@@ -128,67 +130,67 @@ impl VisitMut for RemoveAtImport {
   }
 }
 
-pub fn rewrite_url(ss: &mut Stylesheet, module: &dyn Module, compilation: &Compilation) {
-  let mut v = RewriteUrl {
-    module,
-    compilation,
-  };
-  ss.visit_mut_with(&mut v);
-}
+// pub fn rewrite_url(ss: &mut Stylesheet, module: &dyn Module, compilation: &Compilation) {
+//   let mut v = RewriteUrl {
+//     module,
+//     compilation,
+//   };
+//   ss.visit_mut_with(&mut v);
+// }
 
-#[derive(Debug)]
-struct RewriteUrl<'a> {
-  module: &'a dyn Module,
-  compilation: &'a Compilation,
-}
+// #[derive(Debug)]
+// struct RewriteUrl<'a> {
+//   module: &'a dyn Module,
+//   compilation: &'a Compilation,
+// }
 
-impl RewriteUrl<'_> {
-  pub fn get_target_url(&mut self, specifier: String) -> Option<String> {
-    let from = Dependency {
-      parent_module_identifier: Some(self.module.identifier()),
-      detail: ModuleDependency {
-        specifier,
-        kind: ResolveKind::UrlToken,
-        span: None,
-      },
-    };
-    let from = self.compilation.module_graph.module_by_dependency(&from)?;
+// impl RewriteUrl<'_> {
+//   pub fn get_target_url(&mut self, specifier: String) -> Option<String> {
+//     let from = Dependency {
+//       parent_module_identifier: Some(self.module.identifier()),
+//       detail: ModuleDependency {
+//         specifier,
+//         kind: ResolveKind::UrlToken,
+//         span: None,
+//       },
+//     };
+//     let from = self.compilation.module_graph.module_by_dependency(&from)?;
 
-    self
-      .compilation
-      .code_generation_results
-      .module_generation_result_map
-      .get(&from.module_identifier)
-      .and_then(|result| result.data.get("filename"))
-      .map(|value| value.to_string())
-  }
-}
+//     self
+//       .compilation
+//       .code_generation_results
+//       .module_generation_result_map
+//       .get(&from.module_identifier)
+//       .and_then(|result| result.data.get("filename"))
+//       .map(|value| value.to_string())
+//   }
+// }
 
-impl VisitMut for RewriteUrl<'_> {
-  fn visit_mut_url(&mut self, url: &mut Url) {
-    match url.value {
-      Some(box UrlValue::Str(ref mut s)) => {
-        if !is_url_requestable(&s.value) {
-          return;
-        }
-        if let Some(target) = self.get_target_url(s.value.to_string()) {
-          s.raw = Some(Atom::from(target.clone()));
-          s.value = target.into();
-        }
-      }
-      Some(box UrlValue::Raw(ref mut s)) => {
-        if !is_url_requestable(&s.value) {
-          return;
-        }
-        if let Some(target) = self.get_target_url(s.value.to_string()) {
-          s.raw = Some(Atom::from(target.clone()));
-          s.value = target.into();
-        }
-      }
-      None => {}
-    }
-  }
-}
+// impl VisitMut for RewriteUrl<'_> {
+//   fn visit_mut_url(&mut self, url: &mut Url) {
+//     match url.value {
+//       Some(box UrlValue::Str(ref mut s)) => {
+//         if !is_url_requestable(&s.value) {
+//           return;
+//         }
+//         if let Some(target) = self.get_target_url(s.value.to_string()) {
+//           s.raw = Some(Atom::from(target.clone()));
+//           s.value = target.into();
+//         }
+//       }
+//       Some(box UrlValue::Raw(ref mut s)) => {
+//         if !is_url_requestable(&s.value) {
+//           return;
+//         }
+//         if let Some(target) = self.get_target_url(s.value.to_string()) {
+//           s.raw = Some(Atom::from(target.clone()));
+//           s.value = target.into();
+//         }
+//       }
+//       None => {}
+//     }
+//   }
+// }
 
 fn is_url_requestable(url: &str) -> bool {
   !url.starts_with('#') && !rspack_core::should_skip_resolve(url)

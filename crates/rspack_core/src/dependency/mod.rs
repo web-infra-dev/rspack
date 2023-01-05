@@ -16,7 +16,7 @@ use std::{any::Any, fmt::Debug, hash::Hash};
 
 use dyn_clone::{clone_trait_object, DynClone};
 
-use crate::{AsAny, DynEq, DynHash, ModuleIdentifier};
+use crate::{AsAny, DynEq, DynHash, ErrorSpan, ModuleIdentifier};
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
 // Note: This is almost the same with the old `ResolveKind`
@@ -35,6 +35,8 @@ pub enum DependencyType {
   ModuleHotAccept,
   // css url()
   CssUrl,
+  // css @import
+  CssImport,
 }
 
 #[derive(Default, Copy, Clone, PartialEq, Eq, Hash, Debug)]
@@ -44,13 +46,17 @@ pub enum DependencyCategory {
   Esm,
   CommonJS,
   Url,
+  CssImport,
 }
+
+pub type JsAstPath = Vec<swc_core::ecma::visit::AstParentKind>;
+pub type CssAstPath = Vec<swc_core::css::visit::AstParentKind>;
 
 pub trait Dependency:
   CodeGeneratable + AsModuleDependency + AsAny + DynHash + DynClone + DynEq + Send + Sync + Debug
 {
   fn parent_module_identifier(&self) -> Option<&ModuleIdentifier>;
-  fn set_parent_module_identifier(&mut self, module_identifier: Option<ModuleIdentifier>) {
+  fn set_parent_module_identifier(&mut self, _module_identifier: Option<ModuleIdentifier>) {
     // noop
   }
 
@@ -113,6 +119,7 @@ impl<T: ModuleDependency> AsModuleDependency for T {
 pub trait ModuleDependency: Dependency {
   fn request(&self) -> &str;
   fn user_request(&self) -> &str;
+  fn span(&self) -> Option<&ErrorSpan>;
 }
 
 impl ModuleDependency for Box<dyn ModuleDependency> {
@@ -122,6 +129,10 @@ impl ModuleDependency for Box<dyn ModuleDependency> {
 
   fn user_request(&self) -> &str {
     (**self).user_request()
+  }
+
+  fn span(&self) -> Option<&ErrorSpan> {
+    (**self).span()
   }
 }
 

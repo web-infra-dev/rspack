@@ -6,7 +6,9 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
-use rspack_core::{AstOrSource, Filename, Mode, ModuleAst, ModuleDependency, ModuleIdentifier};
+use rspack_core::{
+  AstOrSource, CssImportDependency, Filename, Mode, ModuleAst, ModuleDependency, ModuleIdentifier,
+};
 use std::cmp;
 use std::hash::{Hash, Hasher};
 use std::path::Path;
@@ -38,7 +40,7 @@ use rspack_error::{
 use tracing::instrument;
 
 use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
-use crate::visitors::rewrite_url;
+// use crate::visitors::rewrite_url;
 use crate::{
   pxtorem::{option::PxToRemOption, px_to_rem::px_to_rem},
   visitors::analyze_dependencies,
@@ -425,11 +427,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
       &mut diagnostic,
     );
     let dependencies = if let Some((imports, _)) = &locals && !imports.is_empty() {
-      dependencies.extend(imports.iter().map(|import| ModuleDependency {
-        specifier: import.to_string(),
-        kind: rspack_core::ResolveKind::AtImport,
-        span: None,
-      }));
+      dependencies.extend(imports.iter().map(|import| box CssImportDependency::new(import.to_string(), None, vec![]) as Box<dyn ModuleDependency>
+      // {
+      //   specifier: import.to_string(),
+      //   kind: rspack_core::ResolveKind::AtImport,
+      //   span: None,
+      // }
+      ));
       dependencies.into_iter().unique().collect()
     } else {
       dependencies
@@ -470,7 +474,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
           .expect("Expected CSS AST for CSS generation, please file an issue.");
         let cm = ast.get_context().source_map.clone();
         let stylesheet = ast.get_root_mut();
-        rewrite_url(stylesheet, module, generate_context.compilation);
+        // TODO: rewrite url
+        // rewrite_url(stylesheet, module, generate_context.compilation);
         let (code, source_map) = SWC_COMPILER.codegen(
           cm,
           stylesheet,

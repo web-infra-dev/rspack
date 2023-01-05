@@ -2,7 +2,7 @@ use rspack_error::Result;
 
 use crate::{
   CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, DependencyCategory,
-  DependencyType, ModuleDependency, ModuleIdentifier,
+  DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -37,6 +37,10 @@ impl ModuleDependency for EntryDependency {
 
   fn user_request(&self) -> &str {
     &self.request
+  }
+
+  fn span(&self) -> Option<&ErrorSpan> {
+    None
   }
 }
 

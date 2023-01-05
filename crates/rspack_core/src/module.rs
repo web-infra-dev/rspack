@@ -140,15 +140,15 @@ impl Module for Box<dyn Module> {
   }
 }
 
-impl PartialEq for dyn Module {
+impl PartialEq for dyn Module + '_ {
   fn eq(&self, other: &Self) -> bool {
     self.dyn_eq(other.as_any())
   }
 }
 
-impl Eq for dyn Module {}
+impl Eq for dyn Module + '_ {}
 
-impl Hash for dyn Module {
+impl Hash for dyn Module + '_ {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.dyn_hash(state)
   }

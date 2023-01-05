@@ -494,7 +494,7 @@ impl Compilation {
                     .module_graph
                     .module_graph_module_by_identifier_mut(&module.identifier())
                     .expect("Failed to get mgm");
-                  mgm.all_dependencies = dependencies.clone();
+                  mgm.dependencies = dependencies.clone();
                 }
 
                 process_dependencies_queue.add_task(ProcessDependenciesTask {
@@ -957,7 +957,7 @@ impl Compilation {
               module_identifier
             )
           });
-        for dep in mgm.all_dependencies.iter() {
+        for dep in mgm.dependencies.iter() {
           let module_ident = self
             .module_graph
             .module_by_dependency(&**dep)

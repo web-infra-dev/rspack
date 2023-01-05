@@ -2005,6 +2005,7 @@ dependencies = [
  "bitflags",
  "crossbeam",
  "dashmap",
+ "derivative",
  "dyn-clone",
  "futures",
  "globset",
@@ -2880,6 +2881,13 @@ dependencies = [
  "swc",
  "swc_atoms",
  "swc_common",
+ "swc_css_ast 0.132.1",
+ "swc_css_codegen 0.142.1",
+ "swc_css_compat",
+ "swc_css_modules 0.19.1",
+ "swc_css_parser 0.141.1",
+ "swc_css_utils 0.129.1",
+ "swc_css_visit 0.131.1",
  "swc_ecma_ast",
  "swc_ecma_codegen",
  "swc_ecma_minifier",
@@ -2904,14 +2912,14 @@ version = "0.141.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "63772ea10f02f9adade9440e9ab1db399829388b0cf60093db176ade7391cb81"
 dependencies = [
- "swc_css_ast",
- "swc_css_codegen",
+ "swc_css_ast 0.128.3",
+ "swc_css_codegen 0.138.5",
  "swc_css_minifier",
- "swc_css_modules",
- "swc_css_parser",
+ "swc_css_modules 0.14.5",
+ "swc_css_parser 0.137.5",
  "swc_css_prefixer",
- "swc_css_utils",
- "swc_css_visit",
+ "swc_css_utils 0.125.3",
+ "swc_css_visit 0.127.3",
 ]
 
 [[package]]
@@ -2919,6 +2927,19 @@ name = "swc_css_ast"
 version = "0.128.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "757343607819915125d715aa071be58d84cbec91782b0fc401264c2ecbbc9ba1"
+dependencies = [
+ "is-macro",
+ "serde",
+ "string_enum",
+ "swc_atoms",
+ "swc_common",
+]
+
+[[package]]
+name = "swc_css_ast"
+version = "0.132.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "74216fff9c0365cb8c0a8cacd6c3cc96aa1e951636a3f646019a9f0d637cd759"
 dependencies = [
  "is-macro",
  "serde",
@@ -2939,9 +2960,26 @@ dependencies = [
  "serde",
  "swc_atoms",
  "swc_common",
- "swc_css_ast",
+ "swc_css_ast 0.128.3",
  "swc_css_codegen_macros",
- "swc_css_utils",
+ "swc_css_utils 0.125.3",
+]
+
+[[package]]
+name = "swc_css_codegen"
+version = "0.142.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af22fd49e5d8d1468bc8b5309e16bbb69ab697d2ee42a2d45821d2559cfa1569"
+dependencies = [
+ "auto_impl",
+ "bitflags",
+ "rustc-hash",
+ "serde",
+ "swc_atoms",
+ "swc_common",
+ "swc_css_ast 0.132.1",
+ "swc_css_codegen_macros",
+ "swc_css_utils 0.129.1",
 ]
 
 [[package]]
@@ -2958,6 +2996,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "swc_css_compat"
+version = "0.18.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8762fe0c71500b73301c16cefe713bc29e92c8dd550be02eda6c2a0bed42c555"
+dependencies = [
+ "bitflags",
+ "once_cell",
+ "serde",
+ "serde_json",
+ "swc_atoms",
+ "swc_common",
+ "swc_css_ast 0.132.1",
+ "swc_css_utils 0.129.1",
+ "swc_css_visit 0.131.1",
+]
+
+[[package]]
 name = "swc_css_minifier"
 version = "0.103.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2966,9 +3021,9 @@ dependencies = [
  "serde",
  "swc_atoms",
  "swc_common",
- "swc_css_ast",
- "swc_css_utils",
- "swc_css_visit",
+ "swc_css_ast 0.128.3",
+ "swc_css_utils 0.125.3",
+ "swc_css_visit 0.127.3",
 ]
 
 [[package]]
@@ -2981,10 +3036,26 @@ dependencies = [
  "serde",
  "swc_atoms",
  "swc_common",
- "swc_css_ast",
- "swc_css_codegen",
- "swc_css_parser",
- "swc_css_visit",
+ "swc_css_ast 0.128.3",
+ "swc_css_codegen 0.138.5",
+ "swc_css_parser 0.137.5",
+ "swc_css_visit 0.127.3",
+]
+
+[[package]]
+name = "swc_css_modules"
+version = "0.19.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a90f5ef1ce95b49dadab68034ff3bbb14dcdf8a2acd386c68ac878203faed7ca"
+dependencies = [
+ "rustc-hash",
+ "serde",
+ "swc_atoms",
+ "swc_common",
+ "swc_css_ast 0.132.1",
+ "swc_css_codegen 0.142.1",
+ "swc_css_parser 0.141.1",
+ "swc_css_visit 0.131.1",
 ]
 
 [[package]]
@@ -2998,7 +3069,21 @@ dependencies = [
  "serde",
  "swc_atoms",
  "swc_common",
- "swc_css_ast",
+ "swc_css_ast 0.128.3",
+]
+
+[[package]]
+name = "swc_css_parser"
+version = "0.141.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6f744d6523eac38e5d5329c2e7a45d4cda4a6f00a68fb48af3010ceab904e37"
+dependencies = [
+ "bitflags",
+ "lexical",
+ "serde",
+ "swc_atoms",
+ "swc_common",
+ "swc_css_ast 0.132.1",
 ]
 
 [[package]]
@@ -3013,9 +3098,9 @@ dependencies = [
  "serde_json",
  "swc_atoms",
  "swc_common",
- "swc_css_ast",
- "swc_css_utils",
- "swc_css_visit",
+ "swc_css_ast 0.128.3",
+ "swc_css_utils 0.125.3",
+ "swc_css_visit 0.127.3",
 ]
 
 [[package]]
@@ -3029,8 +3114,23 @@ dependencies = [
  "serde_json",
  "swc_atoms",
  "swc_common",
- "swc_css_ast",
- "swc_css_visit",
+ "swc_css_ast 0.128.3",
+ "swc_css_visit 0.127.3",
+]
+
+[[package]]
+name = "swc_css_utils"
+version = "0.129.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb372fff24076b609e64635e8ba80a3171961059ccb70298a8ead2e497c04ca3"
+dependencies = [
+ "once_cell",
+ "serde",
+ "serde_json",
+ "swc_atoms",
+ "swc_common",
+ "swc_css_ast 0.132.1",
+ "swc_css_visit 0.131.1",
 ]
 
 [[package]]
@@ -3042,7 +3142,20 @@ dependencies = [
  "serde",
  "swc_atoms",
  "swc_common",
- "swc_css_ast",
+ "swc_css_ast 0.128.3",
+ "swc_visit",
+]
+
+[[package]]
+name = "swc_css_visit"
+version = "0.131.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45736bc9948f0b0b64105ca61cb0980c8f9650ee8c31adeb28008a5375c23dea"
+dependencies = [
+ "serde",
+ "swc_atoms",
+ "swc_common",
+ "swc_css_ast 0.132.1",
  "swc_visit",
 ]
 
@@ -3610,10 +3723,10 @@ dependencies = [
  "swc_atoms",
  "swc_cached",
  "swc_common",
- "swc_css_ast",
- "swc_css_codegen",
+ "swc_css_ast 0.128.3",
+ "swc_css_codegen 0.138.5",
  "swc_css_minifier",
- "swc_css_parser",
+ "swc_css_parser 0.137.5",
  "swc_ecma_ast",
  "swc_ecma_codegen",
  "swc_ecma_minifier",

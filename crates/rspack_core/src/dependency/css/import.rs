@@ -9,7 +9,7 @@ use crate::{
 
 #[derive(Derivative)]
 #[derivative(Debug, Hash, PartialEq, Eq, Clone)]
-pub struct CssUrlDependency {
+pub struct CssImportDependency {
   parent_module_identifier: Option<ModuleIdentifier>,
   request: String,
 
@@ -22,7 +22,7 @@ pub struct CssUrlDependency {
   ast_path: CssAstPath,
 }
 
-impl CssUrlDependency {
+impl CssImportDependency {
   pub fn new(request: String, span: Option<ErrorSpan>, ast_path: CssAstPath) -> Self {
     Self {
       parent_module_identifier: None,
@@ -33,7 +33,7 @@ impl CssUrlDependency {
   }
 }
 
-impl Dependency for CssUrlDependency {
+impl Dependency for CssImportDependency {
   fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
     self.parent_module_identifier.as_ref()
   }
@@ -43,15 +43,15 @@ impl Dependency for CssUrlDependency {
   }
 
   fn category(&self) -> &DependencyCategory {
-    &DependencyCategory::Url
+    &DependencyCategory::CssImport
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::CssUrl
+    &DependencyType::CssImport
   }
 }
 
-impl ModuleDependency for CssUrlDependency {
+impl ModuleDependency for CssImportDependency {
   fn request(&self) -> &str {
     &self.request
   }
@@ -65,7 +65,7 @@ impl ModuleDependency for CssUrlDependency {
   }
 }
 
-impl CodeGeneratable for CssUrlDependency {
+impl CodeGeneratable for CssImportDependency {
   fn generate(
     &self,
     _code_generatable_context: CodeGeneratableContext,

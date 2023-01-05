@@ -1078,11 +1078,8 @@ impl<'a> ModuleRefAnalyze<'a> {
       .module_graph
       .module_graph_module_by_identifier(&self.module_identifier)
       .and_then(|mgm| {
-        mgm
-        .outgoing_connections_unordered(self.module_graph)
-        .expect("Failed to resolve connections").find_map(|con| {
-          // Find the connection that has the same src and dependency_type
-          if let Some(dep) = self.module_graph.dependency_by_connection(con) && dep.request() == src && dep.dependency_type() == &dependency_type {
+        mgm.dependencies.iter().find_map(|dep| {
+          if dep.request() == src && dep.dependency_type() == &dependency_type {
             self
               .module_graph
               .module_by_dependency(dep)
