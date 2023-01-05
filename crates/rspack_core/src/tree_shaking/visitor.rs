@@ -4,7 +4,7 @@ use bitflags::bitflags;
 use globset::{Glob, GlobSetBuilder};
 use hashbrown::{hash_map::Entry, HashMap, HashSet};
 use hashlink::LinkedHashMap;
-use indexmap::IndexMap;
+
 use sugar_path::SugarPath;
 use swc_core::common::{util::take::Take, Mark, GLOBALS};
 use swc_core::ecma::ast::*;

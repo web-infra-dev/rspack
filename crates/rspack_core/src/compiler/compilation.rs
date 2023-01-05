@@ -6,12 +6,9 @@ use hashbrown::{
   HashMap, HashSet,
 };
 use hashlink::LinkedHashSet;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexSet;
 use petgraph::{algo, prelude::GraphMap, Directed};
-use rayon::{
-  iter::Inspect,
-  prelude::{IntoParallelRefIterator, ParallelIterator},
-};
+use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use std::{
   borrow::BorrowMut,
   collections::VecDeque,
@@ -22,7 +19,6 @@ use std::{
   pin::Pin,
   sync::atomic::{AtomicU32, Ordering},
   sync::Arc,
-  time::Instant,
 };
 use swc_core::ecma::atoms::JsWord;
 use tokio::sync::mpsc::error::TryRecvError;
