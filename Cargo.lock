@@ -2590,6 +2590,7 @@ dependencies = [
  "derivative",
  "hashbrown",
  "rspack_core",
+ "rspack_util",
  "tracing",
 ]
 

@@ -98,7 +98,8 @@ class Compiler {
 	 */
 	get #instance() {
 		const options: binding.RawOptions = this.options;
-
+		// delete options.optimization.splitChunks.cacheGroups.default
+		// console.log({ options: options.optimization.splitChunks.cacheGroups })
 		this.#_instance =
 			this.#_instance ||
 			new binding.Rspack(options, {

@@ -733,6 +733,7 @@ function hookIntoCompiler(
 				assets[ext].push(entryPointPublicPath);
 			});
 		}
+
 		return assets;
 	}
 

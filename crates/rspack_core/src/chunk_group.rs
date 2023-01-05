@@ -1,6 +1,8 @@
 use hashbrown::{HashMap, HashSet};
 
-use crate::{Chunk, ChunkByUkey, ChunkGroupUkey, ChunkUkey, ModuleIdentifier, RuntimeSpec};
+use crate::{
+  Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, ModuleIdentifier, RuntimeSpec,
+};
 
 #[derive(Debug)]
 pub struct ChunkGroup {
@@ -106,6 +108,39 @@ impl ChunkGroup {
         .expect("EntryPoint runtime chunk not set"),
       ChunkGroupKind::Normal => unreachable!("Normal chunk group doesn't have runtime chunk"),
     }
+  }
+
+  pub fn ancestors(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> HashSet<ChunkGroupUkey> {
+    self
+      .parents
+      .iter()
+      .filter_map(|ukey| chunk_group_by_ukey.get(ukey))
+      .flat_map(|group| {
+        group
+          .ancestors(chunk_group_by_ukey)
+          .into_iter()
+          .chain([group.ukey])
+      })
+      .collect()
+  }
+
+  pub fn insert_chunk(&mut self, chunk: ChunkUkey, before: ChunkUkey) -> bool {
+    let old_idx = self.chunks.iter().position(|ukey| *ukey == chunk);
+    let idx = self
+      .chunks
+      .iter()
+      .position(|ukey| *ukey == before)
+      .expect("before chunk not found");
+
+    if let Some(old_idx) = old_idx && old_idx > idx {
+      self.chunks.remove(old_idx);
+      self.chunks.insert(idx, chunk);
+    } else if old_idx.is_none() {
+      self.chunks.insert(idx, chunk);
+      return true
+    }
+
+    false
   }
 }
 

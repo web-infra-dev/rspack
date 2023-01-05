@@ -1,6 +1,7 @@
-use std::{collections::HashMap, fmt::Debug};
+use std::fmt::Debug;
 
 use derivative::Derivative;
+use hashbrown::HashMap;
 use rspack_core::{Chunk, ChunkGroupByUkey, ModuleType, SourceType};
 
 use crate::{ChunkFilter, GetName, TestFn};
@@ -59,6 +60,7 @@ pub struct CacheGroup {
   pub max_async_size: SplitChunkSizes,
   pub max_initial_size: SplitChunkSizes,
   pub(crate) validate_size: bool,
+  pub(crate) min_size_for_max_size: SplitChunkSizes,
 }
 
 #[derive(Clone, Copy)]
@@ -159,7 +161,19 @@ pub struct SplitChunksOptions {
   pub max_initial_size: Option<f64>,
   // TODO: supports function
   pub name: Option<String>,
+  pub fallback_cache_group: Option<FallbackCacheGroup>,
   // used_exports: bool,
+}
+
+#[derive(Debug)]
+pub struct FallbackCacheGroup {
+  pub automatic_name_delimiter: Option<String>,
+  pub chunks: Option<ChunkType>,
+  pub max_async_size: Option<f64>,
+  pub max_initial_size: Option<f64>,
+  pub max_size: Option<f64>,
+  pub min_size: Option<f64>,
+  pub min_size_reduction: Option<f64>,
 }
 
 #[derive(Derivative)]
@@ -180,4 +194,16 @@ pub struct NormalizedOptions {
   pub get_name: GetName,
   #[derivative(Debug = "ignore")]
   pub chunk_filter: ChunkFilter,
+  pub fallback_cache_group: NormalizedFallbackCacheGroup,
+}
+
+#[derive(Derivative, Clone)]
+#[derivative(Debug)]
+pub struct NormalizedFallbackCacheGroup {
+  #[derivative(Debug = "ignore")]
+  pub chunks_filter: ChunkFilter,
+  pub min_size: SplitChunkSizes,
+  pub max_async_size: SplitChunkSizes,
+  pub max_initial_size: SplitChunkSizes,
+  pub automatic_name_delimiter: String,
 }

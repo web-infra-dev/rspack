@@ -1,7 +1,7 @@
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
 use rspack_core::{CompilerOptionsBuilder, ModuleType};
-use rspack_plugin_split_chunks::{CacheGroupOptions, ChunkType, SizeType, SplitChunksOptions};
+use rspack_plugin_split_chunks::{CacheGroupOptions, ChunkType, SplitChunksOptions, TestFn};
 use serde::Deserialize;
 use std::{collections::HashMap, sync::Arc};
 
@@ -16,15 +16,15 @@ pub struct RawSplitChunksOptions {
   /// What kind of chunks should be selected.
   pub chunks: Option<String>,
   //   pub automatic_name_delimiter: String,
-  //   pub max_async_requests: usize,
-  //   pub max_initial_requests: usize,
+  pub max_async_requests: Option<u32>,
+  pub max_initial_requests: Option<u32>,
   //   pub default_size_types: Option<Vec<SizeType>>,
-  //   pub min_chunks: usize,
+  pub min_chunks: Option<u32>,
   // hide_path_info: bool,
-  //   pub min_size: usize,
+  pub min_size: Option<f64>,
   //   pub min_size_reduction: usize,
-  //   pub enforce_size_threshold: usize,
-  //   pub min_remaining_size: usize,
+  pub enforce_size_threshold: Option<f64>,
+  pub min_remaining_size: Option<f64>,
   // layer: String,
   //   pub max_size: usize,
   //   pub max_async_size: usize,
@@ -39,15 +39,15 @@ pub struct RawSplitChunksOptions {
   /// What kind of chunks should be selected.
   pub chunks: Option<String>,
   //   pub automatic_name_delimiter: String,
-  //   pub max_async_requests: usize,
-  //   pub max_initial_requests: usize,
+  pub max_async_requests: Option<u32>,
+  pub max_initial_requests: Option<u32>,
   //   pub default_size_types: Option<Vec<SizeType>>,
-  //   pub min_chunks: usize,
+  pub min_chunks: Option<u32>,
   // hide_path_info: bool,
-  //   pub min_size: usize,
+  pub min_size: Option<f64>,
   //   pub min_size_reduction: usize,
-  //   pub enforce_size_threshold: usize,
-  //   pub min_remaining_size: usize,
+  pub enforce_size_threshold: Option<f64>,
+  pub min_remaining_size: Option<f64>,
   // layer: String,
   //   pub max_size: usize,
   //   pub max_async_size: usize,
@@ -58,58 +58,9 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
   #[allow(clippy::field_reassign_with_default)]
   fn to_compiler_option(
     self,
-    options: &CompilerOptionsBuilder,
+    _options: &CompilerOptionsBuilder,
   ) -> anyhow::Result<SplitChunksOptions> {
     let mut defaults = SplitChunksOptions::default();
-    // TODO: Supports css
-    let is_enable_css = false;
-    let is_production = matches!(options.mode, Some(rspack_core::Mode::Production));
-    let is_development = !is_production;
-    defaults.default_size_types = Some(if is_enable_css {
-      vec![SizeType::JavaScript, SizeType::Css, SizeType::Unknown]
-    } else {
-      vec![SizeType::JavaScript, SizeType::Unknown]
-    });
-    defaults.chunks = Some(ChunkType::Async);
-    defaults.min_chunks = 1.into();
-    defaults.min_size = Some(if is_production { 20000f64 } else { 10000f64 });
-    defaults.min_remaining_size = if is_development { Some(0f64) } else { None };
-    defaults.enforce_size_threshold = Some(if is_production { 50000f64 } else { 30000f64 });
-    defaults.max_async_requests = Some(if is_production { 30 } else { usize::MAX });
-    defaults.max_initial_requests = Some(if is_production { 30 } else { usize::MAX });
-    defaults.automatic_name_delimiter = Some("-".to_string());
-
-    defaults.cache_groups.extend(HashMap::from([
-      (
-        "default".to_string(),
-        CacheGroupOptions {
-          // TODO: we should not manually set the name
-          name: Some("default".to_string()),
-          min_chunks: 2.into(),
-          priority: Some(-20),
-          id_hint: "".to_string().into(),
-          // TODO: reuseExistingChunk
-          ..Default::default()
-        },
-      ),
-      (
-        "defaultVendors".to_string(),
-        CacheGroupOptions {
-          // TODO: we should not manually set the name
-          name: Some("defaultVendors".to_string()),
-          id_hint: "vendors".to_string().into(),
-          reuse_existing_chunk: true.into(),
-          test: Some(Arc::new(|module| {
-            module
-              .name_for_condition()
-              .map_or(false, |name| name.contains("node_modules"))
-          })),
-          priority: Some(-10),
-          // TODO: reuseExistingChunk
-          ..Default::default()
-        },
-      ),
-    ]));
 
     defaults
       .cache_groups
@@ -122,18 +73,21 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
             (
               k,
               CacheGroupOptions {
-                name: v.name.clone().into(),
+                name: v.name.clone(),
                 priority: 0.into(),
                 reuse_existing_chunk: false.into(),
                 r#type: Some(ModuleType::Js),
-                test: Some(Arc::new(move |module| {
-                  let re = regex::Regex::new(&v.test)
-                    .unwrap_or_else(|_| panic!("Invalid regex: {}", v.test));
-                  module
-                    .name_for_condition()
-                    .map_or(false, |name| re.is_match(&name))
-                })),
-                filename: v.name.into(),
+                test: v.test.clone().map(|test| {
+                  let f: TestFn = Arc::new(move |module| {
+                    let re = rspack_regex::RspackRegex::new(&test)
+                      .unwrap_or_else(|_| panic!("Invalid regex: {}", &test));
+                    module
+                      .name_for_condition()
+                      .map_or(false, |name| re.test(&name))
+                  });
+                  f
+                }),
+                filename: v.name,
                 enforce: false.into(),
                 id_hint: Default::default(),
                 chunks: ChunkType::All.into(),
@@ -159,6 +113,12 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
     RawSplitChunksOptions {
       cache_groups: None,
       chunks: None,
+      max_async_requests: None,
+      max_initial_requests: None,
+      min_chunks: None,
+      min_size: None,
+      enforce_size_threshold: None,
+      min_remaining_size: None,
     }
   }
 }
@@ -168,10 +128,10 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawCacheGroupOptions {
-  //   pub priority: isize,
+  pub priority: Option<i32>,
   //   pub reuse_existing_chunk: bool,
   //   pub r#type: SizeType,
-  pub test: String,
+  pub test: Option<String>,
   //   pub filename: String,
   //   pub enforce: bool,
   //   pub id_hint: String,
@@ -180,7 +140,7 @@ pub struct RawCacheGroupOptions {
   //   pub automatic_name_delimiter: String,
   //   pub max_async_requests: usize,
   //   pub max_initial_requests: usize,
-  //   pub min_chunks: usize,
+  pub min_chunks: Option<u32>,
   // hide_path_info: bool,
   //   pub min_size: usize,
   //   pub min_size_reduction: usize,
@@ -190,8 +150,7 @@ pub struct RawCacheGroupOptions {
   //   pub max_size: usize,
   //   pub max_async_size: usize,
   //   pub max_initial_size: usize,
-  // TODO: supports function
-  pub name: String,
+  pub name: Option<String>,
   // used_exports: bool,
 }
 
@@ -199,10 +158,10 @@ pub struct RawCacheGroupOptions {
 #[serde(rename_all = "camelCase")]
 #[cfg(not(feature = "node-api"))]
 pub struct RawCacheGroupOptions {
-  //   pub priority: isize,
+  pub priority: Option<i32>,
   //   pub reuse_existing_chunk: bool,
   //   pub r#type: SizeType,
-  pub test: String,
+  pub test: Option<String>,
   //   pub filename: String,
   //   pub enforce: bool,
   //   pub id_hint: String,
@@ -211,7 +170,7 @@ pub struct RawCacheGroupOptions {
   //   pub automatic_name_delimiter: String,
   //   pub max_async_requests: usize,
   //   pub max_initial_requests: usize,
-  //   pub min_chunks: usize,
+  pub min_chunks: Option<u32>,
   // hide_path_info: bool,
   //   pub min_size: usize,
   //   pub min_size_reduction: usize,
@@ -221,7 +180,6 @@ pub struct RawCacheGroupOptions {
   //   pub max_size: usize,
   //   pub max_async_size: usize,
   //   pub max_initial_size: usize,
-  // TODO: supports function
-  pub name: String,
+  pub name: Option<String>,
   // used_exports: bool,
 }

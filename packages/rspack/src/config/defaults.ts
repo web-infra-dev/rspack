@@ -132,7 +132,7 @@ const applyOptimizationDefaults = (
 		F(cacheGroups, "defaultVendors", () => ({
 			idHint: "vendors",
 			reuseExistingChunk: true,
-			test: NODE_MODULES_REGEXP,
+			test: NODE_MODULES_REGEXP.source,
 			priority: -10
 		}));
 	}

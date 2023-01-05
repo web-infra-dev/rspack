@@ -262,6 +262,11 @@ impl ChunkGraph {
     cgm.chunks.len()
   }
 
+  pub fn get_number_of_chunk_modules(&self, chunk: &ChunkUkey) -> usize {
+    let cgc = self.get_chunk_graph_chunk(chunk);
+    cgc.modules.len()
+  }
+
   pub fn get_number_of_entry_modules(&self, chunk: &ChunkUkey) -> usize {
     let cgc = self.get_chunk_graph_chunk(chunk);
     cgc.entry_modules.len()
