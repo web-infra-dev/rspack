@@ -11,18 +11,11 @@ export type StatsCompilation = Partial<StatsCompilationInner> & {
 };
 
 export class Stats {
-	// remove this when support delegate compilation to rust side
-	#statsJson: StatsCompilationInner;
+	#inner: binding.JsStats;
 	compilation: Compilation;
 
-	constructor(statsJson: binding.JsStatsCompilation, compilation: Compilation) {
-		this.#statsJson = {
-			...statsJson,
-			entrypoints: statsJson.entrypoints.reduce((acc, cur) => {
-				acc[cur.name] = cur;
-				return acc;
-			}, {})
-		};
+	constructor(compilation: Compilation) {
+		this.#inner = compilation.__internal_getInner().getStats();
 		this.compilation = compilation;
 	}
 
@@ -31,11 +24,11 @@ export class Stats {
 	}
 
 	hasErrors() {
-		return this.#statsJson.errorsCount > 0;
+		return this.#inner.getErrors().length > 0;
 	}
 
 	hasWarnings() {
-		return this.#statsJson.warningsCount > 0;
+		return this.#inner.getWarnings().length > 0;
 	}
 
 	toJson(opts?: StatsOptions, forToString?: boolean) {
@@ -46,7 +39,7 @@ export class Stats {
 
 		const showAssets = optionOrLocalFallback(options.assets, true);
 		const showChunks = optionOrLocalFallback(options.chunks, !forToString);
-		const showModules = optionOrLocalFallback(options.modules, true);
+		const showModules = optionOrLocalFallback(options.modules, !forToString);
 		const showEntrypoints = optionOrLocalFallback(options.entrypoints, true);
 		const showErrors = optionOrLocalFallback(options.errors, true);
 		const showErrorsCount = optionOrLocalFallback(options.errorsCount, true);
@@ -55,37 +48,39 @@ export class Stats {
 			options.warningsCount,
 			true
 		);
-		const showHash = optionOrLocalFallback(options.hash, false);
+		const showHash = optionOrLocalFallback(options.hash, true);
 
 		let obj: StatsCompilation = {};
 
 		if (showHash) {
-			obj.hash = this.#statsJson.hash;
+			obj.hash = this.#inner.getHash();
 		}
-
 		if (showAssets) {
-			obj.assets = this.#statsJson.assets;
+			obj.assets = this.#inner.getAssets();
 		}
 		if (showChunks) {
-			obj.chunks = this.#statsJson.chunks;
+			obj.chunks = this.#inner.getChunks();
 		}
 		if (showModules) {
-			obj.modules = this.#statsJson.modules;
+			obj.modules = this.#inner.getModules();
 		}
 		if (showEntrypoints) {
-			obj.entrypoints = this.#statsJson.entrypoints;
+			obj.entrypoints = this.#inner.getEntrypoints().reduce((acc, cur) => {
+				acc[cur.name] = cur;
+				return acc;
+			}, {});
 		}
 		if (showErrors) {
-			obj.errors = this.#statsJson.errors;
+			obj.errors = this.#inner.getErrors();
 		}
 		if (showErrorsCount) {
-			obj.errorsCount = this.#statsJson.errorsCount;
+			obj.errorsCount = (obj.errors ?? this.#inner.getErrors()).length;
 		}
 		if (showWarninigs) {
-			obj.warnings = this.#statsJson.warnings;
+			obj.warnings = this.#inner.getWarnings();
 		}
 		if (showWarningsCount) {
-			obj.warningsCount = this.#statsJson.warningsCount;
+			obj.warningsCount = (obj.warnings ?? this.#inner.getWarnings()).length;
 		}
 		if (obj.modules && forToString) {
 			obj.filteredModules = obj.modules.length - 15;

@@ -2,7 +2,6 @@ use crate::test_options::RawOptionsExt;
 use cargo_rst::{helper::make_relative_from, rst::RstBuilder};
 use rspack_binding_options::RawOptions;
 use rspack_core::CompilerOptions;
-use rspack_core::Stats;
 use rspack_tracing::enable_tracing_by_env;
 use std::path::{Path, PathBuf};
 
@@ -23,10 +22,11 @@ where
   let options = custom_convert_options(options);
   let output_path = options.output.path.clone();
   let mut compiler = rspack::rspack(options, Default::default());
-  let stats: Stats = compiler
+  compiler
     .build()
     .await
     .unwrap_or_else(|_| panic!("failed to compile in fixtrue {:?}", fixture_path));
+  let stats = compiler.compilation.get_stats();
   let output_name = make_relative_from(Path::new(&output_path), fixture_path);
   let rst = RstBuilder::default()
     .fixture(PathBuf::from(fixture_path))
@@ -34,11 +34,14 @@ where
     .build()
     .expect("TODO:");
 
-  if !stats.to_description().expect("TODO:").errors.is_empty() {
+  let errors = stats.get_errors();
+  if !errors.is_empty() {
     panic!(
       "Failed to compile in fixtrue {:?}, errors: {:?}",
       fixture_path,
-      stats.emit_diagnostics_string(true).expect("TODO:")
+      stats
+        .emit_diagnostics_string(true)
+        .expect("failed to emit diagnostics to string")
     );
   }
 

@@ -1231,8 +1231,9 @@ describe("Compiler", () => {
 				plugins: [new MyPlugin()]
 			});
 
-			compiler.build((err, stats) => {
-				expect(stats.errors[0].message).toBe(
+			compiler.build(err => {
+				const stats = new Stats(compiler.compilation);
+				expect(stats.toJson().errors[0].message).toBe(
 					"error[internal]: Conflict: Multiple assets emit different content to the same filename main.js\n"
 				);
 				done();

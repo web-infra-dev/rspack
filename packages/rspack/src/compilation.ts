@@ -15,6 +15,7 @@ import { ResolvedOutput } from "./config/output";
 import { ChunkGroup } from "./chunk_group";
 import { Compiler } from "./compiler";
 import ResolverFactory from "./ResolverFactory";
+import { Stats } from "./stats";
 
 const hashDigestLength = 8;
 const EMPTY_ASSET_INFO = {};
@@ -218,6 +219,10 @@ export class Compilation {
 		return this.#inner.buildDependencies;
 	}
 
+	getStats() {
+		return new Stats(this);
+	}
+
 	/**
 	 * Get the `Source` of an given asset filename.
 	 *
@@ -255,8 +260,8 @@ export class Compilation {
 		return this.#inner.hasAsset(name);
 	}
 
-	createStats() {
-		return {};
+	__internal_getInner() {
+		return this.#inner;
 	}
 
 	seal() {}

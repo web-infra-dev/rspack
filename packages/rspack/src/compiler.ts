@@ -102,7 +102,6 @@ class Compiler {
 		this.#_instance =
 			this.#_instance ||
 			new binding.Rspack(options, {
-				done: this.#done.bind(this),
 				processAssets: this.#processAssets.bind(this),
 				// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
 				// We know that the hook `thisCompilation` will not be called from a child compiler(it doesn't matter whether the child compiler is created on the Rust or the Node side).
@@ -197,13 +196,6 @@ class Compiler {
 			}
 		);
 	}
-	/**
-	 * @todo remove it in the future
-	 * @param err
-	 * @param value
-	 * @returns
-	 */
-	#done(statsJson: binding.JsStatsCompilation) {}
 
 	async #processAssets() {
 		await this.compilation.hooks.processAssets.promise(
@@ -265,11 +257,11 @@ class Compiler {
 						return finalCallback(err);
 					}
 
-					this.build((err, rawStats) => {
+					this.build(err => {
 						if (err) {
 							return finalCallback(err);
 						}
-						const stats = new Stats(rawStats, this.compilation);
+						const stats = new Stats(this.compilation);
 						this.hooks.done.callAsync(stats, err => {
 							if (err) {
 								return finalCallback(err);
@@ -284,15 +276,14 @@ class Compiler {
 		doRun();
 	}
 	// Safety: This method is only valid to call if the previous build task is finished, or there will be data races.
-	build(cb: Callback<Error, binding.JsStatsCompilation>) {
-		const build_cb = this.#instance.unsafe_build.bind(this.#instance) as (
-			cb: Callback<Error, binding.JsStatsCompilation>
-		) => void;
-		build_cb((err, stats) => {
+	build(cb: (error?: Error) => void) {
+		const unsafe_build = this.#instance.unsafe_build;
+		const build_cb = unsafe_build.bind(this.#instance) as typeof unsafe_build;
+		build_cb(err => {
 			if (err) {
 				cb(err);
 			} else {
-				cb(null, stats);
+				cb(null);
 			}
 		});
 	}
@@ -300,18 +291,17 @@ class Compiler {
 	rebuild(
 		modifiedFiles: ReadonlySet<string>,
 		removedFiles: ReadonlySet<string>,
-		cb: (error?: Error, stats?: binding.JsStatsCompilation) => void
+		cb: (error?: Error) => void
 	) {
-		const rebuild_cb = this.#instance.unsafe_rebuild.bind(this.#instance) as (
-			changed: string[],
-			removed: string[],
-			cb: Callback<Error, any>
-		) => void;
-		rebuild_cb([...modifiedFiles], [...removedFiles], (err, stats) => {
+		const unsafe_rebuild = this.#instance.unsafe_rebuild;
+		const rebuild_cb = unsafe_rebuild.bind(
+			this.#instance
+		) as typeof unsafe_rebuild;
+		rebuild_cb([...modifiedFiles], [...removedFiles], err => {
 			if (err) {
 				cb(err);
 			} else {
-				cb(null, stats);
+				cb(null);
 			}
 		});
 	}

@@ -10,7 +10,7 @@ use rspack_sources::{RawSource, SourceExt};
 
 use crate::{
   fast_set, AssetInfo, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler, ModuleIdentifier,
-  RenderManifestArgs, RuntimeSpec, Stats,
+  RenderManifestArgs, RuntimeSpec,
 };
 
 const HOT_UPDATE_MAIN_FILENAME: &str = "hot-update.json";
@@ -43,7 +43,7 @@ impl Compiler {
     &mut self,
     changed_files: std::collections::HashSet<String>,
     removed_files: std::collections::HashSet<String>,
-  ) -> Result<Stats> {
+  ) -> Result<()> {
     let old = self.compilation.get_stats();
     let collect_changed_modules = |compilation: &Compilation| -> (
       HashMap<ModuleIdentifier, u64>,
@@ -161,7 +161,7 @@ impl Compiler {
 
     // ----
     if hot_update_main_content_by_runtime.is_empty() {
-      return Ok(self.stats());
+      return Ok(());
     }
 
     let (now_changed_modules, now_all_modules, now_runtime_modules) =
@@ -389,6 +389,6 @@ impl Compiler {
       )?;
     }
 
-    Ok(self.stats())
+    Ok(())
   }
 }

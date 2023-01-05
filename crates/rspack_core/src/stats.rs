@@ -31,8 +31,8 @@ impl<'compilation> Stats<'compilation> {
   }
 }
 
-impl<'compilation> Stats<'compilation> {
-  pub fn to_description(&self) -> Result<StatsCompilation> {
+impl Stats<'_> {
+  pub fn get_assets(&self) -> Vec<StatsAsset> {
     let mut compilation_file_to_chunks: HashMap<&String, Vec<&Chunk>> = HashMap::new();
     for (_, chunk) in &self.compilation.chunk_by_ukey {
       for file in &chunk.files {
@@ -78,11 +78,11 @@ impl<'compilation> Stats<'compilation> {
       }
     }
     let mut assets: Vec<StatsAsset> = assets.into_values().collect();
-    assets.sort_by(|a, b| {
-      // SAFETY: size should not be NAN.
-      b.size.partial_cmp(&a.size).expect("TODO:")
-    });
+    assets.sort_by(|a, b| b.size.partial_cmp(&a.size).expect("size should not be NAN"));
+    assets
+  }
 
+  pub fn get_modules(&self) -> Result<Vec<StatsModule>> {
     let mut modules: Vec<StatsModule> = self
       .compilation
       .module_graph
@@ -177,7 +177,10 @@ impl<'compilation> Stats<'compilation> {
         a.name.cmp(&b.name)
       }
     }); // TODO: sort by module.depth
+    Ok(modules)
+  }
 
+  pub fn get_chunks(&self) -> Vec<StatsChunk> {
     let mut chunks: Vec<StatsChunk> = self
       .compilation
       .chunk_by_ukey
@@ -201,7 +204,10 @@ impl<'compilation> Stats<'compilation> {
       })
       .collect();
     chunks.sort_by_cached_key(|v| v.id.to_string());
+    chunks
+  }
 
+  pub fn get_entrypoints(&self) -> Vec<StatsEntrypoint> {
     let mut entrypoints: Vec<StatsEntrypoint> = self
       .compilation
       .entrypoints
@@ -255,38 +261,35 @@ impl<'compilation> Stats<'compilation> {
       })
       .collect();
     entrypoints.sort_by_cached_key(|e| e.name.to_string());
+    entrypoints
+  }
 
+  pub fn get_errors(&self) -> Vec<StatsError> {
     let mut diagnostic_displayer = DiagnosticDisplayer::new(self.compilation.options.stats.colors);
-    let errors: Vec<StatsError> = self
+    self
       .compilation
       .get_errors()
       .map(|d| StatsError {
         message: d.message.clone(),
         formatted: diagnostic_displayer.emit_diagnostic(d).expect("TODO:"),
       })
-      .collect();
-    let warnings: Vec<StatsWarning> = self
+      .collect()
+  }
+
+  pub fn get_warnings(&self) -> Vec<StatsWarning> {
+    let mut diagnostic_displayer = DiagnosticDisplayer::new(self.compilation.options.stats.colors);
+    self
       .compilation
       .get_warnings()
       .map(|d| StatsWarning {
         message: d.message.clone(),
         formatted: diagnostic_displayer.emit_diagnostic(d).expect("TODO:"),
       })
-      .collect();
+      .collect()
+  }
 
-    let hash = self.compilation.hash.to_owned();
-
-    Ok(StatsCompilation {
-      assets,
-      modules,
-      chunks,
-      entrypoints,
-      errors_count: errors.len(),
-      errors,
-      warnings_count: warnings.len(),
-      warnings,
-      hash,
-    })
+  pub fn get_hash(&self) -> String {
+    self.compilation.hash.to_owned()
   }
 }
 
@@ -304,19 +307,6 @@ fn get_stats_module_name_and_id(module: &BoxModule, compilation: &Compilation) -
   let name = module.readable_identifier(&compilation.options.context);
   let id = mgm.id(&compilation.chunk_graph);
   (name.to_string(), id.to_string())
-}
-
-#[derive(Debug)]
-pub struct StatsCompilation {
-  pub assets: Vec<StatsAsset>,
-  pub modules: Vec<StatsModule>,
-  pub chunks: Vec<StatsChunk>,
-  pub errors: Vec<StatsError>,
-  pub errors_count: usize,
-  pub warnings: Vec<StatsWarning>,
-  pub warnings_count: usize,
-  pub entrypoints: Vec<StatsEntrypoint>,
-  pub hash: String,
 }
 
 #[derive(Debug)]

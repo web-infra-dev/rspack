@@ -14,10 +14,11 @@ pub async fn test_fixture<F: FnOnce(&Stats, Settings) -> rspack_error::Result<()
   let options: CompilerOptions = RawOptions::from_fixture(fixture_path).to_compiler_options();
   let mut compiler = rspack::rspack(options, Default::default());
 
-  let stats = compiler
+  compiler
     .build()
     .await
     .unwrap_or_else(|_| panic!("failed to compile in fixtrue {:?}", fixture_path));
+  let stats = compiler.compilation.get_stats();
   let mut settings = Settings::clone_current();
   settings.remove_snapshot_suffix();
   settings.set_snapshot_path(fixture_path);

@@ -6,7 +6,9 @@ use napi::NapiRaw;
 
 use rspack_core::rspack_sources::SourceExt;
 
-use crate::{CompatSource, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, ToJsCompatSource};
+use crate::{
+  CompatSource, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsStats, ToJsCompatSource,
+};
 
 #[napi]
 pub struct JsCompilation {
@@ -251,6 +253,13 @@ impl JsCompilation {
         .get_unchecked_mut()
         .push_diagnostic(diagnostic);
     };
+  }
+
+  #[napi]
+  pub fn get_stats(&self, reference: Reference<JsCompilation>, env: Env) -> Result<JsStats> {
+    Ok(JsStats::new(reference.share_with(env, |compilation| {
+      Ok(compilation.inner.get_stats())
+    })?))
   }
 }
 

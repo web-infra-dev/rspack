@@ -292,18 +292,14 @@ export class RspackDevServer {
 					if (req.url.indexOf("/lazy-compilation-web/") > -1) {
 						const path = req.url.replace("/lazy-compilation-web/", "");
 						if (fs.existsSync(path)) {
-							this.compiler.rebuild(
-								new Set([path]),
-								new Set(),
-								(error, stats) => {
-									if (error) {
-										throw error;
-									}
-									res.write("");
-									res.end();
-									console.log("lazy compiler success");
+							this.compiler.rebuild(new Set([path]), new Set(), error => {
+								if (error) {
+									throw error;
 								}
-							);
+								res.write("");
+								res.end();
+								console.log("lazy compiler success");
+							});
 						}
 					}
 				}

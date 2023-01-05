@@ -1,5 +1,4 @@
-import * as binding from "@rspack/binding";
-import type { Compiler } from ".";
+import type { Compilation, Compiler } from ".";
 import { Stats } from ".";
 import { WatchOptions } from "./config/watch";
 import { FileSystemInfoEntry, Watcher } from "./util/fs";
@@ -122,19 +121,19 @@ class Watching {
 		const begin = Date.now();
 		this.compiler.hooks.watchRun.callAsync(this.compiler, err => {
 			if (err) this.#done(err);
-			compile(changedFiles, removedFiles, (err, rawStats) => {
-				this.#done(err, rawStats);
+			compile(changedFiles, removedFiles, err => {
+				this.#done(err);
 				console.log("rebuild success, time cost", Date.now() - begin, "ms");
 			});
 		});
 	}
 
-	#done(error?: Error, rawStats?: binding.JsStatsCompilation) {
+	#done(error?: Error) {
 		this.running = false;
 		if (error) {
 			return this.handler(error);
 		}
-		const stats = new Stats(rawStats, this.compiler.compilation);
+		const stats = new Stats(this.compiler.compilation);
 		this.handler(undefined, stats);
 		this.compiler.hooks.done.callAsync(stats, () => {
 			const hasPending =

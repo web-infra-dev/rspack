@@ -79,15 +79,12 @@ export function describeCases(config: {
 									config.hot
 								);
 								compiler = rspack(options);
-								compiler.build((err, rawStats) => {
+								compiler.build(err => {
 									if (err) {
 										return done(err);
 									}
-									if (!rawStats) {
-										return done(Error("cant find stats"));
-									}
 
-									const stats = new Stats(rawStats, compiler!.compilation);
+									const stats = new Stats(compiler!.compilation);
 									const jsonStats = stats.toJson();
 									if (
 										checkArrayExpectation(
@@ -232,49 +229,39 @@ export function describeCases(config: {
 										if (changed.length === 0) {
 											throw Error("can not found changed files");
 										}
-										compiler.rebuild(
-											new Set(changed),
-											new Set(),
-											(err, rawStats) => {
-												if (err) {
-													return callback(err);
-												}
-												if (!rawStats) {
-													return callback(
-														Error("stats is undefined in rebuild")
-													);
-												}
-												const jsonStats = new Stats(
-													rawStats,
-													compiler!.compilation
-												).toJson();
-												if (
-													checkArrayExpectation(
-														testDirectory,
-														jsonStats,
-														"error",
-														"errors" + fakeUpdateLoaderOptions.updateIndex,
-														"Error",
-														callback
-													)
-												) {
-													return;
-												}
-												if (
-													checkArrayExpectation(
-														testDirectory,
-														jsonStats,
-														"warning",
-														"warnings" + fakeUpdateLoaderOptions.updateIndex,
-														"Warning",
-														callback
-													)
-												) {
-													return;
-												}
-												callback(null, jsonStats);
+										compiler.rebuild(new Set(changed), new Set(), err => {
+											if (err) {
+												return callback(err);
 											}
-										);
+											const jsonStats = new Stats(
+												compiler!.compilation
+											).toJson();
+											if (
+												checkArrayExpectation(
+													testDirectory,
+													jsonStats,
+													"error",
+													"errors" + fakeUpdateLoaderOptions.updateIndex,
+													"Error",
+													callback
+												)
+											) {
+												return;
+											}
+											if (
+												checkArrayExpectation(
+													testDirectory,
+													jsonStats,
+													"warning",
+													"warnings" + fakeUpdateLoaderOptions.updateIndex,
+													"Warning",
+													callback
+												)
+											) {
+												return;
+											}
+											callback(null, jsonStats);
+										});
 									}
 									function _require(module: string) {
 										if (module.startsWith("./")) {
