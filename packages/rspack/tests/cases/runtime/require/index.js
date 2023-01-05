@@ -34,3 +34,27 @@ it("should transform typeof require indent", () => {
 	const { testTypeofRequire } = require("./typeof-require");
 	expect(testTypeofRequire()).toBe(true);
 });
+
+it("should rewrite require url successfully", () => {
+	const a = {
+		v1: () => {
+			return require("./typeof-require").testTypeofRequire();
+		},
+		v2: require("./typeof-require").testTypeofRequire()
+	};
+	function b() {
+		const a = {
+			v1: require("./typeof-require").testTypeofRequire()
+		};
+		expect(a.v1).toBe(true);
+	}
+	expect(a.v1()).toBe(true);
+	expect(a.v2).toBe(true);
+	b();
+});
+
+import context from "./context";
+
+it("should rewrite require url successfully in context", () => {
+	expect(context.foo).toBe("foo");
+});

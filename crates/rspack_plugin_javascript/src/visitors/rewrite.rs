@@ -86,6 +86,7 @@ impl<'a> VisitMut for RewriteModuleUrl<'a> {
       }
       _ => (),
     }
+    n.visit_mut_children_with(self);
   }
 
   fn visit_mut_call_expr(&mut self, n: &mut CallExpr) {
