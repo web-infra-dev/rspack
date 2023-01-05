@@ -5,6 +5,7 @@ use hashbrown::{
   hash_set::Entry::{Occupied, Vacant},
   HashMap, HashSet,
 };
+use hashlink::LinkedHashSet;
 use indexmap::IndexSet;
 use petgraph::{algo, prelude::GraphMap, Directed};
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
@@ -845,7 +846,14 @@ impl Compilation {
             }
           })
           .collect::<HashMap<JsWord, SymbolRef>>();
-        inherit_export_maps.insert(*inherit_export_module_identifier, export_module);
+        match inherit_export_maps.entry(*inherit_export_module_identifier) {
+          hashlink::lru_cache::Entry::Occupied(mut occ) => {
+            *occ.borrow_mut().get_mut() = export_module;
+          }
+          hashlink::lru_cache::Entry::Vacant(vac) => {
+            vac.insert(export_module);
+          }
+        }
       }
       analyze_results
         .get_mut(module_id)
@@ -1499,12 +1507,10 @@ fn mark_symbol(
   errors: &mut Vec<Error>,
 ) {
   // if debug_care_module_id(symbol_ref.module_identifier()) {
-  //   dbg!(&symbol_ref);
+  // dbg!(&symbol_ref);
   // }
   // We don't need mark the symbol usage if it is from a bailout module because
   // bailout module will skipping tree-shaking anyway
-  // if debug_care_module_id(symbol_ref.module_identifier()) {
-  // }
   let is_bailout_module_identifier =
     bailout_module_identifiers.contains_key(&symbol_ref.module_identifier());
   match &symbol_ref {
@@ -1514,7 +1520,7 @@ fn mark_symbol(
     SymbolRef::Indirect(indirect) => {
       used_export_module_identifiers.insert(indirect.uri());
     }
-    SymbolRef::Star(_) => {}
+    _ => {}
   };
   match symbol_ref {
     SymbolRef::Direct(symbol) => match used_symbol_set.entry(symbol) {
@@ -1601,7 +1607,6 @@ fn mark_symbol(
           }
 
           // FIXME: this is just a workaround for dependency replacement
-          // dbg!(&ret, indirect_symbol.uri());
           if !ret.is_empty() && !evaluated_module_identifiers.contains(&indirect_symbol.uri) {
             q.extend(module_result.used_symbol_ref.clone());
             evaluated_module_identifiers.insert(indirect_symbol.uri());
@@ -1698,12 +1703,32 @@ fn mark_symbol(
           return;
         }
       };
+      evaluated_module_identifiers.insert(src);
+      used_export_module_identifiers.insert(src);
+
       for symbol_ref in analyze_refsult.export_map.values() {
         q.push_back(symbol_ref.clone());
       }
 
       for (_, extend_map) in analyze_refsult.inherit_export_maps.iter() {
-        q.extend(extend_map.values().cloned());
+        for s in extend_map.values() {
+          q.push_back(s.clone());
+          let tuple = (src, s.module_identifier());
+          if !traced_tuple.contains(&tuple) {
+            used_export_module_identifiers.extend(
+              algo::all_simple_paths::<Vec<_>, _>(
+                &inherit_extend_graph,
+                src,
+                s.module_identifier(),
+                0,
+                None,
+              )
+              .into_iter()
+              .flatten(),
+            );
+            traced_tuple.insert(tuple);
+          }
+        }
       }
     }
   }
@@ -1711,7 +1736,7 @@ fn mark_symbol(
 
 fn get_extends_map(
   export_all_ref_graph: &GraphMap<Ustr, (), petgraph::Directed>,
-) -> HashMap<Ustr, HashSet<Ustr>> {
+) -> HashMap<Ustr, LinkedHashSet<Ustr>> {
   let mut map = HashMap::new();
   for node in export_all_ref_graph.nodes() {
     let reachable_set = get_reachable(node, export_all_ref_graph);
@@ -1719,9 +1744,9 @@ fn get_extends_map(
   }
   map
 }
-fn get_reachable(start: Ustr, g: &GraphMap<Ustr, (), petgraph::Directed>) -> HashSet<Ustr> {
+fn get_reachable(start: Ustr, g: &GraphMap<Ustr, (), petgraph::Directed>) -> LinkedHashSet<Ustr> {
   let mut visited: HashSet<Ustr> = HashSet::new();
-  let mut reachable_module_id = HashSet::new();
+  let mut reachable_module_id = LinkedHashSet::new();
   let mut q = VecDeque::from_iter([start]);
   while let Some(cur) = q.pop_front() {
     match visited.entry(cur) {

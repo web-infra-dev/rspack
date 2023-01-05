@@ -1,2 +1,4 @@
-import {Something}  from './export'
+import {Something, Colors}  from './export'
+
+Colors.result
 Something
