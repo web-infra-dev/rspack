@@ -1,3 +1,6 @@
+mod analyze_imports_with_path;
+pub use analyze_imports_with_path::*;
+
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
@@ -26,7 +29,8 @@ pub fn analyze_dependencies(
   code_generation_dependencies: &mut Vec<Box<dyn ModuleDependency>>,
   diagnostics: &mut Vec<Diagnostic>,
 ) -> Vec<Box<dyn ModuleDependency>> {
-  ss.visit_mut_with(&mut RemoveAtImport);
+  // TODO: use dependency to remove at import
+  // ss.visit_mut_with(&mut RemoveAtImport);
 
   let mut v = Analyzer {
     deps: Vec::new(),

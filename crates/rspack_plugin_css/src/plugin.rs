@@ -7,7 +7,8 @@ use itertools::Itertools;
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
 use rspack_core::{
-  AstOrSource, CssImportDependency, Filename, Mode, ModuleAst, ModuleDependency, ModuleIdentifier,
+  AstOrSource, CssImportDependency, DependencyCategory, Filename, Mode, ModuleAst,
+  ModuleDependency, ModuleIdentifier,
 };
 use std::cmp;
 use std::hash::{Hash, Hasher};
@@ -44,6 +45,7 @@ use rspack_error::{
 use tracing::instrument;
 
 use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
+use crate::visitors::analyze_imports_with_path;
 // use crate::visitors::rewrite_url;
 use crate::{
   pxtorem::{option::PxToRemOption, px_to_rem::px_to_rem},
@@ -406,7 +408,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     }
 
     let locals = if css_modules {
-      let imports = swc_core::css::modules::imports::analyze_imports(&stylesheet);
+      let imports_with_path = analyze_imports_with_path(&stylesheet);
       let path = Path::new(&resource_data.resource_path).relative(&compiler_options.context);
       let result = swc_core::css::modules::compile(
         &mut stylesheet,
@@ -421,24 +423,21 @@ impl ParserAndGenerator for CssParserAndGenerator {
       );
       let mut exports: IndexMap<JsWord, _> = result.renamed.into_iter().collect();
       exports.sort_keys();
-      Some((imports, exports))
+      Some((imports_with_path, exports))
     } else {
       None
     };
+
+    let (local_imports, local_exports) = locals.unzip();
 
     let mut dependencies = analyze_dependencies(
       &mut stylesheet,
       code_generation_dependencies,
       &mut diagnostic,
     );
-    let dependencies = if let Some((imports, _)) = &locals && !imports.is_empty() {
-      dependencies.extend(imports.iter().map(|import| box CssImportDependency::new(import.to_string(), None, vec![]) as Box<dyn ModuleDependency>
-      // {
-      //   specifier: import.to_string(),
-      //   kind: rspack_core::ResolveKind::AtImport,
-      //   span: None,
-      // }
-      ));
+
+    let dependencies = if let Some(imports) = local_imports && !imports.is_empty() {
+      dependencies.extend(imports.into_iter().map(|(import, ast_path)| box CssImportDependency::new(import.to_string(), None, ast_path.clone()) as Box<dyn ModuleDependency>));
       dependencies.into_iter().unique().collect()
     } else {
       dependencies
@@ -448,7 +447,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     }).collect();
 
     self.meta = additional_data.and_then(|data| if data.is_empty() { None } else { Some(data) });
-    self.exports = locals.map(|(_, exports)| exports);
+    self.exports = local_exports;
 
     if self.meta.is_some() && self.exports.is_some() {
       diagnostic.push(Diagnostic::warn("CSS Modules".to_string(), format!("file: {} is using `postcss.modules` and `builtins.css.modules` to process css modules at the same time, rspack will use `builtins.css.modules`'s result.", resource_data.resource_path.display()), 0, 0));

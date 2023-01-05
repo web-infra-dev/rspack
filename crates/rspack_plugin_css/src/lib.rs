@@ -1,5 +1,6 @@
 #![feature(box_patterns)]
 #![feature(box_syntax)]
+#![feature(unzip_option)]
 
 pub mod plugin;
 pub mod pxtorem;
