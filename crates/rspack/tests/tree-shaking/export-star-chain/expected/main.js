@@ -60,29 +60,16 @@ const result = 'ssss';
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-<<<<<<< HEAD
-Object.defineProperty(exports, "Something", {
-    enumerable: true,
-    get: ()=>_layoutJs.Something
-});
-const _layoutJs = __webpack_require__("./Layout.js");
-=======
 __webpack_require__.exportStar(__webpack_require__("./Layout.js"), exports);
->>>>>>> 6da20c06 (fix: 🐛 fix tree-shaking issue)
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-<<<<<<< HEAD
 const _exportJs = __webpack_require__("./export.js");
+_exportJs.Colors.result;
 _exportJs.Something;
-=======
-const _export = __webpack_require__("./export.js");
-_export.Colors.result;
-_export.Something;
->>>>>>> 6da20c06 (fix: 🐛 fix tree-shaking issue)
 },
 "./something/Something.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -103,9 +90,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "Colors", {
     enumerable: true,
-    get: ()=>_index
+    get: ()=>_indexJs
 });
-const _index = __webpack_require__.interopRequire(__webpack_require__("./colors/index.js"));
+const _indexJs = __webpack_require__.interopRequire(__webpack_require__("./colors/index.js"));
 __webpack_require__.exportStar(__webpack_require__("./something/Something.js"), exports);
 },
 
