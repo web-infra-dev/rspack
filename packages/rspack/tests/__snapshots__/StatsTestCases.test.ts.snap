@@ -108,7 +108,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "a34a24297991a58c",
+  "hash": "bb47ee401b9abbaf",
   "modules": [
     {
       "chunks": [
@@ -160,7 +160,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for filename 2`] = `
-"Hash: a34a24297991a58c
+"Hash: bb47ee401b9abbaf
              Asset       Size      Chunks             Chunk Names
       main.xxxx.js   1.29 KiB        main  [emitted]  main
 dynamic_js.xxxx.js  218 bytes  dynamic_js  [emitted]  
@@ -225,7 +225,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "b44973e10b4edb68",
+  "hash": "e88ce624c5bbf24f",
   "modules": [
     {
       "chunks": [
@@ -249,7 +249,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 2`] = `
-"Hash: b44973e10b4edb68
+"Hash: e88ce624c5bbf24f
     Asset      Size  Chunks             Chunk Names
 bundle.js  8.76 KiB    main  [emitted]  main
 Entrypoint main = bundle.js

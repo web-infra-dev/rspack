@@ -2,6 +2,7 @@ use hashbrown::HashSet;
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
   runtime_globals, ChunkGraph, ChunkUkey, Compilation, ModuleGraph, RuntimeModule, SourceType,
+  RUNTIME_MODULE_STAGE_ATTACH,
 };
 
 use super::utils::{stringify_chunks, stringify_chunks_to_array};
@@ -125,5 +126,9 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
   fn attach(&mut self, chunk: ChunkUkey) {
     self.chunk = Some(chunk);
+  }
+
+  fn stage(&self) -> u8 {
+    RUNTIME_MODULE_STAGE_ATTACH
   }
 }
