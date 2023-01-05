@@ -36,6 +36,10 @@ pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -
     }
   };
   if options.dev_server.hot {
+    // https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/HotModuleReplacementPlugin.js#L87-L89
+    if options.output.strict_module_error_handling.is_none() {
+      options.output.strict_module_error_handling = Some(true);
+    }
     plugins.push(Box::new(
       rspack_plugin_runtime::HotModuleReplacementPlugin {},
     ));

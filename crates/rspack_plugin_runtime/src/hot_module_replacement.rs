@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::runtime_module::HotModuleReplacementRuntimeModule;
 use async_trait::async_trait;
 use rspack_core::{
@@ -19,19 +17,8 @@ impl Plugin for HotModuleReplacementPlugin {
 
   fn apply(
     &mut self,
-    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
+    _ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
   ) -> Result<()> {
-    unsafe {
-      let compiler_options = Arc::get_mut_unchecked(&mut ctx.context.compiler_options);
-      if compiler_options
-        .output
-        .strict_module_error_handling
-        .is_none()
-      {
-        compiler_options.output.strict_module_error_handling = Some(true);
-      }
-    }
-
     Ok(())
   }
 

@@ -1,11 +1,11 @@
-use std::{fmt::Debug, sync::Arc};
+use std::fmt::Debug;
 
 use hashbrown::HashMap;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkUkey, Compilation, CompilationArgs,
-  CompilerOptions, ContentHashArgs, DoneArgs, FactorizeArgs, FactorizeResult, Module, ModuleArgs,
-  ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
+  ContentHashArgs, DoneArgs, FactorizeArgs, FactorizeResult, Module, ModuleArgs, ModuleType,
+  NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
   ProcessAssetsArgs, RenderChunkArgs, RenderManifestArgs, ThisCompilationArgs,
 };
 use rspack_error::Result;
@@ -217,21 +217,14 @@ pub type BoxedParserAndGenerator = Box<dyn ParserAndGenerator>;
 pub type BoxedParserAndGeneratorBuilder =
   Box<dyn 'static + Send + Sync + Fn() -> BoxedParserAndGenerator>;
 
+#[derive(Default)]
 pub struct ApplyContext {
   // pub(crate) registered_parser: HashMap<ModuleType, BoxedParser>,
   pub(crate) registered_parser_and_generator_builder:
     HashMap<ModuleType, BoxedParserAndGeneratorBuilder>,
-  pub compiler_options: Arc<CompilerOptions>,
 }
 
 impl ApplyContext {
-  pub fn new(compiler_options: Arc<CompilerOptions>) -> Self {
-    Self {
-      registered_parser_and_generator_builder: HashMap::new(),
-      compiler_options,
-    }
-  }
-
   // pub fn register_parser(&mut self, module_type: ModuleType, parser: BoxedParser) {
   //   self.registered_parser.insert(module_type, parser);
   // }

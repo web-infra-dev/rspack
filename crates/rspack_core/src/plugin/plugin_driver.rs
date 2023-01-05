@@ -54,7 +54,7 @@ impl PluginDriver {
     let registered_parser_and_generator_builder = plugins
       .par_iter_mut()
       .map(|plugin| {
-        let mut apply_context = ApplyContext::new(options.clone());
+        let mut apply_context = ApplyContext::default();
         plugin
           .apply(PluginContext::with_context(&mut apply_context))
           .expect("TODO:");

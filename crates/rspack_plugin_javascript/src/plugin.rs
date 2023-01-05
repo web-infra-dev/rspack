@@ -38,12 +38,10 @@ impl JsPlugin {
       .chunk_graph
       .get_chunk_runtime_requirements(&args.chunk_ukey);
 
-    let strict_module_error_handling = args
-      .compilation
-      .options
-      .output
-      .strict_module_error_handling
-      .is_some();
+    let strict_module_error_handling = matches!(
+      args.compilation.options.output.strict_module_error_handling,
+      Some(true)
+    );
     let mut sources = ConcatSource::default();
 
     sources.add(RawSource::from(
