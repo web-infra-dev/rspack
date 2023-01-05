@@ -90,7 +90,7 @@ impl ModuleDependency for EsmImportDependency {
   }
 }
 
-static SWC_HELPERS_REG: once_cell::sync::Lazy<regex::Regex> =
+static _SWC_HELPERS_REG: once_cell::sync::Lazy<regex::Regex> =
   once_cell::sync::Lazy::new(|| regex::Regex::new(r"@swc/helpers/lib/(\w*)\.js$").expect("TODO:"));
 
 impl CodeGeneratable for EsmImportDependency {
@@ -116,11 +116,10 @@ impl CodeGeneratable for EsmImportDependency {
       })
       .expect("Failed to get module graph module");
 
-    let module_id = target_mgm.id(&compilation.chunk_graph).to_string();
+    let _module_id = target_mgm.id(&compilation.chunk_graph).to_string();
 
-    let v = create_javascript_visitor!(&self.ast_path, visit_mut_module_decl(n: &mut ModuleDecl) {
-        println!("visit_mut_module_decl: {:?}", n);
-    });
+    let v =
+      create_javascript_visitor!(&self.ast_path, visit_mut_module_decl(n: &mut ModuleDecl) {});
 
     code_gen.visitors.push(v);
 

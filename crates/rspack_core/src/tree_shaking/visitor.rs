@@ -1052,28 +1052,15 @@ impl<'a> ModuleRefAnalyze<'a> {
     };
   }
 
-  /// Try to get the module_identifier from `src`, `resolve_kind`, and `importer`
+  /// Try to get the module_identifier from `src`, `dependency_type`, and `importer`
   /// For simplicity, this function will assume the importer is always `self.module_identifier`
   /// # Panic
   /// This function will panic if can't find
   fn resolve_module_identifier(
-    &mut self,
+    &self,
     src: String,
     dependency_type: DependencyType,
   ) -> Option<&Ustr> {
-    // let dep = Dependency {
-    //   detail: crate::ModuleDependency {
-    //     specifier: src,
-    //     kind: resolve_kind,
-    //     span: None,
-    //   },
-    //   parent_module_identifier: Some(self.module_identifier),
-    // };
-    // self
-    //   .module_graph
-    //   .module_by_dependency(&dep)
-    //   .map(|module| &module.module_identifier)
-
     self
       .module_graph
       .module_graph_module_by_identifier(&self.module_identifier)
