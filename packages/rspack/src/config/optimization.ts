@@ -1,19 +1,22 @@
 import { PluginInstance } from "./plugin";
-import { OptimizationSplitChunksOptions, resolveSplitChunksOptions } from "./splitChunks";
-import type { RawSplitChunksOptions } from '@rspack/binding'
+import {
+	OptimizationSplitChunksOptions,
+	resolveSplitChunksOptions
+} from "./splitChunks";
+import type { RawSplitChunksOptions } from "@rspack/binding";
 
 export interface Optimization {
 	moduleIds?: "named" | "deterministic";
 	minimize?: boolean;
 	minimizer?: ("..." | PluginInstance)[];
-	splitChunks?: OptimizationSplitChunksOptions,
+	splitChunks?: OptimizationSplitChunksOptions;
 }
 
 export interface ResolvedOptimization {
 	moduleIds: "named" | "deterministic";
 	minimize?: boolean;
 	minimizer?: ("..." | PluginInstance)[];
-	splitChunks?: RawSplitChunksOptions,
+	splitChunks?: RawSplitChunksOptions;
 }
 
 export function resolveOptimizationOptions(

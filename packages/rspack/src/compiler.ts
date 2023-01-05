@@ -16,10 +16,10 @@ import ResolverFactory from "./ResolverFactory";
 import { WatchFileSystem } from "./util/fs";
 
 class EntryPlugin {
-	apply() { }
+	apply() {}
 }
 class HotModuleReplacementPlugin {
-	apply() { }
+	apply() {}
 }
 type CompilationParams = Record<string, any>;
 class Compiler {
