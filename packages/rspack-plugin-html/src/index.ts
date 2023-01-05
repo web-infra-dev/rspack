@@ -30,9 +30,9 @@ export interface Options {
 	 * @default 'auto'
 	 */
 	chunksSortMode?:
-		| "auto"
-		| "manual"
-		| ((entryNameA: string, entryNameB: string) => number);
+	| "auto"
+	| "manual"
+	| ((entryNameA: string, entryNameB: string) => number);
 	/**
 	 * List all entries which should not be injected
 	 */
@@ -64,10 +64,10 @@ export interface Options {
 	 * Inject all assets into the given `template` or `templateContent`.
 	 */
 	inject?:
-		| false // Don't inject scripts
-		| true // Inject scripts into body
-		| "body" // Inject scripts into body
-		| "head"; // Inject scripts into head
+	| false // Don't inject scripts
+	| true // Inject scripts into body
+	| "body" // Inject scripts into body
+	| "head"; // Inject scripts into head
 	/**
 	 * Set up script loading
 	 * blocking will result in <script src="..."></script>
@@ -80,13 +80,13 @@ export interface Options {
 	 * Inject meta tags
 	 */
 	meta?:
-		| false // Disable injection
-		| {
-				[name: string]:
-					| string
-					| false // name content pair e.g. {viewport: 'width=device-width, initial-scale=1, shrink-to-fit=no'}`
-					| { [attributeName: string]: string | boolean }; // custom properties e.g. { name:"viewport" content:"width=500, initial-scale=1" }
-		  };
+	| false // Disable injection
+	| {
+		[name: string]:
+		| string
+		| false // name content pair e.g. {viewport: 'width=device-width, initial-scale=1, shrink-to-fit=no'}`
+		| { [attributeName: string]: string | boolean }; // custom properties e.g. { name:"viewport" content:"width=500, initial-scale=1" }
+	};
 	/**
 	 * HTML Minification options accepts the following values:
 	 * - Set to `false` to disable minifcation
@@ -108,12 +108,12 @@ export interface Options {
 	 * Allow to use a html string instead of reading from a file
 	 */
 	templateContent?:
-		| false // Use the template option instead to load a file
-		| string
-		| ((templateParameters: {
-				[option: string]: any;
-		  }) => string | Promise<string>)
-		| Promise<string>;
+	| false // Use the template option instead to load a file
+	| string
+	| ((templateParameters: {
+		[option: string]: any;
+	}) => string | Promise<string>)
+	| Promise<string>;
 	/**
 	 * Compile template to js code.
 	 */
@@ -122,23 +122,23 @@ export interface Options {
 	 * Allows to overwrite the parameters used in the template
 	 */
 	templateParameters?:
-		| false // Pass an empty object to the template function
-		| ((
-				compilation: any,
-				assets: {
-					publicPath: string;
-					js: Array<string>;
-					css: Array<string>;
-					manifest?: string;
-					favicon?: string;
-				},
-				assetTags: {
-					headTags: HtmlTagObject[];
-					bodyTags: HtmlTagObject[];
-				},
-				options: ProcessedOptions
-		  ) => { [option: string]: any } | Promise<{ [option: string]: any }>)
-		| { [option: string]: any };
+	| false // Pass an empty object to the template function
+	| ((
+		compilation: any,
+		assets: {
+			publicPath: string;
+			js: Array<string>;
+			css: Array<string>;
+			manifest?: string;
+			favicon?: string;
+		},
+		assetTags: {
+			headTags: HtmlTagObject[];
+			bodyTags: HtmlTagObject[];
+		},
+		options: ProcessedOptions
+	) => { [option: string]: any } | Promise<{ [option: string]: any }>)
+	| { [option: string]: any };
 	/**
 	 * The title to use for the generated HTML document
 	 */
@@ -296,15 +296,15 @@ export default class HtmlRspackPlugin implements Plugin {
 			// Assert correct option spelling
 			assert(
 				options.scriptLoading === "defer" ||
-					options.scriptLoading === "blocking" ||
-					options.scriptLoading === "module",
+				options.scriptLoading === "blocking" ||
+				options.scriptLoading === "module",
 				'scriptLoading needs to be set to "defer", "blocking" or "module"'
 			);
 			assert(
 				options.inject === true ||
-					options.inject === false ||
-					options.inject === "head" ||
-					options.inject === "body",
+				options.inject === false ||
+				options.inject === "head" ||
+				options.inject === "body",
 				'inject needs to be set to true, false, "head" or "body'
 			);
 
@@ -333,8 +333,8 @@ export default class HtmlRspackPlugin implements Plugin {
 				typeof userOptionFilename === "function"
 					? userOptionFilename
 					: // Replace '[name]' with entry name
-					  (entryName: string) =>
-							userOptionFilename.replace(/\[name\]/g, entryName);
+					(entryName: string) =>
+						userOptionFilename.replace(/\[name\]/g, entryName);
 
 			/** output filenames for the given entry names */
 			const entryNames = Object.keys(compiler.options.entry);
@@ -483,8 +483,8 @@ function hookIntoCompiler(
 						// Inject scripts to body unless it set explicitly to head
 						const scriptTarget =
 							options.inject === "head" ||
-							(options.inject !== "body" &&
-								options.scriptLoading !== "blocking")
+								(options.inject !== "body" &&
+									options.scriptLoading !== "blocking")
 								? "head"
 								: "body";
 						// Group assets to `head` and `body` tag arrays
@@ -533,14 +533,14 @@ function hookIntoCompiler(
 						typeof compilationResult !== "function"
 							? compilationResult
 							: executeTemplate(
-									compilationResult,
-									assetsHookResult.assets,
-									{
-										headTags: assetTags.headTags,
-										bodyTags: assetTags.bodyTags
-									},
-									compilation
-							  )
+								compilationResult,
+								assetsHookResult.assets,
+								{
+									headTags: assetTags.headTags,
+									bodyTags: assetTags.bodyTags
+								},
+								compilation
+							)
 					);
 
 				const injectedHtmlPromise = Promise.all([
@@ -636,10 +636,10 @@ function hookIntoCompiler(
 			customPublicPath !== "auto"
 				? customPublicPath
 				: isPublicPathDefined
-				? // If a hard coded public path exists use it
-				  rspackPublicPath
-				: // If no public path was set get a relative url path
-				  path
+					? // If a hard coded public path exists use it
+					rspackPublicPath
+					: // If no public path was set get a relative url path
+					path
 						.relative(
 							path.resolve(
 								compilation.options.output.path,
@@ -733,6 +733,10 @@ function hookIntoCompiler(
 				assets[ext].push(entryPointPublicPath);
 			});
 		}
+
+		// FIXME: hack
+		assets.js.reverse();
+		console.log('assets', assets)
 		return assets;
 	}
 
@@ -916,8 +920,8 @@ function hookIntoCompiler(
 					attributes:
 						typeof baseOption === "string"
 							? {
-									href: baseOption
-							  }
+								href: baseOption
+							}
 							: baseOption
 				}
 			];
@@ -931,8 +935,8 @@ function hookIntoCompiler(
 		metaOptions:
 			| false
 			| {
-					[name: string]: false | string | { [attr: string]: string | boolean };
-			  }
+				[name: string]: false | string | { [attr: string]: string | boolean };
+			}
 	): HtmlTagObject[] {
 		if (metaOptions === false) {
 			return [];
@@ -945,9 +949,9 @@ function hookIntoCompiler(
 				const metaTagContent = metaOptions[metaName];
 				return typeof metaTagContent === "string"
 					? {
-							name: metaName,
-							content: metaTagContent
-					  }
+						name: metaName,
+						content: metaTagContent
+					}
 					: metaTagContent;
 			})
 			.filter(attribute => attribute !== false);
@@ -1063,24 +1067,24 @@ function hookIntoCompiler(
 		const templateParameterFunction =
 			typeof templateParameters === "function"
 				? // A custom function can overwrite the entire template parameter preparation
-				  templateParameters
+				templateParameters
 				: // If the template parameters is an object merge it with the default values
-				  (
-						compilation: Compilation,
-						assets: Assets,
-						assetTags: AssetTags,
-						options: ProcessedOptions
-				  ) =>
-						Object.assign(
-							{},
-							templateParametersGenerator(
-								compilation,
-								assets,
-								assetTags,
-								options
-							),
-							templateParameters
-						);
+				(
+					compilation: Compilation,
+					assets: Assets,
+					assetTags: AssetTags,
+					options: ProcessedOptions
+				) =>
+					Object.assign(
+						{},
+						templateParametersGenerator(
+							compilation,
+							assets,
+							assetTags,
+							options
+						),
+						templateParameters
+					);
 		const preparedAssetTags = {
 			headTags: prepareAssetTagGroupForRendering(assetTags.headTags),
 			bodyTags: prepareAssetTagGroupForRendering(assetTags.bodyTags)

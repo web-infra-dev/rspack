@@ -3,20 +3,19 @@
 #![allow(clippy::obfuscated_if_else)]
 #![allow(clippy::comparison_chain)]
 
-use std::{
-  collections::{HashMap, HashSet},
-  fmt::Debug,
-  sync::Arc,
-};
+use std::{collections::HashSet, fmt::Debug, sync::Arc};
 
+use hashbrown::HashMap;
 use rspack_core::{
   Chunk, ChunkGroupByUkey, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier, Plugin,
   SourceType,
 };
 
 use crate::{
-  CacheGroup, CacheGroupOptions, CacheGroupSource, ChunkFilter, ChunkType, GetName,
-  NormalizedOptions, SizeType, SplitChunkSizes, SplitChunksOptions,
+  utils::{check_min_size, compare_entries},
+  CacheGroup, CacheGroupByKey, CacheGroupOptions, CacheGroupSource, ChunkFilter, ChunkType,
+  GetName, NormalizedFallbackCacheGroup, NormalizedOptions, SizeType, SplitChunkSizes,
+  SplitChunksOptions,
 };
 
 pub fn create_cache_group(
@@ -117,6 +116,7 @@ pub fn create_cache_group(
       .unwrap_or_else(|| group_source.key.clone()),
     reuse_existing_chunk: group_source.reuse_existing_chunk.unwrap_or_default(),
     validate_size: min_size.values().any(|size| size > &0f64),
+    min_size_for_max_size: merge_sizes(group_source.min_size.clone(), options.min_size.clone()),
   }
 }
 
@@ -137,9 +137,9 @@ pub fn create_cache_group_source(
   let min_size_reduction = normalize_sizes(options.min_size_reduction, default_size_types);
   let max_size = normalize_sizes(options.max_size, default_size_types);
 
-  let get_name = options.name.map(|name| {
-    Arc::new(move |m: &dyn Module| name.clone()) as Arc<dyn Fn(&dyn Module) -> String + Send + Sync>
-  });
+  let get_name = options
+    .name
+    .map(|name| Arc::new(move |m: &dyn Module| Some(name.clone())) as GetName);
 
   CacheGroupSource {
     key,
@@ -222,7 +222,7 @@ impl SplitChunksPlugin {
 
     let get_name = {
       let name = options.name.clone();
-      let get_name: GetName = Arc::new(move |module: &dyn Module| name.clone().expect("TODO:"));
+      let get_name: GetName = Arc::new(move |module: &dyn Module| name.clone());
       get_name
     };
     let normalized_options = NormalizedOptions {
@@ -231,7 +231,7 @@ impl SplitChunksPlugin {
       min_size_reduction,
       min_remaining_size: merge_sizes(
         normalize_sizes(options.min_remaining_size, &default_size_types),
-        min_size,
+        min_size.clone(),
       ),
       enforce_size_threshold: normalize_sizes(options.enforce_size_threshold, &default_size_types),
       max_async_size: merge_sizes(
@@ -253,6 +253,57 @@ impl SplitChunksPlugin {
           let chunk_type = chunks.as_ref().unwrap_or(&ChunkType::Async);
           chunk_type.is_selected(chunk, chunk_group_by_ukey)
         })
+      },
+      fallback_cache_group: NormalizedFallbackCacheGroup {
+        chunks_filter: {
+          let chunks = options
+            .fallback_cache_group
+            .as_ref()
+            .map(|f| f.chunks.clone())
+            .unwrap_or_else(|| options.chunks);
+          Arc::new(move |chunk, chunk_group_by_ukey| {
+            let chunk_type = chunks.as_ref().unwrap_or(&ChunkType::All);
+            chunk_type.is_selected(chunk, chunk_group_by_ukey)
+          })
+        },
+        min_size: merge_sizes(
+          normalize_sizes(
+            options
+              .fallback_cache_group
+              .as_ref()
+              .and_then(|f| f.min_size),
+            &default_size_types,
+          ),
+          min_size.clone(),
+        ),
+        max_async_size: merge_sizes(
+          normalize_sizes(
+            options
+              .fallback_cache_group
+              .as_ref()
+              .map(|f| f.min_size)
+              .unwrap_or_default(),
+            &default_size_types,
+          ),
+          min_size.clone(),
+        ),
+        max_initial_size: merge_sizes(
+          normalize_sizes(
+            options
+              .fallback_cache_group
+              .as_ref()
+              .map(|f| f.min_size)
+              .unwrap_or_default(),
+            &default_size_types,
+          ),
+          min_size.clone(),
+        ),
+        automatic_name_delimiter: options
+          .fallback_cache_group
+          .as_ref()
+          .map(|f| f.automatic_name_delimiter.clone())
+          .unwrap_or_else(|| options.automatic_name_delimiter.clone())
+          .unwrap_or_else(|| "~".to_string()),
       },
     };
 
@@ -332,8 +383,12 @@ impl SplitChunksPlugin {
     module_identifier: ModuleIdentifier,
     module_graph_module: &dyn Module,
     chunks_info_map: &mut HashMap<String, ChunksInfoItem>,
+    named_chunk: &HashMap<String, ChunkUkey>,
+    chunk_by_ukey: &HashMap<ChunkUkey, Chunk>,
+    chunk_group_by_ukey: &ChunkGroupByUkey,
     // compilation: &mut Compilation,
   ) {
+    // Break if minimum number of chunks is not reached
     if selected_chunks.len() < cache_group.min_chunks {
       tracing::debug!(
         "[Bailout-Module]: {}, because selected_chunks.len({:?}) < cache_group.min_chunks({:?})",
@@ -344,14 +399,53 @@ impl SplitChunksPlugin {
       return;
     }
 
+    // Determine name for split chunk
     let name = (cache_group.get_name)(module_graph_module);
-    // let existing_chunk = compilation
-    //   .named_chunk
-    //   .get(&name)
-    //   .and_then(|chunk_ukey| compilation.chunk_by_ukey.get(chunk_ukey));
-    // if existing_chunk.is_some() {
-    //   panic!("TODO: Supports reuse existing chunk");
-    // }
+
+    let existing_chunk = name.clone().and_then(|name| {
+      named_chunk
+        .get(&name)
+        .and_then(|chunk_ukey| chunk_by_ukey.get(chunk_ukey))
+    });
+    if let Some(existing_chunk) = existing_chunk {
+      // Module can only be moved into the existing chunk if the existing chunk
+      // is a parent of all selected chunks
+      let mut is_in_all_parents = true;
+      let queue = selected_chunks
+        .iter()
+        .flat_map(|c| {
+          let groups = c
+            .groups
+            .iter()
+            .filter_map(|ukey| chunk_group_by_ukey.get(ukey))
+            .collect::<Vec<_>>();
+          let ancestors = groups
+            .iter()
+            .flat_map(|g| g.ancestors(chunk_group_by_ukey))
+            .collect::<Vec<_>>();
+          groups.into_iter().map(|g| g.ukey).chain(ancestors)
+        })
+        .collect::<HashSet<_>>();
+
+      for group in queue {
+        let group = chunk_group_by_ukey.get(&group).unwrap();
+        if existing_chunk.is_in_group(&group.ukey) {
+          continue;
+        }
+        is_in_all_parents = false;
+        break;
+      }
+      let valid = is_in_all_parents;
+      if !valid {
+        panic!("{}{}{}{}{}",
+            "SplitChunksPlugin\n",
+            format!("Cache group \"{}\" conflicts with existing chunk.\n", cache_group.key),
+            format!("Both have the same name \"{:?}\" and existing chunk is not a parent of the selected modules.\n", name),
+            "Use a different name for the cache group or make sure that the existing chunk is a parent (e. g. via dependOn).\n",
+            "HINT: You can omit \"name\" to automatically create a name.\n",
+        )
+      }
+    }
 
     let key = cache_group.key.clone();
 
@@ -360,14 +454,22 @@ impl SplitChunksPlugin {
       .or_insert_with(|| ChunksInfoItem {
         modules: Default::default(),
         cache_group: cache_group.key.clone(),
-        _cache_group_index: cache_group_index,
+        cache_group_index,
         name,
         sizes: Default::default(),
         chunks: Default::default(),
         _reuseable_chunks: Default::default(),
       });
-
+    let old_size = info.modules.len();
     info.modules.insert(module_identifier);
+
+    if info.modules.len() != old_size {
+      module_graph_module.source_types().iter().for_each(|ty| {
+        let sizes = info.sizes.entry(*ty).or_default();
+        *sizes += module_graph_module.size(ty);
+      });
+    }
+
     info.chunks.extend(
       selected_chunks
         .iter()
@@ -378,17 +480,28 @@ impl SplitChunksPlugin {
 }
 
 #[derive(Debug)]
-struct ChunksInfoItem {
+pub(crate) struct ChunksInfoItem {
   // Sortable Module Set
   pub modules: HashSet<ModuleIdentifier>,
   pub cache_group: String,
-  pub _cache_group_index: usize,
-  pub name: String,
+  pub cache_group_index: usize,
+  pub name: Option<String>,
   pub sizes: SplitChunkSizes,
   pub chunks: HashSet<ChunkUkey>,
   pub _reuseable_chunks: HashSet<ChunkUkey>,
   // bigint | Chunk
   // pub chunks_keys: Hash
+}
+
+impl ChunksInfoItem {
+  pub(crate) fn cache_group<'cache_group>(
+    &self,
+    map: &'cache_group CacheGroupByKey,
+  ) -> &'cache_group CacheGroup {
+    map
+      .get(&self.cache_group)
+      .unwrap_or_else(|| panic!("Cache group not found: {}", self.cache_group))
+  }
 }
 
 impl Plugin for SplitChunksPlugin {
@@ -414,9 +527,8 @@ impl Plugin for SplitChunksPlugin {
       let cache_group_source_keys = self.get_cache_groups(module.as_ref());
       if cache_group_source_keys.is_empty() {
         tracing::debug!(
-          "[Bailout-Module]: '{}', because {}",
+          "[Bailout-No matched groups]: Module({})",
           module.identifier(),
-          "no cache group matched"
         );
         continue;
       }
@@ -439,7 +551,7 @@ impl Plugin for SplitChunksPlugin {
         for combinations in combs {
           if combinations.len() < cache_group.min_chunks {
             tracing::debug!(
-              "[Bailout-CacheGroup]: '{}', because of combinations({:?}) < cache_group.min_chunks({:?})",
+              "[Bailout]: CacheGroup({}), because of combinations({:?}) < cache_group.min_chunks({:?})",
               cache_group.key,
               combinations.len(),
               cache_group.min_chunks
@@ -466,7 +578,9 @@ impl Plugin for SplitChunksPlugin {
             module.identifier(),
             module.as_ref(),
             &mut chunks_info_map,
-            // compilation,
+            &compilation.named_chunks,
+            &compilation.chunk_by_ukey, // compilation,
+            &compilation.chunk_group_by_ukey,
           );
         }
 
@@ -516,7 +630,7 @@ impl Plugin for SplitChunksPlugin {
       }
     }
 
-    // TODO: Filter items were size < minSize
+    // Filter items were size < minSize
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/optimize/SplitChunksPlugin.js#L1280
     let mut to_be_removed: HashSet<String> = HashSet::default();
     for (key, info) in chunks_info_map.iter_mut() {
@@ -544,61 +658,389 @@ impl Plugin for SplitChunksPlugin {
       );
     });
 
-    for (key, info) in chunks_info_map.into_iter() {
-      let chunk_name = info.name.clone();
-      let is_chunk_existing = compilation.named_chunks.get(&chunk_name).is_some();
-      let new_chunk = Compilation::add_named_chunk(
-        chunk_name.clone(),
-        &mut compilation.chunk_by_ukey,
-        &mut compilation.named_chunks,
+    while chunks_info_map.len() > 0 {
+      let mut chunks_info_map_iter = chunks_info_map.iter();
+      let (best_entry_key, mut best_entry) = chunks_info_map_iter.next().unwrap();
+      let mut best_entry_key = best_entry_key.clone();
+      for (key, info) in chunks_info_map_iter {
+        if compare_entries(best_entry, info, &self.cache_group_by_key) < 0f64 {
+          best_entry_key = key.clone();
+          best_entry = info;
+        }
+      }
+
+      let mut item = chunks_info_map.remove(&best_entry_key).unwrap();
+
+      let mut chunk_name = item.name.clone();
+      let mut new_chunk: Option<ChunkUkey> = None;
+      let mut is_existing_chunk = false;
+      let mut is_reused_with_all_modules = false;
+      if let Some(chunk_name) = chunk_name.clone() {
+        let chunk_by_name = compilation.named_chunks.get(&chunk_name);
+        if let Some(chunk_by_name) = chunk_by_name {
+          let chunk = compilation.chunk_by_ukey.get_mut(&chunk_by_name).unwrap();
+          let old_size = item.chunks.len();
+          item.chunks.remove(&chunk.ukey);
+          is_existing_chunk = item.chunks.len() != old_size;
+          new_chunk = Some(chunk.ukey);
+        }
+      } else if item
+        .cache_group(&self.cache_group_by_key)
+        .reuse_existing_chunk
+      {
+        'outer: for chunk in &item.chunks {
+          if compilation.chunk_graph.get_number_of_chunk_modules(chunk) != item.modules.len() {
+            continue;
+          }
+
+          if item.chunks.len() > 1 && compilation.chunk_graph.get_number_of_entry_modules(chunk) > 0
+          {
+            continue;
+          }
+
+          for module in &item.modules {
+            if !compilation.chunk_graph.is_module_in_chunk(module, *chunk) {
+              continue 'outer;
+            }
+          }
+
+          let chunk = compilation.chunk_by_ukey.get(chunk).unwrap();
+          if new_chunk.is_none()
+            || new_chunk
+              .and_then(|ukey| compilation.chunk_by_ukey.get(&ukey))
+              .as_ref()
+              .map_or(false, |c| c.name.is_none())
+          {
+            new_chunk = Some(chunk.ukey);
+          } else if chunk.name.as_ref().map_or(false, |chunk_name| {
+            new_chunk
+              .and_then(|new_ukey| compilation.chunk_by_ukey.get(&new_ukey))
+              .and_then(|c| c.name.as_ref())
+              .map_or(false, |new_chunk_name| {
+                chunk_name.len() < new_chunk_name.len()
+              })
+          }) {
+            new_chunk = Some(chunk.ukey);
+          } else if chunk.name.as_ref().map_or(false, |chunk_name| {
+            new_chunk
+              .and_then(|new_ukey| compilation.chunk_by_ukey.get(&new_ukey))
+              .and_then(|c| c.name.as_ref())
+              .map_or(false, |new_chunk_name| {
+                chunk_name.len() == new_chunk_name.len() && chunk_name < new_chunk_name
+              })
+          }) {
+            new_chunk = Some(chunk.ukey);
+          };
+        }
+        if let Some(new_chunk) = new_chunk {
+          item.chunks.remove(&new_chunk);
+          chunk_name = None;
+          is_existing_chunk = true;
+          is_reused_with_all_modules = true;
+        }
+      };
+
+      let enforced = check_min_size(
+        &item.sizes,
+        &item.cache_group(&self.cache_group_by_key).min_size,
       );
-      if is_chunk_existing {
-        tracing::debug!("Reuse a existing Chunk({})", chunk_name);
+
+      let mut used_chunks = item.chunks.clone();
+
+      // Check if maxRequests condition can be fulfilled
+      if !enforced
+        && (item
+          .cache_group(&self.cache_group_by_key)
+          .max_initial_requests
+          .eq(&usize::MAX)
+          || item
+            .cache_group(&self.cache_group_by_key)
+            .max_async_requests
+            .eq(&usize::MAX))
+      {
+        for chunk in used_chunks.clone() {
+          let chunk = compilation.chunk_by_ukey.get(&chunk).unwrap();
+          let max_requests = if chunk.is_only_initial(&compilation.chunk_group_by_ukey) {
+            item
+              .cache_group(&self.cache_group_by_key)
+              .max_initial_requests
+          } else {
+            if chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
+              usize::min(
+                item
+                  .cache_group(&self.cache_group_by_key)
+                  .max_initial_requests,
+                item
+                  .cache_group(&self.cache_group_by_key)
+                  .max_async_requests,
+              )
+            } else {
+              item
+                .cache_group(&self.cache_group_by_key)
+                .max_async_requests
+            }
+          };
+          if usize::MAX == max_requests
+            && get_requests(chunk, &compilation.chunk_group_by_ukey) > max_requests
+          {
+            used_chunks.remove(&chunk.ukey);
+          }
+        }
+      }
+
+      'outer: for chunk in &used_chunks {
+        for module in &item.modules {
+          if compilation.chunk_graph.is_module_in_chunk(module, *chunk) {
+            continue 'outer;
+          }
+        }
+      }
+
+      // Were some (invalid) chunks removed from usedChunks?
+      // => readd all modules to the queue, as things could have been changed
+      if used_chunks.len() < item.chunks.len() {
+        if is_existing_chunk {
+          used_chunks.insert(*new_chunk.as_ref().unwrap());
+        }
+        if used_chunks.len() >= item.cache_group(&self.cache_group_by_key).min_chunks {
+          let chunk_arr = used_chunks
+            .iter()
+            .filter_map(|ukey| compilation.chunk_by_ukey.get(ukey))
+            .collect::<Vec<_>>();
+          for module in &item.modules {
+            self.add_module_to_chunks_info_map(
+              item.cache_group(&self.cache_group_by_key),
+              item.cache_group_index,
+              &chunk_arr,
+              module.clone(),
+              compilation
+                .module_graph
+                .module_by_identifier(&module)
+                .unwrap(),
+              &mut chunks_info_map,
+              &compilation.named_chunks,
+              &compilation.chunk_by_ukey, // compilation,
+              &compilation.chunk_group_by_ukey,
+            )
+          }
+        }
+        continue;
+      };
+
+      // TODO: Validate minRemainingSize constraint when a single chunk is left over
+
+      // Create the new chunk if not reusing one
+      let new_chunk = if let Some(existed) = new_chunk {
+        existed
       } else {
-        tracing::debug!("Create a new Chunk({})", chunk_name);
-      }
+        if let Some(chunk_name) = &chunk_name {
+          Compilation::add_named_chunk(
+            chunk_name.clone(),
+            &mut compilation.chunk_by_ukey,
+            &mut compilation.named_chunks,
+          )
+          .ukey
+        } else {
+          Compilation::add_chunk(&mut compilation.chunk_by_ukey).ukey
+        }
+      };
 
-      compilation.chunk_graph.add_chunk(new_chunk.ukey);
+      compilation.chunk_graph.add_chunk(new_chunk);
 
-      let used_chunks = &info
-        .chunks
-        .iter()
-        .filter(|chunk_ukey| {
-          // Chunks containing at least one related module are used.
-          info.modules.iter().any(|module_identifier| {
-            compilation
-              .chunk_graph
-              .is_module_in_chunk(module_identifier, **chunk_ukey)
-          })
-        })
-        .collect::<Vec<_>>();
-
-      if used_chunks.len() != info.chunks.len() {
-        tracing::debug!(
-          "Drop {:?} unused chunks",
-          info.chunks.len() - used_chunks.len(),
-        );
-      }
-      let new_chunk_ukey = new_chunk.ukey;
-      for used_chunk in used_chunks {
+      // Walk through all chunks
+      let new_chunk_ukey = new_chunk;
+      for used_chunk in &used_chunks {
         let [new_chunk, used_chunk] = compilation
           .chunk_by_ukey
           .get_many_mut([&new_chunk_ukey, used_chunk])
           .expect("TODO:");
         used_chunk.split(new_chunk, &mut compilation.chunk_group_by_ukey);
 
-        for module_identifier in &info.modules {
+        for module_identifier in &item.modules {
           compilation
             .chunk_graph
             .disconnect_chunk_and_module(&used_chunk.ukey, module_identifier);
         }
       }
-      for module_identifier in info.modules {
-        compilation
-          .chunk_graph
-          .connect_chunk_and_module(new_chunk_ukey, module_identifier);
+
+      let new_chunk = compilation.chunk_by_ukey.get_mut(&new_chunk_ukey).unwrap();
+      let new_chunk_ukey = new_chunk.ukey;
+      new_chunk.chunk_reasons.push(if is_reused_with_all_modules {
+        "reused as split chunk".to_string()
+      } else {
+        "split chunk".to_string()
+      });
+
+      new_chunk
+        .chunk_reasons
+        .push(format!("(cache group: {})", item.cache_group));
+
+      if let Some(chunk_name) = &chunk_name {
+        new_chunk
+          .chunk_reasons
+          .push(format!("(name: {})", chunk_name));
       }
+
+      std::mem::drop(new_chunk);
+
+      // new_chunk.id_name_hints.insert(info)
+
+      if !is_reused_with_all_modules {
+        // Add all modules to the new chunk
+        for module_identifier in &item.modules {
+          // TODO: module.chunkCondition
+          // Add module to new chunk
+          compilation
+            .chunk_graph
+            .connect_chunk_and_module(new_chunk_ukey, module_identifier.clone());
+          // Remove module from used chunks
+          for used_chunk in &used_chunks {
+            let used_chunk = compilation.chunk_by_ukey.get(used_chunk).unwrap();
+            for module_identifier in &item.modules {
+              compilation
+                .chunk_graph
+                .disconnect_chunk_and_module(&used_chunk.ukey, module_identifier);
+            }
+          }
+        }
+      } else {
+        // Remove all modules from used chunks
+        for module_identifier in &item.modules {
+          for used_chunk in &used_chunks {
+            let used_chunk = compilation.chunk_by_ukey.get(used_chunk).unwrap();
+            for module_identifier in &item.modules {
+              compilation
+                .chunk_graph
+                .disconnect_chunk_and_module(&used_chunk.ukey, module_identifier);
+            }
+          }
+        }
+      }
+
+      let mut maxSizeQueueMap: HashMap<ChunkUkey, MaxSizeQueueItem> = Default::default();
+
+      if item
+        .cache_group(&self.cache_group_by_key)
+        .max_async_size
+        .len()
+        > 0
+        || item
+          .cache_group(&self.cache_group_by_key)
+          .max_initial_size
+          .len()
+          > 0
+      {
+        let oldMaxSizeSettings = maxSizeQueueMap.remove(&new_chunk_ukey);
+        maxSizeQueueMap.insert(
+          new_chunk_ukey,
+          MaxSizeQueueItem {
+            min_size: oldMaxSizeSettings
+              .as_ref()
+              .map(|old| {
+                combine_sizes(
+                  &old.min_size,
+                  &item
+                    .cache_group(&self.cache_group_by_key)
+                    .min_size_for_max_size,
+                  f64::max,
+                )
+              })
+              .unwrap_or_else(|| item.cache_group(&self.cache_group_by_key).min_size.clone()),
+            max_async_size: oldMaxSizeSettings
+              .as_ref()
+              .map(|old| {
+                combine_sizes(
+                  &old.max_async_size,
+                  &item.cache_group(&self.cache_group_by_key).max_async_size,
+                  f64::min,
+                )
+              })
+              .unwrap_or_else(|| {
+                item
+                  .cache_group(&self.cache_group_by_key)
+                  .max_async_size
+                  .clone()
+              }),
+            max_initial_size: oldMaxSizeSettings
+              .as_ref()
+              .map(|old| {
+                combine_sizes(
+                  &old.max_initial_size,
+                  &item.cache_group(&self.cache_group_by_key).max_initial_size,
+                  f64::min,
+                )
+              })
+              .unwrap_or_else(|| {
+                item
+                  .cache_group(&self.cache_group_by_key)
+                  .max_initial_size
+                  .clone()
+              }),
+            keys: oldMaxSizeSettings
+              .map(|mut old| {
+                old
+                  .keys
+                  .push(item.cache_group(&self.cache_group_by_key).key.clone());
+                old.keys
+              })
+              .unwrap_or_else(|| vec![item.cache_group(&self.cache_group_by_key).key.clone()]),
+          },
+        );
+      }
+
+      let mut to_be_deleted = HashSet::new();
+      // remove all modules from other entries and update size
+      for (key, info) in &mut chunks_info_map {
+        let is_overlap = info.chunks.union(&used_chunks).next().is_some();
+        if is_overlap {
+          // update modules and total size
+          // may remove it from the map when < minSize
+          let mut updated = false;
+          for module in &item.modules {
+            if info.modules.contains(module) {
+              info.modules.remove(module);
+            }
+            let module = compilation
+              .module_graph
+              .module_by_identifier(module)
+              .unwrap();
+            for key in module.source_types() {
+              let sizes = info.sizes.get_mut(key).unwrap();
+              *sizes -= module.size(key);
+            }
+            updated = true;
+          }
+
+          if updated {
+            if info.modules.len() == 0 {
+              to_be_deleted.insert(key.to_string());
+              continue;
+            }
+            if remove_min_size_violating_modules(
+              info,
+              &self.cache_group_by_key,
+              &mut compilation.module_graph,
+            ) || !check_min_size_reduction(
+              &info.sizes,
+              &info
+                .cache_group(&self.cache_group_by_key)
+                .min_size_reduction,
+              info.chunks.len(),
+            ) {
+              to_be_deleted.insert(key.to_string());
+              continue;
+            }
+          }
+        }
+      }
+
+      to_be_deleted.into_iter().for_each(|key| {
+        chunks_info_map.remove(&key);
+      });
     }
+
+    // Make sure that maxSize is fulfilled
+    // let fallbackCacheGroup = self.options.f
 
     Ok(())
   }
@@ -638,4 +1080,46 @@ fn check_min_size_reduction(
     }
   }
   true
+}
+
+fn get_requests(chunk: &Chunk, chunk_group_by_ukey: &ChunkGroupByUkey) -> usize {
+  let mut requests = 0;
+  for group in &chunk.groups {
+    let group = chunk_group_by_ukey.get(group).unwrap();
+    requests = usize::max(requests, group.chunks.len())
+  }
+  requests
+}
+
+#[derive(Debug)]
+struct MaxSizeQueueItem {
+  pub min_size: SplitChunkSizes,
+  pub max_async_size: SplitChunkSizes,
+  pub max_initial_size: SplitChunkSizes,
+  pub keys: Vec<String>,
+}
+
+fn combine_sizes(
+  a: &SplitChunkSizes,
+  b: &SplitChunkSizes,
+  combine: impl Fn(f64, f64) -> f64,
+) -> SplitChunkSizes {
+  let a_keys = a.keys();
+  let b_keys = b.keys();
+  let mut res: SplitChunkSizes = Default::default();
+  for key in a_keys {
+    if b.contains_key(key) {
+      res.insert(*key, combine(a[key], b[key]));
+    } else {
+      res.insert(*key, a[key]);
+    }
+  }
+
+  for key in b_keys {
+    if !a.contains_key(key) {
+      res.insert(*key, b[key]);
+    }
+  }
+
+  res
 }

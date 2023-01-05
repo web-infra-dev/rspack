@@ -230,12 +230,12 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
       options.external_type = Some(external_type);
       Ok(options)
     })?
-    .then(|options| {
+    .then(|mut options| {
       if let Some(optimization) = raw_options.optimization {
-        let _split_chunks = RawOption::raw_to_compiler_option(optimization.split_chunks, &options)?;
-        // options.plugins.get_or_insert_default().push(Box::new(
-        //   rspack_plugin_split_chunks::SplitChunksPlugin::new(split_chunks),
-        // ))
+        let split_chunks = RawOption::raw_to_compiler_option(optimization.split_chunks, &options)?;
+        options.plugins.get_or_insert_default().push(Box::new(
+          rspack_plugin_split_chunks::SplitChunksPlugin::new(split_chunks),
+        ))
       }
       Ok(options)
     })?

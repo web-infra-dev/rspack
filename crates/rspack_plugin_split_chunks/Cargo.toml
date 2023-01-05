@@ -9,4 +9,5 @@ version = "0.1.0"
 derivative  = "2.2.0"
 hashbrown   = { version = "0.12.3", features = ["rayon", "serde", "ahash"] }
 rspack_core = { path = "../rspack_core" }
+rspack_util = { path = "../rspack_util" }
 tracing     = "0.1.34"

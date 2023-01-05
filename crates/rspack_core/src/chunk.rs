@@ -27,6 +27,7 @@ pub struct Chunk {
   pub kind: ChunkKind,
   pub hash: Xxh3,
   pub content_hash: HashMap<SourceType, String>,
+  pub chunk_reasons: Vec<String>,
 }
 
 impl Debug for Chunk {
@@ -57,6 +58,7 @@ impl Chunk {
       kind,
       hash: Default::default(),
       content_hash: HashMap::default(),
+      chunk_reasons: Default::default(),
     }
   }
 
@@ -69,9 +71,10 @@ impl Chunk {
       let group = chunk_group_by_ukey
         .get_mut(group)
         .expect("Group should exist");
-      group.chunks.push(new_chunk.ukey);
+      group.insert_chunk(new_chunk.ukey, self.ukey);
       new_chunk.add_group(group.ukey);
     });
+    new_chunk.id_name_hints.extend(self.id_name_hints.clone());
     new_chunk.runtime.extend(self.runtime.clone());
   }
 
@@ -258,6 +261,10 @@ impl Chunk {
     } else {
       self.id.clone()
     }
+  }
+
+  pub fn is_in_group(&self, chunk_group: &ChunkGroupUkey) -> bool {
+    self.groups.contains(chunk_group)
   }
 }
 
