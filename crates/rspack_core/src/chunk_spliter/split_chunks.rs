@@ -1,12 +1,7 @@
 use anyhow::anyhow;
 use hashbrown::HashSet;
-use std::collections::HashMap;
-
-// use crate::{
-//     BundleOptions, Chunk, ChunkGraph, ChunkIdAlgo, ChunkKind, JsModuleKind, ModuleGraphContainer,
-// };
-
 use rspack_error::Result;
+use std::collections::HashMap;
 use tracing::instrument;
 
 use crate::{ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier};
@@ -40,6 +35,7 @@ impl<'me> CodeSplitter<'me> {
     }
   }
 
+  #[tracing::instrument(skip_all)]
   fn prepare_input_entrypoints_and_modules(
     &mut self,
   ) -> Result<HashMap<ChunkGroupUkey, Vec<ModuleIdentifier>>> {
@@ -162,6 +158,7 @@ impl<'me> CodeSplitter<'me> {
     Ok(input_entrypoints_and_modules)
   }
 
+  #[tracing::instrument(skip_all)]
   pub fn split(mut self) -> Result<()> {
     let input_entrypoints_and_modules = self.prepare_input_entrypoints_and_modules()?;
 
@@ -196,51 +193,7 @@ impl<'me> CodeSplitter<'me> {
 
     // Optmize to remove duplicated module which is safe
 
-    let mut modules_to_be_removed_in_chunk =
-      HashMap::new() as HashMap<ChunkUkey, HashSet<ModuleIdentifier>>;
-
-    for chunk in self.compilation.chunk_by_ukey.values() {
-      for module in self
-        .compilation
-        .chunk_graph
-        .get_chunk_modules(&chunk.ukey, &self.compilation.module_graph)
-      {
-        let belong_to_chunks = self
-          .compilation
-          .chunk_graph
-          .get_modules_chunks(&module.module_identifier)
-          .clone();
-
-        let has_superior = belong_to_chunks.iter().any(|maybe_superior_chunk| {
-          self
-            .chunk_relation_graph
-            .contains_edge(chunk.ukey, *maybe_superior_chunk)
-        });
-
-        if has_superior {
-          modules_to_be_removed_in_chunk
-            .entry(chunk.ukey)
-            .or_default()
-            .insert(module.module_identifier);
-        }
-
-        tracing::trace!(
-          "module {} in chunk {:?} has_superior {:?}",
-          module.module_identifier,
-          chunk.id,
-          has_superior
-        );
-      }
-    }
-
-    for (chunk, modules) in modules_to_be_removed_in_chunk {
-      for module in modules {
-        self
-          .compilation
-          .chunk_graph
-          .disconnect_chunk_and_module(&chunk, &module);
-      }
-    }
+    self.remove_duplicated_modules();
 
     for chunk_group in self.compilation.chunk_group_by_ukey.values() {
       for chunk_ukey in chunk_group.chunks.iter() {
@@ -255,6 +208,58 @@ impl<'me> CodeSplitter<'me> {
     }
 
     Ok(())
+  }
+
+  /// Entry(bar.js) -> Foo(foo.js, bar.js)
+  /// We could remove bar.js from Foo chunk, since
+  /// bar.js is already in Entry chunk.
+  #[tracing::instrument(skip_all)]
+  fn remove_duplicated_modules(&mut self) {
+    let modules_to_be_removed_in_chunk = self
+      .compilation
+      .chunk_by_ukey
+      .values()
+      .flat_map(|chunk| {
+        self
+          .compilation
+          .chunk_graph
+          .get_chunk_modules(&chunk.ukey, &self.compilation.module_graph)
+          .into_iter()
+          .filter_map(|module| {
+            let belong_to_chunks = self
+              .compilation
+              .chunk_graph
+              .get_modules_chunks(&module.module_identifier)
+              .clone();
+
+            let has_superior = belong_to_chunks.iter().any(|maybe_superior_chunk| {
+              self
+                .chunk_relation_graph
+                .contains_edge(chunk.ukey, *maybe_superior_chunk)
+            });
+            if has_superior {
+              Some((chunk.ukey, module.module_identifier))
+            } else {
+              None
+            }
+          })
+      })
+      .fold(
+        HashMap::new() as HashMap<ChunkUkey, HashSet<ModuleIdentifier>>,
+        |mut map, (chunk_ukey, module)| {
+          map.entry(chunk_ukey).or_default().insert(module);
+          map
+        },
+      );
+
+    for (chunk, modules) in modules_to_be_removed_in_chunk {
+      for module in modules {
+        self
+          .compilation
+          .chunk_graph
+          .disconnect_chunk_and_module(&chunk, &module);
+      }
+    }
   }
 
   fn process_queue(&mut self) {
