@@ -18,7 +18,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
   let expected_path = tests_path.join(expected);
   let actual_path = tests_path.join(actual);
 
-  let url = Url::from_file_path(&actual_path.to_string_lossy().to_string()).expect("TODO:");
+  let url = Url::from_file_path(actual_path.to_string_lossy().to_string()).expect("TODO:");
   let (result, _) = LoaderRunner::new(
     ResourceData {
       resource: actual_path.to_string_lossy().to_string(),

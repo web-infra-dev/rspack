@@ -108,9 +108,9 @@ impl Plugin for DevtoolPlugin {
       let current_source_mapping_url_comment =
         self.source_mapping_url_comment.as_ref().map(|comment| {
           if IS_CSS_FILE.is_match(&filename) {
-            format!("\n/*{}*/", comment)
+            format!("\n/*{comment}*/")
           } else {
-            format!("\n//{}", comment)
+            format!("\n//{comment}")
           }
         });
       if self.inline {
@@ -122,7 +122,7 @@ impl Plugin for DevtoolPlugin {
           asset.source,
           RawSource::from(current_source_mapping_url_comment.replace(
             "[url]",
-            &format!("data:application/json;charset=utf-8;base64,{}", base64),
+            &format!("data:application/json;charset=utf-8;base64,{base64}"),
           ))
           .boxed(),
         ])

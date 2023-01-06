@@ -195,7 +195,7 @@ impl JsPlugin {
   ) -> BoxSource {
     let mut sources = ConcatSource::default();
     if let Some(library) = &args.compilation.options.output.library && !library.is_empty() {
-      sources.add(RawSource::from(format!("var {};\n", library)));
+      sources.add(RawSource::from(format!("var {library};\n")));
     }
     sources.add(RawSource::from("(function() {\n"));
     sources.add(content);
@@ -243,8 +243,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     if !module_type.is_js_like() {
       return Err(Error::InternalError(internal_error!(format!(
-        "`module_type` {:?} not supported for `JsParser`",
-        module_type
+        "`module_type` {module_type:?} not supported for `JsParser`"
       ))));
     }
 

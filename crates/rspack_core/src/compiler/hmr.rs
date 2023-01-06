@@ -15,7 +15,7 @@ use crate::{
 const HOT_UPDATE_MAIN_FILENAME: &str = "hot-update.json";
 
 fn get_hot_update_main_filename(chunk_name: &str) -> String {
-  format!("{}.{}", chunk_name, HOT_UPDATE_MAIN_FILENAME)
+  format!("{chunk_name}.{HOT_UPDATE_MAIN_FILENAME}")
 }
 
 #[derive(Default)]

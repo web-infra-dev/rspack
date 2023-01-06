@@ -126,7 +126,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
 
           let module_id = js_module?.id(&self.compilation.chunk_graph);
           str.value = JsWord::from(module_id);
-          str.raw = Some(Atom::from(format!("\"{}\"", module_id)));
+          str.raw = Some(Atom::from(format!("\"{module_id}\"")));
         };
       }
     }
@@ -307,7 +307,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
       ) {
         let module_id = module.id(&self.compilation.chunk_graph);
         str.value = JsWord::from(module_id);
-        str.raw = Some(Atom::from(format!("\"{}\"", module_id)));
+        str.raw = Some(Atom::from(format!("\"{module_id}\"")));
         accpet_module_id = module_id.to_string();
       }
     }
@@ -356,7 +356,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
       ) {
         let module_id = module.id(&self.compilation.chunk_graph);
         str.value = JsWord::from(module_id);
-        str.raw = Some(Atom::from(format!("\"{}\"", module_id)));
+        str.raw = Some(Atom::from(format!("\"{module_id}\"")));
       }
     }
   }

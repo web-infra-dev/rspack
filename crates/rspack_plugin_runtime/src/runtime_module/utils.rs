@@ -59,7 +59,7 @@ pub fn stringify_chunks(chunks: &HashSet<String>, value: u8) -> String {
   format!(
     r#"{{{}}}"#,
     v.iter().fold(String::new(), |prev, cur| {
-      prev + format!(r#""{}": {},"#, cur, value).as_str()
+      prev + format!(r#""{cur}": {value},"#).as_str()
     })
   )
 }
@@ -71,7 +71,7 @@ pub fn stringify_chunks_to_array(chunks: &HashSet<String>) -> String {
   format!(
     r#"[{}]"#,
     v.iter().fold(String::new(), |prev, cur| {
-      prev + format!(r#""{}","#, cur).as_str()
+      prev + format!(r#""{cur}","#).as_str()
     })
   )
 }

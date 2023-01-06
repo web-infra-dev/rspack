@@ -32,17 +32,11 @@ pub fn parse_to_url(url: &str) -> url::Url {
     construct_string += "specifier:";
     construct_string += url;
     url::Url::parse(&construct_string).unwrap_or_else(|_| {
-      panic!(
-        "Invalid specifier: {}, please use a valid specifier or a valid url",
-        url
-      )
+      panic!("Invalid specifier: {url}, please use a valid specifier or a valid url")
     })
   } else {
     url::Url::parse(url).unwrap_or_else(|_| {
-      panic!(
-        "Invalid specifier: {}, please use a valid specifier or a valid url",
-        url
-      )
+      panic!("Invalid specifier: {url}, please use a valid specifier or a valid url")
     })
   }
 }

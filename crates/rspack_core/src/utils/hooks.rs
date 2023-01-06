@@ -72,7 +72,7 @@ pub async fn resolve(
   result.map_err(|error| match error {
     nodejs_resolver::Error::Io(error) => Error::Io { source: error },
     nodejs_resolver::Error::UnexpectedJson((json_path, error)) => Error::Anyhow {
-      source: anyhow::Error::msg(format!("{:?} in {:?}", error, json_path)),
+      source: anyhow::Error::msg(format!("{error:?} in {json_path:?}")),
     },
     nodejs_resolver::Error::UnexpectedValue(error) => Error::Anyhow {
       source: anyhow::Error::msg(error),

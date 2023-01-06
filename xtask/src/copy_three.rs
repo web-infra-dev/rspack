@@ -32,10 +32,7 @@ pub fn copy_three(num: usize) {
 
   let mut entry = String::new();
   for i in 1..=num {
-    entry += &format!(
-      "import * as copy{} from './copy{}/Three.js';export {{copy{}}};\n",
-      i, i, i
-    );
+    entry += &format!("import * as copy{i} from './copy{i}/Three.js';export {{copy{i}}};\n");
   }
   let root_dir = PathBuf::from(env!("CARGO_WORKSPACE_DIR"));
   let entry_file = root_dir.join("benchcases/three/src/entry.js");

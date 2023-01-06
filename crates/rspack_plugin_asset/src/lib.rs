@@ -321,7 +321,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         };
 
         Ok(GenerationResult {
-          ast_or_source: RawSource::from(format!(r#"module.exports = {};"#, exported_content))
+          ast_or_source: RawSource::from(format!(r#"module.exports = {exported_content};"#))
             .boxed()
             .into(),
         })
@@ -347,8 +347,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         }
       }
       t => Err(Error::InternalError(internal_error!(format!(
-        "Unsupported source type {:?} for plugin JavaScript",
-        t
+        "Unsupported source type {t:?} for plugin JavaScript"
       )))),
     };
 
@@ -521,5 +520,5 @@ impl Plugin for AssetPlugin {
 }
 
 fn hash_value_to_string(hash: u64) -> String {
-  format!("{:x}", hash)
+  format!("{hash:x}")
 }

@@ -25,7 +25,7 @@ where
   compiler
     .build()
     .await
-    .unwrap_or_else(|_| panic!("failed to compile in fixtrue {:?}", fixture_path));
+    .unwrap_or_else(|_| panic!("failed to compile in fixtrue {fixture_path:?}"));
   let stats = compiler.compilation.get_stats();
   let output_name = make_relative_from(Path::new(&output_path), fixture_path);
   let rst = RstBuilder::default()

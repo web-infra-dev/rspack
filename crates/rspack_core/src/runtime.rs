@@ -176,7 +176,7 @@ pub struct NormalRuntimeModule {
 impl NormalRuntimeModule {
   pub fn new(identifier: String, sources: String) -> Self {
     Self {
-      identifier: format!("rspack/runtime/{}", identifier),
+      identifier: format!("rspack/runtime/{identifier}"),
       sources: RawSource::from(sources),
     }
   }

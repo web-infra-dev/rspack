@@ -67,7 +67,7 @@ impl<'a> VisitMut for RewriteModuleUrl<'a> {
         if let Some(module) = self.get_import_module(specifier, n.span) {
           let module_id = module.id(&self.compilation.chunk_graph);
           n.src.value = JsWord::from(module_id);
-          n.src.raw = Some(Atom::from(format!("\"{}\"", module_id)));
+          n.src.raw = Some(Atom::from(format!("\"{module_id}\"")));
         }
       }
       ModuleDecl::ExportNamed(n) => {
@@ -76,7 +76,7 @@ impl<'a> VisitMut for RewriteModuleUrl<'a> {
           if let Some(module) = self.get_import_module(specifier, n.span) {
             let module_id = module.id(&self.compilation.chunk_graph);
             src.value = JsWord::from(module_id);
-            src.raw = Some(Atom::from(format!("\"{}\"", module_id)));
+            src.raw = Some(Atom::from(format!("\"{module_id}\"")));
           }
         }
       }
@@ -85,7 +85,7 @@ impl<'a> VisitMut for RewriteModuleUrl<'a> {
         if let Some(module) = self.get_import_module(specifier, n.span) {
           let module_id = module.id(&self.compilation.chunk_graph);
           n.src.value = JsWord::from(module_id);
-          n.src.raw = Some(Atom::from(format!("\"{}\"", module_id)));
+          n.src.raw = Some(Atom::from(format!("\"{module_id}\"")));
         }
       }
       _ => (),
@@ -115,7 +115,7 @@ impl<'a> VisitMut for RewriteModuleUrl<'a> {
           if let Some(js_module) = self.get_module(specifier, n.span, DependencyType::CjsRequire) {
             let module_id = js_module.id(&self.compilation.chunk_graph);
             str.value = JsWord::from(module_id);
-            str.raw = Some(Atom::from(format!("\"{}\"", module_id)));
+            str.raw = Some(Atom::from(format!("\"{module_id}\"")));
           }
         };
       }

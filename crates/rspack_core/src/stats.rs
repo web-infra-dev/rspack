@@ -94,10 +94,7 @@ impl Stats<'_> {
           .module_graph
           .module_graph_module_by_identifier(&identifier)
           .unwrap_or_else(|| {
-            panic!(
-              "Could not find ModuleGraphModule by identifier: {:?}",
-              identifier
-            )
+            panic!("Could not find ModuleGraphModule by identifier: {identifier:?}")
           });
 
         let issuer = self.compilation.module_graph.get_issuer(module);
@@ -145,7 +142,7 @@ impl Stats<'_> {
               .compilation
               .chunk_by_ukey
               .get(k)
-              .unwrap_or_else(|| panic!("Could not find chunk by ukey: {:?}", k))
+              .unwrap_or_else(|| panic!("Could not find chunk by ukey: {k:?}"))
               .expect_id()
               .to_string()
           })
@@ -244,7 +241,7 @@ impl Stats<'_> {
                 .compilation
                 .assets()
                 .get(file)
-                .unwrap_or_else(|| panic!("Could not find asset by name: {:?}", file))
+                .unwrap_or_else(|| panic!("Could not find asset by name: {file:?}"))
                 .get_source()
                 .size() as f64,
             });
@@ -299,10 +296,7 @@ fn get_stats_module_name_and_id(module: &BoxModule, compilation: &Compilation) -
     .module_graph
     .module_graph_module_by_identifier(&identifier)
     .unwrap_or_else(|| {
-      panic!(
-        "module_graph.module_graph_module_by_identifier({:?}) failed",
-        identifier
-      )
+      panic!("module_graph.module_graph_module_by_identifier({identifier:?}) failed")
     });
   let name = module.readable_identifier(&compilation.options.context);
   let id = mgm.id(&compilation.chunk_graph);

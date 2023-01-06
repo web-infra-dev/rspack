@@ -171,8 +171,7 @@ impl ModuleGraph {
         .module_graph_module_by_identifier_mut(&module_identifier)
         .ok_or_else(|| {
           Error::InternalError(internal_error!(format!(
-            "Failed to set resolved module: Module linked to module identifier {} cannot be found",
-            module_identifier
+            "Failed to set resolved module: Module linked to module identifier {module_identifier} cannot be found"
           )))
         })?;
 
