@@ -61,8 +61,8 @@ pub struct ModuleArgs {
 pub struct ResolveArgs<'a> {
   pub importer: Option<&'a str>,
   pub specifier: &'a str,
-  pub dependency_type: DependencyType,
-  pub dependency_category: DependencyCategory,
+  pub dependency_type: &'a DependencyType,
+  pub dependency_category: &'a DependencyCategory,
   pub span: Option<ErrorSpan>,
   pub resolve_options: Option<Resolve>,
 }

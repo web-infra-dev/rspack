@@ -138,7 +138,11 @@ impl<'a> RspackModuleFormatTransformer<'a> {
     if is_dynamic_import_literal_expr(n) {
       if let Lit::Str(Str { value: literal, .. }) = n.args.first()?.expr.as_lit()? {
         // If the import module is not exsit in module graph, we need to leave it as it is
-        let js_module = self.resolve_module_legacy(&self.module.identifier(), &*literal, &DependencyType::EsmImport)?;
+        let js_module = self.resolve_module_legacy(
+          &self.module.identifier(),
+          &*literal,
+          &DependencyType::EsmImport,
+        )?;
 
         let js_module_id = js_module.id(&self.compilation.chunk_graph);
 
@@ -290,7 +294,11 @@ impl<'a> RspackModuleFormatTransformer<'a> {
       .get_mut(0)
       .and_then(|first_arg| first_arg.expr.as_mut_lit())
     {
-      if let Some(module) = self.resolve_module_legacy(&self.module.identifier(), &*str.value, &DependencyType::ModuleHotAccept) {
+      if let Some(module) = self.resolve_module_legacy(
+        &self.module.identifier(),
+        &*str.value,
+        &DependencyType::ModuleHotAccept,
+      ) {
         let module_id = module.id(&self.compilation.chunk_graph);
         str.value = JsWord::from(module_id);
         str.raw = Some(Atom::from(format!("\"{}\"", module_id)));
@@ -335,14 +343,17 @@ impl<'a> RspackModuleFormatTransformer<'a> {
       .get_mut(0)
       .and_then(|first_arg| first_arg.expr.as_mut_lit())
     {
-      if let Some(module) = self.resolve_module_legacy(&self.module.identifier(), &*str.value, &DependencyType::ModuleHotAccept) {
+      if let Some(module) = self.resolve_module_legacy(
+        &self.module.identifier(),
+        &*str.value,
+        &DependencyType::ModuleHotAccept,
+      ) {
         let module_id = module.id(&self.compilation.chunk_graph);
         str.value = JsWord::from(module_id);
         str.raw = Some(Atom::from(format!("\"{}\"", module_id)));
       }
     }
   }
-      
 }
 
 impl<'a> VisitMut for RspackModuleFormatTransformer<'a> {
@@ -367,6 +378,4 @@ impl<'a> VisitMut for RspackModuleFormatTransformer<'a> {
       ident.sym = runtime_globals::REQUIRE.into();
     }
   }
-}
-
 }

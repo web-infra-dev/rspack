@@ -1,4 +1,4 @@
-use crate::{Resolve, ResolveArgs, ResolveKind, ResolveResult, SharedPluginDriver};
+use crate::{DependencyType, Resolve, ResolveArgs, ResolveResult, SharedPluginDriver};
 use rspack_error::{internal_error, Error, Result, TraceableError};
 use std::path::Path;
 use tracing::instrument;
@@ -36,7 +36,10 @@ pub async fn resolve(
       .get(options)
       .resolve(base_dir, args.specifier)
   } else if plugin_driver.options.resolve.condition_names.is_none() {
-    let is_esm = matches!(args.kind, ResolveKind::Import | ResolveKind::DynamicImport);
+    let is_esm = matches!(
+      args.dependency_type,
+      DependencyType::EsmImport | DependencyType::DynamicImport
+    );
     let condition_names = if is_esm {
       vec![
         String::from("import"),

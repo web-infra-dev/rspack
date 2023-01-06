@@ -1,4 +1,4 @@
-use rspack_core::{Compilation, Dependency, Module, ModuleDependency, ResolveKind};
+use rspack_core::{Compilation, Dependency, DependencyType, Module, ModuleDependency};
 
 use crate::utils::is_require_literal_expr;
 
@@ -31,17 +31,21 @@ impl<'a> RewriteModuleUrl<'a> {
     &self,
     specifier: String,
     span: swc_core::common::Span,
-    kind: ResolveKind,
+    dependency_type: DependencyType,
   ) -> Option<&rspack_core::ModuleGraphModule> {
-    let dep = Dependency {
-      parent_module_identifier: Some(self.module.identifier()),
-      detail: ModuleDependency {
-        specifier,
-        kind,
-        span: Some(span.into()),
-      },
-    };
-    self.compilation.module_graph.module_by_dependency(&dep)
+    self
+      .compilation
+      .module_graph
+      .module_graph_module_by_identifier(&self.module.identifier())
+      .and_then(|mgm| {
+        mgm.dependencies.iter().find_map(|dep| {
+          if dep.request() == specifier && dep.dependency_type() == &dependency_type {
+            self.compilation.module_graph.module_by_dependency(dep)
+          } else {
+            None
+          }
+        })
+      })
   }
 
   fn get_import_module(
@@ -49,7 +53,7 @@ impl<'a> RewriteModuleUrl<'a> {
     specifier: String,
     span: swc_core::common::Span,
   ) -> Option<&rspack_core::ModuleGraphModule> {
-    self.get_module(specifier, span, ResolveKind::Import)
+    self.get_module(specifier, span, DependencyType::EsmImport)
   }
 }
 
@@ -108,7 +112,7 @@ impl<'a> VisitMut for RewriteModuleUrl<'a> {
             None => str.value.to_string(),
           };
 
-          if let Some(js_module) = self.get_module(specifier, n.span, ResolveKind::Require) {
+          if let Some(js_module) = self.get_module(specifier, n.span, DependencyType::CjsRequire) {
             let module_id = js_module.id(&self.compilation.chunk_graph);
             str.value = JsWord::from(module_id);
             str.raw = Some(Atom::from(format!("\"{}\"", module_id)));

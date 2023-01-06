@@ -140,8 +140,8 @@ impl NormalModuleFactory {
     let resolve_args = ResolveArgs {
       importer,
       specifier,
-      dependency_type: *self.dependency.dependency_type(),
-      dependency_category: *self.dependency.category(),
+      dependency_type: self.dependency.dependency_type(),
+      dependency_category: self.dependency.category(),
       span: self.dependency.span().cloned(),
       resolve_options,
     };
