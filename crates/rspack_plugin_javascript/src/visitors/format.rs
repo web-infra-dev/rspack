@@ -140,8 +140,8 @@ impl<'a> RspackModuleFormatTransformer<'a> {
         // If the import module is not exsit in module graph, we need to leave it as it is
         let js_module = self.resolve_module_legacy(
           &self.module.identifier(),
-          &*literal,
-          &DependencyType::EsmImport,
+          literal,
+          &DependencyType::DynamicImport,
         )?;
 
         let js_module_id = js_module.id(&self.compilation.chunk_graph);
@@ -296,7 +296,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
     {
       if let Some(module) = self.resolve_module_legacy(
         &self.module.identifier(),
-        &*str.value,
+        &str.value,
         &DependencyType::ModuleHotAccept,
       ) {
         let module_id = module.id(&self.compilation.chunk_graph);
@@ -345,7 +345,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
     {
       if let Some(module) = self.resolve_module_legacy(
         &self.module.identifier(),
-        &*str.value,
+        &str.value,
         &DependencyType::ModuleHotAccept,
       ) {
         let module_id = module.id(&self.compilation.chunk_graph);

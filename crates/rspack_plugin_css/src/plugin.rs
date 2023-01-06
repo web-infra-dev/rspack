@@ -435,7 +435,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     );
 
     let dependencies = if let Some(imports) = local_imports && !imports.is_empty() {
-      dependencies.extend(imports.into_iter().map(|(import, ast_path)| box CssImportDependency::new(import.to_string(), None, ast_path.clone()) as Box<dyn ModuleDependency>));
+      dependencies.extend(imports.into_iter().map(|(import, ast_path)| box CssImportDependency::new(import.to_string(), None, ast_path) as Box<dyn ModuleDependency>));
       dependencies.into_iter().unique().collect()
     } else {
       dependencies

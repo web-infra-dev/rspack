@@ -70,21 +70,21 @@ impl Dependency for EsmImportDependency {
   }
 
   fn category(&self) -> &DependencyCategory {
-    &self.category
+    self.category
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &self.dependency_type
+    self.dependency_type
   }
 }
 
 impl ModuleDependency for EsmImportDependency {
   fn request(&self) -> &str {
-    &*self.request
+    &self.request
   }
 
   fn user_request(&self) -> &str {
-    &*self.request
+    &self.request
   }
 
   fn span(&self) -> Option<&ErrorSpan> {

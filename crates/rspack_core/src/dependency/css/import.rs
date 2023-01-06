@@ -58,11 +58,11 @@ impl Dependency for CssImportDependency {
   }
 
   fn category(&self) -> &DependencyCategory {
-    &self.category
+    self.category
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &self.dependency_type
+    self.dependency_type
   }
 }
 

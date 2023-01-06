@@ -74,11 +74,11 @@ impl Dependency for CommonJSRequireDependency {
 
 impl ModuleDependency for CommonJSRequireDependency {
   fn request(&self) -> &str {
-    &*self.request
+    &self.request
   }
 
   fn user_request(&self) -> &str {
-    &*self.request
+    &self.request
   }
 
   fn span(&self) -> Option<&ErrorSpan> {

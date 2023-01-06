@@ -73,7 +73,7 @@ fn find_range<'a, 'b>(
   index: usize,
 ) -> Option<&'b [(&'a JsAstPath, &'a dyn JavaScriptVisitorBuilder)]> {
   // Precondition: visitors is never empty
-  let start = if visitors.first().unwrap().0[index] >= *kind {
+  let start = if visitors.first().expect("visitor expected").0[index] >= *kind {
     // Fast path: It's likely that the whole range is selected
     0
   } else {
@@ -82,7 +82,7 @@ fn find_range<'a, 'b>(
   if start >= visitors.len() {
     return None;
   }
-  let end = if visitors.last().unwrap().0[index] == *kind {
+  let end = if visitors.last().expect("visitor expected").0[index] == *kind {
     // Fast path: It's likely that the whole range is selected
     visitors.len()
   } else {
@@ -203,7 +203,7 @@ mod tests {
       &mut vec![],
     )
     .map_err(|err| HANDLER.with(|handler| err.into_diagnostic(handler).emit()))
-    .unwrap();
+    .expect("failed");
 
     let unresolved_mark = Mark::new();
     let top_level_mark = Mark::new();
@@ -246,9 +246,9 @@ mod tests {
       wr: JsWriter::new(cm.clone(), "\n", &mut bytes, None),
     };
 
-    emitter.emit_module(m).unwrap();
+    emitter.emit_module(m).expect("failed");
 
-    String::from_utf8(bytes).unwrap()
+    String::from_utf8(bytes).expect("failed")
   }
 
   #[test]

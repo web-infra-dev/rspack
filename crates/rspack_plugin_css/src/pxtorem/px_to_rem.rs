@@ -227,24 +227,9 @@ impl VisitMut for PxToRem {
     let mut map: std::collections::HashMap<Atom, u32> = HashMap::default();
     // prescan
     for ele in n.value.iter_mut() {
-      match ele {
-        swc_core::css::ast::ComponentValue::Declaration(decl) => {
-          let name = get_decl_name(decl);
-          *(map.entry(name).or_insert(0)) += 1;
-        }
-        // swc_css::ast::ComponentValue::DeclarationOrAtRule(DeclarationOrAtRule::Declaration(
-        //   decl,
-        // )) => {
-        //   let name = get_decl_name(decl);
-        //   *(map.entry(name).or_insert(0)) += 1;
-        // }
-        // swc_css::ast::ComponentValue::StyleBlock(swc_core::css::ast::StyleBlock::Declaration(
-        //   decl,
-        // )) => {
-        //   let name = get_decl_name(decl);
-        //   *(map.entry(name).or_insert(0)) += 1;
-        // }
-        _ => {}
+      if let swc_core::css::ast::ComponentValue::Declaration(decl) = ele {
+        let name = get_decl_name(decl);
+        *(map.entry(name).or_insert(0)) += 1;
       }
     }
     self.map_stack.push(map);
@@ -253,73 +238,24 @@ impl VisitMut for PxToRem {
     let mut snapshot_and_index_list: Vec<(usize, ComponentValue)> = vec![];
 
     for (index, ele) in n.value.iter_mut().enumerate() {
-      match ele {
-        ComponentValue::Declaration(decl) => {
-          let snapshot = if self.replace {
-            None
-          } else {
-            Some(decl.clone())
-          };
-          self.mutated = false;
-          self.visit_mut_declaration(decl);
+      if let ComponentValue::Declaration(decl) = ele {
+        let snapshot = if self.replace {
+          None
+        } else {
+          Some(decl.clone())
+        };
+        self.mutated = false;
+        self.visit_mut_declaration(decl);
 
-          if !self.replace && self.mutated {
-            // SAFETY: if `self.replace = false` we must save the snapshot of the declaration
-            let mut snapshot = snapshot.expect("TODO:");
-            std::mem::swap(decl, &mut snapshot);
-            // Now, snapshot save the mutated version of declaration
-            snapshot_and_index_list.push((index, ComponentValue::Declaration(snapshot)));
-            // Next, we will insert the mutated version of declaration after the original version of declaration
-          }
-          self.mutated = false;
+        if !self.replace && self.mutated {
+          // SAFETY: if `self.replace = false` we must save the snapshot of the declaration
+          let mut snapshot = snapshot.expect("TODO:");
+          std::mem::swap(decl, &mut snapshot);
+          // Now, snapshot save the mutated version of declaration
+          snapshot_and_index_list.push((index, ComponentValue::Declaration(snapshot)));
+          // Next, we will insert the mutated version of declaration after the original version of declaration
         }
-        // ComponentValue::DeclarationOrAtRule(DeclarationOrAtRule::Declaration(decl)) => {
-        //   let snapshot = if self.replace {
-        //     None
-        //   } else {
-        //     Some(decl.clone())
-        //   };
-        //   self.mutated = false;
-        //   self.visit_mut_declaration(decl);
-
-        //   if !self.replace && self.mutated {
-        //     // SAFETY: if `self.replace = false` we must save the snapshot of the declaration
-        //     let mut snapshot = snapshot.expect("TODO:");
-        //     std::mem::swap(decl, &mut snapshot);
-        //     // Now, snapshot save the mutated version of declaration
-        //     snapshot_and_index_list.push((
-        //       index,
-        //       ComponentValue::DeclarationOrAtRule(DeclarationOrAtRule::Declaration(snapshot)),
-        //     ));
-        //     // Next, we will insert the mutated version of declaration after the original version of declaration
-        //   }
-        //   self.mutated = false;
-        // }
-        // ComponentValue::StyleBlock(swc_core::css::ast::StyleBlock::Declaration(decl)) => {
-        //   let snapshot = if self.replace {
-        //     None
-        //   } else {
-        //     Some(decl.clone())
-        //   };
-        //   self.mutated = false;
-        //   self.visit_mut_declaration(decl);
-
-        //   if !self.replace && self.mutated {
-        //     // SAFETY: if `self.replace = false` we must save the snapshot of the declaration
-        //     let mut snapshot = snapshot.expect("TODO:");
-        //     std::mem::swap(decl, &mut snapshot);
-        //     // Now, snapshot save the mutated version of declaration
-        //     snapshot_and_index_list.push((
-        //       index,
-        //       ComponentValue::StyleBlock(StyleBlock::Declaration(snapshot)),
-        //     ));
-        //     // Next, we will insert the mutated version of declaration after the original version of declaration
-        //   }
-        //   self.mutated = false;
-        // }
-        _ => {
-          ele.visit_mut_with(self);
-        }
+        self.mutated = false;
       }
     }
 

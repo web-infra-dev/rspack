@@ -192,3 +192,6 @@ impl dyn Dependency + '_ {
 
 clone_trait_object!(Dependency);
 clone_trait_object!(ModuleDependency);
+
+pub type BoxModuleDependency = Box<dyn ModuleDependency>;
+pub type BoxDependency = Box<dyn Dependency>;

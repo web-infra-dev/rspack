@@ -61,21 +61,21 @@ impl Dependency for ModuleHotAcceptDependency {
   }
 
   fn category(&self) -> &DependencyCategory {
-    &self.category
+    self.category
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &self.dependency_type
+    self.dependency_type
   }
 }
 
 impl ModuleDependency for ModuleHotAcceptDependency {
   fn request(&self) -> &str {
-    &*self.request
+    &self.request
   }
 
   fn user_request(&self) -> &str {
-    &*self.request
+    &self.request
   }
 
   fn span(&self) -> Option<&ErrorSpan> {

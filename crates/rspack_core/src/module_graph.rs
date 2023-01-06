@@ -6,7 +6,7 @@ use hashbrown::{HashMap, HashSet};
 
 use rspack_error::{internal_error, Error, Result};
 
-use crate::{BoxModule, ModuleDependency, ModuleGraphModule, ModuleIdentifier};
+use crate::{BoxModule, BoxModuleDependency, ModuleGraphModule, ModuleIdentifier};
 
 // FIXME: placing this as global id is not acceptable, move it to somewhere else later
 static NEXT_MODULE_GRAPH_CONNECTION_ID: AtomicUsize = AtomicUsize::new(1);
@@ -67,8 +67,8 @@ pub struct ModuleGraph {
 
   dependency_id_to_connection_id: HashMap<usize, usize>,
   connection_id_to_dependency_id: HashMap<usize, usize>,
-  dependency_id_to_dependency: HashMap<usize, Box<dyn ModuleDependency>>,
-  dependency_to_dependency_id: HashMap<Box<dyn ModuleDependency>, usize>,
+  dependency_id_to_dependency: HashMap<usize, BoxModuleDependency>,
+  dependency_to_dependency_id: HashMap<BoxModuleDependency, usize>,
 
   /// The module graph connections
   connections: HashSet<ModuleGraphConnection>,
@@ -95,7 +95,7 @@ impl ModuleGraph {
 
   pub fn add_dependency(
     &mut self,
-    dep: Box<dyn ModuleDependency>,
+    dep: BoxModuleDependency,
     module_identifier: ModuleIdentifier,
   ) -> usize {
     static NEXT_DEPENDENCY_ID: AtomicUsize = AtomicUsize::new(0);
@@ -112,10 +112,7 @@ impl ModuleGraph {
   }
 
   /// Uniquely identify a module by its dependency
-  pub fn module_by_dependency(
-    &self,
-    dep: &Box<dyn ModuleDependency>,
-  ) -> Option<&ModuleGraphModule> {
+  pub fn module_by_dependency(&self, dep: &BoxModuleDependency) -> Option<&ModuleGraphModule> {
     self
       .dependency_to_dependency_id
       .get(dep)
@@ -128,7 +125,7 @@ impl ModuleGraph {
   }
 
   /// Get the dependency id of a dependency
-  pub fn dependency_id_by_dependency(&self, dep: &Box<dyn ModuleDependency>) -> Option<usize> {
+  pub fn dependency_id_by_dependency(&self, dep: &BoxModuleDependency) -> Option<usize> {
     self.dependency_to_dependency_id.get(dep).cloned()
   }
 
@@ -230,7 +227,7 @@ impl ModuleGraph {
   /// Uniquely identify a connection by a given dependency
   pub fn connection_by_dependency(
     &self,
-    dep: &Box<dyn ModuleDependency>,
+    dep: &BoxModuleDependency,
   ) -> Option<&ModuleGraphConnection> {
     self
       .dependency_to_dependency_id
@@ -242,14 +239,11 @@ impl ModuleGraph {
   pub fn dependency_by_connection(
     &self,
     connection: &ModuleGraphConnection,
-  ) -> Option<&Box<dyn ModuleDependency>> {
+  ) -> Option<&BoxModuleDependency> {
     self.dependency_by_connection_id(connection.id)
   }
 
-  pub fn dependency_by_connection_id(
-    &self,
-    connection_id: usize,
-  ) -> Option<&Box<dyn ModuleDependency>> {
+  pub fn dependency_by_connection_id(&self, connection_id: usize) -> Option<&BoxModuleDependency> {
     self
       .connection_id_to_dependency_id
       .get(&connection_id)
