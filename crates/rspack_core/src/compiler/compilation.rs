@@ -17,7 +17,6 @@ use std::{
   marker::PhantomPinned,
   path::PathBuf,
   pin::Pin,
-  sync::atomic::{AtomicU32, Ordering},
   sync::Arc,
 };
 use swc_core::ecma::atoms::JsWord;
@@ -333,7 +332,7 @@ impl Compilation {
       self.push_batch_diagnostic(e.into());
     }
 
-    let mut active_task_count = 0 as usize;
+    let mut active_task_count = 0usize;
     let (result_tx, mut result_rx) = tokio::sync::mpsc::unbounded_channel::<Result<TaskResult>>();
     let mut factorize_queue = FactorizeQueue::new();
     let mut add_queue = AddQueue::new();
