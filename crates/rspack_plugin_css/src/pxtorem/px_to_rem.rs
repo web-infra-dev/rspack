@@ -223,7 +223,6 @@ impl VisitMut for PxToRem {
     // The original implementation you could reference here, https://github.com/cuth/postcss-pxtorem/blob/122649015322214f8e9d1ac852eb11c0791b634b/index.js#L164
     // There is no easy way we could do the same thing in `swc_core::css`, except we made the trade off to perf which is we could codegen each prop and value of declaration
     // That means we almost codegen twice for each css file when postcss plugin is enable.
-
     let mut map: std::collections::HashMap<Atom, u32> = HashMap::default();
     // prescan
     for ele in n.value.iter_mut() {
@@ -256,6 +255,8 @@ impl VisitMut for PxToRem {
           // Next, we will insert the mutated version of declaration after the original version of declaration
         }
         self.mutated = false;
+      } else {
+        ele.visit_mut_with(self);
       }
     }
 
@@ -325,7 +326,7 @@ impl VisitMut for PxToRem {
   }
 
   fn visit_mut_length(&mut self, len: &mut swc_core::css::ast::Length) {
-    if &len.unit.value == "px" && !self.skip_mutate_length {
+    if let Some(ref raw) = len.unit.raw && raw == "px" && !self.skip_mutate_length {
       if len.value.value != 0f64 && len.value.value.abs() >= self.min_pixel_value {
         self.mutated = true;
         let normalized_value = self.normalized_num(len.value.value);

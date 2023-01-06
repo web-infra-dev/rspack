@@ -16,4 +16,3 @@ expression: should_replace_px_in_media_queries.css
     font-size: 1rem;
   }
 }
-
