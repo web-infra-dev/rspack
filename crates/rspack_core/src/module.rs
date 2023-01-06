@@ -12,8 +12,8 @@ use rspack_sources::Source;
 
 use crate::{
   AsAny, CodeGenerationResult, Compilation, CompilationContext, CompilerContext, CompilerOptions,
-  Context, Dependency, DynEq, DynHash, Identifiable, Identifier, LoaderRunnerRunner,
-  ModuleDependency, ModuleType, NormalModule, RawModule, Resolve, SourceType,
+  Context, DynEq, DynHash, Identifiable, Identifier, LoaderRunnerRunner, ModuleDependency,
+  ModuleType, NormalModule, RawModule, Resolve, SourceType,
 };
 
 pub struct BuildContext<'a> {

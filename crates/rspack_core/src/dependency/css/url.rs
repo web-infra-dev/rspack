@@ -1,5 +1,3 @@
-use derivative::Derivative;
-
 use crate::{
   CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, CssAstPath, Dependency,
   DependencyCategory, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
@@ -14,6 +12,7 @@ pub struct CssUrlDependency {
   dependency_type: &'static DependencyType,
 
   span: Option<ErrorSpan>,
+  #[allow(unused)]
   ast_path: CssAstPath,
 }
 

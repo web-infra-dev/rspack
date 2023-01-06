@@ -30,7 +30,7 @@ impl<'a> RewriteModuleUrl<'a> {
   fn get_module(
     &self,
     specifier: String,
-    span: swc_core::common::Span,
+    _span: swc_core::common::Span,
     dependency_type: DependencyType,
   ) -> Option<&rspack_core::ModuleGraphModule> {
     self

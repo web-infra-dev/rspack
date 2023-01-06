@@ -7,8 +7,7 @@ use itertools::Itertools;
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
 use rspack_core::{
-  AstOrSource, CssImportDependency, DependencyCategory, Filename, Mode, ModuleAst,
-  ModuleDependency, ModuleIdentifier,
+  AstOrSource, CssImportDependency, Filename, Mode, ModuleAst, ModuleDependency, ModuleIdentifier,
 };
 use std::cmp;
 use std::hash::{Hash, Hasher};

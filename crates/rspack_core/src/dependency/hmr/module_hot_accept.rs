@@ -1,5 +1,3 @@
-use derivative::Derivative;
-
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{
@@ -14,6 +12,7 @@ pub struct ModuleHotAcceptDependency {
   // user_request: String,
   category: &'static DependencyCategory,
   dependency_type: &'static DependencyType,
+
   span: Option<ErrorSpan>,
   #[allow(unused)]
   ast_path: JsAstPath,

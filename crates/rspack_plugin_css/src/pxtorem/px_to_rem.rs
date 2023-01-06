@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use swc_core::css::{
-  ast::{ComponentValue, Declaration, DeclarationOrAtRule, DimensionToken, StyleBlock, Token},
+  ast::{ComponentValue, Declaration, DimensionToken, Token},
   codegen::{
     writer::basic::{BasicCssWriter, BasicCssWriterConfig},
     CodeGenerator, CodegenConfig, Emit,

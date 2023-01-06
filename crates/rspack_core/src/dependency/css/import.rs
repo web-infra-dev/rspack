@@ -1,7 +1,3 @@
-use derivative::Derivative;
-
-use rspack_error::Result;
-
 use crate::{
   CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, CssAstPath, Dependency,
   DependencyCategory, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
@@ -15,6 +11,7 @@ pub struct CssImportDependency {
   dependency_type: &'static DependencyType,
 
   span: Option<ErrorSpan>,
+  #[allow(unused)]
   ast_path: CssAstPath,
 }
 

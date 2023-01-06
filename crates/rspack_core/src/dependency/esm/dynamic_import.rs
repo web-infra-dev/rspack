@@ -1,5 +1,3 @@
-use derivative::Derivative;
-
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{

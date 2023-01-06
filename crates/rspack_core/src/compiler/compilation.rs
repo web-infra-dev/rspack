@@ -43,9 +43,9 @@ use crate::{
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BuildQueue, BuildTask,
   BuildTaskResult, BundleEntries, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey,
   ChunkKind, ChunkUkey, CodeGenerationResult, CodeGenerationResults, CompilerOptions,
-  ContentHashArgs, Dependency, EntryDependency, EntryItem, EntryOptions, Entrypoint,
-  FactorizeQueue, FactorizeTask, FactorizeTaskResult, LoaderRunnerRunner, Module, ModuleDependency,
-  ModuleGraph, ModuleIdentifier, ModuleType, ProcessAssetsArgs, ProcessDependenciesQueue,
+  ContentHashArgs, EntryDependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue,
+  FactorizeTask, FactorizeTaskResult, LoaderRunnerRunner, Module, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, ModuleType, ProcessAssetsArgs, ProcessDependenciesQueue,
   ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, RuntimeModule,
   SharedPluginDriver, Stats, TaskResult, VisitedModuleIdentity, WorkerTask,
 };

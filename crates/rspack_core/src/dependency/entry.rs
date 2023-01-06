@@ -1,5 +1,3 @@
-use rspack_error::Result;
-
 use crate::{
   CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, DependencyCategory,
   DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,

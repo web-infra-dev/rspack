@@ -1,15 +1,16 @@
-use derivative::Derivative;
-
 use swc_core::ecma::atoms::JsWord;
-use swc_core::ecma::{ast::*, atoms::Atom};
+// use swc_core::ecma::{ast::*, atoms::Atom};
 
 use crate::{
-  create_javascript_visitor,
+  // create_javascript_visitor,
   dependency::{
     CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, DependencyCategory,
     ModuleDependency,
   },
-  DependencyType, ErrorSpan, JsAstPath, ModuleIdentifier,
+  DependencyType,
+  ErrorSpan,
+  JsAstPath,
+  ModuleIdentifier,
 };
 
 #[derive(Debug, Eq, Clone)]
@@ -95,35 +96,37 @@ static _SWC_HELPERS_REG: once_cell::sync::Lazy<regex::Regex> =
   once_cell::sync::Lazy::new(|| regex::Regex::new(r"@swc/helpers/lib/(\w*)\.js$").expect("TODO:"));
 
 impl CodeGeneratable for EsmImportDependency {
-  fn generate(&self, code_generatable_context: &CodeGeneratableContext) -> CodeGeneratableResult {
-    let CodeGeneratableContext {
-      compilation,
-      module,
-    } = code_generatable_context;
+  fn generate(&self, _code_generatable_context: &CodeGeneratableContext) -> CodeGeneratableResult {
+    // let CodeGeneratableContext {
+    //   compilation,
+    //   module,
+    // } = code_generatable_context;
 
-    let mut code_gen = CodeGeneratableResult::default();
+    // let mut code_gen = CodeGeneratableResult::default();
 
-    let target_mgm = compilation
-      .module_graph
-      .module_graph_module_by_identifier(&module.identifier())
-      .and_then(|mgm| {
-        mgm.dependencies.iter().find_map(|dep| {
-          if dep.request() == self.request() && dep.dependency_type() == self.dependency_type() {
-            compilation.module_graph.module_by_dependency(dep)
-          } else {
-            None
-          }
-        })
-      })
-      .expect("Failed to get module graph module");
+    // let target_mgm = compilation
+    //   .module_graph
+    //   .module_graph_module_by_identifier(&module.identifier())
+    //   .and_then(|mgm| {
+    //     mgm.dependencies.iter().find_map(|dep| {
+    //       if dep.request() == self.request() && dep.dependency_type() == self.dependency_type() {
+    //         compilation.module_graph.module_by_dependency(dep)
+    //       } else {
+    //         None
+    //       }
+    //     })
+    //   })
+    //   .expect("Failed to get module graph module");
 
-    let _module_id = target_mgm.id(&compilation.chunk_graph).to_string();
+    // let _module_id = target_mgm.id(&compilation.chunk_graph).to_string();
 
-    let v =
-      create_javascript_visitor!(&self.ast_path, visit_mut_module_decl(n: &mut ModuleDecl) {});
+    // let v =
+    //   create_javascript_visitor!(&self.ast_path, visit_mut_module_decl(n: &mut ModuleDecl) {});
 
-    code_gen.visitors.push(v);
+    // code_gen.visitors.push(v);
 
-    code_gen
+    // code_gen
+
+    todo!()
   }
 }

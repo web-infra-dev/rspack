@@ -12,10 +12,7 @@ use swc_core::{
   common::{pass::AstNodePath, util::take::Take},
   css::{
     ast::{AtRulePrelude, ImportHref, ImportPrelude, Rule, Stylesheet, Url, UrlValue},
-    visit::{
-      AstParentKind, AstParentNodeRef, Visit, VisitAstPath, VisitMut, VisitMutWith, VisitWith,
-      VisitWithPath,
-    },
+    visit::{AstParentKind, AstParentNodeRef, VisitAstPath, VisitMut, VisitMutWith, VisitWithPath},
   },
   ecma::atoms::Atom,
 };

@@ -7,7 +7,7 @@ use rspack_symbol::{BetterId, IndirectTopLevelSymbol, Symbol};
 use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::utils::quote_ident;
 use swc_core::ecma::visit::{noop_fold_type, Fold, FoldWith};
-use ustr::{ustr, Ustr};
+use ustr::Ustr;
 pub fn tree_shaking_visitor<'a>(
   module_graph: &'a ModuleGraph,
   module_id: Ustr,

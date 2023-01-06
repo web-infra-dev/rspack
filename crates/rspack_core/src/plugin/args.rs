@@ -1,12 +1,15 @@
+use std::fmt::Debug;
+
+use hashbrown::HashSet;
+
+use rspack_error::{internal_error, Error, Result};
+
 use crate::ast::css::Ast as CssAst;
 use crate::ast::javascript::Ast as JsAst;
 use crate::{
-  Chunk, ChunkUkey, Compilation, Dependency, DependencyCategory, DependencyType, ErrorSpan,
-  ModuleDependency, ModuleIdentifier, Resolve, SharedPluginDriver, Stats,
+  Chunk, ChunkUkey, Compilation, DependencyCategory, DependencyType, ErrorSpan, ModuleDependency,
+  ModuleIdentifier, Resolve, SharedPluginDriver, Stats,
 };
-use hashbrown::HashSet;
-use rspack_error::{internal_error, Error, Result};
-use std::fmt::Debug;
 
 // #[derive(Debug)]
 // pub struct ParseModuleArgs<'a> {
