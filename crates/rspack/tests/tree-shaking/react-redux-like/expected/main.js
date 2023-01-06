@@ -8,14 +8,14 @@ Object.defineProperty(exports, "Provider", {
     enumerable: true,
     get: ()=>_libJs.default
 });
-const _libJs = __webpack_require__.interopRequire(__webpack_require__("./lib.js"));
+const _libJs = __webpack_require__.ir(__webpack_require__("./lib.js"));
 },
 "./foo.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-__webpack_require__.exportStar(__webpack_require__("./app.js"), exports);
+__webpack_require__.es(__webpack_require__("./app.js"), exports);
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";

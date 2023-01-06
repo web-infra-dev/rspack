@@ -14,8 +14,8 @@ _export(exports, {
     b: ()=>b,
     bar: ()=>_fooJs
 });
-const _fooJs = __webpack_require__.interopRequire(__webpack_require__("./foo.js"));
-__webpack_require__.exportStar(__webpack_require__("./result.js"), exports);
+const _fooJs = __webpack_require__.ir(__webpack_require__("./foo.js"));
+__webpack_require__.es(__webpack_require__("./result.js"), exports);
 function b() {}
 },
 "./foo.js": function (module, exports, __webpack_require__) {
@@ -33,8 +33,8 @@ _export(exports, {
     a: ()=>a,
     foo: ()=>foo
 });
-__webpack_require__.exportStar(__webpack_require__("./bar.js"), exports);
-__webpack_require__.exportStar(__webpack_require__("./result.js"), exports);
+__webpack_require__.es(__webpack_require__("./bar.js"), exports);
+__webpack_require__.es(__webpack_require__("./result.js"), exports);
 const a = 3;
 const foo = 3;
 },
@@ -56,8 +56,8 @@ Object.defineProperty(exports, "c", {
     enumerable: true,
     get: ()=>c
 });
-__webpack_require__.exportStar(__webpack_require__("./foo.js"), exports);
-__webpack_require__.exportStar(__webpack_require__("./bar.js"), exports);
+__webpack_require__.es(__webpack_require__("./foo.js"), exports);
+__webpack_require__.es(__webpack_require__("./bar.js"), exports);
 const c = 103330;
 },
 

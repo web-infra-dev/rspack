@@ -1,5 +1,5 @@
-pub const INTEROP_REQUIRE: &str = "interopRequire";
-pub const EXPORT_STAR: &str = "exportStar";
+pub const INTEROP_REQUIRE: &str = "ir";
+pub const EXPORT_STAR: &str = "es";
 
 // port from webpack RuntimeGlobals
 

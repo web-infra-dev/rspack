@@ -8,7 +8,7 @@ Object.defineProperty(exports, "default", {
     enumerable: true,
     get: ()=>_default
 });
-const _testJs = __webpack_require__.interopRequire(__webpack_require__("./test.js"));
+const _testJs = __webpack_require__.ir(__webpack_require__("./test.js"));
 function myanswer() {
     _testJs.default;
 }

@@ -41,7 +41,7 @@ Object.defineProperty(exports, "cccc", {
     enumerable: true,
     get: ()=>_cJs.cccc
 });
-const _layoutJs = __webpack_require__.interopRequire(__webpack_require__("./Layout.js"));
+const _layoutJs = __webpack_require__.ir(__webpack_require__("./Layout.js"));
 const _somethingJs = __webpack_require__("./Something.js");
 const _cJs = __webpack_require__("./c.js");
 var L = _layoutJs.default;

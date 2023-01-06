@@ -13,6 +13,6 @@ it("should have interop", function () {
 
 it("should interop helper inject once", function () {
 	const content = fs.readFileSync(__filename, "utf-8");
-	const keyStr = content.match(/__webpack_require__\.interopRequire/);
+	const keyStr = content.match(/__webpack_require__\.ir/);
 	expect(keyStr && keyStr.length).toBe(1);
 });

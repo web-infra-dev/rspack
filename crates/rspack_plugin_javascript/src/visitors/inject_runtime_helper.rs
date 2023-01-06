@@ -73,7 +73,10 @@ impl<'a> VisitMut for InjectRuntimeHelper<'a> {
             runtime_globals::REQUIRE.into(),
             DUMMY_SP,
           ))),
-          prop: MemberProp::Ident(Ident::new("interopRequire".into(), DUMMY_SP)),
+          prop: MemberProp::Ident(Ident::new(
+            runtime_globals::INTEROP_REQUIRE.into(),
+            DUMMY_SP,
+          )),
         }
         .as_callee();
         n.args.visit_mut_children_with(self);
@@ -91,7 +94,7 @@ impl<'a> VisitMut for InjectRuntimeHelper<'a> {
             runtime_globals::REQUIRE.into(),
             DUMMY_SP,
           ))),
-          prop: MemberProp::Ident(Ident::new("exportStar".into(), DUMMY_SP)),
+          prop: MemberProp::Ident(Ident::new(runtime_globals::EXPORT_STAR.into(), DUMMY_SP)),
         }
         .as_callee();
         n.args.visit_mut_children_with(self);

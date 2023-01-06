@@ -18,8 +18,8 @@ const b = 'foo';
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-__webpack_require__.exportStar(__webpack_require__("./foo.js"), exports);
-__webpack_require__.exportStar(__webpack_require__("./bar.js"), exports);
+__webpack_require__.es(__webpack_require__("./foo.js"), exports);
+__webpack_require__.es(__webpack_require__("./bar.js"), exports);
 },
 
 },function(__webpack_require__) {

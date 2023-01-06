@@ -76,7 +76,7 @@ __webpack_require__.O = function (result, chunkIds, fn, priority) {
 };
 
 })();
-// rspack/runtime/interopRequire
+// rspack/runtime/ir
 (function() {
 (function () {
 	function _getRequireCache(nodeInterop) {
@@ -89,7 +89,7 @@ __webpack_require__.O = function (result, chunkIds, fn, priority) {
 		})(nodeInterop);
 	}
 
-	__webpack_require__.interopRequire = function (obj, nodeInterop) {
+	__webpack_require__.ir = function (obj, nodeInterop) {
 		if (!nodeInterop && obj && obj.__esModule) {
 			return obj;
 		}

@@ -4,7 +4,7 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _mathsJs = __webpack_require__.interopRequire(__webpack_require__("./maths.js"));
+const _mathsJs = __webpack_require__.ir(__webpack_require__("./maths.js"));
 console.log(_mathsJs.xxx.test);
 console.log(_mathsJs['square']);
 },
@@ -23,7 +23,7 @@ _export(exports, {
     square: ()=>square,
     xxx: ()=>_testJs
 });
-const _testJs = __webpack_require__.interopRequire(__webpack_require__("./test.js"));
+const _testJs = __webpack_require__.ir(__webpack_require__("./test.js"));
 function square(x) {
     return x * x;
 }

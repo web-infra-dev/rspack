@@ -61,7 +61,7 @@ _export(exports, {
     z: ()=>_bJs.z,
     default: ()=>_default
 });
-__webpack_require__.exportStar(__webpack_require__("../node_modules/pmodule/a.js"), exports);
+__webpack_require__.es(__webpack_require__("../node_modules/pmodule/a.js"), exports);
 const _bJs = __webpack_require__("../node_modules/pmodule/b.js");
 const _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
 (0, _trackerJs.track)("index.js");
@@ -94,7 +94,7 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 const _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
-const _indexJs = __webpack_require__.interopRequire(__webpack_require__("../node_modules/pmodule/index.js"));
+const _indexJs = __webpack_require__.ir(__webpack_require__("../node_modules/pmodule/index.js"));
 _indexJs.default.should.be.eql("def");
 _indexJs.a.should.be.eql("a");
 _indexJs.x.should.be.eql("x");

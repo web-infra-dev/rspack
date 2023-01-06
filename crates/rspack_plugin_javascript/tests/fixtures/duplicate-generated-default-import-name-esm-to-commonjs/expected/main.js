@@ -37,9 +37,9 @@ const _default = 'cart-c';
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _cartJs = __webpack_require__.interopRequire(__webpack_require__("./a/cart.js"));
-const _cartJs1 = __webpack_require__.interopRequire(__webpack_require__("./b/cart.js"));
-const _cartJs2 = __webpack_require__.interopRequire(__webpack_require__("./c/cart.js"));
+const _cartJs = __webpack_require__.ir(__webpack_require__("./a/cart.js"));
+const _cartJs1 = __webpack_require__.ir(__webpack_require__("./b/cart.js"));
+const _cartJs2 = __webpack_require__.ir(__webpack_require__("./c/cart.js"));
 console.log(_cartJs.default, _cartJs1.default, _cartJs2.default);
 },
 

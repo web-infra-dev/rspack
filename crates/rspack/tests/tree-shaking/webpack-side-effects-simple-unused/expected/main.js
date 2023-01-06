@@ -80,7 +80,7 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 const _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
-const _indexJs = __webpack_require__.interopRequire(__webpack_require__("../node_modules/pmodule/index.js"));
+const _indexJs = __webpack_require__.ir(__webpack_require__("../node_modules/pmodule/index.js"));
 _indexJs.default.should.be.eql("def");
 _indexJs.x.should.be.eql("x");
 _indexJs.z.should.be.eql("z");

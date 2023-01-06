@@ -34,7 +34,7 @@ function result() {}
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _appJs = __webpack_require__.interopRequire(__webpack_require__("./app.js"));
+const _appJs = __webpack_require__.ir(__webpack_require__("./app.js"));
 (0, _appJs.render)(_appJs.default);
 },
 "./lib.js": function (module, exports, __webpack_require__) {
