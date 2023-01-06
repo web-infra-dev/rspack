@@ -17,7 +17,6 @@ use std::{
   marker::PhantomPinned,
   path::PathBuf,
   pin::Pin,
-  sync::atomic::{AtomicU32, Ordering},
   sync::Arc,
 };
 use swc_core::ecma::atoms::JsWord;
@@ -333,7 +332,7 @@ impl Compilation {
       self.push_batch_diagnostic(e.into());
     }
 
-    let active_task_count: Arc<AtomicU32> = Arc::new(AtomicU32::new(0));
+    let mut active_task_count = 0usize;
     let (result_tx, mut result_rx) = tokio::sync::mpsc::unbounded_channel::<Result<TaskResult>>();
     let mut factorize_queue = FactorizeQueue::new();
     let mut add_queue = AddQueue::new();
@@ -360,7 +359,7 @@ impl Compilation {
       while let Some(task) = factorize_queue.get_task() {
         tokio::spawn({
           let result_tx = result_tx.clone();
-          active_task_count.fetch_add(1, Ordering::SeqCst);
+          active_task_count += 1;
 
           async move {
             let result = task.run().await;
@@ -374,7 +373,7 @@ impl Compilation {
       while let Some(task) = build_queue.get_task() {
         tokio::spawn({
           let result_tx = result_tx.clone();
-          active_task_count.fetch_add(1, Ordering::SeqCst);
+          active_task_count += 1;
 
           async move {
             let result = task.run().await;
@@ -384,13 +383,13 @@ impl Compilation {
       }
 
       while let Some(task) = add_queue.get_task() {
-        active_task_count.fetch_add(1, Ordering::SeqCst);
+        active_task_count += 1;
         let result = task.run(self);
         result_tx.send(result).expect("Failed to send add result");
       }
 
       while let Some(task) = process_dependencies_queue.get_task() {
-        active_task_count.fetch_add(1, Ordering::SeqCst);
+        active_task_count += 1;
 
         task.dependencies.into_iter().for_each(|dep| {
           self.handle_module_creation(
@@ -532,13 +531,13 @@ impl Compilation {
             }
           }
 
-          active_task_count.fetch_sub(1, Ordering::SeqCst);
+          active_task_count -= 1;
         }
         Err(TryRecvError::Disconnected) => {
           break;
         }
         Err(TryRecvError::Empty) => {
-          if active_task_count.load(Ordering::SeqCst) == 0 {
+          if active_task_count == 0 {
             break;
           }
         }
