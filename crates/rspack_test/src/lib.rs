@@ -1,3 +1,5 @@
+#![feature(let_chains)]
+
 pub use testing_macros;
 pub use testing_macros::fixture;
 

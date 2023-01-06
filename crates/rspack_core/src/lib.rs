@@ -1,8 +1,8 @@
+#![feature(let_chains)]
 #![feature(iter_intersperse)]
 #![feature(box_patterns)]
 #![feature(box_syntax)]
 #![feature(anonymous_lifetime_in_impl_trait)]
-#![feature(unzip_option)]
 
 use std::{fmt, sync::Arc};
 
