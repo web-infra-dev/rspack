@@ -391,11 +391,12 @@ impl Plugin for JsPlugin {
 
     let mut hasher = Xxh3::default();
 
-    let ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+    let mut ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
       &args.chunk_ukey,
       SourceType::JavaScript,
       &compilation.module_graph,
     );
+    ordered_modules.sort_by_key(|m| &m.module_identifier);
     for mgm in ordered_modules {
       if let Some(module) = compilation
         .module_graph
