@@ -1,7 +1,7 @@
 use anyhow::anyhow;
+use hashbrown::HashMap;
 use hashbrown::HashSet;
 use rspack_error::Result;
-use std::collections::HashMap;
 use tracing::instrument;
 
 use crate::{ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier};
