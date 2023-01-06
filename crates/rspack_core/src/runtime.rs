@@ -6,7 +6,7 @@ use std::{fmt::Debug, hash::Hash};
 pub type RuntimeSpec = HashSet<String>;
 pub type RuntimeKey = String;
 
-#[derive(Default, Debug)]
+#[derive(Default, Clone, Copy, Debug)]
 enum RuntimeMode {
   #[default]
   Empty = 0,
