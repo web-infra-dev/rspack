@@ -7,9 +7,6 @@ use mimalloc_rust::GlobalMiMalloc;
 #[cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))]
 #[global_allocator]
 static GLOBAL: GlobalMiMalloc = GlobalMiMalloc;
-// #[cfg(feature = "dhat-heap")]
-// #[global_allocator]
-// static ALLOC: dhat::Alloc = dhat::Alloc;
 use rspack_test::read_test_config_and_normalize;
 #[tokio::main]
 async fn main() {
@@ -17,8 +14,6 @@ async fn main() {
   let guard = enable_tracing_by_env_with_chrome_layer();
   let manifest_dir = PathBuf::from(env!("CARGO_WORKSPACE_DIR"));
   // let bundle_dir = manifest_dir.join("tests/fixtures/postcss/pxtorem");
-  // #[cfg(feature = "dhat-heap")]
-  // let _profiler = dhat::Profiler::new_heap();
   let bundle_dir: PathBuf = manifest_dir.join("benchcases/three");
   println!("{:?}", bundle_dir);
   let mut options = read_test_config_and_normalize(&bundle_dir);

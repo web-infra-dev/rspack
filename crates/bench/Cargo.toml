@@ -6,7 +6,6 @@ version = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-dhat = "0.3.2"
 rspack = { path = "../rspack" }
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
@@ -23,6 +22,5 @@ tokio = { version = "1.21.0", features = [
 mimalloc-rust  = { version = "0.2" }
 rspack_tracing = { path = "../rspack_tracing" }
 [features]
-dhat-heap = []
-hmr       = []
-tracing   = []
+hmr     = []
+tracing = []
