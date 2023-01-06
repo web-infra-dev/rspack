@@ -92,7 +92,7 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
 
               check_status!(
                 unsafe {
-                  napi_sys::napi_get_named_property(
+                  sys::napi_get_named_property(
                     env.raw(),
                     napi_error,
                     CStr::from_bytes_with_nul_unchecked(b"stack\0").as_ptr(),
@@ -105,7 +105,7 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
               let mut str_len = 0;
               check_status!(
                 unsafe {
-                  napi_sys::napi_get_value_string_utf8(
+                  sys::napi_get_value_string_utf8(
                     env.raw(),
                     value_ptr,
                     ptr::null_mut(),
@@ -122,7 +122,7 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
 
               check_status!(
                 unsafe {
-                  napi_sys::napi_get_value_string_utf8(
+                  sys::napi_get_value_string_utf8(
                     env.raw(),
                     value_ptr,
                     buf.as_mut_ptr(),
@@ -161,7 +161,7 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
     self
       .tx
       .send(p.map_err(rspack_error::Error::from))
-      .map_err(|_| napi::Error::from_reason(format!("Failed to resolve")))
+      .map_err(|_| napi::Error::from_reason("Failed to resolve".to_owned()))
   }
 }
 
@@ -262,6 +262,7 @@ unsafe impl<T, R> Sync for ThreadsafeFunction<T, R> {}
 impl<T: 'static, R> ThreadsafeFunction<T, R> {
   /// See [napi_create_threadsafe_function](https://nodejs.org/api/n-api.html#n_api_napi_create_threadsafe_function)
   /// for more information.
+  #[allow(clippy::not_unsafe_ptr_arg_deref)]
   pub fn create<C: 'static + Send + FnMut(ThreadSafeContext<T, R>) -> Result<()>>(
     env: sys::napi_env,
     func: sys::napi_value,

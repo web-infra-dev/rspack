@@ -56,14 +56,7 @@ swc_core = { workspace = true, features = [
   "css_compat",
   "css_modules",
 ] }
-swc_css = { workspace = true }
-tokio = { version = "1.21.0", features = [
-  "rt",
-  "rt-multi-thread",
-  "macros",
-  "test-util",
-  "parking_lot",
-] }
+tokio = { workspace = true }
 tracing = "0.1.34"
 url = "2.2.2"
 ustr = "0.9.0"

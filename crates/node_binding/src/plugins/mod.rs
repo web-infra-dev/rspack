@@ -5,9 +5,9 @@ use napi::{Env, NapiRaw, Result};
 
 use async_trait::async_trait;
 
+use rspack_binding_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_error::{internal_error, Error};
 
-use crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use crate::{JsCompilation, JsHooks};
 
 pub struct JsHooksAdapter {

@@ -3,7 +3,7 @@
 extern crate napi_derive;
 
 #[macro_use]
-extern crate rspack_binding_macros;
+extern crate rspack_binding_shared;
 
 use std::collections::HashSet;
 use std::pin::Pin;
@@ -273,7 +273,7 @@ impl Rspack {
 
 impl Rspack {
   fn prepare_environment(env: &Env, options: &mut RawOptions) {
-    NAPI_ENV.with(|napi_env| *napi_env.borrow_mut() = Some(env.raw()));
+    rspack_binding_shared::NAPI_ENV.with(|napi_env| *napi_env.borrow_mut() = Some(env.raw()));
 
     if let Some(module) = options.module.as_mut() {
       for rule in &mut module.rules {

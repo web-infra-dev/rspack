@@ -1,6 +1,6 @@
 [package]
 edition = "2021"
-name    = "rspack_binding_macros"
+name    = "rspack_binding_shared"
 publish = false
 version = "0.1.0"
 
@@ -14,3 +14,5 @@ napi = { version = "2", default-features = false, features = [
   "napi5",
   "anyhow",
 ] }
+rspack_error = { path = "../rspack_error", features = ["napi"] }
+tokio = { workspace = true }

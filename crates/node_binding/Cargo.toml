@@ -27,10 +27,10 @@ napi-sys = "2"
 once_cell = "1"
 regex = "1.6.0"
 rspack = { path = "../rspack" }
-rspack_binding_macros = { path = "../rspack_binding_macros" }
 rspack_binding_options = { path = "../rspack_binding_options", features = [
   "node-api",
 ] }
+rspack_binding_shared = { path = "../rspack_binding_shared" }
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error", features = ["napi"] }
 rspack_plugin_html = { path = "../rspack_plugin_html" }

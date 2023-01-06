@@ -9,7 +9,7 @@ use napi_derive::napi;
 use futures::Future;
 use once_cell::sync::OnceCell;
 
-use crate::threadsafe_function::{
+use rspack_binding_shared::threadsafe_function::{
   ThreadSafeContext, ThreadsafeFunction, ThreadsafeFunctionCallMode,
 };
 

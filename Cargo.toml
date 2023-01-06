@@ -17,9 +17,15 @@ opt-level     = 3
 
 
 [workspace.dependencies]
-swc_core          = { version = "0.50.2", default-features = false }
-swc_css           = { version = "0.141.5" }
-swc_html          = { version = "0.97.7" }
+swc_core = { version = "0.50.2", default-features = false }
+swc_html = { version = "0.97.7" }
 swc_html_minifier = { version = "0.94.7" }
+tokio = { version = "1.21.0", features = [
+  "rt",
+  "rt-multi-thread",
+  "macros",
+  "test-util",
+  "parking_lot",
+] }
 
 preset_env_base = { version = "0.3.3" }
