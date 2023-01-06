@@ -478,25 +478,6 @@ impl RawOption<ModuleRule> for RawModuleRule {
 
     let module_type = self.r#type.map(|t| (&*t).try_into()).transpose()?;
 
-    // let func = Box::new(
-    //   self
-    //     .func__
-    //     .map(|func| {
-    //       let func: Result<ModuleRuleFunc> = func.create_threadsafe_function(
-    //         0,
-    //         |ctx| Ok(vec![Buffer::from(ctx.value)]),
-    //         |ctx: ThreadSafeResultContext<Buffer>| {
-    //           dbg!(ctx.return_value.as_ref());
-    //           todo!()
-    //         },
-    //       );
-    //       func
-    //     })
-    //     .transpose()?,
-    // );
-
-    // let module_rule_tsfn: &'static Option<ModuleRuleFunc> = Box::leak(func);
-
     Ok(ModuleRule {
       test: self.test.map(|raw| raw.try_into()).transpose()?,
       include: self

@@ -8,23 +8,24 @@ use rspack_sources::Source;
 
 use crate::{
   AstOrSource, BuildInfo, CodeGenerationResults, Compilation, CompilerOptions, GenerationResult,
-  Module, ModuleDependency, ModuleType, SourceType,
+  Module, ModuleDependency, ModuleIdentifier, ModuleType, SourceType,
 };
 
 #[derive(Debug)]
 pub struct ParseContext<'a> {
   pub source: Box<dyn Source>,
+  pub module_identifier: ModuleIdentifier,
   pub module_type: &'a ModuleType,
   pub resource_data: &'a ResourceData,
   pub compiler_options: &'a CompilerOptions,
   pub additional_data: Option<String>,
-  pub code_generation_dependencies: &'a mut Vec<ModuleDependency>,
+  pub code_generation_dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
   pub build_info: &'a mut BuildInfo,
 }
 
 #[derive(Debug)]
 pub struct ParseResult {
-  pub dependencies: Vec<ModuleDependency>,
+  pub dependencies: Vec<Box<dyn ModuleDependency>>,
   pub ast_or_source: AstOrSource,
 }
 

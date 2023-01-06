@@ -1,5 +1,5 @@
-mod dependency_scanner;
-pub use dependency_scanner::*;
+mod dependency;
+pub use dependency::*;
 mod finalize;
 use finalize::finalize;
 // mod clear_mark;
@@ -140,6 +140,29 @@ pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut
     let tree_shaking = generate_context.compilation.options.builtins.tree_shaking;
     let minify = generate_context.compilation.options.builtins.minify;
     let comments = None;
+
+    // TODO: add back in next PR
+    // Run dependencies' code generation first
+    // {
+    //   let (root_visitors, visitors) =
+    //     collect_dependency_code_generation_visitors(module, &generate_context.compilation);
+
+    //   if !visitors.is_empty() {
+    //     program.visit_mut_with_path(
+    //       &mut ApplyVisitors::new(
+    //         visitors
+    //           .iter()
+    //           .map(|(ast_path, visitor)| (ast_path, &**visitor))
+    //           .collect(),
+    //       ),
+    //       &mut Default::default(),
+    //     );
+    //   }
+    //
+    //   for (_, root_visitor) in root_visitors {
+    //     program.visit_mut_with(&mut root_visitor.create());
+    //   }
+    // }
 
     let mut pass = chain!(
       Optional::new(

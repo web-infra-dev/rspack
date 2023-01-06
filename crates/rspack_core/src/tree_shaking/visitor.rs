@@ -16,7 +16,7 @@ use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 // use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
 use ustr::{ustr, Ustr};
 
-use crate::{Dependency, ModuleGraph, ModuleSyntax, ResolveKind, Resolver};
+use crate::{Dependency, DependencyType, ModuleGraph, ModuleSyntax, Resolver};
 use rspack_symbol::{BetterId, IdOrMemExpr, IndirectTopLevelSymbol, Symbol, SymbolExt, SymbolFlag};
 
 use super::{
@@ -373,7 +373,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       ModuleItem::ModuleDecl(decl) => match decl {
         ModuleDecl::Import(import) => {
           let src: String = import.src.value.to_string();
-          let resolved_uri = match self.resolve_module_identifier(src, ResolveKind::Import) {
+          let resolved_uri = match self.resolve_module_identifier(src, DependencyType::EsmImport) {
             Some(module_identifier) => module_identifier,
             None => {
               // TODO: Ignore for now because swc helper interference.
@@ -462,7 +462,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
         ModuleDecl::ExportAll(export_all) => {
           let resolved_uri = match self
-            .resolve_module_identifier(export_all.src.value.to_string(), ResolveKind::Import)
+            .resolve_module_identifier(export_all.src.value.to_string(), DependencyType::EsmImport)
           {
             Some(module_identifier) => module_identifier,
             None => {
@@ -703,7 +703,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     // TODO: module.exports, exports.xxxxx
     if let Some(require_lit) = get_require_literal(node, self.unresolved_mark) {
       match self
-        .resolve_module_identifier(require_lit.to_string(), ResolveKind::Require)
+        .resolve_module_identifier(require_lit.to_string(), DependencyType::CjsRequire)
         .map(|item| ustr(item))
       {
         Some(module_identifier) => {
@@ -726,7 +726,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       self.module_syntax.insert(ModuleSyntax::COMMONJS);
     } else if let Some(import_str) = get_dynamic_import_string_literal(node) {
       match self
-        .resolve_module_identifier(import_str.to_string(), ResolveKind::DynamicImport)
+        .resolve_module_identifier(import_str.to_string(), DependencyType::DynamicImport)
         .map(|item| ustr(item))
       {
         Some(module_identifier) => {
@@ -959,7 +959,7 @@ impl<'a> ModuleRefAnalyze<'a> {
   fn analyze_named_export(&mut self, named_export: &NamedExport) {
     let src: Option<String> = named_export.src.as_ref().map(|src| src.value.to_string());
     if let Some(src) = src {
-      let resolved_uri = match self.resolve_module_identifier(src, ResolveKind::Import) {
+      let resolved_uri = match self.resolve_module_identifier(src, DependencyType::EsmImport) {
         Some(module_identifier) => module_identifier,
         None => {
           eprintln!(
@@ -1052,23 +1052,30 @@ impl<'a> ModuleRefAnalyze<'a> {
     };
   }
 
-  /// Try to get the module_identifier from `src`, `resolve_kind`, and `importer`
+  /// Try to get the module_identifier from `src`, `dependency_type`, and `importer`
   /// For simplicity, this function will assume the importer is always `self.module_identifier`
   /// # Panic
   /// This function will panic if can't find
-  fn resolve_module_identifier(&mut self, src: String, resolve_kind: ResolveKind) -> Option<&Ustr> {
-    let dep = Dependency {
-      detail: crate::ModuleDependency {
-        specifier: src,
-        kind: resolve_kind,
-        span: None,
-      },
-      parent_module_identifier: Some(self.module_identifier),
-    };
+  fn resolve_module_identifier(
+    &self,
+    src: String,
+    dependency_type: DependencyType,
+  ) -> Option<&Ustr> {
     self
       .module_graph
-      .module_by_dependency(&dep)
-      .map(|module| &module.module_identifier)
+      .module_graph_module_by_identifier(&self.module_identifier)
+      .and_then(|mgm| {
+        mgm.dependencies.iter().find_map(|dep| {
+          if dep.request() == src && dep.dependency_type() == &dependency_type {
+            self
+              .module_graph
+              .module_by_dependency(dep)
+              .map(|module| &module.module_identifier)
+          } else {
+            None
+          }
+        })
+      })
   }
 }
 

@@ -11,48 +11,10 @@ use rspack_loader_runner::Loader;
 use rspack_sources::Source;
 
 use crate::{
-  CodeGenerationResult, Compilation, CompilationContext, CompilerContext, CompilerOptions, Context,
-  Dependency, Identifiable, Identifier, LoaderRunnerRunner, ModuleDependency, ModuleType,
-  NormalModule, RawModule, Resolve, SourceType,
+  AsAny, CodeGenerationResult, Compilation, CompilationContext, CompilerContext, CompilerOptions,
+  Context, DynEq, DynHash, Identifiable, Identifier, LoaderRunnerRunner, ModuleDependency,
+  ModuleType, NormalModule, RawModule, Resolve, SourceType,
 };
-
-pub trait AsAny {
-  fn as_any(&self) -> &dyn Any;
-  fn as_any_mut(&mut self) -> &mut dyn Any;
-}
-
-impl<T: Any> AsAny for T {
-  fn as_any(&self) -> &dyn Any {
-    self
-  }
-  fn as_any_mut(&mut self) -> &mut dyn Any {
-    self
-  }
-}
-
-pub trait DynHash {
-  fn dyn_hash(&self, state: &mut dyn std::hash::Hasher);
-}
-
-impl<T: Hash> DynHash for T {
-  fn dyn_hash(&self, mut state: &mut dyn std::hash::Hasher) {
-    self.hash(&mut state);
-  }
-}
-
-pub trait DynEq {
-  fn dyn_eq(&self, other: &dyn Any) -> bool;
-}
-
-impl<T: Eq + Any> DynEq for T {
-  fn dyn_eq(&self, other: &dyn Any) -> bool {
-    if let Some(module) = other.downcast_ref::<T>() {
-      self == module
-    } else {
-      false
-    }
-  }
-}
 
 pub struct BuildContext<'a> {
   pub loader_runner_runner: &'a LoaderRunnerRunner,
@@ -67,7 +29,7 @@ pub struct BuildResult {
   pub context_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
   pub missing_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
   pub build_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
-  pub dependencies: Vec<ModuleDependency>,
+  pub dependencies: Vec<Box<dyn ModuleDependency>>,
 }
 
 pub type ModuleIdentifier = Identifier;
@@ -105,7 +67,7 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
     None
   }
 
-  fn get_code_generation_dependencies(&self) -> Option<&[Dependency]> {
+  fn get_code_generation_dependencies(&self) -> Option<&[Box<dyn ModuleDependency>]> {
     None
   }
 
@@ -169,7 +131,7 @@ impl Module for Box<dyn Module> {
     (**self).lib_ident(options)
   }
 
-  fn get_code_generation_dependencies(&self) -> Option<&[Dependency]> {
+  fn get_code_generation_dependencies(&self) -> Option<&[Box<dyn ModuleDependency>]> {
     (**self).get_code_generation_dependencies()
   }
 
@@ -178,15 +140,15 @@ impl Module for Box<dyn Module> {
   }
 }
 
-impl PartialEq for dyn Module {
+impl PartialEq for dyn Module + '_ {
   fn eq(&self, other: &Self) -> bool {
     self.dyn_eq(other.as_any())
   }
 }
 
-impl Eq for dyn Module {}
+impl Eq for dyn Module + '_ {}
 
-impl Hash for dyn Module {
+impl Hash for dyn Module + '_ {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.dyn_hash(state)
   }

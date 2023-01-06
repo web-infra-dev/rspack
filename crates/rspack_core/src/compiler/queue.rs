@@ -4,9 +4,9 @@ use rspack_error::{internal_error, Diagnostic, Error, Result};
 
 use crate::{
   cache::Cache, module_rule_matcher, BuildContext, BuildResult, Compilation, CompilerOptions,
-  Dependency, FactorizeResult, LoaderRunnerRunner, Module, ModuleGraph, ModuleGraphModule,
-  ModuleIdentifier, ModuleRule, ModuleType, NormalModuleFactory, NormalModuleFactoryContext,
-  Resolve, SharedPluginDriver, WorkerQueue,
+  Dependency, FactorizeResult, LoaderRunnerRunner, Module, ModuleDependency, ModuleGraph,
+  ModuleGraphModule, ModuleIdentifier, ModuleRule, ModuleType, NormalModuleFactory,
+  NormalModuleFactoryContext, Resolve, SharedPluginDriver, WorkerQueue,
 };
 
 #[derive(Debug)]
@@ -24,7 +24,7 @@ pub trait WorkerTask {
 
 pub struct FactorizeTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
-  pub dependencies: Vec<Dependency>,
+  pub dependencies: Vec<Box<dyn ModuleDependency>>,
 
   pub is_entry: bool,
   pub module_name: Option<String>,
@@ -42,7 +42,7 @@ pub struct FactorizeTaskResult {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub factory_result: FactorizeResult,
   pub module_graph_module: Box<ModuleGraphModule>,
-  pub dependencies: Vec<Dependency>,
+  pub dependencies: Vec<Box<dyn ModuleDependency>>,
   pub is_entry: bool,
 }
 
@@ -66,7 +66,6 @@ impl WorkerTask for FactorizeTask {
     let mut mgm = ModuleGraphModule::new(
       context.module_name.clone(),
       result.module.identifier(),
-      vec![],
       context.module_type.ok_or_else(|| {
         Error::InternalError(internal_error!(format!(
           "Unable to get the module type for module {}, did you forget to configure `Rule.type`? ",
@@ -94,7 +93,7 @@ pub struct AddTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub module: Box<dyn Module>,
   pub module_graph_module: Box<ModuleGraphModule>,
-  pub dependencies: Vec<Dependency>,
+  pub dependencies: Vec<Box<dyn ModuleDependency>>,
   pub is_entry: bool,
 }
 
@@ -108,10 +107,14 @@ impl AddTask {
   pub fn run(self, compilation: &mut Compilation) -> Result<TaskResult> {
     let module_identifier = self.module.identifier();
 
-    if compilation
-      .visited_module_id
-      .contains(&(module_identifier, self.dependencies[0].detail.clone()))
-    {
+    // TODO: Temporary module id, see TODOs of [VisitedModuleId]
+    let temporary_module_id = (
+      module_identifier,
+      *self.dependencies[0].category(),
+      self.dependencies[0].request().to_owned(),
+    );
+
+    if compilation.visited_module_id.contains(&temporary_module_id) {
       Self::set_resolved_module(
         &mut compilation.module_graph,
         self.original_module_identifier,
@@ -122,9 +125,7 @@ impl AddTask {
       return Ok(TaskResult::Add(AddTaskResult::ModuleReused(self.module)));
     }
 
-    compilation
-      .visited_module_id
-      .insert((module_identifier, self.dependencies[0].detail.clone()));
+    compilation.visited_module_id.insert(temporary_module_id);
 
     compilation
       .module_graph
@@ -151,7 +152,7 @@ impl AddTask {
   fn set_resolved_module(
     module_graph: &mut ModuleGraph,
     original_module_identifier: Option<ModuleIdentifier>,
-    dependencies: Vec<Dependency>,
+    dependencies: Vec<Box<dyn ModuleDependency>>,
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
     for dependency in dependencies {
@@ -263,7 +264,7 @@ pub type BuildQueue = WorkerQueue<BuildTask>;
 
 pub struct ProcessDependenciesTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
-  pub dependencies: Vec<Dependency>,
+  pub dependencies: Vec<Box<dyn ModuleDependency>>,
   pub resolve_options: Option<Resolve>,
 }
 

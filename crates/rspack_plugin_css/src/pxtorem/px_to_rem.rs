@@ -1,13 +1,13 @@
 use std::collections::HashMap;
-use swc_core::{common::DUMMY_SP, ecma::atoms::Atom};
-use swc_css::{
-  ast::{ComponentValue, Declaration, DeclarationOrAtRule, StyleBlock, Token},
+use swc_core::css::{
+  ast::{ComponentValue, Declaration, DimensionToken, Token},
   codegen::{
     writer::basic::{BasicCssWriter, BasicCssWriterConfig},
     CodeGenerator, CodegenConfig, Emit,
   },
   visit::{VisitMut, VisitMutWith},
 };
+use swc_core::{common::DUMMY_SP, ecma::atoms::Atom};
 
 use super::{
   filter_prop_list::{
@@ -179,7 +179,7 @@ pub struct MatchList {
 }
 
 impl VisitMut for PxToRem {
-  fn visit_mut_at_rule(&mut self, n: &mut swc_css::ast::AtRule) {
+  fn visit_mut_at_rule(&mut self, n: &mut swc_core::css::ast::AtRule) {
     if self.media_query {
       if let Some(ref mut prelude) = n.prelude {
         self.visit_mut_at_rule_prelude(prelude);
@@ -190,9 +190,9 @@ impl VisitMut for PxToRem {
     }
   }
 
-  fn visit_mut_rule(&mut self, n: &mut swc_css::ast::Rule) {
+  fn visit_mut_rule(&mut self, n: &mut swc_core::css::ast::Rule) {
     match n {
-      swc_css::ast::Rule::QualifiedRule(rule) => {
+      swc_core::css::ast::Rule::QualifiedRule(rule) => {
         // Reducing codegen overhead if there are no selector_black_list
         if !self.selector_black_list.is_empty() {
           let mut selector_string = String::new();
@@ -210,33 +210,25 @@ impl VisitMut for PxToRem {
           rule.visit_mut_with(self);
         }
       }
-      swc_css::ast::Rule::AtRule(at) => at.visit_mut_with(self),
-      swc_css::ast::Rule::ListOfComponentValues(comp) => comp.visit_mut_with(self),
+      swc_core::css::ast::Rule::AtRule(at) => at.visit_mut_with(self),
+      swc_core::css::ast::Rule::ListOfComponentValues(comp) => comp.visit_mut_with(self),
     }
   }
 
-  fn visit_mut_simple_block(&mut self, n: &mut swc_css::ast::SimpleBlock) {
+  fn visit_mut_simple_block(&mut self, n: &mut swc_core::css::ast::SimpleBlock) {
     // We push a declaration map into map_stack before enter the block,
     // pop it before leave the block. The hashmap record the relation how many times
     // each declaration name occurs.
 
     // The original implementation you could reference here, https://github.com/cuth/postcss-pxtorem/blob/122649015322214f8e9d1ac852eb11c0791b634b/index.js#L164
-    // There is no easy way we could do the same thing in `swc_css`, except we made the trade off to perf which is we could codegen each prop and value of declaration
+    // There is no easy way we could do the same thing in `swc_core::css`, except we made the trade off to perf which is we could codegen each prop and value of declaration
     // That means we almost codegen twice for each css file when postcss plugin is enable.
-
     let mut map: std::collections::HashMap<Atom, u32> = HashMap::default();
     // prescan
     for ele in n.value.iter_mut() {
-      match ele {
-        ComponentValue::DeclarationOrAtRule(DeclarationOrAtRule::Declaration(decl)) => {
-          let name = get_decl_name(decl);
-          *(map.entry(name).or_insert(0)) += 1;
-        }
-        ComponentValue::StyleBlock(swc_css::ast::StyleBlock::Declaration(decl)) => {
-          let name = get_decl_name(decl);
-          *(map.entry(name).or_insert(0)) += 1;
-        }
-        _ => {}
+      if let swc_core::css::ast::ComponentValue::Declaration(decl) = ele {
+        let name = get_decl_name(decl);
+        *(map.entry(name).or_insert(0)) += 1;
       }
     }
     self.map_stack.push(map);
@@ -245,53 +237,26 @@ impl VisitMut for PxToRem {
     let mut snapshot_and_index_list: Vec<(usize, ComponentValue)> = vec![];
 
     for (index, ele) in n.value.iter_mut().enumerate() {
-      match ele {
-        ComponentValue::DeclarationOrAtRule(DeclarationOrAtRule::Declaration(decl)) => {
-          let snapshot = if self.replace {
-            None
-          } else {
-            Some(decl.clone())
-          };
-          self.mutated = false;
-          self.visit_mut_declaration(decl);
-          if !self.replace && self.mutated {
-            // SAFETY: if `self.replace = false` we must save the snapshot of the declaration
-            let mut snapshot = snapshot.expect("TODO:");
-            std::mem::swap(decl, &mut snapshot);
-            // Now, snapshot save the mutated version of declaration
-            snapshot_and_index_list.push((
-              index,
-              ComponentValue::DeclarationOrAtRule(DeclarationOrAtRule::Declaration(snapshot)),
-            ));
-            // Next, we will insert the mutated version of declaration after the original version of declaration
-          }
-          self.mutated = false;
-        }
-        ComponentValue::StyleBlock(swc_css::ast::StyleBlock::Declaration(decl)) => {
-          let snapshot = if self.replace {
-            None
-          } else {
-            Some(decl.clone())
-          };
-          self.mutated = false;
-          self.visit_mut_declaration(decl);
+      if let ComponentValue::Declaration(decl) = ele {
+        let snapshot = if self.replace {
+          None
+        } else {
+          Some(decl.clone())
+        };
+        self.mutated = false;
+        self.visit_mut_declaration(decl);
 
-          if !self.replace && self.mutated {
-            // SAFETY: if `self.replace = false` we must save the snapshot of the declaration
-            let mut snapshot = snapshot.expect("TODO:");
-            std::mem::swap(decl, &mut snapshot);
-            // Now, snapshot save the mutated version of declaration
-            snapshot_and_index_list.push((
-              index,
-              ComponentValue::StyleBlock(StyleBlock::Declaration(snapshot)),
-            ));
-            // Next, we will insert the mutated version of declaration after the original version of declaration
-          }
-          self.mutated = false;
+        if !self.replace && self.mutated {
+          // SAFETY: if `self.replace = false` we must save the snapshot of the declaration
+          let mut snapshot = snapshot.expect("TODO:");
+          std::mem::swap(decl, &mut snapshot);
+          // Now, snapshot save the mutated version of declaration
+          snapshot_and_index_list.push((index, ComponentValue::Declaration(snapshot)));
+          // Next, we will insert the mutated version of declaration after the original version of declaration
         }
-        _ => {
-          ele.visit_mut_with(self);
-        }
+        self.mutated = false;
+      } else {
+        ele.visit_mut_with(self);
       }
     }
 
@@ -313,7 +278,7 @@ impl VisitMut for PxToRem {
     self.map_stack.pop();
   }
 
-  fn visit_mut_declaration(&mut self, n: &mut swc_css::ast::Declaration) {
+  fn visit_mut_declaration(&mut self, n: &mut swc_core::css::ast::Declaration) {
     let map = self.map_stack.last().expect("TODO:");
     let name = get_decl_name(n);
     let frequency = *map.get(&name).expect("TODO:");
@@ -324,21 +289,21 @@ impl VisitMut for PxToRem {
 
     for ele in n.value.iter_mut() {
       match ele {
-        ComponentValue::Dimension(d) => {
-          if let swc_css::ast::Dimension::Length(len) = d {
+        ComponentValue::Dimension(box d) => {
+          if let swc_core::css::ast::Dimension::Length(len) = d {
             self.skip_mutate_length = frequency != 1;
             self.visit_mut_length(len);
             self.skip_mutate_length = false;
           }
         }
-        ComponentValue::PreservedToken(tok) => {
-          if let Token::Dimension {
+        ComponentValue::PreservedToken(box tok) => {
+          if let Token::Dimension(box DimensionToken {
             unit,
             value,
             raw_unit,
             raw_value,
             ..
-          } = &mut tok.token
+          }) = &mut tok.token
           {
             if unit == "px" && frequency == 1 {
               if *value != 0f64 && (*value).abs() >= self.min_pixel_value {
@@ -360,8 +325,8 @@ impl VisitMut for PxToRem {
     }
   }
 
-  fn visit_mut_length(&mut self, len: &mut swc_css::ast::Length) {
-    if &len.unit.value == "px" && !self.skip_mutate_length {
+  fn visit_mut_length(&mut self, len: &mut swc_core::css::ast::Length) {
+    if let Some(ref raw) = len.unit.raw && raw == "px" && !self.skip_mutate_length {
       if len.value.value != 0f64 && len.value.value.abs() >= self.min_pixel_value {
         self.mutated = true;
         let normalized_value = self.normalized_num(len.value.value);
@@ -388,11 +353,11 @@ pub fn px_to_rem(option: PxToRemOption) -> impl VisitMut {
 
 fn get_decl_name(n: &Declaration) -> Atom {
   match &n.name {
-    swc_css::ast::DeclarationName::Ident(indent) => indent
+    swc_core::css::ast::DeclarationName::Ident(indent) => indent
       .raw
       .clone()
       .unwrap_or_else(|| Atom::from(indent.value.to_string())),
-    swc_css::ast::DeclarationName::DashedIdent(indent) => indent
+    swc_core::css::ast::DeclarationName::DashedIdent(indent) => indent
       .raw
       .clone()
       .unwrap_or_else(|| Atom::from(indent.value.to_string())),

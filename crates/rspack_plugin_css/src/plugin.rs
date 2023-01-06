@@ -6,7 +6,9 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
-use rspack_core::{AstOrSource, Filename, Mode, ModuleAst, ModuleDependency, ModuleIdentifier};
+use rspack_core::{
+  AstOrSource, CssImportDependency, Filename, Mode, ModuleAst, ModuleDependency, ModuleIdentifier,
+};
 use std::cmp;
 use std::hash::{Hash, Hasher};
 use std::path::Path;
@@ -14,11 +16,15 @@ use std::str::FromStr;
 use std::string::ParseError;
 use std::sync::Arc;
 use sugar_path::SugarPath;
-use swc_core::ecma::atoms::JsWord;
-use swc_css::modules::CssClassName;
-use swc_css::parser::parser::ParserConfig;
-use swc_css::prefixer::{options::Options, prefixer};
-use swc_css::visit::VisitMutWith;
+use swc_core::{
+  css::{
+    modules::CssClassName,
+    parser::parser::ParserConfig,
+    prefixer::{options::Options, prefixer},
+    visit::VisitMutWith,
+  },
+  ecma::atoms::JsWord,
+};
 use xxhash_rust::xxh3::Xxh3;
 
 use rspack_core::{
@@ -38,7 +44,7 @@ use rspack_error::{
 use tracing::instrument;
 
 use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
-use crate::visitors::rewrite_url;
+use crate::visitors::{analyze_imports_with_path, rewrite_url};
 use crate::{
   pxtorem::{option::PxToRemOption, px_to_rem::px_to_rem},
   visitors::analyze_dependencies,
@@ -364,11 +370,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let ParseContext {
       source,
       additional_data,
+      module_identifier,
       module_type,
       resource_data,
       compiler_options,
       code_generation_dependencies,
       build_info,
+      ..
     } = parse_context;
     build_info.strict = true;
     let cm: Arc<swc_core::common::SourceMap> = Default::default();
@@ -398,9 +406,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
     }
 
     let locals = if css_modules {
-      let imports = swc_css::modules::imports::analyze_imports(&stylesheet);
+      let imports_with_path = analyze_imports_with_path(&stylesheet);
       let path = Path::new(&resource_data.resource_path).relative(&compiler_options.context);
-      let result = swc_css::modules::compile(
+      let result = swc_core::css::modules::compile(
         &mut stylesheet,
         ModulesTransformConfig {
           name: path.file_stem().map(|n| n.to_string_lossy().to_string()),
@@ -413,29 +421,31 @@ impl ParserAndGenerator for CssParserAndGenerator {
       );
       let mut exports: IndexMap<JsWord, _> = result.renamed.into_iter().collect();
       exports.sort_keys();
-      Some((imports, exports))
+      Some((imports_with_path, exports))
     } else {
       None
     };
+
+    let (local_imports, local_exports) = locals.unzip();
 
     let mut dependencies = analyze_dependencies(
       &mut stylesheet,
       code_generation_dependencies,
       &mut diagnostic,
     );
-    let dependencies = if let Some((imports, _)) = &locals && !imports.is_empty() {
-      dependencies.extend(imports.iter().map(|import| ModuleDependency {
-        specifier: import.to_string(),
-        kind: rspack_core::ResolveKind::AtImport,
-        span: None,
-      }));
+
+    let dependencies = if let Some(imports) = local_imports && !imports.is_empty() {
+      dependencies.extend(imports.into_iter().map(|(import, ast_path)| box CssImportDependency::new(import.to_string(), None, ast_path) as Box<dyn ModuleDependency>));
       dependencies.into_iter().unique().collect()
     } else {
       dependencies
-    };
+    }.into_iter().map(|mut dep| {
+      dep.set_parent_module_identifier(Some(module_identifier));
+      dep
+    }).collect();
 
     self.meta = additional_data.and_then(|data| if data.is_empty() { None } else { Some(data) });
-    self.exports = locals.map(|(_, exports)| exports);
+    self.exports = local_exports;
 
     if self.meta.is_some() && self.exports.is_some() {
       diagnostic.push(Diagnostic::warn("CSS Modules".to_string(), format!("file: {} is using `postcss.modules` and `builtins.css.modules` to process css modules at the same time, rspack will use `builtins.css.modules`'s result.", resource_data.resource_path.display()), 0, 0));

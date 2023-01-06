@@ -6,11 +6,11 @@ use std::{
 use heck::{ToKebabCase, ToLowerCamelCase};
 use indexmap::IndexMap;
 use rspack_core::{
-  runtime_globals::REQUIRE, Compilation, Dependency, ModuleDependency, ResolveKind,
+  runtime_globals::REQUIRE, Compilation, Dependency, DependencyType, ModuleDependency,
 };
 use rspack_error::{internal_error, Result};
+use swc_core::css::modules::CssClassName;
 use swc_core::ecma::atoms::JsWord;
-use swc_css::modules::CssClassName;
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::plugin::{LocalIdentName, LocalIdentNameRenderOptions, LocalsConvention};
@@ -22,7 +22,7 @@ pub struct ModulesTransformConfig<'l> {
   pub local_name_ident: &'l LocalIdentName,
 }
 
-impl swc_css::modules::TransformConfig for ModulesTransformConfig<'_> {
+impl swc_core::css::modules::TransformConfig for ModulesTransformConfig<'_> {
   fn new_name_for(&self, local: &JsWord) -> JsWord {
     self
       .local_name_ident
@@ -63,18 +63,33 @@ pub fn css_modules_exports_to_string(
         }
         CssClassName::Import { name, from } => {
           let name = serde_json::to_string(name).expect("TODO:");
-          let from = Dependency {
-            parent_module_identifier: Some(module.identifier()),
-            detail: ModuleDependency {
-              specifier: from.to_string(),
-              kind: ResolveKind::AtImport,
-              span: None,
-            },
-          };
+
           let from = compilation
             .module_graph
-            .module_by_dependency(&from)
+            .module_graph_module_by_identifier(&module.identifier())
+            .and_then(|mgm| {
+              mgm.dependencies.iter().find_map(|dep| {
+                if dep.request() == from && dep.dependency_type() == &DependencyType::CssImport {
+                  compilation.module_graph.module_by_dependency(dep)
+                } else {
+                  None
+                }
+              })
+            })
             .expect("should have css from module");
+
+          // let from = Dependency {
+          //   parent_module_identifier: Some(module.identifier()),
+          //   detail: ModuleDependency {
+          //     specifier: from.to_string(),
+          //     kind: ResolveKind::AtImport,
+          //     span: None,
+          //   },
+          // };
+          // let from = compilation
+          //   .module_graph
+          //   .module_by_dependency(&from)
+          //   .expect("should have css from module");
           let from = serde_json::to_string(from.id(&compilation.chunk_graph)).expect("TODO:");
           format!("{REQUIRE}({from})[{name}]")
         }

@@ -1,12 +1,15 @@
+use std::fmt::Debug;
+
+use hashbrown::HashSet;
+
+use rspack_error::{internal_error, Error, Result};
+
 use crate::ast::css::Ast as CssAst;
 use crate::ast::javascript::Ast as JsAst;
 use crate::{
-  Chunk, ChunkUkey, Compilation, Dependency, ErrorSpan, ModuleIdentifier, Resolve, ResolveKind,
-  SharedPluginDriver, Stats,
+  Chunk, ChunkUkey, Compilation, DependencyCategory, DependencyType, ErrorSpan, ModuleDependency,
+  ModuleIdentifier, Resolve, SharedPluginDriver, Stats,
 };
-use hashbrown::HashSet;
-use rspack_error::{internal_error, Error, Result};
-use std::fmt::Debug;
 
 // #[derive(Debug)]
 // pub struct ParseModuleArgs<'a> {
@@ -45,14 +48,14 @@ impl<'me> RenderManifestArgs<'me> {
 
 #[derive(Debug, Clone)]
 pub struct FactorizeArgs<'me> {
-  pub dependency: &'me Dependency,
+  pub dependency: &'me dyn ModuleDependency,
   pub plugin_driver: &'me SharedPluginDriver,
 }
 
 #[derive(Debug, Clone)]
 pub struct ModuleArgs {
   pub indentfiler: ModuleIdentifier,
-  pub kind: ResolveKind,
+  pub dependency_type: DependencyType,
   // lazy compilation visit module
   pub lazy_visit_modules: std::collections::HashSet<String>,
 }
@@ -61,7 +64,8 @@ pub struct ModuleArgs {
 pub struct ResolveArgs<'a> {
   pub importer: Option<&'a str>,
   pub specifier: &'a str,
-  pub kind: ResolveKind,
+  pub dependency_type: &'a DependencyType,
+  pub dependency_category: &'a DependencyCategory,
   pub span: Option<ErrorSpan>,
   pub resolve_options: Option<Resolve>,
 }

@@ -1,5 +1,5 @@
 use hashbrown::HashSet;
-use rspack_core::{Dependency, ModuleDependency, ModuleGraph, ResolveKind};
+use rspack_core::{Dependency, DependencyType, ModuleDependency, ModuleGraph, ModuleIdentifier};
 use swc_core::common::{Mark, DUMMY_SP, GLOBALS};
 use swc_core::ecma::ast::*;
 // use swc_ecma_utils::
@@ -7,7 +7,7 @@ use rspack_symbol::{BetterId, IndirectTopLevelSymbol, Symbol};
 use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::utils::quote_ident;
 use swc_core::ecma::visit::{noop_fold_type, Fold, FoldWith};
-use ustr::{ustr, Ustr};
+use ustr::Ustr;
 pub fn tree_shaking_visitor<'a>(
   module_graph: &'a ModuleGraph,
   module_id: Ustr,
@@ -78,19 +78,14 @@ impl<'a> Fold for TreeShaker<'a> {
       ModuleItem::ModuleDecl(module_decl) => match module_decl {
         ModuleDecl::Import(ref import) => {
           let module_identifier = self
-            .resolve_module_identifier(import.src.value.to_string(), ResolveKind::Import)
+            .resolve_module_identifier(import.src.value.to_string(), DependencyType::EsmImport)
             .unwrap_or_else(|| {
               // FIXME: This is just a hack because of an unstable bug panic here.
               panic!(
-                "Failed to resolve {:?},",
-                Dependency {
-                  detail: ModuleDependency {
-                    specifier: import.src.value.to_string(),
-                    kind: ResolveKind::Import,
-                    span: None,
-                  },
-                  parent_module_identifier: Some(self.module_identifier),
-                }
+                "Failed to resolve dependency where `parent_module_identifier` is {:?}, `request` is {:?} and `dependency_type` is {:?}",
+                self.module_identifier,
+                import.src.value.to_string(),
+                DependencyType::EsmImport
               )
             });
           let mgm = self
@@ -201,7 +196,7 @@ impl<'a> Fold for TreeShaker<'a> {
           if let Some(ref src) = named.src {
             let before_legnth = named.specifiers.len();
             let module_identifier = self
-              .resolve_module_identifier(src.value.to_string(), ResolveKind::Import)
+              .resolve_module_identifier(src.value.to_string(), DependencyType::EsmImport)
               .expect("TODO:");
             let mgm = self
               .module_graph
@@ -351,7 +346,7 @@ impl<'a> Fold for TreeShaker<'a> {
         }
         ModuleDecl::ExportAll(ref export_all) => {
           let module_identifier = self
-            .resolve_module_identifier(export_all.src.value.to_string(), ResolveKind::Import)
+            .resolve_module_identifier(export_all.src.value.to_string(), DependencyType::EsmImport)
             .expect("TODO:");
           let mgm = self
             .module_graph
@@ -379,18 +374,25 @@ impl<'a> TreeShaker<'a> {
     Symbol::from_id_and_uri(default_ident.to_id().into(), self.module_identifier)
   }
 
-  fn resolve_module_identifier(&mut self, src: String, resolve_kind: ResolveKind) -> Option<Ustr> {
-    let dep = Dependency {
-      detail: ModuleDependency {
-        specifier: src,
-        kind: resolve_kind,
-        span: None,
-      },
-      parent_module_identifier: Some(self.module_identifier),
-    };
+  fn resolve_module_identifier(
+    &mut self,
+    src: String,
+    dependency_type: DependencyType,
+  ) -> Option<ModuleIdentifier> {
     self
       .module_graph
-      .module_by_dependency(&dep)
-      .map(|module| ustr(&module.module_identifier))
+      .module_graph_module_by_identifier(&self.module_identifier)
+      .and_then(|mgm| {
+        mgm.dependencies.iter().find_map(|dep| {
+          if dep.request() == src && dep.dependency_type() == &dependency_type {
+            self
+              .module_graph
+              .module_by_dependency(dep)
+              .map(|module| module.module_identifier)
+          } else {
+            None
+          }
+        })
+      })
   }
 }

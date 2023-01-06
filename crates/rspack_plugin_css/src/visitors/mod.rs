@@ -1,35 +1,49 @@
+mod analyze_imports_with_path;
+pub use analyze_imports_with_path::*;
+
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::{Compilation, Dependency, Module, ModuleDependency, ResolveKind};
+use rspack_core::{
+  Compilation, CssImportDependency, CssUrlDependency, Dependency, DependencyType, Module,
+  ModuleDependency, ModuleGraphModule, ModuleIdentifier,
+};
 use rspack_error::{Diagnostic, DiagnosticKind};
-use swc_core::{common::util::take::Take, ecma::atoms::Atom};
-
-use swc_css::{
-  ast::{AtRulePrelude, ImportHref, ImportPrelude, Rule, Stylesheet, Url, UrlValue},
-  visit::{Visit, VisitMut, VisitMutWith, VisitWith},
+use swc_core::{
+  common::{pass::AstNodePath, util::take::Take},
+  css::{
+    ast::{AtRulePrelude, ImportHref, ImportPrelude, Rule, Stylesheet, Url, UrlValue},
+    visit::{AstParentKind, AstParentNodeRef, VisitAstPath, VisitMut, VisitMutWith, VisitWithPath},
+  },
+  ecma::atoms::Atom,
 };
 
 static IS_MODULE_REQUEST: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[^?]*~").expect("TODO:"));
 
+pub fn as_parent_path(ast_path: &AstNodePath<AstParentNodeRef<'_>>) -> Vec<AstParentKind> {
+  ast_path.iter().map(|n| n.kind()).collect()
+}
+
 pub fn analyze_dependencies(
   ss: &mut Stylesheet,
-  code_generation_dependencies: &mut Vec<ModuleDependency>,
+  code_generation_dependencies: &mut Vec<Box<dyn ModuleDependency>>,
   diagnostics: &mut Vec<Diagnostic>,
-) -> Vec<ModuleDependency> {
+) -> Vec<Box<dyn ModuleDependency>> {
   let mut v = Analyzer {
     deps: Vec::new(),
     code_generation_dependencies,
     diagnostics,
   };
-  ss.visit_with(&mut v);
+  ss.visit_with_path(&mut v, &mut Default::default());
+  // TODO: use dependency to remove at import
   ss.visit_mut_with(&mut RemoveAtImport);
+
   v.deps
 }
 
 #[derive(Debug)]
 struct Analyzer<'a> {
-  deps: Vec<ModuleDependency>,
-  code_generation_dependencies: &'a mut Vec<ModuleDependency>,
+  deps: Vec<Box<dyn ModuleDependency>>,
+  code_generation_dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
   diagnostics: &'a mut Vec<Diagnostic>,
 }
 
@@ -50,9 +64,13 @@ fn replace_module_request_prefix(specifier: String, diagnostics: &mut Vec<Diagno
   }
 }
 
-impl Visit for Analyzer<'_> {
-  fn visit_import_prelude(&mut self, n: &ImportPrelude) {
-    n.visit_children_with(self);
+impl VisitAstPath for Analyzer<'_> {
+  fn visit_import_prelude<'ast: 'r, 'r>(
+    &mut self,
+    n: &'ast ImportPrelude,
+    ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
+  ) {
+    n.visit_children_with_path(self, ast_path);
 
     let specifier = match &*n.href {
       ImportHref::Url(u) => u.value.as_ref().map(|box s| match s {
@@ -63,16 +81,21 @@ impl Visit for Analyzer<'_> {
     };
     if let Some(specifier) = specifier && is_url_requestable(&specifier) {
       let specifier = replace_module_request_prefix(specifier, self.diagnostics);
-      self.deps.push(ModuleDependency {
-        specifier,
-        kind: ResolveKind::AtImport,
-        span: Some(n.span.into()),
-      });
+      self.deps.push(box CssImportDependency::new(specifier, Some(n.span.into()), as_parent_path(ast_path)));
+      // self.deps.push(ModuleDependency {
+      //   specifier,
+      //   kind: ResolveKind::AtImport,
+      //   span: Some(n.span.into()),
+      // });
     }
   }
 
-  fn visit_url(&mut self, u: &Url) {
-    u.visit_children_with(self);
+  fn visit_url<'ast: 'r, 'r>(
+    &mut self,
+    u: &'ast Url,
+    ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
+  ) {
+    u.visit_children_with_path(self, ast_path);
 
     let specifier = u.value.as_ref().map(|box v| match v {
       UrlValue::Str(s) => s.value.to_string(),
@@ -80,11 +103,7 @@ impl Visit for Analyzer<'_> {
     });
     if let Some(specifier) = specifier && is_url_requestable(&specifier) {
       let specifier = replace_module_request_prefix(specifier, self.diagnostics);
-      let dep = ModuleDependency {
-        specifier,
-        kind: ResolveKind::UrlToken,
-        span: Some(u.span.into()),
-      };
+      let dep = box CssUrlDependency::new(specifier, Some(u.span.into()), as_parent_path(ast_path));
       self.deps.push(dep.clone());
       self.code_generation_dependencies.push(dep);
     }
@@ -105,7 +124,7 @@ impl VisitMut for RemoveAtImport {
         Rule::AtRule(at_rule) => {
           if let Some(box AtRulePrelude::ImportPrelude(prelude)) = &at_rule.prelude {
             let href_string = match &prelude.href {
-              box swc_css::ast::ImportHref::Url(url) => {
+              box swc_core::css::ast::ImportHref::Url(url) => {
                 let href_string = url
                   .value
                   .as_ref()
@@ -116,7 +135,7 @@ impl VisitMut for RemoveAtImport {
                   .unwrap_or_default();
                 href_string
               }
-              box swc_css::ast::ImportHref::Str(str) => str.value.clone(),
+              box swc_core::css::ast::ImportHref::Str(str) => str.value.clone(),
             };
             !is_url_requestable(&href_string)
           } else {
@@ -144,16 +163,34 @@ struct RewriteUrl<'a> {
 }
 
 impl RewriteUrl<'_> {
+  // TODO: Workaround. Remove this in the future
+  fn resolve_module_legacy(
+    &self,
+    module_identifier: &ModuleIdentifier,
+    src: &str,
+    dependency_type: &DependencyType,
+  ) -> Option<&ModuleGraphModule> {
+    self
+      .compilation
+      .module_graph
+      .module_graph_module_by_identifier(module_identifier)
+      .and_then(|mgm| {
+        mgm.dependencies.iter().find_map(|dep| {
+          if dep.request() == src && dep.dependency_type() == dependency_type {
+            self.compilation.module_graph.module_by_dependency(dep)
+          } else {
+            None
+          }
+        })
+      })
+  }
+
   pub fn get_target_url(&mut self, specifier: String) -> Option<String> {
-    let from = Dependency {
-      parent_module_identifier: Some(self.module.identifier()),
-      detail: ModuleDependency {
-        specifier,
-        kind: ResolveKind::UrlToken,
-        span: None,
-      },
-    };
-    let from = self.compilation.module_graph.module_by_dependency(&from)?;
+    let from = self.resolve_module_legacy(
+      &self.module.identifier(),
+      &specifier,
+      &DependencyType::CssUrl,
+    )?;
 
     self
       .compilation

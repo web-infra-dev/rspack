@@ -1,5 +1,6 @@
 #![feature(iter_intersperse)]
 #![feature(box_patterns)]
+#![feature(box_syntax)]
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(unzip_option)]
 
@@ -32,6 +33,8 @@ mod module_graph;
 pub use module_graph::*;
 mod chunk;
 pub use chunk::*;
+mod dependency;
+pub use dependency::*;
 mod utils;
 use tokio::sync::RwLock;
 pub use utils::*;
@@ -188,7 +191,8 @@ impl TryFrom<&str> for ModuleType {
   }
 }
 
-pub(crate) type VisitedModuleIdentity = HashSet<(ModuleIdentifier, ModuleDependency)>;
+// TODO: use module identifier only later, (ModuleIdentifier, DependencyCategory, Specifier)
+pub(crate) type VisitedModuleIdentity = HashSet<(ModuleIdentifier, DependencyCategory, String)>;
 
 pub(crate) type ChunkByUkey = HashMap<ChunkUkey, Chunk>;
 pub type ChunkGroupByUkey = HashMap<ChunkGroupUkey, ChunkGroup>;
