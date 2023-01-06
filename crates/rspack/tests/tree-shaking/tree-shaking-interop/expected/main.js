@@ -8,7 +8,7 @@ Object.defineProperty(exports, "a", {
     enumerable: true,
     get: ()=>a
 });
-__webpack_require__.e("bar_js").then(__webpack_require__.bind(__webpack_require__, "./bar.js")).then(__webpack_require__.interopRequire).then((mod)=>{
+__webpack_require__.e("bar_js").then(__webpack_require__.bind(__webpack_require__, "./bar.js")).then(__webpack_require__.ir).then((mod)=>{
     console.log(mod);
 });
 const a = "a";
@@ -31,7 +31,7 @@ if (process.env.NODE_ENV !== "production") {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _fooJs = __webpack_require__.interopRequire(__webpack_require__("./foo.js"));
+const _fooJs = __webpack_require__.ir(__webpack_require__("./foo.js"));
 (0, _fooJs.default)();
 },
 

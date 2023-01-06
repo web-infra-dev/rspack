@@ -11,7 +11,7 @@ Object.defineProperty(exports, "a", {
     enumerable: true,
     get: ()=>a
 });
-__webpack_require__.exportStar(__webpack_require__("./bar.js"), exports);
+__webpack_require__.es(__webpack_require__("./bar.js"), exports);
 const a = 'foo';
 },
 "./index.js": function (module, exports, __webpack_require__) {

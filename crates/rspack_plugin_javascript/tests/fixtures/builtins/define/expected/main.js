@@ -4,7 +4,7 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _libJs = __webpack_require__.interopRequire(__webpack_require__("./lib.js"));
+const _libJs = __webpack_require__.ir(__webpack_require__("./lib.js"));
 const lib = __webpack_require__("./lib.js");
 const { DO_NOT_CONVERTED9  } = __webpack_require__("./lib.js");
 equal(true, true);

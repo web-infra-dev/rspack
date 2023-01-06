@@ -8,8 +8,8 @@ Object.defineProperty(exports, "b", {
     enumerable: true,
     get: ()=>b
 });
-__webpack_require__.exportStar(__webpack_require__("./foo.js"), exports);
-__webpack_require__.exportStar(__webpack_require__("./result.js"), exports);
+__webpack_require__.es(__webpack_require__("./foo.js"), exports);
+__webpack_require__.es(__webpack_require__("./result.js"), exports);
 function b() {}
 },
 "./foo.js": function (module, exports, __webpack_require__) {
@@ -17,8 +17,8 @@ function b() {}
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-__webpack_require__.exportStar(__webpack_require__("./bar.js"), exports);
-__webpack_require__.exportStar(__webpack_require__("./result.js"), exports);
+__webpack_require__.es(__webpack_require__("./bar.js"), exports);
+__webpack_require__.es(__webpack_require__("./result.js"), exports);
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -33,8 +33,8 @@ const _barJs = __webpack_require__("./bar.js");
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-__webpack_require__.exportStar(__webpack_require__("./foo.js"), exports);
-__webpack_require__.exportStar(__webpack_require__("./bar.js"), exports);
+__webpack_require__.es(__webpack_require__("./foo.js"), exports);
+__webpack_require__.es(__webpack_require__("./bar.js"), exports);
 },
 
 },function(__webpack_require__) {

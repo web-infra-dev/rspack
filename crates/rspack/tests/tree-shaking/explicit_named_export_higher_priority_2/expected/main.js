@@ -23,7 +23,7 @@ Object.defineProperty(exports, "a", {
     get: ()=>_bazJs.a
 });
 const _bazJs = __webpack_require__("./baz.js");
-__webpack_require__.exportStar(__webpack_require__("./bar.js"), exports);
+__webpack_require__.es(__webpack_require__("./bar.js"), exports);
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";

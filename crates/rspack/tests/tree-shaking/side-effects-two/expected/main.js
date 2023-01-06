@@ -8,7 +8,7 @@ Object.defineProperty(exports, "something", {
     enumerable: true,
     get: ()=>_libJs.default
 });
-const _libJs = __webpack_require__.interopRequire(__webpack_require__("./lib.js"));
+const _libJs = __webpack_require__.ir(__webpack_require__("./lib.js"));
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";

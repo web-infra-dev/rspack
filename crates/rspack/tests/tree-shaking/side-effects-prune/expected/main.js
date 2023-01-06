@@ -4,7 +4,7 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-__webpack_require__.exportStar(__webpack_require__("./lib.js"), exports);
+__webpack_require__.es(__webpack_require__("./lib.js"), exports);
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";

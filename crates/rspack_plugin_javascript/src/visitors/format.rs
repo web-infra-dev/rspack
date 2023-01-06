@@ -212,7 +212,10 @@ impl<'a> RspackModuleFormatTransformer<'a> {
               runtime_globals::REQUIRE.into(),
               DUMMY_SP,
             ))),
-            prop: MemberProp::Ident(Ident::new("interopRequire".into(), DUMMY_SP)),
+            prop: MemberProp::Ident(Ident::new(
+              runtime_globals::INTEROP_REQUIRE.into(),
+              DUMMY_SP,
+            )),
           }
           .as_arg()];
         } else {
@@ -270,7 +273,10 @@ impl<'a> RspackModuleFormatTransformer<'a> {
                         runtime_globals::REQUIRE.into(),
                         DUMMY_SP,
                       ))),
-                      prop: MemberProp::Ident(Ident::new("interopRequire".into(), DUMMY_SP)),
+                      prop: MemberProp::Ident(Ident::new(
+                        runtime_globals::INTEROP_REQUIRE.into(),
+                        DUMMY_SP,
+                      )),
                     }
                     .as_arg()],
                     type_args: None,

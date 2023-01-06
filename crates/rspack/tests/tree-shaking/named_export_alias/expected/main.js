@@ -29,7 +29,7 @@ var a = function test() {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _exportJs = __webpack_require__.interopRequire(__webpack_require__("./export.js"));
+const _exportJs = __webpack_require__.ir(__webpack_require__("./export.js"));
 _exportJs.default;
 },
 

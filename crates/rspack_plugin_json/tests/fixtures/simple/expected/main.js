@@ -4,7 +4,7 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _jsonJson = __webpack_require__.interopRequire(__webpack_require__("./json.json"));
+const _jsonJson = __webpack_require__.ir(__webpack_require__("./json.json"));
 console.log(_jsonJson.default);
 },
 "./json.json": function (module, exports, __webpack_require__) {

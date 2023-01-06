@@ -24,7 +24,7 @@ Foo.prototype = {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _fooJs = __webpack_require__.interopRequire(__webpack_require__("./foo.js"));
+const _fooJs = __webpack_require__.ir(__webpack_require__("./foo.js"));
 new _fooJs.default();
 },
 

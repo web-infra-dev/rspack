@@ -20,7 +20,7 @@ Object.defineProperty(exports, "Sider", {
     enumerable: true,
     get: ()=>_somethingJs.default
 });
-const _somethingJs = __webpack_require__.interopRequire(__webpack_require__("./Something.js"));
+const _somethingJs = __webpack_require__.ir(__webpack_require__("./Something.js"));
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
