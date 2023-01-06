@@ -53,13 +53,13 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               start_offset,
               start_offset + 1,
               "Json parsing error".to_string(),
-              format!("Unexpected character {}", ch),
+              format!("Unexpected character {ch}"),
             )
             .with_kind(DiagnosticKind::Json),
           )
         }
         ExceededDepthLimit | WrongType(_) | FailedUtf8Parsing => {
-          Error::InternalError(internal_error!(format!("{}", e)))
+          Error::InternalError(internal_error!(format!("{e}")))
         }
         UnexpectedEndOfJson => {
           // End offset of json file
@@ -70,7 +70,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               offset,
               offset,
               "Json parsing error".to_string(),
-              format!("{}", e),
+              format!("{e}"),
             )
             .with_kind(DiagnosticKind::Json),
           )

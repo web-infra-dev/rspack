@@ -82,7 +82,7 @@ impl From<Error> for Vec<Diagnostic> {
     let severity = err.severity();
     let diagnostic = match err {
       Error::InternalError(err) => Diagnostic {
-        message: format!("{}", err),
+        message: format!("{err}"),
         source_info: None,
         start: 0,
         end: 0,
@@ -140,7 +140,7 @@ impl From<Error> for Vec<Diagnostic> {
             }
             _ => "".to_string(),
           };
-          format!("{}{}", source, backtrace)
+          format!("{source}{backtrace}")
         },
         ..Default::default()
       },

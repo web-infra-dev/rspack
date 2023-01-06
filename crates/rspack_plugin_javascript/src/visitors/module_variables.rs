@@ -41,7 +41,7 @@ pub fn module_variables<'a>(
             .resource_path
             .parent()
             .expect("TODO:")
-            .relative(&compilation.options.context.as_ref())
+            .relative(compilation.options.context.as_ref())
             .to_string_lossy()
             .to_string(),
           _ => unreachable!("dirname should be one of mock, warn-mock, true"),

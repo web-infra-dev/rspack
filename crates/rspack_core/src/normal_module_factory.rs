@@ -214,8 +214,7 @@ impl NormalModuleFactory {
       .get(&resolved_module_type)
       .ok_or_else(|| {
         Error::InternalError(internal_error!(format!(
-          "Parser and generator builder for module type {:?} is not registered",
-          resolved_module_type
+          "Parser and generator builder for module type {resolved_module_type:?} is not registered"
         )))
       })?();
 
@@ -408,8 +407,8 @@ impl ErrorSpan {
 impl From<Span> for ErrorSpan {
   fn from(span: Span) -> Self {
     Self {
-      start: (span.lo.0 as u32).saturating_sub(1),
-      end: (span.hi.0 as u32).saturating_sub(1),
+      start: span.lo.0.saturating_sub(1),
+      end: span.hi.0.saturating_sub(1),
     }
   }
 }

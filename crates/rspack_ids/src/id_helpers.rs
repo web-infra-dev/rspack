@@ -74,7 +74,7 @@ fn avoid_number(s: &str) -> Cow<str> {
     }
   }
   if s.chars().all(|c| c.is_ascii_digit()) {
-    return Cow::Owned(format!("_{}", s));
+    return Cow::Owned(format!("_{s}"));
   }
   Cow::Borrowed(s)
 }
@@ -82,7 +82,7 @@ fn avoid_number(s: &str) -> Cow<str> {
 pub fn get_long_module_name(short_name: &str, module: &BoxModule, context: &str) -> String {
   let full_name = get_full_module_name(module, context);
 
-  format!("{}?{}", short_name, get_hash(&full_name, 4))
+  format!("{}?{}", short_name, get_hash(full_name, 4))
 }
 
 pub fn get_full_module_name(module: &BoxModule, context: &str) -> String {
@@ -93,7 +93,7 @@ pub fn get_hash(s: impl Hash, length: usize) -> String {
   let mut hasher = DefaultHasher::default();
   s.hash(&mut hasher);
   let hash = hasher.finish();
-  let mut hash_str = format!("{:x}", hash);
+  let mut hash_str = format!("{hash:x}");
   if hash_str.len() > length {
     hash_str.truncate(length);
   }
@@ -147,7 +147,7 @@ pub fn assign_names<T: Copy>(
       items.sort_by(&comparator);
       let mut i = 0;
       for item in items {
-        let formated_name = format!("{}{}", name, i);
+        let formated_name = format!("{name}{i}");
         while name_to_items2_keys.contains(&formated_name) && used_ids.contains(&formated_name) {
           i += 1;
         }
@@ -192,10 +192,10 @@ pub fn assign_deterministic_ids<T: Copy>(
   for item in items {
     let ident = get_name(item);
     let mut i = salt;
-    let mut id = get_number_hash(&format!("{}{}", ident, i), range).to_string();
+    let mut id = get_number_hash(&format!("{ident}{i}"), range).to_string();
     while !assign_id(item, id) {
       i += 1;
-      id = get_number_hash(&format!("{}{}", ident, i), range).to_string();
+      id = get_number_hash(&format!("{ident}{i}"), range).to_string();
     }
   }
 }

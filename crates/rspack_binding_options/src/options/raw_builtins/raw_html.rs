@@ -110,7 +110,7 @@ impl RawOption<HtmlPluginConfig> for RawHtmlPluginConfig {
     _options: &rspack_core::CompilerOptionsBuilder,
   ) -> anyhow::Result<HtmlPluginConfig> {
     let inject = self.inject.as_ref().map(|s| {
-      HtmlPluginConfigInject::from_str(s).unwrap_or_else(|_| panic!("Invalid inject value: {}", s))
+      HtmlPluginConfigInject::from_str(s).unwrap_or_else(|_| panic!("Invalid inject value: {s}"))
     });
 
     let script_loading = HtmlPluginConfigScriptLoading::from_str(
@@ -118,7 +118,7 @@ impl RawOption<HtmlPluginConfig> for RawHtmlPluginConfig {
     )?;
 
     let sri = self.sri.as_ref().map(|s| {
-      HtmlSriHashFunction::from_str(s).unwrap_or_else(|_| panic!("Invalid sri value: {}", s))
+      HtmlSriHashFunction::from_str(s).unwrap_or_else(|_| panic!("Invalid sri value: {s}"))
     });
 
     Ok(HtmlPluginConfig {

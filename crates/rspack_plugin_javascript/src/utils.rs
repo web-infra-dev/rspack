@@ -149,7 +149,7 @@ pub fn ecma_parse_error_to_rspack_error(
     path.to_string(),
     span.start as usize,
     span.end as usize,
-    format!("{} parsing error", file_type),
+    format!("{file_type} parsing error"),
     message,
   )
   .with_kind(diagnostic_kind);

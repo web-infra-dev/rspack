@@ -147,8 +147,7 @@ impl ModuleGraphModule {
           .connection_by_connection_id(*connection_id)
           .ok_or_else(|| {
             Error::InternalError(internal_error!(format!(
-              "connection_id_to_connection does not have connection_id: {}",
-              connection_id
+              "connection_id_to_connection does not have connection_id: {connection_id}"
             )))
           })
       })
@@ -170,8 +169,7 @@ impl ModuleGraphModule {
           .connection_by_connection_id(*connection_id)
           .ok_or_else(|| {
             Error::InternalError(internal_error!(format!(
-              "connection_id_to_connection does not have connection_id: {}",
-              connection_id
+              "connection_id_to_connection does not have connection_id: {connection_id}"
             )))
           })
       })

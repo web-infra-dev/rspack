@@ -24,8 +24,7 @@ impl RspackRegex {
       .map(RspackRegex)
       .map_err(|_| {
         Error::InternalError(internal_error!(format!(
-          "Can't construct regex `/{}/{}`",
-          expr, flags
+          "Can't construct regex `/{expr}/{flags}`"
         )))
       })
   }

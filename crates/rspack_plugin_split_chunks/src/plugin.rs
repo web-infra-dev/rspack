@@ -442,7 +442,7 @@ impl SplitChunksPlugin {
         panic!("{}{}{}{}{}",
             "SplitChunksPlugin\n",
             format!("Cache group \"{}\" conflicts with existing chunk.\n", cache_group.key),
-            format!("Both have the same name \"{:?}\" and existing chunk is not a parent of the selected modules.\n", name),
+            format!("Both have the same name \"{name:?}\" and existing chunk is not a parent of the selected modules.\n"),
             "Use a different name for the cache group or make sure that the existing chunk is a parent (e. g. via dependOn).\n",
             "HINT: You can omit \"name\" to automatically create a name.\n",
         )
@@ -898,7 +898,7 @@ impl Plugin for SplitChunksPlugin {
       if let Some(chunk_name) = &chunk_name {
         new_chunk
           .chunk_reasons
-          .push(format!("(name: {})", chunk_name));
+          .push(format!("(name: {chunk_name})"));
       }
 
       // new_chunk.id_name_hints.insert(info)

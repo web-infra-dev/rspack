@@ -63,8 +63,7 @@ impl CodeGenerationResults {
           })
           .ok_or_else(|| {
             Error::InternalError(internal_error!(format!(
-              "Failed to code generation result for {} with runtime {:?} \n {:?}",
-              module_identifier, runtime, entry
+              "Failed to code generation result for {module_identifier} with runtime {runtime:?} \n {entry:?}"
             )))
           })
       } else {
@@ -72,8 +71,7 @@ impl CodeGenerationResults {
           let results = entry.get_values();
           if results.len() != 1 {
             return Err(Error::InternalError(internal_error!(format!(
-              "No unique code generation entry for unspecified runtime for {} ",
-              module_identifier,
+              "No unique code generation entry for unspecified runtime for {module_identifier} ",
             ))));
           }
 
@@ -128,10 +126,7 @@ impl CodeGenerationResults {
     match self.get(module_identifier, runtime) {
       Ok(result) => result.runtime_requirements.clone(),
       Err(_) => {
-        print!(
-          "Failed to get runtime requirements for {}",
-          module_identifier
-        );
+        print!("Failed to get runtime requirements for {module_identifier}");
         HashSet::new()
       }
     }

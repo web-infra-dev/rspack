@@ -48,10 +48,7 @@ impl Plugin for DeterministicModuleIdsPlugin {
     );
     if fail_on_conflict && conflicts > 0 {
       // TODO: better error msg
-      panic!(
-        "Assigning deterministic module ids has lead to conflicts {}",
-        conflicts
-      );
+      panic!("Assigning deterministic module ids has lead to conflicts {conflicts}");
     }
     Ok(())
   }

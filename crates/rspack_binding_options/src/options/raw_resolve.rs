@@ -59,16 +59,14 @@ impl RawOption<Resolve> for RawResolveOptions {
         } else if let Some(b) = value.as_bool() {
           if b {
             return Err(anyhow::Error::msg(format!(
-              "Alias should not be true in {}",
-              key
+              "Alias should not be true in {key}"
             )));
           } else {
             temp.push((key, AliasMap::Ignored))
           }
         } else {
           return Err(anyhow::Error::msg(format!(
-            "Alias should be false or string in {}",
-            key
+            "Alias should be false or string in {key}"
           )));
         }
       }

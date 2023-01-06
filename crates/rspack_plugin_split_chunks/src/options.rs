@@ -79,7 +79,7 @@ impl TryFrom<&str> for ChunkType {
       "initial" => Ok(ChunkType::Initial),
       "async" => Ok(ChunkType::Async),
       "all" => Ok(ChunkType::All),
-      _ => Err(format!("Invalid chunk type: {}", value)),
+      _ => Err(format!("Invalid chunk type: {value}")),
     }
   }
 }

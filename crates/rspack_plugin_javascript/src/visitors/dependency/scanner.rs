@@ -159,7 +159,7 @@ impl VisitAstPath for DependencyScanner {
   ) {
     self.add_import(node, &*ast_path);
     if let Err(e) = self.add_export(node, &*ast_path) {
-      eprintln!("{}", e);
+      eprintln!("{e}");
     }
     node.visit_children_with_path(self, ast_path);
   }

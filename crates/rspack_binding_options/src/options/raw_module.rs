@@ -26,10 +26,7 @@ fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxedLoader {
   match builtin {
     "sass-loader" => Box::new(rspack_loader_sass::SassLoader::new(
       serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
-        panic!(
-          "Could not parse sass-loader options: {:?}, error: {:?}",
-          options, e
-        )
+        panic!("Could not parse sass-loader options: {options:?}, error: {e:?}")
       }),
     )),
     loader => panic!("{loader} is not supported yet."),

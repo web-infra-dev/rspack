@@ -184,7 +184,7 @@ impl TryFrom<&str> for ModuleType {
       _ => {
         use rspack_error::internal_error;
         Err(rspack_error::Error::InternalError(internal_error!(
-          format!("invalid module type: {}", value)
+          format!("invalid module type: {value}")
         )))
       }
     }

@@ -42,7 +42,7 @@ async fn test() {
   let manifest_dir = PathBuf::from(&std::env::var("CARGO_MANIFEST_DIR").expect("TODO:"));
   let bundle_dir = manifest_dir.join("tests/fixtures/webpack/at-charset");
   // manifest_dir = manifest_dir.join("../../examples/bench");
-  println!("{:?}", manifest_dir);
+  println!("{manifest_dir:?}");
   let options = read_test_config_and_normalize(&bundle_dir);
 
   // println!("{:?}", options);
@@ -51,5 +51,5 @@ async fn test() {
   compiler
     .build()
     .await
-    .unwrap_or_else(|e| panic!("{:?}, failed to compile in fixtrue {:?}", e, bundle_dir));
+    .unwrap_or_else(|e| panic!("{e:?}, failed to compile in fixtrue {bundle_dir:?}"));
 }

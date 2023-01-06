@@ -178,9 +178,9 @@ impl CssPlugin {
     css_modules
   }
 
-  pub(crate) fn get_modules_in_order<'module>(
+  pub(crate) fn get_modules_in_order(
     chunk: &Chunk,
-    modules: Vec<&'module dyn Module>,
+    modules: Vec<&dyn Module>,
     compilation: &Compilation,
   ) -> Vec<ModuleIdentifier> {
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/css/CssModulesPlugin.js#L269
@@ -525,7 +525,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             &self.config.modules.locals_convention,
           )?
         } else if let Some(meta) = &self.meta {
-          format!("module.exports = {};\n", meta)
+          format!("module.exports = {meta};\n")
         } else {
           "".to_string()
         })

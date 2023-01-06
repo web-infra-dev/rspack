@@ -165,8 +165,7 @@ impl Compilation {
     match assets.get_mut(filename) {
       Some(asset) => updater(asset),
       None => Err(Error::InternalError(internal_error!(format!(
-        "Called Compilation.updateAsset for not existing filename {}",
-        filename
+        "Called Compilation.updateAsset for not existing filename {filename}"
       )))),
     }
   }
@@ -674,7 +673,7 @@ impl Compilation {
             let current_chunk = self
               .chunk_by_ukey
               .get_mut(&chunk_ukey)
-              .unwrap_or_else(|| panic!("chunk({:?}) should be in chunk_by_ukey", chunk_ukey,));
+              .unwrap_or_else(|| panic!("chunk({chunk_ukey:?}) should be in chunk_by_ukey",));
             current_chunk
               .files
               .insert(file_manifest.filename().to_string());
@@ -811,8 +810,7 @@ impl Compilation {
           .get(inherit_export_module_identifier)
           .unwrap_or_else(|| {
             panic!(
-              "inherit_export_module_identifier not found: {:?}",
-              inherit_export_module_identifier
+              "inherit_export_module_identifier not found: {inherit_export_module_identifier:?}"
             )
           })
           .export_map
@@ -837,7 +835,7 @@ impl Compilation {
       }
       analyze_results
         .get_mut(module_id)
-        .unwrap_or_else(|| panic!("Module({:?}) not found", module_id))
+        .unwrap_or_else(|| panic!("Module({module_id:?}) not found"))
         .inherit_export_maps = inherit_export_maps;
     }
     let mut errors = vec![];
@@ -920,10 +918,7 @@ impl Compilation {
               .module_graph
               .module_graph_module_by_identifier_mut(&module_identifier)
               .unwrap_or_else(|| {
-                panic!(
-                  "Failed to get mgm by module identifier {}",
-                  module_identifier
-                )
+                panic!("Failed to get mgm by module identifier {module_identifier}")
               });
             mgm.used = true;
             continue;
@@ -942,27 +937,19 @@ impl Compilation {
         let mgm = self
           .module_graph
           .module_graph_module_by_identifier_mut(&module_identifier)
-          .unwrap_or_else(|| {
-            panic!(
-              "Failed to get mgm by module identifier {}",
-              module_identifier
-            )
-          });
+          .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {module_identifier}"));
         mgm.used = true;
         let mgm = self
           .module_graph
           .module_graph_module_by_identifier(&module_identifier)
           .unwrap_or_else(|| {
-            panic!(
-              "Failed to get ModuleGraphModule by module identifier {}",
-              module_identifier
-            )
+            panic!("Failed to get ModuleGraphModule by module identifier {module_identifier}")
           });
         for dep in mgm.dependencies.iter() {
           let module_ident = self
             .module_graph
             .module_by_dependency(dep)
-            .unwrap_or_else(|| panic!("Failed to resolve {:?}", dep))
+            .unwrap_or_else(|| panic!("Failed to resolve {dep:?}"))
             .module_identifier;
           match visited.entry(module_ident) {
             Occupied(_) => continue,
@@ -1664,7 +1651,7 @@ fn mark_symbol(
               | crate::ModuleType::JsxEsm
               | crate::ModuleType::Tsx
               | crate::ModuleType::Ts => {
-                let error_message = format!("Can't get analyze result of {}", src);
+                let error_message = format!("Can't get analyze result of {src}");
                 errors.push(Error::InternalError(
                   internal_error!(error_message).with_severity(Severity::Warn),
                 ));
@@ -1674,7 +1661,7 @@ fn mark_symbol(
               }
             },
             None => {
-              let error_message = format!("Can't get analyze result of {}", src);
+              let error_message = format!("Can't get analyze result of {src}");
               errors.push(Error::InternalError(
                 internal_error!(error_message).with_severity(Severity::Warn),
               ));

@@ -20,7 +20,7 @@ async fn bench(cur_dir: &PathBuf) {
   compiler
     .build()
     .await
-    .unwrap_or_else(|_| panic!("failed to compile in fixtrue {:?}", cur_dir));
+    .unwrap_or_else(|_| panic!("failed to compile in fixtrue {cur_dir:?}"));
 }
 
 fn criterion_benchmark(c: &mut Criterion) {

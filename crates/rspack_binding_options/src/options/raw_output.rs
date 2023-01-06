@@ -133,12 +133,9 @@ impl RawOption<OutputOptions> for RawOutputOptions {
       .unique_name
       .unwrap_or_else(|| String::from("__rspack_runtime__"));
     let public_path = self.public_path.unwrap_or_else(|| String::from("/"));
-    let asset_module_filename = self.asset_module_filename.unwrap_or_else(|| {
-      format!(
-        "{}{}{}",
-        HASH_PLACEHOLDER, EXT_PLACEHOLDER, QUERY_PLACEHOLDER
-      )
-    });
+    let asset_module_filename = self
+      .asset_module_filename
+      .unwrap_or_else(|| format!("{HASH_PLACEHOLDER}{EXT_PLACEHOLDER}{QUERY_PLACEHOLDER}"));
     let library = self.library;
     Ok(OutputOptions {
       path,

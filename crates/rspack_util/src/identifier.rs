@@ -83,10 +83,7 @@ pub fn absolute_to_request<'b>(context: &str, maybe_absolute_path: &'b str) -> C
   Cow::Borrowed(maybe_absolute_path)
 }
 
-pub fn request_to_absolute<'ctx, 'rel>(
-  context: &'ctx str,
-  relative_path: &'rel str,
-) -> Cow<'rel, str> {
+pub fn request_to_absolute<'rel>(context: &str, relative_path: &'rel str) -> Cow<'rel, str> {
   if relative_path.starts_with("./") || relative_path.starts_with("../") {
     Cow::Owned(
       Path::new(context)
@@ -107,6 +104,6 @@ pub fn relative_path_to_request(rel: &str) -> Cow<str> {
   } else if rel.starts_with("../") {
     Cow::Borrowed(rel)
   } else {
-    Cow::Owned(format!("./{}", rel))
+    Cow::Owned(format!("./{rel}"))
   }
 }

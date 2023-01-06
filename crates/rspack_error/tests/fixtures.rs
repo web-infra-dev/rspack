@@ -17,7 +17,7 @@ pub async fn test_fixture<F: FnOnce(&Stats, Settings) -> rspack_error::Result<()
   compiler
     .build()
     .await
-    .unwrap_or_else(|_| panic!("failed to compile in fixtrue {:?}", fixture_path));
+    .unwrap_or_else(|_| panic!("failed to compile in fixtrue {fixture_path:?}"));
   let stats = compiler.compilation.get_stats();
   let mut settings = Settings::clone_current();
   settings.remove_snapshot_suffix();

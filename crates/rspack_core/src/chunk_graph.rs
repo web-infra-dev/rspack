@@ -237,11 +237,7 @@ impl ChunkGraph {
       .map(|m| m.as_ref())
   }
 
-  pub fn get_chunk_modules_size<'module>(
-    &self,
-    chunk: &ChunkUkey,
-    module_graph: &'module ModuleGraph,
-  ) -> f64 {
+  pub fn get_chunk_modules_size(&self, chunk: &ChunkUkey, module_graph: &ModuleGraph) -> f64 {
     self
       .get_chunk_modules(chunk, module_graph)
       .iter()

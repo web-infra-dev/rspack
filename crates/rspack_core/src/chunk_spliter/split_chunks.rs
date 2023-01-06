@@ -441,7 +441,7 @@ impl<'me> CodeSplitter<'me> {
           .compilation
           .chunk_group_by_ukey
           .get(&ukey)
-          .unwrap_or_else(|| panic!("chunk group not found: {:?}", ukey))
+          .unwrap_or_else(|| panic!("chunk group not found: {ukey:?}"))
       };
 
       self.queue_delayed.push(QueueItem {

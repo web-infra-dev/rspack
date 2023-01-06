@@ -149,11 +149,10 @@ mod fixtures {
           additional_data: None,
           source_map: None,
           content: Content::String(format!(
-            r#"{}
+            r#"{source}
 html {{
   margin: 0;
-}}"#,
-            source
+}}"#
           )),
         }
         .with_empty_diagnostic(),
@@ -193,9 +192,8 @@ html {{
           additional_data: None,
           source_map: None,
           content: Content::String(format!(
-            r#"{}
-console.log(2);"#,
-            source
+            r#"{source}
+console.log(2);"#
           )),
         }
         .with_empty_diagnostic(),
@@ -235,9 +233,8 @@ console.log(2);"#,
           additional_data: None,
           source_map: None,
           content: Content::String(format!(
-            r#"{}
-console.log(3);"#,
-            source
+            r#"{source}
+console.log(3);"#
           )),
         }
         .with_empty_diagnostic(),
@@ -296,7 +293,7 @@ console.log(3);"#
   fn should_work_with_binary_formatted_files() {
     use rspack_loader_runner::*;
 
-    let expected = Content::from(std::fs::read(&fixtures!("file.png")).expect("TODO:"));
+    let expected = Content::from(std::fs::read(fixtures!("file.png")).expect("TODO:"));
     let loaders: Vec<&dyn Loader<(), ()>> = vec![&super::fixtures::DirectPassLoader {}];
 
     run_loader!(
