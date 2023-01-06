@@ -1,9 +1,10 @@
 use std::cmp::Ordering;
 
-use rspack_core::ModuleIdentifier;
+use hashbrown::HashMap;
+use rspack_core::{Chunk, ChunkGroupByUkey, ModuleIdentifier, SourceType};
 use rspack_util::comparators::compare_ids;
 
-use crate::{plugin::ChunksInfoItem, CacheGroupByKey, SplitChunkSizes};
+use crate::{plugin::ChunksInfoItem, CacheGroupByKey, SizeType, SplitChunkSizes};
 
 pub(crate) fn compare_entries(
   a: &ChunksInfoItem,
@@ -87,4 +88,99 @@ pub(crate) fn check_min_size(sizes: &SplitChunkSizes, min_size: &SplitChunkSizes
     }
   }
   true
+}
+
+pub(crate) fn get_violating_min_sizes(
+  sizes: &SplitChunkSizes,
+  min_size: &SplitChunkSizes,
+) -> Option<Vec<SourceType>> {
+  let mut list: Option<Vec<SourceType>> = None;
+  for key in min_size.keys() {
+    let size = sizes.get(key).unwrap_or(&0f64);
+    if size == &0f64 {
+      continue;
+    };
+    let min_size = min_size.get(key).unwrap_or(&0f64);
+    if size < min_size {
+      list.get_or_insert_default().push(*key);
+    }
+  }
+  list
+}
+
+pub(crate) fn check_min_size_reduction(
+  sizes: &SplitChunkSizes,
+  min_size_reduction: &SplitChunkSizes,
+  chunk_count: usize,
+) -> bool {
+  for key in min_size_reduction.keys() {
+    let size = sizes.get(key).unwrap_or(&0f64);
+    if size == &0f64 {
+      continue;
+    };
+    let min_size_reduction = min_size_reduction.get(key).unwrap_or(&0f64);
+    if (size * chunk_count as f64) < *min_size_reduction {
+      return false;
+    }
+  }
+  true
+}
+
+pub(crate) fn get_requests(chunk: &Chunk, chunk_group_by_ukey: &ChunkGroupByUkey) -> usize {
+  let mut requests = 0;
+  for group in &chunk.groups {
+    let group = chunk_group_by_ukey
+      .get(group)
+      .expect("ChunkGroup not found");
+    requests = usize::max(requests, group.chunks.len())
+  }
+  requests
+}
+
+pub(crate) fn combine_sizes(
+  a: &SplitChunkSizes,
+  b: &SplitChunkSizes,
+  combine: impl Fn(f64, f64) -> f64,
+) -> SplitChunkSizes {
+  let a_keys = a.keys();
+  let b_keys = b.keys();
+  let mut res: SplitChunkSizes = Default::default();
+  for key in a_keys {
+    if b.contains_key(key) {
+      res.insert(*key, combine(a[key], b[key]));
+    } else {
+      res.insert(*key, a[key]);
+    }
+  }
+
+  for key in b_keys {
+    if !a.contains_key(key) {
+      res.insert(*key, b[key]);
+    }
+  }
+
+  res
+}
+
+pub(crate) fn normalize_sizes<T: Clone>(
+  value: Option<T>,
+  default_size_types: &[SizeType],
+) -> HashMap<SizeType, T> {
+  value
+    .map(|value| {
+      default_size_types
+        .iter()
+        .cloned()
+        .map(|size_type| (size_type, value.clone()))
+        .collect::<HashMap<_, _>>()
+    })
+    .unwrap_or_default()
+}
+
+pub(crate) fn merge_sizes(
+  mut a: HashMap<SizeType, f64>,
+  b: HashMap<SizeType, f64>,
+) -> HashMap<SizeType, f64> {
+  a.extend(b);
+  a
 }

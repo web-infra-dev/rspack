@@ -12,7 +12,10 @@ use rspack_core::{
 };
 
 use crate::{
-  utils::{check_min_size, compare_entries},
+  utils::{
+    check_min_size, check_min_size_reduction, combine_sizes, compare_entries, get_requests,
+    get_violating_min_sizes, merge_sizes, normalize_sizes,
+  },
   CacheGroup, CacheGroupByKey, CacheGroupOptions, CacheGroupSource, ChunkFilter, ChunkType,
   GetName, NormalizedFallbackCacheGroup, NormalizedOptions, SizeType, SplitChunkSizes,
   SplitChunksOptions,
@@ -181,26 +184,6 @@ pub fn create_cache_group_source(
     reuse_existing_chunk: options.reuse_existing_chunk,
     // used_exports: options.used_exports,
   }
-}
-
-fn normalize_sizes<T: Clone>(
-  value: Option<T>,
-  default_size_types: &[SizeType],
-) -> HashMap<SizeType, T> {
-  value
-    .map(|value| {
-      default_size_types
-        .iter()
-        .cloned()
-        .map(|size_type| (size_type, value.clone()))
-        .collect::<HashMap<_, _>>()
-    })
-    .unwrap_or_default()
-}
-
-fn merge_sizes(mut a: HashMap<SizeType, f64>, b: HashMap<SizeType, f64>) -> HashMap<SizeType, f64> {
-  a.extend(b);
-  a
 }
 
 impl SplitChunksPlugin {
@@ -479,53 +462,12 @@ impl SplitChunksPlugin {
         .collect::<HashSet<_>>(),
     );
   }
-}
 
-#[derive(Debug)]
-pub(crate) struct ChunksInfoItem {
-  // Sortable Module Set
-  pub modules: IdentifierSet,
-  pub cache_group: String,
-  pub cache_group_index: usize,
-  pub name: Option<String>,
-  pub sizes: SplitChunkSizes,
-  pub chunks: HashSet<ChunkUkey>,
-  pub _reuseable_chunks: HashSet<ChunkUkey>,
-  // bigint | Chunk
-  // pub chunks_keys: Hash
-}
-
-impl ChunksInfoItem {
-  pub(crate) fn cache_group<'cache_group>(
+  #[tracing::instrument(skip_all)]
+  fn create_chunks_info_map(
     &self,
-    map: &'cache_group CacheGroupByKey,
-  ) -> &'cache_group CacheGroup {
-    map
-      .get(&self.cache_group)
-      .unwrap_or_else(|| panic!("Cache group not found: {}", self.cache_group))
-  }
-}
-
-impl Plugin for SplitChunksPlugin {
-  fn name(&self) -> &'static str {
-    "split_chunks"
-  }
-
-  #[allow(clippy::unwrap_in_result)]
-  #[allow(clippy::if_same_then_else)]
-  #[allow(clippy::collapsible_else_if)]
-  #[allow(unused)]
-  fn optimize_chunks(
-    &mut self,
-    _ctx: rspack_core::PluginContext,
-    args: rspack_core::OptimizeChunksArgs,
-  ) -> rspack_core::PluginOptimizeChunksOutput {
-    let compilation = args.compilation;
-    // let modules = compilation
-    //   .module_graph
-    //   .modules()
-    //   .map(|m| m.uri.clone())
-    //   .collect::<Vec<_>>();
+    compilation: &mut Compilation,
+  ) -> HashMap<String, ChunksInfoItem> {
     let mut chunks_info_map: HashMap<String, ChunksInfoItem> = Default::default();
 
     for module in compilation.module_graph.modules() {
@@ -592,6 +534,53 @@ impl Plugin for SplitChunksPlugin {
         cache_group_index += 1;
       }
     }
+    chunks_info_map
+  }
+}
+
+#[derive(Debug)]
+pub(crate) struct ChunksInfoItem {
+  // Sortable Module Set
+  pub modules: HashSet<ModuleIdentifier>,
+  pub cache_group: String,
+  pub cache_group_index: usize,
+  pub name: Option<String>,
+  pub sizes: SplitChunkSizes,
+  pub chunks: HashSet<ChunkUkey>,
+  pub _reuseable_chunks: HashSet<ChunkUkey>,
+  // bigint | Chunk
+  // pub chunks_keys: Hash
+}
+
+impl ChunksInfoItem {
+  pub(crate) fn cache_group<'cache_group>(
+    &self,
+    map: &'cache_group CacheGroupByKey,
+  ) -> &'cache_group CacheGroup {
+    map
+      .get(&self.cache_group)
+      .unwrap_or_else(|| panic!("Cache group not found: {}", self.cache_group))
+  }
+}
+
+impl Plugin for SplitChunksPlugin {
+  fn name(&self) -> &'static str {
+    "split_chunks"
+  }
+
+  #[allow(clippy::unwrap_in_result)]
+  #[allow(clippy::if_same_then_else)]
+  #[allow(clippy::collapsible_else_if)]
+  #[allow(unused)]
+  fn optimize_chunks(
+    &mut self,
+    _ctx: rspack_core::PluginContext,
+    args: rspack_core::OptimizeChunksArgs,
+  ) -> rspack_core::PluginOptimizeChunksOutput {
+    let compilation = args.compilation;
+
+    let mut chunks_info_map: HashMap<String, ChunksInfoItem> =
+      self.create_chunks_info_map(compilation);
 
     fn remove_modules_with_source_type(
       info: &mut ChunksInfoItem,
@@ -1068,82 +1057,10 @@ impl Plugin for SplitChunksPlugin {
   }
 }
 
-fn get_violating_min_sizes(
-  sizes: &SplitChunkSizes,
-  min_size: &SplitChunkSizes,
-) -> Option<Vec<SourceType>> {
-  let mut list: Option<Vec<SourceType>> = None;
-  for key in min_size.keys() {
-    let size = sizes.get(key).unwrap_or(&0f64);
-    if size == &0f64 {
-      continue;
-    };
-    let min_size = min_size.get(key).unwrap_or(&0f64);
-    if size < min_size {
-      list.get_or_insert_default().push(*key);
-    }
-  }
-  list
-}
-
-fn check_min_size_reduction(
-  sizes: &SplitChunkSizes,
-  min_size_reduction: &SplitChunkSizes,
-  chunk_count: usize,
-) -> bool {
-  for key in min_size_reduction.keys() {
-    let size = sizes.get(key).unwrap_or(&0f64);
-    if size == &0f64 {
-      continue;
-    };
-    let min_size_reduction = min_size_reduction.get(key).unwrap_or(&0f64);
-    if (size * chunk_count as f64) < *min_size_reduction {
-      return false;
-    }
-  }
-  true
-}
-
-fn get_requests(chunk: &Chunk, chunk_group_by_ukey: &ChunkGroupByUkey) -> usize {
-  let mut requests = 0;
-  for group in &chunk.groups {
-    let group = chunk_group_by_ukey
-      .get(group)
-      .expect("ChunkGroup not found");
-    requests = usize::max(requests, group.chunks.len())
-  }
-  requests
-}
-
 #[derive(Debug)]
 struct MaxSizeQueueItem {
   pub min_size: SplitChunkSizes,
   pub max_async_size: SplitChunkSizes,
   pub max_initial_size: SplitChunkSizes,
   pub keys: Vec<String>,
-}
-
-fn combine_sizes(
-  a: &SplitChunkSizes,
-  b: &SplitChunkSizes,
-  combine: impl Fn(f64, f64) -> f64,
-) -> SplitChunkSizes {
-  let a_keys = a.keys();
-  let b_keys = b.keys();
-  let mut res: SplitChunkSizes = Default::default();
-  for key in a_keys {
-    if b.contains_key(key) {
-      res.insert(*key, combine(a[key], b[key]));
-    } else {
-      res.insert(*key, a[key]);
-    }
-  }
-
-  for key in b_keys {
-    if !a.contains_key(key) {
-      res.insert(*key, b[key]);
-    }
-  }
-
-  res
 }
