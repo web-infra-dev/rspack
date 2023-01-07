@@ -1,5 +1,6 @@
 use std::time::Instant;
 
+use rspack_plugin_css::pxtorem::{option::PxToRemOption, px_to_rem::px_to_rem};
 use swc_core::common::{FileName, FilePathMapping, SourceMap};
 use swc_core::css::{
   ast::Stylesheet,
@@ -7,8 +8,6 @@ use swc_core::css::{
   parser::{parse_file, parser::ParserConfig},
   visit::VisitMutWith,
 };
-
-use rspack_plugin_css::pxtorem::{option::PxToRemOption, px_to_rem::px_to_rem};
 
 fn transform(source: &str, config_file: Option<&String>) -> String {
   let cm = SourceMap::new(FilePathMapping::empty());

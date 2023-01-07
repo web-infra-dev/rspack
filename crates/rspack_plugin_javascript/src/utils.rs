@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use pathdiff::diff_paths;
 use rspack_core::rspack_sources::{
   BoxSource, CachedSource, MapOptions, RawSource, Source, SourceExt,
@@ -5,7 +7,6 @@ use rspack_core::rspack_sources::{
 use rspack_core::{Compilation, ErrorSpan, ModuleType};
 use rspack_error::{internal_error, DiagnosticKind, Error};
 use serde_json::json;
-use std::path::Path;
 use swc_core::common::{Span, Spanned, SyntaxContext, DUMMY_SP};
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit, Str};
 use swc_core::ecma::atoms::js_word;

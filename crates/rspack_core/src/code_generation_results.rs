@@ -1,6 +1,6 @@
-use hashbrown::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 
+use hashbrown::{HashMap, HashSet};
 use rspack_error::{internal_error, Error, Result};
 use xxhash_rust::xxh3::Xxh3;
 

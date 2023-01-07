@@ -1,6 +1,8 @@
-use crate::{BoxedLoader, ModuleType, Resolve, ResourceData};
-use rspack_regex::RspackRegex;
 use std::fmt::Debug;
+
+use rspack_regex::RspackRegex;
+
+use crate::{BoxedLoader, ModuleType, Resolve, ResourceData};
 
 #[derive(Debug, Clone, Default)]
 pub struct AssetParserDataUrlOption {

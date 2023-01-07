@@ -1,6 +1,7 @@
-use crate::{cache::storage, Chunk, Compilation, NormalModuleAstOrSource, RenderManifestEntry};
 use futures::Future;
 use rspack_error::Result;
+
+use crate::{cache::storage, Chunk, Compilation, NormalModuleAstOrSource, RenderManifestEntry};
 
 type Storage = dyn storage::Storage<Vec<RenderManifestEntry>>;
 

@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use rspack_error::{Result, TWithDiagnosticArray};
-
 pub use rspack_loader_runner::{
   Content, Loader, LoaderContext, LoaderResult, LoaderRunner, LoaderRunnerAdditionalContext,
   ResourceData,

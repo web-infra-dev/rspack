@@ -1,13 +1,15 @@
-use crate::{
-  ChunkGraph, ChunkGroupByUkey, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, ModuleGraph,
-  RuntimeSpec, SourceType,
-};
-use hashbrown::{HashMap, HashSet};
 use std::{
   fmt::{Debug, Formatter, Result},
   hash::Hasher,
 };
+
+use hashbrown::{HashMap, HashSet};
 use xxhash_rust::xxh3::Xxh3;
+
+use crate::{
+  ChunkGraph, ChunkGroupByUkey, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, ModuleGraph,
+  RuntimeSpec, SourceType,
+};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ChunkKind {

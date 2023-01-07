@@ -1,3 +1,5 @@
+use std::{fs, path::Path};
+
 use anyhow::Context;
 use async_trait::async_trait;
 use dojang::dojang::Dojang;
@@ -8,7 +10,6 @@ use rspack_core::{
   AssetInfo, CompilationAsset, Plugin,
 };
 use serde::Deserialize;
-use std::{fs, path::Path};
 use swc_html::visit::VisitMutWith;
 
 use crate::{

@@ -1,11 +1,13 @@
+use std::sync::Arc;
+
+use futures::Future;
+use rspack_error::Result;
+
 use crate::{
   cache::snapshot::{Snapshot, SnapshotManager},
   cache::storage,
   ResolveArgs, ResolveResult,
 };
-use futures::Future;
-use rspack_error::Result;
-use std::sync::Arc;
 
 type Storage = dyn storage::Storage<(Snapshot, ResolveResult)>;
 

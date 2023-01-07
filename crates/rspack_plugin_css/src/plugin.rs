@@ -1,4 +1,11 @@
 #![allow(clippy::comparison_chain)]
+use std::cmp;
+use std::hash::{Hash, Hasher};
+use std::path::Path;
+use std::str::FromStr;
+use std::string::ParseError;
+use std::sync::Arc;
+
 use anyhow::bail;
 use bitflags::bitflags;
 use hashbrown::HashSet;
@@ -6,27 +13,6 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
-use rspack_core::{
-  AstOrSource, CssImportDependency, Filename, Mode, ModuleAst, ModuleDependency, ModuleIdentifier,
-};
-use std::cmp;
-use std::hash::{Hash, Hasher};
-use std::path::Path;
-use std::str::FromStr;
-use std::string::ParseError;
-use std::sync::Arc;
-use sugar_path::SugarPath;
-use swc_core::{
-  css::{
-    modules::CssClassName,
-    parser::parser::ParserConfig,
-    prefixer::{options::Options, prefixer},
-    visit::VisitMutWith,
-  },
-  ecma::atoms::JsWord,
-};
-use xxhash_rust::xxh3::Xxh3;
-
 use rspack_core::{
   ast::css::Ast as CssAst,
   get_css_chunk_filename_template,
@@ -38,10 +24,24 @@ use rspack_core::{
   ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, PathData, Plugin,
   RenderManifestEntry, SourceType,
 };
+use rspack_core::{
+  AstOrSource, CssImportDependency, Filename, Mode, ModuleAst, ModuleDependency, ModuleIdentifier,
+};
 use rspack_error::{
   internal_error, Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
+use sugar_path::SugarPath;
+use swc_core::{
+  css::{
+    modules::CssClassName,
+    parser::parser::ParserConfig,
+    prefixer::{options::Options, prefixer},
+    visit::VisitMutWith,
+  },
+  ecma::atoms::JsWord,
+};
 use tracing::instrument;
+use xxhash_rust::xxh3::Xxh3;
 
 use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
 use crate::visitors::{analyze_imports_with_path, rewrite_url};

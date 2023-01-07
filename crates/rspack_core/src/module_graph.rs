@@ -3,7 +3,6 @@ use std::hash::{Hash, Hasher};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use hashbrown::{HashMap, HashSet};
-
 use rspack_error::{internal_error, Error, Result};
 
 use crate::{BoxModule, BoxModuleDependency, ModuleGraphModule, ModuleIdentifier};

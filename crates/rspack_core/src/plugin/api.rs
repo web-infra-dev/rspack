@@ -1,6 +1,9 @@
 use std::fmt::Debug;
 
 use hashbrown::HashMap;
+use rspack_error::Result;
+use rspack_loader_runner::{Content, ResourceData};
+use rspack_sources::BoxSource;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkUkey, Compilation, CompilationArgs,
@@ -8,9 +11,6 @@ use crate::{
   NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
   ProcessAssetsArgs, RenderChunkArgs, RenderManifestArgs, ThisCompilationArgs,
 };
-use rspack_error::Result;
-use rspack_loader_runner::{Content, ResourceData};
-use rspack_sources::BoxSource;
 
 // use anyhow::{Context, Result};
 pub type PluginCompilationHookOutput = Result<()>;

@@ -1,11 +1,13 @@
+use std::{path::Path, sync::Arc};
+
+use futures::Future;
+use rspack_error::{Result, TWithDiagnosticArray};
+
 use crate::{
   cache::snapshot::{Snapshot, SnapshotManager},
   cache::storage,
   BoxModule, BuildResult,
 };
-use futures::Future;
-use rspack_error::{Result, TWithDiagnosticArray};
-use std::{path::Path, sync::Arc};
 
 type Storage = dyn storage::Storage<(Snapshot, TWithDiagnosticArray<BuildResult>)>;
 

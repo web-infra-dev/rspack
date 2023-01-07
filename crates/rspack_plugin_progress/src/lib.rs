@@ -1,3 +1,6 @@
+use std::sync::atomic::Ordering::SeqCst;
+use std::{cmp, sync::atomic::AtomicU32};
+
 use indicatif::{ProgressBar, ProgressStyle};
 use rspack_core::{
   Compilation, DoneArgs, Module, OptimizeChunksArgs, Plugin, PluginBuildEndHookOutput,
@@ -5,8 +8,6 @@ use rspack_core::{
   ProcessAssetsArgs,
 };
 use rspack_error::Result;
-use std::sync::atomic::Ordering::SeqCst;
-use std::{cmp, sync::atomic::AtomicU32};
 
 #[derive(Debug, Clone, Default)]
 pub struct ProgressPluginConfig {

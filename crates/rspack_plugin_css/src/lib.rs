@@ -7,8 +7,10 @@ pub mod pxtorem;
 mod utils;
 pub mod visitors;
 
-use once_cell::sync::Lazy;
+use std::sync::Arc;
 
+use once_cell::sync::Lazy;
+pub use plugin::CssPlugin;
 use rspack_core::rspack_sources::{self, SourceExt};
 use rspack_core::ErrorSpan;
 use rspack_error::{
@@ -18,9 +20,6 @@ use rspack_error::{
 use swc_core::common::{
   input::SourceFileInput, source_map::SourceMapGenConfig, FileName, SourceMap,
 };
-
-use std::sync::Arc;
-
 use swc_core::css::minifier;
 use swc_core::css::parser::{lexer::Lexer, parser::ParserConfig};
 use swc_core::css::{ast::Stylesheet, parser::parser::Parser};
@@ -31,8 +30,6 @@ use swc_core::css::{
   },
   parser::error::Error,
 };
-
-pub use plugin::CssPlugin;
 
 static SWC_COMPILER: Lazy<Arc<SwcCssCompiler>> = Lazy::new(|| Arc::new(SwcCssCompiler::new()));
 

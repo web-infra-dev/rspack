@@ -1,6 +1,5 @@
-use sugar_path::SugarPath;
-
 use rspack_core::{runtime_globals, Compilation, Module};
+use sugar_path::SugarPath;
 use swc_core::{common::DUMMY_SP, ecma::utils::ExprFactory};
 use {
   swc_core::common::Mark,

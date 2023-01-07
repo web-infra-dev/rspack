@@ -1,10 +1,10 @@
-use rspack_binding_options::{normalize_bundle_options, RawEntryItem, RawOptions};
-use rspack_core::CompilerOptions;
-
 use std::{
   collections::HashMap,
   path::{Path, PathBuf},
 };
+
+use rspack_binding_options::{normalize_bundle_options, RawEntryItem, RawOptions};
+use rspack_core::CompilerOptions;
 
 pub trait RawOptionsExt {
   fn from_fixture(fixture_path: &Path) -> Self;

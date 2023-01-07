@@ -1,6 +1,3 @@
-use super::module_variables::WEBPACK_PUBLIC_PATH;
-use crate::utils::is_dynamic_import_literal_expr;
-use crate::visitors::module_variables::WEBPACK_HASH;
 use hashbrown::HashSet;
 use rspack_core::runtime_globals;
 use swc_core::common::{Mark, DUMMY_SP};
@@ -8,6 +5,10 @@ use swc_core::ecma::ast::*;
 use swc_core::ecma::transforms::base::helpers::HELPERS;
 use swc_core::ecma::utils::ExprFactory;
 use swc_core::ecma::visit::{as_folder, noop_visit_mut_type, Fold, VisitMut, VisitMutWith};
+
+use super::module_variables::WEBPACK_PUBLIC_PATH;
+use crate::utils::is_dynamic_import_literal_expr;
+use crate::visitors::module_variables::WEBPACK_HASH;
 
 pub fn inject_runtime_helper(
   unresolved_mark: Mark,

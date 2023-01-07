@@ -10,11 +10,8 @@ use std::{
 };
 
 use colored::Colorize;
-
 use glob::glob;
-
 use serde::{Deserialize, Serialize};
-
 use serde_json;
 
 use crate::{

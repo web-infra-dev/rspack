@@ -1,3 +1,14 @@
+use std::{
+  borrow::BorrowMut,
+  collections::VecDeque,
+  fmt::Debug,
+  hash::{Hash, Hasher},
+  marker::PhantomPinned,
+  path::PathBuf,
+  pin::Pin,
+  sync::Arc,
+};
+
 use dashmap::DashSet;
 use futures::{stream::FuturesUnordered, StreamExt};
 use hashbrown::{
@@ -9,27 +20,17 @@ use hashlink::LinkedHashSet;
 use indexmap::IndexSet;
 use petgraph::{algo, prelude::GraphMap, Directed};
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
-use std::{
-  borrow::BorrowMut,
-  collections::VecDeque,
-  fmt::Debug,
-  hash::{Hash, Hasher},
-  marker::PhantomPinned,
-  path::PathBuf,
-  pin::Pin,
-  sync::Arc,
-};
-use swc_core::ecma::atoms::JsWord;
-use tokio::sync::mpsc::error::TryRecvError;
-use tracing::instrument;
-use xxhash_rust::xxh3::Xxh3;
-
 use rspack_error::{
   errors_to_diagnostics, internal_error, Diagnostic, Error, IntoTWithDiagnosticArray, Result,
   Severity, TWithDiagnosticArray,
 };
 use rspack_sources::BoxSource;
+use rspack_symbol::{IndirectTopLevelSymbol, IndirectType, Symbol};
+use swc_core::ecma::atoms::JsWord;
+use tokio::sync::mpsc::error::TryRecvError;
+use tracing::instrument;
 use ustr::{ustr, Ustr};
+use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
   cache::Cache,
@@ -48,7 +49,6 @@ use crate::{
   ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, RuntimeModule,
   SharedPluginDriver, Stats, TaskResult, VisitedModuleIdentity, WorkerTask,
 };
-use rspack_symbol::{IndirectTopLevelSymbol, IndirectType, Symbol};
 
 #[derive(Debug)]
 pub struct EntryData {

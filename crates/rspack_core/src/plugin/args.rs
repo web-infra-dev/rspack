@@ -1,7 +1,6 @@
 use std::fmt::Debug;
 
 use hashbrown::HashSet;
-
 use rspack_error::{internal_error, Error, Result};
 
 use crate::ast::css::Ast as CssAst;

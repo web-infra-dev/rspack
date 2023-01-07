@@ -10,11 +10,10 @@ pub use esm::*;
 mod css;
 pub use css::*;
 mod hmr;
-pub use hmr::*;
-
 use std::{any::Any, fmt::Debug, hash::Hash};
 
 use dyn_clone::{clone_trait_object, DynClone};
+pub use hmr::*;
 
 use crate::{AsAny, DynEq, DynHash, ErrorSpan, ModuleIdentifier};
 

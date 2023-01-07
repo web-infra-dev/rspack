@@ -1,10 +1,11 @@
-use crate::runtime_module::JsonpChunkLoadingRuntimeModule;
 use async_trait::async_trait;
 use rspack_core::{
   runtime_globals, AdditionalChunkRuntimeRequirementsArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeModuleExt,
 };
 use rspack_error::Result;
+
+use crate::runtime_module::JsonpChunkLoadingRuntimeModule;
 
 #[derive(Debug)]
 pub struct JsonpChunkLoadingPlugin {}

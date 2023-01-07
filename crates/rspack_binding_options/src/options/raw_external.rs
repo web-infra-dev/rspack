@@ -1,6 +1,8 @@
-use crate::RawOption;
-use rspack_core::{CompilerOptionsBuilder, External};
 use std::collections::HashMap;
+
+use rspack_core::{CompilerOptionsBuilder, External};
+
+use crate::RawOption;
 
 pub type RawExternal = HashMap<String, String>;
 

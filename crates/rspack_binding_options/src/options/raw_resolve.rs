@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
-use crate::RawOption;
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
 use rspack_core::{AliasMap, CompilerOptionsBuilder, Resolve};
 use serde::Deserialize;
+
+use crate::RawOption;
 
 pub type AliasValue = serde_json::Value;
 

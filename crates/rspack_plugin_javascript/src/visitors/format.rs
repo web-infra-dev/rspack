@@ -6,16 +6,15 @@ use rspack_core::{
 };
 use swc_core::ecma::utils::{quote_ident, ExprFactory};
 use tracing::instrument;
-
-use crate::utils::{is_dynamic_import_literal_expr, is_require_literal_expr};
-
-use super::{is_module_hot_accept_call, is_module_hot_decline_call};
 use {
   swc_core::common::{Mark, SyntaxContext, DUMMY_SP},
   swc_core::ecma::ast::{self, *},
   swc_core::ecma::atoms::{Atom, JsWord},
   swc_core::ecma::visit::{noop_visit_mut_type, Fold, VisitMut, VisitMutWith},
 };
+
+use super::{is_module_hot_accept_call, is_module_hot_decline_call};
+use crate::utils::{is_dynamic_import_literal_expr, is_require_literal_expr};
 
 pub static SWC_HELPERS_REG: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"@swc/helpers/lib/(\w*)\.js$").expect("TODO:"));

@@ -1,14 +1,15 @@
-use crate::runtime_module::{
-  GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
-  GetMainFilenameRuntimeModule, HasOwnPropertyRuntimeModule, LoadScriptRuntimeModule,
-  PublicPathRuntimeModule,
-};
 use async_trait::async_trait;
 use rspack_core::{
   runtime_globals, AdditionalChunkRuntimeRequirementsArgs, NormalRuntimeModule, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeModuleExt, SourceType,
 };
 use rspack_error::Result;
+
+use crate::runtime_module::{
+  GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
+  GetMainFilenameRuntimeModule, HasOwnPropertyRuntimeModule, LoadScriptRuntimeModule,
+  PublicPathRuntimeModule,
+};
 
 #[derive(Debug)]
 pub struct BasicRuntimeRequirementPlugin {}

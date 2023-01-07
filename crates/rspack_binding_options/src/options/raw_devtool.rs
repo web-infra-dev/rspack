@@ -1,7 +1,8 @@
 use std::str::FromStr;
 
-use crate::RawOption;
 use rspack_core::{CompilerOptionsBuilder, Devtool};
+
+use crate::RawOption;
 
 pub type RawDevtool = String;
 

@@ -4,9 +4,8 @@ use std::{
 };
 
 use hashbrown::{hash_map::DefaultHashBuilder, HashSet};
-use swc_core::common::Span;
-
 use rspack_error::{internal_error, Error, Result};
+use swc_core::common::Span;
 use tracing::instrument;
 use ustr::Ustr;
 

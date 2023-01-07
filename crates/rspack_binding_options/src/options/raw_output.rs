@@ -4,16 +4,14 @@ use std::{
 };
 
 use anyhow::Context;
-use serde::Deserialize;
-
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
-
 use rspack_core::{
   CompilerOptionsBuilder, Filename, OutputOptions, PublicPath, CHUNK_HASH_PLACEHOLDER,
   CONTENT_HASH_PLACEHOLDER, EXT_PLACEHOLDER, HASH_PLACEHOLDER, ID_PLACEHOLDER, NAME_PLACEHOLDER,
   QUERY_PLACEHOLDER,
 };
+use serde::Deserialize;
 
 use crate::RawOption;
 

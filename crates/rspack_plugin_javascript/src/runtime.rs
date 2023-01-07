@@ -1,10 +1,11 @@
-use crate::utils::wrap_eval_source_map;
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, CachedSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{runtime_globals, ChunkUkey, Compilation, RuntimeModule, SourceType};
 use rspack_error::Result;
+
+use crate::utils::wrap_eval_source_map;
 
 static MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(DashMap::default);
 

@@ -1,5 +1,6 @@
-use rspack_test::{fixture, rspack_only::options_noop, test_fixture};
 use std::path::PathBuf;
+
+use rspack_test::{fixture, rspack_only::options_noop, test_fixture};
 
 #[fixture("tests/fixtures/**/*.config.js")]
 fn source_map(config_path: PathBuf) {

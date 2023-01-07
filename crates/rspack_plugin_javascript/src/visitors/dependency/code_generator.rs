@@ -1,16 +1,15 @@
 use std::borrow::Cow;
 
+use rspack_core::{
+  CodeGeneratableContext, CodeGeneratableJavaScriptVisitors, Compilation, JavaScriptVisitorBuilder,
+  JsAstPath, Module,
+};
 use swc_core::{
   common::pass::AstKindPath,
   ecma::{
     ast::*,
     visit::{AstParentKind, VisitMut, VisitMutAstPath, VisitMutWith, VisitMutWithPath},
   },
-};
-
-use rspack_core::{
-  CodeGeneratableContext, CodeGeneratableJavaScriptVisitors, Compilation, JavaScriptVisitorBuilder,
-  JsAstPath, Module,
 };
 
 /// Collect dependency code generation visitors from dependencies of the module passed in.

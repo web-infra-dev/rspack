@@ -1,5 +1,6 @@
-use crate::RawOption;
 use rspack_core::{CompilerOptionsBuilder, Target};
+
+use crate::RawOption;
 
 pub type RawTarget = Vec<String>;
 

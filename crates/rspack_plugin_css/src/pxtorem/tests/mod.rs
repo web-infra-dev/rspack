@@ -1,6 +1,7 @@
+use std::fmt::Write;
+
 use hashbrown::HashMap;
 use hrx_parser::Entry;
-use std::fmt::Write;
 use swc_core::common::{FileName, FilePathMapping, SourceMap};
 use swc_core::css::{
   ast::Stylesheet,
