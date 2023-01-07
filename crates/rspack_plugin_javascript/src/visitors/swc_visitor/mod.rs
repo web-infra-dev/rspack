@@ -21,7 +21,6 @@ pub use build_module::build_module;
 
 mod hygiene;
 pub use hygiene::hygiene;
-
 pub use swc_core::ecma::transforms::base::fixer::{fixer, paren_remover};
 pub use swc_core::ecma::transforms::base::helpers::inject_helpers;
 pub use swc_core::ecma::transforms::base::resolver;

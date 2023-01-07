@@ -1,12 +1,12 @@
-use clap::{self, Args, Parser, Subcommand};
 use std::{env, ffi::OsString};
+
+use clap::{self, Args, Parser, Subcommand};
 pub mod helper;
 mod record;
 pub mod rst;
 mod terminal_inline;
 mod update;
 pub use rst::test;
-
 use update::update;
 
 #[macro_use]

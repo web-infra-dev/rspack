@@ -1,5 +1,6 @@
-use super::Storage;
 use dashmap::DashMap;
+
+use super::Storage;
 
 #[derive(Debug)]
 pub struct MemoryStorage<Item> {

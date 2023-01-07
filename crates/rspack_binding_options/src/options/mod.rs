@@ -2,9 +2,7 @@ use std::{collections::HashMap, fmt::Debug};
 
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
-
 use rspack_core::{CompilerOptions, CompilerOptionsBuilder, EntryItem, ModuleIds};
-
 use serde::Deserialize;
 
 mod raw_builtins;

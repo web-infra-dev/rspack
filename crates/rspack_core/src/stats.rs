@@ -1,4 +1,3 @@
-use crate::{BoxModule, Chunk, Compilation, ModuleType, SourceType};
 use hashbrown::HashMap;
 use rspack_error::{
   emitter::{
@@ -6,6 +5,8 @@ use rspack_error::{
   },
   Result,
 };
+
+use crate::{BoxModule, Chunk, Compilation, ModuleType, SourceType};
 
 #[derive(Debug, Clone)]
 pub struct Stats<'compilation> {

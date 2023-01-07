@@ -1,5 +1,6 @@
-use crate::CacheOptions;
 use std::fmt::Debug;
+
+use crate::CacheOptions;
 
 mod memory;
 use memory::MemoryStorage;

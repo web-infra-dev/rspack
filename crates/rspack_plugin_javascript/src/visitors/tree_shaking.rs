@@ -1,9 +1,9 @@
 use hashbrown::HashSet;
 use rspack_core::{Dependency, DependencyType, ModuleDependency, ModuleGraph, ModuleIdentifier};
-use swc_core::common::{Mark, DUMMY_SP, GLOBALS};
-use swc_core::ecma::ast::*;
 // use swc_ecma_utils::
 use rspack_symbol::{BetterId, IndirectTopLevelSymbol, Symbol};
+use swc_core::common::{Mark, DUMMY_SP, GLOBALS};
+use swc_core::ecma::ast::*;
 use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::utils::quote_ident;
 use swc_core::ecma::visit::{noop_fold_type, Fold, FoldWith};

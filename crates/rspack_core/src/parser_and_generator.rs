@@ -1,7 +1,6 @@
 use std::fmt::Debug;
 
 use hashbrown::{HashMap, HashSet};
-
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::ResourceData;
 use rspack_sources::Source;

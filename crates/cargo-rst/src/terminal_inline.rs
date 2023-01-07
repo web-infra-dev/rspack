@@ -1,8 +1,8 @@
 use std::fmt;
+use std::fmt::Write;
 
 use console::{style, Style};
 use similar::{ChangeTag, TextDiff};
-use std::fmt::Write;
 
 struct Line(Option<usize>);
 

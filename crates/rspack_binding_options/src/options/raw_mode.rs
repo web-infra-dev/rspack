@@ -1,6 +1,8 @@
-use crate::RawOption;
-use rspack_core::{CompilerOptionsBuilder, Mode};
 use std::str::FromStr;
+
+use rspack_core::{CompilerOptionsBuilder, Mode};
+
+use crate::RawOption;
 
 pub type RawMode = String;
 

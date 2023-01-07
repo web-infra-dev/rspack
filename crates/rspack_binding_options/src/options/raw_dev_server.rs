@@ -1,8 +1,9 @@
-use crate::RawOption;
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
 use rspack_core::{CompilerOptionsBuilder, DevServerOptions};
 use serde::Deserialize;
+
+use crate::RawOption;
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]

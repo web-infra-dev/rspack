@@ -1,7 +1,9 @@
-use crate::{ChunkUkey, Compilation};
+use std::{fmt::Debug, hash::Hash};
+
 use hashbrown::{HashMap, HashSet};
 use rspack_sources::{BoxSource, CachedSource, RawSource, SourceExt};
-use std::{fmt::Debug, hash::Hash};
+
+use crate::{ChunkUkey, Compilation};
 
 pub type RuntimeSpec = HashSet<String>;
 pub type RuntimeKey = String;

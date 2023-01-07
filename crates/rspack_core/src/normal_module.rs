@@ -13,9 +13,6 @@ use bitflags::bitflags;
 use dashmap::DashMap;
 use hashbrown::{hash_map::DefaultHashBuilder, HashMap, HashSet};
 use indexmap::IndexSet;
-use serde_json::json;
-use ustr::ustr;
-
 use rspack_error::{
   internal_error, Diagnostic, Error, IntoTWithDiagnosticArray, Result, Severity,
   TWithDiagnosticArray,
@@ -25,6 +22,8 @@ use rspack_sources::{
   BoxSource, OriginalSource, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
   WithoutOriginalOptions,
 };
+use serde_json::json;
+use ustr::ustr;
 
 use crate::{
   contextify, identifier::Identifiable, BoxModule, BuildContext, BuildResult, ChunkGraph,

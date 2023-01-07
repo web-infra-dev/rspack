@@ -4,7 +4,7 @@ use bitflags::bitflags;
 use globset::{Glob, GlobSetBuilder};
 use hashbrown::{hash_map::Entry, HashMap, HashSet};
 use hashlink::LinkedHashMap;
-
+use rspack_symbol::{BetterId, IdOrMemExpr, IndirectTopLevelSymbol, Symbol, SymbolExt, SymbolFlag};
 use sugar_path::SugarPath;
 use swc_core::common::{util::take::Take, Mark, GLOBALS};
 use swc_core::ecma::ast::*;
@@ -16,13 +16,11 @@ use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 // use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
 use ustr::{ustr, Ustr};
 
-use crate::{Dependency, DependencyType, ModuleGraph, ModuleSyntax, Resolver};
-use rspack_symbol::{BetterId, IdOrMemExpr, IndirectTopLevelSymbol, Symbol, SymbolExt, SymbolFlag};
-
 use super::{
   utils::{get_dynamic_import_string_literal, get_require_literal},
   BailoutFlog,
 };
+use crate::{Dependency, DependencyType, ModuleGraph, ModuleSyntax, Resolver};
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SymbolRef {
   Direct(Symbol),

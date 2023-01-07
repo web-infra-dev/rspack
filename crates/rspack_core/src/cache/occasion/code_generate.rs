@@ -1,5 +1,6 @@
-use crate::{cache::storage, BoxModule, CodeGenerationResult, NormalModuleAstOrSource};
 use rspack_error::Result;
+
+use crate::{cache::storage, BoxModule, CodeGenerationResult, NormalModuleAstOrSource};
 
 type Storage = dyn storage::Storage<CodeGenerationResult>;
 

@@ -13,15 +13,15 @@ mod raw_postcss;
 mod raw_progress;
 mod raw_react;
 
-use crate::RawOption;
 pub use raw_css::*;
 pub use raw_decorator::*;
 pub use raw_html::*;
 pub use raw_postcss::*;
 pub use raw_progress::*;
 pub use raw_react::*;
-
 use serde::Deserialize;
+
+use crate::RawOption;
 
 #[derive(Debug, Deserialize)]
 #[cfg(feature = "node-api")]

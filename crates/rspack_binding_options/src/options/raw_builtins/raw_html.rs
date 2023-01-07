@@ -1,14 +1,14 @@
+use std::collections::HashMap;
+use std::str::FromStr;
+
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
-
 use rspack_plugin_html::config::HtmlPluginConfig;
 use rspack_plugin_html::config::HtmlPluginConfigInject;
 use rspack_plugin_html::config::HtmlPluginConfigScriptLoading;
 use rspack_plugin_html::sri::HtmlSriHashFunction;
 use serde::Deserialize;
 use serde::Serialize;
-use std::collections::HashMap;
-use std::str::FromStr;
 
 use crate::RawOption;
 

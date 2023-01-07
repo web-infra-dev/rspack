@@ -1,12 +1,10 @@
 #![recursion_limit = "256"]
-use criterion::{criterion_group, criterion_main, Criterion};
-use xshell::{cmd, Shell};
-
 use std::path::PathBuf;
 
-use rspack_test::read_test_config_and_normalize;
-
+use criterion::{criterion_group, criterion_main, Criterion};
 use mimalloc_rust::GlobalMiMalloc;
+use rspack_test::read_test_config_and_normalize;
+use xshell::{cmd, Shell};
 
 #[cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))]
 #[global_allocator]

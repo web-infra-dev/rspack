@@ -1,3 +1,10 @@
+use std::{
+  borrow::Cow,
+  cmp::Ordering,
+  collections::{hash_map::DefaultHasher, HashMap, HashSet},
+  hash::{Hash, Hasher},
+};
+
 use rspack_core::{
   BoxModule, Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleGraph, ModuleIdentifier,
 };
@@ -5,12 +12,6 @@ use rspack_util::{
   comparators::{compare_ids, compare_numbers},
   identifier::make_paths_relative,
   number_hash::get_number_hash,
-};
-use std::{
-  borrow::Cow,
-  cmp::Ordering,
-  collections::{hash_map::DefaultHasher, HashMap, HashSet},
-  hash::{Hash, Hasher},
 };
 
 #[allow(clippy::type_complexity)]

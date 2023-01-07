@@ -1,3 +1,5 @@
+use std::hash::{Hash, Hasher};
+
 use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{
@@ -12,7 +14,6 @@ use rspack_core::{
   SourceType,
 };
 use rspack_error::{internal_error, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use std::hash::{Hash, Hasher};
 use swc_core::base::{config::JsMinifyOptions, BoolOrDataConfig};
 use swc_core::common::util::take::Take;
 use swc_core::ecma::ast;

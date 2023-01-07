@@ -1,8 +1,10 @@
-use crate::Resolve;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
+
 use tracing::instrument;
+
+use crate::Resolve;
 
 #[derive(Debug, Clone)]
 pub enum ResolveResult {

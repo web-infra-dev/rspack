@@ -1,8 +1,8 @@
-#[cfg(feature = "tracing")]
-use rspack_tracing::enable_tracing_by_env_with_chrome_layer;
 use std::{path::PathBuf, time::Instant};
 
 use mimalloc_rust::GlobalMiMalloc;
+#[cfg(feature = "tracing")]
+use rspack_tracing::enable_tracing_by_env_with_chrome_layer;
 
 #[cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))]
 #[global_allocator]

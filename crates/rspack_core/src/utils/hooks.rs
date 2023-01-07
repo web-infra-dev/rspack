@@ -1,7 +1,9 @@
-use crate::{DependencyType, Resolve, ResolveArgs, ResolveResult, SharedPluginDriver};
-use rspack_error::{internal_error, Error, Result, TraceableError};
 use std::path::Path;
+
+use rspack_error::{internal_error, Error, Result, TraceableError};
 use tracing::instrument;
+
+use crate::{DependencyType, Resolve, ResolveArgs, ResolveResult, SharedPluginDriver};
 
 #[instrument(name = "resolve", skip_all)]
 pub async fn resolve(

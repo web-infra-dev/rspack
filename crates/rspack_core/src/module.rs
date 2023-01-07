@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
-
 use hashbrown::hash_map::DefaultHashBuilder;
 use hashbrown::HashSet;
 use rspack_error::{internal_error, Error, Result, TWithDiagnosticArray};
@@ -206,14 +205,14 @@ mod test {
   use std::borrow::Cow;
   use std::hash::{Hash, Hasher};
 
+  use rspack_error::{Result, TWithDiagnosticArray};
+  use rspack_sources::Source;
+
   use super::Module;
   use crate::{
     BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, Identifiable,
     Identifier, ModuleExt, ModuleType, SourceType,
   };
-
-  use rspack_error::{Result, TWithDiagnosticArray};
-  use rspack_sources::Source;
 
   #[derive(Debug, Eq)]
   struct RawModule(&'static str);

@@ -1,8 +1,7 @@
-use rspack_core::{CompilerOptionsBuilder, NodeOption, TargetPlatform};
-use serde::Deserialize;
-
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
+use rspack_core::{CompilerOptionsBuilder, NodeOption, TargetPlatform};
+use serde::Deserialize;
 
 use crate::RawOption;
 

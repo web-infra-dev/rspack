@@ -1,15 +1,13 @@
 use rspack_core::{Compilation, Dependency, DependencyType, Module, ModuleDependency};
-
-use crate::utils::is_require_literal_expr;
-
-use super::format::SWC_HELPERS_REG;
-
 use {
   swc_core::common::{Mark, SyntaxContext},
   swc_core::ecma::ast::*,
   swc_core::ecma::atoms::{Atom, JsWord},
   swc_core::ecma::visit::{noop_visit_mut_type, VisitMut, VisitMutWith},
 };
+
+use super::format::SWC_HELPERS_REG;
+use crate::utils::is_require_literal_expr;
 
 /// Only rewrite `require('xxx')` and `import _ from 'xxx'` now
 pub struct RewriteModuleUrl<'a> {

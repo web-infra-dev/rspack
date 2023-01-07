@@ -1,5 +1,6 @@
-use rspack_core::Define;
 use std::sync::Arc;
+
+use rspack_core::Define;
 use swc_core::base::config::GlobalPassOption;
 use swc_core::common::{errors::Handler, SourceMap};
 use swc_core::ecma::atoms::JsWord;

@@ -1,6 +1,5 @@
 mod analyze_imports_with_path;
 pub use analyze_imports_with_path::*;
-
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{

@@ -1,7 +1,6 @@
-use serde::Deserialize;
-
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
+use serde::Deserialize;
 
 use crate::RawSplitChunksOptions;
 

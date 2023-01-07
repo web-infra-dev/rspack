@@ -1,4 +1,3 @@
-use crate::runtime_module::utils::{get_initial_chunk_ids, stringify_chunks};
 use hashbrown::HashSet;
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
@@ -6,6 +5,7 @@ use rspack_core::{
 };
 
 use super::utils::chunk_has_js;
+use crate::runtime_module::utils::{get_initial_chunk_ids, stringify_chunks};
 
 #[derive(Debug, Default)]
 pub struct JsonpChunkLoadingRuntimeModule {

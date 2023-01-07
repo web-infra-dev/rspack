@@ -1,10 +1,11 @@
+use std::io::Write;
+use std::path::Path;
+
 use anyhow::Context;
 use codespan_reporting::diagnostic::{Diagnostic, Label, Severity};
 use codespan_reporting::files::SimpleFiles;
 use codespan_reporting::term;
 use codespan_reporting::term::termcolor::{ColorChoice, StandardStream};
-use std::io::Write;
-use std::path::Path;
 use sugar_path::SugarPath;
 use termcolor::{Buffer, Color, ColorSpec, StandardStreamLock, WriteColor};
 

@@ -1,6 +1,7 @@
+use std::{collections::HashMap, path::Path, str::FromStr};
+
 use rspack_core::Compilation;
 use serde::Deserialize;
-use std::{collections::HashMap, path::Path, str::FromStr};
 use sugar_path::SugarPath;
 
 use crate::sri::HtmlSriHashFunction;

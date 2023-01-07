@@ -1,6 +1,7 @@
+use std::path::PathBuf;
+
 use rspack_core::CompilerOptions;
 use rspack_test::{add_entry_runtime, fixture, test_fixture};
-use std::path::PathBuf;
 
 #[fixture("tests/fixtures/**/*.config.js")]
 fn js(config_path: PathBuf) {
