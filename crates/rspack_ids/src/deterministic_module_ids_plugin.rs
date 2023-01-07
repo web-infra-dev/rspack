@@ -38,7 +38,7 @@ impl Plugin for DeterministicModuleIdsPlugin {
           conflicts += 1;
           return false;
         }
-        chunk_graph.set_module_id(&module.identifier(), id);
+        chunk_graph.set_module_id(module.identifier(), id);
         true
       },
       &[usize::pow(10, max_length)],

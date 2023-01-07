@@ -29,7 +29,6 @@ use rspack_symbol::{IndirectTopLevelSymbol, IndirectType, Symbol};
 use swc_core::ecma::atoms::JsWord;
 use tokio::sync::mpsc::error::TryRecvError;
 use tracing::instrument;
-use ustr::{ustr, Ustr};
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
@@ -80,9 +79,9 @@ pub struct Compilation {
   pub used_symbol: HashSet<Symbol>,
   pub used_indirect_symbol: HashSet<IndirectTopLevelSymbol>,
   /// Collecting all module that need to skip in tree-shaking ast modification phase
-  pub bailout_module_identifiers: HashMap<Ustr, BailoutFlog>,
+  pub bailout_module_identifiers: HashMap<ModuleIdentifier, BailoutFlog>,
   #[cfg(debug_assertions)]
-  pub tree_shaking_result: HashMap<Ustr, TreeShakingResult>,
+  pub tree_shaking_result: HashMap<ModuleIdentifier, TreeShakingResult>,
 
   pub code_generation_results: CodeGenerationResults,
   pub code_generated_modules: HashSet<ModuleIdentifier>,
@@ -601,7 +600,7 @@ impl Compilation {
 
         let runtimes = compilation
           .chunk_graph
-          .get_module_runtimes(&module_identifier, &compilation.chunk_by_ukey);
+          .get_module_runtimes(module_identifier, &compilation.chunk_by_ukey);
 
         compilation
           .code_generation_results
@@ -703,7 +702,7 @@ impl Compilation {
       .module_identifier_to_module_graph_module
       .par_iter()
       .filter_map(|(module_identifier, mgm)| {
-        let uri_key = ustr(module_identifier);
+        let uri_key = *module_identifier;
         let ast = match mgm.module_type {
           crate::ModuleType::Js | crate::ModuleType::Jsx | crate::ModuleType::Tsx
           | crate::ModuleType::Ts => match self
@@ -714,7 +713,7 @@ impl Compilation {
                       .and_then(|ast|ast.as_javascript()) {
               Some(ast) => {ast},
               None => {
-                // FIXME: this could be none if you enable both hmr and tree-shaking, should investigate why 
+                // FIXME: this could be none if you enable both hmr and tree-shaking, should investigate why
                 return None;
               },
           }
@@ -760,7 +759,7 @@ impl Compilation {
 
         Some((uri_key, analyzer.into()))
       })
-      .collect::<HashMap<Ustr, TreeShakingResult>>();
+      .collect::<HashMap<ModuleIdentifier, TreeShakingResult>>();
 
     let mut used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
     let mut bail_out_module_identifiers = HashMap::default();
@@ -841,7 +840,7 @@ impl Compilation {
     let mut errors = vec![];
     let mut used_symbol = HashSet::new();
     let mut used_indirect_symbol: HashSet<IndirectTopLevelSymbol> = HashSet::new();
-    let mut used_export_module_identifiers: HashSet<Ustr> = HashSet::new();
+    let mut used_export_module_identifiers: HashSet<ModuleIdentifier> = HashSet::new();
     let mut traced_tuple = HashSet::new();
     // Marking used symbol and all reachable export symbol from the used symbol for each module
     let used_symbol_from_import = mark_used_symbol_with(
@@ -863,7 +862,7 @@ impl Compilation {
     for entry in self.entry_modules() {
       let used_symbol_set = collect_reachable_symbol(
         &analyze_results,
-        ustr(&entry),
+        entry,
         &mut used_indirect_symbol,
         &bail_out_module_identifiers,
         &mut evaluated_module_identifiers,
@@ -905,7 +904,7 @@ impl Compilation {
 
     if side_effects_analyze {
       // pruning
-      let mut visited: HashSet<Ustr> =
+      let mut visited: HashSet<ModuleIdentifier> =
         HashSet::from_iter(self.entry_module_identifiers.iter().cloned());
       let mut q = VecDeque::from_iter(visited.iter().cloned());
       while let Some(module_identifier) = q.pop_front() {
@@ -980,7 +979,7 @@ impl Compilation {
     Ok(())
   }
 
-  pub fn entry_modules(&self) -> impl Iterator<Item = Ustr> {
+  pub fn entry_modules(&self) -> impl Iterator<Item = ModuleIdentifier> {
     self.entry_module_identifiers.clone().into_iter()
   }
 
@@ -1038,13 +1037,13 @@ impl Compilation {
       .filter_map(|(_, module)| {
         if self
           .chunk_graph
-          .get_number_of_module_chunks(&module.identifier())
+          .get_number_of_module_chunks(module.identifier())
           > 0
         {
           let mut module_runtime_requirements: Vec<(HashSet<String>, HashSet<String>)> = vec![];
           for runtime in self
             .chunk_graph
-            .get_module_runtimes(&module.identifier(), &self.chunk_by_ukey)
+            .get_module_runtimes(module.identifier(), &self.chunk_by_ukey)
             .values()
           {
             let runtime_requirements = self
@@ -1061,7 +1060,7 @@ impl Compilation {
     for (module_identifier, runtime_requirements) in module_runtime_requirements.iter_mut() {
       for (runtime, requirements) in runtime_requirements.iter_mut() {
         self.chunk_graph.add_module_runtime_requirements(
-          module_identifier,
+          *module_identifier,
           runtime,
           std::mem::take(requirements),
         )
@@ -1078,7 +1077,7 @@ impl Compilation {
       {
         if let Some(runtime_requirements) = self
           .chunk_graph
-          .get_module_runtime_requirements(&module.module_identifier, &chunk.runtime)
+          .get_module_runtime_requirements(module.module_identifier, &chunk.runtime)
         {
           set.extend(runtime_requirements.clone());
         }
@@ -1216,19 +1215,18 @@ impl Compilation {
       .get(chunk_ukey)
       .expect("chunk not found by ukey");
     let runtime_module_identifier = format!("{:?}/{}", chunk.runtime, module.identifier());
+    let runtime_module_identifier = ModuleIdentifier::from(runtime_module_identifier);
     module.attach(*chunk_ukey);
+    self.chunk_graph.add_module(runtime_module_identifier);
     self
       .chunk_graph
-      .add_module(ustr(&runtime_module_identifier));
+      .connect_chunk_and_module(*chunk_ukey, runtime_module_identifier);
     self
       .chunk_graph
-      .connect_chunk_and_module(*chunk_ukey, ustr(&runtime_module_identifier));
-    self
-      .chunk_graph
-      .connect_chunk_and_runtime_module(*chunk_ukey, runtime_module_identifier.clone());
+      .connect_chunk_and_runtime_module(*chunk_ukey, runtime_module_identifier);
     self
       .runtime_modules
-      .insert(runtime_module_identifier, module);
+      .insert(runtime_module_identifier.to_string(), module);
   }
 }
 
@@ -1327,14 +1325,14 @@ pub struct AssetInfoRelated {
 
 #[allow(clippy::too_many_arguments)]
 fn collect_reachable_symbol(
-  analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
-  entry_identifier: Ustr,
+  analyze_map: &hashbrown::HashMap<ModuleIdentifier, TreeShakingResult>,
+  entry_identifier: ModuleIdentifier,
   used_indirect_symbol: &mut HashSet<IndirectTopLevelSymbol>,
-  bailout_module_identifiers: &HashMap<Ustr, BailoutFlog>,
-  evaluated_module_identifiers: &mut HashSet<Ustr>,
-  used_export_module_identifiers: &mut HashSet<Ustr>,
-  inherit_extend_graph: &GraphMap<Ustr, (), Directed>,
-  traced_tuple: &mut HashSet<(Ustr, Ustr)>,
+  bailout_module_identifiers: &HashMap<ModuleIdentifier, BailoutFlog>,
+  evaluated_module_identifiers: &mut HashSet<ModuleIdentifier>,
+  used_export_module_identifiers: &mut HashSet<ModuleIdentifier>,
+  inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
+  traced_tuple: &mut HashSet<(ModuleIdentifier, ModuleIdentifier)>,
   options: &Arc<CompilerOptions>,
   errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
@@ -1420,14 +1418,14 @@ fn collect_reachable_symbol(
 
 #[allow(clippy::too_many_arguments)]
 fn mark_used_symbol_with(
-  analyze_map: &hashbrown::HashMap<Ustr, TreeShakingResult>,
+  analyze_map: &hashbrown::HashMap<ModuleIdentifier, TreeShakingResult>,
   mut init_queue: VecDeque<SymbolRef>,
-  bailout_module_identifiers: &HashMap<Ustr, BailoutFlog>,
-  evaluated_module_identifiers: &mut HashSet<Ustr>,
+  bailout_module_identifiers: &HashMap<ModuleIdentifier, BailoutFlog>,
+  evaluated_module_identifiers: &mut HashSet<ModuleIdentifier>,
   used_indirect_symbol_set: &mut HashSet<IndirectTopLevelSymbol>,
-  used_export_module_identifiers: &mut HashSet<Ustr>,
-  inherit_extend_graph: &GraphMap<Ustr, (), Directed>,
-  traced_tuple: &mut HashSet<(Ustr, Ustr)>,
+  used_export_module_identifiers: &mut HashSet<ModuleIdentifier>,
+  inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
+  traced_tuple: &mut HashSet<(ModuleIdentifier, ModuleIdentifier)>,
   options: &Arc<CompilerOptions>,
   errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
@@ -1463,13 +1461,13 @@ fn mark_symbol(
   symbol_ref: SymbolRef,
   used_symbol_set: &mut HashSet<Symbol>,
   used_indirect_symbol_set: &mut HashSet<IndirectTopLevelSymbol>,
-  analyze_map: &HashMap<Ustr, TreeShakingResult>,
+  analyze_map: &HashMap<ModuleIdentifier, TreeShakingResult>,
   q: &mut VecDeque<SymbolRef>,
-  bailout_module_identifiers: &HashMap<Ustr, BailoutFlog>,
-  evaluated_module_identifiers: &mut HashSet<Ustr>,
-  used_export_module_identifiers: &mut HashSet<Ustr>,
-  inherit_extend_graph: &GraphMap<Ustr, (), Directed>,
-  traced_tuple: &mut HashSet<(Ustr, Ustr)>,
+  bailout_module_identifiers: &HashMap<ModuleIdentifier, BailoutFlog>,
+  evaluated_module_identifiers: &mut HashSet<ModuleIdentifier>,
+  used_export_module_identifiers: &mut HashSet<ModuleIdentifier>,
+  inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
+  traced_tuple: &mut HashSet<(ModuleIdentifier, ModuleIdentifier)>,
   options: &Arc<CompilerOptions>,
   errors: &mut Vec<Error>,
 ) {
@@ -1482,10 +1480,10 @@ fn mark_symbol(
     bailout_module_identifiers.contains_key(&symbol_ref.module_identifier());
   match &symbol_ref {
     SymbolRef::Direct(symbol) => {
-      used_export_module_identifiers.insert(symbol.uri());
+      used_export_module_identifiers.insert(symbol.uri().into());
     }
     SymbolRef::Indirect(indirect) => {
-      used_export_module_identifiers.insert(indirect.uri());
+      used_export_module_identifiers.insert(indirect.uri().into());
     }
     _ => {}
   };
@@ -1493,7 +1491,7 @@ fn mark_symbol(
     SymbolRef::Direct(symbol) => match used_symbol_set.entry(symbol) {
       Occupied(_) => {}
       Vacant(vac) => {
-        let module_result = analyze_map.get(&vac.get().uri()).expect("TODO:");
+        let module_result = analyze_map.get(&vac.get().uri().into()).expect("TODO:");
         if let Some(set) = module_result
           .reachable_import_of_export
           .get(&vac.get().id().atom)
@@ -1512,8 +1510,8 @@ fn mark_symbol(
         if let Some(symbol_ref) = module_result.import_map.get(vac.get().id()) {
           q.push_back(symbol_ref.clone());
         }
-        if !evaluated_module_identifiers.contains(&vac.get().uri()) {
-          evaluated_module_identifiers.insert(vac.get().uri());
+        if !evaluated_module_identifiers.contains(&vac.get().uri().into()) {
+          evaluated_module_identifiers.insert(vac.get().uri().into());
           q.extend(module_result.used_symbol_ref.clone());
         }
         vac.insert();
@@ -1522,14 +1520,14 @@ fn mark_symbol(
     SymbolRef::Indirect(indirect_symbol) => {
       let importer = indirect_symbol.importer();
       if indirect_symbol.ty == IndirectType::ReExport
-        && !evaluated_module_identifiers.contains(&importer)
+        && !evaluated_module_identifiers.contains(&importer.into())
       {
-        evaluated_module_identifiers.insert(importer);
-        let module_result = analyze_map.get(&importer).expect("TODO:");
+        evaluated_module_identifiers.insert(importer.into());
+        let module_result = analyze_map.get(&importer.into()).expect("TODO:");
         q.extend(module_result.used_symbol_ref.clone());
       }
       used_indirect_symbol_set.insert(indirect_symbol.clone());
-      let module_result = match analyze_map.get(&indirect_symbol.uri) {
+      let module_result = match analyze_map.get(&indirect_symbol.uri.into()) {
         Some(module_result) => module_result,
         None => {
           // eprintln!(
@@ -1551,12 +1549,12 @@ fn mark_symbol(
             if let Some(value) = extends_export_map.get(&indirect_symbol.id) {
               ret.push((module_identifier, value));
               if is_first_result {
-                let tuple = (indirect_symbol.uri, *module_identifier);
+                let tuple = (indirect_symbol.uri.into(), *module_identifier);
                 if !traced_tuple.contains(&tuple) {
                   used_export_module_identifiers.extend(
                     algo::all_simple_paths::<Vec<_>, _>(
                       &inherit_extend_graph,
-                      indirect_symbol.uri,
+                      indirect_symbol.uri.into(),
                       *module_identifier,
                       0,
                       None,
@@ -1574,9 +1572,10 @@ fn mark_symbol(
           }
 
           // FIXME: this is just a workaround for dependency replacement
-          if !ret.is_empty() && !evaluated_module_identifiers.contains(&indirect_symbol.uri) {
+          if !ret.is_empty() && !evaluated_module_identifiers.contains(&indirect_symbol.uri.into())
+          {
             q.extend(module_result.used_symbol_ref.clone());
-            evaluated_module_identifiers.insert(indirect_symbol.uri());
+            evaluated_module_identifiers.insert(indirect_symbol.uri().into());
           }
           match ret.len() {
             0 => {
@@ -1702,8 +1701,8 @@ fn mark_symbol(
 }
 
 fn get_extends_map(
-  export_all_ref_graph: &GraphMap<Ustr, (), petgraph::Directed>,
-) -> HashMap<Ustr, LinkedHashSet<Ustr>> {
+  export_all_ref_graph: &GraphMap<ModuleIdentifier, (), petgraph::Directed>,
+) -> HashMap<ModuleIdentifier, LinkedHashSet<ModuleIdentifier>> {
   let mut map = HashMap::new();
   for node in export_all_ref_graph.nodes() {
     let reachable_set = get_reachable(node, export_all_ref_graph);
@@ -1711,8 +1710,11 @@ fn get_extends_map(
   }
   map
 }
-fn get_reachable(start: Ustr, g: &GraphMap<Ustr, (), petgraph::Directed>) -> LinkedHashSet<Ustr> {
-  let mut visited: HashSet<Ustr> = HashSet::new();
+fn get_reachable(
+  start: ModuleIdentifier,
+  g: &GraphMap<ModuleIdentifier, (), petgraph::Directed>,
+) -> LinkedHashSet<ModuleIdentifier> {
+  let mut visited: HashSet<ModuleIdentifier> = HashSet::new();
   let mut reachable_module_id = LinkedHashSet::new();
   let mut q = VecDeque::from_iter([start]);
   while let Some(cur) = q.pop_front() {
@@ -1729,8 +1731,8 @@ fn get_reachable(start: Ustr, g: &GraphMap<Ustr, (), petgraph::Directed>) -> Lin
 }
 
 fn create_inherit_graph(
-  analyze_map: &HashMap<Ustr, TreeShakingResult>,
-) -> GraphMap<Ustr, (), petgraph::Directed> {
+  analyze_map: &HashMap<ModuleIdentifier, TreeShakingResult>,
+) -> GraphMap<ModuleIdentifier, (), petgraph::Directed> {
   let mut g = petgraph::graphmap::DiGraphMap::new();
   for (module_id, result) in analyze_map.iter() {
     for export_all_module_id in result.inherit_export_maps.keys() {

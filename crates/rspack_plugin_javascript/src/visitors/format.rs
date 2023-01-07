@@ -146,10 +146,10 @@ impl<'a> RspackModuleFormatTransformer<'a> {
         let js_module_id = js_module.id(&self.compilation.chunk_graph);
 
         let mut chunk_ids = {
-          let chunk_group_ukey = self.compilation.chunk_graph.get_module_chunk_group(
-            &js_module.module_identifier,
-            &self.compilation.chunk_by_ukey,
-          );
+          let chunk_group_ukey = self
+            .compilation
+            .chunk_graph
+            .get_module_chunk_group(js_module.module_identifier, &self.compilation.chunk_by_ukey);
           let chunk_group = self.compilation.chunk_group_by_ukey.get(chunk_group_ukey)?;
           chunk_group
             .chunks

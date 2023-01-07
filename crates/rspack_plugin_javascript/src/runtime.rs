@@ -126,7 +126,7 @@ pub fn generate_chunk_entry_code(compilation: &Compilation, chunk_ukey: &ChunkUk
     .filter_map(|entry_module_identifier| {
       compilation
         .module_graph
-        .module_graph_module_by_identifier(entry_module_identifier)
+        .module_graph_module_by_identifier(&entry_module_identifier)
         .map(|module| module.id(&compilation.chunk_graph))
     })
     .collect::<Vec<_>>();

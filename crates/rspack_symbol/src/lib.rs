@@ -171,7 +171,7 @@ impl PartialEq for SymbolExt {
 
 /// This enum hold a `Id` from `swc` or a simplified member expr with a `Id` and a `JsWord`
 /// This is useful when we want to tree-shake the namespace access property e.g.
-/// assume we have   
+/// assume we have
 ///
 /// **a.js**
 /// ```js

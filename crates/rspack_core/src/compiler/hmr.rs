@@ -65,7 +65,7 @@ impl Compiler {
               item.module_identifier,
               compilation
                 .chunk_graph
-                .get_module_id(&item.module_identifier)
+                .get_module_id(item.module_identifier)
                 .clone()
                 .expect("should has module id"),
             );
@@ -265,7 +265,7 @@ impl Compiler {
           .filter_map(|module| {
             updated_runtime_modules
               .contains(module)
-              .then_some(module.to_string())
+              .then_some(ModuleIdentifier::from(module.as_str()))
           })
           .collect::<Vec<_>>();
 
