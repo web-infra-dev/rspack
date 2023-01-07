@@ -6,7 +6,7 @@ use rspack_error::{
   Result,
 };
 
-use crate::{BoxModule, Chunk, Compilation, ModuleType, SourceType};
+use crate::{BoxModule, Chunk, Compilation, ModuleIdentifier, ModuleType, SourceType};
 
 #[derive(Debug, Clone)]
 pub struct Stats<'compilation> {
@@ -135,7 +135,7 @@ impl Stats<'_> {
         let mut chunks: Vec<String> = self
           .compilation
           .chunk_graph
-          .get_chunk_graph_module(&mgm.module_identifier)
+          .get_chunk_graph_module(mgm.module_identifier)
           .chunks
           .iter()
           .map(|k| {
@@ -153,7 +153,7 @@ impl Stats<'_> {
         Ok(StatsModule {
           r#type: "module",
           module_type: *module.module_type(),
-          identifier: identifier.to_owned(),
+          identifier,
           name: module
             .readable_identifier(&self.compilation.options.context)
             .into(),
@@ -337,7 +337,7 @@ pub struct StatsAssetInfo {
 pub struct StatsModule {
   pub r#type: &'static str,
   pub module_type: ModuleType,
-  pub identifier: String,
+  pub identifier: ModuleIdentifier,
   pub name: String,
   pub id: String,
   pub chunks: Vec<String>,

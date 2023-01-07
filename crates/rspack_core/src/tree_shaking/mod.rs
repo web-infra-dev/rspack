@@ -1,9 +1,9 @@
 use bitflags;
 use hashbrown::{HashMap, HashSet};
 use rspack_symbol::{IndirectTopLevelSymbol, Symbol};
-use ustr::Ustr;
 
 use self::visitor::TreeShakingResult;
+use crate::ModuleIdentifier;
 
 pub mod utils;
 pub mod visitor;
@@ -11,8 +11,8 @@ pub mod visitor;
 pub struct OptimizeDependencyResult {
   pub used_symbol: HashSet<Symbol>,
   pub used_indirect_symbol: HashSet<IndirectTopLevelSymbol>,
-  pub analyze_results: HashMap<Ustr, TreeShakingResult>,
-  pub bail_out_module_identifiers: HashMap<Ustr, BailoutFlog>,
+  pub analyze_results: HashMap<ModuleIdentifier, TreeShakingResult>,
+  pub bail_out_module_identifiers: HashMap<ModuleIdentifier, BailoutFlog>,
 }
 const DISABLE_ANALYZE_LOGGING: bool = true;
 pub static CARED_MODULE_ID: &[&str] = &[];

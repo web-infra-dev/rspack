@@ -43,7 +43,7 @@ impl ExternalModule {
 impl Identifiable for ExternalModule {
   fn identifier(&self) -> Identifier {
     let id = format!("external {} {}", self.external_type, self.specifier);
-    Identifier::from(&id)
+    Identifier::from(id.as_str())
   }
 }
 

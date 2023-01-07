@@ -23,7 +23,6 @@ use rspack_sources::{
   WithoutOriginalOptions,
 };
 use serde_json::json;
-use ustr::ustr;
 
 use crate::{
   contextify, identifier::Identifiable, BoxModule, BuildContext, BuildResult, ChunkGraph,
@@ -120,7 +119,7 @@ impl ModuleGraphModule {
 
   pub fn id<'chunk_graph>(&self, chunk_graph: &'chunk_graph ChunkGraph) -> &'chunk_graph str {
     chunk_graph
-      .get_module_id(&self.module_identifier)
+      .get_module_id(self.module_identifier)
       .as_ref()
       .expect("module id not found")
       .as_str()
@@ -417,7 +416,7 @@ impl NormalModule {
 
 impl Identifiable for NormalModule {
   fn identifier(&self) -> ModuleIdentifier {
-    ustr(&self.request)
+    ModuleIdentifier::from(self.request.as_str())
   }
 }
 

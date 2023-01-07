@@ -32,12 +32,12 @@ pub fn get_used_module_ids_and_modules(
   //   }
 
   compilation.module_graph.modules().for_each(|module| {
-    let module_id = chunk_graph.get_module_id(&module.identifier());
+    let module_id = chunk_graph.get_module_id(module.identifier());
     if let Some(module_id) = module_id {
       used_ids.insert(module_id.clone());
     } else {
       if filter.as_ref().map_or(true, |f| (f)(module))
-        && chunk_graph.get_number_of_module_chunks(&module.identifier()) != 0
+        && chunk_graph.get_number_of_module_chunks(module.identifier()) != 0
       {
         modules.push(module.identifier());
       }
@@ -208,11 +208,11 @@ pub fn assign_ascending_module_ids(
 ) {
   let mut next_id = 0;
   let mut assign_id = |module: &BoxModule| {
-    if chunk_graph.get_module_id(&module.identifier()).is_none() {
+    if chunk_graph.get_module_id(module.identifier()).is_none() {
       while used_ids.contains(&next_id.to_string()) {
         next_id += 1;
       }
-      chunk_graph.set_module_id(&module.identifier(), next_id.to_string());
+      chunk_graph.set_module_id(module.identifier(), next_id.to_string());
       next_id += 1;
     }
   };

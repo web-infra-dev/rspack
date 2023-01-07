@@ -551,7 +551,7 @@ impl Plugin for SplitChunksPlugin {
           .expect("TODO:");
         let combs = vec![compilation
           .chunk_graph
-          .get_modules_chunks(&module.identifier())];
+          .get_modules_chunks(module.identifier())];
 
         for combinations in combs {
           if combinations.len() < cache_group.min_chunks {
@@ -710,7 +710,7 @@ impl Plugin for SplitChunksPlugin {
           }
 
           for module in &item.modules {
-            if !compilation.chunk_graph.is_module_in_chunk(module, *chunk) {
+            if !compilation.chunk_graph.is_module_in_chunk(*module, *chunk) {
               continue 'outer;
             }
           }
@@ -807,7 +807,7 @@ impl Plugin for SplitChunksPlugin {
 
       'outer: for chunk in &used_chunks {
         for module in &item.modules {
-          if compilation.chunk_graph.is_module_in_chunk(module, *chunk) {
+          if compilation.chunk_graph.is_module_in_chunk(*module, *chunk) {
             continue 'outer;
           }
         }
@@ -876,7 +876,7 @@ impl Plugin for SplitChunksPlugin {
         for module_identifier in &item.modules {
           compilation
             .chunk_graph
-            .disconnect_chunk_and_module(&used_chunk.ukey, module_identifier);
+            .disconnect_chunk_and_module(&used_chunk.ukey, *module_identifier);
         }
       }
 
@@ -920,7 +920,7 @@ impl Plugin for SplitChunksPlugin {
             for module_identifier in &item.modules {
               compilation
                 .chunk_graph
-                .disconnect_chunk_and_module(&used_chunk.ukey, module_identifier);
+                .disconnect_chunk_and_module(&used_chunk.ukey, *module_identifier);
             }
           }
         }
@@ -935,7 +935,7 @@ impl Plugin for SplitChunksPlugin {
             for module_identifier in &item.modules {
               compilation
                 .chunk_graph
-                .disconnect_chunk_and_module(&used_chunk.ukey, module_identifier);
+                .disconnect_chunk_and_module(&used_chunk.ukey, *module_identifier);
             }
           }
         }

@@ -1,13 +1,13 @@
 use std::fmt::Debug;
 
-use crate::CacheOptions;
+use crate::{CacheOptions, Identifier};
 
 mod memory;
 use memory::MemoryStorage;
 
 pub trait Storage<Item>: Debug + Send + Sync {
-  fn get(&self, id: &str) -> Option<Item>;
-  fn set(&self, id: String, data: Item);
+  fn get(&self, id: &Identifier) -> Option<Item>;
+  fn set(&self, id: Identifier, data: Item);
   // fn begin_idle(&self);
   // fn end_idle(&self);
   // fn clear(&self);

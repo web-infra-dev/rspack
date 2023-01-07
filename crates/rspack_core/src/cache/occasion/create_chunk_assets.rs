@@ -1,7 +1,9 @@
 use futures::Future;
 use rspack_error::Result;
 
-use crate::{cache::storage, Chunk, Compilation, NormalModuleAstOrSource, RenderManifestEntry};
+use crate::{
+  cache::storage, Chunk, Compilation, Identifier, NormalModuleAstOrSource, RenderManifestEntry,
+};
 
 type Storage = dyn storage::Storage<Vec<RenderManifestEntry>>;
 
@@ -31,7 +33,7 @@ impl CreateChunkAssetsOccasion {
       None => return generator().await,
     };
 
-    let chunk_id = chunk.expect_id().to_string();
+    let chunk_id = Identifier::from(chunk.expect_id());
     let modules = &compilation
       .chunk_graph
       .get_chunk_graph_chunk(&chunk.ukey)

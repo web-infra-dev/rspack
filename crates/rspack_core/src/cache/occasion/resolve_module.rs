@@ -6,7 +6,7 @@ use rspack_error::Result;
 use crate::{
   cache::snapshot::{Snapshot, SnapshotManager},
   cache::storage,
-  ResolveArgs, ResolveResult,
+  ModuleIdentifier, ResolveArgs, ResolveResult,
 };
 
 type Storage = dyn storage::Storage<(Snapshot, ResolveResult)>;
@@ -40,7 +40,11 @@ impl ResolveModuleOccasion {
       None => return generator(args).await,
     };
 
-    let id = format!("{}|{}", args.importer.unwrap_or(""), args.specifier);
+    let id = ModuleIdentifier::from(format!(
+      "{}|{}",
+      args.importer.unwrap_or(""),
+      args.specifier
+    ));
     {
       // read
       if let Some((snapshot, data)) = storage.get(&id) {
@@ -67,7 +71,7 @@ impl ResolveModuleOccasion {
       .snapshot_manager
       .create_snapshot(&paths, |option| &option.resolve)
       .await?;
-    storage.set(id.clone(), (snapshot, data.clone()));
+    storage.set(id, (snapshot, data.clone()));
     Ok(data)
   }
 }

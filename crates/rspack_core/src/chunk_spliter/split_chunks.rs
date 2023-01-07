@@ -229,7 +229,7 @@ impl<'me> CodeSplitter<'me> {
             let belong_to_chunks = self
               .compilation
               .chunk_graph
-              .get_modules_chunks(&module.module_identifier)
+              .get_modules_chunks(module.module_identifier)
               .clone();
 
             let has_superior = belong_to_chunks.iter().any(|maybe_superior_chunk| {
@@ -257,7 +257,7 @@ impl<'me> CodeSplitter<'me> {
         self
           .compilation
           .chunk_graph
-          .disconnect_chunk_and_module(&chunk, &module);
+          .disconnect_chunk_and_module(&chunk, module);
       }
     }
   }
@@ -279,7 +279,7 @@ impl<'me> CodeSplitter<'me> {
     if self
       .compilation
       .chunk_graph
-      .is_module_in_chunk(&item.module_identifier, item.chunk)
+      .is_module_in_chunk(item.module_identifier, item.chunk)
     {
       return;
     }
