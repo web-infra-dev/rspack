@@ -49,6 +49,7 @@ bitflags! {
     const EXPORT_DEFAULT = 1 << 1;
     const ASSIGNMENT_LHS = 1 << 2;
     const ASSIGNMENT_RHS = 1 << 3;
+    const STATIC_VAR_DECL = 1 << 4;
   }
 }
 #[derive(Debug)]
@@ -70,11 +71,11 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   // Use `IndexMap` to keep the insertion order
   pub inherit_export_maps: IdentifierLinkedMap<HashMap<JsWord, SymbolRef>>,
   current_body_owner_symbol_ext: Option<SymbolExt>,
-  pub(crate) decl_reference_map: HashMap<SymbolExt, HashSet<IdOrMemExpr>>,
+  pub(crate) maybe_lazy_reference_map: HashMap<SymbolExt, HashSet<IdOrMemExpr>>,
   /// ```js
   /// The method
   /// ```
-  pub(crate) assign_reference_map: HashMap<SymbolExt, HashSet<IdOrMemExpr>>,
+  pub(crate) immediate_evaluate_reference_map: HashMap<SymbolExt, HashSet<IdOrMemExpr>>,
   pub(crate) reachable_import_and_export: HashMap<JsWord, HashSet<SymbolRef>>,
   state: AnalyzeState,
   pub(crate) used_id_set: HashSet<IdOrMemExpr>,
@@ -106,7 +107,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       import_map: HashMap::default(),
       inherit_export_maps: LinkedHashMap::default(),
       current_body_owner_symbol_ext: None,
-      decl_reference_map: HashMap::new(),
+      maybe_lazy_reference_map: HashMap::new(),
       reachable_import_and_export: HashMap::default(),
       state: AnalyzeState::empty(),
       used_id_set: HashSet::default(),
@@ -116,7 +117,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       bail_out_module_identifiers: IdentifierMap::default(),
       resolver,
       side_effects_free: false,
-      assign_reference_map: HashMap::new(),
+      immediate_evaluate_reference_map: HashMap::new(),
     }
   }
 
@@ -130,10 +131,16 @@ impl<'a> ModuleRefAnalyze<'a> {
     if matches!(&to, IdOrMemExpr::Id(to_id) if to_id == from.id()) && !force_insert {
       return;
     }
-    if self.state.contains(AnalyzeState::ASSIGNMENT_RHS)
-      || self.state.contains(AnalyzeState::ASSIGNMENT_LHS)
+    if self
+      .state
+      .intersection(
+        AnalyzeState::ASSIGNMENT_RHS | AnalyzeState::ASSIGNMENT_LHS | AnalyzeState::STATIC_VAR_DECL,
+      )
+      .bits()
+      .count_ones()
+      >= 1
     {
-      match self.assign_reference_map.entry(from) {
+      match self.immediate_evaluate_reference_map.entry(from) {
         Entry::Occupied(mut occ) => {
           occ.get_mut().insert(to);
         }
@@ -142,7 +149,7 @@ impl<'a> ModuleRefAnalyze<'a> {
         }
       }
     } else {
-      match self.decl_reference_map.entry(from) {
+      match self.maybe_lazy_reference_map.entry(from) {
         Entry::Occupied(mut occ) => {
           occ.get_mut().insert(to);
         }
@@ -165,7 +172,7 @@ impl<'a> ModuleRefAnalyze<'a> {
         continue;
       }
       let id = cur.get_id();
-      if let Some(ref_list) = self.decl_reference_map.get(&id.clone().into()) {
+      if let Some(ref_list) = self.maybe_lazy_reference_map.get(&id.clone().into()) {
         q.extend(ref_list.clone());
       }
       seen.insert(cur);
@@ -247,7 +254,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     // Any var declaration has reference a symbol from other module, it is marked as used
     // Because the symbol import from other module possibly has side effect
     let side_effect_symbol_list = self
-      .decl_reference_map
+      .maybe_lazy_reference_map
       .iter()
       .flat_map(|(symbol, ref_list)| {
         // it class decl, fn decl is lazy they don't immediately generate side effects unless they are called,
@@ -298,7 +305,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       .collect::<Vec<_>>();
     self.used_symbol_ref.extend(side_effect_symbol_list);
     let side_effect_symbol_list = self
-      .assign_reference_map
+      .immediate_evaluate_reference_map
       .iter()
       .flat_map(|(_, ref_list)| {
         // it class decl, fn decl is lazy they don't immediately generate side effects unless they are called,
@@ -356,11 +363,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   fn visit_ident(&mut self, node: &Ident) {
     let id: BetterId = node.to_id().into();
     let mark = id.ctxt.outer();
-    // dbg!(
-    //   self.module_identifier,
-    //   &self.current_body_owner_symbol_ext,
-    //   &id
-    // );
+
     if mark == self.top_level_mark {
       match self.current_body_owner_symbol_ext {
         Some(ref body_owner_symbol_ext) if body_owner_symbol_ext.id() != &id => {
@@ -563,6 +566,23 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     self.current_body_owner_symbol_ext = before_owner_extend_symbol;
   }
 
+  fn visit_class_prop(&mut self, node: &ClassProp) {
+    node.key.visit_with(self);
+    match node.value {
+      Some(ref expr) => match expr {
+        box Expr::Fn(_) | box Expr::Arrow(_) => {
+          expr.visit_with(self);
+        }
+        _ => {
+          self.state.insert(AnalyzeState::STATIC_VAR_DECL);
+          expr.visit_with(self);
+          self.state.remove(AnalyzeState::STATIC_VAR_DECL);
+        }
+      },
+      None => {}
+    }
+  }
+
   fn visit_member_expr(&mut self, node: &MemberExpr) {
     match (&*node.obj, &node.prop) {
       // a.b
@@ -640,7 +660,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   }
 
   fn visit_export_default_decl(&mut self, node: &ExportDefaultDecl) {
-    self.state |= AnalyzeState::EXPORT_DEFAULT;
+    self.state.insert(AnalyzeState::EXPORT_DEFAULT);
     match &node.decl {
       DefaultDecl::Class(_) | DefaultDecl::Fn(_) => {
         node.visit_children_with(self);

@@ -27,8 +27,8 @@ Object.defineProperty(exports, "mod", {
     enumerable: true,
     get: ()=>mod
 });
-const _scriptJs = __webpack_require__.interopRequire(__webpack_require__("./package1/script.js"));
-const _scriptJs1 = __webpack_require__.interopRequire(__webpack_require__("./package2/script.js"));
+const _scriptJs = __webpack_require__.ir(__webpack_require__("./package1/script.js"));
+const _scriptJs1 = __webpack_require__.ir(__webpack_require__("./package2/script.js"));
 const mod = _scriptJs1.default;
 },
 "./package1/script.js": function (module, exports, __webpack_require__) {
@@ -40,7 +40,7 @@ Object.defineProperty(exports, "exportDefaultUsed", {
     enumerable: true,
     get: ()=>exportDefaultUsed
 });
-const _script1Js = __webpack_require__.interopRequire(__webpack_require__.exportStar(__webpack_require__("./package1/script1.js"), exports));
+const _script1Js = __webpack_require__.ir(__webpack_require__.es(__webpack_require__("./package1/script1.js"), exports));
 const exportDefaultUsed = __webpack_exports_info__.default.used;
 },
 "./package1/script1.js": function (module, exports, __webpack_require__) {
@@ -48,7 +48,7 @@ const exportDefaultUsed = __webpack_exports_info__.default.used;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-__webpack_require__.exportStar(__webpack_require__("./package1/script2.js"), exports);
+__webpack_require__.es(__webpack_require__("./package1/script2.js"), exports);
 },
 "./package1/script2.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -59,7 +59,7 @@ Object.defineProperty(exports, "exportDefaultUsed", {
     enumerable: true,
     get: ()=>exportDefaultUsed
 });
-const _script3Js = __webpack_require__.interopRequire(__webpack_require__.exportStar(__webpack_require__("./package1/script3.js"), exports));
+const _script3Js = __webpack_require__.ir(__webpack_require__.es(__webpack_require__("./package1/script3.js"), exports));
 const exportDefaultUsed = __webpack_exports_info__.default.used;
 },
 "./package1/script3.js": function (module, exports, __webpack_require__) {
@@ -80,7 +80,7 @@ _export(exports, {
     default: ()=>_default,
     exportDefaultUsed: ()=>exportDefaultUsed
 });
-const _script1Js = __webpack_require__.interopRequire(__webpack_require__.exportStar(__webpack_require__("./package2/script1.js"), exports));
+const _script1Js = __webpack_require__.ir(__webpack_require__.es(__webpack_require__("./package2/script1.js"), exports));
 const _default = _script1Js.default;
 const exportDefaultUsed = __webpack_exports_info__.default.used;
 },

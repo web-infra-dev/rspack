@@ -8,7 +8,7 @@ Object.defineProperty(exports, "test", {
     enumerable: true,
     get: ()=>test
 });
-const _moduleJs = __webpack_require__.interopRequire(__webpack_require__("./module.js"));
+const _moduleJs = __webpack_require__.ir(__webpack_require__("./module.js"));
 function test() {
     (0, _moduleJs.default)({
         type: "inline"
@@ -19,8 +19,8 @@ function test() {
 it("should generate correct code when pure expressions are in dead branches", ()=>{
     __webpack_require__("./import-module.js").test();
     return Promise.all([
-        __webpack_require__.e("0").then(__webpack_require__.bind(__webpack_require__, "./some-module.js")).then(__webpack_require__.interopRequire),
-        __webpack_require__.e("chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js")).then(__webpack_require__.interopRequire)
+        __webpack_require__.e("0").then(__webpack_require__.bind(__webpack_require__, "./some-module.js")).then(__webpack_require__.ir),
+        __webpack_require__.e("chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js")).then(__webpack_require__.ir)
     ]);
 });
 },

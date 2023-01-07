@@ -166,18 +166,18 @@ new def().method();
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _aJs = __webpack_require__.interopRequire(__webpack_require__("./a.js"));
+const _aJs = __webpack_require__.ir(__webpack_require__("./a.js"));
 __webpack_require__("./b.js");
 __webpack_require__("./c.js");
-const _dJs = __webpack_require__.interopRequire(__webpack_require__("./d.js"));
+const _dJs = __webpack_require__.ir(__webpack_require__("./d.js"));
 __webpack_require__("./e.js");
 __webpack_require__("./f.js");
-const _depJsa = __webpack_require__.interopRequire(__webpack_require__("./dep.jsa"));
-const _depJsb = __webpack_require__.interopRequire(__webpack_require__("./dep.jsb"));
-const _depJsc = __webpack_require__.interopRequire(__webpack_require__("./dep.jsc"));
-const _depJsd = __webpack_require__.interopRequire(__webpack_require__("./dep.jsd"));
-const _depJse = __webpack_require__.interopRequire(__webpack_require__("./dep.jse"));
-const _depJsf = __webpack_require__.interopRequire(__webpack_require__("./dep.jsf"));
+const _depJsa = __webpack_require__.ir(__webpack_require__("./dep.jsa"));
+const _depJsb = __webpack_require__.ir(__webpack_require__("./dep.jsb"));
+const _depJsc = __webpack_require__.ir(__webpack_require__("./dep.jsc"));
+const _depJsd = __webpack_require__.ir(__webpack_require__("./dep.jsd"));
+const _depJse = __webpack_require__.ir(__webpack_require__("./dep.jse"));
+const _depJsf = __webpack_require__.ir(__webpack_require__("./dep.jsf"));
 it("should generate valid code", ()=>{
     expect((0, _aJs.default)()).toBe("x");
     expect(new _dJs.default().method()).toBe("x");
