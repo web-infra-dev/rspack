@@ -8,8 +8,8 @@ use rspack_error::Result;
 use rspack_sources::{RawSource, SourceExt};
 
 use crate::{
-  fast_set, AssetInfo, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler, ModuleIdentifier,
-  RenderManifestArgs, RuntimeSpec,
+  fast_set, AssetInfo, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler, IdentifierMap,
+  IdentifierSet, ModuleIdentifier, RenderManifestArgs, RuntimeSpec,
 };
 
 const HOT_UPDATE_MAIN_FILENAME: &str = "hot-update.json";
@@ -22,7 +22,7 @@ fn get_hot_update_main_filename(chunk_name: &str) -> String {
 struct HotUpdateContent {
   updated_chunk_ids: HashSet<String>,
   removed_chunk_ids: HashSet<String>,
-  _removed_modules: HashSet<ModuleIdentifier>,
+  _removed_modules: IdentifierSet,
   // TODO: should [chunk-name].[hash].hot-update.json
   filename: String,
 }
@@ -45,12 +45,12 @@ impl Compiler {
   ) -> Result<()> {
     let old = self.compilation.get_stats();
     let collect_changed_modules = |compilation: &Compilation| -> (
-      HashMap<ModuleIdentifier, u64>,
+      IdentifierMap<u64>,
       HashMap<String, String>,
-      HashMap<ModuleIdentifier, String>,
+      IdentifierMap<String>,
     ) {
-      let mut all_modules = HashMap::new();
-      let mut module_id_map = HashMap::new();
+      let mut all_modules = IdentifierMap::default();
+      let mut module_id_map = IdentifierMap::default();
       for (ukey, chunk) in &compilation.chunk_by_ukey {
         compilation
           .chunk_graph
@@ -107,7 +107,7 @@ impl Compiler {
       .map(|id| (id.clone(), HotUpdateContent::new(id)))
       .collect::<HashMap<String, HotUpdateContent>>();
 
-    let mut old_chunks: Vec<(String, HashSet<ModuleIdentifier>, RuntimeSpec)> = vec![];
+    let mut old_chunks: Vec<(String, IdentifierSet, RuntimeSpec)> = vec![];
     for (ukey, chunk) in &old.compilation.chunk_by_ukey {
       let modules = old
         .compilation
@@ -169,7 +169,7 @@ impl Compiler {
 
     let (now_all_modules, now_runtime_modules, _) = collect_changed_modules(&mut self.compilation);
 
-    let mut updated_modules: HashSet<ModuleIdentifier> = Default::default();
+    let mut updated_modules: IdentifierSet = Default::default();
     let mut updated_runtime_modules: HashSet<String> = Default::default();
     let mut completely_removed_modules: HashSet<String> = Default::default();
 

@@ -4,7 +4,10 @@ use hashbrown::HashSet;
 use rspack_error::Result;
 use tracing::instrument;
 
-use crate::{ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier};
+use crate::{
+  ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation, IdentifierSet,
+  ModuleIdentifier,
+};
 
 #[instrument(skip_all)]
 pub fn code_splitting(compilation: &mut Compilation) -> Result<()> {
@@ -19,7 +22,7 @@ struct CodeSplitter<'me> {
   queue: Vec<QueueItem>,
   queue_delayed: Vec<QueueItem>,
   chunk_relation_graph: petgraph::graphmap::DiGraphMap<ChunkUkey, ()>,
-  split_point_modules: HashSet<ModuleIdentifier>,
+  split_point_modules: IdentifierSet,
 }
 
 impl<'me> CodeSplitter<'me> {
@@ -245,7 +248,7 @@ impl<'me> CodeSplitter<'me> {
           })
       })
       .fold(
-        HashMap::new() as HashMap<ChunkUkey, HashSet<ModuleIdentifier>>,
+        HashMap::new() as HashMap<ChunkUkey, IdentifierSet>,
         |mut map, (chunk_ukey, module)| {
           map.entry(chunk_ukey).or_default().insert(module);
           map

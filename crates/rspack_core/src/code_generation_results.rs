@@ -4,7 +4,9 @@ use hashbrown::{HashMap, HashSet};
 use rspack_error::{internal_error, Error, Result};
 use xxhash_rust::xxh3::Xxh3;
 
-use crate::{AstOrSource, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, SourceType};
+use crate::{
+  AstOrSource, IdentifierMap, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, SourceType,
+};
 
 #[derive(Debug, Clone)]
 pub struct GenerationResult {
@@ -43,8 +45,8 @@ impl CodeGenerationResult {
 #[derive(Default, Debug)]
 pub struct CodeGenerationResults {
   // TODO: This should be a map of ModuleIdentifier to CodeGenerationResult
-  pub module_generation_result_map: HashMap<ModuleIdentifier, CodeGenerationResult>,
-  map: HashMap<ModuleIdentifier, RuntimeSpecMap<ModuleIdentifier>>,
+  pub module_generation_result_map: IdentifierMap<CodeGenerationResult>,
+  map: IdentifierMap<RuntimeSpecMap<ModuleIdentifier>>,
 }
 
 impl CodeGenerationResults {

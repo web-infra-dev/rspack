@@ -1,17 +1,16 @@
 use hashbrown::{HashMap, HashSet};
 
 use crate::{
-  find_module_graph_roots, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Module,
-  ModuleGraph, ModuleGraphModule, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet,
-  SourceType,
+  find_module_graph_roots, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey,
+  IdentifierLinkedMap, IdentifierMap, IdentifierSet, Module, ModuleGraph, ModuleGraphModule,
+  ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, SourceType,
 };
 
 #[derive(Debug, Default)]
 pub struct ChunkGraph {
-  pub(crate) split_point_module_identifier_to_chunk_ukey:
-    hashbrown::HashMap<ModuleIdentifier, ChunkUkey>,
+  pub(crate) split_point_module_identifier_to_chunk_ukey: IdentifierMap<ChunkUkey>,
 
-  chunk_graph_module_by_module_identifier: HashMap<ModuleIdentifier, ChunkGraphModule>,
+  chunk_graph_module_by_module_identifier: IdentifierMap<ChunkGraphModule>,
   chunk_graph_chunk_by_chunk_ukey: HashMap<ChunkUkey, ChunkGraphChunk>,
 }
 
@@ -462,8 +461,8 @@ pub struct ChunkGraphChunk {
   /// URI of modules => ChunkGroupUkey
   ///
   /// use `LinkedHashMap` to keep the ordered from entry array.
-  pub(crate) entry_modules: hashlink::LinkedHashMap<ModuleIdentifier, ChunkGroupUkey>,
-  pub(crate) modules: HashSet<ModuleIdentifier>,
+  pub(crate) entry_modules: IdentifierLinkedMap<ChunkGroupUkey>,
+  pub(crate) modules: IdentifierSet,
   pub(crate) runtime_requirements: HashSet<String>,
   pub(crate) runtime_modules: Vec<String>,
 }

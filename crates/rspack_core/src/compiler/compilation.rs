@@ -16,7 +16,6 @@ use hashbrown::{
   hash_set::Entry::{Occupied, Vacant},
   HashMap, HashSet,
 };
-use hashlink::LinkedHashSet;
 use indexmap::IndexSet;
 use petgraph::{algo, prelude::GraphMap, Directed};
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
@@ -43,10 +42,11 @@ use crate::{
   BuildTaskResult, BundleEntries, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupUkey,
   ChunkKind, ChunkUkey, CodeGenerationResult, CodeGenerationResults, CompilerOptions,
   ContentHashArgs, EntryDependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue,
-  FactorizeTask, FactorizeTaskResult, LoaderRunnerRunner, Module, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleType, ProcessAssetsArgs, ProcessDependenciesQueue,
-  ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, RuntimeModule,
-  SharedPluginDriver, Stats, TaskResult, VisitedModuleIdentity, WorkerTask,
+  FactorizeTask, FactorizeTaskResult, IdentifierLinkedSet, IdentifierMap, IdentifierSet,
+  LoaderRunnerRunner, Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType,
+  ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask,
+  RenderManifestArgs, Resolve, RuntimeModule, SharedPluginDriver, Stats, TaskResult,
+  VisitedModuleIdentity, WorkerTask,
 };
 
 #[derive(Debug)]
@@ -74,17 +74,17 @@ pub struct Compilation {
   pub(crate) loader_runner_runner: Arc<LoaderRunnerRunner>,
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
-  pub entry_module_identifiers: HashSet<ModuleIdentifier>,
+  pub entry_module_identifiers: IdentifierSet,
   /// Collecting all used export symbol
   pub used_symbol: HashSet<Symbol>,
   pub used_indirect_symbol: HashSet<IndirectTopLevelSymbol>,
   /// Collecting all module that need to skip in tree-shaking ast modification phase
-  pub bailout_module_identifiers: HashMap<ModuleIdentifier, BailoutFlog>,
+  pub bailout_module_identifiers: IdentifierMap<BailoutFlog>,
   #[cfg(debug_assertions)]
-  pub tree_shaking_result: HashMap<ModuleIdentifier, TreeShakingResult>,
+  pub tree_shaking_result: IdentifierMap<TreeShakingResult>,
 
   pub code_generation_results: CodeGenerationResults,
-  pub code_generated_modules: HashSet<ModuleIdentifier>,
+  pub code_generated_modules: IdentifierSet,
   pub cache: Arc<Cache>,
   pub hash: String,
   // TODO: make compilation safer
@@ -126,11 +126,11 @@ impl Compilation {
       loader_runner_runner,
       named_chunks: Default::default(),
       named_chunk_groups: Default::default(),
-      entry_module_identifiers: HashSet::new(),
+      entry_module_identifiers: IdentifierSet::default(),
       used_symbol: HashSet::new(),
       #[cfg(debug_assertions)]
-      tree_shaking_result: HashMap::new(),
-      bailout_module_identifiers: HashMap::new(),
+      tree_shaking_result: IdentifierMap::default(),
+      bailout_module_identifiers: IdentifierMap::default(),
 
       code_generation_results: Default::default(),
       code_generated_modules: Default::default(),
@@ -759,11 +759,11 @@ impl Compilation {
 
         Some((uri_key, analyzer.into()))
       })
-      .collect::<HashMap<ModuleIdentifier, TreeShakingResult>>();
+      .collect::<IdentifierMap<TreeShakingResult>>();
 
     let mut used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
-    let mut bail_out_module_identifiers = HashMap::default();
-    let mut evaluated_module_identifiers = HashSet::new();
+    let mut bail_out_module_identifiers = IdentifierMap::default();
+    let mut evaluated_module_identifiers = IdentifierSet::default();
     let side_effects_analyze = self.options.builtins.side_effects;
     for analyze_result in analyze_results.values() {
       // if `side_effects` is false, then force every analyze_results is have side_effects
@@ -840,7 +840,7 @@ impl Compilation {
     let mut errors = vec![];
     let mut used_symbol = HashSet::new();
     let mut used_indirect_symbol: HashSet<IndirectTopLevelSymbol> = HashSet::new();
-    let mut used_export_module_identifiers: HashSet<ModuleIdentifier> = HashSet::new();
+    let mut used_export_module_identifiers: IdentifierSet = IdentifierSet::default();
     let mut traced_tuple = HashSet::new();
     // Marking used symbol and all reachable export symbol from the used symbol for each module
     let used_symbol_from_import = mark_used_symbol_with(
@@ -904,7 +904,7 @@ impl Compilation {
 
     if side_effects_analyze {
       // pruning
-      let mut visited: HashSet<ModuleIdentifier> =
+      let mut visited: IdentifierSet =
         HashSet::from_iter(self.entry_module_identifiers.iter().cloned());
       let mut q = VecDeque::from_iter(visited.iter().cloned());
       while let Some(module_identifier) = q.pop_front() {
@@ -1325,12 +1325,12 @@ pub struct AssetInfoRelated {
 
 #[allow(clippy::too_many_arguments)]
 fn collect_reachable_symbol(
-  analyze_map: &hashbrown::HashMap<ModuleIdentifier, TreeShakingResult>,
+  analyze_map: &IdentifierMap<TreeShakingResult>,
   entry_identifier: ModuleIdentifier,
   used_indirect_symbol: &mut HashSet<IndirectTopLevelSymbol>,
-  bailout_module_identifiers: &HashMap<ModuleIdentifier, BailoutFlog>,
-  evaluated_module_identifiers: &mut HashSet<ModuleIdentifier>,
-  used_export_module_identifiers: &mut HashSet<ModuleIdentifier>,
+  bailout_module_identifiers: &IdentifierMap<BailoutFlog>,
+  evaluated_module_identifiers: &mut IdentifierSet,
+  used_export_module_identifiers: &mut IdentifierSet,
   inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
   traced_tuple: &mut HashSet<(ModuleIdentifier, ModuleIdentifier)>,
   options: &Arc<CompilerOptions>,
@@ -1418,12 +1418,12 @@ fn collect_reachable_symbol(
 
 #[allow(clippy::too_many_arguments)]
 fn mark_used_symbol_with(
-  analyze_map: &hashbrown::HashMap<ModuleIdentifier, TreeShakingResult>,
+  analyze_map: &IdentifierMap<TreeShakingResult>,
   mut init_queue: VecDeque<SymbolRef>,
-  bailout_module_identifiers: &HashMap<ModuleIdentifier, BailoutFlog>,
-  evaluated_module_identifiers: &mut HashSet<ModuleIdentifier>,
+  bailout_module_identifiers: &IdentifierMap<BailoutFlog>,
+  evaluated_module_identifiers: &mut IdentifierSet,
   used_indirect_symbol_set: &mut HashSet<IndirectTopLevelSymbol>,
-  used_export_module_identifiers: &mut HashSet<ModuleIdentifier>,
+  used_export_module_identifiers: &mut IdentifierSet,
   inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
   traced_tuple: &mut HashSet<(ModuleIdentifier, ModuleIdentifier)>,
   options: &Arc<CompilerOptions>,
@@ -1461,11 +1461,11 @@ fn mark_symbol(
   symbol_ref: SymbolRef,
   used_symbol_set: &mut HashSet<Symbol>,
   used_indirect_symbol_set: &mut HashSet<IndirectTopLevelSymbol>,
-  analyze_map: &HashMap<ModuleIdentifier, TreeShakingResult>,
+  analyze_map: &IdentifierMap<TreeShakingResult>,
   q: &mut VecDeque<SymbolRef>,
-  bailout_module_identifiers: &HashMap<ModuleIdentifier, BailoutFlog>,
-  evaluated_module_identifiers: &mut HashSet<ModuleIdentifier>,
-  used_export_module_identifiers: &mut HashSet<ModuleIdentifier>,
+  bailout_module_identifiers: &IdentifierMap<BailoutFlog>,
+  evaluated_module_identifiers: &mut IdentifierSet,
+  used_export_module_identifiers: &mut IdentifierSet,
   inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
   traced_tuple: &mut HashSet<(ModuleIdentifier, ModuleIdentifier)>,
   options: &Arc<CompilerOptions>,
@@ -1702,8 +1702,8 @@ fn mark_symbol(
 
 fn get_extends_map(
   export_all_ref_graph: &GraphMap<ModuleIdentifier, (), petgraph::Directed>,
-) -> HashMap<ModuleIdentifier, LinkedHashSet<ModuleIdentifier>> {
-  let mut map = HashMap::new();
+) -> IdentifierMap<IdentifierLinkedSet> {
+  let mut map = IdentifierMap::default();
   for node in export_all_ref_graph.nodes() {
     let reachable_set = get_reachable(node, export_all_ref_graph);
     map.insert(node, reachable_set);
@@ -1713,9 +1713,9 @@ fn get_extends_map(
 fn get_reachable(
   start: ModuleIdentifier,
   g: &GraphMap<ModuleIdentifier, (), petgraph::Directed>,
-) -> LinkedHashSet<ModuleIdentifier> {
-  let mut visited: HashSet<ModuleIdentifier> = HashSet::new();
-  let mut reachable_module_id = LinkedHashSet::new();
+) -> IdentifierLinkedSet {
+  let mut visited: IdentifierSet = IdentifierSet::default();
+  let mut reachable_module_id = IdentifierLinkedSet::default();
   let mut q = VecDeque::from_iter([start]);
   while let Some(cur) = q.pop_front() {
     match visited.entry(cur) {
@@ -1731,7 +1731,7 @@ fn get_reachable(
 }
 
 fn create_inherit_graph(
-  analyze_map: &HashMap<ModuleIdentifier, TreeShakingResult>,
+  analyze_map: &IdentifierMap<TreeShakingResult>,
 ) -> GraphMap<ModuleIdentifier, (), petgraph::Directed> {
   let mut g = petgraph::graphmap::DiGraphMap::new();
   for (module_id, result) in analyze_map.iter() {

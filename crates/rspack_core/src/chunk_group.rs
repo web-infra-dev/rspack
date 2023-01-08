@@ -1,15 +1,16 @@
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashSet;
 
 use crate::{
-  Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, ModuleIdentifier, RuntimeSpec,
+  Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, IdentifierMap, ModuleIdentifier,
+  RuntimeSpec,
 };
 
 #[derive(Debug)]
 pub struct ChunkGroup {
   pub ukey: ChunkGroupUkey,
   pub chunks: Vec<ChunkUkey>,
-  pub(crate) module_pre_order_indices: HashMap<ModuleIdentifier, usize>,
-  pub(crate) module_post_order_indices: HashMap<ModuleIdentifier, usize>,
+  pub(crate) module_pre_order_indices: IdentifierMap<usize>,
+  pub(crate) module_post_order_indices: IdentifierMap<usize>,
   pub(crate) parents: HashSet<ChunkGroupUkey>,
   pub(crate) children: HashSet<ChunkGroupUkey>,
   pub(crate) kind: ChunkGroupKind,
