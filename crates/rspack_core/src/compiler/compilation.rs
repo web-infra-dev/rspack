@@ -37,7 +37,7 @@ use crate::{
   contextify, is_source_equal, join_string_component, resolve_module_type_by_uri,
   tree_shaking::{
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
-    BailoutFlog, OptimizeDependencyResult, SideEffect,
+    BailoutFlog, OptimizeDependencyResult, SideEffect, UsedType,
   },
   utils::fast_drop,
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxModuleDependency,
@@ -951,7 +951,7 @@ impl Compilation {
         analyze_result.module_identifier,
         analyze_result.side_effects,
       );
-      // if `side_effects` is false, then force every module has side_effects
+      // if `side_effects` is disabled, then force every module has side_effects
       let forced_side_effects = !side_effects_options
         || self
           .entry_module_identifiers
@@ -1052,10 +1052,10 @@ impl Compilation {
         .inherit_export_maps = inherit_export_maps;
     }
     let mut errors = vec![];
-    let mut used_symbol = HashSet::default();
-    let mut used_indirect_symbol: HashSet<IndirectTopLevelSymbol> = HashSet::default();
-    let mut used_export_module_identifiers: IdentifierSet = IdentifierSet::default();
-    let mut traced_tuple = HashSet::default();
+    let mut used_symbol = HashSet::new();
+    let mut used_indirect_symbol: HashSet<IndirectTopLevelSymbol> = HashSet::new();
+    let mut used_export_module_identifiers: HashMap<Ustr, UsedType> = HashMap::new();
+    let mut traced_tuple = HashSet::new();
     // Marking used symbol and all reachable export symbol from the used symbol for each module
     let used_symbol_from_import = mark_used_symbol_with(
       &analyze_results,
@@ -1136,7 +1136,7 @@ impl Compilation {
             continue;
           }
         };
-        let used = used_export_module_identifiers.contains(&analyze_result.module_identifier);
+        let used = used_export_module_identifiers.contains_key(&analyze_result.module_identifier);
 
         if !used
           && !bail_out_module_identifiers.contains_key(&analyze_result.module_identifier)
@@ -1629,11 +1629,11 @@ fn collect_reachable_symbol(
   analyze_map: &IdentifierMap<TreeShakingResult>,
   entry_identifier: ModuleIdentifier,
   used_indirect_symbol: &mut HashSet<IndirectTopLevelSymbol>,
-  bailout_module_identifiers: &IdentifierMap<BailoutFlog>,
-  evaluated_module_identifiers: &mut IdentifierSet,
-  used_export_module_identifiers: &mut IdentifierSet,
-  inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
-  traced_tuple: &mut HashSet<(ModuleIdentifier, ModuleIdentifier)>,
+  bailout_module_identifiers: &HashMap<Ustr, BailoutFlog>,
+  evaluated_module_identifiers: &mut HashSet<Ustr>,
+  used_export_module_identifiers: &mut HashMap<Ustr, UsedType>,
+  inherit_extend_graph: &GraphMap<Ustr, (), Directed>,
+  traced_tuple: &mut HashSet<(Ustr, Ustr)>,
   options: &Arc<CompilerOptions>,
   errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
@@ -1724,9 +1724,9 @@ fn mark_used_symbol_with(
   bailout_module_identifiers: &IdentifierMap<BailoutFlog>,
   evaluated_module_identifiers: &mut IdentifierSet,
   used_indirect_symbol_set: &mut HashSet<IndirectTopLevelSymbol>,
-  used_export_module_identifiers: &mut IdentifierSet,
-  inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
-  traced_tuple: &mut HashSet<(ModuleIdentifier, ModuleIdentifier)>,
+  used_export_module_identifiers: &mut HashMap<Ustr, UsedType>,
+  inherit_extend_graph: &GraphMap<Ustr, (), Directed>,
+  traced_tuple: &mut HashSet<(Ustr, Ustr)>,
   options: &Arc<CompilerOptions>,
   errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
@@ -1764,11 +1764,11 @@ fn mark_symbol(
   used_indirect_symbol_set: &mut HashSet<IndirectTopLevelSymbol>,
   analyze_map: &IdentifierMap<TreeShakingResult>,
   q: &mut VecDeque<SymbolRef>,
-  bailout_module_identifiers: &IdentifierMap<BailoutFlog>,
-  evaluated_module_identifiers: &mut IdentifierSet,
-  used_export_module_identifiers: &mut IdentifierSet,
-  inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
-  traced_tuple: &mut HashSet<(ModuleIdentifier, ModuleIdentifier)>,
+  bailout_module_identifiers: &HashMap<Ustr, BailoutFlog>,
+  evaluated_module_identifiers: &mut HashSet<Ustr>,
+  used_export_module_identifiers: &mut HashMap<Ustr, UsedType>,
+  inherit_extend_graph: &GraphMap<Ustr, (), Directed>,
+  traced_tuple: &mut HashSet<(Ustr, Ustr)>,
   options: &Arc<CompilerOptions>,
   errors: &mut Vec<Error>,
 ) {
@@ -1781,10 +1781,18 @@ fn mark_symbol(
     bailout_module_identifiers.contains_key(&symbol_ref.module_identifier());
   match &symbol_ref {
     SymbolRef::Direct(symbol) => {
-      used_export_module_identifiers.insert(symbol.uri().into());
+      merge_used_export_type(
+        used_export_module_identifiers,
+        symbol.uri(),
+        UsedType::DIRECT,
+      );
     }
     SymbolRef::Indirect(indirect) => {
-      used_export_module_identifiers.insert(indirect.uri().into());
+      merge_used_export_type(
+        used_export_module_identifiers,
+        indirect.uri(),
+        UsedType::INDIRECT,
+      );
     }
     _ => {}
   };
@@ -1851,17 +1859,19 @@ fn mark_symbol(
               if is_first_result {
                 let tuple = (indirect_symbol.uri.into(), *module_identifier);
                 if !traced_tuple.contains(&tuple) {
-                  used_export_module_identifiers.extend(
-                    algo::all_simple_paths::<Vec<_>, _>(
-                      &inherit_extend_graph,
-                      indirect_symbol.uri.into(),
-                      *module_identifier,
-                      0,
-                      None,
-                    )
-                    .into_iter()
-                    .flatten(),
-                  );
+                  for mi in algo::all_simple_paths::<Vec<_>, _>(
+                    &inherit_extend_graph,
+                    indirect_symbol.uri,
+                    *module_identifier,
+                    0,
+                    None,
+                  )
+                  .into_iter()
+                  .flatten()
+                  {
+                    merge_used_export_type(used_export_module_identifiers, mi, UsedType::REEXPORT);
+                  }
+                  // used_export_module_identifiers.extend();
                   traced_tuple.insert(tuple);
                 }
                 is_first_result = false;
@@ -1974,7 +1984,8 @@ fn mark_symbol(
         }
       };
       evaluated_module_identifiers.insert(src);
-      used_export_module_identifiers.insert(src);
+      // used_export_module_identifiers.insert();
+      merge_used_export_type(used_export_module_identifiers, src, UsedType::DIRECT);
 
       for symbol_ref in analyze_refsult.export_map.values() {
         q.push_back(symbol_ref.clone());
@@ -1985,17 +1996,18 @@ fn mark_symbol(
           q.push_back(s.clone());
           let tuple = (src, s.module_identifier());
           if !traced_tuple.contains(&tuple) {
-            used_export_module_identifiers.extend(
-              algo::all_simple_paths::<Vec<_>, _>(
-                &inherit_extend_graph,
-                src,
-                s.module_identifier(),
-                0,
-                None,
-              )
-              .into_iter()
-              .flatten(),
-            );
+            for mi in algo::all_simple_paths::<Vec<_>, _>(
+              &inherit_extend_graph,
+              src,
+              s.module_identifier(),
+              0,
+              None,
+            )
+            .into_iter()
+            .flatten()
+            {
+              merge_used_export_type(used_export_module_identifiers, mi, UsedType::REEXPORT);
+            }
             traced_tuple.insert(tuple);
           }
         }
@@ -2045,6 +2057,21 @@ fn create_inherit_graph(
     }
   }
   g
+}
+
+pub fn merge_used_export_type(
+  used_export: &mut HashMap<Ustr, UsedType>,
+  module_id: Ustr,
+  ty: UsedType,
+) {
+  match used_export.entry(module_id) {
+    Entry::Occupied(mut occ) => {
+      occ.borrow_mut().get_mut().insert(ty);
+    }
+    Entry::Vacant(vac) => {
+      vac.insert(ty);
+    }
+  }
 }
 
 fn normalize_side_effects(
