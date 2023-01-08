@@ -25,7 +25,8 @@ use rspack_core::{
   RenderManifestEntry, SourceType,
 };
 use rspack_core::{
-  AstOrSource, CssImportDependency, Filename, Mode, ModuleAst, ModuleDependency, ModuleIdentifier,
+  AstOrSource, CssImportDependency, Filename, IdentifierSet, Mode, ModuleAst, ModuleDependency,
+  ModuleIdentifier,
 };
 use rspack_error::{
   internal_error, Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
@@ -232,7 +233,7 @@ impl CssPlugin {
     let mut final_modules: Vec<ModuleIdentifier> = vec![];
 
     loop {
-      let mut failed_modules: HashSet<ModuleIdentifier> = HashSet::default();
+      let mut failed_modules: IdentifierSet = HashSet::default();
       let list = modules_by_chunk_group[0].list.clone();
       if list.is_empty() {
         // done, everything empty
@@ -735,7 +736,7 @@ impl Plugin for CssPlugin {
 
 struct SortedModules {
   pub list: Vec<ModuleIdentifier>,
-  pub set: HashSet<ModuleIdentifier>,
+  pub set: IdentifierSet,
 }
 
 fn compare_module_lists(a: &SortedModules, b: &SortedModules) -> cmp::Ordering {

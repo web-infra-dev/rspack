@@ -7,8 +7,8 @@ use std::{collections::HashSet, fmt::Debug, sync::Arc};
 
 use hashbrown::HashMap;
 use rspack_core::{
-  Chunk, ChunkGroupByUkey, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier, Plugin,
-  SourceType,
+  Chunk, ChunkGroupByUkey, ChunkUkey, Compilation, IdentifierSet, Module, ModuleGraph,
+  ModuleIdentifier, Plugin, SourceType,
 };
 
 use crate::{
@@ -484,7 +484,7 @@ impl SplitChunksPlugin {
 #[derive(Debug)]
 pub(crate) struct ChunksInfoItem {
   // Sortable Module Set
-  pub modules: HashSet<ModuleIdentifier>,
+  pub modules: IdentifierSet,
   pub cache_group: String,
   pub cache_group_index: usize,
   pub name: Option<String>,

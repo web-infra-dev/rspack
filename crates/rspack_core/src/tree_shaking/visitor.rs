@@ -19,7 +19,11 @@ use super::{
   utils::{get_dynamic_import_string_literal, get_require_literal},
   BailoutFlog,
 };
-use crate::{Dependency, DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, Resolver};
+use crate::{
+  Dependency, DependencyType, IdentifierLinkedMap, IdentifierMap, ModuleGraph, ModuleIdentifier,
+  ModuleSyntax, Resolver,
+};
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SymbolRef {
   Direct(Symbol),
@@ -64,7 +68,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   /// ```
   /// then inherit_exports_maps become, `{"test.js": {...test_js_export_map} }`
   // Use `IndexMap` to keep the insertion order
-  pub inherit_export_maps: LinkedHashMap<ModuleIdentifier, HashMap<JsWord, SymbolRef>>,
+  pub inherit_export_maps: IdentifierLinkedMap<HashMap<JsWord, SymbolRef>>,
   current_body_owner_symbol_ext: Option<SymbolExt>,
   pub(crate) decl_reference_map: HashMap<SymbolExt, HashSet<IdOrMemExpr>>,
   /// ```js
@@ -78,7 +82,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   // This field is used for duplicated export default checking
   pub(crate) export_default_name: Option<JsWord>,
   module_syntax: ModuleSyntax,
-  pub(crate) bail_out_module_identifiers: HashMap<ModuleIdentifier, BailoutFlog>,
+  pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlog>,
   pub(crate) resolver: &'a Arc<Resolver>,
   pub(crate) side_effects_free: bool,
 }
@@ -109,7 +113,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       used_symbol_ref: HashSet::default(),
       export_default_name: None,
       module_syntax: ModuleSyntax::empty(),
-      bail_out_module_identifiers: HashMap::new(),
+      bail_out_module_identifiers: IdentifierMap::default(),
       resolver,
       side_effects_free: false,
       assign_reference_map: HashMap::new(),
@@ -1089,13 +1093,13 @@ pub struct TreeShakingResult {
   pub module_identifier: ModuleIdentifier,
   pub export_map: HashMap<JsWord, SymbolRef>,
   pub(crate) import_map: HashMap<BetterId, SymbolRef>,
-  pub inherit_export_maps: LinkedHashMap<ModuleIdentifier, HashMap<JsWord, SymbolRef>>,
+  pub inherit_export_maps: IdentifierLinkedMap<HashMap<JsWord, SymbolRef>>,
   // current_region: Option<BetterId>,
   // pub(crate) reference_map: HashMap<BetterId, HashSet<BetterId>>,
   pub(crate) reachable_import_of_export: HashMap<JsWord, HashSet<SymbolRef>>,
   state: AnalyzeState,
   pub(crate) used_symbol_ref: HashSet<SymbolRef>,
-  pub(crate) bail_out_module_identifiers: HashMap<ModuleIdentifier, BailoutFlog>,
+  pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlog>,
   pub(crate) side_effects_free: bool,
 }
 

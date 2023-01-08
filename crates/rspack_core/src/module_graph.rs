@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use hashbrown::{HashMap, HashSet};
 use rspack_error::{internal_error, Error, Result};
 
-use crate::{BoxModule, BoxModuleDependency, ModuleGraphModule, ModuleIdentifier};
+use crate::{BoxModule, BoxModuleDependency, IdentifierMap, ModuleGraphModule, ModuleIdentifier};
 
 // FIXME: placing this as global id is not acceptable, move it to somewhere else later
 static NEXT_MODULE_GRAPH_CONNECTION_ID: AtomicUsize = AtomicUsize::new(1);
@@ -60,9 +60,9 @@ pub struct ModuleGraph {
   dependency_id_to_module_identifier: HashMap<usize, ModuleIdentifier>,
 
   /// Module identifier to its module
-  pub(crate) module_identifier_to_module: HashMap<ModuleIdentifier, BoxModule>,
+  pub(crate) module_identifier_to_module: IdentifierMap<BoxModule>,
   /// Module identifier to its module graph module
-  pub(crate) module_identifier_to_module_graph_module: HashMap<ModuleIdentifier, ModuleGraphModule>,
+  pub(crate) module_identifier_to_module_graph_module: IdentifierMap<ModuleGraphModule>,
 
   dependency_id_to_connection_id: HashMap<usize, usize>,
   connection_id_to_dependency_id: HashMap<usize, usize>,
