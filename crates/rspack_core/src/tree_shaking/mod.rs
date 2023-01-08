@@ -5,6 +5,7 @@ use rustc_hash::FxHashSet as HashSet;
 use self::visitor::TreeShakingResult;
 use crate::IdentifierMap;
 
+pub mod symbol_graph;
 pub mod utils;
 pub mod visitor;
 #[derive(Debug)]
