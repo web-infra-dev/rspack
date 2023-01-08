@@ -38,6 +38,14 @@ bitflags::bitflags! {
   }
 }
 
+bitflags::bitflags! {
+  pub struct UsedType: u8 {
+    const DIRECT = 1 << 0;
+    const INDIRECT = 1 << 1;
+    const REEXPORT = 1 << 2;
+  }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum SideEffect {
   Configuration(bool),
