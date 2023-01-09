@@ -15,6 +15,7 @@ impl SymbolGraph {
       symbol_to_index: HashMap::new(),
     }
   }
+
   pub fn add_node(&mut self, symbol: &SymbolRef) -> NodeIndex {
     if let Some(index) = self.symbol_to_index.get(symbol) {
       *index
@@ -23,6 +24,10 @@ impl SymbolGraph {
       self.symbol_to_index.insert(symbol.clone(), index);
       index
     }
+  }
+
+  pub fn has_node(&mut self, symbol: &SymbolRef) -> bool {
+    self.symbol_to_index.contains_key(symbol)
   }
 
   pub fn add_edge(&mut self, from: &SymbolRef, to: &SymbolRef) {

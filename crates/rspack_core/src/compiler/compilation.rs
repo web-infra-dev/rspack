@@ -1066,6 +1066,7 @@ impl Compilation {
       IdentifierMap::default();
     let mut traced_tuple = HashSet::new();
     // Marking used symbol and all reachable export symbol from the used symbol for each module
+
     let used_symbol_from_import = mark_used_symbol_with(
       &analyze_results,
       VecDeque::from_iter(used_symbol_ref.into_iter()),
@@ -1128,8 +1129,8 @@ impl Compilation {
       };
     }
 
-    dbg!(&used_export_module_identifiers);
-    println!("{:?}", Dot::new(&symbol_graph.graph,));
+    // dbg!(&used_export_module_identifiers);
+    // println!("{:?}", Dot::new(&symbol_graph.graph,));
     // println!("{}", used_export_module_identifiers.len());
     // let direct_used = used_export_module_identifiers
     //   .iter()
@@ -1813,6 +1814,7 @@ fn mark_symbol(
   // }
   // We don't need mark the symbol usage if it is from a bailout module because
   // bailout module will skipping tree-shaking anyway
+  let side_effects_enable = options.builtins.side_effects;
   let is_bailout_module_identifier =
     bailout_module_identifiers.contains_key(&current_symbol_ref.module_identifier());
   match &current_symbol_ref {
@@ -1846,6 +1848,7 @@ fn mark_symbol(
             symbol_queue.push_back(symbol_ref_ele.clone());
           }
         };
+
         // Assume the module name is app.js
         // ```js
         // import {myanswer, secret} from './lib'
@@ -1866,7 +1869,9 @@ fn mark_symbol(
             symbol_queue.push_back(used_symbol_ref.clone());
           }
         }
-        used_symbol_set.insert(symbol);
+        if !side_effects_enable {
+          vac.insert();
+        }
       }
     },
     SymbolRef::Indirect(ref indirect_symbol) => {
@@ -1881,7 +1886,9 @@ fn mark_symbol(
           symbol_queue.push_back(used_symbol.clone());
         }
       }
-      used_indirect_symbol_set.insert(indirect_symbol.clone());
+      if !side_effects_enable {
+        used_indirect_symbol_set.insert(indirect_symbol.clone());
+      }
       let module_result = match analyze_map.get(&indirect_symbol.uri.into()) {
         Some(module_result) => module_result,
         None => {
