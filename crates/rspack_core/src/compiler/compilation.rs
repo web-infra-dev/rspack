@@ -1125,8 +1125,15 @@ impl Compilation {
       };
     }
 
-    dbg!(&used_export_module_identifiers);
+    // dbg!(&used_export_module_identifiers);
     // println!("{:?}", Dot::new(&symbol_graph.graph,));
+    // println!("{}", used_export_module_identifiers.len());
+    // let direct_used = used_export_module_identifiers
+    //   .iter()
+    //   .filter(|(k, v)| v.contains(ModuleUsedType::DIRECT))
+    //   .count();
+
+    // dbg!(&direct_used);
 
     dbg!(&used_export_module_identifiers);
     // println!("{:?}", Dot::new(&symbol_graph.graph,));
@@ -1163,6 +1170,7 @@ impl Compilation {
           && !self.entry_module_identifiers.contains(&module_identifier)
         {
           continue;
+        } else {
         }
 
         let mgm = self
