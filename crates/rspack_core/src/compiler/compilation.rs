@@ -1053,7 +1053,7 @@ impl Compilation {
     let mut errors = vec![];
     let mut used_symbol = HashSet::new();
     let mut used_indirect_symbol: HashSet<IndirectTopLevelSymbol> = HashSet::new();
-    let mut used_export_module_identifiers: HashMap<Ustr, UsedType> = HashMap::new();
+    let mut used_export_module_identifiers: IdentifierMap<UsedType> = IdentifierMap::default();
     let mut traced_tuple = HashSet::new();
     // Marking used symbol and all reachable export symbol from the used symbol for each module
     let used_symbol_from_import = mark_used_symbol_with(
@@ -1635,11 +1635,11 @@ fn collect_reachable_symbol(
   analyze_map: &IdentifierMap<TreeShakingResult>,
   entry_identifier: ModuleIdentifier,
   used_indirect_symbol: &mut HashSet<IndirectTopLevelSymbol>,
-  bailout_module_identifiers: &HashMap<Ustr, BailoutFlog>,
-  evaluated_module_identifiers: &mut HashSet<Ustr>,
-  used_export_module_identifiers: &mut HashMap<Ustr, UsedType>,
-  inherit_extend_graph: &GraphMap<Ustr, (), Directed>,
-  traced_tuple: &mut HashSet<(Ustr, Ustr)>,
+  bailout_module_identifiers: &IdentifierMap<BailoutFlog>,
+  evaluated_module_identifiers: &mut IdentifierSet,
+  used_export_module_identifiers: &mut IdentifierMap<UsedType>,
+  inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
+  traced_tuple: &mut HashSet<(ModuleIdentifier, ModuleIdentifier)>,
   options: &Arc<CompilerOptions>,
   graph: &mut SymbolGraph,
   errors: &mut Vec<Error>,
@@ -1733,9 +1733,9 @@ fn mark_used_symbol_with(
   bailout_module_identifiers: &IdentifierMap<BailoutFlog>,
   evaluated_module_identifiers: &mut IdentifierSet,
   used_indirect_symbol_set: &mut HashSet<IndirectTopLevelSymbol>,
-  used_export_module_identifiers: &mut HashMap<Ustr, UsedType>,
-  inherit_extend_graph: &GraphMap<Ustr, (), Directed>,
-  traced_tuple: &mut HashSet<(Ustr, Ustr)>,
+  used_export_module_identifiers: &mut IdentifierMap<UsedType>,
+  inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
+  traced_tuple: &mut HashSet<(ModuleIdentifier, ModuleIdentifier)>,
   options: &Arc<CompilerOptions>,
   graph: &mut SymbolGraph,
   errors: &mut Vec<Error>,
@@ -1775,11 +1775,11 @@ fn mark_symbol(
   used_indirect_symbol_set: &mut HashSet<IndirectTopLevelSymbol>,
   analyze_map: &IdentifierMap<TreeShakingResult>,
   q: &mut VecDeque<SymbolRef>,
-  bailout_module_identifiers: &HashMap<Ustr, BailoutFlog>,
-  evaluated_module_identifiers: &mut HashSet<Ustr>,
-  used_export_module_identifiers: &mut HashMap<Ustr, UsedType>,
-  inherit_extend_graph: &GraphMap<Ustr, (), Directed>,
-  traced_tuple: &mut HashSet<(Ustr, Ustr)>,
+  bailout_module_identifiers: &IdentifierMap<BailoutFlog>,
+  evaluated_module_identifiers: &mut IdentifierSet,
+  used_export_module_identifiers: &mut IdentifierMap<UsedType>,
+  inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
+  traced_tuple: &mut HashSet<(ModuleIdentifier, ModuleIdentifier)>,
   options: &Arc<CompilerOptions>,
   graph: &mut SymbolGraph,
   errors: &mut Vec<Error>,
@@ -1795,14 +1795,14 @@ fn mark_symbol(
     SymbolRef::Direct(symbol) => {
       merge_used_export_type(
         used_export_module_identifiers,
-        symbol.uri(),
+        symbol.uri().into(),
         UsedType::DIRECT,
       );
     }
     SymbolRef::Indirect(indirect) => {
       merge_used_export_type(
         used_export_module_identifiers,
-        indirect.uri(),
+        indirect.uri().into(),
         UsedType::INDIRECT,
       );
     }
@@ -1873,7 +1873,7 @@ fn mark_symbol(
                 if !traced_tuple.contains(&tuple) {
                   for mi in algo::all_simple_paths::<Vec<_>, _>(
                     &inherit_extend_graph,
-                    indirect_symbol.uri,
+                    indirect_symbol.uri.into(),
                     *module_identifier,
                     0,
                     None,
@@ -2060,8 +2060,8 @@ fn get_reachable(
 }
 
 fn create_inherit_graph(
-  analyze_map: &HashMap<Ustr, TreeShakingResult>,
-) -> GraphMap<Ustr, (), petgraph::Directed> {
+  analyze_map: &IdentifierMap<TreeShakingResult>,
+) -> GraphMap<ModuleIdentifier, (), petgraph::Directed> {
   let mut g = DiGraphMap::new();
   for (module_id, result) in analyze_map.iter() {
     for export_all_module_id in result.inherit_export_maps.keys() {
@@ -2072,8 +2072,8 @@ fn create_inherit_graph(
 }
 
 pub fn merge_used_export_type(
-  used_export: &mut HashMap<Ustr, UsedType>,
-  module_id: Ustr,
+  used_export: &mut IdentifierMap<UsedType>,
+  module_id: ModuleIdentifier,
   ty: UsedType,
 ) {
   match used_export.entry(module_id) {
