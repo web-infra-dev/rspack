@@ -59,12 +59,12 @@ impl ChunkGraph {
   }
 
   pub fn is_module_in_chunk(
-    &mut self,
-    module_identifier: ModuleIdentifier,
+    &self,
+    module_identifier: &ModuleIdentifier,
     chunk_ukey: ChunkUkey,
   ) -> bool {
-    let chunk_graph_chunk = self.get_chunk_graph_chunk_mut(chunk_ukey);
-    chunk_graph_chunk.modules.contains(&module_identifier)
+    let chunk_graph_chunk = self.get_chunk_graph_chunk(&chunk_ukey);
+    chunk_graph_chunk.modules.contains(module_identifier)
   }
 
   pub(crate) fn get_chunk_graph_module_mut(
