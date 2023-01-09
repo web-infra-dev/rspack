@@ -7,8 +7,8 @@ use std::{collections::HashSet, fmt::Debug, sync::Arc};
 
 use hashbrown::HashMap;
 use rspack_core::{
-  Chunk, ChunkGroupByUkey, ChunkUkey, Compilation, IdentifierSet, Module, ModuleGraph,
-  ModuleIdentifier, Plugin, SourceType,
+  Chunk, ChunkGroupByUkey, ChunkUkey, Compilation, IdentifierSet, Module, ModuleGraph, Plugin,
+  SourceType,
 };
 
 use crate::{
@@ -548,13 +548,13 @@ impl SplitChunksPlugin {
       }
     }
 
-    let item = chunks_info_map
+    chunks_info_map
       .remove(&best_entry_key)
-      .expect("item should exist");
-
-    item
+      .expect("item should exist")
   }
 
+  #[allow(clippy::unwrap_in_result)]
+  #[allow(clippy::if_same_then_else)]
   #[tracing::instrument(skip_all)]
   fn find_reusable_chunk(
     &self,
@@ -674,7 +674,7 @@ impl SplitChunksPlugin {
     let mut to_be_deleted = HashSet::new();
     // remove all modules from other entries and update size
     for (key, info) in chunks_info_map.iter_mut() {
-      let is_overlap = info.chunks.union(&used_chunks).next().is_some();
+      let is_overlap = info.chunks.union(used_chunks).next().is_some();
       if is_overlap {
         // update modules and total size
         // may remove it from the map when < minSize
@@ -768,7 +768,7 @@ impl Plugin for SplitChunksPlugin {
             new_chunk = Some(chunk.ukey);
           }
         } else if item_cache_group.reuse_existing_chunk {
-          new_chunk = self.find_reusable_chunk(compilation, &item, new_chunk);
+          new_chunk = self.find_reusable_chunk(compilation, item, new_chunk);
           if let Some(new_chunk) = new_chunk {
             item.chunks.remove(&new_chunk);
             chunk_name = None;
