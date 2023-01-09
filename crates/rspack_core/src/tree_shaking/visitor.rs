@@ -568,8 +568,8 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
   fn visit_class_prop(&mut self, node: &ClassProp) {
     node.key.visit_with(self);
-    match node.value {
-      Some(ref expr) => match expr {
+    if let Some(ref expr) = node.value {
+      match expr {
         box Expr::Fn(_) | box Expr::Arrow(_) => {
           expr.visit_with(self);
         }
@@ -578,8 +578,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           expr.visit_with(self);
           self.state.remove(AnalyzeState::STATIC_VAR_DECL);
         }
-      },
-      None => {}
+      }
     }
   }
 
