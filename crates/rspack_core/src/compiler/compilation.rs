@@ -1128,8 +1128,8 @@ impl Compilation {
       };
     }
 
-    // dbg!(&used_export_module_identifiers);
-    // println!("{:?}", Dot::new(&symbol_graph.graph,));
+    dbg!(&used_export_module_identifiers);
+    println!("{:?}", Dot::new(&symbol_graph.graph,));
     // println!("{}", used_export_module_identifiers.len());
     // let direct_used = used_export_module_identifiers
     //   .iter()
@@ -2040,7 +2040,9 @@ fn mark_symbol(
         }
       };
       evaluated_module_identifiers.insert(src);
-      merge_used_export_type(used_export_module_identifiers, src, ModuleUsedType::DIRECT);
+      if !analyze_refsult.export_map.is_empty() {
+        merge_used_export_type(used_export_module_identifiers, src, ModuleUsedType::DIRECT);
+      }
 
       for export_symbol_ref in analyze_refsult.export_map.values() {
         graph.add_edge(&current_symbol_ref, export_symbol_ref);
