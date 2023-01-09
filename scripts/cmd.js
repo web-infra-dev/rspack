@@ -52,6 +52,7 @@ function createCLI() {
 					break;
 				default:
 					log.error("invalid args, see `./x test -h` to get more information");
+					process.exit(1);
 			}
 			if (!command) {
 				return;
@@ -74,6 +75,7 @@ function createCLI() {
 					break;
 				default:
 					log.error(`invalid args, see "./x dev -h" to get more information`);
+					process.exit(1);
 			}
 			cp.execSync(command, {
 				stdio: "inherit"
@@ -93,22 +95,17 @@ function createCLI() {
 				case "js":
 					command = `pnpm --filter "@rspack/*" build`;
 					break;
-				case "js-release":
-					command = `pnpm --filter @rspack/binding build:release && pnpm --filter "@rspack/*" build`;
-					break;
-				case "js-release-all":
-					command = `pnpm --filter @rspack/binding build:release:all && pnpm --filter "@rspack/*" build`;
-					break;
 				case "binding":
 					command = "pnpm --filter @rspack/binding build:debug";
 					break;
-				case "cli:release":
-					command =
-						"pnpm --filter @rspack/binding build:release && pnpm --filter @rspack/cli... build";
+				case "cli:release": // only build local release binary, for benchmark
+					command = `pnpm --filter @rspack/binding build:release && pnpm --filter "@rspack/*" build`;
 					break;
-				case "cli":
-					command =
-						"pnpm --filter @rspack/binding build:debug && pnpm --filter @rspack/cli... build";
+				case "cli:release:all": // build for all cross platform, for release
+					command = `pnpm --filter @rspack/binding build:release:all && pnpm --filter "@rspack/*" build`;
+					break;
+				case "cli:debug": // only build local debug release, for local debug
+					command = `pnpm --filter @rspack/binding build:debug && pnpm --filter "@rspack/*" build`;
 					break;
 				case "bundle":
 					command = "cargo run --package rspack --example bundle";
@@ -121,6 +118,7 @@ function createCLI() {
 					break;
 				default:
 					log.error("invalid args, see `./x build -h` to get more information");
+					process.exit(1);
 			}
 			if (!command) {
 				return;
@@ -155,6 +153,7 @@ function createCLI() {
 					log.error(
 						"invalid args, see `./x format -h` to get more information"
 					);
+					process.exit(1);
 			}
 			if (!command) {
 				return;
@@ -186,6 +185,7 @@ function createCLI() {
 					log.error(
 						"invalid args, see `./x format -h` to get more information"
 					);
+					process.exit(1);
 			}
 			commands.forEach(command => {
 				cp.execSync(command, {
@@ -239,6 +239,7 @@ function createCLI() {
 					log.error(
 						"invalid args, see `./x format -h` to get more information"
 					);
+					process.exit(1);
 			}
 			commands.forEach(command => {
 				cp.execSync(command, {
