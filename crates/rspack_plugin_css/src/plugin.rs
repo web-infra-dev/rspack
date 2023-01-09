@@ -17,8 +17,8 @@ use rspack_core::{
   ast::css::Ast as CssAst,
   get_css_chunk_filename_template,
   rspack_sources::{
-    BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
-    SourceMapSource, SourceMapSourceOptions,
+    BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
+    SourceMapSourceOptions,
   },
   Chunk, ChunkGraph, Compilation, FilenameRenderOptions, GenerateContext, GenerationResult, Module,
   ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, PathData, Plugin,

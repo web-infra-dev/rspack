@@ -44,7 +44,7 @@ pub fn render_chunk_modules(
                 cached.value().clone()
               } else {
                 let module_source = if let Some(map) =
-                  &origin_source.map(&MapOptions::new(compilation.options.devtool.cheap()))
+                  origin_source.map(&MapOptions::new(compilation.options.devtool.cheap()))
                 {
                   wrap_eval_source_map(&origin_source.source(), map, compilation)?
                 } else {

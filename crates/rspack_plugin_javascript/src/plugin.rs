@@ -3,8 +3,8 @@ use std::hash::{Hash, Hasher};
 use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{
-  BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
-  SourceMapSource, SourceMapSourceOptions,
+  BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
+  SourceMapSourceOptions,
 };
 use rspack_core::{
   get_js_chunk_filename_template, runtime_globals, AstOrSource, ChunkKind, FilenameRenderOptions,

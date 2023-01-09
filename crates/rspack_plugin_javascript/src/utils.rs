@@ -158,7 +158,7 @@ pub fn ecma_parse_error_to_rspack_error(
 
 pub fn wrap_eval_source_map(
   source: &str,
-  map: &SourceMap,
+  mut map: SourceMap,
   compilation: &Compilation,
 ) -> rspack_error::Result<BoxSource> {
   for source in map.sources_mut() {
