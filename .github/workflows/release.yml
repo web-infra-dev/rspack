@@ -47,5 +47,5 @@ jobs:
       - name: publish
         if: steps.changesets.outputs.hasChangesets == 'false'
         run: |
-          pnpm run build:cli
+          pnpm run build:cli:release:all
           pnpm run release --tag ${{github.event.inputs.tag}}
