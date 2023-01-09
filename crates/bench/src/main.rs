@@ -27,11 +27,7 @@ async fn run(relative_path: &str) {
   let guard = enable_tracing_by_env_with_chrome_layer();
   let manifest_dir = PathBuf::from(env!("CARGO_WORKSPACE_DIR"));
   // let bundle_dir = manifest_dir.join("tests/fixtures/postcss/pxtorem");
-<<<<<<< HEAD
   let bundle_dir: PathBuf = manifest_dir.join(relative_path);
-=======
-  let bundle_dir: PathBuf = manifest_dir.join("examples/side-effects-prune");
->>>>>>> 171605ff (chore: 🤖 create symbol graph)
   println!("{bundle_dir:?}");
   let mut options = read_test_config_and_normalize(&bundle_dir);
   options.__emit_error = true;
