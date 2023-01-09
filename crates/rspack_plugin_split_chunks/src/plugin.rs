@@ -188,8 +188,6 @@ pub struct SplitChunksPlugin {
 
 impl SplitChunksPlugin {
   pub fn new(options: SplitChunksOptions) -> Self {
-    println!("@@cacheGroups: {:#?}", options.cache_groups);
-
     let default_size_types = options
       .default_size_types
       .clone()
