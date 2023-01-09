@@ -5,6 +5,7 @@
 
 use std::{collections::HashSet, fmt::Debug, sync::Arc};
 
+use derivative::Derivative;
 use hashbrown::HashMap;
 use rspack_core::{
   Chunk, ChunkGroupByUkey, ChunkUkey, Compilation, IdentifierSet, Module, ModuleGraph, Plugin,
@@ -187,6 +188,8 @@ pub struct SplitChunksPlugin {
 
 impl SplitChunksPlugin {
   pub fn new(options: SplitChunksOptions) -> Self {
+    println!("@@cacheGroups: {:#?}", options.cache_groups);
+
     let default_size_types = options
       .default_size_types
       .clone()
@@ -374,7 +377,7 @@ impl SplitChunksPlugin {
   ) {
     let module_identifier = module.identifier();
     // Break if minimum number of chunks is not reached
-    if selected_chunks.len() < cache_group.min_chunks {
+    if selected_chunks.len() < cache_group.min_chunks as usize {
       tracing::debug!(
         "[Bailout-Module]: {}, because selected_chunks.len({:?}) < cache_group.min_chunks({:?})",
         module_identifier,
@@ -432,7 +435,22 @@ impl SplitChunksPlugin {
       }
     }
 
-    let key = cache_group.key.clone();
+    let key = format!(
+      "{} {}",
+      cache_group.key.clone(),
+      if let Some(name) = &name {
+        format!("name:{name}")
+      } else {
+        format!("chunk:{}", {
+          let mut keys = selected_chunks
+            .iter()
+            .map(|c| c.ukey.ukey().to_string())
+            .collect::<Vec<_>>();
+          keys.sort();
+          keys.join("_")
+        })
+      }
+    );
 
     let info = chunks_info_map
       .entry(key)
@@ -496,7 +514,7 @@ impl SplitChunksPlugin {
           .get_modules_chunks(module.identifier())];
 
         for combinations in combs {
-          if combinations.len() < cache_group.min_chunks {
+          if combinations.len() < cache_group.min_chunks as usize {
             tracing::debug!(
               "[Bailout]: CacheGroup({}), because of combinations({:?}) < cache_group.min_chunks({:?})",
               cache_group.key,
@@ -682,14 +700,21 @@ impl SplitChunksPlugin {
         for module in &item.modules {
           if info.modules.contains(module) {
             info.modules.remove(module);
-          }
-          let module = compilation
-            .module_graph
-            .module_by_identifier(module)
-            .expect("module should exist");
-          for key in module.source_types() {
-            let sizes = info.sizes.get_mut(key).expect("size should exist");
-            *sizes -= module.size(key);
+            let module = compilation
+              .module_graph
+              .module_by_identifier(module)
+              .expect("module should exist");
+            for ty in module.source_types() {
+              let sizes = info.sizes.get_mut(ty).unwrap_or_else(|| {
+                panic!(
+                  "{:?} is not existed in sizes of {} for module({})",
+                  ty,
+                  info.cache_group,
+                  module.identifier()
+                )
+              });
+              *sizes -= module.size(ty);
+            }
           }
           updated = true;
         }
@@ -852,11 +877,11 @@ impl Plugin for SplitChunksPlugin {
           && (item
             .cache_group(&self.cache_group_by_key)
             .max_initial_requests
-            == usize::MAX
+            == u32::MAX
             || item
               .cache_group(&self.cache_group_by_key)
               .max_async_requests
-              == usize::MAX)
+              == u32::MAX)
         {
           for chunk in used_chunks.clone() {
             let chunk = compilation
@@ -867,7 +892,7 @@ impl Plugin for SplitChunksPlugin {
               item_cache_group.max_initial_requests
             } else {
               if chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
-                usize::min(
+                u32::min(
                   item
                     .cache_group(&self.cache_group_by_key)
                     .max_initial_requests,
@@ -881,7 +906,7 @@ impl Plugin for SplitChunksPlugin {
                   .max_async_requests
               }
             };
-            if usize::MAX == max_requests
+            if u32::MAX == max_requests
               && get_requests(chunk, &compilation.chunk_group_by_ukey) > max_requests
             {
               used_chunks.remove(&chunk.ukey);
@@ -897,7 +922,7 @@ impl Plugin for SplitChunksPlugin {
           if is_existing_chunk {
             used_chunks.insert(*new_chunk.as_ref().expect("New chunk not found"));
           }
-          if used_chunks.len() >= item_cache_group.min_chunks {
+          if used_chunks.len() >= item_cache_group.min_chunks as usize {
             let chunk_arr = used_chunks
               .iter()
               .filter_map(|ukey| compilation.chunk_by_ukey.get(ukey))
@@ -1060,9 +1085,11 @@ impl Plugin for SplitChunksPlugin {
   }
 }
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub(crate) struct ChunksInfoItem {
   // Sortable Module Set
+  #[derivative(Debug = "ignore")]
   pub modules: IdentifierSet,
   pub cache_group: String,
   pub cache_group_index: usize,

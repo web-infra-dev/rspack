@@ -8,14 +8,14 @@ use crate::{cache_group_source::SplitChunkSizes, ChunkFilter, GetName};
 #[derivative(Debug)]
 pub struct CacheGroup {
   pub key: String,
-  pub priority: isize,
+  pub priority: i32,
   #[derivative(Debug = "ignore")]
   pub get_name: GetName,
   #[derivative(Debug = "ignore")]
   pub chunks_filter: ChunkFilter,
-  pub min_chunks: usize,
-  pub max_async_requests: usize,
-  pub max_initial_requests: usize,
+  pub min_chunks: u32,
+  pub max_async_requests: u32,
+  pub max_initial_requests: u32,
   pub filename: Option<String>,
   pub id_hint: String,
   pub automatic_name_delimiter: String,

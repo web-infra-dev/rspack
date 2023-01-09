@@ -11,7 +11,7 @@ pub(crate) type SplitChunkSizes = HashMap<SourceType, f64>;
 #[derivative(Debug)]
 pub struct CacheGroupSource {
   pub key: String,
-  pub priority: Option<isize>,
+  pub priority: Option<i32>,
 
   #[derivative(Debug = "ignore")]
   pub get_name: Option<GetName>,
@@ -24,9 +24,9 @@ pub struct CacheGroupSource {
   pub enforce_size_threshold: SplitChunkSizes,
   pub max_async_size: SplitChunkSizes,
   pub max_initial_size: SplitChunkSizes,
-  pub min_chunks: Option<usize>,
-  pub max_async_requests: Option<usize>,
-  pub max_initial_requests: Option<usize>,
+  pub min_chunks: Option<u32>,
+  pub max_async_requests: Option<u32>,
+  pub max_initial_requests: Option<u32>,
   pub filename: Option<String>,
   pub id_hint: Option<String>,
   pub automatic_name_delimiter: String,

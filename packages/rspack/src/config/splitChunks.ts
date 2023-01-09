@@ -186,16 +186,17 @@ export function resolveSplitChunksOptions(
 			minRemainingSize: op.minRemainingSize,
 			cacheGroups: op.cacheGroups
 				? Object.fromEntries(
-						Object.entries(op.cacheGroups).map(([key, group]) => {
-							let normalizedGroup: RawCacheGroupOptions = {
-								test: group.test ? group.test.source : undefined,
-								name: group.name,
-								priority: group.priority,
-								minChunks: group.minChunks
-							};
-							return [key, normalizedGroup];
-						})
-				  )
+					Object.entries(op.cacheGroups).map(([key, group]) => {
+						let normalizedGroup: RawCacheGroupOptions = {
+							test: group.test ? group.test.source : undefined,
+							name: group.name,
+							priority: group.priority,
+							minChunks: group.minChunks,
+							chunks: group.chunks,
+						};
+						return [key, normalizedGroup];
+					})
+				)
 				: undefined
 		};
 	}
