@@ -19,8 +19,8 @@ use rspack_error::{
 };
 use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::{
-  BoxSource, OriginalSource, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
-  WithoutOriginalOptions,
+  BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
+  SourceMapSource, WithoutOriginalOptions,
 };
 use serde_json::json;
 
@@ -262,6 +262,17 @@ impl AstOrSource {
       _ => Err(Error::InternalError(internal_error!(
         "Failed to convert to source".into()
       ))),
+    }
+  }
+
+  pub fn map<F, G>(self, f: F, g: G) -> Self
+  where
+    F: FnOnce(ModuleAst) -> ModuleAst,
+    G: FnOnce(BoxSource) -> BoxSource,
+  {
+    match self {
+      AstOrSource::Ast(ast) => Self::Ast(f(ast)),
+      AstOrSource::Source(source) => Self::Source(g(source)),
     }
   }
 }
@@ -525,7 +536,7 @@ impl Module for NormalModule {
       let mut data = HashMap::new();
       let mut runtime_requirements = HashSet::new();
       for source_type in self.source_types() {
-        let generation_result = self.parser_and_generator.generate(
+        let mut generation_result = self.parser_and_generator.generate(
           ast_or_source,
           self,
           &mut GenerateContext {
@@ -536,6 +547,9 @@ impl Module for NormalModule {
             code_generation_results: &compilation.code_generation_results,
           },
         )?;
+        generation_result.ast_or_source = generation_result
+          .ast_or_source
+          .map(|i| i, |s| CachedSource::new(s).boxed());
         code_generation_result.add(*source_type, generation_result);
       }
       code_generation_result.data.extend(data);

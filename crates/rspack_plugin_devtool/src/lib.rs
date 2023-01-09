@@ -4,10 +4,12 @@ use pathdiff::diff_paths;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
-  rspack_sources::{ConcatSource, MapOptions, RawSource, SourceExt},
-  AssetInfo, CompilationAsset, Plugin, PluginContext, PluginProcessAssetsOutput, ProcessAssetsArgs,
+  rspack_sources::{BoxSource, ConcatSource, MapOptions, RawSource, SourceExt, SourceMap},
+  AssetInfo, Compilation, CompilationAsset, Plugin, PluginContext, PluginProcessAssetsOutput,
+  ProcessAssetsArgs,
 };
 use rspack_error::{internal_error, Result};
+use serde_json::json;
 use tracing::instrument;
 
 static IS_CSS_FILE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\.css($|\?)").expect("TODO:"));
@@ -75,11 +77,7 @@ impl Plugin for DevtoolPlugin {
           .map(|mut map| {
             map.set_file(Some(filename.clone()));
             for source in map.sources_mut() {
-              let uri = if source.starts_with('<') && source.ends_with('>') {
-                &source[1..source.len() - 1] // remove '<' and '>' for swc FileName::Custom
-              } else {
-                &source[..]
-              };
+              let uri = normalize_custom_filename(source);
               let resource_path =
                 if let Some(relative_path) = diff_paths(uri, &*args.compilation.options.context) {
                   relative_path.to_string_lossy().to_string()
@@ -157,5 +155,42 @@ impl Plugin for DevtoolPlugin {
       }
     }
     Ok(())
+  }
+}
+
+pub fn wrap_eval_source_map(
+  source: &str,
+  mut map: SourceMap,
+  compilation: &Compilation,
+) -> Result<BoxSource> {
+  for source in map.sources_mut() {
+    let uri = normalize_custom_filename(source);
+    *source = if let Some(relative_path) = diff_paths(uri, &*compilation.options.context) {
+      relative_path.to_string_lossy().to_string()
+    } else {
+      uri.to_owned()
+    };
+  }
+  if compilation.options.devtool.no_sources() {
+    for content in map.sources_content_mut() {
+      *content = String::default();
+    }
+  }
+  let mut map_buffer = Vec::new();
+  map
+    .to_writer(&mut map_buffer)
+    .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?;
+  let base64 = base64::encode(&map_buffer);
+  let footer =
+    format!("\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}");
+  let result = RawSource::from(format!("eval({});", json!(format!("{source}{footer}")))).boxed();
+  Ok(result)
+}
+
+fn normalize_custom_filename(source: &str) -> &str {
+  if source.starts_with('<') && source.ends_with('>') {
+    &source[1..source.len() - 1] // remove '<' and '>' for swc FileName::Custom
+  } else {
+    source
   }
 }

@@ -4,8 +4,7 @@ use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, MapOptions, RawSource, SourceExt};
 use rspack_core::{runtime_globals, ChunkUkey, Compilation, RuntimeModule, SourceType};
 use rspack_error::Result;
-
-use crate::utils::wrap_eval_source_map;
+use rspack_plugin_devtool::wrap_eval_source_map;
 
 static MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(DashMap::default);
 
