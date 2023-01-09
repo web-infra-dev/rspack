@@ -282,7 +282,7 @@ impl<'me> CodeSplitter<'me> {
     if self
       .compilation
       .chunk_graph
-      .is_module_in_chunk(item.module_identifier, item.chunk)
+      .is_module_in_chunk(&item.module_identifier, item.chunk)
     {
       return;
     }

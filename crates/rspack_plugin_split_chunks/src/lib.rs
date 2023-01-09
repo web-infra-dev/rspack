@@ -4,6 +4,7 @@ mod plugin;
 use std::sync::Arc;
 
 use hashbrown::HashMap;
+use plugin::ChunksInfoItem;
 pub use plugin::SplitChunksPlugin;
 mod options;
 pub use options::*;
@@ -15,3 +16,9 @@ pub(crate) type ChunkFilter = Arc<dyn Fn(&Chunk, &ChunkGroupByUkey) -> bool + Se
 
 mod utils;
 pub(crate) type CacheGroupByKey = HashMap<String, CacheGroup>;
+pub(crate) type ChunksInfoMap = HashMap<String, ChunksInfoItem>;
+
+mod cache_group;
+pub(crate) use cache_group::*;
+mod cache_group_source;
+pub(crate) use cache_group_source::*;
