@@ -40,7 +40,7 @@ bitflags::bitflags! {
 }
 
 bitflags::bitflags! {
-  pub struct UsedType: u8 {
+  pub struct ModuleUsedType: u8 {
     const DIRECT = 1 << 0;
     const INDIRECT = 1 << 1;
     const REEXPORT = 1 << 2;

@@ -1280,7 +1280,7 @@ pub struct TreeShakingResult {
   // pub(crate) reference_map: HashMap<BetterId, HashSet<BetterId>>,
   pub(crate) reachable_import_of_export: HashMap<JsWord, HashSet<SymbolRef>>,
   state: AnalyzeState,
-  pub(crate) used_symbol_ref: HashSet<SymbolRef>,
+  pub(crate) used_symbol_refs: HashSet<SymbolRef>,
   pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlog>,
   pub(crate) side_effects: SideEffect,
 }
@@ -1298,7 +1298,7 @@ impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
       // reference_map: std::mem::take(&mut analyze.reference_map),
       reachable_import_of_export: std::mem::take(&mut analyze.reachable_import_and_export),
       state: std::mem::take(&mut analyze.state),
-      used_symbol_ref: std::mem::take(&mut analyze.used_symbol_ref),
+      used_symbol_refs: std::mem::take(&mut analyze.used_symbol_ref),
       bail_out_module_identifiers: std::mem::take(&mut analyze.bail_out_module_identifiers),
       side_effects: analyze.side_effects,
     }
