@@ -190,6 +190,6 @@ impl RuntimeModule for NormalRuntimeModule {
   }
 
   fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    CachedSource::new(self.sources.clone()).boxed()
+    self.sources.clone().boxed()
   }
 }

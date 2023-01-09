@@ -111,7 +111,7 @@ impl JsPlugin {
       "// Return the exports of the module\n return module.exports;\n",
     ));
 
-    CachedSource::new(sources).boxed()
+    sources.boxed()
   }
 
   pub fn render_bootstrap(&self, args: &rspack_core::RenderManifestArgs) -> BoxSource {
@@ -152,7 +152,7 @@ impl JsPlugin {
       ));
     }
 
-    CachedSource::new(sources).boxed()
+    sources.boxed()
   }
 
   pub fn render_main(&self, args: &rspack_core::RenderManifestArgs) -> Result<BoxSource> {
@@ -168,7 +168,7 @@ impl JsPlugin {
       // TODO: how do we handle multiple entry modules?
       sources.add(generate_chunk_entry_code(compilation, &args.chunk_ukey));
     }
-    Ok(self.render_iife(CachedSource::new(sources).boxed(), args))
+    Ok(self.render_iife(sources.boxed(), args))
   }
 
   pub async fn render_chunk(

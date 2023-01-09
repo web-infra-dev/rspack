@@ -649,7 +649,7 @@ impl Plugin for CssPlugin {
         output
       })
       .collect::<Vec<ConcatSource>>();
-    let source = CachedSource::new(ConcatSource::new(sources));
+    let source = ConcatSource::new(sources);
 
     // let hash = Some(get_hash(compilation).to_string());
     // let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
