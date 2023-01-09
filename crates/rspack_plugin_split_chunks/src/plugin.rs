@@ -721,6 +721,72 @@ impl SplitChunksPlugin {
       chunks_info_map.remove(&key);
     });
   }
+
+  #[tracing::instrument(skip_all)]
+  fn link_module_new_chunk_and_remove_in_old_chunks(
+    &self,
+    is_reused_with_all_modules: bool,
+    item: &ChunksInfoItem,
+    new_chunk: ChunkUkey,
+    used_chunks: &HashSet<ChunkUkey>,
+    compilation: &mut Compilation,
+  ) {
+    if !is_reused_with_all_modules {
+      // Add all modules to the new chunk
+      for module_identifier in &item.modules {
+        // TODO: module.chunkCondition
+        // Add module to new chunk
+        compilation
+          .chunk_graph
+          .connect_chunk_and_module(new_chunk, *module_identifier);
+        // Remove module from used chunks
+        for used_chunk in used_chunks {
+          let used_chunk = compilation
+            .chunk_by_ukey
+            .get(used_chunk)
+            .expect("Chunk should exist");
+          for module_identifier in &item.modules {
+            compilation
+              .chunk_graph
+              .disconnect_chunk_and_module(&used_chunk.ukey, *module_identifier);
+          }
+        }
+      }
+    } else {
+      // Remove all modules from used chunks
+      for module_identifier in &item.modules {
+        for used_chunk in used_chunks {
+          let used_chunk = compilation
+            .chunk_by_ukey
+            .get(used_chunk)
+            .expect("Chunk should exist");
+          for module_identifier in &item.modules {
+            compilation
+              .chunk_graph
+              .disconnect_chunk_and_module(&used_chunk.ukey, *module_identifier);
+          }
+        }
+      }
+    }
+  }
+
+  #[tracing::instrument(skip_all)]
+  fn split_used_chunks(
+    &self,
+    item: &ChunksInfoItem,
+    used_chunks: &HashSet<ChunkUkey>,
+    new_chunk: ChunkUkey,
+    compilation: &mut Compilation,
+  ) {
+    let new_chunk_ukey = new_chunk;
+    for used_chunk in used_chunks {
+      let [new_chunk, used_chunk] = compilation
+        .chunk_by_ukey
+        .get_many_mut([&new_chunk_ukey, used_chunk])
+        .expect("TODO:");
+      used_chunk.split(new_chunk, &mut compilation.chunk_group_by_ukey);
+    }
+  }
 }
 
 impl Plugin for SplitChunksPlugin {
@@ -877,19 +943,7 @@ impl Plugin for SplitChunksPlugin {
 
         // Walk through all chunks
         let new_chunk_ukey = new_chunk;
-        for used_chunk in &used_chunks {
-          let [new_chunk, used_chunk] = compilation
-            .chunk_by_ukey
-            .get_many_mut([&new_chunk_ukey, used_chunk])
-            .expect("TODO:");
-          used_chunk.split(new_chunk, &mut compilation.chunk_group_by_ukey);
-
-          for module_identifier in &item.modules {
-            compilation
-              .chunk_graph
-              .disconnect_chunk_and_module(&used_chunk.ukey, *module_identifier);
-          }
-        }
+        self.split_used_chunks(item, &used_chunks, new_chunk, compilation);
 
         let new_chunk = compilation
           .chunk_by_ukey
@@ -914,43 +968,13 @@ impl Plugin for SplitChunksPlugin {
 
         // new_chunk.id_name_hints.insert(info)
 
-        if !is_reused_with_all_modules {
-          // Add all modules to the new chunk
-          for module_identifier in &item.modules {
-            // TODO: module.chunkCondition
-            // Add module to new chunk
-            compilation
-              .chunk_graph
-              .connect_chunk_and_module(new_chunk_ukey, *module_identifier);
-            // Remove module from used chunks
-            for used_chunk in &used_chunks {
-              let used_chunk = compilation
-                .chunk_by_ukey
-                .get(used_chunk)
-                .expect("Chunk should exist");
-              for module_identifier in &item.modules {
-                compilation
-                  .chunk_graph
-                  .disconnect_chunk_and_module(&used_chunk.ukey, *module_identifier);
-              }
-            }
-          }
-        } else {
-          // Remove all modules from used chunks
-          for module_identifier in &item.modules {
-            for used_chunk in &used_chunks {
-              let used_chunk = compilation
-                .chunk_by_ukey
-                .get(used_chunk)
-                .expect("Chunk should exist");
-              for module_identifier in &item.modules {
-                compilation
-                  .chunk_graph
-                  .disconnect_chunk_and_module(&used_chunk.ukey, *module_identifier);
-              }
-            }
-          }
-        }
+        self.link_module_new_chunk_and_remove_in_old_chunks(
+          is_reused_with_all_modules,
+          item,
+          new_chunk.ukey,
+          &used_chunks,
+          compilation,
+        );
 
         let mut max_size_queue_map: HashMap<ChunkUkey, MaxSizeQueueItem> = Default::default();
 
