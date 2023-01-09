@@ -1,7 +1,9 @@
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
-use rspack_core::rspack_sources::{BoxSource, ConcatSource, MapOptions, RawSource, SourceExt};
+use rspack_core::rspack_sources::{
+  BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, SourceExt,
+};
 use rspack_core::{runtime_globals, ChunkUkey, Compilation, RuntimeModule, SourceType};
 use rspack_error::Result;
 use rspack_plugin_devtool::wrap_eval_source_map;
@@ -49,6 +51,7 @@ pub fn render_chunk_modules(
                 } else {
                   origin_source.clone()
                 };
+                let module_source = CachedSource::new(module_source).boxed();
                 MODULE_RENDER_CACHE.insert(origin_source, module_source.clone());
                 module_source
               }
