@@ -41,9 +41,10 @@ impl ResolveModuleOccasion {
     };
 
     let id = ModuleIdentifier::from(format!(
-      "{}|{}",
+      "{}|{}|{:?}",
       args.importer.unwrap_or(""),
-      args.specifier
+      args.specifier,
+      args.dependency_type
     ));
     {
       // read
