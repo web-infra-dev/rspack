@@ -23,7 +23,7 @@ use rspack_error::{
   errors_to_diagnostics, internal_error, Diagnostic, Error, IntoTWithDiagnosticArray, Result,
   Severity, TWithDiagnosticArray,
 };
-use rspack_sources::BoxSource;
+use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rspack_symbol::{IndirectTopLevelSymbol, IndirectType, Symbol};
 use swc_core::ecma::atoms::JsWord;
 use tokio::sync::mpsc::error::TryRecvError;
@@ -679,7 +679,10 @@ impl Compilation {
 
             self.emit_asset(
               file_manifest.filename().to_string(),
-              CompilationAsset::new(file_manifest.source, AssetInfo::default()),
+              CompilationAsset::new(
+                CachedSource::new(file_manifest.source).boxed(),
+                AssetInfo::default(),
+              ),
             );
           });
       })
