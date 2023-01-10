@@ -98,6 +98,9 @@ function createCLI() {
 				case "binding":
 					command = "pnpm --filter @rspack/binding build:debug";
 					break;
+				case "cli":
+					command = `pnpm --filter @rspack/binding build:debug && pnpm --filter "@rspack/*" build`;
+					break;
 				case "cli:release": // only build local release binary, for benchmark
 					command = `pnpm --filter @rspack/binding build:release && pnpm --filter "@rspack/*" build`;
 					break;
