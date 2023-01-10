@@ -34,7 +34,6 @@ export function describeCases(config: {
 						});
 						return;
 					}
-
 					describe(testName, () => {
 						let compiler: undefined | Compiler;
 

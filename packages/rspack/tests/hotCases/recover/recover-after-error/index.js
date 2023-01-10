@@ -9,8 +9,7 @@ it("should abort when module is not accepted", (done) => {
 		NEXT(require("../../update")(done, {
 			ignoreErrored: true
 		}, () => {
-			// should be a 
-			expect(require('./a').default).toBe(3);
+			expect(a).toBe(3);
 			done();
 		}));
 	}));

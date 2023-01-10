@@ -139,7 +139,6 @@ pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut
     let tree_shaking = generate_context.compilation.options.builtins.tree_shaking;
     let minify = generate_context.compilation.options.builtins.minify;
     let comments = None;
-
     // TODO: add back in next PR
     // Run dependencies' code generation first
     // {
