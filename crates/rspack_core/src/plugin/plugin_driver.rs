@@ -340,4 +340,20 @@ impl PluginDriver {
     }
     Ok(())
   }
+
+  #[instrument(name = "plugin:emit", skip_all)]
+  pub async fn emit(&mut self, compilation: &mut Compilation) -> Result<()> {
+    for plugin in &mut self.plugins {
+      plugin.emit(compilation).await?;
+    }
+    Ok(())
+  }
+
+  #[instrument(name = "plugin:after_emit", skip_all)]
+  pub async fn after_emit(&mut self, compilation: &mut Compilation) -> Result<()> {
+    for plugin in &mut self.plugins {
+      plugin.after_emit(compilation).await?;
+    }
+    Ok(())
+  }
 }

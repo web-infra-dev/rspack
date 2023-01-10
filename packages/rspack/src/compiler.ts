@@ -52,6 +52,8 @@ class Compiler {
 		infrastructureLog: tapable.SyncBailHook<[string, string, any[]], true>;
 		beforeRun: tapable.AsyncSeriesHook<[Compiler]>;
 		run: tapable.AsyncSeriesHook<[Compiler]>;
+		emit: tapable.AsyncSeriesHook<[Compilation]>;
+		afterEmit: tapable.AsyncSeriesHook<[Compilation]>;
 		failed: tapable.SyncHook<[Error]>;
 		watchRun: tapable.AsyncSeriesHook<[Compiler]>;
 	};
@@ -76,6 +78,8 @@ class Compiler {
 			afterDone: new tapable.SyncHook<Stats>(["stats"]),
 			beforeRun: new tapable.AsyncSeriesHook(["compiler"]),
 			run: new tapable.AsyncSeriesHook(["compiler"]),
+			emit: new tapable.AsyncSeriesHook(["compilation"]),
+			afterEmit: new tapable.AsyncSeriesHook(["compilation"]),
 			thisCompilation: new tapable.SyncHook<
 				[
 					Compilation
@@ -103,6 +107,8 @@ class Compiler {
 		this.#_instance =
 			this.#_instance ||
 			new binding.Rspack(options, {
+				emit: this.#emit.bind(this),
+				afterEmit: this.#afterEmit.bind(this),
 				processAssets: this.#processAssets.bind(this),
 				// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
 				// We know that the hook `thisCompilation` will not be called from a child compiler(it doesn't matter whether the child compiler is created on the Rust or the Node side).
@@ -227,6 +233,14 @@ class Compiler {
 		);
 	}
 
+	async #emit() {
+		await this.hooks.emit.promise(this.compilation);
+	}
+
+	async #afterEmit() {
+		await this.hooks.afterEmit.promise(this.compilation);
+	}
+
 	#compilation(native: binding.JsCompilation) {
 		// TODO: implement this based on the child compiler impl.
 		this.hooks.compilation.call(this.compilation);
@@ -238,7 +252,7 @@ class Compiler {
 		this.hooks.thisCompilation.call(this.compilation);
 	}
 
-	run(callback) {
+	run(callback: Callback<Error, Stats>) {
 		const doRun = () => {
 			const finalCallback = (err, stats?) => {
 				if (err) {
