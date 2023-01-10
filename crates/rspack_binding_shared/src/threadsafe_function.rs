@@ -181,55 +181,6 @@ impl From<ThreadsafeFunctionCallMode> for sys::napi_threadsafe_function_call_mod
 }
 
 /// Communicate with the addon's main thread by invoking a JavaScript function from other threads.
-///
-/// ## Example
-/// An example of using `ThreadsafeFunction`:
-///
-/// ```rust
-/// #[macro_use]
-/// extern crate napi_derive;
-///
-/// use std::thread;
-///
-/// use napi::{
-///   threadsafe_function::{
-///     ThreadSafeContext, ThreadsafeFunctionCallMode, ThreadsafeFunctionReleaseMode,
-///   },
-///   CallContext, Error, JsFunction, JsNumber, JsUndefined, Result, Status,
-/// };
-///
-/// #[js_function(1)]
-/// pub fn test_threadsafe_function(ctx: CallContext) -> Result<JsUndefined> {
-///   let func = ctx.get::<JsFunction>(0)?;
-///
-///   let tsfn =
-///     ctx
-///       .env
-///       .create_threadsafe_function(&func, 0, |ctx: ThreadSafeContext<Vec<u32>>| {
-///         ctx
-///           .value
-///           .iter()
-///           .map(|v| ctx.env.create_uint32(*v))
-///           .collect::<Result<Vec<JsNumber>>>()
-///       })?;
-///
-///   let tsfn_cloned = tsfn.clone();
-///
-///   thread::spawn(move || {
-///     let output: Vec<u32> = vec![0, 1, 2, 3];
-///     // It's okay to call a threadsafe function multiple times.
-///     tsfn.call(Ok(output.clone()), ThreadsafeFunctionCallMode::Blocking);
-///   });
-///
-///   thread::spawn(move || {
-///     let output: Vec<u32> = vec![3, 2, 1, 0];
-///     // It's okay to call a threadsafe function multiple times.
-///     tsfn_cloned.call(Ok(output.clone()), ThreadsafeFunctionCallMode::NonBlocking);
-///   });
-///
-///   ctx.env.get_undefined()
-/// }
-/// ```
 pub struct ThreadsafeFunction<T: 'static, R> {
   raw_tsfn: sys::napi_threadsafe_function,
   aborted: Arc<AtomicBool>,
