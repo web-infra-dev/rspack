@@ -1,11 +1,12 @@
 use std::{
+  hash::BuildHasherDefault,
   path::{Path, PathBuf},
   time::SystemTime,
 };
 
 use dashmap::DashMap;
 use rspack_error::Result;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHasher};
 
 use super::Snapshot;
 use crate::{calc_hash, SnapshotOptions, SnapshotStrategy};
@@ -19,9 +20,9 @@ pub struct SnapshotManager {
   /// global snapshot options
   options: SnapshotOptions,
   /// cache file update time
-  update_time_cache: DashMap<PathBuf, SystemTime>,
+  update_time_cache: DashMap<PathBuf, SystemTime, BuildHasherDefault<FxHasher>>,
   /// cache file hash
-  hash_cache: DashMap<PathBuf, u64>,
+  hash_cache: DashMap<PathBuf, u64, BuildHasherDefault<FxHasher>>,
 }
 
 impl SnapshotManager {
