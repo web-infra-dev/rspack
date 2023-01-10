@@ -48,11 +48,11 @@ sync_bnpm:
 	@bnpm sync @rspack/binding-linux-x64-gnu
 	@bnpm sync create-rspack
 snapshot_ci:
-	@./x build cli:release
+	@./x build cli:release:all
 	@pnpm version:snapshot
 	@pnpm release:snapshot
 release:
-	@./x build cli:release
+	@./x build cli:release:all
 	@pnpm bump
 	@pnpm release
 	@make sync_bnpm

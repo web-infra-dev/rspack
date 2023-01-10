@@ -18,6 +18,7 @@
     "build:release": "napi build --release --platform --js false --dts binding.d.ts --config napirs.rc.json && pnpm move-binding",
     "build:release:x64": "napi build --release --platform --js false --dts binding.d.ts --config napirs.rc.json --target x86_64-apple-darwin",
     "build:release:linux": "napi build --release --platform --js false --dts binding.d.ts --config napirs.rc.json --zig --target x86_64-unknown-linux-gnu --zig-abi-suffix=2.17",
+    "build:release:win": "napi build --target x86_64-pc-windows-msvc --release --platform --js false --dts binding.d.ts --config napirs.rc.json",
     "move-binding": "node scripts/move-binding"
   },
   "keywords": [],
@@ -31,6 +32,7 @@
   "optionalDependencies": {
     "@rspack/binding-darwin-arm64": "workspace:*",
     "@rspack/binding-linux-x64-gnu": "workspace:*",
-    "@rspack/binding-darwin-x64": "workspace:*"
+    "@rspack/binding-darwin-x64": "workspace:*",
+    "@rspack/binding-win32-x64-msvc": "workspace:*"
   }
 }
