@@ -8,6 +8,7 @@ use dashmap::DashMap;
 use rustc_hash::FxHasher;
 use tracing::instrument;
 
+use crate::AliasMap;
 use crate::Resolve;
 
 #[derive(Debug, Clone)]
@@ -77,7 +78,11 @@ fn merge_resolver_options(base: nodejs_resolver::Options, other: Resolve) -> Res
     }
   }
 
-  let alias = overwrite(base.alias, other.alias, |_, value| Some(value));
+  let alias = overwrite(base.alias, other.alias, |pre, mut now| {
+    now.extend(pre.into_iter());
+    let now: indexmap::IndexSet<(String, AliasMap)> = now.into_iter().collect();
+    Some(now.into_iter().collect())
+  });
   let prefer_relative = overwrite(base.prefer_relative, other.prefer_relative, |_, value| {
     Some(value)
   });
@@ -124,66 +129,77 @@ fn normalize_string_array(a: &[String], b: Vec<String>) -> Vec<String> {
   })
 }
 
-#[test]
-fn test_merge_resolver_options() {
-  use crate::AliasMap;
-  let base = Resolve {
-    extensions: Some(to_string(vec!["a", "b"])),
-    alias: Some(vec![("c".to_string(), AliasMap::Ignored)]),
-    symlinks: Some(false),
-    main_files: Some(to_string(vec!["d", "e", "f"])),
-    main_fields: Some(to_string(vec!["g", "h", "i"])),
-    browser_field: Some(true),
-    condition_names: Some(to_string(vec!["j", "k"])),
-    ..Default::default()
-  };
-  let another = Resolve {
-    extensions: Some(to_string(vec!["a1", "b1"])),
-    alias: Some(vec![("c2".to_string(), AliasMap::Ignored)]),
-    prefer_relative: Some(true),
-    browser_field: Some(true),
-    main_files: Some(to_string(vec!["d1", "e", "..."])),
-    main_fields: Some(to_string(vec!["...", "h", "..."])),
-    condition_names: Some(to_string(vec!["f", "..."])),
-    ..Default::default()
-  };
-  let options = merge_resolver_options(base.to_inner_options(Default::default()), another);
-  assert_eq!(
-    options.extensions.expect("should be Ok"),
-    to_string(vec!["a1", "b1"])
-  );
-  assert!(options.prefer_relative.expect("should be Ok"));
-  assert!(!options.symlinks.expect("should be Ok"));
-  assert_eq!(
-    options.main_files.expect("should be Ok"),
-    vec!["d1", "e", "d", "e", "f"]
-  );
-  assert_eq!(
-    options.main_fields.expect("should be Ok"),
-    vec!["g", "h", "i", "h", "g", "h", "i"]
-  );
-  assert_eq!(options.condition_names.expect("should be Ok").len(), 3);
-}
-
-#[test]
-fn test_normalize_string_array() {
-  let base = to_string(vec!["base0", "base1"]);
-  assert!(normalize_string_array(&base, vec![]).is_empty());
-  assert_eq!(
-    normalize_string_array(&base, to_string(vec!["a", "b"])),
-    to_string(vec!["a", "b"])
-  );
-  assert_eq!(
-    normalize_string_array(&base, to_string(vec!["...", "a", "...", "b", "..."])),
-    to_string(vec![
-      "base0", "base1", "a", "base0", "base1", "b", "base0", "base1"
-    ])
-  );
-}
-
 #[cfg(test)]
-fn to_string(a: Vec<&str>) -> Vec<String> {
-  a.into_iter().map(String::from).collect()
+mod test {
+  use super::*;
+
+  fn to_string(a: Vec<&str>) -> Vec<String> {
+    a.into_iter().map(String::from).collect()
+  }
+
+  #[test]
+  fn test_merge_resolver_options() {
+    use crate::AliasMap;
+    let base = Resolve {
+      extensions: Some(to_string(vec!["a", "b"])),
+      alias: Some(vec![("c".to_string(), AliasMap::Ignored)]),
+      symlinks: Some(false),
+      main_files: Some(to_string(vec!["d", "e", "f"])),
+      main_fields: Some(to_string(vec!["g", "h", "i"])),
+      browser_field: Some(true),
+      condition_names: Some(to_string(vec!["j", "k"])),
+      ..Default::default()
+    };
+    let another = Resolve {
+      extensions: Some(to_string(vec!["a1", "b1"])),
+      alias: Some(vec![("c2".to_string(), AliasMap::Ignored)]),
+      prefer_relative: Some(true),
+      browser_field: Some(true),
+      main_files: Some(to_string(vec!["d1", "e", "..."])),
+      main_fields: Some(to_string(vec!["...", "h", "..."])),
+      condition_names: Some(to_string(vec!["f", "..."])),
+      ..Default::default()
+    };
+    let options = merge_resolver_options(base.to_inner_options(Default::default()), another);
+    assert_eq!(
+      options.extensions.expect("should be Ok"),
+      to_string(vec!["a1", "b1"])
+    );
+    assert!(options.prefer_relative.expect("should be Ok"));
+    assert!(!options.symlinks.expect("should be Ok"));
+    assert_eq!(
+      options.main_files.expect("should be Ok"),
+      vec!["d1", "e", "d", "e", "f"]
+    );
+    assert_eq!(
+      options.main_fields.expect("should be Ok"),
+      vec!["g", "h", "i", "h", "g", "h", "i"]
+    );
+    assert_eq!(
+      options.alias.expect("should be Ok"),
+      vec![
+        ("c2".to_string(), AliasMap::Ignored),
+        ("c".to_string(), AliasMap::Ignored)
+      ]
+    );
+    assert_eq!(options.condition_names.expect("should be Ok").len(), 3);
+  }
+
+  #[test]
+  fn test_normalize_string_array() {
+    let base = to_string(vec!["base0", "base1"]);
+    assert!(normalize_string_array(&base, vec![]).is_empty());
+    assert_eq!(
+      normalize_string_array(&base, to_string(vec!["a", "b"])),
+      to_string(vec!["a", "b"])
+    );
+    assert_eq!(
+      normalize_string_array(&base, to_string(vec!["...", "a", "...", "b", "..."])),
+      to_string(vec![
+        "base0", "base1", "a", "base0", "base1", "b", "base0", "base1"
+      ])
+    );
+  }
 }
 
 #[derive(Debug)]
