@@ -1,5 +1,5 @@
 #![recursion_limit = "256"]
-use std::path::PathBuf;
+use std::{hint::black_box, path::PathBuf, time::Duration};
 
 use criterion::{criterion_group, criterion_main, Criterion};
 use mimalloc_rust::GlobalMiMalloc;
@@ -24,6 +24,7 @@ async fn bench(cur_dir: &PathBuf) {
 fn criterion_benchmark(c: &mut Criterion) {
   let mut group = c.benchmark_group("criterion_benchmark");
   group.sample_size(100);
+  group.measurement_time(Duration::new(10, 0));
   let sh = Shell::new().expect("TODO:");
   println!("{:?}", sh.current_dir());
   sh.change_dir(PathBuf::from(env!("CARGO_WORKSPACE_DIR")));
@@ -41,6 +42,7 @@ fn criterion_benchmark(c: &mut Criterion) {
   // sample count reduce to 50
   let mut group = c.benchmark_group("high_cost_benchmark");
   group.sample_size(30);
+  group.measurement_time(Duration::new(180, 0));
   let sh = Shell::new().expect("TODO:");
   println!("{:?}", sh.current_dir());
   sh.change_dir(PathBuf::from(env!("CARGO_WORKSPACE_DIR")));
@@ -62,6 +64,8 @@ criterion_main!(benches);
 macro_rules! generate_bench {
   ($id: ident, $dir: expr, $c: ident, $rt: ident) => {
     let $id: PathBuf = concat!(env!("CARGO_MANIFEST_DIR"), "/../../benchcases/", $dir).into();
-    $c.bench_function(stringify!($id), |b| b.to_async(&$rt).iter(|| bench(&$id)));
+    $c.bench_function(stringify!($id), |b| {
+      b.to_async(&$rt).iter(|| black_box(bench(&$id)))
+    });
   };
 }
