@@ -15,6 +15,7 @@ rayon        = "1"
 regex        = "1"
 rspack_core  = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
+serde_json   = "1.0.91"
 tracing      = "0.1"
 
 [dev-dependencies]

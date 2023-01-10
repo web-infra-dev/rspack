@@ -1,11 +1,12 @@
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
-use rspack_core::rspack_sources::{BoxSource, CachedSource, ConcatSource, RawSource, SourceExt};
+use rspack_core::rspack_sources::{
+  BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, SourceExt,
+};
 use rspack_core::{runtime_globals, ChunkUkey, Compilation, RuntimeModule, SourceType};
 use rspack_error::Result;
-
-use crate::utils::wrap_eval_source_map;
+use rspack_plugin_devtool::wrap_eval_source_map;
 
 static MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(DashMap::default);
 
@@ -37,17 +38,26 @@ pub fn render_chunk_modules(
       code_gen_result
         .get(&SourceType::JavaScript)
         .map(|result| {
+          let origin_source = result.ast_or_source.clone().try_into_source()?;
           let mut module_source =
-            CachedSource::new(result.ast_or_source.clone().try_into_source()?).boxed();
-          if compilation.options.devtool.eval() && compilation.options.devtool.source_map() {
-            let origin_source = module_source.clone();
-            if let Some(cached) = MODULE_RENDER_CACHE.get(&origin_source) {
-              module_source = cached.value().clone();
+            if compilation.options.devtool.eval() && compilation.options.devtool.source_map() {
+              if let Some(cached) = MODULE_RENDER_CACHE.get(&origin_source) {
+                cached.value().clone()
+              } else {
+                let module_source = if let Some(map) =
+                  origin_source.map(&MapOptions::new(compilation.options.devtool.cheap()))
+                {
+                  wrap_eval_source_map(&origin_source.source(), map, compilation)?
+                } else {
+                  origin_source.clone()
+                };
+                let module_source = CachedSource::new(module_source).boxed();
+                MODULE_RENDER_CACHE.insert(origin_source, module_source.clone());
+                module_source
+              }
             } else {
-              module_source = wrap_eval_source_map(module_source, compilation)?;
-              MODULE_RENDER_CACHE.insert(origin_source, module_source.clone());
-            }
-          }
+              origin_source
+            };
           // css or js same content isn't cacheable
           if mgm.module_type.is_css_like() && compilation.options.dev_server.hot {
             // inject css hmr runtime
@@ -94,10 +104,10 @@ if (module.hot) {
 
   let mut sources = ConcatSource::default();
   sources.add(RawSource::from("{\n"));
-  sources.add(CachedSource::new(ConcatSource::new(module_sources)));
+  sources.add(ConcatSource::new(module_sources));
   sources.add(RawSource::from("\n}"));
 
-  Ok(CachedSource::new(sources).boxed())
+  Ok(sources.boxed())
 }
 
 pub fn render_module(source: BoxSource, strict: bool, module_id: &str) -> BoxSource {
@@ -116,7 +126,7 @@ pub fn render_module(source: BoxSource, strict: bool, module_id: &str) -> BoxSou
   sources.add(source);
   sources.add(RawSource::from("},\n"));
 
-  CachedSource::new(sources).boxed()
+  sources.boxed()
 }
 
 pub fn generate_chunk_entry_code(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> BoxSource {
@@ -141,7 +151,7 @@ pub fn generate_chunk_entry_code(compilation: &Compilation, chunk_ukey: &ChunkUk
         }
     })
     .collect::<Vec<_>>();
-  CachedSource::new(ConcatSource::new(sources)).boxed()
+  ConcatSource::new(sources).boxed()
 }
 
 pub fn render_chunk_runtime_modules(
@@ -160,7 +170,7 @@ pub fn render_chunk_runtime_modules(
   )));
   sources.add(runtime_modules_sources);
   sources.add(RawSource::from("\n}\n"));
-  Ok(CachedSource::new(sources).boxed())
+  Ok(sources.boxed())
 }
 
 pub fn render_runtime_modules(
@@ -181,5 +191,5 @@ pub fn render_runtime_modules(
     sources.add(module.generate(compilation));
     sources.add(RawSource::from("\n})();\n"));
   });
-  Ok(CachedSource::new(sources).boxed())
+  Ok(sources.boxed())
 }

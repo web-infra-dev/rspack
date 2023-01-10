@@ -17,8 +17,8 @@ use rspack_core::{
   ast::css::Ast as CssAst,
   get_css_chunk_filename_template,
   rspack_sources::{
-    BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
-    SourceMapSource, SourceMapSourceOptions,
+    BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
+    SourceMapSourceOptions,
   },
   Chunk, ChunkGraph, Compilation, FilenameRenderOptions, GenerateContext, GenerationResult, Module,
   ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, PathData, Plugin,
@@ -649,7 +649,7 @@ impl Plugin for CssPlugin {
         output
       })
       .collect::<Vec<ConcatSource>>();
-    let source = CachedSource::new(ConcatSource::new(sources));
+    let source = ConcatSource::new(sources);
 
     // let hash = Some(get_hash(compilation).to_string());
     // let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
