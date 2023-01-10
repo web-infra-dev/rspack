@@ -15,29 +15,37 @@ on:
       - "rust-toolchain.toml"
       - "rustfmt.toml"
       - "clippy.toml"
-# env:
-#   TRACE: DEBUG
+
+env:
+  RUST_LOG: info
+  CARGO_INCREMENTAL: 0
+  CARGO_NET_RETRY: 10
+  RUSTUP_MAX_RETRIES: 10
 
 jobs:
   format:
     name: Format Rust Files
     runs-on: [self-hosted, rspack-common]
     steps:
-      # - name: Cleanup workspace
-      #   uses: TooMuch4U/actions-clean@v2.1
-      #   if: ${{ always() }}
       - name: Checkout PR Branch
         uses: actions/checkout@v3
         with:
           submodules: false
+
       - name: Support longpaths
         run: git config core.longpaths true
+
       - name: Checkout repository
         uses: actions/checkout@v3
+
       - name: Install toolchain
         run: rustup show
-      #- name: Cache
-      #uses: speedy-js/rust-cache-self-hosted@v1
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: check
+
       - name: Run rustfmt
         uses: actions-rs/cargo@v1
         with:
@@ -48,24 +56,26 @@ jobs:
     name: Lint Rust Files
     runs-on: [self-hosted, rspack-common]
     steps:
-      # - name: Cleanup workspace
-      #   uses: TooMuch4U/actions-clean@v2.1
-      #   if: ${{ always() }}
       - name: Checkout repository
         uses: actions/checkout@v3
-        # - name: Install protoc
-        #   uses: arduino/setup-protoc@v1
+
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install toolchain
         run: rustup show
-      #- name: Cache
-      # uses: speedy-js/rust-cache-self-hosted@v1
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: check
+
       - name: Run clippy
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: --workspace --all-targets --verbose -- --deny warnings
+
       - name: Check Dependencies
         run: |
           node ./scripts/check_rust_dependency.js
@@ -77,24 +87,27 @@ jobs:
     runs-on: [self-hosted, rspack-common]
     timeout-minutes: 30
     steps:
-      # - name: Cleanup workspace
-      #   uses: TooMuch4U/actions-clean@v2.1
-      #   if: ${{ always() }}
       - name: Checkout repository
         uses: actions/checkout@v3
-        # - name: Install protoc
-        #   uses: arduino/setup-protoc@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: actions/setup-node@v3
         with:
           node-version: "16"
+
       - name: Install toolchain
         run: rustup show
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: check
+
       - name: Run test
         # We need to install sass first to enable sass-loader
         run: |
-          node -e "console.log(process.arch)"  
+          node -e "console.log(process.arch)"
           npm i -g pnpm
           pnpm i
           cargo test --all -- --nocapture
