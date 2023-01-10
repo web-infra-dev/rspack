@@ -6,7 +6,8 @@
 "use strict";
 
 const Factory = require("enhanced-resolve").ResolverFactory;
-const { HookMap, SyncHook, SyncWaterfallHook } = require("tapable");
+import { HookMap, SyncHook, SyncWaterfallHook } from "tapable";
+
 const {
 	cachedCleverMerge,
 	removeOperations,
@@ -69,7 +70,7 @@ const convertToResolveOptions = resolveOptionsWithDepType => {
  * @property {Map<string, ResolverWithOptions>} stringified
  */
 
-module.exports = class ResolverFactory {
+export default class ResolverFactory {
 	constructor() {
 		this.hooks = Object.freeze({
 			/** @type {HookMap<SyncWaterfallHook<[ResolveOptionsWithDependencyType]>>} */
@@ -148,4 +149,4 @@ module.exports = class ResolverFactory {
 			.call(resolver, resolveOptions, originalResolveOptions);
 		return resolver;
 	}
-};
+}
