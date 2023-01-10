@@ -38,7 +38,7 @@ impl CreateChunkAssetsOccasion {
       .chunk_graph
       .get_chunk_graph_chunk(&chunk.ukey)
       .modules;
-    let is_cache_valid = modules.into_iter().all(|module_id| {
+    let is_cache_valid = modules.iter().all(|module_id| {
       matches!(
         compilation
           .module_graph

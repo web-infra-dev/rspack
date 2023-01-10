@@ -1,9 +1,10 @@
 use std::cmp::PartialEq;
+use std::collections::hash_map::Entry;
 use std::hash::{Hash, Hasher};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use hashbrown::{HashMap, HashSet};
 use rspack_error::{internal_error, Error, Result};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{BoxModule, BoxModuleDependency, IdentifierMap, ModuleGraphModule, ModuleIdentifier};
 
@@ -76,7 +77,7 @@ pub struct ModuleGraph {
 
 impl ModuleGraph {
   pub fn add_module_graph_module(&mut self, module_graph_module: ModuleGraphModule) {
-    if let hashbrown::hash_map::Entry::Vacant(val) = self
+    if let Entry::Vacant(val) = self
       .module_identifier_to_module_graph_module
       .entry(module_graph_module.module_identifier)
     {
@@ -85,9 +86,7 @@ impl ModuleGraph {
   }
 
   pub fn add_module(&mut self, module: BoxModule) {
-    if let hashbrown::hash_map::Entry::Vacant(val) =
-      self.module_identifier_to_module.entry(module.identifier())
-    {
+    if let Entry::Vacant(val) = self.module_identifier_to_module.entry(module.identifier()) {
       val.insert(module);
     }
   }

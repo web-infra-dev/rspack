@@ -8,7 +8,6 @@ use std::sync::Arc;
 
 use anyhow::bail;
 use bitflags::bitflags;
-use hashbrown::HashSet;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use preset_env_base::query::{Query, Targets};
@@ -233,7 +232,7 @@ impl CssPlugin {
     let mut final_modules: Vec<ModuleIdentifier> = vec![];
 
     loop {
-      let mut failed_modules: IdentifierSet = HashSet::default();
+      let mut failed_modules: IdentifierSet = Default::default();
       let list = modules_by_chunk_group[0].list.clone();
       if list.is_empty() {
         // done, everything empty

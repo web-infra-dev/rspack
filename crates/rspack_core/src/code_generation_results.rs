@@ -1,7 +1,8 @@
+use std::collections::hash_map::Entry;
 use std::hash::{Hash, Hasher};
 
-use hashbrown::{HashMap, HashSet};
 use rspack_error::{internal_error, Error, Result};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
@@ -109,10 +110,10 @@ impl CodeGenerationResults {
     result: ModuleIdentifier,
   ) {
     match self.map.entry(module_identifier) {
-      hashbrown::hash_map::Entry::Occupied(mut record) => {
+      Entry::Occupied(mut record) => {
         record.get_mut().set(runtime, result);
       }
-      hashbrown::hash_map::Entry::Vacant(record) => {
+      Entry::Vacant(record) => {
         let mut spec_map = RuntimeSpecMap::default();
         spec_map.set(runtime, result);
         record.insert(spec_map);
@@ -129,7 +130,7 @@ impl CodeGenerationResults {
       Ok(result) => result.runtime_requirements.clone(),
       Err(_) => {
         print!("Failed to get runtime requirements for {module_identifier}");
-        HashSet::new()
+        HashSet::default()
       }
     }
   }

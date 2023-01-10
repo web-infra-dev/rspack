@@ -987,8 +987,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
 dependencies = [
  "ahash",
- "rayon",
- "serde",
 ]
 
 [[package]]
@@ -2237,7 +2235,6 @@ dependencies = [
  "criterion",
  "crossbeam",
  "dashmap",
- "hashbrown",
  "insta",
  "mimalloc-rust",
  "once_cell",
@@ -2317,7 +2314,6 @@ dependencies = [
  "dyn-clone",
  "futures",
  "globset",
- "hashbrown",
  "hashlink",
  "indexmap",
  "nodejs-resolver",
@@ -2332,6 +2328,7 @@ dependencies = [
  "rspack_sources",
  "rspack_symbol",
  "rspack_tracing",
+ "rustc-hash",
  "serde",
  "serde_json",
  "sugar_path",
@@ -2380,9 +2377,9 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "hashbrown",
  "rspack_error",
  "rspack_sources",
+ "rustc-hash",
  "similar-asserts",
  "tokio",
  "tracing",
@@ -2419,7 +2416,6 @@ dependencies = [
  "async-trait",
  "base64",
  "dashmap",
- "hashbrown",
  "mime_guess",
  "once_cell",
  "rayon",
@@ -2441,7 +2437,6 @@ dependencies = [
  "better_scoped_tls",
  "bitflags",
  "dashmap",
- "hashbrown",
  "heck",
  "hrx-parser",
  "indexmap",
@@ -2456,6 +2451,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_test",
+ "rustc-hash",
  "serde",
  "serde_json",
  "sugar_path",
@@ -2471,7 +2467,6 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "base64",
- "hashbrown",
  "once_cell",
  "pathdiff",
  "rayon",
@@ -2479,6 +2474,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_test",
+ "rustc-hash",
  "serde_json",
  "tracing",
 ]
@@ -2502,13 +2498,13 @@ dependencies = [
  "async-trait",
  "base64",
  "dojang",
- "hashbrown",
  "itertools",
  "once_cell",
  "rayon",
  "rspack_core",
  "rspack_error",
  "rspack_test",
+ "rustc-hash",
  "serde",
  "serde_json",
  "sha2",
@@ -2528,7 +2524,6 @@ dependencies = [
  "better_scoped_tls",
  "dashmap",
  "either",
- "hashbrown",
  "linked_hash_set",
  "once_cell",
  "preset_env_base",
@@ -2539,6 +2534,7 @@ dependencies = [
  "rspack_plugin_devtool",
  "rspack_symbol",
  "rspack_test",
+ "rustc-hash",
  "serde",
  "sourcemap",
  "sugar_path",
@@ -2552,7 +2548,6 @@ name = "rspack_plugin_json"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "hashbrown",
  "json",
  "ropey",
  "rspack_core",
@@ -2577,11 +2572,11 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "hashbrown",
  "itertools",
  "rspack_core",
  "rspack_error",
  "rspack_plugin_javascript",
+ "rustc-hash",
 ]
 
 [[package]]
@@ -2589,9 +2584,9 @@ name = "rspack_plugin_split_chunks"
 version = "0.1.0"
 dependencies = [
  "derivative",
- "hashbrown",
  "rspack_core",
  "rspack_util",
+ "rustc-hash",
  "tracing",
 ]
 

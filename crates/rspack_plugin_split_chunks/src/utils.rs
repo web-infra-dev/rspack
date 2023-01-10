@@ -1,8 +1,8 @@
 use std::cmp::Ordering;
 
-use hashbrown::HashMap;
 use rspack_core::{Chunk, ChunkGroupByUkey, ModuleIdentifier, SourceType};
 use rspack_util::comparators::compare_ids;
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{plugin::ChunksInfoItem, CacheGroupByKey, SizeType, SplitChunkSizes};
 

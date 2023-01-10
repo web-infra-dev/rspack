@@ -1,8 +1,8 @@
-use hashbrown::HashSet;
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
   runtime_globals, ChunkUkey, Compilation, RuntimeModule, RUNTIME_MODULE_STAGE_ATTACH,
 };
+use rustc_hash::FxHashSet as HashSet;
 
 use super::utils::chunk_has_js;
 use crate::runtime_module::utils::{get_initial_chunk_ids, stringify_chunks};

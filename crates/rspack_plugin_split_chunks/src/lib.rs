@@ -1,11 +1,12 @@
 #![feature(option_get_or_insert_default)]
+#![feature(map_many_mut)]
 
 mod plugin;
 use std::sync::Arc;
 
-use hashbrown::HashMap;
 use plugin::ChunksInfoItem;
 pub use plugin::SplitChunksPlugin;
+use rustc_hash::FxHashMap as HashMap;
 mod options;
 pub use options::*;
 use rspack_core::{Chunk, ChunkGroupByUkey, Module};

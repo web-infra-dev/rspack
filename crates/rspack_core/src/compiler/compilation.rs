@@ -1,8 +1,9 @@
 use std::{
   borrow::BorrowMut,
+  collections::hash_map::Entry,
   collections::VecDeque,
   fmt::Debug,
-  hash::{Hash, Hasher},
+  hash::{BuildHasherDefault, Hash, Hasher},
   marker::PhantomPinned,
   path::PathBuf,
   pin::Pin,
@@ -11,11 +12,6 @@ use std::{
 
 use dashmap::DashSet;
 use futures::{stream::FuturesUnordered, StreamExt};
-use hashbrown::{
-  hash_map::{DefaultHashBuilder, Entry},
-  hash_set::Entry::{Occupied, Vacant},
-  HashMap, HashSet,
-};
 use indexmap::IndexSet;
 use petgraph::{algo, prelude::GraphMap, Directed};
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
@@ -25,6 +21,7 @@ use rspack_error::{
 };
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rspack_symbol::{IndirectTopLevelSymbol, IndirectType, Symbol};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::atoms::JsWord;
 use tokio::sync::mpsc::error::TryRecvError;
 use tracing::instrument;
@@ -68,8 +65,8 @@ pub struct Compilation {
   pub chunk_group_by_ukey: HashMap<ChunkGroupUkey, ChunkGroup>,
   pub entrypoints: HashMap<String, ChunkGroupUkey>,
   pub assets: CompilationAssets,
-  pub emitted_assets: DashSet<String, hashbrown::hash_map::DefaultHashBuilder>,
-  diagnostics: IndexSet<Diagnostic, hashbrown::hash_map::DefaultHashBuilder>,
+  pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
+  diagnostics: IndexSet<Diagnostic, BuildHasherDefault<FxHasher>>,
   pub plugin_driver: SharedPluginDriver,
   pub(crate) loader_runner_runner: Arc<LoaderRunnerRunner>,
   pub named_chunks: HashMap<String, ChunkUkey>,
@@ -93,10 +90,10 @@ pub struct Compilation {
   pub lazy_visit_modules: std::collections::HashSet<String>,
   pub used_chunk_ids: HashSet<String>,
 
-  pub file_dependencies: IndexSet<PathBuf, DefaultHashBuilder>,
-  pub context_dependencies: IndexSet<PathBuf, DefaultHashBuilder>,
-  pub missing_dependencies: IndexSet<PathBuf, DefaultHashBuilder>,
-  pub build_dependencies: IndexSet<PathBuf, DefaultHashBuilder>,
+  pub file_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
+  pub context_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
+  pub missing_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
+  pub build_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
 }
 
 impl Compilation {
@@ -127,7 +124,7 @@ impl Compilation {
       named_chunks: Default::default(),
       named_chunk_groups: Default::default(),
       entry_module_identifiers: IdentifierSet::default(),
-      used_symbol: HashSet::new(),
+      used_symbol: HashSet::default(),
       #[cfg(debug_assertions)]
       tree_shaking_result: IdentifierMap::default(),
       bailout_module_identifiers: IdentifierMap::default(),
@@ -841,10 +838,10 @@ impl Compilation {
         .inherit_export_maps = inherit_export_maps;
     }
     let mut errors = vec![];
-    let mut used_symbol = HashSet::new();
-    let mut used_indirect_symbol: HashSet<IndirectTopLevelSymbol> = HashSet::new();
+    let mut used_symbol = HashSet::default();
+    let mut used_indirect_symbol: HashSet<IndirectTopLevelSymbol> = HashSet::default();
     let mut used_export_module_identifiers: IdentifierSet = IdentifierSet::default();
-    let mut traced_tuple = HashSet::new();
+    let mut traced_tuple = HashSet::default();
     // Marking used symbol and all reachable export symbol from the used symbol for each module
     let used_symbol_from_import = mark_used_symbol_with(
       &analyze_results,
@@ -907,8 +904,7 @@ impl Compilation {
 
     if side_effects_analyze {
       // pruning
-      let mut visited: IdentifierSet =
-        HashSet::from_iter(self.entry_module_identifiers.iter().cloned());
+      let mut visited = self.entry_module_identifiers.clone();
       let mut q = VecDeque::from_iter(visited.iter().cloned());
       while let Some(module_identifier) = q.pop_front() {
         let result = analyze_results.get(&module_identifier);
@@ -973,12 +969,11 @@ impl Compilation {
           };
           // .unwrap_or_else(|| panic!("Failed to resolve {dep:?}"))
           // .module_identifier;
-          match visited.entry(module_ident) {
-            Occupied(_) => continue,
-            Vacant(vac) => {
-              q.push_back(*vac.get());
-              vac.insert();
-            }
+          if !visited.contains(&module_ident) {
+            q.push_back(module_ident);
+            visited.insert(module_ident);
+          } else {
+            continue;
           }
         }
       }
@@ -1091,9 +1086,9 @@ impl Compilation {
     }
     tracing::trace!("runtime requirements.modules");
 
-    let mut chunk_requirements = HashMap::new();
+    let mut chunk_requirements = HashMap::default();
     for (chunk_ukey, chunk) in self.chunk_by_ukey.iter() {
-      let mut set = HashSet::new();
+      let mut set = HashSet::default();
       for module in self
         .chunk_graph
         .get_chunk_modules(chunk_ukey, &self.module_graph)
@@ -1129,7 +1124,7 @@ impl Compilation {
         .get(entry_ukey)
         .expect("chunk not found by ukey");
 
-      let mut set = HashSet::new();
+      let mut set = HashSet::default();
 
       for chunk_ukey in entry
         .get_all_referenced_chunks(&self.chunk_group_by_ukey)
@@ -1359,13 +1354,13 @@ fn collect_reachable_symbol(
   options: &Arc<CompilerOptions>,
   errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
-  let mut used_symbol_set = HashSet::new();
+  let mut used_symbol_set = HashSet::default();
   let mut q = VecDeque::new();
   let entry_module_result = match analyze_map.get(&entry_identifier) {
     Some(result) => result,
     None => {
       // TODO: checking if it is none js type
-      return HashSet::new();
+      return HashSet::default();
       // panic!("Can't get analyze result from entry_identifier {}", entry_identifier);
     }
   };
@@ -1452,8 +1447,8 @@ fn mark_used_symbol_with(
   options: &Arc<CompilerOptions>,
   errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
-  let mut used_symbol_set = HashSet::new();
-  let mut visited = HashSet::new();
+  let mut used_symbol_set = HashSet::default();
+  let mut visited = HashSet::default();
 
   while let Some(sym_ref) = init_queue.pop_front() {
     if visited.contains(&sym_ref) {
@@ -1511,13 +1506,12 @@ fn mark_symbol(
     _ => {}
   };
   match symbol_ref {
-    SymbolRef::Direct(symbol) => match used_symbol_set.entry(symbol) {
-      Occupied(_) => {}
-      Vacant(vac) => {
-        let module_result = analyze_map.get(&vac.get().uri().into()).expect("TODO:");
+    SymbolRef::Direct(symbol) => {
+      if !used_symbol_set.contains(&symbol) {
+        let module_result = analyze_map.get(&symbol.uri().into()).expect("TODO:");
         if let Some(set) = module_result
           .reachable_import_of_export
-          .get(&vac.get().id().atom)
+          .get(&symbol.id().atom)
         {
           q.extend(set.iter().cloned());
         };
@@ -1530,16 +1524,16 @@ fn mark_symbol(
         // one for `app.js`, one for `lib.js`
         // the binding in `app.js` used for shake the `export {xxx}`
         // In other words, we need two binding for supporting indirect redirect.
-        if let Some(symbol_ref) = module_result.import_map.get(vac.get().id()) {
+        if let Some(symbol_ref) = module_result.import_map.get(symbol.id()) {
           q.push_back(symbol_ref.clone());
         }
-        if !evaluated_module_identifiers.contains(&vac.get().uri().into()) {
-          evaluated_module_identifiers.insert(vac.get().uri().into());
+        if !evaluated_module_identifiers.contains(&symbol.uri().into()) {
+          evaluated_module_identifiers.insert(symbol.uri().into());
           q.extend(module_result.used_symbol_ref.clone());
         }
-        vac.insert();
+        used_symbol_set.insert(symbol);
       }
-    },
+    }
     SymbolRef::Indirect(indirect_symbol) => {
       let importer = indirect_symbol.importer();
       if indirect_symbol.ty == IndirectType::ReExport
@@ -1741,9 +1735,10 @@ fn get_reachable(
   let mut reachable_module_id = IdentifierLinkedSet::default();
   let mut q = VecDeque::from_iter([start]);
   while let Some(cur) = q.pop_front() {
-    match visited.entry(cur) {
-      hashbrown::hash_set::Entry::Occupied(_) => continue,
-      hashbrown::hash_set::Entry::Vacant(vac) => vac.insert(),
+    if !visited.contains(&cur) {
+      visited.insert(cur);
+    } else {
+      continue;
     }
     if cur != start {
       reachable_module_id.insert(cur);

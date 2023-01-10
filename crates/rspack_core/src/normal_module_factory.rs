@@ -3,8 +3,8 @@ use std::{
   sync::Arc,
 };
 
-use hashbrown::{hash_map::DefaultHashBuilder, HashSet};
 use rspack_error::{internal_error, Error, Result};
+use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::Span;
 use tracing::instrument;
 
@@ -36,9 +36,9 @@ use crate::{
 #[derive(Debug)]
 pub struct FactorizeResult {
   pub module: BoxModule,
-  pub file_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
-  pub context_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
-  pub missing_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
+  pub file_dependencies: HashSet<PathBuf>,
+  pub context_dependencies: HashSet<PathBuf>,
+  pub missing_dependencies: HashSet<PathBuf>,
 }
 
 impl FactorizeResult {

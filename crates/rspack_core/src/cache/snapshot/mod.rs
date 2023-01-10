@@ -1,6 +1,6 @@
 use std::{path::PathBuf, time::SystemTime};
 
-use hashbrown::HashMap;
+use rustc_hash::FxHashMap as HashMap;
 
 mod manager;
 pub use manager::SnapshotManager;

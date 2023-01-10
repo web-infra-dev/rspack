@@ -6,7 +6,7 @@
 
 use std::{fmt, sync::Arc};
 
-use hashbrown::{HashMap, HashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 pub mod ast;
 pub mod cache;

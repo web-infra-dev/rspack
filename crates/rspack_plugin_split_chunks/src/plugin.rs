@@ -3,14 +3,14 @@
 #![allow(clippy::obfuscated_if_else)]
 #![allow(clippy::comparison_chain)]
 
-use std::{collections::HashSet, fmt::Debug, sync::Arc};
+use std::{fmt::Debug, sync::Arc};
 
 use derivative::Derivative;
-use hashbrown::HashMap;
 use rspack_core::{
   Chunk, ChunkGroupByUkey, ChunkUkey, Compilation, IdentifierSet, Module, ModuleGraph, Plugin,
   SourceType,
 };
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   utils::{
@@ -687,7 +687,7 @@ impl SplitChunksPlugin {
     used_chunks: &mut HashSet<ChunkUkey>,
     compilation: &mut Compilation,
   ) {
-    let mut to_be_deleted = HashSet::new();
+    let mut to_be_deleted = HashSet::default();
     // remove all modules from other entries and update size
     for (key, info) in chunks_info_map.iter_mut() {
       let is_overlap = info.chunks.union(used_chunks).next().is_some();

@@ -1,7 +1,7 @@
+use std::collections::{HashMap, HashSet};
 use std::hash::BuildHasherDefault;
 use std::{convert::From, fmt, ops::Deref};
 
-use hashbrown::{HashMap, HashSet};
 use hashlink::{LinkedHashMap, LinkedHashSet};
 use ustr::{IdentityHasher, Ustr};
 

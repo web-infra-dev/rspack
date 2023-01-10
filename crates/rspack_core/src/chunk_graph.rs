@@ -1,4 +1,4 @@
-use hashbrown::{HashMap, HashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   find_module_graph_roots, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey,
@@ -394,7 +394,7 @@ impl ChunkGraph {
     module_graph: &ModuleGraph,
     filter: F,
   ) -> HashMap<String, bool> {
-    let mut map = HashMap::new();
+    let mut map = HashMap::default();
 
     let chunk = chunk_by_ukey.get(chunk_ukey).expect("Chunk should exist");
     for c in chunk.get_all_referenced_chunks(chunk_group_by_ukey).iter() {

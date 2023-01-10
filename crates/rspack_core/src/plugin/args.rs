@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
-use hashbrown::HashSet;
 use rspack_error::{internal_error, Error, Result};
+use rustc_hash::FxHashSet as HashSet;
 
 use crate::ast::css::Ast as CssAst;
 use crate::ast::javascript::Ast as JsAst;

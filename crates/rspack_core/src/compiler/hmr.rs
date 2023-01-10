@@ -3,9 +3,9 @@ use std::{
   ops::Sub,
 };
 
-use hashbrown::{HashMap, HashSet};
 use rspack_error::Result;
 use rspack_sources::{RawSource, SourceExt};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   fast_set, AssetInfo, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler, IdentifierMap,
@@ -189,7 +189,7 @@ impl Compiler {
         );
       }
     }
-    for (identifier, _) in &now_all_modules {
+    for identifier in now_all_modules.keys() {
       if !old_all_modules.contains_key(identifier) {
         // added
         updated_modules.insert(*identifier);
@@ -204,7 +204,7 @@ impl Compiler {
         }
       }
     }
-    for (identifier, _) in &now_runtime_modules {
+    for identifier in now_runtime_modules.keys() {
       if !old_runtime_modules.contains_key(identifier) {
         // added
         updated_runtime_modules.insert(identifier.clone());

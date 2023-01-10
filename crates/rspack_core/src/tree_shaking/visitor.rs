@@ -1,10 +1,12 @@
-use std::{collections::VecDeque, hash::Hash, path::PathBuf, sync::Arc};
+use std::{
+  collections::hash_map::Entry, collections::VecDeque, hash::Hash, path::PathBuf, sync::Arc,
+};
 
 use bitflags::bitflags;
 use globset::{Glob, GlobSetBuilder};
-use hashbrown::{hash_map::Entry, HashMap, HashSet};
 use hashlink::LinkedHashMap;
 use rspack_symbol::{BetterId, IdOrMemExpr, IndirectTopLevelSymbol, Symbol, SymbolExt, SymbolFlag};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
 use swc_core::common::{util::take::Take, Mark, GLOBALS};
 use swc_core::ecma::ast::*;
@@ -107,7 +109,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       import_map: HashMap::default(),
       inherit_export_maps: LinkedHashMap::default(),
       current_body_owner_symbol_ext: None,
-      maybe_lazy_reference_map: HashMap::new(),
+      maybe_lazy_reference_map: HashMap::default(),
       reachable_import_and_export: HashMap::default(),
       state: AnalyzeState::empty(),
       used_id_set: HashSet::default(),
@@ -117,7 +119,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       bail_out_module_identifiers: IdentifierMap::default(),
       resolver,
       side_effects_free: false,
-      immediate_evaluate_reference_map: HashMap::new(),
+      immediate_evaluate_reference_map: HashMap::default(),
     }
   }
 

@@ -1,8 +1,8 @@
 // Port of https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/optimize/SplitChunksPlugin.js#L55
 
 use derivative::Derivative;
-use hashbrown::HashMap;
 use rspack_core::SourceType;
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{ChunkFilter, GetName};
 

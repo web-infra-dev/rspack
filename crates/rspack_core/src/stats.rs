@@ -1,10 +1,10 @@
-use hashbrown::HashMap;
 use rspack_error::{
   emitter::{
     DiagnosticDisplay, DiagnosticDisplayer, StdioDiagnosticDisplay, StringDiagnosticDisplay,
   },
   Result,
 };
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{BoxModule, Chunk, Compilation, ModuleIdentifier, ModuleType, SourceType};
 
@@ -34,8 +34,8 @@ impl<'compilation> Stats<'compilation> {
 
 impl Stats<'_> {
   pub fn get_assets(&self) -> Vec<StatsAsset> {
-    let mut compilation_file_to_chunks: HashMap<&String, Vec<&Chunk>> = HashMap::new();
-    for (_, chunk) in &self.compilation.chunk_by_ukey {
+    let mut compilation_file_to_chunks: HashMap<&String, Vec<&Chunk>> = HashMap::default();
+    for chunk in self.compilation.chunk_by_ukey.values() {
       for file in &chunk.files {
         let chunks = compilation_file_to_chunks.entry(file).or_default();
         chunks.push(chunk);
@@ -59,7 +59,7 @@ impl Stats<'_> {
           },
         )
       }));
-    for (_, asset) in &self.compilation.assets {
+    for asset in self.compilation.assets.values() {
       if let Some(source_map) = &asset.get_info().related.source_map {
         assets.remove(source_map);
       }

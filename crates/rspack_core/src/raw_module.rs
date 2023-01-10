@@ -1,9 +1,9 @@
 use std::borrow::Cow;
 use std::hash::Hash;
 
-use hashbrown::HashSet;
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_sources::{BoxSource, RawSource, Source};
+use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   identifier::Identifiable, AstOrSource, BuildContext, BuildResult, CodeGenerationResult, Context,

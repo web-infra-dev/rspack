@@ -7,11 +7,11 @@ use std::{path::Path, sync::Arc};
 
 use anyhow::Context;
 pub use compilation::*;
-use hashbrown::HashMap;
 pub use queue::*;
 use rayon::prelude::*;
 pub use resolver::*;
 use rspack_error::{Error, Result};
+use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::RwLock;
 use tracing::instrument;
 

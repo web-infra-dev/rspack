@@ -1,9 +1,9 @@
-use hashbrown::HashMap;
 use rspack_core::{
   get_css_chunk_filename_template, get_js_chunk_filename_template,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, FilenameRenderOptions, RuntimeModule, SourceType,
 };
+use rustc_hash::FxHashMap as HashMap;
 
 use super::utils::stringify_map;
 
@@ -47,7 +47,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
             false => chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey),
           };
 
-          let mut chunks_map = HashMap::new();
+          let mut chunks_map = HashMap::default();
           for chunk_ukey in chunks.iter() {
             if !compilation
               .chunk_graph

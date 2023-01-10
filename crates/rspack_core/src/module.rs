@@ -3,11 +3,10 @@ use std::path::PathBuf;
 use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
-use hashbrown::hash_map::DefaultHashBuilder;
-use hashbrown::HashSet;
 use rspack_error::{internal_error, Error, Result, TWithDiagnosticArray};
 use rspack_loader_runner::Loader;
 use rspack_sources::Source;
+use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   AsAny, CodeGenerationResult, Compilation, CompilationContext, CompilerContext, CompilerOptions,
@@ -24,10 +23,10 @@ pub struct BuildContext<'a> {
 #[derive(Debug, Default, Clone)]
 pub struct BuildResult {
   pub cacheable: bool,
-  pub file_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
-  pub context_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
-  pub missing_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
-  pub build_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
+  pub file_dependencies: HashSet<PathBuf>,
+  pub context_dependencies: HashSet<PathBuf>,
+  pub missing_dependencies: HashSet<PathBuf>,
+  pub build_dependencies: HashSet<PathBuf>,
   pub dependencies: Vec<Box<dyn ModuleDependency>>,
 }
 
