@@ -82,7 +82,20 @@ dependencies = [
  "pmutil",
  "proc-macro2",
  "quote",
- "swc_macros_common",
+ "swc_macros_common 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn",
+]
+
+[[package]]
+name = "ast_node"
+version = "0.8.6"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "darling",
+ "pmutil",
+ "proc-macro2",
+ "quote",
+ "swc_macros_common 0.3.6 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "syn",
 ]
 
@@ -157,6 +170,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "better_scoped_tls"
+version = "0.1.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "scoped-tls",
+]
+
+[[package]]
 name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -189,7 +210,7 @@ dependencies = [
  "serde",
  "serde-wasm-bindgen",
  "serde_json",
- "string_cache",
+ "string_cache 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache_codegen",
  "thiserror",
  "wasm-bindgen",
@@ -581,7 +602,18 @@ checksum = "78b940da354ae81ef0926c5eaa428207b8f4f091d3956c891dfbd124162bed99"
 dependencies = [
  "pmutil",
  "proc-macro2",
- "swc_macros_common",
+ "swc_macros_common 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn",
+]
+
+[[package]]
+name = "enum_kind"
+version = "0.2.1"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "pmutil",
+ "proc-macro2",
+ "swc_macros_common 0.3.6 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "syn",
 ]
 
@@ -623,7 +655,18 @@ checksum = "f0981e470d2ab9f643df3921d54f1952ea100c39fdb6a3fdc820e20d2291df6c"
 dependencies = [
  "pmutil",
  "proc-macro2",
- "swc_macros_common",
+ "swc_macros_common 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn",
+]
+
+[[package]]
+name = "from_variant"
+version = "0.1.4"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "pmutil",
+ "proc-macro2",
+ "swc_macros_common 0.3.6 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "syn",
 ]
 
@@ -1762,7 +1805,24 @@ dependencies = [
  "anyhow",
  "browserslist-rs",
  "dashmap",
- "from_variant",
+ "from_variant 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "once_cell",
+ "semver 1.0.13",
+ "serde",
+ "st-map",
+ "tracing",
+]
+
+[[package]]
+name = "preset_env_base"
+version = "0.4.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "ahash",
+ "anyhow",
+ "browserslist-rs",
+ "dashmap",
+ "from_variant 0.1.4 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "once_cell",
  "semver 1.0.16",
  "serde",
@@ -2249,7 +2309,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "better_scoped_tls",
+ "better_scoped_tls 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags",
  "dashmap",
  "heck",
@@ -2258,7 +2318,7 @@ dependencies = [
  "itertools",
  "linked_hash_set",
  "once_cell",
- "preset_env_base",
+ "preset_env_base 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rayon",
  "regex",
  "rspack_core",
@@ -2331,12 +2391,20 @@ dependencies = [
  "anyhow",
  "async-trait",
  "base64",
- "better_scoped_tls",
+ "better_scoped_tls 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "dashmap",
  "either",
  "linked_hash_set",
  "once_cell",
+<<<<<<< HEAD
  "preset_env_base",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "pathdiff",
+ "preset_env_base",
+=======
+ "pathdiff",
+ "preset_env_base 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
  "rayon",
  "regex",
  "rspack_core",
@@ -2774,6 +2842,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "string_cache"
+version = "0.8.4"
+source = "git+https://github.com/swc-project/string-cache?branch=swc#db382616e9a1bf71bff2004853c3ab88f85a2235"
+dependencies = [
+ "new_debug_unreachable",
+ "once_cell",
+ "phf_shared",
+ "precomputed-hash",
+ "serde",
+]
+
+[[package]]
 name = "string_cache_codegen"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2794,7 +2874,19 @@ dependencies = [
  "pmutil",
  "proc-macro2",
  "quote",
- "swc_macros_common",
+ "swc_macros_common 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn",
+]
+
+[[package]]
+name = "string_enum"
+version = "0.3.2"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "pmutil",
+ "proc-macro2",
+ "quote",
+ "swc_macros_common 0.3.6 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "syn",
 ]
 
@@ -2852,9 +2944,18 @@ dependencies = [
 
 [[package]]
 name = "swc"
+<<<<<<< HEAD
 version = "0.245.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93777c12f330e7ad658f248f653a81ce7f203d0514faafee885e5946bf2e0a9e"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.237.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a7e3d0c1773a3a978b9393ba383580243323e409c412ab32737a5d424bc7604"
+=======
+version = "0.240.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "ahash",
  "anyhow",
@@ -2872,28 +2973,52 @@ dependencies = [
  "serde",
  "serde_json",
  "sourcemap",
- "swc_atoms",
- "swc_cached",
- "swc_common",
- "swc_config",
- "swc_ecma_ast",
- "swc_ecma_codegen",
+ "swc_atoms 0.4.33",
+ "swc_cached 0.3.15 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_config 0.1.4 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_ast 0.96.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_codegen 0.129.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "swc_ecma_ext_transforms",
  "swc_ecma_lints",
  "swc_ecma_loader",
+<<<<<<< HEAD
  "swc_ecma_minifier 0.166.7",
  "swc_ecma_parser",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_ecma_minifier",
+ "swc_ecma_parser",
+=======
+ "swc_ecma_minifier 0.161.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_parser 0.124.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
  "swc_ecma_preset_env",
  "swc_ecma_transforms",
+<<<<<<< HEAD
  "swc_ecma_transforms_base 0.116.4",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_ecma_transforms_base",
+=======
+ "swc_ecma_transforms_base 0.113.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
  "swc_ecma_transforms_compat",
+<<<<<<< HEAD
  "swc_ecma_transforms_optimization 0.172.7",
  "swc_ecma_utils",
  "swc_ecma_visit",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_ecma_transforms_optimization",
+ "swc_ecma_utils",
+ "swc_ecma_visit",
+=======
+ "swc_ecma_transforms_optimization 0.169.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_utils 0.107.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_visit 0.82.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
  "swc_error_reporters",
  "swc_node_comments",
- "swc_timer",
- "swc_visit",
+ "swc_timer 0.17.29 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_visit 0.5.3 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "tracing",
  "url",
 ]
@@ -2907,7 +3032,20 @@ dependencies = [
  "once_cell",
  "rustc-hash",
  "serde",
- "string_cache",
+ "string_cache 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache_codegen",
+ "triomphe",
+]
+
+[[package]]
+name = "swc_atoms"
+version = "0.4.33"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "once_cell",
+ "rustc-hash",
+ "serde",
+ "string_cache 0.8.4 (git+https://github.com/swc-project/string-cache?branch=swc)",
  "string_cache_codegen",
  "triomphe",
 ]
@@ -2927,18 +3065,69 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "swc_common"
 version = "0.29.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a97e491d31418cd33fea58e9f893316fc04b30e2b5d0e750c066e2ba4907ae54"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+name = "swc_common"
+version = "0.29.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "506321cad7393893018aac83a3b3bd25203883e8c47ab0864bb43195d43b22dd"
+=======
+name = "swc_cached"
+version = "0.3.15"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "ahash",
- "ast_node",
- "atty",
- "better_scoped_tls",
+ "anyhow",
+ "dashmap",
+ "once_cell",
+ "regex",
+ "serde",
+]
+
+[[package]]
+name = "swc_common"
+version = "0.29.27"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "90a2c285d33b47a5e532a662c178dc91956534ff52207892918d3034a534ae12"
+dependencies = [
+ "ahash",
+ "ast_node 0.8.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "better_scoped_tls 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cfg-if",
  "either",
- "from_variant",
+ "from_variant 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "new_debug_unreachable",
+ "num-bigint",
+ "once_cell",
+ "rustc-hash",
+ "serde",
+ "siphasher",
+ "string_cache 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_atoms 0.4.32",
+ "swc_eq_ignore_macros 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_visit 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tracing",
+ "unicode-width",
+ "url",
+]
+
+[[package]]
+name = "swc_common"
+version = "0.29.27"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "ahash",
+ "ast_node 0.8.6 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "atty",
+ "better_scoped_tls 0.1.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "cfg-if",
+ "either",
+ "from_variant 0.1.4 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "new_debug_unreachable",
  "num-bigint",
  "once_cell",
@@ -2947,10 +3136,10 @@ dependencies = [
  "serde",
  "siphasher",
  "sourcemap",
- "string_cache",
- "swc_atoms",
- "swc_eq_ignore_macros",
- "swc_visit",
+ "string_cache 0.8.4 (git+https://github.com/swc-project/string-cache?branch=swc)",
+ "swc_atoms 0.4.33",
+ "swc_eq_ignore_macros 0.1.1 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_visit 0.5.3 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "termcolor",
  "tracing",
  "unicode-width",
@@ -2966,7 +3155,18 @@ dependencies = [
  "indexmap",
  "serde",
  "serde_json",
- "swc_config_macro",
+ "swc_config_macro 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "swc_config"
+version = "0.1.4"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "indexmap",
+ "serde",
+ "serde_json",
+ "swc_config_macro 0.1.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
 ]
 
 [[package]]
@@ -2978,64 +3178,172 @@ dependencies = [
  "pmutil",
  "proc-macro2",
  "quote",
- "swc_macros_common",
+ "swc_macros_common 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn",
+]
+
+[[package]]
+name = "swc_config_macro"
+version = "0.1.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "pmutil",
+ "proc-macro2",
+ "quote",
+ "swc_macros_common 0.3.6 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "syn",
 ]
 
 [[package]]
 name = "swc_core"
+<<<<<<< HEAD
 version = "0.59.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "677d7bf6a25e13c404555553a44a56cd1ad46ab62bd2ad222ebc50052f9ceee6"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.50.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75dfd947d063dfc42340fb6407fa4e54af6e60708ec257d285382e663a1f71ae"
+=======
+version = "0.54.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "swc",
+<<<<<<< HEAD
  "swc_atoms",
  "swc_common",
  "swc_css_ast",
  "swc_css_codegen",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_atoms",
+ "swc_common",
+ "swc_css_ast 0.132.1",
+ "swc_css_codegen 0.142.1",
+=======
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_css_ast 0.134.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_css_codegen 0.144.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
  "swc_css_compat",
+<<<<<<< HEAD
  "swc_css_minifier",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_css_minifier 0.107.1",
+=======
+ "swc_css_minifier 0.109.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
  "swc_css_modules",
+<<<<<<< HEAD
  "swc_css_parser",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_css_parser 0.141.1",
+=======
+ "swc_css_parser 0.143.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
  "swc_css_prefixer",
+<<<<<<< HEAD
  "swc_css_utils",
  "swc_css_visit",
  "swc_ecma_ast",
  "swc_ecma_codegen",
  "swc_ecma_minifier 0.166.7",
  "swc_ecma_parser",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_css_utils 0.129.1",
+ "swc_css_visit 0.131.1",
+ "swc_ecma_ast",
+ "swc_ecma_codegen",
+ "swc_ecma_minifier",
+ "swc_ecma_parser",
+=======
+ "swc_css_utils 0.131.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_css_visit 0.133.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_ast 0.96.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_codegen 0.129.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_minifier 0.161.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_parser 0.124.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
  "swc_ecma_preset_env",
  "swc_ecma_quote_macros",
+<<<<<<< HEAD
  "swc_ecma_transforms_base 0.116.4",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_ecma_transforms_base",
+=======
+ "swc_ecma_transforms_base 0.113.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
  "swc_ecma_transforms_compat",
  "swc_ecma_transforms_module",
+<<<<<<< HEAD
  "swc_ecma_transforms_optimization 0.172.7",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_ecma_transforms_optimization",
+=======
+ "swc_ecma_transforms_optimization 0.169.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
  "swc_ecma_transforms_proposal",
  "swc_ecma_transforms_react",
  "swc_ecma_transforms_typescript",
- "swc_ecma_utils",
- "swc_ecma_visit",
+ "swc_ecma_utils 0.107.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_visit 0.82.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "vergen",
 ]
 
 [[package]]
 name = "swc_css"
+<<<<<<< HEAD
 version = "0.149.2"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.141.5"
+=======
+version = "0.149.0"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 source = "registry+https://github.com/rust-lang/crates.io-index"
+<<<<<<< HEAD
 checksum = "9d9b27d0a90f143f0c21dda4fc445f423fa21f2e8d26350d93b46e1408ca4547"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+checksum = "63772ea10f02f9adade9440e9ab1db399829388b0cf60093db176ade7391cb81"
+=======
+checksum = "f05ae3a9f8ee6d9e53d37efda0fe7cba9074d0b456bcf66628e3eebea343b92d"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
+<<<<<<< HEAD
  "swc_css_ast",
  "swc_css_codegen",
  "swc_css_parser",
  "swc_css_utils",
  "swc_css_visit",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_css_ast 0.128.3",
+ "swc_css_codegen 0.138.5",
+ "swc_css_parser 0.137.5",
+ "swc_css_utils 0.125.3",
+ "swc_css_visit 0.127.3",
+=======
+ "swc_css_ast 0.134.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_css_codegen 0.144.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_css_parser 0.143.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_css_utils 0.131.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_css_visit 0.133.0 (registry+https://github.com/rust-lang/crates.io-index)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 ]
 
 [[package]]
 name = "swc_css_ast"
+<<<<<<< HEAD
 version = "0.134.2"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.128.3"
+=======
+version = "0.134.0"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 source = "registry+https://github.com/rust-lang/crates.io-index"
+<<<<<<< HEAD
 checksum = "b6bcb415dfba4d883919e19a943ea5211630bcf9887f707119362d3bd195e054"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+checksum = "757343607819915125d715aa071be58d84cbec91782b0fc401264c2ecbbc9ba1"
 dependencies = [
  "is-macro",
  "serde",
@@ -3045,10 +3353,74 @@ dependencies = [
 ]
 
 [[package]]
-name = "swc_css_codegen"
-version = "0.144.2"
+name = "swc_css_ast"
+version = "0.132.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "74216fff9c0365cb8c0a8cacd6c3cc96aa1e951636a3f646019a9f0d637cd759"
+=======
+checksum = "986ee78a7f8904f955370a23a8fefa5188686cf826d356f3e2c8bde9600a3920"
+dependencies = [
+ "is-macro",
+ "serde",
+ "string_enum 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_atoms 0.4.32",
+ "swc_common 0.29.27 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "swc_css_ast"
+version = "0.134.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
+dependencies = [
+ "is-macro",
+ "serde",
+ "string_enum 0.3.2 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+]
+
+[[package]]
+name = "swc_css_codegen"
+<<<<<<< HEAD
+version = "0.144.2"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.138.5"
+=======
+version = "0.144.0"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
+source = "registry+https://github.com/rust-lang/crates.io-index"
+<<<<<<< HEAD
 checksum = "755460cbfd0192a94b5722a6cd89aef610bc8a420640c85b1de3457232ddef90"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+checksum = "651d0dbd5bdc54426537d44795f3ea9227abb4207c9878e699b52c8dc6e4b5ec"
+=======
+checksum = "c53ffd764b54fc452309115aa439999f05baccfdbc86377eb6e21ffc3609de87"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
+dependencies = [
+ "auto_impl",
+ "bitflags",
+ "rustc-hash",
+ "serde",
+<<<<<<< HEAD
+ "swc_atoms",
+ "swc_common",
+ "swc_css_ast",
+ "swc_css_codegen_macros",
+ "swc_css_utils",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_atoms",
+ "swc_common",
+ "swc_css_ast 0.128.3",
+ "swc_css_codegen_macros",
+ "swc_css_utils 0.125.3",
+]
+
+[[package]]
+name = "swc_css_codegen"
+version = "0.142.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af22fd49e5d8d1468bc8b5309e16bbb69ab697d2ee42a2d45821d2559cfa1569"
 dependencies = [
  "auto_impl",
  "bitflags",
@@ -3056,9 +3428,32 @@ dependencies = [
  "serde",
  "swc_atoms",
  "swc_common",
- "swc_css_ast",
+ "swc_css_ast 0.132.1",
  "swc_css_codegen_macros",
- "swc_css_utils",
+ "swc_css_utils 0.129.1",
+=======
+ "swc_atoms 0.4.32",
+ "swc_common 0.29.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_css_ast 0.134.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_css_codegen_macros 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_css_utils 0.131.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "swc_css_codegen"
+version = "0.144.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "auto_impl",
+ "bitflags",
+ "rustc-hash",
+ "serde",
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_css_ast 0.134.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_css_codegen_macros 0.2.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_css_utils 0.131.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 ]
 
 [[package]]
@@ -3070,138 +3465,465 @@ dependencies = [
  "pmutil",
  "proc-macro2",
  "quote",
- "swc_macros_common",
+ "swc_macros_common 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn",
+]
+
+[[package]]
+name = "swc_css_codegen_macros"
+version = "0.2.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "pmutil",
+ "proc-macro2",
+ "quote",
+ "swc_macros_common 0.3.6 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "syn",
 ]
 
 [[package]]
 name = "swc_css_compat"
+<<<<<<< HEAD
 version = "0.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4117a9dc0f09e1baa1b5b6cfd663ac8e1a67817303ac0b86a0d5f94af0eb62b"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.18.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8762fe0c71500b73301c16cefe713bc29e92c8dd550be02eda6c2a0bed42c555"
+=======
+version = "0.20.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "bitflags",
  "once_cell",
  "serde",
  "serde_json",
+<<<<<<< HEAD
  "swc_atoms",
  "swc_common",
  "swc_css_ast",
  "swc_css_utils",
  "swc_css_visit",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_atoms",
+ "swc_common",
+ "swc_css_ast 0.132.1",
+ "swc_css_utils 0.129.1",
+ "swc_css_visit 0.131.1",
+=======
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_css_ast 0.134.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_css_utils 0.131.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_css_visit 0.133.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 ]
 
 [[package]]
 name = "swc_css_minifier"
+<<<<<<< HEAD
 version = "0.109.2"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.103.5"
+=======
+version = "0.109.0"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 source = "registry+https://github.com/rust-lang/crates.io-index"
+<<<<<<< HEAD
 checksum = "90a6c7284b60549f1f9e4fd457d041eec52b4defd5fdcdb14140ecff57acdba9"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+checksum = "0ce133c2a6e908aed2c9fef85ef1f9c11d0dbcb2c3e7a370bba3ba898da0d8b5"
+=======
+checksum = "382f3f3fc8ac6f44245a9b159534dca635c39626829a75eced9d2b684852ade7"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "serde",
+<<<<<<< HEAD
  "swc_atoms",
  "swc_common",
  "swc_css_ast",
  "swc_css_utils",
  "swc_css_visit",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_atoms",
+ "swc_common",
+ "swc_css_ast 0.128.3",
+ "swc_css_utils 0.125.3",
+ "swc_css_visit 0.127.3",
+]
+
+[[package]]
+name = "swc_css_minifier"
+version = "0.107.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c0c5e1f4ebf1325b903fe37ace4c6b9ee81941d85ea98d2670981e6c8bb158e3"
+dependencies = [
+ "serde",
+ "swc_atoms",
+ "swc_common",
+ "swc_css_ast 0.132.1",
+ "swc_css_utils 0.129.1",
+ "swc_css_visit 0.131.1",
+=======
+ "swc_atoms 0.4.32",
+ "swc_common 0.29.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_css_ast 0.134.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_css_utils 0.131.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_css_visit 0.133.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "swc_css_minifier"
+version = "0.109.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "serde",
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_css_ast 0.134.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_css_utils 0.131.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_css_visit 0.133.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 ]
 
 [[package]]
 name = "swc_css_modules"
+<<<<<<< HEAD
 version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "65c798a134402157b11da1ee7bc2861ce787545c9acd56799aa5133ebf5ebdff"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.19.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a90f5ef1ce95b49dadab68034ff3bbb14dcdf8a2acd386c68ac878203faed7ca"
+=======
+version = "0.21.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "rustc-hash",
  "serde",
+<<<<<<< HEAD
  "swc_atoms",
  "swc_common",
  "swc_css_ast",
  "swc_css_codegen",
  "swc_css_parser",
  "swc_css_visit",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_atoms",
+ "swc_common",
+ "swc_css_ast 0.132.1",
+ "swc_css_codegen 0.142.1",
+ "swc_css_parser 0.141.1",
+ "swc_css_visit 0.131.1",
+=======
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_css_ast 0.134.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_css_codegen 0.144.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_css_parser 0.143.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_css_visit 0.133.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 ]
 
 [[package]]
 name = "swc_css_parser"
+<<<<<<< HEAD
 version = "0.143.2"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.137.5"
+=======
+version = "0.143.0"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 source = "registry+https://github.com/rust-lang/crates.io-index"
+<<<<<<< HEAD
 checksum = "ea9f7202d8745a8ff3aeadf353301ce211ddf49b0e9a41c101d1dce2660013c1"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+checksum = "7d6bb244bc9147c20c8cfe3265e65462b50bc7567a3a134bf22ddaf6f5188402"
+=======
+checksum = "088d9454d24ddce2114c25be9d98ff836699d98a1aba789fd42c81d8203a1442"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
+dependencies = [
+ "bitflags",
+ "lexical",
+ "serde",
+<<<<<<< HEAD
+ "swc_atoms",
+ "swc_common",
+ "swc_css_ast",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_atoms",
+ "swc_common",
+ "swc_css_ast 0.128.3",
+]
+
+[[package]]
+name = "swc_css_parser"
+version = "0.141.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6f744d6523eac38e5d5329c2e7a45d4cda4a6f00a68fb48af3010ceab904e37"
 dependencies = [
  "bitflags",
  "lexical",
  "serde",
  "swc_atoms",
  "swc_common",
- "swc_css_ast",
+ "swc_css_ast 0.132.1",
+=======
+ "swc_atoms 0.4.32",
+ "swc_common 0.29.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_css_ast 0.134.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "swc_css_parser"
+version = "0.143.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "bitflags",
+ "lexical",
+ "serde",
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_css_ast 0.134.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 ]
 
 [[package]]
 name = "swc_css_prefixer"
+<<<<<<< HEAD
 version = "0.146.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19c3bdc60ce0f2c98fae963da0d3534a5d25e9a227d332b98007b2a3b31df39f"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.143.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6a91aab5ab4455f74f46b4f521bbb2458c41264b8ed3aed0279d99dbcab8ff9"
+=======
+version = "0.146.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "once_cell",
- "preset_env_base",
+ "preset_env_base 0.4.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "serde",
  "serde_json",
+<<<<<<< HEAD
  "swc_atoms",
  "swc_common",
  "swc_css_ast",
  "swc_css_utils",
  "swc_css_visit",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_atoms",
+ "swc_common",
+ "swc_css_ast 0.132.1",
+ "swc_css_utils 0.129.1",
+ "swc_css_visit 0.131.1",
+=======
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_css_ast 0.134.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_css_utils 0.131.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_css_visit 0.133.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 ]
 
 [[package]]
 name = "swc_css_utils"
+<<<<<<< HEAD
 version = "0.131.2"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.125.3"
+=======
+version = "0.131.0"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 source = "registry+https://github.com/rust-lang/crates.io-index"
+<<<<<<< HEAD
 checksum = "5f9c459606dc3a2ebc7a125db5b55191c19cd762b8effd45a746f0807e2b4eb0"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+checksum = "985b7696db4c874bbd4018ac6647a056733f2c0b29cd212df37be125e4d3559c"
+=======
+checksum = "b8b480c3f8c47ed457683da8f9b7c51b4b685bea8a7d177799ca2b5e8e1d723f"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
+dependencies = [
+ "once_cell",
+ "serde",
+ "serde_json",
+<<<<<<< HEAD
+ "swc_atoms",
+ "swc_common",
+ "swc_css_ast",
+ "swc_css_visit",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_atoms",
+ "swc_common",
+ "swc_css_ast 0.128.3",
+ "swc_css_visit 0.127.3",
+]
+
+[[package]]
+name = "swc_css_utils"
+version = "0.129.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb372fff24076b609e64635e8ba80a3171961059ccb70298a8ead2e497c04ca3"
 dependencies = [
  "once_cell",
  "serde",
  "serde_json",
  "swc_atoms",
  "swc_common",
- "swc_css_ast",
- "swc_css_visit",
+ "swc_css_ast 0.132.1",
+ "swc_css_visit 0.131.1",
+=======
+ "swc_atoms 0.4.32",
+ "swc_common 0.29.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_css_ast 0.134.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_css_visit 0.133.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "swc_css_utils"
+version = "0.131.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "once_cell",
+ "serde",
+ "serde_json",
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_css_ast 0.134.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_css_visit 0.133.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 ]
 
 [[package]]
 name = "swc_css_visit"
+<<<<<<< HEAD
 version = "0.133.2"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.127.3"
+=======
+version = "0.133.0"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 source = "registry+https://github.com/rust-lang/crates.io-index"
+<<<<<<< HEAD
 checksum = "57e7037a25dd8a383c04e9afe95b004c4ae465f899273e919adc902d8e441878"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+checksum = "3b776f203c7e68097a6aebfa9c1e4fe381260aeea5dad61cb5c7063f63ce33e6"
+=======
+checksum = "dcf7dfd2c886ff153a0b51f92d7289d34908deaf6c39bbc2974e8554142d3fdc"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "serde",
+<<<<<<< HEAD
  "swc_atoms",
  "swc_common",
  "swc_css_ast",
  "swc_visit",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_atoms",
+ "swc_common",
+ "swc_css_ast 0.128.3",
+ "swc_visit",
+]
+
+[[package]]
+name = "swc_css_visit"
+version = "0.131.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45736bc9948f0b0b64105ca61cb0980c8f9650ee8c31adeb28008a5375c23dea"
+dependencies = [
+ "serde",
+ "swc_atoms",
+ "swc_common",
+ "swc_css_ast 0.132.1",
+ "swc_visit",
+=======
+ "swc_atoms 0.4.32",
+ "swc_common 0.29.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_css_ast 0.134.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_visit 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "swc_css_visit"
+version = "0.133.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "serde",
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_css_ast 0.134.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_visit 0.5.3 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 ]
 
 [[package]]
 name = "swc_ecma_ast"
+<<<<<<< HEAD
 version = "0.96.3"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.95.9"
+=======
+version = "0.96.0"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 source = "registry+https://github.com/rust-lang/crates.io-index"
+<<<<<<< HEAD
 checksum = "a887102d5595b557261aa4bde35f3d71906fba674d4b79cd5c59b4155b12ee2d"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+checksum = "3cc936f04c4e671ae5918b573a50945c5189d3dcdd57e4faddd47889717e1416"
+=======
+checksum = "55fccfea4d41e77d7e31f93acffa258e3333a9066d6c777ea32bb2632c221565"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "bitflags",
  "is-macro",
  "num-bigint",
  "scoped-tls",
  "serde",
- "string_enum",
- "swc_atoms",
- "swc_common",
+ "string_enum 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_atoms 0.4.32",
+ "swc_common 0.29.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-id",
+]
+
+[[package]]
+name = "swc_ecma_ast"
+version = "0.96.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "bitflags",
+ "is-macro",
+ "num-bigint",
+ "scoped-tls",
+ "serde",
+ "string_enum 0.3.2 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "unicode-id",
 ]
 
 [[package]]
 name = "swc_ecma_codegen"
+<<<<<<< HEAD
 version = "0.129.8"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.128.15"
+=======
+version = "0.129.0"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 source = "registry+https://github.com/rust-lang/crates.io-index"
+<<<<<<< HEAD
 checksum = "45f8f20522626a737753381bdf64ee53d568730f9f7e720d35960de97e5ff965"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+checksum = "121caf2dde74cbd143035a92cfd249be7744ee31622c4e66ee19a8249e3f6855"
+=======
+checksum = "e09a738a3ad55a0b196ec13892bbdfe92e526a7ff77bac4d12fe47be09262278"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "memchr",
  "num-bigint",
@@ -3209,10 +3931,28 @@ dependencies = [
  "rustc-hash",
  "serde",
  "sourcemap",
- "swc_atoms",
- "swc_common",
- "swc_ecma_ast",
- "swc_ecma_codegen_macros",
+ "swc_atoms 0.4.32",
+ "swc_common 0.29.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_ast 0.96.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_codegen_macros 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tracing",
+]
+
+[[package]]
+name = "swc_ecma_codegen"
+version = "0.129.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "memchr",
+ "num-bigint",
+ "once_cell",
+ "rustc-hash",
+ "serde",
+ "sourcemap",
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_ast 0.96.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_codegen_macros 0.7.1 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "tracing",
 ]
 
@@ -3225,29 +3965,59 @@ dependencies = [
  "pmutil",
  "proc-macro2",
  "quote",
- "swc_macros_common",
+ "swc_macros_common 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn",
+]
+
+[[package]]
+name = "swc_ecma_codegen_macros"
+version = "0.7.1"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "pmutil",
+ "proc-macro2",
+ "quote",
+ "swc_macros_common 0.3.6 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "syn",
 ]
 
 [[package]]
 name = "swc_ecma_ext_transforms"
+<<<<<<< HEAD
 version = "0.93.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0aae1420e7a17d59eca9c716204214b602a7c4c6316a86b0f48dc40401224545"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.92.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "135eb0be54006d3c8546371d9205a64a62c93d2a1528783bfe8ba82d11048e94"
+=======
+version = "0.93.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "phf",
- "swc_atoms",
- "swc_common",
- "swc_ecma_ast",
- "swc_ecma_utils",
- "swc_ecma_visit",
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_ast 0.96.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_utils 0.107.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_visit 0.82.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
 ]
 
 [[package]]
 name = "swc_ecma_lints"
+<<<<<<< HEAD
 version = "0.71.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bb06d4b9d22aeb004606ea72876c41a39c42150045af35dd112ba8503408f01a"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.67.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f71d857601cce8c1774f33b3b8eb85de47ca38c4587c9c1cd5ebf68a33157087"
+=======
+version = "0.68.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "ahash",
  "auto_impl",
@@ -3256,19 +4026,28 @@ dependencies = [
  "rayon",
  "regex",
  "serde",
- "swc_atoms",
- "swc_common",
- "swc_config",
- "swc_ecma_ast",
- "swc_ecma_utils",
- "swc_ecma_visit",
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_config 0.1.4 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_ast 0.96.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_utils 0.107.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_visit 0.82.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
 ]
 
 [[package]]
 name = "swc_ecma_loader"
+<<<<<<< HEAD
 version = "0.41.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c996baa947150d496c79fbd153d3df834e38d05c779abc4af987aded90e168a2"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.41.26"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42710b93ec010a5e0354cc86d621a3dd0243351d649d0c273c1887035a256151"
+=======
+version = "0.41.28"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "ahash",
  "anyhow",
@@ -3281,15 +4060,22 @@ dependencies = [
  "pathdiff",
  "serde",
  "serde_json",
- "swc_cached",
- "swc_common",
+ "swc_cached 0.3.15 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "tracing",
 ]
 
 [[package]]
 name = "swc_ecma_minifier"
+<<<<<<< HEAD
 version = "0.162.1"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.160.28"
+=======
+version = "0.161.0"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 source = "registry+https://github.com/rust-lang/crates.io-index"
+<<<<<<< HEAD
 checksum = "fd6b8c99fcc127712998598808285dbcc70310fcf389d2685edec75c2e72d301"
 dependencies = [
  "ahash",
@@ -3326,6 +4112,45 @@ name = "swc_ecma_minifier"
 version = "0.166.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a0cacba9bd39a66cc6cf510fa19b77a0fc3e9bf993749d9d25fa23bfcf32028a"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+checksum = "6dd3c8fd16e3f807ac98fa5686573d119df952bbd4336f051fef324ba621a38f"
+=======
+checksum = "95b59a31e9804b60c418e7327dfa8f9a301b92f1c3326595d40407b200a57ca7"
+dependencies = [
+ "ahash",
+ "arrayvec",
+ "indexmap",
+ "num-bigint",
+ "num_cpus",
+ "once_cell",
+ "parking_lot 0.12.1",
+ "radix_fmt",
+ "regex",
+ "retain_mut",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "swc_atoms 0.4.32",
+ "swc_cached 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_common 0.29.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_config 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_ast 0.96.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_codegen 0.129.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_parser 0.124.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_transforms_base 0.113.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_transforms_optimization 0.169.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_usage_analyzer 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_utils 0.107.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_visit 0.82.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_timer 0.17.29 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tracing",
+]
+
+[[package]]
+name = "swc_ecma_minifier"
+version = "0.161.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "ahash",
  "arrayvec",
@@ -3341,6 +4166,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+<<<<<<< HEAD
  "swc_atoms",
  "swc_cached",
  "swc_common",
@@ -3354,95 +4180,214 @@ dependencies = [
  "swc_ecma_utils",
  "swc_ecma_visit",
  "swc_timer",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_atoms",
+ "swc_cached",
+ "swc_common",
+ "swc_config",
+ "swc_ecma_ast",
+ "swc_ecma_codegen",
+ "swc_ecma_parser",
+ "swc_ecma_transforms_base",
+ "swc_ecma_transforms_optimization",
+ "swc_ecma_usage_analyzer",
+ "swc_ecma_utils",
+ "swc_ecma_visit",
+ "swc_timer",
+=======
+ "swc_atoms 0.4.33",
+ "swc_cached 0.3.15 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_config 0.1.4 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_ast 0.96.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_codegen 0.129.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_parser 0.124.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_transforms_base 0.113.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_transforms_optimization 0.169.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_usage_analyzer 0.2.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_utils 0.107.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_visit 0.82.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_timer 0.17.29 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
  "tracing",
 ]
 
 [[package]]
 name = "swc_ecma_parser"
+<<<<<<< HEAD
 version = "0.124.5"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.123.13"
+=======
+version = "0.124.0"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 source = "registry+https://github.com/rust-lang/crates.io-index"
+<<<<<<< HEAD
 checksum = "9e75888eabf1ad8a8968e3befc7cd20c10e4721254d3344285bd5c3a42f58dc1"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+checksum = "22225f792dcbcd3d3e77498d6e6fb86161cdd05ba4e24456361768dc41ee2948"
+=======
+checksum = "ad9152f06efaa7fc65358766778c0566e879199ca223032d29241143ed63a044"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "either",
- "enum_kind",
+ "enum_kind 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "lexical",
  "num-bigint",
  "serde",
  "smallvec",
- "swc_atoms",
- "swc_common",
- "swc_ecma_ast",
+ "swc_atoms 0.4.32",
+ "swc_common 0.29.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_ast 0.96.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tracing",
+ "typed-arena",
+]
+
+[[package]]
+name = "swc_ecma_parser"
+version = "0.124.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "either",
+ "enum_kind 0.2.1 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "lexical",
+ "num-bigint",
+ "serde",
+ "smallvec",
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_ast 0.96.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "tracing",
  "typed-arena",
 ]
 
 [[package]]
 name = "swc_ecma_preset_env"
+<<<<<<< HEAD
 version = "0.180.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "65dc57c4f0f75894a9cc7bbfb671bbf7e5fbad0729a751e274242f2d0d137d9b"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.175.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e94ce8668c35cc1bd091d0a9bdff531ff03ba928312eebf730b8096a31cb642"
+=======
+version = "0.177.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "ahash",
  "anyhow",
  "dashmap",
  "indexmap",
  "once_cell",
+<<<<<<< HEAD
  "preset_env_base",
  "semver 1.0.16",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "preset_env_base",
+ "semver 1.0.13",
+=======
+ "preset_env_base 0.4.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "semver 1.0.13",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
  "serde",
  "serde_json",
  "st-map",
- "string_enum",
- "swc_atoms",
- "swc_common",
- "swc_ecma_ast",
+ "string_enum 0.3.2 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_ast 0.96.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "swc_ecma_transforms",
- "swc_ecma_utils",
- "swc_ecma_visit",
+ "swc_ecma_utils 0.107.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_visit 0.82.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
 ]
 
 [[package]]
 name = "swc_ecma_quote_macros"
+<<<<<<< HEAD
 version = "0.35.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "99da847ecff6bc9833169854fff3ae964506e77fadff5871ace306ce1d73bfa4"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.34.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c762890a5e76a2135ba10e21f575b0241aaeccbfbae13eabb19fedbeea1e136f"
+=======
+version = "0.35.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "anyhow",
  "pmutil",
  "proc-macro2",
  "quote",
- "swc_atoms",
- "swc_common",
- "swc_ecma_ast",
- "swc_ecma_parser",
- "swc_macros_common",
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_ast 0.96.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_parser 0.124.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_macros_common 0.3.6 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "syn",
 ]
 
 [[package]]
 name = "swc_ecma_transforms"
+<<<<<<< HEAD
 version = "0.203.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0e3e9e3409ffdf6d82d4754ba8c7eefb751218106c4d0b2e2d4b025dfb05f307"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.199.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c25fb737cb8cfb3efff280537ab0cd8a6f9b8008fb22b3d352c9c299e66e0f1f"
+=======
+version = "0.200.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
+<<<<<<< HEAD
  "swc_atoms",
  "swc_common",
  "swc_ecma_ast",
  "swc_ecma_transforms_base 0.116.4",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_atoms",
+ "swc_common",
+ "swc_ecma_ast",
+ "swc_ecma_transforms_base",
+=======
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_ast 0.96.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_transforms_base 0.113.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
  "swc_ecma_transforms_compat",
  "swc_ecma_transforms_module",
+<<<<<<< HEAD
  "swc_ecma_transforms_optimization 0.172.7",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_ecma_transforms_optimization",
+=======
+ "swc_ecma_transforms_optimization 0.169.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
  "swc_ecma_transforms_proposal",
  "swc_ecma_transforms_react",
  "swc_ecma_transforms_typescript",
- "swc_ecma_utils",
- "swc_ecma_visit",
+ "swc_ecma_utils 0.107.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_visit 0.82.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
 ]
 
 [[package]]
 name = "swc_ecma_transforms_base"
+<<<<<<< HEAD
 version = "0.113.2"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.112.17"
+=======
+version = "0.113.0"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 source = "registry+https://github.com/rust-lang/crates.io-index"
+<<<<<<< HEAD
 checksum = "e10622224050b9ee8bea58231b05153ca7d21f4928a12c5aeda20209834111bb"
 dependencies = [
  "better_scoped_tls",
@@ -3466,8 +4411,34 @@ name = "swc_ecma_transforms_base"
 version = "0.116.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "55e093291381ba929e22f5f9fcf2abdfd08130b2b0caca43ec4206123e103441"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+checksum = "79dcead560bca9864ea5bae654df4d80dfb30449f357ba0a7ab1cd2930da92ff"
+=======
+checksum = "86492a17d6fdc06837ca9d94a8ee88aba1d390a7fcc59503603b8c888a8030bb"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
- "better_scoped_tls",
+ "better_scoped_tls 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags",
+ "once_cell",
+ "phf",
+ "rustc-hash",
+ "serde",
+ "smallvec",
+ "swc_atoms 0.4.32",
+ "swc_common 0.29.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_ast 0.96.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_parser 0.124.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_utils 0.107.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_visit 0.82.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tracing",
+]
+
+[[package]]
+name = "swc_ecma_transforms_base"
+version = "0.113.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "better_scoped_tls 0.1.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "bitflags",
  "once_cell",
  "phf",
@@ -3475,34 +4446,68 @@ dependencies = [
  "rustc-hash",
  "serde",
  "smallvec",
- "swc_atoms",
- "swc_common",
- "swc_ecma_ast",
- "swc_ecma_parser",
- "swc_ecma_utils",
- "swc_ecma_visit",
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_ast 0.96.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_parser 0.124.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_utils 0.107.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_visit 0.82.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "tracing",
 ]
 
 [[package]]
 name = "swc_ecma_transforms_classes"
+<<<<<<< HEAD
 version = "0.105.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "becf8ec74438e291d27b9fdbfd19e5c3b4fdc8fe9eb9c8177d62d6010930ae47"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.101.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9067e7aad8cc35f9438be7f9ea21237115ecec5530993bfba56b798938117c69"
+=======
+version = "0.102.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
+<<<<<<< HEAD
  "swc_atoms",
  "swc_common",
  "swc_ecma_ast",
  "swc_ecma_transforms_base 0.116.4",
  "swc_ecma_utils",
  "swc_ecma_visit",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_atoms",
+ "swc_common",
+ "swc_ecma_ast",
+ "swc_ecma_transforms_base",
+ "swc_ecma_utils",
+ "swc_ecma_visit",
+=======
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_ast 0.96.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_transforms_base 0.113.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_utils 0.107.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_visit 0.82.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 ]
 
 [[package]]
 name = "swc_ecma_transforms_compat"
+<<<<<<< HEAD
 version = "0.141.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f051ac5587d13605e6ae8e93259b81ea43c4b369c930b58990ae0a1aac761aa1"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.137.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "efd371abf7d5be91c8fdbcaa51e8e3af15399f8be30c08b11f142edcbf2d44d3"
+=======
+version = "0.138.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "ahash",
  "arrayvec",
@@ -3511,15 +4516,29 @@ dependencies = [
  "num-bigint",
  "serde",
  "smallvec",
+<<<<<<< HEAD
  "swc_atoms",
  "swc_common",
  "swc_config",
  "swc_ecma_ast",
  "swc_ecma_transforms_base 0.116.4",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_atoms",
+ "swc_common",
+ "swc_config",
+ "swc_ecma_ast",
+ "swc_ecma_transforms_base",
+=======
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_config 0.1.4 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_ast 0.96.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_transforms_base 0.113.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
  "swc_ecma_transforms_classes",
- "swc_ecma_transforms_macros",
- "swc_ecma_utils",
- "swc_ecma_visit",
+ "swc_ecma_transforms_macros 0.5.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_utils 0.107.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_visit 0.82.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "swc_trace_macro",
  "tracing",
 ]
@@ -3533,15 +4552,36 @@ dependencies = [
  "pmutil",
  "proc-macro2",
  "quote",
- "swc_macros_common",
+ "swc_macros_common 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn",
+]
+
+[[package]]
+name = "swc_ecma_transforms_macros"
+version = "0.5.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "pmutil",
+ "proc-macro2",
+ "quote",
+ "swc_macros_common 0.3.6 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "syn",
 ]
 
 [[package]]
 name = "swc_ecma_transforms_module"
+<<<<<<< HEAD
 version = "0.158.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b3df078142c11bda10282794df8fd7bf421f133d950d427fcaff34c59bdd89d0"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.154.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "290a6382a74b56aa064c93f1baa6569f6b8c697ded2516271c55174e2e2fa18d"
+=======
+version = "0.155.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "Inflector",
  "ahash",
@@ -3553,22 +4593,41 @@ dependencies = [
  "pathdiff",
  "regex",
  "serde",
- "swc_atoms",
- "swc_cached",
- "swc_common",
- "swc_ecma_ast",
+ "swc_atoms 0.4.33",
+ "swc_cached 0.3.15 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_ast 0.96.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "swc_ecma_loader",
+<<<<<<< HEAD
  "swc_ecma_parser",
  "swc_ecma_transforms_base 0.116.4",
  "swc_ecma_utils",
  "swc_ecma_visit",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_ecma_parser",
+ "swc_ecma_transforms_base",
+ "swc_ecma_utils",
+ "swc_ecma_visit",
+=======
+ "swc_ecma_parser 0.124.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_transforms_base 0.113.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_utils 0.107.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_visit 0.82.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
  "tracing",
 ]
 
 [[package]]
 name = "swc_ecma_transforms_optimization"
+<<<<<<< HEAD
 version = "0.169.2"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.168.19"
+=======
+version = "0.169.0"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 source = "registry+https://github.com/rust-lang/crates.io-index"
+<<<<<<< HEAD
 checksum = "ca2de5c0c81a0db9d9de114a942cace0a68a98bfb7c6a93bac50a00eaa910def"
 dependencies = [
  "ahash",
@@ -3595,6 +4654,35 @@ name = "swc_ecma_transforms_optimization"
 version = "0.172.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f2b5c2119ca831768ac16a32a60e267d733341e3f0520fbc47ed632f8ba65a9"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+checksum = "46fb69f64c1d0b541f6d098d9776d810673cf7c0a8ae371f5875ee2cc400bd5a"
+=======
+checksum = "4dc39488d9e662a18ca9d4119e2a6319981f4b401cfec5ed294575fd8ca6957b"
+dependencies = [
+ "ahash",
+ "dashmap",
+ "indexmap",
+ "once_cell",
+ "petgraph",
+ "rustc-hash",
+ "serde_json",
+ "swc_atoms 0.4.32",
+ "swc_common 0.29.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_ast 0.96.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_parser 0.124.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_transforms_base 0.113.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_transforms_macros 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_utils 0.107.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_visit 0.82.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_fast_graph 0.17.28 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tracing",
+]
+
+[[package]]
+name = "swc_ecma_transforms_optimization"
+version = "0.169.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "ahash",
  "dashmap",
@@ -3604,6 +4692,7 @@ dependencies = [
  "rayon",
  "rustc-hash",
  "serde_json",
+<<<<<<< HEAD
  "swc_atoms",
  "swc_common",
  "swc_ecma_ast",
@@ -3613,33 +4702,84 @@ dependencies = [
  "swc_ecma_utils",
  "swc_ecma_visit",
  "swc_fast_graph",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_atoms",
+ "swc_common",
+ "swc_ecma_ast",
+ "swc_ecma_parser",
+ "swc_ecma_transforms_base",
+ "swc_ecma_transforms_macros",
+ "swc_ecma_utils",
+ "swc_ecma_visit",
+ "swc_fast_graph",
+=======
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_ast 0.96.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_parser 0.124.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_transforms_base 0.113.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_transforms_macros 0.5.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_utils 0.107.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_visit 0.82.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_fast_graph 0.17.28 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
  "tracing",
 ]
 
 [[package]]
 name = "swc_ecma_transforms_proposal"
+<<<<<<< HEAD
 version = "0.149.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eaa68f68cf2fec0def4c12c2ded80401d7dc058da87a2a6d36ff54e93d140195"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.145.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f868f42ff64f5ffe355df889c526f4768d6703b0cf658c1df37d4b65339caad"
+=======
+version = "0.146.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "either",
  "serde",
  "smallvec",
+<<<<<<< HEAD
  "swc_atoms",
  "swc_common",
  "swc_ecma_ast",
  "swc_ecma_transforms_base 0.116.4",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_atoms",
+ "swc_common",
+ "swc_ecma_ast",
+ "swc_ecma_transforms_base",
+=======
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_ast 0.96.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_transforms_base 0.113.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
  "swc_ecma_transforms_classes",
- "swc_ecma_transforms_macros",
- "swc_ecma_utils",
- "swc_ecma_visit",
+ "swc_ecma_transforms_macros 0.5.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_utils 0.107.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_visit 0.82.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
 ]
 
 [[package]]
 name = "swc_ecma_transforms_react"
+<<<<<<< HEAD
 version = "0.160.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc75a73a4680e3dbcf3ccb57b2b0f05ec41b7422d70e582cc3df9f26738744f7"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.156.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3bc538ad94e3eeefe7f39d67b0f26f6f3852aac385cb1a62058b503c3b643cc5"
+=======
+version = "0.157.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "ahash",
  "base64",
@@ -3648,6 +4788,7 @@ dependencies = [
  "once_cell",
  "regex",
  "serde",
+<<<<<<< HEAD
  "sha-1",
  "string_enum",
  "swc_atoms",
@@ -3659,28 +4800,81 @@ dependencies = [
  "swc_ecma_transforms_macros",
  "swc_ecma_utils",
  "swc_ecma_visit",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "sha-1 0.10.0",
+ "string_enum",
+ "swc_atoms",
+ "swc_common",
+ "swc_config",
+ "swc_ecma_ast",
+ "swc_ecma_parser",
+ "swc_ecma_transforms_base",
+ "swc_ecma_transforms_macros",
+ "swc_ecma_utils",
+ "swc_ecma_visit",
+=======
+ "sha-1 0.10.0",
+ "string_enum 0.3.2 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_config 0.1.4 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_ast 0.96.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_parser 0.124.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_transforms_base 0.113.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_transforms_macros 0.5.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_utils 0.107.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_visit 0.82.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 ]
 
 [[package]]
 name = "swc_ecma_transforms_typescript"
+<<<<<<< HEAD
 version = "0.164.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f297d85bb32487fd0d2184c7c6eda8379aa71c42b0e2b1c9e3469e1fd6d2c64"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.160.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d41c27443acf41848cde8d2d071a105e142e9ddd3fbb4d3cab8b139cdf3c064c"
+=======
+version = "0.161.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "serde",
+<<<<<<< HEAD
  "swc_atoms",
  "swc_common",
  "swc_ecma_ast",
  "swc_ecma_transforms_base 0.116.4",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_atoms",
+ "swc_common",
+ "swc_ecma_ast",
+ "swc_ecma_transforms_base",
+=======
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_ast 0.96.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_transforms_base 0.113.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
  "swc_ecma_transforms_react",
- "swc_ecma_utils",
- "swc_ecma_visit",
+ "swc_ecma_utils 0.107.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_visit 0.82.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
 ]
 
 [[package]]
 name = "swc_ecma_usage_analyzer"
+<<<<<<< HEAD
 version = "0.2.1"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.1.8"
+=======
+version = "0.2.0"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 source = "registry+https://github.com/rust-lang/crates.io-index"
+<<<<<<< HEAD
 checksum = "1ab74f0a5dd063b13fef1bc6f0b44731992e6675e46a1d2d387db014bd4ca8ff"
 dependencies = [
  "ahash",
@@ -3700,49 +4894,138 @@ name = "swc_ecma_usage_analyzer"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "879ed97859a1c0f47c1fda29a2fe159454897caab2921817a89e8cffa9f86597"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+checksum = "3a3a476273d4ac00d43d0d91dafe504e29ee4b97928a6da57ac29dba59a2e275"
+=======
+checksum = "684c13d20abe0ba1feba16d7de514112be9dfd3d4886f6c251ae2c9e8729743c"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "ahash",
  "indexmap",
  "rustc-hash",
- "swc_atoms",
- "swc_common",
- "swc_ecma_ast",
- "swc_ecma_utils",
- "swc_ecma_visit",
- "swc_timer",
+ "swc_atoms 0.4.32",
+ "swc_common 0.29.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_ast 0.96.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_utils 0.107.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_visit 0.82.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_timer 0.17.29 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tracing",
+]
+
+[[package]]
+name = "swc_ecma_usage_analyzer"
+version = "0.2.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "ahash",
+ "indexmap",
+ "rustc-hash",
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_ast 0.96.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_utils 0.107.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_visit 0.82.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_timer 0.17.29 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "tracing",
 ]
 
 [[package]]
 name = "swc_ecma_utils"
+<<<<<<< HEAD
 version = "0.107.5"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.106.13"
+=======
+version = "0.107.0"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 source = "registry+https://github.com/rust-lang/crates.io-index"
+<<<<<<< HEAD
 checksum = "d773cf626c8d3be468a883879cda3727a2f1ea6169ccd0b5b8eb2d7afb5f367b"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+checksum = "199beccb6243107d2906b88a97a5751350cd49491d31cbbf0c0541b46f55d65d"
+=======
+checksum = "217ddd5d6ae64dca4b79ffe48d0d35dab1275bb49d0d1688c99b731c3c35af41"
+dependencies = [
+ "indexmap",
+ "num_cpus",
+ "once_cell",
+ "rustc-hash",
+ "swc_atoms 0.4.32",
+ "swc_common 0.29.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_ast 0.96.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_visit 0.82.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tracing",
+ "unicode-id",
+]
+
+[[package]]
+name = "swc_ecma_utils"
+version = "0.107.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "indexmap",
  "num_cpus",
  "once_cell",
  "rayon",
+<<<<<<< HEAD
  "rustc-hash",
  "swc_atoms",
  "swc_common",
  "swc_ecma_ast",
  "swc_ecma_visit",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_atoms",
+ "swc_common",
+ "swc_ecma_ast",
+ "swc_ecma_visit",
+=======
+ "rustc-hash",
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_ast 0.96.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_visit 0.82.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
  "tracing",
  "unicode-id",
 ]
 
 [[package]]
 name = "swc_ecma_visit"
+<<<<<<< HEAD
 version = "0.82.3"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.81.9"
+=======
+version = "0.82.0"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 source = "registry+https://github.com/rust-lang/crates.io-index"
+<<<<<<< HEAD
 checksum = "6b2ee0f4b61d6c426189d0d9da1333705ff3bc4513fb63633ca254595a700f75"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+checksum = "0ebf5de90444c90b1905b7618800a7572fc757faa8c90cc1c6031d1f6ca179df"
+=======
+checksum = "19ac5e6e29916595c5abd23c90d2efde06bb42207a98cb32e7d49d6db20f110c"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "num-bigint",
- "swc_atoms",
- "swc_common",
- "swc_ecma_ast",
- "swc_visit",
+ "swc_atoms 0.4.32",
+ "swc_common 0.29.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_ast 0.96.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_visit 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tracing",
+]
+
+[[package]]
+name = "swc_ecma_visit"
+version = "0.82.0"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "num-bigint",
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_ecma_ast 0.96.0 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
+ "swc_visit 0.5.3 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "tracing",
 ]
 
@@ -3759,35 +5042,90 @@ dependencies = [
 ]
 
 [[package]]
+name = "swc_eq_ignore_macros"
+version = "0.1.1"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "pmutil",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "swc_error_reporters"
+<<<<<<< HEAD
 version = "0.13.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8cab7b4d57a38aa721d3b64896f07198567e0d26fa15517eeddc52560f7f7ab8"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.13.26"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81fbda0a7583deb49edf379e2c119231312ad2d3a37a219143a3d8678a205a5f"
+=======
+version = "0.13.28"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "anyhow",
  "miette",
  "once_cell",
  "parking_lot 0.12.1",
- "swc_common",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
 ]
 
 [[package]]
 name = "swc_fast_graph"
+<<<<<<< HEAD
 version = "0.17.30"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.17.26"
+=======
+version = "0.17.28"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 source = "registry+https://github.com/rust-lang/crates.io-index"
+<<<<<<< HEAD
 checksum = "42663a304e6b2aa28ff50da0c1cb49fc9d5e84a97d57d68d7eba385602deef95"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+checksum = "06584f28662339e1972d164d263b3bfacdc13e1acb5fbe6d568c132a4693034b"
+=======
+checksum = "1c54361a935915a14d68a906126a8ee6e08ac27a0698a74337cbd6c0e15af40a"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "ahash",
  "indexmap",
  "petgraph",
- "swc_common",
+ "swc_common 0.29.27 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "swc_fast_graph"
+version = "0.17.28"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "ahash",
+ "indexmap",
+ "petgraph",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
 ]
 
 [[package]]
 name = "swc_html"
+<<<<<<< HEAD
 version = "0.105.5"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.97.7"
+=======
+version = "0.104.0"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 source = "registry+https://github.com/rust-lang/crates.io-index"
+<<<<<<< HEAD
 checksum = "b57104cf0b0814d6a7f12ccbcc2fdac5b8aa08ed379bccfc54144d9160d92354"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+checksum = "9e72091974ab12dc3f5080896253cb60368e8e58f364b9ebffdad40a9cee426e"
+=======
+checksum = "757ce81d1389712912ef7b69f3a08dd4672f0327dfd5f429ac627bc79f97fa2b"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "swc_html_ast",
  "swc_html_codegen",
@@ -3803,9 +5141,9 @@ checksum = "04ab504125f9b0a26483234ef15bec778d8576c2d2c9d7ba481c31b2b4add16a"
 dependencies = [
  "is-macro",
  "serde",
- "string_enum",
- "swc_atoms",
- "swc_common",
+ "string_enum 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_atoms 0.4.32",
+ "swc_common 0.29.27 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3817,8 +5155,8 @@ dependencies = [
  "auto_impl",
  "bitflags",
  "rustc-hash",
- "swc_atoms",
- "swc_common",
+ "swc_atoms 0.4.32",
+ "swc_common 0.29.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "swc_html_ast",
  "swc_html_codegen_macros",
  "swc_html_utils",
@@ -3833,19 +5171,32 @@ dependencies = [
  "pmutil",
  "proc-macro2",
  "quote",
- "swc_macros_common",
+ "swc_macros_common 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn",
 ]
 
 [[package]]
 name = "swc_html_minifier"
+<<<<<<< HEAD
 version = "0.102.1"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.94.7"
+=======
+version = "0.101.0"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 source = "registry+https://github.com/rust-lang/crates.io-index"
+<<<<<<< HEAD
 checksum = "bf41b8095cde54eb4d9c8806f4097f9a7a43e3911434de5356a5a4cd48347251"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+checksum = "86472678675c7a1d050ac8e5819b68ff65bfc9c8e18545c2527ca3beba0192cd"
+=======
+checksum = "b9ca40fbd76f1b105264a61fbe45e56e9ab3b28c13dd5909caddc0eba4fd4460"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "once_cell",
  "serde",
  "serde_json",
+<<<<<<< HEAD
  "swc_atoms",
  "swc_cached",
  "swc_common",
@@ -3859,6 +5210,35 @@ dependencies = [
  "swc_ecma_parser",
  "swc_ecma_transforms_base 0.113.2",
  "swc_ecma_visit",
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+ "swc_atoms",
+ "swc_cached",
+ "swc_common",
+ "swc_css_ast 0.128.3",
+ "swc_css_codegen 0.138.5",
+ "swc_css_minifier 0.103.5",
+ "swc_css_parser 0.137.5",
+ "swc_ecma_ast",
+ "swc_ecma_codegen",
+ "swc_ecma_minifier",
+ "swc_ecma_parser",
+ "swc_ecma_transforms_base",
+ "swc_ecma_visit",
+=======
+ "swc_atoms 0.4.32",
+ "swc_cached 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_common 0.29.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_css_ast 0.134.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_css_codegen 0.144.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_css_minifier 0.109.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_css_parser 0.143.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_ast 0.96.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_codegen 0.129.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_minifier 0.161.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_parser 0.124.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_transforms_base 0.113.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "swc_ecma_visit 0.82.0 (registry+https://github.com/rust-lang/crates.io-index)",
+>>>>>>> 4794f7b3 (chore: 🤖 update)
  "swc_html_ast",
  "swc_html_codegen",
  "swc_html_parser",
@@ -3872,8 +5252,8 @@ version = "0.34.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e200ba1bdb0ec1c8631316ea47a0bdddc5d866f3b253132fc9d579cb7212aa8"
 dependencies = [
- "swc_atoms",
- "swc_common",
+ "swc_atoms 0.4.32",
+ "swc_common 0.29.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "swc_html_ast",
  "swc_html_utils",
 ]
@@ -3887,8 +5267,8 @@ dependencies = [
  "once_cell",
  "serde",
  "serde_json",
- "swc_atoms",
- "swc_common",
+ "swc_atoms 0.4.32",
+ "swc_common 0.29.27 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3898,10 +5278,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "38f34396a1e715d51adb9979081aaf0af3f715621d7b1ad1fde1e06471dfaa00"
 dependencies = [
  "serde",
- "swc_atoms",
- "swc_common",
+ "swc_atoms 0.4.32",
+ "swc_common 0.29.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "swc_html_ast",
- "swc_visit",
+ "swc_visit 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3917,22 +5297,62 @@ dependencies = [
 ]
 
 [[package]]
+name = "swc_macros_common"
+version = "0.3.6"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "pmutil",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "swc_node_comments"
+<<<<<<< HEAD
 version = "0.16.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "12375442b54c8b99a066815c7ef600e05be883d4b73e1869b3bbb60ec4ec1c93"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.16.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d7e61e9d8216db04cad1a5a1621e524ea1e797efde2a61769a60cec5afb8ed9d"
+=======
+version = "0.16.27"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "ahash",
  "dashmap",
- "swc_atoms",
- "swc_common",
+ "swc_atoms 0.4.33",
+ "swc_common 0.29.27 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
 ]
 
 [[package]]
 name = "swc_timer"
+<<<<<<< HEAD
 version = "0.17.31"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+version = "0.17.27"
+=======
+version = "0.17.29"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 source = "registry+https://github.com/rust-lang/crates.io-index"
+<<<<<<< HEAD
 checksum = "82ebe83605216cf597539271abf83d93f015af24e33cae15064214b409729b6f"
+||||||| parent of 4794f7b3 (chore: 🤖 update)
+checksum = "150b8b822dca0edfeca004cb24974720f7e0e8208bdc46e3e6eecfe3a3c37d17"
+=======
+checksum = "1e5e7e11a10d9900fc60809bf560ef7ebf0b571dc5b0733005fb11343270574b"
+dependencies = [
+ "tracing",
+]
+
+[[package]]
+name = "swc_timer"
+version = "0.17.29"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+>>>>>>> 4794f7b3 (chore: 🤖 update)
 dependencies = [
  "tracing",
 ]
@@ -3940,8 +5360,7 @@ dependencies = [
 [[package]]
 name = "swc_trace_macro"
 version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4795c8d23e0de62eef9cac0a20ae52429ee2ffc719768e838490f195b7d7267"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3955,7 +5374,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "470a1963cf182fdcbbac46e3a7fd2caf7329da0e568d3668202da9501c880e16"
 dependencies = [
  "either",
- "swc_visit_macros",
+ "swc_visit_macros 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "swc_visit"
+version = "0.5.3"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "either",
+ "swc_visit_macros 0.5.4 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
 ]
 
 [[package]]
@@ -3968,7 +5396,20 @@ dependencies = [
  "pmutil",
  "proc-macro2",
  "quote",
- "swc_macros_common",
+ "swc_macros_common 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn",
+]
+
+[[package]]
+name = "swc_visit_macros"
+version = "0.5.4"
+source = "git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache#8d0743aa721f2a36a9e0a5cb2b31db3e94624d51"
+dependencies = [
+ "Inflector",
+ "pmutil",
+ "proc-macro2",
+ "quote",
+ "swc_macros_common 0.3.6 (git+https://github.com/IWANABETHATGUY/swc?branch=chore/better-string-cache)",
  "syn",
 ]
 
