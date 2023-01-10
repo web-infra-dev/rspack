@@ -156,7 +156,7 @@ impl Compiler {
       .push_batch_diagnostic(plugin_driver_diagnostics);
 
     if !self.compilation.options.builtins.no_emit_assets {
-      self.emit_assets(&self.compilation)?;
+      self.emit_assets().await?;
     }
 
     self.compilation.done(self.plugin_driver.clone()).await?;
@@ -165,7 +165,14 @@ impl Compiler {
   }
 
   #[instrument(name = "emit_assets", skip_all)]
-  pub fn emit_assets(&self, compilation: &Compilation) -> Result<()> {
+  pub async fn emit_assets(&mut self) -> Result<()> {
+    self
+      .plugin_driver
+      .write()
+      .await
+      .emit(&mut self.compilation)
+      .await?;
+
     let output_path = self.options.context.join(&self.options.output.path);
     if !output_path.exists() {
       std::fs::create_dir_all(&output_path)
@@ -173,10 +180,18 @@ impl Compiler {
         .map_err(|e| Error::Anyhow { source: e })?;
     }
 
-    compilation
+    self
+      .compilation
       .assets()
       .par_iter()
-      .try_for_each(|(filename, asset)| self.emit_asset(&output_path, filename, asset))
+      .try_for_each(|(filename, asset)| self.emit_asset(&output_path, filename, asset))?;
+
+    self
+      .plugin_driver
+      .write()
+      .await
+      .after_emit(&mut self.compilation)
+      .await
   }
 
   #[instrument(name = "emit_asset", skip_all)]

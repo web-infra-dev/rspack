@@ -1,10 +1,8 @@
 use std::fmt::Debug;
 use std::pin::Pin;
 
-use napi::{Env, NapiRaw, Result};
-
 use async_trait::async_trait;
-
+use napi::{Env, NapiRaw, Result};
 use rspack_error::{internal_error, Error};
 
 use crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
@@ -14,6 +12,8 @@ pub struct JsHooksAdapter {
   pub compilation_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub this_compilation_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub process_assets_tsfn: ThreadsafeFunction<(), ()>,
+  pub emit_tsfn: ThreadsafeFunction<(), ()>,
+  pub after_emit_tsfn: ThreadsafeFunction<(), ()>,
 }
 
 impl Debug for JsHooksAdapter {
@@ -94,6 +94,34 @@ impl rspack_core::Plugin for JsHooksAdapter {
         )))
       })?
   }
+
+  #[tracing::instrument(name = "js_hooks_adapter::emit", skip_all)]
+  async fn emit(&mut self, _: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
+    self
+      .emit_tsfn
+      .call((), ThreadsafeFunctionCallMode::NonBlocking)?
+      .await
+      .map_err(|err| {
+        Error::InternalError(internal_error!(format!(
+          "Failed to call emit: {}",
+          err.to_string()
+        )))
+      })?
+  }
+
+  #[tracing::instrument(name = "js_hooks_adapter::after_emit", skip_all)]
+  async fn after_emit(&mut self, _: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
+    self
+      .after_emit_tsfn
+      .call((), ThreadsafeFunctionCallMode::NonBlocking)?
+      .await
+      .map_err(|err| {
+        Error::InternalError(internal_error!(format!(
+          "Failed to call after emit: {}",
+          err.to_string()
+        )))
+      })?
+  }
 }
 
 impl JsHooksAdapter {
@@ -102,6 +130,8 @@ impl JsHooksAdapter {
       process_assets,
       this_compilation,
       compilation,
+      emit,
+      after_emit,
     } = js_hooks;
 
     // *Note* that the order of the creation of threadsafe function is important. There is a queue of threadsafe calls for each tsfn:
@@ -116,6 +146,34 @@ impl JsHooksAdapter {
 
     let mut process_assets_tsfn: ThreadsafeFunction<(), ()> = {
       let cb = unsafe { process_assets.raw() };
+
+      ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
+        let (ctx, resolver) = ctx.split_into_parts();
+
+        let env = ctx.env;
+        let cb = ctx.callback;
+        let result = unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) }?;
+
+        resolver.resolve::<()>(result, |_| Ok(()))
+      })
+    }?;
+
+    let mut emit_tsfn: ThreadsafeFunction<(), ()> = {
+      let cb = unsafe { emit.raw() };
+
+      ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
+        let (ctx, resolver) = ctx.split_into_parts();
+
+        let env = ctx.env;
+        let cb = ctx.callback;
+        let result = unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) }?;
+
+        resolver.resolve::<()>(result, |_| Ok(()))
+      })
+    }?;
+
+    let mut after_emit_tsfn: ThreadsafeFunction<(), ()> = {
+      let cb = unsafe { after_emit.raw() };
 
       ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
         let (ctx, resolver) = ctx.split_into_parts();
@@ -158,6 +216,8 @@ impl JsHooksAdapter {
 
     // See the comment in `threadsafe_function.rs`
     process_assets_tsfn.unref(&env)?;
+    emit_tsfn.unref(&env)?;
+    after_emit_tsfn.unref(&env)?;
     compilation_tsfn.unref(&env)?;
     this_compilation_tsfn.unref(&env)?;
 
@@ -165,6 +225,8 @@ impl JsHooksAdapter {
       process_assets_tsfn,
       compilation_tsfn,
       this_compilation_tsfn,
+      emit_tsfn,
+      after_emit_tsfn,
     })
   }
 }
