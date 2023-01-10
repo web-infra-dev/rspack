@@ -16,7 +16,7 @@ module.exports = {
       {
         test: {
           type: "regexp",
-          matcher: "a.js$",
+          matcher: "b.js$",
         },
         sideEffects: false
       }

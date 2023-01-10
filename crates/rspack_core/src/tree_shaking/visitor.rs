@@ -5,7 +5,6 @@ use std::{
 use bitflags::bitflags;
 use globset::{Glob, GlobSetBuilder};
 use hashlink::LinkedHashMap;
-use rspack_symbol::{BetterId, IdOrMemExpr, IndirectTopLevelSymbol, Symbol, SymbolExt, SymbolFlag};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
 use swc_core::common::{util::take::Take, Mark, GLOBALS};
@@ -21,10 +20,6 @@ use ustr::{ustr, Ustr};
 use super::{
   utils::{get_dynamic_import_string_literal, get_require_literal},
   BailoutFlog,
-};
-use crate::{
-  module_rule_matcher_condition, CompilerOptions, Dependency, DependencyType, IdentifierLinkedMap,
-  IdentifierMap, ModuleGraph, ModuleIdentifier, ModuleSyntax, Resolver,
 };
 use crate::{
   module_rule_matcher_condition, CompilerOptions, Dependency, ModuleGraph, ModuleSyntax,
