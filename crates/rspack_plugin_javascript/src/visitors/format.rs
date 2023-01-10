@@ -1,10 +1,10 @@
-use hashbrown::{HashMap, HashSet};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
   runtime_globals, Compilation, Dependency, DependencyType, Module, ModuleDependency,
   ModuleGraphModule, ModuleIdentifier,
 };
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::utils::{quote_ident, ExprFactory};
 use tracing::instrument;
 use {
@@ -30,7 +30,7 @@ pub struct RspackModuleFinalizer<'a> {
 
 impl<'a> Fold for RspackModuleFinalizer<'a> {
   fn fold_module(&mut self, mut module: ast::Module) -> ast::Module {
-    let mut module_bindings = HashMap::new();
+    let mut module_bindings = HashMap::default();
     // TODO: should use dependency's code generation
     module.visit_mut_with(&mut RspackModuleFormatTransformer::new(
       self.unresolved_mark,
