@@ -1,4 +1,3 @@
-use hashbrown::HashMap;
 use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use rayon::prelude::*;
@@ -9,6 +8,7 @@ use rspack_core::{
   ProcessAssetsArgs,
 };
 use rspack_error::{internal_error, Result};
+use rustc_hash::FxHashMap as HashMap;
 use serde_json::json;
 use tracing::instrument;
 

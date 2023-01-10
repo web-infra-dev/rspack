@@ -23,3 +23,4 @@ swc_html          = { version = "0.97.7" }
 swc_html_minifier = { version = "0.94.7" }
 
 preset_env_base = { version = "0.3.3" }
+rustc-hash      = { version = "1.1.0" }

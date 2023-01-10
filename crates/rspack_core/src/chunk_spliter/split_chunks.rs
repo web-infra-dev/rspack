@@ -1,7 +1,6 @@
 use anyhow::anyhow;
-use hashbrown::HashMap;
-use hashbrown::HashSet;
 use rspack_error::Result;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tracing::instrument;
 
 use crate::{
@@ -48,7 +47,7 @@ impl<'me> CodeSplitter<'me> {
     let entries = compilation.entry_data();
 
     let mut input_entrypoints_and_modules: HashMap<ChunkGroupUkey, Vec<ModuleIdentifier>> =
-      HashMap::new();
+      HashMap::default();
 
     for (name, entry_data) in entries.iter() {
       let options = &entry_data.options;
@@ -78,7 +77,7 @@ impl<'me> CodeSplitter<'me> {
 
       let mut entrypoint = ChunkGroup::new(
         ChunkGroupKind::Entrypoint,
-        HashSet::from([name.to_string()]),
+        HashSet::from_iter([name.to_string()]),
         Some(name.to_string()),
       );
       if options.runtime.is_none() {
@@ -248,7 +247,7 @@ impl<'me> CodeSplitter<'me> {
           })
       })
       .fold(
-        HashMap::new() as HashMap<ChunkUkey, IdentifierSet>,
+        HashMap::default() as HashMap<ChunkUkey, IdentifierSet>,
         |mut map, (chunk_ukey, module)| {
           map.entry(chunk_ukey).or_default().insert(module);
           map

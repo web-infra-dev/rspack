@@ -1,7 +1,7 @@
 use std::{fmt::Debug, hash::Hash};
 
-use hashbrown::{HashMap, HashSet};
 use rspack_sources::{BoxSource, RawSource, SourceExt};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{ChunkUkey, Compilation};
 

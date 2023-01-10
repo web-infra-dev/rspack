@@ -1,8 +1,8 @@
 use std::fmt::Debug;
 
 use derivative::Derivative;
-use hashbrown::HashMap;
 use rspack_core::{Chunk, ChunkGroupByUkey, ModuleType, SourceType};
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{cache_group_source::SplitChunkSizes, ChunkFilter, GetName, TestFn};
 

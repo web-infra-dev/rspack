@@ -1,6 +1,6 @@
-use hashbrown::{HashMap, HashSet};
 use itertools::Itertools;
 use rspack_core::{ChunkUkey, Compilation, SourceType};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 // pub fn condition_map_to_string(map: &HashMap<String, bool>, _value: String) -> String {
 //   let positive_items = map

@@ -1,9 +1,9 @@
 use std::fmt::Debug;
 
-use hashbrown::HashMap;
 use rspack_error::Result;
 use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::BoxSource;
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkUkey, Compilation, CompilationArgs,

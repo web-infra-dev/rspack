@@ -11,7 +11,6 @@ use std::{
 
 use bitflags::bitflags;
 use dashmap::DashMap;
-use hashbrown::{hash_map::DefaultHashBuilder, HashMap, HashSet};
 use indexmap::IndexSet;
 use rspack_error::{
   internal_error, Diagnostic, Error, IntoTWithDiagnosticArray, Result, Severity,
@@ -22,6 +21,7 @@ use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
 };
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde_json::json;
 
 use crate::{
@@ -292,10 +292,10 @@ impl From<BoxSource> for AstOrSource {
 #[derive(Debug, Default)]
 pub struct BuildInfo {
   pub strict: bool,
-  pub file_dependencies: IndexSet<PathBuf, DefaultHashBuilder>,
-  pub context_dependencies: IndexSet<PathBuf, DefaultHashBuilder>,
-  pub missing_dependencies: IndexSet<PathBuf, DefaultHashBuilder>,
-  pub build_dependencies: IndexSet<PathBuf, DefaultHashBuilder>,
+  pub file_dependencies: IndexSet<PathBuf>,
+  pub context_dependencies: IndexSet<PathBuf>,
+  pub missing_dependencies: IndexSet<PathBuf>,
+  pub build_dependencies: IndexSet<PathBuf>,
 }
 
 #[derive(Debug)]
@@ -533,8 +533,8 @@ impl Module for NormalModule {
   fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
     if let NormalModuleAstOrSource::BuiltSucceed(ast_or_source) = self.ast_or_source() {
       let mut code_generation_result = CodeGenerationResult::default();
-      let mut data = HashMap::new();
-      let mut runtime_requirements = HashSet::new();
+      let mut data = HashMap::default();
+      let mut runtime_requirements = HashSet::default();
       for source_type in self.source_types() {
         let mut generation_result = self.parser_and_generator.generate(
           ast_or_source,

@@ -3,7 +3,7 @@ use std::{
   hash::Hasher,
 };
 
-use hashbrown::{HashMap, HashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
@@ -104,7 +104,7 @@ impl Chunk {
     &self,
     chunk_group_by_ukey: &ChunkGroupByUkey,
   ) -> HashSet<ChunkUkey> {
-    let mut chunks = HashSet::new();
+    let mut chunks = HashSet::default();
 
     fn add_chunks(
       chunk_group_ukey: &ChunkGroupUkey,
@@ -135,7 +135,7 @@ impl Chunk {
     &self,
     chunk_group_by_ukey: &ChunkGroupByUkey,
   ) -> HashSet<ChunkUkey> {
-    let mut chunks = HashSet::new();
+    let mut chunks = HashSet::default();
 
     fn add_chunks(
       chunk_group_ukey: &ChunkGroupUkey,
@@ -175,8 +175,8 @@ impl Chunk {
   }
 
   pub fn get_all_async_chunks(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> HashSet<ChunkUkey> {
-    let mut queue = HashSet::new();
-    let mut chunks = HashSet::new();
+    let mut queue = HashSet::default();
+    let mut chunks = HashSet::default();
     let initial_chunks: HashSet<ChunkUkey> = self
       .groups
       .iter()

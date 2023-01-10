@@ -1,9 +1,9 @@
-use hashbrown::HashSet;
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
   runtime_globals, ChunkGraph, ChunkUkey, Compilation, ModuleGraph, RuntimeModule, SourceType,
   RUNTIME_MODULE_STAGE_ATTACH,
 };
+use rustc_hash::FxHashSet as HashSet;
 
 use super::utils::{stringify_chunks, stringify_chunks_to_array};
 
@@ -45,7 +45,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         .expect("Chunk not found");
 
       let all_async_chunks = chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey);
-      let mut async_chunk_ids_with_css = HashSet::new();
+      let mut async_chunk_ids_with_css = HashSet::default();
       for chunk_ukey in all_async_chunks.iter() {
         if Self::chunk_has_css(
           chunk_ukey,
@@ -72,7 +72,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         return RawSource::from("".to_string()).boxed();
       }
 
-      let mut initial_chunk_ids_with_css = HashSet::new();
+      let mut initial_chunk_ids_with_css = HashSet::default();
       let initial_chunks = chunk.get_all_initial_chunks(&compilation.chunk_group_by_ukey);
 
       for chunk_ukey in initial_chunks.iter() {

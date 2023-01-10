@@ -4,8 +4,8 @@ use std::{
 };
 
 use dashmap::DashMap;
-use hashbrown::HashMap;
 use rspack_error::Result;
+use rustc_hash::FxHashMap as HashMap;
 
 use super::Snapshot;
 use crate::{calc_hash, SnapshotOptions, SnapshotStrategy};
@@ -39,8 +39,10 @@ impl SnapshotManager {
   {
     // TODO file_paths deduplication && calc immutable path
     let strategy = f(&self.options);
-    let mut file_update_times = HashMap::with_capacity(paths.len());
-    let mut file_hashs = HashMap::with_capacity(paths.len());
+    let mut file_update_times = HashMap::default();
+    file_update_times.reserve(paths.len());
+    let mut file_hashs = HashMap::default();
+    file_hashs.reserve(paths.len());
     if strategy.timestamp {
       for &path in paths {
         file_update_times.insert(path.to_owned(), SystemTime::now());

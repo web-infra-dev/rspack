@@ -1,6 +1,6 @@
 use bitflags;
-use hashbrown::HashSet;
 use rspack_symbol::{IndirectTopLevelSymbol, Symbol};
+use rustc_hash::FxHashSet as HashSet;
 
 use self::visitor::TreeShakingResult;
 use crate::IdentifierMap;

@@ -1,5 +1,5 @@
-use hashbrown::HashSet;
 use rspack_core::runtime_globals;
+use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::{Mark, DUMMY_SP};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::transforms::base::helpers::HELPERS;

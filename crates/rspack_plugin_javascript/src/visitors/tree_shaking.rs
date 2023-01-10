@@ -1,9 +1,9 @@
-use hashbrown::HashSet;
 use rspack_core::{
   Dependency, DependencyType, Identifier, ModuleDependency, ModuleGraph, ModuleIdentifier,
 };
 // use swc_ecma_utils::
 use rspack_symbol::{BetterId, IndirectTopLevelSymbol, Symbol};
+use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::{Mark, DUMMY_SP, GLOBALS};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::atoms::JsWord;

@@ -3,9 +3,9 @@ use std::{
   path::{Path, PathBuf},
 };
 
-use hashbrown::{hash_map::DefaultHashBuilder, HashSet};
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_sources::SourceMap;
+use rustc_hash::FxHashSet as HashSet;
 
 use crate::{Content, LoaderRunnerPlugin};
 
@@ -49,19 +49,19 @@ pub struct LoaderContext<'a, 'context, T, U> {
 
   pub cacheable: bool,
 
-  pub file_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
-  pub context_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
-  pub missing_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
-  pub build_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
+  pub file_dependencies: HashSet<PathBuf>,
+  pub context_dependencies: HashSet<PathBuf>,
+  pub missing_dependencies: HashSet<PathBuf>,
+  pub build_dependencies: HashSet<PathBuf>,
 }
 
 #[derive(Debug)]
 pub struct LoaderResult {
   pub cacheable: bool,
-  pub file_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
-  pub context_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
-  pub missing_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
-  pub build_dependencies: HashSet<PathBuf, DefaultHashBuilder>,
+  pub file_dependencies: HashSet<PathBuf>,
+  pub context_dependencies: HashSet<PathBuf>,
+  pub missing_dependencies: HashSet<PathBuf>,
+  pub build_dependencies: HashSet<PathBuf>,
   pub content: Content,
   pub source_map: Option<SourceMap>,
   pub additional_data: Option<String>,
@@ -194,7 +194,7 @@ impl LoaderRunner {
     let content = self.process_resource().await?;
 
     // TODO: FileUriPlugin
-    let mut file_dependencies: HashSet<PathBuf, DefaultHashBuilder> = Default::default();
+    let mut file_dependencies: HashSet<PathBuf> = Default::default();
     file_dependencies.insert(self.resource_data.resource_path.clone());
 
     let loader_context = LoaderContext {
