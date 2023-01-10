@@ -291,6 +291,7 @@ impl NormalModuleFactory {
     let mut generator = None;
 
     module_rules.iter().for_each(|rule| {
+      // TODO: should deep merge
       if let Some(parser) = rule.parser.as_ref() {
         parser = Some(parser.to_owned());
       }
