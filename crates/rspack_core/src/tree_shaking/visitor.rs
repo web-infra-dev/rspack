@@ -11,11 +11,6 @@ use swc_core::common::{util::take::Take, Mark, GLOBALS};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
-// use swc_atoms::JsWord;
-// use swc_common::{util::take::Take, Mark, GLOBALS};
-// use swc_ecma_ast::*;
-// use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
-use ustr::{ustr, Ustr};
 
 use super::{
   utils::{get_dynamic_import_string_literal, get_require_literal},
