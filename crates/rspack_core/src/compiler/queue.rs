@@ -72,7 +72,9 @@ impl WorkerTask for FactorizeTask {
           result.module.identifier()
         )))
       })?,
-      !context.options.builtins.side_effects,
+      // 1. if `tree_shaking` is false, then whatever `side_effects` is, all the module should be used by default.
+      // 2. if `tree_shaking` is true, then only `side_effects` is false, `module.used` should be true.
+      !context.options.builtins.tree_shaking || !context.options.builtins.side_effects,
     );
 
     mgm.set_issuer_if_unset(self.original_module_identifier);
