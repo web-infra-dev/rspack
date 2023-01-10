@@ -384,7 +384,7 @@ unsafe extern "C" fn call_js_cb<T: 'static, C, R>(
     assert!(stat == sys::Status::napi_ok || stat == sys::Status::napi_pending_exception);
   } else {
     let error_code: Status = status.into();
-    let error_code_string = format!("{:?}", error_code);
+    let error_code_string = format!("{error_code:?}");
     let mut error_code_value = ptr::null_mut();
     assert_eq!(
       sys::napi_create_string_utf8(

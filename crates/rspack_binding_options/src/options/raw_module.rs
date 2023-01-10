@@ -1,25 +1,21 @@
 use std::fmt::Debug;
 
-use serde::Deserialize;
-
 #[cfg(feature = "node-api")]
 use napi::{bindgen_prelude::*, JsFunction, NapiRaw};
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
-
 #[cfg(feature = "node-api")]
 use rspack_binding_shared::{
   call_js_function_with_napi_objects,
   threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
 };
-
 use rspack_core::{
   AssetParserDataUrlOption, AssetParserOptions, BoxedLoader, CompilerOptionsBuilder, ModuleOptions,
   ModuleRule, ParserOptions,
 };
-
 #[cfg(feature = "node-api")]
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use serde::Deserialize;
 
 use crate::{RawOption, RawResolveOptions};
 
