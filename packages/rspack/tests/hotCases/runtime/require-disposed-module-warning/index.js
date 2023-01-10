@@ -4,7 +4,6 @@ const getInner = require("./module");
 it("should print correct warning messages when a disposed module is required", done => {
 	NEXT(
 		require("../../update")(done, true, () => {
-			debugger
 			getInner();
 			expectWarning(
 				/^\[HMR] unexpected require\(\.\/a.js\) from disposed module \.\/module\.js$/,
