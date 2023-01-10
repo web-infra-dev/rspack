@@ -701,7 +701,7 @@ impl SplitChunksPlugin {
             let module = compilation
               .module_graph
               .module_by_identifier(module)
-              .unwrap_or_else(|| panic!("Module({:?}) not found", module));
+              .unwrap_or_else(|| panic!("Module({module}) not found"));
             for ty in module.source_types() {
               let sizes = info.sizes.get_mut(ty).unwrap_or_else(|| {
                 panic!(
