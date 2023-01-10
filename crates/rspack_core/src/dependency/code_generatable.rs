@@ -1,13 +1,20 @@
+use hashbrown::HashSet;
+use rspack_error::Result;
+
 use crate::{Compilation, Module};
 
 pub struct CodeGeneratableContext<'a> {
   pub compilation: &'a Compilation,
   /// Current referenced module
   pub module: &'a dyn Module,
+  pub runtime_requirements: &'a mut HashSet<String>,
 }
 
 pub trait CodeGeneratable {
-  fn generate(&self, _code_generatable_context: &CodeGeneratableContext) -> CodeGeneratableResult;
+  fn generate(
+    &self,
+    _code_generatable_context: &mut CodeGeneratableContext,
+  ) -> Result<CodeGeneratableResult>;
 }
 
 pub type JsAstPath = Vec<swc_core::ecma::visit::AstParentKind>;
@@ -53,9 +60,33 @@ pub type CodeGeneratableJavaScriptVisitors = Vec<(JsAstPath, Box<dyn JavaScriptV
 
 pub type CodeGeneratableCssVisitors = Vec<(CssAstPath, Box<dyn CssVisitorBuilder>)>;
 
+pub enum CodeGeneratableImports {
+  JavaScript(Vec<swc_core::ecma::ast::ImportDecl>),
+  Css(Vec<swc_core::css::ast::ImportPrelude>),
+}
+
+impl CodeGeneratableImports {
+  pub fn into_javascript(self) -> Vec<swc_core::ecma::ast::ImportDecl> {
+    if let Self::JavaScript(imports) = self {
+      imports
+    } else {
+      panic!("imports is not JavaScript")
+    }
+  }
+
+  pub fn into_css(self) -> Vec<swc_core::css::ast::ImportPrelude> {
+    if let Self::Css(imports) = self {
+      imports
+    } else {
+      panic!("imports is not Css")
+    }
+  }
+}
+
 #[derive(Default)]
 pub struct CodeGeneratableResult {
   pub visitors: Vec<(CodeGeneratableAstPath, CodeGeneratableVisitorBuilder)>,
+  pub imports: Option<CodeGeneratableImports>,
 }
 
 impl CodeGeneratableResult {

@@ -1,2 +1,3 @@
-import './a'
-console.log('hello, world')
+import "./a";
+export * from "./lib";
+console.log("hello, world");

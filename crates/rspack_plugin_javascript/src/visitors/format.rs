@@ -1,5 +1,6 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
+<<<<<<< HEAD
 use rspack_core::{
   runtime_globals, Compilation, Dependency, DependencyType, Module, ModuleDependency,
   ModuleGraphModule, ModuleIdentifier,
@@ -7,19 +8,24 @@ use rspack_core::{
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::utils::{member_expr, quote_ident, ExprFactory};
 use tracing::instrument;
+=======
+use rspack_core::{runtime_globals, Compilation, Module};
+>>>>>>> f7d1afde (refactor: init dependency code gen)
 use {
-  swc_core::common::{Mark, SyntaxContext, DUMMY_SP},
+  swc_core::common::{Mark, SyntaxContext},
   swc_core::ecma::ast::{self, *},
-  swc_core::ecma::atoms::{Atom, JsWord},
   swc_core::ecma::visit::{noop_visit_mut_type, Fold, VisitMut, VisitMutWith},
 };
 
+<<<<<<< HEAD
 use super::{
   is_import_meta_hot_accept_call, is_import_meta_hot_decline_call, is_module_hot_accept_call,
   is_module_hot_decline_call,
 };
 use crate::utils::is_dynamic_import_literal_expr;
 
+=======
+>>>>>>> f7d1afde (refactor: init dependency code gen)
 pub static SWC_HELPERS_REG: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"@swc/helpers/lib/(\w*)\.js$").expect("TODO:"));
 
@@ -98,6 +104,7 @@ impl<'a> RspackModuleFormatTransformer<'a> {
       module_bindings,
     }
   }
+<<<<<<< HEAD
 
   /// Try to get the module_identifier from `src`, `dependency_type`, and `importer`, it's a legacy way and has performance issue, which should be removed.
   /// TODO: remove this in the future
@@ -541,11 +548,14 @@ impl<'a> HmrApiRewrite<'a> {
       }
     }
   }
+=======
+>>>>>>> f7d1afde (refactor: init dependency code gen)
 }
 
 impl<'a> VisitMut for HmrApiRewrite<'a> {
   noop_visit_mut_type!();
 
+<<<<<<< HEAD
   fn visit_mut_call_expr(&mut self, n: &mut CallExpr) {
     if is_module_hot_accept_call(n) {
       self.rewrite_module_hot_accept(n, &DependencyType::ModuleHotAccept);
@@ -569,6 +579,11 @@ impl<'a> VisitMut for HmrApiRewrite<'a> {
       if let Some(expr) = member_expr!(DUMMY_SP, module.hot).as_member() {
         *n = expr.to_owned();
       }
+=======
+  fn visit_mut_ident(&mut self, ident: &mut Ident) {
+    if "require".eq(&ident.sym) && ident.span.ctxt == self.unresolved_ctxt {
+      ident.sym = runtime_globals::REQUIRE.into();
+>>>>>>> f7d1afde (refactor: init dependency code gen)
     }
     n.visit_mut_children_with(self);
   }

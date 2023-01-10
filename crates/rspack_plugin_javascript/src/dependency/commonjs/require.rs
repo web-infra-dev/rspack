@@ -1,11 +1,13 @@
-use swc_core::ecma::atoms::JsWord;
-
-use crate::{
-  dependency::{
-    CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, DependencyCategory,
-    ModuleDependency,
-  },
-  DependencyType, ErrorSpan, JsAstPath, ModuleIdentifier,
+use once_cell::sync::Lazy;
+use regex::Regex;
+use rspack_core::{
+  create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
+  Dependency, DependencyCategory, DependencyType, ErrorSpan, JsAstPath, ModuleDependency,
+  ModuleDependencyExt, ModuleIdentifier,
+};
+use swc_core::ecma::{
+  ast::*,
+  atoms::{Atom, JsWord},
 };
 
 #[derive(Debug, Eq, Clone)]
@@ -87,7 +89,34 @@ impl ModuleDependency for CommonJSRequireDependency {
 }
 
 impl CodeGeneratable for CommonJSRequireDependency {
-  fn generate(&self, _code_generatable_context: &CodeGeneratableContext) -> CodeGeneratableResult {
-    todo!()
+  fn generate(
+    &self,
+    code_generatable_context: &mut CodeGeneratableContext,
+  ) -> rspack_error::Result<CodeGeneratableResult> {
+    let CodeGeneratableContext { compilation, .. } = code_generatable_context;
+    let mut code_gen = CodeGeneratableResult::default();
+
+    let module_id = self
+      .referencing_module_graph_module(&compilation.module_graph)
+      .map(|m| m.id(&compilation.chunk_graph).to_string());
+
+    if let Some(module_id) = module_id {
+      code_gen.visitors.push(
+        create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
+          if let Callee::Expr(box Expr::Ident(_ident)) = &mut n.callee {
+            if let Some(ExprOrSpread {
+              spread: None,
+              expr: box Expr::Lit(Lit::Str(str)),
+            }) = n.args.first_mut()
+            {
+              str.value = JsWord::from(&*module_id);
+              str.raw = Some(Atom::from(format!("\"{module_id}\"")));
+            };
+          }
+        }),
+      );
+    }
+
+    Ok(code_gen)
   }
 }

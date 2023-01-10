@@ -387,7 +387,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       ModuleItem::ModuleDecl(decl) => match decl {
         ModuleDecl::Import(import) => {
           let src: String = import.src.value.to_string();
-          let resolved_uri = match self.resolve_module_identifier(src, DependencyType::EsmImport) {
+          let resolved_uri = match self
+            .resolve_module_identifier(src, &[DependencyType::EsmImport, DependencyType::EsmExport])
+          {
             Some(module_identifier) => module_identifier,
             None => {
               // TODO: Ignore for now because swc helper interference.
@@ -475,9 +477,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         }
 
         ModuleDecl::ExportAll(export_all) => {
-          let resolved_uri = match self
-            .resolve_module_identifier(export_all.src.value.to_string(), DependencyType::EsmImport)
-          {
+          let resolved_uri = match self.resolve_module_identifier(
+            export_all.src.value.to_string(),
+            &[DependencyType::EsmImport, DependencyType::EsmExport],
+          ) {
             Some(module_identifier) => module_identifier,
             None => {
               // TODO: ignore for now, or three copy js will failed
@@ -734,7 +737,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     // TODO: module.exports, exports.xxxxx
     if let Some(require_lit) = get_require_literal(node, self.unresolved_mark) {
       match self
-        .resolve_module_identifier(require_lit.to_string(), DependencyType::CjsRequire)
+        .resolve_module_identifier(require_lit.to_string(), &[DependencyType::CjsRequire])
         .copied()
       {
         Some(module_identifier) => {
@@ -757,7 +760,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       self.module_syntax.insert(ModuleSyntax::COMMONJS);
     } else if let Some(import_str) = get_dynamic_import_string_literal(node) {
       match self
-        .resolve_module_identifier(import_str.to_string(), DependencyType::DynamicImport)
+        .resolve_module_identifier(import_str.to_string(), &[DependencyType::DynamicImport])
         .copied()
       {
         Some(module_identifier) => {
@@ -1017,7 +1020,9 @@ impl<'a> ModuleRefAnalyze<'a> {
   fn analyze_named_export(&mut self, named_export: &NamedExport) {
     let src: Option<String> = named_export.src.as_ref().map(|src| src.value.to_string());
     if let Some(src) = src {
-      let resolved_uri = match self.resolve_module_identifier(src, DependencyType::EsmImport) {
+      let resolved_uri = match self
+        .resolve_module_identifier(src, &[DependencyType::EsmImport, DependencyType::EsmExport])
+      {
         Some(module_identifier) => module_identifier,
         None => {
           eprintln!(
@@ -1118,14 +1123,14 @@ impl<'a> ModuleRefAnalyze<'a> {
   fn resolve_module_identifier(
     &self,
     src: String,
-    dependency_type: DependencyType,
+    dependency_type: &[DependencyType],
   ) -> Option<&ModuleIdentifier> {
     self
       .module_graph
       .module_graph_module_by_identifier(&self.module_identifier)
       .and_then(|mgm| {
         mgm.dependencies.iter().find_map(|dep| {
-          if dep.request() == src && dep.dependency_type() == &dependency_type {
+          if dep.request() == src && dependency_type.contains(&dep.dependency_type()) {
             self
               .module_graph
               .module_by_dependency(dep)

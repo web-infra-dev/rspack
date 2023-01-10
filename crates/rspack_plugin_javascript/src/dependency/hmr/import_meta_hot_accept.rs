@@ -1,6 +1,6 @@
 use swc_core::ecma::atoms::JsWord;
 
-use crate::{
+use rspack_core::{
   CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, DependencyCategory,
   DependencyType, ErrorSpan, JsAstPath, ModuleDependency, ModuleIdentifier,
 };

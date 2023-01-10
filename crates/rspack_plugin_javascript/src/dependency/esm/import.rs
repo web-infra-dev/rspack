@@ -1,17 +1,9 @@
-use swc_core::ecma::atoms::JsWord;
-
-// use swc_core::ecma::{ast::*, atoms::Atom};
-use crate::{
-  // create_javascript_visitor,
-  dependency::{
-    CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, DependencyCategory,
-    ModuleDependency,
-  },
-  DependencyType,
-  ErrorSpan,
-  JsAstPath,
-  ModuleIdentifier,
+use rspack_core::{
+  create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
+  Dependency, DependencyCategory, DependencyType, ErrorSpan, JsAstPath, ModuleDependency,
+  ModuleDependencyExt, ModuleIdentifier,
 };
+use swc_core::ecma::atoms::{Atom, JsWord};
 
 #[derive(Debug, Eq, Clone)]
 pub struct EsmImportDependency {
@@ -92,41 +84,28 @@ impl ModuleDependency for EsmImportDependency {
   }
 }
 
-static _SWC_HELPERS_REG: once_cell::sync::Lazy<regex::Regex> =
-  once_cell::sync::Lazy::new(|| regex::Regex::new(r"@swc/helpers/lib/(\w*)\.js$").expect("TODO:"));
-
 impl CodeGeneratable for EsmImportDependency {
-  fn generate(&self, _code_generatable_context: &CodeGeneratableContext) -> CodeGeneratableResult {
-    // let CodeGeneratableContext {
-    //   compilation,
-    //   module,
-    // } = code_generatable_context;
+  fn generate(
+    &self,
+    code_generatable_context: &mut CodeGeneratableContext,
+  ) -> rspack_error::Result<CodeGeneratableResult> {
+    let CodeGeneratableContext { compilation, .. } = code_generatable_context;
+    let mut code_gen = CodeGeneratableResult::default();
 
-    // let mut code_gen = CodeGeneratableResult::default();
+    let module_id = self
+      .referencing_module_graph_module(&compilation.module_graph)
+      .map(|m| m.id(&compilation.chunk_graph).to_string());
 
-    // let target_mgm = compilation
-    //   .module_graph
-    //   .module_graph_module_by_identifier(&module.identifier())
-    //   .and_then(|mgm| {
-    //     mgm.dependencies.iter().find_map(|dep| {
-    //       if dep.request() == self.request() && dep.dependency_type() == self.dependency_type() {
-    //         compilation.module_graph.module_by_dependency(dep)
-    //       } else {
-    //         None
-    //       }
-    //     })
-    //   })
-    //   .expect("Failed to get module graph module");
+    if let Some(module_id) = module_id {
+      code_gen.visitors.push(
+        create_javascript_visitor!(exact &self.ast_path, visit_mut_module_decl(n: &mut ModuleDecl) {
+          if let Some(import) = n.as_mut_import() {
+            *import.src = Atom::from(&*module_id).into();
+          }
+        }),
+      );
+    }
 
-    // let _module_id = target_mgm.id(&compilation.chunk_graph).to_string();
-
-    // let v =
-    //   create_javascript_visitor!(&self.ast_path, visit_mut_module_decl(n: &mut ModuleDecl) {});
-
-    // code_gen.visitors.push(v);
-
-    // code_gen
-
-    todo!()
+    Ok(code_gen)
   }
 }

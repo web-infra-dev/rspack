@@ -1,12 +1,15 @@
-use swc_core::ecma::atoms::JsWord;
-
-use crate::{
-  CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, DependencyCategory,
-  DependencyType, ErrorSpan, JsAstPath, ModuleDependency, ModuleIdentifier,
+use rspack_core::{
+  create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
+  Dependency, DependencyCategory, DependencyType, ErrorSpan, JsAstPath, ModuleDependency,
+  ModuleDependencyExt, ModuleIdentifier,
+};
+use swc_core::ecma::{
+  ast::*,
+  atoms::{Atom, JsWord},
 };
 
 #[derive(Debug, Eq, Clone)]
-pub struct ModuleHotAcceptDependency {
+pub struct ModuleHotDeclineDependency {
   parent_module_identifier: Option<ModuleIdentifier>,
   request: JsWord,
   // user_request: String,
@@ -19,7 +22,7 @@ pub struct ModuleHotAcceptDependency {
 }
 
 // Do not edit this, as it is used to uniquely identify the dependency.
-impl PartialEq for ModuleHotAcceptDependency {
+impl PartialEq for ModuleHotDeclineDependency {
   fn eq(&self, other: &Self) -> bool {
     self.parent_module_identifier == other.parent_module_identifier
       && self.request == other.request
@@ -29,7 +32,7 @@ impl PartialEq for ModuleHotAcceptDependency {
 }
 
 // Do not edit this, as it is used to uniquely identify the dependency.
-impl std::hash::Hash for ModuleHotAcceptDependency {
+impl std::hash::Hash for ModuleHotDeclineDependency {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.parent_module_identifier.hash(state);
     self.request.hash(state);
@@ -38,20 +41,20 @@ impl std::hash::Hash for ModuleHotAcceptDependency {
   }
 }
 
-impl ModuleHotAcceptDependency {
+impl ModuleHotDeclineDependency {
   pub fn new(request: JsWord, span: Option<ErrorSpan>, ast_path: JsAstPath) -> Self {
     Self {
       parent_module_identifier: None,
       request,
       category: &DependencyCategory::CommonJS,
-      dependency_type: &DependencyType::ModuleHotAccept,
+      dependency_type: &DependencyType::ModuleHotDecline,
       span,
       ast_path,
     }
   }
 }
 
-impl Dependency for ModuleHotAcceptDependency {
+impl Dependency for ModuleHotDeclineDependency {
   fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
     self.parent_module_identifier.as_ref()
   }
@@ -69,7 +72,7 @@ impl Dependency for ModuleHotAcceptDependency {
   }
 }
 
-impl ModuleDependency for ModuleHotAcceptDependency {
+impl ModuleDependency for ModuleHotDeclineDependency {
   fn request(&self) -> &str {
     &self.request
   }
@@ -83,8 +86,33 @@ impl ModuleDependency for ModuleHotAcceptDependency {
   }
 }
 
-impl CodeGeneratable for ModuleHotAcceptDependency {
-  fn generate(&self, _code_generatable_context: &CodeGeneratableContext) -> CodeGeneratableResult {
-    todo!()
+impl CodeGeneratable for ModuleHotDeclineDependency {
+  fn generate(
+    &self,
+    code_generatable_context: &mut CodeGeneratableContext,
+  ) -> rspack_error::Result<CodeGeneratableResult> {
+    let CodeGeneratableContext { compilation, .. } = code_generatable_context;
+    let mut code_gen = CodeGeneratableResult::default();
+
+    let referenced_module = self.referencing_module_graph_module(&compilation.module_graph);
+
+    if let Some(referenced_module) = referenced_module {
+      let module_id = referenced_module.id(&compilation.chunk_graph).to_string();
+
+      code_gen.visitors.push(
+        create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
+          if let Some(Lit::Str(str)) = n
+            .args
+            .get_mut(0)
+            .and_then(|first_arg| first_arg.expr.as_mut_lit())
+          {
+            str.value = JsWord::from(&*module_id);
+            str.raw = Some(Atom::from(format!("\"{module_id}\"")));
+          }
+        }),
+      );
+    }
+
+    Ok(code_gen)
   }
 }

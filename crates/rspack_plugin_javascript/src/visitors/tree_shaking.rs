@@ -53,7 +53,7 @@ impl<'a> Fold for TreeShaker<'a> {
   noop_fold_type!();
   fn fold_program(&mut self, node: Program) -> Program {
     debug_assert!(GLOBALS.is_set());
-    node.fold_with(self)
+    node.fold_children_with(self)
   }
 
   fn fold_module(&mut self, mut node: Module) -> Module {
@@ -79,7 +79,7 @@ impl<'a> Fold for TreeShaker<'a> {
       ModuleItem::ModuleDecl(module_decl) => match module_decl {
         ModuleDecl::Import(ref import) => {
           let module_identifier = self
-            .resolve_module_identifier(import.src.value.to_string(), DependencyType::EsmImport)
+            .resolve_module_identifier(import.src.value.to_string(), &[DependencyType::EsmImport])
             .unwrap_or_else(|| {
               // FIXME: This is just a hack because of an unstable bug panic here.
               panic!(
@@ -197,7 +197,7 @@ impl<'a> Fold for TreeShaker<'a> {
           if let Some(ref src) = named.src {
             let before_legnth = named.specifiers.len();
             let module_identifier = self
-              .resolve_module_identifier(src.value.to_string(), DependencyType::EsmImport)
+              .resolve_module_identifier(src.value.to_string(), &[DependencyType::EsmExport])
               .expect("TODO:");
             let mgm = self
               .module_graph
@@ -349,7 +349,10 @@ impl<'a> Fold for TreeShaker<'a> {
         }
         ModuleDecl::ExportAll(ref export_all) => {
           let module_identifier = self
-            .resolve_module_identifier(export_all.src.value.to_string(), DependencyType::EsmImport)
+            .resolve_module_identifier(
+              export_all.src.value.to_string(),
+              &[DependencyType::EsmExport],
+            )
             .expect("TODO:");
           let mgm = self
             .module_graph
@@ -380,14 +383,14 @@ impl<'a> TreeShaker<'a> {
   fn resolve_module_identifier(
     &mut self,
     src: String,
-    dependency_type: DependencyType,
+    dependency_type: &[DependencyType],
   ) -> Option<ModuleIdentifier> {
     self
       .module_graph
       .module_graph_module_by_identifier(&self.module_identifier)
       .and_then(|mgm| {
         mgm.dependencies.iter().find_map(|dep| {
-          if dep.request() == src && dep.dependency_type() == &dependency_type {
+          if dep.request() == src && dependency_type.contains(dep.dependency_type()) {
             self
               .module_graph
               .module_by_dependency(dep)

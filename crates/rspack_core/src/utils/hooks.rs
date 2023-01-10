@@ -4,7 +4,7 @@ use rspack_error::{internal_error, Error, TraceableError};
 use sugar_path::SugarPath;
 use tracing::instrument;
 
-use crate::{DependencyType, Resolve, ResolveArgs, ResolveResult, SharedPluginDriver};
+use crate::{DependencyCategory, Resolve, ResolveArgs, ResolveResult, SharedPluginDriver};
 
 /// Tuple used to represent a resolve error.
 /// The first element is the error message for runtime and the second element is the error used for stats and so on.
@@ -50,12 +50,7 @@ pub async fn resolve(
 
     res
   } else if plugin_driver.options.resolve.condition_names.is_none() {
-    let is_esm = matches!(
-      args.dependency_type,
-      DependencyType::EsmImport
-        | DependencyType::DynamicImport
-        | DependencyType::ImportMetaHotAccept
-    );
+    let is_esm = matches!(args.dependency_category, DependencyCategory::Esm);
     let condition_names = if is_esm {
       vec![
         String::from("import"),

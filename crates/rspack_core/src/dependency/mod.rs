@@ -3,19 +3,13 @@ pub use entry::*;
 mod code_generatable;
 pub use code_generatable::*;
 
-mod commonjs;
-pub use commonjs::*;
-mod esm;
-pub use esm::*;
 mod css;
-pub use css::*;
-mod hmr;
 use std::{any::Any, fmt::Debug, hash::Hash};
 
+pub use css::*;
 use dyn_clone::{clone_trait_object, DynClone};
-pub use hmr::*;
 
-use crate::{AsAny, DynEq, DynHash, ErrorSpan, ModuleIdentifier};
+use crate::{AsAny, DynEq, DynHash, ErrorSpan, ModuleGraph, ModuleGraphModule, ModuleIdentifier};
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
 // Note: This is almost the same with the old `ResolveKind`
@@ -26,14 +20,18 @@ pub enum DependencyType {
   Entry,
   // Harmony import
   EsmImport,
+  // Harmony export
+  EsmExport,
   // import()
   DynamicImport,
   // cjs require
   CjsRequire,
-  // module.hot.accept
-  ModuleHotAccept,
   // import.meta.webpackHot.accept
   ImportMetaHotAccept,
+  // module.hot.accept
+  ModuleHotAccept,
+  // module.hot.decline
+  ModuleHotDecline,
   // css url()
   CssUrl,
   // css @import
@@ -85,8 +83,47 @@ impl Dependency for Box<dyn Dependency> {
   }
 }
 
+pub trait ModuleDependencyExt {
+  fn referencing_module_graph_module<'m>(
+    &self,
+    module_graph: &'m ModuleGraph,
+  ) -> Option<&'m ModuleGraphModule>;
+}
+
+impl ModuleDependencyExt for dyn ModuleDependency + '_ {
+  fn referencing_module_graph_module<'m>(
+    &self,
+    module_graph: &'m ModuleGraph,
+  ) -> Option<&'m ModuleGraphModule> {
+    module_graph
+      .dependencies_by_module_identifier(self.parent_module_identifier()?)
+      .and_then(|deps| {
+        deps.iter().find_map(|dep| {
+          if dep.request() == self.request() && dep.dependency_type() == self.dependency_type() {
+            module_graph.module_by_dependency(dep)
+          } else {
+            None
+          }
+        })
+      })
+  }
+}
+
+impl<T: ModuleDependency> ModuleDependencyExt for T {
+  fn referencing_module_graph_module<'m>(
+    &self,
+    module_graph: &'m ModuleGraph,
+  ) -> Option<&'m ModuleGraphModule> {
+    let this = self as &dyn ModuleDependency;
+    this.referencing_module_graph_module(module_graph)
+  }
+}
+
 impl CodeGeneratable for Box<dyn Dependency> {
-  fn generate(&self, code_generatable_context: &CodeGeneratableContext) -> CodeGeneratableResult {
+  fn generate(
+    &self,
+    code_generatable_context: &mut CodeGeneratableContext,
+  ) -> rspack_error::Result<CodeGeneratableResult> {
     (**self).generate(code_generatable_context)
   }
 }
@@ -113,7 +150,7 @@ pub trait AsModuleDependency {
 
 impl AsModuleDependency for Box<dyn Dependency> {
   fn as_module_dependency(&self) -> Option<&dyn ModuleDependency> {
-    None
+    (**self).as_module_dependency()
   }
 }
 
@@ -162,7 +199,10 @@ impl Dependency for Box<dyn ModuleDependency> {
 }
 
 impl CodeGeneratable for Box<dyn ModuleDependency> {
-  fn generate(&self, code_generatable_context: &CodeGeneratableContext) -> CodeGeneratableResult {
+  fn generate(
+    &self,
+    code_generatable_context: &mut CodeGeneratableContext,
+  ) -> rspack_error::Result<CodeGeneratableResult> {
     (**self).generate(code_generatable_context)
   }
 }

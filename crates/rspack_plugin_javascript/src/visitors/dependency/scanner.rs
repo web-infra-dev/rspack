@@ -1,8 +1,5 @@
 use linked_hash_set::LinkedHashSet;
-use rspack_core::{
-  CommonJSRequireDependency, EsmDynamicImportDependency, EsmImportDependency,
-  ImportMetaModuleHotAcceptDependency, ModuleDependency, ModuleHotAcceptDependency,
-};
+use rspack_core::ModuleDependency;
 use swc_core::common::pass::AstNodePath;
 use swc_core::common::{Mark, SyntaxContext};
 use swc_core::ecma::ast::{
@@ -10,19 +7,24 @@ use swc_core::ecma::ast::{
 };
 use swc_core::ecma::visit::{AstParentKind, AstParentNodeRef, VisitAstPath, VisitWithPath};
 
+use crate::dependency::{
+  CommonJSRequireDependency, EsmDynamicImportDependency, EsmExportDependency, EsmImportDependency,
+  ImportMetaModuleHotAcceptDependency, ModuleHotAcceptDependency, ModuleHotDeclineDependency,
+};
+
 pub fn as_parent_path(ast_path: &AstNodePath<AstParentNodeRef<'_>>) -> Vec<AstParentKind> {
   ast_path.iter().map(|n| n.kind()).collect()
 }
 
 pub struct DependencyScanner {
   pub unresolved_ctxt: SyntaxContext,
-  pub dependencies: LinkedHashSet<Box<dyn ModuleDependency>>,
+  pub dependencies: Vec<Box<dyn ModuleDependency>>,
   // pub dyn_dependencies: HashSet<DynImportDesc>,
 }
 
 impl DependencyScanner {
   fn add_dependency(&mut self, dependency: Box<dyn ModuleDependency>) {
-    self.dependencies.insert_if_absent(dependency);
+    self.dependencies.push(dependency);
   }
 
   fn add_import(&mut self, module_decl: &ModuleDecl, ast_path: &AstNodePath<AstParentNodeRef<'_>>) {
@@ -79,26 +81,38 @@ impl DependencyScanner {
   }
 
   fn add_module_hot(&mut self, node: &CallExpr, ast_path: &AstNodePath<AstParentNodeRef<'_>>) {
-    if is_module_hot_accept_call(node) || is_module_hot_decline_call(node) {
-      if let Some(Lit::Str(str)) = node
-        .args
-        .get(0)
-        .and_then(|first_arg| first_arg.expr.as_lit())
-      {
+    let is_module_hot = is_module_hot_accept_call(node);
+    let is_module_decline = is_module_hot_decline_call(node);
+    let is_import_meta_hot_accept = is_import_meta_hot_accept_call(node);
+    let is_import_meta_hot_decline = is_import_meta_hot_decline_call(node);
+
+    if !is_module_hot
+      && !is_module_decline
+      && !is_import_meta_hot_accept
+      && !is_import_meta_hot_decline
+    {
+      return;
+    }
+
+    if let Some(Lit::Str(str)) = node
+      .args
+      .get(0)
+      .and_then(|first_arg| first_arg.expr.as_lit())
+    {
+      if is_module_hot {
+        // module.hot.accept(dependency_id, callback)
         self.add_dependency(box ModuleHotAcceptDependency::new(
           str.value.clone(),
           Some(node.span.into()),
           as_parent_path(ast_path),
         ));
-      }
-    }
-
-    if is_import_meta_hot_accept_call(node) || is_import_meta_hot_decline_call(node) {
-      if let Some(Lit::Str(str)) = node
-        .args
-        .get(0)
-        .and_then(|first_arg| first_arg.expr.as_lit())
-      {
+      } else if is_module_decline {
+        self.add_dependency(box ModuleHotDeclineDependency::new(
+          str.value.clone(),
+          Some(node.span.into()),
+          as_parent_path(ast_path),
+        ));
+      } else if is_import_hot_accept {
         self.add_dependency(box ImportMetaModuleHotAcceptDependency::new(
           str.value.clone(),
           Some(node.span.into()),
@@ -121,7 +135,7 @@ impl DependencyScanner {
               if let Some(source_node) = &node.src {
                 // export { name } from './other'
                 // TODO: this should ignore from code generation or use a new dependency instead
-                self.add_dependency(box EsmImportDependency::new(
+                self.add_dependency(box EsmExportDependency::new(
                   source_node.value.clone(),
                   Some(node.span.into()),
                   as_parent_path(ast_path),
@@ -136,7 +150,7 @@ impl DependencyScanner {
                 .map(|str| str.value.clone())
                 .expect("TODO:");
               // TODO: this should ignore from code generation or use a new dependency instead
-              self.add_dependency(box EsmImportDependency::new(
+              self.add_dependency(box EsmExportDependency::new(
                 source,
                 Some(node.span.into()),
                 as_parent_path(ast_path),
@@ -152,7 +166,7 @@ impl DependencyScanner {
       ModuleDecl::ExportAll(node) => {
         // export * from './other'
         // TODO: this should ignore from code generation or use a new dependency instead
-        self.add_dependency(box EsmImportDependency::new(
+        self.add_dependency(box EsmExportDependency::new(
           node.src.value.clone(),
           Some(node.span.into()),
           as_parent_path(ast_path),
