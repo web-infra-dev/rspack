@@ -7,8 +7,8 @@ use napi_derive::napi;
 #[cfg(feature = "node-api")]
 use rspack_binding_macros::call_js_function_with_napi_objects;
 use rspack_core::{
-  AssetParserDataUrlOption, AssetParserOptions, BoxedLoader, CompilerOptionsBuilder, ModuleOptions,
-  ModuleRule, ParserOptions,
+  AssetGeneratorOptions, AssetParserDataUrlOption, AssetParserOptions, BoxedLoader,
+  CompilerOptionsBuilder, ModuleOptions, ModuleRule, ParserOptions,
 };
 #[cfg(feature = "node-api")]
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -16,7 +16,7 @@ use serde::Deserialize;
 
 #[cfg(feature = "node-api")]
 use crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
-use crate::{RawOption, RawResolveOptions};
+use crate::{RawOption, RawOptions, RawResolveOptions};
 
 #[cfg(feature = "node-api")]
 type JsLoader<R> = ThreadsafeFunction<JsLoaderContext, R>;
@@ -135,16 +135,18 @@ pub struct RawModuleRule {
   /// A condition matcher against the resource query.
   /// TODO: align with webpack's `?` prefixed `resourceQuery`
   pub resource_query: Option<RawModuleRuleCondition>,
-  // Loader experimental
-  #[serde(skip_deserializing)]
-  pub func__: Option<JsFunction>,
   #[serde(skip_deserializing)]
   pub r#use: Option<Vec<RawModuleRuleUse>>,
   #[napi(
     ts_type = r#""js" | "jsx" | "ts" | "tsx" | "css" | "json" | "asset" | "asset/resource" | "asset/source" | "asset/inline""#
   )]
   pub r#type: Option<String>,
+  pub parser: Option<RawModuleRuleParser>,
+  pub generator: Option<RawModuleRuleGenerator>,
   pub resolve: Option<RawResolveOptions>,
+  // Loader experimental
+  #[serde(skip_deserializing)]
+  pub func__: Option<JsFunction>,
 }
 
 #[derive(Deserialize, Default)]
@@ -156,12 +158,80 @@ pub struct RawModuleRule {
   pub exclude: Option<Vec<RawModuleRuleCondition>>,
   pub resource: Option<RawModuleRuleCondition>,
   pub resource_query: Option<RawModuleRuleCondition>,
+  pub r#use: Option<Vec<RawModuleRuleUse>>,
+  pub r#type: Option<String>,
+  pub parser: Option<RawModuleRuleParser>,
+  pub generator: Option<RawModuleRuleGenerator>,
+  pub resolve: Option<RawResolveOptions>,
   // Loader experimental
   #[serde(skip_deserializing)]
   pub func__: Option<()>,
-  pub r#use: Option<Vec<RawModuleRuleUse>>,
-  pub r#type: Option<String>,
-  pub resolve: Option<RawResolveOptions>,
+}
+
+impl RawOption<AssetParserOptions> for RawModuleRuleParser {
+  fn to_compiler_option(
+    self,
+    options: &CompilerOptionsBuilder,
+  ) -> anyhow::Result<AssetParserOptions> {
+    Ok(AssetParserOptions {
+      data_url_condition: self.data_url_condition.map(f),
+    })
+  }
+
+  fn fallback_value(options: &CompilerOptionsBuilder) -> Self {
+    Self::default()
+  }
+}
+
+impl RawOption<AssetParserDataUrlOption> for RawAssetParserDataUrlOption {
+  fn to_compiler_option(
+    self,
+    options: &CompilerOptionsBuilder,
+  ) -> anyhow::Result<AssetParserDataUrlOption> {
+    Ok(AssetParserDataUrlOption {
+      max_size: self.max_size,
+    })
+  }
+
+  fn fallback_value(options: &CompilerOptionsBuilder) -> Self {
+    Self::default()
+  }
+}
+
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+#[cfg_attr(feature = "node-api", napi(object))]
+pub struct RawModuleRuleGenerator {
+  pub filename: Option<String>,
+}
+
+impl RawOptions<AssetGeneratorOptions> for RawModuleRuleGenerator {
+  fn to_compiler_option(
+    self,
+    options: &CompilerOptionsBuilder,
+  ) -> anyhow::Result<AssetGeneratorOptions> {
+    Ok(AssetGeneratorOptions {
+      filename: self.filename.map(f),
+    })
+  }
+
+  fn fallback_value(options: &CompilerOptionsBuilder) -> Self {
+    Self::default()
+  }
+}
+
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+#[cfg_attr(feature = "node-api", napi(object))]
+pub struct RawModuleRuleParser {
+  pub data_url_condition: Option<RawAssetParserDataUrlOption>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+#[cfg_attr(feature = "node-api", napi(object))]
+pub struct RawModuleRuleParser {
+  pub data_url_condition: Option<RawAssetParserDataUrlOption>,
 }
 
 impl Debug for RawModuleRule {
@@ -489,6 +559,14 @@ impl RawOption<ModuleRule> for RawModuleRule {
       resource: self.resource.map(|raw| raw.try_into()).transpose()?,
       r#use: uses,
       r#type: module_type,
+      parser: self
+        .parser
+        .map(|raw| raw.to_compiler_option(options))
+        .transpose()?,
+      generator: self
+        .generator
+        .map(|raw| raw.to_compiler_option(options))
+        .transpose()?,
       resolve: self
         .resolve
         .map(|raw| raw.to_compiler_option(_options))
