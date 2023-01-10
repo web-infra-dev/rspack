@@ -42,12 +42,14 @@ importers:
       '@rspack/binding-darwin-arm64': workspace:*
       '@rspack/binding-darwin-x64': workspace:*
       '@rspack/binding-linux-x64-gnu': workspace:*
+      '@rspack/binding-win32-x64-msvc': workspace:*
       npm-run-all: 4.1.5
       why-is-node-running: 2.2.1
     optionalDependencies:
       '@rspack/binding-darwin-arm64': link:../../npm/darwin-arm64
       '@rspack/binding-darwin-x64': link:../../npm/darwin-x64
       '@rspack/binding-linux-x64-gnu': link:../../npm/linux-x64-gnu
+      '@rspack/binding-win32-x64-msvc': link:../../npm/win32-x64-msvc
     devDependencies:
       '@napi-rs/cli': 2.14.2
       npm-run-all: 4.1.5
@@ -227,6 +229,9 @@ importers:
     specifiers: {}
 
   npm/linux-x64-gnu:
+    specifiers: {}
+
+  npm/win32-x64-msvc:
     specifiers: {}
 
   packages/create-rspack:
