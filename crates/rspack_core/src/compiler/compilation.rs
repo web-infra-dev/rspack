@@ -1060,11 +1060,11 @@ impl Compilation {
         .inherit_export_maps = inherit_export_maps;
     }
     let mut errors = vec![];
-    let mut used_symbol = HashSet::new();
-    let mut used_indirect_symbol: HashSet<IndirectTopLevelSymbol> = HashSet::new();
+    let mut used_symbol = HashSet::default();
+    let mut used_indirect_symbol: HashSet<IndirectTopLevelSymbol> = HashSet::default();
     let mut used_export_module_identifiers: IdentifierMap<ModuleUsedType> =
       IdentifierMap::default();
-    let mut traced_tuple = HashSet::new();
+    let mut traced_tuple = HashSet::default();
     // Marking used symbol and all reachable export symbol from the used symbol for each module
 
     let used_symbol_from_import = mark_used_symbol_with(
@@ -1835,10 +1835,10 @@ fn mark_symbol(
     _ => {}
   };
   match current_symbol_ref {
-    SymbolRef::Direct(ref symbol) => match used_symbol_set.entry(symbol.clone()) {
-      Occupied(_) => {}
-      Vacant(vac) => {
-        let module_result = analyze_map.get(&vac.get().uri().into()).expect("TODO:");
+    SymbolRef::Direct(ref symbol) => {
+      if used_symbol_set.contains(symbol) {
+      } else {
+        let module_result = analyze_map.get(&symbol.uri().into()).expect("TODO:");
         if let Some(set) = module_result
           .reachable_import_of_export
           .get(&symbol.id().atom)
@@ -1858,22 +1858,22 @@ fn mark_symbol(
         // one for `app.js`, one for `lib.js`
         // the binding in `app.js` used for shake the `export {xxx}`
         // In other words, we need two binding for supporting indirect redirect.
-        if let Some(import_symbol_ref) = module_result.import_map.get(vac.get().id()) {
+        if let Some(import_symbol_ref) = module_result.import_map.get(symbol.id()) {
           graph.add_edge(&current_symbol_ref, import_symbol_ref);
           symbol_queue.push_back(import_symbol_ref.clone());
         }
-        if !evaluated_module_identifiers.contains(&vac.get().uri().into()) {
-          evaluated_module_identifiers.insert(vac.get().uri().into());
+        if !evaluated_module_identifiers.contains(&symbol.uri().into()) {
+          evaluated_module_identifiers.insert(symbol.uri().into());
           for used_symbol_ref in module_result.used_symbol_refs.iter() {
             graph.add_edge(&current_symbol_ref, used_symbol_ref);
             symbol_queue.push_back(used_symbol_ref.clone());
           }
         }
         if !side_effects_enable {
-          vac.insert();
+          used_symbol_set.insert(symbol.clone());
         }
       }
-    },
+    }
     SymbolRef::Indirect(ref indirect_symbol) => {
       let importer = indirect_symbol.importer();
       if indirect_symbol.ty == IndirectType::ReExport

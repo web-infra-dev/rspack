@@ -1,18 +1,18 @@
-use hashbrown::HashMap;
 use petgraph::stable_graph::{NodeIndex, StableDiGraph};
+use rustc_hash::FxHashMap;
 
 use super::visitor::SymbolRef;
 
 pub struct SymbolGraph {
   pub(crate) graph: StableDiGraph<SymbolRef, ()>,
-  symbol_to_index: HashMap<SymbolRef, NodeIndex>,
+  symbol_to_index: FxHashMap<SymbolRef, NodeIndex>,
 }
 
 impl SymbolGraph {
   pub fn new() -> Self {
     Self {
       graph: StableDiGraph::new(),
-      symbol_to_index: HashMap::new(),
+      symbol_to_index: FxHashMap::default(),
     }
   }
 
