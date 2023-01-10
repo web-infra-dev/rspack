@@ -60,5 +60,5 @@
     "why-is-node-running": "2.2.1",
     "is-ci": "3.0.1"
   },
-  "packageManager": "pnpm@7.3.0"
+  "packageManager": "pnpm@7.23.0"
 }

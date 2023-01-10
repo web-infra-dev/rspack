@@ -24,6 +24,7 @@ jobs:
           node-version: "16"
       - name: Install dependencies && and build lib
         run: |
+          npm install -g pnpm@7.13.0
           node -e "console.log(process.arch)"  
           pnpm install
           pnpm run format-ci:toml
