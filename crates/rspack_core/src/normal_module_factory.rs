@@ -287,20 +287,20 @@ impl NormalModuleFactory {
     &self,
     module_rules: &[&ModuleRule],
   ) -> (Option<AssetParserOptions>, Option<AssetGeneratorOptions>) {
-    let mut parser = None;
-    let mut generator = None;
+    let mut resolved_parser: Option<AssetParserOptions> = None;
+    let mut resolved_generator: Option<AssetGeneratorOptions> = None;
 
     module_rules.iter().for_each(|rule| {
       // TODO: should deep merge
       if let Some(parser) = rule.parser.as_ref() {
-        parser = Some(parser.to_owned());
+        resolved_parser = Some(parser.to_owned());
       }
       if let Some(generator) = rule.generator.as_ref() {
-        generator = Some(generator.to_owned());
+        resolved_generator = Some(generator.to_owned());
       }
     });
 
-    (parser, generator)
+    (resolved_parser, resolved_generator)
   }
 
   pub fn calculate_module_type(

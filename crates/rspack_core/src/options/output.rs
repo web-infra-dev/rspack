@@ -52,6 +52,12 @@ impl FromStr for Filename {
   }
 }
 
+impl From<String> for Filename {
+  fn from(value: String) -> Self {
+    Self { template: value }
+  }
+}
+
 impl Filename {
   pub fn render(&self, options: FilenameRenderOptions) -> String {
     let mut filename = self.template.clone();

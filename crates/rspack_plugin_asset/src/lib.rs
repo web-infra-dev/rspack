@@ -224,7 +224,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       DataUrlOption::Auto(option) => {
         let limit_size = parse_context
           .module_parser_options
-          .and_then(|x| x.data_url_condition.and_then(|d| d.max_size))
+          .and_then(|x| x.data_url_condition.as_ref().and_then(|d| d.max_size))
           .or(option.as_ref().and_then(|x| x.max_size))
           .unwrap_or(DEFAULT_MAX_SIZE);
         Some(CanonicalizedDataUrlOption::Asset(
@@ -256,7 +256,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     // Use [Rule.generator.filename] if it is set, otherwise use [output.assetModuleFilename].
     let asset_filename_template = generate_context
       .module_generator_options
-      .and_then(|o| &o.filename)
+      .and_then(|o| o.filename.as_ref())
       .unwrap_or(
         &generate_context
           .compilation

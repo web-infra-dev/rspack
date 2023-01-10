@@ -16,7 +16,7 @@ use serde::Deserialize;
 
 #[cfg(feature = "node-api")]
 use crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
-use crate::{RawOption, RawOptions, RawResolveOptions};
+use crate::{RawOption, RawResolveOptions};
 
 #[cfg(feature = "node-api")]
 type JsLoader<R> = ThreadsafeFunction<JsLoaderContext, R>;
@@ -174,11 +174,14 @@ impl RawOption<AssetParserOptions> for RawModuleRuleParser {
     options: &CompilerOptionsBuilder,
   ) -> anyhow::Result<AssetParserOptions> {
     Ok(AssetParserOptions {
-      data_url_condition: self.data_url_condition.map(f),
+      data_url_condition: self
+        .data_url_condition
+        .map(|d| d.to_compiler_option(options))
+        .transpose()?,
     })
   }
 
-  fn fallback_value(options: &CompilerOptionsBuilder) -> Self {
+  fn fallback_value(_options: &CompilerOptionsBuilder) -> Self {
     Self::default()
   }
 }
@@ -186,14 +189,14 @@ impl RawOption<AssetParserOptions> for RawModuleRuleParser {
 impl RawOption<AssetParserDataUrlOption> for RawAssetParserDataUrlOption {
   fn to_compiler_option(
     self,
-    options: &CompilerOptionsBuilder,
+    _options: &CompilerOptionsBuilder,
   ) -> anyhow::Result<AssetParserDataUrlOption> {
     Ok(AssetParserDataUrlOption {
       max_size: self.max_size,
     })
   }
 
-  fn fallback_value(options: &CompilerOptionsBuilder) -> Self {
+  fn fallback_value(_options: &CompilerOptionsBuilder) -> Self {
     Self::default()
   }
 }
@@ -205,26 +208,19 @@ pub struct RawModuleRuleGenerator {
   pub filename: Option<String>,
 }
 
-impl RawOptions<AssetGeneratorOptions> for RawModuleRuleGenerator {
+impl RawOption<AssetGeneratorOptions> for RawModuleRuleGenerator {
   fn to_compiler_option(
     self,
-    options: &CompilerOptionsBuilder,
+    _options: &CompilerOptionsBuilder,
   ) -> anyhow::Result<AssetGeneratorOptions> {
     Ok(AssetGeneratorOptions {
-      filename: self.filename.map(f),
+      filename: self.filename.map(Into::into),
     })
   }
 
-  fn fallback_value(options: &CompilerOptionsBuilder) -> Self {
+  fn fallback_value(_options: &CompilerOptionsBuilder) -> Self {
     Self::default()
   }
-}
-
-#[derive(Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-#[cfg_attr(feature = "node-api", napi(object))]
-pub struct RawModuleRuleParser {
-  pub data_url_condition: Option<RawAssetParserDataUrlOption>,
 }
 
 #[derive(Deserialize, Default)]
@@ -248,14 +244,14 @@ impl Debug for RawModuleRule {
   }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Default)]
 #[cfg(not(feature = "node-api"))]
 #[serde(rename_all = "camelCase")]
 pub struct RawAssetParserDataUrlOption {
   pub max_size: Option<u32>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Default)]
 #[cfg(feature = "node-api")]
 #[napi(object)]
 #[serde(rename_all = "camelCase")]
@@ -489,7 +485,7 @@ pub struct JsLoaderResult {
 pub type LoaderThreadsafeLoaderResult = Option<JsLoaderResult>;
 
 impl RawOption<ModuleRule> for RawModuleRule {
-  fn to_compiler_option(self, _options: &CompilerOptionsBuilder) -> anyhow::Result<ModuleRule> {
+  fn to_compiler_option(self, options: &CompilerOptionsBuilder) -> anyhow::Result<ModuleRule> {
     // Even this part is using the plural version of loader, it's recommended to use singular version from js side to reduce overhead (This behavior maybe changed later for advanced usage).
     let uses = self
       .r#use
@@ -569,7 +565,7 @@ impl RawOption<ModuleRule> for RawModuleRule {
         .transpose()?,
       resolve: self
         .resolve
-        .map(|raw| raw.to_compiler_option(_options))
+        .map(|raw| raw.to_compiler_option(options))
         .transpose()?,
       // Loader experimental
       func__: None,

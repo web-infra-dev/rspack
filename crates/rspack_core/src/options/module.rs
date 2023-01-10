@@ -17,6 +17,7 @@ pub struct ParserOptions {
   pub asset: Option<AssetParserOptions>,
 }
 
+#[derive(Debug, Clone, Default)]
 pub struct AssetGeneratorOptions {
   /// Same as webpack's Rule.generator.filename, see: [Rule.generator.filename](https://webpack.js.org/configuration/module/#rulegeneratorfilename)
   pub filename: Option<Filename>,
