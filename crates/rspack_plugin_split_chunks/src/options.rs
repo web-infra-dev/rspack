@@ -52,7 +52,7 @@ impl Debug for ChunkType {
 #[derivative(Debug)]
 #[derive(Clone, Default)]
 pub struct CacheGroupOptions {
-  pub priority: Option<isize>,
+  pub priority: Option<i32>,
   pub reuse_existing_chunk: Option<bool>,
   pub r#type: Option<ModuleType>,
   #[derivative(Debug = "ignore")]
@@ -64,9 +64,9 @@ pub struct CacheGroupOptions {
   /// What kind of chunks should be selected.
   pub chunks: Option<ChunkType>,
   pub automatic_name_delimiter: Option<String>,
-  pub max_async_requests: Option<usize>,
-  pub max_initial_requests: Option<usize>,
-  pub min_chunks: Option<usize>,
+  pub max_async_requests: Option<u32>,
+  pub max_initial_requests: Option<u32>,
+  pub min_chunks: Option<u32>,
   // hide_path_info: Option<bool>,
   pub min_size: Option<f64>,
   pub min_size_reduction: Option<f64>,
@@ -92,7 +92,7 @@ pub struct SplitChunksOptions {
   pub max_async_requests: Option<usize>,
   pub max_initial_requests: Option<usize>,
   pub default_size_types: Option<Vec<SizeType>>,
-  pub min_chunks: Option<usize>,
+  pub min_chunks: Option<u32>,
   // hide_path_info: Option<bool>,
   pub min_size: Option<f64>,
   pub min_size_reduction: Option<f64>,
@@ -129,9 +129,9 @@ pub struct NormalizedOptions {
   pub enforce_size_threshold: SplitChunkSizes,
   pub max_async_size: SplitChunkSizes,
   pub max_initial_size: SplitChunkSizes,
-  pub min_chunks: usize,
-  pub max_async_requests: usize,
-  pub max_initial_requests: usize,
+  pub min_chunks: u32,
+  pub max_async_requests: u32,
+  pub max_initial_requests: u32,
   pub filename: Option<String>,
   #[derivative(Debug = "ignore")]
   pub get_name: GetName,

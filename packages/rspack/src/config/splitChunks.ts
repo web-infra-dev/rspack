@@ -191,7 +191,8 @@ export function resolveSplitChunksOptions(
 								test: group.test ? group.test.source : undefined,
 								name: group.name,
 								priority: group.priority,
-								minChunks: group.minChunks
+								minChunks: group.minChunks,
+								chunks: group.chunks
 							};
 							return [key, normalizedGroup];
 						})

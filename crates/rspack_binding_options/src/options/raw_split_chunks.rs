@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
-use rspack_core::{CompilerOptionsBuilder, ModuleType};
+use rspack_core::CompilerOptionsBuilder;
 use rspack_plugin_split_chunks::{CacheGroupOptions, ChunkType, SplitChunksOptions, TestFn};
 use serde::Deserialize;
 
@@ -74,10 +74,9 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
             (
               k,
               CacheGroupOptions {
-                name: v.name.clone(),
-                priority: 0.into(),
-                reuse_existing_chunk: false.into(),
-                r#type: Some(ModuleType::Js),
+                name: v.name,
+                priority: v.priority,
+                reuse_existing_chunk: v.reuse_existing_chunk,
                 test: v.test.clone().map(|test| {
                   let f: TestFn = Arc::new(move |module| {
                     let re = rspack_regex::RspackRegex::new(&test)
@@ -88,21 +87,14 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
                   });
                   f
                 }),
-                filename: v.name,
-                enforce: false.into(),
-                id_hint: Default::default(),
-                chunks: ChunkType::All.into(),
-                automatic_name_delimiter: "~".to_string().into(),
-                max_async_requests: 30.into(),
-                max_initial_requests: 30.into(),
-                min_chunks: 1.into(),
-                min_size: 20000f64.into(),
-                min_size_reduction: 20000f64.into(),
-                enforce_size_threshold: 50000f64.into(),
-                min_remaining_size: 0f64.into(),
-                max_size: 0f64.into(),
-                max_async_size: f64::MAX.into(),
-                max_initial_size: f64::MAX.into(),
+                chunks: v.chunks.map(|chunks| match chunks.as_str() {
+                  "initial" => ChunkType::Initial,
+                  "async" => ChunkType::Async,
+                  "all" => ChunkType::All,
+                  _ => ChunkType::All,
+                }),
+                min_chunks: v.min_chunks,
+                ..Default::default()
               },
             )
           }),
@@ -130,7 +122,7 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
 #[napi(object)]
 pub struct RawCacheGroupOptions {
   pub priority: Option<i32>,
-  //   pub reuse_existing_chunk: bool,
+  pub reuse_existing_chunk: Option<bool>,
   //   pub r#type: SizeType,
   pub test: Option<String>,
   //   pub filename: String,
@@ -160,7 +152,7 @@ pub struct RawCacheGroupOptions {
 #[cfg(not(feature = "node-api"))]
 pub struct RawCacheGroupOptions {
   pub priority: Option<i32>,
-  //   pub reuse_existing_chunk: bool,
+  pub reuse_existing_chunk: Option<bool>,
   //   pub r#type: SizeType,
   pub test: Option<String>,
   //   pub filename: String,
