@@ -1,5 +1,6 @@
-use crate::RawOption;
 use rspack_core::{CompilerOptionsBuilder, Context};
+
+use crate::RawOption;
 
 pub type RawContext = String;
 

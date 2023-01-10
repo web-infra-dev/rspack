@@ -1,16 +1,17 @@
 use hashbrown::HashSet;
-use rspack_core::{Dependency, DependencyType, ModuleDependency, ModuleGraph, ModuleIdentifier};
-use swc_core::common::{Mark, DUMMY_SP, GLOBALS};
-use swc_core::ecma::ast::*;
+use rspack_core::{
+  Dependency, DependencyType, Identifier, ModuleDependency, ModuleGraph, ModuleIdentifier,
+};
 // use swc_ecma_utils::
 use rspack_symbol::{BetterId, IndirectTopLevelSymbol, Symbol};
+use swc_core::common::{Mark, DUMMY_SP, GLOBALS};
+use swc_core::ecma::ast::*;
 use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::utils::quote_ident;
 use swc_core::ecma::visit::{noop_fold_type, Fold, FoldWith};
-use ustr::Ustr;
 pub fn tree_shaking_visitor<'a>(
   module_graph: &'a ModuleGraph,
-  module_id: Ustr,
+  module_id: Identifier,
   used_symbol_set: &'a HashSet<Symbol>,
   used_indirect_symbol_set: &'a HashSet<IndirectTopLevelSymbol>,
   top_level_mark: Mark,
@@ -39,7 +40,7 @@ pub fn tree_shaking_visitor<'a>(
 /// if function `test` is also unused in local module, then it will be removed in DCE phase of `swc`
 struct TreeShaker<'a> {
   module_graph: &'a ModuleGraph,
-  module_identifier: Ustr,
+  module_identifier: Identifier,
   used_indirect_symbol_set: &'a HashSet<IndirectTopLevelSymbol>,
   used_symbol_set: &'a HashSet<Symbol>,
   top_level_mark: Mark,
@@ -101,7 +102,7 @@ impl<'a> Fold for TreeShaker<'a> {
         ModuleDecl::ExportDecl(decl) => match decl.decl {
           Decl::Class(mut class) => {
             let id = class.ident.to_id();
-            let symbol = Symbol::from_id_and_uri(id.into(), self.module_identifier);
+            let symbol = Symbol::from_id_and_uri(id.into(), self.module_identifier.into());
             if !self.used_symbol_set.contains(&symbol) {
               class.class.span = DUMMY_SP;
               ModuleItem::Stmt(Stmt::Decl(Decl::Class(class)))
@@ -114,7 +115,7 @@ impl<'a> Fold for TreeShaker<'a> {
           }
           Decl::Fn(mut func) => {
             let id = func.ident.to_id();
-            let symbol = Symbol::from_id_and_uri(id.into(), self.module_identifier);
+            let symbol = Symbol::from_id_and_uri(id.into(), self.module_identifier.into());
             if !self.used_symbol_set.contains(&symbol) {
               func.function.span = DUMMY_SP;
               ModuleItem::Stmt(Stmt::Decl(Decl::Fn(func)))
@@ -143,7 +144,7 @@ impl<'a> Fold for TreeShaker<'a> {
               .map(|decl| match decl.name {
                 Pat::Ident(ident) => {
                   let id: BetterId = ident.to_id().into();
-                  let symbol = Symbol::from_id_and_uri(id, self.module_identifier);
+                  let symbol = Symbol::from_id_and_uri(id, self.module_identifier.into());
                   let used = self.used_symbol_set.contains(&symbol);
                   (
                     VarDeclarator {
@@ -221,8 +222,10 @@ impl<'a> Fold for TreeShaker<'a> {
                   ModuleExportName::Ident(ref ident) => {
                     // return true;
 
-                    let symbol =
-                      IndirectTopLevelSymbol::from_uri_and_id(module_identifier, ident.sym.clone());
+                    let symbol = IndirectTopLevelSymbol::from_uri_and_id(
+                      module_identifier.into(),
+                      ident.sym.clone(),
+                    );
                     self.used_indirect_symbol_set.contains(&symbol)
                   }
                   ModuleExportName::Str(_) => {
@@ -258,7 +261,7 @@ impl<'a> Fold for TreeShaker<'a> {
                 ExportSpecifier::Named(named_spec) => match named_spec.orig {
                   ModuleExportName::Ident(ref ident) => {
                     let id: BetterId = ident.to_id().into();
-                    let symbol = Symbol::from_id_and_uri(id, self.module_identifier);
+                    let symbol = Symbol::from_id_and_uri(id, self.module_identifier.into());
                     self.used_symbol_set.contains(&symbol)
                   }
                   ModuleExportName::Str(_) => {
@@ -371,7 +374,7 @@ impl<'a> TreeShaker<'a> {
   fn crate_virtual_default_symbol(&self) -> Symbol {
     let mut default_ident = quote_ident!("default");
     default_ident.span = default_ident.span.apply_mark(self.top_level_mark);
-    Symbol::from_id_and_uri(default_ident.to_id().into(), self.module_identifier)
+    Symbol::from_id_and_uri(default_ident.to_id().into(), self.module_identifier.into())
   }
 
   fn resolve_module_identifier(

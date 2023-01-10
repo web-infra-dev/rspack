@@ -4,7 +4,10 @@ use hashbrown::HashSet;
 use rspack_error::Result;
 use tracing::instrument;
 
-use crate::{ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier};
+use crate::{
+  ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation, IdentifierSet,
+  ModuleIdentifier,
+};
 
 #[instrument(skip_all)]
 pub fn code_splitting(compilation: &mut Compilation) -> Result<()> {
@@ -19,7 +22,7 @@ struct CodeSplitter<'me> {
   queue: Vec<QueueItem>,
   queue_delayed: Vec<QueueItem>,
   chunk_relation_graph: petgraph::graphmap::DiGraphMap<ChunkUkey, ()>,
-  split_point_modules: HashSet<ModuleIdentifier>,
+  split_point_modules: IdentifierSet,
 }
 
 impl<'me> CodeSplitter<'me> {
@@ -229,7 +232,7 @@ impl<'me> CodeSplitter<'me> {
             let belong_to_chunks = self
               .compilation
               .chunk_graph
-              .get_modules_chunks(&module.module_identifier)
+              .get_modules_chunks(module.module_identifier)
               .clone();
 
             let has_superior = belong_to_chunks.iter().any(|maybe_superior_chunk| {
@@ -245,7 +248,7 @@ impl<'me> CodeSplitter<'me> {
           })
       })
       .fold(
-        HashMap::new() as HashMap<ChunkUkey, HashSet<ModuleIdentifier>>,
+        HashMap::new() as HashMap<ChunkUkey, IdentifierSet>,
         |mut map, (chunk_ukey, module)| {
           map.entry(chunk_ukey).or_default().insert(module);
           map
@@ -257,7 +260,7 @@ impl<'me> CodeSplitter<'me> {
         self
           .compilation
           .chunk_graph
-          .disconnect_chunk_and_module(&chunk, &module);
+          .disconnect_chunk_and_module(&chunk, module);
       }
     }
   }
@@ -441,7 +444,7 @@ impl<'me> CodeSplitter<'me> {
           .compilation
           .chunk_group_by_ukey
           .get(&ukey)
-          .unwrap_or_else(|| panic!("chunk group not found: {:?}", ukey))
+          .unwrap_or_else(|| panic!("chunk group not found: {ukey:?}"))
       };
 
       self.queue_delayed.push(QueueItem {

@@ -1,5 +1,6 @@
-use crate::RawOption;
 use rspack_core::{CompilerOptionsBuilder, Plugins};
+
+use crate::RawOption;
 
 pub type RawPlugins = serde_json::value::Value;
 

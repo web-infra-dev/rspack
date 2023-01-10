@@ -4,6 +4,7 @@ use std::{
 };
 
 use rayon::prelude::*;
+use rspack_error::{Diagnostic, Result};
 use rspack_loader_runner::ResourceData;
 use tracing::instrument;
 
@@ -18,7 +19,6 @@ use crate::{
   PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderChunkArgs, RenderManifestArgs,
   Resolver, ResolverFactory, Stats, ThisCompilationArgs,
 };
-use rspack_error::{Diagnostic, Result};
 
 pub struct PluginDriver {
   pub(crate) options: Arc<CompilerOptions>,

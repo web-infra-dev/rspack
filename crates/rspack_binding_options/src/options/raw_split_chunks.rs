@@ -1,9 +1,10 @@
+use std::{collections::HashMap, sync::Arc};
+
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
 use rspack_core::{CompilerOptionsBuilder, ModuleType};
 use rspack_plugin_split_chunks::{CacheGroupOptions, ChunkType, SplitChunksOptions, TestFn};
 use serde::Deserialize;
-use std::{collections::HashMap, sync::Arc};
 
 use crate::RawOption;
 

@@ -1,4 +1,3 @@
-use crate::{BoxModule, Chunk, Compilation, ModuleType, SourceType};
 use hashbrown::HashMap;
 use rspack_error::{
   emitter::{
@@ -6,6 +5,8 @@ use rspack_error::{
   },
   Result,
 };
+
+use crate::{BoxModule, Chunk, Compilation, ModuleIdentifier, ModuleType, SourceType};
 
 #[derive(Debug, Clone)]
 pub struct Stats<'compilation> {
@@ -94,10 +95,7 @@ impl Stats<'_> {
           .module_graph
           .module_graph_module_by_identifier(&identifier)
           .unwrap_or_else(|| {
-            panic!(
-              "Could not find ModuleGraphModule by identifier: {:?}",
-              identifier
-            )
+            panic!("Could not find ModuleGraphModule by identifier: {identifier:?}")
           });
 
         let issuer = self.compilation.module_graph.get_issuer(module);
@@ -137,7 +135,7 @@ impl Stats<'_> {
         let mut chunks: Vec<String> = self
           .compilation
           .chunk_graph
-          .get_chunk_graph_module(&mgm.module_identifier)
+          .get_chunk_graph_module(mgm.module_identifier)
           .chunks
           .iter()
           .map(|k| {
@@ -145,7 +143,7 @@ impl Stats<'_> {
               .compilation
               .chunk_by_ukey
               .get(k)
-              .unwrap_or_else(|| panic!("Could not find chunk by ukey: {:?}", k))
+              .unwrap_or_else(|| panic!("Could not find chunk by ukey: {k:?}"))
               .expect_id()
               .to_string()
           })
@@ -155,7 +153,7 @@ impl Stats<'_> {
         Ok(StatsModule {
           r#type: "module",
           module_type: *module.module_type(),
-          identifier: identifier.to_owned(),
+          identifier,
           name: module
             .readable_identifier(&self.compilation.options.context)
             .into(),
@@ -244,7 +242,7 @@ impl Stats<'_> {
                 .compilation
                 .assets()
                 .get(file)
-                .unwrap_or_else(|| panic!("Could not find asset by name: {:?}", file))
+                .unwrap_or_else(|| panic!("Could not find asset by name: {file:?}"))
                 .get_source()
                 .size() as f64,
             });
@@ -299,10 +297,7 @@ fn get_stats_module_name_and_id(module: &BoxModule, compilation: &Compilation) -
     .module_graph
     .module_graph_module_by_identifier(&identifier)
     .unwrap_or_else(|| {
-      panic!(
-        "module_graph.module_graph_module_by_identifier({:?}) failed",
-        identifier
-      )
+      panic!("module_graph.module_graph_module_by_identifier({identifier:?}) failed")
     });
   let name = module.readable_identifier(&compilation.options.context);
   let id = mgm.id(&compilation.chunk_graph);
@@ -342,7 +337,7 @@ pub struct StatsAssetInfo {
 pub struct StatsModule {
   pub r#type: &'static str,
   pub module_type: ModuleType,
-  pub identifier: String,
+  pub identifier: ModuleIdentifier,
   pub name: String,
   pub id: String,
   pub chunks: Vec<String>,

@@ -1,8 +1,8 @@
+#![feature(let_chains)]
 #![feature(iter_intersperse)]
 #![feature(box_patterns)]
 #![feature(box_syntax)]
 #![feature(anonymous_lifetime_in_impl_trait)]
-#![feature(unzip_option)]
 
 use std::{fmt, sync::Arc};
 
@@ -184,7 +184,7 @@ impl TryFrom<&str> for ModuleType {
       _ => {
         use rspack_error::internal_error;
         Err(rspack_error::Error::InternalError(internal_error!(
-          format!("invalid module type: {}", value)
+          format!("invalid module type: {value}")
         )))
       }
     }

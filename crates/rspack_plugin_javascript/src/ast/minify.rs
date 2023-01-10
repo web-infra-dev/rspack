@@ -32,10 +32,9 @@ use swc_core::{
   },
 };
 
-use crate::utils::ecma_parse_error_to_rspack_error;
-
 use super::stringify::print;
 use super::{parse::parse_js, stringify::SourceMapConfig};
+use crate::utils::ecma_parse_error_to_rspack_error;
 
 pub fn minify(opts: &JsMinifyOptions, input: String, filename: &str) -> Result<TransformOutput> {
   let cm: Arc<SourceMap> = Default::default();

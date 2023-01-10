@@ -1156,6 +1156,7 @@ checksum = "1885e79c1fc4b10f0e172c475f458b7f7b93061064d98c3293e98c5ba0c8b399"
 dependencies = [
  "autocfg",
  "hashbrown",
+ "rayon",
  "serde",
 ]
 
@@ -2479,6 +2480,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_test",
+ "serde_json",
  "tracing",
 ]
 
@@ -2530,21 +2532,19 @@ dependencies = [
  "hashbrown",
  "linked_hash_set",
  "once_cell",
- "pathdiff",
  "preset_env_base",
  "rayon",
  "regex",
  "rspack_core",
  "rspack_error",
+ "rspack_plugin_devtool",
  "rspack_symbol",
  "rspack_test",
  "serde",
- "serde_json",
  "sourcemap",
  "sugar_path",
  "swc_core",
  "tracing",
- "ustr",
  "xxhash-rust",
 ]
 
@@ -2607,9 +2607,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.1.15"
+version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d93e958d22fd1b2cdc3df462b416464f8fb18bb9183ab47c8ab9ef5411195f9"
+checksum = "36469c1e43237bc74138fc05c9803568723e1a9741ebc0534e74ad24d009390b"
 dependencies = [
  "dashmap",
  "dyn-clone",
@@ -2828,9 +2828,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.89"
+version = "1.0.91"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "020ff22c755c2ed3f8cf162dbb41a7268d934702f3ed3631656ea597e08fc3db"
+checksum = "877c235533714907a8c2464236f5c4b2a17262ef1bd71f38f35ea592c8da6883"
 dependencies = [
  "indexmap",
  "itoa 1.0.3",
@@ -3628,6 +3628,7 @@ dependencies = [
  "once_cell",
  "parking_lot 0.12.1",
  "radix_fmt",
+ "rayon",
  "regex",
  "retain_mut",
  "rustc-hash",
@@ -3741,6 +3742,7 @@ dependencies = [
  "bitflags",
  "once_cell",
  "phf",
+ "rayon",
  "rustc-hash",
  "serde",
  "smallvec",
@@ -3845,6 +3847,7 @@ dependencies = [
  "indexmap",
  "once_cell",
  "petgraph",
+ "rayon",
  "rustc-hash",
  "serde_json",
  "swc_atoms",
@@ -3947,6 +3950,7 @@ dependencies = [
  "indexmap",
  "num_cpus",
  "once_cell",
+ "rayon",
  "swc_atoms",
  "swc_common",
  "swc_ecma_ast",

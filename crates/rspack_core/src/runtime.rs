@@ -1,12 +1,14 @@
-use crate::{ChunkUkey, Compilation};
-use hashbrown::{HashMap, HashSet};
-use rspack_sources::{BoxSource, CachedSource, RawSource, SourceExt};
 use std::{fmt::Debug, hash::Hash};
+
+use hashbrown::{HashMap, HashSet};
+use rspack_sources::{BoxSource, RawSource, SourceExt};
+
+use crate::{ChunkUkey, Compilation};
 
 pub type RuntimeSpec = HashSet<String>;
 pub type RuntimeKey = String;
 
-#[derive(Default, Debug)]
+#[derive(Default, Clone, Copy, Debug)]
 enum RuntimeMode {
   #[default]
   Empty = 0,
@@ -176,7 +178,7 @@ pub struct NormalRuntimeModule {
 impl NormalRuntimeModule {
   pub fn new(identifier: String, sources: String) -> Self {
     Self {
-      identifier: format!("rspack/runtime/{}", identifier),
+      identifier: format!("rspack/runtime/{identifier}"),
       sources: RawSource::from(sources),
     }
   }
@@ -188,6 +190,6 @@ impl RuntimeModule for NormalRuntimeModule {
   }
 
   fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    CachedSource::new(self.sources.clone()).boxed()
+    self.sources.clone().boxed()
   }
 }

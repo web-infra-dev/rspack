@@ -17,7 +17,8 @@ on:
 jobs:
   release:
     name: Release
-    runs-on: macos-latest
+    runs-on: [self-hosted, rspack-common, macOS, ARM64, release]
+
     steps:
       - name: Checkout Repo
         uses: actions/checkout@master
@@ -47,5 +48,5 @@ jobs:
       - name: publish
         if: steps.changesets.outputs.hasChangesets == 'false'
         run: |
-          pnpm run build:cli
+          pnpm run build:cli:release:all
           pnpm run release --tag ${{github.event.inputs.tag}}

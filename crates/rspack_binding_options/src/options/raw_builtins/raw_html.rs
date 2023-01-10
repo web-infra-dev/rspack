@@ -1,14 +1,14 @@
+use std::collections::HashMap;
+use std::str::FromStr;
+
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
-
 use rspack_plugin_html::config::HtmlPluginConfig;
 use rspack_plugin_html::config::HtmlPluginConfigInject;
 use rspack_plugin_html::config::HtmlPluginConfigScriptLoading;
 use rspack_plugin_html::sri::HtmlSriHashFunction;
 use serde::Deserialize;
 use serde::Serialize;
-use std::collections::HashMap;
-use std::str::FromStr;
 
 use crate::RawOption;
 
@@ -110,7 +110,7 @@ impl RawOption<HtmlPluginConfig> for RawHtmlPluginConfig {
     _options: &rspack_core::CompilerOptionsBuilder,
   ) -> anyhow::Result<HtmlPluginConfig> {
     let inject = self.inject.as_ref().map(|s| {
-      HtmlPluginConfigInject::from_str(s).unwrap_or_else(|_| panic!("Invalid inject value: {}", s))
+      HtmlPluginConfigInject::from_str(s).unwrap_or_else(|_| panic!("Invalid inject value: {s}"))
     });
 
     let script_loading = HtmlPluginConfigScriptLoading::from_str(
@@ -118,7 +118,7 @@ impl RawOption<HtmlPluginConfig> for RawHtmlPluginConfig {
     )?;
 
     let sri = self.sri.as_ref().map(|s| {
-      HtmlSriHashFunction::from_str(s).unwrap_or_else(|_| panic!("Invalid sri value: {}", s))
+      HtmlSriHashFunction::from_str(s).unwrap_or_else(|_| panic!("Invalid sri value: {s}"))
     });
 
     Ok(HtmlPluginConfig {

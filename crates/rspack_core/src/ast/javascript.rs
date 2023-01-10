@@ -1,5 +1,6 @@
-use anyhow::Error;
 use std::{hash::Hash, sync::Arc};
+
+use anyhow::Error;
 use swc_core::base::try_with_handler;
 use swc_core::common::pass::{AstKindPath, AstNodePath};
 use swc_core::common::{

@@ -1,3 +1,5 @@
+#![feature(let_chains)]
+
 use std::{
   env,
   iter::Peekable,
@@ -199,6 +201,7 @@ impl RspackImporter {
   }
 }
 
+#[allow(clippy::result_large_err)]
 fn get_possible_requests(
   url: &str,
   for_rspack_resolver: bool,

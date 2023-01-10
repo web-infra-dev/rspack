@@ -1,3 +1,10 @@
+use std::{
+  borrow::Cow,
+  cmp::Ordering,
+  collections::{hash_map::DefaultHasher, HashMap, HashSet},
+  hash::{Hash, Hasher},
+};
+
 use rspack_core::{
   BoxModule, Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleGraph, ModuleIdentifier,
 };
@@ -5,12 +12,6 @@ use rspack_util::{
   comparators::{compare_ids, compare_numbers},
   identifier::make_paths_relative,
   number_hash::get_number_hash,
-};
-use std::{
-  borrow::Cow,
-  cmp::Ordering,
-  collections::{hash_map::DefaultHasher, HashMap, HashSet},
-  hash::{Hash, Hasher},
 };
 
 #[allow(clippy::type_complexity)]
@@ -31,12 +32,12 @@ pub fn get_used_module_ids_and_modules(
   //   }
 
   compilation.module_graph.modules().for_each(|module| {
-    let module_id = chunk_graph.get_module_id(&module.identifier());
+    let module_id = chunk_graph.get_module_id(module.identifier());
     if let Some(module_id) = module_id {
       used_ids.insert(module_id.clone());
     } else {
       if filter.as_ref().map_or(true, |f| (f)(module))
-        && chunk_graph.get_number_of_module_chunks(&module.identifier()) != 0
+        && chunk_graph.get_number_of_module_chunks(module.identifier()) != 0
       {
         modules.push(module.identifier());
       }
@@ -74,7 +75,7 @@ fn avoid_number(s: &str) -> Cow<str> {
     }
   }
   if s.chars().all(|c| c.is_ascii_digit()) {
-    return Cow::Owned(format!("_{}", s));
+    return Cow::Owned(format!("_{s}"));
   }
   Cow::Borrowed(s)
 }
@@ -82,7 +83,7 @@ fn avoid_number(s: &str) -> Cow<str> {
 pub fn get_long_module_name(short_name: &str, module: &BoxModule, context: &str) -> String {
   let full_name = get_full_module_name(module, context);
 
-  format!("{}?{}", short_name, get_hash(&full_name, 4))
+  format!("{}?{}", short_name, get_hash(full_name, 4))
 }
 
 pub fn get_full_module_name(module: &BoxModule, context: &str) -> String {
@@ -93,7 +94,7 @@ pub fn get_hash(s: impl Hash, length: usize) -> String {
   let mut hasher = DefaultHasher::default();
   s.hash(&mut hasher);
   let hash = hasher.finish();
-  let mut hash_str = format!("{:x}", hash);
+  let mut hash_str = format!("{hash:x}");
   if hash_str.len() > length {
     hash_str.truncate(length);
   }
@@ -147,7 +148,7 @@ pub fn assign_names<T: Copy>(
       items.sort_by(&comparator);
       let mut i = 0;
       for item in items {
-        let formated_name = format!("{}{}", name, i);
+        let formated_name = format!("{name}{i}");
         while name_to_items2_keys.contains(&formated_name) && used_ids.contains(&formated_name) {
           i += 1;
         }
@@ -192,10 +193,10 @@ pub fn assign_deterministic_ids<T: Copy>(
   for item in items {
     let ident = get_name(item);
     let mut i = salt;
-    let mut id = get_number_hash(&format!("{}{}", ident, i), range).to_string();
+    let mut id = get_number_hash(&format!("{ident}{i}"), range).to_string();
     while !assign_id(item, id) {
       i += 1;
-      id = get_number_hash(&format!("{}{}", ident, i), range).to_string();
+      id = get_number_hash(&format!("{ident}{i}"), range).to_string();
     }
   }
 }
@@ -207,11 +208,11 @@ pub fn assign_ascending_module_ids(
 ) {
   let mut next_id = 0;
   let mut assign_id = |module: &BoxModule| {
-    if chunk_graph.get_module_id(&module.identifier()).is_none() {
+    if chunk_graph.get_module_id(module.identifier()).is_none() {
       while used_ids.contains(&next_id.to_string()) {
         next_id += 1;
       }
-      chunk_graph.set_module_id(&module.identifier(), next_id.to_string());
+      chunk_graph.set_module_id(module.identifier(), next_id.to_string());
       next_id += 1;
     }
   };

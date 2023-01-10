@@ -1,11 +1,11 @@
-use hashbrown::{hash_map::DefaultHashBuilder, HashSet};
-use rspack_error::{Result, TWithDiagnosticArray};
-use rspack_sources::SourceMap;
-
 use std::{
   fmt::Debug,
   path::{Path, PathBuf},
 };
+
+use hashbrown::{hash_map::DefaultHashBuilder, HashSet};
+use rspack_error::{Result, TWithDiagnosticArray};
+use rspack_sources::SourceMap;
 
 use crate::{Content, LoaderRunnerPlugin};
 

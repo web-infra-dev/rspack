@@ -1,6 +1,5 @@
 use regress::{Match, Matches, Regex};
 use rspack_error::{internal_error, Error};
-
 use swc_core::ecma::ast::Regex as SwcRegex;
 
 /// Using wrapper because I want to implement the `TryFrom` Trait
@@ -24,8 +23,7 @@ impl RspackRegex {
       .map(RspackRegex)
       .map_err(|_| {
         Error::InternalError(internal_error!(format!(
-          "Can't construct regex `/{}/{}`",
-          expr, flags
+          "Can't construct regex `/{expr}/{flags}`"
         )))
       })
   }

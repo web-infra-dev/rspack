@@ -6,7 +6,7 @@ jobs:
   release:
     name: release-snapshot
     if: github.event.issue.pull_request && contains(github.event.comment.body, '!snapshot')
-    runs-on: [self-hosted, rspack-common, macOS, ARM64]
+    runs-on: [self-hosted, rspack-common, macOS, ARM64, release]
     steps:
       - name: Get PR SHA
         id: sha
@@ -46,7 +46,7 @@ jobs:
         id: release
         run: |
           pnpm version:snapshot $(git rev-parse --short HEAD)
-          ./x build js-release
+          ./x build cli:release:all
           pnpm release:snapshot
           comment=$(./x pkg-version)
           echo "::set-output name=comment::$comment"

@@ -38,7 +38,7 @@ impl Plugin for DeterministicModuleIdsPlugin {
           conflicts += 1;
           return false;
         }
-        chunk_graph.set_module_id(&module.identifier(), id);
+        chunk_graph.set_module_id(module.identifier(), id);
         true
       },
       &[usize::pow(10, max_length)],
@@ -48,10 +48,7 @@ impl Plugin for DeterministicModuleIdsPlugin {
     );
     if fail_on_conflict && conflicts > 0 {
       // TODO: better error msg
-      panic!(
-        "Assigning deterministic module ids has lead to conflicts {}",
-        conflicts
-      );
+      panic!("Assigning deterministic module ids has lead to conflicts {conflicts}");
     }
     Ok(())
   }

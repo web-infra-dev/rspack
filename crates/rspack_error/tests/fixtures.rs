@@ -1,10 +1,10 @@
+use std::path::PathBuf;
+
 use insta::Settings;
 use rspack_binding_options::RawOptions;
 use rspack_core::{CompilerOptions, Stats};
 use rspack_test::{fixture, test_options::RawOptionsExt};
 use rspack_tracing::enable_tracing_by_env;
-
-use std::path::PathBuf;
 
 #[tokio::main]
 pub async fn test_fixture<F: FnOnce(&Stats, Settings) -> rspack_error::Result<()>>(
@@ -17,7 +17,7 @@ pub async fn test_fixture<F: FnOnce(&Stats, Settings) -> rspack_error::Result<()
   compiler
     .build()
     .await
-    .unwrap_or_else(|_| panic!("failed to compile in fixtrue {:?}", fixture_path));
+    .unwrap_or_else(|_| panic!("failed to compile in fixtrue {fixture_path:?}"));
   let stats = compiler.compilation.get_stats();
   let mut settings = Settings::clone_current();
   settings.remove_snapshot_suffix();

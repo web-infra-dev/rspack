@@ -1,6 +1,5 @@
-use sugar_path::SugarPath;
-
 use rspack_core::{runtime_globals, Compilation, Module};
+use sugar_path::SugarPath;
 use swc_core::{common::DUMMY_SP, ecma::utils::ExprFactory};
 use {
   swc_core::common::Mark,
@@ -41,7 +40,7 @@ pub fn module_variables<'a>(
             .resource_path
             .parent()
             .expect("TODO:")
-            .relative(&compilation.options.context.as_ref())
+            .relative(compilation.options.context.as_ref())
             .to_string_lossy()
             .to_string(),
           _ => unreachable!("dirname should be one of mock, warn-mock, true"),

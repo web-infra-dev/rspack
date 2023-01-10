@@ -10,11 +10,8 @@ use std::{
 };
 
 use colored::Colorize;
-
 use glob::glob;
-
 use serde::{Deserialize, Serialize};
-
 use serde_json;
 
 use crate::{
@@ -303,7 +300,7 @@ impl Rst {
     }
   }
 
-  #[allow(clippy::unwrap_in_result)]
+  #[allow(clippy::unwrap_in_result, clippy::only_used_in_recursion)]
   fn compare(
     fixture: String,
     mode: &Mode,
@@ -436,11 +433,11 @@ impl Rst {
             FailedCase::MissingActualFile(_) => unreachable!(),
             FailedCase::MissingExpectedDir(dir) => {
               // Expected dir should not exist
-              fs::remove_dir_all(&dir).unwrap_or_else(|_| panic!("Remove {:?} dir failed", dir));
+              fs::remove_dir_all(dir).unwrap_or_else(|_| panic!("Remove {dir:?} dir failed"));
             }
             FailedCase::MissingExpectedFile(file) => {
               // Expected file should not exist
-              fs::remove_file(&file).expect("Remove file failed");
+              fs::remove_file(file).expect("Remove file failed");
             }
             FailedCase::Difference {
               expected_file_path, ..
@@ -488,7 +485,7 @@ impl Rst {
             match fs::remove_dir(record_dir.as_path()) {
               Ok(_) => {}
               Err(e) => {
-                println!("{}", e);
+                println!("{e}");
                 panic!("Unable to delete record dir (.temp)");
               }
             }
@@ -504,7 +501,7 @@ impl Rst {
       std::env::var("CARGO_WORKSPACE_DIR").expect("Can't get CARGO_WORKSPACE_DIR");
     // dbg!(&minifest);
     for entry in
-      glob(&format!("{}crates/*/.temp", workspace_dir)).expect("Failed to read glob pattern")
+      glob(&format!("{workspace_dir}crates/*/.temp")).expect("Failed to read glob pattern")
     {
       match entry {
         Ok(entry) => {
@@ -512,7 +509,7 @@ impl Rst {
           // remove temp dir that store diff info
           std::fs::remove_dir_all(entry).expect("TODO:");
         }
-        Err(e) => println!("{:?}", e),
+        Err(e) => println!("{e:?}"),
       }
     }
   }
@@ -529,7 +526,7 @@ fn update_single_case(dir: &PathBuf) {
     .collect::<Vec<_>>();
   failed_files.iter().for_each(|failed_path| {
     let record =
-      serde_json::from_slice::<Record>(&fs::read(&failed_path).expect("TODO:")).expect("TODO:");
+      serde_json::from_slice::<Record>(&fs::read(failed_path).expect("TODO:")).expect("TODO:");
     let rst: Rst = record.into();
     rst.update_fixture();
 

@@ -25,7 +25,7 @@ regex = "1.6.0"
 rspack_error = { path = "../rspack_error" }
 rspack_loader_runner = { path = "../loader_runner" }
 rspack_regex = { path = "../rspack_regex" }
-rspack_sources = { version = "0.1.14" }
+rspack_sources = { version = "0.1.16" }
 rspack_symbol = { path = "../rspack_symbol" }
 rspack_tracing = { path = "../rspack_tracing" }
 serde = "1"
@@ -35,6 +35,7 @@ swc_core = { workspace = true, features = [
   "__base",
   "__ecma",
   "__visit",
+  "__utils",
   "__ecma_transforms",
   "ecma_ast",
   "ecma_codegen",

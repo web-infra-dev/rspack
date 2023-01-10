@@ -27,7 +27,6 @@ use swc_core::ecma::transforms::base::pass::Optional;
 use swc_core::ecma::transforms::module::common_js::Config as CommonjsConfig;
 use swc_core::ecma::visit::as_folder;
 use tree_shaking::tree_shaking_visitor;
-use ustr::ustr;
 
 use crate::visitors::rewrite::RewriteModuleUrl;
 mod rewrite;
@@ -168,7 +167,7 @@ pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut
       Optional::new(
         tree_shaking_visitor(
           &generate_context.compilation.module_graph,
-          ustr(&module.identifier()),
+          module.identifier(),
           &generate_context.compilation.used_symbol,
           &generate_context.compilation.used_indirect_symbol,
           top_level_mark,

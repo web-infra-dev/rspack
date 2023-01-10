@@ -1,12 +1,14 @@
-use super::Snapshot;
-use crate::{calc_hash, SnapshotOptions, SnapshotStrategy};
-use dashmap::DashMap;
-use hashbrown::HashMap;
-use rspack_error::Result;
 use std::{
   path::{Path, PathBuf},
   time::SystemTime,
 };
+
+use dashmap::DashMap;
+use hashbrown::HashMap;
+use rspack_error::Result;
+
+use super::Snapshot;
+use crate::{calc_hash, SnapshotOptions, SnapshotStrategy};
 
 /// SnapshotManager is a tools to create or check snapshot
 ///

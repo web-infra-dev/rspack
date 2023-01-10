@@ -1,5 +1,6 @@
-use hashbrown::HashMap;
 use std::{path::PathBuf, time::SystemTime};
+
+use hashbrown::HashMap;
 
 mod manager;
 pub use manager::SnapshotManager;

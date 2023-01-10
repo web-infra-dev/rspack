@@ -23,7 +23,8 @@ module.exports = {
     },
     progress: {},
     treeShaking: true,
-    sideEffects: true
+    sideEffects: true,
+    noEmitAssets: false
   },
   module: {
     rules:

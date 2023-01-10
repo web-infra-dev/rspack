@@ -30,7 +30,7 @@ impl Plugin for NamedModuleIdsPlugin {
       |module, short_name| get_long_module_name(short_name, module, context),
       |a, b| compare_modules_by_identifier(a, b),
       &mut used_ids,
-      |m, name| chunk_graph.set_module_id(&m.identifier(), name),
+      |m, name| chunk_graph.set_module_id(m.identifier(), name),
     );
 
     if !unnamed_modules.is_empty() {

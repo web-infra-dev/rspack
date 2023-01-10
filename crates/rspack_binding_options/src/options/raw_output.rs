@@ -4,16 +4,14 @@ use std::{
 };
 
 use anyhow::Context;
-use serde::Deserialize;
-
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
-
 use rspack_core::{
   CompilerOptionsBuilder, Filename, OutputOptions, PublicPath, CHUNK_HASH_PLACEHOLDER,
   CONTENT_HASH_PLACEHOLDER, EXT_PLACEHOLDER, HASH_PLACEHOLDER, ID_PLACEHOLDER, NAME_PLACEHOLDER,
   QUERY_PLACEHOLDER,
 };
+use serde::Deserialize;
 
 use crate::RawOption;
 
@@ -133,12 +131,9 @@ impl RawOption<OutputOptions> for RawOutputOptions {
       .unique_name
       .unwrap_or_else(|| String::from("__rspack_runtime__"));
     let public_path = self.public_path.unwrap_or_else(|| String::from("/"));
-    let asset_module_filename = self.asset_module_filename.unwrap_or_else(|| {
-      format!(
-        "{}{}{}",
-        HASH_PLACEHOLDER, EXT_PLACEHOLDER, QUERY_PLACEHOLDER
-      )
-    });
+    let asset_module_filename = self
+      .asset_module_filename
+      .unwrap_or_else(|| format!("{HASH_PLACEHOLDER}{EXT_PLACEHOLDER}{QUERY_PLACEHOLDER}"));
     let library = self.library;
     Ok(OutputOptions {
       path,

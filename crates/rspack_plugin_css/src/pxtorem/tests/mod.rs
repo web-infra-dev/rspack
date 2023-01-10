@@ -1,6 +1,7 @@
+use std::fmt::Write;
+
 use hashbrown::HashMap;
 use hrx_parser::Entry;
-use std::fmt::Write;
 use swc_core::common::{FileName, FilePathMapping, SourceMap};
 use swc_core::css::{
   ast::Stylesheet,
@@ -104,10 +105,10 @@ fn convert_entry_to_unit(entry: &Entry) -> Option<TestUnit> {
 fn get_snapshot_result(input: &str, expected: &str, actual: &str) -> String {
   let mut result = String::new();
   writeln!(result, "# Input").expect("should success");
-  writeln!(result, "{}", input).expect("should success");
+  writeln!(result, "{input}").expect("should success");
   writeln!(result, "# Expected").expect("should success");
-  writeln!(result, "{}", expected).expect("should success");
+  writeln!(result, "{expected}").expect("should success");
   writeln!(result, "# Actual").expect("should success");
-  writeln!(result, "{}", actual).expect("should success");
+  writeln!(result, "{actual}").expect("should success");
   result
 }

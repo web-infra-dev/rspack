@@ -1,10 +1,11 @@
-use crate::runtime_module::HotModuleReplacementRuntimeModule;
 use async_trait::async_trait;
 use rspack_core::{
   runtime_globals, AdditionalChunkRuntimeRequirementsArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeModuleExt,
 };
 use rspack_error::Result;
+
+use crate::runtime_module::HotModuleReplacementRuntimeModule;
 
 #[derive(Debug)]
 pub struct HotModuleReplacementPlugin {}

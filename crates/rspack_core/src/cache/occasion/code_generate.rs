@@ -1,5 +1,6 @@
-use crate::{cache::storage, BoxModule, CodeGenerationResult, NormalModuleAstOrSource};
 use rspack_error::Result;
+
+use crate::{cache::storage, BoxModule, CodeGenerationResult, NormalModuleAstOrSource};
 
 type Storage = dyn storage::Storage<CodeGenerationResult>;
 
@@ -29,7 +30,7 @@ impl CodeGenerateOccasion {
     };
 
     let mut need_cache = false;
-    let id: String = module.identifier().to_owned();
+    let id = module.identifier();
     if let Some(module) = module.as_normal_module() {
       // only cache normal module
       // TODO cache all module type

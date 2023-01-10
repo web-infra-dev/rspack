@@ -1,4 +1,11 @@
 #![allow(clippy::comparison_chain)]
+use std::cmp;
+use std::hash::{Hash, Hasher};
+use std::path::Path;
+use std::str::FromStr;
+use std::string::ParseError;
+use std::sync::Arc;
+
 use anyhow::bail;
 use bitflags::bitflags;
 use hashbrown::HashSet;
@@ -7,14 +14,23 @@ use itertools::Itertools;
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
 use rspack_core::{
-  AstOrSource, CssImportDependency, Filename, Mode, ModuleAst, ModuleDependency, ModuleIdentifier,
+  ast::css::Ast as CssAst,
+  get_css_chunk_filename_template,
+  rspack_sources::{
+    BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
+    SourceMapSourceOptions,
+  },
+  Chunk, ChunkGraph, Compilation, FilenameRenderOptions, GenerateContext, GenerationResult, Module,
+  ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, PathData, Plugin,
+  RenderManifestEntry, SourceType,
 };
-use std::cmp;
-use std::hash::{Hash, Hasher};
-use std::path::Path;
-use std::str::FromStr;
-use std::string::ParseError;
-use std::sync::Arc;
+use rspack_core::{
+  AstOrSource, CssImportDependency, Filename, IdentifierSet, Mode, ModuleAst, ModuleDependency,
+  ModuleIdentifier,
+};
+use rspack_error::{
+  internal_error, Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+};
 use sugar_path::SugarPath;
 use swc_core::{
   css::{
@@ -25,23 +41,8 @@ use swc_core::{
   },
   ecma::atoms::JsWord,
 };
-use xxhash_rust::xxh3::Xxh3;
-
-use rspack_core::{
-  ast::css::Ast as CssAst,
-  get_css_chunk_filename_template,
-  rspack_sources::{
-    BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap,
-    SourceMapSource, SourceMapSourceOptions,
-  },
-  Chunk, ChunkGraph, Compilation, FilenameRenderOptions, GenerateContext, GenerationResult, Module,
-  ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, PathData, Plugin,
-  RenderManifestEntry, SourceType,
-};
-use rspack_error::{
-  internal_error, Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-};
 use tracing::instrument;
+use xxhash_rust::xxh3::Xxh3;
 
 use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
 use crate::visitors::{analyze_imports_with_path, rewrite_url};
@@ -178,9 +179,9 @@ impl CssPlugin {
     css_modules
   }
 
-  pub(crate) fn get_modules_in_order<'module>(
+  pub(crate) fn get_modules_in_order(
     chunk: &Chunk,
-    modules: Vec<&'module dyn Module>,
+    modules: Vec<&dyn Module>,
     compilation: &Compilation,
   ) -> Vec<ModuleIdentifier> {
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/css/CssModulesPlugin.js#L269
@@ -232,7 +233,7 @@ impl CssPlugin {
     let mut final_modules: Vec<ModuleIdentifier> = vec![];
 
     loop {
-      let mut failed_modules: HashSet<ModuleIdentifier> = HashSet::default();
+      let mut failed_modules: IdentifierSet = HashSet::default();
       let list = modules_by_chunk_group[0].list.clone();
       if list.is_empty() {
         // done, everything empty
@@ -525,7 +526,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             &self.config.modules.locals_convention,
           )?
         } else if let Some(meta) = &self.meta {
-          format!("module.exports = {};\n", meta)
+          format!("module.exports = {meta};\n")
         } else {
           "".to_string()
         })
@@ -648,7 +649,7 @@ impl Plugin for CssPlugin {
         output
       })
       .collect::<Vec<ConcatSource>>();
-    let source = CachedSource::new(ConcatSource::new(sources));
+    let source = ConcatSource::new(sources);
 
     // let hash = Some(get_hash(compilation).to_string());
     // let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
@@ -735,7 +736,7 @@ impl Plugin for CssPlugin {
 
 struct SortedModules {
   pub list: Vec<ModuleIdentifier>,
-  pub set: HashSet<ModuleIdentifier>,
+  pub set: IdentifierSet,
 }
 
 fn compare_module_lists(a: &SortedModules, b: &SortedModules) -> cmp::Ordering {

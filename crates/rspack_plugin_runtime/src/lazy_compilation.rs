@@ -1,3 +1,6 @@
+use std::borrow::Cow;
+use std::hash::Hash;
+
 use async_trait::async_trait;
 use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
@@ -8,8 +11,6 @@ use rspack_core::{
   BuildContext, BuildResult, CodeGenerationResult, Context, Identifiable, ModuleIdentifier,
 };
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use std::borrow::Cow;
-use std::hash::Hash;
 
 #[derive(Debug)]
 pub struct LazyCompilationProxyModule {

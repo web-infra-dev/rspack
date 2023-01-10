@@ -4,16 +4,15 @@ use std::{
 };
 
 use hashbrown::{hash_map::DefaultHashBuilder, HashSet};
-use swc_core::common::Span;
-
 use rspack_error::{internal_error, Error, Result};
+use swc_core::common::Span;
 use tracing::instrument;
-use ustr::Ustr;
 
 use crate::{
   cache::Cache, module_rule_matcher, resolve, BoxModule, CompilerOptions, Dependency,
-  FactorizeArgs, Identifiable, ModuleArgs, ModuleDependency, ModuleExt, ModuleRule, ModuleType,
-  NormalModule, RawModule, Resolve, ResolveArgs, ResolveResult, ResourceData, SharedPluginDriver,
+  FactorizeArgs, Identifiable, ModuleArgs, ModuleDependency, ModuleExt, ModuleIdentifier,
+  ModuleRule, ModuleType, NormalModule, RawModule, Resolve, ResolveArgs, ResolveResult,
+  ResourceData, SharedPluginDriver,
 };
 
 // #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -176,7 +175,7 @@ impl NormalModuleFactory {
         // TODO: just for identifier tag. should removed after Module::identifier
         let uri = format!("{}/{}", importer.display(), specifier);
 
-        let module_identifier = Ustr::from(&format!("ignored|{uri}"));
+        let module_identifier = ModuleIdentifier::from(format!("ignored|{uri}"));
         let raw_module = RawModule::new(
           "/* (ignored) */".to_owned(),
           module_identifier,
@@ -214,8 +213,7 @@ impl NormalModuleFactory {
       .get(&resolved_module_type)
       .ok_or_else(|| {
         Error::InternalError(internal_error!(format!(
-          "Parser and generator builder for module type {:?} is not registered",
-          resolved_module_type
+          "Parser and generator builder for module type {resolved_module_type:?} is not registered"
         )))
       })?();
 
@@ -408,8 +406,8 @@ impl ErrorSpan {
 impl From<Span> for ErrorSpan {
   fn from(span: Span) -> Self {
     Self {
-      start: (span.lo.0 as u32).saturating_sub(1),
-      end: (span.hi.0 as u32).saturating_sub(1),
+      start: span.lo.0.saturating_sub(1),
+      end: span.hi.0.saturating_sub(1),
     }
   }
 }

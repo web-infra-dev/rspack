@@ -1,7 +1,8 @@
+use std::str::FromStr;
+
 use rspack_core::rspack_sources::{BoxSource, Source};
 use serde::Deserialize;
 use sha2::{Digest, Sha256, Sha384, Sha512};
-use std::str::FromStr;
 
 use crate::visitors::asset::{HTMLPluginTag, HtmlPluginAttribute};
 

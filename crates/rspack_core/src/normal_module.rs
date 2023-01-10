@@ -13,18 +13,16 @@ use bitflags::bitflags;
 use dashmap::DashMap;
 use hashbrown::{hash_map::DefaultHashBuilder, HashMap, HashSet};
 use indexmap::IndexSet;
-use serde_json::json;
-use ustr::ustr;
-
 use rspack_error::{
   internal_error, Diagnostic, Error, IntoTWithDiagnosticArray, Result, Severity,
   TWithDiagnosticArray,
 };
 use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::{
-  BoxSource, OriginalSource, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
-  WithoutOriginalOptions,
+  BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
+  SourceMapSource, WithoutOriginalOptions,
 };
+use serde_json::json;
 
 use crate::{
   contextify, identifier::Identifiable, BoxModule, BuildContext, BuildResult, ChunkGraph,
@@ -121,7 +119,7 @@ impl ModuleGraphModule {
 
   pub fn id<'chunk_graph>(&self, chunk_graph: &'chunk_graph ChunkGraph) -> &'chunk_graph str {
     chunk_graph
-      .get_module_id(&self.module_identifier)
+      .get_module_id(self.module_identifier)
       .as_ref()
       .expect("module id not found")
       .as_str()
@@ -147,8 +145,7 @@ impl ModuleGraphModule {
           .connection_by_connection_id(*connection_id)
           .ok_or_else(|| {
             Error::InternalError(internal_error!(format!(
-              "connection_id_to_connection does not have connection_id: {}",
-              connection_id
+              "connection_id_to_connection does not have connection_id: {connection_id}"
             )))
           })
       })
@@ -170,8 +167,7 @@ impl ModuleGraphModule {
           .connection_by_connection_id(*connection_id)
           .ok_or_else(|| {
             Error::InternalError(internal_error!(format!(
-              "connection_id_to_connection does not have connection_id: {}",
-              connection_id
+              "connection_id_to_connection does not have connection_id: {connection_id}"
             )))
           })
       })
@@ -266,6 +262,17 @@ impl AstOrSource {
       _ => Err(Error::InternalError(internal_error!(
         "Failed to convert to source".into()
       ))),
+    }
+  }
+
+  pub fn map<F, G>(self, f: F, g: G) -> Self
+  where
+    F: FnOnce(ModuleAst) -> ModuleAst,
+    G: FnOnce(BoxSource) -> BoxSource,
+  {
+    match self {
+      AstOrSource::Ast(ast) => Self::Ast(f(ast)),
+      AstOrSource::Source(source) => Self::Source(g(source)),
     }
   }
 }
@@ -420,7 +427,7 @@ impl NormalModule {
 
 impl Identifiable for NormalModule {
   fn identifier(&self) -> ModuleIdentifier {
-    ustr(&self.request)
+    ModuleIdentifier::from(self.request.as_str())
   }
 }
 
@@ -529,7 +536,7 @@ impl Module for NormalModule {
       let mut data = HashMap::new();
       let mut runtime_requirements = HashSet::new();
       for source_type in self.source_types() {
-        let generation_result = self.parser_and_generator.generate(
+        let mut generation_result = self.parser_and_generator.generate(
           ast_or_source,
           self,
           &mut GenerateContext {
@@ -540,6 +547,9 @@ impl Module for NormalModule {
             code_generation_results: &compilation.code_generation_results,
           },
         )?;
+        generation_result.ast_or_source = generation_result
+          .ast_or_source
+          .map(|i| i, |s| CachedSource::new(s).boxed());
         code_generation_result.add(*source_type, generation_result);
       }
       code_generation_result.data.extend(data);

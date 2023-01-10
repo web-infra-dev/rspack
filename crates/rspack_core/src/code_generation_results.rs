@@ -1,10 +1,12 @@
-use hashbrown::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 
+use hashbrown::{HashMap, HashSet};
 use rspack_error::{internal_error, Error, Result};
 use xxhash_rust::xxh3::Xxh3;
 
-use crate::{AstOrSource, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, SourceType};
+use crate::{
+  AstOrSource, IdentifierMap, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, SourceType,
+};
 
 #[derive(Debug, Clone)]
 pub struct GenerationResult {
@@ -43,8 +45,8 @@ impl CodeGenerationResult {
 #[derive(Default, Debug)]
 pub struct CodeGenerationResults {
   // TODO: This should be a map of ModuleIdentifier to CodeGenerationResult
-  pub module_generation_result_map: HashMap<ModuleIdentifier, CodeGenerationResult>,
-  map: HashMap<ModuleIdentifier, RuntimeSpecMap<ModuleIdentifier>>,
+  pub module_generation_result_map: IdentifierMap<CodeGenerationResult>,
+  map: IdentifierMap<RuntimeSpecMap<ModuleIdentifier>>,
 }
 
 impl CodeGenerationResults {
@@ -63,8 +65,7 @@ impl CodeGenerationResults {
           })
           .ok_or_else(|| {
             Error::InternalError(internal_error!(format!(
-              "Failed to code generation result for {} with runtime {:?} \n {:?}",
-              module_identifier, runtime, entry
+              "Failed to code generation result for {module_identifier} with runtime {runtime:?} \n {entry:?}"
             )))
           })
       } else {
@@ -72,8 +73,7 @@ impl CodeGenerationResults {
           let results = entry.get_values();
           if results.len() != 1 {
             return Err(Error::InternalError(internal_error!(format!(
-              "No unique code generation entry for unspecified runtime for {} ",
-              module_identifier,
+              "No unique code generation entry for unspecified runtime for {module_identifier} ",
             ))));
           }
 
@@ -128,10 +128,7 @@ impl CodeGenerationResults {
     match self.get(module_identifier, runtime) {
       Ok(result) => result.runtime_requirements.clone(),
       Err(_) => {
-        print!(
-          "Failed to get runtime requirements for {}",
-          module_identifier
-        );
+        print!("Failed to get runtime requirements for {module_identifier}");
         HashSet::new()
       }
     }

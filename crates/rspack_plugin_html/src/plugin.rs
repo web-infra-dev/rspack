@@ -1,3 +1,5 @@
+use std::{fs, path::Path};
+
 use anyhow::Context;
 use async_trait::async_trait;
 use dojang::dojang::Dojang;
@@ -8,7 +10,6 @@ use rspack_core::{
   AssetInfo, CompilationAsset, Plugin,
 };
 use serde::Deserialize;
-use std::{fs, path::Path};
 use swc_html::visit::VisitMutWith;
 
 use crate::{
@@ -172,7 +173,7 @@ impl Plugin for HtmlPlugin {
     if let Some(favicon) = &self.config.favicon {
       let url = parse_to_url(favicon);
       let resolved_favicon = resolve_from_context(&compilation.options.context, url.path());
-      let content = fs::read(&resolved_favicon).context(format!(
+      let content = fs::read(resolved_favicon).context(format!(
         "failed to read `{}` from `{}`",
         url.path(),
         &compilation.options.context.display()

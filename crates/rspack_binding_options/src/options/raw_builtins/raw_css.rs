@@ -1,6 +1,5 @@
 #[cfg(feature = "node-api")]
 use napi_derive::napi;
-
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug, Serialize, Default, Clone)]

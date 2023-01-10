@@ -1,5 +1,4 @@
 #![feature(anonymous_lifetime_in_impl_trait)]
-#![feature(backtrace)]
 
 mod diagnostic;
 mod error;

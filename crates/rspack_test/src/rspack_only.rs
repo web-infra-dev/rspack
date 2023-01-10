@@ -1,11 +1,12 @@
-use crate::test_options::RawOptionsExt;
+use std::path::{Path, PathBuf};
+
 use cargo_rst::{helper::make_relative_from, rst::RstBuilder};
+use rspack::Compiler;
 use rspack_binding_options::RawOptions;
 use rspack_core::CompilerOptions;
 use rspack_tracing::enable_tracing_by_env;
-use std::path::{Path, PathBuf};
 
-use rspack::Compiler;
+use crate::test_options::RawOptionsExt;
 
 #[tokio::main]
 pub async fn test_fixture<F>(fixture_path: &Path, custom_convert_options: F) -> Compiler
@@ -25,7 +26,7 @@ where
   compiler
     .build()
     .await
-    .unwrap_or_else(|_| panic!("failed to compile in fixtrue {:?}", fixture_path));
+    .unwrap_or_else(|_| panic!("failed to compile in fixtrue {fixture_path:?}"));
   let stats = compiler.compilation.get_stats();
   let output_name = make_relative_from(Path::new(&output_path), fixture_path);
   let rst = RstBuilder::default()

@@ -4,17 +4,16 @@ use std::hash::Hash;
 use hashbrown::HashSet;
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_sources::{BoxSource, RawSource, Source};
-use ustr::Ustr;
 
 use crate::{
   identifier::Identifiable, AstOrSource, BuildContext, BuildResult, CodeGenerationResult, Context,
-  Module, ModuleType, SourceType,
+  Module, ModuleIdentifier, ModuleType, SourceType,
 };
 
 #[derive(Debug)]
 pub struct RawModule {
   source: BoxSource,
-  identifier: Ustr,
+  identifier: ModuleIdentifier,
   readable_identifier: String,
   runtime_requirements: HashSet<String>,
 }
@@ -24,14 +23,14 @@ static RAW_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
 impl RawModule {
   pub fn new(
     source: String,
-    identifier: impl Into<Ustr>,
+    identifier: ModuleIdentifier,
     readable_identifier: String,
     runtime_requirements: HashSet<String>,
   ) -> Self {
     Self {
       // TODO: useSourceMap, etc...
       source: Box::new(RawSource::Source(source)),
-      identifier: identifier.into(),
+      identifier,
       readable_identifier,
       runtime_requirements,
     }
@@ -39,7 +38,7 @@ impl RawModule {
 }
 
 impl Identifiable for RawModule {
-  fn identifier(&self) -> Ustr {
+  fn identifier(&self) -> ModuleIdentifier {
     self.identifier
   }
 }

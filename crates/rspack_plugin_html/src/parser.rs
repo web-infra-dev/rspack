@@ -12,9 +12,9 @@ use swc_html::{
   parser::{error::Error, parse_file_as_document, parser::ParserConfig},
 };
 use swc_html_minifier::minify_document;
+pub use swc_html_minifier::option::MinifyOptions;
 
 use crate::config::HtmlPluginConfig;
-pub use swc_html_minifier::option::MinifyOptions;
 
 pub struct HtmlCompiler<'a> {
   config: &'a HtmlPluginConfig,

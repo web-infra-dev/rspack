@@ -1,6 +1,8 @@
-use crate::RawOption;
-use rspack_core::{CompilerOptionsBuilder, ExternalType};
 use std::str::FromStr;
+
+use rspack_core::{CompilerOptionsBuilder, ExternalType};
+
+use crate::RawOption;
 
 pub type RawExternalType = String;
 

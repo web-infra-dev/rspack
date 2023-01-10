@@ -1,15 +1,16 @@
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashSet;
 
 use crate::{
-  Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, ModuleIdentifier, RuntimeSpec,
+  Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, IdentifierMap, ModuleIdentifier,
+  RuntimeSpec,
 };
 
 #[derive(Debug)]
 pub struct ChunkGroup {
   pub ukey: ChunkGroupUkey,
   pub chunks: Vec<ChunkUkey>,
-  pub(crate) module_pre_order_indices: HashMap<ModuleIdentifier, usize>,
-  pub(crate) module_post_order_indices: HashMap<ModuleIdentifier, usize>,
+  pub(crate) module_pre_order_indices: IdentifierMap<usize>,
+  pub(crate) module_post_order_indices: IdentifierMap<usize>,
   pub(crate) parents: HashSet<ChunkGroupUkey>,
   pub(crate) children: HashSet<ChunkGroupUkey>,
   pub(crate) kind: ChunkGroupKind,
@@ -57,12 +58,7 @@ impl ChunkGroup {
       .flat_map(|chunk_ukey| {
         chunk_by_ukey
           .get(chunk_ukey)
-          .unwrap_or_else(|| {
-            panic!(
-              "Chunk({:?}) not found in ChunkGroup: {:?}",
-              chunk_ukey, self
-            )
-          })
+          .unwrap_or_else(|| panic!("Chunk({chunk_ukey:?}) not found in ChunkGroup: {self:?}"))
           .files
           .iter()
           .map(|file| file.to_string())

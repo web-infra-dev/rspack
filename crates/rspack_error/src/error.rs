@@ -112,8 +112,8 @@ impl std::error::Error for Error {
 impl fmt::Display for Error {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self {
-      Error::InternalError(e) => write!(f, "{}", e),
-      Error::TraceableError(v) => write!(f, "{}", v),
+      Error::InternalError(e) => write!(f, "{e}"),
+      Error::TraceableError(v) => write!(f, "{v}"),
       Error::Io { source } => write!(f, "{source}"),
       Error::Anyhow { source } => write!(f, "{source}"),
       Error::BatchErrors(errs) => write!(
@@ -206,6 +206,6 @@ impl From<napi::Error> for Error {
 #[cfg(feature = "napi")]
 impl From<Error> for napi::Error {
   fn from(err: Error) -> Self {
-    Self::from_reason(format!("{}", err))
+    Self::from_reason(format!("{err}"))
   }
 }

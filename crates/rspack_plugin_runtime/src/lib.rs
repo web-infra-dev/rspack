@@ -1,12 +1,13 @@
 #![feature(get_mut_unchecked)]
 
-use crate::runtime_module::{EnsureChunkRuntimeModule, OnChunkLoadedRuntimeModule};
 use async_trait::async_trait;
 use rspack_core::{
   runtime_globals, AdditionalChunkRuntimeRequirementsArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeModuleExt,
 };
 use rspack_error::Result;
+
+use crate::runtime_module::{EnsureChunkRuntimeModule, OnChunkLoadedRuntimeModule};
 
 mod lazy_compilation;
 pub use lazy_compilation::LazyCompilationPlugin;
