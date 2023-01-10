@@ -9,10 +9,10 @@ use swc_core::common::Span;
 use tracing::instrument;
 
 use crate::{
-  cache::Cache, module_rule_matcher, resolve, BoxModule, CompilerOptions, Dependency,
-  FactorizeArgs, Identifiable, ModuleArgs, ModuleDependency, ModuleExt, ModuleIdentifier,
-  ModuleRule, ModuleType, NormalModule, RawModule, Resolve, ResolveArgs, ResolveResult,
-  ResourceData, SharedPluginDriver,
+  cache::Cache, module_rule_matcher, resolve, AssetGeneratorOptions, AssetParserOptions, BoxModule,
+  CompilerOptions, Dependency, FactorizeArgs, Identifiable, ModuleArgs, ModuleDependency,
+  ModuleExt, ModuleIdentifier, ModuleRule, ModuleType, NormalModule, RawModule, Resolve,
+  ResolveArgs, ResolveResult, ResourceData, SharedPluginDriver,
 };
 
 // #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -204,6 +204,8 @@ impl NormalModuleFactory {
       self.context.module_type,
     )?;
     let resolved_resolve_options = self.calculate_resolve_options(&resolved_module_rules);
+    let (resolved_parser_options, resolved_generator_options) =
+      self.calculate_parser_and_generator_options(&resolved_module_rules);
 
     let resolved_parser_and_generator = self
       .plugin_driver
@@ -227,6 +229,8 @@ impl NormalModuleFactory {
       self.dependency.request().to_owned(),
       resolved_module_type,
       resolved_parser_and_generator,
+      resolved_parser_options,
+      resolved_generator_options,
       resource_data,
       resolved_resolve_options,
       self.context.options.clone(),
@@ -272,11 +276,31 @@ impl NormalModuleFactory {
   fn calculate_resolve_options(&self, module_rules: &[&ModuleRule]) -> Option<Resolve> {
     let mut resolved = None;
     module_rules.iter().for_each(|rule| {
-      if let Some(resolve) = rule.resolve.to_owned() {
-        resolved = Some(resolve);
+      if let Some(resolve) = rule.resolve.as_ref() {
+        resolved = Some(resolve.to_owned());
       }
     });
     resolved
+  }
+
+  fn calculate_parser_and_generator_options(
+    &self,
+    module_rules: &[&ModuleRule],
+  ) -> (Option<AssetParserOptions>, Option<AssetGeneratorOptions>) {
+    let mut resolved_parser: Option<AssetParserOptions> = None;
+    let mut resolved_generator: Option<AssetGeneratorOptions> = None;
+
+    module_rules.iter().for_each(|rule| {
+      // TODO: should deep merge
+      if let Some(parser) = rule.parser.as_ref() {
+        resolved_parser = Some(parser.to_owned());
+      }
+      if let Some(generator) = rule.generator.as_ref() {
+        resolved_generator = Some(generator.to_owned());
+      }
+    });
+
+    (resolved_parser, resolved_generator)
   }
 
   pub fn calculate_module_type(

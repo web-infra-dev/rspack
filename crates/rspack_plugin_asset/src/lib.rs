@@ -222,9 +222,10 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       DataUrlOption::Source => Some(CanonicalizedDataUrlOption::Source),
       DataUrlOption::Inline(val) => Some(CanonicalizedDataUrlOption::Asset(*val)),
       DataUrlOption::Auto(option) => {
-        let limit_size = option
-          .as_ref()
-          .and_then(|x| x.max_size)
+        let limit_size = parse_context
+          .module_parser_options
+          .and_then(|x| x.data_url_condition.as_ref().and_then(|d| d.max_size))
+          .or(option.as_ref().and_then(|x| x.max_size))
           .unwrap_or(DEFAULT_MAX_SIZE);
         Some(CanonicalizedDataUrlOption::Asset(
           size <= limit_size as usize,
@@ -252,11 +253,17 @@ impl ParserAndGenerator for AssetParserAndGenerator {
   ) -> Result<rspack_core::GenerationResult> {
     let parsed_asset_config = self.parsed_asset_config.as_ref().expect("TODO:");
 
-    let asset_filename_template = &generate_context
-      .compilation
-      .options
-      .output
-      .asset_module_filename;
+    // Use [Rule.generator.filename] if it is set, otherwise use [output.assetModuleFilename].
+    let asset_filename_template = generate_context
+      .module_generator_options
+      .and_then(|o| o.filename.as_ref())
+      .unwrap_or(
+        &generate_context
+          .compilation
+          .options
+          .output
+          .asset_module_filename,
+      );
     let hash = hash_value_to_string(self.hash_for_ast_or_source(ast_or_source));
 
     let asset_filename = asset_filename_template.render(FilenameRenderOptions {

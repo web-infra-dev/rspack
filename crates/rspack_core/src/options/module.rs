@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use rspack_regex::RspackRegex;
 
-use crate::{BoxedLoader, ModuleType, Resolve, ResourceData};
+use crate::{BoxedLoader, Filename, ModuleType, Resolve, ResourceData};
 
 #[derive(Debug, Clone, Default)]
 pub struct AssetParserDataUrlOption {
@@ -15,6 +15,12 @@ pub struct AssetParserOptions {
 #[derive(Debug, Clone, Default)]
 pub struct ParserOptions {
   pub asset: Option<AssetParserOptions>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct AssetGeneratorOptions {
+  /// Same as webpack's Rule.generator.filename, see: [Rule.generator.filename](https://webpack.js.org/configuration/module/#rulegeneratorfilename)
+  pub filename: Option<Filename>,
 }
 
 type ModuleRuleFunc = Box<dyn Fn(&ResourceData) -> anyhow::Result<bool> + Send + Sync>;
@@ -44,6 +50,8 @@ pub struct ModuleRule {
   /// The `ModuleType` to use for the matched resource.
   pub r#type: Option<ModuleType>,
   pub r#use: Vec<BoxedLoader>,
+  pub parser: Option<AssetParserOptions>,
+  pub generator: Option<AssetGeneratorOptions>,
   pub resolve: Option<Resolve>,
   /// Internal matching method, not intended to be used by the user. (Loader experimental)
   pub func__: Option<ModuleRuleFunc>,
@@ -59,6 +67,8 @@ impl Debug for ModuleRule {
       .field("resource_query", &self.resource_query)
       .field("type", &self.r#type)
       .field("resolve", &self.resolve)
+      .field("parser", &self.parser)
+      .field("generator", &self.generator)
       .field("func__", &self.func__.as_ref().map(|_| ".."))
       .field("use", &self.r#use)
       .finish()

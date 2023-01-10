@@ -26,11 +26,11 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use serde_json::json;
 
 use crate::{
-  contextify, identifier::Identifiable, BoxModule, BuildContext, BuildResult, ChunkGraph,
-  CodeGenerationResult, Compilation, CompilerOptions, Context, Dependency, DependencyType,
-  GenerateContext, LibIdentOptions, Module, ModuleAst, ModuleDependency, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, Resolve, SourceType,
+  contextify, identifier::Identifiable, AssetGeneratorOptions, AssetParserOptions, BoxModule,
+  BuildContext, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, CompilerOptions,
+  Context, Dependency, DependencyType, GenerateContext, LibIdentOptions, Module, ModuleAst,
+  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext,
+  ParseResult, ParserAndGenerator, Resolve, SourceType,
 };
 
 bitflags! {
@@ -319,7 +319,12 @@ pub struct NormalModule {
   /// Built AST or source of this module (passed with loaders)
   ast_or_source: NormalModuleAstOrSource,
 
+  /// Resolve options derived from [Rule.resolve]
   resolve_options: Option<Resolve>,
+  /// Parser options derived from [Rule.parser]
+  parser_options: Option<AssetParserOptions>,
+  /// Generator options derived from [Rule.generator]
+  generator_options: Option<AssetGeneratorOptions>,
 
   options: Arc<CompilerOptions>,
   #[allow(unused)]
@@ -365,6 +370,8 @@ impl NormalModule {
     raw_request: String,
     module_type: impl Into<ModuleType>,
     parser_and_generator: Box<dyn ParserAndGenerator>,
+    parser_options: Option<AssetParserOptions>,
+    generator_options: Option<AssetGeneratorOptions>,
     resource_data: ResourceData,
     resolve_options: Option<Resolve>,
     options: Arc<CompilerOptions>,
@@ -375,6 +382,8 @@ impl NormalModule {
       raw_request,
       module_type: module_type.into(),
       parser_and_generator,
+      parser_options,
+      generator_options,
       resource_data,
       resolve_options,
 
@@ -496,6 +505,7 @@ impl Module for NormalModule {
       .parse(ParseContext {
         source: original_source.clone(),
         module_identifier: self.identifier(),
+        module_parser_options: self.parser_options.as_ref(),
         module_type: &self.module_type,
         resource_data: &self.resource_data,
         compiler_options: build_context.compiler_options,
@@ -542,6 +552,7 @@ impl Module for NormalModule {
           self,
           &mut GenerateContext {
             compilation,
+            module_generator_options: self.generator_options.as_ref(),
             runtime_requirements: &mut runtime_requirements,
             data: &mut data,
             requested_source_type: *source_type,
