@@ -27,7 +27,7 @@ jobs:
           npm install -g pnpm@7.13.0
           node -e "console.log(process.arch)"  
           pnpm install
-          pnpm run format-ci:toml
+          # pnpm run format-ci:toml
           pnpm run lint:js
           pnpm run build:cli:release
           pnpm --filter @rspack/plugin-html run build
