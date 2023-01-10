@@ -10,17 +10,6 @@ module.exports = {
     treeShaking: true,
     sideEffects: true
   },
-  module: {
-    rules: [
-      {
-        test: {
-          type: "regexp",
-          matcher: ".js$",
-        },
-        sideEffects: true
-      }
-    ],
-  },
   context: __dirname,
   entry: {
     main: {

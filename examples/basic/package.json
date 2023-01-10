@@ -11,7 +11,7 @@
   "devDependencies": {
     "@rspack/cli": "workspace:*"
   },
-  "sideEffects": true,
+  "sideEffects": false,
   "keywords": [],
   "author": "",
   "license": "ISC"
