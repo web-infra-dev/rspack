@@ -22,12 +22,8 @@ use super::{
   BailoutFlog,
 };
 use crate::{
-  module_rule_matcher_condition, CompilerOptions, Dependency, ModuleGraph, ModuleSyntax,
-  ResolveKind, Resolver,
-};
-use crate::{
-  Dependency, DependencyType, IdentifierLinkedMap, IdentifierMap, ModuleGraph, ModuleIdentifier,
-  ModuleSyntax, Resolver,
+  module_rule_matcher_condition, CompilerOptions, Dependency, DependencyType, IdentifierLinkedMap,
+  IdentifierMap, ModuleGraph, ModuleIdentifier, ModuleSyntax, Resolver,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
