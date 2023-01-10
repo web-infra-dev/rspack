@@ -3,21 +3,24 @@ use std::hash::BuildHasherDefault;
 use std::{convert::From, fmt, ops::Deref};
 
 use hashlink::{LinkedHashMap, LinkedHashSet};
-use ustr::{IdentityHasher, Ustr};
+use ustr::Ustr;
 
 pub trait Identifiable {
   fn identifier(&self) -> Identifier;
 }
 
+pub type IdentifierHasher = ustr::IdentityHasher;
+
 /// A standard `HashMap` using `Ustr` as the key type with a custom `Hasher` that
 /// just uses the precomputed hash for speed instead of calculating it
-pub type IdentifierMap<V> = HashMap<Identifier, V, BuildHasherDefault<IdentityHasher>>;
-pub type IdentifierLinkedMap<V> = LinkedHashMap<Identifier, V, BuildHasherDefault<IdentityHasher>>;
+pub type IdentifierMap<V> = HashMap<Identifier, V, BuildHasherDefault<IdentifierHasher>>;
+pub type IdentifierLinkedMap<V> =
+  LinkedHashMap<Identifier, V, BuildHasherDefault<IdentifierHasher>>;
 
 /// A standard `HashSet` using `Ustr` as the key type with a custom `Hasher` that
 /// just uses the precomputed hash for speed instead of calculating it
-pub type IdentifierSet = HashSet<Identifier, BuildHasherDefault<IdentityHasher>>;
-pub type IdentifierLinkedSet = LinkedHashSet<Identifier, BuildHasherDefault<IdentityHasher>>;
+pub type IdentifierSet = HashSet<Identifier, BuildHasherDefault<IdentifierHasher>>;
+pub type IdentifierLinkedSet = LinkedHashSet<Identifier, BuildHasherDefault<IdentifierHasher>>;
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Identifier(Ustr);

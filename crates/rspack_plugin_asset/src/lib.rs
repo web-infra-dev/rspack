@@ -1,6 +1,7 @@
 use std::{
   collections::hash_map::DefaultHasher,
   ffi::OsStr,
+  hash::BuildHasherDefault,
   hash::{Hash, Hasher},
   path::Path,
   sync::Arc,
@@ -13,9 +14,9 @@ use rspack_core::{
   get_contenthash,
   rspack_sources::{RawSource, SourceExt},
   runtime_globals, AssetParserDataUrlOption, AssetParserOptions, AstOrSource,
-  FilenameRenderOptions, GenerateContext, GenerationResult, Module, ModuleIdentifier, ParseContext,
-  ParserAndGenerator, PathData, Plugin, PluginContext, PluginRenderManifestHookOutput,
-  RenderManifestArgs, RenderManifestEntry, SourceType,
+  FilenameRenderOptions, GenerateContext, GenerationResult, IdentifierHasher, Module,
+  ModuleIdentifier, ParseContext, ParserAndGenerator, PathData, Plugin, PluginContext,
+  PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, SourceType,
 };
 use rspack_error::{internal_error, Error, IntoTWithDiagnosticArray, Result};
 use sugar_path::SugarPath;
@@ -24,11 +25,16 @@ use sugar_path::SugarPath;
 pub struct AssetConfig {
   pub parse_options: Option<AssetParserOptions>,
 }
+
+pub type ModuleIdToFileName =
+  Arc<DashMap<ModuleIdentifier, String, BuildHasherDefault<IdentifierHasher>>>;
+
 #[derive(Debug)]
 pub struct AssetPlugin {
   config: AssetConfig,
-  module_id_to_filename_without_ext: Arc<DashMap<ModuleIdentifier, String>>,
+  module_id_to_filename_without_ext: ModuleIdToFileName,
 }
+
 impl AssetPlugin {
   pub fn new(config: AssetConfig) -> AssetPlugin {
     AssetPlugin {
@@ -79,7 +85,7 @@ impl CanonicalizedDataUrlOption {
 pub struct AssetParserAndGenerator {
   data_url: DataUrlOption,
   parsed_asset_config: Option<CanonicalizedDataUrlOption>,
-  module_id_to_filename: Arc<DashMap<ModuleIdentifier, String>>,
+  module_id_to_filename: ModuleIdToFileName,
 }
 
 impl AssetParserAndGenerator {
@@ -117,7 +123,7 @@ impl AssetParserAndGenerator {
 
   pub(crate) fn into_with_module_id_to_filename_without_ext(
     mut self,
-    module_id_to_filename_without_ext: Arc<DashMap<ModuleIdentifier, String>>,
+    module_id_to_filename_without_ext: ModuleIdToFileName,
   ) -> Self {
     self.module_id_to_filename = module_id_to_filename_without_ext;
     self

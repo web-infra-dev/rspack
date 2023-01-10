@@ -1,7 +1,11 @@
-use std::path::Path;
-use std::path::PathBuf;
-use std::sync::Arc;
+use std::{
+  hash::BuildHasherDefault,
+  path::{Path, PathBuf},
+  sync::Arc,
+};
 
+use dashmap::DashMap;
+use rustc_hash::FxHasher;
 use tracing::instrument;
 
 use crate::Resolve;
@@ -29,7 +33,7 @@ impl ResolveInfo {
 pub struct ResolverFactory {
   cache: Arc<nodejs_resolver::Cache>,
   base_options: Resolve,
-  resolvers: dashmap::DashMap<Resolve, Arc<Resolver>>,
+  resolvers: DashMap<Resolve, Arc<Resolver>, BuildHasherDefault<FxHasher>>,
 }
 
 impl Default for ResolverFactory {

@@ -1,17 +1,19 @@
+use std::hash::BuildHasherDefault;
+
 use dashmap::DashMap;
 
 use super::Storage;
-use crate::Identifier;
+use crate::{Identifier, IdentifierHasher};
 
 #[derive(Debug)]
 pub struct MemoryStorage<Item> {
-  data: DashMap<Identifier, Item>,
+  data: DashMap<Identifier, Item, BuildHasherDefault<IdentifierHasher>>,
 }
 
 impl<Item> MemoryStorage<Item> {
   pub fn new() -> Self {
     Self {
-      data: DashMap::new(),
+      data: DashMap::default(),
     }
   }
 }

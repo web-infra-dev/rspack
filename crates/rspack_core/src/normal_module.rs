@@ -1,6 +1,7 @@
 use std::{
   borrow::Cow,
   fmt::Debug,
+  hash::BuildHasherDefault,
   hash::Hash,
   path::PathBuf,
   sync::{
@@ -21,7 +22,7 @@ use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
 };
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use serde_json::json;
 
 use crate::{
@@ -323,7 +324,7 @@ pub struct NormalModule {
   options: Arc<CompilerOptions>,
   #[allow(unused)]
   debug_id: usize,
-  cached_source_sizes: DashMap<SourceType, f64>,
+  cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
 
   code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
 
@@ -382,7 +383,7 @@ impl NormalModule {
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
 
       options,
-      cached_source_sizes: DashMap::new(),
+      cached_source_sizes: DashMap::default(),
       code_generation_dependencies: None,
       build_info: Default::default(),
     }
