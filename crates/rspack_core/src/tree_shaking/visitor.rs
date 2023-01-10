@@ -5,6 +5,7 @@ use std::{
 use bitflags::bitflags;
 use globset::{Glob, GlobSetBuilder};
 use hashlink::LinkedHashMap;
+use rspack_symbol::{BetterId, IdOrMemExpr, IndirectTopLevelSymbol, Symbol, SymbolExt, SymbolFlag};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
 use swc_core::common::{util::take::Take, Mark, GLOBALS};
