@@ -22,7 +22,7 @@ use petgraph::{
   graph,
   graphmap::DiGraphMap,
   prelude::GraphMap,
-  visit::Bfs,
+  visit::{Bfs, Dfs},
   Directed,
 };
 use rayon::prelude::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
@@ -1047,14 +1047,7 @@ impl Compilation {
             }
           })
           .collect::<HashMap<JsWord, SymbolRef>>();
-        match inherit_export_maps.entry(*inherit_export_module_identifier) {
-          hashlink::lru_cache::Entry::Occupied(mut occ) => {
-            *occ.borrow_mut().get_mut() = export_module;
-          }
-          hashlink::lru_cache::Entry::Vacant(vac) => {
-            vac.insert(export_module);
-          }
-        }
+        inherit_export_maps.insert(*inherit_export_module_identifier, export_module);
       }
       analyze_results
         .get_mut(module_id)
@@ -1087,7 +1080,7 @@ impl Compilation {
 
     // We considering all export symbol in each entry module as used for now
     for entry in self.entry_modules() {
-      let used_symbol_set = collect_reachable_symbol(
+      let used_symbol_set = collect_from_entry_like(
         &analyze_results,
         entry,
         &mut used_indirect_symbol,
@@ -1098,6 +1091,7 @@ impl Compilation {
         &mut traced_tuple,
         &self.options,
         &mut symbol_graph,
+        true,
         &mut errors,
       );
       used_symbol.extend(used_symbol_set);
@@ -1114,7 +1108,7 @@ impl Compilation {
         .count_ones()
         >= 1
       {
-        let used_symbol_set = collect_reachable_symbol(
+        let used_symbol_set = collect_from_entry_like(
           &analyze_results,
           *module_id,
           &mut used_indirect_symbol,
@@ -1125,6 +1119,7 @@ impl Compilation {
           &mut traced_tuple,
           &self.options,
           &mut symbol_graph,
+          false,
           &mut errors,
         );
         used_symbol.extend(used_symbol_set);
@@ -1664,7 +1659,7 @@ pub struct AssetInfoRelated {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn collect_reachable_symbol(
+fn collect_from_entry_like(
   analyze_map: &IdentifierMap<TreeShakingResult>,
   entry_identifier: ModuleIdentifier,
   used_indirect_symbol: &mut HashSet<IndirectTopLevelSymbol>,
@@ -1675,6 +1670,7 @@ fn collect_reachable_symbol(
   traced_tuple: &mut HashSet<(ModuleIdentifier, ModuleIdentifier)>,
   options: &Arc<CompilerOptions>,
   graph: &mut SymbolGraph,
+  is_entry: bool,
   errors: &mut Vec<Error>,
 ) -> HashSet<Symbol> {
   let mut used_symbol_set = HashSet::default();
@@ -1688,37 +1684,26 @@ fn collect_reachable_symbol(
     }
   };
 
-  // deduplicate reexport in entry module start
-  // let mut export_symbol_count_map: HashMap<JsWord, (SymbolRef, usize)> = entry_module_result
-  //   .export_map
-  //   .iter()
-  //   .map(|(symbol_name, symbol_ref)| (symbol_name.clone(), (symbol_ref.clone(), 1)))
-  //   .collect();
-  // // All the reexport star symbol should be included in the bundle
-  // // TODO: esbuild will hidden the duplicate reexport, webpack will emit an error
-  // // which should we align to?
-  // for (_, inherit_map) in entry_module_result.inherit_export_maps.iter() {
-  //   for (atom, symbol_ref) in inherit_map.iter() {
-  //     match export_symbol_count_map.entry(atom.clone()) {
-  //       Entry::Occupied(mut occ) => {
-  //         occ.borrow_mut().get_mut().1 += 1;
-  //       }
-  //       Entry::Vacant(vac) => {
-  //         vac.insert((symbol_ref.clone(), 1));
-  //       }
-  //     };
-  //   }
-  // }
+  // deduplicate reexport in entry module start, by default webpack will not mark the `export *` as used in entry module
+  if !is_entry {
+    // dbg!(entry_identifier);
+    let mut export_atom = HashSet::default();
+    let mut inherit_export_symbols = vec![];
+    // All the reexport star symbol should be included in the bundle
+    // TODO: webpack will emit an warning, we should align to them
+    for (m, inherit_map) in entry_module_result.inherit_export_maps.iter() {
+      for (atom, symbol_ref) in inherit_map.iter() {
+        if export_atom.contains(atom) {
+          continue;
+        } else {
+          export_atom.insert(atom.clone());
+          inherit_export_symbols.push(symbol_ref.clone());
+        }
+      }
+    }
 
-  // q.extend(export_symbol_count_map.into_iter().filter_map(
-  //   |(_, v)| {
-  //     if v.1 == 1 {
-  //       Some(v.0)
-  //     } else {
-  //       None
-  //     }
-  //   },
-  // ));
+    q.extend(inherit_export_symbols);
+  }
   // deduplicate reexport in entry end
 
   for item in entry_module_result.export_map.values() {
@@ -2105,19 +2090,16 @@ fn get_reachable(
   start: ModuleIdentifier,
   g: &GraphMap<ModuleIdentifier, (), petgraph::Directed>,
 ) -> IdentifierLinkedSet {
-  let mut visited: IdentifierSet = IdentifierSet::default();
+  let mut dfs = Dfs::new(&g, start);
+
   let mut reachable_module_id = IdentifierLinkedSet::default();
-  let mut q = VecDeque::from_iter([start]);
-  while let Some(cur) = q.pop_front() {
-    if !visited.contains(&cur) {
-      visited.insert(cur);
-    } else {
+  while let Some(next) = dfs.next(g) {
+    // reachable inherit export map should not include self.
+    if reachable_module_id.contains(&next) || next == start {
       continue;
+    } else {
+      reachable_module_id.insert(next);
     }
-    if cur != start {
-      reachable_module_id.insert(cur);
-    }
-    q.extend(g.neighbors_directed(cur, petgraph::Direction::Outgoing));
   }
   reachable_module_id
 }
@@ -2127,7 +2109,7 @@ fn create_inherit_graph(
 ) -> GraphMap<ModuleIdentifier, (), petgraph::Directed> {
   let mut g = DiGraphMap::new();
   for (module_id, result) in analyze_map.iter() {
-    for export_all_module_id in result.inherit_export_maps.keys() {
+    for export_all_module_id in result.inherit_export_maps.keys().rev() {
       g.add_edge(*module_id, *export_all_module_id, ());
     }
   }
