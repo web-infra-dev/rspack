@@ -4,7 +4,7 @@ use rspack_loader_runner::ResourceData;
 use crate::{ModuleRule, ModuleRuleCondition};
 
 /// Match the condition against the given `data`. Returns `true` if the condition matches.
-fn module_rule_matcher_condition(condition: &ModuleRuleCondition, data: &str) -> bool {
+pub fn module_rule_matcher_condition(condition: &ModuleRuleCondition, data: &str) -> bool {
   match condition {
     ModuleRuleCondition::String(s) => data.starts_with(s),
     ModuleRuleCondition::Regexp(r) => r.test(data),

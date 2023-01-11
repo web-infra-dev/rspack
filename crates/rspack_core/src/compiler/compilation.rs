@@ -738,6 +738,7 @@ impl Compilation {
             uri_key,
             &self.module_graph,
             resolver,
+            &self.options,
           );
           program.visit_with(&mut analyzer);
           analyzer

@@ -22,8 +22,8 @@ use super::{
   BailoutFlog,
 };
 use crate::{
-  Dependency, DependencyType, IdentifierLinkedMap, IdentifierMap, ModuleGraph, ModuleIdentifier,
-  ModuleSyntax, Resolver,
+  module_rule_matcher_condition, CompilerOptions, Dependency, DependencyType, IdentifierLinkedMap,
+  IdentifierMap, ModuleGraph, ModuleIdentifier, ModuleSyntax, Resolver,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -88,6 +88,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlog>,
   pub(crate) resolver: &'a Arc<Resolver>,
   pub(crate) side_effects_free: bool,
+  pub(crate) options: &'a Arc<CompilerOptions>,
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
@@ -98,6 +99,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     uri: ModuleIdentifier,
     dep_to_module_identifier: &'a ModuleGraph,
     resolver: &'a Arc<Resolver>,
+    options: &'a Arc<CompilerOptions>,
   ) -> Self {
     Self {
       top_level_mark,
@@ -120,6 +122,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       resolver,
       side_effects_free: false,
       immediate_evaluate_reference_map: HashMap::default(),
+      options,
     }
   }
 
@@ -936,7 +939,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     package_json_path.pop();
     let package_path = package_json_path;
 
-    match side_effects {
+    let mut side_effects = match side_effects {
       nodejs_resolver::SideEffects::Bool(s) => Some(s),
       nodejs_resolver::SideEffects::Array(arr) => {
         // TODO: Cache
@@ -948,7 +951,28 @@ impl<'a> ModuleRefAnalyze<'a> {
         let relative_path = module_path.relative(package_path);
         Some(matcher.is_match(relative_path))
       }
+    };
+
+    // sideEffects in module.rule has high priority
+    for rule in self.options.module.rules.iter() {
+      let module_side_effects = match rule.side_effects {
+        Some(s) => s,
+        None => continue,
+      };
+      match rule.test {
+        Some(ref test_rule) => {
+          if !module_rule_matcher_condition(test_rule, &resource_path.to_string_lossy()) {
+            continue;
+          }
+        }
+        None => {
+          continue;
+        }
+      }
+      side_effects = Some(module_side_effects);
+      break;
     }
+    side_effects
   }
 }
 
