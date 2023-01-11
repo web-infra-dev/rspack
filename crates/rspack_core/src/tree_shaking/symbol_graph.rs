@@ -36,6 +36,9 @@ impl SymbolGraph {
   pub fn get_node_index(&mut self, symbol: &SymbolRef) -> Option<&NodeIndex> {
     self.symbol_to_index.get(symbol)
   }
+  pub fn get_symbol(&mut self, index: &NodeIndex) -> Option<&SymbolRef> {
+    self.node_index_to_symbol.get(index)
+  }
 
   pub fn add_edge(&mut self, from: &SymbolRef, to: &SymbolRef) {
     let from_index = self.add_node(from);

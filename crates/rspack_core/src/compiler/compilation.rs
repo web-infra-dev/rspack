@@ -1056,35 +1056,33 @@ impl Compilation {
         .inherit_export_maps = inherit_export_maps;
     }
     let mut errors = vec![];
-    let mut used_symbol = HashSet::default();
+    let mut used_direct_symbol = HashSet::default();
     let mut used_indirect_symbol: HashSet<IndirectTopLevelSymbol> = HashSet::default();
     let mut used_export_module_identifiers: IdentifierMap<ModuleUsedType> =
       IdentifierMap::default();
     let mut traced_tuple = HashSet::default();
     // Marking used symbol and all reachable export symbol from the used symbol for each module
 
-    let used_symbol_from_import = mark_used_symbol_with(
+    let mut visited_symbol_ref: HashSet<SymbolRef> = HashSet::default();
+    mark_used_symbol_with(
       &analyze_results,
       VecDeque::from_iter(used_symbol_ref.into_iter()),
       &bail_out_module_identifiers,
       &mut evaluated_module_identifiers,
-      &mut used_indirect_symbol,
       &mut used_export_module_identifiers,
       &inherit_export_ref_graph,
       &mut traced_tuple,
       &self.options,
       &mut symbol_graph,
+      &mut visited_symbol_ref,
       &mut errors,
     );
 
-    used_symbol.extend(used_symbol_from_import);
-
     // We considering all export symbol in each entry module as used for now
     for entry in self.entry_modules() {
-      let used_symbol_set = collect_from_entry_like(
+      collect_from_entry_like(
         &analyze_results,
         entry,
-        &mut used_indirect_symbol,
         &bail_out_module_identifiers,
         &mut evaluated_module_identifiers,
         &mut used_export_module_identifiers,
@@ -1093,13 +1091,14 @@ impl Compilation {
         &self.options,
         &mut symbol_graph,
         true,
+        &mut visited_symbol_ref,
         &mut errors,
       );
-      used_symbol.extend(used_symbol_set);
     }
 
     // All lazy imported module will be treadted as entry module, which means
     // Its export symbol will be marked as used
+    let mut bailout_entry_module_identifiers = IdentifierSet::default();
     for (module_id, reason) in bail_out_module_identifiers.iter() {
       if reason
         .intersection(
@@ -1109,10 +1108,10 @@ impl Compilation {
         .count_ones()
         >= 1
       {
-        let used_symbol_set = collect_from_entry_like(
+        bailout_entry_module_identifiers.insert(*module_id);
+        collect_from_entry_like(
           &analyze_results,
           *module_id,
-          &mut used_indirect_symbol,
           &bail_out_module_identifiers,
           &mut evaluated_module_identifiers,
           &mut used_export_module_identifiers,
@@ -1121,14 +1120,15 @@ impl Compilation {
           &self.options,
           &mut symbol_graph,
           false,
+          &mut visited_symbol_ref,
           &mut errors,
         );
-        used_symbol.extend(used_symbol_set);
       };
     }
 
-    dbg!(&used_export_module_identifiers);
-    println!("{:?}", Dot::new(&symbol_graph.graph,));
+    // dbg!(&used_export_module_identifiers);
+    // println!("{:?}", Dot::new(&symbol_graph.graph,));
+
     // println!("{}", used_export_module_identifiers.len());
     // let direct_used = used_export_module_identifiers
     //   .iter()
@@ -1145,9 +1145,19 @@ impl Compilation {
       dbg!(&used_indirect_symbol);
       let mut visited_symbol_node_index: HashSet<NodeIndex> = HashSet::default();
       // pruning
-      let mut visited = self.entry_module_identifiers.clone();
-      let mut q = VecDeque::from_iter(visited.iter().cloned());
+      let mut visited_symbol_node_index: HashSet<NodeIndex> = HashSet::default();
+      let mut visited = IdentifierSet::default();
+      let mut q = VecDeque::from_iter(
+        self
+          .entry_modules()
+          .chain(bailout_entry_module_identifiers.iter().cloned()),
+      );
       while let Some(module_identifier) = q.pop_front() {
+        if visited.contains(&module_identifier) {
+          continue;
+        } else {
+          visited.insert(module_identifier);
+        }
         let result = analyze_results.get(&module_identifier);
         let analyze_result = match result {
           Some(result) => result,
@@ -1184,39 +1194,77 @@ impl Compilation {
           .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {module_identifier}"));
         mgm.used = true;
         // eval start
-        // for symbol_ref in analyze_result.used_symbol_refs.iter() {
-        //   let node_index = *match symbol_graph.get_node_index(symbol_ref) {
-        //     Some(node_index) => node_index,
-        //     None => {
-        //       continue;
-        //     }
-        //   };
-        //   // .unwrap_or_else(|| panic!("Can't get node index of symbol {:?}", symbol_ref));
-        //   if !visited_symbol_node_index.contains(&node_index) {
-        //     let mut bfs = Bfs::new(&symbol_graph.graph, node_index);
-        //     while let Some(node) = bfs.next(&symbol_graph.graph) {
-        //       visited_symbol_node_index.insert(node);
-        //     }
-        //   }
-        // }
+        for symbol_ref in analyze_result.used_symbol_refs.iter() {
+          let node_index = *match symbol_graph.get_node_index(symbol_ref) {
+            Some(node_index) => node_index,
+            None => {
+              eprintln!("Can't get symbol for {:?}", symbol_ref);
+              continue;
+            }
+          };
+          // .unwrap_or_else(|| panic!("Can't get node index of symbol {:?}", symbol_ref));
+          if !visited_symbol_node_index.contains(&node_index) {
+            let mut bfs = Bfs::new(&symbol_graph.graph, node_index);
+            while let Some(node) = bfs.next(&symbol_graph.graph) {
+              visited_symbol_node_index.insert(node);
+            }
+          }
+        }
 
-        // if self.entry_module_identifiers.contains(&module_identifier) {}
+        if self.entry_module_identifiers.contains(&module_identifier)
+          || bailout_entry_module_identifiers.contains(&module_identifier)
+        {
+          for symbol_ref in analyze_result.export_map.values() {
+            let node_index = *match symbol_graph.get_node_index(symbol_ref) {
+              Some(node_index) => node_index,
+              None => {
+                eprintln!("Can't get symbol for {:?}", symbol_ref);
+                continue;
+              }
+            };
+            // .unwrap_or_else(|| panic!("Can't get node index of symbol {:?}", symbol_ref));
+            if !visited_symbol_node_index.contains(&node_index) {
+              let mut bfs = Bfs::new(&symbol_graph.graph, node_index);
+              while let Some(node) = bfs.next(&symbol_graph.graph) {
+                visited_symbol_node_index.insert(node);
+              }
+            }
+          }
+        }
 
-        // let need_mark_inherit_export_as_used =
-        //   match bail_out_module_identifiers.entry(module_identifier) {
-        //     Entry::Occupied(occ) => {
-        //       let bailout_flag = occ.get();
-        //       bailout_flag
-        //         .intersection(
-        //           BailoutFlog::DYNAMIC_IMPORT | BailoutFlog::HELPER | BailoutFlog::COMMONJS_REQUIRE,
-        //         )
-        //         .bits()
-        //         .count_ones()
-        //         >= 1
-        //     }
-        //     Entry::Vacant(_) => false,
-        //   };
-        // if need_mark_inherit_export_as_used {}
+        let need_mark_inherit_export_as_used =
+          match bail_out_module_identifiers.entry(module_identifier) {
+            Entry::Occupied(occ) => {
+              let bailout_flag = occ.get();
+              bailout_flag
+                .intersection(
+                  BailoutFlog::DYNAMIC_IMPORT | BailoutFlog::HELPER | BailoutFlog::COMMONJS_REQUIRE,
+                )
+                .bits()
+                .count_ones()
+                >= 1
+            }
+            Entry::Vacant(_) => false,
+          };
+        if need_mark_inherit_export_as_used {
+          let inherit_symbol_refs = get_inherit_export_symbol_ref(analyze_result);
+          for symbol_ref in inherit_symbol_refs {
+            let node_index = *match symbol_graph.get_node_index(&symbol_ref) {
+              Some(node_index) => node_index,
+              None => {
+                eprintln!("Can't get symbol for {:?}", symbol_ref);
+                continue;
+              }
+            };
+            // .unwrap_or_else(|| panic!("Can't get node index of symbol {:?}", symbol_ref));
+            if !visited_symbol_node_index.contains(&node_index) {
+              let mut bfs = Bfs::new(&symbol_graph.graph, node_index);
+              while let Some(node) = bfs.next(&symbol_graph.graph) {
+                visited_symbol_node_index.insert(node);
+              }
+            }
+          }
+        }
 
         // while let Some(a) = bfs.next(&symbol_graph.graph) {}
         // eval end
@@ -1252,20 +1300,40 @@ impl Compilation {
           };
           // .unwrap_or_else(|| panic!("Failed to resolve {dep:?}"))
           // .module_identifier;
-          if !visited.contains(&module_ident) {
-            q.push_back(module_ident);
-            visited.insert(module_ident);
-          } else {
-            continue;
-          }
+          q.push_back(module_ident);
         }
       }
 
-      // dbg!(&used_symbol, &used_indirect_symbol);
+      for symbol_node_index in visited_symbol_node_index {
+        let s = symbol_graph.get_symbol(&symbol_node_index).unwrap();
+        match s {
+          SymbolRef::Direct(symbol) => {
+            used_direct_symbol.insert(symbol.clone());
+          }
+          SymbolRef::Indirect(indirect) => {
+            used_indirect_symbol.insert(indirect.clone());
+          }
+          SymbolRef::Star(_) => {}
+        }
+      }
+    } else {
+      for symbol_ref in visited_symbol_ref {
+        match symbol_ref {
+          SymbolRef::Direct(direct) => {
+            used_direct_symbol.insert(direct);
+          }
+          SymbolRef::Indirect(indirect) => {
+            used_indirect_symbol.insert(indirect);
+          }
+          SymbolRef::Star(_) => {}
+        }
+      }
     }
+    // dbg!(&used_direct_symbol, &used_indirect_symbol);
+
     Ok(
       OptimizeDependencyResult {
-        used_symbol,
+        used_direct_symbol,
         analyze_results,
         bail_out_module_identifiers,
         used_indirect_symbol,
@@ -1697,7 +1765,6 @@ pub struct AssetInfoRelated {
 fn collect_from_entry_like(
   analyze_map: &IdentifierMap<TreeShakingResult>,
   entry_identifier: ModuleIdentifier,
-  used_indirect_symbol: &mut HashSet<IndirectTopLevelSymbol>,
   bailout_module_identifiers: &IdentifierMap<BailoutFlog>,
   evaluated_module_identifiers: &mut IdentifierSet,
   used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
@@ -1706,15 +1773,15 @@ fn collect_from_entry_like(
   options: &Arc<CompilerOptions>,
   graph: &mut SymbolGraph,
   is_entry: bool,
+  visited_symbol_ref: &mut HashSet<SymbolRef>,
   errors: &mut Vec<Error>,
-) -> HashSet<Symbol> {
-  let mut used_symbol_set = HashSet::default();
+) {
   let mut q = VecDeque::new();
   let entry_module_result = match analyze_map.get(&entry_identifier) {
     Some(result) => result,
     None => {
       // TODO: checking if it is none js type
-      return HashSet::default();
+      return;
       // panic!("Can't get analyze result from entry_identifier {}", entry_identifier);
     }
   };
@@ -1731,8 +1798,6 @@ fn collect_from_entry_like(
   for item in entry_module_result.export_map.values() {
     mark_symbol(
       item.clone(),
-      &mut used_symbol_set,
-      used_indirect_symbol,
       analyze_map,
       &mut q,
       bailout_module_identifiers,
@@ -1742,15 +1807,16 @@ fn collect_from_entry_like(
       traced_tuple,
       options,
       graph,
+      visited_symbol_ref,
       errors,
     );
   }
 
   while let Some(sym_ref) = q.pop_front() {
+    // println!("eval start");
+    // dbg!(&sym_ref);
     mark_symbol(
       sym_ref,
-      &mut used_symbol_set,
-      used_indirect_symbol,
       analyze_map,
       &mut q,
       bailout_module_identifiers,
@@ -1760,10 +1826,10 @@ fn collect_from_entry_like(
       traced_tuple,
       options,
       graph,
+      visited_symbol_ref,
       errors,
     );
   }
-  used_symbol_set
 }
 
 fn get_inherit_export_symbol_ref(entry_module_result: &TreeShakingResult) -> Vec<SymbolRef> {
@@ -1790,27 +1856,17 @@ fn mark_used_symbol_with(
   mut init_queue: VecDeque<SymbolRef>,
   bailout_module_identifiers: &IdentifierMap<BailoutFlog>,
   evaluated_module_identifiers: &mut IdentifierSet,
-  used_indirect_symbol_set: &mut HashSet<IndirectTopLevelSymbol>,
   used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
   inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
   traced_tuple: &mut HashSet<(ModuleIdentifier, ModuleIdentifier)>,
   options: &Arc<CompilerOptions>,
   graph: &mut SymbolGraph,
+  visited_symbol_ref: &mut HashSet<SymbolRef>,
   errors: &mut Vec<Error>,
-) -> HashSet<Symbol> {
-  let mut used_symbol_set = HashSet::default();
-  let mut visited = HashSet::default();
-
+) {
   while let Some(sym_ref) = init_queue.pop_front() {
-    if visited.contains(&sym_ref) {
-      continue;
-    } else {
-      visited.insert(sym_ref.clone());
-    }
     mark_symbol(
       sym_ref,
-      &mut used_symbol_set,
-      used_indirect_symbol_set,
       analyze_map,
       &mut init_queue,
       bailout_module_identifiers,
@@ -1820,17 +1876,15 @@ fn mark_used_symbol_with(
       traced_tuple,
       options,
       graph,
+      visited_symbol_ref,
       errors,
     );
   }
-  used_symbol_set
 }
 
 #[allow(clippy::too_many_arguments)]
 fn mark_symbol(
   current_symbol_ref: SymbolRef,
-  used_symbol_set: &mut HashSet<Symbol>,
-  used_indirect_symbol_set: &mut HashSet<IndirectTopLevelSymbol>,
   analyze_map: &IdentifierMap<TreeShakingResult>,
   symbol_queue: &mut VecDeque<SymbolRef>,
   bailout_module_identifiers: &IdentifierMap<BailoutFlog>,
@@ -1840,14 +1894,19 @@ fn mark_symbol(
   traced_tuple: &mut HashSet<(ModuleIdentifier, ModuleIdentifier)>,
   options: &Arc<CompilerOptions>,
   graph: &mut SymbolGraph,
+  visited_symbol_ref: &mut HashSet<SymbolRef>,
   errors: &mut Vec<Error>,
 ) {
+  if visited_symbol_ref.contains(&current_symbol_ref) {
+    return;
+  } else {
+    visited_symbol_ref.insert(current_symbol_ref.clone());
+  }
   // if debug_care_module_id(symbol_ref.module_identifier()) {
   // dbg!(&symbol_ref);
   // }
   // We don't need mark the symbol usage if it is from a bailout module because
   // bailout module will skipping tree-shaking anyway
-  let side_effects_enable = options.builtins.side_effects;
   let is_bailout_module_identifier =
     bailout_module_identifiers.contains_key(&current_symbol_ref.module_identifier());
   match &current_symbol_ref {
@@ -1869,42 +1928,36 @@ fn mark_symbol(
   };
   match current_symbol_ref {
     SymbolRef::Direct(ref symbol) => {
-      if used_symbol_set.contains(symbol) {
-      } else {
-        let module_result = analyze_map.get(&symbol.uri().into()).expect("TODO:");
-        if let Some(set) = module_result
-          .reachable_import_of_export
-          .get(&symbol.id().atom)
-        {
-          for symbol_ref_ele in set.iter() {
-            graph.add_edge(&current_symbol_ref, symbol_ref_ele);
-            symbol_queue.push_back(symbol_ref_ele.clone());
-          }
-        };
+      let module_result = analyze_map.get(&symbol.uri().into()).expect("TODO:");
+      if let Some(set) = module_result
+        .reachable_import_of_export
+        .get(&symbol.id().atom)
+      {
+        for symbol_ref_ele in set.iter() {
+          graph.add_edge(&current_symbol_ref, symbol_ref_ele);
+          symbol_queue.push_back(symbol_ref_ele.clone());
+        }
+      };
 
-        // Assume the module name is app.js
-        // ```js
-        // import {myanswer, secret} from './lib'
-        // export {myanswer as m, secret as s}
-        // ```
-        // In such scenario there are two `myanswer` binding would create
-        // one for `app.js`, one for `lib.js`
-        // the binding in `app.js` used for shake the `export {xxx}`
-        // In other words, we need two binding for supporting indirect redirect.
-        if let Some(import_symbol_ref) = module_result.import_map.get(symbol.id()) {
-          graph.add_edge(&current_symbol_ref, import_symbol_ref);
-          symbol_queue.push_back(import_symbol_ref.clone());
+      // Assume the module name is app.js
+      // ```js
+      // import {myanswer, secret} from './lib'
+      // export {myanswer as m, secret as s}
+      // ```
+      // In such scenario there are two `myanswer` binding would create
+      // one for `app.js`, one for `lib.js`
+      // the binding in `app.js` used for shake the `export {xxx}`
+      // In other words, we need two binding for supporting indirect redirect.
+      if let Some(import_symbol_ref) = module_result.import_map.get(symbol.id()) {
+        graph.add_edge(&current_symbol_ref, import_symbol_ref);
+        symbol_queue.push_back(import_symbol_ref.clone());
+      }
+      if !evaluated_module_identifiers.contains(&symbol.uri().into()) {
+        evaluated_module_identifiers.insert(symbol.uri().into());
+        for used_symbol_ref in module_result.used_symbol_refs.iter() {
+          graph.add_edge(&current_symbol_ref, used_symbol_ref);
+          symbol_queue.push_back(used_symbol_ref.clone());
         }
-        if !evaluated_module_identifiers.contains(&symbol.uri().into()) {
-          evaluated_module_identifiers.insert(symbol.uri().into());
-          for used_symbol_ref in module_result.used_symbol_refs.iter() {
-            graph.add_edge(&current_symbol_ref, used_symbol_ref);
-            symbol_queue.push_back(used_symbol_ref.clone());
-          }
-        }
-        // if !side_effects_enable {
-        used_symbol_set.insert(symbol.clone());
-        // }
       }
     }
     SymbolRef::Indirect(ref indirect_symbol) => {
@@ -1919,9 +1972,6 @@ fn mark_symbol(
           symbol_queue.push_back(used_symbol.clone());
         }
       }
-      // if !side_effects_enable {
-      used_indirect_symbol_set.insert(indirect_symbol.clone());
-      // }
       let module_result = match analyze_map.get(&indirect_symbol.uri.into()) {
         Some(module_result) => module_result,
         None => {
