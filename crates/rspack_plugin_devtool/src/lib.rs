@@ -58,7 +58,7 @@ impl Plugin for DevtoolPlugin {
   }
 
   #[instrument(skip_all)]
-  async fn process_assets(
+  async fn process_assets_stage_dev_tooling(
     &mut self,
     _ctx: PluginContext,
     args: ProcessAssetsArgs<'_>,

@@ -16,17 +16,19 @@ import { ChunkGroup } from "./chunk_group";
 import { Compiler } from "./compiler";
 import ResolverFactory from "./ResolverFactory";
 import { Stats } from "./stats";
+import { createProcessAssetsFakeHook } from "./util";
 
 const hashDigestLength = 8;
 const EMPTY_ASSET_INFO = {};
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
+export type Assets = Record<string, Source>;
 
 export class Compilation {
 	#inner: JsCompilation;
 
 	hooks: {
-		processAssets: tapable.AsyncSeriesHook<Record<string, Source>>;
+		processAssets: ReturnType<typeof createProcessAssetsFakeHook>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: ResolvedOutput;
@@ -35,9 +37,7 @@ export class Compilation {
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.hooks = {
-			processAssets: new tapable.AsyncSeriesHook<Record<string, Source>>([
-				"assets"
-			])
+			processAssets: createProcessAssetsFakeHook(this)
 		};
 		this.compiler = compiler;
 		this.options = compiler.options;
@@ -266,6 +266,34 @@ export class Compilation {
 
 	seal() {}
 	unseal() {}
+
+	static PROCESS_ASSETS_STAGE_ADDITIONAL = -2000;
+	static PROCESS_ASSETS_STAGE_PRE_PROCESS = -1000;
+	static PROCESS_ASSETS_STAGE_NONE = 0;
+	static PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE = 700;
+	static PROCESS_ASSETS_STAGE_SUMMARIZE = 1000;
+	static PROCESS_ASSETS_STAGE_REPORT = 5000;
+
+	__internal_getProcessAssetsHookByStage(stage: number) {
+		switch (stage) {
+			case Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL:
+				return this.hooks.processAssets.stageAdditional;
+			case Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS:
+				return this.hooks.processAssets.stagePreProcess;
+			case Compilation.PROCESS_ASSETS_STAGE_NONE:
+				return this.hooks.processAssets.stageNone;
+			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE:
+				return this.hooks.processAssets.stageOptimizeInline;
+			case Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE:
+				return this.hooks.processAssets.stageSummarize;
+			case Compilation.PROCESS_ASSETS_STAGE_REPORT:
+				return this.hooks.processAssets.stageReport;
+			default:
+				throw new Error(
+					"processAssets hook uses custom stage number is not supported."
+				);
+		}
+	}
 }
 
 export type { JsAssetInfo };

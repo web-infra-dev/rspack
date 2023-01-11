@@ -47,7 +47,7 @@ impl Plugin for HtmlPlugin {
     "html"
   }
 
-  async fn process_assets(
+  async fn process_assets_stage_optimize_inline(
     &mut self,
     _ctx: rspack_core::PluginContext,
     args: rspack_core::ProcessAssetsArgs<'_>,

@@ -67,7 +67,8 @@ class Compiler {
 			HotModuleReplacementPlugin, // modernjs/server will auto inject this this plugin not set
 			get sources(): typeof import("webpack-sources") {
 				return require("webpack-sources");
-			}
+			},
+			Compilation
 		};
 		this.root = this;
 		this.context = context;
@@ -109,7 +110,30 @@ class Compiler {
 			new binding.Rspack(options, {
 				emit: this.#emit.bind(this),
 				afterEmit: this.#afterEmit.bind(this),
-				processAssets: this.#processAssets.bind(this),
+				processAssetsStageAdditional: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
+				),
+				processAssetsStagePreProcess: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS
+				),
+				processAssetsStageNone: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_NONE
+				),
+				processAssetsStageOptimizeInline: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE
+				),
+				processAssetsStageSummarize: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
+				),
+				processAssetsStageReport: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_REPORT
+				),
 				// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
 				// We know that the hook `thisCompilation` will not be called from a child compiler(it doesn't matter whether the child compiler is created on the Rust or the Node side).
 				// See webpack's API: https://webpack.js.org/api/compiler-hooks/#thiscompilation
@@ -204,33 +228,35 @@ class Compiler {
 		);
 	}
 
-	async #processAssets() {
-		await this.compilation.hooks.processAssets.promise(
-			new Proxy(
-				{},
-				{
-					get: (_, property) => {
-						return this.compilation.__internal__getAssetSource(
-							property as string
-						);
-					},
-					has: (_, property) => {
-						return this.compilation.__internal__hasAsset(property as string);
-					},
-					ownKeys: _ => {
-						return this.compilation.__internal__getAssetFilenames();
-					},
-					getOwnPropertyDescriptor() {
-						// To work with `Object.keys`, you should mark the property as enumerable.
-						// See: https://262.ecma-international.org/7.0/#sec-enumerableownnames
-						return {
-							enumerable: true,
-							configurable: true
-						};
+	async #processAssets(stage: number) {
+		await this.compilation
+			.__internal_getProcessAssetsHookByStage(stage)
+			.promise(
+				new Proxy(
+					{},
+					{
+						get: (_, property) => {
+							return this.compilation.__internal__getAssetSource(
+								property as string
+							);
+						},
+						has: (_, property) => {
+							return this.compilation.__internal__hasAsset(property as string);
+						},
+						ownKeys: _ => {
+							return this.compilation.__internal__getAssetFilenames();
+						},
+						getOwnPropertyDescriptor() {
+							// To work with `Object.keys`, you should mark the property as enumerable.
+							// See: https://262.ecma-international.org/7.0/#sec-enumerableownnames
+							return {
+								enumerable: true,
+								configurable: true
+							};
+						}
 					}
-				}
-			)
-		);
+				)
+			);
 	}
 
 	async #emit() {

@@ -411,8 +411,8 @@ function hookIntoCompiler(
 	compiler.hooks.thisCompilation.tap("HtmlRspackPlugin", compilation => {
 		compilation.hooks.processAssets.tapAsync(
 			{
-				name: "HtmlRspackPlugin"
-				// TODO: stage
+				name: "HtmlRspackPlugin",
+				stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE
 			},
 			(compilationAssets, callback) => {
 				// Get all entry point names for this html file
