@@ -401,11 +401,9 @@ impl Compilation {
             &mut factorize_queue,
             task.original_module_identifier,
             {
-              if let Some(module) = module.as_normal_module() {
-                Some(module.resource_resolved_data().resource_path.clone())
-              } else {
-                None
-              }
+              module
+                .as_normal_module()
+                .map(|module| module.resource_resolved_data().resource_path.clone())
             },
             vec![dep],
             false,
