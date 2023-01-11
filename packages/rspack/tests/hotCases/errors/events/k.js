@@ -9,7 +9,6 @@ if (module.hot) {
 			__webpack_require__("./i.js");
 		},
 		(err, { moduleId, dependencyId }) => {
-			debugger
 			throw new Error(
 				`Error in accept error handler: ${moduleId} -> ${dependencyId}`
 			);

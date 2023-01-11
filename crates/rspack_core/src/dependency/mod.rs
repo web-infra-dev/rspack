@@ -32,6 +32,8 @@ pub enum DependencyType {
   CjsRequire,
   // module.hot.accept
   ModuleHotAccept,
+  // import.meta.webpackHot.accept
+  ImportMetaHotAccept,
   // css url()
   CssUrl,
   // css @import

@@ -40,7 +40,9 @@ pub async fn resolve(
   } else if plugin_driver.options.resolve.condition_names.is_none() {
     let is_esm = matches!(
       args.dependency_type,
-      DependencyType::EsmImport | DependencyType::DynamicImport
+      DependencyType::EsmImport
+        | DependencyType::DynamicImport
+        | DependencyType::ImportMetaHotAccept
     );
     let condition_names = if is_esm {
       vec![
