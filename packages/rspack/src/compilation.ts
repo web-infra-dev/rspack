@@ -16,17 +16,23 @@ import { ChunkGroup } from "./chunk_group";
 import { Compiler } from "./compiler";
 import ResolverFactory from "./ResolverFactory";
 import { Stats } from "./stats";
+import { createProcessAssetsFakeHook } from "./util";
 
 const hashDigestLength = 8;
 const EMPTY_ASSET_INFO = {};
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
+export type Assets = Record<string, Source>;
 
 export class Compilation {
 	#inner: JsCompilation;
 
 	hooks: {
-		processAssets: tapable.AsyncSeriesHook<Record<string, Source>>;
+		processAssetsStageAdditional: tapable.AsyncSeriesHook<Assets>;
+		processAssetsStagePreProcess: tapable.AsyncSeriesHook<Assets>;
+		processAssetsStageNone: tapable.AsyncSeriesHook<Assets>;
+		processAssetsStageSummarize: tapable.AsyncSeriesHook<Assets>;
+		processAssets: ReturnType<typeof createProcessAssetsFakeHook>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: ResolvedOutput;
@@ -35,9 +41,11 @@ export class Compilation {
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.hooks = {
-			processAssets: new tapable.AsyncSeriesHook<Record<string, Source>>([
-				"assets"
-			])
+			processAssetsStageAdditional: new tapable.AsyncSeriesHook(["assets"]),
+			processAssetsStagePreProcess: new tapable.AsyncSeriesHook(["assets"]),
+			processAssetsStageNone: new tapable.AsyncSeriesHook(["assets"]),
+			processAssetsStageSummarize: new tapable.AsyncSeriesHook(["assets"]),
+			processAssets: createProcessAssetsFakeHook(this)
 		};
 		this.compiler = compiler;
 		this.options = compiler.options;
@@ -266,6 +274,28 @@ export class Compilation {
 
 	seal() {}
 	unseal() {}
+
+	static PROCESS_ASSETS_STAGE_ADDITIONAL = -2000;
+	static PROCESS_ASSETS_STAGE_PRE_PROCESS = -1000;
+	static PROCESS_ASSETS_STAGE_NONE = 0;
+	static PROCESS_ASSETS_STAGE_SUMMARIZE = 1000;
+
+	__internal_getProcessAssetsHookByStage(stage: number) {
+		switch (stage) {
+			case -2000:
+				return this.hooks.processAssetsStageAdditional;
+			case -1000:
+				return this.hooks.processAssetsStagePreProcess;
+			case 0:
+				return this.hooks.processAssetsStageNone;
+			case 1000:
+				return this.hooks.processAssetsStageSummarize;
+			default:
+				throw new Error(
+					"processAssets hook uses custom stage number is not supported."
+				);
+		}
+	}
 }
 
 export type { JsAssetInfo };

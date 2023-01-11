@@ -271,16 +271,27 @@ impl PluginDriver {
 
   #[instrument(name = "plugin:process_assets", skip_all)]
   pub async fn process_assets(&mut self, args: ProcessAssetsArgs<'_>) -> PluginProcessAssetsOutput {
-    for plugin in &mut self.plugins {
-      plugin
-        .process_assets(
-          PluginContext::new(),
-          ProcessAssetsArgs {
-            compilation: args.compilation,
-          },
-        )
-        .await?;
+    macro_rules! run_stage {
+      ($stage: ident) => {
+        for plugin in &mut self.plugins {
+          plugin
+            .$stage(
+              PluginContext::new(),
+              ProcessAssetsArgs {
+                compilation: args.compilation,
+              },
+            )
+            .await?;
+        }
+      };
     }
+    run_stage!(process_assets_stage_additional);
+    run_stage!(process_assets_stage_pre_process);
+    run_stage!(process_assets_stage_none);
+    run_stage!(process_assets_stage_optimize_size);
+    run_stage!(process_assets_stage_dev_tooling);
+    run_stage!(process_assets_stage_optimize_inline);
+    run_stage!(process_assets_stage_summarize);
     Ok(())
   }
 

@@ -130,7 +130,55 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn process_assets(
+  async fn process_assets_stage_additional(
+    &mut self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
+  async fn process_assets_stage_pre_process(
+    &mut self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
+  async fn process_assets_stage_none(
+    &mut self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
+  async fn process_assets_stage_optimize_size(
+    &mut self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
+  async fn process_assets_stage_dev_tooling(
+    &mut self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
+  async fn process_assets_stage_optimize_inline(
+    &mut self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
+  async fn process_assets_stage_summarize(
     &mut self,
     _ctx: PluginContext,
     _args: ProcessAssetsArgs<'_>,

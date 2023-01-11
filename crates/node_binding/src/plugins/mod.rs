@@ -11,7 +11,10 @@ use crate::{JsCompilation, JsHooks};
 pub struct JsHooksAdapter {
   pub compilation_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub this_compilation_tsfn: ThreadsafeFunction<JsCompilation, ()>,
-  pub process_assets_tsfn: ThreadsafeFunction<(), ()>,
+  pub process_assets_stage_additional_tsfn: ThreadsafeFunction<(), ()>,
+  pub process_assets_stage_pre_process_tsfn: ThreadsafeFunction<(), ()>,
+  pub process_assets_stage_none_tsfn: ThreadsafeFunction<(), ()>,
+  pub process_assets_stage_summarize_tsfn: ThreadsafeFunction<(), ()>,
   pub emit_tsfn: ThreadsafeFunction<(), ()>,
   pub after_emit_tsfn: ThreadsafeFunction<(), ()>,
 }
@@ -76,20 +79,74 @@ impl rspack_core::Plugin for JsHooksAdapter {
       })?
   }
 
-  #[tracing::instrument(name = "js_hooks_adapter::process_assets", skip_all)]
-  async fn process_assets(
+  #[tracing::instrument(name = "js_hooks_adapter::process_assets_stage_additional", skip_all)]
+  async fn process_assets_stage_additional(
+    &mut self,
+    _ctx: rspack_core::PluginContext,
+    _args: rspack_core::ProcessAssetsArgs<'_>,
+  ) -> rspack_core::PluginProcessAssetsHookOutput {
+    self
+      .process_assets_stage_additional_tsfn
+      .call((), ThreadsafeFunctionCallMode::NonBlocking)?
+      .await
+      .map_err(|err| {
+        Error::InternalError(internal_error!(format!(
+          "Failed to call process assets stage additional: {}",
+          err.to_string()
+        )))
+      })?
+  }
+
+  #[tracing::instrument(name = "js_hooks_adapter::process_assets_stage_pre_process", skip_all)]
+  async fn process_assets_stage_pre_process(
+    &mut self,
+    _ctx: rspack_core::PluginContext,
+    _args: rspack_core::ProcessAssetsArgs<'_>,
+  ) -> rspack_core::PluginProcessAssetsHookOutput {
+    self
+      .process_assets_stage_pre_process_tsfn
+      .call((), ThreadsafeFunctionCallMode::NonBlocking)?
+      .await
+      .map_err(|err| {
+        Error::InternalError(internal_error!(format!(
+          "Failed to call process assets stage pre-process: {}",
+          err.to_string()
+        )))
+      })?
+  }
+
+  #[tracing::instrument(name = "js_hooks_adapter::process_assets_stage_none", skip_all)]
+  async fn process_assets_stage_none(
+    &mut self,
+    _ctx: rspack_core::PluginContext,
+    _args: rspack_core::ProcessAssetsArgs<'_>,
+  ) -> rspack_core::PluginProcessAssetsHookOutput {
+    self
+      .process_assets_stage_none_tsfn
+      .call((), ThreadsafeFunctionCallMode::NonBlocking)?
+      .await
+      .map_err(|err| {
+        Error::InternalError(internal_error!(format!(
+          "Failed to call process assets stage pre-process: {}",
+          err.to_string()
+        )))
+      })?
+  }
+
+  #[tracing::instrument(name = "js_hooks_adapter::process_assets_stage_summarize", skip_all)]
+  async fn process_assets_stage_summarize(
     &mut self,
     _ctx: rspack_core::PluginContext,
     _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {
     // Directly calling hook processAssets without converting assets to JsAssets, instead, we use APIs to get `Source` lazily on the Node side.
     self
-      .process_assets_tsfn
+      .process_assets_stage_summarize_tsfn
       .call((), ThreadsafeFunctionCallMode::NonBlocking)?
       .await
       .map_err(|err| {
         Error::InternalError(internal_error!(format!(
-          "Failed to call process assets: {}",
+          "Failed to call process assets stage summarize: {}",
           err.to_string()
         )))
       })?
@@ -127,7 +184,10 @@ impl rspack_core::Plugin for JsHooksAdapter {
 impl JsHooksAdapter {
   pub fn from_js_hooks(env: Env, js_hooks: JsHooks) -> Result<Self> {
     let JsHooks {
-      process_assets,
+      process_assets_stage_additional,
+      process_assets_stage_pre_process,
+      process_assets_stage_none,
+      process_assets_stage_summarize,
       this_compilation,
       compilation,
       emit,
@@ -144,85 +204,52 @@ impl JsHooksAdapter {
     // In practice:
     // The creation of callback `this_compilation` is placed before the callback `compilation` because we want the JS hooks `this_compilation` to be called before the JS hooks `compilation`.
 
-    let mut process_assets_tsfn: ThreadsafeFunction<(), ()> = {
-      let cb = unsafe { process_assets.raw() };
+    macro_rules! create_hook_tsfn {
+      ($js_cb: expr) => {{
+        let cb = unsafe { $js_cb.raw() };
 
-      ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
-        let (ctx, resolver) = ctx.split_into_parts();
+        ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
+          let (ctx, resolver) = ctx.split_into_parts();
 
-        let env = ctx.env;
-        let cb = ctx.callback;
-        let result = unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) }?;
+          let env = ctx.env;
+          let cb = ctx.callback;
+          let result = unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) }?;
 
-        resolver.resolve::<()>(result, |_| Ok(()))
-      })
-    }?;
+          resolver.resolve::<()>(result, |_| Ok(()))
+        })
+      }};
+    }
 
-    let mut emit_tsfn: ThreadsafeFunction<(), ()> = {
-      let cb = unsafe { emit.raw() };
-
-      ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
-        let (ctx, resolver) = ctx.split_into_parts();
-
-        let env = ctx.env;
-        let cb = ctx.callback;
-        let result = unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) }?;
-
-        resolver.resolve::<()>(result, |_| Ok(()))
-      })
-    }?;
-
-    let mut after_emit_tsfn: ThreadsafeFunction<(), ()> = {
-      let cb = unsafe { after_emit.raw() };
-
-      ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
-        let (ctx, resolver) = ctx.split_into_parts();
-
-        let env = ctx.env;
-        let cb = ctx.callback;
-        let result = unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) }?;
-
-        resolver.resolve::<()>(result, |_| Ok(()))
-      })
-    }?;
-
-    let mut this_compilation_tsfn: ThreadsafeFunction<JsCompilation, ()> = {
-      let cb = unsafe { this_compilation.raw() };
-
-      ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
-        let (ctx, resolver) = ctx.split_into_parts();
-
-        let env = ctx.env;
-        let cb = ctx.callback;
-        let result = unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) }?;
-
-        resolver.resolve::<()>(result, |_| Ok(()))
-      })
-    }?;
-
-    let mut compilation_tsfn: ThreadsafeFunction<JsCompilation, ()> = {
-      let cb = unsafe { compilation.raw() };
-
-      ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
-        let (ctx, resolver) = ctx.split_into_parts();
-
-        let env = ctx.env;
-        let cb = ctx.callback;
-        let result = unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) }?;
-
-        resolver.resolve::<()>(result, |_| Ok(()))
-      })
-    }?;
+    let mut process_assets_stage_additional_tsfn: ThreadsafeFunction<(), ()> =
+      create_hook_tsfn!(process_assets_stage_additional)?;
+    let mut process_assets_stage_pre_process_tsfn: ThreadsafeFunction<(), ()> =
+      create_hook_tsfn!(process_assets_stage_pre_process)?;
+    let mut process_assets_stage_none_tsfn: ThreadsafeFunction<(), ()> =
+      create_hook_tsfn!(process_assets_stage_none)?;
+    let mut process_assets_stage_summarize_tsfn: ThreadsafeFunction<(), ()> =
+      create_hook_tsfn!(process_assets_stage_summarize)?;
+    let mut emit_tsfn: ThreadsafeFunction<(), ()> = create_hook_tsfn!(emit)?;
+    let mut after_emit_tsfn: ThreadsafeFunction<(), ()> = create_hook_tsfn!(after_emit)?;
+    let mut this_compilation_tsfn: ThreadsafeFunction<JsCompilation, ()> =
+      create_hook_tsfn!(this_compilation)?;
+    let mut compilation_tsfn: ThreadsafeFunction<JsCompilation, ()> =
+      create_hook_tsfn!(compilation)?;
 
     // See the comment in `threadsafe_function.rs`
-    process_assets_tsfn.unref(&env)?;
+    process_assets_stage_additional_tsfn.unref(&env)?;
+    process_assets_stage_pre_process_tsfn.unref(&env)?;
+    process_assets_stage_none_tsfn.unref(&env)?;
+    process_assets_stage_summarize_tsfn.unref(&env)?;
     emit_tsfn.unref(&env)?;
     after_emit_tsfn.unref(&env)?;
     compilation_tsfn.unref(&env)?;
     this_compilation_tsfn.unref(&env)?;
 
     Ok(JsHooksAdapter {
-      process_assets_tsfn,
+      process_assets_stage_additional_tsfn,
+      process_assets_stage_pre_process_tsfn,
+      process_assets_stage_none_tsfn,
+      process_assets_stage_summarize_tsfn,
       compilation_tsfn,
       this_compilation_tsfn,
       emit_tsfn,

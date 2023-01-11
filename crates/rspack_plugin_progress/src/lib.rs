@@ -97,7 +97,7 @@ impl Plugin for ProgressPlugin {
     Ok(())
   }
 
-  async fn process_assets(
+  async fn process_assets_stage_additional(
     &mut self,
     _ctx: PluginContext,
     _args: ProcessAssetsArgs<'_>,

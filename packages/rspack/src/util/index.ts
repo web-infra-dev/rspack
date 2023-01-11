@@ -1,3 +1,6 @@
+import { Compilation, Assets } from "..";
+import type { Callback } from "tapable";
+
 export function mapValues(
 	record: Record<string, string>,
 	fn: (key: string) => string
@@ -18,3 +21,32 @@ export function isPromiseLike(value: unknown): value is Promise<any> {
 		typeof (value as any).then === "function"
 	);
 }
+
+export const createProcessAssetsFakeHook = (compilation: Compilation) => {
+	type FakeProcessAssetsOptions = string | { name: string; stage?: number };
+
+	const createFakeTap = (
+		options: FakeProcessAssetsOptions,
+		fn,
+		tap: string
+	) => {
+		if (typeof options === "string") options = { name: options };
+		const hook = compilation.__internal_getProcessAssetsHookByStage(
+			options.stage ?? 0
+		);
+		hook[tap](options.name, fn);
+	};
+	return {
+		name: "processAssets",
+		tap: (options: FakeProcessAssetsOptions, fn: (assets: Assets) => void) =>
+			createFakeTap(options, fn, "tap"),
+		tapAsync: (
+			options: FakeProcessAssetsOptions,
+			fn: (assets: Assets, cb: Callback<Error, void>) => void
+		) => createFakeTap(options, fn, "tapAsync"),
+		tapPromise: (
+			options: FakeProcessAssetsOptions,
+			fn: (assets: Assets) => Promise<void>
+		) => createFakeTap(options, fn, "tapPromise")
+	};
+};

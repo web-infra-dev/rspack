@@ -692,7 +692,7 @@ impl Plugin for CssPlugin {
     }
   }
 
-  async fn process_assets(
+  async fn process_assets_stage_optimize_size(
     &mut self,
     _ctx: rspack_core::PluginContext,
     args: rspack_core::ProcessAssetsArgs<'_>,
