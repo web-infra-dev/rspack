@@ -61,7 +61,9 @@ impl std::hash::Hash for IndirectTopLevelSymbol {
 }
 impl std::cmp::PartialEq for IndirectTopLevelSymbol {
   fn eq(&self, other: &Self) -> bool {
-    self.uri == other.uri && self.id == other.id
+    self.uri == other.uri
+      && self.id == other.id
+      && (self.importer == other.importer || self.importer.is_empty())
   }
 }
 
@@ -75,11 +77,11 @@ impl IndirectTopLevelSymbol {
     }
   }
 
-  pub fn fast_create(uri: Ustr, id: JsWord, importer: Ustr) -> IndirectTopLevelSymbol {
+  pub fn fast_create(uri: Ustr, id: JsWord) -> IndirectTopLevelSymbol {
     IndirectTopLevelSymbol {
       uri,
       id,
-      importer,
+      importer: ustr(""),
       ty: Default::default(),
     }
   }
