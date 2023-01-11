@@ -14,7 +14,7 @@ use crate::{
   cache::Cache, module_rule_matcher, resolve, AssetGeneratorOptions, AssetParserOptions, BoxModule,
   CompilerOptions, Dependency, FactorizeArgs, Identifiable, MissingModule, ModuleArgs,
   ModuleDependency, ModuleExt, ModuleIdentifier, ModuleRule, ModuleType, NormalModule, RawModule,
-  Resolve, ResolveArgs, ResolveResult, ResourceData, SharedPluginDriver,
+  Resolve, ResolveArgs, ResolveError, ResolveResult, ResourceData, SharedPluginDriver,
 };
 
 // #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -191,19 +191,19 @@ impl NormalModuleFactory {
 
         return Ok(Some(FactorizeResult::new(raw_module)));
       }
-      Err(err) => {
+      Err(ResolveError(runtime_error, internal_error)) => {
         let ident = format!("{}{specifier}", importer_with_context.display());
         let module_identifier = ModuleIdentifier::from(format!("missing|{ident}{specifier}"));
 
         let missing_module = MissingModule::new(
           module_identifier,
           format!("{ident} (missing)"),
-          err.to_string(),
+          runtime_error,
         )
         .boxed();
         self.context.module_type = Some(*missing_module.module_type());
 
-        let diagnostics: Vec<Diagnostic> = err.into();
+        let diagnostics: Vec<Diagnostic> = internal_error.into();
         self.diagnostics.extend(diagnostics);
 
         return Ok(Some(FactorizeResult::new(missing_module)));

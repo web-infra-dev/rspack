@@ -1,17 +1,21 @@
 use std::path::Path;
 
-use rspack_error::{internal_error, Error, Result, TraceableError};
+use rspack_error::{internal_error, Error, TraceableError};
 use sugar_path::SugarPath;
 use tracing::instrument;
 
 use crate::{DependencyType, Resolve, ResolveArgs, ResolveResult, SharedPluginDriver};
+
+/// Tuple used to represent a resolve error.
+/// The first element is the error message for runtime and the second element is the error used for stats and so on.
+pub struct ResolveError(pub String, pub Error);
 
 #[instrument(name = "resolve", skip_all)]
 pub async fn resolve(
   args: ResolveArgs<'_>,
   plugin_driver: &SharedPluginDriver,
   //  _job_context: &mut NormalModuleFactoryContext,
-) -> Result<ResolveResult> {
+) -> Result<ResolveResult, ResolveError> {
   let plugin_driver = plugin_driver.read().await;
   let importer = args.importer.map(|i| i.display().to_string());
   let base_dir = if let Some(i) = importer.as_ref() {
@@ -24,7 +28,8 @@ pub async fn resolve(
       }
     }
     .parent()
-    .ok_or_else(|| anyhow::format_err!("parent() failed for {:?}", importer))?
+    .ok_or_else(|| anyhow::format_err!("parent() failed for {:?}", importer))
+    .map_err(|err| ResolveError(format!("parent() failed for {importer:?}"), err.into()))?
   } else {
     &plugin_driver.options.context
   };
@@ -89,41 +94,75 @@ pub async fn resolve(
   };
 
   result.map_err(|error| match error {
-    nodejs_resolver::Error::Io(error) => Error::Io { source: error },
-    nodejs_resolver::Error::UnexpectedJson((json_path, error)) => Error::Anyhow {
-      source: anyhow::Error::msg(format!("{error:?} in {json_path:?}")),
-    },
-    nodejs_resolver::Error::UnexpectedValue(error) => Error::Anyhow {
-      source: anyhow::Error::msg(error),
-    },
+    nodejs_resolver::Error::Io(error) => {
+      ResolveError(error.to_string(), Error::Io { source: error })
+    }
+    nodejs_resolver::Error::UnexpectedJson((json_path, error)) => ResolveError(
+      format!(
+        "{error:?} in {}",
+        json_path.relative(&args.compiler_options.context).display()
+      ),
+      Error::Anyhow {
+        source: anyhow::Error::msg(format!("{error:?} in {json_path:?}")),
+      },
+    ),
+    nodejs_resolver::Error::UnexpectedValue(error) => ResolveError(
+      error.clone(),
+      Error::Anyhow {
+        source: anyhow::Error::msg(error),
+      },
+    ),
     _ => {
       if let Some(importer) = args.importer {
         let span = args.span.unwrap_or_default();
-        let message = if let nodejs_resolver::Error::Overflow = error {
-          format!(
-            "Can't resolve {:?} in {} , maybe it had cycle alias",
-            args.specifier,
-            importer.relative(&args.compiler_options.context).display()
+
+        // Use relative path in runtime for stable hashing
+        let (runtime_message, internal_message) = if let nodejs_resolver::Error::Overflow = error {
+          (
+            format!(
+              "Can't resolve {:?} in {} , maybe it had cycle alias",
+              args.specifier,
+              importer.relative(&args.compiler_options.context).display()
+            ),
+            format!(
+              "Can't resolve {:?} in {} , maybe it had cycle alias",
+              args.specifier,
+              importer.display()
+            ),
           )
         } else {
-          format!(
-            "Failed to resolve {} in {}",
-            args.specifier,
-            importer.relative(&args.compiler_options.context).display()
+          (
+            format!(
+              "Failed to resolve {} in {}",
+              args.specifier,
+              importer.relative(&args.compiler_options.context).display()
+            ),
+            format!(
+              "Failed to resolve {} in {}",
+              args.specifier,
+              importer.display()
+            ),
           )
         };
-        Error::TraceableError(TraceableError::from_path(
-          importer.display().to_string(),
-          span.start as usize,
-          span.end as usize,
-          "Resolve error".to_string(),
-          message,
-        ))
+        ResolveError(
+          runtime_message,
+          Error::TraceableError(TraceableError::from_path(
+            importer.display().to_string(),
+            span.start as usize,
+            span.end as usize,
+            "Resolve error".to_string(),
+            internal_message,
+          )),
+        )
       } else {
-        Error::InternalError(internal_error!(format!(
-          "Failed to resolve {} in context",
-          args.specifier
-        )))
+        ResolveError(
+          "Failed to resolve {} in context".to_owned(),
+          Error::InternalError(internal_error!(format!(
+            "Failed to resolve {} in {}",
+            args.specifier,
+            args.compiler_options.context.display()
+          ))),
+        )
       }
     }
   })

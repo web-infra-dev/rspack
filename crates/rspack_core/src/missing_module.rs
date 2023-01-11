@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::hash::Hash;
 
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_sources::{RawSource, Source};
@@ -9,7 +10,7 @@ use crate::{
   Identifier, Module, ModuleIdentifier, ModuleType, SourceType,
 };
 
-#[derive(Debug, Hash, PartialEq, Eq)]
+#[derive(Debug, Eq)]
 pub struct MissingModule {
   identifier: ModuleIdentifier,
   readable_identifier: String,
@@ -73,5 +74,18 @@ impl Module for MissingModule {
 impl Identifiable for MissingModule {
   fn identifier(&self) -> Identifier {
     self.identifier
+  }
+}
+
+impl PartialEq for MissingModule {
+  fn eq(&self, other: &Self) -> bool {
+    self.identifier == other.identifier
+  }
+}
+
+impl Hash for MissingModule {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    "__rspack_internal__MissingModule".hash(state);
+    self.error_message.hash(state);
   }
 }
