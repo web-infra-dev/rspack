@@ -1,7 +1,7 @@
 [workspace]
-exclude = [
-  "crates/node_binding",
-] # Avoid including node binding, since feature unification will cause an linking issue. See: https://doc.rust-lang.org/cargo/reference/features.html#feature-unification
+# exclude = [
+#   "crates/node_binding",
+# ] # Avoid including node binding, since feature unification will cause an linking issue. See: https://doc.rust-lang.org/cargo/reference/features.html#feature-unification
 members = ["crates/*", "xtask"]
 
 [profile.dev]
@@ -17,6 +17,10 @@ opt-level     = 3
 
 
 [workspace.dependencies]
+napi              = { version = "=2.10.6" }
+napi-build        = { version = "=2.0.1" }
+napi-derive       = { version = "=2.9.3" }
+napi-sys          = { version = "=2.2.2" }
 swc_core          = { version = "0.55.2", default-features = false }
 swc_css           = { version = "0.149.0" }
 swc_html          = { version = "0.105.1" }

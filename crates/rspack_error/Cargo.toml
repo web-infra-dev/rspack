@@ -19,7 +19,7 @@ thiserror          = "1.0.32"
   [dependencies.napi]
   default-features = false
   optional         = true
-  version          = "2"
+  workspace        = true
 
 [dev-dependencies]
 insta = "1.19.0"

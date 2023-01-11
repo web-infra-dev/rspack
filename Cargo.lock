@@ -1643,9 +1643,9 @@ dependencies = [
 
 [[package]]
 name = "napi"
-version = "2.10.5"
+version = "2.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83c8ae31209e4268eae6003d37c298135d0f36e721b4d1fa91dd938a52388ccf"
+checksum = "78a40be07b2dec780e248465221dc36ddd74875f7b8a82fc9bb67e45f49568d9"
 dependencies = [
  "anyhow",
  "bitflags",
@@ -1657,6 +1657,12 @@ dependencies = [
  "thread_local",
  "tokio",
 ]
+
+[[package]]
+name = "napi-build"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "882a73d9ef23e8dc2ebbffb6a6ae2ef467c0f18ac10711e4cc59c5485d41df0e"
 
 [[package]]
 name = "napi-derive"
@@ -2508,6 +2514,36 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "rspack_node"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "backtrace",
+ "dashmap",
+ "futures",
+ "mimalloc-rust",
+ "napi",
+ "napi-build",
+ "napi-derive",
+ "napi-sys",
+ "once_cell",
+ "regex",
+ "rspack",
+ "rspack_binding_macros",
+ "rspack_binding_options",
+ "rspack_core",
+ "rspack_error",
+ "rspack_plugin_html",
+ "rspack_tracing",
+ "serde",
+ "serde_json",
+ "testing_macros",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
