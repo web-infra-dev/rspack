@@ -10,7 +10,7 @@ pub mod utils;
 pub mod visitor;
 #[derive(Debug)]
 pub struct OptimizeDependencyResult {
-  pub used_symbol: HashSet<Symbol>,
+  pub used_direct_symbol: HashSet<Symbol>,
   pub used_indirect_symbol: HashSet<IndirectTopLevelSymbol>,
   pub analyze_results: IdentifierMap<TreeShakingResult>,
   pub bail_out_module_identifiers: IdentifierMap<BailoutFlog>,
