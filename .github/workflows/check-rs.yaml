@@ -52,6 +52,9 @@ jobs:
           command: fmt
           args: --all --verbose -- --check
 
+      - name: Clean cache
+        run: cargo install cargo-cache --no-default-features --features ci-autoclean && cargo-cache
+
   lint:
     name: Lint Rust Files
     runs-on: [self-hosted, rspack-common]
@@ -79,6 +82,9 @@ jobs:
       - name: Check Dependencies
         run: |
           node ./scripts/check_rust_dependency.js
+
+      - name: Clean cache
+        run: cargo install cargo-cache --no-default-features --features ci-autoclean && cargo-cache
 
   test-rs:
     name: Rust test
@@ -111,3 +117,6 @@ jobs:
           npm i -g pnpm
           pnpm i
           cargo test --all -- --nocapture
+
+      - name: Clean cache
+        run: cargo install cargo-cache --no-default-features --features ci-autoclean && cargo-cache

@@ -83,3 +83,6 @@ jobs:
 
       - name: Remove Criterion Artifact
         run: rm -rf ./target/criterion
+
+      - name: Clean cache
+        run: cargo install cargo-cache --no-default-features --features ci-autoclean && cargo-cache
