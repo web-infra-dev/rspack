@@ -322,7 +322,10 @@ impl Compilation {
   }
 
   #[instrument(name = "compilation:make", skip_all)]
-  pub async fn make(&mut self, entry_deps: HashMap<String, Vec<Box<dyn ModuleDependency>>>) {
+  pub async fn make(
+    &mut self,
+    entry_deps: HashMap<String, Vec<Box<dyn ModuleDependency>>>,
+  ) -> Result<()> {
     if let Some(e) = self.plugin_driver.clone().read().await.make(self).err() {
       self.push_batch_diagnostic(e.into());
     }
@@ -350,6 +353,8 @@ impl Compilation {
         )
       })
     });
+
+    let mut errored = None;
 
     tokio::task::block_in_place(|| loop {
       while let Some(task) = factorize_queue.get_task() {
@@ -476,63 +481,47 @@ impl Compilation {
                 tracing::trace!("Module reused: {}, skipping build", module.identifier());
               }
             },
-            Ok(TaskResult::Build(task_result)) => match task_result {
-              BuildTaskResult::BuildSuccess {
+            Ok(TaskResult::Build(task_result)) => {
+              let BuildTaskResult {
                 module,
                 build_result,
                 diagnostics,
-              } => {
-                tracing::trace!("Module built: {}", module.identifier());
+              } = task_result;
 
-                self.push_batch_diagnostic(diagnostics);
+              tracing::trace!("Module built: {}", module.identifier());
 
-                self
-                  .file_dependencies
-                  .extend(build_result.file_dependencies);
-                self
-                  .context_dependencies
-                  .extend(build_result.context_dependencies);
-                self
-                  .missing_dependencies
-                  .extend(build_result.missing_dependencies);
-                self
-                  .build_dependencies
-                  .extend(build_result.build_dependencies);
+              self.push_batch_diagnostic(diagnostics);
 
-                let dependencies = build_result.dependencies;
+              self
+                .file_dependencies
+                .extend(build_result.file_dependencies);
+              self
+                .context_dependencies
+                .extend(build_result.context_dependencies);
+              self
+                .missing_dependencies
+                .extend(build_result.missing_dependencies);
+              self
+                .build_dependencies
+                .extend(build_result.build_dependencies);
 
-                {
-                  let mgm = self
-                    .module_graph
-                    .module_graph_module_by_identifier_mut(&module.identifier())
-                    .expect("Failed to get mgm");
-                  mgm.dependencies = dependencies.clone();
-                }
+              let dependencies = build_result.dependencies;
 
-                process_dependencies_queue.add_task(ProcessDependenciesTask {
-                  dependencies,
-                  original_module_identifier: Some(module.identifier()),
-                  resolve_options: module.get_resolve_options().map(ToOwned::to_owned),
-                });
-                self.module_graph.add_module(module);
-              }
-              BuildTaskResult::BuildWithError {
-                module,
-                diagnostics,
-              } => {
-                tracing::trace!("Module built with error: {}", module.identifier());
-                let module_identifier = module.identifier();
-                self
+              {
+                let mgm = self
                   .module_graph
-                  .module_identifier_to_module
-                  .remove(&module_identifier);
-                self
-                  .module_graph
-                  .module_identifier_to_module_graph_module
-                  .remove(&module_identifier);
-                self.push_batch_diagnostic(diagnostics);
+                  .module_graph_module_by_identifier_mut(&module.identifier())
+                  .expect("Failed to get mgm");
+                mgm.dependencies = dependencies.clone();
               }
-            },
+
+              process_dependencies_queue.add_task(ProcessDependenciesTask {
+                dependencies,
+                original_module_identifier: Some(module.identifier()),
+                resolve_options: module.get_resolve_options().map(ToOwned::to_owned),
+              });
+              self.module_graph.add_module(module);
+            }
             Ok(TaskResult::ProcessDependencies(task_result)) => {
               tracing::trace!(
                 "Processing dependencies of {} finished",
@@ -540,7 +529,9 @@ impl Compilation {
               );
             }
             Err(err) => {
-              self.push_batch_diagnostic(err.into());
+              // Severe internal error encountered, we should end the compiling here.
+              errored = Some(err);
+              break;
             }
           }
 
@@ -560,6 +551,12 @@ impl Compilation {
     // dbg!(&self.module_graph.module_identifier_to_module_graph_module);
 
     tracing::debug!("All task is finished");
+
+    if let Some(err) = errored {
+      Err(err)
+    } else {
+      Ok(())
+    }
   }
 
   #[allow(clippy::too_many_arguments)]

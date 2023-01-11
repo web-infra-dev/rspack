@@ -127,7 +127,7 @@ impl Compiler {
   #[instrument(name = "compile", skip_all)]
   async fn compile(&mut self, deps: HashMap<String, Vec<Box<dyn ModuleDependency>>>) -> Result<()> {
     let option = self.options.clone();
-    self.compilation.make(deps).await;
+    self.compilation.make(deps).await?;
     if option.builtins.tree_shaking {
       let (analyze_result, diagnostics) = self
         .compilation
