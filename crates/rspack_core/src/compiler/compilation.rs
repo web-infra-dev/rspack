@@ -339,6 +339,7 @@ impl Compilation {
         self.handle_module_creation(
           &mut factorize_queue,
           None,
+          None,
           vec![dep],
           true,
           None,
@@ -387,9 +388,25 @@ impl Compilation {
         active_task_count += 1;
 
         task.dependencies.into_iter().for_each(|dep| {
+          let original_module_identifier = task
+            .original_module_identifier
+            .as_ref()
+            .expect("Original module identifier expected");
+          let module = self
+            .module_graph
+            .module_by_identifier(original_module_identifier)
+            .expect("Module expected");
+
           self.handle_module_creation(
             &mut factorize_queue,
             task.original_module_identifier,
+            {
+              if let Some(module) = module.as_normal_module() {
+                Some(module.resource_resolved_data().resource_path.clone())
+              } else {
+                None
+              }
+            },
             vec![dep],
             false,
             None,
@@ -421,9 +438,12 @@ impl Compilation {
                 dependencies,
                 factory_result,
                 module_graph_module,
+                diagnostics,
               } = task_result;
 
               tracing::trace!("Module created: {}", factory_result.module.identifier());
+
+              self.push_batch_diagnostic(diagnostics);
 
               self
                 .file_dependencies
@@ -549,6 +569,7 @@ impl Compilation {
     &self,
     queue: &mut FactorizeQueue,
     original_module_identifier: Option<ModuleIdentifier>,
+    original_resource_path: Option<PathBuf>,
     dependencies: Vec<Box<dyn ModuleDependency>>,
     is_entry: bool,
     module_name: Option<String>,
@@ -559,6 +580,7 @@ impl Compilation {
   ) {
     queue.add_task(FactorizeTask {
       original_module_identifier,
+      original_resource_path,
       dependencies,
       is_entry,
       module_name,

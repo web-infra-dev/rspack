@@ -385,7 +385,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 269,
+      "size": 578,
       "type": "asset",
     },
   ],
@@ -400,7 +400,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       "names": [
         "main",
       ],
-      "size": 51,
+      "size": 211,
       "type": "chunk",
     },
   ],
@@ -409,10 +409,10 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 269,
+          "size": 578,
         },
       ],
-      "assetsSize": 269,
+      "assetsSize": 578,
       "chunks": [
         "main",
       ],
@@ -432,7 +432,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
     },
   ],
   "errorsCount": 1,
-  "hash": "38b10f294a63104f",
+  "hash": "c99b60f59680c076",
   "modules": [
     {
       "chunks": [
@@ -449,6 +449,34 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       "size": 51,
       "type": "module",
     },
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "617",
+      "identifier": "missing module |<PROJECT_ROOT>/tests/statsCases/resolve-overflowcycle-alias/acycle-alias/a",
+      "issuer": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+      "issuerId": "10",
+      "issuerName": "./index.js",
+      "issuerPath": [
+        {
+          "id": "10",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+          "name": "./index.js",
+        },
+      ],
+      "moduleType": "js",
+      "name": "<PROJECT_ROOT>/tests/statsCases/resolve-overflowcycle-alias/a (missing)",
+      "reasons": [
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+          "moduleName": "./index.js",
+        },
+      ],
+      "size": 160,
+      "type": "module",
+    },
   ],
   "warnings": [],
   "warningsCount": 0,
@@ -456,13 +484,15 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-overflow 2`] = `
-"Hash: 38b10f294a63104f
+"Hash: c99b60f59680c076
     Asset       Size  Chunks             Chunk Names
-bundle.js  269 bytes    main  [emitted]  main
+bundle.js  578 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
-chunk {main} bundle.js (main) 51 bytes [entry]
+chunk {main} bundle.js (main) 211 bytes [entry]
 [10] ./index.js 51 bytes {main}
     
+[617] <PROJECT_ROOT>/tests/statsCases/resolve-overflowcycle-alias/a (missing) 160 bytes {main}
+    [10]
 
 error[internal]: Resolve error
   ┌─ tests/statsCases/resolve-overflow/index.js:1:1
@@ -489,7 +519,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 865,
+      "size": 974,
       "type": "asset",
     },
   ],
@@ -504,7 +534,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       "names": [
         "main",
       ],
-      "size": 39,
+      "size": 199,
       "type": "chunk",
     },
   ],
@@ -513,10 +543,10 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       "assets": [
         {
           "name": "bundle.js",
-          "size": 865,
+          "size": 974,
         },
       ],
-      "assetsSize": 865,
+      "assetsSize": 974,
       "chunks": [
         "main",
       ],
@@ -531,7 +561,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
     },
   ],
   "errorsCount": 1,
-  "hash": "4130679ddcefbaa3",
+  "hash": "8c0f4bab6246cd09",
   "modules": [
     {
       "chunks": [
@@ -548,6 +578,34 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       "size": 39,
       "type": "module",
     },
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "899",
+      "identifier": "missing module |<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkgpkg-apkg-a",
+      "issuer": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+      "issuerId": "10",
+      "issuerName": "./index.js",
+      "issuerPath": [
+        {
+          "id": "10",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+          "name": "./index.js",
+        },
+      ],
+      "moduleType": "js",
+      "name": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkgpkg-a (missing)",
+      "reasons": [
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+          "moduleName": "./index.js",
+        },
+      ],
+      "size": 160,
+      "type": "module",
+    },
   ],
   "warnings": [],
   "warningsCount": 0,
@@ -555,13 +613,15 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 2`] = `
-"Hash: 4130679ddcefbaa3
+"Hash: 8c0f4bab6246cd09
     Asset       Size  Chunks             Chunk Names
-bundle.js  865 bytes    main  [emitted]  main
+bundle.js  974 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
-chunk {main} bundle.js (main) 39 bytes [entry]
+chunk {main} bundle.js (main) 199 bytes [entry]
 [10] ./index.js 39 bytes {main}
     
+[899] <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkgpkg-a (missing) 160 bytes {main}
+    [10]
 
 Export should be relative path and start with "./", but got ../../index.js
 "

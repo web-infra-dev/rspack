@@ -224,4 +224,8 @@ impl Resolver {
         nodejs_resolver::ResolveResult::Ignored => ResolveResult::Ignored,
       })
   }
+
+  pub fn dependencies(&self) -> (Vec<PathBuf>, Vec<PathBuf>) {
+    self.0.get_dependency_from_entry()
+  }
 }
