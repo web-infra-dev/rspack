@@ -226,6 +226,8 @@ impl Resolver {
   }
 
   pub fn dependencies(&self) -> (Vec<PathBuf>, Vec<PathBuf>) {
-    self.0.get_dependency_from_entry()
+    // There are some issues with this method
+    // self.0.get_dependency_from_entry()
+    (vec![], vec![])
   }
 }

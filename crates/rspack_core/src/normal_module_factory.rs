@@ -131,7 +131,6 @@ impl NormalModuleFactory {
     &mut self,
     resolve_options: Option<Resolve>,
   ) -> Result<Option<FactorizeResult>> {
-    // TODO: `importer` should use `NormalModule::context || options.context`;
     let importer = self.context.original_resource_path.as_ref();
     let importer_with_context = if let Some(importer) = importer {
       Path::new(importer)
@@ -213,6 +212,8 @@ impl NormalModuleFactory {
     let uri = resource_data.resource.clone();
     tracing::trace!("resolved uri {:?}", uri);
 
+    let file_dependency = resource_data.resource_path.clone();
+
     if self.context.module_type.is_none() {
       self.context.module_type = self.calculate_module_type_by_resource(&resource_data);
     }
@@ -272,6 +273,7 @@ impl NormalModuleFactory {
 
     Ok(Some(
       FactorizeResult::new(module)
+        .file_dependency(file_dependency)
         .file_dependencies(file_dependencies)
         .missing_dependencies(missing_dependencies),
     ))
