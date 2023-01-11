@@ -224,12 +224,9 @@ impl<'a> Fold for TreeShaker<'a> {
 
                 ExportSpecifier::Named(named_spec) => match named_spec.orig {
                   ModuleExportName::Ident(ref ident) => {
-                    // return true;
-
                     let symbol = IndirectTopLevelSymbol::fast_create(
                       module_identifier.into(),
                       ident.sym.clone(),
-                      *module_identifier,
                     );
                     self.used_indirect_symbol_set.contains(&symbol)
                   }
