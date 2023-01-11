@@ -186,16 +186,10 @@ pub struct BuildTask {
 }
 
 #[derive(Debug)]
-pub enum BuildTaskResult {
-  BuildSuccess {
-    module: Box<dyn Module>,
-    build_result: Box<BuildResult>,
-    diagnostics: Vec<Diagnostic>,
-  },
-  BuildWithError {
-    module: Box<dyn Module>,
-    diagnostics: Vec<Diagnostic>,
-  },
+pub struct BuildTaskResult {
+  pub module: Box<dyn Module>,
+  pub build_result: Box<BuildResult>,
+  pub diagnostics: Vec<Diagnostic>,
 }
 
 #[async_trait::async_trait]
@@ -253,20 +247,14 @@ impl WorkerTask for BuildTask {
       })
       .await;
 
-    match build_result {
-      Ok(build_result) => {
-        let (build_result, diagnostics) = build_result.split_into_parts();
-        Ok(TaskResult::Build(BuildTaskResult::BuildSuccess {
-          module,
-          build_result: Box::new(build_result),
-          diagnostics,
-        }))
-      }
-      Err(err) => Ok(TaskResult::Build(BuildTaskResult::BuildWithError {
+    build_result.map(|build_result| {
+      let (build_result, diagnostics) = build_result.split_into_parts();
+      TaskResult::Build(BuildTaskResult {
         module,
-        diagnostics: err.into(),
-      })),
-    }
+        build_result: Box::new(build_result),
+        diagnostics,
+      })
+    })
   }
 }
 

@@ -37,7 +37,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     build_info.strict = true;
     let source = box_source.source();
 
-    json::parse(&source).map_err(|e| {
+    let parse_result = json::parse(&source).map_err(|e| {
       match e {
         UnexpectedCharacter { ch, line, column } => {
           let rope = ropey::Rope::from_str(&source);
@@ -76,14 +76,20 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           )
         }
       }
-    })?;
+    });
+
+    let diagnostics = if let Err(err) = parse_result {
+      err.into()
+    } else {
+      vec![]
+    };
 
     Ok(
       rspack_core::ParseResult {
         dependencies: vec![],
         ast_or_source: box_source.into(),
       }
-      .with_empty_diagnostic(),
+      .with_diagnostic(diagnostics),
     )
   }
 
