@@ -161,7 +161,7 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
     self
       .tx
       .send(p.map_err(rspack_error::Error::from))
-      .map_err(|_| napi::Error::from_reason(format!("Failed to resolve")))
+      .map_err(|_| napi::Error::from_reason("Failed to resolve".to_string()))
   }
 }
 
@@ -262,6 +262,7 @@ unsafe impl<T, R> Sync for ThreadsafeFunction<T, R> {}
 impl<T: 'static, R> ThreadsafeFunction<T, R> {
   /// See [napi_create_threadsafe_function](https://nodejs.org/api/n-api.html#n_api_napi_create_threadsafe_function)
   /// for more information.
+  #[allow(clippy::not_unsafe_ptr_arg_deref)]
   pub fn create<C: 'static + Send + FnMut(ThreadSafeContext<T, R>) -> Result<()>>(
     env: sys::napi_env,
     func: sys::napi_value,
@@ -432,7 +433,7 @@ unsafe extern "C" fn call_js_cb<T: 'static, C, R>(
     assert!(stat == sys::Status::napi_ok || stat == sys::Status::napi_pending_exception);
   } else {
     let error_code: Status = status.into();
-    let error_code_string = format!("{:?}", error_code);
+    let error_code_string = format!("{error_code:?}");
     let mut error_code_value = ptr::null_mut();
     assert_eq!(
       sys::napi_create_string_utf8(

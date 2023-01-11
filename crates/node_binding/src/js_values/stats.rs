@@ -243,7 +243,7 @@ impl JsStats {
     self
       .inner
       .get_modules()
-      .unwrap()
+      .expect("Failed to get modules")
       .into_iter()
       .map(Into::into)
       .collect()

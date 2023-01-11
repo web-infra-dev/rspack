@@ -9,9 +9,8 @@ use std::collections::HashSet;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use napi::bindgen_prelude::*;
-
 use dashmap::DashMap;
+use napi::bindgen_prelude::*;
 use once_cell::sync::Lazy;
 
 mod js_values;
@@ -42,10 +41,9 @@ where
   where
     F: FnOnce(&mut V) -> Result<R>,
   {
-    let mut inner = self.0.get_mut(&key).ok_or_else(|| {
+    let mut inner = self.0.get_mut(key).ok_or_else(|| {
       napi::Error::from_reason(format!(
-        "Failed to find key {} for single-threaded hashmap",
-        key
+        "Failed to find key {key} for single-threaded hashmap",
       ))
     })?;
 
@@ -60,10 +58,9 @@ where
   where
     F: FnOnce(&V) -> Result<R>,
   {
-    let inner = self.0.get(&key).ok_or_else(|| {
+    let inner = self.0.get(key).ok_or_else(|| {
       napi::Error::from_reason(format!(
-        "Failed to find key {} for single-threaded hashmap",
-        key
+        "Failed to find key {key} for single-threaded hashmap",
       ))
     })?;
 
@@ -125,14 +122,14 @@ pub struct Rspack {
 impl Rspack {
   #[napi(constructor)]
   pub fn new(env: Env, mut options: RawOptions, js_hooks: Option<JsHooks>) -> Result<Self> {
-    init_custom_trace_subscriber(env).expect("failed to add trace hook");
+    init_custom_trace_subscriber(env)?;
     // rspack_tracing::enable_tracing_by_env();
     Self::prepare_environment(&env, &mut options);
     tracing::info!("raw_options: {:#?}", &options);
 
     let compiler_options = {
       let mut options =
-        normalize_bundle_options(options).map_err(|e| Error::from_reason(format!("{}", e)))?;
+        normalize_bundle_options(options).map_err(|e| Error::from_reason(format!("{e}")))?;
 
       if let Some(hooks_adapter) = js_hooks
         .map(|js_hooks| JsHooksAdapter::from_js_hooks(env, js_hooks))
@@ -157,7 +154,7 @@ impl Rspack {
             }
           })
         })
-        .map_err(|e| Error::from_reason(format!("failed to unref tsfn {:?}", e)))?;
+        .map_err(|e| Error::from_reason(format!("failed to unref tsfn {e:?}")))?;
 
       options
     };
@@ -191,7 +188,7 @@ impl Rspack {
         compiler
           .build()
           .await
-          .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{}", e)))?;
+          .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
         tracing::info!("build ok");
         Ok(())
       })
@@ -227,7 +224,7 @@ impl Rspack {
             HashSet::from_iter(removed_files.into_iter()),
           )
           .await
-          .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{:?}", e)))?;
+          .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e:?}")))?;
         tracing::info!("rebuild ok");
         Ok(())
       })
@@ -297,12 +294,13 @@ impl Rspack {
 
 #[napi::module_init]
 fn init() {
-  use backtrace::Backtrace;
   use std::panic::set_hook;
+
+  use backtrace::Backtrace;
 
   set_hook(Box::new(|panic_info| {
     let backtrace = Backtrace::new();
-    println!("Panic: {:?}\nBacktrace: \n{:?}", panic_info, backtrace);
+    println!("Panic: {panic_info:?}\nBacktrace: \n{backtrace:?}");
     std::process::exit(1)
   }));
 }
