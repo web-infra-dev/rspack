@@ -155,6 +155,7 @@ impl NormalModuleFactory {
       dependency_type: self.dependency.dependency_type(),
       dependency_category: self.dependency.category(),
       span: self.dependency.span().cloned(),
+      compiler_options: self.context.options.as_ref(),
       resolve_options,
       file_dependencies: &mut file_dependencies,
       missing_dependencies: &mut missing_dependencies,

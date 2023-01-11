@@ -315,10 +315,10 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
   ┌─ tests/statsCases/normal-errors/index.js:1:1
   │
 1 │ import "not-exist";
-  │ ^^^^^^^^^^^^^^^^^^^ Failed to resolve not-exist in <PROJECT_ROOT>/tests/statsCases/normal-errors/index.js
+  │ ^^^^^^^^^^^^^^^^^^^ Failed to resolve not-exist in index.js
 
 ",
-      "message": "Failed to resolve not-exist in <PROJECT_ROOT>/tests/statsCases/normal-errors/index.js",
+      "message": "Failed to resolve not-exist in index.js",
     },
   ],
   "errorsCount": 1,
@@ -333,7 +333,7 @@ error[internal]: Resolve error
   ┌─ tests/statsCases/normal-errors/index.js:1:1
   │
 1 │ import "not-exist";
-  │ ^^^^^^^^^^^^^^^^^^^ Failed to resolve not-exist in <PROJECT_ROOT>/tests/statsCases/normal-errors/index.js
+  │ ^^^^^^^^^^^^^^^^^^^ Failed to resolve not-exist in index.js
 
 "
 `;
@@ -385,7 +385,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 578,
+      "size": 495,
       "type": "asset",
     },
   ],
@@ -409,10 +409,10 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 578,
+          "size": 495,
         },
       ],
-      "assetsSize": 578,
+      "assetsSize": 495,
       "chunks": [
         "main",
       ],
@@ -425,14 +425,14 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
   ┌─ tests/statsCases/resolve-overflow/index.js:1:1
   │
 1 │ import { a } from "cycle-alias/a";
-  │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Can't resolve "cycle-alias/a" in <PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js , maybe it had cycle alias
+  │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Can't resolve "cycle-alias/a" in index.js , maybe it had cycle alias
 
 ",
-      "message": "Can't resolve "cycle-alias/a" in <PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js , maybe it had cycle alias",
+      "message": "Can't resolve "cycle-alias/a" in index.js , maybe it had cycle alias",
     },
   ],
   "errorsCount": 1,
-  "hash": "bf23667a66ddf2d5",
+  "hash": "aee1dacb1d10e29a",
   "modules": [
     {
       "chunks": [
@@ -484,9 +484,9 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-overflow 2`] = `
-"Hash: bf23667a66ddf2d5
+"Hash: aee1dacb1d10e29a
     Asset       Size  Chunks             Chunk Names
-bundle.js  578 bytes    main  [emitted]  main
+bundle.js  495 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 211 bytes [entry]
 [10] ./index.js 51 bytes {main}
@@ -498,7 +498,7 @@ error[internal]: Resolve error
   ┌─ tests/statsCases/resolve-overflow/index.js:1:1
   │
 1 │ import { a } from "cycle-alias/a";
-  │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Can't resolve "cycle-alias/a" in <PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js , maybe it had cycle alias
+  │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Can't resolve "cycle-alias/a" in index.js , maybe it had cycle alias
 
 "
 `;

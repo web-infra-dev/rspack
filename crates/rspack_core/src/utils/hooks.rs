@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use rspack_error::{internal_error, Error, Result, TraceableError};
+use sugar_path::SugarPath;
 use tracing::instrument;
 
 use crate::{DependencyType, Resolve, ResolveArgs, ResolveResult, SharedPluginDriver};
@@ -102,13 +103,13 @@ pub async fn resolve(
           format!(
             "Can't resolve {:?} in {} , maybe it had cycle alias",
             args.specifier,
-            importer.display()
+            importer.relative(&args.compiler_options.context).display()
           )
         } else {
           format!(
             "Failed to resolve {} in {}",
             args.specifier,
-            importer.display()
+            importer.relative(&args.compiler_options.context).display()
           )
         };
         Error::TraceableError(TraceableError::from_path(
@@ -120,9 +121,8 @@ pub async fn resolve(
         ))
       } else {
         Error::InternalError(internal_error!(format!(
-          "Failed to resolve {} in {}",
-          args.specifier,
-          plugin_driver.options.context.display()
+          "Failed to resolve {} in context",
+          args.specifier
         )))
       }
     }
