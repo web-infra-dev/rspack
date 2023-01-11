@@ -2,11 +2,10 @@ use std::ffi::CStr;
 use std::io::Write;
 use std::ptr;
 
+use futures::Future;
 use napi::bindgen_prelude::*;
 use napi::{check_status, Env, Error, JsFunction, JsUnknown, NapiRaw, Result};
 use napi_derive::napi;
-
-use futures::Future;
 use once_cell::sync::OnceCell;
 
 use crate::threadsafe_function::{

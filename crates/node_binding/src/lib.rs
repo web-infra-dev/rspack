@@ -9,9 +9,8 @@ use std::collections::HashSet;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use napi::bindgen_prelude::*;
-
 use dashmap::DashMap;
+use napi::bindgen_prelude::*;
 use once_cell::sync::Lazy;
 
 mod js_values;
@@ -297,8 +296,9 @@ impl Rspack {
 
 #[napi::module_init]
 fn init() {
-  use backtrace::Backtrace;
   use std::panic::set_hook;
+
+  use backtrace::Backtrace;
 
   set_hook(Box::new(|panic_info| {
     let backtrace = Backtrace::new();
