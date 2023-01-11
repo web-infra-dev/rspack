@@ -14,6 +14,7 @@ pub struct JsHooksAdapter {
   pub process_assets_stage_additional_tsfn: ThreadsafeFunction<(), ()>,
   pub process_assets_stage_pre_process_tsfn: ThreadsafeFunction<(), ()>,
   pub process_assets_stage_none_tsfn: ThreadsafeFunction<(), ()>,
+  pub process_assets_stage_optimize_inline_tsfn: ThreadsafeFunction<(), ()>,
   pub process_assets_stage_summarize_tsfn: ThreadsafeFunction<(), ()>,
   pub emit_tsfn: ThreadsafeFunction<(), ()>,
   pub after_emit_tsfn: ThreadsafeFunction<(), ()>,
@@ -127,7 +128,28 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .await
       .map_err(|err| {
         Error::InternalError(internal_error!(format!(
-          "Failed to call process assets stage pre-process: {}",
+          "Failed to call process assets: {}",
+          err.to_string()
+        )))
+      })?
+  }
+
+  #[tracing::instrument(
+    name = "js_hooks_adapter::process_assets_stage_optimize_inline",
+    skip_all
+  )]
+  async fn process_assets_stage_optimize_inline(
+    &mut self,
+    _ctx: rspack_core::PluginContext,
+    _args: rspack_core::ProcessAssetsArgs<'_>,
+  ) -> rspack_core::PluginProcessAssetsHookOutput {
+    self
+      .process_assets_stage_optimize_inline_tsfn
+      .call((), ThreadsafeFunctionCallMode::NonBlocking)?
+      .await
+      .map_err(|err| {
+        Error::InternalError(internal_error!(format!(
+          "Failed to call process assets stage optimize inline: {}",
           err.to_string()
         )))
       })?
@@ -187,6 +209,7 @@ impl JsHooksAdapter {
       process_assets_stage_additional,
       process_assets_stage_pre_process,
       process_assets_stage_none,
+      process_assets_stage_optimize_inline,
       process_assets_stage_summarize,
       this_compilation,
       compilation,
@@ -226,6 +249,8 @@ impl JsHooksAdapter {
       create_hook_tsfn!(process_assets_stage_pre_process)?;
     let mut process_assets_stage_none_tsfn: ThreadsafeFunction<(), ()> =
       create_hook_tsfn!(process_assets_stage_none)?;
+    let mut process_assets_stage_optimize_inline_tsfn: ThreadsafeFunction<(), ()> =
+      create_hook_tsfn!(process_assets_stage_optimize_inline)?;
     let mut process_assets_stage_summarize_tsfn: ThreadsafeFunction<(), ()> =
       create_hook_tsfn!(process_assets_stage_summarize)?;
     let mut emit_tsfn: ThreadsafeFunction<(), ()> = create_hook_tsfn!(emit)?;
@@ -239,6 +264,7 @@ impl JsHooksAdapter {
     process_assets_stage_additional_tsfn.unref(&env)?;
     process_assets_stage_pre_process_tsfn.unref(&env)?;
     process_assets_stage_none_tsfn.unref(&env)?;
+    process_assets_stage_optimize_inline_tsfn.unref(&env)?;
     process_assets_stage_summarize_tsfn.unref(&env)?;
     emit_tsfn.unref(&env)?;
     after_emit_tsfn.unref(&env)?;
@@ -249,6 +275,7 @@ impl JsHooksAdapter {
       process_assets_stage_additional_tsfn,
       process_assets_stage_pre_process_tsfn,
       process_assets_stage_none_tsfn,
+      process_assets_stage_optimize_inline_tsfn,
       process_assets_stage_summarize_tsfn,
       compilation_tsfn,
       this_compilation_tsfn,

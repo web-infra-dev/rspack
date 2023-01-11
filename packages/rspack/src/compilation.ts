@@ -28,10 +28,6 @@ export class Compilation {
 	#inner: JsCompilation;
 
 	hooks: {
-		processAssetsStageAdditional: tapable.AsyncSeriesHook<Assets>;
-		processAssetsStagePreProcess: tapable.AsyncSeriesHook<Assets>;
-		processAssetsStageNone: tapable.AsyncSeriesHook<Assets>;
-		processAssetsStageSummarize: tapable.AsyncSeriesHook<Assets>;
 		processAssets: ReturnType<typeof createProcessAssetsFakeHook>;
 	};
 	options: RspackOptionsNormalized;
@@ -41,10 +37,6 @@ export class Compilation {
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.hooks = {
-			processAssetsStageAdditional: new tapable.AsyncSeriesHook(["assets"]),
-			processAssetsStagePreProcess: new tapable.AsyncSeriesHook(["assets"]),
-			processAssetsStageNone: new tapable.AsyncSeriesHook(["assets"]),
-			processAssetsStageSummarize: new tapable.AsyncSeriesHook(["assets"]),
 			processAssets: createProcessAssetsFakeHook(this)
 		};
 		this.compiler = compiler;
@@ -278,18 +270,21 @@ export class Compilation {
 	static PROCESS_ASSETS_STAGE_ADDITIONAL = -2000;
 	static PROCESS_ASSETS_STAGE_PRE_PROCESS = -1000;
 	static PROCESS_ASSETS_STAGE_NONE = 0;
+	static PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE = 700;
 	static PROCESS_ASSETS_STAGE_SUMMARIZE = 1000;
 
 	__internal_getProcessAssetsHookByStage(stage: number) {
 		switch (stage) {
 			case -2000:
-				return this.hooks.processAssetsStageAdditional;
+				return this.hooks.processAssets.stageAdditional;
 			case -1000:
-				return this.hooks.processAssetsStagePreProcess;
+				return this.hooks.processAssets.stagePreProcess;
 			case 0:
-				return this.hooks.processAssetsStageNone;
+				return this.hooks.processAssets.stageNone;
+			case 700:
+				return this.hooks.processAssets.stageOptimizeInline;
 			case 1000:
-				return this.hooks.processAssetsStageSummarize;
+				return this.hooks.processAssets.stageSummarize;
 			default:
 				throw new Error(
 					"processAssets hook uses custom stage number is not supported."

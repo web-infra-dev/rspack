@@ -1,5 +1,5 @@
 import { Compilation, Assets } from "..";
-import type { Callback } from "tapable";
+import * as tapable from "tapable";
 
 export function mapValues(
 	record: Record<string, string>,
@@ -42,11 +42,16 @@ export const createProcessAssetsFakeHook = (compilation: Compilation) => {
 			createFakeTap(options, fn, "tap"),
 		tapAsync: (
 			options: FakeProcessAssetsOptions,
-			fn: (assets: Assets, cb: Callback<Error, void>) => void
+			fn: (assets: Assets, cb: tapable.InnerCallback<Error, void>) => void
 		) => createFakeTap(options, fn, "tapAsync"),
 		tapPromise: (
 			options: FakeProcessAssetsOptions,
 			fn: (assets: Assets) => Promise<void>
-		) => createFakeTap(options, fn, "tapPromise")
+		) => createFakeTap(options, fn, "tapPromise"),
+		stageAdditional: new tapable.AsyncSeriesHook<Assets>(["assets"]),
+		stagePreProcess: new tapable.AsyncSeriesHook<Assets>(["assets"]),
+		stageNone: new tapable.AsyncSeriesHook<Assets>(["assets"]),
+		stageOptimizeInline: new tapable.AsyncSeriesHook<Assets>(["assets"]),
+		stageSummarize: new tapable.AsyncSeriesHook<Assets>(["assets"]),
 	};
 };
