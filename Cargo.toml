@@ -17,10 +17,10 @@ opt-level     = 3
 
 
 [workspace.dependencies]
-swc_core          = { version = "0.50.2", default-features = false }
-swc_css           = { version = "0.141.5" }
-swc_html          = { version = "0.97.7" }
-swc_html_minifier = { version = "0.94.7" }
+swc_core          = { version = "0.55.2", default-features = false }
+swc_css           = { version = "0.149.0" }
+swc_html          = { version = "0.105.1" }
+swc_html_minifier = { version = "0.102.1" }
 
-preset_env_base = { version = "0.3.3" }
+preset_env_base = { version = "0.4.0" }
 rustc-hash      = { version = "1.1.0" }

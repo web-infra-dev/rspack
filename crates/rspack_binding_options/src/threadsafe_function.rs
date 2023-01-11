@@ -60,7 +60,7 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
   ///
   /// Since the original calling of threadsafe function is a pure enqueue operation,
   /// no matter a plain data structure or a `Promise` is returned, we need to send the message to the receiver side.
-  pub fn resolve<P>(
+  pub fn resolve<P: Send>(
     self,
     result: impl NapiRaw,
     resolver: impl 'static + Send + FnOnce(P) -> Result<R>,
