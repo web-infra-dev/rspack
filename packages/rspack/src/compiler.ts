@@ -130,6 +130,10 @@ class Compiler {
 					this,
 					Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
 				),
+				processAssetsStageReport: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_REPORT
+				),
 				// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
 				// We know that the hook `thisCompilation` will not be called from a child compiler(it doesn't matter whether the child compiler is created on the Rust or the Node side).
 				// See webpack's API: https://webpack.js.org/api/compiler-hooks/#thiscompilation

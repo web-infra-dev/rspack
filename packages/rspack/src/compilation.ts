@@ -272,19 +272,22 @@ export class Compilation {
 	static PROCESS_ASSETS_STAGE_NONE = 0;
 	static PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE = 700;
 	static PROCESS_ASSETS_STAGE_SUMMARIZE = 1000;
+	static PROCESS_ASSETS_STAGE_REPORT = 5000;
 
 	__internal_getProcessAssetsHookByStage(stage: number) {
 		switch (stage) {
-			case -2000:
+			case Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL:
 				return this.hooks.processAssets.stageAdditional;
-			case -1000:
+			case Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS:
 				return this.hooks.processAssets.stagePreProcess;
-			case 0:
+			case Compilation.PROCESS_ASSETS_STAGE_NONE:
 				return this.hooks.processAssets.stageNone;
-			case 700:
+			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE:
 				return this.hooks.processAssets.stageOptimizeInline;
-			case 1000:
+			case Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE:
 				return this.hooks.processAssets.stageSummarize;
+			case Compilation.PROCESS_ASSETS_STAGE_REPORT:
+				return this.hooks.processAssets.stageReport;
 			default:
 				throw new Error(
 					"processAssets hook uses custom stage number is not supported."

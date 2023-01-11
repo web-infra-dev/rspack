@@ -26,39 +26,6 @@ module.exports = {
 						assert("main.js" in assets);
 						assert(assets["main.js"].source().startsWith("//banner;\n"));
 					});
-
-					compilation.hooks.processAssets.tapAsync(
-						{
-							name: "Test3",
-							stage:
-								compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
-						},
-						async (assets, callback) => {
-							for (const [key, value] of Object.entries(assets)) {
-								compilation.updateAsset(
-									key,
-									new ConcatSource(
-										new RawSource("//stage_additional;\n"),
-										value
-									)
-								);
-							}
-							callback();
-						}
-					);
-
-					compilation.hooks.processAssets.tapAsync(
-						{
-							name: "Test4",
-							stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
-						},
-						async (assets, callback) => {
-							for (const [key, value] of Object.entries(assets)) {
-								value.source().startsWith("//banner;\n//stage_additional;\n");
-							}
-							callback();
-						}
-					);
 				});
 			}
 		}

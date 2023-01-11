@@ -186,6 +186,14 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
+  async fn process_assets_stage_report(
+    &mut self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
   fn optimize_chunks(
     &mut self,
     _ctx: PluginContext,
