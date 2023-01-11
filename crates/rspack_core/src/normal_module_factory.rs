@@ -3,16 +3,18 @@ use std::{
   sync::Arc,
 };
 
-use rspack_error::{internal_error, Error, Result};
+use rspack_error::{
+  internal_error, Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::Span;
 use tracing::instrument;
 
 use crate::{
   cache::Cache, module_rule_matcher, resolve, AssetGeneratorOptions, AssetParserOptions, BoxModule,
-  CompilerOptions, Dependency, FactorizeArgs, Identifiable, ModuleArgs, ModuleDependency,
-  ModuleExt, ModuleIdentifier, ModuleRule, ModuleType, NormalModule, RawModule, Resolve,
-  ResolveArgs, ResolveResult, ResourceData, SharedPluginDriver,
+  CompilerOptions, Dependency, FactorizeArgs, Identifiable, MissingModule, ModuleArgs,
+  ModuleDependency, ModuleExt, ModuleIdentifier, ModuleRule, ModuleType, NormalModule, RawModule,
+  Resolve, ResolveArgs, ResolveError, ResolveResult, ResourceData, SharedPluginDriver,
 };
 
 // #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -88,6 +90,7 @@ pub struct NormalModuleFactory {
   dependency: Box<dyn ModuleDependency>,
   plugin_driver: SharedPluginDriver,
   cache: Arc<Cache>,
+  diagnostics: Vec<Diagnostic>,
 }
 
 impl NormalModuleFactory {
@@ -102,6 +105,7 @@ impl NormalModuleFactory {
       dependency,
       plugin_driver,
       cache,
+      diagnostics: Default::default(),
     }
   }
 
@@ -110,8 +114,8 @@ impl NormalModuleFactory {
   pub async fn create(
     mut self,
     resolve_options: Option<Resolve>,
-  ) -> Result<(FactorizeResult, NormalModuleFactoryContext)> {
-    Ok((self.factorize(resolve_options).await?, self.context))
+  ) -> Result<TWithDiagnosticArray<(FactorizeResult, NormalModuleFactoryContext)>> {
+    Ok((self.factorize(resolve_options).await?, self.context).with_diagnostic(self.diagnostics))
   }
 
   pub fn calculate_module_type_by_resource(
@@ -122,36 +126,48 @@ impl NormalModuleFactory {
     resolve_module_type_by_uri(&resource_data.resource_path)
   }
 
-  #[instrument(name = "normal_module_factory:factory_normal_module", skip_all)]
+  // #[instrument(name = "normal_module_factory:factory_normal_module", skip_all)]
   pub async fn factorize_normal_module(
     &mut self,
     resolve_options: Option<Resolve>,
   ) -> Result<Option<FactorizeResult>> {
-    // TODO: `importer` should use `NormalModule::context || options.context`;
-    let importer = self
-      .dependency
-      .parent_module_identifier()
-      .map(|i| i.as_str());
+    let importer = self.context.original_resource_path.as_ref();
+    let importer_with_context = if let Some(importer) = importer {
+      Path::new(importer)
+        .parent()
+        .ok_or_else(|| anyhow::format_err!("parent() failed for {:?}", importer))?
+        .to_path_buf()
+    } else {
+      PathBuf::from(self.context.options.context.as_path())
+    };
+
     let specifier = self.dependency.request();
     if should_skip_resolve(specifier) {
       return Ok(None);
     }
+
+    let mut file_dependencies = Default::default();
+    let mut missing_dependencies = Default::default();
+
     let resolve_args = ResolveArgs {
       importer,
       specifier,
       dependency_type: self.dependency.dependency_type(),
       dependency_category: self.dependency.category(),
       span: self.dependency.span().cloned(),
+      compiler_options: self.context.options.as_ref(),
       resolve_options,
+      file_dependencies: &mut file_dependencies,
+      missing_dependencies: &mut missing_dependencies,
     };
-    let plugin_driver = self.plugin_driver.clone();
+    let plugin_driver = &self.plugin_driver;
     let resource_data = self
       .cache
       .resolve_module_occasion
-      .use_cache(resolve_args, |args| resolve(args, &plugin_driver))
-      .await?;
+      .use_cache(resolve_args, |args| resolve(args, plugin_driver))
+      .await;
     let resource_data = match resource_data {
-      ResolveResult::Info(info) => {
+      Ok(ResolveResult::Info(info)) => {
         let uri = info.join();
         ResourceData {
           resource: uri,
@@ -160,38 +176,44 @@ impl NormalModuleFactory {
           resource_fragment: (!info.fragment.is_empty()).then_some(info.fragment),
         }
       }
-      ResolveResult::Ignored => {
-        // TODO: Duplicate with the head code in the `resolve` function, should remove it.
-        let importer = if let Some(importer) = importer {
-          Path::new(importer)
-            .parent()
-            .ok_or_else(|| anyhow::format_err!("parent() failed for {:?}", importer))?
-            .to_path_buf()
-        } else {
-          PathBuf::from(self.context.options.context.as_path())
-        };
-        // ----
+      Ok(ResolveResult::Ignored) => {
+        let ident = format!("{}/{}", importer_with_context.display(), specifier);
+        let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
 
-        // TODO: just for identifier tag. should removed after Module::identifier
-        let uri = format!("{}/{}", importer.display(), specifier);
-
-        let module_identifier = ModuleIdentifier::from(format!("ignored|{uri}"));
         let raw_module = RawModule::new(
           "/* (ignored) */".to_owned(),
           module_identifier,
-          format!("{uri} (ignored)"),
+          format!("{ident} (ignored)"),
           Default::default(),
         )
         .boxed();
-
         self.context.module_type = Some(*raw_module.module_type());
 
         return Ok(Some(FactorizeResult::new(raw_module)));
+      }
+      Err(ResolveError(runtime_error, internal_error)) => {
+        let ident = format!("{}{specifier}", importer_with_context.display());
+        let module_identifier = ModuleIdentifier::from(format!("missing|{ident}{specifier}"));
+
+        let missing_module = MissingModule::new(
+          module_identifier,
+          format!("{ident} (missing)"),
+          runtime_error,
+        )
+        .boxed();
+        self.context.module_type = Some(*missing_module.module_type());
+
+        let diagnostics: Vec<Diagnostic> = internal_error.into();
+        self.diagnostics.extend(diagnostics);
+
+        return Ok(Some(FactorizeResult::new(missing_module)));
       }
     };
 
     let uri = resource_data.resource.clone();
     tracing::trace!("resolved uri {:?}", uri);
+
+    let file_dependency = resource_data.resource_path.clone();
 
     if self.context.module_type.is_none() {
       self.context.module_type = self.calculate_module_type_by_resource(&resource_data);
@@ -220,8 +242,6 @@ impl NormalModuleFactory {
       })?();
 
     self.context.module_type = Some(resolved_module_type);
-
-    let file_dependency = resource_data.resource_path.clone();
 
     let normal_module = NormalModule::new(
       uri.clone(),
@@ -253,7 +273,10 @@ impl NormalModuleFactory {
     };
 
     Ok(Some(
-      FactorizeResult::new(module).file_dependency(file_dependency),
+      FactorizeResult::new(module)
+        .file_dependency(file_dependency)
+        .file_dependencies(file_dependencies)
+        .missing_dependencies(missing_dependencies),
     ))
   }
 
@@ -377,6 +400,7 @@ pub fn resolve_module_type_by_uri<T: AsRef<Path>>(uri: T) -> Option<ModuleType> 
 
 #[derive(Debug, Clone)]
 pub struct NormalModuleFactoryContext {
+  pub original_resource_path: Option<PathBuf>,
   pub module_name: Option<String>,
   pub module_type: Option<ModuleType>,
   pub side_effects: Option<bool>,

@@ -29,6 +29,25 @@ pub struct CodeGenerationResult {
 }
 
 impl CodeGenerationResult {
+  pub fn with_javascript(mut self, generation_result: impl Into<GenerationResult>) -> Self {
+    self
+      .inner
+      .insert(SourceType::JavaScript, generation_result.into());
+    self
+  }
+
+  pub fn with_css(mut self, generation_result: impl Into<GenerationResult>) -> Self {
+    self.inner.insert(SourceType::Css, generation_result.into());
+    self
+  }
+
+  pub fn with_asset(mut self, generation_result: impl Into<GenerationResult>) -> Self {
+    self
+      .inner
+      .insert(SourceType::Asset, generation_result.into());
+    self
+  }
+
   pub fn inner(&self) -> &HashMap<SourceType, GenerationResult> {
     &self.inner
   }

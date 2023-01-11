@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use rspack_error::{internal_error, Diagnostic, Error, Result};
 
@@ -24,6 +24,7 @@ pub trait WorkerTask {
 
 pub struct FactorizeTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
+  pub original_resource_path: Option<PathBuf>,
   pub dependencies: Vec<Box<dyn ModuleDependency>>,
 
   pub is_entry: bool,
@@ -43,6 +44,7 @@ pub struct FactorizeTaskResult {
   pub factory_result: FactorizeResult,
   pub module_graph_module: Box<ModuleGraphModule>,
   pub dependencies: Vec<Box<dyn ModuleDependency>>,
+  pub diagnostics: Vec<Diagnostic>,
   pub is_entry: bool,
 }
 
@@ -51,6 +53,7 @@ impl WorkerTask for FactorizeTask {
   async fn run(self) -> Result<TaskResult> {
     let factory = NormalModuleFactory::new(
       NormalModuleFactoryContext {
+        original_resource_path: self.original_resource_path,
         module_name: self.module_name,
         module_type: self.module_type,
         side_effects: self.side_effects,
@@ -62,7 +65,11 @@ impl WorkerTask for FactorizeTask {
       self.cache,
     );
 
-    let (result, context) = factory.create(self.resolve_options).await?;
+    let ((result, context), diagnostics) = factory
+      .create(self.resolve_options)
+      .await?
+      .split_into_parts();
+
     let mut mgm = ModuleGraphModule::new(
       context.module_name.clone(),
       result.module.identifier(),
@@ -85,6 +92,7 @@ impl WorkerTask for FactorizeTask {
       factory_result: result,
       module_graph_module: Box::new(mgm),
       dependencies: self.dependencies,
+      diagnostics,
     }))
   }
 }

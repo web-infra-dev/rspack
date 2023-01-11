@@ -10,6 +10,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 pub mod ast;
 pub mod cache;
+mod missing_module;
+pub use missing_module::*;
 mod normal_module;
 mod raw_module;
 pub use raw_module::*;

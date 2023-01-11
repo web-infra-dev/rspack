@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
 use futures::Future;
-use rspack_error::Result;
 
 use crate::{
   cache::snapshot::{Snapshot, SnapshotManager},
   cache::storage,
-  ModuleIdentifier, ResolveArgs, ResolveResult,
+  ModuleIdentifier, ResolveArgs, ResolveError, ResolveResult,
 };
 
 type Storage = dyn storage::Storage<(Snapshot, ResolveResult)>;
@@ -29,10 +28,10 @@ impl ResolveModuleOccasion {
     &self,
     args: ResolveArgs<'a>,
     generator: G,
-  ) -> Result<ResolveResult>
+  ) -> Result<ResolveResult, ResolveError>
   where
     G: Fn(ResolveArgs<'a>) -> F,
-    F: Future<Output = Result<ResolveResult>>,
+    F: Future<Output = Result<ResolveResult, ResolveError>>,
   {
     let storage = match &self.storage {
       Some(s) => s,
@@ -42,7 +41,10 @@ impl ResolveModuleOccasion {
 
     let id = ModuleIdentifier::from(format!(
       "{}|{}|{:?}",
-      args.importer.unwrap_or(""),
+      args
+        .importer
+        .map(|i| i.display().to_string())
+        .unwrap_or_else(|| "".to_owned()),
       args.specifier,
       args.dependency_type
     ));
@@ -71,7 +73,8 @@ impl ResolveModuleOccasion {
     let snapshot = self
       .snapshot_manager
       .create_snapshot(&paths, |option| &option.resolve)
-      .await?;
+      .await
+      .map_err(|err| ResolveError(err.to_string(), err))?;
     storage.set(id, (snapshot, data.clone()));
     Ok(data)
   }
