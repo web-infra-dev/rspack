@@ -22,6 +22,7 @@ use petgraph::{
   graph,
   graphmap::DiGraphMap,
   prelude::GraphMap,
+  stable_graph::{NodeIndex, StableDiGraph},
   visit::{Bfs, Dfs},
   Directed,
 };
@@ -1127,7 +1128,7 @@ impl Compilation {
     }
 
     dbg!(&used_export_module_identifiers);
-    // println!("{:?}", Dot::new(&symbol_graph.graph,));
+    println!("{:?}", Dot::new(&symbol_graph.graph,));
     // println!("{}", used_export_module_identifiers.len());
     // let direct_used = used_export_module_identifiers
     //   .iter()
@@ -1140,8 +1141,9 @@ impl Compilation {
     // println!("{:?}", Dot::new(&symbol_graph.graph,));
 
     if side_effects_options {
-      dbg!(&used_symbol.len());
-      dbg!(&used_indirect_symbol.len());
+      dbg!(&used_symbol);
+      dbg!(&used_indirect_symbol);
+      let mut visited_symbol_node_index: HashSet<NodeIndex> = HashSet::default();
       // pruning
       let mut visited = self.entry_module_identifiers.clone();
       let mut q = VecDeque::from_iter(visited.iter().cloned());
@@ -1182,7 +1184,40 @@ impl Compilation {
           .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {module_identifier}"));
         mgm.used = true;
         // eval start
-        // let mut bfs = Bfs::new(&symbol_graph.graph, a);
+        // for symbol_ref in analyze_result.used_symbol_refs.iter() {
+        //   let node_index = *match symbol_graph.get_node_index(symbol_ref) {
+        //     Some(node_index) => node_index,
+        //     None => {
+        //       continue;
+        //     }
+        //   };
+        //   // .unwrap_or_else(|| panic!("Can't get node index of symbol {:?}", symbol_ref));
+        //   if !visited_symbol_node_index.contains(&node_index) {
+        //     let mut bfs = Bfs::new(&symbol_graph.graph, node_index);
+        //     while let Some(node) = bfs.next(&symbol_graph.graph) {
+        //       visited_symbol_node_index.insert(node);
+        //     }
+        //   }
+        // }
+
+        // if self.entry_module_identifiers.contains(&module_identifier) {}
+
+        // let need_mark_inherit_export_as_used =
+        //   match bail_out_module_identifiers.entry(module_identifier) {
+        //     Entry::Occupied(occ) => {
+        //       let bailout_flag = occ.get();
+        //       bailout_flag
+        //         .intersection(
+        //           BailoutFlog::DYNAMIC_IMPORT | BailoutFlog::HELPER | BailoutFlog::COMMONJS_REQUIRE,
+        //         )
+        //         .bits()
+        //         .count_ones()
+        //         >= 1
+        //     }
+        //     Entry::Vacant(_) => false,
+        //   };
+        // if need_mark_inherit_export_as_used {}
+
         // while let Some(a) = bfs.next(&symbol_graph.graph) {}
         // eval end
         let mgm = self
@@ -1687,20 +1722,7 @@ fn collect_from_entry_like(
   // deduplicate reexport in entry module start, by default webpack will not mark the `export *` as used in entry module
   if !is_entry {
     // dbg!(entry_identifier);
-    let mut export_atom = HashSet::default();
-    let mut inherit_export_symbols = vec![];
-    // All the reexport star symbol should be included in the bundle
-    // TODO: webpack will emit an warning, we should align to them
-    for (m, inherit_map) in entry_module_result.inherit_export_maps.iter() {
-      for (atom, symbol_ref) in inherit_map.iter() {
-        if export_atom.contains(atom) {
-          continue;
-        } else {
-          export_atom.insert(atom.clone());
-          inherit_export_symbols.push(symbol_ref.clone());
-        }
-      }
-    }
+    let inherit_export_symbols = get_inherit_export_symbol_ref(entry_module_result);
 
     q.extend(inherit_export_symbols);
   }
@@ -1742,6 +1764,24 @@ fn collect_from_entry_like(
     );
   }
   used_symbol_set
+}
+
+fn get_inherit_export_symbol_ref(entry_module_result: &TreeShakingResult) -> Vec<SymbolRef> {
+  let mut export_atom = HashSet::default();
+  let mut inherit_export_symbols = vec![];
+  // All the reexport star symbol should be included in the bundle
+  // TODO: webpack will emit an warning, we should align to them
+  for inherit_map in entry_module_result.inherit_export_maps.values() {
+    for (atom, symbol_ref) in inherit_map.iter() {
+      if export_atom.contains(atom) {
+        continue;
+      } else {
+        export_atom.insert(atom.clone());
+        inherit_export_symbols.push(symbol_ref.clone());
+      }
+    }
+  }
+  inherit_export_symbols
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1862,9 +1902,9 @@ fn mark_symbol(
             symbol_queue.push_back(used_symbol_ref.clone());
           }
         }
-        if !side_effects_enable {
-          used_symbol_set.insert(symbol.clone());
-        }
+        // if !side_effects_enable {
+        used_symbol_set.insert(symbol.clone());
+        // }
       }
     }
     SymbolRef::Indirect(ref indirect_symbol) => {
@@ -1879,9 +1919,9 @@ fn mark_symbol(
           symbol_queue.push_back(used_symbol.clone());
         }
       }
-      if !side_effects_enable {
-        used_indirect_symbol_set.insert(indirect_symbol.clone());
-      }
+      // if !side_effects_enable {
+      used_indirect_symbol_set.insert(indirect_symbol.clone());
+      // }
       let module_result = match analyze_map.get(&indirect_symbol.uri.into()) {
         Some(module_result) => module_result,
         None => {
@@ -2128,6 +2168,25 @@ pub fn merge_used_export_type(
     Entry::Vacant(vac) => {
       vac.insert(ty);
     }
+  }
+}
+
+// pub fn generate_debug_symbol_graph(g: &SymbolGraph) -> StableDiGraph<SymbolRef, ()> {
+
+// }
+
+pub fn simplify_symbol_ref(symbol_ref: &SymbolRef, context: &str) -> SymbolRef {
+  match symbol_ref {
+    SymbolRef::Direct(direct) => SymbolRef::Direct(Symbol::from_id_and_uri(
+      direct.id().clone(),
+      contextify(context, direct.uri().as_str()).into(),
+    )),
+    SymbolRef::Indirect(indirect) => SymbolRef::Indirect(IndirectTopLevelSymbol {
+      uri: contextify(context, indirect.uri.as_str()).into(),
+      importer: contextify(context, indirect.importer().as_str()).into(),
+      ..indirect.clone()
+    }),
+    SymbolRef::Star(star) => SymbolRef::Star(contextify(context, star.as_str()).into()),
   }
 }
 
