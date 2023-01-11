@@ -19,8 +19,10 @@ use indexmap::IndexSet;
 use petgraph::{
   algo,
   dot::{Config, Dot},
+  graph,
   graphmap::DiGraphMap,
   prelude::GraphMap,
+  visit::Bfs,
   Directed,
 };
 use rayon::prelude::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
@@ -1129,7 +1131,7 @@ impl Compilation {
       };
     }
 
-    // dbg!(&used_export_module_identifiers);
+    dbg!(&used_export_module_identifiers);
     // println!("{:?}", Dot::new(&symbol_graph.graph,));
     // println!("{}", used_export_module_identifiers.len());
     // let direct_used = used_export_module_identifiers
@@ -1143,6 +1145,8 @@ impl Compilation {
     // println!("{:?}", Dot::new(&symbol_graph.graph,));
 
     if side_effects_options {
+      dbg!(&used_symbol.len());
+      dbg!(&used_indirect_symbol.len());
       // pruning
       let mut visited = self.entry_module_identifiers.clone();
       let mut q = VecDeque::from_iter(visited.iter().cloned());
@@ -1182,6 +1186,10 @@ impl Compilation {
           .module_graph_module_by_identifier_mut(&module_identifier)
           .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {module_identifier}"));
         mgm.used = true;
+        // eval start
+        // let mut bfs = Bfs::new(&symbol_graph.graph, a);
+        // while let Some(a) = bfs.next(&symbol_graph.graph) {}
+        // eval end
         let mgm = self
           .module_graph
           .module_graph_module_by_identifier(&module_identifier)
@@ -1681,36 +1689,36 @@ fn collect_reachable_symbol(
   };
 
   // deduplicate reexport in entry module start
-  let mut export_symbol_count_map: HashMap<JsWord, (SymbolRef, usize)> = entry_module_result
-    .export_map
-    .iter()
-    .map(|(symbol_name, symbol_ref)| (symbol_name.clone(), (symbol_ref.clone(), 1)))
-    .collect();
-  // All the reexport star symbol should be included in the bundle
-  // TODO: esbuild will hidden the duplicate reexport, webpack will emit an error
-  // which should we align to?
-  for (_, inherit_map) in entry_module_result.inherit_export_maps.iter() {
-    for (atom, symbol_ref) in inherit_map.iter() {
-      match export_symbol_count_map.entry(atom.clone()) {
-        Entry::Occupied(mut occ) => {
-          occ.borrow_mut().get_mut().1 += 1;
-        }
-        Entry::Vacant(vac) => {
-          vac.insert((symbol_ref.clone(), 1));
-        }
-      };
-    }
-  }
+  // let mut export_symbol_count_map: HashMap<JsWord, (SymbolRef, usize)> = entry_module_result
+  //   .export_map
+  //   .iter()
+  //   .map(|(symbol_name, symbol_ref)| (symbol_name.clone(), (symbol_ref.clone(), 1)))
+  //   .collect();
+  // // All the reexport star symbol should be included in the bundle
+  // // TODO: esbuild will hidden the duplicate reexport, webpack will emit an error
+  // // which should we align to?
+  // for (_, inherit_map) in entry_module_result.inherit_export_maps.iter() {
+  //   for (atom, symbol_ref) in inherit_map.iter() {
+  //     match export_symbol_count_map.entry(atom.clone()) {
+  //       Entry::Occupied(mut occ) => {
+  //         occ.borrow_mut().get_mut().1 += 1;
+  //       }
+  //       Entry::Vacant(vac) => {
+  //         vac.insert((symbol_ref.clone(), 1));
+  //       }
+  //     };
+  //   }
+  // }
 
-  q.extend(export_symbol_count_map.into_iter().filter_map(
-    |(_, v)| {
-      if v.1 == 1 {
-        Some(v.0)
-      } else {
-        None
-      }
-    },
-  ));
+  // q.extend(export_symbol_count_map.into_iter().filter_map(
+  //   |(_, v)| {
+  //     if v.1 == 1 {
+  //       Some(v.0)
+  //     } else {
+  //       None
+  //     }
+  //   },
+  // ));
   // deduplicate reexport in entry end
 
   for item in entry_module_result.export_map.values() {
