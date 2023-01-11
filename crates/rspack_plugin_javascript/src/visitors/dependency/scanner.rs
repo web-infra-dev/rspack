@@ -5,7 +5,9 @@ use rspack_core::{
 };
 use swc_core::common::pass::AstNodePath;
 use swc_core::common::{Mark, SyntaxContext};
-use swc_core::ecma::ast::{CallExpr, Callee, ExportSpecifier, Expr, ExprOrSpread, Lit, ModuleDecl};
+use swc_core::ecma::ast::{
+  CallExpr, Callee, ExportSpecifier, Expr, ExprOrSpread, Lit, MemberProp, ModuleDecl,
+};
 use swc_core::ecma::visit::{AstParentKind, AstParentNodeRef, VisitAstPath, VisitWithPath};
 
 pub fn as_parent_path(ast_path: &AstNodePath<AstParentNodeRef<'_>>) -> Vec<AstParentKind> {
@@ -282,64 +284,52 @@ fn test_dependency_scanner() {
   // )
 }
 
-pub fn is_module_hot_accept_call(node: &CallExpr) -> bool {
+fn match_member_expr(mut expr: &Expr, value: &str) -> bool {
+  let mut parts: Vec<&str> = value.split('.').collect();
+  parts.reverse();
+  let last = parts.pop().expect("should have a last str");
+  for part in parts {
+    if let Expr::Member(member_expr) = expr {
+      if let MemberProp::Ident(ident) = &member_expr.prop {
+        if ident.sym.eq(part) {
+          expr = &member_expr.obj;
+          continue;
+        }
+      }
+    }
+    return false;
+  }
+  matches!(&expr, Expr::Ident(ident) if ident.sym.eq(last))
+}
+
+#[inline]
+fn is_hmr_api_call(node: &CallExpr, value: &str) -> bool {
   node
     .callee
     .as_expr()
-    .and_then(|expr| {
-      // let target = swc_ecma_utils::member_expr!(DUMMY_SP, module.hot.accept);
-      // target.eq_ignore_span(expr)
-
-      expr.as_member()
-    })
-    .and_then(|member| {
-      // TODO: `swc_visitor::resolver` had make `target.eq_ignore_span(expr)`
-      //  return false.
-      // TODO: Delete following code when find a good way
-      member
-        .prop
-        .as_ident()
-        .and_then(|ident| "accept".eq(&ident.sym).then_some(&member.obj))
-    })
-    .and_then(|obj| obj.as_member())
-    .and_then(|member| {
-      member
-        .prop
-        .as_ident()
-        .and_then(|ident| "hot".eq(&ident.sym).then_some(&member.obj))
-    })
-    .and_then(|obj| obj.as_ident())
-    .map(|ident| "module".eq(&ident.sym))
+    .map(|expr| match_member_expr(expr, value))
     .unwrap_or_default()
 }
 
-pub fn is_module_hot_decline_call(node: &CallExpr) -> bool {
-  node
-    .callee
-    .as_expr()
-    .and_then(|expr| {
-      // let target = swc_ecma_utils::member_expr!(DUMMY_SP, module.hot.accept);
-      // target.eq_ignore_span(expr)
+pub fn is_module_hot_accept_call(node: &CallExpr) -> bool {
+  is_hmr_api_call(node, "module.hot.accept")
+}
 
-      expr.as_member()
-    })
-    .and_then(|member| {
-      // TODO: `swc_visitor::resolver` had make `target.eq_ignore_span(expr)`
-      //  return false.
-      // TODO: Delete following code when find a good way
-      member
-        .prop
-        .as_ident()
-        .and_then(|ident| "decline".eq(&ident.sym).then_some(&member.obj))
-    })
-    .and_then(|obj| obj.as_member())
-    .and_then(|member| {
-      member
-        .prop
-        .as_ident()
-        .and_then(|ident| "hot".eq(&ident.sym).then_some(&member.obj))
-    })
-    .and_then(|obj| obj.as_ident())
-    .map(|ident| "module".eq(&ident.sym))
-    .unwrap_or_default()
+pub fn is_module_hot_decline_call(node: &CallExpr) -> bool {
+  is_hmr_api_call(node, "module.hot.decline")
+}
+
+#[test]
+fn test() {
+  use swc_core::common::DUMMY_SP;
+  use swc_core::ecma::utils::member_expr;
+  use swc_core::ecma::utils::ExprFactory;
+  let expr = *member_expr!(DUMMY_SP, module.hot.accept);
+  assert!(match_member_expr(&expr, "module.hot.accept"));
+  assert!(is_module_hot_accept_call(&CallExpr {
+    span: DUMMY_SP,
+    callee: expr.as_callee(),
+    args: vec![],
+    type_args: None
+  }));
 }
