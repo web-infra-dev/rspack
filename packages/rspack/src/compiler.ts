@@ -122,6 +122,10 @@ class Compiler {
 					this,
 					Compilation.PROCESS_ASSETS_STAGE_NONE
 				),
+				processAssetsStageOptimizeInline: this.#processAssets.bind(
+					this,
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE
+				),
 				processAssetsStageSummarize: this.#processAssets.bind(
 					this,
 					Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
