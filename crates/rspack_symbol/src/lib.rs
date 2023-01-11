@@ -36,7 +36,7 @@ impl Symbol {
   }
 }
 
-#[derive(Debug, Clone, Default, Eq, PartialEq)]
+#[derive(Debug, Clone, Default, Eq, PartialEq, Hash)]
 pub enum IndirectType {
   #[default]
   Default,
@@ -49,13 +49,14 @@ pub struct IndirectTopLevelSymbol {
   pub id: JsWord,
   pub ty: IndirectType,
   // module identifier of module that import me, only used for debugging
-  importer: Ustr,
+  pub importer: Ustr,
 }
 
 impl std::hash::Hash for IndirectTopLevelSymbol {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.uri.hash(state);
     self.id.hash(state);
+    // self.importer.hash(state)
   }
 }
 impl std::cmp::PartialEq for IndirectTopLevelSymbol {
@@ -74,12 +75,11 @@ impl IndirectTopLevelSymbol {
     }
   }
 
-  pub fn from_uri_and_id(uri: Ustr, id: JsWord) -> IndirectTopLevelSymbol {
-    // Because importer don't affect hash result so empty `Ustr` is alright here.
+  pub fn fast_create(uri: Ustr, id: JsWord, importer: Ustr) -> IndirectTopLevelSymbol {
     IndirectTopLevelSymbol {
       uri,
       id,
-      importer: ustr(""),
+      importer,
       ty: Default::default(),
     }
   }

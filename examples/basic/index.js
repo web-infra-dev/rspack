@@ -1,6 +1,4 @@
-import * as style from './a.module.css';
-console.log('style:',style);
-import { myanswer, aaa } from './app'
-myanswer()
-
-aaa
+import {a} from './a.js'
+import{a as c} from './b.js'
+a;
+c;

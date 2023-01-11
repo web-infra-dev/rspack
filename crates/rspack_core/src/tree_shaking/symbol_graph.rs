@@ -6,6 +6,7 @@ use super::visitor::SymbolRef;
 pub struct SymbolGraph {
   pub(crate) graph: StableDiGraph<SymbolRef, ()>,
   symbol_to_index: FxHashMap<SymbolRef, NodeIndex>,
+  node_index_to_symbol: FxHashMap<NodeIndex, SymbolRef>,
 }
 
 impl SymbolGraph {
@@ -13,6 +14,7 @@ impl SymbolGraph {
     Self {
       graph: StableDiGraph::new(),
       symbol_to_index: FxHashMap::default(),
+      node_index_to_symbol: FxHashMap::default(),
     }
   }
 
@@ -22,12 +24,17 @@ impl SymbolGraph {
     } else {
       let index = self.graph.add_node(symbol.clone());
       self.symbol_to_index.insert(symbol.clone(), index);
+      self.node_index_to_symbol.insert(index, symbol.clone());
       index
     }
   }
 
   pub fn has_node(&mut self, symbol: &SymbolRef) -> bool {
     self.symbol_to_index.contains_key(symbol)
+  }
+
+  pub fn get_node_index(&mut self, symbol: &SymbolRef) -> Option<&NodeIndex> {
+    self.symbol_to_index.get(symbol)
   }
 
   pub fn add_edge(&mut self, from: &SymbolRef, to: &SymbolRef) {
