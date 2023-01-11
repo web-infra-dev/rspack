@@ -2024,7 +2024,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
- "sugar_path",
+ "sugar_path 0.0.10",
  "swc_core",
  "swc_css",
  "tokio",
@@ -2042,7 +2042,7 @@ dependencies = [
  "codespan-reporting",
  "json",
  "napi",
- "sugar_path",
+ "sugar_path 0.0.9",
  "termcolor",
  "thiserror",
 ]
@@ -2134,7 +2134,7 @@ dependencies = [
  "rayon",
  "rspack_core",
  "rspack_error",
- "sugar_path",
+ "sugar_path 0.0.9",
  "tokio",
  "tracing",
 ]
@@ -2162,7 +2162,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
- "sugar_path",
+ "sugar_path 0.0.9",
  "swc_core",
  "tokio",
  "tracing",
@@ -2214,7 +2214,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "sugar_path",
+ "sugar_path 0.0.9",
  "swc_core",
  "swc_html",
  "swc_html_minifier",
@@ -2242,7 +2242,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "sourcemap",
- "sugar_path",
+ "sugar_path 0.0.9",
  "swc_core",
  "tracing",
  "xxhash-rust",
@@ -2346,7 +2346,7 @@ version = "0.1.0"
 dependencies = [
  "once_cell",
  "regex",
- "sugar_path",
+ "sugar_path 0.0.9",
 ]
 
 [[package]]
@@ -2704,6 +2704,15 @@ name = "sugar_path"
 version = "0.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ee844c02e1da98f3d28be447c4de7103a54a8fbbcdb4a5967a7946674a8d35d3"
+dependencies = [
+ "once_cell",
+]
+
+[[package]]
+name = "sugar_path"
+version = "0.0.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01ea24654646827b60b2bc7af9dcddf357101a6b6a7bdf428a5ba370cbf66952"
 dependencies = [
  "once_cell",
 ]

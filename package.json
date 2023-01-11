@@ -14,7 +14,7 @@
     "format:rs": "./x format rs",
     "format:js": "./x format js",
     "format-ci:toml": "./x format toml",
-    "format:toml": "npx @taplo/cli format '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
+    "format:toml": "pnpm exec taplo format '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'",
     "lint:js": "./x lint js",
     "lint:rs": "./x lint rs",
     "release:binding": "pnpm --filter @rspack/binding run build:release",
