@@ -50,6 +50,8 @@ export interface ModuleRule {
 	resourceQuery?: Condition;
 	use?: ModuleRuleUse[];
 	type?: RawModuleRule["type"];
+	parser?: RawModuleRule["parser"];
+	generator?: RawModuleRule["generator"];
 	resolve?: Resolve;
 }
 
@@ -66,6 +68,9 @@ interface ResolvedModuleRule {
 	resourceQuery?: RawModuleRule["resourceQuery"];
 	use?: RawModuleRuleUse[];
 	type?: RawModuleRule["type"];
+	parser?: RawModuleRule["parser"];
+	generator?: RawModuleRule["generator"];
+	resolve?: Resolve;
 }
 
 export interface ResolvedModule {
