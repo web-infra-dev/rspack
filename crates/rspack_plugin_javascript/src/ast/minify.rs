@@ -96,7 +96,7 @@ pub fn minify(opts: &JsMinifyOptions, input: String, filename: &str) -> Result<T
         }
 
         if let Some(opts) = &mut min_opts.mangle {
-          opts.top_level = true;
+          opts.top_level = Some(true);
         }
       }
 
