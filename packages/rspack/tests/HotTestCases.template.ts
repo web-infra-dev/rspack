@@ -43,7 +43,7 @@ export function describeCases(config: {
 								return;
 							}
 							compiler.close(callback);
-							compiler = undefined;
+							// compiler = undefined;
 						});
 
 						it(

@@ -5,7 +5,7 @@ use rspack_core::{
   ModuleGraphModule, ModuleIdentifier,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use swc_core::ecma::utils::{quote_ident, ExprFactory};
+use swc_core::ecma::utils::{member_expr, quote_ident, ExprFactory};
 use tracing::instrument;
 use {
   swc_core::common::{Mark, SyntaxContext, DUMMY_SP},
@@ -14,7 +14,10 @@ use {
   swc_core::ecma::visit::{noop_visit_mut_type, Fold, VisitMut, VisitMutWith},
 };
 
-use super::{is_module_hot_accept_call, is_module_hot_decline_call};
+use super::{
+  is_import_meta_hot_accept_call, is_import_meta_hot_decline_call, is_module_hot_accept_call,
+  is_module_hot_decline_call,
+};
 use crate::utils::is_dynamic_import_literal_expr;
 
 pub static SWC_HELPERS_REG: Lazy<Regex> =
@@ -387,18 +390,16 @@ impl<'a> HmrApiRewrite<'a> {
       })
   }
 
-  fn rewrite_module_hot_accept(&mut self, n: &mut CallExpr) {
+  fn rewrite_module_hot_accept(&mut self, n: &mut CallExpr, dependency_type: &DependencyType) {
     let mut module_id_tuple: (String, String) = Default::default();
     if let Some(Lit::Str(str)) = n
       .args
       .get_mut(0)
       .and_then(|first_arg| first_arg.expr.as_mut_lit())
     {
-      if let Some(module) = self.resolve_module_legacy(
-        &self.module.identifier(),
-        &str.value,
-        &DependencyType::ModuleHotAccept,
-      ) {
+      if let Some(module) =
+        self.resolve_module_legacy(&self.module.identifier(), &str.value, dependency_type)
+      {
         let origin_value: String = str.value.to_string();
         let module_id = module.id(&self.compilation.chunk_graph);
         str.value = JsWord::from(module_id);
@@ -525,17 +526,15 @@ impl<'a> HmrApiRewrite<'a> {
     }
   }
 
-  fn rewrite_module_hot_decline(&mut self, n: &mut CallExpr) {
+  fn rewrite_module_hot_decline(&mut self, n: &mut CallExpr, dependency_type: &DependencyType) {
     if let Some(Lit::Str(str)) = n
       .args
       .get_mut(0)
       .and_then(|first_arg| first_arg.expr.as_mut_lit())
     {
-      if let Some(module) = self.resolve_module_legacy(
-        &self.module.identifier(),
-        &str.value,
-        &DependencyType::ModuleHotAccept,
-      ) {
+      if let Some(module) =
+        self.resolve_module_legacy(&self.module.identifier(), &str.value, dependency_type)
+      {
         let module_id = module.id(&self.compilation.chunk_graph);
         str.value = JsWord::from(module_id);
         str.raw = Some(Atom::from(format!("\"{module_id}\"")));
@@ -549,10 +548,27 @@ impl<'a> VisitMut for HmrApiRewrite<'a> {
 
   fn visit_mut_call_expr(&mut self, n: &mut CallExpr) {
     if is_module_hot_accept_call(n) {
-      self.rewrite_module_hot_accept(n);
+      self.rewrite_module_hot_accept(n, &DependencyType::ModuleHotAccept);
     }
     if is_module_hot_decline_call(n) {
-      self.rewrite_module_hot_decline(n);
+      self.rewrite_module_hot_decline(n, &DependencyType::ModuleHotAccept);
+    }
+    if is_import_meta_hot_accept_call(n) {
+      self.rewrite_module_hot_accept(n, &DependencyType::ImportMetaHotAccept);
+    }
+    if is_import_meta_hot_decline_call(n) {
+      self.rewrite_module_hot_decline(n, &DependencyType::ImportMetaHotAccept);
+    }
+    n.visit_mut_children_with(self);
+  }
+
+  fn visit_mut_member_expr(&mut self, n: &mut MemberExpr) {
+    if matches!(&*n.obj, Expr::MetaProp(meta) if meta.kind == MetaPropKind::ImportMeta)
+      && matches!(&n.prop, MemberProp::Ident(ident) if ident.sym.eq("webpackHot"))
+    {
+      if let Some(expr) = member_expr!(DUMMY_SP, module.hot).as_member() {
+        *n = expr.to_owned();
+      }
     }
     n.visit_mut_children_with(self);
   }
