@@ -432,7 +432,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
     },
   ],
   "errorsCount": 1,
-  "hash": "c99b60f59680c076",
+  "hash": "bf23667a66ddf2d5",
   "modules": [
     {
       "chunks": [
@@ -453,8 +453,8 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       "chunks": [
         "main",
       ],
-      "id": "617",
-      "identifier": "missing module |<PROJECT_ROOT>/tests/statsCases/resolve-overflowcycle-alias/acycle-alias/a",
+      "id": "259",
+      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-overflowcycle-alias/acycle-alias/a",
       "issuer": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
       "issuerId": "10",
       "issuerName": "./index.js",
@@ -484,14 +484,14 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-overflow 2`] = `
-"Hash: c99b60f59680c076
+"Hash: bf23667a66ddf2d5
     Asset       Size  Chunks             Chunk Names
 bundle.js  578 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 211 bytes [entry]
 [10] ./index.js 51 bytes {main}
     
-[617] <PROJECT_ROOT>/tests/statsCases/resolve-overflowcycle-alias/a (missing) 160 bytes {main}
+[259] <PROJECT_ROOT>/tests/statsCases/resolve-overflowcycle-alias/a (missing) 160 bytes {main}
     [10]
 
 error[internal]: Resolve error
@@ -561,7 +561,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
     },
   ],
   "errorsCount": 1,
-  "hash": "8c0f4bab6246cd09",
+  "hash": "86d34c25b6297b0f",
   "modules": [
     {
       "chunks": [
@@ -582,8 +582,8 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       "chunks": [
         "main",
       ],
-      "id": "899",
-      "identifier": "missing module |<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkgpkg-apkg-a",
+      "id": "805",
+      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkgpkg-apkg-a",
       "issuer": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
       "issuerId": "10",
       "issuerName": "./index.js",
@@ -613,14 +613,14 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 2`] = `
-"Hash: 8c0f4bab6246cd09
+"Hash: 86d34c25b6297b0f
     Asset       Size  Chunks             Chunk Names
 bundle.js  974 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 199 bytes [entry]
 [10] ./index.js 39 bytes {main}
     
-[899] <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkgpkg-a (missing) 160 bytes {main}
+[805] <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkgpkg-a (missing) 160 bytes {main}
     [10]
 
 Export should be relative path and start with "./", but got ../../index.js
