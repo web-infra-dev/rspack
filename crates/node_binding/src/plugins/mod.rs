@@ -50,10 +50,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)?
       .await
       .map_err(|err| {
-        Error::InternalError(internal_error!(format!(
-          "Failed to compilation: {}",
-          err.to_string()
-        )))
+        Error::InternalError(internal_error!(format!("Failed to compilation: {err}",)))
       })?
   }
 
@@ -75,8 +72,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .await
       .map_err(|err| {
         Error::InternalError(internal_error!(format!(
-          "Failed to this_compilation: {}",
-          err.to_string()
+          "Failed to this_compilation: {err}",
         )))
       })?
   }
@@ -93,8 +89,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .await
       .map_err(|err| {
         Error::InternalError(internal_error!(format!(
-          "Failed to call process assets stage additional: {}",
-          err.to_string()
+          "Failed to call process assets stage additional: {err}",
         )))
       })?
   }
@@ -111,8 +106,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .await
       .map_err(|err| {
         Error::InternalError(internal_error!(format!(
-          "Failed to call process assets stage pre-process: {}",
-          err.to_string()
+          "Failed to call process assets stage pre-process: {err}",
         )))
       })?
   }
@@ -129,8 +123,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .await
       .map_err(|err| {
         Error::InternalError(internal_error!(format!(
-          "Failed to call process assets: {}",
-          err.to_string()
+          "Failed to call process assets: {err}",
         )))
       })?
   }
@@ -150,8 +143,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .await
       .map_err(|err| {
         Error::InternalError(internal_error!(format!(
-          "Failed to call process assets stage optimize inline: {}",
-          err.to_string()
+          "Failed to call process assets stage optimize inline: {err}",
         )))
       })?
   }
@@ -169,8 +161,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .await
       .map_err(|err| {
         Error::InternalError(internal_error!(format!(
-          "Failed to call process assets stage summarize: {}",
-          err.to_string()
+          "Failed to call process assets stage summarize: {err}",
         )))
       })?
   }
@@ -188,8 +179,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .await
       .map_err(|err| {
         Error::InternalError(internal_error!(format!(
-          "Failed to call process assets stage report: {}",
-          err.to_string()
+          "Failed to call process assets stage report: {err}",
         )))
       })?
   }
@@ -200,12 +190,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .emit_tsfn
       .call((), ThreadsafeFunctionCallMode::NonBlocking)?
       .await
-      .map_err(|err| {
-        Error::InternalError(internal_error!(format!(
-          "Failed to call emit: {}",
-          err.to_string()
-        )))
-      })?
+      .map_err(|err| Error::InternalError(internal_error!(format!("Failed to call emit: {err}"))))?
   }
 
   #[tracing::instrument(name = "js_hooks_adapter::after_emit", skip_all)]
@@ -215,10 +200,9 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call((), ThreadsafeFunctionCallMode::NonBlocking)?
       .await
       .map_err(|err| {
-        Error::InternalError(internal_error!(format!(
-          "Failed to call after emit: {}",
-          err.to_string()
-        )))
+        Error::InternalError(internal_error!(
+          format!("Failed to call after emit: {err}",)
+        ))
       })?
   }
 }

@@ -59,7 +59,7 @@ impl JsCompilation {
 
           if let Some(asset_info_update_or_function) = asset_info_update_or_function {
             let asset_info = match asset_info_update_or_function {
-              Either::A(asset_info) => asset_info.into(),
+              Either::A(asset_info) => asset_info,
               Either::B(asset_info_fn) => {
                 let asset_info = unsafe {
                   call_js_function_with_napi_objects!(

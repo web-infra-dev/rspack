@@ -399,10 +399,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
       .map_err(rspack_error::Error::from)?
       .await
       .map_err(|err| {
-        rspack_error::Error::InternalError(internal_error!(format!(
-          "Failed to call loader: {}",
-          err
-        )))
+        rspack_error::Error::InternalError(internal_error!(format!("Failed to call loader: {err}")))
       })??;
 
     let source_map = loader_result
@@ -418,22 +415,22 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
         file_dependencies: loader_result
           .file_dependencies
           .into_iter()
-          .map(|i| std::path::PathBuf::from(i))
+          .map(std::path::PathBuf::from)
           .collect(),
         context_dependencies: loader_result
           .context_dependencies
           .into_iter()
-          .map(|i| std::path::PathBuf::from(i))
+          .map(std::path::PathBuf::from)
           .collect(),
         missing_dependencies: loader_result
           .missing_dependencies
           .into_iter()
-          .map(|i| std::path::PathBuf::from(i))
+          .map(std::path::PathBuf::from)
           .collect(),
         build_dependencies: loader_result
           .build_dependencies
           .into_iter()
-          .map(|i| std::path::PathBuf::from(i))
+          .map(std::path::PathBuf::from)
           .collect(),
         content: rspack_core::Content::from(Into::<Vec<u8>>::into(loader_result.content)),
         source_map,

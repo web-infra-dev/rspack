@@ -23,8 +23,8 @@ pub(crate) fn get_named_property_value_string<T: NapiRaw>(
 ) -> Result<String> {
   let mut bytes_with_nul: Vec<u8> = Vec::with_capacity(property_name.len() + 1);
 
-  write!(&mut bytes_with_nul, "{}", property_name)?;
-  write!(&mut bytes_with_nul, "{}", '\0')?;
+  write!(&mut bytes_with_nul, "{property_name}")?;
+  write!(&mut bytes_with_nul, "\0")?;
 
   let mut value_ptr = ptr::null_mut();
 
@@ -86,7 +86,7 @@ pub fn init_custom_trace_subscriber(
         rspack_tracing::enable_tracing_by_env();
         None
       }
-      _ => panic!("not supported layer type:{}", layer),
+      _ => panic!("not supported layer type:{layer}"),
     };
     if let Some(guard) = guard {
       env
