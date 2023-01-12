@@ -640,9 +640,12 @@ impl Plugin for CssPlugin {
       })
       .collect::<Result<Vec<Option<BoxSource>>>>()?
       .into_par_iter()
-      .fold(ConcatSource::default, |mut output, cur| {
+      .enumerate()
+      .fold(ConcatSource::default, |mut output, (idx, cur)| {
         if let Some(source) = cur {
-          output.add(RawSource::from("\n\n"));
+          if idx != 0 {
+            output.add(RawSource::from("\n\n"));
+          }
           output.add(source);
         }
         output
