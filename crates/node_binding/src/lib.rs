@@ -174,6 +174,7 @@ impl Rspack {
   /// Warning:
   /// Calling this method recursively might cause a deadlock.
   #[napi(
+    catch_unwind,
     js_name = "unsafe_build",
     ts_args_type = "callback: (err: null | Error) => void"
   )]
@@ -201,6 +202,7 @@ impl Rspack {
   /// Warning:
   /// Calling this method recursively will cause a deadlock.
   #[napi(
+    catch_unwind,
     js_name = "unsafe_rebuild",
     ts_args_type = "changed_files: string[], removed_files: string[], callback: (err: null | Error) => void"
   )]
@@ -240,7 +242,7 @@ impl Rspack {
   /// Calling this method under the build or rebuild method might cause a deadlock.
   ///
   /// **Note** that this method is not safe if you cache the _JsCompilation_ on the Node side, as it will be invalidated by the next build and accessing a dangling ptr is a UB.
-  #[napi(js_name = "unsafe_last_compilation")]
+  #[napi(catch_unwind, js_name = "unsafe_last_compilation")]
   pub fn unsafe_last_compilation<F: Fn(JsCompilation) -> Result<()>>(&self, f: F) -> Result<()> {
     let handle_last_compilation = |compiler: &mut _| {
       // Safety: compiler is stored in a global hashmap, and compilation is only available in the callback of this function, so it is safe to cast to a static lifetime. See more in the warning part of this method.
@@ -260,7 +262,7 @@ impl Rspack {
   /// Warning:
   ///
   /// Anything related to this compiler will be invalidated after this method is called.
-  #[napi(js_name = "unsafe_drop")]
+  #[napi(catch_unwind, js_name = "unsafe_drop")]
   pub fn drop(&self) -> Result<()> {
     unsafe { COMPILERS.remove(&self.id) };
 
@@ -301,6 +303,5 @@ fn init() {
   set_hook(Box::new(|panic_info| {
     let backtrace = Backtrace::new();
     println!("Panic: {panic_info:?}\nBacktrace: \n{backtrace:?}");
-    std::process::exit(1)
   }));
 }
