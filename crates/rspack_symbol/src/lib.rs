@@ -43,6 +43,65 @@ pub enum IndirectType {
   ReExport,
 }
 
+/// We have three kind of star symbol
+/// ## import with namespace
+/// ```js
+/// // a.js
+/// import * as xx './b.js'
+/// // this generate a a `StarSymbol` like
+/// ```
+/// ```rs,no_run
+/// StarSymbol {
+///   src: "./b.js",
+///   binding: "xx",
+///   reexporter: ""
+/// }
+/// ```
+/// ##  reexport all
+/// ```js
+/// // a.js
+/// export * from './b.js'
+/// // this generate a a `StarSymbol` like
+/// ```
+/// ```rs,no_run
+/// StarSymbol {
+///   src: "./b.js",
+///   binding: "",
+///   reexporter: "a.js"
+/// }
+/// ```
+/// ##  reexport * with a binding
+/// ```js
+/// // a.js
+/// export * as something from './b.js'
+/// // this generate a a `StarSymbol` like
+/// ```
+/// ```rs,no_run
+/// StarSymbol {
+///   src: "./b.js",
+///   binding: "something",
+///   reexporter: "a.js"
+/// }
+/// ```
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct StarSymbol {
+  pub src: Ustr,
+  pub binding: JsWord,
+  pub module_ident: Ustr,
+  pub ty: StarSymbolKind,
+}
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub enum StarSymbolKind {
+  ReExportAllAs,
+  ImportAllAs,
+  ReExportAll,
+}
+
+impl StarSymbol {
+  pub fn star_kind(&self) {}
+}
+
 #[derive(Debug, Clone, Eq)]
 pub struct IndirectTopLevelSymbol {
   pub uri: Ustr,
@@ -103,7 +162,7 @@ impl IndirectTopLevelSymbol {
 /// `BetterId.debug()` -> `xxxxxxx|#10`
 /// debug of [swc_ecma_ast::Id] -> `(#1, atom: Atom('b' type=static))`
 /// We don't care the kind of inter of the [JsWord]
-#[derive(Hash, Clone, PartialEq, Eq)]
+#[derive(Hash, Clone, PartialEq, Eq, Default)]
 pub struct BetterId {
   pub ctxt: SyntaxContext,
   pub atom: JsWord,
