@@ -114,4 +114,29 @@ describe("Stats", () => {
 			})
 		).toEqual({});
 	});
+
+	it("should look not bad for default stats toString", async () => {
+		const stats = await compile({
+			context: __dirname,
+			entry: "./fixtures/abc"
+		});
+		expect(stats.toString()).toMatchInlineSnapshot(`
+		"Hash: 3a2af34d427feeeb
+		  Asset       Size  Chunks             Chunk Names
+		main.js  419 bytes    main  [emitted]  main
+		Entrypoint main = main.js
+		[876] ./fixtures/a.js 55 bytes {main}
+		[211] ./fixtures/b.js 94 bytes {main}
+		[537] ./fixtures/c.js 72 bytes {main}
+		[222] ./fixtures/abc.js 83 bytes {main}
+
+		error[javascript]: JavaScript parsing error
+		  ┌─ tests/fixtures/b.js:6:1
+		  │
+		6 │ return;
+		  │ ^^^^^^^ Return statement is not allowed here
+
+		"
+	`);
+	});
 });

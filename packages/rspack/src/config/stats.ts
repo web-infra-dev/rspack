@@ -16,6 +16,7 @@ export interface StatsOptionsObj {
 	errorsCount?: boolean;
 	colors?: boolean;
 	hash?: boolean;
+	reasons?: boolean;
 }
 
 export type StatsOptions = StatsOptionsObj | boolean | string;

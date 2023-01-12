@@ -39,7 +39,8 @@ export class Stats {
 
 		const showAssets = optionOrLocalFallback(options.assets, true);
 		const showChunks = optionOrLocalFallback(options.chunks, !forToString);
-		const showModules = optionOrLocalFallback(options.modules, !forToString);
+		const showModules = optionOrLocalFallback(options.modules, true);
+		const showReasons = optionOrLocalFallback(options.reasons, !forToString);
 		const showEntrypoints = optionOrLocalFallback(options.entrypoints, true);
 		const showErrors = optionOrLocalFallback(options.errors, true);
 		const showErrorsCount = optionOrLocalFallback(options.errorsCount, true);
@@ -62,7 +63,7 @@ export class Stats {
 			obj.chunks = this.#inner.getChunks();
 		}
 		if (showModules) {
-			obj.modules = this.#inner.getModules();
+			obj.modules = this.#inner.getModules(showReasons);
 		}
 		if (showEntrypoints) {
 			obj.entrypoints = this.#inner.getEntrypoints().reduce((acc, cur) => {
@@ -199,7 +200,7 @@ export class Stats {
 			newline();
 		}
 		if (obj.version) {
-			colors.normal("Version: webpack ");
+			colors.normal("Version: rspack ");
 			colors.bold(obj.version);
 			newline();
 		}

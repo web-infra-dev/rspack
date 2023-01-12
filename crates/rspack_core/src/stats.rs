@@ -83,7 +83,7 @@ impl Stats<'_> {
     assets
   }
 
-  pub fn get_modules(&self) -> Result<Vec<StatsModule>> {
+  pub fn get_modules(&self, show_reasons: bool) -> Result<Vec<StatsModule>> {
     let mut modules: Vec<StatsModule> = self
       .compilation
       .module_graph
@@ -115,22 +115,27 @@ impl Stats<'_> {
         }
         issuer_path.reverse();
 
-        let mut reasons: Vec<StatsModuleReason> = mgm
-          .incoming_connections_unordered(&self.compilation.module_graph)?
-          .map(|connection| {
-            let (module_name, module_id) = connection
-              .original_module_identifier
-              .and_then(|i| self.compilation.module_graph.module_by_identifier(&i))
-              .map(|m| get_stats_module_name_and_id(m, self.compilation))
-              .unzip();
-            StatsModuleReason {
-              module_identifier: connection.original_module_identifier.map(|i| i.to_string()),
-              module_name,
-              module_id,
-            }
+        let reasons = show_reasons
+          .then(|| -> Result<_> {
+            let mut reasons: Vec<StatsModuleReason> = mgm
+              .incoming_connections_unordered(&self.compilation.module_graph)?
+              .map(|connection| {
+                let (module_name, module_id) = connection
+                  .original_module_identifier
+                  .and_then(|i| self.compilation.module_graph.module_by_identifier(&i))
+                  .map(|m| get_stats_module_name_and_id(m, self.compilation))
+                  .unzip();
+                StatsModuleReason {
+                  module_identifier: connection.original_module_identifier.map(|i| i.to_string()),
+                  module_name,
+                  module_id,
+                }
+              })
+              .collect();
+            reasons.sort_by(|a, b| a.module_identifier.cmp(&b.module_identifier));
+            Ok(reasons)
           })
-          .collect();
-        reasons.sort_by(|a, b| a.module_identifier.cmp(&b.module_identifier));
+          .transpose()?;
 
         let mut chunks: Vec<String> = self
           .compilation
@@ -346,7 +351,7 @@ pub struct StatsModule {
   pub issuer_name: Option<String>,
   pub issuer_id: Option<String>,
   pub issuer_path: Vec<StatsModuleIssuer>,
-  pub reasons: Vec<StatsModuleReason>,
+  pub reasons: Option<Vec<StatsModuleReason>>,
 }
 
 #[derive(Debug)]
