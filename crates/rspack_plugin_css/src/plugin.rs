@@ -20,8 +20,8 @@ use rspack_core::{
     SourceMapSourceOptions,
   },
   Chunk, ChunkGraph, Compilation, FilenameRenderOptions, GenerateContext, GenerationResult, Module,
-  ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, PathData, Plugin,
-  RenderManifestEntry, SourceType,
+  ModuleGraph, ModuleType, NormalModuleAstOrSource, ParseContext, ParseResult, ParserAndGenerator,
+  PathData, Plugin, RenderManifestEntry, SourceType,
 };
 use rspack_core::{
   AstOrSource, CssImportDependency, Filename, IdentifierSet, Mode, ModuleAst, ModuleDependency,
@@ -625,6 +625,24 @@ impl Plugin for CssPlugin {
       &compilation.module_graph,
       compilation,
     );
+
+    // Early bail if any of the normal modules were failed to build.
+    if ordered_modules.iter().any(|ident| {
+      args
+        .compilation
+        .module_graph
+        .module_by_identifier(ident)
+        .and_then(|module| module.as_normal_module())
+        .map(|module| {
+          matches!(
+            module.ast_or_source(),
+            NormalModuleAstOrSource::BuiltFailed(..)
+          )
+        })
+        .unwrap_or(false)
+    }) {
+      return Ok(vec![]);
+    }
 
     let sources = ordered_modules
       .par_iter()

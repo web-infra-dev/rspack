@@ -571,9 +571,12 @@ impl Module for NormalModule {
       Ok(code_generation_result)
     } else if let NormalModuleAstOrSource::BuiltFailed(error_message) = self.ast_or_source() {
       let mut code_generation_result = CodeGenerationResult::default();
-      for source_type in self.source_types() {
+
+      // If the module build failed and the module is able to emit JavaScript source,
+      // we should emit an error message to the runtime, otherwise we do nothing.
+      if self.source_types().contains(&SourceType::JavaScript) {
         code_generation_result.add(
-          *source_type,
+          SourceType::JavaScript,
           AstOrSource::Source(
             RawSource::from(format!("throw new Error({});\n", json!(error_message))).boxed(),
           ),
