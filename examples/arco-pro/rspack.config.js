@@ -1,5 +1,3 @@
-const lessLoader = require('@rspack/less-loader');
-const postcssLoader = require('@rspack/postcss-loader');
 const path = require('path');
 
 /**
@@ -33,10 +31,17 @@ module.exports = {
           test: /\.less$/,
           use:
             [
-              { loader: postcssLoader, options: { modules: true } },
-              { loader: lessLoader },
+              { loader: 'less-loader' },
             ],
           type: 'css'
+        },
+        {
+          test: /\.module\.less$/,
+          use:
+            [
+              { loader: 'less-loader' },
+            ],
+          type: 'css/module'
         },
         { test: /\.svg$/, use: [{ loader: './svg-loader.js' }], type: 'jsx' }
       ]

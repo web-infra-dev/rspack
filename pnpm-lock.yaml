@@ -84,6 +84,7 @@ importers:
       mini-css-extract-plugin: ^2.6.1
       mockjs: ^1.1.0
       nprogress: ^0.2.0
+      postcss-loader: 7.0.2
       query-string: ^6.14.1
       react: ^17.0.2
       react-color: ^2.19.3
@@ -137,6 +138,7 @@ importers:
       html-webpack-plugin: 5.5.0_webpack@5.74.0
       less-loader: 11.1.0_webpack@5.74.0
       mini-css-extract-plugin: 2.7.2_webpack@5.74.0
+      postcss-loader: 7.0.2_webpack@5.74.0
       serve: 14.1.2
       style-loader: 3.3.1_webpack@5.74.0
       swc-loader: 0.2.3_hzeag5wohmlrlexhcbrhkqzb4q
@@ -10623,6 +10625,19 @@ packages:
       cosmiconfig: 7.1.0
       klona: 2.0.5
       semver: 7.3.8
+    dev: true
+
+  /postcss-loader/7.0.2_webpack@5.74.0:
+    resolution: {integrity: sha512-fUJzV/QH7NXUAqV8dWJ9Lg4aTkDCezpTS5HgJ2DvqznexTbSTxgi/dTECvTZ15BwKTtk8G/bqI/QTu2HPd3ZCg==}
+    engines: {node: '>= 14.15.0'}
+    peerDependencies:
+      postcss: ^7.0.0 || ^8.0.1
+      webpack: ^5.0.0
+    dependencies:
+      cosmiconfig: 7.1.0
+      klona: 2.0.5
+      semver: 7.3.8
+      webpack: 5.74.0_id63hl4ti3a2o54kosxu7nkk2i
     dev: true
 
   /postcss-modules-extract-imports/3.0.0_postcss@8.4.16:

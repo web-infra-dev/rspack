@@ -52,6 +52,7 @@
     "css-loader": "^6.7.1",
     "html-webpack-plugin": "^5.5.0",
     "less-loader": "^11.1.0",
+    "postcss-loader": "7.0.2",
     "mini-css-extract-plugin": "^2.6.1",
     "style-loader": "^3.3.1",
     "swc-loader": "^0.2.3",
