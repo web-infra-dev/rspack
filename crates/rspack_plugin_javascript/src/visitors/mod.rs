@@ -133,7 +133,7 @@ pub fn run_before_pass(
 pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut GenerateContext) {
   let cm = ast.get_context().source_map.clone();
 
-  ast.transform(|program, context| {
+  _ = ast.transform_with_handler(cm.clone(), |_, program, context| {
     let unresolved_mark = context.unresolved_mark;
     let top_level_mark = context.top_level_mark;
     let tree_shaking = generate_context.compilation.options.builtins.tree_shaking;
@@ -210,5 +210,6 @@ pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut
     );
 
     program.fold_with(&mut pass);
+    Ok(())
   });
 }
