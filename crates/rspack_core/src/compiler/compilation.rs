@@ -648,18 +648,12 @@ impl Compilation {
       .chunk_by_ukey
       .values()
       .map(|chunk| async {
-        let manifest = self
-          .cache
-          .create_chunk_assets_occasion
-          .use_cache(self, chunk, || async {
-            plugin_driver
-              .read()
-              .await
-              .render_manifest(RenderManifestArgs {
-                chunk_ukey: chunk.ukey,
-                compilation: self,
-              })
-              .await
+        let manifest = plugin_driver
+          .read()
+          .await
+          .render_manifest(RenderManifestArgs {
+            chunk_ukey: chunk.ukey,
+            compilation: self,
           })
           .await;
 
