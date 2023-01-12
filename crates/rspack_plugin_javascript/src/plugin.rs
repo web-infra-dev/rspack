@@ -517,17 +517,17 @@ impl Plugin for JsPlugin {
             ..Default::default()
           }),
           source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
-          inline_sources_content: false, // don't need this since we have inner_source_map in SourceMapSource
+          inline_sources_content: true, // Using true so original_source can be None in SourceMapSource
           emit_source_map_columns: !compilation.options.devtool.cheap(),
           ..Default::default()
-        }, input.clone(), filename)?;
+        }, input, filename)?;
         let source = if let Some(map) = &output.map {
           SourceMapSource::new(SourceMapSourceOptions {
             value: output.code,
             name: filename,
             source_map: SourceMap::from_json(map)
               .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?,
-            original_source: Some(input),
+            original_source: None,
             inner_source_map: input_source_map,
             remove_original_source: true,
           })
