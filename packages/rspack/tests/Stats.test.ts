@@ -70,7 +70,7 @@ describe("Stats", () => {
 		  },
 		  "errors": [],
 		  "errorsCount": 0,
-		  "hash": "9f3a9462bb595239",
+		  "hash": "ff293361e645d785",
 		  "modules": [
 		    {
 		      "chunks": [
@@ -93,7 +93,7 @@ describe("Stats", () => {
 		}
 	`);
 		expect(stats.toString(statsOptions)).toMatchInlineSnapshot(`
-		"Hash: 9f3a9462bb595239
+		"Hash: ff293361e645d785
 		  Asset       Size  Chunks             Chunk Names
 		main.js  215 bytes    main  [emitted]  main
 		Entrypoint main = main.js

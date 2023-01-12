@@ -46,7 +46,7 @@ impl Compiler {
     let old = self.compilation.get_stats();
     let collect_changed_modules = |compilation: &Compilation| -> (
       IdentifierMap<u64>,
-      HashMap<String, String>,
+      HashMap<ModuleIdentifier, String>,
       IdentifierMap<String>,
     ) {
       let mut all_modules = IdentifierMap::default();
@@ -77,7 +77,7 @@ impl Compiler {
         .iter()
         .map(|(identifier, module)| {
           (
-            identifier.clone(),
+            *identifier,
             module.generate(compilation).source().to_string(),
           )
         })
@@ -170,7 +170,7 @@ impl Compiler {
     let (now_all_modules, now_runtime_modules, _) = collect_changed_modules(&mut self.compilation);
 
     let mut updated_modules: IdentifierSet = Default::default();
-    let mut updated_runtime_modules: HashSet<String> = Default::default();
+    let mut updated_runtime_modules: IdentifierSet = Default::default();
     let mut completely_removed_modules: HashSet<String> = Default::default();
 
     for (old_uri, old_hash) in &old_all_modules {
@@ -200,14 +200,14 @@ impl Compiler {
       if let Some(new_runtime_module_content) = now_runtime_modules.get(identifier) {
         // updated
         if new_runtime_module_content != old_runtime_module_content {
-          updated_runtime_modules.insert(identifier.clone());
+          updated_runtime_modules.insert(*identifier);
         }
       }
     }
     for identifier in now_runtime_modules.keys() {
       if !old_runtime_modules.contains_key(identifier) {
         // added
-        updated_runtime_modules.insert(identifier.clone());
+        updated_runtime_modules.insert(*identifier);
       }
     }
 

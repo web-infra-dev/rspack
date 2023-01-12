@@ -396,7 +396,10 @@ impl Plugin for JsPlugin {
     args: &mut rspack_core::ContentHashArgs<'_>,
   ) -> rspack_core::PluginContentHashHookOutput {
     let compilation = &mut args.compilation;
-
+    let chunk = compilation
+      .chunk_by_ukey
+      .get_mut(&args.chunk_ukey)
+      .expect("should have chunk");
     let mut hasher = Xxh3::default();
 
     let mut ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
@@ -406,11 +409,11 @@ impl Plugin for JsPlugin {
     );
     ordered_modules.sort_by_key(|m| &m.module_identifier);
     for mgm in ordered_modules {
-      if let Some(module) = compilation
-        .module_graph
-        .module_by_identifier(&mgm.module_identifier)
+      if let Some(hash) = compilation
+        .chunk_graph
+        .get_module_hash(mgm.module_identifier, &chunk.runtime)
       {
-        module.hash(&mut hasher);
+        hash.hash(&mut hasher);
       }
     }
 
@@ -418,15 +421,14 @@ impl Plugin for JsPlugin {
       .chunk_graph
       .get_chunk_runtime_modules_in_order(&args.chunk_ukey)
     {
-      if let Some(module) = compilation.runtime_modules.get(runtime_module_identifier) {
-        module.hash(compilation, &mut hasher);
+      if let Some(hash) = compilation
+        .runtime_module_hashes
+        .get(runtime_module_identifier)
+      {
+        hash.hash(&mut hasher);
       }
     }
 
-    let chunk = compilation
-      .chunk_by_ukey
-      .get_mut(&args.chunk_ukey)
-      .expect("should have chunk");
     chunk
       .content_hash
       .insert(SourceType::JavaScript, format!("{:x}", hasher.finish()));
