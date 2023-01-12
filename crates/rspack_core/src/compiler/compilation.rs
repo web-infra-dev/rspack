@@ -1126,8 +1126,8 @@ impl Compilation {
       };
     }
 
-    // dbg!(&used_export_module_identifiers);
-    // println!("{:?}", Dot::new(&symbol_graph.graph,));
+    dbg!(&used_export_module_identifiers);
+    println!("{:?}", Dot::new(&symbol_graph.graph,));
 
     // println!("{}", used_export_module_identifiers.len());
     // let direct_used = used_export_module_identifiers
