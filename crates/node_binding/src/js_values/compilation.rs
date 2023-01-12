@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::pin::Pin;
 
 use napi::bindgen_prelude::*;
@@ -244,7 +245,6 @@ impl JsCompilation {
       "warning" => rspack_error::Diagnostic::warn(title, message, 0, 0),
       _ => rspack_error::Diagnostic::error(title, message, 0, 0),
     };
-    // Safety: It is safe as modify for the asset will never move Compilation.
     unsafe {
       self
         .inner
@@ -259,6 +259,54 @@ impl JsCompilation {
     Ok(JsStats::new(reference.share_with(env, |compilation| {
       Ok(compilation.inner.get_stats())
     })?))
+  }
+
+  #[napi]
+  pub fn add_file_dependencies(&mut self, deps: Vec<String>) {
+    unsafe {
+      self
+        .inner
+        .as_mut()
+        .get_unchecked_mut()
+        .file_dependencies
+        .extend(deps.into_iter().map(|i| PathBuf::from(i)))
+    };
+  }
+
+  #[napi]
+  pub fn add_context_dependencies(&mut self, deps: Vec<String>) {
+    unsafe {
+      self
+        .inner
+        .as_mut()
+        .get_unchecked_mut()
+        .context_dependencies
+        .extend(deps.into_iter().map(|i| PathBuf::from(i)))
+    };
+  }
+
+  #[napi]
+  pub fn add_missing_dependencies(&mut self, deps: Vec<String>) {
+    unsafe {
+      self
+        .inner
+        .as_mut()
+        .get_unchecked_mut()
+        .missing_dependencies
+        .extend(deps.into_iter().map(|i| PathBuf::from(i)))
+    };
+  }
+
+  #[napi]
+  pub fn add_build_dependencies(&mut self, deps: Vec<String>) {
+    unsafe {
+      self
+        .inner
+        .as_mut()
+        .get_unchecked_mut()
+        .build_dependencies
+        .extend(deps.into_iter().map(|i| PathBuf::from(i)))
+    };
   }
 }
 

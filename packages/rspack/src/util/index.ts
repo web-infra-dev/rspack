@@ -56,3 +56,7 @@ export const createProcessAssetsFakeHook = (compilation: Compilation) => {
 		stageReport: new tapable.AsyncSeriesHook<Assets>(["assets"])
 	};
 };
+
+export function concatErrorMsgAndStack(err: Error): string {
+	return `${err.message}${err.stack ? `\n${err.stack}` : ""}`;
+}

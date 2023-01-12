@@ -16,32 +16,44 @@ import { ChunkGroup } from "./chunk_group";
 import { Compiler } from "./compiler";
 import ResolverFactory from "./ResolverFactory";
 import { Stats } from "./stats";
-import { createProcessAssetsFakeHook } from "./util";
+import { concatErrorMsgAndStack, createProcessAssetsFakeHook } from "./util";
+import { Logger, LogType } from "./logging/Logger";
+import * as ErrorHelpers from "./ErrorHelpers";
 
 const hashDigestLength = 8;
 const EMPTY_ASSET_INFO = {};
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;
+export interface LogEntry {
+	type: string;
+	args: any[];
+	time: number;
+	trace?: string[];
+}
 
 export class Compilation {
 	#inner: JsCompilation;
 
 	hooks: {
 		processAssets: ReturnType<typeof createProcessAssetsFakeHook>;
+		log: tapable.SyncBailHook<[string, LogEntry], true>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: ResolvedOutput;
 	compiler: Compiler;
 	resolverFactory: ResolverFactory;
+	logging: Map<string, LogEntry[]>;
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.hooks = {
-			processAssets: createProcessAssetsFakeHook(this)
+			processAssets: createProcessAssetsFakeHook(this),
+			log: new tapable.SyncBailHook(["origin", "logEntry"])
 		};
 		this.compiler = compiler;
 		this.options = compiler.options;
 		this.outputOptions = compiler.options.output;
+		this.logging = new Map();
 		this.#inner = inner;
 	}
 
@@ -187,6 +199,30 @@ export class Compilation {
 		this.#inner.pushDiagnostic(severity, title, message);
 	}
 
+	get errors() {
+		return {
+			push: (err: Error) => {
+				this.#inner.pushDiagnostic(
+					"error",
+					err.name,
+					concatErrorMsgAndStack(err)
+				);
+			}
+		};
+	}
+
+	get warnings() {
+		return {
+			push: (warn: Error) => {
+				this.#inner.pushDiagnostic(
+					"warning",
+					warn.name,
+					concatErrorMsgAndStack(warn)
+				);
+			}
+		};
+	}
+
 	// TODO: full alignment
 	getPath(filename: string, data: Record<string, any> = {}) {
 		if (!data.hash) {
@@ -201,6 +237,114 @@ export class Compilation {
 	// TODO: full alignment
 	getAssetPath(filename, data) {
 		return filename;
+	}
+
+	getLogger(name: string | (() => string)) {
+		if (!name) {
+			throw new TypeError("Compilation.getLogger(name) called without a name");
+		}
+		let logEntries: LogEntry[] | undefined;
+		return new Logger(
+			(type, args) => {
+				if (typeof name === "function") {
+					name = name();
+					if (!name) {
+						throw new TypeError(
+							"Compilation.getLogger(name) called with a function not returning a name"
+						);
+					}
+				}
+				let trace: string[];
+				switch (type) {
+					case LogType.warn:
+					case LogType.error:
+					case LogType.trace:
+						trace = ErrorHelpers.cutOffLoaderExecution(new Error("Trace").stack)
+							.split("\n")
+							.slice(3);
+						break;
+				}
+				const logEntry: LogEntry = {
+					time: Date.now(),
+					type,
+					args,
+					trace
+				};
+				if (this.hooks.log.call(name, logEntry) === undefined) {
+					if (logEntry.type === LogType.profileEnd) {
+						if (typeof console.profileEnd === "function") {
+							console.profileEnd(`[${name}] ${logEntry.args[0]}`);
+						}
+					}
+					if (logEntries === undefined) {
+						logEntries = this.logging.get(name);
+						if (logEntries === undefined) {
+							logEntries = [];
+							this.logging.set(name, logEntries);
+						}
+					}
+					logEntries.push(logEntry);
+					if (logEntry.type === LogType.profile) {
+						if (typeof console.profile === "function") {
+							console.profile(`[${name}] ${logEntry.args[0]}`);
+						}
+					}
+				}
+			},
+			childName => {
+				if (typeof name === "function") {
+					if (typeof childName === "function") {
+						return this.getLogger(() => {
+							if (typeof name === "function") {
+								name = name();
+								if (!name) {
+									throw new TypeError(
+										"Compilation.getLogger(name) called with a function not returning a name"
+									);
+								}
+							}
+							if (typeof childName === "function") {
+								childName = childName();
+								if (!childName) {
+									throw new TypeError(
+										"Logger.getChildLogger(name) called with a function not returning a name"
+									);
+								}
+							}
+							return `${name}/${childName}`;
+						});
+					} else {
+						return this.getLogger(() => {
+							if (typeof name === "function") {
+								name = name();
+								if (!name) {
+									throw new TypeError(
+										"Compilation.getLogger(name) called with a function not returning a name"
+									);
+								}
+							}
+							return `${name}/${childName}`;
+						});
+					}
+				} else {
+					if (typeof childName === "function") {
+						return this.getLogger(() => {
+							if (typeof childName === "function") {
+								childName = childName();
+								if (!childName) {
+									throw new TypeError(
+										"Logger.getChildLogger(name) called with a function not returning a name"
+									);
+								}
+							}
+							return `${name}/${childName}`;
+						});
+					} else {
+						return this.getLogger(`${name}/${childName}`);
+					}
+				}
+			}
+		);
 	}
 
 	get fileDependencies() {

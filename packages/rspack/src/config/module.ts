@@ -23,7 +23,7 @@ import {
 	Resolver,
 	ResolverWithOptions
 } from "../ResolverFactory";
-import { isNil, isPromiseLike } from "../util";
+import { concatErrorMsgAndStack, isNil, isPromiseLike } from "../util";
 import { createHash } from "../util/createHash";
 import { createRawFromSource } from "../util/createSource";
 import Hash from "../util/hash";
@@ -411,9 +411,7 @@ function composeJsUse(
 					emitError(error) {
 						const title = "Module Error";
 						const message =
-							error instanceof Error
-								? `${error.message}${error.stack ? `\n${error.stack}` : ""}`
-								: error;
+							error instanceof Error ? concatErrorMsgAndStack(error) : error;
 						compiler.compilation.pushDiagnostic(
 							"error",
 							title,
@@ -424,9 +422,7 @@ function composeJsUse(
 						const title = "Module Warning";
 						const message =
 							warning instanceof Error
-								? `${warning.message}${
-										warning.stack ? `\n${warning.stack}` : ""
-								  }`
+								? concatErrorMsgAndStack(warning)
 								: warning;
 						compiler.compilation.pushDiagnostic(
 							"warning",

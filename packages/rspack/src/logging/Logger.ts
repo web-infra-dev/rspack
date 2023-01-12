@@ -2,7 +2,6 @@
 	MIT License http://www.opensource.org/licenses/mit-license.php
 	Author Tobias Koppers @sokra
 */
-// @ts-nocheck
 
 export const LogType = Object.freeze({
 	error: /** @type {"error"} */ "error", // message, c style arguments
@@ -26,18 +25,19 @@ export const LogType = Object.freeze({
 	status: /** @type {"status"} */ "status" // message, arguments
 });
 
-/** @typedef {typeof LogType[keyof typeof LogType]} LogTypeEnum */
+export type LogTypeEnum = typeof LogType[keyof typeof LogType];
 
 const LOG_SYMBOL = Symbol("webpack logger raw log method");
 const TIMERS_SYMBOL = Symbol("webpack logger times");
 const TIMERS_AGGREGATES_SYMBOL = Symbol("webpack logger aggregated times");
 
+export type LogFunction = (type: LogTypeEnum, args?: any[]) => void;
+export type GetChildLogger = (name: string | (() => string)) => Logger;
+
 export class Logger {
-	/**
-	 * @param {function(LogTypeEnum, any[]=): void} log log function
-	 * @param {function(string | function(): string): WebpackLogger} getChildLogger function to create child logger
-	 */
-	constructor(log, getChildLogger) {
+	getChildLogger: GetChildLogger;
+
+	constructor(log: LogFunction, getChildLogger: GetChildLogger) {
 		this[LOG_SYMBOL] = log;
 		this.getChildLogger = getChildLogger;
 	}
