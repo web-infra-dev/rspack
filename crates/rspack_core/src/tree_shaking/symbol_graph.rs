@@ -33,10 +33,10 @@ impl SymbolGraph {
     self.symbol_to_index.contains_key(symbol)
   }
 
-  pub fn get_node_index(&mut self, symbol: &SymbolRef) -> Option<&NodeIndex> {
+  pub fn get_node_index(&self, symbol: &SymbolRef) -> Option<&NodeIndex> {
     self.symbol_to_index.get(symbol)
   }
-  pub fn get_symbol(&mut self, index: &NodeIndex) -> Option<&SymbolRef> {
+  pub fn get_symbol(&self, index: &NodeIndex) -> Option<&SymbolRef> {
     self.node_index_to_symbol.get(index)
   }
 
@@ -46,5 +46,9 @@ impl SymbolGraph {
     if !self.graph.contains_edge(from_index, to_index) {
       self.graph.add_edge(from_index, to_index, ());
     }
+  }
+
+  pub fn symbol_refs(&self) -> std::collections::hash_map::Keys<SymbolRef, NodeIndex> {
+    self.symbol_to_index.keys()
   }
 }
