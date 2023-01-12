@@ -87,7 +87,7 @@ pub struct JsStatsModule {
   pub issuer_name: Option<String>,
   pub issuer_id: Option<String>,
   pub issuer_path: Vec<JsStatsModuleIssuer>,
-  pub reasons: Vec<JsStatsModuleReason>,
+  pub reasons: Option<Vec<JsStatsModuleReason>>,
 }
 
 impl From<rspack_core::StatsModule> for JsStatsModule {
@@ -104,7 +104,9 @@ impl From<rspack_core::StatsModule> for JsStatsModule {
       issuer_name: stats.issuer_name,
       issuer_id: stats.issuer_id,
       issuer_path: stats.issuer_path.into_iter().map(Into::into).collect(),
-      reasons: stats.reasons.into_iter().map(Into::into).collect(),
+      reasons: stats
+        .reasons
+        .map(|i| i.into_iter().map(Into::into).collect()),
     }
   }
 }
@@ -239,10 +241,10 @@ impl JsStats {
   }
 
   #[napi]
-  pub fn get_modules(&self) -> Vec<JsStatsModule> {
+  pub fn get_modules(&self, show_reasons: bool) -> Vec<JsStatsModule> {
     self
       .inner
-      .get_modules()
+      .get_modules(show_reasons)
       .expect("Failed to get modules")
       .into_iter()
       .map(Into::into)
