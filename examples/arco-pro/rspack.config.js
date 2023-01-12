@@ -15,6 +15,7 @@ module.exports = {
     webSocketServer: 'sockjs'
   },
   mode: prod ? 'production' : 'development',
+  cache: false,
   devtool: prod ? false : 'source-map',
   builtins: {
     progress: {},

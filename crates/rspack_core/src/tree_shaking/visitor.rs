@@ -5,7 +5,10 @@ use std::{
 use bitflags::bitflags;
 use globset::{Glob, GlobSetBuilder};
 use hashlink::LinkedHashMap;
-use rspack_symbol::{BetterId, IdOrMemExpr, IndirectTopLevelSymbol, Symbol, SymbolExt, SymbolFlag};
+use rspack_symbol::{
+  BetterId, IdOrMemExpr, IndirectTopLevelSymbol, StarSymbol, StarSymbolKind, Symbol, SymbolExt,
+  SymbolFlag,
+};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
 use swc_core::common::SyntaxContext;
@@ -14,6 +17,7 @@ use swc_core::ecma::ast::*;
 use swc_core::ecma::atoms::{js_word, JsWord};
 use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
+use ustr::ustr;
 
 use super::SideEffect;
 // use swc_atoms::JsWord;
@@ -34,7 +38,7 @@ pub enum SymbolRef {
   Direct(Symbol),
   Indirect(IndirectTopLevelSymbol),
   /// uri
-  Star(ModuleIdentifier),
+  Star(StarSymbol),
 }
 
 impl SymbolRef {
@@ -42,7 +46,7 @@ impl SymbolRef {
     match self {
       SymbolRef::Direct(d) => d.uri().into(),
       SymbolRef::Indirect(i) => i.uri.into(),
-      SymbolRef::Star(s) => *s,
+      SymbolRef::Star(s) => s.src.into(),
     }
   }
 }
@@ -216,7 +220,7 @@ impl<'a> ModuleRefAnalyze<'a> {
           self.import_map.get(object).map(|sym_ref| match sym_ref {
             SymbolRef::Direct(_) | SymbolRef::Indirect(_) => sym_ref.clone(),
             SymbolRef::Star(uri) => SymbolRef::Indirect(IndirectTopLevelSymbol::new(
-              (*uri).into(),
+              (*uri.src).into(),
               property.clone(),
               self.module_identifier.into(),
               rspack_symbol::IndirectType::Default,
@@ -355,7 +359,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             self
               .used_symbol_ref
               .insert(SymbolRef::Indirect(IndirectTopLevelSymbol::new(
-                (*uri).into(),
+                (*uri.src).into(),
                 property.clone(),
                 self.module_identifier.into(),
                 rspack_symbol::IndirectType::Default,
@@ -445,7 +449,12 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               ImportSpecifier::Namespace(namespace) => {
                 self.add_import(
                   namespace.local.to_id().into(),
-                  SymbolRef::Star(resolved_uri_ukey),
+                  SymbolRef::Star(StarSymbol {
+                    src: resolved_uri_ukey.into(),
+                    binding: namespace.local.sym.clone(),
+                    module_ident: self.module_identifier.into(),
+                    ty: StarSymbolKind::ImportAllAs,
+                  }),
                 );
               }
             });
@@ -1164,7 +1173,15 @@ impl<'a> ModuleRefAnalyze<'a> {
               ModuleExportName::Ident(ref ident) => ident.sym.clone(),
               ModuleExportName::Str(ref str) => str.value.clone(),
             };
-            self.add_export(atom, SymbolRef::Star(resolved_uri_ukey));
+            self.add_export(
+              atom.clone(),
+              SymbolRef::Star(StarSymbol {
+                src: resolved_uri_ukey.into(),
+                binding: atom,
+                module_ident: self.module_identifier.into(),
+                ty: StarSymbolKind::ReExportAllAs,
+              }),
+            );
           }
           ExportSpecifier::Default(_) => {
             // Currently swc does not support syntax like `export v from 'xxx';
