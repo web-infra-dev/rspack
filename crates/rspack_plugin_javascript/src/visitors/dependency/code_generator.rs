@@ -5,7 +5,7 @@ use rspack_core::{
   CodeGeneratableJavaScriptVisitors, GenerateContext, JavaScriptVisitorBuilder, JsAstPath, Module,
 };
 use rspack_error::Result;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 use swc_core::{
   common::pass::AstKindPath,
   ecma::{

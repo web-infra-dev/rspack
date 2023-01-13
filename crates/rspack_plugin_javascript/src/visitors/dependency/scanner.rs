@@ -1,4 +1,3 @@
-use linked_hash_set::LinkedHashSet;
 use rspack_core::ModuleDependency;
 use swc_core::common::pass::AstNodePath;
 use swc_core::common::{Mark, SyntaxContext};

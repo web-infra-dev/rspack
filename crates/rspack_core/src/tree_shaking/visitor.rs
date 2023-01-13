@@ -1130,7 +1130,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       .module_graph_module_by_identifier(&self.module_identifier)
       .and_then(|mgm| {
         mgm.dependencies.iter().find_map(|dep| {
-          if dep.request() == src && dependency_type.contains(&dep.dependency_type()) {
+          if dep.request() == src && dependency_type.contains(dep.dependency_type()) {
             self
               .module_graph
               .module_by_dependency(dep)

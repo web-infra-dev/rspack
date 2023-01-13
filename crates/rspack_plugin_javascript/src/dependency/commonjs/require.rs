@@ -1,5 +1,3 @@
-use once_cell::sync::Lazy;
-use regex::Regex;
 use rspack_core::{
   create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
   Dependency, DependencyCategory, DependencyType, ErrorSpan, JsAstPath, ModuleDependency,

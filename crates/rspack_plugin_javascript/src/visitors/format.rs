@@ -1,12 +1,11 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  runtime_globals, Compilation, Dependency, DependencyType, Module, ModuleDependency,
-  ModuleGraphModule, ModuleIdentifier,
+  runtime_globals, Compilation, Dependency, DependencyCategory, DependencyType, Module,
+  ModuleDependency, ModuleGraphModule, ModuleIdentifier,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use swc_core::ecma::utils::{member_expr, quote_ident, ExprFactory};
-use tracing::instrument;
+use swc_core::ecma::utils::{member_expr, ExprFactory};
 use {
   swc_core::common::{Mark, SyntaxContext, DUMMY_SP},
   swc_core::ecma::ast::{self, *},
@@ -18,7 +17,6 @@ use super::{
   is_import_meta_hot_accept_call, is_import_meta_hot_decline_call, is_module_hot_accept_call,
   is_module_hot_decline_call,
 };
-use crate::utils::is_dynamic_import_literal_expr;
 
 pub static SWC_HELPERS_REG: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"@swc/helpers/lib/(\w*)\.js$").expect("TODO:"));
@@ -50,7 +48,7 @@ impl<'a> Fold for RspackModuleFinalizer<'a> {
         mgm
           .dependencies
           .iter()
-          .filter(|dep| DependencyType::EsmImport.eq(dep.dependency_type()))
+          .filter(|dep| DependencyCategory::Esm.eq(dep.category()))
           .map(|dep| dep.user_request().to_string())
           .collect::<HashSet<_>>()
       })
@@ -97,29 +95,6 @@ impl<'a> RspackModuleFormatTransformer<'a> {
       compilation,
       module_bindings,
     }
-  }
-
-  /// Try to get the module_identifier from `src`, `dependency_type`, and `importer`, it's a legacy way and has performance issue, which should be removed.
-  /// TODO: remove this in the future
-  fn resolve_module_legacy(
-    &self,
-    module_identifier: &ModuleIdentifier,
-    src: &str,
-    dependency_type: &DependencyType,
-  ) -> Option<&ModuleGraphModule> {
-    self
-      .compilation
-      .module_graph
-      .module_graph_module_by_identifier(module_identifier)
-      .and_then(|mgm| {
-        mgm.dependencies.iter().find_map(|dep| {
-          if dep.request() == src && dep.dependency_type() == dependency_type {
-            self.compilation.module_graph.module_by_dependency(dep)
-          } else {
-            None
-          }
-        })
-      })
   }
 }
 

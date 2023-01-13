@@ -1,16 +1,8 @@
 use rspack_core::{
-  create_javascript_visitor, runtime_globals, CodeGeneratable, CodeGeneratableContext,
-  CodeGeneratableResult, Dependency, DependencyCategory, DependencyType, ErrorSpan, JsAstPath,
-  ModuleDependency, ModuleDependencyExt, ModuleIdentifier,
+  CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, DependencyCategory,
+  DependencyType, ErrorSpan, JsAstPath, ModuleDependency, ModuleIdentifier,
 };
-use swc_core::{
-  common::DUMMY_SP,
-  ecma::{
-    ast::*,
-    atoms::{Atom, JsWord},
-    utils::ExprFactory,
-  },
-};
+use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Eq, Clone)]
 pub struct ModuleHotAcceptDependency {
@@ -93,7 +85,7 @@ impl ModuleDependency for ModuleHotAcceptDependency {
 impl CodeGeneratable for ModuleHotAcceptDependency {
   fn generate(
     &self,
-    code_generatable_context: &mut CodeGeneratableContext,
+    _code_generatable_context: &mut CodeGeneratableContext,
   ) -> rspack_error::Result<CodeGeneratableResult> {
     // The rewrite introduced to much hacks, we cannot do it in the dependency code generation right now. So a noop is returned.
     Ok(Default::default())
