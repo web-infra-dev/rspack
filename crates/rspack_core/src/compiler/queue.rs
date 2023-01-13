@@ -11,10 +11,10 @@ use crate::{
 
 #[derive(Debug)]
 pub enum TaskResult {
-  Factorize(FactorizeTaskResult),
-  Add(AddTaskResult),
-  Build(BuildTaskResult),
-  ProcessDependencies(ProcessDependenciesResult),
+  Factorize(Box<FactorizeTaskResult>),
+  Add(Box<AddTaskResult>),
+  Build(Box<BuildTaskResult>),
+  ProcessDependencies(Box<ProcessDependenciesResult>),
 }
 
 #[async_trait::async_trait]
@@ -86,14 +86,14 @@ impl WorkerTask for FactorizeTask {
 
     mgm.set_issuer_if_unset(self.original_module_identifier);
 
-    Ok(TaskResult::Factorize(FactorizeTaskResult {
+    Ok(TaskResult::Factorize(Box::new(FactorizeTaskResult {
       is_entry: self.is_entry,
       original_module_identifier: self.original_module_identifier,
       factory_result: result,
       module_graph_module: Box::new(mgm),
       dependencies: self.dependencies,
       diagnostics,
-    }))
+    })))
   }
 }
 
@@ -132,7 +132,9 @@ impl AddTask {
         module_identifier,
       )?;
 
-      return Ok(TaskResult::Add(AddTaskResult::ModuleReused(self.module)));
+      return Ok(TaskResult::Add(Box::new(AddTaskResult::ModuleReused(
+        self.module,
+      ))));
     }
 
     compilation.visited_module_id.insert(temporary_module_id);
@@ -154,7 +156,9 @@ impl AddTask {
         .insert(module_identifier);
     }
 
-    Ok(TaskResult::Add(AddTaskResult::ModuleAdded(self.module)))
+    Ok(TaskResult::Add(Box::new(AddTaskResult::ModuleAdded(
+      self.module,
+    ))))
   }
 }
 
@@ -249,11 +253,11 @@ impl WorkerTask for BuildTask {
 
     build_result.map(|build_result| {
       let (build_result, diagnostics) = build_result.split_into_parts();
-      TaskResult::Build(BuildTaskResult {
+      TaskResult::Build(Box::new(BuildTaskResult {
         module,
         build_result: Box::new(build_result),
         diagnostics,
-      })
+      }))
     })
   }
 }

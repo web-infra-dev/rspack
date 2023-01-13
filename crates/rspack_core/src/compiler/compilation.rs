@@ -421,13 +421,13 @@ impl Compilation {
         });
 
         result_tx
-          .send(Ok(TaskResult::ProcessDependencies(
+          .send(Ok(TaskResult::ProcessDependencies(Box::new(
             ProcessDependenciesResult {
               module_identifier: task
                 .original_module_identifier
                 .expect("Original module identifier expected"),
             },
-          )))
+          ))))
           .expect("Failed to send process dependencies result");
       }
 
@@ -442,7 +442,7 @@ impl Compilation {
                 factory_result,
                 module_graph_module,
                 diagnostics,
-              } = task_result;
+              } = *task_result;
 
               tracing::trace!("Module created: {}", factory_result.module.identifier());
 
@@ -466,7 +466,7 @@ impl Compilation {
                 is_entry,
               });
             }
-            Ok(TaskResult::Add(task_result)) => match task_result {
+            Ok(TaskResult::Add(task_result)) => match *task_result {
               AddTaskResult::ModuleAdded(module) => {
                 tracing::trace!("Module added: {}", module.identifier());
                 build_queue.add_task(BuildTask {
@@ -486,7 +486,7 @@ impl Compilation {
                 module,
                 build_result,
                 diagnostics,
-              } = task_result;
+              } = *task_result;
 
               tracing::trace!("Module built: {}", module.identifier());
 
