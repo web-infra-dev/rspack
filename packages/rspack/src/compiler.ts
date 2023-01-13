@@ -39,6 +39,8 @@ class Compiler {
 	intermediateFileSystem: any;
 	watchMode: boolean;
 	context: string;
+	modifiedFiles: ReadonlySet<string>;
+	removedFiles: ReadonlySet<string>;
 	hooks: {
 		done: tapable.AsyncSeriesHook<Stats>;
 		afterDone: tapable.SyncHook<Stats>;
@@ -73,6 +75,8 @@ class Compiler {
 		this.root = this;
 		this.context = context;
 		this.resolverFactory = new ResolverFactory();
+		this.modifiedFiles = undefined;
+		this.removedFiles = undefined;
 		this.hooks = {
 			initialize: new SyncHook([]),
 			done: new tapable.AsyncSeriesHook<Stats>(["stats"]),

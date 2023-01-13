@@ -199,8 +199,8 @@ impl JsCompilation {
     self.inner.hash.to_string()
   }
 
-  #[napi(getter)]
-  pub fn file_dependencies(&self) -> Vec<String> {
+  #[napi]
+  pub fn get_file_dependencies(&self) -> Vec<String> {
     self
       .inner
       .file_dependencies
@@ -209,8 +209,8 @@ impl JsCompilation {
       .collect()
   }
 
-  #[napi(getter)]
-  pub fn context_dependencies(&self) -> Vec<String> {
+  #[napi]
+  pub fn get_context_dependencies(&self) -> Vec<String> {
     self
       .inner
       .context_dependencies
@@ -219,8 +219,8 @@ impl JsCompilation {
       .collect()
   }
 
-  #[napi(getter)]
-  pub fn missing_dependencies(&self) -> Vec<String> {
+  #[napi]
+  pub fn get_missing_dependencies(&self) -> Vec<String> {
     self
       .inner
       .missing_dependencies
@@ -229,8 +229,8 @@ impl JsCompilation {
       .collect()
   }
 
-  #[napi(getter)]
-  pub fn build_dependencies(&self) -> Vec<String> {
+  #[napi]
+  pub fn get_build_dependencies(&self) -> Vec<String> {
     self
       .inner
       .build_dependencies

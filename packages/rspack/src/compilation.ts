@@ -16,7 +16,11 @@ import { ChunkGroup } from "./chunk_group";
 import { Compiler } from "./compiler";
 import ResolverFactory from "./ResolverFactory";
 import { Stats } from "./stats";
-import { concatErrorMsgAndStack, createProcessAssetsFakeHook } from "./util";
+import {
+	concatErrorMsgAndStack,
+	createFakeCompilationDependencies,
+	createProcessAssetsFakeHook
+} from "./util";
 import { Logger, LogType } from "./logging/Logger";
 import * as ErrorHelpers from "./ErrorHelpers";
 
@@ -348,19 +352,31 @@ export class Compilation {
 	}
 
 	get fileDependencies() {
-		return this.#inner.fileDependencies;
+		return createFakeCompilationDependencies(
+			this.#inner.getFileDependencies(),
+			this.#inner.addFileDependencies
+		);
 	}
 
 	get contextDependencies() {
-		return this.#inner.contextDependencies;
+		return createFakeCompilationDependencies(
+			this.#inner.getContextDependencies(),
+			this.#inner.addContextDependencies
+		);
 	}
 
 	get missingDependencies() {
-		return this.#inner.missingDependencies;
+		return createFakeCompilationDependencies(
+			this.#inner.getMissingDependencies(),
+			this.#inner.addMissingDependencies
+		);
 	}
 
 	get buildDependencies() {
-		return this.#inner.buildDependencies;
+		return createFakeCompilationDependencies(
+			this.#inner.getBuildDependencies(),
+			this.#inner.addBuildDependencies
+		);
 	}
 
 	getStats() {

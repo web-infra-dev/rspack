@@ -54,6 +54,8 @@ class Watching {
 				removedFiles
 			) => {
 				if (err) {
+					this.compiler.modifiedFiles = undefined;
+					this.compiler.removedFiles = undefined;
 					return this.handler(err);
 				}
 				this.#invalidate(
@@ -79,6 +81,8 @@ class Watching {
 		}
 		this.compiler.watching = undefined;
 		this.compiler.watchMode = false;
+		this.compiler.modifiedFiles = undefined;
+		this.compiler.removedFiles = undefined;
 		callback();
 	}
 
@@ -113,6 +117,8 @@ class Watching {
 		} else if (!this.lastWatcherStartTime) {
 			this.lastWatcherStartTime = Date.now();
 		}
+		this.compiler.modifiedFiles = changedFiles;
+		this.compiler.removedFiles = removedFiles;
 		const compile =
 			this.compiler.options.devServer && !this.#initial
 				? (changes, removals, cb) =>
@@ -138,7 +144,7 @@ class Watching {
 		this.compiler.hooks.done.callAsync(stats, () => {
 			const hasPending =
 				this.#collectedChangedFiles || this.#collectedRemovedFiles;
-			// If we have any pending task left, we should rebuild again with the pending files
+			// Rebuild again with the pending files
 			if (hasPending) {
 				const pendingChengedFiles = this.#collectedChangedFiles;
 				const pendingRemovedFiles = this.#collectedRemovedFiles;

@@ -60,3 +60,22 @@ export const createProcessAssetsFakeHook = (compilation: Compilation) => {
 export function concatErrorMsgAndStack(err: Error): string {
 	return `${err.message}${err.stack ? `\n${err.stack}` : ""}`;
 }
+
+export function createFakeCompilationDependencies(
+	deps: string[],
+	addDeps: (deps: string[]) => void
+) {
+	return {
+		*[Symbol.iterator]() {
+			for (const dep of deps) {
+				yield dep;
+			}
+		},
+		add: (dep: string) => {
+			addDeps([dep]);
+		},
+		addAll: (deps: Iterable<string>) => {
+			addDeps(Array.from(deps));
+		}
+	};
+}
