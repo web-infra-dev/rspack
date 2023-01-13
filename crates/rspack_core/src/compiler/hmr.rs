@@ -265,7 +265,7 @@ impl Compiler {
           .filter_map(|module| {
             updated_runtime_modules
               .contains(module)
-              .then_some(ModuleIdentifier::from(module.as_str()))
+              .then(|| ModuleIdentifier::from(module.as_str()))
           })
           .collect::<Vec<_>>();
 
