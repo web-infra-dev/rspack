@@ -9,7 +9,8 @@ use swc_core::ecma::visit::{AstParentKind, AstParentNodeRef, VisitAstPath, Visit
 
 use crate::dependency::{
   CommonJSRequireDependency, EsmDynamicImportDependency, EsmExportDependency, EsmImportDependency,
-  ImportMetaModuleHotAcceptDependency, ModuleHotAcceptDependency, ModuleHotDeclineDependency,
+  ImportMetaModuleHotAcceptDependency, ImportMetaModuleHotDeclineDependency,
+  ModuleHotAcceptDependency, ModuleHotDeclineDependency,
 };
 
 pub fn as_parent_path(ast_path: &AstNodePath<AstParentNodeRef<'_>>) -> Vec<AstParentKind> {
@@ -112,8 +113,14 @@ impl DependencyScanner {
           Some(node.span.into()),
           as_parent_path(ast_path),
         ));
-      } else if is_import_hot_accept {
+      } else if is_import_meta_hot_accept {
         self.add_dependency(box ImportMetaModuleHotAcceptDependency::new(
+          str.value.clone(),
+          Some(node.span.into()),
+          as_parent_path(ast_path),
+        ));
+      } else if is_import_meta_hot_decline {
+        self.add_dependency(box ImportMetaModuleHotDeclineDependency::new(
           str.value.clone(),
           Some(node.span.into()),
           as_parent_path(ast_path),

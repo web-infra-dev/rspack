@@ -28,6 +28,8 @@ pub enum DependencyType {
   CjsRequire,
   // import.meta.webpackHot.accept
   ImportMetaHotAccept,
+  // import.meta.webpackHot.decline
+  ImportMetaHotDecline,
   // module.hot.accept
   ModuleHotAccept,
   // module.hot.decline

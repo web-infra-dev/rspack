@@ -5,7 +5,7 @@ use rspack_core::{
 use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Eq, Clone)]
-pub struct ImportMetaModuleHotAcceptDependency {
+pub struct ImportMetaModuleHotDeclineDependency {
   parent_module_identifier: Option<ModuleIdentifier>,
   request: JsWord,
   // user_request: String,
@@ -18,7 +18,7 @@ pub struct ImportMetaModuleHotAcceptDependency {
 }
 
 // Do not edit this, as it is used to uniquely identify the dependency.
-impl PartialEq for ImportMetaModuleHotAcceptDependency {
+impl PartialEq for ImportMetaModuleHotDeclineDependency {
   fn eq(&self, other: &Self) -> bool {
     self.parent_module_identifier == other.parent_module_identifier
       && self.request == other.request
@@ -28,7 +28,7 @@ impl PartialEq for ImportMetaModuleHotAcceptDependency {
 }
 
 // Do not edit this, as it is used to uniquely identify the dependency.
-impl std::hash::Hash for ImportMetaModuleHotAcceptDependency {
+impl std::hash::Hash for ImportMetaModuleHotDeclineDependency {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.parent_module_identifier.hash(state);
     self.request.hash(state);
@@ -37,20 +37,20 @@ impl std::hash::Hash for ImportMetaModuleHotAcceptDependency {
   }
 }
 
-impl ImportMetaModuleHotAcceptDependency {
+impl ImportMetaModuleHotDeclineDependency {
   pub fn new(request: JsWord, span: Option<ErrorSpan>, ast_path: JsAstPath) -> Self {
     Self {
       parent_module_identifier: None,
       request,
       category: &DependencyCategory::Esm,
-      dependency_type: &DependencyType::ImportMetaHotAccept,
+      dependency_type: &DependencyType::ImportMetaHotDecline,
       span,
       ast_path,
     }
   }
 }
 
-impl Dependency for ImportMetaModuleHotAcceptDependency {
+impl Dependency for ImportMetaModuleHotDeclineDependency {
   fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
     self.parent_module_identifier.as_ref()
   }
@@ -68,7 +68,7 @@ impl Dependency for ImportMetaModuleHotAcceptDependency {
   }
 }
 
-impl ModuleDependency for ImportMetaModuleHotAcceptDependency {
+impl ModuleDependency for ImportMetaModuleHotDeclineDependency {
   fn request(&self) -> &str {
     &self.request
   }
@@ -82,7 +82,7 @@ impl ModuleDependency for ImportMetaModuleHotAcceptDependency {
   }
 }
 
-impl CodeGeneratable for ImportMetaModuleHotAcceptDependency {
+impl CodeGeneratable for ImportMetaModuleHotDeclineDependency {
   fn generate(
     &self,
     _code_generatable_context: &mut CodeGeneratableContext,

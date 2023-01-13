@@ -1,11 +1,11 @@
 use std::borrow::Cow;
 
-use hashbrown::HashMap;
 use rspack_core::{
   CodeGeneratableContext, CodeGeneratableDeclMappings, CodeGeneratableJavaScriptResult,
   CodeGeneratableJavaScriptVisitors, GenerateContext, JavaScriptVisitorBuilder, JsAstPath, Module,
 };
 use rspack_error::Result;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
   common::pass::AstKindPath,
   ecma::{
@@ -45,7 +45,7 @@ pub fn collect_dependency_code_generation_visitors(
     runtime_requirements: generate_context.runtime_requirements,
   };
 
-  let mut mappings = HashMap::new();
+  let mut mappings = HashMap::default();
 
   dependencies
     .iter()

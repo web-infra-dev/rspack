@@ -1,5 +1,5 @@
-use hashbrown::{HashMap, HashSet};
 use rspack_error::Result;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{Compilation, DependencyCategory, Module, ModuleIdentifier};
 

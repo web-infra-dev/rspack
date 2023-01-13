@@ -95,61 +95,64 @@ impl CodeGeneratable for ModuleHotAcceptDependency {
     &self,
     code_generatable_context: &mut CodeGeneratableContext,
   ) -> rspack_error::Result<CodeGeneratableResult> {
-    let CodeGeneratableContext { compilation, .. } = code_generatable_context;
-    let mut code_gen = CodeGeneratableResult::default();
+    // The rewrite introduced to much hacks, we cannot do it in the dependency code generation right now. So a noop is returned.
+    Ok(Default::default())
+    // let CodeGeneratableContext { compilation, .. } = code_generatable_context;
 
-    let referenced_module = self.referencing_module_graph_module(&compilation.module_graph);
+    // let mut code_gen = CodeGeneratableResult::default();
 
-    if let Some(referenced_module) = referenced_module {
-      let module_id = referenced_module.id(&compilation.chunk_graph).to_string();
+    // let referenced_module = self.referencing_module_graph_module(&compilation.module_graph);
 
-      code_gen.visitors.push(
-        create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
-          let mut accpet_module_id: String = Default::default();
+    // if let Some(referenced_module) = referenced_module {
+    //   let module_id = referenced_module.id(&compilation.chunk_graph).to_string();
 
-          if let Some(Lit::Str(str)) = n
-            .args
-            .get_mut(0)
-            .and_then(|first_arg| first_arg.expr.as_mut_lit())
-          {
-            str.value = JsWord::from(&*module_id);
-            str.raw = Some(Atom::from(format!("\"{module_id}\"")));
-            accpet_module_id = module_id.to_string();
-          }
+    //   code_gen.visitors.push(
+    //     create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
+    //       let mut accpet_module_id: String = Default::default();
 
-          // TODO: add assign expr with module require
-          // module.hot.accept without callback
-          if !accpet_module_id.is_empty() && n.args.len() == 1 {
-            n.args.push(
-              FnExpr {
-                ident: None,
-                function: Box::new(Function {
-                  span: DUMMY_SP,
-                  decorators: Default::default(),
-                  is_async: false,
-                  is_generator: false,
-                  params: vec![],
-                  body: Some(BlockStmt {
-                    span: DUMMY_SP,
-                    stmts: vec![CallExpr {
-                      span: DUMMY_SP,
-                      callee: Ident::new(runtime_globals::REQUIRE.into(), DUMMY_SP).as_callee(),
-                      args: vec![Lit::Str(accpet_module_id.into()).as_arg()],
-                      type_args: None,
-                    }
-                    .into_stmt()],
-                  }),
-                  type_params: None,
-                  return_type: None,
-                }),
-              }
-              .as_arg(),
-            );
-          }
-        }),
-      );
-    }
+    //       if let Some(Lit::Str(str)) = n
+    //         .args
+    //         .get_mut(0)
+    //         .and_then(|first_arg| first_arg.expr.as_mut_lit())
+    //       {
+    //         str.value = JsWord::from(&*module_id);
+    //         str.raw = Some(Atom::from(format!("\"{module_id}\"")));
+    //         accpet_module_id = module_id.to_string();
+    //       }
 
-    Ok(code_gen)
+    //       // TODO: add assign expr with module require
+    //       // module.hot.accept without callback
+    //       if !accpet_module_id.is_empty() && n.args.len() == 1 {
+    //         n.args.push(
+    //           FnExpr {
+    //             ident: None,
+    //             function: Box::new(Function {
+    //               span: DUMMY_SP,
+    //               decorators: Default::default(),
+    //               is_async: false,
+    //               is_generator: false,
+    //               params: vec![],
+    //               body: Some(BlockStmt {
+    //                 span: DUMMY_SP,
+    //                 stmts: vec![CallExpr {
+    //                   span: DUMMY_SP,
+    //                   callee: Ident::new(runtime_globals::REQUIRE.into(), DUMMY_SP).as_callee(),
+    //                   args: vec![Lit::Str(accpet_module_id.into()).as_arg()],
+    //                   type_args: None,
+    //                 }
+    //                 .into_stmt()],
+    //               }),
+    //               type_params: None,
+    //               return_type: None,
+    //             }),
+    //           }
+    //           .as_arg(),
+    //         );
+    //       }
+    //     }),
+    //   );
+    // }
+
+    // Ok(code_gen)
   }
 }

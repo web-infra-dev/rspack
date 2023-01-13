@@ -91,28 +91,30 @@ impl CodeGeneratable for ModuleHotDeclineDependency {
     &self,
     code_generatable_context: &mut CodeGeneratableContext,
   ) -> rspack_error::Result<CodeGeneratableResult> {
-    let CodeGeneratableContext { compilation, .. } = code_generatable_context;
-    let mut code_gen = CodeGeneratableResult::default();
+    // The rewrite introduced to much hacks, we cannot do it in the dependency code generation right now. So a noop is returned.
+    Ok(Default::default())
+    // let CodeGeneratableContext { compilation, .. } = code_generatable_context;
+    // let mut code_gen = CodeGeneratableResult::default();
 
-    let referenced_module = self.referencing_module_graph_module(&compilation.module_graph);
+    // let referenced_module = self.referencing_module_graph_module(&compilation.module_graph);
 
-    if let Some(referenced_module) = referenced_module {
-      let module_id = referenced_module.id(&compilation.chunk_graph).to_string();
+    // if let Some(referenced_module) = referenced_module {
+    //   let module_id = referenced_module.id(&compilation.chunk_graph).to_string();
 
-      code_gen.visitors.push(
-        create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
-          if let Some(Lit::Str(str)) = n
-            .args
-            .get_mut(0)
-            .and_then(|first_arg| first_arg.expr.as_mut_lit())
-          {
-            str.value = JsWord::from(&*module_id);
-            str.raw = Some(Atom::from(format!("\"{module_id}\"")));
-          }
-        }),
-      );
-    }
+    //   code_gen.visitors.push(
+    //     create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
+    //       if let Some(Lit::Str(str)) = n
+    //         .args
+    //         .get_mut(0)
+    //         .and_then(|first_arg| first_arg.expr.as_mut_lit())
+    //       {
+    //         str.value = JsWord::from(&*module_id);
+    //         str.raw = Some(Atom::from(format!("\"{module_id}\"")));
+    //       }
+    //     }),
+    //   );
+    // }
 
-    Ok(code_gen)
+    // Ok(code_gen)
   }
 }

@@ -144,7 +144,8 @@ impl CodeGeneratable for EsmDynamicImportDependency {
         create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
           if let Some(import) = n.args.get_mut(0) {
             if import.spread.is_none() && let Expr::Lit(Lit::Str(_)) = import.expr.as_mut() {
-                if let Some(chunk_id) = chunk_ids.first() {
+              if let Some(chunk_id) = chunk_ids.first() {
+                if chunk_ids.len() == 1 {
                   n.callee = MemberExpr {
                     span: DUMMY_SP,
                     obj: Box::new(Expr::Call(CallExpr {
@@ -265,6 +266,7 @@ impl CodeGeneratable for EsmDynamicImportDependency {
                   })
                   .as_arg()];
                 };
+              };
             }
           }
         }),
