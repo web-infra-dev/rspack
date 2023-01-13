@@ -115,7 +115,6 @@ impl std::hash::Hash for IndirectTopLevelSymbol {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.uri.hash(state);
     self.id.hash(state);
-    // self.importer.hash(state)
   }
 }
 impl std::cmp::PartialEq for IndirectTopLevelSymbol {

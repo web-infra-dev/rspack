@@ -23,7 +23,7 @@ use petgraph::{
   graphmap::DiGraphMap,
   prelude::GraphMap,
   stable_graph::{NodeIndex, StableDiGraph},
-  visit::{depth_first_search, Bfs, Control, Dfs},
+  visit::{depth_first_search, Bfs, Control, Dfs, EdgeRef, IntoEdgeReferences, IntoEdges},
   Directed,
 };
 use rayon::prelude::{
@@ -47,6 +47,7 @@ use crate::{
   cache::Cache,
   contextify, is_source_equal, join_string_component, resolve_module_type_by_uri,
   tree_shaking::{
+    debug_care_module_id,
     symbol_graph::SymbolGraph,
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
     BailoutFlog, ModuleUsedType, OptimizeDependencyResult, SideEffect,
@@ -1062,7 +1063,7 @@ impl Compilation {
     let mut used_indirect_symbol: HashSet<IndirectTopLevelSymbol> = HashSet::default();
     let mut used_export_module_identifiers: IdentifierMap<ModuleUsedType> =
       IdentifierMap::default();
-    let mut traced_tuple = HashSet::default();
+    let mut traced_tuple = HashMap::default();
     // Marking used symbol and all reachable export symbol from the used symbol for each module
 
     let mut visited_symbol_ref: HashSet<SymbolRef> = HashSet::default();
@@ -1129,7 +1130,6 @@ impl Compilation {
     }
 
     // dbg!(&used_export_module_identifiers);
-    println!("{:?}", Dot::new(&symbol_graph.graph,));
 
     // println!("{}", used_export_module_identifiers.len());
     // let direct_used = used_export_module_identifiers
@@ -1173,6 +1173,14 @@ impl Compilation {
       // println!("end ----------------");
     }
 
+    // let debug_graph = generate_debug_symbol_graph(
+    //   &symbol_graph,
+    //   self.options.context.as_ref().to_str().unwrap(),
+    // );
+    // println!("{:?}", Dot::new(&debug_graph));
+    // for symbol in symbol_graph.symbol_refs() {
+    //   dbg!(&symbol);
+    // }
     if side_effects_analyze {
       // pruning
       let mut visited_symbol_node_index: HashSet<NodeIndex> = HashSet::default();
@@ -1805,7 +1813,7 @@ fn collect_from_entry_like(
   evaluated_module_identifiers: &mut IdentifierSet,
   used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
   inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
-  traced_tuple: &mut HashSet<(ModuleIdentifier, ModuleIdentifier)>,
+  traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<(SymbolRef, SymbolRef)>>,
   options: &Arc<CompilerOptions>,
   graph: &mut SymbolGraph,
   is_entry: bool,
@@ -1894,7 +1902,7 @@ fn mark_used_symbol_with(
   evaluated_module_identifiers: &mut IdentifierSet,
   used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
   inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
-  traced_tuple: &mut HashSet<(ModuleIdentifier, ModuleIdentifier)>,
+  traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<(SymbolRef, SymbolRef)>>,
   options: &Arc<CompilerOptions>,
   graph: &mut SymbolGraph,
   visited_symbol_ref: &mut HashSet<SymbolRef>,
@@ -1927,20 +1935,20 @@ fn mark_symbol(
   evaluated_module_identifiers: &mut IdentifierSet,
   used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
   inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
-  traced_tuple: &mut HashSet<(ModuleIdentifier, ModuleIdentifier)>,
+  traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<(SymbolRef, SymbolRef)>>,
   options: &Arc<CompilerOptions>,
   graph: &mut SymbolGraph,
   visited_symbol_ref: &mut HashSet<SymbolRef>,
   errors: &mut Vec<Error>,
 ) {
+  if debug_care_module_id(current_symbol_ref.module_identifier().as_str()) {
+    dbg!(&current_symbol_ref);
+  }
   if visited_symbol_ref.contains(&current_symbol_ref) {
     return;
   } else {
     visited_symbol_ref.insert(current_symbol_ref.clone());
   }
-  // if debug_care_module_id(symbol_ref.module_identifier()) {
-  // dbg!(&symbol_ref);
-  // }
   // We don't need mark the symbol usage if it is from a bailout module because
   // bailout module will skipping tree-shaking anyway
   let is_bailout_module_identifier =
@@ -2027,7 +2035,6 @@ fn mark_symbol(
         None => {
           // TODO: better diagnostic and handle if multiple extends_map has export same symbol
           let mut ret = vec![];
-          // let mut final_node_of_path = vec![];
           // Checking if any inherit export map is belong to a bailout module
           let mut has_bailout_module_identifiers = false;
           let mut is_first_result = true;
@@ -2035,40 +2042,58 @@ fn mark_symbol(
             if let Some(value) = extends_export_map.get(&indirect_symbol.id) {
               ret.push((module_identifier, value));
               if is_first_result {
+                let mut final_node_of_path = vec![];
                 let tuple = (indirect_symbol.uri.into(), *module_identifier);
-                if !traced_tuple.contains(&tuple) {
-                  for paths in algo::all_simple_paths::<Vec<_>, _>(
-                    &inherit_extend_graph,
-                    indirect_symbol.uri.into(),
-                    *module_identifier,
-                    0,
-                    None,
-                  )
-                  .into_iter()
-                  {
-                    // let mut from = SymbolRef::Indirect(indirect_symbol.clone());
-                    // for i in 0..paths.len() - 1 {
-                    //   let star_symbol = StarSymbol {
-                    //     src: paths[i + 1].into(),
-                    //     binding: Default::default(),
-                    //     module_ident: paths[i].into(),
-                    //     ty: StarSymbolKind::ReExportAll,
-                    //   };
-                    //   let to = SymbolRef::Star(star_symbol);
-                    //   graph.add_edge(&from, &to);
-                    //   from = to;
-                    // }
-                    // final_node_of_path.push(from);
-                    for mi in paths.iter() {
-                      merge_used_export_type(
-                        used_export_module_identifiers,
-                        *mi,
-                        ModuleUsedType::REEXPORT,
-                      );
+                match traced_tuple.entry(tuple) {
+                  Entry::Occupied(occ) => {
+                    let final_node_path = occ.get();
+                    // dbg!(&final_node_path, indi);
+                    for (start, end) in final_node_path {
+                      graph.add_edge(&current_symbol_ref, start);
+                      graph.add_edge(&end, value);
                     }
                   }
-                  // used_export_module_identifiers.extend();
-                  traced_tuple.insert(tuple);
+                  Entry::Vacant(vac) => {
+                    for path in algo::all_simple_paths::<Vec<_>, _>(
+                      &inherit_extend_graph,
+                      indirect_symbol.uri.into(),
+                      *module_identifier,
+                      0,
+                      None,
+                    )
+                    .into_iter()
+                    {
+                      let mut from = current_symbol_ref.clone();
+                      let mut star_chain_start_end_pair = (from.clone(), from.clone());
+                      for i in 0..path.len() - 1 {
+                        let star_symbol = StarSymbol {
+                          src: path[i + 1].into(),
+                          binding: Default::default(),
+                          module_ident: path[i].into(),
+                          ty: StarSymbolKind::ReExportAll,
+                        };
+
+                        let to = SymbolRef::Star(star_symbol);
+                        if i == 0 {
+                          star_chain_start_end_pair.0 = to.clone();
+                        }
+                        graph.add_edge(&from, &to);
+                        from = to;
+                      }
+                      graph.add_edge(&from, value);
+                      star_chain_start_end_pair.1 = from;
+                      final_node_of_path.push(star_chain_start_end_pair);
+                      for mi in path.iter() {
+                        merge_used_export_type(
+                          used_export_module_identifiers,
+                          *mi,
+                          ModuleUsedType::REEXPORT,
+                        );
+                      }
+                    }
+                    // used_export_module_identifiers.extend();
+                    vac.insert(final_node_of_path);
+                  }
                 }
                 is_first_result = false;
               }
@@ -2134,13 +2159,10 @@ fn mark_symbol(
               ret[0].1.clone()
             }
           };
-          // for from in final_node_of_path {
-          //   symbol_graph.add_edge(&from, &selected_symbol);
-          // }
           selected_symbol
         }
       };
-      graph.add_edge(&current_symbol_ref, &symbol);
+      // graph.add_edge(&current_symbol_ref, &symbol);
 
       symbol_queue.push_back(symbol);
     }
@@ -2210,7 +2232,7 @@ fn mark_symbol(
             star_symbol.src.into(),
             export_symbol_ref.module_identifier(),
           );
-          if !traced_tuple.contains(&tuple) {
+          if !traced_tuple.contains_key(&tuple) {
             let paths = algo::all_simple_paths::<Vec<_>, _>(
               &inherit_extend_graph,
               star_symbol.src.into(),
@@ -2220,18 +2242,19 @@ fn mark_symbol(
             );
 
             for path in paths.into_iter() {
-              // let mut from = SymbolRef::Star(star_symbol.clone());
-              // for i in 0..path.len() - 1 {
-              //   let star_symbol = StarSymbol {
-              //     src: path[i + 1].into(),
-              //     binding: Default::default(),
-              //     module_ident: path[i].into(),
-              //     ty: StarSymbolKind::ReExportAll,
-              //   };
-              //   let to = SymbolRef::Star(star_symbol);
-              //   graph.add_edge(&from, &to);
-              //   from = to;
-              // }
+              let mut from = current_symbol_ref.clone();
+              for i in 0..path.len() - 1 {
+                let star_symbol = StarSymbol {
+                  src: path[i + 1].into(),
+                  binding: Default::default(),
+                  module_ident: path[i].into(),
+                  ty: StarSymbolKind::ReExportAll,
+                };
+                let to = SymbolRef::Star(star_symbol);
+                graph.add_edge(&from, &to);
+                from = to;
+              }
+
               for mi in path.iter() {
                 merge_used_export_type(
                   used_export_module_identifiers,
@@ -2240,7 +2263,8 @@ fn mark_symbol(
                 );
               }
             }
-            traced_tuple.insert(tuple);
+            // TODO: handle related symbol connection
+            traced_tuple.insert(tuple, vec![]);
           }
         }
       }
@@ -2304,9 +2328,19 @@ pub fn merge_used_export_type(
   }
 }
 
-// pub fn generate_debug_symbol_graph(g: &SymbolGraph) -> StableDiGraph<SymbolRef, ()> {
-
-// }
+pub fn generate_debug_symbol_graph(g: &SymbolGraph, context: &str) -> StableDiGraph<SymbolRef, ()> {
+  let mut debug_graph = SymbolGraph::new();
+  for node_index in g.node_indexes() {
+    for edge in g.graph.edges(*node_index) {
+      let from = edge.source();
+      let to = edge.target();
+      let from_symbol = simplify_symbol_ref(g.get_symbol(&from).unwrap(), context);
+      let to_symbol = simplify_symbol_ref(g.get_symbol(&to).unwrap(), context);
+      debug_graph.add_edge(&from_symbol, &to_symbol);
+    }
+  }
+  debug_graph.graph
+}
 
 pub fn simplify_symbol_ref(symbol_ref: &SymbolRef, context: &str) -> SymbolRef {
   match symbol_ref {
