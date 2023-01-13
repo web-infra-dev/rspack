@@ -1495,20 +1495,31 @@ impl Compilation {
 }
 
 fn update_dependency(symbol_graph: &SymbolGraph) {
-  for symbol_ref in symbol_graph
-    .symbol_refs()
-    .filter(|s| matches!(s, SymbolRef::Direct(_)))
-  {
+  let directed_symbol_node_set = symbol_graph
+    .symbol_to_index
+    .iter()
+    .filter_map(|(k, v)| {
+      if matches!(k, SymbolRef::Direct(_)) {
+        Some(*v)
+      } else {
+        None
+      }
+    })
+    .collect::<HashSet<NodeIndex>>();
+  for (symbol_ref, node_index) in symbol_graph.symbol_to_index.iter() {
     // println!("----------------");
+    if !matches!(symbol_ref, SymbolRef::Direct(_)) {
+      continue;
+    }
 
-    let node_index = *symbol_graph.get_node_index(symbol_ref).unwrap();
     let mut paths = Vec::new();
     recursive_visited(
       symbol_graph,
       &mut vec![],
       &mut paths,
       &mut HashSet::default(),
-      node_index,
+      *node_index,
+      &directed_symbol_node_set,
     );
     let symbol_paths = paths
       .into_par_iter()
@@ -1522,8 +1533,7 @@ fn update_dependency(symbol_graph: &SymbolGraph) {
     // dbg!(&symbol_paths);
     // sliding window
     for symbol_path in symbol_paths {
-      let start = 0;
-      let end = start + 1;
+      dbg!(&symbol_path.len());
       // while end < symbol_path.len() {}
     }
     // println!("end ----------------");
@@ -2242,23 +2252,35 @@ fn recursive_visited(
   paths: &mut Vec<Vec<NodeIndex>>,
   visited_node: &mut HashSet<NodeIndex>,
   cur: NodeIndex,
+  directed_symbol_node_index: &HashSet<NodeIndex>,
 ) {
   if visited_node.contains(&cur) {
     return;
   }
+  let is_directed = directed_symbol_node_index.contains(&cur) && cur_path.len() > 0;
   visited_node.insert(cur);
   cur_path.push(cur);
   let mut has_neighbor = false;
-  for ele in symbol_graph
-    .graph
-    .neighbors_directed(cur, petgraph::Direction::Incoming)
-  {
-    has_neighbor = true;
-    recursive_visited(symbol_graph, cur_path, paths, visited_node, ele);
+  if !is_directed {
+    for ele in symbol_graph
+      .graph
+      .neighbors_directed(cur, petgraph::Direction::Incoming)
+    {
+      has_neighbor = true;
+      recursive_visited(
+        symbol_graph,
+        cur_path,
+        paths,
+        visited_node,
+        ele,
+        directed_symbol_node_index,
+      );
+    }
   }
   if !has_neighbor {
     paths.push(cur_path.clone());
   }
+  cur_path.pop();
   visited_node.remove(&cur);
 }
 

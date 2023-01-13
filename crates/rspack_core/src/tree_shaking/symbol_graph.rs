@@ -5,8 +5,8 @@ use super::{debug_care_module_id, visitor::SymbolRef};
 
 pub struct SymbolGraph {
   pub(crate) graph: StableDiGraph<SymbolRef, ()>,
-  symbol_to_index: FxHashMap<SymbolRef, NodeIndex>,
-  node_index_to_symbol: FxHashMap<NodeIndex, SymbolRef>,
+  pub(crate) symbol_to_index: FxHashMap<SymbolRef, NodeIndex>,
+  pub(crate) node_index_to_symbol: FxHashMap<NodeIndex, SymbolRef>,
 }
 
 impl SymbolGraph {
