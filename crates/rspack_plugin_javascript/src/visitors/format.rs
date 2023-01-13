@@ -157,40 +157,34 @@ impl<'a> RspackModuleFormatTransformer<'a> {
         if chunk_ids.len() == 1 {
           n.callee = MemberExpr {
             span: DUMMY_SP,
-            obj: Box::new(Expr::Call(CallExpr {
+            callee: Ident::new(runtime_globals::ENSURE_CHUNK.into(), DUMMY_SP).as_callee(),
+            args: vec![Expr::Lit(Lit::Str(chunk_ids.first()?.to_string().into())).as_arg()],
+            type_args: None,
+          }
+        } else {
+          CallExpr {
+            span: DUMMY_SP,
+            callee: quote_ident!("Promise.all").as_callee(),
+            args: vec![ArrayLit {
               span: DUMMY_SP,
-              callee: MemberExpr {
-                span: DUMMY_SP,
-                obj: Box::new(Expr::Call(CallExpr {
-                  span: DUMMY_SP,
-                  callee: Ident::new(runtime_globals::ENSURE_CHUNK.into(), DUMMY_SP).as_callee(),
-                  args: vec![Expr::Lit(Lit::Str(chunk_ids.first()?.to_string().into())).as_arg()],
-                  type_args: None,
-                })),
-                prop: MemberProp::Ident(Ident::new("then".into(), DUMMY_SP)),
-              }
-              .as_callee(),
-              args: vec![CallExpr {
-                span: DUMMY_SP,
-                callee: MemberExpr {
-                  span: DUMMY_SP,
-                  obj: Box::new(Expr::Ident(Ident::new(
-                    runtime_globals::REQUIRE.into(),
-                    DUMMY_SP,
-                  ))),
-                  prop: MemberProp::Ident(Ident::new("bind".into(), DUMMY_SP)),
-                }
-                .as_callee(),
-                args: vec![
-                  Ident::new(runtime_globals::REQUIRE.into(), DUMMY_SP).as_arg(),
-                  Lit::Str(js_module_id.into()).as_arg(),
-                ],
-                type_args: None,
-              }
-              .as_arg()],
-              type_args: None,
-            })),
-            prop: MemberProp::Ident(Ident::new("then".into(), DUMMY_SP)),
+              elems: chunk_ids
+                .into_iter()
+                .map(|chunk_id| {
+                  Some(
+                    Expr::Call(CallExpr {
+                      span: DUMMY_SP,
+                      callee: Ident::new(runtime_globals::ENSURE_CHUNK.into(), DUMMY_SP)
+                        .as_callee(),
+                      args: vec![Expr::Lit(Lit::Str(chunk_id.to_string().into())).as_arg()],
+                      type_args: None,
+                    })
+                    .as_arg(),
+                  )
+                })
+                .collect(),
+            }
+            .as_arg()],
+            type_args: None,
           }
           .as_callee();
           n.args = vec![MemberExpr {
