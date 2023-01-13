@@ -17,6 +17,7 @@ pub fn tree_shaking_visitor<'a>(
   used_symbol_set: &'a HashSet<Symbol>,
   used_indirect_symbol_set: &'a HashSet<IndirectTopLevelSymbol>,
   top_level_mark: Mark,
+  side_effects_free_modules: &'a IdentifierSet,
 ) -> impl Fold + 'a {
   TreeShaker {
     module_graph,
@@ -27,6 +28,7 @@ pub fn tree_shaking_visitor<'a>(
     top_level_mark,
     module_item_index: 0,
     insert_item_tuple_list: Vec::new(),
+    side_effects_free_modules,
   }
 }
 
@@ -51,6 +53,7 @@ struct TreeShaker<'a> {
   /// First element of tuple is the position of body you want to insert with, the second element is the item you want to insert
   insert_item_tuple_list: Vec<(usize, ModuleItem)>,
   module_item_index: usize,
+  side_effects_free_modules: &'a IdentifierSet,
 }
 
 impl<'a> Fold for TreeShaker<'a> {
@@ -222,22 +225,35 @@ impl<'a> Fold for TreeShaker<'a> {
                   unreachable!("`export v from ''` is a unrecoverable syntax error")
                 }
 
-                ExportSpecifier::Named(named_spec) => match named_spec.orig {
-                  ModuleExportName::Ident(ref ident) => {
-                    let symbol = IndirectTopLevelSymbol::fast_create(
-                      module_identifier.into(),
-                      ident.sym.clone(),
-                    );
-                    self.used_indirect_symbol_set.contains(&symbol)
+                ExportSpecifier::Named(named_spec) => {
+                  let exported = if let Some(ref export) = named_spec.exported {
+                    export
+                  } else {
+                    &named_spec.orig
+                  };
+                  match exported {
+                    ModuleExportName::Ident(ref ident) => {
+                      let symbol = IndirectTopLevelSymbol::fast_create(
+                        self.module_identifier.into(),
+                        ident.sym.clone(),
+                      );
+                      self.used_indirect_symbol_set.contains(&symbol)
+                    }
+                    ModuleExportName::Str(_) => {
+                      // named export without src has string lit orig is a syntax error
+                      // `export { "something" }`
+                      todo!("`export {{ 'something' }}`")
+                    }
                   }
-                  ModuleExportName::Str(_) => {
-                    // named export without src has string lit orig is a syntax error
-                    // `export { "something" }`
-                    todo!("`export {{ 'something' }}`")
-                  }
-                },
+                }
               })
               .collect::<Vec<_>>();
+
+            // try if we could remove this export declaration
+            if specifiers.is_empty() && self.side_effects_free_modules.contains(&module_identifier)
+            {
+              return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }));
+            }
             let is_all_used = before_legnth == specifiers.len();
             named.specifiers = specifiers;
             if !is_all_used {

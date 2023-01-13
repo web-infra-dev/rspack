@@ -3,7 +3,7 @@ use rspack_symbol::{IndirectTopLevelSymbol, Symbol};
 use rustc_hash::FxHashSet as HashSet;
 
 use self::visitor::TreeShakingResult;
-use crate::IdentifierMap;
+use crate::{IdentifierMap, IdentifierSet};
 
 pub mod symbol_graph;
 pub mod utils;
@@ -14,6 +14,7 @@ pub struct OptimizeDependencyResult {
   pub used_indirect_symbol: HashSet<IndirectTopLevelSymbol>,
   pub analyze_results: IdentifierMap<TreeShakingResult>,
   pub bail_out_module_identifiers: IdentifierMap<BailoutFlog>,
+  pub side_effects_free_modules: IdentifierSet,
 }
 const ANALYZE_LOGGING: bool = true;
 pub static CARED_MODULE_ID: &[&str] =
