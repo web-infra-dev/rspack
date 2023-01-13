@@ -121,7 +121,7 @@ describe("Stats", () => {
 			entry: "./fixtures/abc"
 		});
 		expect(stats.toString()).toMatchInlineSnapshot(`
-		"Hash: 3a2af34d427feeeb
+		"Hash: 2168fece27972fed
 		  Asset       Size  Chunks             Chunk Names
 		main.js  419 bytes    main  [emitted]  main
 		Entrypoint main = main.js
