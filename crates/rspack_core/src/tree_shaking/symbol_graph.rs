@@ -1,7 +1,7 @@
 use petgraph::stable_graph::{NodeIndex, StableDiGraph};
 use rustc_hash::FxHashMap;
 
-use super::visitor::SymbolRef;
+use super::{debug_care_module_id, visitor::SymbolRef};
 
 pub struct SymbolGraph {
   pub(crate) graph: StableDiGraph<SymbolRef, ()>,
@@ -19,6 +19,9 @@ impl SymbolGraph {
   }
 
   pub fn add_node(&mut self, symbol: &SymbolRef) -> NodeIndex {
+    if debug_care_module_id(symbol.module_identifier().as_str()) {
+      dbg!(&symbol);
+    }
     if let Some(index) = self.symbol_to_index.get(symbol) {
       *index
     } else {
@@ -50,5 +53,9 @@ impl SymbolGraph {
 
   pub fn symbol_refs(&self) -> std::collections::hash_map::Keys<SymbolRef, NodeIndex> {
     self.symbol_to_index.keys()
+  }
+
+  pub fn node_indexes(&self) -> std::collections::hash_map::Keys<NodeIndex, SymbolRef> {
+    self.node_index_to_symbol.keys()
   }
 }
