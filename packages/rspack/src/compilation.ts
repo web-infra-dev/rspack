@@ -17,12 +17,12 @@ import { Compiler } from "./compiler";
 import ResolverFactory from "./ResolverFactory";
 import { Stats } from "./stats";
 import {
-	concatErrorMsgAndStack,
 	createFakeCompilationDependencies,
-	createProcessAssetsFakeHook
-} from "./util";
+	createFakeProcessAssetsHook
+} from "./util/fake";
 import { Logger, LogType } from "./logging/Logger";
 import * as ErrorHelpers from "./ErrorHelpers";
+import { concatErrorMsgAndStack } from "./util";
 
 const hashDigestLength = 8;
 const EMPTY_ASSET_INFO = {};
@@ -40,7 +40,7 @@ export class Compilation {
 	#inner: JsCompilation;
 
 	hooks: {
-		processAssets: ReturnType<typeof createProcessAssetsFakeHook>;
+		processAssets: ReturnType<typeof createFakeProcessAssetsHook>;
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
 	};
 	options: RspackOptionsNormalized;
@@ -51,7 +51,7 @@ export class Compilation {
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.hooks = {
-			processAssets: createProcessAssetsFakeHook(this),
+			processAssets: createFakeProcessAssetsHook(this),
 			log: new tapable.SyncBailHook(["origin", "logEntry"])
 		};
 		this.compiler = compiler;
