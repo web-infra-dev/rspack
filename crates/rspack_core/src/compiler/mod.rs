@@ -142,6 +142,7 @@ impl Compiler {
       self.compilation.used_symbol = analyze_result.used_direct_symbol;
       self.compilation.bailout_module_identifiers = analyze_result.bail_out_module_identifiers;
       self.compilation.used_indirect_symbol = analyze_result.used_indirect_symbol;
+      self.compilation.side_effects_free_modules = analyze_result.side_effects_free_modules;
 
       // This is only used when testing
       #[cfg(debug_assertions)]

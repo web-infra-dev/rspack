@@ -617,8 +617,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       // a.b
       (Expr::Ident(obj), MemberProp::Ident(prop)) => {
         if self.state.contains(AnalyzeState::ASSIGNMENT_LHS)
-          && (&obj.sym == "module" && &prop.sym == "exports")
-          || &obj.sym == "exports"
+          && ((&obj.sym == "module" && &prop.sym == "exports") || &obj.sym == "exports")
         {
           match self
             .bail_out_module_identifiers

@@ -121,6 +121,7 @@ pub struct Compilation {
   pub context_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
   pub missing_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
   pub build_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
+  pub side_effects_free_modules: IdentifierSet,
 }
 
 impl Compilation {
@@ -172,6 +173,7 @@ impl Compilation {
       context_dependencies: Default::default(),
       missing_dependencies: Default::default(),
       build_dependencies: Default::default(),
+      side_effects_free_modules: IdentifierSet::default(),
     }
   }
 
@@ -976,6 +978,9 @@ impl Compilation {
         evaluated_module_identifiers.insert(analyze_result.module_identifier);
         used_symbol_ref.extend(analyze_result.used_symbol_refs.iter().cloned());
       }
+      if analyze_result.side_effects_free {
+        side_effects_free_modules.insert(analyze_result.module_identifier);
+      }
       // merge bailout module identifier
       for (k, &v) in analyze_result.bail_out_module_identifiers.iter() {
         match bail_out_module_identifiers.entry(*k) {
@@ -987,7 +992,6 @@ impl Compilation {
           }
         }
       }
-      // bail_out_module_identifiers.extend(analyze_result.bail_out_module_identifiers.clone());
     }
 
     // normalize side_effects, there are two kinds of `side_effects` one from configuration and another from
@@ -1143,9 +1147,6 @@ impl Compilation {
     //   self.options.context.as_ref().to_str().unwrap(),
     // );
     // println!("{:?}", Dot::new(&debug_graph));
-    // for symbol in symbol_graph.symbol_refs() {
-    //   dbg!(&symbol);
-    // }
     finalize_symbol(
       self,
       side_effects_analyze,
@@ -1158,7 +1159,6 @@ impl Compilation {
       &mut used_indirect_symbol,
       visited_symbol_ref,
     );
-    // dbg!(&used_direct_symbol, &used_indirect_symbol);
 
     Ok(
       OptimizeDependencyResult {
@@ -1166,6 +1166,7 @@ impl Compilation {
         analyze_results,
         bail_out_module_identifiers,
         used_indirect_symbol,
+        side_effects_free_modules,
       }
       .with_diagnostic(errors_to_diagnostics(errors)),
     )
