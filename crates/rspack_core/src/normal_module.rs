@@ -301,6 +301,7 @@ pub struct BuildInfo {
 
 #[derive(Debug)]
 pub struct NormalModule {
+  id: ModuleIdentifier,
   /// Request with loaders from config
   request: String,
   /// Request intended by user (without loaders from config)
@@ -377,6 +378,7 @@ impl NormalModule {
     options: Arc<CompilerOptions>,
   ) -> Self {
     Self {
+      id: ModuleIdentifier::from(request.as_ref()),
       request,
       user_request,
       raw_request,
@@ -437,7 +439,7 @@ impl NormalModule {
 
 impl Identifiable for NormalModule {
   fn identifier(&self) -> ModuleIdentifier {
-    ModuleIdentifier::from(self.request.as_str())
+    self.id
   }
 }
 
