@@ -88,6 +88,15 @@ pub trait ModuleDependencyExt {
     &self,
     module_graph: &'m ModuleGraph,
   ) -> Option<&'m ModuleGraphModule>;
+
+  fn decl_mapping(
+    &self,
+    module_graph: &ModuleGraph,
+    module_id: String,
+  ) -> (
+    (ModuleIdentifier, String, DependencyCategory),
+    ModuleIdentifier,
+  );
 }
 
 impl ModuleDependencyExt for dyn ModuleDependency + '_ {
@@ -107,6 +116,24 @@ impl ModuleDependencyExt for dyn ModuleDependency + '_ {
         })
       })
   }
+
+  fn decl_mapping(
+    &self,
+    module_graph: &ModuleGraph,
+    module_id: String,
+  ) -> (
+    (ModuleIdentifier, String, DependencyCategory),
+    ModuleIdentifier,
+  ) {
+    let parent = self.parent_module_identifier().expect("Dependency does not have a parent module identifier. Maybe you are calling this in an `EntryDependency`?");
+    (
+      (*parent, module_id, *self.category()),
+      self
+        .referencing_module_graph_module(module_graph)
+        .expect("Failed to resolve module graph module")
+        .module_identifier,
+    )
+  }
 }
 
 impl<T: ModuleDependency> ModuleDependencyExt for T {
@@ -116,6 +143,18 @@ impl<T: ModuleDependency> ModuleDependencyExt for T {
   ) -> Option<&'m ModuleGraphModule> {
     let this = self as &dyn ModuleDependency;
     this.referencing_module_graph_module(module_graph)
+  }
+
+  fn decl_mapping(
+    &self,
+    module_graph: &ModuleGraph,
+    module_id: String,
+  ) -> (
+    (ModuleIdentifier, String, DependencyCategory),
+    ModuleIdentifier,
+  ) {
+    let this = self as &dyn ModuleDependency;
+    this.decl_mapping(module_graph, module_id)
   }
 }
 

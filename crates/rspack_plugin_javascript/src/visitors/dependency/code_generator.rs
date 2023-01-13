@@ -1,8 +1,9 @@
 use std::borrow::Cow;
 
+use hashbrown::HashMap;
 use rspack_core::{
-  CodeGeneratableContext, CodeGeneratableJavaScriptVisitors, GenerateContext,
-  JavaScriptVisitorBuilder, JsAstPath, Module,
+  CodeGeneratableContext, CodeGeneratableDeclMappings, CodeGeneratableJavaScriptResult,
+  CodeGeneratableJavaScriptVisitors, GenerateContext, JavaScriptVisitorBuilder, JsAstPath, Module,
 };
 use rspack_error::Result;
 use swc_core::{
@@ -16,6 +17,7 @@ use swc_core::{
 pub struct DependencyCodeGenerationVisitors {
   pub visitors: CodeGeneratableJavaScriptVisitors,
   pub root_visitors: CodeGeneratableJavaScriptVisitors,
+  pub decl_mappings: CodeGeneratableDeclMappings,
 }
 
 /// Collect dependency code generation visitors from dependencies of the module passed in.
@@ -43,14 +45,20 @@ pub fn collect_dependency_code_generation_visitors(
     runtime_requirements: generate_context.runtime_requirements,
   };
 
+  let mut mappings = HashMap::new();
+
   dependencies
     .iter()
     .map(|dependency| dependency.generate(&mut context))
     .collect::<Result<Vec<_>>>()?
     .into_iter()
     .for_each(|code_gen| {
-      let js_visitors = code_gen.into_javascript();
-      js_visitors.into_iter().for_each(|(ast_path, builder)| {
+      let CodeGeneratableJavaScriptResult {
+        visitors: raw_visitors,
+        decl_mappings,
+      } = code_gen.into_javascript();
+      mappings.extend(decl_mappings);
+      raw_visitors.into_iter().for_each(|(ast_path, builder)| {
         if ast_path.is_empty() {
           root_visitors.push((ast_path, builder))
         } else {
@@ -62,6 +70,7 @@ pub fn collect_dependency_code_generation_visitors(
   Ok(DependencyCodeGenerationVisitors {
     visitors,
     root_visitors,
+    decl_mappings: mappings,
   })
 }
 

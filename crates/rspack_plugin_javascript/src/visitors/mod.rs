@@ -143,12 +143,13 @@ pub fn run_after_pass(
       let dependency_visitors =
         collect_dependency_code_generation_visitors(module, generate_context)?;
 
-      {
-        let DependencyCodeGenerationVisitors {
-          visitors,
-          root_visitors,
-        } = dependency_visitors;
+      let DependencyCodeGenerationVisitors {
+        visitors,
+        root_visitors,
+        decl_mappings,
+      } = dependency_visitors;
 
+      {
         if !visitors.is_empty() {
           program.visit_mut_with_path(
             &mut ApplyVisitors::new(
@@ -169,6 +170,7 @@ pub fn run_after_pass(
       let mut pass = chain!(
         Optional::new(
           tree_shaking_visitor(
+            &decl_mappings,
             &generate_context.compilation.module_graph,
             module.identifier(),
             &generate_context.compilation.used_symbol,

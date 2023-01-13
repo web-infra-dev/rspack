@@ -1,7 +1,7 @@
 use rspack_core::{
   create_javascript_visitor, runtime_globals, CodeGeneratable, CodeGeneratableContext,
-  CodeGeneratableResult, Dependency, DependencyCategory, DependencyType, ErrorSpan, JsAstPath,
-  ModuleDependency, ModuleDependencyExt, ModuleIdentifier,
+  CodeGeneratableDeclMappings, CodeGeneratableResult, Dependency, DependencyCategory,
+  DependencyType, ErrorSpan, JsAstPath, ModuleDependency, ModuleDependencyExt, ModuleIdentifier,
 };
 use rspack_error::{internal_error, Error};
 use swc_core::{
@@ -101,11 +101,16 @@ impl CodeGeneratable for EsmDynamicImportDependency {
       ..
     } = code_generatable_context;
     let mut code_gen = CodeGeneratableResult::default();
+    let mut decl_mappings = CodeGeneratableDeclMappings::default();
 
     let referenced_module = self.referencing_module_graph_module(&compilation.module_graph);
 
     if let Some(referenced_module) = referenced_module {
       let module_id = referenced_module.id(&compilation.chunk_graph).to_string();
+      {
+        let (id, val) = self.decl_mapping(&compilation.module_graph, module_id.clone());
+        decl_mappings.insert(id, val);
+      }
 
       let mut chunk_ids = {
         let chunk_group_ukey = compilation.chunk_graph.get_module_chunk_group(
@@ -266,6 +271,6 @@ impl CodeGeneratable for EsmDynamicImportDependency {
       );
     }
 
-    Ok(code_gen)
+    Ok(code_gen.with_decl_mappings(decl_mappings))
   }
 }
