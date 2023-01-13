@@ -4,76 +4,28 @@
       "name": "debug-js",
       "port": 9229,
       "request": "attach",
-      "skipFiles": [
-        "<node_internals>/**"
-      ],
+      "skipFiles": ["<node_internals>/**"],
       "type": "node"
     },
     {
       "type": "lldb",
       "request": "launch",
-      "sourceLanguages": [
-        "rust"
-      ],
+      "sourceLanguages": ["rust"],
       "name": "debug-rust",
       "program": "node",
       "args": [
         "--inspect",
-        "-r",
-        "tsm",
-        "tests/example.debug.ts"
+        "bin/rspack",
+        "-c",
+        "../../examples/basic/rspack.config.js"
       ],
-      "cwd": "${workspaceFolder}/packages/rspack"
+      "cwd": "${workspaceFolder}/packages/rspack-cli"
     }
-    // {
-    //   "type": "lldb",
-    //   "request": "launch",
-    //   "sourceLanguages": ["rust"],
-    //   "name": "debug-rust",
-    //   "program": "node",
-    //   "args": ["--inspect", "node_modules/mocha/bin/mocha"],
-    //   "cwd": "${workspaceFolder}"
-    // },
-    // {
-    //   "type": "lldb",
-    //   "request": "launch",
-    //   "sourceLanguages": ["rust"],
-    //   "name": "debug-example-react",
-    //   "program": "node",
-    //   "args": ["--inspect", "node_modules/.bin/rspack", "examples/react"],
-    //   "cwd": "${workspaceFolder}"
-    // },
-    // {
-    //   "type": "lldb",
-    //   "request": "launch",
-    //   "sourceLanguages": ["rust"],
-    //   "name": "debug-arco-pro",
-    //   "program": "node",
-    //   "args": ["--inspect", "node_modules/.bin/rspack", "examples/arco-pro"],
-    //   "cwd": "${workspaceFolder}"
-    // },
-    // {
-    //   "type": "lldb",
-    //   "request": "launch",
-    //   "sourceLanguages": ["rust"],
-    //   "name": "debug-arco-pro-build",
-    //   "program": "node",
-    //   "args": [
-    //     "--inspect",
-    //     "node_modules/.bin/rspack",
-    //     "build",
-    //     "examples/arco-pro"
-    //   ],
-    //   "cwd": "${workspaceFolder}"
-    // }
   ],
   "compounds": [
     {
       "name": "debug-rspack",
-      "configurations": [
-        "debug-js",
-        "debug-rust"
-      ]
+      "configurations": ["debug-js", "debug-rust"]
     }
   ]
 }
