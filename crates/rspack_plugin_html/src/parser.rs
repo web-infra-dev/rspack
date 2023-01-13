@@ -73,5 +73,5 @@ pub fn html_parse_error_to_traceable_error(error: Error, path: &str) -> rspack_e
   )
   .with_kind(DiagnosticKind::Html);
   //Use this `Error` convertion could avoid eagerly clone source file.
-  rspack_error::Error::TraceableError(traceable_error)
+  rspack_error::Error::TraceableError(traceable_error.into())
 }

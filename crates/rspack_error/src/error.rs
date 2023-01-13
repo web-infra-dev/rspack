@@ -91,10 +91,18 @@ impl fmt::Display for TraceableError {
 #[derive(Debug)]
 pub enum Error {
   InternalError(InternalError),
-  TraceableError(TraceableError),
+  TraceableError(Box<TraceableError>),
   Io { source: io::Error },
   Anyhow { source: anyhow::Error },
   BatchErrors(Vec<Error>),
+}
+
+// This type is used a lot. Make sure it doesn't unintentionally get bigger.
+#[cfg(all(target_arch = "x86_64", target_pointer_width = "64"))]
+#[test]
+fn small_error_size() {
+  use std::mem::size_of;
+  assert_eq!(size_of::<Error>(), 32);
 }
 
 impl std::error::Error for Error {
@@ -145,7 +153,7 @@ impl Error {
   pub fn kind(&self) -> DiagnosticKind {
     match self {
       Error::InternalError(_) => DiagnosticKind::Internal,
-      Error::TraceableError(TraceableError { kind, .. }) => *kind,
+      Error::TraceableError(e) => e.kind,
       Error::Io { .. } => DiagnosticKind::Io,
       Error::Anyhow { .. } => DiagnosticKind::Internal,
       Error::BatchErrors(_) => DiagnosticKind::Internal,
@@ -154,7 +162,7 @@ impl Error {
   pub fn severity(&self) -> Severity {
     match self {
       Error::InternalError(_) => Severity::Error,
-      Error::TraceableError(TraceableError { severity, .. }) => *severity,
+      Error::TraceableError(e) => e.severity,
       Error::Io { .. } => Severity::Error,
       Error::Anyhow { .. } => Severity::Error,
       Error::BatchErrors(_) => Severity::Error,

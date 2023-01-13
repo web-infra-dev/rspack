@@ -55,7 +55,8 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               "Json parsing error".to_string(),
               format!("Unexpected character {ch}"),
             )
-            .with_kind(DiagnosticKind::Json),
+            .with_kind(DiagnosticKind::Json)
+            .into(),
           )
         }
         ExceededDepthLimit | WrongType(_) | FailedUtf8Parsing => {
@@ -72,7 +73,8 @@ impl ParserAndGenerator for JsonParserAndGenerator {
               "Json parsing error".to_string(),
               format!("{e}"),
             )
-            .with_kind(DiagnosticKind::Json),
+            .with_kind(DiagnosticKind::Json)
+            .into(),
           )
         }
       }

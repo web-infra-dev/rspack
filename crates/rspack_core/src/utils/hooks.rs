@@ -148,13 +148,16 @@ pub async fn resolve(
         };
         ResolveError(
           runtime_message,
-          Error::TraceableError(TraceableError::from_path(
-            importer.display().to_string(),
-            span.start as usize,
-            span.end as usize,
-            "Resolve error".to_string(),
-            internal_message,
-          )),
+          Error::TraceableError(
+            TraceableError::from_path(
+              importer.display().to_string(),
+              span.start as usize,
+              span.end as usize,
+              "Resolve error".to_string(),
+              internal_message,
+            )
+            .into(),
+          ),
         )
       } else {
         ResolveError(

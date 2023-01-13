@@ -149,6 +149,6 @@ pub fn ecma_parse_error_to_rspack_error(
     message,
   )
   .with_kind(diagnostic_kind);
-  rspack_error::Error::TraceableError(traceable_error)
+  rspack_error::Error::TraceableError(traceable_error.into())
   //Use this `Error` convertion could avoid eagerly clone source file.
 }

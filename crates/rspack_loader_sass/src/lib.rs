@@ -515,7 +515,7 @@ fn sass_exception_to_error(e: Exception) -> Error {
   if let Some(span) = e.span()
     && let Some(message) = e.sass_message()
     && let Some(e) = make_traceable_error("Sass Error", message, span) {
-    Error::TraceableError(e.with_kind(DiagnosticKind::Scss))
+    Error::TraceableError(e.with_kind(DiagnosticKind::Scss).into())
   } else {
     Error::InternalError(internal_error!(e.message().to_string()))
   }
@@ -531,7 +531,7 @@ fn sass_log_to_diagnostics(
     Severity::Warn => "Sass Warning",
   };
   if let Some(span) = span && let Some(e) = make_traceable_error(title, message, span) {
-    Error::TraceableError(e.with_kind(DiagnosticKind::Scss).with_severity(severity)).into()
+    Error::TraceableError(e.with_kind(DiagnosticKind::Scss).with_severity(severity).into()).into()
   } else {
     let f = match severity {
       Severity::Error => Diagnostic::error,

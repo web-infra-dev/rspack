@@ -89,15 +89,16 @@ impl From<Error> for Vec<Diagnostic> {
         severity: err.severity,
         ..Default::default()
       },
-      Error::TraceableError(TraceableError {
-        path,
-        start,
-        end,
-        error_message,
-        source,
-        title,
-        ..
-      }) => {
+      Error::TraceableError(e) => {
+        let TraceableError {
+          path,
+          start,
+          end,
+          error_message,
+          source,
+          title,
+          ..
+        } = *e;
         let source = if let Some(source) = source {
           Some(source)
         } else {
