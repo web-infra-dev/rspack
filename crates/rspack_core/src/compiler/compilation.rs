@@ -1136,39 +1136,7 @@ impl Compilation {
 
     // dbg!(&direct_used);
 
-    for symbol_ref in symbol_graph
-      .symbol_refs()
-      .filter(|s| matches!(s, SymbolRef::Direct(_)))
-    {
-      // println!("----------------");
-
-      let node_index = *symbol_graph.get_node_index(symbol_ref).unwrap();
-      let mut paths = Vec::new();
-      recursive_visited(
-        &symbol_graph,
-        &mut vec![],
-        &mut paths,
-        &mut HashSet::default(),
-        node_index,
-      );
-      let symbol_paths = paths
-        .into_par_iter()
-        .map(|path| {
-          path
-            .iter()
-            .map(|node_index| symbol_graph.get_symbol(node_index).unwrap().clone())
-            .collect::<Vec<_>>()
-        })
-        .collect::<Vec<_>>();
-      // dbg!(&symbol_paths);
-      // sliding window
-      for symbol_path in symbol_paths {
-        let start = 0;
-        let end = start + 1;
-        // while end < symbol_path.len() {}
-      }
-      // println!("end ----------------");
-    }
+    update_dependency(&symbol_graph);
 
     // let debug_graph = generate_debug_symbol_graph(
     //   &symbol_graph,
@@ -1519,6 +1487,42 @@ impl Compilation {
     self
       .runtime_modules
       .insert(runtime_module_identifier, module);
+  }
+}
+
+fn update_dependency(symbol_graph: &SymbolGraph) {
+  for symbol_ref in symbol_graph
+    .symbol_refs()
+    .filter(|s| matches!(s, SymbolRef::Direct(_)))
+  {
+    // println!("----------------");
+
+    let node_index = *symbol_graph.get_node_index(symbol_ref).unwrap();
+    let mut paths = Vec::new();
+    recursive_visited(
+      symbol_graph,
+      &mut vec![],
+      &mut paths,
+      &mut HashSet::default(),
+      node_index,
+    );
+    let symbol_paths = paths
+      .into_par_iter()
+      .map(|path| {
+        path
+          .iter()
+          .map(|node_index| symbol_graph.get_symbol(node_index).unwrap().clone())
+          .collect::<Vec<_>>()
+      })
+      .collect::<Vec<_>>();
+    // dbg!(&symbol_paths);
+    // sliding window
+    for symbol_path in symbol_paths {
+      let start = 0;
+      let end = start + 1;
+      // while end < symbol_path.len() {}
+    }
+    // println!("end ----------------");
   }
 }
 
@@ -1996,34 +2000,12 @@ fn mark_symbol(
       let analyze_refsult = match analyze_map.get(&star_symbol.src.into()) {
         Some(analyze_result) => analyze_result,
         None => {
-          match resolve_module_type_by_uri(star_symbol.src.as_str()) {
-            Some(module_type) => match module_type {
-              crate::ModuleType::Js
-              | crate::ModuleType::JsDynamic
-              | crate::ModuleType::JsEsm
-              | crate::ModuleType::Jsx
-              | crate::ModuleType::JsxDynamic
-              | crate::ModuleType::JsxEsm
-              | crate::ModuleType::Tsx
-              | crate::ModuleType::Ts => {
-                let error_message = format!("Can't get analyze result of {src}");
-                errors.push(Error::InternalError(InternalError {
-                  error_message,
-                  severity: Severity::Warn,
-                }));
-              }
-              _ => {
-                // Ignore result module type
-              }
-            },
-            None => {
-              let error_message = format!("Can't get analyze result of {src}");
-              errors.push(Error::InternalError(InternalError {
-                error_message,
-                severity: Severity::Warn,
-              }));
-            }
-          };
+          if is_js_like_uri(star_symbol.src.as_str()) {
+            let error_message = format!("Can't get analyze result of {0}", star_symbol.src);
+            errors.push(Error::InternalError(
+              internal_error!(error_message).with_severity(Severity::Warn),
+            ));
+          }
           return;
         }
       };
@@ -2345,7 +2327,9 @@ fn finalize_symbol(
         let node_index = *match symbol_graph.get_node_index(symbol_ref) {
           Some(node_index) => node_index,
           None => {
-            if !bail_out_module_identifiers.contains_key(&symbol_ref.module_identifier()) {
+            if !bail_out_module_identifiers.contains_key(&symbol_ref.module_identifier())
+              && is_js_like_uri(&symbol_ref.module_identifier())
+            {
               eprintln!("(used symbol) Can't get symbol for {:?}", symbol_ref);
             }
             continue;
@@ -2369,8 +2353,10 @@ fn finalize_symbol(
           let node_index = *match symbol_graph.get_node_index(symbol_ref) {
             Some(node_index) => node_index,
             None => {
-              if !bail_out_module_identifiers.contains_key(&symbol_ref.module_identifier()) {
-                eprintln!("Can't get symbol for {:?}", symbol_ref);
+              if !bail_out_module_identifiers.contains_key(&symbol_ref.module_identifier())
+                && is_js_like_uri(&symbol_ref.module_identifier())
+              {
+                eprintln!("(entry_module_like) Can't get symbol for {:?}", symbol_ref);
               }
               continue;
             }
@@ -2405,8 +2391,10 @@ fn finalize_symbol(
           let node_index = *match symbol_graph.get_node_index(&symbol_ref) {
             Some(node_index) => node_index,
             None => {
-              if !bail_out_module_identifiers.contains_key(&symbol_ref.module_identifier()) {
-                eprintln!("Can't get symbol for {:?}", symbol_ref);
+              if !bail_out_module_identifiers.contains_key(&symbol_ref.module_identifier())
+                && is_js_like_uri(&symbol_ref.module_identifier())
+              {
+                eprintln!("(inherit_symbol) Can't get symbol for {:?}", symbol_ref);
               }
               continue;
             }
@@ -2453,8 +2441,6 @@ fn finalize_symbol(
             };
           }
         };
-        // .unwrap_or_else(|| panic!("Failed to resolve {dep:?}"))
-        // .module_identifier;
         q.push_back(module_ident);
       }
     }
@@ -2483,5 +2469,22 @@ fn finalize_symbol(
         SymbolRef::Star(_) => {}
       }
     }
+  }
+}
+
+fn is_js_like_uri(uri: &str) -> bool {
+  match resolve_module_type_by_uri(uri) {
+    Some(module_type) => match module_type {
+      crate::ModuleType::Js
+      | crate::ModuleType::JsDynamic
+      | crate::ModuleType::JsEsm
+      | crate::ModuleType::Jsx
+      | crate::ModuleType::JsxDynamic
+      | crate::ModuleType::JsxEsm
+      | crate::ModuleType::Tsx
+      | crate::ModuleType::Ts => true,
+      _ => false,
+    },
+    None => false,
   }
 }
