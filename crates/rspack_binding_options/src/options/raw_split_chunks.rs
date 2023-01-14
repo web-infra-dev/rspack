@@ -1,6 +1,5 @@
 use std::{collections::HashMap, sync::Arc};
 
-#[cfg(feature = "node-api")]
 use napi_derive::napi;
 use rspack_core::CompilerOptionsBuilder;
 use rspack_plugin_split_chunks::{CacheGroupOptions, ChunkType, SplitChunksOptions, TestFn};
@@ -10,31 +9,7 @@ use crate::RawOption;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[cfg(feature = "node-api")]
 #[napi(object)]
-pub struct RawSplitChunksOptions {
-  pub cache_groups: Option<HashMap<String, RawCacheGroupOptions>>,
-  /// What kind of chunks should be selected.
-  pub chunks: Option<String>,
-  //   pub automatic_name_delimiter: String,
-  pub max_async_requests: Option<u32>,
-  pub max_initial_requests: Option<u32>,
-  //   pub default_size_types: Option<Vec<SizeType>>,
-  pub min_chunks: Option<u32>,
-  // hide_path_info: bool,
-  pub min_size: Option<f64>,
-  //   pub min_size_reduction: usize,
-  pub enforce_size_threshold: Option<f64>,
-  pub min_remaining_size: Option<f64>,
-  // layer: String,
-  //   pub max_size: usize,
-  //   pub max_async_size: usize,
-  //   pub max_initial_size: usize,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[cfg(not(feature = "node-api"))]
 pub struct RawSplitChunksOptions {
   pub cache_groups: Option<HashMap<String, RawCacheGroupOptions>>,
   /// What kind of chunks should be selected.
@@ -116,40 +91,9 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
   }
 }
 
-#[cfg(feature = "node-api")]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
-pub struct RawCacheGroupOptions {
-  pub priority: Option<i32>,
-  pub reuse_existing_chunk: Option<bool>,
-  //   pub r#type: SizeType,
-  pub test: Option<String>,
-  //   pub filename: String,
-  //   pub enforce: bool,
-  //   pub id_hint: String,
-  /// What kind of chunks should be selected.
-  pub chunks: Option<String>,
-  //   pub automatic_name_delimiter: String,
-  //   pub max_async_requests: usize,
-  //   pub max_initial_requests: usize,
-  pub min_chunks: Option<u32>,
-  // hide_path_info: bool,
-  //   pub min_size: usize,
-  //   pub min_size_reduction: usize,
-  //   pub enforce_size_threshold: usize,
-  //   pub min_remaining_size: usize,
-  // layer: String,
-  //   pub max_size: usize,
-  //   pub max_async_size: usize,
-  //   pub max_initial_size: usize,
-  pub name: Option<String>,
-  // used_exports: bool,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[cfg(not(feature = "node-api"))]
 pub struct RawCacheGroupOptions {
   pub priority: Option<i32>,
   pub reuse_existing_chunk: Option<bool>,

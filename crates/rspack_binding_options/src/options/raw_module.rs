@@ -1,26 +1,24 @@
 use std::fmt::Debug;
 
-#[cfg(feature = "node-api")]
-use napi::{bindgen_prelude::*, JsFunction, NapiRaw};
-#[cfg(feature = "node-api")]
+use napi::bindgen_prelude::*;
 use napi_derive::napi;
-#[cfg(feature = "node-api")]
-use rspack_binding_macros::call_js_function_with_napi_objects;
 use rspack_core::{
   AssetGeneratorOptions, AssetParserDataUrlOption, AssetParserOptions, BoxedLoader,
   CompilerOptionsBuilder, ModuleOptions, ModuleRule, ParserOptions,
 };
-#[cfg(feature = "node-api")]
-use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use serde::Deserialize;
-
 #[cfg(feature = "node-api")]
-use crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
+use {
+  crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
+  napi::NapiRaw,
+  rspack_binding_macros::call_js_function_with_napi_objects,
+  rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray},
+};
+
 use crate::{RawOption, RawResolveOptions};
 
 #[cfg(feature = "node-api")]
 type JsLoader<R> = ThreadsafeFunction<JsLoaderContext, R>;
-// type ModuleRuleFunc = ThreadsafeFunction<Vec<u8>, ErrorStrategy::CalleeHandled>;
 
 fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxedLoader {
   match builtin {
@@ -44,20 +42,10 @@ fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxedLoader {
 /// `builtin_loader`.
 #[derive(Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-#[cfg(feature = "node-api")]
 #[napi(object)]
 pub struct RawModuleRuleUse {
   #[serde(skip_deserializing)]
   pub loader: Option<JsFunction>,
-  pub builtin_loader: Option<String>,
-  pub options: Option<String>,
-  pub __loader_name: Option<String>,
-}
-
-#[derive(Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-#[cfg(not(feature = "node-api"))]
-pub struct RawModuleRuleUse {
   pub builtin_loader: Option<String>,
   pub options: Option<String>,
   pub __loader_name: Option<String>,
@@ -75,7 +63,6 @@ impl Debug for RawModuleRuleUse {
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-#[cfg(feature = "node-api")]
 #[napi(object)]
 pub struct RawModuleRuleCondition {
   /// Condition can be either a `string` or `Regexp`.
@@ -84,14 +71,6 @@ pub struct RawModuleRuleCondition {
   /// Based on the condition type, the value can be either a `string` or `Regexp`.
   ///  - "string": The value will be matched against the string.
   ///  - "regexp": The value will be matched against the raw regexp source from JS side.
-  pub matcher: Option<String>,
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[cfg(not(feature = "node-api"))]
-pub struct RawModuleRuleCondition {
-  pub r#type: String,
   pub matcher: Option<String>,
 }
 
@@ -120,7 +99,6 @@ impl TryFrom<RawModuleRuleCondition> for rspack_core::ModuleRuleCondition {
 
 #[derive(Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-#[cfg(feature = "node-api")]
 #[napi(object)]
 pub struct RawModuleRule {
   /// A condition matcher matching an absolute path.
@@ -148,26 +126,6 @@ pub struct RawModuleRule {
   // Loader experimental
   #[serde(skip_deserializing)]
   pub func__: Option<JsFunction>,
-}
-
-#[derive(Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-#[cfg(not(feature = "node-api"))]
-pub struct RawModuleRule {
-  pub test: Option<RawModuleRuleCondition>,
-  pub include: Option<Vec<RawModuleRuleCondition>>,
-  pub exclude: Option<Vec<RawModuleRuleCondition>>,
-  pub resource: Option<RawModuleRuleCondition>,
-  pub resource_query: Option<RawModuleRuleCondition>,
-  pub side_effects: Option<bool>,
-  pub r#use: Option<Vec<RawModuleRuleUse>>,
-  pub r#type: Option<String>,
-  pub parser: Option<RawModuleRuleParser>,
-  pub generator: Option<RawModuleRuleGenerator>,
-  pub resolve: Option<RawResolveOptions>,
-  // Loader experimental
-  #[serde(skip_deserializing)]
-  pub func__: Option<()>,
 }
 
 impl RawOption<AssetParserOptions> for RawModuleRuleParser {
@@ -205,7 +163,7 @@ impl RawOption<AssetParserDataUrlOption> for RawAssetParserDataUrlOption {
 
 #[derive(Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-#[cfg_attr(feature = "node-api", napi(object))]
+#[napi(object)]
 pub struct RawModuleRuleGenerator {
   pub filename: Option<String>,
 }
@@ -227,7 +185,7 @@ impl RawOption<AssetGeneratorOptions> for RawModuleRuleGenerator {
 
 #[derive(Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-#[cfg_attr(feature = "node-api", napi(object))]
+#[napi(object)]
 pub struct RawModuleRuleParser {
   pub data_url_condition: Option<RawAssetParserDataUrlOption>,
 }
@@ -248,14 +206,6 @@ impl Debug for RawModuleRule {
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
-#[cfg(not(feature = "node-api"))]
-#[serde(rename_all = "camelCase")]
-pub struct RawAssetParserDataUrlOption {
-  pub max_size: Option<u32>,
-}
-
-#[derive(Debug, Clone, Deserialize, Default)]
-#[cfg(feature = "node-api")]
 #[napi(object)]
 #[serde(rename_all = "camelCase")]
 pub struct RawAssetParserDataUrlOption {
@@ -263,45 +213,20 @@ pub struct RawAssetParserDataUrlOption {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[cfg(feature = "node-api")]
-#[napi(object)]
 #[serde(rename_all = "camelCase")]
+#[napi(object)]
 pub struct RawAssetParserOptions {
   pub data_url_condition: Option<RawAssetParserDataUrlOption>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[cfg(not(feature = "node-api"))]
 #[serde(rename_all = "camelCase")]
-pub struct RawAssetParserOptions {
-  pub data_url_condition: Option<RawAssetParserDataUrlOption>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[cfg(feature = "node-api")]
 #[napi(object)]
-#[serde(rename_all = "camelCase")]
-pub struct RawParserOptions {
-  pub asset: Option<RawAssetParserOptions>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[cfg(not(feature = "node-api"))]
-#[serde(rename_all = "camelCase")]
 pub struct RawParserOptions {
   pub asset: Option<RawAssetParserOptions>,
 }
 
 #[derive(Default, Debug, Deserialize)]
-#[cfg(not(feature = "node-api"))]
-#[serde(rename_all = "camelCase")]
-pub struct RawModuleOptions {
-  pub rules: Vec<RawModuleRule>,
-  pub parser: Option<RawParserOptions>,
-}
-
-#[derive(Default, Debug, Deserialize)]
-#[cfg(feature = "node-api")]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawModuleOptions {
