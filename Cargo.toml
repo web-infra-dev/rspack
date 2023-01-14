@@ -19,7 +19,7 @@ opt-level     = 3
 [workspace.dependencies]
 napi              = { version = "=2.10.6" }
 napi-build        = { version = "=2.0.1" }
-napi-derive       = { version = "=2.9.3" }
+napi-derive       = { version = "=2.9.4" }
 napi-sys          = { version = "=2.2.2" }
 swc_core          = { version = "0.55.2", default-features = false }
 swc_css           = { version = "0.149.0" }
