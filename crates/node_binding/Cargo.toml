@@ -16,7 +16,7 @@ backtrace = "0.3"
 dashmap = "5.0.0"
 futures = "0.3"
 napi = { version = "=2.10.6" }
-napi-derive = { version = "=2.9.3" }
+napi-derive = { version = "=2.9.4" }
 napi-sys = { version = "=2.2.2" }
 once_cell = "1"
 regex = "1.6.0"
