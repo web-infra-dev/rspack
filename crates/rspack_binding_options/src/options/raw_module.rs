@@ -114,7 +114,6 @@ pub struct RawModuleRule {
   /// TODO: align with webpack's `?` prefixed `resourceQuery`
   pub resource_query: Option<RawModuleRuleCondition>,
   pub side_effects: Option<bool>,
-  #[serde(skip_deserializing)]
   pub r#use: Option<Vec<RawModuleRuleUse>>,
   #[napi(
     ts_type = r#""js" | "jsx" | "ts" | "tsx" | "css" | "json" | "asset" | "asset/resource" | "asset/source" | "asset/inline""#
