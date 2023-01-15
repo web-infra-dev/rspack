@@ -1,5 +1,5 @@
 cjs-tree-shaking-basic
-export-star-chain
-named-export-decl-with-src-eval
-side-effects-prune
-side-effects-two
+export-star-chain ok
+named-export-decl-with-src-eval x
+side-effects-prune ok
+side-effects-two ok
