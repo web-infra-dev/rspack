@@ -6,8 +6,8 @@ use bitflags::bitflags;
 use globset::{Glob, GlobSetBuilder};
 use hashlink::LinkedHashMap;
 use rspack_symbol::{
-  BetterId, IdOrMemExpr, IndirectTopLevelSymbol, StarSymbol, StarSymbolKind, Symbol, SymbolExt,
-  SymbolFlag,
+  BetterId, IdOrMemExpr, IndirectTopLevelSymbol, IndirectType, StarSymbol, StarSymbolKind, Symbol,
+  SymbolExt, SymbolFlag,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
@@ -47,6 +47,44 @@ impl SymbolRef {
       SymbolRef::Direct(d) => d.uri().into(),
       SymbolRef::Indirect(i) => i.uri.into(),
       SymbolRef::Star(s) => s.src.into(),
+    }
+  }
+
+  /// Returns `true` if the symbol ref is [`Direct`].
+  ///
+  /// [`Direct`]: SymbolRef::Direct
+  #[must_use]
+  pub fn is_direct(&self) -> bool {
+    matches!(self, Self::Direct(..))
+  }
+
+  /// Returns `true` if the symbol ref is [`Indirect`].
+  ///
+  /// [`Indirect`]: SymbolRef::Indirect
+  #[must_use]
+  pub fn is_indirect(&self) -> bool {
+    matches!(self, Self::Indirect(..))
+  }
+
+  /// Returns `true` if the symbol ref is [`Star`].
+  ///
+  /// [`Star`]: SymbolRef::Star
+  #[must_use]
+  pub fn is_star(&self) -> bool {
+    matches!(self, Self::Star(..))
+  }
+
+  pub fn is_reexport(&self) -> bool {
+    match self {
+      SymbolRef::Indirect(IndirectTopLevelSymbol {
+        ty: IndirectType::ReExport,
+        ..
+      }) => true,
+      SymbolRef::Star(StarSymbol {
+        ty: StarSymbolKind::ReExportAll,
+        ..
+      }) => true,
+      _ => false,
     }
   }
 }

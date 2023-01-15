@@ -45,7 +45,8 @@ use xxhash_rust::xxh3::Xxh3;
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::Cache,
-  contextify, is_source_equal, join_string_component, resolve_module_type_by_uri,
+  contextify, dependency, is_source_equal, join_string_component, resolve_module_type_by_uri,
+  split_chunks::code_splitting,
   tree_shaking::{
     debug_care_module_id,
     symbol_graph::SymbolGraph,
@@ -957,7 +958,7 @@ impl Compilation {
     };
 
     let mut used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
-    let mut bail_out_module_identifiers = IdentifierMap::default();
+    let mut bailout_module_identifiers = IdentifierMap::default();
     let mut evaluated_module_identifiers = IdentifierSet::default();
     let side_effects_options = self.options.builtins.side_effects;
     let mut side_effect_map: IdentifierMap<SideEffect> = IdentifierMap::default();
@@ -986,7 +987,7 @@ impl Compilation {
       }
       // merge bailout module identifier
       for (k, &v) in analyze_result.bail_out_module_identifiers.iter() {
-        match bail_out_module_identifiers.entry(*k) {
+        match bailout_module_identifiers.entry(*k) {
           Entry::Occupied(mut occ) => {
             *occ.get_mut() |= v;
           }
@@ -1074,7 +1075,7 @@ impl Compilation {
     mark_used_symbol_with(
       &analyze_results,
       VecDeque::from_iter(used_symbol_ref.into_iter()),
-      &bail_out_module_identifiers,
+      &bailout_module_identifiers,
       &mut evaluated_module_identifiers,
       &mut used_export_module_identifiers,
       &inherit_export_ref_graph,
@@ -1090,7 +1091,7 @@ impl Compilation {
       collect_from_entry_like(
         &analyze_results,
         entry,
-        &bail_out_module_identifiers,
+        &bailout_module_identifiers,
         &mut evaluated_module_identifiers,
         &mut used_export_module_identifiers,
         &inherit_export_ref_graph,
@@ -1106,7 +1107,7 @@ impl Compilation {
     // All lazy imported module will be treadted as entry module, which means
     // Its export symbol will be marked as used
     let mut bailout_entry_module_identifiers = IdentifierSet::default();
-    for (module_id, reason) in bail_out_module_identifiers.iter() {
+    for (module_id, reason) in bailout_module_identifiers.iter() {
       if reason
         .intersection(
           BailoutFlog::DYNAMIC_IMPORT | BailoutFlog::HELPER | BailoutFlog::COMMONJS_REQUIRE,
@@ -1119,7 +1120,7 @@ impl Compilation {
         collect_from_entry_like(
           &analyze_results,
           *module_id,
-          &bail_out_module_identifiers,
+          &bailout_module_identifiers,
           &mut evaluated_module_identifiers,
           &mut used_export_module_identifiers,
           &inherit_export_ref_graph,
@@ -1143,7 +1144,15 @@ impl Compilation {
 
     // dbg!(&direct_used);
 
-    update_dependency(&symbol_graph);
+    let dependency_replacement = update_dependency(
+      &symbol_graph,
+      &used_export_module_identifiers,
+      &bailout_module_identifiers,
+      &side_effects_free_modules,
+      &self.entry_module_identifiers,
+    );
+
+    dbg!(&dependency_replacement);
 
     // let debug_graph = generate_debug_symbol_graph(
     //   &symbol_graph,
@@ -1156,7 +1165,7 @@ impl Compilation {
       bailout_entry_module_identifiers,
       &analyze_results,
       used_export_module_identifiers,
-      &mut bail_out_module_identifiers,
+      &mut bailout_module_identifiers,
       symbol_graph,
       &mut used_direct_symbol,
       &mut used_indirect_symbol,
@@ -1167,7 +1176,7 @@ impl Compilation {
       OptimizeDependencyResult {
         used_direct_symbol,
         analyze_results,
-        bail_out_module_identifiers,
+        bail_out_module_identifiers: bailout_module_identifiers,
         used_indirect_symbol,
         side_effects_free_modules,
       }
@@ -1494,7 +1503,14 @@ impl Compilation {
   }
 }
 
-fn update_dependency(symbol_graph: &SymbolGraph) {
+fn update_dependency(
+  symbol_graph: &SymbolGraph,
+  used_export_module_identifiers: &IdentifierMap<ModuleUsedType>,
+  bail_out_module_identifiers: &IdentifierMap<BailoutFlog>,
+  side_effects_free_modules: &IdentifierSet,
+  entry_modules_identifier: &IdentifierSet,
+) -> Vec<DependencyReplacement> {
+  let mut dependency_replacement_list = vec![];
   let directed_symbol_node_set = symbol_graph
     .symbol_to_index
     .iter()
@@ -1533,10 +1549,123 @@ fn update_dependency(symbol_graph: &SymbolGraph) {
     // dbg!(&symbol_paths);
     // sliding window
     for symbol_path in symbol_paths {
-      dbg!(&symbol_path.len());
-      // while end < symbol_path.len() {}
+      dbg!(&symbol_path);
+      let mut start = 0;
+      let mut end = 0;
+      init_sliding_window(&mut start, &mut end, &symbol_path);
+
+      while end < symbol_path.len() {
+        let end_symbol = &symbol_path[end];
+        // let is_reexport = end_symbol.is_star()
+        let owner_module_identifier = end_symbol.module_identifier();
+        let is_owner_module_export_used = used_export_module_identifiers
+          .get(&owner_module_identifier)
+          .map(|flag| flag.contains(ModuleUsedType::DIRECT))
+          .unwrap_or(false);
+
+        // TODO: optimize export *
+        // safe to process
+        if is_owner_module_export_used
+          || bail_out_module_identifiers.contains_key(&owner_module_identifier)
+          || !side_effects_free_modules.contains(&owner_module_identifier)
+          || entry_modules_identifier.contains(&owner_module_identifier)
+        {
+          if end - start > 1 {
+            println!("cant removed: {start}, {end}");
+            validate_and_insert_replacement(
+              &mut dependency_replacement_list,
+              &symbol_path,
+              end - 1,
+              start,
+              used_export_module_identifiers,
+            );
+            // dependency_replacement_list.push(DependencyReplacement {
+            //   from: symbol_path[end].clone(),
+            //   replacement: symbol_path[start].clone(),
+            // })
+          }
+          init_sliding_window(&mut start, &mut end, &symbol_path);
+          continue;
+        }
+
+        if !end_symbol.is_reexport() && end != symbol_path.len() - 1 {
+          if end - start > 1 {
+            println!("none reexport: {start}, {end}");
+            validate_and_insert_replacement(
+              &mut dependency_replacement_list,
+              &symbol_path,
+              end - if end_symbol.is_indirect() { 0 } else { 1 },
+              start,
+              used_export_module_identifiers,
+            );
+          }
+
+          init_sliding_window(&mut start, &mut end, &symbol_path);
+
+          continue;
+        }
+        end += 1;
+      }
+      // because last window range is [start, end - 1]
+      if end - start > 1 {
+        println!("end check: {start}, {end}");
+        validate_and_insert_replacement(
+          &mut dependency_replacement_list,
+          &symbol_path,
+          end - 1,
+          start,
+          used_export_module_identifiers,
+        );
+      }
     }
     // println!("end ----------------");
+  }
+  dependency_replacement_list
+}
+
+fn validate_and_insert_replacement(
+  dependency_replacement_list: &mut Vec<DependencyReplacement>,
+  symbol_path: &Vec<SymbolRef>,
+  end: usize,
+  start: usize,
+  used_export_module_identifiers: &IdentifierMap<ModuleUsedType>,
+) {
+  let has_unused_export_symbol = symbol_path[start..=end].iter().any(|symbol| {
+    used_export_module_identifiers
+      .get(&symbol.module_identifier())
+      .map(|ty| !ty.contains(ModuleUsedType::DIRECT))
+      .unwrap_or(false)
+  });
+
+  if has_unused_export_symbol
+    && !matches!(
+      &symbol_path[end],
+      SymbolRef::Star(StarSymbol {
+        ty: StarSymbolKind::ImportAllAs,
+        ..
+      })
+    )
+  {
+    for ele in symbol_path[start..=end].iter() {
+      dbg!(&ele);
+    }
+    dependency_replacement_list.push(DependencyReplacement {
+      from: symbol_path[end].clone(),
+      replacement: symbol_path[start].clone(),
+    })
+  }
+  // if has_unused_export_symbol {
+  // }
+}
+
+fn init_sliding_window(start: &mut usize, end: &mut usize, symbol_path: &Vec<SymbolRef>) {
+  *start = *end;
+  *end = *start + 1;
+  println!("{start}, {end}");
+  while *end < symbol_path.len()
+    && &*symbol_path[*end].module_identifier() == &*symbol_path[*start].module_identifier()
+  {
+    *end += 1;
   }
 }
 
@@ -2258,24 +2387,26 @@ fn recursive_visited(
     return;
   }
   let is_directed = directed_symbol_node_index.contains(&cur) && cur_path.len() > 0;
+  if is_directed {
+    paths.push(cur_path.clone());
+    return;
+  }
   visited_node.insert(cur);
   cur_path.push(cur);
   let mut has_neighbor = false;
-  if !is_directed {
-    for ele in symbol_graph
-      .graph
-      .neighbors_directed(cur, petgraph::Direction::Incoming)
-    {
-      has_neighbor = true;
-      recursive_visited(
-        symbol_graph,
-        cur_path,
-        paths,
-        visited_node,
-        ele,
-        directed_symbol_node_index,
-      );
-    }
+  for ele in symbol_graph
+    .graph
+    .neighbors_directed(cur, petgraph::Direction::Incoming)
+  {
+    has_neighbor = true;
+    recursive_visited(
+      symbol_graph,
+      cur_path,
+      paths,
+      visited_node,
+      ele,
+      directed_symbol_node_index,
+    );
   }
   if !has_neighbor {
     paths.push(cur_path.clone());
@@ -2512,5 +2643,22 @@ fn is_js_like_uri(uri: &str) -> bool {
       _ => false,
     },
     None => false,
+  }
+}
+
+#[derive(Debug, Clone)]
+struct DependencyReplacement {
+  from: SymbolRef,
+  // to: SymbolRef,
+  replacement: SymbolRef,
+}
+
+impl DependencyReplacement {
+  fn new(from: SymbolRef, replacement: SymbolRef) -> Self {
+    Self {
+      from,
+      // to,
+      replacement,
+    }
   }
 }
