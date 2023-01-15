@@ -941,16 +941,18 @@ impl Compilation {
           });
           // Keep this debug info until we stabilize the tree-shaking
 
-          // if debug_care_module_id(uri_key) {
-          //   dbg!(
-          //     &uri_key,
-          //     // &analyzer.export_all_list,
-          //     &analyzer.export_map,
-          //     &analyzer.import_map,
-          //     &analyzer.maybe_lazy_reference_map,
-          //     &analyzer.immediate_evaluate_reference_map,
-          //     &analyzer.reachable_import_and_export, //     &analyzer.used_symbol_ref //   );
-          // }
+          if debug_care_module_id(&uri_key.as_str()) {
+            dbg!(
+              &uri_key,
+              // &analyzer.export_all_list,
+              &analyzer.export_map,
+              &analyzer.import_map,
+              &analyzer.maybe_lazy_reference_map,
+              &analyzer.immediate_evaluate_reference_map,
+              &analyzer.reachable_import_and_export,
+              &analyzer.used_symbol_ref
+            );
+          }
 
           Some((uri_key, analyzer.into()))
         })
@@ -1154,11 +1156,11 @@ impl Compilation {
 
     dbg!(&dependency_replacement);
 
-    // let debug_graph = generate_debug_symbol_graph(
-    //   &symbol_graph,
-    //   self.options.context.as_ref().to_str().unwrap(),
-    // );
-    // println!("{:?}", Dot::new(&debug_graph));
+    let debug_graph = generate_debug_symbol_graph(
+      &symbol_graph,
+      self.options.context.as_ref().to_str().unwrap(),
+    );
+    println!("{:?}", Dot::new(&debug_graph));
     finalize_symbol(
       self,
       side_effects_analyze,
@@ -1647,7 +1649,7 @@ fn validate_and_insert_replacement(
     )
   {
     for ele in symbol_path[start..=end].iter() {
-      dbg!(&ele);
+      // dbg!(&ele);
     }
     dependency_replacement_list.push(DependencyReplacement {
       from: symbol_path[end].clone(),
@@ -1905,9 +1907,15 @@ fn mark_symbol(
   visited_symbol_ref: &mut HashSet<SymbolRef>,
   errors: &mut Vec<Error>,
 ) {
-  if debug_care_module_id(current_symbol_ref.module_identifier().as_str()) {
-    dbg!(&current_symbol_ref);
-  }
+  let is_valid = if debug_care_module_id(current_symbol_ref.module_identifier().as_str()) {
+    match current_symbol_ref {
+      SymbolRef::Direct(_) => false,
+      SymbolRef::Indirect(ref indirect) => indirect.ty == IndirectType::ReExport,
+      SymbolRef::Star(_) => false,
+    }
+  } else {
+    false
+  };
   if visited_symbol_ref.contains(&current_symbol_ref) {
     return;
   } else {
@@ -1976,7 +1984,7 @@ fn mark_symbol(
         evaluated_module_identifiers.insert(importer.into());
         let module_result = analyze_map.get(&importer.into()).expect("TODO:");
         for used_symbol in module_result.used_symbol_refs.iter() {
-          graph.add_edge(&current_symbol_ref, used_symbol);
+          // graph.add_edge(&current_symbol_ref, used_symbol);
           symbol_queue.push_back(used_symbol.clone());
         }
       }
