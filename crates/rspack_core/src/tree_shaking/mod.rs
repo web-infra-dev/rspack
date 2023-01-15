@@ -16,9 +16,8 @@ pub struct OptimizeDependencyResult {
   pub bail_out_module_identifiers: IdentifierMap<BailoutFlog>,
   pub side_effects_free_modules: IdentifierSet,
 }
-const ANALYZE_LOGGING: bool = true;
-pub static CARED_MODULE_ID: &[&str] =
-  &["/home/victor/Documents/rspack/rspack/node_modules/react-redux/es/index.js"];
+const ANALYZE_LOGGING: bool = false;
+pub static CARED_MODULE_ID: &[&str] = &[];
 
 pub fn debug_care_module_id<T: AsRef<str>>(id: T) -> bool {
   if !ANALYZE_LOGGING {

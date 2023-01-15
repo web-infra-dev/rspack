@@ -19,9 +19,9 @@ impl SymbolGraph {
   }
 
   pub fn add_node(&mut self, symbol: &SymbolRef) -> NodeIndex {
-    if debug_care_module_id(symbol.module_identifier().as_str()) {
-      dbg!(&symbol);
-    }
+    // if debug_care_module_id(symbol.module_identifier().as_str()) {
+    //   dbg!(&symbol);
+    // }
     if let Some(index) = self.symbol_to_index.get(symbol) {
       *index
     } else {
