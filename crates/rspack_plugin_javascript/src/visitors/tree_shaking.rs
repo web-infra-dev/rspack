@@ -233,11 +233,12 @@ impl<'a> Fold for TreeShaker<'a> {
                   };
                   match exported {
                     ModuleExportName::Ident(ref ident) => {
-                      let symbol = IndirectTopLevelSymbol::fast_create(
-                        self.module_identifier.into(),
-                        ident.sym.clone(),
-                      );
-                      self.used_indirect_symbol_set.contains(&symbol)
+                      true
+                      // let symbol = IndirectTopLevelSymbol::fast_create(
+                      //   self.module_identifier.into(),
+                      //   ident.sym.clone(),
+                      // );
+                      // self.used_indirect_symbol_set.co
                     }
                     ModuleExportName::Str(_) => {
                       // named export without src has string lit orig is a syntax error
