@@ -958,6 +958,10 @@ impl Plugin for SplitChunksPlugin {
             )
             .ukey
           } else {
+            tracing::debug!(
+              "create a non-named chunk for cache group {}",
+              item_cache_group.key
+            );
             Compilation::add_chunk(&mut compilation.chunk_by_ukey).ukey
           }
         };
