@@ -81,8 +81,8 @@ pub fn print(
 
       node.emit_with(&mut emitter)?;
     }
-    // Invalid utf8 is valid in javascript world.
-    String::from_utf8(buf).expect("invalid utf8 character detected")
+    // SAFETY: Invalid utf8 is valid in javascript world.
+    unsafe { String::from_utf8_unchecked(buf) }
   };
 
   let map = if source_map_config.enable {
@@ -92,7 +92,8 @@ pub fn print(
       .build_source_map_with_config(&src_map_buf, None, source_map_config)
       .to_writer(&mut buf)
       .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?;
-    Some(String::from_utf8(buf).expect("invalid utf8 character detected"))
+    // SAFETY: This buffer is already sanitized
+    Some(unsafe { String::from_utf8_unchecked(buf) })
   } else {
     None
   };
