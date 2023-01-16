@@ -579,9 +579,7 @@ function hookIntoCompiler(
 					.catch(err => {
 						// In case anything went wrong the promise is resolved
 						// with the error message and an error is logged
-						// TODO:
-						// compilation.errors.push(prettyError(err, compiler.context).toString());
-						// return options.showErrors ? prettyError(err, compiler.context).toHtml() : 'ERROR';
+						compilation.errors.push(err);
 						return `ERROR: ${err.message}\n${err.stack}`;
 					})
 					.then(html => {
@@ -1038,7 +1036,7 @@ function hookIntoCompiler(
 				// If html is a string turn it into a promise
 				return templateFunction(templateParams);
 			} catch (e) {
-				// compilation.errors.push(new Error('Template execution failed: ' + e));
+				compilation.errors.push(new Error("Template execution failed: " + e));
 				return Promise.reject(e);
 			}
 		});

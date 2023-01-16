@@ -39,6 +39,8 @@ class Compiler {
 	intermediateFileSystem: any;
 	watchMode: boolean;
 	context: string;
+	modifiedFiles: ReadonlySet<string>;
+	removedFiles: ReadonlySet<string>;
 	hooks: {
 		done: tapable.AsyncSeriesHook<Stats>;
 		afterDone: tapable.SyncHook<Stats>;
@@ -73,6 +75,8 @@ class Compiler {
 		this.root = this;
 		this.context = context;
 		this.resolverFactory = new ResolverFactory();
+		this.modifiedFiles = undefined;
+		this.removedFiles = undefined;
 		this.hooks = {
 			initialize: new SyncHook([]),
 			done: new tapable.AsyncSeriesHook<Stats>(["stats"]),
@@ -236,12 +240,29 @@ class Compiler {
 					{},
 					{
 						get: (_, property) => {
-							return this.compilation.__internal__getAssetSource(
-								property as string
-							);
+							if (typeof property === "string") {
+								return this.compilation.__internal__getAssetSource(property);
+							}
+						},
+						set: (target, p, newValue, receiver) => {
+							if (typeof p === "string") {
+								this.compilation.emitAsset(p, newValue);
+								return true;
+							}
+							return false;
+						},
+						deleteProperty: (target, p) => {
+							if (typeof p === "string") {
+								this.compilation.deleteAsset(p);
+								return true;
+							}
+							return false;
 						},
 						has: (_, property) => {
-							return this.compilation.__internal__hasAsset(property as string);
+							if (typeof property === "string") {
+								return this.compilation.__internal__hasAsset(property);
+							}
+							return false;
 						},
 						ownKeys: _ => {
 							return this.compilation.__internal__getAssetFilenames();
