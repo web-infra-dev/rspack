@@ -1,14 +1,17 @@
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  find_module_graph_roots, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey,
-  IdentifierLinkedMap, IdentifierMap, IdentifierSet, Module, ModuleGraph, ModuleGraphModule,
-  ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, SourceType,
+  find_module_graph_roots, Chunk, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey,
+  ChunkUkey, IdentifierLinkedMap, IdentifierMap, IdentifierSet, Module, ModuleGraph,
+  ModuleGraphModule, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, SourceType,
 };
 
 #[derive(Debug, Default)]
 pub struct ChunkGraph {
   pub(crate) split_point_module_identifier_to_chunk_ukey: IdentifierMap<ChunkUkey>,
+
+  /// If a module is imported dynamically, it will be assigned to a unique ChunkGroup
+  pub(crate) block_to_chunk_group_ukey: IdentifierMap<ChunkGroupUkey>,
 
   chunk_graph_module_by_module_identifier: IdentifierMap<ChunkGraphModule>,
   chunk_graph_chunk_by_chunk_ukey: HashMap<ChunkUkey, ChunkGraphChunk>,
@@ -164,21 +167,6 @@ impl ChunkGraph {
       .get(&module_identifier)
       .expect("Module should be added before");
     &chunk_graph_module.chunks
-  }
-
-  pub fn get_module_chunk_group<'a>(
-    &self,
-    module_identifier: ModuleIdentifier,
-    chunk_by_ukey: &'a ChunkByUkey,
-  ) -> &'a ChunkGroupUkey {
-    let chunk = self
-      .chunk_by_split_point_module_identifier(module_identifier, chunk_by_ukey)
-      .expect("Chunk should be added before");
-    chunk
-      .groups
-      .iter()
-      .next()
-      .expect("Chunk should have at least one group")
   }
 
   pub fn get_chunk_modules<'module>(
@@ -430,6 +418,30 @@ impl ChunkGraph {
     modules.sort();
 
     modules
+  }
+
+  /// Notice, you should only call this function with a ModuleIdentifier that's imported dynamically or
+  /// is entry module.
+  pub fn get_block_chunk_group<'a>(
+    &self,
+    block: &ModuleIdentifier,
+    chunk_group_by_ukey: &'a ChunkGroupByUkey,
+  ) -> &'a ChunkGroup {
+    let ukey = self
+      .block_to_chunk_group_ukey
+      .get(block)
+      .unwrap_or_else(|| panic!("Block({block:?}) doesn't have corresponding ChunkGroup"));
+    chunk_group_by_ukey
+      .get(ukey)
+      .unwrap_or_else(|| panic!("ChunkGroup({ukey:?}) doesn't exist"))
+  }
+
+  pub fn connect_block_and_chunk_group(
+    &mut self,
+    block: ModuleIdentifier,
+    chunk_group: ChunkGroupUkey,
+  ) {
+    self.block_to_chunk_group_ukey.insert(block, chunk_group);
   }
 }
 
