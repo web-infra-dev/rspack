@@ -72,6 +72,10 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   fn get_resolve_options(&self) -> Option<&Resolve> {
     None
   }
+
+  fn has_dependencies(&self, _files: &HashSet<PathBuf>) -> bool {
+    false
+  }
 }
 
 pub trait ModuleExt {
@@ -135,6 +139,10 @@ impl Module for Box<dyn Module> {
 
   fn get_resolve_options(&self) -> Option<&Resolve> {
     (**self).get_resolve_options()
+  }
+
+  fn has_dependencies(&self, files: &HashSet<PathBuf>) -> bool {
+    (**self).has_dependencies(files)
   }
 }
 
