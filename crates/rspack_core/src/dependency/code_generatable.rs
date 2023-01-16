@@ -60,29 +60,6 @@ pub type CodeGeneratableJavaScriptVisitors = Vec<(JsAstPath, Box<dyn JavaScriptV
 
 pub type CodeGeneratableCssVisitors = Vec<(CssAstPath, Box<dyn CssVisitorBuilder>)>;
 
-pub enum CodeGeneratableImports {
-  JavaScript(Vec<swc_core::ecma::ast::ImportDecl>),
-  Css(Vec<swc_core::css::ast::ImportPrelude>),
-}
-
-impl CodeGeneratableImports {
-  pub fn into_javascript(self) -> Vec<swc_core::ecma::ast::ImportDecl> {
-    if let Self::JavaScript(imports) = self {
-      imports
-    } else {
-      panic!("imports is not JavaScript")
-    }
-  }
-
-  pub fn into_css(self) -> Vec<swc_core::css::ast::ImportPrelude> {
-    if let Self::Css(imports) = self {
-      imports
-    } else {
-      panic!("imports is not Css")
-    }
-  }
-}
-
 /// Mapping from the (Module identifier, modified module id, DependencyCategory) to the referencing module identifier
 /// This can be used as a workaround to uniquely identify a module from the AST after dependency code generation.
 pub type CodeGeneratableDeclMappings =
@@ -101,7 +78,6 @@ pub struct CodeGeneratableCssResult {
 #[derive(Default)]
 pub struct CodeGeneratableResult {
   pub visitors: Vec<(CodeGeneratableAstPath, CodeGeneratableVisitorBuilder)>,
-  pub imports: Option<CodeGeneratableImports>,
   pub decl_mappings: CodeGeneratableDeclMappings,
 }
 
@@ -146,7 +122,7 @@ impl CodeGeneratableResult {
         if let CodeGeneratableAstPath::JavaScript(ast_path) = ast_path && let CodeGeneratableVisitorBuilder::JavaScript(builder) = builder {
           (ast_path, builder)
         } else {
-          panic!("ast_path or builder is not JavaScript")
+          panic!("Either ast_path or builder is not JavaScript")
         }
       },
     ).collect();
@@ -167,7 +143,7 @@ impl CodeGeneratableResult {
         if let CodeGeneratableAstPath::Css(ast_path) = ast_path && let CodeGeneratableVisitorBuilder::Css(builder) = builder {
           (ast_path, builder)
         } else {
-          panic!("ast_path or builder is not Css")
+          panic!("Either ast_path or builder is not Css")
         }
       },
     ).collect();
