@@ -271,7 +271,12 @@ impl ModuleGraph {
     self.connection_id_to_connection.get(&connection_id)
   }
 
-  pub fn remove_connection_by_dependency(&mut self, dep: &BoxModuleDependency) {
+  pub fn remove_connection_by_dependency(
+    &mut self,
+    dep: &BoxModuleDependency,
+  ) -> Option<ModuleGraphConnection> {
+    let mut removed = None;
+
     if let Some(id) = self.dependency_to_dependency_id.get(dep).copied() {
       if let Some(conn) = self.dependency_id_to_connection_id.remove(&id) {
         self.connection_id_to_dependency_id.remove(&conn);
@@ -290,12 +295,16 @@ impl ModuleGraph {
           if let Some(mgm) = self.module_graph_module_by_identifier_mut(&conn.module_identifier) {
             mgm.incoming_connections.remove(&conn.id);
           }
+
+          removed = Some(conn);
         }
       }
       self.dependency_id_to_module_identifier.remove(&id);
       self.dependency_id_to_dependency.remove(&id);
       self.dependency_to_dependency_id.remove(dep);
     }
+
+    removed
   }
 
   pub fn get_pre_order_index(&self, module_identifier: &ModuleIdentifier) -> Option<usize> {
