@@ -941,6 +941,11 @@ impl<'a> ModuleRefAnalyze<'a> {
 
     let mut side_effects = match side_effects {
       nodejs_resolver::SideEffects::Bool(s) => Some(s),
+      nodejs_resolver::SideEffects::String(s) => {
+        let matcher = Glob::new(&s).ok()?.compile_matcher();
+        let relative_path = module_path.relative(package_path);
+        Some(matcher.is_match(relative_path))
+      }
       nodejs_resolver::SideEffects::Array(arr) => {
         // TODO: Cache
         let mut builder = GlobSetBuilder::new();
