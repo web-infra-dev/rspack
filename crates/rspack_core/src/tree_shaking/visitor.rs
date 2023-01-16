@@ -1230,9 +1230,7 @@ impl<'a> ModuleRefAnalyze<'a> {
             // TODO: handle `as xxx`
             let original = match &named.orig {
               ModuleExportName::Ident(ident) => ident.sym.clone(),
-              ModuleExportName::Str(_) => {
-                todo!()
-              }
+              ModuleExportName::Str(str) => str.value.clone(),
             };
             let exported = match &named.exported {
               Some(exported) => match exported {
@@ -1241,13 +1239,23 @@ impl<'a> ModuleRefAnalyze<'a> {
               },
               None => original.clone(),
             };
-            let symbol_ref = SymbolRef::Indirect(IndirectTopLevelSymbol::new(
+
+            let exported_symbol = SymbolRef::Indirect(IndirectTopLevelSymbol::new(
+              self.module_identifier.into(),
+              exported.clone(),
+              self.module_identifier.into(),
+              rspack_symbol::IndirectType::ReExport,
+            ));
+            let original_symbol = SymbolRef::Indirect(IndirectTopLevelSymbol::new(
               resolved_uri_ukey.into(),
               original,
               self.module_identifier.into(),
               rspack_symbol::IndirectType::ReExport,
             ));
-            self.add_export(exported, symbol_ref);
+            self
+              .reachable_import_and_export
+              .insert(exported.clone(), HashSet::from_iter([original_symbol]));
+            self.add_export(exported, exported_symbol);
           }
         });
     } else {

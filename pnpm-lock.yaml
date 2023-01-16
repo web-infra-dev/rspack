@@ -55,6 +55,9 @@ importers:
       npm-run-all: 4.1.5
       why-is-node-running: 2.2.1
 
+  examples/aaa:
+    specifiers: {}
+
   examples/arco-pro:
     specifiers:
       '@antv/data-set': ^0.11.8
@@ -152,7 +155,19 @@ importers:
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
 
+  examples/bbb:
+    specifiers: {}
+
   examples/bundle-splitting:
+    specifiers:
+      '@rspack/cli': workspace:*
+    devDependencies:
+      '@rspack/cli': link:../../packages/rspack-cli
+
+  examples/ccc:
+    specifiers: {}
+
+  examples/cjs-tree-shaking-basic:
     specifiers:
       '@rspack/cli': workspace:*
     devDependencies:
@@ -164,11 +179,17 @@ importers:
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
 
+  examples/export-star-chain:
+    specifiers: {}
+
   examples/multi-entry:
     specifiers:
       '@rspack/cli': workspace:*
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+
+  examples/named-export-decl-with-src-eval:
+    specifiers: {}
 
   examples/postcss:
     specifiers:
@@ -187,6 +208,9 @@ importers:
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
       react-refresh: 0.14.0
+
+  examples/react-redux-like:
+    specifiers: {}
 
   examples/react-refresh:
     specifiers:
@@ -223,6 +247,12 @@ importers:
       '@rspack/cli': link:../../packages/rspack-cli
       react: 17.0.0
       react-dom: 17.0.0_react@17.0.0
+
+  examples/side-effects-prune:
+    specifiers: {}
+
+  examples/side-effects-two:
+    specifiers: {}
 
   examples/solid:
     specifiers:
