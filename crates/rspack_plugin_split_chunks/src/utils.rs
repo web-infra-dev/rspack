@@ -18,9 +18,11 @@ pub(crate) fn compare_entries(
     return diff_priority as f64;
   }
   // 2. by number of chunks
-  let diff_count = a.chunks.len() - b.chunks.len();
-  if diff_count > 0 {
-    return diff_count as f64;
+  if a.chunks.len() >= b.chunks.len() {
+    let diff_count = a.chunks.len() - b.chunks.len();
+    if diff_count > 0 {
+      return diff_count as f64;
+    }
   }
   // 3. by size reduction
   let a_size_reduce = total_size(&a.sizes) * (a.chunks.len() - 1) as f64;

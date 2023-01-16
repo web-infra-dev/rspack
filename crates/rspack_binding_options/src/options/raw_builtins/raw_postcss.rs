@@ -1,29 +1,19 @@
-#[cfg(feature = "node-api")]
 use napi_derive::napi;
 use rspack_plugin_css::pxtorem::option::PxToRemOption;
 // use rspack_plugin_css::pxtorem::option;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug, Serialize, Default, Clone)]
-#[cfg(feature = "node-api")]
+#[serde(rename_all = "camelCase")]
 #[napi(object)]
-#[serde(rename_all = "camelCase")]
-pub struct RawPostCssConfig {
-  pub pxtorem: Option<RawPxToRemConfig>,
-}
-
-#[derive(Deserialize, Debug, Serialize, Default, Clone)]
-#[cfg(not(feature = "node-api"))]
-#[serde(rename_all = "camelCase")]
 pub struct RawPostCssConfig {
   pub pxtorem: Option<RawPxToRemConfig>,
 }
 
 // postcss-px-to-rem
 #[derive(Deserialize, Debug, Serialize, Default, Clone)]
-#[cfg(feature = "node-api")]
-#[napi(object)]
 #[serde(rename_all = "camelCase")]
+#[napi(object)]
 pub struct RawPxToRemConfig {
   pub root_value: Option<u32>,
   pub unit_precision: Option<u32>,
@@ -34,18 +24,6 @@ pub struct RawPxToRemConfig {
   pub min_pixel_value: Option<f64>,
 }
 
-#[derive(Deserialize, Debug, Serialize, Default, Clone)]
-#[cfg(not(feature = "node-api"))]
-#[serde(rename_all = "camelCase")]
-pub struct RawPxToRemConfig {
-  pub root_value: Option<u32>,
-  pub unit_precision: Option<u32>,
-  pub selector_black_list: Option<Vec<String>>,
-  pub prop_list: Option<Vec<String>>,
-  pub replace: Option<bool>,
-  pub media_query: Option<bool>,
-  pub min_pixel_value: Option<f64>,
-}
 #[allow(clippy::from_over_into)]
 /// I need to use `Into` instead of `From` because
 /// using `From` means I need to import [RawPostCssConfig]

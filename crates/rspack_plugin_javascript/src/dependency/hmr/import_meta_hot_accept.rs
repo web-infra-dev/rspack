@@ -1,9 +1,8 @@
-use swc_core::ecma::atoms::JsWord;
-
-use crate::{
+use rspack_core::{
   CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, DependencyCategory,
   DependencyType, ErrorSpan, JsAstPath, ModuleDependency, ModuleIdentifier,
 };
+use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Eq, Clone)]
 pub struct ImportMetaModuleHotAcceptDependency {
@@ -84,7 +83,11 @@ impl ModuleDependency for ImportMetaModuleHotAcceptDependency {
 }
 
 impl CodeGeneratable for ImportMetaModuleHotAcceptDependency {
-  fn generate(&self, _code_generatable_context: &CodeGeneratableContext) -> CodeGeneratableResult {
-    todo!()
+  fn generate(
+    &self,
+    _code_generatable_context: &mut CodeGeneratableContext,
+  ) -> rspack_error::Result<CodeGeneratableResult> {
+    // The rewrite introduced to much hacks, we cannot do it in the dependency code generation right now. So a noop is returned.
+    Ok(CodeGeneratableResult::default())
   }
 }

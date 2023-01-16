@@ -2042,7 +2042,6 @@ dependencies = [
  "dashmap",
  "napi",
  "napi-derive",
- "napi-sys",
  "once_cell",
  "regex",
  "rspack_binding_macros",

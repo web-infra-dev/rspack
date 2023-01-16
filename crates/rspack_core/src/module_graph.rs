@@ -6,7 +6,9 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use rspack_error::{internal_error, Error, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::{BoxModule, BoxModuleDependency, IdentifierMap, ModuleGraphModule, ModuleIdentifier};
+use crate::{
+  BoxModule, BoxModuleDependency, IdentifierMap, Module, ModuleGraphModule, ModuleIdentifier,
+};
 
 // FIXME: placing this as global id is not acceptable, move it to somewhere else later
 static NEXT_MODULE_GRAPH_CONNECTION_ID: AtomicUsize = AtomicUsize::new(1);
@@ -231,6 +233,21 @@ impl ModuleGraph {
       .get(dep)
       .and_then(|id| self.dependency_id_to_connection_id.get(id))
       .and_then(|id| self.connection_id_to_connection.get(id))
+  }
+
+  /// Get a list of all dependencies of a module by the module itself, if the module is not found, then None is returned
+  pub fn dependencies_by_module(&self, module: &dyn Module) -> Option<&[BoxModuleDependency]> {
+    self.dependencies_by_module_identifier(&module.identifier())
+  }
+
+  /// Get a list of all dependencies of a module by the module identifier, if the module is not found, then None is returned
+  pub fn dependencies_by_module_identifier(
+    &self,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<&[BoxModuleDependency]> {
+    self
+      .module_graph_module_by_identifier(module_identifier)
+      .map(|mgm| mgm.dependencies.as_slice())
   }
 
   pub fn dependency_by_connection(

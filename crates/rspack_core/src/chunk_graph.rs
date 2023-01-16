@@ -1,14 +1,17 @@
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  find_module_graph_roots, Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey,
-  IdentifierLinkedMap, IdentifierMap, IdentifierSet, Module, ModuleGraph, ModuleGraphModule,
-  ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, SourceType,
+  find_module_graph_roots, Chunk, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey,
+  ChunkUkey, IdentifierLinkedMap, IdentifierMap, IdentifierSet, Module, ModuleGraph,
+  ModuleGraphModule, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, SourceType,
 };
 
 #[derive(Debug, Default)]
 pub struct ChunkGraph {
   pub(crate) split_point_module_identifier_to_chunk_ukey: IdentifierMap<ChunkUkey>,
+
+  /// If a module is imported dynamically, it will be assigned to a unique ChunkGroup
+  pub(crate) block_to_chunk_group_ukey: IdentifierMap<ChunkGroupUkey>,
 
   chunk_graph_module_by_module_identifier: IdentifierMap<ChunkGraphModule>,
   chunk_graph_chunk_by_chunk_ukey: HashMap<ChunkUkey, ChunkGraphChunk>,
@@ -166,21 +169,6 @@ impl ChunkGraph {
     &chunk_graph_module.chunks
   }
 
-  pub fn get_module_chunk_group<'a>(
-    &self,
-    module_identifier: ModuleIdentifier,
-    chunk_by_ukey: &'a ChunkByUkey,
-  ) -> &'a ChunkGroupUkey {
-    let chunk = self
-      .chunk_by_split_point_module_identifier(module_identifier, chunk_by_ukey)
-      .expect("Chunk should be added before");
-    chunk
-      .groups
-      .iter()
-      .next()
-      .expect("Chunk should have at least one group")
-  }
-
   pub fn get_chunk_modules<'module>(
     &self,
     chunk: &ChunkUkey,
@@ -275,7 +263,7 @@ impl ChunkGraph {
     &mut self,
     module_identifier: ModuleIdentifier,
     runtime: &RuntimeSpec,
-    runtime_requirements: HashSet<String>,
+    runtime_requirements: HashSet<&'static str>,
   ) {
     let mut cgm = self.get_chunk_graph_module_mut(module_identifier);
 
@@ -295,7 +283,7 @@ impl ChunkGraph {
   pub fn add_chunk_runtime_requirements(
     &mut self,
     chunk_ukey: &ChunkUkey,
-    runtime_requirements: HashSet<String>,
+    runtime_requirements: HashSet<&'static str>,
   ) {
     let cgc = self.get_chunk_graph_chunk_mut(*chunk_ukey);
     cgc.runtime_requirements.extend(runtime_requirements);
@@ -304,7 +292,7 @@ impl ChunkGraph {
   pub fn add_tree_runtime_requirements(
     &mut self,
     chunk_ukey: &ChunkUkey,
-    runtime_requirements: HashSet<String>,
+    runtime_requirements: HashSet<&'static str>,
   ) {
     self.add_chunk_runtime_requirements(chunk_ukey, runtime_requirements);
   }
@@ -313,7 +301,7 @@ impl ChunkGraph {
     &self,
     module_identifier: ModuleIdentifier,
     _runtime: &RuntimeSpec,
-  ) -> Option<&HashSet<String>> {
+  ) -> Option<&HashSet<&'static str>> {
     let cgm = self.get_chunk_graph_module(module_identifier);
     if let Some(runtime_requirements) = &cgm.runtime_requirements {
       if let Some(runtime_requirements) = runtime_requirements.get(_runtime) {
@@ -323,12 +311,12 @@ impl ChunkGraph {
     None
   }
 
-  pub fn get_chunk_runtime_requirements(&self, chunk_ukey: &ChunkUkey) -> &HashSet<String> {
+  pub fn get_chunk_runtime_requirements(&self, chunk_ukey: &ChunkUkey) -> &HashSet<&'static str> {
     let cgc = self.get_chunk_graph_chunk(chunk_ukey);
     &cgc.runtime_requirements
   }
 
-  pub fn get_tree_runtime_requirements(&self, chunk_ukey: &ChunkUkey) -> &HashSet<String> {
+  pub fn get_tree_runtime_requirements(&self, chunk_ukey: &ChunkUkey) -> &HashSet<&'static str> {
     self.get_chunk_runtime_requirements(chunk_ukey)
   }
 
@@ -431,6 +419,30 @@ impl ChunkGraph {
 
     modules
   }
+
+  /// Notice, you should only call this function with a ModuleIdentifier that's imported dynamically or
+  /// is entry module.
+  pub fn get_block_chunk_group<'a>(
+    &self,
+    block: &ModuleIdentifier,
+    chunk_group_by_ukey: &'a ChunkGroupByUkey,
+  ) -> &'a ChunkGroup {
+    let ukey = self
+      .block_to_chunk_group_ukey
+      .get(block)
+      .unwrap_or_else(|| panic!("Block({block:?}) doesn't have corresponding ChunkGroup"));
+    chunk_group_by_ukey
+      .get(ukey)
+      .unwrap_or_else(|| panic!("ChunkGroup({ukey:?}) doesn't exist"))
+  }
+
+  pub fn connect_block_and_chunk_group(
+    &mut self,
+    block: ModuleIdentifier,
+    chunk_group: ChunkGroupUkey,
+  ) {
+    self.block_to_chunk_group_ukey.insert(block, chunk_group);
+  }
 }
 
 #[derive(Debug, Default)]
@@ -438,7 +450,7 @@ pub struct ChunkGraphModule {
   pub id: Option<String>,
   pub(crate) entry_in_chunks: HashSet<ChunkUkey>,
   pub(crate) chunks: HashSet<ChunkUkey>,
-  pub(crate) runtime_requirements: Option<RuntimeSpecMap<HashSet<String>>>,
+  pub(crate) runtime_requirements: Option<RuntimeSpecMap<HashSet<&'static str>>>,
   pub(crate) runtime_in_chunks: HashSet<ChunkUkey>,
   pub(crate) hashes: Option<RuntimeSpecMap<String>>,
 }
@@ -463,7 +475,7 @@ pub struct ChunkGraphChunk {
   /// use `LinkedHashMap` to keep the ordered from entry array.
   pub(crate) entry_modules: IdentifierLinkedMap<ChunkGroupUkey>,
   pub(crate) modules: IdentifierSet,
-  pub(crate) runtime_requirements: HashSet<String>,
+  pub(crate) runtime_requirements: HashSet<&'static str>,
   pub(crate) runtime_modules: Vec<String>,
 }
 

@@ -85,6 +85,7 @@ impl<'me> CodeSplitter<'me> {
       }
       entrypoint.set_entry_point_chunk(chunk.ukey);
       entrypoint.connect_chunk(chunk);
+      // compilation.chunk_graph.con
 
       compilation
         .named_chunk_groups
@@ -170,8 +171,14 @@ impl<'me> CodeSplitter<'me> {
         .chunk_group_by_ukey
         .get(&chunk_group)
         .ok_or_else(|| anyhow::format_err!("no chunk group found"))?;
-      // We could assume that the chunk group is an entrypoint and must have one chunk, which is entry chunk.
-      // TODO: we need a better and safe way to ensure this.
+
+      modules.iter().for_each(|block| {
+        self
+          .compilation
+          .chunk_graph
+          .connect_block_and_chunk_group(*block, chunk_group.ukey);
+      });
+
       let chunk = chunk_group.get_entry_point_chunk();
       for module in modules {
         self.queue.push(QueueItem {
@@ -427,6 +434,12 @@ impl<'me> CodeSplitter<'me> {
         item_chunk_group.runtime.clone(),
         None,
       );
+
+      self
+        .compilation
+        .chunk_graph
+        .connect_block_and_chunk_group(dyn_dep_mgm.module_identifier, chunk_group.ukey);
+
       item_chunk_group.children.insert(chunk_group.ukey);
       chunk_group.parents.insert(item_chunk_group.ukey);
 

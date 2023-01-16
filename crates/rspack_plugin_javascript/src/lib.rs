@@ -5,6 +5,7 @@
 
 // use once_cell::sync::Lazy;
 
+mod dependency;
 mod plugin;
 pub use plugin::*;
 mod ast;

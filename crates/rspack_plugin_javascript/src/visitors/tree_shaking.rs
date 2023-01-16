@@ -1,5 +1,6 @@
 use rspack_core::{
-  Dependency, DependencyType, Identifier, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  CodeGeneratableDeclMappings, DependencyCategory, DependencyType, Identifier, ModuleGraph,
+  ModuleIdentifier,
 };
 // use swc_ecma_utils::
 use rspack_symbol::{BetterId, IndirectTopLevelSymbol, Symbol};
@@ -10,6 +11,7 @@ use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::utils::quote_ident;
 use swc_core::ecma::visit::{noop_fold_type, Fold, FoldWith};
 pub fn tree_shaking_visitor<'a>(
+  decl_mappings: &'a CodeGeneratableDeclMappings,
   module_graph: &'a ModuleGraph,
   module_id: Identifier,
   used_symbol_set: &'a HashSet<Symbol>,
@@ -18,6 +20,7 @@ pub fn tree_shaking_visitor<'a>(
 ) -> impl Fold + 'a {
   TreeShaker {
     module_graph,
+    decl_mappings,
     module_identifier: module_id,
     used_symbol_set,
     used_indirect_symbol_set,
@@ -40,6 +43,7 @@ pub fn tree_shaking_visitor<'a>(
 /// if function `test` is also unused in local module, then it will be removed in DCE phase of `swc`
 struct TreeShaker<'a> {
   module_graph: &'a ModuleGraph,
+  decl_mappings: &'a CodeGeneratableDeclMappings,
   module_identifier: Identifier,
   used_indirect_symbol_set: &'a HashSet<IndirectTopLevelSymbol>,
   used_symbol_set: &'a HashSet<Symbol>,
@@ -53,7 +57,7 @@ impl<'a> Fold for TreeShaker<'a> {
   noop_fold_type!();
   fn fold_program(&mut self, node: Program) -> Program {
     debug_assert!(GLOBALS.is_set());
-    node.fold_with(self)
+    node.fold_children_with(self)
   }
 
   fn fold_module(&mut self, mut node: Module) -> Module {
@@ -79,7 +83,7 @@ impl<'a> Fold for TreeShaker<'a> {
       ModuleItem::ModuleDecl(module_decl) => match module_decl {
         ModuleDecl::Import(ref import) => {
           let module_identifier = self
-            .resolve_module_identifier(import.src.value.to_string(), DependencyType::EsmImport)
+            .resolve_module_identifier(import.src.value.to_string())
             .unwrap_or_else(|| {
               // FIXME: This is just a hack because of an unstable bug panic here.
               panic!(
@@ -197,7 +201,7 @@ impl<'a> Fold for TreeShaker<'a> {
           if let Some(ref src) = named.src {
             let before_legnth = named.specifiers.len();
             let module_identifier = self
-              .resolve_module_identifier(src.value.to_string(), DependencyType::EsmImport)
+              .resolve_module_identifier(src.value.to_string())
               .expect("TODO:");
             let mgm = self
               .module_graph
@@ -349,7 +353,7 @@ impl<'a> Fold for TreeShaker<'a> {
         }
         ModuleDecl::ExportAll(ref export_all) => {
           let module_identifier = self
-            .resolve_module_identifier(export_all.src.value.to_string(), DependencyType::EsmImport)
+            .resolve_module_identifier(export_all.src.value.to_string())
             .expect("TODO:");
           let mgm = self
             .module_graph
@@ -377,25 +381,15 @@ impl<'a> TreeShaker<'a> {
     Symbol::from_id_and_uri(default_ident.to_id().into(), self.module_identifier.into())
   }
 
-  fn resolve_module_identifier(
-    &mut self,
-    src: String,
-    dependency_type: DependencyType,
-  ) -> Option<ModuleIdentifier> {
+  /// Resolve module identifier with code generated module id and Esm dependency category.
+  fn resolve_module_identifier(&mut self, code_generated_src: String) -> Option<ModuleIdentifier> {
     self
-      .module_graph
-      .module_graph_module_by_identifier(&self.module_identifier)
-      .and_then(|mgm| {
-        mgm.dependencies.iter().find_map(|dep| {
-          if dep.request() == src && dep.dependency_type() == &dependency_type {
-            self
-              .module_graph
-              .module_by_dependency(dep)
-              .map(|module| module.module_identifier)
-          } else {
-            None
-          }
-        })
-      })
+      .decl_mappings
+      .get(&(
+        self.module_identifier,
+        code_generated_src,
+        DependencyCategory::Esm,
+      ))
+      .cloned()
   }
 }

@@ -1,6 +1,3 @@
-import { Compilation, Assets } from "..";
-import * as tapable from "tapable";
-
 export function mapValues(
 	record: Record<string, string>,
 	fn: (key: string) => string
@@ -22,37 +19,6 @@ export function isPromiseLike(value: unknown): value is Promise<any> {
 	);
 }
 
-export const createProcessAssetsFakeHook = (compilation: Compilation) => {
-	type FakeProcessAssetsOptions = string | { name: string; stage?: number };
-
-	const createFakeTap = (
-		options: FakeProcessAssetsOptions,
-		fn,
-		tap: string
-	) => {
-		if (typeof options === "string") options = { name: options };
-		const hook = compilation.__internal_getProcessAssetsHookByStage(
-			options.stage ?? 0
-		);
-		hook[tap](options.name, fn);
-	};
-	return {
-		name: "processAssets",
-		tap: (options: FakeProcessAssetsOptions, fn: (assets: Assets) => void) =>
-			createFakeTap(options, fn, "tap"),
-		tapAsync: (
-			options: FakeProcessAssetsOptions,
-			fn: (assets: Assets, cb: tapable.InnerCallback<Error, void>) => void
-		) => createFakeTap(options, fn, "tapAsync"),
-		tapPromise: (
-			options: FakeProcessAssetsOptions,
-			fn: (assets: Assets) => Promise<void>
-		) => createFakeTap(options, fn, "tapPromise"),
-		stageAdditional: new tapable.AsyncSeriesHook<Assets>(["assets"]),
-		stagePreProcess: new tapable.AsyncSeriesHook<Assets>(["assets"]),
-		stageNone: new tapable.AsyncSeriesHook<Assets>(["assets"]),
-		stageOptimizeInline: new tapable.AsyncSeriesHook<Assets>(["assets"]),
-		stageSummarize: new tapable.AsyncSeriesHook<Assets>(["assets"]),
-		stageReport: new tapable.AsyncSeriesHook<Assets>(["assets"])
-	};
-};
+export function concatErrorMsgAndStack(err: Error): string {
+	return `${err.message}${err.stack ? `\n${err.stack}` : ""}`;
+}

@@ -1,13 +1,20 @@
-use crate::{Compilation, Module};
+use rspack_error::Result;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+
+use crate::{Compilation, DependencyCategory, Module, ModuleIdentifier};
 
 pub struct CodeGeneratableContext<'a> {
   pub compilation: &'a Compilation,
   /// Current referenced module
   pub module: &'a dyn Module,
+  pub runtime_requirements: &'a mut HashSet<&'static str>,
 }
 
 pub trait CodeGeneratable {
-  fn generate(&self, _code_generatable_context: &CodeGeneratableContext) -> CodeGeneratableResult;
+  fn generate(
+    &self,
+    _code_generatable_context: &mut CodeGeneratableContext,
+  ) -> Result<CodeGeneratableResult>;
 }
 
 pub type JsAstPath = Vec<swc_core::ecma::visit::AstParentKind>;
@@ -53,42 +60,98 @@ pub type CodeGeneratableJavaScriptVisitors = Vec<(JsAstPath, Box<dyn JavaScriptV
 
 pub type CodeGeneratableCssVisitors = Vec<(CssAstPath, Box<dyn CssVisitorBuilder>)>;
 
+/// Mapping from the (Module identifier, modified module id, DependencyCategory) to the referencing module identifier
+/// This can be used as a workaround to uniquely identify a module from the AST after dependency code generation.
+pub type CodeGeneratableDeclMappings =
+  HashMap<(ModuleIdentifier, String, DependencyCategory), ModuleIdentifier>;
+
+pub struct CodeGeneratableJavaScriptResult {
+  pub visitors: CodeGeneratableJavaScriptVisitors,
+  pub decl_mappings: CodeGeneratableDeclMappings,
+}
+
+pub struct CodeGeneratableCssResult {
+  pub visitors: CodeGeneratableCssVisitors,
+  pub decl_mappings: CodeGeneratableDeclMappings,
+}
+
 #[derive(Default)]
 pub struct CodeGeneratableResult {
   pub visitors: Vec<(CodeGeneratableAstPath, CodeGeneratableVisitorBuilder)>,
+  pub decl_mappings: CodeGeneratableDeclMappings,
 }
 
 impl CodeGeneratableResult {
+  pub fn with_visitors(
+    mut self,
+    visitors: Vec<(CodeGeneratableAstPath, CodeGeneratableVisitorBuilder)>,
+  ) -> Self {
+    self.visitors.extend(visitors);
+    self
+  }
+
+  pub fn with_decl_mappings(mut self, decl_mappings: CodeGeneratableDeclMappings) -> Self {
+    self.decl_mappings.extend(decl_mappings);
+    self
+  }
+
+  pub fn with_visitor(
+    mut self,
+    visitor: (CodeGeneratableAstPath, CodeGeneratableVisitorBuilder),
+  ) -> Self {
+    self.visitors.push(visitor);
+    self
+  }
+
+  pub fn with_decl_mapping(
+    mut self,
+    key: (ModuleIdentifier, String, DependencyCategory),
+    val: ModuleIdentifier,
+  ) -> Self {
+    self.decl_mappings.insert(key, val);
+    self
+  }
+
   /// Convert the code generatable visitors into JavaScript visitors.
   ///
   /// Safety:
   /// It's only safe to be used if all visitors are JavaScript visitors, or it will panic.
-  pub fn into_javascript(self) -> CodeGeneratableJavaScriptVisitors {
-    self.visitors.into_iter().map(
+  pub fn into_javascript(self) -> CodeGeneratableJavaScriptResult {
+    let visitors = self.visitors.into_iter().map(
       |(ast_path, builder)| {
         if let CodeGeneratableAstPath::JavaScript(ast_path) = ast_path && let CodeGeneratableVisitorBuilder::JavaScript(builder) = builder {
           (ast_path, builder)
         } else {
-          panic!("ast_path or builder is not JavaScript")
+          panic!("Either ast_path or builder is not JavaScript")
         }
       },
-    ).collect()
+    ).collect();
+
+    CodeGeneratableJavaScriptResult {
+      visitors,
+      decl_mappings: self.decl_mappings,
+    }
   }
 
   /// Convert the code generatable visitors into Css visitors.
   ///
   /// Safety:
   /// It's only safe to be used if all visitors are Css visitors, or it will panic.
-  pub fn into_css(self) -> CodeGeneratableCssVisitors {
-    self.visitors.into_iter().map(
+  pub fn into_css(self) -> CodeGeneratableCssResult {
+    let visitors = self.visitors.into_iter().map(
       |(ast_path, builder)| {
         if let CodeGeneratableAstPath::Css(ast_path) = ast_path && let CodeGeneratableVisitorBuilder::Css(builder) = builder {
           (ast_path, builder)
         } else {
-          panic!("ast_path or builder is not Css")
+          panic!("Either ast_path or builder is not Css")
         }
       },
-    ).collect()
+    ).collect();
+
+    CodeGeneratableCssResult {
+      visitors,
+      decl_mappings: self.decl_mappings,
+    }
   }
 }
 

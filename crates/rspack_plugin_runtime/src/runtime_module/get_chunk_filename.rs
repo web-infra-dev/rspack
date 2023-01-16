@@ -49,49 +49,39 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
 
           let mut chunks_map = HashMap::default();
           for chunk_ukey in chunks.iter() {
-            if !compilation
-              .chunk_graph
-              .get_chunk_modules_by_source_type(
-                chunk_ukey,
-                self.source_type,
-                &compilation.module_graph,
-              )
-              .is_empty()
-            {
-              if let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) {
-                let filename_template = match self.source_type {
-                  SourceType::JavaScript => get_js_chunk_filename_template(
-                    chunk,
-                    &compilation.options.output,
-                    &compilation.chunk_group_by_ukey,
+            if let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) {
+              let filename_template = match self.source_type {
+                SourceType::JavaScript => get_js_chunk_filename_template(
+                  chunk,
+                  &compilation.options.output,
+                  &compilation.chunk_group_by_ukey,
+                ),
+                SourceType::Css => get_css_chunk_filename_template(
+                  chunk,
+                  &compilation.options.output,
+                  &compilation.chunk_group_by_ukey,
+                ),
+                _ => unreachable!(),
+              };
+              let hash = Some(chunk.get_render_hash());
+              chunks_map.insert(
+                chunk.expect_id().to_string(),
+                filename_template.render(FilenameRenderOptions {
+                  name: chunk.name_for_filename_template(),
+                  extension: Some(format!(".{}", self.content_type)),
+                  id: chunk.id.clone(),
+                  contenthash: Some(
+                    chunk
+                      .content_hash
+                      .get(&self.source_type)
+                      .expect("should have chunk content hash")
+                      .clone(),
                   ),
-                  SourceType::Css => get_css_chunk_filename_template(
-                    chunk,
-                    &compilation.options.output,
-                    &compilation.chunk_group_by_ukey,
-                  ),
-                  _ => unreachable!(),
-                };
-                let hash = Some(chunk.get_render_hash());
-                chunks_map.insert(
-                  chunk.expect_id().to_string(),
-                  filename_template.render(FilenameRenderOptions {
-                    name: chunk.name_for_filename_template(),
-                    extension: Some(format!(".{}", self.content_type)),
-                    id: chunk.id.clone(),
-                    contenthash: Some(
-                      chunk
-                        .content_hash
-                        .get(&self.source_type)
-                        .expect("should have chunk content hash")
-                        .clone(),
-                    ),
-                    chunkhash: hash.clone(),
-                    hash,
-                    ..Default::default()
-                  }),
-                );
-              }
+                  chunkhash: hash.clone(),
+                  hash,
+                  ..Default::default()
+                }),
+              );
             }
           }
           match chunks_map.is_empty() {

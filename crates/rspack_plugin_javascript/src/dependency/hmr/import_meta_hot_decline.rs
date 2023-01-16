@@ -1,12 +1,11 @@
-use swc_core::ecma::atoms::JsWord;
-
-use crate::{
+use rspack_core::{
   CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, DependencyCategory,
   DependencyType, ErrorSpan, JsAstPath, ModuleDependency, ModuleIdentifier,
 };
+use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Eq, Clone)]
-pub struct ModuleHotAcceptDependency {
+pub struct ImportMetaModuleHotDeclineDependency {
   parent_module_identifier: Option<ModuleIdentifier>,
   request: JsWord,
   // user_request: String,
@@ -19,7 +18,7 @@ pub struct ModuleHotAcceptDependency {
 }
 
 // Do not edit this, as it is used to uniquely identify the dependency.
-impl PartialEq for ModuleHotAcceptDependency {
+impl PartialEq for ImportMetaModuleHotDeclineDependency {
   fn eq(&self, other: &Self) -> bool {
     self.parent_module_identifier == other.parent_module_identifier
       && self.request == other.request
@@ -29,7 +28,7 @@ impl PartialEq for ModuleHotAcceptDependency {
 }
 
 // Do not edit this, as it is used to uniquely identify the dependency.
-impl std::hash::Hash for ModuleHotAcceptDependency {
+impl std::hash::Hash for ImportMetaModuleHotDeclineDependency {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.parent_module_identifier.hash(state);
     self.request.hash(state);
@@ -38,20 +37,20 @@ impl std::hash::Hash for ModuleHotAcceptDependency {
   }
 }
 
-impl ModuleHotAcceptDependency {
+impl ImportMetaModuleHotDeclineDependency {
   pub fn new(request: JsWord, span: Option<ErrorSpan>, ast_path: JsAstPath) -> Self {
     Self {
       parent_module_identifier: None,
       request,
-      category: &DependencyCategory::CommonJS,
-      dependency_type: &DependencyType::ModuleHotAccept,
+      category: &DependencyCategory::Esm,
+      dependency_type: &DependencyType::ImportMetaHotDecline,
       span,
       ast_path,
     }
   }
 }
 
-impl Dependency for ModuleHotAcceptDependency {
+impl Dependency for ImportMetaModuleHotDeclineDependency {
   fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
     self.parent_module_identifier.as_ref()
   }
@@ -69,7 +68,7 @@ impl Dependency for ModuleHotAcceptDependency {
   }
 }
 
-impl ModuleDependency for ModuleHotAcceptDependency {
+impl ModuleDependency for ImportMetaModuleHotDeclineDependency {
   fn request(&self) -> &str {
     &self.request
   }
@@ -83,8 +82,12 @@ impl ModuleDependency for ModuleHotAcceptDependency {
   }
 }
 
-impl CodeGeneratable for ModuleHotAcceptDependency {
-  fn generate(&self, _code_generatable_context: &CodeGeneratableContext) -> CodeGeneratableResult {
-    todo!()
+impl CodeGeneratable for ImportMetaModuleHotDeclineDependency {
+  fn generate(
+    &self,
+    _code_generatable_context: &mut CodeGeneratableContext,
+  ) -> rspack_error::Result<CodeGeneratableResult> {
+    // The rewrite introduced to much hacks, we cannot do it in the dependency code generation right now. So a noop is returned.
+    Ok(CodeGeneratableResult::default())
   }
 }

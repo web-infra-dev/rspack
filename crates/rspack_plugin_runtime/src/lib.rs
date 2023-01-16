@@ -59,13 +59,13 @@ impl Plugin for RuntimePlugin {
     for chunk in &chunks {
       if !chunk.is_only_initial(&compilation.chunk_group_by_ukey) {
         // TODO: use module async block instead of it at code generation
-        runtime_requirements.insert(runtime_globals::ENSURE_CHUNK.to_string());
+        runtime_requirements.insert(runtime_globals::ENSURE_CHUNK);
       }
     }
 
     // workaround for jsonp_chunk_loading can scan `ENSURE_CHUNK` to add additional runtime_requirements
     if runtime_requirements.contains(runtime_globals::ENSURE_CHUNK) {
-      runtime_requirements.insert(runtime_globals::ENSURE_CHUNK_HANDLERS.to_string());
+      runtime_requirements.insert(runtime_globals::ENSURE_CHUNK_HANDLERS);
       compilation.add_runtime_module(chunk, EnsureChunkRuntimeModule::new(true).boxed());
     }
 

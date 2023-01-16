@@ -51,10 +51,10 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
     //   .get_number_of_entry_modules(chunk_ukey)
     //   > 0
     // {
-    runtime_requirements.insert(runtime_globals::ON_CHUNKS_LOADED.to_string());
-    runtime_requirements.insert(runtime_globals::REQUIRE.to_string());
+    runtime_requirements.insert(runtime_globals::ON_CHUNKS_LOADED);
+    runtime_requirements.insert(runtime_globals::REQUIRE);
     // }
-    runtime_requirements.insert(runtime_globals::CHUNK_CALLBACK.to_string());
+    runtime_requirements.insert(runtime_globals::CHUNK_CALLBACK);
 
     Ok(())
   }

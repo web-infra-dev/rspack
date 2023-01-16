@@ -72,7 +72,7 @@ impl Module for LazyCompilationProxyModule {
     );
     cgr
       .runtime_requirements
-      .insert(runtime_globals::LOAD_SCRIPT.to_string());
+      .insert(runtime_globals::LOAD_SCRIPT);
     Ok(cgr)
   }
 }

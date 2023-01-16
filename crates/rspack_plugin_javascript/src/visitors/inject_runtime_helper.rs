@@ -10,10 +10,10 @@ use super::module_variables::WEBPACK_PUBLIC_PATH;
 use crate::utils::is_dynamic_import_literal_expr;
 use crate::visitors::module_variables::WEBPACK_HASH;
 
-pub fn inject_runtime_helper(
+pub fn inject_runtime_helper<'a>(
   unresolved_mark: Mark,
-  runtime_requirements: &mut HashSet<String>,
-) -> impl Fold + '_ {
+  runtime_requirements: &'a mut HashSet<&'static str>,
+) -> impl Fold + 'a {
   let helper_mark = HELPERS.with(|helper| helper.mark());
   as_folder(InjectRuntimeHelper {
     helper_mark,
@@ -25,7 +25,7 @@ pub fn inject_runtime_helper(
 struct InjectRuntimeHelper<'a> {
   helper_mark: Mark,
   unresolved_mark: Mark,
-  runtime_requirements: &'a mut HashSet<String>,
+  runtime_requirements: &'a mut HashSet<&'static str>,
 }
 
 impl<'a> VisitMut for InjectRuntimeHelper<'a> {
@@ -36,12 +36,12 @@ impl<'a> VisitMut for InjectRuntimeHelper<'a> {
       if WEBPACK_HASH.eq(&n.sym) {
         self
           .runtime_requirements
-          .insert(runtime_globals::GET_FULL_HASH.to_string());
+          .insert(runtime_globals::GET_FULL_HASH);
       }
       if WEBPACK_PUBLIC_PATH.eq(&n.sym) {
         self
           .runtime_requirements
-          .insert(runtime_globals::PUBLIC_PATH.to_string());
+          .insert(runtime_globals::PUBLIC_PATH);
       }
     }
   }
@@ -52,7 +52,7 @@ impl<'a> VisitMut for InjectRuntimeHelper<'a> {
     if is_dynamic_import_literal_expr(n) {
       self
         .runtime_requirements
-        .insert(runtime_globals::INTEROP_REQUIRE.to_string());
+        .insert(runtime_globals::INTEROP_REQUIRE);
     }
     if let Some(box Expr::Ident(ident)) = n.callee.as_expr() {
       // must have helper mark
@@ -67,7 +67,7 @@ impl<'a> VisitMut for InjectRuntimeHelper<'a> {
       ) {
         self
           .runtime_requirements
-          .insert(runtime_globals::INTEROP_REQUIRE.to_string());
+          .insert(runtime_globals::INTEROP_REQUIRE);
         n.callee = MemberExpr {
           span: DUMMY_SP,
           obj: Box::new(Expr::Ident(Ident::new(
@@ -87,7 +87,7 @@ impl<'a> VisitMut for InjectRuntimeHelper<'a> {
       if matches!(word, "_export_star") {
         self
           .runtime_requirements
-          .insert(runtime_globals::EXPORT_STAR.to_string());
+          .insert(runtime_globals::EXPORT_STAR);
         // TODO try with ast.parse(r#"self["__rspack_runtime__"].exportStar"#)
         n.callee = MemberExpr {
           span: DUMMY_SP,

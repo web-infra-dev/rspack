@@ -141,7 +141,7 @@ pub struct ThisCompilationArgs<'c> {
 pub struct AdditionalChunkRuntimeRequirementsArgs<'a> {
   pub compilation: &'a mut Compilation,
   pub chunk: &'a ChunkUkey,
-  pub runtime_requirements: &'a mut HashSet<String>,
+  pub runtime_requirements: &'a mut HashSet<&'static str>,
   // TODO context
 }
 
