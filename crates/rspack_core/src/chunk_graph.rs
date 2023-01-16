@@ -477,7 +477,7 @@ pub struct ChunkGraphChunk {
   /// use `LinkedHashMap` to keep the ordered from entry array.
   pub(crate) entry_modules: IdentifierLinkedMap<ChunkGroupUkey>,
   pub(crate) modules: IdentifierSet,
-  pub(crate) runtime_requirements: HashSet<String>,
+  pub(crate) runtime_requirements: HashSet<&'static str>,
   pub(crate) runtime_modules: Vec<ModuleIdentifier>,
 }
 
