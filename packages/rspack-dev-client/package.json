@@ -16,7 +16,8 @@
   },
   "dependencies": {
     "ws": "8.8.1",
-    "events": "3.3.0"
+    "events": "3.3.0",
+    "webpack-dev-server": "4.11.1"
   },
   "peerDependencies": {
     "@rspack/core": "*",
@@ -25,6 +26,8 @@
   "exports": {
     ".": "./dist/index.js",
     "./devServer": "./dist/devServer.js",
-    "./react-refresh": "./dist/reactRefresh.js"
+    "./react-refresh": "./dist/reactRefresh.js",
+    "./clients/SockJSClient": "./dist/clients/SockJSClient.js",
+    "./clients/WebSocketClient": "./dist/clients/WebSocketClient.js"
   }
 }

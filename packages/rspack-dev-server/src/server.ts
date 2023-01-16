@@ -1,59 +1,31 @@
-import type { Compiler, Dev, RspackOptionsNormalized } from "@rspack/core";
-import type { Logger } from "./logger";
+import type { Compiler, Dev } from "@rspack/core";
 import type { Socket } from "net";
 import type { FSWatcher, WatchOptions } from "chokidar";
-import type { WebSocketServer, ClientConnection } from "./ws";
-import type {
-	Application,
-	RequestHandler as ExpressRequestHandler,
-	ErrorRequestHandler as ExpressErrorRequestHandler
-} from "express";
-import { DevMiddleware, getRspackMemoryAssets } from "@rspack/dev-middleware";
+import rdm, { getRspackMemoryAssets } from "@rspack/dev-middleware";
 import type { Server } from "http";
 import type { ResolvedDev } from "./config";
 import fs from "fs";
 import chokidar from "chokidar";
 import http from "http";
-import { createLogger } from "./logger";
 import WebpackDevServer from "webpack-dev-server";
 import express from "express";
-
-import rdm from "@rspack/dev-middleware";
-import { createWebsocketServer } from "./ws";
 import { resolveDevOptions } from "./config";
 
-interface Middleware {
-	name?: string;
-	path?: string;
-	middleware: ExpressErrorRequestHandler | ExpressRequestHandler;
-}
-interface Listener {
-	name: string | Symbol;
-	listener: (...args: any) => void;
-}
-type Host = "local-ip" | "local-ipv4" | "local-ipv6" | string;
-type Port = number | string | "auto";
-
-// copy from webpack-dev-server
-export class RspackDevServer {
+export class RspackDevServer extends WebpackDevServer {
 	options: ResolvedDev;
-	logger: Logger;
 	staticWatchers: FSWatcher[];
 	sockets: Socket[];
-	app: Application;
 	server: Server;
-	private listeners: Listener[];
-	private currentHash: string;
-	private middleware: DevMiddleware | undefined;
-	// TODO: now only support 'ws'
-	webSocketServer: WebSocketServer | undefined;
+	private middleware: ReturnType<typeof rdm>;
+	// @ts-expect-error
+	public compiler: Compiler;
+	webSocketServer: WebpackDevServer.WebSocketServerImplementation | undefined;
 
-	constructor(public compiler: Compiler) {
-		this.logger = createLogger("rspack-dev-server");
+	constructor(compiler: Compiler) {
+		// @ts-expect-error
+		super({}, compiler);
 		this.staticWatchers = [];
-		this.listeners = [];
 		this.sockets = [];
-		this.currentHash = "";
 		this.options = this.normalizeOptions(compiler.options.devServer);
 		this.rewriteCompilerOptions();
 		this.addAdditionEntires();
@@ -83,6 +55,8 @@ export class RspackDevServer {
 	addAdditionEntires() {
 		const entries: string[] = [];
 
+		// TODO: should use providerPlugin
+		entries.push(this.getClientTransport());
 		if (this.options.hot) {
 			const hotUpdateEntryPath = require.resolve(
 				"@rspack/dev-client/devServer"
@@ -104,52 +78,9 @@ export class RspackDevServer {
 		}
 	}
 
-	static isAbsoluteURL(URL: string): boolean {
-		return WebpackDevServer.isAbsoluteURL(URL);
-	}
-
-	static findIp(gateway: string): string | undefined {
-		return WebpackDevServer.findIp(gateway);
-	}
-
-	static async internalIP(family: "v6" | "v4"): Promise<string | undefined> {
-		return WebpackDevServer.internalIP(family);
-	}
-
-	static async internalIPSync(
-		family: "v6" | "v4"
-	): Promise<string | undefined> {
-		return WebpackDevServer.internalIPSync(family);
-	}
-
-	static async getHostname(hostname?: Host): Promise<string> {
-		return WebpackDevServer.getHostname(hostname);
-	}
-
-	static async getFreePort(port: Port, host: string): Promise<string | number> {
-		return WebpackDevServer.getFreePort(port, host);
-	}
-
 	static findCacheDir(): string {
 		// TODO: we need remove the `webpack-dev-server` tag in WebpackDevServer;
 		return "";
-	}
-
-	private getCompilerOptions(): RspackOptionsNormalized {
-		return this.compiler.options;
-	}
-
-	sendMessage(
-		clients: ClientConnection[],
-		type: string,
-		data?: any,
-		params?: any
-	) {
-		for (const client of clients) {
-			if (client.readyState === 1) {
-				client.send(JSON.stringify({ type, data, params }));
-			}
-		}
 	}
 
 	watchFiles(watchPath: string | string[], watchOptions?: WatchOptions): void {
@@ -176,10 +107,71 @@ export class RspackDevServer {
 		this.staticWatchers.push(watcher);
 	}
 
-	invalidate(callback = () => {}): void {
-		if (this.middleware) {
-			this.middleware.invalidate(callback);
+	getClientTransport(): string {
+		// WARNING: we can't use `super.getClientTransport`,
+		// because we doesn't had same directory structure.
+		// and TODO: we need impelement `webpack.providerPlugin`
+		let clientImplementation: string | undefined;
+		let clientImplementationFound = true;
+		const isKnownWebSocketServerImplementation =
+			this.options.webSocketServer &&
+			typeof this.options.webSocketServer.type === "string" &&
+			(this.options.webSocketServer.type === "ws" ||
+				this.options.webSocketServer.type === "sockjs");
+
+		let clientTransport: string | undefined;
+
+		if (this.options.client) {
+			if (
+				// @ts-ignore
+				typeof this.options.client.webSocketTransport !== "undefined"
+			) {
+				// @ts-ignore
+				clientTransport = this.options.client.webSocketTransport;
+			} else if (isKnownWebSocketServerImplementation) {
+				// @ts-ignore
+				clientTransport = this.options.webSocketServer.type;
+			} else {
+				clientTransport = "ws";
+			}
+		} else {
+			clientTransport = "ws";
 		}
+
+		switch (typeof clientTransport) {
+			case "string":
+				// could be 'sockjs', 'ws', or a path that should be required
+				if (clientTransport === "sockjs") {
+					clientImplementation = require.resolve(
+						"@rspack/dev-client/clients/SockJSClient"
+					);
+				} else if (clientTransport === "ws") {
+					clientImplementation = require.resolve(
+						"@rspack/dev-client/clients/WebSocketClient"
+					);
+				} else {
+					try {
+						clientImplementation = require.resolve(clientTransport);
+						throw Error("Do not support custom ws client now");
+					} catch (e) {
+						clientImplementationFound = false;
+					}
+				}
+				break;
+			default:
+				clientImplementationFound = false;
+		}
+		if (!clientImplementationFound) {
+			throw new Error(
+				`${
+					!isKnownWebSocketServerImplementation
+						? "When you use custom web socket implementation you must explicitly specify client.webSocketTransport. "
+						: ""
+				}client.webSocketTransport must be a string denoting a default implementation (e.g. 'sockjs', 'ws') or a full path to a JS file via require.resolve(...) which exports a class `
+			);
+		}
+
+		return clientImplementation;
 	}
 
 	async start(): Promise<void> {
@@ -187,9 +179,13 @@ export class RspackDevServer {
 		this.setupApp();
 		this.createServer();
 		this.setupWatchStaticFiles();
-		this.createWebsocketServer();
+		if (this.options.webSocketServer) {
+			// @ts-expect-error: it a private function defined in `WebpackDevServer`.
+			this.createWebSocketServer();
+		}
 		this.setupDevMiddleware();
 		this.setupMiddlewares();
+
 		const host = await RspackDevServer.getHostname(this.options.host);
 		const port = await RspackDevServer.getFreePort(this.options.port, host);
 		this.options.port = port;
@@ -209,19 +205,6 @@ export class RspackDevServer {
 				}
 			)
 		);
-	}
-
-	startCallback(callback?: (err?: Error) => void): void {
-		throw new Error("Method not implemented.");
-	}
-	stopCallback(callback?: (err?: Error) => void): void {
-		throw new Error("Method not implemented.");
-	}
-	listen(port: Port, hostname: string, fn: (err?: Error) => void): void {
-		throw new Error("Method not implemented.");
-	}
-	close(callback?: (err?: Error) => void): void {
-		throw new Error("Method not implemented.");
 	}
 
 	async stop(): Promise<void> {
@@ -272,15 +255,9 @@ export class RspackDevServer {
 		this.middleware = rdm(this.compiler, this.options.devMiddleware);
 	}
 
-	private createWebsocketServer() {
-		if (this.options.webSocketServer !== false) {
-			this.webSocketServer = createWebsocketServer(this);
-		}
-	}
-
 	private setupMiddlewares() {
 		const options = this.options;
-		const middlewares: Middleware[] = [];
+		const middlewares: WebpackDevServer.Middleware[] = [];
 		middlewares.push({
 			name: "rdm",
 			middleware: this.middleware
@@ -368,7 +345,12 @@ export class RspackDevServer {
 					});
 				}
 			}
-			options.proxy.forEach(proxyConfig => {
+			options.proxy.forEach(proxyConfigOrCallback => {
+				const proxyConfig =
+					typeof proxyConfigOrCallback === "function"
+						? proxyConfigOrCallback()
+						: proxyConfigOrCallback;
+
 				const handler = async (req, res, next) => {
 					let proxyMiddleware = getProxyMiddleware(proxyConfig);
 					const isByPassFuncDefined = typeof proxyConfig.bypass === "function";
@@ -411,11 +393,13 @@ export class RspackDevServer {
 			middleware: express.static(this.options.static.directory)
 		});
 
-		middlewares.forEach(m => {
-			if (m.path) {
-				this.app.use(m.path, m.middleware);
+		middlewares.forEach(middleware => {
+			if (typeof middleware === "function") {
+				this.app.use(middleware);
+			} else if (typeof middleware.path !== "undefined") {
+				this.app.use(middleware.path, middleware.middleware);
 			} else {
-				this.app.use(m.middleware);
+				this.app.use(middleware.middleware);
 			}
 		});
 	}

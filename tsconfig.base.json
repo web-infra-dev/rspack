@@ -11,5 +11,6 @@
     "declarationMap": true,
     "composite": true,
     "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
   }
 }
