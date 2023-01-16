@@ -271,6 +271,33 @@ impl ModuleGraph {
     self.connection_id_to_connection.get(&connection_id)
   }
 
+  pub fn remove_connection_by_dependency(&mut self, dep: &BoxModuleDependency) {
+    if let Some(id) = self.dependency_to_dependency_id.get(dep).copied() {
+      if let Some(conn) = self.dependency_id_to_connection_id.remove(&id) {
+        self.connection_id_to_dependency_id.remove(&conn);
+
+        if let Some(conn) = self.connection_id_to_connection.remove(&conn) {
+          self.connections.remove(&conn);
+
+          if let Some(mgm) = conn
+            .original_module_identifier
+            .as_ref()
+            .and_then(|ident| self.module_graph_module_by_identifier_mut(ident))
+          {
+            mgm.outgoing_connections.remove(&conn.id);
+          };
+
+          if let Some(mgm) = self.module_graph_module_by_identifier_mut(&conn.module_identifier) {
+            mgm.incoming_connections.remove(&conn.id);
+          }
+        }
+      }
+      self.dependency_id_to_module_identifier.remove(&id);
+      self.dependency_id_to_dependency.remove(&id);
+      self.dependency_to_dependency_id.remove(dep);
+    }
+  }
+
   pub fn get_pre_order_index(&self, module_identifier: &ModuleIdentifier) -> Option<usize> {
     self
       .module_graph_module_by_identifier(module_identifier)
@@ -294,5 +321,198 @@ impl ModuleGraph {
           .collect()
       })
       .unwrap_or_default()
+  }
+}
+
+#[cfg(test)]
+mod test {
+  use std::borrow::Cow;
+
+  use rspack_error::{Result, TWithDiagnosticArray};
+  use rspack_sources::Source;
+
+  use crate::{
+    BuildContext, BuildResult, CodeGeneratable, CodeGenerationResult, Compilation, Context,
+    Dependency, Identifiable, Module, ModuleDependency, ModuleGraph, ModuleGraphModule,
+    ModuleIdentifier, ModuleType, SourceType,
+  };
+
+  // Define a detailed node type for `ModuleGraphModule`s
+  #[derive(Debug, PartialEq, Eq, Hash)]
+  struct Node(&'static str);
+
+  macro_rules! impl_noop_trait_module_type {
+    ($ident:ident) => {
+      impl Identifiable for $ident {
+        fn identifier(&self) -> ModuleIdentifier {
+          (stringify!($ident).to_owned() + "__" + self.0).into()
+        }
+      }
+
+      #[::async_trait::async_trait]
+      impl Module for $ident {
+        fn module_type(&self) -> &ModuleType {
+          unreachable!()
+        }
+
+        fn source_types(&self) -> &[SourceType] {
+          unreachable!()
+        }
+
+        fn original_source(&self) -> Option<&dyn Source> {
+          unreachable!()
+        }
+
+        fn size(&self, _source_type: &SourceType) -> f64 {
+          unreachable!()
+        }
+
+        fn readable_identifier(&self, _context: &Context) -> Cow<str> {
+          unreachable!()
+        }
+
+        async fn build(
+          &mut self,
+          _build_context: BuildContext<'_>,
+        ) -> Result<TWithDiagnosticArray<BuildResult>> {
+          unreachable!()
+        }
+
+        fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult> {
+          unreachable!()
+        }
+      }
+    };
+  }
+
+  impl_noop_trait_module_type!(Node);
+
+  // Define a detailed edge type for `ModuleGraphConnection`s, tuple contains the parent module identifier and the child module specifier
+  #[derive(Debug, PartialEq, Eq, Hash, Clone)]
+  struct Edge(Option<ModuleIdentifier>, String);
+
+  macro_rules! impl_noop_trait_dep_type {
+    ($ident:ident) => {
+      impl Dependency for $ident {
+        fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
+          self.0.as_ref()
+        }
+      }
+
+      impl ModuleDependency for $ident {
+        fn request(&self) -> &str {
+          &*self.1
+        }
+
+        fn user_request(&self) -> &str {
+          &*self.1
+        }
+
+        fn span(&self) -> Option<&crate::ErrorSpan> {
+          unreachable!()
+        }
+      }
+
+      impl CodeGeneratable for $ident {
+        fn generate(
+          &self,
+          _code_generatable_context: &mut crate::CodeGeneratableContext,
+        ) -> Result<crate::CodeGeneratableResult> {
+          unreachable!()
+        }
+      }
+    };
+  }
+
+  impl_noop_trait_dep_type!(Edge);
+
+  fn add_module_to_graph(mg: &mut ModuleGraph, m: Box<dyn Module>) {
+    let mgm = ModuleGraphModule::new(None, m.identifier(), ModuleType::Js, true);
+    mg.add_module_graph_module(mgm);
+    mg.add_module(m);
+  }
+
+  fn link_modules_with_dependency(
+    mg: &mut ModuleGraph,
+    from: Option<&ModuleIdentifier>,
+    to: &ModuleIdentifier,
+    dep: Box<dyn ModuleDependency>,
+  ) {
+    let did = mg.add_dependency(dep.clone(), *to);
+    if let Some(p_id) = from && let Some(mgm) = mg.module_graph_module_by_identifier_mut(p_id) {
+      mgm.dependencies.push(dep);
+    }
+    mg.set_resolved_module(from.copied(), did, *to)
+      .expect("failed to set resolved module");
+
+    assert_eq!(
+      mg.dependency_id_to_module_identifier.get(&did).copied(),
+      Some(*to)
+    );
+  }
+
+  fn mgm<'m>(mg: &'m ModuleGraph, m_id: &ModuleIdentifier) -> &'m ModuleGraphModule {
+    mg.module_graph_module_by_identifier(m_id)
+      .expect("not found")
+  }
+
+  macro_rules! node {
+    ($s:literal) => {
+      Node($s)
+    };
+  }
+
+  macro_rules! edge {
+    ($from:literal, $to:expr) => {
+      Edge(Some($from.into()), $to.into())
+    };
+    ($from:expr, $to:expr) => {
+      Edge($from, $to.into())
+    };
+  }
+
+  #[test]
+  fn test_module_graph() {
+    let mut mg = ModuleGraph::default();
+    let a = node!("a");
+    let b = node!("b");
+    let a_id = a.identifier();
+    let b_id = b.identifier();
+    let a_to_b = edge!(Some(a_id.clone()), b_id.as_str());
+    add_module_to_graph(&mut mg, box a);
+    add_module_to_graph(&mut mg, box b);
+    link_modules_with_dependency(&mut mg, Some(&a_id), &b_id, box (a_to_b.clone()));
+
+    let mgm_a = mgm(&mg, &a_id);
+    let mgm_b = mgm(&mg, &b_id);
+    let conn_a = mgm_a.outgoing_connections.iter().collect::<Vec<_>>();
+    let conn_b = mgm_b.incoming_connections.iter().collect::<Vec<_>>();
+    assert_eq!(conn_a[0], conn_b[0]);
+
+    let c = node!("c");
+    let c_id = c.identifier();
+    let b_to_c = edge!(Some(b_id.clone()), c_id.as_str());
+    add_module_to_graph(&mut mg, box c);
+    link_modules_with_dependency(&mut mg, Some(&b_id), &c_id, box (b_to_c.clone()));
+
+    let mgm_b = mgm(&mg, &b_id);
+    let mgm_c = mgm(&mg, &c_id);
+    let conn_b = mgm_b.outgoing_connections.iter().collect::<Vec<_>>();
+    let conn_c = mgm_c.incoming_connections.iter().collect::<Vec<_>>();
+    assert_eq!(conn_c[0], conn_b[0]);
+
+    mg.remove_connection_by_dependency(&(box a_to_b as Box<dyn ModuleDependency>));
+
+    let mgm_a = mgm(&mg, &a_id);
+    let mgm_b = mgm(&mg, &b_id);
+    assert!(mgm_a.outgoing_connections.is_empty());
+    assert!(mgm_b.incoming_connections.is_empty());
+
+    mg.remove_connection_by_dependency(&(box b_to_c as Box<dyn ModuleDependency>));
+
+    let mgm_b = mgm(&mg, &b_id);
+    let mgm_c = mgm(&mg, &c_id);
+    assert!(mgm_b.outgoing_connections.is_empty());
+    assert!(mgm_c.incoming_connections.is_empty());
   }
 }
