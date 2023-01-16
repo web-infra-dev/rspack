@@ -19,7 +19,6 @@ napi = { workspace = true, features = [
   "anyhow",
 ] }
 napi-derive = { workspace = true, version = "2" }
-napi-sys = { workspace = true, version = "2" }
 once_cell = "1"
 regex = "1.6.0"
 rspack_binding_macros = { path = "../rspack_binding_macros" }

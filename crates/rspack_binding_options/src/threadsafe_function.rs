@@ -92,7 +92,7 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
 
               check_status!(
                 unsafe {
-                  napi_sys::napi_get_named_property(
+                  sys::napi_get_named_property(
                     env.raw(),
                     napi_error,
                     CStr::from_bytes_with_nul_unchecked(b"stack\0").as_ptr(),
@@ -105,7 +105,7 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
               let mut str_len = 0;
               check_status!(
                 unsafe {
-                  napi_sys::napi_get_value_string_utf8(
+                  sys::napi_get_value_string_utf8(
                     env.raw(),
                     value_ptr,
                     ptr::null_mut(),
@@ -122,7 +122,7 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
 
               check_status!(
                 unsafe {
-                  napi_sys::napi_get_value_string_utf8(
+                  sys::napi_get_value_string_utf8(
                     env.raw(),
                     value_ptr,
                     buf.as_mut_ptr(),
