@@ -102,7 +102,7 @@ impl StarSymbol {
   pub fn star_kind(&self) {}
 }
 
-#[derive(Debug, Clone, Eq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct IndirectTopLevelSymbol {
   pub uri: Ustr,
   pub id: JsWord,
@@ -115,15 +115,17 @@ impl std::hash::Hash for IndirectTopLevelSymbol {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.uri.hash(state);
     self.id.hash(state);
+    self.ty.hash(state);
+    self.importer.hash(state);
   }
 }
-impl std::cmp::PartialEq for IndirectTopLevelSymbol {
-  fn eq(&self, other: &Self) -> bool {
-    self.uri == other.uri
-      && self.id == other.id
-      && (self.importer == other.importer || self.importer.is_empty())
-  }
-}
+// impl std::cmp::PartialEq for IndirectTopLevelSymbol {
+//   fn eq(&self, other: &Self) -> bool {
+//     self.uri == other.uri
+//       && self.id == other.id
+//       && (self.importer == other.importer || self.importer.is_empty())
+//   }
+// }
 
 impl IndirectTopLevelSymbol {
   pub fn new(uri: Ustr, id: JsWord, importer: Ustr, ty: IndirectType) -> Self {
@@ -135,14 +137,14 @@ impl IndirectTopLevelSymbol {
     }
   }
 
-  pub fn fast_create(uri: Ustr, id: JsWord) -> IndirectTopLevelSymbol {
-    IndirectTopLevelSymbol {
-      uri,
-      id,
-      importer: ustr(""),
-      ty: Default::default(),
-    }
-  }
+  // pub fn fast_create(uri: Ustr, id: JsWord) -> IndirectTopLevelSymbol {
+  //   IndirectTopLevelSymbol {
+  //     uri,
+  //     id,
+  //     importer: ustr(""),
+  //     ty: Default::default(),
+  //   }
+  // }
 
   pub fn uri(&self) -> Ustr {
     self.uri

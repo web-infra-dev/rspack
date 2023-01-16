@@ -226,25 +226,21 @@ impl<'a> Fold for TreeShaker<'a> {
                 }
 
                 ExportSpecifier::Named(named_spec) => {
-                  let exported = if let Some(ref export) = named_spec.exported {
-                    export
-                  } else {
-                    &named_spec.orig
+                  let original = &named_spec.orig;
+                  let id = match original {
+                    ModuleExportName::Ident(ref ident) => ident.sym.clone(),
+                    ModuleExportName::Str(str) => str.value.clone(),
                   };
-                  match exported {
-                    ModuleExportName::Ident(ref ident) => {
-                      let symbol = IndirectTopLevelSymbol::fast_create(
-                        self.module_identifier.into(),
-                        ident.sym.clone(),
-                      );
-                      self.used_indirect_symbol_set.contains(&symbol)
-                    }
-                    ModuleExportName::Str(_) => {
-                      // named export without src has string lit orig is a syntax error
-                      // `export { "something" }`
-                      todo!("`export {{ 'something' }}`")
-                    }
-                  }
+                  let symbol = IndirectTopLevelSymbol {
+                    uri: module_identifier.into(),
+                    id,
+                    ty: rspack_symbol::IndirectType::ReExport,
+                    importer: self.module_identifier.into(),
+                  };
+                  dbg!(&symbol);
+                  let ret = self.used_indirect_symbol_set.contains(&symbol);
+                  dbg!(&ret);
+                  ret
                 }
               })
               .collect::<Vec<_>>();
