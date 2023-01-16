@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::str::FromStr;
 
-#[cfg(feature = "node-api")]
 use napi_derive::napi;
 use rspack_plugin_html::config::HtmlPluginConfig;
 use rspack_plugin_html::config::HtmlPluginConfigInject;
@@ -49,7 +48,6 @@ pub type RawHtmlFilename = String;
 
 #[derive(Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-#[cfg(feature = "node-api")]
 #[napi(object)]
 pub struct RawHtmlPluginConfig {
   /// emitted file name in output path
@@ -71,32 +69,6 @@ pub struct RawHtmlPluginConfig {
   pub chunks: Option<Vec<String>>,
   pub excluded_chunks: Option<Vec<String>>,
   #[napi(ts_type = "string | void")]
-  pub sri: Option<RawHtmlSriHashFunction>,
-  pub minify: Option<bool>,
-  pub title: Option<String>,
-  pub favicon: Option<String>,
-  pub meta: Option<HashMap<String, HashMap<String, String>>>,
-}
-
-#[derive(Deserialize, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-#[cfg(not(feature = "node-api"))]
-pub struct RawHtmlPluginConfig {
-  /// emitted file name in output path
-  pub filename: Option<RawHtmlFilename>,
-  /// template html file
-  pub template: Option<String>,
-  pub template_parameters: Option<HashMap<String, String>>,
-  /// `head`, `body` or None
-  pub inject: Option<RawHtmlPluginConfigInject>,
-  /// path or `auto`
-  pub public_path: Option<String>,
-  /// `blocking`, `defer`, or `module`
-  pub script_loading: Option<RawHtmlPluginConfigScriptLoading>,
-
-  /// entry_chunk_name (only entry chunks are supported)
-  pub chunks: Option<Vec<String>>,
-  pub excluded_chunks: Option<Vec<String>>,
   pub sri: Option<RawHtmlSriHashFunction>,
   pub minify: Option<bool>,
   pub title: Option<String>,

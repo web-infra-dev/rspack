@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-#[cfg(feature = "node-api")]
 use napi_derive::napi;
 use rspack_core::{AliasMap, CompilerOptionsBuilder, Resolve};
 use serde::Deserialize;
@@ -11,7 +10,6 @@ pub type AliasValue = serde_json::Value;
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
-#[cfg(feature = "node-api")]
 #[napi(object)]
 pub struct RawResolveOptions {
   pub prefer_relative: Option<bool>,
@@ -22,22 +20,6 @@ pub struct RawResolveOptions {
   pub condition_names: Option<Vec<String>>,
   #[serde(serialize_with = "ordered_map")]
   #[napi(ts_type = "Record<string, string | false>")]
-  pub alias: Option<HashMap<String, AliasValue>>,
-  pub symlinks: Option<bool>,
-  pub ts_config_path: Option<String>,
-}
-
-#[derive(Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase")]
-#[cfg(not(feature = "node-api"))]
-pub struct RawResolveOptions {
-  pub prefer_relative: Option<bool>,
-  pub extensions: Option<Vec<String>>,
-  pub main_files: Option<Vec<String>>,
-  pub main_fields: Option<Vec<String>>,
-  pub browser_field: Option<bool>,
-  pub condition_names: Option<Vec<String>>,
-  #[serde(serialize_with = "ordered_map")]
   pub alias: Option<HashMap<String, AliasValue>>,
   pub symlinks: Option<bool>,
   pub ts_config_path: Option<String>,

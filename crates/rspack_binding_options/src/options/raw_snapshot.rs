@@ -1,4 +1,3 @@
-#[cfg(feature = "node-api")]
 use napi_derive::napi;
 use rspack_core::{CompilerOptionsBuilder, SnapshotOptions, SnapshotStrategy};
 use serde::Deserialize;
@@ -7,7 +6,6 @@ use crate::RawOption;
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
-#[cfg(feature = "node-api")]
 #[napi(object)]
 pub struct RawSnapshotStrategy {
   pub hash: bool,
@@ -16,26 +14,7 @@ pub struct RawSnapshotStrategy {
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
-#[cfg(not(feature = "node-api"))]
-pub struct RawSnapshotStrategy {
-  pub hash: bool,
-  pub timestamp: bool,
-}
-
-#[derive(Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase")]
-#[cfg(feature = "node-api")]
 #[napi(object)]
-pub struct RawSnapshotOptions {
-  pub resolve_build_dependencies: RawSnapshotStrategy,
-  pub build_dependencies: RawSnapshotStrategy,
-  pub resolve: RawSnapshotStrategy,
-  pub module: RawSnapshotStrategy,
-}
-
-#[derive(Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase")]
-#[cfg(not(feature = "node-api"))]
 pub struct RawSnapshotOptions {
   pub resolve_build_dependencies: RawSnapshotStrategy,
   pub build_dependencies: RawSnapshotStrategy,
