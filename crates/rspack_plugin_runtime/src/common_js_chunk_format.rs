@@ -48,8 +48,8 @@ impl Plugin for CommonJsChunkFormatPlugin {
       .get_number_of_entry_modules(chunk_ukey)
       > 0
     {
-      runtime_requirements.insert(runtime_globals::REQUIRE.to_string());
-      runtime_requirements.insert(runtime_globals::EXTERNAL_INSTALL_CHUNK.to_string());
+      runtime_requirements.insert(runtime_globals::REQUIRE);
+      runtime_requirements.insert(runtime_globals::EXTERNAL_INSTALL_CHUNK);
     }
 
     Ok(())

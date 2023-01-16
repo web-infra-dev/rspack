@@ -10,11 +10,11 @@ use crate::runtime_module::utils::{get_initial_chunk_ids, stringify_chunks};
 #[derive(Debug, Default)]
 pub struct RequireChunkLoadingRuntimeModule {
   chunk: Option<ChunkUkey>,
-  runtime_requirements: HashSet<String>,
+  runtime_requirements: HashSet<&'static str>,
 }
 
 impl RequireChunkLoadingRuntimeModule {
-  pub fn new(runtime_requirements: HashSet<String>) -> Self {
+  pub fn new(runtime_requirements: HashSet<&'static str>) -> Self {
     Self {
       chunk: None,
       runtime_requirements,

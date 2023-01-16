@@ -142,7 +142,7 @@ impl AssetParserAndGenerator {
   ) -> Result<String> {
     generate_context
       .runtime_requirements
-      .insert(runtime_globals::PUBLIC_PATH.to_string());
+      .insert(runtime_globals::PUBLIC_PATH);
     Ok(format!(
       r#"{} + "{}""#,
       runtime_globals::PUBLIC_PATH,

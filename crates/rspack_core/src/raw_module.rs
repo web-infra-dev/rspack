@@ -15,7 +15,7 @@ pub struct RawModule {
   source: BoxSource,
   identifier: ModuleIdentifier,
   readable_identifier: String,
-  runtime_requirements: HashSet<String>,
+  runtime_requirements: HashSet<&'static str>,
 }
 
 static RAW_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -25,7 +25,7 @@ impl RawModule {
     source: String,
     identifier: ModuleIdentifier,
     readable_identifier: String,
-    runtime_requirements: HashSet<String>,
+    runtime_requirements: HashSet<&'static str>,
   ) -> Self {
     Self {
       // TODO: useSourceMap, etc...

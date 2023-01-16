@@ -1070,7 +1070,8 @@ impl Compilation {
           .get_number_of_module_chunks(module.identifier())
           > 0
         {
-          let mut module_runtime_requirements: Vec<(HashSet<String>, HashSet<String>)> = vec![];
+          let mut module_runtime_requirements: Vec<(HashSet<String>, HashSet<&'static str>)> =
+            vec![];
           for runtime in self
             .chunk_graph
             .get_module_runtimes(module.identifier(), &self.chunk_by_ukey)
@@ -1109,7 +1110,7 @@ impl Compilation {
           .chunk_graph
           .get_module_runtime_requirements(module.module_identifier, &chunk.runtime)
         {
-          set.extend(runtime_requirements.clone());
+          set.extend(runtime_requirements);
         }
       }
       chunk_requirements.insert(*chunk_ukey, set);

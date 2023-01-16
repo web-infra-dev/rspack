@@ -62,8 +62,8 @@ impl Plugin for BasicRuntimeRequirementPlugin {
 
     let mut sorted_runtime_requirement = runtime_requirements.iter().collect::<Vec<_>>();
     sorted_runtime_requirement.sort();
-    for runtime_requirement in sorted_runtime_requirement.iter() {
-      match runtime_requirement.as_str() {
+    for &runtime_requirement in sorted_runtime_requirement {
+      match runtime_requirement {
         runtime_globals::PUBLIC_PATH => {
           compilation.add_runtime_module(chunk, PublicPathRuntimeModule::new().boxed())
         }
