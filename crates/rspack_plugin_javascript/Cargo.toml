@@ -37,6 +37,7 @@ swc_core = { workspace = true, features = [
   "ecma_transforms_typescript",
   "ecma_minifier",
   "ecma_minifier_concurrent",
+  "ecma_quote",
 ] }
 # swc = { workspace = true }
 # swc_atoms = { workspace = true }

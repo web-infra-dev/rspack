@@ -82,7 +82,10 @@ impl ModuleDependency for CssUrlDependency {
 }
 
 impl CodeGeneratable for CssUrlDependency {
-  fn generate(&self, _code_generatable_context: &CodeGeneratableContext) -> CodeGeneratableResult {
+  fn generate(
+    &self,
+    _code_generatable_context: &mut CodeGeneratableContext,
+  ) -> rspack_error::Result<CodeGeneratableResult> {
     todo!()
   }
 }

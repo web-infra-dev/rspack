@@ -1,9 +1,11 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  CodeGeneratableContext, CodeGeneratableJavaScriptVisitors, Compilation, JavaScriptVisitorBuilder,
-  JsAstPath, Module,
+  CodeGeneratableContext, CodeGeneratableDeclMappings, CodeGeneratableJavaScriptResult,
+  CodeGeneratableJavaScriptVisitors, GenerateContext, JavaScriptVisitorBuilder, JsAstPath, Module,
 };
+use rspack_error::Result;
+use rustc_hash::FxHashMap as HashMap;
 use swc_core::{
   common::pass::AstKindPath,
   ecma::{
@@ -12,17 +14,22 @@ use swc_core::{
   },
 };
 
+pub struct DependencyCodeGenerationVisitors {
+  pub visitors: CodeGeneratableJavaScriptVisitors,
+  pub root_visitors: CodeGeneratableJavaScriptVisitors,
+  pub decl_mappings: CodeGeneratableDeclMappings,
+}
+
 /// Collect dependency code generation visitors from dependencies of the module passed in.
 ///
 /// Safety:
 /// It's only safe to be used if module exists in module graph, or it will panic.
 pub fn collect_dependency_code_generation_visitors(
   module: &dyn Module,
-  compilation: &Compilation,
-) -> (
-  CodeGeneratableJavaScriptVisitors,
-  CodeGeneratableJavaScriptVisitors,
-) {
+  generate_context: &mut GenerateContext,
+) -> Result<DependencyCodeGenerationVisitors> {
+  let compilation = generate_context.compilation;
+
   let dependencies = compilation
     .module_graph
     .module_graph_module_by_identifier(&module.identifier())
@@ -32,17 +39,26 @@ pub fn collect_dependency_code_generation_visitors(
   let mut root_visitors = vec![];
   let mut visitors = vec![];
 
-  let context = CodeGeneratableContext {
+  let mut context = CodeGeneratableContext {
     compilation,
     module,
+    runtime_requirements: generate_context.runtime_requirements,
   };
+
+  let mut mappings = HashMap::default();
 
   dependencies
     .iter()
-    .map(|dependency| dependency.generate(&context))
+    .map(|dependency| dependency.generate(&mut context))
+    .collect::<Result<Vec<_>>>()?
+    .into_iter()
     .for_each(|code_gen| {
-      let js_visitors = code_gen.into_javascript();
-      js_visitors.into_iter().for_each(|(ast_path, builder)| {
+      let CodeGeneratableJavaScriptResult {
+        visitors: raw_visitors,
+        decl_mappings,
+      } = code_gen.into_javascript();
+      mappings.extend(decl_mappings);
+      raw_visitors.into_iter().for_each(|(ast_path, builder)| {
         if ast_path.is_empty() {
           root_visitors.push((ast_path, builder))
         } else {
@@ -51,7 +67,11 @@ pub fn collect_dependency_code_generation_visitors(
       });
     });
 
-  (root_visitors, visitors)
+  Ok(DependencyCodeGenerationVisitors {
+    visitors,
+    root_visitors,
+    decl_mappings: mappings,
+  })
 }
 
 // Temporarily referenced from https://github.com/vercel/turbo/blob/daaeabfb502d3b1f6c1acfae31d0d2cf8a740463/crates/turbopack-ecmascript/src/path_visitor.rs

@@ -43,7 +43,10 @@ impl ModuleDependency for EntryDependency {
 }
 
 impl CodeGeneratable for EntryDependency {
-  fn generate(&self, _code_generatable_context: &CodeGeneratableContext) -> CodeGeneratableResult {
-    CodeGeneratableResult { visitors: vec![] }
+  fn generate(
+    &self,
+    _code_generatable_context: &mut CodeGeneratableContext,
+  ) -> rspack_error::Result<CodeGeneratableResult> {
+    Ok(CodeGeneratableResult::default())
   }
 }

@@ -19,17 +19,13 @@ use swc_core::ecma::transforms::optimization::simplify::dce::{dce, Config};
 mod swc_visitor;
 mod tree_shaking;
 use rspack_core::{ast::javascript::Ast, CompilerOptions, GenerateContext, ResourceData};
-use rspack_error::Result;
+use rspack_error::{Error, Result};
 use swc_core::base::config::ModuleConfig;
 use swc_core::common::{chain, comments::Comments};
 use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::transforms::base::pass::Optional;
 use swc_core::ecma::transforms::module::common_js::Config as CommonjsConfig;
-use swc_core::ecma::visit::as_folder;
 use tree_shaking::tree_shaking_visitor;
-
-use crate::visitors::rewrite::RewriteModuleUrl;
-mod rewrite;
 
 /// return (ast, top_level_mark, unresolved_mark, globals)
 pub fn run_before_pass(
@@ -130,86 +126,92 @@ pub fn run_before_pass(
   Ok(())
 }
 
-pub fn run_after_pass(ast: &mut Ast, module: &dyn Module, generate_context: &mut GenerateContext) {
+pub fn run_after_pass(
+  ast: &mut Ast,
+  module: &dyn Module,
+  generate_context: &mut GenerateContext,
+) -> Result<()> {
   let cm = ast.get_context().source_map.clone();
 
-  _ = ast.transform_with_handler(cm.clone(), |_, program, context| {
-    let unresolved_mark = context.unresolved_mark;
-    let top_level_mark = context.top_level_mark;
-    let tree_shaking = generate_context.compilation.options.builtins.tree_shaking;
-    let minify = generate_context.compilation.options.builtins.minify;
-    let comments = None;
+  ast
+    .transform_with_handler(cm.clone(), |_, program, context| {
+      let unresolved_mark = context.unresolved_mark;
+      let top_level_mark = context.top_level_mark;
+      let tree_shaking = generate_context.compilation.options.builtins.tree_shaking;
+      let minify = generate_context.compilation.options.builtins.minify;
+      let comments = None;
+      let dependency_visitors =
+        collect_dependency_code_generation_visitors(module, generate_context)?;
 
-    // TODO: add back in next PR
-    // Run dependencies' code generation first
-    // {
-    //   let (root_visitors, visitors) =
-    //     collect_dependency_code_generation_visitors(module, &generate_context.compilation);
+      let DependencyCodeGenerationVisitors {
+        visitors,
+        root_visitors,
+        decl_mappings,
+      } = dependency_visitors;
 
-    //   if !visitors.is_empty() {
-    //     program.visit_mut_with_path(
-    //       &mut ApplyVisitors::new(
-    //         visitors
-    //           .iter()
-    //           .map(|(ast_path, visitor)| (ast_path, &**visitor))
-    //           .collect(),
-    //       ),
-    //       &mut Default::default(),
-    //     );
-    //   }
-    //
-    //   for (_, root_visitor) in root_visitors {
-    //     program.visit_mut_with(&mut root_visitor.create());
-    //   }
-    // }
+      {
+        if !visitors.is_empty() {
+          program.visit_mut_with_path(
+            &mut ApplyVisitors::new(
+              visitors
+                .iter()
+                .map(|(ast_path, visitor)| (ast_path, &**visitor))
+                .collect(),
+            ),
+            &mut Default::default(),
+          );
+        }
 
-    let mut pass = chain!(
-      Optional::new(
-        tree_shaking_visitor(
-          &generate_context.compilation.module_graph,
-          module.identifier(),
-          &generate_context.compilation.used_symbol,
-          &generate_context.compilation.used_indirect_symbol,
-          top_level_mark,
+        for (_, root_visitor) in root_visitors {
+          program.visit_mut_with(&mut root_visitor.create());
+        }
+      }
+
+      let mut pass = chain!(
+        Optional::new(
+          tree_shaking_visitor(
+            &decl_mappings,
+            &generate_context.compilation.module_graph,
+            module.identifier(),
+            &generate_context.compilation.used_symbol,
+            &generate_context.compilation.used_indirect_symbol,
+            top_level_mark,
+          ),
+          tree_shaking,
         ),
-        tree_shaking
-      ),
-      Optional::new(
-        Repeat::new(dce(Config::default(), unresolved_mark)),
-        // extra branch to avoid doing dce twice, (minify will exec dce)
-        tree_shaking && !minify.enable,
-      ),
-      as_folder(RewriteModuleUrl::new(
-        unresolved_mark,
-        module,
-        generate_context.compilation,
-      )),
-      swc_visitor::build_module(
-        &cm,
-        unresolved_mark,
-        Some(ModuleConfig::CommonJs(CommonjsConfig {
-          ignore_dynamic: true,
-          // here will remove `use strict`
-          strict_mode: false,
-          no_interop: !context.is_esm,
-          ..Default::default()
-        })),
-        comments,
-        generate_context.compilation.options.target.es_version
-      ),
-      inject_runtime_helper(unresolved_mark, generate_context.runtime_requirements),
-      module_variables(
-        module,
-        unresolved_mark,
-        top_level_mark,
-        generate_context.compilation,
-      ),
-      finalize(module, generate_context.compilation, unresolved_mark),
-      swc_visitor::hygiene(false),
-      swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
-    );
+        Optional::new(
+          Repeat::new(dce(Config::default(), unresolved_mark)),
+          // extra branch to avoid doing dce twice, (minify will exec dce)
+          tree_shaking && !minify.enable,
+        ),
+        swc_visitor::build_module(
+          &cm,
+          unresolved_mark,
+          Some(ModuleConfig::CommonJs(CommonjsConfig {
+            ignore_dynamic: true,
+            // here will remove `use strict`
+            strict_mode: false,
+            no_interop: !context.is_esm,
+            ..Default::default()
+          })),
+          comments,
+          generate_context.compilation.options.target.es_version
+        ),
+        inject_runtime_helper(unresolved_mark, generate_context.runtime_requirements),
+        module_variables(
+          module,
+          unresolved_mark,
+          top_level_mark,
+          generate_context.compilation,
+        ),
+        finalize(module, generate_context.compilation, unresolved_mark),
+        swc_visitor::hygiene(false),
+        swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
+      );
 
-    program.fold_with(&mut pass);
-    Ok(())
-  });
+      program.fold_with(&mut pass);
+
+      Ok(())
+    })
+    .map_err(Error::from)
 }
