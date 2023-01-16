@@ -34,7 +34,7 @@ pub struct ParseResult {
 pub struct GenerateContext<'a> {
   pub compilation: &'a Compilation,
   pub module_generator_options: Option<&'a AssetGeneratorOptions>,
-  pub runtime_requirements: &'a mut HashSet<String>,
+  pub runtime_requirements: &'a mut HashSet<&'static str>,
   pub data: &'a mut HashMap<String, String>,
   pub requested_source_type: SourceType,
   pub code_generation_results: &'a CodeGenerationResults,

@@ -7,7 +7,7 @@ pub struct CodeGeneratableContext<'a> {
   pub compilation: &'a Compilation,
   /// Current referenced module
   pub module: &'a dyn Module,
-  pub runtime_requirements: &'a mut HashSet<String>,
+  pub runtime_requirements: &'a mut HashSet<&'static str>,
 }
 
 pub trait CodeGeneratable {

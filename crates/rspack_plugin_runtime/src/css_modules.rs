@@ -35,10 +35,10 @@ impl Plugin for CssModulesPlugin {
     if runtime_requirements.contains(runtime_globals::ENSURE_CHUNK_HANDLERS)
       || runtime_requirements.contains(runtime_globals::HMR_DOWNLOAD_UPDATE_HANDLERS)
     {
-      runtime_requirements.insert(runtime_globals::PUBLIC_PATH.to_string());
-      runtime_requirements.insert(runtime_globals::GET_CHUNK_CSS_FILENAME.to_string());
-      runtime_requirements.insert(runtime_globals::HAS_OWN_PROPERTY.to_string());
-      runtime_requirements.insert(runtime_globals::MODULE_FACTORIES_ADD_ONLY.to_string());
+      runtime_requirements.insert(runtime_globals::PUBLIC_PATH);
+      runtime_requirements.insert(runtime_globals::GET_CHUNK_CSS_FILENAME);
+      runtime_requirements.insert(runtime_globals::HAS_OWN_PROPERTY);
+      runtime_requirements.insert(runtime_globals::MODULE_FACTORIES_ADD_ONLY);
       compilation.add_runtime_module(
         chunk,
         CssLoadingRuntimeModule::new(runtime_requirements.clone()).boxed(),

@@ -131,7 +131,7 @@ impl CodeGeneratable for EsmDynamicImportDependency {
       chunk_ids.sort();
 
       // Add interop require to runtime requirements, as dynamic imports have been transformed so `inject_runtime_helper` will not be able to detect this.
-      runtime_requirements.insert(runtime_globals::INTEROP_REQUIRE.into());
+      runtime_requirements.insert(runtime_globals::INTEROP_REQUIRE);
 
       code_gen.visitors.push(
         create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {

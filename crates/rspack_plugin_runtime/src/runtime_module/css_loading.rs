@@ -10,11 +10,11 @@ use super::utils::{stringify_chunks, stringify_chunks_to_array};
 #[derive(Debug, Default)]
 pub struct CssLoadingRuntimeModule {
   chunk: Option<ChunkUkey>,
-  runtime_requirements: HashSet<String>,
+  runtime_requirements: HashSet<&'static str>,
 }
 
 impl CssLoadingRuntimeModule {
-  pub fn new(runtime_requirements: HashSet<String>) -> Self {
+  pub fn new(runtime_requirements: HashSet<&'static str>) -> Self {
     Self {
       chunk: None,
       runtime_requirements,
