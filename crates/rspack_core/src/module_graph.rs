@@ -478,7 +478,7 @@ mod test {
     let b = node!("b");
     let a_id = a.identifier();
     let b_id = b.identifier();
-    let a_to_b = edge!(Some(a_id.clone()), b_id.as_str());
+    let a_to_b = edge!(Some(a_id), b_id.as_str());
     add_module_to_graph(&mut mg, box a);
     add_module_to_graph(&mut mg, box b);
     link_modules_with_dependency(&mut mg, Some(&a_id), &b_id, box (a_to_b.clone()));
@@ -491,7 +491,7 @@ mod test {
 
     let c = node!("c");
     let c_id = c.identifier();
-    let b_to_c = edge!(Some(b_id.clone()), c_id.as_str());
+    let b_to_c = edge!(Some(b_id), c_id.as_str());
     add_module_to_graph(&mut mg, box c);
     link_modules_with_dependency(&mut mg, Some(&b_id), &c_id, box (b_to_c.clone()));
 
