@@ -1,6 +1,5 @@
 use std::str::FromStr;
 
-#[cfg(feature = "node-api")]
 use napi_derive::napi;
 use rspack_core::{Builtins, CompilerOptionsBuilder, Define, Mode, Plugin};
 use rspack_plugin_css::plugin::{CssConfig, LocalIdentName, LocalsConvention, PostcssConfig};
@@ -24,24 +23,15 @@ use serde::Deserialize;
 use crate::RawOption;
 
 #[derive(Debug, Deserialize)]
-#[cfg(feature = "node-api")]
 #[napi(object)]
-pub struct Minification {
-  pub passes: Option<u32>,
-  pub enable: Option<bool>,
-}
-
-#[derive(Debug, Deserialize)]
-#[cfg(not(feature = "node-api"))]
 pub struct Minification {
   pub passes: Option<u32>,
   pub enable: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Default)]
-#[cfg(feature = "node-api")]
-#[napi(object)]
 #[serde(rename_all = "camelCase")]
+#[napi(object)]
 pub struct RawBuiltins {
   pub html: Option<Vec<RawHtmlPluginConfig>>,
   pub css: Option<RawCssPluginConfig>,
@@ -50,25 +40,6 @@ pub struct RawBuiltins {
   pub polyfill: Option<bool>,
   pub browserslist: Option<Vec<String>>,
   #[napi(ts_type = "Record<string, string>")]
-  pub define: Option<Define>,
-  pub tree_shaking: Option<bool>,
-  pub side_effects: Option<bool>,
-  pub progress: Option<RawProgressPluginConfig>,
-  pub react: Option<RawReactOptions>,
-  pub decorator: Option<RawDecoratorOptions>,
-  pub no_emit_assets: Option<bool>,
-}
-
-#[derive(Debug, Deserialize, Default)]
-#[cfg(not(feature = "node-api"))]
-#[serde(rename_all = "camelCase")]
-pub struct RawBuiltins {
-  pub html: Option<Vec<RawHtmlPluginConfig>>,
-  pub css: Option<RawCssPluginConfig>,
-  pub postcss: Option<RawPostCssConfig>,
-  pub minify: Option<Minification>,
-  pub polyfill: Option<bool>,
-  pub browserslist: Option<Vec<String>>,
   pub define: Option<Define>,
   pub tree_shaking: Option<bool>,
   pub side_effects: Option<bool>,

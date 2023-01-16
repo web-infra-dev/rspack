@@ -1,6 +1,5 @@
 use std::{collections::HashMap, fmt::Debug};
 
-#[cfg(feature = "node-api")]
 use napi_derive::napi;
 use rspack_core::{CompilerOptions, CompilerOptionsBuilder, EntryItem, ModuleIds};
 use serde::Deserialize;
@@ -66,10 +65,8 @@ pub trait RawOption<T> {
   }
 }
 
-// Temporary workaround with feature-based cfg, replaced with a bug fix to napi-derive/noop next.
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
-#[cfg(feature = "node-api")]
 #[napi(object)]
 pub struct RawOptions {
   pub entry: Option<HashMap<String, RawEntryItem>>,
@@ -93,34 +90,6 @@ pub struct RawOptions {
   #[napi(ts_type = "string")]
   pub externals_type: Option<RawExternalType>,
   #[napi(ts_type = "string")]
-  pub devtool: Option<RawDevtool>,
-  pub optimization: Option<RawOptimizationOptions>,
-  pub stats: Option<RawStatsOptions>,
-  pub dev_server: Option<RawDevServer>,
-  pub snapshot: Option<RawSnapshotOptions>,
-  pub cache: Option<RawCacheOptions>,
-  pub experiments: Option<RawExperiments>,
-  pub node: Option<RawNodeOption>,
-}
-
-#[derive(Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase")]
-#[cfg(not(feature = "node-api"))]
-pub struct RawOptions {
-  pub entry: Option<HashMap<String, RawEntryItem>>,
-  pub mode: Option<RawMode>,
-  pub target: Option<RawTarget>,
-  pub externals: Option<RawExternal>,
-  pub externals_type: Option<RawExternalType>,
-  // pub platform: Option<String>,
-  pub context: Option<RawContext>,
-  // pub loader: Option<HashMap<String, String>>,
-  // pub enhanced: Option<RawEnhancedOptions>,
-  // pub optimization: Option<RawOptimizationOptions>,
-  pub output: Option<RawOutputOptions>,
-  pub resolve: Option<RawResolveOptions>,
-  pub module: Option<RawModuleOptions>,
-  pub builtins: Option<RawBuiltins>,
   pub devtool: Option<RawDevtool>,
   pub optimization: Option<RawOptimizationOptions>,
   pub stats: Option<RawStatsOptions>,

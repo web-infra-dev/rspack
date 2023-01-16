@@ -4,7 +4,6 @@ use std::{
 };
 
 use anyhow::Context;
-#[cfg(feature = "node-api")]
 use napi_derive::napi;
 use rspack_core::{
   CompilerOptionsBuilder, Filename, OutputOptions, PublicPath, CHUNK_HASH_PLACEHOLDER,
@@ -31,27 +30,7 @@ pub fn generate_path(path: Option<String>, context: &Path) -> PathBuf {
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
-#[cfg(feature = "node-api")]
 #[napi(object)]
-pub struct RawOutputOptions {
-  pub path: Option<String>,
-  pub public_path: Option<String>,
-  pub asset_module_filename: Option<String>,
-  // todo support for function
-  pub filename: Option<String>,
-  pub chunk_filename: Option<String>,
-  pub css_filename: Option<String>,
-  pub css_chunk_filename: Option<String>,
-  pub unique_name: Option<String>,
-  pub library: Option<String>,
-  pub strict_module_error_handling: Option<bool>,
-  /* pub entry_filename: Option<String>,
-   * pub source_map: Option<String>, */
-}
-
-#[derive(Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase")]
-#[cfg(not(feature = "node-api"))]
 pub struct RawOutputOptions {
   pub path: Option<String>,
   pub public_path: Option<String>,

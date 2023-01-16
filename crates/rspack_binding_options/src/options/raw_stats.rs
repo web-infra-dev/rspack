@@ -1,4 +1,3 @@
-#[cfg(feature = "node-api")]
 use napi_derive::napi;
 use rspack_core::{CompilerOptionsBuilder, StatsOptions};
 use serde::Deserialize;
@@ -7,15 +6,7 @@ use crate::RawOption;
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
-#[cfg(feature = "node-api")]
 #[napi(object)]
-pub struct RawStatsOptions {
-  pub colors: bool,
-}
-
-#[derive(Deserialize, Debug, Default)]
-#[serde(rename_all = "camelCase")]
-#[cfg(not(feature = "node-api"))]
 pub struct RawStatsOptions {
   pub colors: bool,
 }

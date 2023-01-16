@@ -1,20 +1,10 @@
-#[cfg(feature = "node-api")]
 use napi_derive::napi;
 use rspack_core::DecoratorOptions;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug, Serialize, Default, Clone)]
-#[cfg(feature = "node-api")]
+#[serde(rename_all = "camelCase")]
 #[napi(object)]
-#[serde(rename_all = "camelCase")]
-pub struct RawDecoratorOptions {
-  pub legacy: bool,
-  pub emit_metadata: bool,
-}
-
-#[derive(Deserialize, Debug, Serialize, Default, Clone)]
-#[cfg(not(feature = "node-api"))]
-#[serde(rename_all = "camelCase")]
 pub struct RawDecoratorOptions {
   pub legacy: bool,
   pub emit_metadata: bool,
