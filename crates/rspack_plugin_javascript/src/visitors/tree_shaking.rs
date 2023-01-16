@@ -1,6 +1,6 @@
 use rspack_core::{
-  CodeGeneratableDeclMappings, DependencyCategory, DependencyType, Identifier, ModuleGraph,
-  ModuleIdentifier,
+  CodeGeneratableDeclMappings, DependencyCategory, DependencyType, Identifier, IdentifierSet,
+  ModuleGraph, ModuleIdentifier,
 };
 // use swc_ecma_utils::
 use rspack_symbol::{BetterId, IndirectTopLevelSymbol, Symbol};
@@ -233,12 +233,11 @@ impl<'a> Fold for TreeShaker<'a> {
                   };
                   match exported {
                     ModuleExportName::Ident(ref ident) => {
-                      true
-                      // let symbol = IndirectTopLevelSymbol::fast_create(
-                      //   self.module_identifier.into(),
-                      //   ident.sym.clone(),
-                      // );
-                      // self.used_indirect_symbol_set.co
+                      let symbol = IndirectTopLevelSymbol::fast_create(
+                        self.module_identifier.into(),
+                        ident.sym.clone(),
+                      );
+                      self.used_indirect_symbol_set.contains(&symbol)
                     }
                     ModuleExportName::Str(_) => {
                       // named export without src has string lit orig is a syntax error
