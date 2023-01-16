@@ -1154,7 +1154,7 @@ impl Compilation {
       &self.entry_module_identifiers,
     );
 
-    dbg!(&dependency_replacement);
+    // dbg!(&dependency_replacement);
 
     let debug_graph = generate_debug_symbol_graph(
       &symbol_graph,
@@ -1551,7 +1551,7 @@ fn update_dependency(
     // dbg!(&symbol_paths);
     // sliding window
     for symbol_path in symbol_paths {
-      dbg!(&symbol_path);
+      // dbg!(&symbol_path);
       let mut start = 0;
       let mut end = 0;
       init_sliding_window(&mut start, &mut end, &symbol_path);

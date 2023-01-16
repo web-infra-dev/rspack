@@ -3733,7 +3733,6 @@ dependencies = [
  "indexmap",
  "num_cpus",
  "once_cell",
- "rayon",
  "rustc-hash",
  "swc_atoms",
  "swc_common",
