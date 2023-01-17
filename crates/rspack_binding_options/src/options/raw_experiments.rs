@@ -9,12 +9,14 @@ use crate::RawOption;
 #[napi(object)]
 pub struct RawExperiments {
   pub lazy_compilation: bool,
+  pub changed_hmr: bool,
 }
 
 impl RawOption<Experiments> for RawExperiments {
   fn to_compiler_option(self, _options: &CompilerOptionsBuilder) -> anyhow::Result<Experiments> {
     Ok(Experiments {
       lazy_compilation: self.lazy_compilation,
+      changed_hmr: self.changed_hmr,
     })
   }
 
