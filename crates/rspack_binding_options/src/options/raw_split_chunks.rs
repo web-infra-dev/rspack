@@ -37,6 +37,18 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
     _options: &CompilerOptionsBuilder,
   ) -> anyhow::Result<SplitChunksOptions> {
     let mut defaults = SplitChunksOptions::default();
+    defaults.max_async_requests = self.max_async_requests;
+    defaults.max_initial_requests = self.max_initial_requests;
+    defaults.min_chunks = self.min_chunks;
+    defaults.min_size = self.min_size;
+    defaults.enforce_size_threshold = self.enforce_size_threshold;
+    defaults.min_remaining_size = self.min_remaining_size;
+    defaults.chunks = self.chunks.map(|chunks| match chunks.as_str() {
+      "initial" => ChunkType::Initial,
+      "async" => ChunkType::Async,
+      "all" => ChunkType::All,
+      _ => panic!("Invalid chunk type: {chunks}"),
+    });
 
     defaults
       .cache_groups
@@ -66,7 +78,7 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
                   "initial" => ChunkType::Initial,
                   "async" => ChunkType::Async,
                   "all" => ChunkType::All,
-                  _ => ChunkType::All,
+                  _ => panic!("Invalid chunk type: {chunks}"),
                 }),
                 min_chunks: v.min_chunks,
                 ..Default::default()

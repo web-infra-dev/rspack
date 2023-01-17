@@ -89,8 +89,8 @@ pub struct SplitChunksOptions {
   /// What kind of chunks should be selected.
   pub chunks: Option<ChunkType>,
   pub automatic_name_delimiter: Option<String>,
-  pub max_async_requests: Option<usize>,
-  pub max_initial_requests: Option<usize>,
+  pub max_async_requests: Option<u32>,
+  pub max_initial_requests: Option<u32>,
   pub default_size_types: Option<Vec<SizeType>>,
   pub min_chunks: Option<u32>,
   // hide_path_info: Option<bool>,
