@@ -14,7 +14,7 @@ use dashmap::DashSet;
 use futures::{stream::FuturesUnordered, StreamExt};
 use indexmap::IndexSet;
 use petgraph::{algo, prelude::GraphMap, Directed};
-use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
+use rayon::prelude::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 use rspack_error::{
   errors_to_diagnostics, internal_error, Diagnostic, Error, IntoTWithDiagnosticArray, Result,
   Severity, TWithDiagnosticArray,
@@ -59,7 +59,8 @@ pub struct Compilation {
   entries: BundleEntries,
   pub(crate) visited_module_id: VisitedModuleIdentity,
   pub module_graph: ModuleGraph,
-  pub runtime_modules: HashMap<String, Box<dyn RuntimeModule>>,
+  pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
+  pub runtime_module_hashes: IdentifierMap<u64>,
   pub chunk_graph: ChunkGraph,
   pub chunk_by_ukey: HashMap<ChunkUkey, Chunk>,
   pub chunk_group_by_ukey: HashMap<ChunkGroupUkey, ChunkGroup>,
@@ -111,6 +112,7 @@ impl Compilation {
       visited_module_id,
       module_graph,
       runtime_modules: Default::default(),
+      runtime_module_hashes: Default::default(),
       chunk_by_ukey: Default::default(),
       chunk_group_by_ukey: Default::default(),
       entries,
@@ -1174,35 +1176,49 @@ impl Compilation {
 
   #[instrument(name = "compilation:create_hash", skip_all)]
   pub async fn create_hash(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    self.create_module_hash();
+
     let mut compilation_hasher = Xxh3::new();
     let mut chunks = self.chunk_by_ukey.values_mut().collect::<Vec<_>>();
     chunks.sort_by_key(|chunk| chunk.ukey);
-    for chunk in chunks.iter_mut() {
+    chunks.par_iter_mut().for_each(|chunk| {
       for mgm in self
         .chunk_graph
         .get_ordered_chunk_modules(&chunk.ukey, &self.module_graph)
       {
-        if let Some(module) = self
-          .module_graph
-          .module_by_identifier(&mgm.module_identifier)
+        if let Some(hash) = self
+          .chunk_graph
+          .get_module_hash(mgm.module_identifier, &chunk.runtime)
         {
-          module.hash(&mut chunk.hash);
-          module.hash(&mut compilation_hasher);
+          hash.hash(&mut chunk.hash);
+        }
+      }
+    });
+    for chunk in chunks {
+      for mgm in self
+        .chunk_graph
+        .get_ordered_chunk_modules(&chunk.ukey, &self.module_graph)
+      {
+        if let Some(hash) = self
+          .chunk_graph
+          .get_module_hash(mgm.module_identifier, &chunk.runtime)
+        {
+          hash.hash(&mut compilation_hasher);
         }
       }
     }
     tracing::trace!("hash chunks");
 
+    let runtime_chunk_ukeys = self.get_chunk_graph_entries();
     let content_hash_chunks = {
       // runtime chunks should be hashed after all other chunks
-      let runtime_chunks = self.get_chunk_graph_entries();
       let mut chunks = self
         .chunk_by_ukey
         .keys()
-        .filter(|key| !runtime_chunks.contains(key))
+        .filter(|key| !runtime_chunk_ukeys.contains(key))
         .copied()
         .collect::<Vec<_>>();
-      chunks.extend(runtime_chunks);
+      chunks.extend(runtime_chunk_ukeys.clone());
       chunks
     };
     for chunk_ukey in content_hash_chunks {
@@ -1217,26 +1233,78 @@ impl Compilation {
     }
     tracing::trace!("calculate chunks content hash");
 
-    for entry_ukey in self.get_chunk_graph_entries().iter() {
-      let mut hasher = Xxh3::new();
+    self.create_runtime_module_hash();
+
+    let mut entry_chunks = self
+      .chunk_by_ukey
+      .values_mut()
+      .filter(|chunk| runtime_chunk_ukeys.contains(&chunk.ukey))
+      .collect::<Vec<_>>();
+    entry_chunks.sort_by_key(|chunk| chunk.ukey);
+    entry_chunks.par_iter_mut().for_each(|chunk| {
       for identifier in self
         .chunk_graph
-        .get_chunk_runtime_modules_in_order(entry_ukey)
+        .get_chunk_runtime_modules_in_order(&chunk.ukey)
       {
-        if let Some(module) = self.runtime_modules.get(identifier) {
-          module.hash(self, &mut hasher);
-          module.hash(self, &mut compilation_hasher);
+        if let Some(hash) = self.runtime_module_hashes.get(identifier) {
+          hash.hash(&mut chunk.hash);
         }
       }
-      let entry = self
-        .chunk_by_ukey
-        .get_mut(entry_ukey)
-        .expect("chunk not found by ukey");
-      format!("{:x}", hasher.finish()).hash(&mut entry.hash);
-    }
+    });
     tracing::trace!("hash runtime chunks");
+
+    entry_chunks.iter().for_each(|chunk| {
+      for identifier in self
+        .chunk_graph
+        .get_chunk_runtime_modules_in_order(&chunk.ukey)
+      {
+        if let Some(hash) = self.runtime_module_hashes.get(identifier) {
+          hash.hash(&mut compilation_hasher);
+        }
+      }
+    });
     self.hash = format!("{:x}", compilation_hasher.finish());
+    tracing::trace!("compilation hash");
     Ok(())
+  }
+
+  #[instrument(name = "compilation:create_module_hash", skip_all)]
+  pub fn create_module_hash(&mut self) {
+    let module_hash_map: HashMap<ModuleIdentifier, u64> = self
+      .module_graph
+      .module_identifier_to_module
+      .par_iter()
+      .map(|(identifier, module)| {
+        let mut hasher = Xxh3::new();
+        module.hash(&mut hasher);
+        (*identifier, hasher.finish())
+      })
+      .collect();
+
+    for (identifier, hash) in module_hash_map {
+      for runtime in self
+        .chunk_graph
+        .get_module_runtimes(identifier, &self.chunk_by_ukey)
+        .values()
+      {
+        self
+          .chunk_graph
+          .set_module_hashes(identifier, runtime, hash);
+      }
+    }
+  }
+
+  #[instrument(name = "compilation:create_runtime_module_hash", skip_all)]
+  pub fn create_runtime_module_hash(&mut self) {
+    self.runtime_module_hashes = self
+      .runtime_modules
+      .par_iter()
+      .map(|(identifier, module)| {
+        let mut hasher = Xxh3::new();
+        module.hash(self, &mut hasher);
+        (*identifier, hasher.finish())
+      })
+      .collect();
   }
 
   pub fn add_runtime_module(&mut self, chunk_ukey: &ChunkUkey, mut module: Box<dyn RuntimeModule>) {
@@ -1257,7 +1325,7 @@ impl Compilation {
       .connect_chunk_and_runtime_module(*chunk_ukey, runtime_module_identifier);
     self
       .runtime_modules
-      .insert(runtime_module_identifier.to_string(), module);
+      .insert(runtime_module_identifier, module);
   }
 }
 
