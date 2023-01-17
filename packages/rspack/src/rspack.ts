@@ -9,8 +9,38 @@ import util from "util";
 
 import { RspackOptionsApply } from "./rspackOptionsApply";
 import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
+import { MultiCompiler, MultiCompilerOptions } from "./multiCompiler";
+import MultiStats from "./multiStats";
 type Callback<T> = (err: Error, t: T) => void;
-function createCompiler(userOptions: RspackOptions) {
+
+function createMultiCompiler(options: MultiCompilerOptions): MultiCompiler {
+	const compilers = options.map(option => {
+		const compiler = createCompiler(option);
+
+		/**
+		 * Missing features: WebpackOptionsApply
+		 * `compiler.name` should be set by WebpackOptionsApply.
+		 */
+		compiler.name = option.name;
+		return compiler;
+	});
+	const compiler = new MultiCompiler(
+		compilers,
+		options as MultiCompilerOptions
+	);
+	for (const childCompiler of compilers) {
+		if (childCompiler.options.dependencies) {
+			compiler.setDependencies(
+				childCompiler,
+				childCompiler.options.dependencies
+			);
+		}
+	}
+
+	return compiler;
+}
+
+function createCompiler(userOptions: RspackOptions): Compiler {
 	// console.log("user:", userOptions);
 	const options = getNormalizedRspackOptions(userOptions, () => compiler);
 	applyRspackOptionsBaseDefaults(options);
@@ -45,8 +75,20 @@ function createCompiler(userOptions: RspackOptions) {
 	compiler.hooks.initialize.call();
 	return compiler;
 }
-function rspack(options: RspackOptions, callback?: Callback<Stats>): Compiler {
-	let compiler = createCompiler(options);
+
+function rspack(
+	options: MultiCompilerOptions,
+	callback?: Callback<MultiStats>
+): MultiCompiler;
+function rspack(options: RspackOptions, callback?: Callback<Stats>): Compiler;
+function rspack(options: any, callback?: Callback<any>) {
+	let compiler: Compiler | MultiCompiler;
+	if (Array.isArray(options)) {
+		compiler = createMultiCompiler(options);
+	} else {
+		compiler = createCompiler(options);
+	}
+
 	if (callback) {
 		compiler.run(callback);
 		return compiler;
@@ -56,4 +98,4 @@ function rspack(options: RspackOptions, callback?: Callback<Stats>): Compiler {
 }
 
 // deliberately alias rspack as webpack
-export { rspack, createCompiler };
+export { rspack, createCompiler, createMultiCompiler };

@@ -9,13 +9,12 @@ import {
 	JsAsset
 } from "@rspack/binding";
 
-import { RspackOptionsNormalized } from "./config";
+import { RspackOptionsNormalized, StatsOptions } from "./config";
 import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
 import { ResolvedOutput } from "./config/output";
 import { ChunkGroup } from "./chunk_group";
 import { Compiler } from "./compiler";
 import ResolverFactory from "./ResolverFactory";
-import { Stats } from "./stats";
 import {
 	createFakeCompilationDependencies,
 	createFakeProcessAssetsHook
@@ -23,6 +22,7 @@ import {
 import { Logger, LogType } from "./logging/Logger";
 import * as ErrorHelpers from "./ErrorHelpers";
 import { concatErrorMsgAndStack } from "./util";
+import { NormalizedStatsOptions, Stats } from "./stats";
 
 const hashDigestLength = 8;
 const EMPTY_ASSET_INFO = {};
@@ -36,23 +36,40 @@ export interface LogEntry {
 	trace?: string[];
 }
 
+export interface KnownCreateStatsOptionsContext {
+	forToString?: boolean;
+}
+
+type CreateStatsOptionsContext = KnownCreateStatsOptionsContext &
+	Record<string, any>;
+
 export class Compilation {
 	#inner: JsCompilation;
 
 	hooks: {
 		processAssets: ReturnType<typeof createFakeProcessAssetsHook>;
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
+		statsPreset: tapable.HookMap<
+			tapable.SyncHook<StatsOptions, CreateStatsOptionsContext>
+		>;
+		statsNormalize: tapable.SyncHook<StatsOptions, CreateStatsOptionsContext>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: ResolvedOutput;
 	compiler: Compiler;
 	resolverFactory: ResolverFactory;
 	logging: Map<string, LogEntry[]>;
+	name: string;
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
+		this.name = undefined;
 		this.hooks = {
 			processAssets: createFakeProcessAssetsHook(this),
-			log: new tapable.SyncBailHook(["origin", "logEntry"])
+			log: new tapable.SyncBailHook(["origin", "logEntry"]),
+			statsPreset: new tapable.HookMap(
+				() => new tapable.SyncHook(["options", "context"] as any)
+			),
+			statsNormalize: new tapable.SyncHook(["options", "context"] as any)
 		};
 		this.compiler = compiler;
 		this.options = compiler.options;
@@ -92,6 +109,36 @@ export class Compilation {
 				new ChunkGroup(e)
 			])
 		);
+	}
+
+	createStatsOptions(
+		optionsOrPreset: StatsOptions,
+		context: CreateStatsOptionsContext = {}
+	): NormalizedStatsOptions {
+		if (
+			typeof optionsOrPreset === "boolean" ||
+			typeof optionsOrPreset === "string"
+		) {
+			optionsOrPreset = { preset: optionsOrPreset } as StatsOptions;
+		}
+		if (typeof optionsOrPreset === "object" && optionsOrPreset !== null) {
+			const options: Partial<NormalizedStatsOptions> = {};
+			for (const key in optionsOrPreset) {
+				options[key] = optionsOrPreset[key];
+			}
+			if (options.preset !== undefined) {
+				// @ts-ignore
+				this.hooks.statsPreset.for(options.preset).call(options, context);
+			}
+			// @ts-ignore
+			this.hooks.statsNormalize.call(options, context);
+			return options as NormalizedStatsOptions;
+		} else {
+			const options = {};
+			// @ts-ignore
+			this.hooks.statsNormalize.call(options, context);
+			return options as NormalizedStatsOptions;
+		}
 	}
 
 	/**

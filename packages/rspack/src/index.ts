@@ -1,4 +1,5 @@
 export * from "./compiler";
+export * from "./multiCompiler";
 export * from "./compilation";
 export * from "./config";
 export * from "./rspack";

@@ -14,6 +14,7 @@ import { Stats } from "./stats";
 import { Compilation } from "./compilation";
 import ResolverFactory from "./ResolverFactory";
 import { WatchFileSystem } from "./util/fs";
+import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 
 class EntryPlugin {
 	apply() {}
@@ -28,6 +29,7 @@ class Compiler {
 	webpack: any;
 	compilation: Compilation;
 	root: Compiler;
+	running: boolean;
 	resolverFactory: ResolverFactory;
 	infrastructureLogger: any;
 	watching: Watching;
@@ -39,8 +41,8 @@ class Compiler {
 	intermediateFileSystem: any;
 	watchMode: boolean;
 	context: string;
-	modifiedFiles: ReadonlySet<string>;
-	removedFiles: ReadonlySet<string>;
+	modifiedFiles?: ReadonlySet<string>;
+	removedFiles?: ReadonlySet<string>;
 	hooks: {
 		done: tapable.AsyncSeriesHook<Stats>;
 		afterDone: tapable.SyncHook<Stats>;
@@ -58,6 +60,7 @@ class Compiler {
 		afterEmit: tapable.AsyncSeriesHook<[Compilation]>;
 		failed: tapable.SyncHook<[Error]>;
 		watchRun: tapable.AsyncSeriesHook<[Compiler]>;
+		watchClose: tapable.SyncHook<[]>;
 	};
 	options: RspackOptionsNormalized;
 
@@ -73,6 +76,7 @@ class Compiler {
 			Compilation
 		};
 		this.root = this;
+		this.running = false;
 		this.context = context;
 		this.resolverFactory = new ResolverFactory();
 		this.modifiedFiles = undefined;
@@ -99,8 +103,11 @@ class Compiler {
 			compile: new SyncHook(["params"]),
 			infrastructureLog: new SyncBailHook(["origin", "type", "args"]),
 			failed: new SyncHook(["error"]),
-			watchRun: new tapable.AsyncSeriesHook(["compiler"])
+			watchRun: new tapable.AsyncSeriesHook(["compiler"]),
+			watchClose: new tapable.SyncHook([])
 		};
+		this.modifiedFiles = undefined;
+		this.removedFiles = undefined;
 	}
 	/**
 	 * Lazy initialize instance so it could access the changed options
@@ -295,13 +302,19 @@ class Compiler {
 
 	#newCompilation(native: binding.JsCompilation) {
 		const compilation = new Compilation(this, native);
+		compilation.name = this.name;
 		this.compilation = compilation;
 		this.hooks.thisCompilation.call(this.compilation);
 	}
 
 	run(callback: Callback<Error, Stats>) {
+		if (this.running) {
+			return callback(new ConcurrentCompilationError());
+		}
+		this.running = true;
 		const doRun = () => {
 			const finalCallback = (err, stats?) => {
+				this.running = false;
 				if (err) {
 					this.hooks.failed.call(err);
 				}
@@ -372,6 +385,13 @@ class Compiler {
 		watchOptions: WatchOptions,
 		handler: (error: Error, stats: Stats) => void
 	): Watching {
+		if (this.running) {
+			return handler(
+				new ConcurrentCompilationError(),
+				null
+			) as unknown as Watching;
+		}
+		this.running = true;
 		this.watchMode = true;
 		this.watching = new Watching(this, watchOptions, handler);
 		return this.watching;

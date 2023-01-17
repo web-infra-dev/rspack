@@ -70,6 +70,7 @@ export interface RspackOptions {
 	optimization?: Optimization;
 	experiments?: RawExperiments;
 	node?: NodeOptions;
+	dependencies?: string[];
 }
 export interface RspackOptionsNormalized {
 	name?: string;
@@ -93,6 +94,7 @@ export interface RspackOptionsNormalized {
 	optimization?: ResolvedOptimization;
 	experiments: RawExperiments;
 	node: RawNodeOption;
+	dependencies?: string[]
 }
 
 export function getNormalizedRspackOptions(
