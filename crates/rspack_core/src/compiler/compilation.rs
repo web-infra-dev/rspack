@@ -1644,7 +1644,7 @@ fn validate_and_insert_replacement(
 
   let is_valid_path = match (&symbol_path[start], &symbol_path[end]) {
     (SymbolRef::Direct(_), SymbolRef::Direct(_)) => false,
-    (SymbolRef::Direct(replace), SymbolRef::Indirect(from)) => from.id == replace.id().atom,
+    (SymbolRef::Direct(replace), SymbolRef::Indirect(original)) => original.id == replace.id().atom,
     (SymbolRef::Direct(_), SymbolRef::Star(_)) => false,
     (SymbolRef::Indirect(_), SymbolRef::Direct(_)) => false,
     (SymbolRef::Indirect(replace), SymbolRef::Indirect(_)) => replace.ty == IndirectType::ReExport,
@@ -1663,8 +1663,9 @@ fn validate_and_insert_replacement(
       // dbg!(&ele);
     }
     dependency_replacement_list.push(DependencyReplacement {
-      from: symbol_path[end].clone(),
+      original: symbol_path[end].clone(),
       replacement: symbol_path[start].clone(),
+      unused_export_symbol_count,
     })
   }
   // if has_unused_export_symbol {
@@ -2685,16 +2686,18 @@ fn is_js_like_uri(uri: &str) -> bool {
 
 #[derive(Debug, Clone)]
 struct DependencyReplacement {
-  from: SymbolRef,
+  original: SymbolRef,
   // to: SymbolRef,
   replacement: SymbolRef,
+  unused_export_symbol_count: usize,
 }
 
 impl DependencyReplacement {
-  fn new(from: SymbolRef, replacement: SymbolRef) -> Self {
+  fn new(from: SymbolRef, replacement: SymbolRef, unused_export_symbol_count: usize) -> Self {
     Self {
-      from,
+      original: from,
       // to,
+      unused_export_symbol_count,
       replacement,
     }
   }
