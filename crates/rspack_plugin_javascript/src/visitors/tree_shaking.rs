@@ -237,9 +237,7 @@ impl<'a> Fold for TreeShaker<'a> {
                     ty: rspack_symbol::IndirectType::ReExport,
                     importer: self.module_identifier.into(),
                   };
-                  dbg!(&symbol);
                   let ret = self.used_indirect_symbol_set.contains(&symbol);
-                  dbg!(&ret);
                   ret
                 }
               })

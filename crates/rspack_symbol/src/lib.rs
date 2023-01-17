@@ -119,6 +119,7 @@ impl std::hash::Hash for IndirectTopLevelSymbol {
     self.importer.hash(state);
   }
 }
+
 // impl std::cmp::PartialEq for IndirectTopLevelSymbol {
 //   fn eq(&self, other: &Self) -> bool {
 //     self.uri == other.uri
