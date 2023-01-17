@@ -47,7 +47,7 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
       "initial" => ChunkType::Initial,
       "async" => ChunkType::Async,
       "all" => ChunkType::All,
-      _ => panic!("Invalid chunk type: {}", chunks),
+      _ => panic!("Invalid chunk type: {chunks}"),
     });
 
     defaults
@@ -78,7 +78,7 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
                   "initial" => ChunkType::Initial,
                   "async" => ChunkType::Async,
                   "all" => ChunkType::All,
-                  _ => panic!("Invalid chunk type: {}", chunks),
+                  _ => panic!("Invalid chunk type: {chunks}"),
                 }),
                 min_chunks: v.min_chunks,
                 ..Default::default()
