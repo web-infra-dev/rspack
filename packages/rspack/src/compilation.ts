@@ -74,7 +74,7 @@ export class Compilation {
 	 *
 	 * Source: [assets](https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L1008-L1009)
 	 */
-	get assets(): Record<string, Source> {
+	get assets(): Readonly<Record<string, Source>> {
 		const iterator = Object.entries(this.#inner.assets).map(
 			([filename, source]) => [filename, createSourceFromRaw(source)]
 		);
@@ -85,7 +85,7 @@ export class Compilation {
 	/**
 	 * Get a map of all entrypoints.
 	 */
-	get entrypoints(): Map<string, ChunkGroup> {
+	get entrypoints(): ReadonlyMap<string, ChunkGroup> {
 		return new Map(
 			Object.entries(this.#inner.entrypoints).map(([n, e]) => [
 				n,
