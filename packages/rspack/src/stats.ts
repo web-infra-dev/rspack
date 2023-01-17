@@ -3,51 +3,10 @@ import { Compilation } from ".";
 import { StatsOptions, StatsOptionsObj } from "./config/stats";
 import { LogType } from "./logging/Logger";
 
-export interface KnownNormalizedStatsOptions {
-	context: string;
-	chunksSort: string;
-	modulesSort: string;
-	chunkModulesSort: string;
-	nestedModulesSort: string;
-	assetsSort: string;
-	ids: boolean;
-	cachedAssets: boolean;
-	groupAssetsByEmitStatus: boolean;
-	groupAssetsByPath: boolean;
-	groupAssetsByExtension: boolean;
-	assetsSpace: number;
-	cachedModules: boolean;
-	orphanModules: boolean;
-	dependentModules: boolean;
-	runtimeModules: boolean;
-	groupModulesByCacheStatus: boolean;
-	groupModulesByLayer: boolean;
-	groupModulesByAttributes: boolean;
-	groupModulesByPath: boolean;
-	groupModulesByExtension: boolean;
-	groupModulesByType: boolean;
-	entrypoints: boolean | "auto";
-	chunkGroups: boolean;
-	chunkGroupAuxiliary: boolean;
-	chunkGroupChildren: boolean;
-	chunkGroupMaxAssets: number;
-	modulesSpace: number;
-	chunkModulesSpace: number;
-	nestedModulesSpace: number;
-	logging: false | "none" | "error" | "warn" | "info" | "log" | "verbose";
-	loggingDebug: ((value: string) => boolean)[];
-	loggingTrace: boolean;
-}
-
-export type NormalizedStatsOptions = KnownNormalizedStatsOptions &
-	Omit<StatsOptions, "context" | "chunkGroups"> &
-	Record<string, any>;
-
 type StatsCompilationInner = Omit<binding.JsStatsCompilation, "entrypoints"> & {
 	entrypoints: Record<string, binding.JsStatsEntrypoint>;
 	children?: StatsCompilation[];
 	name?: string;
-	version?: string;
 };
 export type StatsCompilation = Partial<StatsCompilationInner> & {
 	filteredModules?: number;
@@ -75,7 +34,8 @@ export class Stats {
 	}
 
 	toJson(opts?: StatsOptions, forToString?: boolean) {
-		const options = normalizeStatsPreset(opts);
+		const options = this.compilation.createStatsOptions(opts);
+
 		const all = options.all;
 		const optionOrLocalFallback = <V, D>(v: V, def: D) =>
 			v !== undefined ? v : all !== undefined ? all : def;

@@ -22,7 +22,8 @@ import {
 import { Logger, LogType } from "./logging/Logger";
 import * as ErrorHelpers from "./ErrorHelpers";
 import { concatErrorMsgAndStack } from "./util";
-import { NormalizedStatsOptions, Stats } from "./stats";
+import { normalizeStatsPreset, Stats } from "./stats";
+import { StatsOptionsObj } from "./config/stats";
 
 const hashDigestLength = 8;
 const EMPTY_ASSET_INFO = {};
@@ -49,10 +50,6 @@ export class Compilation {
 	hooks: {
 		processAssets: ReturnType<typeof createFakeProcessAssetsHook>;
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
-		statsPreset: tapable.HookMap<
-			tapable.SyncHook<StatsOptions, CreateStatsOptionsContext>
-		>;
-		statsNormalize: tapable.SyncHook<StatsOptions, CreateStatsOptionsContext>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: ResolvedOutput;
@@ -65,11 +62,7 @@ export class Compilation {
 		this.name = undefined;
 		this.hooks = {
 			processAssets: createFakeProcessAssetsHook(this),
-			log: new tapable.SyncBailHook(["origin", "logEntry"]),
-			statsPreset: new tapable.HookMap(
-				() => new tapable.SyncHook(["options", "context"] as any)
-			),
-			statsNormalize: new tapable.SyncHook(["options", "context"] as any)
+			log: new tapable.SyncBailHook(["origin", "logEntry"])
 		};
 		this.compiler = compiler;
 		this.options = compiler.options;
@@ -114,30 +107,17 @@ export class Compilation {
 	createStatsOptions(
 		optionsOrPreset: StatsOptions,
 		context: CreateStatsOptionsContext = {}
-	): NormalizedStatsOptions {
-		if (
-			typeof optionsOrPreset === "boolean" ||
-			typeof optionsOrPreset === "string"
-		) {
-			optionsOrPreset = { preset: optionsOrPreset } as StatsOptions;
-		}
+	): StatsOptionsObj {
+		optionsOrPreset = normalizeStatsPreset(optionsOrPreset);
 		if (typeof optionsOrPreset === "object" && optionsOrPreset !== null) {
-			const options: Partial<NormalizedStatsOptions> = {};
+			const options: Partial<StatsOptionsObj> = {};
 			for (const key in optionsOrPreset) {
 				options[key] = optionsOrPreset[key];
 			}
-			if (options.preset !== undefined) {
-				// @ts-ignore
-				this.hooks.statsPreset.for(options.preset).call(options, context);
-			}
-			// @ts-ignore
-			this.hooks.statsNormalize.call(options, context);
-			return options as NormalizedStatsOptions;
+			return options as StatsOptionsObj;
 		} else {
 			const options = {};
-			// @ts-ignore
-			this.hooks.statsNormalize.call(options, context);
-			return options as NormalizedStatsOptions;
+			return options as StatsOptionsObj;
 		}
 	}
 

@@ -17,6 +17,7 @@ export interface StatsOptionsObj {
 	colors?: boolean;
 	hash?: boolean;
 	reasons?: boolean;
+	children?: StatsOptionsObj[];
 }
 
 export type StatsOptions = StatsOptionsObj | boolean | string;

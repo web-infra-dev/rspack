@@ -3,6 +3,7 @@
   MIT License http://www.opensource.org/licenses/mit-license.php
   Author Tobias Koppers @sokra
 */
+import { StatsOptionsObj } from "./config/stats";
 import { Stats, StatsCompilation } from "./stats";
 import { indent } from "./util";
 import identifierUtils from "./util/identifier";
@@ -26,12 +27,13 @@ export default class MultiStats {
 		return this.stats.some(stat => stat.hasWarnings());
 	}
 
-	#createChildOptions(options, context) {
+	#createChildOptions(options, context): StatsOptionsObj {
 		if (!options) {
 			options = {};
 		}
 		const { children: childrenOptions = undefined, ...baseOptions } =
 			typeof options === "string" ? { preset: options } : options;
+
 		const children = this.stats.map((stat, idx) => {
 			const childOptions = Array.isArray(childrenOptions)
 				? childrenOptions[idx]
@@ -49,7 +51,6 @@ export default class MultiStats {
 			);
 		});
 		return {
-			version: children.every(o => o.version),
 			hash: children.every(o => o.hash),
 			errorsCount: children.every(o => o.errorsCount),
 			warningsCount: children.every(o => o.warningsCount),
@@ -76,9 +77,6 @@ export default class MultiStats {
 			obj.name = name;
 			return obj;
 		});
-		if (options.version) {
-			obj.version = obj.children[0].version;
-		}
 		if (options.hash) {
 			obj.hash = obj.children.map(j => j.hash).join("");
 		}
