@@ -14,7 +14,7 @@ pub fn contextify(context: impl AsRef<Path>, request: &str) -> String {
 fn absolute_to_request(context: &Path, maybe_absolute_path: &str) -> String {
   if let Some((resource, query)) = maybe_absolute_path.split_once('?') {
     let resource = relative_path_to_request(&Path::new(resource).relative(context));
-    resource + query
+    resource + "?" + query
   } else {
     relative_path_to_request(&Path::new(maybe_absolute_path).relative(context))
   }
