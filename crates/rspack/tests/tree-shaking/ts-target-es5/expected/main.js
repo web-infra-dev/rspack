@@ -1,5 +1,4 @@
-(function() {
-var __webpack_modules__ = {
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.ts": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
@@ -11,8 +10,8 @@ Object.defineProperty(exports, "test", {
         return test;
     }
 });
-var _asyncToGeneratorMjs = __webpack_require__.ir(__webpack_require__("../../node_modules/@swc/helpers/src/_async_to_generator.mjs"));
-var _tsGeneratorMjs = __webpack_require__.ir(__webpack_require__("../../node_modules/@swc/helpers/src/_ts_generator.mjs"));
+var _asyncToGeneratorMjs = __webpack_require__.ir(__webpack_require__("../../../../../node_modules/@swc/helpers/src/_async_to_generator.mjs"));
+var _tsGeneratorMjs = __webpack_require__.ir(__webpack_require__("../../../../../node_modules/@swc/helpers/src/_ts_generator.mjs"));
 function test() {
     return _test.apply(this, arguments);
 }
@@ -27,7 +26,7 @@ function _test() {
     return _test.apply(this, arguments);
 }
 },
-"../../node_modules/@swc/helpers/src/_async_to_generator.mjs": function (module, exports, __webpack_require__) {
+"../../../../../node_modules/@swc/helpers/src/_async_to_generator.mjs": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -65,7 +64,7 @@ function _asyncToGenerator(fn) {
     };
 }
 },
-"../../node_modules/@swc/helpers/src/_instanceof.mjs": function (module, exports, __webpack_require__) {
+"../../../../../node_modules/@swc/helpers/src/_instanceof.mjs": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -76,13 +75,13 @@ Object.defineProperty(exports, "default", {
         return _instanceof;
     }
 });
-var _instanceofMjs = __webpack_require__.ir(__webpack_require__("../../node_modules/@swc/helpers/src/_instanceof.mjs"));
+var _instanceofMjs = __webpack_require__.ir(__webpack_require__("../../../../../node_modules/@swc/helpers/src/_instanceof.mjs"));
 function _instanceof(left, right) {
     if (right != null && typeof Symbol !== "undefined" && right[Symbol.hasInstance]) return !!right[Symbol.hasInstance](left);
     else return (0, _instanceofMjs.default)(left, right);
 }
 },
-"../../node_modules/@swc/helpers/src/_ts_generator.mjs": function (module, exports, __webpack_require__) {
+"../../../../../node_modules/@swc/helpers/src/_ts_generator.mjs": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -93,9 +92,9 @@ Object.defineProperty(exports, "default", {
         return _tslibEs6Js["__generator"];
     }
 });
-var _tslibEs6Js = __webpack_require__("../../node_modules/tslib/tslib.es6.js");
+var _tslibEs6Js = __webpack_require__("../../../../../node_modules/tslib/tslib.es6.js");
 },
-"../../node_modules/tslib/tslib.es6.js": function (module, exports, __webpack_require__) {
+"../../../../../node_modules/tslib/tslib.es6.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -106,7 +105,7 @@ Object.defineProperty(exports, "__generator", {
         return __generator;
     }
 });
-var _instanceofMjs = __webpack_require__.ir(__webpack_require__("../../node_modules/@swc/helpers/src/_instanceof.mjs"));
+var _instanceofMjs = __webpack_require__.ir(__webpack_require__("../../../../../node_modules/@swc/helpers/src/_instanceof.mjs"));
 var extendStatics = function extendStatics1(d, b) {
     extendStatics = Object.setPrototypeOf || (0, _instanceofMjs.default)({
         __proto__: []
@@ -246,79 +245,7 @@ Object.create ? function __setModuleDefault(o, v) {
 };
 },
 
-}
-// The module cache
- var __webpack_module_cache__ = {};
-function __webpack_require__(moduleId) {
-// Check if module is in cache
-        var cachedModule = __webpack_module_cache__[moduleId];
-        if (cachedModule !== undefined) {
-      return cachedModule.exports;
-      }
-      // Create a new module (and put it into the cache)
-      var module = (__webpack_module_cache__[moduleId] = {
-      // no module.loaded needed
-          exports: {}
-        });
-        // Execute the module function
-      __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
-// Return the exports of the module
- return module.exports;
-
-}
-// rspack/runtime/ir
-(function() {
-(function () {
-	function _getRequireCache(nodeInterop) {
-		if (typeof WeakMap !== "function") return null;
-
-		var cacheBabelInterop = new WeakMap();
-		var cacheNodeInterop = new WeakMap();
-		return (_getRequireCache = function (nodeInterop) {
-			return nodeInterop ? cacheNodeInterop : cacheBabelInterop;
-		})(nodeInterop);
-	}
-
-	__webpack_require__.ir = function (obj, nodeInterop) {
-		if (!nodeInterop && obj && obj.__esModule) {
-			return obj;
-		}
-
-		if (
-			obj === null ||
-			(typeof obj !== "object" && typeof obj !== "function")
-		) {
-			return { default: obj };
-		}
-
-		var cache = _getRequireCache(nodeInterop);
-		if (cache && cache.has(obj)) {
-			return cache.get(obj);
-		}
-
-		var newObj = {};
-		var hasPropertyDescriptor =
-			Object.defineProperty && Object.getOwnPropertyDescriptor;
-		for (var key in obj) {
-			if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) {
-				var desc = hasPropertyDescriptor
-					? Object.getOwnPropertyDescriptor(obj, key)
-					: null;
-				if (desc && (desc.get || desc.set)) {
-					Object.defineProperty(newObj, key, desc);
-				} else {
-					newObj[key] = obj[key];
-				}
-			}
-		}
-		newObj.default = obj;
-		if (cache) {
-			cache.set(obj, newObj);
-		}
-		return newObj;
-	};
-})();
-
-})();
+},function(__webpack_require__) {
 __webpack_require__("./index.ts");
-})();
+}
+]);
