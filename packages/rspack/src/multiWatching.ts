@@ -1,4 +1,5 @@
 /*
+	The following code is modified based on https://github.com/webpack/webpack/blob/main/lib/MultiWatching.js
   MIT License http://www.opensource.org/licenses/mit-license.php
   Author Tobias Koppers @sokra
 */

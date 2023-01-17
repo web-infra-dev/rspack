@@ -1,4 +1,5 @@
 /*
+	The following code is modified from https://github.com/webpack/webpack/blob/main/lib/ConcurrentCompilationError.js
 	MIT License http://www.opensource.org/licenses/mit-license.php
 	Author Maksim Nazarjev @acupofspirt
 */

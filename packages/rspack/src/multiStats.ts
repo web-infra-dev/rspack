@@ -1,3 +1,8 @@
+/*
+	The following code is modified based on https://github.com/webpack/webpack/blob/main/lib/MultiStats.js
+  MIT License http://www.opensource.org/licenses/mit-license.php
+  Author Tobias Koppers @sokra
+*/
 import { Stats, StatsCompilation } from "./stats";
 import { indent } from "./util";
 import identifierUtils from "./util/identifier";
