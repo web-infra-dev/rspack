@@ -86,6 +86,10 @@ impl Source for CompatSource {
       .as_ref()
       .and_then(|m| SourceMap::from_slice(m).ok())
   }
+
+  fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
+    writer.write_all(&self.source)
+  }
 }
 
 pub trait ToJsCompatSource {

@@ -3,7 +3,7 @@ mod hmr;
 mod queue;
 mod resolver;
 
-use std::{path::Path, sync::Arc};
+use std::{fs::File, io::BufWriter, path::Path, sync::Arc};
 
 use anyhow::Context;
 pub use compilation::*;
@@ -208,7 +208,12 @@ impl Compiler {
           .parent()
           .unwrap_or_else(|| panic!("The parent of {} can't found", file_path.display())),
       )?;
-      std::fs::write(file_path, source.buffer()).map_err(rspack_error::Error::from)?;
+      let file = File::create(file_path).map_err(rspack_error::Error::from)?;
+      let mut writer = BufWriter::new(file);
+      source
+        .as_ref()
+        .to_writer(&mut writer)
+        .map_err(rspack_error::Error::from)?;
       self.compilation.emitted_assets.insert(filename.to_string());
     }
     Ok(())
