@@ -35,7 +35,9 @@ use rspack_error::{
   IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray,
 };
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
-use rspack_symbol::{IndirectTopLevelSymbol, IndirectType, StarSymbol, StarSymbolKind, Symbol};
+use rspack_symbol::{
+  IndirectTopLevelSymbol, IndirectType, StarSymbol, StarSymbolKind, Symbol, SymbolType,
+};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::atoms::JsWord;
 use tokio::sync::mpsc::error::TryRecvError;
@@ -1146,15 +1148,15 @@ impl Compilation {
 
     // dbg!(&direct_used);
 
-    let dependency_replacement = update_dependency(
-      &symbol_graph,
-      &used_export_module_identifiers,
-      &bailout_module_identifiers,
-      &side_effects_free_modules,
-      &self.entry_module_identifiers,
-    );
+    // let dependency_replacement = update_dependency(
+    //   &symbol_graph,
+    //   &used_export_module_identifiers,
+    //   &bailout_module_identifiers,
+    //   &side_effects_free_modules,
+    //   &self.entry_module_identifiers,
+    // );
 
-    dbg!(&dependency_replacement);
+    // dbg!(&dependency_replacement);
 
     let debug_graph = generate_debug_symbol_graph(
       &symbol_graph,
@@ -1567,33 +1569,35 @@ fn update_dependency(
 
         // TODO: optimize export *
         // safe to process
-        if is_owner_module_export_used
-          || bail_out_module_identifiers.contains_key(&owner_module_identifier)
-          || !side_effects_free_modules.contains(&owner_module_identifier)
-          || entry_modules_identifier.contains(&owner_module_identifier)
-        {
-          if end - start > 1 {
-            println!("cant removed: {start}, {end}");
-            validate_and_insert_replacement(
-              &mut dependency_replacement_list,
-              &symbol_path,
-              end - 1,
-              start,
-              used_export_module_identifiers,
-            );
-            // dependency_replacement_list.push(DependencyReplacement {
-            //   from: symbol_path[end].clone(),
-            //   replacement: symbol_path[start].clone(),
-            // })
-          }
-          init_sliding_window(&mut start, &mut end, &symbol_path);
-          continue;
-        }
+        // if is_owner_module_export_used
+        //   || bail_out_module_identifiers.contains_key(&owner_module_identifier)
+        //   || !side_effects_free_modules.contains(&owner_module_identifier)
+        //   || entry_modules_identifier.contains(&owner_module_identifier)
+        // {
+        //   if end - start > 1 {
+        //     println!("cant removed: {start}, {end}");
+        //     validate_and_insert_replacement(
+        //       false,
+        //       &mut dependency_replacement_list,
+        //       &symbol_path,
+        //       end - 1,
+        //       start,
+        //       used_export_module_identifiers,
+        //     );
+        //     // dependency_replacement_list.push(DependencyReplacement {
+        //     //   from: symbol_path[end].clone(),
+        //     //   replacement: symbol_path[start].clone(),
+        //     // })
+        //   }
+        //   init_sliding_window(&mut start, &mut end, &symbol_path);
+        //   continue;
+        // }
 
         if !end_symbol.is_reexport() && end != symbol_path.len() - 1 {
           if end - start > 1 {
             println!("none reexport: {start}, {end}");
             validate_and_insert_replacement(
+              false,
               &mut dependency_replacement_list,
               &symbol_path,
               end - if end_symbol.is_indirect() { 0 } else { 1 },
@@ -1612,6 +1616,7 @@ fn update_dependency(
       if end - start > 1 {
         println!("end check: {start}, {end}");
         validate_and_insert_replacement(
+          true,
           &mut dependency_replacement_list,
           &symbol_path,
           end - 1,
@@ -1626,12 +1631,22 @@ fn update_dependency(
 }
 
 fn validate_and_insert_replacement(
+  end_check: bool,
   dependency_replacement_list: &mut Vec<DependencyReplacement>,
   symbol_path: &Vec<SymbolRef>,
   end: usize,
   start: usize,
   used_export_module_identifiers: &IdentifierMap<ModuleUsedType>,
 ) {
+  enum CheckResult {
+    Valid,
+    Invalid,
+    Wrong,
+  }
+  // println!(
+  //   "{:#?}, \n{:#?}, {}",
+  //   &symbol_path[start], &symbol_path[end], end_check
+  // );
   let unused_export_symbol_count = symbol_path[start..=end]
     .iter()
     .filter(|symbol| {
@@ -1644,10 +1659,12 @@ fn validate_and_insert_replacement(
 
   let is_valid_path = match (&symbol_path[start], &symbol_path[end]) {
     (SymbolRef::Direct(_), SymbolRef::Direct(_)) => false,
-    (SymbolRef::Direct(replace), SymbolRef::Indirect(original)) => original.id == replace.id().atom,
+    (SymbolRef::Direct(replace), SymbolRef::Indirect(original)) => true,
     (SymbolRef::Direct(_), SymbolRef::Star(_)) => false,
     (SymbolRef::Indirect(_), SymbolRef::Direct(_)) => false,
-    (SymbolRef::Indirect(replace), SymbolRef::Indirect(_)) => replace.ty == IndirectType::ReExport,
+    (SymbolRef::Indirect(replace), SymbolRef::Indirect(_)) => {
+      matches!(replace.ty, IndirectType::ReExport(_, _))
+    }
     (SymbolRef::Indirect(_), SymbolRef::Star(_)) => todo!(),
     (SymbolRef::Star(_), SymbolRef::Direct(_)) => todo!(),
     (SymbolRef::Star(replace), SymbolRef::Indirect(_)) => {
@@ -1662,11 +1679,19 @@ fn validate_and_insert_replacement(
     for ele in symbol_path[start..=end].iter() {
       // dbg!(&ele);
     }
+    dbg!(&symbol_path[start..=end].len());
     dependency_replacement_list.push(DependencyReplacement {
       original: symbol_path[end].clone(),
       replacement: symbol_path[start].clone(),
       unused_export_symbol_count,
     })
+  } else {
+    if !is_valid_path && !end_check {
+      println!(
+        "{:#?}, \n{:#?}, {}",
+        &symbol_path[start], &symbol_path[end], end_check
+      );
+    }
   }
   // if has_unused_export_symbol {
   // }
@@ -1674,12 +1699,27 @@ fn validate_and_insert_replacement(
 
 fn init_sliding_window(start: &mut usize, end: &mut usize, symbol_path: &Vec<SymbolRef>) {
   *start = *end;
+  while *start < symbol_path.len() && !could_be_start_of_path(&symbol_path[*start]) {
+    *start += 1;
+  }
   *end = *start + 1;
-  println!("{start}, {end}");
-  while *end < symbol_path.len()
-    && &*symbol_path[*end].module_identifier() == &*symbol_path[*start].module_identifier()
-  {
+  loop {
+    if *end < symbol_path.len() {
+      break;
+    }
+    if symbol_path[*end].module_identifier() != symbol_path[*start].module_identifier() {
+      break;
+    }
     *end += 1;
+  }
+}
+
+#[inline]
+pub fn could_be_start_of_path(symbol: &SymbolRef) -> bool {
+  match symbol {
+    SymbolRef::Direct(direct) => direct.ty() == &SymbolType::Define,
+    SymbolRef::Indirect(indirect) => matches!(indirect.ty, IndirectType::ReExport(_, _)),
+    SymbolRef::Star(star) => star.ty == StarSymbolKind::ReExportAll,
   }
 }
 
@@ -1922,7 +1962,7 @@ fn mark_symbol(
   let is_valid = if debug_care_module_id(current_symbol_ref.module_identifier().as_str()) {
     match current_symbol_ref {
       SymbolRef::Direct(_) => false,
-      SymbolRef::Indirect(ref indirect) => indirect.ty == IndirectType::ReExport,
+      SymbolRef::Indirect(ref indirect) => matches!(indirect.ty, IndirectType::ReExport(_, _)),
       SymbolRef::Star(_) => false,
     }
   } else {
@@ -1948,7 +1988,7 @@ fn mark_symbol(
     SymbolRef::Indirect(indirect) => {
       merge_used_export_type(
         used_export_module_identifiers,
-        indirect.uri().into(),
+        indirect.src().into(),
         ModuleUsedType::INDIRECT,
       );
     }
@@ -1989,12 +2029,10 @@ fn mark_symbol(
       }
     }
     SymbolRef::Indirect(ref indirect_symbol) => {
-      dbg!(&current_symbol_ref);
-      let is_skip_symbol = indirect_symbol.importer() == indirect_symbol.uri();
+      // dbg!(&current_symbol_ref);
+      let is_reexport = matches!(indirect_symbol.ty, IndirectType::ReExport(_, _));
       let importer = indirect_symbol.importer();
-      if indirect_symbol.ty == IndirectType::ReExport
-        && !evaluated_module_identifiers.contains(&importer.into())
-      {
+      if is_reexport && !evaluated_module_identifiers.contains(&importer.into()) {
         evaluated_module_identifiers.insert(importer.into());
         let module_result = analyze_map.get(&importer.into()).expect("TODO:");
         for used_symbol in module_result.used_symbol_refs.iter() {
@@ -2002,7 +2040,7 @@ fn mark_symbol(
           symbol_queue.push_back(used_symbol.clone());
         }
       }
-      let module_result = match analyze_map.get(&indirect_symbol.uri.into()) {
+      let module_result = match analyze_map.get(&indirect_symbol.src.into()) {
         Some(module_result) => module_result,
         None => {
           // eprintln!(
@@ -2012,17 +2050,26 @@ fn mark_symbol(
           return;
         }
       };
-      match module_result.export_map.get(&indirect_symbol.id) {
+
+      match module_result.export_map.get(&indirect_symbol.id()) {
         Some(symbol) => match symbol {
           SymbolRef::Indirect(IndirectTopLevelSymbol {
-            ty: IndirectType::ReExport,
-            id,
+            ty: IndirectType::ReExport(_, _),
             ..
           }) => {
+            // This only happen when a bailout module have reexport statement, e.g. crates/rspack/tests/tree-shaking/ts-target-es5
+            let is_same_symbol = &current_symbol_ref == symbol;
+            if !is_same_symbol {
+              graph.add_edge(&current_symbol_ref, symbol);
+            }
+            symbol_queue.push_back(symbol.clone());
             // if a bailout module has reexport symbol
-            if let Some(set) = module_result.reachable_import_of_export.get(&id) {
+            if let Some(set) = module_result
+              .reachable_import_of_export
+              .get(indirect_symbol.id())
+            {
               for symbol_ref_ele in set.iter() {
-                graph.add_edge(&current_symbol_ref, symbol_ref_ele);
+                graph.add_edge(symbol, symbol_ref_ele);
                 symbol_queue.push_back(symbol_ref_ele.clone());
               }
             };
@@ -2040,11 +2087,11 @@ fn mark_symbol(
           let mut has_bailout_module_identifiers = false;
           let mut is_first_result = true;
           for (module_identifier, extends_export_map) in module_result.inherit_export_maps.iter() {
-            if let Some(value) = extends_export_map.get(&indirect_symbol.id) {
+            if let Some(value) = extends_export_map.get(&indirect_symbol.id()) {
               ret.push((module_identifier, value));
               if is_first_result {
                 let mut final_node_of_path = vec![];
-                let tuple = (indirect_symbol.uri.into(), *module_identifier);
+                let tuple = (indirect_symbol.src.into(), *module_identifier);
                 match traced_tuple.entry(tuple) {
                   Entry::Occupied(occ) => {
                     let final_node_path = occ.get();
@@ -2057,7 +2104,7 @@ fn mark_symbol(
                   Entry::Vacant(vac) => {
                     for path in algo::all_simple_paths::<Vec<_>, _>(
                       &inherit_extend_graph,
-                      indirect_symbol.uri.into(),
+                      indirect_symbol.src.into(),
                       *module_identifier,
                       0,
                       None,
@@ -2104,13 +2151,13 @@ fn mark_symbol(
           }
 
           // FIXME: this is just a workaround for dependency replacement
-          if !ret.is_empty() && !evaluated_module_identifiers.contains(&indirect_symbol.uri.into())
+          if !ret.is_empty() && !evaluated_module_identifiers.contains(&indirect_symbol.src.into())
           {
             for used_symbol_ref in module_result.used_symbol_refs.iter() {
               graph.add_edge(&current_symbol_ref, used_symbol_ref);
               symbol_queue.push_back(used_symbol_ref.clone());
             }
-            evaluated_module_identifiers.insert(indirect_symbol.uri().into());
+            evaluated_module_identifiers.insert(indirect_symbol.src().into());
           }
           let selected_symbol = match ret.len() {
             0 => {
@@ -2121,7 +2168,7 @@ fn mark_symbol(
                 let error_message = format!(
                   "{} did not export `{}`, imported by {}",
                   module_result.module_identifier,
-                  indirect_symbol.id,
+                  indirect_symbol.id(),
                   indirect_symbol.importer()
                 );
                 errors.push(Error::InternalError(InternalError {
@@ -2143,7 +2190,7 @@ fn mark_symbol(
               // TODO: better traceable diagnostic
               let mut error_message = format!(
                 "Conflicting star exports for the name '{}' in ",
-                indirect_symbol.id
+                indirect_symbol.id()
               );
               // let cwd = std::env::current_dir();
               let module_identifier_list = ret
@@ -2323,12 +2370,13 @@ pub fn generate_debug_symbol_graph(g: &SymbolGraph, context: &str) -> StableDiGr
 
 pub fn simplify_symbol_ref(symbol_ref: &SymbolRef, context: &str) -> SymbolRef {
   match symbol_ref {
-    SymbolRef::Direct(direct) => SymbolRef::Direct(Symbol::from_id_and_uri(
-      direct.id().clone(),
+    SymbolRef::Direct(direct) => SymbolRef::Direct(Symbol::new(
       contextify(context, direct.uri().as_str()).into(),
+      direct.id().clone(),
+      *direct.ty(),
     )),
     SymbolRef::Indirect(indirect) => SymbolRef::Indirect(IndirectTopLevelSymbol {
-      uri: contextify(context, indirect.uri.as_str()).into(),
+      src: contextify(context, indirect.src.as_str()).into(),
       importer: contextify(context, indirect.importer().as_str()).into(),
       ..indirect.clone()
     }),
@@ -2496,7 +2544,7 @@ fn finalize_symbol(
       };
       // let used = used_export_module_identifiers
       //   .get(&analyze_result.module_identifier)
-      //   .map(|value| value.contains(UsedType::DIRECT))
+      //   .map(|value| value.contains(ModuleUsedType::DIRECT))
       //   .unwrap_or(false);
       let used = used_export_module_identifiers.contains_key(&analyze_result.module_identifier);
 
@@ -2516,9 +2564,10 @@ fn finalize_symbol(
         .module_graph_module_by_identifier_mut(&module_identifier)
         .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {module_identifier}"));
       mgm.used = true;
-      dbg!(&module_identifier);
+      // dbg!(&module_identifier);
       // eval start
       for symbol_ref in analyze_result.used_symbol_refs.iter() {
+        // dbg!(&analyze_result.used_symbol_refs);
         let node_index = *match symbol_graph.get_node_index(symbol_ref) {
           Some(node_index) => node_index,
           None => {

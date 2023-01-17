@@ -20,11 +20,18 @@ bitflags! {
 pub struct Symbol {
   pub(crate) uri: Ustr,
   pub(crate) id: BetterId,
+  pub(crate) ty: SymbolType,
+}
+
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Copy)]
+pub enum SymbolType {
+  Define,
+  Temp,
 }
 
 impl Symbol {
-  pub fn from_id_and_uri(id: BetterId, uri: Ustr) -> Self {
-    Self { uri, id }
+  pub fn new(uri: Ustr, id: BetterId, ty: SymbolType) -> Self {
+    Self { uri, id, ty }
   }
 
   pub fn uri(&self) -> Ustr {
@@ -34,13 +41,17 @@ impl Symbol {
   pub fn id(&self) -> &BetterId {
     &self.id
   }
+
+  pub fn ty(&self) -> &SymbolType {
+    &self.ty
+  }
 }
 
-#[derive(Debug, Clone, Default, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum IndirectType {
-  #[default]
-  Default,
-  ReExport,
+  Default(JsWord),
+  /// first argument is original, exported
+  ReExport(JsWord, Option<JsWord>),
 }
 
 /// We have three kind of star symbol
@@ -104,8 +115,7 @@ impl StarSymbol {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct IndirectTopLevelSymbol {
-  pub uri: Ustr,
-  pub id: JsWord,
+  pub src: Ustr,
   pub ty: IndirectType,
   // module identifier of module that import me, only used for debugging
   pub importer: Ustr,
@@ -113,8 +123,7 @@ pub struct IndirectTopLevelSymbol {
 
 impl std::hash::Hash for IndirectTopLevelSymbol {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.uri.hash(state);
-    self.id.hash(state);
+    self.src.hash(state);
     self.ty.hash(state);
     self.importer.hash(state);
   }
@@ -129,12 +138,19 @@ impl std::hash::Hash for IndirectTopLevelSymbol {
 // }
 
 impl IndirectTopLevelSymbol {
-  pub fn new(uri: Ustr, id: JsWord, importer: Ustr, ty: IndirectType) -> Self {
-    Self {
-      uri,
-      id,
-      importer,
-      ty,
+  pub fn new(src: Ustr, importer: Ustr, ty: IndirectType) -> Self {
+    Self { src, importer, ty }
+  }
+
+  /// if `self.ty == IndirectType::Rexport`, it return `exported` if it is [Some] else it return `original`.
+  /// else it return binding
+  pub fn id(&self) -> &JsWord {
+    match self.ty {
+      IndirectType::Default(ref ident) => ident,
+      IndirectType::ReExport(ref original, ref exported) => match exported {
+        Some(exported) => exported,
+        None => original,
+      },
     }
   }
 
@@ -147,16 +163,16 @@ impl IndirectTopLevelSymbol {
   //   }
   // }
 
-  pub fn uri(&self) -> Ustr {
-    self.uri
-  }
-
-  pub fn id(&self) -> &str {
-    self.id.as_ref()
+  pub fn src(&self) -> Ustr {
+    self.src
   }
 
   pub fn importer(&self) -> Ustr {
     self.importer
+  }
+
+  pub fn is_reexport(&self) -> bool {
+    matches!(&self.ty, IndirectType::ReExport(_, _))
   }
 }
 
