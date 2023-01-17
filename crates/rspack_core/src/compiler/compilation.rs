@@ -1146,15 +1146,15 @@ impl Compilation {
 
     // dbg!(&direct_used);
 
-    // let dependency_replacement = update_dependency(
-    //   &symbol_graph,
-    //   &used_export_module_identifiers,
-    //   &bailout_module_identifiers,
-    //   &side_effects_free_modules,
-    //   &self.entry_module_identifiers,
-    // );
+    let dependency_replacement = update_dependency(
+      &symbol_graph,
+      &used_export_module_identifiers,
+      &bailout_module_identifiers,
+      &side_effects_free_modules,
+      &self.entry_module_identifiers,
+    );
 
-    // dbg!(&dependency_replacement);
+    dbg!(&dependency_replacement);
 
     let debug_graph = generate_debug_symbol_graph(
       &symbol_graph,
@@ -1632,22 +1632,33 @@ fn validate_and_insert_replacement(
   start: usize,
   used_export_module_identifiers: &IdentifierMap<ModuleUsedType>,
 ) {
-  let has_unused_export_symbol = symbol_path[start..=end].iter().any(|symbol| {
-    used_export_module_identifiers
-      .get(&symbol.module_identifier())
-      .map(|ty| !ty.contains(ModuleUsedType::DIRECT))
-      .unwrap_or(false)
-  });
+  let unused_export_symbol_count = symbol_path[start..=end]
+    .iter()
+    .filter(|symbol| {
+      used_export_module_identifiers
+        .get(&symbol.module_identifier())
+        .map(|ty| !ty.contains(ModuleUsedType::DIRECT))
+        .unwrap_or(false)
+    })
+    .count();
 
-  if has_unused_export_symbol
-    && !matches!(
-      &symbol_path[end],
-      SymbolRef::Star(StarSymbol {
-        ty: StarSymbolKind::ImportAllAs,
-        ..
-      })
-    )
-  {
+  let is_valid_path = match (&symbol_path[start], &symbol_path[end]) {
+    (SymbolRef::Direct(_), SymbolRef::Direct(_)) => false,
+    (SymbolRef::Direct(replace), SymbolRef::Indirect(from)) => from.id == replace.id().atom,
+    (SymbolRef::Direct(_), SymbolRef::Star(_)) => false,
+    (SymbolRef::Indirect(_), SymbolRef::Direct(_)) => false,
+    (SymbolRef::Indirect(replace), SymbolRef::Indirect(_)) => replace.ty == IndirectType::ReExport,
+    (SymbolRef::Indirect(_), SymbolRef::Star(_)) => todo!(),
+    (SymbolRef::Star(_), SymbolRef::Direct(_)) => todo!(),
+    (SymbolRef::Star(replace), SymbolRef::Indirect(_)) => {
+      replace.ty == StarSymbolKind::ReExportAll
+      // dbg!(&symbol_path[start]);
+      // dbg!(&symbol_path[end]);
+      // todo!()
+    }
+    (SymbolRef::Star(_), SymbolRef::Star(_)) => todo!(),
+  };
+  if unused_export_symbol_count > 0 && is_valid_path {
     for ele in symbol_path[start..=end].iter() {
       // dbg!(&ele);
     }
