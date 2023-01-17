@@ -85,7 +85,7 @@ export class Compilation {
 	/**
 	 * Get a map of all entrypoints.
 	 */
-	get entrypoints(): Readonly<Map<string, ChunkGroup>> {
+	get entrypoints(): ReadonlyMap<string, ChunkGroup> {
 		return new Map(
 			Object.entries(this.#inner.entrypoints).map(([n, e]) => [
 				n,
