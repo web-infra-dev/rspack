@@ -25,6 +25,7 @@ export class RspackOptionsApply {
 		}
 		new ResolveSwcPlugin().apply(compiler);
 
+		compiler.hooks.afterPlugins.call(compiler);
 		if (!compiler.inputFileSystem) {
 			throw new Error("No input filesystem provided");
 		}
@@ -43,5 +44,6 @@ export class RspackOptionsApply {
 				resolveOptions.resolveToContext = true;
 				return resolveOptions;
 			});
+		compiler.hooks.afterResolvers.call(compiler);
 	}
 }

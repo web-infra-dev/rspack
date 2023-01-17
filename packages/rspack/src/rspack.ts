@@ -71,6 +71,8 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 		"NormalizedOptions:",
 		util.inspect(compiler.options, { colors: true, depth: null })
 	);
+	compiler.hooks.environment.call();
+	compiler.hooks.afterEnvironment.call();
 	new RspackOptionsApply().process(compiler.options, compiler);
 	compiler.hooks.initialize.call();
 	return compiler;

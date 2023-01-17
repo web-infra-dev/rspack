@@ -55,6 +55,7 @@ export class Compilation {
 	outputOptions: ResolvedOutput;
 	compiler: Compiler;
 	resolverFactory: ResolverFactory;
+	inputFileSystem: any;
 	logging: Map<string, LogEntry[]>;
 	name: string;
 
@@ -65,6 +66,8 @@ export class Compilation {
 			log: new tapable.SyncBailHook(["origin", "logEntry"])
 		};
 		this.compiler = compiler;
+		this.resolverFactory = compiler.resolverFactory;
+		this.inputFileSystem = compiler.inputFileSystem;
 		this.options = compiler.options;
 		this.outputOptions = compiler.options.output;
 		this.logging = new Map();
