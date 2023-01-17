@@ -1,9 +1,7 @@
-import { rspack } from "@rspack/core";
-import * as util from "util";
 import * as fs from "fs";
 import type { RspackCLI } from "../rspack-cli";
 import { RspackCommand } from "../types";
-import { commonOptions, normalizeEnv } from "../utils/options";
+import { commonOptions } from "../utils/options";
 import { Stats } from "@rspack/core/src/stats";
 
 export class BuildCommand implements RspackCommand {

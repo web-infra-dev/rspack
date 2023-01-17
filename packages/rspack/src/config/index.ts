@@ -46,6 +46,7 @@ import {
 import { RawExperiments, RawNodeOption } from "@rspack/binding";
 import { resolveExperiments } from "./experiments";
 import { NodeOptions, resolveNode } from "./node";
+import type { ResolvedWatch, WatchOptions } from "./watch";
 
 export type Configuration = RspackOptions;
 export interface RspackOptions {
@@ -76,6 +77,7 @@ export interface RspackOptions {
 	experiments?: RawExperiments;
 	node?: NodeOptions;
 	dependencies?: string[];
+	watch?: WatchOptions;
 }
 export interface RspackOptionsNormalized {
 	name?: string;
@@ -100,6 +102,7 @@ export interface RspackOptionsNormalized {
 	experiments: RawExperiments;
 	node: RawNodeOption;
 	dependencies?: string[];
+	watch?: WatchOptions;
 }
 
 export function getNormalizedRspackOptions(
@@ -144,6 +147,9 @@ export function getNormalizedRspackOptions(
 	);
 	const experiments = resolveExperiments(config.experiments);
 	const node = resolveNode(config.node);
+	// FIXME: it won't work if your not invoke `watch`
+	// FIXME: maybe we should use `boolean | WatchOptions`
+	const watch = config.watch ?? {};
 
 	return {
 		...config,
@@ -166,7 +172,8 @@ export function getNormalizedRspackOptions(
 		cache,
 		optimization,
 		experiments,
-		node
+		node,
+		watch
 	};
 }
 
@@ -174,5 +181,5 @@ function cloneObject(value: Record<string, any> | undefined) {
 	return { ...value };
 }
 export type { PluginInstance as Plugin, LoaderContext, Loader, SourceMap };
-export type { WebSocketServerOptions, Dev } from "./devServer";
+export type { Dev } from "./devServer";
 export type { StatsOptions } from "./stats";

@@ -14,24 +14,52 @@ exports[`normalize options snapshot additional entires should added 1`] = `
 
 exports[`normalize options snapshot no options 1`] = `
 {
+  "allowedHosts": "auto",
+  "bonjour": false,
   "client": {
     "logging": "info",
     "overlay": true,
     "reconnect": 10,
     "webSocketURL": {},
   },
+  "compress": true,
   "devMiddleware": {},
   "historyApiFallback": false,
   "host": undefined,
   "hot": true,
   "liveReload": true,
-  "open": true,
-  "port": undefined,
-  "proxy": undefined,
-  "static": {
-    "directory": "<PROJECT_ROOT>/dist",
-    "watch": {},
+  "magicHtml": true,
+  "open": [],
+  "port": 8080,
+  "server": {
+    "options": {},
+    "type": "http",
   },
+  "setupExitSignals": true,
+  "static": [
+    {
+      "directory": "<PROJECT_ROOT>/public",
+      "publicPath": [
+        "/",
+      ],
+      "serveIndex": {
+        "icons": true,
+      },
+      "staticOptions": {},
+      "watch": {
+        "alwaysStat": true,
+        "atomic": false,
+        "followSymlinks": false,
+        "ignoreInitial": true,
+        "ignorePermissionErrors": true,
+        "ignored": undefined,
+        "interval": undefined,
+        "persistent": true,
+        "usePolling": false,
+      },
+    },
+  ],
+  "watchFiles": [],
   "webSocketServer": {
     "options": {
       "path": "/ws",
@@ -43,24 +71,52 @@ exports[`normalize options snapshot no options 1`] = `
 
 exports[`normalize options snapshot port string 1`] = `
 {
+  "allowedHosts": "auto",
+  "bonjour": false,
   "client": {
     "logging": "info",
     "overlay": true,
     "reconnect": 10,
     "webSocketURL": {},
   },
+  "compress": true,
   "devMiddleware": {},
   "historyApiFallback": false,
   "host": undefined,
   "hot": true,
   "liveReload": true,
-  "open": true,
+  "magicHtml": true,
+  "open": [],
   "port": 9000,
-  "proxy": undefined,
-  "static": {
-    "directory": "<PROJECT_ROOT>/dist",
-    "watch": {},
+  "server": {
+    "options": {},
+    "type": "http",
   },
+  "setupExitSignals": true,
+  "static": [
+    {
+      "directory": "<PROJECT_ROOT>/public",
+      "publicPath": [
+        "/",
+      ],
+      "serveIndex": {
+        "icons": true,
+      },
+      "staticOptions": {},
+      "watch": {
+        "alwaysStat": true,
+        "atomic": false,
+        "followSymlinks": false,
+        "ignoreInitial": true,
+        "ignorePermissionErrors": true,
+        "ignored": undefined,
+        "interval": undefined,
+        "persistent": true,
+        "usePolling": false,
+      },
+    },
+  ],
+  "watchFiles": [],
   "webSocketServer": {
     "options": {
       "path": "/ws",
@@ -90,24 +146,52 @@ exports[`normalize options snapshot react.development and react.refresh should b
     },
   },
   "devServer": {
+    "allowedHosts": "auto",
+    "bonjour": false,
     "client": {
       "logging": "info",
       "overlay": true,
       "reconnect": 10,
       "webSocketURL": {},
     },
+    "compress": true,
     "devMiddleware": {},
     "historyApiFallback": false,
     "host": undefined,
     "hot": true,
     "liveReload": true,
-    "open": true,
-    "port": undefined,
-    "proxy": undefined,
-    "static": {
-      "directory": "<PROJECT_ROOT>/dist",
-      "watch": {},
+    "magicHtml": true,
+    "open": [],
+    "port": 8080,
+    "server": {
+      "options": {},
+      "type": "http",
     },
+    "setupExitSignals": true,
+    "static": [
+      {
+        "directory": "<PROJECT_ROOT>/public",
+        "publicPath": [
+          "/",
+        ],
+        "serveIndex": {
+          "icons": true,
+        },
+        "staticOptions": {},
+        "watch": {
+          "alwaysStat": true,
+          "atomic": false,
+          "followSymlinks": false,
+          "ignoreInitial": true,
+          "ignorePermissionErrors": true,
+          "ignored": undefined,
+          "interval": undefined,
+          "persistent": true,
+          "usePolling": false,
+        },
+      },
+    ],
+    "watchFiles": [],
     "webSocketServer": {
       "options": {
         "path": "/ws",

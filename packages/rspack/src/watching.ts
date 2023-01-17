@@ -194,6 +194,7 @@ class Watching {
 
 	#go(changedFiles?: ReadonlySet<string>, removedFiles?: ReadonlySet<string>) {
 		this.running = true;
+		const logger = this.compiler.getInfrastructureLogger("watcher");
 		if (this.watcher) {
 			this.pausedWatcher = this.watcher;
 			this.lastWatcherStartTime = Date.now();

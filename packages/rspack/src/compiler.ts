@@ -1,14 +1,12 @@
 import path from "path";
 import fs from "fs";
-
 import * as tapable from "tapable";
 import { SyncHook, SyncBailHook, Callback } from "tapable";
 import asyncLib from "neo-async";
-
+import type { WatchOptions } from "watchpack";
 import Watching from "./watching";
 import * as binding from "@rspack/binding";
 import { Logger } from "./logging/Logger";
-import type { WatchOptions } from "./config/watch";
 import { RspackOptionsNormalized } from "./config";
 import { Stats } from "./stats";
 import { Compilation } from "./compilation";
@@ -22,7 +20,7 @@ class EntryPlugin {
 class HotModuleReplacementPlugin {
 	apply() {}
 }
-type CompilationParams = Record<string, any>;
+
 class Compiler {
 	#_instance: binding.Rspack;
 

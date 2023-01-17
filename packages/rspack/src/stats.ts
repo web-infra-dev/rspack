@@ -10,6 +10,7 @@ type StatsCompilationInner = Omit<binding.JsStatsCompilation, "entrypoints"> & {
 };
 export type StatsCompilation = Partial<StatsCompilationInner> & {
 	filteredModules?: number;
+	publicPath?: string;
 };
 
 export class Stats {
