@@ -4,6 +4,7 @@ export function resolveExperiments(
 	experiments?: RawExperiments
 ): RawExperiments {
 	return {
-		lazyCompilation: experiments?.lazyCompilation ?? false
+		lazyCompilation: experiments?.lazyCompilation ?? false,
+		changedHmr: experiments?.changedHmr ?? false
 	};
 }

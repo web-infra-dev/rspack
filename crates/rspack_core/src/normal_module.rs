@@ -12,7 +12,6 @@ use std::{
 
 use bitflags::bitflags;
 use dashmap::DashMap;
-use indexmap::IndexSet;
 use rspack_error::{
   internal_error, Diagnostic, Error, IntoTWithDiagnosticArray, Result, Severity,
   TWithDiagnosticArray,
@@ -206,6 +205,17 @@ impl ModuleGraphModule {
       .collect()
   }
 
+  pub fn all_depended_modules<'a>(
+    &self,
+    module_graph: &'a ModuleGraph,
+  ) -> Vec<&'a ModuleGraphModule> {
+    self
+      .dependencies
+      .iter()
+      .filter_map(|dep| module_graph.module_by_dependency(dep))
+      .collect()
+  }
+
   pub fn set_issuer_if_unset(&mut self, issuer: Option<ModuleIdentifier>) {
     if matches!(self.issuer, ModuleIssuer::Unset) {
       self.issuer = ModuleIssuer::from_identifier(issuer);
@@ -293,10 +303,10 @@ impl From<BoxSource> for AstOrSource {
 #[derive(Debug, Default)]
 pub struct BuildInfo {
   pub strict: bool,
-  pub file_dependencies: IndexSet<PathBuf>,
-  pub context_dependencies: IndexSet<PathBuf>,
-  pub missing_dependencies: IndexSet<PathBuf>,
-  pub build_dependencies: IndexSet<PathBuf>,
+  pub file_dependencies: HashSet<PathBuf>,
+  pub context_dependencies: HashSet<PathBuf>,
+  pub missing_dependencies: HashSet<PathBuf>,
+  pub build_dependencies: HashSet<PathBuf>,
 }
 
 #[derive(Debug)]
@@ -435,6 +445,10 @@ impl NormalModule {
   pub fn ast_or_source(&self) -> &NormalModuleAstOrSource {
     &self.ast_or_source
   }
+
+  pub fn ast_or_source_mut(&mut self) -> &mut NormalModuleAstOrSource {
+    &mut self.ast_or_source
+  }
 }
 
 impl Identifiable for NormalModule {
@@ -475,6 +489,9 @@ impl Module for NormalModule {
     &mut self,
     build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>> {
+    // clear build_info
+    self.build_info = Default::default();
+
     let mut diagnostics = Vec::new();
     let loader_result = build_context
       .loader_runner_runner
@@ -530,13 +547,30 @@ impl Module for NormalModule {
         .collect::<Vec<_>>(),
     );
 
+    self
+      .build_info
+      .file_dependencies
+      .extend(loader_result.file_dependencies);
+    self
+      .build_info
+      .context_dependencies
+      .extend(loader_result.context_dependencies);
+    self
+      .build_info
+      .missing_dependencies
+      .extend(loader_result.missing_dependencies);
+    self
+      .build_info
+      .build_dependencies
+      .extend(loader_result.build_dependencies);
+
     Ok(
       BuildResult {
         cacheable: loader_result.cacheable,
-        file_dependencies: loader_result.file_dependencies,
-        context_dependencies: loader_result.context_dependencies,
-        missing_dependencies: loader_result.missing_dependencies,
-        build_dependencies: loader_result.build_dependencies,
+        file_dependencies: self.build_info.file_dependencies.clone(),
+        context_dependencies: self.build_info.context_dependencies.clone(),
+        missing_dependencies: self.build_info.missing_dependencies.clone(),
+        build_dependencies: self.build_info.build_dependencies.clone(),
         dependencies,
       }
       .with_diagnostic(diagnostics),
@@ -619,6 +653,19 @@ impl Module for NormalModule {
 
   fn get_resolve_options(&self) -> Option<&Resolve> {
     self.resolve_options.as_ref()
+  }
+
+  fn has_dependencies(&self, files: &HashSet<PathBuf>) -> bool {
+    for item in files {
+      if self.build_info.file_dependencies.contains(item)
+        || self.build_info.build_dependencies.contains(item)
+        || self.build_info.context_dependencies.contains(item)
+        || self.build_info.missing_dependencies.contains(item)
+      {
+        return true;
+      }
+    }
+    false
   }
 }
 

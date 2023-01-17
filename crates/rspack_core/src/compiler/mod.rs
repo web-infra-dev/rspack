@@ -11,13 +11,13 @@ pub use queue::*;
 use rayon::prelude::*;
 pub use resolver::*;
 use rspack_error::{Error, Result};
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::FxHashSet as HashSet;
 use tokio::sync::RwLock;
 use tracing::instrument;
 
 use crate::{
-  cache::Cache, fast_set, CompilerOptions, LoaderRunnerRunner, ModuleDependency, Plugin,
-  PluginDriver, SharedPluginDriver,
+  cache::Cache, fast_set, CompilerOptions, LoaderRunnerRunner, Plugin, PluginDriver,
+  SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -107,8 +107,13 @@ impl Compiler {
       .compilation(&mut self.compilation)
       .await?;
 
-    let deps = self.compilation.entry_dependencies();
-    self.compile(deps).await?;
+    let deps = self
+      .compilation
+      .entry_dependencies()
+      .into_iter()
+      .flat_map(|(_, deps)| deps)
+      .collect::<HashSet<_>>();
+    self.compile(SetupMakeParam::ForceBuildDeps(deps)).await?;
     self.cache.begin_idle().await;
 
     #[cfg(debug_assertions)]
@@ -125,9 +130,9 @@ impl Compiler {
   }
 
   #[instrument(name = "compile", skip_all)]
-  async fn compile(&mut self, deps: HashMap<String, Vec<Box<dyn ModuleDependency>>>) -> Result<()> {
+  async fn compile(&mut self, params: SetupMakeParam) -> Result<()> {
     let option = self.options.clone();
-    self.compilation.make(deps).await?;
+    self.compilation.make(params).await?;
     if option.builtins.tree_shaking {
       let (analyze_result, diagnostics) = self
         .compilation

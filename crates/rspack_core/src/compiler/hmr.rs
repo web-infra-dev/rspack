@@ -1,6 +1,7 @@
 use std::{
   hash::{Hash, Hasher},
   ops::Sub,
+  path::PathBuf,
 };
 
 use rspack_error::Result;
@@ -8,8 +9,8 @@ use rspack_sources::{RawSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  fast_set, AssetInfo, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler, IdentifierMap,
-  IdentifierSet, ModuleIdentifier, RenderManifestArgs, RuntimeSpec,
+  fast_set, AssetInfo, CacheOptions, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler,
+  IdentifierMap, IdentifierSet, ModuleIdentifier, RenderManifestArgs, RuntimeSpec, SetupMakeParam,
 };
 
 const HOT_UPDATE_MAIN_FILENAME: &str = "hot-update.json";
@@ -41,7 +42,7 @@ impl Compiler {
   pub async fn rebuild(
     &mut self,
     changed_files: std::collections::HashSet<String>,
-    _removed_files: std::collections::HashSet<String>,
+    removed_files: std::collections::HashSet<String>,
   ) -> Result<()> {
     let old = self.compilation.get_stats();
     let collect_changed_modules = |compilation: &Compilation| -> (
@@ -127,19 +128,36 @@ impl Compiler {
       self.cache.end_idle().await;
       self.plugin_driver.read().await.resolver.clear();
 
-      fast_set(
-        &mut self.compilation,
-        Compilation::new(
-          // TODO: use Arc<T> instead
-          self.options.clone(),
-          self.options.entry.clone(),
-          Default::default(),
-          Default::default(),
-          self.plugin_driver.clone(),
-          self.loader_runner_runner.clone(),
-          self.cache.clone(),
-        ),
+      let mut new_compilation = Compilation::new(
+        // TODO: use Arc<T> instead
+        self.options.clone(),
+        self.options.entry.clone(),
+        Default::default(),
+        Default::default(),
+        self.plugin_driver.clone(),
+        self.loader_runner_runner.clone(),
+        self.cache.clone(),
       );
+
+      let enable_changed_hmr = self.options.experiments.changed_hmr
+        && !matches!(self.options.cache, CacheOptions::Disabled);
+      if enable_changed_hmr {
+        // copy field from old compilation
+        new_compilation.visited_module_id = std::mem::take(&mut self.compilation.visited_module_id);
+        new_compilation.module_graph = std::mem::take(&mut self.compilation.module_graph);
+        new_compilation.make_failed_dependencies =
+          std::mem::take(&mut self.compilation.make_failed_dependencies);
+        new_compilation.file_dependencies = std::mem::take(&mut self.compilation.file_dependencies);
+        new_compilation.context_dependencies =
+          std::mem::take(&mut self.compilation.context_dependencies);
+        new_compilation.missing_dependencies =
+          std::mem::take(&mut self.compilation.missing_dependencies);
+        new_compilation.build_dependencies =
+          std::mem::take(&mut self.compilation.build_dependencies);
+      }
+
+      fast_set(&mut self.compilation, new_compilation);
+
       self.compilation.lazy_visit_modules = changed_files.clone();
 
       // Fake this compilation as *currently* rebuilding does not create a new compilation
@@ -157,8 +175,21 @@ impl Compiler {
         .compilation(&mut self.compilation)
         .await?;
 
-      let deps = self.compilation.entry_dependencies();
-      self.compile(deps).await?;
+      let setup_make_params = if enable_changed_hmr {
+        let mut modified_files = HashSet::default();
+        modified_files.extend(changed_files.iter().map(PathBuf::from));
+        modified_files.extend(removed_files.iter().map(PathBuf::from));
+        SetupMakeParam::ModifiedFiles(modified_files)
+      } else {
+        let deps = self
+          .compilation
+          .entry_dependencies()
+          .into_iter()
+          .flat_map(|(_, deps)| deps)
+          .collect::<HashSet<_>>();
+        SetupMakeParam::ForceBuildDeps(deps)
+      };
+      self.compile(setup_make_params).await?;
       self.cache.begin_idle().await;
     }
 

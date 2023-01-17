@@ -109,6 +109,7 @@ describe("snapshots", () => {
 		    },
 		  },
 		  "experiments": {
+		    "changedHmr": false,
 		    "lazyCompilation": false,
 		  },
 		  "externals": {},

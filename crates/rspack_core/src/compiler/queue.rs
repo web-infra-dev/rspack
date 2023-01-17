@@ -3,9 +3,9 @@ use std::{path::PathBuf, sync::Arc};
 use rspack_error::{internal_error, Diagnostic, Error, Result};
 
 use crate::{
-  cache::Cache, module_rule_matcher, BuildContext, BuildResult, Compilation, CompilerOptions,
-  Dependency, FactorizeResult, LoaderRunnerRunner, Module, ModuleDependency, ModuleGraph,
-  ModuleGraphModule, ModuleIdentifier, ModuleRule, ModuleType, NormalModuleFactory,
+  cache::Cache, module_rule_matcher, BoxModuleDependency, BuildContext, BuildResult, Compilation,
+  CompilerOptions, Dependency, FactorizeResult, LoaderRunnerRunner, Module, ModuleDependency,
+  ModuleGraph, ModuleGraphModule, ModuleIdentifier, ModuleRule, ModuleType, NormalModuleFactory,
   NormalModuleFactoryContext, Resolve, SharedPluginDriver, WorkerQueue,
 };
 
@@ -25,7 +25,7 @@ pub trait WorkerTask {
 pub struct FactorizeTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub original_resource_path: Option<PathBuf>,
-  pub dependencies: Vec<Box<dyn ModuleDependency>>,
+  pub dependencies: Vec<BoxModuleDependency>,
 
   pub is_entry: bool,
   pub module_name: Option<String>,
@@ -43,7 +43,7 @@ pub struct FactorizeTaskResult {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub factory_result: FactorizeResult,
   pub module_graph_module: Box<ModuleGraphModule>,
-  pub dependencies: Vec<Box<dyn ModuleDependency>>,
+  pub dependencies: Vec<BoxModuleDependency>,
   pub diagnostics: Vec<Diagnostic>,
   pub is_entry: bool,
 }
@@ -103,14 +103,20 @@ pub struct AddTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub module: Box<dyn Module>,
   pub module_graph_module: Box<ModuleGraphModule>,
-  pub dependencies: Vec<Box<dyn ModuleDependency>>,
+  pub dependencies: Vec<BoxModuleDependency>,
   pub is_entry: bool,
 }
 
 #[derive(Debug)]
 pub enum AddTaskResult {
-  ModuleReused(Box<dyn Module>),
-  ModuleAdded(Box<dyn Module>),
+  ModuleReused {
+    module: Box<dyn Module>,
+    dependencies: Vec<BoxModuleDependency>,
+  },
+  ModuleAdded {
+    module: Box<dyn Module>,
+    dependencies: Vec<BoxModuleDependency>,
+  },
 }
 
 impl AddTask {
@@ -128,11 +134,14 @@ impl AddTask {
       Self::set_resolved_module(
         &mut compilation.module_graph,
         self.original_module_identifier,
-        self.dependencies,
+        self.dependencies.clone(),
         module_identifier,
       )?;
 
-      return Ok(TaskResult::Add(AddTaskResult::ModuleReused(self.module)));
+      return Ok(TaskResult::Add(AddTaskResult::ModuleReused {
+        module: self.module,
+        dependencies: self.dependencies,
+      }));
     }
 
     compilation.visited_module_id.insert(temporary_module_id);
@@ -144,7 +153,7 @@ impl AddTask {
     Self::set_resolved_module(
       &mut compilation.module_graph,
       self.original_module_identifier,
-      self.dependencies,
+      self.dependencies.clone(),
       module_identifier,
     )?;
 
@@ -154,7 +163,10 @@ impl AddTask {
         .insert(module_identifier);
     }
 
-    Ok(TaskResult::Add(AddTaskResult::ModuleAdded(self.module)))
+    Ok(TaskResult::Add(AddTaskResult::ModuleAdded {
+      module: self.module,
+      dependencies: self.dependencies,
+    }))
   }
 }
 
@@ -162,7 +174,7 @@ impl AddTask {
   fn set_resolved_module(
     module_graph: &mut ModuleGraph,
     original_module_identifier: Option<ModuleIdentifier>,
-    dependencies: Vec<Box<dyn ModuleDependency>>,
+    dependencies: Vec<BoxModuleDependency>,
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
     for dependency in dependencies {
@@ -178,6 +190,7 @@ pub type AddQueue = WorkerQueue<AddTask>;
 
 pub struct BuildTask {
   pub module: Box<dyn Module>,
+  pub dependencies: Vec<BoxModuleDependency>,
 
   pub loader_runner_runner: Arc<LoaderRunnerRunner>,
   pub compiler_options: Arc<CompilerOptions>,
@@ -189,6 +202,7 @@ pub struct BuildTask {
 pub struct BuildTaskResult {
   pub module: Box<dyn Module>,
   pub build_result: Box<BuildResult>,
+  pub dependencies: Vec<BoxModuleDependency>,
   pub diagnostics: Vec<Diagnostic>,
 }
 
@@ -251,6 +265,7 @@ impl WorkerTask for BuildTask {
       let (build_result, diagnostics) = build_result.split_into_parts();
       TaskResult::Build(BuildTaskResult {
         module,
+        dependencies: self.dependencies,
         build_result: Box::new(build_result),
         diagnostics,
       })
@@ -261,8 +276,8 @@ impl WorkerTask for BuildTask {
 pub type BuildQueue = WorkerQueue<BuildTask>;
 
 pub struct ProcessDependenciesTask {
-  pub original_module_identifier: Option<ModuleIdentifier>,
-  pub dependencies: Vec<Box<dyn ModuleDependency>>,
+  pub original_module_identifier: ModuleIdentifier,
+  pub dependencies: Vec<BoxModuleDependency>,
   pub resolve_options: Option<Resolve>,
 }
 
@@ -272,3 +287,53 @@ pub struct ProcessDependenciesResult {
 }
 
 pub type ProcessDependenciesQueue = WorkerQueue<ProcessDependenciesTask>;
+
+pub struct CleanTask {
+  pub module_identifier: ModuleIdentifier,
+}
+
+#[derive(Debug)]
+pub enum CleanTaskResult {
+  ModuleIsUsed {
+    module_identifier: ModuleIdentifier,
+  },
+  ModuleIsCleaned {
+    module_identifier: ModuleIdentifier,
+    dependent_module_identifiers: Vec<ModuleIdentifier>,
+  },
+}
+
+impl CleanTask {
+  pub fn run(self, compilation: &mut Compilation) -> CleanTaskResult {
+    let module_identifier = self.module_identifier;
+    let mgm = match compilation
+      .module_graph
+      .module_graph_module_by_identifier(&module_identifier)
+    {
+      Some(mgm) => mgm,
+      None => {
+        return CleanTaskResult::ModuleIsCleaned {
+          module_identifier,
+          dependent_module_identifiers: vec![],
+        }
+      }
+    };
+
+    if !mgm.incoming_connections.is_empty() {
+      return CleanTaskResult::ModuleIsUsed { module_identifier };
+    }
+
+    let dependent_module_identifiers: Vec<ModuleIdentifier> = mgm
+      .all_depended_modules(&compilation.module_graph)
+      .iter()
+      .map(|mgm| mgm.module_identifier)
+      .collect();
+    compilation.module_graph.revoke_module(&module_identifier);
+    CleanTaskResult::ModuleIsCleaned {
+      module_identifier,
+      dependent_module_identifiers,
+    }
+  }
+}
+
+pub type CleanQueue = WorkerQueue<CleanTask>;

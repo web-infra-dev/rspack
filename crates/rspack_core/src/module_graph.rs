@@ -331,6 +331,78 @@ impl ModuleGraph {
       })
       .unwrap_or_default()
   }
+
+  /// Remove a connection and return connection origin module identifier and dependency
+  fn revoke_connection(&mut self, cid: usize) -> Option<BoxModuleDependency> {
+    let connection = match self.connection_id_to_connection.remove(&cid) {
+      Some(c) => c,
+      None => return None,
+    };
+    self.connections.remove(&connection);
+
+    let ModuleGraphConnection {
+      original_module_identifier,
+      module_identifier,
+      dependency_id,
+      ..
+    } = connection;
+
+    // remove dependency
+    self.dependency_id_to_connection_id.remove(&dependency_id);
+    self
+      .dependency_id_to_module_identifier
+      .remove(&dependency_id);
+    let dependency = self.dependency_id_to_dependency.remove(&dependency_id);
+    if let Some(dep) = &dependency {
+      self.dependency_to_dependency_id.remove(dep);
+    }
+
+    // remove outgoing from original module graph module
+    if let Some(original_module_identifier) = &original_module_identifier {
+      if let Some(mgm) = self
+        .module_identifier_to_module_graph_module
+        .get_mut(original_module_identifier)
+      {
+        mgm.outgoing_connections.remove(&cid);
+        // Because of mgm.dependencies is set when original module build success
+        // it does not need to remove dependency in mgm.dependencies.
+      }
+    }
+    // remove incoming from module graph module
+    if let Some(mgm) = self
+      .module_identifier_to_module_graph_module
+      .get_mut(&module_identifier)
+    {
+      mgm.incoming_connections.remove(&cid);
+    }
+
+    dependency
+  }
+
+  /// Remove module from module graph and return parent module identifier and dependency pair
+  pub fn revoke_module(
+    &mut self,
+    module_identifier: &ModuleIdentifier,
+  ) -> Vec<BoxModuleDependency> {
+    self.module_identifier_to_module.remove(module_identifier);
+    let mgm = self
+      .module_identifier_to_module_graph_module
+      .remove(module_identifier);
+
+    if let Some(mgm) = mgm {
+      for cid in mgm.outgoing_connections {
+        self.revoke_connection(cid);
+      }
+
+      mgm
+        .incoming_connections
+        .iter()
+        .filter_map(|cid| self.revoke_connection(*cid))
+        .collect()
+    } else {
+      vec![]
+    }
+  }
 }
 
 #[cfg(test)]

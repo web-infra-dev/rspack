@@ -15,8 +15,8 @@ pub use hash::*;
 mod module_rules;
 pub use module_rules::*;
 
-mod fast_set;
-pub use fast_set::*;
+mod fast_actions;
+pub use fast_actions::*;
 
 mod queue;
 pub use queue::*;
