@@ -74,12 +74,9 @@ impl SymbolRef {
     matches!(self, Self::Star(..))
   }
 
-  pub fn is_reexport(&self) -> bool {
+  pub fn is_skipable_symbol(&self) -> bool {
     match self {
-      SymbolRef::Indirect(IndirectTopLevelSymbol {
-        ty: IndirectType::ReExport(_, _),
-        ..
-      }) => true,
+      SymbolRef::Indirect(_) => true,
       SymbolRef::Star(StarSymbol {
         ty: StarSymbolKind::ReExportAll,
         ..

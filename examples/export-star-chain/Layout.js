@@ -1,2 +1,2 @@
 export * from './something'
-export * from './c.js'
+export * as ccc from './c.js'
